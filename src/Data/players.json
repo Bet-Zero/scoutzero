@@ -1,0 +1,67 @@
+{
+  "lebron_james": {
+    "id": "2544",
+    "name": "LeBron James",
+    "position": "SF",
+    "team": "Lakers",
+    "teamLogo": "https://loodibee.com/wp-content/uploads/nba-los-angeles-lakers-logo.png",
+    "headshot": "/images/headshots/lebron_james.png",
+    "bio": {
+      "HT": "6'9\"",
+      "WT": "250 lbs",
+      "Age": 39,
+      "Years Pro": 22,
+      "Contract": "$47.6M / 2 yrs",
+      "Free Agent": 2025
+    },
+    "stats": {
+      "G": 70,
+      "PPG": 24.6,
+      "RPG": 8.0,
+      "APG": 8.4,
+      "FG%": 51.2,
+      "3PT%": 37.8,
+      "FT%": 77.7,
+      "EFG%": 57.2
+    }
+  },
+
+  "cade_cunningham": {
+  "id": "1630595",
+  "name": "Cade Cunningham",
+  "position": "G",
+  "team": "Pistons",
+  "headshot": "/images/headshots/cade_cunningham.png",
+  "teamLogo": "/images/logos/pistons.png",
+  "bio": {
+    "HT": "6'6\"",
+    "WT": "220 lbs",
+    "Age": 23,
+    "Years Pro": 3,
+    "Contract": "4y / $46M",
+    "Free Agent": 2025
+  },
+  "stats": {
+    "G": 68,
+    "PPG": 25.5,
+    "RPG": 6.1,
+    "APG": 9.4,
+    "FG%": 46.1,
+    "3PT%": 35.7,
+    "FT%": 85.5,
+    "EFG%": 52.6
+  },
+  "traits": {
+    "Shooting": 85,
+    "Passing": 91,
+    "Rebounding": 72,
+    "Defense": 70,
+    "IQ": 92,
+    "Feel": 88,
+    "Energy": 80,
+    "Playmaking": 94
+  },
+  "roles": ["Lead Guard", "Pick & Roll Operator", "Floor General"],
+  "badges": ["Crafty Finisher", "High IQ Playmaker", "Clutch Facilitator"]
+}
+}
