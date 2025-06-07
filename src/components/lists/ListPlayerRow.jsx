@@ -17,10 +17,6 @@ const positionAbbreviations = {
   'Center-Forward': 'C',
 };
 
-const calculateHeight = (ht = '0-0') => {
-  const parts = ht.split('-');
-  return parseInt(parts[0]) * 12 + parseInt(parts[1]);
-};
 
 const ListPlayerRow = ({
   player,
