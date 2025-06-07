@@ -1,0 +1,54 @@
+import React from 'react';
+import BadgeMini from '@/components/table/BadgeMini';
+import OverallBlurbMini from '@/components/table/OverallBlurbMini';
+import PlayerTraitsMiniGrid from '@/components/table/PlayerTraitsMiniGrid';
+import PlayerSubRolesMini from '@/components/table/PlayerSubRolesMini';
+import PlayerStatsMini from '@/components/table/PlayerStatsMini';
+import PlayerContractMini from '@/components/table/PlayerContractMini';
+
+const Divider = () => <div className="w-px h-auto bg-white/10 mx-3 my-1" />;
+
+const PlayerDrawer = ({ player }) => {
+  return (
+    <div className="w-full bg-[#111] border-t border-white/10 py-3">
+      <div className="flex w-full gap-2">
+        {/* LEFT SIDE: Full left column container */}
+        <div className="flex flex-col gap-2 ml-0 pr-2 items-start">
+          <div className="-mt-3">
+            <BadgeMini badges={player.badges || []} />
+          </div>
+
+          {/* TODO: Uncomment when overall blurbs are live */}
+          {/* <div className="ml-5 mt-1">
+            <OverallBlurbMini text={player.blurbs?.overall || ""} />
+          </div> */}
+        </div>
+
+        {/* RIGHT SIDE: Drawer content */}
+        <div className="flex flex-nowrap gap-0 w-full justify-end overflow-x-auto">
+          <PlayerSubRolesMini
+            subRoles={player.subRoles || player.subroles || {}}
+          />
+          <Divider />
+          <PlayerContractMini
+            contract={player.contract || {}}
+            bird_rights={player.bird_rights || 'Unknown'}
+            option_type={
+              player.contract?.extension?.options?.[0] ||
+              player.contract?.options?.[0] ||
+              null
+            }
+            free_agent_year={player.free_agency_year} // Add this
+            free_agent_type={player.free_agent_type} // Add this
+          />
+          <Divider />
+          <PlayerStatsMini stats={player.system?.stats} />
+          <Divider />
+          <PlayerTraitsMiniGrid traits={player.traits || {}} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default PlayerDrawer;
