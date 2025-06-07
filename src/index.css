@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: system-ui, sans-serif;
+}
+
+.drawer-panel {
+  transition: transform 0.3s ease-in-out;
+}
+.drawer-backdrop {
+  transition: opacity 0.3s ease-in-out;
+}
