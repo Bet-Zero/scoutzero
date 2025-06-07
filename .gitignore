@@ -1,0 +1,30 @@
+# 🔒 Node
+node_modules/
+.env
+.next/
+dist/
+.DS_Store
+firebase-debug.log
+package-lock.json
+
+# 🔒 Python
+__pycache__/
+venv/
+*.pyc
+
+# 🔒 Firebase / Secrets
+serviceAccountKey.json
+*.json
+
+# 🔒 Vite
+*.log
+
+# 🔒 Temp + Tools
+SAFE/
+tools/
+scripts/
+push_selected_players.py
+scan_malformed_players.js
+updateStats.js
+uploadPlayersToFirebase.js
+validatePlayersJson.js
