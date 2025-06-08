@@ -1,7 +1,7 @@
 // src/components/roster/PlayerCard.jsx
 import React from 'react';
 import PlayerNameMini from '@/components/table/PlayerNameMini';
-import getPlayerPositionLabel from '../../../utils/roleLabel.js';
+import getPlayerPositionLabel from '../../utils/roleLabel.js';
 
 // PlayerCard – Clean visual core with full image + Anton name + position
 const PlayerCard = ({ player, size = 'starter', onRemove }) => {
