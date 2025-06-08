@@ -1,20 +1,5 @@
 import React from 'react';
-
-// Position group logic — exportable if needed elsewhere
-export const expandPositionGroup = (position) => {
-  switch (position) {
-    case 'group_guard':
-      return ['PG', 'SG', 'G'];
-    case 'group_wing':
-      return ['SG', 'SF', 'G/F'];
-    case 'group_forward':
-      return ['SF', 'PF', 'F'];
-    case 'group_big':
-      return ['F/C', 'C'];
-    default:
-      return position ? [position] : []; // single value or empty
-  }
-};
+import expandPositionGroup from '../../../utils/expandPositionGroup.js';
 
 const MetadataFilters = ({ filters, setFilters }) => {
   const update = (key, value) => {

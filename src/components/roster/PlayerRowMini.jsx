@@ -2,39 +2,8 @@
 import React, { useState } from 'react';
 import PlayerNameMini from '@/components/table/PlayerNameMini';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-
-const getPlayerPositionLabel = (fullPosition) => {
-  const map = {
-    Guard: 'G',
-    'Point Guard': 'PG',
-    'Shooting Guard': 'SG',
-    Forward: 'F',
-    'Small Forward': 'SF',
-    'Power Forward': 'PF',
-    Center: 'C',
-    'Forward-Center': 'F/C',
-    'Guard-Forward': 'G/F',
-    'Forward-Guard': 'F',
-    'Center-Forward': 'C',
-  };
-  return map[fullPosition] || fullPosition || '—';
-};
-
-const formatSalary = (salary) => {
-  if (!salary) return '—';
-
-  const salaryValue =
-    typeof salary === 'string'
-      ? parseFloat(salary.replace(/[^0-9.]/g, ''))
-      : salary;
-
-  if (salaryValue >= 1000000) {
-    return `$${(salaryValue / 1000000).toFixed(1)}M`;
-  } else if (salaryValue >= 1000) {
-    return `$${(salaryValue / 1000).toFixed(0)}K`;
-  }
-  return `$${salaryValue?.toLocaleString() || '—'}`;
-};
+import getPlayerPositionLabel from '../../utils/roleLabel.js';
+import formatSalary from '../../utils/formatSalary.js';
 
 const PlayerRowMini = ({ player, onClick }) => {
   const [isExpanded, setIsExpanded] = useState(false);

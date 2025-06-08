@@ -1,24 +1,7 @@
 // src/components/roster/PlayerCard.jsx
 import React from 'react';
 import PlayerNameMini from '@/components/table/PlayerNameMini';
-
-// getPlayerPositionLabel – Shortens full position names to abbreviations
-const getPlayerPositionLabel = (fullPosition) => {
-  const map = {
-    Guard: 'G',
-    'Point Guard': 'PG',
-    'Shooting Guard': 'SG',
-    Forward: 'F',
-    'Small Forward': 'SF',
-    'Power Forward': 'PF',
-    Center: 'C',
-    'Forward-Center': 'F/C',
-    'Guard-Forward': 'G/F',
-    'Forward-Guard': 'F',
-    'Center-Forward': 'C',
-  };
-  return map[fullPosition] || fullPosition;
-};
+import getPlayerPositionLabel from '../../utils/roleLabel.js';
 
 // PlayerCard – Clean visual core with full image + Anton name + position
 const PlayerCard = ({ player, size = 'starter', onRemove }) => {

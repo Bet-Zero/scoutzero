@@ -7,6 +7,11 @@ import ActiveFiltersDisplay from '@/components/filters/ActiveFiltersDisplay';
 import ViewControls from '@/components/filters/sections/ViewControls';
 import { Filter, SortAsc, Search } from 'lucide-react';
 import debounce from 'lodash.debounce';
+import parseHeight from '../../utils/parseHeight.js';
+import parseWeight from '../../utils/parseWeight.js';
+import convertAnnualSalaries from '../../utils/convertAnnualSalaries.js';
+import expandPositionGroup from '../../utils/expandPositionGroup.js';
+import sortPlayers from '../../utils/sortPlayers.js';
 
 const positionAbbreviations = {
   'Point Guard': 'PG',
@@ -22,42 +27,6 @@ const positionAbbreviations = {
   'Center-Forward': 'C',
 };
 
-const expandPositionGroup = (position) => {
-  switch (position) {
-    case 'Guard':
-      return ['G'];
-    case 'Wing':
-      return ['G/F', 'F'];
-    case 'Forward':
-      return ['F', 'F/C'];
-    case 'Big':
-      return ['F/C', 'C'];
-    case 'Center':
-      return ['C'];
-    default:
-      return position ? [position] : [];
-  }
-};
-
-const shootingProfileRank = {
-  Elite: 6,
-  Plus: 5,
-  Capable: 4,
-  Willing: 3,
-  Hesitant: 2,
-  Non: 1,
-};
-
-const traitSort = [
-  'Defense',
-  'Energy',
-  'Feel',
-  'IQ',
-  'Passing',
-  'Playmaking',
-  'Rebounding',
-  'Shooting',
-];
 
 const getDefaultFilters = () => ({
   nameSearch: '',
@@ -119,10 +88,6 @@ const getDefaultFilters = () => ({
   badges: [],
 });
 
-const calculateHeight = (ht = '0-0') => {
-  const parts = ht.split('-');
-  return parseInt(parts[0]) * 12 + parseInt(parts[1]);
-};
 
 const PlayerTable = () => {
   const [filters, setFilters] = useState(getDefaultFilters());
@@ -151,30 +116,15 @@ const PlayerTable = () => {
     const formattedPosition =
       positionAbbreviations[rawPosition] || rawPosition || '—';
 
-    const salaryMap = {};
-    (playerData.contract?.annual_salaries || []).forEach((s) => {
-      let raw = s.salary;
-      if (typeof raw === 'string') {
-        raw = raw.replace(/[\$,]/g, '');
-        if (raw.includes('M')) {
-          raw = raw.replace('M', '');
-          salaryMap[s.year] = parseFloat(raw);
-        } else {
-          salaryMap[s.year] = parseFloat(raw) / 1_000_000;
-        }
-      } else if (typeof raw === 'number') {
-        salaryMap[s.year] = raw / 1_000_000;
-      } else {
-        salaryMap[s.year] = null;
-      }
-      if (isNaN(salaryMap[s.year])) salaryMap[s.year] = null;
-    });
+    const salaryMap = convertAnnualSalaries(
+      playerData.contract?.annual_salaries || []
+    );
 
     return {
       ...playerData,
       formattedPosition,
-      heightInInches: calculateHeight(playerData.bio?.HT),
-      weight: parseInt(playerData.bio?.WT || 0),
+      heightInInches: parseHeight(playerData.bio?.HT),
+      weight: parseWeight(playerData.bio?.WT || 0),
       age: parseInt(playerData.bio?.AGE || 0),
       headshotUrl: `/assets/headshots/${playerData.player_id}.png`,
       offenseRole: playerData.roles?.offense1 || '—',
@@ -215,8 +165,7 @@ const PlayerTable = () => {
   const filteredPlayers = useMemo(() => {
     const selectedPositions = expandPositionGroup(filters.position);
 
-    return players
-      .filter((p) => {
+    const filtered = players.filter((p) => {
         // Name search filter
         if (filters.nameSearch) {
           const playerName = (p.display_name || p.name || '').toLowerCase();
@@ -398,55 +347,8 @@ const PlayerTable = () => {
         }
 
         return true;
-      })
-      .sort((a, b) => {
-        const getValue = (player, field) => {
-          if (traitSort.includes(field)) return player.traits?.[field] ?? -1;
-          if (player.system?.stats?.hasOwnProperty(field))
-            return parseFloat(player.system.stats[field]) ?? -1;
-          switch (field) {
-            case 'name':
-              return (player.display_name || player.name || '').toLowerCase();
-            case 'height':
-              return player.heightInInches;
-            case 'weight':
-              return player.weight;
-            case 'age':
-              return player.age;
-            case 'salary':
-              return player.salaryByYear?.[filters.salaryYear] ?? -1;
-            case 'shootingProfile':
-              return shootingProfileRank[player.shootingProfile] ?? 0;
-            case 'yearsRemaining':
-              return parseInt(player.free_agency_year) - 2024 || -1;
-            case 'totalContract':
-              return Array.isArray(player.contract?.annual_salaries)
-                ? player.contract.annual_salaries.reduce((sum, s) => {
-                    const val =
-                      typeof s.salary === 'number'
-                        ? s.salary
-                        : parseFloat((s.salary || '').replace(/[^0-9.]/g, ''));
-                    return isNaN(val) ? sum : sum + val;
-                  }, 0)
-                : -1;
-            case 'overall':
-              return parseFloat(player.overall) ?? -1;
-            default:
-              return -1;
-          }
-        };
-
-        const valA = getValue(a, filters.sortBy);
-        const valB = getValue(b, filters.sortBy);
-
-        if (typeof valA === 'string' && typeof valB === 'string') {
-          return filters.sortAsc
-            ? valA.localeCompare(valB)
-            : valB.localeCompare(valA);
-        } else {
-          return filters.sortAsc ? valA - valB : valB - valA;
-        }
       });
+    return sortPlayers(filtered, filters);
   }, [players, filters]);
 
   const handleSearchChange = (e) => {

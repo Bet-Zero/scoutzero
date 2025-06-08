@@ -6,18 +6,7 @@ import PlayerCard from './PlayerCard';
 import EmptySlot from './EmptySlot';
 import AddPlayerDrawer from './AddPlayerDrawer';
 import DrawerShell from './DrawerShell';
-
-const isTwoWayContract = (player) => {
-  const summary = player?.contract_summary || {};
-  const fieldsToCheck = [summary.signed_using, summary.type];
-  return fieldsToCheck.some(
-    (val) =>
-      typeof val === 'string' &&
-      ['two-way', 'two way', 'two_way'].some((keyword) =>
-        val.toLowerCase().includes(keyword)
-      )
-  );
-};
+import { isTwoWayContract } from '../../utils/contractUtils.js';
 
 // Position mapping
 const POSITION_MAP = {
