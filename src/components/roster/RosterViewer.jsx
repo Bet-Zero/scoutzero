@@ -6,7 +6,7 @@ import PlayerCard from './PlayerCard';
 import EmptySlot from './EmptySlot';
 import AddPlayerDrawer from './AddPlayerDrawer';
 import DrawerShell from './DrawerShell';
-import { isTwoWayContract } from '../../../utils/contractUtils.js';
+import { isTwoWayContract } from '@/utils/contractUtils.js';
 
 // Position mapping
 const POSITION_MAP = {
