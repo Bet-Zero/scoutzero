@@ -28,3 +28,4 @@ updateStats.js
 uploadPlayersToFirebase.js
 validatePlayersJson.js
 src-backup/
+data/firebaseServiceAccountKey.json
