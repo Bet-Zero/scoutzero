@@ -1,0 +1,178 @@
+{
+  "player_id": "lebron-james",
+  "name": "LeBron James",
+  "display_name": "LeBron James",
+  "bio": {
+    "AGE": "39",
+    "HT": "6-9",
+    "WT": "250",
+    "Team": "Lakers",
+    "Position": "SF",
+    "Years Pro": "21"
+  },
+  "draft": {
+    "year": 2003,
+    "round": 1,
+    "pick": 1,
+    "team": "Cavaliers"
+  },
+  "contract": {
+    "total_value": 101.4,
+    "contract_length": 2,
+    "guaranteed_years": 2,
+    "average_annual_value": 50.7,
+    "signed_year": 2024,
+    "signing_team": "Lakers",
+    "annual_salaries": [
+      {
+        "year": "2024-25",
+        "salary": 51.4,
+        "guaranteed": true,
+        "option": "Player"
+      },
+      {
+        "year": "2025-26",
+        "salary": 50.0,
+        "guaranteed": false,
+        "option": "Player"
+      }
+    ],
+    "options": [
+      {
+        "year": "2025-26",
+        "type": "Player"
+      }
+    ],
+    "incentives": {
+      "likely": 0,
+      "unlikely": 0
+    },
+    "notes": "...",
+    "extension": {
+      "signed_year": 2025,
+      "signing_team": "Lakers",
+      "contract_length": 3,
+      "guaranteed_years": 3,
+      "average_annual_value": 52.0,
+      "total_value": 156,
+      "annual_salaries": [],
+      "options": [],
+      "notes": {
+        "no_trade_clause": false,
+        "trade_kicker": true,
+        "notes": "Extension includes bonuses."
+      },
+      "summary": {
+        "type": "Extension",
+        "signed_using": "Bird",
+        "signing_date": "2025-07-01",
+        "signing_team": "Lakers",
+        "signed_by": "GM Name",
+        "length": 3,
+        "cap_percentage": 32.4,
+        "aav": 52.0,
+        "guaranteed": 156,
+        "value": 156,
+        "is_extension": true,
+        "source": "Spotrac"
+      }
+    }
+  },
+  "contract_summary": {
+    "type": "Standard",
+    "signed_using": "Bird",
+    "signed_by": "GM Name",
+    "signing_date": "2024-07-01",
+    "signing_team": "Lakers",
+    "cap_percentage": 32.4,
+    "length": 2,
+    "aav": 50.7,
+    "guaranteed": 101.4,
+    "value": 101.4,
+    "is_extension": false,
+    "source": "Spotrac"
+  },
+  "salaryByYear": {
+    "2024-25": 51.4,
+    "2025-26": 50.0
+  },
+  "free_agency_year": 2026,
+  "free_agent_type": "UFA",
+  "traits": {
+    "Shooting": 88,
+    "Playmaking": 94,
+    "Defense": 87,
+    "Rebounding": 78,
+    "IQ": 99,
+    "Feel": 92,
+    "Energy": 85,
+    "Passing": 90
+  },
+  "roles": {
+    "offense1": "Primary Playmaker",
+    "offense2": "Connector",
+    "defense1": "Switchable Wing",
+    "defense2": "Off-Ball Helper",
+    "twoWay": "Versatile Wing"
+  },
+  "subRoles": {
+    "offense": [
+      "Rim Runner",
+      "Baseline Crasher"
+    ],
+    "defense": [
+      "Low-Man Tagger",
+      "Dies on Screens"
+    ]
+  },
+  "shootingProfile": "Plus",
+  "overall_grade": 92,
+  "badges": [
+    "Sniper",
+    "Clutch",
+    "High IQ",
+    "Glue Guy"
+  ],
+  "blurbs": {
+    "overall": "...",
+    "traits": {
+      "Shooting": "...",
+      "IQ": "..."
+    },
+    "roles": {
+      "offense1": "...",
+      "offense2": "...",
+      "defense1": "...",
+      "defense2": "..."
+    },
+    "subroles": {
+      "Rim Runner": "...",
+      "Low-Man Tagger": "..."
+    },
+    "shootingProfile": "...",
+    "twoWayMeter": "..."
+  },
+  "system": {
+    "stats": {
+      "PTS": 25.7,
+      "AST": 8.1,
+      "REB": 7.9,
+      "FG%": 51.2,
+      "FT%": 74.6,
+      "3P%": 39.1
+    }
+  },
+  "position": "F",
+  "status": "Active",
+  "team": "Lakers",
+  "headshot": "/assets/headshots/lebron-james.png",
+  "agent": {
+    "name": "Rich Paul",
+    "agency": "Klutch Sports"
+  },
+  "no_trade_clause": false,
+  "qualifying_offer": null,
+  "cap_hold": null,
+  "trade_kicker": true,
+  "source_url": "https://example.com/lebron-contract"
+}
