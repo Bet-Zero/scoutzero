@@ -268,14 +268,14 @@ const RosterViewer = () => {
               slotTarget.section && slotTarget.index !== -1;
             if (isManualTarget) {
               addPlayerToSlot(
-                player.original,
+                player, // Use player directly instead of player.original
                 slotTarget.section,
                 slotTarget.index
               );
               setSlotTarget({ section: '', index: -1 });
               setDrawerOpen(false);
             } else {
-              addPlayerToNextSlot(player.original);
+              addPlayerToNextSlot(player); // Use player directly instead of player.original
             }
           }}
         />
