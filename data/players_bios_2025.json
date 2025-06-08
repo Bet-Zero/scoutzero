@@ -1,0 +1,5312 @@
+{
+  "precious_achiuwa": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "243",
+      "AGE": 25,
+      "Years Pro": 5,
+      "Team": "Knicks",
+      "Position": "Forward"
+    }
+  },
+  "steven_adams": {
+    "bio": {
+      "HT": "6-11",
+      "WT": "265",
+      "AGE": 31,
+      "Years Pro": 12,
+      "Team": "Rockets",
+      "Position": "Center"
+    }
+  },
+  "bam_adebayo": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "255",
+      "AGE": 27,
+      "Years Pro": 8,
+      "Team": "Heat",
+      "Position": "Center-Forward"
+    }
+  },
+  "ochai_agbaji": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "215",
+      "AGE": 24,
+      "Years Pro": 3,
+      "Team": "Raptors",
+      "Position": "Guard"
+    }
+  },
+  "santi_aldama": {
+    "bio": {
+      "HT": "7-0",
+      "WT": "215",
+      "AGE": 24,
+      "Years Pro": 4,
+      "Team": "Grizzlies",
+      "Position": "Forward-Center"
+    }
+  },
+  "trey_alexander": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "185",
+      "AGE": 21,
+      "Years Pro": 1,
+      "Team": "Nuggets",
+      "Position": "Guard"
+    }
+  },
+  "nickeil_alexander-walker": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "205",
+      "AGE": 26,
+      "Years Pro": 6,
+      "Team": "Timberwolves",
+      "Position": "Guard"
+    }
+  },
+  "grayson_allen": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "198",
+      "AGE": 29,
+      "Years Pro": 7,
+      "Team": "Suns",
+      "Position": "Guard"
+    }
+  },
+  "jarrett_allen": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "243",
+      "AGE": 26,
+      "Years Pro": 8,
+      "Team": "Cavaliers",
+      "Position": "Center"
+    }
+  },
+  "jose_alvarado": {
+    "bio": {
+      "HT": "6-0",
+      "WT": "179",
+      "AGE": 27,
+      "Years Pro": 4,
+      "Team": "Pelicans",
+      "Position": "Guard"
+    }
+  },
+  "kyle_anderson": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "230",
+      "AGE": 31,
+      "Years Pro": 11,
+      "Team": "Heat",
+      "Position": "Forward-Guard"
+    }
+  },
+  "giannis_antetokounmpo": {
+    "bio": {
+      "HT": "6-11",
+      "WT": "243",
+      "AGE": 30,
+      "Years Pro": 12,
+      "Team": "Bucks",
+      "Position": "Forward"
+    }
+  },
+  "cole_anthony": {
+    "bio": {
+      "HT": "6-2",
+      "WT": "185",
+      "AGE": 24,
+      "Years Pro": 5,
+      "Team": "Magic",
+      "Position": "Guard"
+    }
+  },
+  "og_anunoby": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "240",
+      "AGE": 27,
+      "Years Pro": 8,
+      "Team": "Knicks",
+      "Position": "Forward-Guard"
+    }
+  },
+  "deni_avdija": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "240",
+      "AGE": 24,
+      "Years Pro": 5,
+      "Team": "Trail Blazers",
+      "Position": "Forward"
+    }
+  },
+  "deandre_ayton": {
+    "bio": {
+      "HT": "7-0",
+      "WT": "252",
+      "AGE": 26,
+      "Years Pro": 7,
+      "Team": "Trail Blazers",
+      "Position": "Center"
+    }
+  },
+  "marvin_bagley_iii": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "235",
+      "AGE": 26,
+      "Years Pro": 7,
+      "Team": "Grizzlies",
+      "Position": "Forward"
+    }
+  },
+  "patrick_baldwin_jr": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "220",
+      "AGE": 22,
+      "Years Pro": 3,
+      "Team": "Clippers",
+      "Position": "Forward"
+    }
+  },
+  "lamelo_ball": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "180",
+      "AGE": 23,
+      "Years Pro": 5,
+      "Team": "Hornets",
+      "Position": "Guard"
+    }
+  },
+  "lonzo_ball": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "190",
+      "AGE": 27,
+      "Years Pro": 8,
+      "Team": "Bulls",
+      "Position": "Guard"
+    }
+  },
+  "paolo_banchero": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "250",
+      "AGE": 22,
+      "Years Pro": 3,
+      "Team": "Magic",
+      "Position": "Forward"
+    }
+  },
+  "desmond_bane": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "215",
+      "AGE": 26,
+      "Years Pro": 5,
+      "Team": "Grizzlies",
+      "Position": "Guard"
+    }
+  },
+  "dalano_banton": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "203",
+      "AGE": 25,
+      "Years Pro": 4,
+      "Team": "Trail Blazers",
+      "Position": "Forward"
+    }
+  },
+  "dominick_barlow": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "215",
+      "AGE": 21,
+      "Years Pro": 3,
+      "Team": "Hawks",
+      "Position": "Forward"
+    }
+  },
+  "harrison_barnes": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "225",
+      "AGE": 32,
+      "Years Pro": 13,
+      "Team": "Spurs",
+      "Position": "Forward"
+    }
+  },
+  "scottie_barnes": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "237",
+      "AGE": 23,
+      "Years Pro": 4,
+      "Team": "Raptors",
+      "Position": "Forward-Guard"
+    }
+  },
+  "rj_barrett": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "214",
+      "AGE": 24,
+      "Years Pro": 6,
+      "Team": "Raptors",
+      "Position": "Forward-Guard"
+    }
+  },
+  "charles_bassey": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "230",
+      "AGE": 24,
+      "Years Pro": 4,
+      "Team": "Spurs",
+      "Position": "Center-Forward"
+    }
+  },
+  "emoni_bates": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "202",
+      "AGE": 21,
+      "Years Pro": 2,
+      "Team": "Cavaliers",
+      "Position": "Forward"
+    }
+  },
+  "jamison_battle": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "220",
+      "AGE": 23,
+      "Years Pro": 1,
+      "Team": "Raptors",
+      "Position": "Forward"
+    }
+  },
+  "nicolas_batum": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "230",
+      "AGE": 36,
+      "Years Pro": 17,
+      "Team": "Clippers",
+      "Position": "Guard-Forward"
+    }
+  },
+  "damion_baugh": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "194",
+      "AGE": 24,
+      "Years Pro": 1,
+      "Team": "Hornets",
+      "Position": "Guard"
+    }
+  },
+  "bradley_beal": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "207",
+      "AGE": 31,
+      "Years Pro": 13,
+      "Team": "Suns",
+      "Position": "Guard"
+    }
+  },
+  "malik_beasley": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "187",
+      "AGE": 28,
+      "Years Pro": 9,
+      "Team": "Pistons",
+      "Position": "Guard"
+    }
+  },
+  "marjon_beauchamp": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "199",
+      "AGE": 24,
+      "Years Pro": 4,
+      "Team": "Knicks",
+      "Position": "Forward"
+    }
+  },
+  "reece_beekman": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "190",
+      "AGE": 23,
+      "Years Pro": 1,
+      "Team": "Nets",
+      "Position": "Guard"
+    }
+  },
+  "saddiq_bey": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "215",
+      "AGE": 26,
+      "Years Pro": 5,
+      "Team": "Wizards",
+      "Position": "Guard-Forward"
+    }
+  },
+  "goga_bitadze": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "250",
+      "AGE": 25,
+      "Years Pro": 6,
+      "Team": "Magic",
+      "Position": "Center-Forward"
+    }
+  },
+  "bismack_biyombo": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "255",
+      "AGE": 32,
+      "Years Pro": 14,
+      "Team": "Spurs",
+      "Position": "Center"
+    }
+  },
+  "anthony_black": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "200",
+      "AGE": 21,
+      "Years Pro": 2,
+      "Team": "Magic",
+      "Position": "Guard"
+    }
+  },
+  "bogdan_bogdanovi\u0107": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "225",
+      "AGE": 32,
+      "Years Pro": 8,
+      "Team": "Clippers",
+      "Position": "Guard"
+    }
+  },
+  "bol_bol": {
+    "bio": {
+      "HT": "7-3",
+      "WT": "220",
+      "AGE": 25,
+      "Years Pro": 6,
+      "Team": "Suns",
+      "Position": "Center-Forward"
+    }
+  },
+  "adem_bona": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "235",
+      "AGE": 22,
+      "Years Pro": 1,
+      "Team": "76ers",
+      "Position": "Forward"
+    }
+  },
+  "devin_booker": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "206",
+      "AGE": 28,
+      "Years Pro": 10,
+      "Team": "Suns",
+      "Position": "Guard"
+    }
+  },
+  "brandon_boston": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "188",
+      "AGE": 23,
+      "Years Pro": 4,
+      "Team": "Pelicans",
+      "Position": "Guard"
+    }
+  },
+  "chris_boucher": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "200",
+      "AGE": 32,
+      "Years Pro": 8,
+      "Team": "Raptors",
+      "Position": "Forward"
+    }
+  },
+  "jamaree_bouyea": {
+    "bio": {
+      "HT": "6-2",
+      "WT": "180",
+      "AGE": 25,
+      "Years Pro": 3,
+      "Team": "Bucks",
+      "Position": "Guard"
+    }
+  },
+  "tony_bradley": {
+    "bio": {
+      "HT": "6-11",
+      "WT": "248",
+      "AGE": 27,
+      "Years Pro": 8,
+      "Team": "Pacers",
+      "Position": "Center-Forward"
+    }
+  },
+  "malaki_branham": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "180",
+      "AGE": 21,
+      "Years Pro": 3,
+      "Team": "Spurs",
+      "Position": "Forward"
+    }
+  },
+  "christian_braun": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "220",
+      "AGE": 24,
+      "Years Pro": 3,
+      "Team": "Nuggets",
+      "Position": "Guard"
+    }
+  },
+  "jalen_bridges": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "225",
+      "AGE": 23,
+      "Years Pro": 1,
+      "Team": "Suns",
+      "Position": "Forward"
+    }
+  },
+  "mikal_bridges": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "209",
+      "AGE": 28,
+      "Years Pro": 7,
+      "Team": "Knicks",
+      "Position": "Guard-Forward"
+    }
+  },
+  "miles_bridges": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "225",
+      "AGE": 27,
+      "Years Pro": 7,
+      "Team": "Hornets",
+      "Position": "Forward"
+    }
+  },
+  "malcolm_brogdon": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "229",
+      "AGE": 32,
+      "Years Pro": 9,
+      "Team": "Wizards",
+      "Position": "Guard"
+    }
+  },
+  "dillon_brooks": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "225",
+      "AGE": 29,
+      "Years Pro": 8,
+      "Team": "Rockets",
+      "Position": "Guard-Forward"
+    }
+  },
+  "keion_brooks_jr": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "210",
+      "AGE": 24,
+      "Years Pro": 1,
+      "Team": "Pelicans",
+      "Position": "Forward"
+    }
+  },
+  "bruce_brown": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "202",
+      "AGE": 28,
+      "Years Pro": 7,
+      "Team": "Pelicans",
+      "Position": "Guard-Forward"
+    }
+  },
+  "jaylen_brown": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "223",
+      "AGE": 28,
+      "Years Pro": 9,
+      "Team": "Celtics",
+      "Position": "Guard-Forward"
+    }
+  },
+  "kobe_brown": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "250",
+      "AGE": 25,
+      "Years Pro": 2,
+      "Team": "Clippers",
+      "Position": "Forward"
+    }
+  },
+  "jalen_brunson": {
+    "bio": {
+      "HT": "6-2",
+      "WT": "190",
+      "AGE": 28,
+      "Years Pro": 7,
+      "Team": "Knicks",
+      "Position": "Guard"
+    }
+  },
+  "thomas_bryant": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "248",
+      "AGE": 27,
+      "Years Pro": 8,
+      "Team": "Pacers",
+      "Position": "Center-Forward"
+    }
+  },
+  "kobe_bufkin": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "195",
+      "AGE": 21,
+      "Years Pro": 2,
+      "Team": "Hawks",
+      "Position": "Guard"
+    }
+  },
+  "alec_burks": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "214",
+      "AGE": 33,
+      "Years Pro": 14,
+      "Team": "Heat",
+      "Position": "Guard"
+    }
+  },
+  "jared_butler": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "193",
+      "AGE": 24,
+      "Years Pro": 4,
+      "Team": "76ers",
+      "Position": "Guard"
+    }
+  },
+  "jimmy_butler_iii": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "230",
+      "AGE": 35,
+      "Years Pro": 14,
+      "Team": "Warriors",
+      "Position": "Forward"
+    }
+  },
+  "matas_buzelis": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "209",
+      "AGE": 20,
+      "Years Pro": 2,
+      "Team": "Bulls",
+      "Position": "Forward"
+    }
+  },
+  "jamal_cain": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "191",
+      "AGE": 26,
+      "Years Pro": 3,
+      "Team": "Pelicans",
+      "Position": "Forward"
+    }
+  },
+  "kentavious_caldwell-pope": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "204",
+      "AGE": 32,
+      "Years Pro": 12,
+      "Team": "Magic",
+      "Position": "Guard"
+    }
+  },
+  "toumani_camara": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "229",
+      "AGE": 24,
+      "Years Pro": 2,
+      "Team": "Trail Blazers",
+      "Position": "Forward"
+    }
+  },
+  "clint_capela": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "256",
+      "AGE": 30,
+      "Years Pro": 11,
+      "Team": "Hawks",
+      "Position": "Center"
+    }
+  },
+  "branden_carlson": {
+    "bio": {
+      "HT": "7-0",
+      "WT": "220",
+      "AGE": 25,
+      "Years Pro": 1,
+      "Team": "Thunder",
+      "Position": "Center"
+    }
+  },
+  "bub_carrington": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "190",
+      "AGE": 19,
+      "Years Pro": 1,
+      "Team": "Wizards",
+      "Position": "Guard"
+    }
+  },
+  "devin_carter": {
+    "bio": {
+      "HT": "6-2",
+      "WT": "195",
+      "AGE": 23,
+      "Years Pro": 1,
+      "Team": "Kings",
+      "Position": "Guard"
+    }
+  },
+  "jevon_carter": {
+    "bio": {
+      "HT": "6-1",
+      "WT": "200",
+      "AGE": 29,
+      "Years Pro": 7,
+      "Team": "Bulls",
+      "Position": "Guard"
+    }
+  },
+  "wendell_carter_jr": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "270",
+      "AGE": 26,
+      "Years Pro": 7,
+      "Team": "Magic",
+      "Position": "Center-Forward"
+    }
+  },
+  "alex_caruso": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "186",
+      "AGE": 31,
+      "Years Pro": 8,
+      "Team": "Thunder",
+      "Position": "Guard"
+    }
+  },
+  "stephon_castle": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "215",
+      "AGE": 20,
+      "Years Pro": 1,
+      "Team": "Spurs",
+      "Position": "Guard"
+    }
+  },
+  "colin_castleton": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "250",
+      "AGE": 24,
+      "Years Pro": 2,
+      "Team": "Raptors",
+      "Position": "Center"
+    }
+  },
+  "julian_champagnie": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "217",
+      "AGE": 23,
+      "Years Pro": 3,
+      "Team": "Spurs",
+      "Position": "Forward"
+    }
+  },
+  "justin_champagnie": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "206",
+      "AGE": 23,
+      "Years Pro": 4,
+      "Team": "Wizards",
+      "Position": "Guard-Forward"
+    }
+  },
+  "ulrich_chomche": {
+    "bio": {
+      "HT": "6-11",
+      "WT": "235",
+      "AGE": 19,
+      "Years Pro": 1,
+      "Team": "Raptors",
+      "Position": "Center"
+    }
+  },
+  "cam_christie": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "190",
+      "AGE": 19,
+      "Years Pro": 1,
+      "Team": "Clippers",
+      "Position": "Guard"
+    }
+  },
+  "max_christie": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "190",
+      "AGE": 22,
+      "Years Pro": 3,
+      "Team": "Mavericks",
+      "Position": "Guard"
+    }
+  },
+  "josh_christopher": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "215",
+      "AGE": 23,
+      "Years Pro": 4,
+      "Team": "Heat",
+      "Position": "Guard"
+    }
+  },
+  "sidy_cissoko": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "200",
+      "AGE": 21,
+      "Years Pro": 3,
+      "Team": "Trail Blazers",
+      "Position": "Guard"
+    }
+  },
+  "jaylen_clark": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "205",
+      "AGE": 23,
+      "Years Pro": 2,
+      "Team": "Timberwolves",
+      "Position": "Guard"
+    }
+  },
+  "brandon_clarke": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "215",
+      "AGE": 28,
+      "Years Pro": 6,
+      "Team": "Grizzlies",
+      "Position": "Forward"
+    }
+  },
+  "jordan_clarkson": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "194",
+      "AGE": 32,
+      "Years Pro": 11,
+      "Team": "Jazz",
+      "Position": "Guard"
+    }
+  },
+  "nic_claxton": {
+    "bio": {
+      "HT": "6-11",
+      "WT": "215",
+      "AGE": 26,
+      "Years Pro": 6,
+      "Team": "Nets",
+      "Position": "Center"
+    }
+  },
+  "donovan_clingan": {
+    "bio": {
+      "HT": "7-2",
+      "WT": "280",
+      "AGE": 21,
+      "Years Pro": 1,
+      "Team": "Trail Blazers",
+      "Position": "Center"
+    }
+  },
+  "noah_clowney": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "210",
+      "AGE": 20,
+      "Years Pro": 2,
+      "Team": "Nets",
+      "Position": "Forward-Center"
+    }
+  },
+  "amir_coffey": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "210",
+      "AGE": 27,
+      "Years Pro": 6,
+      "Team": "Clippers",
+      "Position": "Guard-Forward"
+    }
+  },
+  "isaiah_collier": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "210",
+      "AGE": 20,
+      "Years Pro": 1,
+      "Team": "Jazz",
+      "Position": "Guard"
+    }
+  },
+  "john_collins": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "226",
+      "AGE": 27,
+      "Years Pro": 8,
+      "Team": "Jazz",
+      "Position": "Forward-Center"
+    }
+  },
+  "zach_collins": {
+    "bio": {
+      "HT": "6-11",
+      "WT": "250",
+      "AGE": 27,
+      "Years Pro": 8,
+      "Team": "Bulls",
+      "Position": "Forward-Center"
+    }
+  },
+  "mike_conley": {
+    "bio": {
+      "HT": "6-0",
+      "WT": "175",
+      "AGE": 37,
+      "Years Pro": 18,
+      "Team": "Timberwolves",
+      "Position": "Guard"
+    }
+  },
+  "pat_connaughton": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "209",
+      "AGE": 32,
+      "Years Pro": 10,
+      "Team": "Bucks",
+      "Position": "Guard"
+    }
+  },
+  "bilal_coulibaly": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "195",
+      "AGE": 20,
+      "Years Pro": 2,
+      "Team": "Wizards",
+      "Position": "Guard"
+    }
+  },
+  "ricky_council_iv": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "207",
+      "AGE": 23,
+      "Years Pro": 2,
+      "Team": "76ers",
+      "Position": "Guard"
+    }
+  },
+  "torrey_craig": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "221",
+      "AGE": 34,
+      "Years Pro": 8,
+      "Team": "Celtics",
+      "Position": "Forward"
+    }
+  },
+  "isaiah_crawford": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "220",
+      "AGE": 23,
+      "Years Pro": 1,
+      "Team": "Kings",
+      "Position": "Forward"
+    }
+  },
+  "jae_crowder": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "235",
+      "AGE": 34,
+      "Years Pro": 13,
+      "Team": "Kings",
+      "Position": "Forward"
+    }
+  },
+  "cade_cunningham": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "220",
+      "AGE": 23,
+      "Years Pro": 4,
+      "Team": "Pistons",
+      "Position": "Guard"
+    }
+  },
+  "seth_curry": {
+    "bio": {
+      "HT": "6-1",
+      "WT": "185",
+      "AGE": 34,
+      "Years Pro": 12,
+      "Team": "Hornets",
+      "Position": "Guard"
+    }
+  },
+  "stephen_curry": {
+    "bio": {
+      "HT": "6-2",
+      "WT": "185",
+      "AGE": 37,
+      "Years Pro": 16,
+      "Team": "Warriors",
+      "Position": "Guard"
+    }
+  },
+  "pac\u00f4me_dadiet": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "210",
+      "AGE": 19,
+      "Years Pro": 1,
+      "Team": "Knicks",
+      "Position": "Forward"
+    }
+  },
+  "dyson_daniels": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "199",
+      "AGE": 22,
+      "Years Pro": 4,
+      "Team": "Hawks",
+      "Position": "Guard"
+    }
+  },
+  "nfaly_dante": {
+    "bio": {
+      "HT": "6-11",
+      "WT": "230",
+      "AGE": 23,
+      "Years Pro": 1,
+      "Team": "Rockets",
+      "Position": "Center"
+    }
+  },
+  "anthony_davis": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "253",
+      "AGE": 32,
+      "Years Pro": 13,
+      "Team": "Mavericks",
+      "Position": "Forward-Center"
+    }
+  },
+  "terence_davis": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "201",
+      "AGE": 27,
+      "Years Pro": 6,
+      "Team": "Kings",
+      "Position": "Guard"
+    }
+  },
+  "jd_davison": {
+    "bio": {
+      "HT": "6-1",
+      "WT": "195",
+      "AGE": 22,
+      "Years Pro": 3,
+      "Team": "Celtics",
+      "Position": "Guard"
+    }
+  },
+  "demar_derozan": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "220",
+      "AGE": 35,
+      "Years Pro": 16,
+      "Team": "Kings",
+      "Position": "Guard-Forward"
+    }
+  },
+  "rayj_dennis": {
+    "bio": {
+      "HT": "6-2",
+      "WT": "180",
+      "AGE": 24,
+      "Years Pro": 1,
+      "Team": "Pacers",
+      "Position": "Guard"
+    }
+  },
+  "donte_divincenzo": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "203",
+      "AGE": 28,
+      "Years Pro": 7,
+      "Team": "Timberwolves",
+      "Position": "Guard"
+    }
+  },
+  "moussa_diabat\u00e9": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "210",
+      "AGE": 23,
+      "Years Pro": 3,
+      "Team": "Hornets",
+      "Position": "Forward"
+    }
+  },
+  "gradey_dick": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "200",
+      "AGE": 21,
+      "Years Pro": 2,
+      "Team": "Raptors",
+      "Position": "Guard-Forward"
+    }
+  },
+  "ousmane_dieng": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "185",
+      "AGE": 21,
+      "Years Pro": 3,
+      "Team": "Thunder",
+      "Position": "Forward"
+    }
+  },
+  "rob_dillingham": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "175",
+      "AGE": 20,
+      "Years Pro": 1,
+      "Team": "Timberwolves",
+      "Position": "Guard"
+    }
+  },
+  "spencer_dinwiddie": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "215",
+      "AGE": 32,
+      "Years Pro": 11,
+      "Team": "Mavericks",
+      "Position": "Guard"
+    }
+  },
+  "luka_don\u010di\u0107": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "230",
+      "AGE": 26,
+      "Years Pro": 7,
+      "Team": "Lakers",
+      "Position": "Forward-Guard"
+    }
+  },
+  "luguentz_dort": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "220",
+      "AGE": 25,
+      "Years Pro": 6,
+      "Team": "Thunder",
+      "Position": "Guard"
+    }
+  },
+  "ayo_dosunmu": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "200",
+      "AGE": 25,
+      "Years Pro": 4,
+      "Team": "Bulls",
+      "Position": "Guard"
+    }
+  },
+  "jeff_dowtin_jr": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "177",
+      "AGE": 27,
+      "Years Pro": 4,
+      "Team": "76ers",
+      "Position": "Guard"
+    }
+  },
+  "andre_drummond": {
+    "bio": {
+      "HT": "6-11",
+      "WT": "279",
+      "AGE": 31,
+      "Years Pro": 13,
+      "Team": "76ers",
+      "Position": "Center"
+    }
+  },
+  "alex_ducas": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "220",
+      "AGE": 24,
+      "Years Pro": 1,
+      "Team": "Thunder",
+      "Position": "Guard"
+    }
+  },
+  "david_duke_jr": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "204",
+      "AGE": 25,
+      "Years Pro": 4,
+      "Team": "Spurs",
+      "Position": "Guard"
+    }
+  },
+  "kris_dunn": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "205",
+      "AGE": 31,
+      "Years Pro": 9,
+      "Team": "Clippers",
+      "Position": "Guard"
+    }
+  },
+  "ryan_dunn": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "216",
+      "AGE": 22,
+      "Years Pro": 1,
+      "Team": "Suns",
+      "Position": "Forward"
+    }
+  },
+  "kevin_durant": {
+    "bio": {
+      "HT": "6-11",
+      "WT": "240",
+      "AGE": 36,
+      "Years Pro": 18,
+      "Team": "Suns",
+      "Position": "Forward"
+    }
+  },
+  "jalen_duren": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "250",
+      "AGE": 21,
+      "Years Pro": 3,
+      "Team": "Pistons",
+      "Position": "Center"
+    }
+  },
+  "tari_eason": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "215",
+      "AGE": 23,
+      "Years Pro": 3,
+      "Team": "Rockets",
+      "Position": "Forward"
+    }
+  },
+  "zach_edey": {
+    "bio": {
+      "HT": "7-4",
+      "WT": "305",
+      "AGE": 22,
+      "Years Pro": 1,
+      "Team": "Grizzlies",
+      "Position": "Center"
+    }
+  },
+  "anthony_edwards": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "225",
+      "AGE": 23,
+      "Years Pro": 5,
+      "Team": "Timberwolves",
+      "Position": "Guard"
+    }
+  },
+  "jesse_edwards": {
+    "bio": {
+      "HT": "7-0",
+      "WT": "236",
+      "AGE": 25,
+      "Years Pro": 1,
+      "Team": "Timberwolves",
+      "Position": "Center"
+    }
+  },
+  "justin_edwards": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "203",
+      "AGE": 21,
+      "Years Pro": 1,
+      "Team": "76ers",
+      "Position": "Forward"
+    }
+  },
+  "kessler_edwards": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "203",
+      "AGE": 24,
+      "Years Pro": 4,
+      "Team": "Mavericks",
+      "Position": "Forward"
+    }
+  },
+  "keon_ellis": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "175",
+      "AGE": 25,
+      "Years Pro": 3,
+      "Team": "Kings",
+      "Position": "Guard"
+    }
+  },
+  "joel_embiid": {
+    "bio": {
+      "HT": "7-0",
+      "WT": "280",
+      "AGE": 31,
+      "Years Pro": 11,
+      "Team": "76ers",
+      "Position": "Center-Forward"
+    }
+  },
+  "tyson_etienne": {
+    "bio": {
+      "HT": "6-2",
+      "WT": "200",
+      "AGE": 25,
+      "Years Pro": 1,
+      "Team": "Nets",
+      "Position": "Guard"
+    }
+  },
+  "drew_eubanks": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "245",
+      "AGE": 28,
+      "Years Pro": 7,
+      "Team": "Clippers",
+      "Position": "Forward-Center"
+    }
+  },
+  "tosan_evbuomwan": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "217",
+      "AGE": 24,
+      "Years Pro": 2,
+      "Team": "Nets",
+      "Position": "Forward"
+    }
+  },
+  "dant\u00e9_exum": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "214",
+      "AGE": 29,
+      "Years Pro": 11,
+      "Team": "Mavericks",
+      "Position": "Guard"
+    }
+  },
+  "kyle_filipowski": {
+    "bio": {
+      "HT": "6-11",
+      "WT": "250",
+      "AGE": 21,
+      "Years Pro": 1,
+      "Team": "Jazz",
+      "Position": "Center"
+    }
+  },
+  "dorian_finney-smith": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "220",
+      "AGE": 31,
+      "Years Pro": 9,
+      "Team": "Lakers",
+      "Position": "Forward"
+    }
+  },
+  "adam_flagler": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "180",
+      "AGE": 25,
+      "Years Pro": 2,
+      "Team": "Thunder",
+      "Position": "Guard"
+    }
+  },
+  "trentyn_flowers": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "185",
+      "AGE": 20,
+      "Years Pro": 1,
+      "Team": "Clippers",
+      "Position": "Forward"
+    }
+  },
+  "simone_fontecchio": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "209",
+      "AGE": 29,
+      "Years Pro": 3,
+      "Team": "Pistons",
+      "Position": "Forward"
+    }
+  },
+  "deaaron_fox": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "185",
+      "AGE": 27,
+      "Years Pro": 8,
+      "Team": "Spurs",
+      "Position": "Guard"
+    }
+  },
+  "enrique_freeman": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "220",
+      "AGE": 24,
+      "Years Pro": 1,
+      "Team": "Pacers",
+      "Position": "Forward"
+    }
+  },
+  "markelle_fultz": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "209",
+      "AGE": 26,
+      "Years Pro": 8,
+      "Team": "Kings",
+      "Position": "Guard"
+    }
+  },
+  "johnny_furphy": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "200",
+      "AGE": 20,
+      "Years Pro": 1,
+      "Team": "Pacers",
+      "Position": "Guard"
+    }
+  },
+  "daniel_gafford": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "265",
+      "AGE": 26,
+      "Years Pro": 6,
+      "Team": "Mavericks",
+      "Position": "Forward-Center"
+    }
+  },
+  "darius_garland": {
+    "bio": {
+      "HT": "6-1",
+      "WT": "192",
+      "AGE": 25,
+      "Years Pro": 6,
+      "Team": "Cavaliers",
+      "Position": "Guard"
+    }
+  },
+  "luka_garza": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "243",
+      "AGE": 26,
+      "Years Pro": 4,
+      "Team": "Timberwolves",
+      "Position": "Center"
+    }
+  },
+  "keyonte_george": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "185",
+      "AGE": 21,
+      "Years Pro": 2,
+      "Team": "Jazz",
+      "Position": "Guard"
+    }
+  },
+  "kyshawn_george": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "200",
+      "AGE": 21,
+      "Years Pro": 1,
+      "Team": "Wizards",
+      "Position": "Forward"
+    }
+  },
+  "paul_george": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "220",
+      "AGE": 34,
+      "Years Pro": 15,
+      "Team": "76ers",
+      "Position": "Forward"
+    }
+  },
+  "taj_gibson": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "232",
+      "AGE": 39,
+      "Years Pro": 16,
+      "Team": "Hornets",
+      "Position": "Forward"
+    }
+  },
+  "josh_giddey": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "216",
+      "AGE": 22,
+      "Years Pro": 4,
+      "Team": "Bulls",
+      "Position": "Guard"
+    }
+  },
+  "shai_gilgeous-alexander": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "195",
+      "AGE": 26,
+      "Years Pro": 7,
+      "Team": "Thunder",
+      "Position": "Guard"
+    }
+  },
+  "anthony_gill": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "230",
+      "AGE": 32,
+      "Years Pro": 5,
+      "Team": "Wizards",
+      "Position": "Forward"
+    }
+  },
+  "collin_gillespie": {
+    "bio": {
+      "HT": "6-1",
+      "WT": "195",
+      "AGE": 25,
+      "Years Pro": 3,
+      "Team": "Suns",
+      "Position": "Guard"
+    }
+  },
+  "rudy_gobert": {
+    "bio": {
+      "HT": "7-1",
+      "WT": "258",
+      "AGE": 32,
+      "Years Pro": 12,
+      "Team": "Timberwolves",
+      "Position": "Center"
+    }
+  },
+  "jordan_goodwin": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "215",
+      "AGE": 26,
+      "Years Pro": 4,
+      "Team": "Lakers",
+      "Position": "Guard"
+    }
+  },
+  "aaron_gordon": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "235",
+      "AGE": 29,
+      "Years Pro": 11,
+      "Team": "Nuggets",
+      "Position": "Forward"
+    }
+  },
+  "eric_gordon": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "215",
+      "AGE": 36,
+      "Years Pro": 17,
+      "Team": "76ers",
+      "Position": "Guard"
+    }
+  },
+  "jerami_grant": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "210",
+      "AGE": 31,
+      "Years Pro": 11,
+      "Team": "Trail Blazers",
+      "Position": "Forward"
+    }
+  },
+  "aj_green": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "190",
+      "AGE": 25,
+      "Years Pro": 3,
+      "Team": "Bucks",
+      "Position": "Guard"
+    }
+  },
+  "draymond_green": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "230",
+      "AGE": 35,
+      "Years Pro": 13,
+      "Team": "Warriors",
+      "Position": "Forward"
+    }
+  },
+  "jalen_green": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "186",
+      "AGE": 23,
+      "Years Pro": 4,
+      "Team": "Rockets",
+      "Position": "Guard"
+    }
+  },
+  "javonte_green": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "205",
+      "AGE": 31,
+      "Years Pro": 6,
+      "Team": "Cavaliers",
+      "Position": "Guard"
+    }
+  },
+  "jeff_green": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "235",
+      "AGE": 38,
+      "Years Pro": 18,
+      "Team": "Rockets",
+      "Position": "Forward"
+    }
+  },
+  "josh_green": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "200",
+      "AGE": 24,
+      "Years Pro": 5,
+      "Team": "Hornets",
+      "Position": "Guard"
+    }
+  },
+  "quentin_grimes": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "210",
+      "AGE": 24,
+      "Years Pro": 4,
+      "Team": "76ers",
+      "Position": "Guard"
+    }
+  },
+  "mouhamed_gueye": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "210",
+      "AGE": 22,
+      "Years Pro": 2,
+      "Team": "Hawks",
+      "Position": "Forward"
+    }
+  },
+  "rui_hachimura": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "230",
+      "AGE": 27,
+      "Years Pro": 6,
+      "Team": "Lakers",
+      "Position": "Forward"
+    }
+  },
+  "tyrese_haliburton": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "185",
+      "AGE": 25,
+      "Years Pro": 5,
+      "Team": "Pacers",
+      "Position": "Guard"
+    }
+  },
+  "pj_hall": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "245",
+      "AGE": 23,
+      "Years Pro": 1,
+      "Team": "Nuggets",
+      "Position": "Center"
+    }
+  },
+  "tim_hardaway_jr": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "205",
+      "AGE": 33,
+      "Years Pro": 12,
+      "Team": "Pistons",
+      "Position": "Guard-Forward"
+    }
+  },
+  "james_harden": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "220",
+      "AGE": 35,
+      "Years Pro": 16,
+      "Team": "Clippers",
+      "Position": "Guard"
+    }
+  },
+  "jaden_hardy": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "198",
+      "AGE": 22,
+      "Years Pro": 4,
+      "Team": "Mavericks",
+      "Position": "Guard"
+    }
+  },
+  "elijah_harkless": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "195",
+      "AGE": 25,
+      "Years Pro": 1,
+      "Team": "Jazz",
+      "Position": "Guard"
+    }
+  },
+  "ron_harper_jr": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "233",
+      "AGE": 25,
+      "Years Pro": 3,
+      "Team": "Pistons",
+      "Position": "Guard-Forward"
+    }
+  },
+  "gary_harris": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "210",
+      "AGE": 30,
+      "Years Pro": 11,
+      "Team": "Magic",
+      "Position": "Guard"
+    }
+  },
+  "tobias_harris": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "226",
+      "AGE": 32,
+      "Years Pro": 14,
+      "Team": "Pistons",
+      "Position": "Forward"
+    }
+  },
+  "josh_hart": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "215",
+      "AGE": 30,
+      "Years Pro": 8,
+      "Team": "Knicks",
+      "Position": "Guard"
+    }
+  },
+  "isaiah_hartenstein": {
+    "bio": {
+      "HT": "7-0",
+      "WT": "250",
+      "AGE": 26,
+      "Years Pro": 7,
+      "Team": "Thunder",
+      "Position": "Center-Forward"
+    }
+  },
+  "sam_hauser": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "217",
+      "AGE": 27,
+      "Years Pro": 4,
+      "Team": "Celtics",
+      "Position": "Forward"
+    }
+  },
+  "jordan_hawkins": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "190",
+      "AGE": 22,
+      "Years Pro": 2,
+      "Team": "Pelicans",
+      "Position": "Guard"
+    }
+  },
+  "jaxson_hayes": {
+    "bio": {
+      "HT": "7-0",
+      "WT": "220",
+      "AGE": 24,
+      "Years Pro": 6,
+      "Team": "Lakers",
+      "Position": "Center-Forward"
+    }
+  },
+  "scoot_henderson": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "206",
+      "AGE": 21,
+      "Years Pro": 4,
+      "Team": "Trail Blazers",
+      "Position": "Guard"
+    }
+  },
+  "taylor_hendricks": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "215",
+      "AGE": 21,
+      "Years Pro": 2,
+      "Team": "Jazz",
+      "Position": "Forward"
+    }
+  },
+  "tyler_herro": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "195",
+      "AGE": 25,
+      "Years Pro": 6,
+      "Team": "Heat",
+      "Position": "Guard"
+    }
+  },
+  "buddy_hield": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "220",
+      "AGE": 32,
+      "Years Pro": 9,
+      "Team": "Warriors",
+      "Position": "Guard"
+    }
+  },
+  "haywood_highsmith": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "220",
+      "AGE": 28,
+      "Years Pro": 7,
+      "Team": "Heat",
+      "Position": "Forward"
+    }
+  },
+  "aaron_holiday": {
+    "bio": {
+      "HT": "6-0",
+      "WT": "185",
+      "AGE": 28,
+      "Years Pro": 7,
+      "Team": "Rockets",
+      "Position": "Guard"
+    }
+  },
+  "jrue_holiday": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "205",
+      "AGE": 34,
+      "Years Pro": 16,
+      "Team": "Celtics",
+      "Position": "Guard"
+    }
+  },
+  "ronald_holland_ii": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "206",
+      "AGE": 19,
+      "Years Pro": 2,
+      "Team": "Pistons",
+      "Position": "Forward"
+    }
+  },
+  "richaun_holmes": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "235",
+      "AGE": 31,
+      "Years Pro": 10,
+      "Team": "Wizards",
+      "Position": "Forward"
+    }
+  },
+  "daron_holmes_ii": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "225",
+      "AGE": 22,
+      "Years Pro": 1,
+      "Team": "Nuggets",
+      "Position": "Forward"
+    }
+  },
+  "chet_holmgren": {
+    "bio": {
+      "HT": "7-1",
+      "WT": "208",
+      "AGE": 22,
+      "Years Pro": 3,
+      "Team": "Thunder",
+      "Position": "Center-Forward"
+    }
+  },
+  "jalen_hood-schifino": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "210",
+      "AGE": 21,
+      "Years Pro": 2,
+      "Team": "76ers",
+      "Position": "Guard"
+    }
+  },
+  "al_horford": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "240",
+      "AGE": 38,
+      "Years Pro": 18,
+      "Team": "Celtics",
+      "Position": "Center-Forward"
+    }
+  },
+  "talen_horton-tucker": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "234",
+      "AGE": 24,
+      "Years Pro": 6,
+      "Team": "Bulls",
+      "Position": "Guard"
+    }
+  },
+  "caleb_houstan": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "205",
+      "AGE": 22,
+      "Years Pro": 3,
+      "Team": "Magic",
+      "Position": "Guard"
+    }
+  },
+  "jett_howard": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "215",
+      "AGE": 21,
+      "Years Pro": 2,
+      "Team": "Magic",
+      "Position": "Guard"
+    }
+  },
+  "kevin_huerter": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "198",
+      "AGE": 26,
+      "Years Pro": 7,
+      "Team": "Bulls",
+      "Position": "Guard-Forward"
+    }
+  },
+  "jay_huff": {
+    "bio": {
+      "HT": "7-1",
+      "WT": "240",
+      "AGE": 27,
+      "Years Pro": 4,
+      "Team": "Grizzlies",
+      "Position": "Center"
+    }
+  },
+  "ariel_hukporti": {
+    "bio": {
+      "HT": "6-11",
+      "WT": "246",
+      "AGE": 23,
+      "Years Pro": 1,
+      "Team": "Knicks",
+      "Position": "Center"
+    }
+  },
+  "deandre_hunter": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "221",
+      "AGE": 27,
+      "Years Pro": 6,
+      "Team": "Cavaliers",
+      "Position": "Forward-Guard"
+    }
+  },
+  "bones_hyland": {
+    "bio": {
+      "HT": "6-2",
+      "WT": "169",
+      "AGE": 24,
+      "Years Pro": 4,
+      "Team": "Timberwolves",
+      "Position": "Guard"
+    }
+  },
+  "oso_ighodaro": {
+    "bio": {
+      "HT": "7-0",
+      "WT": "235",
+      "AGE": 22,
+      "Years Pro": 1,
+      "Team": "Suns",
+      "Position": "Forward"
+    }
+  },
+  "joe_ingles": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "220",
+      "AGE": 37,
+      "Years Pro": 11,
+      "Team": "Timberwolves",
+      "Position": "Forward-Guard"
+    }
+  },
+  "brandon_ingram": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "190",
+      "AGE": 27,
+      "Years Pro": 9,
+      "Team": "Raptors",
+      "Position": "Forward"
+    }
+  },
+  "harrison_ingram": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "230",
+      "AGE": 22,
+      "Years Pro": 1,
+      "Team": "Spurs",
+      "Position": "Forward"
+    }
+  },
+  "kyrie_irving": {
+    "bio": {
+      "HT": "6-2",
+      "WT": "195",
+      "AGE": 33,
+      "Years Pro": 14,
+      "Team": "Mavericks",
+      "Position": "Guard"
+    }
+  },
+  "jonathan_isaac": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "230",
+      "AGE": 27,
+      "Years Pro": 8,
+      "Team": "Magic",
+      "Position": "Forward"
+    }
+  },
+  "jaden_ivey": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "195",
+      "AGE": 23,
+      "Years Pro": 3,
+      "Team": "Pistons",
+      "Position": "Guard"
+    }
+  },
+  "gg_jackson": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "210",
+      "AGE": 20,
+      "Years Pro": 2,
+      "Team": "Grizzlies",
+      "Position": "Forward"
+    }
+  },
+  "isaiah_jackson": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "205",
+      "AGE": 23,
+      "Years Pro": 4,
+      "Team": "Pacers",
+      "Position": "Forward"
+    }
+  },
+  "quenton_jackson": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "173",
+      "AGE": 26,
+      "Years Pro": 3,
+      "Team": "Pacers",
+      "Position": "Guard"
+    }
+  },
+  "andre_jackson_jr": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "209",
+      "AGE": 23,
+      "Years Pro": 2,
+      "Team": "Bucks",
+      "Position": "Guard"
+    }
+  },
+  "jaren_jackson_jr": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "242",
+      "AGE": 25,
+      "Years Pro": 7,
+      "Team": "Grizzlies",
+      "Position": "Forward-Center"
+    }
+  },
+  "trayce_jackson-davis": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "245",
+      "AGE": 25,
+      "Years Pro": 2,
+      "Team": "Warriors",
+      "Position": "Forward"
+    }
+  },
+  "bronny_james": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "210",
+      "AGE": 20,
+      "Years Pro": 1,
+      "Team": "Lakers",
+      "Position": "Guard"
+    }
+  },
+  "lebron_james": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "250",
+      "AGE": 40,
+      "Years Pro": 22,
+      "Team": "Lakers",
+      "Position": "Forward"
+    }
+  },
+  "jaime_jaquez_jr": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "225",
+      "AGE": 24,
+      "Years Pro": 2,
+      "Team": "Heat",
+      "Position": "Guard"
+    }
+  },
+  "daquan_jeffries": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "222",
+      "AGE": 27,
+      "Years Pro": 6,
+      "Team": "Hornets",
+      "Position": "Guard-Forward"
+    }
+  },
+  "trey_jemison_iii": {
+    "bio": {
+      "HT": "6-11",
+      "WT": "270",
+      "AGE": 25,
+      "Years Pro": 2,
+      "Team": "Lakers",
+      "Position": "Center"
+    }
+  },
+  "daniss_jenkins": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "165",
+      "AGE": 23,
+      "Years Pro": 1,
+      "Team": "Pistons",
+      "Position": "Guard"
+    }
+  },
+  "ty_jerome": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "195",
+      "AGE": 27,
+      "Years Pro": 6,
+      "Team": "Cavaliers",
+      "Position": "Guard-Forward"
+    }
+  },
+  "isaiah_joe": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "165",
+      "AGE": 25,
+      "Years Pro": 5,
+      "Team": "Thunder",
+      "Position": "Guard"
+    }
+  },
+  "aj_johnson": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "160",
+      "AGE": 20,
+      "Years Pro": 1,
+      "Team": "Wizards",
+      "Position": "Guard"
+    }
+  },
+  "cameron_johnson": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "210",
+      "AGE": 29,
+      "Years Pro": 6,
+      "Team": "Nets",
+      "Position": "Forward"
+    }
+  },
+  "jalen_johnson": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "219",
+      "AGE": 23,
+      "Years Pro": 4,
+      "Team": "Hawks",
+      "Position": "Forward"
+    }
+  },
+  "james_johnson": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "240",
+      "AGE": 38,
+      "Years Pro": 16,
+      "Team": "Pacers",
+      "Position": "Forward"
+    }
+  },
+  "keldon_johnson": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "220",
+      "AGE": 25,
+      "Years Pro": 6,
+      "Team": "Spurs",
+      "Position": "Forward-Guard"
+    }
+  },
+  "keon_johnson": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "185",
+      "AGE": 23,
+      "Years Pro": 4,
+      "Team": "Nets",
+      "Position": "Guard"
+    }
+  },
+  "keshad_johnson": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "225",
+      "AGE": 23,
+      "Years Pro": 1,
+      "Team": "Heat",
+      "Position": "Forward"
+    }
+  },
+  "nikola_joki\u0107": {
+    "bio": {
+      "HT": "6-11",
+      "WT": "284",
+      "AGE": 30,
+      "Years Pro": 10,
+      "Team": "Nuggets",
+      "Position": "Center"
+    }
+  },
+  "colby_jones": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "207",
+      "AGE": 22,
+      "Years Pro": 2,
+      "Team": "Wizards",
+      "Position": "Guard"
+    }
+  },
+  "dillon_jones": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "235",
+      "AGE": 23,
+      "Years Pro": 1,
+      "Team": "Thunder",
+      "Position": "Forward"
+    }
+  },
+  "herbert_jones": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "206",
+      "AGE": 26,
+      "Years Pro": 4,
+      "Team": "Pelicans",
+      "Position": "Forward"
+    }
+  },
+  "isaac_jones": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "245",
+      "AGE": 24,
+      "Years Pro": 1,
+      "Team": "Kings",
+      "Position": "Forward"
+    }
+  },
+  "kai_jones": {
+    "bio": {
+      "HT": "6-11",
+      "WT": "221",
+      "AGE": 24,
+      "Years Pro": 4,
+      "Team": "Mavericks",
+      "Position": "Center-Forward"
+    }
+  },
+  "mason_jones": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "200",
+      "AGE": 26,
+      "Years Pro": 5,
+      "Team": "Kings",
+      "Position": "Guard"
+    }
+  },
+  "spencer_jones": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "225",
+      "AGE": 23,
+      "Years Pro": 1,
+      "Team": "Nuggets",
+      "Position": "Forward"
+    }
+  },
+  "tre_jones": {
+    "bio": {
+      "HT": "6-1",
+      "WT": "185",
+      "AGE": 25,
+      "Years Pro": 5,
+      "Team": "Bulls",
+      "Position": "Guard"
+    }
+  },
+  "tyus_jones": {
+    "bio": {
+      "HT": "6-1",
+      "WT": "196",
+      "AGE": 28,
+      "Years Pro": 10,
+      "Team": "Suns",
+      "Position": "Guard"
+    }
+  },
+  "derrick_jones_jr": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "210",
+      "AGE": 28,
+      "Years Pro": 9,
+      "Team": "Clippers",
+      "Position": "Forward"
+    }
+  },
+  "deandre_jordan": {
+    "bio": {
+      "HT": "6-11",
+      "WT": "265",
+      "AGE": 36,
+      "Years Pro": 17,
+      "Team": "Nuggets",
+      "Position": "Center"
+    }
+  },
+  "cory_joseph": {
+    "bio": {
+      "HT": "6-2",
+      "WT": "200",
+      "AGE": 33,
+      "Years Pro": 14,
+      "Team": "Magic",
+      "Position": "Guard"
+    }
+  },
+  "nikola_jovi\u0107": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "205",
+      "AGE": 21,
+      "Years Pro": 3,
+      "Team": "Heat",
+      "Position": "Forward"
+    }
+  },
+  "johnny_juzang": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "226",
+      "AGE": 24,
+      "Years Pro": 3,
+      "Team": "Jazz",
+      "Position": "Guard"
+    }
+  },
+  "yuki_kawamura": {
+    "bio": {
+      "HT": "5-8",
+      "WT": "159",
+      "AGE": 23,
+      "Years Pro": 1,
+      "Team": "Grizzlies",
+      "Position": "Guard"
+    }
+  },
+  "luke_kennard": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "206",
+      "AGE": 28,
+      "Years Pro": 8,
+      "Team": "Grizzlies",
+      "Position": "Guard"
+    }
+  },
+  "walker_kessler": {
+    "bio": {
+      "HT": "7-0",
+      "WT": "245",
+      "AGE": 23,
+      "Years Pro": 3,
+      "Team": "Jazz",
+      "Position": "Center"
+    }
+  },
+  "braxton_key": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "225",
+      "AGE": 28,
+      "Years Pro": 4,
+      "Team": "Warriors",
+      "Position": "Forward"
+    }
+  },
+  "corey_kispert": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "224",
+      "AGE": 26,
+      "Years Pro": 4,
+      "Team": "Wizards",
+      "Position": "Forward"
+    }
+  },
+  "maxi_kleber": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "240",
+      "AGE": 33,
+      "Years Pro": 8,
+      "Team": "Lakers",
+      "Position": "Forward"
+    }
+  },
+  "bobi_klintman": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "225",
+      "AGE": 22,
+      "Years Pro": 1,
+      "Team": "Pistons",
+      "Position": "Forward"
+    }
+  },
+  "dalton_knecht": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "215",
+      "AGE": 23,
+      "Years Pro": 1,
+      "Team": "Lakers",
+      "Position": "Forward"
+    }
+  },
+  "kevin_knox_ii": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "215",
+      "AGE": 25,
+      "Years Pro": 7,
+      "Team": "Warriors",
+      "Position": "Forward"
+    }
+  },
+  "tyler_kolek": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "195",
+      "AGE": 24,
+      "Years Pro": 1,
+      "Team": "Knicks",
+      "Position": "Guard"
+    }
+  },
+  "christian_koloko": {
+    "bio": {
+      "HT": "7-0",
+      "WT": "225",
+      "AGE": 24,
+      "Years Pro": 3,
+      "Team": "Lakers",
+      "Position": "Center"
+    }
+  },
+  "john_konchar": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "210",
+      "AGE": 29,
+      "Years Pro": 6,
+      "Team": "Grizzlies",
+      "Position": "Guard"
+    }
+  },
+  "luke_kornet": {
+    "bio": {
+      "HT": "7-1",
+      "WT": "250",
+      "AGE": 29,
+      "Years Pro": 8,
+      "Team": "Celtics",
+      "Position": "Center-Forward"
+    }
+  },
+  "v\u00edt_krej\u010d\u00ed": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "195",
+      "AGE": 24,
+      "Years Pro": 4,
+      "Team": "Hawks",
+      "Position": "Guard"
+    }
+  },
+  "jonathan_kuminga": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "225",
+      "AGE": 22,
+      "Years Pro": 4,
+      "Team": "Warriors",
+      "Position": "Forward"
+    }
+  },
+  "kyle_kuzma": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "221",
+      "AGE": 29,
+      "Years Pro": 8,
+      "Team": "Bucks",
+      "Position": "Forward"
+    }
+  },
+  "jake_laravia": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "235",
+      "AGE": 23,
+      "Years Pro": 3,
+      "Team": "Kings",
+      "Position": "Forward"
+    }
+  },
+  "zach_lavine": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "200",
+      "AGE": 30,
+      "Years Pro": 11,
+      "Team": "Kings",
+      "Position": "Guard"
+    }
+  },
+  "jock_landale": {
+    "bio": {
+      "HT": "6-11",
+      "WT": "255",
+      "AGE": 29,
+      "Years Pro": 4,
+      "Team": "Rockets",
+      "Position": "Center"
+    }
+  },
+  "pelle_larsson": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "215",
+      "AGE": 24,
+      "Years Pro": 1,
+      "Team": "Heat",
+      "Position": "Guard"
+    }
+  },
+  "aj_lawson": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "179",
+      "AGE": 24,
+      "Years Pro": 3,
+      "Team": "Raptors",
+      "Position": "Guard"
+    }
+  },
+  "caris_levert": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "205",
+      "AGE": 30,
+      "Years Pro": 9,
+      "Team": "Hawks",
+      "Position": "Guard"
+    }
+  },
+  "damion_lee": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "210",
+      "AGE": 32,
+      "Years Pro": 8,
+      "Team": "Suns",
+      "Position": "Guard-Forward"
+    }
+  },
+  "alex_len": {
+    "bio": {
+      "HT": "7-0",
+      "WT": "250",
+      "AGE": 31,
+      "Years Pro": 12,
+      "Team": "Lakers",
+      "Position": "Center"
+    }
+  },
+  "kawhi_leonard": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "225",
+      "AGE": 33,
+      "Years Pro": 14,
+      "Team": "Clippers",
+      "Position": "Forward"
+    }
+  },
+  "maxwell_lewis": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "215",
+      "AGE": 22,
+      "Years Pro": 2,
+      "Team": "Nets",
+      "Position": "Forward"
+    }
+  },
+  "ej_liddell": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "240",
+      "AGE": 24,
+      "Years Pro": 3,
+      "Team": "Bulls",
+      "Position": "Forward"
+    }
+  },
+  "damian_lillard": {
+    "bio": {
+      "HT": "6-2",
+      "WT": "195",
+      "AGE": 34,
+      "Years Pro": 13,
+      "Team": "Bucks",
+      "Position": "Guard"
+    }
+  },
+  "dereck_lively_ii": {
+    "bio": {
+      "HT": "7-1",
+      "WT": "230",
+      "AGE": 21,
+      "Years Pro": 2,
+      "Team": "Mavericks",
+      "Position": "Center"
+    }
+  },
+  "chris_livingston": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "220",
+      "AGE": 21,
+      "Years Pro": 2,
+      "Team": "Bucks",
+      "Position": "Forward"
+    }
+  },
+  "kevon_looney": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "222",
+      "AGE": 29,
+      "Years Pro": 10,
+      "Team": "Warriors",
+      "Position": "Forward"
+    }
+  },
+  "brook_lopez": {
+    "bio": {
+      "HT": "7-1",
+      "WT": "282",
+      "AGE": 37,
+      "Years Pro": 17,
+      "Team": "Bucks",
+      "Position": "Center"
+    }
+  },
+  "kevin_love": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "251",
+      "AGE": 36,
+      "Years Pro": 17,
+      "Team": "Heat",
+      "Position": "Forward-Center"
+    }
+  },
+  "kyle_lowry": {
+    "bio": {
+      "HT": "6-0",
+      "WT": "196",
+      "AGE": 39,
+      "Years Pro": 19,
+      "Team": "76ers",
+      "Position": "Guard"
+    }
+  },
+  "trey_lyles": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "234",
+      "AGE": 29,
+      "Years Pro": 10,
+      "Team": "Kings",
+      "Position": "Forward"
+    }
+  },
+  "sandro_mamukelashvili": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "240",
+      "AGE": 25,
+      "Years Pro": 4,
+      "Team": "Spurs",
+      "Position": "Forward-Center"
+    }
+  },
+  "terance_mann": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "215",
+      "AGE": 28,
+      "Years Pro": 6,
+      "Team": "Hawks",
+      "Position": "Guard-Forward"
+    }
+  },
+  "tre_mann": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "178",
+      "AGE": 24,
+      "Years Pro": 4,
+      "Team": "Hornets",
+      "Position": "Guard"
+    }
+  },
+  "lauri_markkanen": {
+    "bio": {
+      "HT": "7-0",
+      "WT": "240",
+      "AGE": 27,
+      "Years Pro": 8,
+      "Team": "Jazz",
+      "Position": "Forward-Center"
+    }
+  },
+  "naji_marshall": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "220",
+      "AGE": 27,
+      "Years Pro": 5,
+      "Team": "Mavericks",
+      "Position": "Forward"
+    }
+  },
+  "caleb_martin": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "205",
+      "AGE": 29,
+      "Years Pro": 6,
+      "Team": "Mavericks",
+      "Position": "Forward"
+    }
+  },
+  "cody_martin": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "205",
+      "AGE": 29,
+      "Years Pro": 6,
+      "Team": "Suns",
+      "Position": "Forward"
+    }
+  },
+  "jaylen_martin": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "216",
+      "AGE": 21,
+      "Years Pro": 2,
+      "Team": "Wizards",
+      "Position": "Guard"
+    }
+  },
+  "kj_martin": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "215",
+      "AGE": 24,
+      "Years Pro": 5,
+      "Team": "Jazz",
+      "Position": "Forward"
+    }
+  },
+  "tyrese_martin": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "215",
+      "AGE": 26,
+      "Years Pro": 3,
+      "Team": "Nets",
+      "Position": "Forward"
+    }
+  },
+  "garrison_mathews": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "215",
+      "AGE": 28,
+      "Years Pro": 6,
+      "Team": "Hawks",
+      "Position": "Guard"
+    }
+  },
+  "bennedict_mathurin": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "210",
+      "AGE": 22,
+      "Years Pro": 3,
+      "Team": "Pacers",
+      "Position": "Guard-Forward"
+    }
+  },
+  "karlo_matkovi\u0107": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "231",
+      "AGE": 24,
+      "Years Pro": 1,
+      "Team": "Pelicans",
+      "Position": "Forward-Center"
+    }
+  },
+  "tyrese_maxey": {
+    "bio": {
+      "HT": "6-2",
+      "WT": "200",
+      "AGE": 24,
+      "Years Pro": 5,
+      "Team": "76ers",
+      "Position": "Guard"
+    }
+  },
+  "miles_mcbride": {
+    "bio": {
+      "HT": "6-1",
+      "WT": "195",
+      "AGE": 24,
+      "Years Pro": 4,
+      "Team": "Knicks",
+      "Position": "Guard"
+    }
+  },
+  "jared_mccain": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "195",
+      "AGE": 21,
+      "Years Pro": 1,
+      "Team": "76ers",
+      "Position": "Guard"
+    }
+  },
+  "mac_mcclung": {
+    "bio": {
+      "HT": "6-2",
+      "WT": "185",
+      "AGE": 26,
+      "Years Pro": 4,
+      "Team": "Magic",
+      "Position": "Guard"
+    }
+  },
+  "cj_mccollum": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "190",
+      "AGE": 33,
+      "Years Pro": 12,
+      "Team": "Pelicans",
+      "Position": "Guard"
+    }
+  },
+  "tj_mcconnell": {
+    "bio": {
+      "HT": "6-1",
+      "WT": "190",
+      "AGE": 33,
+      "Years Pro": 10,
+      "Team": "Pacers",
+      "Position": "Guard"
+    }
+  },
+  "kevin_mccullar_jr": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "210",
+      "AGE": 24,
+      "Years Pro": 1,
+      "Team": "Knicks",
+      "Position": "Guard"
+    }
+  },
+  "jaden_mcdaniels": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "185",
+      "AGE": 24,
+      "Years Pro": 5,
+      "Team": "Timberwolves",
+      "Position": "Forward"
+    }
+  },
+  "doug_mcdermott": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "225",
+      "AGE": 33,
+      "Years Pro": 11,
+      "Team": "Kings",
+      "Position": "Forward"
+    }
+  },
+  "bryce_mcgowens": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "190",
+      "AGE": 22,
+      "Years Pro": 3,
+      "Team": "Trail Blazers",
+      "Position": "Guard"
+    }
+  },
+  "jordan_mclaughlin": {
+    "bio": {
+      "HT": "6-0",
+      "WT": "185",
+      "AGE": 29,
+      "Years Pro": 6,
+      "Team": "Spurs",
+      "Position": "Guard"
+    }
+  },
+  "jack_mcveigh": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "215",
+      "AGE": 28,
+      "Years Pro": 1,
+      "Team": "Rockets",
+      "Position": "Guard-Forward"
+    }
+  },
+  "deanthony_melton": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "200",
+      "AGE": 26,
+      "Years Pro": 7,
+      "Team": "Nets",
+      "Position": "Guard"
+    }
+  },
+  "sam_merrill": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "205",
+      "AGE": 28,
+      "Years Pro": 5,
+      "Team": "Cavaliers",
+      "Position": "Guard"
+    }
+  },
+  "vasilije_mici\u0107": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "188",
+      "AGE": 31,
+      "Years Pro": 2,
+      "Team": "Suns",
+      "Position": "Guard"
+    }
+  },
+  "khris_middleton": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "222",
+      "AGE": 33,
+      "Years Pro": 13,
+      "Team": "Wizards",
+      "Position": "Forward"
+    }
+  },
+  "brandon_miller": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "200",
+      "AGE": 22,
+      "Years Pro": 2,
+      "Team": "Hornets",
+      "Position": "Forward"
+    }
+  },
+  "emanuel_miller": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "215",
+      "AGE": 24,
+      "Years Pro": 1,
+      "Team": "Bulls",
+      "Position": "Forward"
+    }
+  },
+  "jordan_miller": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "194",
+      "AGE": 25,
+      "Years Pro": 2,
+      "Team": "Clippers",
+      "Position": "Guard"
+    }
+  },
+  "leonard_miller": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "220",
+      "AGE": 21,
+      "Years Pro": 3,
+      "Team": "Timberwolves",
+      "Position": "Forward"
+    }
+  },
+  "patty_mills": {
+    "bio": {
+      "HT": "6-2",
+      "WT": "180",
+      "AGE": 36,
+      "Years Pro": 16,
+      "Team": "Clippers",
+      "Position": "Guard"
+    }
+  },
+  "shake_milton": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "205",
+      "AGE": 28,
+      "Years Pro": 7,
+      "Team": "Lakers",
+      "Position": "Guard"
+    }
+  },
+  "justin_minaya": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "205",
+      "AGE": 26,
+      "Years Pro": 3,
+      "Team": "Trail Blazers",
+      "Position": "Forward"
+    }
+  },
+  "riley_minix": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "230",
+      "AGE": 24,
+      "Years Pro": 1,
+      "Team": "Spurs",
+      "Position": "Forward"
+    }
+  },
+  "josh_minott": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "205",
+      "AGE": 22,
+      "Years Pro": 3,
+      "Team": "Timberwolves",
+      "Position": "Forward"
+    }
+  },
+  "yves_missi": {
+    "bio": {
+      "HT": "6-11",
+      "WT": "235",
+      "AGE": 20,
+      "Years Pro": 1,
+      "Team": "Pelicans",
+      "Position": "Center"
+    }
+  },
+  "ajay_mitchell": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "190",
+      "AGE": 22,
+      "Years Pro": 1,
+      "Team": "Thunder",
+      "Position": "Guard"
+    }
+  },
+  "davion_mitchell": {
+    "bio": {
+      "HT": "6-0",
+      "WT": "202",
+      "AGE": 26,
+      "Years Pro": 4,
+      "Team": "Heat",
+      "Position": "Guard"
+    }
+  },
+  "donovan_mitchell": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "215",
+      "AGE": 28,
+      "Years Pro": 8,
+      "Team": "Cavaliers",
+      "Position": "Guard"
+    }
+  },
+  "evan_mobley": {
+    "bio": {
+      "HT": "6-11",
+      "WT": "215",
+      "AGE": 23,
+      "Years Pro": 4,
+      "Team": "Cavaliers",
+      "Position": "Center"
+    }
+  },
+  "jonathan_mogbo": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "225",
+      "AGE": 23,
+      "Years Pro": 1,
+      "Team": "Raptors",
+      "Position": "Forward"
+    }
+  },
+  "malik_monk": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "200",
+      "AGE": 27,
+      "Years Pro": 8,
+      "Team": "Kings",
+      "Position": "Guard"
+    }
+  },
+  "moses_moody": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "211",
+      "AGE": 22,
+      "Years Pro": 4,
+      "Team": "Warriors",
+      "Position": "Guard"
+    }
+  },
+  "wendell_moore_jr": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "215",
+      "AGE": 23,
+      "Years Pro": 3,
+      "Team": "Hornets",
+      "Position": "Guard"
+    }
+  },
+  "ja_morant": {
+    "bio": {
+      "HT": "6-2",
+      "WT": "174",
+      "AGE": 25,
+      "Years Pro": 6,
+      "Team": "Grizzlies",
+      "Position": "Guard"
+    }
+  },
+  "markieff_morris": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "245",
+      "AGE": 35,
+      "Years Pro": 14,
+      "Team": "Lakers",
+      "Position": "Forward"
+    }
+  },
+  "mont\u00e9_morris": {
+    "bio": {
+      "HT": "6-2",
+      "WT": "183",
+      "AGE": 29,
+      "Years Pro": 8,
+      "Team": "Suns",
+      "Position": "Guard"
+    }
+  },
+  "trey_murphy_iii": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "206",
+      "AGE": 24,
+      "Years Pro": 4,
+      "Team": "Pelicans",
+      "Position": "Forward"
+    }
+  },
+  "dejounte_murray": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "180",
+      "AGE": 28,
+      "Years Pro": 9,
+      "Team": "Pelicans",
+      "Position": "Guard"
+    }
+  },
+  "jamal_murray": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "215",
+      "AGE": 28,
+      "Years Pro": 9,
+      "Team": "Nuggets",
+      "Position": "Guard"
+    }
+  },
+  "keegan_murray": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "225",
+      "AGE": 24,
+      "Years Pro": 3,
+      "Team": "Kings",
+      "Position": "Forward"
+    }
+  },
+  "kris_murray": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "216",
+      "AGE": 24,
+      "Years Pro": 2,
+      "Team": "Trail Blazers",
+      "Position": "Forward"
+    }
+  },
+  "svi_mykhailiuk": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "205",
+      "AGE": 27,
+      "Years Pro": 7,
+      "Team": "Jazz",
+      "Position": "Guard-Forward"
+    }
+  },
+  "pete_nance": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "225",
+      "AGE": 25,
+      "Years Pro": 2,
+      "Team": "Bucks",
+      "Position": "Forward"
+    }
+  },
+  "larry_nance_jr": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "245",
+      "AGE": 32,
+      "Years Pro": 10,
+      "Team": "Hawks",
+      "Position": "Forward-Center"
+    }
+  },
+  "andrew_nembhard": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "191",
+      "AGE": 25,
+      "Years Pro": 3,
+      "Team": "Pacers",
+      "Position": "Guard-Forward"
+    }
+  },
+  "aaron_nesmith": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "215",
+      "AGE": 25,
+      "Years Pro": 5,
+      "Team": "Pacers",
+      "Position": "Guard-Forward"
+    }
+  },
+  "tristen_newton": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "190",
+      "AGE": 23,
+      "Years Pro": 1,
+      "Team": "Timberwolves",
+      "Position": "Guard"
+    }
+  },
+  "georges_niang": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "230",
+      "AGE": 31,
+      "Years Pro": 9,
+      "Team": "Hawks",
+      "Position": "Forward"
+    }
+  },
+  "zeke_nnaji": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "240",
+      "AGE": 24,
+      "Years Pro": 5,
+      "Team": "Nuggets",
+      "Position": "Forward-Center"
+    }
+  },
+  "miles_norris": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "220",
+      "AGE": 25,
+      "Years Pro": 1,
+      "Team": "Celtics",
+      "Position": "Forward"
+    }
+  },
+  "jusuf_nurki\u0107": {
+    "bio": {
+      "HT": "7-0",
+      "WT": "290",
+      "AGE": 30,
+      "Years Pro": 11,
+      "Team": "Hornets",
+      "Position": "Center"
+    }
+  },
+  "royce_oneale": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "226",
+      "AGE": 31,
+      "Years Pro": 8,
+      "Team": "Suns",
+      "Position": "Forward"
+    }
+  },
+  "chuma_okeke": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "229",
+      "AGE": 26,
+      "Years Pro": 5,
+      "Team": "Cavaliers",
+      "Position": "Forward"
+    }
+  },
+  "josh_okogie": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "213",
+      "AGE": 26,
+      "Years Pro": 7,
+      "Team": "Hornets",
+      "Position": "Guard"
+    }
+  },
+  "onyeka_okongwu": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "240",
+      "AGE": 24,
+      "Years Pro": 5,
+      "Team": "Hawks",
+      "Position": "Forward-Center"
+    }
+  },
+  "isaac_okoro": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "225",
+      "AGE": 24,
+      "Years Pro": 5,
+      "Team": "Cavaliers",
+      "Position": "Forward-Guard"
+    }
+  },
+  "kelly_olynyk": {
+    "bio": {
+      "HT": "6-11",
+      "WT": "240",
+      "AGE": 33,
+      "Years Pro": 12,
+      "Team": "Pelicans",
+      "Position": "Forward-Center"
+    }
+  },
+  "kelly_oubre_jr": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "203",
+      "AGE": 29,
+      "Years Pro": 10,
+      "Team": "76ers",
+      "Position": "Forward-Guard"
+    }
+  },
+  "chris_paul": {
+    "bio": {
+      "HT": "6-0",
+      "WT": "175",
+      "AGE": 39,
+      "Years Pro": 20,
+      "Team": "Spurs",
+      "Position": "Guard"
+    }
+  },
+  "cameron_payne": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "183",
+      "AGE": 30,
+      "Years Pro": 10,
+      "Team": "Knicks",
+      "Position": "Guard"
+    }
+  },
+  "elfrid_payton": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "195",
+      "AGE": 31,
+      "Years Pro": 11,
+      "Team": "Pelicans",
+      "Position": "Guard"
+    }
+  },
+  "gary_payton_ii": {
+    "bio": {
+      "HT": "6-2",
+      "WT": "195",
+      "AGE": 32,
+      "Years Pro": 9,
+      "Team": "Warriors",
+      "Position": "Guard"
+    }
+  },
+  "drew_peterson": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "205",
+      "AGE": 25,
+      "Years Pro": 2,
+      "Team": "Celtics",
+      "Position": "Forward"
+    }
+  },
+  "julian_phillips": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "198",
+      "AGE": 21,
+      "Years Pro": 2,
+      "Team": "Bulls",
+      "Position": "Forward"
+    }
+  },
+  "jalen_pickett": {
+    "bio": {
+      "HT": "6-2",
+      "WT": "202",
+      "AGE": 25,
+      "Years Pro": 2,
+      "Team": "Nuggets",
+      "Position": "Guard"
+    }
+  },
+  "scotty_pippen_jr": {
+    "bio": {
+      "HT": "6-1",
+      "WT": "170",
+      "AGE": 24,
+      "Years Pro": 3,
+      "Team": "Grizzlies",
+      "Position": "Guard"
+    }
+  },
+  "daeqwon_plowden": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "216",
+      "AGE": 26,
+      "Years Pro": 1,
+      "Team": "Hawks",
+      "Position": "Guard-Forward"
+    }
+  },
+  "mason_plumlee": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "254",
+      "AGE": 35,
+      "Years Pro": 12,
+      "Team": "Suns",
+      "Position": "Forward-Center"
+    }
+  },
+  "brandin_podziemski": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "205",
+      "AGE": 22,
+      "Years Pro": 2,
+      "Team": "Warriors",
+      "Position": "Guard"
+    }
+  },
+  "jakob_poeltl": {
+    "bio": {
+      "HT": "7-0",
+      "WT": "260",
+      "AGE": 29,
+      "Years Pro": 9,
+      "Team": "Raptors",
+      "Position": "Center"
+    }
+  },
+  "jordan_poole": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "194",
+      "AGE": 25,
+      "Years Pro": 6,
+      "Team": "Wizards",
+      "Position": "Guard"
+    }
+  },
+  "craig_porter_jr": {
+    "bio": {
+      "HT": "6-1",
+      "WT": "180",
+      "AGE": 25,
+      "Years Pro": 2,
+      "Team": "Cavaliers",
+      "Position": "Guard"
+    }
+  },
+  "kevin_porter_jr": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "203",
+      "AGE": 24,
+      "Years Pro": 6,
+      "Team": "Bucks",
+      "Position": "Guard-Forward"
+    }
+  },
+  "michael_porter_jr": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "218",
+      "AGE": 26,
+      "Years Pro": 7,
+      "Team": "Nuggets",
+      "Position": "Forward"
+    }
+  },
+  "bobby_portis": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "250",
+      "AGE": 30,
+      "Years Pro": 10,
+      "Team": "Bucks",
+      "Position": "Forward"
+    }
+  },
+  "kristaps_porzi\u0146\u0123is": {
+    "bio": {
+      "HT": "7-2",
+      "WT": "240",
+      "AGE": 29,
+      "Years Pro": 10,
+      "Team": "Celtics",
+      "Position": "Forward-Center"
+    }
+  },
+  "quinten_post": {
+    "bio": {
+      "HT": "7-0",
+      "WT": "238",
+      "AGE": 25,
+      "Years Pro": 1,
+      "Team": "Warriors",
+      "Position": "Center"
+    }
+  },
+  "micah_potter": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "248",
+      "AGE": 27,
+      "Years Pro": 4,
+      "Team": "Jazz",
+      "Position": "Center"
+    }
+  },
+  "dwight_powell": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "240",
+      "AGE": 33,
+      "Years Pro": 11,
+      "Team": "Mavericks",
+      "Position": "Forward-Center"
+    }
+  },
+  "norman_powell": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "215",
+      "AGE": 31,
+      "Years Pro": 10,
+      "Team": "Clippers",
+      "Position": "Guard"
+    }
+  },
+  "taurean_prince": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "218",
+      "AGE": 31,
+      "Years Pro": 9,
+      "Team": "Bucks",
+      "Position": "Forward"
+    }
+  },
+  "payton_pritchard": {
+    "bio": {
+      "HT": "6-1",
+      "WT": "195",
+      "AGE": 27,
+      "Years Pro": 5,
+      "Team": "Celtics",
+      "Position": "Guard"
+    }
+  },
+  "olivier-maxence_prosper": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "230",
+      "AGE": 22,
+      "Years Pro": 2,
+      "Team": "Mavericks",
+      "Position": "Forward"
+    }
+  },
+  "zyon_pullin": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "206",
+      "AGE": 24,
+      "Years Pro": 1,
+      "Team": "Grizzlies",
+      "Position": "Guard"
+    }
+  },
+  "trevelin_queen": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "190",
+      "AGE": 28,
+      "Years Pro": 4,
+      "Team": "Magic",
+      "Position": "Guard"
+    }
+  },
+  "neemias_queta": {
+    "bio": {
+      "HT": "7-0",
+      "WT": "248",
+      "AGE": 25,
+      "Years Pro": 4,
+      "Team": "Celtics",
+      "Position": "Center"
+    }
+  },
+  "immanuel_quickley": {
+    "bio": {
+      "HT": "6-2",
+      "WT": "190",
+      "AGE": 25,
+      "Years Pro": 5,
+      "Team": "Raptors",
+      "Position": "Guard"
+    }
+  },
+  "lester_quiñones": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "208",
+      "AGE": 24,
+      "Years Pro": 3,
+      "Team": "Pelicans",
+      "Position": "Guard"
+    }
+  },
+  "julius_randle": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "250",
+      "AGE": 30,
+      "Years Pro": 11,
+      "Team": "Timberwolves",
+      "Position": "Forward-Center"
+    }
+  },
+  "duop_reath": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "245",
+      "AGE": 28,
+      "Years Pro": 2,
+      "Team": "Trail Blazers",
+      "Position": "Center"
+    }
+  },
+  "austin_reaves": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "197",
+      "AGE": 26,
+      "Years Pro": 4,
+      "Team": "Lakers",
+      "Position": "Guard"
+    }
+  },
+  "paul_reed": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "210",
+      "AGE": 25,
+      "Years Pro": 5,
+      "Team": "Pistons",
+      "Position": "Forward"
+    }
+  },
+  "alex_reese": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "245",
+      "AGE": 25,
+      "Years Pro": 1,
+      "Team": "76ers",
+      "Position": "Forward-Center"
+    }
+  },
+  "antonio_reeves": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "205",
+      "AGE": 22,
+      "Years Pro": 1,
+      "Team": "Pelicans",
+      "Position": "Guard"
+    }
+  },
+  "naz_reid": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "264",
+      "AGE": 25,
+      "Years Pro": 6,
+      "Team": "Timberwolves",
+      "Position": "Center-Forward"
+    }
+  },
+  "jared_rhoden": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "210",
+      "AGE": 25,
+      "Years Pro": 3,
+      "Team": "Raptors",
+      "Position": "Guard"
+    }
+  },
+  "nick_richards": {
+    "bio": {
+      "HT": "7-0",
+      "WT": "245",
+      "AGE": 27,
+      "Years Pro": 5,
+      "Team": "Suns",
+      "Position": "Center"
+    }
+  },
+  "zaccharie_risacher": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "200",
+      "AGE": 20,
+      "Years Pro": 1,
+      "Team": "Hawks",
+      "Position": "Forward"
+    }
+  },
+  "duncan_robinson": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "215",
+      "AGE": 30,
+      "Years Pro": 7,
+      "Team": "Heat",
+      "Position": "Forward"
+    }
+  },
+  "mitchell_robinson": {
+    "bio": {
+      "HT": "7-0",
+      "WT": "240",
+      "AGE": 27,
+      "Years Pro": 7,
+      "Team": "Knicks",
+      "Position": "Center-Forward"
+    }
+  },
+  "jeremiah_robinson-earl": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "240",
+      "AGE": 24,
+      "Years Pro": 4,
+      "Team": "Pelicans",
+      "Position": "Forward"
+    }
+  },
+  "david_roddy": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "255",
+      "AGE": 24,
+      "Years Pro": 3,
+      "Team": "Rockets",
+      "Position": "Forward"
+    }
+  },
+  "ryan_rollins": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "180",
+      "AGE": 22,
+      "Years Pro": 3,
+      "Team": "Bucks",
+      "Position": "Guard"
+    }
+  },
+  "jackson_rowe": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "210",
+      "AGE": 28,
+      "Years Pro": 1,
+      "Team": "Warriors",
+      "Position": "Forward"
+    }
+  },
+  "terry_rozier": {
+    "bio": {
+      "HT": "6-1",
+      "WT": "190",
+      "AGE": 31,
+      "Years Pro": 10,
+      "Team": "Heat",
+      "Position": "Guard"
+    }
+  },
+  "rayan_rupert": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "195",
+      "AGE": 20,
+      "Years Pro": 2,
+      "Team": "Trail Blazers",
+      "Position": "Guard-Forward"
+    }
+  },
+  "dangelo_russell": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "193",
+      "AGE": 29,
+      "Years Pro": 10,
+      "Team": "Nets",
+      "Position": "Guard"
+    }
+  },
+  "domantas_sabonis": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "240",
+      "AGE": 28,
+      "Years Pro": 9,
+      "Team": "Kings",
+      "Position": "Forward-Center"
+    }
+  },
+  "tidjane_sala\u00fcn": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "207",
+      "AGE": 19,
+      "Years Pro": 1,
+      "Team": "Hornets",
+      "Position": "Forward"
+    }
+  },
+  "gui_santos": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "185",
+      "AGE": 22,
+      "Years Pro": 2,
+      "Team": "Warriors",
+      "Position": "Forward"
+    }
+  },
+  "alex_sarr": {
+    "bio": {
+      "HT": "7-0",
+      "WT": "205",
+      "AGE": 19,
+      "Years Pro": 1,
+      "Team": "Wizards",
+      "Position": "Center"
+    }
+  },
+  "marcus_sasser": {
+    "bio": {
+      "HT": "6-2",
+      "WT": "195",
+      "AGE": 24,
+      "Years Pro": 2,
+      "Team": "Pistons",
+      "Position": "Guard"
+    }
+  },
+  "baylor_scheierman": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "205",
+      "AGE": 24,
+      "Years Pro": 1,
+      "Team": "Celtics",
+      "Position": "Guard"
+    }
+  },
+  "dennis_schr\u00f6der": {
+    "bio": {
+      "HT": "6-1",
+      "WT": "175",
+      "AGE": 31,
+      "Years Pro": 12,
+      "Team": "Pistons",
+      "Position": "Guard"
+    }
+  },
+  "alperen_sengun": {
+    "bio": {
+      "HT": "6-11",
+      "WT": "243",
+      "AGE": 22,
+      "Years Pro": 4,
+      "Team": "Rockets",
+      "Position": "Center"
+    }
+  },
+  "brice_sensabaugh": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "235",
+      "AGE": 21,
+      "Years Pro": 2,
+      "Team": "Jazz",
+      "Position": "Forward"
+    }
+  },
+  "collin_sexton": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "190",
+      "AGE": 26,
+      "Years Pro": 7,
+      "Team": "Jazz",
+      "Position": "Guard"
+    }
+  },
+  "landry_shamet": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "190",
+      "AGE": 28,
+      "Years Pro": 7,
+      "Team": "Knicks",
+      "Position": "Guard"
+    }
+  },
+  "terrence_shannon_jr": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "215",
+      "AGE": 24,
+      "Years Pro": 1,
+      "Team": "Timberwolves",
+      "Position": "Guard-Forward"
+    }
+  },
+  "dayron_sharpe": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "265",
+      "AGE": 23,
+      "Years Pro": 4,
+      "Team": "Nets",
+      "Position": "Center"
+    }
+  },
+  "shaedon_sharpe": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "208",
+      "AGE": 21,
+      "Years Pro": 3,
+      "Team": "Trail Blazers",
+      "Position": "Guard"
+    }
+  },
+  "jamal_shead": {
+    "bio": {
+      "HT": "6-1",
+      "WT": "200",
+      "AGE": 22,
+      "Years Pro": 1,
+      "Team": "Raptors",
+      "Position": "Guard"
+    }
+  },
+  "ben_sheppard": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "190",
+      "AGE": 23,
+      "Years Pro": 2,
+      "Team": "Pacers",
+      "Position": "Guard"
+    }
+  },
+  "reed_sheppard": {
+    "bio": {
+      "HT": "6-2",
+      "WT": "185",
+      "AGE": 20,
+      "Years Pro": 1,
+      "Team": "Rockets",
+      "Position": "Guard"
+    }
+  },
+  "pascal_siakam": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "245",
+      "AGE": 31,
+      "Years Pro": 9,
+      "Team": "Pacers",
+      "Position": "Forward"
+    }
+  },
+  "ben_simmons": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "240",
+      "AGE": 28,
+      "Years Pro": 9,
+      "Team": "Clippers",
+      "Position": "Guard-Forward"
+    }
+  },
+  "anfernee_simons": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "200",
+      "AGE": 25,
+      "Years Pro": 7,
+      "Team": "Trail Blazers",
+      "Position": "Guard"
+    }
+  },
+  "kj_simpson": {
+    "bio": {
+      "HT": "6-0",
+      "WT": "189",
+      "AGE": 22,
+      "Years Pro": 1,
+      "Team": "Hornets",
+      "Position": "Guard"
+    }
+  },
+  "jericho_sims": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "250",
+      "AGE": 26,
+      "Years Pro": 4,
+      "Team": "Bucks",
+      "Position": "Center"
+    }
+  },
+  "marcus_smart": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "220",
+      "AGE": 31,
+      "Years Pro": 11,
+      "Team": "Wizards",
+      "Position": "Guard"
+    }
+  },
+  "dru_smith": {
+    "bio": {
+      "HT": "6-2",
+      "WT": "203",
+      "AGE": 27,
+      "Years Pro": 3,
+      "Team": "Heat",
+      "Position": "Guard"
+    }
+  },
+  "jalen_smith": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "215",
+      "AGE": 25,
+      "Years Pro": 5,
+      "Team": "Bulls",
+      "Position": "Forward-Center"
+    }
+  },
+  "tolu_smith": {
+    "bio": {
+      "HT": "6-11",
+      "WT": "",
+      "AGE": 24,
+      "Years Pro": 1,
+      "Team": "Pistons",
+      "Position": "Forward"
+    }
+  },
+  "tyler_smith": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "224",
+      "AGE": 20,
+      "Years Pro": 2,
+      "Team": "Bucks",
+      "Position": "Forward"
+    }
+  },
+  "jabari_smith_jr": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "220",
+      "AGE": 21,
+      "Years Pro": 3,
+      "Team": "Rockets",
+      "Position": "Forward"
+    }
+  },
+  "nick_smith_jr": {
+    "bio": {
+      "HT": "6-2",
+      "WT": "185",
+      "AGE": 20,
+      "Years Pro": 2,
+      "Team": "Hornets",
+      "Position": "Guard"
+    }
+  },
+  "jeremy_sochan": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "230",
+      "AGE": 21,
+      "Years Pro": 3,
+      "Team": "Spurs",
+      "Position": "Forward"
+    }
+  },
+  "cam_spencer": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "205",
+      "AGE": 25,
+      "Years Pro": 1,
+      "Team": "Grizzlies",
+      "Position": "Guard"
+    }
+  },
+  "pat_spencer": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "205",
+      "AGE": 28,
+      "Years Pro": 2,
+      "Team": "Warriors",
+      "Position": "Guard"
+    }
+  },
+  "jaden_springer": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "202",
+      "AGE": 22,
+      "Years Pro": 4,
+      "Team": "Jazz",
+      "Position": "Guard"
+    }
+  },
+  "isaiah_stevens": {
+    "bio": {
+      "HT": "6-0",
+      "WT": "185",
+      "AGE": 24,
+      "Years Pro": 1,
+      "Team": "Heat",
+      "Position": "Guard"
+    }
+  },
+  "lamar_stevens": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "230",
+      "AGE": 27,
+      "Years Pro": 5,
+      "Team": "Grizzlies",
+      "Position": "Forward"
+    }
+  },
+  "isaiah_stewart": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "250",
+      "AGE": 23,
+      "Years Pro": 5,
+      "Team": "Pistons",
+      "Position": "Forward-Center"
+    }
+  },
+  "julian_strawther": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "205",
+      "AGE": 22,
+      "Years Pro": 2,
+      "Team": "Nuggets",
+      "Position": "Guard"
+    }
+  },
+  "max_strus": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "215",
+      "AGE": 29,
+      "Years Pro": 6,
+      "Team": "Cavaliers",
+      "Position": "Guard-Forward"
+    }
+  },
+  "jalen_suggs": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "205",
+      "AGE": 23,
+      "Years Pro": 4,
+      "Team": "Magic",
+      "Position": "Guard"
+    }
+  },
+  "jaesean_tate": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "230",
+      "AGE": 29,
+      "Years Pro": 5,
+      "Team": "Rockets",
+      "Position": "Forward"
+    }
+  },
+  "jayson_tatum": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "210",
+      "AGE": 27,
+      "Years Pro": 8,
+      "Team": "Celtics",
+      "Position": "Forward-Guard"
+    }
+  },
+  "garrett_temple": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "195",
+      "AGE": 38,
+      "Years Pro": 16,
+      "Team": "Raptors",
+      "Position": "Guard-Forward"
+    }
+  },
+  "dalen_terry": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "195",
+      "AGE": 22,
+      "Years Pro": 3,
+      "Team": "Bulls",
+      "Position": "Forward"
+    }
+  },
+  "cam_thomas": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "210",
+      "AGE": 23,
+      "Years Pro": 4,
+      "Team": "Nets",
+      "Position": "Guard"
+    }
+  },
+  "amen_thompson": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "200",
+      "AGE": 22,
+      "Years Pro": 2,
+      "Team": "Rockets",
+      "Position": "Guard-Forward"
+    }
+  },
+  "ausar_thompson": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "205",
+      "AGE": 22,
+      "Years Pro": 2,
+      "Team": "Pistons",
+      "Position": "Guard-Forward"
+    }
+  },
+  "klay_thompson": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "220",
+      "AGE": 35,
+      "Years Pro": 14,
+      "Team": "Mavericks",
+      "Position": "Guard"
+    }
+  },
+  "tristan_thompson": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "254",
+      "AGE": 34,
+      "Years Pro": 14,
+      "Team": "Cavaliers",
+      "Position": "Center-Forward"
+    }
+  },
+  "jt_thor": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "203",
+      "AGE": 22,
+      "Years Pro": 4,
+      "Team": "Wizards",
+      "Position": "Forward"
+    }
+  },
+  "matisse_thybulle": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "201",
+      "AGE": 28,
+      "Years Pro": 6,
+      "Team": "Trail Blazers",
+      "Position": "Guard-Forward"
+    }
+  },
+  "xavier_tillman": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "245",
+      "AGE": 26,
+      "Years Pro": 5,
+      "Team": "Celtics",
+      "Position": "Forward"
+    }
+  },
+  "drew_timme": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "235",
+      "AGE": 24,
+      "Years Pro": 1,
+      "Team": "Nets",
+      "Position": "Forward"
+    }
+  },
+  "naeqwan_tomlin": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "210",
+      "AGE": 24,
+      "Years Pro": 1,
+      "Team": "Cavaliers",
+      "Position": "Forward"
+    }
+  },
+  "nikola_topi\u0107": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "200",
+      "AGE": 19,
+      "Years Pro": 1,
+      "Team": "Thunder",
+      "Position": "Guard"
+    }
+  },
+  "jacob_toppin": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "200",
+      "AGE": 24,
+      "Years Pro": 2,
+      "Team": "Hawks",
+      "Position": "Forward"
+    }
+  },
+  "obi_toppin": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "220",
+      "AGE": 27,
+      "Years Pro": 5,
+      "Team": "Pacers",
+      "Position": "Forward"
+    }
+  },
+  "karl-anthony_towns": {
+    "bio": {
+      "HT": "7-0",
+      "WT": "248",
+      "AGE": 29,
+      "Years Pro": 10,
+      "Team": "Knicks",
+      "Position": "Center-Forward"
+    }
+  },
+  "luke_travers": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "207",
+      "AGE": 23,
+      "Years Pro": 1,
+      "Team": "Cavaliers",
+      "Position": "Forward"
+    }
+  },
+  "gary_trent_jr": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "204",
+      "AGE": 26,
+      "Years Pro": 7,
+      "Team": "Bucks",
+      "Position": "Guard"
+    }
+  },
+  "oscar_tshiebwe": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "255",
+      "AGE": 25,
+      "Years Pro": 2,
+      "Team": "Jazz",
+      "Position": "Forward-Center"
+    }
+  },
+  "pj_tucker": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "245",
+      "AGE": 39,
+      "Years Pro": 19,
+      "Team": "Knicks",
+      "Position": "Forward"
+    }
+  },
+  "myles_turner": {
+    "bio": {
+      "HT": "6-11",
+      "WT": "250",
+      "AGE": 29,
+      "Years Pro": 10,
+      "Team": "Pacers",
+      "Position": "Center-Forward"
+    }
+  },
+  "hunter_tyson": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "215",
+      "AGE": 24,
+      "Years Pro": 2,
+      "Team": "Nuggets",
+      "Position": "Forward"
+    }
+  },
+  "jaylon_tyson": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "215",
+      "AGE": 22,
+      "Years Pro": 1,
+      "Team": "Cavaliers",
+      "Position": "Guard-Forward"
+    }
+  },
+  "stanley_umude": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "210",
+      "AGE": 26,
+      "Years Pro": 3,
+      "Team": "Bucks",
+      "Position": "Guard"
+    }
+  },
+  "jonas_valan\u010di\u016bnas": {
+    "bio": {
+      "HT": "6-11",
+      "WT": "265",
+      "AGE": 32,
+      "Years Pro": 13,
+      "Team": "Kings",
+      "Position": "Center"
+    }
+  },
+  "fred_vanvleet": {
+    "bio": {
+      "HT": "6-0",
+      "WT": "197",
+      "AGE": 31,
+      "Years Pro": 9,
+      "Team": "Rockets",
+      "Position": "Guard"
+    }
+  },
+  "jarred_vanderbilt": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "214",
+      "AGE": 26,
+      "Years Pro": 7,
+      "Team": "Lakers",
+      "Position": "Forward"
+    }
+  },
+  "devin_vassell": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "200",
+      "AGE": 24,
+      "Years Pro": 5,
+      "Team": "Spurs",
+      "Position": "Guard-Forward"
+    }
+  },
+  "gabe_vincent": {
+    "bio": {
+      "HT": "6-2",
+      "WT": "200",
+      "AGE": 28,
+      "Years Pro": 6,
+      "Team": "Lakers",
+      "Position": "Guard"
+    }
+  },
+  "tristan_vukcevic": {
+    "bio": {
+      "HT": "7-0",
+      "WT": "220",
+      "AGE": 22,
+      "Years Pro": 2,
+      "Team": "Wizards",
+      "Position": "Forward"
+    }
+  },
+  "nikola_vu\u010devi\u0107": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "260",
+      "AGE": 34,
+      "Years Pro": 14,
+      "Team": "Bulls",
+      "Position": "Center"
+    }
+  },
+  "dean_wade": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "228",
+      "AGE": 28,
+      "Years Pro": 6,
+      "Team": "Cavaliers",
+      "Position": "Forward-Center"
+    }
+  },
+  "franz_wagner": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "220",
+      "AGE": 23,
+      "Years Pro": 4,
+      "Team": "Magic",
+      "Position": "Forward"
+    }
+  },
+  "moritz_wagner": {
+    "bio": {
+      "HT": "6-11",
+      "WT": "245",
+      "AGE": 27,
+      "Years Pro": 7,
+      "Team": "Magic",
+      "Position": "Forward-Center"
+    }
+  },
+  "jabari_walker": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "237",
+      "AGE": 22,
+      "Years Pro": 3,
+      "Team": "Trail Blazers",
+      "Position": "Forward"
+    }
+  },
+  "jarace_walker": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "235",
+      "AGE": 21,
+      "Years Pro": 2,
+      "Team": "Pacers",
+      "Position": "Forward"
+    }
+  },
+  "lonnie_walker_iv": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "204",
+      "AGE": 26,
+      "Years Pro": 7,
+      "Team": "76ers",
+      "Position": "Guard-Forward"
+    }
+  },
+  "cason_wallace": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "195",
+      "AGE": 21,
+      "Years Pro": 2,
+      "Team": "Thunder",
+      "Position": "Guard"
+    }
+  },
+  "keaton_wallace": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "185",
+      "AGE": 26,
+      "Years Pro": 1,
+      "Team": "Hawks",
+      "Position": "Guard"
+    }
+  },
+  "jordan_walsh": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "205",
+      "AGE": 21,
+      "Years Pro": 2,
+      "Team": "Celtics",
+      "Position": "Guard"
+    }
+  },
+  "jakobe_walter": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "180",
+      "AGE": 20,
+      "Years Pro": 1,
+      "Team": "Raptors",
+      "Position": "Guard"
+    }
+  },
+  "kelel_ware": {
+    "bio": {
+      "HT": "7-0",
+      "WT": "230",
+      "AGE": 20,
+      "Years Pro": 1,
+      "Team": "Heat",
+      "Position": "Center"
+    }
+  },
+  "pj_washington": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "230",
+      "AGE": 26,
+      "Years Pro": 6,
+      "Team": "Mavericks",
+      "Position": "Forward"
+    }
+  },
+  "tyty_washington_jr": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "195",
+      "AGE": 23,
+      "Years Pro": 3,
+      "Team": "Suns",
+      "Position": "Guard"
+    }
+  },
+  "lindy_waters_iii": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "210",
+      "AGE": 27,
+      "Years Pro": 4,
+      "Team": "Pistons",
+      "Position": "Forward"
+    }
+  },
+  "trendon_watford": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "237",
+      "AGE": 24,
+      "Years Pro": 4,
+      "Team": "Nets",
+      "Position": "Guard-Forward"
+    }
+  },
+  "anton_watson": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "225",
+      "AGE": 24,
+      "Years Pro": 1,
+      "Team": "Knicks",
+      "Position": "Forward"
+    }
+  },
+  "peyton_watson": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "200",
+      "AGE": 22,
+      "Years Pro": 3,
+      "Team": "Nuggets",
+      "Position": "Guard"
+    }
+  },
+  "jaylen_wells": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "",
+      "AGE": 21,
+      "Years Pro": 1,
+      "Team": "Grizzlies",
+      "Position": "Forward"
+    }
+  },
+  "victor_wembanyama": {
+    "bio": {
+      "HT": "7-3",
+      "WT": "235",
+      "AGE": 21,
+      "Years Pro": 2,
+      "Team": "Spurs",
+      "Position": "Forward-Center"
+    }
+  },
+  "blake_wesley": {
+    "bio": {
+      "HT": "6-3",
+      "WT": "185",
+      "AGE": 22,
+      "Years Pro": 3,
+      "Team": "Spurs",
+      "Position": "Guard"
+    }
+  },
+  "russell_westbrook": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "200",
+      "AGE": 36,
+      "Years Pro": 17,
+      "Team": "Nuggets",
+      "Position": "Guard"
+    }
+  },
+  "coby_white": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "195",
+      "AGE": 25,
+      "Years Pro": 6,
+      "Team": "Bulls",
+      "Position": "Guard"
+    }
+  },
+  "derrick_white": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "190",
+      "AGE": 30,
+      "Years Pro": 8,
+      "Team": "Celtics",
+      "Position": "Guard"
+    }
+  },
+  "dariq_whitehead": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "220",
+      "AGE": 20,
+      "Years Pro": 2,
+      "Team": "Nets",
+      "Position": "Guard-Forward"
+    }
+  },
+  "cam_whitmore": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "230",
+      "AGE": 20,
+      "Years Pro": 2,
+      "Team": "Rockets",
+      "Position": "Forward"
+    }
+  },
+  "aaron_wiggins": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "190",
+      "AGE": 26,
+      "Years Pro": 4,
+      "Team": "Thunder",
+      "Position": "Guard"
+    }
+  },
+  "andrew_wiggins": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "197",
+      "AGE": 30,
+      "Years Pro": 11,
+      "Team": "Heat",
+      "Position": "Forward"
+    }
+  },
+  "brandon_williams": {
+    "bio": {
+      "HT": "6-1",
+      "WT": "190",
+      "AGE": 25,
+      "Years Pro": 4,
+      "Team": "Mavericks",
+      "Position": "Guard"
+    }
+  },
+  "cody_williams": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "190",
+      "AGE": 20,
+      "Years Pro": 1,
+      "Team": "Jazz",
+      "Position": "Forward"
+    }
+  },
+  "grant_williams": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "236",
+      "AGE": 26,
+      "Years Pro": 6,
+      "Team": "Hornets",
+      "Position": "Forward"
+    }
+  },
+  "jalen_williams": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "211",
+      "AGE": 24,
+      "Years Pro": 3,
+      "Team": "Thunder",
+      "Position": "Guard-Forward"
+    }
+  },
+  "jaylin_williams": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "240",
+      "AGE": 22,
+      "Years Pro": 3,
+      "Team": "Thunder",
+      "Position": "Forward"
+    }
+  },
+  "kenrich_williams": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "210",
+      "AGE": 30,
+      "Years Pro": 7,
+      "Team": "Thunder",
+      "Position": "Guard-Forward"
+    }
+  },
+  "mark_williams": {
+    "bio": {
+      "HT": "7-0",
+      "WT": "240",
+      "AGE": 23,
+      "Years Pro": 3,
+      "Team": "Hornets",
+      "Position": "Center"
+    }
+  },
+  "jeenathan_williams": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "205",
+      "AGE": 26,
+      "Years Pro": 3,
+      "Team": "Rockets",
+      "Position": "Guard"
+    }
+  },
+  "patrick_williams": {
+    "bio": {
+      "HT": "6-7",
+      "WT": "215",
+      "AGE": 23,
+      "Years Pro": 5,
+      "Team": "Bulls",
+      "Position": "Forward"
+    }
+  },
+  "ziaire_williams": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "185",
+      "AGE": 23,
+      "Years Pro": 4,
+      "Team": "Nets",
+      "Position": "Forward"
+    }
+  },
+  "robert_williams_iii": {
+    "bio": {
+      "HT": "6-9",
+      "WT": "249",
+      "AGE": 27,
+      "Years Pro": 7,
+      "Team": "Trail Blazers",
+      "Position": "Center-Forward"
+    }
+  },
+  "vince_williams_jr": {
+    "bio": {
+      "HT": "6-4",
+      "WT": "205",
+      "AGE": 24,
+      "Years Pro": 3,
+      "Team": "Grizzlies",
+      "Position": "Guard"
+    }
+  },
+  "zion_williamson": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "284",
+      "AGE": 24,
+      "Years Pro": 6,
+      "Team": "Pelicans",
+      "Position": "Forward"
+    }
+  },
+  "jalen_wilson": {
+    "bio": {
+      "HT": "6-6",
+      "WT": "220",
+      "AGE": 24,
+      "Years Pro": 2,
+      "Team": "Nets",
+      "Position": "Forward"
+    }
+  },
+  "delon_wright": {
+    "bio": {
+      "HT": "6-5",
+      "WT": "185",
+      "AGE": 32,
+      "Years Pro": 10,
+      "Team": "Knicks",
+      "Position": "Guard"
+    }
+  },
+  "guerschon_yabusele": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "265",
+      "AGE": 29,
+      "Years Pro": 9,
+      "Team": "76ers",
+      "Position": "Forward"
+    }
+  },
+  "jahmir_young": {
+    "bio": {
+      "HT": "6-1",
+      "WT": "185",
+      "AGE": 24,
+      "Years Pro": 1,
+      "Team": "Bulls",
+      "Position": "Guard"
+    }
+  },
+  "trae_young": {
+    "bio": {
+      "HT": "6-1",
+      "WT": "164",
+      "AGE": 26,
+      "Years Pro": 7,
+      "Team": "Hawks",
+      "Position": "Guard"
+    }
+  },
+  "ivica_zubac": {
+    "bio": {
+      "HT": "7-0",
+      "WT": "240",
+      "AGE": 28,
+      "Years Pro": 9,
+      "Team": "Clippers",
+      "Position": "Center"
+    }
+  },
+  "tristan_da_silva": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "217",
+      "AGE": 23,
+      "Years Pro": 1,
+      "Team": "Magic",
+      "Position": "Forward"
+    }
+  },
+  "vlatko_\u010dan\u010dar": {
+    "bio": {
+      "HT": "6-8",
+      "WT": "236",
+      "AGE": 28,
+      "Years Pro": 6,
+      "Team": "Nuggets",
+      "Position": "Forward"
+    }
+  },
+  "dario_\u0161ari\u0107": {
+    "bio": {
+      "HT": "6-10",
+      "WT": "225",
+      "AGE": 31,
+      "Years Pro": 9,
+      "Team": "Nuggets",
+      "Position": "Forward-Center"
+    }
+  }
+}
