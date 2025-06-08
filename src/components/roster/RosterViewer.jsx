@@ -2,24 +2,17 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
-import PlayerCard from './PlayerCard';
-import EmptySlot from './EmptySlot';
 import AddPlayerDrawer from './AddPlayerDrawer';
 import DrawerShell from './DrawerShell';
+import OpenDrawerButton from './OpenDrawerButton';
+import RosterControls from './RosterControls';
+import RosterSection from './RosterSection';
 import { isTwoWayContract } from '@/utils/contractUtils.js';
-
-// Position mapping
-const POSITION_MAP = {
-  Guard: 'G',
-  'Point Guard': 'PG',
-  'Shooting Guard': 'SG',
-  Forward: 'F',
-  'Small Forward': 'SF',
-  'Power Forward': 'PF',
-  Center: 'C',
-  'Forward-Center': 'F/C',
-  'Guard-Forward': 'G/F',
-};
+import {
+  POSITION_MAP,
+  normalizePlayer,
+  buildInitialRoster,
+} from '@/utils/rosterUtils.js';
 
 const RosterViewer = () => {
   const [allPlayers, setAllPlayers] = useState([]);
@@ -108,89 +101,22 @@ const RosterViewer = () => {
       return;
     }
 
-    const normalizePlayer = (p) => ({
-      ...p,
-      display_name: p.display_name || p.name || 'Unknown Player',
-      headshot: p.headshot || `/assets/headshots/${p.id}.png`,
-      bio: {
-        ...p.bio,
-        Position: p.bio?.Position || 'Unknown',
-      },
-    });
-
-    const getPosition = (p) => (p.bio?.Position || '').toUpperCase();
-
-    const starterSlots = [null, null, null, null, null];
-    const positionPriorities = [
-      { test: (pos) => pos.includes('G') && !pos.includes('F'), slots: [0, 1] },
-      { test: (pos) => pos.includes('G/F'), slots: [2] },
-      { test: (pos) => pos.includes('F') && !pos.includes('C'), slots: [3] },
-      { test: (pos) => pos.includes('F/C') || pos.includes('C'), slots: [4] },
-    ];
-
-    for (const player of teamPlayers.slice(0, 5)) {
-      const pos = getPosition(player);
-      let assigned = false;
-
-      for (const { test, slots } of positionPriorities) {
-        if (test(pos)) {
-          for (const slot of slots) {
-            if (starterSlots[slot] === null) {
-              starterSlots[slot] = player;
-              assigned = true;
-              break;
-            }
-          }
-          if (assigned) break;
-        }
-      }
-
-      if (!assigned) {
-        const nextEmpty = starterSlots.findIndex((s) => s === null);
-        if (nextEmpty !== -1) starterSlots[nextEmpty] = player;
-      }
-    }
-
-    const starterIds = new Set(starterSlots.map((p) => p?.id).filter(Boolean));
-    const remainingPlayers = teamPlayers.filter((p) => !starterIds.has(p.id));
-
-    setRoster({
-      starters: starterSlots.map((p) => (p ? normalizePlayer(p) : null)),
-      rotation: remainingPlayers.slice(0, 4).map(normalizePlayer),
-      bench: remainingPlayers.slice(4, 10).map(normalizePlayer),
-    });
+    setRoster(buildInitialRoster(teamPlayers));
   }, [selectedTeam, loadMethod, allPlayers, isLoading]);
 
   const addPlayerToSlot = (player, section, index) => {
     const updated = [...roster[section]];
-    updated[index] = {
-      ...player,
-      display_name: player.display_name || player.name || 'Unknown Player',
-      headshot: player.headshot || `/assets/headshots/${player.id}.png`,
-      bio: {
-        ...player.bio,
-        Position: player.bio?.Position || 'Unknown',
-      },
-    };
+    updated[index] = normalizePlayer(player);
     setRoster({ ...roster, [section]: updated });
   };
 
   const addPlayerToNextSlot = (player) => {
-    const enriched = {
-      ...player,
-      display_name: player.display_name || player.name || 'Unknown Player',
-      headshot: player.headshot || `/assets/headshots/${player.id}.png`,
-      bio: {
-        ...player.bio,
-        Position: player.bio?.Position || 'Unknown',
-      },
-    };
-
+    const normalized = normalizePlayer(player);
     for (const section of ['starters', 'rotation', 'bench']) {
       const index = roster[section].findIndex((p) => p === null);
       if (index !== -1) {
         const updated = [...roster[section]];
-        updated[index] = enriched;
+        updated[index] = normalized;
         setRoster({ ...roster, [section]: updated });
         return;
       }
@@ -224,41 +150,7 @@ const RosterViewer = () => {
 
   return (
     <div className="flex relative">
-      {!drawerOpen && (
-        <button
-          onClick={() => setDrawerOpen(true)}
-          className="fixed left-0 top-1/2 -translate-y-1/2 z-30 bg-blue-600 hover:bg-blue-500 text-white shadow-lg transition-all duration-200 hover:translate-x-1 group rounded-r-lg"
-          style={{ transition: 'all 0.3s ease-in-out' }}
-          title="Open player drawer"
-        >
-          <div className="flex flex-col items-center py-3 px-1.5 gap-2">
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-            </svg>
-            <svg
-              width="10"
-              height="10"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              className="opacity-80"
-            >
-              <path d="M9 18l6-6-6-6" />
-            </svg>
-          </div>
-        </button>
-      )}
+      {!drawerOpen && <OpenDrawerButton onClick={() => setDrawerOpen(true)} />}
 
       <DrawerShell isOpen={drawerOpen} onClose={() => setDrawerOpen(false)}>
         <AddPlayerDrawer
@@ -290,128 +182,33 @@ const RosterViewer = () => {
         <div className="max-w-[1300px] mx-auto text-white p-6 flex flex-col items-center">
           <h2 className="text-3xl font-bold mb-8 tracking-wide">Team Roster</h2>
 
-          <div className="flex flex-wrap items-center gap-4 mb-6">
-            <div className="flex gap-2 items-center">
-              <label className="text-sm text-white/60">Team:</label>
-              <select
-                value={selectedTeam}
-                onChange={(e) => setSelectedTeam(e.target.value)}
-                className="bg-[#1a1a1a] text-white text-sm px-3 py-1 rounded border border-white/10"
-              >
-                <option value="">— Select Team —</option>
-                {[
-                  'Lakers',
-                  'Warriors',
-                  'Celtics',
-                  'Nuggets',
-                  'Heat',
-                  'Bucks',
-                  'Knicks',
-                  'Suns',
-                  '76ers',
-                  'Clippers',
-                  'Kings',
-                  'Mavericks',
-                  'Grizzlies',
-                  'Pelicans',
-                  'Timberwolves',
-                  'Thunder',
-                  'Cavaliers',
-                  'Raptors',
-                  'Spurs',
-                  'Bulls',
-                  'Magic',
-                  'Hawks',
-                  'Wizards',
-                  'Hornets',
-                  'Jazz',
-                  'Blazers',
-                  'Pistons',
-                  'Pacers',
-                  'Rockets',
-                  'Nets',
-                ]
-                  .sort()
-                  .map((team) => (
-                    <option key={team} value={team}>
-                      {team}
-                    </option>
-                  ))}
-              </select>
-            </div>
+          <RosterControls
+            selectedTeam={selectedTeam}
+            onTeamChange={setSelectedTeam}
+            loadMethod={loadMethod}
+            onLoadMethodChange={setLoadMethod}
+          />
 
-            <div className="flex gap-2 items-center">
-              <label className="text-sm text-white/60">Load Roster From:</label>
-              <select
-                value={loadMethod}
-                onChange={(e) => setLoadMethod(e.target.value)}
-                className="bg-[#1a1a1a] text-white text-sm px-3 py-1 rounded border border-white/10"
-              >
-                <option value="current">Current NBA Roster</option>
-                <option value="blank">Blank Roster</option>
-              </select>
-            </div>
-          </div>
+          <RosterSection
+            players={roster.starters}
+            section="starters"
+            onRemove={handleRemovePlayer}
+            onAdd={handleOpenDrawer}
+          />
 
-          {/* Starters Section */}
-          <div className="flex justify-center gap-4 mb-10">
-            {roster.starters.map((player, idx) =>
-              player ? (
-                <PlayerCard
-                  key={player.id}
-                  player={player}
-                  size="starter"
-                  onRemove={(e) => handleRemovePlayer('starters', idx, e)}
-                />
-              ) : (
-                <EmptySlot
-                  key={`starters-${idx}`}
-                  size="starter"
-                  onAdd={() => handleOpenDrawer('starters', idx)}
-                />
-              )
-            )}
-          </div>
+          <RosterSection
+            players={roster.rotation}
+            section="rotation"
+            onRemove={handleRemovePlayer}
+            onAdd={handleOpenDrawer}
+          />
 
-          {/* Rotation Section */}
-          <div className="flex justify-center gap-1 mb-8">
-            {roster.rotation.map((player, idx) =>
-              player ? (
-                <PlayerCard
-                  key={player.id}
-                  player={player}
-                  size="rotation"
-                  onRemove={(e) => handleRemovePlayer('rotation', idx, e)}
-                />
-              ) : (
-                <EmptySlot
-                  key={`rotation-${idx}`}
-                  size="rotation"
-                  onAdd={() => handleOpenDrawer('rotation', idx)}
-                />
-              )
-            )}
-          </div>
-
-          {/* Bench Section */}
-          <div className="flex justify-center gap-0.5">
-            {roster.bench.map((player, idx) =>
-              player ? (
-                <PlayerCard
-                  key={player.id}
-                  player={player}
-                  size="bench"
-                  onRemove={(e) => handleRemovePlayer('bench', idx, e)}
-                />
-              ) : (
-                <EmptySlot
-                  key={`bench-${idx}`}
-                  size="bench"
-                  onAdd={() => handleOpenDrawer('bench', idx)}
-                />
-              )
-            )}
-          </div>
+          <RosterSection
+            players={roster.bench}
+            section="bench"
+            onRemove={handleRemovePlayer}
+            onAdd={handleOpenDrawer}
+          />
         </div>
       </div>
     </div>
