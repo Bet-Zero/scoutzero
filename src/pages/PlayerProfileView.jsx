@@ -13,6 +13,11 @@ import PlayerRolesSection from '@/components/profile/PlayerRolesSection';
 import BadgeSelector from '@/components/profile/BadgeSelector';
 import Modal from '@/components/profile/Modal';
 import OverallBlurbBox from '@/components/profile/OverallBlurbBox';
+import {
+  getPlayersForTeam,
+  getModalTitle,
+  getBlurbValue,
+} from '@/utils/profileHelpers';
 
 const defaultTraits = {
   Shooting: 0,
@@ -41,6 +46,142 @@ const defaultBlurbs = {
   twoWayMeter: '',
   overall: '',
 };
+
+const TeamPlayerDropdowns = ({
+  teams,
+  playersData,
+  selectedTeam,
+  setSelectedTeam,
+  selectedPlayer,
+  setSelectedPlayer,
+  filteredKeys,
+  setFilteredKeys,
+}) => {
+  useEffect(() => {
+    if (!selectedTeam) {
+      setFilteredKeys([]);
+      setSelectedPlayer('');
+      return;
+    }
+    const filtered = getPlayersForTeam(playersData, selectedTeam);
+    setFilteredKeys(filtered);
+    setSelectedPlayer(filtered[0] || '');
+  }, [selectedTeam, playersData, setFilteredKeys, setSelectedPlayer]);
+
+  return (
+    <div className="absolute top-6 left-6">
+      <label className="text-white text-sm block mb-1">Select Team</label>
+      <select
+        className="bg-neutral-800 text-white px-4 py-1 rounded-lg text-sm border border-black shadow mb-2"
+        value={selectedTeam}
+        onChange={(e) => setSelectedTeam(e.target.value)}
+      >
+        <option value="">Select Team</option>
+        {teams.map((team) => (
+          <option key={team} value={team}>
+            {team}
+          </option>
+        ))}
+      </select>
+
+      <label className="text-white text-sm block mb-1 mt-2">
+        Select Player
+      </label>
+      <select
+        className="bg-neutral-800 text-white px-4 py-1 rounded-lg text-sm border border-black shadow"
+        value={selectedPlayer}
+        onChange={(e) => setSelectedPlayer(e.target.value)}
+      >
+        <option value="">Select Player</option>
+        {filteredKeys.map((key) => (
+          <option key={key} value={key}>
+            {playersData[key]?.display_name || playersData[key]?.name || key}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+};
+
+const PlayerNavigation = ({ onPrev, onNext }) => (
+  <div className="absolute top-6 right-6 flex gap-4">
+    <button
+      className="px-4 py-2 text-black rounded-lg border border-black shadow"
+      onClick={onPrev}
+    >
+      ◀
+    </button>
+    <button
+      className="px-4 py-2 text-black rounded-lg border border-black shadow"
+      onClick={onNext}
+    >
+      ▶
+    </button>
+  </div>
+);
+
+const BreakdownModal = ({ modalKey, blurbs, onChange, onClose }) => (
+  <Modal title={getModalTitle(modalKey)} onClose={onClose}>
+    <textarea
+      className="w-full h-40 bg-neutral-900 text-white p-3 rounded-lg text-sm resize-none outline-none border border-neutral-700"
+      placeholder="Write your breakdown here..."
+      value={getBlurbValue(blurbs, modalKey)}
+      onChange={(e) => onChange(modalKey, e.target.value)}
+    />
+    <div className="w-full h-40 bg-neutral-700 rounded-xl flex items-center justify-center text-sm text-neutral-400 mt-4">
+      [Video examples coming soon]
+    </div>
+  </Modal>
+);
+
+const PlayerDetails = ({
+  player,
+  selectedPlayer,
+  traits,
+  onTraitChange,
+  roles,
+  onRoleChange,
+  subRoles,
+  setSubRoles,
+  shootingProfile,
+  setShootingProfile,
+  badges,
+  setBadges,
+  editedBlurbs,
+  onBlurbChange,
+  overallGrade,
+  setOverallGrade,
+  setOpenModal,
+}) => (
+  <>
+    <PlayerHeader player={player} selectedPlayer={selectedPlayer} />
+    <PlayerStatsTable player={player} />
+    <div className="flex gap-[1.25rem] w-full max-w-[750px]">
+      <PlayerTraitsGrid
+        traits={traits}
+        onTraitClick={onTraitChange}
+        setOpenModal={setOpenModal}
+      />
+      <PlayerRolesSection
+        roles={roles}
+        onRoleChange={onRoleChange}
+        subRoles={subRoles}
+        setSubRoles={setSubRoles}
+        shootingProfile={shootingProfile}
+        setShootingProfile={setShootingProfile}
+        onTwoWayChange={(value) => onRoleChange('twoWay', value)}
+        setOpenModal={setOpenModal}
+      />
+    </div>
+    <BadgeSelector badges={badges} setBadges={setBadges} />
+    <OverallBlurbBox
+      overallBlurb={editedBlurbs.overall || ''}
+      setOverallBlurb={(val) => onBlurbChange('overall', val)}
+      overallGrade={overallGrade}
+      setOverallGrade={(val) => setOverallGrade(val)}
+    />
+  </>
+);
 
 const PlayerProfileView = () => {
   const [playersData, setPlayersData] = useState({});
@@ -199,145 +340,51 @@ const PlayerProfileView = () => {
   return (
     <SiteLayout>
       <div className="min-h-screen bg-neutral-900 flex flex-col items-center gap-6 py-20 relative">
-        <div className="absolute top-6 left-6">
-          <label className="text-white text-sm block mb-1">Select Team</label>
-          <select
-            className="bg-neutral-800 text-white px-4 py-1 rounded-lg text-sm border border-black shadow mb-2"
-            value={selectedTeam}
-            onChange={(e) => {
-              const team = e.target.value;
-              setSelectedTeam(team);
-              const filtered = Object.keys(playersData)
-                .filter((key) => playersData[key]?.bio?.Team === team)
-                .sort((a, b) => {
-                  const aName =
-                    playersData[a]?.display_name || playersData[a]?.name || '';
-                  const bName =
-                    playersData[b]?.display_name || playersData[b]?.name || '';
-                  return aName
-                    .split(' ')
-                    .slice(-1)[0]
-                    .localeCompare(bName.split(' ').slice(-1)[0]);
-                });
-              setFilteredKeys(filtered);
-              setSelectedPlayer(filtered[0] || '');
-            }}
-          >
-            <option value="">Select Team</option>
-            {teams.map((team) => (
-              <option key={team} value={team}>
-                {team}
-              </option>
-            ))}
-          </select>
+        <TeamPlayerDropdowns
+          teams={teams}
+          playersData={playersData}
+          selectedTeam={selectedTeam}
+          setSelectedTeam={setSelectedTeam}
+          selectedPlayer={selectedPlayer}
+          setSelectedPlayer={setSelectedPlayer}
+          filteredKeys={filteredKeys}
+          setFilteredKeys={setFilteredKeys}
+        />
 
-          <label className="text-white text-sm block mb-1 mt-2">
-            Select Player
-          </label>
-          <select
-            className="bg-neutral-800 text-white px-4 py-1 rounded-lg text-sm border border-black shadow"
-            value={selectedPlayer}
-            onChange={(e) => setSelectedPlayer(e.target.value)}
-          >
-            <option value="">Select Player</option>
-            {filteredKeys.map((key) => (
-              <option key={key} value={key}>
-                {playersData[key]?.display_name ||
-                  playersData[key]?.name ||
-                  key}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="absolute top-6 right-6 flex gap-4">
-          <button
-            className="px-4 py-2 text-black rounded-lg border border-black shadow"
-            onClick={handlePrevPlayer}
-          >
-            ◀
-          </button>
-          <button
-            className="px-4 py-2 text-black rounded-lg border border-black shadow"
-            onClick={handleNextPlayer}
-          >
-            ▶
-          </button>
-        </div>
+        <PlayerNavigation onPrev={handlePrevPlayer} onNext={handleNextPlayer} />
 
         {player && (
-          <>
-            <PlayerHeader player={player} selectedPlayer={selectedPlayer} />
-            <PlayerStatsTable player={player} />
-            <div className="flex gap-[1.25rem] w-full max-w-[750px]">
-              <PlayerTraitsGrid
-                traits={traits}
-                onTraitClick={handleTraitChange}
-                setOpenModal={setOpenModal}
-              />
-              <PlayerRolesSection
-                roles={roles}
-                onRoleChange={handleRoleChange}
-                subRoles={subRoles}
-                setSubRoles={setSubRoles}
-                shootingProfile={shootingProfile}
-                setShootingProfile={setShootingProfile}
-                onTwoWayChange={(value) => handleRoleChange('twoWay', value)}
-                setOpenModal={setOpenModal}
-              />
-            </div>
-            <BadgeSelector badges={badges} setBadges={setBadges} />
-            <OverallBlurbBox
-              overallBlurb={editedBlurbs.overall || ''}
-              setOverallBlurb={(val) => handleBlurbChange('overall', val)}
-              overallGrade={overallGrade}
-              setOverallGrade={(val) => {
-                setOverallGrade(val);
-                setHasChanges(true);
-              }}
-            />
-          </>
+          <PlayerDetails
+            player={player}
+            selectedPlayer={selectedPlayer}
+            traits={traits}
+            onTraitChange={handleTraitChange}
+            roles={roles}
+            onRoleChange={handleRoleChange}
+            subRoles={subRoles}
+            setSubRoles={setSubRoles}
+            shootingProfile={shootingProfile}
+            setShootingProfile={setShootingProfile}
+            badges={badges}
+            setBadges={setBadges}
+            editedBlurbs={editedBlurbs}
+            onBlurbChange={handleBlurbChange}
+            overallGrade={overallGrade}
+            setOverallGrade={(val) => {
+              setOverallGrade(val);
+              setHasChanges(true);
+            }}
+            setOpenModal={setOpenModal}
+          />
         )}
 
         {openModal && (
-          <Modal
-            title={
-              openModal.startsWith('trait_')
-                ? `Trait Breakdown: ${openModal.slice(6)}`
-                : openModal.startsWith('role_')
-                  ? `Role Breakdown: ${openModal.slice(5)}`
-                  : openModal.startsWith('subrole_')
-                    ? `Sub-Role Breakdown: ${openModal.slice(8)}`
-                    : openModal === 'shooting_profile'
-                      ? 'Shooting Profile Breakdown'
-                      : openModal === 'two_way_meter'
-                        ? 'Two-Way Meter Breakdown'
-                        : 'Breakdown'
-            }
+          <BreakdownModal
+            modalKey={openModal}
+            blurbs={editedBlurbs}
+            onChange={handleBlurbChange}
             onClose={() => setOpenModal(null)}
-          >
-            <textarea
-              className="w-full h-40 bg-neutral-900 text-white p-3 rounded-lg text-sm resize-none outline-none border border-neutral-700"
-              placeholder="Write your breakdown here..."
-              value={
-                openModal.startsWith('trait_')
-                  ? editedBlurbs.traits?.[openModal.slice(6)] || ''
-                  : openModal.startsWith('role_')
-                    ? editedBlurbs.roles?.[openModal.slice(5)] || ''
-                    : openModal.startsWith('subrole_')
-                      ? editedBlurbs.subroles?.[openModal.slice(8)] || ''
-                      : openModal === 'shooting_profile'
-                        ? editedBlurbs.shootingProfile || ''
-                        : openModal === 'two_way_meter'
-                          ? editedBlurbs.twoWayMeter || ''
-                          : ''
-              }
-              onChange={(e) => handleBlurbChange(openModal, e.target.value)}
-            />
-            <div className="w-full h-40 bg-neutral-700 rounded-xl flex items-center justify-center text-sm text-neutral-400 mt-4">
-              [Video examples coming soon]
-            </div>
-          </Modal>
+          />
         )}
       </div>
     </SiteLayout>

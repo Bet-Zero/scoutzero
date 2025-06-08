@@ -197,7 +197,8 @@ const RosterViewer = () => {
     }
   };
 
-  const handleRemovePlayer = (section, index) => {
+  const handleRemovePlayer = (section, index, e) => {
+    e?.stopPropagation(); // Prevent event bubbling if called from a click
     const updated = [...roster[section]];
     updated[index] = null;
     setRoster({ ...roster, [section]: updated });
@@ -352,6 +353,7 @@ const RosterViewer = () => {
             </div>
           </div>
 
+          {/* Starters Section */}
           <div className="flex justify-center gap-4 mb-10">
             {roster.starters.map((player, idx) =>
               player ? (
@@ -359,7 +361,7 @@ const RosterViewer = () => {
                   key={player.id}
                   player={player}
                   size="starter"
-                  onRemove={() => handleRemovePlayer('starters', idx)}
+                  onRemove={(e) => handleRemovePlayer('starters', idx, e)}
                 />
               ) : (
                 <EmptySlot
@@ -371,6 +373,7 @@ const RosterViewer = () => {
             )}
           </div>
 
+          {/* Rotation Section */}
           <div className="flex justify-center gap-1 mb-8">
             {roster.rotation.map((player, idx) =>
               player ? (
@@ -378,7 +381,7 @@ const RosterViewer = () => {
                   key={player.id}
                   player={player}
                   size="rotation"
-                  onRemove={() => handleRemovePlayer('rotation', idx)}
+                  onRemove={(e) => handleRemovePlayer('rotation', idx, e)}
                 />
               ) : (
                 <EmptySlot
@@ -390,6 +393,7 @@ const RosterViewer = () => {
             )}
           </div>
 
+          {/* Bench Section */}
           <div className="flex justify-center gap-0.5">
             {roster.bench.map((player, idx) =>
               player ? (
@@ -397,7 +401,7 @@ const RosterViewer = () => {
                   key={player.id}
                   player={player}
                   size="bench"
-                  onRemove={() => handleRemovePlayer('bench', idx)}
+                  onRemove={(e) => handleRemovePlayer('bench', idx, e)}
                 />
               ) : (
                 <EmptySlot
