@@ -29,3 +29,6 @@ uploadPlayersToFirebase.js
 validatePlayersJson.js
 src-backup/
 data/firebaseServiceAccountKey.json
+data/firebaseServiceAccountKey.json
+data/raw_contract_html.json
+git_commands.txt
