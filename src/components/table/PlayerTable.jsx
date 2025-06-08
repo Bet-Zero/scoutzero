@@ -7,7 +7,11 @@ import ActiveFiltersDisplay from '@/components/filters/ActiveFiltersDisplay';
 import ViewControls from '@/components/filters/sections/ViewControls';
 import { Filter, SortAsc, Search } from 'lucide-react';
 import debounce from 'lodash.debounce';
-
+import parseHeight from '../../../utils/parseHeight.js';
+import parseWeight from '../../../utils/parseWeight.js';
+import convertAnnualSalaries from '../../../utils/convertAnnualSalaries.js';
+import expandPositionGroup from '../../../utils/expandPositionGroup.js';
+import sortPlayers from '../../../utils/sortPlayers.js';
 
 const getDefaultFilters = () => ({
   nameSearch: '',
@@ -69,7 +73,6 @@ const getDefaultFilters = () => ({
   badges: [],
 });
 
-
 const PlayerTable = () => {
   const [filters, setFilters] = useState(getDefaultFilters());
   const { players, loading } = usePlayerData();
@@ -91,9 +94,6 @@ const PlayerTable = () => {
     []
   );
   const filteredPlayers = useFilteredPlayers(players, filters);
-
-
-
 
   const handleSearchChange = (e) => {
     debouncedSearchUpdate(e.target.value);
