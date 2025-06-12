@@ -7,7 +7,6 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import usePlayerData from '@/hooks/usePlayerData.js';
 import { toast } from 'react-hot-toast';
 
-import SiteLayout from '@/components/layout/SiteLayout';
 import ListPlayerRow from '@/components/lists/ListPlayerRow';
 
 const RankedListView = () => {
@@ -88,17 +87,12 @@ const RankedListView = () => {
   };
 
   if (!listData || playersLoading) {
-    return (
-      <SiteLayout>
-        <div className="text-white text-center mt-12">Loading List...</div>
-      </SiteLayout>
-    );
+    return <div className="text-white text-center mt-12">Loading List...</div>;
   }
 
   return (
-    <SiteLayout>
+    <>
       {/* Header */}
-      {/* Enhanced Stylized List Header */}
       <div className="w-full max-w-[1100px] mx-auto px-4 mt-10 mb-6 relative z-10">
         {/* Soft Glow Accent Bar */}
         <div className="h-[5px] w-24 bg-gradient-to-r from-neutral-500 to-neutral-900 rounded-full mb-4 shadow-lg"></div>
@@ -156,7 +150,7 @@ const RankedListView = () => {
           {listData.updatedAt?.toDate?.().toLocaleDateString() || 'N/A'}
         </p>
       </div>
-    </SiteLayout>
+    </>
   );
 };
 

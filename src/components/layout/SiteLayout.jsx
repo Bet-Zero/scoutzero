@@ -1,9 +1,9 @@
 // SiteLayout.jsx
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Outlet } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 
-const SiteLayout = ({ children }) => {
+const SiteLayout = () => {
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
       <header className="bg-[#121212] border-b border-white/10 px-6 py-4 flex items-center justify-between">
@@ -20,10 +20,13 @@ const SiteLayout = ({ children }) => {
           <Link to="/roster" className="hover:text-white">
             Roster Viewer
           </Link>
+          <Link to="/lists" className="hover:text-white">
+            Lists
+          </Link>
         </nav>
       </header>
       <main className="flex-1 w-full">
-        {children}
+        <Outlet />
         <Toaster position="bottom-center" />
       </main>
     </div>
