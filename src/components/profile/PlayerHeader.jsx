@@ -1,7 +1,7 @@
 import React from 'react';
-import PlayerName from '@/components/shared/PlayerName';
+import PlayerName from '@/components/profile/ProfilePlayerName';
+import PlayerPosition from '@/components/profile/ProfilePlayerPosition';
 import TeamLogo from '@/components/shared/TeamLogo';
-import PlayerPosition from '@/components/shared/PlayerPosition';
 import PlayerHeadshot from '@/components/shared/PlayerHeadshot';
 import { POSITION_MAP } from '@/utils/roles';
 

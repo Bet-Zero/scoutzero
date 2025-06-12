@@ -2,8 +2,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import usePlayerData from '@/hooks/usePlayerData.js';
 import AddPlayerDrawer from './AddPlayerDrawer';
-import DrawerShell from './DrawerShell';
-import OpenDrawerButton from './OpenDrawerButton';
+import DrawerShell from '@/components/shared/ui/drawers/DrawerShell';
+import OpenDrawerButton from '@/components/shared/ui/drawers/OpenDrawerButton';
 import RosterControls from './RosterControls';
 import RosterSection from './RosterSection';
 import { isTwoWayContract, normalizePlayer, buildInitialRoster } from '@/utils/roster';

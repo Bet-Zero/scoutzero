@@ -1,5 +1,5 @@
 import React from 'react';
-import RangeFilter from './RangeFilter';
+import RangeFilter from '@/components/shared/ui/inputs/RangeFilter';
 import {
   generateHeightOptions,
   generateWeightOptions,

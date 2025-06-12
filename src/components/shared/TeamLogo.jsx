@@ -36,12 +36,12 @@ const teamLogoMap = {
   Wizards: 'wizards',
 };
 
-const TeamLogo = ({ teamAbbr }) => {
+const TeamLogo = ({ teamAbbr, className = '' }) => {
   const fileName = teamLogoMap[teamAbbr] || 'default';
   const logoPath = `/assets/logos/${fileName}.png`;
 
   return (
-    <div className="relative w-[3.5rem] h-[3.5rem]">
+    <div className={`relative w-[3.5rem] h-[3.5rem] ${className}`}>
       <img
         src={logoPath}
         alt={`${teamAbbr} logo`}
