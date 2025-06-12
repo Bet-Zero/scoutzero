@@ -1,7 +1,6 @@
 // src/components/roster/RosterViewer.jsx
 import React, { useEffect, useState, useMemo } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '@/firebaseConfig';
+import usePlayerData from '@/hooks/usePlayerData.js';
 import AddPlayerDrawer from './AddPlayerDrawer';
 import DrawerShell from './DrawerShell';
 import OpenDrawerButton from './OpenDrawerButton';
@@ -15,8 +14,7 @@ import {
 } from '@/utils/rosterUtils.js';
 
 const RosterViewer = () => {
-  const [allPlayers, setAllPlayers] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { players: allPlayers, loading: isLoading } = usePlayerData();
   const [roster, setRoster] = useState({
     starters: [null, null, null, null, null],
     rotation: [null, null, null, null],
@@ -58,24 +56,6 @@ const RosterViewer = () => {
     }));
   }, [allPlayers]);
 
-  useEffect(() => {
-    const fetchAllPlayers = async () => {
-      try {
-        setIsLoading(true);
-        const snapshot = await getDocs(collection(db, 'players'));
-        const data = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setAllPlayers(data);
-      } catch (error) {
-        console.error('Error fetching players:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchAllPlayers();
-  }, []);
 
   useEffect(() => {
     if (!selectedTeam || isLoading || allPlayers.length === 0) return;

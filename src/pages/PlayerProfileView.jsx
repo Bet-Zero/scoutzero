@@ -1,8 +1,7 @@
 // PlayerProfileView.jsx
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '@/firebaseConfig';
+import usePlayerData from '@/hooks/usePlayerData.js';
 import { savePlayerData } from '@/firebaseHelpers';
 
 import SiteLayout from '@/components/layout/SiteLayout';
@@ -184,6 +183,7 @@ const PlayerDetails = ({
 );
 
 const PlayerProfileView = () => {
+  const { players: fetchedPlayers, loading: isLoading } = usePlayerData();
   const [playersData, setPlayersData] = useState({});
   const [teams, setTeams] = useState([]);
   const [filteredKeys, setFilteredKeys] = useState([]);
@@ -199,32 +199,17 @@ const PlayerProfileView = () => {
   const [editedBlurbs, setEditedBlurbs] = useState(defaultBlurbs);
   const [overallGrade, setOverallGrade] = useState(null);
   const [hasChanges, setHasChanges] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchPlayers = async () => {
-      try {
-        const snapshot = await getDocs(collection(db, 'players'));
-        const data = {};
-        const teamSet = new Set();
-
-        snapshot.forEach((doc) => {
-          const docData = doc.data();
-          data[doc.id] = docData;
-          if (docData?.bio?.Team) teamSet.add(docData.bio.Team);
-        });
-
-        setPlayersData(data);
-        setTeams(Array.from(teamSet).sort());
-      } catch (error) {
-        console.error('Error loading players:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchPlayers();
-  }, []);
+    const data = {};
+    const teamSet = new Set();
+    fetchedPlayers.forEach((p) => {
+      data[p.id] = p;
+      if (p.bio?.Team) teamSet.add(p.bio.Team);
+    });
+    setPlayersData(data);
+    setTeams(Array.from(teamSet).sort());
+  }, [fetchedPlayers]);
 
   useEffect(() => {
     if (!selectedPlayer || !playersData[selectedPlayer]) {
