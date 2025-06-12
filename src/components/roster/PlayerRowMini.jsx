@@ -1,6 +1,7 @@
 // src/components/roster/PlayerRowMini.jsx
 import React, { useState } from 'react';
 import PlayerNameMini from '@/components/table/PlayerNameMini';
+import PlayerHeadshot from '@/components/shared/PlayerHeadshot';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { getPlayerPositionLabel } from '@/utils/roles';
 import { formatSalary } from '@/utils/formatting';
@@ -9,12 +10,7 @@ const PlayerRowMini = ({ player, onClick }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const name = player.display_name || player.name || 'Unknown Player';
-  const team = player.bio?.Team || 'default';
   const headshot = player.headshot || `/assets/headshots/${player.id}.png`;
-  const logoSrc = `/assets/logos/${team
-    .toLowerCase()
-    .replace(/\s/g, '_')
-    .replace(/[^a-z0-9_]/g, '')}.png`;
 
   const rawPosition = player.bio?.Position || '—';
   const position = getPlayerPositionLabel(rawPosition);
@@ -41,14 +37,7 @@ const PlayerRowMini = ({ player, onClick }) => {
       >
         {/* Headshot */}
         <div className="h-[58px] w-[56px] -ml-0.5 bg-[#1e1e1e] overflow-hidden">
-          <img
-            src={headshot}
-            onError={(e) => {
-              e.target.src = '/assets/headshots/default.png';
-            }}
-            alt={name}
-            className="h-full w-full object-cover"
-          />
+          <PlayerHeadshot src={headshot} className="w-full h-full" />
         </div>
 
         {/* Name + Team Info */}

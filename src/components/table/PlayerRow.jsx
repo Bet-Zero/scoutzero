@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import PlayerNameMini from '@/components/table/PlayerNameMini';
 import ShootingProfileMini from '@/components/table/ShootingProfileMini';
 import RolePill from '@/components/table/RolePill';
-import OverallGradeBlock from '@/components/profile/OverallGradeBlock';
+import OverallGradeBlock from '@/components/shared/ui/grades/OverallGradeBlock';
 import PlayerDrawer from '@/components/table/PlayerDrawer';
+import PlayerHeadshot from '@/components/shared/PlayerHeadshot';
+import TeamLogo from '@/components/shared/TeamLogo';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import AddToListButton from '@/components/lists/AddToListButton';
 
@@ -35,13 +37,9 @@ const PlayerRow = ({ player, ranking = '—' }) => {
 
         {/* Player Image */}
         <div className="h-full w-20 bg-[#2a2a2a] flex items-center justify-center overflow-hidden">
-          <img
+          <PlayerHeadshot
             src={player.headshotUrl || '/assets/headshots/default.png'}
-            onError={(e) => {
-              e.target.src = '/assets/headshots/default.png';
-            }}
-            alt={player.name}
-            className="h-full w-full object-cover"
+            className="w-full h-full"
           />
         </div>
 
@@ -51,17 +49,7 @@ const PlayerRow = ({ player, ranking = '—' }) => {
             <PlayerNameMini name={player.display_name || player.name} />
           </div>
           <div className="flex items-center gap-2">
-            <img
-              src={`/assets/logos/${(player.bio?.Team || 'default')
-                .toLowerCase()
-                .replace(/\s/g, '_')
-                .replace(/[^a-z0-9_]/g, '')}.png`}
-              onError={(e) => {
-                e.target.src = '/assets/logos/default.png';
-              }}
-              alt={player.bio?.Team}
-              className="w-6 h-6 object-contain"
-            />
+            <TeamLogo teamAbbr={player.bio?.Team} className="w-6 h-6" />
             <div className="text-[14px] text-white/50 tracking-wide">
               {player.bio?.HT || '—'} <span className="text-white/30">|</span>{' '}
               {player.bio?.WT || '—'} lbs

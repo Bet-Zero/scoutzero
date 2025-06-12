@@ -1,5 +1,5 @@
 import React from 'react';
-import OverallGradeBlock from '@/components/profile/OverallGradeBlock';
+import OverallGradeBlock from '@/components/shared/ui/grades/OverallGradeBlock';
 
 const OverallBlurbBox = ({
   overallBlurb,
