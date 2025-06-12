@@ -1,16 +1,4 @@
-const positionAbbreviations = {
-  'Point Guard': 'PG',
-  'Shooting Guard': 'SG',
-  Guard: 'G',
-  'Small Forward': 'SF',
-  'Power Forward': 'PF',
-  Forward: 'F',
-  Center: 'C',
-  'Forward-Center': 'F/C',
-  'Guard-Forward': 'G/F',
-  'Forward-Guard': 'F',
-  'Center-Forward': 'C',
-};
+import { POSITION_MAP } from '../roles/positionMap.js';
 
 const calculateHeight = (ht = '0-0') => {
   const parts = ht.split('-');
@@ -19,8 +7,7 @@ const calculateHeight = (ht = '0-0') => {
 
 export function normalizePlayerData(playerData) {
   const rawPosition = playerData.bio?.Position;
-  const formattedPosition =
-    positionAbbreviations[rawPosition] || rawPosition || '—';
+  const formattedPosition = POSITION_MAP[rawPosition] || rawPosition || '—';
 
   const salaryMap = {};
   (playerData.contract?.annual_salaries || []).forEach((s) => {

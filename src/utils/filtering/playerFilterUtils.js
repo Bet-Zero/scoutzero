@@ -1,4 +1,4 @@
-import expandPositionGroup from '@/utils/expandPositionGroup.js';
+import { expandPositionGroup } from '@/utils/roles';
 
 const shootingProfileRank = {
   Elite: 6,

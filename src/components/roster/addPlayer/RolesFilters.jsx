@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { SubRoleMasterList } from '@/constants/SubRoleMasterList';
-import { offensiveRoles, defensiveRoles } from '@/utils/roleOptions.js';
+import { offensiveRoles, defensiveRoles } from '@/utils/roles';
 
 const RolesFilters = ({ filters, setFilters }) => {
   const [showSubroles, setShowSubroles] = useState(false);

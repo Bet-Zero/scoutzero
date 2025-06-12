@@ -1,4 +1,4 @@
-export default function expandPositionGroup(position) {
+export function expandPositionGroup(position) {
   switch (position) {
     case 'group_guard':
     case 'Guard':

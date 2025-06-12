@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import BasicFilters from './BasicFilters';
 import RolesFilters from './RolesFilters';
 import ContractFilters from './ContractFilters';
-import { getDefaultAddPlayerFilters } from '@/utils/addPlayerUtils.js';
+import { getDefaultAddPlayerFilters } from '@/utils/filtering';
 
 const FilterTabs = ({ filters, setFilters }) => {
   const [activeTab, setActiveTab] = useState('basic');

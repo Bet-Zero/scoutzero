@@ -4,22 +4,8 @@ import PlayerRowMini from '@/components/roster/PlayerRowMini';
 import { Filter, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { SubRoleMasterList } from '@/constants/SubRoleMasterList';
 import { BadgeList } from '@/constants/badgeList';
-
-// Position group logic
-const expandPositionGroup = (position) => {
-  switch (position) {
-    case "group_guard":
-      return ["PG", "SG", "G"];
-    case "group_wing":
-      return ["SG", "SF", "G/F"];
-    case "group_forward":
-      return ["SF", "PF", "F"];
-    case "group_big":
-      return ["F/C", "C"];
-    default:
-      return position ? [position] : []; // single value or empty
-  }
-};
+import { expandPositionGroup } from '@/utils/roles';
+import { getDefaultAddPlayerFilters } from '@/utils/filtering';
 
 const POSITION_OPTIONS = [
   { value: "", label: "All Positions" },
@@ -38,31 +24,18 @@ const POSITION_OPTIONS = [
   { value: "F/C", label: "F/C" }
 ];
 
-const getDefaultFilters = () => ({
-  team: "",
-  position: "",
-  offenseRole: "",
-  defenseRole: "",
-  subRoles: { offense: [], defense: [] },
-  shootingProfile: "",
-  badges: [],
-  minSalary: undefined,
-  maxSalary: undefined,
-  freeAgentYear: "",
-  freeAgentType: ""
-});
 
 const AddPlayerDrawer = ({ isOpen, onClose, allPlayers, onSelect }) => {
   const [search, setSearch] = useState('');
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState(getDefaultFilters());
+  const [filters, setFilters] = useState(getDefaultAddPlayerFilters());
   const [showSubroles, setShowSubroles] = useState(false);
   const [showBadges, setShowBadges] = useState(false);
 
   useEffect(() => {
     if (!isOpen) {
       setSearch('');
-      setFilters(getDefaultFilters());
+      setFilters(getDefaultAddPlayerFilters());
       setShowFilters(false);
       setShowSubroles(false);
       setShowBadges(false);
@@ -457,7 +430,7 @@ const AddPlayerDrawer = ({ isOpen, onClose, allPlayers, onSelect }) => {
           {/* Clear Filters Button */}
           <div className="pt-2">
             <button
-              onClick={() => setFilters(getDefaultFilters())}
+              onClick={() => setFilters(getDefaultAddPlayerFilters())}
               className="w-full py-1 bg-[#222] text-white/70 hover:text-white rounded text-xs"
             >
               Clear All Filters

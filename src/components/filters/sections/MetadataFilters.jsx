@@ -1,5 +1,5 @@
 import React from 'react';
-import expandPositionGroup from '@/utils/expandPositionGroup.js';
+import { expandPositionGroup } from '@/utils/roles';
 
 const MetadataFilters = ({ filters, setFilters }) => {
   const update = (key, value) => {

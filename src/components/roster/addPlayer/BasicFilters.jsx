@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { BadgeList } from '@/constants/badgeList';
-import { shootingProfiles } from '@/utils/roleOptions.js';
+import { shootingProfiles } from '@/utils/roles';
 
 const TEAMS = [
   'Hawks',

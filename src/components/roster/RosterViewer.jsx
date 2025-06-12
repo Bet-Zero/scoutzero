@@ -6,12 +6,8 @@ import DrawerShell from './DrawerShell';
 import OpenDrawerButton from './OpenDrawerButton';
 import RosterControls from './RosterControls';
 import RosterSection from './RosterSection';
-import { isTwoWayContract } from '@/utils/contractUtils.js';
-import {
-  POSITION_MAP,
-  normalizePlayer,
-  buildInitialRoster,
-} from '@/utils/rosterUtils.js';
+import { isTwoWayContract, normalizePlayer, buildInitialRoster } from '@/utils/roster';
+import { POSITION_MAP } from '@/utils/roles';
 
 const RosterViewer = () => {
   const { players: allPlayers, loading: isLoading } = usePlayerData();

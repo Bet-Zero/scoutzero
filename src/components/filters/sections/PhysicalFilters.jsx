@@ -4,7 +4,7 @@ import {
   generateHeightOptions,
   generateWeightOptions,
   generateAgeOptions,
-} from '@/utils/physicalOptions';
+} from '@/utils/filtering';
 
 const PhysicalFilters = ({ filters, setFilters }) => {
   const update = (key, value) => {

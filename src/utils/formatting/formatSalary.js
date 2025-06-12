@@ -1,4 +1,4 @@
-export default function formatSalary(salary) {
+export function formatSalary(salary) {
   if (!salary) return '—';
   const salaryValue =
     typeof salary === 'string'
