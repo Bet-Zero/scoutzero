@@ -6,8 +6,13 @@ import DrawerShell from '@/components/shared/ui/drawers/DrawerShell';
 import OpenDrawerButton from '@/components/shared/ui/drawers/OpenDrawerButton';
 import RosterControls from './RosterControls';
 import RosterSection from './RosterSection';
-import { isTwoWayContract, normalizePlayer, buildInitialRoster } from '@/utils/roster';
+import {
+  isTwoWayContract,
+  normalizePlayer,
+  buildInitialRoster,
+} from '@/utils/roster';
 import { POSITION_MAP } from '@/utils/roles';
+import { getTeamColors } from '@/utils/formatting/teamColors';
 
 const RosterViewer = () => {
   const { players: allPlayers, loading: isLoading } = usePlayerData();
@@ -21,7 +26,6 @@ const RosterViewer = () => {
   const [selectedTeam, setSelectedTeam] = useState('');
   const [loadMethod, setLoadMethod] = useState('current');
 
-  // Pre-process all players data once when loaded
   const processedPlayers = useMemo(() => {
     return allPlayers.map((player) => ({
       id: player.id,
@@ -99,7 +103,7 @@ const RosterViewer = () => {
   };
 
   const handleRemovePlayer = (section, index, e) => {
-    e?.stopPropagation(); // Prevent event bubbling if called from a click
+    e?.stopPropagation();
     const updated = [...roster[section]];
     updated[index] = null;
     setRoster({ ...roster, [section]: updated });
@@ -123,6 +127,8 @@ const RosterViewer = () => {
     );
   }
 
+  const { primary, secondary, bg } = getTeamColors(selectedTeam);
+
   return (
     <div className="flex relative">
       {!drawerOpen && <OpenDrawerButton onClick={() => setDrawerOpen(true)} />}
@@ -135,15 +141,11 @@ const RosterViewer = () => {
             const isManualTarget =
               slotTarget.section && slotTarget.index !== -1;
             if (isManualTarget) {
-              addPlayerToSlot(
-                player, // Use player directly instead of player.original
-                slotTarget.section,
-                slotTarget.index
-              );
+              addPlayerToSlot(player, slotTarget.section, slotTarget.index);
               setSlotTarget({ section: '', index: -1 });
               setDrawerOpen(false);
             } else {
-              addPlayerToNextSlot(player); // Use player directly instead of player.original
+              addPlayerToNextSlot(player);
             }
           }}
         />
@@ -154,16 +156,46 @@ const RosterViewer = () => {
           drawerOpen ? 'ml-[300px]' : 'ml-0'
         }`}
       >
-        <div className="max-w-[1300px] mx-auto text-white p-6 flex flex-col items-center">
-          <h2 className="text-3xl font-bold mb-8 tracking-wide">Team Roster</h2>
+        <div className="relative max-w-[1300px] mx-auto text-white p-6 flex flex-col items-center overflow-hidden">
+          {/* Team Branding Background */}
+          {selectedTeam && (
+            <img
+              src={`/assets/logos/${selectedTeam.toLowerCase()}.png`}
+              alt=""
+              className="absolute inset-0 w-full h-full object-contain opacity-20 blur-sm mt-4 pointer-events-none select-none"
+              style={{ zIndex: 0 }}
+            />
+          )}
 
-          <RosterControls
-            selectedTeam={selectedTeam}
-            onTeamChange={setSelectedTeam}
-            loadMethod={loadMethod}
-            onLoadMethodChange={setLoadMethod}
-          />
+          {/* Controls First */}
+          <div className="z-10 -mt-2 mb-6">
+            <RosterControls
+              selectedTeam={selectedTeam}
+              onTeamChange={setSelectedTeam}
+              loadMethod={loadMethod}
+              onLoadMethodChange={setLoadMethod}
+            />
+          </div>
 
+          {/* Team Name */}
+          {selectedTeam && (
+            <h2
+              className="text-5xl font-black tracking-wide z-10 uppercase relative mb-2"
+              style={{
+                color: '#1e1e1e', // neutral rich gray text
+                textShadow: `0 0 10px ${primary}, 0 0 18px ${secondary}`, // outer glow only
+              }}
+            >
+              {selectedTeam}
+            </h2>
+          )}
+
+          {/* Subtitle */}
+          <h3 className="text-xl text-neutral-500 font-semibold z-10 mb-8 opacity-90 tracking-wide">
+            Team Roster
+          </h3>
+
+          {/* Player Grid */}
           <RosterSection
             players={roster.starters}
             section="starters"

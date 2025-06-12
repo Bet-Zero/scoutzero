@@ -47,14 +47,17 @@ const fontSizeOverrides = {
   'Trayce Jackson-Davis': { first: 20, last: 17 },
 };
 
-const PlayerNameMini = ({ name = 'LeBron James' }) => {
+const PlayerNameMini = ({ name = 'LeBron James', scale = 1, width = 140 }) => {
   const [firstName, lastName] = formatFullName(name);
   const override = fontSizeOverrides[name] || {};
-  const firstSize = override.first || 22;
-  const lastSize = override.last || 21;
+  const firstSize = (override.first || 22) * scale;
+  const lastSize = (override.last || 21) * scale;
 
   return (
-    <div className="flex flex-col items-start justify-center leading-tight w-[140px] mt-1">
+    <div
+      className="flex flex-col items-start justify-center leading-tight mt-1"
+      style={{ width: `${width * scale}px` }}
+    >
       <span
         className="text-white/70 font-anton font-light uppercase mb-[2px] tracking-normal leading-none"
         style={{ fontSize: `${firstSize}px` }}

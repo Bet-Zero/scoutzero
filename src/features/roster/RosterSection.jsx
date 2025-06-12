@@ -1,5 +1,7 @@
 import React from 'react';
-import PlayerCard from './PlayerCard';
+import StarterCard from './StarterCard';
+import RotationCard from './RotationCard';
+import BenchCard from './BenchCard';
 import EmptySlot from './EmptySlot';
 
 const sectionClasses = {
@@ -14,25 +16,33 @@ const sizeMap = {
   bench: 'bench',
 };
 
-const RosterSection = ({ players, section, onRemove, onAdd }) => (
-  <div className={sectionClasses[section]}>
-    {players.map((player, idx) =>
-      player ? (
-        <PlayerCard
-          key={player.id}
-          player={player}
-          size={sizeMap[section]}
-          onRemove={(e) => onRemove(section, idx, e)}
-        />
-      ) : (
-        <EmptySlot
-          key={`${section}-${idx}`}
-          size={sizeMap[section]}
-          onAdd={() => onAdd(section, idx)}
-        />
-      )
-    )}
-  </div>
-);
+const cardMap = {
+  starters: StarterCard,
+  rotation: RotationCard,
+  bench: BenchCard,
+};
+
+const RosterSection = ({ players, section, onRemove, onAdd }) => {
+  const CardComponent = cardMap[section];
+  return (
+    <div className={sectionClasses[section]}>
+      {players.map((player, idx) =>
+        player ? (
+          <CardComponent
+            key={player.id}
+            player={player}
+            onRemove={(e) => onRemove(section, idx, e)}
+          />
+        ) : (
+          <EmptySlot
+            key={`${section}-${idx}`}
+            size={sizeMap[section]}
+            onAdd={() => onAdd(section, idx)}
+          />
+        )
+      )}
+    </div>
+  );
+};
 
 export default RosterSection;

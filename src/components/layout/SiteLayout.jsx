@@ -5,7 +5,7 @@ import { Toaster } from 'react-hot-toast';
 
 const SiteLayout = () => {
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col">
+    <div className="min-h-screen bg-neutral-900 text-white flex flex-col">
       <header className="bg-[#121212] border-b border-white/10 px-6 py-4 flex items-center justify-between">
         <div className="text-2xl font-bold tracking-tight text-white">
           🏀 HoopZero
