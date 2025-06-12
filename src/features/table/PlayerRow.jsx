@@ -37,9 +37,13 @@ const PlayerRow = ({ player, ranking = '—' }) => {
 
         {/* Player Image */}
         <div className="h-full w-20 bg-[#2a2a2a] flex items-center justify-center overflow-hidden">
-          <PlayerHeadshot
+          <img
             src={player.headshotUrl || '/assets/headshots/default.png'}
-            className="w-full h-full"
+            onError={(e) => {
+              e.target.src = '/assets/headshots/default.png';
+            }}
+            alt={player.name}
+            className="h-full w-full object-cover"
           />
         </div>
 
@@ -49,7 +53,17 @@ const PlayerRow = ({ player, ranking = '—' }) => {
             <PlayerNameMini name={player.display_name || player.name} />
           </div>
           <div className="flex items-center gap-2">
-            <TeamLogo teamAbbr={player.bio?.Team} className="w-6 h-6" />
+            <img
+              src={`/assets/logos/${(player.bio?.Team || 'default')
+                .toLowerCase()
+                .replace(/\s/g, '_')
+                .replace(/[^a-z0-9_]/g, '')}.png`}
+              onError={(e) => {
+                e.target.src = '/assets/logos/default.png';
+              }}
+              alt={player.bio?.Team}
+              className="w-6 h-6 object-contain"
+            />
             <div className="text-[14px] text-white/50 tracking-wide">
               {player.bio?.HT || '—'} <span className="text-white/30">|</span>{' '}
               {player.bio?.WT || '—'} lbs

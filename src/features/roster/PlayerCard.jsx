@@ -32,7 +32,11 @@ const PlayerCard = ({ player, size = 'starter', onRemove }) => {
         >
           {/* Full Image Area */}
           <div className="flex-1 relative">
-            <PlayerHeadshot src={headshot} className="w-full h-full" />
+            <img
+              src={headshot}
+              alt={player.name}
+              className="w-full h-full object-cover"
+            />
 
             {/* Remove Button */}
             <button
