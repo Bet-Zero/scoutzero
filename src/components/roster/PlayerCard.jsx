@@ -1,6 +1,7 @@
 // src/components/roster/PlayerCard.jsx
 import React from 'react';
 import PlayerNameMini from '@/components/table/PlayerNameMini';
+import PlayerHeadshot from '@/components/shared/PlayerHeadshot';
 import { getPlayerPositionLabel } from '@/utils/roles';
 
 // PlayerCard – Clean visual core with full image + Anton name + position
@@ -31,11 +32,7 @@ const PlayerCard = ({ player, size = 'starter', onRemove }) => {
         >
           {/* Full Image Area */}
           <div className="flex-1 relative">
-            <img
-              src={headshot}
-              alt={player.name}
-              className="w-full h-full object-cover"
-            />
+            <PlayerHeadshot src={headshot} className="w-full h-full" />
 
             {/* Remove Button */}
             <button

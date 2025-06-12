@@ -10,7 +10,7 @@ import PlayerStatsTable from '@/components/profile/PlayerStatsTable';
 import PlayerTraitsGrid from '@/components/profile/PlayerTraitsGrid';
 import PlayerRolesSection from '@/components/profile/PlayerRolesSection';
 import BadgeSelector from '@/components/profile/BadgeSelector';
-import Modal from '@/components/profile/Modal';
+import Modal from '@/components/shared/ui/Modal';
 import OverallBlurbBox from '@/components/profile/OverallBlurbBox';
 import {
   getPlayersForTeam,
