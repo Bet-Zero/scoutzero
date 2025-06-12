@@ -1,6 +1,6 @@
 // TeamRosterView.jsx
 import React from 'react';
-import RosterViewer from '@/components/roster/RosterViewer';
+import RosterViewer from '@/features/roster/RosterViewer';
 
 const TeamRosterViewer = () => {
   return (

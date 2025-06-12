@@ -1,6 +1,6 @@
 // src/components/roster/PlayerCard.jsx
 import React from 'react';
-import PlayerNameMini from '@/components/table/PlayerNameMini';
+import PlayerNameMini from '@/features/table/PlayerNameMini';
 import PlayerHeadshot from '@/components/shared/PlayerHeadshot';
 import { getPlayerPositionLabel } from '@/utils/roles';
 

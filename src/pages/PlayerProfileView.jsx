@@ -4,13 +4,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import usePlayerData from '@/hooks/usePlayerData.js';
 import { savePlayerData } from '@/firebaseHelpers';
 
-import PlayerHeader from '@/components/profile/PlayerHeader';
-import PlayerStatsTable from '@/components/profile/PlayerStatsTable';
-import PlayerTraitsGrid from '@/components/profile/PlayerTraitsGrid';
-import PlayerRolesSection from '@/components/profile/PlayerRolesSection';
-import BadgeSelector from '@/components/profile/BadgeSelector';
+import PlayerHeader from '@/features/profile/PlayerHeader';
+import PlayerStatsTable from '@/features/profile/PlayerStatsTable';
+import PlayerTraitsGrid from '@/features/profile/PlayerTraitsGrid';
+import PlayerRolesSection from '@/features/profile/PlayerRolesSection';
+import BadgeSelector from '@/features/profile/BadgeSelector';
 import Modal from '@/components/shared/ui/Modal';
-import OverallBlurbBox from '@/components/profile/OverallBlurbBox';
+import OverallBlurbBox from '@/features/profile/OverallBlurbBox';
 import {
   getPlayersForTeam,
   getModalTitle,

@@ -7,7 +7,7 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import usePlayerData from '@/hooks/usePlayerData.js';
 import { toast } from 'react-hot-toast';
 
-import ListPlayerRow from '@/components/lists/ListPlayerRow';
+import ListPlayerRow from '@/features/lists/ListPlayerRow';
 
 const RankedListView = () => {
   const { listId } = useParams();
