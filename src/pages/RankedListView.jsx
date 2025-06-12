@@ -3,13 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { db } from '@/firebaseConfig';
-import {
-  doc,
-  getDoc,
-  updateDoc,
-  collection,
-  getDocs,
-} from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import usePlayerData from '@/hooks/usePlayerData.js';
 import { toast } from 'react-hot-toast';
 
 import SiteLayout from '@/components/layout/SiteLayout';
@@ -22,9 +17,10 @@ const RankedListView = () => {
   const [order, setOrder] = useState([]);
   const [notes, setNotes] = useState({});
   const [isSaving, setIsSaving] = useState(false);
+  const { players, loading: playersLoading } = usePlayerData();
 
   useEffect(() => {
-    const fetchListAndPlayers = async () => {
+    const fetchList = async () => {
       try {
         const listRef = doc(db, 'lists', listId);
         const listSnap = await getDoc(listRef);
@@ -35,20 +31,21 @@ const RankedListView = () => {
         setListData(data);
         setOrder(ids);
         setNotes(data.playerNotes || {});
-
-        const playersSnap = await getDocs(collection(db, 'players'));
-        const playersObj = {};
-        playersSnap.forEach((doc) => {
-          playersObj[doc.id] = { id: doc.id, ...doc.data() };
-        });
-        setPlayersMap(playersObj);
       } catch (err) {
-        console.error('Failed to load list or players:', err);
+        console.error('Failed to load list:', err);
       }
     };
 
-    fetchListAndPlayers();
+    fetchList();
   }, [listId]);
+
+  useEffect(() => {
+    const map = {};
+    players.forEach((p) => {
+      map[p.id] = p;
+    });
+    setPlayersMap(map);
+  }, [players]);
 
   const handleNoteChange = (id, text) => {
     setNotes((prev) => ({ ...prev, [id]: text }));
@@ -90,7 +87,7 @@ const RankedListView = () => {
     }
   };
 
-  if (!listData) {
+  if (!listData || playersLoading) {
     return (
       <SiteLayout>
         <div className="text-white text-center mt-12">Loading List...</div>
