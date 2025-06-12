@@ -41,7 +41,7 @@ const PlayerTable = () => {
     );
 
   return (
-    <div className="flex flex-col items-center bg-black gap-1 mt-4 min-h-screen">
+    <div className="flex flex-col items-center bg-neutral-900 gap-1 mt-4 min-h-screen">
       <div className="w-full max-w-[1100px] mx-auto">
         <PlayerTableHeader
           filteredCount={filteredPlayers.length}

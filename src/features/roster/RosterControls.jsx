@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { teamOptions } from "@/utils/filtering";
+import { teamOptions } from '@/utils/filtering';
 
 const RosterControls = ({
   selectedTeam,
@@ -26,7 +26,7 @@ const RosterControls = ({
     </div>
 
     <div className="flex gap-2 items-center">
-      <label className="text-sm text-white/60">Load Roster From:</label>
+      <label className="text-sm text-white/60">Roster:</label>
       <select
         value={loadMethod}
         onChange={(e) => onLoadMethodChange(e.target.value)}
