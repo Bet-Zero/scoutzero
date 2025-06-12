@@ -29,7 +29,7 @@ export const defensiveRoles = [
   'Anchor Big',
 ];
 
-export const shootingProfiles = [
+export const shootingProfileTiers = [
   'Elite',
   'Plus',
   'Capable',
