@@ -2,7 +2,7 @@ import React from 'react';
 import MultiSelectFilter from '@/components/shared/ui/filters/MultiSelectFilter';
 import BadgeFilterSelect from '@/components/shared/ui/filters/BadgeFilterSelect';
 import { teamOptions } from '@/utils/filtering';
-import { shootingProfiles } from '@/utils/roles';
+import { shootingProfileTiers } from '@/utils/roles';
 
 const BasicFilters = ({ filters, setFilters }) => {
   return (
@@ -19,7 +19,9 @@ const BasicFilters = ({ filters, setFilters }) => {
           <label className="block mb-1 text-white/70 text-xs">Position</label>
           <select
             value={filters.position}
-            onChange={(e) => setFilters({ ...filters, position: e.target.value })}
+            onChange={(e) =>
+              setFilters({ ...filters, position: e.target.value })
+            }
             className="w-full bg-[#2a2a2a] text-white px-2 py-1 rounded text-xs"
           >
             <option value="">All Positions</option>
@@ -39,7 +41,7 @@ const BasicFilters = ({ filters, setFilters }) => {
       <MultiSelectFilter
         label="Shooting"
         value={filters.shootingProfile}
-        options={shootingProfiles}
+        options={shootingProfileTiers}
         onChange={(val) => setFilters({ ...filters, shootingProfile: val })}
         allLabel="All Profiles"
       />

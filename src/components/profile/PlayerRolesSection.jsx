@@ -4,37 +4,7 @@ import SubRoleSelector from '@/components/profile/SubRoleSelector';
 import ShootingProfileSelector from '@/components/profile/ShootingProfileSelector';
 import TwoWayMeter from '@/components/profile/TwoWayMeter';
 import { NotebookText } from 'lucide-react';
-
-const offensiveRoles = [
-  'Primary Playmaker',
-  'Primary Ball Handler',
-  'Secondary Creator',
-  'Scorer',
-  'Shooter',
-  'Floor Spacer',
-  'Off-Ball Scorer',
-  'Off-Ball Mover',
-  'Connector',
-  'Versatile Big',
-  'Post Hub',
-  'Post Scorer',
-  'Stretch Big',
-  'Play Finisher',
-];
-
-const defensiveRoles = [
-  'Point-of-Attack',
-  'Chaser',
-  'Wing Stopper',
-  'Off-Ball Helper',
-  'Defensive Playmaker',
-  'Defensive Quarterback',
-  'Switchable Wing',
-  'Switchable Big',
-  'Mobile Big',
-  'Post Defender',
-  'Anchor Big',
-];
+import { offensiveRoles, defensiveRoles } from '@/utils/roles';
 
 const RoleSelect = ({ value, onChange, setOpenModal, options, roleKey }) => (
   <div className="relative w-full mb-2">
