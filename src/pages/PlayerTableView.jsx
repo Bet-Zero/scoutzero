@@ -1,5 +1,5 @@
 import React from 'react';
-import PlayerTable from '@/components/table/PlayerTable';
+import PlayerTable from '@/features/table/PlayerTable';
 
 const PlayerTableView = () => {
   return (
