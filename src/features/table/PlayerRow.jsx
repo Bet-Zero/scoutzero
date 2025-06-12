@@ -20,7 +20,7 @@ const PlayerRow = ({ player, ranking = '—' }) => {
   const lastName = nameParts.slice(1).join(' ').toUpperCase() || '';
 
   return (
-    <div className="relative w-full max-w-[1100px] mx-auto mb-2">
+    <div className="relative w-full max-w-[1100px] border border-black mx-auto mb-2">
       {/* Add Button - fixed small circle in top-right corner (overlay) */}
       <div className="absolute top-0.5s right-0 z-10">
         <AddToListButton player={player} />
