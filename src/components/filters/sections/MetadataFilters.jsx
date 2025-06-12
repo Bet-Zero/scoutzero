@@ -1,5 +1,6 @@
 import React from 'react';
-import { expandPositionGroup } from '@/utils/roles';
+import MultiSelectFilter from "@/components/shared/ui/filters/MultiSelectFilter";
+import { teamOptions } from "@/utils/filtering";
 
 const MetadataFilters = ({ filters, setFilters }) => {
   const update = (key, value) => {
@@ -9,57 +10,14 @@ const MetadataFilters = ({ filters, setFilters }) => {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-4 text-white text-sm">
-        {/* Team */}
-        <div className="flex flex-col" style={{ maxWidth: '200px' }}>
-          <label className="mb-1 text-white/50 text-[11px] uppercase tracking-wide">
-            Team
-          </label>
-          <select
-            value={filters.team || ''}
-            onChange={(e) => update('team', e.target.value)}
-            className="bg-[#2a2a2a] p-2 rounded w-[125px]"
-          >
-            <option value="">All</option>
-            {[
-              'Hawks',
-              'Celtics',
-              'Nets',
-              'Hornets',
-              'Bulls',
-              'Cavaliers',
-              'Mavericks',
-              'Nuggets',
-              'Pistons',
-              'Warriors',
-              'Rockets',
-              'Pacers',
-              'Clippers',
-              'Lakers',
-              'Grizzlies',
-              'Heat',
-              'Bucks',
-              'Timberwolves',
-              'Pelicans',
-              'Knicks',
-              'Thunder',
-              'Magic',
-              '76ers',
-              'Suns',
-              'Blazers',
-              'Kings',
-              'Spurs',
-              'Raptors',
-              'Jazz',
-              'Wizards',
-            ]
-              .sort()
-              .map((team) => (
-                <option key={team} value={team}>
-                  {team}
-                </option>
-              ))}
-          </select>
-        </div>
+        <MultiSelectFilter
+          label="Team"
+          value={filters.team || ''}
+          options={teamOptions.sort()}
+          onChange={(val) => update("team", val)}
+          allLabel="All"
+          selectClass="w-[125px]"
+        />
 
         {/* Position */}
         <div className="flex flex-col" style={{ maxWidth: '200px' }}>

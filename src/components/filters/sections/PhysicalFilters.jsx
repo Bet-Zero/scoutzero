@@ -1,5 +1,5 @@
 import React from 'react';
-import RangeFilter from '@/components/shared/ui/inputs/RangeFilter';
+import RangeSelector from '@/components/shared/ui/filters/RangeSelector';
 import {
   generateHeightOptions,
   generateWeightOptions,
@@ -19,7 +19,7 @@ const PhysicalFilters = ({ filters, setFilters }) => {
     <div className="space-y-4">
       <h2 className="text-white text-sm font-bold">Physical Attributes</h2>
       <div className="grid grid-cols-3 gap-4 text-white text-sm">
-        <RangeFilter
+        <RangeSelector
           label="Height"
           minKey="minHeight"
           maxKey="maxHeight"
@@ -28,7 +28,7 @@ const PhysicalFilters = ({ filters, setFilters }) => {
           filters={filters}
           update={update}
         />
-        <RangeFilter
+        <RangeSelector
           label="Weight"
           minKey="minWeight"
           maxKey="maxWeight"
@@ -36,7 +36,7 @@ const PhysicalFilters = ({ filters, setFilters }) => {
           filters={filters}
           update={update}
         />
-        <RangeFilter
+        <RangeSelector
           label="Age"
           minKey="minAge"
           maxKey="maxAge"
