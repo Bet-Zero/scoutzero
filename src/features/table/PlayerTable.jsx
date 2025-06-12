@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import usePlayerData from '@/hooks/usePlayerData';
 import useFilteredPlayers from '@/hooks/useFilteredPlayers';
-import PlayerRow from '@/components/table/PlayerRow';
-import FilterPanel from '@/components/filters/FilterPanel';
-import ActiveFiltersDisplay from '@/components/filters/ActiveFiltersDisplay';
-import ViewControls from '@/components/filters/sections/ViewControls';
-import PlayerTableHeader from '@/components/table/PlayerTableHeader';
+import PlayerRow from '@/features/table/PlayerRow';
+import FilterPanel from '@/features/filters/FilterPanel';
+import ActiveFiltersDisplay from '@/features/filters/ActiveFiltersDisplay';
+import ViewControls from '@/features/filters/sections/ViewControls';
+import PlayerTableHeader from '@/features/table/PlayerTableHeader';
 import debounce from 'lodash.debounce';
 import { getDefaultPlayerFilters } from '@/utils/filtering';
 

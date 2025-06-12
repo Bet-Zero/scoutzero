@@ -1,6 +1,6 @@
 // ListPlayerRow.jsx
 import React from 'react';
-import PlayerRow from '@/components/table/PlayerRow';
+import PlayerRow from '@/features/table/PlayerRow';
 import { ChevronUp, ChevronDown } from 'lucide-react';
 import { POSITION_MAP } from '@/utils/roles';
 

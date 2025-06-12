@@ -1,7 +1,7 @@
 // AddToListButton.jsx
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
-import AddToListModal from '@/components/lists/AddToListModal';
+import AddToListModal from '@/features/lists/AddToListModal';
 
 const AddToListButton = ({ player }) => {
   const [isOpen, setIsOpen] = useState(false);

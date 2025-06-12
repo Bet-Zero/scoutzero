@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import PlayerNameMini from '@/components/table/PlayerNameMini';
-import ShootingProfileMini from '@/components/table/ShootingProfileMini';
-import RolePill from '@/components/table/RolePill';
+import PlayerNameMini from '@/features/table/PlayerNameMini';
+import ShootingProfileMini from '@/features/table/ShootingProfileMini';
+import RolePill from '@/features/table/RolePill';
 import OverallGradeBlock from '@/components/shared/ui/grades/OverallGradeBlock';
-import PlayerDrawer from '@/components/table/PlayerDrawer';
+import PlayerDrawer from '@/features/table/PlayerDrawer';
 import PlayerHeadshot from '@/components/shared/PlayerHeadshot';
 import TeamLogo from '@/components/shared/TeamLogo';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import AddToListButton from '@/components/lists/AddToListButton';
+import AddToListButton from '@/features/lists/AddToListButton';
 
 const PlayerRow = ({ player, ranking = '—' }) => {
   const [isExpanded, setIsExpanded] = useState(false);
