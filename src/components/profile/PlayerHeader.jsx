@@ -3,25 +3,12 @@ import PlayerName from '@/components/shared/PlayerName';
 import TeamLogo from '@/components/shared/TeamLogo';
 import PlayerPosition from '@/components/shared/PlayerPosition';
 import PlayerHeadshot from '@/components/shared/PlayerHeadshot';
+import { POSITION_MAP } from '@/utils/roles';
 
 const PlayerHeader = ({ player, selectedPlayer }) => {
-  const positionAbbreviations = {
-    Guard: 'G',
-    'Point Guard': 'PG',
-    'Shooting Guard': 'SG',
-    Forward: 'F',
-    'Small Forward': 'SF',
-    'Power Forward': 'PF',
-    Center: 'C',
-    'Forward-Center': 'F/C',
-    'Guard-Forward': 'G/F',
-    'Forward-Guard': 'F',
-    'Center-Forward': 'C',
-  };
-
   const getAbbreviatedPosition = (position) => {
     if (!position) return 'N/A';
-    return positionAbbreviations[position] || position;
+    return POSITION_MAP[position] || position;
   };
 
   const thisYear = 2025;

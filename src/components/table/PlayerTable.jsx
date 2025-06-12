@@ -7,7 +7,7 @@ import ActiveFiltersDisplay from '@/components/filters/ActiveFiltersDisplay';
 import ViewControls from '@/components/filters/sections/ViewControls';
 import PlayerTableHeader from '@/components/table/PlayerTableHeader';
 import debounce from 'lodash.debounce';
-import getDefaultPlayerFilters from '@/utils/playerFilterDefaults';
+import { getDefaultPlayerFilters } from '@/utils/filtering';
 
 const PlayerTable = () => {
   const [filters, setFilters] = useState(getDefaultPlayerFilters());

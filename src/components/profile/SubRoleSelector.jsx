@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NotebookText } from 'lucide-react';
 import { SubRoleMasterList } from '@/constants/SubRoleMasterList';
-import { isPositiveSubRole } from '@/utils/subRoleUtils';
+import { isPositiveSubRole } from '@/utils/roles';
 
 const OFFENSIVE_GROUPS = [
   'Playmaking',

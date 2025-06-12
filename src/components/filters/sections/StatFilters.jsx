@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, X } from 'lucide-react';
-import { statOptions, getActiveStatFilters } from '@/utils/statFilters';
+import { statOptions, getActiveStatFilters } from '@/utils/filtering';
 
 const AddFilterForm = ({ newFilter, setNewFilter, onAdd }) => {
   const { stat, operator, value } = newFilter;

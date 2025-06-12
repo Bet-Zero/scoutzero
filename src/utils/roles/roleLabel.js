@@ -1,4 +1,4 @@
-export default function getPlayerPositionLabel(fullPosition) {
+export function getPlayerPositionLabel(fullPosition) {
   const map = {
     Guard: 'G',
     'Point Guard': 'PG',
