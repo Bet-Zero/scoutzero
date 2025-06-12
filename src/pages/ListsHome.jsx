@@ -4,7 +4,6 @@ import React, { useEffect, useState } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
 import { Link } from 'react-router-dom';
 import { db } from '@/firebaseConfig';
-import SiteLayout from '@/components/layout/SiteLayout';
 
 const ListsHome = () => {
   const [lists, setLists] = useState([]);
@@ -25,7 +24,7 @@ const ListsHome = () => {
   }, []);
 
   return (
-    <SiteLayout>
+    <>
       <div className="max-w-[800px] mx-auto">
         <h1 className="text-3xl font-bold text-white mb-4">Your Saved Lists</h1>
 
@@ -60,7 +59,7 @@ const ListsHome = () => {
           </div>
         )}
       </div>
-    </SiteLayout>
+    </>
   );
 };
 

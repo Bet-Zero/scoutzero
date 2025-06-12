@@ -4,7 +4,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import usePlayerData from '@/hooks/usePlayerData.js';
 import { savePlayerData } from '@/firebaseHelpers';
 
-import SiteLayout from '@/components/layout/SiteLayout';
 import PlayerHeader from '@/components/profile/PlayerHeader';
 import PlayerStatsTable from '@/components/profile/PlayerStatsTable';
 import PlayerTraitsGrid from '@/components/profile/PlayerTraitsGrid';
@@ -314,16 +313,14 @@ const PlayerProfileView = () => {
 
   if (isLoading) {
     return (
-      <SiteLayout>
-        <div className="min-h-screen bg-neutral-900 flex items-center justify-center">
-          <div className="text-white text-lg">Loading HoopZero...</div>
-        </div>
-      </SiteLayout>
+      <div className="min-h-screen bg-neutral-900 flex items-center justify-center">
+        <div className="text-white text-lg">Loading HoopZero...</div>
+      </div>
     );
   }
 
   return (
-    <SiteLayout>
+    <>
       <div className="min-h-screen bg-neutral-900 flex flex-col items-center gap-6 py-20 relative">
         <TeamPlayerDropdowns
           teams={teams}
@@ -372,7 +369,7 @@ const PlayerProfileView = () => {
           />
         )}
       </div>
-    </SiteLayout>
+    </>
   );
 };
 
