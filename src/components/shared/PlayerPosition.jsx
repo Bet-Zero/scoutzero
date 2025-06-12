@@ -1,23 +1,10 @@
 // PlayerPosition.jsx
 import React from 'react';
-
-const positionAbbreviations = {
-  Guard: 'G',
-  'Point Guard': 'PG',
-  'Shooting Guard': 'SG',
-  Forward: 'F',
-  'Small Forward': 'SF',
-  'Power Forward': 'PF',
-  Center: 'C',
-  'Forward-Center': 'F/C',
-  'Guard-Forward': 'G/F',
-  'Forward-Guard': 'F',
-  'Center-Forward': 'C',
-};
+import { POSITION_MAP } from '@/utils/roles';
 
 const getAbbreviatedPosition = (position) => {
   if (!position) return 'N/A';
-  return positionAbbreviations[position] || position;
+  return POSITION_MAP[position] || position;
 };
 
 const PlayerPosition = ({ position = 'N/A', className = '' }) => {

@@ -4,8 +4,8 @@ import {
   defensiveRoles,
   offensiveRoles,
   shootingProfiles,
-} from '@/utils/roleOptions';
-import { toggleSubroleSelection } from '@/utils/subRoleUtils';
+} from '@/utils/roles';
+import { toggleSubroleSelection } from '@/utils/roles';
 
 const RoleSelect = ({
   label,

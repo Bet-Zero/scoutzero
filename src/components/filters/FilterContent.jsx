@@ -2,7 +2,7 @@ import React from 'react';
 import TeamLogo from '@/components/shared/TeamLogo';
 import { BadgeList } from '@/constants/badgeList';
 import { SubRoleMasterList } from '@/constants/SubRoleMasterList';
-import { getFilterStyles } from '@/utils/filterHelpers';
+import { getFilterStyles } from '@/utils/filtering';
 
 const FilterContent = ({ filter }) => {
   const { key, value, isSubrole } = filter;

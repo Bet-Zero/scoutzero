@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import useFirebaseQuery from './useFirebaseQuery';
-import { normalizePlayerData } from '@/utils/roster/normalizePlayerData.js';
+import { normalizePlayerData } from '@/utils/roster';
 
 const usePlayerData = () => {
   const { data, loading, error } = useFirebaseQuery('players');

@@ -1,14 +1,4 @@
-export const POSITION_MAP = {
-  Guard: 'G',
-  'Point Guard': 'PG',
-  'Shooting Guard': 'SG',
-  Forward: 'F',
-  'Small Forward': 'SF',
-  'Power Forward': 'PF',
-  Center: 'C',
-  'Forward-Center': 'F/C',
-  'Guard-Forward': 'G/F',
-};
+import { POSITION_MAP } from '../roles/positionMap.js';
 
 export function normalizePlayer(player) {
   if (!player) return null;

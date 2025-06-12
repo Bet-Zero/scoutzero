@@ -1,4 +1,5 @@
-const getDefaultPlayerFilters = () => ({
+export function getDefaultPlayerFilters() {
+  return {
   nameSearch: '',
   nameOrder: 'az',
   sortBy: '',
@@ -56,6 +57,5 @@ const getDefaultPlayerFilters = () => ({
   min_Shooting: 0,
   max_Shooting: 100,
   badges: [],
-});
-
-export default getDefaultPlayerFilters;
+  };
+}

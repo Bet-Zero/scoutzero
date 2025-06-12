@@ -1,4 +1,4 @@
-import formatHeight from './formatHeight';
+import { formatHeight } from '@/utils/formatting';
 
 export function getFilterDisplayValue(key, value) {
   const statAbbreviations = {

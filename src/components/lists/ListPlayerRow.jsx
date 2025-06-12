@@ -2,20 +2,7 @@
 import React from 'react';
 import PlayerRow from '@/components/table/PlayerRow';
 import { ChevronUp, ChevronDown } from 'lucide-react';
-
-const positionAbbreviations = {
-  'Point Guard': 'PG',
-  'Shooting Guard': 'SG',
-  Guard: 'G',
-  'Small Forward': 'SF',
-  'Power Forward': 'PF',
-  Forward: 'F',
-  Center: 'C',
-  'Forward-Center': 'F/C',
-  'Guard-Forward': 'G/F',
-  'Forward-Guard': 'F',
-  'Center-Forward': 'C',
-};
+import { POSITION_MAP } from '@/utils/roles';
 
 
 const ListPlayerRow = ({
@@ -31,7 +18,7 @@ const ListPlayerRow = ({
     id: player.player_id,
     formattedPosition:
       player.formattedPosition ||
-      positionAbbreviations[player.bio?.Position] ||
+      POSITION_MAP[player.bio?.Position] ||
       '—',
     headshotUrl:
       player.headshotUrl || `/assets/headshots/${player.player_id}.png`,
