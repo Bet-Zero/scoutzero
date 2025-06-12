@@ -37,7 +37,14 @@ const PlayerRowMini = ({ player, onClick }) => {
       >
         {/* Headshot */}
         <div className="h-[58px] w-[56px] -ml-0.5 bg-[#1e1e1e] overflow-hidden">
-          <PlayerHeadshot src={headshot} className="w-full h-full" />
+          <img
+            src={headshot}
+            onError={(e) => {
+              e.target.src = '/assets/headshots/default.png';
+            }}
+            alt={name}
+            className="h-full w-full object-cover"
+          />
         </div>
 
         {/* Name + Team Info */}
