@@ -1,6 +1,6 @@
 import React from 'react';
 
-const RangeFilter = ({
+const RangeSelector = ({
   label,
   minKey,
   maxKey,
@@ -74,4 +74,4 @@ const RangeFilter = ({
   );
 };
 
-export default RangeFilter;
+export default RangeSelector;

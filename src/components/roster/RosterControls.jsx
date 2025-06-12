@@ -1,37 +1,6 @@
 import React from 'react';
 
-const TEAMS = [
-  'Lakers',
-  'Warriors',
-  'Celtics',
-  'Nuggets',
-  'Heat',
-  'Bucks',
-  'Knicks',
-  'Suns',
-  '76ers',
-  'Clippers',
-  'Kings',
-  'Mavericks',
-  'Grizzlies',
-  'Pelicans',
-  'Timberwolves',
-  'Thunder',
-  'Cavaliers',
-  'Raptors',
-  'Spurs',
-  'Bulls',
-  'Magic',
-  'Hawks',
-  'Wizards',
-  'Hornets',
-  'Jazz',
-  'Blazers',
-  'Pistons',
-  'Pacers',
-  'Rockets',
-  'Nets',
-];
+import { teamOptions } from "@/utils/filtering";
 
 const RosterControls = ({
   selectedTeam,
@@ -48,7 +17,7 @@ const RosterControls = ({
         className="bg-[#1a1a1a] text-white text-sm px-3 py-1 rounded border border-white/10"
       >
         <option value="">— Select Team —</option>
-        {TEAMS.sort().map((team) => (
+        {teamOptions.sort().map((team) => (
           <option key={team} value={team}>
             {team}
           </option>
