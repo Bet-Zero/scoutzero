@@ -1,6 +1,5 @@
 import React from 'react';
 import PlayerNameMini from '@/features/table/PlayerNameMini';
-import PlayerHeadshot from '@/components/shared/PlayerHeadshot';
 import { getPlayerPositionLabel } from '@/utils/roles';
 
 const StarterCard = ({ player, onRemove }) => {

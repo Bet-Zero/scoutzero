@@ -4,10 +4,10 @@ import ShootingProfileMini from '@/features/table/ShootingProfileMini';
 import RolePill from '@/features/table/RolePill';
 import OverallGradeBlock from '@/components/shared/ui/grades/OverallGradeBlock';
 import PlayerDrawer from '@/features/table/PlayerDrawer';
-import PlayerHeadshot from '@/components/shared/PlayerHeadshot';
 import TeamLogo from '@/components/shared/TeamLogo';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import AddToListButton from '@/features/lists/AddToListButton';
+import { normalizePlayerId } from '@/utils/formatting';
 
 const PlayerRow = ({ player, ranking = '—' }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -38,9 +38,19 @@ const PlayerRow = ({ player, ranking = '—' }) => {
         {/* Player Image */}
         <div className="h-full w-20 bg-[#2a2a2a] flex items-center justify-center overflow-hidden">
           <img
-            src={player.headshotUrl || '/assets/headshots/default.png'}
+            src={
+              player.headshotUrl || `/assets/headshots/${player.player_id}.png`
+            }
             onError={(e) => {
-              e.target.src = '/assets/headshots/default.png';
+              const fallback = `/assets/headshots/${normalizePlayerId(
+                player.player_id
+              )}.png`;
+              if (!e.target.dataset.fallback) {
+                e.target.dataset.fallback = 'tried';
+                e.target.src = fallback;
+              } else {
+                e.target.src = '/assets/headshots/default.png';
+              }
             }}
             alt={player.name}
             className="h-full w-full object-cover"

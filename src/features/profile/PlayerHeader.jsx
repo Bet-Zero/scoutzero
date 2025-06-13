@@ -45,7 +45,7 @@ const PlayerHeader = ({ player, selectedPlayer }) => {
         </div>
       </div>
       <div className="flex items-center">
-        <PlayerHeadshot src={`/assets/headshots/${selectedPlayer}.png`} />
+        <PlayerHeadshot playerId={selectedPlayer} />
       </div>
       <div className="w-[230px] h-[190px] bg-[#1f1f1f] rounded-2xl shadow-lg text-white text-[13px] font-thin px-4 py-3 flex flex-col relative top-[0.11rem] justify-center">
         <div className="space-y-[2px]">
