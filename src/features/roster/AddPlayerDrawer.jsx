@@ -116,7 +116,7 @@ const AddPlayerDrawer = ({ onClose, allPlayers, onSelect }) => {
   }, [search, filters, allPlayers]);
 
   return (
-    <>
+    <div className="flex flex-col h-full">
       <DrawerHeader onClose={onClose} />
       <PlayerSearchBar
         search={search}
@@ -142,7 +142,7 @@ const AddPlayerDrawer = ({ onClose, allPlayers, onSelect }) => {
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 };
 

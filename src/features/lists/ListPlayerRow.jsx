@@ -1,9 +1,8 @@
 // ListPlayerRow.jsx
 import React from 'react';
 import PlayerRow from '@/features/table/PlayerRow';
-import { ChevronUp, ChevronDown } from 'lucide-react';
+import { ChevronUp, ChevronDown, X } from 'lucide-react';
 import { POSITION_MAP } from '@/utils/roles';
-
 
 const ListPlayerRow = ({
   player,
@@ -12,14 +11,14 @@ const ListPlayerRow = ({
   onNoteChange,
   onMoveUp,
   onMoveDown,
+  onRemove,
+  showReorder = true,
 }) => {
   const processedPlayer = {
     ...player,
     id: player.player_id,
     formattedPosition:
-      player.formattedPosition ||
-      POSITION_MAP[player.bio?.Position] ||
-      '—',
+      player.formattedPosition || POSITION_MAP[player.bio?.Position] || '—',
     headshotUrl:
       player.headshotUrl || `/assets/headshots/${player.player_id}.png`,
     offenseRole: player.roles?.offense1 || player.offenseRole || '—',
@@ -32,29 +31,43 @@ const ListPlayerRow = ({
 
   return (
     <div className="relative w-full max-w-[1100px] mx-auto mb-6">
-      {/* Overlay Controls */}
-      <div className="absolute -left-6 top-[22px] flex flex-col items-center z-10">
-        <button
-          onClick={() => onMoveUp(index)}
-          disabled={index === 0}
-          className="text-white/30 hover:text-white disabled:opacity-20"
-        >
-          <ChevronUp size={16} />
-        </button>
-        <div className="text-xs font-bold text-white/40">{index + 1}</div>
-        <button
-          onClick={() => onMoveDown(index)}
-          disabled={false}
-          className="text-white/30 hover:text-white disabled:opacity-20"
-        >
-          <ChevronDown size={16} />
-        </button>
-      </div>
+      {/* Reorder Arrows */}
+      {showReorder && (
+        <div className="absolute -left-6 top-[22px] flex flex-col items-center z-10">
+          <button
+            onClick={() => onMoveUp(index)}
+            disabled={index === 0}
+            className="text-white/30 hover:text-white disabled:opacity-20"
+          >
+            <ChevronUp size={16} />
+          </button>
+          <div className="text-xs font-bold text-white/40">{index + 1}</div>
+          <button
+            onClick={() => onMoveDown(index)}
+            className="text-white/30 hover:text-white disabled:opacity-20"
+          >
+            <ChevronDown size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* X button – top-left */}
+      {showReorder && (
+        <div className="absolute top-0 left-0.5 z-10">
+          <button
+            onClick={() => onRemove(index)}
+            title="Remove from List"
+            className="text-[#1e1e1e] hover:text-white transition"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
 
       {/* Player Row */}
       <PlayerRow player={processedPlayer} />
 
-      {/* Optional Notes – commented out */}
+      {/* Optional Notes */}
       {/*
       <textarea
         value={note || ''}
@@ -64,7 +77,7 @@ const ListPlayerRow = ({
       />
       */}
 
-      {/* Purple visual divider */}
+      {/* Divider */}
       <div className="w-full h-[2px] bg-purple-800/30 rounded mt-3" />
     </div>
   );
