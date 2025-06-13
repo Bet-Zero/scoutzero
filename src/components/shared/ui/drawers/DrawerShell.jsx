@@ -4,7 +4,7 @@ import React from 'react';
 const DrawerShell = ({ isOpen, onClose, children }) => (
   <>
     <div
-      className={`fixed left-0 top-0 h-full w-[300px] bg-[#1a1a1a] border-r border-white/10 z-20 flex flex-col transition-transform duration-200 ease-out ${
+      className={`fixed left-0 top-0 h-full w-[300px] bg-[#1a1a1a] border-r border-white/10 z-20 flex flex-col transition-transform duration-200 ease-out overflow-y-auto ${
         isOpen ? 'translate-x-0' : '-translate-x-full'
       }`}
     >
