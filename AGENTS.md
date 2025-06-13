@@ -16,26 +16,42 @@ This is the read-only counterpart to ScoutZero, an internal grading tool used to
 
 ## File Structure
 
-Project is organized by feature-first structure:
+Project is organized by feature-first structure with scoped utility and component folders:
 
 src/
 features/
-playerProfile/
-playerTable/
-rankedList/
-rosterViewer/
-components/ ← shared UI components (modals, buttons, icons)
-hooks/ ← reusable hooks (usePlayerData, useFilters, etc.)
-utils/ ← formatting, parsing, and logic helpers
+profile/
+table/
+roster/
+lists/
+filters/
+
+components/
+filters/ ← (currently empty)
+layout/ ← site/page-level wrappers and containers
+roster/ ← (currently empty)
+shared/
+ui/
+drawers/
+filters/
+grades/
+
+hooks/ ← reusable hooks (e.g., usePlayerData, useAutoSavePlayer)
+utils/
+filtering/
+formatting/
+roles/
+roster/
+
 pages/ ← top-level route views (e.g., PlayerProfileView.jsx)
 
-All new components related to a specific feature should go in their respective `features/<name>/` folder.
+All new code should be grouped by feature when possible. Reusable UI or logic goes in `shared/`, `hooks/`, or `utils/`.
 
 ## Task Rules for Agents
 
 - ✅ Refactors should preserve visual layout and logic
 - ✅ Break large components (>200 lines) into clean, shallow subcomponents
-- ✅ Keep logic and layout separated when possible
+- ✅ Keep logic and layout separated where appropriate
 - ✅ Use smart, readable file naming (TraitGradesBlock.jsx, AddPlayerDrawer.jsx, etc.)
 - ✅ Preserve modals, filters, blurbs, and Firestore reads
 - ✅ Leave the worktree clean (git status should show no changes)
@@ -59,4 +75,4 @@ All new components related to a specific feature should go in their respective `
 
 - DEVELOPER_GUIDE.md contains detailed file structure, key files, and component logic
 - README.md contains instructions for running and setting up the project
-- Use /features/rosterViewer/ and /features/rankedList/ as structural examples if needed
+- Use /features/profile/ and /features/lists/ as structural examples if needed

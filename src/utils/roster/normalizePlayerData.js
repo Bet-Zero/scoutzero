@@ -1,4 +1,5 @@
 import { POSITION_MAP } from '../roles/positionMap.js';
+import { normalizePlayerId } from '@/utils/formatting';
 
 const calculateHeight = (ht = '0-0') => {
   const parts = ht.split('-');
@@ -34,7 +35,7 @@ export function normalizePlayerData(playerData) {
     heightInInches: calculateHeight(playerData.bio?.HT),
     weight: parseInt(playerData.bio?.WT || 0),
     age: parseInt(playerData.bio?.AGE || 0),
-    headshotUrl: `/assets/headshots/${playerData.player_id}.png`,
+    headshotUrl: `/assets/headshots/${normalizePlayerId(playerData.player_id)}.png`,
     offenseRole: playerData.roles?.offense1 || '—',
     defenseRole: playerData.roles?.defense1 || '—',
     shootingProfile: playerData.shootingProfile || '—',

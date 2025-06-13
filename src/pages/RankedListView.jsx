@@ -1,14 +1,14 @@
 // RankedListView.jsx
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { db } from '@/firebaseConfig';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import usePlayerData from '@/hooks/usePlayerData.js';
 import { toast } from 'react-hot-toast';
 
-import ListPlayerRow from '@/features/lists/ListPlayerRow';
-import { ChevronUp, ChevronDown, Plus, Trash2 } from 'lucide-react';
+import RankedListTier from '@/features/lists/RankedListTier';
+import RankedListControls from '@/features/lists/RankedListControls';
 
 const RankedListView = () => {
   const { listId } = useParams();
@@ -105,6 +105,33 @@ const RankedListView = () => {
     setOrder((prev) => [...prev, `divider::New Tier`]);
   };
 
+  const handleLabelChange = (index, newLabel) => {
+    const newOrder = [...order];
+    newOrder[index] = `divider::${newLabel}`;
+    setOrder(newOrder);
+  };
+
+  const tiers = useMemo(() => {
+    const result = [];
+    let current = { label: '', headerIndex: null, players: [] };
+    order.forEach((item, idx) => {
+      if (typeof item === 'string' && item.startsWith('divider::')) {
+        if (current.headerIndex !== null || current.players.length > 0) {
+          result.push(current);
+        }
+        current = {
+          label: item.replace('divider::', ''),
+          headerIndex: idx,
+          players: [],
+        };
+      } else {
+        current.players.push({ id: item, index: idx });
+      }
+    });
+    result.push(current);
+    return result.filter((t) => t.headerIndex !== null || t.players.length > 0);
+  }, [order]);
+
   if (!listData || playersLoading) {
     return <div className="text-white text-center mt-12">Loading List...</div>;
   }
@@ -128,110 +155,32 @@ const RankedListView = () => {
 
       {/* Ranked List */}
       <div className="w-full">
-        {order.map((item, index) => {
-          const isDivider =
-            typeof item === 'string' && item.startsWith('divider::');
-
-          if (isDivider) {
-            const label = item.replace('divider::', '');
-
-            return (
-              <div
-                key={`divider-${index}`}
-                className="relative w-full max-w-[1100px] mx-auto mb-6"
-              >
-                {showReorder && (
-                  <div className="absolute -left-6 top-[22px] flex flex-col items-center z-10">
-                    <button
-                      onClick={() => handleMoveUp(index)}
-                      disabled={index === 0}
-                      className="text-white/30 hover:text-white disabled:opacity-20"
-                    >
-                      <ChevronUp size={16} />
-                    </button>
-                    <div className="text-xs font-bold text-white/40">—</div>
-                    <button
-                      onClick={() => handleMoveDown(index)}
-                      disabled={index === order.length - 1}
-                      className="text-white/30 hover:text-white disabled:opacity-20"
-                    >
-                      <ChevronDown size={16} />
-                    </button>
-                  </div>
-                )}
-
-                {/* Tier Label Input */}
-                <div className="flex items-center gap-3 text-left px-4 py-2 bg-white/5 border border-white/10 rounded">
-                  <input
-                    type="text"
-                    value={label}
-                    onChange={(e) => {
-                      const newLabel = e.target.value;
-                      const newOrder = [...order];
-                      newOrder[index] = `divider::${newLabel}`;
-                      setOrder(newOrder);
-                    }}
-                    className="text-xl font-bold tracking-wide bg-transparent text-white w-full focus:outline-none"
-                  />
-                  <button
-                    onClick={() => handleRemove(index)}
-                    title="Delete Tier"
-                    className="text-neutral-800 hover:text-white/70"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </div>
-            );
-          }
-
-          const player = playersMap[item];
-          if (!player) return null;
-
-          return (
-            <ListPlayerRow
-              key={item}
-              player={player}
-              index={index}
-              note={notes[item] || ''}
-              onNoteChange={handleNoteChange}
-              onMoveUp={handleMoveUp}
-              onMoveDown={handleMoveDown}
-              onRemove={handleRemove}
-              showReorder={showReorder}
-            />
-          );
-        })}
+        {tiers.map((tier, idx) => (
+          <RankedListTier
+            key={tier.headerIndex ?? `tier-${idx}`}
+            label={tier.label}
+            headerIndex={tier.headerIndex}
+            players={tier.players}
+            playersMap={playersMap}
+            notes={notes}
+            showReorder={showReorder}
+            onLabelChange={handleLabelChange}
+            onMoveUp={handleMoveUp}
+            onMoveDown={handleMoveDown}
+            onRemove={handleRemove}
+            onNoteChange={handleNoteChange}
+            orderLength={order.length}
+          />
+        ))}
       </div>
 
-      {/* Bottom Controls: Add Divider + Toggle Reorder */}
-      <div className="w-full max-w-[1100px] mx-auto px-4 mt-4 flex justify-end gap-2">
-        <button
-          onClick={() => setShowReorder(!showReorder)}
-          className="text-xs text-white/40 hover:text-white px-2 py-1 rounded border border-white/10"
-        >
-          {showReorder ? 'Hide Arrows' : 'Show Arrows'}
-        </button>
-
-        <button
-          onClick={insertDividerAtBottom}
-          title="Add Divider"
-          className="text-white/40 hover:text-white transition p-2 rounded-full hover:bg-white/10"
-        >
-          <Plus size={18} />
-        </button>
-      </div>
-
-      {/* Save Button */}
-      <div className="w-full max-w-[1100px] mx-auto px-4 text-right mt-6">
-        <button
-          onClick={handleSave}
-          disabled={isSaving}
-          className="bg-white/10 hover:bg-white/20 text-white px-5 py-2 rounded-md transition disabled:opacity-40"
-        >
-          {isSaving ? 'Saving...' : 'Save List'}
-        </button>
-      </div>
+      <RankedListControls
+        showReorder={showReorder}
+        onToggleReorder={() => setShowReorder(!showReorder)}
+        onAddDivider={insertDividerAtBottom}
+        onSave={handleSave}
+        isSaving={isSaving}
+      />
 
       {/* Last Updated Footer */}
       <div className="w-full max-w-[1100px] mx-auto px-4 mt-12 mb-6 text-right">
