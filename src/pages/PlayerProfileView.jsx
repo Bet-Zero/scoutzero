@@ -2,20 +2,13 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import usePlayerData from '@/hooks/usePlayerData.js';
-import { savePlayerData } from '@/firebaseHelpers';
+import useAutoSavePlayer from '@/hooks/useAutoSavePlayer';
 
-import PlayerHeader from '@/features/profile/PlayerHeader';
-import PlayerStatsTable from '@/features/profile/PlayerStatsTable';
-import PlayerTraitsGrid from '@/features/profile/PlayerTraitsGrid';
-import PlayerRolesSection from '@/features/profile/PlayerRolesSection';
-import BadgeSelector from '@/features/profile/BadgeSelector';
-import Modal from '@/components/shared/ui/Modal';
-import OverallBlurbBox from '@/features/profile/OverallBlurbBox';
-import {
-  getPlayersForTeam,
-  getModalTitle,
-  getBlurbValue,
-} from '@/utils/profileHelpers';
+import TeamPlayerDropdowns from '@/features/profile/TeamPlayerDropdowns';
+import PlayerNavigation from '@/features/profile/PlayerNavigation';
+import PlayerDetails from '@/features/profile/PlayerDetails';
+import BreakdownModal from '@/features/profile/BreakdownModal';
+import { getPlayersForTeam } from '@/utils/profileHelpers';
 
 const defaultTraits = {
   Shooting: 0,
@@ -44,142 +37,6 @@ const defaultBlurbs = {
   twoWayMeter: '',
   overall: '',
 };
-
-const TeamPlayerDropdowns = ({
-  teams,
-  playersData,
-  selectedTeam,
-  setSelectedTeam,
-  selectedPlayer,
-  setSelectedPlayer,
-  filteredKeys,
-  setFilteredKeys,
-}) => {
-  useEffect(() => {
-    if (!selectedTeam) {
-      setFilteredKeys([]);
-      setSelectedPlayer('');
-      return;
-    }
-    const filtered = getPlayersForTeam(playersData, selectedTeam);
-    setFilteredKeys(filtered);
-    setSelectedPlayer(filtered[0] || '');
-  }, [selectedTeam, playersData, setFilteredKeys, setSelectedPlayer]);
-
-  return (
-    <div className="absolute top-6 left-6">
-      <label className="text-white text-sm block mb-1">Select Team</label>
-      <select
-        className="bg-neutral-800 text-white px-4 py-1 rounded-lg text-sm border border-black shadow mb-2"
-        value={selectedTeam}
-        onChange={(e) => setSelectedTeam(e.target.value)}
-      >
-        <option value="">Select Team</option>
-        {teams.map((team) => (
-          <option key={team} value={team}>
-            {team}
-          </option>
-        ))}
-      </select>
-
-      <label className="text-white text-sm block mb-1 mt-2">
-        Select Player
-      </label>
-      <select
-        className="bg-neutral-800 text-white px-4 py-1 rounded-lg text-sm border border-black shadow"
-        value={selectedPlayer}
-        onChange={(e) => setSelectedPlayer(e.target.value)}
-      >
-        <option value="">Select Player</option>
-        {filteredKeys.map((key) => (
-          <option key={key} value={key}>
-            {playersData[key]?.display_name || playersData[key]?.name || key}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-};
-
-const PlayerNavigation = ({ onPrev, onNext }) => (
-  <div className="absolute top-6 right-6 flex gap-4">
-    <button
-      className="px-4 py-2 text-black rounded-lg border border-black shadow"
-      onClick={onPrev}
-    >
-      ◀
-    </button>
-    <button
-      className="px-4 py-2 text-black rounded-lg border border-black shadow"
-      onClick={onNext}
-    >
-      ▶
-    </button>
-  </div>
-);
-
-const BreakdownModal = ({ modalKey, blurbs, onChange, onClose }) => (
-  <Modal title={getModalTitle(modalKey)} onClose={onClose}>
-    <textarea
-      className="w-full h-40 bg-neutral-900 text-white p-3 rounded-lg text-sm resize-none outline-none border border-neutral-700"
-      placeholder="Write your breakdown here..."
-      value={getBlurbValue(blurbs, modalKey)}
-      onChange={(e) => onChange(modalKey, e.target.value)}
-    />
-    <div className="w-full h-40 bg-neutral-700 rounded-xl flex items-center justify-center text-sm text-neutral-400 mt-4">
-      [Video examples coming soon]
-    </div>
-  </Modal>
-);
-
-const PlayerDetails = ({
-  player,
-  selectedPlayer,
-  traits,
-  onTraitChange,
-  roles,
-  onRoleChange,
-  subRoles,
-  setSubRoles,
-  shootingProfile,
-  setShootingProfile,
-  badges,
-  setBadges,
-  editedBlurbs,
-  onBlurbChange,
-  overallGrade,
-  setOverallGrade,
-  setOpenModal,
-}) => (
-  <>
-    <PlayerHeader player={player} selectedPlayer={selectedPlayer} />
-    <PlayerStatsTable player={player} />
-    <div className="flex gap-[1.25rem] w-full max-w-[750px]">
-      <PlayerTraitsGrid
-        traits={traits}
-        onTraitClick={onTraitChange}
-        setOpenModal={setOpenModal}
-      />
-      <PlayerRolesSection
-        roles={roles}
-        onRoleChange={onRoleChange}
-        subRoles={subRoles}
-        setSubRoles={setSubRoles}
-        shootingProfile={shootingProfile}
-        setShootingProfile={setShootingProfile}
-        onTwoWayChange={(value) => onRoleChange('twoWay', value)}
-        setOpenModal={setOpenModal}
-      />
-    </div>
-    <BadgeSelector badges={badges} setBadges={setBadges} />
-    <OverallBlurbBox
-      overallBlurb={editedBlurbs.overall || ''}
-      setOverallBlurb={(val) => onBlurbChange('overall', val)}
-      overallGrade={overallGrade}
-      setOverallGrade={(val) => setOverallGrade(val)}
-    />
-  </>
-);
 
 const PlayerProfileView = () => {
   const { players: fetchedPlayers, loading: isLoading } = usePlayerData();
@@ -228,36 +85,19 @@ const PlayerProfileView = () => {
     setHasChanges(false);
   }, [selectedPlayer, playersData]);
 
-  useEffect(() => {
-    if (!selectedPlayer || !player || !hasChanges) return;
-
-    const saveData = async () => {
-      await savePlayerData(selectedPlayer, {
-        ...player,
-        traits,
-        roles,
-        subRoles,
-        badges,
-        shootingProfile,
-        overall_grade: overallGrade,
-        blurbs: editedBlurbs,
-      });
-      setHasChanges(false);
-    };
-
-    saveData();
-  }, [
+  useAutoSavePlayer({
+    playerId: selectedPlayer,
+    player,
     traits,
     roles,
     subRoles,
     badges,
     shootingProfile,
     overallGrade,
-    editedBlurbs,
+    blurbs: editedBlurbs,
     hasChanges,
-    selectedPlayer,
-    player,
-  ]);
+    setHasChanges,
+  });
 
   const handlePrevPlayer = useCallback(() => {
     if (!selectedTeam || !selectedPlayer) return;
