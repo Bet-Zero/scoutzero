@@ -3,7 +3,6 @@ import React from 'react';
 import PlayerRow from '@/features/table/PlayerRow';
 import { ChevronUp, ChevronDown, X } from 'lucide-react';
 import { POSITION_MAP } from '@/utils/roles';
-import { normalizePlayerId } from '@/utils/formatting';
 
 const RankedListPlayerRow = ({
   player,
@@ -21,8 +20,7 @@ const RankedListPlayerRow = ({
     formattedPosition:
       player.formattedPosition || POSITION_MAP[player.bio?.Position] || '—',
     headshotUrl:
-      player.headshotUrl ||
-      `/assets/headshots/${normalizePlayerId(player.player_id)}.png`,
+      player.headshotUrl || `/assets/headshots/${player.player_id}.png`,
     offenseRole: player.roles?.offense1 || player.offenseRole || '—',
     defenseRole: player.roles?.defense1 || player.defenseRole || '—',
     shootingProfile: player.shootingProfile || '—',
