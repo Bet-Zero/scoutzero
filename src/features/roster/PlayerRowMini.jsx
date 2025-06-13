@@ -4,7 +4,6 @@ import PlayerNameMini from '@/features/table/PlayerNameMini';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { getPlayerPositionLabel } from '@/utils/roles';
 import { formatSalary } from '@/utils/formatting';
-import { normalizePlayerId } from '@/utils/formatting';
 
 const PlayerRowMini = ({ player, onClick }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -40,15 +39,7 @@ const PlayerRowMini = ({ player, onClick }) => {
           <img
             src={headshot}
             onError={(e) => {
-              const fallback = `/assets/headshots/${normalizePlayerId(
-                player.id
-              )}.png`;
-              if (!e.target.dataset.fallback) {
-                e.target.dataset.fallback = 'tried';
-                e.target.src = fallback;
-              } else {
-                e.target.src = '/assets/headshots/default.png';
-              }
+              e.target.src = '/assets/headshots/default.png';
             }}
             alt={name}
             className="h-full w-full object-cover"

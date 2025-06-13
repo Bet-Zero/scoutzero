@@ -32,3 +32,7 @@ data/firebaseServiceAccountKey.json
 data/firebaseServiceAccountKey.json
 data/raw_contract_html.json
 git_commands.txt
+data/alias_map.json
+data/name_alias_map.json
+data/name_variants_sorted.txt
+

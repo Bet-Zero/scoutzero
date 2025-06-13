@@ -7,7 +7,6 @@ import PlayerDrawer from '@/features/table/PlayerDrawer';
 import TeamLogo from '@/components/shared/TeamLogo';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import AddToListButton from '@/features/lists/AddToListButton';
-import { normalizePlayerId } from '@/utils/formatting';
 
 const PlayerRow = ({ player, ranking = '—' }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -42,15 +41,7 @@ const PlayerRow = ({ player, ranking = '—' }) => {
               player.headshotUrl || `/assets/headshots/${player.player_id}.png`
             }
             onError={(e) => {
-              const fallback = `/assets/headshots/${normalizePlayerId(
-                player.player_id
-              )}.png`;
-              if (!e.target.dataset.fallback) {
-                e.target.dataset.fallback = 'tried';
-                e.target.src = fallback;
-              } else {
-                e.target.src = '/assets/headshots/default.png';
-              }
+              e.target.src = '/assets/headshots/default.png';
             }}
             alt={player.name}
             className="h-full w-full object-cover"
