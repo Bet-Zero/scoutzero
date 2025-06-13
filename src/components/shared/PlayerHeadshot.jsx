@@ -1,5 +1,4 @@
 import React from 'react';
-import { normalizePlayerId } from '@/utils/formatting';
 
 const PlayerHeadshot = ({ src, playerId, className = '' }) => {
   const initialSrc = src || `/assets/headshots/${playerId}.png`;
@@ -9,13 +8,7 @@ const PlayerHeadshot = ({ src, playerId, className = '' }) => {
       e.target.src = '/assets/headshots/default.png';
       return;
     }
-    const fallback = `/assets/headshots/${normalizePlayerId(playerId)}.png`;
-    if (!e.target.dataset.fallback && fallback !== initialSrc) {
-      e.target.dataset.fallback = 'tried';
-      e.target.src = fallback;
-    } else {
-      e.target.src = '/assets/headshots/default.png';
-    }
+    e.target.src = '/assets/headshots/default.png';
   };
 
   return (
