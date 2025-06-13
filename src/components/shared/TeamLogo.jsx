@@ -39,9 +39,10 @@ const teamLogoMap = {
 const TeamLogo = ({ teamAbbr, className = '' }) => {
   const fileName = teamLogoMap[teamAbbr] || 'default';
   const logoPath = `/assets/logos/${fileName}.png`;
+  const sizeClasses = className || 'w-[3.5rem] h-[3.5rem]';
 
   return (
-    <div className={`relative w-[3.5rem] h-[3.5rem] ${className}`}>
+    <div className={`relative ${sizeClasses}`}>
       <img
         src={logoPath}
         alt={`${teamAbbr} logo`}

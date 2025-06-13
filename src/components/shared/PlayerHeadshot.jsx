@@ -5,7 +5,11 @@ const PlayerHeadshot = ({ src, className = '' }) => {
     <div
       className={`w-[200px] h-[200px] rounded-xl overflow-hidden border-2 border-black ${className}`}
     >
-      <img src={src} alt="Player headshot" className="w-full h-full object-cover" />
+      <img
+        src={src}
+        alt="Player headshot"
+        className="w-full h-full object-cover"
+      />
     </div>
   );
 };
