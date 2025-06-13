@@ -1,4 +1,3 @@
-New + 6 - 0;
 export function normalizePlayerId(id = '') {
   return id
     .normalize('NFD')
