@@ -42,15 +42,17 @@ const FilterTabs = ({ filters, setFilters }) => {
         </button>
       </div>
 
-      {activeTab === 'basic' && (
-        <BasicFilters filters={filters} setFilters={setFilters} />
-      )}
-      {activeTab === 'roles' && (
-        <RolesFilters filters={filters} setFilters={setFilters} />
-      )}
-      {activeTab === 'contract' && (
-        <ContractFilters filters={filters} setFilters={setFilters} />
-      )}
+      <div className="h-[175px]">
+        {activeTab === 'basic' && (
+          <BasicFilters filters={filters} setFilters={setFilters} />
+        )}
+        {activeTab === 'roles' && (
+          <RolesFilters filters={filters} setFilters={setFilters} />
+        )}
+        {activeTab === 'contract' && (
+          <ContractFilters filters={filters} setFilters={setFilters} />
+        )}
+      </div>
 
       <div className="p-2 border-t border-white/10">
         <button

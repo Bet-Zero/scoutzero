@@ -3,7 +3,7 @@ import React from 'react';
 const OpenDrawerButton = ({ onClick }) => (
   <button
     onClick={onClick}
-    className="fixed left-0 top-1/2 -translate-y-1/2 z-30 bg-blue-600 hover:bg-blue-500 text-white shadow-lg transition-all duration-200 hover:translate-x-1 group rounded-r-lg"
+    className="fixed left-0 top-1/2 -translate-y-1/2 z-30 bg-neutral-800 hover:bg-neutral-600 text-white shadow-lg transition-all duration-200 hover:translate-x-1 group rounded-r-lg"
     style={{ transition: 'all 0.3s ease-in-out' }}
     title="Open player drawer"
   >

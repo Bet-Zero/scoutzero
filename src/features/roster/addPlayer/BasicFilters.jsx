@@ -14,6 +14,7 @@ const BasicFilters = ({ filters, setFilters }) => {
           options={teamOptions.sort()}
           onChange={(val) => setFilters({ ...filters, team: val })}
           allLabel="All Teams"
+          selectClass="w-full"
         />
         <div>
           <label className="block mb-1 text-white/70 text-xs">Position</label>
@@ -22,7 +23,7 @@ const BasicFilters = ({ filters, setFilters }) => {
             onChange={(e) =>
               setFilters({ ...filters, position: e.target.value })
             }
-            className="w-full bg-[#2a2a2a] text-white px-2 py-1 rounded text-xs"
+            className="bg-[#2a2a2a] text-white px-2 py-1 rounded text-xs"
           >
             <option value="">All Positions</option>
             <option value="group_guard">Guards (PG/SG/G)</option>
