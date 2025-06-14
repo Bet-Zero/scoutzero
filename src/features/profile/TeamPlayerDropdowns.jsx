@@ -1,5 +1,9 @@
+// src/features/profile/TeamPlayerDropdowns.jsx
+
 import React, { useEffect } from 'react';
 import { getPlayersForTeam } from '@/utils/profileHelpers';
+import DropdownGroup from '@/components/shared/DropdownGroup';
+import { styles } from '@/constants/styles';
 
 const TeamPlayerDropdowns = ({
   teams,
@@ -23,36 +27,37 @@ const TeamPlayerDropdowns = ({
   }, [selectedTeam, playersData, setFilteredKeys, setSelectedPlayer]);
 
   return (
-    <div className="absolute top-6 left-6">
-      <label className="text-white text-sm block mb-1">Select Team</label>
-      <select
-        className="bg-neutral-800 text-white px-4 py-1 rounded-lg text-sm border border-black shadow mb-2"
-        value={selectedTeam}
-        onChange={(e) => setSelectedTeam(e.target.value)}
-      >
-        <option value="">Select Team</option>
-        {teams.map((team) => (
-          <option key={team} value={team}>
-            {team}
-          </option>
-        ))}
-      </select>
+    <div className="absolute top-6 left-6 flex flex-col gap-3">
+      <DropdownGroup label="Select Team">
+        <select
+          value={selectedTeam}
+          onChange={(e) => setSelectedTeam(e.target.value)}
+          className={styles.select}
+        >
+          <option value="">Select Team</option>
+          {teams.map((team, index) => (
+            <option key={`team-${index}-${team}`} value={team}>
+              {team}
+            </option>
+          ))}
+        </select>
+      </DropdownGroup>
 
-      <label className="text-white text-sm block mb-1 mt-2">
-        Select Player
-      </label>
-      <select
-        className="bg-neutral-800 text-white px-4 py-1 rounded-lg text-sm border border-black shadow"
-        value={selectedPlayer}
-        onChange={(e) => setSelectedPlayer(e.target.value)}
-      >
-        <option value="">Select Player</option>
-        {filteredKeys.map((key) => (
-          <option key={key} value={key}>
-            {playersData[key]?.display_name || playersData[key]?.name || key}
-          </option>
-        ))}
-      </select>
+      <DropdownGroup label="Select Player">
+        <select
+          value={selectedPlayer}
+          onChange={(e) => setSelectedPlayer(e.target.value)}
+          className={styles.select}
+          disabled={!selectedTeam}
+        >
+          <option value="">Select Player</option>
+          {filteredKeys.map((key, index) => (
+            <option key={`player-${index}-${key}`} value={key}>
+              {playersData[key]?.display_name || playersData[key]?.name || key}
+            </option>
+          ))}
+        </select>
+      </DropdownGroup>
     </div>
   );
 };
