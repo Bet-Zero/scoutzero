@@ -33,19 +33,26 @@ const PlayerTraitsMiniGrid = ({ traits }) => {
   return (
     <div className="w-[186px] rounded-md p-[2px] pr-2 mt-1 mr-[4px] shadow-lg">
       <div className="grid grid-cols-2 gap-2 mt-1">
-        {TRAIT_ORDER.map((trait) => (
-          <div
-            key={trait}
-            className="flex items-center justify-between text-[10px] font-semibold px-1.5 py-2 rounded-lg"
-            style={{
-              backgroundColor: getTraitColor(traits[trait] || 0),
-              boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.15)',
-            }}
-          >
-            <span className="text-black">{trait}</span>
-            <span className="text-black">{traits[trait] || 0}</span>
-          </div>
-        ))}
+        {TRAIT_ORDER.map((trait) => {
+          const value = traits[trait];
+          const isUngraded = typeof value !== 'number' || value <= 0;
+          const color = isUngraded ? '#171717' : getTraitColor(value);
+          const display = isUngraded ? '—' : value;
+          const borderClass = isUngraded ? 'border border-black' : '';
+          return (
+            <div
+              key={trait}
+              className={`flex items-center justify-between text-[10px] font-semibold px-1.5 py-2 rounded-lg ${borderClass}`}
+              style={{
+                backgroundColor: color,
+                boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.15)',
+              }}
+            >
+              <span className="text-black">{trait}</span>
+              <span className="text-black">{display}</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

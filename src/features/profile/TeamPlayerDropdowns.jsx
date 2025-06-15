@@ -27,7 +27,7 @@ const TeamPlayerDropdowns = ({
   }, [selectedTeam, playersData, setFilteredKeys, setSelectedPlayer]);
 
   return (
-    <div className="absolute top-6 left-6 flex flex-col gap-3">
+    <div className="absolute top-2 left-4 flex flex-col gap-1">
       <DropdownGroup label="Select Team">
         <select
           value={selectedTeam}

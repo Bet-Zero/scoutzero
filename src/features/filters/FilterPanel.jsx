@@ -8,7 +8,13 @@ import TraitFilters from './sections/TraitFilters';
 import OverallGradeFilter from './sections/OverallGradeFilter';
 import BadgeFilters from './sections/BadgeFilters';
 
-const FilterPanel = ({ filters, setFilters, getDefaultFilters, onClose }) => {
+const FilterPanel = ({
+  filters,
+  setFilters,
+  getDefaultFilters,
+  onClearFilters,
+  onClose,
+}) => {
   const panelRef = useRef(null);
 
   // Close when clicking outside
@@ -66,7 +72,7 @@ const FilterPanel = ({ filters, setFilters, getDefaultFilters, onClose }) => {
           {/* Action Buttons */}
           <div className="flex justify-between items-center mt-6">
             <button
-              onClick={() => setFilters(getDefaultFilters())}
+              onClick={onClearFilters}
               className="px-4 py-2 border border-black text-white/50 rounded text-sm hover:bg-[#2a2a2a] transition-colors"
             >
               Clear All Filters

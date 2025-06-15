@@ -6,6 +6,7 @@ import RankedListView from '@/pages/RankedListView';
 import ListsHome from '@/pages/ListsHome';
 import SiteLayout from '@/components/layout/SiteLayout';
 import NotFound from '@/pages/NotFound';
+import ListPresentationView from '@/pages/ListPresentationView';
 
 const App = () => {
   return (
@@ -17,6 +18,7 @@ const App = () => {
         <Route path="/roster" element={<TeamRosterViewer />} />
         <Route path="/lists" element={<ListsHome />} />
         <Route path="/lists/:listId" element={<RankedListView />} />
+        <Route path="/list-presentation" element={<ListPresentationView />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
