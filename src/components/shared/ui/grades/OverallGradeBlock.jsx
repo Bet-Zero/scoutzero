@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const getTraitColor = (rating) => {
   if (rating >= 98) return '#13895b';
@@ -17,12 +17,19 @@ const getTraitColor = (rating) => {
   return '#891313';
 };
 
-const OverallGradeBlock = ({ grade = 75, onGradeChange, readOnly = false }) => {
+const OverallGradeBlock = ({ grade, onGradeChange, readOnly = false }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [inputValue, setInputValue] = useState(grade.toString());
+  const [inputValue, setInputValue] = useState(
+    typeof grade === 'number' ? grade.toString() : ''
+  );
 
-  const color = getTraitColor(grade);
-  const rounded = Math.round(grade);
+  useEffect(() => {
+    setInputValue(typeof grade === 'number' ? grade.toString() : '');
+  }, [grade]);
+
+  const color =
+    typeof grade === 'number' ? getTraitColor(grade) : 'transparent';
+  const rounded = typeof grade === 'number' ? Math.round(grade) : '—';
 
   const handleSubmit = () => {
     const parsed = parseInt(inputValue);

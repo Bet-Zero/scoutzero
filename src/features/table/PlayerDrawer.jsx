@@ -25,7 +25,7 @@ const PlayerDrawer = ({ player }) => {
         </div>
 
         {/* RIGHT SIDE: Drawer content */}
-        <div className="flex flex-nowrap gap-0 w-full justify-end overflow-x-auto">
+        <div className="flex flex-nowrap -mr-[2px] gap-0 w-full justify-end overflow-x-auto">
           <PlayerSubRolesMini
             subRoles={player.subRoles || player.subroles || {}}
           />

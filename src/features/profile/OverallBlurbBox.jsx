@@ -24,7 +24,7 @@ const OverallBlurbBox = ({
             Grade
           </label>
           <OverallGradeBlock
-            grade={overallGrade ?? 0}
+            grade={overallGrade}
             onGradeChange={(val) => {
               setOverallGrade(val);
             }}

@@ -158,7 +158,7 @@ const PlayerRow = ({ player, ranking = '—' }) => {
 
         {/* Grade Block */}
         <div className="flex items-center justify-center">
-          <OverallGradeBlock grade={player.overall_grade ?? 0} readOnly />
+          <OverallGradeBlock grade={player.overall_grade} readOnly />
         </div>
 
         {/* Expand Toggle */}
