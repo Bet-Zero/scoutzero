@@ -9,6 +9,7 @@ const ActiveFiltersDisplay = ({
   setFilters,
   getDefaultFilters,
   excludeFromDisplay = [],
+  onClearFilters,
 }) => {
   const getActiveFilters = () => {
     const defaultFilters = getDefaultFilters();
@@ -93,7 +94,7 @@ const ActiveFiltersDisplay = ({
       <div className="mb-4 p-3 bg-[#1a1a1a] border border-white/10 rounded-md">
         <div className="flex justify-end h-0">
           <button
-            onClick={() => setFilters(getDefaultFilters())}
+            onClick={onClearFilters}
             className="text-xs text-white/50 hover:text-white/80 underline"
           >
             Clear All

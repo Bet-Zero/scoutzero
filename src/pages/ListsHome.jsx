@@ -25,8 +25,8 @@ const ListsHome = () => {
 
   return (
     <>
-      <div className="max-w-[800px] mx-auto">
-        <h1 className="text-3xl font-bold text-white mb-4">Your Saved Lists</h1>
+      <div className="max-w-[800px] py-4 mx-auto">
+        <h1 className="text-3xl font-bold text-white mb-4">Lists</h1>
 
         {isLoading ? (
           <div className="text-white/60">Loading lists...</div>

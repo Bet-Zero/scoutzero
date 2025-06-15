@@ -31,6 +31,11 @@ const PlayerTable = () => {
     []
   );
 
+  const handleClearAllFilters = () => {
+    debouncedSetFilters.cancel();
+    setFilters(getDefaultPlayerFilters());
+  };
+
   const filteredPlayers = useFilteredPlayers(players, filters);
 
   const handleSearchChange = (e) => {
@@ -64,10 +69,10 @@ const PlayerTable = () => {
           filters={filters}
           setFilters={debouncedSetFilters}
           getDefaultFilters={getDefaultPlayerFilters}
-          excludeFromDisplay={['nameSearch']}
+          excludeFromDisplay={['nameSearch', 'salaryYear', 'sortBy', 'sortAsc']}
+          onClearFilters={handleClearAllFilters}
         />
 
-        {/* Filters Panel Toggle */}
         {showFilters && (
           <div className="mb-4">
             <FiltersPanel
@@ -78,6 +83,7 @@ const PlayerTable = () => {
               showFullFilters={showFullFilters}
               setShowFullFilters={setShowFullFilters}
               onClose={handleCloseFilters}
+              onClearFilters={handleClearAllFilters}
             />
           </div>
         )}

@@ -10,6 +10,7 @@ const FiltersPanel = ({
   showFullFilters,
   setShowFullFilters,
   onClose,
+  onClearFilters,
 }) => {
   if (!isOpen) return null;
 
@@ -30,7 +31,7 @@ const FiltersPanel = ({
         </div>
       )}
 
-      {/* Full Panel (now a popup) */}
+      {/* Full Panel */}
       {showFullFilters && (
         <FilterPanel
           filters={filters}
@@ -40,6 +41,7 @@ const FiltersPanel = ({
             setShowFullFilters(false);
             onClose();
           }}
+          onClearFilters={onClearFilters}
         />
       )}
     </>
