@@ -124,23 +124,36 @@ const AddPlayerDrawer = ({ onClose, allPlayers, onSelect }) => {
         showFilters={showFilters}
         onToggleFilters={() => setShowFilters(!showFilters)}
       />
-      {showFilters && <FilterTabs filters={filters} setFilters={setFilters} />}
-      <div className="flex-1 overflow-y-auto">
-        {filteredPlayers.length > 0 ? (
-          filteredPlayers.map((player) => (
-            <PlayerRowMini
-              key={player.id}
-              player={player}
-              onClick={() => onSelect(player)}
-            />
-          ))
-        ) : (
-          <div className="text-white/40 text-sm text-center py-6">
-            {search || Object.values(filters).some(Boolean)
-              ? 'No matching players found.'
-              : 'No players available.'}
-          </div>
+
+      {/* Main content area with proper flex behavior */}
+      <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+        {/* Filters section - will expand naturally */}
+        {showFilters && (
+          <FilterTabs
+            filters={filters}
+            setFilters={setFilters}
+            onCloseFilters={() => setShowFilters(false)}
+          />
         )}
+
+        {/* Players list - takes remaining space */}
+        <div className="flex-1 overflow-y-auto px-2 py-1">
+          {filteredPlayers.length > 0 ? (
+            filteredPlayers.map((player) => (
+              <PlayerRowMini
+                key={player.id}
+                player={player}
+                onClick={() => onSelect(player)}
+              />
+            ))
+          ) : (
+            <div className="text-white/40 text-sm text-center py-6">
+              {search || Object.values(filters).some(Boolean)
+                ? 'No matching players found.'
+                : 'No players available.'}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

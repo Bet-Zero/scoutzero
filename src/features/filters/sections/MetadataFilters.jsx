@@ -1,3 +1,5 @@
+// src/components/filters/sections/MetadataFilters.jsx
+
 import React from 'react';
 import MultiSelectFilter from '@/components/shared/ui/filters/MultiSelectFilter';
 import { teamOptions } from '@/utils/filtering';
@@ -10,6 +12,7 @@ const MetadataFilters = ({ filters, setFilters }) => {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-4 text-white text-sm">
+        {/* Team Dropdown */}
         <MultiSelectFilter
           label="Team"
           value={filters.team || ''}
@@ -19,24 +22,15 @@ const MetadataFilters = ({ filters, setFilters }) => {
           selectClass="w-[125px]"
         />
 
-        {/* Position */}
-        <div className="flex flex-col" style={{ maxWidth: '200px' }}>
-          <label className="mb-1 text-white/50 text-[11px] uppercase tracking-wide">
-            Position
-          </label>
-          <select
-            value={filters.position || ''}
-            onChange={(e) => update('position', e.target.value)}
-            className="bg-[#2a2a2a] p-2 rounded w-[80px]"
-          >
-            <option value="">All</option>
-            <option value="Guard">Guard</option>
-            <option value="Wing">Wing</option>
-            <option value="Forward">Forward</option>
-            <option value="Big">Big</option>
-            <option value="Center">Center</option>
-          </select>
-        </div>
+        {/* Position Dropdown */}
+        <MultiSelectFilter
+          label="Position"
+          value={filters.position || ''}
+          options={['Guard', 'Wing', 'Forward', 'Big', 'Center']}
+          onChange={(val) => update('position', val)}
+          allLabel="All"
+          selectClass="w-[125px]"
+        />
       </div>
     </div>
   );
