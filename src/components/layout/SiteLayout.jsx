@@ -12,13 +12,13 @@ const SiteLayout = () => {
         </div>
         <nav className="flex gap-6 text-sm text-white/60">
           <Link to="/players" className="hover:text-white">
-            Player Table
+            Players
           </Link>
           <Link to="/profiles" className="hover:text-white">
             Player Profiles
           </Link>
           <Link to="/roster" className="hover:text-white">
-            Roster Viewer
+            Roster Builder
           </Link>
           <Link to="/lists" className="hover:text-white">
             Lists
