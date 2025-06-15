@@ -7,6 +7,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@hello-pangea/dnd': path.resolve(
+        __dirname,
+        'node_modules/@hello-pangea/dnd/dist/index.js'
+      ),
     },
   },
 });
