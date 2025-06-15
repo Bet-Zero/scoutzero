@@ -4,6 +4,7 @@ import PlayerProfileView from '@/pages/PlayerProfileView';
 import TeamRosterViewer from '@/pages/TeamRosterView';
 import RankedListView from '@/pages/RankedListView';
 import ListsHome from '@/pages/ListsHome';
+import TierMakerView from '@/pages/TierMakerView';
 import SiteLayout from '@/components/layout/SiteLayout';
 import NotFound from '@/pages/NotFound';
 import ListPresentationView from '@/pages/ListPresentationView';
@@ -19,6 +20,7 @@ const App = () => {
         <Route path="/lists" element={<ListsHome />} />
         <Route path="/lists/:listId" element={<RankedListView />} />
         <Route path="/list-presentation" element={<ListPresentationView />} />
+        <Route path="/tier-maker" element={<TierMakerView />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

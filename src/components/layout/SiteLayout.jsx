@@ -23,6 +23,9 @@ const SiteLayout = () => {
           <Link to="/lists" className="hover:text-white">
             Lists
           </Link>
+          <Link to="/tier-maker" className="hover:text-white">
+            Tier Maker
+          </Link>
         </nav>
       </header>
       <main className="flex-1 w-full">
