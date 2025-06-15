@@ -10,7 +10,7 @@ const PlayerTableHeader = ({
   onToggleFilters,
   onToggleSort,
 }) => (
-  <div className="mb-2 border-b border-gray-800 pb-4">
+  <div className="mb-2 border-b border-neutral-700/50 pb-4">
     <div className="flex items-center justify-between">
       <div>
         <h1 className="text-2xl font-bold text-white mb-1">Player Database</h1>
@@ -19,7 +19,7 @@ const PlayerTableHeader = ({
         </p>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 -mb-2">
         <SearchBar onChange={onSearchChange} />
         <div className="h-6 w-px bg-gray-700" />
         <ControlButtons

@@ -10,6 +10,7 @@
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx"
   },
   "dependencies": {
+    "clsx": "^2.1.1",
     "csv-parser": "^3.2.0",
     "firebase": "^11.6.1",
     "firebase-admin": "^13.4.0",

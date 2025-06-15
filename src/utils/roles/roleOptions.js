@@ -35,5 +35,5 @@ export const shootingProfileTiers = [
   'Capable',
   'Willing',
   'Hesitant',
-  'Non-Shooter',
+  'Non',
 ];

@@ -6,10 +6,10 @@ const ViewControls = ({ filters, setFilters }) => {
   };
 
   const selectClass =
-    'bg-[#2a2a2a] text-white text-sm px-2 py-1 rounded-md border border-white/10 focus:outline-none focus:ring-1 focus:ring-white/30 hover:bg-[#3a3a3a]';
+    'bg-[#2a2a2a] text-white text-sm px-2 py-1 border border-black focus:outline-none focus:ring-1 focus:ring-white/30 hover:bg-[#3a3a3a]';
 
   return (
-    <div className="mb-0 px-4 py-2 bg-[#1a1a1a] rounded-sm flex flex-wrap gap-6 text-sm text-white items-end">
+    <div className="-mb-[24px] px-4 py-1 rounded-sm flex flex-wrap gap-1 text-sm text-white items-end">
       {/* Salary Year Selector */}
       <div className="flex flex-col">
         <select
@@ -65,7 +65,7 @@ const ViewControls = ({ filters, setFilters }) => {
       <div className="flex flex-col">
         <button
           onClick={() => update('sortAsc', !filters.sortAsc)}
-          className="px-2 py-1 rounded bg-[#2a2a2a] w-[100px] text-white text-xs hover:bg-[#3a3a3a] border border-white/10"
+          className="px-2 py-1 bg-[#2a2a2a] w-[100px] text-white text-xs hover:bg-[#3a3a3a] border border-black"
         >
           {filters.sortAsc ? '↑ Ascending' : '↓ Descending'}
         </button>
