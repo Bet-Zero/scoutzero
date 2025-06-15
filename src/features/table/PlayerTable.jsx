@@ -1,8 +1,10 @@
+// src/components/table/PlayerTable.jsx
+
 import React, { useState, useMemo } from 'react';
 import usePlayerData from '@/hooks/usePlayerData';
 import useFilteredPlayers from '@/hooks/useFilteredPlayers';
 import PlayerRow from '@/features/table/PlayerRow';
-import FilterPanel from '@/features/filters/FilterPanel';
+import FiltersPanel from '@/features/filters/FiltersPanel';
 import ActiveFiltersDisplay from '@/features/filters/ActiveFiltersDisplay';
 import ViewControls from '@/features/filters/sections/ViewControls';
 import PlayerTableHeader from '@/features/table/PlayerTableHeader';
@@ -13,15 +15,14 @@ const PlayerTable = () => {
   const [filters, setFilters] = useState(getDefaultPlayerFilters());
   const { players, loading } = usePlayerData();
   const [showFilters, setShowFilters] = useState(false);
+  const [showFullFilters, setShowFullFilters] = useState(false);
   const [showSort, setShowSort] = useState(false);
 
-  // Debounced filter updates
   const debouncedSetFilters = useMemo(
     () => debounce(setFilters, 300),
     [setFilters]
   );
 
-  // Debounced search specifically for name search
   const debouncedSearchUpdate = useMemo(
     () =>
       debounce((searchValue) => {
@@ -29,16 +30,23 @@ const PlayerTable = () => {
       }, 200),
     []
   );
+
   const filteredPlayers = useFilteredPlayers(players, filters);
 
   const handleSearchChange = (e) => {
     debouncedSearchUpdate(e.target.value);
   };
 
-  if (loading)
+  const handleCloseFilters = () => {
+    setShowFilters(false);
+    setShowFullFilters(false);
+  };
+
+  if (loading) {
     return (
       <div className="text-white text-center mt-8">Loading players...</div>
     );
+  }
 
   return (
     <div className="flex flex-col items-center bg-neutral-900 gap-1 mt-4 min-h-screen">
@@ -52,7 +60,6 @@ const PlayerTable = () => {
           onToggleSort={() => setShowSort((prev) => !prev)}
         />
 
-        {/* Active Filters Display */}
         <ActiveFiltersDisplay
           filters={filters}
           setFilters={debouncedSetFilters}
@@ -60,19 +67,22 @@ const PlayerTable = () => {
           excludeFromDisplay={['nameSearch']}
         />
 
-        {/* Filter Panel - Fixed positioning and z-index */}
+        {/* Filters Panel Toggle */}
         {showFilters && (
           <div className="mb-4">
-            <FilterPanel
+            <FiltersPanel
               filters={filters}
               setFilters={debouncedSetFilters}
               getDefaultFilters={getDefaultPlayerFilters}
-              onClose={() => setShowFilters(false)}
+              isOpen={showFilters}
+              showFullFilters={showFullFilters}
+              setShowFullFilters={setShowFullFilters}
+              onClose={handleCloseFilters}
             />
           </div>
         )}
 
-        {/* View Controls - Sort Menu */}
+        {/* Sort Panel Toggle */}
         {showSort && (
           <div className="mb-4">
             <ViewControls filters={filters} setFilters={debouncedSetFilters} />
@@ -80,7 +90,7 @@ const PlayerTable = () => {
         )}
       </div>
 
-      {/* Player List */}
+      {/* Player Rows */}
       <div className="w-full max-w-[1100px] mx-auto relative z-10">
         {filteredPlayers.map((player) => (
           <PlayerRow

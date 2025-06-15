@@ -1,3 +1,4 @@
+// src/components/filters/sections/BasicFilters.jsx
 import React from 'react';
 import MultiSelectFilter from '@/components/shared/ui/filters/MultiSelectFilter';
 import BadgeFilterSelect from '@/components/shared/ui/filters/BadgeFilterSelect';
@@ -7,15 +8,23 @@ import { shootingProfileTiers } from '@/utils/roles';
 const BasicFilters = ({ filters, setFilters }) => {
   return (
     <div className="p-2 space-y-3">
+      {/* First Filter Row (matches ContractFilters' FA Year + FA Type structure) */}
       <div className="grid grid-cols-2 gap-2">
-        <MultiSelectFilter
-          label="Team"
-          value={filters.team}
-          options={teamOptions.sort()}
-          onChange={(val) => setFilters({ ...filters, team: val })}
-          allLabel="All Teams"
-          selectClass="w-full"
-        />
+        <div>
+          <label className="block mb-1 text-white/70 text-xs">Team</label>
+          <select
+            value={filters.team}
+            onChange={(e) => setFilters({ ...filters, team: e.target.value })}
+            className="w-full bg-[#2a2a2a] text-white px-2 py-1 rounded text-xs"
+          >
+            <option value="">All Teams</option>
+            {teamOptions.sort().map((team) => (
+              <option key={team} value={team}>
+                {team}
+              </option>
+            ))}
+          </select>
+        </div>
         <div>
           <label className="block mb-1 text-white/70 text-xs">Position</label>
           <select
@@ -23,39 +32,52 @@ const BasicFilters = ({ filters, setFilters }) => {
             onChange={(e) =>
               setFilters({ ...filters, position: e.target.value })
             }
-            className="bg-[#2a2a2a] text-white px-2 py-1 rounded text-xs"
+            className="w-full bg-[#2a2a2a] text-white px-2 py-1 rounded text-xs"
           >
             <option value="">All Positions</option>
-            <option value="group_guard">Guards (PG/SG/G)</option>
-            <option value="group_wing">Wings (SG/SF/G/F)</option>
-            <option value="group_forward">Forwards (SF/PF/F)</option>
-            <option value="group_big">Bigs (F/C/C)</option>
-            <option value="PG">Point Guard</option>
-            <option value="SG">Shooting Guard</option>
-            <option value="SF">Small Forward</option>
-            <option value="PF">Power Forward</option>
-            <option value="C">Center</option>
+            {['Guard', 'Wing', 'Forward', 'Big', 'Center'].map((pos) => (
+              <option key={pos} value={pos}>
+                {pos}
+              </option>
+            ))}
           </select>
         </div>
       </div>
-
-      <MultiSelectFilter
-        label="Shooting"
-        value={filters.shootingProfile}
-        options={shootingProfileTiers}
-        onChange={(val) => setFilters({ ...filters, shootingProfile: val })}
-        allLabel="All Profiles"
-      />
-
+      {/* Second Filter (matches other tabs' single-select structure) */}
+      <div>
+        <label className="block mb-1 text-white/70 text-xs">Shooting</label>
+        <select
+          value={filters.shootingProfile}
+          onChange={(e) =>
+            setFilters({ ...filters, shootingProfile: e.target.value })
+          }
+          className="w-full bg-[#2a2a2a] text-white px-2 py-1 rounded text-xs"
+        >
+          <option value="">All Profiles</option>
+          {shootingProfileTiers.map((tier) => (
+            <option key={tier} value={tier}>
+              {tier}
+            </option>
+          ))}
+        </select>
+      </div>
+      {/* Divider (EXACTLY matches other tabs) */}
       <div className="border-t border-white/10 my-2" />
 
-      <BadgeFilterSelect
-        selected={filters.badges}
-        onChange={(badges) => setFilters({ ...filters, badges })}
-        buttonClass="w-full"
-        gridClass="mt-1"
-        cols={2}
-      />
+      {/* Badge Filter - Updated with max-height and overflow */}
+      <div className="flex flex-col">
+        <BadgeFilterSelect
+          selected={filters.badges}
+          onChange={(badges) => setFilters({ ...filters, badges })}
+          buttonClass="w-full bg-[#2a2a2a] hover:bg-[#3a3a3a] px-2 py-1 rounded text-xs flex justify-between items-center"
+          gridClass="mt-1 max-h-60 overflow-y-auto bg-[#2a2a2a] p-2 rounded grid-cols-2 gap-2"
+          labelClass="text-xs"
+          badgeClass="flex items-center px-2 py-1 rounded cursor-pointer text-xs"
+          selectedBadgeClass="bg-yellow-500 text-black font-semibold"
+          unselectedBadgeClass="bg-[#333] text-white/70 hover:bg-[#3a3a3a]"
+          cols={2}
+        />
+      </div>
     </div>
   );
 };
