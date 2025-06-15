@@ -1,5 +1,4 @@
 // src/features/lists/PlayerTierPresentation.jsx
-
 import React from 'react';
 import { getPlayerPositionLabel } from '@/utils/roles';
 
@@ -25,7 +24,6 @@ const PlayerTierPresentation = ({ player }) => {
   return (
     <div className="relative overflow-visible p-[1px]">
       <div className="relative bg-gradient-to-br from-[#1e1e1e] to-[#111] border border-white/10 rounded-md overflow-hidden shadow-md flex flex-col w-[92px] h-[112px] text-[10px] hover:shadow-xl transition-all duration-200">
-        {/* Headshot */}
         <div className="flex-1 relative">
           <img
             src={headshot}
@@ -35,21 +33,15 @@ const PlayerTierPresentation = ({ player }) => {
               e.target.src = '/assets/headshots/default.png';
             }}
           />
-          {/* Position Overlay */}
           <div className="absolute top-1 left-1 px-[4px] py-[1px] bg-black/00 text-white/40 text-[12px] font-semibold uppercase rounded-sm tracking-wider shadow-md">
             {position}
           </div>
         </div>
-
-        {/* Info Block - Left/Right Rows */}
         <div className="bg-[#0f0f0f] px-[6px] pt-[5px] pb-[6px] h-[36px] flex flex-col justify-center text-white border-t border-white/10">
-          {/* Row 1: First Name + Height */}
           <div className="flex justify-between text-[10px] text-white/70 leading-[12px]">
             <span className="truncate">{firstName}</span>
             <span className="text-white/50">{height}</span>
           </div>
-
-          {/* Row 2: Last Name */}
           <div className="text-[10px] font-bold text-white leading-[12px] truncate">
             {lastName}
           </div>
