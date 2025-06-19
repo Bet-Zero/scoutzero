@@ -14,6 +14,7 @@ import ListRankToggle from '@/features/lists/ListRankToggle';
 import ListExportToggle from '@/features/lists/ListExportToggle';
 import ListExportTypeToggle from '@/features/lists/ListExportTypeToggle';
 import ListExportWrapper from '@/features/lists/ListExportWrapper';
+import ListPlayerRow from '@/features/lists/ListPlayerRow';
 
 const ListManager = () => {
   const { listId } = useParams();
@@ -110,7 +111,7 @@ const ListManager = () => {
   };
 
   const insertDividerAtBottom = () => {
-    if (isRanked) return;
+    if (!isRanked) return;
     setOrder((prev) => [...prev, `divider::New Tier`]);
   };
 
@@ -121,7 +122,7 @@ const ListManager = () => {
   };
 
   const tiers = useMemo(() => {
-    if (isRanked) return [];
+    if (!isRanked) return [];
 
     const result = [];
     let current = { label: '', headerIndex: null, players: [] };
@@ -170,8 +171,10 @@ const ListManager = () => {
 
       {/* Toggles */}
       <div className="w-full max-w-[1100px] mx-auto px-4 mb-6">
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4 mb-4">
           <ListRankToggle isRanked={isRanked} onChange={setIsRanked} />
+        </div>
+        <div className="flex flex-wrap items-center gap-4">
           <ListExportToggle isExport={isExport} onChange={setIsExport} />
           {isExport && (
             <ListExportTypeToggle
@@ -203,18 +206,21 @@ const ListManager = () => {
         <>
           <div className="w-full">
             {isRanked
-              ? flatPlayers.map((id, idx) => (
-                  <ListPlayerRow
-                    key={`flat-${id}`}
-                    index={idx}
-                    player={playersMap[id]}
-                    note={notes[id]}
-                    onNoteChange={handleNoteChange}
+              ? tiers.map((tier, idx) => (
+                  <RankedListTier
+                    key={`tier-${idx}`}
+                    label={tier.label || `Tier ${idx + 1}`}
+                    headerIndex={tier.headerIndex}
+                    players={tier.players}
+                    playersMap={playersMap}
+                    notes={notes}
+                    showReorder={showReorder}
+                    onLabelChange={handleLabelChange}
                     onMoveUp={handleMoveUp}
                     onMoveDown={handleMoveDown}
                     onRemove={handleRemove}
-                    showReorder={showReorder}
-                    showRank={true} // ✅ show numbers in Ranked mode
+                    onNoteChange={handleNoteChange}
+                    orderLength={order.length}
                   />
                 ))
               : flatPlayers.map((id, idx) => (
@@ -228,7 +234,7 @@ const ListManager = () => {
                     onMoveDown={handleMoveDown}
                     onRemove={handleRemove}
                     showReorder={showReorder}
-                    showRank={false} // ✅ hide numbers in Flat mode
+                    showRank={false}
                   />
                 ))}
           </div>
@@ -239,6 +245,7 @@ const ListManager = () => {
             onAddDivider={insertDividerAtBottom}
             onSave={handleSave}
             isSaving={isSaving}
+            isRanked={isRanked}
           />
 
           <div className="w-full max-w-[1100px] mx-auto px-4 mt-12 mb-6 text-right">

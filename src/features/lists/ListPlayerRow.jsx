@@ -34,28 +34,31 @@ const ListPlayerRow = ({
 
   return (
     <div className="relative w-full max-w-[1100px] mx-auto mb-6">
-      {/* Reorder Arrows */}
-      {showReorder && (
+      {/* Arrows & Rank */}
+      {(showReorder || showRank) && (
         <div className="absolute -left-6 top-[22px] flex flex-col items-center z-10">
-          <button
-            onClick={() => onMoveUp(index)}
-            disabled={index === 0}
-            className="text-white/30 hover:text-white disabled:opacity-20"
-          >
-            <ChevronUp size={16} />
-          </button>
+          {showReorder && (
+            <button
+              onClick={() => onMoveUp(index)}
+              disabled={index === 0}
+              className="text-white/30 hover:text-white disabled:opacity-20"
+            >
+              <ChevronUp size={16} />
+            </button>
+          )}
 
-          {/* Optional Rank Number */}
           {showRank && (
             <div className="text-xs font-bold text-white/40">{index + 1}</div>
           )}
 
-          <button
-            onClick={() => onMoveDown(index)}
-            className="text-white/30 hover:text-white disabled:opacity-20"
-          >
-            <ChevronDown size={16} />
-          </button>
+          {showReorder && (
+            <button
+              onClick={() => onMoveDown(index)}
+              className="text-white/30 hover:text-white disabled:opacity-20"
+            >
+              <ChevronDown size={16} />
+            </button>
+          )}
         </div>
       )}
 
