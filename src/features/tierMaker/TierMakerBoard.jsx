@@ -3,7 +3,9 @@
 import React, { useState, useMemo } from 'react';
 import TierRow from '@/features/tierMaker/TierRow';
 import usePlayerData from '@/hooks/usePlayerData.js';
+import useFirebaseQuery from '@/hooks/useFirebaseQuery';
 import { POSITION_MAP } from '@/utils/roles';
+import { teamOptions } from '@/utils/filtering';
 import DrawerShell from '@/components/shared/ui/drawers/DrawerShell';
 import OpenDrawerButton from '@/components/shared/ui/drawers/OpenDrawerButton';
 import AddPlayerDrawer from '@/features/roster/AddPlayerDrawer';
@@ -12,6 +14,7 @@ const DEFAULT_TIERS = ['S', 'A', 'B', 'C', 'D'];
 
 const TierMakerBoard = ({ players = [] }) => {
   const { players: allPlayers, loading } = usePlayerData();
+  const { data: listsData } = useFirebaseQuery('lists');
 
   const processedPlayers = useMemo(
     () =>
@@ -41,9 +44,27 @@ const TierMakerBoard = ({ players = [] }) => {
         contractType: player.contract?.type?.toLowerCase(),
         extension: player.contract?.extension,
         options: player.contract?.options || [],
-        original: player,
-      })),
+      original: player,
+    })),
     [allPlayers]
+  );
+
+  const playersMap = useMemo(() => {
+    const map = {};
+    allPlayers.forEach((p) => {
+      map[p.id] = p;
+    });
+    return map;
+  }, [allPlayers]);
+
+  const lists = useMemo(
+    () =>
+      (listsData || []).map((l) => ({
+        id: l.id,
+        name: l.name,
+        playerIds: l.playerOrder || l.playerIds || [],
+      })),
+    [listsData]
   );
 
   const getInitialTiers = () =>
@@ -56,6 +77,8 @@ const TierMakerBoard = ({ players = [] }) => {
   const [tierOrder, setTierOrder] = useState([...DEFAULT_TIERS, 'Pool']);
   const [screenshotMode, setScreenshotMode] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedTeam, setSelectedTeam] = useState('');
+  const [selectedList, setSelectedList] = useState('');
 
   const addPlayerToPool = (player) => {
     const formatted = { ...player, player_id: player.id };
@@ -63,6 +86,16 @@ const TierMakerBoard = ({ players = [] }) => {
       ...prev,
       Pool: [...prev.Pool, formatted],
     }));
+  };
+
+  const addPlayersToPool = (playersArray) => {
+    setTiers((prev) => {
+      const existingIds = new Set(prev.Pool.map((p) => p.player_id));
+      const additions = playersArray
+        .filter((p) => !existingIds.has(p.id))
+        .map((p) => ({ ...p, player_id: p.id }));
+      return { ...prev, Pool: [...prev.Pool, ...additions] };
+    });
   };
 
   const movePlayer = (playerId, fromTier, direction) => {
@@ -120,6 +153,26 @@ const TierMakerBoard = ({ players = [] }) => {
     setTierOrder([...DEFAULT_TIERS, 'Pool']);
   };
 
+  const handleAddTeamRoster = () => {
+    if (!selectedTeam) return;
+    const teamPlayers = allPlayers.filter(
+      (p) => (p.bio?.Team || '').toLowerCase() === selectedTeam.toLowerCase()
+    );
+    addPlayersToPool(teamPlayers);
+    setSelectedTeam('');
+  };
+
+  const handleAddList = () => {
+    if (!selectedList) return;
+    const list = lists.find((l) => l.id === selectedList);
+    if (!list) return;
+    const listPlayers = list.playerIds
+      .map((id) => playersMap[id])
+      .filter(Boolean);
+    addPlayersToPool(listPlayers);
+    setSelectedList('');
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center py-10 text-white">
@@ -151,13 +204,58 @@ const TierMakerBoard = ({ players = [] }) => {
         }`}
       >
         <div className="flex flex-col gap-2 w-full max-w-[1000px] mx-auto py-2">
-          <div className="flex justify-between items-center mb-1">
-            <button
-              onClick={() => setScreenshotMode((prev) => !prev)}
-              className="px-3 py-1 text-sm rounded bg-white/10 hover:bg-white/20 transition-all text-white"
-            >
-              {screenshotMode ? 'Exit Screenshot View' : 'Screenshot View'}
-            </button>
+          <div className="flex justify-between items-center flex-wrap gap-2 mb-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={() => setScreenshotMode((prev) => !prev)}
+                className="px-3 py-1 text-sm rounded bg-white/10 hover:bg-white/20 transition-all text-white"
+              >
+                {screenshotMode ? 'Exit Screenshot View' : 'Screenshot View'}
+              </button>
+
+              <div className="flex items-center gap-1">
+                <select
+                  value={selectedTeam}
+                  onChange={(e) => setSelectedTeam(e.target.value)}
+                  className="bg-[#1a1a1a] text-white text-sm px-2 py-1 rounded border border-white/10"
+                >
+                  <option value="">Add Team...</option>
+                  {teamOptions.sort().map((team) => (
+                    <option key={team} value={team}>
+                      {team}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleAddTeamRoster}
+                  className="px-2 py-1 text-sm rounded bg-white/10 hover:bg-white/20 text-white"
+                >
+                  Add Team
+                </button>
+              </div>
+
+              <div className="flex items-center gap-1">
+                <select
+                  value={selectedList}
+                  onChange={(e) => setSelectedList(e.target.value)}
+                  className="bg-[#1a1a1a] text-white text-sm px-2 py-1 rounded border border-white/10"
+                >
+                  <option value="">Add List...</option>
+                  {lists.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleAddList}
+                  className="px-2 py-1 text-sm rounded bg-white/10 hover:bg-white/20 text-white"
+                >
+                  Add List
+                </button>
+              </div>
+            </div>
+
             <div className="flex gap-2">
               <button
                 onClick={addTier}
