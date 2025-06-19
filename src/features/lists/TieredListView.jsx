@@ -1,7 +1,7 @@
 // src/features/lists/TieredListView.jsx
 
 import React from 'react';
-import PlayerTierPresentation from '@/features/lists/TierPlayerTile';
+import TierPlayerTile from '@/features/lists/TierPlayerTile';
 
 const TieredListView = ({ tieredPlayers = {} }) => {
   const tierNames = Object.keys(tieredPlayers).sort((a, b) => {
@@ -21,10 +21,7 @@ const TieredListView = ({ tieredPlayers = {} }) => {
 
             <div className="flex flex-wrap items-start gap-[2px]">
               {tieredPlayers[tierName].map((player) => (
-                <PlayerTierPresentation
-                  key={player.player_id}
-                  player={player}
-                />
+                <TierPlayerTile key={player.player_id} player={player} />
               ))}
             </div>
           </div>

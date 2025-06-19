@@ -1,6 +1,5 @@
 // ListManager.jsx
-// Central component for building and editing player lists (flat, ranked, or tiered).
-// Handles all list structure logic and renders full player rows with controls.
+// Full-page route for building and editing player lists (flat, ranked, or tiered)
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
@@ -11,8 +10,12 @@ import { toast } from 'react-hot-toast';
 
 import RankedListTier from '@/features/lists/ListTierHeader';
 import RankedListControls from '@/features/lists/ListControls';
+import ListRankToggle from '@/features/lists/ListRankToggle';
+import ListExportToggle from '@/features/lists/ListExportToggle';
+import ListExportTypeToggle from '@/features/lists/ListExportTypeToggle';
+import ListExportWrapper from '@/features/lists/ListExportWrapper';
 
-const RankedListView = () => {
+const ListManager = () => {
   const { listId } = useParams();
   const [listData, setListData] = useState(null);
   const [playersMap, setPlayersMap] = useState({});
@@ -20,6 +23,10 @@ const RankedListView = () => {
   const [notes, setNotes] = useState({});
   const [isSaving, setIsSaving] = useState(false);
   const [showReorder, setShowReorder] = useState(true);
+  const [isExport, setIsExport] = useState(false);
+  const [isRanked, setIsRanked] = useState(true); // Default to ranked
+  const [exportType, setExportType] = useState('list');
+
   const { players, loading: playersLoading } = usePlayerData();
 
   useEffect(() => {
@@ -79,7 +86,6 @@ const RankedListView = () => {
     const removedId = newOrder.splice(index, 1)[0];
     setOrder(newOrder);
 
-    // Also remove associated notes
     if (!removedId.startsWith('divider::')) {
       const updatedNotes = { ...notes };
       delete updatedNotes[removedId];
@@ -104,6 +110,7 @@ const RankedListView = () => {
   };
 
   const insertDividerAtBottom = () => {
+    if (isRanked) return;
     setOrder((prev) => [...prev, `divider::New Tier`]);
   };
 
@@ -114,6 +121,8 @@ const RankedListView = () => {
   };
 
   const tiers = useMemo(() => {
+    if (isRanked) return [];
+
     const result = [];
     let current = { label: '', headerIndex: null, players: [] };
     order.forEach((item, idx) => {
@@ -132,6 +141,10 @@ const RankedListView = () => {
     });
     result.push(current);
     return result.filter((t) => t.headerIndex !== null || t.players.length > 0);
+  }, [order, isRanked]);
+
+  const flatPlayers = useMemo(() => {
+    return order.filter((id) => !id.startsWith('divider::'));
   }, [order]);
 
   if (!listData || playersLoading) {
@@ -155,44 +168,89 @@ const RankedListView = () => {
         )}
       </div>
 
-      {/* Ranked List */}
-      <div className="w-full">
-        {tiers.map((tier, idx) => (
-          <RankedListTier
-            key={tier.headerIndex ?? `tier-${idx}`}
-            label={tier.label}
-            headerIndex={tier.headerIndex}
-            players={tier.players}
+      {/* Toggles */}
+      <div className="w-full max-w-[1100px] mx-auto px-4 mb-6">
+        <div className="flex flex-wrap items-center gap-4">
+          <ListRankToggle isRanked={isRanked} onChange={setIsRanked} />
+          <ListExportToggle isExport={isExport} onChange={setIsExport} />
+          {isExport && (
+            <ListExportTypeToggle
+              exportType={exportType}
+              onChange={setExportType}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* Export Layout */}
+      {isExport ? (
+        <div className="w-full max-w-[1100px] mx-auto px-4">
+          <ListExportWrapper
+            players={flatPlayers.map((id) => playersMap[id]).filter(Boolean)}
+            tiers={tiers.map((tier) => ({
+              label: tier.label,
+              players: tier.players
+                .map((p) => playersMap[p.id])
+                .filter(Boolean),
+            }))}
             playersMap={playersMap}
-            notes={notes}
-            showReorder={showReorder}
-            onLabelChange={handleLabelChange}
-            onMoveUp={handleMoveUp}
-            onMoveDown={handleMoveDown}
-            onRemove={handleRemove}
-            onNoteChange={handleNoteChange}
-            orderLength={order.length}
+            isExport={isExport}
+            isRanked={isRanked}
+            exportType={exportType}
           />
-        ))}
-      </div>
+        </div>
+      ) : (
+        <>
+          <div className="w-full">
+            {isRanked
+              ? flatPlayers.map((id, idx) => (
+                  <ListPlayerRow
+                    key={`flat-${id}`}
+                    index={idx}
+                    player={playersMap[id]}
+                    note={notes[id]}
+                    onNoteChange={handleNoteChange}
+                    onMoveUp={handleMoveUp}
+                    onMoveDown={handleMoveDown}
+                    onRemove={handleRemove}
+                    showReorder={showReorder}
+                    showRank={true} // ✅ show numbers in Ranked mode
+                  />
+                ))
+              : flatPlayers.map((id, idx) => (
+                  <ListPlayerRow
+                    key={`flat-${id}`}
+                    index={idx}
+                    player={playersMap[id]}
+                    note={notes[id]}
+                    onNoteChange={handleNoteChange}
+                    onMoveUp={handleMoveUp}
+                    onMoveDown={handleMoveDown}
+                    onRemove={handleRemove}
+                    showReorder={showReorder}
+                    showRank={false} // ✅ hide numbers in Flat mode
+                  />
+                ))}
+          </div>
 
-      <RankedListControls
-        showReorder={showReorder}
-        onToggleReorder={() => setShowReorder(!showReorder)}
-        onAddDivider={insertDividerAtBottom}
-        onSave={handleSave}
-        isSaving={isSaving}
-      />
+          <RankedListControls
+            showReorder={showReorder}
+            onToggleReorder={() => setShowReorder(!showReorder)}
+            onAddDivider={insertDividerAtBottom}
+            onSave={handleSave}
+            isSaving={isSaving}
+          />
 
-      {/* Last Updated Footer */}
-      <div className="w-full max-w-[1100px] mx-auto px-4 mt-12 mb-6 text-right">
-        <p className="text-xs text-white/30 italic">
-          Last updated:{' '}
-          {listData.updatedAt?.toDate?.().toLocaleDateString() || 'N/A'}
-        </p>
-      </div>
+          <div className="w-full max-w-[1100px] mx-auto px-4 mt-12 mb-6 text-right">
+            <p className="text-xs text-white/30 italic">
+              Last updated:{' '}
+              {listData.updatedAt?.toDate?.().toLocaleDateString() || 'N/A'}
+            </p>
+          </div>
+        </>
+      )}
     </>
   );
 };
 
-export default RankedListView;
+export default ListManager;
