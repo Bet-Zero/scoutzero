@@ -1,21 +1,20 @@
-// src/components/lists/CreateListModal.jsx
+// src/features/tierMaker/CreateTierListModal.jsx
 import React, { useState } from 'react';
-import { createList } from '@/firebase/listHelpers';
+import { createTierList } from '@/firebase/listHelpers';
 import { Dialog, DialogContent } from '@/components/shared/ui/dialog';
 
-const CreateListModal = ({ isOpen, onClose, onListCreated }) => {
+const CreateTierListModal = ({ isOpen, onClose, onCreated }) => {
   const [name, setName] = useState('');
   const [error, setError] = useState('');
 
   const handleCreate = async () => {
     const trimmed = name.trim();
     if (!trimmed) return;
-
     try {
-      await createList(trimmed);
+      await createTierList(trimmed);
       setName('');
       setError('');
-      onListCreated?.(); // optional callback to trigger refresh
+      onCreated?.();
       onClose();
     } catch (err) {
       setError(err.message);
@@ -25,11 +24,11 @@ const CreateListModal = ({ isOpen, onClose, onListCreated }) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="p-6 max-w-md">
-        <h2 className="text-xl font-bold mb-4">Create New List</h2>
+        <h2 className="text-xl font-bold mb-4">Create New Tier List</h2>
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Enter list name"
+          placeholder="Enter tier list name"
           className="w-full p-2 border border-gray-300 rounded mb-2"
         />
         {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
@@ -37,11 +36,11 @@ const CreateListModal = ({ isOpen, onClose, onListCreated }) => {
           className="bg-neutral-600 hover:bg-neutral-700 text-white px-4 py-2 rounded w-full"
           onClick={handleCreate}
         >
-          Create List
+          Create Tier List
         </button>
       </DialogContent>
     </Dialog>
   );
 };
 
-export default CreateListModal;
+export default CreateTierListModal;

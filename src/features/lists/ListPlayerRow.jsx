@@ -8,7 +8,8 @@ import { POSITION_MAP } from '@/utils/roles';
 
 const ListPlayerRow = ({
   player,
-  index,
+  index, // order index used for reordering
+  rank,
   note,
   onNoteChange,
   onMoveUp,
@@ -36,7 +37,7 @@ const ListPlayerRow = ({
     <div className="relative w-full max-w-[1100px] mx-auto mb-6">
       {/* Arrows & Rank */}
       {(showReorder || showRank) && (
-        <div className="absolute -left-6 top-[22px] flex flex-col items-center z-10">
+        <div className="absolute -left-5 top-[45px] -translate-y-1/2 flex flex-col items-center justify-center z-10">
           {showReorder && (
             <button
               onClick={() => onMoveUp(index)}
@@ -48,7 +49,9 @@ const ListPlayerRow = ({
           )}
 
           {showRank && (
-            <div className="text-xs font-bold text-white/40">{index + 1}</div>
+            <div className="text-xs font-bold text-white/40">
+              {(rank ?? index) + 1}
+            </div>
           )}
 
           {showReorder && (

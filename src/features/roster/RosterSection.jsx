@@ -22,25 +22,38 @@ const cardMap = {
   bench: BenchCard,
 };
 
-const RosterSection = ({ players, section, onRemove, onAdd }) => {
+const RosterSection = ({
+  players,
+  section,
+  onRemove,
+  onAdd,
+  isExport = false,
+}) => {
   const CardComponent = cardMap[section];
   return (
     <div className={sectionClasses[section]}>
-      {players.map((player, idx) =>
-        player ? (
-          <CardComponent
-            key={player.id}
-            player={player}
-            onRemove={(e) => onRemove(section, idx, e)}
-          />
-        ) : (
-          <EmptySlot
-            key={`${section}-${idx}`}
-            size={sizeMap[section]}
-            onAdd={() => onAdd(section, idx)}
-          />
-        )
-      )}
+      {players.map((player, idx) => {
+        if (player) {
+          return (
+            <CardComponent
+              key={player.id}
+              player={player}
+              onRemove={(e) => onRemove(section, idx, e)}
+              showRemove={!isExport}
+            />
+          );
+        }
+        if (!isExport) {
+          return (
+            <EmptySlot
+              key={`${section}-${idx}`}
+              size={sizeMap[section]}
+              onAdd={() => onAdd(section, idx)}
+            />
+          );
+        }
+        return null;
+      })}
     </div>
   );
 };

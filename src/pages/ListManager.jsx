@@ -126,6 +126,7 @@ const ListManager = () => {
 
     const result = [];
     let current = { label: '', headerIndex: null, players: [] };
+    let rankIndex = 0;
     order.forEach((item, idx) => {
       if (typeof item === 'string' && item.startsWith('divider::')) {
         if (current.headerIndex !== null || current.players.length > 0) {
@@ -137,7 +138,8 @@ const ListManager = () => {
           players: [],
         };
       } else {
-        current.players.push({ id: item, index: idx });
+        current.players.push({ id: item, index: idx, rankIndex });
+        rankIndex += 1;
       }
     });
     result.push(current);
