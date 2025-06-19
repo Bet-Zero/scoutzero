@@ -1,7 +1,7 @@
 // src/features/tierMaker/TierMakerBoard.jsx
 
 import React, { useState, useMemo } from 'react';
-import PlayerTierPresentation from '@/features/lists/TierPlayerTile';
+import TierPlayerTile from '@/features/lists/TierPlayerTile';
 import usePlayerData from '@/hooks/usePlayerData.js';
 import { POSITION_MAP } from '@/utils/roles';
 import DrawerShell from '@/components/shared/ui/drawers/DrawerShell';
@@ -151,7 +151,7 @@ const TierMakerBoard = ({ players = [] }) => {
               <div className="flex flex-wrap gap-[2px] flex-1">
                 {tiers[tier].map((player) => (
                   <div key={player.player_id} className="relative">
-                    <PlayerTierPresentation player={player} />
+                    <TierPlayerTile player={player} />
                     {!screenshotMode && (
                       <div className="absolute top-1 right-1 flex flex-col gap-1">
                         {tier !== 'S' && (

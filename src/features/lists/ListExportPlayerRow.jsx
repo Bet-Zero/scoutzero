@@ -1,11 +1,9 @@
-// ListExportPlayerRow.jsx
-// Condensed visual version of a player row used in export view (list-style layout).
-
+// src/features/lists/ListExportPlayerRow.jsx
 import React from 'react';
 import PlayerNameMini from '@/features/table/PlayerNameMini';
 import TeamLogo from '@/components/shared/TeamLogo';
 
-const PlayerListPresentation = ({ player }) => {
+const ListExportPlayerRow = ({ player, rank }) => {
   const nameParts = (
     player.display_name ||
     player.name ||
@@ -16,12 +14,12 @@ const PlayerListPresentation = ({ player }) => {
 
   return (
     <div className="w-[calc(50%-6px)] h-[90px] bg-[#1e1e1e] rounded-sm flex items-center overflow-hidden border border-neutral-800 mb-3">
-      {/* Position Bar */}
-      <div className="h-full w-12 flex items-center justify-center bg-[#111]">
-        <div className="text-md font-semibold text-white/50 uppercase tracking-wide">
-          {player.formattedPosition || '—'}
+      {/* Rank Bar */}
+      {rank !== null && (
+        <div className="h-full w-10 flex items-center justify-center bg-[#111] text-white/40 text-sm font-mono">
+          {rank}
         </div>
-      </div>
+      )}
 
       {/* Headshot */}
       <div className="h-full w-[70px] bg-[#2a2a2a] flex items-center justify-center overflow-hidden">
@@ -54,4 +52,4 @@ const PlayerListPresentation = ({ player }) => {
   );
 };
 
-export default PlayerListPresentation;
+export default ListExportPlayerRow;

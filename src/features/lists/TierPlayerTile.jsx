@@ -4,7 +4,7 @@ import React from 'react';
 import { getPlayerPositionLabel } from '@/utils/roles';
 import { formatHeight } from '@/utils/formatting';
 
-const PlayerTierPresentation = ({ player }) => {
+const TierPlayerTile = ({ player }) => {
   if (!player) return null;
 
   const headshot =
@@ -55,4 +55,4 @@ const PlayerTierPresentation = ({ player }) => {
   );
 };
 
-export default PlayerTierPresentation;
+export default TierPlayerTile;

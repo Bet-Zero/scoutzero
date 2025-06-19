@@ -1,11 +1,12 @@
 // ListPlayerRow.jsx
-// Full player row component for use in ranked or tiered lists. Includes arrow controls.
+// Full player row component for ranked or tiered lists. Rank display is now optional via showRank prop.
+
 import React from 'react';
 import PlayerRow from '@/features/table/PlayerRow';
 import { ChevronUp, ChevronDown, X } from 'lucide-react';
 import { POSITION_MAP } from '@/utils/roles';
 
-const RankedListPlayerRow = ({
+const ListPlayerRow = ({
   player,
   index,
   note,
@@ -14,6 +15,7 @@ const RankedListPlayerRow = ({
   onMoveDown,
   onRemove,
   showReorder = true,
+  showRank = true, // 🔁 new toggle for rank display
 }) => {
   const processedPlayer = {
     ...player,
@@ -42,7 +44,12 @@ const RankedListPlayerRow = ({
           >
             <ChevronUp size={16} />
           </button>
-          <div className="text-xs font-bold text-white/40">{index + 1}</div>
+
+          {/* Optional Rank Number */}
+          {showRank && (
+            <div className="text-xs font-bold text-white/40">{index + 1}</div>
+          )}
+
           <button
             onClick={() => onMoveDown(index)}
             className="text-white/30 hover:text-white disabled:opacity-20"
@@ -84,4 +91,4 @@ const RankedListPlayerRow = ({
   );
 };
 
-export default RankedListPlayerRow;
+export default ListPlayerRow;
