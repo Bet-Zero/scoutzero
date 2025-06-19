@@ -3,12 +3,13 @@
 import React from 'react';
 import { Plus } from 'lucide-react';
 
-const RankedListControls = ({
+const ListControls = ({
   showReorder,
   onToggleReorder,
   onAddDivider,
   onSave,
   isSaving,
+  isRanked = true,
 }) => (
   <>
     <div className="w-full max-w-[1100px] mx-auto px-4 mt-4 flex justify-end gap-2">
@@ -22,7 +23,8 @@ const RankedListControls = ({
       <button
         onClick={onAddDivider}
         title="Add Divider"
-        className="text-white/40 hover:text-white transition p-2 rounded-full hover:bg-white/10"
+        disabled={!isRanked}
+        className="text-white/40 hover:text-white transition p-2 rounded-full hover:bg-white/10 disabled:opacity-30"
       >
         <Plus size={18} />
       </button>
@@ -40,4 +42,4 @@ const RankedListControls = ({
   </>
 );
 
-export default RankedListControls;
+export default ListControls;
