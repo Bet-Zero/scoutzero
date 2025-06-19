@@ -1,7 +1,7 @@
 // src/features/tierMaker/TierMakerBoard.jsx
 
 import React, { useState, useMemo } from 'react';
-import TierPlayerTile from '@/features/lists/TierPlayerTile';
+import TierRow from '@/features/tierMaker/TierRow';
 import usePlayerData from '@/hooks/usePlayerData.js';
 import { POSITION_MAP } from '@/utils/roles';
 import DrawerShell from '@/components/shared/ui/drawers/DrawerShell';
@@ -53,6 +53,7 @@ const TierMakerBoard = ({ players = [] }) => {
     }, {});
 
   const [tiers, setTiers] = useState(getInitialTiers);
+  const [tierOrder, setTierOrder] = useState([...DEFAULT_TIERS, 'Pool']);
   const [screenshotMode, setScreenshotMode] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -65,7 +66,7 @@ const TierMakerBoard = ({ players = [] }) => {
   };
 
   const movePlayer = (playerId, fromTier, direction) => {
-    const tierKeys = [...DEFAULT_TIERS, 'Pool'];
+    const tierKeys = [...tierOrder];
     const currentIndex = tierKeys.indexOf(fromTier);
     const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
     if (newIndex < 0 || newIndex >= tierKeys.length) return;
@@ -88,8 +89,35 @@ const TierMakerBoard = ({ players = [] }) => {
     }));
   };
 
+  const addTier = () => {
+    const name = prompt('New tier name?');
+    if (!name) return;
+    setTiers((prev) => ({ ...prev, [name]: [] }));
+    setTierOrder((prev) => [...prev.slice(0, -1), name, 'Pool']);
+  };
+
+  const deleteTier = (tier) => {
+    if (tier === 'Pool') return;
+    setTiers((prev) => {
+      const { [tier]: removed, ...rest } = prev;
+      return { ...rest, Pool: [...prev.Pool, ...(removed || [])] };
+    });
+    setTierOrder((prev) => prev.filter((t) => t !== tier));
+  };
+
+  const renameTier = (tier) => {
+    const name = prompt('Rename tier', tier);
+    if (!name || name === tier) return;
+    setTiers((prev) => {
+      const { [tier]: items, ...rest } = prev;
+      return { ...rest, [name]: items };
+    });
+    setTierOrder((prev) => prev.map((t) => (t === tier ? name : t)));
+  };
+
   const resetBoard = () => {
     setTiers(getInitialTiers());
+    setTierOrder([...DEFAULT_TIERS, 'Pool']);
   };
 
   if (loading) {
@@ -130,62 +158,33 @@ const TierMakerBoard = ({ players = [] }) => {
             >
               {screenshotMode ? 'Exit Screenshot View' : 'Screenshot View'}
             </button>
-            <button
-              onClick={resetBoard}
-              className="px-3 py-1 text-sm rounded bg-red-500 hover:bg-red-600 transition-all text-white"
-            >
-              Reset Board
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={addTier}
+                className="px-3 py-1 text-sm rounded bg-white/10 hover:bg-white/20 transition-all text-white"
+              >
+                Add Tier
+              </button>
+              <button
+                onClick={resetBoard}
+                className="px-3 py-1 text-sm rounded bg-red-500 hover:bg-red-600 transition-all text-white"
+              >
+                Reset Board
+              </button>
+            </div>
           </div>
 
-          {[...DEFAULT_TIERS, 'Pool'].map((tier) => (
-            <div
+          {tierOrder.map((tier) => (
+            <TierRow
               key={tier}
-              className={`flex items-center gap-2 border border-white/10 rounded-md min-h-[38px] ${
-                tier === 'Pool' ? 'bg-neutral-950 mt-0' : 'bg-neutral-800'
-              } p-0`}
-            >
-              <div className="w-[50px] text-sm text-white font-bold text-center">
-                {tier === 'Pool' ? 'Pool' : tier}
-              </div>
-              <div className="flex flex-wrap gap-[2px] flex-1">
-                {tiers[tier].map((player) => (
-                  <div key={player.player_id} className="relative">
-                    <TierPlayerTile player={player} />
-                    {!screenshotMode && (
-                      <div className="absolute top-1 right-1 flex flex-col gap-1">
-                        {tier !== 'S' && (
-                          <button
-                            onClick={() =>
-                              movePlayer(player.player_id, tier, 'up')
-                            }
-                            className="text-xs text-white bg-black/40 px-[6px] rounded hover:bg-white/10"
-                          >
-                            ↑
-                          </button>
-                        )}
-                        {tier !== 'Pool' && (
-                          <button
-                            onClick={() =>
-                              movePlayer(player.player_id, tier, 'down')
-                            }
-                            className="text-xs text-white bg-black/40 px-[6px] rounded hover:bg-white/10"
-                          >
-                            ↓
-                          </button>
-                        )}
-                        <button
-                          onClick={() => removePlayer(player.player_id, tier)}
-                          className="text-xs text-red-300 bg-black/40 px-[6px] rounded hover:bg-red-600"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
+              tier={tier}
+              players={tiers[tier]}
+              screenshotMode={screenshotMode}
+              movePlayer={movePlayer}
+              removePlayer={removePlayer}
+              renameTier={renameTier}
+              deleteTier={deleteTier}
+            />
           ))}
         </div>
       </div>

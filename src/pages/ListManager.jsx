@@ -11,10 +11,9 @@ import { toast } from 'react-hot-toast';
 import RankedListTier from '@/features/lists/ListTierHeader';
 import RankedListControls from '@/features/lists/ListControls';
 import ListRankToggle from '@/features/lists/ListRankToggle';
-import ListExportToggle from '@/features/lists/ListExportToggle';
-import ListExportTypeToggle from '@/features/lists/ListExportTypeToggle';
 import ListExportWrapper from '@/features/lists/ListExportWrapper';
 import ListPlayerRow from '@/features/lists/ListPlayerRow';
+import ExportOptionsModal from '@/features/lists/ExportOptionsModal';
 
 const ListManager = () => {
   const { listId } = useParams();
@@ -27,6 +26,7 @@ const ListManager = () => {
   const [isExport, setIsExport] = useState(false);
   const [isRanked, setIsRanked] = useState(true); // Default to ranked
   const [exportType, setExportType] = useState('list');
+  const [showExportModal, setShowExportModal] = useState(false);
 
   const { players, loading: playersLoading } = usePlayerData();
 
@@ -171,19 +171,35 @@ const ListManager = () => {
 
       {/* Toggles */}
       <div className="w-full max-w-[1100px] mx-auto px-4 mb-6">
-        <div className="flex flex-wrap items-center gap-4 mb-4">
-          <ListRankToggle isRanked={isRanked} onChange={setIsRanked} />
-        </div>
         <div className="flex flex-wrap items-center gap-4">
-          <ListExportToggle isExport={isExport} onChange={setIsExport} />
+          <ListRankToggle isRanked={isRanked} onChange={setIsRanked} />
+          {!isExport && (
+            <button
+              onClick={() => setShowExportModal(true)}
+              className="px-3 py-1 text-sm rounded bg-white/10 text-white hover:bg-white/20"
+            >
+              Export
+            </button>
+          )}
           {isExport && (
-            <ListExportTypeToggle
-              exportType={exportType}
-              onChange={setExportType}
-            />
+            <button
+              onClick={() => setIsExport(false)}
+              className="px-3 py-1 text-sm rounded bg-white/10 text-white hover:bg-white/20"
+            >
+              Back to Edit
+            </button>
           )}
         </div>
       </div>
+
+      <ExportOptionsModal
+        open={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onSelect={(type) => {
+          setExportType(type);
+          setIsExport(true);
+        }}
+      />
 
       {/* Export Layout */}
       {isExport ? (
