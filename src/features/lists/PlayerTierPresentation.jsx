@@ -1,6 +1,7 @@
 // src/features/lists/PlayerTierPresentation.jsx
 import React from 'react';
 import { getPlayerPositionLabel } from '@/utils/roles';
+import { formatHeight } from '@/utils/formatting';
 
 const PlayerTierPresentation = ({ player }) => {
   if (!player) return null;
@@ -9,7 +10,9 @@ const PlayerTierPresentation = ({ player }) => {
     player.headshot ||
     player.headshotUrl ||
     `/assets/headshots/${player.player_id}.png`;
-  const height = player.bio?.HT || '—';
+
+  const height = player.bio?.HT ? player.bio.HT.replace('-', `'`) : '—';
+
   const position = getPlayerPositionLabel(
     player.bio?.Position || player.formattedPosition
   );
