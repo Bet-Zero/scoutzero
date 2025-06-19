@@ -23,7 +23,7 @@ const RankedListTier = ({
       {headerIndex !== null && (
         <div className="relative w-full max-w-[1100px] mx-auto mb-6">
           {showReorder && (
-            <div className="absolute -left-6 top-[22px] flex flex-col items-center z-10">
+            <div className="absolute -left-6 top-1/2 -translate-y-1/2 flex flex-col items-center justify-center z-10">
               <button
                 onClick={() => onMoveUp(headerIndex)}
                 disabled={headerIndex === 0}
@@ -60,7 +60,7 @@ const RankedListTier = ({
         </div>
       )}
 
-      {players.map(({ id, index }) => {
+      {players.map(({ id, index, rankIndex }) => {
         const player = playersMap[id];
         if (!player) return null;
         return (
@@ -68,6 +68,7 @@ const RankedListTier = ({
             key={id}
             player={player}
             index={index}
+            rank={rankIndex}
             note={notes[id] || ''}
             onNoteChange={onNoteChange}
             onMoveUp={onMoveUp}

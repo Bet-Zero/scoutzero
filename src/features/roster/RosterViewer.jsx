@@ -14,7 +14,7 @@ import {
 import { POSITION_MAP } from '@/utils/roles';
 import { getTeamColors } from '@/utils/formatting/teamColors';
 
-const RosterViewer = () => {
+const RosterViewer = ({ isExport = false }) => {
   const { players: allPlayers, loading: isLoading } = usePlayerData();
   const [roster, setRoster] = useState({
     starters: [null, null, null, null, null],
@@ -131,32 +131,40 @@ const RosterViewer = () => {
 
   return (
     <div className="flex relative">
-      {!drawerOpen && <OpenDrawerButton onClick={() => setDrawerOpen(true)} />}
+      {!drawerOpen && !isExport && (
+        <OpenDrawerButton onClick={() => setDrawerOpen(true)} />
+      )}
 
-      <DrawerShell isOpen={drawerOpen} onClose={() => setDrawerOpen(false)}>
-        <AddPlayerDrawer
-          onClose={() => setDrawerOpen(false)}
-          allPlayers={processedPlayers}
-          onSelect={(player) => {
-            const isManualTarget =
-              slotTarget.section && slotTarget.index !== -1;
-            if (isManualTarget) {
-              addPlayerToSlot(player, slotTarget.section, slotTarget.index);
-              setSlotTarget({ section: '', index: -1 });
-              setDrawerOpen(false);
-            } else {
-              addPlayerToNextSlot(player);
-            }
-          }}
-        />
-      </DrawerShell>
+      {!isExport && (
+        <DrawerShell isOpen={drawerOpen} onClose={() => setDrawerOpen(false)}>
+          <AddPlayerDrawer
+            onClose={() => setDrawerOpen(false)}
+            allPlayers={processedPlayers}
+            onSelect={(player) => {
+              const isManualTarget =
+                slotTarget.section && slotTarget.index !== -1;
+              if (isManualTarget) {
+                addPlayerToSlot(player, slotTarget.section, slotTarget.index);
+                setSlotTarget({ section: '', index: -1 });
+                setDrawerOpen(false);
+              } else {
+                addPlayerToNextSlot(player);
+              }
+            }}
+          />
+        </DrawerShell>
+      )}
 
       <div
         className={`flex-1 transition-[margin] duration-300 ease-in-out ${
           drawerOpen ? 'ml-[300px]' : 'ml-0'
         }`}
       >
-        <div className="relative max-w-[1300px] mx-auto text-white p-6 flex flex-col items-center overflow-hidden">
+        <div
+          className={`relative max-w-[1300px] mx-auto text-white p-6 flex flex-col items-center overflow-hidden ${
+            isExport ? 'scale-[0.9]' : ''
+          }`}
+        >
           {/* Team Branding Background */}
           {selectedTeam && (
             <img
@@ -168,14 +176,16 @@ const RosterViewer = () => {
           )}
 
           {/* Controls First */}
-          <div className="z-10 -mt-2 mb-6">
-            <RosterControls
-              selectedTeam={selectedTeam}
-              onTeamChange={setSelectedTeam}
-              loadMethod={loadMethod}
-              onLoadMethodChange={setLoadMethod}
-            />
-          </div>
+          {!isExport && (
+            <div className="z-10 -mt-2 mb-6">
+              <RosterControls
+                selectedTeam={selectedTeam}
+                onTeamChange={setSelectedTeam}
+                loadMethod={loadMethod}
+                onLoadMethodChange={setLoadMethod}
+              />
+            </div>
+          )}
 
           {/* Team Name */}
           {selectedTeam && (
@@ -201,6 +211,7 @@ const RosterViewer = () => {
             section="starters"
             onRemove={handleRemovePlayer}
             onAdd={handleOpenDrawer}
+            isExport={isExport}
           />
 
           <RosterSection
@@ -208,6 +219,7 @@ const RosterViewer = () => {
             section="rotation"
             onRemove={handleRemovePlayer}
             onAdd={handleOpenDrawer}
+            isExport={isExport}
           />
 
           <RosterSection
@@ -215,6 +227,7 @@ const RosterViewer = () => {
             section="bench"
             onRemove={handleRemovePlayer}
             onAdd={handleOpenDrawer}
+            isExport={isExport}
           />
         </div>
       </div>

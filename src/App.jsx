@@ -1,10 +1,11 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import PlayerTableView from '@/pages/PlayerTableView';
 import PlayerProfileView from '@/pages/PlayerProfileView';
-import TeamRosterViewer from '@/pages/TeamRosterView';
+import TeamRosterView from '@/pages/TeamRosterView';
 import ListManager from '@/pages/ListManager';
 import ListsHome from '@/pages/ListsHome';
 import TierMakerView from '@/pages/TierMakerView';
+import TierListsHome from '@/pages/TierListsHome';
 import SiteLayout from '@/components/layout/SiteLayout';
 import NotFound from '@/pages/NotFound';
 import ListPresentationView from '@/pages/ListPresentationView';
@@ -16,10 +17,11 @@ const App = () => {
         <Route path="/" element={<Navigate to="/players" replace />} />
         <Route path="/players" element={<PlayerTableView />} />
         <Route path="/profiles" element={<PlayerProfileView />} />
-        <Route path="/roster" element={<TeamRosterViewer />} />
+        <Route path="/roster" element={<TeamRosterView />} />
         <Route path="/lists" element={<ListsHome />} />
         <Route path="/lists/:listId" element={<ListManager />} />
         <Route path="/list-presentation" element={<ListPresentationView />} />
+        <Route path="/tier-lists" element={<TierListsHome />} />
         <Route path="/tier-maker" element={<TierMakerView />} />
         <Route path="*" element={<NotFound />} />
       </Route>

@@ -2,7 +2,7 @@ import React from 'react';
 import PlayerNameMini from '@/features/table/PlayerNameMini';
 import { getPlayerPositionLabel } from '@/utils/roles';
 
-const StarterCard = ({ player, onRemove }) => {
+const StarterCard = ({ player, onRemove, showRemove = true }) => {
   if (!player) return null;
 
   const headshot = player.headshot || '/default_headshot.png';
@@ -16,12 +16,14 @@ const StarterCard = ({ player, onRemove }) => {
             alt={player.name}
             className="w-full h-full object-cover"
           />
-          <button
-            onClick={onRemove}
-            className="absolute top-1 right-1 text-white/10 hover:text-white text-xs bg-black/10 rounded-sm px-[4px]"
-          >
-            ✕
-          </button>
+          {showRemove && (
+            <button
+              onClick={onRemove}
+              className="absolute top-1 right-1 text-white/10 hover:text-white text-xs bg-black/10 rounded-sm px-[4px]"
+            >
+              ✕
+            </button>
+          )}
           <div className="absolute top-1 left-1 px-1 py-[2px] bg-black/00 text-white/40 text-[16px] font-semibold uppercase rounded-sm tracking-wider shadow-md">
             {getPlayerPositionLabel(player.bio?.Position)}
           </div>

@@ -23,6 +23,9 @@ const SiteLayout = () => {
           <Link to="/lists" className="hover:text-white">
             Lists
           </Link>
+          <Link to="/tier-lists" className="hover:text-white">
+            Tier Lists
+          </Link>
           <Link to="/tier-maker" className="hover:text-white">
             Tier Maker
           </Link>
