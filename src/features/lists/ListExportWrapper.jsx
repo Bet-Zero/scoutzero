@@ -1,42 +1,49 @@
-// ListExportWrapper.jsx
-// Wrapper component that chooses which export layout to display (flat or tiered).
-
+// src/features/lists/ListExportWrapper.jsx
 import React from 'react';
-import PlayerListPresentation from '@/features/lists/ListExportPlayerRow';
-import PlayerTierPresentation from '@/features/lists/TierPlayerTile';
+import ListExportPlayerRow from './ListExportPlayerRow';
+import ListTierExport from './ListTierExport';
 
-const ListDisplayWrapper = ({ players = [], view = 'list' }) => {
-  if (!players || players.length === 0) {
+const ListExportWrapper = ({
+  players = [],
+  tiers = [],
+  playersMap = {},
+  isExport = false,
+  isRanked = false,
+  exportType = 'list',
+}) => {
+  if (!isExport) return null;
+
+  const flattenTieredPlayers = () => {
+    return tiers.flatMap((tier) =>
+      tier.players.map((p) => playersMap[p.id]).filter(Boolean)
+    );
+  };
+
+  const renderFlatOrRanked = () => {
+    const flatPlayers = isRanked ? flattenTieredPlayers() : players;
+
     return (
-      <div className="text-white/40 text-center py-8 italic">
-        No players to display.
+      <div className="flex flex-col gap-2 w-full">
+        {flatPlayers.map((player, idx) => (
+          <ListExportPlayerRow
+            key={player.player_id || idx}
+            player={player}
+            rank={isRanked ? idx + 1 : null}
+          />
+        ))}
       </div>
     );
-  }
+  };
+
+  const renderTiered = () => {
+    return <ListTierExport tiers={tiers} />;
+  };
 
   return (
-    <div className="w-full px-4">
-      {view === 'list' ? (
-        <div className="flex flex-col items-center gap-2">
-          {players.map((player, i) => (
-            <PlayerListPresentation
-              key={player.player_id || i}
-              player={player}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 justify-items-center">
-          {players.map((player, i) => (
-            <PlayerTierPresentation
-              key={player.player_id || i}
-              player={player}
-            />
-          ))}
-        </div>
-      )}
+    <div className="w-full overflow-auto p-4 bg-white rounded-lg border border-zinc-200 shadow-sm">
+      {exportType === 'tier' ? renderTiered() : renderFlatOrRanked()}
     </div>
   );
 };
 
-export default ListDisplayWrapper;
+export default ListExportWrapper;

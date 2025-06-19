@@ -1,31 +1,23 @@
-// ListTierExport.jsx
-// Tiered export layout for lists. Groups players visually into labeled tiers.
-
+// src/features/lists/ListTierExport.jsx
 import React from 'react';
-import PlayerTierPresentation from '@/features/lists/TierPlayerTile';
+import TierPlayerTile from '@/features/lists/TierPlayerTile';
 
-const PlayerTierView = ({ tieredPlayers = {} }) => {
-  const tierNames = Object.keys(tieredPlayers).sort((a, b) => {
-    const numA = parseInt(a.replace(/\D/g, '')) || 0;
-    const numB = parseInt(b.replace(/\D/g, '')) || 0;
-    return numA - numB;
-  });
-
+const ListTierExport = ({ tiers }) => {
   return (
     <div className="flex flex-col items-center w-full pt-2">
       <div className="w-full max-w-[950px] flex flex-col gap-[4px]">
-        {tierNames.map((tierName) => (
-          <div key={tierName} className="relative clear-both w-full">
+        {tiers.map((tier, idx) => (
+          <div
+            key={tier.label || `tier-${idx}`}
+            className="relative clear-both w-full"
+          >
             <h2 className="text-white text-[12px] font-semibold mb-[2px]">
-              {tierName}
+              {tier.label || `Tier ${idx + 1}`}
             </h2>
 
             <div className="flex flex-wrap items-start gap-[2px]">
-              {tieredPlayers[tierName].map((player) => (
-                <PlayerTierPresentation
-                  key={player.player_id}
-                  player={player}
-                />
+              {tier.players.map((player) => (
+                <TierPlayerTile key={player.player_id} player={player} />
               ))}
             </div>
           </div>
@@ -35,4 +27,4 @@ const PlayerTierView = ({ tieredPlayers = {} }) => {
   );
 };
 
-export default PlayerTierView;
+export default ListTierExport;
