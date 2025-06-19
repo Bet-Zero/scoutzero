@@ -65,7 +65,8 @@ export const createTierList = async (name) => {
     tiers: {},
     createdAt: serverTimestamp(),
   };
-  await addDoc(tierListsRef, newList);
+  const docRef = await addDoc(tierListsRef, newList);
+  return docRef.id;
 };
 
 export const renameTierList = async (id, newName) => {
@@ -76,4 +77,18 @@ export const renameTierList = async (id, newName) => {
 export const deleteTierList = async (id) => {
   const docRef = doc(db, 'tierLists', id);
   await deleteDoc(docRef);
+};
+export const fetchTierList = async (id) => {
+  const docRef = doc(db, 'tierLists', id);
+  const snap = await getDoc(docRef);
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+};
+
+export const saveTierList = async (id, { tiers, tierOrder }) => {
+  const docRef = doc(db, 'tierLists', id);
+  await updateDoc(docRef, {
+    tiers,
+    tierOrder,
+    updatedAt: serverTimestamp(),
+  });
 };
