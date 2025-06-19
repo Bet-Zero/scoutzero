@@ -1,4 +1,6 @@
-// RankedListView.jsx
+// ListManager.jsx
+// Central component for building and editing player lists (flat, ranked, or tiered).
+// Handles all list structure logic and renders full player rows with controls.
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
@@ -7,8 +9,8 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import usePlayerData from '@/hooks/usePlayerData.js';
 import { toast } from 'react-hot-toast';
 
-import RankedListTier from '@/features/lists/RankedListTier';
-import RankedListControls from '@/features/lists/RankedListControls';
+import RankedListTier from '@/features/lists/ListTierHeader';
+import RankedListControls from '@/features/lists/ListControls';
 
 const RankedListView = () => {
   const { listId } = useParams();

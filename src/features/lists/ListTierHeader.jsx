@@ -1,6 +1,8 @@
+// ListTierHeader.jsx
+// Displays a tier label (e.g. "Tier 1") and wraps a group of ListPlayerRow entries.
 import React from 'react';
 import { ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
-import RankedListPlayerRow from '@/features/lists/RankedListPlayerRow';
+import RankedListPlayerRow from '@/features/lists/ListPlayerRow';
 
 const RankedListTier = ({
   label,

@@ -1,4 +1,5 @@
-// RankedListPlayerRow.jsx
+// ListPlayerRow.jsx
+// Full player row component for use in ranked or tiered lists. Includes arrow controls.
 import React from 'react';
 import PlayerRow from '@/features/table/PlayerRow';
 import { ChevronUp, ChevronDown, X } from 'lucide-react';

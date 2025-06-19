@@ -1,8 +1,8 @@
 // src/pages/ListPresentationView.jsx
 
 import React, { useState } from 'react';
-import ToggleViewButton from '@/features/lists/ToggleViewButton';
-import ListDisplayWrapper from '@/features/lists/ListDisplayWrapper';
+import ToggleViewButton from '@/features/lists/RankedListTierToggle';
+import ListDisplayWrapper from '@/features/lists/ListExportWrapper';
 import TieredListView from '@/features/lists/TieredListView';
 
 const samplePlayer = {

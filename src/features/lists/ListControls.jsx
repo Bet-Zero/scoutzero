@@ -1,3 +1,5 @@
+// ListControls.jsx
+// Control bar for list editing – includes save button, divider insert, and toggle UI.
 import React from 'react';
 import { Plus } from 'lucide-react';
 

@@ -2,7 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import PlayerTableView from '@/pages/PlayerTableView';
 import PlayerProfileView from '@/pages/PlayerProfileView';
 import TeamRosterViewer from '@/pages/TeamRosterView';
-import RankedListView from '@/pages/RankedListView';
+import RankedListView from '@/pages/ListManager';
 import ListsHome from '@/pages/ListsHome';
 import TierMakerView from '@/pages/TierMakerView';
 import SiteLayout from '@/components/layout/SiteLayout';
