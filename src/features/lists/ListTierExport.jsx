@@ -1,7 +1,8 @@
-// src/features/lists/PlayerTierView.jsx
+// ListTierExport.jsx
+// Tiered export layout for lists. Groups players visually into labeled tiers.
 
 import React from 'react';
-import PlayerTierPresentation from '@/features/lists/PlayerTierPresentation';
+import PlayerTierPresentation from '@/features/lists/TierPlayerTile';
 
 const PlayerTierView = ({ tieredPlayers = {} }) => {
   const tierNames = Object.keys(tieredPlayers).sort((a, b) => {

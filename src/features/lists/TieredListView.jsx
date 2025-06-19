@@ -1,7 +1,7 @@
 // src/features/lists/TieredListView.jsx
 
 import React from 'react';
-import PlayerTierPresentation from '@/features/lists/PlayerTierPresentation';
+import PlayerTierPresentation from '@/features/lists/TierPlayerTile';
 
 const TieredListView = ({ tieredPlayers = {} }) => {
   const tierNames = Object.keys(tieredPlayers).sort((a, b) => {

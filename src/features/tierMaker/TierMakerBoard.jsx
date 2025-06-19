@@ -1,7 +1,7 @@
 // src/features/tierMaker/TierMakerBoard.jsx
 
 import React, { useState, useMemo } from 'react';
-import PlayerTierPresentation from '@/features/lists/PlayerTierPresentation';
+import PlayerTierPresentation from '@/features/lists/TierPlayerTile';
 import usePlayerData from '@/hooks/usePlayerData.js';
 import { POSITION_MAP } from '@/utils/roles';
 import DrawerShell from '@/components/shared/ui/drawers/DrawerShell';

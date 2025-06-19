@@ -1,4 +1,5 @@
-// src/features/lists/ToggleViewButton.jsx
+// RankedListTierToggle.jsx
+// Toggle component to enable tiered grouping within a ranked list.
 
 import React from 'react';
 

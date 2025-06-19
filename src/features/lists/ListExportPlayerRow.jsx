@@ -1,4 +1,5 @@
-// src/features/lists/PlayerListPresentation.jsx
+// ListExportPlayerRow.jsx
+// Condensed visual version of a player row used in export view (list-style layout).
 
 import React from 'react';
 import PlayerNameMini from '@/features/table/PlayerNameMini';

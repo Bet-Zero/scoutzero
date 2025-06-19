@@ -1,4 +1,5 @@
-// src/features/lists/PlayerTierPresentation.jsx
+// TierPlayerTile.jsx
+// Small visual player card used in tier layouts (ListTierExport and TierMaker).
 import React from 'react';
 import { getPlayerPositionLabel } from '@/utils/roles';
 import { formatHeight } from '@/utils/formatting';

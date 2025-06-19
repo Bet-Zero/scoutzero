@@ -1,8 +1,9 @@
-// src/features/lists/ListDisplayWrapper.jsx
+// ListExportWrapper.jsx
+// Wrapper component that chooses which export layout to display (flat or tiered).
 
 import React from 'react';
-import PlayerListPresentation from '@/features/lists/PlayerListPresentation';
-import PlayerTierPresentation from '@/features/lists/PlayerTierPresentation';
+import PlayerListPresentation from '@/features/lists/ListExportPlayerRow';
+import PlayerTierPresentation from '@/features/lists/TierPlayerTile';
 
 const ListDisplayWrapper = ({ players = [], view = 'list' }) => {
   if (!players || players.length === 0) {
