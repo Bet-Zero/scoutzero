@@ -370,7 +370,7 @@ const TierMakerBoard = ({ players = [] }) => {
                 onClick={resetBoard}
                 className="px-3 py-1 text-sm rounded bg-red-500 hover:bg-red-600 transition-all text-white"
               >
-                Reset Board
+                Reset
               </button>
             </div>
           </div>
