@@ -6,6 +6,7 @@ import ListManager from '@/pages/ListManager';
 import ListsHome from '@/pages/ListsHome';
 import TierMakerView from '@/pages/TierMakerView';
 import TierListsHome from '@/pages/TierListsHome';
+import RostersHome from '@/pages/RostersHome';
 import SiteLayout from '@/components/layout/SiteLayout';
 import NotFound from '@/pages/NotFound';
 import ListPresentationView from '@/pages/ListPresentationView';
@@ -18,6 +19,7 @@ const App = () => {
         <Route path="/players" element={<PlayerTableView />} />
         <Route path="/profiles" element={<PlayerProfileView />} />
         <Route path="/roster" element={<TeamRosterView />} />
+        <Route path="/rosters" element={<RostersHome />} />
         <Route path="/lists" element={<ListsHome />} />
         <Route path="/lists/:listId" element={<ListManager />} />
         <Route path="/list-presentation" element={<ListPresentationView />} />

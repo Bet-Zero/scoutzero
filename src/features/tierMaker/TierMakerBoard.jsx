@@ -279,8 +279,8 @@ const TierMakerBoard = ({ players = [] }) => {
           drawerOpen ? 'ml-[300px]' : 'ml-0'
         }`}
       >
-        <div className="flex flex-col gap-2 w-full max-w-[1000px] mx-auto py-2">
-          <div className="flex justify-between items-center flex-wrap gap-2 mb-1">
+        <div className="flex flex-col gap-2 w-full max-w-[1000px] mx-auto pt-3 pb-20">
+          <div className="flex justify-between items-center flex-wrap gap-2 mb-16">
             <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={() => setScreenshotMode((prev) => !prev)}

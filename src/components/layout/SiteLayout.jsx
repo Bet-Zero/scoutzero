@@ -20,6 +20,9 @@ const SiteLayout = () => {
           <Link to="/roster" className="hover:text-white">
             Roster Builder
           </Link>
+          <Link to="/rosters" className="hover:text-white">
+            Rosters
+          </Link>
           <Link to="/lists" className="hover:text-white">
             Lists
           </Link>

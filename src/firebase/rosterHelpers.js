@@ -65,6 +65,12 @@ export const updateRosterProject = async (
   });
 };
 
+// Rename a roster project
+export const renameRosterProject = async (id, newName) => {
+  const docRef = doc(db, 'rosterProjects', id);
+  await updateDoc(docRef, { name: newName });
+};
+
 // (Optional) Delete a saved roster project
 export const deleteRosterProject = async (id) => {
   const docRef = doc(db, 'rosterProjects', id);
