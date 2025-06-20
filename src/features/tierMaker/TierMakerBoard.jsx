@@ -90,6 +90,17 @@ const TierMakerBoard = ({ players = [] }) => {
     [tierListsData]
   );
 
+  const tierLists = useMemo(
+    () =>
+      (tierListsData || []).map((l) => ({
+        id: l.id,
+        name: l.name,
+        tiers: l.tiers || {},
+        tierOrder: l.tierOrder || [],
+      })),
+    [tierListsData]
+  );
+
   const getInitialTiers = () =>
     [...DEFAULT_TIERS, 'Pool'].reduce((acc, tier) => {
       acc[tier] = tier === 'Pool' ? [...players] : [];
