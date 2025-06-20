@@ -45,16 +45,27 @@ const ListExportWrapper = ({
     }
 
     const flatPlayers = isRanked ? flattenTieredPlayers() : players;
+    const limited = flatPlayers.slice(0, 30);
+    const left = limited.slice(0, 15);
+    const right = limited.slice(15);
 
-    return (
-      <div className="flex flex-col gap-0 w-full">
-        {flatPlayers.map((player, idx) => (
+    const renderColumn = (plist, offset) => (
+      <div className="flex flex-col gap-0 w-1/2">
+        {plist.map((player, idx) => (
           <ListExportPlayerRow
-            key={player.player_id || idx}
+            key={player.player_id || idx + offset}
             player={player}
-            rank={exportType === 'list' ? idx + 1 : null}
+            rank={exportType === 'list' ? idx + offset + 1 : null}
           />
         ))}
+      </div>
+    );
+
+    return (
+      <div className="relative flex w-full">
+        {renderColumn(left, 0)}
+        <div className="absolute top-0 bottom-0 left-1/2 w-[2px] bg-black" />
+        {renderColumn(right, 15)}
       </div>
     );
   };

@@ -9,6 +9,7 @@ import TierListsHome from '@/pages/TierListsHome';
 import SiteLayout from '@/components/layout/SiteLayout';
 import NotFound from '@/pages/NotFound';
 import ListPresentationView from '@/pages/ListPresentationView';
+import ExportRowPreview from '@/pages/ExportRowPreview';
 
 const App = () => {
   return (
@@ -23,6 +24,7 @@ const App = () => {
         <Route path="/list-presentation" element={<ListPresentationView />} />
         <Route path="/tier-lists" element={<TierListsHome />} />
         <Route path="/tier-maker" element={<TierMakerView />} />
+        <Route path="/export-preview" element={<ExportRowPreview />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
