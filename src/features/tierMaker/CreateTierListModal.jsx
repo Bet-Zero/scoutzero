@@ -11,10 +11,10 @@ const CreateTierListModal = ({ isOpen, onClose, onCreated }) => {
     const trimmed = name.trim();
     if (!trimmed) return;
     try {
-      await createTierList(trimmed);
+      const id = await createTierList(trimmed);
       setName('');
       setError('');
-      onCreated?.();
+      onCreated?.(id);
       onClose();
     } catch (err) {
       setError(err.message);

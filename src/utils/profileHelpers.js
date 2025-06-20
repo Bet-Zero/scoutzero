@@ -32,3 +32,10 @@ export function getBlurbValue(blurbs, key) {
   if (key === 'overall') return blurbs.overall || '';
   return '';
 }
+
+export function getVideoExamples(key) {
+  const examples = {
+    trait_Shooting: ['https://www.youtube.com/embed/sampleVideo1'],
+  };
+  return examples[key] || [];
+}
