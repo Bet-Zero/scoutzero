@@ -14,6 +14,7 @@ import ListRankToggle from '@/features/lists/ListRankToggle';
 import ListExportWrapper from '@/features/lists/ListExportWrapper';
 import ListPlayerRow from '@/features/lists/ListPlayerRow';
 import ExportOptionsModal from '@/features/lists/ExportOptionsModal';
+import ListRowStyleToggle from '@/features/lists/ListRowStyleToggle';
 
 const ListManager = () => {
   const { listId } = useParams();
@@ -26,6 +27,7 @@ const ListManager = () => {
   const [isExport, setIsExport] = useState(false);
   const [isRanked, setIsRanked] = useState(true); // Default to ranked
   const [exportType, setExportType] = useState('list');
+  const [compact, setCompact] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
 
   const { players, loading: playersLoading } = usePlayerData();
@@ -184,6 +186,7 @@ const ListManager = () => {
         onClose={() => setShowExportModal(false)}
         onSelect={(type) => {
           setExportType(type);
+          setCompact(false);
           setIsExport(true);
         }}
       />
@@ -191,6 +194,12 @@ const ListManager = () => {
       {/* Export Layout */}
       {isExport ? (
         <>
+          {exportType === 'list' && (
+            <div className="w-full max-w-[1100px] mx-auto px-4 mb-4 text-right">
+              <ListRowStyleToggle compact={compact} onChange={setCompact} />
+            </div>
+          )}
+
           <div className="w-full max-w-[1100px] mx-auto px-4">
             <ListExportWrapper
               players={flatPlayers.map((id) => playersMap[id]).filter(Boolean)}
@@ -204,6 +213,7 @@ const ListManager = () => {
               isExport={isExport}
               isRanked={isRanked}
               exportType={exportType}
+              compact={compact}
               title={listData.name}
               subtitle={listData.description}
             />

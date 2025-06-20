@@ -12,8 +12,11 @@ const ListExportRowCompact = ({ player, rank }) => {
   const rawPosition = player.bio?.Position || player.formattedPosition || '';
   const position = getPlayerPositionLabel(rawPosition) || '—';
 
+  const height = player.bio?.HT || '—';
+  const weight = player.bio?.WT ? `${player.bio.WT} lbs` : '— lbs';
+
   return (
-    <div className="w-[900px] h-[45px] bg-neutral-800 rounded-sm flex items-center overflow-hidden border border-black mb-0 pr-0">
+    <div className="w-[900px] h-[45px] bg-neutral-800 rounded-sm flex items-center border border-black mb-0 pr-0">
       {/* Rank Bar */}
       {rank !== null && (
         <div className="h-full w-10 flex flex-col items-center justify-center bg-neutral-700 text-white font-bold text-base font-mono relative">
@@ -23,7 +26,7 @@ const ListExportRowCompact = ({ player, rank }) => {
       )}
 
       {/* Headshot */}
-      <div className="h-[45px] w-[50px] bg-[#2a2a2a] mt-0 flex items-center justify-center overflow-hidden rounded-sm">
+      <div className="h-[45px] w-[50px] bg-[#2a2a2a] flex items-center justify-center overflow-hidden rounded-sm">
         <img
           src={
             player.headshotUrl || `/assets/headshots/${player.player_id}.png`
@@ -36,28 +39,29 @@ const ListExportRowCompact = ({ player, rank }) => {
         />
       </div>
 
-      {/* Main Info - Single Line */}
-      <div className="flex items-center justify-between ml-3 w-full max-w-[calc(100%-175px)]">
+      {/* Main Info Block */}
+      <div className="flex items-center ml-3 mr-4 w-full max-w-[calc(100%-175px)] justify-between">
         {/* Name */}
         <div
-          className="text-white font-anton font-bold uppercase tracking-normal leading-none truncate max-w-[150px]"
-          style={{ fontSize: `17px` }}
+          className="text-white font-anton font-bold uppercase tracking-normal leading-none whitespace-nowrap overflow-visible"
+          style={{ fontSize: `17px`, maxWidth: '300px' }}
         >
           {firstName}{' '}
           <span className="text-white/70 font-light">{lastName}</span>
         </div>
 
-        {/* HT/WT/Team */}
-        <div className="flex items-center gap-2 text-white/50 text-[13px]">
+        {/* HT / WT / Team Logo */}
+        <div className="flex items-center justify-end text-white/50 text-[13px] w-[130px] gap-2">
           <TeamLogo teamAbbr={player.bio?.Team} className="w-4 h-4" />
-          <div>
-            {player.bio?.HT || '—'} <span className="text-white/30">|</span>{' '}
-            {player.bio?.WT || '—'} lbs
+          <div className="whitespace-nowrap tabular-nums flex gap-1 items-center">
+            <span className="w-[32px] text-right">{height}</span>
+            <span className="text-white/30">|</span>
+            <span className="w-[48px] text-left">{weight}</span>
           </div>
         </div>
       </div>
 
-      {/* Position Column */}
+      {/* Position */}
       <div className="w-[80px] flex items-center justify-center text-white/60 text-sm font-semibold -mr-3">
         {position}
       </div>
