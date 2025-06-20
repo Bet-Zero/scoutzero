@@ -27,7 +27,7 @@ const ListExportWrapper = ({
   const Row = compact ? ListExportRowCompact : ListExportPlayerRow;
 
   const renderColumn = (plist, startIdx) => (
-    <div className="flex flex-col gap-0 w-1/2 items-center">
+    <div className="flex flex-col gap-2 w-1/2 items-center">
       {plist.map((player, idx) => (
         <Row
           key={player.player_id || startIdx + idx}
@@ -78,16 +78,15 @@ const ListExportWrapper = ({
     const right = limited.slice(15);
 
     return (
-      <div className="relative flex w-full">
+      <div className="flex w-full gap-6">
         {renderColumn(left, 0)}
-        <div className="absolute top-0 bottom-0 left-1/2 w-[2px] bg-black" />
         {renderColumn(right, 15)}
       </div>
     );
   };
 
   const renderRankedColumn = (items) => (
-    <div className="flex flex-col gap-0 w-1/2 items-start">
+    <div className="flex flex-col gap-2 w-1/2 items-start">
       {items.map((it, idx) =>
         it.type === 'heading' ? (
           <h2
@@ -120,7 +119,10 @@ const ListExportWrapper = ({
       if (tierPlayers.length === 0) return;
 
       const targetColumn = rankCounter <= 15 ? left : right;
-      targetColumn.push({ type: 'heading', label: tier.label || `Tier ${tIdx + 1}` });
+      targetColumn.push({
+        type: 'heading',
+        label: tier.label || `Tier ${tIdx + 1}`,
+      });
 
       for (const player of tierPlayers) {
         if (rankCounter > 30) break;
@@ -131,9 +133,8 @@ const ListExportWrapper = ({
     });
 
     return (
-      <div className="relative flex w-full">
+      <div className="flex w-full gap-6">
         {renderRankedColumn(left)}
-        <div className="absolute top-0 bottom-0 left-1/2 w-[2px] bg-black" />
         {renderRankedColumn(right)}
       </div>
     );
