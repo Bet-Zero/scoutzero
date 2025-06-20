@@ -86,60 +86,55 @@ const ListExportWrapper = ({
     );
   };
 
+  const renderRankedColumn = (items) => (
+    <div className="flex flex-col gap-0 w-1/2 items-start">
+      {items.map((it, idx) =>
+        it.type === 'heading' ? (
+          <h2
+            key={`h-${idx}`}
+            className="text-black text-xs font-semibold uppercase mb-1"
+          >
+            {it.label}
+          </h2>
+        ) : (
+          <Row
+            key={it.player.player_id || it.rank}
+            player={it.player}
+            rank={exportType === 'list' ? it.rank : null}
+          />
+        )
+      )}
+    </div>
+  );
+
   const renderTwoColumnRanked = () => {
     let rankCounter = 1;
+    const left = [];
+    const right = [];
+
+    tiers.forEach((tier, tIdx) => {
+      if (rankCounter > 30) return;
+      const tierPlayers = tier.players
+        .map((p) => playersMap[p.id] || p)
+        .filter(Boolean);
+      if (tierPlayers.length === 0) return;
+
+      const targetColumn = rankCounter <= 15 ? left : right;
+      targetColumn.push({ type: 'heading', label: tier.label || `Tier ${tIdx + 1}` });
+
+      for (const player of tierPlayers) {
+        if (rankCounter > 30) break;
+        const column = rankCounter <= 15 ? left : right;
+        column.push({ type: 'player', player, rank: rankCounter });
+        rankCounter += 1;
+      }
+    });
+
     return (
-      <div className="flex flex-col gap-2 w-full items-center">
-        {tiers.map((tier, tIdx) => {
-          if (rankCounter > 30) return null;
-          const tierPlayers = tier.players
-            .map((p) => playersMap[p.id] || p)
-            .filter(Boolean);
-
-          const left = [];
-          const right = [];
-
-          for (const player of tierPlayers) {
-            if (rankCounter > 30) break;
-            if (rankCounter <= 15) {
-              left.push({ player, rank: rankCounter });
-            } else {
-              right.push({ player, rank: rankCounter });
-            }
-            rankCounter += 1;
-          }
-
-          if (left.length === 0 && right.length === 0) return null;
-
-          return (
-            <React.Fragment key={tier.label || `tier-${tIdx}`}>
-              <h2 className="text-black text-xs font-semibold uppercase w-full text-center">
-                {tier.label || `Tier ${tIdx + 1}`}
-              </h2>
-              <div className="relative flex w-full">
-                <div className="flex flex-col gap-0 w-1/2 items-center">
-                  {left.map(({ player, rank }) => (
-                    <Row
-                      key={player.player_id || rank}
-                      player={player}
-                      rank={exportType === 'list' ? rank : null}
-                    />
-                  ))}
-                </div>
-                <div className="absolute top-0 bottom-0 left-1/2 w-[2px] bg-black" />
-                <div className="flex flex-col gap-0 w-1/2 items-center">
-                  {right.map(({ player, rank }) => (
-                    <Row
-                      key={player.player_id || rank}
-                      player={player}
-                      rank={exportType === 'list' ? rank : null}
-                    />
-                  ))}
-                </div>
-              </div>
-            </React.Fragment>
-          );
-        })}
+      <div className="relative flex w-full">
+        {renderRankedColumn(left)}
+        <div className="absolute top-0 bottom-0 left-1/2 w-[2px] bg-black" />
+        {renderRankedColumn(right)}
       </div>
     );
   };
