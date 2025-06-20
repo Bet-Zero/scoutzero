@@ -9,12 +9,16 @@ import { teamOptions } from '@/utils/filtering';
 import DrawerShell from '@/components/shared/ui/drawers/DrawerShell';
 import OpenDrawerButton from '@/components/shared/ui/drawers/OpenDrawerButton';
 import AddPlayerDrawer from '@/features/roster/AddPlayerDrawer';
+import CreateTierListModal from '@/features/tierMaker/CreateTierListModal';
+import { fetchTierList, saveTierList } from '@/firebase/listHelpers';
+import { toast } from 'react-hot-toast';
 
 const DEFAULT_TIERS = ['S', 'A', 'B', 'C', 'D'];
 
 const TierMakerBoard = ({ players = [] }) => {
   const { players: allPlayers, loading } = usePlayerData();
   const { data: listsData } = useFirebaseQuery('lists');
+  const { data: tierListsData } = useFirebaseQuery('tierLists');
 
   const processedPlayers = useMemo(
     () =>
@@ -67,6 +71,17 @@ const TierMakerBoard = ({ players = [] }) => {
     [listsData]
   );
 
+  const tierLists = useMemo(
+    () =>
+      (tierListsData || []).map((l) => ({
+        id: l.id,
+        name: l.name,
+        tiers: l.tiers || {},
+        tierOrder: l.tierOrder || [],
+      })),
+    [tierListsData]
+  );
+
   const getInitialTiers = () =>
     [...DEFAULT_TIERS, 'Pool'].reduce((acc, tier) => {
       acc[tier] = tier === 'Pool' ? [...players] : [];
@@ -79,6 +94,9 @@ const TierMakerBoard = ({ players = [] }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState('');
   const [selectedList, setSelectedList] = useState('');
+  const [selectedTierList, setSelectedTierList] = useState('');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const addPlayerToPool = (player) => {
     const formatted = { ...player, player_id: player.id };
@@ -173,6 +191,57 @@ const TierMakerBoard = ({ players = [] }) => {
     setSelectedList('');
   };
 
+  const handleLoadTierList = async (id) => {
+    if (!id) return;
+    try {
+      const data = await fetchTierList(id);
+      if (data?.tiers) {
+        const newTiers = {};
+        Object.entries(data.tiers).forEach(([tier, ids]) => {
+          newTiers[tier] = ids
+            .map((pid) => playersMap[pid])
+            .filter(Boolean)
+            .map((p) => ({ ...p, player_id: p.id }));
+        });
+        setTiers(newTiers);
+        setTierOrder(data.tierOrder || Object.keys(newTiers));
+        setSelectedTierList(id);
+        toast.success('Tier list loaded!');
+      }
+    } catch (err) {
+      console.error('Failed to load tier list', err);
+      toast.error('Failed to load tier list');
+    }
+  };
+
+  const handleSaveTierList = async () => {
+    if (!selectedTierList) {
+      setShowCreateModal(true);
+      return;
+    }
+    const dataToSave = {};
+    Object.keys(tiers).forEach((t) => {
+      dataToSave[t] = tiers[t].map((p) => p.player_id);
+    });
+    try {
+      setIsSaving(true);
+      await saveTierList(selectedTierList, { tiers: dataToSave, tierOrder });
+      toast.success('Tier list saved!');
+    } catch (err) {
+      console.error('Failed to save tier list', err);
+      toast.error('Failed to save tier list');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCreateAndSave = async (newId) => {
+    if (!newId) return;
+    setSelectedTierList(newId);
+    setShowCreateModal(false);
+    await handleSaveTierList();
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center py-10 text-white">
@@ -254,6 +323,33 @@ const TierMakerBoard = ({ players = [] }) => {
                   Add List
                 </button>
               </div>
+
+              <div className="flex items-center gap-1">
+                <select
+                  value={selectedTierList}
+                  onChange={(e) => handleLoadTierList(e.target.value)}
+                  className="bg-[#1a1a1a] text-white text-sm px-2 py-1 rounded border border-white/10"
+                >
+                  <option value="">Load Tier List...</option>
+                  {tierLists.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleSaveTierList}
+                  className="px-2 py-1 text-sm rounded bg-white/10 hover:bg-white/20 text-white"
+                >
+                  {isSaving ? 'Saving...' : 'Save'}
+                </button>
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="px-2 py-1 text-sm rounded bg-white/10 hover:bg-white/20 text-white"
+                >
+                  New
+                </button>
+              </div>
             </div>
 
             <div className="flex gap-2">
@@ -286,6 +382,11 @@ const TierMakerBoard = ({ players = [] }) => {
           ))}
         </div>
       </div>
+      <CreateTierListModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onCreated={handleCreateAndSave}
+      />
     </div>
   );
 };

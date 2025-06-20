@@ -1,6 +1,11 @@
 import React from 'react';
 import Modal from '@/components/shared/ui/Modal';
-import { getModalTitle, getBlurbValue } from '@/utils/profileHelpers';
+import VideoExamples from '@/components/shared/ui/VideoExamples';
+import {
+  getModalTitle,
+  getBlurbValue,
+  getVideoExamples,
+} from '@/utils/profileHelpers';
 
 const BreakdownModal = ({ modalKey, blurbs, onChange, onClose }) => (
   <Modal title={getModalTitle(modalKey)} onClose={onClose}>
@@ -10,9 +15,7 @@ const BreakdownModal = ({ modalKey, blurbs, onChange, onClose }) => (
       value={getBlurbValue(blurbs, modalKey)}
       onChange={(e) => onChange(modalKey, e.target.value)}
     />
-    <div className="w-full h-40 bg-neutral-700 rounded-xl flex items-center justify-center text-sm text-neutral-400 mt-4">
-      [Video examples coming soon]
-    </div>
+    <VideoExamples videoUrls={getVideoExamples(modalKey)} />
   </Modal>
 );
 
