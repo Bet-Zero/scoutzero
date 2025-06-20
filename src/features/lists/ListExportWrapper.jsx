@@ -88,21 +88,28 @@ const ListExportWrapper = ({
 
   const renderTwoColumnRanked = () => {
     let rankCounter = 1;
-    let remaining = 30;
     return (
       <div className="flex flex-col gap-2 w-full items-center">
         {tiers.map((tier, tIdx) => {
-          if (remaining <= 0) return null;
+          if (rankCounter > 30) return null;
           const tierPlayers = tier.players
             .map((p) => playersMap[p.id] || p)
-            .filter(Boolean)
-            .slice(0, remaining);
-          remaining -= tierPlayers.length;
-          const left = tierPlayers.slice(0, 15);
-          const right = tierPlayers.slice(15);
+            .filter(Boolean);
 
-          const startRank = rankCounter;
-          rankCounter += tierPlayers.length;
+          const left = [];
+          const right = [];
+
+          for (const player of tierPlayers) {
+            if (rankCounter > 30) break;
+            if (rankCounter <= 15) {
+              left.push({ player, rank: rankCounter });
+            } else {
+              right.push({ player, rank: rankCounter });
+            }
+            rankCounter += 1;
+          }
+
+          if (left.length === 0 && right.length === 0) return null;
 
           return (
             <React.Fragment key={tier.label || `tier-${tIdx}`}>
@@ -110,9 +117,25 @@ const ListExportWrapper = ({
                 {tier.label || `Tier ${tIdx + 1}`}
               </h2>
               <div className="relative flex w-full">
-                {renderColumn(left, startRank - 1)}
+                <div className="flex flex-col gap-0 w-1/2 items-center">
+                  {left.map(({ player, rank }) => (
+                    <Row
+                      key={player.player_id || rank}
+                      player={player}
+                      rank={exportType === 'list' ? rank : null}
+                    />
+                  ))}
+                </div>
                 <div className="absolute top-0 bottom-0 left-1/2 w-[2px] bg-black" />
-                {renderColumn(right, startRank - 1 + left.length)}
+                <div className="flex flex-col gap-0 w-1/2 items-center">
+                  {right.map(({ player, rank }) => (
+                    <Row
+                      key={player.player_id || rank}
+                      player={player}
+                      rank={exportType === 'list' ? rank : null}
+                    />
+                  ))}
+                </div>
               </div>
             </React.Fragment>
           );
