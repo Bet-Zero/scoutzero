@@ -1,6 +1,7 @@
 // src/features/lists/ListExportWrapper.jsx
 import React from 'react';
 import ListExportPlayerRow from './ListExportPlayerRow';
+import ListExportRowCompact from './ListExportRowCompact';
 import ListTierExport from './ListTierExport';
 
 const ListExportWrapper = ({
@@ -10,6 +11,7 @@ const ListExportWrapper = ({
   isExport = false,
   isRanked = false,
   exportType = 'list',
+  compact = false,
   title = '',
   subtitle = '',
 }) => {
@@ -24,6 +26,7 @@ const ListExportWrapper = ({
   const renderFlatOrRanked = () => {
     if (isRanked && tiers.length > 0) {
       let rankCounter = 1;
+      const Row = compact ? ListExportRowCompact : ListExportPlayerRow;
       return (
         <div className="flex flex-col gap-2 w-full">
           {tiers.map((tier, tIdx) => (
@@ -32,7 +35,7 @@ const ListExportWrapper = ({
                 {tier.label || `Tier ${tIdx + 1}`}
               </h2>
               {tier.players.map((player, pIdx) => (
-                <ListExportPlayerRow
+                <Row
                   key={player.player_id || pIdx}
                   player={player}
                   rank={rankCounter++}
@@ -49,10 +52,11 @@ const ListExportWrapper = ({
     const left = limited.slice(0, 15);
     const right = limited.slice(15);
 
+    const Row = compact ? ListExportRowCompact : ListExportPlayerRow;
     const renderColumn = (plist, offset) => (
       <div className="flex flex-col gap-0 w-1/2">
         {plist.map((player, idx) => (
-          <ListExportPlayerRow
+          <Row
             key={player.player_id || idx + offset}
             player={player}
             rank={exportType === 'list' ? idx + offset + 1 : null}
