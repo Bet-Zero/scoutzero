@@ -69,6 +69,22 @@ const RosterViewer = ({ isExport = false }) => {
     }));
   }, [allPlayers]);
 
+  const playersMap = useMemo(() => {
+    const map = {};
+    allPlayers.forEach((p) => {
+      map[p.id] = p;
+    });
+    return map;
+  }, [allPlayers]);
+
+  const idsToPlayers = (arr) =>
+    arr.map((item) => {
+      if (!item) return null;
+      const id = typeof item === 'string' ? item : item.id;
+      const data = playersMap[id];
+      return data ? normalizePlayer(data) : null;
+    });
+
   useEffect(() => {
     const load = async () => {
       if (!selectedTeam || isLoading || allPlayers.length === 0) return;
@@ -105,9 +121,9 @@ const RosterViewer = ({ isExport = false }) => {
         setRosterId(loaded.id);
         setRosterName(loaded.name);
         setRoster({
-          starters: loaded.starters || [],
-          rotation: loaded.rotation || [],
-          bench: loaded.bench || [],
+          starters: idsToPlayers(loaded.starters || []),
+          rotation: idsToPlayers(loaded.rotation || []),
+          bench: idsToPlayers(loaded.bench || []),
         });
       }
     };
@@ -163,9 +179,9 @@ const RosterViewer = ({ isExport = false }) => {
     if (!rosterName.trim()) return;
     const created = await createRosterProject(
       rosterName,
-      roster.starters,
-      roster.rotation, // ✅ Save rotation here too
-      roster.bench,
+      roster.starters.map((p) => (p ? p.id : null)),
+      roster.rotation.map((p) => (p ? p.id : null)),
+      roster.bench.map((p) => (p ? p.id : null)),
       selectedTeam
     );
     setRosterId(created.id);
@@ -177,9 +193,9 @@ const RosterViewer = ({ isExport = false }) => {
     if (!rosterId) return;
     await updateRosterProject(
       rosterId,
-      roster.starters,
-      roster.rotation,
-      roster.bench
+      roster.starters.map((p) => (p ? p.id : null)),
+      roster.rotation.map((p) => (p ? p.id : null)),
+      roster.bench.map((p) => (p ? p.id : null))
     );
   };
 
@@ -189,9 +205,9 @@ const RosterViewer = ({ isExport = false }) => {
       setRosterId(loaded.id);
       setRosterName(loaded.name);
       setRoster({
-        starters: loaded.starters || [],
-        rotation: loaded.rotation || [],
-        bench: loaded.bench || [],
+        starters: idsToPlayers(loaded.starters || []),
+        rotation: idsToPlayers(loaded.rotation || []),
+        bench: idsToPlayers(loaded.bench || []),
       });
     }
   };
@@ -200,9 +216,9 @@ const RosterViewer = ({ isExport = false }) => {
     if (!rosterName.trim()) return;
     const created = await createRosterProject(
       rosterName,
-      roster.starters,
-      roster.rotation,
-      roster.bench,
+      roster.starters.map((p) => (p ? p.id : null)),
+      roster.rotation.map((p) => (p ? p.id : null)),
+      roster.bench.map((p) => (p ? p.id : null)),
       selectedTeam
     );
     setRosterId(created.id);
