@@ -56,7 +56,7 @@ const ListExportWrapper = ({
       <div className="flex flex-col gap-[3px] items-center w-full">
         {tiers.map((tier, tIdx) => (
           <React.Fragment key={tier.label || `tier-${tIdx}`}>
-            <h2 className="text-black text-xs font-semibold uppercase w-full text-center">
+            <h2 className="text-white text-xs font-semibold uppercase w-full text-center">
               {tier.label || `Tier ${tIdx + 1}`}
             </h2>
             {tier.players.map((player, pIdx) => (
@@ -91,7 +91,7 @@ const ListExportWrapper = ({
         it.type === 'heading' ? (
           <h2
             key={`h-${idx}`}
-            className="text-black text-xs font-semibold uppercase mb-1"
+            className="text-white text-xs font-semibold uppercase m-1"
           >
             {it.label}
           </h2>
