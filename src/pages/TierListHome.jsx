@@ -170,4 +170,4 @@ const TierListsHome = () => {
   );
 };
 
-export default TierListHome;
+export default TierListsHome;

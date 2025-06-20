@@ -163,6 +163,9 @@ const ListManager = () => {
     <>
       {/* Header */}
       <div className="w-full max-w-[1100px] mx-auto px-4 mt-10 mb-6 relative z-10">
+        <div className="absolute top-0 right-0">
+          <ListRankToggle isRanked={isRanked} onChange={setIsRanked} />
+        </div>
         <div className="h-[5px] w-24 bg-gradient-to-r from-neutral-500 to-neutral-900 rounded-full mb-4 shadow-lg"></div>
         <h1 className="text-5xl font-extrabold tracking-tight text-neutral-100 mb-3">
           {listData.name}
@@ -176,29 +179,6 @@ const ListManager = () => {
         )}
       </div>
 
-      {/* Toggles */}
-      <div className="w-full max-w-[1100px] mx-auto px-4 mb-6">
-        <div className="flex flex-wrap items-center gap-4">
-          <ListRankToggle isRanked={isRanked} onChange={setIsRanked} />
-          {!isExport && (
-            <button
-              onClick={() => setShowExportModal(true)}
-              className="px-3 py-1 text-sm rounded bg-white/10 text-white hover:bg-white/20"
-            >
-              Export
-            </button>
-          )}
-          {isExport && (
-            <button
-              onClick={() => setIsExport(false)}
-              className="px-3 py-1 text-sm rounded bg-white/10 text-white hover:bg-white/20"
-            >
-              Back to Edit
-            </button>
-          )}
-        </div>
-      </div>
-
       <ExportOptionsModal
         open={showExportModal}
         onClose={() => setShowExportModal(false)}
@@ -210,21 +190,34 @@ const ListManager = () => {
 
       {/* Export Layout */}
       {isExport ? (
-        <div className="w-full max-w-[1100px] mx-auto px-4">
-          <ListExportWrapper
-            players={flatPlayers.map((id) => playersMap[id]).filter(Boolean)}
-            tiers={tiers.map((tier) => ({
-              label: tier.label,
-              players: tier.players
-                .map((p) => playersMap[p.id])
-                .filter(Boolean),
-            }))}
-            playersMap={playersMap}
-            isExport={isExport}
-            isRanked={isRanked}
-            exportType={exportType}
-          />
-        </div>
+        <>
+          <div className="w-full max-w-[1100px] mx-auto px-4">
+            <ListExportWrapper
+              players={flatPlayers.map((id) => playersMap[id]).filter(Boolean)}
+              tiers={tiers.map((tier) => ({
+                label: tier.label,
+                players: tier.players
+                  .map((p) => playersMap[p.id])
+                  .filter(Boolean),
+              }))}
+              playersMap={playersMap}
+              isExport={isExport}
+              isRanked={isRanked}
+              exportType={exportType}
+              title={listData.name}
+              subtitle={listData.description}
+            />
+          </div>
+
+          <div className="w-full max-w-[1100px] mx-auto px-4 mt-8 mb-12 text-right">
+            <button
+              onClick={() => setIsExport(false)}
+              className="px-3 py-1 text-sm rounded bg-white/10 text-white hover:bg-white/20"
+            >
+              Back to Edit
+            </button>
+          </div>
+        </>
       ) : (
         <>
           <div className="w-full">
@@ -273,9 +266,18 @@ const ListManager = () => {
 
           <div className="w-full max-w-[1100px] mx-auto px-4 mt-12 mb-6 text-right">
             <p className="text-xs text-white/30 italic">
-              Last updated:{' '}
+              Last updated{' '}
               {listData.updatedAt?.toDate?.().toLocaleDateString() || 'N/A'}
             </p>
+          </div>
+
+          <div className="w-full max-w-[1100px] mx-auto px-4 mb-12 text-right">
+            <button
+              onClick={() => setShowExportModal(true)}
+              className="px-3 py-1 text-sm rounded bg-white/10 text-white hover:bg-white/20"
+            >
+              Export
+            </button>
           </div>
         </>
       )}
