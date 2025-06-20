@@ -7,7 +7,7 @@ import EmptySlot from './EmptySlot';
 const sectionClasses = {
   starters: 'flex justify-center gap-4 mb-10',
   rotation: 'flex justify-center gap-1 mb-8',
-  bench: 'flex justify-center gap-0.5',
+  bench: 'flex justify-center gap-0.5 mb-8',
 };
 
 const sizeMap = {
