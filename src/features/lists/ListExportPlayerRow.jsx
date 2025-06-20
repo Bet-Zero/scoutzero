@@ -17,7 +17,7 @@ const ListExportPlayerRow = ({ player, rank }) => {
   const position = getPlayerPositionLabel(rawPosition) || '—';
 
   return (
-    <div className="w-[calc(50%-6px)] h-[90px] bg-neutral-800 rounded-sm flex items-center overflow-hidden border border-black mb-0 pr-4">
+    <div className="w-full h-[90px] bg-neutral-800 rounded-sm flex items-center overflow-hidden border border-black mb-0 pr-4">
       {/* Rank Bar */}
       {rank !== null && (
         <div className="h-full w-12 flex flex-col items-center justify-center bg-neutral-700 text-white font-bold text-xl font-mono relative">
