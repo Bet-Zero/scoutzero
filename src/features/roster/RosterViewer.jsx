@@ -13,6 +13,12 @@ import {
 } from '@/utils/roster';
 import { POSITION_MAP } from '@/utils/roles';
 import { getTeamColors } from '@/utils/formatting/teamColors';
+import {
+  createRosterProject,
+  fetchAllRosterProjects,
+  loadRosterProject,
+  updateRosterProject,
+} from '@/firebase/rosterHelpers';
 
 const RosterViewer = ({ isExport = false }) => {
   const { players: allPlayers, loading: isLoading } = usePlayerData();
@@ -21,10 +27,17 @@ const RosterViewer = ({ isExport = false }) => {
     rotation: [null, null, null, null],
     bench: [null, null, null, null, null, null],
   });
+
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [slotTarget, setSlotTarget] = useState({ section: '', index: -1 });
   const [selectedTeam, setSelectedTeam] = useState('');
   const [loadMethod, setLoadMethod] = useState('current');
+  const [saveModalOpen, setSaveModalOpen] = useState(false);
+
+  // Firebase Save/Load State
+  const [rosterName, setRosterName] = useState('');
+  const [rosterId, setRosterId] = useState(null);
+  const [savedRosters, setSavedRosters] = useState([]);
 
   const processedPlayers = useMemo(() => {
     return allPlayers.map((player) => ({
@@ -57,31 +70,58 @@ const RosterViewer = ({ isExport = false }) => {
   }, [allPlayers]);
 
   useEffect(() => {
-    if (!selectedTeam || isLoading || allPlayers.length === 0) return;
+    const load = async () => {
+      if (!selectedTeam || isLoading || allPlayers.length === 0) return;
 
-    const rawTeamPlayers = allPlayers.filter(
-      (p) => p.bio?.Team?.toLowerCase() === selectedTeam.toLowerCase()
-    );
+      if (loadMethod === 'blank') {
+        setRoster({
+          starters: [null, null, null, null, null],
+          rotation: [null, null, null, null],
+          bench: [null, null, null, null, null, null],
+        });
+        return;
+      }
 
-    const teamPlayers = rawTeamPlayers
-      .filter((p) => !isTwoWayContract(p))
-      .sort(
-        (a, b) =>
-          parseFloat(b.system?.stats?.MP || 0) -
-          parseFloat(a.system?.stats?.MP || 0)
-      );
+      if (loadMethod === 'current') {
+        const rawTeamPlayers = allPlayers.filter(
+          (p) => p.bio?.Team?.toLowerCase() === selectedTeam.toLowerCase()
+        );
 
-    if (loadMethod === 'blank') {
-      setRoster({
-        starters: [null, null, null, null, null],
-        rotation: [null, null, null, null],
-        bench: [null, null, null, null, null, null],
-      });
-      return;
-    }
+        const teamPlayers = rawTeamPlayers
+          .filter((p) => !isTwoWayContract(p))
+          .sort(
+            (a, b) =>
+              parseFloat(b.system?.stats?.MP || 0) -
+              parseFloat(a.system?.stats?.MP || 0)
+          );
 
-    setRoster(buildInitialRoster(teamPlayers));
+        setRoster(buildInitialRoster(teamPlayers));
+        return;
+      }
+
+      // If loadMethod is a Firebase roster ID
+      const loaded = await loadRosterProject(loadMethod);
+      if (loaded) {
+        setRosterId(loaded.id);
+        setRosterName(loaded.name);
+        setRoster({
+          starters: loaded.starters || [],
+          rotation: loaded.rotation || [],
+          bench: loaded.bench || [],
+        });
+      }
+    };
+
+    load();
   }, [selectedTeam, loadMethod, allPlayers, isLoading]);
+
+  useEffect(() => {
+    const loadSaved = async () => {
+      const all = await fetchAllRosterProjects();
+      setSavedRosters(all);
+    };
+    loadSaved();
+  }, []);
 
   const addPlayerToSlot = (player, section, index) => {
     const updated = [...roster[section]];
@@ -117,6 +157,58 @@ const RosterViewer = ({ isExport = false }) => {
   const handleOpenDrawerGeneral = () => {
     setSlotTarget({ section: '', index: -1 });
     setDrawerOpen(true);
+  };
+
+  const handleSaveNewRoster = async () => {
+    if (!rosterName.trim()) return;
+    const created = await createRosterProject(
+      rosterName,
+      roster.starters,
+      roster.rotation, // ✅ Save rotation here too
+      roster.bench,
+      selectedTeam
+    );
+    setRosterId(created.id);
+    setSavedRosters((prev) => [...prev, created]);
+    setRosterName('');
+  };
+
+  const handleUpdateRoster = async () => {
+    if (!rosterId) return;
+    await updateRosterProject(
+      rosterId,
+      roster.starters,
+      roster.rotation,
+      roster.bench
+    );
+  };
+
+  const handleLoadRoster = async (id) => {
+    const loaded = await loadRosterProject(id);
+    if (loaded) {
+      setRosterId(loaded.id);
+      setRosterName(loaded.name);
+      setRoster({
+        starters: loaded.starters || [],
+        rotation: loaded.rotation || [],
+        bench: loaded.bench || [],
+      });
+    }
+  };
+
+  const handleSaveFromModal = async () => {
+    if (!rosterName.trim()) return;
+    const created = await createRosterProject(
+      rosterName,
+      roster.starters,
+      roster.rotation,
+      roster.bench,
+      selectedTeam
+    );
+    setRosterId(created.id);
+    setSavedRosters((prev) => [...prev, created]);
+    setRosterName('');
+    setSaveModalOpen(false);
   };
 
   if (isLoading) {
@@ -161,7 +253,7 @@ const RosterViewer = ({ isExport = false }) => {
         }`}
       >
         <div
-          className={`relative max-w-[1300px] mx-auto text-white p-6 pb-12 flex flex-col items-center overflow-hidden ${
+          className={`relative max-w-[1300px] mx-auto text-white p-6 pb-20 flex flex-col items-center overflow-hidden ${
             isExport ? 'scale-[0.9]' : ''
           }`}
         >
@@ -175,15 +267,18 @@ const RosterViewer = ({ isExport = false }) => {
             />
           )}
 
-          {/* Controls First */}
+          {/* Controls */}
           {!isExport && (
-            <div className="z-10 -mt-2 mb-6">
-              <RosterControls
-                selectedTeam={selectedTeam}
-                onTeamChange={setSelectedTeam}
-                loadMethod={loadMethod}
-                onLoadMethodChange={setLoadMethod}
-              />
+            <div className="z-10 -mt-2 mb-6 w-full">
+              <div className="flex justify-center mb-6 z-10">
+                <RosterControls
+                  selectedTeam={selectedTeam}
+                  onTeamChange={setSelectedTeam}
+                  loadMethod={loadMethod}
+                  onLoadMethodChange={setLoadMethod}
+                  savedRosters={savedRosters}
+                />
+              </div>
             </div>
           )}
 
@@ -192,20 +287,18 @@ const RosterViewer = ({ isExport = false }) => {
             <h2
               className="text-5xl font-black tracking-wide z-10 uppercase relative mb-2"
               style={{
-                color: '#1e1e1e', // neutral rich gray text
-                textShadow: `0 0 10px ${primary}, 0 0 18px ${secondary}`, // outer glow only
+                color: '#1e1e1e',
+                textShadow: `0 0 10px ${primary}, 0 0 18px ${secondary}`,
               }}
             >
               {selectedTeam}
             </h2>
           )}
 
-          {/* Subtitle */}
           <h3 className="text-xl text-neutral-500 font-semibold z-10 mb-8 opacity-90 tracking-wide">
             Team Roster
           </h3>
 
-          {/* Player Grid */}
           <RosterSection
             players={roster.starters}
             section="starters"
@@ -229,6 +322,47 @@ const RosterViewer = ({ isExport = false }) => {
             onAdd={handleOpenDrawer}
             isExport={isExport}
           />
+          {/* Save Roster Button */}
+          {!isExport && (
+            <div className="fixed bottom-6 right-6 z-50">
+              <button
+                onClick={() => setSaveModalOpen(true)}
+                className="bg-blue-700 text-white px-4 py-2 rounded hover:bg-blue-600"
+              >
+                Save Roster
+              </button>
+            </div>
+          )}
+
+          {/* Save Modal */}
+          {saveModalOpen && (
+            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+              <div className="bg-[#1a1a1a] p-6 rounded-lg w-full max-w-sm text-white">
+                <h3 className="text-xl font-bold mb-4">Save New Roster</h3>
+                <input
+                  type="text"
+                  value={rosterName}
+                  onChange={(e) => setRosterName(e.target.value)}
+                  placeholder="Roster name"
+                  className="w-full px-3 py-2 mb-4 rounded bg-neutral-800 placeholder:text-white/40"
+                />
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={() => setSaveModalOpen(false)}
+                    className="px-3 py-1 rounded bg-neutral-700 hover:bg-neutral-600"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveFromModal}
+                    className="px-3 py-1 rounded bg-blue-600 hover:bg-blue-500"
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -15,6 +15,7 @@ import ListExportWrapper from '@/features/lists/ListExportWrapper';
 import ListPlayerRow from '@/features/lists/ListPlayerRow';
 import ExportOptionsModal from '@/features/lists/ExportOptionsModal';
 import ListRowStyleToggle from '@/features/lists/ListRowStyleToggle';
+import ListColumnToggle from '@/features/lists/ListColumnToggle';
 
 const ListManager = () => {
   const { listId } = useParams();
@@ -28,6 +29,7 @@ const ListManager = () => {
   const [isRanked, setIsRanked] = useState(true); // Default to ranked
   const [exportType, setExportType] = useState('list');
   const [compact, setCompact] = useState(false);
+  const [twoColumn, setTwoColumn] = useState(true);
   const [showExportModal, setShowExportModal] = useState(false);
 
   const { players, loading: playersLoading } = usePlayerData();
@@ -195,8 +197,9 @@ const ListManager = () => {
       {isExport ? (
         <>
           {exportType === 'list' && (
-            <div className="w-full max-w-[1100px] mx-auto px-4 mb-4 text-right">
+            <div className="w-full max-w-[1100px] mx-auto px-4 mb-4 flex justify-between">
               <ListRowStyleToggle compact={compact} onChange={setCompact} />
+              <ListColumnToggle twoColumn={twoColumn} onChange={setTwoColumn} />
             </div>
           )}
 
@@ -214,6 +217,7 @@ const ListManager = () => {
               isRanked={isRanked}
               exportType={exportType}
               compact={compact}
+              twoColumn={twoColumn}
               title={listData.name}
               subtitle={listData.description}
             />

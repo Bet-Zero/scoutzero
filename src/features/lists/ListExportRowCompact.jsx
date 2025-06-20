@@ -16,7 +16,7 @@ const ListExportRowCompact = ({ player, rank }) => {
   const weight = player.bio?.WT ? `${player.bio.WT} lbs` : '— lbs';
 
   return (
-    <div className="w-[900px] h-[45px] bg-neutral-800 rounded-sm flex items-center border border-black mb-0 pr-0">
+    <div className="w-full h-[45px] bg-neutral-800 rounded-sm flex items-center border border-black mb-0 pr-0 overflow-hidden">
       {/* Rank Bar */}
       {rank !== null && (
         <div className="h-full w-10 flex flex-col items-center justify-center bg-neutral-700 text-white font-bold text-base font-mono relative">
