@@ -63,11 +63,19 @@ const TierMakerBoard = ({ players = [] }) => {
 
   const lists = useMemo(
     () =>
-      (listsData || []).map((l) => ({
-        id: l.id,
-        name: l.name,
-        playerIds: l.playerOrder || l.playerIds || [],
-      })),
+      (listsData || []).map((l) => {
+        const orderIds = l.playerOrder || [];
+        const allIds = l.playerIds || [];
+        const merged = [...orderIds];
+        allIds.forEach((id) => {
+          if (!merged.includes(id)) merged.push(id);
+        });
+        return {
+          id: l.id,
+          name: l.name,
+          playerIds: merged,
+        };
+      }),
     [listsData]
   );
 
@@ -262,7 +270,6 @@ const TierMakerBoard = ({ players = [] }) => {
           allPlayers={processedPlayers}
           onSelect={(player) => {
             addPlayerToPool(player);
-            setDrawerOpen(false);
           }}
         />
       </DrawerShell>
