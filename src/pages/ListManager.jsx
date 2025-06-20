@@ -38,9 +38,14 @@ const ListManager = () => {
         if (!listSnap.exists()) throw new Error('List not found');
 
         const data = listSnap.data();
-        const ids = data.playerOrder || data.playerIds || [];
+        const orderIds = data.playerOrder || [];
+        const allIds = data.playerIds || [];
+        const merged = [...orderIds];
+        allIds.forEach((id) => {
+          if (!merged.includes(id)) merged.push(id);
+        });
         setListData(data);
-        setOrder(ids);
+        setOrder(merged);
         setNotes(data.playerNotes || {});
       } catch (err) {
         console.error('Failed to load list:', err);

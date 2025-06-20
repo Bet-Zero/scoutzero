@@ -161,7 +161,7 @@ const RosterViewer = ({ isExport = false }) => {
         }`}
       >
         <div
-          className={`relative max-w-[1300px] mx-auto text-white p-6 flex flex-col items-center overflow-hidden ${
+          className={`relative max-w-[1300px] mx-auto text-white p-6 pb-12 flex flex-col items-center overflow-hidden ${
             isExport ? 'scale-[0.9]' : ''
           }`}
         >
