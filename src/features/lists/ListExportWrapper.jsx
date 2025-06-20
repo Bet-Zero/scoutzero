@@ -12,6 +12,7 @@ const ListExportWrapper = ({
   isRanked = false,
   exportType = 'list',
   compact = false,
+  twoColumn = true,
   title = '',
   subtitle = '',
 }) => {
@@ -23,47 +24,58 @@ const ListExportWrapper = ({
     );
   };
 
-  const renderFlatOrRanked = () => {
-    if (isRanked && tiers.length > 0) {
-      let rankCounter = 1;
-      const Row = compact ? ListExportRowCompact : ListExportPlayerRow;
-      return (
-        <div className="flex flex-col gap-2 w-full">
-          {tiers.map((tier, tIdx) => (
-            <React.Fragment key={tier.label || `tier-${tIdx}`}>
-              <h2 className="text-black text-xs font-semibold uppercase">
-                {tier.label || `Tier ${tIdx + 1}`}
-              </h2>
-              {tier.players.map((player, pIdx) => (
-                <Row
-                  key={player.player_id || pIdx}
-                  player={player}
-                  rank={rankCounter++}
-                />
-              ))}
-            </React.Fragment>
-          ))}
-        </div>
-      );
-    }
+  const Row = compact ? ListExportRowCompact : ListExportPlayerRow;
 
-    const flatPlayers = isRanked ? flattenTieredPlayers() : players;
-    const limited = flatPlayers.slice(0, 30);
-    const left = limited.slice(0, 15);
-    const right = limited.slice(15);
+  const renderColumn = (plist, startIdx) => (
+    <div className="flex flex-col gap-0 w-1/2 items-center">
+      {plist.map((player, idx) => (
+        <Row
+          key={player.player_id || startIdx + idx}
+          player={player}
+          rank={exportType === 'list' ? startIdx + idx + 1 : null}
+        />
+      ))}
+    </div>
+  );
 
-    const Row = compact ? ListExportRowCompact : ListExportPlayerRow;
-    const renderColumn = (plist, offset) => (
-      <div className="flex flex-col gap-0 w-1/2">
-        {plist.map((player, idx) => (
-          <Row
-            key={player.player_id || idx + offset}
-            player={player}
-            rank={exportType === 'list' ? idx + offset + 1 : null}
-          />
+  const renderSingleFlat = () => (
+    <div className="flex flex-col gap-0 items-center w-full">
+      {players.map((player, idx) => (
+        <Row
+          key={player.player_id || idx}
+          player={player}
+          rank={exportType === 'list' ? idx + 1 : null}
+        />
+      ))}
+    </div>
+  );
+
+  const renderSingleRanked = () => {
+    let rankCounter = 1;
+    return (
+      <div className="flex flex-col gap-2 items-center w-full">
+        {tiers.map((tier, tIdx) => (
+          <React.Fragment key={tier.label || `tier-${tIdx}`}>
+            <h2 className="text-black text-xs font-semibold uppercase w-full text-center">
+              {tier.label || `Tier ${tIdx + 1}`}
+            </h2>
+            {tier.players.map((player, pIdx) => (
+              <Row
+                key={player.player_id || pIdx}
+                player={player}
+                rank={rankCounter++}
+              />
+            ))}
+          </React.Fragment>
         ))}
       </div>
     );
+  };
+
+  const renderTwoColumnFlat = () => {
+    const limited = players.slice(0, 30);
+    const left = limited.slice(0, 15);
+    const right = limited.slice(15);
 
     return (
       <div className="relative flex w-full">
@@ -72,6 +84,50 @@ const ListExportWrapper = ({
         {renderColumn(right, 15)}
       </div>
     );
+  };
+
+  const renderTwoColumnRanked = () => {
+    let rankCounter = 1;
+    let remaining = 30;
+    return (
+      <div className="flex flex-col gap-2 w-full items-center">
+        {tiers.map((tier, tIdx) => {
+          if (remaining <= 0) return null;
+          const tierPlayers = tier.players
+            .map((p) => playersMap[p.id] || p)
+            .filter(Boolean)
+            .slice(0, remaining);
+          remaining -= tierPlayers.length;
+          const left = tierPlayers.slice(0, 15);
+          const right = tierPlayers.slice(15);
+
+          const startRank = rankCounter;
+          rankCounter += tierPlayers.length;
+
+          return (
+            <React.Fragment key={tier.label || `tier-${tIdx}`}>
+              <h2 className="text-black text-xs font-semibold uppercase w-full text-center">
+                {tier.label || `Tier ${tIdx + 1}`}
+              </h2>
+              <div className="relative flex w-full">
+                {renderColumn(left, startRank - 1)}
+                <div className="absolute top-0 bottom-0 left-1/2 w-[2px] bg-black" />
+                {renderColumn(right, startRank - 1 + left.length)}
+              </div>
+            </React.Fragment>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const renderFlatOrRanked = () => {
+    if (twoColumn) {
+      if (isRanked && tiers.length > 0) return renderTwoColumnRanked();
+      return renderTwoColumnFlat();
+    }
+    if (isRanked && tiers.length > 0) return renderSingleRanked();
+    return renderSingleFlat();
   };
 
   const renderTiered = () => {
