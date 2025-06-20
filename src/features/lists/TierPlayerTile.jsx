@@ -41,7 +41,7 @@ const TierPlayerTile = ({ player }) => {
             {position}
           </div>
         </div>
-        <div className="bg-[#0f0f0f] px-[6px] pt-[5px] pb-[6px] h-[36px] flex flex-col justify-center text-white border-t border-white/10">
+        <div className="bg-[#0f0f0f] px-[6px] pt-[4px] pb-[6px] h-[34px] flex flex-col justify-center text-white border-t border-white/10">
           <div className="flex justify-between text-[10px] text-white/70 leading-[12px]">
             <span className="truncate">{firstName}</span>
             <span className="text-white/50">{height}</span>
