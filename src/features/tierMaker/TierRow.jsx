@@ -17,22 +17,24 @@ const TierRow = ({
     } p-0`}
   >
     <div className="w-[70px] text-sm text-white font-bold flex items-center justify-between px-1">
-      <span>{tier === 'Pool' ? 'Pool' : tier}</span>
       {!screenshotMode && tier !== 'Pool' && (
-        <span className="flex gap-[2px]">
-          <button
-            onClick={() => renameTier(tier)}
-            className="text-xs text-white bg-black/40 px-[4px] rounded hover:bg-white/10"
-          >
-            ✎
-          </button>
-          <button
-            onClick={() => deleteTier(tier)}
-            className="text-xs text-red-300 bg-black/40 px-[4px] rounded hover:bg-red-600"
-          >
-            🗑
-          </button>
-        </span>
+        <button
+          onClick={() => renameTier(tier)}
+          className="text-xs text-white bg-black/40 px-[4px] rounded hover:bg-white/10"
+        >
+          ✎
+        </button>
+      )}
+      <span className="flex-1 text-center">
+        {tier === 'Pool' ? 'Pool' : tier}
+      </span>
+      {!screenshotMode && tier !== 'Pool' && (
+        <button
+          onClick={() => deleteTier(tier)}
+          className="text-xs text-red-300 bg-black/40 px-[4px] rounded hover:bg-red-600"
+        >
+          🗑
+        </button>
       )}
     </div>
     <div className="flex flex-wrap gap-[2px] flex-1">

@@ -279,100 +279,27 @@ const TierMakerBoard = ({ players = [] }) => {
           drawerOpen ? 'ml-[300px]' : 'ml-0'
         }`}
       >
-        <div className="flex flex-col gap-2 w-full max-w-[1000px] mx-auto pt-3 pb-20">
-          <div className="flex justify-between items-center flex-wrap gap-2 mb-16">
-            <div className="flex items-center gap-2 flex-wrap">
-              <button
-                onClick={() => setScreenshotMode((prev) => !prev)}
-                className="px-3 py-1 text-sm rounded bg-white/10 hover:bg-white/20 transition-all text-white"
-              >
-                {screenshotMode ? 'Exit Screenshot View' : 'Screenshot View'}
-              </button>
+        <div className="flex flex-col gap-2 w-full max-w-[1000px] mx-auto pt-6 pb-12x">
+          <button
+            onClick={() => setScreenshotMode((prev) => !prev)}
+            className="px-3 py-1 text-sm rounded bg-white/10 hover:bg-white/20 transition-all text-white absolute top-0 right-0"
+          >
+            {screenshotMode ? 'Exit Screenshot View' : 'Screenshot View'}
+          </button>
 
-              <div className="flex items-center gap-1">
-                <select
-                  value={selectedTeam}
-                  onChange={(e) => setSelectedTeam(e.target.value)}
-                  className="bg-[#1a1a1a] text-white text-sm px-2 py-1 rounded border border-white/10"
-                >
-                  <option value="">Add Team...</option>
-                  {teamOptions.sort().map((team) => (
-                    <option key={team} value={team}>
-                      {team}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  onClick={handleAddTeamRoster}
-                  className="px-2 py-1 text-sm rounded bg-white/10 hover:bg-white/20 text-white"
-                >
-                  Add Team
-                </button>
-              </div>
-
-              <div className="flex items-center gap-1">
-                <select
-                  value={selectedList}
-                  onChange={(e) => setSelectedList(e.target.value)}
-                  className="bg-[#1a1a1a] text-white text-sm px-2 py-1 rounded border border-white/10"
-                >
-                  <option value="">Add List...</option>
-                  {lists.map((l) => (
-                    <option key={l.id} value={l.id}>
-                      {l.name}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  onClick={handleAddList}
-                  className="px-2 py-1 text-sm rounded bg-white/10 hover:bg-white/20 text-white"
-                >
-                  Add List
-                </button>
-              </div>
-
-              <div className="flex items-center gap-1">
-                <select
-                  value={selectedTierList}
-                  onChange={(e) => handleLoadTierList(e.target.value)}
-                  className="bg-[#1a1a1a] text-white text-sm px-2 py-1 rounded border border-white/10"
-                >
-                  <option value="">Load Tier List...</option>
-                  {tierLists.map((l) => (
-                    <option key={l.id} value={l.id}>
-                      {l.name}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  onClick={handleSaveTierList}
-                  className="px-2 py-1 text-sm rounded bg-white/10 hover:bg-white/20 text-white"
-                >
-                  {isSaving ? 'Saving...' : 'Save'}
-                </button>
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="px-2 py-1 text-sm rounded bg-white/10 hover:bg-white/20 text-white"
-                >
-                  New
-                </button>
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <button
-                onClick={addTier}
-                className="px-3 py-1 text-sm rounded bg-white/10 hover:bg-white/20 transition-all text-white"
-              >
-                Add Tier
-              </button>
-              <button
-                onClick={resetBoard}
-                className="px-3 py-1 text-sm rounded bg-red-500 hover:bg-red-600 transition-all text-white"
-              >
-                Reset
-              </button>
-            </div>
+          <div className="flex justify-between items-center mb-1">
+            <button
+              onClick={addTier}
+              className="px-3 py-1 text-sm rounded bg-white/10 hover:bg-white/20 transition-all text-white"
+            >
+              Add Tier
+            </button>
+            <button
+              onClick={resetBoard}
+              className="px-3 py-1 text-sm rounded bg-red-500 hover:bg-red-600 transition-all text-white"
+            >
+              Reset
+            </button>
           </div>
 
           {tierOrder.map((tier) => (
@@ -387,6 +314,77 @@ const TierMakerBoard = ({ players = [] }) => {
               deleteTier={deleteTier}
             />
           ))}
+
+          <div className="flex items-center gap-2 flex-wrap mt-4 justify-center">
+            <div className="flex items-center gap-1">
+              <select
+                value={selectedTeam}
+                onChange={(e) => setSelectedTeam(e.target.value)}
+                className="bg-[#1a1a1a] text-white text-sm px-2 py-1 rounded border border-white/10"
+              >
+                <option value="">Add Team...</option>
+                {teamOptions.sort().map((team) => (
+                  <option key={team} value={team}>
+                    {team}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={handleAddTeamRoster}
+                className="px-2 py-1 text-sm rounded bg-white/10 hover:bg-white/20 text-white"
+              >
+                Add Team
+              </button>
+            </div>
+
+            <div className="flex items-center gap-1">
+              <select
+                value={selectedList}
+                onChange={(e) => setSelectedList(e.target.value)}
+                className="bg-[#1a1a1a] text-white text-sm px-2 py-1 rounded border border-white/10"
+              >
+                <option value="">Add List...</option>
+                {lists.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={handleAddList}
+                className="px-2 py-1 text-sm rounded bg-white/10 hover:bg-white/20 text-white"
+              >
+                Add List
+              </button>
+            </div>
+
+            <div className="flex items-center gap-1">
+              <select
+                value={selectedTierList}
+                onChange={(e) => handleLoadTierList(e.target.value)}
+                className="bg-[#1a1a1a] text-white text-sm px-2 py-1 rounded border border-white/10"
+              >
+                <option value="">Load Tier List...</option>
+                {tierLists.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={handleSaveTierList}
+                className="px-2 py-1 text-sm rounded bg-white/10 hover:bg-white/20 text-white"
+              >
+                {isSaving ? 'Saving...' : 'Save'}
+              </button>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="px-2 py-1 text-sm rounded bg-white/10 hover:bg-white/20 text-white"
+              >
+                New
+              </button>
+            </div>
+          </div>
         </div>
       </div>
       <CreateTierListModal
