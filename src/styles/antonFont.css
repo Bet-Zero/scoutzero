@@ -1,0 +1,5 @@
+@font-face {
+  font-family: 'AntonLocal';
+  src: url('/fonts/Anton.woff2') format('woff2');
+  font-display: swap;
+}

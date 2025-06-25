@@ -1,13 +1,30 @@
 // src/components/roster/RosterPreviewModal.jsx
-import React from 'react';
+import React, { useRef } from 'react';
+import { toPng } from 'html-to-image';
 import { getTeamColors } from '@/utils/formatting/teamColors';
 import RosterSection from './RosterSection';
+import '@/styles/antonFont.css';
 
 const RosterPreviewModal = ({ open, onClose, roster, team }) => {
   if (!open || !roster) return null;
 
   const { primary, secondary } = getTeamColors(team);
+  const previewRef = useRef(null);
   const scale = 0.6; // Zoomed out a bit more from 0.7
+
+  const handleDownload = async () => {
+    if (!previewRef.current) return;
+    try {
+      const dataUrl = await toPng(previewRef.current, { cacheBust: true });
+      const link = document.createElement('a');
+      link.download = `${team || 'roster'}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to download roster', err);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 overflow-auto">
@@ -25,8 +42,18 @@ const RosterPreviewModal = ({ open, onClose, roster, team }) => {
           maxHeight: '90vh',
         }}
       >
+        <button
+          onClick={handleDownload}
+          className="fixed top-6 right-6 z-[1000] bg-white text-black px-4 py-2 rounded shadow-lg"
+        >
+          Download PNG
+        </button>
+
         {/* Preview content */}
-        <div className="rounded-2xl border border-white/20 shadow-2xl bg-[#111] relative overflow-hidden">
+        <div
+          ref={previewRef}
+          className="rounded-2xl border border-white/20 shadow-2xl bg-[#111] relative overflow-hidden"
+        >
           {/* Background Logo */}
           {team && (
             <img
@@ -38,19 +65,29 @@ const RosterPreviewModal = ({ open, onClose, roster, team }) => {
 
           {/* Content */}
           <div className="relative text-white px-8 py-6 mt-3 flex flex-col items-center">
+            <div
+              style={{
+                fontFamily: 'AntonLocal',
+                opacity: 0,
+                position: 'absolute',
+              }}
+            >
+              preload
+            </div>
             <h2
               className="text-6xl font-black tracking-wide uppercase mb-1"
               style={{
+                fontFamily: 'AntonLocal, sans-serif', // 👈 Add this line
                 color: '#1e1e1e',
                 textShadow: `0 0 8px ${primary}, 0 0 16px ${secondary}`,
               }}
             >
               {team}
             </h2>
+
             <h3 className="text-base text-neutral-400 font-medium mb-5 tracking-wide">
               Team Roster
             </h3>
-
             {/* Roster Sections */}
             <div className="w-full space-y-6 mb-11">
               <RosterSection
