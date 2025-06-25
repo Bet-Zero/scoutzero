@@ -10,31 +10,26 @@ const RosterPreviewModal = ({ open, onClose, roster, team }) => {
 
   const { primary, secondary } = getTeamColors(team);
   const previewRef = useRef(null);
-  const scale = 0.6; // Zoomed out a bit more from 0.7
 
   const handleDownload = async () => {
     if (!previewRef.current) return;
     try {
-      // Explicitly load the font
       const font = new FontFace(
         'AntonLocal',
         "url('/fonts/Anton.woff2') format('woff2')",
         { display: 'swap' }
       );
 
-      // Wait for font to load
       await font.load();
       document.fonts.add(font);
       await document.fonts.ready;
-
-      // Additional small delay to ensure rendering
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       const dataUrl = await toPng(previewRef.current, {
         cacheBust: true,
         skipFonts: true,
         backgroundColor: '#111',
-        pixelRatio: 2, // ⬅️ Doubles resolution (can increase to 3 or 4 if needed)
+        pixelRatio: 2,
       });
 
       const link = document.createElement('a');
@@ -51,40 +46,31 @@ const RosterPreviewModal = ({ open, onClose, roster, team }) => {
       {/* Backdrop click to close */}
       <div className="absolute inset-0 cursor-pointer" onClick={onClose} />
 
-      {/* Scaled container */}
+      {/* Scaled container - much smaller appearance */}
       <div
-        className="relative mx-auto"
+        className="relative mx-auto transform"
         style={{
-          transform: `scale(${scale})`,
-          transformOrigin: 'top center',
-          width: '1300px',
-          maxWidth: '90vw',
-          maxHeight: '90vh',
+          transform: 'scale(0.6)', // Scale down to 50% size
+          transformOrigin: 'center',
+          width: '1200px',
+          height: '1000px',
         }}
       >
-        <button
-          onClick={handleDownload}
-          className="fixed top-6 right-6 z-[1000] bg-white text-black px-4 py-2 rounded shadow-lg"
-        >
-          Download PNG
-        </button>
-
-        {/* Preview content */}
         <div
           ref={previewRef}
-          className="rounded-2xl border border-white/20 shadow-2xl bg-[#111] relative overflow-hidden"
+          className="rounded-2xl h-[1000px] border border-white/20 shadow-2xl bg-[#111] relative overflow-hidden"
         >
-          {/* Background Logo */}
+          {/* Logo */}
           {team && (
             <img
               src={`/assets/logos/${team.toLowerCase()}.png`}
               alt=""
-              className="absolute inset-0 w-full h-full object-contain opacity-10 blur-sm mt-4 pointer-events-none select-none"
+              className="absolute inset-0 w-full h-full object-contain opacity-20 blur-sm mt-4 pointer-events-none select-none"
             />
           )}
 
           {/* Content */}
-          <div className="relative text-white px-8 py-6 mt-3 flex flex-col items-center">
+          <div className="relative text-white px-8 py-12 mt-7 pb-4 flex flex-col items-center">
             <div
               style={{
                 fontFamily: 'AntonLocal',
@@ -94,26 +80,29 @@ const RosterPreviewModal = ({ open, onClose, roster, team }) => {
             >
               preload
             </div>
-            <div className="relative w-full h-[70px] mb-1">
+            <div className="w-full flex justify-center items-center h-[70px] mb-1 relative z-10">
               <h2
-                className="absolute inset-0 flex items-center justify-center text-6xl font-black uppercase text-center leading-none"
+                className="text-7xl font-black uppercase leading-none"
                 style={{
                   fontFamily: 'AntonLocal, sans-serif',
                   color: '#1e1e1e',
                   textShadow: `0 0 8px ${primary}, 0 0 16px ${secondary}`,
-                  paddingLeft: '8px',
-                  paddingRight: '8px',
+                  textAlign: 'center',
+                  width: '100%',
+                  margin: 0,
+                  padding: 0,
                 }}
               >
                 {team}
               </h2>
             </div>
 
-            <h3 className="text-base text-neutral-400 font-medium mb-5 tracking-wide">
+            <h3 className="text-base text-neutral-400 font-medium mb-6 tracking-wide">
               Team Roster
             </h3>
+
             {/* Roster Sections */}
-            <div className="w-full space-y-6 mb-11">
+            <div className="w-full space-y-8 pb-16">
               <RosterSection
                 players={roster.starters}
                 section="starters"
@@ -135,6 +124,16 @@ const RosterPreviewModal = ({ open, onClose, roster, team }) => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Download Button positioned outside the scaled container */}
+      <div className="absolute bottom-7 left-1/2 transform -translate-x-1/2 z-30">
+        <button
+          onClick={handleDownload}
+          className="bg-neutral-200 text-black text-[10px] px-[8px] py-[4px] rounded shadow-md hover:bg-neutral-400 transition"
+        >
+          Download
+        </button>
       </div>
     </div>
   );
