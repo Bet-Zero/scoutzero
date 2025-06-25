@@ -7,6 +7,7 @@ import OpenDrawerButton from '@/components/shared/ui/drawers/OpenDrawerButton';
 import RosterControls from './RosterControls';
 import RosterSection from './RosterSection';
 import SaveRosterModal from './SaveRosterModal';
+import RosterPreviewModal from './RosterPreviewModal';
 import { getTeamColors } from '@/utils/formatting/teamColors';
 import { useRosterManager } from '@/hooks/useRosterManager';
 
@@ -31,6 +32,8 @@ const RosterViewer = ({ isExport = false }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [slotTarget, setSlotTarget] = useState({ section: '', index: -1 });
   const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewRoster, setPreviewRoster] = useState(null);
 
   const handleRemovePlayer = (section, index, e) => {
     e?.stopPropagation();
@@ -45,6 +48,11 @@ const RosterViewer = ({ isExport = false }) => {
   const handleSaveFromModal = async () => {
     await saveNewRoster();
     setSaveModalOpen(false);
+  };
+
+  const handlePreview = () => {
+    setPreviewRoster(JSON.parse(JSON.stringify(roster)));
+    setPreviewOpen(true);
   };
 
   if (isLoading) {
@@ -158,6 +166,17 @@ const RosterViewer = ({ isExport = false }) => {
             onAdd={handleOpenDrawer}
             isExport={isExport}
           />
+          {/* Preview Button */}
+          {!isExport && (
+            <div className="fixed bottom-6 left-6 z-50">
+              <button
+                onClick={handlePreview}
+                className="bg-white/10 text-white px-4 py-2 rounded hover:bg-white/20"
+              >
+                Preview
+              </button>
+            </div>
+          )}
           {/* Save Roster Button */}
           {!isExport && (
             <div className="fixed bottom-6 right-6 z-50">
@@ -177,6 +196,14 @@ const RosterViewer = ({ isExport = false }) => {
               onNameChange={setRosterName}
               onCancel={() => setSaveModalOpen(false)}
               onSave={handleSaveFromModal}
+            />
+          )}
+          {previewOpen && (
+            <RosterPreviewModal
+              open={previewOpen}
+              onClose={() => setPreviewOpen(false)}
+              roster={previewRoster}
+              team={selectedTeam}
             />
           )}
         </div>
