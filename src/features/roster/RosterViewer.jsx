@@ -128,15 +128,18 @@ const RosterViewer = ({ isExport = false }) => {
 
           {/* Team Name */}
           {selectedTeam && (
-            <h2
-              className="text-5xl font-black tracking-wide z-10 uppercase relative mb-2"
-              style={{
-                color: '#1e1e1e',
-                textShadow: `0 0 10px ${primary}, 0 0 18px ${secondary}`,
-              }}
-            >
-              {selectedTeam}
-            </h2>
+            <div className="w-full flex justify-center relative z-10 mb-2">
+              <h2
+                className="text-5xl font-black tracking-wide uppercase relative"
+                style={{
+                  color: '#1e1e1e',
+                  textShadow: `0 0 10px ${primary}, 0 0 18px ${secondary}`,
+                  transform: 'translateX(3px)', // tweak this!
+                }}
+              >
+                {selectedTeam}
+              </h2>
+            </div>
           )}
 
           <h3 className="text-xl text-neutral-500 font-semibold z-10 mb-8 opacity-90 tracking-wide">
