@@ -15,13 +15,31 @@ const RosterPreviewModal = ({ open, onClose, roster, team }) => {
   const handleDownload = async () => {
     if (!previewRef.current) return;
     try {
-      const dataUrl = await toPng(previewRef.current, { cacheBust: true });
+      // Explicitly load the font
+      const font = new FontFace(
+        'AntonLocal',
+        "url('/fonts/Anton.woff2') format('woff2')",
+        { display: 'swap' }
+      );
+      await font.load();
+      document.fonts.add(font);
+      await document.fonts.ready;
+
+      // Small delay to ensure rendering
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      const dataUrl = await toPng(previewRef.current, {
+        cacheBust: true,
+        skipFonts: true,
+        backgroundColor: '#111',
+        pixelRatio: 2,
+      });
+
       const link = document.createElement('a');
       link.download = `${team || 'roster'}.png`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
-      // eslint-disable-next-line no-console
       console.error('Failed to download roster', err);
     }
   };
@@ -31,7 +49,7 @@ const RosterPreviewModal = ({ open, onClose, roster, team }) => {
       {/* Backdrop click to close */}
       <div className="absolute inset-0 cursor-pointer" onClick={onClose} />
 
-      {/* Scaled container */}
+      {/* Scaled content + button (separated) */}
       <div
         className="relative mx-auto"
         style={{
@@ -42,14 +60,7 @@ const RosterPreviewModal = ({ open, onClose, roster, team }) => {
           maxHeight: '90vh',
         }}
       >
-        <button
-          onClick={handleDownload}
-          className="fixed top-6 right-6 z-[1000] bg-white text-black px-4 py-2 rounded shadow-lg"
-        >
-          Download PNG
-        </button>
-
-        {/* Preview content */}
+        {/* Preview content (export target) */}
         <div
           ref={previewRef}
           className="rounded-2xl border border-white/20 shadow-2xl bg-[#111] relative overflow-hidden"
@@ -63,8 +74,9 @@ const RosterPreviewModal = ({ open, onClose, roster, team }) => {
             />
           )}
 
-          {/* Content */}
+          {/* Preview Content */}
           <div className="relative text-white px-8 py-6 mt-3 flex flex-col items-center">
+            {/* Preload hidden font */}
             <div
               style={{
                 fontFamily: 'AntonLocal',
@@ -74,20 +86,27 @@ const RosterPreviewModal = ({ open, onClose, roster, team }) => {
             >
               preload
             </div>
-            <h2
-              className="text-6xl font-black tracking-wide uppercase mb-1"
-              style={{
-                fontFamily: 'AntonLocal, sans-serif', // 👈 Add this line
-                color: '#1e1e1e',
-                textShadow: `0 0 8px ${primary}, 0 0 16px ${secondary}`,
-              }}
-            >
-              {team}
-            </h2>
+
+            {/* Centered Team Name */}
+            <div className="relative w-full h-[70px] mb-1">
+              <h2
+                className="absolute left-1/2 top-1/2 -translate-x-[48%] -translate-y-1/2 text-6xl font-black uppercase text-center leading-none"
+                style={{
+                  fontFamily: 'AntonLocal, sans-serif',
+                  color: '#1e1e1e',
+                  textShadow: `0 0 8px ${primary}, 0 0 16px ${secondary}`,
+                  paddingLeft: '8px',
+                  paddingRight: '8px',
+                }}
+              >
+                {team}
+              </h2>
+            </div>
 
             <h3 className="text-base text-neutral-400 font-medium mb-5 tracking-wide">
               Team Roster
             </h3>
+
             {/* Roster Sections */}
             <div className="w-full space-y-6 mb-11">
               <RosterSection
@@ -111,6 +130,14 @@ const RosterPreviewModal = ({ open, onClose, roster, team }) => {
             </div>
           </div>
         </div>
+
+        {/* Download Button (outside previewRef) */}
+        <button
+          onClick={handleDownload}
+          className="fixed top-6 right-6 z-[1000] bg-white text-black px-4 py-2 rounded shadow-lg"
+        >
+          Download PNG
+        </button>
       </div>
     </div>
   );
