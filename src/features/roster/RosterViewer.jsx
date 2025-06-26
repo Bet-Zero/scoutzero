@@ -9,6 +9,7 @@ import RosterSection from './RosterSection';
 import SaveRosterModal from './SaveRosterModal';
 import RosterPreviewModal from './RosterPreviewModal';
 import { getTeamColors } from '@/utils/formatting/teamColors';
+import { getTeamLogoFilename } from '@/utils/formatting/teamLogos';
 import { useRosterManager } from '@/hooks/useRosterManager';
 
 const RosterViewer = ({ isExport = false }) => {
@@ -104,7 +105,7 @@ const RosterViewer = ({ isExport = false }) => {
           {/* Team Branding Background */}
           {selectedTeam && (
             <img
-              src={`/assets/logos/${selectedTeam.toLowerCase()}.png`}
+              src={`/assets/logos/${getTeamLogoFilename(selectedTeam)}.png`}
               alt=""
               className="absolute inset-0 w-full h-full object-contain opacity-20 blur-sm mt-4 pointer-events-none select-none"
               style={{ zIndex: 0 }}
