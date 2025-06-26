@@ -26,7 +26,7 @@ const teamLogoMap = {
   Sixers: 'sixers', // ✅ full name version
   '76ers': 'sixers', // ✅ alternate version with number
   Suns: 'suns',
-  BTrailBlazers: 'blazers',
+  TrailBlazers: 'blazers',
   'Trail Blazers': 'blazers',
   Blazers: 'blazers',
   Kings: 'kings',

@@ -9,9 +9,12 @@ const RosterControls = ({
   onLoadMethodChange,
   savedRosters = [],
 }) => {
-  const filteredRosters = savedRosters.filter(
-    (r) => r.team?.toLowerCase() === selectedTeam?.toLowerCase()
-  );
+  const filteredRosters = savedRosters.filter((r) => {
+    if (selectedTeam) {
+      return r.team?.toLowerCase() === selectedTeam.toLowerCase() || !r.team;
+    }
+    return true;
+  });
 
   return (
     <div className="flex flex-wrap items-center gap-4 mb-6">
