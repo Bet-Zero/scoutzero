@@ -23,7 +23,7 @@ export const teamOptions = [
   'Magic',
   '76ers',
   'Suns',
-  'Blazers',
+  'Trail Blazers',
   'Kings',
   'Spurs',
   'Raptors',
