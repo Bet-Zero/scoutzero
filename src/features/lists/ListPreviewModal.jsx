@@ -1,5 +1,5 @@
 // src/features/lists/ListPreviewModal.jsx
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useLayoutEffect, useState } from 'react';
 import { toPng } from 'html-to-image';
 import '@/styles/antonFont.css';
 import ListExportWrapper from './ListExportWrapper';
@@ -22,7 +22,7 @@ const ListPreviewModal = ({
   const previewRef = useRef(null);
   const [scale, setScale] = useState(0.6);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const updateScale = () => {
       if (!previewRef.current) return;
 
@@ -39,7 +39,13 @@ const ListPreviewModal = ({
 
     updateScale();
     window.addEventListener('resize', updateScale);
-    return () => window.removeEventListener('resize', updateScale);
+    const observer = new ResizeObserver(updateScale);
+    if (previewRef.current) observer.observe(previewRef.current);
+
+    return () => {
+      window.removeEventListener('resize', updateScale);
+      observer.disconnect();
+    };
   }, []);
 
   const handleDownload = async () => {
