@@ -1,6 +1,7 @@
 // src/features/lists/ListPreviewModal.jsx
 import React, { useRef } from 'react';
 import { toPng } from 'html-to-image';
+import '@/styles/antonFont.css';
 import ListExportWrapper from './ListExportWrapper';
 
 const ListPreviewModal = ({
@@ -23,8 +24,20 @@ const ListPreviewModal = ({
   const handleDownload = async () => {
     if (!previewRef.current) return;
     try {
+      const font = new FontFace(
+        'AntonLocal',
+        "url('/fonts/Anton.woff2') format('woff2')",
+        { display: 'swap' }
+      );
+
+      await font.load();
+      document.fonts.add(font);
+      await document.fonts.ready;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       const dataUrl = await toPng(previewRef.current, {
         cacheBust: true,
+        skipFonts: true,
         backgroundColor: '#111',
         pixelRatio: 2,
       });
@@ -48,7 +61,12 @@ const ListPreviewModal = ({
           width: '1200px',
         }}
       >
-        <div ref={previewRef} className="rounded-2xl border border-white/20 shadow-2xl overflow-hidden bg-[#111]">
+        <div ref={previewRef} className="rounded-2xl border border-white/20 shadow-2xl overflow-hidden bg-[#111] relative">
+          <div
+            style={{ fontFamily: 'AntonLocal', opacity: 0, position: 'absolute' }}
+          >
+            preload
+          </div>
           <ListExportWrapper
             players={players}
             tiers={tiers}
