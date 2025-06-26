@@ -40,7 +40,7 @@ const ListExportRowCompact = ({ player, rank }) => {
       </div>
 
       {/* Main Info Block */}
-      <div className="flex items-center ml-3 mr-4 w-full max-w-[calc(100%-175px)] justify-between">
+      <div className="flex items-center ml-3 mr-4 flex-1 justify-between">
         {/* Name */}
         <div
           className="text-white font-anton font-bold uppercase tracking-normal leading-none whitespace-nowrap overflow-visible"
@@ -62,7 +62,7 @@ const ListExportRowCompact = ({ player, rank }) => {
       </div>
 
       {/* Position */}
-      <div className="w-[80px] flex items-center justify-center text-white/60 text-sm font-semibold -mr-3">
+      <div className="w-[70px] flex items-center justify-center text-white/60 text-sm font-semibold -mr-3">
         {position}
       </div>
     </div>
