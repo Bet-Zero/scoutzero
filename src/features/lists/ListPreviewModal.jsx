@@ -1,5 +1,5 @@
 // src/features/lists/ListPreviewModal.jsx
-import React, { useRef } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { toPng } from 'html-to-image';
 import '@/styles/antonFont.css';
 import ListExportWrapper from './ListExportWrapper';
@@ -20,6 +20,27 @@ const ListPreviewModal = ({
   if (!open) return null;
 
   const previewRef = useRef(null);
+  const [scale, setScale] = useState(0.6);
+
+  useEffect(() => {
+    const updateScale = () => {
+      if (!previewRef.current) return;
+
+      const { height } = previewRef.current.getBoundingClientRect();
+      const availableHeight = window.innerHeight - 80; // leave breathing room
+      const heightScale = availableHeight / height;
+
+      const availableWidth = window.innerWidth - 40;
+      const widthScale = Math.min(availableWidth, 1200) / 1200;
+
+      const newScale = Math.min(heightScale, widthScale, 1);
+      setScale(newScale);
+    };
+
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    return () => window.removeEventListener('resize', updateScale);
+  }, []);
 
   const handleDownload = async () => {
     if (!previewRef.current) return;
@@ -51,12 +72,12 @@ const ListPreviewModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 overflow-auto">
+    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-8 overflow-auto">
       <div className="absolute inset-0 cursor-pointer" onClick={onClose} />
       <div
         className="relative mx-auto transform"
         style={{
-          transform: 'scale(0.6)',
+          transform: `scale(${scale})`,
           transformOrigin: 'center',
           width: '1200px',
         }}

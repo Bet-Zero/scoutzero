@@ -168,22 +168,24 @@ const ListManager = () => {
   return (
     <>
       {/* Header */}
-      <div className="w-full max-w-[1100px] mx-auto px-4 mt-10 mb-6 relative z-10">
-        <div className="absolute top-0 right-0">
-          <ListRankToggle isRanked={isRanked} onChange={setIsRanked} />
-        </div>
-        <div className="h-[5px] w-24 bg-gradient-to-r from-neutral-500 to-neutral-900 rounded-full mb-4 shadow-lg"></div>
-        <h1 className="text-5xl font-extrabold tracking-tight text-neutral-100 mb-3">
-          {listData.name}
-        </h1>
-        {listData.description && (
-          <div className="backdrop-blur-md bg-white/5 border border-white/10 rounded-md px-4 py-3 max-w-[800px]">
-            <p className="text-white/70 text-sm leading-relaxed italic">
-              {listData.description}
-            </p>
+      {!isExport && (
+        <div className="w-full max-w-[1100px] mx-auto px-4 mt-10 mb-6 relative z-10">
+          <div className="absolute top-0 right-0 flex flex-col items-end gap-2 z-20">
+            <ListRankToggle isRanked={isRanked} onChange={setIsRanked} />
           </div>
-        )}
-      </div>
+          <div className="h-[5px] w-24 bg-gradient-to-r from-neutral-500 to-neutral-900 rounded-full mb-4 shadow-lg"></div>
+          <h1 className="text-5xl font-extrabold tracking-tight text-neutral-100 mb-3">
+            {listData.name}
+          </h1>
+          {listData.description && (
+            <div className="backdrop-blur-md bg-white/5 border border-white/10 rounded-md px-4 py-3 max-w-[800px]">
+              <p className="text-white/70 text-sm leading-relaxed italic">
+                {listData.description}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       <ExportOptionsModal
         open={showExportModal}
@@ -198,12 +200,22 @@ const ListManager = () => {
       {/* Export Layout */}
       {isExport ? (
         <>
-          {exportType === 'list' && (
-            <div className="w-full max-w-[1100px] mx-auto px-4 mb-4 flex justify-between">
-              <ListRowStyleToggle compact={compact} onChange={setCompact} />
-              <ListColumnToggle twoColumn={twoColumn} onChange={setTwoColumn} />
+          <div className="w-full max-w-[1100px] mx-auto px-4 mt-10 mb-4 flex justify-end items-center gap-4 z-20">
+            <div className="flex items-center gap-4">
+              <ListRankToggle isRanked={isRanked} onChange={setIsRanked} />
+              {exportType === 'list' && (
+                <>
+                  <div className="h-6 border-l border-white/20"></div>
+                  <ListColumnToggle
+                    twoColumn={twoColumn}
+                    onChange={setTwoColumn}
+                  />
+                  <div className="h-6 border-l border-white/20"></div>
+                  <ListRowStyleToggle compact={compact} onChange={setCompact} />
+                </>
+              )}
             </div>
-          )}
+          </div>
 
           <div className="w-full max-w-[1100px] mx-auto px-4">
             <ListExportWrapper
@@ -224,6 +236,7 @@ const ListManager = () => {
               subtitle={listData.description}
             />
           </div>
+
           <div className="w-full max-w-[1100px] mx-auto px-4 mt-8 mb-12 flex justify-between">
             <button
               onClick={() => setPreviewOpen(true)}
