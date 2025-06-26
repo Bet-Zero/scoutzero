@@ -72,7 +72,7 @@ const RostersHome = () => {
                 key={r.id}
                 className="p-4 bg-[#1a1a1a] hover:bg-[#232323] border border-white/10 rounded transition relative"
               >
-                <Link to="/roster" className="block group">
+                <Link to={`/roster/${r.id}`} className="block group">
                   <h2 className="text-lg font-bold text-white mb-1 group-hover:underline">
                     {r.name}
                   </h2>
