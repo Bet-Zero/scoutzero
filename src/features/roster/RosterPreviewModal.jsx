@@ -32,6 +32,7 @@ const RosterPreviewModal = ({ open, onClose, roster, team }) => {
         skipFonts: true,
         backgroundColor: '#111',
         pixelRatio: 2,
+        filter: (node) => !node.classList?.contains('no-export'),
       });
 
       const link = document.createElement('a');
@@ -65,7 +66,7 @@ const RosterPreviewModal = ({ open, onClose, roster, team }) => {
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-2.5 left-2.5 text-white/60 hover:text-white z-20"
+            className="absolute top-2.5 left-2.5 text-white/60 hover:text-white z-20 no-export"
             title="Close"
           >
             <X size={36} />
