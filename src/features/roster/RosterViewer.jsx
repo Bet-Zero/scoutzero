@@ -1,5 +1,5 @@
 // src/components/roster/RosterViewer.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import usePlayerData from '@/hooks/usePlayerData.js';
 import AddPlayerDrawer from './AddPlayerDrawer';
 import DrawerShell from '@/components/shared/ui/drawers/DrawerShell';
@@ -11,7 +11,7 @@ import RosterPreviewModal from './RosterPreviewModal';
 import { getTeamColors } from '@/utils/formatting/teamColors';
 import { useRosterManager } from '@/hooks/useRosterManager';
 
-const RosterViewer = ({ isExport = false }) => {
+const RosterViewer = ({ isExport = false, initialRosterId }) => {
   const { players: allPlayers, loading: isLoading } = usePlayerData();
   const {
     roster,
@@ -34,6 +34,15 @@ const RosterViewer = ({ isExport = false }) => {
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewRoster, setPreviewRoster] = useState(null);
+
+  useEffect(() => {
+    if (!initialRosterId || savedRosters.length === 0) return;
+    const match = savedRosters.find((r) => r.id === initialRosterId);
+    if (match) {
+      setSelectedTeam(match.team);
+      setLoadMethod(match.id);
+    }
+  }, [initialRosterId, savedRosters, setSelectedTeam, setLoadMethod]);
 
   const handleRemovePlayer = (section, index, e) => {
     e?.stopPropagation();

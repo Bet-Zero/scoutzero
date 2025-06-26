@@ -18,7 +18,7 @@ const App = () => {
         <Route path="/" element={<Navigate to="/players" replace />} />
         <Route path="/players" element={<PlayerTableView />} />
         <Route path="/profiles" element={<PlayerProfileView />} />
-        <Route path="/roster" element={<TeamRosterView />} />
+        <Route path="/roster/:rosterId?" element={<TeamRosterView />} />
         <Route path="/rosters" element={<RostersHome />} />
         <Route path="/lists" element={<ListsHome />} />
         <Route path="/lists/:listId" element={<ListManager />} />

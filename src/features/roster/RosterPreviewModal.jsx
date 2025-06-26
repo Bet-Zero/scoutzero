@@ -1,5 +1,6 @@
 // src/components/roster/RosterPreviewModal.jsx
 import React, { useRef } from 'react';
+import { X } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { getTeamColors } from '@/utils/formatting/teamColors';
 import RosterSection from './RosterSection';
@@ -60,6 +61,14 @@ const RosterPreviewModal = ({ open, onClose, roster, team }) => {
           ref={previewRef}
           className="rounded-2xl h-[1000px] border border-white/20 shadow-2xl bg-[#111] relative overflow-hidden"
         >
+          {/* Close button */}
+          <button
+            onClick={onClose}
+            className="absolute top-2.5 left-2.5 text-white/60 hover:text-white z-20"
+            title="Close"
+          >
+            <X size={36} />
+          </button>
           {/* Logo */}
           {team && (
             <img
