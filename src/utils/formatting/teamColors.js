@@ -301,6 +301,18 @@ export const TEAM_COLOR_MAP = {
       border: 'border-white',
     },
   },
+  trailblazers: {
+    primary: '#E03A3E',
+    secondary: '#000000',
+    tertiary: '#C4CED4',
+    text: '#FFFFFF',
+    bg: '#E03A3E',
+    classSet: {
+      bg: 'bg-[#E03A3E]',
+      text: 'text-white',
+      border: 'border-white',
+    },
+  },
   kings: {
     primary: '#5A2D81',
     secondary: '#63727A',

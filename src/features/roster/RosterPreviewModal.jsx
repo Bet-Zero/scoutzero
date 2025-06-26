@@ -2,6 +2,7 @@
 import React, { useRef } from 'react';
 import { toPng } from 'html-to-image';
 import { getTeamColors } from '@/utils/formatting/teamColors';
+import { getTeamLogoFilename } from '@/utils/formatting/teamLogos';
 import RosterSection from './RosterSection';
 import '@/styles/antonFont.css';
 
@@ -63,7 +64,7 @@ const RosterPreviewModal = ({ open, onClose, roster, team }) => {
           {/* Logo */}
           {team && (
             <img
-              src={`/assets/logos/${team.toLowerCase()}.png`}
+              src={`/assets/logos/${getTeamLogoFilename(team)}.png`}
               alt=""
               className="absolute inset-0 w-full h-full object-contain opacity-20 blur-sm mt-4 pointer-events-none select-none"
             />
