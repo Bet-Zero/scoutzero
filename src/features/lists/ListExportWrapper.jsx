@@ -170,7 +170,7 @@ const ListExportWrapper = ({
   };
 
   return (
-    <div className="w-full overflow-auto p-4 bg-gradient-to-br from-[#1e1e1e] to-[#111] rounded-lg border border-neutral-700 shadow-sm">
+    <div className="w-full overflow-auto p-6 bg-gradient-to-br from-[#1e1e1e] to-[#111] rounded-lg border border-neutral-700 shadow-sm">
       {exportType === 'tier' ? renderTiered() : renderFlatOrRanked()}
     </div>
   );

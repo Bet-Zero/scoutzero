@@ -16,6 +16,7 @@ import ListPlayerRow from '@/features/lists/ListPlayerRow';
 import ExportOptionsModal from '@/features/lists/ExportOptionsModal';
 import ListRowStyleToggle from '@/features/lists/ListRowStyleToggle';
 import ListColumnToggle from '@/features/lists/ListColumnToggle';
+import ListPreviewModal from '@/features/lists/ListPreviewModal';
 
 const ListManager = () => {
   const { listId } = useParams();
@@ -31,6 +32,7 @@ const ListManager = () => {
   const [compact, setCompact] = useState(false);
   const [twoColumn, setTwoColumn] = useState(true);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const { players, loading: playersLoading } = usePlayerData();
 
@@ -222,8 +224,13 @@ const ListManager = () => {
               subtitle={listData.description}
             />
           </div>
-
-          <div className="w-full max-w-[1100px] mx-auto px-4 mt-8 mb-12 text-right">
+          <div className="w-full max-w-[1100px] mx-auto px-4 mt-8 mb-12 flex justify-between">
+            <button
+              onClick={() => setPreviewOpen(true)}
+              className="px-3 py-1 text-sm rounded bg-white/10 text-white hover:bg-white/20"
+            >
+              Preview
+            </button>
             <button
               onClick={() => setIsExport(false)}
               className="px-3 py-1 text-sm rounded bg-white/10 text-white hover:bg-white/20"
@@ -231,6 +238,27 @@ const ListManager = () => {
               Back to Edit
             </button>
           </div>
+
+          {previewOpen && (
+            <ListPreviewModal
+              open={previewOpen}
+              onClose={() => setPreviewOpen(false)}
+              players={flatPlayers.map((id) => playersMap[id]).filter(Boolean)}
+              tiers={tiers.map((tier) => ({
+                label: tier.label,
+                players: tier.players
+                  .map((p) => playersMap[p.id])
+                  .filter(Boolean),
+              }))}
+              playersMap={playersMap}
+              isRanked={isRanked}
+              exportType={exportType}
+              compact={compact}
+              twoColumn={twoColumn}
+              title={listData.name}
+              subtitle={listData.description}
+            />
+          )}
         </>
       ) : (
         <>
