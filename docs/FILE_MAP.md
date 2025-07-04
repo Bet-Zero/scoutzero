@@ -46,101 +46,101 @@
 │ └── OverallGradeBlock.jsx Displays overall letter grade
 ├── features/
 │ ├── table/ Player table components
-│ │ ├── PlayerTable.jsx Main table; uses usePlayerData + filters
-│ │ ├── PlayerRow.jsx Expandable player row
-│ │ ├── PlayerDrawer.jsx Drawer with detailed info
-│ │ ├── PlayerStatsMini.jsx Compact stats display
-│ │ ├── PlayerContractMini.jsx Contract snippet
-│ │ ├── PlayerSubRolesMini.jsx Shows subrole pills
-│ │ ├── PlayerNameMini.jsx Styled name display
-│ │ ├── PlayerTraitsMiniGrid.jsx Mini trait grid
-│ │ ├── OverallBlurbMini.jsx Short overall blurb
-│ │ ├── RolePill.jsx Main role pill
-│ │ ├── SubRolePill.jsx Subrole label
-│ │ ├── ShootingProfileMini.jsx Shooting profile tag
-│ │ ├── TwoWayMini.jsx Mini two-way meter
-│ │ ├── PlayerTableHeader.jsx Column headers
-│ │ ├── SearchBar.jsx Search box
-│ │ └── ControlButtons.jsx Show/hide filter buttons
+│ │ ├── PlayerTable/index.jsx Main table; uses usePlayerData + filters
+│ │ ├── PlayerRow/index.jsx Expandable player row
+│ │ ├── PlayerDrawer/index.jsx Drawer with detailed info
+│ │ ├── PlayerStatsMini/index.jsx Compact stats display
+│ │ ├── PlayerContractMini/index.jsx Contract snippet
+│ │ ├── PlayerSubRolesMini/index.jsx Shows subrole pills
+│ │ ├── PlayerNameMini/index.jsx Styled name display
+│ │ ├── PlayerTraitsMiniGrid/index.jsx Mini trait grid
+│ │ ├── OverallBlurbMini/index.jsx Short overall blurb
+│ │ ├── RolePill/index.jsx Main role pill
+│ │ ├── SubRolePill/index.jsx Subrole label
+│ │ ├── ShootingProfileMini/index.jsx Shooting profile tag
+│ │ ├── TwoWayMini/index.jsx Mini two-way meter
+│ │ ├── PlayerTableHeader/index.jsx Column headers
+│ │ ├── SearchBar/index.jsx Search box
+│ │ └── ControlButtons/index.jsx Show/hide filter buttons
 │ ├── profile/ Player profile editor pieces
-│ │ ├── PlayerDetails.jsx Bio and contract section
-│ │ ├── PlayerRolesSection.jsx Editable offense/defense roles
-│ │ ├── PlayerStatsTable.jsx Full stats table
-│ │ ├── PlayerTraitsGrid.jsx Editable trait grid
-│ │ ├── TwoWayMeter.jsx Two-way slider
-│ │ ├── ShootingProfileSelector.jsx Pick shooting profile tier
-│ │ ├── BadgeSelector.jsx Choose player badges
-│ │ ├── SubRoleSelector.jsx Manage subroles
-│ │ ├── OverallBlurbBox.jsx Text area for overall blurb
-│ │ ├── BreakdownModal.jsx Modal showing trait/role info
-│ │ ├── TeamPlayerDropdowns.jsx Team & player dropdowns
-│ │ ├── TeamPlayerSelector.jsx Roster-based player selector
-│ │ ├── PlayerHeader.jsx Header with name/info
-│ │ ├── PlayerNavigation.jsx Prev/next navigation
-│ │ └── ProfilePlayerPosition.jsx Displays primary position
+│ │ ├── PlayerDetails/index.jsx Bio and contract section
+│ │ ├── PlayerRolesSection/index.jsx Editable offense/defense roles
+│ │ ├── PlayerStatsTable/index.jsx Full stats table
+│ │ ├── PlayerTraitsGrid/index.jsx Editable trait grid
+│ │ ├── TwoWayMeter/index.jsx Two-way slider
+│ │ ├── ShootingProfileSelector/index.jsx Pick shooting profile tier
+│ │ ├── BadgeSelector/index.jsx Choose player badges
+│ │ ├── SubRoleSelector/index.jsx Manage subroles
+│ │ ├── OverallBlurbBox/index.jsx Text area for overall blurb
+│ │ ├── BreakdownModal/index.jsx Modal showing trait/role info
+│ │ ├── TeamPlayerDropdowns/index.jsx Team & player dropdowns
+│ │ ├── TeamPlayerSelector/index.jsx Roster-based player selector
+│ │ ├── PlayerHeader/index.jsx Header with name/info
+│ │ ├── PlayerNavigation/index.jsx Prev/next navigation
+│ │ └── ProfilePlayerPosition/index.jsx Displays primary position
 │ ├── roster/ Roster builder tools
-│ │ ├── RosterViewer.jsx Orchestrates sections of the roster
-│ │ ├── RosterControls.jsx Team selectors & options
-│ │ ├── RosterSection.jsx Displays starter/bench groups
-│ │ ├── RosterExportWrapper.jsx Export container
-│ │ ├── RosterExportModal.jsx Export roster to image/JSON
-│ │ ├── SaveRosterModal.jsx Save roster to Firestore
-│ │ ├── CreateRosterModal.jsx Create new roster project
-│ │ ├── StarterCard.jsx Card for starting player
-│ │ ├── BenchCard.jsx Bench card
-│ │ ├── RotationCard.jsx Rotation slot card
-│ │ ├── EmptySlot.jsx Placeholder for empty slot
-│ │ ├── PlayerRowMini.jsx Compact row for drawer list
-│ │ ├── AddPlayerDrawer.jsx Drawer with filters for adding players
+│ │ ├── RosterViewer/index.jsx Orchestrates sections of the roster
+│ │ ├── RosterControls/index.jsx Team selectors & options
+│ │ ├── RosterSection/index.jsx Displays starter/bench groups
+│ │ ├── RosterExportWrapper/index.jsx Export container
+│ │ ├── RosterExportModal/index.jsx Export roster to image/JSON
+│ │ ├── SaveRosterModal/index.jsx Save roster to Firestore
+│ │ ├── CreateRosterModal/index.jsx Create new roster project
+│ │ ├── StarterCard/index.jsx Card for starting player
+│ │ ├── BenchCard/index.jsx Bench card
+│ │ ├── RotationCard/index.jsx Rotation slot card
+│ │ ├── EmptySlot/index.jsx Placeholder for empty slot
+│ │ ├── PlayerRowMini/index.jsx Compact row for drawer list
+│ │ ├── AddPlayerDrawer/index.jsx Drawer with filters for adding players
 │ │ └── addPlayer/
-│ │ ├── DrawerHeader.jsx Header inside drawer
-│ │ ├── PlayerSearchBar.jsx Search field
-│ │ ├── FilterTabs.jsx Tabs for filter groups
-│ │ ├── BasicFilters.jsx Team/position filters
-│ │ ├── RolesFilters.jsx Offense/defense role filters
-│ │ └── ContractFilters.jsx Contract filtering
+│ │ ├── DrawerHeader/index.jsx Header inside drawer
+│ │ ├── PlayerSearchBar/index.jsx Search field
+│ │ ├── FilterTabs/index.jsx Tabs for filter groups
+│ │ ├── BasicFilters/index.jsx Team/position filters
+│ │ ├── RolesFilters/index.jsx Offense/defense role filters
+│ │ └── ContractFilters/index.jsx Contract filtering
 │ ├── lists/ Player list management
-│ │ ├── ListControls.jsx Edit list settings
-│ │ ├── AddToListButton.jsx Adds a player into a list
-│ │ ├── ListPlayerRow.jsx Full row built on PlayerRow
-│ │ ├── TieredListView.jsx Grouped tier display
-│ │ ├── TierPlayerTile.jsx Player tile in tier view
-│ │ ├── ListRowStyleToggle.jsx Toggle ranked vs tile view
-│ │ ├── ListRankToggle.jsx Show/hide ranks
-│ │ ├── ListTierHeader.jsx Tier header bar
-│ │ ├── ListExportWrapper.jsx Handles export operations
-│ │ ├── ExportOptionsModal.jsx Options for exporting list
-│ │ ├── CreateListModal.jsx Create new list dialog
-│ │ ├── ListColumnToggle.jsx Toggle visible columns
-│ │ ├── ListExportToggle.jsx Toggle export mode
-│ │ ├── ListTierExport.jsx Export tiered list
-│ │ ├── ListExportPlayerRowSingle.jsx Single column export row
-│ │ ├── ListExportPlayerRowTwoColumn.jsx Two column export row
-│ │ ├── ListExportRowCompactSingle.jsx Single column compact row
-│ │ ├── ListExportRowCompactTwoColumn.jsx Two column compact row
-│ │ ├── RankedListTierToggle.jsx Switch ranked vs tier view
-│ │ └── ListExportTypeToggle.jsx Choose export type
+│ │ ├── ListControls/index.jsx Edit list settings
+│ │ ├── AddToListButton/index.jsx Adds a player into a list
+│ │ ├── ListPlayerRow/index.jsx Full row built on PlayerRow
+│ │ ├── TieredListView/index.jsx Grouped tier display
+│ │ ├── TierPlayerTile/index.jsx Player tile in tier view
+│ │ ├── ListRowStyleToggle/index.jsx Toggle ranked vs tile view
+│ │ ├── ListRankToggle/index.jsx Show/hide ranks
+│ │ ├── ListTierHeader/index.jsx Tier header bar
+│ │ ├── ListExportWrapper/index.jsx Handles export operations
+│ │ ├── ExportOptionsModal/index.jsx Options for exporting list
+│ │ ├── CreateListModal/index.jsx Create new list dialog
+│ │ ├── ListColumnToggle/index.jsx Toggle visible columns
+│ │ ├── ListExportToggle/index.jsx Toggle export mode
+│ │ ├── ListTierExport/index.jsx Export tiered list
+│ │ ├── ListExportPlayerRowSingle/index.jsx Single column export row
+│ │ ├── ListExportPlayerRowTwoColumn/index.jsx Two column export row
+│ │ ├── ListExportRowCompactSingle/index.jsx Single column compact row
+│ │ ├── ListExportRowCompactTwoColumn/index.jsx Two column compact row
+│ │ ├── RankedListTierToggle/index.jsx Switch ranked vs tier view
+│ │ └── ListExportTypeToggle/index.jsx Choose export type
 │ ├── filters/ Filtering UI modules
-│ │ ├── FiltersPanel.jsx Slide-out filter panel
-│ │ ├── FilterContent.jsx Container for filter form
-│ │ ├── FilterPill.jsx Pill representing an active filter
-│ │ ├── ActiveFiltersDisplay.jsx Shows current filter pills
-│ │ ├── FilterPanel.jsx Full filter sidebar
-│ │ ├── FilterPanelCondensed.jsx Condensed filter controls
+│ │ ├── FiltersPanel/index.jsx Slide-out filter panel
+│ │ ├── FilterContent/index.jsx Container for filter form
+│ │ ├── FilterPill/index.jsx Pill representing an active filter
+│ │ ├── ActiveFiltersDisplay/index.jsx Shows current filter pills
+│ │ ├── FilterPanel/index.jsx Full filter sidebar
+│ │ ├── FilterPanelCondensed/index.jsx Condensed filter controls
 │ │ └── sections/
-│ │ ├── MetadataFilters.jsx Filters by team/conf/etc
-│ │ ├── PhysicalFilters.jsx Height/weight filtering
-│ │ ├── ContractFilters.jsx Contract-based filtering
-│ │ ├── RoleFilters.jsx Filter by primary roles
-│ │ ├── TraitFilters.jsx Filter by trait grades
-│ │ ├── StatFilters.jsx Advanced stat filters
-│ │ ├── BadgeFilters.jsx Filter by badges
-│ │ ├── OverallGradeFilter.jsx Filter by overall grade
-│ │ └── ViewControls.jsx Sorting and view settings
+│ │ ├── MetadataFilters/index.jsx Filters by team/conf/etc
+│ │ ├── PhysicalFilters/index.jsx Height/weight filtering
+│ │ ├── ContractFilters/index.jsx Contract-based filtering
+│ │ ├── RoleFilters/index.jsx Filter by primary roles
+│ │ ├── TraitFilters/index.jsx Filter by trait grades
+│ │ ├── StatFilters/index.jsx Advanced stat filters
+│ │ ├── BadgeFilters/index.jsx Filter by badges
+│ │ ├── OverallGradeFilter/index.jsx Filter by overall grade
+│ │ └── ViewControls/index.jsx Sorting and view settings
 │ └── tierMaker/ Tier list creation tools
-│ ├── TierMakerBoard.jsx Drag-and-drop board of tiers
-│ ├── TierRow.jsx Row representing a tier
-│ └── CreateTierListModal.jsx Modal for saving tier lists
+│ ├── TierMakerBoard/index.jsx Drag-and-drop board of tiers
+│ ├── TierRow/index.jsx Row representing a tier
+│ └── CreateTierListModal/index.jsx Modal for saving tier lists
 ├── hooks/
 │ ├── usePlayerData.js Load players via Firebase
 │ ├── useFilteredPlayers.js Filter/sort players memoized
