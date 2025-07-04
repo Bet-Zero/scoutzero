@@ -1,9 +1,9 @@
-// src/features/lists/ListExportRowCompact.jsx
+// src/features/lists/ListExportRowCompactSingle.jsx
 import React from 'react';
 import TeamLogo from '@/components/shared/TeamLogo';
 import { getPlayerPositionLabel } from '@/utils/roles';
 
-const ListExportRowCompact = ({ player, rank }) => {
+const ListExportRowCompactSingle = ({ player, rank }) => {
   const name = player.display_name || player.name || 'Unknown Player';
   const nameParts = name.split(' ');
   const firstName = nameParts[0]?.toUpperCase() || '';
@@ -69,4 +69,4 @@ const ListExportRowCompact = ({ player, rank }) => {
   );
 };
 
-export default ListExportRowCompact;
+export default ListExportRowCompactSingle;

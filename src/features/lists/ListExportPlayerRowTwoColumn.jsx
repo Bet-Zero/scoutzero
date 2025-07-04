@@ -1,10 +1,10 @@
-// src/features/lists/ListExportPlayerRow.jsx
+// src/features/lists/ListExportPlayerRowTwoColumn.jsx
 import React from 'react';
 import PlayerNameMini from '@/features/table/PlayerNameMini';
 import TeamLogo from '@/components/shared/TeamLogo';
 import { getPlayerPositionLabel } from '@/utils/roles';
 
-const ListExportPlayerRow = ({ player, rank }) => {
+const ListExportPlayerRowTwoColumn = ({ player, rank }) => {
   const nameParts = (
     player.display_name ||
     player.name ||
@@ -62,4 +62,4 @@ const ListExportPlayerRow = ({ player, rank }) => {
   );
 };
 
-export default ListExportPlayerRow;
+export default ListExportPlayerRowTwoColumn;
