@@ -2,7 +2,7 @@
 // Full player row component for ranked or tiered lists. Rank display is now optional via showRank prop.
 
 import React from 'react';
-import PlayerRow from '@/features/table/PlayerRow';
+import PlayerRow from '@/features/table/PlayerTable/PlayerRow';
 import { ChevronUp, ChevronDown, X } from 'lucide-react';
 import { POSITION_MAP } from '@/utils/roles';
 
