@@ -1,6 +1,6 @@
 // src/pages/ExportRowPreview.jsx
 import React from 'react';
-import ListExportRowCompact from '@/features/lists/ListExportRowCompact';
+import ListExportRowCompactSingle from '@/features/lists/ListExportRowCompactSingle';
 
 const dummyPlayer = {
   player_id: 'lebron_james',
@@ -20,7 +20,7 @@ const ExportRowPreview = () => {
   return (
     <div className="bg-neutral-900 p-6 grid grid-cols-1 gap-y-2">
       {[1, 2, 3, 4, 5].map((rank) => (
-        <ListExportRowCompact key={rank} player={dummyPlayer} rank={rank} />
+        <ListExportRowCompactSingle key={rank} player={dummyPlayer} rank={rank} />
       ))}
     </div>
   );
