@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import ToggleViewButton from '@/features/lists/RankedListTierToggle';
-import ListDisplayWrapper from '@/features/lists/ListExportWrapper';
+import ListDisplayWrapper from '@/features/lists/ListPreviewModal/ListExportWrapper';
 import TieredListView from '@/features/lists/TieredListView';
 
 const samplePlayer = {

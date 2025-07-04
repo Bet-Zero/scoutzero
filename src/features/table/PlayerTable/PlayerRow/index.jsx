@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import PlayerNameMini from '@/features/table/PlayerNameMini';
-import ShootingProfileMini from '@/features/table/ShootingProfileMini';
-import RolePill from '@/features/table/RolePill';
+import PlayerNameMini from '@/features/table/PlayerTable/PlayerRow/PlayerNameMini';
+import ShootingProfileMini from '@/features/table/PlayerTable/PlayerRow/ShootingProfileMini';
+import RolePill from '@/features/table/PlayerTable/PlayerRow/RolePill';
 import OverallGradeBlock from '@/components/shared/ui/grades/OverallGradeBlock';
-import PlayerDrawer from '@/features/table/PlayerDrawer';
+import PlayerDrawer from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer';
 import TeamLogo from '@/components/shared/TeamLogo';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import AddToListButton from '@/features/lists/AddToListButton';
