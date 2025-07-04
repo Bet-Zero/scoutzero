@@ -114,8 +114,10 @@
 │ │ ├── ListColumnToggle.jsx Toggle visible columns
 │ │ ├── ListExportToggle.jsx Toggle export mode
 │ │ ├── ListTierExport.jsx Export tiered list
-│ │ ├── ListExportPlayerRow.jsx Row used during export
-│ │ ├── ListExportRowCompact.jsx Compact export row
+│ │ ├── ListExportPlayerRowSingle.jsx Single column export row
+│ │ ├── ListExportPlayerRowTwoColumn.jsx Two column export row
+│ │ ├── ListExportRowCompactSingle.jsx Single column compact row
+│ │ ├── ListExportRowCompactTwoColumn.jsx Two column compact row
 │ │ ├── RankedListTierToggle.jsx Switch ranked vs tier view
 │ │ └── ListExportTypeToggle.jsx Choose export type
 │ ├── filters/ Filtering UI modules
