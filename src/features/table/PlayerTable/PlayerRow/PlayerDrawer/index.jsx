@@ -1,10 +1,10 @@
 import React from 'react';
-import BadgeMini from '@/features/table/BadgeMini';
-import OverallBlurbMini from '@/features/table/OverallBlurbMini';
-import PlayerTraitsMiniGrid from '@/features/table/PlayerTraitsMiniGrid';
-import PlayerSubRolesMini from '@/features/table/PlayerSubRolesMini';
-import PlayerStatsMini from '@/features/table/PlayerStatsMini';
-import PlayerContractMini from '@/features/table/PlayerContractMini';
+import BadgeMini from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer/BadgeMini';
+import OverallBlurbMini from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer/OverallBlurbMini';
+import PlayerTraitsMiniGrid from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer/PlayerTraitsMiniGrid';
+import PlayerSubRolesMini from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer/PlayerSubRolesMini';
+import PlayerStatsMini from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer/PlayerStatsMini';
+import PlayerContractMini from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer/PlayerContractMini';
 
 const Divider = () => <div className="w-px h-auto bg-white/10 mx-3 my-1" />;
 

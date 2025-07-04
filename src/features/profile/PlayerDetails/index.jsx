@@ -1,10 +1,10 @@
 import React from 'react';
-import PlayerHeader from '@/features/profile/PlayerHeader';
-import PlayerStatsTable from '@/features/profile/PlayerStatsTable';
-import PlayerTraitsGrid from '@/features/profile/PlayerTraitsGrid';
-import PlayerRolesSection from '@/features/profile/PlayerRolesSection';
-import BadgeSelector from '@/features/profile/BadgeSelector';
-import OverallBlurbBox from '@/features/profile/OverallBlurbBox';
+import PlayerHeader from './PlayerHeader';
+import PlayerStatsTable from './PlayerStatsTable';
+import PlayerTraitsGrid from './PlayerTraitsGrid';
+import PlayerRolesSection from './PlayerRolesSection';
+import BadgeSelector from './BadgeSelector';
+import OverallBlurbBox from './OverallBlurbBox';
 
 const PlayerDetails = ({
   player,

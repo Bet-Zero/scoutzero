@@ -1,6 +1,6 @@
 // src/components/roster/PlayerRowMini.jsx
 import React, { useState } from 'react';
-import PlayerNameMini from '@/features/table/PlayerNameMini';
+import PlayerNameMini from '@/features/table/PlayerTable/PlayerRow/PlayerNameMini';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { getPlayerPositionLabel } from '@/utils/roles';
 import { formatSalary } from '@/utils/formatting';

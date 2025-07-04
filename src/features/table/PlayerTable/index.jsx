@@ -3,11 +3,11 @@
 import React, { useState, useMemo } from 'react';
 import usePlayerData from '@/hooks/usePlayerData';
 import useFilteredPlayers from '@/hooks/useFilteredPlayers';
-import PlayerRow from '@/features/table/PlayerRow';
+import PlayerRow from '@/features/table/PlayerTable/PlayerRow';
 import FiltersPanel from '@/features/filters/FiltersPanel';
 import ActiveFiltersDisplay from '@/features/filters/ActiveFiltersDisplay';
-import ViewControls from '@/features/filters/sections/ViewControls';
-import PlayerTableHeader from '@/features/table/PlayerTableHeader';
+import ViewControls from '@/features/filters/FiltersPanel/FilterPanel/sections/ViewControls';
+import PlayerTableHeader from '@/features/table/PlayerTable/PlayerTableHeader';
 import debounce from 'lodash.debounce';
 import { getDefaultPlayerFilters } from '@/utils/filtering';
 

@@ -1,8 +1,8 @@
 // components/PlayerRolesSection.jsx
 import React from 'react';
-import SubRoleSelector from '@/features/profile/SubRoleSelector';
-import ShootingProfileSelector from '@/features/profile/ShootingProfileSelector';
-import TwoWayMeter from '@/features/profile/TwoWayMeter';
+import SubRoleSelector from './SubRoleSelector';
+import ShootingProfileSelector from './ShootingProfileSelector';
+import TwoWayMeter from './TwoWayMeter';
 import { NotebookText } from 'lucide-react';
 import { offensiveRoles, defensiveRoles } from '@/utils/roles';
 
