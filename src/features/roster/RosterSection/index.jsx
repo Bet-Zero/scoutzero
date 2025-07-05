@@ -56,6 +56,7 @@ const RosterSection = ({
               player={player}
               onRemove={(e) => onRemove(section, idx, e)}
               showRemove={!isExport}
+              isExport={isExport}
             />
           );
         }
