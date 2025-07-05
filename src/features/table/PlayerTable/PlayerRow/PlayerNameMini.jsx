@@ -61,17 +61,17 @@ const PlayerNameMini = ({
 
   return (
     <div
-      className="flex flex-col items-start justify-center leading-tight mt-1"
+      className="flex flex-col items-start justify-center leading-tight mt-1 overflow-visible"
       style={{ width: `${width * scale}px` }}
     >
       <span
-        className={`text-white/70 font-anton ${firstWeightClass} uppercase mb-[2px] tracking-normal leading-none`}
+        className={`text-white/70 font-anton ${firstWeightClass} uppercase mb-[2px] tracking-normal leading-none whitespace-nowrap`}
         style={{ fontSize: `${firstSize}px` }}
       >
         {firstName}
       </span>
       <span
-        className={`text-white font-anton ${lastWeightClass} uppercase tracking-normal leading-none`}
+        className={`text-white font-anton ${lastWeightClass} uppercase tracking-normal leading-none whitespace-nowrap`}
         style={{ fontSize: `${lastSize}px` }}
       >
         {lastName}
