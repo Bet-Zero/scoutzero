@@ -1,15 +1,7 @@
-# Tier Maker Component Hierarchy
-
-Structure of components in `src/features/tierMaker`.
+# TierMaker Component Hierarchy
 
 ```
-src/features/tierMaker
-├── TierMakerBoard.jsx (parent)
-│   ├── TierRow.jsx
-│   └── CreateTierListModal.jsx
-├── TierRow.jsx
-└── CreateTierListModal.jsx
+CreateTierListModal.jsx
+TierMakerBoard.jsx
+TierRow.jsx
 ```
-
-- **Parent** components: `TierMakerBoard.jsx`.
-- **Child** components are the remaining files in this folder.

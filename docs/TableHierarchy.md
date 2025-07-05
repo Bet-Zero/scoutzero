@@ -1,28 +1,25 @@
 # Table Component Hierarchy
 
-This document maps the React components under `src/features/table`. Parent components are noted when they render other components from the same folder.
-
 ```
-src/features/table
-└── PlayerTable/ (parent)
-    ├── PlayerTableHeader/ (parent)
-    │   ├── SearchBar.jsx
-    │   └── ControlButtons.jsx
-    ├── PlayerRow/ (parent)
-    │   ├── PlayerNameMini.jsx
-    │   ├── ShootingProfileMini.jsx
-    │   ├── RolePill.jsx
-    │   ├── PlayerDrawer/ (parent)
-    │   │   ├── BadgeMini.jsx
-    │   │   ├── OverallBlurbMini.jsx
-    │   │   ├── PlayerSubRolesMini.jsx
-    │   │   ├── PlayerContractMini.jsx
-    │   │   ├── PlayerStatsMini.jsx
-    │   │   └── PlayerTraitsMiniGrid.jsx
-    │   └── index.jsx
-    ├── SubRolePill.jsx (child standalone)
-    └── TwoWayMini.jsx (child standalone)
+PlayerTable/
+  PlayerRow/
+    PlayerDrawer/
+      BadgeMini.jsx
+      OverallBlurbMini.jsx
+      PlayerContractMini.jsx
+      PlayerStatsMini.jsx
+      PlayerSubRolesMini.jsx
+      PlayerTraitsMiniGrid.jsx
+      index.jsx
+    PlayerNameMini.jsx
+    RolePill.jsx
+    ShootingProfileMini.jsx
+    index.jsx
+  PlayerTableHeader/
+    ControlButtons.jsx
+    SearchBar.jsx
+    index.jsx
+  index.jsx
+SubRolePill.jsx
+TwoWayMini.jsx
 ```
-
-- **Parent** components: `PlayerTable`, `PlayerTableHeader`, `PlayerRow`, `PlayerDrawer`.
-- **Child** components are the remaining files which don't render other table components.
