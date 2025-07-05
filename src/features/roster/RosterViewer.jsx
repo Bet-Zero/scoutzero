@@ -125,7 +125,6 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
                   loadMethod={loadMethod}
                   onLoadMethodChange={setLoadMethod}
                   savedRosters={savedRosters}
-                  onClear={clearRoster}
                 />
               </div>
             </div>
