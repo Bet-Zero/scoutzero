@@ -7,7 +7,7 @@ import { getTeamLogoFilename } from '@/utils/formatting/teamLogos';
 import RosterSection from './RosterSection';
 import '@/styles/antonFont.css';
 
-const RosterPreviewModal = ({ open, onClose, roster, team }) => {
+const RosterPreviewModal = ({ open, onClose, roster, team, rosterId }) => {
   if (!open || !roster) return null;
 
   const exportRef = useRef(null); // ✅ used for PNG export
@@ -15,6 +15,25 @@ const RosterPreviewModal = ({ open, onClose, roster, team }) => {
 
   const handleDownload = async () => {
     if (!exportRef.current) return;
+
+    // Attempt server-side export if we have an ID
+    if (rosterId) {
+      try {
+        const resp = await fetch(`/api/exportRoster/${rosterId}`);
+        if (resp.ok) {
+          const blob = await resp.blob();
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.download = `${team || 'roster'}.png`;
+          link.href = url;
+          link.click();
+          URL.revokeObjectURL(url);
+          return;
+        }
+      } catch (err) {
+        console.error('Server export failed, falling back to client export', err);
+      }
+    }
 
     try {
       const font = new FontFace(

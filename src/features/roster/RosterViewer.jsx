@@ -28,6 +28,7 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
     rosterName,
     setRosterName,
     saveNewRoster,
+    rosterId,
   } = useRosterManager(allPlayers, isLoading);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -217,6 +218,7 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
               onClose={() => setPreviewOpen(false)}
               roster={previewRoster}
               team={selectedTeam}
+              rosterId={rosterId}
             />
           )}
         </div>

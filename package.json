@@ -10,7 +10,8 @@
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "docs": "node generateDocs.cjs",
     "test": "vitest",
-    "zen": "node toggleView.cjs"
+    "zen": "node toggleView.cjs",
+    "server": "node server/index.js"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -24,7 +25,9 @@
     "react-dom": "^18.2.0",
     "react-hot-toast": "^2.5.2",
     "react-router-dom": "^7.6.0",
-    "react-window": "^1.8.11"
+    "react-window": "^1.8.11",
+    "express": "^4.19.2",
+    "puppeteer": "^22.0.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.2.0",

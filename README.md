@@ -46,6 +46,12 @@ HoopZero is a public-facing NBA scouting platform focused on clear data presenta
    npm run dev
    ```
 
+4. (Optional) run the PNG export server for high quality roster downloads:
+
+   ```bash
+   npm run server
+   ```
+
 The app will be available at `http://localhost:5173` by default.
 
 ## Folder Structure
