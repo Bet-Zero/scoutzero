@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import PlayerTableView from '@/pages/PlayerTableView';
 import PlayerProfileView from '@/pages/PlayerProfileView';
 import TeamRosterView from '@/pages/TeamRosterView';
+import RosterExportView from '@/pages/RosterExportView';
 import ListManager from '@/pages/ListManager';
 import ListsHome from '@/pages/ListsHome';
 import TierMakerView from '@/pages/TierMakerView';
@@ -19,6 +20,7 @@ const App = () => {
         <Route path="/players" element={<PlayerTableView />} />
         <Route path="/profiles" element={<PlayerProfileView />} />
         <Route path="/roster/:rosterId?" element={<TeamRosterView />} />
+        <Route path="/roster-export/:rosterId" element={<RosterExportView />} />
         <Route path="/rosters" element={<RostersHome />} />
         <Route path="/lists" element={<ListsHome />} />
         <Route path="/lists/:listId" element={<ListManager />} />
