@@ -26,7 +26,7 @@ const ListPreviewModal = ({
     const updateScale = () => {
       if (!previewRef.current) return;
 
-      const { height } = previewRef.current.getBoundingClientRect();
+      const height = previewRef.current.offsetHeight; // measure unscaled height
       const availableHeight = window.innerHeight - 80; // leave breathing room
       const heightScale = availableHeight / height;
 
@@ -58,7 +58,7 @@ const ListPreviewModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-8 overflow-auto">
+    <div className="fixed inset-0 z-50 bg-black/80 flex items-start justify-center p-8 overflow-auto">
       <div className="absolute inset-0 cursor-pointer" onClick={onClose} />
       <div
         className="relative mx-auto transform"

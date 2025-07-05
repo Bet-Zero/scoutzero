@@ -33,4 +33,4 @@ const useImageDownload = (ref) => {
   return download;
 };
 
-export default useImage;
+export default useImageDownload;
