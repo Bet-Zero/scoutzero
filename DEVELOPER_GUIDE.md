@@ -15,10 +15,13 @@ src/
 │   ├── lists/           # Ranked list components
 │   ├── profile/         # Player profile editor
 │   ├── roster/          # Roster building tools
-│   └── table/           # Player table view
+│   ├── table/           # Player table view
+│   └── tierMaker/       # Tier list creation tools
 ├── hooks/               # Custom React hooks
 ├── pages/               # Top level route views
-└── utils/               # Helper functions and data transforms
+├── utils/               # Helper functions and data transforms
+├── firebase/            # Firestore helper modules
+└── styles/              # Additional style sheets
 ```
 
 > ### src/components/
@@ -35,6 +38,7 @@ src/
 > - **profile/** – player profile view with editable traits, roles and blurbs.
 > - **roster/** – team roster builder with add-player drawer and card display.
 > - **table/** – main player table and mini row components.
+> - **tierMaker/** – drag-and-drop tier board for custom lists.
 >
 > ### src/hooks/
 >
