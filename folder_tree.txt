@@ -1,0 +1,160 @@
+.
+├── AGENTS.md
+├── DEVELOPER_GUIDE.md
+├── README.md
+├── data
+│   ├── alias_map.json
+│   ├── all_player_ids.json
+│   ├── contracts_parsed.json
+│   ├── firebaseServiceAccountKey.json
+│   ├── merge_log.txt
+│   ├── name_alias_map.json
+│   ├── name_variants_sorted.txt
+│   ├── nba_per_game_2025.csv
+│   ├── players.json
+│   ├── players_bios_2025.json
+│   ├── raw_contract_html.json
+│   └── sample_player.json
+├── docs
+│   ├── FILE_MAP.md
+│   ├── FiltersHierarchy.md
+│   ├── ListsHierarchy.md
+│   ├── ProfileHierarchy.md
+│   ├── RosterHierarchy.md
+│   ├── TableHierarchy.md
+│   └── TierMakerHierarchy.md
+├── eslint.config.js
+├── folder_tree.txt
+├── generateDocs.cjs
+├── index.html
+├── jsconfig.json
+├── name_variants.txt
+├── package-lock.json
+├── package.json
+├── postcss.config.js
+├── public
+│   ├── assets
+│   │   ├── headshots
+│   │   └── logos
+│   ├── fonts
+│   │   └── Anton.woff2
+│   ├── players.json
+│   └── robots.txt
+├── push_selected_players.py
+├── scan_malformed_players.js
+├── scripts
+│   ├── dumpFieldStructure.js
+│   ├── groupNameAliases.cjs
+│   ├── logs
+│   │   └── merge_log.txt
+│   ├── merge_universal_player_data.py
+│   ├── parse_contract_data.py
+│   ├── push_bio_and_contract.py
+│   ├── push_stat_data.py
+│   ├── scanAllDataNames.cjs
+│   ├── scanAllNamesFlat.cjs
+│   ├── scanHeadshotFiles.cjs
+│   └── scrape_all_contracts.py
+├── serviceAccountKey.json
+├── src
+│   ├── App.jsx
+│   ├── PasswordGate.jsx
+│   ├── __pycache__
+│   │   └── firebase_helpers.cpython-313.pyc
+│   ├── components
+│   │   ├── filters
+│   │   ├── layout
+│   │   ├── roster
+│   │   └── shared
+│   ├── constants
+│   │   ├── SubRoleMasterList.js
+│   │   ├── badgeList.js
+│   │   └── styles.js
+│   ├── features
+│   │   ├── filters
+│   │   ├── lists
+│   │   ├── profile
+│   │   ├── roster
+│   │   ├── table
+│   │   └── tierMaker
+│   ├── firebase
+│   │   ├── listHelpers.js
+│   │   └── rosterHelpers.js
+│   ├── firebaseConfig.js
+│   ├── firebaseHelpers.js
+│   ├── firebase_helpers.py
+│   ├── hooks
+│   │   ├── useAutoSavePlayer.js
+│   │   ├── useFilteredPlayers.js
+│   │   ├── useFirebaseQuery.js
+│   │   ├── usePlayerData.js
+│   │   └── useRosterManager.js
+│   ├── index.css
+│   ├── main.jsx
+│   ├── pages
+│   │   ├── ExportRowPreview.jsx
+│   │   ├── ListManager.jsx
+│   │   ├── ListPresentationView.jsx
+│   │   ├── ListsHome.jsx
+│   │   ├── NotFound.jsx
+│   │   ├── PlayerProfileView.jsx
+│   │   ├── PlayerTableView.jsx
+│   │   ├── RostersHome.jsx
+│   │   ├── TeamRosterView.jsx
+│   │   ├── TierListHome.jsx
+│   │   ├── TierListsHome.jsx
+│   │   └── TierMakerView.jsx
+│   ├── styles
+│   │   └── antonFont.css
+│   └── utils
+│       ├── filtering
+│       ├── formatting
+│       ├── profileHelpers.js
+│       ├── roles
+│       └── roster
+├── tailwind.config.js
+├── tests
+│   ├── PlayerHeadshot.test.jsx
+│   └── formatHeight.test.js
+├── tools
+│   ├── README.md
+│   ├── checkBrokenPlayers.js
+│   ├── get_all_bios_nba.py
+│   ├── get_all_player_ids.py
+│   ├── pull_all_headshots.py
+│   └── pull_logos.py
+├── updateStats.js
+├── uploadPlayersToFirebase.js
+├── validatePlayersJson.js
+├── venv
+│   ├── bin
+│   │   ├── Activate.ps1
+│   │   ├── __pycache__
+│   │   ├── activate
+│   │   ├── activate.csh
+│   │   ├── activate.fish
+│   │   ├── doesitcache
+│   │   ├── fixup_firestore_admin_v1_keywords.py
+│   │   ├── fixup_firestore_v1_keywords.py
+│   │   ├── normalizer
+│   │   ├── pip
+│   │   ├── pip3
+│   │   ├── pip3.13
+│   │   ├── pyrsa-decrypt
+│   │   ├── pyrsa-encrypt
+│   │   ├── pyrsa-keygen
+│   │   ├── pyrsa-priv2pub
+│   │   ├── pyrsa-sign
+│   │   ├── pyrsa-verify
+│   │   ├── python -> python3.13
+│   │   ├── python3 -> python3.13
+│   │   └── python3.13 -> /Library/Frameworks/Python.framework/Versions/3.13/bin/python3.13
+│   ├── include
+│   │   └── python3.13
+│   ├── lib
+│   │   └── python3.13
+│   └── pyvenv.cfg
+├── vite.config.js
+└── vitest.config.js
+
+43 directories, 115 files
