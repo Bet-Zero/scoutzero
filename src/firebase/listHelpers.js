@@ -63,6 +63,7 @@ export const createTierList = async (name) => {
   const newList = {
     name,
     tiers: {},
+    players: {},
     createdAt: serverTimestamp(),
   };
   const docRef = await addDoc(tierListsRef, newList);
@@ -84,10 +85,11 @@ export const fetchTierList = async (id) => {
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 };
 
-export const saveTierList = async (id, { tiers, tierOrder }) => {
+export const saveTierList = async (id, { tiers, tierOrder, players }) => {
   const docRef = doc(db, 'tierLists', id);
   await updateDoc(docRef, {
     tiers,
+    players,
     tierOrder,
     updatedAt: serverTimestamp(),
   });

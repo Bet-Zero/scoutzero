@@ -189,6 +189,12 @@ const PlayerProfileView = () => {
           />
         </div>
 
+        {!player && (
+          <div className="text-white/40 mt-10">
+            Select a player to view their profile.
+          </div>
+        )}
+
         <PlayerNavigation onPrev={handlePrevPlayer} onNext={handleNextPlayer} />
 
         {player && (
