@@ -19,31 +19,30 @@ This is the read-only counterpart to ScoutZero, an internal grading tool used to
 Project is organized by feature-first structure with scoped utility and component folders:
 
 src/
-features/
-profile/
-table/
-roster/
-lists/
-filters/
-
-components/
-filters/ ← (currently empty)
-layout/ ← site/page-level wrappers and containers
-roster/ ← (currently empty)
-shared/
-ui/
-drawers/
-filters/
-grades/
-
-hooks/ ← reusable hooks (e.g., usePlayerData, useAutoSavePlayer)
-utils/
-filtering/
-formatting/
-roles/
-roster/
-
-pages/ ← top-level route views (e.g., PlayerProfileView.jsx)
+  components/
+    layout/
+    shared/
+      ui/
+        drawers/
+        filters/
+        grades/
+  features/
+    table/
+    profile/
+    roster/
+    lists/
+    filters/
+    tierMaker/
+  hooks/
+  utils/
+    filtering/
+    formatting/
+    roles/
+    roster/
+  constants/
+  firebase/
+  pages/
+  styles/
 
 All new code should be grouped by feature when possible. Reusable UI or logic goes in `shared/`, `hooks/`, or `utils/`.
 
