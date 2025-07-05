@@ -12,7 +12,7 @@ const ListControls = ({
   isRanked = true,
 }) => (
   <>
-    <div className="w-full max-w-[1100px] mx-auto px-4 mt-4 flex justify-end gap-2">
+    <div className="w-full max-w-[1100px] mx-auto px-4 mt-4 flex justify-start gap-2">
       <button
         onClick={onToggleReorder}
         className="text-xs text-white/40 hover:text-white px-2 py-1 rounded border border-white/10"

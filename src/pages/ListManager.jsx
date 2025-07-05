@@ -108,8 +108,12 @@ const ListManager = () => {
   const handleSave = async () => {
     try {
       setIsSaving(true);
+      const currentPlayerIds = order.filter(
+        (id) => !id.startsWith('divider::')
+      );
       await updateDoc(doc(db, 'lists', listId), {
         playerOrder: order,
+        playerIds: currentPlayerIds,
         playerNotes: notes,
         updatedAt: new Date(),
       });
@@ -239,16 +243,16 @@ const ListManager = () => {
 
           <div className="w-full max-w-[1100px] mx-auto px-4 mt-8 mb-12 flex justify-between">
             <button
-              onClick={() => setPreviewOpen(true)}
-              className="px-3 py-1 text-sm rounded bg-white/10 text-white hover:bg-white/20"
-            >
-              Preview
-            </button>
-            <button
               onClick={() => setIsExport(false)}
               className="px-3 py-1 text-sm rounded bg-white/10 text-white hover:bg-white/20"
             >
               Back to Edit
+            </button>
+            <button
+              onClick={() => setPreviewOpen(true)}
+              className="px-3 py-1 text-sm rounded bg-white/10 text-white hover:bg-white/20"
+            >
+              Preview
             </button>
           </div>
 
@@ -319,20 +323,20 @@ const ListManager = () => {
             isRanked={isRanked}
           />
 
-          <div className="w-full max-w-[1100px] mx-auto px-4 mt-12 mb-6 text-right">
-            <p className="text-xs text-white/30 italic">
-              Last updated{' '}
-              {listData.updatedAt?.toDate?.().toLocaleDateString() || 'N/A'}
-            </p>
-          </div>
-
-          <div className="w-full max-w-[1100px] mx-auto px-4 mb-12 text-right">
+          <div className="w-full max-w-[1100px] mx-auto px-4 mt-12 mb-12 text-right">
             <button
               onClick={() => setShowExportModal(true)}
               className="px-3 py-1 text-sm rounded bg-white/10 text-white hover:bg-white/20"
             >
               Export
             </button>
+          </div>
+
+          <div className="w-full max-w-[1100px] mx-auto px-4 mb-6 text-center">
+            <p className="text-xs text-white/30 italic">
+              Last updated{' '}
+              {listData.updatedAt?.toDate?.().toLocaleDateString() || 'N/A'}
+            </p>
           </div>
         </>
       )}
