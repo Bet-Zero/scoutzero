@@ -30,12 +30,11 @@ const RosterExportCapture = React.forwardRef(({ roster, team }, ref) => {
         {/* Team name — copied EXACTLY from preview */}
         <div className="w-full flex justify-center items-center h-[70px] mb-1 mt-12 relative z-10">
           <h2
-            className="text-7xl font-black uppercase leading-none"
+            className="w-full text-center text-7xl font-black uppercase leading-none"
             style={{
               fontFamily: 'AntonLocal, sans-serif',
               color: '#1e1e1e',
               textShadow: `0 0 8px ${primary}, 0 0 16px ${secondary}`,
-              textAlign: 'center',
             }}
           >
             {team}
@@ -43,7 +42,7 @@ const RosterExportCapture = React.forwardRef(({ roster, team }, ref) => {
         </div>
 
         {/* Team Roster heading */}
-        <h3 className="text-base text-neutral-400 font-medium mb-6 tracking-wide text-center">
+        <h3 className="w-full text-center whitespace-nowrap text-base text-neutral-400 font-medium mb-6 tracking-wide">
           Team Roster
         </h3>
 
