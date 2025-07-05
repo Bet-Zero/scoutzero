@@ -2,6 +2,30 @@
 import React from 'react';
 import { Link, Outlet } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { ChevronDown } from 'lucide-react';
+
+const NavGroup = ({ label, children, align = 'left' }) => {
+  let alignmentClasses = 'left-0';
+  if (align === 'center') alignmentClasses = 'left-1/2 -translate-x-1/2';
+  if (align === 'right') alignmentClasses = 'right-0';
+
+  return (
+    <div className="relative group flex flex-col items-start">
+      <div className="inline-flex items-center gap-1 cursor-pointer text-white/60 hover:text-white">
+        <span>{label}</span>
+        <ChevronDown
+          size={14}
+          className="mt-[1px] text-white/60 group-hover:text-white"
+        />
+      </div>
+      <div
+        className={`absolute top-full mt-2 hidden group-hover:flex flex-col bg-[#1c1c1c] border border-white/10 rounded shadow-lg text-sm text-white/80 min-w-[160px] p-2 z-50 ${alignmentClasses}`}
+      >
+        {children}
+      </div>
+    </div>
+  );
+};
 
 const SiteLayout = () => {
   return (
@@ -10,30 +34,38 @@ const SiteLayout = () => {
         <div className="text-2xl font-bold tracking-tight text-white">
           🏀 HoopZero
         </div>
-        <nav className="flex gap-6 text-sm text-white/60">
-          <Link to="/players" className="hover:text-white">
-            Players
-          </Link>
+
+        <nav className="flex gap-6 text-sm text-white/60 items-center">
           <Link to="/profiles" className="hover:text-white">
             Player Profiles
           </Link>
-          <Link to="/roster" className="hover:text-white">
-            Roster Builder
+          <Link to="/players" className="hover:text-white">
+            Players
           </Link>
-          <Link to="/rosters" className="hover:text-white">
-            Rosters
-          </Link>
-          <Link to="/lists" className="hover:text-white">
-            Lists
-          </Link>
-          <Link to="/tier-lists" className="hover:text-white">
-            Tier Lists
-          </Link>
-          <Link to="/tier-maker" className="hover:text-white">
-            Tier Maker
-          </Link>
+
+          <NavGroup label="Tools" align="center">
+            <Link to="/roster" className="hover:text-white py-1 px-2">
+              Roster Builder
+            </Link>
+            <Link to="/tier-maker" className="hover:text-white py-1 px-2">
+              Tier Maker
+            </Link>
+          </NavGroup>
+
+          <NavGroup label="Saved" align="right">
+            <Link to="/rosters" className="hover:text-white py-1 px-2">
+              Saved Rosters
+            </Link>
+            <Link to="/lists" className="hover:text-white py-1 px-2">
+              Saved Lists
+            </Link>
+            <Link to="/tier-lists" className="hover:text-white py-1 px-2">
+              Saved Tiers
+            </Link>
+          </NavGroup>
         </nav>
       </header>
+
       <main className="flex-1 w-full">
         <Outlet />
         <Toaster position="bottom-center" />
