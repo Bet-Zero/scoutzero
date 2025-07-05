@@ -14,7 +14,6 @@ const RosterExportCapture = React.forwardRef(({ roster, team }, ref) => {
       className="w-[1200px] h-[975px] bg-neutral-900 text-white relative rounded-2xl overflow-hidden border border-white/20 shadow-2xl"
       style={{ fontFamily: 'AntonLocal, sans-serif' }}
     >
-      {/* Background logo */}
       {team && (
         <img
           src={`/assets/logos/${getTeamLogoFilename(team)}.png`}
@@ -23,11 +22,9 @@ const RosterExportCapture = React.forwardRef(({ roster, team }, ref) => {
         />
       )}
 
-      {/* Foreground content */}
       <div className="relative w-full h-full px-4 pt-8 pb-2 flex flex-col items-center">
         <div style={{ opacity: 0, position: 'absolute' }}>preload</div>
 
-        {/* Team name — copied EXACTLY from preview */}
         <div className="w-full flex justify-center items-center h-[70px] mb-1 mt-12 relative z-10">
           <h2
             className="w-full text-center text-7xl font-black uppercase leading-none"
@@ -41,12 +38,10 @@ const RosterExportCapture = React.forwardRef(({ roster, team }, ref) => {
           </h2>
         </div>
 
-        {/* Team Roster heading */}
         <h3 className="w-full text-center whitespace-nowrap text-base text-neutral-400 font-medium mb-6 tracking-wide">
           Team Roster
         </h3>
 
-        {/* Player Sections */}
         <div className="w-full space-y-8 pb-8">
           <RosterSection
             players={roster.starters}

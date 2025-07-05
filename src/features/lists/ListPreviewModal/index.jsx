@@ -1,7 +1,7 @@
 // src/features/lists/ListPreviewModal.jsx
 import React, { useRef, useLayoutEffect, useState } from 'react';
-import { toPng } from 'html-to-image';
 import '@/styles/antonFont.css';
+import useImageDownload from '@/hooks/useImageDownload';
 import ListExportWrapper from './ListExportWrapper';
 
 const ListPreviewModal = ({
@@ -48,33 +48,13 @@ const ListPreviewModal = ({
     };
   }, []);
 
-  const handleDownload = async () => {
-    if (!previewRef.current) return;
-    try {
-      const font = new FontFace(
-        'AntonLocal',
-        "url('/fonts/Anton.woff2') format('woff2')",
-        { display: 'swap' }
-      );
+  const downloadImage = useImageDownload(previewRef);
 
-      await font.load();
-      document.fonts.add(font);
-      await document.fonts.ready;
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      const dataUrl = await toPng(previewRef.current, {
-        cacheBust: true,
-        skipFonts: true,
-        backgroundColor: '#111',
-        pixelRatio: 2,
-      });
-      const link = document.createElement('a');
-      link.download = `${title || 'list'}.png`;
-      link.href = dataUrl;
-      link.click();
-    } catch (err) {
-      console.error('Failed to download list', err);
-    }
+  const handleDownload = () => {
+    downloadImage(`${title || 'list'}.png`, {
+      backgroundColor: '#111',
+      pixelRatio: 2,
+    });
   };
 
   return (

@@ -35,6 +35,7 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewRoster, setPreviewRoster] = useState(null);
+  const [screenshotMode, setScreenshotMode] = useState(false);
 
   useEffect(() => {
     if (!initialRosterId || savedRosters.length === 0) return;
@@ -65,23 +66,15 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
     setPreviewOpen(true);
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="text-white">Loading players...</div>
-      </div>
-    );
-  }
-
   const { primary, secondary } = getTeamColors(selectedTeam);
 
   return (
     <div className="flex relative">
-      {!drawerOpen && !isExport && (
+      {!drawerOpen && !isExport && !screenshotMode && (
         <OpenDrawerButton onClick={() => setDrawerOpen(true)} />
       )}
 
-      {!isExport && (
+      {!isExport && !screenshotMode && (
         <DrawerShell isOpen={drawerOpen} onClose={() => setDrawerOpen(false)}>
           <AddPlayerDrawer
             onClose={() => setDrawerOpen(false)}
@@ -122,7 +115,7 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
           )}
 
           {/* Controls */}
-          {!isExport && (
+          {!isExport && !screenshotMode && (
             <div className="z-10 -mt-2 mb-6 w-full">
               <div className="flex justify-center mb-6 z-10">
                 <RosterControls
@@ -144,7 +137,7 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
                 style={{
                   color: '#1e1e1e',
                   textShadow: `0 0 10px ${primary}, 0 0 18px ${secondary}`,
-                  transform: 'translateX(3px)', // tweak this!
+                  transform: 'translateX(3px)',
                 }}
               >
                 {selectedTeam}
@@ -179,19 +172,29 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
             onAdd={handleOpenDrawer}
             isExport={isExport}
           />
-          {/* Preview Button */}
+
+          {/* Screenshot Toggle */}
           {!isExport && (
             <div className="fixed bottom-6 left-6 z-50">
               <button
-                onClick={handlePreview}
-                className="bg-white/10 text-white px-4 py-2 rounded hover:bg-white/20"
+                onClick={() => setScreenshotMode(!screenshotMode)}
+                className={`
+                px-4 py-2 rounded transition-all duration-300
+                ${
+                  screenshotMode
+                    ? 'opacity-0 hover:opacity-80 bg-red-700 text-white'
+                    : 'bg-green-700 text-white hover:bg-green-600'
+                }
+              `}
+                style={{ pointerEvents: screenshotMode ? 'auto' : 'auto' }}
               >
-                Preview
+                {screenshotMode ? 'Exit Screenshot Mode' : 'Screenshot Mode'}
               </button>
             </div>
           )}
-          {/* Save Roster Button */}
-          {!isExport && (
+
+          {/* Save Roster */}
+          {!isExport && !screenshotMode && (
             <div className="fixed bottom-6 right-6 z-50">
               <button
                 onClick={() => setSaveModalOpen(true)}
@@ -211,6 +214,7 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
               onSave={handleSaveFromModal}
             />
           )}
+
           {previewOpen && (
             <RosterPreviewModal
               open={previewOpen}
