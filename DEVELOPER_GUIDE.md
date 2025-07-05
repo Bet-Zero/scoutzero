@@ -124,3 +124,21 @@ src/
 > - There is no automated test suite. Run `npm run lint` (ESLint) where possible.
 > - Firebase credentials are loaded from environment variables (`src/firebaseConfig.js`).
 > - When adding new filters or traits, update defaults and display helpers accordingly.
+
+## Data Model Overview
+
+Player documents in Firestore are flattened objects with fields for bio, contract, roles and stats. Important properties include `playerId`, `position`, `roles`, `subRoles`, `traits` and a `contract` object. Check `data/players.json` for the full schema.
+
+## Adding Filters or Traits
+
+1. Define default values in `src/utils/filtering/playerFilterDefaults.js`.
+2. Add label helpers in `src/utils/filtering/filterHelpers.js` or constants files.
+3. Extend the UI under `src/features/filters/FiltersPanel/FilterPanel/sections`.
+4. Update `profileHelpers.js` and `constants/badgeList.js` when introducing new trait labels.
+
+## Typical Workflow
+
+1. Install dependencies with `npm install`.
+2. Start the dev server via `npm run dev`.
+3. Add components within feature folders and split files over ~200 lines.
+4. Run `npm run lint` and `npm test` before committing.

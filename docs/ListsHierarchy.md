@@ -1,33 +1,32 @@
 # Lists Component Hierarchy
 
-Parent-child relationships for components in `src/features/lists`.
-
 ```
-src/features/lists
-├── AddToListButton/ (parent)
-│   └── AddToListModal.jsx
-├── ListPreviewModal/ (parent)
-│   └── ListExportWrapper/ (parent)
-│       ├── ListExportPlayerRowSingle.jsx
-│       ├── ListExportPlayerRowTwoColumn.jsx
-│       ├── ListExportRowCompactSingle.jsx
-│       ├── ListExportRowCompactTwoColumn.jsx
-│       └── ListTierExport.jsx (parent)
-│           └── TierPlayerTile.jsx
-├── ListTierHeader/ (parent)
-│   └── ListPlayerRow.jsx
-├── TieredListView/ (parent)
-│   └── TierPlayerTile.jsx
-├── CreateListModal.jsx
-├── ExportOptionsModal.jsx
-├── ListColumnToggle.jsx
-├── ListControls.jsx
-├── ListExportToggle.jsx
-├── ListRankToggle.jsx
-├── ListRowStyleToggle.jsx
-├── ListExportTypeToggle.jsx
-└── RankedListTierToggle.jsx
+AddToListButton/
+  AddToListModal.jsx
+  index.jsx
+CreateListModal.jsx
+ExportOptionsModal.jsx
+ListColumnToggle.jsx
+ListControls.jsx
+ListExportToggle.jsx
+ListExportTypeToggle.jsx
+ListPreviewModal/
+  ListExportWrapper/
+    ListExportPlayerRowSingle.jsx
+    ListExportPlayerRowTwoColumn.jsx
+    ListExportRowCompactSingle.jsx
+    ListExportRowCompactTwoColumn.jsx
+    ListTierExport/
+      index.jsx
+    index.jsx
+  index.jsx
+ListRankToggle.jsx
+ListRowStyleToggle.jsx
+ListTierHeader/
+  ListPlayerRow.jsx
+  index.jsx
+RankedListTierToggle.jsx
+TierPlayerTile.jsx
+TieredListView/
+  index.jsx
 ```
-
-- **Parent** components: `AddToListButton`, `ListPreviewModal`, `ListExportWrapper`, `ListTierExport`, `ListTierHeader`, `TieredListView`.
-- **Child** components are the remaining files that do not nest other list components.

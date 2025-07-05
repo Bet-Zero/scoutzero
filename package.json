@@ -7,7 +7,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "update-stats": "node updateStats.js",
-    "lint": "eslint . --ext .js,.jsx,.ts,.tsx"
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "docs": "node generateDocs.cjs",
+    "test": "vitest"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -31,6 +33,9 @@
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
+    "@testing-library/react": "^14.2.1",
+    "@testing-library/jest-dom": "^6.2.0",
+    "vitest": "^1.3.0",
     "postcss": "^8.5.3",
     "prettier": "^3.5.3",
     "tailwindcss": "^3.4.17",

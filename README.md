@@ -89,3 +89,15 @@ Additional raw datasets live under `data/` for development and import scripts.
 ## Developer Guide
 
 See the upcoming [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) for deeper notes on data structure, component architecture and coding conventions.
+
+## Further Docs
+
+The `docs/` folder contains reference maps of the codebase:
+
+- [FILE_MAP.md](docs/FILE_MAP.md) – high level project layout
+- [FiltersHierarchy.md](docs/FiltersHierarchy.md)
+- [ListsHierarchy.md](docs/ListsHierarchy.md)
+- [ProfileHierarchy.md](docs/ProfileHierarchy.md)
+- [RosterHierarchy.md](docs/RosterHierarchy.md)
+- [TableHierarchy.md](docs/TableHierarchy.md)
+- [TierMakerHierarchy.md](docs/TierMakerHierarchy.md)
