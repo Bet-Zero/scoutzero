@@ -28,6 +28,7 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
     rosterName,
     setRosterName,
     saveNewRoster,
+    clearRoster,
   } = useRosterManager(allPlayers, isLoading);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -124,6 +125,7 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
                   loadMethod={loadMethod}
                   onLoadMethodChange={setLoadMethod}
                   savedRosters={savedRosters}
+                  onClear={clearRoster}
                 />
               </div>
             </div>

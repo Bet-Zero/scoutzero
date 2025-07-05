@@ -2,7 +2,6 @@
 
 import React, { useEffect } from 'react';
 import { getPlayersForTeam } from '@/utils/profileHelpers';
-import DropdownGroup from '@/components/shared/DropdownGroup';
 import { styles } from '@/constants/styles';
 
 const TeamPlayerDropdowns = ({
@@ -33,38 +32,35 @@ const TeamPlayerDropdowns = ({
     setFilteredKeys,
     setSelectedPlayer,
   ]);
-  return (
-    <div className="absolute top-2 left-4 flex flex-col gap-1">
-      <DropdownGroup label="Select Team">
-        <select
-          value={selectedTeam}
-          onChange={(e) => setSelectedTeam(e.target.value)}
-          className={styles.select}
-        >
-          <option value="">Select Team</option>
-          {teams.map((team, index) => (
-            <option key={`team-${index}-${team}`} value={team}>
-              {team}
-            </option>
-          ))}
-        </select>
-      </DropdownGroup>
 
-      <DropdownGroup label="Select Player">
-        <select
-          value={selectedPlayer}
-          onChange={(e) => setSelectedPlayer(e.target.value)}
-          className={styles.select}
-          disabled={!selectedTeam}
-        >
-          <option value="">Select Player</option>
-          {filteredKeys.map((key, index) => (
-            <option key={`player-${index}-${key}`} value={key}>
-              {playersData[key]?.display_name || playersData[key]?.name || key}
-            </option>
-          ))}
-        </select>
-      </DropdownGroup>
+  return (
+    <div className="flex flex-col gap-1 mt-[2px]">
+      <select
+        value={selectedTeam}
+        onChange={(e) => setSelectedTeam(e.target.value)}
+        className={styles.select}
+      >
+        <option value="">Select Team</option>
+        {teams.map((team, index) => (
+          <option key={`team-${index}-${team}`} value={team}>
+            {team}
+          </option>
+        ))}
+      </select>
+
+      <select
+        value={selectedPlayer}
+        onChange={(e) => setSelectedPlayer(e.target.value)}
+        className={styles.select}
+        disabled={!selectedTeam}
+      >
+        <option value="">Select Player</option>
+        {filteredKeys.map((key, index) => (
+          <option key={`player-${index}-${key}`} value={key}>
+            {playersData[key]?.display_name || playersData[key]?.name || key}
+          </option>
+        ))}
+      </select>
     </div>
   );
 };

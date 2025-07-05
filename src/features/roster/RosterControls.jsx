@@ -8,6 +8,7 @@ const RosterControls = ({
   loadMethod,
   onLoadMethodChange,
   savedRosters = [],
+  onClear,
 }) => {
   const filteredRosters = savedRosters.filter((r) => {
     if (selectedTeam) {
@@ -57,6 +58,14 @@ const RosterControls = ({
           )}
         </select>
       </div>
+      {onClear && (
+        <button
+          onClick={onClear}
+          className="px-3 py-1 text-sm rounded bg-red-500 hover:bg-red-600 transition-all text-white"
+        >
+          Clear
+        </button>
+      )}
     </div>
   );
 };

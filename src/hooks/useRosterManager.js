@@ -187,6 +187,13 @@ export const useRosterManager = (allPlayers = [], isLoading = false) => {
     );
   }, [rosterId, roster]);
 
+  const clearRoster = useCallback(() => {
+    setRoster(emptyRoster);
+    setLoadMethod('blank');
+    setRosterId(null);
+    setRosterName('');
+  }, []);
+
   const loadRoster = useCallback(
     async (id) => {
       const loaded = await loadRosterProject(id);
@@ -219,6 +226,7 @@ export const useRosterManager = (allPlayers = [], isLoading = false) => {
     setRosterName,
     saveNewRoster,
     updateRoster,
+    clearRoster,
     loadRoster,
     rosterId,
     setRosterId,
