@@ -1,4 +1,4 @@
-// src/components/roster/RosterSection.jsx
+// src/components/roster/index.jsx
 import React from 'react';
 import StarterCard from './StarterCard';
 import RotationCard from './RotationCard';
@@ -9,15 +9,15 @@ const getSectionClass = (section, previewSpacing) => {
   const base = 'flex justify-center';
 
   if (section === 'starters') {
-    return `${base} gap-4 ${previewSpacing ? 'mb-6' : 'mb-10'}`;
+    return `${base} gap-4 ${previewSpacing ? 'mb-3' : 'mb-10'}`;
   }
 
   if (section === 'rotation') {
-    return `${base} gap-1 ${previewSpacing ? 'mb-5' : 'mb-8'}`;
+    return `${base} gap-2 ${previewSpacing ? 'mb-2' : 'mb-8'}`;
   }
 
   if (section === 'bench') {
-    return `${base} ${previewSpacing ? 'gap-2 mb-8' : 'gap-0.5 mb-8'}`;
+    return `${base} ${previewSpacing ? 'gap-2 mb-3' : 'gap-0.5 mb-8'}`;
   }
 
   return base;
@@ -44,8 +44,6 @@ const RosterSection = ({
   previewSpacing = false,
 }) => {
   const CardComponent = cardMap[section];
-
-  // Dynamic class string (apply extra spacing only for bench if previewSpacing is true)
   const sectionClass = getSectionClass(section, previewSpacing);
 
   return (
