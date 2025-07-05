@@ -3,7 +3,6 @@ import React from 'react';
 import { getTeamColors } from '@/utils/formatting/teamColors';
 import { getTeamLogoFilename } from '@/utils/formatting/teamLogos';
 import RosterSection from './RosterSection';
-import '@/styles/antonFont.css';
 
 const RosterExportCapture = React.forwardRef(({ roster, team }, ref) => {
   const { primary, secondary } = getTeamColors(team);
@@ -11,8 +10,7 @@ const RosterExportCapture = React.forwardRef(({ roster, team }, ref) => {
   return (
     <div
       ref={ref}
-      className="w-[1200px] h-[975px] bg-neutral-900 text-white relative rounded-2xl overflow-hidden border border-white/20 shadow-2xl"
-      style={{ fontFamily: 'AntonLocal, sans-serif' }}
+      className="w-[1200px] h-[975px] bg-neutral-900 text-white relative rounded-2xl overflow-hidden border border-white/20 shadow-2xl font-anton"
     >
       {/* Background logo */}
       {team && (
@@ -25,14 +23,13 @@ const RosterExportCapture = React.forwardRef(({ roster, team }, ref) => {
 
       {/* Foreground content */}
       <div className="relative w-full h-full px-4 pt-8 pb-2 flex flex-col items-center">
-        <div style={{ opacity: 0, position: 'absolute' }}>preload</div>
+        <div className="font-anton" style={{ opacity: 0, position: 'absolute' }}>preload</div>
 
         {/* Team name — copied EXACTLY from preview */}
         <div className="w-full flex justify-center items-center h-[70px] mb-1 mt-12 relative z-10">
           <h2
-            className="text-7xl font-black uppercase leading-none"
+            className="text-7xl font-black uppercase leading-none font-anton"
             style={{
-              fontFamily: 'AntonLocal, sans-serif',
               color: '#1e1e1e',
               textShadow: `0 0 8px ${primary}, 0 0 16px ${secondary}`,
               textAlign: 'center',
