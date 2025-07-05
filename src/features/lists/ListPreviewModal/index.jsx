@@ -1,7 +1,6 @@
 // src/features/lists/ListPreviewModal.jsx
 import React, { useRef, useLayoutEffect, useState } from 'react';
 import { toPng } from 'html-to-image';
-import '@/styles/antonFont.css';
 import ListExportWrapper from './ListExportWrapper';
 
 const ListPreviewModal = ({
@@ -90,11 +89,11 @@ const ListPreviewModal = ({
       >
         <div
           ref={previewRef}
-          className="rounded-2xl border border-white/20 shadow-2xl overflow-hidden bg-[#111] relative"
+          className="rounded-2xl border border-white/20 shadow-2xl overflow-hidden bg-[#111] relative font-anton"
         >
           <div
+            className="font-anton"
             style={{
-              fontFamily: 'AntonLocal',
               opacity: 0,
               position: 'absolute',
             }}

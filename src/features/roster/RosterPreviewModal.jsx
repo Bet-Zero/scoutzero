@@ -5,7 +5,6 @@ import RosterExportCapture from './RosterExportCapture';
 import { getTeamColors } from '@/utils/formatting/teamColors';
 import { getTeamLogoFilename } from '@/utils/formatting/teamLogos';
 import RosterSection from './RosterSection';
-import '@/styles/antonFont.css';
 
 const RosterPreviewModal = ({ open, onClose, roster, team }) => {
   if (!open || !roster) return null;
@@ -65,8 +64,7 @@ const RosterPreviewModal = ({ open, onClose, roster, team }) => {
           }}
         >
           <div
-            className="rounded-2xl w-full h-full border border-white/20 shadow-2xl bg-neutral-900 relative overflow-hidden"
-            style={{ fontFamily: 'AntonLocal, sans-serif' }}
+            className="rounded-2xl w-full h-full border border-white/20 shadow-2xl bg-neutral-900 relative overflow-hidden font-anton"
           >
             {/* Close Button */}
             <button
@@ -88,10 +86,10 @@ const RosterPreviewModal = ({ open, onClose, roster, team }) => {
 
             {/* Font Preload */}
             <div
+              className="font-anton"
               style={{
                 opacity: 0,
                 position: 'absolute',
-                fontFamily: 'AntonLocal, sans-serif',
               }}
             >
               preload
@@ -100,9 +98,8 @@ const RosterPreviewModal = ({ open, onClose, roster, team }) => {
             {/* Team name */}
             <div className="w-full flex justify-center items-center h-[70px] mb-1 mt-12 relative z-10">
               <h2
-                className="text-7xl font-black uppercase leading-none"
+                className="text-7xl font-black uppercase leading-none font-anton"
                 style={{
-                  fontFamily: 'AntonLocal, sans-serif',
                   color: '#1e1e1e',
                   textShadow: `0 0 8px ${primary}, 0 0 16px ${secondary}`,
                   textAlign: 'center',
