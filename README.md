@@ -17,6 +17,16 @@ HoopZero is a public-facing NBA scouting platform focused on clear data presenta
    npm install
    ```
 
+   This command installs both production and development packages, including
+   ESLint plugins used by `npm run lint`.
+
+   If the linter complains that `eslint-plugin-react` is missing, make sure
+   dev dependencies were installed. You can rerun the install with:
+
+   ```bash
+   npm install --include=dev
+   ```
+
 2. Configure Firebase by creating a `.env` file in the project root with the following keys:
 
    ```
