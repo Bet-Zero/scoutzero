@@ -2,7 +2,7 @@ import React from 'react';
 import PlayerNameMini from '@/features/table/PlayerTable/PlayerRow/PlayerNameMini';
 import { getPlayerPositionLabel } from '@/utils/roles';
 
-const StarterCard = ({ player, onRemove, showRemove = true }) => {
+const StarterCard = ({ player, onRemove, showRemove = true, isExport = false }) => {
   if (!player) return null;
 
   const headshot = player.headshot || '/default_headshot.png';
@@ -24,12 +24,18 @@ const StarterCard = ({ player, onRemove, showRemove = true }) => {
               ✕
             </button>
           )}
-          <div className="absolute top-1 left-1 px-1 py-[2px] bg-black/00 text-white/40 text-[16px] font-semibold uppercase rounded-sm tracking-wider shadow-md">
+          <div
+            className={`absolute top-1 left-1 px-1 py-[2px] bg-black/00 text-white/40 text-[16px] ${isExport ? 'font-normal' : 'font-semibold'} uppercase rounded-sm tracking-wider shadow-md`}
+          >
             {getPlayerPositionLabel(player.bio?.Position)}
           </div>
         </div>
         <div className="bg-[#0f0f0f] px-2 pt-1 pb-2 h-[60px] flex flex-col items-center justify-center text-center border-t border-white/10">
-          <PlayerNameMini name={player.display_name || player.name} />
+          <PlayerNameMini
+            name={player.display_name || player.name}
+            firstWeightClass={isExport ? 'font-normal' : 'font-light'}
+            lastWeightClass={isExport ? 'font-normal' : 'font-bold'}
+          />
         </div>
       </div>
     </div>
