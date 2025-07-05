@@ -9,6 +9,7 @@ import PlayerNavigation from '@/features/profile/PlayerNavigation';
 import PlayerDetails from '@/features/profile/PlayerDetails';
 import BreakdownModal from '@/features/profile/BreakdownModal';
 import { getPlayersForTeam } from '@/utils/profileHelpers';
+import PlayerSearchBar from '@/features/profile/PlayerSearchBar';
 
 const defaultTraits = {
   Shooting: 0,
@@ -151,6 +152,14 @@ const PlayerProfileView = () => {
     setHasChanges(true);
   };
 
+  const handleSearchSelect = (id, team) => {
+    if (!id) return;
+    setSelectedTeam(team);
+    setSelectedPlayer(id);
+    const filtered = getPlayersForTeam(playersData, team);
+    setFilteredKeys(filtered);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-neutral-900 flex items-center justify-center">
@@ -171,6 +180,11 @@ const PlayerProfileView = () => {
           setSelectedPlayer={setSelectedPlayer}
           filteredKeys={filteredKeys}
           setFilteredKeys={setFilteredKeys}
+        />
+
+        <PlayerSearchBar
+          playersData={playersData}
+          onSelect={handleSearchSelect}
         />
 
         <PlayerNavigation onPrev={handlePrevPlayer} onNext={handleNextPlayer} />
