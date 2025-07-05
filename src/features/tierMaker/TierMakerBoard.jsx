@@ -222,8 +222,9 @@ const TierMakerBoard = ({ players = [] }) => {
     }
   };
 
-  const handleSaveTierList = async () => {
-    if (!selectedTierList) {
+  const handleSaveTierList = async (idOverride) => {
+    const listId = idOverride || selectedTierList;
+    if (!listId) {
       setShowCreateModal(true);
       return;
     }
@@ -233,7 +234,7 @@ const TierMakerBoard = ({ players = [] }) => {
     });
     try {
       setIsSaving(true);
-      await saveTierList(selectedTierList, { tiers: dataToSave, tierOrder });
+      await saveTierList(listId, { tiers: dataToSave, tierOrder });
       toast.success('Tier list saved!');
     } catch (err) {
       console.error('Failed to save tier list', err);
@@ -247,7 +248,7 @@ const TierMakerBoard = ({ players = [] }) => {
     if (!newId) return;
     setSelectedTierList(newId);
     setShowCreateModal(false);
-    await handleSaveTierList();
+    await handleSaveTierList(newId);
   };
 
   if (loading) {
@@ -372,7 +373,7 @@ const TierMakerBoard = ({ players = [] }) => {
                 ))}
               </select>
               <button
-                onClick={handleSaveTierList}
+                onClick={() => handleSaveTierList()}
                 className="px-2 py-1 text-sm rounded bg-white/10 hover:bg-white/20 text-white"
               >
                 {isSaving ? 'Saving...' : 'Save'}

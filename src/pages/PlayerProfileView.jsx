@@ -171,21 +171,23 @@ const PlayerProfileView = () => {
   return (
     <>
       <div className="min-h-screen bg-neutral-900 flex flex-col items-center gap-6 py-20 relative">
-        <TeamPlayerDropdowns
-          teams={teams}
-          playersData={playersData}
-          selectedTeam={selectedTeam}
-          setSelectedTeam={setSelectedTeam}
-          selectedPlayer={selectedPlayer}
-          setSelectedPlayer={setSelectedPlayer}
-          filteredKeys={filteredKeys}
-          setFilteredKeys={setFilteredKeys}
-        />
+        <div className="absolute top-2 left-4 flex flex-col gap-1">
+          <PlayerSearchBar
+            playersData={playersData}
+            onSelect={handleSearchSelect}
+          />
 
-        <PlayerSearchBar
-          playersData={playersData}
-          onSelect={handleSearchSelect}
-        />
+          <TeamPlayerDropdowns
+            teams={teams}
+            playersData={playersData}
+            selectedTeam={selectedTeam}
+            setSelectedTeam={setSelectedTeam}
+            selectedPlayer={selectedPlayer}
+            setSelectedPlayer={setSelectedPlayer}
+            filteredKeys={filteredKeys}
+            setFilteredKeys={setFilteredKeys}
+          />
+        </div>
 
         <PlayerNavigation onPrev={handlePrevPlayer} onNext={handleNextPlayer} />
 
