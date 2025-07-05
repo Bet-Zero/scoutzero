@@ -23,9 +23,16 @@ const TeamPlayerDropdowns = ({
     }
     const filtered = getPlayersForTeam(playersData, selectedTeam);
     setFilteredKeys(filtered);
-    setSelectedPlayer(filtered[0] || '');
-  }, [selectedTeam, playersData, setFilteredKeys, setSelectedPlayer]);
-
+    if (!filtered.includes(selectedPlayer)) {
+      setSelectedPlayer(filtered[0] || '');
+    }
+  }, [
+    selectedTeam,
+    playersData,
+    selectedPlayer,
+    setFilteredKeys,
+    setSelectedPlayer,
+  ]);
   return (
     <div className="absolute top-2 left-4 flex flex-col gap-1">
       <DropdownGroup label="Select Team">

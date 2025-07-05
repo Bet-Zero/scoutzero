@@ -323,10 +323,10 @@ const ListManager = () => {
             isRanked={isRanked}
           />
 
-          <div className="w-full max-w-[1100px] mx-auto px-4 mt-12 mb-12 text-right">
+          <div className="fixed bottom-6 left-6 z-50">
             <button
               onClick={() => setShowExportModal(true)}
-              className="px-3 py-1 text-sm rounded bg-white/10 text-white hover:bg-white/20"
+              className="bg-black/20 text-white px-4 py-2 rounded hover:bg-neutral-600"
             >
               Export
             </button>

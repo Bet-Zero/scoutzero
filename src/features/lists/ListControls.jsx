@@ -30,11 +30,11 @@ const ListControls = ({
       </button>
     </div>
 
-    <div className="w-full max-w-[1100px] mx-auto px-4 text-right mt-6">
+    <div className="fixed bottom-6 right-6 z-50">
       <button
         onClick={onSave}
         disabled={isSaving}
-        className="bg-white/10 hover:bg-white/20 text-white px-5 py-2 rounded-md transition disabled:opacity-40"
+        className="bg-black/20 text-white px-4 py-2 rounded hover:bg-white/20 transition disabled:opacity-40"
       >
         {isSaving ? 'Saving...' : 'Save List'}
       </button>
