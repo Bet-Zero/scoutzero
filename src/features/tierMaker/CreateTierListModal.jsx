@@ -29,11 +29,12 @@ const CreateTierListModal = ({ isOpen, onClose, onCreated }) => {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Enter tier list name"
-          className="w-full p-2 border border-gray-300 rounded mb-2"
+          className="w-full p-2 bg-neutral-800 text-black border border-black rounded mb-2 placeholder:text-neutral-700"
         />
+
         {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
         <button
-          className="bg-neutral-600 hover:bg-neutral-700 text-white px-4 py-2 rounded w-full"
+          className="bg-neutral-600 hover:bg-neutral-700 text-white px-04 py-2 rounded w-full"
           onClick={handleCreate}
         >
           Create Tier List

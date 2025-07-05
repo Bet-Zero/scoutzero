@@ -5,21 +5,27 @@ import { Toaster } from 'react-hot-toast';
 import { ChevronDown } from 'lucide-react';
 
 const NavGroup = ({ label, children, align = 'left' }) => {
-  let alignmentClasses = 'left-0';
-  if (align === 'center') alignmentClasses = 'left-1/2 -translate-x-1/2';
-  if (align === 'right') alignmentClasses = 'right-0';
+  let alignmentClass = 'left-0';
+  if (align === 'center') alignmentClass = 'left-1/2 -translate-x-1/2';
+  if (align === 'right') alignmentClass = 'right-0';
 
   return (
-    <div className="relative group flex flex-col items-start">
-      <div className="inline-flex items-center gap-1 cursor-pointer text-white/60 hover:text-white">
+    <div className="relative group">
+      {/* Trigger */}
+      <div className="inline-flex items-center gap-1 cursor-pointer hover:text-white text-white/60">
         <span>{label}</span>
         <ChevronDown
           size={14}
           className="mt-[1px] text-white/60 group-hover:text-white"
         />
       </div>
+
+      {/* Invisible hover bridge to prevent flicker */}
+      <div className="absolute top-full h-4 w-full" />
+
+      {/* Dropdown */}
       <div
-        className={`absolute top-full mt-2 hidden group-hover:flex flex-col bg-[#1c1c1c] border border-white/10 rounded shadow-lg text-sm text-white/80 min-w-[160px] p-2 z-50 ${alignmentClasses}`}
+        className={`absolute hidden group-hover:flex flex-col mt-2 bg-[#1c1c1c] border border-white/10 rounded shadow-lg text-sm text-white/80 min-w-[160px] p-2 z-50 ${alignmentClass}`}
       >
         {children}
       </div>
