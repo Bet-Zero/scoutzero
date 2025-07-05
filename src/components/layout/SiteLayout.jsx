@@ -60,13 +60,13 @@ const SiteLayout = () => {
 
           <NavGroup label="Saved" align="right">
             <Link to="/rosters" className="hover:text-white py-1 px-2">
-              Saved Rosters
+              Rosters
             </Link>
             <Link to="/lists" className="hover:text-white py-1 px-2">
-              Saved Lists
+              Lists
             </Link>
             <Link to="/tier-lists" className="hover:text-white py-1 px-2">
-              Saved Tiers
+              Tiers
             </Link>
           </NavGroup>
         </nav>
