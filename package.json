@@ -9,7 +9,8 @@
     "update-stats": "node updateStats.js",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "docs": "node generateDocs.cjs",
-    "test": "vitest"
+    "test": "vitest",
+    "zen": "node toggleView.cjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",
