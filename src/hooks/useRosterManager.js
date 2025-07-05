@@ -88,7 +88,7 @@ export const useRosterManager = (allPlayers = [], isLoading = false) => {
 
   useEffect(() => {
     const load = async () => {
-      if (!selectedTeam || isLoading || allPlayers.length === 0) return;
+      if (isLoading || allPlayers.length === 0) return;
 
       if (loadMethod === 'blank') {
         setRoster(emptyRoster);
@@ -96,6 +96,7 @@ export const useRosterManager = (allPlayers = [], isLoading = false) => {
       }
 
       if (loadMethod === 'current') {
+        if (!selectedTeam) return;
         const rawTeamPlayers = allPlayers.filter(
           (p) => p.bio?.Team?.toLowerCase() === selectedTeam.toLowerCase()
         );
@@ -114,6 +115,7 @@ export const useRosterManager = (allPlayers = [], isLoading = false) => {
 
       const loaded = await loadRosterProject(loadMethod);
       if (loaded) {
+        setSelectedTeam(loaded.team || '');
         setRosterId(loaded.id);
         setRosterName(loaded.name);
         setRoster({
@@ -189,6 +191,7 @@ export const useRosterManager = (allPlayers = [], isLoading = false) => {
     async (id) => {
       const loaded = await loadRosterProject(id);
       if (loaded) {
+        setSelectedTeam(loaded.team || '');
         setRosterId(loaded.id);
         setRosterName(loaded.name);
         setRoster({

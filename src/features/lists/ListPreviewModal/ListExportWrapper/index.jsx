@@ -28,7 +28,9 @@ const ListExportWrapper = ({
 
   let Row;
   if (compact) {
-    Row = twoColumn ? ListExportRowCompactTwoColumn : ListExportRowCompactSingle;
+    Row = twoColumn
+      ? ListExportRowCompactTwoColumn
+      : ListExportRowCompactSingle;
   } else {
     Row = twoColumn ? ListExportPlayerRowTwoColumn : ListExportPlayerRowSingle;
   }
@@ -39,7 +41,7 @@ const ListExportWrapper = ({
         <Row
           key={player.player_id || startIdx + idx}
           player={player}
-          rank={exportType === 'list' ? startIdx + idx + 1 : null}
+          rank={isRanked && exportType === 'list' ? startIdx + idx + 1 : null}
         />
       ))}
     </div>
@@ -51,7 +53,7 @@ const ListExportWrapper = ({
         <Row
           key={player.player_id || idx}
           player={player}
-          rank={exportType === 'list' ? idx + 1 : null}
+          rank={isRanked && exportType === 'list' ? idx + 1 : null}
         />
       ))}
     </div>
@@ -176,8 +178,12 @@ const ListExportWrapper = ({
     );
   };
 
+  const containerPadding = twoColumn ? 'p-12' : 'p-20';
+
   return (
-    <div className="w-full overflow-auto p-4 bg-gradient-to-br from-[#1e1e1e] to-[#111] rounded-lg border border-neutral-700 shadow-sm">
+    <div
+      className={`w-full overflow-auto ${containerPadding} bg-gradient-to-br from-[#1e1e1e] to-[#111] rounded-lg border border-neutral-700 shadow-sm`}
+    >
       {title && exportType !== 'tier' && (
         <div className="w-full max-w-[1100px] mx-auto px-4 mb-6">
           <div className="h-[5px] w-24 bg-gradient-to-r from-neutral-500 to-neutral-900 rounded-full mb-4 shadow-lg"></div>
