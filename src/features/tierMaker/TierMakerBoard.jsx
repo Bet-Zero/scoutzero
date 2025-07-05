@@ -229,16 +229,13 @@ const TierMakerBoard = ({ players = [] }) => {
       return;
     }
     const dataToSave = {};
-    const playersToSave = {};
     Object.keys(tiers).forEach((t) => {
       dataToSave[t] = tiers[t].map((p) => p.player_id);
-      playersToSave[t] = tiers[t];
     });
     try {
       setIsSaving(true);
       await saveTierList(listId, {
         tiers: dataToSave,
-        players: playersToSave,
         tierOrder,
       });
       toast.success('Tier list saved!');
