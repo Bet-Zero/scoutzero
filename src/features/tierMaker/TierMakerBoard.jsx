@@ -1,6 +1,6 @@
 // src/features/tierMaker/TierMakerBoard.jsx
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import TierRow from '@/features/tierMaker/TierRow';
 import usePlayerData from '@/hooks/usePlayerData.js';
 import useFirebaseQuery from '@/hooks/useFirebaseQuery';
@@ -15,7 +15,7 @@ import { toast } from 'react-hot-toast';
 
 const DEFAULT_TIERS = ['S', 'A', 'B', 'C', 'D'];
 
-const TierMakerBoard = ({ players = [] }) => {
+const TierMakerBoard = ({ players = [], initialTierListId = '' }) => {
   const { players: allPlayers, loading } = usePlayerData();
   const { data: listsData } = useFirebaseQuery('lists');
   const { data: tierListsData } = useFirebaseQuery('tierLists');
@@ -105,6 +105,7 @@ const TierMakerBoard = ({ players = [] }) => {
   const [selectedTierList, setSelectedTierList] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [initialLoaded, setInitialLoaded] = useState(false);
 
   const addPlayerToPool = (player) => {
     const formatted = { ...player, player_id: player.id };
@@ -253,6 +254,18 @@ const TierMakerBoard = ({ players = [] }) => {
     setShowCreateModal(false);
     await handleSaveTierList(newId);
   };
+
+  useEffect(() => {
+    if (
+      !initialLoaded &&
+      initialTierListId &&
+      tierListsData &&
+      allPlayers.length
+    ) {
+      handleLoadTierList(initialTierListId);
+      setInitialLoaded(true);
+    }
+  }, [initialLoaded, initialTierListId, tierListsData, allPlayers.length]);
 
   if (loading) {
     return (

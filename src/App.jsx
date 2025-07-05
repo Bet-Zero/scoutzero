@@ -24,7 +24,7 @@ const App = () => {
         <Route path="/lists/:listId" element={<ListManager />} />
         <Route path="/list-presentation" element={<ListPresentationView />} />
         <Route path="/tier-lists" element={<TierListsHome />} />
-        <Route path="/tier-maker" element={<TierMakerView />} />
+        <Route path="/tier-maker/:tierListId?" element={<TierMakerView />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
