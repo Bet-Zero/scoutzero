@@ -58,8 +58,10 @@ const ListPreviewModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 flex items-start justify-center p-8 overflow-auto">
-      <div className="absolute inset-0 cursor-pointer" onClick={onClose} />
+    <div
+      className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-8 overflow-auto"
+      onClick={onClose}
+    >
       <div
         className="relative mx-auto transform"
         style={{
@@ -95,9 +97,12 @@ const ListPreviewModal = ({
           />
         </div>
       </div>
-      <div className="absolute bottom-7 left-1/2 transform -translate-x-1/2 z-30">
+      <div className="absolute bottom-4 right-4 z-30">
         <button
-          onClick={handleDownload}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDownload();
+          }}
           className="bg-neutral-200 text-black text-[10px] px-[8px] py-[4px] rounded shadow-md hover:bg-neutral-400 transition"
         >
           Download
