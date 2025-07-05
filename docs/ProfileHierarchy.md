@@ -4,23 +4,25 @@ Overview of the components under `src/features/profile` and how they relate.
 
 ```
 src/features/profile
-├── PlayerDetails.jsx (parent)
-│   ├── PlayerHeader.jsx (parent)
+├── PlayerDetails/ (parent)
+│   ├── PlayerHeader/ (parent)
 │   │   ├── ProfilePlayerName.jsx
 │   │   └── ProfilePlayerPosition.jsx
 │   ├── PlayerStatsTable.jsx
 │   ├── PlayerTraitsGrid.jsx
-│   ├── PlayerRolesSection.jsx (parent)
-│   │   ├── SubRoleSelector.jsx
+│   ├── PlayerRolesSection/ (parent)
 │   │   ├── ShootingProfileSelector.jsx
-│   │   └── TwoWayMeter.jsx
+│   │   ├── SubRoleSelector.jsx
+│   │   ├── TwoWayMeter.jsx
+│   │   └── index.jsx
 │   ├── BadgeSelector.jsx
-│   └── OverallBlurbBox.jsx
+│   ├── OverallBlurbBox.jsx
+│   └── index.jsx
 ├── BreakdownModal.jsx
 ├── TeamPlayerDropdowns.jsx
 ├── TeamPlayerSelector.jsx
 └── PlayerNavigation.jsx
 ```
 
-- **Parent** components: `PlayerDetails.jsx`, `PlayerHeader.jsx`, `PlayerRolesSection.jsx`.
+- **Parent** components: `PlayerDetails`, `PlayerHeader`, `PlayerRolesSection`.
 - **Child** components are the remaining files which do not render other profile components.

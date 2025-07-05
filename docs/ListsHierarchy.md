@@ -4,19 +4,19 @@ Parent-child relationships for components in `src/features/lists`.
 
 ```
 src/features/lists
-├── AddToListButton.jsx (parent)
+├── AddToListButton/ (parent)
 │   └── AddToListModal.jsx
-├── ListPreviewModal.jsx (parent)
-│   └── ListExportWrapper.jsx (parent)
+├── ListPreviewModal/ (parent)
+│   └── ListExportWrapper/ (parent)
 │       ├── ListExportPlayerRowSingle.jsx
 │       ├── ListExportPlayerRowTwoColumn.jsx
 │       ├── ListExportRowCompactSingle.jsx
 │       ├── ListExportRowCompactTwoColumn.jsx
 │       └── ListTierExport.jsx (parent)
 │           └── TierPlayerTile.jsx
-├── ListTierHeader.jsx (parent)
+├── ListTierHeader/ (parent)
 │   └── ListPlayerRow.jsx
-├── TieredListView.jsx (parent)
+├── TieredListView/ (parent)
 │   └── TierPlayerTile.jsx
 ├── CreateListModal.jsx
 ├── ExportOptionsModal.jsx
@@ -29,5 +29,5 @@ src/features/lists
 └── RankedListTierToggle.jsx
 ```
 
-- **Parent** components: `AddToListButton.jsx`, `ListPreviewModal.jsx`, `ListExportWrapper.jsx`, `ListTierExport.jsx`, `ListTierHeader.jsx`, `TieredListView.jsx`.
+- **Parent** components: `AddToListButton`, `ListPreviewModal`, `ListExportWrapper`, `ListTierExport`, `ListTierHeader`, `TieredListView`.
 - **Child** components are the remaining files that do not nest other list components.

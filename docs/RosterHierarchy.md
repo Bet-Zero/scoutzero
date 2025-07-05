@@ -5,29 +5,29 @@ Relationships among components in `src/features/roster`.
 ```
 src/features/roster
 ├── RosterViewer.jsx (parent)
-│   ├── AddPlayerDrawer.jsx (parent)
+│   ├── AddPlayerDrawer/ (parent)
 │   │   ├── PlayerRowMini.jsx
-│   │   └── addPlayer
+│   │   └── addPlayer/
+│   │       ├── BasicFilters.jsx
+│   │       ├── ContractFilters.jsx
 │   │       ├── DrawerHeader.jsx
+│   │       ├── FilterTabs.jsx (parent)
 │   │       ├── PlayerSearchBar.jsx
-│   │       └── FilterTabs.jsx (parent)
-│   │           ├── BasicFilters.jsx
-│   │           ├── RolesFilters.jsx
-│   │           └── ContractFilters.jsx
+│   │       └── RolesFilters.jsx
 │   ├── RosterControls.jsx
-│   ├── RosterSection.jsx (parent)
+│   ├── RosterSection/ (parent)
 │   │   ├── StarterCard.jsx
 │   │   ├── RotationCard.jsx
 │   │   ├── BenchCard.jsx
-│   │   └── EmptySlot.jsx
+│   │   ├── EmptySlot.jsx
+│   │   └── index.jsx
 │   ├── SaveRosterModal.jsx
 │   └── RosterPreviewModal.jsx (parent)
-│       └── RosterSection.jsx
+│       └── RosterSection/
 ├── RosterExportWrapper.jsx
 ├── RosterExportModal.jsx
+├── RosterExportCapture.jsx
 ├── CreateRosterModal.jsx
 └── PlayerRowMini.jsx
-```
-
-- **Parent** components: `RosterViewer.jsx`, `AddPlayerDrawer.jsx`, `FilterTabs.jsx`, `RosterSection.jsx`, `RosterPreviewModal.jsx`.
+- **Parent** components: `RosterViewer`, `AddPlayerDrawer`, `FilterTabs`, `RosterSection`, `RosterPreviewModal`.
 - **Child** components are the remaining files that do not render other roster components.

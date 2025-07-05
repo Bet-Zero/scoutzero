@@ -4,9 +4,9 @@ This document outlines the parent-child relationships for React components under
 
 ```
 src/features/filters
-├── FiltersPanel.jsx (parent)
+├── FiltersPanel/ (parent)
 │   ├── FilterPanelCondensed.jsx
-│   └── FilterPanel.jsx (parent)
+│   └── FilterPanel/ (parent)
 │       └── sections
 │           ├── MetadataFilters.jsx
 │           ├── PhysicalFilters.jsx
@@ -17,10 +17,10 @@ src/features/filters
 │           ├── OverallGradeFilter.jsx
 │           ├── BadgeFilters.jsx
 │           └── ViewControls.jsx
-├── ActiveFiltersDisplay.jsx (parent)
-│   └── FilterPill.jsx (parent)
+├── ActiveFiltersDisplay/ (parent)
+│   └── FilterPill/ (parent)
 │       └── FilterContent.jsx
 ```
 
-- **Parent** components: `FiltersPanel.jsx`, `FilterPanel.jsx`, `ActiveFiltersDisplay.jsx`, `FilterPill.jsx`.
+- **Parent** components: `FiltersPanel`, `FilterPanel`, `ActiveFiltersDisplay`, `FilterPill`.
 - **Child** components are the remaining files which do not render other filters components.

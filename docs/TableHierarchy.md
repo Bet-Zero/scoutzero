@@ -4,25 +4,25 @@ This document maps the React components under `src/features/table`. Parent compo
 
 ```
 src/features/table
-├── PlayerTable.jsx (parent)
-│   ├── PlayerTableHeader.jsx (parent)
-│   │   ├── SearchBar.jsx
-│   │   └── ControlButtons.jsx
-│   └── PlayerRow.jsx (parent)
-│       ├── PlayerNameMini.jsx
-│       ├── ShootingProfileMini.jsx
-│       ├── RolePill.jsx
-│       ├── PlayerDrawer.jsx (parent)
-│       │   ├── BadgeMini.jsx
-│       │   ├── OverallBlurbMini.jsx
-│       │   ├── PlayerSubRolesMini.jsx
-│       │   ├── PlayerContractMini.jsx
-│       │   ├── PlayerStatsMini.jsx
-│       │   └── PlayerTraitsMiniGrid.jsx
-│       └── (uses external components: AddToListButton, TeamLogo, OverallGradeBlock)
-├── TwoWayMini.jsx (child standalone)
-└── SubRolePill.jsx (child standalone)
+└── PlayerTable/ (parent)
+    ├── PlayerTableHeader/ (parent)
+    │   ├── SearchBar.jsx
+    │   └── ControlButtons.jsx
+    ├── PlayerRow/ (parent)
+    │   ├── PlayerNameMini.jsx
+    │   ├── ShootingProfileMini.jsx
+    │   ├── RolePill.jsx
+    │   ├── PlayerDrawer/ (parent)
+    │   │   ├── BadgeMini.jsx
+    │   │   ├── OverallBlurbMini.jsx
+    │   │   ├── PlayerSubRolesMini.jsx
+    │   │   ├── PlayerContractMini.jsx
+    │   │   ├── PlayerStatsMini.jsx
+    │   │   └── PlayerTraitsMiniGrid.jsx
+    │   └── index.jsx
+    ├── SubRolePill.jsx (child standalone)
+    └── TwoWayMini.jsx (child standalone)
 ```
 
-- **Parent** components: `PlayerTable.jsx`, `PlayerTableHeader.jsx`, `PlayerRow.jsx`, `PlayerDrawer.jsx`.
+- **Parent** components: `PlayerTable`, `PlayerTableHeader`, `PlayerRow`, `PlayerDrawer`.
 - **Child** components are the remaining files which don't render other table components.

@@ -52,15 +52,17 @@ The app will be available at `http://localhost:5173` by default.
 
 ```
 public/             Static assets and exported player JSON
-  assets/headshots/ Player headshots
-  assets/logos/     Team logos
+  assets/           Team logos & headshots
+  fonts/            Web fonts
 src/
-  components/       Reusable layout and UI pieces
-  features/         Domain features (filters, roster, profile, table, lists)
+  components/       Layout wrapper and shared UI pieces
+  features/         Domain features (table, profile, roster, lists, filters, tierMaker)
   hooks/            Custom React hooks for Firebase data and filtering
-  pages/            Route-level pages (table, profile, roster, lists)
+  pages/            Route-level pages
   utils/            Helper utilities for filtering, formatting and roster logic
   constants/        Shared constants (role lists, badges)
+  firebase/         Firestore helper modules
+  styles/           Additional style sheets
   firebaseConfig.js Firebase client initialization
   firebaseHelpers.js Helper functions for Firestore writes
   firebase_helpers.py Python Firebase Admin helper
