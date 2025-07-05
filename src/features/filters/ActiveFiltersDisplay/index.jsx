@@ -1,6 +1,6 @@
 // ActiveFiltersDisplay.jsx
 import React from 'react';
-import FilterPill from './FilterPill';
+import FilterPill from './FilterPill/FilterPill';
 import { getFilterDisplayValue } from '@/utils/filtering';
 import { SubRoleMasterList } from '@/constants/SubRoleMasterList';
 
