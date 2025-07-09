@@ -1,5 +1,5 @@
 // ListsHome.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   collection,
   getDocs,
@@ -7,9 +7,10 @@ import {
   updateDoc,
   doc,
 } from 'firebase/firestore';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { db } from '@/firebaseConfig';
 import CreateListModal from '@/features/lists/CreateListModal';
+import ListSearchBar from '@/features/lists/ListSearchBar';
 
 const ListsHome = () => {
   const [lists, setLists] = useState([]);
@@ -18,6 +19,15 @@ const ListsHome = () => {
   const [renamingListId, setRenamingListId] = useState(null);
   const [renameValue, setRenameValue] = useState('');
   const [deletingListId, setDeletingListId] = useState(null);
+  const navigate = useNavigate();
+
+  const listsMap = useMemo(() => {
+    const map = {};
+    lists.forEach((l) => {
+      map[l.id] = l;
+    });
+    return map;
+  }, [lists]);
 
   const fetchLists = async () => {
     const snapshot = await getDocs(collection(db, 'lists'));
@@ -54,12 +64,18 @@ const ListsHome = () => {
       <div className="max-w-[800px] py-4 mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold text-white">Lists</h1>
-          <button
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
-            onClick={() => setShowCreateModal(true)}
-          >
-            + New List
-          </button>
+          <div className="flex items-center gap-3">
+            <ListSearchBar
+              listsData={listsMap}
+              onSelect={(id) => navigate(`/lists/${id}`)}
+            />
+            <button
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+              onClick={() => setShowCreateModal(true)}
+            >
+              + New List
+            </button>
+          </div>
         </div>
 
         {isLoading ? (
