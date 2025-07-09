@@ -178,7 +178,7 @@ const ListExportWrapper = ({
     );
   };
 
-  const containerPadding = twoColumn ? 'p-12' : 'p-20';
+  const containerPadding = twoColumn ? 'p-12' : 'p-24';
 
   return (
     <div
