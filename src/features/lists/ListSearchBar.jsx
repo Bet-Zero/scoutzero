@@ -3,28 +3,56 @@ import { Search } from 'lucide-react';
 
 const ListSearchBar = ({
   listsData,
+  playersData = {},
   onSelect,
   placeholder = 'Search lists...',
 }) => {
   const [search, setSearch] = useState('');
-  const [results, setResults] = useState([]);
+  const [listResults, setListResults] = useState([]);
+  const [playerResults, setPlayerResults] = useState([]);
 
   useEffect(() => {
     if (!search) {
-      setResults([]);
+      setListResults([]);
+      setPlayerResults([]);
       return;
     }
+
     const lower = search.toLowerCase();
-    const matches = Object.keys(listsData)
+
+    // Lists matching the input
+    const listMatches = Object.keys(listsData)
       .filter((id) => listsData[id]?.name?.toLowerCase().includes(lower))
       .slice(0, 8);
-    setResults(matches);
-  }, [search, listsData]);
+    setListResults(listMatches);
+
+    // Players matching the input and the lists they are in
+    const matchedPlayers = Object.keys(playersData)
+      .filter((id) => {
+        const name =
+          playersData[id]?.display_name || playersData[id]?.name || '';
+        return name.toLowerCase().includes(lower);
+      })
+      .slice(0, 5)
+      .map((id) => {
+        const lists = Object.keys(listsData).filter((listId) =>
+          listsData[listId]?.playerIds?.includes(id)
+        );
+        return {
+          id,
+          name: playersData[id]?.display_name || playersData[id]?.name || id,
+          lists,
+        };
+      })
+      .filter((p) => p.lists.length > 0);
+    setPlayerResults(matchedPlayers);
+  }, [search, listsData, playersData]);
 
   const handleSelect = (id) => {
     if (!id) return;
     setSearch('');
-    setResults([]);
+    setListResults([]);
+    setPlayerResults([]);
     onSelect?.(id);
   };
 
@@ -41,18 +69,51 @@ const ListSearchBar = ({
         onChange={(e) => setSearch(e.target.value)}
         className="pl-8 pr-3 py-1 text-sm bg-neutral-800 border border-white/20 rounded-md text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500 w-56"
       />
-      {results.length > 0 && (
-        <ul className="absolute z-10 mt-1 w-full bg-neutral-800 border border-white/20 rounded-md max-h-52 overflow-y-auto">
-          {results.map((id) => (
-            <li
-              key={id}
-              className="px-2 py-1 text-white hover:bg-neutral-700 cursor-pointer text-sm"
-              onClick={() => handleSelect(id)}
-            >
-              {listsData[id]?.name || id}
-            </li>
-          ))}
-        </ul>
+      {(listResults.length > 0 || playerResults.length > 0) && (
+        <div className="absolute z-10 mt-1 w-full bg-neutral-800 border border-white/20 rounded-md max-h-60 overflow-y-auto text-sm">
+          {listResults.length > 0 && (
+            <>
+              <div className="px-2 py-1 text-white/50 text-xs uppercase">
+                Lists
+              </div>
+              {listResults.map((id) => (
+                <div
+                  key={`list-${id}`}
+                  className="px-2 py-1 text-white hover:bg-neutral-700 cursor-pointer"
+                  onClick={() => handleSelect(id)}
+                >
+                  {listsData[id]?.name || id}
+                </div>
+              ))}
+            </>
+          )}
+          {playerResults.length > 0 && (
+            <>
+              <div className="px-2 py-1 text-white/50 text-xs uppercase border-t border-white/10">
+                Players
+              </div>
+              {playerResults.map((player) => (
+                <div
+                  key={`player-${player.id}`}
+                  className="px-2 py-1 text-white/90"
+                >
+                  <div className="font-semibold text-white mb-1">
+                    {player.name}
+                  </div>
+                  {player.lists.map((lid) => (
+                    <div
+                      key={lid}
+                      className="ml-2 px-2 py-1 hover:bg-neutral-700 cursor-pointer"
+                      onClick={() => handleSelect(lid)}
+                    >
+                      {listsData[lid]?.name || lid}
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </>
+          )}
+        </div>
       )}
     </div>
   );
