@@ -196,6 +196,7 @@ const ListManager = () => {
           <div className="absolute top-0 right-0 flex flex-col items-end gap-2 z-20">
             <ListSearchBar
               listsData={listsMap}
+              playersData={playersMap}
               onSelect={(id) => navigate(`/lists/${id}`)}
             />
             <select
@@ -365,7 +366,7 @@ const ListManager = () => {
             </button>
           </div>
 
-          <div className="fixed top-2 right-2 z-50 scale-75">
+          <div className="fixed top-[72px] right-[1px] z-50 scale-75">
             <ListRankToggle isRanked={isRanked} onChange={setIsRanked} />
           </div>
 

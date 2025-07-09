@@ -11,6 +11,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { db } from '@/firebaseConfig';
 import CreateListModal from '@/features/lists/CreateListModal';
 import ListSearchBar from '@/features/lists/ListSearchBar';
+import usePlayerData from '@/hooks/usePlayerData.js';
 
 const ListsHome = () => {
   const [lists, setLists] = useState([]);
@@ -20,6 +21,16 @@ const ListsHome = () => {
   const [renameValue, setRenameValue] = useState('');
   const [deletingListId, setDeletingListId] = useState(null);
   const navigate = useNavigate();
+
+  const { players, loading: playersLoading } = usePlayerData();
+
+  const playersMap = useMemo(() => {
+    const map = {};
+    players.forEach((p) => {
+      map[p.id] = p;
+    });
+    return map;
+  }, [players]);
 
   const listsMap = useMemo(() => {
     const map = {};
@@ -67,6 +78,7 @@ const ListsHome = () => {
           <div className="flex items-center gap-3">
             <ListSearchBar
               listsData={listsMap}
+              playersData={playersMap}
               onSelect={(id) => navigate(`/lists/${id}`)}
             />
             <button
