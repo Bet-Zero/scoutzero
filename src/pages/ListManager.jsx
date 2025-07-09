@@ -2,7 +2,7 @@
 // Full-page route for building and editing player lists (flat, ranked, or tiered)
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '@/firebaseConfig';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import usePlayerData from '@/hooks/usePlayerData.js';
@@ -17,6 +17,8 @@ import ExportOptionsModal from '@/features/lists/ExportOptionsModal';
 import ListRowStyleToggle from '@/features/lists/ListRowStyleToggle';
 import ListColumnToggle from '@/features/lists/ListColumnToggle';
 import ListPreviewModal from '@/features/lists/ListPreviewModal';
+import ListSearchBar from '@/features/lists/ListSearchBar';
+import { fetchAllLists } from '@/firebase/listHelpers';
 
 const ListManager = () => {
   const { listId } = useParams();
@@ -33,8 +35,25 @@ const ListManager = () => {
   const [twoColumn, setTwoColumn] = useState(true);
   const [showExportModal, setShowExportModal] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [allLists, setAllLists] = useState([]);
+  const navigate = useNavigate();
+  const listsMap = useMemo(() => {
+    const map = {};
+    allLists.forEach((l) => {
+      map[l.id] = l;
+    });
+    return map;
+  }, [allLists]);
 
   const { players, loading: playersLoading } = usePlayerData();
+
+  useEffect(() => {
+    const loadLists = async () => {
+      const results = await fetchAllLists();
+      setAllLists(results);
+    };
+    loadLists();
+  }, []);
 
   useEffect(() => {
     const fetchList = async () => {
@@ -175,6 +194,21 @@ const ListManager = () => {
       {!isExport && (
         <div className="w-full max-w-[1100px] mx-auto px-4 mt-10 mb-6 relative z-10">
           <div className="absolute top-0 right-0 flex flex-col items-end gap-2 z-20">
+            <ListSearchBar
+              listsData={listsMap}
+              onSelect={(id) => navigate(`/lists/${id}`)}
+            />
+            <select
+              value={listId}
+              onChange={(e) => navigate(`/lists/${e.target.value}`)}
+              className="bg-neutral-800 text-white text-xs px-2 py-1 rounded border border-white/20"
+            >
+              {allLists.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
+                </option>
+              ))}
+            </select>
             <ListRankToggle isRanked={isRanked} onChange={setIsRanked} />
           </div>
           <div className="h-[5px] w-24 bg-gradient-to-r from-neutral-500 to-neutral-900 rounded-full mb-4 shadow-lg"></div>
