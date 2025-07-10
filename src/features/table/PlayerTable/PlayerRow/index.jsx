@@ -21,7 +21,7 @@ const PlayerRow = ({ player, ranking = '—' }) => {
   return (
     <div className="relative w-full max-w-[1100px] border border-black mx-auto mb-2">
       {/* Add Button - fixed small circle in top-right corner (overlay) */}
-      <div className="absolute top-0.5s right-0 z-10">
+      <div className="absolute top-0.5 right-0 z-10">
         <AddToListButton player={player} />
       </div>
 
