@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Search } from 'lucide-react';
 
 const ListSearchBar = ({
@@ -10,6 +10,21 @@ const ListSearchBar = ({
   const [search, setSearch] = useState('');
   const [listResults, setListResults] = useState([]);
   const [playerResults, setPlayerResults] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const wrapperRef = useRef(null);
+
+  // Close suggestions when clicking outside the search area
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   useEffect(() => {
     if (!search) {
@@ -53,11 +68,12 @@ const ListSearchBar = ({
     setSearch('');
     setListResults([]);
     setPlayerResults([]);
+    setShowSuggestions(false);
     onSelect?.(id);
   };
 
   return (
-    <div className="relative">
+    <div className="relative" ref={wrapperRef}>
       <Search
         className="absolute left-3 top-1/2 -translate-y-1/2 text-white/60"
         size={16}
@@ -66,55 +82,59 @@ const ListSearchBar = ({
         type="text"
         placeholder={placeholder}
         value={search}
-        onChange={(e) => setSearch(e.target.value)}
+        onChange={(e) => {
+          setSearch(e.target.value);
+          setShowSuggestions(true);
+        }}
         className="pl-8 pr-3 py-1 text-sm bg-neutral-800 border border-white/20 rounded-md text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500 w-56"
       />
-      {(listResults.length > 0 || playerResults.length > 0) && (
-        <div className="absolute z-10 mt-1 w-full bg-neutral-800 border border-white/20 rounded-md max-h-60 overflow-y-auto text-sm">
-          {listResults.length > 0 && (
-            <>
-              <div className="px-2 py-1 text-white/50 text-xs uppercase">
-                Lists
-              </div>
-              {listResults.map((id) => (
-                <div
-                  key={`list-${id}`}
-                  className="px-2 py-1 text-white hover:bg-neutral-700 cursor-pointer"
-                  onClick={() => handleSelect(id)}
-                >
-                  {listsData[id]?.name || id}
+      {showSuggestions &&
+        (listResults.length > 0 || playerResults.length > 0) && (
+          <div className="absolute z-10 mt-1 w-full bg-neutral-800 border border-white/20 rounded-md max-h-60 overflow-y-auto text-sm">
+            {listResults.length > 0 && (
+              <>
+                <div className="px-2 py-1 text-white/50 text-xs uppercase">
+                  Lists
                 </div>
-              ))}
-            </>
-          )}
-          {playerResults.length > 0 && (
-            <>
-              <div className="px-2 py-1 text-white/50 text-xs uppercase border-t border-white/10">
-                Players
-              </div>
-              {playerResults.map((player) => (
-                <div
-                  key={`player-${player.id}`}
-                  className="px-2 py-1 text-white/90"
-                >
-                  <div className="font-semibold text-white mb-1">
-                    {player.name}
+                {listResults.map((id) => (
+                  <div
+                    key={`list-${id}`}
+                    className="px-2 py-1 text-white hover:bg-neutral-700 cursor-pointer"
+                    onClick={() => handleSelect(id)}
+                  >
+                    {listsData[id]?.name || id}
                   </div>
-                  {player.lists.map((lid) => (
-                    <div
-                      key={lid}
-                      className="ml-2 px-2 py-1 hover:bg-neutral-700 cursor-pointer"
-                      onClick={() => handleSelect(lid)}
-                    >
-                      {listsData[lid]?.name || lid}
-                    </div>
-                  ))}
+                ))}
+              </>
+            )}
+            {playerResults.length > 0 && (
+              <>
+                <div className="px-2 py-1 text-white/50 text-xs uppercase border-t border-white/10">
+                  Players
                 </div>
-              ))}
-            </>
-          )}
-        </div>
-      )}
+                {playerResults.map((player) => (
+                  <div
+                    key={`player-${player.id}`}
+                    className="px-2 py-1 text-white/90"
+                  >
+                    <div className="font-semibold text-white mb-1">
+                      {player.name}
+                    </div>
+                    {player.lists.map((lid) => (
+                      <div
+                        key={lid}
+                        className="ml-2 px-2 py-1 hover:bg-neutral-700 cursor-pointer"
+                        onClick={() => handleSelect(lid)}
+                      >
+                        {listsData[lid]?.name || lid}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+        )}
     </div>
   );
 };
