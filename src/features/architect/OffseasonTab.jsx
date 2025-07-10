@@ -1,0 +1,70 @@
+import React, { useState } from 'react';
+import OptionManager from './OptionManager';
+import { runOffseason } from '../utils/runOffseason';
+
+const OffseasonTab = ({ 
+  teamCapSheet, 
+  setTeamCapSheet, 
+  currentYear, 
+  setCurrentYear, 
+  capSettings,
+  setLastCapSheet,
+  setOffseasonRun,
+  setOffseasonSummary,
+  setShowModal
+}) => {
+  const [optionsConfirmed, setOptionsConfirmed] = useState(false);
+  const [optionDecisions, setOptionDecisions] = useState(null);
+
+  const handleDecisionsReady = (decisions) => {
+    setOptionDecisions(decisions);
+    setOptionsConfirmed(true);
+  };
+
+  const handleAdvanceYear = () => {
+    setLastCapSheet(JSON.parse(JSON.stringify(teamCapSheet)));
+    const { updatedCapSheet, summary } = runOffseason(
+      teamCapSheet, 
+      currentYear, 
+      capSettings, 
+      optionDecisions
+    );
+    setTeamCapSheet(updatedCapSheet);
+    setCurrentYear(currentYear + 1);
+    setOffseasonSummary(summary);
+    setShowModal(true);
+    setOffseasonRun(true);
+  };
+
+  return (
+    <div className="offseason-tab">
+      <h2>Offseason Manager</h2>
+      
+      {!optionsConfirmed && !offseasonRun && (
+        <OptionManager 
+          teamCapSheet={teamCapSheet} 
+          currentYear={currentYear}
+          onDecisionsReady={handleDecisionsReady}
+        />
+      )}
+
+      {optionsConfirmed && !offseasonRun && (
+        <div style={{ marginTop: '20px' }}>
+          <h4>All option decisions confirmed.</h4>
+          <button onClick={handleAdvanceYear}>
+            Advance to {currentYear + 1}
+          </button>
+        </div>
+      )}
+
+      {offseasonRun && (
+        <div style={{ marginTop: '20px' }}>
+          <strong>✅ Offseason Complete!</strong>
+          <p>You are now in the {currentYear + 1} season.</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default OffseasonTab;

@@ -92,10 +92,10 @@ const ListSearchBar = ({
         (listResults.length > 0 || playerResults.length > 0) && (
           <>
             <div
-              className="fixed inset-0 z-40 bg-black/50"
+              className="fixed inset-0 z-[1000] bg-black/40"
               onClick={() => setShowSuggestions(false)}
             />
-            <div className="absolute z-50 mt-1 w-full bg-neutral-800 border border-white/20 rounded-md max-h-60 overflow-y-auto text-sm">
+            <div className="absolute z-[1010] mt-1 w-full bg-neutral-800 border border-white/20 rounded-md max-h-60 overflow-y-auto text-sm">
               {listResults.length > 0 && (
                 <>
                   <div className="px-2 py-1 text-white/50 text-xs uppercase">
