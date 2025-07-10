@@ -1,7 +1,16 @@
 import React, { useState } from 'react';
-import { canSignFreeAgent, generateContract } from '../utils/freeAgentLogic';
+import {
+  canSignFreeAgent,
+  generateContract,
+} from '@/utils/architect/freeAgentLogic';
 
-const FreeAgentPool = ({ freeAgents, teamCapSheet, capSettings, currentYear, onSign }) => {
+const FreeAgentPool = ({
+  freeAgents,
+  teamCapSheet,
+  capSettings,
+  currentYear,
+  onSign,
+}) => {
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [signResult, setSignResult] = useState(null);
 
@@ -22,7 +31,7 @@ const FreeAgentPool = ({ freeAgents, teamCapSheet, capSettings, currentYear, onS
       years: 3,
       raisePct: 0.05,
       options: {},
-      startYear: currentYear
+      startYear: currentYear,
     });
 
     onSign(selectedPlayer.name, contract);
@@ -39,7 +48,8 @@ const FreeAgentPool = ({ freeAgents, teamCapSheet, capSettings, currentYear, onS
               onClick={() => handleSelect(p)}
               className="text-blue-400 hover:underline text-sm"
             >
-              {p.name} – Asking: ${p.askingSalary.toLocaleString()} – Rights: {p.birdRights}
+              {p.name} – Asking: ${p.askingSalary.toLocaleString()} – Rights:{' '}
+              {p.birdRights}
             </button>
           </li>
         ))}
@@ -48,8 +58,12 @@ const FreeAgentPool = ({ freeAgents, teamCapSheet, capSettings, currentYear, onS
       {selectedPlayer && (
         <div className="bg-[#1a1a1a] p-4 rounded border border-white/10 mb-3">
           <h3 className="font-semibold mb-1">{selectedPlayer.name}</h3>
-          <p className="text-sm mb-1">Asking: ${selectedPlayer.askingSalary.toLocaleString()}</p>
-          <p className="text-sm mb-3">Bird Rights: {selectedPlayer.birdRights}</p>
+          <p className="text-sm mb-1">
+            Asking: ${selectedPlayer.askingSalary.toLocaleString()}
+          </p>
+          <p className="text-sm mb-3">
+            Bird Rights: {selectedPlayer.birdRights}
+          </p>
           <button
             onClick={handleSign}
             className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm"

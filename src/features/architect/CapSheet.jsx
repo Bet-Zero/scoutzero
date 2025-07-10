@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { getMinimumCapHit } from '../utils/contractUtils';
+import { getMinimumCapHit } from '@/utils/architect/contractUtils';
 
 const CapSheet = ({ teamCapSheet, capSettings, currentYear }) => {
   const [selectedYear, setSelectedYear] = useState(currentYear);
 
   const allYears = Array.from(
     new Set(
-      teamCapSheet.activeContracts.flatMap(contract => 
+      teamCapSheet.activeContracts.flatMap((contract) =>
         Object.keys(contract.salaryByYear || {}).map(Number)
       )
     )
@@ -22,16 +22,18 @@ const CapSheet = ({ teamCapSheet, capSettings, currentYear }) => {
 
   const renderNotes = (contract, year) => {
     const notes = [];
-    const optionYear = contract.options?.playerOptionYear || contract.options?.teamOptionYear;
-    
+    const optionYear =
+      contract.options?.playerOptionYear || contract.options?.teamOptionYear;
+
     if (contract.options?.playerOption && optionYear === year) notes.push('PO');
     if (contract.options?.teamOption && optionYear === year) notes.push('TO');
-    if (contract.isMinimum && contract.yearsOfService >= 3) notes.push('Vet Min');
+    if (contract.isMinimum && contract.yearsOfService >= 3)
+      notes.push('Vet Min');
     if (contract.guaranteed === false) notes.push('Non-Guaranteed');
     if (typeof contract.guaranteed === 'number') {
       notes.push(`Guaranteed ${Math.round(contract.guaranteed * 100)}%`);
     }
-    
+
     return notes.join(', ');
   };
 
@@ -71,7 +73,10 @@ const CapSheet = ({ teamCapSheet, capSettings, currentYear }) => {
               totalCapHit += capHit;
 
               return (
-                <tr key={`${contract.name}-${idx}`} className="odd:bg-[#171717]">
+                <tr
+                  key={`${contract.name}-${idx}`}
+                  className="odd:bg-[#171717]"
+                >
                   <td className="p-2">{contract.name}</td>
                   <td className="p-2">${salary.toLocaleString()}</td>
                   <td className="p-2">${capHit.toLocaleString()}</td>

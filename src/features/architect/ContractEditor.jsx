@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
-import { 
-  generateContract, 
-  createMaxContract, 
-  generateRookieContract, 
-  getMinimumSalary 
-} from '../utils/contractUtils';
+import {
+  generateContract,
+  createMaxContract,
+  generateRookieContract,
+  getMinimumSalary,
+} from '@/utils/architect/contractUtils';
 
 const ContractEditor = ({ player, capSettings, teamCapSheet, onSign }) => {
   const [type, setType] = useState('Custom');
   const [years, setYears] = useState(4);
   const [baseSalary, setBaseSalary] = useState(10000000);
   const [raisePct, setRaisePct] = useState(0.08);
-  const [options, setOptions] = useState({ 
-    playerOption: false, 
-    teamOption: false 
+  const [options, setOptions] = useState({
+    playerOption: false,
+    teamOption: false,
   });
   const [guaranteedPercent, setGuaranteedPercent] = useState(100);
   const [preview, setPreview] = useState(null);
@@ -22,8 +22,8 @@ const ContractEditor = ({ player, capSettings, teamCapSheet, onSign }) => {
     setType(newType);
     if (newType === 'Max') {
       const contract = createMaxContract(
-        player.name, 
-        player.yearsOfService, 
+        player.name,
+        player.yearsOfService,
         capSettings
       );
       setPreview(contract);
@@ -32,11 +32,11 @@ const ContractEditor = ({ player, capSettings, teamCapSheet, onSign }) => {
       setPreview(contract);
     } else if (newType === 'Minimum') {
       const min = getMinimumSalary(player.yearsOfService);
-      const contract = generateContract({ 
-        baseSalary: min, 
-        years: 1, 
-        raisePct: 0, 
-        options: {} 
+      const contract = generateContract({
+        baseSalary: min,
+        years: 1,
+        raisePct: 0,
+        options: {},
       });
       setPreview(contract);
     } else {
@@ -45,38 +45,48 @@ const ContractEditor = ({ player, capSettings, teamCapSheet, onSign }) => {
   };
 
   const handleCustomPreview = () => {
-    const contract = generateContract({ 
-      baseSalary, 
-      years, 
-      raisePct, 
+    const contract = generateContract({
+      baseSalary,
+      years,
+      raisePct,
       options,
-      startYear: new Date().getFullYear()
+      startYear: new Date().getFullYear(),
     });
     setPreview(contract);
   };
 
   const handleSign = () => {
     if (!preview) return;
-    
+
     const finalContract = {
       ...preview,
-      type: type === 'Max' ? 'Max' : 
-            type === 'Rookie' ? 'Rookie Scale' : 
-            type === 'Minimum' ? 'Vet Minimum' : 'Custom',
-      guaranteed: guaranteedPercent === 0 ? false : 
-                 guaranteedPercent === 100 ? true : 
-                 guaranteedPercent / 100,
+      type:
+        type === 'Max'
+          ? 'Max'
+          : type === 'Rookie'
+            ? 'Rookie Scale'
+            : type === 'Minimum'
+              ? 'Vet Minimum'
+              : 'Custom',
+      guaranteed:
+        guaranteedPercent === 0
+          ? false
+          : guaranteedPercent === 100
+            ? true
+            : guaranteedPercent / 100,
       yearsOfService: player.yearsOfService || 0,
-      isMinimum: type === 'Minimum'
+      isMinimum: type === 'Minimum',
     };
-    
+
     onSign(player.name, finalContract);
   };
 
   return (
     <div className="text-white">
-      <h2 className="text-xl font-semibold mb-3">Create Contract for {player.name}</h2>
-      
+      <h2 className="text-xl font-semibold mb-3">
+        Create Contract for {player.name}
+      </h2>
+
       <label className="block mb-1">Contract Type:</label>
       <select
         value={type}
@@ -152,13 +162,12 @@ const ContractEditor = ({ player, capSettings, teamCapSheet, onSign }) => {
             Team Option
           </label>
 
-          <label className="block">Guarantee %
+          <label className="block">
+            Guarantee %
             <input
               type="number"
               value={guaranteedPercent}
-              onChange={(e) =>
-                setGuaranteedPercent(parseFloat(e.target.value))
-              }
+              onChange={(e) => setGuaranteedPercent(parseFloat(e.target.value))}
               min={0}
               max={100}
               step={5}
@@ -166,12 +175,12 @@ const ContractEditor = ({ player, capSettings, teamCapSheet, onSign }) => {
             />
           </label>
 
-            <button
-              onClick={handleCustomPreview}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm"
-            >
-              Preview Contract
-            </button>
+          <button
+            onClick={handleCustomPreview}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm"
+          >
+            Preview Contract
+          </button>
         </div>
       )}
 
@@ -185,19 +194,21 @@ const ContractEditor = ({ player, capSettings, teamCapSheet, onSign }) => {
               </li>
             ))}
           </ul>
-          
+
           {(preview.options?.playerOption || preview.options?.teamOption) && (
             <p>
-              Options:{' '}
-              {preview.options?.playerOption && 'Player Option '}
+              Options: {preview.options?.playerOption && 'Player Option '}
               {preview.options?.teamOption && 'Team Option '}
             </p>
           )}
-          
+
           <p>
-            Guarantee: {guaranteedPercent === 0 ? 'Non-guaranteed' : 
-                      guaranteedPercent === 100 ? 'Fully guaranteed' : 
-                      `${guaranteedPercent}% guaranteed`}
+            Guarantee:{' '}
+            {guaranteedPercent === 0
+              ? 'Non-guaranteed'
+              : guaranteedPercent === 100
+                ? 'Fully guaranteed'
+                : `${guaranteedPercent}% guaranteed`}
           </p>
 
           <button

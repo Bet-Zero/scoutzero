@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { validateTrade } from '../utils/tradeValidator';
+import { validateTrade } from '@/utils/architect/tradeValidator';
 
 const TradeEditor = ({ teamA, teamB, capSettings, currentYear }) => {
   const [teamASends, setTeamASends] = useState([]);
@@ -10,13 +10,11 @@ const TradeEditor = ({ teamA, teamB, capSettings, currentYear }) => {
 
   const toggleItem = (item, list, setter) => {
     const exists = list.includes(item);
-    const updated = exists ? 
-      list.filter(i => i !== item) : 
-      [...list, item];
+    const updated = exists ? list.filter((i) => i !== item) : [...list, item];
     setter(updated);
   };
 
-  const getSalary = (players) => 
+  const getSalary = (players) =>
     players.reduce((sum, p) => sum + (p.salaryByYear[currentYear] || 0), 0);
 
   const handleValidate = () => {
@@ -30,7 +28,7 @@ const TradeEditor = ({ teamA, teamB, capSettings, currentYear }) => {
       teamAHardCapped: teamA.hardCapped,
       teamBHardCapped: teamB.hardCapped,
       teamA,
-      teamB
+      teamB,
     });
     setResult(result);
   };
@@ -38,7 +36,7 @@ const TradeEditor = ({ teamA, teamB, capSettings, currentYear }) => {
   return (
     <div className="text-white">
       <h2 className="text-xl font-semibold mb-4">Trade Machine</h2>
-      
+
       <div className="flex flex-col md:flex-row gap-6">
         {/* Team A */}
         <div className="flex-1">
@@ -53,13 +51,14 @@ const TradeEditor = ({ teamA, teamB, capSettings, currentYear }) => {
                     checked={teamASends.includes(p)}
                     onChange={() => toggleItem(p, teamASends, setTeamASends)}
                   />
-                  {p.name} – ${p.salaryByYear[currentYear]?.toLocaleString() || 0}
+                  {p.name} – $
+                  {p.salaryByYear[currentYear]?.toLocaleString() || 0}
                   {p.signAndTrade && ' (Sign & Trade)'}
                 </label>
               </li>
             ))}
           </ul>
-          
+
           <strong>Picks:</strong>
           <ul className="mb-2">
             {teamA.picks?.map((pick) => (
@@ -68,17 +67,23 @@ const TradeEditor = ({ teamA, teamB, capSettings, currentYear }) => {
                   <input
                     type="checkbox"
                     checked={teamAPicksOut.includes(pick)}
-                    onChange={() => toggleItem(pick, teamAPicksOut, setTeamAPicksOut)}
+                    onChange={() =>
+                      toggleItem(pick, teamAPicksOut, setTeamAPicksOut)
+                    }
                   />
-                  {pick.year} {pick.round} Round {pick.via ? `(via ${pick.via})` : ''}
+                  {pick.year} {pick.round} Round{' '}
+                  {pick.via ? `(via ${pick.via})` : ''}
                 </label>
               </li>
             ))}
           </ul>
-          
-          <p className="text-sm"><strong>Total Salary:</strong> ${getSalary(teamASends).toLocaleString()}</p>
+
+          <p className="text-sm">
+            <strong>Total Salary:</strong> $
+            {getSalary(teamASends).toLocaleString()}
+          </p>
         </div>
-        
+
         {/* Team B */}
         <div className="flex-1">
           <h3 className="font-semibold mb-1">{teamB.teamName}</h3>
@@ -92,12 +97,13 @@ const TradeEditor = ({ teamA, teamB, capSettings, currentYear }) => {
                     checked={teamBSends.includes(p)}
                     onChange={() => toggleItem(p, teamBSends, setTeamBSends)}
                   />
-                  {p.name} – ${p.salaryByYear[currentYear]?.toLocaleString() || 0}
+                  {p.name} – $
+                  {p.salaryByYear[currentYear]?.toLocaleString() || 0}
                 </label>
               </li>
             ))}
           </ul>
-          
+
           <strong>Picks:</strong>
           <ul className="mb-2">
             {teamB.picks?.map((pick) => (
@@ -106,15 +112,21 @@ const TradeEditor = ({ teamA, teamB, capSettings, currentYear }) => {
                   <input
                     type="checkbox"
                     checked={teamBPicksOut.includes(pick)}
-                    onChange={() => toggleItem(pick, teamBPicksOut, setTeamBPicksOut)}
+                    onChange={() =>
+                      toggleItem(pick, teamBPicksOut, setTeamBPicksOut)
+                    }
                   />
-                  {pick.year} {pick.round} Round {pick.via ? `(via ${pick.via})` : ''}
+                  {pick.year} {pick.round} Round{' '}
+                  {pick.via ? `(via ${pick.via})` : ''}
                 </label>
               </li>
             ))}
           </ul>
-          
-          <p className="text-sm"><strong>Total Salary:</strong> ${getSalary(teamBSends).toLocaleString()}</p>
+
+          <p className="text-sm">
+            <strong>Total Salary:</strong> $
+            {getSalary(teamBSends).toLocaleString()}
+          </p>
         </div>
       </div>
 
@@ -127,7 +139,9 @@ const TradeEditor = ({ teamA, teamB, capSettings, currentYear }) => {
 
       {result && (
         <div className="mt-4 text-sm">
-          <strong>{result.legal ? '✅ Trade Approved' : '❌ Trade Rejected'}</strong>
+          <strong>
+            {result.legal ? '✅ Trade Approved' : '❌ Trade Rejected'}
+          </strong>
           <p>{result.reason || 'Trade complies with all rules.'}</p>
         </div>
       )}

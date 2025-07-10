@@ -1,11 +1,12 @@
 import React from 'react';
-import { getMinimumCapHit } from '../utils/contractUtils';
+import { getMinimumCapHit } from '@/utils/architect/contractUtils';
 
 const CapSheetFull = ({ teamCapSheet }) => {
   const allYears = Array.from(
     new Set(
-      teamCapSheet.activeContracts.flatMap(contract => 
-        Object.keys(contract.salaryByYear || {}).map(Number))
+      teamCapSheet.activeContracts.flatMap((contract) =>
+        Object.keys(contract.salaryByYear || {}).map(Number)
+      )
     )
   ).sort();
 
@@ -28,10 +29,10 @@ const CapSheetFull = ({ teamCapSheet }) => {
     if (contract.isMinimum && contract.yearsOfService >= 3) {
       notes.push(`Vet Min, ${contract.yearsOfService} yrs`);
     }
-    if (contract.guaranteed === false) notes.push("Non-Guaranteed");
-    if (typeof contract.guaranteed === 'number') 
+    if (contract.guaranteed === false) notes.push('Non-Guaranteed');
+    if (typeof contract.guaranteed === 'number')
       notes.push(`Guaranteed ${Math.round(contract.guaranteed * 100)}%`);
-    return notes.join(", ");
+    return notes.join(', ');
   };
 
   const yearTotals = {};
@@ -47,7 +48,9 @@ const CapSheetFull = ({ teamCapSheet }) => {
 
   return (
     <div className="text-white">
-      <h3 className="text-xl font-semibold mb-2">Future Cap Sheet (Multi-Year View)</h3>
+      <h3 className="text-xl font-semibold mb-2">
+        Future Cap Sheet (Multi-Year View)
+      </h3>
       <table className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded">
         <thead className="bg-[#111]">
           <tr>

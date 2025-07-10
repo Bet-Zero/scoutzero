@@ -18,7 +18,7 @@ import TeamHistoryTab from './TeamHistoryTab';
 import ExceptionTracker from './ExceptionTracker';
 import usePlayerData from '@/hooks/usePlayerData.js';
 
-import capSettings from '../utils/capSettings';
+import capSettings from '@/utils/architect/capSettings';
 
 const GMDashboard = () => {
   const { teamId } = useParams();

@@ -1,5 +1,5 @@
 import React from 'react';
-import { stretchContract } from '../utils/contractUtils';
+import { stretchContract } from '@/utils/architect/contractUtils';
 
 const RosterManager = ({
   teamCapSheet,
@@ -9,41 +9,47 @@ const RosterManager = ({
   playersMap = {},
 }) => {
   const handleWaivePlayer = (player) => {
-    const updatedRoster = teamCapSheet.activeContracts.filter(p => p.name !== player.name);
-    const dead = { 
-      name: `${player.name} (Waived)`, 
-      amount: player.salaryByYear[currentYear] 
+    const updatedRoster = teamCapSheet.activeContracts.filter(
+      (p) => p.name !== player.name
+    );
+    const dead = {
+      name: `${player.name} (Waived)`,
+      amount: player.salaryByYear[currentYear],
     };
     const updatedDeadMoney = [...teamCapSheet.deadMoney, dead];
-    
-    onUpdateRoster({ 
-      ...teamCapSheet, 
-      activeContracts: updatedRoster, 
-      deadMoney: updatedDeadMoney 
+
+    onUpdateRoster({
+      ...teamCapSheet,
+      activeContracts: updatedRoster,
+      deadMoney: updatedDeadMoney,
     });
   };
 
   const handleStretchPlayer = (player) => {
-    const updatedRoster = teamCapSheet.activeContracts.filter(p => p.name !== player.name);
+    const updatedRoster = teamCapSheet.activeContracts.filter(
+      (p) => p.name !== player.name
+    );
     const stretched = stretchContract(player, currentYear);
     const deadStretched = Object.entries(stretched).map(([year, amount]) => ({
       name: `${player.name} (Stretched)`,
       year: parseInt(year),
-      amount
+      amount,
     }));
-    
+
     const updatedDeadMoney = [...teamCapSheet.deadMoney, ...deadStretched];
-    
-    onUpdateRoster({ 
-      ...teamCapSheet, 
-      activeContracts: updatedRoster, 
-      deadMoney: updatedDeadMoney 
+
+    onUpdateRoster({
+      ...teamCapSheet,
+      activeContracts: updatedRoster,
+      deadMoney: updatedDeadMoney,
     });
   };
 
   return (
     <div className="text-white">
-      <h2 className="text-xl font-semibold mb-2">{teamCapSheet.teamName} Roster</h2>
+      <h2 className="text-xl font-semibold mb-2">
+        {teamCapSheet.teamName} Roster
+      </h2>
       <table className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded">
         <thead className="bg-[#111]">
           <tr>
