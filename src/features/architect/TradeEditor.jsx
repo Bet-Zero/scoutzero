@@ -36,18 +36,18 @@ const TradeEditor = ({ teamA, teamB, capSettings, currentYear }) => {
   };
 
   return (
-    <div className="trade-editor">
-      <h2>Trade Machine</h2>
+    <div className="text-white">
+      <h2 className="text-xl font-semibold mb-4">Trade Machine</h2>
       
-      <div className="trade-boxes">
+      <div className="flex flex-col md:flex-row gap-6">
         {/* Team A */}
-        <div>
-          <h3>{teamA.teamName}</h3>
+        <div className="flex-1">
+          <h3 className="font-semibold mb-1">{teamA.teamName}</h3>
           <strong>Players:</strong>
-          <ul>
+          <ul className="mb-2">
             {teamA.activeContracts.map((p) => (
-              <li key={p.name}>
-                <label>
+              <li key={p.name} className="text-sm">
+                <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
                     checked={teamASends.includes(p)}
@@ -61,10 +61,10 @@ const TradeEditor = ({ teamA, teamB, capSettings, currentYear }) => {
           </ul>
           
           <strong>Picks:</strong>
-          <ul>
+          <ul className="mb-2">
             {teamA.picks?.map((pick) => (
-              <li key={`${pick.year}-${pick.round}`}>
-                <label>
+              <li key={`${pick.year}-${pick.round}`} className="text-sm">
+                <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
                     checked={teamAPicksOut.includes(pick)}
@@ -76,17 +76,17 @@ const TradeEditor = ({ teamA, teamB, capSettings, currentYear }) => {
             ))}
           </ul>
           
-          <p><strong>Total Salary:</strong> ${getSalary(teamASends).toLocaleString()}</p>
+          <p className="text-sm"><strong>Total Salary:</strong> ${getSalary(teamASends).toLocaleString()}</p>
         </div>
         
         {/* Team B */}
-        <div>
-          <h3>{teamB.teamName}</h3>
+        <div className="flex-1">
+          <h3 className="font-semibold mb-1">{teamB.teamName}</h3>
           <strong>Players:</strong>
-          <ul>
+          <ul className="mb-2">
             {teamB.activeContracts.map((p) => (
-              <li key={p.name}>
-                <label>
+              <li key={p.name} className="text-sm">
+                <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
                     checked={teamBSends.includes(p)}
@@ -99,10 +99,10 @@ const TradeEditor = ({ teamA, teamB, capSettings, currentYear }) => {
           </ul>
           
           <strong>Picks:</strong>
-          <ul>
+          <ul className="mb-2">
             {teamB.picks?.map((pick) => (
-              <li key={`${pick.year}-${pick.round}`}>
-                <label>
+              <li key={`${pick.year}-${pick.round}`} className="text-sm">
+                <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
                     checked={teamBPicksOut.includes(pick)}
@@ -114,14 +114,19 @@ const TradeEditor = ({ teamA, teamB, capSettings, currentYear }) => {
             ))}
           </ul>
           
-          <p><strong>Total Salary:</strong> ${getSalary(teamBSends).toLocaleString()}</p>
+          <p className="text-sm"><strong>Total Salary:</strong> ${getSalary(teamBSends).toLocaleString()}</p>
         </div>
       </div>
-      
-      <button onClick={handleValidate}>Validate Trade</button>
-      
+
+      <button
+        onClick={handleValidate}
+        className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm"
+      >
+        Validate Trade
+      </button>
+
       {result && (
-        <div className="trade-result" style={{ marginTop: '15px' }}>
+        <div className="mt-4 text-sm">
           <strong>{result.legal ? '✅ Trade Approved' : '❌ Trade Rejected'}</strong>
           <p>{result.reason || 'Trade complies with all rules.'}</p>
         </div>

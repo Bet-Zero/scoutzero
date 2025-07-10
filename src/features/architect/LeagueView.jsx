@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { loadTeamCapSheet } from '../utils/firebaseHelpers';
+import { loadTeamCapSheet } from '@/utils/architect/firebaseHelpers';
 import { useNavigate } from 'react-router-dom';
 
 const teamsList = [
@@ -39,23 +39,26 @@ const LeagueView = () => {
   };
 
   return (
-    <div className="league-view">
-      <h1>HoopZero Architect – League View</h1>
-      <table>
-        <thead>
+    <div className="text-white">
+      <h1 className="text-2xl font-bold mb-4">HoopZero Architect – League View</h1>
+      <table className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded">
+        <thead className="bg-[#111]">
           <tr>
-            <th>Team</th>
-            <th>Total Salary</th>
-            <th>Action</th>
+            <th className="p-2 text-left">Team</th>
+            <th className="p-2 text-left">Total Salary</th>
+            <th className="p-2" />
           </tr>
         </thead>
         <tbody>
-          {teamSummaries.map(team => (
-            <tr key={team.teamName}>
-              <td>{team.teamName}</td>
-              <td>${team.totalSalary.toLocaleString()}</td>
-              <td>
-                <button onClick={() => goToTeam(team.teamName)}>
+          {teamSummaries.map((team) => (
+            <tr key={team.teamName} className="odd:bg-[#171717]">
+              <td className="p-2">{team.teamName}</td>
+              <td className="p-2">${team.totalSalary.toLocaleString()}</td>
+              <td className="p-2 text-right">
+                <button
+                  onClick={() => goToTeam(team.teamName)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs"
+                >
                   Manage Team
                 </button>
               </td>

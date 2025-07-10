@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   saveTeamCapSheet,
   loadTeamCapSheet,
   saveFreeAgents,
   loadFreeAgents,
-} from '../utils/firebaseHelpers';
+} from '@/utils/architect/firebaseHelpers';
 
 import RosterManager from './RosterManager';
 import CapSheet from './CapSheet';
@@ -16,16 +16,14 @@ import FreeAgentPool from './FreeAgentPool';
 import OffseasonTab from './OffseasonTab';
 import TeamHistoryTab from './TeamHistoryTab';
 import ExceptionTracker from './ExceptionTracker';
+import usePlayerData from '@/hooks/usePlayerData.js';
 
 import capSettings from '../utils/capSettings';
-import initialFreeAgents from '../data/freeAgents';
-import initialTeamA from '../data/teamLakers';
-import initialTeamB from '../data/teamKnicks';
 
 const GMDashboard = () => {
   const { teamId } = useParams();
   const [teamCapSheet, setTeamCapSheet] = useState(null);
-  const [otherTeamCapSheet] = useState(initialTeamB);
+  const [otherTeamCapSheet] = useState(null);
   const [currentYear, setCurrentYear] = useState(2025);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [freeAgents, setFreeAgents] = useState([]);
@@ -34,6 +32,15 @@ const GMDashboard = () => {
   const [offseasonRun, setOffseasonRun] = useState(false);
   const [offseasonSummary, setOffseasonSummary] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const { players } = usePlayerData();
+
+  const playersMap = useMemo(() => {
+    const map = {};
+    players.forEach((p) => {
+      map[p.display_name || p.name] = p;
+    });
+    return map;
+  }, [players]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -132,6 +139,7 @@ const GMDashboard = () => {
             currentYear={currentYear}
             onUpdateRoster={handleUpdateRoster}
             onEditContract={handleEditContract}
+            playersMap={playersMap}
           />
         )}
 
@@ -165,7 +173,7 @@ const GMDashboard = () => {
         {activeTab === 'trade' && (
           <TradeEditor
             teamA={teamCapSheet}
-            teamB={otherTeamCapSheet}
+            teamB={otherTeamCapSheet || teamCapSheet}
             capSettings={capSettings}
             currentYear={currentYear}
           />

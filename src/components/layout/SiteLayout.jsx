@@ -56,6 +56,9 @@ const SiteLayout = () => {
             <Link to="/tier-maker" className="hover:text-white py-1 px-2">
               Tier Maker
             </Link>
+            <Link to="/gm" className="hover:text-white py-1 px-2">
+              GM Tools
+            </Link>
           </NavGroup>
 
           <NavGroup label="Saved" align="right">
