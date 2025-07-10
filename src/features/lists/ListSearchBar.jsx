@@ -73,7 +73,7 @@ const ListSearchBar = ({
   };
 
   return (
-    <div className="relative" ref={wrapperRef}>
+    <div className="relative z-50" ref={wrapperRef}>
       <Search
         className="absolute left-3 top-1/2 -translate-y-1/2 text-white/60"
         size={16}
@@ -90,50 +90,56 @@ const ListSearchBar = ({
       />
       {showSuggestions &&
         (listResults.length > 0 || playerResults.length > 0) && (
-          <div className="absolute z-10 mt-1 w-full bg-neutral-800 border border-white/20 rounded-md max-h-60 overflow-y-auto text-sm">
-            {listResults.length > 0 && (
-              <>
-                <div className="px-2 py-1 text-white/50 text-xs uppercase">
-                  Lists
-                </div>
-                {listResults.map((id) => (
-                  <div
-                    key={`list-${id}`}
-                    className="px-2 py-1 text-white hover:bg-neutral-700 cursor-pointer"
-                    onClick={() => handleSelect(id)}
-                  >
-                    {listsData[id]?.name || id}
+          <>
+            <div
+              className="fixed inset-0 z-40 bg-black/50"
+              onClick={() => setShowSuggestions(false)}
+            />
+            <div className="absolute z-50 mt-1 w-full bg-neutral-800 border border-white/20 rounded-md max-h-60 overflow-y-auto text-sm">
+              {listResults.length > 0 && (
+                <>
+                  <div className="px-2 py-1 text-white/50 text-xs uppercase">
+                    Lists
                   </div>
-                ))}
-              </>
-            )}
-            {playerResults.length > 0 && (
-              <>
-                <div className="px-2 py-1 text-white/50 text-xs uppercase border-t border-white/10">
-                  Players
-                </div>
-                {playerResults.map((player) => (
-                  <div
-                    key={`player-${player.id}`}
-                    className="px-2 py-1 text-white/90"
-                  >
-                    <div className="font-semibold text-white mb-1">
-                      {player.name}
+                  {listResults.map((id) => (
+                    <div
+                      key={`list-${id}`}
+                      className="px-2 py-1 text-white hover:bg-neutral-700 cursor-pointer"
+                      onClick={() => handleSelect(id)}
+                    >
+                      {listsData[id]?.name || id}
                     </div>
-                    {player.lists.map((lid) => (
-                      <div
-                        key={lid}
-                        className="ml-2 px-2 py-1 hover:bg-neutral-700 cursor-pointer"
-                        onClick={() => handleSelect(lid)}
-                      >
-                        {listsData[lid]?.name || lid}
-                      </div>
-                    ))}
+                  ))}
+                </>
+              )}
+              {playerResults.length > 0 && (
+                <>
+                  <div className="px-2 py-1 text-white/50 text-xs uppercase border-t border-white/10">
+                    Players
                   </div>
-                ))}
-              </>
-            )}
-          </div>
+                  {playerResults.map((player) => (
+                    <div
+                      key={`player-${player.id}`}
+                      className="px-2 py-1 text-white/90"
+                    >
+                      <div className="font-semibold text-white mb-1">
+                        {player.name}
+                      </div>
+                      {player.lists.map((lid) => (
+                        <div
+                          key={lid}
+                          className="ml-2 px-2 py-1 hover:bg-neutral-700 cursor-pointer"
+                          onClick={() => handleSelect(lid)}
+                        >
+                          {listsData[lid]?.name || lid}
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
+          </>
         )}
     </div>
   );
