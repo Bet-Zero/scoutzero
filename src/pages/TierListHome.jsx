@@ -1,5 +1,5 @@
 // TierListsHome.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   collection,
   getDocs,
@@ -7,9 +7,11 @@ import {
   deleteDoc,
   doc,
 } from 'firebase/firestore';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { db } from '@/firebaseConfig';
 import CreateTierListModal from '@/features/tierMaker/CreateTierListModal';
+import ListSearchBar from '@/features/lists/ListSearchBar';
+import usePlayerData from '@/hooks/usePlayerData.js';
 
 const TierListsHome = () => {
   const [lists, setLists] = useState([]);
@@ -18,6 +20,28 @@ const TierListsHome = () => {
   const [renamingId, setRenamingId] = useState(null);
   const [renameValue, setRenameValue] = useState('');
   const [deletingId, setDeletingId] = useState(null);
+  const navigate = useNavigate();
+  const { players } = usePlayerData();
+
+  const playersMap = useMemo(() => {
+    const map = {};
+    players.forEach((p) => {
+      map[p.id] = p;
+    });
+    return map;
+  }, [players]);
+
+  const listsMap = useMemo(() => {
+    const map = {};
+    lists.forEach((l) => {
+      const ids = [];
+      Object.values(l.tiers || {}).forEach((arr) => {
+        ids.push(...arr);
+      });
+      map[l.id] = { name: l.name, playerIds: ids };
+    });
+    return map;
+  }, [lists]);
 
   const fetchLists = async () => {
     const snapshot = await getDocs(collection(db, 'tierLists'));
@@ -51,12 +75,20 @@ const TierListsHome = () => {
       <div className="max-w-[800px] py-4 mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold text-white">Tier Lists</h1>
-          <button
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
-            onClick={() => setShowCreateModal(true)}
-          >
-            + New Tier List
-          </button>
+          <div className="flex items-center gap-3">
+            <ListSearchBar
+              listsData={listsMap}
+              playersData={playersMap}
+              onSelect={(id) => navigate(`/tier-maker/${id}`)}
+              placeholder="Search tier lists..."
+            />
+            <button
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+              onClick={() => setShowCreateModal(true)}
+            >
+              + New Tier List
+            </button>
+          </div>
         </div>
 
         {isLoading ? (
