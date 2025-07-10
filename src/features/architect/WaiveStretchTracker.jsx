@@ -16,28 +16,28 @@ const WaiveStretchTracker = ({ waivedContracts = [] }) => {
     .sort();
 
   return (
-    <div className="waive-stretch-tracker">
-      <h3>Waived & Stretched Contracts</h3>
+    <div className="text-white">
+      <h3 className="text-lg font-semibold mb-2">Waived & Stretched Contracts</h3>
       
       {waivedContracts.length === 0 ? (
         <p>No waived contracts.</p>
       ) : (
-        <table>
+        <table className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded">
           <thead>
             <tr>
-              <th>Player</th>
-              <th>Waived On</th>
-              <th>Stretched?</th>
-              <th>Dead Cap Breakdown</th>
+              <th className="p-2 text-left">Player</th>
+              <th className="p-2 text-left">Waived On</th>
+              <th className="p-2 text-left">Stretched?</th>
+              <th className="p-2 text-left">Dead Cap Breakdown</th>
             </tr>
           </thead>
           <tbody>
             {waivedContracts.map((wc, idx) => (
-              <tr key={idx}>
-                <td>{wc.name}</td>
-                <td>{wc.waivedOn}</td>
-                <td>{wc.stretched ? 'Yes' : 'No'}</td>
-                <td>
+              <tr key={idx} className="odd:bg-[#171717]">
+                <td className="p-2">{wc.name}</td>
+                <td className="p-2">{wc.waivedOn}</td>
+                <td className="p-2">{wc.stretched ? 'Yes' : 'No'}</td>
+                <td className="p-2 space-y-1">
                   {Object.entries(wc.deadCap || {}).map(([year, amt]) => (
                     <div key={year}>
                       {year}: ${amt.toLocaleString()}
@@ -50,23 +50,23 @@ const WaiveStretchTracker = ({ waivedContracts = [] }) => {
         </table>
       )}
       
-      <h4 style={{ marginTop: '20px' }}>Dead Cap by Year</h4>
+      <h4 className="mt-5 font-semibold">Dead Cap by Year</h4>
       
       {sortedYears.length === 0 ? (
         <p>No dead money on the books.</p>
       ) : (
-        <table>
+        <table className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded">
           <thead>
             <tr>
-              <th>Year</th>
-              <th>Total Dead Cap</th>
+              <th className="p-2 text-left">Year</th>
+              <th className="p-2 text-left">Total Dead Cap</th>
             </tr>
           </thead>
           <tbody>
             {sortedYears.map((year) => (
-              <tr key={year}>
-                <td>{year}</td>
-                <td>${deadCapByYear[year].toLocaleString()}</td>
+              <tr key={year} className="odd:bg-[#171717]">
+                <td className="p-2">{year}</td>
+                <td className="p-2">${deadCapByYear[year].toLocaleString()}</td>
               </tr>
             ))}
           </tbody>

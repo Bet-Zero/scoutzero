@@ -8,53 +8,53 @@ const DraftPickTracker = ({ pickLog = [], currentPicks = {} }) => {
   ).sort((a, b) => a - b);
 
   return (
-    <div className="draft-pick-tracker">
-      <h3>Draft Pick Trade Log</h3>
+    <div className="text-white">
+      <h3 className="text-lg font-semibold mb-2">Draft Pick Trade Log</h3>
       {pickLog.length === 0 ? (
         <p>No draft pick trades logged.</p>
       ) : (
-        <table>
+        <table className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded">
           <thead>
             <tr>
-              <th>Date</th>
-              <th>Action</th>
-              <th>Pick</th>
-              <th>Partner Team</th>
-              <th>Notes</th>
+              <th className="p-2 text-left">Date</th>
+              <th className="p-2 text-left">Action</th>
+              <th className="p-2 text-left">Pick</th>
+              <th className="p-2 text-left">Partner Team</th>
+              <th className="p-2 text-left">Notes</th>
             </tr>
           </thead>
           <tbody>
             {pickLog.map((entry, idx) => (
-              <tr key={`${entry.date}-${idx}`}>
-                <td>{entry.date || 'Unknown'}</td>
-                <td>{entry.action || '—'}</td>
-                <td>{entry.pick || '—'}</td>
-                <td>{entry.partner || '—'}</td>
-                <td>{entry.notes || '—'}</td>
+              <tr key={`${entry.date}-${idx}`} className="odd:bg-[#171717]">
+                <td className="p-2">{entry.date || 'Unknown'}</td>
+                <td className="p-2">{entry.action || '—'}</td>
+                <td className="p-2">{entry.pick || '—'}</td>
+                <td className="p-2">{entry.partner || '—'}</td>
+                <td className="p-2">{entry.notes || '—'}</td>
               </tr>
             ))}
           </tbody>
         </table>
       )}
 
-      <h3 style={{ marginTop: '30px' }}>Current Pick Inventory</h3>
+      <h3 className="mt-6 text-lg font-semibold">Current Pick Inventory</h3>
       {years.length === 0 ? (
         <p>No picks currently owned.</p>
       ) : (
-        <table>
+        <table className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded">
           <thead>
             <tr>
-              <th>Year</th>
-              <th>1st Round</th>
-              <th>2nd Round</th>
+              <th className="p-2 text-left">Year</th>
+              <th className="p-2 text-left">1st Round</th>
+              <th className="p-2 text-left">2nd Round</th>
             </tr>
           </thead>
           <tbody>
             {years.map((year) => (
-              <tr key={year}>
-                <td>{year}</td>
-                <td>{currentPicks[year]?.first || '—'}</td>
-                <td>{currentPicks[year]?.second || '—'}</td>
+              <tr key={year} className="odd:bg-[#171717]">
+                <td className="p-2">{year}</td>
+                <td className="p-2">{currentPicks[year]?.first || '—'}</td>
+                <td className="p-2">{currentPicks[year]?.second || '—'}</td>
               </tr>
             ))}
           </tbody>

@@ -1,16 +1,11 @@
-import { initializeApp } from "firebase/app";
-import { 
-  getFirestore, 
-  doc, 
-  setDoc, 
-  getDoc, 
-  collection, 
-  getDocs 
-} from "firebase/firestore";
-import firebaseConfig from "../firebaseConfig";
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+import {
+  doc,
+  setDoc,
+  getDoc,
+  collection,
+  getDocs,
+} from 'firebase/firestore';
+import { db } from '../../firebaseConfig';
 
 // Save a team's cap sheet
 export const saveTeamCapSheet = async (teamId, capSheet) => {

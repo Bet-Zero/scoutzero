@@ -1,7 +1,13 @@
 import React from 'react';
 import { stretchContract } from '../utils/contractUtils';
 
-const RosterManager = ({ teamCapSheet, currentYear, onUpdateRoster, onEditContract }) => {
+const RosterManager = ({
+  teamCapSheet,
+  currentYear,
+  onUpdateRoster,
+  onEditContract,
+  playersMap = {},
+}) => {
   const handleWaivePlayer = (player) => {
     const updatedRoster = teamCapSheet.activeContracts.filter(p => p.name !== player.name);
     const dead = { 
@@ -36,40 +42,59 @@ const RosterManager = ({ teamCapSheet, currentYear, onUpdateRoster, onEditContra
   };
 
   return (
-    <div className="roster-manager">
-      <h2>{teamCapSheet.teamName} Roster</h2>
-      <table>
-        <thead>
+    <div className="text-white">
+      <h2 className="text-xl font-semibold mb-2">{teamCapSheet.teamName} Roster</h2>
+      <table className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded">
+        <thead className="bg-[#111]">
           <tr>
-            <th>Player</th>
-            <th>Years</th>
-            <th>Salary</th>
-            <th>Contract Type</th>
-            <th>Options</th>
-            <th>Actions</th>
+            <th className="p-2 text-left">Player</th>
+            <th className="p-2 text-left">Years</th>
+            <th className="p-2 text-left">Salary</th>
+            <th className="p-2 text-left">Type</th>
+            <th className="p-2 text-left">Options</th>
+            <th className="p-2" />
           </tr>
         </thead>
         <tbody>
-          {teamCapSheet.activeContracts.map((player) => (
-            <tr key={player.name}>
-              <td>{player.name}</td>
-              <td>{player.years}</td>
-              <td>
-                {player.salaryByYear[currentYear] ? 
-                  `$${player.salaryByYear[currentYear].toLocaleString()}` : '—'}
-              </td>
-              <td>{player.type}</td>
-              <td>
-                {player.options?.playerOption && 'PO '}
-                {player.options?.teamOption && 'TO '}
-              </td>
-              <td>
-                <button onClick={() => onEditContract(player)}>Edit</button>
-                <button onClick={() => handleWaivePlayer(player)}>Waive</button>
-                <button onClick={() => handleStretchPlayer(player)}>Stretch</button>
-              </td>
-            </tr>
-          ))}
+          {teamCapSheet.activeContracts.map((player) => {
+            const details = playersMap[player.name] || {};
+            return (
+              <tr key={player.name} className="odd:bg-[#171717]">
+                <td className="p-2">{details.display_name || player.name}</td>
+                <td className="p-2">{player.years}</td>
+                <td className="p-2">
+                  {player.salaryByYear[currentYear]
+                    ? `$${player.salaryByYear[currentYear].toLocaleString()}`
+                    : '—'}
+                </td>
+                <td className="p-2">{player.type}</td>
+                <td className="p-2">
+                  {player.options?.playerOption && 'PO '}
+                  {player.options?.teamOption && 'TO '}
+                </td>
+                <td className="p-2 text-right">
+                  <button
+                    onClick={() => onEditContract(player)}
+                    className="text-xs text-blue-400 hover:underline mr-2"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleWaivePlayer(player)}
+                    className="text-xs text-red-500 hover:underline mr-2"
+                  >
+                    Waive
+                  </button>
+                  <button
+                    onClick={() => handleStretchPlayer(player)}
+                    className="text-xs text-yellow-500 hover:underline"
+                  >
+                    Stretch
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

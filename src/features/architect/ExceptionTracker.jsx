@@ -17,10 +17,11 @@ const ExceptionTracker = ({ teamCapSheet, currentYear }) => {
     if (!mle) return <p>No MLE available.</p>;
     const remaining = mle.amount - (mle.used || 0);
     return (
-      <div className="mle-block">
+      <div className="text-sm">
         <strong title="MLE: Mid-Level Exception (can be used to sign free agents above the minimum)">
           MLE:
-        </strong><br />
+        </strong>
+        <br />
         Total: ${mle.amount.toLocaleString()}<br />
         Used: ${mle.used?.toLocaleString() || 0}<br />
         Remaining: ${remaining.toLocaleString()}
@@ -31,7 +32,7 @@ const ExceptionTracker = ({ teamCapSheet, currentYear }) => {
   const renderTPEs = () => {
     if (tradeExceptions.length === 0) return <p>No Trade Exceptions</p>;
     return (
-      <ul className="tpe-list">
+      <ul className="mt-1 space-y-1 text-sm">
         {tradeExceptions.map((tpe, idx) => {
           const statusClass = getTPEStatusClass(tpe.expires);
           const days = daysUntil(tpe.expires);
@@ -49,10 +50,10 @@ const ExceptionTracker = ({ teamCapSheet, currentYear }) => {
   };
 
   return (
-    <div className="exception-tracker">
-      <h3>Exception Tracker</h3>
+    <div className="text-white">
+      <h3 className="text-lg font-semibold mb-2">Exception Tracker</h3>
       {renderMLE()}
-      <div style={{ marginTop: '12px' }}>
+      <div className="mt-3">
         <strong title="TPEs: Created when trading a player without taking back matching salary. Last 1 year.">
           Trade Exceptions:
         </strong>

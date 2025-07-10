@@ -37,8 +37,8 @@ const OffseasonTab = ({
   };
 
   return (
-    <div className="offseason-tab">
-      <h2>Offseason Manager</h2>
+    <div className="text-white">
+      <h2 className="text-xl font-semibold mb-2">Offseason Manager</h2>
       
       {!optionsConfirmed && !offseasonRun && (
         <OptionManager 
@@ -49,16 +49,19 @@ const OffseasonTab = ({
       )}
 
       {optionsConfirmed && !offseasonRun && (
-        <div style={{ marginTop: '20px' }}>
-          <h4>All option decisions confirmed.</h4>
-          <button onClick={handleAdvanceYear}>
+        <div className="mt-5">
+          <h4 className="font-semibold mb-2">All option decisions confirmed.</h4>
+          <button
+            onClick={handleAdvanceYear}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm"
+          >
             Advance to {currentYear + 1}
           </button>
         </div>
       )}
 
       {offseasonRun && (
-        <div style={{ marginTop: '20px' }}>
+        <div className="mt-5">
           <strong>✅ Offseason Complete!</strong>
           <p>You are now in the {currentYear + 1} season.</p>
         </div>
