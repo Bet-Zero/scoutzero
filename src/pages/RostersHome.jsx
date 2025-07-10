@@ -1,5 +1,5 @@
 // RostersHome.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   collection,
   getDocs,
@@ -7,9 +7,11 @@ import {
   deleteDoc,
   doc,
 } from 'firebase/firestore';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { db } from '@/firebaseConfig';
 import CreateRosterModal from '@/features/roster/CreateRosterModal';
+import ListSearchBar from '@/features/lists/ListSearchBar';
+import usePlayerData from '@/hooks/usePlayerData.js';
 
 const RostersHome = () => {
   const [rosters, setRosters] = useState([]);
@@ -18,6 +20,31 @@ const RostersHome = () => {
   const [renamingId, setRenamingId] = useState(null);
   const [renameValue, setRenameValue] = useState('');
   const [deletingId, setDeletingId] = useState(null);
+  const navigate = useNavigate();
+  const { players } = usePlayerData();
+
+  const playersMap = useMemo(() => {
+    const map = {};
+    players.forEach((p) => {
+      map[p.id] = p;
+    });
+    return map;
+  }, [players]);
+
+  const rostersMap = useMemo(() => {
+    const map = {};
+    rosters.forEach((r) => {
+      const ids = [
+        ...(r.starters || []),
+        ...(r.rotation || []),
+        ...(r.bench || []),
+      ]
+        .filter(Boolean)
+        .map((id) => (typeof id === 'string' ? id : id.id));
+      map[r.id] = { name: r.name, playerIds: ids };
+    });
+    return map;
+  }, [rosters]);
 
   const fetchRosters = async () => {
     const snapshot = await getDocs(collection(db, 'rosterProjects'));
@@ -51,12 +78,20 @@ const RostersHome = () => {
       <div className="max-w-[800px] py-4 mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold text-white">Rosters</h1>
-          <button
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
-            onClick={() => setShowCreateModal(true)}
-          >
-            + New Roster
-          </button>
+          <div className="flex items-center gap-3">
+            <ListSearchBar
+              listsData={rostersMap}
+              playersData={playersMap}
+              onSelect={(id) => navigate(`/roster/${id}`)}
+              placeholder="Search rosters..."
+            />
+            <button
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+              onClick={() => setShowCreateModal(true)}
+            >
+              + New Roster
+            </button>
+          </div>
         </div>
 
         {isLoading ? (
