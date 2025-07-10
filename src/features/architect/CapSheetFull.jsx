@@ -46,40 +46,44 @@ const CapSheetFull = ({ teamCapSheet }) => {
   });
 
   return (
-    <div className="cap-sheet-full">
-      <h3>Future Cap Sheet (Multi-Year View)</h3>
-      <table>
-        <thead>
+    <div className="text-white">
+      <h3 className="text-xl font-semibold mb-2">Future Cap Sheet (Multi-Year View)</h3>
+      <table className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded">
+        <thead className="bg-[#111]">
           <tr>
-            <th>Player</th>
+            <th className="p-2 text-left">Player</th>
             {allYears.map((year) => (
-              <th key={year}>{year}</th>
+              <th key={year} className="p-2 text-left">
+                {year}
+              </th>
             ))}
-            <th>Notes</th>
+            <th className="p-2 text-left">Notes</th>
           </tr>
         </thead>
         <tbody>
           {teamCapSheet.activeContracts.map((contract, idx) => (
-            <tr key={idx}>
-              <td>{contract.name}</td>
+            <tr key={idx} className="odd:bg-[#171717]">
+              <td className="p-2">{contract.name}</td>
               {allYears.map((year) => {
                 const salary = contract.salaryByYear?.[year];
                 const capHit = getCapHit(contract, year);
                 return (
-                  <td key={year}>
+                  <td key={year} className="p-2">
                     {salary ? `$${capHit.toLocaleString()}` : '—'}
                   </td>
                 );
               })}
-              <td>{renderNotes(contract)}</td>
+              <td className="p-2">{renderNotes(contract)}</td>
             </tr>
           ))}
-          <tr style={{ fontWeight: 'bold', borderTop: '2px solid black' }}>
-            <td>Total Cap</td>
+          <tr className="border-t border-white/20 font-semibold">
+            <td className="p-2">Total Cap</td>
             {allYears.map((year) => (
-              <td key={year}>${yearTotals[year].toLocaleString()}</td>
+              <td key={year} className="p-2">
+                ${yearTotals[year].toLocaleString()}
+              </td>
             ))}
-            <td></td>
+            <td className="p-2"></td>
           </tr>
         </tbody>
       </table>

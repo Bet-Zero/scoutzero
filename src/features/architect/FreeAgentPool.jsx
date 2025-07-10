@@ -30,12 +30,15 @@ const FreeAgentPool = ({ freeAgents, teamCapSheet, capSettings, currentYear, onS
   };
 
   return (
-    <div className="free-agent-pool">
-      <h2>Free Agent Pool</h2>
-      <ul>
+    <div className="text-white">
+      <h2 className="text-xl font-semibold mb-2">Free Agent Pool</h2>
+      <ul className="space-y-1 mb-4">
         {freeAgents.map((p) => (
           <li key={p.name}>
-            <button onClick={() => handleSelect(p)}>
+            <button
+              onClick={() => handleSelect(p)}
+              className="text-blue-400 hover:underline text-sm"
+            >
               {p.name} – Asking: ${p.askingSalary.toLocaleString()} – Rights: {p.birdRights}
             </button>
           </li>
@@ -43,20 +46,25 @@ const FreeAgentPool = ({ freeAgents, teamCapSheet, capSettings, currentYear, onS
       </ul>
 
       {selectedPlayer && (
-        <div className="fa-details">
-          <h3>{selectedPlayer.name}</h3>
-          <p>Asking: ${selectedPlayer.askingSalary.toLocaleString()}</p>
-          <p>Bird Rights: {selectedPlayer.birdRights}</p>
-          <button onClick={handleSign}>Sign Player</button>
+        <div className="bg-[#1a1a1a] p-4 rounded border border-white/10 mb-3">
+          <h3 className="font-semibold mb-1">{selectedPlayer.name}</h3>
+          <p className="text-sm mb-1">Asking: ${selectedPlayer.askingSalary.toLocaleString()}</p>
+          <p className="text-sm mb-3">Bird Rights: {selectedPlayer.birdRights}</p>
+          <button
+            onClick={handleSign}
+            className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm"
+          >
+            Sign Player
+          </button>
         </div>
       )}
 
       {signResult && (
-        <div style={{ marginTop: '10px' }}>
+        <div className="mt-2 text-sm">
           {signResult.allowed ? (
-            <span style={{ color: 'green' }}>{signResult.message}</span>
+            <span className="text-green-500">{signResult.message}</span>
           ) : (
-            <span style={{ color: 'red' }}>{signResult.reason}</span>
+            <span className="text-red-500">{signResult.reason}</span>
           )}
         </div>
       )}

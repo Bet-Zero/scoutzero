@@ -45,29 +45,32 @@ const OptionManager = ({ teamCapSheet, currentYear, onDecisionsReady }) => {
   };
 
   return (
-    <div className="option-manager">
-      <h3>Pending Contract Options – {currentYear + 1}</h3>
+    <div className="text-white">
+      <h3 className="text-lg font-semibold mb-2">Pending Contract Options – {currentYear + 1}</h3>
       
       {optionsList.length === 0 ? (
         <p>No player or team options pending.</p>
       ) : (
-        <table>
-          <thead>
+        <table className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded">
+          <thead className="bg-[#111]">
             <tr>
-              <th>Player</th>
-              <th>Type</th>
-              <th>Salary</th>
-              <th>Decision</th>
+              <th className="p-2 text-left">Player</th>
+              <th className="p-2 text-left">Type</th>
+              <th className="p-2 text-left">Salary</th>
+              <th className="p-2 text-left">Decision</th>
             </tr>
           </thead>
           <tbody>
             {optionsList.map((opt) => (
-              <tr key={opt.name}>
-                <td>{opt.name}</td>
-                <td>{opt.type}</td>
-                <td>${opt.salary.toLocaleString()}</td>
-                <td>
-                  <button onClick={() => toggleDecision(opt.name)}>
+              <tr key={opt.name} className="odd:bg-[#171717]">
+                <td className="p-2">{opt.name}</td>
+                <td className="p-2">{opt.type}</td>
+                <td className="p-2">${opt.salary.toLocaleString()}</td>
+                <td className="p-2">
+                  <button
+                    onClick={() => toggleDecision(opt.name)}
+                    className="text-xs text-blue-400 hover:underline"
+                  >
                     {decisions[opt.name] ? 'Accept' : 'Decline'}
                   </button>
                 </td>
@@ -78,9 +81,9 @@ const OptionManager = ({ teamCapSheet, currentYear, onDecisionsReady }) => {
       )}
 
       {optionsList.length > 0 && (
-        <button 
-          onClick={handleSubmit} 
-          style={{ marginTop: '10px' }}
+        <button
+          onClick={handleSubmit}
+          className="mt-3 bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm"
         >
           Confirm Decisions
         </button>
