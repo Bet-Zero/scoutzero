@@ -188,19 +188,12 @@ const ContractEditor = ({ player, capSettings, teamCapSheet, onSign }) => {
         <div className="bg-[#1a1a1a] p-4 rounded border border-white/10 mt-4">
           <h3 className="font-semibold mb-2">Contract Preview:</h3>
           <ul>
-            {Object.entries(preview.yearly).map(([year, salary]) => (
+            {Object.entries(preview.salaries_by_year).map(([year, data]) => (
               <li key={year}>
-                {year}: ${salary.toLocaleString()}
+                {year}: ${data.salary.toLocaleString()} {data.option ? `(${data.option})` : ''}
               </li>
             ))}
           </ul>
-
-          {(preview.playerOptions?.length || preview.teamOptions?.length) && (
-            <p>
-              Options: {preview.playerOptions?.length > 0 && 'Player Option '}
-              {preview.teamOptions?.length > 0 && 'Team Option '}
-            </p>
-          )}
 
           <p>
             Guarantee:{' '}

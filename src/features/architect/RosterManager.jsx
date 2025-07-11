@@ -12,7 +12,8 @@ const RosterManager = ({
     const updatedRoster = teamCapSheet.players.filter((p) => p.name !== player.name);
     const dead = {
       name: `${player.name} (Waived)`,
-      amount: player.contract_clean?.yearly?.[currentYear] || 0,
+      amount:
+        player.contract_clean?.salaries_by_year?.[currentYear]?.salary || 0,
     };
     const updatedDeadMoney = [...teamCapSheet.deadMoney, dead];
 
@@ -65,14 +66,18 @@ const RosterManager = ({
                 <td className="p-2">{details.display_name || player.name}</td>
                 <td className="p-2">{player.contract_clean?.yearsLeft || '—'}</td>
                 <td className="p-2">
-                  {player.contract_clean?.yearly?.[currentYear]
-                    ? `$${player.contract_clean.yearly[currentYear].toLocaleString()}`
+                  {player.contract_clean?.salaries_by_year?.[currentYear]?.salary
+                    ? `$${player.contract_clean.salaries_by_year[currentYear].salary.toLocaleString()}`
                     : '—'}
                 </td>
                 <td className="p-2">{player.type || '—'}</td>
                 <td className="p-2">
-                  {player.contract_clean?.playerOptions?.length > 0 && 'PO '}
-                  {player.contract_clean?.teamOptions?.length > 0 && 'TO '}
+                  {Object.values(player.contract_clean?.salaries_by_year || {}).some(
+                    (y) => y.option === 'Player Option'
+                  ) && 'PO '}
+                  {Object.values(player.contract_clean?.salaries_by_year || {}).some(
+                    (y) => y.option === 'Team Option'
+                  ) && 'TO '}
                 </td>
                 <td className="p-2 text-right">
                   <button

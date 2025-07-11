@@ -7,13 +7,14 @@ const CapSheet = ({ teamCapSheet, capSettings, currentYear }) => {
   const allYears = Array.from(
     new Set(
       teamCapSheet.players.flatMap((p) =>
-        Object.keys(p.contract_clean?.yearly || {})
+        Object.keys(p.contract_clean?.salaries_by_year || {}).map(Number)
       )
     )
-  ).sort();
+  ).sort((a, b) => a - b);
 
   const getCapHit = (player, yearKey) => {
-    const salary = player.contract_clean?.yearly?.[yearKey] || 0;
+    const salary =
+      player.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0;
     if (player.isMinimum && player.yearsOfService >= 3) {
       return getMinimumCapHit(player.yearsOfService);
     }
@@ -22,10 +23,14 @@ const CapSheet = ({ teamCapSheet, capSettings, currentYear }) => {
 
   const renderNotes = (player, yearKey) => {
     const notes = [];
-    if (player.contract_clean?.playerOptions?.includes(yearKey)) notes.push('PO');
-    if (player.contract_clean?.teamOptions?.includes(yearKey)) notes.push('TO');
+    const option =
+      player.contract_clean?.salaries_by_year?.[yearKey]?.option || null;
+    if (option === 'Player Option') notes.push('PO');
+    if (option === 'Team Option') notes.push('TO');
     if (player.isMinimum && player.yearsOfService >= 3) notes.push('Vet Min');
-    if (player.contract_clean?.unguaranteed?.includes(yearKey))
+    if (
+      player.contract_clean?.salaries_by_year?.[yearKey]?.guaranteed === false
+    )
       notes.push('Non-Guaranteed');
 
     return notes.join(', ');
@@ -60,9 +65,11 @@ const CapSheet = ({ teamCapSheet, capSettings, currentYear }) => {
         </thead>
         <tbody>
           {teamCapSheet.players
-            .filter((p) => p.contract_clean?.yearly?.[selectedYear])
+            .filter((p) => p.contract_clean?.salaries_by_year?.[selectedYear])
             .map((player, idx) => {
-              const salary = player.contract_clean?.yearly?.[selectedYear] || 0;
+              const salary =
+                player.contract_clean?.salaries_by_year?.[selectedYear]?.salary ||
+                0;
               const capHit = getCapHit(player, selectedYear);
               totalCapHit += capHit;
 

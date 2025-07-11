@@ -9,21 +9,16 @@ export function runOffseason(teamCapSheet, currentYear, capSettings, optionDecis
   const now = new Date(`${nextYear}-07-01`);
 
   // Process contracts
-  const yearKey = `${nextYear}-${String(nextYear + 1).slice(-2)}`;
+  const yearKey = nextYear;
   for (const contract of teamCapSheet.players) {
-    const nextYearSalary = contract.contract_clean?.yearly?.[yearKey];
+    const nextYearSalary =
+      contract.contract_clean?.salaries_by_year?.[yearKey]?.salary;
     let isOptionDeclined = false;
 
     // Handle player options
-    if (contract.contract_clean?.playerOptions?.includes(yearKey)) {
-      if (!optionDecisions[contract.name]) {
-        isOptionDeclined = true;
-        declinedOptions.push(contract.name);
-      }
-    }
-
-    // Handle team options
-    if (contract.contract_clean?.teamOptions?.includes(yearKey)) {
+    const optionType =
+      contract.contract_clean?.salaries_by_year?.[yearKey]?.option;
+    if (optionType === 'Player Option' || optionType === 'Team Option') {
       if (!optionDecisions[contract.name]) {
         isOptionDeclined = true;
         declinedOptions.push(contract.name);

@@ -6,22 +6,35 @@ export function generateContract({
   options = {},
   startYear = 2025,
 }) {
-  const yearly = {};
+  const salaries_by_year = {};
   let salary = baseSalary;
   for (let i = 0; i < years; i++) {
     const year = startYear + i;
-    const key = `${year}-${String(year + 1).slice(-2)}`;
-    yearly[key] = Math.round(salary);
+    salaries_by_year[year] = { salary: Math.round(salary) };
     salary *= 1 + raisePct;
   }
 
+  const lastYear = startYear + years - 1;
+  if (options.playerOption) {
+    salaries_by_year[lastYear].option = 'Player Option';
+  }
+  if (options.teamOption) {
+    salaries_by_year[lastYear].option = 'Team Option';
+  }
+
+  if (options.guaranteed === false) {
+    Object.keys(salaries_by_year).forEach((y) => {
+      salaries_by_year[y].guaranteed = false;
+    });
+  }
+
   return {
-    yearly,
-    playerOptions: options.playerOption ? [Object.keys(yearly).pop()] : [],
-    teamOptions: options.teamOption ? [Object.keys(yearly).pop()] : [],
-    unguaranteed: options.guaranteed === false ? Object.keys(yearly) : [],
+    salaries_by_year,
     extension: false,
-    totalValue: Object.values(yearly).reduce((a, b) => a + b, 0),
+    totalValue: Object.values(salaries_by_year).reduce(
+      (sum, yr) => sum + (yr.salary || 0),
+      0
+    ),
     yearsLeft: years,
     birdRights: 'Full Bird',
     freeAgency: `${startYear + years} (UFA)`,
@@ -83,13 +96,16 @@ export function getMinimumSalary(yearsOfService) {
 
 // 5. Stretch provision handler
 export function stretchContract(contract, currentYear) {
-  const yearKeys = Object.keys(contract.contract_clean?.yearly || {});
-  const numericYears = yearKeys.map((y) => parseInt(y));
-  const remainingYears = numericYears.filter((y) => y >= currentYear).length;
+  const yearKeys = Object.keys(contract.contract_clean?.salaries_by_year || {}).map(Number);
+  const remainingYears = yearKeys.filter((y) => y >= currentYear).length;
 
   const totalOwed = yearKeys
-    .filter((y) => parseInt(y) >= currentYear)
-    .reduce((sum, key) => sum + (contract.contract_clean.yearly[key] || 0), 0);
+    .filter((y) => y >= currentYear)
+    .reduce(
+      (sum, key) =>
+        sum + (contract.contract_clean.salaries_by_year[key]?.salary || 0),
+      0
+    );
   
   const stretchYears = remainingYears * 2 + 1;
   const stretchedAnnual = Math.round(totalOwed / stretchYears);

@@ -10,11 +10,11 @@ export function validateTrade({
     teamA,
     teamB
   }) {
-  const yearKey = `${currentYear}-${String(currentYear + 1).slice(-2)}`;
+  const yearKey = currentYear;
   const teamASalaryOut = teamASends.reduce(
-      (sum, p) => sum + (p.contract_clean?.yearly?.[yearKey] || 0), 0);
+      (sum, p) => sum + (p.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0), 0);
   const teamBSalaryOut = teamBSends.reduce(
-      (sum, p) => sum + (p.contract_clean?.yearly?.[yearKey] || 0), 0);
+      (sum, p) => sum + (p.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0), 0);
     
     const teamASalaryIn = teamBSalaryOut;
     const teamBSalaryIn = teamASalaryOut;

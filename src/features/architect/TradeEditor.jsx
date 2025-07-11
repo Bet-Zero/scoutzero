@@ -14,9 +14,13 @@ const TradeEditor = ({ teamA, teamB, capSettings, currentYear }) => {
     setter(updated);
   };
 
-  const yearKey = `${currentYear}-${String(currentYear + 1).slice(-2)}`;
+  const yearKey = currentYear;
   const getSalary = (players) =>
-    players.reduce((sum, p) => sum + (p.contract_clean?.yearly?.[yearKey] || 0), 0);
+    players.reduce(
+      (sum, p) =>
+        sum + (p.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0),
+      0
+    );
 
   const handleValidate = () => {
     const result = validateTrade({
@@ -53,7 +57,7 @@ const TradeEditor = ({ teamA, teamB, capSettings, currentYear }) => {
                     onChange={() => toggleItem(p, teamASends, setTeamASends)}
                   />
                   {p.name} – $
-                  {p.contract_clean?.yearly?.[yearKey]?.toLocaleString() || 0}
+                  {p.contract_clean?.salaries_by_year?.[yearKey]?.salary?.toLocaleString() || 0}
                   {p.signAndTrade && ' (Sign & Trade)'}
                 </label>
               </li>
@@ -99,7 +103,7 @@ const TradeEditor = ({ teamA, teamB, capSettings, currentYear }) => {
                     onChange={() => toggleItem(p, teamBSends, setTeamBSends)}
                   />
                   {p.name} – $
-                  {p.contract_clean?.yearly?.[yearKey]?.toLocaleString() || 0}
+                  {p.contract_clean?.salaries_by_year?.[yearKey]?.salary?.toLocaleString() || 0}
                 </label>
               </li>
             ))}
