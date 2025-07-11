@@ -6,33 +6,27 @@ const CapSheet = ({ teamCapSheet, capSettings, currentYear }) => {
 
   const allYears = Array.from(
     new Set(
-      teamCapSheet.activeContracts.flatMap((contract) =>
-        Object.keys(contract.salaryByYear || {}).map(Number)
+      teamCapSheet.players.flatMap((p) =>
+        Object.keys(p.contract_clean?.yearly || {})
       )
     )
   ).sort();
 
-  const getCapHit = (contract, year) => {
-    const salary = contract.salaryByYear?.[year] || 0;
-    if (contract.isMinimum && contract.yearsOfService >= 3) {
-      return getMinimumCapHit(contract.yearsOfService);
+  const getCapHit = (player, yearKey) => {
+    const salary = player.contract_clean?.yearly?.[yearKey] || 0;
+    if (player.isMinimum && player.yearsOfService >= 3) {
+      return getMinimumCapHit(player.yearsOfService);
     }
     return salary;
   };
 
-  const renderNotes = (contract, year) => {
+  const renderNotes = (player, yearKey) => {
     const notes = [];
-    const optionYear =
-      contract.options?.playerOptionYear || contract.options?.teamOptionYear;
-
-    if (contract.options?.playerOption && optionYear === year) notes.push('PO');
-    if (contract.options?.teamOption && optionYear === year) notes.push('TO');
-    if (contract.isMinimum && contract.yearsOfService >= 3)
-      notes.push('Vet Min');
-    if (contract.guaranteed === false) notes.push('Non-Guaranteed');
-    if (typeof contract.guaranteed === 'number') {
-      notes.push(`Guaranteed ${Math.round(contract.guaranteed * 100)}%`);
-    }
+    if (player.contract_clean?.playerOptions?.includes(yearKey)) notes.push('PO');
+    if (player.contract_clean?.teamOptions?.includes(yearKey)) notes.push('TO');
+    if (player.isMinimum && player.yearsOfService >= 3) notes.push('Vet Min');
+    if (player.contract_clean?.unguaranteed?.includes(yearKey))
+      notes.push('Non-Guaranteed');
 
     return notes.join(', ');
   };
@@ -65,22 +59,22 @@ const CapSheet = ({ teamCapSheet, capSettings, currentYear }) => {
           </tr>
         </thead>
         <tbody>
-          {teamCapSheet.activeContracts
-            .filter((c) => c.salaryByYear?.[selectedYear])
-            .map((contract, idx) => {
-              const salary = contract.salaryByYear?.[selectedYear] || 0;
-              const capHit = getCapHit(contract, selectedYear);
+          {teamCapSheet.players
+            .filter((p) => p.contract_clean?.yearly?.[selectedYear])
+            .map((player, idx) => {
+              const salary = player.contract_clean?.yearly?.[selectedYear] || 0;
+              const capHit = getCapHit(player, selectedYear);
               totalCapHit += capHit;
 
               return (
                 <tr
-                  key={`${contract.name}-${idx}`}
+                  key={`${player.name}-${idx}`}
                   className="odd:bg-[#171717]"
                 >
-                  <td className="p-2">{contract.name}</td>
+                  <td className="p-2">{player.name}</td>
                   <td className="p-2">${salary.toLocaleString()}</td>
                   <td className="p-2">${capHit.toLocaleString()}</td>
-                  <td className="p-2">{renderNotes(contract, selectedYear)}</td>
+                  <td className="p-2">{renderNotes(player, selectedYear)}</td>
                 </tr>
               );
             })}

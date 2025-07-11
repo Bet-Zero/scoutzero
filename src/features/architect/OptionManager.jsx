@@ -6,20 +6,19 @@ const OptionManager = ({ teamCapSheet, currentYear, onDecisionsReady }) => {
 
   useEffect(() => {
     const nextYear = currentYear + 1;
-    const options = teamCapSheet.activeContracts
-      .map((contract) => {
-        const salary = contract.salaryByYear?.[nextYear];
-        const optionType = contract.options?.playerOption ? 'Player Option' : 
-                         contract.options?.teamOption ? 'Team Option' : null;
-        const optionYear = contract.options?.playerOptionYear || 
-                         contract.options?.teamOptionYear;
-
-        if (!salary || !optionType || optionYear !== nextYear) return null;
+    const key = `${nextYear}-${String(nextYear + 1).slice(-2)}`;
+    const options = teamCapSheet.players
+      .map((p) => {
+        const salary = p.contract_clean?.yearly?.[key];
+        const hasPO = p.contract_clean?.playerOptions?.includes(key);
+        const hasTO = p.contract_clean?.teamOptions?.includes(key);
+        const optionType = hasPO ? 'Player Option' : hasTO ? 'Team Option' : null;
+        if (!salary || !optionType) return null;
 
         return {
-          name: contract.name,
+          name: p.name,
           salary,
-          type: optionType
+          type: optionType,
         };
       })
       .filter(Boolean);

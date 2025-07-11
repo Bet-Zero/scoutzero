@@ -14,8 +14,9 @@ const TradeEditor = ({ teamA, teamB, capSettings, currentYear }) => {
     setter(updated);
   };
 
+  const yearKey = `${currentYear}-${String(currentYear + 1).slice(-2)}`;
   const getSalary = (players) =>
-    players.reduce((sum, p) => sum + (p.salaryByYear[currentYear] || 0), 0);
+    players.reduce((sum, p) => sum + (p.contract_clean?.yearly?.[yearKey] || 0), 0);
 
   const handleValidate = () => {
     const result = validateTrade({
@@ -43,7 +44,7 @@ const TradeEditor = ({ teamA, teamB, capSettings, currentYear }) => {
           <h3 className="font-semibold mb-1">{teamA.teamName}</h3>
           <strong>Players:</strong>
           <ul className="mb-2">
-            {teamA.activeContracts.map((p) => (
+            {teamA.players.map((p) => (
               <li key={p.name} className="text-sm">
                 <label className="flex items-center gap-2">
                   <input
@@ -52,7 +53,7 @@ const TradeEditor = ({ teamA, teamB, capSettings, currentYear }) => {
                     onChange={() => toggleItem(p, teamASends, setTeamASends)}
                   />
                   {p.name} – $
-                  {p.salaryByYear[currentYear]?.toLocaleString() || 0}
+                  {p.contract_clean?.yearly?.[yearKey]?.toLocaleString() || 0}
                   {p.signAndTrade && ' (Sign & Trade)'}
                 </label>
               </li>
@@ -89,7 +90,7 @@ const TradeEditor = ({ teamA, teamB, capSettings, currentYear }) => {
           <h3 className="font-semibold mb-1">{teamB.teamName}</h3>
           <strong>Players:</strong>
           <ul className="mb-2">
-            {teamB.activeContracts.map((p) => (
+            {teamB.players.map((p) => (
               <li key={p.name} className="text-sm">
                 <label className="flex items-center gap-2">
                   <input
@@ -98,7 +99,7 @@ const TradeEditor = ({ teamA, teamB, capSettings, currentYear }) => {
                     onChange={() => toggleItem(p, teamBSends, setTeamBSends)}
                   />
                   {p.name} – $
-                  {p.salaryByYear[currentYear]?.toLocaleString() || 0}
+                  {p.contract_clean?.yearly?.[yearKey]?.toLocaleString() || 0}
                 </label>
               </li>
             ))}

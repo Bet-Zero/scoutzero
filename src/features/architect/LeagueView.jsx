@@ -46,8 +46,8 @@ const LeagueView = () => {
         const capSheet = await loadTeamCapSheet(name.toLowerCase());
         if (capSheet) {
           const totalSalary =
-            capSheet.activeContracts?.reduce((sum, p) => {
-              return sum + (p.salaryByYear?.[2025] || 0);
+            capSheet.players?.reduce((sum, p) => {
+              return sum + (p.contract_clean?.yearly?.['2025-26'] || 0);
             }, 0) || 0;
           summaries.push({ teamName: name, totalSalary });
         } else {

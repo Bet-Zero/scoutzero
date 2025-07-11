@@ -30,32 +30,6 @@ export const loadTeamCapSheet = async (teamId) => {
 };
 
 // Save free agent pool
-export const saveFreeAgents = async (agents) => {
-  try {
-    await setDoc(doc(db, 'meta', 'freeAgents'), { pool: agents });
-    console.log('Saved free agents');
-    return true;
-  } catch (error) {
-    console.error('Error saving free agents:', error);
-    return false;
-  }
-};
-
-// Load free agent pool
-export const loadFreeAgents = async () => {
-  try {
-    const snap = await getDoc(doc(db, 'meta', 'freeAgents'));
-    if (snap.exists()) {
-      return snap.data().pool;
-    } else {
-      console.warn('No free agents found.');
-      return [];
-    }
-  } catch (error) {
-    console.error('Error loading free agents:', error);
-    return [];
-  }
-};
 
 // Get list of all teams
 export const getAllTeams = async () => {

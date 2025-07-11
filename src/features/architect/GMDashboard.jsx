@@ -1,18 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import {
-  saveTeamCapSheet,
-  loadTeamCapSheet,
-  saveFreeAgents,
-  loadFreeAgents,
-} from '@/utils/architect/firebaseHelpers';
+import { saveTeamCapSheet, loadTeamCapSheet } from '@/utils/architect/firebaseHelpers';
 
 import RosterManager from './RosterManager';
 import CapSheet from './CapSheet';
 import CapSheetFull from './CapSheetFull';
 import ContractEditor from './ContractEditor';
 import TradeEditor from './TradeEditor';
-import FreeAgentPool from './FreeAgentPool';
 import OffseasonTab from './OffseasonTab';
 import TeamHistoryTab from './TeamHistoryTab';
 import ExceptionTracker from './ExceptionTracker';
@@ -26,7 +20,6 @@ const GMDashboard = () => {
   const [otherTeamCapSheet] = useState(null);
   const [currentYear, setCurrentYear] = useState(2025);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
-  const [freeAgents, setFreeAgents] = useState([]);
   const [activeTab, setActiveTab] = useState('roster');
   const [lastCapSheet, setLastCapSheet] = useState(null);
   const [offseasonRun, setOffseasonRun] = useState(false);
@@ -45,10 +38,8 @@ const GMDashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       const loadedCapSheet = await loadTeamCapSheet(teamId);
-      const loadedFA = await loadFreeAgents();
       if (loadedCapSheet) setTeamCapSheet(loadedCapSheet);
       else console.warn('No saved team found, using blank slate.');
-      if (loadedFA.length > 0) setFreeAgents(loadedFA);
     };
     fetchData();
   }, [teamId]);
@@ -57,28 +48,19 @@ const GMDashboard = () => {
     if (teamCapSheet) saveTeamCapSheet(teamId, teamCapSheet);
   }, [teamCapSheet, teamId]);
 
-  useEffect(() => {
-    if (freeAgents.length > 0) saveFreeAgents(freeAgents);
-  }, [freeAgents]);
 
   const handleSign = (playerName, contract) => {
     const newContract = {
       name: playerName,
-      salaryByYear: contract.salaryByYear,
-      years: Object.keys(contract.salaryByYear).length,
-      options: contract.options,
+      contract_clean: contract,
       type: contract.signAndTrade ? 'Sign & Trade' : 'Signed FA',
       signAndTrade: contract.signAndTrade || false,
-      guaranteed: contract.guaranteed,
-      isMinimum: contract.isMinimum,
-      yearsOfService: contract.yearsOfService,
     };
 
     setTeamCapSheet((prev) => ({
       ...prev,
-      activeContracts: [...prev.activeContracts, newContract],
+      players: [...prev.players, newContract],
     }));
-    setFreeAgents((prev) => prev.filter((p) => p.name !== playerName));
   };
 
   const handleEditContract = (player) => {
@@ -98,7 +80,7 @@ const GMDashboard = () => {
 
     const resetSheet = {
       ...teamCapSheet,
-      activeContracts: [],
+      players: [],
       waivedContracts: [],
       tradeExceptions: [],
       exceptionHistory: [],
@@ -127,7 +109,6 @@ const GMDashboard = () => {
           Contract Editor
         </button>
         <button onClick={() => setActiveTab('trade')}>Trade Machine</button>
-        <button onClick={() => setActiveTab('fa')}>Free Agency</button>
         <button onClick={() => setActiveTab('offseason')}>Offseason</button>
         <button onClick={() => setActiveTab('history')}>Team History</button>
       </div>
@@ -179,15 +160,6 @@ const GMDashboard = () => {
           />
         )}
 
-        {activeTab === 'fa' && (
-          <FreeAgentPool
-            freeAgents={freeAgents}
-            teamCapSheet={teamCapSheet}
-            capSettings={capSettings}
-            currentYear={currentYear}
-            onSign={handleSign}
-          />
-        )}
 
         {activeTab === 'offseason' && (
           <OffseasonTab

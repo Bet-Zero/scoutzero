@@ -8,28 +8,31 @@ const CapSheetFull = ({ teamCapSheet }) => {
   const allYears = Array.from(
     new Set(
       teamCapSheet.players.flatMap((player) =>
-        Object.keys(player.contract_clean?.salaries_by_year || {}).map(Number)
+        Object.keys(player.contract_clean?.yearly || {})
       )
     )
-  ).sort((a, b) => a - b);
+  ).sort();
 
   // Build year-by-year totals
   const yearTotals = {};
   for (const year of allYears) {
     yearTotals[year] = teamCapSheet.players.reduce((sum, player) => {
-      const salary =
-        player.contract_clean?.salaries_by_year?.[year]?.salary || 0;
+      const salary = player.contract_clean?.yearly?.[year] || 0;
       return sum + salary;
     }, 0);
   }
 
-  const renderNotes = (salaries_by_year) => {
+  const renderNotes = (contract) => {
     const notes = [];
 
-    for (const [year, data] of Object.entries(salaries_by_year || {})) {
-      if (data.option === 'Player Option') notes.push(`PO in ${year}`);
-      if (data.option === 'Team Option') notes.push(`TO in ${year}`);
-      if (data.guaranteed === false) notes.push(`Non-Guaranteed in ${year}`);
+    for (const year of contract.playerOptions || []) {
+      notes.push(`PO in ${year}`);
+    }
+    for (const year of contract.teamOptions || []) {
+      notes.push(`TO in ${year}`);
+    }
+    for (const year of contract.unguaranteed || []) {
+      notes.push(`Non-Guaranteed in ${year}`);
     }
 
     return notes.join(', ');
@@ -57,8 +60,7 @@ const CapSheetFull = ({ teamCapSheet }) => {
             <tr key={idx} className="odd:bg-[#171717]">
               <td className="p-2">{player.name}</td>
               {allYears.map((year) => {
-                const salary =
-                  player.contract_clean?.salaries_by_year?.[year]?.salary;
+                const salary = player.contract_clean?.yearly?.[year];
                 return (
                   <td key={year} className="p-2">
                     {salary ? `$${salary.toLocaleString()}` : '—'}
@@ -66,7 +68,7 @@ const CapSheetFull = ({ teamCapSheet }) => {
                 );
               })}
               <td className="p-2">
-                {renderNotes(player.contract_clean?.salaries_by_year)}
+                {renderNotes(player.contract_clean)}
               </td>
             </tr>
           ))}

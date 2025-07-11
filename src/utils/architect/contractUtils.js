@@ -1,23 +1,30 @@
 // 1. Generate any generic contract
-export function generateContract({ 
-  baseSalary, 
-  years, 
-  raisePct = 0.08, 
-  options = {}, 
-  startYear = 2025 
+export function generateContract({
+  baseSalary,
+  years,
+  raisePct = 0.08,
+  options = {},
+  startYear = 2025,
 }) {
-  const salaryByYear = {};
+  const yearly = {};
   let salary = baseSalary;
-  
   for (let i = 0; i < years; i++) {
-    salaryByYear[startYear + i] = Math.round(salary);
-    salary *= (1 + raisePct);
+    const year = startYear + i;
+    const key = `${year}-${String(year + 1).slice(-2)}`;
+    yearly[key] = Math.round(salary);
+    salary *= 1 + raisePct;
   }
-  
-  return { 
-    salaryByYear, 
-    options,
-    years
+
+  return {
+    yearly,
+    playerOptions: options.playerOption ? [Object.keys(yearly).pop()] : [],
+    teamOptions: options.teamOption ? [Object.keys(yearly).pop()] : [],
+    unguaranteed: options.guaranteed === false ? Object.keys(yearly) : [],
+    extension: false,
+    totalValue: Object.values(yearly).reduce((a, b) => a + b, 0),
+    yearsLeft: years,
+    birdRights: 'Full Bird',
+    freeAgency: `${startYear + years} (UFA)`,
   };
 }
 
@@ -76,13 +83,13 @@ export function getMinimumSalary(yearsOfService) {
 
 // 5. Stretch provision handler
 export function stretchContract(contract, currentYear) {
-  const remainingYears = Object.keys(contract.salaryByYear)
-    .filter(y => y >= currentYear)
-    .length;
-  
-  const totalOwed = Object.entries(contract.salaryByYear)
-    .filter(([y]) => y >= currentYear)
-    .reduce((sum, [, val]) => sum + val, 0);
+  const yearKeys = Object.keys(contract.contract_clean?.yearly || {});
+  const numericYears = yearKeys.map((y) => parseInt(y));
+  const remainingYears = numericYears.filter((y) => y >= currentYear).length;
+
+  const totalOwed = yearKeys
+    .filter((y) => parseInt(y) >= currentYear)
+    .reduce((sum, key) => sum + (contract.contract_clean.yearly[key] || 0), 0);
   
   const stretchYears = remainingYears * 2 + 1;
   const stretchedAnnual = Math.round(totalOwed / stretchYears);

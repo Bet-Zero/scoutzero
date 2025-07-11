@@ -9,26 +9,22 @@ const RosterManager = ({
   playersMap = {},
 }) => {
   const handleWaivePlayer = (player) => {
-    const updatedRoster = teamCapSheet.activeContracts.filter(
-      (p) => p.name !== player.name
-    );
+    const updatedRoster = teamCapSheet.players.filter((p) => p.name !== player.name);
     const dead = {
       name: `${player.name} (Waived)`,
-      amount: player.salaryByYear[currentYear],
+      amount: player.contract_clean?.yearly?.[currentYear] || 0,
     };
     const updatedDeadMoney = [...teamCapSheet.deadMoney, dead];
 
     onUpdateRoster({
       ...teamCapSheet,
-      activeContracts: updatedRoster,
+      players: updatedRoster,
       deadMoney: updatedDeadMoney,
     });
   };
 
   const handleStretchPlayer = (player) => {
-    const updatedRoster = teamCapSheet.activeContracts.filter(
-      (p) => p.name !== player.name
-    );
+    const updatedRoster = teamCapSheet.players.filter((p) => p.name !== player.name);
     const stretched = stretchContract(player, currentYear);
     const deadStretched = Object.entries(stretched).map(([year, amount]) => ({
       name: `${player.name} (Stretched)`,
@@ -40,7 +36,7 @@ const RosterManager = ({
 
     onUpdateRoster({
       ...teamCapSheet,
-      activeContracts: updatedRoster,
+      players: updatedRoster,
       deadMoney: updatedDeadMoney,
     });
   };
@@ -62,21 +58,21 @@ const RosterManager = ({
           </tr>
         </thead>
         <tbody>
-          {teamCapSheet.activeContracts.map((player) => {
+          {teamCapSheet.players.map((player) => {
             const details = playersMap[player.name] || {};
             return (
               <tr key={player.name} className="odd:bg-[#171717]">
                 <td className="p-2">{details.display_name || player.name}</td>
-                <td className="p-2">{player.years}</td>
+                <td className="p-2">{player.contract_clean?.yearsLeft || '—'}</td>
                 <td className="p-2">
-                  {player.salaryByYear[currentYear]
-                    ? `$${player.salaryByYear[currentYear].toLocaleString()}`
+                  {player.contract_clean?.yearly?.[currentYear]
+                    ? `$${player.contract_clean.yearly[currentYear].toLocaleString()}`
                     : '—'}
                 </td>
-                <td className="p-2">{player.type}</td>
+                <td className="p-2">{player.type || '—'}</td>
                 <td className="p-2">
-                  {player.options?.playerOption && 'PO '}
-                  {player.options?.teamOption && 'TO '}
+                  {player.contract_clean?.playerOptions?.length > 0 && 'PO '}
+                  {player.contract_clean?.teamOptions?.length > 0 && 'TO '}
                 </td>
                 <td className="p-2 text-right">
                   <button
