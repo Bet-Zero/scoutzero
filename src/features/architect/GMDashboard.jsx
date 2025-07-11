@@ -44,9 +44,9 @@ const GMDashboard = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const loadedTeam = await loadTeamCapSheet(teamId);
+      const loadedCapSheet = await loadTeamCapSheet(teamId);
       const loadedFA = await loadFreeAgents();
-      if (loadedTeam) setTeamCapSheet(loadedTeam);
+      if (loadedCapSheet) setTeamCapSheet(loadedCapSheet);
       else console.warn('No saved team found, using blank slate.');
       if (loadedFA.length > 0) setFreeAgents(loadedFA);
     };

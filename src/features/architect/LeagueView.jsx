@@ -3,12 +3,36 @@ import { loadTeamCapSheet } from '@/utils/architect/firebaseHelpers';
 import { useNavigate } from 'react-router-dom';
 
 const teamsList = [
-  "Lakers", "Warriors", "Nuggets", "Suns", "Clippers",
-  "Celtics", "Bucks", "Sixers", "Knicks", "Heat",
-  "Mavericks", "Grizzlies", "Timberwolves", "Pelicans", "Kings",
-  "Hawks", "Raptors", "Bulls", "Cavs", "Pacers",
-  "Thunder", "Jazz", "Blazers", "Spurs", "Rockets",
-  "Wizards", "Magic", "Pistons", "Hornets", "Nets"
+  'Lakers',
+  'Warriors',
+  'Nuggets',
+  'Suns',
+  'Clippers',
+  'Celtics',
+  'Bucks',
+  'Sixers',
+  'Knicks',
+  'Heat',
+  'Mavericks',
+  'Grizzlies',
+  'Timberwolves',
+  'Pelicans',
+  'Kings',
+  'Hawks',
+  'Raptors',
+  'Bulls',
+  'Cavs',
+  'Pacers',
+  'Thunder',
+  'Jazz',
+  'Blazers',
+  'Spurs',
+  'Rockets',
+  'Wizards',
+  'Magic',
+  'Pistons',
+  'Hornets',
+  'Nets',
 ];
 
 const LeagueView = () => {
@@ -19,11 +43,12 @@ const LeagueView = () => {
     const loadAllTeams = async () => {
       const summaries = [];
       for (const name of teamsList) {
-        const data = await loadTeamCapSheet(name.toLowerCase());
-        if (data) {
-          const totalSalary = data.activeContracts?.reduce((sum, p) => {
-            return sum + (p.salaryByYear?.[2025] || 0);
-          }, 0) || 0;
+        const capSheet = await loadTeamCapSheet(name.toLowerCase());
+        if (capSheet) {
+          const totalSalary =
+            capSheet.activeContracts?.reduce((sum, p) => {
+              return sum + (p.salaryByYear?.[2025] || 0);
+            }, 0) || 0;
           summaries.push({ teamName: name, totalSalary });
         } else {
           summaries.push({ teamName: name, totalSalary: 0 });
@@ -40,7 +65,9 @@ const LeagueView = () => {
 
   return (
     <div className="text-white">
-      <h1 className="text-2xl font-bold mb-4">HoopZero Architect – League View</h1>
+      <h1 className="text-2xl font-bold mb-4">
+        HoopZero Architect – League View
+      </h1>
       <table className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded">
         <thead className="bg-[#111]">
           <tr>
