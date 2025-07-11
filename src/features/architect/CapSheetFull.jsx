@@ -33,57 +33,62 @@ const CapSheetFull = ({ teamCapSheet }) => {
 
   return (
     <div className="text-white">
-      <h3 className="text-xl font-semibold mb-2">
+      <h3 className="text-xl font-semibold mb-3">
         Future Cap Sheet (Multi-Year View)
       </h3>
-      <table className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded">
-        <thead className="bg-[#111]">
-          <tr>
-            <th className="p-2 text-left">Player</th>
-            {allYears.map((year) => (
-              <th key={year} className="p-2 text-left">
-                {year}
-              </th>
-            ))}
-            <th className="p-2 text-left">Notes</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sortedPlayers.map((player, idx) => (
-            <tr key={idx} className="odd:bg-[#171717]">
-              <td className="p-2">{formatName(player.name)}</td>
-              {allYears.map((year) => {
-                const entry = player.contract_clean?.salaries_by_year?.[year];
-                if (!entry?.salary) return <td key={year} className="p-2" />;
-
-                const isPO = entry.option === 'Player Option';
-                const isTO = entry.option === 'Team Option';
-                const style = isPO
-                  ? 'text-green-400 font-semibold'
-                  : isTO
-                    ? 'text-red-400 font-semibold'
-                    : '';
-
-                return (
-                  <td key={year} className={`p-2 ${style}`}>
-                    ${entry.salary.toLocaleString()}
-                  </td>
-                );
-              })}
-              <td className="p-2" />
+      <div className="max-w-[1100px] mx-auto overflow-x-auto">
+        <table className="w-full text-xs border-separate border-spacing-y-1">
+          <thead>
+            <tr className="bg-black/60 text-white border-b border-white/10">
+              <th className="px-2 py-1 text-left w-48">Player</th>
+              {allYears.map((year) => (
+                <th key={year} className="px-2 py-1 text-center w-[70px]">
+                  {year}-{String((parseInt(year) + 1) % 100).padStart(2, '0')}
+                </th>
+              ))}
             </tr>
-          ))}
-          <tr className="border-t border-white/20 font-semibold">
-            <td className="p-2">Total Cap</td>
-            {allYears.map((year) => (
-              <td key={year} className="p-2">
-                ${yearTotals[year].toLocaleString()}
-              </td>
+          </thead>
+          <tbody>
+            {sortedPlayers.map((player, idx) => (
+              <tr
+                key={idx}
+                className="bg-[#1a1a1a] hover:bg-[#222] transition duration-150 border-b border-white/5"
+              >
+                <td className="px-2 py-1 text-left w-48 whitespace-nowrap">
+                  {player.display_name}
+                </td>
+                {allYears.map((year) => {
+                  const entry = player.contract_clean?.salaries_by_year?.[year];
+                  if (!entry?.salary)
+                    return <td key={year} className="px-2 py-1" />;
+
+                  const isPO = entry.option === 'Player Option';
+                  const isTO = entry.option === 'Team Option';
+                  const style = isPO
+                    ? 'text-green-400 font-semibold'
+                    : isTO
+                      ? 'text-red-400 font-semibold'
+                      : '';
+
+                  return (
+                    <td key={year} className={`px-2 py-1 text-center ${style}`}>
+                      ${entry.salary.toLocaleString()}
+                    </td>
+                  );
+                })}
+              </tr>
             ))}
-            <td className="p-2" />
-          </tr>
-        </tbody>
-      </table>
+            <tr className="bg-black/30 text-white border-t border-white/20 font-semibold">
+              <td className="px-2 py-1 w-48">Total Cap</td>
+              {allYears.map((year) => (
+                <td key={year} className="px-2 py-1 text-center">
+                  ${yearTotals[year].toLocaleString()}
+                </td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };
