@@ -67,9 +67,7 @@ const CapSheetFull = ({ teamCapSheet }) => {
                   </td>
                 );
               })}
-              <td className="p-2">
-                {renderNotes(player.contract_clean)}
-              </td>
+              <td className="p-2">{renderNotes(player.contract_clean)}</td>
             </tr>
           ))}
           <tr className="border-t border-white/20 font-semibold">
