@@ -1,50 +1,39 @@
+// CapSheetFull.jsx (rewired to use contract_clean)
 import React from 'react';
-import { getMinimumCapHit } from '@/utils/architect/contractUtils';
 
 const CapSheetFull = ({ teamCapSheet }) => {
+  if (!teamCapSheet || !teamCapSheet.players) return null;
+
+  // Get all years from all players' contract_clean
   const allYears = Array.from(
     new Set(
-      teamCapSheet.activeContracts.flatMap((contract) =>
-        Object.keys(contract.salaryByYear || {}).map(Number)
+      teamCapSheet.players.flatMap((player) =>
+        Object.keys(player.contract_clean?.salaries_by_year || {}).map(Number)
       )
     )
-  ).sort();
+  ).sort((a, b) => a - b);
 
-  const getCapHit = (contract, year) => {
-    const salary = contract.salaryByYear?.[year] || 0;
-    if (contract.isMinimum && contract.yearsOfService >= 3) {
-      return getMinimumCapHit(contract.yearsOfService);
-    }
-    return salary;
-  };
+  // Build year-by-year totals
+  const yearTotals = {};
+  for (const year of allYears) {
+    yearTotals[year] = teamCapSheet.players.reduce((sum, player) => {
+      const salary =
+        player.contract_clean?.salaries_by_year?.[year]?.salary || 0;
+      return sum + salary;
+    }, 0);
+  }
 
-  const renderNotes = (contract) => {
+  const renderNotes = (salaries_by_year) => {
     const notes = [];
-    if (contract.options?.playerOption) {
-      notes.push(`PO in ${contract.options.playerOptionYear}`);
+
+    for (const [year, data] of Object.entries(salaries_by_year || {})) {
+      if (data.option === 'Player Option') notes.push(`PO in ${year}`);
+      if (data.option === 'Team Option') notes.push(`TO in ${year}`);
+      if (data.guaranteed === false) notes.push(`Non-Guaranteed in ${year}`);
     }
-    if (contract.options?.teamOption) {
-      notes.push(`TO in ${contract.options.teamOptionYear}`);
-    }
-    if (contract.isMinimum && contract.yearsOfService >= 3) {
-      notes.push(`Vet Min, ${contract.yearsOfService} yrs`);
-    }
-    if (contract.guaranteed === false) notes.push('Non-Guaranteed');
-    if (typeof contract.guaranteed === 'number')
-      notes.push(`Guaranteed ${Math.round(contract.guaranteed * 100)}%`);
+
     return notes.join(', ');
   };
-
-  const yearTotals = {};
-  allYears.forEach((year) => {
-    yearTotals[year] = 0;
-    teamCapSheet.activeContracts.forEach((contract) => {
-      const hit = getCapHit(contract, year);
-      if (contract.salaryByYear?.[year]) {
-        yearTotals[year] += hit;
-      }
-    });
-  });
 
   return (
     <div className="text-white">
@@ -64,19 +53,21 @@ const CapSheetFull = ({ teamCapSheet }) => {
           </tr>
         </thead>
         <tbody>
-          {teamCapSheet.activeContracts.map((contract, idx) => (
+          {teamCapSheet.players.map((player, idx) => (
             <tr key={idx} className="odd:bg-[#171717]">
-              <td className="p-2">{contract.name}</td>
+              <td className="p-2">{player.name}</td>
               {allYears.map((year) => {
-                const salary = contract.salaryByYear?.[year];
-                const capHit = getCapHit(contract, year);
+                const salary =
+                  player.contract_clean?.salaries_by_year?.[year]?.salary;
                 return (
                   <td key={year} className="p-2">
-                    {salary ? `$${capHit.toLocaleString()}` : '—'}
+                    {salary ? `$${salary.toLocaleString()}` : '—'}
                   </td>
                 );
               })}
-              <td className="p-2">{renderNotes(contract)}</td>
+              <td className="p-2">
+                {renderNotes(player.contract_clean?.salaries_by_year)}
+              </td>
             </tr>
           ))}
           <tr className="border-t border-white/20 font-semibold">
