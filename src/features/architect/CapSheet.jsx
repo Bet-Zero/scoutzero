@@ -3,21 +3,20 @@ import { getMinimumCapHit } from '@/utils/architect/contractUtils';
 import CapSummaryTiles from '@/features/architect/CapSummaryTiles';
 import { POSITION_MAP } from '@/utils/roles/positionMap';
 import getCapPercentage from '@/utils/architect/getCapPercentage';
+import capProjections from '@/utils/architect/capProjections';
 
-const CapSheet = ({
-  teamCapSheet,
-  capSettings,
-  currentYear,
-  onSelectPlayer,
-}) => {
+const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer }) => {
   const [selectedYear, setSelectedYear] = useState(currentYear);
 
   const generateYears = (startYear, count) =>
     Array.from({ length: count }, (_, i) => startYear + i);
 
   const allYears = generateYears(currentYear, 7);
-  const salaryCap =
-    capSettings.salaryCap?.[selectedYear] || capSettings.salaryCap || 1;
+  const yearKey = `${selectedYear}-${String((selectedYear + 1) % 100).padStart(
+    2,
+    '0'
+  )}`;
+  const salaryCap = capProjections[yearKey]?.cap || 1;
 
   const formatYearLabel = (year) =>
     `${year}-${String((year + 1) % 100).padStart(2, '0')}`;
@@ -75,7 +74,6 @@ const CapSheet = ({
       </h3>
       <CapSummaryTiles
         teamCapSheet={teamCapSheet}
-        capSettings={capSettings}
         selectedYear={selectedYear}
       />
 
@@ -119,7 +117,7 @@ const CapSheet = ({
 
             const age = player.age ?? '-';
             const position = player.position ?? '-';
-            const capPct = getCapPercentage(capHit, capSettings);
+            const capPct = getCapPercentage(capHit, salaryCap);
             const capPctDisplay = capPct ? `${capPct}%` : '—';
 
             return (
