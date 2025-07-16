@@ -6,37 +6,34 @@ const OptionManager = ({ teamCapSheet, currentYear, onDecisionsReady }) => {
 
   useEffect(() => {
     const nextYear = currentYear + 1;
-    const options = teamCapSheet.activeContracts
-      .map((contract) => {
-        const salary = contract.salaryByYear?.[nextYear];
-        const optionType = contract.options?.playerOption ? 'Player Option' : 
-                         contract.options?.teamOption ? 'Team Option' : null;
-        const optionYear = contract.options?.playerOptionYear || 
-                         contract.options?.teamOptionYear;
-
-        if (!salary || !optionType || optionYear !== nextYear) return null;
+    const options = teamCapSheet.players
+      .map((p) => {
+        const entry = p.contract_clean?.salaries_by_year?.[nextYear];
+        const salary = entry?.salary;
+        const optionType = entry?.option || null;
+        if (!salary || !optionType) return null;
 
         return {
-          name: contract.name,
+          name: p.name,
           salary,
-          type: optionType
+          type: optionType,
         };
       })
       .filter(Boolean);
 
     setOptionsList(options);
-    
+
     const initialDecisions = {};
-    options.forEach(opt => {
+    options.forEach((opt) => {
       initialDecisions[opt.name] = true; // default to accept
     });
     setDecisions(initialDecisions);
   }, [teamCapSheet, currentYear]);
 
   const toggleDecision = (name) => {
-    setDecisions(prev => ({
+    setDecisions((prev) => ({
       ...prev,
-      [name]: !prev[name]
+      [name]: !prev[name],
     }));
   };
 
@@ -46,8 +43,10 @@ const OptionManager = ({ teamCapSheet, currentYear, onDecisionsReady }) => {
 
   return (
     <div className="text-white">
-      <h3 className="text-lg font-semibold mb-2">Pending Contract Options – {currentYear + 1}</h3>
-      
+      <h3 className="text-lg font-semibold mb-2">
+        Pending Contract Options – {currentYear + 1}
+      </h3>
+
       {optionsList.length === 0 ? (
         <p>No player or team options pending.</p>
       ) : (
