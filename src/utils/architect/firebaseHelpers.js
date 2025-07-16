@@ -10,11 +10,30 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
+import { calculateCapHold } from '@/utils/architect/contractUtils';
 
 // Save a team's cap sheet
-export const saveTeamCapSheet = async (teamId, capSheet) => {
+export const saveTeamCapSheet = async (
+  teamId,
+  capSheet,
+  capProjections,
+  year = 2025
+) => {
   try {
-    await setDoc(doc(db, 'teams', teamId), capSheet);
+    const updatedPlayers = capSheet.players.map((player) => {
+      const capHold = calculateCapHold(player, capProjections, year);
+      return {
+        ...player,
+        cap_hold: capHold,
+      };
+    });
+
+    const updatedCapSheet = {
+      ...capSheet,
+      players: updatedPlayers,
+    };
+
+    await setDoc(doc(db, 'teams', teamId), updatedCapSheet);
     console.log(`Saved ${teamId} successfully`);
     return true;
   } catch (error) {
