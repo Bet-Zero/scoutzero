@@ -5,7 +5,7 @@ import { generateContract } from '@/utils/architect/contractUtils';
 const FreeAgentPool = ({
   freeAgents,
   teamCapSheet,
-  capSettings,
+  capProjections,
   currentYear,
   onSign,
 }) => {
@@ -18,7 +18,12 @@ const FreeAgentPool = ({
   };
 
   const handleSign = () => {
-    const result = canSignFreeAgent(selectedPlayer, teamCapSheet, capSettings);
+    const result = canSignFreeAgent(
+      selectedPlayer,
+      teamCapSheet,
+      capProjections,
+      currentYear
+    );
     if (!result.allowed) {
       setSignResult(result);
       return;

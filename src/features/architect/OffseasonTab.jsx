@@ -7,7 +7,7 @@ const OffseasonTab = ({
   setTeamCapSheet,
   currentYear,
   setCurrentYear,
-  capSettings,
+  capProjections,
   setLastCapSheet,
   setOffseasonRun,
   setOffseasonSummary,
@@ -26,7 +26,7 @@ const OffseasonTab = ({
     const { updatedCapSheet, summary } = runOffseason(
       teamCapSheet,
       currentYear,
-      capSettings,
+      capProjections,
       optionDecisions
     );
     setTeamCapSheet(updatedCapSheet);
