@@ -294,6 +294,7 @@ const GMDashboard = () => {
               teamCapSheet={teamCapSheet.capSheet}
               currentYear={currentYear}
               onSelectPlayer={handleEditContract}
+              playersMap={playersMap}
             />
 
             <ExceptionTracker
@@ -307,6 +308,7 @@ const GMDashboard = () => {
           <CapSheetFull
             teamCapSheet={teamCapSheet.capSheet}
             onSelectPlayer={handleEditContract}
+            playersMap={playersMap}
           />
         )}
 
@@ -316,6 +318,7 @@ const GMDashboard = () => {
             teamB={otherTeamCapSheet || teamCapSheet}
             capProjections={capProjections}
             currentYear={currentYear}
+            playersMap={playersMap}
           />
         )}
 
@@ -326,6 +329,7 @@ const GMDashboard = () => {
             capProjections={capProjections}
             currentYear={currentYear}
             onSign={handleSign}
+            playersMap={playersMap}
           />
         )}
 
@@ -340,6 +344,7 @@ const GMDashboard = () => {
             setOffseasonRun={setOffseasonRun}
             setOffseasonSummary={setOffseasonSummary}
             setShowModal={setShowModal}
+            playersMap={playersMap}
           />
         )}
 
@@ -437,6 +442,7 @@ const GMDashboard = () => {
           capProjections={capProjections}
           teamCapSheet={teamCapSheet}
           onSign={handleSign}
+          playersMap={playersMap}
         />
       )}
 

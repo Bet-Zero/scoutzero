@@ -1,17 +1,11 @@
 // CapSheetFull.jsx
 import React, { useState } from 'react';
+import { formatName } from '@/utils/formatting';
 
-const CapSheetFull = ({ teamCapSheet, onSelectPlayer }) => {
+const CapSheetFull = ({ teamCapSheet, onSelectPlayer, playersMap = {} }) => {
   if (!teamCapSheet || !teamCapSheet.players) return null;
 
   const [showCapHolds, setShowCapHolds] = useState(false);
-
-  // Project-wide name formatting
-  const formatName = (name) =>
-    name
-      .split(' ')
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
 
   // Always include 2025–2031
   const allYears = Array.from({ length: 7 }, (_, i) => 2025 + i);
@@ -91,7 +85,8 @@ const CapSheetFull = ({ teamCapSheet, onSelectPlayer }) => {
                     onClick={() => onSelectPlayer && onSelectPlayer(player)}
                     className="text-blue-400 hover:underline"
                   >
-                    {player.display_name}
+                    {playersMap[player.name]?.display_name ||
+                      formatName(player.display_name || player.name)}
                   </button>
                 </td>
                 {allYears.map((year) => {
@@ -156,7 +151,10 @@ const CapSheetFull = ({ teamCapSheet, onSelectPlayer }) => {
                       typeof p.cap_hold === 'object' ? p.cap_hold?.reason : '';
                     return (
                       <tr key={idx} className="odd:bg-[#171717]">
-                        <td className="p-2">{formatName(p.display_name)}</td>
+                        <td className="p-2">
+                          {playersMap[p.name]?.display_name ||
+                            formatName(p.display_name || p.name)}
+                        </td>
                         <td className="p-2">${amt.toLocaleString()}</td>
                         <td className="p-2">{reason}</td>
                       </tr>

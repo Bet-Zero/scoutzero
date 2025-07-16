@@ -9,6 +9,7 @@ const ContractEditorModal = ({
   capProjections,
   teamCapSheet,
   onSign,
+  playersMap = {},
 }) => (
   <Dialog open={isOpen} onOpenChange={onClose}>
     <DialogContent className="p-4 max-w-xl">
@@ -17,6 +18,7 @@ const ContractEditorModal = ({
         capProjections={capProjections}
         teamCapSheet={teamCapSheet}
         onSign={onSign}
+        playersMap={playersMap}
       />
     </DialogContent>
   </Dialog>

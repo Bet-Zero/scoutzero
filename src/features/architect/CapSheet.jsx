@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
+import { formatName } from '@/utils/formatting';
 import { getMinimumCapHit } from '@/utils/architect/contractUtils';
 import CapSummaryTiles from '@/features/architect/CapSummaryTiles';
 import { POSITION_MAP } from '@/utils/roles/positionMap';
 import getCapPercentage from '@/utils/architect/getCapPercentage';
 import capProjections from '@/utils/architect/capProjections';
 
-const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer }) => {
+const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer, playersMap = {} }) => {
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [showCapHolds, setShowCapHolds] = useState(false);
 
@@ -146,7 +147,8 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer }) => {
                     onClick={() => onSelectPlayer && onSelectPlayer(player)}
                     className="text-blue-400 hover:underline"
                   >
-                    {player.name}
+                    {playersMap[player.name]?.display_name ||
+                      formatName(player.name)}
                   </button>
                 </td>
                 <td className="p-2">
@@ -194,7 +196,9 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer }) => {
                   totalCapHit += amt;
                   return (
                     <tr key={idx} className="odd:bg-[#171717]">
-                      <td className="p-2">{p.name}</td>
+                      <td className="p-2">
+                        {playersMap[p.name]?.display_name || formatName(p.name)}
+                      </td>
                       <td className="p-2">${amt.toLocaleString()}</td>
                       <td className="p-2">{reason}</td>
                     </tr>

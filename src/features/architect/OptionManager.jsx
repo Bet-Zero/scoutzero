@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { formatName } from '@/utils/formatting';
 
-const OptionManager = ({ teamCapSheet, currentYear, onDecisionsReady }) => {
+const OptionManager = ({
+  teamCapSheet,
+  currentYear,
+  onDecisionsReady,
+  playersMap = {},
+}) => {
   const [optionsList, setOptionsList] = useState([]);
   const [decisions, setDecisions] = useState({});
 
@@ -62,7 +68,9 @@ const OptionManager = ({ teamCapSheet, currentYear, onDecisionsReady }) => {
           <tbody>
             {optionsList.map((opt) => (
               <tr key={opt.name} className="odd:bg-[#171717]">
-                <td className="p-2">{opt.name}</td>
+                <td className="p-2">
+                  {playersMap[opt.name]?.display_name || formatName(opt.name)}
+                </td>
                 <td className="p-2">{opt.type}</td>
                 <td className="p-2">${opt.salary.toLocaleString()}</td>
                 <td className="p-2">
