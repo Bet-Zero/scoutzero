@@ -292,7 +292,6 @@ const GMDashboard = () => {
           <>
             <CapSheet
               teamCapSheet={teamCapSheet.capSheet}
-              capSettings={capSettings}
               currentYear={currentYear}
               onSelectPlayer={handleEditContract}
             />
