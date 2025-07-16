@@ -20,7 +20,6 @@ serviceAccountKey.json
 # 🔒 Temp + Tools
 SAFE/
 tools/
-scripts/
 push_selected_players.py
 scan_malformed_players.js
 updateStats.js

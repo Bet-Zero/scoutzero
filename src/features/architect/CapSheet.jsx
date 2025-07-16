@@ -6,7 +6,12 @@ import { POSITION_MAP } from '@/utils/roles/positionMap';
 import getCapPercentage from '@/utils/architect/getCapPercentage';
 import capProjections from '@/utils/architect/capProjections';
 
-const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer, playersMap = {} }) => {
+const CapSheet = ({
+  teamCapSheet,
+  currentYear,
+  onSelectPlayer,
+  playersMap = {},
+}) => {
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [showCapHolds, setShowCapHolds] = useState(false);
 

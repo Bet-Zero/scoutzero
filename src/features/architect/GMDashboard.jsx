@@ -30,7 +30,6 @@ const GMDashboard = () => {
   const userId = 'demoUser';
   const [baselineCapSheet, setBaselineCapSheet] = useState(null);
   const [teamCapSheet, setTeamCapSheet] = useState(null);
-  const [otherTeamCapSheet] = useState(null);
   const [currentYear, setCurrentYear] = useState(2025);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [freeAgents, setFreeAgents] = useState([]);
@@ -314,8 +313,7 @@ const GMDashboard = () => {
 
         {activeTab === 'trade' && (
           <TradeEditor
-            teamA={teamCapSheet}
-            teamB={otherTeamCapSheet || teamCapSheet}
+            primaryTeam={teamCapSheet}
             capProjections={capProjections}
             currentYear={currentYear}
             playersMap={playersMap}
