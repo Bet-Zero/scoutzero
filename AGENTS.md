@@ -1,4 +1,4 @@
-# AGENTS.md – HoopZero AI Instructions
+# AGENTS.md – HoopZero/ScoutZero AI Instructions
 
 ## Project Overview
 
@@ -19,30 +19,30 @@ This is the read-only counterpart to ScoutZero, an internal grading tool used to
 Project is organized by feature-first structure with scoped utility and component folders:
 
 src/
-  components/
-    layout/
-    shared/
-      ui/
-        drawers/
-        filters/
-        grades/
-  features/
-    table/
-    profile/
-    roster/
-    lists/
-    filters/
-    tierMaker/
-  hooks/
-  utils/
-    filtering/
-    formatting/
-    roles/
-    roster/
-  constants/
-  firebase/
-  pages/
-  styles/
+components/
+layout/
+shared/
+ui/
+drawers/
+filters/
+grades/
+features/
+table/
+profile/
+roster/
+lists/
+filters/
+tierMaker/
+hooks/
+utils/
+filtering/
+formatting/
+roles/
+roster/
+constants/
+firebase/
+pages/
+styles/
 
 All new code should be grouped by feature when possible. Reusable UI or logic goes in `shared/`, `hooks/`, or `utils/`.
 
