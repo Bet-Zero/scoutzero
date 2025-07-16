@@ -14,7 +14,7 @@ import {
 import RosterManager from './RosterManager';
 import CapSheet from './CapSheet';
 import CapSheetFull from './CapSheetFull';
-import ContractEditor from './ContractEditor';
+import ContractEditorModal from './ContractEditorModal';
 import TradeEditor from './TradeEditor';
 import FreeAgentPool from './FreeAgentPool';
 import OffseasonTab from './OffseasonTab';
@@ -44,6 +44,7 @@ const GMDashboard = () => {
   const [viewMode, setViewMode] = useState('plan'); // 'plan' or 'baseline'
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [newPlanName, setNewPlanName] = useState('');
+  const [showContractModal, setShowContractModal] = useState(false);
   const { players } = usePlayerData();
 
   const playersMap = useMemo(() => {
@@ -132,7 +133,7 @@ const GMDashboard = () => {
 
   const handleEditContract = (player) => {
     setSelectedPlayer(player);
-    setActiveTab('contract');
+    setShowContractModal(true);
   };
 
   const handleUpdateRoster = (updatedCapSheet) => {
@@ -234,16 +235,6 @@ const GMDashboard = () => {
           Full Cap Table
         </button>
         <button
-          onClick={() => setActiveTab('contract')}
-          className={`px-4 py-2 rounded-md text-sm font-semibold ${
-            activeTab === 'contract'
-              ? 'bg-lakers/90 text-black'
-              : 'bg-white/10 hover:bg-white/20'
-          }`}
-        >
-          Contract Editor
-        </button>
-        <button
           onClick={() => setActiveTab('trade')}
           className={`px-4 py-2 rounded-md text-sm font-semibold ${
             activeTab === 'trade'
@@ -303,6 +294,7 @@ const GMDashboard = () => {
               teamCapSheet={teamCapSheet.capSheet}
               capSettings={capSettings}
               currentYear={currentYear}
+              onSelectPlayer={handleEditContract}
             />
 
             <ExceptionTracker
@@ -313,22 +305,11 @@ const GMDashboard = () => {
         )}
 
         {activeTab === 'capfull' && (
-          <CapSheetFull teamCapSheet={teamCapSheet.capSheet} />
+          <CapSheetFull
+            teamCapSheet={teamCapSheet.capSheet}
+            onSelectPlayer={handleEditContract}
+          />
         )}
-
-        {activeTab === 'contract' &&
-          (selectedPlayer ? (
-            <ContractEditor
-              player={selectedPlayer}
-              capSettings={capSettings}
-              teamCapSheet={teamCapSheet}
-              onSign={handleSign}
-            />
-          ) : (
-            <div className="text-white p-6 text-sm text-white/60">
-              Select a player from the Roster to edit their contract.
-            </div>
-          ))}
 
         {activeTab === 'trade' && (
           <TradeEditor
@@ -446,6 +427,17 @@ const GMDashboard = () => {
             setNewPlanName('');
             setShowSaveModal(false);
           }}
+        />
+      )}
+
+      {showContractModal && (
+        <ContractEditorModal
+          isOpen={showContractModal}
+          onClose={() => setShowContractModal(false)}
+          player={selectedPlayer}
+          capSettings={capSettings}
+          teamCapSheet={teamCapSheet}
+          onSign={handleSign}
         />
       )}
 

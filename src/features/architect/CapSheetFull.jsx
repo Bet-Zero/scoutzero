@@ -1,7 +1,7 @@
 // CapSheetFull.jsx
 import React from 'react';
 
-const CapSheetFull = ({ teamCapSheet }) => {
+const CapSheetFull = ({ teamCapSheet, onSelectPlayer }) => {
   if (!teamCapSheet || !teamCapSheet.players) return null;
 
   // Project-wide name formatting
@@ -55,7 +55,12 @@ const CapSheetFull = ({ teamCapSheet }) => {
                 className="bg-[#1a1a1a] hover:bg-[#222] transition duration-150 border-b border-white/5"
               >
                 <td className="px-2 py-1 text-left w-48 whitespace-nowrap">
-                  {player.display_name}
+                  <button
+                    onClick={() => onSelectPlayer && onSelectPlayer(player)}
+                    className="text-blue-400 hover:underline"
+                  >
+                    {player.display_name}
+                  </button>
                 </td>
                 {allYears.map((year) => {
                   const entry = player.contract_clean?.salaries_by_year?.[year];
