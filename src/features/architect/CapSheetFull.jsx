@@ -1,8 +1,10 @@
 // CapSheetFull.jsx
-import React from 'react';
+import React, { useState } from 'react';
 
 const CapSheetFull = ({ teamCapSheet, onSelectPlayer }) => {
   if (!teamCapSheet || !teamCapSheet.players) return null;
+
+  const [showCapHolds, setShowCapHolds] = useState(false);
 
   // Project-wide name formatting
   const formatName = (name) =>
@@ -15,11 +17,17 @@ const CapSheetFull = ({ teamCapSheet, onSelectPlayer }) => {
   const allYears = Array.from({ length: 7 }, (_, i) => 2025 + i);
 
   // Sort players by 2025 salary descending
-  const sortedPlayers = [...teamCapSheet.players].sort((a, b) => {
-    const aSalary = a.contract_clean?.salaries_by_year?.[2025]?.salary || 0;
-    const bSalary = b.contract_clean?.salaries_by_year?.[2025]?.salary || 0;
-    return bSalary - aSalary;
-  });
+  const sortedPlayers = teamCapSheet.players
+    .filter((p) => Object.keys(p.contract_clean?.salaries_by_year || {}).length > 0)
+    .sort((a, b) => {
+      const aSalary = a.contract_clean?.salaries_by_year?.[2025]?.salary || 0;
+      const bSalary = b.contract_clean?.salaries_by_year?.[2025]?.salary || 0;
+      return bSalary - aSalary;
+    });
+
+  const capHoldPlayers = teamCapSheet.players
+    .filter((p) => !p.contract_clean?.salaries_by_year?.[2025]?.salary && p.cap_hold?.active)
+    .sort((a, b) => (b.cap_hold?.amount || 0) - (a.cap_hold?.amount || 0));
 
   // Build totals per year
   const yearTotals = {};
@@ -27,7 +35,11 @@ const CapSheetFull = ({ teamCapSheet, onSelectPlayer }) => {
     yearTotals[year] = sortedPlayers.reduce((sum, player) => {
       const salary =
         player.contract_clean?.salaries_by_year?.[year]?.salary || 0;
-      return sum + salary;
+      const hold =
+        (!salary || salary === 0) && player.cap_hold?.active
+          ? player.cap_hold.amount || 0
+          : 0;
+      return sum + salary + hold;
     }, 0);
   }
 
@@ -85,14 +97,48 @@ const CapSheetFull = ({ teamCapSheet, onSelectPlayer }) => {
             ))}
             <tr className="bg-black/30 text-white border-t border-white/20 font-semibold">
               <td className="px-2 py-1 w-48">Total Cap</td>
-              {allYears.map((year) => (
-                <td key={year} className="px-2 py-1 text-center">
-                  ${yearTotals[year].toLocaleString()}
-                </td>
-              ))}
-            </tr>
-          </tbody>
-        </table>
+          {allYears.map((year) => (
+            <td key={year} className="px-2 py-1 text-center">
+              ${yearTotals[year].toLocaleString()}
+            </td>
+          ))}
+        </tr>
+      </tbody>
+    </table>
+
+        {capHoldPlayers.length > 0 && (
+          <>
+            <button
+              onClick={() => setShowCapHolds(!showCapHolds)}
+              className="mt-4 mb-2 px-3 py-1 rounded bg-[#1a1a1a] hover:bg-[#222] border border-white/20"
+            >
+              {showCapHolds
+                ? 'Hide Cap Holds'
+                : `Show Cap Holds (${capHoldPlayers.length})`}
+            </button>
+
+            {showCapHolds && (
+              <table className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded mb-2">
+                <thead className="bg-[#111]">
+                  <tr>
+                    <th className="p-2 text-left">Player</th>
+                    <th className="p-2 text-left">Amount</th>
+                    <th className="p-2 text-left">Reason</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {capHoldPlayers.map((p, idx) => (
+                    <tr key={idx} className="odd:bg-[#171717]">
+                      <td className="p-2">{formatName(p.display_name)}</td>
+                      <td className="p-2">${(p.cap_hold?.amount || 0).toLocaleString()}</td>
+                      <td className="p-2">{p.cap_hold?.reason || ''}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
