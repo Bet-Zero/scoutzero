@@ -23,7 +23,9 @@ const CapSummaryTiles = ({ teamCapSheet, selectedYear }) => {
       typeof player.cap_hold === 'object'
         ? player.cap_hold?.active
         : holdAmount > 0;
-    const capHold = !salary && isActive ? holdAmount : 0;
+    const faYear = parseInt(player.free_agency_year);
+    const capHold =
+      !salary && isActive && faYear === selectedYear ? holdAmount : 0;
     return sum + salary + capHold;
   }, 0);
 

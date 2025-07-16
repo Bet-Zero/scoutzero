@@ -7,7 +7,6 @@ import capProjections from '@/utils/architect/capProjections';
 
 const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer }) => {
   const [selectedYear, setSelectedYear] = useState(currentYear);
-  const [showCapHolds, setShowCapHolds] = useState(false);
 
   const generateYears = (startYear, count) =>
     Array.from({ length: count }, (_, i) => startYear + i);
@@ -74,7 +73,8 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer }) => {
         typeof p.cap_hold === 'number' ? p.cap_hold : p.cap_hold?.amount || 0;
       const isActive =
         typeof p.cap_hold === 'object' ? p.cap_hold?.active : holdAmount > 0;
-      return !hasSalary && isActive && holdAmount > 0;
+      const faYear = parseInt(p.free_agency_year);
+      return !hasSalary && isActive && holdAmount > 0 && faYear === selectedYear;
     })
     .sort((a, b) => {
       const aAmt =
@@ -164,17 +164,14 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer }) => {
       </table>
 
       {capHoldPlayers.length > 0 && (
-        <>
-          <button
-            onClick={() => setShowCapHolds(!showCapHolds)}
-            className="mt-4 mb-2 px-3 py-1 rounded bg-[#1a1a1a] hover:bg-[#222] border border-white/20"
-          >
-            {showCapHolds
-              ? 'Hide Cap Holds'
-              : `Show Cap Holds (${capHoldPlayers.length})`}
-          </button>
-
-          {showCapHolds && (
+        <details className="group mt-4 mb-2">
+          <summary className="cursor-pointer px-3 py-1 rounded bg-[#1a1a1a] border border-white/20 flex items-center justify-between">
+            <span>Cap Holds ({capHoldPlayers.length})</span>
+            <span className="text-white/40 group-open:rotate-90 transition-transform duration-200">
+              ▶
+            </span>
+          </summary>
+          <div className="mt-2">
             <table className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded mb-2">
               <thead className="bg-[#111]">
                 <tr>
@@ -202,8 +199,8 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer }) => {
                 })}
               </tbody>
             </table>
-          )}
-        </>
+          </div>
+        </details>
       )}
 
       <p className="mt-2 font-semibold">
