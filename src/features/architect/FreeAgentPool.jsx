@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { formatName } from '@/utils/formatting';
 import { canSignFreeAgent } from '@/utils/architect/freeAgentLogic';
 import { generateContract } from '@/utils/architect/contractUtils';
 
@@ -8,6 +9,7 @@ const FreeAgentPool = ({
   capProjections,
   currentYear,
   onSign,
+  playersMap = {},
 }) => {
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [signResult, setSignResult] = useState(null);
@@ -51,8 +53,8 @@ const FreeAgentPool = ({
               onClick={() => handleSelect(p)}
               className="text-blue-400 hover:underline text-sm"
             >
-              {p.name} – Asking: ${p.askingSalary.toLocaleString()} – Rights:{' '}
-              {p.birdRights}
+              {playersMap[p.name]?.display_name || formatName(p.name)} – Asking:
+              ${p.askingSalary.toLocaleString()} – Rights: {p.birdRights}
             </button>
           </li>
         ))}
@@ -60,7 +62,10 @@ const FreeAgentPool = ({
 
       {selectedPlayer && (
         <div className="bg-[#1a1a1a] p-4 rounded border border-white/10 mb-3">
-          <h3 className="font-semibold mb-1">{selectedPlayer.name}</h3>
+          <h3 className="font-semibold mb-1">
+            {playersMap[selectedPlayer.name]?.display_name ||
+              formatName(selectedPlayer.name)}
+          </h3>
           <p className="text-sm mb-1">
             Asking: ${selectedPlayer.askingSalary.toLocaleString()}
           </p>

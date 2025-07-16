@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { formatName } from '@/utils/formatting';
 import {
   generateContract,
   createMaxContract,
@@ -6,7 +7,13 @@ import {
   getMinimumSalary,
 } from '@/utils/architect/contractUtils';
 
-const ContractEditor = ({ player, capProjections, teamCapSheet, onSign }) => {
+const ContractEditor = ({
+  player,
+  capProjections,
+  teamCapSheet,
+  onSign,
+  playersMap = {},
+}) => {
   console.log('ContractEditor loaded for player:', player);
 
   const [type, setType] = useState('Custom');
@@ -95,7 +102,8 @@ const ContractEditor = ({ player, capProjections, teamCapSheet, onSign }) => {
   return (
     <div className="text-white">
       <h2 className="text-xl font-semibold mb-3">
-        Create Contract for {player.name}
+        Create Contract for{' '}
+        {playersMap[player.name]?.display_name || formatName(player.name)}
       </h2>
 
       <label className="block mb-1">Contract Type:</label>
