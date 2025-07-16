@@ -45,14 +45,16 @@ export function generateContract({
 export function createMaxContract(
   playerName,
   yearsOfService,
-  capSettings,
+  capProjections,
   startYear = 2025
 ) {
   let basePct = 0.25;
   if (yearsOfService >= 10) basePct = 0.35;
   else if (yearsOfService >= 7) basePct = 0.3;
 
-  const baseSalary = capSettings.cap * basePct;
+  const key = `${startYear}-${String((startYear + 1) % 100).padStart(2, '0')}`;
+  const cap = capProjections[key]?.cap || 0;
+  const baseSalary = cap * basePct;
 
   return generateContract({
     baseSalary,

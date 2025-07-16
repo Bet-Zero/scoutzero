@@ -1,7 +1,7 @@
 export function runOffseason(
   teamCapSheet,
   currentYear,
-  capSettings,
+  capProjections,
   optionDecisions = {}
 ) {
   const nextYear = currentYear + 1;
@@ -70,8 +70,10 @@ export function runOffseason(
     .filter(Boolean);
 
   // Reset MLE
+  const key = `${nextYear}-${String((nextYear + 1) % 100).padStart(2, '0')}`;
+  const capData = capProjections[key] || {};
   const newMLE = {
-    amount: capSettings.exceptions.fullMLE,
+    amount: capData.fullMLE || 0,
     used: 0,
   };
 

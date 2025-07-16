@@ -6,7 +6,7 @@ import {
   getMinimumSalary,
 } from '@/utils/architect/contractUtils';
 
-const ContractEditor = ({ player, capSettings, teamCapSheet, onSign }) => {
+const ContractEditor = ({ player, capProjections, teamCapSheet, onSign }) => {
   console.log('ContractEditor loaded for player:', player);
 
   const [type, setType] = useState('Custom');
@@ -35,7 +35,7 @@ const ContractEditor = ({ player, capSettings, teamCapSheet, onSign }) => {
       const contract = createMaxContract(
         player.name,
         player.yearsOfService,
-        capSettings
+        capProjections
       );
       setPreview(contract);
     } else if (newType === 'Rookie') {

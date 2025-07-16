@@ -3,7 +3,7 @@ export function validateTrade({
   teamBSends,
   teamAPicksOut,
   teamBPicksOut,
-  capSettings,
+  capProjections,
   currentYear,
   teamAHardCapped,
   teamBHardCapped,
@@ -22,6 +22,8 @@ export function validateTrade({
     0
   );
 
+  const key = `${currentYear}-${String((currentYear + 1) % 100).padStart(2, '0')}`;
+
   const teamASalaryIn = teamBSalaryOut;
   const teamBSalaryIn = teamASalaryOut;
 
@@ -32,7 +34,7 @@ export function validateTrade({
     hardCapped: teamAHardCapped,
     tpes: extractTPEs(teamA),
     team: teamA,
-    capSettings,
+    cap: capProjections[key]?.cap || 0,
   });
 
   // Team B validation
@@ -42,7 +44,7 @@ export function validateTrade({
     hardCapped: teamBHardCapped,
     tpes: extractTPEs(teamB),
     team: teamB,
-    capSettings,
+    cap: capProjections[key]?.cap || 0,
   });
 
   if (!teamAValid.allowed) {
@@ -77,20 +79,13 @@ export function validateTrade({
   return { legal: true };
 }
 
-function isTradeLegal({
-  salaryOut,
-  salaryIn,
-  hardCapped,
-  tpes,
-  team,
-  capSettings,
-}) {
+function isTradeLegal({ salaryOut, salaryIn, hardCapped, tpes, team, cap }) {
   const allowable = salaryOut * 1.25 + 100000;
-  const underCap = team.totalSalary < capSettings.cap;
+  const underCap = team.totalSalary < cap;
 
   // 1. Under cap teams can absorb salary
   if (underCap) {
-    const capRoom = capSettings.cap - team.totalSalary;
+    const capRoom = cap - team.totalSalary;
     if (salaryIn <= salaryOut + capRoom) {
       return { allowed: true };
     }

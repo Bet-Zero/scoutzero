@@ -23,7 +23,7 @@ import ExceptionTracker from './ExceptionTracker';
 import SavePlanModal from './SavePlanModal';
 import usePlayerData from '@/hooks/usePlayerData.js';
 
-import capSettings from '@/utils/architect/capSettings';
+import capProjections from '@/utils/architect/capProjections';
 
 const GMDashboard = () => {
   const { teamId } = useParams();
@@ -155,7 +155,13 @@ const GMDashboard = () => {
       mleHistory: [],
       pickLog: [],
       currentPicks: {},
-      mle: { amount: capSettings.mleAmount, used: 0 },
+      mle: {
+        amount:
+          capProjections[
+            `${currentYear}-${String((currentYear + 1) % 100).padStart(2, '0')}`
+          ]?.fullMLE || 0,
+        used: 0,
+      },
     };
 
     setTeamCapSheet(resetSheet);
@@ -314,7 +320,7 @@ const GMDashboard = () => {
           <TradeEditor
             teamA={teamCapSheet}
             teamB={otherTeamCapSheet || teamCapSheet}
-            capSettings={capSettings}
+            capProjections={capProjections}
             currentYear={currentYear}
           />
         )}
@@ -323,7 +329,7 @@ const GMDashboard = () => {
           <FreeAgentPool
             freeAgents={freeAgents}
             teamCapSheet={teamCapSheet}
-            capSettings={capSettings}
+            capProjections={capProjections}
             currentYear={currentYear}
             onSign={handleSign}
           />
@@ -335,7 +341,7 @@ const GMDashboard = () => {
             setTeamCapSheet={setTeamCapSheet}
             currentYear={currentYear}
             setCurrentYear={setCurrentYear}
-            capSettings={capSettings}
+            capProjections={capProjections}
             setLastCapSheet={setLastCapSheet}
             setOffseasonRun={setOffseasonRun}
             setOffseasonSummary={setOffseasonSummary}
@@ -434,7 +440,7 @@ const GMDashboard = () => {
           isOpen={showContractModal}
           onClose={() => setShowContractModal(false)}
           player={selectedPlayer}
-          capSettings={capSettings}
+          capProjections={capProjections}
           teamCapSheet={teamCapSheet}
           onSign={handleSign}
         />
