@@ -15,7 +15,16 @@ const CapSummaryTiles = ({ teamCapSheet, selectedYear }) => {
   const totalCapAllocations = teamCapSheet.players.reduce((sum, player) => {
     const salary =
       player.contract_clean?.salaries_by_year?.[selectedYear]?.salary || 0;
-    return sum + salary;
+    const holdAmount =
+      typeof player.cap_hold === 'number'
+        ? player.cap_hold
+        : player.cap_hold?.amount || 0;
+    const isActive =
+      typeof player.cap_hold === 'object'
+        ? player.cap_hold?.active
+        : holdAmount > 0;
+    const capHold = !salary && isActive ? holdAmount : 0;
+    return sum + salary + capHold;
   }, 0);
 
   const capSpace = salaryCap - totalCapAllocations;
