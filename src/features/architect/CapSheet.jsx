@@ -4,7 +4,12 @@ import CapSummaryTiles from '@/features/architect/CapSummaryTiles';
 import { POSITION_MAP } from '@/utils/roles/positionMap';
 import getCapPercentage from '@/utils/architect/getCapPercentage';
 
-const CapSheet = ({ teamCapSheet, capSettings, currentYear }) => {
+const CapSheet = ({
+  teamCapSheet,
+  capSettings,
+  currentYear,
+  onSelectPlayer,
+}) => {
   const [selectedYear, setSelectedYear] = useState(currentYear);
 
   const generateYears = (startYear, count) =>
@@ -119,7 +124,14 @@ const CapSheet = ({ teamCapSheet, capSettings, currentYear }) => {
 
             return (
               <tr key={`${player.name}-${idx}`} className="odd:bg-[#171717]">
-                <td className="p-2">{player.name}</td>
+                <td className="p-2">
+                  <button
+                    onClick={() => onSelectPlayer && onSelectPlayer(player)}
+                    className="text-blue-400 hover:underline"
+                  >
+                    {player.name}
+                  </button>
+                </td>
                 <td className="p-2">
                   {POSITION_MAP[position] || position || '—'}
                 </td>
