@@ -1,3 +1,5 @@
+// firebaseHelpers.js
+
 import {
   doc,
   setDoc,
@@ -40,7 +42,8 @@ export const loadTeamCapSheet = async (teamId) => {
 // ===== User-Specific Team Plans =====
 export const saveUserTeamPlan = async (userId, teamId, capSheet) => {
   try {
-    const planRef = doc(db, 'teamPlans', userId, teamId);
+    const planId = `${userId}_${teamId}`;
+    const planRef = doc(db, 'teamPlans', planId);
     await setDoc(planRef, capSheet);
     console.log(`Saved plan for ${userId} – ${teamId}`);
     return true;
@@ -52,7 +55,8 @@ export const saveUserTeamPlan = async (userId, teamId, capSheet) => {
 
 export const loadUserTeamPlan = async (userId, teamId) => {
   try {
-    const planRef = doc(db, 'teamPlans', userId, teamId);
+    const planId = `${userId}_${teamId}`;
+    const planRef = doc(db, 'teamPlans', planId);
     const docSnap = await getDoc(planRef);
     return docSnap.exists() ? docSnap.data() : null;
   } catch (error) {
@@ -61,10 +65,11 @@ export const loadUserTeamPlan = async (userId, teamId) => {
   }
 };
 
-// ===== Named Plans =====
+// ===== Named Plans (Subcollection) =====
 export const listUserTeamPlans = async (userId, teamId) => {
   try {
-    const plansRef = collection(db, 'teamPlans', userId, teamId);
+    const planId = `${userId}_${teamId}`;
+    const plansRef = collection(db, 'teamPlans', planId, 'namedPlans');
     const snap = await getDocs(plansRef);
     return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   } catch (error) {
@@ -75,7 +80,8 @@ export const listUserTeamPlans = async (userId, teamId) => {
 
 export const saveNamedTeamPlan = async (userId, teamId, name, capSheet) => {
   try {
-    const ref = doc(db, 'teamPlans', userId, teamId, name);
+    const planId = `${userId}_${teamId}`;
+    const ref = doc(db, 'teamPlans', planId, 'namedPlans', name);
     await setDoc(ref, { name, capSheet, updatedAt: serverTimestamp() });
     console.log(`Saved plan ${name} for ${userId} – ${teamId}`);
     return true;
@@ -87,7 +93,8 @@ export const saveNamedTeamPlan = async (userId, teamId, name, capSheet) => {
 
 export const loadNamedTeamPlan = async (userId, teamId, name) => {
   try {
-    const ref = doc(db, 'teamPlans', userId, teamId, name);
+    const planId = `${userId}_${teamId}`;
+    const ref = doc(db, 'teamPlans', planId, 'namedPlans', name);
     const snap = await getDoc(ref);
     return snap.exists() ? snap.data() : null;
   } catch (error) {
