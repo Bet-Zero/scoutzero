@@ -1,6 +1,10 @@
 import React, { useMemo } from 'react';
 import RosterSection from '@/features/roster/RosterSection';
-import { buildInitialRoster, normalizePlayer } from '@/utils/roster';
+import {
+  buildInitialRoster,
+  normalizePlayer,
+  isTwoWayContract,
+} from '@/utils/roster';
 import { getTeamColors } from '@/utils/formatting/teamColors';
 import { getTeamLogoFilename } from '@/utils/formatting/teamLogos';
 
@@ -9,9 +13,17 @@ const RosterVisual = ({ teamCapSheet, playersMap = {} }) => {
     if (!teamCapSheet?.players) return null;
     const enriched = teamCapSheet.players.map((p) => {
       const details = playersMap[p.name] || {};
-      return normalizePlayer({ ...details, ...p });
+      return { ...details, ...p };
     });
-    return buildInitialRoster(enriched);
+
+    const filtered = enriched.filter((p) => !isTwoWayContract(p));
+    const sorted = filtered.sort(
+      (a, b) =>
+        parseFloat(b.system?.stats?.MP || 0) -
+        parseFloat(a.system?.stats?.MP || 0)
+    );
+
+    return buildInitialRoster(sorted);
   }, [teamCapSheet, playersMap]);
 
   if (!roster) return null;
