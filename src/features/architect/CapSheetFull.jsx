@@ -1,92 +1,94 @@
+// CapSheetFull.jsx
 import React from 'react';
-import { getMinimumCapHit } from '../utils/contractUtils';
 
 const CapSheetFull = ({ teamCapSheet }) => {
-  const allYears = Array.from(
-    new Set(
-      teamCapSheet.activeContracts.flatMap(contract => 
-        Object.keys(contract.salaryByYear || {}).map(Number))
-    )
-  ).sort();
+  if (!teamCapSheet || !teamCapSheet.players) return null;
 
-  const getCapHit = (contract, year) => {
-    const salary = contract.salaryByYear?.[year] || 0;
-    if (contract.isMinimum && contract.yearsOfService >= 3) {
-      return getMinimumCapHit(contract.yearsOfService);
-    }
-    return salary;
-  };
+  // Project-wide name formatting
+  const formatName = (name) =>
+    name
+      .split(' ')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
 
-  const renderNotes = (contract) => {
-    const notes = [];
-    if (contract.options?.playerOption) {
-      notes.push(`PO in ${contract.options.playerOptionYear}`);
-    }
-    if (contract.options?.teamOption) {
-      notes.push(`TO in ${contract.options.teamOptionYear}`);
-    }
-    if (contract.isMinimum && contract.yearsOfService >= 3) {
-      notes.push(`Vet Min, ${contract.yearsOfService} yrs`);
-    }
-    if (contract.guaranteed === false) notes.push("Non-Guaranteed");
-    if (typeof contract.guaranteed === 'number') 
-      notes.push(`Guaranteed ${Math.round(contract.guaranteed * 100)}%`);
-    return notes.join(", ");
-  };
+  // Always include 2025–2031
+  const allYears = Array.from({ length: 7 }, (_, i) => 2025 + i);
 
-  const yearTotals = {};
-  allYears.forEach((year) => {
-    yearTotals[year] = 0;
-    teamCapSheet.activeContracts.forEach((contract) => {
-      const hit = getCapHit(contract, year);
-      if (contract.salaryByYear?.[year]) {
-        yearTotals[year] += hit;
-      }
-    });
+  // Sort players by 2025 salary descending
+  const sortedPlayers = [...teamCapSheet.players].sort((a, b) => {
+    const aSalary = a.contract_clean?.salaries_by_year?.[2025]?.salary || 0;
+    const bSalary = b.contract_clean?.salaries_by_year?.[2025]?.salary || 0;
+    return bSalary - aSalary;
   });
+
+  // Build totals per year
+  const yearTotals = {};
+  for (const year of allYears) {
+    yearTotals[year] = sortedPlayers.reduce((sum, player) => {
+      const salary =
+        player.contract_clean?.salaries_by_year?.[year]?.salary || 0;
+      return sum + salary;
+    }, 0);
+  }
 
   return (
     <div className="text-white">
-      <h3 className="text-xl font-semibold mb-2">Future Cap Sheet (Multi-Year View)</h3>
-      <table className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded">
-        <thead className="bg-[#111]">
-          <tr>
-            <th className="p-2 text-left">Player</th>
-            {allYears.map((year) => (
-              <th key={year} className="p-2 text-left">
-                {year}
-              </th>
-            ))}
-            <th className="p-2 text-left">Notes</th>
-          </tr>
-        </thead>
-        <tbody>
-          {teamCapSheet.activeContracts.map((contract, idx) => (
-            <tr key={idx} className="odd:bg-[#171717]">
-              <td className="p-2">{contract.name}</td>
-              {allYears.map((year) => {
-                const salary = contract.salaryByYear?.[year];
-                const capHit = getCapHit(contract, year);
-                return (
-                  <td key={year} className="p-2">
-                    {salary ? `$${capHit.toLocaleString()}` : '—'}
-                  </td>
-                );
-              })}
-              <td className="p-2">{renderNotes(contract)}</td>
+      <h3 className="text-xl font-semibold mb-3">
+        Future Cap Sheet (Multi-Year View)
+      </h3>
+      <div className="max-w-[1100px] mx-auto overflow-x-auto">
+        <table className="w-full text-xs border-separate border-spacing-y-1">
+          <thead>
+            <tr className="bg-black/60 text-white border-b border-white/10">
+              <th className="px-2 py-1 text-left w-48">Player</th>
+              {allYears.map((year) => (
+                <th key={year} className="px-2 py-1 text-center w-[70px]">
+                  {year}-{String((parseInt(year) + 1) % 100).padStart(2, '0')}
+                </th>
+              ))}
             </tr>
-          ))}
-          <tr className="border-t border-white/20 font-semibold">
-            <td className="p-2">Total Cap</td>
-            {allYears.map((year) => (
-              <td key={year} className="p-2">
-                ${yearTotals[year].toLocaleString()}
-              </td>
+          </thead>
+          <tbody>
+            {sortedPlayers.map((player, idx) => (
+              <tr
+                key={idx}
+                className="bg-[#1a1a1a] hover:bg-[#222] transition duration-150 border-b border-white/5"
+              >
+                <td className="px-2 py-1 text-left w-48 whitespace-nowrap">
+                  {player.display_name}
+                </td>
+                {allYears.map((year) => {
+                  const entry = player.contract_clean?.salaries_by_year?.[year];
+                  if (!entry?.salary)
+                    return <td key={year} className="px-2 py-1" />;
+
+                  const isPO = entry.option === 'Player Option';
+                  const isTO = entry.option === 'Team Option';
+                  const style = isPO
+                    ? 'text-green-400 font-semibold'
+                    : isTO
+                      ? 'text-red-400 font-semibold'
+                      : '';
+
+                  return (
+                    <td key={year} className={`px-2 py-1 text-center ${style}`}>
+                      ${entry.salary.toLocaleString()}
+                    </td>
+                  );
+                })}
+              </tr>
             ))}
-            <td className="p-2"></td>
-          </tr>
-        </tbody>
-      </table>
+            <tr className="bg-black/30 text-white border-t border-white/20 font-semibold">
+              <td className="px-2 py-1 w-48">Total Cap</td>
+              {allYears.map((year) => (
+                <td key={year} className="px-2 py-1 text-center">
+                  ${yearTotals[year].toLocaleString()}
+                </td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };
