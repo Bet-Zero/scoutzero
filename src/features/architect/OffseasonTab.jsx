@@ -12,6 +12,7 @@ const OffseasonTab = ({
   setOffseasonRun,
   setOffseasonSummary,
   setShowModal,
+  playersMap = {},
 }) => {
   const [optionsConfirmed, setOptionsConfirmed] = useState(false);
   const [optionDecisions, setOptionDecisions] = useState(null);
@@ -45,6 +46,7 @@ const OffseasonTab = ({
           teamCapSheet={teamCapSheet}
           currentYear={currentYear}
           onDecisionsReady={handleDecisionsReady}
+          playersMap={playersMap}
         />
       )}
 

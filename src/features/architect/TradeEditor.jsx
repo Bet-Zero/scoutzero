@@ -1,7 +1,14 @@
 import React, { useState } from 'react';
 import { validateTrade } from '@/utils/architect/tradeValidator';
+import { formatName } from '@/utils/formatting';
 
-const TradeEditor = ({ teamA, teamB, capProjections, currentYear }) => {
+const TradeEditor = ({
+  teamA,
+  teamB,
+  capProjections,
+  currentYear,
+  playersMap = {},
+}) => {
   const [teamASends, setTeamASends] = useState([]);
   const [teamBSends, setTeamBSends] = useState([]);
   const [teamAPicksOut, setTeamAPicksOut] = useState([]);
@@ -56,7 +63,7 @@ const TradeEditor = ({ teamA, teamB, capProjections, currentYear }) => {
                     checked={teamASends.includes(p)}
                     onChange={() => toggleItem(p, teamASends, setTeamASends)}
                   />
-                  {p.name} – $
+                  {playersMap[p.name]?.display_name || formatName(p.name)} – $
                   {p.contract_clean?.salaries_by_year?.[
                     yearKey
                   ]?.salary?.toLocaleString() || 0}
@@ -104,7 +111,7 @@ const TradeEditor = ({ teamA, teamB, capProjections, currentYear }) => {
                     checked={teamBSends.includes(p)}
                     onChange={() => toggleItem(p, teamBSends, setTeamBSends)}
                   />
-                  {p.name} – $
+                  {playersMap[p.name]?.display_name || formatName(p.name)} – $
                   {p.contract_clean?.salaries_by_year?.[
                     yearKey
                   ]?.salary?.toLocaleString() || 0}
