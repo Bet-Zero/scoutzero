@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { validateTrade } from '@/utils/architect/tradeValidator';
 
-const TradeEditor = ({ teamA, teamB, capSettings, currentYear }) => {
+const TradeEditor = ({ teamA, teamB, capProjections, currentYear }) => {
   const [teamASends, setTeamASends] = useState([]);
   const [teamBSends, setTeamBSends] = useState([]);
   const [teamAPicksOut, setTeamAPicksOut] = useState([]);
@@ -28,7 +28,7 @@ const TradeEditor = ({ teamA, teamB, capSettings, currentYear }) => {
       teamBSends,
       teamAPicksOut,
       teamBPicksOut,
-      capSettings,
+      capProjections,
       currentYear,
       teamAHardCapped: teamA.hardCapped,
       teamBHardCapped: teamB.hardCapped,
