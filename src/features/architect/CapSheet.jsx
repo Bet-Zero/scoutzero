@@ -67,12 +67,28 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer }) => {
     });
 
   const capHoldPlayers = teamCapSheet.players
-    .filter(
-      (p) =>
-        !p.contract_clean?.salaries_by_year?.[selectedYear]?.salary &&
-        p.cap_hold?.active
-    )
-    .sort((a, b) => (b.cap_hold?.amount || 0) - (a.cap_hold?.amount || 0));
+    .filter((p) => {
+      const hasSalary =
+        p.contract_clean?.salaries_by_year?.[selectedYear]?.salary;
+      const holdAmount =
+        typeof p.cap_hold === 'number'
+          ? p.cap_hold
+          : p.cap_hold?.amount || 0;
+      const isActive =
+        typeof p.cap_hold === 'object' ? p.cap_hold?.active : holdAmount > 0;
+      return !hasSalary && isActive && holdAmount > 0;
+    })
+    .sort((a, b) => {
+      const aAmt =
+        typeof a.cap_hold === 'number'
+          ? a.cap_hold
+          : a.cap_hold?.amount || 0;
+      const bAmt =
+        typeof b.cap_hold === 'number'
+          ? b.cap_hold
+          : b.cap_hold?.amount || 0;
+      return bAmt - aAmt;
+    });
 
   let totalCapHit = 0;
 
@@ -175,13 +191,18 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer }) => {
               </thead>
               <tbody>
                 {capHoldPlayers.map((p, idx) => {
-                  const amt = p.cap_hold?.amount || 0;
+                  const amt =
+                    typeof p.cap_hold === 'number'
+                      ? p.cap_hold
+                      : p.cap_hold?.amount || 0;
+                  const reason =
+                    typeof p.cap_hold === 'object' ? p.cap_hold?.reason : '';
                   totalCapHit += amt;
                   return (
                     <tr key={idx} className="odd:bg-[#171717]">
                       <td className="p-2">{p.name}</td>
                       <td className="p-2">${amt.toLocaleString()}</td>
-                      <td className="p-2">{p.cap_hold?.reason || ''}</td>
+                      <td className="p-2">{reason}</td>
                     </tr>
                   );
                 })}

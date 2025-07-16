@@ -26,8 +26,27 @@ const CapSheetFull = ({ teamCapSheet, onSelectPlayer }) => {
     });
 
   const capHoldPlayers = teamCapSheet.players
-    .filter((p) => !p.contract_clean?.salaries_by_year?.[2025]?.salary && p.cap_hold?.active)
-    .sort((a, b) => (b.cap_hold?.amount || 0) - (a.cap_hold?.amount || 0));
+    .filter((p) => {
+      const hasSalary = p.contract_clean?.salaries_by_year?.[2025]?.salary;
+      const holdAmount =
+        typeof p.cap_hold === 'number'
+          ? p.cap_hold
+          : p.cap_hold?.amount || 0;
+      const isActive =
+        typeof p.cap_hold === 'object' ? p.cap_hold?.active : holdAmount > 0;
+      return !hasSalary && isActive && holdAmount > 0;
+    })
+    .sort((a, b) => {
+      const aAmt =
+        typeof a.cap_hold === 'number'
+          ? a.cap_hold
+          : a.cap_hold?.amount || 0;
+      const bAmt =
+        typeof b.cap_hold === 'number'
+          ? b.cap_hold
+          : b.cap_hold?.amount || 0;
+      return bAmt - aAmt;
+    });
 
   // Build totals per year
   const yearTotals = {};
@@ -35,10 +54,15 @@ const CapSheetFull = ({ teamCapSheet, onSelectPlayer }) => {
     yearTotals[year] = sortedPlayers.reduce((sum, player) => {
       const salary =
         player.contract_clean?.salaries_by_year?.[year]?.salary || 0;
-      const hold =
-        (!salary || salary === 0) && player.cap_hold?.active
-          ? player.cap_hold.amount || 0
-          : 0;
+      const holdAmount =
+        typeof player.cap_hold === 'number'
+          ? player.cap_hold
+          : player.cap_hold?.amount || 0;
+      const isActive =
+        typeof player.cap_hold === 'object'
+          ? player.cap_hold?.active
+          : holdAmount > 0;
+      const hold = !salary && isActive ? holdAmount : 0;
       return sum + salary + hold;
     }, 0);
   }
@@ -127,13 +151,21 @@ const CapSheetFull = ({ teamCapSheet, onSelectPlayer }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {capHoldPlayers.map((p, idx) => (
-                    <tr key={idx} className="odd:bg-[#171717]">
-                      <td className="p-2">{formatName(p.display_name)}</td>
-                      <td className="p-2">${(p.cap_hold?.amount || 0).toLocaleString()}</td>
-                      <td className="p-2">{p.cap_hold?.reason || ''}</td>
-                    </tr>
-                  ))}
+                  {capHoldPlayers.map((p, idx) => {
+                    const amt =
+                      typeof p.cap_hold === 'number'
+                        ? p.cap_hold
+                        : p.cap_hold?.amount || 0;
+                    const reason =
+                      typeof p.cap_hold === 'object' ? p.cap_hold?.reason : '';
+                    return (
+                      <tr key={idx} className="odd:bg-[#171717]">
+                        <td className="p-2">{formatName(p.display_name)}</td>
+                        <td className="p-2">${amt.toLocaleString()}</td>
+                        <td className="p-2">{reason}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}
