@@ -11,7 +11,7 @@ import {
   loadFreeAgents,
 } from '@/utils/architect/firebaseHelpers';
 
-import RosterManager from './RosterManager';
+import RosterVisual from './RosterVisual';
 import CapSheet from './CapSheet';
 import CapSheetFull from './CapSheetFull';
 import ContractEditorModal from './ContractEditorModal';
@@ -284,13 +284,7 @@ const GMDashboard = () => {
 
       <div className="tab-content space-y-6">
         {activeTab === 'roster' && (
-          <RosterManager
-            teamCapSheet={teamCapSheet}
-            currentYear={currentYear}
-            onUpdateRoster={handleUpdateRoster}
-            onEditContract={handleEditContract}
-            playersMap={playersMap}
-          />
+          <RosterVisual teamCapSheet={teamCapSheet} playersMap={playersMap} />
         )}
         {/* Keep your other tab renders as-is */}
 
