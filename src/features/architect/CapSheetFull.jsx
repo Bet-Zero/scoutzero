@@ -1,5 +1,7 @@
 // CapSheetFull.jsx
 import React from 'react';
+import capProjections from '@/utils/architect/capProjections';
+import { resolveCapHold } from '@/utils/architect/contractUtils';
 
 const CapSheetFull = ({ teamCapSheet, onSelectPlayer }) => {
   if (!teamCapSheet || !teamCapSheet.players) return null;
@@ -28,10 +30,9 @@ const CapSheetFull = ({ teamCapSheet, onSelectPlayer }) => {
 
   const capHoldPlayers = teamCapSheet.players
     .filter((p) => {
-      const holdAmount =
-        typeof p.cap_hold === 'number' ? p.cap_hold : p.cap_hold?.amount || 0;
-      const isActive =
-        typeof p.cap_hold === 'object' ? p.cap_hold?.active : holdAmount > 0;
+      const info = resolveCapHold(p, capProjections);
+      const holdAmount = typeof info === 'number' ? info : info?.amount || 0;
+      const isActive = typeof info === 'object' ? info?.active : holdAmount > 0;
       const faYear = parseInt(p.free_agency_year);
       return isActive && holdAmount > 0 && faYear > 2025;
     })
@@ -39,10 +40,10 @@ const CapSheetFull = ({ teamCapSheet, onSelectPlayer }) => {
       const yearA = parseInt(a.free_agency_year);
       const yearB = parseInt(b.free_agency_year);
       if (yearA === yearB) {
-        const amtA =
-          typeof a.cap_hold === 'number' ? a.cap_hold : a.cap_hold?.amount || 0;
-        const amtB =
-          typeof b.cap_hold === 'number' ? b.cap_hold : b.cap_hold?.amount || 0;
+        const infoA = resolveCapHold(a, capProjections);
+        const infoB = resolveCapHold(b, capProjections);
+        const amtA = typeof infoA === 'number' ? infoA : infoA?.amount || 0;
+        const amtB = typeof infoB === 'number' ? infoB : infoB?.amount || 0;
         return amtB - amtA;
       }
       return yearA - yearB;
@@ -54,17 +55,11 @@ const CapSheetFull = ({ teamCapSheet, onSelectPlayer }) => {
     yearTotals[year] = teamCapSheet.players.reduce((sum, player) => {
       const salary =
         player.contract_clean?.salaries_by_year?.[year]?.salary || 0;
-      const holdAmount =
-        typeof player.cap_hold === 'number'
-          ? player.cap_hold
-          : player.cap_hold?.amount || 0;
-      const isActive =
-        typeof player.cap_hold === 'object'
-          ? player.cap_hold?.active
-          : holdAmount > 0;
+      const info = resolveCapHold(player, capProjections);
+      const holdAmount = typeof info === 'number' ? info : info?.amount || 0;
+      const isActive = typeof info === 'object' ? info?.active : holdAmount > 0;
       const faYear = parseInt(player.free_agency_year);
-      const hold =
-        !salary && isActive && faYear === year ? holdAmount : 0;
+      const hold = !salary && isActive && faYear === year ? holdAmount : 0;
       return sum + salary + hold;
     }, 0);
   }
@@ -152,12 +147,9 @@ const CapSheetFull = ({ teamCapSheet, onSelectPlayer }) => {
                 </thead>
                 <tbody>
                   {capHoldPlayers.map((p, idx) => {
-                    const amt =
-                      typeof p.cap_hold === 'number'
-                        ? p.cap_hold
-                        : p.cap_hold?.amount || 0;
-                    const reason =
-                      typeof p.cap_hold === 'object' ? p.cap_hold?.reason : '';
+                    const info = resolveCapHold(p, capProjections);
+                    const amt = typeof info === 'number' ? info : info?.amount || 0;
+                    const reason = typeof info === 'object' ? info?.reason : '';
                     return (
                       <tr key={idx} className="odd:bg-[#171717]">
                         <td className="p-2">{formatName(p.display_name)}</td>

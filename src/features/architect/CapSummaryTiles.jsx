@@ -1,5 +1,6 @@
 import React from 'react';
 import capProjections from '@/utils/architect/capProjections';
+import { resolveCapHold } from '@/utils/architect/contractUtils';
 
 const CapSummaryTiles = ({ teamCapSheet, selectedYear }) => {
   const yearKey = `${selectedYear}-${String((selectedYear + 1) % 100).padStart(
@@ -15,14 +16,10 @@ const CapSummaryTiles = ({ teamCapSheet, selectedYear }) => {
   const totalCapAllocations = teamCapSheet.players.reduce((sum, player) => {
     const salary =
       player.contract_clean?.salaries_by_year?.[selectedYear]?.salary || 0;
-    const holdAmount =
-      typeof player.cap_hold === 'number'
-        ? player.cap_hold
-        : player.cap_hold?.amount || 0;
+    const info = resolveCapHold(player, capProjections);
+    const holdAmount = typeof info === 'number' ? info : info?.amount || 0;
     const isActive =
-      typeof player.cap_hold === 'object'
-        ? player.cap_hold?.active
-        : holdAmount > 0;
+      typeof info === 'object' ? info?.active : holdAmount > 0;
     const faYear = parseInt(player.free_agency_year);
     const capHold =
       !salary && isActive && faYear === selectedYear ? holdAmount : 0;

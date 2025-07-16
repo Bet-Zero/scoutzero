@@ -205,3 +205,12 @@ export function calculateCapHold(player, capProjections, year = 2025) {
     active: true,
   };
 }
+
+// Resolve a player's cap hold, generating one if missing
+export function resolveCapHold(player, capProjections) {
+  if (player.cap_hold !== undefined && player.cap_hold !== null) {
+    return player.cap_hold;
+  }
+  const year = parseInt(player.free_agency_year) || 2025;
+  return calculateCapHold(player, capProjections, year);
+}

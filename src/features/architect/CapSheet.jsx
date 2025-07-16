@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { getMinimumCapHit } from '@/utils/architect/contractUtils';
+import { getMinimumCapHit, resolveCapHold } from '@/utils/architect/contractUtils';
 import CapSummaryTiles from '@/features/architect/CapSummaryTiles';
 import { POSITION_MAP } from '@/utils/roles/positionMap';
 import getCapPercentage from '@/utils/architect/getCapPercentage';
@@ -69,18 +69,19 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer }) => {
     .filter((p) => {
       const hasSalary =
         p.contract_clean?.salaries_by_year?.[selectedYear]?.salary;
+      const holdInfo = resolveCapHold(p, capProjections);
       const holdAmount =
-        typeof p.cap_hold === 'number' ? p.cap_hold : p.cap_hold?.amount || 0;
+        typeof holdInfo === 'number' ? holdInfo : holdInfo?.amount || 0;
       const isActive =
-        typeof p.cap_hold === 'object' ? p.cap_hold?.active : holdAmount > 0;
+        typeof holdInfo === 'object' ? holdInfo?.active : holdAmount > 0;
       const faYear = parseInt(p.free_agency_year);
       return !hasSalary && isActive && holdAmount > 0 && faYear === selectedYear;
     })
     .sort((a, b) => {
-      const aAmt =
-        typeof a.cap_hold === 'number' ? a.cap_hold : a.cap_hold?.amount || 0;
-      const bAmt =
-        typeof b.cap_hold === 'number' ? b.cap_hold : b.cap_hold?.amount || 0;
+      const aInfo = resolveCapHold(a, capProjections);
+      const bInfo = resolveCapHold(b, capProjections);
+      const aAmt = typeof aInfo === 'number' ? aInfo : aInfo?.amount || 0;
+      const bAmt = typeof bInfo === 'number' ? bInfo : bInfo?.amount || 0;
       return bAmt - aAmt;
     });
 
@@ -182,12 +183,10 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer }) => {
               </thead>
               <tbody>
                 {capHoldPlayers.map((p, idx) => {
-                  const amt =
-                    typeof p.cap_hold === 'number'
-                      ? p.cap_hold
-                      : p.cap_hold?.amount || 0;
+                  const info = resolveCapHold(p, capProjections);
+                  const amt = typeof info === 'number' ? info : info?.amount || 0;
                   const reason =
-                    typeof p.cap_hold === 'object' ? p.cap_hold?.reason : '';
+                    typeof info === 'object' ? info?.reason : '';
                   totalCapHit += amt;
                   return (
                     <tr key={idx} className="odd:bg-[#171717]">
