@@ -158,3 +158,48 @@ export function getMinimumCapHit(yearsOfService) {
   if (yearsOfService >= 3) return 2092400;
   return getMinimumSalary(yearsOfService);
 }
+
+// 7. Cap hold calculator
+export function calculateCapHold(player, capProjections, year = 2025) {
+  const experience = player.bio?.yearsExperience || 0;
+  const rights = player.contract_clean?.birdRights || 'None';
+  const lastSalary = player.contract_clean?.lastSalary || 0;
+  const pickNumber = player.draft?.pick || null;
+  const draftRound = player.draft?.round || null;
+
+  // Rookie Scale Hold (1st Round Picks)
+  if (draftRound === 1 && pickNumber) {
+    const rookieAmount = rookieScale[pickNumber] || 2500000;
+    return {
+      amount: Math.round(rookieAmount * 1.2),
+      reason: 'Rookie Scale',
+      active: true,
+    };
+  }
+
+  // Minimum Salary Hold (no rights)
+  if (!rights || rights === 'None') {
+    const minSalary = getMinimumSalary(experience);
+    return {
+      amount: Math.round(minSalary * 1.2),
+      reason: 'Minimum Hold',
+      active: true,
+    };
+  }
+
+  // Bird Rights Cap Holds
+  const multiplier =
+    rights === 'Non-Bird'
+      ? 1.2
+      : rights === 'Early Bird'
+        ? 1.3
+        : rights === 'Full Bird'
+          ? 1.5
+          : 1.2;
+
+  return {
+    amount: Math.round(lastSalary * multiplier),
+    reason: `${rights} Rights`,
+    active: true,
+  };
+}
