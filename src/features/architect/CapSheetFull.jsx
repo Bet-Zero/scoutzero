@@ -91,8 +91,26 @@ const CapSheetFull = ({ teamCapSheet, onSelectPlayer, playersMap = {} }) => {
                 </td>
                 {allYears.map((year) => {
                   const entry = player.contract_clean?.salaries_by_year?.[year];
-                  if (!entry?.salary)
+                  const faYear = player.contract_clean?.fa_year;
+                  const faType = player.contract_clean?.fa_type;
+                  if (!entry?.salary) {
+                    if (faYear === year && faType) {
+                      const tagColor =
+                        faType === 'UFA'
+                          ? 'bg-blue-500/30 text-white/70'
+                          : faType === 'RFA'
+                            ? 'bg-red-600/30 text-white/70'
+                            : 'bg-gray-600 text-white';
+                      return (
+                        <td key={year} className="px-2 py-1 text-center">
+                          <span className={`px-6 rounded ${tagColor}`}>
+                            {faType}
+                          </span>
+                        </td>
+                      );
+                    }
                     return <td key={year} className="px-2 py-1" />;
+                  }
 
                   const isPO = entry.option === 'Player Option';
                   const isTO = entry.option === 'Team Option';
