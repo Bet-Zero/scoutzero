@@ -1,10 +1,9 @@
 // CapSheetFull.jsx
-import React, { useState } from 'react';
+import React from 'react';
 
 const CapSheetFull = ({ teamCapSheet, onSelectPlayer }) => {
   if (!teamCapSheet || !teamCapSheet.players) return null;
 
-  const [showCapHolds, setShowCapHolds] = useState(false);
 
   // Project-wide name formatting
   const formatName = (name) =>
@@ -29,25 +28,30 @@ const CapSheetFull = ({ teamCapSheet, onSelectPlayer }) => {
 
   const capHoldPlayers = teamCapSheet.players
     .filter((p) => {
-      const hasSalary = p.contract_clean?.salaries_by_year?.[2025]?.salary;
       const holdAmount =
         typeof p.cap_hold === 'number' ? p.cap_hold : p.cap_hold?.amount || 0;
       const isActive =
         typeof p.cap_hold === 'object' ? p.cap_hold?.active : holdAmount > 0;
-      return !hasSalary && isActive && holdAmount > 0;
+      const faYear = parseInt(p.free_agency_year);
+      return isActive && holdAmount > 0 && faYear > 2025;
     })
     .sort((a, b) => {
-      const aAmt =
-        typeof a.cap_hold === 'number' ? a.cap_hold : a.cap_hold?.amount || 0;
-      const bAmt =
-        typeof b.cap_hold === 'number' ? b.cap_hold : b.cap_hold?.amount || 0;
-      return bAmt - aAmt;
+      const yearA = parseInt(a.free_agency_year);
+      const yearB = parseInt(b.free_agency_year);
+      if (yearA === yearB) {
+        const amtA =
+          typeof a.cap_hold === 'number' ? a.cap_hold : a.cap_hold?.amount || 0;
+        const amtB =
+          typeof b.cap_hold === 'number' ? b.cap_hold : b.cap_hold?.amount || 0;
+        return amtB - amtA;
+      }
+      return yearA - yearB;
     });
 
   // Build totals per year
   const yearTotals = {};
   for (const year of allYears) {
-    yearTotals[year] = sortedPlayers.reduce((sum, player) => {
+    yearTotals[year] = teamCapSheet.players.reduce((sum, player) => {
       const salary =
         player.contract_clean?.salaries_by_year?.[year]?.salary || 0;
       const holdAmount =
@@ -58,7 +62,9 @@ const CapSheetFull = ({ teamCapSheet, onSelectPlayer }) => {
         typeof player.cap_hold === 'object'
           ? player.cap_hold?.active
           : holdAmount > 0;
-      const hold = !salary && isActive ? holdAmount : 0;
+      const faYear = parseInt(player.free_agency_year);
+      const hold =
+        !salary && isActive && faYear === year ? holdAmount : 0;
       return sum + salary + hold;
     }, 0);
   }
@@ -127,21 +133,19 @@ const CapSheetFull = ({ teamCapSheet, onSelectPlayer }) => {
         </table>
 
         {capHoldPlayers.length > 0 && (
-          <>
-            <button
-              onClick={() => setShowCapHolds(!showCapHolds)}
-              className="mt-4 mb-2 px-3 py-1 rounded bg-[#1a1a1a] hover:bg-[#222] border border-white/20"
-            >
-              {showCapHolds
-                ? 'Hide Cap Holds'
-                : `Show Cap Holds (${capHoldPlayers.length})`}
-            </button>
-
-            {showCapHolds && (
+          <details className="group mt-4 mb-2">
+            <summary className="cursor-pointer px-3 py-1 rounded bg-[#1a1a1a] border border-white/20 flex items-center justify-between">
+              <span>Future Cap Holds ({capHoldPlayers.length})</span>
+              <span className="text-white/40 group-open:rotate-90 transition-transform duration-200">
+                ▶
+              </span>
+            </summary>
+            <div className="mt-2">
               <table className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded mb-2">
                 <thead className="bg-[#111]">
                   <tr>
                     <th className="p-2 text-left">Player</th>
+                    <th className="p-2 text-left">Year</th>
                     <th className="p-2 text-left">Amount</th>
                     <th className="p-2 text-left">Reason</th>
                   </tr>
@@ -157,6 +161,7 @@ const CapSheetFull = ({ teamCapSheet, onSelectPlayer }) => {
                     return (
                       <tr key={idx} className="odd:bg-[#171717]">
                         <td className="p-2">{formatName(p.display_name)}</td>
+                        <td className="p-2">{p.free_agency_year}</td>
                         <td className="p-2">${amt.toLocaleString()}</td>
                         <td className="p-2">{reason}</td>
                       </tr>
@@ -164,8 +169,8 @@ const CapSheetFull = ({ teamCapSheet, onSelectPlayer }) => {
                   })}
                 </tbody>
               </table>
-            )}
-          </>
+            </div>
+          </details>
         )}
       </div>
     </div>
