@@ -7,6 +7,7 @@ import capProjections from '@/utils/architect/capProjections';
 
 const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer }) => {
   const [selectedYear, setSelectedYear] = useState(currentYear);
+  const [showCapHolds, setShowCapHolds] = useState(false);
 
   const generateYears = (startYear, count) =>
     Array.from({ length: count }, (_, i) => startYear + i);
@@ -63,6 +64,24 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer }) => {
       const bSalary =
         b.contract_clean?.salaries_by_year?.[selectedYear]?.salary || 0;
       return bSalary - aSalary;
+    });
+
+  const capHoldPlayers = teamCapSheet.players
+    .filter((p) => {
+      const hasSalary =
+        p.contract_clean?.salaries_by_year?.[selectedYear]?.salary;
+      const holdAmount =
+        typeof p.cap_hold === 'number' ? p.cap_hold : p.cap_hold?.amount || 0;
+      const isActive =
+        typeof p.cap_hold === 'object' ? p.cap_hold?.active : holdAmount > 0;
+      return !hasSalary && isActive && holdAmount > 0;
+    })
+    .sort((a, b) => {
+      const aAmt =
+        typeof a.cap_hold === 'number' ? a.cap_hold : a.cap_hold?.amount || 0;
+      const bAmt =
+        typeof b.cap_hold === 'number' ? b.cap_hold : b.cap_hold?.amount || 0;
+      return bAmt - aAmt;
     });
 
   let totalCapHit = 0;
@@ -143,6 +162,49 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer }) => {
           })}
         </tbody>
       </table>
+
+      {capHoldPlayers.length > 0 && (
+        <>
+          <button
+            onClick={() => setShowCapHolds(!showCapHolds)}
+            className="mt-4 mb-2 px-3 py-1 rounded bg-[#1a1a1a] hover:bg-[#222] border border-white/20"
+          >
+            {showCapHolds
+              ? 'Hide Cap Holds'
+              : `Show Cap Holds (${capHoldPlayers.length})`}
+          </button>
+
+          {showCapHolds && (
+            <table className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded mb-2">
+              <thead className="bg-[#111]">
+                <tr>
+                  <th className="p-2 text-left">Player</th>
+                  <th className="p-2 text-left">Amount</th>
+                  <th className="p-2 text-left">Reason</th>
+                </tr>
+              </thead>
+              <tbody>
+                {capHoldPlayers.map((p, idx) => {
+                  const amt =
+                    typeof p.cap_hold === 'number'
+                      ? p.cap_hold
+                      : p.cap_hold?.amount || 0;
+                  const reason =
+                    typeof p.cap_hold === 'object' ? p.cap_hold?.reason : '';
+                  totalCapHit += amt;
+                  return (
+                    <tr key={idx} className="odd:bg-[#171717]">
+                      <td className="p-2">{p.name}</td>
+                      <td className="p-2">${amt.toLocaleString()}</td>
+                      <td className="p-2">{reason}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </>
+      )}
 
       <p className="mt-2 font-semibold">
         Total Cap Hit: ${totalCapHit.toLocaleString()}
