@@ -1,30 +1,29 @@
-export function runOffseason(teamCapSheet, currentYear, capSettings, optionDecisions = {}) {
+export function runOffseason(
+  teamCapSheet,
+  currentYear,
+  capSettings,
+  optionDecisions = {}
+) {
   const nextYear = currentYear + 1;
   const updatedContracts = [];
   const expiredContracts = [];
   const declinedOptions = [];
   const expiredTPEs = [];
   const waivedDeadCap = [];
-  
+
   const now = new Date(`${nextYear}-07-01`);
 
   // Process contracts
-  for (const contract of teamCapSheet.activeContracts) {
-    const nextYearSalary = contract.salaryByYear?.[nextYear];
+  const yearKey = nextYear;
+  for (const contract of teamCapSheet.players) {
+    const nextYearSalary =
+      contract.contract_clean?.salaries_by_year?.[yearKey]?.salary;
     let isOptionDeclined = false;
 
     // Handle player options
-    if (contract.options?.playerOption && 
-        contract.options.playerOptionYear === nextYear) {
-      if (!optionDecisions[contract.name]) {
-        isOptionDeclined = true;
-        declinedOptions.push(contract.name);
-      }
-    }
-
-    // Handle team options
-    if (contract.options?.teamOption && 
-        contract.options.teamOptionYear === nextYear) {
+    const optionType =
+      contract.contract_clean?.salaries_by_year?.[yearKey]?.option;
+    if (optionType === 'Player Option' || optionType === 'Team Option') {
       if (!optionDecisions[contract.name]) {
         isOptionDeclined = true;
         declinedOptions.push(contract.name);
@@ -41,7 +40,7 @@ export function runOffseason(teamCapSheet, currentYear, capSettings, optionDecis
   }
 
   // Handle expired TPEs
-  const activeTPEs = (teamCapSheet.tradeExceptions || []).filter(tpe => {
+  const activeTPEs = (teamCapSheet.tradeExceptions || []).filter((tpe) => {
     const expires = new Date(tpe.expires);
     const stillValid = expires > now;
     if (!stillValid) {
@@ -52,7 +51,7 @@ export function runOffseason(teamCapSheet, currentYear, capSettings, optionDecis
 
   // Track ongoing dead cap from waived contracts
   const updatedWaived = (teamCapSheet.waivedContracts || [])
-    .map(contract => {
+    .map((contract) => {
       const remaining = {};
       for (const [year, amount] of Object.entries(contract.deadCap || {})) {
         if (parseInt(year) >= nextYear) {
@@ -60,20 +59,20 @@ export function runOffseason(teamCapSheet, currentYear, capSettings, optionDecis
           waivedDeadCap.push({
             name: contract.name,
             year,
-            amount
+            amount,
           });
         }
       }
-      return Object.keys(remaining).length ? 
-        { ...contract, deadCap: remaining } : 
-        null;
+      return Object.keys(remaining).length
+        ? { ...contract, deadCap: remaining }
+        : null;
     })
     .filter(Boolean);
 
   // Reset MLE
-  const newMLE = { 
-    amount: capSettings.exceptions.fullMLE, 
-    used: 0 
+  const newMLE = {
+    amount: capSettings.exceptions.fullMLE,
+    used: 0,
   };
 
   // Update MLE history
@@ -84,27 +83,27 @@ export function runOffseason(teamCapSheet, currentYear, capSettings, optionDecis
       year: currentYear,
       total: currentMLE.amount,
       used: currentMLE.used,
-      remaining: currentMLE.amount - currentMLE.used
-    }
+      remaining: currentMLE.amount - currentMLE.used,
+    },
   ];
 
   // Return updated cap sheet and summary
   return {
     updatedCapSheet: {
       ...teamCapSheet,
-      activeContracts: updatedContracts,
+      players: updatedContracts,
       tradeExceptions: activeTPEs,
       waivedContracts: updatedWaived,
       mle: newMLE,
       mleHistory,
-      hardCapped: false // Reset hard cap
+      hardCapped: false, // Reset hard cap
     },
     summary: {
       declinedOptions,
       expiredContracts,
       expiredTPEs,
       waivedDeadCap,
-      resetMLE: true
-    }
+      resetMLE: true,
+    },
   };
 }

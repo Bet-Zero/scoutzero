@@ -18,7 +18,7 @@ import TeamHistoryTab from './TeamHistoryTab';
 import ExceptionTracker from './ExceptionTracker';
 import usePlayerData from '@/hooks/usePlayerData.js';
 
-import capSettings from '../utils/capSettings';
+import capSettings from '@/utils/architect/capSettings';
 
 const GMDashboard = () => {
   const { teamId } = useParams();
@@ -116,23 +116,95 @@ const GMDashboard = () => {
   if (!teamCapSheet) return <p>Loading GM Dashboard...</p>;
 
   return (
-    <div className="gm-dashboard">
-      <h1>HoopZero Architect – GM Dashboard</h1>
+    <div className="gm-dashboard px-6 py-4 text-white min-h-screen bg-[#0d0d0d]">
+      <h1 className="text-3xl font-bold mb-6 border-b border-white/10 pb-2">
+        HoopZero Architect – GM Dashboard
+      </h1>
 
-      <div className="tab-bar">
-        <button onClick={() => setActiveTab('roster')}>Roster</button>
-        <button onClick={() => setActiveTab('cap')}>Cap Sheet</button>
-        <button onClick={() => setActiveTab('capfull')}>Full Cap Table</button>
-        <button onClick={() => setActiveTab('contract')}>
+      <div className="tab-bar flex flex-wrap gap-3 mb-6">
+        <button
+          onClick={() => setActiveTab('roster')}
+          className={`px-4 py-2 rounded-md text-sm font-semibold ${
+            activeTab === 'roster'
+              ? 'bg-lakers/90 text-black'
+              : 'bg-white/10 hover:bg-white/20'
+          }`}
+        >
+          Roster
+        </button>
+        <button
+          onClick={() => setActiveTab('cap')}
+          className={`px-4 py-2 rounded-md text-sm font-semibold ${
+            activeTab === 'cap'
+              ? 'bg-lakers/90 text-black'
+              : 'bg-white/10 hover:bg-white/20'
+          }`}
+        >
+          Cap Sheet
+        </button>
+        <button
+          onClick={() => setActiveTab('capfull')}
+          className={`px-4 py-2 rounded-md text-sm font-semibold ${
+            activeTab === 'capfull'
+              ? 'bg-lakers/90 text-black'
+              : 'bg-white/10 hover:bg-white/20'
+          }`}
+        >
+          Full Cap Table
+        </button>
+        <button
+          onClick={() => setActiveTab('contract')}
+          className={`px-4 py-2 rounded-md text-sm font-semibold ${
+            activeTab === 'contract'
+              ? 'bg-lakers/90 text-black'
+              : 'bg-white/10 hover:bg-white/20'
+          }`}
+        >
           Contract Editor
         </button>
-        <button onClick={() => setActiveTab('trade')}>Trade Machine</button>
-        <button onClick={() => setActiveTab('fa')}>Free Agency</button>
-        <button onClick={() => setActiveTab('offseason')}>Offseason</button>
-        <button onClick={() => setActiveTab('history')}>Team History</button>
+        <button
+          onClick={() => setActiveTab('trade')}
+          className={`px-4 py-2 rounded-md text-sm font-semibold ${
+            activeTab === 'trade'
+              ? 'bg-lakers/90 text-black'
+              : 'bg-white/10 hover:bg-white/20'
+          }`}
+        >
+          Trade Machine
+        </button>
+        <button
+          onClick={() => setActiveTab('fa')}
+          className={`px-4 py-2 rounded-md text-sm font-semibold ${
+            activeTab === 'fa'
+              ? 'bg-lakers/90 text-black'
+              : 'bg-white/10 hover:bg-white/20'
+          }`}
+        >
+          Free Agency
+        </button>
+        <button
+          onClick={() => setActiveTab('offseason')}
+          className={`px-4 py-2 rounded-md text-sm font-semibold ${
+            activeTab === 'offseason'
+              ? 'bg-lakers/90 text-black'
+              : 'bg-white/10 hover:bg-white/20'
+          }`}
+        >
+          Offseason
+        </button>
+        <button
+          onClick={() => setActiveTab('history')}
+          className={`px-4 py-2 rounded-md text-sm font-semibold ${
+            activeTab === 'history'
+              ? 'bg-lakers/90 text-black'
+              : 'bg-white/10 hover:bg-white/20'
+          }`}
+        >
+          Team History
+        </button>
       </div>
 
-      <div className="tab-content">
+      <div className="tab-content space-y-6">
         {activeTab === 'roster' && (
           <RosterManager
             teamCapSheet={teamCapSheet}
@@ -142,14 +214,16 @@ const GMDashboard = () => {
             playersMap={playersMap}
           />
         )}
+        {/* Keep your other tab renders as-is */}
 
         {activeTab === 'cap' && (
           <>
             <CapSheet
-              teamCapSheet={teamCapSheet}
+              teamCapSheet={teamCapSheet.capSheet}
               capSettings={capSettings}
               currentYear={currentYear}
             />
+
             <ExceptionTracker
               teamCapSheet={teamCapSheet}
               currentYear={currentYear}
@@ -158,17 +232,22 @@ const GMDashboard = () => {
         )}
 
         {activeTab === 'capfull' && (
-          <CapSheetFull teamCapSheet={teamCapSheet} />
+          <CapSheetFull teamCapSheet={teamCapSheet.capSheet} />
         )}
 
-        {activeTab === 'contract' && selectedPlayer && (
-          <ContractEditor
-            player={selectedPlayer}
-            capSettings={capSettings}
-            teamCapSheet={teamCapSheet}
-            onSign={handleSign}
-          />
-        )}
+        {activeTab === 'contract' &&
+          (selectedPlayer ? (
+            <ContractEditor
+              player={selectedPlayer}
+              capSettings={capSettings}
+              teamCapSheet={teamCapSheet}
+              onSign={handleSign}
+            />
+          ) : (
+            <div className="text-white p-6 text-sm text-white/60">
+              Select a player from the Roster to edit their contract.
+            </div>
+          ))}
 
         {activeTab === 'trade' && (
           <TradeEditor
