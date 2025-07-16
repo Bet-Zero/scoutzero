@@ -1,13 +1,16 @@
 import React from 'react';
+import capProjections from '@/utils/architect/capProjections';
 
-const CapSummaryTiles = ({ teamCapSheet, capSettings, selectedYear }) => {
-  // Handle both flat and per-year formats
-  const salaryCap =
-    capSettings.salaryCap?.[selectedYear] || capSettings.salaryCap || 0;
-  const firstApron =
-    capSettings.firstApron?.[selectedYear] || capSettings.firstApron || 0;
-  const secondApron =
-    capSettings.secondApron?.[selectedYear] || capSettings.secondApron || 0;
+const CapSummaryTiles = ({ teamCapSheet, selectedYear }) => {
+  const yearKey = `${selectedYear}-${String((selectedYear + 1) % 100).padStart(
+    2,
+    '0'
+  )}`;
+  const capData = capProjections[yearKey] || {};
+
+  const salaryCap = capData.cap || 0;
+  const firstApron = capData.firstApron || 0;
+  const secondApron = capData.secondApron || 0;
 
   const totalCapAllocations = teamCapSheet.players.reduce((sum, player) => {
     const salary =
