@@ -5,6 +5,7 @@ import {
   collection,
   getDocs,
   writeBatch,
+  serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
 
@@ -32,6 +33,65 @@ export const loadTeamCapSheet = async (teamId) => {
     }
   } catch (error) {
     console.error('Error loading cap sheet:', error);
+    return null;
+  }
+};
+
+// ===== User-Specific Team Plans =====
+export const saveUserTeamPlan = async (userId, teamId, capSheet) => {
+  try {
+    const planRef = doc(db, 'teamPlans', userId, teamId);
+    await setDoc(planRef, capSheet);
+    console.log(`Saved plan for ${userId} – ${teamId}`);
+    return true;
+  } catch (error) {
+    console.error('Error saving team plan:', error);
+    return false;
+  }
+};
+
+export const loadUserTeamPlan = async (userId, teamId) => {
+  try {
+    const planRef = doc(db, 'teamPlans', userId, teamId);
+    const docSnap = await getDoc(planRef);
+    return docSnap.exists() ? docSnap.data() : null;
+  } catch (error) {
+    console.error('Error loading team plan:', error);
+    return null;
+  }
+};
+
+// ===== Named Plans =====
+export const listUserTeamPlans = async (userId, teamId) => {
+  try {
+    const plansRef = collection(db, 'teamPlans', userId, teamId);
+    const snap = await getDocs(plansRef);
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  } catch (error) {
+    console.error('Error listing team plans:', error);
+    return [];
+  }
+};
+
+export const saveNamedTeamPlan = async (userId, teamId, name, capSheet) => {
+  try {
+    const ref = doc(db, 'teamPlans', userId, teamId, name);
+    await setDoc(ref, { name, capSheet, updatedAt: serverTimestamp() });
+    console.log(`Saved plan ${name} for ${userId} – ${teamId}`);
+    return true;
+  } catch (error) {
+    console.error('Error saving named plan:', error);
+    return false;
+  }
+};
+
+export const loadNamedTeamPlan = async (userId, teamId, name) => {
+  try {
+    const ref = doc(db, 'teamPlans', userId, teamId, name);
+    const snap = await getDoc(ref);
+    return snap.exists() ? snap.data() : null;
+  } catch (error) {
+    console.error('Error loading named plan:', error);
     return null;
   }
 };
