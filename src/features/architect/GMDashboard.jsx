@@ -19,11 +19,13 @@ import ExceptionTracker from './ExceptionTracker';
 import usePlayerData from '@/hooks/usePlayerData.js';
 
 import capSettings from '@/utils/architect/capSettings';
+import { teamOptions } from '@/utils/filtering';
 
 const GMDashboard = () => {
   const { teamId } = useParams();
   const [teamCapSheet, setTeamCapSheet] = useState(null);
-  const [otherTeamCapSheet] = useState(null);
+  const [otherTeamId, setOtherTeamId] = useState('');
+  const [otherTeamCapSheet, setOtherTeamCapSheet] = useState(null);
   const [currentYear, setCurrentYear] = useState(2025);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [freeAgents, setFreeAgents] = useState([]);
@@ -52,6 +54,24 @@ const GMDashboard = () => {
     };
     fetchData();
   }, [teamId]);
+
+  useEffect(() => {
+    if (teamCapSheet && !otherTeamId) {
+      const fallback = teamOptions.find(
+        (t) => t.toLowerCase() !== teamId.toLowerCase()
+      );
+      setOtherTeamId(fallback ? fallback.toLowerCase() : '');
+    }
+  }, [teamCapSheet, teamId, otherTeamId]);
+
+  useEffect(() => {
+    const loadOtherTeam = async () => {
+      if (!otherTeamId || otherTeamId === teamId) return;
+      const other = await loadTeamCapSheet(otherTeamId);
+      if (other) setOtherTeamCapSheet(other);
+    };
+    loadOtherTeam();
+  }, [otherTeamId, teamId]);
 
   useEffect(() => {
     if (teamCapSheet) saveTeamCapSheet(teamId, teamCapSheet);
@@ -250,12 +270,35 @@ const GMDashboard = () => {
           ))}
 
         {activeTab === 'trade' && (
-          <TradeEditor
-            teamA={teamCapSheet}
-            teamB={otherTeamCapSheet || teamCapSheet}
-            capSettings={capSettings}
-            currentYear={currentYear}
-          />
+          <>
+            <div className="flex gap-2 items-center mb-4">
+              <label className="text-sm text-white/60">Trade With:</label>
+              <select
+                value={otherTeamId}
+                onChange={(e) => setOtherTeamId(e.target.value)}
+                className="bg-[#1a1a1a] text-white text-sm px-3 py-1 rounded border border-white/10"
+              >
+                {teamOptions
+                  .filter((t) => t.toLowerCase() !== teamId.toLowerCase())
+                  .sort()
+                  .map((team) => (
+                    <option key={team} value={team.toLowerCase()}>
+                      {team}
+                    </option>
+                  ))}
+              </select>
+            </div>
+            {otherTeamCapSheet ? (
+              <TradeEditor
+                teamA={teamCapSheet}
+                teamB={otherTeamCapSheet}
+                capSettings={capSettings}
+                currentYear={currentYear}
+              />
+            ) : (
+              <p className="text-sm text-white/60">Loading other team...</p>
+            )}
+          </>
         )}
 
         {activeTab === 'fa' && (
