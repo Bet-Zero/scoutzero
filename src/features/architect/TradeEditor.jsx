@@ -11,14 +11,16 @@ const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
   const [result, setResult] = useState(null);
   const yearKey = currentYear;
 
-  const togglePlayer = (index, player) => {
+  const setPlayerTrade = (index, player, action) => {
     setTeams((prev) => {
       const copy = [...prev];
       const list = copy[index].sends;
       const exists = list.includes(player);
-      copy[index].sends = exists
-        ? list.filter((i) => i !== player)
-        : [...list, player];
+      if (action === 'trade' && !exists) {
+        copy[index].sends = [...list, player];
+      } else if (action === 'keep' && exists) {
+        copy[index].sends = list.filter((i) => i !== player);
+      }
       return copy;
     });
   };
@@ -67,7 +69,7 @@ const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
     if (teams.length < 2 || !teams[0].team || !teams[1].team) return;
     const a = teams[0];
     const b = teams[1];
-    const result = validateTrade({
+    const validation = validateTrade({
       teamASends: a.sends,
       teamBSends: b.sends,
       teamAPicksOut: a.picksOut,
@@ -79,7 +81,24 @@ const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
       teamA: a.team,
       teamB: b.team,
     });
-    setResult(result);
+
+    const getSalary = (players) =>
+      players.reduce(
+        (sum, p) =>
+          sum + (p.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0),
+        0
+      );
+
+    const summary = {
+      teamAOut: a.sends.map((p) => p.name),
+      teamBOut: b.sends.map((p) => p.name),
+      teamASalaryOut: getSalary(a.sends),
+      teamBSalaryOut: getSalary(b.sends),
+      teamASalaryIn: getSalary(b.sends),
+      teamBSalaryIn: getSalary(a.sends),
+    };
+
+    setResult({ ...validation, summary });
   };
 
   const addLabels = {
@@ -99,7 +118,10 @@ const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
             sends={t.sends}
             picks={t.picksOut}
             yearKey={yearKey}
-            onTogglePlayer={(p) => togglePlayer(idx, p)}
+            tradePartnerName={
+              teams.length > 1 ? teams[idx === 0 ? 1 : 0]?.team?.teamName : ''
+            }
+            onSetPlayerTrade={(p, action) => setPlayerTrade(idx, p, action)}
             onTogglePick={(p) => togglePick(idx, p)}
             onSelectTeam={(teamId) => selectTeam(idx, teamId)}
             onRemove={() => removeTeam(idx)}
@@ -126,6 +148,28 @@ const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
             {result.legal ? '✅ Trade Approved' : '❌ Trade Rejected'}
           </strong>
           <p>{result.reason || 'Trade complies with all rules.'}</p>
+          {result.summary && (
+            <div className="mt-2 space-y-1">
+              <p>
+                <strong>{teams[0].team.teamName} send:</strong>{' '}
+                {result.summary.teamAOut.join(', ') || 'None'}
+              </p>
+              <p>
+                <strong>{teams[1].team.teamName} send:</strong>{' '}
+                {result.summary.teamBOut.join(', ') || 'None'}
+              </p>
+              <p>
+                {teams[0].team.teamName} - Salary Out: $
+                {result.summary.teamASalaryOut.toLocaleString()} | Salary In: $
+                {result.summary.teamASalaryIn.toLocaleString()}
+              </p>
+              <p>
+                {teams[1].team.teamName} - Salary Out: $
+                {result.summary.teamBSalaryOut.toLocaleString()} | Salary In: $
+                {result.summary.teamBSalaryIn.toLocaleString()}
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>
