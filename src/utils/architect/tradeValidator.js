@@ -46,6 +46,34 @@ export function validateTrade({
     capSettings,
   });
 
+  const firstApron = capSettings.firstApron || Infinity;
+
+  if (teamASends.some((p) => p.signAndTrade)) {
+    if (teamASends.length > 1) {
+      teamAResult.legal = false;
+      teamAResult.reason =
+        'Sign-and-trade player must be traded alone, and receiving team cannot exceed first apron.';
+    }
+    if (teamBResult.projectedSalary > firstApron) {
+      teamBResult.legal = false;
+      teamBResult.reason =
+        'Sign-and-trade player must be traded alone, and receiving team cannot exceed first apron.';
+    }
+  }
+
+  if (teamBSends.some((p) => p.signAndTrade)) {
+    if (teamBSends.length > 1) {
+      teamBResult.legal = false;
+      teamBResult.reason =
+        'Sign-and-trade player must be traded alone, and receiving team cannot exceed first apron.';
+    }
+    if (teamAResult.projectedSalary > firstApron) {
+      teamAResult.legal = false;
+      teamAResult.reason =
+        'Sign-and-trade player must be traded alone, and receiving team cannot exceed first apron.';
+    }
+  }
+
   const teamResults = [teamAResult, teamBResult];
   let overallLegal = teamResults.every((r) => r.legal);
   let reason = 'All teams comply with trade rules.';
