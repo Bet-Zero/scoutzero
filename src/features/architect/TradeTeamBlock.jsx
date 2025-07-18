@@ -78,8 +78,20 @@ const TradeTeamBlock = ({
               {p.contract_clean?.salaries_by_year?.[
                 yearKey
               ]?.salary?.toLocaleString() || 0}
-              {p.signAndTrade && ' (Sign & Trade)'}
             </span>
+            {sends.includes(p) && (
+              <label className="flex items-center gap-1 text-xs">
+                <input
+                  type="checkbox"
+                  checked={!!p.signAndTrade}
+                  onChange={(e) =>
+                    onSetPlayerTrade(p, 'signAndTrade', e.target.checked)
+                  }
+                />
+                S&T
+              </label>
+            )}
+            {p.signAndTrade && <span className="text-xs">(Sign & Trade)</span>}
           </li>
         ))}
       </ul>

@@ -18,15 +18,19 @@ const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
   const [result, setResult] = useState(null);
   const yearKey = currentYear;
 
-  const setPlayerTrade = (index, player, action) => {
+  const setPlayerTrade = (index, player, action, flag = false) => {
     setTeams((prev) => {
       const copy = [...prev];
       const list = copy[index].sends;
       const exists = list.includes(player);
       if (action === 'trade' && !exists) {
+        player.signAndTrade = false;
         copy[index].sends = [...list, player];
       } else if (action === 'keep' && exists) {
+        player.signAndTrade = false;
         copy[index].sends = list.filter((i) => i !== player);
+      } else if (action === 'signAndTrade' && exists) {
+        player.signAndTrade = flag;
       }
       return copy;
     });
@@ -77,8 +81,14 @@ const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
     const a = teams[0];
     const b = teams[1];
     const validation = validateTrade({
-      teamASends: a.sends,
-      teamBSends: b.sends,
+      teamASends: a.sends.map((p) => ({
+        ...p,
+        signAndTrade: !!p.signAndTrade,
+      })),
+      teamBSends: b.sends.map((p) => ({
+        ...p,
+        signAndTrade: !!p.signAndTrade,
+      })),
       teamAPicksOut: a.picksOut,
       teamBPicksOut: b.picksOut,
       capProjections,
