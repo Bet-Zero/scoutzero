@@ -11,120 +11,142 @@ export function validateTrade({
   teamB,
 }) {
   const yearKey = currentYear;
-  const teamASalaryOut = teamASends.reduce(
-    (sum, p) =>
-      sum + (p.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0),
-    0
-  );
-  const teamBSalaryOut = teamBSends.reduce(
-    (sum, p) =>
-      sum + (p.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0),
-    0
-  );
-
   const key = `${currentYear}-${String((currentYear + 1) % 100).padStart(2, '0')}`;
+  const capSettings = capProjections[key] || {};
 
+  const getSalary = (players) =>
+    players.reduce(
+      (sum, p) =>
+        sum + (p.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0),
+      0
+    );
+
+  const teamASalaryOut = getSalary(teamASends);
+  const teamBSalaryOut = getSalary(teamBSends);
   const teamASalaryIn = teamBSalaryOut;
   const teamBSalaryIn = teamASalaryOut;
 
-  // Team A validation
-  const teamAValid = isTradeLegal({
+  const teamAResult = evaluateTeam({
+    team: teamA,
     salaryOut: teamASalaryOut,
     salaryIn: teamASalaryIn,
+    rosterOut: teamASends.length,
+    rosterIn: teamBSends.length,
     hardCapped: teamAHardCapped,
-    tpes: extractTPEs(teamA),
-    team: teamA,
-    cap: capProjections[key]?.cap || 0,
+    capSettings,
   });
 
-  // Team B validation
-  const teamBValid = isTradeLegal({
+  const teamBResult = evaluateTeam({
+    team: teamB,
     salaryOut: teamBSalaryOut,
     salaryIn: teamBSalaryIn,
+    rosterOut: teamBSends.length,
+    rosterIn: teamASends.length,
     hardCapped: teamBHardCapped,
-    tpes: extractTPEs(teamB),
-    team: teamB,
-    cap: capProjections[key]?.cap || 0,
+    capSettings,
   });
 
-  if (!teamAValid.allowed) {
-    return {
-      legal: false,
-      reason: `Team A cannot take back that much salary. ${teamAValid.reason}`,
-    };
+  const teamResults = [teamAResult, teamBResult];
+  let overallLegal = teamResults.every((r) => r.legal);
+  let reason = 'All teams comply with trade rules.';
+
+  if (overallLegal) {
+    if (hasStepienViolation(teamAPicksOut)) {
+      overallLegal = false;
+      teamResults[0].legal = false;
+      teamResults[0].reason = 'Violates Stepien Rule';
+      reason = 'Team A violates Stepien Rule (trading consecutive future 1sts)';
+    } else if (hasStepienViolation(teamBPicksOut)) {
+      overallLegal = false;
+      teamResults[1].legal = false;
+      teamResults[1].reason = 'Violates Stepien Rule';
+      reason = 'Team B violates Stepien Rule (trading consecutive future 1sts)';
+    }
+  } else {
+    reason = teamResults
+      .filter((r) => !r.legal)
+      .map((r) => r.reason)
+      .join(' ');
   }
 
-  if (!teamBValid.allowed) {
-    return {
-      legal: false,
-      reason: `Team B cannot take back that much salary. ${teamBValid.reason}`,
-    };
-  }
-
-  // Check Stepien Rule (can't trade consecutive future 1sts)
-  if (hasStepienViolation(teamAPicksOut)) {
-    return {
-      legal: false,
-      reason: 'Team A violates Stepien Rule (trading consecutive future 1sts)',
-    };
-  }
-
-  if (hasStepienViolation(teamBPicksOut)) {
-    return {
-      legal: false,
-      reason: 'Team B violates Stepien Rule (trading consecutive future 1sts)',
-    };
-  }
-
-  return { legal: true };
+  return { overallLegal, teamResults, reason };
 }
 
-function isTradeLegal({ salaryOut, salaryIn, hardCapped, tpes, team, cap }) {
-  const allowable = salaryOut * 1.25 + 100000;
-  const underCap = team.totalSalary < cap;
+function evaluateTeam({
+  team,
+  salaryOut,
+  salaryIn,
+  rosterOut,
+  rosterIn,
+  hardCapped,
+  capSettings,
+}) {
+  const { cap = 0, firstApron = Infinity } = capSettings;
+  const overCap = team.totalSalary > cap;
+  const capRoom = Math.max(0, cap - team.totalSalary);
 
-  // 1. Under cap teams can absorb salary
-  if (underCap) {
-    const capRoom = cap - team.totalSalary;
-    if (salaryIn <= salaryOut + capRoom) {
-      return { allowed: true };
-    }
+  let allowable = 0;
+
+  if (!overCap) {
+    allowable = salaryOut + 250000 + capRoom;
+  } else if (salaryOut < 6530000) {
+    allowable = salaryOut * 1.75 + 100000;
+  } else if (salaryOut < 19600000) {
+    allowable = salaryOut * 1.25 + 100000;
+  } else {
+    allowable = salaryOut * 1.25;
+  }
+
+  const projectedSalary = team.totalSalary - salaryOut + salaryIn;
+  const apronStatus =
+    projectedSalary > firstApron ? 'Above 1st Apron' : 'Under 1st Apron';
+
+  if (salaryIn > allowable) {
     return {
-      allowed: false,
-      reason: `Needs $${salaryIn - salaryOut} cap space but only has $${capRoom}`,
+      teamId: team.teamId || team.id,
+      legal: false,
+      reason: 'Incoming salary exceeds allowed amount',
+      salaryIn,
+      salaryOut,
+      projectedSalary,
+      apronStatus,
     };
   }
 
-  // 2. Hard capped teams (from sign-and-trade or using full MLE)
-  if (hardCapped && salaryIn > salaryOut) {
+  if (hardCapped && projectedSalary > firstApron) {
     return {
-      allowed: false,
-      reason: 'Hard capped team cannot take back more salary than it sends out',
+      teamId: team.teamId || team.id,
+      legal: false,
+      reason: 'Exceeds first apron hard cap',
+      salaryIn,
+      salaryOut,
+      projectedSalary,
+      apronStatus,
     };
   }
 
-  // 3. Standard 125% rule
-  if (salaryIn <= allowable) {
-    return { allowed: true };
-  }
-
-  // 4. Try trade exceptions
-  const tpeMatch = tpes.find((tpe) => tpe.amount >= salaryIn);
-  if (tpeMatch) {
-    return { allowed: true, usedTPE: tpeMatch };
+  const finalRoster = team.players.length - rosterOut + rosterIn;
+  if (finalRoster < 12 || finalRoster > 15) {
+    return {
+      teamId: team.teamId || team.id,
+      legal: false,
+      reason: 'Roster size out of bounds',
+      salaryIn,
+      salaryOut,
+      projectedSalary,
+      apronStatus,
+    };
   }
 
   return {
-    allowed: false,
-    reason: `Receiving $${salaryIn}, allowed only $${allowable.toLocaleString()} under 125% rule`,
+    teamId: team.teamId || team.id,
+    legal: true,
+    reason: '',
+    salaryIn,
+    salaryOut,
+    projectedSalary,
+    apronStatus,
   };
-}
-
-function extractTPEs(teamCapSheet) {
-  const now = new Date();
-  return (teamCapSheet.tradeExceptions || []).filter(
-    (tpe) => new Date(tpe.expires) > now && tpe.amount > 0
-  );
 }
 
 function hasStepienViolation(picksOut) {

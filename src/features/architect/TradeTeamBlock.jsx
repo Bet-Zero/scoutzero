@@ -15,6 +15,7 @@ const TradeTeamBlock = ({
   tradePartnerName,
   incomingPlayers = [],
   incomingPicks = [],
+  capImpact = null,
   onSetPlayerTrade,
   onTogglePick,
   onSelectTeam,
@@ -126,6 +127,22 @@ const TradeTeamBlock = ({
         <strong>Total Salary:</strong> $
         {getSalary(sends, yearKey).toLocaleString()}
       </p>
+      {capImpact && (
+        <div className="text-sm mt-2">
+          <strong>Cap Impact Summary:</strong>
+          <div>
+            In: ${((capImpact.in || 0) / 1_000_000).toFixed(1)}M | Out: $
+            {((capImpact.out || 0) / 1_000_000).toFixed(1)}M
+          </div>
+          <div>
+            Projected Salary: $
+            {((capImpact.projected || 0) / 1_000_000).toFixed(1)}M
+          </div>
+          <div>
+            Status: {capImpact.capStatus}, {capImpact.apronStatus}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

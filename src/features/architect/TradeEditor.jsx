@@ -3,6 +3,13 @@ import { validateTrade } from '@/utils/architect/tradeValidator';
 import { loadTeamCapSheet } from '@/utils/architect/firebaseHelpers';
 import TradeTeamBlock from './TradeTeamBlock';
 
+// Helper to sum salaries for a given year
+const getSalaryForYear = (players, year) =>
+  players.reduce(
+    (sum, p) => sum + (p.contract_clean?.salaries_by_year?.[year]?.salary || 0),
+    0
+  );
+
 const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
   const [teams, setTeams] = useState([
     { team: primaryTeam, sends: [], picksOut: [] },
@@ -82,12 +89,7 @@ const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
       teamB: b.team,
     });
 
-    const getSalary = (players) =>
-      players.reduce(
-        (sum, p) =>
-          sum + (p.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0),
-        0
-      );
+    const getSalary = (players) => getSalaryForYear(players, yearKey);
 
     const summary = {
       teamAOut: a.sends.map((p) => p.name),
@@ -120,6 +122,40 @@ const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
     return acc;
   }, {});
 
+  const capData = capProjections[currentYear] || {};
+
+  const capImpactByTeamIndex = teams.reduce((acc, t, idx) => {
+    if (!t.team) {
+      acc[idx] = null;
+      return acc;
+    }
+    const salaryOut = getSalaryForYear(t.sends, yearKey);
+    const salaryIn = getSalaryForYear(
+      incomingAssets[idx]?.players || [],
+      yearKey
+    );
+    const currentSalary = getSalaryForYear(t.team.players || [], yearKey);
+    const projected = currentSalary - salaryOut + salaryIn;
+
+    const capStatus = projected > (capData.cap || 0) ? 'Over Cap' : 'Under Cap';
+    let apronStatus = 'Under 1st Apron';
+    if (projected > (capData.secondApron || 0)) {
+      apronStatus = 'Over 2nd Apron';
+    } else if (projected > (capData.firstApron || 0)) {
+      apronStatus = 'Over 1st Apron';
+    }
+
+    acc[idx] = {
+      in: salaryIn,
+      out: salaryOut,
+      current: currentSalary,
+      projected,
+      capStatus,
+      apronStatus,
+    };
+    return acc;
+  }, {});
+
   return (
     <div className="text-white">
       <h2 className="text-xl font-semibold mb-4">Trade Machine</h2>
@@ -133,6 +169,7 @@ const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
             incomingPlayers={incomingAssets[idx]?.players || []}
             incomingPicks={incomingAssets[idx]?.picks || []}
             yearKey={yearKey}
+            capImpact={capImpactByTeamIndex[idx]}
             tradePartnerName={
               teams.length > 1 ? teams[idx === 0 ? 1 : 0]?.team?.teamName : ''
             }
