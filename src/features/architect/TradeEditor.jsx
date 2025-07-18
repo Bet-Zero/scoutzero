@@ -127,6 +127,56 @@ const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
     window.loadTradeFromJSON = loadTradeFromJSON;
   }
 
+  const exportCurrentTrade = () => {
+    const incoming = teams.reduce((acc, _, idx) => {
+      const players = [];
+      const picks = [];
+      teams.forEach((t, j) => {
+        if (j !== idx) {
+          players.push(...t.sends);
+          picks.push(...t.picksOut);
+        }
+      });
+      acc[idx] = { players, picks };
+      return acc;
+    }, {});
+
+    const exportObj = {
+      teams: teams
+        .filter((t) => t.team)
+        .map((t, idx) => {
+          const receives = incoming[idx] || { players: [], picks: [] };
+          const salaryIn =
+            result?.teamResults?.[idx]?.salaryIn ??
+            getSalaryForYear(receives.players, yearKey);
+          const salaryOut =
+            result?.teamResults?.[idx]?.salaryOut ??
+            getSalaryForYear(t.sends, yearKey);
+          return {
+            teamId: t.team.teamId || t.team.id,
+            sends: t.sends.map((p) => p.player_id || p.id || p.name),
+            picksOut: t.picksOut.map((p) => ({
+              year: p.year,
+              round: p.round,
+              protection: p.protection,
+              isSwap: p.isSwap,
+              note: p.note,
+              via: p.via,
+            })),
+            receives: receives.players.map(
+              (p) => p.player_id || p.id || p.name
+            ),
+            salaryIn,
+            salaryOut,
+          };
+        }),
+      overallLegal: result?.overallLegal ?? null,
+      reason: result?.reason ?? '',
+    };
+
+    console.log(JSON.stringify(exportObj, null, 2));
+  };
+
   const handleValidate = () => {
     if (teams.length < 2 || !teams[0].team || !teams[1].team) return;
     const a = teams[0];
@@ -257,6 +307,12 @@ const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
         className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm"
       >
         Validate Trade
+      </button>
+      <button
+        onClick={exportCurrentTrade}
+        className="mt-2 bg-white/10 hover:bg-white/20 px-3 py-1 rounded text-sm"
+      >
+        Export Trade JSON
       </button>
       {result && (
         <div className="mt-4 text-sm">
