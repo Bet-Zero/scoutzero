@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { formatName } from '@/utils/formatting';
 import { canSignFreeAgent } from '@/utils/architect/freeAgentLogic';
-import { generateContract } from '@/utils/architect/contractUtils';
+import { generateDefaultFreeAgentContract } from '@/utils/architect/contractUtils';
 
 const FreeAgentPool = ({
   freeAgents,
@@ -31,16 +31,18 @@ const FreeAgentPool = ({
       return;
     }
 
-    const contract = generateContract({
-      baseSalary: selectedPlayer.askingSalary,
-      years: 3,
-      raisePct: 0.05,
-      options: {},
-      startYear: currentYear,
-    });
+    const contract = generateDefaultFreeAgentContract(
+      selectedPlayer.askingSalary,
+      currentYear,
+      selectedPlayer.yearsOfService || selectedPlayer.yearsPro || 0
+    );
 
     onSign(selectedPlayer.name, contract);
-    setSignResult({ allowed: true, message: 'Signed successfully!' });
+    setSignResult({
+      allowed: true,
+      message: `Signed ${formatName(selectedPlayer.name)} to 1-year deal`,
+    });
+    setSelectedPlayer(null);
   };
 
   return (
