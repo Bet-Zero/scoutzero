@@ -16,6 +16,7 @@ const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
     { team: null, sends: [], picksOut: [] },
   ]);
   const [result, setResult] = useState(null);
+  const [forceTrade, setForceTrade] = useState(false);
   const yearKey = currentYear;
 
   const setPlayerTrade = (index, player, action, flag = false) => {
@@ -211,7 +212,9 @@ const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
       teamBSalaryIn: getSalary(a.sends),
     };
 
-    setResult({ ...validation, summary });
+    const finalResult = { ...validation, summary };
+    finalResult.legal = forceTrade ? true : validation.overallLegal;
+    setResult(finalResult);
   };
 
   const addLabels = {
@@ -308,6 +311,14 @@ const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
       >
         Validate Trade
       </button>
+      <label className="flex items-center gap-2 mt-2 text-sm">
+        <input
+          type="checkbox"
+          checked={forceTrade}
+          onChange={() => setForceTrade(!forceTrade)}
+        />
+        Force Trade (ignore validation)
+      </label>
       <button
         onClick={exportCurrentTrade}
         className="mt-2 bg-white/10 hover:bg-white/20 px-3 py-1 rounded text-sm"
@@ -317,7 +328,11 @@ const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
       {result && (
         <div className="mt-4 text-sm">
           <strong>
-            {result.legal ? '✅ Trade Approved' : '❌ Trade Rejected'}
+            {forceTrade
+              ? '⚠️ Trade Forced – Not CBA Legal'
+              : result.legal
+                ? '✅ Trade Approved'
+                : '❌ Trade Rejected'}
           </strong>
           <p>{result.reason || 'Trade complies with all rules.'}</p>
           {result.summary && (
