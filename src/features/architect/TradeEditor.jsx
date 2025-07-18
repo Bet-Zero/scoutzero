@@ -87,6 +87,46 @@ const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
     setTeams((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const loadTradeFromJSON = async (json) => {
+    if (!Array.isArray(json)) return;
+    const loaded = [];
+    for (const entry of json) {
+      const data = await loadTeamCapSheet(entry.teamId);
+      if (!data) continue;
+
+      const players = (entry.sends || [])
+        .map((pid) =>
+          (data.players || []).find(
+            (p) => p.player_id === pid || p.id === pid || p.name === pid
+          )
+        )
+        .filter(Boolean);
+
+      const picks = (entry.picksOut || []).map((pick) => {
+        const base = (data.picks || []).find(
+          (p) =>
+            p.year === pick.year &&
+            p.round === pick.round &&
+            (!pick.via || p.via === pick.via)
+        ) || { year: pick.year, round: pick.round, via: pick.via };
+        return { ...base, ...pick };
+      });
+
+      loaded.push({ team: data, sends: players, picksOut: picks });
+    }
+
+    while (loaded.length < 2) {
+      loaded.push({ team: null, sends: [], picksOut: [] });
+    }
+
+    setTeams(loaded);
+  };
+
+  // Expose for development testing
+  if (typeof window !== 'undefined') {
+    window.loadTradeFromJSON = loadTradeFromJSON;
+  }
+
   const handleValidate = () => {
     if (teams.length < 2 || !teams[0].team || !teams[1].team) return;
     const a = teams[0];
