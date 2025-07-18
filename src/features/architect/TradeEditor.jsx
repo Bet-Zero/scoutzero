@@ -107,6 +107,19 @@ const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
     4: 'Add 5th Team',
   };
 
+  const incomingAssets = teams.reduce((acc, _, idx) => {
+    const players = [];
+    const picks = [];
+    teams.forEach((t, j) => {
+      if (j !== idx) {
+        players.push(...t.sends);
+        picks.push(...t.picksOut);
+      }
+    });
+    acc[idx] = { players, picks };
+    return acc;
+  }, {});
+
   return (
     <div className="text-white">
       <h2 className="text-xl font-semibold mb-4">Trade Machine</h2>
@@ -117,6 +130,8 @@ const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
             team={t.team}
             sends={t.sends}
             picks={t.picksOut}
+            incomingPlayers={incomingAssets[idx]?.players || []}
+            incomingPicks={incomingAssets[idx]?.picks || []}
             yearKey={yearKey}
             tradePartnerName={
               teams.length > 1 ? teams[idx === 0 ? 1 : 0]?.team?.teamName : ''
