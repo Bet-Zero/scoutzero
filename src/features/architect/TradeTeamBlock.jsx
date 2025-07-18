@@ -18,6 +18,7 @@ const TradeTeamBlock = ({
   capImpact = null,
   onSetPlayerTrade,
   onTogglePick,
+  onEditPick,
   onSelectTeam,
   onRemove,
 }) => {
@@ -46,6 +47,15 @@ const TradeTeamBlock = ({
         </select>
       </div>
     );
+  }
+
+  // DEV: Placeholder picks
+  if (!team.picks || team.picks.length === 0) {
+    team.picks = [
+      { year: 2026, round: 1 },
+      { year: 2028, round: 2 },
+      { year: 2029, round: 1, via: 'MEM' },
+    ];
   }
 
   return (
@@ -108,6 +118,36 @@ const TradeTeamBlock = ({
               {pick.year} {pick.round} Round{' '}
               {pick.via ? `(via ${pick.via})` : ''}
             </label>
+            {picks.includes(pick) && (
+              <div className="ml-6 mt-1 flex flex-col gap-1 text-xs">
+                <input
+                  type="text"
+                  placeholder="Protection"
+                  value={pick.protection || ''}
+                  onChange={(e) =>
+                    onEditPick(pick, 'protection', e.target.value)
+                  }
+                  className="bg-[#111] text-white p-1 rounded text-xs"
+                />
+                <label className="flex items-center gap-1">
+                  <input
+                    type="checkbox"
+                    checked={!!pick.isSwap}
+                    onChange={(e) =>
+                      onEditPick(pick, 'isSwap', e.target.checked)
+                    }
+                  />
+                  Swap
+                </label>
+                <input
+                  type="text"
+                  placeholder="Note"
+                  value={pick.note || ''}
+                  onChange={(e) => onEditPick(pick, 'note', e.target.value)}
+                  className="bg-[#111] text-white p-1 rounded text-xs"
+                />
+              </div>
+            )}
           </li>
         ))}
       </ul>
