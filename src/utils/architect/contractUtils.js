@@ -65,6 +65,38 @@ export function createMaxContract(
   });
 }
 
+// Convenience wrapper for a standard 1-year free agent deal
+export function generateDefaultFreeAgentContract(
+  baseSalary,
+  startYear = 2025,
+  yearsOfService = 0
+) {
+  const contract = generateContract({
+    baseSalary,
+    years: 1,
+    raisePct: 0,
+    options: {},
+    startYear,
+  });
+
+  const salaryByYear = Object.keys(contract.salaries_by_year).reduce(
+    (acc, yr) => {
+      acc[yr] = contract.salaries_by_year[yr].salary;
+      return acc;
+    },
+    {}
+  );
+
+  return {
+    salaryByYear,
+    options: {},
+    signAndTrade: false,
+    guaranteed: true,
+    isMinimum: baseSalary <= 2200000,
+    yearsOfService,
+  };
+}
+
 // 3. Rookie scale (simplified estimate)
 const rookieScale = {
   1: 12720000,

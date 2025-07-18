@@ -5,8 +5,10 @@ export function canSignFreeAgent(
   year = 2025
 ) {
   const rights = player.birdRights || 'None';
-  const teamSalary = teamCapSheet.activeContracts.reduce((sum, p) => {
-    const sal = p.salaryByYear?.[year] || 0;
+
+  // Safely calculate current salary obligations
+  const teamSalary = (teamCapSheet.players || []).reduce((sum, p) => {
+    const sal = p.contract_clean?.salaries_by_year?.[year]?.salary || 0;
     return sum + sal;
   }, 0);
 
@@ -21,44 +23,46 @@ export function canSignFreeAgent(
     hardCapped &&
     player.askingSalary + teamSalary > (capData.secondApron || 0)
   ) {
-    return { 
-      allowed: false, 
-      reason: "Cannot sign player — team is hard capped at 2nd apron" 
+    return {
+      allowed: false,
+      reason: 'Cannot sign player — team is hard capped at 2nd apron',
     };
   }
 
-  // 2. No rights — must have cap space
+  // 2. No Bird rights — must have cap space
   if (rights === 'None' && overCap) {
-    return { 
-      allowed: false, 
-      reason: "Cannot sign player without Bird rights or cap space" 
+    return {
+      allowed: false,
+      reason: 'Cannot sign player without Bird rights or cap space',
     };
   }
 
   // 3. Non-Bird — can only offer 120% of prior salary or minimum
-  if (rights === 'Non' && player.askingSalary > player.previousSalary * 1.2) {
-    return { 
-      allowed: false, 
-      reason: "Cannot exceed Non-Bird limit (120% of prior salary)" 
+  if (
+    rights === 'Non' &&
+    player.previousSalary &&
+    player.askingSalary > player.previousSalary * 1.2
+  ) {
+    return {
+      allowed: false,
+      reason: 'Cannot exceed Non-Bird limit (120% of prior salary)',
     };
   }
 
-  // 4. Early Bird — capped to 175% of prior salary or 105% of average salary
+  // 4. Early Bird — capped to 175% of prior salary or 105% of avg salary
   if (
     rights === 'Early' &&
+    player.previousSalary &&
     player.askingSalary >
-      Math.max(
-        player.previousSalary * 1.75,
-        (capData.cap || 0) * 0.1 * 1.05
-      )
+      Math.max(player.previousSalary * 1.75, (capData.cap || 0) * 0.105)
   ) {
-    return { 
-      allowed: false, 
-      reason: "Exceeds Early Bird maximum" 
+    return {
+      allowed: false,
+      reason: 'Exceeds Early Bird maximum',
     };
   }
 
-  // 5. Full Bird — can exceed cap with full raises
+  // 5. Full Bird — can exceed cap
   if (rights === 'Full') {
     return { allowed: true };
   }
@@ -68,9 +72,9 @@ export function canSignFreeAgent(
     return { allowed: true };
   }
 
-  // Fallback
-  return { 
-    allowed: false, 
-    reason: "Cap space or exception required to sign this player" 
+  // Default fallback
+  return {
+    allowed: false,
+    reason: 'Cap space or exception required to sign this player',
   };
 }

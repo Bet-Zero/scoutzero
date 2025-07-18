@@ -44,6 +44,9 @@ const GMDashboard = () => {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [newPlanName, setNewPlanName] = useState('');
   const [showContractModal, setShowContractModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState('');
   const { players } = usePlayerData();
 
   const playersMap = useMemo(() => {
@@ -56,55 +59,88 @@ const GMDashboard = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const base = await loadTeamCapSheet(teamId);
-      const planList = await listUserTeamPlans(userId, teamId);
-      setPlans(planList);
-      const first = planList[0]?.id || '';
-      let plan = null;
-      if (first) {
-        const data = await loadNamedTeamPlan(userId, teamId, first);
-        plan = data?.capSheet || data;
-        setSelectedPlan(first);
-      } else {
-        plan = await loadUserTeamPlan(userId, teamId);
+      setIsLoading(true);
+      setError('');
+      try {
+        const base = await loadTeamCapSheet(teamId);
+        const planList = await listUserTeamPlans(userId, teamId);
+        setPlans(planList);
+        const first = planList[0]?.id || '';
+        let plan = null;
+        if (first) {
+          const data = await loadNamedTeamPlan(userId, teamId, first);
+          plan = data?.capSheet || data;
+          setSelectedPlan(first);
+        } else {
+          plan = await loadUserTeamPlan(userId, teamId);
+        }
+        const loadedFA = await loadFreeAgents();
+        if (base) setBaselineCapSheet(base);
+        if (plan) setTeamCapSheet(plan);
+        else if (base) setTeamCapSheet(JSON.parse(JSON.stringify(base)));
+        else console.warn('No saved team found, using blank slate.');
+        if (loadedFA.length > 0) setFreeAgents(loadedFA);
+      } catch (err) {
+        console.error(err);
+        setError('Error loading team data');
+      } finally {
+        setIsLoading(false);
       }
-      const loadedFA = await loadFreeAgents();
-      if (base) setBaselineCapSheet(base);
-      if (plan) setTeamCapSheet(plan);
-      else if (base) setTeamCapSheet(JSON.parse(JSON.stringify(base)));
-      else console.warn('No saved team found, using blank slate.');
-      if (loadedFA.length > 0) setFreeAgents(loadedFA);
     };
     fetchData();
   }, [teamId]);
 
   useEffect(() => {
     if (!teamCapSheet) return;
-    if (viewMode === 'plan') {
-      if (selectedPlan) {
-        saveNamedTeamPlan(userId, teamId, selectedPlan, teamCapSheet);
-      } else {
-        saveUserTeamPlan(userId, teamId, teamCapSheet);
+    const savePlan = async () => {
+      try {
+        if (viewMode === 'plan') {
+          if (selectedPlan) {
+            await saveNamedTeamPlan(userId, teamId, selectedPlan, teamCapSheet);
+          } else {
+            await saveUserTeamPlan(userId, teamId, teamCapSheet);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to save plan', err);
       }
-    }
+    };
+    savePlan();
   }, [teamCapSheet, teamId, userId, selectedPlan, viewMode]);
 
   useEffect(() => {
-    if (freeAgents.length > 0) saveFreeAgents(freeAgents);
+    if (freeAgents.length === 0) return;
+    const saveAgents = async () => {
+      try {
+        await saveFreeAgents(freeAgents);
+      } catch (err) {
+        console.error('Failed to save free agents', err);
+      }
+    };
+    saveAgents();
   }, [freeAgents]);
 
   useEffect(() => {
     const loadPlan = async () => {
-      if (viewMode === 'baseline') {
-        if (baselineCapSheet)
+      setIsLoading(true);
+      setError('');
+      try {
+        if (viewMode === 'baseline') {
+          if (baselineCapSheet)
+            setTeamCapSheet(JSON.parse(JSON.stringify(baselineCapSheet)));
+          return;
+        }
+        if (selectedPlan) {
+          const data = await loadNamedTeamPlan(userId, teamId, selectedPlan);
+          if (data?.capSheet) setTeamCapSheet(data.capSheet);
+        } else if (baselineCapSheet) {
           setTeamCapSheet(JSON.parse(JSON.stringify(baselineCapSheet)));
-        return;
-      }
-      if (selectedPlan) {
-        const data = await loadNamedTeamPlan(userId, teamId, selectedPlan);
-        if (data?.capSheet) setTeamCapSheet(data.capSheet);
-      } else if (baselineCapSheet) {
-        setTeamCapSheet(JSON.parse(JSON.stringify(baselineCapSheet)));
+        }
+      } catch (err) {
+        console.error(err);
+        setError('Error loading plan');
+      } finally {
+        setIsLoading(false);
       }
     };
     loadPlan();
@@ -168,13 +204,16 @@ const GMDashboard = () => {
     setOffseasonSummary(null);
   };
 
-  if (!teamCapSheet) return <p>Loading GM Dashboard...</p>;
+  if (isLoading) return <p>Loading GM Dashboard...</p>;
+  if (!teamCapSheet) return <p>No team data</p>;
 
   return (
     <div className="gm-dashboard px-6 py-4 text-white min-h-screen bg-[#0d0d0d]">
       <h1 className="text-3xl font-bold mb-6 border-b border-white/10 pb-2">
         HoopZero Architect – GM Dashboard
       </h1>
+      {error && <p className="text-red-500 mb-2">{error}</p>}
+      {isSaving && <p className="text-sm mb-2">Saving...</p>}
 
       <div className="flex items-center gap-2 mb-4">
         <select
@@ -417,17 +456,26 @@ const GMDashboard = () => {
           onCancel={() => setShowSaveModal(false)}
           onSave={async () => {
             if (!newPlanName.trim()) return;
-            await saveNamedTeamPlan(
-              userId,
-              teamId,
-              newPlanName.trim(),
-              teamCapSheet
-            );
-            const updated = await listUserTeamPlans(userId, teamId);
-            setPlans(updated);
-            setSelectedPlan(newPlanName.trim());
-            setNewPlanName('');
-            setShowSaveModal(false);
+            setIsSaving(true);
+            setError('');
+            try {
+              await saveNamedTeamPlan(
+                userId,
+                teamId,
+                newPlanName.trim(),
+                teamCapSheet
+              );
+              const updated = await listUserTeamPlans(userId, teamId);
+              setPlans(updated);
+              setSelectedPlan(newPlanName.trim());
+              setNewPlanName('');
+              setShowSaveModal(false);
+            } catch (err) {
+              console.error('Failed to save plan', err);
+              setError('Failed to save plan');
+            } finally {
+              setIsSaving(false);
+            }
           }}
         />
       )}
