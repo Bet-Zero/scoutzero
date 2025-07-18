@@ -1,11 +1,24 @@
 import React from 'react';
+import capProjections from '@/utils/architect/capProjections';
 
 const ExceptionTracker = ({ teamCapSheet, currentYear }) => {
-  const { mle, tradeExceptions = [] } = teamCapSheet;
+  const {
+    mle,
+    tpMle = {},
+    bae = {},
+    tradeExceptions = [],
+    hardCapped,
+  } = teamCapSheet;
+  const yearKey = `${currentYear}-${String((currentYear + 1) % 100).padStart(
+    2,
+    '0'
+  )}`;
+  const capData = capProjections[yearKey] || {};
   const today = new Date();
-  
-  const daysUntil = (exp) => Math.floor((new Date(exp) - today) / (1000 * 60 * 60 * 24));
-  
+
+  const daysUntil = (exp) =>
+    Math.floor((new Date(exp) - today) / (1000 * 60 * 60 * 24));
+
   const getTPEStatusClass = (exp) => {
     const days = daysUntil(exp);
     if (days <= 0) return 'expired';
@@ -13,20 +26,12 @@ const ExceptionTracker = ({ teamCapSheet, currentYear }) => {
     return 'active';
   };
 
-  const renderMLE = () => {
-    if (!mle) return <p>No MLE available.</p>;
-    const remaining = mle.amount - (mle.used || 0);
-    return (
-      <div className="text-sm">
-        <strong title="MLE: Mid-Level Exception (can be used to sign free agents above the minimum)">
-          MLE:
-        </strong>
-        <br />
-        Total: ${mle.amount.toLocaleString()}<br />
-        Used: ${mle.used?.toLocaleString() || 0}<br />
-        Remaining: ${remaining.toLocaleString()}
-      </div>
-    );
+  const formatMoney = (amount) => `$${amount.toLocaleString()}`;
+
+  const getRemaining = (exception, defaultAmount = 0) => {
+    const amount = exception?.amount ?? defaultAmount;
+    const used = exception?.used || 0;
+    return Math.max(0, amount - used);
   };
 
   const renderTPEs = () => {
@@ -41,7 +46,11 @@ const ExceptionTracker = ({ teamCapSheet, currentYear }) => {
               <strong>${tpe.amount.toLocaleString()}</strong>
               &nbsp;– expires {tpe.expires}
               {tpe.createdFrom ? ` (from ${tpe.createdFrom})` : ''}
-              {days <= 0 ? ' – Expired' : days <= 30 ? ` – ${days} days left` : ''}
+              {days <= 0
+                ? ' – Expired'
+                : days <= 30
+                  ? ` – ${days} days left`
+                  : ''}
             </li>
           );
         })}
@@ -49,15 +58,24 @@ const ExceptionTracker = ({ teamCapSheet, currentYear }) => {
     );
   };
 
+  const mleRemaining = getRemaining(mle, capData.fullMLE);
+  const tpRemaining = getRemaining(tpMle, capData.taxpayerMLE);
+  const baeRemaining = getRemaining(bae, capData.bae);
+
   return (
     <div className="text-white">
       <h3 className="text-lg font-semibold mb-2">Exception Tracker</h3>
-      {renderMLE()}
       <div className="mt-3">
         <strong title="TPEs: Created when trading a player without taking back matching salary. Last 1 year.">
           Trade Exceptions:
         </strong>
         {renderTPEs()}
+      </div>
+      <div className="mt-3 space-y-1 text-sm">
+        <div>MLE: {formatMoney(mleRemaining)}</div>
+        <div>TPMLE: {formatMoney(tpRemaining)}</div>
+        <div>BAE: {formatMoney(baeRemaining)}</div>
+        {hardCapped && <div className="text-red-400">Team is hard capped</div>}
       </div>
     </div>
   );

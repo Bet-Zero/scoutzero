@@ -12,7 +12,8 @@ const TradeTeamBlock = ({
   sends,
   picks,
   yearKey,
-  onTogglePlayer,
+  tradePartnerName,
+  onSetPlayerTrade,
   onTogglePick,
   onSelectTeam,
   onRemove,
@@ -58,19 +59,24 @@ const TradeTeamBlock = ({
       <strong>Players:</strong>
       <ul className="mb-2">
         {team.players.map((p) => (
-          <li key={p.name} className="text-sm">
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={sends.includes(p)}
-                onChange={() => onTogglePlayer(p)}
-              />
+          <li key={p.name} className="text-sm flex items-center gap-2 mb-1">
+            <select
+              className="bg-[#111] text-white text-xs rounded px-1 py-0.5"
+              value={sends.includes(p) ? 'trade' : 'keep'}
+              onChange={(e) => onSetPlayerTrade(p, e.target.value)}
+            >
+              <option value="keep">Keep</option>
+              <option value="trade">
+                Trade to {tradePartnerName || 'other team'}
+              </option>
+            </select>
+            <span>
               {p.name} – $
               {p.contract_clean?.salaries_by_year?.[
                 yearKey
               ]?.salary?.toLocaleString() || 0}
               {p.signAndTrade && ' (Sign & Trade)'}
-            </label>
+            </span>
           </li>
         ))}
       </ul>
