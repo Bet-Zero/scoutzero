@@ -173,6 +173,7 @@ const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
         }),
       overallLegal: result?.overallLegal ?? null,
       reason: result?.reason ?? '',
+      teamSummaries: result?.summaryByTeamIndex ?? null,
     };
 
     console.log(JSON.stringify(exportObj, null, 2));
@@ -180,39 +181,69 @@ const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
 
   const handleValidate = () => {
     if (teams.length < 2 || !teams[0].team || !teams[1].team) return;
-    const a = teams[0];
-    const b = teams[1];
+
+    const preparedTeams = teams
+      .map((t) =>
+        t.team
+          ? {
+              team: t.team,
+              sends: t.sends.map((p) => ({ ...p, signAndTrade: !!p.signAndTrade })),
+              picksOut: t.picksOut,
+              hardCapped: t.team.hardCapped,
+            }
+          : null
+      )
+      .filter(Boolean);
+
     const validation = validateTrade({
-      teamASends: a.sends.map((p) => ({
-        ...p,
-        signAndTrade: !!p.signAndTrade,
-      })),
-      teamBSends: b.sends.map((p) => ({
-        ...p,
-        signAndTrade: !!p.signAndTrade,
-      })),
-      teamAPicksOut: a.picksOut,
-      teamBPicksOut: b.picksOut,
+      teams: preparedTeams,
       capProjections,
       currentYear,
-      teamAHardCapped: a.team.hardCapped,
-      teamBHardCapped: b.team.hardCapped,
-      teamA: a.team,
-      teamB: b.team,
     });
 
     const getSalary = (players) => getSalaryForYear(players, yearKey);
 
-    const summary = {
-      teamAOut: a.sends.map((p) => p.name),
-      teamBOut: b.sends.map((p) => p.name),
-      teamASalaryOut: getSalary(a.sends),
-      teamBSalaryOut: getSalary(b.sends),
-      teamASalaryIn: getSalary(b.sends),
-      teamBSalaryIn: getSalary(a.sends),
-    };
+    let summary = null;
+    if (preparedTeams.length === 2) {
+      const a = preparedTeams[0];
+      const b = preparedTeams[1];
+      summary = {
+        teamAOut: a.sends.map((p) => p.name),
+        teamBOut: b.sends.map((p) => p.name),
+        teamASalaryOut: getSalary(a.sends),
+        teamBSalaryOut: getSalary(b.sends),
+        teamASalaryIn: getSalary(b.sends),
+        teamBSalaryIn: getSalary(a.sends),
+      };
+    }
 
-    const finalResult = { ...validation, summary };
+    const formatPick = (p) =>
+      `${p.year} ${p.round} Round${p.via ? ` (via ${p.via})` : ''}`;
+
+    const summaryByTeamIndex = teams.map((t, idx) => {
+      if (!t.team) return null;
+      const incomingPlayers = [];
+      const incomingPicks = [];
+      teams.forEach((ot, j) => {
+        if (j !== idx) {
+          incomingPlayers.push(...ot.sends);
+          incomingPicks.push(...ot.picksOut);
+        }
+      });
+      const salaryOut = getSalary(t.sends);
+      const salaryIn = getSalary(incomingPlayers);
+      return {
+        teamName: t.team.teamName,
+        playersOut: t.sends.map((p) => p.name),
+        playersIn: incomingPlayers.map((p) => p.name),
+        picksOut: t.picksOut.map(formatPick),
+        picksIn: incomingPicks.map(formatPick),
+        rosterDelta: incomingPlayers.length - t.sends.length,
+        capDelta: salaryIn - salaryOut,
+      };
+    });
+
+    const finalResult = { ...validation, summary, summaryByTeamIndex };
     finalResult.legal = forceTrade ? true : validation.overallLegal;
     setResult(finalResult);
   };
@@ -355,6 +386,28 @@ const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
                 {result.summary.teamBSalaryOut.toLocaleString()} | Salary In: $
                 {result.summary.teamBSalaryIn.toLocaleString()}
               </p>
+            </div>
+          )}
+          {result.summaryByTeamIndex && (
+            <div className="mt-4 space-y-2">
+              {result.summaryByTeamIndex
+                .filter(Boolean)
+                .map((s) => (
+                  <div key={s.teamName}>
+                    <strong>{s.teamName} Summary:</strong>
+                    <ul className="ml-4 list-disc text-sm">
+                      <li>Gained: {s.playersIn.join(', ') || 'None'}</li>
+                      <li>Lost: {s.playersOut.join(', ') || 'None'}</li>
+                      <li>Picks In: {s.picksIn.join(', ') || 'None'}</li>
+                      <li>Picks Out: {s.picksOut.join(', ') || 'None'}</li>
+                      <li>
+                        Roster Change: {s.rosterDelta >= 0 ? '+' : ''}
+                        {s.rosterDelta}
+                      </li>
+                      <li>Cap Change: ${s.capDelta.toLocaleString()}</li>
+                    </ul>
+                  </div>
+                ))}
             </div>
           )}
         </div>
