@@ -13,13 +13,14 @@ const FreeAgentPool = ({
 }) => {
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [signResult, setSignResult] = useState(null);
+  const [isSigning, setIsSigning] = useState(false);
 
   const handleSelect = (player) => {
     setSelectedPlayer(player);
     setSignResult(null);
   };
 
-  const handleSign = () => {
+  const handleSign = async () => {
     const result = canSignFreeAgent(
       selectedPlayer,
       teamCapSheet,
@@ -38,9 +39,16 @@ const FreeAgentPool = ({
       options: {},
       startYear: currentYear,
     });
-
-    onSign(selectedPlayer.name, contract);
-    setSignResult({ allowed: true, message: 'Signed successfully!' });
+    setIsSigning(true);
+    try {
+      await onSign(selectedPlayer.name, contract);
+      setSignResult({ allowed: true, message: 'Signed successfully!' });
+    } catch (err) {
+      console.error('Failed to sign player', err);
+      setSignResult({ allowed: false, reason: 'Failed to sign player' });
+    } finally {
+      setIsSigning(false);
+    }
   };
 
   return (
@@ -78,6 +86,9 @@ const FreeAgentPool = ({
           >
             Sign Player
           </button>
+          {isSigning && (
+            <p className="text-sm mt-1">Signing...</p>
+          )}
         </div>
       )}
 

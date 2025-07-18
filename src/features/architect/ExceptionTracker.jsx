@@ -26,6 +26,12 @@ const ExceptionTracker = ({ teamCapSheet, currentYear }) => {
     return 'active';
   };
 
+  const statusClasses = {
+    expired: 'text-red-400',
+    expiring: 'text-yellow-300',
+    active: 'text-green-400',
+  };
+
   const formatMoney = (amount) => `$${amount.toLocaleString()}`;
 
   const getRemaining = (exception, defaultAmount = 0) => {
@@ -39,10 +45,10 @@ const ExceptionTracker = ({ teamCapSheet, currentYear }) => {
     return (
       <ul className="mt-1 space-y-1 text-sm">
         {tradeExceptions.map((tpe, idx) => {
-          const statusClass = getTPEStatusClass(tpe.expires);
+          const statusKey = getTPEStatusClass(tpe.expires);
           const days = daysUntil(tpe.expires);
           return (
-            <li key={idx} className={statusClass}>
+            <li key={idx} className={statusClasses[statusKey]}>
               <strong>${tpe.amount.toLocaleString()}</strong>
               &nbsp;– expires {tpe.expires}
               {tpe.createdFrom ? ` (from ${tpe.createdFrom})` : ''}
