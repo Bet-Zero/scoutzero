@@ -37,6 +37,20 @@ const CapSheet = ({
     return salary;
   };
 
+  // Helper to aggregate cap hits for a group of players
+  const calculateCapHitTotal = (players, yearKey) =>
+    players.reduce((sum, p) => sum + getCapHit(p, yearKey), 0);
+
+  // Helper to sum cap hold amounts for a group of players
+  const calculateCapHoldTotal = (players) =>
+    players.reduce((sum, p) => {
+      const amt =
+        typeof p.cap_hold === 'number' ? p.cap_hold : p.cap_hold?.amount || 0;
+      const isActive =
+        typeof p.cap_hold === 'object' ? p.cap_hold?.active : amt > 0;
+      return isActive ? sum + amt : sum;
+    }, 0);
+
   const renderNotes = (player, yearKey) => {
     const option =
       player.contract_clean?.salaries_by_year?.[yearKey]?.option || null;
@@ -90,7 +104,10 @@ const CapSheet = ({
       return bAmt - aAmt;
     });
 
-  let totalCapHit = 0;
+  const playersCapTotal = calculateCapHitTotal(filteredPlayers, selectedYear);
+  const capHoldsTotal = calculateCapHoldTotal(capHoldPlayers);
+  // Cap totals are precomputed to avoid any mutation during render
+  const totalCapHit = playersCapTotal + (showCapHolds ? capHoldsTotal : 0);
 
   return (
     <div className="text-white">
@@ -138,7 +155,6 @@ const CapSheet = ({
               player.contract_clean?.salaries_by_year?.[selectedYear]?.salary ||
               0;
             const capHit = getCapHit(player, selectedYear);
-            totalCapHit += capHit;
 
             const age = player.age ?? '-';
             const position = player.position ?? '-';
@@ -198,7 +214,7 @@ const CapSheet = ({
                       : p.cap_hold?.amount || 0;
                   const reason =
                     typeof p.cap_hold === 'object' ? p.cap_hold?.reason : '';
-                  totalCapHit += amt;
+
                   return (
                     <tr key={idx} className="odd:bg-[#171717]">
                       <td className="p-2">
