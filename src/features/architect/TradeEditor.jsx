@@ -48,6 +48,17 @@ const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
     });
   };
 
+  const updatePickField = (index, pick, field, value) => {
+    setTeams((prev) => {
+      const copy = [...prev];
+      const pickObj = copy[index].picksOut.find((p) => p === pick);
+      if (pickObj) {
+        pickObj[field] = value;
+      }
+      return copy;
+    });
+  };
+
   const selectTeam = async (index, teamId) => {
     if (!teamId) {
       setTeams((prev) => {
@@ -185,6 +196,9 @@ const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
             }
             onSetPlayerTrade={(p, action) => setPlayerTrade(idx, p, action)}
             onTogglePick={(p) => togglePick(idx, p)}
+            onEditPick={(p, field, value) =>
+              updatePickField(idx, p, field, value)
+            }
             onSelectTeam={(teamId) => selectTeam(idx, teamId)}
             onRemove={() => removeTeam(idx)}
           />
