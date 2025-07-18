@@ -13,6 +13,8 @@ const TradeTeamBlock = ({
   picks,
   yearKey,
   tradePartnerName,
+  incomingPlayers = [],
+  incomingPicks = [],
   onSetPlayerTrade,
   onTogglePick,
   onSelectTeam,
@@ -95,6 +97,30 @@ const TradeTeamBlock = ({
             </label>
           </li>
         ))}
+      </ul>
+      <strong>Incoming Players:</strong>
+      <ul className="mb-2">
+        {incomingPlayers.length > 0 ? (
+          incomingPlayers.map((p) => (
+            <li key={p.name} className="text-sm">
+              {p.name}
+            </li>
+          ))
+        ) : (
+          <li className="text-sm">None</li>
+        )}
+      </ul>
+      <strong>Incoming Picks:</strong>
+      <ul className="mb-2">
+        {incomingPicks.length > 0 ? (
+          incomingPicks.map((p, i) => (
+            <li key={`${p.year}-${p.round}-${i}`} className="text-sm">
+              {p.year} {p.round} Round
+            </li>
+          ))
+        ) : (
+          <li className="text-sm">None</li>
+        )}
       </ul>
       <p className="text-sm">
         <strong>Total Salary:</strong> $
