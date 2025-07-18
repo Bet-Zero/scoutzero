@@ -1,5 +1,5 @@
-import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { db } from './firebaseConfig';
+import { doc, setDoc, getDoc, getDocs, collection } from 'firebase/firestore';
+import { db } from './firebaseConfig.js';
 
 // 🔁 Save a single player to Firestore
 export const savePlayerData = async (playerId, playerData) => {
@@ -27,5 +27,23 @@ export const loadPlayerData = async (playerId) => {
   } catch (error) {
     console.error('❌ Error loading player:', error);
     return null;
+  }
+};
+
+// 📤 Load all players from Firebase
+export const getAllPlayers = async () => {
+  try {
+    const snapshot = await getDocs(collection(db, 'players'));
+    const players = {};
+    snapshot.forEach((doc) => {
+      players[doc.id] = doc.data();
+    });
+    console.log(
+      `📤 Loaded ${Object.keys(players).length} players from Firebase`
+    );
+    return players;
+  } catch (error) {
+    console.error('❌ Error loading players:', error);
+    return {};
   }
 };

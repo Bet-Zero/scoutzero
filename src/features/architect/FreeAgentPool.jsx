@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { formatName } from '@/utils/formatting';
 import { canSignFreeAgent } from '@/utils/architect/freeAgentLogic';
-import { generateContract } from '@/utils/architect/contractUtils';
+import { generateDefaultFreeAgentContract } from '@/utils/architect/contractUtils';
 
 const FreeAgentPool = ({
   freeAgents,
@@ -13,13 +13,14 @@ const FreeAgentPool = ({
 }) => {
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [signResult, setSignResult] = useState(null);
+  const [isSigning, setIsSigning] = useState(false);
 
   const handleSelect = (player) => {
     setSelectedPlayer(player);
     setSignResult(null);
   };
 
-  const handleSign = () => {
+  const handleSign = async () => {
     const result = canSignFreeAgent(
       selectedPlayer,
       teamCapSheet,
@@ -31,16 +32,26 @@ const FreeAgentPool = ({
       return;
     }
 
-    const contract = generateContract({
-      baseSalary: selectedPlayer.askingSalary,
-      years: 3,
-      raisePct: 0.05,
-      options: {},
-      startYear: currentYear,
-    });
+    const contract = generateDefaultFreeAgentContract(
+      selectedPlayer.askingSalary ?? 0,
+      currentYear,
+      selectedPlayer.yearsOfService || selectedPlayer.yearsPro || 0
+    );
 
-    onSign(selectedPlayer.name, contract);
-    setSignResult({ allowed: true, message: 'Signed successfully!' });
+    setIsSigning(true);
+    try {
+      await onSign(selectedPlayer.name, contract);
+      setSignResult({
+        allowed: true,
+        message: `Signed ${formatName(selectedPlayer.name)} to 1-year deal`,
+      });
+      setSelectedPlayer(null);
+    } catch (err) {
+      console.error('Failed to sign player', err);
+      setSignResult({ allowed: false, reason: 'Failed to sign player' });
+    } finally {
+      setIsSigning(false);
+    }
   };
 
   return (
@@ -53,8 +64,11 @@ const FreeAgentPool = ({
               onClick={() => handleSelect(p)}
               className="text-blue-400 hover:underline text-sm"
             >
-              {playersMap[p.name]?.display_name || formatName(p.name)} – Asking:
-              ${p.askingSalary.toLocaleString()} – Rights: {p.birdRights}
+              {playersMap[p.name]?.display_name || formatName(p.name)} – Asking:{' '}
+              {p.askingSalary != null
+                ? `$${p.askingSalary.toLocaleString()}`
+                : 'N/A'}{' '}
+              – Rights: {p.birdRights}
             </button>
           </li>
         ))}
@@ -67,7 +81,10 @@ const FreeAgentPool = ({
               formatName(selectedPlayer.name)}
           </h3>
           <p className="text-sm mb-1">
-            Asking: ${selectedPlayer.askingSalary.toLocaleString()}
+            Asking:{' '}
+            {selectedPlayer.askingSalary != null
+              ? `$${selectedPlayer.askingSalary.toLocaleString()}`
+              : 'N/A'}
           </p>
           <p className="text-sm mb-3">
             Bird Rights: {selectedPlayer.birdRights}
@@ -75,8 +92,9 @@ const FreeAgentPool = ({
           <button
             onClick={handleSign}
             className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm"
+            disabled={isSigning}
           >
-            Sign Player
+            {isSigning ? 'Signing...' : 'Sign Player'}
           </button>
         </div>
       )}
