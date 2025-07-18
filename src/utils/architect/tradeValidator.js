@@ -1,4 +1,5 @@
 export function validateTrade({
+  teams,
   teamASends,
   teamBSends,
   teamAPicksOut,
@@ -10,6 +11,24 @@ export function validateTrade({
   teamA,
   teamB,
 }) {
+  // Support old two-team signature by converting to teams array
+  if (!Array.isArray(teams)) {
+    teams = [
+      {
+        team: teamA,
+        sends: teamASends || [],
+        picksOut: teamAPicksOut || [],
+        hardCapped: teamAHardCapped,
+      },
+      {
+        team: teamB,
+        sends: teamBSends || [],
+        picksOut: teamBPicksOut || [],
+        hardCapped: teamBHardCapped,
+      },
+    ].filter((t) => t.team);
+  }
+
   const yearKey = currentYear;
   const key = `${currentYear}-${String((currentYear + 1) % 100).padStart(2, '0')}`;
   const capSettings = capProjections[key] || {};
@@ -21,74 +40,64 @@ export function validateTrade({
       0
     );
 
-  const teamASalaryOut = getSalary(teamASends);
-  const teamBSalaryOut = getSalary(teamBSends);
-  const teamASalaryIn = teamBSalaryOut;
-  const teamBSalaryIn = teamASalaryOut;
+  // Precompute outgoing salary and roster counts
+  const salaryOut = teams.map((t) => getSalary(t.sends || []));
+  const rosterOut = teams.map((t) => (t.sends || []).length);
 
-  const teamAResult = evaluateTeam({
-    team: teamA,
-    salaryOut: teamASalaryOut,
-    salaryIn: teamASalaryIn,
-    rosterOut: teamASends.length,
-    rosterIn: teamBSends.length,
-    hardCapped: teamAHardCapped,
-    capSettings,
-  });
+  // Incoming is sum of all other teams' outgoing
+  const salaryIn = teams.map((_, idx) =>
+    salaryOut.reduce((sum, val, j) => (j === idx ? sum : sum + val), 0)
+  );
+  const rosterIn = teams.map((_, idx) =>
+    teams.reduce(
+      (sum, t, j) => (j === idx ? sum : sum + (t.sends || []).length),
+      0
+    )
+  );
 
-  const teamBResult = evaluateTeam({
-    team: teamB,
-    salaryOut: teamBSalaryOut,
-    salaryIn: teamBSalaryIn,
-    rosterOut: teamBSends.length,
-    rosterIn: teamASends.length,
-    hardCapped: teamBHardCapped,
-    capSettings,
-  });
+  const teamResults = teams.map((t, idx) =>
+    evaluateTeam({
+      team: t.team,
+      salaryOut: salaryOut[idx],
+      salaryIn: salaryIn[idx],
+      rosterOut: rosterOut[idx],
+      rosterIn: rosterIn[idx],
+      hardCapped: t.hardCapped ?? t.team?.hardCapped,
+      capSettings,
+    })
+  );
 
   const firstApron = capSettings.firstApron || Infinity;
 
-  if (teamASends.some((p) => p.signAndTrade)) {
-    if (teamASends.length > 1) {
-      teamAResult.legal = false;
-      teamAResult.reason =
-        'Sign-and-trade player must be traded alone, and receiving team cannot exceed first apron.';
+  teams.forEach((t, idx) => {
+    if (t.sends?.some((p) => p.signAndTrade)) {
+      if ((t.sends || []).length > 1) {
+        teamResults[idx].legal = false;
+        teamResults[idx].reason =
+          'Sign-and-trade player must be traded alone, and receiving team cannot exceed first apron.';
+      }
+      teamResults.forEach((res, j) => {
+        if (j !== idx && res.projectedSalary > firstApron) {
+          res.legal = false;
+          res.reason =
+            'Sign-and-trade player must be traded alone, and receiving team cannot exceed first apron.';
+        }
+      });
     }
-    if (teamBResult.projectedSalary > firstApron) {
-      teamBResult.legal = false;
-      teamBResult.reason =
-        'Sign-and-trade player must be traded alone, and receiving team cannot exceed first apron.';
-    }
-  }
+  });
 
-  if (teamBSends.some((p) => p.signAndTrade)) {
-    if (teamBSends.length > 1) {
-      teamBResult.legal = false;
-      teamBResult.reason =
-        'Sign-and-trade player must be traded alone, and receiving team cannot exceed first apron.';
-    }
-    if (teamAResult.projectedSalary > firstApron) {
-      teamAResult.legal = false;
-      teamAResult.reason =
-        'Sign-and-trade player must be traded alone, and receiving team cannot exceed first apron.';
-    }
-  }
-
-  const teamResults = [teamAResult, teamBResult];
   let overallLegal = teamResults.every((r) => r.legal);
   let reason = 'All teams comply with trade rules.';
 
   if (overallLegal) {
-    if (hasStepienViolation(teamAPicksOut)) {
-      overallLegal = false;
-      teamResults[0].legal = false;
-      teamResults[0].reason = 'Violates Stepien Rule';
-      reason = 'Team A violates Stepien Rule (trading consecutive future 1sts)';
-    } else if (hasStepienViolation(teamBPicksOut)) {
-      overallLegal = false;
-      teamResults[1].legal = false;
-      teamResults[1].reason = 'Violates Stepien Rule';
-      reason = 'Team B violates Stepien Rule (trading consecutive future 1sts)';
+    for (let i = 0; i < teams.length; i++) {
+      if (hasStepienViolation(teams[i].picksOut || [])) {
+        overallLegal = false;
+        teamResults[i].legal = false;
+        teamResults[i].reason = 'Violates Stepien Rule';
+        reason = `Team ${i + 1} violates Stepien Rule (trading consecutive future 1sts)`;
+        break;
+      }
     }
   } else {
     reason = teamResults
