@@ -49,27 +49,30 @@ const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
 
       {/* Team Cards */}
       <div className="flex flex-col md:flex-row flex-wrap gap-6">
-        {teams.map((t, idx) => (
-          <TradeTeamCard
-            key={idx}
-            team={t.team}
-            sends={t.sends}
-            picks={t.picksOut}
-            incomingPlayers={incomingAssets[idx]?.players || []}
-            incomingPicks={incomingAssets[idx]?.picks || []}
-            yearKey={yearKey}
-            tradePartnerName={
-              teams.length > 1 ? teams[idx === 0 ? 1 : 0]?.team?.teamName : ''
-            }
-            onSetPlayerTrade={(p, action) => setPlayerTrade(idx, p, action)}
-            onTogglePick={(p) => togglePick(idx, p)}
-            onEditPick={(p, field, value) =>
-              updatePickField(idx, p, field, value)
-            }
-            onSelectTeam={(teamId) => selectTeam(idx, teamId)}
-            onRemove={() => removeTeam(idx)}
-          />
-        ))}
+        {teams.map((t, idx) => {
+          const otherNames = teams
+            .filter((_, j) => j !== idx && teams[j].team)
+            .map((tm) => tm.team.teamName);
+          return (
+            <TradeTeamCard
+              key={idx}
+              team={t.team}
+              sends={t.sends}
+              picks={t.picksOut}
+              incomingPlayers={incomingAssets[idx]?.players || []}
+              incomingPicks={incomingAssets[idx]?.picks || []}
+              yearKey={yearKey}
+              otherTeamNames={otherNames}
+              onSetPlayerTrade={(p, action) => setPlayerTrade(idx, p, action)}
+              onTogglePick={(p) => togglePick(idx, p)}
+              onEditPick={(p, field, value) =>
+                updatePickField(idx, p, field, value)
+              }
+              onSelectTeam={(teamId) => selectTeam(idx, teamId)}
+              onRemove={() => removeTeam(idx)}
+            />
+          );
+        })}
       </div>
 
       {/* Controls */}
