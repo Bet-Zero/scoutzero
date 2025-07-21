@@ -2,11 +2,15 @@
 
 import React from 'react';
 import { TeamList } from '@/constants/teamList';
+import TeamLogo from '@/components/shared/TeamLogo';
+import { getTeamColors } from '@/utils/formatting';
 import {
   getSalaryForYear,
   areSamePick,
   formatPick,
+  formatCurrency,
 } from '@/utils/architect/tradeHelpers';
+import { formatSalary } from '@/utils/formatting';
 
 const TradeTeamCard = ({
   team,
@@ -51,9 +55,13 @@ const TradeTeamCard = ({
   }
 
   const outgoingSalary = getSalaryForYear(sends, yearKey);
+  const { primary } = getTeamColors(team.teamName);
 
   return (
-    <div className="flex-1 border border-white/10 rounded-lg p-4 bg-[#111] relative space-y-4 shadow-inner">
+    <div
+      className="flex-1 rounded-lg p-4 bg-[#111] relative space-y-4 shadow-inner border"
+      style={{ borderColor: primary }}
+    >
       {onRemove && (
         <button
           onClick={onRemove}
@@ -64,13 +72,16 @@ const TradeTeamCard = ({
       )}
 
       {/* Team Header */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">{team.teamName}</h3>
+      <div className="flex items-center justify-between border-b border-white/10 pb-2">
+        <div className="flex items-center gap-2">
+          <TeamLogo teamAbbr={team.teamName} className="w-8 h-8" />
+          <h3 className="text-lg font-semibold" style={{ color: primary }}>
+            {team.teamName}
+          </h3>
+        </div>
         <div className="text-sm text-white/60">
           Outgoing Salary:{' '}
-          <span className="font-medium">
-            ${outgoingSalary.toLocaleString()}
-          </span>
+          <span className="font-medium">{formatCurrency(outgoingSalary)}</span>
         </div>
       </div>
 
@@ -80,15 +91,20 @@ const TradeTeamCard = ({
         <div className="space-y-1">
           {team.players?.map((p) => {
             const included = sends.includes(p);
+            const salary =
+              p.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0;
             return (
               <div
                 key={p.id || p.name}
-                className={`flex items-center justify-between px-3 py-1 rounded-md text-sm ${
+                className={`flex items-center px-3 py-1 rounded-md text-sm transition-colors ${
                   included ? 'bg-green-800/40' : 'bg-white/10'
                 }`}
               >
-                <span>{p.name}</span>
-                <div className="flex items-center gap-2">
+                <span className="flex-1">{p.name}</span>
+                <span className="w-20 text-right text-white/70">
+                  {formatSalary(salary)}
+                </span>
+                <div className="flex items-center gap-2 ml-3">
                   <button
                     onClick={() =>
                       onSetPlayerTrade(p, included ? 'keep' : 'trade')
@@ -128,7 +144,7 @@ const TradeTeamCard = ({
             return (
               <div
                 key={`${p.year}-${p.round}-${p.via || ''}`}
-                className={`flex items-start justify-between px-3 py-1 rounded-md text-xs ${
+                className={`flex items-start justify-between px-3 py-1 rounded-md text-xs transition-colors ${
                   exists ? 'bg-purple-800/30' : 'bg-white/10'
                 }`}
               >
@@ -170,7 +186,10 @@ const TradeTeamCard = ({
 
       {/* Incoming Summary */}
       {(incomingPlayers.length > 0 || incomingPicks.length > 0) && (
-        <div className="bg-[#222] border border-white/10 rounded p-3 text-sm">
+        <div
+          className="bg-[#222] border rounded p-3 text-sm"
+          style={{ borderColor: primary }}
+        >
           <h4 className="text-white/70 text-sm mb-2">Incoming</h4>
           <div className="text-white/90">
             {incomingPlayers.map((p) => (
