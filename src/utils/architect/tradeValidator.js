@@ -55,8 +55,9 @@ export function validateTrade({
     )
   );
 
-  const teamResults = teams.map((t, idx) =>
-    evaluateTeam({
+  const teamResults = teams.map((t, idx) => ({
+    teamName: t.team.teamName,
+    ...evaluateTeam({
       team: t.team,
       salaryOut: salaryOut[idx],
       salaryIn: salaryIn[idx],
@@ -64,8 +65,8 @@ export function validateTrade({
       rosterIn: rosterIn[idx],
       hardCapped: t.hardCapped ?? t.team?.hardCapped,
       capSettings,
-    })
-  );
+    }),
+  }));
 
   const firstApron = capSettings.firstApron || Infinity;
 
