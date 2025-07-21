@@ -1,6 +1,6 @@
 // TradeTeamCard.jsx
 
-import React from 'react';
+import React, { useState } from 'react';
 import { TeamList } from '@/constants/teamList';
 import TeamLogo from '@/components/shared/TeamLogo';
 import { getTeamColors } from '@/utils/formatting';
@@ -17,7 +17,7 @@ const TradeTeamCard = ({
   sends,
   picks,
   yearKey,
-  tradePartnerName,
+  otherTeamNames = [],
   incomingPlayers = [],
   incomingPicks = [],
   capImpact = null,
@@ -27,6 +27,8 @@ const TradeTeamCard = ({
   onSelectTeam,
   onRemove,
 }) => {
+  const [activeTab, setActiveTab] = useState('players');
+  const [openMenu, setOpenMenu] = useState(null);
   if (!team) {
     return (
       <div className="flex-1 border border-white/20 rounded-lg p-4 bg-[#1a1a1a] relative">
@@ -74,7 +76,10 @@ const TradeTeamCard = ({
       {/* Team Header */}
       <div className="flex items-center justify-between border-b border-white/10 pb-2">
         <div className="flex items-center gap-2">
-          <TeamLogo teamAbbr={team.teamName} className="w-8 h-8" />
+          <TeamLogo
+            teamAbbr={team.teamId || team.id || team.teamName}
+            className="w-8 h-8"
+          />
           <h3 className="text-lg font-semibold" style={{ color: primary }}>
             {team.teamName}
           </h3>
@@ -85,104 +90,167 @@ const TradeTeamCard = ({
         </div>
       </div>
 
-      {/* Outgoing Players */}
-      <div>
-        <h4 className="text-sm text-white/70 mb-1">Outgoing Players</h4>
-        <div className="space-y-1">
-          {team.players?.map((p) => {
-            const included = sends.includes(p);
-            const salary =
-              p.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0;
-            return (
-              <div
-                key={p.id || p.name}
-                className={`flex items-center px-3 py-1 rounded-md text-sm transition-colors ${
-                  included ? 'bg-green-800/40' : 'bg-white/10'
-                }`}
-              >
-                <span className="flex-1">{p.name}</span>
-                <span className="w-20 text-right text-white/70">
-                  {formatSalary(salary)}
-                </span>
-                <div className="flex items-center gap-2 ml-3">
-                  <button
-                    onClick={() =>
-                      onSetPlayerTrade(p, included ? 'keep' : 'trade')
-                    }
-                    className="text-xs text-blue-400 hover:underline"
-                  >
-                    {included ? 'Remove' : 'Trade'}
-                  </button>
-                  {included && (
-                    <label className="flex items-center gap-1 text-xs">
-                      <input
-                        type="checkbox"
-                        checked={!!p.signAndTrade}
-                        onChange={() =>
-                          onSetPlayerTrade(p, 'signAndTrade', !p.signAndTrade)
-                        }
-                      />
-                      S&T
-                    </label>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-          {team.players?.length === 0 && (
-            <div className="text-xs text-white/40">No players available</div>
-          )}
-        </div>
+      {/* Tabs */}
+      <div className="flex gap-4 text-sm border-b border-white/10 pb-1">
+        <button
+          className={`pb-1 ${
+            activeTab === 'players'
+              ? 'text-white border-b-2 border-blue-500'
+              : 'text-white/60'
+          }`}
+          onClick={() => setActiveTab('players')}
+        >
+          Players
+        </button>
+        <button
+          className={`pb-1 ${
+            activeTab === 'picks'
+              ? 'text-white border-b-2 border-blue-500'
+              : 'text-white/60'
+          }`}
+          onClick={() => setActiveTab('picks')}
+        >
+          Picks
+        </button>
       </div>
 
-      {/* Outgoing Picks */}
-      <div>
-        <h4 className="text-sm text-white/70 mb-1">Outgoing Picks</h4>
-        <div className="space-y-1">
-          {team.picks?.map((p) => {
-            const exists = picks.some((pk) => areSamePick(pk, p));
-            return (
-              <div
-                key={`${p.year}-${p.round}-${p.via || ''}`}
-                className={`flex items-start justify-between px-3 py-1 rounded-md text-xs transition-colors ${
-                  exists ? 'bg-purple-800/30' : 'bg-white/10'
-                }`}
-              >
-                <div>
-                  <div>{formatPick(p)}</div>
-                  {exists && (
-                    <div className="text-white/50 mt-1 space-y-1">
-                      <input
-                        className="bg-black/30 p-1 rounded w-full"
-                        value={p.protection || ''}
-                        placeholder="Protection"
-                        onChange={(e) =>
-                          onEditPick(p, 'protection', e.target.value)
-                        }
-                      />
-                      <input
-                        className="bg-black/30 p-1 rounded w-full"
-                        value={p.note || ''}
-                        placeholder="Note"
-                        onChange={(e) => onEditPick(p, 'note', e.target.value)}
-                      />
-                    </div>
-                  )}
-                </div>
-                <button
-                  onClick={() => onTogglePick(p)}
-                  className="text-blue-400 hover:underline"
+      {/* Outgoing Players */}
+      {activeTab === 'players' && (
+        <div>
+          <h4 className="text-sm text-white/70 mb-1">Outgoing Players</h4>
+          <div className="space-y-1">
+            {team.players?.map((p) => {
+              const included = sends.includes(p);
+              const salary =
+                p.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0;
+              return (
+                <div
+                  key={p.id || p.name}
+                  className={`flex items-center px-3 py-1 rounded-md text-sm transition-colors ${
+                    included ? 'bg-green-800/40' : 'bg-white/10'
+                  }`}
                 >
-                  {exists ? 'Remove' : 'Trade'}
-                </button>
-              </div>
-            );
-          })}
-          {team.picks?.length === 0 && (
-            <div className="text-xs text-white/40">No picks available</div>
-          )}
+                  <span className="flex-1">{p.name}</span>
+                  <span className="w-20 text-right text-white/70">
+                    {formatSalary(salary)}
+                  </span>
+                  <div className="flex items-center gap-2 ml-3 relative">
+                    <button
+                      onClick={() =>
+                        setOpenMenu(openMenu === p.name ? null : p.name)
+                      }
+                      className="text-xs text-blue-400 hover:underline"
+                    >
+                      •••
+                    </button>
+                    {openMenu === p.name && (
+                      <div className="absolute right-0 top-5 bg-[#222] border border-white/20 rounded z-20 text-xs min-w-[8rem]">
+                        {otherTeamNames.map((n) => (
+                          <button
+                            key={n}
+                            onClick={() => {
+                              onSetPlayerTrade(p, included ? 'keep' : 'trade');
+                              setOpenMenu(null);
+                            }}
+                            className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+                          >
+                            {`Trade to ${n}`}
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => {
+                            console.log('Modify contract', p.name);
+                            setOpenMenu(null);
+                          }}
+                          className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+                        >
+                          Modify Contract
+                        </button>
+                        <button
+                          onClick={() => {
+                            window.location.href = `/profiles?player=${p.id || p.player_id}`;
+                          }}
+                          className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+                        >
+                          View Profile
+                        </button>
+                      </div>
+                    )}
+                    {included && (
+                      <label className="flex items-center gap-1 text-xs">
+                        <input
+                          type="checkbox"
+                          checked={!!p.signAndTrade}
+                          onChange={() =>
+                            onSetPlayerTrade(p, 'signAndTrade', !p.signAndTrade)
+                          }
+                        />
+                        S&T
+                      </label>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+            {team.players?.length === 0 && (
+              <div className="text-xs text-white/40">No players available</div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Outgoing Picks */}
+      {activeTab === 'picks' && (
+        <div>
+          <h4 className="text-sm text-white/70 mb-1">Outgoing Picks</h4>
+          <div className="space-y-1">
+            {team.picks?.map((p) => {
+              const exists = picks.some((pk) => areSamePick(pk, p));
+              return (
+                <div
+                  key={`${p.year}-${p.round}-${p.via || ''}`}
+                  className={`flex items-start justify-between px-3 py-1 rounded-md text-xs transition-colors ${
+                    exists ? 'bg-purple-800/30' : 'bg-white/10'
+                  }`}
+                >
+                  <div>
+                    <div>{formatPick(p)}</div>
+                    {exists && (
+                      <div className="text-white/50 mt-1 space-y-1">
+                        <input
+                          className="bg-black/30 p-1 rounded w-full"
+                          value={p.protection || ''}
+                          placeholder="Protection"
+                          onChange={(e) =>
+                            onEditPick(p, 'protection', e.target.value)
+                          }
+                        />
+                        <input
+                          className="bg-black/30 p-1 rounded w-full"
+                          value={p.note || ''}
+                          placeholder="Note"
+                          onChange={(e) =>
+                            onEditPick(p, 'note', e.target.value)
+                          }
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => onTogglePick(p)}
+                    className="text-blue-400 hover:underline"
+                  >
+                    {exists ? 'Remove' : 'Trade'}
+                  </button>
+                </div>
+              );
+            })}
+            {team.picks?.length === 0 && (
+              <div className="text-xs text-white/40">No picks available</div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Incoming Summary */}
       {(incomingPlayers.length > 0 || incomingPicks.length > 0) && (
