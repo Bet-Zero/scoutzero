@@ -11,6 +11,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
 import { calculateCapHold } from '@/utils/architect/contractUtils';
+import { attachDefaultPicks } from '@/utils/architect/defaultPicks';
 
 // Save a team's cap sheet
 export const saveTeamCapSheet = async (
@@ -47,7 +48,8 @@ export const loadTeamCapSheet = async (teamId) => {
   try {
     const docSnap = await getDoc(doc(db, 'teams', teamId));
     if (docSnap.exists()) {
-      return docSnap.data();
+      const data = docSnap.data();
+      return attachDefaultPicks(data);
     } else {
       console.warn('No data found for team:', teamId);
       return null;
