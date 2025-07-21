@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { validateTrade } from '@/utils/architect/tradeValidator';
 import { loadTeamCapSheet } from '@/utils/architect/firebaseHelpers';
 import TradeTeamBlock from './TradeTeamBlock';
@@ -18,6 +18,9 @@ const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
   const [result, setResult] = useState(null);
   const [forceTrade, setForceTrade] = useState(false);
   const yearKey = currentYear;
+
+  const areSamePick = (a, b) =>
+    a.year === b.year && a.round === b.round && (a.via || '') === (b.via || '');
 
   const setPlayerTrade = (index, player, action, flag = false) => {
     setTeams((prev) => {
@@ -41,10 +44,10 @@ const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
     setTeams((prev) => {
       const copy = [...prev];
       const list = copy[index].picksOut;
-      const exists = list.includes(pick);
+      const exists = list.some((p) => areSamePick(p, pick));
       copy[index].picksOut = exists
-        ? list.filter((i) => i !== pick)
-        : [...list, pick];
+        ? list.filter((i) => !areSamePick(i, pick))
+        : [...list, { ...pick }];
       return copy;
     });
   };
@@ -52,7 +55,7 @@ const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
   const updatePickField = (index, pick, field, value) => {
     setTeams((prev) => {
       const copy = [...prev];
-      const pickObj = copy[index].picksOut.find((p) => p === pick);
+      const pickObj = copy[index].picksOut.find((p) => areSamePick(p, pick));
       if (pickObj) {
         pickObj[field] = value;
       }
@@ -220,8 +223,14 @@ const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
       };
     }
 
-    const formatPick = (p) =>
-      `${p.year} ${p.round} Round${p.via ? ` (via ${p.via})` : ''}`;
+    const formatPick = (p) => {
+      let str = `${p.year} ${p.round} Round`;
+      if (p.via) str += ` (via ${p.via})`;
+      if (p.protection) str += ` - ${p.protection}`;
+      if (p.isSwap) str += ' (Swap)';
+      if (p.note) str += ` - ${p.note}`;
+      return str;
+    };
 
     const summaryByTeamIndex = teams.map((t, idx) => {
       if (!t.team) return null;
@@ -246,7 +255,15 @@ const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
       };
     });
 
-    const finalResult = { ...validation, summary, summaryByTeamIndex };
+    const finalResult = {
+      ...validation,
+      summary,
+      summaryByTeamIndex,
+      teamResults: validation.teamResults.map((r, idx) => ({
+        ...r,
+        teamName: r.teamName || teams[idx]?.team?.teamName,
+      })),
+    };
     finalResult.legal = forceTrade ? true : validation.overallLegal;
     setResult(finalResult);
   };
@@ -257,52 +274,59 @@ const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
     4: 'Add 5th Team',
   };
 
-  const incomingAssets = teams.reduce((acc, _, idx) => {
-    const players = [];
-    const picks = [];
-    teams.forEach((t, j) => {
-      if (j !== idx) {
-        players.push(...t.sends);
-        picks.push(...t.picksOut);
-      }
-    });
-    acc[idx] = { players, picks };
-    return acc;
-  }, {});
+  const incomingAssets = useMemo(
+    () =>
+      teams.reduce((acc, _, idx) => {
+        const players = [];
+        const picks = [];
+        teams.forEach((t, j) => {
+          if (j !== idx) {
+            players.push(...t.sends);
+            picks.push(...t.picksOut);
+          }
+        });
+        acc[idx] = { players, picks };
+        return acc;
+      }, {}),
+    [teams]
+  );
 
   const capData = capProjections[currentYear] || {};
 
-  const capImpactByTeamIndex = teams.reduce((acc, t, idx) => {
-    if (!t.team) {
-      acc[idx] = null;
+  const capImpactByTeamIndex = useMemo(() =>
+    teams.reduce((acc, t, idx) => {
+      if (!t.team) {
+        acc[idx] = null;
+        return acc;
+      }
+      const salaryOut = getSalaryForYear(t.sends, yearKey);
+      const salaryIn = getSalaryForYear(
+        incomingAssets[idx]?.players || [],
+        yearKey
+      );
+      const currentSalary = getSalaryForYear(t.team.players || [], yearKey);
+      const projected = currentSalary - salaryOut + salaryIn;
+
+      const capStatus =
+        projected > (capData.cap || 0) ? 'Over Cap' : 'Under Cap';
+      let apronStatus = 'Under 1st Apron';
+      if (projected > (capData.secondApron || 0)) {
+        apronStatus = 'Over 2nd Apron';
+      } else if (projected > (capData.firstApron || 0)) {
+        apronStatus = 'Over 1st Apron';
+      }
+
+      acc[idx] = {
+        in: salaryIn,
+        out: salaryOut,
+        current: currentSalary,
+        projected,
+        capStatus,
+        apronStatus,
+      };
       return acc;
-    }
-    const salaryOut = getSalaryForYear(t.sends, yearKey);
-    const salaryIn = getSalaryForYear(
-      incomingAssets[idx]?.players || [],
-      yearKey
-    );
-    const currentSalary = getSalaryForYear(t.team.players || [], yearKey);
-    const projected = currentSalary - salaryOut + salaryIn;
-
-    const capStatus = projected > (capData.cap || 0) ? 'Over Cap' : 'Under Cap';
-    let apronStatus = 'Under 1st Apron';
-    if (projected > (capData.secondApron || 0)) {
-      apronStatus = 'Over 2nd Apron';
-    } else if (projected > (capData.firstApron || 0)) {
-      apronStatus = 'Over 1st Apron';
-    }
-
-    acc[idx] = {
-      in: salaryIn,
-      out: salaryOut,
-      current: currentSalary,
-      projected,
-      capStatus,
-      apronStatus,
-    };
-    return acc;
-  }, {});
+    }, {}),
+  [teams, capData, yearKey, incomingAssets]);
 
   return (
     <div className="text-white">
@@ -407,6 +431,16 @@ const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
                     </li>
                     <li>Cap Change: ${s.capDelta.toLocaleString()}</li>
                   </ul>
+                </div>
+              ))}
+            </div>
+          )}
+          {result.teamResults && (
+            <div className="mt-4 space-y-1">
+              {result.teamResults.map((tr, i) => (
+                <div key={i}>
+                  <strong>{tr.teamName || `Team ${i + 1}`}:</strong>{' '}
+                  {tr.legal ? 'Legal' : `Illegal – ${tr.reason}`}
                 </div>
               ))}
             </div>

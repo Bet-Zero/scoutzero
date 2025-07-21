@@ -7,6 +7,9 @@ const getSalary = (players, yearKey) =>
     0
   );
 
+const areSamePick = (a, b) =>
+  a.year === b.year && a.round === b.round && (a.via || '') === (b.via || '');
+
 const TradeTeamBlock = ({
   team,
   sends,
@@ -112,13 +115,15 @@ const TradeTeamBlock = ({
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
-                checked={picks.includes(pick)}
+                checked={picks.some((p) => areSamePick(p, pick))}
                 onChange={() => onTogglePick(pick)}
               />
-              {pick.year} {pick.round} Round{' '}
-              {pick.via ? `(via ${pick.via})` : ''}
+              {pick.year} {pick.round} Round{pick.via ? ` (via ${pick.via})` : ''}
+              {pick.protection ? ` - ${pick.protection}` : ''}
+              {pick.isSwap ? ' (Swap)' : ''}
+              {pick.note ? ` - ${pick.note}` : ''}
             </label>
-            {picks.includes(pick) && (
+            {picks.some((p) => areSamePick(p, pick)) && (
               <div className="ml-6 mt-1 flex flex-col gap-1 text-xs">
                 <input
                   type="text"
@@ -168,7 +173,10 @@ const TradeTeamBlock = ({
         {incomingPicks.length > 0 ? (
           incomingPicks.map((p, i) => (
             <li key={`${p.year}-${p.round}-${i}`} className="text-sm">
-              {p.year} {p.round} Round
+              {p.year} {p.round} Round{p.via ? ` (via ${p.via})` : ''}
+              {p.protection ? ` - ${p.protection}` : ''}
+              {p.isSwap ? ' (Swap)' : ''}
+              {p.note ? ` - ${p.note}` : ''}
             </li>
           ))
         ) : (
