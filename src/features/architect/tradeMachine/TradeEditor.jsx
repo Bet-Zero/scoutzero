@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { validateTrade } from '@/utils/architect/tradeValidator';
+import { validateTrade } from '@/utils/architect/tradeMachine/tradeValidator';
 import { loadTeamCapSheet } from '@/utils/architect/firebaseHelpers';
 import TradeTeamBlock from './TradeTeamBlock';
 
