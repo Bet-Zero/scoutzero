@@ -15,7 +15,7 @@ import RosterVisual from './RosterVisual';
 import CapSheet from './CapSheet';
 import CapSheetFull from './CapSheetFull';
 import ContractEditorModal from './ContractEditorModal';
-import TradeEditor from './TradeEditor';
+import TradeEditor from './tradeMachine/TradeEditor';
 import FreeAgentPool from './FreeAgentPool';
 import OffseasonTab from './OffseasonTab';
 import TeamHistoryTab from './TeamHistoryTab';
