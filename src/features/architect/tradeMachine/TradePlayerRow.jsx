@@ -106,12 +106,13 @@ const TradePlayerRow = ({
 
       {/* Main Info */}
       <div className="flex flex-col justify-center ml-3">
-        <div className="h-[40px] flex items-center">
+        <div className="h-[32px] flex items-center mb-2">
           <PlayerNameMini
             name={player.display_name || details.display_name || player.name}
+            scale={0.85}
           />
         </div>
-        <div className="flex items-center mt-[11px] -mb-1 gap-2 text-white/50 text-[13px]">
+        <div className="flex items-center mt-[0px] mb-0 gap-2 text-white/50 text-[11px]">
           <TeamLogo teamAbbr={team} className="w-5 h-5" />
           <div>
             {height} <span className="text-white/30">|</span> {weight} lbs
