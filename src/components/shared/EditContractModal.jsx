@@ -2,6 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent } from '@/components/shared/ui/dialog';
+import capProjections from '@/utils/architect/capProjections';
+import {
+  getExtensionEligibilityReason,
+  getExtensionMaxDetails,
+} from '@/utils/architect/extensionRules';
+import { generateExtensionContract } from '@/utils/architect/contractUtils';
 
 const ACTION_SETS = {
   option: ['accept', 'decline', 'signNew'],
@@ -34,6 +40,8 @@ const EditContractModal = ({
 }) => {
   const [selectedAction, setSelectedAction] = useState('');
   const [extension, setExtension] = useState({ years: 1, base: 0 });
+  const [extReason, setExtReason] = useState('');
+  const [extMax, setExtMax] = useState(null);
 
   const today = new Date();
   const CURRENT_YEAR = today.getFullYear() - (today.getMonth() < 6 ? 1 : 0);
@@ -72,7 +80,19 @@ const EditContractModal = ({
 
     setExtension({ years: 1, base: lastSalary });
     setSelectedAction('');
+
+    const key = `${CURRENT_YEAR + 1}-${String(
+      (CURRENT_YEAR + 2) % 100
+    ).padStart(2, '0')}`;
+    const capSettings = capProjections[key] || {};
+    setExtReason(getExtensionEligibilityReason(player, CURRENT_YEAR));
+    setExtMax(getExtensionMaxDetails(player, capSettings));
   }, [player]);
+
+  useEffect(() => {
+    if (selectedAction !== 'extend' || !extMax) return;
+    setExtension({ years: extMax.maxYears, base: extMax.maxFirstYearSalary });
+  }, [selectedAction, extMax]);
 
   const handleConfirm = () => {
     switch (selectedAction) {
@@ -95,7 +115,16 @@ const EditContractModal = ({
         onSignAndTrade?.(player, false);
         break;
       case 'extend':
-        onExtend?.(player, extension);
+        {
+          const startYear = optionYear ? optionYear + 1 : CURRENT_YEAR + 1;
+          const contract = generateExtensionContract({
+            firstYearSalary: extension.base,
+            years: extension.years,
+            raisePct: extMax?.baseRaisePct || 0.08,
+            startYear,
+          });
+          onExtend?.(player, contract);
+        }
         break;
       case 'waive':
         onWaive?.(player, { stretch: false, buyout: false });
@@ -144,8 +173,8 @@ const EditContractModal = ({
 
         {isUnderContract && (
           <p className="text-xs text-neutral-400">
-            Note: All under-contract players are currently eligible for
-            extension. Waiving and stretching will alter cap hit timing.
+            Extension eligibility: {extReason}. Waiving and stretching will
+            alter cap hit timing.
           </p>
         )}
 
@@ -194,6 +223,15 @@ const EditContractModal = ({
                 className="w-24 p-1 rounded bg-neutral-800 border border-neutral-600 text-sm"
               />
             </div>
+            {selectedAction === 'extend' && (
+              <p className="text-xs text-neutral-400">
+                {extReason === 'Eligible'
+                  ? `Max ${extMax?.maxYears || 0} years starting at $${
+                      extMax?.maxFirstYearSalary?.toLocaleString() || 0
+                    }`
+                  : `Not eligible: ${extReason}`}
+              </p>
+            )}
           </div>
         )}
 
@@ -208,7 +246,8 @@ const EditContractModal = ({
           {selectedAction && (
             <button
               onClick={handleConfirm}
-              className="px-4 py-1 text-sm rounded bg-blue-600 hover:bg-blue-500"
+              disabled={selectedAction === 'extend' && extReason !== 'Eligible'}
+              className="px-4 py-1 text-sm rounded bg-blue-600 hover:bg-blue-500 disabled:opacity-40"
             >
               Confirm
             </button>
