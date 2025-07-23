@@ -3,6 +3,7 @@ import { formatName } from '@/utils/formatting';
 import { canSignFreeAgent } from '@/utils/architect/freeAgentLogic';
 import { generateDefaultFreeAgentContract } from '@/utils/architect/contractUtils';
 import FreeAgentRow from './FreeAgentRow';
+import EditContractModal from '@/components/shared/EditContractModal';
 
 const FreeAgentPool = ({
   freeAgents,
@@ -15,6 +16,8 @@ const FreeAgentPool = ({
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [signResult, setSignResult] = useState(null);
   const [isSigning, setIsSigning] = useState(false);
+  const [openMenu, setOpenMenu] = useState(null);
+  const [contractPlayer, setContractPlayer] = useState(null);
 
   const handleSelect = (player) => {
     setSelectedPlayer(player);
@@ -55,6 +58,32 @@ const FreeAgentPool = ({
     }
   };
 
+  const handleSaveFromModal = async (playerObj, values) => {
+    const salaryByYear = {};
+    for (let i = 0; i < values.years; i++) {
+      salaryByYear[currentYear + i] = values.salaries[i] || 0;
+    }
+    const contract = {
+      salaryByYear,
+      options: {},
+      signAndTrade: false,
+      guaranteed: true,
+      isMinimum: values.salaries[0] <= 2200000,
+      yearsOfService: playerObj.yearsOfService || playerObj.yearsPro || 0,
+    };
+    await onSign(playerObj.name, contract);
+  };
+
+  const handleSignAndTrade = async (playerObj) => {
+    const contract = generateDefaultFreeAgentContract(
+      playerObj.askingSalary ?? playerObj.previousSalary ?? 0,
+      currentYear,
+      playerObj.yearsOfService || playerObj.yearsPro || 0
+    );
+    contract.signAndTrade = true;
+    await onSign(playerObj.name, contract);
+  };
+
   return (
     <div className="text-white">
       <h2 className="text-xl font-semibold mb-2">Free Agent Pool</h2>
@@ -68,6 +97,11 @@ const FreeAgentPool = ({
                 askInfo={p}
                 onSelect={() => handleSelect(p)}
                 isSelected={selectedPlayer?.name === p.name}
+                openMenu={openMenu}
+                setOpenMenu={setOpenMenu}
+                onSign={() => {
+                  setContractPlayer(p);
+                }}
               />
             </li>
           );
@@ -107,6 +141,20 @@ const FreeAgentPool = ({
             <span className="text-red-500">{signResult.reason}</span>
           )}
         </div>
+      )}
+
+      {contractPlayer && (
+        <EditContractModal
+          player={
+            playersMap[contractPlayer.name] || { name: contractPlayer.name }
+          }
+          isOpen={!!contractPlayer}
+          onClose={() => setContractPlayer(null)}
+          onSave={handleSaveFromModal}
+          onSignAndTrade={() => handleSignAndTrade(contractPlayer)}
+          actionsOverride={['resign', 'signAndTrade']}
+          actionLabelsOverride={{ resign: 'Sign Free Agent' }}
+        />
       )}
     </div>
   );
