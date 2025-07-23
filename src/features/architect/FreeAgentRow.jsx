@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { getPlayerPositionLabel } from '@/utils/roles';
 import { formatName } from '@/utils/formatting';
 
@@ -11,6 +11,26 @@ const FreeAgentRow = ({
   setOpenMenu,
   onSign,
 }) => {
+  const menuRef = useRef(null);
+  const buttonRef = useRef(null);
+
+  useEffect(() => {
+    if (openMenu === askInfo.name) {
+      const handleClick = (e) => {
+        if (
+          menuRef.current &&
+          !menuRef.current.contains(e.target) &&
+          buttonRef.current &&
+          !buttonRef.current.contains(e.target)
+        ) {
+          setOpenMenu(null);
+        }
+      };
+      document.addEventListener('mousedown', handleClick);
+      return () => document.removeEventListener('mousedown', handleClick);
+    }
+    return undefined;
+  }, [openMenu, askInfo.name, setOpenMenu]);
   const name = player.display_name || player.name || formatName(askInfo.name);
   const nameParts = name.split(' ');
   const firstName = nameParts[0]?.toUpperCase() || '';
@@ -113,6 +133,7 @@ const FreeAgentRow = ({
       {/* Options */}
       <div className="flex items-center relative">
         <button
+          ref={buttonRef}
           onClick={(e) => {
             e.stopPropagation();
             setOpenMenu(openMenu === askInfo.name ? null : askInfo.name);
@@ -122,7 +143,10 @@ const FreeAgentRow = ({
           •••
         </button>
         {openMenu === askInfo.name && (
-          <div className="absolute right-0 top-5 bg-[#222] border border-white/20 rounded z-20 text-xs min-w-[8rem]">
+          <div
+            ref={menuRef}
+            className="absolute right-0 top-5 bg-[#222] border border-white/20 rounded z-20 text-xs min-w-[8rem]"
+          >
             <button
               onClick={() => {
                 onSign?.(askInfo);

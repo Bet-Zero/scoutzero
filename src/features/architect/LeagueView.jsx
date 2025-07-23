@@ -52,73 +52,54 @@ const LeagueView = () => {
   const westTeams = teamSummaries
     .filter((t) => t.conference === 'West')
     .sort((a, b) => a.teamName.localeCompare(b.teamName));
+  const renderTable = (title, teams) => (
+    <table className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded">
+      <thead className="bg-[#111]">
+        <tr>
+          <th className="p-2 text-left">Team</th>
+          <th className="p-2 text-left">Total Salary</th>
+          <th className="p-2" />
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th
+            colSpan="3"
+            className="bg-[#0f0f0f] text-left px-2 py-1 font-semibold"
+          >
+            {title}
+          </th>
+        </tr>
+        {teams.map((team) => (
+          <tr key={team.id} className="odd:bg-[#171717]">
+            <td className="p-2 flex items-center gap-2">
+              <TeamLogo teamId={team.id} className="w-6 h-6" />
+              {team.teamName}
+            </td>
+            <td className="p-2">${team.totalSalary.toLocaleString()}</td>
+            <td className="p-2 text-right">
+              <button
+                onClick={() => goToTeam(team.id)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs"
+              >
+                Manage Team
+              </button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
 
   return (
     <div className="text-white">
       <h1 className="text-2xl font-bold mb-4">
         HoopZero Architect – League View
       </h1>
-      <table className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded">
-        <thead className="bg-[#111]">
-          <tr>
-            <th className="p-2 text-left">Team</th>
-            <th className="p-2 text-left">Total Salary</th>
-            <th className="p-2" />
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <th
-              colSpan="3"
-              className="bg-[#0f0f0f] text-left px-2 py-1 font-semibold"
-            >
-              Eastern Conference
-            </th>
-          </tr>
-          {eastTeams.map((team) => (
-            <tr key={team.id} className="odd:bg-[#171717]">
-              <td className="p-2 flex items-center gap-2">
-                <TeamLogo teamId={team.id} className="w-6 h-6" />
-                {team.teamName}
-              </td>
-              <td className="p-2">${team.totalSalary.toLocaleString()}</td>
-              <td className="p-2 text-right">
-                <button
-                  onClick={() => goToTeam(team.id)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs"
-                >
-                  Manage Team
-                </button>
-              </td>
-            </tr>
-          ))}
-          <tr>
-            <th
-              colSpan="3"
-              className="bg-[#0f0f0f] text-left px-2 py-1 font-semibold"
-            >
-              Western Conference
-            </th>
-          </tr>
-          {westTeams.map((team) => (
-            <tr key={team.id} className="odd:bg-[#171717]">
-              <td className="p-2 flex items-center gap-2">
-                <TeamLogo teamId={team.id} className="w-6 h-6" />
-                {team.teamName}
-              </td>
-              <td className="p-2">${team.totalSalary.toLocaleString()}</td>
-              <td className="p-2 text-right">
-                <button
-                  onClick={() => goToTeam(team.id)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs"
-                >
-                  Manage Team
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {renderTable('Eastern Conference', eastTeams)}
+        {renderTable('Western Conference', westTeams)}
+      </div>
     </div>
   );
 };
