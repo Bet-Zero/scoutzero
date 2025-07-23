@@ -1,10 +1,15 @@
 import React from 'react';
-import { TeamList } from '@/constants/teamList';
+import { TeamListFull } from '@/constants/teamList';
 
 export const SelectTeamCard = ({ onSelectTeam, onRemove }) => (
   <div className="flex-1 border border-white/20 rounded-lg p-4 bg-[#1a1a1a] relative">
     {onRemove && (
-      <button onClick={onRemove} className="absolute top-2 right-2 text-red-400 text-xs">✕</button>
+      <button
+        onClick={onRemove}
+        className="absolute top-2 right-2 text-red-400 text-xs"
+      >
+        ✕
+      </button>
     )}
     <label className="text-sm mb-1 block text-white/80">Select Team</label>
     <select
@@ -12,12 +17,11 @@ export const SelectTeamCard = ({ onSelectTeam, onRemove }) => (
       onChange={(e) => onSelectTeam(e.target.value)}
     >
       <option value="">Select Team</option>
-      {TeamList.map((t) => (
-        <option key={t} value={t.toLowerCase()}>
-          {t}
+      {TeamListFull.map((t) => (
+        <option key={t.id} value={t.id}>
+          {t.teamName}
         </option>
       ))}
     </select>
   </div>
 );
-
