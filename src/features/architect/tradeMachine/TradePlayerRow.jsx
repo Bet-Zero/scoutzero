@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import PlayerNameMini from '@/features/table/PlayerTable/PlayerRow/PlayerNameMini';
 import TeamLogo from '@/components/shared/TeamLogo';
 import { getPlayerPositionLabel } from '@/utils/roles';
@@ -23,6 +23,26 @@ const TradePlayerRow = ({
   setContractPlayer,
   setTpePlayer,
 }) => {
+  const menuRef = useRef(null);
+  const buttonRef = useRef(null);
+
+  useEffect(() => {
+    if (openMenu === player.name) {
+      const handleClick = (e) => {
+        if (
+          menuRef.current &&
+          !menuRef.current.contains(e.target) &&
+          buttonRef.current &&
+          !buttonRef.current.contains(e.target)
+        ) {
+          setOpenMenu(null);
+        }
+      };
+      document.addEventListener('mousedown', handleClick);
+      return () => document.removeEventListener('mousedown', handleClick);
+    }
+    return undefined;
+  }, [openMenu, player.name, setOpenMenu]);
   const year = parseYear(yearKey);
   const salary =
     player.contract_clean?.salaries_by_year?.[yearKey]?.salary ||
@@ -134,6 +154,7 @@ const TradePlayerRow = ({
       {/* Options */}
       <div className="flex items-center gap-2 relative mr-1">
         <button
+          ref={buttonRef}
           onClick={() =>
             setOpenMenu(openMenu === player.name ? null : player.name)
           }
@@ -142,7 +163,10 @@ const TradePlayerRow = ({
           •••
         </button>
         {openMenu === player.name && (
-          <div className="absolute right-0 top-5 bg-[#222] border border-white/20 rounded z-20 text-xs min-w-[8rem]">
+          <div
+            ref={menuRef}
+            className="absolute right-0 top-5 bg-[#222] border border-white/20 rounded z-20 text-xs min-w-[8rem]"
+          >
             {otherTeams.map((t) => (
               <button
                 key={t.id}
