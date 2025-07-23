@@ -79,8 +79,20 @@ const EditContractModal = ({
   useEffect(() => {
     if (!player) return;
 
-    const lastSalary =
-      player.contract_clean?.salaries_by_year?.[optionYear]?.salary || 0;
+    const salaryYears = Object.keys(player?.contract_clean?.salaries_by_year || {})
+      .map(Number)
+      .sort((a, b) => b - a);
+
+    let lastSalary = 0;
+    if (salaryYears.length) {
+      if (isFreeAgent) {
+        const lastYear = salaryYears.find((y) => y <= CURRENT_YEAR) ?? salaryYears[0];
+        lastSalary = player.contract_clean.salaries_by_year[lastYear]?.salary || 0;
+      } else {
+        lastSalary =
+          player.contract_clean.salaries_by_year?.[optionYear ?? salaryYears[0]]?.salary || 0;
+      }
+    }
 
     setExtension({
       years: 1,
@@ -257,17 +269,18 @@ const EditContractModal = ({
                 <div key={idx} className="flex items-center gap-2">
                   <label className="text-xs w-20">Year {idx + 1} Salary</label>
                   <input
-                    type="number"
-                    value={sal}
+                    type="text"
+                    inputMode="decimal"
+                    value={sal ? `$${sal.toLocaleString()}` : ''}
                     onChange={(e) => {
-                      const val = Number(e.target.value);
+                      const val = Number(e.target.value.replace(/[^0-9]/g, ''));
                       setExtension((prev) => {
                         const arr = [...prev.salaries];
                         arr[idx] = val;
                         return { ...prev, salaries: arr };
                       });
                     }}
-                    className="flex-1 p-1 rounded bg-neutral-800 border border-neutral-600 text-sm"
+                    className="flex-1 p-1 rounded bg-neutral-800 border border-neutral-600 text-sm appearance-none"
                   />
                 </div>
               ))}
