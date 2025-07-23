@@ -11,7 +11,7 @@ const EditContractModal = ({
   onExtend,
   onSignAndTrade,
 }) => {
-  const [salaries, setSalaries] = useState({});
+  const [modType, setModType] = useState('extension');
   const [optionDecision, setOptionDecision] = useState(true);
   const [optionType, setOptionType] = useState(null);
   const [extension, setExtension] = useState({ years: 1, base: 0 });
@@ -20,11 +20,6 @@ const EditContractModal = ({
   useEffect(() => {
     if (!player) return;
     const years = player.contract_clean?.salaries_by_year || {};
-    const init = {};
-    Object.entries(years).forEach(([year, data]) => {
-      init[year] = data.salary || 0;
-    });
-    setSalaries(init);
 
     const upcomingList = Object.keys(years)
       .map((y) => parseInt(y))
@@ -42,15 +37,8 @@ const EditContractModal = ({
     setSignAndTrade(!!player.signAndTrade);
   }, [player]);
 
-  const handleChange = (year, value) => {
-    setSalaries({ ...salaries, [year]: Number(value) });
-  };
-
-  const handleSave = () => {
-    if (onSave) onSave(player, salaries);
-    if (optionType && onOptionDecision)
-      onOptionDecision(player, optionDecision);
-    if (onSignAndTrade) onSignAndTrade(player, signAndTrade);
+  const handleSign = () => {
+    if (onSave) onSave(player, extension);
     onClose();
   };
 
@@ -68,71 +56,84 @@ const EditContractModal = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="p-4 max-w-sm">
-        <h2 className="text-xl font-bold mb-3">Edit Contract</h2>
-        {Object.keys(salaries).map((year) => (
-          <div key={year} className="mb-2">
-            <label className="block text-sm mb-1">{year}</label>
-            <input
-              type="number"
-              value={salaries[year]}
-              onChange={(e) => handleChange(year, e.target.value)}
-              className="w-full p-1 bg-neutral-800 border border-neutral-600 rounded"
-            />
-          </div>
-        ))}
-        {optionType && (
-          <div className="my-3 text-sm">
-            <label className="mr-2">{optionType}:</label>
-            <button
-              onClick={() => setOptionDecision(!optionDecision)}
-              className="text-blue-400 hover:underline"
-            >
-              {optionDecision ? 'Accept' : 'Decline'}
-            </button>
+        <h2 className="text-xl font-bold mb-3">Modify Contract</h2>
+
+        <label className="block text-sm mb-1">Action</label>
+        <select
+          value={modType}
+          onChange={(e) => setModType(e.target.value)}
+          className="w-full p-1 mb-3 bg-neutral-800 border border-neutral-600 rounded"
+        >
+          <option value="extension">Sign Extension</option>
+          <option value="sign">Sign New Deal</option>
+          <option value="signAndTrade">Sign &amp; Trade</option>
+          {optionType && <option value="accept">Accept Option</option>}
+          {optionType && <option value="decline">Decline Option</option>}
+          <option value="waive">Waive</option>
+        </select>
+
+        {modType === 'accept' && optionType && (
+          <p className="text-sm mb-4">Accept {optionType} for next season?</p>
+        )}
+
+        {modType === 'decline' && optionType && (
+          <p className="text-sm mb-4">Decline {optionType} for next season?</p>
+        )}
+
+        {(modType === 'extension' || modType === 'sign') && (
+          <div className="my-3 text-sm space-y-2">
+            <h4 className="font-semibold">
+              {modType === 'extension' ? 'Extension' : 'New Contract'}
+            </h4>
+            <div className="flex gap-2 items-center">
+              <label className="text-xs">Years</label>
+              <input
+                type="number"
+                min={1}
+                max={5}
+                value={extension.years}
+                onChange={(e) =>
+                  setExtension({ ...extension, years: Number(e.target.value) })
+                }
+                className="p-1 bg-neutral-800 border border-neutral-600 rounded w-14"
+              />
+              <label className="text-xs ml-2">Base Salary</label>
+              <input
+                type="number"
+                value={extension.base}
+                onChange={(e) =>
+                  setExtension({ ...extension, base: Number(e.target.value) })
+                }
+                className="p-1 bg-neutral-800 border border-neutral-600 rounded w-20"
+              />
+              {modType === 'extension' && (
+                <button
+                  onClick={handleExtend}
+                  className="ml-auto text-xs text-blue-400 hover:underline"
+                >
+                  Preview
+                </button>
+              )}
+            </div>
           </div>
         )}
-        <div className="my-3 text-sm space-y-2">
-          <h4 className="font-semibold">Extension</h4>
-          <div className="flex gap-2 items-center">
-            <label className="text-xs">Years</label>
+
+        {modType === 'signAndTrade' && (
+          <label className="flex items-center gap-2 text-sm my-2">
             <input
-              type="number"
-              min={1}
-              max={5}
-              value={extension.years}
-              onChange={(e) =>
-                setExtension({ ...extension, years: Number(e.target.value) })
-              }
-              className="p-1 bg-neutral-800 border border-neutral-600 rounded w-14"
+              type="checkbox"
+              checked={signAndTrade}
+              onChange={(e) => setSignAndTrade(e.target.checked)}
             />
-            <label className="text-xs ml-2">Base Salary</label>
-            <input
-              type="number"
-              value={extension.base}
-              onChange={(e) =>
-                setExtension({ ...extension, base: Number(e.target.value) })
-              }
-              className="p-1 bg-neutral-800 border border-neutral-600 rounded w-20"
-            />
-            <button
-              onClick={handleExtend}
-              className="ml-auto text-xs text-blue-400 hover:underline"
-            >
-              Preview
-            </button>
-          </div>
-        </div>
-        {player.free_agency_year &&
-          player.free_agency_year <= new Date().getFullYear() && (
-            <label className="flex items-center gap-2 text-sm my-2">
-              <input
-                type="checkbox"
-                checked={signAndTrade}
-                onChange={(e) => setSignAndTrade(e.target.checked)}
-              />
-              Sign & Trade
-            </label>
-          )}
+            Sign &amp; Trade
+          </label>
+        )}
+
+        {modType === 'waive' && (
+          <p className="text-sm mb-4">
+            Are you sure you want to waive this player?
+          </p>
+        )}
         <div className="flex justify-end gap-2 mt-3">
           <button
             onClick={onClose}
@@ -140,18 +141,53 @@ const EditContractModal = ({
           >
             Cancel
           </button>
-          <button
-            onClick={handleSave}
-            className="px-3 py-1 rounded bg-blue-600 hover:bg-blue-500 text-sm"
-          >
-            Save
-          </button>
-          <button
-            onClick={handleWaive}
-            className="px-3 py-1 rounded bg-red-600 hover:bg-red-500 text-sm"
-          >
-            Waive
-          </button>
+          {modType === 'waive' && (
+            <button
+              onClick={handleWaive}
+              className="px-3 py-1 rounded bg-red-600 hover:bg-red-500 text-sm"
+            >
+              Waive
+            </button>
+          )}
+          {modType === 'extension' && (
+            <button
+              onClick={handleExtend}
+              className="px-3 py-1 rounded bg-blue-600 hover:bg-blue-500 text-sm"
+            >
+              Extend
+            </button>
+          )}
+          {modType === 'sign' && (
+            <button
+              onClick={handleSign}
+              className="px-3 py-1 rounded bg-blue-600 hover:bg-blue-500 text-sm"
+            >
+              Sign
+            </button>
+          )}
+          {modType === 'signAndTrade' && (
+            <button
+              onClick={() => {
+                if (onSignAndTrade) onSignAndTrade(player, signAndTrade);
+                onClose();
+              }}
+              className="px-3 py-1 rounded bg-blue-600 hover:bg-blue-500 text-sm"
+            >
+              Apply
+            </button>
+          )}
+          {(modType === 'accept' || modType === 'decline') && (
+            <button
+              onClick={() => {
+                if (optionType && onOptionDecision)
+                  onOptionDecision(player, modType === 'accept');
+                onClose();
+              }}
+              className="px-3 py-1 rounded bg-blue-600 hover:bg-blue-500 text-sm"
+            >
+              Confirm
+            </button>
+          )}
         </div>
       </DialogContent>
     </Dialog>
