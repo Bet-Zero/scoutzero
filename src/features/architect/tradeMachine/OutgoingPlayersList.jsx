@@ -110,6 +110,12 @@ export const OutgoingPlayersList = ({
           isOpen={!!contractPlayer}
           onClose={() => setContractPlayer(null)}
           onSave={(plr, values) => console.log('Save contract', plr, values)}
+          onWaive={(plr) => console.log('Waive player', plr)}
+          onOptionDecision={(plr, val) =>
+            console.log('Option decision', plr, val)
+          }
+          onExtend={(plr, ext) => console.log('Extend', plr, ext)}
+          onSignAndTrade={(plr, val) => console.log('S&T', plr, val)}
         />
       )}
       {tpePlayer && (
