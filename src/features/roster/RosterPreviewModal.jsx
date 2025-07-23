@@ -11,7 +11,7 @@ const RosterPreviewModal = ({ open, onClose, roster, team }) => {
   if (!open || !roster) return null;
 
   const exportRef = useRef(null); // ✅ used for PNG export
-  const { primary, secondary } = getTeamColors(team);
+  const { primary, secondary } = getTeamColors(team?.id);
 
   const handleDownload = async () => {
     if (!exportRef.current) return;
@@ -34,7 +34,7 @@ const RosterPreviewModal = ({ open, onClose, roster, team }) => {
       });
 
       const link = document.createElement('a');
-      link.download = `${team || 'roster'}.png`;
+      link.download = `${team?.nickname || 'roster'}.png`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
@@ -80,7 +80,7 @@ const RosterPreviewModal = ({ open, onClose, roster, team }) => {
             {/* Background logo */}
             {team && (
               <img
-                src={`/assets/logos/${getTeamLogoFilename(team)}.png`}
+                src={`/assets/logos/${getTeamLogoFilename(team.id)}.png`}
                 alt=""
                 className="absolute inset-0 w-full h-full object-contain opacity-20 blur-sm mt-6 pointer-events-none select-none"
               />
@@ -107,7 +107,7 @@ const RosterPreviewModal = ({ open, onClose, roster, team }) => {
                   textShadow: `0 0 8px ${primary}, 0 0 16px ${secondary}`,
                 }}
               >
-                {team}
+                {team.nickname}
               </h2>
             </div>
 

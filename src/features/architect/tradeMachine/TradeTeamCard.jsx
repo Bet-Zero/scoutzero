@@ -17,7 +17,7 @@ const TradeTeamCard = ({
   sends,
   picks,
   yearKey,
-  otherTeamNames = [],
+  otherTeams = [],
   incomingPlayers = [],
   incomingPicks = [],
   capImpact = null,
@@ -33,7 +33,7 @@ const TradeTeamCard = ({
   }
 
   const outgoingSalary = getSalaryForYear(sends, yearKey);
-  const { primary } = getTeamColors(team.teamName);
+  const { primary } = getTeamColors(team.id);
 
   return (
     <div
@@ -52,10 +52,7 @@ const TradeTeamCard = ({
       {/* Team Header */}
       <div className="flex items-center justify-between border-b border-white/10 pb-2">
         <div className="flex items-center gap-2">
-          <TeamLogo
-            teamAbbr={team.teamId || team.id || team.teamName}
-            className="w-8 h-8"
-          />
+          <TeamLogo teamAbbr={team.id} className="w-8 h-8" />
           <h3 className="text-lg font-semibold" style={{ color: primary }}>
             {team.teamName}
           </h3>
@@ -96,7 +93,7 @@ const TradeTeamCard = ({
           team={team}
           sends={sends}
           yearKey={yearKey}
-          otherTeamNames={otherTeamNames}
+          otherTeams={otherTeams}
           onSetPlayerTrade={onSetPlayerTrade}
         />
       )}

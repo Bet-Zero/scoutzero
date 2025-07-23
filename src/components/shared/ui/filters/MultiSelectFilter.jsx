@@ -27,11 +27,16 @@ const MultiSelectFilter = ({
         )}
       >
         <option value="">{allLabel}</option>
-        {options.map((opt) => (
-          <option key={opt} value={opt}>
-            {opt}
-          </option>
-        ))}
+        {options.map((opt) => {
+          const isObj = typeof opt === 'object';
+          const val = isObj ? opt.id : opt;
+          const label = isObj ? opt.teamName || opt.label : opt;
+          return (
+            <option key={val} value={val}>
+              {label}
+            </option>
+          );
+        })}
       </select>
     </div>
   );
