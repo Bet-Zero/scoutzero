@@ -8,6 +8,7 @@ export const OutgoingPlayersList = ({
   sends,
   yearKey,
   otherTeams = [],
+  playersMap = {},
   onSetPlayerTrade,
 }) => {
   const [openMenu, setOpenMenu] = useState(null);
@@ -27,6 +28,7 @@ export const OutgoingPlayersList = ({
               included={included}
               yearKey={yearKey}
               otherTeams={otherTeams}
+              playersMap={playersMap}
               onSetPlayerTrade={onSetPlayerTrade}
               openMenu={openMenu}
               setOpenMenu={setOpenMenu}

@@ -18,6 +18,7 @@ const TradeTeamCard = ({
   picks,
   yearKey,
   otherTeams = [],
+  playersMap = {},
   incomingPlayers = [],
   incomingPicks = [],
   capImpact = null,
@@ -94,6 +95,7 @@ const TradeTeamCard = ({
           sends={sends}
           yearKey={yearKey}
           otherTeams={otherTeams}
+          playersMap={playersMap}
           onSetPlayerTrade={onSetPlayerTrade}
         />
       )}

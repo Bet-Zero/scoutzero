@@ -5,7 +5,12 @@ import { useTradeMachine } from '@/hooks/tradeMachine/useTradeMachine';
 import TradeTeamCard from './TradeTeamCard';
 import TradeSummaryPanel from './TradeSummaryPanel';
 
-const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
+const TradeEditor = ({
+  primaryTeam,
+  capProjections,
+  currentYear,
+  playersMap = {},
+}) => {
   const {
     teams,
     result,
@@ -63,6 +68,7 @@ const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
               incomingPicks={incomingAssets[idx]?.picks || []}
               yearKey={yearKey}
               otherTeams={otherTeams}
+              playersMap={playersMap}
               onSetPlayerTrade={(p, action) => setPlayerTrade(idx, p, action)}
               onTogglePick={(p) => togglePick(idx, p)}
               onEditPick={(p, field, value) =>
