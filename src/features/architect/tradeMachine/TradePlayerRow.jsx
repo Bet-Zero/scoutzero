@@ -38,12 +38,21 @@ const TradePlayerRow = ({
     `/assets/headshots/${player.id || player.player_id}.png`;
 
   const rawPosition =
-    player.bio?.Position || player.formattedPosition || player.position || '';
+    player.bio?.Position ||
+    player.formattedPosition ||
+    player.position ||
+    player.pos ||
+    '';
   const position = getPlayerPositionLabel(rawPosition) || '—';
+
+  const team =
+    player.bio?.Team || player.team || player.teamId || player.teamAbbr;
+  const height = player.bio?.HT || player.height || player.height_ft_in || '—';
+  const weight = player.bio?.WT || player.weight || player.weight_lbs || '—';
 
   return (
     <div
-      className={`w-full h-[90px] flex items-center overflow-hidden border border-black rounded-sm pr-2 ${
+      className={`w-full h-[68px] flex items-center overflow-hidden border border-black rounded-sm pr-2 ${
         included ? 'bg-green-800/40' : 'bg-neutral-800'
       }`}
     >
