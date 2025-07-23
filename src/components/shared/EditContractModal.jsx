@@ -39,7 +39,11 @@ const EditContractModal = ({
   onSignAndTrade,
 }) => {
   const [selectedAction, setSelectedAction] = useState('');
-  const [extension, setExtension] = useState({ years: 1, base: 0 });
+  const [extension, setExtension] = useState({
+    years: 1,
+    contractType: 'Standard',
+    salaries: [0],
+  });
   const [extReason, setExtReason] = useState('');
   const [extMax, setExtMax] = useState(null);
 
@@ -78,7 +82,11 @@ const EditContractModal = ({
     const lastSalary =
       player.contract_clean?.salaries_by_year?.[optionYear]?.salary || 0;
 
-    setExtension({ years: 1, base: lastSalary });
+    setExtension({
+      years: 1,
+      contractType: 'Standard',
+      salaries: [lastSalary],
+    });
     setSelectedAction('');
 
     const key = `${CURRENT_YEAR + 1}-${String(
@@ -91,7 +99,11 @@ const EditContractModal = ({
 
   useEffect(() => {
     if (selectedAction !== 'extend' || !extMax) return;
-    setExtension({ years: extMax.maxYears, base: extMax.maxFirstYearSalary });
+    setExtension({
+      years: extMax.maxYears,
+      contractType: 'Standard',
+      salaries: Array(extMax.maxYears).fill(extMax.maxFirstYearSalary),
+    });
   }, [selectedAction, extMax]);
 
   const handleConfirm = () => {
@@ -103,10 +115,10 @@ const EditContractModal = ({
         onOptionDecision?.(player, false);
         break;
       case 'signNew':
-        onSave?.(player, extension);
+        onSave?.(player, { ...extension, base: extension.salaries[0] || 0 });
         break;
       case 'resign':
-        onSave?.(player, extension);
+        onSave?.(player, { ...extension, base: extension.salaries[0] || 0 });
         break;
       case 'signAndTrade':
         onSignAndTrade?.(player, true);
@@ -118,7 +130,7 @@ const EditContractModal = ({
         {
           const startYear = optionYear ? optionYear + 1 : CURRENT_YEAR + 1;
           const contract = generateExtensionContract({
-            firstYearSalary: extension.base,
+            firstYearSalary: extension.salaries[0] || 0,
             years: extension.years,
             raisePct: extMax?.baseRaisePct || 0.08,
             startYear,
@@ -202,27 +214,65 @@ const EditContractModal = ({
           <div className="space-y-2">
             <h4 className="font-semibold text-sm">Contract Details</h4>
             <div className="flex items-center gap-3">
+              <label className="text-xs">Type</label>
+              <select
+                value={extension.contractType}
+                onChange={(e) =>
+                  setExtension({ ...extension, contractType: e.target.value })
+                }
+                className="p-1 rounded bg-neutral-800 border border-neutral-600 text-sm"
+              >
+                <option value="Standard">Standard</option>
+                <option value="Rookie Scale">Rookie Scale</option>
+                <option value="Designated veteran">Designated veteran</option>
+                {/* TODO: add Two-Way and Ten-Day options */}
+              </select>
+
               <label className="text-xs">Years</label>
-              <input
-                type="number"
-                min={1}
-                max={5}
+              <select
                 value={extension.years}
-                onChange={(e) =>
-                  setExtension({ ...extension, years: Number(e.target.value) })
-                }
-                className="w-16 p-1 rounded bg-neutral-800 border border-neutral-600 text-sm"
-              />
-              <label className="text-xs">Base Salary</label>
-              <input
-                type="number"
-                value={extension.base}
-                onChange={(e) =>
-                  setExtension({ ...extension, base: Number(e.target.value) })
-                }
-                className="w-24 p-1 rounded bg-neutral-800 border border-neutral-600 text-sm"
-              />
+                onChange={(e) => {
+                  const yrs = Number(e.target.value);
+                  setExtension({
+                    ...extension,
+                    years: yrs,
+                    salaries: Array.from(
+                      { length: yrs },
+                      (_, i) => extension.salaries[i] || 0
+                    ),
+                  });
+                }}
+                className="p-1 rounded bg-neutral-800 border border-neutral-600 text-sm"
+              >
+                {[1, 2, 3, 4, 5].map((yr) => (
+                  <option key={yr} value={yr}>
+                    {yr} year{yr > 1 ? 's' : ''}
+                  </option>
+                ))}
+              </select>
             </div>
+
+            <div className="flex flex-col gap-2">
+              {extension.salaries.slice(0, extension.years).map((sal, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <label className="text-xs w-20">Year {idx + 1} Salary</label>
+                  <input
+                    type="number"
+                    value={sal}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setExtension((prev) => {
+                        const arr = [...prev.salaries];
+                        arr[idx] = val;
+                        return { ...prev, salaries: arr };
+                      });
+                    }}
+                    className="flex-1 p-1 rounded bg-neutral-800 border border-neutral-600 text-sm"
+                  />
+                </div>
+              ))}
+            </div>
+
             {selectedAction === 'extend' && (
               <p className="text-xs text-neutral-400">
                 {extReason === 'Eligible'
