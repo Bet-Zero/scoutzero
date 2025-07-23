@@ -245,8 +245,10 @@ function evaluateTeam({
 
 function hasStepienViolation(picksOut) {
   const years = picksOut
-    .filter((p) => p.round === '1st' || p.round === 1)
-    .map((p) => parseInt(p.year))
+    .filter(
+      (p) => (p.round === '1st' || p.round === 1) && !p.protection && !p.isSwap
+    )
+    .map((p) => parseInt(p.year, 10))
     .sort((a, b) => a - b);
 
   for (let i = 1; i < years.length; i++) {
@@ -254,3 +256,5 @@ function hasStepienViolation(picksOut) {
   }
   return false;
 }
+
+export { hasStepienViolation };
