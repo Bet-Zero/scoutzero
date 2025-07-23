@@ -1,10 +1,17 @@
 // tradeHelpers.js
 
 export const getSalaryForYear = (players = [], year) =>
-  players.reduce(
-    (sum, p) => sum + (p.contract_clean?.salaries_by_year?.[year]?.salary || 0),
-    0
-  );
+  players.reduce((sum, p) => {
+    const salaryFromContract = p.contract_clean?.salaries_by_year?.[year]?.salary;
+    const salaryFromMap = p.salaryByYear?.[year];
+    const salary =
+      typeof salaryFromContract === 'number'
+        ? salaryFromContract
+        : typeof salaryFromMap === 'number'
+          ? salaryFromMap
+          : 0;
+    return sum + salary;
+  }, 0);
 
 export const areSamePick = (a, b) =>
   a.year === b.year && a.round === b.round && (a.via || '') === (b.via || '');
