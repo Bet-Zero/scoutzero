@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { formatSalary } from '@/utils/formatting';
+import EditContractModal from '@/components/shared/EditContractModal';
+import TradeExceptionModal from '@/components/shared/TradeExceptionModal';
 
 export const OutgoingPlayersList = ({
   team,
@@ -9,6 +11,8 @@ export const OutgoingPlayersList = ({
   onSetPlayerTrade,
 }) => {
   const [openMenu, setOpenMenu] = useState(null);
+  const [contractPlayer, setContractPlayer] = useState(null);
+  const [tpePlayer, setTpePlayer] = useState(null);
 
   return (
     <div>
@@ -49,12 +53,21 @@ export const OutgoingPlayersList = ({
                     ))}
                     <button
                       onClick={() => {
-                        console.log('Modify contract', p.name);
+                        setContractPlayer(p);
                         setOpenMenu(null);
                       }}
                       className="block w-full text-left px-3 py-1 hover:bg-[#333]"
                     >
                       Modify Contract
+                    </button>
+                    <button
+                      onClick={() => {
+                        setTpePlayer(p);
+                        setOpenMenu(null);
+                      }}
+                      className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+                    >
+                      Trade Exception
                     </button>
                     <button
                       onClick={() => {
@@ -84,6 +97,24 @@ export const OutgoingPlayersList = ({
           <div className="text-xs text-white/40">No players available</div>
         )}
       </div>
+      {contractPlayer && (
+        <EditContractModal
+          player={contractPlayer}
+          isOpen={!!contractPlayer}
+          onClose={() => setContractPlayer(null)}
+          onSave={(plr, values) => console.log('Save contract', plr, values)}
+        />
+      )}
+      {tpePlayer && (
+        <TradeExceptionModal
+          player={tpePlayer}
+          isOpen={!!tpePlayer}
+          onClose={() => setTpePlayer(null)}
+          onApply={(plr, amt, create) =>
+            console.log('Apply TPE', plr, amt, create)
+          }
+        />
+      )}
     </div>
   );
 };
