@@ -1,0 +1,156 @@
+import React from 'react';
+import PlayerNameMini from '@/features/table/PlayerTable/PlayerRow/PlayerNameMini';
+import TeamLogo from '@/components/shared/TeamLogo';
+import { getPlayerPositionLabel } from '@/utils/roles';
+import { formatSalary } from '@/utils/formatting';
+
+const parseYear = (key) => {
+  if (typeof key === 'number') return key;
+  const match = String(key).match(/\d{4}/);
+  return match ? parseInt(match[0], 10) : NaN;
+};
+
+const TradePlayerRow = ({
+  player,
+  included,
+  yearKey,
+  otherTeams = [],
+  onSetPlayerTrade,
+  openMenu,
+  setOpenMenu,
+  setContractPlayer,
+  setTpePlayer,
+}) => {
+  const year = parseYear(yearKey);
+  const salary =
+    player.contract_clean?.salaries_by_year?.[yearKey]?.salary ||
+    player.contract?.annual_salaries?.find((s) => parseYear(s.year) === year)
+      ?.salary ||
+    0;
+  const yearsLeft = player.free_agency_year
+    ? Math.max(0, player.free_agency_year - year)
+    : 0;
+  const contractInfo = `${formatSalary(salary)} / ${yearsLeft} YRS`;
+
+  const headshot =
+    player.headshotUrl ||
+    player.headshot ||
+    `/assets/headshots/${player.id || player.player_id}.png`;
+
+  const rawPosition =
+    player.bio?.Position || player.formattedPosition || player.position || '';
+  const position = getPlayerPositionLabel(rawPosition) || '—';
+
+  return (
+    <div
+      className={`w-full h-[90px] flex items-center overflow-hidden border border-black rounded-sm pr-2 ${
+        included ? 'bg-green-800/40' : 'bg-neutral-800'
+      }`}
+    >
+      {/* Position Bar */}
+      <div className="h-full w-12 flex flex-col items-center justify-center bg-neutral-700 text-white font-bold text-base font-mono relative">
+        <div>{position}</div>
+        <div className="absolute right-0 top-0 h-full w-[2px] bg-neutral-950"></div>
+      </div>
+
+      {/* Headshot */}
+      <div className="h-full w-[70px] bg-[#2a2a2a] flex items-center justify-center overflow-hidden">
+        <img
+          src={headshot}
+          onError={(e) => {
+            e.target.src = '/assets/headshots/default.png';
+          }}
+          alt={player.name}
+          className="h-full w-full object-cover"
+        />
+      </div>
+
+      {/* Main Info */}
+      <div className="flex flex-col justify-center ml-3">
+        <div className="h-[40px] flex items-center">
+          <PlayerNameMini name={player.display_name || player.name} />
+        </div>
+        <div className="flex items-center mt-[11px] -mb-1 gap-2 text-white/50 text-[13px]">
+          <TeamLogo teamAbbr={player.bio?.Team} className="w-5 h-5" />
+          <div>
+            {player.bio?.HT || '—'} <span className="text-white/30">|</span>{' '}
+            {player.bio?.WT || '—'} lbs
+          </div>
+        </div>
+      </div>
+
+      {/* Contract Info */}
+      <div className="ml-auto text-white/60 text-xs font-semibold whitespace-nowrap mr-2">
+        {contractInfo}
+      </div>
+
+      {/* Options */}
+      <div className="flex items-center gap-2 relative">
+        <button
+          onClick={() =>
+            setOpenMenu(openMenu === player.name ? null : player.name)
+          }
+          className="text-xs text-blue-400 hover:underline"
+        >
+          •••
+        </button>
+        {openMenu === player.name && (
+          <div className="absolute right-0 top-5 bg-[#222] border border-white/20 rounded z-20 text-xs min-w-[8rem]">
+            {otherTeams.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => {
+                  onSetPlayerTrade(player, included ? 'keep' : 'trade');
+                  setOpenMenu(null);
+                }}
+                className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+              >
+                {`Trade to ${t.teamName}`}
+              </button>
+            ))}
+            <button
+              onClick={() => {
+                setContractPlayer(player);
+                setOpenMenu(null);
+              }}
+              className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+            >
+              Modify Contract
+            </button>
+            <button
+              onClick={() => {
+                setTpePlayer(player);
+                setOpenMenu(null);
+              }}
+              className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+            >
+              Trade Exception
+            </button>
+            <button
+              onClick={() => {
+                window.location.href = `/profiles?player=${player.id || player.player_id}`;
+              }}
+              className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+            >
+              View Profile
+            </button>
+          </div>
+        )}
+        {included && (
+          <label className="flex items-center gap-1 text-xs">
+            <input
+              type="checkbox"
+              checked={!!player.signAndTrade}
+              onChange={() =>
+                onSetPlayerTrade(player, 'signAndTrade', !player.signAndTrade)
+              }
+            />
+            S&T
+          </label>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default TradePlayerRow;

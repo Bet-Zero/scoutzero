@@ -82,8 +82,8 @@ const FreeAgentPool = ({
           </h3>
           <p className="text-sm mb-1">
             Asking:{' '}
-            {selectedPlayer.askingSalary != null
-              ? `$${selectedPlayer.askingSalary.toLocaleString()}`
+            {selectedPlayer.previousSalary != null
+              ? `$${selectedPlayer.previousSalary.toLocaleString()}`
               : 'N/A'}
           </p>
           <p className="text-sm mb-3">
