@@ -1,7 +1,13 @@
 import React from 'react';
 import { areSamePick, formatPick } from '@/utils/architect/tradeHelpers';
+import { getPickOptions } from '@/utils/architect/tradeMachine/pickOptions';
 
-export const OutgoingPicksList = ({ team, picks, onTogglePick, onEditPick }) => (
+export const OutgoingPicksList = ({
+  team,
+  picks,
+  onTogglePick,
+  onEditPick,
+}) => (
   <div>
     <h4 className="text-sm text-white/70 mb-1">Outgoing Picks</h4>
     <div className="space-y-1">
@@ -18,12 +24,19 @@ export const OutgoingPicksList = ({ team, picks, onTogglePick, onEditPick }) => 
               <div>{formatPick(p)}</div>
               {exists && (
                 <div className="text-white/50 mt-1 space-y-1">
-                  <input
+                  <select
                     className="bg-black/30 p-1 rounded w-full"
                     value={p.protection || ''}
-                    placeholder="Protection"
-                    onChange={(e) => onEditPick(p, 'protection', e.target.value)}
-                  />
+                    onChange={(e) =>
+                      onEditPick(p, 'protection', e.target.value)
+                    }
+                  >
+                    {getPickOptions().map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
                   <input
                     className="bg-black/30 p-1 rounded w-full"
                     value={p.note || ''}
@@ -33,7 +46,10 @@ export const OutgoingPicksList = ({ team, picks, onTogglePick, onEditPick }) => 
                 </div>
               )}
             </div>
-            <button onClick={() => onTogglePick(p)} className="text-blue-400 hover:underline">
+            <button
+              onClick={() => onTogglePick(p)}
+              className="text-blue-400 hover:underline"
+            >
               {exists ? 'Remove' : 'Trade'}
             </button>
           </div>
@@ -45,4 +61,3 @@ export const OutgoingPicksList = ({ team, picks, onTogglePick, onEditPick }) => 
     </div>
   </div>
 );
-
