@@ -81,6 +81,7 @@ export const getExtensionEligibilityDate = (player) => {
 
 export const getExtensionMaxDetails = (player, capSettings) => {
   const contract = player?.contract_clean;
+  if (!contract) return null;
   const salaries = contract?.salaries_by_year || {};
   const now = new Date();
   const yearKeys = Object.keys(salaries)

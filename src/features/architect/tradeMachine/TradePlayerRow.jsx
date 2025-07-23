@@ -30,11 +30,9 @@ const TradePlayerRow = ({
       ?.salary ||
     0;
   const faYear =
-    player.contract_clean?.fa_year ??
-    player.fa_year ??
-    player.free_agency_year;
+    player.contract_clean?.fa_year ?? player.fa_year ?? player.free_agency_year;
   const yearsLeft = getYearsRemaining(faYear, year);
-  const contractInfo = `${formatSalary(salary)} / ${yearsLeft} YRS`;
+  const formattedSalary = formatSalary(salary);
 
   const details = playersMap[player.name] || {};
 
@@ -90,7 +88,7 @@ const TradePlayerRow = ({
       }`}
     >
       {/* Position Bar */}
-      <div className="h-full w-12 flex flex-col items-center justify-center bg-neutral-700 text-white font-bold text-base font-mono relative">
+      <div className="h-full w-10 flex flex-col items-center justify-center bg-neutral-800 text-white font-normal text-base font-mono relative">
         <div>{position}</div>
         <div className="absolute right-0 top-0 h-full w-[2px] bg-neutral-950"></div>
       </div>
@@ -124,12 +122,17 @@ const TradePlayerRow = ({
       </div>
 
       {/* Contract Info */}
-      <div className="ml-auto text-white/60 text-xs font-semibold whitespace-nowrap mr-2">
-        {contractInfo}
+      <div className="ml-auto mr-4 flex flex-col items-end whitespace-nowrap">
+        <div className="text-white font-semibold text-sm">
+          {formattedSalary}
+        </div>
+        <div className="text-white/60 text-[11px] font-semibold">
+          {yearsLeft} YRS
+        </div>
       </div>
 
       {/* Options */}
-      <div className="flex items-center gap-2 relative">
+      <div className="flex items-center gap-2 relative mr-1">
         <button
           onClick={() =>
             setOpenMenu(openMenu === player.name ? null : player.name)
