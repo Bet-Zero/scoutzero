@@ -5,7 +5,7 @@ import TierRow from '@/features/tierMaker/TierRow';
 import usePlayerData from '@/hooks/usePlayerData.js';
 import useFirebaseQuery from '@/hooks/useFirebaseQuery';
 import { POSITION_MAP } from '@/utils/roles';
-import { teamOptions } from '@/utils/filtering';
+import { TeamListFull } from '@/constants/teamList';
 import DrawerShell from '@/components/shared/ui/drawers/DrawerShell';
 import OpenDrawerButton from '@/components/shared/ui/drawers/OpenDrawerButton';
 import AddPlayerDrawer from '@/features/roster/AddPlayerDrawer';
@@ -100,7 +100,7 @@ const TierMakerBoard = ({ players = [], initialTierListId = '' }) => {
   const [tierOrder, setTierOrder] = useState([...DEFAULT_TIERS, 'Pool']);
   const [screenshotMode, setScreenshotMode] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [selectedTeam, setSelectedTeam] = useState('');
+  const [selectedTeam, setSelectedTeam] = useState(null);
   const [selectedList, setSelectedList] = useState('');
   const [selectedTierList, setSelectedTierList] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -183,10 +183,10 @@ const TierMakerBoard = ({ players = [], initialTierListId = '' }) => {
   const handleAddTeamRoster = () => {
     if (!selectedTeam) return;
     const teamPlayers = allPlayers.filter(
-      (p) => (p.bio?.Team || '').toLowerCase() === selectedTeam.toLowerCase()
+      (p) => (p.bio?.Team || '').toLowerCase() === selectedTeam.id
     );
     addPlayersToPool(teamPlayers);
-    setSelectedTeam('');
+    setSelectedTeam(null);
   };
 
   const handleAddList = () => {
@@ -331,14 +331,14 @@ const TierMakerBoard = ({ players = [], initialTierListId = '' }) => {
             <div className="flex items-center gap-2 flex-wrap mt-4 justify-center">
               <div className="flex items-center gap-1">
                 <select
-                  value={selectedTeam}
-                  onChange={(e) => setSelectedTeam(e.target.value)}
+                  value={selectedTeam?.id || ''}
+                  onChange={(e) => setSelectedTeam(TeamListFull.find((t) => t.id === e.target.value) || null)}
                   className="bg-[#1a1a1a] text-white text-sm px-2 py-1 rounded border border-white/10"
                 >
                   <option value="">Add Team...</option>
-                  {teamOptions.sort().map((team) => (
-                    <option key={team} value={team}>
-                      {team}
+                  {TeamListFull.map((team) => (
+                    <option key={team.id} value={team.id}>
+                      {team.teamName}
                     </option>
                   ))}
                 </select>

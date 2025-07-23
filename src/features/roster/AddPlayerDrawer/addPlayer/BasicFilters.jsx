@@ -18,9 +18,9 @@ const BasicFilters = ({ filters, setFilters }) => {
             className="w-full bg-[#2a2a2a] text-white px-2 py-1 rounded text-xs"
           >
             <option value="">All Teams</option>
-            {teamOptions.sort().map((team) => (
-              <option key={team} value={team}>
-                {team}
+            {teamOptions.map((team) => (
+              <option key={team.id} value={team.id}>
+                {team.teamName}
               </option>
             ))}
           </select>

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import MultiSelectFilter from '@/components/shared/ui/filters/MultiSelectFilter';
-import { teamOptions } from '@/utils/filtering';
+import { TeamListFull } from '@/constants/teamList';
 
 const MetadataFilters = ({ filters, setFilters }) => {
   const update = (key, value) => {
@@ -16,7 +16,7 @@ const MetadataFilters = ({ filters, setFilters }) => {
         <MultiSelectFilter
           label="Team"
           value={filters.team || ''}
-          options={teamOptions.sort()}
+          options={TeamListFull}
           onChange={(val) => update('team', val)}
           allLabel="All"
           selectClass="w-[125px]"

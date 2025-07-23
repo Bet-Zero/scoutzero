@@ -33,7 +33,8 @@ const AddPlayerDrawer = ({ onClose, allPlayers, onSelect }) => {
     return allPlayers
       .filter((p) => {
         if (searchTerm && !p.name.includes(searchTerm)) return false;
-        if (team && p.team !== team.toLowerCase()) return false;
+        const playerTeamId = (p.team || '').toLowerCase().replace(/\s+/g, '');
+        if (team && playerTeamId !== team) return false;
         if (positionOptions && !positionOptions.includes(p.position))
           return false;
         if (

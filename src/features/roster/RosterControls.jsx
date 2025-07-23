@@ -1,6 +1,6 @@
 // src/components/roster/RosterControls.jsx
 import React from 'react';
-import { teamOptions } from '@/utils/filtering';
+import { TeamListFull, TeamMap } from '@/constants/teamList';
 
 const RosterControls = ({
   selectedTeam,
@@ -11,7 +11,7 @@ const RosterControls = ({
 }) => {
   const filteredRosters = savedRosters.filter((r) => {
     if (selectedTeam) {
-      return r.team?.toLowerCase() === selectedTeam.toLowerCase() || !r.team;
+      return r.team === selectedTeam.id || !r.team;
     }
     return true;
   });
@@ -22,14 +22,14 @@ const RosterControls = ({
       <div className="flex gap-2 items-center">
         <label className="text-sm text-white/60">Team:</label>
         <select
-          value={selectedTeam}
-          onChange={(e) => onTeamChange(e.target.value)}
+          value={selectedTeam?.id || ''}
+          onChange={(e) => onTeamChange(TeamMap[e.target.value])}
           className="bg-[#1a1a1a] text-white text-sm px-3 py-1 rounded border border-white/10"
         >
           <option value="">— Select Team —</option>
-          {teamOptions.sort().map((team) => (
-            <option key={team} value={team}>
-              {team}
+          {TeamListFull.map((team) => (
+            <option key={team.id} value={team.id}>
+              {team.teamName}
             </option>
           ))}
         </select>

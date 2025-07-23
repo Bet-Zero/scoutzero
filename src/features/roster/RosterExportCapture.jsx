@@ -6,7 +6,7 @@ import RosterSection from './RosterSection';
 import '@/styles/antonFont.css';
 
 const RosterExportCapture = React.forwardRef(({ roster, team }, ref) => {
-  const { primary, secondary } = getTeamColors(team);
+  const { primary, secondary } = getTeamColors(team?.id);
 
   return (
     <div
@@ -16,7 +16,7 @@ const RosterExportCapture = React.forwardRef(({ roster, team }, ref) => {
     >
       {team && (
         <img
-          src={`/assets/logos/${getTeamLogoFilename(team)}.png`}
+          src={`/assets/logos/${getTeamLogoFilename(team.id)}.png`}
           alt=""
           className="absolute inset-0 w-full h-full object-contain opacity-20 blur-sm mt-6 pointer-events-none select-none"
         />
@@ -34,7 +34,7 @@ const RosterExportCapture = React.forwardRef(({ roster, team }, ref) => {
               textShadow: `0 0 8px ${primary}, 0 0 16px ${secondary}`,
             }}
           >
-            {team}
+            {team.nickname}
           </h2>
         </div>
 
