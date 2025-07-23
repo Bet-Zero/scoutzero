@@ -53,20 +53,27 @@ export function validateTrade({
   );
 
   const teamResults = teams.map((t, idx) => {
+    const evaluation = evaluateTeam({
+      team: t.team,
+      salaryOut: salaryOut[idx],
+      salaryIn: salaryIn[idx],
+      rosterOut: rosterOut[idx],
+      rosterIn: rosterIn[idx],
+      hardCapped: t.hardCapped ?? t.team?.hardCapped,
+      signAndTrade: t.sends.some((p) => p.signAndTrade),
+      outgoingCount: t.sends.length,
+      incomingCount: rosterIn[idx],
+      capSettings,
+    });
+
     return {
       teamName: t.team.teamName,
-      ...evaluateTeam({
-        team: t.team,
-        salaryOut: salaryOut[idx],
-        salaryIn: salaryIn[idx],
-        rosterOut: rosterOut[idx],
-        rosterIn: rosterIn[idx],
-        hardCapped: t.hardCapped ?? t.team?.hardCapped,
-        signAndTrade: t.sends.some((p) => p.signAndTrade),
-        outgoingCount: t.sends.length,
-        incomingCount: rosterIn[idx],
-        capSettings,
-      }),
+      ...evaluation,
+      checks: {
+        ...evaluation.checks,
+        signAndTrade: true,
+        stepien: true,
+      },
     };
   });
 
@@ -77,6 +84,7 @@ export function validateTrade({
         teamResults[idx].reasons.push(
           'Sign-and-trade player must be traded alone.'
         );
+        teamResults[idx].checks.signAndTrade = false;
       }
       teamResults.forEach((res, j) => {
         const projected = res.projectedSalary;
@@ -84,6 +92,7 @@ export function validateTrade({
           res.reasons.push(
             'Receiving team exceeds first apron with a sign-and-trade.'
           );
+          res.checks.signAndTrade = false;
         }
       });
     }
@@ -95,6 +104,7 @@ export function validateTrade({
       teamResults[i].reasons.push(
         'Violates Stepien Rule (consecutive future 1sts).'
       );
+      teamResults[i].checks.stepien = false;
     }
   });
 
@@ -164,25 +174,35 @@ function evaluateTeam({
   }
 
   const reasons = [];
+  const checks = {
+    secondApronAggregation: true,
+    firstApronLimit: true,
+    hardCap: true,
+    salaryMatching: true,
+  };
 
   // 2nd Apron: No aggregation
   if ((overSecond || willBeOverSecond) && outgoingCount > 1) {
     reasons.push('2nd Apron Rule: Cannot aggregate multiple salaries in trade');
+    checks.secondApronAggregation = false;
   }
 
   // 1st Apron: Cannot receive more than sent
   if ((overFirst || willBeOverFirst) && salaryIn > salaryOut) {
     reasons.push('1st Apron Rule: Cannot receive more salary than sent');
+    checks.firstApronLimit = false;
   }
 
   // Hard cap enforcement
   if (hardCapped && projectedSalary > firstApron) {
     reasons.push('Hard cap exceeded (1st Apron)');
+    checks.hardCap = false;
   }
 
   // Standard over-cap matching
   if (overCap && salaryIn > allowableIn) {
     reasons.push('Incoming salary exceeds allowed amount');
+    checks.salaryMatching = false;
   }
 
   return {
@@ -194,6 +214,7 @@ function evaluateTeam({
     salaryOut,
     projectedSalary,
     apronStatus,
+    checks,
   };
 }
 

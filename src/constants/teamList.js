@@ -127,7 +127,7 @@ export const TeamListFull = [
     conference: 'East',
   },
   {
-    id: 'sixers',
+    id: '76ers',
     teamName: 'Philadelphia 76ers',
     nickname: 'Sixers',
     conference: 'East',
@@ -139,7 +139,7 @@ export const TeamListFull = [
     conference: 'West',
   },
   {
-    id: 'blazers',
+    id: 'trail blazers',
     teamName: 'Portland Trail Blazers',
     nickname: 'Blazers',
     conference: 'West',
