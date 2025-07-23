@@ -38,10 +38,9 @@ const FreeAgentRow = ({
     return 'bg-gray-600 text-white/70';
   };
 
-  const asking =
-    askInfo.askingSalary != null
-      ? `$${askInfo.askingSalary.toLocaleString()}`
-      : 'N/A';
+  // Display the previous year's salary in place of the asking price
+  const asking = prevSalary;
+
   const rights = askInfo.birdRights;
 
   return (
@@ -75,19 +74,20 @@ const FreeAgentRow = ({
           <span className="text-white/70 font-light">{lastName}</span>
         </div>
         <div className="flex items-center justify-end text-white/50 text-[13px] gap-2 whitespace-nowrap">
-          <span>{asking}</span>
-          <span className="text-white/30">|</span>
           <span>{rights}</span>
         </div>
       </div>
-      <div className="flex items-center justify-end text-white/50 text-[13px] gap-2 w-[150px] mr-3 whitespace-nowrap">
+      <div className="flex items-center justify-end text-white/50 text-[13px] gap-2 w-[200px] mr-3 whitespace-nowrap">
         <span
           className={`px-1 rounded text-[10px] font-semibold ${getTagColor(faType)}`}
         >
           {faType}
         </span>
+        <span className="text-white/30">|</span>
         <span>{height}</span>
         <span>{weight}</span>
+        <span className="text-white/30">|</span>
+        <span>{asking}</span>
       </div>
     </div>
   );
