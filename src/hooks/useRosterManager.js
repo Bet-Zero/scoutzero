@@ -11,6 +11,7 @@ import {
   loadRosterProject,
   updateRosterProject,
 } from '@/firebase/rosterHelpers';
+import { TeamMap } from '@/constants/teamList';
 
 export const emptyRoster = {
   starters: [null, null, null, null, null],
@@ -20,7 +21,7 @@ export const emptyRoster = {
 
 export const useRosterManager = (allPlayers = [], isLoading = false) => {
   const [roster, setRoster] = useState(emptyRoster);
-  const [selectedTeam, setSelectedTeam] = useState('');
+  const [selectedTeam, setSelectedTeam] = useState(null);
   const [loadMethod, setLoadMethod] = useState('current');
   const [savedRosters, setSavedRosters] = useState([]);
 
@@ -98,7 +99,7 @@ export const useRosterManager = (allPlayers = [], isLoading = false) => {
       if (loadMethod === 'current') {
         if (!selectedTeam) return;
         const rawTeamPlayers = allPlayers.filter(
-          (p) => p.bio?.Team?.toLowerCase() === selectedTeam.toLowerCase()
+          (p) => (p.bio?.Team || '').toLowerCase() === selectedTeam.id
         );
 
         const teamPlayers = rawTeamPlayers
@@ -115,7 +116,7 @@ export const useRosterManager = (allPlayers = [], isLoading = false) => {
 
       const loaded = await loadRosterProject(loadMethod);
       if (loaded) {
-        setSelectedTeam(loaded.team || '');
+        setSelectedTeam(TeamMap[loaded.team] || null);
         setRosterId(loaded.id);
         setRosterName(loaded.name);
         setRoster({
@@ -170,7 +171,7 @@ export const useRosterManager = (allPlayers = [], isLoading = false) => {
       roster.starters.map((p) => (p ? p.id : null)),
       roster.rotation.map((p) => (p ? p.id : null)),
       roster.bench.map((p) => (p ? p.id : null)),
-      selectedTeam
+      selectedTeam?.id || ''
     );
     setRosterId(created.id);
     setSavedRosters((prev) => [...prev, created]);
@@ -198,7 +199,7 @@ export const useRosterManager = (allPlayers = [], isLoading = false) => {
     async (id) => {
       const loaded = await loadRosterProject(id);
       if (loaded) {
-        setSelectedTeam(loaded.team || '');
+        setSelectedTeam(TeamMap[loaded.team] || null);
         setRosterId(loaded.id);
         setRosterName(loaded.name);
         setRoster({

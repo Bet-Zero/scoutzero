@@ -7,7 +7,7 @@ export const OutgoingPlayersList = ({
   team,
   sends,
   yearKey,
-  otherTeamNames = [],
+  otherTeams = [],
   onSetPlayerTrade,
 }) => {
   const [openMenu, setOpenMenu] = useState(null);
@@ -44,16 +44,16 @@ export const OutgoingPlayersList = ({
                 </button>
                 {openMenu === p.name && (
                   <div className="absolute right-0 top-5 bg-[#222] border border-white/20 rounded z-20 text-xs min-w-[8rem]">
-                    {otherTeamNames.map((n) => (
+                    {otherTeams.map((t) => (
                       <button
-                        key={n}
+                        key={t.id}
                         onClick={() => {
                           onSetPlayerTrade(p, included ? 'keep' : 'trade');
                           setOpenMenu(null);
                         }}
                         className="block w-full text-left px-3 py-1 hover:bg-[#333]"
                       >
-                        {`Trade to ${n}`}
+                        {`Trade to ${t.teamName}`}
                       </button>
                     ))}
                     <button

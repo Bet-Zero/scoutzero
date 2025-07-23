@@ -50,9 +50,9 @@ const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
       {/* Team Cards */}
       <div className="flex flex-col md:flex-row flex-wrap gap-6">
         {teams.map((t, idx) => {
-          const otherNames = teams
+          const otherTeams = teams
             .filter((_, j) => j !== idx && teams[j].team)
-            .map((tm) => tm.team.teamName);
+            .map((tm) => tm.team);
           return (
             <TradeTeamCard
               key={idx}
@@ -62,7 +62,7 @@ const TradeEditor = ({ primaryTeam, capProjections, currentYear }) => {
               incomingPlayers={incomingAssets[idx]?.players || []}
               incomingPicks={incomingAssets[idx]?.picks || []}
               yearKey={yearKey}
-              otherTeamNames={otherNames}
+              otherTeams={otherTeams}
               onSetPlayerTrade={(p, action) => setPlayerTrade(idx, p, action)}
               onTogglePick={(p) => togglePick(idx, p)}
               onEditPick={(p, field, value) =>

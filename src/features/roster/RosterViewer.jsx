@@ -10,6 +10,7 @@ import SaveRosterModal from './SaveRosterModal';
 import RosterPreviewModal from './RosterPreviewModal';
 import { getTeamColors } from '@/utils/formatting/teamColors';
 import { getTeamLogoFilename } from '@/utils/formatting/teamLogos';
+import { TeamMap } from '@/constants/teamList';
 import { useRosterManager } from '@/hooks/useRosterManager';
 
 const RosterViewer = ({ isExport = false, initialRosterId }) => {
@@ -42,7 +43,7 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
     if (!initialRosterId || savedRosters.length === 0) return;
     const match = savedRosters.find((r) => r.id === initialRosterId);
     if (match) {
-      setSelectedTeam(match.team);
+      setSelectedTeam(TeamMap[match.team] || null);
       setLoadMethod(match.id);
     }
   }, [initialRosterId, savedRosters, setSelectedTeam, setLoadMethod]);
@@ -67,7 +68,7 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
     setPreviewOpen(true);
   };
 
-  const { primary, secondary } = getTeamColors(selectedTeam);
+  const { primary, secondary } = getTeamColors(selectedTeam?.id);
 
   return (
     <div className="flex relative">
@@ -108,7 +109,7 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
           {/* Team Branding Background */}
           {selectedTeam && (
             <img
-              src={`/assets/logos/${getTeamLogoFilename(selectedTeam)}.png`}
+              src={`/assets/logos/${getTeamLogoFilename(selectedTeam.id)}.png`}
               alt=""
               className="absolute inset-0 w-full h-full object-contain opacity-20 blur-sm mt-4 pointer-events-none select-none"
               style={{ zIndex: 0 }}
@@ -141,7 +142,7 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
                   transform: 'translateX(3px)',
                 }}
               >
-                {selectedTeam}
+                {selectedTeam.nickname}
               </h2>
             </div>
           )}

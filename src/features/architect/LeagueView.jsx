@@ -1,39 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { loadTeamCapSheet } from '@/utils/architect/firebaseHelpers';
 import { useNavigate } from 'react-router-dom';
+import { TeamListFull } from '@/constants/teamList';
 
-const teamsList = [
-  'Lakers',
-  'Warriors',
-  'Nuggets',
-  'Suns',
-  'Clippers',
-  'Celtics',
-  'Bucks',
-  '76ers',
-  'Knicks',
-  'Heat',
-  'Mavericks',
-  'Grizzlies',
-  'Timberwolves',
-  'Pelicans',
-  'Kings',
-  'Hawks',
-  'Raptors',
-  'Bulls',
-  'Cavaliers',
-  'Pacers',
-  'Thunder',
-  'Jazz',
-  'Trail Blazers',
-  'Spurs',
-  'Rockets',
-  'Wizards',
-  'Magic',
-  'Pistons',
-  'Hornets',
-  'Nets',
-];
+const teamsList = TeamListFull;
 
 const LeagueView = () => {
   const [teamSummaries, setTeamSummaries] = useState([]);
@@ -42,8 +12,8 @@ const LeagueView = () => {
   useEffect(() => {
     const loadAllTeams = async () => {
       const summaries = [];
-      for (const name of teamsList) {
-        const capSheet = await loadTeamCapSheet(name.toLowerCase());
+      for (const t of teamsList) {
+        const capSheet = await loadTeamCapSheet(t.id);
         if (capSheet) {
           const totalSalary =
             capSheet.players?.reduce((sum, p) => {
@@ -51,9 +21,9 @@ const LeagueView = () => {
                 sum + (p.contract_clean?.salaries_by_year?.[2025]?.salary || 0)
               );
             }, 0) || 0;
-          summaries.push({ teamName: name, totalSalary });
+          summaries.push({ id: t.id, teamName: t.teamName, totalSalary });
         } else {
-          summaries.push({ teamName: name, totalSalary: 0 });
+          summaries.push({ id: t.id, teamName: t.teamName, totalSalary: 0 });
         }
       }
       setTeamSummaries(summaries);
@@ -80,12 +50,12 @@ const LeagueView = () => {
         </thead>
         <tbody>
           {teamSummaries.map((team) => (
-            <tr key={team.teamName} className="odd:bg-[#171717]">
+            <tr key={team.id} className="odd:bg-[#171717]">
               <td className="p-2">{team.teamName}</td>
               <td className="p-2">${team.totalSalary.toLocaleString()}</td>
               <td className="p-2 text-right">
                 <button
-                  onClick={() => goToTeam(team.teamName)}
+                  onClick={() => goToTeam(team.id)}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs"
                 >
                   Manage Team

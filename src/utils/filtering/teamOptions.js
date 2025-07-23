@@ -1,32 +1,4 @@
-export const teamOptions = [
-  'Hawks',
-  'Celtics',
-  'Nets',
-  'Hornets',
-  'Bulls',
-  'Cavaliers',
-  'Mavericks',
-  'Nuggets',
-  'Pistons',
-  'Warriors',
-  'Rockets',
-  'Pacers',
-  'Clippers',
-  'Lakers',
-  'Grizzlies',
-  'Heat',
-  'Bucks',
-  'Timberwolves',
-  'Pelicans',
-  'Knicks',
-  'Thunder',
-  'Magic',
-  '76ers',
-  'Suns',
-  'Trail Blazers',
-  'Kings',
-  'Spurs',
-  'Raptors',
-  'Jazz',
-  'Wizards',
-];
+import { TeamListFull } from '@/constants/teamList';
+
+// Export full team objects for use across filters and dropdowns
+export const teamOptions = TeamListFull;

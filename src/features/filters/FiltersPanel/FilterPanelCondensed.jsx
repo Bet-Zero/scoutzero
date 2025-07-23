@@ -2,7 +2,7 @@
 
 import React from 'react';
 import MultiSelectFilter from '@/components/shared/ui/filters/MultiSelectFilter';
-import { teamOptions } from '@/utils/filtering';
+import { TeamListFull } from '@/constants/teamList';
 import {
   offensiveRoles,
   defensiveRoles,
@@ -22,7 +22,7 @@ const FilterPanelCondensed = ({ filters, setFilters }) => {
       <div className="flex flex-wrap gap-3 items-end">
         <MultiSelectFilter
           value={filters.team || ''}
-          options={teamOptions.sort()}
+          options={TeamListFull}
           onChange={(val) => update('team', val)}
           allLabel="All Teams"
           containerClass="shrink-0"
