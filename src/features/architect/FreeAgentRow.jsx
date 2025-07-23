@@ -77,17 +77,17 @@ const FreeAgentRow = ({
           <span>{rights}</span>
         </div>
       </div>
-      <div className="flex items-center justify-end text-white/50 text-[13px] gap-2 w-[200px] mr-3 whitespace-nowrap">
+      <div className="flex items-center justify-end text-white/50 text-[13px] gap-2 w-[210px] mr-3 whitespace-nowrap tabular-nums">
         <span
-          className={`px-1 rounded text-[10px] font-semibold ${getTagColor(faType)}`}
+          className={`w-[28px] text-center px-1 rounded text-[10px] font-semibold ${getTagColor(faType)}`}
         >
           {faType}
         </span>
         <span className="text-white/30">|</span>
-        <span>{height}</span>
-        <span>{weight}</span>
+        <span className="w-[32px] text-right">{height}</span>
+        <span className="w-[36px] text-right">{weight}</span>
         <span className="text-white/30">|</span>
-        <span>{asking}</span>
+        <span className="w-[78px] text-right">{asking}</span>
       </div>
     </div>
   );
