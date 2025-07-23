@@ -51,7 +51,7 @@ const FreeAgentRow = ({
       role="button"
       tabIndex={0}
       onClick={onSelect}
-      className={`w-full h-[45px] bg-neutral-800 rounded-sm flex items-center border border-black mb-[3px] pr-2 overflow-hidden hover:bg-neutral-700 cursor-pointer focus:outline-none ${
+      className={`w-full h-[45px] bg-neutral-800 rounded-sm flex items-center border border-black mb-[3px] pr-2 overflow-visible hover:bg-neutral-700 cursor-pointer focus:outline-none ${
         isSelected ? 'ring-1 ring-lakers' : ''
       }`}
     >
