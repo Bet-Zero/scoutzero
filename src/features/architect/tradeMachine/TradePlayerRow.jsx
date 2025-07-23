@@ -15,6 +15,7 @@ const TradePlayerRow = ({
   included,
   yearKey,
   otherTeams = [],
+  playersMap = {},
   onSetPlayerTrade,
   openMenu,
   setOpenMenu,
@@ -32,23 +33,52 @@ const TradePlayerRow = ({
     : 0;
   const contractInfo = `${formatSalary(salary)} / ${yearsLeft} YRS`;
 
+  const details = playersMap[player.name] || {};
+
   const headshot =
     player.headshotUrl ||
     player.headshot ||
-    `/assets/headshots/${player.id || player.player_id}.png`;
+    details.headshotUrl ||
+    details.headshot ||
+    `/assets/headshots/${player.id || player.player_id || details.player_id}.png`;
 
   const rawPosition =
     player.bio?.Position ||
     player.formattedPosition ||
     player.position ||
     player.pos ||
+    details.bio?.Position ||
+    details.formattedPosition ||
+    details.position ||
+    details.pos ||
     '';
   const position = getPlayerPositionLabel(rawPosition) || '—';
 
   const team =
-    player.bio?.Team || player.team || player.teamId || player.teamAbbr;
-  const height = player.bio?.HT || player.height || player.height_ft_in || '—';
-  const weight = player.bio?.WT || player.weight || player.weight_lbs || '—';
+    player.bio?.Team ||
+    player.team ||
+    player.teamId ||
+    player.teamAbbr ||
+    details.bio?.Team ||
+    details.team ||
+    details.teamId ||
+    details.teamAbbr;
+  const height =
+    player.bio?.HT ||
+    player.height ||
+    player.height_ft_in ||
+    details.bio?.HT ||
+    details.height ||
+    details.height_ft_in ||
+    '—';
+  const weight =
+    player.bio?.WT ||
+    player.weight ||
+    player.weight_lbs ||
+    details.bio?.WT ||
+    details.weight ||
+    details.weight_lbs ||
+    '—';
 
   return (
     <div
@@ -69,7 +99,7 @@ const TradePlayerRow = ({
           onError={(e) => {
             e.target.src = '/assets/headshots/default.png';
           }}
-          alt={player.name}
+          alt={player.display_name || details.display_name || player.name}
           className="h-full w-full object-cover"
         />
       </div>
@@ -77,13 +107,14 @@ const TradePlayerRow = ({
       {/* Main Info */}
       <div className="flex flex-col justify-center ml-3">
         <div className="h-[40px] flex items-center">
-          <PlayerNameMini name={player.display_name || player.name} />
+          <PlayerNameMini
+            name={player.display_name || details.display_name || player.name}
+          />
         </div>
         <div className="flex items-center mt-[11px] -mb-1 gap-2 text-white/50 text-[13px]">
-          <TeamLogo teamAbbr={player.bio?.Team} className="w-5 h-5" />
+          <TeamLogo teamAbbr={team} className="w-5 h-5" />
           <div>
-            {player.bio?.HT || '—'} <span className="text-white/30">|</span>{' '}
-            {player.bio?.WT || '—'} lbs
+            {height} <span className="text-white/30">|</span> {weight} lbs
           </div>
         </div>
       </div>
