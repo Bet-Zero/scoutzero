@@ -83,7 +83,7 @@ const TradePlayerRow = ({
 
   return (
     <div
-      className={`w-full h-[68px] flex items-center overflow-hidden border border-black rounded-sm pr-2 ${
+      className={`w-full h-[68px] flex items-center border border-black rounded-sm pr-2 overflow-visible ${
         included ? 'bg-green-800/40' : 'bg-neutral-800'
       }`}
     >

@@ -1,6 +1,7 @@
 // tradeValidator.js
 
 import { getSalaryForYear } from '@/utils/architect/tradeHelpers';
+import defaultCapProjections from '@/utils/architect/capProjections';
 
 export function validateTrade({
   teams,
@@ -8,8 +9,8 @@ export function validateTrade({
   teamBSends,
   teamAPicksOut,
   teamBPicksOut,
-  capProjections,
-  currentYear,
+  capProjections = defaultCapProjections,
+  currentYear = new Date().getFullYear(),
   teamAHardCapped,
   teamBHardCapped,
   teamA,
