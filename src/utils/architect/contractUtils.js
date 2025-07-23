@@ -5,32 +5,27 @@ export function generateContract({
   raisePct = 0.08,
   options = {},
   startYear = 2025,
+  roundTo = 100,
 }) {
   const salaries_by_year = {};
   let salary = baseSalary;
+
   for (let i = 0; i < years; i++) {
     const year = startYear + i;
-    salaries_by_year[year] = { salary: Math.round(salary) };
+    salaries_by_year[year] = {
+      salary: Math.round(salary / roundTo) * roundTo,
+      guaranteed: options.guaranteed === false ? false : true,
+    };
     salary *= 1 + raisePct;
   }
 
   const lastYear = startYear + years - 1;
-  if (options.playerOption) {
-    salaries_by_year[lastYear].option = 'Player Option';
-  }
-  if (options.teamOption) {
-    salaries_by_year[lastYear].option = 'Team Option';
-  }
-
-  if (options.guaranteed === false) {
-    Object.keys(salaries_by_year).forEach((y) => {
-      salaries_by_year[y].guaranteed = false;
-    });
-  }
+  if (options.playerOption) salaries_by_year[lastYear].option = 'Player Option';
+  if (options.teamOption) salaries_by_year[lastYear].option = 'Team Option';
 
   return {
     salaries_by_year,
-    extension: false,
+    extension: options.extension || false,
     totalValue: Object.values(salaries_by_year).reduce(
       (sum, yr) => sum + (yr.salary || 0),
       0
@@ -41,7 +36,24 @@ export function generateContract({
   };
 }
 
-// 2. Create max contract based on years of service
+// 2. Wrapper: generate contract for a player extension
+export function generateExtensionContract({
+  firstYearSalary,
+  years,
+  raisePct,
+  startYear,
+  type = 'Standard Extension',
+}) {
+  return generateContract({
+    baseSalary: firstYearSalary,
+    years,
+    raisePct,
+    startYear,
+    options: { extension: true },
+  });
+}
+
+// 3. Create max contract based on years of service
 export function createMaxContract(
   playerName,
   yearsOfService,
@@ -65,39 +77,7 @@ export function createMaxContract(
   });
 }
 
-// Convenience wrapper for a standard 1-year free agent deal
-export function generateDefaultFreeAgentContract(
-  baseSalary,
-  startYear = 2025,
-  yearsOfService = 0
-) {
-  const contract = generateContract({
-    baseSalary,
-    years: 1,
-    raisePct: 0,
-    options: {},
-    startYear,
-  });
-
-  const salaryByYear = Object.keys(contract.salaries_by_year).reduce(
-    (acc, yr) => {
-      acc[yr] = contract.salaries_by_year[yr].salary;
-      return acc;
-    },
-    {}
-  );
-
-  return {
-    salaryByYear,
-    options: {},
-    signAndTrade: false,
-    guaranteed: true,
-    isMinimum: baseSalary <= 2200000,
-    yearsOfService,
-  };
-}
-
-// 3. Rookie scale (simplified estimate)
+// 4. Rookie scale contract
 const rookieScale = {
   1: 12720000,
   2: 11400000,
@@ -142,7 +122,7 @@ export function generateRookieContract(pickNumber = 10, startYear = 2025) {
   });
 }
 
-// 4. Veteran minimum salary by service year
+// 5. Veteran minimum salary scale
 export function getMinimumSalary(yearsOfService) {
   const scale = {
     0: 1120000,
@@ -160,7 +140,7 @@ export function getMinimumSalary(yearsOfService) {
   return scale[yearsOfService] || 3800000;
 }
 
-// 5. Stretch provision handler
+// 6. Stretch provision calculator
 export function stretchContract(contract, currentYear) {
   const yearKeys = Object.keys(
     contract.contract_clean?.salaries_by_year || {}
@@ -186,14 +166,13 @@ export function stretchContract(contract, currentYear) {
   return stretched;
 }
 
-// 6. Minimum cap hit calculator
+// 7. Minimum cap hit calculation (special 2-year rule)
 export function getMinimumCapHit(yearsOfService) {
-  // NBA rule: minimum cap hit maxes out at 2-year minimum for vets
   if (yearsOfService >= 3) return 2092400;
   return getMinimumSalary(yearsOfService);
 }
 
-// 7. Cap hold calculator
+// 8. Cap hold logic
 export function calculateCapHold(player, capProjections, year = 2025) {
   const experience = player.bio?.yearsExperience || 0;
   const rights = player.contract_clean?.birdRights || 'None';
@@ -201,7 +180,6 @@ export function calculateCapHold(player, capProjections, year = 2025) {
   const pickNumber = player.draft?.pick || null;
   const draftRound = player.draft?.round || null;
 
-  // Rookie Scale Hold (1st Round Picks)
   if (draftRound === 1 && pickNumber) {
     const rookieAmount = rookieScale[pickNumber] || 2500000;
     return {
@@ -211,7 +189,6 @@ export function calculateCapHold(player, capProjections, year = 2025) {
     };
   }
 
-  // Minimum Salary Hold (no rights)
   if (!rights || rights === 'None') {
     const minSalary = getMinimumSalary(experience);
     return {
@@ -221,7 +198,6 @@ export function calculateCapHold(player, capProjections, year = 2025) {
     };
   }
 
-  // Bird Rights Cap Holds
   const multiplier =
     rights === 'Non-Bird'
       ? 1.2
@@ -235,5 +211,37 @@ export function calculateCapHold(player, capProjections, year = 2025) {
     amount: Math.round(lastSalary * multiplier),
     reason: `${rights} Rights`,
     active: true,
+  };
+}
+
+// 9. Summary-level free agent contract for UI previews
+export function generateDefaultFreeAgentContract(
+  baseSalary,
+  startYear = 2025,
+  yearsOfService = 0
+) {
+  const contract = generateContract({
+    baseSalary,
+    years: 1,
+    raisePct: 0,
+    options: {},
+    startYear,
+  });
+
+  const salaryByYear = Object.keys(contract.salaries_by_year).reduce(
+    (acc, yr) => {
+      acc[yr] = contract.salaries_by_year[yr].salary;
+      return acc;
+    },
+    {}
+  );
+
+  return {
+    salaryByYear,
+    options: {},
+    signAndTrade: false,
+    guaranteed: true,
+    isMinimum: baseSalary <= 2200000,
+    yearsOfService,
   };
 }
