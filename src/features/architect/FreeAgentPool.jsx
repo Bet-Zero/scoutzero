@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { formatName } from '@/utils/formatting';
 import { canSignFreeAgent } from '@/utils/architect/freeAgentLogic';
 import { generateDefaultFreeAgentContract } from '@/utils/architect/contractUtils';
+import FreeAgentRow from './FreeAgentRow';
 
 const FreeAgentPool = ({
   freeAgents,
@@ -57,21 +58,20 @@ const FreeAgentPool = ({
   return (
     <div className="text-white">
       <h2 className="text-xl font-semibold mb-2">Free Agent Pool</h2>
-      <ul className="space-y-1 mb-4">
-        {freeAgents.map((p) => (
-          <li key={p.name}>
-            <button
-              onClick={() => handleSelect(p)}
-              className="text-blue-400 hover:underline text-sm"
-            >
-              {playersMap[p.name]?.display_name || formatName(p.name)} – Asking:{' '}
-              {p.askingSalary != null
-                ? `$${p.askingSalary.toLocaleString()}`
-                : 'N/A'}{' '}
-              – Rights: {p.birdRights}
-            </button>
-          </li>
-        ))}
+      <ul className="space-y-[3px] mb-4">
+        {freeAgents.map((p) => {
+          const playerData = playersMap[p.name] || { name: p.name };
+          return (
+            <li key={p.name}>
+              <FreeAgentRow
+                player={playerData}
+                askInfo={p}
+                onSelect={() => handleSelect(p)}
+                isSelected={selectedPlayer?.name === p.name}
+              />
+            </li>
+          );
+        })}
       </ul>
 
       {selectedPlayer && (

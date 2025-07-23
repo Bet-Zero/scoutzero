@@ -352,7 +352,7 @@ const GMDashboard = () => {
 
         {activeTab === 'trade' && (
           <TradeEditor
-            primaryTeam={teamCapSheet}
+            primaryTeam={teamId}
             capProjections={capProjections}
             currentYear={currentYear}
             playersMap={playersMap}
