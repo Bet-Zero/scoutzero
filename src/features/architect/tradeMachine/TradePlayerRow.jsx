@@ -3,6 +3,7 @@ import PlayerNameMini from '@/features/table/PlayerTable/PlayerRow/PlayerNameMin
 import TeamLogo from '@/components/shared/TeamLogo';
 import { getPlayerPositionLabel } from '@/utils/roles';
 import { formatSalary } from '@/utils/formatting';
+import { getYearsRemaining } from '@/utils/contracts';
 
 const parseYear = (key) => {
   if (typeof key === 'number') return key;
@@ -28,9 +29,11 @@ const TradePlayerRow = ({
     player.contract?.annual_salaries?.find((s) => parseYear(s.year) === year)
       ?.salary ||
     0;
-  const yearsLeft = player.free_agency_year
-    ? Math.max(0, player.free_agency_year - year)
-    : 0;
+  const faYear =
+    player.contract_clean?.fa_year ??
+    player.fa_year ??
+    player.free_agency_year;
+  const yearsLeft = getYearsRemaining(faYear, year);
   const contractInfo = `${formatSalary(salary)} / ${yearsLeft} YRS`;
 
   const details = playersMap[player.name] || {};
