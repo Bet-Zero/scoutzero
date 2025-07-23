@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { formatSalary } from '@/utils/formatting';
+import EditContractModal from '@/components/shared/EditContractModal';
+import TradeExceptionModal from '@/components/shared/TradeExceptionModal';
 
 export const OutgoingPlayersList = ({
   team,
@@ -9,6 +11,8 @@ export const OutgoingPlayersList = ({
   onSetPlayerTrade,
 }) => {
   const [openMenu, setOpenMenu] = useState(null);
+  const [contractPlayer, setContractPlayer] = useState(null);
+  const [tpePlayer, setTpePlayer] = useState(null);
 
   return (
     <div>
@@ -16,7 +20,8 @@ export const OutgoingPlayersList = ({
       <div className="space-y-1">
         {team.players?.map((p) => {
           const included = sends.includes(p);
-          const salary = p.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0;
+          const salary =
+            p.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0;
           return (
             <div
               key={p.id || p.name}
@@ -25,10 +30,14 @@ export const OutgoingPlayersList = ({
               }`}
             >
               <span className="flex-1">{p.name}</span>
-              <span className="w-20 text-right text-white/70">{formatSalary(salary)}</span>
+              <span className="w-20 text-right text-white/70">
+                {formatSalary(salary)}
+              </span>
               <div className="flex items-center gap-2 ml-3 relative">
                 <button
-                  onClick={() => setOpenMenu(openMenu === p.name ? null : p.name)}
+                  onClick={() =>
+                    setOpenMenu(openMenu === p.name ? null : p.name)
+                  }
                   className="text-xs text-blue-400 hover:underline"
                 >
                   •••
@@ -49,12 +58,21 @@ export const OutgoingPlayersList = ({
                     ))}
                     <button
                       onClick={() => {
-                        console.log('Modify contract', p.name);
+                        setContractPlayer(p);
                         setOpenMenu(null);
                       }}
                       className="block w-full text-left px-3 py-1 hover:bg-[#333]"
                     >
                       Modify Contract
+                    </button>
+                    <button
+                      onClick={() => {
+                        setTpePlayer(p);
+                        setOpenMenu(null);
+                      }}
+                      className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+                    >
+                      Trade Exception
                     </button>
                     <button
                       onClick={() => {
@@ -71,7 +89,9 @@ export const OutgoingPlayersList = ({
                     <input
                       type="checkbox"
                       checked={!!p.signAndTrade}
-                      onChange={() => onSetPlayerTrade(p, 'signAndTrade', !p.signAndTrade)}
+                      onChange={() =>
+                        onSetPlayerTrade(p, 'signAndTrade', !p.signAndTrade)
+                      }
                     />
                     S&T
                   </label>
@@ -84,7 +104,24 @@ export const OutgoingPlayersList = ({
           <div className="text-xs text-white/40">No players available</div>
         )}
       </div>
+      {contractPlayer && (
+        <EditContractModal
+          player={contractPlayer}
+          isOpen={!!contractPlayer}
+          onClose={() => setContractPlayer(null)}
+          onSave={(plr, values) => console.log('Save contract', plr, values)}
+        />
+      )}
+      {tpePlayer && (
+        <TradeExceptionModal
+          player={tpePlayer}
+          isOpen={!!tpePlayer}
+          onClose={() => setTpePlayer(null)}
+          onApply={(plr, amt, create) =>
+            console.log('Apply TPE', plr, amt, create)
+          }
+        />
+      )}
     </div>
   );
 };
-
