@@ -26,6 +26,7 @@ export const TEAM_LOGO_MAP = {
   Suns: 'suns',
   BTrailBlazers: 'blazers',
   'Trail Blazers': 'blazers',
+  trailblazers: 'blazers',
   Blazers: 'blazers',
   Kings: 'kings',
   Spurs: 'spurs',
