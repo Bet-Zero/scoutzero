@@ -1,6 +1,6 @@
 // useTradeMachine.js
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { validateTrade } from '@/utils/architect/tradeMachine/tradeValidator';
 import { loadTeamCapSheet } from '@/utils/architect/firebaseHelpers';
 import {
@@ -8,12 +8,26 @@ import {
   areSamePick,
   formatPick,
 } from '@/utils/architect/tradeHelpers';
+import { TeamMap } from '@/constants/teamList';
 
 export const useTradeMachine = (primaryTeam, capProjections, currentYear) => {
-  const [teams, setTeams] = useState([
-    { team: primaryTeam, sends: [], picksOut: [] },
-    { team: null, sends: [], picksOut: [] },
-  ]);
+  const [teams, setTeams] = useState([]);
+  useEffect(() => {
+    const init = async () => {
+      if (!primaryTeam || typeof primaryTeam !== 'string') return;
+
+      const baseTeam = TeamMap[primaryTeam];
+      const data = await loadTeamCapSheet(primaryTeam);
+
+      if (baseTeam && data) {
+        setTeams([
+          { team: { ...baseTeam, ...data }, sends: [], picksOut: [] },
+          { team: null, sends: [], picksOut: [] },
+        ]);
+      }
+    };
+    init();
+  }, [primaryTeam]);
   const [result, setResult] = useState(null);
   const [forceTrade, setForceTrade] = useState(false);
 
@@ -69,11 +83,18 @@ export const useTradeMachine = (primaryTeam, capProjections, currentYear) => {
       });
       return;
     }
-    const data = await loadTeamCapSheet(teamId);
-    if (data) {
+
+    const baseTeam = TeamMap[teamId]; // Gets { id: 'lakers', teamName: 'Los Angeles Lakers' }
+    const data = await loadTeamCapSheet(teamId); // Gets cap info
+
+    if (baseTeam && data) {
       setTeams((prev) => {
         const copy = [...prev];
-        copy[index] = { team: data, sends: [], picksOut: [] };
+        copy[index] = {
+          team: { ...baseTeam, ...data }, // Combine visual + cap data
+          sends: [],
+          picksOut: [],
+        };
         return copy;
       });
     }
