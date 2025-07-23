@@ -53,24 +53,70 @@ const EditContractModal = ({
 
   if (!player) return null;
 
+  const today = new Date();
+  const CURRENT_YEAR = today.getFullYear() - (today.getMonth() < 6 ? 1 : 0);
+  const isFreeAgent =
+    player.free_agency_year && player.free_agency_year <= CURRENT_YEAR;
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="p-4 max-w-sm">
         <h2 className="text-xl font-bold mb-3">Modify Contract</h2>
 
-        <label className="block text-sm mb-1">Action</label>
-        <select
-          value={modType}
-          onChange={(e) => setModType(e.target.value)}
-          className="w-full p-1 mb-3 bg-neutral-800 border border-neutral-600 rounded"
-        >
-          <option value="extension">Sign Extension</option>
-          <option value="sign">Sign New Deal</option>
-          <option value="signAndTrade">Sign &amp; Trade</option>
-          {optionType && <option value="accept">Accept Option</option>}
-          {optionType && <option value="decline">Decline Option</option>}
-          <option value="waive">Waive</option>
-        </select>
+        <div className="space-y-3">
+          {isFreeAgent && (
+            <div>
+              <label className="block text-sm mb-1">New Contract</label>
+              <select
+                value={
+                  ['extension', 'sign', 'signAndTrade'].includes(modType)
+                    ? modType
+                    : ''
+                }
+                onChange={(e) => setModType(e.target.value)}
+                className="w-full p-1 bg-neutral-800 border border-neutral-600 rounded"
+              >
+                <option value="" disabled>
+                  Select action
+                </option>
+                <option value="extension">Sign Extension</option>
+                <option value="sign">Sign New Deal</option>
+                <option value="signAndTrade">Sign &amp; Trade</option>
+              </select>
+            </div>
+          )}
+
+          {optionType && (
+            <div>
+              <label className="block text-sm mb-1">Option Decision</label>
+              <select
+                value={['accept', 'decline'].includes(modType) ? modType : ''}
+                onChange={(e) => setModType(e.target.value)}
+                className="w-full p-1 bg-neutral-800 border border-neutral-600 rounded"
+              >
+                <option value="" disabled>
+                  Select decision
+                </option>
+                <option value="accept">Accept Option</option>
+                <option value="decline">Decline Option</option>
+              </select>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm mb-1">Waive / Buyout</label>
+            <select
+              value={modType === 'waive' ? 'waive' : ''}
+              onChange={(e) => setModType(e.target.value)}
+              className="w-full p-1 bg-neutral-800 border border-neutral-600 rounded"
+            >
+              <option value="" disabled>
+                Select action
+              </option>
+              <option value="waive">Waive</option>
+            </select>
+          </div>
+        </div>
 
         {modType === 'accept' && optionType && (
           <p className="text-sm mb-4">Accept {optionType} for next season?</p>
