@@ -3,6 +3,12 @@ import TradePlayerRow from './TradePlayerRow';
 import EditContractModal from '@/components/shared/EditContractModal';
 import TradeExceptionModal from '@/components/shared/TradeExceptionModal';
 
+const parseYear = (key) => {
+  if (typeof key === 'number') return key;
+  const match = String(key).match(/\d{4}/);
+  return match ? parseInt(match[0], 10) : NaN;
+};
+
 export const OutgoingPlayersList = ({
   team,
   sends,
@@ -19,24 +25,36 @@ export const OutgoingPlayersList = ({
     <div>
       <h4 className="text-sm text-white/70 mb-1">Outgoing Players</h4>
       <div className="space-y-1 max-h-[375px] overflow-y-auto pr-1">
-        {team.players?.map((p) => {
-          const included = sends.includes(p);
-          return (
-            <TradePlayerRow
-              key={p.id || p.name}
-              player={p}
-              included={included}
-              yearKey={yearKey}
-              otherTeams={otherTeams}
-              playersMap={playersMap}
-              onSetPlayerTrade={onSetPlayerTrade}
-              openMenu={openMenu}
-              setOpenMenu={setOpenMenu}
-              setContractPlayer={setContractPlayer}
-              setTpePlayer={setTpePlayer}
-            />
-          );
-        })}
+        {team.players
+          ?.slice()
+          .sort((a, b) => {
+            const yr = parseYear(yearKey);
+            const getSalary = (player) =>
+              player.contract_clean?.salaries_by_year?.[yearKey]?.salary ||
+              player.contract?.annual_salaries?.find(
+                (s) => parseYear(s.year) === yr
+              )?.salary ||
+              0;
+            return getSalary(b) - getSalary(a);
+          })
+          .map((p) => {
+            const included = sends.includes(p);
+            return (
+              <TradePlayerRow
+                key={p.id || p.name}
+                player={p}
+                included={included}
+                yearKey={yearKey}
+                otherTeams={otherTeams}
+                playersMap={playersMap}
+                onSetPlayerTrade={onSetPlayerTrade}
+                openMenu={openMenu}
+                setOpenMenu={setOpenMenu}
+                setContractPlayer={setContractPlayer}
+                setTpePlayer={setTpePlayer}
+              />
+            );
+          })}
         {team.players?.length === 0 && (
           <div className="text-xs text-white/40">No players available</div>
         )}

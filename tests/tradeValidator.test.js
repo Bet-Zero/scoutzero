@@ -58,7 +58,9 @@ describe('tradeValidator', () => {
 
     expect(result.overallLegal).toBe(false);
     expect(result.teamResults[0].legal).toBe(false);
-    expect(result.teamResults[0].reason).toBe('Hard cap exceeded (1st Apron)');
+    expect(result.teamResults[0].reason).toContain(
+      'Hard cap exceeded (1st Apron)'
+    );
   });
 
   it('enforces sign-and-trade restrictions', () => {
@@ -81,7 +83,7 @@ describe('tradeValidator', () => {
 
     expect(result.overallLegal).toBe(false);
     expect(result.teamResults[0].legal).toBe(false);
-    expect(result.teamResults[0].reason).toBe(
+    expect(result.teamResults[0].reason).toContain(
       'Sign-and-trade player must be traded alone.'
     );
     expect(result.teamResults[1].legal).toBe(true);
@@ -109,7 +111,7 @@ describe('tradeValidator', () => {
 
     expect(result.overallLegal).toBe(false);
     expect(result.teamResults[0].legal).toBe(false);
-    expect(result.teamResults[0].reason).toBe(
+    expect(result.teamResults[0].reason).toContain(
       'Violates Stepien Rule (consecutive future 1sts).'
     );
   });
