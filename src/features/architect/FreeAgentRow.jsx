@@ -7,6 +7,9 @@ const FreeAgentRow = ({
   askInfo = {},
   onSelect,
   isSelected = false,
+  openMenu,
+  setOpenMenu,
+  onSign,
 }) => {
   const name = player.display_name || player.name || formatName(askInfo.name);
   const nameParts = name.split(' ');
@@ -48,7 +51,7 @@ const FreeAgentRow = ({
       role="button"
       tabIndex={0}
       onClick={onSelect}
-      className={`w-full h-[45px] bg-neutral-800 rounded-sm flex items-center border border-black mb-[3px] pr-0 overflow-hidden hover:bg-neutral-700 cursor-pointer focus:outline-none ${
+      className={`w-full h-[45px] bg-neutral-800 rounded-sm flex items-center border border-black mb-[3px] pr-2 overflow-hidden hover:bg-neutral-700 cursor-pointer focus:outline-none ${
         isSelected ? 'ring-1 ring-lakers' : ''
       }`}
     >
@@ -105,6 +108,40 @@ const FreeAgentRow = ({
 
         {/* Spacer between Height/Weight and Salary */}
         <span className="ml-10 w-[78px] text-right">{asking}</span>
+      </div>
+
+      {/* Options */}
+      <div className="flex items-center relative">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setOpenMenu(openMenu === askInfo.name ? null : askInfo.name);
+          }}
+          className="text-xs text-blue-400 hover:underline"
+        >
+          •••
+        </button>
+        {openMenu === askInfo.name && (
+          <div className="absolute right-0 top-5 bg-[#222] border border-white/20 rounded z-20 text-xs min-w-[8rem]">
+            <button
+              onClick={() => {
+                onSign?.(askInfo);
+                setOpenMenu(null);
+              }}
+              className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+            >
+              Sign Free Agent
+            </button>
+            <button
+              onClick={() => {
+                window.location.href = `/profiles?player=${player.id || player.player_id}`;
+              }}
+              className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+            >
+              View Profile
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

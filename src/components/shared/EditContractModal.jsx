@@ -37,6 +37,8 @@ const EditContractModal = ({
   onOptionDecision,
   onExtend,
   onSignAndTrade,
+  actionsOverride = null,
+  actionLabelsOverride = {},
 }) => {
   const [selectedAction, setSelectedAction] = useState('');
   const [extension, setExtension] = useState({
@@ -79,6 +81,8 @@ const EditContractModal = ({
       : isUnderContract
         ? 'underContract'
         : null;
+
+  const actions = actionsOverride || ACTION_SETS[actionSet] || [];
 
   useEffect(() => {
     if (!player) return;
@@ -217,7 +221,7 @@ const EditContractModal = ({
 
         {/* === Radio Options === */}
         <div className="space-y-3 border border-white/10 p-3 rounded">
-          {ACTION_SETS[actionSet]?.map((type) => (
+          {actions.map((type) => (
             <label
               key={type}
               className="flex items-center gap-3 cursor-pointer"
@@ -229,7 +233,7 @@ const EditContractModal = ({
                 onChange={() => setSelectedAction(type)}
                 className="accent-orange-500"
               />
-              <span>{ACTION_LABELS[type]}</span>
+              <span>{actionLabelsOverride[type] || ACTION_LABELS[type]}</span>
             </label>
           ))}
         </div>
