@@ -52,7 +52,7 @@ const GMDashboard = () => {
   const playersMap = useMemo(() => {
     const map = {};
     players.forEach((p) => {
-      map[p.display_name || p.name] = p;
+      map[p.name] = p;
     });
     return map;
   }, [players]);
