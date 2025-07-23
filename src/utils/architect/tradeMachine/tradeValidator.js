@@ -120,7 +120,30 @@ export function validateTrade({
       .map((r) => r.reason)
       .join(' ') || 'All teams comply with trade rules.';
 
-  return { overallLegal, teamResults, reason };
+  const summaryByTeamIndex = teams.map((t, idx) => {
+    if (!t.team) return null;
+    const playersIn = [];
+    const picksIn = [];
+    teams.forEach((other, j) => {
+      if (j !== idx) {
+        playersIn.push(...other.sends);
+        picksIn.push(...other.picksOut);
+      }
+    });
+    const currentSalary = t.team.totalSalary || 0;
+    const projectedSalary = teamResults[idx].projectedSalary;
+    return {
+      teamName: t.team.teamName,
+      playersOut: t.sends.map((p) => p.name),
+      playersIn: playersIn.map((p) => p.name),
+      picksOut: t.picksOut,
+      picksIn,
+      rosterDelta: playersIn.length - t.sends.length,
+      capDelta: projectedSalary - currentSalary,
+    };
+  });
+
+  return { overallLegal, teamResults, reason, summaryByTeamIndex };
 }
 
 // =========================
@@ -213,6 +236,16 @@ function evaluateTeam({
     salaryIn,
     salaryOut,
     projectedSalary,
+    totalSalary,
+    capRoom,
+    willBeOverFirst,
+    willBeOverSecond,
+    overCap,
+    overFirst,
+    overSecond,
+    cap,
+    firstApron,
+    secondApron,
     apronStatus,
     checks,
   };

@@ -121,4 +121,33 @@ describe('tradeValidator', () => {
     expect(result.teamResults[0].checks.stepien).toBe(false);
     expect(result.teamResults[1].checks.stepien).toBe(true);
   });
+
+  it('provides summary and financial deltas', () => {
+    const teamA = makeTeam('A', 100_000_000);
+    const teamB = makeTeam('B', 100_000_000);
+    const aPlayer = makePlayer('Astar', 10_000_000);
+    const bPlayer = makePlayer('Bstar', 5_000_000);
+    teamA.players.push(aPlayer);
+    teamB.players.push(bPlayer);
+
+    const result = validateTrade({
+      teams: [
+        { team: teamA, sends: [aPlayer], picksOut: [] },
+        { team: teamB, sends: [bPlayer], picksOut: [] },
+      ],
+      capProjections,
+      currentYear,
+    });
+
+    const summaryA = result.summaryByTeamIndex[0];
+    const summaryB = result.summaryByTeamIndex[1];
+
+    expect(summaryA.playersOut).toContain('Astar');
+    expect(summaryA.playersIn).toContain('Bstar');
+    expect(summaryA.capDelta).toBe(-5_000_000);
+
+    expect(summaryB.capDelta).toBe(5_000_000);
+    expect(result.teamResults[0]).toHaveProperty('totalSalary');
+    expect(result.teamResults[0]).toHaveProperty('capRoom');
+  });
 });
