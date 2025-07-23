@@ -74,40 +74,43 @@ export function validateTrade({
     if (t.sends.some((p) => p.signAndTrade)) {
       if ((t.sends || []).length > 1) {
         teamResults[idx].legal = false;
-        teamResults[idx].reason = 'Sign-and-trade player must be traded alone.';
+        teamResults[idx].reasons.push(
+          'Sign-and-trade player must be traded alone.'
+        );
       }
       teamResults.forEach((res, j) => {
         const projected = res.projectedSalary;
         if (j !== idx && projected > (capSettings.firstApron || Infinity)) {
           res.legal = false;
-          res.reason =
-            'Receiving team exceeds first apron with a sign-and-trade.';
+          res.reasons.push(
+            'Receiving team exceeds first apron with a sign-and-trade.'
+          );
         }
       });
     }
   });
 
   // Stepien Rule check (simplified)
-  let overallLegal = teamResults.every((r) => r.legal);
-  let reason = 'All teams comply with trade rules.';
-
-  if (overallLegal) {
-    for (let i = 0; i < teams.length; i++) {
-      if (hasStepienViolation(teams[i].picksOut || [])) {
-        overallLegal = false;
-        teamResults[i].legal = false;
-        teamResults[i].reason =
-          'Violates Stepien Rule (consecutive future 1sts).';
-        reason = teamResults[i].reason;
-        break;
-      }
+  teams.forEach((t, idx) => {
+    if (hasStepienViolation(t.picksOut || [])) {
+      teamResults[idx].legal = false;
+      teamResults[idx].reasons.push(
+        'Violates Stepien Rule (consecutive future 1sts).'
+      );
     }
-  } else {
-    reason = teamResults
-      .filter((r) => !r.legal)
-      .map((r) => r.reason)
-      .join(' ');
-  }
+  });
+
+  teamResults.forEach((r) => {
+    r.reason = r.reasons.join(' | ');
+  });
+
+  const overallLegal = teamResults.every((r) => r.legal);
+  const reason = overallLegal
+    ? 'All teams comply with trade rules.'
+    : teamResults
+        .filter((r) => !r.legal)
+        .map((r) => `${r.teamName}: ${r.reason}`)
+        .join(' | ');
 
   return { overallLegal, teamResults, reason };
 }
@@ -162,76 +165,33 @@ function evaluateTeam({
     allowableIn = salaryOut * 1.25;
   }
 
-  // Roster size validation
-  const finalRoster = team.players.length - rosterOut + rosterIn;
-  if (finalRoster > 15) {
-    return {
-      teamId: team.teamId || team.id,
-      legal: false,
-      reason: 'Roster limit exceeded (15 max)',
-      salaryIn,
-      salaryOut,
-      projectedSalary,
-      apronStatus,
-    };
-  }
+  const reasons = [];
 
   // 2nd Apron: No aggregation
   if ((overSecond || willBeOverSecond) && outgoingCount > 1) {
-    return {
-      teamId: team.teamId || team.id,
-      legal: false,
-      reason: '2nd Apron Rule: Cannot aggregate multiple salaries in trade',
-      salaryIn,
-      salaryOut,
-      projectedSalary,
-      apronStatus,
-    };
+    reasons.push('2nd Apron Rule: Cannot aggregate multiple salaries in trade');
   }
 
   // 1st Apron: Cannot receive more than sent
   if ((overFirst || willBeOverFirst) && salaryIn > salaryOut) {
-    return {
-      teamId: team.teamId || team.id,
-      legal: false,
-      reason: '1st Apron Rule: Cannot receive more salary than sent',
-      salaryIn,
-      salaryOut,
-      projectedSalary,
-      apronStatus,
-    };
+    reasons.push('1st Apron Rule: Cannot receive more salary than sent');
   }
 
   // Hard cap enforcement
   if (hardCapped && projectedSalary > firstApron) {
-    return {
-      teamId: team.teamId || team.id,
-      legal: false,
-      reason: 'Hard cap exceeded (1st Apron)',
-      salaryIn,
-      salaryOut,
-      projectedSalary,
-      apronStatus,
-    };
+    reasons.push('Hard cap exceeded (1st Apron)');
   }
 
   // Standard over-cap matching
   if (overCap && salaryIn > allowableIn) {
-    return {
-      teamId: team.teamId || team.id,
-      legal: false,
-      reason: 'Incoming salary exceeds allowed amount',
-      salaryIn,
-      salaryOut,
-      projectedSalary,
-      apronStatus,
-    };
+    reasons.push('Incoming salary exceeds allowed amount');
   }
 
   return {
     teamId: team.teamId || team.id,
-    legal: true,
-    reason: '',
+    legal: reasons.length === 0,
+    reason: reasons.join(' | '),
+    reasons,
     salaryIn,
     salaryOut,
     projectedSalary,
