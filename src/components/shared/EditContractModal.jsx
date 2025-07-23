@@ -44,6 +44,10 @@ const EditContractModal = ({
     contractType: 'Standard',
     salaries: [0],
   });
+  const [salaryInputs, setSalaryInputs] = useState(['']);
+
+  const formatCurrency = (num) =>
+    num ? `$${Number(num).toLocaleString()}` : '';
   const [extReason, setExtReason] = useState('');
   const [extMax, setExtMax] = useState(null);
 
@@ -104,6 +108,7 @@ const EditContractModal = ({
       contractType: 'Standard',
       salaries: [lastSalary],
     });
+    setSalaryInputs([formatCurrency(lastSalary)]);
     setSelectedAction('');
 
     const key = `${CURRENT_YEAR + 1}-${String(
@@ -121,6 +126,9 @@ const EditContractModal = ({
       contractType: 'Standard',
       salaries: Array(extMax.maxYears).fill(extMax.maxFirstYearSalary),
     });
+    setSalaryInputs(
+      Array(extMax.maxYears).fill(extMax.maxFirstYearSalary).map(formatCurrency)
+    );
   }, [selectedAction, extMax]);
 
   const handleConfirm = () => {
@@ -258,6 +266,11 @@ const EditContractModal = ({
                       (_, i) => extension.salaries[i] || 0
                     ),
                   });
+                  setSalaryInputs((prev) =>
+                    Array.from({ length: yrs }, (_, i) =>
+                      formatCurrency(extension.salaries[i] || 0)
+                    )
+                  );
                 }}
                 className="p-1 rounded bg-neutral-800 border border-neutral-600 text-sm"
               >
@@ -276,13 +289,19 @@ const EditContractModal = ({
                   <input
                     type="text"
                     inputMode="decimal"
-                    value={sal ? `$${sal.toLocaleString()}` : ''}
+                    value={salaryInputs[idx] || ''}
                     onChange={(e) => {
-                      const val = Number(e.target.value.replace(/[^0-9]/g, ''));
+                      const raw = e.target.value.replace(/[^0-9]/g, '');
+                      const val = Number(raw);
                       setExtension((prev) => {
                         const arr = [...prev.salaries];
                         arr[idx] = val;
                         return { ...prev, salaries: arr };
+                      });
+                      setSalaryInputs((prev) => {
+                        const arr = [...prev];
+                        arr[idx] = raw ? formatCurrency(raw) : '';
+                        return arr;
                       });
                     }}
                     className="flex-1 p-1 rounded bg-neutral-800 border border-neutral-600 text-sm appearance-none"

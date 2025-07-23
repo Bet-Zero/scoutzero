@@ -16,6 +16,28 @@ const FreeAgentRow = ({
   const rawPosition = player.bio?.Position || player.formattedPosition || '';
   const position = getPlayerPositionLabel(rawPosition) || '—';
 
+  const height = player.bio?.HT || player.height || askInfo.height || '—';
+  const weight = player.bio?.WT || player.weight || askInfo.weight || '—';
+  const prevSalaryValue =
+    askInfo.previousSalary ?? player.previousSalary ?? null;
+  const prevSalary =
+    prevSalaryValue != null ? `$${prevSalaryValue.toLocaleString()}` : 'N/A';
+
+  const faType =
+    askInfo.freeAgentType ||
+    askInfo.fa_type ||
+    player.free_agent_type ||
+    player.fa_type ||
+    'UFA';
+
+  const getTagColor = (type) => {
+    if (type === 'UFA') return 'bg-blue-500/30 text-white/70';
+    if (type === 'RFA') return 'bg-red-600/30 text-white/70';
+    if (type === 'PO') return 'bg-green-600/30 text-white/70';
+    if (type === 'TO') return 'bg-orange-500/30 text-white/70';
+    return 'bg-gray-600 text-white/70';
+  };
+
   const asking =
     askInfo.askingSalary != null
       ? `$${askInfo.askingSalary.toLocaleString()}`
@@ -29,6 +51,9 @@ const FreeAgentRow = ({
       onClick={onSelect}
       className={`w-full h-[45px] bg-neutral-800 rounded-sm flex items-center border border-black mb-[3px] pr-0 overflow-hidden hover:bg-neutral-700 cursor-pointer focus:outline-none ${isSelected ? 'ring-1 ring-lakers' : ''}`}
     >
+      <div className="w-[60px] flex items-center justify-center text-white/60 text-sm font-semibold">
+        {position}
+      </div>
       <div className="h-[45px] w-[50px] bg-[#2a2a2a] flex items-center justify-center overflow-hidden rounded-sm">
         <img
           src={
@@ -41,7 +66,7 @@ const FreeAgentRow = ({
           className="h-full w-full object-cover"
         />
       </div>
-      <div className="flex items-center ml-3 mr-4 flex-1 justify-between">
+      <div className="flex items-center ml-3 flex-1 justify-between mr-2">
         <div
           className="text-white font-anton font-bold uppercase tracking-normal leading-none whitespace-nowrap overflow-visible"
           style={{ fontSize: '17px', maxWidth: '300px' }}
@@ -49,14 +74,20 @@ const FreeAgentRow = ({
           {firstName}{' '}
           <span className="text-white/70 font-light">{lastName}</span>
         </div>
-        <div className="flex items-center justify-end text-white/50 text-[13px] w-[180px] gap-2 whitespace-nowrap">
+        <div className="flex items-center justify-end text-white/50 text-[13px] gap-2 whitespace-nowrap">
           <span>{asking}</span>
           <span className="text-white/30">|</span>
           <span>{rights}</span>
         </div>
       </div>
-      <div className="w-[70px] flex items-center justify-center text-white/60 text-sm font-semibold -mr-3">
-        {position}
+      <div className="flex items-center justify-end text-white/50 text-[13px] gap-2 w-[150px] mr-3 whitespace-nowrap">
+        <span
+          className={`px-1 rounded text-[10px] font-semibold ${getTagColor(faType)}`}
+        >
+          {faType}
+        </span>
+        <span>{height}</span>
+        <span>{weight}</span>
       </div>
     </div>
   );
