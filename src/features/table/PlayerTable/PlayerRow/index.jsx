@@ -7,6 +7,7 @@ import PlayerDrawer from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer';
 import TeamLogo from '@/components/shared/TeamLogo';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import AddToListButton from '@/features/lists/AddToListButton';
+import { getCurrentSeasonYear, getYearsRemaining } from '@/utils/contracts';
 
 const PlayerRow = ({ player, ranking = '—' }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -82,12 +83,7 @@ const PlayerRow = ({ player, ranking = '—' }) => {
         <div className="ml-0 border-l border-[#333] text-[11px] tracking-wide w-[140px] leading-tight text-center break-words">
           {player.contract?.annual_salaries && player.free_agency_year ? (
             (() => {
-              const today = new Date();
-              // NBA season year changes on July 1 (free agency begins)
-              // Before July 1: Previous season (2023-24)
-              // After July 1: New season (2024-25)
-              const CURRENT_YEAR =
-                today.getFullYear() - (today.getMonth() < 6 ? 1 : 0);
+              const CURRENT_YEAR = getCurrentSeasonYear();
 
               const currentSalary =
                 player.contract.annual_salaries.find(
@@ -98,9 +94,9 @@ const PlayerRow = ({ player, ranking = '—' }) => {
                 )?.salary ??
                 0;
 
-              const yearsLeft = Math.max(
-                0,
-                player.free_agency_year - CURRENT_YEAR
+              const yearsLeft = getYearsRemaining(
+                player.fa_year ?? player.free_agency_year,
+                CURRENT_YEAR
               );
               const formattedSalary = `$${(currentSalary / 1_000_000).toFixed(1)}M`;
 
