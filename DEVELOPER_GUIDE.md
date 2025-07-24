@@ -129,6 +129,21 @@ src/
 
 Player documents in Firestore are flattened objects with fields for bio, contract, roles and stats. Important properties include `playerId`, `position`, `roles`, `subRoles`, `traits` and a `contract` object. Check `data/players.json` for the full schema.
 
+## Firestore Collections and Data Sources
+
+This project pulls player and contract data from two distinct Firestore collections:
+
+| Collection | Purpose                                                                  |
+| ---------- | ------------------------------------------------------------------------ |
+| `/players` | Stores universal player data: bio, traits, roles, stats, badges, blurbs  |
+| `/teams`   | Stores team-specific cap sheets and `contract_clean` (used in Architect) |
+
+- Use `usePlayerData()` when querying global player records (ScoutZero, rankings, etc.)
+- Use `useTeamRoster()` or direct `/teams` queries for anything related to contract logic, team building, or cap validation.
+
+📄 Refer to [`DATA_SOURCE_MAP.md`](../docs/DATA_SOURCE_MAP.md) for usage rules  
+📄 Refer to [`FIRESTORE_SCHEMA.md`](../docs/FIRESTORE_SCHEMA.md) for field-level details
+
 ## Adding Filters or Traits
 
 1. Define default values in `src/utils/filtering/playerFilterDefaults.js`.

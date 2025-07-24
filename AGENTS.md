@@ -57,10 +57,31 @@ All new code should be grouped by feature when possible. Reusable UI or logic go
 - ❌ Never create new branches
 - ❌ Never amend or squash existing commits
 
+## Firestore Data Source Rules
+
+This project uses two Firestore collections for player-related data:
+
+| Collection | Used For                                                                      |
+| ---------- | ----------------------------------------------------------------------------- |
+| `/players` | Global player data (bio, traits, roles, stats, badges, blurbs, raw contracts) |
+| `/teams`   | Roster-specific data (contract_clean, team cap sheets, Architect tools)       |
+
+- All role, trait, stat, badge, and evaluation info comes from `/players`
+- All salary/cap validation logic must use `contract_clean` from `/teams`
+- Only `/teams` should be modified when editing contracts or roster logic
+- Codex should treat `/players` as the read-only master record
+
+📄 Reference [`DATA_SOURCE_MAP.md`](../docs/DATA_SOURCE_MAP.md) for usage patterns  
+📄 See [`FIRESTORE_SCHEMA.md`](../docs/FIRESTORE_SCHEMA.md) for full field breakdowns
+
 ## Firebase Rules
 
 - All data is read from Firestore.
-- The Firestore collection is 'players' and each document is a flattened player object.
+  The main Firestore collections are:
+
+- `'players'`: flattened player documents used for traits, roles, stats, badges, etc.
+- `'teams'`: documents that contain `capSheet.players[]` with `contract_clean` and team roster data
+
 - Do not modify Firestore read logic without validating schema against usePlayerData.js and Firebase helpers.
 
 ## PR Guidelines
