@@ -1,0 +1,31 @@
+# Architect Component Hierarchy
+
+```
+CapSheet.jsx
+CapSheetFull.jsx
+CapSummaryTiles.jsx
+ContractEditor.jsx
+ContractEditorModal.jsx
+DraftPickTracker.jsx
+ExceptionHistoryTracker.jsx
+ExceptionTracker.jsx
+FreeAgentPool.jsx
+FreeAgentRow.jsx
+GMDashboard.jsx
+LeagueView.jsx
+OffseasonTab.jsx
+OptionManager.jsx
+RosterVisual.jsx
+SavePlanModal.jsx
+TeamHistoryTab.jsx
+WaiveStretchTracker.jsx
+tradeMachine/
+  CapImpactTiles.jsx
+  OutgoingPicksList.jsx
+  OutgoingPlayersList.jsx
+  SelectTeamCard.jsx
+  TradeEditor.jsx
+  TradePlayerRow.jsx
+  TradeSummaryPanel.jsx
+  TradeTeamCard.jsx
+```
