@@ -81,6 +81,16 @@ Additional raw datasets live under `data/` for development and import scripts.
 - **Role/Subrole Logic** – assign both primary roles and granular subroles to better capture on‑court responsibility.
 - **Future GM Expansion** – groundwork laid for additional team building tools under the "HoopZero Architect" project.
 
+## 🔁 Firestore Collections
+
+This project uses multiple Firestore collections to separate global player data from team/contract logic.
+
+- `/players` — master player records, stats, grades, roles, and bio info
+- `/teams` — team rosters and `contract_clean` used for GM/cap tools
+
+📄 See [`docs/DATA_SOURCE_MAP.md`](./docs/DATA_SOURCE_MAP.md) for full usage rules  
+📄 See [`docs/FIRESTORE_SCHEMA.md`](./docs/FIRESTORE_SCHEMA.md) for detailed field breakdowns
+
 ## Related Projects
 
 - **ScoutZero** – internal evaluation suite used to create player grades and roles. HoopZero presents this data in a read‑only form.
