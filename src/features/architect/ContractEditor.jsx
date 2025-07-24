@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { formatName } from '@/utils/formatting';
+import { formatName, formatCurrencyFull } from '@/utils/formatting';
 import {
   generateContract,
   createMaxContract,
@@ -19,6 +19,9 @@ const ContractEditor = ({
   const [type, setType] = useState('Custom');
   const [years, setYears] = useState(4);
   const [baseSalary, setBaseSalary] = useState(10000000);
+  const [baseSalaryInput, setBaseSalaryInput] = useState(
+    formatCurrencyFull(10000000)
+  );
   const [raisePct, setRaisePct] = useState(0.08);
   const [options, setOptions] = useState({
     playerOption: false,
@@ -132,9 +135,15 @@ const ContractEditor = ({
 
           <label className="block">Base Salary:</label>
           <input
-            type="number"
-            value={baseSalary}
-            onChange={(e) => setBaseSalary(Number(e.target.value))}
+            type="text"
+            inputMode="decimal"
+            value={baseSalaryInput}
+            onChange={(e) => {
+              const raw = e.target.value.replace(/[^0-9]/g, '');
+              const num = Number(raw);
+              setBaseSalary(num);
+              setBaseSalaryInput(formatCurrencyFull(raw));
+            }}
             className="p-1 bg-[#1a1a1a] border border-white/20 rounded w-32"
           />
 
