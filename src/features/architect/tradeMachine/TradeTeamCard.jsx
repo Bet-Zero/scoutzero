@@ -65,6 +65,13 @@ const TradeTeamCard = ({
         </div>
       </div>
 
+      <CapImpactTiles
+        team={team}
+        sends={sends}
+        incomingPlayers={incomingPlayers}
+        yearKey={yearKey}
+      />
+
       {/* Tabs */}
       <div className="flex gap-4 text-sm border-b border-white/10 pb-1">
         <button
@@ -133,12 +140,6 @@ const TradeTeamCard = ({
         </div>
       )}
 
-      <CapImpactTiles
-        team={team}
-        sends={sends}
-        incomingPlayers={incomingPlayers}
-        yearKey={yearKey}
-      />
     </div>
   );
 };

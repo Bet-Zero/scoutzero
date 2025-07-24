@@ -1,5 +1,6 @@
 import React from 'react';
 import capProjections from '@/utils/architect/capProjections';
+import { formatSalary } from '@/utils/formatting';
 
 const CapImpactTiles = ({
   team,
@@ -40,19 +41,18 @@ const CapImpactTiles = ({
   const firstApronSpace = firstApron - projectedTotal;
   const secondApronSpace = secondApron - projectedTotal;
 
-  const formatMoney = (amount) =>
-    `${amount < 0 ? '-' : ''}$${Math.abs(amount).toLocaleString()}`;
+  const formatMoney = (amount) => formatSalary(amount);
 
   return (
-    <div className="grid grid-cols-2 gap-2 text-[11px] mt-2">
+    <div className="grid grid-cols-4 gap-2 text-[11px]">
       <div className="bg-[#1c1c1c] rounded p-2 text-center border border-white/10">
-        <div className="text-white/70">CAP ALLOCATIONS</div>
+        <div className="text-white/70">ALLOC</div>
         <div className="text-white font-bold text-sm">
           {formatMoney(projectedTotal)}
         </div>
       </div>
       <div className="bg-[#1c1c1c] rounded p-2 text-center border border-white/10">
-        <div className="text-white/70">CAP SPACE</div>
+        <div className="text-white/70">SPACE</div>
         <div
           className={`font-bold text-sm ${capSpace < 0 ? 'text-red-400' : 'text-green-400'}`}
         >
@@ -60,7 +60,7 @@ const CapImpactTiles = ({
         </div>
       </div>
       <div className="bg-[#1c1c1c] rounded p-2 text-center border border-white/10">
-        <div className="text-white/70">1ST APRON SPACE</div>
+        <div className="text-white/70">1ST APR</div>
         <div
           className={`font-bold text-sm ${firstApronSpace < 0 ? 'text-red-400' : 'text-green-400'}`}
         >
@@ -68,7 +68,7 @@ const CapImpactTiles = ({
         </div>
       </div>
       <div className="bg-[#1c1c1c] rounded p-2 text-center border border-white/10">
-        <div className="text-white/70">2ND APRON SPACE</div>
+        <div className="text-white/70">2ND APR</div>
         <div
           className={`font-bold text-sm ${secondApronSpace < 0 ? 'text-red-400' : 'text-green-400'}`}
         >
