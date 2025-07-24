@@ -22,6 +22,7 @@ ListPreviewModal/
   index.jsx
 ListRankToggle.jsx
 ListRowStyleToggle.jsx
+ListSearchBar.jsx
 ListTierHeader/
   ListPlayerRow.jsx
   index.jsx

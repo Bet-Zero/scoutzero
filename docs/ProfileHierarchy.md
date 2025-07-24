@@ -18,6 +18,7 @@ PlayerDetails/
   PlayerTraitsGrid.jsx
   index.jsx
 PlayerNavigation.jsx
+PlayerSearchBar.jsx
 TeamPlayerDropdowns.jsx
 TeamPlayerSelector.jsx
 ```
