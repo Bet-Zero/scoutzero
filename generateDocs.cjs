@@ -19,7 +19,7 @@ async function generateFileMap() {
     'index.html',
     'data/',
     'public/',
-    'src/'
+    'src/',
   ];
   let out = '/ Project root\n';
   for (const entry of entries) {
@@ -32,10 +32,12 @@ async function buildTree(dir, prefix = '') {
   const items = await fs.readdir(dir, { withFileTypes: true });
   const lines = [];
   for (const item of items) {
-    if (item.name.startsWith('.')) continue;
+    if (item.name.startsWith('.')) continue; // 🚫 Skip hidden files like .DS_Store
+
     const filePath = path.join(dir, item.name);
     const line = prefix + item.name + (item.isDirectory() ? '/' : '');
     lines.push(line);
+
     if (item.isDirectory()) {
       const sub = await buildTree(filePath, prefix + '  ');
       lines.push(sub);
@@ -50,11 +52,14 @@ function capitalize(str) {
 
 async function generateHierarchies() {
   const featuresDir = path.join(SRC, 'features');
-  const features = await fs.readdir(featuresDir);
+  const features = await fs.readdir(featuresDir, { withFileTypes: true });
+
   for (const feature of features) {
-    const tree = await buildTree(path.join(featuresDir, feature));
-    const md = `# ${capitalize(feature)} Component Hierarchy\n\n\`\`\`\n${tree}\n\`\`\`\n`;
-    const file = path.join(DOCS_DIR, `${capitalize(feature)}Hierarchy.md`);
+    if (!feature.isDirectory()) continue; // ✅ Only process actual folders
+
+    const tree = await buildTree(path.join(featuresDir, feature.name));
+    const md = `# ${capitalize(feature.name)} Component Hierarchy\n\n\`\`\`\n${tree}\n\`\`\`\n`;
+    const file = path.join(DOCS_DIR, `${capitalize(feature.name)}Hierarchy.md`);
     await fs.writeFile(file, md, 'utf8');
   }
 }
@@ -65,7 +70,7 @@ async function main() {
   console.log('Docs generated');
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error(err);
   process.exit(1);
 });
