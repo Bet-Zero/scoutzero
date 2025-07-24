@@ -10,7 +10,8 @@
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "docs": "node generateDocs.cjs",
     "test": "vitest",
-    "zen": "node toggleView.cjs"
+    "zen": "node toggleView.cjs",
+    "prepare": "echo skipped"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -38,6 +39,7 @@
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
+    "husky": "^9.1.7",
     "postcss": "^8.5.3",
     "prettier": "^3.5.3",
     "tailwindcss": "^3.4.17",
