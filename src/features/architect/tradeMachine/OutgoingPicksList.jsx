@@ -12,7 +12,8 @@ export const OutgoingPicksList = ({
     <h4 className="text-sm text-white/70 mb-1">Outgoing Picks</h4>
     <div className="space-y-1 max-h-[375px] overflow-y-auto pr-1">
       {team.picks?.map((p) => {
-        const exists = picks.some((pk) => areSamePick(pk, p));
+        const pickObj = picks.find((pk) => areSamePick(pk, p));
+        const exists = !!pickObj;
         return (
           <div
             key={`${p.year}-${p.round}-${p.via || ''}`}
@@ -21,12 +22,12 @@ export const OutgoingPicksList = ({
             }`}
           >
             <div>
-              <div>{formatPick(p)}</div>
+              <div>{formatPick(pickObj || p)}</div>
               {exists && (
                 <div className="text-white/50 mt-1 space-y-1">
                   <select
                     className="bg-black/30 p-1 rounded w-full"
-                    value={p.protection || ''}
+                    value={pickObj?.protection || ''}
                     onChange={(e) =>
                       onEditPick(p, 'protection', e.target.value)
                     }
@@ -39,7 +40,7 @@ export const OutgoingPicksList = ({
                   </select>
                   <input
                     className="bg-black/30 p-1 rounded w-full"
-                    value={p.note || ''}
+                    value={pickObj?.note || ''}
                     placeholder="Note"
                     onChange={(e) => onEditPick(p, 'note', e.target.value)}
                   />
