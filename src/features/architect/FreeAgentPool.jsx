@@ -87,7 +87,7 @@ const FreeAgentPool = ({
   return (
     <div className="text-white">
       <h2 className="text-xl font-semibold mb-2">Free Agent Pool</h2>
-      <ul className="space-y-[3px] mb-4">
+      <ul className="space-y-[3px] mb-4 px-6">
         {freeAgents.map((p) => {
           const playerData = playersMap[p.name] || { name: p.name };
           return (

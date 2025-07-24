@@ -76,12 +76,12 @@ const FreeAgentRow = ({
       }`}
     >
       {/* Position */}
-      <div className="w-[60px] flex items-center justify-center text-white/60 text-sm font-semibold">
+      <div className="w-[45px] flex items-center justify-center text-white/60 text-sm font-semibold">
         {position}
       </div>
 
       {/* Headshot */}
-      <div className="h-[45px] w-[50px] bg-[#2a2a2a] flex items-center justify-center overflow-hidden rounded-sm">
+      <div className="h-[44px] w-[50px] bg-[#2a2a2a] flex items-center justify-center overflow-hidden rounded-sm">
         <img
           src={
             player.headshotUrl || `/assets/headshots/${player.player_id}.png`
