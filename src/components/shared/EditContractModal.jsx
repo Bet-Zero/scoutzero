@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent } from '@/components/shared/ui/dialog';
+import { formatCurrencyFull } from '@/utils/formatting';
 import capProjections from '@/utils/architect/capProjections';
 import {
   getExtensionEligibilityReason,
@@ -110,7 +111,7 @@ const EditContractModal = ({
       contractType: 'Standard',
       salaries: [lastSalary],
     });
-    setSalaryInputs([lastSalary ? String(lastSalary) : '']);
+    setSalaryInputs([lastSalary ? formatCurrencyFull(lastSalary) : '']);
     setSelectedAction('');
 
     const key = `${CURRENT_YEAR + 1}-${String(
@@ -131,7 +132,7 @@ const EditContractModal = ({
     setSalaryInputs(
       Array(extMax.maxYears)
         .fill(extMax.maxFirstYearSalary)
-        .map((s) => (s ? String(s) : ''))
+        .map((s) => (s ? formatCurrencyFull(s) : ''))
     );
   }, [selectedAction, extMax]);
 
@@ -304,7 +305,7 @@ const EditContractModal = ({
                       });
                       setSalaryInputs((prev) => {
                         const arr = [...prev];
-                        arr[idx] = raw;
+                        arr[idx] = formatCurrencyFull(raw);
                         return arr;
                       });
                     }}
