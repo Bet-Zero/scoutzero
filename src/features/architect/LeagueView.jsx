@@ -54,22 +54,22 @@ const LeagueView = () => {
     .sort((a, b) => a.teamName.localeCompare(b.teamName));
   const renderTable = (title, teams) => (
     <table className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded">
-      <thead className="bg-[#111]">
+      <thead>
         <tr>
+          <th
+            colSpan="3"
+            className="bg-neutral-800 text-lg text-left px-2 py-1 font-semibold"
+          >
+            {title}
+          </th>
+        </tr>
+        <tr className="bg-[#111]">
           <th className="p-2 text-left">Team</th>
           <th className="p-2 text-left">Total Salary</th>
           <th className="p-2" />
         </tr>
       </thead>
       <tbody>
-        <tr>
-          <th
-            colSpan="3"
-            className="bg-[#0f0f0f] text-left px-2 py-1 font-semibold"
-          >
-            {title}
-          </th>
-        </tr>
         {teams.map((team) => (
           <tr key={team.id} className="odd:bg-[#171717]">
             <td className="p-2 flex items-center gap-2">
@@ -93,10 +93,10 @@ const LeagueView = () => {
 
   return (
     <div className="text-white">
-      <h1 className="text-2xl font-bold mb-4">
+      <h1 className="text-2xl font-bold -mb-6">
         HoopZero Architect – League View
       </h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-12 mb-20">
         {renderTable('Eastern Conference', eastTeams)}
         {renderTable('Western Conference', westTeams)}
       </div>
