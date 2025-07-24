@@ -48,8 +48,6 @@ const EditContractModal = ({
   });
   const [salaryInputs, setSalaryInputs] = useState(['']);
 
-  const formatCurrency = (num) =>
-    num ? `$${Number(num).toLocaleString()}` : '';
   const [extReason, setExtReason] = useState('');
   const [extMax, setExtMax] = useState(null);
 
@@ -112,7 +110,7 @@ const EditContractModal = ({
       contractType: 'Standard',
       salaries: [lastSalary],
     });
-    setSalaryInputs([formatCurrency(lastSalary)]);
+    setSalaryInputs([lastSalary ? String(lastSalary) : '']);
     setSelectedAction('');
 
     const key = `${CURRENT_YEAR + 1}-${String(
@@ -131,7 +129,9 @@ const EditContractModal = ({
       salaries: Array(extMax.maxYears).fill(extMax.maxFirstYearSalary),
     });
     setSalaryInputs(
-      Array(extMax.maxYears).fill(extMax.maxFirstYearSalary).map(formatCurrency)
+      Array(extMax.maxYears)
+        .fill(extMax.maxFirstYearSalary)
+        .map((s) => (s ? String(s) : ''))
     );
   }, [selectedAction, extMax]);
 
@@ -270,9 +270,9 @@ const EditContractModal = ({
                       (_, i) => extension.salaries[i] || 0
                     ),
                   });
-                  setSalaryInputs((prev) =>
+                  setSalaryInputs(
                     Array.from({ length: yrs }, (_, i) =>
-                      formatCurrency(extension.salaries[i] || 0)
+                      extension.salaries[i] ? String(extension.salaries[i]) : ''
                     )
                   );
                 }}
@@ -304,7 +304,7 @@ const EditContractModal = ({
                       });
                       setSalaryInputs((prev) => {
                         const arr = [...prev];
-                        arr[idx] = raw ? formatCurrency(raw) : '';
+                        arr[idx] = raw;
                         return arr;
                       });
                     }}
