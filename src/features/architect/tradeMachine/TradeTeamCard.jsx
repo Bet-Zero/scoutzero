@@ -8,6 +8,7 @@ import {
   formatPick,
   formatCurrency,
 } from '@/utils/architect/tradeHelpers';
+import CapImpactTiles from './CapImpactTiles';
 import { SelectTeamCard } from './SelectTeamCard';
 import { OutgoingPlayersList } from './OutgoingPlayersList';
 import { OutgoingPicksList } from './OutgoingPicksList';
@@ -131,6 +132,13 @@ const TradeTeamCard = ({
           </div>
         </div>
       )}
+
+      <CapImpactTiles
+        team={team}
+        sends={sends}
+        incomingPlayers={incomingPlayers}
+        yearKey={yearKey}
+      />
     </div>
   );
 };
