@@ -99,7 +99,7 @@ const ContractEditor = ({
       isMinimum: type === 'Minimum',
     };
 
-    onSign(player.name, finalContract);
+    onSign(player, finalContract);
   };
 
   return (
