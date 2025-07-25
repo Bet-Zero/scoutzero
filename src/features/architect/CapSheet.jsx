@@ -12,6 +12,10 @@ const CapSheet = ({
   onSelectPlayer,
   playersMap = {},
 }) => {
+  if (!teamCapSheet) {
+    return <div className="text-white/60 p-4">Loading cap sheet...</div>;
+  }
+
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [showCapHolds, setShowCapHolds] = useState(false);
 
