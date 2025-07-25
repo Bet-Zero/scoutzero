@@ -52,19 +52,19 @@ export const TradePickRow = ({
 
   return (
     <div
-      className={`flex items-start justify-between px-3 py-2 rounded-md text-xs transition-colors ${
+      className={`flex items-center justify-between px-3 py-2 rounded-md text-xs transition-colors ${
         exists ? '' : 'bg-white/10'
       }`}
       style={rowStyle}
     >
-      <div className="flex items-start">
+      <div className="flex items-center">
         <TeamLogo teamId={teamId} className="w-6 h-6 mr-2" />
         <div>
           <div>{formatPick(pickObj || pick)}</div>
           {exists && (
-            <div className="text-white/50 mt-1 space-y-1">
+            <div className="w-[140px] text-white/50 mt-1 space-y-1">
               <select
-                className="bg-black/30 p-1 rounded w-full"
+                className="w-[140px] bg-black/30 p-1 rounded w-full"
                 value={pickObj.protection || ''}
                 onChange={(e) => onEdit(pick, 'protection', e.target.value)}
               >
@@ -74,12 +74,6 @@ export const TradePickRow = ({
                   </option>
                 ))}
               </select>
-              <input
-                className="bg-black/30 p-1 rounded w-full"
-                value={pickObj.note || ''}
-                placeholder="Note"
-                onChange={(e) => onEdit(pick, 'note', e.target.value)}
-              />
             </div>
           )}
         </div>
