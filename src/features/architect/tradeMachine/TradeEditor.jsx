@@ -46,16 +46,24 @@ const TradeEditor = ({
   });
 
   const addLabels = {
-    2: 'Add 3rd Team',
-    3: 'Add 4th Team',
-    4: 'Add 5th Team',
+    2: 'Add Team',
+    3: 'Add Team',
+    4: 'Add Team',
   };
 
   return (
     <div className="text-white space-y-6">
-      <h2 className="text-2xl font-bold tracking-tight border-b border-white/10 pb-2">
-        Trade Machine
-      </h2>
+      <div className="flex items-center justify-between border-b border-white/10 pb-2">
+        <h2 className="text-2xl font-bold tracking-tight">Trade Machine</h2>
+        {teams.length < 5 && (
+          <button
+            onClick={addTeam}
+            className="bg-neutral-700 hover:bg-neutral-600 text-sm px-3 py-1.5 rounded"
+          >
+            {addLabels[teams.length] || 'Add Team'}
+          </button>
+        )}
+      </div>
 
       {/* Team Cards */}
       <div className="flex flex-col md:flex-row flex-wrap gap-6">
@@ -88,15 +96,6 @@ const TradeEditor = ({
 
       {/* Controls */}
       <div className="flex flex-wrap gap-3 items-center">
-        {teams.length < 5 && (
-          <button
-            onClick={addTeam}
-            className="bg-neutral-700 hover:bg-neutral-600 text-sm px-3 py-1.5 rounded"
-          >
-            {addLabels[teams.length] || 'Add Team'}
-          </button>
-        )}
-
         <button
           onClick={handleValidate}
           className="bg-blue-600 hover:bg-blue-700 text-sm font-medium px-3 py-1.5 rounded"
