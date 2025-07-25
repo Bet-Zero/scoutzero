@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { loadTeamCapSheet } from '@/utils/architect/firebaseHelpers';
+import { loadTeamCapSheet } from '@/utils/architect/firebaseTeamPlanHelpers';
 import { useNavigate } from 'react-router-dom';
 import { TeamListFull } from '@/constants/teamList';
 import TeamLogo from '@/components/shared/TeamLogo';

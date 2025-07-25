@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { validateTrade } from '@/utils/architect/tradeMachine/tradeValidator';
-import { loadTeamCapSheet } from '@/utils/architect/firebaseHelpers';
+import { loadTeamCapSheet } from '@/utils/architect/firebaseTeamPlanHelpers';
 import {
   getSalaryForYear,
   areSamePick,
