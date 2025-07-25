@@ -441,10 +441,10 @@ const GMDashboard = () => {
         {/* Keep your other tab renders as-is */}
 
         {activeTab === 'cap' &&
-          (teamCapSheet?.capSheet ? (
+          (teamCapSheet?.players ? (
             <>
               <CapSheet
-                teamCapSheet={teamCapSheet.capSheet}
+                teamCapSheet={teamCapSheet}
                 currentYear={currentYear}
                 onSelectPlayer={handleEditContract}
                 playersMap={playersMap}
@@ -460,7 +460,7 @@ const GMDashboard = () => {
 
         {activeTab === 'capfull' && (
           <CapSheetFull
-            teamCapSheet={teamCapSheet.capSheet}
+            teamCapSheet={teamCapSheet}
             onSelectPlayer={handleEditContract}
             playersMap={playersMap}
           />
