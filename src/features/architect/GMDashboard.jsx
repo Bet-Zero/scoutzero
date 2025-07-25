@@ -171,6 +171,7 @@ const GMDashboard = () => {
     const updated = {
       ...teamCapSheet,
       activeContracts: teamCapSheet.activeContracts || [],
+      players: teamCapSheet.players || [],
     };
 
     const targetTrade = tradeData.find((t) => t.teamId === teamId);
@@ -189,23 +190,30 @@ const GMDashboard = () => {
     );
 
     const normalize = (str = '') => str.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const isSamePlayer = (contract, out) => {
-      const contractId = contract.player_id || contract.id;
-      const outId = out.id || out.player_id;
-      if (contractId && outId) return contractId === outId;
-      return normalize(contract.name) === normalize(out.name);
+    const isSamePlayer = (a, b) => {
+      const aId = a.player_id || a.id;
+      const bId = b.id || b.player_id;
+      if (aId && bId) return aId === bId;
+      return normalize(a.name) === normalize(b.name);
     };
 
-    // Filter out players you just traded away
-    updated.activeContracts = (updated.activeContracts || []).filter(
-      (contract) => {
-        const traded = outgoing.some((out) => isSamePlayer(contract, out));
-        if (traded) {
-          console.log(`🗑️ Removing ${contract.name} (traded away)`);
-        }
-        return !traded;
+    // Remove outgoing players from main roster
+    updated.players = updated.players.filter((player) => {
+      const traded = outgoing.some((out) => isSamePlayer(player, out));
+      if (traded) {
+        console.log(`🗑️ Removing ${player.name} from roster (traded away)`);
       }
-    );
+      return !traded;
+    });
+
+    // Filter out players you just traded away from active contracts
+    updated.activeContracts = (updated.activeContracts || []).filter((contract) => {
+      const traded = outgoing.some((out) => isSamePlayer(contract, out));
+      if (traded) {
+        console.log(`🗑️ Removing ${contract.name} (traded away)`);
+      }
+      return !traded;
+    });
 
     // Add the incoming traded players
     const newContracts = incoming.map((p) => ({
@@ -221,7 +229,18 @@ const GMDashboard = () => {
       yearsOfService: p.yearsOfService ?? 0,
     }));
 
+    const newPlayers = incoming.map((p) => ({
+      name: p.name,
+      player_id: p.id || p.player_id,
+      display_name: p.display_name || p.name,
+      contract_clean: {
+        salaries_by_year: p.salaryByYear || {},
+        options: p.options || {},
+      },
+    }));
+
     updated.activeContracts.push(...newContracts);
+    updated.players.push(...newPlayers);
 
     console.log(
       '✅ Applied trade — activeContracts now:',
