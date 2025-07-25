@@ -1,10 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { formatPick } from '@/utils/architect/tradeHelpers';
 import { getPickOptions } from '@/utils/architect/tradeMachine/pickOptions';
+import { getTeamColors } from '@/utils/formatting';
+
+const hexToRGBA = (hex, alpha) => {
+  const sanitized = hex.replace('#', '');
+  const bigint = parseInt(sanitized, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
 
 export const TradePickRow = ({
   pick,
   pickObj,
+  teamId,
   otherTeams = [],
   onToggle,
   onEdit,
@@ -30,12 +41,16 @@ export const TradePickRow = ({
   }, [menuOpen]);
 
   const exists = !!pickObj;
+  const { primary } = getTeamColors(teamId);
+
+  const rowStyle = exists ? { backgroundColor: hexToRGBA(primary, 0.6) } : {};
 
   return (
     <div
       className={`flex items-start justify-between px-3 py-1 rounded-md text-xs transition-colors ${
-        exists ? 'bg-purple-800/30' : 'bg-white/10'
+        exists ? '' : 'bg-white/10'
       }`}
+      style={rowStyle}
     >
       <div>
         <div>{formatPick(pickObj || pick)}</div>

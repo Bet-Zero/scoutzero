@@ -12,6 +12,8 @@ import CapImpactTiles from './CapImpactTiles';
 import { SelectTeamCard } from './SelectTeamCard';
 import { OutgoingPlayersList } from './OutgoingPlayersList';
 import { OutgoingPicksList } from './OutgoingPicksList';
+import { TeamListFull } from '@/constants/teamList';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const TradeTeamCard = ({
   team,
@@ -30,6 +32,7 @@ const TradeTeamCard = ({
   onRemove,
 }) => {
   const [activeTab, setActiveTab] = useState('players');
+  const [editingTeam, setEditingTeam] = useState(false);
   if (!team) {
     return <SelectTeamCard onSelectTeam={onSelectTeam} onRemove={onRemove} />;
   }
@@ -58,15 +61,46 @@ const TradeTeamCard = ({
 
       {/* Team Header */}
       <div className="flex items-center justify-between border-b border-white/10 pb-2">
-        <div className="flex items-center gap-2">
-          <TeamLogo teamAbbr={team.id} className="w-8 h-8" />
-          <h3 className="text-lg font-semibold" style={{ color: primary }}>
-            {team.teamName}
-          </h3>
+        {/* Left: Clickable Logo + Team Name */}
+        <div className="inline-flex items-center gap-2 relative">
+          <div
+            className="flex items-center gap-2 cursor-pointer px-2 py-1 rounded border border-transparent hover:border-white/20 transition z-10"
+            style={{ color: primary }}
+            onClick={() => setEditingTeam(true)}
+            title="Click to change team"
+          >
+            <TeamLogo teamAbbr={team.id} className="w-8 h-8" />
+            <h3 className="text-lg font-semibold">{team.teamName}</h3>
+          </div>
+
+          {editingTeam && (
+            <select
+              className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer z-20 pointer-events-auto"
+              defaultValue={team.id}
+              onChange={(e) => {
+                setEditingTeam(false);
+                onSelectTeam(e.target.value);
+              }}
+              onBlur={() => setEditingTeam(false)}
+              autoFocus
+            >
+              {TeamListFull.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.teamName}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
-        <div className="text-sm text-white/60">
-          Outgoing Salary:{' '}
-          <span className="font-medium">{formatCurrency(outgoingSalary)}</span>
+
+        {/* Right: Outgoing Salary */}
+        <div className="text-sm text-white/60 flex items-center gap-2">
+          <span>
+            Outgoing Salary:{' '}
+            <span className="font-medium">
+              {formatCurrency(outgoingSalary)}
+            </span>
+          </span>
         </div>
       </div>
 
