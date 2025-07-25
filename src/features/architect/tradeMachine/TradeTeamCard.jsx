@@ -37,6 +37,11 @@ const TradeTeamCard = ({
   const outgoingSalary = getSalaryForYear(sends, yearKey);
   const { primary } = getTeamColors(team.id);
 
+  const playersCount =
+    (team.players?.length || 0) - sends.length + incomingPlayers.length;
+  const picksCount =
+    (team.picks?.length || 0) - picks.length + incomingPicks.length;
+
   return (
     <div
       className="flex-1 rounded-lg p-4 bg-[#111] relative space-y-4 shadow-inner border"
@@ -82,7 +87,7 @@ const TradeTeamCard = ({
           }`}
           onClick={() => setActiveTab('players')}
         >
-          Players
+          Players ({playersCount})
         </button>
         <button
           className={`pb-1 ${
@@ -92,7 +97,7 @@ const TradeTeamCard = ({
           }`}
           onClick={() => setActiveTab('picks')}
         >
-          Picks
+          Picks ({picksCount})
         </button>
       </div>
 
