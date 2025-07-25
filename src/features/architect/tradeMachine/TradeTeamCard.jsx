@@ -1,6 +1,6 @@
 // TradeTeamCard.jsx
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import TeamLogo from '@/components/shared/TeamLogo';
 import { getTeamColors } from '@/utils/formatting';
 import {
@@ -14,6 +14,7 @@ import { OutgoingPlayersList } from './OutgoingPlayersList';
 import { OutgoingPicksList } from './OutgoingPicksList';
 import { TeamListFull } from '@/constants/teamList';
 import { motion, AnimatePresence } from 'framer-motion';
+import TeamSelectDropdown from '@/components/shared/TeamSelectDropdown';
 
 const TradeTeamCard = ({
   team,
@@ -33,6 +34,18 @@ const TradeTeamCard = ({
 }) => {
   const [activeTab, setActiveTab] = useState('players');
   const [editingTeam, setEditingTeam] = useState(false);
+  const selectRef = useRef(null);
+
+  useEffect(() => {
+    if (editingTeam && selectRef.current) {
+      selectRef.current.focus();
+      if (typeof selectRef.current.showPicker === 'function') {
+        selectRef.current.showPicker();
+      } else {
+        selectRef.current.click();
+      }
+    }
+  }, [editingTeam]);
   if (!team) {
     return <SelectTeamCard onSelectTeam={onSelectTeam} onRemove={onRemove} />;
   }
@@ -62,35 +75,14 @@ const TradeTeamCard = ({
       {/* Team Header */}
       <div className="flex items-center justify-between border-b border-white/10 pb-2">
         {/* Left: Clickable Logo + Team Name */}
-        <div className="inline-flex items-center gap-2 relative">
-          <div
-            className="flex items-center gap-2 cursor-pointer px-2 py-1 rounded border border-transparent hover:border-white/20 transition z-10"
-            style={{ color: primary }}
-            onClick={() => setEditingTeam(true)}
-            title="Click to change team"
-          >
-            <TeamLogo teamAbbr={team.id} className="w-8 h-8" />
-            <h3 className="text-lg font-semibold">{team.teamName}</h3>
-          </div>
-
-          {editingTeam && (
-            <select
-              className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer z-20 pointer-events-auto"
-              defaultValue={team.id}
-              onChange={(e) => {
-                setEditingTeam(false);
-                onSelectTeam(e.target.value);
-              }}
-              onBlur={() => setEditingTeam(false)}
-              autoFocus
-            >
-              {TeamListFull.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.teamName}
-                </option>
-              ))}
-            </select>
-          )}
+        <div className="w-48">
+          <TeamSelectDropdown
+            selectedTeamId={team.id}
+            onChange={(newId) => {
+              setEditingTeam(false);
+              onSelectTeam(newId);
+            }}
+          />
         </div>
 
         {/* Right: Outgoing Salary */}

@@ -14,6 +14,8 @@
     "prepare": "echo skipped"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.6",
+    "@heroicons/react": "^2.2.0",
     "clsx": "^2.1.1",
     "csv-parser": "^3.2.0",
     "date-fns": "^4.1.0",
