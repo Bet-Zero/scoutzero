@@ -25,6 +25,11 @@ import { loadPlayerData } from '@/firebaseHelpers';
 import { normalizePlayerData } from '@/utils/roster';
 import capProjections from '@/utils/architect/capProjections';
 
+const toSalaryMap = (salaryByYear = {}) =>
+  Object.fromEntries(
+    Object.entries(salaryByYear).map(([yr, val]) => [yr, { salary: val }])
+  );
+
 const GMDashboard = () => {
   const { teamId } = useParams();
   const userId = 'demoUser';
@@ -235,13 +240,17 @@ const GMDashboard = () => {
 
     const newPlayers = await Promise.all(
       incoming.map(async (p) => {
-        const base =
-          playersMap[p.name] || playersMap[p.player_id] || null;
+        const base = playersMap[p.name] || playersMap[p.player_id] || null;
         let playerData = base;
         if (!playerData && (p.id || p.player_id)) {
           const loaded = await loadPlayerData(p.id || p.player_id);
           if (loaded) playerData = normalizePlayerData(loaded);
         }
+        const salaryMap =
+          p.salaryByYear ||
+          playerData?.contract_clean?.salaries_by_year ||
+          playerData?.salaryByYear ||
+          {};
         return {
           ...(playerData || {}),
           name: playerData?.name || p.name,
@@ -249,12 +258,8 @@ const GMDashboard = () => {
           display_name: playerData?.display_name || p.display_name || p.name,
           contract_clean: {
             ...(playerData?.contract_clean || {}),
-            salaries_by_year:
-              p.salaryByYear ||
-              playerData?.contract_clean?.salaries_by_year ||
-              {},
-            options:
-              p.options || playerData?.contract_clean?.options || {},
+            salaries_by_year: toSalaryMap(salaryMap),
+            options: p.options || playerData?.contract_clean?.options || {},
           },
         };
       })
