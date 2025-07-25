@@ -63,17 +63,8 @@ const TradeTeamCard = ({
       className="flex-1 rounded-lg p-4 bg-[#111] relative space-y-4 shadow-inner border"
       style={{ borderColor: primary }}
     >
-      {onRemove && (
-        <button
-          onClick={onRemove}
-          className="absolute top-2 right-2 text-red-400 text-xs"
-        >
-          ✕
-        </button>
-      )}
-
       {/* Team Header */}
-      <div className="flex items-center justify-between border-b border-white/10 pb-2">
+      <div className="relative flex items-center justify-between border-b border-white/10 pb-2">
         {/* Left: Clickable Logo + Team Name */}
         <div className="w-48">
           <TeamSelectDropdown
@@ -94,6 +85,17 @@ const TradeTeamCard = ({
             </span>
           </span>
         </div>
+
+        {/* ✕ Button (non-obtrusive) */}
+        {onRemove && (
+          <button
+            onClick={onRemove}
+            className="absolute -top-[8px] -right-[8px] text-white/20 text-xs p-0 leading-none hover:text-white/50"
+            title="Remove team"
+          >
+            ✕
+          </button>
+        )}
       </div>
 
       <CapImpactTiles
