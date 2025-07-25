@@ -110,8 +110,7 @@ export const TradePickRow = ({
                   <button
                     key={t.id}
                     onClick={() => {
-                      onToggle(pick);
-                      onEdit(pick, 'toTeamId', t.id);
+                      onEdit(pick, 'toTeamId', t.id); // ✅ No toggle here — just assign
                       setOpenMenu(null);
                     }}
                     className="block w-full text-left px-3 py-1 hover:bg-[#333]"
@@ -121,7 +120,7 @@ export const TradePickRow = ({
                 ))}
                 <button
                   onClick={() => {
-                    onToggle(pick);
+                    onToggle(pick); // ✅ Only this one actually removes it
                     setOpenMenu(null);
                   }}
                   className="block w-full text-left px-3 py-1 hover:bg-[#333]"
