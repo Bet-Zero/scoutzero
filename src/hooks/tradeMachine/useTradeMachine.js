@@ -167,7 +167,15 @@ export const useTradeMachine = (primaryTeam, capProjections, currentYear) => {
       teams.forEach((other, j) => {
         if (j !== idx && other.team) {
           incomingPlayers.push(...other.sends);
-          incomingPicks.push(...other.picksOut);
+          other.picksOut.forEach((p) => {
+            if (
+              !p.toTeamId ||
+              p.toTeamId === t.team.id ||
+              p.toTeamId === t.team.teamId
+            ) {
+              incomingPicks.push(p);
+            }
+          });
         }
       });
 

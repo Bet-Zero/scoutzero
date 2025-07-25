@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { formatPick } from '@/utils/architect/tradeHelpers';
 import { getPickOptions } from '@/utils/architect/tradeMachine/pickOptions';
 import { getTeamColors } from '@/utils/formatting';
+import TeamLogo from '@/components/shared/TeamLogo';
 
 const hexToRGBA = (hex, alpha) => {
   const sanitized = hex.replace('#', '');
@@ -51,34 +52,37 @@ export const TradePickRow = ({
 
   return (
     <div
-      className={`flex items-start justify-between px-3 py-1 rounded-md text-xs transition-colors ${
+      className={`flex items-start justify-between px-3 py-2 rounded-md text-xs transition-colors ${
         exists ? '' : 'bg-white/10'
       }`}
       style={rowStyle}
     >
-      <div>
-        <div>{formatPick(pickObj || pick)}</div>
-        {exists && (
-          <div className="text-white/50 mt-1 space-y-1">
-            <select
-              className="bg-black/30 p-1 rounded w-full"
-              value={pickObj.protection || ''}
-              onChange={(e) => onEdit(pick, 'protection', e.target.value)}
-            >
-              {getPickOptions().map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-            <input
-              className="bg-black/30 p-1 rounded w-full"
-              value={pickObj.note || ''}
-              placeholder="Note"
-              onChange={(e) => onEdit(pick, 'note', e.target.value)}
-            />
-          </div>
-        )}
+      <div className="flex items-start">
+        <TeamLogo teamId={teamId} className="w-6 h-6 mr-2" />
+        <div>
+          <div>{formatPick(pickObj || pick)}</div>
+          {exists && (
+            <div className="text-white/50 mt-1 space-y-1">
+              <select
+                className="bg-black/30 p-1 rounded w-full"
+                value={pickObj.protection || ''}
+                onChange={(e) => onEdit(pick, 'protection', e.target.value)}
+              >
+                {getPickOptions().map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <input
+                className="bg-black/30 p-1 rounded w-full"
+                value={pickObj.note || ''}
+                placeholder="Note"
+                onChange={(e) => onEdit(pick, 'note', e.target.value)}
+              />
+            </div>
+          )}
+        </div>
       </div>
       <div className="relative">
         {!exists ? (
