@@ -15,7 +15,9 @@ export const getSalaryForYear = (players = [], year) =>
   }, 0);
 
 export const areSamePick = (a, b) =>
-  a.year === b.year && a.round === b.round && (a.via || '') === (b.via || '');
+  String(a.year) === String(b.year) &&
+  String(a.round) === String(b.round) &&
+  (a.via || '') === (b.via || '');
 
 export const formatPick = (p) => {
   let str = `${p.year} ${p.round} Round`;

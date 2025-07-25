@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { getSalaryForYear } from '../src/utils/architect/tradeHelpers.js';
+import {
+  getSalaryForYear,
+  areSamePick,
+} from '../src/utils/architect/tradeHelpers.js';
 
 describe('getSalaryForYear', () => {
   it('sums salary from contract_clean', () => {
@@ -22,5 +25,13 @@ describe('getSalaryForYear', () => {
       salaryByYear: { 2025: 4000000 },
     };
     expect(getSalaryForYear([player], 2025)).toBe(6000000);
+  });
+});
+
+describe('areSamePick', () => {
+  it('matches picks with numeric and string values', () => {
+    const a = { year: 2026, round: 1, via: 'LAL' };
+    const b = { year: '2026', round: '1', via: 'LAL' };
+    expect(areSamePick(a, b)).toBe(true);
   });
 });
