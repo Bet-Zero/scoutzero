@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { formatPick } from '@/utils/architect/tradeHelpers';
 import { getPickOptions } from '@/utils/architect/tradeMachine/pickOptions';
 import { getTeamColors } from '@/utils/formatting';
@@ -26,6 +26,16 @@ export const TradePickRow = ({
 }) => {
   const menuRef = useRef(null);
   const buttonRef = useRef(null);
+
+  const [draftProtection, setDraftProtection] = useState(pickObj?.protection || '');
+  const [draftNote, setDraftNote] = useState(pickObj?.note || '');
+
+  useEffect(() => {
+    if (pickObj) {
+      setDraftProtection(pickObj.protection || '');
+      setDraftNote(pickObj.note || '');
+    }
+  }, [pickObj]);
 
   const key = rowKey || `${pick.year}-${pick.round}-${pick.via || ''}`;
 
@@ -86,12 +96,63 @@ export const TradePickRow = ({
       </div>
       <div className="relative">
         {!exists ? (
-          <button
-            onClick={() => onToggle(pick)}
-            className="text-blue-400 hover:underline"
-          >
-            •••
-          </button>
+          <>
+            <button
+              ref={buttonRef}
+              onClick={() => setOpenMenu(openMenu === key ? null : key)}
+              className="text-blue-400 hover:underline"
+            >
+              •••
+            </button>
+            {openMenu === key && (
+              <div
+                ref={menuRef}
+                className="absolute right-0 top-5 bg-[#222] border border-white/20 rounded z-20 text-xs min-w-[8rem]"
+              >
+                <div className="p-2 border-b border-white/20 space-y-1">
+                  <select
+                    className="bg-black/30 p-1 rounded w-full"
+                    value={draftProtection}
+                    onChange={(e) => setDraftProtection(e.target.value)}
+                  >
+                    {getPickOptions().map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    className="bg-black/30 p-1 rounded w-full"
+                    value={draftNote}
+                    placeholder="Note"
+                    onChange={(e) => setDraftNote(e.target.value)}
+                  />
+                </div>
+                {otherTeams.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => {
+                      onToggle(pick);
+                      if (draftProtection)
+                        onEdit(pick, 'protection', draftProtection);
+                      if (draftNote) onEdit(pick, 'note', draftNote);
+                      onEdit(pick, 'toTeamId', t.id);
+                      setOpenMenu(null);
+                    }}
+                    className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+                  >
+                    {`Trade to ${t.teamName}`}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setOpenMenu(null)}
+                  className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+          </>
         ) : (
           <>
             <button
