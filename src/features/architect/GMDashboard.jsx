@@ -94,9 +94,22 @@ const GMDashboard = () => {
       try {
         if (viewMode === 'plan') {
           if (selectedPlan) {
-            await saveNamedTeamPlan(userId, teamId, selectedPlan, teamCapSheet);
+            await saveNamedTeamPlan(
+              userId,
+              teamId,
+              selectedPlan,
+              teamCapSheet,
+              capProjections,
+              currentYear
+            );
           } else {
-            await saveUserTeamPlan(userId, teamId, teamCapSheet);
+            await saveUserTeamPlan(
+              userId,
+              teamId,
+              teamCapSheet,
+              capProjections,
+              currentYear
+            );
           }
         }
       } catch (err) {
@@ -104,7 +117,15 @@ const GMDashboard = () => {
       }
     };
     savePlan();
-  }, [teamCapSheet, teamId, userId, selectedPlan, viewMode]);
+  }, [
+    teamCapSheet,
+    teamId,
+    userId,
+    selectedPlan,
+    viewMode,
+    capProjections,
+    currentYear,
+  ]);
 
   useEffect(() => {
     if (freeAgents.length === 0) return;
@@ -143,6 +164,63 @@ const GMDashboard = () => {
     };
     loadPlan();
   }, [viewMode, selectedPlan, baselineCapSheet, teamId, userId]);
+
+  const applyTradeToCapSheet = (tradeData) => {
+    if (!tradeData || !Array.isArray(tradeData)) return;
+
+    const updated = {
+      ...teamCapSheet,
+      activeContracts: teamCapSheet.activeContracts || [],
+    };
+
+    const targetTrade = tradeData.find((t) => t.teamId === teamId);
+    if (!targetTrade) return;
+
+    const incoming = targetTrade.incoming || [];
+    const outgoing = targetTrade.outgoing || [];
+
+    console.log(
+      '🔍 OUTGOING:',
+      outgoing.map((p) => p.name)
+    );
+    console.log(
+      '📄 ACTIVE BEFORE FILTER:',
+      updated.activeContracts.map((c) => c.name)
+    );
+
+    // Filter out players you just traded away
+    updated.activeContracts = (updated.activeContracts || []).filter(
+      (contract) => {
+        const isTraded = outgoing.some((out) => out.name === contract.name);
+        if (isTraded) {
+          console.log(`🗑️ Removing ${contract.name} (traded away)`);
+        }
+        return !isTraded;
+      }
+    );
+
+    // Add the incoming traded players
+    const newContracts = incoming.map((p) => ({
+      name: p.name,
+      salaryByYear: p.salaryByYear || {},
+      years: p.salaryByYear ? Object.keys(p.salaryByYear).length : 1,
+      options: p.options || {},
+      type: 'Trade',
+      signAndTrade: !!p.signAndTrade,
+      guaranteed: p.guaranteed ?? true,
+      isMinimum: p.isMinimum ?? false,
+      yearsOfService: p.yearsOfService ?? 0,
+    }));
+
+    updated.activeContracts.push(...newContracts);
+
+    console.log(
+      '✅ Applied trade — activeContracts now:',
+      updated.activeContracts
+    );
+
+    setTeamCapSheet(updated);
+  };
 
   const handleSign = (playerName, contract) => {
     const newContract = {
@@ -354,6 +432,7 @@ const GMDashboard = () => {
             capProjections={capProjections}
             currentYear={currentYear}
             playersMap={playersMap}
+            onApplyTrade={applyTradeToCapSheet}
           />
         )}
 

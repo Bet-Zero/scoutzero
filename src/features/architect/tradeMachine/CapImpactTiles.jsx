@@ -16,8 +16,11 @@ const CapImpactTiles = ({
   const firstApron = capData.firstApron || 0;
   const secondApron = capData.secondApron || 0;
 
+  // 💥 Defensive fallback if team.players is undefined
+  const existingPlayers = Array.isArray(team.players) ? team.players : [];
+
   const playersAfterTrade = [
-    ...team.players.filter((p) => !sends.includes(p)),
+    ...existingPlayers.filter((p) => !sends.includes(p)),
     ...incomingPlayers,
   ];
 

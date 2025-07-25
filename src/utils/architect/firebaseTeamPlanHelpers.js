@@ -1,4 +1,4 @@
-// firebaseHelpers.js
+// firebaseTeamPlanHelpers.js
 
 import {
   doc,
@@ -13,7 +13,21 @@ import { db } from '@/firebaseConfig';
 import { calculateCapHold } from '@/utils/architect/contractUtils';
 import { attachDefaultPicks } from '@/utils/architect/defaultPicks';
 
-// ===== Load Base Team Data (read-only) =====
+// ===== Utility to Prepare Cap Sheet =====
+
+export const prepareCapSheet = (capSheet, capProjections, year = 2025) => {
+  const updatedPlayers = capSheet.players.map((player) => {
+    const capHold = calculateCapHold(player, capProjections, year);
+    return { ...player, cap_hold: capHold };
+  });
+
+  return {
+    ...capSheet,
+    players: updatedPlayers,
+  };
+};
+
+// ===== Load Real-World Base Team Data (read-only) =====
 
 export const loadTeamCapSheet = async (teamId) => {
   try {
@@ -45,7 +59,7 @@ export const getAllTeams = async () => {
   }
 };
 
-// ===== GM Tools: User Plan System (no overwrites to /teams) =====
+// ===== GM Tools: User Plan System =====
 
 export const saveUserTeamPlan = async (
   userId,
@@ -55,15 +69,7 @@ export const saveUserTeamPlan = async (
   year = 2025
 ) => {
   try {
-    const updatedPlayers = capSheet.players.map((player) => {
-      const capHold = calculateCapHold(player, capProjections, year);
-      return { ...player, cap_hold: capHold };
-    });
-
-    const updatedCapSheet = {
-      ...capSheet,
-      players: updatedPlayers,
-    };
+    const updatedCapSheet = prepareCapSheet(capSheet, capProjections, year);
 
     const planId = `${userId}_${teamId}`;
     const planRef = doc(db, 'teamPlans', planId);
@@ -107,11 +113,24 @@ export const listUserTeamPlans = async (userId, teamId) => {
   }
 };
 
-export const saveNamedTeamPlan = async (userId, teamId, name, capSheet) => {
+export const saveNamedTeamPlan = async (
+  userId,
+  teamId,
+  name,
+  capSheet,
+  capProjections,
+  year = 2025
+) => {
   try {
+    const updatedCapSheet = prepareCapSheet(capSheet, capProjections, year);
+
     const planId = `${userId}_${teamId}`;
     const ref = doc(db, 'teamPlans', planId, 'namedPlans', name);
-    await setDoc(ref, { name, capSheet, updatedAt: serverTimestamp() });
+    await setDoc(ref, {
+      name,
+      capSheet: updatedCapSheet,
+      updatedAt: serverTimestamp(),
+    });
     console.log(`Saved named plan ${name} for ${userId} – ${teamId}`);
     return true;
   } catch (error) {

@@ -10,6 +10,7 @@ const TradeEditor = ({
   capProjections,
   currentYear,
   playersMap = {},
+  onApplyTrade,
 }) => {
   const {
     teams,
@@ -111,6 +112,18 @@ const TradeEditor = ({
           className="bg-neutral-800 hover:bg-neutral-700 text-sm px-3 py-1.5 rounded"
         >
           Export Trade JSON
+        </button>
+
+        <button
+          onClick={() => {
+            const tradeData = exportCurrentTrade();
+            if (onApplyTrade && tradeData) {
+              onApplyTrade(tradeData);
+            }
+          }}
+          className="bg-green-600 hover:bg-green-700 text-sm font-medium px-3 py-1.5 rounded"
+        >
+          Apply Trade
         </button>
 
         <label className="flex items-center gap-2 text-sm">
