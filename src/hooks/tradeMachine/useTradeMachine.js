@@ -192,10 +192,13 @@ export const useTradeMachine = (primaryTeam, capProjections, currentYear) => {
   };
 
   const resetTrade = () => {
-    setTeams([
-      { team: primaryTeam, sends: [], picksOut: [] },
-      { team: null, sends: [], picksOut: [] },
-    ]);
+    setTeams((prev) =>
+      prev.map((t) => ({
+        ...t,
+        sends: [],
+        picksOut: [],
+      }))
+    );
     setResult(null);
     setForceTrade(false);
   };

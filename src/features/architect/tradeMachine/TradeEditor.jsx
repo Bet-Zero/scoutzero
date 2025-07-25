@@ -1,6 +1,7 @@
 // TradeEditor.jsx
 
 import React from 'react';
+import { RotateCcw } from 'lucide-react';
 import { useTradeMachine } from '@/hooks/tradeMachine/useTradeMachine';
 import TradeTeamCard from './TradeTeamCard';
 import TradeSummaryPanel from './TradeSummaryPanel';
@@ -55,14 +56,23 @@ const TradeEditor = ({
     <div className="text-white space-y-6">
       <div className="flex items-center justify-between border-b border-white/10 pb-2">
         <h2 className="text-2xl font-bold tracking-tight">Trade Machine</h2>
-        {teams.length < 5 && (
+        <div className="flex items-center gap-2">
           <button
-            onClick={addTeam}
-            className="bg-neutral-700 hover:bg-neutral-600 text-sm px-3 py-1.5 rounded"
+            onClick={resetTrade}
+            title="Reset Trade"
+            className="text-white/70 hover:text-white"
           >
-            {addLabels[teams.length] || 'Add Team'}
+            <RotateCcw size={18} />
           </button>
-        )}
+          {teams.length < 5 && (
+            <button
+              onClick={addTeam}
+              className="bg-neutral-700 hover:bg-neutral-600 text-sm px-3 py-1.5 rounded"
+            >
+              {addLabels[teams.length] || 'Add Team'}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Team Cards */}
@@ -101,13 +111,6 @@ const TradeEditor = ({
           className="bg-blue-600 hover:bg-blue-700 text-sm font-medium px-3 py-1.5 rounded"
         >
           Validate Trade
-        </button>
-
-        <button
-          onClick={resetTrade}
-          className="bg-red-700 hover:bg-red-800 text-sm font-medium px-3 py-1.5 rounded"
-        >
-          Reset
         </button>
 
         <button
