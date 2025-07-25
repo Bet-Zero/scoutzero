@@ -118,6 +118,7 @@ const TradeTeamCard = ({
         <OutgoingPicksList
           team={team}
           picks={picks}
+          otherTeams={otherTeams}
           onTogglePick={onTogglePick}
           onEditPick={onEditPick}
         />
