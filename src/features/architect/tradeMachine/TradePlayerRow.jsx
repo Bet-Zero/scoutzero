@@ -52,6 +52,9 @@ const TradePlayerRow = ({
   const faYear =
     player.contract_clean?.fa_year ?? player.fa_year ?? player.free_agency_year;
   const yearsLeft = getYearsRemaining(faYear, year);
+  const hasSalary =
+    !!player.contract_clean?.salaries_by_year?.[yearKey]?.salary;
+  const isFreeAgent = !hasSalary;
   const formattedSalary = formatSalary(salary);
 
   const details = playersMap[player.name] || {};
@@ -172,11 +175,14 @@ const TradePlayerRow = ({
                 key={t.id}
                 onClick={() => {
                   onSetPlayerTrade(player, included ? 'keep' : 'trade');
+                  if (!included && isFreeAgent) {
+                    onSetPlayerTrade(player, 'signAndTrade', true);
+                  }
                   setOpenMenu(null);
                 }}
                 className="block w-full text-left px-3 py-1 hover:bg-[#333]"
               >
-                {`Trade to ${t.teamName}`}
+                {`${isFreeAgent ? 'S&T to' : 'Trade to'} ${t.teamName}`}
               </button>
             ))}
             <button
@@ -206,18 +212,6 @@ const TradePlayerRow = ({
               View Profile
             </button>
           </div>
-        )}
-        {included && (
-          <label className="flex items-center gap-1 text-xs">
-            <input
-              type="checkbox"
-              checked={!!player.signAndTrade}
-              onChange={() =>
-                onSetPlayerTrade(player, 'signAndTrade', !player.signAndTrade)
-              }
-            />
-            S&T
-          </label>
         )}
       </div>
     </div>

@@ -13,43 +13,15 @@ import { db } from '@/firebaseConfig';
 import { calculateCapHold } from '@/utils/architect/contractUtils';
 import { attachDefaultPicks } from '@/utils/architect/defaultPicks';
 
-// Save a team's cap sheet
-export const saveTeamCapSheet = async (
-  teamId,
-  capSheet,
-  capProjections,
-  year = 2025
-) => {
-  try {
-    const updatedPlayers = capSheet.players.map((player) => {
-      const capHold = calculateCapHold(player, capProjections, year);
-      return {
-        ...player,
-        cap_hold: capHold,
-      };
-    });
+// ===== Load Base Team Data (read-only) =====
 
-    const updatedCapSheet = {
-      ...capSheet,
-      players: updatedPlayers,
-    };
-
-    await setDoc(doc(db, 'teams', teamId), updatedCapSheet);
-    console.log(`Saved ${teamId} successfully`);
-    return true;
-  } catch (error) {
-    console.error('Error saving cap sheet:', error);
-    return false;
-  }
-};
-
-// Load a team's cap sheet
 export const loadTeamCapSheet = async (teamId) => {
   try {
     const docSnap = await getDoc(doc(db, 'teams', teamId));
     if (docSnap.exists()) {
       const data = docSnap.data();
-      return attachDefaultPicks(data);
+      const sheet = data?.capSheet;
+      return sheet ? attachDefaultPicks(sheet) : null;
     } else {
       console.warn('No data found for team:', teamId);
       return null;
@@ -60,13 +32,46 @@ export const loadTeamCapSheet = async (teamId) => {
   }
 };
 
-// ===== User-Specific Team Plans =====
-export const saveUserTeamPlan = async (userId, teamId, capSheet) => {
+export const getAllTeams = async () => {
   try {
+    const snapshot = await getDocs(collection(db, 'teams'));
+    return snapshot.docs.map((doc) => ({
+      id: doc.id,
+      name: doc.data().meta?.teamName || doc.id,
+    }));
+  } catch (error) {
+    console.error('Error getting teams:', error);
+    return [];
+  }
+};
+
+// ===== GM Tools: User Plan System (no overwrites to /teams) =====
+
+export const saveUserTeamPlan = async (
+  userId,
+  teamId,
+  capSheet,
+  capProjections,
+  year = 2025
+) => {
+  try {
+    const updatedPlayers = capSheet.players.map((player) => {
+      const capHold = calculateCapHold(player, capProjections, year);
+      return { ...player, cap_hold: capHold };
+    });
+
+    const updatedCapSheet = {
+      ...capSheet,
+      players: updatedPlayers,
+    };
+
     const planId = `${userId}_${teamId}`;
     const planRef = doc(db, 'teamPlans', planId);
-    await setDoc(planRef, capSheet);
-    console.log(`Saved plan for ${userId} – ${teamId}`);
+    await setDoc(planRef, {
+      capSheet: updatedCapSheet,
+      updatedAt: serverTimestamp(),
+    });
+    console.log(`Saved active plan for ${userId} – ${teamId}`);
     return true;
   } catch (error) {
     console.error('Error saving team plan:', error);
@@ -79,14 +84,17 @@ export const loadUserTeamPlan = async (userId, teamId) => {
     const planId = `${userId}_${teamId}`;
     const planRef = doc(db, 'teamPlans', planId);
     const docSnap = await getDoc(planRef);
-    return docSnap.exists() ? docSnap.data() : null;
+    if (!docSnap.exists()) return null;
+    const data = docSnap.data();
+    return data.capSheet || data;
   } catch (error) {
     console.error('Error loading team plan:', error);
     return null;
   }
 };
 
-// ===== Named Plans (Subcollection) =====
+// ===== GM Tools: Named Saved Plans =====
+
 export const listUserTeamPlans = async (userId, teamId) => {
   try {
     const planId = `${userId}_${teamId}`;
@@ -104,7 +112,7 @@ export const saveNamedTeamPlan = async (userId, teamId, name, capSheet) => {
     const planId = `${userId}_${teamId}`;
     const ref = doc(db, 'teamPlans', planId, 'namedPlans', name);
     await setDoc(ref, { name, capSheet, updatedAt: serverTimestamp() });
-    console.log(`Saved plan ${name} for ${userId} – ${teamId}`);
+    console.log(`Saved named plan ${name} for ${userId} – ${teamId}`);
     return true;
   } catch (error) {
     console.error('Error saving named plan:', error);
@@ -117,14 +125,17 @@ export const loadNamedTeamPlan = async (userId, teamId, name) => {
     const planId = `${userId}_${teamId}`;
     const ref = doc(db, 'teamPlans', planId, 'namedPlans', name);
     const snap = await getDoc(ref);
-    return snap.exists() ? snap.data() : null;
+    if (!snap.exists()) return null;
+    const data = snap.data();
+    return data.capSheet || data;
   } catch (error) {
     console.error('Error loading named plan:', error);
     return null;
   }
 };
 
-// Save free agent pool
+// ===== Free Agent Pool Management =====
+
 export const saveFreeAgents = async (agents) => {
   try {
     const batch = writeBatch(db);
@@ -141,7 +152,6 @@ export const saveFreeAgents = async (agents) => {
   }
 };
 
-// Load free agent pool
 export const loadFreeAgents = async () => {
   try {
     const snap = await getDocs(collection(db, 'freeAgents'));
@@ -149,20 +159,6 @@ export const loadFreeAgents = async () => {
     return agents;
   } catch (error) {
     console.error('Error loading free agents:', error);
-    return [];
-  }
-};
-
-// Get list of all teams
-export const getAllTeams = async () => {
-  try {
-    const snapshot = await getDocs(collection(db, 'teams'));
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      name: doc.data().meta?.teamName || doc.id,
-    }));
-  } catch (error) {
-    console.error('Error getting teams:', error);
     return [];
   }
 };
