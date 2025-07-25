@@ -171,6 +171,7 @@ const GMDashboard = () => {
     const updated = {
       ...teamCapSheet,
       activeContracts: teamCapSheet.activeContracts || [],
+      players: teamCapSheet.players || [],
     };
 
     const targetTrade = tradeData.find((t) => t.teamId === teamId);
@@ -189,14 +190,23 @@ const GMDashboard = () => {
     );
 
     const normalize = (str = '') => str.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const isSamePlayer = (contract, out) => {
-      const contractId = contract.player_id || contract.id;
-      const outId = out.id || out.player_id;
-      if (contractId && outId) return contractId === outId;
-      return normalize(contract.name) === normalize(out.name);
+    const isSamePlayer = (a, b) => {
+      const aId = a.player_id || a.id;
+      const bId = b.id || b.player_id;
+      if (aId && bId) return aId === bId;
+      return normalize(a.name) === normalize(b.name);
     };
 
-    // Filter out players you just traded away
+    // Remove outgoing players from main roster
+    updated.players = updated.players.filter((player) => {
+      const traded = outgoing.some((out) => isSamePlayer(player, out));
+      if (traded) {
+        console.log(`🗑️ Removing ${player.name} from roster (traded away)`);
+      }
+      return !traded;
+    });
+
+    // Filter out players you just traded away from active contracts
     updated.activeContracts = (updated.activeContracts || []).filter(
       (contract) => {
         const traded = outgoing.some((out) => isSamePlayer(contract, out));
@@ -221,7 +231,18 @@ const GMDashboard = () => {
       yearsOfService: p.yearsOfService ?? 0,
     }));
 
+    const newPlayers = incoming.map((p) => ({
+      name: p.name,
+      player_id: p.id || p.player_id,
+      display_name: p.display_name || p.name,
+      contract_clean: {
+        salaries_by_year: p.salaryByYear || {},
+        options: p.options || {},
+      },
+    }));
+
     updated.activeContracts.push(...newContracts);
+    updated.players.push(...newPlayers);
 
     console.log(
       '✅ Applied trade — activeContracts now:',
@@ -419,21 +440,23 @@ const GMDashboard = () => {
         )}
         {/* Keep your other tab renders as-is */}
 
-        {activeTab === 'cap' && (
-          <>
-            <CapSheet
-              teamCapSheet={teamCapSheet.capSheet}
-              currentYear={currentYear}
-              onSelectPlayer={handleEditContract}
-              playersMap={playersMap}
-            />
-
-            <ExceptionTracker
-              teamCapSheet={teamCapSheet}
-              currentYear={currentYear}
-            />
-          </>
-        )}
+        {activeTab === 'cap' &&
+          (teamCapSheet?.capSheet ? (
+            <>
+              <CapSheet
+                teamCapSheet={teamCapSheet.capSheet}
+                currentYear={currentYear}
+                onSelectPlayer={handleEditContract}
+                playersMap={playersMap}
+              />
+              <ExceptionTracker
+                teamCapSheet={teamCapSheet}
+                currentYear={currentYear}
+              />
+            </>
+          ) : (
+            <div className="text-white/80 mt-4">Loading cap sheet...</div>
+          ))}
 
         {activeTab === 'capfull' && (
           <CapSheetFull
