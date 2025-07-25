@@ -13,7 +13,7 @@ import { db } from '@/firebaseConfig';
 import { calculateCapHold } from '@/utils/architect/contractUtils';
 import { attachDefaultPicks } from '@/utils/architect/defaultPicks';
 
-// Save a team's cap sheet
+// Save a team's cap sheet under `/teams/{teamId}.capSheet`
 export const saveTeamCapSheet = async (
   teamId,
   capSheet,
@@ -34,7 +34,11 @@ export const saveTeamCapSheet = async (
       players: updatedPlayers,
     };
 
-    await setDoc(doc(db, 'teams', teamId), updatedCapSheet);
+    await setDoc(
+      doc(db, 'teams', teamId),
+      { capSheet: updatedCapSheet },
+      { merge: true }
+    );
     console.log(`Saved ${teamId} successfully`);
     return true;
   } catch (error) {
@@ -49,7 +53,8 @@ export const loadTeamCapSheet = async (teamId) => {
     const docSnap = await getDoc(doc(db, 'teams', teamId));
     if (docSnap.exists()) {
       const data = docSnap.data();
-      return attachDefaultPicks(data);
+      const sheet = data?.capSheet;
+      return sheet ? attachDefaultPicks(sheet) : null;
     } else {
       console.warn('No data found for team:', teamId);
       return null;
@@ -65,7 +70,7 @@ export const saveUserTeamPlan = async (userId, teamId, capSheet) => {
   try {
     const planId = `${userId}_${teamId}`;
     const planRef = doc(db, 'teamPlans', planId);
-    await setDoc(planRef, capSheet);
+    await setDoc(planRef, { capSheet, updatedAt: serverTimestamp() });
     console.log(`Saved plan for ${userId} – ${teamId}`);
     return true;
   } catch (error) {
@@ -79,7 +84,9 @@ export const loadUserTeamPlan = async (userId, teamId) => {
     const planId = `${userId}_${teamId}`;
     const planRef = doc(db, 'teamPlans', planId);
     const docSnap = await getDoc(planRef);
-    return docSnap.exists() ? docSnap.data() : null;
+    if (!docSnap.exists()) return null;
+    const data = docSnap.data();
+    return data.capSheet || data;
   } catch (error) {
     console.error('Error loading team plan:', error);
     return null;
@@ -117,7 +124,9 @@ export const loadNamedTeamPlan = async (userId, teamId, name) => {
     const planId = `${userId}_${teamId}`;
     const ref = doc(db, 'teamPlans', planId, 'namedPlans', name);
     const snap = await getDoc(ref);
-    return snap.exists() ? snap.data() : null;
+    if (!snap.exists()) return null;
+    const data = snap.data();
+    return data.capSheet || data;
   } catch (error) {
     console.error('Error loading named plan:', error);
     return null;

@@ -328,12 +328,12 @@ const GMDashboard = () => {
 
         {activeTab === 'cap' && (
           <>
-            <CapSheet
-              teamCapSheet={teamCapSheet.capSheet}
-              currentYear={currentYear}
-              onSelectPlayer={handleEditContract}
-              playersMap={playersMap}
-            />
+          <CapSheet
+            teamCapSheet={teamCapSheet}
+            currentYear={currentYear}
+            onSelectPlayer={handleEditContract}
+            playersMap={playersMap}
+          />
 
             <ExceptionTracker
               teamCapSheet={teamCapSheet}
@@ -344,7 +344,7 @@ const GMDashboard = () => {
 
         {activeTab === 'capfull' && (
           <CapSheetFull
-            teamCapSheet={teamCapSheet.capSheet}
+            teamCapSheet={teamCapSheet}
             onSelectPlayer={handleEditContract}
             playersMap={playersMap}
           />
