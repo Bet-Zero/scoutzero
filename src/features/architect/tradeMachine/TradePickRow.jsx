@@ -17,6 +17,7 @@ export const TradePickRow = ({
   pickObj,
   teamId,
   otherTeams = [],
+  rowKey,
   openMenu,
   setOpenMenu,
   onToggle,
@@ -25,7 +26,7 @@ export const TradePickRow = ({
   const menuRef = useRef(null);
   const buttonRef = useRef(null);
 
-  const key = `${pick.year}-${pick.round}-${pick.via || ''}`;
+  const key = rowKey || `${pick.year}-${pick.round}-${pick.via || ''}`;
 
   useEffect(() => {
     if (openMenu !== key) return undefined;
