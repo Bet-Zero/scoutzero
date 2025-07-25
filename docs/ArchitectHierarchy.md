@@ -25,6 +25,7 @@ tradeMachine/
   OutgoingPlayersList.jsx
   SelectTeamCard.jsx
   TradeEditor.jsx
+  TradePickRow.jsx
   TradePlayerRow.jsx
   TradeSummaryPanel.jsx
   TradeTeamCard.jsx

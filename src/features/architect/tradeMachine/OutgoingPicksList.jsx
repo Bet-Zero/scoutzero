@@ -19,6 +19,7 @@ export const OutgoingPicksList = ({
             key={`${p.year}-${p.round}-${p.via || ''}`}
             pick={p}
             pickObj={pickObj}
+            teamId={team.id}
             otherTeams={otherTeams}
             onToggle={onTogglePick}
             onEdit={onEditPick}
