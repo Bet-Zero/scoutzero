@@ -21,6 +21,8 @@ import TeamHistoryTab from './TeamHistoryTab';
 import ExceptionTracker from './ExceptionTracker';
 import SavePlanModal from './SavePlanModal';
 import usePlayerData from '@/hooks/usePlayerData.js';
+import { loadPlayerData } from '@/firebaseHelpers';
+import { normalizePlayerData } from '@/utils/roster';
 import capProjections from '@/utils/architect/capProjections';
 
 const GMDashboard = () => {
@@ -165,7 +167,7 @@ const GMDashboard = () => {
     loadPlan();
   }, [viewMode, selectedPlan, baselineCapSheet, teamId, userId]);
 
-  const applyTradeToCapSheet = (tradeData) => {
+  const applyTradeToCapSheet = async (tradeData) => {
     if (!tradeData || !Array.isArray(tradeData)) return;
 
     const updated = {
@@ -231,15 +233,32 @@ const GMDashboard = () => {
       yearsOfService: p.yearsOfService ?? 0,
     }));
 
-    const newPlayers = incoming.map((p) => ({
-      name: p.name,
-      player_id: p.id || p.player_id,
-      display_name: p.display_name || p.name,
-      contract_clean: {
-        salaries_by_year: p.salaryByYear || {},
-        options: p.options || {},
-      },
-    }));
+    const newPlayers = await Promise.all(
+      incoming.map(async (p) => {
+        const base =
+          playersMap[p.name] || playersMap[p.player_id] || null;
+        let playerData = base;
+        if (!playerData && (p.id || p.player_id)) {
+          const loaded = await loadPlayerData(p.id || p.player_id);
+          if (loaded) playerData = normalizePlayerData(loaded);
+        }
+        return {
+          ...(playerData || {}),
+          name: playerData?.name || p.name,
+          player_id: p.id || p.player_id || playerData?.player_id,
+          display_name: playerData?.display_name || p.display_name || p.name,
+          contract_clean: {
+            ...(playerData?.contract_clean || {}),
+            salaries_by_year:
+              p.salaryByYear ||
+              playerData?.contract_clean?.salaries_by_year ||
+              {},
+            options:
+              p.options || playerData?.contract_clean?.options || {},
+          },
+        };
+      })
+    );
 
     updated.activeContracts.push(...newContracts);
     updated.players.push(...newPlayers);
