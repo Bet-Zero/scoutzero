@@ -26,11 +26,28 @@ import { normalizePlayerData } from '@/utils/roster';
 import { getPlayerPositionLabel } from '@/utils/roles';
 import capProjections from '@/utils/architect/capProjections';
 
-const toSalaryMap = (salaryByYear = {}) =>
+const normalizeSalaryValue = (val) => {
+  let num =
+    typeof val === 'string' ? Number(val.replace(/[^0-9.-]/g, '')) : val || 0;
+  if (Number.isNaN(num)) num = 0;
+  // If the value looks like it's in millions (e.g. 3.1), convert to full dollars
+  if (num > 0 && num < 1000) num *= 1_000_000;
+  return Math.round(num);
+};
+
+const normalizeSalaryByYear = (salaryByYear = {}) =>
   Object.fromEntries(
     Object.entries(salaryByYear).map(([yr, val]) => [
       yr,
-      { salary: typeof val === 'string' ? Number(val) : val || 0 },
+      normalizeSalaryValue(val),
+    ])
+  );
+
+const toSalaryMap = (salaryByYear = {}) =>
+  Object.fromEntries(
+    Object.entries(normalizeSalaryByYear(salaryByYear)).map(([yr, val]) => [
+      yr,
+      { salary: val },
     ])
   );
 
@@ -229,18 +246,21 @@ const GMDashboard = () => {
     );
 
     // Add the incoming traded players
-    const newContracts = incoming.map((p) => ({
-      name: p.name,
-      player_id: p.id || p.player_id,
-      salaryByYear: p.salaryByYear || {},
-      years: p.salaryByYear ? Object.keys(p.salaryByYear).length : 1,
-      options: p.options || {},
-      type: 'Trade',
-      signAndTrade: !!p.signAndTrade,
-      guaranteed: p.guaranteed ?? true,
-      isMinimum: p.isMinimum ?? false,
-      yearsOfService: p.yearsOfService ?? 0,
-    }));
+    const newContracts = incoming.map((p) => {
+      const salaryMap = normalizeSalaryByYear(p.salaryByYear || {});
+      return {
+        name: p.name,
+        player_id: p.id || p.player_id,
+        salaryByYear: salaryMap,
+        years: Object.keys(salaryMap).length || 1,
+        options: p.options || {},
+        type: 'Trade',
+        signAndTrade: !!p.signAndTrade,
+        guaranteed: p.guaranteed ?? true,
+        isMinimum: p.isMinimum ?? false,
+        yearsOfService: p.yearsOfService ?? 0,
+      };
+    });
 
     const newPlayers = await Promise.all(
       incoming.map(async (p) => {

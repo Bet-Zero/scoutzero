@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { formatPick } from '@/utils/architect/tradeHelpers';
 import { getPickOptions } from '@/utils/architect/tradeMachine/pickOptions';
 import { getTeamColors } from '@/utils/formatting';
@@ -17,15 +17,18 @@ export const TradePickRow = ({
   pickObj,
   teamId,
   otherTeams = [],
+  openMenu,
+  setOpenMenu,
   onToggle,
   onEdit,
 }) => {
-  const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const buttonRef = useRef(null);
 
+  const key = `${pick.year}-${pick.round}-${pick.via || ''}`;
+
   useEffect(() => {
-    if (!menuOpen) return undefined;
+    if (openMenu !== key) return undefined;
     const handleClick = (e) => {
       if (
         menuRef.current &&
@@ -33,12 +36,12 @@ export const TradePickRow = ({
         buttonRef.current &&
         !buttonRef.current.contains(e.target)
       ) {
-        setMenuOpen(false);
+        setOpenMenu(null);
       }
     };
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
-  }, [menuOpen]);
+  }, [openMenu, key, setOpenMenu]);
 
   const exists = !!pickObj;
   const { primary } = getTeamColors(teamId);
@@ -88,12 +91,12 @@ export const TradePickRow = ({
           <>
             <button
               ref={buttonRef}
-              onClick={() => setMenuOpen(!menuOpen)}
+              onClick={() => setOpenMenu(openMenu === key ? null : key)}
               className="text-blue-400 hover:underline"
             >
               •••
             </button>
-            {menuOpen && (
+            {openMenu === key && (
               <div
                 ref={menuRef}
                 className="absolute right-0 top-5 bg-[#222] border border-white/20 rounded z-20 text-xs min-w-[8rem]"
@@ -104,7 +107,7 @@ export const TradePickRow = ({
                     onClick={() => {
                       onToggle(pick);
                       onEdit(pick, 'toTeamId', t.id);
-                      setMenuOpen(false);
+                      setOpenMenu(null);
                     }}
                     className="block w-full text-left px-3 py-1 hover:bg-[#333]"
                   >
@@ -114,7 +117,7 @@ export const TradePickRow = ({
                 <button
                   onClick={() => {
                     onToggle(pick);
-                    setMenuOpen(false);
+                    setOpenMenu(null);
                   }}
                   className="block w-full text-left px-3 py-1 hover:bg-[#333]"
                 >
