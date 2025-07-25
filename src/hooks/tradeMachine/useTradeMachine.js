@@ -1,17 +1,17 @@
 // useTradeMachine.js
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { validateTrade } from '@/utils/architect/tradeMachine/tradeValidator';
 import { loadTeamCapSheet } from '@/utils/architect/firebaseTeamPlanHelpers';
-import {
-  getSalaryForYear,
-  areSamePick,
-  formatPick,
-} from '@/utils/architect/tradeHelpers';
+import { getSalaryForYear, areSamePick } from '@/utils/architect/tradeHelpers';
 import { TeamMap } from '@/constants/teamList';
 
 export const useTradeMachine = (primaryTeam, capProjections, currentYear) => {
   const [teams, setTeams] = useState([]);
+  const [result, setResult] = useState(null);
+  const [forceTrade, setForceTrade] = useState(false);
+  const yearKey = currentYear;
+
   useEffect(() => {
     const init = async () => {
       if (!primaryTeam || typeof primaryTeam !== 'string') return;
@@ -28,10 +28,6 @@ export const useTradeMachine = (primaryTeam, capProjections, currentYear) => {
     };
     init();
   }, [primaryTeam]);
-  const [result, setResult] = useState(null);
-  const [forceTrade, setForceTrade] = useState(false);
-
-  const yearKey = currentYear;
 
   const setPlayerTrade = (index, player, action, flag = false) => {
     setTeams((prev) => {
@@ -84,14 +80,14 @@ export const useTradeMachine = (primaryTeam, capProjections, currentYear) => {
       return;
     }
 
-    const baseTeam = TeamMap[teamId]; // Gets { id: 'lakers', teamName: 'Los Angeles Lakers' }
-    const data = await loadTeamCapSheet(teamId); // Gets cap info
+    const baseTeam = TeamMap[teamId];
+    const data = await loadTeamCapSheet(teamId);
 
     if (baseTeam && data) {
       setTeams((prev) => {
         const copy = [...prev];
         copy[index] = {
-          team: { ...baseTeam, ...data }, // Combine visual + cap data
+          team: { ...baseTeam, ...data },
           sends: [],
           picksOut: [],
         };
@@ -160,42 +156,31 @@ export const useTradeMachine = (primaryTeam, capProjections, currentYear) => {
   };
 
   const exportCurrentTrade = () => {
-    const incoming = teams.reduce((acc, _, idx) => {
-      const players = [];
-      const picks = [];
-      teams.forEach((t, j) => {
-        if (j !== idx) {
-          players.push(...t.sends);
-          picks.push(...t.picksOut);
+    if (teams.length < 2) return null;
+
+    const result = teams.map((t, idx) => {
+      if (!t.team) return null;
+
+      const incomingPlayers = [];
+      const incomingPicks = [];
+
+      teams.forEach((other, j) => {
+        if (j !== idx && other.team) {
+          incomingPlayers.push(...other.sends);
+          incomingPicks.push(...other.picksOut);
         }
       });
-      acc[idx] = { players, picks };
-      return acc;
-    }, {});
 
-    const exportObj = {
-      teams: teams
-        .filter((t) => t.team)
-        .map((t, idx) => ({
-          teamId: t.team.teamId || t.team.id,
-          sends: t.sends.map((p) => p.player_id || p.id || p.name),
-          picksOut: t.picksOut.map((p) => ({
-            year: p.year,
-            round: p.round,
-            protection: p.protection,
-            isSwap: p.isSwap,
-            note: p.note,
-            via: p.via,
-          })),
-          receives: incoming[idx]?.players.map(
-            (p) => p.player_id || p.id || p.name
-          ),
-        })),
-      overallLegal: result?.overallLegal ?? null,
-      reason: result?.reason ?? '',
-    };
+      return {
+        teamId: t.team.teamId || t.team.id,
+        incoming: incomingPlayers,
+        outgoing: t.sends,
+        picksIn: incomingPicks,
+        picksOut: t.picksOut,
+      };
+    });
 
-    console.log(JSON.stringify(exportObj, null, 2));
+    return result.filter(Boolean);
   };
 
   const resetTrade = () => {
