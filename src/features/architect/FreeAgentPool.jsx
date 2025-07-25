@@ -44,7 +44,7 @@ const FreeAgentPool = ({
 
     setIsSigning(true);
     try {
-      await onSign(selectedPlayer.name, contract);
+      await onSign(selectedPlayer, contract);
       setSignResult({
         allowed: true,
         message: `Signed ${formatName(selectedPlayer.name)} to 1-year deal`,
@@ -71,7 +71,7 @@ const FreeAgentPool = ({
       isMinimum: values.salaries[0] <= 2200000,
       yearsOfService: playerObj.yearsOfService || playerObj.yearsPro || 0,
     };
-    await onSign(playerObj.name, contract);
+    await onSign(playerObj, contract);
   };
 
   const handleSignAndTrade = async (playerObj) => {
@@ -81,7 +81,7 @@ const FreeAgentPool = ({
       playerObj.yearsOfService || playerObj.yearsPro || 0
     );
     contract.signAndTrade = true;
-    await onSign(playerObj.name, contract);
+    await onSign(playerObj, contract);
   };
 
   return (

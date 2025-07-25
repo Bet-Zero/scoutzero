@@ -188,20 +188,29 @@ const GMDashboard = () => {
       updated.activeContracts.map((c) => c.name)
     );
 
+    const normalize = (str = '') => str.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const isSamePlayer = (contract, out) => {
+      const contractId = contract.player_id || contract.id;
+      const outId = out.id || out.player_id;
+      if (contractId && outId) return contractId === outId;
+      return normalize(contract.name) === normalize(out.name);
+    };
+
     // Filter out players you just traded away
     updated.activeContracts = (updated.activeContracts || []).filter(
       (contract) => {
-        const isTraded = outgoing.some((out) => out.name === contract.name);
-        if (isTraded) {
+        const traded = outgoing.some((out) => isSamePlayer(contract, out));
+        if (traded) {
           console.log(`🗑️ Removing ${contract.name} (traded away)`);
         }
-        return !isTraded;
+        return !traded;
       }
     );
 
     // Add the incoming traded players
     const newContracts = incoming.map((p) => ({
       name: p.name,
+      player_id: p.id || p.player_id,
       salaryByYear: p.salaryByYear || {},
       years: p.salaryByYear ? Object.keys(p.salaryByYear).length : 1,
       options: p.options || {},
@@ -222,9 +231,10 @@ const GMDashboard = () => {
     setTeamCapSheet(updated);
   };
 
-  const handleSign = (playerName, contract) => {
+  const handleSign = (playerObj, contract) => {
     const newContract = {
-      name: playerName,
+      name: playerObj.name,
+      player_id: playerObj.id || playerObj.player_id,
       salaryByYear: contract.salaryByYear,
       years: Object.keys(contract.salaryByYear).length,
       options: contract.options,
@@ -239,7 +249,14 @@ const GMDashboard = () => {
       ...prev,
       activeContracts: [...prev.activeContracts, newContract],
     }));
-    setFreeAgents((prev) => prev.filter((p) => p.name !== playerName));
+    setFreeAgents((prev) =>
+      prev.filter(
+        (p) =>
+          p.name !== playerObj.name &&
+          p.id !== playerObj.id &&
+          p.player_id !== playerObj.player_id
+      )
+    );
   };
 
   const handleEditContract = (player) => {
