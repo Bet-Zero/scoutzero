@@ -490,7 +490,11 @@ const GMDashboard = () => {
 
       <div className="tab-content space-y-6">
         {activeTab === 'roster' && (
-          <RosterVisual teamCapSheet={teamCapSheet} playersMap={playersMap} />
+          <RosterVisual
+            teamCapSheet={teamCapSheet}
+            playersMap={playersMap}
+            teamId={teamId}
+          />
         )}
         {/* Keep your other tab renders as-is */}
 

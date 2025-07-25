@@ -125,9 +125,17 @@ export function validateTrade({
     const playersIn = [];
     const picksIn = [];
     teams.forEach((other, j) => {
-      if (j !== idx) {
+      if (j !== idx && other.team) {
         playersIn.push(...other.sends);
-        picksIn.push(...other.picksOut);
+        other.picksOut.forEach((p) => {
+          if (
+            !p.toTeamId ||
+            p.toTeamId === t.team.id ||
+            p.toTeamId === t.team.teamId
+          ) {
+            picksIn.push(p);
+          }
+        });
       }
     });
     const currentSalary = t.team.totalSalary || 0;

@@ -29,13 +29,17 @@ const TradeEditor = ({
     yearKey,
   } = useTradeMachine(primaryTeam, capProjections, currentYear);
 
-  const incomingAssets = teams.map((_, idx) => {
+  const incomingAssets = teams.map((tm, idx) => {
     const players = [];
     const picks = [];
     teams.forEach((t, j) => {
-      if (j !== idx) {
+      if (j !== idx && t.team) {
         players.push(...t.sends);
-        picks.push(...t.picksOut);
+        t.picksOut.forEach((p) => {
+          if (!p.toTeamId || p.toTeamId === tm.team?.id) {
+            picks.push(p);
+          }
+        });
       }
     });
     return { players, picks };
