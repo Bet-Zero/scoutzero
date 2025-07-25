@@ -23,11 +23,15 @@ import SavePlanModal from './SavePlanModal';
 import usePlayerData from '@/hooks/usePlayerData.js';
 import { loadPlayerData } from '@/firebaseHelpers';
 import { normalizePlayerData } from '@/utils/roster';
+import { getPlayerPositionLabel } from '@/utils/roles';
 import capProjections from '@/utils/architect/capProjections';
 
 const toSalaryMap = (salaryByYear = {}) =>
   Object.fromEntries(
-    Object.entries(salaryByYear).map(([yr, val]) => [yr, { salary: val }])
+    Object.entries(salaryByYear).map(([yr, val]) => [
+      yr,
+      { salary: typeof val === 'string' ? Number(val) : val || 0 },
+    ])
   );
 
 const GMDashboard = () => {
@@ -251,11 +255,17 @@ const GMDashboard = () => {
           playerData?.contract_clean?.salaries_by_year ||
           playerData?.salaryByYear ||
           {};
+
+        const position =
+          playerData?.position ||
+          playerData?.formattedPosition ||
+          getPlayerPositionLabel(playerData?.bio?.Position || p.position || '');
         return {
           ...(playerData || {}),
           name: playerData?.name || p.name,
           player_id: p.id || p.player_id || playerData?.player_id,
           display_name: playerData?.display_name || p.display_name || p.name,
+          position,
           contract_clean: {
             ...(playerData?.contract_clean || {}),
             salaries_by_year: toSalaryMap(salaryMap),
