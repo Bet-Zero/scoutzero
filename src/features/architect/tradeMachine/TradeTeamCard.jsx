@@ -15,6 +15,7 @@ import { OutgoingPicksList } from './OutgoingPicksList';
 import { TeamListFull } from '@/constants/teamList';
 import { motion, AnimatePresence } from 'framer-motion';
 import TeamSelectDropdown from '@/components/shared/TeamSelectDropdown';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
 const TradeTeamCard = ({
   team,
@@ -34,6 +35,7 @@ const TradeTeamCard = ({
 }) => {
   const [activeTab, setActiveTab] = useState('players');
   const [editingTeam, setEditingTeam] = useState(false);
+  const [showDrawer, setShowDrawer] = useState(false);
   const selectRef = useRef(null);
 
   useEffect(() => {
@@ -46,11 +48,13 @@ const TradeTeamCard = ({
       }
     }
   }, [editingTeam]);
+
   if (!team) {
     return <SelectTeamCard onSelectTeam={onSelectTeam} onRemove={onRemove} />;
   }
 
   const outgoingSalary = getSalaryForYear(sends, yearKey);
+  const incomingSalary = getSalaryForYear(incomingPlayers, yearKey);
   const { primary } = getTeamColors(team.id);
 
   const playersCount =
@@ -76,16 +80,6 @@ const TradeTeamCard = ({
           />
         </div>
 
-        {/* Right: Outgoing Salary */}
-        <div className="text-sm text-white/60 flex items-center gap-2">
-          <span>
-            Outgoing Salary:{' '}
-            <span className="font-medium">
-              {formatCurrency(outgoingSalary)}
-            </span>
-          </span>
-        </div>
-
         {/* ✕ Button (non-obtrusive) */}
         {onRemove && (
           <button
@@ -98,12 +92,76 @@ const TradeTeamCard = ({
         )}
       </div>
 
+      {/* Cap Impact */}
       <CapImpactTiles
         team={team}
         sends={sends}
         incomingPlayers={incomingPlayers}
         yearKey={yearKey}
       />
+
+      {/* 💰 Salary Toggle Section */}
+      <div
+        onClick={() => setShowDrawer((prev) => !prev)}
+        className="cursor-pointer bg-[#1c1c1c] border border-white/10 rounded px-3 py-2 text-sm text-white/80 hover:text-white transition flex items-center justify-between"
+      >
+        <div>
+          <div>
+            <span className="font-semibold">Outgoing:</span>{' '}
+            {formatCurrency(outgoingSalary)}
+          </div>
+          <div>
+            <span className="font-semibold">Incoming:</span>{' '}
+            {formatCurrency(incomingSalary)}
+          </div>
+        </div>
+        <div className="ml-2">
+          {showDrawer ? (
+            <ChevronUp size={18} className="opacity-80" />
+          ) : (
+            <ChevronDown size={18} className="opacity-80" />
+          )}
+        </div>
+      </div>
+
+      {/* 👇 Drawer below toggle */}
+      <AnimatePresence>
+        {showDrawer && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="bg-[#1c1c1c] border border-white/10 rounded px-3 py-2 space-y-3 text-xs"
+          >
+            {/* Outgoing */}
+            {sends.length > 0 && (
+              <div>
+                <div className="font-semibold text-white/70 mb-1">
+                  Outgoing Players
+                </div>
+                {sends.map((p) => (
+                  <div key={p.id || p.name} className="text-white/90">
+                    • {p.name}
+                  </div>
+                ))}
+              </div>
+            )}
+            {/* Incoming */}
+            {incomingPlayers.length > 0 && (
+              <div>
+                <div className="font-semibold text-white/70 mb-1">
+                  Incoming Players
+                </div>
+                {incomingPlayers.map((p) => (
+                  <div key={p.id || p.name} className="text-white/90">
+                    • {p.name}
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Tabs */}
       <div className="flex gap-4 text-sm border-b border-white/10 pb-1">
@@ -153,7 +211,7 @@ const TradeTeamCard = ({
         />
       )}
 
-      {/* Incoming Summary */}
+      {/* Incoming Picks Summary */}
       {(incomingPlayers.length > 0 || incomingPicks.length > 0) && (
         <div
           className="bg-[#222] border rounded p-3 text-sm"
