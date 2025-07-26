@@ -320,10 +320,14 @@ const GMDashboard = () => {
       yearsOfService: contract.yearsOfService,
     };
 
-    setTeamCapSheet((prev) => ({
-      ...prev,
-      activeContracts: [...prev.activeContracts, newContract],
-    }));
+    setTeamCapSheet((prev) => {
+      const active = prev?.activeContracts || [];
+      return {
+        ...prev,
+        activeContracts: [...active, newContract],
+      };
+    });
+
     setFreeAgents((prev) =>
       prev.filter(
         (p) =>
