@@ -377,23 +377,20 @@ const GMDashboard = () => {
 
   return (
     <div className="gm-dashboard px-6 py-4 text-white min-h-screen bg-[#0d0d0d]">
-      <h1 className="text-3xl font-bold mb-6 border-b border-white/10 pb-2">
-        HoopZero Architect – GM Dashboard
-      </h1>
-      {error && <p className="text-red-500 mb-2">{error}</p>}
-      {isSaving && <p className="text-sm mb-2">Saving...</p>}
-
-      <div className="flex items-center gap-2 mb-4">
-        <select
-          value={viewMode}
-          onChange={(e) => setViewMode(e.target.value)}
-          className="bg-[#1a1a1a] text-white text-sm px-2 py-1 rounded border border-white/10"
-        >
-          <option value="plan">Plan</option>
-          <option value="baseline">Baseline</option>
-        </select>
-        {viewMode === 'plan' && (
-          <>
+      <div className="flex items-center justify-between mb-6 border-b border-white/10 pb-2">
+        <h1 className="text-3xl font-bold">
+          HoopZero Architect – GM Dashboard
+        </h1>
+        <div className="flex items-center gap-2">
+          <select
+            value={viewMode}
+            onChange={(e) => setViewMode(e.target.value)}
+            className="bg-[#1a1a1a] text-white text-sm px-2 py-1 rounded border border-white/10"
+          >
+            <option value="plan">Plan</option>
+            <option value="baseline">Baseline</option>
+          </select>
+          {viewMode === 'plan' && (
             <select
               value={selectedPlan}
               onChange={(e) => setSelectedPlan(e.target.value)}
@@ -405,15 +402,11 @@ const GMDashboard = () => {
                 </option>
               ))}
             </select>
-            <button
-              onClick={() => setShowSaveModal(true)}
-              className="px-2 py-1 text-sm rounded bg-white/10 hover:bg-white/20"
-            >
-              Save As
-            </button>
-          </>
-        )}
+          )}
+        </div>
       </div>
+      {error && <p className="text-red-500 mb-2">{error}</p>}
+      {isSaving && <p className="text-sm mb-2">Saving...</p>}
 
       <div className="tab-bar flex flex-wrap gap-3 mb-6">
         <button
