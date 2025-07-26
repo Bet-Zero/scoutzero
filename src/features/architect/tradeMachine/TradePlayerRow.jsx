@@ -20,6 +20,7 @@ const TradePlayerRow = ({
   otherTeams = [],
   playersMap = {},
   onSetPlayerTrade,
+  onUndoPlayerTrade,
   openMenu,
   setOpenMenu,
   setContractPlayer,
@@ -207,6 +208,17 @@ const TradePlayerRow = ({
                 {`${isFreeAgent ? 'S&T to' : 'Trade to'} ${t.teamName}`}
               </button>
             ))}
+            {onUndoPlayerTrade && (incoming || included) && (
+              <button
+                onClick={() => {
+                  onUndoPlayerTrade(player);
+                  setOpenMenu(null);
+                }}
+                className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+              >
+                Undo Trade
+              </button>
+            )}
             <button
               onClick={() => {
                 setContractPlayer(player);
