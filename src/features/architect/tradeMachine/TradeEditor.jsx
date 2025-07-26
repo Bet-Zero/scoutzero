@@ -12,6 +12,7 @@ const TradeEditor = ({
   currentYear,
   playersMap = {},
   onApplyTrade,
+  primaryTeamData = null,
 }) => {
   const {
     teams,
@@ -29,7 +30,7 @@ const TradeEditor = ({
     undoPlayerTrade,
     resetTrade,
     yearKey,
-  } = useTradeMachine(primaryTeam, capProjections, currentYear);
+  } = useTradeMachine(primaryTeam, capProjections, currentYear, primaryTeamData);
 
   const incomingAssets = teams.map((tm, idx) => {
     const players = [];
