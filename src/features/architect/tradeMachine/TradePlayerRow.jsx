@@ -79,6 +79,7 @@ const TradePlayerRow = ({
   const position = getPlayerPositionLabel(rawPosition) || '—';
 
   const team =
+    player.tradeTo ||
     player.bio?.Team ||
     player.team ||
     player.teamId ||
@@ -174,9 +175,13 @@ const TradePlayerRow = ({
               <button
                 key={t.id}
                 onClick={() => {
-                  onSetPlayerTrade(player, included ? 'keep' : 'trade');
-                  if (!included && isFreeAgent) {
-                    onSetPlayerTrade(player, 'signAndTrade', true);
+                  if (included && player.tradeTo === t.id) {
+                    onSetPlayerTrade(player, 'keep');
+                  } else {
+                    onSetPlayerTrade(player, 'trade', t.id);
+                    if (!included && isFreeAgent) {
+                      onSetPlayerTrade(player, 'signAndTrade', t.id, true);
+                    }
                   }
                   setOpenMenu(null);
                 }}

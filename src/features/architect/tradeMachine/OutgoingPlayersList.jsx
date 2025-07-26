@@ -12,6 +12,7 @@ const parseYear = (key) => {
 export const OutgoingPlayersList = ({
   team,
   sends,
+  incomingPlayers = [],
   yearKey,
   otherTeams = [],
   playersMap = {},
@@ -25,37 +26,39 @@ export const OutgoingPlayersList = ({
     <div>
       <h4 className="text-sm text-white/70 mb-1">Outgoing Players</h4>
       <div className="space-y-1 max-h-[375px] overflow-y-auto pr-1">
-        {team.players
-          ?.slice()
+        {[
+          ...(team.players || []).filter((p) => !sends.includes(p)),
+          ...incomingPlayers,
+        ]
+          .slice()
           .sort((a, b) => {
             const yr = parseYear(yearKey);
             const getSalary = (player) =>
               player.contract_clean?.salaries_by_year?.[yearKey]?.salary ||
               player.contract?.annual_salaries?.find(
                 (s) => parseYear(s.year) === yr
-              )?.salary ||
-              0;
+              )?.salary || 0;
             return getSalary(b) - getSalary(a);
           })
-          .map((p) => {
-            const included = sends.includes(p);
-            return (
-              <TradePlayerRow
-                key={p.id || p.name}
-                player={p}
-                included={included}
-                yearKey={yearKey}
-                otherTeams={otherTeams}
-                playersMap={playersMap}
-                onSetPlayerTrade={onSetPlayerTrade}
-                openMenu={openMenu}
-                setOpenMenu={setOpenMenu}
-                setContractPlayer={setContractPlayer}
-                setTpePlayer={setTpePlayer}
-              />
-            );
-          })}
-        {team.players?.length === 0 && (
+          .map((p) => (
+            <TradePlayerRow
+              key={p.id || p.name}
+              player={p}
+              included={false}
+              yearKey={yearKey}
+              otherTeams={otherTeams}
+              playersMap={playersMap}
+              onSetPlayerTrade={onSetPlayerTrade}
+              openMenu={openMenu}
+              setOpenMenu={setOpenMenu}
+              setContractPlayer={setContractPlayer}
+              setTpePlayer={setTpePlayer}
+            />
+          ))}
+        {[
+          ...(team.players || []).filter((p) => !sends.includes(p)),
+          ...incomingPlayers,
+        ].length === 0 && (
           <div className="text-xs text-white/40">No players available</div>
         )}
       </div>

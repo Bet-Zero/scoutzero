@@ -134,6 +134,7 @@ const TradeTeamCard = ({
         <OutgoingPlayersList
           team={team}
           sends={sends}
+          incomingPlayers={incomingPlayers}
           yearKey={yearKey}
           otherTeams={otherTeams}
           playersMap={playersMap}
