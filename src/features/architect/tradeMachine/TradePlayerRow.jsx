@@ -110,11 +110,19 @@ const TradePlayerRow = ({
   return (
     <div
       className={`w-full h-[68px] flex items-center border border-black rounded-sm pr-2 overflow-visible ${
-        included ? 'bg-green-800/40' : 'bg-neutral-800'
+        included
+          ? 'bg-green-800/40'
+          : incoming
+            ? 'bg-neutral-700'
+            : 'bg-neutral-800'
       }`}
     >
       {/* Position Bar */}
-      <div className="h-full w-10 flex flex-col items-center justify-center bg-neutral-800 text-white font-normal text-base font-mono relative">
+      <div
+        className={`h-full w-10 flex flex-col items-center justify-center text-white font-normal text-base font-mono relative ${
+          incoming ? 'bg-neutral-700' : 'bg-neutral-800'
+        }`}
+      >
         <div>{position}</div>
         <div className="absolute right-0 top-0 h-full w-[2px] bg-neutral-950"></div>
       </div>
