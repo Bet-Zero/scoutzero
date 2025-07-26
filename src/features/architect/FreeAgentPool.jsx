@@ -121,9 +121,9 @@ const FreeAgentPool = ({
       </ul>
 
       {selectedPlayers.length > 0 && (
-        <div className="bg-[#1a1a1a] p-4 rounded border border-white/10 mb-3 space-y-3">
+        <div className="bg-[#1a1a1a] p-4 rounded border border-white/10 mb-3 flex flex-wrap gap-3">
           {selectedPlayers.map((sp) => (
-            <div key={sp.name}>
+            <div key={sp.name} className="w-64">
               <h3 className="font-semibold mb-1">
                 {playersMap[sp.name]?.display_name || formatName(sp.name)}
               </h3>
