@@ -26,6 +26,7 @@ const TradeEditor = ({
     removeTeam,
     handleValidate,
     exportCurrentTrade,
+    undoPlayerTrade,
     resetTrade,
     yearKey,
   } = useTradeMachine(primaryTeam, capProjections, currentYear);
@@ -96,11 +97,14 @@ const TradeEditor = ({
               yearKey={yearKey}
               otherTeams={otherTeams}
               playersMap={playersMap}
-              onSetPlayerTrade={(p, action, dest) => setPlayerTrade(idx, p, action, dest)}
+              onSetPlayerTrade={(p, action, dest) =>
+                setPlayerTrade(idx, p, action, dest)
+              }
               onTogglePick={(p) => togglePick(idx, p)}
               onEditPick={(p, field, value) =>
                 updatePickField(idx, p, field, value)
               }
+              onUndoPlayerTrade={undoPlayerTrade}
               onSelectTeam={(teamId) => selectTeam(idx, teamId)}
               onRemove={() => removeTeam(idx)}
             />

@@ -23,6 +23,7 @@ const TradeTeamCard = ({
   incomingPicks = [],
   capImpact = null,
   onSetPlayerTrade,
+  onUndoPlayerTrade,
   onTogglePick,
   onEditPick,
   onSelectTeam,
@@ -118,9 +119,17 @@ const TradeTeamCard = ({
               {sends.map((p) => (
                 <span
                   key={p.id || p.name}
-                  className="bg-[#2a2a2a] text-white/90 text-[11px] px-2 py-0.5 rounded-full border border-white/10"
+                  className="bg-[#2a2a2a] text-white/90 text-[11px] px-2 py-0.5 rounded-full border border-white/10 flex items-center gap-1"
                 >
                   {p.name}
+                  {onUndoPlayerTrade && (
+                    <button
+                      onClick={() => onUndoPlayerTrade(p)}
+                      className="ml-1 text-white/50 hover:text-white"
+                    >
+                      ✕
+                    </button>
+                  )}
                 </span>
               ))}
               {picks
@@ -156,9 +165,17 @@ const TradeTeamCard = ({
               {incomingPlayers.map((p) => (
                 <span
                   key={p.id || p.name}
-                  className="bg-[#2a2a2a] text-white/90 text-[11px] px-2 py-0.5 rounded-full border border-white/10"
+                  className="bg-[#2a2a2a] text-white/90 text-[11px] px-2 py-0.5 rounded-full border border-white/10 flex items-center gap-1"
                 >
                   {p.name}
+                  {onUndoPlayerTrade && (
+                    <button
+                      onClick={() => onUndoPlayerTrade(p)}
+                      className="ml-1 text-white/50 hover:text-white"
+                    >
+                      ✕
+                    </button>
+                  )}
                 </span>
               ))}
               {incomingPicks.map((p) => (
@@ -208,6 +225,7 @@ const TradeTeamCard = ({
           otherTeams={otherTeams}
           playersMap={playersMap}
           onSetPlayerTrade={onSetPlayerTrade}
+          onUndoPlayerTrade={onUndoPlayerTrade}
         />
       )}
 
