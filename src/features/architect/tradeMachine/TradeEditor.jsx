@@ -63,6 +63,12 @@ const TradeEditor = ({
         <h2 className="text-2xl font-bold tracking-tight">Trade Machine</h2>
         <div className="flex items-center gap-2">
           <button
+            onClick={handleValidate}
+            className="bg-blue-600 hover:bg-blue-700 text-sm font-medium px-3 py-1.5 rounded"
+          >
+            Validate Trade
+          </button>
+          <button
             onClick={resetTrade}
             title="Reset Trade"
             className="text-white/70 hover:text-white"
@@ -114,19 +120,14 @@ const TradeEditor = ({
 
       {/* Controls */}
       <div className="flex flex-wrap gap-3 items-center">
-        <button
-          onClick={handleValidate}
-          className="bg-blue-600 hover:bg-blue-700 text-sm font-medium px-3 py-1.5 rounded"
-        >
-          Validate Trade
-        </button>
-
+        {/*
         <button
           onClick={exportCurrentTrade}
           className="bg-neutral-800 hover:bg-neutral-700 text-sm px-3 py-1.5 rounded"
         >
           Export Trade JSON
         </button>
+        */}
 
         <button
           onClick={() => {
@@ -140,6 +141,7 @@ const TradeEditor = ({
           Apply Trade
         </button>
 
+        {/*
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
@@ -148,6 +150,7 @@ const TradeEditor = ({
           />
           Force Trade (ignore validation)
         </label>
+        */}
       </div>
 
       {/* Summary */}
