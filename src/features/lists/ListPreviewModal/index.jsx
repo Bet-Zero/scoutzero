@@ -1,6 +1,5 @@
 // src/features/lists/ListPreviewModal.jsx
 import React, { useRef, useLayoutEffect, useState } from 'react';
-import '@/styles/antonFont.css';
 import useImageDownload from '@/hooks/useImageDownload';
 import ListExportWrapper from './ListExportWrapper';
 

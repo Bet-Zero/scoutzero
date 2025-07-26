@@ -5,7 +5,6 @@ import RosterExportCapture from './RosterExportCapture';
 import { getTeamColors } from '@/utils/formatting/teamColors';
 import { getTeamLogoFilename } from '@/utils/formatting/teamLogos';
 import RosterSection from './RosterSection';
-import '@/styles/antonFont.css';
 
 const RosterPreviewModal = ({ open, onClose, roster, team }) => {
   if (!open || !roster) return null;
@@ -19,8 +18,8 @@ const RosterPreviewModal = ({ open, onClose, roster, team }) => {
     try {
       const font = new FontFace(
         'AntonLocal',
-        "url('/fonts/Anton.woff2') format('woff2')",
-        { display: 'swap' }
+        `url('${import.meta.env.BASE_URL}fonts/Anton.woff2') format('woff2')`,
+        { display: 'swap' },
       );
       await font.load();
       document.fonts.add(font);

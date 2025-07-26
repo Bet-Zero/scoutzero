@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Preload Anton font globally */
+@import './styles/antonFont.css';
+
 body {
   font-family: system-ui, sans-serif;
 }
