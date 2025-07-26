@@ -1,10 +1,11 @@
 // TradeEditor.jsx
 
-import React from 'react';
+import React, { useState } from 'react';
 import { RotateCcw } from 'lucide-react';
 import { useTradeMachine } from '@/hooks/tradeMachine/useTradeMachine';
 import TradeTeamCard from './TradeTeamCard';
 import TradeSummaryPanel from './TradeSummaryPanel';
+import TradePreviewModal from './TradePreviewModal';
 
 const TradeEditor = ({
   primaryTeam,
@@ -30,6 +31,8 @@ const TradeEditor = ({
     resetTrade,
     yearKey,
   } = useTradeMachine(primaryTeam, capProjections, currentYear);
+
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const incomingAssets = teams.map((tm, idx) => {
     const players = [];
@@ -63,7 +66,10 @@ const TradeEditor = ({
         <h2 className="text-2xl font-bold tracking-tight">Trade Machine</h2>
         <div className="flex items-center gap-2">
           <button
-            onClick={handleValidate}
+            onClick={() => {
+              handleValidate();
+              setPreviewOpen(true);
+            }}
             className="bg-blue-600 hover:bg-blue-700 text-sm font-medium px-3 py-1.5 rounded"
           >
             Validate Trade
@@ -158,6 +164,13 @@ const TradeEditor = ({
         result={result}
         teams={teams}
         forceTrade={forceTrade}
+      />
+      <TradePreviewModal
+        open={previewOpen && !!result}
+        onClose={() => setPreviewOpen(false)}
+        teams={teams}
+        result={result}
+        yearKey={yearKey}
       />
     </div>
   );
