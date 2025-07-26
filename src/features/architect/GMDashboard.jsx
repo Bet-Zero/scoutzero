@@ -322,9 +322,37 @@ const GMDashboard = () => {
 
     setTeamCapSheet((prev) => {
       const active = prev?.activeContracts || [];
+      const players = prev?.players || [];
+
+      const base =
+        playersMap[playerObj.name] ||
+        playersMap[playerObj.player_id] ||
+        playersMap[playerObj.id] ||
+        {};
+
+      const position =
+        base.position ||
+        base.formattedPosition ||
+        getPlayerPositionLabel(base.bio?.Position || playerObj.position || '');
+
+      const newPlayer = {
+        ...(base || {}),
+        name: base.name || playerObj.name,
+        player_id: playerObj.id || playerObj.player_id || base.player_id,
+        display_name:
+          base.display_name || playerObj.display_name || playerObj.name,
+        position,
+        contract_clean: {
+          ...(base.contract_clean || {}),
+          salaries_by_year: toSalaryMap(contract.salaryByYear),
+          options: contract.options || base.contract_clean?.options || {},
+        },
+      };
+
       return {
         ...prev,
         activeContracts: [...active, newContract],
+        players: [...players, newPlayer],
       };
     });
 
@@ -528,6 +556,7 @@ const GMDashboard = () => {
             currentYear={currentYear}
             playersMap={playersMap}
             onApplyTrade={applyTradeToCapSheet}
+            primaryTeamData={teamCapSheet}
           />
         )}
 

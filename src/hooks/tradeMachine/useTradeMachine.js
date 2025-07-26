@@ -6,7 +6,12 @@ import { loadTeamCapSheet } from '@/utils/architect/firebaseTeamPlanHelpers';
 import { getSalaryForYear, areSamePick } from '@/utils/architect/tradeHelpers';
 import { TeamMap } from '@/constants/teamList';
 
-export const useTradeMachine = (primaryTeam, capProjections, currentYear) => {
+export const useTradeMachine = (
+  primaryTeam,
+  capProjections,
+  currentYear,
+  primaryTeamData = null
+) => {
   const [teams, setTeams] = useState([]);
   const [result, setResult] = useState(null);
   const [forceTrade, setForceTrade] = useState(false);
@@ -17,7 +22,7 @@ export const useTradeMachine = (primaryTeam, capProjections, currentYear) => {
       if (!primaryTeam || typeof primaryTeam !== 'string') return;
 
       const baseTeam = TeamMap[primaryTeam];
-      const data = await loadTeamCapSheet(primaryTeam);
+      const data = primaryTeamData || (await loadTeamCapSheet(primaryTeam));
 
       if (baseTeam && data) {
         setTeams([
@@ -27,7 +32,16 @@ export const useTradeMachine = (primaryTeam, capProjections, currentYear) => {
       }
     };
     init();
-  }, [primaryTeam]);
+  }, [primaryTeam, primaryTeamData]);
+
+  useEffect(() => {
+    if (!primaryTeamData || teams.length === 0) return;
+    setTeams((prev) => {
+      const copy = [...prev];
+      copy[0] = { ...copy[0], team: { ...copy[0].team, ...primaryTeamData } };
+      return copy;
+    });
+  }, [primaryTeamData]);
 
   const setPlayerTrade = (
     index,
