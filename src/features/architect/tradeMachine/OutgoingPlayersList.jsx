@@ -46,7 +46,6 @@ export const OutgoingPlayersList = ({
 
   return (
     <div>
-      <h4 className="text-sm text-white/70 mb-1">Outgoing Players</h4>
       <div className="space-y-1 max-h-[375px] overflow-y-auto pr-1">
         {sortedAvailable.map((p) => (
           <TradePlayerRow
