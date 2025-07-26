@@ -29,7 +29,13 @@ export const useTradeMachine = (primaryTeam, capProjections, currentYear) => {
     init();
   }, [primaryTeam]);
 
-  const setPlayerTrade = (index, player, action, destTeamId = null, flag = false) => {
+  const setPlayerTrade = (
+    index,
+    player,
+    action,
+    destTeamId = null,
+    flag = false
+  ) => {
     setTeams((prev) => {
       const copy = [...prev];
       const list = copy[index].sends;
@@ -172,7 +178,11 @@ export const useTradeMachine = (primaryTeam, capProjections, currentYear) => {
       teams.forEach((other, j) => {
         if (j !== idx && other.team) {
           other.sends.forEach((p) => {
-            if (!p.tradeTo || p.tradeTo === t.team.id || p.tradeTo === t.team.teamId) {
+            if (
+              !p.tradeTo ||
+              p.tradeTo === t.team.id ||
+              p.tradeTo === t.team.teamId
+            ) {
               incomingPlayers.push(p);
             }
           });
@@ -212,6 +222,22 @@ export const useTradeMachine = (primaryTeam, capProjections, currentYear) => {
     setForceTrade(false);
   };
 
+  const undoPlayerTrade = (player) => {
+    setTeams((prev) => {
+      const copy = [...prev];
+      for (let i = 0; i < copy.length; i++) {
+        const list = copy[i].sends;
+        if (list.includes(player)) {
+          player.signAndTrade = false;
+          player.tradeTo = null;
+          copy[i].sends = list.filter((p) => p !== player);
+          break;
+        }
+      }
+      return copy;
+    });
+  };
+
   return {
     teams,
     result,
@@ -225,6 +251,7 @@ export const useTradeMachine = (primaryTeam, capProjections, currentYear) => {
     removeTeam,
     handleValidate,
     exportCurrentTrade,
+    undoPlayerTrade,
     resetTrade,
     yearKey,
   };
