@@ -105,7 +105,7 @@ const FreeAgentPool = ({
 
       {/* Column Headers */}
       <div className="px-6 mb-1">
-        <div className="flex items-center text-white/60 text-[11px] font-semibold h-5">
+        <div className="flex items-center text-white/60 text-[11px] font-semibold h-5 mr-2">
           <div className="w-[45px] text-center">POS</div>
           <div className="w-[50px]" />
           <div className="flex items-center ml-3 flex-1 justify-between mr-2">
