@@ -53,7 +53,7 @@ const TradeTeamCard = ({
 
   const outgoingSalary = getSalaryForYear(sends, yearKey);
   const incomingSalary = getSalaryForYear(incomingPlayers, yearKey);
-  const { primary } = getTeamColors(team.id);
+  const { primary, secondary } = getTeamColors(team.id);
 
   const playersCount =
     (team.players?.length || 0) - sends.length + incomingPlayers.length;
@@ -89,7 +89,6 @@ const TradeTeamCard = ({
           </button>
         )}
       </div>
-
       {/* Cap Impact */}
       <CapImpactTiles
         team={team}
@@ -97,8 +96,7 @@ const TradeTeamCard = ({
         incomingPlayers={incomingPlayers}
         yearKey={yearKey}
       />
-
-      {/* 💰 Compact Salary + Assets Display (No Emojis, Slimmed Down) */}
+      {/* 💰 Compact Salary + Assets Display */}
       <div className="space-y-1">
         {/* Outgoing */}
         <div>
@@ -195,20 +193,18 @@ const TradeTeamCard = ({
       <div className="flex gap-4 text-sm border-b border-white/10 pb-1">
         <button
           className={`pb-1 ${
-            activeTab === 'players'
-              ? 'text-white border-b-2 border-blue-500'
-              : 'text-white/60'
+            activeTab === 'players' ? 'text-white border-b-2' : 'text-white/60'
           }`}
+          style={activeTab === 'players' ? { borderColor: primary } : {}}
           onClick={() => setActiveTab('players')}
         >
           Players ({playersCount})
         </button>
         <button
           className={`pb-1 ${
-            activeTab === 'picks'
-              ? 'text-white border-b-2 border-blue-500'
-              : 'text-white/60'
+            activeTab === 'picks' ? 'text-white border-b-2' : 'text-white/60'
           }`}
+          style={activeTab === 'picks' ? { borderColor: primary } : {}}
           onClick={() => setActiveTab('picks')}
         >
           Picks ({picksCount})
@@ -228,7 +224,6 @@ const TradeTeamCard = ({
           onUndoPlayerTrade={onUndoPlayerTrade}
         />
       )}
-
       {/* Outgoing Picks */}
       {activeTab === 'picks' && (
         <OutgoingPicksList
@@ -239,7 +234,6 @@ const TradeTeamCard = ({
           onEditPick={onEditPick}
         />
       )}
-
       {/* Incoming Picks Summary */}
       {(incomingPlayers.length > 0 || incomingPicks.length > 0) && (
         <div
