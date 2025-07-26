@@ -95,30 +95,13 @@ const FreeAgentPool = ({
     contract.signAndTrade = true;
     await onSign(playerObj, contract);
   };
+  const sortedAgents = [...freeAgents].sort(
+    (a, b) => (b.previousSalary || 0) - (a.previousSalary || 0)
+  );
 
   return (
     <div className="text-white">
       <h2 className="text-xl font-semibold mb-2">Free Agent Pool</h2>
-      <ul className="space-y-[3px] mb-4 px-6">
-        {freeAgents.map((p) => {
-          const playerData = playersMap[p.name] || { name: p.name };
-          return (
-            <li key={p.name}>
-              <FreeAgentRow
-                player={playerData}
-                askInfo={p}
-                onSelect={() => handleSelect(p)}
-                isSelected={selectedPlayers.some((sp) => sp.name === p.name)}
-                openMenu={openMenu}
-                setOpenMenu={setOpenMenu}
-                onSign={() => {
-                  setContractPlayer(p);
-                }}
-              />
-            </li>
-          );
-        })}
-      </ul>
 
       {selectedPlayers.length > 0 && (
         <div className="bg-[#1a1a1a] p-4 rounded border border-white/10 mb-3 flex flex-wrap gap-3">
@@ -128,7 +111,7 @@ const FreeAgentPool = ({
                 {playersMap[sp.name]?.display_name || formatName(sp.name)}
               </h3>
               <p className="text-sm mb-1">
-                Asking:{' '}
+                Asking{' '}
                 {sp.previousSalary != null
                   ? `$${sp.previousSalary.toLocaleString()}`
                   : 'N/A'}
@@ -158,6 +141,27 @@ const FreeAgentPool = ({
           ))}
         </div>
       )}
+
+      <ul className="space-y-[3px] mb-4 px-6">
+        {sortedAgents.map((p) => {
+          const playerData = playersMap[p.name] || { name: p.name };
+          return (
+            <li key={p.name}>
+              <FreeAgentRow
+                player={playerData}
+                askInfo={p}
+                onSelect={() => handleSelect(p)}
+                isSelected={selectedPlayers.some((sp) => sp.name === p.name)}
+                openMenu={openMenu}
+                setOpenMenu={setOpenMenu}
+                onSign={() => {
+                  setContractPlayer(p);
+                }}
+              />
+            </li>
+          );
+        })}
+      </ul>
 
       {contractPlayer && (
         <EditContractModal
