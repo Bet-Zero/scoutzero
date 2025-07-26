@@ -35,7 +35,11 @@ const TradeEditor = ({
     const picks = [];
     teams.forEach((t, j) => {
       if (j !== idx && t.team) {
-        players.push(...t.sends);
+        t.sends.forEach((p) => {
+          if (!p.tradeTo || p.tradeTo === tm.team?.id) {
+            players.push(p);
+          }
+        });
         t.picksOut.forEach((p) => {
           if (!p.toTeamId || p.toTeamId === tm.team?.id) {
             picks.push(p);
@@ -92,7 +96,7 @@ const TradeEditor = ({
               yearKey={yearKey}
               otherTeams={otherTeams}
               playersMap={playersMap}
-              onSetPlayerTrade={(p, action) => setPlayerTrade(idx, p, action)}
+              onSetPlayerTrade={(p, action, dest) => setPlayerTrade(idx, p, action, dest)}
               onTogglePick={(p) => togglePick(idx, p)}
               onEditPick={(p, field, value) =>
                 updatePickField(idx, p, field, value)

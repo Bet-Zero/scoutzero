@@ -126,7 +126,11 @@ export function validateTrade({
     const picksIn = [];
     teams.forEach((other, j) => {
       if (j !== idx && other.team) {
-        playersIn.push(...other.sends);
+        other.sends.forEach((pl) => {
+          if (!pl.tradeTo || pl.tradeTo === t.team.id || pl.tradeTo === t.team.teamId) {
+            playersIn.push(pl);
+          }
+        });
         other.picksOut.forEach((p) => {
           if (
             !p.toTeamId ||

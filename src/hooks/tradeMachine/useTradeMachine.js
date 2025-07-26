@@ -29,16 +29,21 @@ export const useTradeMachine = (primaryTeam, capProjections, currentYear) => {
     init();
   }, [primaryTeam]);
 
-  const setPlayerTrade = (index, player, action, flag = false) => {
+  const setPlayerTrade = (index, player, action, destTeamId = null, flag = false) => {
     setTeams((prev) => {
       const copy = [...prev];
       const list = copy[index].sends;
       const exists = list.includes(player);
       if (action === 'trade' && !exists) {
         player.signAndTrade = false;
+        player.tradeTo = destTeamId;
         copy[index].sends = [...list, player];
+      } else if (action === 'trade' && exists) {
+        player.tradeTo = destTeamId;
+        copy[index].sends = list;
       } else if (action === 'keep' && exists) {
         player.signAndTrade = false;
+        player.tradeTo = null;
         copy[index].sends = list.filter((i) => i !== player);
       } else if (action === 'signAndTrade' && exists) {
         player.signAndTrade = flag;
@@ -166,7 +171,11 @@ export const useTradeMachine = (primaryTeam, capProjections, currentYear) => {
 
       teams.forEach((other, j) => {
         if (j !== idx && other.team) {
-          incomingPlayers.push(...other.sends);
+          other.sends.forEach((p) => {
+            if (!p.tradeTo || p.tradeTo === t.team.id || p.tradeTo === t.team.teamId) {
+              incomingPlayers.push(p);
+            }
+          });
           other.picksOut.forEach((p) => {
             if (
               !p.toTeamId ||
