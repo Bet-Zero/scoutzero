@@ -22,46 +22,51 @@ export const OutgoingPlayersList = ({
   const [contractPlayer, setContractPlayer] = useState(null);
   const [tpePlayer, setTpePlayer] = useState(null);
 
+  const available = [
+    ...incomingPlayers,
+    ...(team.players || []).filter((p) => !sends.includes(p)),
+  ];
+
+  const incomingSet = new Set(incomingPlayers);
+
+  const sortedAvailable = available.slice().sort((a, b) => {
+    const inA = incomingSet.has(a);
+    const inB = incomingSet.has(b);
+    if (inA && !inB) return -1;
+    if (inB && !inA) return 1;
+    const yr = parseYear(yearKey);
+    const getSalary = (player) =>
+      player.contract_clean?.salaries_by_year?.[yearKey]?.salary ||
+      player.contract?.annual_salaries?.find((s) => parseYear(s.year) === yr)
+        ?.salary ||
+      0;
+    return getSalary(b) - getSalary(a);
+  });
+
   return (
     <div>
       <h4 className="text-sm text-white/70 mb-1">Outgoing Players</h4>
       <div className="space-y-1 max-h-[375px] overflow-y-auto pr-1">
-        {[
-          ...(team.players || []).filter((p) => !sends.includes(p)),
-          ...incomingPlayers,
-        ]
-          .slice()
-          .sort((a, b) => {
-            const yr = parseYear(yearKey);
-            const getSalary = (player) =>
-              player.contract_clean?.salaries_by_year?.[yearKey]?.salary ||
-              player.contract?.annual_salaries?.find(
-                (s) => parseYear(s.year) === yr
-              )?.salary || 0;
-            return getSalary(b) - getSalary(a);
-          })
-          .map((p) => (
-            <TradePlayerRow
-              key={p.id || p.name}
-              player={p}
-              included={false}
-              yearKey={yearKey}
-              otherTeams={otherTeams}
-              playersMap={playersMap}
-              onSetPlayerTrade={onSetPlayerTrade}
-              openMenu={openMenu}
-              setOpenMenu={setOpenMenu}
-              setContractPlayer={setContractPlayer}
-              setTpePlayer={setTpePlayer}
-            />
-          ))}
-        {[
-          ...(team.players || []).filter((p) => !sends.includes(p)),
-          ...incomingPlayers,
-        ].length === 0 && (
+        {sortedAvailable.map((p) => (
+          <TradePlayerRow
+            key={p.id || p.name}
+            player={p}
+            included={false}
+            yearKey={yearKey}
+            otherTeams={otherTeams}
+            playersMap={playersMap}
+            onSetPlayerTrade={onSetPlayerTrade}
+            openMenu={openMenu}
+            setOpenMenu={setOpenMenu}
+            setContractPlayer={setContractPlayer}
+            setTpePlayer={setTpePlayer}
+          />
+        ))}
+        {available.length === 0 && (
           <div className="text-xs text-white/40">No players available</div>
         )}
       </div>
+
       {contractPlayer && (
         <EditContractModal
           player={contractPlayer}
@@ -76,6 +81,7 @@ export const OutgoingPlayersList = ({
           onSignAndTrade={(plr, val) => console.log('S&T', plr, val)}
         />
       )}
+
       {tpePlayer && (
         <TradeExceptionModal
           player={tpePlayer}
