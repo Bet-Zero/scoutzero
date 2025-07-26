@@ -99,7 +99,10 @@ const TradeEditor = ({
       </div>
 
       {/* Team Cards */}
-      <div className="flex flex-col md:flex-row flex-wrap gap-6">
+      <div
+        className="grid gap-6"
+        style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))' }}
+      >
         {teams.map((t, idx) => {
           const otherTeams = teams
             .filter((_, j) => j !== idx && teams[j].team)
