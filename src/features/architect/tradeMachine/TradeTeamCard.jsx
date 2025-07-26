@@ -104,7 +104,7 @@ const TradeTeamCard = ({
         <div>
           <button
             onClick={() => setShowOutgoing((prev) => !prev)}
-            className="w-full text-left bg-[#1c1c1c] px-3 py-1.5 rounded border border-white/10 hover:border-blue-500 text-sm flex justify-between items-center text-white/80"
+            className="w-full text-left bg-[#1c1c1c] px-3 py-1.5 rounded border border-white/10 hover:border-neutral-500 text-sm flex justify-between items-center text-white/80"
           >
             <span>Outgoing Salary: {formatSalary(outgoingSalary)}</span>
             {showOutgoing ? (
@@ -150,7 +150,7 @@ const TradeTeamCard = ({
         <div>
           <button
             onClick={() => setShowIncoming((prev) => !prev)}
-            className="w-full text-left bg-[#1c1c1c] px-3 py-1.5 rounded border border-white/10 hover:border-green-500 text-sm flex justify-between items-center text-white/80"
+            className="w-full text-left bg-[#1c1c1c] px-3 py-1.5 rounded border border-white/10 hover:border-neutral-500 text-sm flex justify-between items-center text-white/80"
           >
             <span>Incoming Salary: {formatSalary(incomingSalary)}</span>
             {showIncoming ? (
