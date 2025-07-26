@@ -13,46 +13,58 @@ const FreeAgentPool = ({
   onSign,
   playersMap = {},
 }) => {
-  const [selectedPlayer, setSelectedPlayer] = useState(null);
-  const [signResult, setSignResult] = useState(null);
+  const [selectedPlayers, setSelectedPlayers] = useState([]);
+  const [signResults, setSignResults] = useState({});
   const [isSigning, setIsSigning] = useState(false);
   const [openMenu, setOpenMenu] = useState(null);
   const [contractPlayer, setContractPlayer] = useState(null);
 
   const handleSelect = (player) => {
-    setSelectedPlayer(player);
-    setSignResult(null);
+    setSelectedPlayers((prev) => {
+      const exists = prev.some((p) => p.name === player.name);
+      if (exists) {
+        return prev.filter((p) => p.name !== player.name);
+      }
+      return [...prev, player];
+    });
+    setSignResults((prev) => ({ ...prev, [player.name]: null }));
   };
 
-  const handleSign = async () => {
+  const handleSign = async (player) => {
     const result = canSignFreeAgent(
-      selectedPlayer,
+      player,
       teamCapSheet,
       capProjections,
       currentYear
     );
     if (!result.allowed) {
-      setSignResult(result);
+      setSignResults((prev) => ({ ...prev, [player.name]: result }));
       return;
     }
 
     const contract = generateDefaultFreeAgentContract(
-      selectedPlayer.askingSalary ?? 0,
+      player.askingSalary ?? 0,
       currentYear,
-      selectedPlayer.yearsOfService || selectedPlayer.yearsPro || 0
+      player.yearsOfService || player.yearsPro || 0
     );
 
     setIsSigning(true);
     try {
-      await onSign(selectedPlayer, contract);
-      setSignResult({
-        allowed: true,
-        message: `Signed ${formatName(selectedPlayer.name)} to 1-year deal`,
-      });
-      setSelectedPlayer(null);
+      await onSign(player, contract);
+      setSignResults((prev) => ({
+        ...prev,
+        [player.name]: {
+          allowed: true,
+          message: `Signed ${formatName(player.name)} to 1-year deal`,
+        },
+      }));
+      setSelectedPlayers((prev) => prev.filter((p) => p.name !== player.name));
     } catch (err) {
       console.error('Failed to sign player', err);
-      setSignResult({ allowed: false, reason: 'Failed to sign player' });
+      setSignResults((prev) => ({
+        ...prev,
+        [player.name]: { allowed: false, reason: 'Failed to sign player' },
+      }));
     } finally {
       setIsSigning(false);
     }
@@ -96,7 +108,7 @@ const FreeAgentPool = ({
                 player={playerData}
                 askInfo={p}
                 onSelect={() => handleSelect(p)}
-                isSelected={selectedPlayer?.name === p.name}
+                isSelected={selectedPlayers.some((sp) => sp.name === p.name)}
                 openMenu={openMenu}
                 setOpenMenu={setOpenMenu}
                 onSign={() => {
@@ -108,38 +120,42 @@ const FreeAgentPool = ({
         })}
       </ul>
 
-      {selectedPlayer && (
-        <div className="bg-[#1a1a1a] p-4 rounded border border-white/10 mb-3">
-          <h3 className="font-semibold mb-1">
-            {playersMap[selectedPlayer.name]?.display_name ||
-              formatName(selectedPlayer.name)}
-          </h3>
-          <p className="text-sm mb-1">
-            Asking:{' '}
-            {selectedPlayer.previousSalary != null
-              ? `$${selectedPlayer.previousSalary.toLocaleString()}`
-              : 'N/A'}
-          </p>
-          <p className="text-sm mb-3">
-            Bird Rights: {selectedPlayer.birdRights}
-          </p>
-          <button
-            onClick={handleSign}
-            className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm"
-            disabled={isSigning}
-          >
-            {isSigning ? 'Signing...' : 'Sign Player'}
-          </button>
-        </div>
-      )}
-
-      {signResult && (
-        <div className="mt-2 text-sm">
-          {signResult.allowed ? (
-            <span className="text-green-500">{signResult.message}</span>
-          ) : (
-            <span className="text-red-500">{signResult.reason}</span>
-          )}
+      {selectedPlayers.length > 0 && (
+        <div className="bg-[#1a1a1a] p-4 rounded border border-white/10 mb-3 space-y-3">
+          {selectedPlayers.map((sp) => (
+            <div key={sp.name}>
+              <h3 className="font-semibold mb-1">
+                {playersMap[sp.name]?.display_name || formatName(sp.name)}
+              </h3>
+              <p className="text-sm mb-1">
+                Asking:{' '}
+                {sp.previousSalary != null
+                  ? `$${sp.previousSalary.toLocaleString()}`
+                  : 'N/A'}
+              </p>
+              <p className="text-sm mb-3">Bird Rights: {sp.birdRights}</p>
+              <button
+                onClick={() => handleSign(sp)}
+                className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm"
+                disabled={isSigning}
+              >
+                {isSigning ? 'Signing...' : 'Sign Player'}
+              </button>
+              {signResults[sp.name] && (
+                <div className="mt-1 text-sm">
+                  {signResults[sp.name].allowed ? (
+                    <span className="text-green-500">
+                      {signResults[sp.name].message}
+                    </span>
+                  ) : (
+                    <span className="text-red-500">
+                      {signResults[sp.name].reason}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
 

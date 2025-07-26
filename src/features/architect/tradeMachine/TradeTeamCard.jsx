@@ -1,18 +1,13 @@
 // TradeTeamCard.jsx
 
 import React, { useState, useRef, useEffect } from 'react';
-import TeamLogo from '@/components/shared/TeamLogo';
 import { getTeamColors } from '@/utils/formatting';
-import {
-  getSalaryForYear,
-  formatPick,
-  formatCurrency,
-} from '@/utils/architect/tradeHelpers';
+import { getSalaryForYear, formatPick } from '@/utils/architect/tradeHelpers';
+import { formatSalary } from '@/utils/formatting';
 import CapImpactTiles from './CapImpactTiles';
 import { SelectTeamCard } from './SelectTeamCard';
 import { OutgoingPlayersList } from './OutgoingPlayersList';
 import { OutgoingPicksList } from './OutgoingPicksList';
-import { TeamListFull } from '@/constants/teamList';
 import { motion, AnimatePresence } from 'framer-motion';
 import TeamSelectDropdown from '@/components/shared/TeamSelectDropdown';
 import { ChevronDown, ChevronUp } from 'lucide-react';
@@ -105,14 +100,14 @@ const TradeTeamCard = ({
         onClick={() => setShowDrawer((prev) => !prev)}
         className="cursor-pointer bg-[#1c1c1c] border border-white/10 rounded px-3 py-2 text-sm text-white/80 hover:text-white transition flex items-center justify-between"
       >
-        <div>
+        <div className="flex-1 grid grid-cols-2">
           <div>
             <span className="font-semibold">Outgoing:</span>{' '}
-            {formatCurrency(outgoingSalary)}
+            {formatSalary(outgoingSalary)}
           </div>
-          <div>
+          <div className="text-right">
             <span className="font-semibold">Incoming:</span>{' '}
-            {formatCurrency(incomingSalary)}
+            {formatSalary(incomingSalary)}
           </div>
         </div>
         <div className="ml-2">
@@ -131,7 +126,7 @@ const TradeTeamCard = ({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="bg-[#1c1c1c] border border-white/10 rounded px-3 py-2 space-y-3 text-xs"
+            className="bg-[#1c1c1c] border border-white/10 rounded px-3 py-2 grid grid-cols-2 gap-4 text-xs"
           >
             {/* Outgoing */}
             {sends.length > 0 && (
