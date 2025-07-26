@@ -31,6 +31,8 @@ const TradeTeamCard = ({
   const [activeTab, setActiveTab] = useState('players');
   const [editingTeam, setEditingTeam] = useState(false);
   const [showDrawer, setShowDrawer] = useState(false);
+  const [showOutgoing, setShowOutgoing] = useState(false);
+  const [showIncoming, setShowIncoming] = useState(false);
   const selectRef = useRef(null);
 
   useEffect(() => {
@@ -95,68 +97,82 @@ const TradeTeamCard = ({
         yearKey={yearKey}
       />
 
-      {/* 💰 Salary Toggle Section */}
-      <div
-        onClick={() => setShowDrawer((prev) => !prev)}
-        className="cursor-pointer bg-[#1c1c1c] border border-white/10 rounded px-3 py-2 text-sm text-white/80 hover:text-white transition flex items-center justify-between"
-      >
-        <div className="flex-1 grid grid-cols-2">
-          <div>
-            <span className="font-semibold">Outgoing:</span>{' '}
-            {formatSalary(outgoingSalary)}
-          </div>
-          <div className="text-right">
-            <span className="font-semibold">Incoming:</span>{' '}
-            {formatSalary(incomingSalary)}
-          </div>
+      {/* 💰 Compact Salary + Assets Display (No Emojis, Slimmed Down) */}
+      <div className="space-y-1">
+        {/* Outgoing */}
+        <div>
+          <button
+            onClick={() => setShowOutgoing((prev) => !prev)}
+            className="w-full text-left bg-[#1c1c1c] px-3 py-1.5 rounded border border-white/10 hover:border-blue-500 text-sm flex justify-between items-center text-white/80"
+          >
+            <span>Outgoing Salary: {formatSalary(outgoingSalary)}</span>
+            {showOutgoing ? (
+              <ChevronUp size={14} className="opacity-60" />
+            ) : (
+              <ChevronDown size={14} className="opacity-60" />
+            )}
+          </button>
+
+          {showOutgoing && (
+            <div className="flex flex-wrap gap-2 mt-1 px-1">
+              {sends.map((p) => (
+                <span
+                  key={p.id || p.name}
+                  className="bg-[#2a2a2a] text-white/90 text-[11px] px-2 py-0.5 rounded-full border border-white/10"
+                >
+                  {p.name}
+                </span>
+              ))}
+              {picks
+                .filter((p) => p.fromTeamId === team.id)
+                .map((p) => (
+                  <span
+                    key={`${p.year}-${p.round}-${p.via || ''}`}
+                    className="bg-[#2a2a2a] text-white/70 text-[11px] px-2 py-0.5 rounded-full border border-white/10"
+                  >
+                    {formatPick(p)}
+                  </span>
+                ))}
+            </div>
+          )}
         </div>
-        <div className="ml-2">
-          {showDrawer ? (
-            <ChevronUp size={18} className="opacity-80" />
-          ) : (
-            <ChevronDown size={18} className="opacity-80" />
+
+        {/* Incoming */}
+        <div>
+          <button
+            onClick={() => setShowIncoming((prev) => !prev)}
+            className="w-full text-left bg-[#1c1c1c] px-3 py-1.5 rounded border border-white/10 hover:border-green-500 text-sm flex justify-between items-center text-white/80"
+          >
+            <span>Incoming Salary: {formatSalary(incomingSalary)}</span>
+            {showIncoming ? (
+              <ChevronUp size={14} className="opacity-60" />
+            ) : (
+              <ChevronDown size={14} className="opacity-60" />
+            )}
+          </button>
+
+          {showIncoming && (
+            <div className="flex flex-wrap gap-2 mt-1 px-1">
+              {incomingPlayers.map((p) => (
+                <span
+                  key={p.id || p.name}
+                  className="bg-[#2a2a2a] text-white/90 text-[11px] px-2 py-0.5 rounded-full border border-white/10"
+                >
+                  {p.name}
+                </span>
+              ))}
+              {incomingPicks.map((p) => (
+                <span
+                  key={`${p.year}-${p.round}-${p.via || ''}`}
+                  className="bg-[#2a2a2a] text-white/70 text-[11px] px-2 py-0.5 rounded-full border border-white/10"
+                >
+                  {formatPick(p)}
+                </span>
+              ))}
+            </div>
           )}
         </div>
       </div>
-
-      {/* 👇 Drawer below toggle */}
-      <AnimatePresence>
-        {showDrawer && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="bg-[#1c1c1c] border border-white/10 rounded px-3 py-2 grid grid-cols-2 gap-4 text-xs"
-          >
-            {/* Outgoing */}
-            {sends.length > 0 && (
-              <div>
-                <div className="font-semibold text-white/70 mb-1">
-                  Outgoing Players
-                </div>
-                {sends.map((p) => (
-                  <div key={p.id || p.name} className="text-white/90">
-                    • {p.name}
-                  </div>
-                ))}
-              </div>
-            )}
-            {/* Incoming */}
-            {incomingPlayers.length > 0 && (
-              <div>
-                <div className="font-semibold text-white/70 mb-1">
-                  Incoming Players
-                </div>
-                {incomingPlayers.map((p) => (
-                  <div key={p.id || p.name} className="text-white/90">
-                    • {p.name}
-                  </div>
-                ))}
-              </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Tabs */}
       <div className="flex gap-4 text-sm border-b border-white/10 pb-1">
