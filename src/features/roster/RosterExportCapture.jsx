@@ -3,7 +3,6 @@ import React from 'react';
 import { getTeamColors } from '@/utils/formatting/teamColors';
 import { getTeamLogoFilename } from '@/utils/formatting/teamLogos';
 import RosterSection from './RosterSection';
-import '@/styles/antonFont.css';
 
 const RosterExportCapture = React.forwardRef(({ roster, team }, ref) => {
   const { primary, secondary } = getTeamColors(team?.id);

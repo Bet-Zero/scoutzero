@@ -6,8 +6,8 @@ const useImageDownload = (ref) => {
     try {
       const font = new FontFace(
         'AntonLocal',
-        "url('/fonts/Anton.woff2') format('woff2')",
-        { display: 'swap' }
+        `url('${import.meta.env.BASE_URL}fonts/Anton.woff2') format('woff2')`,
+        { display: 'swap' },
       );
       await font.load();
       document.fonts.add(font);
