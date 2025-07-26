@@ -52,6 +52,7 @@ export const OutgoingPlayersList = ({
             key={p.id || p.name}
             player={p}
             included={false}
+            incoming={incomingSet.has(p)}
             yearKey={yearKey}
             otherTeams={otherTeams}
             playersMap={playersMap}
