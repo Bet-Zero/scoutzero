@@ -4,6 +4,7 @@ import TeamLogo from '@/components/shared/TeamLogo';
 import { getPlayerPositionLabel } from '@/utils/roles';
 import { formatSalary } from '@/utils/formatting';
 import { getYearsRemaining } from '@/utils/contracts';
+import { ArrowsRightLeftIcon } from '@heroicons/react/20/solid';
 
 const parseYear = (key) => {
   if (typeof key === 'number') return key;
@@ -15,6 +16,7 @@ const TradePlayerRow = ({
   player,
   included,
   yearKey,
+  incoming = false,
   otherTeams = [],
   playersMap = {},
   onSetPlayerTrade,
@@ -144,6 +146,13 @@ const TradePlayerRow = ({
           </div>
         </div>
       </div>
+
+      {/* Traded Icon */}
+      {incoming && (
+        <div className="ml-10 text-blue-300" title="Traded">
+          <ArrowsRightLeftIcon className="w-6 h-6" />
+        </div>
+      )}
 
       {/* Contract Info */}
       <div className="ml-auto mr-4 flex flex-col items-end whitespace-nowrap">
