@@ -26,20 +26,27 @@ export const OutgoingPlayersList = ({
     <div>
       <h4 className="text-sm text-white/70 mb-1">Outgoing Players</h4>
       <div className="space-y-1 max-h-[375px] overflow-y-auto pr-1">
-        {[
-          ...(team.players || []).filter((p) => !sends.includes(p)),
-          ...incomingPlayers,
-        ]
-          .slice()
-          .sort((a, b) => {
-            const yr = parseYear(yearKey);
-            const getSalary = (player) =>
-              player.contract_clean?.salaries_by_year?.[yearKey]?.salary ||
-              player.contract?.annual_salaries?.find(
-                (s) => parseYear(s.year) === yr
-              )?.salary || 0;
-            return getSalary(b) - getSalary(a);
-          })
+        {
+          const available = [
+            ...incomingPlayers,
+            ...(team.players || []).filter((p) => !sends.includes(p)),
+          ];
+          const incomingSet = new Set(incomingPlayers);
+          return available
+            .slice()
+            .sort((a, b) => {
+              const inA = incomingSet.has(a);
+              const inB = incomingSet.has(b);
+              if (inA && !inB) return -1;
+              if (inB && !inA) return 1;
+              const yr = parseYear(yearKey);
+              const getSalary = (player) =>
+                player.contract_clean?.salaries_by_year?.[yearKey]?.salary ||
+                player.contract?.annual_salaries?.find(
+                  (s) => parseYear(s.year) === yr
+                )?.salary || 0;
+              return getSalary(b) - getSalary(a);
+            })
           .map((p) => (
             <TradePlayerRow
               key={p.id || p.name}
@@ -55,12 +62,15 @@ export const OutgoingPlayersList = ({
               setTpePlayer={setTpePlayer}
             />
           ))}
-        {[
-          ...(team.players || []).filter((p) => !sends.includes(p)),
-          ...incomingPlayers,
-        ].length === 0 && (
-          <div className="text-xs text-white/40">No players available</div>
-        )}
+        {
+          const available = [
+            ...incomingPlayers,
+            ...(team.players || []).filter((p) => !sends.includes(p)),
+          ];
+          return available.length === 0 && (
+            <div className="text-xs text-white/40">No players available</div>
+          );
+        }
       </div>
       {contractPlayer && (
         <EditContractModal
