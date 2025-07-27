@@ -5,8 +5,9 @@ const useImageDownload = (ref) => {
   const download = async (filename, options = {}) => {
     if (!ref.current) return;
     try {
-      // 1. Ensure the Base64 font is loaded before export
+      // 1. Ensure the Base64 font is loaded and injected before export
       const match = antonBase64CSS.match(/base64,([^)]+)\)/);
+      let styleEl;
       if (match) {
         const font = new FontFace(
           'AntonBase64',
@@ -17,6 +18,11 @@ const useImageDownload = (ref) => {
         document.fonts.add(font);
         await document.fonts.load('1em AntonBase64');
         await document.fonts.ready;
+
+        // Inject @font-face so html-to-image clone retains the font
+        styleEl = document.createElement('style');
+        styleEl.textContent = antonBase64CSS;
+        ref.current.prepend(styleEl);
       }
 
       // 2. Wait a frame so layout has time to settle
@@ -38,6 +44,8 @@ const useImageDownload = (ref) => {
       link.download = filename;
       link.href = dataUrl;
       link.click();
+
+      if (styleEl) styleEl.remove();
     } catch (err) {
       console.error('Failed to download image', err);
     }

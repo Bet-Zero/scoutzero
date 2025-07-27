@@ -65,14 +65,14 @@ const TradeExportCapture = React.forwardRef(
       <div
         ref={ref}
         className="w-[1200px] bg-[#0b0b0b] text-white rounded-xl overflow-hidden shadow-2xl border border-white/10"
-        style={{ fontFamily: 'AntonBase64, sans-serif' }}
+        style={{ fontFamily: 'AntonLocal, AntonBase64, sans-serif' }}
       >
         {/* 🧾 Header */}
         <div
           style={{
             opacity: 0,
             position: 'absolute',
-            fontFamily: 'AntonBase64, sans-serif',
+            fontFamily: 'AntonLocal, AntonBase64, sans-serif',
           }}
         >
           preload
