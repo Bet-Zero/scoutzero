@@ -7,11 +7,13 @@ const useImageDownload = (ref) => {
       const font = new FontFace(
         'AntonLocal',
         `url('${import.meta.env.BASE_URL}fonts/Anton.woff2') format('woff2')`,
-        { display: 'swap' },
+        { display: 'swap' }
       );
       await font.load();
       document.fonts.add(font);
+      await document.fonts.load('1em AntonLocal');
       await document.fonts.ready;
+      await new Promise((r) => requestAnimationFrame(r));
       await new Promise((r) => setTimeout(r, 100));
 
       const dataUrl = await toPng(ref.current, {
