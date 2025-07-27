@@ -28,7 +28,10 @@ const TradeExportCapture = React.forwardRef(
               p.tradeTo === tm.team?.id ||
               p.tradeTo === tm.team?.teamId
             ) {
-              players.push(p);
+              players.push({
+                ...p,
+                originTeamId: p.originTeamId || p.teamId || t.team.id,
+              });
             }
           });
           t.picksOut.forEach((p) => {
@@ -37,7 +40,10 @@ const TradeExportCapture = React.forwardRef(
               p.toTeamId === tm.team?.id ||
               p.toTeamId === tm.team?.teamId
             ) {
-              picks.push(p);
+              picks.push({
+                ...p,
+                fromTeamId: p.fromTeamId || t.team.id,
+              });
             }
           });
         }
@@ -151,7 +157,13 @@ const TradeExportCapture = React.forwardRef(
                                     </div>
                                   </div>
                                   <TeamLogo
-                                    teamId={p.teamId || p.originTeamId}
+                                    teamId={
+                                      p.originTeamId ||
+                                      p.teamId ||
+                                      p.team ||
+                                      p.teamAbbr ||
+                                      p.bio?.Team
+                                    }
                                     className="w-6 h-6 ml-2 shrink-0"
                                   />
                                 </div>
@@ -179,7 +191,13 @@ const TradeExportCapture = React.forwardRef(
                               >
                                 <span>{formatPick(p)}</span>
                                 <TeamLogo
-                                  teamId={p.fromTeamId || p.originTeamId}
+                                  teamId={
+                                    p.fromTeamId ||
+                                    p.originTeamId ||
+                                    p.teamId ||
+                                    p.teamAbbr ||
+                                    p.team
+                                  }
                                   className="w-5 h-5 ml-2 shrink-0"
                                 />
                               </div>
