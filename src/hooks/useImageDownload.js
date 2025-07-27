@@ -5,18 +5,7 @@ const useImageDownload = (ref) => {
   const download = async (filename, options = {}) => {
     if (!ref.current) return;
     try {
-      // 1. Clone DOM node
-      const clone = ref.current.cloneNode(true);
-
-      // 2. Inject @font-face into <style>
-      const style = document.createElement('style');
-      style.innerHTML = antonBase64CSS;
-      clone.prepend(style);
-
-      // 3. Force fontFamily on root clone
-      clone.style.fontFamily = 'AntonBase64, sans-serif';
-
-      // 4. Ensure the Base64 font is loaded before export
+      // 1. Ensure the Base64 font is loaded before export
       const match = antonBase64CSS.match(/base64,([^)]+)\)/);
       if (match) {
         const font = new FontFace(
@@ -30,15 +19,21 @@ const useImageDownload = (ref) => {
         await document.fonts.ready;
       }
 
-      // 5. Export as PNG using clone
-      const dataUrl = await toPng(clone, {
+      // 2. Wait a frame so layout has time to settle
+      await new Promise((r) => requestAnimationFrame(r));
+      await new Promise((r) => setTimeout(r, 100));
+
+      // 3. Export as PNG using the element directly
+      const dataUrl = await toPng(ref.current, {
         cacheBust: true,
-        skipFonts: false,
+        // Avoid html-to-image font parsing bugs by skipping font
+        // inlining. Fonts are already loaded via Base64.
+        skipFonts: true,
         pixelRatio: options.pixelRatio || 2,
         backgroundColor: options.backgroundColor || '#111',
       });
 
-      // 6. Download
+      // 4. Download
       const link = document.createElement('a');
       link.download = filename;
       link.href = dataUrl;

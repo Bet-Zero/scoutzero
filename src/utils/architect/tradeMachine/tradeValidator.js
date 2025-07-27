@@ -1,5 +1,4 @@
 // tradeValidator.js
-
 import { getSalaryForYear } from '@/utils/architect/tradeHelpers';
 import defaultCapProjections from '@/utils/architect/capProjections';
 
@@ -64,6 +63,7 @@ export function validateTrade({
       outgoingCount: t.sends.length,
       incomingCount: rosterIn[idx],
       capSettings,
+      picksOut: t.picksOut,
     });
 
     return {
@@ -73,19 +73,21 @@ export function validateTrade({
         ...evaluation.checks,
         signAndTrade: true,
         stepien: true,
+        secondApron: true,
       },
     };
   });
 
-  // Enforce Sign-and-Trade pairing + apron compliance
+  // Enhanced Sign-and-Trade validation
   teams.forEach((t, idx) => {
     if (t.sends.some((p) => p.signAndTrade)) {
-      if ((t.sends || []).length > 1) {
+      if (t.sends.length > 1) {
         teamResults[idx].reasons.push(
           'Sign-and-trade player must be traded alone.'
         );
         teamResults[idx].checks.signAndTrade = false;
       }
+
       teamResults.forEach((res, j) => {
         const projected = res.projectedSalary;
         if (j !== idx && projected > (capSettings.firstApron || Infinity)) {
@@ -98,13 +100,31 @@ export function validateTrade({
     }
   });
 
-  // Stepien Rule check (simplified)
+  // Enhanced Stepien Rule check
   teams.forEach((t, i) => {
-    if (hasStepienViolation(t.picksOut || [])) {
+    if (hasStepienViolation(t.picksOut || [], t.team?.picks || [])) {
       teamResults[i].reasons.push(
         'Violates Stepien Rule (consecutive future 1sts).'
       );
       teamResults[i].checks.stepien = false;
+    }
+  });
+
+  // Second Apron restrictions
+  teams.forEach((t, i) => {
+    const result = teamResults[i];
+    if (result.willBeOverSecond) {
+      // No aggregating players
+      if (t.sends.length > 1) {
+        result.reasons.push('2nd Apron: Cannot aggregate multiple salaries');
+        result.checks.secondApron = false;
+      }
+
+      // No taking back more salary than sending
+      if (salaryIn[i] > salaryOut[i]) {
+        result.reasons.push('2nd Apron: Cannot receive more salary than sent');
+        result.checks.secondApron = false;
+      }
     }
   });
 
@@ -127,7 +147,11 @@ export function validateTrade({
     teams.forEach((other, j) => {
       if (j !== idx && other.team) {
         other.sends.forEach((pl) => {
-          if (!pl.tradeTo || pl.tradeTo === t.team.id || pl.tradeTo === t.team.teamId) {
+          if (
+            !pl.tradeTo ||
+            pl.tradeTo === t.team.id ||
+            pl.tradeTo === t.team.teamId
+          ) {
             playersIn.push(pl);
           }
         });
@@ -158,10 +182,7 @@ export function validateTrade({
   return { overallLegal, teamResults, reason, summaryByTeamIndex };
 }
 
-// =========================
-// Per-Team Trade Evaluation
-// =========================
-
+// Enhanced team evaluation
 function evaluateTeam({
   team,
   salaryOut,
@@ -173,6 +194,7 @@ function evaluateTeam({
   outgoingCount,
   incomingCount,
   capSettings,
+  picksOut = [],
 }) {
   const {
     cap = 0,
@@ -214,12 +236,14 @@ function evaluateTeam({
     firstApronLimit: true,
     hardCap: true,
     salaryMatching: true,
+    secondApron: true,
   };
 
   // 2nd Apron: No aggregation
   if ((overSecond || willBeOverSecond) && outgoingCount > 1) {
     reasons.push('2nd Apron Rule: Cannot aggregate multiple salaries in trade');
     checks.secondApronAggregation = false;
+    checks.secondApron = false;
   }
 
   // 1st Apron: Cannot receive more than sent
@@ -263,20 +287,20 @@ function evaluateTeam({
   };
 }
 
-// =========================
-// Stepien Rule Checker
-// =========================
+// Enhanced Stepien Rule Checker
+function hasStepienViolation(picksOut, teamPicks = []) {
+  const allPicks = [...picksOut, ...teamPicks]
+    .filter((p) => (p.round === '1st' || p.round === 1) && !p.isSwap)
+    .map((p) => ({ ...p, year: parseInt(p.year, 10) }))
+    .sort((a, b) => a.year - b.year);
 
-function hasStepienViolation(picksOut) {
-  const years = picksOut
-    .filter(
-      (p) => (p.round === '1st' || p.round === 1) && !p.protection && !p.isSwap
-    )
-    .map((p) => parseInt(p.year, 10))
-    .sort((a, b) => a - b);
-
-  for (let i = 1; i < years.length; i++) {
-    if (years[i] === years[i - 1] + 1) return true;
+  for (let i = 1; i < allPicks.length; i++) {
+    if (allPicks[i].year === allPicks[i - 1].year + 1) {
+      // Only violation if both picks are unprotected
+      if (!allPicks[i].protection && !allPicks[i - 1].protection) {
+        return true;
+      }
+    }
   }
   return false;
 }
