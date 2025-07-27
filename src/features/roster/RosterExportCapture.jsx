@@ -11,7 +11,7 @@ const RosterExportCapture = React.forwardRef(({ roster, team }, ref) => {
     <div
       ref={ref}
       className="w-[1200px] h-[975px] bg-neutral-900 text-white relative rounded-2xl overflow-hidden border border-white/20 shadow-2xl"
-      style={{ fontFamily: 'AntonLocal, sans-serif' }}
+      style={{ fontFamily: 'AntonLocal, AntonBase64, sans-serif' }}
     >
       {team && (
         <img
@@ -28,7 +28,7 @@ const RosterExportCapture = React.forwardRef(({ roster, team }, ref) => {
           <h2
             className="w-full text-center text-7xl font-black uppercase leading-none"
             style={{
-              fontFamily: 'AntonLocal, sans-serif',
+              fontFamily: 'AntonLocal, AntonBase64, sans-serif',
               color: '#1e1e1e',
               textShadow: `0 0 8px ${primary}, 0 0 16px ${secondary}`,
             }}
