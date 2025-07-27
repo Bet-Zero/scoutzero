@@ -25,10 +25,14 @@ tradeMachine/
   OutgoingPlayersList.jsx
   SelectTeamCard.jsx
   TradeEditor.jsx
+  TradeExceptionManager.jsx
+  TradeExceptionModal.jsx
   TradeExportCapture.jsx
+  TradeLegalChecker.jsx
   TradePickRow.jsx
   TradePlayerRow.jsx
   TradePreviewModal.jsx
+  TradeSalaryCalculator.jsx
   TradeSummaryPanel.jsx
   TradeTeamCard.jsx
 ```

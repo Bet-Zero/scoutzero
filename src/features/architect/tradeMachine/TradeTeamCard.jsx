@@ -103,9 +103,10 @@ const TradeTeamCard = ({
   }, [incomingPlayers, team?.tradeExceptions, yearKey]);
 
   // Modified player trade handler to support multiple selections
-  const handleSetPlayerTrade = (player, targetTeamId) => {
+  // Replace the existing handleSetPlayerTrade with:
+  const handleSetPlayerTrade = (player, action, targetTeamId, tpe) => {
     if (onSetPlayerTrade) {
-      onSetPlayerTrade(player, targetTeamId);
+      onSetPlayerTrade(player, action, targetTeamId, tpe);
     }
   };
 
