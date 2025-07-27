@@ -20,7 +20,9 @@ const CapImpactTiles = ({
   const existingPlayers = Array.isArray(team.players) ? team.players : [];
 
   const playersAfterTrade = [
-    ...existingPlayers.filter((p) => !sends.includes(p)),
+    ...existingPlayers.filter(
+      (p) => !sends.some((s) => (s.id || s.player_id) === (p.id || p.player_id))
+    ),
     ...incomingPlayers,
   ];
 
