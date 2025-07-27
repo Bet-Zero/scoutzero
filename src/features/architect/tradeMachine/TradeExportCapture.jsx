@@ -17,6 +17,7 @@ const TradeExportCapture = React.forwardRef(
   ) => {
     const formattedDate = format(new Date(date), 'MMMM d, yyyy');
 
+    // 🧮 Preprocess incoming assets by team
     const incomingAssets = teams.map((tm, idx) => {
       const players = [];
       const picks = [];
@@ -66,9 +67,9 @@ const TradeExportCapture = React.forwardRef(
         className="w-[1200px] bg-[#0b0b0b] text-white rounded-xl overflow-hidden shadow-2xl border border-white/10"
         style={{ fontFamily: 'AntonLocal, sans-serif' }}
       >
+        {/* 🧾 Header */}
         <div style={{ opacity: 0, position: 'absolute' }}>preload</div>
 
-        {/* Header */}
         <div className="bg-[#111] border-b border-white/10 px-6 py-4 flex justify-between items-center">
           <div className="text-4xl tracking-wider uppercase font-extrabold">
             {label}
@@ -76,7 +77,7 @@ const TradeExportCapture = React.forwardRef(
           <div className="text-sm text-neutral-400">{formattedDate}</div>
         </div>
 
-        {/* Team cards layout */}
+        {/* 🧱 Team Cards */}
         <div className="flex flex-wrap justify-center gap-6 p-6">
           {teams.map((tm, idx) => {
             if (!tm.team) return null;
@@ -88,6 +89,7 @@ const TradeExportCapture = React.forwardRef(
             return (
               <div key={tm.team.id} className="w-[420px] shrink-0">
                 <div className="h-full flex flex-col bg-gradient-to-br from-neutral-800 via-neutral-850 to-neutral-900 border border-neutral-600/30 rounded-3xl shadow-2xl relative overflow-hidden">
+                  {/* 🟥 Top Border Accent */}
                   <div
                     className="absolute top-0 left-0 w-full h-2 z-10"
                     style={{ backgroundColor: primary }}
@@ -95,6 +97,7 @@ const TradeExportCapture = React.forwardRef(
                   <div className="absolute inset-0 bg-gradient-to-br from-white/3 to-transparent"></div>
 
                   <div className="relative z-10 p-6 flex flex-col flex-grow">
+                    {/* 🧢 Team Info */}
                     <div className="text-center pb-4 border-b border-neutral-700/50">
                       <div className="relative mb-3">
                         <div className="absolute inset-0 bg-neutral-700/20 rounded-full blur-lg"></div>
@@ -109,7 +112,7 @@ const TradeExportCapture = React.forwardRef(
                     </div>
 
                     <div className="flex flex-col flex-grow mt-4">
-                      {/* Players Received */}
+                      {/* 🧍 Player Row */}
                       <div
                         ref={(el) => (playerRefs.current[idx] = el)}
                         className="space-y-3"
@@ -137,7 +140,7 @@ const TradeExportCapture = React.forwardRef(
                               return (
                                 <div
                                   key={i}
-                                  className="flex items-center gap-3 bg-neutral-800/40 rounded-xl p-3 border border-neutral-600/20"
+                                  className="flex items-center gap-4 bg-neutral-800/40 rounded-xl px-3 py-2 border border-neutral-600/20"
                                 >
                                   <img
                                     src={headshot}
@@ -146,13 +149,13 @@ const TradeExportCapture = React.forwardRef(
                                       e.target.src =
                                         '/assets/headshots/default.png';
                                     }}
-                                    className="w-12 h-12 object-cover rounded-md bg-neutral-700 shadow-md"
+                                    className="w-14 h-14 object-cover rounded-lg bg-neutral-700 shadow-md"
                                   />
-                                  <div className="flex-1">
-                                    <div className="text-white font-bold text-base">
+                                  <div className="flex flex-col justify-center flex-1 overflow-hidden">
+                                    <div className="text-white font-semibold text-[15px] truncate">
                                       {p.display_name || p.name}
                                     </div>
-                                    <div className="text-neutral-400 text-sm font-medium">
+                                    <div className="text-neutral-400 text-xs font-medium">
                                       {formatSalary(salary)} • {years} yrs
                                     </div>
                                   </div>
@@ -164,7 +167,7 @@ const TradeExportCapture = React.forwardRef(
                                       p.teamAbbr ||
                                       p.bio?.Team
                                     }
-                                    className="w-6 h-6 ml-2 shrink-0"
+                                    className="w-8 h-8 ml-2 shrink-0"
                                   />
                                 </div>
                               );
@@ -177,7 +180,7 @@ const TradeExportCapture = React.forwardRef(
                         </div>
                       </div>
 
-                      {/* Picks Received */}
+                      {/* 🧾 Picks Section */}
                       <div className="mt-6 space-y-3">
                         <h4 className="text-neutral-300 font-semibold text-sm uppercase tracking-wide border-l-4 border-neutral-500 pl-3">
                           Picks Received
@@ -210,7 +213,7 @@ const TradeExportCapture = React.forwardRef(
                         </div>
                       </div>
 
-                      {/* Cap Impact */}
+                      {/* 💰 Cap Impact */}
                       <div className="mt-auto pt-3">
                         <div className="bg-gradient-to-r from-neutral-800/60 to-neutral-700/60 rounded-xl p-3 border border-neutral-600/30 backdrop-blur-sm text-center">
                           <div className="text-neutral-400 text-xs font-medium uppercase tracking-widest mb-1">
@@ -237,7 +240,7 @@ const TradeExportCapture = React.forwardRef(
           })}
         </div>
 
-        {/* Footer */}
+        {/* ✅ Trade Result Footer */}
         {result && (
           <div
             className={`text-center py-3 text-xl font-bold uppercase tracking-wider ${
