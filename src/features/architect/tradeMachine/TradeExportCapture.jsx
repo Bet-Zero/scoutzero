@@ -10,6 +10,12 @@ import {
 } from '@/utils/architect/tradeHelpers';
 import { format } from 'date-fns';
 
+const getPlayerTeamKey = (p) =>
+  p.teamId || p.team || p.teamAbbr || p.bio?.Team || p.originTeamId;
+
+const getPickTeamKey = (p) =>
+  p.fromTeamId || p.teamId || p.team || p.originTeamId;
+
 const TradeExportCapture = React.forwardRef(
   (
     { teams = [], result, yearKey, label = 'Trade Summary', date = new Date() },
@@ -151,7 +157,7 @@ const TradeExportCapture = React.forwardRef(
                                     </div>
                                   </div>
                                   <TeamLogo
-                                    teamId={p.teamId || p.originTeamId}
+                                    teamId={getPlayerTeamKey(p)}
                                     className="w-6 h-6 ml-2 shrink-0"
                                   />
                                 </div>
@@ -179,7 +185,7 @@ const TradeExportCapture = React.forwardRef(
                               >
                                 <span>{formatPick(p)}</span>
                                 <TeamLogo
-                                  teamId={p.fromTeamId || p.originTeamId}
+                                  teamId={getPickTeamKey(p)}
                                   className="w-5 h-5 ml-2 shrink-0"
                                 />
                               </div>
