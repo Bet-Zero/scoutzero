@@ -1,29 +1,71 @@
-import { getSalaryForYear } from '@/utils/architect/tradeHelpers';
-import defaultCapProjections from '@/utils/architect/capProjections';
+// tradeValidator.js - Enhanced Version
 
-// Rule definitions
+// Rule definitions with detailed messages
 const TRADE_RULES = {
   salaryMatching: {
     test: (team, context) => {
       if (team.sends.some((p) => p.acquiredViaTPE)) return true;
-      return (
-        team.salaryIn <=
-        calculateAllowableIncoming(
-          team.totalSalary,
-          team.salaryOut,
-          context.capSettings
-        )
+
+      const allowable = calculateAllowableIncoming(
+        team.totalSalary,
+        team.salaryOut,
+        context.capSettings
       );
+
+      return team.salaryIn <= allowable;
     },
-    message: 'Incoming salary exceeds CBA limits',
+    message: (team, context) => {
+      const allowable = calculateAllowableIncoming(
+        team.totalSalary,
+        team.salaryOut,
+        context.capSettings
+      );
+      return `Incoming salary (${formatCurrency(team.salaryIn)}) exceeds allowable amount (${formatCurrency(allowable)})`;
+    },
   },
+
+  hardCap: {
+    test: (team) => {
+      if (!team.hardCapTriggered) return true;
+      return team.projectedSalary <= team.hardCapLimit;
+    },
+    message: (team) =>
+      `Violates ${team.hardCapTriggered} hard cap by ${formatCurrency(team.projectedSalary - team.hardCapLimit)}`,
+  },
+
+  secondApron: {
+    test: (team) => {
+      if (!team.willBeOverSecond) return true;
+
+      const violations = [];
+
+      // No aggregating multiple players
+      if (team.sends.length > 1) {
+        violations.push("Can't aggregate multiple player salaries");
+      }
+
+      // Can't take back more salary
+      if (team.salaryIn > team.salaryOut) {
+        violations.push("Can't take back more salary than sent out");
+      }
+
+      // No cash considerations
+      if (team.sends.some((p) => p.cashConsideration > 0)) {
+        violations.push("Can't include cash in trades");
+      }
+
+      team.secondApronViolations = violations;
+      return violations.length === 0;
+    },
+    message: (team) => team.secondApronViolations?.join('; ') || '',
+  },
+
   stepienRule: {
     test: (team) => {
       const futureFirsts = [...team.picksOut, ...(team.team.picks || [])]
         .filter((p) => (p.round === '1st' || p.round === 1) && !p.isSwap)
-        .map((p) => parseInt(p.year));
-
-      futureFirsts.sort((a, b) => a - b);
+        .map((p) => parseInt(p.year))
+        .sort((a, b) => a - b);
 
       for (let i = 1; i < futureFirsts.length; i++) {
         if (futureFirsts[i] === futureFirsts[i - 1] + 1) {
@@ -33,56 +75,70 @@ const TRADE_RULES = {
           const pick2 = team.picksOut.find(
             (p) => parseInt(p.year) === futureFirsts[i]
           );
-          if (!pick1?.protection && !pick2?.protection) return false;
+
+          // Both picks must have meaningful protection
+          if (!isMeaningfulProtection(pick1?.protection)) return false;
+          if (!isMeaningfulProtection(pick2?.protection)) return false;
         }
       }
       return true;
     },
     message: 'Violates Stepien Rule (consecutive unprotected future 1sts)',
   },
-  secondApronRestrictions: {
+
+  tradeException: {
     test: (team, context) => {
-      if (!team.willBeOverSecond) return true;
+      return team.sends.every((p) => {
+        if (!p.acquiredViaTPE) return true;
 
-      const violations = [];
-      if (team.sends.length > 1) {
-        violations.push('Cannot aggregate multiple player salaries');
-      }
-      if (team.salaryIn > team.salaryOut) {
-        violations.push('Cannot take back more salary than sent out');
-      }
-      if (team.sends.some((p) => p.cashConsideration > 0)) {
-        violations.push('Cannot include cash in trades');
-      }
+        const tpe = team.team.tradeExceptions?.find((t) => t.id === p.tpeId);
+        if (!tpe) return false;
 
-      return violations.length === 0;
+        const salary =
+          p.contract_clean?.salaries_by_year?.[context.yearKey]?.salary || 0;
+        const expired =
+          tpe.expirationDate && new Date(tpe.expirationDate) < new Date();
+
+        return salary <= tpe.amount && !tpe.isUsed && !expired;
+      });
     },
-    message: (team) => team.secondApronViolations?.join('; ') || '',
+    message: 'Invalid trade exception usage',
   },
 };
 
+// Helper function for Stepien Rule protections
+function isMeaningfulProtection(protection) {
+  if (!protection) return false;
+  // Example - "Top 5 protected" is meaningful
+  return (
+    /top\s*\d+/i.test(protection) ||
+    /lottery/i.test(protection) ||
+    /1-14/i.test(protection)
+  );
+}
+
+// Enhanced validateTrade function
 export function validateTrade({ teams, capProjections, currentYear }) {
   const yearKey = currentYear;
   const capSettings =
-    capProjections[`${currentYear}-${String(currentYear + 1).slice(-2)}`] ||
-    defaultCapProjections;
+    capProjections[`${currentYear}-${String(currentYear + 1).slice(-2)}`] || {};
 
-  // Precompute financials
+  // Precompute all financials and flags
   const teamResults = teams.map((team) => {
     const salaryOut = getSalaryForYear(team.sends, yearKey);
-    const salaryIn = teams.reduce(
-      (sum, t) =>
-        t.team.id === team.team.id
-          ? sum
-          : sum +
-            getSalaryForYear(
-              t.sends.filter((p) => !p.tradeTo || p.tradeTo === team.team.id),
-              yearKey
-            ),
-      0
-    );
+    const salaryIn = teams.reduce((sum, t) => {
+      if (t.team.id === team.team.id) return sum;
+      return (
+        sum +
+        getSalaryForYear(
+          t.sends.filter((p) => !p.tradeTo || p.tradeTo === team.team.id),
+          yearKey
+        )
+      );
+    }, 0);
 
     const projectedSalary = team.team.totalSalary - salaryOut + salaryIn;
+    const hardCapLimit = getHardCapLimit(team.team, capSettings);
 
     return {
       ...team,
@@ -92,30 +148,41 @@ export function validateTrade({ teams, capProjections, currentYear }) {
       overCap: team.team.totalSalary > capSettings.cap,
       willBeOverFirst: projectedSalary > (capSettings.firstApron || Infinity),
       willBeOverSecond: projectedSalary > (capSettings.secondApron || Infinity),
+      hardCapTriggered: team.team.hardCapTriggered,
+      hardCapLimit,
+      overHardCap: hardCapLimit ? projectedSalary > hardCapLimit : false,
       apronStatus: getApronStatus(projectedSalary, capSettings),
     };
   });
 
-  // Apply rules
+  // Apply all rules
   const validatedResults = teamResults.map((team) => {
-    const violations = Object.entries(TRADE_RULES)
-      .filter(
-        ([_, rule]) => !rule.test(team, { teams: teamResults, capSettings })
-      )
-      .map(([_, rule]) =>
-        typeof rule.message === 'function' ? rule.message(team) : rule.message
-      );
+    const violations = [];
+    const checks = {};
+
+    // Test each rule
+    Object.entries(TRADE_RULES).forEach(([ruleName, rule]) => {
+      const passes = rule.test(team, {
+        teams: teamResults,
+        capSettings,
+        yearKey,
+      });
+
+      checks[ruleName] = passes;
+      if (!passes) {
+        violations.push(
+          typeof rule.message === 'function'
+            ? rule.message(team, { teams: teamResults, capSettings })
+            : rule.message
+        );
+      }
+    });
 
     return {
       ...team,
       legal: violations.length === 0,
       violations,
-      checks: Object.fromEntries(
-        Object.keys(TRADE_RULES).map((rule) => [
-          rule,
-          !violations.some((v) => v.includes(TRADE_RULES[rule].message)),
-        ])
-      ),
+      checks,
     };
   });
 
@@ -142,44 +209,7 @@ export function validateTrade({ teams, capProjections, currentYear }) {
     teamResults: validatedResults,
     summaryByTeamIndex,
     reason:
-      validatedResults.flatMap((r) => r.violations).join(' ') ||
-      'Trade complies with CBA rules',
+      validatedResults.flatMap((r) => r.violations).join('; ') ||
+      'Trade complies with all CBA rules',
   };
-}
-
-// Helper functions
-function calculateAllowableIncoming(
-  totalSalary,
-  salaryOut,
-  { cap, firstApron }
-) {
-  const overCap = totalSalary > cap;
-  if (!overCap) return salaryOut + 250000 + Math.max(0, cap - totalSalary);
-  if (salaryOut < 6_530_000) return salaryOut * 1.75 + 100_000;
-  if (salaryOut < 19_600_000) return salaryOut * 1.25 + 100_000;
-  return salaryOut * 1.25;
-}
-
-function getApronStatus(salary, { firstApron, secondApron }) {
-  if (salary > secondApron) return 'Above 2nd Apron';
-  if (salary > firstApron) return 'Above 1st Apron';
-  return 'Below Aprons';
-}
-
-function getIncomingPlayers(teamId, allTeams) {
-  return allTeams
-    .flatMap((t) =>
-      t.team.id === teamId
-        ? []
-        : t.sends.filter((p) => !p.tradeTo || p.tradeTo === teamId)
-    )
-    .map((p) => p.name);
-}
-
-function getIncomingPicks(teamId, allTeams) {
-  return allTeams.flatMap((t) =>
-    t.team.id === teamId
-      ? []
-      : t.picksOut.filter((p) => !p.toTeamId || p.toTeamId === teamId)
-  );
 }
