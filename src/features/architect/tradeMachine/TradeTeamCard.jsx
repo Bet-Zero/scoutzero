@@ -1,4 +1,3 @@
-// TradeTeamCard.jsx
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { getTeamColors } from '@/utils/formatting';
 import { getSalaryForYear, formatPick } from '@/utils/architect/tradeHelpers';
@@ -9,6 +8,7 @@ import { OutgoingPlayersList } from './OutgoingPlayersList';
 import { OutgoingPicksList } from './OutgoingPicksList';
 import TeamSelectDropdown from '@/components/shared/TeamSelectDropdown';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import TradeExceptionManager from './TradeExceptionManager';
 
 const TradeTeamCard = ({
   team,
@@ -25,6 +25,7 @@ const TradeTeamCard = ({
   onEditPick,
   onSelectTeam,
   onRemove,
+  onApplyTradeException,
 }) => {
   const [activeTab, setActiveTab] = useState('players');
   const [editingTeam, setEditingTeam] = useState(false);
@@ -43,17 +44,37 @@ const TradeTeamCard = ({
     }
   }, [editingTeam]);
 
+  // Filter available players (not in sends)
+  const availablePlayers = useMemo(
+    () =>
+      (team?.players || []).filter(
+        (p) => !sends.some((s) => s.player_id === p.player_id)
+      ),
+    [team?.players, sends]
+  );
+
+  // Filter incoming players (not already on team)
+  const filteredIncomingPlayers = useMemo(
+    () =>
+      incomingPlayers.filter(
+        (p) => !team?.players?.some((tp) => tp.player_id === p.player_id)
+      ),
+    [incomingPlayers, team?.players]
+  );
+
   // Memoized calculations
   const outgoingSalary = useMemo(
     () => getSalaryForYear(sends, yearKey),
     [sends, yearKey]
   );
+
   const incomingSalary = useMemo(
     () => getSalaryForYear(incomingPlayers, yearKey),
     [incomingPlayers, yearKey]
   );
+
   const { primary, secondary } = useMemo(
-    () => getTeamColors(team?.id),
+    () => getTeamColors(team?.id) || {},
     [team?.id]
   );
 
@@ -67,6 +88,34 @@ const TradeTeamCard = ({
     [team, picks, incomingPicks]
   );
 
+  const tpeEligiblePlayers = useMemo(() => {
+    if (!team) return [];
+    return incomingPlayers.filter((player) => {
+      const playerSalary =
+        player.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0;
+      return (team.tradeExceptions || []).some(
+        (tpe) =>
+          !tpe.isUsed &&
+          playerSalary <= tpe.amount &&
+          (!tpe.expirationDate || new Date(tpe.expirationDate) > new Date())
+      );
+    });
+  }, [incomingPlayers, team?.tradeExceptions, yearKey]);
+
+  // Modified player trade handler to support multiple selections
+  const handleSetPlayerTrade = (player, targetTeamId) => {
+    if (onSetPlayerTrade) {
+      onSetPlayerTrade(player, targetTeamId);
+    }
+  };
+
+  // Modified undo trade handler
+  const handleUndoPlayerTrade = (player) => {
+    if (onUndoPlayerTrade) {
+      onUndoPlayerTrade(player);
+    }
+  };
+
   if (!team) {
     return <SelectTeamCard onSelectTeam={onSelectTeam} onRemove={onRemove} />;
   }
@@ -74,7 +123,7 @@ const TradeTeamCard = ({
   return (
     <div
       className="flex-1 rounded-lg p-4 bg-[#111] relative space-y-4 shadow-inner border"
-      style={{ borderColor: primary }}
+      style={{ borderColor: primary || 'transparent' }}
     >
       {/* Team Header */}
       <div className="relative flex items-center justify-between border-b border-white/10 pb-2">
@@ -107,7 +156,7 @@ const TradeTeamCard = ({
       />
 
       <div className="space-y-1">
-        {/* Outgoing */}
+        {/* Outgoing section */}
         <div>
           <button
             onClick={() => setShowOutgoing((prev) => !prev)}
@@ -125,13 +174,13 @@ const TradeTeamCard = ({
             <div className="flex flex-wrap gap-2 mt-1 px-1">
               {sends.map((p) => (
                 <span
-                  key={p.id || p.name}
+                  key={p.player_id || p.id}
                   className="bg-[#2a2a2a] text-white/90 text-[11px] px-2 py-0.5 rounded-full border border-white/10 flex items-center gap-1"
                 >
                   {p.name}
                   {onUndoPlayerTrade && (
                     <button
-                      onClick={() => onUndoPlayerTrade(p)}
+                      onClick={() => handleUndoPlayerTrade(p)}
                       className="ml-1 text-white/50 hover:text-white"
                     >
                       ✕
@@ -153,7 +202,7 @@ const TradeTeamCard = ({
           )}
         </div>
 
-        {/* Incoming */}
+        {/* Incoming section */}
         <div>
           <button
             onClick={() => setShowIncoming((prev) => !prev)}
@@ -171,13 +220,13 @@ const TradeTeamCard = ({
             <div className="flex flex-wrap gap-2 mt-1 px-1">
               {incomingPlayers.map((p) => (
                 <span
-                  key={p.id || p.name}
+                  key={p.player_id || p.id}
                   className="bg-[#2a2a2a] text-white/90 text-[11px] px-2 py-0.5 rounded-full border border-white/10 flex items-center gap-1"
                 >
                   {p.name}
                   {onUndoPlayerTrade && (
                     <button
-                      onClick={() => onUndoPlayerTrade(p)}
+                      onClick={() => handleUndoPlayerTrade(p)}
                       className="ml-1 text-white/50 hover:text-white"
                     >
                       ✕
@@ -198,6 +247,7 @@ const TradeTeamCard = ({
         </div>
       </div>
 
+      {/* Tabs */}
       <div className="flex gap-4 text-sm border-b border-white/10 pb-1">
         <button
           className={`pb-1 ${
@@ -217,18 +267,31 @@ const TradeTeamCard = ({
         >
           Picks ({picksCount})
         </button>
+        <button
+          className={`pb-1 ${
+            activeTab === 'exceptions'
+              ? 'text-white border-b-2'
+              : 'text-white/60'
+          }`}
+          style={activeTab === 'exceptions' ? { borderColor: primary } : {}}
+          onClick={() => setActiveTab('exceptions')}
+        >
+          Exceptions ({team.tradeExceptions?.length || 0})
+        </button>
       </div>
 
       {activeTab === 'players' && (
         <OutgoingPlayersList
           team={team}
+          players={availablePlayers}
           sends={sends}
-          incomingPlayers={incomingPlayers}
+          incomingPlayers={filteredIncomingPlayers}
           yearKey={yearKey}
           otherTeams={otherTeams}
           playersMap={playersMap}
-          onSetPlayerTrade={onSetPlayerTrade}
-          onUndoPlayerTrade={onUndoPlayerTrade}
+          onSetPlayerTrade={handleSetPlayerTrade}
+          onUndoPlayerTrade={handleUndoPlayerTrade}
+          tradeExceptions={team.tradeExceptions}
         />
       )}
 
@@ -242,6 +305,19 @@ const TradeTeamCard = ({
         />
       )}
 
+      {activeTab === 'exceptions' && team.tradeExceptions?.length > 0 && (
+        <TradeExceptionManager
+          exceptions={team.tradeExceptions}
+          teamId={team.id}
+          eligiblePlayers={tpeEligiblePlayers}
+          onApplyException={(tpe) => {
+            if (tpeEligiblePlayers.length > 0) {
+              onApplyTradeException(tpeEligiblePlayers[0], tpe);
+            }
+          }}
+        />
+      )}
+
       {(incomingPlayers.length > 0 || incomingPicks.length > 0) && (
         <div
           className="bg-[#222] border rounded p-3 text-sm"
@@ -250,7 +326,7 @@ const TradeTeamCard = ({
           <h4 className="text-white/70 text-sm mb-2">Incoming</h4>
           <div className="text-white/90">
             {incomingPlayers.map((p) => (
-              <div key={p.id || p.name} className="mb-1">
+              <div key={p.player_id || p.id} className="mb-1">
                 • {p.name}
               </div>
             ))}

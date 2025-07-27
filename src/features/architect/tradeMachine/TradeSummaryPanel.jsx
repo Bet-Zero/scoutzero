@@ -1,5 +1,3 @@
-// TradeSummaryPanel.jsx
-
 import React from 'react';
 import { formatCurrency } from '@/utils/architect/tradeHelpers';
 
@@ -12,12 +10,22 @@ const getPickLabel = (p) => {
   return label;
 };
 
+const RuleExplanation = ({ rule, description }) => (
+  <div className="mt-2 p-2 bg-[#222] rounded border border-white/10">
+    <strong className="text-sm">{rule}:</strong>
+    <p className="text-xs text-white/80 mt-1">{description}</p>
+  </div>
+);
+
 const TradeSummaryPanel = ({ result, teams, forceTrade }) => {
   if (!result) return null;
 
   const illegalTeams = new Set(
     (result.teamResults || []).filter((t) => !t.legal).map((t) => t.teamName)
   );
+
+  const violatedRules =
+    result.teamResults?.flatMap((tr) => (!tr.legal ? tr.reasons : [])) || [];
 
   return (
     <div className="mt-6 text-sm border-t border-white/10 pt-4 space-y-6">
@@ -41,6 +49,7 @@ const TradeSummaryPanel = ({ result, teams, forceTrade }) => {
           if (!t) return null;
 
           const isIllegal = illegalTeams.has(t.teamName);
+          const teamResult = result.teamResults[i];
 
           return (
             <div
@@ -113,20 +122,54 @@ const TradeSummaryPanel = ({ result, teams, forceTrade }) => {
                   {formatCurrency(t.capDelta)}
                 </span>
               </div>
+
+              {teamResult && (
+                <div className="text-xs mt-2">
+                  <div>Status: {teamResult.apronStatus}</div>
+                  <div>
+                    Projected Total:{' '}
+                    {formatCurrency(teamResult.projectedSalary)}
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}
       </div>
 
-      {/* Per-Team Legal Status (Summary) */}
-      <div className="space-y-1 text-white/80 text-sm">
-        <h4 className="font-semibold text-sm mt-2">CBA Validation:</h4>
-        {result.teamResults?.map((tr, i) => (
-          <p key={i}>
-            <strong>{tr.teamName || `Team ${i + 1}`}:</strong>{' '}
-            {tr.legal ? '✅ Legal' : `❌ ${tr.reason}`}
-          </p>
-        ))}
+      {/* Rule Explanations */}
+      {violatedRules.length > 0 && (
+        <div className="space-y-2">
+          <h4 className="font-semibold">CBA Rule Violations:</h4>
+          {violatedRules.map((rule, i) => (
+            <div key={i} className="text-red-400 text-sm">
+              • {rule}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Rule Reference */}
+      <div className="border-t border-white/10 pt-4">
+        <h4 className="font-semibold mb-2">CBA Rules Reference:</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <RuleExplanation
+            rule="Salary Matching (Over Cap)"
+            description="Teams over the cap can take back 125% of outgoing salary + $100k (up to $6.5M outgoing), 175% + $100k (under $6.5M), or just 125% (over $19.6M)"
+          />
+          <RuleExplanation
+            rule="Second Apron Restrictions"
+            description="Teams above the second apron cannot aggregate salaries in trades, take back more salary than they send, or include cash in trades"
+          />
+          <RuleExplanation
+            rule="Sign-and-Trade"
+            description="Sign-and-trade players must be traded alone, and receiving team cannot be above the first apron"
+          />
+          <RuleExplanation
+            rule="Stepien Rule"
+            description="Teams cannot trade consecutive future first-round picks unless protected"
+          />
+        </div>
       </div>
     </div>
   );
