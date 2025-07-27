@@ -28,21 +28,24 @@ export const OutgoingPlayersList = ({
   const available = useMemo(
     () => [
       ...incomingPlayers,
-      ...(team.players || []).filter((p) => !sends.includes(p)),
+      ...(team.players || []).filter(
+        (p) =>
+          !sends.some((s) => (s.id || s.player_id) === (p.id || p.player_id))
+      ),
     ],
     [team.players, sends, incomingPlayers]
   );
 
   const incomingSet = useMemo(
-    () => new Set(incomingPlayers),
+    () => new Set(incomingPlayers.map((p) => p.id || p.player_id)),
     [incomingPlayers]
   );
 
   // Memoized sorted list
   const sortedAvailable = useMemo(() => {
     return available.slice().sort((a, b) => {
-      const inA = incomingSet.has(a);
-      const inB = incomingSet.has(b);
+      const inA = incomingSet.has(a.id || a.player_id);
+      const inB = incomingSet.has(b.id || b.player_id);
       if (inA && !inB) return -1;
       if (inB && !inA) return 1;
 
@@ -71,8 +74,10 @@ export const OutgoingPlayersList = ({
           <TradePlayerRow
             key={p.id || p.name}
             player={p}
-            included={sends.includes(p)}
-            incoming={incomingSet.has(p)}
+            included={sends.some(
+              (s) => (s.id || s.player_id) === (p.id || p.player_id)
+            )}
+            incoming={incomingSet.has(p.id || p.player_id)}
             yearKey={yearKey}
             otherTeams={otherTeams}
             playersMap={playersMap}
