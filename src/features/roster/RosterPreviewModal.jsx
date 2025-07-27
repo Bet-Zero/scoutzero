@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { X } from 'lucide-react';
-import { toPng } from 'html-to-image';
+import useImageDownload from '@/hooks/useImageDownload';
 import RosterExportCapture from './RosterExportCapture';
 import { getTeamColors } from '@/utils/formatting/teamColors';
 import { getTeamLogoFilename } from '@/utils/formatting/teamLogos';
@@ -12,35 +12,9 @@ const RosterPreviewModal = ({ open, onClose, roster, team }) => {
   const exportRef = useRef(null); // ✅ used for PNG export
   const { primary, secondary } = getTeamColors(team?.id);
 
-  const handleDownload = async () => {
-    if (!exportRef.current) return;
-
-    try {
-      const font = new FontFace(
-        'AntonLocal',
-        `url('${import.meta.env.BASE_URL}fonts/Anton.woff2') format('woff2')`,
-        { display: 'swap' }
-      );
-      await font.load();
-      document.fonts.add(font);
-      await document.fonts.load('1em AntonLocal');
-      await document.fonts.ready;
-      await new Promise((r) => requestAnimationFrame(r));
-      await new Promise((r) => setTimeout(r, 100));
-
-      const dataUrl = await toPng(exportRef.current, {
-        cacheBust: true,
-        skipFonts: true,
-        pixelRatio: 3,
-      });
-
-      const link = document.createElement('a');
-      link.download = `${team?.nickname || 'roster'}.png`;
-      link.href = dataUrl;
-      link.click();
-    } catch (err) {
-      console.error('Export failed:', err);
-    }
+  const downloadImage = useImageDownload(exportRef);
+  const handleDownload = () => {
+    downloadImage(`${team?.nickname || 'roster'}.png`, { pixelRatio: 3 });
   };
 
   return (
@@ -67,7 +41,7 @@ const RosterPreviewModal = ({ open, onClose, roster, team }) => {
         >
           <div
             className="rounded-2xl w-full h-full border border-white/20 shadow-2xl bg-neutral-900 relative overflow-hidden"
-            style={{ fontFamily: 'AntonLocal, sans-serif' }}
+            style={{ fontFamily: 'AntonLocal, AntonBase64, sans-serif' }}
           >
             {/* Close Button */}
             <button
@@ -92,7 +66,7 @@ const RosterPreviewModal = ({ open, onClose, roster, team }) => {
               style={{
                 opacity: 0,
                 position: 'absolute',
-                fontFamily: 'AntonLocal, sans-serif',
+                fontFamily: 'AntonLocal, AntonBase64, sans-serif',
               }}
             >
               preload
@@ -103,7 +77,7 @@ const RosterPreviewModal = ({ open, onClose, roster, team }) => {
               <h2
                 className="w-full text-center text-7xl font-black uppercase leading-none"
                 style={{
-                  fontFamily: 'AntonLocal, sans-serif',
+                  fontFamily: 'AntonLocal, AntonBase64, sans-serif',
                   color: '#1e1e1e',
                   textShadow: `0 0 8px ${primary}, 0 0 16px ${secondary}`,
                 }}
