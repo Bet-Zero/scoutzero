@@ -77,7 +77,10 @@ export const useTradeMachine = (
       setTeams((prev) => {
         const newTeams = [...prev];
         const team = newTeams[index];
-        const playerIndex = team.sends.findIndex((p) => p.id === player.id);
+        const playerId = player.id || player.player_id;
+        const playerIndex = team.sends.findIndex(
+          (p) => (p.id || p.player_id) === playerId
+        );
 
         switch (action) {
           case 'trade':
@@ -87,7 +90,11 @@ export const useTradeMachine = (
                 { ...player, tradeTo: destTeamId, signAndTrade: false },
               ];
             } else {
-              newTeams[index].sends[playerIndex].tradeTo = destTeamId;
+              newTeams[index].sends[playerIndex] = {
+                ...newTeams[index].sends[playerIndex],
+                tradeTo: destTeamId,
+                signAndTrade: false,
+              };
             }
             break;
 
@@ -98,13 +105,17 @@ export const useTradeMachine = (
                 { ...player, tradeTo: destTeamId, signAndTrade: true },
               ];
             } else {
-              newTeams[index].sends[playerIndex].signAndTrade = true;
+              newTeams[index].sends[playerIndex] = {
+                ...newTeams[index].sends[playerIndex],
+                tradeTo: destTeamId,
+                signAndTrade: true,
+              };
             }
             break;
 
           case 'keep':
             newTeams[index].sends = team.sends.filter(
-              (p) => p.id !== player.id
+              (p) => (p.id || p.player_id) !== playerId
             );
             break;
         }
@@ -241,7 +252,9 @@ export const useTradeMachine = (
     setTeams((prev) =>
       prev.map((t) => ({
         ...t,
-        sends: t.sends.filter((p) => p.id !== player.id),
+        sends: t.sends.filter(
+          (p) => (p.id || p.player_id) !== (player.id || player.player_id)
+        ),
       }))
     );
   }, []);
