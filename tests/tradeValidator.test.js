@@ -1,3 +1,4 @@
+// tradeValidator.test.js
 import { describe, it, expect } from 'vitest';
 import { validateTrade } from '../src/utils/architect/tradeMachine/tradeValidator.js';
 import capProjections from '../src/utils/architect/capProjections.js';
@@ -10,12 +11,13 @@ const makePlayer = (name, salary, signAndTrade = false) => ({
   contract_clean: { salaries_by_year: { [currentYear]: { salary } } },
 });
 
-const makeTeam = (name, totalSalary, rosterSize = 14) => ({
+const makeTeam = (name, totalSalary, rosterSize = 14, picks = []) => ({
   teamName: name,
   totalSalary,
   players: Array.from({ length: rosterSize }, (_, i) =>
     makePlayer(`${name}${i}`, 1_000_000)
   ),
+  picks,
 });
 
 describe('tradeValidator', () => {
@@ -94,7 +96,10 @@ describe('tradeValidator', () => {
   });
 
   it('detects Stepien Rule violations', () => {
-    const teamA = makeTeam('A', 100_000_000);
+    const teamA = makeTeam('A', 100_000_000, 14, [
+      { year: 2027, round: '1st' },
+      { year: 2028, round: '1st' },
+    ]);
     const teamB = makeTeam('B', 100_000_000);
 
     const result = validateTrade({
@@ -121,6 +126,75 @@ describe('tradeValidator', () => {
     expect(result.teamResults[0].checks.stepien).toBe(false);
     expect(result.teamResults[1].checks.stepien).toBe(true);
   });
+
+  it('allows protected picks to bypass Stepien Rule', () => {
+    const teamA = makeTeam('A', 100_000_000);
+    const teamB = makeTeam('B', 100_000_000);
+
+    const result = validateTrade({
+      teams: [
+        {
+          team: teamA,
+          sends: [],
+          picksOut: [
+            { year: 2027, round: '1st', protection: 'Top 5' },
+            { year: 2028, round: '1st' },
+          ],
+        },
+        { team: teamB, sends: [], picksOut: [] },
+      ],
+      capProjections,
+      currentYear,
+    });
+
+    expect(result.overallLegal).toBe(true);
+  });
+
+  it('enforces second apron restrictions', () => {
+    const teamA = makeTeam('A', 190_000_000); // Above 2nd apron
+    const teamB = makeTeam('B', 100_000_000);
+    const aPlayer1 = makePlayer('A1', 10_000_000);
+    const aPlayer2 = makePlayer('A2', 5_000_000);
+    const bPlayer = makePlayer('B1', 15_000_000);
+    teamA.players.push(aPlayer1, aPlayer2);
+    teamB.players.push(bPlayer);
+
+    const result = validateTrade({
+      teams: [
+        { team: teamA, sends: [aPlayer1, aPlayer2], picksOut: [] },
+        { team: teamB, sends: [bPlayer], picksOut: [] },
+      ],
+      capProjections,
+      currentYear,
+    });
+
+    expect(result.overallLegal).toBe(false);
+    expect(result.teamResults[0].legal).toBe(false);
+    expect(result.teamResults[0].reason).toContain(
+      '2nd Apron: Cannot aggregate multiple salaries'
+    );
+  });
+
+  it('handles 3-team trades correctly', () => {
+    const teamA = makeTeam('A', 100_000_000);
+    const teamB = makeTeam('B', 100_000_000);
+    const teamC = makeTeam('C', 100_000_000);
+
+    const result = validateTrade({
+      teams: [
+        { team: teamA, sends: [makePlayer('A1', 10_000_000)], picksOut: [] },
+        { team: teamB, sends: [makePlayer('B1', 5_000_000)], picksOut: [] },
+        { team: teamC, sends: [makePlayer('C1', 5_000_000)], picksOut: [] },
+      ],
+      capProjections,
+      currentYear,
+    });
+
+    expect(result.overallLegal).toBe(true);
+    expect(result.summaryByTeamIndex[0].playersIn.length).toBe(2);
+    expect(result.summaryByTeamIndex[1].playersIn.length).toBe(1);
+  });
+
   it('provides summary and financial deltas', () => {
     const teamA = makeTeam('A', 100_000_000);
     const teamB = makeTeam('B', 100_000_000);
