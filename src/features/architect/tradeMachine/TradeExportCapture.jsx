@@ -90,7 +90,9 @@ const TradeExportCapture = React.forwardRef(
           {teams.map((tm, idx) => {
             if (!tm.team) return null;
             const { players, picks } = incomingAssets[idx] || {};
-            const summary = result?.summaryByTeamIndex?.[idx];
+            const summary = result?.summaryByTeamIndex?.find(
+              (s) => s.teamName === tm.team.teamName
+            );
             const capDelta = summary?.capDelta || 0;
             const { primary } = getTeamColors(tm.team.id) || {};
 

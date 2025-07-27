@@ -42,7 +42,6 @@ const TradeSummaryPanel = ({ result, teams, forceTrade }) => {
           {result.reason || 'Trade complies with all CBA rules.'}
         </p>
       </div>
-
       {/* Team Summaries */}
       <div className="grid md:grid-cols-2 gap-4">
         {result.summaryByTeamIndex?.map((t, i) => {
@@ -136,19 +135,20 @@ const TradeSummaryPanel = ({ result, teams, forceTrade }) => {
           );
         })}
       </div>
-
       {/* Rule Explanations */}
       {violatedRules.length > 0 && (
-        <div className="space-y-2">
-          <h4 className="font-semibold">CBA Rule Violations:</h4>
-          {violatedRules.map((rule, i) => (
-            <div key={i} className="text-red-400 text-sm">
-              • {rule}
-            </div>
-          ))}
+        <div className="space-y-2 p-4 bg-red-900/20 rounded border border-red-500">
+          <h4 className="font-semibold text-red-300">CBA Rule Violations:</h4>
+          <ul className="space-y-2">
+            {violatedRules.map((rule, i) => (
+              <li key={i} className="flex items-start">
+                <span className="text-red-400 mr-2">•</span>
+                <span className="text-red-300 text-sm">{rule}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
-
       {/* Rule Reference */}
       <div className="border-t border-white/10 pt-4">
         <h4 className="font-semibold mb-2">CBA Rules Reference:</h4>
