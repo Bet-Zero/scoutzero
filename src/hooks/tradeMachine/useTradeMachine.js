@@ -1,4 +1,3 @@
-// useTradeMachine.js
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { validateTrade } from '@/utils/architect/tradeMachine/tradeValidator';
 import { loadTeamCapSheet } from '@/utils/architect/firebaseTeamPlanHelpers';
@@ -11,12 +10,14 @@ export const useTradeMachine = (
   currentYear,
   primaryTeamData = null
 ) => {
+  // Main state
   const [teams, setTeams] = useState([]);
   const [result, setResult] = useState(null);
   const [forceTrade, setForceTrade] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const yearKey = currentYear;
 
-  // Memoized team calculations
+  // Memoized calculations
   const incomingAssets = useMemo(() => {
     return teams.map((tm, idx) => {
       const players = [];
@@ -25,12 +26,12 @@ export const useTradeMachine = (
         if (j !== idx && t.team) {
           t.sends.forEach((p) => {
             if (!p.tradeTo || p.tradeTo === tm.team?.id) {
-              players.push(p);
+              players.push({ ...p, fromTeamId: t.team.id });
             }
           });
           t.picksOut.forEach((p) => {
             if (!p.toTeamId || p.toTeamId === tm.team?.id) {
-              picks.push(p);
+              picks.push({ ...p, fromTeamId: t.team.id });
             }
           });
         }
@@ -44,16 +45,25 @@ export const useTradeMachine = (
     [teams, yearKey]
   );
 
+  // Initialize teams
   useEffect(() => {
     const init = async () => {
-      if (!primaryTeam || typeof primaryTeam !== 'string') return;
+      if (!primaryTeam) return;
 
       const baseTeam = TeamMap[primaryTeam];
       const data = primaryTeamData || (await loadTeamCapSheet(primaryTeam));
 
       if (baseTeam && data) {
         setTeams([
-          { team: { ...baseTeam, ...data }, sends: [], picksOut: [] },
+          {
+            team: {
+              ...baseTeam,
+              ...data,
+              tradeExceptions: data.tradeExceptions || [],
+            },
+            sends: [],
+            picksOut: [],
+          },
           { team: null, sends: [], picksOut: [] },
         ]);
       }
@@ -61,37 +71,45 @@ export const useTradeMachine = (
     init();
   }, [primaryTeam, primaryTeamData]);
 
-  useEffect(() => {
-    if (!primaryTeamData || teams.length === 0) return;
-    setTeams((prev) => {
-      const copy = [...prev];
-      copy[0] = { ...copy[0], team: { ...copy[0].team, ...primaryTeamData } };
-      return copy;
-    });
-  }, [primaryTeamData]);
-
+  // Core trade actions
   const setPlayerTrade = useCallback(
-    (index, player, action, destTeamId = null, flag = false) => {
+    (index, player, action, destTeamId = null) => {
       setTeams((prev) => {
-        const copy = [...prev];
-        const list = copy[index].sends;
-        const exists = list.includes(player);
+        const newTeams = [...prev];
+        const team = newTeams[index];
+        const playerIndex = team.sends.findIndex((p) => p.id === player.id);
 
-        if (action === 'trade' && !exists) {
-          player.signAndTrade = false;
-          player.tradeTo = destTeamId;
-          copy[index].sends = [...list, player];
-        } else if (action === 'trade' && exists) {
-          player.tradeTo = destTeamId;
-          copy[index].sends = list;
-        } else if (action === 'keep' && exists) {
-          player.signAndTrade = false;
-          player.tradeTo = null;
-          copy[index].sends = list.filter((i) => i !== player);
-        } else if (action === 'signAndTrade' && exists) {
-          player.signAndTrade = flag;
+        switch (action) {
+          case 'trade':
+            if (playerIndex === -1) {
+              newTeams[index].sends = [
+                ...team.sends,
+                { ...player, tradeTo: destTeamId, signAndTrade: false },
+              ];
+            } else {
+              newTeams[index].sends[playerIndex].tradeTo = destTeamId;
+            }
+            break;
+
+          case 'signAndTrade':
+            if (playerIndex === -1) {
+              newTeams[index].sends = [
+                ...team.sends,
+                { ...player, tradeTo: destTeamId, signAndTrade: true },
+              ];
+            } else {
+              newTeams[index].sends[playerIndex].signAndTrade = true;
+            }
+            break;
+
+          case 'keep':
+            newTeams[index].sends = team.sends.filter(
+              (p) => p.id !== player.id
+            );
+            break;
         }
-        return copy;
+
+        return newTeams;
       });
     },
     []
@@ -99,33 +117,46 @@ export const useTradeMachine = (
 
   const togglePick = useCallback((index, pick) => {
     setTeams((prev) => {
-      const copy = [...prev];
-      const list = copy[index].picksOut;
-      const exists = list.some((p) => areSamePick(p, pick));
-      copy[index].picksOut = exists
-        ? list.filter((i) => !areSamePick(i, pick))
-        : [...list, { ...pick }];
-      return copy;
+      const newTeams = [...prev];
+      const existingIndex = newTeams[index].picksOut.findIndex((p) =>
+        areSamePick(p, pick)
+      );
+
+      if (existingIndex >= 0) {
+        newTeams[index].picksOut.splice(existingIndex, 1);
+      } else {
+        newTeams[index].picksOut = [
+          ...newTeams[index].picksOut,
+          { ...pick, fromTeamId: newTeams[index].team?.id },
+        ];
+      }
+
+      return newTeams;
     });
   }, []);
 
   const updatePickField = useCallback((index, pick, field, value) => {
     setTeams((prev) => {
-      const copy = [...prev];
-      const pickObj = copy[index].picksOut.find((p) => areSamePick(p, pick));
-      if (pickObj) {
-        pickObj[field] = value;
+      const newTeams = [...prev];
+      const pickIndex = newTeams[index].picksOut.findIndex((p) =>
+        areSamePick(p, pick)
+      );
+
+      if (pickIndex >= 0) {
+        newTeams[index].picksOut[pickIndex][field] = value;
       }
-      return copy;
+
+      return newTeams;
     });
   }, []);
 
+  // Team management
   const selectTeam = useCallback(async (index, teamId) => {
     if (!teamId) {
       setTeams((prev) => {
-        const copy = [...prev];
-        copy[index] = { team: null, sends: [], picksOut: [] };
-        return copy;
+        const newTeams = [...prev];
+        newTeams[index] = { team: null, sends: [], picksOut: [] };
+        return newTeams;
       });
       return;
     }
@@ -135,152 +166,120 @@ export const useTradeMachine = (
 
     if (baseTeam && data) {
       setTeams((prev) => {
-        const copy = [...prev];
-        copy[index] = {
-          team: { ...baseTeam, ...data },
+        const newTeams = [...prev];
+        newTeams[index] = {
+          team: {
+            ...baseTeam,
+            ...data,
+            tradeExceptions: data.tradeExceptions || [],
+          },
           sends: [],
           picksOut: [],
         };
-        return copy;
+        return newTeams;
       });
     }
   }, []);
 
   const addTeam = useCallback(() => {
     if (teams.length >= 5) return;
-    setTeams([...teams, { team: null, sends: [], picksOut: [] }]);
-  }, [teams]);
+    setTeams((prev) => [...prev, { team: null, sends: [], picksOut: [] }]);
+  }, [teams.length]);
 
   const removeTeam = useCallback((index) => {
     setTeams((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
+  // Trade validation and execution
   const handleValidate = useCallback(() => {
-    if (teams.length < 2 || !teams[0].team || !teams[1].team) return;
-
-    const preparedTeams = teams
-      .map((t) =>
-        t.team
-          ? {
-              team: t.team,
-              sends: t.sends.map((p) => ({
-                ...p,
-                signAndTrade: !!p.signAndTrade,
-              })),
-              picksOut: t.picksOut,
-              hardCapped: t.team.hardCapped,
-            }
-          : null
-      )
-      .filter(Boolean);
+    if (teams.filter((t) => t.team).length < 2) return;
 
     const validation = validateTrade({
-      teams: preparedTeams,
+      teams: teams
+        .filter((t) => t.team)
+        .map((t) => ({
+          team: t.team,
+          sends: t.sends,
+          picksOut: t.picksOut,
+          hardCapped: t.team.hardCapped,
+        })),
       capProjections,
       currentYear,
     });
 
-    const getSalary = (players) => getSalaryForYear(players, yearKey);
-
-    let summary = null;
-    if (preparedTeams.length === 2) {
-      const a = preparedTeams[0];
-      const b = preparedTeams[1];
-      summary = {
-        teamAOut: a.sends.map((p) => p.name),
-        teamBOut: b.sends.map((p) => p.name),
-        teamASalaryOut: getSalary(a.sends),
-        teamBSalaryOut: getSalary(b.sends),
-        teamASalaryIn: getSalary(b.sends),
-        teamBSalaryIn: getSalary(a.sends),
-      };
-    }
-
-    const finalResult = {
+    setResult({
       ...validation,
-      summary,
       legal: forceTrade ? true : validation.overallLegal,
-    };
-
-    setResult(finalResult);
-  }, [teams, capProjections, currentYear, forceTrade, yearKey]);
+    });
+    setPreviewOpen(true);
+  }, [teams, capProjections, currentYear, forceTrade]);
 
   const exportCurrentTrade = useCallback(() => {
-    if (teams.length < 2) return null;
-
-    const result = teams.map((t, idx) => {
-      if (!t.team) return null;
-
-      const incomingPlayers = [];
-      const incomingPicks = [];
-
-      teams.forEach((other, j) => {
-        if (j !== idx && other.team) {
-          other.sends.forEach((p) => {
-            if (
-              !p.tradeTo ||
-              p.tradeTo === t.team.id ||
-              p.tradeTo === t.team.teamId
-            ) {
-              incomingPlayers.push(p);
-            }
-          });
-          other.picksOut.forEach((p) => {
-            if (
-              !p.toTeamId ||
-              p.toTeamId === t.team.id ||
-              p.toTeamId === t.team.teamId
-            ) {
-              incomingPicks.push(p);
-            }
-          });
-        }
-      });
-
-      return {
-        teamId: t.team.teamId || t.team.id,
-        incoming: incomingPlayers,
-        outgoing: t.sends,
-        picksIn: incomingPicks,
-        picksOut: t.picksOut,
-      };
-    });
-
-    return result.filter(Boolean);
-  }, [teams]);
+    return teams
+      .filter((t) => t.team)
+      .map((t) => ({
+        teamId: t.team.id,
+        outgoingPlayers: t.sends,
+        outgoingPicks: t.picksOut,
+        incomingPlayers:
+          incomingAssets.find((a) => a.teamId === t.team.id)?.players || [],
+        incomingPicks:
+          incomingAssets.find((a) => a.teamId === t.team.id)?.picks || [],
+        usedTradeExceptions: t.sends
+          .filter((p) => p.acquiredViaTPE)
+          .map((p) => p.tpeId),
+      }));
+  }, [teams, incomingAssets]);
 
   const resetTrade = useCallback(() => {
-    setTeams((prev) =>
-      prev.map((t) => ({
-        ...t,
-        sends: [],
-        picksOut: [],
-      }))
-    );
+    setTeams((prev) => prev.map((t) => ({ ...t, sends: [], picksOut: [] })));
     setResult(null);
     setForceTrade(false);
   }, []);
 
   const undoPlayerTrade = useCallback((player) => {
-    setTeams((prev) => {
-      const copy = [...prev];
-      for (let i = 0; i < copy.length; i++) {
-        const list = copy[i].sends;
-        if (list.includes(player)) {
-          player.signAndTrade = false;
-          player.tradeTo = null;
-          copy[i].sends = list.filter((p) => p !== player);
-          break;
-        }
-      }
-      return copy;
-    });
+    setTeams((prev) =>
+      prev.map((t) => ({
+        ...t,
+        sends: t.sends.filter((p) => p.id !== player.id),
+      }))
+    );
+  }, []);
+
+  const applyTradeException = useCallback((teamIndex, player, tpe) => {
+    setTeams((prev) =>
+      prev.map((t, i) => {
+        if (i !== teamIndex) return t;
+
+        return {
+          ...t,
+          sends: [
+            ...t.sends,
+            {
+              ...player,
+              acquiredViaTPE: true,
+              tpeId: tpe.id,
+              tradeTo: t.team.id,
+            },
+          ],
+          team: {
+            ...t.team,
+            tradeExceptions:
+              t.team.tradeExceptions?.map((te) =>
+                te.id === tpe.id ? { ...te, isUsed: true } : te
+              ) || [],
+          },
+        };
+      })
+    );
   }, []);
 
   return {
     teams,
     result,
     forceTrade,
+    previewOpen,
+    setPreviewOpen,
     setForceTrade,
     setPlayerTrade,
     togglePick,
@@ -292,6 +291,7 @@ export const useTradeMachine = (
     exportCurrentTrade,
     undoPlayerTrade,
     resetTrade,
+    applyTradeException,
     yearKey,
     incomingAssets,
     salaryOut,

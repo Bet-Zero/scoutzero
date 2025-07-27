@@ -1,5 +1,3 @@
-// TradeEditor.jsx
-
 import React, { useState } from 'react';
 import { RotateCcw } from 'lucide-react';
 import { useTradeMachine } from '@/hooks/tradeMachine/useTradeMachine';
@@ -31,6 +29,7 @@ const TradeEditor = ({
     undoPlayerTrade,
     resetTrade,
     yearKey,
+    applyTradeException, // NEW: Added from useTradeMachine
   } = useTradeMachine(
     primaryTeam,
     capProjections,
@@ -64,6 +63,14 @@ const TradeEditor = ({
     2: 'Add Team',
     3: 'Add Team',
     4: 'Add Team',
+  };
+
+  // NEW: Handle TPE application
+  const handleApplyTradeException = (player, tpe) => {
+    const teamIndex = teams.findIndex((t) => t.team?.id === tpe.teamId);
+    if (teamIndex !== -1) {
+      applyTradeException(teamIndex, player, tpe);
+    }
   };
 
   return (
@@ -128,6 +135,7 @@ const TradeEditor = ({
               onUndoPlayerTrade={undoPlayerTrade}
               onSelectTeam={(teamId) => selectTeam(idx, teamId)}
               onRemove={() => removeTeam(idx)}
+              onApplyTradeException={handleApplyTradeException} // NEW PROP
             />
           );
         })}
@@ -135,15 +143,6 @@ const TradeEditor = ({
 
       {/* Controls */}
       <div className="flex flex-wrap gap-3 items-center">
-        {/*
-        <button
-          onClick={exportCurrentTrade}
-          className="bg-neutral-800 hover:bg-neutral-700 text-sm px-3 py-1.5 rounded"
-        >
-          Export Trade JSON
-        </button>
-        */}
-
         <button
           onClick={() => {
             const tradeData = exportCurrentTrade();
@@ -155,17 +154,6 @@ const TradeEditor = ({
         >
           Apply Trade
         </button>
-
-        {/*
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={forceTrade}
-            onChange={() => setForceTrade(!forceTrade)}
-          />
-          Force Trade (ignore validation)
-        </label>
-        */}
       </div>
 
       {/* Summary */}
