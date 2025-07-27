@@ -189,11 +189,11 @@ const TradeExportCapture = React.forwardRef(
                       </div>
 
                       {/* 🧾 Picks Section */}
-                      <div className="mt-6 space-y-3">
+                      <div className="min-h-[150px] mt-6 flex flex-col justify-end">
                         <h4 className="text-neutral-300 font-semibold text-sm uppercase tracking-wide border-l-4 border-neutral-500 pl-3">
                           Picks Received
                         </h4>
-                        <div className="space-y-2 min-h-[60px]">
+                        <div className="space-y-2 min-h-[60px] mt-2">
                           {picks.length ? (
                             picks.map((p, i) => (
                               <div
@@ -222,8 +222,8 @@ const TradeExportCapture = React.forwardRef(
                       </div>
 
                       {/* 💰 Cap Impact */}
-                      <div className="mt-auto pt-3">
-                        <div className="bg-gradient-to-r from-neutral-800/60 to-neutral-700/60 rounded-xl p-3 border border-neutral-600/30 backdrop-blur-sm text-center">
+                      <div className="mt-4">
+                        <div className="bg-gradient-to-r from-neutral-800/60 to-neutral-700/60 rounded-xl p-2 border border-neutral-600/30 backdrop-blur-sm text-center">
                           <div className="text-neutral-400 text-xs font-medium uppercase tracking-widest mb-1">
                             Cap Impact
                           </div>
@@ -250,12 +250,26 @@ const TradeExportCapture = React.forwardRef(
 
         {/* ✅ Trade Result Footer */}
         {result && (
-          <div
-            className={`text-center py-3 text-xl font-bold uppercase tracking-wider ${
-              result.legal ? 'bg-green-700 text-black' : 'bg-red-700 text-black'
-            }`}
-          >
-            {result.legal ? 'Trade Passed' : 'Trade Failed'}
+          <div className="border-t border-black/20 relative -mt-1">
+            {' '}
+            {/* Subtle pull-up */}
+            {/* Depth shadow - perfectly aligned */}
+            <div className="absolute inset-x-0 bottom-0 h-4 bg-black/30 blur-md"></div>
+            {/* Main footer - full width, proper depth */}
+            <div
+              className={`w-full text-center py-4 text-xl font-bold uppercase tracking-wider text-white 
+        ${result.legal ? 'bg-green-900' : 'bg-red-900'}`}
+              style={{
+                background: result.legal
+                  ? 'linear-gradient(to bottom, #14532d, #15803d)'
+                  : 'linear-gradient(to bottom, #7f1d1d, #991b1b)',
+                boxShadow: 'inset 0 4px 8px rgba(0,0,0,0.3)',
+                position: 'relative',
+                zIndex: 10,
+              }}
+            >
+              {result.legal ? 'Trade Passed' : 'Trade Failed'}
+            </div>
           </div>
         )}
       </div>
