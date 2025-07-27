@@ -1,6 +1,5 @@
 // TradeTeamCard.jsx
-
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { getTeamColors } from '@/utils/formatting';
 import { getSalaryForYear, formatPick } from '@/utils/architect/tradeHelpers';
 import { formatSalary } from '@/utils/formatting';
@@ -8,7 +7,6 @@ import CapImpactTiles from './CapImpactTiles';
 import { SelectTeamCard } from './SelectTeamCard';
 import { OutgoingPlayersList } from './OutgoingPlayersList';
 import { OutgoingPicksList } from './OutgoingPicksList';
-import { motion, AnimatePresence } from 'framer-motion';
 import TeamSelectDropdown from '@/components/shared/TeamSelectDropdown';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
@@ -21,7 +19,6 @@ const TradeTeamCard = ({
   playersMap = {},
   incomingPlayers = [],
   incomingPicks = [],
-  capImpact = null,
   onSetPlayerTrade,
   onUndoPlayerTrade,
   onTogglePick,
@@ -31,7 +28,6 @@ const TradeTeamCard = ({
 }) => {
   const [activeTab, setActiveTab] = useState('players');
   const [editingTeam, setEditingTeam] = useState(false);
-  const [showDrawer, setShowDrawer] = useState(false);
   const [showOutgoing, setShowOutgoing] = useState(false);
   const [showIncoming, setShowIncoming] = useState(false);
   const selectRef = useRef(null);
@@ -47,18 +43,33 @@ const TradeTeamCard = ({
     }
   }, [editingTeam]);
 
+  // Memoized calculations
+  const outgoingSalary = useMemo(
+    () => getSalaryForYear(sends, yearKey),
+    [sends, yearKey]
+  );
+  const incomingSalary = useMemo(
+    () => getSalaryForYear(incomingPlayers, yearKey),
+    [incomingPlayers, yearKey]
+  );
+  const { primary, secondary } = useMemo(
+    () => getTeamColors(team?.id),
+    [team?.id]
+  );
+
+  const playersCount = useMemo(
+    () => (team?.players?.length || 0) - sends.length + incomingPlayers.length,
+    [team, sends, incomingPlayers]
+  );
+
+  const picksCount = useMemo(
+    () => (team?.picks?.length || 0) - picks.length + incomingPicks.length,
+    [team, picks, incomingPicks]
+  );
+
   if (!team) {
     return <SelectTeamCard onSelectTeam={onSelectTeam} onRemove={onRemove} />;
   }
-
-  const outgoingSalary = getSalaryForYear(sends, yearKey);
-  const incomingSalary = getSalaryForYear(incomingPlayers, yearKey);
-  const { primary, secondary } = getTeamColors(team.id);
-
-  const playersCount =
-    (team.players?.length || 0) - sends.length + incomingPlayers.length;
-  const picksCount =
-    (team.picks?.length || 0) - picks.length + incomingPicks.length;
 
   return (
     <div
@@ -67,7 +78,6 @@ const TradeTeamCard = ({
     >
       {/* Team Header */}
       <div className="relative flex items-center justify-between border-b border-white/10 pb-2">
-        {/* Left: Clickable Logo + Team Name */}
         <div className="w-48">
           <TeamSelectDropdown
             selectedTeamId={team.id}
@@ -78,7 +88,6 @@ const TradeTeamCard = ({
           />
         </div>
 
-        {/* ✕ Button (non-obtrusive) */}
         {onRemove && (
           <button
             onClick={onRemove}
@@ -89,14 +98,14 @@ const TradeTeamCard = ({
           </button>
         )}
       </div>
-      {/* Cap Impact */}
+
       <CapImpactTiles
         team={team}
         sends={sends}
         incomingPlayers={incomingPlayers}
         yearKey={yearKey}
       />
-      {/* 💰 Compact Salary + Assets Display */}
+
       <div className="space-y-1">
         {/* Outgoing */}
         <div>
@@ -189,7 +198,6 @@ const TradeTeamCard = ({
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-4 text-sm border-b border-white/10 pb-1">
         <button
           className={`pb-1 ${
@@ -211,7 +219,6 @@ const TradeTeamCard = ({
         </button>
       </div>
 
-      {/* Outgoing Players */}
       {activeTab === 'players' && (
         <OutgoingPlayersList
           team={team}
@@ -224,7 +231,7 @@ const TradeTeamCard = ({
           onUndoPlayerTrade={onUndoPlayerTrade}
         />
       )}
-      {/* Outgoing Picks */}
+
       {activeTab === 'picks' && (
         <OutgoingPicksList
           team={team}
@@ -234,7 +241,7 @@ const TradeTeamCard = ({
           onEditPick={onEditPick}
         />
       )}
-      {/* Incoming Picks Summary */}
+
       {(incomingPlayers.length > 0 || incomingPicks.length > 0) && (
         <div
           className="bg-[#222] border rounded p-3 text-sm"
