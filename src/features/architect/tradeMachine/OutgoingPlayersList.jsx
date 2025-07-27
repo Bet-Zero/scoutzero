@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import TradePlayerRow from './TradePlayerRow';
 import EditContractModal from '@/components/shared/EditContractModal';
 import TradeExceptionModal from '@/components/shared/TradeExceptionModal';
@@ -18,31 +18,51 @@ export const OutgoingPlayersList = ({
   playersMap = {},
   onSetPlayerTrade,
   onUndoPlayerTrade,
+  tradeExceptions = [],
 }) => {
   const [openMenu, setOpenMenu] = useState(null);
   const [contractPlayer, setContractPlayer] = useState(null);
   const [tpePlayer, setTpePlayer] = useState(null);
 
-  const available = [
-    ...incomingPlayers,
-    ...(team.players || []).filter((p) => !sends.includes(p)),
-  ];
+  // Memoized available players list
+  const available = useMemo(
+    () => [
+      ...incomingPlayers,
+      ...(team.players || []).filter((p) => !sends.includes(p)),
+    ],
+    [team.players, sends, incomingPlayers]
+  );
 
-  const incomingSet = new Set(incomingPlayers);
+  const incomingSet = useMemo(
+    () => new Set(incomingPlayers),
+    [incomingPlayers]
+  );
 
-  const sortedAvailable = available.slice().sort((a, b) => {
-    const inA = incomingSet.has(a);
-    const inB = incomingSet.has(b);
-    if (inA && !inB) return -1;
-    if (inB && !inA) return 1;
-    const yr = parseYear(yearKey);
-    const getSalary = (player) =>
-      player.contract_clean?.salaries_by_year?.[yearKey]?.salary ||
-      player.contract?.annual_salaries?.find((s) => parseYear(s.year) === yr)
-        ?.salary ||
-      0;
-    return getSalary(b) - getSalary(a);
-  });
+  // Memoized sorted list
+  const sortedAvailable = useMemo(() => {
+    return available.slice().sort((a, b) => {
+      const inA = incomingSet.has(a);
+      const inB = incomingSet.has(b);
+      if (inA && !inB) return -1;
+      if (inB && !inA) return 1;
+
+      const yr = parseYear(yearKey);
+      const getSalary = (player) =>
+        player.contract_clean?.salaries_by_year?.[yearKey]?.salary ||
+        player.contract?.annual_salaries?.find((s) => parseYear(s.year) === yr)
+          ?.salary ||
+        0;
+      return getSalary(b) - getSalary(a);
+    });
+  }, [available, incomingSet, yearKey]);
+
+  // Check if player can be traded using TPE
+  const canUseTPE = (player) => {
+    if (!tradeExceptions?.length) return false;
+    const salary =
+      player.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0;
+    return tradeExceptions.some((tpe) => salary <= tpe.amount && !tpe.isUsed);
+  };
 
   return (
     <div>
@@ -51,7 +71,7 @@ export const OutgoingPlayersList = ({
           <TradePlayerRow
             key={p.id || p.name}
             player={p}
-            included={false}
+            included={sends.includes(p)}
             incoming={incomingSet.has(p)}
             yearKey={yearKey}
             otherTeams={otherTeams}
@@ -61,7 +81,7 @@ export const OutgoingPlayersList = ({
             openMenu={openMenu}
             setOpenMenu={setOpenMenu}
             setContractPlayer={setContractPlayer}
-            setTpePlayer={setTpePlayer}
+            tradeExceptions={tradeExceptions}
           />
         ))}
         {available.length === 0 && (
@@ -89,9 +109,12 @@ export const OutgoingPlayersList = ({
           player={tpePlayer}
           isOpen={!!tpePlayer}
           onClose={() => setTpePlayer(null)}
-          onApply={(plr, amt, create) =>
-            console.log('Apply TPE', plr, amt, create)
-          }
+          tradeExceptions={tradeExceptions}
+          yearKey={yearKey}
+          onApply={(plr, tpe) => {
+            onSetPlayerTrade(plr, 'tradeException', null, tpe);
+            setTpePlayer(null);
+          }}
         />
       )}
     </div>
