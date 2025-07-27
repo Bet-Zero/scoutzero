@@ -75,7 +75,7 @@ const ListPreviewModal = ({
         >
           <div
             style={{
-              fontFamily: 'AntonLocal',
+              fontFamily: 'AntonLocal, AntonBase64',
               opacity: 0,
               position: 'absolute',
             }}
