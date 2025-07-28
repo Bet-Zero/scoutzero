@@ -18,15 +18,29 @@ export function validateTradeExceptions(team) {
 
   team.incomingPlayers.forEach((player) => {
     if (player.acquiredViaTPE) {
-      const tpe = team.tradeExceptions.find((e) => e.id === player.tpeId);
+      const index = team.tradeExceptions.findIndex((e) => e.id === player.tpeId);
+      const tpe = team.tradeExceptions[index];
       if (!tpe) {
         violations.push(`No valid TPE found for ${player.name}`);
-      } else if (tpe.remaining < player.salary) {
-        violations.push(
-          `TPE too small for ${player.name} ($${player.salary} > $${tpe.remaining})`
-        );
-      } else if (new Date() > tpe.expiry) {
-        violations.push(`TPE expired on ${tpe.expiry.toLocaleDateString()}`);
+      } else {
+        const remaining =
+          typeof tpe.remaining === 'number' ? tpe.remaining : tpe.amount;
+        const expiry = tpe.expiry || tpe.expirationDate;
+        const expired = expiry ? new Date(expiry) < new Date() : false;
+        if (remaining < player.salary) {
+          violations.push(
+            `TPE too small for ${player.name} ($${player.salary} > $${remaining})`
+          );
+        } else if (expired) {
+          const date = new Date(expiry);
+          violations.push(`TPE expired on ${date.toLocaleDateString()}`);
+        } else {
+          team.tradeExceptions[index] = {
+            ...tpe,
+            remaining: remaining - player.salary,
+            isUsed: true,
+          };
+        }
       }
     }
   });
