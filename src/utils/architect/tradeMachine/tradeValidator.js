@@ -163,9 +163,11 @@ const TRADE_RULES = {
       // Many-to-Many Rule
       else {
         incoming.forEach((s, i) => {
-          if (s > (outgoing[i] || 0)) {
+          const outSalary = outgoing[i] || 0;
+          if (s > outSalary) {
+            const outName = team.sends[i]?.name || 'N/A';
             violations.push(
-              `${team.incomingPlayers[i]?.name} ($${s.toLocaleString()}) > ${team.sends[i]?.name} ($${outgoing[i].toLocaleString()})`
+              `${team.incomingPlayers[i]?.name} ($${s.toLocaleString()}) > ${outName} ($${outSalary.toLocaleString()})`
             );
           }
         });
