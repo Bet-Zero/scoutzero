@@ -1,5 +1,5 @@
 // tradeValidator.debug.js - Complete File Replacement
-import { validateTrade, tradeDebug } from './tradeValidator';
+import { validateTrade, tradeDebug } from './tradeValidator.js';
 
 const debug = tradeDebug;
 debug.logs = [];
@@ -476,4 +476,4 @@ const testCases = [
 // ===== EXECUTE ALL TESTS =====
 console.log('=== NBA 2nd APRON TRADE VALIDATOR TESTS ===');
 testCases.forEach(runTradeTest);
-debug.flush();
+debug.flush('trade-debug.txt');
