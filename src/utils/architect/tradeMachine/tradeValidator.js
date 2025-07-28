@@ -95,6 +95,8 @@ const getApronStatus = (salary, { firstApron, secondApron } = {}) => {
   return 'Below Aprons ✅';
 };
 
+const MAX_FUTURE_PICK_YEARS = 7;
+
 const calculateAllowableIncoming = (team, capSettings) => {
   const { totalSalary, salaryOut, overSecondApron, overFirstApron } = team;
   if (overSecondApron) return salaryOut;
@@ -147,6 +149,8 @@ const TRADE_RULES = {
       const violations = [];
       if (!team.overSecondApron && !team.willBeOverSecond) return true;
 
+      let aggregated = false;
+
       const outgoing = team.sends
         .map(
           (p) =>
@@ -166,35 +170,23 @@ const TRADE_RULES = {
       // 1-to-Many Rule
       if (team.sends.length === 1) {
         const maxOut = outgoing[0];
-        incoming.forEach((s, i) => {
-          if (s > maxOut) {
-            violations.push(
-              `${team.incomingPlayers[i]?.name} ($${s.toLocaleString()}) > outgoing ($${maxOut.toLocaleString()})`
-            );
-          }
+        incoming.forEach((s) => {
+          if (s > maxOut) aggregated = true;
         });
       }
       // Many-to-Many Rule
       incoming.forEach((s, i) => {
         const outgoingSalary = outgoing[i] || 0;
-        if (s > outgoingSalary) {
-          const incomingName = team.incomingPlayers[i]?.name || 'Unknown';
-          const outgoingName = team.sends[i]?.name || 'N/A';
-          const outgoingSalaryStr = outgoing[i]
-            ? `$${outgoingSalary.toLocaleString()}`
-            : 'No match';
-
-          violations.push(
-            `${incomingName} ($${s.toLocaleString()}) > ${outgoingName} (${outgoingSalaryStr})`
-          );
-        }
+        if (s > outgoingSalary) aggregated = true;
       });
+
+      if (aggregated) {
+        violations.push('Second apron team cannot aggregate salaries');
+      }
 
       // Total salary check
       if (team.salaryIn > team.salaryOut) {
-        violations.push(
-          `Total incoming > outgoing by $${(team.salaryIn - team.salaryOut).toLocaleString()}`
-        );
+        violations.push('Second apron team cannot receive more salary than sent');
       }
 
       team.secondApronViolations = violations;
@@ -202,6 +194,23 @@ const TRADE_RULES = {
       return violations.length === 0;
     },
     message: (team) => team.secondApronViolations.join('\n'),
+  },
+
+  cashRestrictions: {
+    test: (team) => {
+      if (!team.overSecondApron && !team.willBeOverSecond) return true;
+      return (team.cashSent || 0) === 0;
+    },
+    message: () => 'Second apron team cannot include cash in trades',
+  },
+
+  futurePicks: {
+    test: (team) => {
+      const limit = team.context.yearKey + MAX_FUTURE_PICK_YEARS;
+      return !(team.picksOut || []).some((p) => p.year > limit);
+    },
+    message: (team) =>
+      `Cannot trade picks beyond ${team.context.yearKey + MAX_FUTURE_PICK_YEARS} (7 years out)`,
   },
 };
 
@@ -229,6 +238,8 @@ export function validateTrade({ teams, capProjections, currentYear }) {
       ...team,
       salaryOut,
       salaryIn,
+      picksOut: team.picksOut || [],
+      cashSent: team.cashSent || 0,
       projectedSalary: team.team.totalSalary - salaryOut + salaryIn,
       context: { capSettings, yearKey },
     };
@@ -244,6 +255,8 @@ export function validateTrade({ teams, capProjections, currentYear }) {
       overSecondApron: currentStatus.includes('2nd APRON'),
       willBeOverSecond: projectedStatus.includes('2nd APRON'),
       context: { ...team.context, teams: initialTeams },
+      picksOut: team.picksOut,
+      cashSent: team.cashSent,
     };
   });
 
