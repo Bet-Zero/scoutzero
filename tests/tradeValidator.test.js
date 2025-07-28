@@ -5,9 +5,15 @@ import capProjections from '../src/utils/architect/capProjections.js';
 
 const currentYear = 2025;
 
-const makePlayer = (name, salary, signAndTrade = false) => ({
+const makePlayer = (
+  name,
+  salary,
+  signAndTrade = false,
+  contractYears = 4
+) => ({
   name,
   signAndTrade,
+  contractYears,
   contract_clean: { salaries_by_year: { [currentYear]: { salary } } },
 });
 
@@ -93,6 +99,68 @@ describe('tradeValidator', () => {
     expect(result.teamResults[0].checks.signAndTrade).toBe(false);
     expect(result.teamResults[1].legal).toBe(true);
     expect(result.teamResults[1].checks.signAndTrade).toBe(true);
+  });
+
+  it('allows valid sign-and-trade deals', () => {
+    const teamA = makeTeam('A', 100_000_000);
+    const teamB = makeTeam('B', 100_000_000);
+    const sat = makePlayer('Astar', 20_000_000, true, 4);
+    const bPlayer = makePlayer('Bstar', 15_000_000);
+    teamA.players.push(sat);
+    teamB.players.push(bPlayer);
+
+    const result = validateTrade({
+      teams: [
+        { team: teamA, sends: [sat], picksOut: [] },
+        { team: teamB, sends: [bPlayer], picksOut: [] },
+      ],
+      capProjections,
+      currentYear,
+    });
+
+    expect(result.overallLegal).toBe(true);
+  });
+
+  it('blocks sign-and-trade hard cap violations', () => {
+    const teamA = makeTeam('A', 100_000_000);
+    const teamB = makeTeam('B', 195_500_000);
+    const sat = makePlayer('Astar', 20_000_000, true, 4);
+    const bPlayer = makePlayer('Bstar', 15_000_000);
+    teamA.players.push(sat);
+    teamB.players.push(bPlayer);
+
+    const result = validateTrade({
+      teams: [
+        { team: teamA, sends: [sat], picksOut: [] },
+        { team: teamB, sends: [bPlayer], picksOut: [] },
+      ],
+      capProjections,
+      currentYear,
+    });
+
+    expect(result.overallLegal).toBe(false);
+    expect(result.reason).toContain('hard-cap');
+  });
+
+  it('requires sign-and-trade contracts to be 3-4 years', () => {
+    const teamA = makeTeam('A', 100_000_000);
+    const teamB = makeTeam('B', 100_000_000);
+    const sat = makePlayer('Astar', 10_000_000, true, 2);
+    const bPlayer = makePlayer('Bstar', 10_000_000);
+    teamA.players.push(sat);
+    teamB.players.push(bPlayer);
+
+    const result = validateTrade({
+      teams: [
+        { team: teamA, sends: [sat], picksOut: [] },
+        { team: teamB, sends: [bPlayer], picksOut: [] },
+      ],
+      capProjections,
+      currentYear,
+    });
+
+    expect(result.overallLegal).toBe(false);
+    expect(result.reason).toContain('must be 3-4 years');
   });
 
   it('detects Stepien Rule violations', () => {

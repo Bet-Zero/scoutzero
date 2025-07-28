@@ -19,6 +19,7 @@ const TradePlayerRow = ({
   setOpenMenu,
   setContractPlayer,
   tradeExceptions = [],
+  signAndTradeActive = false,
 }) => {
   const menuRef = useRef(null);
   const buttonRef = useRef(null);
@@ -139,11 +140,17 @@ const TradePlayerRow = ({
         </div>
       </div>
 
-      {/* Traded Icon - unchanged */}
+      {/* Trade Indicator */}
       {incoming && (
-        <div className="ml-10 text-blue-300" title="Traded">
-          <ArrowsRightLeftIcon className="w-6 h-6" />
-        </div>
+        player.signAndTrade ? (
+          <div className="ml-10 text-blue-300 font-semibold text-sm" title="Sign-and-Trade">
+            S&amp;T
+          </div>
+        ) : (
+          <div className="ml-10 text-blue-300" title="Traded">
+            <ArrowsRightLeftIcon className="w-6 h-6" />
+          </div>
+        )
       )}
 
       {/* Contract Info - unchanged */}
@@ -193,7 +200,8 @@ const TradePlayerRow = ({
 
             {/* Sign-and-Trade Option */}
             {!included &&
-              !player.contract_clean?.salaries_by_year?.[yearKey]?.salary && (
+              !player.contract_clean?.salaries_by_year?.[yearKey]?.salary &&
+              (!signAndTradeActive || player.signAndTrade) && (
                 <button
                   onClick={() => {
                     onSetPlayerTrade(player, 'signAndTrade', otherTeams[0]?.id);
