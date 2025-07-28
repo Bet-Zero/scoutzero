@@ -169,10 +169,74 @@ describe('tradeValidator', () => {
     });
 
     expect(result.overallLegal).toBe(false);
-    expect(result.teamResults[0].legal).toBe(false);
-    expect(result.teamResults[0].reason).toContain(
-      '2nd Apron: Cannot aggregate multiple salaries'
+    expect(result.reason).toContain('Second apron team cannot aggregate salaries');
+  });
+
+  it('prevents second apron teams from taking back more salary', () => {
+    const teamA = makeTeam('A', 190_000_000);
+    const teamB = makeTeam('B', 100_000_000);
+    const aPlayer = makePlayer('A1', 10_000_000);
+    const bPlayer = makePlayer('B1', 12_000_000);
+    teamA.players.push(aPlayer);
+    teamB.players.push(bPlayer);
+
+    const result = validateTrade({
+      teams: [
+        { team: teamA, sends: [aPlayer], picksOut: [] },
+        { team: teamB, sends: [bPlayer], picksOut: [] },
+      ],
+      capProjections,
+      currentYear,
+    });
+
+    expect(result.overallLegal).toBe(false);
+    expect(result.reason).toContain(
+      'Second apron team cannot receive more salary than sent'
     );
+  });
+
+  it('blocks cash considerations for second apron teams', () => {
+    const teamA = makeTeam('A', 190_000_000);
+    const teamB = makeTeam('B', 100_000_000);
+    const aPlayer = makePlayer('A1', 1_000_000);
+    const bPlayer = makePlayer('B1', 1_000_000);
+    teamA.players.push(aPlayer);
+    teamB.players.push(bPlayer);
+
+    const result = validateTrade({
+      teams: [
+        { team: teamA, sends: [aPlayer], picksOut: [], cashSent: 1_000_000 },
+        { team: teamB, sends: [bPlayer], picksOut: [] },
+      ],
+      capProjections,
+      currentYear,
+    });
+
+    expect(result.overallLegal).toBe(false);
+    expect(result.reason).toContain(
+      'Second apron team cannot include cash in trades'
+    );
+  });
+
+  it('restricts trading picks more than 7 years out', () => {
+    const teamA = makeTeam('A', 100_000_000);
+    const teamB = makeTeam('B', 100_000_000);
+
+    const result = validateTrade({
+      teams: [
+        {
+          team: teamA,
+          sends: [],
+          picksOut: [{ year: 2033, round: '1st' }],
+        },
+        { team: teamB, sends: [], picksOut: [] },
+      ],
+      capProjections,
+      currentYear,
+    });
+
+    expect(result.overallLegal).toBe(false);
+    expect(result.reason).toContain('Cannot trade picks beyond');
   });
 
   it('handles 3-team trades correctly', () => {
