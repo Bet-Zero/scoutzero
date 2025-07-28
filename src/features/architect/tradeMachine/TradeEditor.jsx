@@ -4,6 +4,7 @@ import { useTradeMachine } from '@/hooks/tradeMachine/useTradeMachine';
 import TradeTeamCard from './TradeTeamCard';
 import TradeSummaryPanel from './TradeSummaryPanel';
 import TradePreviewModal from './TradePreviewModal';
+import '../../../utils/architect/tradeMachine/tradeValidator.debug'; // Add near other imports
 
 const TradeEditor = ({
   primaryTeam,
