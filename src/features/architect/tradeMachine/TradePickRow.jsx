@@ -79,52 +79,43 @@ export const TradePickRow = ({
         </div>
       </div>
       <div className="relative">
-        {!exists ? (
-          <button
-            onClick={() => onToggle(pick)}
-            className="text-blue-400 hover:underline"
+        <button
+          ref={buttonRef}
+          onClick={() => setOpenMenu(openMenu === key ? null : key)}
+          className="text-blue-400 hover:underline"
+        >
+          •••
+        </button>
+        {openMenu === key && (
+          <div
+            ref={menuRef}
+            className="absolute right-0 top-5 bg-[#222] border border-white/20 rounded z-20 text-xs min-w-[8rem]"
           >
-            •••
-          </button>
-        ) : (
-          <>
-            <button
-              ref={buttonRef}
-              onClick={() => setOpenMenu(openMenu === key ? null : key)}
-              className="text-blue-400 hover:underline"
-            >
-              •••
-            </button>
-            {openMenu === key && (
-              <div
-                ref={menuRef}
-                className="absolute right-0 top-5 bg-[#222] border border-white/20 rounded z-20 text-xs min-w-[8rem]"
+            {otherTeams.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => {
+                  onToggle(pick);
+                  onEdit(pick, 'toTeamId', t.id);
+                  setOpenMenu(null);
+                }}
+                className="block w-full text-left px-3 py-1 hover:bg-[#333]"
               >
-                {otherTeams.map((t) => (
-                  <button
-                    key={t.id}
-                    onClick={() => {
-                      onToggle(pick);
-                      onEdit(pick, 'toTeamId', t.id);
-                      setOpenMenu(null);
-                    }}
-                    className="block w-full text-left px-3 py-1 hover:bg-[#333]"
-                  >
-                    {`Trade to ${t.teamName}`}
-                  </button>
-                ))}
-                <button
-                  onClick={() => {
-                    onToggle(pick);
-                    setOpenMenu(null);
-                  }}
-                  className="block w-full text-left px-3 py-1 hover:bg-[#333]"
-                >
-                  Remove
-                </button>
-              </div>
+                {`Trade to ${t.teamName}`}
+              </button>
+            ))}
+            {exists && (
+              <button
+                onClick={() => {
+                  onToggle(pick);
+                  setOpenMenu(null);
+                }}
+                className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+              >
+                Remove
+              </button>
             )}
-          </>
+          </div>
         )}
       </div>
     </div>

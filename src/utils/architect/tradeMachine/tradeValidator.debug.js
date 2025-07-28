@@ -1,5 +1,8 @@
 // tradeValidator.debug.js - Complete File Replacement
-import { validateTrade } from './tradeValidator';
+import { validateTrade, tradeDebug } from './tradeValidator';
+
+const debug = tradeDebug;
+debug.logs = [];
 
 // Helper function for cleaner salary formatting
 const formatSalary = (amount) => `$${(amount || 0).toLocaleString()}`;
@@ -219,35 +222,9 @@ function runTradeTest(testCase) {
   const teamResult = result.teamResults[0]; // First team only
 
   console.log(`\n=== ${testCase.description} ===`);
-  console.log(`Team: ${teamResult.team.teamName}`);
-
-  const outgoing = testCase.tradeData.teams[0].sends
-    .map(
-      (p) =>
-        `${p.name} ${formatSalary(p.contract_clean.salaries_by_year['2024'].salary)}`
-    )
-    .join(' + ');
-
-  const incoming = testCase.tradeData.teams[0].incomingPlayers
-    .map(
-      (p) =>
-        `${p.name} ${formatSalary(p.contract_clean.salaries_by_year['2024'].salary)}`
-    )
-    .join(' + ');
-
-  console.log(`OUT: ${outgoing}`);
-  console.log(`IN: ${incoming}`);
-  console.log(`Legal? ${result.overallLegal ? '✅' : '❌'}`);
-
-  if (teamResult.violations.length > 0) {
-    console.log(`Violation: ${teamResult.violations[0]}`);
-  }
-
-  // Verify test matches expected
-  if (result.overallLegal === testCase.expected.legal) {
-    console.log('✅ TEST PASSED (Matched expected result)');
-  } else {
-    console.error('❌ TEST FAILED (Did not match expected result)');
+  console.log(`Legal? ${result.overallLegal ? 'PASS' : 'FAIL'}`);
+  if (teamResult.violations.length) {
+    console.log(`Violation: ${teamResult.violations.join('; ')}`);
   }
 }
 
@@ -498,4 +475,5 @@ const testCases = [
 
 // ===== EXECUTE ALL TESTS =====
 console.log('=== NBA 2nd APRON TRADE VALIDATOR TESTS ===');
-[warriorsTrade, lakersTrade, bucksTrade].forEach(runTradeTest);
+testCases.forEach(runTradeTest);
+debug.flush();
