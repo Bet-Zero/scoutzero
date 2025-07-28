@@ -238,17 +238,27 @@ export function validateCash(team) {
 // SIGN-AND-TRADE RULES VALIDATION
 export function validateSignAndTrade(team) {
   const violations = [];
-  const sntPlayers = team.incomingPlayers.filter((p) => p.isSignAndTrade);
+  const sntPlayers = team.incomingPlayers.filter(
+    (p) => p.isSignAndTrade || p.signAndTrade
+  );
 
   if (sntPlayers.length > 0) {
-    // Hard cap check
-    if (team.projectedSalary > CBA_THRESHOLDS.FIRST_APRON) {
+    // Player must be traded alone
+    if (team.sends.length > 1) {
+      violations.push('Sign-and-trade player must be traded alone.');
+    }
+
+    // Hard cap check against dynamic first apron
+    const firstApron =
+      team.context.capSettings?.firstApron ?? CBA_THRESHOLDS.FIRST_APRON;
+    if (team.projectedSalary > firstApron) {
       violations.push('Sign-and-trade would hard-cap team at 1st apron');
     }
 
     // Contract length check
     sntPlayers.forEach((p) => {
-      if (p.contractYears < 3 || p.contractYears > 4) {
+      const years = p.contractYears ?? p.years ?? 0;
+      if (years < 3 || years > 4) {
         violations.push(`S&T contract for ${p.name} must be 3-4 years`);
       }
     });
