@@ -53,16 +53,10 @@ export function validateDraftPicks(team, allTeams) {
     }
   }
 
-  // Second Apron Pick Restrictions
-  if (team.overSecondApron) {
-    const distantPicks = team.tradedPicks.filter(
-      (p) => p.year > currentYear + CBA_THRESHOLDS.STEPIEN_YEARS
-    );
-    if (distantPicks.length > 0) {
-      violations.push(
-        `Second apron team cannot trade picks beyond ${currentYear + CBA_THRESHOLDS.STEPIEN_YEARS}`
-      );
-    }
+  const limit = currentYear + CBA_THRESHOLDS.STEPIEN_YEARS;
+  const distantPicks = team.tradedPicks.filter((p) => p.year > limit);
+  if (distantPicks.length > 0) {
+    violations.push(`Cannot trade picks beyond ${limit} (7 years out)`);
   }
 
   return violations;
@@ -97,8 +91,8 @@ export function validateCash(team) {
     );
   }
 
-  if (team.overSecondApron && team.cashSent > 0) {
-    violations.push('Second apron teams cannot send cash');
+  if ((team.overSecondApron || team.willBeOverSecond) && team.cashSent > 0) {
+    violations.push('Second apron team cannot include cash in trades');
   }
 
   return violations;
@@ -144,6 +138,37 @@ export function validateBYC(team) {
   return violations;
 }
 
+export function validateSecondApronAggregation(team) {
+  const violations = [];
+  if (!team.overSecondApron && !team.willBeOverSecond) return violations;
+
+  const outgoing = team.sends.map((p) => p.salary || 0).sort((a, b) => b - a);
+  const incoming = team.incomingPlayers
+    .map((p) => p.salary || 0)
+    .sort((a, b) => b - a);
+
+  let aggregated = false;
+  if (team.sends.length === 1) {
+    const maxOut = outgoing[0];
+    incoming.forEach((s) => {
+      if (s > maxOut) aggregated = true;
+    });
+  } else {
+    incoming.forEach((s, i) => {
+      if (s > (outgoing[i] || 0)) aggregated = true;
+    });
+  }
+
+  if (aggregated) {
+    violations.push('Second apron team cannot aggregate salaries');
+  }
+  if (incoming.reduce((a, b) => a + b, 0) > outgoing.reduce((a, b) => a + b, 0)) {
+    violations.push('Second apron team cannot receive more salary than sent');
+  }
+
+  return violations;
+}
+
 // ===== MAIN VALIDATOR INTEGRATION =====
 export function validateAllNewRules(team, allTeams) {
   return [
@@ -153,5 +178,6 @@ export function validateAllNewRules(team, allTeams) {
     ...validateCash(team),
     ...validateSignAndTrade(team),
     ...validateBYC(team),
+    ...validateSecondApronAggregation(team),
   ];
 }
