@@ -1,47 +1,74 @@
-// tradeValidatorNewRules.js
+// ===== UTILITIES =====
+const isExpired = (expiryDate) => {
+  if (!expiryDate) return false;
+  const expiry = new Date(expiryDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Normalize to midnight
+  return expiry <= today;
+};
 
-// ===== CONSTANTS =====
+const formatDate = (dateStr) => {
+  if (!dateStr) return 'N/A';
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+};
+
+// ===== CBA CONSTANTS =====
 const CBA_THRESHOLDS = {
   FIRST_APRON: 172_295_000,
   SECOND_APRON: 182_794_000,
   MIN_SALARY: 1_119_563,
   MAX_CASH: 7_100_000,
   TRADE_BUFFER: 100_000,
-  STEPIEN_YEARS: 7, // Max future draft pick years
+  STEPIEN_YEARS: 7,
 };
 
-// ===== NEW VALIDATION RULES =====
-
-// 1. TRADE EXCEPTIONS (TPEs)
+// ===== TRADE EXCEPTION VALIDATION =====
 export function validateTradeExceptions(team) {
   const violations = [];
 
   team.incomingPlayers.forEach((player) => {
-    if (player.acquiredViaTPE) {
-      const index = team.tradeExceptions.findIndex((e) => e.id === player.tpeId);
-      const tpe = team.tradeExceptions[index];
-      if (!tpe) {
-        violations.push(`No valid TPE found for ${player.name}`);
-      } else {
-        const remaining =
-          typeof tpe.remaining === 'number' ? tpe.remaining : tpe.amount;
-        const expiry = tpe.expiry || tpe.expirationDate;
-        const expired = expiry ? new Date(expiry) < new Date() : false;
-        if (remaining < player.salary) {
-          violations.push(
-            `TPE too small for ${player.name} ($${player.salary} > $${remaining})`
-          );
-        } else if (expired) {
-          const date = new Date(expiry);
-          violations.push(`TPE expired on ${date.toLocaleDateString()}`);
-        } else {
-          team.tradeExceptions[index] = {
-            ...tpe,
-            remaining: remaining - player.salary,
-            isUsed: true,
-          };
-        }
-      }
+    if (!player.acquiredViaTPE) return;
+
+    const tpeIndex = team.tradeExceptions.findIndex(
+      (e) => e.id === player.tpeId
+    );
+    if (tpeIndex === -1) {
+      violations.push(`No TPE found for ${player.name}`);
+      return;
+    }
+
+    const tpe = team.tradeExceptions[tpeIndex];
+    const remaining =
+      typeof tpe.remaining === 'number' ? tpe.remaining : tpe.amount;
+    const expiry = tpe.expiry || tpe.expirationDate;
+
+    // Check for concurrent usage
+    if (tpe.isBeingUsed) {
+      violations.push(`TPE ${tpe.id} is already being processed`);
+      return;
+    }
+
+    // Validate TPE
+    if (remaining < player.salary) {
+      violations.push(
+        `TPE too small for ${player.name}\n` +
+          `- Available: $${remaining.toLocaleString()}\n` +
+          `- Required: $${player.salary.toLocaleString()}`
+      );
+    } else if (isExpired(expiry)) {
+      violations.push(`TPE expired on ${formatDate(expiry)}`);
+    } else {
+      // Lock and update TPE
+      team.tradeExceptions[tpeIndex] = {
+        ...tpe,
+        isBeingUsed: true,
+        remaining: remaining - player.salary,
+        isUsed: remaining - player.salary <= 0,
+      };
     }
   });
 
@@ -176,7 +203,9 @@ export function validateSecondApronAggregation(team) {
   if (aggregated) {
     violations.push('Second apron team cannot aggregate salaries');
   }
-  if (incoming.reduce((a, b) => a + b, 0) > outgoing.reduce((a, b) => a + b, 0)) {
+  if (
+    incoming.reduce((a, b) => a + b, 0) > outgoing.reduce((a, b) => a + b, 0)
+  ) {
     violations.push('Second apron team cannot receive more salary than sent');
   }
 
