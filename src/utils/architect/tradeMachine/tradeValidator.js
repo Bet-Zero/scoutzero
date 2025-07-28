@@ -3,41 +3,47 @@
 // ===== DEBUGGER =====
 const debug = {
   enabled: true,
+  logs: [],
 
-  logTrade: (team) => {
-    console.log(`\n=== VALIDATING ${team.teamName} ===`);
-    console.log(`Current Salary: $${team.team.totalSalary.toLocaleString()}`);
-    console.log(
+  write(msg) {
+    if (!this.enabled) return;
+    this.logs.push(msg);
+    console.log(msg);
+  },
+
+  logTrade(team) {
+    this.write(`\n=== ${team.teamName} ===`);
+    this.write(`Current Salary: $${team.team.totalSalary.toLocaleString()}`);
+    this.write(
       `Status: ${getApronStatus(team.team.totalSalary, team.context.capSettings)}`
     );
   },
 
-  logSalaries: (team) => {
-    console.log('\n🔢 SALARY BREAKDOWN:');
-    console.log('OUTGOING:');
+  logSalaries(team) {
+    this.write('Outgoing:');
     team.sends.forEach((p) => {
       const salary =
         p.contract_clean?.salaries_by_year?.[team.context.yearKey]?.salary || 0;
-      console.log(`- ${p.name}: $${salary.toLocaleString()}`);
+      this.write(`- ${p.name}: $${salary.toLocaleString()}`);
     });
 
-    console.log('\nINCOMING:');
+    this.write('Incoming:');
     team.incomingPlayers.forEach((p) => {
       const salary =
         p.contract_clean?.salaries_by_year?.[team.context.yearKey]?.salary || 0;
-      console.log(`- ${p.name}: $${salary.toLocaleString()}`);
+      this.write(`- ${p.name}: $${salary.toLocaleString()}`);
     });
 
-    console.log(
-      `\nTOTALS: OUT $${team.salaryOut.toLocaleString()} | IN $${team.salaryIn.toLocaleString()}`
+    this.write(
+      `Totals: OUT $${team.salaryOut.toLocaleString()} | IN $${team.salaryIn.toLocaleString()}`
     );
   },
 
-  logSecondApron: (team, violations) => {
+  logSecondApron(team, violations) {
     if (!team.overSecondApron && !team.willBeOverSecond) return;
 
-    console.log('\n🔴 SECOND APRON RULES:');
-    console.log(
+    this.write('Second Apron Rules:');
+    this.write(
       `Trade Type: ${team.sends.length}-for-${team.incomingPlayers.length}`
     );
 
@@ -45,21 +51,28 @@ const debug = {
       const outgoing =
         team.sends[0].contract_clean?.salaries_by_year?.[team.context.yearKey]
           ?.salary || 0;
-      console.log(
-        `\n1-TO-MANY RULE: No incoming > $${outgoing.toLocaleString()}`
-      );
+      this.write(`1-to-Many max incoming: $${outgoing.toLocaleString()}`);
     } else {
-      console.log('\nMANY-TO-MANY RULE: Incoming must pair with outgoing');
+      this.write('Many-to-Many: pair incoming with outgoing');
     }
 
     if (violations.length) {
-      console.log('\n🚨 VIOLATIONS:');
-      violations.forEach((v) => console.log(`- ${v}`));
+      this.write('Violations:');
+      violations.forEach((v) => this.write(`- ${v}`));
     } else {
-      console.log('\n✅ ALL RULES SATISFIED');
+      this.write('All rules satisfied');
+    }
+  },
+
+  async flush(file = 'trade-debug.txt') {
+    if (typeof process !== 'undefined' && process.versions?.node) {
+      const fs = await import('fs');
+      await fs.promises.writeFile(file, this.logs.join('\n'), 'utf8');
     }
   },
 };
+
+export { debug as tradeDebug };
 
 // ===== HELPERS =====
 const getApronStatus = (salary, { firstApron, secondApron } = {}) => {
@@ -97,11 +110,12 @@ const TRADE_RULES = {
       );
       const passes = team.salaryIn <= allowable;
 
-      console.log('\n💵 SALARY MATCHING:');
-      console.log(
+      debug.write('');
+      debug.write('Salary Matching:');
+      debug.write(
         `Allowed: $${allowable.toLocaleString()} | Actual: $${team.salaryIn.toLocaleString()}`
       );
-      console.log(passes ? '✅ PASS' : '❌ FAIL');
+      debug.write(passes ? 'PASS' : 'FAIL');
 
       return passes;
     },
