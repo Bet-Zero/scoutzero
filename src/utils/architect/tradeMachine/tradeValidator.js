@@ -2,7 +2,7 @@
 
 // ===== DEBUGGER =====
 const debug = {
-  enabled: true,
+  enabled: false,
   logs: [],
 
   /**
@@ -29,14 +29,14 @@ const debug = {
 
   logSalaries(team) {
     this.write('Outgoing:');
-    team.sends.forEach((p) => {
+    (team.sends || []).forEach((p) => {
       const salary =
         p.contract_clean?.salaries_by_year?.[team.context.yearKey]?.salary || 0;
       this.write(`  - ${p.name}: ${formatSalary(salary)}`);
     });
 
     this.write('Incoming:');
-    team.incomingPlayers.forEach((p) => {
+    (team.incomingPlayers || []).forEach((p) => {
       const salary =
         p.contract_clean?.salaries_by_year?.[team.context.yearKey]?.salary || 0;
       this.write(`  - ${p.name}: ${formatSalary(salary)}`);
@@ -103,6 +103,15 @@ const formatDate = (dateStr) => {
 };
 
 const formatSalary = (amount) => `$${(amount || 0).toLocaleString()}`;
+
+const isMeaningfulProtection = (protection) => {
+  if (!protection) return false;
+  return (
+    /top\s*[1-9]\d*/i.test(protection) ||
+    /lottery/i.test(protection) ||
+    /1-14/i.test(protection)
+  );
+};
 
 const getApronStatus = (salary, { firstApron, secondApron } = {}) => {
   if (secondApron && salary > secondApron) return 'ABOVE 2nd APRON 🔴';
@@ -176,22 +185,27 @@ export function validateDraftPicks(team, allTeams) {
   const violations = [];
   const currentYear = new Date().getFullYear();
 
-  // Stepien Rule (no consecutive 1sts)
-  const tradedFirsts = team.tradedPicks
-    .filter((p) => p.round === 1 && !p.isProtected)
-    .map((p) => p.year)
-    .sort();
+  const unprotectedYears = (team.tradedPicks || [])
+    .filter(
+      (p) =>
+        (p.round === 1 || p.round === '1st') &&
+        !p.isSwap &&
+        !isMeaningfulProtection(p.protection) &&
+        !p.via
+    )
+    .map((p) => parseInt(p.year, 10))
+    .sort((a, b) => a - b);
 
-  for (let i = 0; i < tradedFirsts.length - 1; i++) {
-    if (tradedFirsts[i + 1] === tradedFirsts[i] + 1) {
+  for (let i = 1; i < unprotectedYears.length; i++) {
+    if (unprotectedYears[i] === unprotectedYears[i - 1] + 1) {
       violations.push(
-        `Cannot trade ${tradedFirsts[i]} and ${tradedFirsts[i + 1]} 1st-round picks`
+        `Cannot trade ${unprotectedYears[i - 1]} and ${unprotectedYears[i]} 1st-round picks`
       );
     }
   }
 
   const limit = currentYear + CBA_THRESHOLDS.STEPIEN_YEARS;
-  const distantPicks = team.tradedPicks.filter((p) => p.year > limit);
+  const distantPicks = (team.tradedPicks || []).filter((p) => p.year > limit);
   if (distantPicks.length > 0) {
     violations.push(`Cannot trade picks beyond ${limit} (7 years out)`);
   }
@@ -477,6 +491,7 @@ export function validateTrade({ teams, capProjections, currentYear }) {
       salaryOut,
       salaryIn,
       picksOut: team.picksOut || [],
+      tradedPicks: team.picksOut || [],
       cashSent: team.cashSent || 0,
       projectedSalary: team.team.totalSalary - salaryOut + salaryIn,
       context: { capSettings, yearKey },
@@ -494,6 +509,7 @@ export function validateTrade({ teams, capProjections, currentYear }) {
       willBeOverSecond: projectedStatus.includes('2nd APRON'),
       context: { ...team.context, teams: initialTeams },
       picksOut: team.picksOut,
+      tradedPicks: team.tradedPicks,
       cashSent: team.cashSent,
     };
   });
@@ -527,6 +543,24 @@ export function validateTrade({ teams, capProjections, currentYear }) {
     reason:
       validatedTeams.flatMap((t) => t.violations).join('; ') || 'Valid trade',
   };
+}
+
+export function hasStepienViolation(picks = []) {
+  const years = picks
+    .filter(
+      (p) =>
+        (p.round === 1 || p.round === '1st') &&
+        !p.isSwap &&
+        !isMeaningfulProtection(p.protection) &&
+        !p.via
+    )
+    .map((p) => parseInt(p.year, 10))
+    .sort((a, b) => a - b);
+
+  for (let i = 1; i < years.length; i++) {
+    if (years[i] === years[i - 1] + 1) return true;
+  }
+  return false;
 }
 
 export { debug as tradeDebug };
