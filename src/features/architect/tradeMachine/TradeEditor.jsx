@@ -3,6 +3,7 @@ import { RotateCcw } from 'lucide-react';
 import { useTradeMachine } from '@/hooks/tradeMachine/useTradeMachine';
 import TradeTeamCard from './TradeTeamCard';
 import TradeSummaryPanel from './TradeSummaryPanel';
+import TradeValidationPanel from './TradeValidationPanel';
 import TradePreviewModal from './TradePreviewModal';
 import '../../../utils/architect/tradeMachine/tradeValidator.debug'; // Add near other imports
 
@@ -163,6 +164,7 @@ const TradeEditor = ({
         teams={teams}
         forceTrade={forceTrade}
       />
+      <TradeValidationPanel result={result} />
       <TradePreviewModal
         open={previewOpen && !!result}
         onClose={() => setPreviewOpen(false)}

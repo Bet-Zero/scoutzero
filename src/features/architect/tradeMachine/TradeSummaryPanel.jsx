@@ -1,5 +1,6 @@
 import React from 'react';
 import { formatCurrency } from '@/utils/architect/tradeHelpers';
+import { HelpCircle } from 'lucide-react';
 
 const getPickLabel = (p) => {
   let label = `${p.year} ${p.round} Round`;
@@ -7,12 +8,27 @@ const getPickLabel = (p) => {
   if (p.protection) label += ` 🛡 ${p.protection}`;
   if (p.isSwap) label += ' 🔁 Swap';
   if (p.note) label += ` 📝 ${p.note}`;
-  return label;
+  const color = p.protection ? 'text-yellow-300' : 'text-red-300';
+  return <span className={color}>{label}</span>;
 };
 
-const RuleExplanation = ({ rule, description }) => (
+const RuleExplanation = ({ rule, description, link }) => (
   <div className="mt-2 p-2 bg-[#222] rounded border border-white/10">
-    <strong className="text-sm">{rule}:</strong>
+    <strong className="text-sm flex items-center">
+      {rule}
+      {link && (
+        <a
+          href={link}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="ml-1 text-white/70 hover:text-white"
+          title="View full CBA rule"
+        >
+          <HelpCircle size={14} />
+        </a>
+      )}
+      :
+    </strong>
     <p className="text-xs text-white/80 mt-1">{description}</p>
   </div>
 );
@@ -129,6 +145,16 @@ const TradeSummaryPanel = ({ result, teams, forceTrade }) => {
                     Projected Total:{' '}
                     {formatCurrency(teamResult.projectedSalary)}
                   </div>
+                  {teamResult.secondApronViolations?.length > 0 && (
+                    <div className="text-red-400 mt-1">
+                      {teamResult.secondApronViolations.join('; ')}
+                    </div>
+                  )}
+                  {teamResult.violations?.some((v) => /sign-and-trade/i.test(v)) && (
+                    <div className="text-red-400 mt-1">
+                      Sign-and-trade requirements not met
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -143,7 +169,18 @@ const TradeSummaryPanel = ({ result, teams, forceTrade }) => {
             {violatedRules.map((rule, i) => (
               <li key={i} className="flex items-start">
                 <span className="text-red-400 mr-2">•</span>
-                <span className="text-red-300 text-sm">{rule}</span>
+                <span className="text-red-300 text-sm flex items-center">
+                  {rule}
+                  <a
+                    href="https://nba.com/cba"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ml-1 text-white/70 hover:text-white"
+                    title="View full CBA rule"
+                  >
+                    <HelpCircle size={14} />
+                  </a>
+                </span>
               </li>
             ))}
           </ul>
@@ -156,18 +193,22 @@ const TradeSummaryPanel = ({ result, teams, forceTrade }) => {
           <RuleExplanation
             rule="Salary Matching (Over Cap)"
             description="Teams over the cap can take back 125% of outgoing salary + $100k (up to $6.5M outgoing), 175% + $100k (under $6.5M), or just 125% (over $19.6M)"
+            link="https://nba.com/cba/salary-matching"
           />
           <RuleExplanation
             rule="Second Apron Restrictions"
             description="Teams above the second apron cannot aggregate salaries in trades, take back more salary than they send, or include cash in trades"
+            link="https://nba.com/cba/second-apron"
           />
           <RuleExplanation
             rule="Sign-and-Trade"
             description="Sign-and-trade players must be traded alone, and receiving team cannot be above the first apron"
+            link="https://nba.com/cba/sign-and-trade"
           />
           <RuleExplanation
             rule="Stepien Rule"
             description="Teams cannot trade consecutive future first-round picks unless protected"
+            link="https://nba.com/cba/stepien-rule"
           />
         </div>
       </div>
