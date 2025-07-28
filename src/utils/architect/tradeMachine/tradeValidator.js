@@ -4,75 +4,106 @@
 const debug = {
   enabled: false,
   logs: [],
+  records: [],
 
   /**
    * Append a message to the debug log. The message is printed to the
    * console for immediate visibility and stored so it can be flushed to
    * a text file later on.
    */
-  write(msg = '') {
+  write(msg = '', meta = {}) {
     if (!this.enabled) return;
     if (msg !== '' || this.logs.length > 0) {
       this.logs.push(msg);
+      this.records.push({
+        msg,
+        time: new Date(),
+        team: meta.team,
+        rule: meta.rule,
+        salary: meta.salary || false,
+      });
     }
     console.log(msg);
   },
 
+  log(msg, meta = {}) {
+    this.write(msg, meta);
+  },
+
   logTrade(team) {
-    this.write('');
-    this.write(`=== ${team.team.teamName} ===`);
-    this.write(`Current Salary: ${formatSalary(team.team.totalSalary)}`);
-    this.write(
-      `Status: ${getApronStatus(team.team.totalSalary, team.context.capSettings)}`
+    this.log('', { team: team.team.teamName });
+    this.log(`=== ${team.team.teamName} ===`, { team: team.team.teamName });
+    this.log(`Current Salary: ${formatSalary(team.team.totalSalary)}`, {
+      team: team.team.teamName,
+    });
+    this.log(
+      `Status: ${getApronStatus(team.team.totalSalary, team.context.capSettings)}`,
+      { team: team.team.teamName }
     );
   },
 
   logSalaries(team) {
-    this.write('Outgoing:');
+    this.log('Outgoing:', { team: team.team.teamName, salary: true });
     (team.sends || []).forEach((p) => {
       const salary =
         p.contract_clean?.salaries_by_year?.[team.context.yearKey]?.salary || 0;
-      this.write(`  - ${p.name}: ${formatSalary(salary)}`);
+      this.log(`  - ${p.name}: ${formatSalary(salary)}`, {
+        team: team.team.teamName,
+        salary: true,
+      });
     });
 
-    this.write('Incoming:');
+    this.log('Incoming:', { team: team.team.teamName, salary: true });
     (team.incomingPlayers || []).forEach((p) => {
       const salary =
         p.contract_clean?.salaries_by_year?.[team.context.yearKey]?.salary || 0;
-      this.write(`  - ${p.name}: ${formatSalary(salary)}`);
+      this.log(`  - ${p.name}: ${formatSalary(salary)}`, {
+        team: team.team.teamName,
+        salary: true,
+      });
     });
 
-    this.write(
-      `Totals: OUT ${formatSalary(team.salaryOut)} | IN ${formatSalary(team.salaryIn)}`
+    this.log(
+      `Totals: OUT ${formatSalary(team.salaryOut)} | IN ${formatSalary(team.salaryIn)}`,
+      { team: team.team.teamName, salary: true }
     );
   },
 
   logSecondApron(team, violations) {
     if (!team.overSecondApron && !team.willBeOverSecond) return;
 
-    this.write('Second Apron Rules:');
-    this.write(
-      `Trade Type: ${team.sends.length}-for-${team.incomingPlayers.length}`
-    );
+    this.log('Second Apron Rules:', { team: team.team.teamName, rule: 'secondApron' });
+    this.log(`Trade Type: ${team.sends.length}-for-${team.incomingPlayers.length}`, {
+      team: team.team.teamName,
+      rule: 'secondApron',
+    });
 
     if (team.sends.length === 1) {
       const outgoing =
         team.sends[0].contract_clean?.salaries_by_year?.[team.context.yearKey]
           ?.salary || 0;
-      this.write(`1-to-Many max incoming: ${formatSalary(outgoing)}`);
+      this.log(`1-to-Many max incoming: ${formatSalary(outgoing)}`, {
+        team: team.team.teamName,
+        rule: 'secondApron',
+      });
     } else {
-      this.write('Many-to-Many: pair incoming with outgoing');
+      this.log('Many-to-Many: pair incoming with outgoing', {
+        team: team.team.teamName,
+        rule: 'secondApron',
+      });
     }
 
     if (violations.length) {
-      this.write('Violations:');
-      violations.forEach((v) => this.write(`  - ${v}`));
+      this.log('Violations:', { team: team.team.teamName, rule: 'secondApron' });
+      violations.forEach((v) =>
+        this.log(`  - ${v}`, { team: team.team.teamName, rule: 'secondApron' })
+      );
     } else {
-      this.write('All rules satisfied');
+      this.log('All rules satisfied', { team: team.team.teamName, rule: 'secondApron' });
     }
 
     // Spacer between team logs for readability
-    this.write('');
+    this.log('', { team: team.team.teamName, rule: 'secondApron' });
   },
 
   async flush(file = 'trade-debug.txt') {
@@ -81,6 +112,17 @@ const debug = {
       await fs.promises.writeFile(file, this.logs.join('\n'), 'utf8');
       console.log(`\nDebug log written to ${file}`);
     }
+  },
+
+  flushToUI({ showSalary = true, team = null, rule = null } = {}) {
+    return this.records
+      .filter((r) => {
+        if (!showSalary && r.salary) return false;
+        if (team && r.team !== team) return false;
+        if (rule && r.rule !== rule) return false;
+        return true;
+      })
+      .map((r) => `${r.time.toLocaleTimeString()} - ${r.msg}`);
   },
 };
 
@@ -376,12 +418,13 @@ const TRADE_RULES = {
       );
       const passes = team.salaryIn <= allowable;
 
-      debug.write('');
-      debug.write('Salary Matching:');
-      debug.write(
-        `Allowed: $${allowable.toLocaleString()} | Actual: $${team.salaryIn.toLocaleString()}`
+      debug.log('', { team: team.team.teamName, rule: 'salaryMatching' });
+      debug.log('Salary Matching:', { team: team.team.teamName, rule: 'salaryMatching' });
+      debug.log(
+        `Allowed: $${allowable.toLocaleString()} | Actual: $${team.salaryIn.toLocaleString()}`,
+        { team: team.team.teamName, rule: 'salaryMatching', salary: true }
       );
-      debug.write(passes ? 'PASS' : 'FAIL');
+      debug.log(passes ? 'PASS' : 'FAIL', { team: team.team.teamName, rule: 'salaryMatching' });
 
       return passes;
     },
@@ -520,29 +563,44 @@ export function validateTrade({ teams, capProjections, currentYear }) {
     debug.logSalaries(team);
 
     const violations = [];
-    Object.values(TRADE_RULES).forEach((rule) => {
-      if (!rule.test(team)) {
+    Object.entries(TRADE_RULES).forEach(([name, rule]) => {
+      const passed = rule.test(team);
+      debug.log(`Rule ${name}: ${passed ? 'PASS' : 'FAIL'}`, {
+        team: team.team.teamName,
+        rule: name,
+      });
+      if (!passed) {
         violations.push(rule.message(team));
       }
     });
 
     // Add new rules validations
     const newRuleViolations = validateAllNewRules(team, initialTeams);
+    newRuleViolations.forEach((msg) =>
+      debug.log(`Rule extra: ${msg}`, { team: team.team.teamName, rule: 'extra' })
+    );
     violations.push(...newRuleViolations);
 
-    return {
+    const teamResult = {
       ...team,
       legal: violations.length === 0,
       violations,
     };
+    debug.log(`Team result: ${team.team.teamName} ${teamResult.legal ? 'PASS' : 'FAIL'}`, {
+      team: team.team.teamName,
+    });
+    return teamResult;
   });
 
-  return {
-    overallLegal: validatedTeams.every((t) => t.legal),
+  const overall = validatedTeams.every((t) => t.legal);
+  const result = {
+    overallLegal: overall,
     teamResults: validatedTeams,
     reason:
       validatedTeams.flatMap((t) => t.violations).join('; ') || 'Valid trade',
   };
+  debug.log(`Overall result: ${overall ? 'PASS' : 'FAIL'}`);
+  return result;
 }
 
 export function hasStepienViolation(picks = []) {

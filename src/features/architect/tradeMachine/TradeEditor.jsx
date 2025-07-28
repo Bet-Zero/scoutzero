@@ -5,6 +5,7 @@ import TradeTeamCard from './TradeTeamCard';
 import TradeSummaryPanel from './TradeSummaryPanel';
 import TradeValidationPanel from './TradeValidationPanel';
 import TradePreviewModal from './TradePreviewModal';
+import TradeDebugPanel from './TradeDebugPanel';
 import '../../../utils/architect/tradeMachine/tradeValidator.debug'; // Add near other imports
 
 const TradeEditor = ({
@@ -165,6 +166,7 @@ const TradeEditor = ({
         forceTrade={forceTrade}
       />
       <TradeValidationPanel result={result} />
+      <TradeDebugPanel />
       <TradePreviewModal
         open={previewOpen && !!result}
         onClose={() => setPreviewOpen(false)}
