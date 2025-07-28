@@ -64,7 +64,7 @@ export const TradePickRow = ({
           {exists && (
             <div className="w-[140px] text-white/50 mt-1 space-y-1">
               <select
-                className="w-[140px] bg-black/30 p-1 rounded w-full"
+                className="w-full bg-black/30 p-1 rounded"
                 value={pickObj.protection || ''}
                 onChange={(e) => onEdit(pick, 'protection', e.target.value)}
               >
