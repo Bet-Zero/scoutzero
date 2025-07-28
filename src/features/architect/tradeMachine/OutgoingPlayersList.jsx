@@ -41,6 +41,11 @@ export const OutgoingPlayersList = ({
     [incomingPlayers]
   );
 
+  const signAndTradeActive = useMemo(
+    () => sends.some((p) => p.signAndTrade),
+    [sends]
+  );
+
   // Memoized sorted list
   const sortedAvailable = useMemo(() => {
     return available.slice().sort((a, b) => {
@@ -87,6 +92,7 @@ export const OutgoingPlayersList = ({
             setOpenMenu={setOpenMenu}
             setContractPlayer={setContractPlayer}
             tradeExceptions={tradeExceptions}
+            signAndTradeActive={signAndTradeActive}
           />
         ))}
         {available.length === 0 && (
