@@ -5,15 +5,23 @@ const debug = {
   enabled: true,
   logs: [],
 
-  write(msg) {
+  /**
+   * Append a message to the debug log. The message is printed to the
+   * console for immediate visibility and stored so it can be flushed to
+   * a text file later on.
+   */
+  write(msg = '') {
     if (!this.enabled) return;
-    this.logs.push(msg);
+    if (msg !== '' || this.logs.length > 0) {
+      this.logs.push(msg);
+    }
     console.log(msg);
   },
 
   logTrade(team) {
-    this.write(`\n=== ${team.teamName} ===`);
-    this.write(`Current Salary: $${team.team.totalSalary.toLocaleString()}`);
+    this.write('');
+    this.write(`=== ${team.team.teamName} ===`);
+    this.write(`Current Salary: ${formatSalary(team.team.totalSalary)}`);
     this.write(
       `Status: ${getApronStatus(team.team.totalSalary, team.context.capSettings)}`
     );
@@ -24,18 +32,18 @@ const debug = {
     team.sends.forEach((p) => {
       const salary =
         p.contract_clean?.salaries_by_year?.[team.context.yearKey]?.salary || 0;
-      this.write(`- ${p.name}: $${salary.toLocaleString()}`);
+      this.write(`  - ${p.name}: ${formatSalary(salary)}`);
     });
 
     this.write('Incoming:');
     team.incomingPlayers.forEach((p) => {
       const salary =
         p.contract_clean?.salaries_by_year?.[team.context.yearKey]?.salary || 0;
-      this.write(`- ${p.name}: $${salary.toLocaleString()}`);
+      this.write(`  - ${p.name}: ${formatSalary(salary)}`);
     });
 
     this.write(
-      `Totals: OUT $${team.salaryOut.toLocaleString()} | IN $${team.salaryIn.toLocaleString()}`
+      `Totals: OUT ${formatSalary(team.salaryOut)} | IN ${formatSalary(team.salaryIn)}`
     );
   },
 
@@ -51,23 +59,27 @@ const debug = {
       const outgoing =
         team.sends[0].contract_clean?.salaries_by_year?.[team.context.yearKey]
           ?.salary || 0;
-      this.write(`1-to-Many max incoming: $${outgoing.toLocaleString()}`);
+      this.write(`1-to-Many max incoming: ${formatSalary(outgoing)}`);
     } else {
       this.write('Many-to-Many: pair incoming with outgoing');
     }
 
     if (violations.length) {
       this.write('Violations:');
-      violations.forEach((v) => this.write(`- ${v}`));
+      violations.forEach((v) => this.write(`  - ${v}`));
     } else {
       this.write('All rules satisfied');
     }
+
+    // Spacer between team logs for readability
+    this.write('');
   },
 
   async flush(file = 'trade-debug.txt') {
     if (typeof process !== 'undefined' && process.versions?.node) {
       const fs = await import('fs');
       await fs.promises.writeFile(file, this.logs.join('\n'), 'utf8');
+      console.log(`\nDebug log written to ${file}`);
     }
   },
 };
@@ -75,6 +87,8 @@ const debug = {
 export { debug as tradeDebug };
 
 // ===== HELPERS =====
+const formatSalary = (amount) => `$${(amount || 0).toLocaleString()}`;
+
 const getApronStatus = (salary, { firstApron, secondApron } = {}) => {
   if (secondApron && salary > secondApron) return 'ABOVE 2nd APRON 🔴';
   if (firstApron && salary > firstApron) return 'Above 1st Apron ⚠️';
