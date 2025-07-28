@@ -3,24 +3,34 @@
 // ======================
 // Salary Calculations
 // ======================
+export const MIN_SALARY = 1_119_563;
+
 export const getSalaryForYear = (players = [], year) =>
   players.reduce((sum, p) => {
-    const salaryFromContract =
-      p.contract_clean?.salaries_by_year?.[year]?.salary;
+    const yearData = p.contract_clean?.salaries_by_year?.[year] || {};
     const salaryFromMap = p.salaryByYear?.[year];
     const salary =
-      typeof salaryFromContract === 'number'
-        ? salaryFromContract
+      typeof yearData.salary === 'number'
+        ? yearData.salary
         : typeof salaryFromMap === 'number'
           ? salaryFromMap
-          : 0;
-    return sum + salary;
+          : typeof p.salary === 'number'
+            ? p.salary
+            : 0;
+    const likelyBonus =
+      yearData.bonuses?.likely ??
+      yearData.likelyIncentives ??
+      p.bonusesByYear?.[year]?.likely ??
+      0;
+    return sum + salary + likelyBonus;
   }, 0);
 
 export const calculateAllowableIncoming = (
   teamSalary,
   salaryOut,
-  { cap, firstApron, secondApron } = {}
+  incomingPlayers = [],
+  tpes = [],
+  { cap, firstApron, secondApron, yearKey } = {}
 ) => {
   firstApron = firstApron || Infinity;
   secondApron = secondApron || Infinity;
@@ -32,10 +42,27 @@ export const calculateAllowableIncoming = (
   if (overSecondApron) return salaryOut;
   if (overFirstApron) return salaryOut * 1.1;
 
-  if (!overCap) return salaryOut + 250000 + Math.max(0, cap - teamSalary);
-  if (salaryOut < 6530000) return salaryOut * 1.75 + 100000;
-  if (salaryOut < 19600000) return salaryOut * 1.25 + 100000;
-  return salaryOut * 1.25;
+  let allowable = 0;
+
+  if (!overCap)
+    allowable = salaryOut + 250000 + Math.max(0, cap - teamSalary);
+  else if (salaryOut < 6530000) allowable = salaryOut * 1.75 + 100000;
+  else if (salaryOut < 19600000) allowable = salaryOut * 1.25 + 100000;
+  else allowable = salaryOut * 1.25;
+
+  const tpeAmount = tpes.reduce(
+    (sum, t) => sum + (t.remaining ?? t.amount ?? 0),
+    0
+  );
+
+  const minException = overCap
+    ? incomingPlayers.reduce((sum, p) => {
+        const salary = getSalaryForYear([p], yearKey);
+        return salary <= MIN_SALARY ? sum + salary : sum;
+      }, 0)
+    : 0;
+
+  return allowable + tpeAmount + minException;
 };
 
 export const getApronStatus = (salary, { firstApron, secondApron } = {}) => {

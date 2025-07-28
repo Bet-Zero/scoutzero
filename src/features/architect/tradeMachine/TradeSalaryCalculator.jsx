@@ -1,29 +1,47 @@
 import React, { useState, useEffect } from 'react';
-import { formatCurrency } from '@/utils/architect/tradeHelpers';
+import {
+  formatCurrency,
+  calculateAllowableIncoming,
+  getSalaryForYear,
+  MIN_SALARY,
+} from '@/utils/architect/tradeHelpers';
 
-const TradeSalaryCalculator = ({ teamSalary, outgoingSalary, capSettings }) => {
+const TradeSalaryCalculator = ({
+  teamSalary,
+  outgoingSalary,
+  incomingPlayers = [],
+  tpes = [],
+  capSettings,
+  yearKey,
+}) => {
   const [incomingSalary, setIncomingSalary] = useState(0);
   const [allowableIncoming, setAllowableIncoming] = useState(0);
+  const [breakdown, setBreakdown] = useState({
+    base: 0,
+    min: 0,
+    tpe: 0,
+  });
 
   useEffect(() => {
     if (!teamSalary || !capSettings) return;
 
-    const { cap } = capSettings;
-    const overCap = teamSalary > cap;
-    let allowable = 0;
-
-    if (!overCap) {
-      allowable = outgoingSalary + 250000 + Math.max(0, cap - teamSalary);
-    } else if (outgoingSalary < 6530000) {
-      allowable = outgoingSalary * 1.75 + 100000;
-    } else if (outgoingSalary < 19600000) {
-      allowable = outgoingSalary * 1.25 + 100000;
-    } else {
-      allowable = outgoingSalary * 1.25;
-    }
-
-    setAllowableIncoming(allowable);
-  }, [teamSalary, outgoingSalary, capSettings]);
+    const base = calculateAllowableIncoming(teamSalary, outgoingSalary, [], [], {
+      ...capSettings,
+      yearKey,
+    });
+    const min = teamSalary > capSettings.cap
+      ? incomingPlayers.reduce((sum, p) => {
+          const s = getSalaryForYear([p], yearKey);
+          return s <= MIN_SALARY ? sum + s : sum;
+        }, 0)
+      : 0;
+    const tpe = tpes.reduce(
+      (sum, t) => sum + (t.remaining ?? t.amount ?? 0),
+      0
+    );
+    setBreakdown({ base, min, tpe });
+    setAllowableIncoming(base + min + tpe);
+  }, [teamSalary, outgoingSalary, incomingPlayers, tpes, capSettings, yearKey]);
 
   const isValid = incomingSalary <= allowableIncoming;
 
@@ -51,6 +69,18 @@ const TradeSalaryCalculator = ({ teamSalary, outgoingSalary, capSettings }) => {
               {formatCurrency(allowableIncoming)}
             </div>
           </div>
+        </div>
+
+        <div className="text-xs text-white/70 space-y-1">
+          <div>Base: {formatCurrency(breakdown.base)}</div>
+          {breakdown.min > 0 && (
+            <div className="text-yellow-400">
+              Min Exception: +{formatCurrency(breakdown.min)}
+            </div>
+          )}
+          {breakdown.tpe > 0 && (
+            <div>Using TPE: +{formatCurrency(breakdown.tpe)}</div>
+          )}
         </div>
 
         <div>
