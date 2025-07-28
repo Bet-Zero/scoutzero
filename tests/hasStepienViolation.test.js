@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { hasStepienViolation } from '../src/utils/architect/tradeMachine/tradeValidator.js';
 
 describe('hasStepienViolation', () => {
-  it('detects consecutive unprotected first round picks', () => {
+  it('fails on consecutive unprotected own picks', () => {
     const picks = [
       { year: 2026, round: '1st' },
       { year: 2027, round: '1st' },
@@ -10,26 +10,27 @@ describe('hasStepienViolation', () => {
     expect(hasStepienViolation(picks)).toBe(true);
   });
 
-  it('allows alternating unprotected firsts', () => {
+  it('passes when picks are protected', () => {
     const picks = [
-      { year: 2026, round: '1st' },
-      { year: 2028, round: '1st' },
+      { year: 2026, round: '1st', protection: 'Top 5' },
+      { year: 2027, round: '1st', protection: 'Lottery' },
     ];
     expect(hasStepienViolation(picks)).toBe(false);
   });
 
-  it('ignores protected picks when checking', () => {
-    const picks = [
-      { year: 2026, round: '1st', protection: 'Top 10' },
-      { year: 2027, round: '1st' },
-    ];
-    expect(hasStepienViolation(picks)).toBe(false);
-  });
-
-  it('ignores swapped picks when checking', () => {
+  it('ignores swap years', () => {
     const picks = [
       { year: 2026, round: '1st', isSwap: true },
-      { year: 2027, round: '1st' },
+      { year: 2027, round: '1st', isSwap: true },
+    ];
+    expect(hasStepienViolation(picks)).toBe(false);
+  });
+
+  it('handles mixed protected and unprotected picks', () => {
+    const picks = [
+      { year: 2026, round: '1st' },
+      { year: 2027, round: '1st', protection: 'Top 10' },
+      { year: 2028, round: '1st' },
     ];
     expect(hasStepienViolation(picks)).toBe(false);
   });
