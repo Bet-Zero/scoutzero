@@ -1,4 +1,4 @@
-// tradeValidator.js - Complete Fixed Version
+// tradeValidator.js - Combined Complete Version
 
 // ===== DEBUGGER =====
 const debug = {
@@ -84,9 +84,24 @@ const debug = {
   },
 };
 
-export { debug as tradeDebug };
+// ===== UTILITIES =====
+const isExpired = (expiryDate) => {
+  if (!expiryDate) return false;
+  const expiry = new Date(expiryDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Normalize to midnight
+  return expiry <= today;
+};
 
-// ===== HELPERS =====
+const formatDate = (dateStr) => {
+  if (!dateStr) return 'N/A';
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+};
+
 const formatSalary = (amount) => `$${(amount || 0).toLocaleString()}`;
 
 const getApronStatus = (salary, { firstApron, secondApron } = {}) => {
@@ -95,8 +110,219 @@ const getApronStatus = (salary, { firstApron, secondApron } = {}) => {
   return 'Below Aprons ✅';
 };
 
+// ===== CBA CONSTANTS =====
+const CBA_THRESHOLDS = {
+  FIRST_APRON: 172_295_000,
+  SECOND_APRON: 182_794_000,
+  MIN_SALARY: 1_119_563,
+  MAX_CASH: 7_100_000,
+  TRADE_BUFFER: 100_000,
+  STEPIEN_YEARS: 7,
+};
+
 const MAX_FUTURE_PICK_YEARS = 7;
 
+// ===== TRADE EXCEPTION VALIDATION =====
+export function validateTradeExceptions(team) {
+  const violations = [];
+
+  team.incomingPlayers.forEach((player) => {
+    if (!player.acquiredViaTPE) return;
+
+    const tpeIndex = team.tradeExceptions.findIndex(
+      (e) => e.id === player.tpeId
+    );
+    if (tpeIndex === -1) {
+      violations.push(`No TPE found for ${player.name}`);
+      return;
+    }
+
+    const tpe = team.tradeExceptions[tpeIndex];
+    const remaining =
+      typeof tpe.remaining === 'number' ? tpe.remaining : tpe.amount;
+    const expiry = tpe.expiry || tpe.expirationDate;
+
+    // Check for concurrent usage
+    if (tpe.isBeingUsed) {
+      violations.push(`TPE ${tpe.id} is already being processed`);
+      return;
+    }
+
+    // Validate TPE
+    if (remaining < player.salary) {
+      violations.push(
+        `TPE too small for ${player.name}\n` +
+          `- Available: $${remaining.toLocaleString()}\n` +
+          `- Required: $${player.salary.toLocaleString()}`
+      );
+    } else if (isExpired(expiry)) {
+      violations.push(`TPE expired on ${formatDate(expiry)}`);
+    } else {
+      // Lock and update TPE
+      team.tradeExceptions[tpeIndex] = {
+        ...tpe,
+        isBeingUsed: true,
+        remaining: remaining - player.salary,
+        isUsed: remaining - player.salary <= 0,
+      };
+    }
+  });
+
+  return violations;
+}
+
+// DRAFT PICKS VALIDATION
+export function validateDraftPicks(team, allTeams) {
+  const violations = [];
+  const currentYear = new Date().getFullYear();
+
+  // Stepien Rule (no consecutive 1sts)
+  const tradedFirsts = team.tradedPicks
+    .filter((p) => p.round === 1 && !p.isProtected)
+    .map((p) => p.year)
+    .sort();
+
+  for (let i = 0; i < tradedFirsts.length - 1; i++) {
+    if (tradedFirsts[i + 1] === tradedFirsts[i] + 1) {
+      violations.push(
+        `Cannot trade ${tradedFirsts[i]} and ${tradedFirsts[i + 1]} 1st-round picks`
+      );
+    }
+  }
+
+  const limit = currentYear + CBA_THRESHOLDS.STEPIEN_YEARS;
+  const distantPicks = team.tradedPicks.filter((p) => p.year > limit);
+  if (distantPicks.length > 0) {
+    violations.push(`Cannot trade picks beyond ${limit} (7 years out)`);
+  }
+
+  return violations;
+}
+
+// ROSTER LIMITS VALIDATION
+export function validateRosterLimits(team) {
+  const violations = [];
+  const postTradeRosterSize =
+    team.currentRoster.length - team.sends.length + team.incomingPlayers.length;
+
+  if (postTradeRosterSize > 15) {
+    violations.push(`Roster would exceed 15 players (${postTradeRosterSize})`);
+  }
+
+  if (postTradeRosterSize < 14) {
+    violations.push(
+      `Roster would fall below 14 players (${postTradeRosterSize})`
+    );
+  }
+
+  return violations;
+}
+
+// CASH CONSIDERATIONS VALIDATION
+export function validateCash(team) {
+  const violations = [];
+
+  if (team.cashSent > CBA_THRESHOLDS.MAX_CASH) {
+    violations.push(
+      `Cash sent ($${team.cashSent}) exceeds $${CBA_THRESHOLDS.MAX_CASH} limit`
+    );
+  }
+
+  if ((team.overSecondApron || team.willBeOverSecond) && team.cashSent > 0) {
+    violations.push('Second apron team cannot include cash in trades');
+  }
+
+  return violations;
+}
+
+// SIGN-AND-TRADE RULES VALIDATION
+export function validateSignAndTrade(team) {
+  const violations = [];
+  const sntPlayers = team.incomingPlayers.filter((p) => p.isSignAndTrade);
+
+  if (sntPlayers.length > 0) {
+    // Hard cap check
+    if (team.projectedSalary > CBA_THRESHOLDS.FIRST_APRON) {
+      violations.push('Sign-and-trade would hard-cap team at 1st apron');
+    }
+
+    // Contract length check
+    sntPlayers.forEach((p) => {
+      if (p.contractYears < 3 || p.contractYears > 4) {
+        violations.push(`S&T contract for ${p.name} must be 3-4 years`);
+      }
+    });
+  }
+
+  return violations;
+}
+
+// BASE YEAR COMPENSATION VALIDATION
+export function validateBYC(team) {
+  const violations = [];
+
+  team.incomingPlayers.forEach((p) => {
+    if (p.isBYC) {
+      const bycValue = p.previousSalary * 1.2;
+      if (p.salary > bycValue) {
+        violations.push(
+          `BYC restriction: ${p.name}'s salary ($${p.salary}) > 120% of previous ($${bycValue})`
+        );
+      }
+    }
+  });
+
+  return violations;
+}
+
+// SECOND APRON AGGREGATION VALIDATION
+export function validateSecondApronAggregation(team) {
+  const violations = [];
+  if (!team.overSecondApron && !team.willBeOverSecond) return violations;
+
+  const outgoing = team.sends.map((p) => p.salary || 0).sort((a, b) => b - a);
+  const incoming = team.incomingPlayers
+    .map((p) => p.salary || 0)
+    .sort((a, b) => b - a);
+
+  let aggregated = false;
+  if (team.sends.length === 1) {
+    const maxOut = outgoing[0];
+    incoming.forEach((s) => {
+      if (s > maxOut) aggregated = true;
+    });
+  } else {
+    incoming.forEach((s, i) => {
+      if (s > (outgoing[i] || 0)) aggregated = true;
+    });
+  }
+
+  if (aggregated) {
+    violations.push('Second apron team cannot aggregate salaries');
+  }
+  if (
+    incoming.reduce((a, b) => a + b, 0) > outgoing.reduce((a, b) => a + b, 0)
+  ) {
+    violations.push('Second apron team cannot receive more salary than sent');
+  }
+
+  return violations;
+}
+
+// MAIN NEW RULES VALIDATOR
+export function validateAllNewRules(team, allTeams) {
+  return [
+    ...validateTradeExceptions(team),
+    ...validateDraftPicks(team, allTeams),
+    ...validateRosterLimits(team),
+    ...validateCash(team),
+    ...validateSignAndTrade(team),
+    ...validateBYC(team),
+    ...validateSecondApronAggregation(team),
+  ];
+}
+
+// ===== HELPERS =====
 const calculateAllowableIncoming = (team, capSettings) => {
   const { totalSalary, salaryOut, overSecondApron, overFirstApron } = team;
   if (overSecondApron) return salaryOut;
@@ -186,7 +412,9 @@ const TRADE_RULES = {
 
       // Total salary check
       if (team.salaryIn > team.salaryOut) {
-        violations.push('Second apron team cannot receive more salary than sent');
+        violations.push(
+          'Second apron team cannot receive more salary than sent'
+        );
       }
 
       team.secondApronViolations = violations;
@@ -272,6 +500,10 @@ export function validateTrade({ teams, capProjections, currentYear }) {
       }
     });
 
+    // Add new rules validations
+    const newRuleViolations = validateAllNewRules(team, initialTeams);
+    violations.push(...newRuleViolations);
+
     return {
       ...team,
       legal: violations.length === 0,
@@ -286,3 +518,5 @@ export function validateTrade({ teams, capProjections, currentYear }) {
       validatedTeams.flatMap((t) => t.violations).join('; ') || 'Valid trade',
   };
 }
+
+export { debug as tradeDebug };
