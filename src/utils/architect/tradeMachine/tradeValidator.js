@@ -190,6 +190,8 @@ export function validateTradeExceptions(team) {
   const violations = [];
   const usedTPEs = new Map(); // Track usage during this validation
 
+  const yearKey = team?.context?.yearKey ?? new Date().getFullYear();
+
   team.incomingPlayers.forEach((player) => {
     if (!player.acquiredViaTPE) return;
 
@@ -208,7 +210,7 @@ export function validateTradeExceptions(team) {
     }
 
     const remaining = tpe.remaining ?? tpe.amount;
-    const playerSalary = getSalaryForYear([player], team.context.yearKey);
+    const playerSalary = getSalaryForYear([player], yearKey);
 
     if (playerSalary > remaining) {
       violations.push(
