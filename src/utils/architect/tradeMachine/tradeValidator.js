@@ -188,48 +188,51 @@ const MAX_FUTURE_PICK_YEARS = 7;
 // ===== TRADE EXCEPTION VALIDATION =====
 export function validateTradeExceptions(team) {
   const violations = [];
+  const usedTPEs = new Map(); // Track usage during this validation
 
   team.incomingPlayers.forEach((player) => {
     if (!player.acquiredViaTPE) return;
 
-    const tpeIndex = team.tradeExceptions.findIndex(
-      (e) => e.id === player.tpeId
-    );
-    if (tpeIndex === -1) {
-      violations.push(`No TPE found for ${player.name}`);
+    const tpe = team.tradeExceptions.find((e) => e.id === player.tpeId);
+    if (!tpe) {
+      violations.push(`No valid TPE found for ${player.name}`);
       return;
     }
 
-    const tpe = team.tradeExceptions[tpeIndex];
-    const remaining =
-      typeof tpe.remaining === 'number' ? tpe.remaining : tpe.amount;
-    const expiry = tpe.expiry || tpe.expirationDate;
-
-    // Check for concurrent usage
-    if (tpe.isBeingUsed) {
-      violations.push(`TPE ${tpe.id} is already being processed`);
-      return;
-    }
-
-    // Validate TPE
-    if (remaining < player.salary) {
+    // Check for concurrent usage in THIS validation pass
+    if (usedTPEs.has(tpe.id)) {
       violations.push(
-        `TPE too small for ${player.name}\n` +
-          `- Available: $${remaining.toLocaleString()}\n` +
-          `- Required: $${player.salary.toLocaleString()}`
+        `TPE ${tpe.id} is being used multiple times in this trade`
       );
-    } else if (isExpired(expiry)) {
-      violations.push(`TPE expired on ${formatDate(expiry)}`);
+      return;
+    }
+
+    const remaining = tpe.remaining ?? tpe.amount;
+    const playerSalary = getSalaryForYear([player], team.context.yearKey);
+
+    if (playerSalary > remaining) {
+      violations.push(
+        `TPE ${tpe.id} ($${remaining.toLocaleString()}) too small for ${player.name} ($${playerSalary.toLocaleString()})`
+      );
+    } else if (isExpired(tpe.expiryDate)) {
+      violations.push(`TPE ${tpe.id} expired on ${formatDate(tpe.expiryDate)}`);
     } else {
-      // Lock and update TPE
-      team.tradeExceptions[tpeIndex] = {
-        ...tpe,
-        isBeingUsed: true,
-        remaining: remaining - player.salary,
-        isUsed: remaining - player.salary <= 0,
-      };
+      // Track usage without modifying original yet
+      usedTPEs.set(tpe.id, {
+        originalAmount: tpe.amount,
+        newRemaining: remaining - playerSalary,
+      });
     }
   });
+
+  // Apply changes if no violations
+  if (violations.length === 0) {
+    usedTPEs.forEach((value, tpeId) => {
+      const tpeIndex = team.tradeExceptions.findIndex((e) => e.id === tpeId);
+      team.tradeExceptions[tpeIndex].remaining = value.newRemaining;
+      team.tradeExceptions[tpeIndex].isUsed = value.newRemaining <= 0;
+    });
+  }
 
   return violations;
 }
@@ -364,34 +367,57 @@ export function validateBYC(team) {
 }
 
 // SECOND APRON AGGREGATION VALIDATION
-export function validateSecondApronAggregation(team) {
-  const violations = [];
-  if (!team.overSecondApron && !team.willBeOverSecond) return violations;
+// 2. Update second apron validation in tradeValidator.js
+function validateSecondApronRules(team) {
+  if (!team.overSecondApron && !team.willBeOverSecond) return [];
 
-  const outgoing = team.sends.map((p) => p.salary || 0).sort((a, b) => b - a);
-  const incoming = team.incomingPlayers
-    .map((p) => p.salary || 0)
+  const violations = [];
+  const outgoingSalaries = team.sends
+    .map((p) => getSalaryForYear([p], team.context.yearKey))
     .sort((a, b) => b - a);
 
-  let aggregated = false;
+  const incomingSalaries = team.incomingPlayers
+    .map((p) => getSalaryForYear([p], team.context.yearKey))
+    .sort((a, b) => b - a);
+
+  // 1-to-Many rule
   if (team.sends.length === 1) {
-    const maxOut = outgoing[0];
-    incoming.forEach((s) => {
-      if (s > maxOut) aggregated = true;
+    const maxOutgoing = outgoingSalaries[0];
+    incomingSalaries.forEach((incoming) => {
+      if (incoming > maxOutgoing) {
+        violations.push(
+          `Second apron team cannot receive player with salary $${incoming.toLocaleString()} ` +
+            `(exceeds single outgoing salary $${maxOutgoing.toLocaleString()})`
+        );
+      }
     });
-  } else {
-    incoming.forEach((s, i) => {
-      if (s > (outgoing[i] || 0)) aggregated = true;
+  }
+  // Many-to-Many rule
+  else {
+    incomingSalaries.forEach((incoming, i) => {
+      const correspondingOutgoing = outgoingSalaries[i] || 0;
+      if (incoming > correspondingOutgoing) {
+        violations.push(
+          `Salary mismatch at position ${i + 1}: ` +
+            `Incoming $${incoming.toLocaleString()} > Outgoing $${correspondingOutgoing.toLocaleString()}`
+        );
+      }
     });
   }
 
-  if (aggregated) {
-    violations.push('Second apron team cannot aggregate salaries');
+  // Total salary cannot increase
+  const totalOutgoing = outgoingSalaries.reduce((a, b) => a + b, 0);
+  const totalIncoming = incomingSalaries.reduce((a, b) => a + b, 0);
+  if (totalIncoming > totalOutgoing) {
+    violations.push(
+      `Total incoming salary $${totalIncoming.toLocaleString()} ` +
+        `exceeds total outgoing $${totalOutgoing.toLocaleString()}`
+    );
   }
-  if (
-    incoming.reduce((a, b) => a + b, 0) > outgoing.reduce((a, b) => a + b, 0)
-  ) {
-    violations.push('Second apron team cannot receive more salary than sent');
+
+  // No cash considerations
+  if (team.cashSent > 0) {
+    violations.push('Second apron teams cannot include cash in trades');
   }
 
   return violations;
@@ -539,102 +565,340 @@ const TRADE_RULES = {
 
 // ===== MAIN VALIDATOR =====
 export function validateTrade({ teams, capProjections, currentYear }) {
+  // Helper functions
+  const isExpired = (dateStr) => dateStr && new Date(dateStr) < new Date();
+  const formatDate = (dateStr) =>
+    dateStr ? new Date(dateStr).toLocaleDateString() : 'N/A';
+
   const yearKey = currentYear;
   const capSettings =
     capProjections[`${currentYear}-${String(currentYear + 1).slice(-2)}`] || {};
 
-  // First pass - calculate basic data
-  const initialTeams = teams.map((team) => {
-    const salaryOut = getSalaryForYear(team.sends, yearKey);
-    const salaryIn = teams.reduce((sum, t) => {
-      if (t.team.id === team.team.id) return sum;
-      return (
-        sum +
-        getSalaryForYear(
-          t.sends.filter((p) => !p.tradeTo || p.tradeTo === team.team.id),
-          yearKey
-        )
-      );
-    }, 0);
+  // ======================
+  // VALIDATOR IMPLEMENTATIONS
+  // ======================
+
+  const validateSalaryMatching = (team) => {
+    const allowable = calculateAllowableIncoming(
+      team.team?.totalSalary || 0,
+      team.salaryOut,
+      team.incomingPlayers,
+      team.tradeExceptions || [],
+      capSettings
+    );
+    const passes = team.salaryIn <= allowable;
 
     return {
-      ...team,
-      salaryOut,
-      salaryIn,
-      picksOut: team.picksOut || [],
-      tradedPicks: team.picksOut || [],
-      cashSent: team.cashSent || 0,
-      projectedSalary: team.team.totalSalary - salaryOut + salaryIn,
-      context: { capSettings, yearKey },
+      passed: passes,
+      violations: passes
+        ? []
+        : [
+            `Salary mismatch by $${(team.salaryIn - allowable).toLocaleString()} ` +
+              `(In: $${team.salaryIn.toLocaleString()}, ` +
+              `Allowed: $${allowable.toLocaleString()})`,
+          ],
+      message: passes ? 'Valid salary match' : 'Salary matching violation',
+      details: passes
+        ? ''
+        : `Calculation: ${calculateAllowableIncoming.toString()}`,
     };
-  });
+  };
 
-  // Second pass - add apron status and cross-references
-  const teamResults = initialTeams.map((team) => {
-    const currentStatus = getApronStatus(team.team.totalSalary, capSettings);
-    const projectedStatus = getApronStatus(team.projectedSalary, capSettings);
+  const validateSecondApronRules = (team) => {
+    const violations = [];
+    if (!team.calculations.apronStatus.willBeOverSecond) {
+      return {
+        passed: true,
+        violations,
+        message: 'Below second apron',
+        details: '',
+      };
+    }
+
+    const outgoing = team.outgoingPlayers
+      .map((p) => getSalaryForYear([p], yearKey))
+      .sort((a, b) => b - a);
+    const incoming = team.incomingPlayers
+      .map((p) => getSalaryForYear([p], yearKey))
+      .sort((a, b) => b - a);
+
+    if (outgoing.length === 1) {
+      const maxOut = outgoing[0];
+      incoming.forEach((s) => {
+        if (s > maxOut)
+          violations.push(
+            `Incoming $${s.toLocaleString()} > outgoing $${maxOut.toLocaleString()}`
+          );
+      });
+    } else {
+      incoming.forEach((s, i) => {
+        if (s > (outgoing[i] || 0))
+          violations.push(
+            `Pair ${i + 1}: $${s.toLocaleString()} > $${outgoing[i].toLocaleString()}`
+          );
+      });
+    }
+
+    if (team.cashSent > 0)
+      violations.push('Second apron teams cannot send cash');
 
     return {
-      ...team,
-      overSecondApron: currentStatus.includes('2nd APRON'),
-      willBeOverSecond: projectedStatus.includes('2nd APRON'),
-      context: { ...team.context, teams: initialTeams },
-      picksOut: team.picksOut,
-      tradedPicks: team.tradedPicks,
-      cashSent: team.cashSent,
+      passed: violations.length === 0,
+      violations,
+      message: violations.length
+        ? 'Second apron violation'
+        : 'Second apron compliant',
+      details: violations.join('; '),
     };
-  });
+  };
 
-  // Validate each team
-  const validatedTeams = teamResults.map((team) => {
-    debug.logTrade(team);
-    debug.logSalaries(team);
+  const validateSignAndTrade = (team) => {
+    const sntPlayers = team.incomingPlayers.filter((p) => p.signAndTrade);
+    if (sntPlayers.length === 0) {
+      return {
+        passed: true,
+        violations: [],
+        message: 'No sign-and-trade players',
+        details: '',
+      };
+    }
 
     const violations = [];
-    Object.entries(TRADE_RULES).forEach(([name, rule]) => {
-      const passed = rule.test(team);
-      debug.log(`Rule ${name}: ${passed ? 'PASS' : 'FAIL'}`, {
-        team: team.team.teamName,
-        rule: name,
-      });
-      if (!passed) {
-        violations.push(rule.message(team));
+    if (team.outgoingPlayers.length > 1)
+      violations.push('S&T must be only outgoing player');
+    if (team.projectedSalary > capSettings.firstApron)
+      violations.push(
+        `Would exceed first apron ($${capSettings.firstApron.toLocaleString()})`
+      );
+
+    sntPlayers.forEach((p) => {
+      const years = p.contractYears || p.contract_clean?.years || 0;
+      if (years < 3 || years > 4)
+        violations.push(`S&T contract must be 3-4 years (${p.name}: ${years})`);
+    });
+
+    return {
+      passed: violations.length === 0,
+      violations,
+      message: violations.length ? 'S&T violation' : 'S&T valid',
+      details: violations.join('; '),
+    };
+  };
+
+  const validateStepienRule = (team) => {
+    const violations = [];
+    const firsts = team.outgoingPicks
+      .filter(
+        (p) =>
+          (p.round === 1 || p.round === '1st') && !p.isSwap && !p.protection
+      )
+      .map((p) => parseInt(p.year))
+      .sort((a, b) => a - b);
+
+    for (let i = 1; i < firsts.length; i++) {
+      if (firsts[i] === firsts[i - 1] + 1)
+        violations.push(
+          `Consecutive unprotected firsts: ${firsts[i - 1]} & ${firsts[i]}`
+        );
+    }
+
+    const maxYear = currentYear + 7;
+    team.outgoingPicks.forEach((p) => {
+      if (p.year > maxYear)
+        violations.push(`Cannot trade ${p.year} pick (7+ years out)`);
+    });
+
+    return {
+      passed: violations.length === 0,
+      violations,
+      message: violations.length ? 'Stepien violation' : 'Stepien compliant',
+      details: violations.join('; '),
+    };
+  };
+
+  const validateRosterLimits = (team) => {
+    const postTrade =
+      (team.team?.players?.length || 0) -
+      team.outgoingPlayers.length +
+      team.incomingPlayers.length;
+    const violations = [];
+    if (postTrade > 15)
+      violations.push(`Would exceed 15 players (${postTrade})`);
+    if (postTrade < 14)
+      violations.push(`Would be below 14 players (${postTrade})`);
+
+    return {
+      passed: violations.length === 0,
+      violations,
+      message: violations.length ? 'Roster violation' : 'Roster valid',
+      details: `Projected roster: ${postTrade} players`,
+    };
+  };
+
+  const validateTradeExceptions = (team) => {
+    const violations = [];
+    const usedTPEs = new Set();
+
+    team.incomingPlayers.forEach((p) => {
+      if (!p.acquiredViaTPE) return;
+      const tpe = team.tradeExceptions?.find((e) => e.id === p.tpeId);
+
+      if (!tpe) {
+        violations.push(`No TPE found for ${p.name}`);
+        return;
+      }
+
+      if (usedTPEs.has(tpe.id)) {
+        violations.push(`TPE ${tpe.id} used multiple times`);
+        return;
+      }
+
+      const salary = getSalaryForYear([p], yearKey);
+      const remaining = tpe.remaining ?? tpe.amount;
+
+      if (salary > remaining) {
+        violations.push(
+          `TPE too small (${p.name}: $${salary.toLocaleString()}, TPE: $${remaining.toLocaleString()})`
+        );
+      } else if (isExpired(tpe.expiryDate)) {
+        violations.push(`TPE expired on ${formatDate(tpe.expiryDate)}`);
+      } else {
+        usedTPEs.add(tpe.id);
       }
     });
 
-    // Add new rules validations
-    const newRuleViolations = validateAllNewRules(team, initialTeams);
-    newRuleViolations.forEach((msg) =>
-      debug.log(`Rule extra: ${msg}`, {
-        team: team.team.teamName,
-        rule: 'extra',
-      })
-    );
-    violations.push(...newRuleViolations);
-
-    const teamResult = {
-      ...team,
-      legal: violations.length === 0,
+    return {
+      passed: violations.length === 0,
       violations,
+      message: violations.length ? 'TPE violation' : 'TPE usage valid',
+      details: violations.join('; '),
     };
-    debug.log(
-      `Team result: ${team.team.teamName} ${teamResult.legal ? 'PASS' : 'FAIL'}`,
-      {
-        team: team.team.teamName,
-      }
+  };
+
+  // ======================
+  // MAIN VALIDATION FLOW
+  // ======================
+
+  // Process teams and calculate financials
+  const teamResults = teams.map((team) => {
+    const incomingPlayers = [];
+    const incomingPicks = [];
+
+    teams.forEach((t) => {
+      if (t.team?.id === team.team?.id) return;
+      incomingPlayers.push(
+        ...(t.sends || []).filter(
+          (p) => !p.tradeTo || p.tradeTo === team.team?.id
+        )
+      );
+      incomingPicks.push(
+        ...(t.picksOut || []).filter(
+          (p) => !p.toTeamId || p.toTeamId === team.team?.id
+        )
+      );
+    });
+
+    const salaryOut = getSalaryForYear(team.sends || [], yearKey);
+    const salaryIn = getSalaryForYear(incomingPlayers, yearKey);
+    const projectedSalary =
+      (team.team?.totalSalary || 0) - salaryOut + salaryIn;
+    const currentStatus = getApronStatus(
+      team.team?.totalSalary || 0,
+      capSettings
     );
-    return teamResult;
+    const projectedStatus = getApronStatus(projectedSalary, capSettings);
+
+    return {
+      teamId: team.team?.id,
+      teamName: team.team?.teamName || 'Unknown Team',
+      salaryOut,
+      salaryIn,
+      incomingPlayers,
+      incomingPicks,
+      outgoingPlayers: team.sends || [],
+      outgoingPicks: team.picksOut || [],
+      projectedSalary,
+      currentApronStatus: currentStatus,
+      projectedApronStatus: projectedStatus,
+      capSpace: (capSettings.cap || 0) - projectedSalary,
+      hardCapped: team.hardCapped || false,
+      cashSent: team.cashSent || 0,
+      tradeExceptions: team.team?.tradeExceptions || [],
+      context: { capSettings, yearKey },
+      calculations: {
+        salaryMatching: {
+          allowableIncoming: calculateAllowableIncoming(
+            team.team?.totalSalary || 0,
+            salaryOut,
+            incomingPlayers,
+            team.team?.tradeExceptions || [],
+            capSettings
+          ),
+          difference:
+            salaryIn -
+            calculateAllowableIncoming(
+              team.team?.totalSalary || 0,
+              salaryOut,
+              incomingPlayers,
+              team.team?.tradeExceptions || [],
+              capSettings
+            ),
+        },
+        apronStatus: {
+          current: currentStatus,
+          projected: projectedStatus,
+          overSecondApron: currentStatus.includes('2nd APRON'),
+          willBeOverSecond: projectedStatus.includes('2nd APRON'),
+        },
+      },
+    };
   });
 
-  const overall = validatedTeams.every((t) => t.legal);
-  const result = {
-    overallLegal: overall,
+  // Run all validations
+  const validatedTeams = teamResults.map((team) => {
+    const rules = {
+      salaryMatching: validateSalaryMatching(team),
+      secondApron: validateSecondApronRules(team),
+      signAndTrade: validateSignAndTrade(team),
+      stepienRule: validateStepienRule(team),
+      rosterLimits: validateRosterLimits(team),
+      tradeExceptions: validateTradeExceptions(team),
+    };
+
+    const violations = Object.values(rules).flatMap((r) => r.violations);
+    return {
+      ...team,
+      rules,
+      violations,
+      legal: violations.length === 0,
+      ruleResults: Object.entries(rules).map(([name, result]) => ({
+        name,
+        passed: result.passed,
+        message: result.message,
+        details: result.details,
+      })),
+    };
+  });
+
+  // Final result
+  return {
+    legal: validatedTeams.every((t) => t.legal),
     teamResults: validatedTeams,
+    summaryByTeamIndex: validatedTeams.map((team) => ({
+      teamName: team.teamName,
+      playersIn: team.incomingPlayers.map((p) => p.name || 'Unknown'),
+      playersOut: team.outgoingPlayers.map((p) => p.name || 'Unknown'),
+      picksIn: team.incomingPicks,
+      picksOut: team.outgoingPicks,
+      rosterDelta: team.incomingPlayers.length - team.outgoingPlayers.length,
+      capDelta: team.salaryIn - team.salaryOut,
+      apronStatus: team.projectedApronStatus,
+      projectedSalary: team.projectedSalary,
+    })),
     reason:
       validatedTeams.flatMap((t) => t.violations).join('; ') || 'Valid trade',
+    timestamp: new Date().toISOString(),
   };
-  debug.log(`Overall result: ${overall ? 'PASS' : 'FAIL'}`);
-  return result;
 }
 
 export function hasStepienViolation(picks = []) {
