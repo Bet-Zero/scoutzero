@@ -1,6 +1,19 @@
 // multiYearCapSettings.js
 
 const capProjections = {
+  '2024-25': {
+    cap: 141000000, // $141 million
+    floor: 127000000, // 90% of cap
+    tax: 171000000, // ~$171 million
+    firstApron: 179000000, // ~$179 million
+    secondApron: 190000000, // ~$190 million (estimated)
+    bae: 4700000, // $4.7 million
+    roomMLE: 8000000, // $8 million
+    fullMLE: 12900000, // $12.9 million
+    taxpayerMLE: 5000000, // $5 million
+    growthRate: 0.1, // 10% increase from 2023-24
+    confirmed: true, // These are final numbers
+  },
   '2025-26': {
     cap: 154647000,
     floor: 139182100,

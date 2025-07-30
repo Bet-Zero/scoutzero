@@ -12,26 +12,51 @@ const getPickLabel = (p) => {
   return <span className={color}>{label}</span>;
 };
 
-const RuleExplanation = ({ rule, description, link }) => (
+// In TradeSummaryPanel.jsx, enhance the RuleExplanation component
+const RuleExplanation = ({ rule, description, link, fixes }) => (
   <div className="mt-2 p-2 bg-[#222] rounded border border-white/10">
-    <strong className="text-sm flex items-center">
-      {rule}
-      {link && (
-        <a
-          href={link}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="ml-1 text-white/70 hover:text-white"
-          title="View full CBA rule"
-        >
-          <HelpCircle size={14} />
-        </a>
+    <div className="flex justify-between items-start">
+      <div>
+        <strong className="text-sm flex items-center">
+          {rule}
+          {link && (
+            <a
+              href={link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-1 text-white/70 hover:text-white"
+            >
+              <HelpCircle size={14} />
+            </a>
+          )}
+        </strong>
+        <p className="text-xs text-white/80 mt-1">{description}</p>
+      </div>
+      {fixes && (
+        <div className="ml-4 text-xs bg-blue-900/30 p-1 rounded">
+          <strong>Try:</strong>
+          <ul className="list-disc ml-4 mt-1">
+            {fixes.map((fix, i) => (
+              <li key={i}>{fix}</li>
+            ))}
+          </ul>
+        </div>
       )}
-      :
-    </strong>
-    <p className="text-xs text-white/80 mt-1">{description}</p>
+    </div>
   </div>
 );
+
+// Update the rules reference section with fixes
+<RuleExplanation
+  rule="Salary Matching (Over Cap)"
+  description="Teams over the cap can take back 125% of outgoing salary + $100k (up to $6.5M outgoing), 175% + $100k (under $6.5M), or just 125% (over $19.6M)"
+  link="https://nba.com/cba/salary-matching"
+  fixes={[
+    'Reduce incoming player salaries',
+    'Add more outgoing salary',
+    'Use a Trade Exception if available',
+  ]}
+/>;
 
 const TradeSummaryPanel = ({ result, teams, forceTrade }) => {
   if (!result) return null;
@@ -150,7 +175,9 @@ const TradeSummaryPanel = ({ result, teams, forceTrade }) => {
                       {teamResult.secondApronViolations.join('; ')}
                     </div>
                   )}
-                  {teamResult.violations?.some((v) => /sign-and-trade/i.test(v)) && (
+                  {teamResult.violations?.some((v) =>
+                    /sign-and-trade/i.test(v)
+                  ) && (
                     <div className="text-red-400 mt-1">
                       Sign-and-trade requirements not met
                     </div>
