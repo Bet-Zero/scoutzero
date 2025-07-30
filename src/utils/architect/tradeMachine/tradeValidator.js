@@ -368,6 +368,7 @@ export function validateBYC(team) {
 
 // SECOND APRON AGGREGATION VALIDATION
 // 2. Update second apron validation in tradeValidator.js
+// In tradeValidator.js - Update the second apron validation
 function validateSecondApronRules(team) {
   if (!team.overSecondApron && !team.willBeOverSecond) return [];
 
@@ -380,25 +381,25 @@ function validateSecondApronRules(team) {
     .map((p) => getSalaryForYear([p], team.context.yearKey))
     .sort((a, b) => b - a);
 
-  // 1-to-Many rule
+  // 1-to-Many rule - Each incoming must be <= single outgoing
   if (team.sends.length === 1) {
     const maxOutgoing = outgoingSalaries[0];
     incomingSalaries.forEach((incoming) => {
       if (incoming > maxOutgoing) {
         violations.push(
-          `Second apron team cannot receive player with salary $${incoming.toLocaleString()} ` +
-            `(exceeds single outgoing salary $${maxOutgoing.toLocaleString()})`
+          `Second apron restriction: Incoming salary $${incoming.toLocaleString()} ` +
+            `exceeds single outgoing salary $${maxOutgoing.toLocaleString()}`
         );
       }
     });
   }
-  // Many-to-Many rule
+  // Many-to-Many rule - Must pair salaries in descending order
   else {
     incomingSalaries.forEach((incoming, i) => {
       const correspondingOutgoing = outgoingSalaries[i] || 0;
       if (incoming > correspondingOutgoing) {
         violations.push(
-          `Salary mismatch at position ${i + 1}: ` +
+          `Second apron salary pairing violation: ` +
             `Incoming $${incoming.toLocaleString()} > Outgoing $${correspondingOutgoing.toLocaleString()}`
         );
       }
@@ -410,8 +411,8 @@ function validateSecondApronRules(team) {
   const totalIncoming = incomingSalaries.reduce((a, b) => a + b, 0);
   if (totalIncoming > totalOutgoing) {
     violations.push(
-      `Total incoming salary $${totalIncoming.toLocaleString()} ` +
-        `exceeds total outgoing $${totalOutgoing.toLocaleString()}`
+      `Second apron teams cannot increase total salary: ` +
+        `Incoming $${totalIncoming.toLocaleString()} > Outgoing $${totalOutgoing.toLocaleString()}`
     );
   }
 
