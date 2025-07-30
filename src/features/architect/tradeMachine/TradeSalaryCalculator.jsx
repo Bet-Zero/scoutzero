@@ -25,16 +25,23 @@ const TradeSalaryCalculator = ({
   useEffect(() => {
     if (!teamSalary || !capSettings) return;
 
-    const base = calculateAllowableIncoming(teamSalary, outgoingSalary, [], [], {
-      ...capSettings,
-      yearKey,
-    });
-    const min = teamSalary > capSettings.cap
-      ? incomingPlayers.reduce((sum, p) => {
-          const s = getSalaryForYear([p], yearKey);
-          return s <= MIN_SALARY ? sum + s : sum;
-        }, 0)
-      : 0;
+    const base = calculateAllowableIncoming(
+      teamSalary,
+      outgoingSalary,
+      [],
+      [],
+      {
+        ...capSettings,
+        yearKey,
+      }
+    );
+    const min =
+      teamSalary > capSettings.cap
+        ? incomingPlayers.reduce((sum, p) => {
+            const s = getSalaryForYear([p], yearKey);
+            return s <= MIN_SALARY ? sum + s : sum;
+          }, 0)
+        : 0;
     const tpe = tpes.reduce(
       (sum, t) => sum + (t.remaining ?? t.amount ?? 0),
       0
