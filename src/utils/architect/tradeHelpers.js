@@ -26,7 +26,7 @@ export const getSalaryForYear = (players = [], year) =>
   }, 0);
 
 export const calculateAllowableIncoming = (
-  teamSalary,
+  teamSalary = 0,
   salaryOut,
   incomingPlayers = [],
   tpes = [],
@@ -35,8 +35,16 @@ export const calculateAllowableIncoming = (
   firstApron = firstApron || Infinity;
   secondApron = secondApron || Infinity;
 
+  // Determine outgoing salary if not explicitly provided
+  let outgoingSalary = 0;
+  if (typeof salaryOut === 'number') outgoingSalary = salaryOut;
+  else if (Array.isArray(salaryOut))
+    outgoingSalary = getSalaryForYear(salaryOut, yearKey);
+  else if (salaryOut && Array.isArray(salaryOut.players))
+    outgoingSalary = getSalaryForYear(salaryOut.players, yearKey);
+
   const incomingSalary = getSalaryForYear(incomingPlayers, yearKey);
-  const projectedSalary = teamSalary - salaryOut + incomingSalary;
+  const projectedSalary = teamSalary - outgoingSalary + incomingSalary;
 
   const overSecondApron =
     teamSalary > secondApron || projectedSalary > secondApron;
@@ -44,15 +52,15 @@ export const calculateAllowableIncoming = (
     teamSalary > firstApron || projectedSalary > firstApron;
   const overCap = teamSalary > cap || projectedSalary > cap;
 
-  if (overSecondApron) return salaryOut;
-  if (overFirstApron) return salaryOut * 1.1;
+  if (overSecondApron) return outgoingSalary;
+  if (overFirstApron) return outgoingSalary * 1.1;
 
   let allowable = 0;
 
-  if (!overCap) allowable = salaryOut + 250000 + Math.max(0, cap - teamSalary);
-  else if (salaryOut < 6530000) allowable = salaryOut * 1.75 + 100000;
-  else if (salaryOut < 19600000) allowable = salaryOut * 1.25 + 100000;
-  else allowable = salaryOut * 1.25;
+  if (!overCap) allowable = outgoingSalary + 250000 + Math.max(0, cap - teamSalary);
+  else if (outgoingSalary < 6530000) allowable = outgoingSalary * 1.75 + 100000;
+  else if (outgoingSalary < 19600000) allowable = outgoingSalary * 1.25 + 100000;
+  else allowable = outgoingSalary * 1.25;
 
   const tpeAmount = tpes.reduce(
     (sum, t) => sum + (t.remaining ?? t.amount ?? 0),
