@@ -24,6 +24,7 @@ tradeMachine/
   OutgoingPicksList.jsx
   OutgoingPlayersList.jsx
   SelectTeamCard.jsx
+  TradeDebugPanel.jsx
   TradeEditor.jsx
   TradeExceptionManager.jsx
   TradeExceptionModal.jsx
@@ -35,4 +36,5 @@ tradeMachine/
   TradeSalaryCalculator.jsx
   TradeSummaryPanel.jsx
   TradeTeamCard.jsx
+  TradeValidationPanel.jsx
 ```

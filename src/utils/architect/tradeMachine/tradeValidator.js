@@ -72,11 +72,17 @@ const debug = {
   logSecondApron(team, violations) {
     if (!team.overSecondApron && !team.willBeOverSecond) return;
 
-    this.log('Second Apron Rules:', { team: team.team.teamName, rule: 'secondApron' });
-    this.log(`Trade Type: ${team.sends.length}-for-${team.incomingPlayers.length}`, {
+    this.log('Second Apron Rules:', {
       team: team.team.teamName,
       rule: 'secondApron',
     });
+    this.log(
+      `Trade Type: ${team.sends.length}-for-${team.incomingPlayers.length}`,
+      {
+        team: team.team.teamName,
+        rule: 'secondApron',
+      }
+    );
 
     if (team.sends.length === 1) {
       const outgoing =
@@ -94,12 +100,18 @@ const debug = {
     }
 
     if (violations.length) {
-      this.log('Violations:', { team: team.team.teamName, rule: 'secondApron' });
+      this.log('Violations:', {
+        team: team.team.teamName,
+        rule: 'secondApron',
+      });
       violations.forEach((v) =>
         this.log(`  - ${v}`, { team: team.team.teamName, rule: 'secondApron' })
       );
     } else {
-      this.log('All rules satisfied', { team: team.team.teamName, rule: 'secondApron' });
+      this.log('All rules satisfied', {
+        team: team.team.teamName,
+        rule: 'secondApron',
+      });
     }
 
     // Spacer between team logs for readability
@@ -258,8 +270,18 @@ export function validateDraftPicks(team, allTeams) {
 // ROSTER LIMITS VALIDATION
 export function validateRosterLimits(team) {
   const violations = [];
+
+  // Safety checks: fall back to empty arrays if undefined
+  const currentRoster = Array.isArray(team.currentRoster)
+    ? team.currentRoster
+    : [];
+  const sends = Array.isArray(team.sends) ? team.sends : [];
+  const incoming = Array.isArray(team.incomingPlayers)
+    ? team.incomingPlayers
+    : [];
+
   const postTradeRosterSize =
-    team.currentRoster.length - team.sends.length + team.incomingPlayers.length;
+    currentRoster.length - sends.length + incoming.length;
 
   if (postTradeRosterSize > 15) {
     violations.push(`Roster would exceed 15 players (${postTradeRosterSize})`);
@@ -419,12 +441,18 @@ const TRADE_RULES = {
       const passes = team.salaryIn <= allowable;
 
       debug.log('', { team: team.team.teamName, rule: 'salaryMatching' });
-      debug.log('Salary Matching:', { team: team.team.teamName, rule: 'salaryMatching' });
+      debug.log('Salary Matching:', {
+        team: team.team.teamName,
+        rule: 'salaryMatching',
+      });
       debug.log(
         `Allowed: $${allowable.toLocaleString()} | Actual: $${team.salaryIn.toLocaleString()}`,
         { team: team.team.teamName, rule: 'salaryMatching', salary: true }
       );
-      debug.log(passes ? 'PASS' : 'FAIL', { team: team.team.teamName, rule: 'salaryMatching' });
+      debug.log(passes ? 'PASS' : 'FAIL', {
+        team: team.team.teamName,
+        rule: 'salaryMatching',
+      });
 
       return passes;
     },
@@ -577,7 +605,10 @@ export function validateTrade({ teams, capProjections, currentYear }) {
     // Add new rules validations
     const newRuleViolations = validateAllNewRules(team, initialTeams);
     newRuleViolations.forEach((msg) =>
-      debug.log(`Rule extra: ${msg}`, { team: team.team.teamName, rule: 'extra' })
+      debug.log(`Rule extra: ${msg}`, {
+        team: team.team.teamName,
+        rule: 'extra',
+      })
     );
     violations.push(...newRuleViolations);
 
@@ -586,9 +617,12 @@ export function validateTrade({ teams, capProjections, currentYear }) {
       legal: violations.length === 0,
       violations,
     };
-    debug.log(`Team result: ${team.team.teamName} ${teamResult.legal ? 'PASS' : 'FAIL'}`, {
-      team: team.team.teamName,
-    });
+    debug.log(
+      `Team result: ${team.team.teamName} ${teamResult.legal ? 'PASS' : 'FAIL'}`,
+      {
+        team: team.team.teamName,
+      }
+    );
     return teamResult;
   });
 
