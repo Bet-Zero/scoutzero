@@ -553,7 +553,7 @@ const GMDashboard = () => {
           <TradeEditor
             primaryTeam={teamId}
             capProjections={capProjections}
-            currentYear={currentYear}
+            currentYear={2024}
             playersMap={playersMap}
             onApplyTrade={applyTradeToCapSheet}
             primaryTeamData={teamCapSheet}

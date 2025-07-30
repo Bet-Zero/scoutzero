@@ -15,7 +15,8 @@ export const useTradeMachine = (
   const [result, setResult] = useState(null);
   const [forceTrade, setForceTrade] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const yearKey = currentYear;
+  const yearKey = 2024; // Force 2024-25 season for testing
+  const capYear = `${yearKey}-${String(yearKey + 1).slice(-2)}`; // Creates "2024-25"
 
   // Memoized calculations
   const incomingAssets = useMemo(() => {
