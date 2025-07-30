@@ -1,6 +1,11 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { getTeamColors } from '@/utils/formatting';
-import { getSalaryForYear, formatPick } from '@/utils/architect/tradeHelpers';
+import capProjections from '@/utils/architect/capProjections';
+import {
+  getSalaryForYear,
+  formatPick,
+  calculateAllowableIncoming,
+} from '@/utils/architect/tradeHelpers';
 import { formatSalary } from '@/utils/formatting';
 import CapImpactTiles from './CapImpactTiles';
 import { SelectTeamCard } from './SelectTeamCard';
@@ -86,6 +91,25 @@ const TradeTeamCard = ({
   const picksCount = useMemo(
     () => (team?.picks?.length || 0) - picks.length + incomingPicks.length,
     [team, picks, incomingPicks]
+  );
+
+  const capSettings = useMemo(() => {
+    const key = `${yearKey}-${String((yearKey + 1) % 100).padStart(2, '0')}`;
+    return capProjections[key] || {};
+  }, [yearKey]);
+
+  const allowableIncoming = useMemo(
+    () =>
+      team
+        ? calculateAllowableIncoming(
+            team.totalSalary || 0,
+            outgoingSalary,
+            incomingPlayers,
+            team.tradeExceptions || [],
+            { ...capSettings, yearKey }
+          )
+        : 0,
+    [team, outgoingSalary, incomingPlayers, capSettings, yearKey]
   );
 
   const tpeEligiblePlayers = useMemo(() => {
@@ -217,8 +241,8 @@ const TradeTeamCard = ({
             )}
           </button>
 
-          {showIncoming && (
-            <div className="flex flex-wrap gap-2 mt-1 px-1">
+        {showIncoming && (
+          <div className="flex flex-wrap gap-2 mt-1 px-1">
               {incomingPlayers.map((p) => (
                 <span
                   key={p.player_id || p.id}
@@ -245,6 +269,9 @@ const TradeTeamCard = ({
               ))}
             </div>
           )}
+          <div className="text-xs text-white/60 mt-1">
+            Allowable Incoming: {formatSalary(allowableIncoming)}
+          </div>
         </div>
       </div>
 
