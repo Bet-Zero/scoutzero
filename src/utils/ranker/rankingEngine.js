@@ -1,21 +1,63 @@
-function computeEloRatings(comparisons, players, initial = 1000, k = 32) {
+function computeRankCentrality(comparisons, players, iterations = 50) {
+  const n = players.length;
+  const index = {};
+  players.forEach((p, i) => {
+    index[p.id] = i;
+  });
+
+  // win counts and total comparisons
+  const wins = Array.from({ length: n }, () => Array(n).fill(0));
+  const counts = Array.from({ length: n }, () => Array(n).fill(0));
+
+  comparisons.forEach(({ winner, loser }) => {
+    const w = index[winner];
+    const l = index[loser];
+    wins[w][l] += 1;
+    counts[w][l] += 1;
+    counts[l][w] += 1;
+  });
+
+  const P = Array.from({ length: n }, () => Array(n).fill(0));
+  for (let i = 0; i < n; i++) {
+    let total = 0;
+    for (let j = 0; j < n; j++) {
+      if (i === j) continue;
+      total += counts[i][j];
+    }
+    if (total === 0) {
+      for (let j = 0; j < n; j++) {
+        if (i !== j) P[i][j] = 1 / (n - 1);
+      }
+    } else {
+      for (let j = 0; j < n; j++) {
+        if (i === j) continue;
+        P[i][j] = wins[j][i] / total;
+      }
+    }
+    P[i][i] = 1 - P[i].reduce((a, b) => a + b, 0);
+  }
+
+  let rating = Array(n).fill(1 / n);
+  for (let t = 0; t < iterations; t++) {
+    const next = Array(n).fill(0);
+    for (let i = 0; i < n; i++) {
+      for (let j = 0; j < n; j++) {
+        next[j] += rating[i] * P[i][j];
+      }
+    }
+    const norm = next.reduce((a, b) => a + b, 0) || 1;
+    rating = next.map((v) => v / norm);
+  }
+
   const ratings = {};
   players.forEach((p) => {
-    ratings[p.id] = initial;
-  });
-  comparisons.forEach(({ winner, loser }) => {
-    const winnerRating = ratings[winner];
-    const loserRating = ratings[loser];
-    const expectedWinner = 1 / (1 + 10 ** ((loserRating - winnerRating) / 400));
-    const expectedLoser = 1 / (1 + 10 ** ((winnerRating - loserRating) / 400));
-    ratings[winner] = winnerRating + k * (1 - expectedWinner);
-    ratings[loser] = loserRating + k * (0 - expectedLoser);
+    ratings[p.id] = rating[index[p.id]] || 0;
   });
   return ratings;
 }
 
 export function generateRankingFromComparisons(comparisons, players) {
-  const ratings = computeEloRatings(comparisons, players);
+  const ratings = computeRankCentrality(comparisons, players);
   return players
     .map((p) => ({ ...p, rating: ratings[p.id] }))
     .sort((a, b) => b.rating - a.rating);
@@ -34,7 +76,7 @@ export function suggestNextPair(comparisons, players) {
     compareCounts[c.loser] = (compareCounts[c.loser] || 0) + 1;
   });
 
-  const ratings = computeEloRatings(comparisons, players);
+  const ratings = computeRankCentrality(comparisons, players);
   const compared = new Set(comparisons.map((c) => `${c.winner}-${c.loser}`));
 
   const sorted = players.slice().sort((a, b) => {
