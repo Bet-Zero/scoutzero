@@ -1,4 +1,10 @@
 // tradeValidator.js - Combined Complete Version
+import {
+  calculateAllowableIncoming,
+  getSalaryForYear,
+  formatCurrency,
+  getApronStatus,
+} from '@/utils/architect/tradeHelpers';
 
 // ===== DEBUGGER =====
 const debug = {
@@ -167,12 +173,6 @@ const isMeaningfulProtection = (protection) => {
   );
 };
 
-const getApronStatus = (salary, { firstApron, secondApron } = {}) => {
-  if (secondApron && salary > secondApron) return 'ABOVE 2nd APRON 🔴';
-  if (firstApron && salary > firstApron) return 'Above 1st Apron ⚠️';
-  return 'Below Aprons ✅';
-};
-
 // ===== CBA CONSTANTS =====
 const CBA_THRESHOLDS = {
   FIRST_APRON: 172_295_000,
@@ -272,35 +272,6 @@ export function validateDraftPicks(team, allTeams) {
   return violations;
 }
 
-// ROSTER LIMITS VALIDATION
-export function validateRosterLimits(team) {
-  const violations = [];
-
-  // Safety checks: fall back to empty arrays if undefined
-  const currentRoster = Array.isArray(team.currentRoster)
-    ? team.currentRoster
-    : [];
-  const sends = Array.isArray(team.sends) ? team.sends : [];
-  const incoming = Array.isArray(team.incomingPlayers)
-    ? team.incomingPlayers
-    : [];
-
-  const postTradeRosterSize =
-    currentRoster.length - sends.length + incoming.length;
-
-  if (postTradeRosterSize > 15) {
-    violations.push(`Roster would exceed 15 players (${postTradeRosterSize})`);
-  }
-
-  if (postTradeRosterSize < 14) {
-    violations.push(
-      `Roster would fall below 14 players (${postTradeRosterSize})`
-    );
-  }
-
-  return violations;
-}
-
 // CASH CONSIDERATIONS VALIDATION
 export function validateCash(team) {
   const violations = [];
@@ -369,8 +340,6 @@ export function validateBYC(team) {
 }
 
 // SECOND APRON AGGREGATION VALIDATION
-// 2. Update second apron validation in tradeValidator.js
-// In tradeValidator.js - Update the second apron validation
 function validateSecondApronRules(team) {
   if (!team.overSecondApron && !team.willBeOverSecond) return [];
 
@@ -431,32 +400,12 @@ export function validateAllNewRules(team, allTeams) {
   return [
     ...validateTradeExceptions(team),
     ...validateDraftPicks(team, allTeams),
-    ...validateRosterLimits(team),
     ...validateCash(team),
     ...validateSignAndTrade(team),
     ...validateBYC(team),
     ...validateSecondApronAggregation(team),
   ];
 }
-
-// ===== HELPERS =====
-const calculateAllowableIncoming = (team, capSettings) => {
-  const { totalSalary, salaryOut, overSecondApron, overFirstApron } = team;
-  if (overSecondApron) return salaryOut;
-  if (overFirstApron) return salaryOut * 1.1;
-  if (totalSalary <= capSettings.cap)
-    return salaryOut + 250000 + Math.max(0, capSettings.cap - totalSalary);
-  if (salaryOut < 6530000) return salaryOut * 1.75 + 100000;
-  if (salaryOut < 19600000) return salaryOut * 1.25 + 100000;
-  return salaryOut * 1.25;
-};
-
-const getSalaryForYear = (players, year) => {
-  return players.reduce((sum, p) => {
-    const salary = p.contract_clean?.salaries_by_year?.[year]?.salary || 0;
-    return sum + salary;
-  }, 0);
-};
 
 // ===== RULES =====
 const TRADE_RULES = {
@@ -581,31 +530,137 @@ export function validateTrade({ teams, capProjections, currentYear }) {
   // VALIDATOR IMPLEMENTATIONS
   // ======================
 
+  // In tradeValidator.js - replace validateSalaryMatching with this:
+
   const validateSalaryMatching = (team) => {
+    if (!team || typeof team !== 'object') {
+      return {
+        passed: false,
+        violations: ['Invalid team data provided'],
+        message: 'Validation failed - no team data',
+        details: '',
+      };
+    }
+
+    // Extract with defaults
+    const teamSalary = Number(team.totalSalary ?? 0);
+    const salaryOut = Number(team.salaryOut ?? 0);
+    const salaryIn = Number(team.salaryIn ?? 0);
+    const tpes = Array.isArray(team.tradeExceptions)
+      ? team.tradeExceptions
+      : [];
+    const incomingPlayers = Array.isArray(team.incomingPlayers)
+      ? team.incomingPlayers
+      : [];
+    const capSettings = team.context?.capSettings || {};
+    const yearKey = team.context?.yearKey || new Date().getFullYear();
+
+    // Calculate using the helper version
     const allowable = calculateAllowableIncoming(
-      team.team?.totalSalary || 0,
-      team.salaryOut,
-      team.incomingPlayers,
-      team.tradeExceptions || [],
-      capSettings
+      teamSalary,
+      salaryOut,
+      incomingPlayers,
+      tpes,
+      capSettings,
+      yearKey
     );
-    const passes = team.salaryIn <= allowable;
+
+    const passes = salaryIn <= allowable;
 
     return {
       passed: passes,
       violations: passes
         ? []
         : [
-            `Salary mismatch by $${(team.salaryIn - allowable).toLocaleString()} ` +
-              `(In: $${team.salaryIn.toLocaleString()}, ` +
-              `Allowed: $${allowable.toLocaleString()})`,
+            `Salary mismatch: $${salaryIn.toLocaleString()} incoming > $${allowable.toLocaleString()} allowed`,
           ],
-      message: passes ? 'Valid salary match' : 'Salary matching violation',
+      message: passes ? 'Valid salary match' : 'Salary mismatch',
       details: passes
         ? ''
-        : `Calculation: ${calculateAllowableIncoming.toString()}`,
+        : `Outgoing: $${salaryOut.toLocaleString()} | Team Salary: $${teamSalary.toLocaleString()}`,
     };
   };
+
+  // Helper function for detailed breakdown
+  function getCalculationBreakdown(
+    teamSalary,
+    salaryOut,
+    incomingPlayers,
+    tpes,
+    capSettings,
+    yearKey
+  ) {
+    const parts = [];
+    const { cap, firstApron, secondApron } = capSettings;
+
+    // Determine status
+    if (teamSalary > secondApron) {
+      parts.push(
+        `• Team is above second apron (${formatCurrency(teamSalary)} > ${formatCurrency(secondApron)})`
+      );
+      parts.push(
+        `• Can only take back equal salary: ${formatCurrency(salaryOut)}`
+      );
+    } else if (teamSalary > firstApron) {
+      parts.push(
+        `• Team is above first apron (${formatCurrency(teamSalary)} > ${formatCurrency(firstApron)})`
+      );
+      parts.push(
+        `• Can take back 110% of outgoing: ${formatCurrency(salaryOut * 1.1)}`
+      );
+    } else if (teamSalary > cap) {
+      parts.push(
+        `• Team is over cap (${formatCurrency(teamSalary)} > ${formatCurrency(cap)})`
+      );
+
+      if (salaryOut <= 6_500_000) {
+        parts.push(
+          `• Tier 1 (≤$6.5M): 175% + $100k = ${formatCurrency(salaryOut * 1.75 + 100_000)}`
+        );
+      } else if (salaryOut <= 19_600_000) {
+        parts.push(
+          `• Tier 2 ($6.5M-$19.6M): 125% + $100k = ${formatCurrency(salaryOut * 1.25 + 100_000)}`
+        );
+      } else {
+        parts.push(
+          `• Tier 3 (>$19.6M): 125% = ${formatCurrency(salaryOut * 1.25)}`
+        );
+      }
+    } else {
+      parts.push(
+        `• Team is under cap (${formatCurrency(teamSalary)} ≤ ${formatCurrency(cap)})`
+      );
+      const capSpace = cap - teamSalary;
+      parts.push(
+        `• Outgoing + $250k + cap space = ${formatCurrency(salaryOut + 250_000 + capSpace)}`
+      );
+    }
+
+    // Add TPEs if available
+    const tpeAmount = tpes.reduce((sum, tpe) => {
+      if (tpe.isUsed) return sum;
+      const remaining = tpe.remaining ?? tpe.amount;
+      return sum + remaining;
+    }, 0);
+
+    if (tpeAmount > 0) {
+      parts.push(`• Added ${formatCurrency(tpeAmount)} from trade exceptions`);
+    }
+
+    // Add minimum salary exceptions
+    const minException = incomingPlayers.reduce((sum, player) => {
+      const salary = getSalaryForYear([player], yearKey);
+      return salary <= MIN_SALARY ? sum + salary : sum;
+    }, 0);
+
+    if (minException > 0) {
+      parts.push(
+        `• Added ${formatCurrency(minException)} from minimum salary exceptions`
+      );
+    }
+
+    return parts.join('\n');
+  }
 
   const validateSecondApronRules = (team) => {
     const violations = [];
@@ -716,25 +771,6 @@ export function validateTrade({ teams, capProjections, currentYear }) {
       violations,
       message: violations.length ? 'Stepien violation' : 'Stepien compliant',
       details: violations.join('; '),
-    };
-  };
-
-  const validateRosterLimits = (team) => {
-    const postTrade =
-      (team.team?.players?.length || 0) -
-      team.outgoingPlayers.length +
-      team.incomingPlayers.length;
-    const violations = [];
-    if (postTrade > 15)
-      violations.push(`Would exceed 15 players (${postTrade})`);
-    if (postTrade < 14)
-      violations.push(`Would be below 14 players (${postTrade})`);
-
-    return {
-      passed: violations.length === 0,
-      violations,
-      message: violations.length ? 'Roster violation' : 'Roster valid',
-      details: `Projected roster: ${postTrade} players`,
     };
   };
 
@@ -864,7 +900,6 @@ export function validateTrade({ teams, capProjections, currentYear }) {
       secondApron: validateSecondApronRules(team),
       signAndTrade: validateSignAndTrade(team),
       stepienRule: validateStepienRule(team),
-      rosterLimits: validateRosterLimits(team),
       tradeExceptions: validateTradeExceptions(team),
     };
 
