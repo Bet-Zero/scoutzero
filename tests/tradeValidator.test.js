@@ -44,10 +44,10 @@ describe('tradeValidator', () => {
       currentYear,
     });
 
-    expect(result.overallLegal).toBe(false);
+    expect(result.legal).toBe(false);
     expect(result.teamResults[0].legal).toBe(false);
-    expect(result.teamResults[0].reason).toMatch(/Incoming salary exceeds/);
-    expect(result.teamResults[0].checks.salaryMatching).toBe(false);
+    expect(result.teamResults[0].violations[0]).toMatch(/Incoming salary exceeds/);
+    expect(result.teamResults[0].rules.salaryMatching.passed).toBe(false);
   });
 
   it('flags trades that would violate a hard cap', () => {
@@ -65,12 +65,12 @@ describe('tradeValidator', () => {
       currentYear,
     });
 
-    expect(result.overallLegal).toBe(false);
+    expect(result.legal).toBe(false);
     expect(result.teamResults[0].legal).toBe(false);
-    expect(result.teamResults[0].reason).toContain(
+    expect(result.teamResults[0].violations[0]).toContain(
       'Hard cap exceeded (1st Apron)'
     );
-    expect(result.teamResults[0].checks.hardCap).toBe(false);
+    expect(result.teamResults[0].rules.hardCap.passed).toBe(false);
   });
 
   it('enforces sign-and-trade restrictions', () => {
@@ -91,14 +91,14 @@ describe('tradeValidator', () => {
       currentYear,
     });
 
-    expect(result.overallLegal).toBe(false);
+    expect(result.legal).toBe(false);
     expect(result.teamResults[0].legal).toBe(false);
-    expect(result.teamResults[0].reason).toContain(
+    expect(result.teamResults[0].violations[0]).toContain(
       'Sign-and-trade player must be traded alone.'
     );
-    expect(result.teamResults[0].checks.signAndTrade).toBe(false);
+    expect(result.teamResults[0].rules.signAndTrade.passed).toBe(false);
     expect(result.teamResults[1].legal).toBe(true);
-    expect(result.teamResults[1].checks.signAndTrade).toBe(true);
+    expect(result.teamResults[1].rules.signAndTrade.passed).toBe(true);
   });
 
   it('allows valid sign-and-trade deals', () => {
@@ -118,7 +118,7 @@ describe('tradeValidator', () => {
       currentYear,
     });
 
-    expect(result.overallLegal).toBe(true);
+    expect(result.legal).toBe(true);
   });
 
   it('blocks sign-and-trade hard cap violations', () => {
@@ -138,7 +138,7 @@ describe('tradeValidator', () => {
       currentYear,
     });
 
-    expect(result.overallLegal).toBe(false);
+    expect(result.legal).toBe(false);
     expect(result.reason).toContain('hard-cap');
   });
 
@@ -159,7 +159,7 @@ describe('tradeValidator', () => {
       currentYear,
     });
 
-    expect(result.overallLegal).toBe(false);
+    expect(result.legal).toBe(false);
     expect(result.reason).toContain('must be 3-4 years');
   });
 
@@ -186,13 +186,13 @@ describe('tradeValidator', () => {
       currentYear,
     });
 
-    expect(result.overallLegal).toBe(false);
+    expect(result.legal).toBe(false);
     expect(result.teamResults[0].legal).toBe(false);
-    expect(result.teamResults[0].reason).toContain(
+    expect(result.teamResults[0].violations[0]).toContain(
       'Violates Stepien Rule (consecutive future 1sts).'
     );
-    expect(result.teamResults[0].checks.stepien).toBe(false);
-    expect(result.teamResults[1].checks.stepien).toBe(true);
+    expect(result.teamResults[0].rules.stepienRule.passed).toBe(false);
+    expect(result.teamResults[1].rules.stepienRule.passed).toBe(true);
   });
 
   it('allows protected picks to bypass Stepien Rule', () => {
@@ -215,7 +215,7 @@ describe('tradeValidator', () => {
       currentYear,
     });
 
-    expect(result.overallLegal).toBe(true);
+    expect(result.legal).toBe(true);
   });
 
   it('enforces second apron restrictions', () => {
@@ -236,7 +236,7 @@ describe('tradeValidator', () => {
       currentYear,
     });
 
-    expect(result.overallLegal).toBe(false);
+    expect(result.legal).toBe(false);
     expect(result.reason).toContain('Second apron team cannot aggregate salaries');
   });
 
@@ -257,7 +257,7 @@ describe('tradeValidator', () => {
       currentYear,
     });
 
-    expect(result.overallLegal).toBe(false);
+    expect(result.legal).toBe(false);
     expect(result.reason).toContain(
       'Second apron team cannot receive more salary than sent'
     );
@@ -280,7 +280,7 @@ describe('tradeValidator', () => {
       currentYear,
     });
 
-    expect(result.overallLegal).toBe(false);
+    expect(result.legal).toBe(false);
     expect(result.reason).toContain(
       'Second apron team cannot include cash in trades'
     );
@@ -303,7 +303,7 @@ describe('tradeValidator', () => {
       currentYear,
     });
 
-    expect(result.overallLegal).toBe(false);
+    expect(result.legal).toBe(false);
     expect(result.reason).toContain('Cannot trade picks beyond');
   });
 
@@ -322,7 +322,7 @@ describe('tradeValidator', () => {
       currentYear,
     });
 
-    expect(result.overallLegal).toBe(true);
+    expect(result.legal).toBe(true);
     expect(result.summaryByTeamIndex[0].playersIn.length).toBe(2);
     expect(result.summaryByTeamIndex[1].playersIn.length).toBe(1);
   });
