@@ -35,7 +35,7 @@ export const calculateAllowableIncoming = (
   capSettings = {},
   yearKey
 ) => {
-  // 1. Get the fucking numbers we need
+  // 1. Get the numbers we need
   const cap = Number(capSettings.cap) || Infinity;
   const firstApron = Number(capSettings.firstApron) || Infinity;
   const secondApron = Number(capSettings.secondApron) || Infinity;

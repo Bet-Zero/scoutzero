@@ -412,28 +412,38 @@ const TRADE_RULES = {
   salaryMatching: {
     test: (team) => {
       if (team.sends.some((p) => p.acquiredViaTPE)) return true;
+
+      console.log('🧪 Salary Matching Rule Triggered');
+      console.log('Team:', team?.team?.teamName);
+      console.log('Context Year:', team?.context?.yearKey);
+      console.log('Cap Settings:', team?.context?.capSettings);
+      console.log(
+        'Sending Players:',
+        team?.sends?.map((p) => p?.name)
+      );
+      console.log(
+        'Salaries:',
+        team?.sends?.map((p) => {
+          const salary =
+            p?.contract_clean?.salaries_by_year?.[team?.context?.yearKey]
+              ?.salary;
+          return `${p?.name || 'Unknown'}: ${salary}`;
+        })
+      );
+
       const allowable = calculateAllowableIncoming(
         team,
         team.context.capSettings
       );
       const passes = team.salaryIn <= allowable;
 
-      debug.log('', { team: team.team.teamName, rule: 'salaryMatching' });
-      debug.log('Salary Matching:', {
-        team: team.team.teamName,
-        rule: 'salaryMatching',
-      });
-      debug.log(
-        `Allowed: $${allowable.toLocaleString()} | Actual: $${team.salaryIn.toLocaleString()}`,
-        { team: team.team.teamName, rule: 'salaryMatching', salary: true }
-      );
-      debug.log(passes ? 'PASS' : 'FAIL', {
-        team: team.team.teamName,
-        rule: 'salaryMatching',
-      });
+      console.log('💵 Incoming Salary:', team.salaryIn);
+      console.log('📥 Allowable Incoming Salary:', allowable);
+      console.log(passes ? '✅ PASS' : '❌ FAIL');
 
       return passes;
     },
+
     message: (team) => {
       const allowable = calculateAllowableIncoming(
         team,
