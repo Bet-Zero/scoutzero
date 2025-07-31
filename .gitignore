@@ -44,4 +44,7 @@ data/name_alias_map.json
 data/name_variants_sorted.txt
 toggleView.cjs
 .vscode/
+repomix.config.json
+repomix-output.xml
+repomix-output.md
 
