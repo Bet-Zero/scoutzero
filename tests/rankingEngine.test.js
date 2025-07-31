@@ -8,7 +8,7 @@ const players = [
 ];
 
 describe('ranking engine', () => {
-  it('ranks players using elo ratings', () => {
+  it('ranks players using rank centrality', () => {
     const comparisons = [
       { winner: '1', loser: '2' },
       { winner: '1', loser: '3' },

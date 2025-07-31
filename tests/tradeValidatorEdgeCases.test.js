@@ -47,7 +47,7 @@ describe('tradeValidator edge cases', () => {
       currentYear,
     });
 
-    expect(result.overallLegal).toBe(true);
+    expect(result.legal).toBe(true);
     expect(result.reason).toBe('Valid trade');
   });
 
@@ -73,9 +73,9 @@ describe('tradeValidator edge cases', () => {
       currentYear,
     });
 
-    expect(result.overallLegal).toBe(false);
+    expect(result.legal).toBe(false);
     expect(result.teamResults[0].legal).toBe(false);
-    expect(result.teamResults[0].reason).toContain('Stepien');
+    expect(result.teamResults[0].violations[0]).toContain('Stepien');
   });
 
   it('allows protected picks to avoid Stepien violations', () => {
@@ -100,7 +100,7 @@ describe('tradeValidator edge cases', () => {
       currentYear,
     });
 
-    expect(result.overallLegal).toBe(true);
+    expect(result.legal).toBe(true);
   });
 
   it('blocks second apron teams aggregating salary from multiple clubs', () => {
@@ -124,7 +124,7 @@ describe('tradeValidator edge cases', () => {
       currentYear,
     });
 
-    expect(result.overallLegal).toBe(false);
+    expect(result.legal).toBe(false);
     expect(result.reason).toMatch(/aggregate/);
   });
 
@@ -145,7 +145,7 @@ describe('tradeValidator edge cases', () => {
       currentYear,
     });
 
-    expect(result.overallLegal).toBe(false);
+    expect(result.legal).toBe(false);
     expect(result.reason).toContain('cash');
   });
 
@@ -166,6 +166,6 @@ describe('tradeValidator edge cases', () => {
       currentYear,
     });
 
-    expect(result.overallLegal).toBe(true);
+    expect(result.legal).toBe(true);
   });
 });
