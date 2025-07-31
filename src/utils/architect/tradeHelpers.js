@@ -25,47 +25,69 @@ export const getSalaryForYear = (players = [], year) =>
     return sum + salary + likelyBonus;
   }, 0);
 
+// In tradeHelpers.js - Replace existing implementation with this:
+
 export const calculateAllowableIncoming = (
-  teamSalary,
+  teamTotalSalary,
   salaryOut,
   incomingPlayers = [],
-  tpes = [],
-  { cap, firstApron, secondApron, yearKey } = {}
+  tradeExceptions = [],
+  capSettings = {},
+  yearKey
 ) => {
-  firstApron = firstApron || Infinity;
-  secondApron = secondApron || Infinity;
+  // 1. Get the fucking numbers we need
+  const cap = Number(capSettings.cap) || Infinity;
+  const firstApron = Number(capSettings.firstApron) || Infinity;
+  const secondApron = Number(capSettings.secondApron) || Infinity;
+  const MIN_SALARY = 1_119_563; // Current NBA minimum
 
-  const incomingSalary = getSalaryForYear(incomingPlayers, yearKey);
-  const projectedSalary = teamSalary - salaryOut + incomingSalary;
+  // 2. Calculate base allowable based on team's cap position
+  let allowable;
 
-  const overSecondApron =
-    teamSalary > secondApron || projectedSalary > secondApron;
-  const overFirstApron =
-    teamSalary > firstApron || projectedSalary > firstApron;
-  const overCap = teamSalary > cap || projectedSalary > cap;
+  // Second apron teams - most restrictive
+  if (teamTotalSalary > secondApron) {
+    allowable = salaryOut; // Can only take back equal salary
+  }
+  // First apron teams
+  else if (teamTotalSalary > firstApron) {
+    allowable = salaryOut * 1.1; // 110% of outgoing
+  }
+  // Under cap teams
+  else if (teamTotalSalary <= cap) {
+    const capSpace = cap - teamTotalSalary;
+    allowable = salaryOut + 250_000 + Math.max(0, capSpace);
+  }
+  // Over cap but below aprons - standard matching
+  else {
+    if (salaryOut <= 6_500_000) {
+      allowable = salaryOut * 1.75 + 100_000;
+    } else if (salaryOut <= 19_600_000) {
+      allowable = salaryOut * 1.25 + 100_000;
+    } else {
+      allowable = salaryOut * 1.25;
+    }
+  }
 
-  if (overSecondApron) return salaryOut;
-  if (overFirstApron) return salaryOut * 1.1;
+  // 3. Add trade exceptions if available
+  const validTPEs = tradeExceptions.filter(
+    (tpe) => !tpe.isUsed && (tpe.remaining ?? tpe.amount) > 0
+  );
 
-  let allowable = 0;
-
-  if (!overCap) allowable = salaryOut + 250000 + Math.max(0, cap - teamSalary);
-  else if (salaryOut < 6530000) allowable = salaryOut * 1.75 + 100000;
-  else if (salaryOut < 19600000) allowable = salaryOut * 1.25 + 100000;
-  else allowable = salaryOut * 1.25;
-
-  const tpeAmount = tpes.reduce(
-    (sum, t) => sum + (t.remaining ?? t.amount ?? 0),
+  const tpeAmount = validTPEs.reduce(
+    (sum, tpe) => sum + (tpe.remaining ?? tpe.amount),
     0
   );
 
-  const minException = overCap
-    ? incomingPlayers.reduce((sum, p) => {
-        const salary = getSalaryForYear([p], yearKey);
-        return salary <= MIN_SALARY ? sum + salary : sum;
-      }, 0)
-    : 0;
+  // 4. Add minimum salary exceptions for over-cap teams
+  let minException = 0;
+  if (teamTotalSalary > cap) {
+    minException = incomingPlayers.reduce((sum, player) => {
+      const salary = getSalaryForYear([player], yearKey);
+      return salary <= MIN_SALARY ? sum + salary : sum;
+    }, 0);
+  }
 
+  // 5. Return the total
   return allowable + tpeAmount + minException;
 };
 
