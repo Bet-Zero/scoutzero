@@ -28,7 +28,7 @@ const makeTeam = (tpe, playerSalary = 4_000_000) => ({
 
 describe('Trade Exception Validation', () => {
   it('allows valid TPE usage and updates remaining balance', () => {
-    const tpe = { id: '1', amount: 5_000_000, expiry: futureDate() };
+    const tpe = { id: '1', amount: 5_000_000, expiryDate: futureDate() };
     const team = makeTeam(tpe);
 
     const violations = validateTradeExceptions(team);
@@ -39,7 +39,7 @@ describe('Trade Exception Validation', () => {
   });
 
   it('fully consumes TPE when salary matches exactly', () => {
-    const tpe = { id: '1', amount: 4_000_000, expiry: futureDate() };
+    const tpe = { id: '1', amount: 4_000_000, expiryDate: futureDate() };
     const team = makeTeam(tpe);
 
     validateTradeExceptions(team);
@@ -49,7 +49,7 @@ describe('Trade Exception Validation', () => {
   });
 
   it('blocks expired TPEs', () => {
-    const tpe = { id: '1', amount: 5_000_000, expiry: pastDate() };
+    const tpe = { id: '1', amount: 5_000_000, expiryDate: pastDate() };
     const team = makeTeam(tpe);
 
     const violations = validateTradeExceptions(team);
@@ -59,7 +59,7 @@ describe('Trade Exception Validation', () => {
   });
 
   it('blocks insufficient TPEs', () => {
-    const tpe = { id: '1', amount: 3_000_000, expiry: futureDate() };
+    const tpe = { id: '1', amount: 3_000_000, expiryDate: futureDate() };
     const team = makeTeam(tpe);
 
     const violations = validateTradeExceptions(team);
@@ -72,7 +72,7 @@ describe('Trade Exception Validation', () => {
     const tpe = {
       id: '1',
       amount: 5_000_000,
-      expiry: futureDate(),
+      expiryDate: futureDate(),
       isBeingUsed: true, // Simulate concurrent usage
     };
     const team = makeTeam(tpe);
@@ -99,8 +99,8 @@ describe('Trade Exception Validation', () => {
         makePlayer(3_000_000, 'tpe2'),
       ],
       tradeExceptions: [
-        { id: 'tpe1', amount: 2_000_000, expiry: futureDate() },
-        { id: 'tpe2', amount: 3_000_000, expiry: futureDate() },
+        { id: 'tpe1', amount: 2_000_000, expiryDate: futureDate() },
+        { id: 'tpe2', amount: 3_000_000, expiryDate: futureDate() },
       ],
       currentRoster: Array(14).fill({}),
     };
