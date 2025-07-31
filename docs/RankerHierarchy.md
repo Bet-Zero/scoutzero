@@ -1,9 +1,9 @@
 # Ranker Component Hierarchy
 
 ```
-RankingBuilder.jsx
-RankingSession.jsx
 PlayerCompareCard.jsx
+RankingBuilder.jsx
 RankingResults.jsx
+RankingSession.jsx
 ranker.css
 ```
