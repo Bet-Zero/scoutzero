@@ -563,7 +563,8 @@ export function validateTrade({ teams, capProjections, currentYear }) {
       ? team.incomingPlayers
       : [];
     const capSettings = team.context?.capSettings || {};
-    const yearKey = team.context?.yearKey || new Date().getFullYear();
+    const yearKey = team.context?.yearKey ?? 2024;
+    console.log(`🧩 yearKey set to: ${yearKey}`);
 
     // Calculate using the helper version
     const allowable = calculateAllowableIncoming(

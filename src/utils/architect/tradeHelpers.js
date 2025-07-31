@@ -5,25 +5,46 @@
 // ======================
 export const MIN_SALARY = 1_119_563;
 
-export const getSalaryForYear = (players = [], year) =>
-  players.reduce((sum, p) => {
+export const getSalaryForYear = (players = [], year) => {
+  if (!year) {
+    console.warn('⚠️ getSalaryForYear called with undefined year');
+    return 0;
+  }
+
+  let total = 0;
+
+  players.forEach((p) => {
     const yearData = p.contract_clean?.salaries_by_year?.[year] || {};
     const salaryFromMap = p.salaryByYear?.[year];
-    const salary =
+    const fallback = p.salary;
+
+    const baseSalary =
       typeof yearData.salary === 'number'
         ? yearData.salary
         : typeof salaryFromMap === 'number'
           ? salaryFromMap
-          : typeof p.salary === 'number'
-            ? p.salary
+          : typeof fallback === 'number'
+            ? fallback
             : 0;
+
     const likelyBonus =
       yearData.bonuses?.likely ??
       yearData.likelyIncentives ??
       p.bonusesByYear?.[year]?.likely ??
       0;
-    return sum + salary + likelyBonus;
-  }, 0);
+
+    const playerTotal = baseSalary + likelyBonus;
+
+    console.log(
+      `👤 ${p.name || 'Unknown Player'} | Salary: $${baseSalary.toLocaleString()} | Bonus: $${likelyBonus.toLocaleString()} → Total: $${playerTotal.toLocaleString()}`
+    );
+
+    total += playerTotal;
+  });
+
+  console.log(`🧮 Total Salary for ${year}: $${total.toLocaleString()}`);
+  return total;
+};
 
 // In tradeHelpers.js - Replace existing implementation with this:
 
@@ -35,40 +56,44 @@ export const calculateAllowableIncoming = (
   capSettings = {},
   yearKey
 ) => {
-  // 1. Get the numbers we need
   const cap = Number(capSettings.cap) || Infinity;
   const firstApron = Number(capSettings.firstApron) || Infinity;
   const secondApron = Number(capSettings.secondApron) || Infinity;
-  const MIN_SALARY = 1_119_563; // Current NBA minimum
+  const MIN_SALARY = 1_119_563;
 
-  // 2. Calculate base allowable based on team's cap position
+  console.log('🧮 [Calc Allowable Incoming]');
+  console.log(`📊 Team Total Salary: $${teamTotalSalary?.toLocaleString?.()}`);
+  console.log(`📤 Salary Out: $${salaryOut?.toLocaleString?.()}`);
+  console.log(`🗓️ YearKey: ${yearKey}`);
+  console.log(`💰 Cap: $${cap?.toLocaleString?.()}`);
+  console.log(`💰 First Apron: $${firstApron?.toLocaleString?.()}`);
+  console.log(`💰 Second Apron: $${secondApron?.toLocaleString?.()}`);
+
   let allowable;
 
-  // Second apron teams - most restrictive
   if (teamTotalSalary > secondApron) {
-    allowable = salaryOut; // Can only take back equal salary
-  }
-  // First apron teams
-  else if (teamTotalSalary > firstApron) {
-    allowable = salaryOut * 1.1; // 110% of outgoing
-  }
-  // Under cap teams
-  else if (teamTotalSalary <= cap) {
+    allowable = salaryOut;
+    console.log('🚧 Over 2nd Apron: Equal salary only');
+  } else if (teamTotalSalary > firstApron) {
+    allowable = salaryOut * 1.1;
+    console.log('🔁 Over 1st Apron: 110% of salary out');
+  } else if (teamTotalSalary <= cap) {
     const capSpace = cap - teamTotalSalary;
     allowable = salaryOut + 250_000 + Math.max(0, capSpace);
-  }
-  // Over cap but below aprons - standard matching
-  else {
+    console.log(`💸 Under Cap: Using Cap Space = $${capSpace}`);
+  } else {
     if (salaryOut <= 6_500_000) {
       allowable = salaryOut * 1.75 + 100_000;
+      console.log('📏 Normal Rule (≤ $6.5M): 175% + $100K');
     } else if (salaryOut <= 19_600_000) {
       allowable = salaryOut * 1.25 + 100_000;
+      console.log('📏 Normal Rule (≤ $19.6M): 125% + $100K');
     } else {
       allowable = salaryOut * 1.25;
+      console.log('📏 Normal Rule (> $19.6M): 125%');
     }
   }
 
-  // 3. Add trade exceptions if available
   const validTPEs = tradeExceptions.filter(
     (tpe) => !tpe.isUsed && (tpe.remaining ?? tpe.amount) > 0
   );
@@ -78,17 +103,24 @@ export const calculateAllowableIncoming = (
     0
   );
 
-  // 4. Add minimum salary exceptions for over-cap teams
+  console.log(`🎟️ Valid Trade Exceptions: ${validTPEs.length}`);
+  console.log(`➕ TPE Amount Added: $${tpeAmount?.toLocaleString?.()}`);
+
   let minException = 0;
   if (teamTotalSalary > cap) {
     minException = incomingPlayers.reduce((sum, player) => {
       const salary = getSalaryForYear([player], yearKey);
       return salary <= MIN_SALARY ? sum + salary : sum;
     }, 0);
+    console.log(
+      `📎 Min Salary Exception: $${minException?.toLocaleString?.()}`
+    );
   }
 
-  // 5. Return the total
-  return allowable + tpeAmount + minException;
+  const total = allowable + tpeAmount + minException;
+  console.log(`✅ FINAL ALLOWABLE INCOMING: $${total?.toLocaleString?.()}`);
+
+  return total;
 };
 
 export const getApronStatus = (salary, { firstApron, secondApron } = {}) => {
