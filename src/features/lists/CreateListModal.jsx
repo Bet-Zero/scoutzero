@@ -1,7 +1,7 @@
 // src/components/lists/CreateListModal.jsx
 import React, { useState } from 'react';
 import { createList } from '@/firebase/listHelpers';
-import { Dialog, DialogContent } from '@/components/shared/ui/dialog';
+import { Dialog, DialogContent } from '@/components/shared/ui/Dialog';
 
 const CreateListModal = ({ isOpen, onClose, onListCreated }) => {
   const [name, setName] = useState('');
