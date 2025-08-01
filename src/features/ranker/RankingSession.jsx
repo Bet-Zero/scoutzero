@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import PlayerCompareCard from './PlayerCompareCard';
 import RankingResults from './RankingResults';
+import ComparisonMatrix from './ComparisonMatrix';
 import {
   generateRankingFromComparisons,
   suggestNextPair,
@@ -9,44 +10,48 @@ import {
 const RankingSession = ({ playerPool = [] }) => {
   const [currentPair, setCurrentPair] = useState([]);
   const [results, setResults] = useState([]);
-  const [comparisonCount, setComparisonCount] = useState(0);
-  const totalNeeded = Math.max(playerPool.length * 2, 10);
   const [isFinished, setIsFinished] = useState(false);
 
+  // Evaluate next pair every time results change
   useEffect(() => {
-    if (playerPool.length >= 2) {
-      setCurrentPair(suggestNextPair([], playerPool));
+    if (playerPool.length < 2) return;
+
+    const next = suggestNextPair(results, playerPool);
+    if (next.length === 0) {
+      setIsFinished(true);
+      setCurrentPair([]);
+    } else {
+      setCurrentPair(next);
     }
-  }, [playerPool]);
+  }, [results, playerPool]);
 
   const handleSelect = (winner, loser) => {
-    const newResults = [...results, { winner: winner.id, loser: loser.id }];
-    const newCount = comparisonCount + 1;
-    setResults(newResults);
-    setComparisonCount(newCount);
-    if (newCount >= totalNeeded) {
-      setIsFinished(true);
-    } else {
-      setCurrentPair(suggestNextPair(newResults, playerPool));
-    }
+    setResults((prev) => [...prev, { winner: winner.id, loser: loser.id }]);
   };
 
   const handleSkip = () => {
-    setCurrentPair(suggestNextPair(results, playerPool));
+    const next = suggestNextPair(results, playerPool);
+    setCurrentPair(next);
   };
 
   const handleUndo = () => {
     if (results.length === 0) return;
     const newResults = results.slice(0, -1);
     setResults(newResults);
-    setComparisonCount((c) => c - 1);
     setIsFinished(false);
-    setCurrentPair(suggestNextPair(newResults, playerPool));
   };
 
   if (isFinished) {
     const ranking = generateRankingFromComparisons(results, playerPool);
-    return <RankingResults ranking={ranking} />;
+    return (
+      <>
+        <RankingResults ranking={ranking} />
+        <div className="text-green-400 mt-4 text-center">
+          ✅ All comparisons complete!
+        </div>
+        <ComparisonMatrix players={playerPool} comparisons={results} />
+      </>
+    );
   }
 
   if (!currentPair.length) {
@@ -63,8 +68,9 @@ const RankingSession = ({ playerPool = [] }) => {
         onUndo={handleUndo}
       />
       <div className="mt-2 text-white/60 text-sm">
-        {comparisonCount} / {totalNeeded} comparisons
+        {results.length} total comparisons
       </div>
+      <ComparisonMatrix players={playerPool} comparisons={results} />
     </div>
   );
 };
