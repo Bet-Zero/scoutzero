@@ -8,7 +8,7 @@ const players = [
 ];
 
 describe('ranking engine', () => {
-  it('ranks players using rank centrality', () => {
+  it('ranks players using dominance scores', () => {
     const comparisons = [
       { winner: '1', loser: '2' },
       { winner: '1', loser: '3' },
@@ -25,8 +25,7 @@ describe('ranking engine', () => {
       { winner: '1', loser: '2' },
     ];
     const pair = suggestNextPair(comparisons, players);
-    const ids = pair.map((p) => p.id);
-    // player 3 has zero comparisons, should be included
-    expect(ids).toContain('3');
+    const ids = pair.map((p) => p.id).sort();
+    expect(ids).toEqual(['1', '3']);
   });
 });
