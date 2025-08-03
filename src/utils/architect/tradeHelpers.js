@@ -189,7 +189,11 @@ export const calculateAllowableIncoming = (...args) => {
   }).margin;
 };
 
-export const getSeasonalCashLimit = (yearKey) => CBA_BY_YEAR[yearKey].cashLimit;
+export const getSeasonalCashLimit = (yearKey) => {
+  const key = String(yearKey);
+  const fallbackKey = Object.keys(CBA_BY_YEAR).pop(); // latest defined year
+  return (CBA_BY_YEAR[key] ?? CBA_BY_YEAR[fallbackKey]).cashLimit;
+};
 
 /****************** END SCSP™ BLOCK: Allowable Incoming ******************/
 

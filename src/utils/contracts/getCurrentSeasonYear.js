@@ -1,9 +1,10 @@
 // src/utils/contracts/getCurrentSeasonYear.js
 
 export function getCurrentSeasonYear(date = new Date()) {
-  const year = date.getFullYear();
-  const month = date.getMonth(); // 0 = Jan … 6 = Jul … 11 = Dec
-  const day = date.getDate();
+  // Use UTC methods so logic is timezone agnostic
+  const year = date.getUTCFullYear();
+  const month = date.getUTCMonth(); // 0 = Jan … 6 = Jul … 11 = Dec
+  const day = date.getUTCDate();
 
   // NBA season rolls over **July 1**.
   // • June 30 or earlier  → previous season

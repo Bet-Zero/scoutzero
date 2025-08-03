@@ -3,9 +3,9 @@
 /* Stepien-rule helpers */
 
 export function buildFirstRoundCalendar({
-  existingPicks,
+  existingPicks = [],
   picksOfferedInTrade = [],
-}) {
+} = {}) {
   const thisYear = new Date().getFullYear();
   const span = [...Array(8)].map((_, i) => thisYear + i);
 
