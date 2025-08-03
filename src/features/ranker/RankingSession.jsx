@@ -13,17 +13,14 @@ const RankingSession = ({ playerPool = [] }) => {
   const [results, setResults] = useState([]);
   const [isFinished, setIsFinished] = useState(false);
 
-  const totalPairs = useMemo(() => {
-    return (playerPool.length * (playerPool.length - 1)) / 2;
-  }, [playerPool]);
-
   const remaining = useMemo(
     () => estimateRemainingComparisons(results, playerPool),
     [results, playerPool]
   );
 
-  const progressPercent = totalPairs
-    ? ((totalPairs - remaining) / totalPairs) * 100
+  const estimatedTotal = results.length + remaining;
+  const progressPercent = estimatedTotal
+    ? (results.length / estimatedTotal) * 100
     : 0;
 
   // Evaluate next pair every time results change
@@ -90,7 +87,7 @@ const RankingSession = ({ playerPool = [] }) => {
         </div>
       </div>
       <div className="mt-2 text-white/60 text-sm">
-        {results.length} / {totalPairs} comparisons
+        {results.length} / {estimatedTotal} comparisons
       </div>
       <ComparisonMatrix players={playerPool} comparisons={results} />
     </div>
