@@ -1,16 +1,30 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import PlayerCompareCard from './PlayerCompareCard';
 import RankingResults from './RankingResults';
 import ComparisonMatrix from './ComparisonMatrix';
 import {
   generateRankingFromComparisons,
   suggestNextPair,
+  estimateRemainingComparisons,
 } from '@/utils/ranker/rankingEngine';
 
 const RankingSession = ({ playerPool = [] }) => {
   const [currentPair, setCurrentPair] = useState([]);
   const [results, setResults] = useState([]);
   const [isFinished, setIsFinished] = useState(false);
+
+  const totalPairs = useMemo(() => {
+    return (playerPool.length * (playerPool.length - 1)) / 2;
+  }, [playerPool]);
+
+  const remaining = useMemo(
+    () => estimateRemainingComparisons(results, playerPool),
+    [results, playerPool]
+  );
+
+  const progressPercent = totalPairs
+    ? ((totalPairs - remaining) / totalPairs) * 100
+    : 0;
 
   // Evaluate next pair every time results change
   useEffect(() => {
@@ -67,8 +81,16 @@ const RankingSession = ({ playerPool = [] }) => {
         onSkip={handleSkip}
         onUndo={handleUndo}
       />
+      <div className="w-full max-w-xs mt-4">
+        <div className="w-full bg-white/20 h-2 rounded-full">
+          <div
+            className="bg-green-500 h-2 rounded-full"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+      </div>
       <div className="mt-2 text-white/60 text-sm">
-        {results.length} total comparisons
+        {results.length} / {totalPairs} comparisons
       </div>
       <ComparisonMatrix players={playerPool} comparisons={results} />
     </div>
