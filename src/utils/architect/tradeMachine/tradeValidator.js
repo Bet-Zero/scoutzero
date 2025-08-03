@@ -4,7 +4,6 @@ import {
   getSalaryForYear,
   getApronStatus,
   formatCurrency,
-  getMatchingValue, // 🆕
 } from '@/utils/architect/tradeHelpers.js'; // 🆕 .js extension kept for Vite
 import { wouldExceedHardCap } from '@/utils/architect/hardCapUtils.js';
 import { CBA_MECHANICS } from '@/utils/architect/cbaMechanics.js';
@@ -427,6 +426,23 @@ export function validateAllNewRules(team, allTeams) {
     ...validateSecondApronRules(team),
   ];
 }
+/** ------------------------------------------------------------------------
+ * getMatchingValue(player, year, isOutgoing)
+ * A minimal replacement for the legacy helper the tests expect.
+ * ▸ For BYC players: outgoing counts 50 % of salary (incoming full).
+ * ▸ For Poison-Pill (rookie max ext.): outgoing uses current salary,
+ *   incoming uses average of extension (already baked into salaryByYear).
+ * -----------------------------------------------------------------------*/
+const getMatchingValue = (player, yearKey, isOutgoing = false) => {
+  const base = getSalaryForYear(player, yearKey);
+
+  if (!isOutgoing) return base; // incoming side – full value
+
+  if (player.isBYC) return base * 0.5; // basic BYC
+  if (player.isPoisonPill) return player.currentSalary || base; // PPP
+
+  return base;
+};
 
 // ===== RULES =====
 const TRADE_RULES = {
@@ -446,7 +462,8 @@ const TRADE_RULES = {
         team.salaryOut,
         team.incomingPlayers,
         team.tradeExceptions,
-        team.context.capSettings
+        team.context.capSettings,
+        team.context.yearKey
       );
       const passes = team.salaryIn <= team.salaryOut + margin;
 
@@ -468,7 +485,8 @@ const TRADE_RULES = {
         team.salaryOut,
         team.incomingPlayers,
         team.tradeExceptions,
-        team.context.capSettings
+        team.context.capSettings,
+        team.context.yearKey
       );
       const allowable = team.salaryOut + margin;
       return (
@@ -596,6 +614,7 @@ export function validateTrade({ teams, capProjections, currentYear }) {
       salaryOut,
       incomingPlayers,
       tradeExceptions,
+      context.capSettings,
       context.yearKey
     );
     const passes = salaryIn <= margin + salaryOut;

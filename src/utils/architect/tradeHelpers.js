@@ -4,6 +4,7 @@
  * areSamePick  (numeric leniency)
  * ▸ Keeps: MIN_SALARY, getApronStatus, pick utils, TPE utils, format helpers
  * -------------------------------------------------------------------------------*/
+import { getMatchingTiers } from '@/utils/architect/cbaConstants.js';
 
 export const MIN_SALARY = 1_119_563;
 
@@ -42,34 +43,47 @@ export const getSalaryForYear = (input, year) => {
 
 /*─────────────────────  Incoming-Salary (CBA rules)  ─────────────────────*/
 
+// ────────────────── Incoming-Salary Ceiling (CBA tiers) ──────────────────
 export const getIncomingCeiling = (
   teamTotalSalary,
   salaryOut,
   tradeExceptions = [],
-  capSettings
+  capSettings,
+  yearKey = 2025
 ) => {
-  // 1️⃣ Cap-space teams may go up to the cap.
-  if (teamTotalSalary < capSettings.salaryCap) return capSettings.salaryCap;
-
-  // 2️⃣ Standard tiers (2023-CBA §6(f)(2))
-  let ceiling;
-  if (salaryOut <= 7_500_000) {
-    ceiling = salaryOut * 2; // 200 %
-  } else if (salaryOut < 29_000_000) {
-    ceiling = salaryOut * 1.75 + 100_000; // 175 % + $100 k
-  } else {
-    ceiling = salaryOut + 5_000_000; // + $5 M
+  // 1️⃣ Cap-space clubs can climb to the cap.
+  if (teamTotalSalary < capSettings.salaryCap) {
+    return capSettings.salaryCap;
   }
 
-  // 3️⃣ Second-apron hard limiter (110 %)
+  // 2️⃣ Tiered matching rules pulled from constants
+  const tiers = getMatchingTiers(yearKey);
+  const tier = tiers.find((t) => salaryOut <= t.maxOutgoing) || tiers.at(-1);
+  let ceiling = tier.incoming(salaryOut);
+
+  // 3️⃣ Second-Apron limiter – 110 % of outgoing
   if (teamTotalSalary >= capSettings.secondApron) {
     ceiling = salaryOut * 1.1;
   }
 
-  // 4️⃣ Add any valid Trade Player Exceptions
+  // 4️⃣ Add any valid TPE amounts
   const tpeValue = tradeExceptions
-    .filter((t) => !t.expired)
-    .reduce((sum, t) => sum + (t.remaining ?? t.amount ?? 0), 0);
+    .filter(
+      (t) =>
+        !t.expired && // legacy tests
+        (!t.expirationDate || Date.parse(t.expirationDate) > Date.now())
+    )
+    .reduce(
+      (sum, t) =>
+        sum +
+        (t.remaining ??
+          (typeof t.amount === 'number'
+            ? t.amount - (t.used ?? 0) // subtract “used” portion
+            : typeof t.value === 'number'
+              ? t.value - (t.used ?? 0)
+              : 0)),
+      0
+    );
 
   return Math.floor(ceiling + tpeValue);
 };
@@ -79,30 +93,32 @@ export const getIncomingCeiling = (
  * – for over-cap teams = ceiling − salaryOut
  * – for cap-space teams = cap − current payroll
  ***********************************************************************/
+// ────────────────── Allowable Incoming *Margin* ──────────────────
 export function calculateAllowableIncoming(
   teamTotalSalary,
   salaryOut,
   incomingPlayers,
   tradeExceptions,
   capSettings,
-  seasonKey
+  yearKey = 2025
 ) {
-  // Cap-space clubs: the only limit is up to the cap
+  // Cap-room clubs: cap space minus current payroll
   if (teamTotalSalary < capSettings.salaryCap) {
     return Math.max(0, capSettings.salaryCap - teamTotalSalary);
   }
 
-  // Over-cap clubs (incl. apron teams)
+  // Over-cap clubs
   const ceiling = getIncomingCeiling(
     teamTotalSalary,
     salaryOut,
     tradeExceptions,
     capSettings,
-    seasonKey
+    yearKey
   );
 
-  return Math.max(0, ceiling - salaryOut); // <-- **key fix**
+  return Math.max(0, ceiling - salaryOut);
 }
+
 /****************** END SCSP™ BLOCK: Allowable Incoming ******************/
 
 /*───────────────────────────  Apron Status  ───────────────────────────*/

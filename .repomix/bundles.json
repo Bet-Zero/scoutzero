@@ -4,8 +4,13 @@
       "name": "TradeMachine",
       "description": "All core files for the Trade Machine feature, including UI, logic, state, and architect utilities.",
       "created": "2025-07-31T15:17:54.301Z",
-      "lastUsed": "2025-08-03T05:15:22.217Z",
-      "tags": ["trade", "gm", "feature", "architect"],
+      "lastUsed": "2025-08-03T06:51:25.678Z",
+      "tags": [
+        "trade",
+        "gm",
+        "feature",
+        "architect"
+      ],
       "files": [
         "src/features/architect/tradeMachine/TradeSummaryPanel.jsx",
         "src/features/architect/tradeMachine/OutgoingPlayersList.jsx",
@@ -44,14 +49,18 @@
         "tests/tradeValidator.test.js",
         "tests/tradeValidatorEdgeCases.test.js",
         "tests/setupDebug.js",
-        "tests/tradeSalaryMatching.test.js"
+        "tests/tradeSalaryMatching.test.js",
+        "tools/migratePlayerMatchingValue.js"
       ]
     },
     "TradeMachineTests-300": {
       "name": "TradeMachineTests",
       "created": "2025-08-03T03:04:58.918Z",
       "lastUsed": "2025-08-03T03:43:55.321Z",
-      "tags": ["trade", "tests"],
+      "tags": [
+        "trade",
+        "tests"
+      ],
       "files": [
         "tests/tradeExceptions.test.js",
         "tests/tradeHelpers.test.js",
