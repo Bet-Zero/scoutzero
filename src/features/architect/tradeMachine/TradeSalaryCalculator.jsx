@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   formatCurrency,
   calculateAllowableIncoming,
@@ -20,21 +20,23 @@ const TradeSalaryCalculator = ({
     base: 0,
     min: 0,
     tpe: 0,
+    rule: '',
   });
 
   useEffect(() => {
     if (!teamSalary || !capSettings) return;
 
+    // Calculate base allowable
     const base = calculateAllowableIncoming(
       teamSalary,
       outgoingSalary,
       [],
       [],
-      {
-        ...capSettings,
-        yearKey,
-      }
+      capSettings,
+      yearKey
     );
+
+    // Calculate minimum salary exception
     const min =
       teamSalary > capSettings.cap
         ? incomingPlayers.reduce((sum, p) => {
@@ -42,21 +44,41 @@ const TradeSalaryCalculator = ({
             return s <= MIN_SALARY ? sum + s : sum;
           }, 0)
         : 0;
+
+    // Calculate TPE amount
     const tpe = tpes.reduce(
       (sum, t) => sum + (t.remaining ?? t.amount ?? 0),
       0
     );
-    setBreakdown({ base, min, tpe });
+
+    // Determine which rule applies
+    let rule;
+    if (teamSalary > capSettings.secondApron) {
+      rule = 'Second Apron: Dollar-for-dollar matching';
+    } else if (teamSalary > capSettings.firstApron) {
+      rule = 'First Apron: 110% of outgoing salary';
+    } else if (teamSalary <= capSettings.cap) {
+      rule = 'Under Cap: Outgoing + $100k + cap space';
+    } else if (outgoingSalary <= 6_500_000) {
+      rule = 'Normal: 175% + $100k (≤$6.5M outgoing)';
+    } else if (outgoingSalary <= 19_600_000) {
+      rule = 'Normal: 125% + $100k ($6.5M-$19.6M outgoing)';
+    } else {
+      rule = 'Normal: 125% (>$19.6M outgoing)';
+    }
+
+    setBreakdown({ base, min, tpe, rule });
     setAllowableIncoming(base + min + tpe);
   }, [teamSalary, outgoingSalary, incomingPlayers, tpes, capSettings, yearKey]);
 
   const isValid = incomingSalary <= allowableIncoming;
 
   return (
-    <div className="border border-white/10 rounded-lg p-4 mt-4">
+    <div className="border border-white/10 rounded-lg p-4 mt-4 bg-[#111]">
       <h3 className="font-medium mb-3">Salary Matching Calculator</h3>
 
       <div className="space-y-4">
+        {/* Salary Summary */}
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-xs text-white/60 mb-1">
@@ -71,25 +93,42 @@ const TradeSalaryCalculator = ({
               Allowable Incoming
             </label>
             <div
-              className={`font-mono p-2 rounded ${isValid ? 'bg-green-900/30' : 'bg-red-900/30'}`}
+              className={`font-mono p-2 rounded ${
+                isValid ? 'bg-green-900/30' : 'bg-red-900/30'
+              }`}
             >
               {formatCurrency(allowableIncoming)}
             </div>
           </div>
         </div>
 
-        <div className="text-xs text-white/70 space-y-1">
-          <div>Base: {formatCurrency(breakdown.base)}</div>
-          {breakdown.min > 0 && (
-            <div className="text-yellow-400">
-              Min Exception: +{formatCurrency(breakdown.min)}
+        {/* Rule Breakdown */}
+        <div className="bg-[#222] p-3 rounded border border-white/10">
+          <div className="text-xs text-white/70 mb-2">
+            <span className="font-semibold">Rule Applied:</span>{' '}
+            {breakdown.rule}
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-xs">
+            <div className="text-center">
+              <div className="text-white/60">Base</div>
+              <div>{formatCurrency(breakdown.base)}</div>
             </div>
-          )}
-          {breakdown.tpe > 0 && (
-            <div>Using TPE: +{formatCurrency(breakdown.tpe)}</div>
-          )}
+            <div className="text-center">
+              <div className="text-white/60">TPEs</div>
+              <div className={breakdown.tpe > 0 ? 'text-blue-300' : ''}>
+                +{formatCurrency(breakdown.tpe)}
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-white/60">Min Ex</div>
+              <div className={breakdown.min > 0 ? 'text-green-300' : ''}>
+                +{formatCurrency(breakdown.min)}
+              </div>
+            </div>
+          </div>
         </div>
 
+        {/* Test Input */}
         <div>
           <label className="block text-xs text-white/60 mb-1">
             Test Incoming Salary
@@ -103,16 +142,36 @@ const TradeSalaryCalculator = ({
           />
         </div>
 
+        {/* Validation Result */}
         <div
-          className={`p-3 rounded ${isValid ? 'bg-green-900/20' : 'bg-red-900/20'}`}
+          className={`p-3 rounded ${
+            isValid ? 'bg-green-900/20' : 'bg-red-900/20'
+          }`}
         >
-          <div className="font-medium">
-            {isValid ? '✅ Valid Trade' : '❌ Invalid Trade'}
+          <div className="font-medium flex items-center">
+            {isValid ? (
+              <>
+                <span className="text-green-400 mr-2">✓</span>
+                <span>Valid Trade</span>
+              </>
+            ) : (
+              <>
+                <span className="text-red-400 mr-2">✗</span>
+                <span>Invalid Trade</span>
+              </>
+            )}
           </div>
           <div className="text-sm mt-1">
-            {isValid
-              ? 'This salary combination complies with CBA rules'
-              : `Exceeds allowable incoming by ${formatCurrency(incomingSalary - allowableIncoming)}`}
+            {isValid ? (
+              'This salary combination complies with CBA rules'
+            ) : (
+              <>
+                Exceeds allowable incoming by{' '}
+                <span className="font-semibold">
+                  {formatCurrency(incomingSalary - allowableIncoming)}
+                </span>
+              </>
+            )}
           </div>
         </div>
       </div>

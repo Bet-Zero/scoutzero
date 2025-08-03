@@ -1,3 +1,4 @@
+// src/features/architect/tradeMachine/TradeSummaryPanel.jsx
 import React from 'react';
 import { formatCurrency } from '@/utils/architect/tradeHelpers';
 import { HelpCircle } from 'lucide-react';
@@ -12,7 +13,6 @@ const getPickLabel = (p) => {
   return <span className={color}>{label}</span>;
 };
 
-// In TradeSummaryPanel.jsx, enhance the RuleExplanation component
 const RuleExplanation = ({ rule, description, link, fixes }) => (
   <div className="mt-2 p-2 bg-[#222] rounded border border-white/10">
     <div className="flex justify-between items-start">
@@ -46,18 +46,6 @@ const RuleExplanation = ({ rule, description, link, fixes }) => (
   </div>
 );
 
-// Update the rules reference section with fixes
-<RuleExplanation
-  rule="Salary Matching (Over Cap)"
-  description="Teams over the cap can take back 125% of outgoing salary + $100k (up to $6.5M outgoing), 175% + $100k (under $6.5M), or just 125% (over $19.6M)"
-  link="https://nba.com/cba/salary-matching"
-  fixes={[
-    'Reduce incoming player salaries',
-    'Add more outgoing salary',
-    'Use a Trade Exception if available',
-  ]}
-/>;
-
 const TradeSummaryPanel = ({ result, teams, forceTrade }) => {
   if (!result) return null;
 
@@ -88,8 +76,8 @@ const TradeSummaryPanel = ({ result, teams, forceTrade }) => {
         {result.summaryByTeamIndex?.map((t, i) => {
           if (!t) return null;
 
-          const isIllegal = illegalTeams.has(t.teamName);
           const teamResult = result.teamResults[i];
+          const isIllegal = !teamResult.legal;
 
           return (
             <div
@@ -106,6 +94,23 @@ const TradeSummaryPanel = ({ result, teams, forceTrade }) => {
                   </span>
                 )}
               </div>
+
+              {/* INSERTED: Salary Matching Math */}
+              <p className="text-xs text-white/60">
+                Incoming / Allowed: {formatCurrency(teamResult.salaryIn)} /
+                {formatCurrency(
+                  teamResult.calculations.salaryMatching.allowableIncoming
+                )}
+                {teamResult.calculations.salaryMatching.difference > 0 && (
+                  <>
+                    {' '}
+                    — Exceeds by{' '}
+                    {formatCurrency(
+                      teamResult.calculations.salaryMatching.difference
+                    )}
+                  </>
+                )}
+              </p>
 
               <div className="text-white/90">
                 <strong>Gained:</strong>{' '}
@@ -160,6 +165,19 @@ const TradeSummaryPanel = ({ result, teams, forceTrade }) => {
                   }
                 >
                   {formatCurrency(t.capDelta)}
+                </span>
+              </div>
+
+              {/* INSERTED: Before -> After Snapshot */}
+              <div className="grid grid-cols-2 gap-1 text-[11px] text-white/70 mt-1 border-t border-white/10 pt-2">
+                <span>Salary →</span>
+                <span>
+                  {formatCurrency(t.beforeSalary)} ➜{' '}
+                  {formatCurrency(t.afterSalary)}
+                </span>
+                <span>Roster →</span>
+                <span>
+                  {t.beforeRoster} ➜ {t.afterRoster}
                 </span>
               </div>
 

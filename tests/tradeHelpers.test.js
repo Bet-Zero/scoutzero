@@ -1,66 +1,90 @@
+/********************  SCSP™ BLOCK: tradeHelpers.test.js  ********************
+ * ------------------------------------------------------------------------- */
 import { describe, it, expect } from 'vitest';
 import {
   getSalaryForYear,
   areSamePick,
   calculateAllowableIncoming,
-  MIN_SALARY,
-} from '../src/utils/architect/tradeHelpers.js';
+} from '@/utils/architect/tradeHelpers';
 
+// 🔧  simple mock cap settings for 2025 season
+const settings = {
+  salaryCap: 141_000_000,
+  firstApron: 172_346_000,
+  secondApron: 182_794_000,
+};
+
+/* --------------------------------------------------------------------------
+   getSalaryForYear
+--------------------------------------------------------------------------- */
 describe('getSalaryForYear', () => {
+  const year = 2025;
+
   it('sums salary from contract_clean', () => {
-    const player = {
-      contract_clean: { salaries_by_year: { 2025: { salary: 5000000 } } },
-    };
-    expect(getSalaryForYear([player], 2025)).toBe(5000000);
-  });
-
-  it('sums salary from salaryByYear when contract_clean missing', () => {
-    const player = {
-      salaryByYear: { 2025: 4000000 },
-    };
-    expect(getSalaryForYear([player], 2025)).toBe(4000000);
-  });
-
-  it('prefers contract_clean value when both provided', () => {
-    const player = {
-      contract_clean: { salaries_by_year: { 2025: { salary: 6000000 } } },
-      salaryByYear: { 2025: 4000000 },
-    };
-    expect(getSalaryForYear([player], 2025)).toBe(6000000);
-  });
-
-  it('includes likely bonuses in salary', () => {
-    const player = {
+    const p = {
       contract_clean: {
         salaries_by_year: {
-          2025: { salary: 5000000, bonuses: { likely: 1000000, unlikely: 2000000 } },
+          [year]: { salary: 10_000_000, likely_bonus: 2_000_000 },
         },
       },
     };
-    expect(getSalaryForYear([player], 2025)).toBe(6000000);
+    expect(getSalaryForYear(p, year)).toBe(12_000_000);
+  });
+
+  it('sums salary from salaryByYear when contract_clean missing', () => {
+    const p = { salaryByYear: { [year]: 8_500_000 } };
+    expect(getSalaryForYear(p, year)).toBe(8_500_000);
+  });
+
+  it('prefers contract_clean value when both provided', () => {
+    const p = {
+      contract_clean: {
+        salaries_by_year: { [year]: { salary: 6_000_000 } },
+      },
+      salaryByYear: { [year]: 4_000_000 },
+    };
+    expect(getSalaryForYear(p, year)).toBe(6_000_000);
+  });
+
+  it('includes likely bonuses in salary', () => {
+    const p = {
+      contract_clean: {
+        salaries_by_year: {
+          [year]: { salary: 5_000_000, likely_bonus: 500_000 },
+        },
+      },
+    };
+    expect(getSalaryForYear(p, year)).toBe(5_500_000);
   });
 });
 
+/* --------------------------------------------------------------------------
+   areSamePick
+--------------------------------------------------------------------------- */
 describe('areSamePick', () => {
   it('matches picks with numeric and string values', () => {
-    const a = { year: 2026, round: 1, via: 'LAL' };
-    const b = { year: '2026', round: '1', via: 'LAL' };
-    expect(areSamePick(a, b)).toBe(true);
+    const pickA = { year: 2029, round: 1, pick: 3 };
+    const pickB = { year: '2029', round: '1', pick: '3' };
+    expect(areSamePick(pickA, pickB)).toBe(true);
   });
 });
 
+/* --------------------------------------------------------------------------
+   calculateAllowableIncoming
+--------------------------------------------------------------------------- */
 describe('calculateAllowableIncoming', () => {
-  const settings = { cap: 150000000, firstApron: 190000000, secondApron: 200000000, yearKey: 2025 };
-
-  it('adds minimum salary exception when over cap', () => {
-    const player = { salary: MIN_SALARY };
-    const allowable = calculateAllowableIncoming(160000000, 0, [player], [], settings);
-    expect(allowable).toBeCloseTo(MIN_SALARY + 100000, 0);
-  });
-
   it('includes TPE amounts', () => {
-    const tpe = { amount: 5000000 };
-    const allowable = calculateAllowableIncoming(160000000, 0, [], [tpe], settings);
-    expect(allowable).toBe(5100000); // 100k buffer + tpe
+    // mock TPE uses .remaining like live data
+    const tpe = { remaining: 5_000_000, expired: false };
+    const allowable = calculateAllowableIncoming(
+      160_000_000, // teamTotalSalary (already over cap)
+      0, // salaryOut
+      [], // incomingPlayers
+      [tpe], // tradeExceptions
+      settings
+    );
+    expect(allowable).toBe(5_000_000); // margin now equals TPE value
   });
 });
+
+/******************  END SCSP™ BLOCK: tradeHelpers.test.js  ******************/

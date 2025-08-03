@@ -1,3 +1,4 @@
+// src/features/architect/tradeMachine/TradeValidationPanel.jsx
 import React from 'react';
 import { HelpCircle } from 'lucide-react';
 
@@ -25,10 +26,12 @@ const RULE_INFO = [
 ];
 
 const getRuleInfo = (msg) => {
-  return RULE_INFO.find((r) => r.pattern.test(msg)) || {
-    tip: 'See full CBA documentation',
-    link: 'https://nba.com/cba',
-  };
+  return (
+    RULE_INFO.find((r) => r.pattern.test(msg)) || {
+      tip: 'See full CBA documentation',
+      link: 'https://nba.com/cba',
+    }
+  );
 };
 
 const TradeValidationPanel = ({ result }) => {
@@ -42,23 +45,15 @@ const TradeValidationPanel = ({ result }) => {
         <div key={idx}>
           <h4 className="font-medium text-sm mb-1">{team.teamName}</h4>
           <ul className="list-disc ml-5 space-y-1">
-            {team.violations.map((v, i) => {
-              const info = getRuleInfo(v);
-              return (
-                <li key={i} className="text-red-400 flex items-start">
-                  <span>{v}</span>
-                  <a
-                    href={info.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title={info.tip}
-                    className="ml-1 text-white/70 hover:text-white"
-                  >
-                    <HelpCircle size={14} />
-                  </a>
-                </li>
-              );
-            })}
+            {Object.values(team.rules || {}).map((r, i) => (
+              <li
+                key={i}
+                className={r.passed ? 'text-green-400' : 'text-red-400'}
+              >
+                {r.message} {!r.passed && r.details && `– ${r.details}`}
+              </li>
+            ))}
+
             {team.apronStatus?.includes('⚠️') && (
               <li className="text-yellow-400 flex items-start">
                 <span>{team.apronStatus}</span>
@@ -75,6 +70,7 @@ const TradeValidationPanel = ({ result }) => {
       <div className="text-xs text-white/60">
         <p className="text-red-400">Red items are rule violations.</p>
         <p className="text-yellow-400">Yellow items are warnings.</p>
+        <p className="text-green-400">Green items are compliant.</p>
       </div>
       <div className="border-t border-white/10 pt-3">
         <h4 className="font-semibold text-sm mb-1">CBA References</h4>

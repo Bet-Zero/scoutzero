@@ -2,10 +2,64 @@
   "bundles": {
     "TradeMachine-801": {
       "name": "TradeMachine",
+      "description": "All core files for the Trade Machine feature, including UI, logic, state, and architect utilities.",
       "created": "2025-07-31T15:17:54.301Z",
-      "lastUsed": "2025-07-31T15:17:54.301Z",
-      "tags": [],
-      "files": []
+      "lastUsed": "2025-08-03T05:15:22.217Z",
+      "tags": ["trade", "gm", "feature", "architect"],
+      "files": [
+        "src/features/architect/tradeMachine/TradeSummaryPanel.jsx",
+        "src/features/architect/tradeMachine/OutgoingPlayersList.jsx",
+        "src/features/architect/tradeMachine/TradePickRow.jsx",
+        "src/features/architect/tradeMachine/SelectTeamCard.jsx",
+        "src/features/architect/tradeMachine/OutgoingPicksList.jsx",
+        "src/features/architect/tradeMachine/TradeExceptionModal.jsx",
+        "src/features/architect/tradeMachine/TradeDebugPanel.jsx",
+        "src/features/architect/tradeMachine/TradeSalaryCalculator.jsx",
+        "src/features/architect/tradeMachine/TradePreviewModal.jsx",
+        "src/features/architect/tradeMachine/TradeExportCapture.jsx",
+        "src/features/architect/tradeMachine/TradeEditor.jsx",
+        "src/features/architect/tradeMachine/TradeValidationPanel.jsx",
+        "src/features/architect/tradeMachine/TradeExceptionManager.jsx",
+        "src/features/architect/tradeMachine/TradePlayerRow.jsx",
+        "src/features/architect/tradeMachine/TradeLegalChecker.jsx",
+        "src/features/architect/tradeMachine/TradeTeamCard.jsx",
+        "src/features/architect/tradeMachine/CapImpactTiles.jsx",
+        "src/hooks/tradeMachine/useTradeMachine.js",
+        "src/utils/architect/tradeMachine/pickOptions.js",
+        "src/utils/architect/tradeMachine/tradeValidator.js",
+        "src/utils/architect/tradeMachine/tradeValidator.debug.js",
+        "src/utils/architect/tradeHelpers.js",
+        "src/utils/architect/capProjections.js",
+        "src/utils/architect/defaultPicks.js",
+        "src/utils/architect/extensionRules.js",
+        "src/utils/architect/freeAgentLogic.js",
+        "src/utils/architect/getCapPercentage.js",
+        "src/utils/architect/contractUtils.js",
+        "src/utils/architect/firebaseTeamPlanHelpers.js",
+        "src/utils/architect/cbaMechanics.js",
+        "src/utils/architect/hardCapUtils.js",
+        "src/utils/architect/cbaConstants.js",
+        "tests/tradeExceptions.test.js",
+        "tests/tradeHelpers.test.js",
+        "tests/tradeValidator.test.js",
+        "tests/tradeValidatorEdgeCases.test.js",
+        "tests/setupDebug.js",
+        "tests/tradeSalaryMatching.test.js"
+      ]
+    },
+    "TradeMachineTests-300": {
+      "name": "TradeMachineTests",
+      "created": "2025-08-03T03:04:58.918Z",
+      "lastUsed": "2025-08-03T03:43:55.321Z",
+      "tags": ["trade", "tests"],
+      "files": [
+        "tests/tradeExceptions.test.js",
+        "tests/tradeHelpers.test.js",
+        "tests/tradeValidator.test.js",
+        "tests/tradeValidatorEdgeCases.test.js",
+        "tests/setupDebug.js",
+        "tests/tradeSalaryMatching.test.js"
+      ]
     }
   }
 }
