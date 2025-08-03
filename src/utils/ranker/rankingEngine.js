@@ -158,6 +158,22 @@ export function suggestNextPair(comparisons, players) {
   return [];
 }
 
+// Estimate how many additional comparisons remain
+export function estimateRemainingComparisons(comparisons, players) {
+  const simulated = comparisons.map((c) => ({ ...c }));
+  let count = 0;
+  let next = suggestNextPair(simulated, players);
+
+  while (next.length > 0) {
+    // arbitrarily assume the first player wins to progress the simulation
+    simulated.push({ winner: next[0].id, loser: next[1].id });
+    count++;
+    next = suggestNextPair(simulated, players);
+  }
+
+  return count;
+}
+
 // ========== 🏁 FINAL RANKING LOGIC ==========
 
 // Topological sort using DFS
