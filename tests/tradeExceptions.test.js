@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { validateTradeExceptions } from '../src/utils/architect/tradeMachine/tradeValidator.js';
+import { validateTradeExceptions } from '@/utils/architect/tradeMachine/tradeValidator.js';
 
 const futureDate = () => {
   const d = new Date();

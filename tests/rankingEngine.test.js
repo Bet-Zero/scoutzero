@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { generateRankingFromComparisons, suggestNextPair } from '../src/utils/ranker/rankingEngine.js';
+import {
+  generateRankingFromComparisons,
+  suggestNextPair,
+} from '@/utils/ranker/rankingEngine.js';
 
 const players = [
   { id: '1', name: 'A' },
@@ -21,9 +24,7 @@ describe('ranking engine', () => {
   });
 
   it('suggests pair with least comparisons', () => {
-    const comparisons = [
-      { winner: '1', loser: '2' },
-    ];
+    const comparisons = [{ winner: '1', loser: '2' }];
     const pair = suggestNextPair(comparisons, players);
     const ids = pair.map((p) => p.id).sort();
     expect(ids).toEqual(['1', '3']);

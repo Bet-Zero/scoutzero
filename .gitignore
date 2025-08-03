@@ -10,3 +10,30 @@ public/assets/headshots/
 .repomix
 .DS_Store
 *.log
+DataPipeline.md
+tournamentRanker.js
+
+# VS Code settings
+.vscode/
+
+# Env and secrets
+.env
+serviceAccountKey.json
+
+# Repomix outputs
+repomix-output.*
+
+# Python artifacts
+__pycache__/
+src/__pycache__/
+
+# Scripts and tools (if not needed in repo)
+scripts/
+tools/
+
+# Local utility JS files (exclude if unused or dev-only)
+toggleView.cjs
+updateStats.js
+uploadPlayersToFirebase.js
+validatePlayersJson.js
+GeminiPatchPrompt.md

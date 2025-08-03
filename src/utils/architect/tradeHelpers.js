@@ -1,140 +1,121 @@
-// tradeHelpers.js - Complete Optimized Version
+/************************** SCSP™ BLOCK: tradeHelpers.js  **************************
+ * FULL FILE REPLACEMENT — drop-in ready
+ * ▸ Fixes: getSalaryForYear, getIncomingCeiling, calculateAllowableIncoming,
+ * areSamePick  (numeric leniency)
+ * ▸ Keeps: MIN_SALARY, getApronStatus, pick utils, TPE utils, format helpers
+ * -------------------------------------------------------------------------------*/
 
-// ======================
-// Salary Calculations
-// ======================
 export const MIN_SALARY = 1_119_563;
 
-export const getSalaryForYear = (players = [], year) => {
-  if (!year) {
-    console.warn('⚠️ getSalaryForYear called with undefined year');
-    return 0;
-  }
+/*────────────────────────  Salary Helpers  ────────────────────────*/
+/******************** SCSP™ BLOCK: getSalaryForYear ********************/
+export const getSalaryForYear = (input, year) => {
+  if (!year) return 0;
 
-  let total = 0;
+  // Accept a single player or an array
+  const players = Array.isArray(input) ? input : [input];
 
-  players.forEach((p) => {
-    const yearData = p.contract_clean?.salaries_by_year?.[year] || {};
-    const salaryFromMap = p.salaryByYear?.[year];
+  return players.reduce((sum, p) => {
+    const yData = p.contract_clean?.salaries_by_year?.[year] ?? {};
+    const salaryMap = p.salaryByYear?.[year];
     const fallback = p.salary;
 
-    const baseSalary =
-      typeof yearData.salary === 'number'
-        ? yearData.salary
-        : typeof salaryFromMap === 'number'
-          ? salaryFromMap
+    const base =
+      typeof yData.salary === 'number'
+        ? yData.salary
+        : typeof salaryMap === 'number'
+          ? salaryMap
           : typeof fallback === 'number'
             ? fallback
             : 0;
 
-    const likelyBonus =
-      yearData.bonuses?.likely ??
-      yearData.likelyIncentives ??
-      p.bonusesByYear?.[year]?.likely ??
-      0;
+    // tests look specifically for `likely_bonus`
+    const likely =
+      (typeof yData.likely_bonus === 'number' ? yData.likely_bonus : 0) ||
+      (yData.bonuses?.likely ?? yData.likelyIncentives ?? 0) ||
+      (p.bonusesByYear?.[year]?.likely ?? 0);
 
-    const playerTotal = baseSalary + likelyBonus;
-
-    console.log(
-      `👤 ${p.name || 'Unknown Player'} | Salary: $${baseSalary.toLocaleString()} | Bonus: $${likelyBonus.toLocaleString()} → Total: $${playerTotal.toLocaleString()}`
-    );
-
-    total += playerTotal;
-  });
-
-  console.log(`🧮 Total Salary for ${year}: $${total.toLocaleString()}`);
-  return total;
+    return sum + base + likely;
+  }, 0);
 };
+/****************** END SCSP™ BLOCK: getSalaryForYear ******************/
 
-// In tradeHelpers.js - Replace existing implementation with this:
+/*─────────────────────  Incoming-Salary (CBA rules)  ─────────────────────*/
 
-export const calculateAllowableIncoming = (
+export const getIncomingCeiling = (
   teamTotalSalary,
   salaryOut,
-  incomingPlayers = [],
   tradeExceptions = [],
-  capSettings = {},
-  yearKey
+  capSettings
 ) => {
-  const cap = Number(capSettings.cap) || Infinity;
-  const firstApron = Number(capSettings.firstApron) || Infinity;
-  const secondApron = Number(capSettings.secondApron) || Infinity;
-  const MIN_SALARY = 1_119_563;
+  // 1️⃣ Cap-space teams may go up to the cap.
+  if (teamTotalSalary < capSettings.salaryCap) return capSettings.salaryCap;
 
-  console.log('🧮 [Calc Allowable Incoming]');
-  console.log(`📊 Team Total Salary: $${teamTotalSalary?.toLocaleString?.()}`);
-  console.log(`📤 Salary Out: $${salaryOut?.toLocaleString?.()}`);
-  console.log(`🗓️ YearKey: ${yearKey}`);
-  console.log(`💰 Cap: $${cap?.toLocaleString?.()}`);
-  console.log(`💰 First Apron: $${firstApron?.toLocaleString?.()}`);
-  console.log(`💰 Second Apron: $${secondApron?.toLocaleString?.()}`);
-
-  let allowable;
-
-  if (teamTotalSalary > secondApron) {
-    allowable = salaryOut;
-    console.log('🚧 Over 2nd Apron: Equal salary only');
-  } else if (teamTotalSalary > firstApron) {
-    allowable = salaryOut * 1.1;
-    console.log('🔁 Over 1st Apron: 110% of salary out');
-  } else if (teamTotalSalary <= cap) {
-    const capSpace = cap - teamTotalSalary;
-    allowable = salaryOut + 250_000 + Math.max(0, capSpace);
-    console.log(`💸 Under Cap: Using Cap Space = $${capSpace}`);
+  // 2️⃣ Standard tiers (2023-CBA §6(f)(2))
+  let ceiling;
+  if (salaryOut <= 7_500_000) {
+    ceiling = salaryOut * 2; // 200 %
+  } else if (salaryOut < 29_000_000) {
+    ceiling = salaryOut * 1.75 + 100_000; // 175 % + $100 k
   } else {
-    if (salaryOut <= 6_500_000) {
-      allowable = salaryOut * 1.75 + 100_000;
-      console.log('📏 Normal Rule (≤ $6.5M): 175% + $100K');
-    } else if (salaryOut <= 19_600_000) {
-      allowable = salaryOut * 1.25 + 100_000;
-      console.log('📏 Normal Rule (≤ $19.6M): 125% + $100K');
-    } else {
-      allowable = salaryOut * 1.25;
-      console.log('📏 Normal Rule (> $19.6M): 125%');
-    }
+    ceiling = salaryOut + 5_000_000; // + $5 M
   }
 
-  const validTPEs = tradeExceptions.filter(
-    (tpe) => !tpe.isUsed && (tpe.remaining ?? tpe.amount) > 0
-  );
-
-  const tpeAmount = validTPEs.reduce(
-    (sum, tpe) => sum + (tpe.remaining ?? tpe.amount),
-    0
-  );
-
-  console.log(`🎟️ Valid Trade Exceptions: ${validTPEs.length}`);
-  console.log(`➕ TPE Amount Added: $${tpeAmount?.toLocaleString?.()}`);
-
-  let minException = 0;
-  if (teamTotalSalary > cap) {
-    minException = incomingPlayers.reduce((sum, player) => {
-      const salary = getSalaryForYear([player], yearKey);
-      return salary <= MIN_SALARY ? sum + salary : sum;
-    }, 0);
-    console.log(
-      `📎 Min Salary Exception: $${minException?.toLocaleString?.()}`
-    );
+  // 3️⃣ Second-apron hard limiter (110 %)
+  if (teamTotalSalary >= capSettings.secondApron) {
+    ceiling = salaryOut * 1.1;
   }
 
-  const total = allowable + tpeAmount + minException;
-  console.log(`✅ FINAL ALLOWABLE INCOMING: $${total?.toLocaleString?.()}`);
+  // 4️⃣ Add any valid Trade Player Exceptions
+  const tpeValue = tradeExceptions
+    .filter((t) => !t.expired)
+    .reduce((sum, t) => sum + (t.remaining ?? t.amount ?? 0), 0);
 
-  return total;
+  return Math.floor(ceiling + tpeValue);
 };
 
+/******************** SCSP™ BLOCK: Allowable Incoming *******************
+ * calculateAllowableIncoming now returns “allowable *incoming* salary”
+ * – for over-cap teams = ceiling − salaryOut
+ * – for cap-space teams = cap − current payroll
+ ***********************************************************************/
+export function calculateAllowableIncoming(
+  teamTotalSalary,
+  salaryOut,
+  incomingPlayers,
+  tradeExceptions,
+  capSettings,
+  seasonKey
+) {
+  // Cap-space clubs: the only limit is up to the cap
+  if (teamTotalSalary < capSettings.salaryCap) {
+    return Math.max(0, capSettings.salaryCap - teamTotalSalary);
+  }
+
+  // Over-cap clubs (incl. apron teams)
+  const ceiling = getIncomingCeiling(
+    teamTotalSalary,
+    salaryOut,
+    tradeExceptions,
+    capSettings,
+    seasonKey
+  );
+
+  return Math.max(0, ceiling - salaryOut); // <-- **key fix**
+}
+/****************** END SCSP™ BLOCK: Allowable Incoming ******************/
+
+/*───────────────────────────  Apron Status  ───────────────────────────*/
 export const getApronStatus = (salary, { firstApron, secondApron } = {}) => {
   if (secondApron && salary > secondApron) return 'Above 2nd Apron';
   if (firstApron && salary > firstApron) return 'Above 1st Apron';
   return 'Below Aprons';
 };
 
-// ======================
-// Pick Utilities
-// ======================
+/*───────────────────────────  Pick Helpers  ───────────────────────────*/
 export const areSamePick = (a, b) =>
-  String(a.year) === String(b.year) &&
-  String(a.round) === String(b.round) &&
+  +a.year === +b.year &&
+  +a.round === +b.round &&
   (a.via || '') === (b.via || '');
 
 export const formatPick = (p) => {
@@ -146,41 +127,38 @@ export const formatPick = (p) => {
   return str;
 };
 
-export const isMeaningfulProtection = (protection) => {
-  if (!protection) return false;
-  return (
-    /top\s*[1-9]\d*/i.test(protection) ||
-    /lottery/i.test(protection) ||
-    /1-14/i.test(protection)
-  );
-};
+export const isMeaningfulProtection = (prot) =>
+  !!prot &&
+  (/top\s*\d+/i.test(prot) || /lottery/i.test(prot) || /1-14/i.test(prot));
 
-// ======================
-// Trade Exceptions
-// ======================
-export const calculateTPERemaining = (tpe, usedAmount = 0) =>
-  tpe.amount - usedAmount;
+/*────────────────────────  Trade-Exception Helpers  ───────────────────────*/
+export const calculateTPERemaining = (tpe, used = 0) => tpe.amount - used;
 
 export const playerFitsInTPE = (player, yearKey, tpe) => {
   if (!tpe || tpe.isUsed) return false;
+
   const salary =
     player.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0;
-  const currentDate = new Date();
-  const expirationDate = tpe.expirationDate
-    ? new Date(tpe.expirationDate)
-    : null;
-  return (
-    salary <= tpe.amount && (!expirationDate || expirationDate > currentDate)
-  );
+
+  const now = Date.now();
+  const exp = tpe.expirationDate ? Date.parse(tpe.expirationDate) : Infinity;
+
+  return salary <= tpe.amount && now < exp;
 };
 
-// ======================
-// Formatting & Utilities
-// ======================
-export const formatCurrency = (value) =>
-  typeof value === 'number' ? `$${value.toLocaleString()}` : '-';
+/*───────────────────────  Formatting & Misc Utilities  ───────────────────*/
+export const formatCurrency = (val) =>
+  typeof val === 'number' ? `$${val.toLocaleString()}` : '-';
 
 export const generateTradeId = (teams) =>
   teams
-    .map((t) => `${t.team?.id}:${t.sends.map((p) => p.id).join(',')}`)
+    .map(
+      (t) =>
+        `${t.team?.id}:${t.sends
+          .map((p) => p.id)
+          .sort()
+          .join(',')}`
+    )
     .join('|');
+
+/*───────────────────────────────  EOF  ───────────────────────────────*/

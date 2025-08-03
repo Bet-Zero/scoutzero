@@ -1,5 +1,5 @@
 import { afterEach } from 'vitest';
-import { tradeDebug } from '../src/utils/architect/tradeMachine/tradeValidator.js';
+import { tradeDebug } from '@/utils/architect/tradeMachine/tradeValidator.js';
 
 tradeDebug.enabled = true;
 

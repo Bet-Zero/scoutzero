@@ -1,16 +1,11 @@
 // tradeValidator.test.js
 import { describe, it, expect } from 'vitest';
-import { validateTrade } from '../src/utils/architect/tradeMachine/tradeValidator.js';
-import capProjections from '../src/utils/architect/capProjections.js';
+import { validateTrade } from '@/utils/architect/tradeMachine/tradeValidator.js';
+import capProjections from '@/utils/architect/capProjections.js';
 
 const currentYear = 2025;
 
-const makePlayer = (
-  name,
-  salary,
-  signAndTrade = false,
-  contractYears = 4
-) => ({
+const makePlayer = (name, salary, signAndTrade = false, contractYears = 4) => ({
   name,
   signAndTrade,
   contractYears,
@@ -46,7 +41,9 @@ describe('tradeValidator', () => {
 
     expect(result.legal).toBe(false);
     expect(result.teamResults[0].legal).toBe(false);
-    expect(result.teamResults[0].violations[0]).toMatch(/Incoming salary exceeds/);
+    expect(result.teamResults[0].violations[0]).toMatch(
+      /Incoming salary exceeds/
+    );
     expect(result.teamResults[0].rules.salaryMatching.passed).toBe(false);
   });
 
@@ -237,7 +234,9 @@ describe('tradeValidator', () => {
     });
 
     expect(result.legal).toBe(false);
-    expect(result.reason).toContain('Second apron team cannot aggregate salaries');
+    expect(result.reason).toContain(
+      'Second apron team cannot aggregate salaries'
+    );
   });
 
   it('prevents second apron teams from taking back more salary', () => {
