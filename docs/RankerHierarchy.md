@@ -7,4 +7,5 @@ RankingBuilder.jsx
 RankingResults.jsx
 RankingSession.jsx
 ranker.css
+tournamentRanker.js
 ```
