@@ -465,7 +465,8 @@ const TRADE_RULES = {
         team.context.capSettings,
         team.context.yearKey
       );
-      const passes = team.salaryIn <= team.salaryOut + margin;
+      const diff = team.salaryIn - team.salaryOut; // incoming minus outgoing
+      const passes = diff <= margin && diff >= 0;
 
       if (debug.enabled) {
         debug.log(
@@ -617,7 +618,8 @@ export function validateTrade({ teams, capProjections, currentYear }) {
       context.capSettings,
       context.yearKey
     );
-    const passes = salaryIn <= margin + salaryOut;
+    const diff = salaryIn - salaryOut; // incoming minus outgoing
+    const passes = diff <= margin && diff >= 0;
 
     return {
       passed: passes,
@@ -1074,8 +1076,8 @@ export function validateTrade({ teams, capProjections, currentYear }) {
       } = team;
       const summary = {
         teamName: team.teamName,
-        playersIn: incomingPlayers.map((p) => p.name || 'Unknown'),
-        playersOut: outgoingPlayers,
+        playersIn: incomingPlayers.map((p) => p.name),
+        playersOut: outgoingPlayers.map((p) => p.name),
         picksIn: incomingPicks,
         picksOut: outgoingPicks,
         salaryDelta: salaryIn - salaryOut,
