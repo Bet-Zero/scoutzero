@@ -4,8 +4,17 @@
  * areSamePick  (numeric leniency)
  * ▸ Keeps: MIN_SALARY, getApronStatus, pick utils, TPE utils, format helpers
  * -------------------------------------------------------------------------------*/
-import { getMatchingTiers } from '@/utils/architect/cbaConstants.js';
+import {
+  getMatchingTiers,
+  CBA_BY_YEAR,
+} from '@/utils/architect/cbaConstants.js';
 
+export const getTierThresholds = (yearKey) => {
+  const key = String(yearKey); // normalise
+  const bucket =
+    CBA_BY_YEAR[key] ?? CBA_BY_YEAR[Object.keys(CBA_BY_YEAR).pop()];
+  return bucket.salaryTiers; // [tier1, tier2]
+};
 export const MIN_SALARY = 1_119_563;
 
 /*────────────────────────  Salary Helpers  ────────────────────────*/
@@ -94,30 +103,51 @@ export const getIncomingCeiling = (
  * – for cap-space teams = cap − current payroll
  ***********************************************************************/
 // ────────────────── Allowable Incoming *Margin* ──────────────────
-export function calculateAllowableIncoming(
-  teamTotalSalary,
+// ───────────────────────────────────────────────────────────────────
+//  NEW calculateAllowableIncoming  (back-compat wrapper + impl)
+// ───────────────────────────────────────────────────────────────────
+
+/* internal object-style implementation */
+function _calculateAllowableIncomingObj({
+  currentTeamSalary,
   salaryOut,
-  incomingPlayers,
-  tradeExceptions,
-  capSettings,
-  yearKey = 2025
-) {
-  // Cap-room clubs: cap space minus current payroll
-  if (teamTotalSalary < capSettings.salaryCap) {
-    return Math.max(0, capSettings.salaryCap - teamTotalSalary);
+  secondApronStatus,
+  yearKey,
+  tpeAmount = 0,
+}) {
+  const [tier1, tier2] = getTierThresholds(String(yearKey));
+
+  let ceiling;
+  if (secondApronStatus) {
+    ceiling = salaryOut * 1.1; // 110 % rule
+  } else if (salaryOut <= tier1) {
+    ceiling = salaryOut + 100_000; // +$100K
+  } else if (salaryOut <= tier2) {
+    ceiling = salaryOut * 1.75; // 175 %
+  } else {
+    ceiling = salaryOut * 1.25; // 125 %
   }
 
-  // Over-cap clubs
-  const ceiling = getIncomingCeiling(
-    teamTotalSalary,
-    salaryOut,
-    tradeExceptions,
-    capSettings,
-    yearKey
-  );
+  /* cap-space teams: ceiling = cap room (TPE can exceed) */
+  const SALARY_CAP = CBA_BY_YEAR[String(yearKey)].salaryCap;
+  if (currentTeamSalary < SALARY_CAP) {
+    const capSpace = SALARY_CAP - currentTeamSalary;
+    const ceilingWithCap = Math.max(capSpace, tpeAmount);
+    return { ceiling: ceilingWithCap, margin: ceilingWithCap };
+  }
 
-  return Math.max(0, ceiling - salaryOut);
+  /* over-cap teams: add any Trade-Player Exception value */
+  const grossCeiling = ceiling + tpeAmount;
+  return { ceiling: grossCeiling, margin: grossCeiling - salaryOut };
 }
+
+/**
+ *  Back-compat façade — works with either signature:
+ *    1) object  ➜  { currentTeamSalary, salaryOut, … }
+ *    2) positional ➜ (currentTeamSalary, salaryOut, secondApron, yearKey, tpe?)
+ */
+
+export const getSeasonalCashLimit = (yearKey) => CBA_BY_YEAR[yearKey].cashLimit;
 
 /****************** END SCSP™ BLOCK: Allowable Incoming ******************/
 

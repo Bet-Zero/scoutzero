@@ -6,6 +6,7 @@
  * -------------------------------------------------------------------------------*/
 export const CBA_BY_YEAR = {
   2025: {
+    salaryTiers: [6_500_000, 19_600_000], // Add this line
     /* 2023 CBA §6(f)(2) — salary-matching tiers */
     matchingTiers: [
       // Cap-room teams (payroll below cap before trade) → flat $7.5 M ceiling
