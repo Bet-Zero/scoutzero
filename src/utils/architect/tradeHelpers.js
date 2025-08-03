@@ -8,6 +8,7 @@ import {
   getMatchingTiers,
   CBA_BY_YEAR,
 } from '@/utils/architect/cbaConstants.js';
+export { wouldExceedHardCap } from '@/utils/architect/hardCapUtils.js';
 
 export const getTierThresholds = (yearKey) => {
   const key = String(yearKey); // normalise
@@ -115,30 +116,23 @@ function _calculateAllowableIncomingObj({
   yearKey,
   tpeAmount = 0,
 }) {
-  const [tier1, tier2] = getTierThresholds(String(yearKey));
+  const year = String(yearKey);
+  const capData = CBA_BY_YEAR[year] || {};
+  const salaryCap = capData.salaryCap || 0;
+  const tiers = getMatchingTiers(year);
 
-  let ceiling;
-  if (secondApronStatus) {
-    ceiling = salaryOut * 1.1; // 110 % rule
-  } else if (salaryOut <= tier1) {
-    ceiling = salaryOut + 100_000; // +$100K
-  } else if (salaryOut <= tier2) {
-    ceiling = salaryOut * 1.75; // 175 %
-  } else {
-    ceiling = salaryOut * 1.25; // 125 %
+  if (currentTeamSalary < salaryCap) {
+    const capSpace = salaryCap - currentTeamSalary;
+    const margin = Math.max(capSpace, tpeAmount);
+    return { ceiling: margin, margin };
   }
 
-  /* cap-space teams: ceiling = cap room (TPE can exceed) */
-  const SALARY_CAP = CBA_BY_YEAR[String(yearKey)].salaryCap;
-  if (currentTeamSalary < SALARY_CAP) {
-    const capSpace = SALARY_CAP - currentTeamSalary;
-    const ceilingWithCap = Math.max(capSpace, tpeAmount);
-    return { ceiling: ceilingWithCap, margin: ceilingWithCap };
-  }
+  const tier = tiers.find((t) => salaryOut <= t.maxOutgoing) || tiers.at(-1);
+  let ceiling = secondApronStatus ? salaryOut * 1.1 : tier.incoming(salaryOut);
+  if (salaryOut === 0) ceiling = 0;
 
-  /* over-cap teams: add any Trade-Player Exception value */
-  const grossCeiling = ceiling + tpeAmount;
-  return { ceiling: grossCeiling, margin: grossCeiling - salaryOut };
+  const gross = ceiling + tpeAmount;
+  return { ceiling: gross, margin: gross - salaryOut };
 }
 
 /**
@@ -147,14 +141,62 @@ function _calculateAllowableIncomingObj({
  *    2) positional ➜ (currentTeamSalary, salaryOut, secondApron, yearKey, tpe?)
  */
 
+export const calculateAllowableIncoming = (...args) => {
+  // Object style: passthrough to internal helper
+  if (typeof args[0] === 'object' && args.length === 1) {
+    return _calculateAllowableIncomingObj(args[0]);
+  }
+
+  // Positional legacy signature
+  const [
+    currentTeamSalary,
+    salaryOut,
+    _incomingPlayers = [],
+    tradeExceptions = [],
+    capSettings = {},
+    yearKey = 2025,
+  ] = args;
+
+  const tpeAmount = (tradeExceptions || [])
+    .filter(
+      (t) =>
+        !t.expired &&
+        (!t.expirationDate || Date.parse(t.expirationDate) > Date.now())
+    )
+    .reduce(
+      (sum, t) =>
+        sum +
+        (t.remaining ??
+          (typeof t.amount === 'number'
+            ? t.amount - (t.used ?? 0)
+            : typeof t.value === 'number'
+              ? t.value - (t.used ?? 0)
+              : 0)),
+      0
+    );
+
+  const secondApronStatus =
+    typeof capSettings.secondApron === 'number'
+      ? currentTeamSalary >= capSettings.secondApron
+      : false;
+
+  return _calculateAllowableIncomingObj({
+    currentTeamSalary,
+    salaryOut,
+    secondApronStatus,
+    yearKey,
+    tpeAmount,
+  }).margin;
+};
+
 export const getSeasonalCashLimit = (yearKey) => CBA_BY_YEAR[yearKey].cashLimit;
 
 /****************** END SCSP™ BLOCK: Allowable Incoming ******************/
 
 /*───────────────────────────  Apron Status  ───────────────────────────*/
 export const getApronStatus = (salary, { firstApron, secondApron } = {}) => {
-  if (secondApron && salary > secondApron) return 'Above 2nd Apron';
-  if (firstApron && salary > firstApron) return 'Above 1st Apron';
+  if (secondApron && salary >= secondApron) return 'Above 2nd Apron';
+  if (firstApron && salary >= firstApron) return 'Above 1st Apron';
   return 'Below Aprons';
 };
 

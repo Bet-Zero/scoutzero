@@ -6,4 +6,4 @@ export const rosterSizeAfterTrade = ({
   playersOutgoing,
 }) => playersOnRoster.length + playersIncoming.length - playersOutgoing.length;
 
-export const passesRosterSizeRule = (count) => count >= 13 && count <= 15; // two-ways ignored
+export const passesRosterSizeRule = (count) => count >= 13 && count <= 17; // two-ways ignored

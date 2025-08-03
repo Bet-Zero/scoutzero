@@ -595,7 +595,7 @@ export function validateTrade({ teams, capProjections, currentYear }) {
 
   const yearKey = currentYear;
   const capSettings =
-    capProjections[`${currentYear}-${String(currentYear + 1).slice(-2)}`] || {};
+    capProjections[`${currentYear - 1}-${String(currentYear).slice(-2)}`] || {};
 
   // ======================
   // VALIDATOR IMPLEMENTATIONS
@@ -895,25 +895,36 @@ export function validateTrade({ teams, capProjections, currentYear }) {
   // ======================
 
   // Process teams and calculate financials
-  const teamResults = teams.map((team) => {
+  const teamResults = teams.map((team, idx) => {
     const incomingPlayers = [];
     const incomingPicks = [];
     let cashReceived = 0;
 
-    teams.forEach((t) => {
-      if (t.team?.id === team.team?.id) return;
-      const fromTeamId = t.team.id;
-      incomingPlayers.push(
-        ...(t.sends || [])
-          .filter((p) => !p.tradeTo || p.tradeTo === team.team?.id)
-          .map((p) => ({ ...p, fromTeamId }))
-      );
-      incomingPicks.push(
-        ...(t.picksOut || []).filter(
-          (p) => !p.toTeamId || p.toTeamId === team.team?.id
-        )
-      );
-      if (t.cashSent) cashReceived += t.cashSent;
+    teams.forEach((t, j) => {
+      if (j === idx) return;
+      const fromTeamId = t.team.id ?? j;
+      const defaultDest = j === 0 ? 1 : 0;
+      const players = (t.sends || [])
+        .filter((p) => {
+          if (p.tradeTo !== undefined) {
+            const destIndex = teams.findIndex(
+              (tt) => tt.team?.id === p.tradeTo
+            );
+            return destIndex === idx;
+          }
+          return defaultDest === idx;
+        })
+        .map((p) => ({ ...p, fromTeamId }));
+      incomingPlayers.push(...players);
+      const picks = (t.picksOut || []).filter((p) => {
+        if (p.toTeamId !== undefined) {
+          const destIndex = teams.findIndex((tt) => tt.team?.id === p.toTeamId);
+          return destIndex === idx;
+        }
+        return defaultDest === idx;
+      });
+      incomingPicks.push(...picks);
+      if (t.cashSent && defaultDest === idx) cashReceived += t.cashSent;
     });
 
     const salaryOut = (team.sends || []).reduce(
@@ -955,6 +966,8 @@ export function validateTrade({ teams, capProjections, currentYear }) {
       currentApronStatus: currentStatus,
       projectedApronStatus: projectedStatus,
       capSpace: (capSettings.cap || 0) - projectedSalary,
+      totalSalary: teamTotalSalary,
+      capRoom: (capSettings.cap || 0) - projectedSalary,
       hardCapped: team.hardCapped || false,
       cashSent: team.cashSent || 0,
       cashReceived: cashReceived,
@@ -967,6 +980,7 @@ export function validateTrade({ teams, capProjections, currentYear }) {
             salaryOut,
             incomingPlayers,
             team.team?.tradeExceptions || [],
+            capSettings,
             yearKey
           ),
           difference:
@@ -976,6 +990,7 @@ export function validateTrade({ teams, capProjections, currentYear }) {
               salaryOut,
               incomingPlayers,
               team.team?.tradeExceptions || [],
+              capSettings,
               yearKey
             ),
         },
@@ -1011,31 +1026,60 @@ export function validateTrade({ teams, capProjections, currentYear }) {
     const salaryPass = team.salaryIn <= allowable;
 
     // --- Cash limitations
-    const cashBan = capStatus.isAboveSecond && team.cashReceived > 0;
+    const cashBan =
+      capStatus.isAboveSecond && (team.cashReceived > 0 || team.cashSent > 0);
     const cashLimitFail = team.cashSent > getSeasonalCashLimit(seasonKey);
     const cashPass = !cashBan && !cashLimitFail;
 
     // --- Second-apron aggregation (max from any single opponent ≤ max salary you send out)
     let aggregationPass = true;
+    let aggregationViolation = '';
     if (capStatus.isAboveSecond) {
       const tally = {};
       team.incomingPlayers.forEach((p) => {
         tally[p.fromTeamId] =
           (tally[p.fromTeamId] || 0) + getSalaryForYear(p, seasonKey);
       });
-      const maxFromOneClub = Math.max(...Object.values(tally));
+      const maxFromOneClub = Math.max(...Object.values(tally), 0);
       const maxSent = Math.max(
         ...team.outgoingPlayers.map((p) => getSalaryForYear(p, seasonKey)),
         0
       );
-      aggregationPass = maxFromOneClub <= maxSent;
+      const totalIncoming = team.incomingPlayers.reduce(
+        (sum, p) => sum + getSalaryForYear(p, seasonKey),
+        0
+      );
+      const distinctSources = Object.keys(tally).length;
+      if (
+        maxFromOneClub > maxSent ||
+        (distinctSources > 1 && totalIncoming > maxSent)
+      ) {
+        aggregationPass = false;
+        aggregationViolation =
+          distinctSources > 1 || team.outgoingPlayers.length > 1
+            ? 'Second apron team cannot aggregate salaries'
+            : 'Second apron team cannot receive more salary than sent';
+      }
     }
 
     const stepienCalendar = buildFirstRoundCalendar({
       existingPicks: team.team.picks,
       picksOfferedInTrade: team.outgoingPicks,
     });
-    const stepienPass = passesStepienRule(stepienCalendar);
+    const farthestYear = Math.max(
+      ...team.outgoingPicks.map((p) => +p.year || 0),
+      seasonKey
+    );
+    const stepienViolations = [];
+    if (!passesStepienRule(stepienCalendar)) {
+      stepienViolations.push(
+        'Violates Stepien Rule (consecutive future 1sts).'
+      );
+    }
+    if (farthestYear - seasonKey > 7) {
+      stepienViolations.push('Cannot trade picks beyond 7 years out.');
+    }
+    const stepienPass = stepienViolations.length === 0;
 
     const rosterCnt = rosterSizeAfterTrade({
       playersOnRoster: team.team.players,
@@ -1044,11 +1088,18 @@ export function validateTrade({ teams, capProjections, currentYear }) {
     });
     const rosterPass = passesRosterSizeRule(rosterCnt);
 
+    const capSheet = team.hardCapped
+      ? { ...team.team, hardCapTriggered: 'FirstApron' }
+      : team.team;
     const hardCapPass = !wouldExceedHardCap(
-      team.team,
+      capSheet,
       team.projectedSalary,
       capSettings
     );
+    const hardCapMsg =
+      capSheet.hardCapTriggered === 'SecondApron'
+        ? 'Hard cap exceeded (2nd Apron)'
+        : 'Hard cap exceeded (1st Apron)';
 
     const rules = {
       salaryMatching: {
@@ -1065,25 +1116,27 @@ export function validateTrade({ teams, capProjections, currentYear }) {
         passed: cashPass,
         message: cashPass ? 'Cash valid' : 'Cash invalid',
         details: cashBan
-          ? '2nd apron team cannot receive cash.'
+          ? 'Second apron team cannot include cash in trades'
           : 'Cash sent exceeds league limit.',
-        violations: cashPass ? [] : ['Cash considerations invalid.'],
+        violations: cashPass
+          ? []
+          : [
+              cashBan
+                ? 'Second apron team cannot include cash in trades'
+                : 'Cash considerations invalid.',
+            ],
       },
       aggregation: {
         passed: aggregationPass,
         message: aggregationPass ? 'Aggregation valid' : 'Aggregation invalid',
-        details: '2nd apron team cannot aggregate salaries.',
-        violations: aggregationPass
-          ? []
-          : ['Second apron aggregation violation.'],
+        details: aggregationViolation || 'Second apron aggregation check',
+        violations: aggregationPass ? [] : [aggregationViolation],
       },
-      stepien: {
+      stepienRule: {
         passed: stepienPass,
         message: stepienPass ? 'Stepien compliant' : 'Stepien violation',
-        details: 'Cannot trade consecutive future firsts.',
-        violations: stepienPass
-          ? []
-          : ['Violates Stepien Rule (consecutive future 1sts).'],
+        details: 'Stepien Rule restrictions apply',
+        violations: stepienViolations,
       },
       roster: {
         passed: rosterPass,
@@ -1097,14 +1150,23 @@ export function validateTrade({ teams, capProjections, currentYear }) {
         details: `Projected salary ${formatCurrency(
           team.projectedSalary
         )} would exceed hard cap.`,
-        violations: hardCapPass ? [] : ['Hard cap exceeded.'],
+        violations: hardCapPass ? [] : [hardCapMsg],
       },
       // Keep other rule checks if needed
       signAndTrade: validateSignAndTrade(team),
       tradeExceptions: validateTradeExceptions(team),
     };
 
-    const violations = Object.values(rules).flatMap((r) => r.violations);
+    const violations = [
+      ...rules.hardCap.violations,
+      ...rules.salaryMatching.violations,
+      ...rules.aggregation.violations,
+      ...rules.cash.violations,
+      ...rules.stepienRule.violations,
+      ...rules.roster.violations,
+      ...rules.signAndTrade.violations,
+      ...rules.tradeExceptions.violations,
+    ];
     const teamPass =
       salaryPass &&
       cashPass &&
