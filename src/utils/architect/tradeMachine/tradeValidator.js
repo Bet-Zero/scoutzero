@@ -518,7 +518,15 @@ export function computeMatchingValues({ teams = [], yearKey }) {
       player.matchOutgoing = outgoing;
 
       let incoming = newSalary;
-      // TODO: poison-pill average, trade-kicker proration
+      if (player.isPoisonPill) {
+        const ext = player.extensionYears ?? [];
+        const total =
+          (player.currentSalary ?? newSalary) +
+          ext.reduce((sum, y) => sum + (y.salary || 0), 0);
+        const years = 1 + ext.length;
+        incoming = total / years;
+      }
+      // TODO: trade kicker proration
       player.matchIncoming = incoming;
     });
   });
