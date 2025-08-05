@@ -4,10 +4,7 @@
  * areSamePick  (numeric leniency)
  * ▸ Keeps: MIN_SALARY, getApronStatus, pick utils, TPE utils, format helpers
  * -------------------------------------------------------------------------------*/
-import {
-  getMatchingTiers,
-  CBA_BY_YEAR,
-} from '@/utils/architect/cbaConstants.js';
+import { CBA_BY_YEAR, MATCHING_BANDS_2023 } from '@/utils/architect/cbaConstants.js';
 export { wouldExceedHardCap } from '@/utils/architect/hardCapUtils.js';
 
 export const getTierThresholds = (yearKey) => {
@@ -54,6 +51,17 @@ export const getSalaryForYear = (input, year) => {
 /*─────────────────────  Incoming-Salary (CBA rules)  ─────────────────────*/
 
 // ────────────────── Incoming-Salary Ceiling (CBA tiers) ──────────────────
+const allowedIncomingBelowFirstApron = (out, yearKey) => {
+  const [band1, band2] = getTierThresholds(yearKey);
+  const limits = [band1, band2, Infinity];
+  for (let i = 0; i < MATCHING_BANDS_2023.length; i++) {
+    const limit = limits[i];
+    if (out <= limit || limit === Infinity) {
+      return MATCHING_BANDS_2023[i].allowed(out);
+    }
+  }
+  return out;
+};
 export const getIncomingCeiling = (
   teamTotalSalary,
   salaryOut,
@@ -66,10 +74,8 @@ export const getIncomingCeiling = (
     return capSettings.salaryCap;
   }
 
-  // 2️⃣ Tiered matching rules pulled from constants
-  const tiers = getMatchingTiers(yearKey);
-  const tier = tiers.find((t) => salaryOut <= t.maxOutgoing) || tiers.at(-1);
-  let ceiling = tier.incoming(salaryOut);
+  // 2️⃣ Over-cap matching bands (below first apron)
+  let ceiling = allowedIncomingBelowFirstApron(salaryOut, yearKey);
 
   // 3️⃣ Apron limiters – 100 % of outgoing
   if (teamTotalSalary >= capSettings.secondApron) {
@@ -122,7 +128,6 @@ function _calculateAllowableIncomingObj({
   const year = String(yearKey);
   const capData = CBA_BY_YEAR[year] || {};
   const salaryCap = capData.salaryCap || 0;
-  const tiers = getMatchingTiers(year);
 
   if (currentTeamSalary < salaryCap) {
     const capSpace = salaryCap - currentTeamSalary;
@@ -130,12 +135,11 @@ function _calculateAllowableIncomingObj({
     return { ceiling: margin, margin };
   }
 
-  const tier = tiers.find((t) => salaryOut <= t.maxOutgoing) || tiers.at(-1);
   let ceiling;
   if (secondApronStatus || firstApronStatus) {
     ceiling = salaryOut;
   } else {
-    ceiling = tier.incoming(salaryOut);
+    ceiling = allowedIncomingBelowFirstApron(salaryOut, yearKey);
   }
   if (salaryOut === 0) ceiling = 0;
 
