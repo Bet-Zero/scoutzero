@@ -45,7 +45,7 @@ const RankingResults = ({ ranking = [] }) => {
           </button>
         </div>
       </div>
-      <ol className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+      <ol className="list-none columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-4">
         {ranking.map((p, idx) => {
           const headshot =
             p.headshot ||
@@ -54,7 +54,7 @@ const RankingResults = ({ ranking = [] }) => {
           return (
             <li
               key={p.id}
-              className="flex items-center h-10 px-2 bg-white/5 rounded text-white gap-2"
+              className="flex items-center h-10 px-2 mb-2 bg-white/5 rounded text-white gap-2 break-inside-avoid"
             >
               <span className="font-bold">#{idx + 1}</span>
               <img
