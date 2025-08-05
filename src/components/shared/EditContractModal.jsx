@@ -1,7 +1,7 @@
 // EditContractModal.jsx
 
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent } from '@/components/shared/ui/dialog';
+import { Dialog, DialogContent } from '@/components/shared/ui/Dialog';
 import { formatCurrencyFull } from '@/utils/formatting';
 import capProjections from '@/utils/architect/capProjections';
 import {
