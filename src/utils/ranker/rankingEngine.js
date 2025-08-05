@@ -174,6 +174,16 @@ export function estimateRemainingComparisons(comparisons, players) {
   return count;
 }
 
+// Build direct comparisons against an anchor player
+export function buildAnchorComparisons(anchorId, players, betterIds = []) {
+  const betterSet = new Set(betterIds);
+  return players.map((p) =>
+    betterSet.has(p.id)
+      ? { winner: p.id, loser: anchorId }
+      : { winner: anchorId, loser: p.id }
+  );
+}
+
 // ========== 🏁 FINAL RANKING LOGIC ==========
 
 // Topological sort using DFS
