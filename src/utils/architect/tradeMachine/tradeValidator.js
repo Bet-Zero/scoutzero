@@ -508,7 +508,18 @@ const getMatchingValue = (player, yearKey, isOutgoing = false) => {
   return base;
 };
 
-export function computeMatchingValues({ teams = [], yearKey }) {
+export function computeMatchingValues({
+  teams = [],
+  yearKey,
+  daysRemainingInSeason,
+  daysInSeason,
+} = {}) {
+  const proration =
+    Math.min(
+      Math.max((daysRemainingInSeason ?? 0) / (daysInSeason ?? 0), 0),
+      1
+    ) || 1;
+
   teams.forEach((team) => {
     (team.sends || []).forEach((player) => {
       const newSalary = getSalaryForYear(player, yearKey);
@@ -532,7 +543,19 @@ export function computeMatchingValues({ teams = [], yearKey }) {
         const years = 1 + (player.extensionYears?.length || 0);
         incoming = total / years;
       }
-      // TODO: trade kicker proration
+
+      const pct = Math.min(player.tradeKickerPct ?? 0, 0.15);
+      const waived = Math.min(
+        Math.max(player.tradeKickerWaivedPct ?? 0, 0),
+        1
+      );
+      const effPct = pct * (1 - waived);
+      if (effPct > 0 && player.remainingGuaranteedOnCurrentContract > 0) {
+        const gross = effPct * player.remainingGuaranteedOnCurrentContract;
+        const currentYearAdd = gross * proration;
+        incoming = (incoming ?? player.currentYearSalary) + currentYearAdd;
+      }
+
       player.matchIncoming = incoming;
     });
   });
