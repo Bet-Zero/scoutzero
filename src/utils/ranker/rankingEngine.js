@@ -79,82 +79,148 @@ const getNextPhasePair = (players, comparisons) => {
   return [];
 };
 
-// Suggest next strategic pair
+// Suggest next strategic pair while respecting group isolation
 // ✅ SMART MATCHUP GENERATOR
 export function suggestNextPair(comparisons, players) {
   if (players.length < 2) return [];
 
-  // Build comparison lookup
-  const seen = new Set();
-  comparisons.forEach(({ winner, loser }) => {
-    seen.add(`${winner}->${loser}`);
-    seen.add(`${loser}->${winner}`); // Treat as compared, regardless of winner
-  });
+  // Helper to suggest a pair within a single group
+  const suggestInGroup = (groupPlayers) => {
+    if (groupPlayers.length < 2) return [];
+    const idSet = new Set(groupPlayers.map((p) => p.id));
+    const groupComps = comparisons.filter(
+      (c) => idSet.has(c.winner) && idSet.has(c.loser)
+    );
 
-  // Track how many times each player has appeared
-  const usageCount = {};
-  players.forEach((p) => (usageCount[p.id] = 0));
-  comparisons.forEach(({ winner, loser }) => {
-    usageCount[winner]++;
-    usageCount[loser]++;
-  });
+    const seen = new Set();
+    groupComps.forEach(({ winner, loser }) => {
+      seen.add(`${winner}->${loser}`);
+      seen.add(`${loser}->${winner}`);
+    });
 
-  // Build win graph
-  const graph = {};
-  players.forEach((p) => (graph[p.id] = new Set()));
-  comparisons.forEach(({ winner, loser }) => {
-    graph[winner].add(loser);
-  });
+    const usageCount = {};
+    groupPlayers.forEach((p) => (usageCount[p.id] = 0));
+    groupComps.forEach(({ winner, loser }) => {
+      usageCount[winner]++;
+      usageCount[loser]++;
+    });
 
-  // Transitive closure
-  const closure = {};
-  for (const a in graph) {
-    closure[a] = new Set();
-    const stack = [...graph[a]];
-    while (stack.length > 0) {
-      const next = stack.pop();
-      if (!closure[a].has(next)) {
-        closure[a].add(next);
-        graph[next]?.forEach((n) => stack.push(n));
+    const graph = {};
+    groupPlayers.forEach((p) => (graph[p.id] = new Set()));
+    groupComps.forEach(({ winner, loser }) => {
+      graph[winner].add(loser);
+    });
+
+    const closure = {};
+    for (const a in graph) {
+      closure[a] = new Set();
+      const stack = [...graph[a]];
+      while (stack.length > 0) {
+        const next = stack.pop();
+        if (!closure[a].has(next)) {
+          closure[a].add(next);
+          graph[next]?.forEach((n) => stack.push(n));
+        }
       }
+    }
+
+    // Phase 1: New vs New inside the group
+    const unused = groupPlayers.filter((p) => usageCount[p.id] === 0);
+    if (unused.length >= 2) {
+      for (let i = 0; i < unused.length; i++) {
+        for (let j = i + 1; j < unused.length; j++) {
+          const key = `${unused[i].id}->${unused[j].id}`;
+          if (!seen.has(key)) return [unused[i], unused[j]];
+        }
+      }
+    }
+
+    // Phase 2: Usage-balanced unresolved matchups
+    const unresolved = [];
+    for (let i = 0; i < groupPlayers.length; i++) {
+      for (let j = i + 1; j < groupPlayers.length; j++) {
+        const a = groupPlayers[i];
+        const b = groupPlayers[j];
+        const key = `${a.id}->${b.id}`;
+        const aBeatsB = closure[a.id]?.has(b.id);
+        const bBeatsA = closure[b.id]?.has(a.id);
+
+        if (!seen.has(key) && !aBeatsB && !bBeatsA) {
+          const usageGap = Math.abs(usageCount[a.id] - usageCount[b.id]);
+          const totalUsage = usageCount[a.id] + usageCount[b.id];
+          unresolved.push({
+            pair: [a, b],
+            score: totalUsage + usageGap * 2,
+          });
+        }
+      }
+    }
+
+    if (unresolved.length > 0) {
+      unresolved.sort((a, b) => a.score - b.score);
+      return unresolved[0].pair;
+    }
+
+    return [];
+  };
+
+  // Group players by tag (default group if undefined)
+  const groups = {};
+  players.forEach((p) => {
+    const g = p.group || 'default';
+    if (!groups[g]) groups[g] = [];
+    groups[g].push(p);
+  });
+
+  // Try to resolve matchups within each group first
+  for (const g of Object.keys(groups)) {
+    const pair = suggestInGroup(groups[g]);
+    if (pair.length) return pair;
+  }
+
+  // Compute boundary comparisons (top↔upper and lower↔bottom)
+  const rankGroup = (groupName) => {
+    const list = groups[groupName] || [];
+    if (list.length === 0) return [];
+    const idSet = new Set(list.map((p) => p.id));
+    const comps = comparisons.filter(
+      (c) => idSet.has(c.winner) && idSet.has(c.loser)
+    );
+    const graph = buildGraph(comps);
+    const visited = new Set();
+    const stack = [];
+    const dfs = (node) => {
+      if (visited.has(node)) return;
+      visited.add(node);
+      graph[node]?.forEach((n) => dfs(n));
+      stack.push(node);
+    };
+    list.forEach((p) => dfs(p.id));
+    const idMap = Object.fromEntries(list.map((p) => [p.id, p]));
+    return stack.reverse().map((id) => idMap[id]);
+  };
+
+  const topRanked = rankGroup('top');
+  const upperRanked = rankGroup('upper');
+  if (topRanked.length && upperRanked.length) {
+    const worstTop = topRanked[topRanked.length - 1];
+    const bestUpper = upperRanked[0];
+    if (!alreadyCompared(worstTop.id, bestUpper.id, comparisons)) {
+      return [worstTop, bestUpper];
     }
   }
 
-  // PHASE 1: New vs New (anchor building)
-  const unused = players.filter((p) => usageCount[p.id] === 0);
-  if (unused.length >= 2) {
-    for (let i = 0; i < unused.length; i++) {
-      for (let j = i + 1; j < unused.length; j++) {
-        const key = `${unused[i].id}->${unused[j].id}`;
-        if (!seen.has(key)) return [unused[i], unused[j]];
-      }
+  const lowerRanked = rankGroup('lower');
+  const bottomRanked = rankGroup('bottom');
+  if (lowerRanked.length && bottomRanked.length) {
+    const worstLower = lowerRanked[lowerRanked.length - 1];
+    const bestBottom = bottomRanked[0];
+    if (!alreadyCompared(worstLower.id, bestBottom.id, comparisons)) {
+      return [worstLower, bestBottom];
     }
   }
 
-  // PHASE 2: Usage-balanced unresolved matchups
-  const unresolved = [];
-  for (let i = 0; i < players.length; i++) {
-    for (let j = i + 1; j < players.length; j++) {
-      const a = players[i];
-      const b = players[j];
-      const key = `${a.id}->${b.id}`;
-      const aBeatsB = closure[a.id]?.has(b.id);
-      const bBeatsA = closure[b.id]?.has(a.id);
-
-      if (!seen.has(key) && !aBeatsB && !bBeatsA) {
-        const usageGap = Math.abs(usageCount[a.id] - usageCount[b.id]);
-        const totalUsage = usageCount[a.id] + usageCount[b.id];
-        unresolved.push({ pair: [a, b], score: totalUsage + usageGap * 2 });
-      }
-    }
-  }
-
-  if (unresolved.length > 0) {
-    unresolved.sort((a, b) => a.score - b.score);
-    return unresolved[0].pair;
-  }
-
-  // All pairs are resolved or inferred
+  // All groups resolved and boundaries checked
   return [];
 }
 
