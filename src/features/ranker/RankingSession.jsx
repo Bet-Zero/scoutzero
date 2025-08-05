@@ -3,10 +3,12 @@ import PlayerCompareCard from './PlayerCompareCard';
 import RankingResults from './RankingResults';
 import ComparisonMatrix from './ComparisonMatrix';
 import { RankingSetup } from './RankingSetup';
+import { AnchorComparison } from './AnchorComparison';
 import {
   generateRankingFromComparisons,
   suggestNextPair,
   estimateRemainingComparisons,
+  buildAnchorComparisons,
 } from '@/utils/ranker/rankingEngine';
 
 const RankingSession = ({ playerPool = [] }) => {
@@ -18,6 +20,7 @@ const RankingSession = ({ playerPool = [] }) => {
   const [results, setResults] = useState([]);
   const [isFinished, setIsFinished] = useState(false);
   const [setupData, setSetupData] = useState(null);
+  const [anchorDone, setAnchorDone] = useState(false);
 
   const remaining = useMemo(
     () => estimateRemainingComparisons(results, players),
@@ -32,6 +35,7 @@ const RankingSession = ({ playerPool = [] }) => {
   // Evaluate next pair every time results change
   useEffect(() => {
     if (!setupData) return;
+    if (setupData.anchor && !anchorDone) return;
     if (players.length < 2) return;
 
     const next = suggestNextPair(results, players);
@@ -41,7 +45,7 @@ const RankingSession = ({ playerPool = [] }) => {
     } else {
       setCurrentPair(next);
     }
-  }, [results, players, setupData]);
+  }, [results, players, setupData, anchorDone]);
 
   const handleSelect = (winner, loser) => {
     setResults((prev) => [...prev, { winner: winner.id, loser: loser.id }]);
@@ -75,6 +79,7 @@ const RankingSession = ({ playerPool = [] }) => {
   if (!setupData) {
     const handleComplete = (data) => {
       setSetupData(data);
+      setAnchorDone(!data.anchor);
 
       const initial = [];
       if (data.firstPlace) {
@@ -93,6 +98,35 @@ const RankingSession = ({ playerPool = [] }) => {
     };
 
     return <RankingSetup playerPool={players} onComplete={handleComplete} />;
+  }
+
+  if (setupData?.anchor && !anchorDone) {
+    const anchorPlayer = players.find((p) => p.id === setupData.anchor);
+    const tagged = new Set([
+      ...setupData.topTier,
+      ...setupData.bottomTier,
+      setupData.firstPlace,
+      setupData.lastPlace,
+    ].filter(Boolean));
+    const untagged = players.filter(
+      (p) => p.id !== setupData.anchor && !tagged.has(p.id)
+    );
+    const handleAnchorComplete = (betterIds) => {
+      const newResults = buildAnchorComparisons(
+        setupData.anchor,
+        untagged,
+        betterIds
+      );
+      if (newResults.length) setResults((prev) => [...prev, ...newResults]);
+      setAnchorDone(true);
+    };
+    return (
+      <AnchorComparison
+        anchor={anchorPlayer}
+        players={untagged}
+        onComplete={handleAnchorComplete}
+      />
+    );
   }
 
   if (!currentPair.length) {
