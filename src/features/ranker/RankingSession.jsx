@@ -47,9 +47,21 @@ const RankingSession = ({ playerPool = [] }) => {
     [results, groupedPlayers]
   );
 
-  const estimatedTotal = results.length + remaining;
-  const progressPercent = estimatedTotal
-    ? (results.length / estimatedTotal) * 100
+  const [comparisonTotal, setComparisonTotal] = useState(0);
+
+  useEffect(() => {
+    if (
+      comparisonTotal === 0 &&
+      setupData &&
+      (!setupData.anchor || anchorDone)
+    ) {
+      setComparisonTotal(remaining);
+    }
+  }, [comparisonTotal, setupData, anchorDone, remaining]);
+
+  const comparisonsDone = comparisonTotal ? comparisonTotal - remaining : 0;
+  const progressPercent = comparisonTotal
+    ? (comparisonsDone / comparisonTotal) * 100
     : 0;
 
   // Evaluate next pair every time results change
@@ -175,7 +187,7 @@ const RankingSession = ({ playerPool = [] }) => {
         </div>
       </div>
       <div className="mt-2 text-white/60 text-sm">
-        {results.length} / {estimatedTotal} comparisons
+        {comparisonsDone} / {comparisonTotal} comparisons
       </div>
       <ComparisonMatrix players={groupedPlayers} comparisons={results} />
     </div>
