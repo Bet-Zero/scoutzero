@@ -1,6 +1,6 @@
 // src/features/lists/ExportOptionsModal.jsx
 import React from 'react';
-import { Dialog, DialogContent } from '@/components/shared/ui/dialog';
+import { Dialog, DialogContent } from '@/components/shared/ui/Dialog';
 
 const ExportOptionsModal = ({ open, onClose, onSelect }) => {
   const handleSelect = (type) => {
