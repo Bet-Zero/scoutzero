@@ -22,9 +22,29 @@ const RankingSession = ({ playerPool = [] }) => {
   const [setupData, setSetupData] = useState(null);
   const [anchorDone, setAnchorDone] = useState(false);
 
+  const groupedPlayers = useMemo(() => {
+    if (!setupData || (setupData.anchor && !anchorDone)) return players;
+    const { topTier = [], bottomTier = [], anchor } = setupData;
+    const better = new Set();
+    if (anchor) {
+      results.forEach(({ winner, loser }) => {
+        if (loser === anchor) better.add(winner);
+      });
+    }
+    return players.map((p) => {
+      let group;
+      if (p.id === anchor) group = 'anchor';
+      else if (topTier.includes(p.id)) group = 'top';
+      else if (bottomTier.includes(p.id)) group = 'bottom';
+      else if (anchor) group = better.has(p.id) ? 'upper' : 'lower';
+      else group = 'upper';
+      return { ...p, group };
+    });
+  }, [players, setupData, results, anchorDone]);
+
   const remaining = useMemo(
-    () => estimateRemainingComparisons(results, players),
-    [results, players]
+    () => estimateRemainingComparisons(results, groupedPlayers),
+    [results, groupedPlayers]
   );
 
   const estimatedTotal = results.length + remaining;
@@ -36,23 +56,23 @@ const RankingSession = ({ playerPool = [] }) => {
   useEffect(() => {
     if (!setupData) return;
     if (setupData.anchor && !anchorDone) return;
-    if (players.length < 2) return;
+    if (groupedPlayers.length < 2) return;
 
-    const next = suggestNextPair(results, players);
+    const next = suggestNextPair(results, groupedPlayers);
     if (next.length === 0) {
       setIsFinished(true);
       setCurrentPair([]);
     } else {
       setCurrentPair(next);
     }
-  }, [results, players, setupData, anchorDone]);
+  }, [results, groupedPlayers, setupData, anchorDone]);
 
   const handleSelect = (winner, loser) => {
     setResults((prev) => [...prev, { winner: winner.id, loser: loser.id }]);
   };
 
   const handleSkip = () => {
-    const next = suggestNextPair(results, players);
+    const next = suggestNextPair(results, groupedPlayers);
     setCurrentPair(next);
   };
 
@@ -64,14 +84,18 @@ const RankingSession = ({ playerPool = [] }) => {
   };
 
   if (isFinished) {
-    const ranking = generateRankingFromComparisons(results, players, setupData);
+    const ranking = generateRankingFromComparisons(
+      results,
+      groupedPlayers,
+      setupData
+    );
     return (
       <>
         <RankingResults ranking={ranking} />
         <div className="text-green-400 mt-4 text-center">
           ✅ All comparisons complete!
         </div>
-        <ComparisonMatrix players={players} comparisons={results} />
+        <ComparisonMatrix players={groupedPlayers} comparisons={results} />
       </>
     );
   }
@@ -153,7 +177,7 @@ const RankingSession = ({ playerPool = [] }) => {
       <div className="mt-2 text-white/60 text-sm">
         {results.length} / {estimatedTotal} comparisons
       </div>
-      <ComparisonMatrix players={players} comparisons={results} />
+      <ComparisonMatrix players={groupedPlayers} comparisons={results} />
     </div>
   );
 };

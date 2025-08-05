@@ -51,4 +51,46 @@ describe('ranking engine', () => {
     });
     expect(ranking.map((p) => p.id)).toEqual(['1', '4', '3', '2', '5']);
   });
+
+  it('enforces group isolation with boundary stitching', () => {
+    const groupPlayers = [
+      { id: '1', name: 'T1', group: 'top' },
+      { id: '2', name: 'T2', group: 'top' },
+      { id: '3', name: 'U1', group: 'upper' },
+      { id: '4', name: 'U2', group: 'upper' },
+      { id: '5', name: 'A', group: 'anchor' },
+      { id: '6', name: 'L1', group: 'lower' },
+      { id: '7', name: 'L2', group: 'lower' },
+      { id: '8', name: 'B1', group: 'bottom' },
+      { id: '9', name: 'B2', group: 'bottom' },
+    ];
+
+    // First suggestion should be within a single group
+    const first = suggestNextPair([], groupPlayers);
+    expect(first[0].group).toBe(first[1].group);
+
+    // Resolve internal group matchups
+    const comps = [
+      { winner: '1', loser: '2' },
+      { winner: '3', loser: '4' },
+      { winner: '6', loser: '7' },
+      { winner: '8', loser: '9' },
+    ];
+
+    const boundary1 = suggestNextPair(comps, groupPlayers);
+    expect(new Set(boundary1.map((p) => p.group))).toEqual(
+      new Set(['top', 'upper'])
+    );
+    expect(boundary1.map((p) => p.id).sort()).toEqual(['2', '3']);
+    comps.push({ winner: boundary1[0].id, loser: boundary1[1].id });
+
+    const boundary2 = suggestNextPair(comps, groupPlayers);
+    expect(new Set(boundary2.map((p) => p.group))).toEqual(
+      new Set(['lower', 'bottom'])
+    );
+    expect(boundary2.map((p) => p.id).sort()).toEqual(['7', '8']);
+    comps.push({ winner: boundary2[0].id, loser: boundary2[1].id });
+
+    expect(suggestNextPair(comps, groupPlayers)).toEqual([]);
+  });
 });
