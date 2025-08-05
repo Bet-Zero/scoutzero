@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { InformationCircleIcon } from '@heroicons/react/20/solid';
 
 const PlayerButton = ({ player, selected, onClick }) => (
   <button
@@ -12,16 +13,23 @@ const PlayerButton = ({ player, selected, onClick }) => (
   </button>
 );
 
+const HelperIcon = ({ text }) => (
+  <InformationCircleIcon className="w-4 h-4 text-white/60 ml-1" title={text} />
+);
+
 export const RankingSetup = ({ playerPool = [], onComplete }) => {
   const [topTier, setTopTier] = useState([]);
   const [bottomTier, setBottomTier] = useState([]);
   const [anchor, setAnchor] = useState(null);
   const [firstPlace, setFirstPlace] = useState(null);
   const [lastPlace, setLastPlace] = useState(null);
+  const tierCountEstimate = Math.round(playerPool.length * 0.25);
 
   const toggleMulti = (id, list, setter) => {
     setter((prev) =>
-      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id].slice(0, 4)
+      prev.includes(id)
+        ? prev.filter((p) => p !== id)
+        : [...prev, id].slice(0, 4)
     );
   };
 
@@ -34,7 +42,12 @@ export const RankingSetup = ({ playerPool = [], onComplete }) => {
       <h2 className="text-2xl font-bold mb-4">Pre-Ranking Setup</h2>
 
       <div className="mb-4" data-testid="top-tier">
-        <h3 className="font-semibold mb-2">Top Tier Selector (2–4 players)</h3>
+        <h3 className="font-semibold mb-2 flex items-center">
+          Top Tier Selector (2–4 players)
+          <HelperIcon
+            text={`Select players you know will finish in the top 25% (~${tierCountEstimate} players)`}
+          />
+        </h3>
         <div className="flex flex-wrap gap-2">
           {playerPool.map((p) => (
             <PlayerButton
@@ -48,7 +61,12 @@ export const RankingSetup = ({ playerPool = [], onComplete }) => {
       </div>
 
       <div className="mb-4" data-testid="bottom-tier">
-        <h3 className="font-semibold mb-2">Bottom Tier Selector (2–4 players)</h3>
+        <h3 className="font-semibold mb-2 flex items-center">
+          Bottom Tier Selector (2–4 players)
+          <HelperIcon
+            text={`Select players you know will finish in the bottom 25% (~${tierCountEstimate} players)`}
+          />
+        </h3>
         <div className="flex flex-wrap gap-2">
           {playerPool.map((p) => (
             <PlayerButton
@@ -62,7 +80,10 @@ export const RankingSetup = ({ playerPool = [], onComplete }) => {
       </div>
 
       <div className="mb-4" data-testid="anchor">
-        <h3 className="font-semibold mb-2">Anchor Selector</h3>
+        <h3 className="font-semibold mb-2 flex items-center">
+          Anchor Selector
+          <HelperIcon text="Select a player you believe will finish around the middle (50%)" />
+        </h3>
         <div className="flex flex-wrap gap-2">
           {playerPool.map((p) => (
             <PlayerButton
