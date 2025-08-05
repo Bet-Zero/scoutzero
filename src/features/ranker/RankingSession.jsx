@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import PlayerCompareCard from './PlayerCompareCard';
 import RankingResults from './RankingResults';
 import ComparisonMatrix from './ComparisonMatrix';
+import { RankingSetup } from './RankingSetup';
 import {
   generateRankingFromComparisons,
   suggestNextPair,
@@ -9,13 +10,18 @@ import {
 } from '@/utils/ranker/rankingEngine';
 
 const RankingSession = ({ playerPool = [] }) => {
+  const players = useMemo(
+    () => playerPool.map((p) => p.original || p),
+    [playerPool]
+  );
   const [currentPair, setCurrentPair] = useState([]);
   const [results, setResults] = useState([]);
   const [isFinished, setIsFinished] = useState(false);
+  const [setupData, setSetupData] = useState(null);
 
   const remaining = useMemo(
-    () => estimateRemainingComparisons(results, playerPool),
-    [results, playerPool]
+    () => estimateRemainingComparisons(results, players),
+    [results, players]
   );
 
   const estimatedTotal = results.length + remaining;
@@ -25,23 +31,24 @@ const RankingSession = ({ playerPool = [] }) => {
 
   // Evaluate next pair every time results change
   useEffect(() => {
-    if (playerPool.length < 2) return;
+    if (!setupData) return;
+    if (players.length < 2) return;
 
-    const next = suggestNextPair(results, playerPool);
+    const next = suggestNextPair(results, players);
     if (next.length === 0) {
       setIsFinished(true);
       setCurrentPair([]);
     } else {
       setCurrentPair(next);
     }
-  }, [results, playerPool]);
+  }, [results, players, setupData]);
 
   const handleSelect = (winner, loser) => {
     setResults((prev) => [...prev, { winner: winner.id, loser: loser.id }]);
   };
 
   const handleSkip = () => {
-    const next = suggestNextPair(results, playerPool);
+    const next = suggestNextPair(results, players);
     setCurrentPair(next);
   };
 
@@ -53,16 +60,39 @@ const RankingSession = ({ playerPool = [] }) => {
   };
 
   if (isFinished) {
-    const ranking = generateRankingFromComparisons(results, playerPool);
+    const ranking = generateRankingFromComparisons(results, players);
     return (
       <>
         <RankingResults ranking={ranking} />
         <div className="text-green-400 mt-4 text-center">
           ✅ All comparisons complete!
         </div>
-        <ComparisonMatrix players={playerPool} comparisons={results} />
+        <ComparisonMatrix players={players} comparisons={results} />
       </>
     );
+  }
+
+  if (!setupData) {
+    const handleComplete = (data) => {
+      setSetupData(data);
+
+      const initial = [];
+      if (data.firstPlace) {
+        players.forEach((p) => {
+          if (p.id !== data.firstPlace)
+            initial.push({ winner: data.firstPlace, loser: p.id });
+        });
+      }
+      if (data.lastPlace) {
+        players.forEach((p) => {
+          if (p.id !== data.lastPlace)
+            initial.push({ winner: p.id, loser: data.lastPlace });
+        });
+      }
+      if (initial.length) setResults(initial);
+    };
+
+    return <RankingSetup playerPool={players} onComplete={handleComplete} />;
   }
 
   if (!currentPair.length) {
@@ -89,7 +119,7 @@ const RankingSession = ({ playerPool = [] }) => {
       <div className="mt-2 text-white/60 text-sm">
         {results.length} / {estimatedTotal} comparisons
       </div>
-      <ComparisonMatrix players={playerPool} comparisons={results} />
+      <ComparisonMatrix players={players} comparisons={results} />
     </div>
   );
 };
