@@ -12,6 +12,7 @@ import {
   buildFirstRoundCalendar,
   passesStepienRule,
 } from '@/utils/architect/stepienUtils.js';
+import { BYC_PERCENT } from '@/utils/architect/cbaConstants.js';
 import {
   rosterSizeAfterTrade,
   passesRosterSizeRule,
@@ -395,16 +396,7 @@ export function validateSignAndTrade(team) {
 export function validateBYC(team) {
   const violations = [];
 
-  team.incomingPlayers.forEach((p) => {
-    if (p.isBYC) {
-      const bycValue = p.previousSalary * 1.2;
-      if (p.salary > bycValue) {
-        violations.push(
-          `BYC restriction: ${p.name}'s salary ($${p.salary}) > 120% of previous ($${bycValue})`
-        );
-      }
-    }
-  });
+  // BYC affects salary matching only; no direct contract limit to validate
 
   return violations;
 }
@@ -485,10 +477,14 @@ export function validateAllNewRules(team, allTeams) {
     ...validateSecondApronRules(team),
   ];
 }
+function outgoingValueBYC({ newSalary, priorSalary }) {
+  return Math.max(priorSalary, BYC_PERCENT * newSalary);
+}
+
 /** ------------------------------------------------------------------------
  * getMatchingValue(player, year, isOutgoing)
  * A minimal replacement for the legacy helper the tests expect.
- * ▸ For BYC players: outgoing counts 50 % of salary (incoming full).
+ * ▸ For BYC players: outgoing counts max(prior, 50% of new).
  * ▸ For Poison-Pill (rookie max ext.): outgoing uses current salary,
  *   incoming uses average of extension (already baked into salaryByYear).
  * -----------------------------------------------------------------------*/
@@ -497,11 +493,36 @@ const getMatchingValue = (player, yearKey, isOutgoing = false) => {
 
   if (!isOutgoing) return base; // incoming side – full value
 
-  if (player.isBYC) return base * 0.5; // basic BYC
+  if (player.isBYC)
+    return outgoingValueBYC({ newSalary: base, priorSalary: player.previousSalary });
   if (player.isPoisonPill) return player.currentSalary || base; // PPP
 
   return base;
 };
+
+export function computeMatchingValues({ teams = [], yearKey }) {
+  teams.forEach((team) => {
+    (team.sends || []).forEach((player) => {
+      const newSalary = getSalaryForYear(player, yearKey);
+
+      let outgoing = newSalary;
+      if (player.isBYC) {
+        outgoing = outgoingValueBYC({
+          newSalary,
+          priorSalary: player.previousSalary,
+        });
+      } else if (player.isPoisonPill && player.currentSalary) {
+        outgoing = player.currentSalary;
+      }
+      // TODO: trade kicker proration
+      player.matchOutgoing = outgoing;
+
+      let incoming = newSalary;
+      // TODO: poison-pill average, trade-kicker proration
+      player.matchIncoming = incoming;
+    });
+  });
+}
 
 const getAllowableIncomingMargin = (team) => {
   const status = team.postTradeStatus || {};
@@ -649,6 +670,8 @@ export function validateTrade({ teams, capProjections, currentYear }) {
   const yearKey = currentYear;
   const capSettings =
     capProjections[`${currentYear - 1}-${String(currentYear).slice(-2)}`] || {};
+
+  computeMatchingValues({ teams, yearKey });
 
   // ======================
   // VALIDATOR IMPLEMENTATIONS
@@ -974,11 +997,11 @@ export function validateTrade({ teams, capProjections, currentYear }) {
     });
 
     const salaryOut = (team.sends || []).reduce(
-      (sum, p) => sum + getMatchingValue(p, yearKey, /* isOutgoing */ true),
+      (sum, p) => sum + (p.matchOutgoing ?? getMatchingValue(p, yearKey, true)),
       0
     );
     const salaryIn = incomingPlayers.reduce(
-      (sum, p) => sum + getMatchingValue(p, yearKey, /* isOutgoing */ false),
+      (sum, p) => sum + (p.matchIncoming ?? getMatchingValue(p, yearKey, false)),
       0
     );
     const teamTotalSalary = team.team?.totalSalary || 0;
