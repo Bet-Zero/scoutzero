@@ -490,12 +490,20 @@ function outgoingValueBYC({ newSalary, priorSalary }) {
  * -----------------------------------------------------------------------*/
 const getMatchingValue = (player, yearKey, isOutgoing = false) => {
   const base = getSalaryForYear(player, yearKey);
+  if (isOutgoing) {
+    if (player.isBYC)
+      return outgoingValueBYC({ newSalary: base, priorSalary: player.previousSalary });
+    if (player.isPoisonPill) return player.currentSalary || base; // PPP
+    return base;
+  }
 
-  if (!isOutgoing) return base; // incoming side – full value
-
-  if (player.isBYC)
-    return outgoingValueBYC({ newSalary: base, priorSalary: player.previousSalary });
-  if (player.isPoisonPill) return player.currentSalary || base; // PPP
+  if (player.isPoisonPill) {
+    const total =
+      (player.currentSalary ?? base) +
+      (player.extensionYears?.reduce((sum, y) => sum + (y.salary || 0), 0) || 0);
+    const years = 1 + (player.extensionYears?.length || 0);
+    return total / years;
+  }
 
   return base;
 };
@@ -514,11 +522,17 @@ export function computeMatchingValues({ teams = [], yearKey }) {
       } else if (player.isPoisonPill && player.currentSalary) {
         outgoing = player.currentSalary;
       }
-      // TODO: trade kicker proration
       player.matchOutgoing = outgoing;
 
       let incoming = newSalary;
-      // TODO: poison-pill average, trade-kicker proration
+      if (player.isPoisonPill) {
+        const total =
+          (player.currentSalary ?? newSalary) +
+          (player.extensionYears?.reduce((sum, y) => sum + (y.salary || 0), 0) || 0);
+        const years = 1 + (player.extensionYears?.length || 0);
+        incoming = total / years;
+      }
+      // TODO: trade kicker proration
       player.matchIncoming = incoming;
     });
   });
