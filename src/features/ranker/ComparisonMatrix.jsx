@@ -1,6 +1,6 @@
 import React from 'react';
 
-const ComparisonMatrix = ({ players, comparisons }) => {
+const ComparisonMatrix = ({ players, comparisons, className = '' }) => {
   const playerIds = players.map((p) => p.id);
   const comparisonMap = {};
 
@@ -15,7 +15,7 @@ const ComparisonMatrix = ({ players, comparisons }) => {
   });
 
   return (
-    <div className="overflow-x-auto mt-8 border border-white/10 rounded text-sm">
+    <div className={`overflow-x-auto mt-8 border border-white/10 rounded text-sm ${className}`}>
       <table className="border-collapse text-white">
         <thead>
           <tr>

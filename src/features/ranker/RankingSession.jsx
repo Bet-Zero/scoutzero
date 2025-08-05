@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import PlayerCompareCard from './PlayerCompareCard';
 import RankingResults from './RankingResults';
-import ComparisonMatrix from './ComparisonMatrix';
+import ComparisonMatrixDrawer from './ComparisonMatrixDrawer';
 import { RankingSetup } from './RankingSetup';
 import { AnchorComparison } from './AnchorComparison';
 import {
@@ -107,7 +107,7 @@ const RankingSession = ({ playerPool = [] }) => {
         <div className="text-green-400 mt-4 text-center">
           ✅ All comparisons complete!
         </div>
-        <ComparisonMatrix players={groupedPlayers} comparisons={results} />
+        <ComparisonMatrixDrawer players={groupedPlayers} comparisons={results} />
       </>
     );
   }
@@ -170,27 +170,29 @@ const RankingSession = ({ playerPool = [] }) => {
   }
 
   return (
-    <div className="flex flex-col items-center">
-      <PlayerCompareCard
-        left={currentPair[0]}
-        right={currentPair[1]}
-        onSelect={handleSelect}
-        onSkip={handleSkip}
-        onUndo={handleUndo}
-      />
-      <div className="w-full max-w-xs mt-4">
-        <div className="w-full bg-white/20 h-2 rounded-full">
-          <div
-            className="bg-green-500 h-2 rounded-full"
-            style={{ width: `${progressPercent}%` }}
-          />
+    <>
+      <div className="flex flex-col items-center pt-8">
+        <PlayerCompareCard
+          left={currentPair[0]}
+          right={currentPair[1]}
+          onSelect={handleSelect}
+          onSkip={handleSkip}
+          onUndo={handleUndo}
+        />
+        <div className="w-full max-w-xs mt-4">
+          <div className="w-full bg-white/20 h-2 rounded-full">
+            <div
+              className="bg-green-500 h-2 rounded-full"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+        </div>
+        <div className="mt-2 text-white/60 text-sm">
+          {comparisonsDone} / {comparisonTotal} comparisons
         </div>
       </div>
-      <div className="mt-2 text-white/60 text-sm">
-        {comparisonsDone} / {comparisonTotal} comparisons
-      </div>
-      <ComparisonMatrix players={groupedPlayers} comparisons={results} />
-    </div>
+      <ComparisonMatrixDrawer players={groupedPlayers} comparisons={results} />
+    </>
   );
 };
 
