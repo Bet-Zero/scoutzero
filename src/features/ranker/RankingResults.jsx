@@ -1,17 +1,58 @@
 import React from 'react';
-import PlayerHeadshot from '@/components/shared/PlayerHeadshot';
-import PlayerNameMini from '@/features/table/PlayerTable/PlayerRow/PlayerNameMini';
+
+// Simple grid display for final rankings. Renders a responsive list of
+// player names with their rank number. Designed to scale up to large player
+// pools by using a multi-column layout.
 
 const RankingResults = ({ ranking = [] }) => {
+  const handleCopy = () => {
+    const text = ranking
+      .map((p, idx) => `#${idx + 1} ${p.display_name || p.name}`)
+      .join('\n');
+    navigator.clipboard.writeText(text).catch(() => {});
+  };
+
+  const handleExportCSV = () => {
+    const rows = ranking
+      .map((p, idx) => `${idx + 1},"${(p.display_name || p.name).replace(/"/g, '""')}"`)
+      .join('\n');
+    const csv = `Rank,Name\n${rows}`;
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'ranking.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
-    <div className="mt-6 max-w-md mx-auto">
-      <h2 className="text-2xl font-bold mb-4 text-center">Your Rankings</h2>
-      <ol className="space-y-3">
+    <div className="mt-6 mx-auto max-w-5xl px-4">
+      <div className="flex flex-col items-center mb-4 gap-2 sm:flex-row sm:justify-between sm:gap-4">
+        <h2 className="text-2xl font-bold text-center flex-1">Your Rankings</h2>
+        <div className="flex gap-2">
+          <button
+            onClick={handleCopy}
+            className="px-3 py-1 text-sm text-white bg-white/10 rounded hover:bg-white/20"
+          >
+            Copy List
+          </button>
+          <button
+            onClick={handleExportCSV}
+            className="px-3 py-1 text-sm text-white bg-white/10 rounded hover:bg-white/20"
+          >
+            Export CSV
+          </button>
+        </div>
+      </div>
+      <ol className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
         {ranking.map((p, idx) => (
-          <li key={p.id} className="flex items-center gap-4 text-white">
-            <span className="w-6 text-right font-bold">{idx + 1}</span>
-            <PlayerHeadshot playerId={p.id} className="w-12 h-12" />
-            <PlayerNameMini name={p.display_name || p.name} width={120} />
+          <li
+            key={p.id}
+            className="flex items-center h-10 px-2 bg-white/5 rounded text-white"
+          >
+            <span className="font-bold mr-2">#{idx + 1}</span>
+            <span className="truncate">{p.display_name || p.name}</span>
           </li>
         ))}
       </ol>
