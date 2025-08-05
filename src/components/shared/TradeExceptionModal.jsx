@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent } from '@/components/shared/ui/dialog';
+import { Dialog, DialogContent } from '@/components/shared/ui/Dialog';
 
 const TradeExceptionModal = ({ player, isOpen, onClose, onApply }) => {
   const [amount, setAmount] = useState(0);
