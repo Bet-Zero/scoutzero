@@ -17,6 +17,7 @@ import {
   rosterSizeAfterTrade,
   passesRosterSizeRule,
 } from '@/utils/architect/rosterUtils.js';
+import { hasPriorYearTPE } from '@/utils/architect/tradeMachine/tpeUtils.js';
 
 // ===== DEBUGGER =====
 const debug = {
@@ -1089,6 +1090,7 @@ export function validateTrade({ teams, capProjections, currentYear }) {
       cashSent: team.cashSent || 0,
       cashReceived: cashReceived,
       tradeExceptions: team.team?.tradeExceptions || [],
+      appliedTPEs: team.appliedTPEs || [],
       context: { capSettings, yearKey },
     };
 
@@ -1113,9 +1115,17 @@ export function validateTrade({ teams, capProjections, currentYear }) {
 
   // Run all validations
   const validatedTeams = teamResults.map((team) => {
-    const handcuffViolations = enforceSecondApronHandcuffs(team, {});
-    const handcuffPass = handcuffViolations.length === 0;
     const seasonKey = team.context.yearKey;
+    const handcuffViolations = enforceSecondApronHandcuffs(team, {});
+    if (
+      team.postTradeStatus.isAtOrAboveSecondApron &&
+      hasPriorYearTPE(team.appliedTPEs, seasonKey)
+    ) {
+      handcuffViolations.push(
+        'Second apron: prior-year TPEs cannot be used.'
+      );
+    }
+    const handcuffPass = handcuffViolations.length === 0;
     const capStatus = {
       isAboveSecond: team.currentApronStatus.includes('2nd Apron'),
     };
