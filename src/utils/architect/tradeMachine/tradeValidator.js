@@ -509,7 +509,7 @@ const getMatchingValue = (player, yearKey, isOutgoing = false) => {
   return base;
 };
 
-export function computeMatchingValues({
+function computeMatchingValues({
   teams = [],
   yearKey,
   daysRemainingInSeason,
@@ -1382,4 +1382,4 @@ export function hasStepienViolation(picks = []) {
   return false;
 }
 
-export { debug as tradeDebug };
+export { computeMatchingValues, debug as tradeDebug };
