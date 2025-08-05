@@ -187,7 +187,8 @@ export function buildAnchorComparisons(anchorId, players, betterIds = []) {
 // ========== 🏁 FINAL RANKING LOGIC ==========
 
 // Topological sort using DFS
-export const generateRankingFromComparisons = (comparisons, players) => {
+// Topological sort helper for a subset of players
+const topologicalSort = (comparisons, players) => {
   const graph = buildGraph(comparisons);
   const visited = new Set();
   const stack = [];
@@ -207,4 +208,81 @@ export const generateRankingFromComparisons = (comparisons, players) => {
 
   const idToPlayer = Object.fromEntries(players.map((p) => [p.id, p]));
   return stack.reverse().map((id) => idToPlayer[id]);
+};
+
+export const generateRankingFromComparisons = (
+  comparisons,
+  players,
+  options = {}
+) => {
+  const { topTier = [], bottomTier = [], anchor } = options;
+
+  // Fallback to simple topological sort if no grouping info provided
+  if (!anchor && topTier.length === 0 && bottomTier.length === 0) {
+    return topologicalSort(comparisons, players);
+  }
+
+  const idMap = Object.fromEntries(players.map((p) => [p.id, p]));
+  const anchorPlayer = anchor ? idMap[anchor] : null;
+
+  // Step 1: segment players
+  const groups = { top: [], upper: [], lower: [], bottom: [] };
+  players.forEach((p) => {
+    if (p.id === anchor) return;
+    if (topTier.includes(p.id)) groups.top.push(p);
+    else if (bottomTier.includes(p.id)) groups.bottom.push(p);
+    else if (anchor) {
+      const beatAnchor = comparisons.some(
+        (c) => c.winner === p.id && c.loser === anchor
+      );
+      groups[beatAnchor ? 'upper' : 'lower'].push(p);
+    } else {
+      groups.upper.push(p);
+    }
+  });
+
+  const rankGroup = (list) => {
+    if (!list.length) return [];
+    const set = new Set(list.map((p) => p.id));
+    const comps = comparisons.filter(
+      (c) => set.has(c.winner) && set.has(c.loser)
+    );
+    return topologicalSort(comps, list);
+  };
+
+  let rankedTop = rankGroup(groups.top);
+  let rankedUpper = rankGroup(groups.upper);
+  let rankedLower = rankGroup(groups.lower);
+  let rankedBottom = rankGroup(groups.bottom);
+
+  const boundaryCheck = (high, low) => {
+    if (high.length === 0 || low.length === 0) return [high, low];
+    const highWorst = high[high.length - 1];
+    const lowBest = low[0];
+    const res = comparisons.find(
+      (c) =>
+        (c.winner === highWorst.id && c.loser === lowBest.id) ||
+        (c.winner === lowBest.id && c.loser === highWorst.id)
+    );
+    if (res && res.winner === lowBest.id) {
+      const newHigh = [...high.slice(0, -1), lowBest];
+      const newLow = [highWorst, ...low.slice(1)];
+      return [rankGroup(newHigh), rankGroup(newLow)];
+    }
+    return [high, low];
+  };
+
+  [rankedTop, rankedUpper] = boundaryCheck(rankedTop, rankedUpper);
+  [rankedUpper, rankedLower] = boundaryCheck(rankedUpper, rankedLower);
+  [rankedLower, rankedBottom] = boundaryCheck(rankedLower, rankedBottom);
+
+  const final = [
+    ...rankedTop,
+    ...rankedUpper,
+    ...(anchorPlayer ? [anchorPlayer] : []),
+    ...rankedLower,
+    ...rankedBottom,
+  ];
+
+  return final;
 };

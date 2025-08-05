@@ -64,7 +64,7 @@ const RankingSession = ({ playerPool = [] }) => {
   };
 
   if (isFinished) {
-    const ranking = generateRankingFromComparisons(results, players);
+    const ranking = generateRankingFromComparisons(results, players, setupData);
     return (
       <>
         <RankingResults ranking={ranking} />
