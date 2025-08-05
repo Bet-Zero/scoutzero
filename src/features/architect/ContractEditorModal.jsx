@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dialog, DialogContent } from '@/components/shared/ui/dialog';
+import { Dialog, DialogContent } from '@/components/shared/ui/Dialog';
 import ContractEditor from './ContractEditor';
 
 const ContractEditorModal = ({
