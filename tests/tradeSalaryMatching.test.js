@@ -1,5 +1,5 @@
 /****************  SCSP™ BLOCK: tradeSalaryMatching.test.js  ****************
- * Validates 2025 tier math + 110 % apron limiter + margin return value
+ * Validates 2025 tier math + apron limiter + margin return value
  * ----------------------------------------------------------------------- */
 import { describe, it, expect } from 'vitest';
 import {
@@ -32,10 +32,10 @@ describe('CBA salary-matching tiers (2025)', () => {
     ); // 20 M + 5 M
   });
 
-  it('Second-apron teams capped at 110 %', () => {
+  it('Second-apron teams capped at 100 %', () => {
     expect(getIncomingCeiling(183_000_000, 25_000_000, [], capSettings)).toBe(
-      27_500_000
-    ); // 25 M × 1.10
+      25_000_000
+    ); // 25 M × 1.00
   });
 });
 
