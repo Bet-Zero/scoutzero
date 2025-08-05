@@ -46,15 +46,29 @@ const RankingResults = ({ ranking = [] }) => {
         </div>
       </div>
       <ol className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-        {ranking.map((p, idx) => (
-          <li
-            key={p.id}
-            className="flex items-center h-10 px-2 bg-white/5 rounded text-white"
-          >
-            <span className="font-bold mr-2">#{idx + 1}</span>
-            <span className="truncate">{p.display_name || p.name}</span>
-          </li>
-        ))}
+        {ranking.map((p, idx) => {
+          const headshot =
+            p.headshot ||
+            p.headshotUrl ||
+            `/assets/headshots/${p.player_id || p.id}.png`;
+          return (
+            <li
+              key={p.id}
+              className="flex items-center h-10 px-2 bg-white/5 rounded text-white gap-2"
+            >
+              <span className="font-bold">#{idx + 1}</span>
+              <img
+                src={headshot}
+                alt=""
+                className="w-8 h-8 rounded-full object-cover"
+                onError={(e) => {
+                  e.target.src = '/assets/headshots/default.png';
+                }}
+              />
+              <span className="truncate">{p.display_name || p.name}</span>
+            </li>
+          );
+        })}
       </ol>
     </div>
   );
