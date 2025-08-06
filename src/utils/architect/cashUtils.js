@@ -20,3 +20,11 @@ export function computeSeasonCashLedger(teamId, season, tradesHistory = []) {
     });
   return ledger;
 }
+
+// Helper to expose remaining cash capacity for both sending and receiving
+export function remainingCashCapacity(ledger, caps) {
+  return {
+    canSend: (caps.maxCashOut || 0) - (ledger.sentToDate || 0),
+    canReceive: (caps.maxCashIn || 0) - (ledger.receivedToDate || 0),
+  };
+}
