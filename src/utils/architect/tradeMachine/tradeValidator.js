@@ -196,6 +196,56 @@ const CBA_THRESHOLDS = {
 
 const MAX_FUTURE_PICK_YEARS = 7;
 
+// ===== SECOND APRON HANDCUFFS =====
+export function enforceSecondApronHandcuffs(teamCtx, tradeCtx = {}) {
+  const violations = [];
+  if (!teamCtx?.postTradeStatus?.isAtOrAboveSecondApron) return violations;
+
+  const outgoing = teamCtx.outgoingPlayers || [];
+  const incoming = teamCtx.incomingPlayers || [];
+  if (outgoing.length > 1 && incoming.length <= 1) {
+    violations.push('Second apron teams cannot aggregate salaries');
+  }
+
+  if (
+    teamCtx.cashSent > 0 ||
+    teamCtx.cashReceived > 0 ||
+    teamCtx.cashInvolved ||
+    tradeCtx.cashInvolved
+  ) {
+    violations.push('Second apron team cannot include cash in trades');
+  }
+
+  const season = teamCtx.context?.yearKey;
+  const usedTPEIds = new Set(
+    incoming
+      .filter((p) => p.acquiredViaTPE && p.tpeId)
+      .map((p) => p.tpeId)
+  );
+  if (usedTPEIds.size && season != null) {
+    (teamCtx.tradeExceptions || []).forEach((tpe) => {
+      const createdSeason =
+        tpe.createdSeason ||
+        tpe.createdAtSeason ||
+        tpe.season ||
+        (tpe.createdAt ? new Date(tpe.createdAt).getFullYear() : undefined);
+      if (
+        usedTPEIds.has(tpe.id) &&
+        createdSeason != null &&
+        createdSeason < season
+      ) {
+        violations.push('Second apron team cannot use prior-year trade exceptions');
+      }
+    });
+  }
+
+  if ((teamCtx.salaryIn || 0) > (teamCtx.salaryOut || 0)) {
+    violations.push('Second apron team cannot receive more salary than sent');
+  }
+
+  return violations;
+}
+
 // ===== TRADE EXCEPTION VALIDATION =====
 export function validateTradeExceptions(team) {
   const violations = [];
@@ -1003,6 +1053,8 @@ export function validateTrade({ teams, capProjections, currentYear }) {
 
   // Run all validations
   const validatedTeams = teamResults.map((team) => {
+    const handcuffViolations = enforceSecondApronHandcuffs(team, {});
+    const handcuffPass = handcuffViolations.length === 0;
     const seasonKey = team.context.yearKey;
     const capStatus = {
       isAboveSecond: team.currentApronStatus.includes('2nd Apron'),
@@ -1089,6 +1141,15 @@ export function validateTrade({ teams, capProjections, currentYear }) {
         : 'Hard cap exceeded (1st Apron)';
 
     const rules = {
+      secondApron: {
+        passed: handcuffPass,
+        message: handcuffPass
+          ? 'Second apron handcuffs satisfied'
+          : 'Second apron violation',
+        details:
+          handcuffViolations.join('; ') || 'Second apron restrictions',
+        violations: handcuffViolations,
+      },
       salaryMatching: {
         passed: salaryPass,
         message: salaryPass ? 'Salary match valid' : 'Salary mismatch',
@@ -1145,6 +1206,7 @@ export function validateTrade({ teams, capProjections, currentYear }) {
     };
 
     const violations = [
+      ...rules.secondApron.violations,
       ...rules.hardCap.violations,
       ...rules.salaryMatching.violations,
       ...rules.aggregation.violations,
@@ -1155,6 +1217,7 @@ export function validateTrade({ teams, capProjections, currentYear }) {
       ...rules.tradeExceptions.violations,
     ];
     const teamPass =
+      handcuffPass &&
       salaryPass &&
       cashPass &&
       aggregationPass &&
@@ -1166,6 +1229,7 @@ export function validateTrade({ teams, capProjections, currentYear }) {
       ...team,
       rules,
       checks: {
+        handcuffPass,
         salaryPass,
         cashPass,
         aggregationPass,

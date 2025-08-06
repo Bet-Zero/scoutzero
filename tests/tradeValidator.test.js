@@ -65,7 +65,7 @@ describe('tradeValidator', () => {
     expect(result.legal).toBe(false);
     expect(result.teamResults[0].legal).toBe(false);
     expect(result.teamResults[0].violations[0]).toContain(
-      'Hard cap exceeded (1st Apron)'
+      'Second apron team cannot receive more salary than sent'
     );
     expect(result.teamResults[0].rules.hardCap.passed).toBe(false);
   });
