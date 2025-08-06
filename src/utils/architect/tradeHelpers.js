@@ -6,6 +6,7 @@
  * -------------------------------------------------------------------------------*/
 import { CBA_BY_YEAR, MATCHING_BANDS_2023 } from '@/utils/architect/cbaConstants.js';
 export { wouldExceedHardCap } from '@/utils/architect/hardCapUtils.js';
+import { getTeamFaExceptionBuckets } from '@/utils/architect/faExceptionUtils.js';
 
 export const getTierThresholds = (yearKey) => {
   const key = String(yearKey); // normalise
@@ -253,6 +254,18 @@ export const playerFitsInTPE = (player, yearKey, tpe) => {
   const exp = tpe.expirationDate ? Date.parse(tpe.expirationDate) : Infinity;
 
   return salary <= tpe.amount && now < exp;
+};
+
+export const getIncomingCeilingViaFaException = (teamCtx = {}, bucketType) => {
+  const buckets = getTeamFaExceptionBuckets(
+    teamCtx.teamSeasonState || teamCtx.team || {}
+  );
+  const bucket = buckets.find((b) => b.type === bucketType);
+  if (!bucket) return 0;
+  const firstApron = teamCtx.context?.capSettings?.firstApron || Infinity;
+  const salary = teamCtx.projectedSalary || teamCtx.teamTotalSalary || 0;
+  const apronRoom = firstApron - salary;
+  return Math.floor(Math.min(bucket.remaining || 0, apronRoom));
 };
 
 /*───────────────────────  Formatting & Misc Utilities  ───────────────────*/

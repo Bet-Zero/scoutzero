@@ -19,6 +19,26 @@ const RULE_INFO = [
     link: 'https://nba.com/cba/second-apron',
   },
   {
+    pattern: /FA Exception unavailable/i,
+    tip: 'FA Exceptions only available to teams below the first apron and not in the second apron.',
+    link: 'https://nba.com/cba/fa-exceptions',
+  },
+  {
+    pattern: /Cannot combine FA Exception/i,
+    tip: 'FA Exceptions cannot be combined with outgoing salary or other buckets for the same player.',
+    link: 'https://nba.com/cba/fa-exceptions',
+  },
+  {
+    pattern: /Insufficient FA Exception balance/i,
+    tip: 'Selected FA Exception bucket lacks enough value to absorb the player.',
+    link: 'https://nba.com/cba/fa-exceptions',
+  },
+  {
+    pattern: /hard-caps team at First Apron/i,
+    tip: 'Using a FA Exception imposes a First Apron hard cap for the season.',
+    link: 'https://nba.com/cba/aprons',
+  },
+  {
     pattern: /stepien/i,
     tip: 'Teams may not trade consecutive future first-round picks unless protected.',
     link: 'https://nba.com/cba/stepien-rule',

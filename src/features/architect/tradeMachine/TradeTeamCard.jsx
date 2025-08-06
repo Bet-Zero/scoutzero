@@ -14,6 +14,11 @@ import { OutgoingPicksList } from './OutgoingPicksList';
 import TeamSelectDropdown from '@/components/shared/TeamSelectDropdown';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import TradeExceptionManager from './TradeExceptionManager';
+import {
+  getTeamFaExceptionBuckets,
+  isFaExceptionEligibleType,
+} from '@/utils/architect/faExceptionUtils.js';
+import { validationFlags } from '@/config/validationFlags.js';
 
 const TradeTeamCard = ({
   team,
@@ -97,6 +102,11 @@ const TradeTeamCard = ({
     const key = `${yearKey}-${String((yearKey + 1) % 100).padStart(2, '0')}`;
     return capProjections[key] || {};
   }, [yearKey]);
+
+  const faBuckets = useMemo(
+    () => getTeamFaExceptionBuckets(team || {}),
+    [team]
+  );
 
   const allowableIncoming = useMemo(
     () =>
@@ -355,8 +365,47 @@ const TradeTeamCard = ({
           <h4 className="text-white/70 text-sm mb-2">Incoming</h4>
           <div className="text-white/90">
             {incomingPlayers.map((p) => (
-              <div key={p.player_id || p.id} className="mb-1">
-                • {p.name}
+              <div
+                key={p.player_id || p.id}
+                className="mb-1 flex items-center gap-2"
+              >
+                <span>• {p.name}</span>
+                {validationFlags.faExceptionTrade !== 'off' && (
+                  <>
+                    <select
+                      className="bg-[#333] text-xs rounded px-1"
+                      value={p.absorptionMode || 'MATCH'}
+                      onChange={(e) =>
+                        onSetPlayerTrade &&
+                        onSetPlayerTrade(p, 'setAbsorptionMode', e.target.value)
+                      }
+                    >
+                      <option value="MATCH">Matching</option>
+                      <option value="TPE">TPE</option>
+                      <option value="FA_EXCEPTION">FA Exception</option>
+                    </select>
+                    {p.absorptionMode === 'FA_EXCEPTION' && (
+                      <select
+                        className="bg-[#333] text-xs rounded px-1"
+                        value={p.bucketType || ''}
+                        onChange={(e) =>
+                          onSetPlayerTrade &&
+                          onSetPlayerTrade(p, 'setFaBucket', e.target.value)
+                        }
+                      >
+                        {faBuckets
+                          .filter((b) =>
+                            isFaExceptionEligibleType(b.type, validationFlags)
+                          )
+                          .map((b) => (
+                            <option key={b.type} value={b.type}>
+                              {b.type} (${b.remaining})
+                            </option>
+                          ))}
+                      </select>
+                    )}
+                  </>
+                )}
               </div>
             ))}
             {incomingPicks.map((p) => (
