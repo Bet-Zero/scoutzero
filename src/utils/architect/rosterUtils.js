@@ -1,9 +1,11 @@
-// src/utils/architect/rosterUtils.js
-
-export const rosterSizeAfterTrade = ({
-  playersOnRoster,
-  playersIncoming,
-  playersOutgoing,
-}) => playersOnRoster.length + playersIncoming.length - playersOutgoing.length;
-
-export const passesRosterSizeRule = (count) => count >= 13 && count <= 17; // two-ways ignored
+export function getActiveCount(team) {
+  return team.players?.length ?? 0;
+}
+export function getTwoWayCount(team) {
+  return team.twoWayPlayers?.length ?? 0;
+}
+export function passesRosterWindow(team, { graceMode = false } = {}) {
+  const act = getActiveCount(team);
+  if (graceMode) return act >= 13 && act <= 17;
+  return act >= 14 && act <= 15;
+}
