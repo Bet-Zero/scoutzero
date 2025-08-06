@@ -6,4 +6,7 @@ export const validationFlags = {
   seasonalCash: 'warn',
   twoWayRoster: 'warn',
   moratorium: { startMonth: 7, startDay: 1, endMonth: 7, endDay: 6 },
+  faExceptionTrade: 'on',
+  faExceptionEligible: undefined,
+  faExceptionAutoSelect: true,
 };

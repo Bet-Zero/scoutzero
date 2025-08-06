@@ -53,12 +53,14 @@ export const wouldExceedHardCap = (
   projectedTotalSalary,
   capSettings
 ) => {
-  const { hardCapTriggered } = teamCapSheet || {};
-  if (!hardCapTriggered) return false;
+  const { hardCapTriggered, hardCapFirstApron } = teamCapSheet || {};
+  if (!hardCapTriggered && !hardCapFirstApron?.active) return false;
 
   let hardCapLimit = null;
 
-  if (hardCapTriggered === true || hardCapTriggered === 'FirstApron') {
+  if (hardCapFirstApron?.active) {
+    hardCapLimit = capSettings.firstApron;
+  } else if (hardCapTriggered === true || hardCapTriggered === 'FirstApron') {
     hardCapLimit = capSettings.firstApron;
   } else if (hardCapTriggered === 'SecondApron') {
     hardCapLimit = capSettings.secondApron;
@@ -76,4 +78,10 @@ export const getHardCapLimit = (teamCapSheet, capSettings) => {
   if (hardCapTriggered === 'SecondApron') return capSettings.secondApron;
 
   return null;
+};
+
+export const isHardCappedAtFirstApron = (teamSeasonState = {}, season) => {
+  const hc = teamSeasonState.hardCapFirstApron;
+  if (!hc?.active) return false;
+  return season ? hc.season === season : true;
 };

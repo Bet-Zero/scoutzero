@@ -46,6 +46,12 @@ export const MATCHING_BANDS_2023 = [
   { upTo: Infinity, allowed: (out) => 1.25 * out + 250_000 },
 ];
 
+// FA exception trade usage flags
+export const FA_EXCEPTION_TRADE_USAGE = {
+  enabled: true,
+  eligible: ['NTMLE', 'RMLE', 'BAE'],
+};
+
 /* --------------------------------------------------------------------------
      Misc “structural” constants (unchanged)
   -------------------------------------------------------------------------- */
