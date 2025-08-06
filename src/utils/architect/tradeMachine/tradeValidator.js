@@ -15,7 +15,12 @@ import {
 import { BYC_PERCENT } from '@/utils/architect/cbaConstants.js';
 import { passesRosterWindow } from '@/utils/architect/rosterUtils.js';
 import { validationFlags } from '@/config/validationFlags.js';
-import { hasPriorYearTPE } from '@/utils/architect/tradeMachine/tpeUtils.js';
+import {
+  hasPriorYearTPE,
+  createTPE,
+  isExpiredTPE,
+  canUseTPE,
+} from '@/utils/architect/tradeMachine/tpeUtils.js';
 import {
   isWithinMoratorium,
   violates30Day,
@@ -322,7 +327,6 @@ export function enforceTiming(
 // ===== TRADE EXCEPTION VALIDATION =====
 export function validateTradeExceptions(team) {
   const violations = [];
-  // Prevent TPEs already flagged as “in use” elsewhere (concurrent usage)
   if (team.tradeExceptions?.some((e) => e.isBeingUsed)) {
     team.tradeExceptions
       .filter((e) => e.isBeingUsed)
@@ -332,9 +336,9 @@ export function validateTradeExceptions(team) {
         )
       );
   }
-  const usedTPEs = new Map(); // Track usage during this validation
-
+  const usedTPEs = new Set();
   const yearKey = team?.context?.yearKey ?? new Date().getFullYear();
+  const onDate = team.context?.tradeDate || new Date().toISOString();
 
   team.incomingPlayers.forEach((player) => {
     if (!player.acquiredViaTPE) return;
@@ -344,36 +348,35 @@ export function validateTradeExceptions(team) {
       violations.push(`No valid TPE found for ${player.name}`);
       return;
     }
-
-    // Check for concurrent usage in THIS validation pass
     if (usedTPEs.has(tpe.id)) {
-      violations.push(
-        `TPE ${tpe.id} is being used multiple times in this trade`
-      );
+      violations.push(`TPE ${tpe.id} is being used multiple times in this trade`);
+      return;
+    }
+    if (
+      team.outgoingPlayers?.some((p) => p.toTeamId === player.fromTeamId)
+    ) {
+      violations.push('Cannot aggregate trade exception with outgoing salary');
+      return;
+    }
+    if (!canUseTPE(team, tpe, { currentSeason: yearKey, onDate })) {
+      if (isExpiredTPE(tpe, onDate)) {
+        violations.push(`Trade exception ${tpe.id} is expired`);
+      } else if (team.postTradeStatus?.isAtOrAboveSecondApron) {
+        violations.push('Second apron team cannot use trade exceptions');
+      } else {
+        violations.push(`Cannot use trade exception ${tpe.id}`);
+      }
       return;
     }
     const incoming = getSalaryForYear(player, yearKey);
-    // === INSERT inside validateTradeExceptions ===
-    if (new Date(tpe.expiryDate) < new Date()) {
-      violations.push(`Trade exception ${tpe.id} is expired`);
-      return;
-    }
     if (incoming > tpe.amount) {
       violations.push(`Trade exception ${tpe.id} is too small`);
       return;
     }
+    usedTPEs.add(tpe.id);
     tpe.remaining = tpe.amount - incoming;
     tpe.isUsed = tpe.remaining === 0;
   });
-
-  // Apply changes if no violations
-  if (violations.length === 0) {
-    usedTPEs.forEach((value, tpeId) => {
-      const tpeIndex = team.tradeExceptions.findIndex((e) => e.id === tpeId);
-      team.tradeExceptions[tpeIndex].remaining = value.newRemaining;
-      team.tradeExceptions[tpeIndex].isUsed = value.newRemaining <= 0;
-    });
-  }
 
   return violations;
 }
@@ -1089,44 +1092,6 @@ export function validateTrade({ teams, capProjections, currentYear, tradeCtx = {
     };
   };
 
-  const validateTradeExceptions = (team) => {
-    const violations = [];
-    const usedTPEs = new Set();
-
-    team.incomingPlayers.forEach((p) => {
-      if (!p.acquiredViaTPE) return;
-      const tpe = team.tradeExceptions?.find((e) => e.id === p.tpeId);
-      const incoming = getSalaryForYear(p, yearKey);
-
-      if (!tpe) {
-        violations.push(`No TPE found for ${p.name}`);
-        return;
-      }
-      if (new Date(tpe.expiryDate) < new Date()) {
-        violations.push(`Trade exception ${tpe.id} is expired`);
-        return;
-      }
-      if (incoming > tpe.amount) {
-        violations.push(`Trade exception ${tpe.id} is too small`);
-        return;
-      }
-      tpe.remaining = tpe.amount - incoming;
-      tpe.isUsed = tpe.remaining === 0;
-
-      if (usedTPEs.has(tpe.id)) {
-        violations.push(`TPE ${tpe.id} used multiple times`);
-        return;
-      }
-    });
-
-    return {
-      passed: violations.length === 0,
-      violations,
-      message: violations.length ? 'TPE violation' : 'TPE usage valid',
-      details: violations.join('; '),
-    };
-  };
-
   // ======================
   // MAIN VALIDATION FLOW
   // ======================
@@ -1195,6 +1160,7 @@ export function validateTrade({ teams, capProjections, currentYear, tradeCtx = {
           ? projectedSalary >= capSettings.firstApron
           : false,
     };
+    const isOverCap = teamTotalSalary > (capSettings.cap || 0);
 
     const baseTeam = {
       teamId: team.team?.id,
@@ -1214,6 +1180,7 @@ export function validateTrade({ teams, capProjections, currentYear, tradeCtx = {
       projectedApronStatus: projectedStatus,
       postTradeStatus,
       capSpace: (capSettings.cap || 0) - projectedSalary,
+      isOverCap,
       totalSalary: teamTotalSalary,
       capRoom: (capSettings.cap || 0) - projectedSalary,
       hardCapped: team.hardCapped || false,
@@ -1221,13 +1188,20 @@ export function validateTrade({ teams, capProjections, currentYear, tradeCtx = {
       cashReceived: cashReceived,
       tradeExceptions: team.team?.tradeExceptions || [],
       appliedTPEs: team.appliedTPEs || [],
-      context: { capSettings, yearKey },
+      context: { capSettings, yearKey, tradeDate: tradeCtx.tradeDate },
     };
 
     const allowableIncoming = getIncomingCeilingForTeam(baseTeam);
+    const createdTPE = createTPE({
+      teamCtx: baseTeam,
+      outgoing: salaryOut,
+      incoming: salaryIn,
+      tradeDate: tradeCtx.tradeDate,
+    });
 
     return {
       ...baseTeam,
+      createdTPE,
       calculations: {
         salaryMatching: {
           allowableIncoming,
@@ -1398,7 +1372,15 @@ export function validateTrade({ teams, capProjections, currentYear, tradeCtx = {
       },
       // Keep other rule checks if needed
       signAndTrade: validateSignAndTrade(team),
-      tradeExceptions: validateTradeExceptions(team),
+      tradeExceptions: (() => {
+        const tpeViolations = validateTradeExceptions(team);
+        return {
+          passed: tpeViolations.length === 0,
+          violations: tpeViolations,
+          message: tpeViolations.length ? 'TPE violation' : 'TPE usage valid',
+          details: tpeViolations.join('; '),
+        };
+      })(),
     };
 
     const violations = [
