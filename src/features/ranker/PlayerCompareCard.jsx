@@ -32,7 +32,7 @@ const PlayerCompareCard = ({ left, right, onSelect, onSkip, onUndo }) => {
         )}
         {onUndo && (
           <button onClick={onUndo} className="hover:text-white">
-            Undo Last
+            Undo
           </button>
         )}
       </div>

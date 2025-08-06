@@ -107,7 +107,10 @@ const RankingSession = ({ playerPool = [] }) => {
         <div className="text-green-400 mt-4 text-center">
           ✅ All comparisons complete!
         </div>
-        <ComparisonMatrixDrawer players={groupedPlayers} comparisons={results} />
+        <ComparisonMatrixDrawer
+          players={groupedPlayers}
+          comparisons={results}
+        />
       </>
     );
   }
@@ -138,12 +141,14 @@ const RankingSession = ({ playerPool = [] }) => {
 
   if (setupData?.anchor && !anchorDone) {
     const anchorPlayer = players.find((p) => p.id === setupData.anchor);
-    const tagged = new Set([
-      ...setupData.topTier,
-      ...setupData.bottomTier,
-      setupData.firstPlace,
-      setupData.lastPlace,
-    ].filter(Boolean));
+    const tagged = new Set(
+      [
+        ...setupData.topTier,
+        ...setupData.bottomTier,
+        setupData.firstPlace,
+        setupData.lastPlace,
+      ].filter(Boolean)
+    );
     const untagged = players.filter(
       (p) => p.id !== setupData.anchor && !tagged.has(p.id)
     );
@@ -171,7 +176,7 @@ const RankingSession = ({ playerPool = [] }) => {
 
   return (
     <>
-      <div className="flex flex-col items-center pt-8">
+      <div className="flex flex-col items-center pt-12">
         <PlayerCompareCard
           left={currentPair[0]}
           right={currentPair[1]}
@@ -180,9 +185,9 @@ const RankingSession = ({ playerPool = [] }) => {
           onUndo={handleUndo}
         />
         <div className="w-full max-w-xs mt-4">
-          <div className="w-full bg-white/20 h-2 rounded-full">
+          <div className="w-full bg-white/20 h-3 rounded-full">
             <div
-              className="bg-green-500 h-2 rounded-full"
+              className="bg-green-500 h-3 rounded-full"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
