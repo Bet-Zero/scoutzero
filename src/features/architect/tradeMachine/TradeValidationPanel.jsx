@@ -23,6 +23,26 @@ const RULE_INFO = [
     tip: 'Teams may not trade consecutive future first-round picks unless protected.',
     link: 'https://nba.com/cba/stepien-rule',
   },
+  {
+    pattern: /Player NTC — consent required/i,
+    tip: 'Players with no-trade clauses must approve any deal.',
+    link: 'https://nba.com/cba/no-trade-clause',
+  },
+  {
+    pattern: /1-yr Bird veto — consent required/i,
+    tip: 'One-year Bird-rights players can veto trades that would strip their rights.',
+    link: 'https://nba.com/cba/bird-rights',
+  },
+  {
+    pattern: /Re-acquisition bar/i,
+    tip: 'Teams cannot reacquire a player they recently traded or waived until the restriction expires.',
+    link: 'https://nba.com/cba/reacquisition',
+  },
+  {
+    pattern: /Two-way slots exceeded/i,
+    tip: 'Teams may roster at most 3 players on two-way contracts.',
+    link: 'https://nba.com/cba/two-way',
+  },
 ];
 
 const getRuleInfo = (msg) => {

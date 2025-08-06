@@ -5,7 +5,6 @@ import {
   getApronStatus,
   formatCurrency,
   wouldExceedHardCap,
-  getSeasonalCashLimit,
 } from '@/utils/architect/tradeHelpers.js'; // 🆕 .js extension kept for Vite
 import { CBA_MECHANICS } from '@/utils/architect/cbaMechanics.js';
 import {
@@ -26,7 +25,17 @@ import {
   isWithinMoratorium,
   violates30Day,
   violates2MonthAggregation,
+  violatesReacquisitionBar,
 } from '@/utils/architect/timingUtils.js';
+import {
+  requiresConsent,
+  hasConsent,
+  birdRightsVetoApplies,
+} from '@/utils/architect/consentUtils.js';
+import {
+  getSeasonalCashCaps,
+  computeSeasonCashLedger,
+} from '@/utils/architect/cashUtils.js';
 
 // ===== DEBUGGER =====
 const debug = {
@@ -262,16 +271,66 @@ export function enforceRosterWindow(
   tradeCtx = {},
   { warn = () => {}, reject = () => {} } = {}
 ) {
-  const ok = passesRosterWindow(teamCtx.postTradeTeam, {
-    graceMode: tradeCtx?.graceMode,
+  const check = passesRosterWindow(teamCtx.postTradeTeam, {
+    require14to15: !tradeCtx?.graceMode,
   });
-  if (!ok) {
-    const msg =
-      `Roster window: must finish with 14–15 standard contracts` +
-      (tradeCtx?.graceMode ? ` (grace 13–17)` : ``);
-    if (validationFlags.rosterEnforcement === 'error') reject(msg);
-    if (validationFlags.rosterEnforcement === 'warn') warn(msg);
+  const stdMsg = check.reasons.find((r) => r.startsWith('Standard'));
+  const twoWayMsg = check.reasons.find((r) => r.startsWith('Two-way'));
+  if (stdMsg) {
+    if (validationFlags.rosterEnforcement === 'error') reject(stdMsg);
+    if (validationFlags.rosterEnforcement === 'warn') warn(stdMsg);
   }
+  if (twoWayMsg) {
+    if (validationFlags.twoWayRoster === 'error') reject(twoWayMsg);
+    if (validationFlags.twoWayRoster === 'warn') warn(twoWayMsg);
+  }
+  return check;
+}
+
+export function enforceConsent(
+  teamCtx,
+  tradeCtx = {},
+  { warn = () => {}, reject = () => {} } = {}
+) {
+  const enforcement = validationFlags.consent;
+  const violations = [];
+  (teamCtx.outgoingPlayers || []).forEach((p) => {
+    const destId = p.tradeTo;
+    if (destId == null) return;
+    if (requiresConsent(p, destId) && !hasConsent(p)) {
+      const msg = 'Player NTC — consent required';
+      violations.push({ message: msg, details: p.name });
+      if (enforcement === 'error') reject(msg);
+      if (enforcement === 'warn') warn(msg);
+    }
+    if (birdRightsVetoApplies(p, destId) && !hasConsent(p)) {
+      const msg = '1-yr Bird veto — consent required';
+      violations.push({ message: msg, details: p.name });
+      if (enforcement === 'error') reject(msg);
+      if (enforcement === 'warn') warn(msg);
+    }
+  });
+  return violations;
+}
+
+export function enforceEligibility(
+  teamCtx,
+  ctx = {},
+  { warn = () => {}, reject = () => {} } = {}
+) {
+  const enforcement = validationFlags.reAcquisition;
+  const violations = [];
+  (teamCtx.incomingPlayers || []).forEach((p) => {
+    if (violatesReacquisitionBar(p, teamCtx.teamId, ctx.asOfDate)) {
+      const msg = `Re-acquisition bar: ${teamCtx.teamName} cannot reacquire ${p.name} until ${formatDate(
+        p.eligibleReacqDate
+      )}`;
+      violations.push(msg);
+      if (enforcement === 'error') reject(msg);
+      if (enforcement === 'warn') warn(msg);
+    }
+  });
+  return violations;
 }
 
 export function enforceTiming(
@@ -416,20 +475,38 @@ export function validateDraftPicks(team, allTeams) {
 }
 
 // CASH CONSIDERATIONS VALIDATION
-export function validateCash(team) {
+export function validateCash(team, ctx = {}) {
   const violations = [];
+  const season = ctx.season;
+  const tradesHistory = ctx.tradesHistory || [];
+  const caps = getSeasonalCashCaps(season);
+  const ledger = computeSeasonCashLedger(team.teamId, season, tradesHistory);
+  const projectedSent = (ledger.sentToDate || 0) + (team.cashSent || 0);
+  const projectedReceived = (ledger.receivedToDate || 0) + (team.cashReceived || 0);
 
-  if (team.cashSent > CBA_THRESHOLDS.MAX_CASH) {
-    violations.push(
-      `Cash sent ($${team.cashSent}) exceeds $${CBA_THRESHOLDS.MAX_CASH} limit`
-    );
-  }
-
-  if ((team.overSecondApron || team.willBeOverSecond) && team.cashSent > 0) {
+  if (team.postTradeStatus?.isAtOrAboveSecondApron && (team.cashSent > 0 || team.cashReceived > 0)) {
     violations.push('Second apron team cannot include cash in trades');
   }
 
-  return violations;
+  if (validationFlags.seasonalCash !== 'off') {
+    if (projectedSent > caps.maxCashOut) {
+      violations.push(
+        `Cash sent exceeds seasonal cap (${formatCurrency(projectedSent)}/${formatCurrency(caps.maxCashOut)})`
+      );
+    }
+    if (projectedReceived > caps.maxCashIn) {
+      violations.push(
+        `Cash received exceeds seasonal cap (${formatCurrency(projectedReceived)}/${formatCurrency(caps.maxCashIn)})`
+      );
+    }
+  }
+
+  return {
+    passed: violations.length === 0,
+    violations,
+    message: violations.length ? 'Cash invalid' : 'Cash valid',
+    details: violations.join('; '),
+  };
 }
 
 // SIGN-AND-TRADE RULES VALIDATION
@@ -1256,15 +1333,30 @@ export function validateTrade({
     const teamIsAtOrAboveSecondApron =
       capStatus.isAboveSecond || team.postTradeStatus.isAtOrAboveSecondApron;
 
+    const consentArr = enforceConsent(team, tradeCtx);
+    const consentPass =
+      consentArr.length === 0 || validationFlags.consent === 'warn';
+    const consentViolations = consentArr.map((v) => v.message);
+    const consentDetails = consentArr.map((v) => v.details).join('; ');
+
+    const reacqViolations = enforceEligibility(
+      team,
+      { asOfDate: tradeCtx.tradeDate },
+    );
+    const reacqPass =
+      reacqViolations.length === 0 || validationFlags.reAcquisition === 'warn';
+
     // --- Salary matching (2023 CBA + TPE)
     const allowable = getIncomingCeilingForTeam(team);
     const salaryPass = team.salaryIn <= allowable;
 
     // --- Cash limitations
-    const cashBan =
-      capStatus.isAboveSecond && (team.cashReceived > 0 || team.cashSent > 0);
-    const cashLimitFail = team.cashSent > getSeasonalCashLimit(seasonKey);
-    const cashPass = !cashBan && !cashLimitFail;
+    const cashCheck = validateCash(team, {
+      season: seasonKey,
+      tradesHistory: tradeCtx.tradesHistory || [],
+    });
+    const cashPass =
+      cashCheck.passed || validationFlags.seasonalCash === 'warn';
 
     // --- Second-apron aggregation (max from any single opponent ≤ max salary you send out)
     let aggregationPass = true;
@@ -1329,8 +1421,28 @@ export function validateTrade({
     }
     const stepienPass = stepienViolations.length === 0;
 
-    const rosterCnt = team.projectedRosterCount;
-    const rosterPass = true;
+    const currentTwoWay = team.team?.twoWayPlayers?.length || 0;
+    const outgoingTwoWay = (team.outgoingPlayers || []).filter((p) => p.isTwoWay)
+      .length;
+    const incomingTwoWay = team.incomingPlayers.filter((p) => p.isTwoWay).length;
+    const projectedTwoWay = currentTwoWay - outgoingTwoWay + incomingTwoWay;
+    const rosterCheck = passesRosterWindow(
+      {
+        players: Array(team.projectedRosterCount),
+        twoWayPlayers: Array(projectedTwoWay),
+      },
+      { require14to15: true }
+    );
+    const rosterCnt = rosterCheck.standard;
+    const twoWayCnt = rosterCheck.twoWays;
+    const rosterStandardViolation = rosterCheck.reasons.find((r) =>
+      r.startsWith('Standard')
+    );
+    const twoWayViolation = rosterCheck.reasons.find((r) => r.startsWith('Two-way'));
+    const rosterPass =
+      !rosterStandardViolation || validationFlags.rosterEnforcement === 'warn';
+    const twoWayRosterPass =
+      !twoWayViolation || validationFlags.twoWayRoster === 'warn';
 
     const capSheet = team.hardCapped
       ? { ...team.team, hardCapTriggered: 'FirstApron' }
@@ -1366,17 +1478,11 @@ export function validateTrade({
       },
       cash: {
         passed: cashPass,
-        message: cashPass ? 'Cash valid' : 'Cash invalid',
-        details: cashBan
-          ? 'Second apron team cannot include cash in trades'
-          : 'Cash sent exceeds league limit.',
+        message: cashPass ? 'Cash valid' : cashCheck.violations[0],
+        details: cashCheck.violations.slice(1).join('; '),
         violations: cashPass
           ? []
-          : [
-              cashBan
-                ? 'Second apron team cannot include cash in trades'
-                : 'Cash considerations invalid.',
-            ],
+          : cashCheck.violations,
       },
       aggregation: {
         passed: aggregationPass,
@@ -1392,9 +1498,21 @@ export function validateTrade({
       },
       roster: {
         passed: rosterPass,
-        message: rosterPass ? 'Roster size valid' : 'Roster size out of bounds',
-        details: `Projected size: ${rosterCnt} (must be 13-15)`,
-        violations: rosterPass ? [] : ['Roster size invalid.'],
+        message: rosterPass ? 'Roster size valid' : rosterStandardViolation,
+        details: `Projected size: ${rosterCnt}`,
+        violations:
+          rosterPass || validationFlags.rosterEnforcement === 'warn'
+            ? []
+            : [rosterStandardViolation],
+      },
+      twoWayRoster: {
+        passed: twoWayRosterPass,
+        message: twoWayRosterPass ? 'Two-way slots valid' : twoWayViolation,
+        details: twoWayRosterPass ? '' : `Two-way count: ${twoWayCnt}`,
+        violations:
+          twoWayRosterPass || validationFlags.twoWayRoster === 'warn'
+            ? []
+            : [twoWayViolation],
       },
       hardCap: {
         passed: hardCapPass,
@@ -1403,6 +1521,26 @@ export function validateTrade({
           team.projectedSalary
         )} would exceed hard cap.`,
         violations: hardCapPass ? [] : [hardCapMsg],
+      },
+      consent: {
+        passed: consentPass,
+        message: consentPass ? 'Player consent satisfied' : consentViolations[0],
+        details: consentPass ? '' : consentDetails,
+        violations:
+          consentPass || validationFlags.consent === 'warn'
+            ? []
+            : consentViolations,
+      },
+      reAcquisition: {
+        passed: reacqPass,
+        message: reacqPass
+          ? 'Re-acquisition bar satisfied'
+          : reacqViolations[0],
+        details: reacqViolations.slice(1).join('; '),
+        violations:
+          reacqPass || validationFlags.reAcquisition === 'warn'
+            ? []
+            : reacqViolations,
       },
       // Keep other rule checks if needed
       signAndTrade: validateSignAndTrade(team),
@@ -1425,6 +1563,9 @@ export function validateTrade({
       ...rules.cash.violations,
       ...rules.stepienRule.violations,
       ...rules.roster.violations,
+      ...rules.twoWayRoster.violations,
+      ...rules.consent.violations,
+      ...rules.reAcquisition.violations,
       ...rules.signAndTrade.violations,
       ...rules.tradeExceptions.violations,
     ];
@@ -1435,7 +1576,10 @@ export function validateTrade({
       aggregationPass &&
       stepienPass &&
       hardCapPass &&
-      rosterPass;
+      rosterPass &&
+      twoWayRosterPass &&
+      consentPass &&
+      reacqPass;
 
     return {
       ...team,
@@ -1448,6 +1592,9 @@ export function validateTrade({
         stepienPass,
         hardCapPass,
         rosterPass,
+        twoWayRosterPass,
+        consentPass,
+        reacqPass,
       },
       violations,
       legal: violations.length === 0,
