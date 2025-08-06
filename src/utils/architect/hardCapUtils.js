@@ -58,7 +58,7 @@ export const wouldExceedHardCap = (
 
   let hardCapLimit = null;
 
-  if (hardCapTriggered === 'FirstApron') {
+  if (hardCapTriggered === true || hardCapTriggered === 'FirstApron') {
     hardCapLimit = capSettings.firstApron;
   } else if (hardCapTriggered === 'SecondApron') {
     hardCapLimit = capSettings.secondApron;
