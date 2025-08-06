@@ -71,9 +71,11 @@ export const getIncomingCeiling = (
   const tier = tiers.find((t) => salaryOut <= t.maxOutgoing) || tiers.at(-1);
   let ceiling = tier.incoming(salaryOut);
 
-  // 3️⃣ Second-Apron limiter – 110 % of outgoing
+  // 3️⃣ Apron limiters – 100 % of outgoing
   if (teamTotalSalary >= capSettings.secondApron) {
-    ceiling = salaryOut * 1.1;
+    ceiling = salaryOut;
+  } else if (teamTotalSalary >= capSettings.firstApron) {
+    ceiling = salaryOut;
   }
 
   // 4️⃣ Add any valid TPE amounts
@@ -113,6 +115,7 @@ function _calculateAllowableIncomingObj({
   currentTeamSalary,
   salaryOut,
   secondApronStatus,
+  firstApronStatus = false,
   yearKey,
   tpeAmount = 0,
 }) {
@@ -128,7 +131,12 @@ function _calculateAllowableIncomingObj({
   }
 
   const tier = tiers.find((t) => salaryOut <= t.maxOutgoing) || tiers.at(-1);
-  let ceiling = secondApronStatus ? salaryOut * 1.1 : tier.incoming(salaryOut);
+  let ceiling;
+  if (secondApronStatus || firstApronStatus) {
+    ceiling = salaryOut;
+  } else {
+    ceiling = tier.incoming(salaryOut);
+  }
   if (salaryOut === 0) ceiling = 0;
 
   const gross = ceiling + tpeAmount;
@@ -179,11 +187,16 @@ export const calculateAllowableIncoming = (...args) => {
     typeof capSettings.secondApron === 'number'
       ? currentTeamSalary >= capSettings.secondApron
       : false;
+  const firstApronStatus =
+    typeof capSettings.firstApron === 'number'
+      ? currentTeamSalary >= capSettings.firstApron
+      : false;
 
   return _calculateAllowableIncomingObj({
     currentTeamSalary,
     salaryOut,
     secondApronStatus,
+    firstApronStatus,
     yearKey,
     tpeAmount,
   }).margin;

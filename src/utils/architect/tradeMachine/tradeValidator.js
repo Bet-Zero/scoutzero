@@ -453,6 +453,23 @@ const getMatchingValue = (player, yearKey, isOutgoing = false) => {
   return base;
 };
 
+const getAllowableIncomingMargin = (team) => {
+  const status = team.postTradeStatus || {};
+  if (status.isAtOrAboveSecondApron) return 0;
+  if (status.isAtOrAboveFirstApron) return 0;
+  return calculateAllowableIncoming(
+    team.teamTotalSalary,
+    team.salaryOut,
+    team.incomingPlayers,
+    team.tradeExceptions,
+    team.context.capSettings,
+    team.context.yearKey
+  );
+};
+
+export const getIncomingCeilingForTeam = (team) =>
+  team.salaryOut + getAllowableIncomingMargin(team);
+
 // ===== RULES =====
 const TRADE_RULES = {
   salaryMatching: {
@@ -466,14 +483,7 @@ const TRADE_RULES = {
       }
 
       // === INSERT in salary-matching section ===
-      const margin = calculateAllowableIncoming(
-        team.teamTotalSalary,
-        team.salaryOut,
-        team.incomingPlayers,
-        team.tradeExceptions,
-        team.context.capSettings,
-        team.context.yearKey
-      );
+      const margin = getAllowableIncomingMargin(team);
       const diff = team.salaryIn - team.salaryOut; // incoming minus outgoing
       const passes = diff <= margin && diff >= 0;
 
@@ -490,14 +500,7 @@ const TRADE_RULES = {
     },
 
     message: (team) => {
-      const margin = calculateAllowableIncoming(
-        team.teamTotalSalary,
-        team.salaryOut,
-        team.incomingPlayers,
-        team.tradeExceptions,
-        team.context.capSettings,
-        team.context.yearKey
-      );
+      const margin = getAllowableIncomingMargin(team);
       const allowable = team.salaryOut + margin;
       return (
         `Salary mismatch: Incoming ${formatCurrency(team.salaryIn)} ` +
@@ -620,14 +623,7 @@ export function validateTrade({ teams, capProjections, currentYear }) {
       context,
     } = team;
 
-    const allowable = calculateAllowableIncoming(
-      teamTotalSalary,
-      salaryOut,
-      incomingPlayers,
-      tradeExceptions,
-      context.capSettings,
-      context.yearKey
-    );
+    const allowable = getAllowableIncomingMargin(team);
     const diff = salaryIn - salaryOut; // + if taking more back
 
     // can always send out more than comes back
@@ -680,7 +676,7 @@ export function validateTrade({ teams, capProjections, currentYear }) {
         )} > ${formatCurrency(firstApron)})`
       );
       parts.push(
-        `• Can take back 110% of outgoing: ${formatCurrency(salaryOut * 1.1)}`
+        `• Can only take back equal salary: ${formatCurrency(salaryOut)}`
       );
     } else if (teamSalary > cap) {
       parts.push(
@@ -948,8 +944,18 @@ export function validateTrade({ teams, capProjections, currentYear }) {
       capSettings
     );
     const projectedStatus = getApronStatus(projectedSalary, capSettings);
+    const postTradeStatus = {
+      isAtOrAboveSecondApron:
+        typeof capSettings.secondApron === 'number'
+          ? projectedSalary >= capSettings.secondApron
+          : false,
+      isAtOrAboveFirstApron:
+        typeof capSettings.firstApron === 'number'
+          ? projectedSalary >= capSettings.firstApron
+          : false,
+    };
 
-    return {
+    const baseTeam = {
       teamId: team.team?.id,
       teamName: team.team?.teamName || 'Unknown Team',
       team: team.team,
@@ -965,6 +971,7 @@ export function validateTrade({ teams, capProjections, currentYear }) {
       projectedRosterCount,
       currentApronStatus: currentStatus,
       projectedApronStatus: projectedStatus,
+      postTradeStatus,
       capSpace: (capSettings.cap || 0) - projectedSalary,
       totalSalary: teamTotalSalary,
       capRoom: (capSettings.cap || 0) - projectedSalary,
@@ -973,26 +980,16 @@ export function validateTrade({ teams, capProjections, currentYear }) {
       cashReceived: cashReceived,
       tradeExceptions: team.team?.tradeExceptions || [],
       context: { capSettings, yearKey },
+    };
+
+    const allowableIncoming = getIncomingCeilingForTeam(baseTeam);
+
+    return {
+      ...baseTeam,
       calculations: {
         salaryMatching: {
-          allowableIncoming: calculateAllowableIncoming(
-            team.teamTotalSalary,
-            salaryOut,
-            incomingPlayers,
-            team.team?.tradeExceptions || [],
-            capSettings,
-            yearKey
-          ),
-          difference:
-            salaryIn -
-            calculateAllowableIncoming(
-              team.teamTotalSalary,
-              salaryOut,
-              incomingPlayers,
-              team.team?.tradeExceptions || [],
-              capSettings,
-              yearKey
-            ),
+          allowableIncoming,
+          difference: salaryIn - allowableIncoming,
         },
         apronStatus: {
           current: currentStatus,
@@ -1012,17 +1009,7 @@ export function validateTrade({ teams, capProjections, currentYear }) {
     };
 
     // --- Salary matching (2023 CBA + TPE)
-    const totalTPE = (team.tradeExceptions ?? []).reduce(
-      (sum, te) => sum + te.remaining,
-      0
-    );
-    const { ceiling: allowable } = calculateAllowableIncoming({
-      currentTeamSalary: team.teamTotalSalary,
-      salaryOut: team.salaryOut,
-      secondApronStatus: capStatus.isAboveSecond,
-      yearKey: seasonKey,
-      tpeAmount: totalTPE,
-    });
+    const allowable = getIncomingCeilingForTeam(team);
     const salaryPass = team.salaryIn <= allowable;
 
     // --- Cash limitations

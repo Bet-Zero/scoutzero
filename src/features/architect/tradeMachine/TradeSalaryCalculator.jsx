@@ -56,7 +56,7 @@ const TradeSalaryCalculator = ({
     if (teamSalary > capSettings.secondApron) {
       rule = 'Second Apron: Dollar-for-dollar matching';
     } else if (teamSalary > capSettings.firstApron) {
-      rule = 'First Apron: 110% of outgoing salary';
+      rule = 'First Apron: 100% of outgoing salary';
     } else if (teamSalary <= capSettings.cap) {
       rule = 'Under Cap: Outgoing + $100k + cap space';
     } else if (outgoingSalary <= 6_500_000) {
