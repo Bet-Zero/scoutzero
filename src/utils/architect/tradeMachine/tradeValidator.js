@@ -16,7 +16,6 @@ import { BYC_PERCENT } from '@/utils/architect/cbaConstants.js';
 import { passesRosterWindow } from '@/utils/architect/rosterUtils.js';
 import { validationFlags } from '@/config/validationFlags.js';
 import {
-  hasPriorYearTPE,
   createTPE,
   isExpiredTPE,
   canUseTPE,
@@ -38,9 +37,7 @@ import {
   violates2MonthAggregation,
 } from '@/utils/architect/timingUtils.js';
 import {
-  hasFullNTC,
-  destinationRequiresLimitedNTCConsent,
-  requiresBirdOneYearConsent,
+  collectConsentViolations,
 } from '@/utils/architect/consentUtils.js';
 import { getReacqBlock } from '@/utils/architect/reacqUtils.js';
 import {
@@ -234,29 +231,45 @@ export function enforceSecondApronHandcuffs(teamCtx, tradeCtx = {}) {
 
   const outgoing = teamCtx.outgoingPlayers || [];
   const incoming = teamCtx.incomingPlayers || [];
+
+  const season = teamCtx.context?.yearKey;
+  const usedTPEIds = new Set(
+    incoming.filter((p) => p.acquiredViaTPE && p.tpeId).map((p) => p.tpeId)
+  );
+  if (season != null) {
+    let addedGeneric = false;
+    let priorAdded = false;
+    const addPrior = () => {
+      if (!priorAdded) {
+        violations.push('Second apron: prior-year TPEs cannot be used.');
+        priorAdded = true;
+      }
+      if (!addedGeneric) {
+        violations.push(SECOND_APRON_TPE_BLOCK);
+        addedGeneric = true;
+      }
+    };
+    if (usedTPEIds.size) {
+      (teamCtx.tradeExceptions || []).forEach((tpe) => {
+        if (usedTPEIds.has(tpe.id) && isPriorYearTPE(tpe, season)) {
+          addPrior();
+        }
+      });
+    }
+    if (
+      Array.isArray(teamCtx.appliedTPEs) &&
+      teamCtx.appliedTPEs.some((tpe) => isPriorYearTPE(tpe, season))
+    ) {
+      addPrior();
+    }
+  }
+
   if (outgoing.length > 1 && incoming.length <= 1) {
     violations.push('Second apron teams cannot aggregate salaries');
   }
 
   if (teamCtx.cashSent > 0 || teamCtx.cashReceived > 0) {
     violations.push('Second apron team cannot include cash in trades');
-  }
-
-  const season = teamCtx.context?.yearKey;
-  const usedTPEIds = new Set(
-    incoming.filter((p) => p.acquiredViaTPE && p.tpeId).map((p) => p.tpeId)
-  );
-  if (usedTPEIds.size && season != null) {
-    let addedGeneric = false;
-    (teamCtx.tradeExceptions || []).forEach((tpe) => {
-      if (usedTPEIds.has(tpe.id) && isPriorYearTPE(tpe, season)) {
-        if (!addedGeneric) {
-          violations.push(SECOND_APRON_TPE_BLOCK);
-          addedGeneric = true;
-        }
-        violations.push('Second apron: prior-year TPEs cannot be used.');
-      }
-    });
   }
 
   if ((teamCtx.salaryIn || 0) > (teamCtx.salaryOut || 0)) {
@@ -297,33 +310,21 @@ export function enforceConsent(
   const consentMap = tradeCtx.consent || {};
   const seen = new Set();
   (teamCtx.outgoingPlayers || []).forEach((p) => {
-    const destId = p.tradeTo;
-    if (destId == null) return;
+    const destId =
+      p.tradeTo ??
+      p.toTeamId ??
+      Object.keys(tradeCtx.teamNames || {}).find(
+        (id) => id !== teamCtx.teamId
+      );
     const consent = consentMap[p.id] || {};
-
-    if (
-      (hasFullNTC(p) && consent.full !== true) ||
-      (destinationRequiresLimitedNTCConsent(p, destId) &&
-        consent.limited !== true)
-    ) {
-      const msg = 'Player NTC — consent required';
+    const msgs = collectConsentViolations(p, destId, consent, { reject });
+    msgs.forEach((msg) => {
       if (!seen.has(msg)) {
-        violations.push({ message: msg, details: p.name });
+        violations.push(msg);
         seen.add(msg);
-        reject(msg);
         if (enforcement === 'warn') warn(msg);
       }
-    }
-
-    if (requiresBirdOneYearConsent(p) && consent.bird !== true) {
-      const msg = '1-yr Bird veto — consent required';
-      if (!seen.has(msg)) {
-        violations.push({ message: msg, details: p.name });
-        seen.add(msg);
-        reject(msg);
-        if (enforcement === 'warn') warn(msg);
-      }
-    }
+    });
   });
   return violations;
 }
@@ -335,9 +336,22 @@ export function enforceEligibility(
 ) {
   const enforcement = validationFlags.reAcquisition;
   const violations = [];
-  const nowDate = ctx.now ? new Date(ctx.now) : new Date();
+  const nowDate = ctx.now
+    ? new Date(ctx.now)
+    : ctx.asOfDate
+    ? new Date(ctx.asOfDate)
+    : new Date();
   (teamCtx.incomingPlayers || []).forEach((p) => {
-    const block = getReacqBlock(p, teamCtx.teamId, nowDate);
+    let block = getReacqBlock(p, teamCtx.teamId, nowDate);
+    if (
+      !block.blocked &&
+      typeof ctx.wasTradedAwayWithinOneYear === 'function' &&
+      ctx.wasTradedAwayWithinOneYear(p.id, teamCtx.teamId)
+    ) {
+      const until = new Date(nowDate);
+      until.setFullYear(until.getFullYear() + 1);
+      block = { blocked: true, until };
+    }
     if (block.blocked) {
       const dateStr = block.until.toISOString().slice(0, 10);
       const msg = `Re-acquisition bar: ${teamCtx.teamName} cannot reacquire ${p.name} until ${dateStr}`;
@@ -435,22 +449,18 @@ export function validateTradeExceptions(team) {
       violations.push('Cannot aggregate trade exception with outgoing salary');
       return;
     }
-    if (
-      team.postTradeStatus?.isAtOrAboveSecondApron &&
-      isPriorYearTPE(tpe, yearKey)
-    ) {
-      if (!addedGeneric) {
+    if (team.postTradeStatus?.isAtOrAboveSecondApron) {
+      const prior = isPriorYearTPE(tpe, yearKey);
+      if (!prior && !addedGeneric) {
         violations.push(SECOND_APRON_TPE_BLOCK);
         addedGeneric = true;
       }
-      violations.push('Second apron: prior-year TPEs cannot be used.');
+      if (!prior && isExpiredTPE(tpe, onDate)) {
+        violations.push(`Trade exception ${tpe.id} is expired`);
+      }
       return;
     }
     if (!canUseTPE(team, tpe, { currentSeason: yearKey, onDate })) {
-      if (!addedGeneric && team.postTradeStatus?.isAtOrAboveSecondApron) {
-        violations.push(SECOND_APRON_TPE_BLOCK);
-        addedGeneric = true;
-      }
       if (isExpiredTPE(tpe, onDate)) {
         violations.push(`Trade exception ${tpe.id} is expired`);
       } else {
@@ -495,6 +505,19 @@ export function validateFaExceptionUsage(team, flags = validationFlags) {
       (faExceptionAutoSelect && !p.absorptionMode)
   );
 
+  if (
+    faPlayers.length &&
+    ctx.teamTotalSalary >= ctx.context.capSettings?.secondApron
+  ) {
+    violations.push(
+      'Second Apron — trade exceptions are banned for second-apron teams'
+    );
+    if (!addedGeneric) {
+      violations.push(SECOND_APRON_TPE_BLOCK);
+      addedGeneric = true;
+    }
+  }
+
   faPlayers.forEach((player) => {
     let mode = player.absorptionMode;
     let bucketType = player.bucketType;
@@ -525,11 +548,9 @@ export function validateFaExceptionUsage(team, flags = validationFlags) {
     }
 
     if (ctx.teamTotalSalary >= ctx.context.capSettings?.secondApron) {
-      if (!addedGeneric) {
-        violations.push(SECOND_APRON_TPE_BLOCK);
-        addedGeneric = true;
+      if (!violations.includes('FA Exception unavailable above/beyond Second Apron.')) {
+        violations.push('FA Exception unavailable above/beyond Second Apron.');
       }
-      violations.push('FA Exception unavailable above/beyond Second Apron.');
       return;
     }
     if (ctx.teamTotalSalary >= ctx.context.capSettings?.firstApron) {
@@ -1492,13 +1513,6 @@ export function validateTrade({
   const validatedTeams = teamResults.map((team) => {
     const seasonKey = team.context.yearKey;
     const handcuffViolations = enforceSecondApronHandcuffs(team, tradeCtx);
-    if (
-      team.postTradeStatus.isAtOrAboveSecondApron &&
-      hasPriorYearTPE(team.appliedTPEs, seasonKey)
-    ) {
-      handcuffViolations.push(SECOND_APRON_TPE_BLOCK);
-      handcuffViolations.push('Second apron: prior-year TPEs cannot be used.');
-    }
     const handcuffPass = handcuffViolations.length === 0;
     const capStatus = {
       isAboveSecond: team.currentApronStatus.includes('2nd Apron'),
@@ -1513,12 +1527,15 @@ export function validateTrade({
     );
     const consentPass =
       consentArr.length === 0 || validationFlags.consent === 'warn';
-    const consentViolations = consentArr.map((v) => v.message);
-    const consentDetails = consentArr.map((v) => v.details).join('; ');
+    const consentViolations = consentArr;
+    const consentDetails = '';
     const signAndTradePass = signAndTradeResult.passed;
     const reacqViolations = enforceEligibility(
       team,
-      { now: tradeCtx.tradeDate },
+      {
+        now: tradeCtx.tradeDate,
+        wasTradedAwayWithinOneYear: tradeCtx.wasTradedAwayWithinOneYear,
+      },
       { reject: rejectMsg }
     );
     const reacqPass =
