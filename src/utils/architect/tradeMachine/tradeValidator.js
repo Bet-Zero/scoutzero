@@ -12,10 +12,12 @@ import {
   buildFirstRoundCalendar,
   passesStepienRule,
 } from '@/utils/architect/stepienUtils.js';
+import { BYC_PERCENT } from '@/utils/architect/cbaConstants.js';
 import {
   rosterSizeAfterTrade,
   passesRosterSizeRule,
 } from '@/utils/architect/rosterUtils.js';
+import { hasPriorYearTPE } from '@/utils/architect/tradeMachine/tpeUtils.js';
 
 // ===== DEBUGGER =====
 const debug = {
@@ -196,6 +198,56 @@ const CBA_THRESHOLDS = {
 
 const MAX_FUTURE_PICK_YEARS = 7;
 
+// ===== SECOND APRON HANDCUFFS =====
+export function enforceSecondApronHandcuffs(teamCtx, tradeCtx = {}) {
+  const violations = [];
+  if (!teamCtx?.postTradeStatus?.isAtOrAboveSecondApron) return violations;
+
+  const outgoing = teamCtx.outgoingPlayers || [];
+  const incoming = teamCtx.incomingPlayers || [];
+  if (outgoing.length > 1 && incoming.length <= 1) {
+    violations.push('Second apron teams cannot aggregate salaries');
+  }
+
+  if (
+    teamCtx.cashSent > 0 ||
+    teamCtx.cashReceived > 0 ||
+    teamCtx.cashInvolved ||
+    tradeCtx.cashInvolved
+  ) {
+    violations.push('Second apron team cannot include cash in trades');
+  }
+
+  const season = teamCtx.context?.yearKey;
+  const usedTPEIds = new Set(
+    incoming
+      .filter((p) => p.acquiredViaTPE && p.tpeId)
+      .map((p) => p.tpeId)
+  );
+  if (usedTPEIds.size && season != null) {
+    (teamCtx.tradeExceptions || []).forEach((tpe) => {
+      const createdSeason =
+        tpe.createdSeason ||
+        tpe.createdAtSeason ||
+        tpe.season ||
+        (tpe.createdAt ? new Date(tpe.createdAt).getFullYear() : undefined);
+      if (
+        usedTPEIds.has(tpe.id) &&
+        createdSeason != null &&
+        createdSeason < season
+      ) {
+        violations.push('Second apron team cannot use prior-year trade exceptions');
+      }
+    });
+  }
+
+  if ((teamCtx.salaryIn || 0) > (teamCtx.salaryOut || 0)) {
+    violations.push('Second apron team cannot receive more salary than sent');
+  }
+
+  return violations;
+}
+
 // ===== TRADE EXCEPTION VALIDATION =====
 export function validateTradeExceptions(team) {
   const violations = [];
@@ -345,16 +397,7 @@ export function validateSignAndTrade(team) {
 export function validateBYC(team) {
   const violations = [];
 
-  team.incomingPlayers.forEach((p) => {
-    if (p.isBYC) {
-      const bycValue = p.previousSalary * 1.2;
-      if (p.salary > bycValue) {
-        violations.push(
-          `BYC restriction: ${p.name}'s salary ($${p.salary}) > 120% of previous ($${bycValue})`
-        );
-      }
-    }
-  });
+  // BYC affects salary matching only; no direct contract limit to validate
 
   return violations;
 }
@@ -435,23 +478,106 @@ export function validateAllNewRules(team, allTeams) {
     ...validateSecondApronRules(team),
   ];
 }
+function outgoingValueBYC({ newSalary, priorSalary }) {
+  return Math.max(priorSalary, BYC_PERCENT * newSalary);
+}
+
 /** ------------------------------------------------------------------------
  * getMatchingValue(player, year, isOutgoing)
  * A minimal replacement for the legacy helper the tests expect.
- * ▸ For BYC players: outgoing counts 50 % of salary (incoming full).
+ * ▸ For BYC players: outgoing counts max(prior, 50% of new).
  * ▸ For Poison-Pill (rookie max ext.): outgoing uses current salary,
  *   incoming uses average of extension (already baked into salaryByYear).
  * -----------------------------------------------------------------------*/
 const getMatchingValue = (player, yearKey, isOutgoing = false) => {
   const base = getSalaryForYear(player, yearKey);
+  if (isOutgoing) {
+    if (player.isBYC)
+      return outgoingValueBYC({ newSalary: base, priorSalary: player.previousSalary });
+    if (player.isPoisonPill) return player.currentSalary || base; // PPP
+    return base;
+  }
 
-  if (!isOutgoing) return base; // incoming side – full value
-
-  if (player.isBYC) return base * 0.5; // basic BYC
-  if (player.isPoisonPill) return player.currentSalary || base; // PPP
+  if (player.isPoisonPill) {
+    const total =
+      (player.currentSalary ?? base) +
+      (player.extensionYears?.reduce((sum, y) => sum + (y.salary || 0), 0) || 0);
+    const years = 1 + (player.extensionYears?.length || 0);
+    return total / years;
+  }
 
   return base;
 };
+
+function computeMatchingValues({
+  teams = [],
+  yearKey,
+  daysRemainingInSeason,
+  daysInSeason,
+} = {}) {
+  const proration =
+    Math.min(
+      Math.max((daysRemainingInSeason ?? 0) / (daysInSeason ?? 0), 0),
+      1
+    ) || 1;
+
+  teams.forEach((team) => {
+    (team.sends || []).forEach((player) => {
+      const newSalary = getSalaryForYear(player, yearKey);
+
+      let outgoing = newSalary;
+      if (player.isBYC) {
+        outgoing = outgoingValueBYC({
+          newSalary,
+          priorSalary: player.previousSalary,
+        });
+      } else if (player.isPoisonPill && player.currentSalary) {
+        outgoing = player.currentSalary;
+      }
+      player.matchOutgoing = outgoing;
+
+      let incoming = newSalary;
+      if (player.isPoisonPill) {
+        const total =
+          (player.currentSalary ?? newSalary) +
+          (player.extensionYears?.reduce((sum, y) => sum + (y.salary || 0), 0) || 0);
+        const years = 1 + (player.extensionYears?.length || 0);
+        incoming = total / years;
+      }
+
+      const pct = Math.min(player.tradeKickerPct ?? 0, 0.15);
+      const waived = Math.min(
+        Math.max(player.tradeKickerWaivedPct ?? 0, 0),
+        1
+      );
+      const effPct = pct * (1 - waived);
+      if (effPct > 0 && player.remainingGuaranteedOnCurrentContract > 0) {
+        const gross = effPct * player.remainingGuaranteedOnCurrentContract;
+        const currentYearAdd = gross * proration;
+        incoming = (incoming ?? player.currentYearSalary) + currentYearAdd;
+      }
+
+      player.matchIncoming = incoming;
+    });
+  });
+}
+
+const getAllowableIncomingMargin = (team) => {
+  const status = team.postTradeStatus || {};
+  if (status.isAtOrAboveSecondApron) return 0;
+  if (status.isAtOrAboveFirstApron) return 0;
+  return calculateAllowableIncoming(
+    team.teamTotalSalary,
+    team.salaryOut,
+    team.incomingPlayers,
+    team.tradeExceptions,
+    team.context.capSettings,
+    team.context.yearKey
+  );
+};
+
+export const getIncomingCeilingForTeam = (team) =>
+  team.salaryOut + getAllowableIncomingMargin(team);
 
 // ===== RULES =====
 const TRADE_RULES = {
@@ -466,14 +592,7 @@ const TRADE_RULES = {
       }
 
       // === INSERT in salary-matching section ===
-      const margin = calculateAllowableIncoming(
-        team.teamTotalSalary,
-        team.salaryOut,
-        team.incomingPlayers,
-        team.tradeExceptions,
-        team.context.capSettings,
-        team.context.yearKey
-      );
+      const margin = getAllowableIncomingMargin(team);
       const diff = team.salaryIn - team.salaryOut; // incoming minus outgoing
       const passes = diff <= margin && diff >= 0;
 
@@ -490,14 +609,7 @@ const TRADE_RULES = {
     },
 
     message: (team) => {
-      const margin = calculateAllowableIncoming(
-        team.teamTotalSalary,
-        team.salaryOut,
-        team.incomingPlayers,
-        team.tradeExceptions,
-        team.context.capSettings,
-        team.context.yearKey
-      );
+      const margin = getAllowableIncomingMargin(team);
       const allowable = team.salaryOut + margin;
       return (
         `Salary mismatch: Incoming ${formatCurrency(team.salaryIn)} ` +
@@ -597,6 +709,8 @@ export function validateTrade({ teams, capProjections, currentYear }) {
   const capSettings =
     capProjections[`${currentYear - 1}-${String(currentYear).slice(-2)}`] || {};
 
+  computeMatchingValues({ teams, yearKey });
+
   // ======================
   // VALIDATOR IMPLEMENTATIONS
   // ======================
@@ -620,14 +734,7 @@ export function validateTrade({ teams, capProjections, currentYear }) {
       context,
     } = team;
 
-    const allowable = calculateAllowableIncoming(
-      teamTotalSalary,
-      salaryOut,
-      incomingPlayers,
-      tradeExceptions,
-      context.capSettings,
-      context.yearKey
-    );
+    const allowable = getAllowableIncomingMargin(team);
     const diff = salaryIn - salaryOut; // + if taking more back
 
     // can always send out more than comes back
@@ -680,7 +787,7 @@ export function validateTrade({ teams, capProjections, currentYear }) {
         )} > ${formatCurrency(firstApron)})`
       );
       parts.push(
-        `• Can take back 110% of outgoing: ${formatCurrency(salaryOut * 1.1)}`
+        `• Can only take back equal salary: ${formatCurrency(salaryOut)}`
       );
     } else if (teamSalary > cap) {
       parts.push(
@@ -928,11 +1035,11 @@ export function validateTrade({ teams, capProjections, currentYear }) {
     });
 
     const salaryOut = (team.sends || []).reduce(
-      (sum, p) => sum + getMatchingValue(p, yearKey, /* isOutgoing */ true),
+      (sum, p) => sum + (p.matchOutgoing ?? getMatchingValue(p, yearKey, true)),
       0
     );
     const salaryIn = incomingPlayers.reduce(
-      (sum, p) => sum + getMatchingValue(p, yearKey, /* isOutgoing */ false),
+      (sum, p) => sum + (p.matchIncoming ?? getMatchingValue(p, yearKey, false)),
       0
     );
     const teamTotalSalary = team.team?.totalSalary || 0;
@@ -948,8 +1055,18 @@ export function validateTrade({ teams, capProjections, currentYear }) {
       capSettings
     );
     const projectedStatus = getApronStatus(projectedSalary, capSettings);
+    const postTradeStatus = {
+      isAtOrAboveSecondApron:
+        typeof capSettings.secondApron === 'number'
+          ? projectedSalary >= capSettings.secondApron
+          : false,
+      isAtOrAboveFirstApron:
+        typeof capSettings.firstApron === 'number'
+          ? projectedSalary >= capSettings.firstApron
+          : false,
+    };
 
-    return {
+    const baseTeam = {
       teamId: team.team?.id,
       teamName: team.team?.teamName || 'Unknown Team',
       team: team.team,
@@ -965,6 +1082,7 @@ export function validateTrade({ teams, capProjections, currentYear }) {
       projectedRosterCount,
       currentApronStatus: currentStatus,
       projectedApronStatus: projectedStatus,
+      postTradeStatus,
       capSpace: (capSettings.cap || 0) - projectedSalary,
       totalSalary: teamTotalSalary,
       capRoom: (capSettings.cap || 0) - projectedSalary,
@@ -972,27 +1090,18 @@ export function validateTrade({ teams, capProjections, currentYear }) {
       cashSent: team.cashSent || 0,
       cashReceived: cashReceived,
       tradeExceptions: team.team?.tradeExceptions || [],
+      appliedTPEs: team.appliedTPEs || [],
       context: { capSettings, yearKey },
+    };
+
+    const allowableIncoming = getIncomingCeilingForTeam(baseTeam);
+
+    return {
+      ...baseTeam,
       calculations: {
         salaryMatching: {
-          allowableIncoming: calculateAllowableIncoming(
-            team.teamTotalSalary,
-            salaryOut,
-            incomingPlayers,
-            team.team?.tradeExceptions || [],
-            capSettings,
-            yearKey
-          ),
-          difference:
-            salaryIn -
-            calculateAllowableIncoming(
-              team.teamTotalSalary,
-              salaryOut,
-              incomingPlayers,
-              team.team?.tradeExceptions || [],
-              capSettings,
-              yearKey
-            ),
+          allowableIncoming,
+          difference: salaryIn - allowableIncoming,
         },
         apronStatus: {
           current: currentStatus,
@@ -1007,22 +1116,22 @@ export function validateTrade({ teams, capProjections, currentYear }) {
   // Run all validations
   const validatedTeams = teamResults.map((team) => {
     const seasonKey = team.context.yearKey;
+    const handcuffViolations = enforceSecondApronHandcuffs(team, {});
+    if (
+      team.postTradeStatus.isAtOrAboveSecondApron &&
+      hasPriorYearTPE(team.appliedTPEs, seasonKey)
+    ) {
+      handcuffViolations.push(
+        'Second apron: prior-year TPEs cannot be used.'
+      );
+    }
+    const handcuffPass = handcuffViolations.length === 0;
     const capStatus = {
       isAboveSecond: team.currentApronStatus.includes('2nd Apron'),
     };
 
     // --- Salary matching (2023 CBA + TPE)
-    const totalTPE = (team.tradeExceptions ?? []).reduce(
-      (sum, te) => sum + te.remaining,
-      0
-    );
-    const { ceiling: allowable } = calculateAllowableIncoming({
-      currentTeamSalary: team.teamTotalSalary,
-      salaryOut: team.salaryOut,
-      secondApronStatus: capStatus.isAboveSecond,
-      yearKey: seasonKey,
-      tpeAmount: totalTPE,
-    });
+    const allowable = getIncomingCeilingForTeam(team);
     const salaryPass = team.salaryIn <= allowable;
 
     // --- Cash limitations
@@ -1102,6 +1211,15 @@ export function validateTrade({ teams, capProjections, currentYear }) {
         : 'Hard cap exceeded (1st Apron)';
 
     const rules = {
+      secondApron: {
+        passed: handcuffPass,
+        message: handcuffPass
+          ? 'Second apron handcuffs satisfied'
+          : 'Second apron violation',
+        details:
+          handcuffViolations.join('; ') || 'Second apron restrictions',
+        violations: handcuffViolations,
+      },
       salaryMatching: {
         passed: salaryPass,
         message: salaryPass ? 'Salary match valid' : 'Salary mismatch',
@@ -1158,6 +1276,7 @@ export function validateTrade({ teams, capProjections, currentYear }) {
     };
 
     const violations = [
+      ...rules.secondApron.violations,
       ...rules.hardCap.violations,
       ...rules.salaryMatching.violations,
       ...rules.aggregation.violations,
@@ -1168,6 +1287,7 @@ export function validateTrade({ teams, capProjections, currentYear }) {
       ...rules.tradeExceptions.violations,
     ];
     const teamPass =
+      handcuffPass &&
       salaryPass &&
       cashPass &&
       aggregationPass &&
@@ -1179,6 +1299,7 @@ export function validateTrade({ teams, capProjections, currentYear }) {
       ...team,
       rules,
       checks: {
+        handcuffPass,
         salaryPass,
         cashPass,
         aggregationPass,
@@ -1261,4 +1382,4 @@ export function hasStepienViolation(picks = []) {
   return false;
 }
 
-export { debug as tradeDebug };
+export { computeMatchingValues, debug as tradeDebug };
