@@ -32,6 +32,20 @@ export const CBA_BY_YEAR = {
 export const getMatchingTiers = (year = 2025) =>
   CBA_BY_YEAR[year]?.matchingTiers || CBA_BY_YEAR[2025].matchingTiers;
 
+// Outgoing thresholds for band selection (symbolic; configured elsewhere)
+export const OUTGOING_BAND1_MAX = 'BAND1'; // placeholder token
+export const OUTGOING_BAND2_MAX = 'BAND2'; // placeholder token
+
+// Matching bands for teams below first apron (2023+):
+// A) S_out ≤ BAND1  ⇒ allowed = 200% * S_out + 250k
+// B) BAND1 < S_out ≤ BAND2 ⇒ allowed = S_out + 7.5M
+// C) S_out > BAND2  ⇒ allowed = 125% * S_out + 250k
+export const MATCHING_BANDS_2023 = [
+  { upTo: OUTGOING_BAND1_MAX, allowed: (out) => 2.0 * out + 250_000 },
+  { upTo: OUTGOING_BAND2_MAX, allowed: (out) => out + 7_500_000 },
+  { upTo: Infinity, allowed: (out) => 1.25 * out + 250_000 },
+];
+
 /* --------------------------------------------------------------------------
      Misc “structural” constants (unchanged)
   -------------------------------------------------------------------------- */

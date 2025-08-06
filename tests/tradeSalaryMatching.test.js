@@ -5,7 +5,7 @@ import { describe, it, expect } from 'vitest';
 import {
   calculateAllowableIncoming,
   getIncomingCeiling,
-} from '@/utils/architect/tradeHelpers';
+} from '@/utils/architect/tradeHelpers.js';
 
 const capSettings = {
   salaryCap: 141_000_000,
@@ -14,22 +14,22 @@ const capSettings = {
 };
 
 describe('CBA salary-matching tiers (2025)', () => {
-  it('Tier 1 – ≤ $7.5 M uses 200 %', () => {
-    expect(getIncomingCeiling(150_000_000, 7_000_000, [], capSettings)).toBe(
-      14_000_000
-    ); // 7 M × 2.0
+  it('Band 1 – ≤ BAND1 uses 200% + $250k', () => {
+    expect(getIncomingCeiling(150_000_000, 6_000_000, [], capSettings)).toBe(
+      12_250_000
+    ); // 6 M × 2.0 + 0.25 M
   });
 
-  it('Tier 2 – 175 % + $100 k for $8-14.6 M', () => {
+  it('Band 2 – between thresholds adds $7.5 M', () => {
     expect(getIncomingCeiling(150_000_000, 10_000_000, [], capSettings)).toBe(
-      17_600_000
-    ); // 10 M × 1.75 + 0.1 M
+      17_500_000
+    ); // 10 M + 7.5 M
   });
 
-  it('Tier 3 – ≥ $14.62 M adds flat $5 M', () => {
+  it('Band 3 – above upper threshold uses 125% + $250k', () => {
     expect(getIncomingCeiling(150_000_000, 20_000_000, [], capSettings)).toBe(
-      25_000_000
-    ); // 20 M + 5 M
+      25_250_000
+    ); // 20 M × 1.25 + 0.25 M
   });
 
   it('Second-apron teams capped at 100 %', () => {
@@ -59,7 +59,7 @@ describe('calculateAllowableIncoming returns *margin*', () => {
       [],
       capSettings
     );
-    expect(margin).toBe(7_000_000); // 14 M ceiling – 7 M outgoing
+    expect(margin).toBe(7_500_000); // 14.5 M ceiling – 7 M outgoing
   });
 });
 /**************** END SCSP™ BLOCK: tradeSalaryMatching.test.js  *************/
