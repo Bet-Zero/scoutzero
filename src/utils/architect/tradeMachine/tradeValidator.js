@@ -13,10 +13,8 @@ import {
   passesStepienRule,
 } from '@/utils/architect/stepienUtils.js';
 import { BYC_PERCENT } from '@/utils/architect/cbaConstants.js';
-import {
-  rosterSizeAfterTrade,
-  passesRosterSizeRule,
-} from '@/utils/architect/rosterUtils.js';
+import { passesRosterWindow } from '@/utils/architect/rosterUtils.js';
+import { validationFlags } from '@/config/validationFlags.js';
 import { hasPriorYearTPE } from '@/utils/architect/tradeMachine/tpeUtils.js';
 
 // ===== DEBUGGER =====
@@ -246,6 +244,23 @@ export function enforceSecondApronHandcuffs(teamCtx, tradeCtx = {}) {
   }
 
   return violations;
+}
+
+export function enforceRosterWindow(
+  teamCtx,
+  tradeCtx = {},
+  { warn = () => {}, reject = () => {} } = {}
+) {
+  const ok = passesRosterWindow(teamCtx.postTradeTeam, {
+    graceMode: tradeCtx?.graceMode,
+  });
+  if (!ok) {
+    const msg =
+      `Roster window: must finish with 14–15 standard contracts` +
+      (tradeCtx?.graceMode ? ` (grace 13–17)` : ``);
+    if (validationFlags.rosterEnforcement === 'error') reject(msg);
+    if (validationFlags.rosterEnforcement === 'warn') warn(msg);
+  }
 }
 
 // ===== TRADE EXCEPTION VALIDATION =====
@@ -1190,12 +1205,8 @@ export function validateTrade({ teams, capProjections, currentYear }) {
     }
     const stepienPass = stepienViolations.length === 0;
 
-    const rosterCnt = rosterSizeAfterTrade({
-      playersOnRoster: team.team.players,
-      playersIncoming: team.incomingPlayers,
-      playersOutgoing: team.outgoingPlayers,
-    });
-    const rosterPass = passesRosterSizeRule(rosterCnt);
+    const rosterCnt = team.projectedRosterCount;
+    const rosterPass = true;
 
     const capSheet = team.hardCapped
       ? { ...team.team, hardCapTriggered: 'FirstApron' }
