@@ -21,6 +21,7 @@ import {
   isExpiredTPE,
   canUseTPE,
 } from '@/utils/architect/tradeMachine/tpeUtils.js';
+import { isFrozenPick } from '@/utils/architect/draftPickUtils.js';
 import {
   isWithinMoratorium,
   violates30Day,
@@ -228,9 +229,7 @@ export function enforceSecondApronHandcuffs(teamCtx, tradeCtx = {}) {
 
   const season = teamCtx.context?.yearKey;
   const usedTPEIds = new Set(
-    incoming
-      .filter((p) => p.acquiredViaTPE && p.tpeId)
-      .map((p) => p.tpeId)
+    incoming.filter((p) => p.acquiredViaTPE && p.tpeId).map((p) => p.tpeId)
   );
   if (usedTPEIds.size && season != null) {
     (teamCtx.tradeExceptions || []).forEach((tpe) => {
@@ -244,7 +243,9 @@ export function enforceSecondApronHandcuffs(teamCtx, tradeCtx = {}) {
         createdSeason != null &&
         createdSeason < season
       ) {
-        violations.push('Second apron team cannot use prior-year trade exceptions');
+        violations.push(
+          'Second apron team cannot use prior-year trade exceptions'
+        );
       }
     });
   }
@@ -276,7 +277,7 @@ export function enforceRosterWindow(
 export function enforceTiming(
   teamCtx,
   tradeCtx = {},
-  { warn = () => {}, reject = () => {} } = {},
+  { warn = () => {}, reject = () => {} } = {}
 ) {
   const enforcement = validationFlags.timingEnforcement;
   const tradeDate = new Date(tradeCtx.tradeDate || Date.now());
@@ -349,12 +350,12 @@ export function validateTradeExceptions(team) {
       return;
     }
     if (usedTPEs.has(tpe.id)) {
-      violations.push(`TPE ${tpe.id} is being used multiple times in this trade`);
+      violations.push(
+        `TPE ${tpe.id} is being used multiple times in this trade`
+      );
       return;
     }
-    if (
-      team.outgoingPlayers?.some((p) => p.toTeamId === player.fromTeamId)
-    ) {
+    if (team.outgoingPlayers?.some((p) => p.toTeamId === player.fromTeamId)) {
       violations.push('Cannot aggregate trade exception with outgoing salary');
       return;
     }
@@ -453,14 +454,21 @@ export function validateSignAndTrade(team, tradeCtx = {}) {
     sntOut.forEach((p) => {
       const teamId = team.team?.id ?? team.teamId;
       if (p.originTeamId && p.originTeamId !== teamId) {
-        violations.push('Sign-and-trade must be executed by player\'s original team');
+        violations.push(
+          "Sign-and-trade must be executed by player's original team"
+        );
       }
     });
   }
 
   if (sntIn.length > 0) {
-    if (team.usedTaxpayerMLEThisSeason || team.team?.usedTaxpayerMLEThisSeason) {
-      violations.push('Teams using taxpayer MLE cannot receive sign-and-trade players');
+    if (
+      team.usedTaxpayerMLEThisSeason ||
+      team.team?.usedTaxpayerMLEThisSeason
+    ) {
+      violations.push(
+        'Teams using taxpayer MLE cannot receive sign-and-trade players'
+      );
     }
     if (
       wouldExceedHardCap(
@@ -587,7 +595,10 @@ const getMatchingValue = (player, yearKey, isOutgoing = false) => {
   const base = getSalaryForYear(player, yearKey);
   if (isOutgoing) {
     if (player.isBYC)
-      return outgoingValueBYC({ newSalary: base, priorSalary: player.previousSalary });
+      return outgoingValueBYC({
+        newSalary: base,
+        priorSalary: player.previousSalary,
+      });
     if (player.isPoisonPill) return player.currentSalary || base; // PPP
     return base;
   }
@@ -595,7 +606,8 @@ const getMatchingValue = (player, yearKey, isOutgoing = false) => {
   if (player.isPoisonPill) {
     const total =
       (player.currentSalary ?? base) +
-      (player.extensionYears?.reduce((sum, y) => sum + (y.salary || 0), 0) || 0);
+      (player.extensionYears?.reduce((sum, y) => sum + (y.salary || 0), 0) ||
+        0);
     const years = 1 + (player.extensionYears?.length || 0);
     return total / years;
   }
@@ -634,16 +646,16 @@ function computeMatchingValues({
       if (player.isPoisonPill) {
         const total =
           (player.currentSalary ?? newSalary) +
-          (player.extensionYears?.reduce((sum, y) => sum + (y.salary || 0), 0) || 0);
+          (player.extensionYears?.reduce(
+            (sum, y) => sum + (y.salary || 0),
+            0
+          ) || 0);
         const years = 1 + (player.extensionYears?.length || 0);
         incoming = total / years;
       }
 
       const pct = Math.min(player.tradeKickerPct ?? 0, 0.15);
-      const waived = Math.min(
-        Math.max(player.tradeKickerWaivedPct ?? 0, 0),
-        1
-      );
+      const waived = Math.min(Math.max(player.tradeKickerWaivedPct ?? 0, 0), 1);
       const effPct = pct * (1 - waived);
       if (effPct > 0 && player.remainingGuaranteedOnCurrentContract > 0) {
         const gross = effPct * player.remainingGuaranteedOnCurrentContract;
@@ -793,7 +805,12 @@ const TRADE_RULES = {
 };
 
 // ===== MAIN VALIDATOR =====
-export function validateTrade({ teams, capProjections, currentYear, tradeCtx = {} }) {
+export function validateTrade({
+  teams,
+  capProjections,
+  currentYear,
+  tradeCtx = {},
+}) {
   // Helper functions
   const isExpired = (dateStr) => dateStr && new Date(dateStr) < new Date();
   const formatDate = (dateStr) =>
@@ -1014,7 +1031,9 @@ export function validateTrade({ teams, capProjections, currentYear, tradeCtx = {
       sntOutPlayers.forEach((p) => {
         const teamId = team.team?.id ?? team.teamId;
         if (p.originTeamId && p.originTeamId !== teamId) {
-          violations.push("Sign-and-trade must be executed by player's original team.");
+          violations.push(
+            "Sign-and-trade must be executed by player's original team."
+          );
         }
       });
     }
@@ -1024,7 +1043,9 @@ export function validateTrade({ teams, capProjections, currentYear, tradeCtx = {
         team.usedTaxpayerMLEThisSeason ||
         team.team?.usedTaxpayerMLEThisSeason
       ) {
-        violations.push('Teams using taxpayer MLE cannot receive sign-and-trade players.');
+        violations.push(
+          'Teams using taxpayer MLE cannot receive sign-and-trade players.'
+        );
       }
       if (
         wouldExceedHardCap(
@@ -1134,7 +1155,8 @@ export function validateTrade({ teams, capProjections, currentYear, tradeCtx = {
       0
     );
     const salaryIn = incomingPlayers.reduce(
-      (sum, p) => sum + (p.matchIncoming ?? getMatchingValue(p, yearKey, false)),
+      (sum, p) =>
+        sum + (p.matchIncoming ?? getMatchingValue(p, yearKey, false)),
       0
     );
     const teamTotalSalary = team.team?.totalSalary || 0;
@@ -1225,14 +1247,14 @@ export function validateTrade({ teams, capProjections, currentYear, tradeCtx = {
       team.postTradeStatus.isAtOrAboveSecondApron &&
       hasPriorYearTPE(team.appliedTPEs, seasonKey)
     ) {
-      handcuffViolations.push(
-        'Second apron: prior-year TPEs cannot be used.'
-      );
+      handcuffViolations.push('Second apron: prior-year TPEs cannot be used.');
     }
     const handcuffPass = handcuffViolations.length === 0;
     const capStatus = {
       isAboveSecond: team.currentApronStatus.includes('2nd Apron'),
     };
+    const teamIsAtOrAboveSecondApron =
+      capStatus.isAboveSecond || team.postTradeStatus.isAtOrAboveSecondApron;
 
     // --- Salary matching (2023 CBA + TPE)
     const allowable = getIncomingCeilingForTeam(team);
@@ -1292,6 +1314,19 @@ export function validateTrade({ teams, capProjections, currentYear, tradeCtx = {
     if (farthestYear - seasonKey > 7) {
       stepienViolations.push('Cannot trade picks beyond 7 years out.');
     }
+    if (
+      team.outgoingPicks.some((p) =>
+        isFrozenPick(p, {
+          teamId: team.teamId,
+          teamIsAtOrAboveSecondApron,
+          currentSeason: seasonKey,
+        })
+      )
+    ) {
+      stepienViolations.push(
+        'Second apron team cannot trade its own 7-year-out first-round pick.'
+      );
+    }
     const stepienPass = stepienViolations.length === 0;
 
     const rosterCnt = team.projectedRosterCount;
@@ -1316,8 +1351,7 @@ export function validateTrade({ teams, capProjections, currentYear, tradeCtx = {
         message: handcuffPass
           ? 'Second apron handcuffs satisfied'
           : 'Second apron violation',
-        details:
-          handcuffViolations.join('; ') || 'Second apron restrictions',
+        details: handcuffViolations.join('; ') || 'Second apron restrictions',
         violations: handcuffViolations,
       },
       salaryMatching: {
