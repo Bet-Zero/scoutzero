@@ -18,19 +18,24 @@ export function birdRightsVetoApplies(player, destTeamId) {
   );
 }
 
-// New granular consent checks used by tradeValidator
-export function requiresFullNTCConsent(player) {
+// Simple consent gates for tradeValidator
+export function hasFullNTC(player) {
   return !!player?.contract?.fullNTC;
 }
 
-export function requiresLimitedNTCConsent(player, destTeamId) {
-  const lst = player?.contract?.limitedNTCList || [];
-  return Array.isArray(lst) && lst.length > 0 && !lst.includes(destTeamId);
+export function destinationRequiresLimitedNTCConsent(player, destTeamId) {
+  const lst = player?.contract?.limitedNTCList;
+  if (!Array.isArray(lst) || lst.length === 0) return false;
+  return !lst.includes(destTeamId);
 }
 
-export function requiresOneYearBirdVetoConsent(player, destTeam) {
+export function requiresBirdOneYearConsent(player) {
   const isOneYear = player?.contract?.yearsRemaining === 1;
-  const hasBird = player?.rights?.bird === true;
-  const wouldLoseBird = isOneYear && hasBird;
-  return !!wouldLoseBird;
+  const hasBird = !!player?.rights?.bird;
+  return isOneYear && hasBird;
 }
+
+// Backwards compatibility exports
+export const requiresFullNTCConsent = hasFullNTC;
+export const requiresLimitedNTCConsent = destinationRequiresLimitedNTCConsent;
+export const requiresOneYearBirdVetoConsent = requiresBirdOneYearConsent;

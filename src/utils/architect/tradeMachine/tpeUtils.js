@@ -1,3 +1,6 @@
+export const SECOND_APRON_TPE_BLOCK =
+  'Second apron team cannot use trade exceptions';
+
 export function isPriorYearTPE(tpe, season) {
   const created =
     tpe?.season ?? tpe?.createdSeason ?? tpe?.createdAtSeason ?? season;
