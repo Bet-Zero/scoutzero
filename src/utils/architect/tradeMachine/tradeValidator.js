@@ -27,6 +27,7 @@ import {
   violates30Day,
   violates2MonthAggregation,
 } from '@/utils/architect/timingUtils.js';
+import { requiresConsent } from '@/utils/architect/consentUtils.js';
 
 // ===== DEBUGGER =====
 const debug = {
@@ -1185,6 +1186,7 @@ export function validateTrade({
     const isOverCap = teamTotalSalary > (capSettings.cap || 0);
 
     const baseTeam = {
+      teamIndex: idx,
       teamId: team.team?.id,
       teamName: team.team?.teamName || 'Unknown Team',
       team: team.team,
@@ -1329,6 +1331,27 @@ export function validateTrade({
     }
     const stepienPass = stepienViolations.length === 0;
 
+    const consentViolations = [];
+    const reacqViolations = [];
+    team.outgoingPlayers.forEach((p) => {
+      const destTeamId =
+        p.tradeTo !== undefined
+          ? p.tradeTo
+          : teams[team.teamIndex === 0 ? 1 : 0]?.team?.id;
+      if (requiresConsent(p, destTeamId) && p.consent !== true) {
+        consentViolations.push(`${p.name} requires trade consent`);
+      }
+    });
+    team.incomingPlayers.forEach((p) => {
+      if (tradeCtx.wasTradedAwayWithinOneYear?.(p.id, team.teamId)) {
+        reacqViolations.push(
+          `${p.name} cannot be reacquired by ${team.teamId} within one year`
+        );
+      }
+    });
+    const consentPass = consentViolations.length === 0;
+    const reacqPass = reacqViolations.length === 0;
+
     const rosterCnt = team.projectedRosterCount;
     const rosterPass = true;
 
@@ -1415,6 +1438,20 @@ export function validateTrade({
           details: tpeViolations.join('; '),
         };
       })(),
+      consent: {
+        passed: consentPass,
+        message: consentPass ? 'Consent valid' : 'Consent required',
+        details: consentViolations.join('; '),
+        violations: consentViolations,
+      },
+      reacquisition: {
+        passed: reacqPass,
+        message: reacqPass
+          ? 'Re-acquisition valid'
+          : 'Re-acquisition violation',
+        details: reacqViolations.join('; '),
+        violations: reacqViolations,
+      },
     };
 
     const violations = [
@@ -1427,6 +1464,8 @@ export function validateTrade({
       ...rules.roster.violations,
       ...rules.signAndTrade.violations,
       ...rules.tradeExceptions.violations,
+      ...rules.consent.violations,
+      ...rules.reacquisition.violations,
     ];
     const teamPass =
       handcuffPass &&
