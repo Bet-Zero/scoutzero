@@ -13,7 +13,7 @@ describe('RankingSetup', () => {
     render(<RankingSetup playerPool={samplePlayers} onComplete={handle} />);
     const top = screen.getByTestId('top-tier');
     fireEvent.click(within(top).getByText('Alpha'));
-    fireEvent.click(screen.getByText('Ready to Rank'));
+    fireEvent.click(screen.getByText('Start'));
     expect(handle).toHaveBeenCalledWith({
       topTier: ['1'],
       bottomTier: [],
