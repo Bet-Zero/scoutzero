@@ -429,34 +429,54 @@ export function validateCash(team) {
 }
 
 // SIGN-AND-TRADE RULES VALIDATION
-export function validateSignAndTrade(team) {
+export function validateSignAndTrade(team, tradeCtx = {}) {
   const violations = [];
-  const sntPlayers = team.incomingPlayers.filter(
+  const sntIn = team.incomingPlayers.filter(
     (p) => p.isSignAndTrade || p.signAndTrade
   );
-  const signAndTradeCount = team.sends.filter((p) => p.signAndTrade).length;
+  const sntOut = team.sends.filter((p) => p.signAndTrade);
+  const anySnt = sntIn.length > 0 || sntOut.length > 0;
 
-  if (sntPlayers.length > 0) {
-    // === INSERT right after sign-and-trade aggregation check ===
-    if (
-      signAndTradeCount > 0 &&
-      (team.sends.length > 1 || team.picksOut.length)
-    ) {
+  if (!anySnt) return violations;
+
+  if (tradeCtx.offseason === false) {
+    violations.push('Sign-and-trade only permitted in offseason');
+  }
+
+  if (sntOut.length > 0) {
+    if (sntOut.length > 0 && (team.sends.length > 1 || team.picksOut.length)) {
       violations.push('Sign-and-trade player must be traded alone');
     }
+    sntOut.forEach((p) => {
+      const teamId = team.team?.id ?? team.teamId;
+      if (p.originTeamId && p.originTeamId !== teamId) {
+        violations.push('Sign-and-trade must be executed by player\'s original team');
+      }
+    });
+  }
 
-    // Hard cap check against dynamic first apron
-    const firstApron =
-      team.context.capSettings?.firstApron ?? CBA_THRESHOLDS.FIRST_APRON;
-    if (team.projectedSalary > firstApron) {
+  if (sntIn.length > 0) {
+    if (team.usedTaxpayerMLEThisSeason || team.team?.usedTaxpayerMLEThisSeason) {
+      violations.push('Teams using taxpayer MLE cannot receive sign-and-trade players');
+    }
+    if (
+      wouldExceedHardCap(
+        { hardCapTriggered: 'FirstApron' },
+        team.projectedSalary,
+        team.context.capSettings
+      )
+    ) {
       violations.push('Sign-and-trade would hard-cap team at 1st apron');
     }
-
-    // Contract length check
-    sntPlayers.forEach((p) => {
+    team.hardCapped = true;
+    if (team.team) team.team.hardCapTriggered = true;
+    sntIn.forEach((p) => {
       const years = p.contractYears ?? p.years ?? 0;
       if (years < 3 || years > 4) {
         violations.push(`S&T contract for ${p.name} must be 3-4 years`);
+      }
+      if (p.firstYearGuaranteed === false) {
+        violations.push(`First year of ${p.name}\'s deal must be guaranteed`);
       }
     });
   }
@@ -539,12 +559,12 @@ function validateSecondApronRules(team) {
 }
 
 // MAIN NEW RULES VALIDATOR
-export function validateAllNewRules(team, allTeams) {
+export function validateAllNewRules(team, allTeams, tradeCtx = {}) {
   return [
     ...validateTradeExceptions(team),
     ...validateDraftPicks(team, allTeams),
     ...validateCash(team),
-    ...validateSignAndTrade(team),
+    ...validateSignAndTrade(team, tradeCtx),
     ...validateBYC(team),
     ...validateSecondApronRules(team),
   ];
@@ -770,7 +790,7 @@ const TRADE_RULES = {
 };
 
 // ===== MAIN VALIDATOR =====
-export function validateTrade({ teams, capProjections, currentYear }) {
+export function validateTrade({ teams, capProjections, currentYear, tradeCtx = {} }) {
   // Helper functions
   const isExpired = (dateStr) => dateStr && new Date(dateStr) < new Date();
   const formatDate = (dateStr) =>
@@ -958,31 +978,70 @@ export function validateTrade({ teams, capProjections, currentYear }) {
 
   const validateSignAndTrade = (team) => {
     const violations = [];
-    const { outgoingPlayers, incomingPlayers, projectedSalary, context } = team;
+    const {
+      outgoingPlayers,
+      incomingPlayers,
+      projectedSalary,
+      context,
+      outgoingPicks = [],
+    } = team;
     const { capSettings } = context;
 
-    // Logic for team SENDING a S&T player
     const sntOutPlayers = outgoingPlayers.filter((p) => p.signAndTrade);
-    if (sntOutPlayers.length > 0) {
-      if (outgoingPlayers.length > 1) {
-        // A team can't send other players with a S&T player
-        violations.push('Sign-and-trade player must be traded alone.');
-      }
+    const sntInPlayers = incomingPlayers.filter((p) => p.signAndTrade);
+    const anySnt = sntOutPlayers.length > 0 || sntInPlayers.length > 0;
+
+    if (!anySnt) {
+      return {
+        passed: true,
+        violations: [],
+        message: 'S&T valid',
+        details: '',
+      };
     }
 
-    // Logic for team RECEIVING a S&T player
-    const sntInPlayers = incomingPlayers.filter((p) => p.signAndTrade);
+    if (tradeCtx.offseason === false) {
+      violations.push('S&T only in offseason.');
+    }
+
+    if (sntOutPlayers.length > 0) {
+      if (outgoingPlayers.length > 1 || outgoingPicks.length) {
+        violations.push('Sign-and-trade player must be traded alone.');
+      }
+      sntOutPlayers.forEach((p) => {
+        const teamId = team.team?.id ?? team.teamId;
+        if (p.originTeamId && p.originTeamId !== teamId) {
+          violations.push("Sign-and-trade must be executed by player's original team.");
+        }
+      });
+    }
+
     if (sntInPlayers.length > 0) {
-      // S&T hard-caps team at first apron.
-      if (projectedSalary > capSettings.firstApron) {
+      if (
+        team.usedTaxpayerMLEThisSeason ||
+        team.team?.usedTaxpayerMLEThisSeason
+      ) {
+        violations.push('Teams using taxpayer MLE cannot receive sign-and-trade players.');
+      }
+      if (
+        wouldExceedHardCap(
+          { hardCapTriggered: 'FirstApron' },
+          projectedSalary,
+          capSettings
+        )
+      ) {
         violations.push('S&T triggers hard-cap breach.');
       }
-
+      team.hardCapped = true;
+      if (team.team) team.team.hardCapTriggered = true;
       sntInPlayers.forEach((player) => {
         const years = player.contractYears || player.contract_clean?.years || 0;
         const correctYears = years >= 3 && years <= 4;
         if (!correctYears) {
           violations.push('S&T contract must be 3-4 years.');
+        }
+        if (player.firstYearGuaranteed === false) {
+          violations.push('S&T first year must be guaranteed.');
         }
       });
     }
@@ -1187,7 +1246,7 @@ export function validateTrade({ teams, capProjections, currentYear }) {
   // Run all validations
   const validatedTeams = teamResults.map((team) => {
     const seasonKey = team.context.yearKey;
-    const handcuffViolations = enforceSecondApronHandcuffs(team, {});
+    const handcuffViolations = enforceSecondApronHandcuffs(team, tradeCtx);
     if (
       team.postTradeStatus.isAtOrAboveSecondApron &&
       hasPriorYearTPE(team.appliedTPEs, seasonKey)
