@@ -19,19 +19,20 @@ import {
   createTPE,
   isExpiredTPE,
   canUseTPE,
+  isPriorYearTPE,
 } from '@/utils/architect/tradeMachine/tpeUtils.js';
 import { isFrozenPick } from '@/utils/architect/draftPickUtils.js';
 import {
   isWithinMoratorium,
   violates30Day,
   violates2MonthAggregation,
-  violatesReacquisitionBar,
 } from '@/utils/architect/timingUtils.js';
 import {
-  requiresConsent,
-  hasConsent,
-  birdRightsVetoApplies,
+  requiresFullNTCConsent,
+  requiresLimitedNTCConsent,
+  requiresOneYearBirdVetoConsent,
 } from '@/utils/architect/consentUtils.js';
+import { violatesReacquisitionBar } from '@/utils/architect/reacqUtils.js';
 import {
   getSeasonalCashCaps,
   computeSeasonCashLedger,
@@ -227,12 +228,7 @@ export function enforceSecondApronHandcuffs(teamCtx, tradeCtx = {}) {
     violations.push('Second apron teams cannot aggregate salaries');
   }
 
-  if (
-    teamCtx.cashSent > 0 ||
-    teamCtx.cashReceived > 0 ||
-    teamCtx.cashInvolved ||
-    tradeCtx.cashInvolved
-  ) {
+  if (teamCtx.cashSent > 0 || teamCtx.cashReceived > 0) {
     violations.push('Second apron team cannot include cash in trades');
   }
 
@@ -242,19 +238,8 @@ export function enforceSecondApronHandcuffs(teamCtx, tradeCtx = {}) {
   );
   if (usedTPEIds.size && season != null) {
     (teamCtx.tradeExceptions || []).forEach((tpe) => {
-      const createdSeason =
-        tpe.createdSeason ||
-        tpe.createdAtSeason ||
-        tpe.season ||
-        (tpe.createdAt ? new Date(tpe.createdAt).getFullYear() : undefined);
-      if (
-        usedTPEIds.has(tpe.id) &&
-        createdSeason != null &&
-        createdSeason < season
-      ) {
-        violations.push(
-          'Second apron team cannot use prior-year trade exceptions'
-        );
+      if (usedTPEIds.has(tpe.id) && isPriorYearTPE(tpe, season)) {
+        violations.push('Second apron: prior-year TPEs cannot be used.');
       }
     });
   }
@@ -294,17 +279,27 @@ export function enforceConsent(
 ) {
   const enforcement = validationFlags.consent;
   const violations = [];
+  const consentMap = tradeCtx.consent || {};
+  const teamNames = tradeCtx.teamNames || {};
   (teamCtx.outgoingPlayers || []).forEach((p) => {
     const destId = p.tradeTo;
     if (destId == null) return;
-    if (requiresConsent(p, destId) && !hasConsent(p)) {
-      const msg = 'Player NTC — consent required';
+    const consent = consentMap[p.id] || {};
+    const destName = teamNames[destId] || destId;
+    if (requiresFullNTCConsent(p) && consent.full !== true) {
+      const msg = `Full NTC: ${p.name} must consent.`;
       violations.push({ message: msg, details: p.name });
       if (enforcement === 'error') reject(msg);
       if (enforcement === 'warn') warn(msg);
     }
-    if (birdRightsVetoApplies(p, destId) && !hasConsent(p)) {
-      const msg = '1-yr Bird veto — consent required';
+    if (requiresLimitedNTCConsent(p, destId) && consent.limited !== true) {
+      const msg = `Limited NTC: ${p.name} has not approved ${destName}.`;
+      violations.push({ message: msg, details: p.name });
+      if (enforcement === 'error') reject(msg);
+      if (enforcement === 'warn') warn(msg);
+    }
+    if (requiresOneYearBirdVetoConsent(p, teamCtx.team) && consent.bird !== true) {
+      const msg = `One-year Bird veto: ${p.name} must consent.`;
       violations.push({ message: msg, details: p.name });
       if (enforcement === 'error') reject(msg);
       if (enforcement === 'warn') warn(msg);
@@ -316,15 +311,17 @@ export function enforceConsent(
 export function enforceEligibility(
   teamCtx,
   ctx = {},
-  { warn = () => {}, reject = () => {} } = {}
+  { warn = () => {}, reject = () => {} } = {},
 ) {
   const enforcement = validationFlags.reAcquisition;
   const violations = [];
+  const now = ctx.now ? new Date(ctx.now).getTime() : Date.now();
   (teamCtx.incomingPlayers || []).forEach((p) => {
-    if (violatesReacquisitionBar(p, teamCtx.teamId, ctx.asOfDate)) {
-      const msg = `Re-acquisition bar: ${teamCtx.teamName} cannot reacquire ${p.name} until ${formatDate(
-        p.eligibleReacqDate
-      )}`;
+    if (violatesReacquisitionBar(p, teamCtx.teamId, now)) {
+      const last = p.history?.lastSeparatedFromTeam?.[teamCtx.teamId];
+      const eligible = new Date(last);
+      eligible.setFullYear(eligible.getFullYear() + 1);
+      const msg = `Re-acquisition bar: ${teamCtx.teamName} cannot reacquire ${p.name} until ${formatDate(eligible.toISOString())}`;
       violations.push(msg);
       if (enforcement === 'error') reject(msg);
       if (enforcement === 'warn') warn(msg);
@@ -418,11 +415,16 @@ export function validateTradeExceptions(team) {
       violations.push('Cannot aggregate trade exception with outgoing salary');
       return;
     }
+    if (
+      team.postTradeStatus?.isAtOrAboveSecondApron &&
+      isPriorYearTPE(tpe, yearKey)
+    ) {
+      violations.push('Second apron: prior-year TPEs cannot be used.');
+      return;
+    }
     if (!canUseTPE(team, tpe, { currentSeason: yearKey, onDate })) {
       if (isExpiredTPE(tpe, onDate)) {
         violations.push(`Trade exception ${tpe.id} is expired`);
-      } else if (team.postTradeStatus?.isAtOrAboveSecondApron) {
-        violations.push('Second apron team cannot use trade exceptions');
       } else {
         violations.push(`Cannot use trade exception ${tpe.id}`);
       }
@@ -899,6 +901,10 @@ export function validateTrade({
 
   computeMatchingValues({ teams, yearKey });
 
+  const teamNameMap = Object.fromEntries(
+    teams.map((t) => [t.team?.id, t.team?.teamName])
+  );
+
   // ======================
   // VALIDATOR IMPLEMENTATIONS
   // ======================
@@ -1332,17 +1338,19 @@ export function validateTrade({
     };
     const teamIsAtOrAboveSecondApron =
       capStatus.isAboveSecond || team.postTradeStatus.isAtOrAboveSecondApron;
-
-    const consentArr = enforceConsent(team, tradeCtx);
+    const signAndTradeResult = validateSignAndTrade(team);
+    const consentArr = enforceConsent(team, {
+      ...tradeCtx,
+      teamNames: teamNameMap,
+    });
     const consentPass =
       consentArr.length === 0 || validationFlags.consent === 'warn';
     const consentViolations = consentArr.map((v) => v.message);
     const consentDetails = consentArr.map((v) => v.details).join('; ');
-
-    const reacqViolations = enforceEligibility(
-      team,
-      { asOfDate: tradeCtx.tradeDate },
-    );
+    const signAndTradePass = signAndTradeResult.passed;
+    const reacqViolations = enforceEligibility(team, {
+      now: tradeCtx.tradeDate,
+    });
     const reacqPass =
       reacqViolations.length === 0 || validationFlags.reAcquisition === 'warn';
 
@@ -1458,6 +1466,7 @@ export function validateTrade({
         : 'Hard cap exceeded (1st Apron)';
 
     const rules = {
+      signAndTrade: signAndTradeResult,
       secondApron: {
         passed: handcuffPass,
         message: handcuffPass
@@ -1542,8 +1551,6 @@ export function validateTrade({
             ? []
             : reacqViolations,
       },
-      // Keep other rule checks if needed
-      signAndTrade: validateSignAndTrade(team),
       tradeExceptions: (() => {
         const tpeViolations = validateTradeExceptions(team);
         return {
@@ -1556,6 +1563,7 @@ export function validateTrade({
     };
 
     const violations = [
+      ...rules.signAndTrade.violations,
       ...rules.secondApron.violations,
       ...rules.hardCap.violations,
       ...rules.salaryMatching.violations,
@@ -1566,10 +1574,10 @@ export function validateTrade({
       ...rules.twoWayRoster.violations,
       ...rules.consent.violations,
       ...rules.reAcquisition.violations,
-      ...rules.signAndTrade.violations,
       ...rules.tradeExceptions.violations,
     ];
     const teamPass =
+      signAndTradePass &&
       handcuffPass &&
       salaryPass &&
       cashPass &&
@@ -1585,6 +1593,7 @@ export function validateTrade({
       ...team,
       rules,
       checks: {
+        signAndTradePass,
         handcuffPass,
         salaryPass,
         cashPass,
