@@ -13,9 +13,27 @@ const PlayerButton = ({ player, selected, onClick }) => (
   </button>
 );
 
-const HelperIcon = ({ text }) => (
-  <InformationCircleIcon className="w-4 h-4 text-white/60 ml-1" title={text} />
-);
+const HelperIcon = ({ text }) => {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div
+      className="relative ml-1"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+    >
+      <InformationCircleIcon
+          className="w-4 h-4 text-white/60 cursor-pointer"
+          onClick={() => setOpen((o) => !o)}
+      />
+      {open && (
+        <div className="absolute left-1/2 -translate-x-1/2 mt-1 w-48 rounded bg-black p-2 text-xs text-white z-10">
+          {text}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const RankingSetup = ({ playerPool = [], onComplete }) => {
   const [topTier, setTopTier] = useState([]);
@@ -23,13 +41,13 @@ export const RankingSetup = ({ playerPool = [], onComplete }) => {
   const [anchor, setAnchor] = useState(null);
   const [firstPlace, setFirstPlace] = useState(null);
   const [lastPlace, setLastPlace] = useState(null);
-  const tierCountEstimate = Math.round(playerPool.length * 0.25);
+  const tierCountEstimate = Math.max(1, Math.round(playerPool.length * 0.25));
 
   const toggleMulti = (id, list, setter) => {
     setter((prev) =>
       prev.includes(id)
         ? prev.filter((p) => p !== id)
-        : [...prev, id].slice(0, 4)
+        : [...prev, id].slice(0, tierCountEstimate)
     );
   };
 
@@ -43,7 +61,7 @@ export const RankingSetup = ({ playerPool = [], onComplete }) => {
 
       <div className="mb-4" data-testid="top-tier">
         <h3 className="font-semibold mb-2 flex items-center">
-          Top Tier Selector (2–4 players)
+          Top Tier Selector (~{tierCountEstimate} players)
           <HelperIcon
             text={`Select players you know will finish in the top 25% (~${tierCountEstimate} players)`}
           />
@@ -62,7 +80,7 @@ export const RankingSetup = ({ playerPool = [], onComplete }) => {
 
       <div className="mb-4" data-testid="bottom-tier">
         <h3 className="font-semibold mb-2 flex items-center">
-          Bottom Tier Selector (2–4 players)
+          Bottom Tier Selector (~{tierCountEstimate} players)
           <HelperIcon
             text={`Select players you know will finish in the bottom 25% (~${tierCountEstimate} players)`}
           />
