@@ -16,6 +16,7 @@ import { BYC_PERCENT } from '@/utils/architect/cbaConstants.js';
 import { passesRosterWindow } from '@/utils/architect/rosterUtils.js';
 import { validationFlags } from '@/config/validationFlags.js';
 import { hasPriorYearTPE } from '@/utils/architect/tradeMachine/tpeUtils.js';
+import { isFrozenPick } from '@/utils/architect/draftPickUtils.js';
 import {
   isWithinMoratorium,
   violates30Day,
@@ -1259,6 +1260,8 @@ export function validateTrade({ teams, capProjections, currentYear, tradeCtx = {
     const capStatus = {
       isAboveSecond: team.currentApronStatus.includes('2nd Apron'),
     };
+    const teamIsAtOrAboveSecondApron =
+      capStatus.isAboveSecond || team.postTradeStatus.isAtOrAboveSecondApron;
 
     // --- Salary matching (2023 CBA + TPE)
     const allowable = getIncomingCeilingForTeam(team);
@@ -1317,6 +1320,19 @@ export function validateTrade({ teams, capProjections, currentYear, tradeCtx = {
     }
     if (farthestYear - seasonKey > 7) {
       stepienViolations.push('Cannot trade picks beyond 7 years out.');
+    }
+    if (
+      team.outgoingPicks.some((p) =>
+        isFrozenPick(p, {
+          teamId: team.teamId,
+          teamIsAtOrAboveSecondApron,
+          currentSeason: seasonKey,
+        })
+      )
+    ) {
+      stepienViolations.push(
+        'Second apron team cannot trade its own 7-year-out first-round pick.'
+      );
     }
     const stepienPass = stepienViolations.length === 0;
 
