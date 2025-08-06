@@ -14,3 +14,24 @@ export function violates30Day(p, d) {
 export function violates2MonthAggregation(p, d) {
   return p?.signedDate && daysSince(p.signedDate, d) < 60;
 }
+export function violatesReacquisitionBar(player, acquiringTeamId, asOfDate) {
+  if (!player) return false;
+  const now = new Date(asOfDate || Date.now());
+  if (
+    player.lastTradedFromTeamId === acquiringTeamId &&
+    player.lastTradeDate &&
+    now - new Date(player.lastTradeDate) < 365 * 24 * 60 * 60 * 1000
+  ) {
+    return true;
+  }
+  if (player.wasWaivedByTeamId === acquiringTeamId) {
+    if (player.contractEndDate) {
+      const july1 = new Date(player.contractEndDate);
+      july1.setUTCFullYear(july1.getUTCFullYear() + 1, 6, 1);
+      if (now < july1) return true;
+    } else {
+      return true;
+    }
+  }
+  return false;
+}
