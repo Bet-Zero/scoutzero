@@ -6,6 +6,7 @@
  * -------------------------------------------------------------------------------*/
 import { CBA_BY_YEAR, MATCHING_BANDS_2023 } from '@/utils/architect/cbaConstants.js';
 export { wouldExceedHardCap } from '@/utils/architect/hardCapUtils.js';
+import { isPriorYearTPE } from '@/utils/architect/tradeMachine/tpeUtils.js';
 
 export const getTierThresholds = (yearKey) => {
   const key = String(yearKey); // normalise
@@ -89,7 +90,8 @@ export const getIncomingCeiling = (
     .filter(
       (t) =>
         !t.expired && // legacy tests
-        (!t.expirationDate || Date.parse(t.expirationDate) > Date.now())
+        (!t.expirationDate || Date.parse(t.expirationDate) > Date.now()) &&
+        !(teamTotalSalary >= capSettings.secondApron && isPriorYearTPE(t, yearKey))
     )
     .reduce(
       (sum, t) =>

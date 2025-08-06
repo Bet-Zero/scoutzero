@@ -1,8 +1,18 @@
+export function isPriorYearTPE(tpe, season) {
+  const created =
+    tpe?.season ?? tpe?.createdSeason ?? tpe?.createdAtSeason ?? season;
+  return created < season;
+}
+
+export function isCurrentYearTPE(tpe, season) {
+  const created =
+    tpe?.season ?? tpe?.createdSeason ?? tpe?.createdAtSeason ?? season;
+  return created === season;
+}
+
 export function hasPriorYearTPE(appliedTPEs, currentSeason) {
   if (!Array.isArray(appliedTPEs)) return false;
-  return appliedTPEs.some(
-    (tpe) => (tpe?.createdSeason ?? currentSeason) < currentSeason
-  );
+  return appliedTPEs.some((tpe) => isPriorYearTPE(tpe, currentSeason));
 }
 
 export function createTPE({ teamCtx, outgoing, incoming, tradeDate }) {
@@ -27,6 +37,6 @@ export function isExpiredTPE(tpe, onDate) {
 
 export function canUseTPE(teamCtx, tpe, { currentSeason, onDate }) {
   if (!tpe || isExpiredTPE(tpe, onDate)) return false;
-  if (teamCtx.postTradeStatus?.isAtOrAboveSecondApron) return false;
+  // Second-apron logic handled upstream; this helper only checks expiry.
   return true;
 }
