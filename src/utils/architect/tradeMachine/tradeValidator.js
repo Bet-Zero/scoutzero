@@ -19,7 +19,7 @@ import {
   createTPE,
   isExpiredTPE,
   canUseTPE,
-  isPriorYearTPE,
+  isCurrentSeasonTPE,
   SECOND_APRON_TPE_BLOCK,
 } from '@/utils/architect/tradeMachine/tpeUtils.js';
 import {
@@ -237,28 +237,23 @@ export function enforceSecondApronHandcuffs(teamCtx, tradeCtx = {}) {
     incoming.filter((p) => p.acquiredViaTPE && p.tpeId).map((p) => p.tpeId)
   );
   if (season != null) {
-    let addedGeneric = false;
     let priorAdded = false;
     const addPrior = () => {
       if (!priorAdded) {
         violations.push('Second apron: prior-year TPEs cannot be used.');
         priorAdded = true;
       }
-      if (!addedGeneric) {
-        violations.push(SECOND_APRON_TPE_BLOCK);
-        addedGeneric = true;
-      }
     };
     if (usedTPEIds.size) {
       (teamCtx.tradeExceptions || []).forEach((tpe) => {
-        if (usedTPEIds.has(tpe.id) && isPriorYearTPE(tpe, season)) {
+        if (usedTPEIds.has(tpe.id) && !isCurrentSeasonTPE(tpe, season)) {
           addPrior();
         }
       });
     }
     if (
       Array.isArray(teamCtx.appliedTPEs) &&
-      teamCtx.appliedTPEs.some((tpe) => isPriorYearTPE(tpe, season))
+      teamCtx.appliedTPEs.some((tpe) => !isCurrentSeasonTPE(tpe, season))
     ) {
       addPrior();
     }
@@ -431,6 +426,13 @@ export function validateTradeExceptions(team) {
   const yearKey = team?.context?.yearKey ?? new Date().getFullYear();
   const onDate = team.context?.tradeDate || new Date().toISOString();
 
+  const addBlock = () => {
+    if (!addedGeneric) {
+      violations.push(SECOND_APRON_TPE_BLOCK);
+      addedGeneric = true;
+    }
+  };
+
   team.incomingPlayers.forEach((player) => {
     if (!player.acquiredViaTPE) return;
 
@@ -450,15 +452,10 @@ export function validateTradeExceptions(team) {
       return;
     }
     if (team.postTradeStatus?.isAtOrAboveSecondApron) {
-      const prior = isPriorYearTPE(tpe, yearKey);
-      if (!prior && !addedGeneric) {
-        violations.push(SECOND_APRON_TPE_BLOCK);
-        addedGeneric = true;
+      if (!isCurrentSeasonTPE(tpe, yearKey)) {
+        addBlock();
+        return;
       }
-      if (!prior && isExpiredTPE(tpe, onDate)) {
-        violations.push(`Trade exception ${tpe.id} is expired`);
-      }
-      return;
     }
     if (!canUseTPE(team, tpe, { currentSeason: yearKey, onDate })) {
       if (isExpiredTPE(tpe, onDate)) {
@@ -477,6 +474,15 @@ export function validateTradeExceptions(team) {
     tpe.remaining = tpe.amount - incoming;
     tpe.isUsed = tpe.remaining === 0;
   });
+
+  if (
+    team.postTradeStatus?.isAtOrAboveSecondApron &&
+    Array.isArray(team.appliedTPEs)
+  ) {
+    if (team.appliedTPEs.some((tpe) => !isCurrentSeasonTPE(tpe, yearKey))) {
+      addBlock();
+    }
+  }
 
   return violations;
 }
@@ -1420,6 +1426,24 @@ export function validateTrade({
       if (t.cashSent && defaultDest === idx) cashReceived += t.cashSent;
     });
 
+    const tradeExceptions = (team.team?.tradeExceptions || []).slice();
+
+    // Mark incoming players as TPE acquisitions when applied TPEs are present
+    if (Array.isArray(team.appliedTPEs) && team.appliedTPEs.length) {
+      let i = 0;
+      team.appliedTPEs.forEach((tpe) => {
+        const player = incomingPlayers[i];
+        const id = tpe.id || `applied-${i}`;
+        if (player) {
+          player.acquiredViaTPE = true;
+          player.absorptionMode = 'TPE';
+          player.tpeId = id;
+        }
+        tradeExceptions.push({ ...tpe, id });
+        i += 1;
+      });
+    }
+
     const salaryOut = (team.sends || []).reduce(
       (sum, p) => sum + (p.matchOutgoing ?? getMatchingValue(p, yearKey, true)),
       0
@@ -1478,7 +1502,7 @@ export function validateTrade({
       hardCapped: team.hardCapped || false,
       cashSent: team.cashSent || 0,
       cashReceived: cashReceived,
-      tradeExceptions: team.team?.tradeExceptions || [],
+      tradeExceptions,
       appliedTPEs: team.appliedTPEs || [],
       context: { capSettings, yearKey, tradeDate: tradeCtx.tradeDate },
     };

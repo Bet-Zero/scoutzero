@@ -7,11 +7,14 @@ export function isPriorYearTPE(tpe, season) {
   return created < season;
 }
 
-export function isCurrentYearTPE(tpe, season) {
+export function isCurrentSeasonTPE(tpe, season) {
   const created =
     tpe?.season ?? tpe?.createdSeason ?? tpe?.createdAtSeason ?? season;
   return created === season;
 }
+
+// Backwards compatibility alias
+export const isCurrentYearTPE = isCurrentSeasonTPE;
 
 export function hasPriorYearTPE(appliedTPEs, currentSeason) {
   if (!Array.isArray(appliedTPEs)) return false;
