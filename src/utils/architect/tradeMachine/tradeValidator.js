@@ -250,11 +250,11 @@ export function enforceSecondApronHandcuffs(teamCtx, tradeCtx = {}) {
     let addedGeneric = false;
     (teamCtx.tradeExceptions || []).forEach((tpe) => {
       if (usedTPEIds.has(tpe.id) && isPriorYearTPE(tpe, season)) {
+        violations.push('Second apron: prior-year TPEs cannot be used.');
         if (!addedGeneric) {
           violations.push(SECOND_APRON_TPE_BLOCK);
           addedGeneric = true;
         }
-        violations.push('Second apron: prior-year TPEs cannot be used.');
       }
     });
   }
@@ -435,26 +435,26 @@ export function validateTradeExceptions(team) {
       violations.push('Cannot aggregate trade exception with outgoing salary');
       return;
     }
-    if (
-      team.postTradeStatus?.isAtOrAboveSecondApron &&
-      isPriorYearTPE(tpe, yearKey)
-    ) {
-      if (!addedGeneric) {
-        violations.push(SECOND_APRON_TPE_BLOCK);
-        addedGeneric = true;
-      }
-      violations.push('Second apron: prior-year TPEs cannot be used.');
-      return;
-    }
     if (!canUseTPE(team, tpe, { currentSeason: yearKey, onDate })) {
-      if (!addedGeneric && team.postTradeStatus?.isAtOrAboveSecondApron) {
-        violations.push(SECOND_APRON_TPE_BLOCK);
-        addedGeneric = true;
-      }
-      if (isExpiredTPE(tpe, onDate)) {
-        violations.push(`Trade exception ${tpe.id} is expired`);
+      if (
+        team.postTradeStatus?.isAtOrAboveSecondApron &&
+        isPriorYearTPE(tpe, yearKey)
+      ) {
+        violations.push('Second apron: prior-year TPEs cannot be used.');
+        if (!addedGeneric) {
+          violations.push(SECOND_APRON_TPE_BLOCK);
+          addedGeneric = true;
+        }
       } else {
-        violations.push(`Cannot use trade exception ${tpe.id}`);
+        if (!addedGeneric && team.postTradeStatus?.isAtOrAboveSecondApron) {
+          violations.push(SECOND_APRON_TPE_BLOCK);
+          addedGeneric = true;
+        }
+        if (isExpiredTPE(tpe, onDate)) {
+          violations.push(`Trade exception ${tpe.id} is expired`);
+        } else {
+          violations.push(`Cannot use trade exception ${tpe.id}`);
+        }
       }
       return;
     }
@@ -1494,10 +1494,11 @@ export function validateTrade({
     const handcuffViolations = enforceSecondApronHandcuffs(team, tradeCtx);
     if (
       team.postTradeStatus.isAtOrAboveSecondApron &&
-      hasPriorYearTPE(team.appliedTPEs, seasonKey)
+      hasPriorYearTPE(team.appliedTPEs, seasonKey) &&
+      !handcuffViolations.includes(SECOND_APRON_TPE_BLOCK)
     ) {
-      handcuffViolations.push(SECOND_APRON_TPE_BLOCK);
       handcuffViolations.push('Second apron: prior-year TPEs cannot be used.');
+      handcuffViolations.push(SECOND_APRON_TPE_BLOCK);
     }
     const handcuffPass = handcuffViolations.length === 0;
     const capStatus = {

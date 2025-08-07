@@ -40,6 +40,8 @@ export function isExpiredTPE(tpe, onDate) {
 
 export function canUseTPE(teamCtx, tpe, { currentSeason, onDate }) {
   if (!tpe || isExpiredTPE(tpe, onDate)) return false;
-  // Second-apron logic handled upstream; this helper only checks expiry.
+  if (teamCtx?.postTradeStatus?.isAtOrAboveSecondApron) {
+    return !isPriorYearTPE(tpe, currentSeason);
+  }
   return true;
 }
