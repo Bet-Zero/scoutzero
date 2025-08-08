@@ -1,0 +1,12 @@
+Rule #,Rule Name,Implemented?,Files & Functions,Notes,Severity
+0,Calendar & eligibility,Partial,"timingUtils.isWithinMoratorium; consentUtils.collectConsentViolations; reacqUtils.getReacqBlock","Moratorium & roster gates configurable",Medium
+1,Team modes & hard-cap state,Yes,"tradeHelpers.getIncomingCeiling; hardCapTriggers.markHardCapTriggered","Guards pre/post trade cap status",High
+2,Second-apron handcuffs,Yes,"tradeValidator.enforceSecondApronHandcuffs; tpeUtils.SECOND_APRON_TPE_BLOCK; faExceptionUtils.canUseFaException","Blocks cash, aggregation, TPE/FA usage, >100% take-back",High
+3,Salary matching,Yes,"cbaConstants.MATCHING_BANDS_2023; tradeHelpers.calculateAllowableIncoming","Implements 200%+250k / +7.5M / 125%+250k bands and apron 100%",High
+4,Conversions before matching,Yes,"tradeValidator.computeMatchingValues","BYC, poison pill, trade kicker applied before matching",Medium
+5,Sign-and-trade,Yes,"tradeValidator.validateSignAndTrade","Enforces origin team, offseason, 3–4 yrs, Y1 guarantee, hard-cap",High
+6,Draft assets,Yes,"stepienUtils.passesStepienRule; draftPickUtils.isFrozenPick","Stepien, seven-year limit, frozen pick check",Medium
+7,Cash in trades,Yes,"tradeValidator.validateCash; cashUtils.getSeasonalCashCaps","Seasonal ledger & second-apron cash ban",Medium
+8,Roster count & two-way slots,Partial,"rosterUtils.passesRosterWindow","Enforcement downgraded to warnings by default",Low
+9,Final apron/hard-cap guardrails,Yes,"tradeValidator.validateSecondApronRules; tradeHelpers.wouldExceedHardCap","Protects first/second apron ceilings",High
+10,Admin wrap-up,Partial,"tpeUtils.createTPE; tpeUtils.isExpiredTPE","No explicit physicals/bonus waiver hooks",Low
