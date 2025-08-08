@@ -7,6 +7,7 @@
 import { CBA_BY_YEAR, MATCHING_BANDS_2023 } from '@/utils/architect/cbaConstants.js';
 export { wouldExceedHardCap } from '@/utils/architect/hardCapUtils.js';
 import { isPriorYearTPE } from '@/utils/architect/tradeMachine/tpeUtils.js';
+import { getTeamFaExceptionBuckets } from '@/utils/architect/faExceptionUtils.js';
 
 export const getTierThresholds = (yearKey) => {
   const key = String(yearKey); // normalise
@@ -106,6 +107,13 @@ export const getIncomingCeiling = (
     );
 
   return Math.floor(ceiling + tpeValue);
+};
+
+export const getIncomingCeilingViaFaException = (team, bucketType) => {
+  const buckets = getTeamFaExceptionBuckets(team.team || {});
+  const bucket = buckets.find((b) => b.type === bucketType);
+  const remaining = bucket?.remaining ?? 0;
+  return (team.salaryOut || 0) + remaining;
 };
 
 /******************** SCSP™ BLOCK: Allowable Incoming *******************
