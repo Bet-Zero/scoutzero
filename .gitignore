@@ -36,7 +36,6 @@ toggleView.cjs
 updateStats.js
 uploadPlayersToFirebase.js
 validatePlayersJson.js
-GeminiPatchPrompt.md]633;E;{   echo ""\x3b   echo "# Local outputs \xffffffffffffffe2\xffffffffffffff80\xffffffffffffff94 do not commit"\x3b   echo "repomix-output-TradeMachine.xml"\x3b   echo "patch-temp.patch" } >> .gitignore;7046e08e-a3aa-43a7-a930-f825e13128b9]633;C
-# Local outputs — do not commit
+GeminiPatchPrompt.md
 repomix-output-TradeMachine.xml
 patch-temp.patch
