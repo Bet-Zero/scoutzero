@@ -123,8 +123,8 @@ describe('TPE creation and usage', () => {
     const tpe = {
       id: 't3',
       amount: 5_000_000,
-      expiryISO: '2026-07-01T00:00:00.000Z',
-      createdSeason: 2025,
+      expiryISO: '2025-07-02T00:00:00.000Z',
+      createdSeason: 2024,
     };
     teamA.tradeExceptions = [tpe];
     const incoming = {
@@ -151,4 +151,3 @@ describe('TPE creation and usage', () => {
     );
   });
 });
-
