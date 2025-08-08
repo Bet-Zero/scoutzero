@@ -5,6 +5,7 @@
 **Verdict:** CBA 2023+ compliance (year-2 rules active) — **PASS**
 
 **Hard-enforced invariants (bullet list):**
+
 - Salary matching bands; 1st-apron 100%
 - 2nd-apron: **no aggregation, no cash, no TPE, no FA exceptions, ≤100% take-back**
 - BYC = max(prior, 50%); poison-pill average; trade-kicker proration
@@ -17,6 +18,7 @@
 **Known limits:** protections/encumbrances parser expects well-formed text; UI admin steps noted
 
 **Links:**
+
 - [Deep audit](AUDIT_DEEP.md)
 - [Compliance matrix](COMPLIANCE_MATRIX.csv)
 - [Order of operations](ORDER_OF_OPERATIONS.md)
