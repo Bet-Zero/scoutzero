@@ -1,6 +1,6 @@
 # HoopZero
 
-[![Audit Status](https://img.shields.io/badge/audit-pass-brightgreen)](docs/AUDIT_CERT.md)
+[![NBA Trade Audit: PASS](https://img.shields.io/badge/NBA%20Trade%20Audit-PASS-brightgreen)](docs/AUDIT_CERT.md)
 
 HoopZero is a public-facing NBA scouting platform focused on clear data presentation and role-based player analysis. It mirrors the internal **ScoutZero** grading tool but exposes a read-only interface backed entirely by Firebase. All player evaluations, roles, grades and contract details are fetched from Firestore, allowing fans and analysts to explore a flattened set of scouting data.
 
@@ -97,6 +97,13 @@ This project uses multiple Firestore collections to separate global player data 
 
 - **ScoutZero** – internal evaluation suite used to create player grades and roles. HoopZero presents this data in a read‑only form.
 - **HoopZero Architect** – forthcoming team‑building and GM toolkit that will integrate with the same player database.
+
+## Compliance
+
+- [Audit Certification](docs/AUDIT_CERT.md)
+- [Deep Audit](docs/AUDIT_DEEP.md)
+- [Compliance Matrix](docs/COMPLIANCE_MATRIX.csv)
+- [Order of Operations](docs/ORDER_OF_OPERATIONS.md)
 
 ## Developer Guide
 
