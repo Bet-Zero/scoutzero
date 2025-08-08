@@ -48,12 +48,15 @@ describe('second apron prior-year TPE usage', () => {
     );
   });
 
-  it('allows current-year TPEs for second-apron teams', () => {
+  it('rejects current-year TPEs for second-apron teams', () => {
     const res = runTrade(
       [{ amount: 5_000_000, createdSeason: currentYear }],
       190_000_000
     );
-    expect(res.teamResults[0].legal).toBe(true);
+    expect(res.teamResults[0].legal).toBe(false);
+    expect(res.teamResults[0].violations).toContain(
+      'Second apron team cannot use trade exceptions'
+    );
   });
 
   it('allows prior-year TPEs for teams below the apron', () => {

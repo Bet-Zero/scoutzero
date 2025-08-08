@@ -36,9 +36,7 @@ import {
   violates30Day,
   violates2MonthAggregation,
 } from '@/utils/architect/timingUtils.js';
-import {
-  collectConsentViolations,
-} from '@/utils/architect/consentUtils.js';
+import { collectConsentViolations } from '@/utils/architect/consentUtils.js';
 import { getReacqBlock } from '@/utils/architect/reacqUtils.js';
 import {
   getSeasonalCashCaps,
@@ -308,9 +306,7 @@ export function enforceConsent(
     const destId =
       p.tradeTo ??
       p.toTeamId ??
-      Object.keys(tradeCtx.teamNames || {}).find(
-        (id) => id !== teamCtx.teamId
-      );
+      Object.keys(tradeCtx.teamNames || {}).find((id) => id !== teamCtx.teamId);
     const consent = consentMap[p.id] || {};
     const msgs = collectConsentViolations(p, destId, consent, { reject });
     msgs.forEach((msg) => {
@@ -334,8 +330,8 @@ export function enforceEligibility(
   const nowDate = ctx.now
     ? new Date(ctx.now)
     : ctx.asOfDate
-    ? new Date(ctx.asOfDate)
-    : new Date();
+      ? new Date(ctx.asOfDate)
+      : new Date();
   (teamCtx.incomingPlayers || []).forEach((p) => {
     let block = getReacqBlock(p, teamCtx.teamId, nowDate);
     if (
@@ -452,10 +448,8 @@ export function validateTradeExceptions(team) {
       return;
     }
     if (team.postTradeStatus?.isAtOrAboveSecondApron) {
-      if (!isCurrentSeasonTPE(tpe, yearKey)) {
-        addBlock();
-        return;
-      }
+      addBlock();
+      return;
     }
     if (!canUseTPE(team, tpe, { currentSeason: yearKey, onDate })) {
       if (isExpiredTPE(tpe, onDate)) {
@@ -479,7 +473,7 @@ export function validateTradeExceptions(team) {
     team.postTradeStatus?.isAtOrAboveSecondApron &&
     Array.isArray(team.appliedTPEs)
   ) {
-    if (team.appliedTPEs.some((tpe) => !isCurrentSeasonTPE(tpe, yearKey))) {
+    if (team.appliedTPEs.length) {
       addBlock();
     }
   }
@@ -554,7 +548,11 @@ export function validateFaExceptionUsage(team, flags = validationFlags) {
     }
 
     if (ctx.teamTotalSalary >= ctx.context.capSettings?.secondApron) {
-      if (!violations.includes('FA Exception unavailable above/beyond Second Apron.')) {
+      if (
+        !violations.includes(
+          'FA Exception unavailable above/beyond Second Apron.'
+        )
+      ) {
         violations.push('FA Exception unavailable above/beyond Second Apron.');
       }
       return;
