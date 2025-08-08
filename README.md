@@ -1,5 +1,7 @@
 # HoopZero
 
+[![Audit Status](https://img.shields.io/badge/audit-pass-brightgreen)](docs/AUDIT_CERT.md)
+
 HoopZero is a public-facing NBA scouting platform focused on clear data presentation and role-based player analysis. It mirrors the internal **ScoutZero** grading tool but exposes a read-only interface backed entirely by Firebase. All player evaluations, roles, grades and contract details are fetched from Firestore, allowing fans and analysts to explore a flattened set of scouting data.
 
 ## Tech Stack
