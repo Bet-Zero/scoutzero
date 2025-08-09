@@ -1,54 +1,71 @@
-import React, { useRef, useEffect } from 'react';
+// src/features/architect/tradeMachine/TradePickRow.jsx
+
+import React, { useRef, useEffect, useState } from 'react';
 import { formatPick } from '@/utils/architect/tradeHelpers';
 import { getPickOptions } from '@/utils/architect/tradeMachine/pickOptions';
 import { getTeamColors } from '@/utils/formatting';
 import TeamLogo from '@/components/shared/TeamLogo';
 
+/**
+ * Utility: #RRGGBB -> rgba(r,g,b,a)
+ */
 const hexToRGBA = (hex, alpha) => {
+  if (!hex) return `rgba(255,255,255,${alpha ?? 0.08})`;
   const sanitized = hex.replace('#', '');
   const bigint = parseInt(sanitized, 16);
   const r = (bigint >> 16) & 255;
   const g = (bigint >> 8) & 255;
   const b = bigint & 255;
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  return `rgba(${r}, ${g}, ${b}, ${alpha ?? 0.08})`;
 };
 
-export const TradePickRow = ({
+function TradePickRow({
   pick,
   pickObj,
   teamId,
   otherTeams = [],
-  rowKey,
-  openMenu,
-  setOpenMenu,
   onToggle,
   onEdit,
-}) => {
-  const menuRef = useRef(null);
+  openMenu,
+  setOpenMenu,
+  menuKey,
+}) {
+  const exists = !!pickObj;
+  const { primary } = getTeamColors(teamId) || {};
+  const rowStyle = exists ? { backgroundColor: hexToRGBA(primary, 0.12) } : {};
   const buttonRef = useRef(null);
+  const menuRef = useRef(null);
 
-  const key = rowKey || `${pick.year}-${pick.round}-${pick.via || ''}`;
+  // Generate a stable key if parent didn't supply one
+  const autoKey =
+    menuKey ||
+    `${teamId || 't'}-${pick?.year || 'y'}-${pick?.round || 'r'}-${
+      pick?.originalTeamId || pick?.teamId || 'o'
+    }`;
 
+  // Local fallback menu state if parent doesn't manage it
+  const [localOpen, setLocalOpen] = useState(null);
+  const isManaged =
+    typeof openMenu !== 'undefined' && typeof setOpenMenu === 'function';
+  const isOpen = isManaged ? openMenu === autoKey : localOpen === autoKey;
+  const setOpen = (val) => (isManaged ? setOpenMenu(val) : setLocalOpen(val));
+
+  // Close menu on outside click
   useEffect(() => {
-    if (openMenu !== key) return undefined;
-    const handleClick = (e) => {
+    const handleClickOutside = (e) => {
+      if (!isOpen) return;
       if (
         menuRef.current &&
         !menuRef.current.contains(e.target) &&
         buttonRef.current &&
         !buttonRef.current.contains(e.target)
       ) {
-        setOpenMenu(null);
+        setOpen(null);
       }
     };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [openMenu, key, setOpenMenu]);
-
-  const exists = !!pickObj;
-  const { primary } = getTeamColors(teamId);
-
-  const rowStyle = exists ? { backgroundColor: hexToRGBA(primary, 0.6) } : {};
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
 
   return (
     <div
@@ -57,12 +74,23 @@ export const TradePickRow = ({
       }`}
       style={rowStyle}
     >
-      <div className="flex items-center">
-        <TeamLogo teamId={teamId} className="w-6 h-6 mr-2" />
-        <div>
-          <div>{formatPick(pickObj || pick)}</div>
+      {/* Left: logo + label + controls */}
+      <div className="flex items-center gap-2">
+        <TeamLogo
+          teamId={pick?.originalTeamId || pick?.teamId || teamId}
+          className="w-4 h-4"
+        />
+        <div className="flex flex-col">
+          <div className="text-white/90">
+            {formatPick(pickObj || pick)}
+            {!exists && (
+              <span className="ml-2 italic text-white/40">(not selected)</span>
+            )}
+          </div>
+
           {exists && (
-            <div className="w-[140px] text-white/50 mt-1 space-y-1">
+            <div className="w-[160px] text-white/60 mt-1 space-y-1">
+              {/* Protection select */}
               <select
                 className="w-full bg-black/30 p-1 rounded"
                 value={pickObj.protection || ''}
@@ -74,43 +102,96 @@ export const TradePickRow = ({
                   </option>
                 ))}
               </select>
+
+              {/* Swap rights toggle */}
+              <label className="flex items-center gap-1 text-white/80 select-none">
+                <input
+                  type="checkbox"
+                  checked={!!pickObj.isSwap}
+                  onChange={(e) => onEdit(pick, 'isSwap', e.target.checked)}
+                />
+                Swap rights
+              </label>
+
+              {/* Swap partner select */}
+              {pickObj.isSwap && (
+                <select
+                  className="w-full bg-black/30 p-1 rounded"
+                  value={pickObj.swapWithTeamId || ''}
+                  onChange={(e) =>
+                    onEdit(pick, 'swapWithTeamId', e.target.value)
+                  }
+                >
+                  <option value="">Choose swap partner…</option>
+                  {otherTeams.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.teamName}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           )}
         </div>
       </div>
+
+      {/* Right: actions menu */}
       <div className="relative">
         <button
           ref={buttonRef}
-          onClick={() => setOpenMenu(openMenu === key ? null : key)}
-          className="text-blue-400 hover:underline"
+          onClick={() => setOpen(isOpen ? null : autoKey)}
+          className="text-blue-400 hover:underline px-2 py-1"
+          aria-haspopup="menu"
+          aria-expanded={isOpen}
         >
           •••
         </button>
-        {openMenu === key && (
+
+        {isOpen && (
           <div
             ref={menuRef}
-            className="absolute right-0 top-5 bg-[#222] border border-white/20 rounded z-20 text-xs min-w-[8rem]"
+            className="absolute right-0 top-7 bg-[#222] border border-white/20 rounded z-20 text-xs min-w-[10rem] shadow-lg"
+            role="menu"
           >
+            {/* Undo destination */}
+            {exists && pickObj?.toTeamId && (
+              <button
+                onClick={() => {
+                  onEdit(pick, 'toTeamId', null);
+                  setOpen(null);
+                }}
+                className="block w-full text-left px-3 py-2 hover:bg-[#333]"
+                role="menuitem"
+              >
+                Undo trade destination
+              </button>
+            )}
+
+            {/* Send to team */}
             {otherTeams.map((t) => (
               <button
                 key={t.id}
                 onClick={() => {
                   onToggle(pick);
                   onEdit(pick, 'toTeamId', t.id);
-                  setOpenMenu(null);
+                  setOpen(null);
                 }}
-                className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+                className="block w-full text-left px-3 py-2 hover:bg-[#333]"
+                role="menuitem"
               >
                 {`Trade to ${t.teamName}`}
               </button>
             ))}
+
+            {/* Remove */}
             {exists && (
               <button
                 onClick={() => {
                   onToggle(pick);
-                  setOpenMenu(null);
+                  setOpen(null);
                 }}
-                className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+                className="block w-full text-left px-3 py-2 hover:bg-[#333]"
+                role="menuitem"
               >
                 Remove
               </button>
@@ -120,4 +201,6 @@ export const TradePickRow = ({
       </div>
     </div>
   );
-};
+}
+
+export default TradePickRow;

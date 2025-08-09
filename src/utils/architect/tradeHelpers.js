@@ -4,7 +4,10 @@
  * areSamePick  (numeric leniency)
  * ▸ Keeps: MIN_SALARY, getApronStatus, pick utils, TPE utils, format helpers
  * -------------------------------------------------------------------------------*/
-import { CBA_BY_YEAR, MATCHING_BANDS_2023 } from '@/utils/architect/cbaConstants.js';
+import {
+  CBA_BY_YEAR,
+  MATCHING_BANDS_2023,
+} from '@/utils/architect/cbaConstants.js';
 export { wouldExceedHardCap } from '@/utils/architect/hardCapUtils.js';
 import { isPriorYearTPE } from '@/utils/architect/tradeMachine/tpeUtils.js';
 import { getTeamFaExceptionBuckets } from '@/utils/architect/faExceptionUtils.js';
@@ -92,7 +95,10 @@ export const getIncomingCeiling = (
       (t) =>
         !t.expired && // legacy tests
         (!t.expirationDate || Date.parse(t.expirationDate) > Date.now()) &&
-        !(teamTotalSalary >= capSettings.secondApron && isPriorYearTPE(t, yearKey))
+        !(
+          teamTotalSalary >= capSettings.secondApron &&
+          isPriorYearTPE(t, yearKey)
+        )
     )
     .reduce(
       (sum, t) =>

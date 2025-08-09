@@ -1,6 +1,6 @@
 // src/features/architect/tradeMachine/TradeValidationPanel.jsx
-import React from 'react';
-import { HelpCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { HelpCircle, BookOpen } from 'lucide-react';
 
 const RULE_INFO = [
   {
@@ -75,55 +75,169 @@ const getRuleInfo = (msg) => {
 };
 
 const TradeValidationPanel = ({ result }) => {
+  const [expanded, setExpanded] = React.useState(false);
+  const [detailsOpen, setDetailsOpen] = React.useState({});
   if (!result) return null;
   const { teamResults = [] } = result;
 
-  return (
-    <div className="mt-6 p-4 bg-[#111] border border-white/10 rounded space-y-4">
-      <h3 className="font-semibold text-base">Validation Results</h3>
-      {teamResults.map((team, idx) => (
-        <div key={idx}>
-          <h4 className="font-medium text-sm mb-1">{team.teamName}</h4>
-          <ul className="list-disc ml-5 space-y-1">
-            {Object.values(team.rules || {}).map((r, i) => (
-              <li
-                key={i}
-                className={r.passed ? 'text-green-400' : 'text-red-400'}
-              >
-                {r.message} {!r.passed && r.details && `– ${r.details}`}
-              </li>
-            ))}
+  const handleToggleDetails = (teamIdx, ruleIdx) => {
+    setDetailsOpen((prev) => ({
+      ...prev,
+      [`${teamIdx}-${ruleIdx}`]: !prev[`${teamIdx}-${ruleIdx}`],
+    }));
+  };
 
-            {team.apronStatus?.includes('⚠️') && (
-              <li className="text-yellow-400 flex items-start">
-                <span>{team.apronStatus}</span>
-                <HelpCircle
-                  size={14}
-                  className="ml-1"
-                  title="Team is near an apron threshold which may limit future moves"
-                />
-              </li>
-            )}
-          </ul>
+  return (
+    <div className="mt-6 p-4 bg-[#111] border border-white/10 rounded text-xs">
+      <button
+        className="mb-2 px-3 py-1 bg-[#222] text-white rounded border border-white/20 hover:bg-[#333]"
+        onClick={() => setExpanded((v) => !v)}
+      >
+        {expanded ? 'Hide Validation Results' : 'Show Validation Results'}
+      </button>
+      {expanded && (
+        <div>
+          <h3 className="font-semibold text-base mb-3">Validation Results</h3>
+          <div className="flex gap-8 overflow-x-auto">
+            {teamResults.map((team, teamIdx) => (
+              <React.Fragment key={teamIdx}>
+                <div className="min-w-[280px] flex-1 bg-[#181818] rounded-lg p-4 border border-white/10 shadow">
+                  <div className="flex items-center mb-2 gap-2">
+                    {team.logoUrl && (
+                      <img
+                        src={team.logoUrl}
+                        alt="logo"
+                        className="w-8 h-8 rounded-full border border-white/20 bg-[#222] object-contain"
+                      />
+                    )}
+                    <h4 className="font-bold text-sm">{team.teamName}</h4>
+                  </div>
+                  <div className="space-y-2">
+                    {(team.rules ? Object.values(team.rules) : []).map(
+                      (r, ruleIdx) => {
+                        const ruleInfo = getRuleInfo(r.message);
+                        let displayMsg = r.message;
+                        if (r.passed) {
+                          displayMsg = displayMsg
+                            .replace(/(valid|satisfied|compliant)/gi, '')
+                            .replace(/\s+/g, ' ')
+                            .trim();
+                        }
+                        const detailsKey = `${teamIdx}-${ruleIdx}`;
+                        return (
+                          <div
+                            key={ruleIdx}
+                            className={`flex items-center justify-between gap-2 rounded px-2 py-1 ${
+                              r.passed
+                                ? 'bg-green-900/10 text-green-400'
+                                : r.details
+                                  ? 'bg-red-900/10 text-red-400'
+                                  : 'bg-yellow-900/10 text-yellow-400'
+                            }`}
+                          >
+                            <span>{displayMsg}</span>
+                            <div className="flex items-center gap-2">
+                              {!r.passed && r.details && (
+                                <>
+                                  <button
+                                    className="px-2 py-0.5 bg-red-900/60 text-white rounded text-xs border border-red-400 hover:bg-red-800"
+                                    onClick={() =>
+                                      handleToggleDetails(teamIdx, ruleIdx)
+                                    }
+                                    type="button"
+                                  >
+                                    Details
+                                  </button>
+                                  {detailsOpen[detailsKey] && (
+                                    <div className="mt-1 p-2 bg-[#222] border border-red-400 rounded text-white text-xs max-w-xs">
+                                      {r.details}
+                                    </div>
+                                  )}
+                                </>
+                              )}
+                              {ruleInfo && ruleInfo.link && (
+                                <a
+                                  href={ruleInfo.link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="align-middle"
+                                  title="View CBA Reference"
+                                >
+                                  {/* New icon: external link */}
+                                  <svg
+                                    width="18"
+                                    height="18"
+                                    viewBox="0 0 20 20"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <path
+                                      d="M14 3H17V6"
+                                      stroke="#60A5FA"
+                                      strokeWidth="2"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    />
+                                    <path
+                                      d="M9 11L17 3"
+                                      stroke="#60A5FA"
+                                      strokeWidth="2"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    />
+                                    <rect
+                                      x="3"
+                                      y="7"
+                                      width="10"
+                                      height="10"
+                                      rx="2"
+                                      stroke="#60A5FA"
+                                      strokeWidth="2"
+                                    />
+                                  </svg>
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      }
+                    )}
+                    {team.apronStatus?.includes('⚠️') && (
+                      <div className="flex items-center gap-2 bg-yellow-900/30 text-yellow-400 rounded px-2 py-1 mt-2">
+                        <span>{team.apronStatus}</span>
+                        <HelpCircle
+                          size={14}
+                          className="ml-1"
+                          title="Team is near an apron threshold which may limit future moves"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {teamIdx < teamResults.length - 1 && (
+                  <div className="flex items-center mx-2">
+                    <div className="w-px h-32 bg-white/20" />
+                  </div>
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+          <div className="flex gap-4 mt-6">
+            <div className="flex items-center gap-1">
+              <span className="w-3 h-3 rounded-full bg-green-400 inline-block" />
+              <span className="text-green-400 text-xs">Compliant</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="w-3 h-3 rounded-full bg-yellow-400 inline-block" />
+              <span className="text-yellow-400 text-xs">Warning</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="w-3 h-3 rounded-full bg-red-400 inline-block" />
+              <span className="text-red-400 text-xs">Violation</span>
+            </div>
+          </div>
         </div>
-      ))}
-      <div className="text-xs text-white/60">
-        <p className="text-red-400">Red items are rule violations.</p>
-        <p className="text-yellow-400">Yellow items are warnings.</p>
-        <p className="text-green-400">Green items are compliant.</p>
-      </div>
-      <div className="border-t border-white/10 pt-3">
-        <h4 className="font-semibold text-sm mb-1">CBA References</h4>
-        <ul className="list-disc ml-5 text-blue-300 space-y-1 text-xs">
-          {RULE_INFO.map((r) => (
-            <li key={r.link}>
-              <a href={r.link} target="_blank" rel="noopener noreferrer">
-                {r.link.split('/cba/')[1].replace(/-/g, ' ')}
-              </a>
-            </li>
-          ))}
-        </ul>
-      </div>
+      )}
     </div>
   );
 };
