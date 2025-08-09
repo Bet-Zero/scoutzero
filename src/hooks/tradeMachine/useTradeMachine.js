@@ -4,6 +4,75 @@ import { loadTeamCapSheet } from '@/utils/architect/firebaseTeamPlanHelpers';
 import { getSalaryForYear, areSamePick } from '@/utils/architect/tradeHelpers';
 import { TeamMap } from '@/constants/teamList';
 
+/* ============================
+   Helpers: FA buckets & test TPE seeding
+   ============================ */
+
+/**
+ * Pull MLE/Room MLE/BAE values from the provided capProjections object.
+ * Accepts yearKey like 2024; also tries a "YYYY-YY" composite key such as "2024-25".
+ */
+function getMLEBAEForYear(yearKey, capProjections) {
+  if (!capProjections) return { fullMLE: 0, roomMLE: 0, bae: 0 };
+
+  const composite = `${yearKey}-${String(yearKey + 1).slice(-2)}`; // "2024-25" for 2024
+  const fromComposite = capProjections?.[composite] || {};
+  const fromNumeric = capProjections?.[yearKey] || {};
+  const src = Object.keys(fromComposite).length ? fromComposite : fromNumeric;
+
+  return {
+    fullMLE: src.fullMLE ?? src.mle ?? 0,
+    roomMLE: src.roomMLE ?? src.rmle ?? 0,
+    bae: src.bae ?? 0,
+  };
+}
+
+/**
+ * Mutates the given team in-place to add FA exception buckets and a couple test TPEs if missing.
+ * Returns the same team for convenience.
+ */
+function augmentTeamWithExceptions(team, yearKey, capProjections) {
+  if (!team) return team;
+
+  // Seed FA buckets if not present (treated like TPE "buckets" by validator/UI)
+  if (!Array.isArray(team.faExceptionBuckets)) {
+    const { fullMLE, roomMLE, bae } = getMLEBAEForYear(yearKey, capProjections);
+    const buckets = [];
+    if (fullMLE > 0)
+      buckets.push({ type: 'NTMLE', remaining: fullMLE, expiresAt: null });
+    if (roomMLE > 0)
+      buckets.push({ type: 'RMLE', remaining: roomMLE, expiresAt: null });
+    if (bae > 0) buckets.push({ type: 'BAE', remaining: bae, expiresAt: null });
+    if (buckets.length) team.faExceptionBuckets = buckets;
+  }
+
+  // Seed a couple of test TPEs (handy for UI + validation sandboxing)
+  if (
+    !Array.isArray(team.tradeExceptions) ||
+    team.tradeExceptions.length === 0
+  ) {
+    team.tradeExceptions = [
+      {
+        id: `${team.id}-tpe-a`,
+        name: 'Test TPE A',
+        amount: 6_500_000, // $6.5M
+        expiryDate: null,
+      },
+      {
+        id: `${team.id}-tpe-b`,
+        name: 'Test TPE B',
+        amount: 2_800_000, // $2.8M
+        // expires in ~30 days to exercise expiry logic
+        expiryDate: new Date(
+          Date.now() + 1000 * 60 * 60 * 24 * 30
+        ).toISOString(),
+      },
+    ];
+  }
+
+  return team;
+}
+
 export const useTradeMachine = (
   primaryTeam,
   capProjections,
@@ -20,6 +89,7 @@ export const useTradeMachine = (
 
   // Memoized calculations
   const incomingAssets = useMemo(() => {
+    // NOTE: include teamId so exportCurrentTrade can match (fixes prior bug)
     return teams.map((tm, idx) => {
       const players = [];
       const picks = [];
@@ -37,7 +107,7 @@ export const useTradeMachine = (
           });
         }
       });
-      return { players, picks };
+      return { teamId: tm.team?.id, players, picks }; // <- include teamId here
     });
   }, [teams]);
 
@@ -55,13 +125,17 @@ export const useTradeMachine = (
       const data = primaryTeamData || (await loadTeamCapSheet(primaryTeam));
 
       if (baseTeam && data) {
+        // Build team object then augment with FA buckets + test TPEs
+        const teamObj = {
+          ...baseTeam,
+          ...data,
+          tradeExceptions: data.tradeExceptions || [],
+        };
+        augmentTeamWithExceptions(teamObj, yearKey, capProjections);
+
         setTeams([
           {
-            team: {
-              ...baseTeam,
-              ...data,
-              tradeExceptions: data.tradeExceptions || [],
-            },
+            team: teamObj,
             sends: [],
             picksOut: [],
           },
@@ -70,7 +144,7 @@ export const useTradeMachine = (
       }
     };
     init();
-  }, [primaryTeam, primaryTeamData]);
+  }, [primaryTeam, primaryTeamData, capProjections]);
 
   // Core trade actions
   const setPlayerTrade = useCallback(
@@ -163,35 +237,41 @@ export const useTradeMachine = (
   }, []);
 
   // Team management
-  const selectTeam = useCallback(async (index, teamId) => {
-    if (!teamId) {
-      setTeams((prev) => {
-        const newTeams = [...prev];
-        newTeams[index] = { team: null, sends: [], picksOut: [] };
-        return newTeams;
-      });
-      return;
-    }
+  const selectTeam = useCallback(
+    async (index, teamId) => {
+      if (!teamId) {
+        setTeams((prev) => {
+          const newTeams = [...prev];
+          newTeams[index] = { team: null, sends: [], picksOut: [] };
+          return newTeams;
+        });
+        return;
+      }
 
-    const baseTeam = TeamMap[teamId];
-    const data = await loadTeamCapSheet(teamId);
+      const baseTeam = TeamMap[teamId];
+      const data = await loadTeamCapSheet(teamId);
 
-    if (baseTeam && data) {
-      setTeams((prev) => {
-        const newTeams = [...prev];
-        newTeams[index] = {
-          team: {
-            ...baseTeam,
-            ...data,
-            tradeExceptions: data.tradeExceptions || [],
-          },
-          sends: [],
-          picksOut: [],
+      if (baseTeam && data) {
+        const teamObj = {
+          ...baseTeam,
+          ...data,
+          tradeExceptions: data.tradeExceptions || [],
         };
-        return newTeams;
-      });
-    }
-  }, []);
+        augmentTeamWithExceptions(teamObj, yearKey, capProjections);
+
+        setTeams((prev) => {
+          const newTeams = [...prev];
+          newTeams[index] = {
+            team: teamObj,
+            sends: [],
+            picksOut: [],
+          };
+          return newTeams;
+        });
+      }
+    },
+    [capProjections, yearKey]
+  );
 
   const addTeam = useCallback(() => {
     if (teams.length >= 5) return;

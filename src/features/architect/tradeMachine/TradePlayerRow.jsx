@@ -82,7 +82,7 @@ const TradePlayerRow = ({
   // Visual rendering remains EXACTLY the same
   return (
     <div
-      className={`w-full h-[68px] flex items-center border border-black rounded-sm pr-2 overflow-visible ${
+      className={`w-full h-[68px] flex items-center border border-black rounded-sm pr-2 overflow-visible relative ${
         included
           ? 'bg-green-800/40'
           : incoming
@@ -90,8 +90,8 @@ const TradePlayerRow = ({
             : 'bg-neutral-800'
       }`}
     >
-      {/* TPE Badge - Add this new element */}
-      {canUseTPE && !included && !included && (
+      {/* TPE Badge - Only show if player is incoming and not included */}
+      {canUseTPE && incoming && !included && (
         <span className="absolute top-1 right-1 bg-purple-600 text-white text-[10px] px-1 rounded leading-tight">
           TPE
         </span>

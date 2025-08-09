@@ -166,7 +166,6 @@ const TradeEditor = ({
         forceTrade={forceTrade}
       />
       <TradeValidationPanel result={result} />
-      <TradeDebugPanel />
       <TradePreviewModal
         open={previewOpen && !!result}
         onClose={() => setPreviewOpen(false)}
