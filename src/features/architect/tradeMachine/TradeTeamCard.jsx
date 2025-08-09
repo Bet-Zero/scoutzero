@@ -5,6 +5,7 @@ import {
   getSalaryForYear,
   formatPick,
   calculateAllowableIncoming,
+  getIncomingCeiling,
 } from '@/utils/architect/tradeHelpers';
 import { formatSalary } from '@/utils/formatting';
 import CapImpactTiles from './CapImpactTiles';
@@ -72,6 +73,12 @@ const TradeTeamCard = ({
     [incomingPlayers, team?.players]
   );
 
+  // Calculate team total salary for the current year
+  const teamTotalSalary = useMemo(
+    () => getSalaryForYear(team?.players || [], yearKey),
+    [team?.players, yearKey]
+  );
+
   // Memoized calculations
   const outgoingSalary = useMemo(
     () => getSalaryForYear(sends, yearKey),
@@ -112,14 +119,29 @@ const TradeTeamCard = ({
     () =>
       team
         ? calculateAllowableIncoming(
-            team.totalSalary || 0,
+            teamTotalSalary,
             outgoingSalary,
             incomingPlayers,
             team.tradeExceptions || [],
             { ...capSettings, yearKey }
           )
         : 0,
-    [team, outgoingSalary, incomingPlayers, capSettings, yearKey]
+    [teamTotalSalary, outgoingSalary, incomingPlayers, capSettings, yearKey]
+  );
+
+  // Allowable Incoming for display (excluding TPEs)
+  const allowableIncomingNoTPE = useMemo(
+    () =>
+      team
+        ? getIncomingCeiling(
+            teamTotalSalary,
+            outgoingSalary,
+            [], // Exclude TPEs from calculation
+            capSettings,
+            yearKey
+          )
+        : 0,
+    [teamTotalSalary, outgoingSalary, capSettings, yearKey]
   );
 
   const tpeEligiblePlayers = useMemo(() => {
@@ -279,8 +301,51 @@ const TradeTeamCard = ({
               ))}
             </div>
           )}
-          <div className="text-xs text-white/60 mt-1">
-            Allowable Incoming: {formatSalary(allowableIncoming)}
+          {/* Show Allowable Incoming and TPEs side-by-side */}
+          <div className="flex flex-wrap gap-4 text-xs text-white/60 mt-1 items-center">
+            <div>
+              Allowable Incoming:{' '}
+              <span className="font-semibold text-white/80">
+                {formatSalary(allowableIncomingNoTPE)}
+              </span>
+            </div>
+            {team?.tradeExceptions?.length > 0 && (
+              <div className="flex gap-2 items-center">
+                <span className="text-white/60">Available TPEs:</span>
+                {team.tradeExceptions
+                  .filter(
+                    (tpe) =>
+                      !tpe.isUsed &&
+                      (!tpe.expirationDate ||
+                        new Date(tpe.expirationDate) > new Date())
+                  )
+                  .map((tpe, idx) => {
+                    // Format amount as $11.1M style
+                    const millions = tpe.amount / 1000000;
+                    const formattedAmount = `$${millions.toFixed(1)}M`;
+                    return (
+                      <span
+                        key={idx}
+                        className="bg-[#2a2a2a] text-white/80 px-2 py-0.5 rounded-full border border-white/10"
+                      >
+                        {formattedAmount}
+                        {tpe.expirationDate && (
+                          <span className="ml-1 text-white/40">
+                            exp.{' '}
+                            {new Date(tpe.expirationDate).toLocaleDateString()}
+                          </span>
+                        )}
+                      </span>
+                    );
+                  })}
+                {team.tradeExceptions.filter(
+                  (tpe) =>
+                    !tpe.isUsed &&
+                    (!tpe.expirationDate ||
+                      new Date(tpe.expirationDate) > new Date())
+                ).length === 0 && <span className="text-white/40">None</span>}
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -141,17 +141,19 @@ const TradePlayerRow = ({
       </div>
 
       {/* Trade Indicator */}
-      {incoming && (
-        player.signAndTrade ? (
-          <div className="ml-10 text-blue-300 font-semibold text-sm" title="Sign-and-Trade">
+      {incoming &&
+        (player.signAndTrade ? (
+          <div
+            className="ml-10 text-blue-300 font-semibold text-sm"
+            title="Sign-and-Trade"
+          >
             S&amp;T
           </div>
         ) : (
           <div className="ml-10 text-blue-300" title="Traded">
             <ArrowsRightLeftIcon className="w-6 h-6" />
           </div>
-        )
-      )}
+        ))}
 
       {/* Contract Info - unchanged */}
       <div className="ml-auto mr-4 flex flex-col items-end whitespace-nowrap">
