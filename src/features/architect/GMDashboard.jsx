@@ -26,6 +26,33 @@ import { normalizePlayerData } from '@/utils/roster';
 import { getPlayerPositionLabel } from '@/utils/roles';
 import capProjections from '@/utils/architect/capProjections';
 
+// ==== Season helpers (inline for now; you can extract later) ====
+const LOCAL_SEASON_KEY = 'hz.currentSeasonEndYear';
+
+const getDefaultSeasonEndYear = (date = new Date()) => {
+  // NBA season flips July 1 → 2024-25 ends in 2025
+  const y = date.getFullYear();
+  return date.getMonth() >= 6 ? y + 1 : y;
+};
+
+const toSeasonKey = (endYear) => `${endYear - 1}-${String(endYear).slice(-2)}`;
+
+const seasonEndYearsFromCaps = (caps) => {
+  const keys = Object.keys(caps || {});
+  const years = keys
+    .map((k) => {
+      if (/^\d{4}-\d{2}$/.test(k)) {
+        const tail = parseInt(k.split('-')[1], 10);
+        return 2000 + tail; // "2024-25" -> 2025
+      }
+      const num = parseInt(k, 10);
+      return Number.isFinite(num) ? num : null; // allow "2025"
+    })
+    .filter(Boolean);
+  // De-dup and sort
+  return Array.from(new Set(years)).sort((a, b) => a - b);
+};
+
 const normalizeSalaryValue = (val) => {
   let num =
     typeof val === 'string' ? Number(val.replace(/[^0-9.-]/g, '')) : val || 0;
@@ -56,7 +83,23 @@ const GMDashboard = () => {
   const userId = 'demoUser';
   const [baselineCapSheet, setBaselineCapSheet] = useState(null);
   const [teamCapSheet, setTeamCapSheet] = useState(null);
-  const [currentYear, setCurrentYear] = useState(2025);
+  // AFTER:
+  const [currentYear, setCurrentYear] = useState(() => {
+    const qp = new URLSearchParams(window.location.search).get('season');
+    if (qp && Number.isFinite(parseInt(qp, 10))) return parseInt(qp, 10);
+    const saved = localStorage.getItem(LOCAL_SEASON_KEY);
+    if (saved && Number.isFinite(parseInt(saved, 10)))
+      return parseInt(saved, 10);
+    return getDefaultSeasonEndYear(); // ← literal time default
+  });
+
+  // Persist selection + keep URL shareable (?season=YYYY)
+  useEffect(() => {
+    localStorage.setItem(LOCAL_SEASON_KEY, String(currentYear));
+    const url = new URL(window.location.href);
+    url.searchParams.set('season', String(currentYear));
+    window.history.replaceState({}, '', url);
+  }, [currentYear]);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [freeAgents, setFreeAgents] = useState([]);
   const [activeTab, setActiveTab] = useState('roster');
@@ -390,13 +433,7 @@ const GMDashboard = () => {
       mleHistory: [],
       pickLog: [],
       currentPicks: {},
-      mle: {
-        amount:
-          capProjections[
-            `${currentYear}-${String((currentYear + 1) % 100).padStart(2, '0')}`
-          ]?.fullMLE || 0,
-        used: 0,
-      },
+      amount: capProjections[toSeasonKey(currentYear)]?.fullMLE || 0,
     };
 
     setTeamCapSheet(resetSheet);
@@ -414,6 +451,23 @@ const GMDashboard = () => {
           HoopZero Architect – GM Dashboard
         </h1>
         <div className="flex items-center gap-2">
+          {/* Season Selector */}
+          <label className="flex items-center gap-2 text-sm font-medium">
+            Season
+            <select
+              value={currentYear}
+              onChange={(e) => setCurrentYear(parseInt(e.target.value, 10))}
+              className="bg-[#1a1a1a] text-white text-sm px-2 py-1 rounded border border-white/10"
+            >
+              {seasonEndYearsFromCaps(capProjections).map((y) => (
+                <option key={y} value={y}>
+                  {toSeasonKey(y)}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {/* View mode */}
           <select
             value={viewMode}
             onChange={(e) => setViewMode(e.target.value)}
@@ -422,6 +476,8 @@ const GMDashboard = () => {
             <option value="plan">Plan</option>
             <option value="baseline">Baseline</option>
           </select>
+
+          {/* Plan picker */}
           {viewMode === 'plan' && (
             <select
               value={selectedPlan}
@@ -553,7 +609,7 @@ const GMDashboard = () => {
           <TradeEditor
             primaryTeam={teamId}
             capProjections={capProjections}
-            currentYear={2024}
+            currentYear={currentYear}
             playersMap={playersMap}
             onApplyTrade={applyTradeToCapSheet}
             primaryTeamData={teamCapSheet}
