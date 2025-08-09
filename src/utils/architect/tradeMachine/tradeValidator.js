@@ -791,8 +791,8 @@ export function validateTrade({
     const projectedTwoWay = currentTwoWay - outgoingTwoWay + incomingTwoWay;
     const rosterCheck = passesRosterWindow(
       {
-        players: Array(team.projectedRosterCount),
-        twoWayPlayers: Array(projectedTwoWay),
+        players: Array(Math.max(0, team.projectedRosterCount || 0)),
+        twoWayPlayers: Array(Math.max(0, projectedTwoWay)),
       },
       { require14to15: true }
     );
