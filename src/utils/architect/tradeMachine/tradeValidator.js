@@ -57,7 +57,10 @@ import { validateSignAndTrade } from '@/utils/architect/tradeMachine/validators/
 import { validateBYC } from '@/utils/architect/tradeMachine/validators/validateBYC.js';
 import { validateSecondApronRules } from '@/utils/architect/tradeMachine/validators/validateSecondApronRules.js';
 import { validateAllNewRules } from '@/utils/architect/tradeMachine/validators/validateAllNewRules.js';
-import { getMatchingValue, computeMatchingValues } from '@/utils/architect/tradeMachine/matchingValues.js';
+import {
+  getMatchingValue,
+  computeMatchingValues,
+} from '@/utils/architect/tradeMachine/matchingValues.js';
 
 // ===== SECOND APRON HANDCUFFS =====
 
@@ -83,7 +86,17 @@ const getAllowableIncomingMargin = (team) => {
   const faUsage = (team.incomingPlayers || [])
     .filter((p) => p.absorptionMode === 'FA_EXCEPTION')
     .reduce((sum, p) => sum + (p.matchIncoming || 0), 0);
-  return base + faUsage;
+  const margin = base + faUsage;
+  // LOG right before returning margin
+  const capSettings = team.context?.capSettings;
+  console.log('[getAllowableIncomingMargin]', {
+    team: team?.nickname || team?.name || team?.id,
+    teamTotalSalary: team?.teamTotalSalary,
+    secondApron: capSettings?.secondApron,
+    isAtOrAboveSecondApron: team?.postTradeStatus?.isAtOrAboveSecondApron,
+    marginAboutToReturn: margin,
+  });
+  return margin;
 };
 
 export const getIncomingCeilingForTeam = (team) => {

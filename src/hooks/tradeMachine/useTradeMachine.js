@@ -5,19 +5,81 @@ import { getSalaryForYear, areSamePick } from '@/utils/architect/tradeHelpers';
 import { TeamMap } from '@/constants/teamList';
 
 /* ============================
+   Helpers: numeric + payroll + season keys
+   ============================ */
+
+const num = (v) => {
+  if (v == null) return 0;
+  if (typeof v === 'number') return v;
+  const n = Number(String(v).replace(/[^0-9.-]/g, ''));
+  return Number.isFinite(n) ? n : 0;
+};
+
+// Map season end-year (e.g., 2025) -> "2024-25"
+const toSeasonKey = (endYear) => `${endYear - 1}-${String(endYear).slice(-2)}`;
+
+// Baseline payroll from your cap sheet: prefer activeContracts, fallback to players.contract_clean
+const payrollForYearFromCapSheet = (capSheet, endYear) => {
+  if (!capSheet) return 0;
+
+  const y = String(endYear);
+
+  // Preferred source: activeContracts salaryByYear[endYear]
+  const fromActive = (capSheet.activeContracts || []).reduce((sum, c) => {
+    const s = c?.salaryByYear?.[endYear] ?? c?.salaryByYear?.[y] ?? 0;
+    return sum + num(s);
+  }, 0);
+  if (fromActive > 0) return fromActive;
+
+  // Fallback: players.contract_clean.salaries_by_year[endYear].salary
+  const fromPlayers = (capSheet.players || []).reduce((sum, p) => {
+    const s =
+      p?.contract_clean?.salaries_by_year?.[endYear]?.salary ??
+      p?.contract_clean?.salaries_by_year?.[y]?.salary ??
+      0;
+    return sum + num(s);
+  }, 0);
+
+  return fromPlayers;
+};
+
+// Optional dead money (best-effort scan of common shapes)
+const deadMoneyForYear = (capSheet, endYear) => {
+  const y = String(endYear);
+
+  const arrs = []
+    .concat(capSheet?.waivedContracts || [])
+    .concat(capSheet?.stretchHistory || []);
+
+  const fromArrays = arrs.reduce((sum, w) => {
+    const amt =
+      w?.deadMoneyByYear?.[endYear] ??
+      w?.deadMoneyByYear?.[y] ??
+      w?.amountByYear?.[endYear] ??
+      w?.amountByYear?.[y] ??
+      0;
+    return sum + num(amt);
+  }, 0);
+
+  const fromFlat =
+    num(capSheet?.deadMoney?.[endYear]) + num(capSheet?.deadMoney?.[y]);
+
+  return fromArrays + fromFlat;
+};
+
+/* ============================
    Helpers: FA buckets & test TPE seeding
    ============================ */
 
 /**
- * Pull MLE/Room MLE/BAE values from the provided capProjections object.
- * Accepts yearKey like 2024; also tries a "YYYY-YY" composite key such as "2024-25".
+ * Pull MLE/Room MLE/BAE values from capProjections using the **season end-year**.
  */
-function getMLEBAEForYear(yearKey, capProjections) {
+function getMLEBAEForYear(endYear, capProjections) {
   if (!capProjections) return { fullMLE: 0, roomMLE: 0, bae: 0 };
 
-  const composite = `${yearKey}-${String(yearKey + 1).slice(-2)}`; // "2024-25" for 2024
-  const fromComposite = capProjections?.[composite] || {};
-  const fromNumeric = capProjections?.[yearKey] || {};
+  const key = toSeasonKey(endYear); // e.g., 2025 -> "2024-25"
+  const fromComposite = capProjections?.[key] || {};
+  const fromNumeric = capProjections?.[endYear] || {};
   const src = Object.keys(fromComposite).length ? fromComposite : fromNumeric;
 
   return {
@@ -28,15 +90,14 @@ function getMLEBAEForYear(yearKey, capProjections) {
 }
 
 /**
- * Mutates the given team in-place to add FA exception buckets and a couple test TPEs if missing.
- * Returns the same team for convenience.
+ * Mutates team to add FA exception buckets and (optionally) seed test TPEs if missing.
  */
-function augmentTeamWithExceptions(team, yearKey, capProjections) {
+function augmentTeamWithExceptions(team, endYear, capProjections) {
   if (!team) return team;
 
-  // Seed FA buckets if not present (treated like TPE "buckets" by validator/UI)
+  // Seed FA buckets if not present
   if (!Array.isArray(team.faExceptionBuckets)) {
-    const { fullMLE, roomMLE, bae } = getMLEBAEForYear(yearKey, capProjections);
+    const { fullMLE, roomMLE, bae } = getMLEBAEForYear(endYear, capProjections);
     const buckets = [];
     if (fullMLE > 0)
       buckets.push({ type: 'NTMLE', remaining: fullMLE, expiresAt: null });
@@ -46,7 +107,7 @@ function augmentTeamWithExceptions(team, yearKey, capProjections) {
     if (buckets.length) team.faExceptionBuckets = buckets;
   }
 
-  // Seed a couple of test TPEs (handy for UI + validation sandboxing)
+  // Seed a couple of test TPEs for sandboxing if none exist
   if (
     !Array.isArray(team.tradeExceptions) ||
     team.tradeExceptions.length === 0
@@ -55,14 +116,13 @@ function augmentTeamWithExceptions(team, yearKey, capProjections) {
       {
         id: `${team.id}-tpe-a`,
         name: 'Test TPE A',
-        amount: 6_500_000, // $6.5M
+        amount: 6_500_000,
         expiryDate: null,
       },
       {
         id: `${team.id}-tpe-b`,
         name: 'Test TPE B',
-        amount: 2_800_000, // $2.8M
-        // expires in ~30 days to exercise expiry logic
+        amount: 2_800_000,
         expiryDate: new Date(
           Date.now() + 1000 * 60 * 60 * 24 * 30
         ).toISOString(),
@@ -76,7 +136,7 @@ function augmentTeamWithExceptions(team, yearKey, capProjections) {
 export const useTradeMachine = (
   primaryTeam,
   capProjections,
-  currentYear,
+  currentYear, // ← season **end-year**, e.g. 2025 for 2024-25
   primaryTeamData = null
 ) => {
   // Main state
@@ -84,12 +144,12 @@ export const useTradeMachine = (
   const [result, setResult] = useState(null);
   const [forceTrade, setForceTrade] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const yearKey = 2024; // Force 2024-25 season for testing
-  const capYear = `${yearKey}-${String(yearKey + 1).slice(-2)}`; // Creates "2024-25"
+
+  // Use the selected season end-year everywhere (no hardcoding)
+  const yearKey = currentYear;
 
   // Memoized calculations
   const incomingAssets = useMemo(() => {
-    // NOTE: include teamId so exportCurrentTrade can match (fixes prior bug)
     return teams.map((tm, idx) => {
       const players = [];
       const picks = [];
@@ -107,7 +167,7 @@ export const useTradeMachine = (
           });
         }
       });
-      return { teamId: tm.team?.id, players, picks }; // <- include teamId here
+      return { teamId: tm.team?.id, players, picks };
     });
   }, [teams]);
 
@@ -116,7 +176,7 @@ export const useTradeMachine = (
     [teams, yearKey]
   );
 
-  // Initialize teams
+  // Initialize teams (slot 0 = primary team, slot 1 = empty)
   useEffect(() => {
     const init = async () => {
       if (!primaryTeam) return;
@@ -125,13 +185,32 @@ export const useTradeMachine = (
       const data = primaryTeamData || (await loadTeamCapSheet(primaryTeam));
 
       if (baseTeam && data) {
-        // Build team object then augment with FA buckets + test TPEs
+        // Build team object, augment exceptions/tpes
         const teamObj = {
           ...baseTeam,
           ...data,
           tradeExceptions: data.tradeExceptions || [],
         };
         augmentTeamWithExceptions(teamObj, yearKey, capProjections);
+
+        // === Baseline payroll wiring ===
+        const baseline = payrollForYearFromCapSheet(teamObj, yearKey);
+        const dead = deadMoneyForYear(teamObj, yearKey);
+        teamObj.teamTotalSalary = baseline + dead;
+        teamObj.projectedSalary = baseline + dead;
+
+        // LOG A) After computing teamObj.teamTotalSalary in init()
+        console.log(
+          '[init payroll]',
+          teamObj.nickname || teamObj.name || teamObj.id,
+          {
+            year: yearKey,
+            baseline,
+            dead,
+            teamTotalSalary: teamObj.teamTotalSalary,
+            projectedSalary: teamObj.projectedSalary,
+          }
+        );
 
         setTeams([
           {
@@ -144,7 +223,7 @@ export const useTradeMachine = (
       }
     };
     init();
-  }, [primaryTeam, primaryTeamData, capProjections]);
+  }, [primaryTeam, primaryTeamData, capProjections, yearKey]);
 
   // Core trade actions
   const setPlayerTrade = useCallback(
@@ -259,13 +338,28 @@ export const useTradeMachine = (
         };
         augmentTeamWithExceptions(teamObj, yearKey, capProjections);
 
+        // === Baseline payroll wiring on select ===
+        const baseline = payrollForYearFromCapSheet(teamObj, yearKey);
+        const dead = deadMoneyForYear(teamObj, yearKey);
+        teamObj.teamTotalSalary = baseline + dead;
+        teamObj.projectedSalary = baseline + dead;
+
+        // LOG B) After computing payroll in selectTeam()
+        console.log(
+          '[select payroll]',
+          teamObj.nickname || teamObj.name || teamObj.id,
+          {
+            year: yearKey,
+            baseline,
+            dead,
+            teamTotalSalary: teamObj.teamTotalSalary,
+            projectedSalary: teamObj.projectedSalary,
+          }
+        );
+
         setTeams((prev) => {
           const newTeams = [...prev];
-          newTeams[index] = {
-            team: teamObj,
-            sends: [],
-            picksOut: [],
-          };
+          newTeams[index] = { team: teamObj, sends: [], picksOut: [] };
           return newTeams;
         });
       }
@@ -286,8 +380,41 @@ export const useTradeMachine = (
   const handleValidate = useCallback(() => {
     if (teams.filter((t) => t.team).length < 2) return;
 
+    // (Optional) last-second safety net: if any team is missing payroll, patch it
+    const patchedTeams = teams.map((t) => {
+      if (!t.team) return t;
+      if (
+        !Number.isFinite(t.team.teamTotalSalary) ||
+        t.team.teamTotalSalary === 0
+      ) {
+        const baseline = payrollForYearFromCapSheet(t.team, yearKey);
+        const dead = deadMoneyForYear(t.team, yearKey);
+        return {
+          ...t,
+          team: {
+            ...t.team,
+            teamTotalSalary: baseline + dead,
+            projectedSalary: baseline + dead,
+          },
+        };
+      }
+      return t;
+    });
+
+    // LOG C) Right before validateTrade(...) in handleValidate()
+    console.log(
+      '[validate -> teams payroll]',
+      teams.map(
+        (t) =>
+          t.team && {
+            team: t.team.nickname || t.team.name || t.team.id,
+            teamTotalSalary: t.team.teamTotalSalary,
+            projectedSalary: t.team.projectedSalary,
+          }
+      )
+    );
     const validation = validateTrade({
-      teams: teams
+      teams: patchedTeams
         .filter((t) => t.team)
         .map((t) => ({
           team: t.team,
@@ -296,7 +423,7 @@ export const useTradeMachine = (
           hardCapped: t.team.hardCapped,
         })),
       capProjections,
-      currentYear,
+      currentYear: yearKey,
     });
 
     setResult({
@@ -304,7 +431,16 @@ export const useTradeMachine = (
       legal: forceTrade ? true : validation.overallLegal,
     });
     setPreviewOpen(true);
-  }, [teams, capProjections, currentYear, forceTrade]);
+    console.log(
+      '[after validate]',
+      validation.teamResults.map((tr) => ({
+        team: tr.team?.nickname || tr.team?.name || tr.team?.id,
+        pre: tr.preTradeStatus?.projectedSalary,
+        post: tr.postTradeStatus?.projectedSalary,
+        apron: tr.postTradeStatus?.isAtOrAboveSecondApron,
+      }))
+    );
+  }, [teams, capProjections, yearKey, forceTrade]);
 
   const exportCurrentTrade = useCallback(() => {
     return teams
