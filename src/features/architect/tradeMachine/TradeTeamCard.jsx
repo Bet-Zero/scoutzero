@@ -4,7 +4,6 @@ import capProjections from '@/utils/architect/capProjections';
 import {
   getSalaryForYear,
   formatPick,
-  calculateAllowableIncoming,
   getIncomingCeiling,
 } from '@/utils/architect/tradeHelpers';
 import { formatSalary } from '@/utils/formatting';
@@ -115,33 +114,25 @@ const TradeTeamCard = ({
     [team]
   );
 
-  const allowableIncoming = useMemo(
-    () =>
-      team
-        ? calculateAllowableIncoming(
-            teamTotalSalary,
-            outgoingSalary,
-            incomingPlayers,
-            team.tradeExceptions || [],
-            { ...capSettings, yearKey }
-          )
-        : 0,
-    [teamTotalSalary, outgoingSalary, incomingPlayers, capSettings, yearKey]
-  );
-
-  // Allowable Incoming for display (excluding TPEs)
-  const allowableIncomingNoTPE = useMemo(
+  // Allowable incoming ceiling including any TPEs (for display)
+  const allowableIncomingCeiling = useMemo(
     () =>
       team
         ? getIncomingCeiling(
             teamTotalSalary,
             outgoingSalary,
-            [], // Exclude TPEs from calculation
+            team.tradeExceptions || [],
             capSettings,
             yearKey
           )
         : 0,
-    [teamTotalSalary, outgoingSalary, capSettings, yearKey]
+    [
+      teamTotalSalary,
+      outgoingSalary,
+      team?.tradeExceptions,
+      capSettings,
+      yearKey,
+    ]
   );
 
   const tpeEligiblePlayers = useMemo(() => {
@@ -306,7 +297,7 @@ const TradeTeamCard = ({
             <div>
               Allowable Incoming:{' '}
               <span className="font-semibold text-white/80">
-                {formatSalary(allowableIncomingNoTPE)}
+                {formatSalary(allowableIncomingCeiling)}
               </span>
             </div>
             {team?.tradeExceptions?.length > 0 && (

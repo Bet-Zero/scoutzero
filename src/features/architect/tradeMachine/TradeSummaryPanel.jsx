@@ -4,7 +4,6 @@
 
 import React from 'react';
 import { formatCurrency } from '@/utils/architect/tradeHelpers';
-import { HelpCircle } from 'lucide-react';
 import { getTeamColors } from '@/utils/formatting';
 import TeamLogo from '@/components/shared/TeamLogo';
 
@@ -25,6 +24,9 @@ function TradeSummaryPanel({
   showRuleExplanations = true,
 }) {
   if (!result) return null;
+
+  const failureMessages =
+    result.teamResults?.flatMap((tr) => tr.violations || []) || [];
 
   // Top status banner text
   const topStatus = forceTrade
@@ -47,11 +49,11 @@ function TradeSummaryPanel({
       </div>
 
       {/* Rule Explanations (surface-level) */}
-      {showRuleExplanations && result?.failures?.length > 0 && (
+      {showRuleExplanations && failureMessages.length > 0 && (
         <div className="bg-[#121212] border border-red-500/30 rounded p-3">
           <div className="font-semibold mb-2">Why it fails</div>
           <ul className="list-disc list-inside space-y-1">
-            {result.failures.map((f, idx) => (
+            {failureMessages.map((f, idx) => (
               <li key={idx} className="text-red-300">
                 {f.message || f.reason || String(f)}
               </li>

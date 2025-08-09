@@ -301,7 +301,7 @@ export const useTradeMachine = (
 
     setResult({
       ...validation,
-      legal: forceTrade ? true : validation.overallLegal,
+      legal: forceTrade ? true : validation.legal,
     });
     setPreviewOpen(true);
   }, [teams, capProjections, currentYear, forceTrade]);
