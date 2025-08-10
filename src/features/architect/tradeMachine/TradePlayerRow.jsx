@@ -237,7 +237,7 @@ const TradePlayerRow = ({
             {(included || incoming) && (
               <button
                 onClick={() => {
-                  onSetPlayerTrade(player, 'keep'); // Use 'keep' action instead of onUndoPlayerTrade
+                  onUndoPlayerTrade(player);
                   setOpenMenu(null);
                 }}
                 className="block w-full text-left px-3 py-1 hover:bg-[#333]"
