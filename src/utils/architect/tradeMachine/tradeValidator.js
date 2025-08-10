@@ -876,31 +876,25 @@ export function validateTrade({
     // --- Second-apron aggregation (max from any single opponent ≤ max salary you send out)
     let aggregationPass = true;
     let aggregationViolation = '';
-    if (capStatus.isAboveSecond) {
-      const tally = {};
-      team.incomingPlayers.forEach((p) => {
-        tally[p.fromTeamId] =
-          (tally[p.fromTeamId] || 0) + getSalaryForYear(p, seasonKey);
-      });
-      const maxFromOneClub = Math.max(...Object.values(tally), 0);
-      const maxSent = Math.max(
-        ...team.outgoingPlayers.map((p) => getSalaryForYear(p, seasonKey)),
-        0
-      );
-      const totalIncoming = team.incomingPlayers.reduce(
-        (sum, p) => sum + getSalaryForYear(p, seasonKey),
-        0
-      );
-      const distinctSources = Object.keys(tally).length;
-      if (
-        maxFromOneClub > maxSent ||
-        (distinctSources > 1 && totalIncoming > maxSent)
-      ) {
-        aggregationPass = false;
-        aggregationViolation =
-          distinctSources > 1 || team.outgoingPlayers.length > 1
-            ? 'Second apron team cannot aggregate salaries'
-            : 'Second apron team cannot receive more salary than sent';
+    if (team.postTradeStatus?.isAtOrAboveSecondApron) {
+      const outgoingSrc =
+        (team.outgoingPlayers?.length ? team.outgoingPlayers : team.sends) ||
+        [];
+      const outgoingSalaries = outgoingSrc
+        .map((p) => getSalaryForYear(p, seasonKey))
+        .sort((a, b) => b - a);
+      const incomingSalaries = team.incomingPlayers
+        .map((p) => getSalaryForYear(p, seasonKey))
+        .sort((a, b) => b - a);
+      // Down-the-line check: each incoming must not exceed corresponding outgoing
+      for (let i = 0; i < incomingSalaries.length; i++) {
+        const incoming = incomingSalaries[i];
+        const outgoing = outgoingSalaries[i] || 0;
+        if (incoming > outgoing) {
+          aggregationPass = false;
+          aggregationViolation = 'Second apron team cannot aggregate salaries';
+          break;
+        }
       }
     }
 
@@ -1182,8 +1176,8 @@ export function validateTrade({
         projectedSalary: team.projectedSalary,
         beforeSalary: team.beforeSalary,
         afterSalary: team.afterSalary,
-        beforeRoster: team.beforeRoster,
-        afterRoster: team.afterRoster,
+        beforeRoster: team.initialRosterCount,
+        afterRoster: team.projectedRosterCount,
       };
     }),
     reason:
