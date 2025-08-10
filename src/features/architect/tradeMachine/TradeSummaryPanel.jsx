@@ -3,7 +3,10 @@
 // and move deep references into a collapsible section.
 
 import React from 'react';
-import { formatCurrency } from '@/utils/architect/tradeHelpers';
+import {
+  formatCurrency,
+  getSalaryForYear,
+} from '@/utils/architect/tradeHelpers';
 import { HelpCircle } from 'lucide-react';
 import { getTeamColors } from '@/utils/formatting';
 import TeamLogo from '@/components/shared/TeamLogo';
@@ -107,31 +110,59 @@ function TradeSummaryPanel({
                 </div>
 
                 {/* Salary snapshot */}
-                {teamResult?.calculations?.salaryMatching && (
-                  <p className="text-xs text-white/70">
-                    Incoming / Allowed:{' '}
-                    {formatCurrency(
-                      teamResult.calculations?.salaryIn ??
-                        teamResult.salaryIn ??
-                        0
-                    )}{' '}
-                    /{' '}
-                    {formatCurrency(
-                      teamResult.calculations.salaryMatching
-                        .allowableIncoming ?? 0
-                    )}
-                    {Number(teamResult.calculations.salaryMatching.difference) >
-                      0 && (
-                      <>
-                        {' '}
-                        — Over by{' '}
-                        {formatCurrency(
-                          teamResult.calculations.salaryMatching.difference
-                        )}
-                      </>
-                    )}
-                  </p>
-                )}
+                {teamResult &&
+                  (() => {
+                    const calc = teamResult?.calculations?.salaryMatching || {};
+
+                    // salary in
+                    const salaryIn = Number.isFinite(
+                      teamResult?.calculations?.salaryIn
+                    )
+                      ? teamResult.calculations.salaryIn
+                      : Number(teamResult?.salaryIn) || 0;
+
+                    // salary out (prefer what validator attached; fall back to recompute)
+                    const out =
+                      Number(teamResult?.salaryOut) ||
+                      (typeof getSalaryForYear === 'function'
+                        ? getSalaryForYear(
+                            teamResult?.sends || [],
+                            result?.yearKey || result?.currentYear
+                          )
+                        : 0);
+
+                    // margin (what the validator returns after bands/apron/etc)
+                    const margin = Number.isFinite(calc.margin)
+                      ? calc.margin
+                      : // older builds used "allowableIncoming" for margin; if both exist, margin wins
+                        Number.isFinite(calc.allowableIncoming) &&
+                          !Number.isFinite(calc.allowedIncoming)
+                        ? Number(calc.allowableIncoming)
+                        : 0;
+
+                    // allowed incoming ceiling:
+                    // 1) use calc.allowedIncoming if present (new)
+                    // 2) else if the old field is actually the full allowed (rare), use it
+                    // 3) else compute as out + margin (correct for our validator changes)
+                    const allowedIncoming = Number.isFinite(
+                      calc.allowedIncoming
+                    )
+                      ? calc.allowedIncoming
+                      : Number.isFinite(calc.allowableIncoming) &&
+                          !Number.isFinite(calc.margin)
+                        ? Number(calc.allowableIncoming)
+                        : out + margin;
+
+                    const overBy = Math.max(0, salaryIn - allowedIncoming);
+
+                    return (
+                      <p className="text-xs text-white/70">
+                        Incoming / Allowed: {formatCurrency(salaryIn)} /{' '}
+                        {formatCurrency(allowedIncoming)}
+                        {overBy > 0 && <> — Over by {formatCurrency(overBy)}</>}
+                      </p>
+                    );
+                  })()}
 
                 {/* Assets in */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
