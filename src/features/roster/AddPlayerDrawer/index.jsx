@@ -7,7 +7,7 @@ import DrawerHeader from './addPlayer/DrawerHeader';
 import PlayerSearchBar from './addPlayer/PlayerSearchBar';
 import FilterTabs from './addPlayer/FilterTabs';
 
-const AddPlayerDrawer = ({ onClose, allPlayers, onSelect }) => {
+const AddPlayerDrawer = ({ onClose, allPlayers, onSelect, onAddAll }) => {
   const [search, setSearch] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState(getDefaultAddPlayerFilters());
@@ -124,6 +124,10 @@ const AddPlayerDrawer = ({ onClose, allPlayers, onSelect }) => {
         onSearchChange={setSearch}
         showFilters={showFilters}
         onToggleFilters={() => setShowFilters(!showFilters)}
+        onAddAll={
+          onAddAll ? () => onAddAll(filteredPlayers) : undefined
+        }
+        addAllDisabled={filteredPlayers.length === 0}
       />
 
       {/* Main content area with proper flex behavior */}

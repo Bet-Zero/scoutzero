@@ -288,6 +288,7 @@ const TierMakerBoard = ({ players = [], initialTierListId = '' }) => {
           onSelect={(player) => {
             addPlayerToPool(player);
           }}
+          onAddAll={addPlayersToPool}
         />
       </DrawerShell>
 

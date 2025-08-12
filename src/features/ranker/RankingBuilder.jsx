@@ -136,6 +136,7 @@ const RankingBuilder = () => {
           onSelect={(player) => {
             addPlayerToPool(player);
           }}
+          onAddAll={addPlayersToPool}
         />
       </DrawerShell>
 
