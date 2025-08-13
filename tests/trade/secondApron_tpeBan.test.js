@@ -21,14 +21,13 @@ const makeTeam = (name, totalSalary, rosterSize = 14) => ({
 function runTrade(appliedTPEs, teamSalary, otherTeamSalary = 100_000_000) {
   const teamA = makeTeam('A', teamSalary);
   const teamB = makeTeam('B', otherTeamSalary);
-  const aPlayer = makePlayer('Astar', 5_000_000);
   const bPlayer = makePlayer('Bstar', 5_000_000);
-  teamA.players.push(aPlayer);
   teamB.players.push(bPlayer);
 
+  // For TPE usage, Team A should not send out any players - just use the TPE to acquire
   return validateTrade({
     teams: [
-      { team: teamA, sends: [aPlayer], picksOut: [], appliedTPEs },
+      { team: teamA, sends: [], picksOut: [], appliedTPEs }, // No outgoing players when using TPE
       { team: teamB, sends: [bPlayer], picksOut: [] },
     ],
     capProjections,

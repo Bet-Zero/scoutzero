@@ -8,7 +8,8 @@ export function requiresConsent(player, destTeamId) {
         player.limitedNTCTeams ||
         player.contract?.limitedNTCList
     ) &&
-      (player.limitedNTCTeamIds ||
+      (
+        player.limitedNTCTeamIds ||
         player.limitedNTCTeams ||
         player.contract?.limitedNTCList
       ).includes(destTeamId))
@@ -38,12 +39,15 @@ export function hasFullNTC(player) {
 }
 
 export function destinationRequiresLimitedNTCConsent(player, destTeamId) {
-  if (Array.isArray(player?.limitedNTCTeamIds) && player.limitedNTCTeamIds.length) {
-    return player.limitedNTCTeamIds.includes(destTeamId);
+  if (
+    Array.isArray(player?.limitedNTCTeamIds) &&
+    player.limitedNTCTeamIds.length
+  ) {
+    return !player.limitedNTCTeamIds.includes(destTeamId); // Return true if destTeamId is NOT in approved list
   }
   const lst = player?.limitedNTCTeams || player?.contract?.limitedNTCList;
   if (!Array.isArray(lst) || lst.length === 0) return false;
-  return !lst.includes(destTeamId);
+  return !lst.includes(destTeamId); // Return true if destTeamId is NOT in approved list
 }
 
 export function requiresBirdOneYearConsent(player) {
@@ -76,7 +80,11 @@ export function collectConsentViolations(
     reject(msg);
     messages.push(msg);
   }
-  if (requiresBirdOneYearConsent(player) && consentInfo.bird !== true && !hasConsent(player)) {
+  if (
+    requiresBirdOneYearConsent(player) &&
+    consentInfo.bird !== true &&
+    !hasConsent(player)
+  ) {
     const msg = '1-yr Bird veto — consent required';
     reject(msg);
     messages.push(msg);
