@@ -146,8 +146,9 @@ describe('TPE creation and usage', () => {
     });
 
     expect(res.teamResults[0].legal).toBe(false);
+    // Since this is a prior-year TPE (2024), expect the specific prior-year violation message
     expect(res.teamResults[0].violations).toContain(
-      'Second apron team cannot use trade exceptions'
+      'Second apron: prior-year TPEs cannot be used.'
     );
   });
 });

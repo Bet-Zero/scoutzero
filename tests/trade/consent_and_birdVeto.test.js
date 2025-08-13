@@ -25,7 +25,7 @@ describe('player consent enforcement', () => {
       makeTeam({
         name: 'Limited',
         limitedNTCTeamIds: [2],
-        tradeTo: 2,
+        tradeTo: 3, // Changed to team 3 (NOT on approved list)
       }),
       {},
       { reject: (m) => rejects.push(m) }

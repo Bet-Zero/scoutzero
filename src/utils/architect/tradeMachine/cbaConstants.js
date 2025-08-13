@@ -8,3 +8,6 @@ export const CBA_THRESHOLDS = {
 };
 
 export const MAX_FUTURE_PICK_YEARS = 7;
+
+// Base Year Compensation percentage (50%)
+export const BYC_PERCENT = 0.5;

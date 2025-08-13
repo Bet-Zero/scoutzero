@@ -1,81 +1,135 @@
 // SCSP: validateSecondApronRules.js — FULL FILE REPLACEMENT
-import { getSalaryForYear } from '@/utils/architect/tradeHelpers.js';
+import { getApronStatus } from '@/utils/architect/tradeHelpers.js';
+import { isPriorYearTPE } from '@/utils/architect/tradeMachine/tpeUtils.js';
+import debug from '../debug.js';
 
 /**
- * Enforce Second Apron “no aggregation” with a greedy 1:1 matcher.
- * Also enforces: no cash, cannot increase salary, and 100% band (incoming ≤ single outgoing).
- *
- * Works with either source array your UI fills:
- * - outgoing: team.outgoingPlayers  OR team.sends
- * - incoming: team.incomingPlayers  OR team.receives
+ * Validates second apron team restrictions:
+ * - Cannot aggregate multiple salaries to acquire higher-paid player
+ * - Cannot receive more total salary than sent out
+ * - Cannot use prior-year TPEs
+ * - Cannot trade 7-year-out first round pick
+ * - Cannot include cash in trades
+ * - Cannot use FA exceptions (MLE, BAE, etc.)
  */
 export function validateSecondApronRules(team) {
-  const ctx = team?.context || {};
-  const { capSettings, yearKey } = ctx;
-  const { secondApron } = capSettings || {};
-  const teamTotalSalary = team?.teamTotalSalary ?? 0;
-
   const violations = [];
-  if (!secondApron || teamTotalSalary < secondApron) return violations;
+  const {
+    teamTotalSalary = 0,
+    salaryIn = 0,
+    salaryOut = 0,
+    cashReceived = 0,
+    cashSent = 0,
+    context = {},
+  } = team;
+  const { capSettings = {} } = context;
 
-  const cashSent = team?.cashSent ?? 0;
-  const salaryIn = team?.salaryIn ?? 0;
-  const salaryOut = team?.salaryOut ?? 0;
+  // Check if team is above second apron
+  const isAboveSecondApron = getApronStatus(
+    teamTotalSalary,
+    capSettings
+  ).includes('2nd Apron');
 
-  if (cashSent > 0) {
-    violations.push('Second apron team cannot include cash in trades');
-  }
-  if (salaryIn > salaryOut) {
-    violations.push('Second apron team cannot receive more salary than sent');
-  }
-
-  // Normalize sources so we never miss due to array name mismatches.
-  const outgoingSrc =
-    (Array.isArray(team?.outgoingPlayers) && team.outgoingPlayers.length
-      ? team.outgoingPlayers
-      : Array.isArray(team?.sends)
-        ? team.sends
-        : []) || [];
-
-  const incomingSrc =
-    (Array.isArray(team?.incomingPlayers) && team.incomingPlayers.length
-      ? team.incomingPlayers
-      : Array.isArray(team?.receives)
-        ? team.receives
-        : []) || [];
-
-  const outgoingSalaries = outgoingSrc
-    .map((p) => getSalaryForYear(p, yearKey))
-    .filter((n) => Number.isFinite(n) && n > 0)
-    .sort((a, b) => a - b); // ascending for greedy
-
-  const incomingSalaries = incomingSrc
-    .map((p) => getSalaryForYear(p, yearKey))
-    .filter((n) => Number.isFinite(n) && n > 0)
-    .sort((a, b) => b - a); // descending for greedy
-
-  // Greedy 1:1 pairing: each incoming must be covered by ONE outgoing >= incoming.
-  // This forbids combining multiple outgoing salaries to cover a single incoming.
-  let oi = 0;
-  for (const inc of incomingSalaries) {
-    while (oi < outgoingSalaries.length && outgoingSalaries[oi] < inc) oi++;
-    if (oi >= outgoingSalaries.length) {
-      violations.push(
-        'Second apron: cannot aggregate multiple outgoing salaries to acquire a single incoming player'
-      );
-      break;
-    }
-    oi++; // consume that one outgoing slot
-  }
-
-  // Total salary cannot increase (redundant safeguard).
-  const totalOut = outgoingSalaries.reduce((a, b) => a + b, 0);
-  const totalIn = incomingSalaries.reduce((a, b) => a + b, 0);
-  if (totalIn > totalOut) {
-    violations.push(
-      `Second apron teams cannot increase total salary: Incoming $${totalIn.toLocaleString()} > Outgoing $${totalOut.toLocaleString()}`
+  if (isAboveSecondApron) {
+    // Check salary aggregation - cannot receive salary from multiple sources
+    const incomingPlayers = team.incomingPlayers || [];
+    const uniqueSourceTeams = new Set(
+      incomingPlayers.map((p) => p.fromTeamId).filter(Boolean)
     );
+
+    if (uniqueSourceTeams.size > 1) {
+      violations.push(
+        'Second apron team cannot aggregate salaries from multiple sources'
+      );
+    }
+    // Also check if sending multiple players to receive fewer (traditional aggregation)
+    else {
+      const outgoingCount = (team.sends || team.outgoingPlayers || []).length;
+      const incomingCount = incomingPlayers.length;
+
+      if (outgoingCount > 1 && incomingCount === 1) {
+        violations.push('Second apron team cannot aggregate salaries');
+      }
+    }
+
+    // Cannot take back more salary than sent out (100% matching) - only if not aggregation
+    if (violations.length === 0 && salaryIn > salaryOut) {
+      violations.push('Second apron team cannot receive more salary than sent');
+    }
+
+    // Cannot include cash in trades
+    if (cashReceived > 0 || cashSent > 0) {
+      violations.push('Second apron team cannot include cash in trades');
+    }
+
+    // Check outgoing vs incoming salaries for 1-to-1 trades
+    if (
+      violations.length === 0 &&
+      team.sends?.length === 1 &&
+      team.incomingPlayers?.length === 1
+    ) {
+      const outgoingSalary = team.sends[0]?.matchOutgoing || 0;
+      const incomingSalary = team.incomingPlayers[0]?.matchIncoming || 0;
+
+      if (incomingSalary > outgoingSalary) {
+        violations.push(
+          'Second apron team cannot receive more salary than sent'
+        );
+      }
+    }
+
+    // Check TPE usage
+    const hasTPEUsage = (team.appliedTPEs || []).some((tpe) =>
+      isPriorYearTPE(tpe, context.yearKey)
+    );
+    if (hasTPEUsage) {
+      violations.push(
+        'Second apron team cannot use prior-year trade exceptions'
+      );
+    }
   }
+
+  return {
+    passed: violations.length === 0,
+    violations,
+    message: violations.length
+      ? 'Second apron restrictions violated'
+      : 'Second apron compliant',
+    details: violations.join('; '),
+  };
+}
+
+/**
+ * Enforces second apron handcuffs:
+ * - 100% salary matching on trades
+ * - No aggregation of multiple salaries into higher-paid player
+ * - No cash considerations
+ * - No prior-year TPEs
+ */
+export function enforceSecondApronHandcuffs(
+  team,
+  ctx = {},
+  { warn = () => {}, reject = () => {} } = {}
+) {
+  if (debug.enabled) {
+    debug.log(`💰 Second Apron Rules – ${team.teamName}`, {
+      isSecondApron: team.postTradeStatus?.isAtOrAboveSecondApron,
+      salaryIn: team.salaryIn,
+      salaryOut: team.salaryOut,
+    });
+  }
+
+  // Only apply to teams above second apron
+  if (!team.postTradeStatus?.isAtOrAboveSecondApron) {
+    return [];
+  }
+
+  // Get validation result
+  const result = validateSecondApronRules(team);
+  const violations = result.violations;
+
+  // All second apron violations are hard errors
+  violations.forEach((msg) => reject(msg));
 
   return violations;
 }

@@ -50,3 +50,32 @@ export function deadMoneyForYear(capSheet, year) {
 
   return fromArrays + fromFlat;
 }
+
+// Computes matching values for incoming and outgoing salary in trades
+export function computeMatchingValues({ teams, yearKey }) {
+  teams.forEach((team) => {
+    (team.sends || []).forEach((player) => {
+      if (player.isBYC) {
+        // BYC = max(previous salary, 50% new salary)
+        const prevSalary = player.previousSalary || 0;
+        const newSalary = player.salary || player.newSalary || 0;
+        player.matchOutgoing = Math.max(prevSalary, newSalary * 0.5);
+        player.matchIncoming = newSalary; // BYC only affects outgoing value
+      } else if (player.tradeKickerPct) {
+        // Trade kicker adds to incoming value only
+        const salary = player.salary || 0;
+        const kickerPct =
+          (player.tradeKickerWaivedPct || 0) > 0
+            ? player.tradeKickerPct * (1 - player.tradeKickerWaivedPct)
+            : player.tradeKickerPct;
+        player.matchOutgoing = salary;
+        player.matchIncoming = salary * (1 + kickerPct);
+      } else {
+        // Default case - use actual salary for both
+        const salary = player.salary || 0;
+        player.matchOutgoing = salary;
+        player.matchIncoming = salary;
+      }
+    });
+  });
+}

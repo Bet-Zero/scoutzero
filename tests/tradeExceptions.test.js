@@ -31,9 +31,9 @@ describe('Trade Exception Validation', () => {
     const tpe = { id: '1', amount: 5_000_000, expiryDate: futureDate() };
     const team = makeTeam(tpe);
 
-    const violations = validateTradeExceptions(team);
+    const result = validateTradeExceptions(team);
 
-    expect(violations).toEqual([]);
+    expect(result.violations).toEqual([]);
     expect(team.tradeExceptions[0].remaining).toBe(1_000_000);
     expect(team.tradeExceptions[0].isUsed).toBe(false);
   });
@@ -52,9 +52,9 @@ describe('Trade Exception Validation', () => {
     const tpe = { id: '1', amount: 5_000_000, expiryDate: pastDate() };
     const team = makeTeam(tpe);
 
-    const violations = validateTradeExceptions(team);
+    const result = validateTradeExceptions(team);
 
-    expect(violations[0]).toMatch(/expired/);
+    expect(result.violations[0]).toMatch(/expired/);
     expect(team.tradeExceptions[0].isUsed).toBeUndefined();
   });
 
@@ -62,9 +62,9 @@ describe('Trade Exception Validation', () => {
     const tpe = { id: '1', amount: 3_000_000, expiryDate: futureDate() };
     const team = makeTeam(tpe);
 
-    const violations = validateTradeExceptions(team);
+    const result = validateTradeExceptions(team);
 
-    expect(violations[0]).toMatch(/too small/);
+    expect(result.violations[0]).toMatch(/too small/);
     expect(team.tradeExceptions[0].isUsed).toBeUndefined();
   });
 
@@ -77,18 +77,18 @@ describe('Trade Exception Validation', () => {
     };
     const team = makeTeam(tpe);
 
-    const violations = validateTradeExceptions(team);
+    const result = validateTradeExceptions(team);
 
-    expect(violations[0]).toMatch(/already being processed/);
+    expect(result.violations[0]).toMatch(/already being processed/);
   });
 
   it('handles missing expiration date', () => {
     const tpe = { id: '1', amount: 5_000_000 }; // No expiry
     const team = makeTeam(tpe);
 
-    const violations = validateTradeExceptions(team);
+    const result = validateTradeExceptions(team);
 
-    expect(violations).toEqual([]);
+    expect(result.violations).toEqual([]);
     expect(team.tradeExceptions[0].remaining).toBe(1_000_000);
   });
 
@@ -105,9 +105,9 @@ describe('Trade Exception Validation', () => {
       currentRoster: Array(14).fill({}),
     };
 
-    const violations = validateTradeExceptions(team);
+    const result = validateTradeExceptions(team);
 
-    expect(violations).toEqual([]);
+    expect(result.violations).toEqual([]);
     expect(team.tradeExceptions[0].remaining).toBe(0);
     expect(team.tradeExceptions[1].remaining).toBe(0);
   });

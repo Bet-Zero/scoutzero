@@ -81,7 +81,32 @@ export const getHardCapLimit = (teamCapSheet, capSettings) => {
 };
 
 export const isHardCappedAtFirstApron = (teamSeasonState = {}, season) => {
+  // Check existing hard cap flag
   const hc = teamSeasonState.hardCapFirstApron;
-  if (!hc?.active) return false;
-  return season ? hc.season === season : true;
+  if (hc?.active) {
+    return season ? hc.season === season || hc.year === season : true;
+  }
+
+  // Check for hard cap triggers from FA exception usage
+  if (teamSeasonState.faExceptionBuckets) {
+    const hardCapTriggers = ['NTMLE', 'BAE']; // Non-Taxpayer MLE and BAE trigger hard cap
+    const hasUsedHardCapException = teamSeasonState.faExceptionBuckets.some(
+      (bucket) =>
+        hardCapTriggers.includes(bucket.type) &&
+        (bucket.used > 0 || bucket.remaining < bucket.amount)
+    );
+    if (hasUsedHardCapException) {
+      return true;
+    }
+  }
+
+  // Check hardCapTriggered property
+  if (
+    teamSeasonState.hardCapTriggered === 'FirstApron' ||
+    teamSeasonState.hardCapTriggered === true
+  ) {
+    return true;
+  }
+
+  return false;
 };

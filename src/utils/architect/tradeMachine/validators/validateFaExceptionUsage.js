@@ -1,148 +1,109 @@
-import { getSalaryForYear } from '@/utils/architect/tradeHelpers.js';
-import {
-  getTeamFaExceptionBuckets,
-  canUseFaException,
-  allocateFaExceptionToIncoming,
-  summarizeFaExceptionUsage,
-  isFaExceptionEligibleType,
-} from '@/utils/architect/faExceptionUtils.js';
-import { markHardCapTriggered } from '@/utils/architect/hardCapTriggers.js';
-import { validationFlags } from '@/config/validationFlags.js';
-import { SECOND_APRON_TPE_BLOCK } from '@/utils/architect/tradeMachine/tpeUtils.js';
-import debug from '@/utils/architect/tradeMachine/tradeDebug.js';
+import { getApronStatus } from '../../tradeHelpers.js';
+import { getTeamFaExceptionBuckets } from '../../faExceptionUtils.js';
 
-export function validateFaExceptionUsage(team, flags = validationFlags) {
+export function validateFaExceptionUsage(team) {
   const violations = [];
-  let addedGeneric = false;
-  const { faExceptionTrade = 'on', faExceptionAutoSelect = true } = flags;
-  if (faExceptionTrade === 'off') {
-    if (team.incomingPlayers.some((p) => p.absorptionMode === 'FA_EXCEPTION')) {
-      violations.push('FA Exception usage disabled.');
-    }
-    return violations;
-  }
+  const { teamTotalSalary = 0, incomingPlayers = [], context = {} } = team;
+  const { capSettings = {} } = context;
 
-  const ctx = {
-    teamSeasonState: team.team || {},
-    teamTotalSalary: team.teamTotalSalary || 0,
-    context: team.context || {},
-  };
-  const yearKey = ctx.context.yearKey;
-  const buckets = getTeamFaExceptionBuckets(ctx.teamSeasonState);
-  const faPlayers = (team.incomingPlayers || []).filter(
-    (p) =>
-      p.absorptionMode === 'FA_EXCEPTION' ||
-      (faExceptionAutoSelect && !p.absorptionMode)
-  );
+  // Get FA Exception buckets
+  const buckets = getTeamFaExceptionBuckets(team.team || {});
 
-  if (
-    faPlayers.length &&
-    ctx.teamTotalSalary >= ctx.context.capSettings?.secondApron
-  ) {
-    violations.push(
-      'Second Apron — trade exceptions are banned for second-apron teams'
+  // Check if team is above first apron (cannot use FA exceptions)
+  const apronStatus = getApronStatus(teamTotalSalary, capSettings);
+  if (apronStatus.includes('1st Apron') || apronStatus.includes('2nd Apron')) {
+    const hasUsage = incomingPlayers.some(
+      (p) => p.absorptionMode === 'FA_EXCEPTION'
     );
-    if (!addedGeneric) {
-      violations.push(SECOND_APRON_TPE_BLOCK);
-      addedGeneric = true;
-    }
-  }
-
-  faPlayers.forEach((player) => {
-    let mode = player.absorptionMode;
-    let bucketType = player.bucketType;
-    const salary = player.matchIncoming ?? getSalaryForYear(player, yearKey);
-
-    if (!mode && faExceptionAutoSelect) {
-      const bucket = buckets.find(
-        (b) =>
-          isFaExceptionEligibleType(b.type, flags) &&
-          canUseFaException(ctx, b.type) &&
-          b.remaining >= salary
-      );
-      if (bucket) {
-        mode = 'FA_EXCEPTION';
-        bucketType = bucket.type;
-        player.absorptionMode = 'FA_EXCEPTION';
-        player.bucketType = bucketType;
+    if (hasUsage) {
+      if (apronStatus.includes('2nd Apron')) {
+        violations.push('Second Apron teams cannot use FA Exceptions');
+      } else {
+        violations.push('First Apron teams cannot use FA Exceptions');
       }
     }
-
-    if (mode !== 'FA_EXCEPTION') return;
-
-    if (Array.isArray(bucketType)) {
-      violations.push(
-        'Cannot combine FA Exception with outgoing salary for the same player.'
+  } else {
+    // Check post-trade salary doesn't exceed first apron
+    const projectedSalary = team.projectedSalary || teamTotalSalary;
+    if (projectedSalary >= (capSettings.firstApron || 0)) {
+      const hasUsage = incomingPlayers.some(
+        (p) => p.absorptionMode === 'FA_EXCEPTION'
       );
-      return;
-    }
-
-    if (ctx.teamTotalSalary >= ctx.context.capSettings?.secondApron) {
-      if (
-        !violations.includes(
-          'FA Exception unavailable above/beyond Second Apron.'
-        )
-      ) {
-        violations.push('FA Exception unavailable above/beyond Second Apron.');
+      if (hasUsage) {
+        violations.push(
+          'Trade would exceed First Apron with FA Exception usage'
+        );
       }
-      return;
-    }
-    if (ctx.teamTotalSalary >= ctx.context.capSettings?.firstApron) {
-      violations.push('FA Exception unavailable above/beyond First Apron.');
-      return;
-    }
-
-    const bucket = buckets.find((b) => b.type === bucketType);
-    if (!bucket || !isFaExceptionEligibleType(bucketType, flags)) {
-      violations.push(`FA Exception ${bucketType} not available`);
-      return;
-    }
-    if (team.outgoingPlayers?.some((p) => p.toTeamId === player.fromTeamId)) {
-      violations.push(
-        'Cannot combine FA Exception with outgoing salary for the same player.'
-      );
-      return;
-    }
-    if (salary > bucket.remaining) {
-      violations.push(
-        `Insufficient FA Exception balance (need $${salary}, have $${bucket.remaining}).`
-      );
-      return;
-    }
-    allocateFaExceptionToIncoming({
-      teamCtx: ctx,
-      incomingPlayerId: player.player_id || player.id,
-      amount: salary,
-      bucketType,
-    });
-  });
-
-  if (
-    !violations.length &&
-    faPlayers.some((p) => p.absorptionMode === 'FA_EXCEPTION')
-  ) {
-    if (team.projectedSalary > ctx.context.capSettings?.firstApron) {
-      violations.push('FA Exception usage would exceed First Apron.');
     } else {
-      markHardCapTriggered(ctx.teamSeasonState, {
-        reason: 'FA_EXCEPTION',
-        season: ctx.context.yearKey,
+      // Check for outgoing salary (both salaryOut and outgoingPlayers)
+      const hasOutgoingSalary =
+        (team.salaryOut || 0) > 0 || (team.outgoingPlayers || []).length > 0;
+
+      // Auto-select FA exception for eligible players (if no absorptionMode is set)
+      incomingPlayers.forEach((player) => {
+        if (
+          !player.absorptionMode &&
+          buckets.length > 0 &&
+          !hasOutgoingSalary
+        ) {
+          // Auto-select the first available bucket
+          const availableBucket = buckets.find(
+            (b) => (b.remaining || 0) >= (player.matchIncoming || 0)
+          );
+          if (availableBucket) {
+            player.absorptionMode = 'FA_EXCEPTION';
+            player.bucketType = availableBucket.type;
+          }
+        }
       });
-      team.hardCapped = true;
-      team.notes = team.notes || [];
-      faPlayers.forEach((p) => {
-        if (p.absorptionMode === 'FA_EXCEPTION') {
-          const amt = p.matchIncoming ?? getSalaryForYear(p, yearKey);
+
+      // Check each incoming player using FA Exception
+      incomingPlayers.forEach((player) => {
+        if (player.absorptionMode === 'FA_EXCEPTION') {
+          // Check for aggregation with outgoing salary
+          if (hasOutgoingSalary) {
+            violations.push('Cannot combine FA Exception with outgoing salary');
+            return;
+          }
+
+          // Check bucket type
+          const bucketType = player.bucketType;
+          if (Array.isArray(bucketType)) {
+            violations.push('Cannot combine FA Exception buckets');
+            return;
+          }
+
+          const bucket = buckets.find((b) => b.type === bucketType);
+          if (!bucket) {
+            violations.push('No available FA exception found');
+            return;
+          }
+
+          if (player.matchIncoming > (bucket.remaining || 0)) {
+            violations.push('Insufficient FA Exception balance');
+            return;
+          }
+
+          // Update remaining amount if valid
+          bucket.remaining = (bucket.remaining || 0) - player.matchIncoming;
+
+          // Mark team as hard-capped at first apron
+          if (!team.team.hardCapFirstApron) {
+            team.team.hardCapFirstApron = {
+              active: true,
+              year: context.yearKey,
+            };
+          }
+
+          // Add note about hard cap
+          if (!team.notes) team.notes = [];
           team.notes.push(
-            `Absorbed ${p.name} via ${p.bucketType} bucket for $${amt}; team hard-capped at First Apron.`
+            `Team hard-capped at first apron due to FA exception usage`
           );
         }
       });
-      if (debug.enabled) {
-        debug.faException = summarizeFaExceptionUsage(ctx);
-      }
     }
   }
 
-  return violations;
+  return violations; // Return array for standalone usage
 }

@@ -232,8 +232,8 @@ export const getSeasonalCashLimit = (yearKey) => {
 
 /*───────────────────────────  Apron Status  ───────────────────────────*/
 export const getApronStatus = (salary, { firstApron, secondApron } = {}) => {
-  if (secondApron && salary >= secondApron) return 'Above 2nd Apron';
-  if (firstApron && salary >= firstApron) return 'Above 1st Apron';
+  if (secondApron && salary >= secondApron) return '2nd Apron';
+  if (firstApron && salary >= firstApron) return '1st Apron';
   return 'Below Aprons';
 };
 
