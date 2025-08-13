@@ -198,7 +198,6 @@ export const getIncomingCeilingForTeam = (team) => {
 
 // Re-export core functions that tests depend on
 export { computeMatchingValues };
-export { validateTradeExceptions };
 
 // ===== MAIN VALIDATOR =====
 export function validateTrade({
