@@ -14,7 +14,12 @@ import {
 } from '@/utils/architect/stepienUtils.js';
 import { BYC_PERCENT } from '@/utils/architect/cbaConstants.js';
 import { passesRosterWindow } from '@/utils/architect/rosterUtils.js';
-import { validationFlags } from '@/config/validationFlags.js';
+import {
+  validationFlags,
+  shouldBlockTrade,
+  shouldWarnOnly,
+  getValidationFlag,
+} from '@/config/validationFlags.js';
 import {
   createTPE,
   isExpiredTPE,
@@ -26,6 +31,22 @@ import {
   getTeamFaExceptionBuckets,
   canUseFaException,
 } from '@/utils/architect/faExceptionUtils.js';
+
+// Import utilities from new modular files
+import {
+  toNum,
+  toSeasonKey,
+  normalizeCaps,
+  getTeamObject,
+  resolvePayroll,
+} from './validators/capUtils.js';
+import {
+  getAllowableIncomingMargin,
+  getIncomingCeilingForTeam,
+} from './validators/salaryMargin.js';
+import { hasStepienViolation } from './validators/stepienRule.js';
+
+// Import validators
 import { validateSecondApronRules } from './validators/validateSecondApronRules.js';
 import { validateTradeExceptions } from './validators/validateTradeExceptions.js';
 import { validateSignAndTrade } from './validators/validateSignAndTrade.js';
@@ -34,7 +55,7 @@ import { validateRoster } from './validators/validateRoster.js';
 import { validateHardCap } from './validators/validateHardCap.js';
 import { validateStepien } from './validators/validateStepien.js';
 import { validateFaExceptionUsage } from './validators/validateFaExceptionUsage.js';
-import { validateCash } from './validators/validateCash.js'; // ← ADD THIS MISSING IMPORT
+import { validateCash } from './validators/validateCash.js';
 import debug from '@/utils/architect/tradeMachine/tradeDebug.js';
 import { computeMatchingValues, getMatchingValue } from './matchingValues.js';
 import { isMeaningfulProtection } from './tradeUtils.js';
@@ -46,160 +67,12 @@ import { enforceTiming } from './rules/enforceTiming.js';
 import { enforceRosterWindow } from './rules/enforceRosterWindow.js';
 import { enforceSecondApronHandcuffs } from './rules/enforceSecondApronHandcuffs.js';
 
-// ==== Cap settings normalization ====
-const toNum = (v) => (Number.isFinite(v) ? v : Number(v)) || 0;
-const toSeasonKey = (endYear) => `${endYear - 1}-${String(endYear).slice(-2)}`;
-
-function normalizeCaps(raw = {}) {
-  return {
-    salaryCap: toNum(
-      raw.salaryCap ?? raw.cap ?? raw.softCap ?? raw.salary_cap ?? raw.soft_cap
-    ),
-    firstApron: toNum(
-      raw.firstApron ??
-        raw.apron1 ??
-        raw.first_apron ??
-        raw.taxApron1 ??
-        raw.firstTaxApron
-    ),
-    secondApron: toNum(
-      raw.secondApron ??
-        raw.apron2 ??
-        raw.second_apron ??
-        raw.taxApron2 ??
-        raw.secondTaxApron
-    ),
-    taxLine: toNum(
-      raw.taxLine ?? raw.tax ?? raw.luxuryTaxLine ?? raw.luxuryTax
-    ),
-    fullMLE: toNum(raw.fullMLE ?? raw.mle),
-    roomMLE: toNum(raw.roomMLE ?? raw.rmle),
-    bae: toNum(raw.bae),
-  };
-}
-
-// Accept either the raw team or a wrapper { team } / { sourceTeam } / { ctx }
-function getTeamObject(teamLike) {
-  if (!teamLike) return null;
-  return teamLike.team || teamLike.sourceTeam || teamLike.ctx || teamLike;
-}
-
-// Resolve pre-trade payroll from whatever field exists
-function resolvePayroll(team) {
-  if (!team) return 0;
-  const candidates = [
-    team.postTradeStatus?.projectedSalary,
-    team.preTradeStatus?.projectedSalary,
-    team.projectedSalary,
-    team.teamTotalSalary,
-    team.totalSalary,
-    team.payroll,
-  ];
-  for (const v of candidates) {
-    const n = toNum(v);
-    if (n > 0) return n;
-  }
-  return 0;
-}
-
-// ==== Allowed Incoming Margin (no pooled TPEs; only add actually-used) ====
-function getAllowableIncomingMargin(teamLike) {
-  const team = getTeamObject(teamLike);
-  const capSettings = team?.context?.capSettings || {};
-  const yearKey = team?.context?.yearKey;
-
-  const secondApron = toNum(capSettings.secondApron);
-  const salaryCap = toNum(capSettings.salaryCap);
-  const payroll = resolvePayroll(team);
-
-  // Apron clamp
-  const isAtOrAboveSecondApron =
-    team?.postTradeStatus?.isAtOrAboveSecondApron ??
-    (secondApron > 0 ? payroll >= secondApron : false);
-  if (isAtOrAboveSecondApron || team?.postTradeStatus?.isAtOrAboveFirstApron) {
-    console.log('[getAllowableIncomingMargin]', {
-      team: team?.nickname || team?.name || team?.id,
-      teamTotalSalary: payroll,
-      secondApron,
-      isAtOrAboveSecondApron: true,
-      marginAboutToReturn: 0,
-    });
-    return 0;
-  }
-
-  // Below-cap = cap room
-  if (salaryCap && payroll < salaryCap) {
-    const margin = Math.max(0, salaryCap - payroll);
-    console.log('[getAllowableIncomingMargin]', {
-      team: team?.nickname || team?.name || team?.id,
-      teamTotalSalary: payroll,
-      secondApron,
-      isAtOrAboveSecondApron: false,
-      marginAboutToReturn: margin,
-    });
-    return margin;
-  }
-
-  // Over-cap bands WITHOUT pooled TPEs
-  const baseNoTPE = calculateAllowableIncoming(
-    payroll,
-    team.salaryOut || 0,
-    team.incomingPlayers || [],
-    /* tradeExceptions */ [], // ← stop pooling all TPEs
-    capSettings,
-    yearKey
-  );
-
-  // Add only actually USED buckets
-  const usedTPE = (team.incomingPlayers || [])
-    .filter((p) => p.absorptionMode === 'TPE')
-    .reduce((sum, p) => sum + toNum(p.matchIncoming || p.tpeAmount || 0), 0);
-
-  const faUsage = (team.incomingPlayers || [])
-    .filter((p) => p.absorptionMode === 'FA_EXCEPTION')
-    .reduce((sum, p) => sum + toNum(p.matchIncoming || 0), 0);
-
-  const margin = baseNoTPE + usedTPE + faUsage;
-
-  console.log('[getAllowableIncomingMargin]', {
-    team: team?.nickname || team?.name || team?.id,
-    teamTotalSalary: payroll,
-    secondApron,
-    isAtOrAboveSecondApron: false,
-    marginAboutToReturn: margin,
-  });
-  return margin;
-}
-
-export const getIncomingCeilingForTeam = (team) => {
-  const { context, salaryOut = 0, teamTotalSalary = 0 } = team;
-  const { capSettings = {}, yearKey } = context || {};
-  const { salaryCap = 0, firstApron = 0, secondApron = 0 } = capSettings;
-
-  // Teams above second apron can only take back equal salary
-  if (teamTotalSalary >= secondApron) {
-    return salaryOut;
-  }
-
-  // Teams above first apron limited to 100% matching
-  if (teamTotalSalary >= firstApron) {
-    return salaryOut;
-  }
-
-  // Under-cap teams can take salary up to the cap
-  if (teamTotalSalary < salaryCap) {
-    return salaryCap - teamTotalSalary;
-  }
-
-  // Over-cap teams use standard bands - return the total allowable ceiling
-  const margin = getAllowableIncomingMargin(team);
-  return salaryOut + margin; // This gives us the total allowable incoming amount
-};
-
 // Re-export core functions that tests depend on
 export { computeMatchingValues };
 export { enforceSecondApronHandcuffs };
 export { validateTradeExceptions };
+export { hasStepienViolation };
+export { getIncomingCeilingForTeam }; // Export this function to fix tests
 
 // ===== MAIN VALIDATOR =====
 export function validateTrade({
@@ -449,23 +322,26 @@ export function validateTrade({
       enforceEligibility(team, enhancedTradeCtx) || [];
 
     const consentResult = {
-      passed: consentViolations.length === 0,
+      passed: consentViolations.length === 0 || shouldWarnOnly('consent'),
       violations: consentViolations,
       message: 'Consent validated',
+      warningsOnly: shouldWarnOnly('consent') && consentViolations.length > 0,
     };
     const eligibilityResult = {
-      passed: eligibilityViolations.length === 0,
+      passed:
+        eligibilityViolations.length === 0 || shouldWarnOnly('eligibility'),
       violations: eligibilityViolations,
       message: 'Eligibility validated',
+      warningsOnly:
+        shouldWarnOnly('eligibility') && eligibilityViolations.length > 0,
     };
-
-    // Set passed status based on violations
-    consentResult.passed = consentResult.violations.length === 0;
-    eligibilityResult.passed = eligibilityResult.violations.length === 0;
 
     // 6. Validate salary matching (skip for second apron teams with violations)
     let salaryMatchResult;
-    if (secondApronResult.violations.length > 0) {
+    if (
+      secondApronResult.violations.length > 0 &&
+      !secondApronResult.warningsOnly
+    ) {
       // Second apron teams with violations skip generic salary matching
       salaryMatchResult = {
         passed: false,
@@ -505,13 +381,18 @@ export function validateTrade({
 
     // Collect all violations with proper prioritization
     const violations = [];
+    const warnings = [];
 
     // Prioritize second apron violations
     if (
       secondApronResult.violations &&
       secondApronResult.violations.length > 0
     ) {
-      violations.push(...secondApronResult.violations);
+      if (secondApronResult.warningsOnly) {
+        warnings.push(...secondApronResult.violations);
+      } else {
+        violations.push(...secondApronResult.violations);
+      }
     }
 
     // Add other violations with null checks
@@ -523,11 +404,15 @@ export function validateTrade({
         result.violations &&
         result.violations.length > 0
       ) {
-        violations.push(...result.violations);
+        if (result.warningsOnly) {
+          warnings.push(...result.violations);
+        } else {
+          violations.push(...result.violations);
+        }
       }
     });
 
-    // Check if all validations passed
+    // Check if all validations passed (or are just warnings)
     const legal = violations.length === 0;
 
     // Apply hard cap status from Sign-and-Trade validation
@@ -540,9 +425,11 @@ export function validateTrade({
       ...team,
       rules,
       violations,
+      warnings,
       legal,
       hardCapped: finalHardCapped,
       details: violations.join('; ') || 'Valid trade',
+      warningDetails: warnings.join('; ') || '',
     };
   });
 
@@ -584,24 +471,6 @@ export function validateTrade({
     reason,
     summaryByTeamIndex,
   };
-}
-
-export function hasStepienViolation(picks = []) {
-  const years = picks
-    .filter(
-      (p) =>
-        (p.round === 1 || p.round === '1st') &&
-        !p.isSwap &&
-        !isMeaningfulProtection(p.protection) &&
-        !p.via
-    )
-    .map((p) => parseInt(p.year, 10))
-    .sort((a, b) => a - b);
-
-  for (let i = 1; i < years.length; i++) {
-    if (years[i] === years[i - 1] + 1) return true;
-  }
-  return false;
 }
 
 export {
