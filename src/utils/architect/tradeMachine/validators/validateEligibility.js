@@ -1,6 +1,18 @@
+/**
+ * Player eligibility validation functions
+ * Handles re-acquisition restrictions after trades and waivers
+ */
+
 import { validationFlags } from '@/config/validationFlags.js';
 import debug from '../debug.js';
 
+/**
+ * Validates player eligibility based on re-acquisition restrictions
+ *
+ * @param {Object} team - The team context object with trade details
+ * @param {Object} tradeCtx - Additional trade context including date
+ * @returns {Object} Validation result with standard properties
+ */
 export function validateEligibility(team, tradeCtx = {}) {
   const violations = [];
   const { asOfDate = new Date().toISOString() } = tradeCtx;
@@ -38,6 +50,18 @@ export function validateEligibility(team, tradeCtx = {}) {
     }
   });
 
+  // Use debug logging for complex cases
+  if (debug.enabled && violations.length > 0) {
+    debug.log(`🚫 Eligibility Violations – ${team.teamName}`, {
+      players: (team.incomingPlayers || [])
+        .filter(
+          (p) => p.lastTradedFrom === team.teamId || p.waivedBy === team.teamId
+        )
+        .map((p) => p.name),
+      violations,
+    });
+  }
+
   return {
     passed: violations.length === 0,
     violations,
@@ -48,6 +72,14 @@ export function validateEligibility(team, tradeCtx = {}) {
   };
 }
 
+/**
+ * Enforces player eligibility rules based on validation flags
+ *
+ * @param {Object} team - The team context object
+ * @param {Object} tradeCtx - Additional trade context
+ * @param {Object} callbacks - Warning and rejection callbacks
+ * @returns {Array} Array of violation messages
+ */
 export function enforceEligibility(
   team,
   tradeCtx = {},
