@@ -1,7 +1,7 @@
-// SCSP: validateSecondApronRules.js — FULL FILE REPLACEMENT
 import { getApronStatus } from '@/utils/architect/tradeHelpers.js';
 import { isPriorYearTPE } from '@/utils/architect/tradeMachine/tpeUtils.js';
 import debug from '../debug.js';
+import { validationCache } from './validationCache.js';
 
 /**
  * Validates second apron team restrictions:
@@ -13,6 +13,13 @@ import debug from '../debug.js';
  * - Cannot use FA exceptions (MLE, BAE, etc.)
  */
 export function validateSecondApronRules(team) {
+  // Check cache first
+  const cacheKey = `${team.teamId}-${team.context?.yearKey || ''}-second-apron`;
+  const cached = validationCache.getCachedSecondApronRules(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const violations = [];
   const {
     teamTotalSalary = 0,
@@ -89,7 +96,7 @@ export function validateSecondApronRules(team) {
     }
   }
 
-  return {
+  const result = {
     passed: violations.length === 0,
     violations,
     message: violations.length
@@ -97,6 +104,11 @@ export function validateSecondApronRules(team) {
       : 'Second apron compliant',
     details: violations.join('; '),
   };
+
+  // Cache the result
+  validationCache.cacheSecondApronRules(cacheKey, result);
+
+  return result;
 }
 
 /**

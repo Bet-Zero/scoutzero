@@ -1,13 +1,28 @@
 import { isPriorYearTPE } from '@/utils/architect/tradeMachine/tpeUtils.js';
+import debug from '../debug.js';
 
+/**
+ * Enforces second apron handcuffs:
+ * - 100% salary matching on trades
+ * - No aggregation of multiple salaries into higher-paid player
+ * - No cash considerations
+ * - No prior-year TPEs
+ */
 export function enforceSecondApronHandcuffs(teamCtx, tradeCtx = {}) {
   const violations = [];
-  const { yearKey, capSettings } = teamCtx.context || {};
-  const { secondApron = 0 } = capSettings || {};
+  const { yearKey } = teamCtx.context || {};
 
   // Only apply to teams above second apron
   if (!teamCtx.postTradeStatus?.isAtOrAboveSecondApron) {
     return violations;
+  }
+
+  if (debug.enabled) {
+    debug.log(`🔒 Second Apron Handcuffs – ${teamCtx.teamName}`, {
+      isSecondApron: teamCtx.postTradeStatus?.isAtOrAboveSecondApron,
+      salaryIn: teamCtx.salaryIn,
+      salaryOut: teamCtx.salaryOut,
+    });
   }
 
   // Handle both 'sends'/'outgoingPlayers' property names for backward compatibility

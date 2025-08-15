@@ -2,6 +2,7 @@ import {
   buildFirstRoundCalendar,
   passesStepienRule,
 } from '@/utils/architect/stepienUtils.js';
+import { validationCache } from './validationCache.js';
 
 /**
  * Validates Stepien Rule compliance:
@@ -10,6 +11,13 @@ import {
  * - Second apron teams cannot trade their own 7-year-out first
  */
 export function validateStepien(team) {
+  // Generate cache key from team and picks data
+  const cacheKey = `${team.teamId}-${team.context?.yearKey || ''}-${JSON.stringify(team.outgoingPicks || [])}`;
+  const cached = validationCache.getCachedStepienValidation(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const violations = [];
   const { outgoingPicks = [], context = {} } = team;
   const { yearKey } = context;
@@ -53,7 +61,7 @@ export function validateStepien(team) {
     }
   }
 
-  return {
+  const result = {
     passed: violations.length === 0,
     violations,
     message:
@@ -62,5 +70,12 @@ export function validateStepien(team) {
         : 'Stepien Rule compliant',
     details: violations.join('; '),
     calendar, // Include for debugging/display
+    farthestYear,
+    currentYear: yearKey,
   };
+
+  // Cache the result
+  validationCache.cacheStepienValidation(cacheKey, result);
+
+  return result;
 }
