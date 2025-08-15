@@ -2,108 +2,65 @@ import debug from '../debug.js';
 import { validationFlags } from '@/config/validationFlags.js';
 import {
   isWithinMoratorium,
+  daysSince,
+  violates30Day,
   violates2MonthAggregation,
-} from '../timingUtils.js';
+} from '@/utils/architect/timingUtils.js';
 
 export function enforceTiming(
   team,
   tradeCtx = {},
   { warn = () => {}, reject = () => {} } = {}
 ) {
-  const { outgoingPlayers = [] } = team;
-  const { asOfDate, validationFlags = {} } = tradeCtx;
   const violations = [];
+  const { asOfDate = new Date().toISOString() } = tradeCtx;
+  const tradeDate = new Date(asOfDate);
 
   if (debug.enabled) {
     debug.log(`⏰ Timing Rules – ${team.teamName}`, {
-      asOfDate: tradeCtx.asOfDate,
-      players: [...outgoingPlayers, ...incomingPlayers].map((p) => p.name),
+      asOfDate,
+      players: (team.sends || []).map((p) => p.name),
     });
   }
 
-  // Check moratorium period
-  if (isWithinMoratorium(tradeCtx.asOfDate)) {
-    violations.push('Trade during moratorium period');
+  // Check trade moratorium
+  if (
+    isWithinMoratorium(tradeDate, {
+      startMonth: 7,
+      startDay: 1,
+      endMonth: 7,
+      endDay: 6,
+    })
+  ) {
+    const msg = 'Trade during league moratorium period';
+    violations.push(msg);
+    if (validationFlags.timingEnforcement === 'error') reject(msg);
+    else if (validationFlags.timingEnforcement === 'warn') warn(msg);
   }
 
-  // Check Dec 15 / Jan 15 restrictions
-  outgoingPlayers.forEach((player) => {
-    if (requiresDec15(player, asOfDate)) {
-      violations.push(`${player.name} cannot be traded until Dec 15`);
-    }
-    if (requiresJan15(player, asOfDate)) {
-      violations.push(`${player.name} cannot be traded until Jan 15`);
-    }
-  });
-
-  // Check 30-day trade restriction for newly signed players
-  outgoingPlayers.forEach((player) => {
-    if (player.signedDate && !player.hasConsented) {
-      const signedDate = new Date(player.signedDate);
-      const tradeDate = new Date(tradeCtx.asOfDate);
-      const daysSigned = (tradeDate - signedDate) / (1000 * 60 * 60 * 24);
-
-      if (daysSigned < 30) {
-        violations.push(
-          `${player.name || 'Player'} cannot be traded within 30 days of signing`
-        );
-      }
+  // Check each outgoing player
+  (team.sends || []).forEach((player) => {
+    // 30-day restriction after signing
+    if (violates30Day(player, tradeDate)) {
+      const msg = `${player.name || 'Player'} cannot be traded within 30 days of signing`;
+      violations.push(msg);
+      if (validationFlags.timingEnforcement === 'error') reject(msg);
+      else if (validationFlags.timingEnforcement === 'warn') warn(msg);
     }
   });
 
-  // Check 2-month aggregation rule
-  if (violates2MonthAggregation(outgoingPlayers, tradeCtx.asOfDate)) {
-    violations.push('Cannot aggregate players traded for within past 2 months');
+  // 2-month aggregation rule
+  if ((team.sends || []).length > 1) {
+    const hasRecentlyAcquired = team.sends.some((p) =>
+      violates2MonthAggregation(p, tradeDate)
+    );
+    if (hasRecentlyAcquired) {
+      const msg = 'Cannot aggregate players traded for within past 2 months';
+      violations.push(msg);
+      if (validationFlags.timingEnforcement === 'error') reject(msg);
+      else if (validationFlags.timingEnforcement === 'warn') warn(msg);
+    }
   }
-
-  violations.forEach((msg) => {
-    if (validationFlags.timing === 'warn') {
-      warn(msg);
-    } else {
-      reject(msg);
-    }
-  });
 
   return violations;
-}
-
-function isMoratoriumActive(date) {
-  const tradeDate = new Date(date);
-  const month = tradeDate.getMonth(); // 0-based
-  const day = tradeDate.getDate();
-
-  // Approximate moratorium period
-  return month === 5 && day >= 30; // June 30th and after
-}
-
-function requiresDec15(player, date) {
-  if (!player.isNewlySignedFA) return false;
-  const tradeDate = new Date(date);
-  const dec15 = new Date(tradeDate.getFullYear(), 11, 15); // Month is 0-based
-  return tradeDate < dec15;
-}
-
-function requiresJan15(player, date) {
-  if (!player.isRecentlyExtended) return false;
-  const tradeDate = new Date(date);
-  const jan15 = new Date(tradeDate.getFullYear(), 0, 15); // Month is 0-based
-  return tradeDate < jan15;
-}
-
-function isWithin30Days(startDate, currentDate) {
-  const daysDiff =
-    (new Date(currentDate) - new Date(startDate)) / (1000 * 60 * 60 * 24);
-  return daysDiff < 30;
-}
-
-function hasRecentlyAcquiredPlayers(players, date) {
-  // Check if trying to aggregate players acquired within 2 months
-  const twoMonthsAgo = new Date(date);
-  twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
-
-  const recentlyAcquired = players.filter(
-    (p) => p.dateAcquired && new Date(p.dateAcquired) > twoMonthsAgo
-  );
-
-  return recentlyAcquired.length > 1;
 }

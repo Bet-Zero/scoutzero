@@ -125,23 +125,4 @@ export function enforceRosterWindow(
   return violations;
 }
 
-export function enforceSecondApronHandcuffs(
-  team,
-  ctx = {},
-  { warn = () => {}, reject = () => {} } = {}
-) {
-  const violations = [];
-  const { isOverSecondApron, incomingPlayers = [] } = team;
-
-  if (!isOverSecondApron) return violations;
-
-  // Check salary aggregation
-  if (incomingPlayers.length > 1) {
-    reject('Second apron teams cannot aggregate salary');
-    violations.push('Second apron teams cannot aggregate salary');
-  }
-
-  // Add other second apron restrictions here
-
-  return violations;
-}
+export { enforceSecondApronHandcuffs } from './enforceSecondApronHandcuffs.js';

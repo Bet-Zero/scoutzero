@@ -1,4 +1,5 @@
 import { wouldExceedHardCap } from '@/utils/architect/tradeHelpers.js';
+import { validationCache } from './validationCache.js';
 
 /**
  * Validates Sign-and-Trade requirements:
@@ -10,6 +11,13 @@ import { wouldExceedHardCap } from '@/utils/architect/tradeHelpers.js';
  * - Teams using taxpayer MLE cannot receive S&T players
  */
 export function validateSignAndTrade(team, tradeCtx = {}) {
+  // Generate cache key from team and trade context
+  const cacheKey = `${team.teamId}-${tradeCtx.tradeDate || ''}-${tradeCtx.season || ''}`;
+  const cached = validationCache.getCachedSignAndTrade(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const violations = [];
   const { context = {} } = team;
   const { tradeDate, season, offseason } = tradeCtx;
@@ -122,10 +130,9 @@ export function validateSignAndTrade(team, tradeCtx = {}) {
     }
   }
 
-  // Receiving team will be hard-capped at first apron
   const willBeHardCapped = sntIn.length > 0;
 
-  return {
+  const result = {
     passed: violations.length === 0,
     violations,
     message:
@@ -136,4 +143,9 @@ export function validateSignAndTrade(team, tradeCtx = {}) {
     hasSignAndTrade: anySnt,
     hardCapped: willBeHardCapped,
   };
+
+  // Cache the result
+  validationCache.cacheSignAndTrade(cacheKey, result);
+
+  return result;
 }

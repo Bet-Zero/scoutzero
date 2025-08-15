@@ -1,13 +1,13 @@
 import { afterEach } from 'vitest';
-import { tradeDebug } from '@/utils/architect/tradeMachine/tradeValidator.js';
+import debug from '@/utils/architect/tradeMachine/tradeDebug.js';
 
-tradeDebug.enabled = true;
+debug.enabled = true;
 
 afterEach((context) => {
   context.onTestFailed(() => {
     console.log('--- Debug Output ---');
-    console.log(tradeDebug.flushToUI().join('\n'));
+    console.log(debug.flushToUI().join('\n'));
   });
-  tradeDebug.logs = [];
-  tradeDebug.records = [];
+  debug.logs = [];
+  debug.records = [];
 });

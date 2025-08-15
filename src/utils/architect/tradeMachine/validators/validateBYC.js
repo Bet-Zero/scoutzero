@@ -1,4 +1,5 @@
 import { BYC_PERCENT } from '@/utils/architect/cbaConstants.js';
+import { validationCache } from './validationCache.js';
 
 /**
  * Validates Base Year Compensation (BYC) rules:
@@ -6,6 +7,13 @@ import { BYC_PERCENT } from '@/utils/architect/cbaConstants.js';
  * - Poison pill calculation for receiving team
  */
 export function validateBYC(team, tradeCtx = {}) {
+  // Check cache first
+  const cacheKey = `${team.teamId}-${team.context?.yearKey || ''}-byc`;
+  const cached = validationCache.getCachedBYC(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const violations = [];
   const { sends = [], incomingPlayers = [] } = team;
 
@@ -39,11 +47,16 @@ export function validateBYC(team, tradeCtx = {}) {
     }
   });
 
-  return {
+  const result = {
     passed: violations.length === 0,
     violations,
     message:
       violations.length > 0 ? 'BYC validation failed' : 'BYC validation passed',
     details: violations.join('; '),
   };
+
+  // Cache the result
+  validationCache.cacheBYC(cacheKey, result);
+
+  return result;
 }

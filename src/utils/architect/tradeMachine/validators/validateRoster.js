@@ -7,6 +7,13 @@ import { validationFlags } from '@/config/validationFlags.js';
  * - Two-way slots (max 3)
  */
 export function validateRoster(team) {
+  // Check cache first
+  const cacheKey = `${team.teamId}-${team.projectedRosterCount || 0}-${team.team?.twoWayPlayers?.length || 0}`;
+  const cached = validationCache.getCachedRosterValidation(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const violations = [];
   const {
     projectedRosterCount = 0,
@@ -48,7 +55,7 @@ export function validateRoster(team) {
   if (standardViolation) violations.push(standardViolation);
   if (twoWayViolation) violations.push(twoWayViolation);
 
-  return {
+  const result = {
     passed: standardPass && twoWayPass,
     violations,
     message:
@@ -63,6 +70,11 @@ export function validateRoster(team) {
       current: team.initialRosterCount || 0,
     },
   };
+
+  // Cache the result
+  validationCache.cacheRosterValidation(cacheKey, result);
+
+  return result;
 }
 
 export function enforceRosterWindow(team, { warn, reject } = {}) {

@@ -5,6 +5,7 @@
 
 import { validationFlags } from '@/config/validationFlags.js';
 import debug from '../debug.js';
+import { validationCache } from './validationCache.js';
 
 /**
  * Validates player eligibility based on re-acquisition restrictions
@@ -14,6 +15,13 @@ import debug from '../debug.js';
  * @returns {Object} Validation result with standard properties
  */
 export function validateEligibility(team, tradeCtx = {}) {
+  // Check cache first
+  const cacheKey = `${team.teamId}-${tradeCtx.tradeDate || ''}`;
+  const cached = validationCache.getCachedEligibility(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const violations = [];
   const { asOfDate = new Date().toISOString() } = tradeCtx;
   const tradeDate = new Date(asOfDate);
@@ -62,7 +70,7 @@ export function validateEligibility(team, tradeCtx = {}) {
     });
   }
 
-  return {
+  const result = {
     passed: violations.length === 0,
     violations,
     message: violations.length
@@ -70,6 +78,11 @@ export function validateEligibility(team, tradeCtx = {}) {
       : 'Player eligibility validated',
     details: violations.join('; '),
   };
+
+  // Cache the result
+  validationCache.cacheEligibility(cacheKey, result);
+
+  return result;
 }
 
 /**

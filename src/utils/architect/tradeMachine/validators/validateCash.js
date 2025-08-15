@@ -1,8 +1,16 @@
 import { getSeasonalCashLimit } from '@/utils/architect/tradeHelpers.js';
 import { getApronStatus } from '@/utils/architect/tradeHelpers.js';
 import { validationFlags } from '@/config/validationFlags.js';
+import { validationCache } from './validationCache.js';
 
 export function validateCash(team, tradeCtx = {}) {
+  // Check cache first
+  const cacheKey = `${team.teamId}-${team.context?.yearKey || ''}-${tradeCtx.season || ''}-cash`;
+  const cached = validationCache.getCachedCashValidation(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const violations = [];
   const {
     teamTotalSalary = 0,
@@ -34,17 +42,23 @@ export function validateCash(team, tradeCtx = {}) {
       }, 0) + cashSent;
 
     if (totalCashOut > seasonalLimit) {
-      violations.push('Cash sent exceeds seasonal cap');
+      violations.push(
+        `Cash sent this season (${totalCashOut.toLocaleString()}) would exceed the seasonal limit of ${seasonalLimit.toLocaleString()}`
+      );
     }
   }
 
-  return {
+  const result = {
     passed: violations.length === 0,
     violations,
-    message:
-      violations.length > 0
-        ? 'Cash restrictions violated'
-        : 'Cash restrictions passed',
+    message: violations.length
+      ? 'Cash restrictions violated'
+      : 'Cash restrictions passed',
     details: violations.join('; '),
   };
+
+  // Cache the result
+  validationCache.cacheCashValidation(cacheKey, result);
+
+  return result;
 }

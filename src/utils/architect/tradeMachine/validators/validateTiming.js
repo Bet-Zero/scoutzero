@@ -1,5 +1,11 @@
 import { validationFlags } from '@/config/validationFlags.js';
 import debug from '../debug.js';
+import {
+  isWithinMoratorium,
+  daysSince,
+  violates30Day,
+  violates2MonthAggregation,
+} from '@/utils/architect/timingUtils.js';
 
 export function validateTiming(team, ctx = {}) {
   const violations = [];
@@ -7,26 +13,25 @@ export function validateTiming(team, ctx = {}) {
   const tradeDate = new Date(asOfDate);
 
   // Check trade moratorium period
-  const moratoriumStart = new Date(tradeDate.getFullYear(), 6, 1); // July 1
-  const moratoriumEnd = new Date(tradeDate.getFullYear(), 6, 6); // July 6
-  if (tradeDate >= moratoriumStart && tradeDate <= moratoriumEnd) {
+  if (
+    isWithinMoratorium(tradeDate, {
+      startMonth: 7,
+      startDay: 1,
+      endMonth: 7,
+      endDay: 6,
+    })
+  ) {
     violations.push('Trade moratorium is in effect (July 1-6)');
   }
 
   // Check each outgoing player for timing restrictions
   (team.sends || []).forEach((player) => {
-    // Check 30-day restriction after signing
-    if (player.signedDate) {
-      const signedDate = new Date(player.signedDate);
-      const daysSinceSigned = (tradeDate - signedDate) / (1000 * 60 * 60 * 24);
-
-      if (daysSinceSigned < 30) {
-        violations.push(
-          `${player.name || 'Player'} cannot be traded within 30 days of signing (${Math.ceil(
-            30 - daysSinceSigned
-          )} days remaining)`
-        );
-      }
+    // 30-day restriction after signing
+    if (violates30Day(player, tradeDate)) {
+      const daysRemaining = 30 - daysSince(player.signedDate, tradeDate);
+      violations.push(
+        `${player.name || 'Player'} cannot be traded within 30 days of signing (${Math.ceil(daysRemaining)} days remaining)`
+      );
     }
 
     // Check Dec 15 restriction for newly signed players
@@ -52,15 +57,10 @@ export function validateTiming(team, ctx = {}) {
 
   // Check 60-day aggregation restriction
   if ((team.sends || []).length > 1) {
-    const recentlyAcquired = team.sends.filter((player) => {
-      if (!player.dateAcquired) return false;
-      const acquiredDate = new Date(player.dateAcquired);
-      const daysSinceAcquired =
-        (tradeDate - acquiredDate) / (1000 * 60 * 60 * 24);
-      return daysSinceAcquired < 60;
-    });
-
-    if (recentlyAcquired.length > 0) {
+    const hasRecentlyAcquired = team.sends.some((p) =>
+      violates2MonthAggregation(p, tradeDate)
+    );
+    if (hasRecentlyAcquired) {
       violations.push(
         'Cannot aggregate players acquired within the last 60 days'
       );
@@ -83,6 +83,7 @@ export function enforceTiming(
   { warn = () => {}, reject = () => {} } = {}
 ) {
   const enforcement = validationFlags.timingEnforcement;
+  const result = validateTiming(team, ctx);
 
   if (debug.enabled) {
     debug.log(`⏰ Timing Rules – ${team.teamName}`, {
@@ -91,12 +92,8 @@ export function enforceTiming(
     });
   }
 
-  // Get validation result
-  const result = validateTiming(team, ctx);
-  const violations = result.violations;
-
   // Handle enforcement based on validation flag
-  violations.forEach((msg) => {
+  result.violations.forEach((msg) => {
     if (enforcement === 'warn') {
       warn(msg);
     } else if (enforcement === 'error') {
@@ -104,5 +101,5 @@ export function enforceTiming(
     }
   });
 
-  return violations;
+  return result.violations;
 }
