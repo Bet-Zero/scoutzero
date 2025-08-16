@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { enforceEligibility } from '@/utils/architect/tradeMachine/tradeValidator.js';
+import { enforceEligibility } from '@/utils/architect/tradeMachine/validators/index.js';
 import { validationFlags } from '@/config/validationFlags.js';
 
 describe('re-acquisition bar', () => {
@@ -12,7 +12,9 @@ describe('re-acquisition bar', () => {
       name: 'Traded',
       lastTradedFromTeamId: 1,
       lastTradeDate: new Date().toISOString(),
-      eligibleReacqDate: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString(),
+      eligibleReacqDate: new Date(
+        Date.now() + 365 * 24 * 3600 * 1000
+      ).toISOString(),
     };
     const rejects = [];
     enforceEligibility(
@@ -28,7 +30,9 @@ describe('re-acquisition bar', () => {
       name: 'Waived',
       wasWaivedByTeamId: 1,
       contractEndDate: new Date().toISOString(),
-      eligibleReacqDate: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString(),
+      eligibleReacqDate: new Date(
+        Date.now() + 365 * 24 * 3600 * 1000
+      ).toISOString(),
     };
     const rejects = [];
     enforceEligibility(

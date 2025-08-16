@@ -13,6 +13,9 @@ class ValidationCache {
       apronStatus: new Map(),
       tpeValidations: new Map(),
       hardCapStatus: new Map(),
+      rosterValidations: new Map(),
+      stepienValidations: new Map(),
+      cashValidations: new Map(),
     };
   }
 
@@ -58,6 +61,36 @@ class ValidationCache {
   cacheHardCapStatus(team, projectedSalary, result) {
     const key = this._getHardCapKey(team, projectedSalary);
     this._cache.hardCapStatus.set(key, result);
+  }
+
+  // Roster validation cache
+  getCachedRosterValidation(cacheKey) {
+    return this._cache.rosterValidations.get(cacheKey);
+  }
+
+  cacheRosterValidation(cacheKey, result) {
+    this._cache.rosterValidations.set(cacheKey, result);
+  }
+
+  // Stepien validation cache
+  getCachedStepienValidation(cacheKey) {
+    return this._cache.stepienValidations.get(cacheKey);
+  }
+
+  cacheStepienValidation(cacheKey, result) {
+    this._cache.stepienValidations.set(cacheKey, result);
+  }
+
+  // Cash validation cache
+  getCachedCashValidation(cacheKey) {
+    return this._cache.cashValidations?.get(cacheKey);
+  }
+
+  cacheCashValidation(cacheKey, result) {
+    if (!this._cache.cashValidations) {
+      this._cache.cashValidations = new Map();
+    }
+    this._cache.cashValidations.set(cacheKey, result);
   }
 
   // Private key generation methods

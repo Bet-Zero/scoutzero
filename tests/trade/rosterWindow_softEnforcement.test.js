@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { enforceRosterWindow } from '@/utils/architect/tradeMachine/tradeValidator.js';
+import { enforceRosterWindow } from '@/utils/architect/tradeMachine/validators/index.js';
 import { validationFlags } from '@/config/validationFlags.js';
 
 const makeTeam = (count) => ({
@@ -15,10 +15,14 @@ describe('roster window soft enforcement', () => {
     validationFlags.rosterEnforcement = 'error';
     const rejects = [];
     const warns = [];
-    enforceRosterWindow(makeTeam(13), {}, {
-      warn: (m) => warns.push(m),
-      reject: (m) => rejects.push(m),
-    });
+    enforceRosterWindow(
+      makeTeam(13),
+      {},
+      {
+        warn: (m) => warns.push(m),
+        reject: (m) => rejects.push(m),
+      }
+    );
     expect(rejects).toHaveLength(1);
     expect(warns).toHaveLength(0);
   });
@@ -27,10 +31,14 @@ describe('roster window soft enforcement', () => {
     validationFlags.rosterEnforcement = 'warn';
     const rejects = [];
     const warns = [];
-    enforceRosterWindow(makeTeam(13), {}, {
-      warn: (m) => warns.push(m),
-      reject: (m) => rejects.push(m),
-    });
+    enforceRosterWindow(
+      makeTeam(13),
+      {},
+      {
+        warn: (m) => warns.push(m),
+        reject: (m) => rejects.push(m),
+      }
+    );
     expect(warns).toHaveLength(1);
     expect(rejects).toHaveLength(0);
   });
@@ -39,10 +47,14 @@ describe('roster window soft enforcement', () => {
     validationFlags.rosterEnforcement = 'error';
     const rejects = [];
     const warns = [];
-    enforceRosterWindow(makeTeam(13), { graceMode: true }, {
-      warn: (m) => warns.push(m),
-      reject: (m) => rejects.push(m),
-    });
+    enforceRosterWindow(
+      makeTeam(13),
+      { graceMode: true },
+      {
+        warn: (m) => warns.push(m),
+        reject: (m) => rejects.push(m),
+      }
+    );
     expect(warns).toHaveLength(0);
     expect(rejects).toHaveLength(0);
   });

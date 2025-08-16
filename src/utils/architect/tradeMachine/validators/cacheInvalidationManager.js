@@ -86,7 +86,7 @@ export class CacheInvalidationManager {
 
   // Clear all caches (use sparingly)
   clearAll() {
-    validationCache.manager.clear();
+    validationCache.clear();
     debug.log('🧹 Cleared all validation caches');
   }
 }

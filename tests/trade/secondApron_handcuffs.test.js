@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { enforceSecondApronHandcuffs } from '@/utils/architect/tradeMachine/tradeValidator.js';
+import { enforceSecondApronHandcuffs } from '@/utils/architect/tradeMachine/validators/index.js';
 
 const baseTeam = {
   context: { yearKey: 2025 },
@@ -72,4 +72,3 @@ describe('second apron handcuffs', () => {
     expect(enforceSecondApronHandcuffs(okTeam, {})).toEqual([]);
   });
 });
-

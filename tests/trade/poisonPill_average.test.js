@@ -1,9 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { computeMatchingValues } from '@/utils/architect/tradeMachine/tradeValidator.js';
+import { computeMatchingValues } from '@/utils/architect/tradeMachine/validators/index.js';
 
 const yearKey = 2025;
 
-const makePlayer = ({ currentSalary, extensionYears = [], isBYC = false, previousSalary, newSalary }) => ({
+const makePlayer = ({
+  currentSalary,
+  extensionYears = [],
+  isBYC = false,
+  previousSalary,
+  newSalary,
+}) => ({
   name: 'PP Player',
   isPoisonPill: true,
   currentSalary,
@@ -12,7 +18,9 @@ const makePlayer = ({ currentSalary, extensionYears = [], isBYC = false, previou
   previousSalary,
   contract_clean: {
     salaries_by_year: {
-      [yearKey]: { salary: newSalary ?? (extensionYears[0]?.salary ?? currentSalary) },
+      [yearKey]: {
+        salary: newSalary ?? extensionYears[0]?.salary ?? currentSalary,
+      },
     },
   },
 });
@@ -56,4 +64,3 @@ describe('Poison Pill matching values', () => {
     expect(player.matchIncoming).toBe(8_500_000);
   });
 });
-
