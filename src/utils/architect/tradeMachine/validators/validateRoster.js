@@ -1,5 +1,6 @@
 import { passesRosterWindow } from '@/utils/architect/rosterUtils.js';
 import { validationFlags } from '@/config/validationFlags.js';
+import { validationCache } from './validationCache.js';
 
 /**
  * Validates roster requirements including:
@@ -77,11 +78,21 @@ export function validateRoster(team) {
   return result;
 }
 
-export function enforceRosterWindow(team, { warn, reject } = {}) {
+export function enforceRosterWindow(team, context = {}, { warn, reject } = {}) {
   const violations = [];
   const warnings = [];
 
-  const { projectedRosterCount = 0, initialRosterCount = 0 } = team;
+  // Extract roster count from various possible sources
+  let projectedRosterCount = team.projectedRosterCount || 0;
+
+  // If no projected count, calculate from postTradeTeam structure
+  if (!projectedRosterCount && team.postTradeTeam?.players) {
+    projectedRosterCount = team.postTradeTeam.players.length;
+  }
+
+  const initialRosterCount = team.initialRosterCount || 0;
+  const enforcement = validationFlags.rosterEnforcement || 'error';
+  const isGraceMode = context.graceMode;
 
   // Check maximum roster size (typically 15)
   if (projectedRosterCount > 15) {
@@ -110,20 +121,28 @@ export function enforceRosterWindow(team, { warn, reject } = {}) {
     violations.push('Post-trade two-way slots exceed maximum of 2');
   }
 
+  // Handle enforcement mode and grace mode
+  if (!isGraceMode) {
+    violations.forEach((violation) => {
+      if (enforcement === 'warn' && typeof warn === 'function') {
+        warn(violation);
+      } else if (enforcement === 'error' && typeof reject === 'function') {
+        reject(violation);
+      }
+    });
+  }
+
   // Handle soft enforcement via callbacks
   if (typeof warn === 'function') {
     warnings.forEach((w) => warn(w));
   }
-  if (typeof reject === 'function') {
-    violations.forEach((v) => reject(v));
-  }
 
   return {
-    passed: violations.length === 0,
+    passed: violations.length === 0 || isGraceMode,
     violations,
     warnings,
     message:
-      violations.length > 0
+      violations.length > 0 && !isGraceMode
         ? 'Roster size requirements not met'
         : 'Roster size validated',
     details: [...violations, ...warnings].join('; '),

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeMatchingValues } from '@/utils/architect/tradeMachine/tradeValidator.js';
+import { computeMatchingValues } from '@/utils/architect/tradeMachine/validators/index.js';
 
 const yearKey = 2025;
 
@@ -76,4 +76,3 @@ describe('Trade kicker proration', () => {
     expect(player.matchIncoming).toBe(13_000_000);
   });
 });
-

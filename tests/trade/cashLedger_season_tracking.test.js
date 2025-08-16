@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateCash } from '@/utils/architect/tradeMachine/tradeValidator.js';
+import { validateCash } from '@/utils/architect/tradeMachine/validators/index.js';
 import { validationFlags } from '@/config/validationFlags.js';
 
 describe('seasonal cash ledger tracking', () => {
@@ -11,9 +11,7 @@ describe('seasonal cash ledger tracking', () => {
       cashReceived: 0,
       postTradeStatus: {},
     };
-    const history = [
-      { season: 2025, fromTeamId: 1, cashSent: 7_000_000 },
-    ];
+    const history = [{ season: 2025, fromTeamId: 1, cashSent: 7_000_000 }];
     const res = validateCash(team, { season: 2025, tradesHistory: history });
     expect(res.violations[0]).toMatch(/Cash sent exceeds seasonal cap/);
   });

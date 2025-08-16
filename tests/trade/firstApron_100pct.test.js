@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getIncomingCeilingForTeam } from '@/utils/architect/tradeMachine/tradeValidator.js';
+import { getIncomingCeilingForTeam } from '@/utils/architect/tradeMachine/validators/index.js';
 
 const capSettings = {
   salaryCap: 141_000_000,

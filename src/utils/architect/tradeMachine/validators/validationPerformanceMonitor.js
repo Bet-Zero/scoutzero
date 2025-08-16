@@ -6,6 +6,11 @@ import { validationCache } from './validationCacheService.js';
  */
 export class ValidationPerformanceMonitor {
   constructor() {
+    this.reset();
+  }
+
+  // Reset all metrics
+  reset() {
     this.timings = new Map();
     this.startTimes = new Map();
     this.cacheHits = new Map();

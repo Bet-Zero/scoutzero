@@ -3,6 +3,7 @@ import { validationFlags } from '@/config/validationFlags.js';
 
 export function enforceConsent(
   team,
+  context = {},
   { warn = () => {}, reject = () => {} } = {}
 ) {
   const { outgoingPlayers = [], incomingPlayers = [] } = team;
@@ -14,64 +15,88 @@ export function enforceConsent(
     });
   }
 
-  const violations = [
-    ...outgoingPlayers.filter((player) => {
-      // Full no-trade clause
-      if (player.noTradeClause && !player.hasConsented) {
-        return true;
-      }
+  const violations = [];
 
-      // Limited no-trade
+  // Check outgoing players for consent issues
+  outgoingPlayers.forEach((player) => {
+    let violationMsg = null;
+
+    // Full no-trade clause
+    if (
+      (player.hasFullNTC || player.noTradeClause) &&
+      !player.consentGranted &&
+      !player.hasConsented
+    ) {
+      violationMsg = 'Player NTC — consent required';
+    }
+
+    // Limited no-trade clause
+    if (player.limitedNTCTeamIds && Array.isArray(player.limitedNTCTeamIds)) {
+      // If player is being traded to a team NOT on their approved list
       if (
-        player.limitedNoTrade &&
-        Array.isArray(player.approvedTeams) &&
-        !player.approvedTeams.includes(team.team?.id)
+        player.tradeTo &&
+        !player.limitedNTCTeamIds.includes(player.tradeTo) &&
+        !player.consentGranted
       ) {
-        return true;
+        violationMsg = 'Player NTC — consent required';
       }
+    }
 
-      // Bird rights veto
+    // Bird rights veto (1-year Bird deals)
+    if (player.onOneYearBirdDeal && !player.consentGranted) {
+      violationMsg = '1-yr Bird veto — consent required';
+    }
+
+    if (violationMsg) {
+      violations.push(violationMsg);
+      if (enforcement === 'warn') {
+        warn(violationMsg);
+      } else {
+        reject(violationMsg);
+      }
+    }
+  });
+
+  // Check incoming players for consent issues
+  incomingPlayers.forEach((player) => {
+    let violationMsg = null;
+
+    // Full no-trade clause
+    if (
+      (player.hasFullNTC || player.hasFullNoTrade) &&
+      !player.hasTradeConsent &&
+      !player.consentGranted
+    ) {
+      violationMsg = `${player.name} has not waived their no-trade clause`;
+    }
+
+    // Limited no-trade clause
+    if (player.limitedNTCTeamIds && Array.isArray(player.limitedNTCTeamIds)) {
       if (
-        player.hasBirdRights &&
-        player.wouldLoseBirdRights &&
-        !player.hasConsented
+        !player.limitedNTCTeamIds.includes(team.teamId) &&
+        !player.hasTradeConsent &&
+        !player.consentGranted
       ) {
-        return true;
+        violationMsg = `${player.name} has not approved a trade to ${team.teamName}`;
       }
+    }
 
-      return false;
-    }),
-    ...incomingPlayers.filter((player) => {
-      // Check full no-trade clause
-      if (player.hasFullNoTrade && !player.hasTradeConsent) {
-        return `${player.name} has not waived their no-trade clause`;
+    // Bird rights veto
+    if (
+      (player.hasBirdRightsVeto || player.onOneYearBirdDeal) &&
+      !player.hasTradeConsent &&
+      !player.consentGranted
+    ) {
+      violationMsg = `${player.name} has not waived their Bird rights veto`;
+    }
+
+    if (violationMsg) {
+      violations.push(violationMsg);
+      if (enforcement === 'warn') {
+        warn(violationMsg);
+      } else {
+        reject(violationMsg);
       }
-
-      // Check limited no-trade clause
-      if (
-        player.hasLimitedNoTrade &&
-        player.approvedTeams &&
-        !player.approvedTeams.includes(team.teamId) &&
-        !player.hasTradeConsent
-      ) {
-        return `${player.name} has not approved a trade to ${team.teamName}`;
-      }
-
-      // Check Bird rights veto
-      if (player.hasBirdRightsVeto && !player.hasTradeConsent) {
-        return `${player.name} has not waived their Bird rights veto`;
-      }
-
-      return false;
-    }),
-  ].filter(Boolean);
-
-  violations.forEach((violation) => {
-    const msg = `${violation}`;
-    if (enforcement === 'warn') {
-      warn(msg);
-    } else {
-      reject(msg);
     }
   });
 

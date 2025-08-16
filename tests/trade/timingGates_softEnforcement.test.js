@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { enforceTiming } from '@/utils/architect/tradeMachine/tradeValidator.js';
+import { enforceTiming } from '@/utils/architect/tradeMachine/validators/index.js';
 import { validationFlags } from '@/config/validationFlags.js';
 
 const run = (team, tradeCtx) => {
@@ -45,7 +45,9 @@ describe('timing gates soft enforcement', () => {
   });
 
   it('30-day rule respects flag', () => {
-    const team = { outgoingPlayers: [{ name: 'P1', signedDate: '2024-01-15' }] };
+    const team = {
+      outgoingPlayers: [{ name: 'P1', signedDate: '2024-01-15' }],
+    };
     const tradeCtx = { tradeDate: '2024-02-01' };
     validationFlags.timingEnforcement = 'error';
     let r = run(team, tradeCtx);
