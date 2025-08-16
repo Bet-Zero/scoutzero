@@ -64,11 +64,15 @@ export function validateTrade({
     // Process each team's validation rules
     const validatedTeams = normalizedTeams.map((team) => {
       // Run validations in correct order
+      const stepienResult = validators.validateStepien(team);
       const validationResults = {
         signAndTrade: validators.validateSignAndTrade(team, normalizedCtx),
+        salaryMatching: validators.validateSalaryMatching(team),
         hardCap: validators.validateHardCap(team),
         secondApron: validators.validateSecondApronRules(team),
-        stepien: validators.validateStepien(team),
+        stepien: stepienResult,
+        // legacy naming support
+        stepienRule: stepienResult,
         roster: validators.validateRoster(team),
         byc: validators.validateBYC(team),
         tpe: validators.validateTradeExceptions(team),
@@ -108,6 +112,8 @@ export function validateTrade({
         violations,
         warnings,
         validationResults,
+        // backwards compatibility for older tests expecting `rules`
+        rules: validationResults,
         details: violations.join('; ') || 'Valid trade',
         warningDetails: warnings.join('; ') || '',
       };
