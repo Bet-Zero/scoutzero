@@ -2,7 +2,7 @@ import {
   buildFirstRoundCalendar,
   passesStepienRule,
 } from '@/utils/architect/stepienUtils.js';
-import { validationCache } from './validationCache.js';
+import { validationCache } from './validationCacheService.js';
 
 /**
  * Validates Stepien Rule compliance:
@@ -13,7 +13,7 @@ import { validationCache } from './validationCache.js';
 export function validateStepien(team) {
   // Generate cache key from team and picks data
   const cacheKey = `${team.teamId}-${team.context?.yearKey || ''}-${JSON.stringify(team.outgoingPicks || [])}`;
-  const cached = validationCache.getCachedStepienValidation(cacheKey);
+  const cached = validationCache.getCachedResult(cacheKey);
   if (cached) {
     return cached;
   }
@@ -75,7 +75,7 @@ export function validateStepien(team) {
   };
 
   // Cache the result
-  validationCache.cacheStepienValidation(cacheKey, result);
+  validationCache.cacheResult(cacheKey, result);
 
   return result;
 }

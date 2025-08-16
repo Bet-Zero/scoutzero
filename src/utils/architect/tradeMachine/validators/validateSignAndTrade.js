@@ -1,5 +1,5 @@
 import { wouldExceedHardCap } from '@/utils/architect/tradeHelpers.js';
-import { validationCache } from './validationCache.js';
+import { validationCache } from './validationCacheService.js';
 
 /**
  * Validates Sign-and-Trade requirements:
@@ -13,7 +13,7 @@ import { validationCache } from './validationCache.js';
 export function validateSignAndTrade(team, tradeCtx = {}) {
   // Generate cache key from team and trade context
   const cacheKey = `${team.teamId}-${tradeCtx.tradeDate || ''}-${tradeCtx.season || ''}`;
-  const cached = validationCache.getCachedSignAndTrade(cacheKey);
+  const cached = validationCache.getCachedResult(cacheKey);
   if (cached) {
     return cached;
   }
@@ -145,7 +145,6 @@ export function validateSignAndTrade(team, tradeCtx = {}) {
   };
 
   // Cache the result
-  validationCache.cacheSignAndTrade(cacheKey, result);
-
+  validationCache.cacheResult(cacheKey, result);
   return result;
 }

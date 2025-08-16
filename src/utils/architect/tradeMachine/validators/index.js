@@ -9,6 +9,8 @@ export { validateSalaryMatching } from './validateSalaryMatching.js';
 export { validateRoster, enforceRosterWindow } from './validateRoster.js';
 export { validateHardCap } from './validateHardCap.js';
 export { validateStepien } from './validateStepien.js';
+export { validateSecondApronRules } from './validateSecondApronRules.js';
+export { validateBYC } from './validateBYC.js';
 
 // Enforcement functions
 export { enforceSecondApronHandcuffs } from './enforceSecondApronHandcuffs.js';

@@ -1,7 +1,7 @@
 import { getApronStatus } from '@/utils/architect/tradeHelpers.js';
 import { isPriorYearTPE } from '@/utils/architect/tradeMachine/tpeUtils.js';
 import debug from '../debug.js';
-import { validationCache } from './validationCache.js';
+import { validationCache } from './validationCacheService.js';
 
 /**
  * Validates second apron team restrictions:
@@ -15,7 +15,7 @@ import { validationCache } from './validationCache.js';
 export function validateSecondApronRules(team) {
   // Check cache first
   const cacheKey = `${team.teamId}-${team.context?.yearKey || ''}-second-apron`;
-  const cached = validationCache.getCachedSecondApronRules(cacheKey);
+  const cached = validationCache.getCachedResult(cacheKey);
   if (cached) {
     return cached;
   }
@@ -29,7 +29,7 @@ export function validateSecondApronRules(team) {
     cashSent = 0,
     context = {},
   } = team;
-  const { capSettings = {} } = context;
+  const { capSettings = {}, otherTeamsSending = 0 } = context;
 
   // Check if team is above second apron
   const isAboveSecondApron = getApronStatus(
@@ -44,13 +44,15 @@ export function validateSecondApronRules(team) {
       incomingPlayers.map((p) => p.fromTeamId).filter(Boolean)
     );
 
-    if (uniqueSourceTeams.size > 1) {
+    const multipleSources =
+      uniqueSourceTeams.size > 1 ||
+      (incomingPlayers.length === 0 && otherTeamsSending > 1);
+
+    if (multipleSources) {
       violations.push(
         'Second apron team cannot aggregate salaries from multiple sources'
       );
-    }
-    // Also check if sending multiple players to receive fewer (traditional aggregation)
-    else {
+    } else {
       const outgoingCount = (team.sends || team.outgoingPlayers || []).length;
       const incomingCount = incomingPlayers.length;
 
@@ -106,7 +108,7 @@ export function validateSecondApronRules(team) {
   };
 
   // Cache the result
-  validationCache.cacheSecondApronRules(cacheKey, result);
+  validationCache.cacheResult(cacheKey, result);
 
   return result;
 }

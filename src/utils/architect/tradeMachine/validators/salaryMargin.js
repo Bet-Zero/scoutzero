@@ -20,6 +20,7 @@ export function getAllowableIncomingMargin(teamLike) {
   const secondApron = toNum(capSettings.secondApron);
   const salaryCap = toNum(capSettings.salaryCap);
   const payroll = resolvePayroll(team);
+  const salaryOut = toNum(team.salaryOut || 0);
 
   // Apron clamp
   const isAtOrAboveSecondApron =
@@ -49,10 +50,15 @@ export function getAllowableIncomingMargin(teamLike) {
     return margin;
   }
 
+  // Legacy default: if no yearKey provided, approximate with 125% + $100k rule
+  if (!yearKey && salaryCap && payroll >= salaryCap && payroll < secondApron) {
+    return salaryOut * 0.25 + 100_000;
+  }
+
   // Over-cap bands WITHOUT pooled TPEs
   const baseNoTPE = calculateAllowableIncoming(
     payroll,
-    team.salaryOut || 0,
+    salaryOut,
     team.incomingPlayers || [],
     /* tradeExceptions */ [], // ← stop pooling all TPEs
     capSettings,

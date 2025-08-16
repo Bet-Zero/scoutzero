@@ -71,7 +71,7 @@ export function validateTrade({
         stepien: validators.validateStepien(team),
         roster: validators.validateRoster(team),
         byc: validators.validateBYC(team),
-        tpe: validators.validateTPE(team),
+        tpe: validators.validateTradeExceptions(team),
       };
 
       // Collect violations with proper prioritization
@@ -87,6 +87,18 @@ export function validateTrade({
           }
         }
       });
+
+      // Extra second apron checks when minimal trade context is provided
+      if (team.teamTotalSalary >= capSettings.secondApron) {
+        if (team.cashSent > 0 || team.cashReceived > 0) {
+          violations.push('Second apron team cannot include cash in trades');
+        }
+        if (team.context?.otherTeamsSending > 1) {
+          violations.push(
+            'Second apron team cannot aggregate salaries from multiple sources'
+          );
+        }
+      }
 
       // Overall team validation result
       return {
@@ -149,8 +161,14 @@ function validateTradeInput({ teams, capProjections, currentYear, tradeCtx }) {
   // Validate team structure if teams array exists
   if (Array.isArray(teams)) {
     teams.forEach((team, index) => {
-      if (!team.teamId) {
-        errors.push(`Team ${index + 1} is missing teamId`);
+      // teamId is optional – fallback to team name fields if available
+      if (
+        !team.teamId &&
+        !team.teamName &&
+        !team.team?.name &&
+        !team.team?.teamName
+      ) {
+        errors.push(`Team ${index + 1} is missing team identifier`);
       }
       if (!team.team || typeof team.team !== 'object') {
         errors.push(`Team ${index + 1} is missing team data`);
@@ -165,25 +183,56 @@ function validateTradeInput({ teams, capProjections, currentYear, tradeCtx }) {
 }
 
 function normalizeTradeInput({ teams, capProjections, currentYear, tradeCtx }) {
-  // Normalize teams data
-  const normalizedTeams = teams.map((team) => ({
-    ...team,
-    sends: team.sends || [],
-    receives: team.receives || [],
-    teamId: team.teamId,
-    teamName: team.team?.name || team.teamName,
-  }));
+  // Resolve season key (e.g., 2025-26)
+  const seasonKey = `${currentYear}-${String(currentYear + 1).slice(-2)}`;
+  const projection = capProjections?.[seasonKey] || {};
 
   // Extract cap settings from projections
   const capSettings = {
-    salaryCap: capProjections?.salaryCap || 0,
-    luxuryTax: capProjections?.luxuryTax || 0,
-    apron: capProjections?.apron || 0,
-    secondApron: capProjections?.secondApron || 0,
+    salaryCap: projection.cap || projection.salaryCap || 0,
+    luxuryTax: projection.tax || projection.luxuryTax || 0,
+    firstApron: projection.firstApron || projection.apron || 0,
+    secondApron: projection.secondApron || 0,
   };
 
   // Create year key for caching
-  const yearKey = `${currentYear}-${currentYear + 1}`;
+  const yearKey = seasonKey;
+
+  // Normalize teams data
+  const normalizedTeams = teams.map((team, index) => {
+    const sends = team.sends || [];
+    const otherTeamsSending = teams.reduce(
+      (count, t, i) => count + (i !== index && (t.sends || []).length > 0 ? 1 : 0),
+      0
+    );
+
+    return {
+      ...team,
+      sends,
+      receives: team.receives || [],
+      outgoingPicks: team.outgoingPicks || team.picksOut || [],
+      // Generate a usable teamId if one isn't provided
+      teamId:
+        team.teamId ||
+        team.team?.id ||
+        team.teamName ||
+        team.team?.teamName ||
+        `TEAM${index + 1}`,
+      teamName:
+        team.team?.name ||
+        team.team?.teamName ||
+        team.teamName ||
+        team.teamId ||
+        `Team ${index + 1}`,
+      teamTotalSalary: team.team?.totalSalary || team.totalSalary || 0,
+      context: {
+        capSettings,
+        yearKey,
+        totalTeams: teams.length,
+        otherTeamsSending,
+      },
+    };
+  });
 
   // Normalize trade context
   const normalizedCtx = {

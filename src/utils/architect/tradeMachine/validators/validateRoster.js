@@ -9,7 +9,7 @@ import { validationCache } from './validationCache.js';
  */
 export function validateRoster(team) {
   // Check cache first
-  const cacheKey = `${team.teamId}-${team.projectedRosterCount || 0}-${team.team?.twoWayPlayers?.length || 0}`;
+  const cacheKey = `${team.teamId}-${team.projectedRosterCount || 0}-${team.team?.twoWayPlayers?.length || 0}-${validationFlags.rosterEnforcement}-${validationFlags.twoWayRoster}`;
   const cached = validationCache.getCachedRosterValidation(cacheKey);
   if (cached) {
     return cached;

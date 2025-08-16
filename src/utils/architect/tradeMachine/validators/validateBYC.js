@@ -1,5 +1,5 @@
 import { BYC_PERCENT } from '@/utils/architect/cbaConstants.js';
-import { validationCache } from './validationCache.js';
+import { validationCache } from './validationCacheService.js';
 
 /**
  * Validates Base Year Compensation (BYC) rules:
@@ -9,7 +9,7 @@ import { validationCache } from './validationCache.js';
 export function validateBYC(team, tradeCtx = {}) {
   // Check cache first
   const cacheKey = `${team.teamId}-${team.context?.yearKey || ''}-byc`;
-  const cached = validationCache.getCachedBYC(cacheKey);
+  const cached = validationCache.getCachedResult(cacheKey);
   if (cached) {
     return cached;
   }
@@ -56,7 +56,7 @@ export function validateBYC(team, tradeCtx = {}) {
   };
 
   // Cache the result
-  validationCache.cacheBYC(cacheKey, result);
+  validationCache.cacheResult(cacheKey, result);
 
   return result;
 }
