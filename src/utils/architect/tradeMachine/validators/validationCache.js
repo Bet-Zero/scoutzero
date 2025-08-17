@@ -90,7 +90,7 @@ export class ValidationCache {
     }
 
     this.metrics.misses++;
-    return null;
+    return undefined;
   }
 
   /**
@@ -131,7 +131,7 @@ export class ValidationCache {
     }
 
     this.metrics.misses++;
-    return null;
+    return undefined;
   }
 
   /**
@@ -172,7 +172,7 @@ export class ValidationCache {
     }
 
     this.metrics.misses++;
-    return null;
+    return undefined;
   }
 
   /**
@@ -196,6 +196,23 @@ export class ValidationCache {
   }
 
   /**
+   * Cache roster validation result (alias for compatibility)
+   */
+  cacheRosterValidation(cacheKey, result) {
+    if (this.cache.size >= this.maxSize) {
+      const firstKey = this.cache.keys().next().value;
+      this.cache.delete(firstKey);
+    } else {
+      this.metrics.size++;
+    }
+
+    this.cache.set(cacheKey, {
+      result: { ...result },
+      timestamp: Date.now(),
+    });
+  }
+
+  /**
    * Get cached apron status validation result
    */
   getCachedApronStatus(teamSalary, capSettings) {
@@ -208,7 +225,7 @@ export class ValidationCache {
     }
 
     this.metrics.misses++;
-    return null;
+    return undefined;
   }
 
   /**
@@ -218,6 +235,155 @@ export class ValidationCache {
     const key = this.generateApronStatusKey(teamSalary, capSettings);
     this.apronStatusCache.set(key, status);
     this.metrics.operations++; // Fix this line - was missing
+  }
+
+  /**
+   * Generate cache key for TPE validation
+   */
+  _generateTPEKey(tpe, yearKey) {
+    const keyData = {
+      tpeId: tpe.id,
+      remaining: tpe.remaining,
+      yearKey,
+    };
+    return `tpe_${JSON.stringify(keyData)}`;
+  }
+
+  /**
+   * Get cached TPE validation result
+   */
+  getCachedTPEValidation(tpe, yearKey) {
+    const key = this._generateTPEKey(tpe, yearKey);
+    const cached = this.cache.get(key);
+
+    if (cached && Date.now() - cached.timestamp < this.ttl) {
+      this.metrics.hits++;
+      return cached.result;
+    }
+
+    if (cached) {
+      this.cache.delete(key);
+      this.metrics.size--;
+    }
+
+    this.metrics.misses++;
+    return undefined;
+  }
+
+  /**
+   * Cache TPE validation result
+   */
+  cacheTPEValidation(tpe, yearKey, result) {
+    const key = this._generateTPEKey(tpe, yearKey);
+
+    // Implement LRU eviction if cache is full
+    if (this.cache.size >= this.maxSize) {
+      const firstKey = this.cache.keys().next().value;
+      this.cache.delete(firstKey);
+    } else {
+      this.metrics.size++;
+    }
+
+    this.cache.set(key, {
+      result: { ...result },
+      timestamp: Date.now(),
+    });
+  }
+
+  /**
+   * Generate cache key for sign-and-trade validation
+   */
+  _generateSignAndTradeKey(cacheKey) {
+    return `sign_and_trade_${cacheKey}`;
+  }
+
+  /**
+   * Get cached sign-and-trade validation result
+   */
+  getCachedSignAndTrade(cacheKey) {
+    const key = this._generateSignAndTradeKey(cacheKey);
+    const cached = this.cache.get(key);
+
+    if (cached && Date.now() - cached.timestamp < this.ttl) {
+      this.metrics.hits++;
+      return cached.result;
+    }
+
+    if (cached) {
+      this.cache.delete(key);
+      this.metrics.size--;
+    }
+
+    this.metrics.misses++;
+    return undefined;
+  }
+
+  /**
+   * Cache sign-and-trade validation result
+   */
+  cacheSignAndTrade(cacheKey, result) {
+    const key = this._generateSignAndTradeKey(cacheKey);
+
+    // Implement LRU eviction if cache is full
+    if (this.cache.size >= this.maxSize) {
+      const firstKey = this.cache.keys().next().value;
+      this.cache.delete(firstKey);
+    } else {
+      this.metrics.size++;
+    }
+
+    this.cache.set(key, {
+      result: { ...result },
+      timestamp: Date.now(),
+    });
+  }
+
+  /**
+   * Generate cache key for eligibility validation
+   */
+  _generateEligibilityKey(cacheKey) {
+    return `eligibility_${cacheKey}`;
+  }
+
+  /**
+   * Get cached eligibility validation result
+   */
+  getCachedEligibility(cacheKey) {
+    const key = this._generateEligibilityKey(cacheKey);
+    const cached = this.cache.get(key);
+
+    if (cached && Date.now() - cached.timestamp < this.ttl) {
+      this.metrics.hits++;
+      return cached.result;
+    }
+
+    if (cached) {
+      this.cache.delete(key);
+      this.metrics.size--;
+    }
+
+    this.metrics.misses++;
+    return undefined;
+  }
+
+  /**
+   * Cache eligibility validation result
+   */
+  cacheEligibility(cacheKey, result) {
+    const key = this._generateEligibilityKey(cacheKey);
+
+    // Implement LRU eviction if cache is full
+    if (this.cache.size >= this.maxSize) {
+      const firstKey = this.cache.keys().next().value;
+      this.cache.delete(firstKey);
+    } else {
+      this.metrics.size++;
+    }
+
+    this.cache.set(key, {
+      result: { ...result },
+      timestamp: Date.now(),
+    });
   }
 
   /**
@@ -234,6 +400,13 @@ export class ValidationCache {
     this.metrics.invalidations += count;
     this.metrics.size = Math.max(0, this.metrics.size - count);
     return count;
+  }
+
+  /**
+   * Invalidate cache (alias for main validator compatibility)
+   */
+  invalidateCache() {
+    this.clear();
   }
 
   /**
@@ -306,7 +479,7 @@ export class ValidationCache {
       return cached.result;
     }
     this.metrics.misses++;
-    return null;
+    return undefined;
   }
 
   /**

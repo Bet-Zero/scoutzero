@@ -33,7 +33,7 @@ describe('validateSalaryMatching', () => {
         makeTeam({
           teamTotalSalary: 150_000_000,
           salaryOut: 10_000_000,
-          salaryIn: 13_000_000,
+          salaryIn: 16_000_000, // This exceeds allowable (10M + 5M = 15M)
         })
       );
       expect(result.passed).toBe(false);
