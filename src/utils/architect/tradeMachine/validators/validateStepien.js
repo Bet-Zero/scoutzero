@@ -2,6 +2,7 @@ import {
   buildFirstRoundCalendar,
   passesStepienRule,
 } from '@/utils/architect/stepienUtils.js';
+import { isMeaningfulProtection } from '@/utils/architect/tradeMachine/tradeUtils.js';
 import { validationCache } from './validationCache.js'; // Use correct cache
 
 /**
@@ -55,10 +56,11 @@ export function validateStepien(team, tradeCtx = {}) {
       const next = sortedPicks[i + 1];
 
       // If picks are consecutive years and both are unprotected
+      // Add check for meaningful protection to bypass Stepien Rule
       if (
         next.year === current.year + 1 &&
-        !current.protection &&
-        !next.protection
+        !isMeaningfulProtection(current.protection) &&
+        !isMeaningfulProtection(next.protection)
       ) {
         violations.push('Violates Stepien Rule (consecutive future 1sts).');
         break;
