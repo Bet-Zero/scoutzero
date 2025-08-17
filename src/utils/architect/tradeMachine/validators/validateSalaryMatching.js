@@ -20,21 +20,17 @@ import debug from '../debug.js';
  * @returns {Object} Validation result with passed/violations
  */
 export function validateSalaryMatching(team, context = {}) {
+  // Handle null/undefined team input or empty objects first
+  if (!team || typeof team !== 'object' || Object.keys(team).length === 0) {
+    return {
+      passed: false,
+      violations: ['Invalid team data provided for salary matching validation'],
+    };
+  }
+
   const timingKey = performanceMonitor.startTiming('salaryMatching', {
     teamName: team.teamName || team.team?.name,
   });
-
-  // Handle null/undefined team input or empty objects
-  if (!team || typeof team !== 'object' || Object.keys(team).length === 0) {
-    const result = {
-      passed: false,
-      violations: ['Invalid team data provided'],
-      message: 'Invalid team data provided',
-      warningsOnly: false,
-    };
-    performanceMonitor.endTiming(timingKey, result);
-    return result;
-  }
 
   // Check cache first
   const yearKey = context.yearKey || team.context?.yearKey || 2025;
@@ -131,10 +127,18 @@ export function validateSalaryMatching(team, context = {}) {
       allowableIncoming = salaryOut * 2 + 250_000;
     } else if (salaryOut <= 19_600_000) {
       allowableIncoming = salaryOut + 5_000_000;
-    } else if (salaryOut <= 19_600_000) {
-      allowableIncoming = salaryOut * 1.25;
     } else {
-      allowableIncoming = salaryOut + 5_000_000;
+      allowableIncoming = salaryOut * 1.25;
+    }
+
+    // Debug logging for the test case
+    if (debug.enabled) {
+      debug.log('💰 Over-cap matching calculation', {
+        salaryOut: formatCurrency(salaryOut),
+        allowableIncoming: formatCurrency(allowableIncoming),
+        salaryIn: formatCurrency(salaryIn),
+        wouldPass: salaryIn <= allowableIncoming,
+      });
     }
 
     // Check if team exceeds the allowed incoming salary
