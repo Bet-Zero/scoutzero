@@ -25,10 +25,11 @@ export function computeMatchingValues({
 
       // Base Year Compensation - use the greater of previous salary or 50% of new salary
       // If player is marked as BYC, use their previous salary for outgoing matching
-      const bycOutgoing =
-        player.isBYC && player.previousSalary
-          ? Math.max(player.previousSalary, newSalary * 0.5)
-          : currentSalary;
+      let outgoingValue = currentSalary;
+      if (player.isBYC && player.previousSalary) {
+        // For BYC players, outgoing matching should be the previousSalary
+        outgoingValue = player.previousSalary;
+      }
 
       // Trade Kicker - handle both data structures
       const kickerPercentage =
@@ -62,23 +63,25 @@ export function computeMatchingValues({
       const proratedKicker = rawKickerValue * prorationFactor;
 
       // Set outgoing matching value
-      player.matchOutgoing = bycOutgoing;
+      player.matchOutgoing = outgoingValue;
 
       // Set incoming matching value (includes trade kicker)
-      player.matchIncoming = currentSalary + proratedKicker;
+      let incomingValue = currentSalary + proratedKicker;
 
       // Handle poison pill - use currentSalary for the average calculation
-      if (player.extensionYears?.length > 0) {
+      if (player.isPoisonPill && player.extensionYears?.length > 0) {
         const totalExtensionSalary = player.extensionYears.reduce(
           (sum, year) => sum + year.salary,
           0
         );
-        // Use currentSalary property for poison pill calculation
+        // For poison pill, calculate average of current salary and all extension years
         const avgSalary =
           (currentSalary + totalExtensionSalary) /
           (1 + player.extensionYears.length);
-        player.matchIncoming = Math.max(player.matchIncoming, avgSalary);
+        incomingValue = avgSalary;
       }
+
+      player.matchIncoming = incomingValue;
     });
   });
 }
