@@ -1,5 +1,6 @@
 import { wouldExceedHardCap } from '@/utils/architect/tradeHelpers.js';
-import { validationCache } from './validationCache.js';
+import { validationCache } from './validationCacheService.js';
+import debug from '../debug.js';
 
 /**
  * Validates Sign-and-Trade requirements:
@@ -20,33 +21,53 @@ export function validateSignAndTrade(team, tradeCtx = {}) {
 
   const violations = [];
   const { context = {} } = team;
-  const { tradeDate, season, offseason } = tradeCtx;
+  const { tradeDate, season, offseason = true, teams = [] } = tradeCtx; // Get teams array from context
 
-  // Find sign-and-trade players
-  const sntIn = (team.incomingPlayers || []).filter(
+  // Find sign-and-trade players being sent out
+  const sntOut = (team.sends || []).filter(
     (p) => p.isSignAndTrade || p.signAndTrade
   );
-  const sntOut = (team.sends || team.outgoingPlayers || []).filter(
-    (p) => p.isSignAndTrade || p.signAndTrade
-  );
+
+  // Find sign-and-trade players coming in from other teams
+  const sntIn = [];
+  teams.forEach((otherTeam) => {
+    if (otherTeam.teamId !== team.teamId) {
+      const sntFromOtherTeam = (otherTeam.sends || []).filter(
+        (p) => p.isSignAndTrade || p.signAndTrade
+      );
+      sntIn.push(...sntFromOtherTeam);
+    }
+  });
+
   const anySnt = sntIn.length > 0 || sntOut.length > 0;
 
+  if (debug.enabled) {
+    debug.log(`🤝 Sign-and-Trade Check – ${team.teamName}`, {
+      sntOut: sntOut.map((p) => p.name),
+      sntIn: sntIn.map((p) => p.name),
+      totalSends: (team.sends || []).length,
+      totalPicks: (team.picksOut || []).length,
+      anySnt,
+      offseason,
+    });
+  }
+
   if (!anySnt) {
-    return {
+    const result = {
       passed: true,
       violations: [],
       message: 'No sign-and-trade players involved',
       details: '',
     };
+    validationCache.cacheSignAndTrade(cacheKey, result);
+    return result;
   }
 
   // Check offseason timing - handle both explicit flag and date-based calculation
-  let isOffseason = false;
-  if (typeof offseason === 'boolean') {
-    isOffseason = offseason;
-  } else {
+  let isOffseason = offseason;
+  if (typeof offseason !== 'boolean' && tradeDate) {
     // Must be offseason (July 1 - October 15)
-    const date = new Date(tradeDate || Date.now());
+    const date = new Date(tradeDate);
     const month = date.getMonth(); // 0-based: 0=Jan, 6=July, 9=October
     const day = date.getDate();
 
@@ -61,27 +82,14 @@ export function validateSignAndTrade(team, tradeCtx = {}) {
     );
   }
 
-  // Origin team validation - must be from player's Bird rights team
+  // Validate each outgoing S&T player
   sntOut.forEach((player) => {
-    // Check if this team has the player's Bird rights
-    const teamId = team.teamId || team.team?.id;
-    const hasRights =
-      player.birdRightsTeam === teamId ||
-      player.originTeamId === teamId ||
-      player.currentTeamId === teamId;
-
-    if (!hasRights) {
-      violations.push(
-        `${player.name || 'Player'} can only be signed-and-traded by team with Bird rights`
-      );
-    }
-  });
-
-  // Validate each S&T player
-  [...sntIn, ...sntOut].forEach((player) => {
     // Must be 3-4 years (excluding options)
-    const contractYears = player.contractYears || player.years || 0;
-    if (contractYears < 3 || contractYears > 4) {
+    const contractYears = player.contractYears || player.years;
+    if (
+      contractYears !== undefined &&
+      (contractYears < 3 || contractYears > 4)
+    ) {
       violations.push(
         `Sign-and-trade contracts must be 3-4 years, got ${contractYears} years`
       );
@@ -95,18 +103,61 @@ export function validateSignAndTrade(team, tradeCtx = {}) {
       );
     }
 
-    // Player must be traded alone (no aggregation)
-    if (sntOut.length > 0) {
-      const totalOutgoingPlayers = (team.sends || team.outgoingPlayers || [])
-        .length;
-      const totalOutgoingPicks = (team.picksOut || team.outgoingPicks || [])
-        .length;
-
-      if (totalOutgoingPlayers > 1 || totalOutgoingPicks > 0) {
-        violations.push('Sign-and-trade player must be traded alone.');
-      }
+    // Must be from original team (team with Bird rights)
+    const originTeamId = player.originTeamId || player.originalTeam;
+    if (originTeamId && originTeamId !== team.teamId) {
+      violations.push(
+        `${player.name || 'Player'} can only be sign-and-traded by original team (${originTeamId}), not ${team.teamId}`
+      );
     }
   });
+
+  // Validate each incoming S&T player
+  sntIn.forEach((player) => {
+    // Must be 3-4 years (excluding options)
+    const contractYears = player.contractYears || player.years;
+    if (
+      contractYears !== undefined &&
+      (contractYears < 3 || contractYears > 4)
+    ) {
+      violations.push(
+        `Sign-and-trade contracts must be 3-4 years, got ${contractYears} years`
+      );
+    }
+
+    // First year must be fully guaranteed
+    const firstYearGuaranteed = player.firstYearGuaranteed !== false;
+    if (!firstYearGuaranteed) {
+      violations.push(
+        `${player.name || 'Player'}'s first year must be fully guaranteed`
+      );
+    }
+  });
+
+  // Player must be traded alone (no aggregation) - check this more strictly
+  if (sntOut.length > 0) {
+    const totalOutgoingPlayers = (team.sends || []).length;
+    const totalOutgoingPicks = (team.picksOut || []).length;
+
+    if (debug.enabled) {
+      debug.log(`🤝 S&T Aggregation Check`, {
+        sntOutCount: sntOut.length,
+        totalPlayers: totalOutgoingPlayers,
+        totalPicks: totalOutgoingPicks,
+        playerNames: (team.sends || []).map(
+          (p) => `${p.name}(S&T:${!!p.signAndTrade})`
+        ),
+      });
+    }
+
+    // If there's any S&T player being sent out, the total outgoing assets must be exactly 1
+    if (totalOutgoingPlayers > 1) {
+      violations.push('Sign-and-trade player must be traded alone.');
+    }
+    if (totalOutgoingPicks > 0) {
+      violations.push('Sign-and-trade player must be traded alone.');
+    }
+  }
 
   // Teams using taxpayer MLE cannot receive S&T players
   const usedTaxpayerMLE =
@@ -120,12 +171,44 @@ export function validateSignAndTrade(team, tradeCtx = {}) {
   // Check sign-and-trade hard cap violation for receiving teams
   if (sntIn.length > 0) {
     const { capSettings = {} } = context;
-    const firstApron = capSettings.firstApron || 0;
-    const projectedSalary = team.projectedSalary || team.teamTotalSalary || 0;
+    const firstApron = capSettings.firstApron || capSettings.apron || 178132000;
+
+    // Helper function to extract salary from player contract structure
+    const getPlayerSalary = (player) => {
+      return (
+        player.salary ||
+        player.contract_clean?.salaries_by_year?.[tradeCtx.year || 2025]
+          ?.salary ||
+        0
+      );
+    };
+
+    // Calculate post-trade projected salary
+    const currentSalary = team.team?.totalSalary || 0;
+    const salaryOut = (team.sends || []).reduce(
+      (sum, player) => sum + getPlayerSalary(player),
+      0
+    );
+    const salaryIn = sntIn.reduce(
+      (sum, player) => sum + getPlayerSalary(player),
+      0
+    );
+    const projectedSalary = currentSalary - salaryOut + salaryIn;
+
+    if (debug.enabled) {
+      debug.log(`💰 S&T Hard Cap Check for ${team.teamName}`, {
+        currentSalary,
+        salaryOut,
+        salaryIn,
+        projectedSalary,
+        firstApron,
+        wouldExceed: projectedSalary > firstApron,
+      });
+    }
 
     if (projectedSalary > firstApron) {
       violations.push(
-        'Sign-and-trade would cause team to exceed first apron hard-cap'
+        `Sign-and-trade would cause team to exceed first apron hard-cap ($${Math.round(projectedSalary / 1000000)}M > $${Math.round(firstApron / 1000000)}M)`
       );
     }
   }

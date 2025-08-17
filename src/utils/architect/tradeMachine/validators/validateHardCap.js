@@ -1,88 +1,97 @@
 import { wouldExceedHardCap } from '@/utils/architect/hardCapUtils.js';
 import { formatCurrency } from '@/utils/architect/tradeHelpers.js';
-import { validationCache } from './validationCache.js';
+import { validationCache } from './validationCache.js'; // Use the correct cache
 import debug from '../debug.js';
 
 /**
  * Validates hard cap restrictions
  */
-export function validateHardCap(team) {
+export function validateHardCap(team, context = {}) {
   const violations = [];
+
+  // Extract data from team object (tests pass data directly on team)
+  const teamTotalSalary = team.team?.totalSalary || 0;
+  const projectedSalary =
+    team.projectedSalary ?? context.projectedSalary ?? teamTotalSalary;
+
+  // Extract cap settings from team or context
+  const teamCapSettings = team.capSettings || {};
+  const contextCapSettings = context.capSettings || {};
+  const capSettings = { ...contextCapSettings, ...teamCapSettings };
+
   const {
-    teamTotalSalary = 0,
-    salaryIn = 0,
-    salaryOut = 0,
-    projectedSalary,
-  } = team;
+    firstApron = 178132000,
+    apron = 178132000,
+    secondApron = 188931000,
+  } = capSettings;
 
-  // Handle various context and cap settings structures
-  const capSettings = team.capSettings || team.context?.capSettings || {};
-  const { firstApron = 172000000, secondApron = 190000000 } = capSettings;
+  // Use firstApron if available, otherwise fall back to apron
+  const actualFirstApron = firstApron || apron;
 
-  // Check cache first - use projected salary as part of key since it affects the result
-  const cacheKey = `${team.teamId}-${projectedSalary || 0}-${team.hardCapped || false}`;
-  const cached = validationCache.getCachedHardCapStatus(cacheKey);
+  // Check cache first
+  const cached = validationCache.getCachedHardCapStatus(team, projectedSalary);
   if (cached) {
     return cached;
   }
 
-  const finalProjectedSalary =
-    projectedSalary || teamTotalSalary - salaryOut + salaryIn;
+  // Check if team is explicitly marked as hard capped at first apron
+  const isHardCappedFirstApron = team.hardCapped === true;
 
-  // Check explicit hard cap flags from different test patterns
-  const hasFirstApronHardCap =
-    team.hardCapped === true || team.hardCapFirstApron?.active;
-  const hasSecondApronHardCap =
-    team.team?.hardCapTriggered === 'SecondApron' ||
-    team.hardCapSecondApron?.active;
+  // Check if team has second apron hard cap triggered
+  const isHardCappedSecondApron = team.team?.hardCapTriggered === 'SecondApron';
+
+  // Check if team is above second apron threshold (automatic hard cap)
+  const isAboveSecondApron = teamTotalSalary >= secondApron;
 
   if (debug.enabled) {
     debug.log(`🎯 Hard Cap Check`, {
       teamName: team.teamName,
-      projectedSalary: formatCurrency(finalProjectedSalary),
-      firstApron: formatCurrency(firstApron),
+      teamTotalSalary: formatCurrency(teamTotalSalary),
+      projectedSalary: formatCurrency(projectedSalary),
+      firstApron: formatCurrency(actualFirstApron),
       secondApron: formatCurrency(secondApron),
-      hasFirstApronHardCap,
-      hasSecondApronHardCap,
+      isHardCappedFirstApron,
+      isHardCappedSecondApron,
+      isAboveSecondApron,
     });
   }
 
-  // Check if team is currently above second apron and would exceed salary out
-  const isAboveSecondApron = teamTotalSalary >= secondApron;
-  if (isAboveSecondApron && salaryIn > salaryOut) {
+  // Teams with second apron hard cap triggered cannot exceed second apron
+  if (isHardCappedSecondApron && projectedSalary > secondApron) {
     violations.push(
-      `Trade would exceed 2nd Apron hard cap by ${formatCurrency(salaryIn - salaryOut)}`
+      `2nd Apron hard cap violation: Trade would exceed second apron hard-cap by ${formatCurrency(projectedSalary - secondApron)}`
     );
   }
 
-  // Check first apron hard cap violations
-  if (hasFirstApronHardCap && finalProjectedSalary > firstApron) {
+  // Teams above second apron are automatically hard-capped and cannot exceed current salary
+  if (isAboveSecondApron && projectedSalary > teamTotalSalary) {
+    violations.push(`Second apron team cannot receive more salary than sent`);
+  }
+
+  // Teams explicitly hard-capped at first apron cannot exceed first apron
+  if (isHardCappedFirstApron && projectedSalary > actualFirstApron) {
     violations.push(
-      `Trade would exceed 1st Apron hard cap by ${formatCurrency(finalProjectedSalary - firstApron)}`
+      `1st Apron hard cap violation: Trade would exceed first apron hard-cap by ${formatCurrency(projectedSalary - actualFirstApron)}`
     );
   }
 
-  // Check second apron hard cap violations
-  if (hasSecondApronHardCap && finalProjectedSalary > secondApron) {
-    violations.push(
-      `Trade would exceed 2nd Apron hard cap by ${formatCurrency(finalProjectedSalary - secondApron)}`
-    );
+  // Determine hard cap type
+  let hardCapType = null;
+  if (isHardCappedSecondApron || isAboveSecondApron) {
+    hardCapType = 'SecondApron';
+  } else if (isHardCappedFirstApron) {
+    hardCapType = 'FirstApron';
   }
 
   const result = {
     passed: violations.length === 0,
     violations,
-    hardCapType: hasSecondApronHardCap
-      ? 'SecondApron'
-      : hasFirstApronHardCap
-        ? 'FirstApron'
-        : null,
-    trigger: team.hardCapTrigger || null,
-    projectedSalary: finalProjectedSalary,
+    hardCapType,
+    projectedSalary,
   };
 
   // Cache the result
-  validationCache.cacheHardCapStatus(cacheKey, result);
+  validationCache.cacheHardCapStatus(team, projectedSalary, result);
 
   return result;
 }

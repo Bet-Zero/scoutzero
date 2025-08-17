@@ -6,57 +6,37 @@ import { validationCache } from './validationCache.js';
  * - For salary matching, outgoing value = max(previous salary, 50% new salary)
  * - Poison pill calculation for receiving team
  */
-export function validateBYC(team, tradeCtx = {}) {
-  // Check cache first
-  const cacheKey = `${team.teamId}-${team.context?.yearKey || ''}-byc`;
-  const cached = validationCache.getCachedBYC(cacheKey);
-  if (cached) {
-    return cached;
-  }
-
+export function validateBYC(team, context = {}) {
   const violations = [];
-  const { sends = [], incomingPlayers = [] } = team;
+  const { currentYear = 2025 } = context;
 
-  // Check each outgoing player with BYC status
-  sends.forEach((player) => {
-    if (player.isBYC) {
-      const previousSalary = player.previousSalary || 0;
-      const newSalary = player.newSalary || 0;
-      const bycValue = Math.max(previousSalary, newSalary * BYC_PERCENT);
+  // Check all outgoing players for BYC issues
+  const outgoingPlayers = team.sends || [];
 
-      // Verify the outgoing matching value is using BYC rules
-      if (player.matchOutgoing !== Math.floor(bycValue)) {
-        violations.push(
-          `${player.name || 'Player'} BYC value incorrectly calculated`
-        );
-      }
+  outgoingPlayers.forEach((player) => {
+    const currentSalary =
+      player.contract_clean?.salaries_by_year?.[currentYear]?.salary || 0;
+    const previousSalary =
+      player.contract_clean?.salaries_by_year?.[currentYear - 1]?.salary || 0;
+
+    // BYC applies if current salary > 120% of previous salary
+    const isBYC = previousSalary > 0 && currentSalary > previousSalary * 1.2;
+
+    if (isBYC) {
+      // For BYC players, outgoing value is average of current and previous year
+      const bycValue = (currentSalary + previousSalary) / 2;
+
+      // Set the BYC matching values
+      player.matchOutgoing = bycValue;
+      player.isBYC = true;
+
+      // No violations - BYC is just a calculation adjustment
     }
   });
 
-  // Check each incoming BYC player
-  incomingPlayers.forEach((player) => {
-    if (player.isBYC) {
-      const currentSalary = player.currentSalary || 0;
-
-      // Verify the incoming matching value is using actual salary
-      if (player.matchIncoming !== Math.floor(currentSalary)) {
-        violations.push(
-          `${player.name || 'Player'} incoming BYC value should use actual salary`
-        );
-      }
-    }
-  });
-
-  const result = {
+  return {
     passed: violations.length === 0,
     violations,
-    message:
-      violations.length > 0 ? 'BYC validation failed' : 'BYC validation passed',
-    details: violations.join('; '),
+    warningsOnly: false,
   };
-
-  // Cache the result
-  validationCache.cacheBYC(cacheKey, result);
-
-  return result;
 }

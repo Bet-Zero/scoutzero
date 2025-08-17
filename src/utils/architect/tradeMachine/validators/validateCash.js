@@ -43,7 +43,7 @@ export function validateCash(team, tradeCtx = {}) {
 
     if (totalCashOut > seasonalLimit) {
       violations.push(
-        `Cash sent this season (${totalCashOut.toLocaleString()}) would exceed the seasonal limit of ${seasonalLimit.toLocaleString()}`
+        `Cash sent exceeds seasonal cap (${totalCashOut.toLocaleString()} > ${seasonalLimit.toLocaleString()})`
       );
     }
   }

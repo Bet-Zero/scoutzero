@@ -13,20 +13,21 @@ export function enforceTiming(
   { warn = () => {}, reject = () => {} } = {}
 ) {
   const violations = [];
-  const { asOfDate = new Date().toISOString() } = tradeCtx;
-  const tradeDate = new Date(asOfDate);
+  const { asOfDate = new Date().toISOString(), tradeDate } = tradeCtx;
+  const tradeDateObj = new Date(tradeDate || asOfDate);
 
   if (debug.enabled) {
     debug.log(`⏰ Timing Rules – ${team.teamName}`, {
       asOfDate,
-      players: (team.sends || []).map((p) => p.name),
+      tradeDate,
+      players: (team.sends || team.outgoingPlayers || []).map((p) => p.name),
     });
   }
 
-  // Check trade moratorium
+  // Check trade moratorium (July 1-6, but using 0-based months so July = 6)
   if (
-    isWithinMoratorium(tradeDate, {
-      startMonth: 7,
+    isWithinMoratorium(tradeDateObj, {
+      startMonth: 7, // July is month 7 (1-based for the utility function)
       startDay: 1,
       endMonth: 7,
       endDay: 6,
@@ -38,10 +39,24 @@ export function enforceTiming(
     else if (validationFlags.timingEnforcement === 'warn') warn(msg);
   }
 
+  // Handle both team.sends and team.outgoingPlayers patterns
+  const playersToCheck = team.sends || team.outgoingPlayers || [];
+
   // Check each outgoing player
-  (team.sends || []).forEach((player) => {
+  playersToCheck.forEach((player) => {
+    // Check explicit eligibleTradeDate first
+    if (player.eligibleTradeDate) {
+      const eligibilityDate = new Date(player.eligibleTradeDate);
+      if (tradeDateObj < eligibilityDate) {
+        const msg = `${player.name || 'Player'} not eligible until ${eligibilityDate.toLocaleDateString()}`;
+        violations.push(msg);
+        if (validationFlags.timingEnforcement === 'error') reject(msg);
+        else if (validationFlags.timingEnforcement === 'warn') warn(msg);
+      }
+    }
+
     // 30-day restriction after signing
-    if (violates30Day(player, tradeDate)) {
+    if (violates30Day(player, tradeDateObj)) {
       const msg = `${player.name || 'Player'} cannot be traded within 30 days of signing`;
       violations.push(msg);
       if (validationFlags.timingEnforcement === 'error') reject(msg);
@@ -50,9 +65,9 @@ export function enforceTiming(
   });
 
   // 2-month aggregation rule
-  if ((team.sends || []).length > 1) {
-    const hasRecentlyAcquired = team.sends.some((p) =>
-      violates2MonthAggregation(p, tradeDate)
+  if (playersToCheck.length > 1) {
+    const hasRecentlyAcquired = playersToCheck.some((p) =>
+      violates2MonthAggregation(p, tradeDateObj)
     );
     if (hasRecentlyAcquired) {
       const msg = 'Cannot aggregate players traded for within past 2 months';

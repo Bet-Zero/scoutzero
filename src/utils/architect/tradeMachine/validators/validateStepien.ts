@@ -22,10 +22,20 @@ interface DraftPick {
  * - Second apron teams cannot trade their own 7-year-out first
  */
 export function validateStepien(team: TradeTeam): StepienResult {
+  console.log('=== validateStepien TypeScript DEBUG ===');
+  console.log('team.teamId:', team.teamId);
+  console.log('outgoingPicks:', team.outgoingPicks);
+  console.log(
+    'team.postTradeStatus?.isAtOrAboveSecondApron:',
+    team.postTradeStatus?.isAtOrAboveSecondApron
+  );
+
   const violations: string[] = [];
   const outgoingPicks = team.outgoingPicks || [];
   const context = team.context as TeamContext;
   const yearKey = context.yearKey || new Date().getFullYear();
+
+  console.log('yearKey:', yearKey);
 
   // Build calendar with existing and outgoing picks
   const calendar = buildFirstRoundCalendar({
@@ -51,13 +61,19 @@ export function validateStepien(team: TradeTeam): StepienResult {
 
   // Check second apron frozen pick restriction
   if (team.postTradeStatus?.isAtOrAboveSecondApron) {
-    const hasOwnFrozenPick = (outgoingPicks as DraftPick[]).some((p) =>
-      isFrozenPick(p, {
+    console.log('Team is at or above second apron, checking frozen picks...');
+    const hasOwnFrozenPick = (outgoingPicks as DraftPick[]).some((p) => {
+      const result = isFrozenPick(p, {
         teamId: team.teamId || '',
         teamIsAtOrAboveSecondApron: true,
         currentSeason: yearKey,
-      })
-    );
+      });
+      console.log(`Pick ${p.year} frozen check result:`, result);
+      return result;
+    });
+
+    console.log('hasOwnFrozenPick:', hasOwnFrozenPick);
+
     if (hasOwnFrozenPick) {
       violations.push(
         'Second apron team cannot trade its own 7-year-out first-round pick'
@@ -76,6 +92,9 @@ export function validateStepien(team: TradeTeam): StepienResult {
     farthestYear,
     currentYear: yearKey,
   };
+
+  console.log('TypeScript validateStepien result:', result);
+  console.log('=== END validateStepien TypeScript DEBUG ===');
 
   validatorDebug.logValidation('Stepien Rule', team, result);
   return result;

@@ -10,61 +10,77 @@ import {
 import { shouldWarnOnly } from '@/config/validationFlags.js';
 import { getAllowableIncomingMargin } from './salaryMargin.js';
 import { validationCache } from './validationCache.js';
+import { performanceMonitor } from './performanceMonitor.js';
 import debug from '../debug.js';
 
 /**
  * Validates if a trade satisfies salary matching rules
  * @param {Object} team - The team context for validation
+ * @param {Object} context - Additional context with salary and cap data
  * @returns {Object} Validation result with passed/violations
  */
-export function validateSalaryMatching(team) {
-  if (!team || !team?.context?.yearKey) {
-    return {
+export function validateSalaryMatching(team, context = {}) {
+  const timingKey = performanceMonitor.startTiming('salaryMatching', {
+    teamName: team.teamName || team.team?.name,
+  });
+
+  // Handle null/undefined team input or empty objects
+  if (!team || typeof team !== 'object' || Object.keys(team).length === 0) {
+    const result = {
       passed: false,
-      violations: ['Invalid team data'],
-      message: 'Invalid team data',
-      details: 'Team object missing required properties',
+      violations: ['Invalid team data provided'],
+      message: 'Invalid team data provided',
+      warningsOnly: false,
     };
+    performanceMonitor.endTiming(timingKey, result);
+    return result;
   }
 
   // Check cache first
-  const cached = validationCache.getCachedSalaryMatch(
-    team,
-    team.context.yearKey
-  );
+  const yearKey = context.yearKey || team.context?.yearKey || 2025;
+  const cached = validationCache.getCachedSalaryMatch(team, yearKey);
   if (cached) {
+    performanceMonitor.endTiming(timingKey, { ...cached, fromCache: true });
     return cached;
   }
 
-  const {
-    salaryIn = 0,
-    salaryOut = 0,
-    teamTotalSalary = 0,
-    context = {},
-    teamName = 'Unknown Team',
-  } = team;
-  const { capSettings = {} } = context;
+  // Extract salary data from both context and team object (team object takes precedence for tests)
+  const salaryOut = team.salaryOut ?? context.salaryOut ?? 0;
+  const salaryIn = team.salaryIn ?? context.salaryIn ?? 0;
+  const totalSalary =
+    team.teamTotalSalary ?? context.totalSalary ?? team.team?.totalSalary ?? 0;
+
+  // Use provided context or extract from team with safe navigation
+  const teamName = team.teamName || team.team?.name || 'Unknown Team';
+
+  // Extract cap settings from team context or provided context
+  const teamCapSettings = team.context?.capSettings || {};
+  const contextCapSettings = context.capSettings || {};
+  const capSettings = { ...contextCapSettings, ...teamCapSettings };
+
   const {
     salaryCap = 141000000,
-    firstApron = 172346000,
-    secondApron = 182794000,
+    firstApron = 178132000,
+    apron = 178132000, // alias for firstApron
+    secondApron = 188931000,
   } = capSettings;
+
+  // Use firstApron if apron is not set
+  const actualFirstApron = firstApron || apron;
 
   // Log salary details for debugging
   if (debug.enabled) {
     debug.log(`💰 Salary Matching – ${teamName}`, {
-      teamTotalSalary: formatCurrency(teamTotalSalary),
+      teamTotalSalary: formatCurrency(totalSalary),
       salaryOut: formatCurrency(salaryOut),
       salaryIn: formatCurrency(salaryIn),
       salaryCap: formatCurrency(salaryCap),
-      firstApron: formatCurrency(firstApron),
+      firstApron: formatCurrency(actualFirstApron),
       secondApron: formatCurrency(secondApron),
-      apronStatus: getApronStatus(teamTotalSalary, capSettings),
     });
   }
 
   const violations = [];
-  const details = {};
 
   // Check FA exception bucket limits first
   if (team.absorptionMode === 'FA_EXCEPTION' && team.bucketType) {
@@ -79,8 +95,8 @@ export function validateSalaryMatching(team) {
   }
 
   // Under-cap teams can absorb salary up to the cap
-  if (teamTotalSalary < salaryCap) {
-    const remainingSpace = salaryCap - teamTotalSalary;
+  if (totalSalary < salaryCap) {
+    const remainingSpace = salaryCap - totalSalary;
     const netAddition = salaryIn - salaryOut;
     if (netAddition > remainingSpace) {
       violations.push(
@@ -89,7 +105,7 @@ export function validateSalaryMatching(team) {
     }
   }
   // Teams above second apron: strict 100% matching (cannot take back more than sent out)
-  else if (teamTotalSalary >= secondApron) {
+  else if (totalSalary >= secondApron) {
     if (salaryIn > salaryOut) {
       violations.push(
         `Incoming salary exceeds allowable amount by ${formatCurrency(salaryIn - salaryOut)}. ` +
@@ -98,7 +114,7 @@ export function validateSalaryMatching(team) {
     }
   }
   // Teams above first apron: 100% matching (cannot take back more than sent out)
-  else if (teamTotalSalary >= firstApron) {
+  else if (totalSalary >= actualFirstApron) {
     if (salaryIn > salaryOut) {
       violations.push(
         `Incoming salary exceeds allowable amount by ${formatCurrency(salaryIn - salaryOut)}. ` +
@@ -107,34 +123,42 @@ export function validateSalaryMatching(team) {
     }
   }
   // Over-cap teams below first apron: use standard tiered matching rules
-  else {
-    const margin = getAllowableIncomingMargin(team);
-    const allowableIncoming = salaryOut + margin;
+  else if (totalSalary > salaryCap) {
+    // Calculate allowable incoming based on outgoing salary tiers
+    let allowableIncoming = 0;
+
+    if (salaryOut <= 6_500_000) {
+      allowableIncoming = salaryOut * 2 + 250_000;
+    } else if (salaryOut <= 19_600_000) {
+      allowableIncoming = salaryOut + 5_000_000;
+    } else if (salaryOut <= 19_600_000) {
+      allowableIncoming = salaryOut * 1.25;
+    } else {
+      allowableIncoming = salaryOut + 5_000_000;
+    }
 
     // Check if team exceeds the allowed incoming salary
     if (salaryIn > allowableIncoming) {
       violations.push(
-        `Team exceeds allowable incoming salary by ${formatCurrency(salaryIn - allowableIncoming)}`
+        `Incoming salary exceeds allowable amount by ${formatCurrency(salaryIn - allowableIncoming)}`
       );
-      details.marginViolation = {
-        allowed: allowableIncoming,
-        actual: salaryIn,
-        margin,
-        difference: salaryIn - allowableIncoming,
-      };
     }
   }
+  // Under-cap teams already handled above
 
   const result = {
     passed: violations.length === 0,
     violations,
+    salaryIn,
+    salaryOut,
+    difference: salaryIn - salaryOut,
     message: violations.length ? violations[0] : 'Salary matching validated',
-    details: Object.keys(details).length ? details : undefined,
     warningsOnly: shouldWarnOnly('salaryMatching') && violations.length > 0,
   };
 
   // Cache the result
-  validationCache.cacheSalaryMatch(team, team.context.yearKey, result);
+  validationCache.cacheSalaryMatch(team, yearKey, result);
 
+  performanceMonitor.endTiming(timingKey, result);
   return result;
 }

@@ -11,14 +11,21 @@ export const CACHE_TYPES = {
 
 class ValidationCacheManager {
   constructor() {
-    this.cache = new Map();
+    this._cache = {
+      hardCapStatus: new Map(),
+      tpeValidations: new Map(),
+      salaryMatching: new Map(),
+      signAndTrade: new Map(),
+      stepien: new Map(),
+      roster: new Map(),
+    };
     this.hits = 0;
     this.misses = 0;
     this.invalidations = 0;
   }
 
   getCachedResult(key) {
-    const result = this.cache.get(key);
+    const result = this._cache.salaryMatching.get(key);
     if (result) {
       this.hits++;
       return result;
@@ -28,22 +35,113 @@ class ValidationCacheManager {
   }
 
   cacheResult(key, result) {
-    this.cache.set(key, result);
+    this._cache.salaryMatching.set(key, result);
+  }
+
+  // Hard cap cache methods
+  getCachedHardCap(key) {
+    const result = this._cache.hardCapStatus.get(key);
+    if (result) {
+      this.hits++;
+      return result;
+    }
+    this.misses++;
+    return null;
+  }
+
+  cacheHardCap(key, result) {
+    this._cache.hardCapStatus.set(key, result);
+  }
+
+  getCachedHardCapStatus(key) {
+    const result = this._cache.hardCapStatus.get(key);
+    if (result) {
+      this.hits++;
+      return result;
+    }
+    this.misses++;
+    return null;
+  }
+
+  cacheHardCapStatus(key, result) {
+    this._cache.hardCapStatus.set(key, result);
+  }
+
+  // TPE cache methods
+  getCachedTPE(key) {
+    const result = this._cache.tpeValidations.get(key);
+    if (result) {
+      this.hits++;
+      return result;
+    }
+    this.misses++;
+    return null;
+  }
+
+  cacheTPE(key, result) {
+    this._cache.tpeValidations.set(key, result);
+  }
+
+  // Sign and trade cache methods
+  getCachedSignAndTrade(key) {
+    const result = this._cache.signAndTrade.get(key);
+    if (result) {
+      this.hits++;
+      return result;
+    }
+    this.misses++;
+    return null;
+  }
+
+  cacheSignAndTrade(key, result) {
+    this._cache.signAndTrade.set(key, result);
+  }
+
+  // Stepien cache methods
+  getCachedStepienValidation(key) {
+    const result = this._cache.stepien.get(key);
+    if (result) {
+      this.hits++;
+      return result;
+    }
+    this.misses++;
+    return null;
+  }
+
+  cacheStepienValidation(key, result) {
+    this._cache.stepien.set(key, result);
   }
 
   invalidateCache() {
-    this.cache.clear();
+    Object.values(this._cache).forEach((cache) => cache.clear());
     this.invalidations++;
+  }
+
+  // Cleanup expired entries
+  cleanup() {
+    // Simple cleanup - just clear all caches for now
+    this.invalidateCache();
   }
 
   getMetrics() {
     const total = this.hits + this.misses;
+    const totalSize = Object.values(this._cache).reduce(
+      (sum, cache) => sum + cache.size,
+      0
+    );
+
     return {
       hitRate: total > 0 ? this.hits / total : 0,
       hits: this.hits,
       misses: this.misses,
       invalidations: this.invalidations,
+      cacheSize: totalSize,
     };
+  }
+
+  // Add missing clear method for compatibility
+  clear() {
+    this.invalidateCache();
   }
 }
 

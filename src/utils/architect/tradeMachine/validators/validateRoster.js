@@ -8,8 +8,8 @@ import { validationCache } from './validationCache.js';
  * - Two-way slots (max 3)
  */
 export function validateRoster(team) {
-  // Check cache first
-  const cacheKey = `${team.teamId}-${team.projectedRosterCount || 0}-${team.team?.twoWayPlayers?.length || 0}`;
+  // Check cache first - but include validation flags in cache key since they affect the result
+  const cacheKey = `${team.teamId}-${team.projectedRosterCount || 0}-${team.team?.twoWayPlayers?.length || 0}-${validationFlags.rosterEnforcement}-${validationFlags.twoWayRoster}`;
   const cached = validationCache.getCachedRosterValidation(cacheKey);
   if (cached) {
     return cached;
@@ -46,23 +46,23 @@ export function validateRoster(team) {
     twoWayViolation = 'Two-way slots cannot exceed 3';
   }
 
-  // Add violations based on enforcement mode
+  // Check if violations should cause failure based on enforcement mode
   const standardPass =
     !standardViolation || validationFlags.rosterEnforcement === 'warn';
   const twoWayPass =
     !twoWayViolation || validationFlags.twoWayRoster === 'warn';
 
-  // Add violations to array for reporting (even in warn mode)
+  // Always add violations to array for reporting (even in warn mode)
   if (standardViolation) violations.push(standardViolation);
   if (twoWayViolation) violations.push(twoWayViolation);
 
+  // The validation passes if both standard and two-way checks pass
+  const passed = standardPass && twoWayPass;
+
   const result = {
-    passed: standardPass && twoWayPass,
+    passed,
     violations,
-    message:
-      standardPass && twoWayPass
-        ? 'Roster requirements satisfied'
-        : 'Roster violation',
+    message: passed ? 'Roster requirements satisfied' : 'Roster violation',
     details: `Standard spots: ${projectedRosterCount}, Two-way slots: ${projectedTwoWay}`,
     rosterCounts: {
       standard: projectedRosterCount,
@@ -70,6 +70,10 @@ export function validateRoster(team) {
       projected: projectedRosterCount,
       current: team.initialRosterCount || 0,
     },
+    // In warn mode, violations are present but don't fail validation
+    warningsOnly:
+      (standardViolation && validationFlags.rosterEnforcement === 'warn') ||
+      (twoWayViolation && validationFlags.twoWayRoster === 'warn'),
   };
 
   // Cache the result
@@ -90,8 +94,15 @@ export function enforceRosterWindow(team, context = {}, { warn, reject } = {}) {
     projectedRosterCount = team.postTradeTeam.players.length;
   }
 
+  // Extract two-way player count from postTradeTeam structure
+  let projectedTwoWayCount = 0;
+  if (team.postTradeTeam?.twoWayPlayers) {
+    projectedTwoWayCount = team.postTradeTeam.twoWayPlayers.length;
+  }
+
   const initialRosterCount = team.initialRosterCount || 0;
   const enforcement = validationFlags.rosterEnforcement || 'error';
+  const twoWayEnforcement = validationFlags.twoWayRoster || 'error';
   const isGraceMode = context.graceMode;
 
   // Check maximum roster size (typically 15)
@@ -108,25 +119,27 @@ export function enforceRosterWindow(team, context = {}, { warn, reject } = {}) {
     );
   }
 
-  // Check two-way slots
-  const twoWayPlayersIn = (team.incomingPlayers || []).filter(
-    (p) => p.contractType === 'two-way'
-  );
-  const twoWayPlayersOut = (team.sends || []).filter(
-    (p) => p.contractType === 'two-way'
-  );
-  const netTwoWayChange = twoWayPlayersIn.length - twoWayPlayersOut.length;
-
-  if (team.team?.twoWaySlots + netTwoWayChange > 2) {
-    violations.push('Post-trade two-way slots exceed maximum of 2');
+  // Check two-way slots (max 3)
+  if (projectedTwoWayCount > 3) {
+    const twoWayViolation = `Two-way slots exceeded (${projectedTwoWayCount}/3)`;
+    violations.push(twoWayViolation);
   }
 
   // Handle enforcement mode and grace mode
   if (!isGraceMode) {
     violations.forEach((violation) => {
-      if (enforcement === 'warn' && typeof warn === 'function') {
+      // Check if this is a two-way violation
+      const isTwoWayViolation = violation.includes('Two-way slots exceeded');
+      const currentEnforcement = isTwoWayViolation
+        ? twoWayEnforcement
+        : enforcement;
+
+      if (currentEnforcement === 'warn' && typeof warn === 'function') {
         warn(violation);
-      } else if (enforcement === 'error' && typeof reject === 'function') {
+      } else if (
+        currentEnforcement === 'error' &&
+        typeof reject === 'function'
+      ) {
         reject(violation);
       }
     });
