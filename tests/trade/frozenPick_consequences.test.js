@@ -52,6 +52,10 @@ describe('frozen pick consequences', () => {
   it('allows 2031 first for second apron team', () => {
     const pick = { year: 2031, round: 1, teamId: 1 };
     const res = runPickTrade(pick, 2025);
+    console.log('Team A salary:', res.teamResults[0].team?.totalSalary);
+    console.log('Team A violations:', res.teamResults[0].violations);
+    console.log('Team A legal:', res.teamResults[0].legal);
+    console.log('Cap settings:', res.capSettings);
     expect(res.teamResults[0].legal).toBe(true);
   });
 

@@ -1,95 +1,124 @@
-import { validationCache } from './validationCacheService.js';
-import { CACHE_TYPES } from './validationCacheService.js';
-import debug from '../debug.js';
+import { validationCache } from './validationCache.js';
 
 /**
- * Manages automated cache invalidation based on trade events and data changes
+ * Cache Invalidation Manager
+ * Handles intelligent cache invalidation based on trade events
  */
 export class CacheInvalidationManager {
-  // Invalidate cache when team data changes
-  onTeamUpdate(teamId, changes) {
-    if (changes.salary || changes.roster || changes.exceptions) {
-      // Invalidate salary-dependent validations
-      validationCache.manager.invalidate(
-        CACHE_TYPES.HARD_CAP,
-        new RegExp(`^${teamId}-`)
-      );
-      validationCache.manager.invalidate(
-        CACHE_TYPES.SECOND_APRON,
-        new RegExp(`^${teamId}-`)
-      );
-      validationCache.manager.invalidate(
-        CACHE_TYPES.BYC,
-        new RegExp(`^${teamId}-`)
-      );
-    }
-
-    if (changes.roster) {
-      // Invalidate roster-dependent validations
-      validationCache.manager.invalidate(
-        CACHE_TYPES.ROSTER,
-        new RegExp(`^${teamId}-`)
-      );
-    }
-
-    if (changes.picks) {
-      // Invalidate pick-dependent validations
-      validationCache.manager.invalidate(
-        CACHE_TYPES.STEPIEN,
-        new RegExp(`^${teamId}-`)
-      );
-    }
-
-    if (changes.exceptions) {
-      // Invalidate TPE-dependent validations
-      validationCache.manager.invalidate(
-        CACHE_TYPES.TPE,
-        new RegExp(`^${teamId}-`)
-      );
-    }
-
-    debug.log(`🔄 Invalidated caches for team ${teamId}`, changes);
+  constructor() {
+    this.invalidationRules = new Map();
+    this.setupDefaultRules();
   }
 
-  // Invalidate cache when trade parameters change
-  onTradeUpdate(trade) {
-    const affectedTeams = new Set(trade.teams.map((t) => t.teamId));
-
-    affectedTeams.forEach((teamId) => {
-      Object.values(CACHE_TYPES).forEach((type) => {
-        validationCache.manager.invalidate(type, new RegExp(`^${teamId}-`));
-      });
+  setupDefaultRules() {
+    // Rules for when to invalidate cache entries
+    this.invalidationRules.set('roster_change', {
+      affectedCacheTypes: ['salaryMatch', 'hardCap'],
+      scope: 'team',
     });
 
-    debug.log(`🔄 Invalidated all caches for trade teams`, {
-      teams: Array.from(affectedTeams),
+    this.invalidationRules.set('contract_update', {
+      affectedCacheTypes: ['salaryMatch', 'hardCap'],
+      scope: 'team',
+    });
+
+    this.invalidationRules.set('trade_completion', {
+      affectedCacheTypes: ['salaryMatch', 'hardCap'],
+      scope: 'multi_team',
     });
   }
 
-  // Invalidate cache when cap settings change
-  onCapSettingsUpdate() {
-    // Clear all salary-dependent caches
-    validationCache.manager.clear(CACHE_TYPES.HARD_CAP);
-    validationCache.manager.clear(CACHE_TYPES.SECOND_APRON);
-    validationCache.manager.clear(CACHE_TYPES.BYC);
+  /**
+   * Handle team roster updates
+   */
+  onTeamUpdate(teamId, updateType = 'roster_change') {
+    const rule = this.invalidationRules.get(updateType);
+    if (!rule) return;
 
-    debug.log(
-      '🔄 Invalidated salary-dependent caches due to cap settings update'
-    );
+    if (rule.scope === 'team') {
+      this.invalidateTeamEntries(rule.affectedCacheTypes, teamId);
+    }
   }
 
-  // Invalidate cache for sign-and-trade validation based on date changes
-  onDateChange(newDate) {
-    validationCache.manager.clear(CACHE_TYPES.SIGN_AND_TRADE);
-    debug.log('🔄 Invalidated sign-and-trade cache due to date change');
+  /**
+   * Handle multi-team events (like trade completion)
+   */
+  onMultiTeamEvent(teamIds, eventType = 'trade_completion') {
+    const rule = this.invalidationRules.get(eventType);
+    if (!rule) return;
+
+    teamIds.forEach((teamId) => {
+      this.invalidateTeamEntries(rule.affectedCacheTypes, teamId);
+    });
   }
 
-  // Clear all caches (use sparingly)
+  /**
+   * Handle contract updates
+   */
+  onContractUpdate(teamId, playerId) {
+    this.onTeamUpdate(teamId, 'contract_update');
+  }
+
+  /**
+   * Handle salary cap changes
+   */
+  onSalaryCapChange(yearKey) {
+    // Invalidate all entries for a specific year
+    validationCache.invalidate(`_${yearKey}`);
+  }
+
+  /**
+   * Invalidate cache entries for a specific team
+   */
+  invalidateTeamEntries(cacheTypes, teamId) {
+    if (!Array.isArray(cacheTypes)) {
+      cacheTypes = [cacheTypes];
+    }
+
+    cacheTypes.forEach((cacheType) => {
+      let pattern;
+      switch (cacheType) {
+        case 'salaryMatch':
+          pattern = 'salary_match_';
+          break;
+        case 'hardCap':
+          pattern = 'hard_cap_';
+          break;
+        default:
+          pattern = cacheType;
+      }
+
+      // Find and invalidate entries containing this team
+      const invalidated = validationCache.invalidate(pattern);
+      console.debug(
+        `Invalidated ${invalidated} ${cacheType} cache entries for team ${teamId}`
+      );
+    });
+  }
+
+  /**
+   * Get invalidation statistics
+   */
+  getStats() {
+    return {
+      totalInvalidations: validationCache.getMetrics().invalidations,
+      rules: Array.from(this.invalidationRules.keys()),
+    };
+  }
+
+  /**
+   * Add custom invalidation rule
+   */
+  addRule(eventType, rule) {
+    this.invalidationRules.set(eventType, rule);
+  }
+
+  /**
+   * Clear all cache entries (nuclear option)
+   */
   clearAll() {
     validationCache.clear();
-    debug.log('🧹 Cleared all validation caches');
   }
 }
 
-// Export singleton instance
-export const invalidationManager = new CacheInvalidationManager();
+export const cacheInvalidationManager = new CacheInvalidationManager();

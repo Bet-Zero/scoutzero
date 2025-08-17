@@ -12,6 +12,7 @@ export function validateAggregation(team) {
     sends = [],
     incomingPlayers = [],
     context,
+    hardCapped = false,
   } = team;
   const { yearKey } = context || {};
 
@@ -40,16 +41,19 @@ export function validateAggregation(team) {
 
   const violations = [];
 
-  // Each incoming salary must be covered by a single larger or equal outgoing salary
-  for (let i = 0; i < incomingSalaries.length; i++) {
-    const incoming = incomingSalaries[i];
-    const outgoing = outgoingSalaries[i] || 0;
+  // Check for salary aggregation: multiple outgoing players
+  if (outgoingSalaries.length > 1) {
+    violations.push(
+      `Second apron team cannot aggregate salaries from multiple players`
+    );
+  }
 
-    if (incoming > outgoing) {
-      violations.push(
-        `Cannot aggregate salaries: Incoming $${incoming.toLocaleString()} exceeds matching outgoing $${outgoing.toLocaleString()}`
-      );
-    }
+  // Check if receiving more salary than sending out
+  const totalIncoming = incomingSalaries.reduce((sum, sal) => sum + sal, 0);
+  const totalOutgoing = outgoingSalaries.reduce((sum, sal) => sum + sal, 0);
+
+  if (totalIncoming > totalOutgoing) {
+    violations.push(`Second apron team cannot receive more salary than sent`);
   }
 
   return {

@@ -24,7 +24,11 @@ export class ValidationDebugMonitor {
 
     const metrics = {
       timestamp,
-      performance,
+      performance: {
+        ...performance,
+        totalValidations: performance.validationCount || 0,
+        validationsByType: this._buildValidationsByType(performance),
+      },
       cache,
       warnings: this.analyzeMetrics(performance, cache),
     };
@@ -40,21 +44,39 @@ export class ValidationDebugMonitor {
     return metrics;
   }
 
+  // Build validationsByType structure expected by tests
+  _buildValidationsByType(performance) {
+    const validationsByType = {};
+
+    if (performance.validations) {
+      Object.entries(performance.validations).forEach(([name, metrics]) => {
+        validationsByType[name] = {
+          averageTimeMs: metrics.avgTimeMs || 0,
+          count: metrics.calls || 0,
+        };
+      });
+    }
+
+    return validationsByType;
+  }
+
   // Analyze metrics for potential issues
   analyzeMetrics(performance, cache) {
     const warnings = [];
 
     // Check for slow validations
-    Object.entries(performance.validationsByType).forEach(([type, metrics]) => {
-      if (metrics.averageTimeMs > this.slowValidationThreshold) {
-        warnings.push({
-          type: 'SLOW_VALIDATION',
-          validator: type,
-          averageTime: metrics.averageTimeMs,
-          threshold: this.slowValidationThreshold,
-        });
-      }
-    });
+    if (performance.validations) {
+      Object.entries(performance.validations).forEach(([type, metrics]) => {
+        if (metrics.avgTimeMs > this.slowValidationThreshold) {
+          warnings.push({
+            type: 'SLOW_VALIDATION',
+            validator: type,
+            averageTime: metrics.avgTimeMs,
+            threshold: this.slowValidationThreshold,
+          });
+        }
+      });
+    }
 
     // Check cache hit rate
     if (cache.hitRate < this.lowHitRateThreshold) {
@@ -67,7 +89,7 @@ export class ValidationDebugMonitor {
 
     // Check invalidation rate
     const totalOps = cache.hits + cache.misses + cache.invalidations;
-    const invalidationRate = cache.invalidations / totalOps;
+    const invalidationRate = totalOps > 0 ? cache.invalidations / totalOps : 0;
     if (invalidationRate > this.highInvalidationRateThreshold) {
       warnings.push({
         type: 'HIGH_INVALIDATION_RATE',
@@ -137,16 +159,19 @@ export class ValidationDebugMonitor {
     const metrics = this.collectMetrics();
     const trends = this.getPerformanceTrends();
 
-    if (metrics.warnings.length > 0 || this.shouldGenerateReport()) {
-      debug.log('🔍 Validation Debug Report', {
-        timestamp: new Date().toISOString(),
-        metrics,
-        trends,
-        recommendations: this.generateRecommendations(metrics, trends),
-      });
+    const report = {
+      timestamp: new Date().toISOString(),
+      metrics,
+      trends,
+      recommendations: this.generateRecommendations(metrics, trends),
+    };
 
+    if (metrics.warnings.length > 0 || this.shouldGenerateReport()) {
+      debug.log('🔍 Validation Debug Report', report);
       this.lastReport = Date.now();
     }
+
+    return report;
   }
 
   // Determine if we should generate a new report

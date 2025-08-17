@@ -15,44 +15,118 @@ import { validationCache } from './validationCache.js';
  * @returns {Object} Validation result with standard properties
  */
 export function validateEligibility(team, tradeCtx = {}) {
-  // Check cache first
-  const cacheKey = `${team.teamId}-${tradeCtx.tradeDate || ''}`;
+  // Check cache first - include callback presence in cache key to avoid pollution
+  const hasCallback = typeof tradeCtx.wasTradedAwayWithinOneYear === 'function';
+  const cacheKey = `${team.teamId}-${tradeCtx.tradeDate || ''}-${hasCallback ? 'with-callback' : 'no-callback'}`;
   const cached = validationCache.getCachedEligibility(cacheKey);
   if (cached) {
     return cached;
   }
 
   const violations = [];
-  const { asOfDate = new Date().toISOString() } = tradeCtx;
+  const { asOfDate = new Date().toISOString(), teams = [] } = tradeCtx;
   const tradeDate = new Date(asOfDate);
 
+  // Determine incoming players for this team
+  let incomingPlayers = team.incomingPlayers || [];
+
+  // If no explicit incoming players, derive from trade structure
+  if (incomingPlayers.length === 0 && teams.length >= 2) {
+    incomingPlayers = [];
+    teams.forEach((otherTeam) => {
+      if (otherTeam.teamId !== team.teamId) {
+        // Players being sent by other teams are incoming to this team
+        (otherTeam.sends || []).forEach((player) => {
+          incomingPlayers.push(player);
+        });
+      }
+    });
+  }
+
   // Check each incoming player for reacquisition restrictions
-  (team.incomingPlayers || []).forEach((player) => {
-    // Check one-year reacquisition rule
-    if (player.lastTradedFrom === team.teamId) {
-      const lastTradeDate = new Date(player.lastTradedDate);
+  incomingPlayers.forEach((player) => {
+    if (debug.enabled) {
+      debug.log(`🔍 Checking player eligibility for ${team.teamName}`, {
+        playerName: player.name,
+        playerId: player.id,
+        teamId: team.teamId,
+        hasCallback: typeof tradeCtx.wasTradedAwayWithinOneYear === 'function',
+      });
+    }
+
+    // Method 1: Use callback function if provided (for test cases)
+    if (typeof tradeCtx.wasTradedAwayWithinOneYear === 'function') {
+      const isViolation = tradeCtx.wasTradedAwayWithinOneYear(
+        player.id || player.name,
+        team.teamId
+      );
+
+      if (debug.enabled) {
+        debug.log(`📞 Callback result for ${player.name}`, {
+          playerId: player.id || player.name,
+          destTeamId: team.teamId,
+          isViolation,
+        });
+      }
+
+      if (isViolation) {
+        violations.push(
+          `Re-acquisition bar: Cannot reacquire ${player.name || 'player'} within one year of trade`
+        );
+        return; // Skip property-based checks if callback handled it
+      }
+    }
+
+    // Method 2: Check player properties (fallback for real data)
+    const lastTradedFrom = player.lastTradedFromTeamId || player.lastTradedFrom;
+
+    if (lastTradedFrom === team.teamId) {
+      // Handle different date formats and ensure valid date parsing
+      let lastTradeDate;
+      if (player.lastTradedDate || player.lastTradeDate) {
+        const dateStr = player.lastTradedDate || player.lastTradeDate;
+        lastTradeDate = new Date(dateStr);
+        // If still invalid, try parsing as timestamp
+        if (isNaN(lastTradeDate.getTime())) {
+          lastTradeDate = new Date(parseInt(dateStr));
+        }
+      } else {
+        lastTradeDate = new Date(); // Default to now if no date available
+      }
+
       const daysSinceDeparture =
         (tradeDate - lastTradeDate) / (1000 * 60 * 60 * 24);
 
       if (daysSinceDeparture < 365) {
         violations.push(
-          `Cannot reacquire ${player.name || 'player'} within one year of trade (${Math.ceil(
+          `Re-acquisition bar: Cannot reacquire ${player.name || 'player'} within one year of trade (${Math.ceil(
             365 - daysSinceDeparture
           )} days remaining)`
         );
       }
     }
 
-    // Check waived player reacquisition rule
-    if (player.waivedBy === team.teamId) {
-      const waivedDate = new Date(player.waivedDate);
-      const contractEndYear =
-        player.contractEndYear || waivedDate.getFullYear();
+    // Check waived player reacquisition rule - handle multiple property name formats
+    const waivedBy = player.wasWaivedByTeamId || player.waivedBy;
+
+    if (waivedBy === team.teamId) {
+      // Handle different date formats for contract end date
+      let contractEndDate;
+      if (player.contractEndDate) {
+        contractEndDate = new Date(player.contractEndDate);
+        if (isNaN(contractEndDate.getTime())) {
+          contractEndDate = new Date(); // Default to now if invalid
+        }
+      } else {
+        contractEndDate = new Date(); // Default to now if no date available
+      }
+
+      const contractEndYear = contractEndDate.getFullYear() + 1; // Next July 1st after contract ends
       const julyFirst = new Date(contractEndYear, 6, 1); // Month is 0-based
 
       if (tradeDate < julyFirst) {
         violations.push(
-          `Cannot reacquire ${player.name || 'player'} until July 1, ${contractEndYear} (waiver restriction)`
+          `Re-acquisition bar: Cannot reacquire waived ${player.name || 'player'} until July 1, ${contractEndYear}`
         );
       }
     }
@@ -99,13 +173,8 @@ export function enforceEligibility(
   { warn = () => {}, reject = () => {} } = {}
 ) {
   const violations = [];
-  const enforcement = validationFlags.eligibility;
-
-  if (debug.enabled) {
-    debug.log(`🚫 Trade Eligibility – ${team.teamName}`, {
-      players: (team.incomingPlayers || []).map((p) => p.name),
-    });
-  }
+  const enforcement =
+    validationFlags.reAcquisition || validationFlags.eligibility;
 
   // Get violations from validator
   const result = validateEligibility(team, tradeCtx);

@@ -16,12 +16,12 @@ export function computeMatchingValues({
 
       const currentSalary = player.currentSalary || player.salary || newSalary;
 
-      // Base Year Compensation
-      const isOutgoingBYC =
-        player.isBYC && newSalary > (player.previousSalary || 0);
-      const bycOutgoing = isOutgoingBYC
-        ? Math.max(player.previousSalary || 0, newSalary * 0.5)
-        : currentSalary;
+      // Base Year Compensation - use the greater of previous salary or 50% of new salary
+      // If player is marked as BYC, use their previous salary for outgoing matching
+      const bycOutgoing =
+        player.isBYC && player.previousSalary
+          ? Math.max(player.previousSalary, newSalary * 0.5)
+          : currentSalary;
 
       // Trade Kicker - handle both data structures
       const kickerPercentage =
@@ -29,10 +29,11 @@ export function computeMatchingValues({
       const maxKicker = player.tradeKicker?.maximum || Infinity;
 
       // Calculate raw kicker value - use guaranteed amount as base
+      // Note: tradeKickerPct is already in decimal form (0.15 = 15%)
       const guaranteedAmount =
         player.remainingGuaranteedOnCurrentContract || currentSalary;
       const rawKickerValue = Math.min(
-        guaranteedAmount * (kickerPercentage / 100),
+        guaranteedAmount * kickerPercentage,
         maxKicker
       );
 
