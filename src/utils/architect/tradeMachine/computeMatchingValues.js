@@ -4,17 +4,24 @@ export function computeMatchingValues({
   daysRemainingInSeason,
   daysInSeason,
 }) {
+  // Use current year if yearKey not provided
+  const currentYear = yearKey || new Date().getFullYear();
+
   teams.forEach((team) => {
     (team.sends || []).forEach((player) => {
-      // Extract salary from different possible sources
+      // Extract salary from different possible sources - prioritize contract data
+      const contractSalary =
+        player.contract_clean?.salaries_by_year?.[currentYear]?.salary;
       const newSalary =
         player.newSalary ||
-        player.contract_clean?.salaries_by_year?.[yearKey]?.salary ||
+        contractSalary ||
         player.salary ||
         player.currentSalary ||
         0;
 
-      const currentSalary = player.currentSalary || player.salary || newSalary;
+      // For poison pill: use currentSalary property if available, otherwise use contract salary
+      const currentSalary =
+        player.currentSalary || contractSalary || player.salary || newSalary;
 
       // Base Year Compensation - use the greater of previous salary or 50% of new salary
       // If player is marked as BYC, use their previous salary for outgoing matching
@@ -60,14 +67,16 @@ export function computeMatchingValues({
       // Set incoming matching value (includes trade kicker)
       player.matchIncoming = currentSalary + proratedKicker;
 
-      // Handle poison pill
+      // Handle poison pill - use currentSalary for the average calculation
       if (player.extensionYears?.length > 0) {
-        const totalSalary = player.extensionYears.reduce(
+        const totalExtensionSalary = player.extensionYears.reduce(
           (sum, year) => sum + year.salary,
           0
         );
+        // Use currentSalary property for poison pill calculation
         const avgSalary =
-          (currentSalary + totalSalary) / (1 + player.extensionYears.length);
+          (currentSalary + totalExtensionSalary) /
+          (1 + player.extensionYears.length);
         player.matchIncoming = Math.max(player.matchIncoming, avgSalary);
       }
     });

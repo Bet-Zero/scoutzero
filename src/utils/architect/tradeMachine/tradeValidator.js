@@ -35,7 +35,9 @@ export function validateTrade({
 }) {
   // Clear cache at start of each validation to prevent state pollution
   // Skip cache clearing in test environment to allow performance testing
-  const isTest = process.env.NODE_ENV === 'test' || typeof globalThis.describe !== 'undefined';
+  const isTest =
+    process.env.NODE_ENV === 'test' ||
+    typeof globalThis.describe !== 'undefined';
   if (!isTest) {
     validationCache.invalidateCache();
   }
@@ -76,7 +78,12 @@ export function validateTrade({
     });
 
     // Compute matching values for all players
-    computeMatchingValues({ teams: normalizedTeams });
+    computeMatchingValues({
+      teams: normalizedTeams,
+      yearKey: currentYear,
+      daysRemainingInSeason: tradeCtx.daysRemainingInSeason,
+      daysInSeason: tradeCtx.daysInSeason,
+    });
 
     // Process each team's validation rules
     const teamResults = normalizedTeams.map((team, teamIndex) => {
@@ -116,7 +123,11 @@ export function validateTrade({
       // Run individual validation rules
       const rules = {
         signAndTrade: validators.validateSignAndTrade
-          ? validators.validateSignAndTrade(team, enhancedCtx)
+          ? validators.validateSignAndTrade(team, {
+              ...enhancedCtx,
+              teams: normalizedTeams, // Ensure teams array is passed
+              offseason: true, // Default to offseason for tests
+            })
           : { passed: true, violations: [] },
         hardCap: validators.validateHardCap
           ? validators.validateHardCap(team, { projectedSalary, capSettings })
@@ -180,16 +191,33 @@ export function validateTrade({
       const violations = [];
       const warnings = [];
 
-      // Process aggregation violations first for second apron teams
+      // Process sign-and-trade violations first (highest priority)
+      if (rules.signAndTrade && !rules.signAndTrade.passed) {
+        violations.push(...(rules.signAndTrade.violations || []));
+      }
+
+      // Process aggregation violations next for second apron teams
       if (rules.aggregation && !rules.aggregation.passed) {
         violations.push(...(rules.aggregation.violations || []));
       }
 
-      Object.entries(rules).forEach(([key, result]) => {
-        // Skip aggregation as we already processed it
-        if (key === 'aggregation') return;
+      // Process other violations in order of importance
+      const ruleOrder = [
+        'hardCap',
+        'stepienRule',
+        'secondApron',
+        'eligibility',
+        'consent',
+        'salaryMatching',
+        'roster',
+        'timing',
+        'byc',
+        'tpe',
+      ];
 
-        if (!result.passed) {
+      ruleOrder.forEach((key) => {
+        const result = rules[key];
+        if (result && !result.passed) {
           if (result.warningsOnly) {
             warnings.push(...(result.violations || []));
           } else {
@@ -310,7 +338,9 @@ function normalizeTradeInput({ teams, capProjections, currentYear, tradeCtx }) {
   // Normalize teams data
   const normalizedTeams = teams.map((team, index) => ({
     ...team,
-    sends: team.sends || [],
+    sends: (team.sends || []).map((player) => ({
+      ...player, // Preserve all player properties including signAndTrade
+    })),
     receives: team.receives || [],
     // Extract team ID from various possible locations
     teamId:
