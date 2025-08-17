@@ -34,13 +34,7 @@ export function validateTrade({
   tradeCtx = {},
 }) {
   // Clear cache at start of each validation to prevent state pollution
-  // Skip cache clearing in test environment to allow performance testing
-  const isTest =
-    process.env.NODE_ENV === 'test' ||
-    typeof globalThis.describe !== 'undefined';
-  if (!isTest) {
-    validationCache.invalidateCache();
-  }
+  validationCache.invalidateCache();
 
   // Start overall validation timing
   performanceMonitor.startValidation('trade');

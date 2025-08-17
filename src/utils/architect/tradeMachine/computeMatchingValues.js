@@ -27,8 +27,9 @@ export function computeMatchingValues({
       // If player is marked as BYC, use their previous salary for outgoing matching
       let outgoingValue = currentSalary;
       if (player.isBYC && player.previousSalary) {
-        // For BYC players, outgoing matching should be the previousSalary
-        outgoingValue = player.previousSalary;
+        // For BYC players, outgoing matching should be max(previousSalary, 50% of new salary)
+        const fiftyPercentOfNew = (contractSalary || newSalary) * 0.5;
+        outgoingValue = Math.max(player.previousSalary, fiftyPercentOfNew);
       }
 
       // Trade Kicker - handle both data structures
