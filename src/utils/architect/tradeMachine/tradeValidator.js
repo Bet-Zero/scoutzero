@@ -338,7 +338,9 @@ function normalizeTradeInput({ teams, capProjections, currentYear, tradeCtx }) {
   // Normalize teams data
   const normalizedTeams = teams.map((team, index) => ({
     ...team,
-    sends: (team.sends || []), // Direct reference to preserve mutations
+    sends: (team.sends || []).map((player) => ({
+      ...player, // Preserve all player properties including signAndTrade
+    })),
     receives: team.receives || [],
     // Extract team ID from various possible locations
     teamId:
