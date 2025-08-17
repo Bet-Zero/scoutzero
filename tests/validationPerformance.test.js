@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { validateTrade } from '@/utils/architect/tradeMachine/tradeValidator.js';
 import { validationCache } from '@/utils/architect/tradeMachine/validators/validationCache.js';
 import { performanceMonitor } from '@/utils/architect/tradeMachine/validators/validationPerformanceMonitor.js';
-import { invalidationManager } from '@/utils/architect/tradeMachine/validators/cacheInvalidationManager.js';
+import { cacheInvalidationManager } from '@/utils/architect/tradeMachine/validators/cacheInvalidationManager.js';
 import { debugMonitor } from '@/utils/architect/tradeMachine/validators/validationDebugMonitor.js';
 
 describe('Validation Performance Tests', () => {
@@ -44,7 +44,7 @@ describe('Validation Performance Tests', () => {
     const initialMetrics = validationCache.getMetrics();
 
     // Update team data
-    invalidationManager.onTeamUpdate(team.teamId, { salary: true });
+    cacheInvalidationManager.onTeamUpdate(team.teamId, { salary: true });
 
     // Validation after update - should be cache miss
     validateTrade(trade);
