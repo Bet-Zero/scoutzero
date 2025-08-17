@@ -387,6 +387,54 @@ export class ValidationCache {
   }
 
   /**
+   * Generate cache key for cash validation
+   */
+  _generateCashKey(cacheKey) {
+    return `cash_${cacheKey}`;
+  }
+
+  /**
+   * Get cached cash validation result
+   */
+  getCachedCashValidation(cacheKey) {
+    const key = this._generateCashKey(cacheKey);
+    const cached = this.cache.get(key);
+
+    if (cached && Date.now() - cached.timestamp < this.ttl) {
+      this.metrics.hits++;
+      return cached.result;
+    }
+
+    if (cached) {
+      this.cache.delete(key);
+      this.metrics.size--;
+    }
+
+    this.metrics.misses++;
+    return undefined;
+  }
+
+  /**
+   * Cache cash validation result
+   */
+  cacheCashValidation(cacheKey, result) {
+    const key = this._generateCashKey(cacheKey);
+
+    // Implement LRU eviction if cache is full
+    if (this.cache.size >= this.maxSize) {
+      const firstKey = this.cache.keys().next().value;
+      this.cache.delete(firstKey);
+    } else {
+      this.metrics.size++;
+    }
+
+    this.cache.set(key, {
+      result: { ...result },
+      timestamp: Date.now(),
+    });
+  }
+
+  /**
    * Invalidate cache entries
    */
   invalidate(pattern) {
