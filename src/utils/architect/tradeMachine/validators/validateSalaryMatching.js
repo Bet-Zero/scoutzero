@@ -90,6 +90,30 @@ export function validateSalaryMatching(team, context = {}) {
     }
   }
 
+  // Check if team is using TPEs to cover incoming salary
+  const appliedTPEs = team.appliedTPEs || [];
+  const totalTPEAmount = appliedTPEs.reduce(
+    (sum, tpe) => sum + (tpe.amount || 0),
+    0
+  );
+
+  // If using TPEs, skip salary matching validation since TPEs cover the incoming salary
+  if (appliedTPEs.length > 0 && totalTPEAmount >= salaryIn) {
+    const result = {
+      passed: true,
+      violations: [],
+      salaryIn,
+      salaryOut,
+      difference: salaryIn - salaryOut,
+      message: 'Trade exception covers incoming salary',
+      usingTPE: true,
+    };
+
+    validationCache.cacheSalaryMatch(team, yearKey, result);
+    performanceMonitor.endTiming(timingKey, result);
+    return result;
+  }
+
   // Under-cap teams can absorb salary up to the cap
   if (totalSalary < salaryCap) {
     const remainingSpace = salaryCap - totalSalary;

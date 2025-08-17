@@ -58,6 +58,9 @@ export function validateTradeExceptions(team) {
     }
   }
 
+  // For teams below second apron, TPE usage is allowed (including prior-year TPEs)
+  // Only check for basic TPE validation like expiration and capacity
+
   // Check for TPE + outgoing salary aggregation (only for trade validator pattern)
   const hasOutgoingSalary =
     (sends || []).length > 0 || (outgoingPlayers || []).length > 0;

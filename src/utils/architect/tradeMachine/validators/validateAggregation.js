@@ -48,6 +48,19 @@ export function validateAggregation(team) {
     );
   }
 
+  // Check for receiving from multiple teams (incoming aggregation)
+  if (incomingPlayers.length > 1) {
+    // Check if incoming players are from different teams
+    const incomingTeams = new Set(
+      incomingPlayers.map((p) => p.fromTeamId).filter((id) => id)
+    );
+    if (incomingTeams.size > 1) {
+      violations.push(
+        `Second apron team cannot aggregate salaries from multiple clubs`
+      );
+    }
+  }
+
   // Check if receiving more salary than sending out
   const totalIncoming = incomingSalaries.reduce((sum, sal) => sum + sal, 0);
   const totalOutgoing = outgoingSalaries.reduce((sum, sal) => sum + sal, 0);
