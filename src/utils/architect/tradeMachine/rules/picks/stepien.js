@@ -3,7 +3,7 @@ import {
   passesStepienRule,
 } from '@/utils/architect/stepienUtils.js';
 import { isMeaningfulProtection } from '@/utils/architect/tradeMachine/tradeUtils.js';
-import { validationCache } from './validationCache.js'; // Use correct cache
+import { validationCache } from "../../cache/validationCache.js";
 
 /**
  * Validates Stepien Rule compliance:

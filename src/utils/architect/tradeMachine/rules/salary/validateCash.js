@@ -1,7 +1,7 @@
 import { getSeasonalCashLimit } from '@/utils/architect/tradeHelpers.js';
 import { getApronStatus } from '@/utils/architect/tradeHelpers.js';
 import { validationFlags } from '@/config/validationFlags.js';
-import { validationCache } from './validationCache.js';
+import { validationCache } from "../../cache/validationCache.js";
 
 export function validateCash(team, tradeCtx = {}) {
   // Check cache first

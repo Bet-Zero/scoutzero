@@ -1,6 +1,6 @@
 import { passesRosterWindow } from '@/utils/architect/rosterUtils.js';
 import { validationFlags } from '@/config/validationFlags.js';
-import { validationCache } from './validationCache.js';
+import { validationCache } from "../../cache/validationCache.js";
 
 /**
  * Validates roster requirements including:

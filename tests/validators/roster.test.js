@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { validateRoster } from '@/utils/architect/tradeMachine/validators/validateRoster.js';
+import { validateRoster } from '@/utils/architect/tradeMachine/rules/roster/rosterLimits.js';
 import { validationFlags } from '@/config/validationFlags.js';
 
 describe('validateRoster', () => {

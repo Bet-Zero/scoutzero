@@ -1,7 +1,7 @@
 import { wouldExceedHardCap } from '@/utils/architect/hardCapUtils.js';
 import { formatCurrency } from '@/utils/architect/tradeHelpers.js';
-import { validationCache } from './validationCache.js'; // Use the correct cache
-import debug from '../debug.js';
+import { validationCache } from "../../cache/validationCache.js";
+import debug from "../../engine/debug.js";
 
 /**
  * Validates hard cap restrictions

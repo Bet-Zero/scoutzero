@@ -8,10 +8,10 @@ import {
   formatCurrency,
 } from '@/utils/architect/tradeHelpers.js';
 import { shouldWarnOnly } from '@/config/validationFlags.js';
-import { getAllowableIncomingMargin } from './salaryMargin.js';
-import { validationCache } from './validationCache.js';
-import { performanceMonitor } from './performanceMonitor.js';
-import debug from '../debug.js';
+import { getAllowableIncomingMargin } from '../../utils/calculations/salaryMargin.js';
+import { validationCache } from "../../cache/validationCache.js";
+import { performanceMonitor } from "../../cache/performanceMonitor.js";
+import debug from "../../engine/debug.js";
 
 /**
  * Validates if a trade satisfies salary matching rules

@@ -1,47 +1,43 @@
 /**
- * Index file for trade validation modules
- * Centralizes exports to make imports cleaner in consumer code
+ * Trade Machine Validation System
+ * Clean, organized validation system for NBA trade rules
  */
 
-// Core validators
-export { validateCash } from './validators/validateCash.js';
-export { validateStepien } from './validators/validateStepien.js';
-export { validateRoster } from './validators/validateRoster.js';
-export { validateHardCap } from './validators/validateHardCap.js';
-export { validateSalaryMatching } from './validators/validateSalaryMatching.js';
-export { validateTradeExceptions } from './validators/validateTradeExceptions.js';
-export { validateFaExceptionUsage } from './validators/validateFaExceptionUsage.js';
-export { validateSecondApronRules } from './validators/validateSecondApronRules.js';
-export { validateSignAndTrade } from './validators/validateSignAndTrade.js';
-export { validateEligibility } from './validators/validateEligibility.js';
+// Core validation engine
+export { validateTrade } from './engine/tradeValidator.js';
+
+// All validation rules organized by domain
+export * from './rules/index.js';
 
 // Utility functions
-export { hasStepienViolation } from './validators/stepienRule.js';
-export {
-  toNum,
-  toSeasonKey,
-  normalizeCaps,
-  getTeamObject,
-  resolvePayroll,
-} from './validators/capUtils.js';
-export {
-  getAllowableIncomingMargin,
-  getIncomingCeilingForTeam,
-} from './validators/salaryMargin.js';
+export * from './utils/index.js';
 
-// Enforcers (rules with enforcement logic)
+// Constants and static data
+export * from './constants/index.js';
+
+// Debug utilities
+export { default as debug } from './engine/debug.js';
+export { default as tradeDebug } from './engine/tradeDebug.js';
+
+// Legacy compatibility - Re-export commonly used functions with original names
+export { validateCash } from './rules/salary/validateCash.js';
+export { validateStepien } from './rules/picks/stepien.js';
+export { validateRoster, enforceRosterWindow } from './rules/roster/rosterLimits.js';
+export { validateHardCap } from './rules/salary/hardCap.js';
+export { validateSalaryMatching } from './rules/salary/salaryMatching.js';
+export { validateTradeExceptions } from './rules/apron/exceptions.js';
+export { validateFaExceptionUsage } from './rules/apron/validateFaExceptionUsage.js';
+export { validateSecondApronRules } from './rules/apron/secondApron.js';
+export { validateSignAndTrade } from './rules/timing/validateSignAndTrade.js';
+export { validateEligibility } from './rules/roster/eligibility.js';
+
+// Enforcement functions from legacy rules directory
 export { enforceConsent } from './rules/enforceConsent.js';
 export { enforceEligibility } from './rules/enforceEligibility.js';
 export { enforceTiming } from './rules/enforceTiming.js';
 export { enforceRosterWindow } from './rules/enforceRosterWindow.js';
 export { enforceSecondApronHandcuffs } from './rules/enforceSecondApronHandcuffs.js';
 
-// Core validator function
-export { validateTrade } from './tradeValidator.js';
-
-// Debug utilities
-export { default as debug } from './tradeDebug.js';
-
-// Constants and matching utilities
-export { computeMatchingValues, getMatchingValue } from './matchingValues.js';
+// Legacy utilities that may still be referenced
+export { computeMatchingValues, getMatchingValue } from './utils/calculations/matchingValues.js';
 export { isMeaningfulProtection } from './tradeUtils.js';

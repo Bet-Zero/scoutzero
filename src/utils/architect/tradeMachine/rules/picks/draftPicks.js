@@ -1,5 +1,5 @@
 import { isMeaningfulProtection } from '@/utils/architect/tradeMachine/tradeUtils.js';
-import { CBA_THRESHOLDS } from '@/utils/architect/tradeMachine/cbaConstants.js';
+import { CBA_THRESHOLDS } from '@/utils/architect/tradeMachine/constants/cbaThresholds.js';
 
 export function validateDraftPicks(team, allTeams) {
   const violations = [];

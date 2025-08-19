@@ -4,7 +4,7 @@
  */
 
 import { validationFlags } from '@/config/validationFlags.js';
-import { CBA_THRESHOLDS } from '@/utils/architect/tradeMachine/cbaConstants.js';
+import { CBA_THRESHOLDS } from '@/utils/architect/tradeMachine/constants/cbaThresholds.js';
 import debug from '../debug.js';
 
 /**

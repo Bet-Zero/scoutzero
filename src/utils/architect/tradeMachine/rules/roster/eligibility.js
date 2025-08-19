@@ -5,7 +5,7 @@
 
 import { validationFlags } from '@/config/validationFlags.js';
 import debug from '../debug.js';
-import { validationCache } from './validationCache.js';
+import { validationCache } from "../../cache/validationCache.js";
 
 /**
  * Validates player eligibility based on re-acquisition restrictions
