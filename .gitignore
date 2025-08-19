@@ -36,6 +36,9 @@ toggleView.cjs
 updateStats.js
 uploadPlayersToFirebase.js
 validatePlayersJson.js
+
+
+# Docs
 GeminiPatchPrompt.md
 repomix-output-TradeMachine.xml
 repomix-output.xmlTradeMachine.xml
@@ -43,4 +46,4 @@ repomix-output-Architect.xml
 repomix-output.xmlArchitect.xml
 patch-temp.patch
 CHAT_CONTEXT.md
-
+atlas-docs/
