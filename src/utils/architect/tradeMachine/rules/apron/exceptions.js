@@ -9,7 +9,7 @@ import {
 } from '@/utils/architect/tradeMachine/tpeUtils.js';
 import { formatCurrency } from '@/utils/architect/tradeHelpers.js';
 import { validationCache } from "../../cache/validationCache.js";
-import debug from '../debug.js';
+import debug from '../../engine/debug.js';
 
 export function validateTradeExceptions(team) {
   const violations = [];
