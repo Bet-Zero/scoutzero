@@ -21,7 +21,8 @@
     "docs:all": "npm run docs:deps && npm run docs:api && npm run docs:map && npm run docs:candidates && npm run docs:rules && npm run docs:mermaid",
     "map:dups": "node scripts/find-duplicates.cjs",
     "map:suggest": "node scripts/suggest-buckets.cjs",
-    "map:all": "npm run map:dups && npm run map:suggest"
+    "map:all": "npm run map:dups && npm run map:suggest",
+    "deps:check": "depcruise src/utils/architect/tradeMachine --config scripts/depcruise.architect.cjs"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.6",
