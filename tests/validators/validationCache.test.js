@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { validationCache } from '../../src/utils/architect/tradeMachine/validators/validationCache';
+import { validationCache } from '../../src/utils/architect/tradeMachine/cache/validationCache';
 
 describe('Validation Cache', () => {
   beforeEach(() => {

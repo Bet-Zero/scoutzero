@@ -6,7 +6,6 @@ import {
   hasConsent,
 } from '@/utils/architect/consentUtils.js';
 import { validationFlags } from '@/config/validationFlags.js';
-import debug from '../debug.js';
 
 export function validateConsent(team, tradeCtx = {}) {
   const violations = [];
@@ -91,8 +90,6 @@ export function enforceConsent(
   const violations = [];
   const enforcement = validationFlags.consent;
 
-  if (debug.enabled) {
-    debug.log(`✋ Trade Consent – ${team.teamName}`, {
       players: (team.sends || []).map((p) => p.name),
     });
   }

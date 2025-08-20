@@ -1,6 +1,6 @@
 import { performanceMonitor } from './validationPerformanceMonitor.js';
-import { validationCache } from './validationCacheService.js';
-import debug from '../debug.js';
+import { validationCache } from '../cache/validationCacheService.js';
+import debug from './debug.js';
 
 export function wrapCommonValidators(validators) {
   const wrapped = {};

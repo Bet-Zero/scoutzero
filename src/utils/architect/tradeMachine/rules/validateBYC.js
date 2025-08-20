@@ -1,5 +1,4 @@
 import { BYC_PERCENT } from '@/utils/architect/cbaConstants.js';
-import { validationCache } from './validationCache.js';
 
 /**
  * Validates Base Year Compensation (BYC) rules:

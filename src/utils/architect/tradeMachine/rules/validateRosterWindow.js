@@ -1,5 +1,4 @@
 import { validationFlags } from '@/config/validationFlags.js';
-import debug from '../debug.js';
 
 const MIN_ROSTER = 14;
 const MAX_ROSTER = 15;
@@ -58,8 +57,6 @@ export function enforceRosterWindow(
   ctx = {},
   { warn = () => {}, reject = () => {} } = {}
 ) {
-  if (debug.enabled) {
-    debug.log(`👥 Roster Window – ${team.teamName}`, {
       currentSize: team.initialRosterCount,
       projectedSize: team.projectedRosterCount,
     });

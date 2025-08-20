@@ -6,17 +6,17 @@ import {
   formatCurrency,
   wouldExceedHardCap,
 } from '@/utils/architect/tradeHelpers.js';
-import { validationCache } from './validators/validationCacheService.js';
-import { performanceMonitor } from './validators/validationPerformanceMonitor.js';
-import { wrapCommonValidators } from './validators/validationDecorator.js';
+import { validationCache } from '../cache/validationCacheService.js';
+import { performanceMonitor } from './validationPerformanceMonitor.js';
+import { wrapCommonValidators } from './validationDecorator.js';
 import debug from './debug.js';
 
-// Import base validators
-import * as baseValidators from './validators/index.js';
-import { computeMatchingValues } from './computeMatchingValues.js';
-import { enforceRosterWindow } from './validators/validateRoster.js';
-import { validateFaExceptionUsage } from './validators/validateFaExceptionUsage.js';
-import { validateAggregation } from './validators/validateAggregation.js';
+// Import base validators from new structure
+import * as baseValidators from '../validators/index.js';
+import { computeMatchingValues } from '../utils/computeMatchingValues.js';
+import { enforceRosterWindow } from '../rules/validateRoster.js';
+import { validateFaExceptionUsage } from '../rules/validateFaExceptionUsage.js';
+import { validateAggregation } from '../rules/validateAggregation.js';
 
 // Create wrapped versions with performance monitoring and caching
 const validators = wrapCommonValidators(baseValidators);

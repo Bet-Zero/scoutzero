@@ -1,5 +1,4 @@
 import { getCapSettings } from '../../../capSettings.js';
-import debug from '../debug.js';
 
 /**
  * Validates that second apron teams cannot aggregate salary from multiple clubs

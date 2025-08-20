@@ -1,6 +1,4 @@
 import { wouldExceedHardCap } from '@/utils/architect/tradeHelpers.js';
-import { validationCache } from './validationCacheService.js';
-import debug from '../debug.js';
 
 /**
  * Validates Sign-and-Trade requirements:
@@ -14,10 +12,6 @@ import debug from '../debug.js';
 export function validateSignAndTrade(team, tradeCtx = {}) {
   // Generate cache key from team and trade context
   const cacheKey = `${team.teamId}-${tradeCtx.tradeDate || ''}-${tradeCtx.season || ''}`;
-  const cached = validationCache.getCachedSignAndTrade(cacheKey);
-  if (cached) {
-    return cached;
-  }
 
   const violations = [];
   const { context = {} } = team;
@@ -53,12 +47,10 @@ export function validateSignAndTrade(team, tradeCtx = {}) {
       message: 'No sign-and-trade players involved',
       details: '',
     };
-    validationCache.cacheSignAndTrade(cacheKey, result);
     return result;
   }
 
   // Debug: Force detection for testing
-  if (debug.enabled || process.env.NODE_ENV === 'test') {
     // For testing, also check if any player has a name containing 'star' and signAndTrade true
     const testSntOut = (team.sends || []).filter(
       (p) =>
@@ -250,7 +242,6 @@ export function validateSignAndTrade(team, tradeCtx = {}) {
   };
 
   // Cache the result
-  validationCache.cacheSignAndTrade(cacheKey, result);
 
   return result;
 }

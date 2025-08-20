@@ -1,7 +1,5 @@
 import { wouldExceedHardCap } from '@/utils/architect/hardCapUtils.js';
 import { formatCurrency } from '@/utils/architect/tradeHelpers.js';
-import { validationCache } from './validationCache.js'; // Use the correct cache
-import debug from '../debug.js';
 
 /**
  * Validates hard cap restrictions
@@ -29,10 +27,6 @@ export function validateHardCap(team, context = {}) {
   const actualFirstApron = firstApron || apron;
 
   // Check cache first
-  const cached = validationCache.getCachedHardCapStatus(team, projectedSalary);
-  if (cached) {
-    return cached;
-  }
 
   // Check if team is explicitly marked as hard capped at first apron
   const isHardCappedFirstApron = team.hardCapped === true;
@@ -42,19 +36,6 @@ export function validateHardCap(team, context = {}) {
 
   // Check if team is above second apron threshold (automatic hard cap)
   const isAboveSecondApron = teamTotalSalary >= secondApron;
-
-  if (debug.enabled) {
-    debug.log(`🎯 Hard Cap Check`, {
-      teamName: team.teamName,
-      teamTotalSalary: formatCurrency(teamTotalSalary),
-      projectedSalary: formatCurrency(projectedSalary),
-      firstApron: formatCurrency(actualFirstApron),
-      secondApron: formatCurrency(secondApron),
-      isHardCappedFirstApron,
-      isHardCappedSecondApron,
-      isAboveSecondApron,
-    });
-  }
 
   // Teams with second apron hard cap triggered cannot exceed second apron
   if (isHardCappedSecondApron && projectedSalary > secondApron) {
@@ -91,7 +72,6 @@ export function validateHardCap(team, context = {}) {
   };
 
   // Cache the result
-  validationCache.cacheHardCapStatus(team, projectedSalary, result);
 
   return result;
 }

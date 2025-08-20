@@ -3,7 +3,6 @@ import {
   passesStepienRule,
 } from '@/utils/architect/stepienUtils.js';
 import { isMeaningfulProtection } from '@/utils/architect/tradeMachine/tradeUtils.js';
-import { validationCache } from './validationCache.js'; // Use correct cache
 
 /**
  * Validates Stepien Rule compliance:
@@ -15,10 +14,6 @@ export function validateStepien(team, tradeCtx = {}) {
   // TEMPORARILY DISABLE INTERNAL CACHING - cache mismatch issue
   // Generate cache key from team and picks data
   // const cacheKey = `${team.teamId}-${tradeCtx.yearKey || ''}-${JSON.stringify(team.outgoingPicks || [])}`;
-  // const cached = validationCache.getCachedStepienValidation(cacheKey);
-  // if (cached) {
-  //   return cached;
-  // }
 
   const violations = [];
   const { picksOut = [], outgoingPicks = [] } = team;
@@ -37,7 +32,6 @@ export function validateStepien(team, tradeCtx = {}) {
       message: 'No picks in trade',
       details: '',
     };
-    // validationCache.cacheStepienValidation(cacheKey, result);
     return result;
   }
 
@@ -118,7 +112,6 @@ export function validateStepien(team, tradeCtx = {}) {
   };
 
   // Cache the result
-  // validationCache.cacheStepienValidation(cacheKey, result);
 
   return result;
 }
