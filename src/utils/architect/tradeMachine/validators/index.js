@@ -31,4 +31,4 @@ export * from './normalizeTradeInput.js';
 
 // Cache and debugging
 export { validationCache } from './validationCache.js';
-export { debug } from '../debug.js';
+export { default as debug } from '../debug.js';
