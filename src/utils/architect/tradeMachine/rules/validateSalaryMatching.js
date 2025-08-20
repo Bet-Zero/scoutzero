@@ -8,8 +8,6 @@ import {
   formatCurrency,
 } from '@/utils/architect/tradeHelpers.js';
 import { shouldWarnOnly } from '@/config/validationFlags.js';
-import { getAllowableIncomingMargin } from './salaryMargin.js';
-import { performanceMonitor } from './performanceMonitor.js';
 
 /**
  * Validates if a trade satisfies salary matching rules
@@ -26,13 +24,8 @@ export function validateSalaryMatching(team, context = {}) {
     };
   }
 
-  const timingKey = performanceMonitor.startTiming('salaryMatching', {
-    teamName: team.teamName || team.team?.name,
-  });
-
   // Check cache first
   const yearKey = context.yearKey || team.context?.yearKey || 2025;
-  }
 
   // Extract salary data from both context and team object (team object takes precedence for tests)
   const salaryOut = team.salaryOut ?? context.salaryOut ?? 0;
@@ -57,16 +50,6 @@ export function validateSalaryMatching(team, context = {}) {
 
   // Use firstApron if apron is not set
   const actualFirstApron = firstApron || apron;
-
-  // Log salary details for debugging
-      teamTotalSalary: formatCurrency(totalSalary),
-      salaryOut: formatCurrency(salaryOut),
-      salaryIn: formatCurrency(salaryIn),
-      salaryCap: formatCurrency(salaryCap),
-      firstApron: formatCurrency(actualFirstApron),
-      secondApron: formatCurrency(secondApron),
-    });
-  }
 
   const violations = [];
 
@@ -101,7 +84,6 @@ export function validateSalaryMatching(team, context = {}) {
       usingTPE: true,
     };
 
-    performanceMonitor.endTiming(timingKey, result);
     return result;
   }
 
@@ -146,14 +128,6 @@ export function validateSalaryMatching(team, context = {}) {
       allowableIncoming = salaryOut * 1.25;
     }
 
-    // Debug logging for the test case
-        salaryOut: formatCurrency(salaryOut),
-        allowableIncoming: formatCurrency(allowableIncoming),
-        salaryIn: formatCurrency(salaryIn),
-        wouldPass: salaryIn <= allowableIncoming,
-      });
-    }
-
     // Check if team exceeds the allowed incoming salary
     if (salaryIn > allowableIncoming) {
       violations.push(
@@ -175,6 +149,5 @@ export function validateSalaryMatching(team, context = {}) {
 
   // Cache the result
 
-  performanceMonitor.endTiming(timingKey, result);
   return result;
 }

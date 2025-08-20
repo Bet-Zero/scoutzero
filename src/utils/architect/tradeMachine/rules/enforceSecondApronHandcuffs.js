@@ -1,2 +1,2 @@
-// This file is deprecated - implementation moved to rules/enforceSecondApronHandcuffs.js
-export { enforceSecondApronHandcuffs } from '@/utils/architect/tradeMachine/rules/enforceSecondApronHandcuffs.js';
+// Re-export from validateSecondApronRules.js for backwards compatibility
+export { enforceSecondApronHandcuffs } from './validateSecondApronRules.js';

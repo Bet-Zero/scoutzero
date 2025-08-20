@@ -3,7 +3,7 @@ import {
   passesStepienRule,
 } from '@/utils/architect/stepienUtils.js';
 import { isFrozenPick } from '@/utils/architect/draftPickUtils.js';
-import { isMeaningfulProtection } from '@/utils/architect/tradeMachine/tradeUtils.js';
+import { isMeaningfulProtection } from '@/utils/architect/tradeMachine/utils/tradeUtils.js';
 import { validatorDebug } from './validatorDebug.js';
 import { TradeTeam, StepienResult, TeamContext } from './types';
 
