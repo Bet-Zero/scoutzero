@@ -1,6 +1,5 @@
 import { passesRosterWindow } from '@/utils/architect/rosterUtils.js';
 import { validationFlags } from '@/config/validationFlags.js';
-import { validationCache } from './validationCache.js';
 
 /**
  * Validates roster requirements including:
@@ -8,13 +7,6 @@ import { validationCache } from './validationCache.js';
  * - Two-way slots (max 3)
  */
 export function validateRoster(team) {
-  // Check cache first - but include validation flags in cache key since they affect the result
-  const cacheKey = `${team.teamId}-${team.projectedRosterCount || 0}-${team.team?.twoWayPlayers?.length || 0}-${validationFlags.rosterEnforcement}-${validationFlags.twoWayRoster}`;
-  const cached = validationCache.getCachedRosterValidation(cacheKey);
-  if (cached) {
-    return cached;
-  }
-
   const violations = [];
   const {
     projectedRosterCount = 0,
@@ -75,9 +67,6 @@ export function validateRoster(team) {
       (standardViolation && validationFlags.rosterEnforcement === 'warn') ||
       (twoWayViolation && validationFlags.twoWayRoster === 'warn'),
   };
-
-  // Cache the result
-  validationCache.cacheRosterValidation(cacheKey, result);
 
   return result;
 }

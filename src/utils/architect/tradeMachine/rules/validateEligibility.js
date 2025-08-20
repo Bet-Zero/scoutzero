@@ -4,8 +4,6 @@
  */
 
 import { validationFlags } from '@/config/validationFlags.js';
-import debug from '../debug.js';
-import { validationCache } from './validationCache.js';
 
 /**
  * Validates player eligibility based on re-acquisition restrictions
@@ -18,10 +16,6 @@ export function validateEligibility(team, tradeCtx = {}) {
   // Check cache first - include callback presence in cache key to avoid pollution
   const hasCallback = typeof tradeCtx.wasTradedAwayWithinOneYear === 'function';
   const cacheKey = `${team.teamId}-${tradeCtx.tradeDate || ''}-${hasCallback ? 'with-callback' : 'no-callback'}`;
-  const cached = validationCache.getCachedEligibility(cacheKey);
-  if (cached) {
-    return cached;
-  }
 
   const violations = [];
   const { asOfDate = new Date().toISOString(), teams = [] } = tradeCtx;
@@ -45,8 +39,6 @@ export function validateEligibility(team, tradeCtx = {}) {
 
   // Check each incoming player for reacquisition restrictions
   incomingPlayers.forEach((player) => {
-    if (debug.enabled) {
-      debug.log(`🔍 Checking player eligibility for ${team.teamName}`, {
         playerName: player.name,
         playerId: player.id,
         teamId: team.teamId,
@@ -61,8 +53,6 @@ export function validateEligibility(team, tradeCtx = {}) {
         team.teamId
       );
 
-      if (debug.enabled) {
-        debug.log(`📞 Callback result for ${player.name}`, {
           playerId: player.id || player.name,
           destTeamId: team.teamId,
           isViolation,
@@ -133,8 +123,6 @@ export function validateEligibility(team, tradeCtx = {}) {
   });
 
   // Use debug logging for complex cases
-  if (debug.enabled && violations.length > 0) {
-    debug.log(`🚫 Eligibility Violations – ${team.teamName}`, {
       players: (team.incomingPlayers || [])
         .filter(
           (p) => p.lastTradedFrom === team.teamId || p.waivedBy === team.teamId
@@ -154,7 +142,6 @@ export function validateEligibility(team, tradeCtx = {}) {
   };
 
   // Cache the result
-  validationCache.cacheEligibility(cacheKey, result);
 
   return result;
 }

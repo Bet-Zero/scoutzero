@@ -2,7 +2,7 @@
  * Performance monitoring for trade validation operations
  */
 
-import { validationCache } from './validationCache.js';
+import { validationCache } from '../cache/validationCache.js';
 
 export class PerformanceMonitor {
   constructor() {

@@ -1,7 +1,5 @@
 import { getApronStatus } from '@/utils/architect/tradeHelpers.js';
-import { isPriorYearTPE } from '@/utils/architect/tradeMachine/tpeUtils.js';
-import debug from '../debug.js';
-import { validationCache } from './validationCacheService.js';
+import { isPriorYearTPE } from '@/utils/architect/tradeMachine/utils/tpeUtils.js';
 
 /**
  * Validates second apron rules for a team
@@ -27,8 +25,6 @@ export function validateSecondApronRules(team, context = {}) {
     };
   }
 
-  if (debug.enabled) {
-    debug.log(`💰 Second Apron Rules – ${team.teamName}`, {
       isSecondApron: isAtOrAboveSecondApron,
       salaryIn,
       salaryOut,

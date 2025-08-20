@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { validateSalaryMatching } from '@/utils/architect/tradeMachine/validators/validateSalaryMatching.js';
-import { validateHardCap } from '@/utils/architect/tradeMachine/validators/validateHardCap.js';
-import { validateTradeExceptions } from '@/utils/architect/tradeMachine/validators/validateTradeExceptions.js';
-import { validationCache } from '@/utils/architect/tradeMachine/validators/validationCache.js';
+import { validateSalaryMatching } from '@/utils/architect/tradeMachine/rules/validateSalaryMatching.js';
+import { validateHardCap } from '@/utils/architect/tradeMachine/rules/validateHardCap.js';
+import { validateTradeExceptions } from '@/utils/architect/tradeMachine/rules/validateTradeExceptions.js';
+import { validationCache } from '@/utils/architect/tradeMachine/cache/validationCache.js';
 
 describe('Validation Caching', () => {
   beforeEach(() => {

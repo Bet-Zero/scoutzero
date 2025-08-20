@@ -1,5 +1,4 @@
 import { validationFlags } from '@/config/validationFlags.js';
-import debug from '../debug.js';
 import {
   isWithinMoratorium,
   daysSince,
@@ -85,8 +84,6 @@ export function enforceTiming(
   const enforcement = validationFlags.timingEnforcement;
   const result = validateTiming(team, ctx);
 
-  if (debug.enabled) {
-    debug.log(`⏰ Timing Rules – ${team.teamName}`, {
       asOfDate: ctx.asOfDate,
       players: (team.sends || []).map((p) => p.name),
     });

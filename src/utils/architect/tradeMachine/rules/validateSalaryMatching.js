@@ -9,9 +9,7 @@ import {
 } from '@/utils/architect/tradeHelpers.js';
 import { shouldWarnOnly } from '@/config/validationFlags.js';
 import { getAllowableIncomingMargin } from './salaryMargin.js';
-import { validationCache } from './validationCache.js';
 import { performanceMonitor } from './performanceMonitor.js';
-import debug from '../debug.js';
 
 /**
  * Validates if a trade satisfies salary matching rules
@@ -34,10 +32,6 @@ export function validateSalaryMatching(team, context = {}) {
 
   // Check cache first
   const yearKey = context.yearKey || team.context?.yearKey || 2025;
-  const cached = validationCache.getCachedSalaryMatch(team, yearKey);
-  if (cached) {
-    performanceMonitor.endTiming(timingKey, { ...cached, fromCache: true });
-    return cached;
   }
 
   // Extract salary data from both context and team object (team object takes precedence for tests)
@@ -65,8 +59,6 @@ export function validateSalaryMatching(team, context = {}) {
   const actualFirstApron = firstApron || apron;
 
   // Log salary details for debugging
-  if (debug.enabled) {
-    debug.log(`💰 Salary Matching – ${teamName}`, {
       teamTotalSalary: formatCurrency(totalSalary),
       salaryOut: formatCurrency(salaryOut),
       salaryIn: formatCurrency(salaryIn),
@@ -109,7 +101,6 @@ export function validateSalaryMatching(team, context = {}) {
       usingTPE: true,
     };
 
-    validationCache.cacheSalaryMatch(team, yearKey, result);
     performanceMonitor.endTiming(timingKey, result);
     return result;
   }
@@ -156,8 +147,6 @@ export function validateSalaryMatching(team, context = {}) {
     }
 
     // Debug logging for the test case
-    if (debug.enabled) {
-      debug.log('💰 Over-cap matching calculation', {
         salaryOut: formatCurrency(salaryOut),
         allowableIncoming: formatCurrency(allowableIncoming),
         salaryIn: formatCurrency(salaryIn),
@@ -185,7 +174,6 @@ export function validateSalaryMatching(team, context = {}) {
   };
 
   // Cache the result
-  validationCache.cacheSalaryMatch(team, yearKey, result);
 
   performanceMonitor.endTiming(timingKey, result);
   return result;

@@ -1,4 +1,4 @@
-import debug from '@/utils/architect/tradeMachine/tradeDebug.js';
+import debug from './tradeDebug.js';
 import { ValidationResult } from './types';
 
 interface ValidationLog {
