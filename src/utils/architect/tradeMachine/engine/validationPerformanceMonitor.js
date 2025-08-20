@@ -1,5 +1,5 @@
-import debug from '../debug.js';
-import { validationCache } from './validationCache.js';
+import debug from './debug.js';
+import { validationCache } from '../cache/validationCache.js';
 
 /**
  * Monitors and reports on validation performance metrics
