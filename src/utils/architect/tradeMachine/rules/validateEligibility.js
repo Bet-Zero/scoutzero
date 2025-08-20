@@ -39,25 +39,12 @@ export function validateEligibility(team, tradeCtx = {}) {
 
   // Check each incoming player for reacquisition restrictions
   incomingPlayers.forEach((player) => {
-        playerName: player.name,
-        playerId: player.id,
-        teamId: team.teamId,
-        hasCallback: typeof tradeCtx.wasTradedAwayWithinOneYear === 'function',
-      });
-    }
-
     // Method 1: Use callback function if provided (for test cases)
     if (typeof tradeCtx.wasTradedAwayWithinOneYear === 'function') {
       const isViolation = tradeCtx.wasTradedAwayWithinOneYear(
         player.id || player.name,
         team.teamId
       );
-
-          playerId: player.id || player.name,
-          destTeamId: team.teamId,
-          isViolation,
-        });
-      }
 
       if (isViolation) {
         violations.push(
@@ -121,16 +108,6 @@ export function validateEligibility(team, tradeCtx = {}) {
       }
     }
   });
-
-  // Use debug logging for complex cases
-      players: (team.incomingPlayers || [])
-        .filter(
-          (p) => p.lastTradedFrom === team.teamId || p.waivedBy === team.teamId
-        )
-        .map((p) => p.name),
-      violations,
-    });
-  }
 
   const result = {
     passed: violations.length === 0,

@@ -13,10 +13,6 @@ export function enforceEligibility(
   const { incomingPlayers = [] } = team;
   const violations = [];
 
-      players: incomingPlayers.map((p) => p.name),
-    });
-  }
-
   // Check re-acquisition restrictions
   incomingPlayers.forEach((player) => {
     if (player.lastTradedFrom === team.teamId) {

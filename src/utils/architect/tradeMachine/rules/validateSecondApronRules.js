@@ -25,13 +25,6 @@ export function validateSecondApronRules(team, context = {}) {
     };
   }
 
-      isSecondApron: isAtOrAboveSecondApron,
-      salaryIn,
-      salaryOut,
-      totalSalary,
-    });
-  }
-
   // 1. Cannot receive more salary than sent out (100% matching)
   if (salaryIn > salaryOut) {
     violations.push('Second apron team cannot receive more salary than sent');

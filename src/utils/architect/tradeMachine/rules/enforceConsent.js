@@ -8,10 +8,6 @@ export function enforceConsent(
   const { outgoingPlayers = [], incomingPlayers = [] } = team;
   const enforcement = validationFlags.consent || 'error';
 
-      players: outgoingPlayers.map((p) => p.name),
-    });
-  }
-
   const violations = [];
 
   // Check outgoing players for consent issues
