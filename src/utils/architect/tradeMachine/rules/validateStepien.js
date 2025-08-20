@@ -2,7 +2,7 @@ import {
   buildFirstRoundCalendar,
   passesStepienRule,
 } from '@/utils/architect/stepienUtils.js';
-import { isMeaningfulProtection } from '@/utils/architect/tradeMachine/tradeUtils.js';
+import { isMeaningfulProtection } from '@/utils/architect/tradeMachine/utils/tradeUtils.js';
 
 /**
  * Validates Stepien Rule compliance:
