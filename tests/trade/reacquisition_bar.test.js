@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { enforceEligibility } from '@/utils/architect/tradeMachine/validators/index.js';
+import { enforceEligibility } from '@/utils/architect/tradeMachine/rules/enforceEligibility.js';
 import { validationFlags } from '@/config/validationFlags.js';
 
 describe('re-acquisition bar', () => {
