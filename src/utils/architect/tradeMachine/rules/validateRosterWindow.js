@@ -57,11 +57,6 @@ export function enforceRosterWindow(
   ctx = {},
   { warn = () => {}, reject = () => {} } = {}
 ) {
-      currentSize: team.initialRosterCount,
-      projectedSize: team.projectedRosterCount,
-    });
-  }
-
   // Get validation result
   const result = validateRosterWindow(team, ctx);
   const violations = result.violations;

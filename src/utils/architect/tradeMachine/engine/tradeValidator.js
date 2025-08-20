@@ -22,8 +22,8 @@ import { enforceConsent } from '../rules/enforceConsent.js';
 import { enforceEligibility } from '../rules/enforceEligibility.js';
 import { enforceTiming } from '../rules/enforceTiming.js';
 import { enforceSecondApronHandcuffs } from '../rules/enforceSecondApronHandcuffs.js';
-import { computeMatchingValues } from '../utils/computeMatchingValues.js';
-import { enforceRosterWindow } from '../rules/validateRoster.js';
+import { computeMatchingValues } from '../utils/matchingValues.js';
+import { enforceRosterWindow } from '../rules/enforceRosterWindow.js';
 import { validateFaExceptionUsage } from '../rules/validateFaExceptionUsage.js';
 import { validateAggregation } from '../rules/validateAggregation.js';
 

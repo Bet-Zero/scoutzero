@@ -90,10 +90,6 @@ export function enforceConsent(
   const violations = [];
   const enforcement = validationFlags.consent;
 
-      players: (team.sends || []).map((p) => p.name),
-    });
-  }
-
   (team.sends || []).forEach((player) => {
     if (requiresConsent(player, team.team?.id) && !hasConsent(player)) {
       const msg = `${player.name || 'Player'} must consent to trade`;

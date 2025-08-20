@@ -84,11 +84,6 @@ export function enforceTiming(
   const enforcement = validationFlags.timingEnforcement;
   const result = validateTiming(team, ctx);
 
-      asOfDate: ctx.asOfDate,
-      players: (team.sends || []).map((p) => p.name),
-    });
-  }
-
   // Handle enforcement based on validation flag
   result.violations.forEach((msg) => {
     if (enforcement === 'warn') {
