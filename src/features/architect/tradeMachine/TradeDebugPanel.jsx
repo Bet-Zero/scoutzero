@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { tradeDebug } from '@/utils/architect/tradeMachine/tradeValidator.js';
+import tradeDebug from '@/utils/architect/tradeMachine/tradeDebug.js';
 
 const TradeDebugPanel = () => {
   const [showSalary, setShowSalary] = useState(true);
