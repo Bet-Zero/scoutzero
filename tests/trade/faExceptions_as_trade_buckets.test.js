@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateFaExceptionUsage } from '@/utils/architect/tradeMachine/validators/index.js';
+import { validateFaExceptionUsage } from '@/utils/architect/tradeMachine/rules/validateFaExceptionUsage.js';
 import { validationFlags } from '@/config/validationFlags.js';
 
 const baseTeam = {

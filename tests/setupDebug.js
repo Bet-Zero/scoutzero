@@ -1,5 +1,5 @@
 import { afterEach } from 'vitest';
-import debug from '@/utils/architect/tradeMachine/tradeDebug.js';
+import debug from '@/utils/architect/tradeMachine/engine/tradeDebug.js';
 
 debug.enabled = true;
 
