@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { validateTrade } from '@/utils/architect/tradeMachine/tradeValidator';
+import { validateTrade } from '@/utils/architect/tradeMachine/engine/tradeValidator';
 import { loadTeamCapSheet } from '@/utils/architect/firebaseTeamPlanHelpers';
 import { getSalaryForYear, areSamePick } from '@/utils/architect/tradeHelpers';
 import { TeamMap } from '@/constants/teamList';

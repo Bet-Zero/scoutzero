@@ -1,5 +1,6 @@
 // tradeValidator.debug.js - Complete File Replacement
-import { validateTrade, tradeDebug } from './tradeValidator.js';
+import { validateTrade } from './tradeValidator.js';
+import tradeDebug from './tradeDebug.js';
 
 const debug = tradeDebug;
 debug.logs = [];
