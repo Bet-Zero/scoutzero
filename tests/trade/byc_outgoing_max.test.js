@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeMatchingValues } from '@/utils/architect/tradeMachine/validators/index.js';
+import { computeMatchingValues } from '@/utils/architect/tradeMachine/utils/matchingValues.js';
 
 const yearKey = 2025;
 
