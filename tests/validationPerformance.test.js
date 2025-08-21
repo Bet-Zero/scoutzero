@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { validateTrade } from '@/utils/architect/tradeMachine/engine/tradeValidator.js';
-import { validationCache } from '@/utils/architect/tradeMachine/cache/validationCache.js';
+import { validationCache } from '@/utils/architect/tradeMachine/cache/validationCacheService.js';
 import { performanceMonitor } from '@/utils/architect/tradeMachine/engine/validationPerformanceMonitor.js';
 import { cacheInvalidationManager } from '@/utils/architect/tradeMachine/cache/cacheInvalidationManager.js';
 import { debugMonitor } from '@/utils/architect/tradeMachine/engine/validationDebugMonitor.js';
