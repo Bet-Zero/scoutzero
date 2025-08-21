@@ -850,10 +850,20 @@ export function validateTrade({
         // Normal validation
         rules = {
           signAndTrade: validators.validateSignAndTrade
-            ? validators.validateSignAndTrade(team, {
+            ? validators.validateSignAndTrade({
+                ...team,
+                teamTotalSalary: totalSalary,
+                salaryIn,
+                salaryOut,
+                incomingPlayers: getIncomingPlayersDataForTeam(
+                  normalizedTeams,
+                  teamIndex
+                ),
+              }, {
                 ...enhancedCtx,
                 teams: normalizedTeams,
                 offseason: tradeCtx.offseason,
+                capSettings,
               })
             : { passed: true, violations: [] },
           hardCap: validators.validateHardCap
@@ -898,6 +908,15 @@ export function validateTrade({
           consent: validators.validateConsent
             ? validators.validateConsent(team, enhancedCtx)
             : { passed: true, violations: [] },
+          cash: validators.validateCash
+            ? validators.validateCash({
+                ...team,
+                teamTotalSalary: totalSalary,
+                cashSent: team.cashSent || 0,
+                cashReceived: team.cashReceived || 0,
+                context: { yearKey: currentYear, capSettings },
+              }, enhancedCtx)
+            : { passed: true, violations: [] },
         };
 
         rules.eligibility = validators.validateEligibility
@@ -933,6 +952,7 @@ export function validateTrade({
       const ruleOrder = [
         'hardCap',
         'stepienRule',
+        'cash',
         'secondApron',
         'eligibility',
         'consent',

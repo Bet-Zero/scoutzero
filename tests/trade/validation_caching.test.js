@@ -1,14 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { validateTrade } from '@/utils/architect/tradeMachine/engine/tradeValidator.js';
-import { validationCache } from '@/utils/architect/tradeMachine/cache/validationCache.js';
+import { validationCache } from '@/utils/architect/tradeMachine/cache/validationCacheService.js';
 
 describe('Validation Caching', () => {
-  beforeEach(() => {
-    validationCache.clear();
-  });
-
-  describe('Salary Matching Cache', () => {
-    const makeTrade = (params = {}) => ({
+  const makeTrade = (params = {}) => ({
       teams: [
         {
           team: {
@@ -42,6 +37,11 @@ describe('Validation Caching', () => {
       ...params,
     });
 
+  beforeEach(() => {
+    validationCache.clear();
+  });
+
+  describe('Salary Matching Cache', () => {
     it('caches and retrieves salary matching results', () => {
       const trade = makeTrade();
 
