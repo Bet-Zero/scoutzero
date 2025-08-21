@@ -1,81 +1,76 @@
-export function getApronStatus(teamSalary, capSettings) {
-  if (!capSettings) return null;
+import { getApronStatus } from '@/utils/architect/tradeHelpers.js';
 
-  const { salaryCap, secondApron } = capSettings;
-
-  if (teamSalary >= secondApron) {
-    return 'SecondApron';
-  } else if (teamSalary >= salaryCap) {
-    return 'OverCap';
-  }
-  return 'UnderCap';
-}
-
-export function getAllowableIncomingMargin(team, secondApron) {
-  const { teamTotalSalary = 0 } = team;
-  const isAtOrAboveSecondApron = teamTotalSalary >= secondApron;
-
-  // Second apron teams must match 100%
-  if (isAtOrAboveSecondApron) {
-    return 0;
-  }
-
-  // Teams under the cap have no restrictions
-  if (team.isUnderCap) {
-    return Infinity;
-  }
-
-  // Standard salary matching rules: 125% + $100k for teams under tax
-  // 110% + $100k for tax teams
-  const marginPercent = team.isTaxTeam ? 1.1 : 1.25;
-  const baseMargin = 100000;
-
-  return baseMargin + teamTotalSalary * (marginPercent - 1);
-}
-
+/**
+ * Computes final matching values for trade validation accounting for:
+ * - Base Year Compensation (BYC)
+ * - Trade kickers
+ * - Poison pill averaging
+ */
 export function computeMatchingValues({ teams, yearKey }) {
-  if (!teams || !yearKey) return;
-
   teams.forEach((team) => {
-    if (!team.sends) return;
+    (team.sends || []).forEach((player) => {
+      const current =
+        player.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0;
+      const newSalary = player.newSalary || 0;
+      const previous = player.previousSalary || 0;
+      const kicker = player.tradeKicker || 0;
+      const remainingYears = player.remainingGuaranteedYears || 0;
 
-    team.sends.forEach((player) => {
-      // Base outgoing value is current salary
-      let outgoingValue = player.currentSalary;
-
-      // Handle BYC calculation
-      if (player.bycApplies) {
-        const bycValue = player.newSalary * 0.5;
-        outgoingValue = Math.max(player.previousSalary || 0, bycValue);
+      // Calculate outgoing matching value
+      if (player.isBYC) {
+        // BYC outgoing = max(50% of new salary, prior salary)
+        const bycValue = Math.max(newSalary * 0.5, previous);
+        player.matchOutgoing = bycValue;
+      } else {
+        player.matchOutgoing = current;
       }
 
-      // Base incoming value starts with current salary
-      let incomingValue = player.currentSalary;
-
-      // Add prorated trade kicker if applicable
-      if (player.tradeKicker && player.tradeKicker.percent > 0) {
-        const maxKicker =
-          player.remainingGuaranteedOnCurrentContract *
-          (player.tradeKicker.percent / 100);
-        const kickerAmount = player.tradeKicker.waived
-          ? maxKicker * (1 - player.tradeKicker.waivedPercent / 100)
-          : maxKicker;
-        incomingValue += kickerAmount;
+      // Calculate incoming matching value with trade kicker
+      if (kicker > 0 && remainingYears > 0) {
+        // Prorate kicker based on remaining guaranteed years
+        const kickerAmount = (current * kicker) / remainingYears;
+        player.matchIncoming = current + kickerAmount;
+      } else {
+        player.matchIncoming = current;
       }
 
-      // For poison pill contracts, use average of current and extension years
-      if (player.extensionYears && player.extensionYears.length > 0) {
-        const extensionTotal = player.extensionYears.reduce(
-          (sum, year) => sum + year.salary,
+      // Handle poison pill contracts (salary spikes)
+      if (player.extensionYears?.length) {
+        const futureTotal = player.extensionYears.reduce(
+          (sum, yr) => sum + yr.salary,
           0
         );
-        incomingValue =
-          (player.currentSalary + extensionTotal) /
-          (1 + player.extensionYears.length);
+        const averageSalary =
+          (current + futureTotal) / (1 + player.extensionYears.length);
+        player.matchIncoming = Math.max(player.matchIncoming, averageSalary);
       }
-
-      player.matchOutgoing = outgoingValue;
-      player.matchIncoming = incomingValue;
     });
   });
+}
+
+export function getIncomingCeilingForTeam(team) {
+  if (!team || !team.sends) return 0;
+
+  const outgoingTotal = team.sends.reduce(
+    (sum, p) => sum + (p.matchOutgoing || 0),
+    0
+  );
+
+  // Teams below cap can take back any amount
+  if (!team.team?.isOverCap) {
+    return Number.MAX_SAFE_INTEGER;
+  }
+
+  // Second apron teams limited to 100%
+  if (team.team?.isOverSecondApron) {
+    return outgoingTotal;
+  }
+
+  // First apron teams limited to 110%
+  if (team.team?.isOverFirstApron) {
+    return outgoingTotal * 1.1;
+  }
+
+  // Standard over-cap rules: 125% + 100k
+  return outgoingTotal * 1.25 + 100000;
 }

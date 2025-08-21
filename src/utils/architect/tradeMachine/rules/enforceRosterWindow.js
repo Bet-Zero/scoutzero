@@ -1,7 +1,3 @@
-import {
-  passesRosterWindow,
-  getTwoWayCount,
-} from '@/utils/architect/rosterUtils.js';
 import { validationFlags } from '@/config/validationFlags.js';
 
 const MIN_ROSTER = 14;
@@ -9,34 +5,50 @@ const MAX_ROSTER = 15;
 const MAX_TWO_WAY = 3;
 
 export function enforceRosterWindow(
-  teamCtx,
-  tradeCtx = {},
+  team,
+  context = {},
   { warn = () => {}, reject = () => {} } = {}
 ) {
-  const check = passesRosterWindow(teamCtx.postTradeTeam, {
-    require14to15:
-      !tradeCtx?.graceMode && validationFlags.rosterEnforcement !== 'off',
+  const { enforcement = 'error', gracePeriod = false } = context;
+  const violations = [];
+
+  // Calculate post-trade roster sizes
+  const standardRosterSize =
+    (team.standardContracts || 0) +
+    team.incomingPlayers.filter((p) => !p.isTwoWay).length -
+    team.outgoingPlayers.filter((p) => !p.isTwoWay).length;
+
+  const twoWayRosterSize =
+    (team.twoWayContracts || 0) +
+    team.incomingPlayers.filter((p) => p.isTwoWay).length -
+    team.outgoingPlayers.filter((p) => p.isTwoWay).length;
+
+  // Check standard roster size (14-15 players)
+  if (!gracePeriod && (standardRosterSize < 14 || standardRosterSize > 15)) {
+    violations.push(
+      `Post-trade roster size (${standardRosterSize}) must be between 14-15 players`
+    );
+  }
+
+  // Check roster minimum during grace period (13 players)
+  if (gracePeriod && standardRosterSize < 13) {
+    violations.push(`Roster cannot go below 13 players during grace period`);
+  }
+
+  // Check two-way roster limit
+  if (twoWayRosterSize > 2) {
+    violations.push(
+      `Cannot exceed 2 two-way players (would have ${twoWayRosterSize})`
+    );
+  }
+
+  violations.forEach((violation) => {
+    if (enforcement === 'warn') {
+      warn(violation);
+    } else {
+      reject(violation);
+    }
   });
 
-  // Handle standard roster size violations
-  if (!check.ok && check.reasons.some((r) => r.includes('Standard'))) {
-    const msg = `Standard roster must be ${MIN_ROSTER}–${MAX_ROSTER} players`;
-    if (validationFlags.rosterEnforcement === 'error') {
-      reject(msg);
-    } else if (validationFlags.rosterEnforcement === 'warn') {
-      warn(msg);
-    }
-  }
-
-  // Handle two-way slot violations
-  if (check.twoWays > MAX_TWO_WAY) {
-    const msg = `Two-way slots exceeded (${check.twoWays}/${MAX_TWO_WAY})`;
-    if (validationFlags.twoWayRoster === 'error') {
-      reject(msg);
-    } else if (validationFlags.twoWayRoster === 'warn') {
-      warn(msg);
-    }
-  }
-
-  return check.reasons;
+  return violations;
 }
