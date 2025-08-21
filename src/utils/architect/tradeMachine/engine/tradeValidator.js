@@ -203,6 +203,18 @@ export function validateTrade({
 
     const isTeamLegal = violations.length === 0;
 
+    // Extract salary matching calculations for UI display
+    const salaryMatchingCalcs = salaryMatchingResult || {};
+    const calculations = {
+      salaryIn: team.salaryIn || 0,
+      salaryOut: team.salaryOut || 0,
+      salaryMatching: {
+        allowedIncoming: salaryMatchingCalcs.allowableIncoming || 0,
+        margin: (salaryMatchingCalcs.allowableIncoming || 0) - (team.salaryOut || 0),
+        difference: (team.salaryIn || 0) - (team.salaryOut || 0),
+      }
+    };
+
     return {
       teamId,
       teamName,
@@ -212,6 +224,7 @@ export function validateTrade({
       rules: allRules,
       salaryOut: team.salaryOut || 0,
       salaryIn: team.salaryIn || 0,
+      calculations,
       totalSalary: team.team?.teamTotalSalary || team.team?.totalSalary || 0,
       projectedSalary: team.projectedSalary || 0,
       capRoom: Math.max(0, (context.capProjections?.salaryCap || 141000000) - (team.projectedSalary || 0)),
