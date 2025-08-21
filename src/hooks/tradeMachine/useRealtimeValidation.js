@@ -54,22 +54,10 @@ export function useRealtimeValidation(teams, capProjections, currentYear, forceT
           hardCapped: t.team.hardCapped || false,
         }));
 
-        console.log('🔍 About to validate with teams:', formattedTeams.map(t => ({ 
-          teamId: t.teamId, 
-          teamName: t.team.name || t.team.nickname,
-          teamProps: Object.keys(t.team)
-        })));
-
         const validation = validateTrade({
           teams: formattedTeams,
           capProjections: capData,
           currentYear: year,
-        });
-
-        console.log('✅ Validation returned:', {
-          legal: validation.legal,
-          teamResultsCount: validation.teamResults?.length,
-          teamIds: validation.teamResults?.map(tr => tr.teamId)
         });
 
         setValidationResult(validation);
@@ -150,9 +138,6 @@ export function useRealtimeValidation(teams, capProjections, currentYear, forceT
 
   // Get status for a specific team
   const getTeamStatus = useCallback((teamId) => {
-    const hasTeamData = normalizedResult.perTeam[teamId];
-    console.log(`🎯 getTeamStatus(${teamId}): ${hasTeamData ? 'FOUND' : 'NOT FOUND'} - perTeam keys: [${Object.keys(normalizedResult.perTeam).join(', ')}]`);
-    
     if (!teamId || !normalizedResult.perTeam[teamId]) {
       return { status: 'unknown', icon: '❓', color: 'text-gray-400' };
     }
