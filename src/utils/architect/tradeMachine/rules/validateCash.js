@@ -19,7 +19,7 @@ export function validateCash(team, tradeCtx = {}) {
   // Second apron teams cannot send or receive cash
   if (getApronStatus(teamTotalSalary, capSettings).includes('2nd Apron')) {
     if (cashSent > 0 || cashReceived > 0) {
-      violations.push('Second apron teams cannot send or receive cash');
+      violations.push('Second apron team cannot include cash in trades');
     }
   }
 

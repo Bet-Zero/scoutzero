@@ -908,6 +908,15 @@ export function validateTrade({
           consent: validators.validateConsent
             ? validators.validateConsent(team, enhancedCtx)
             : { passed: true, violations: [] },
+          cash: validators.validateCash
+            ? validators.validateCash({
+                ...team,
+                teamTotalSalary: totalSalary,
+                cashSent: team.cashSent || 0,
+                cashReceived: team.cashReceived || 0,
+                context: { yearKey: currentYear, capSettings },
+              }, enhancedCtx)
+            : { passed: true, violations: [] },
         };
 
         rules.eligibility = validators.validateEligibility
@@ -943,6 +952,7 @@ export function validateTrade({
       const ruleOrder = [
         'hardCap',
         'stepienRule',
+        'cash',
         'secondApron',
         'eligibility',
         'consent',
