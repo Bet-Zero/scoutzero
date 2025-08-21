@@ -37,6 +37,7 @@ const TradeTeamCard = ({
   onSelectTeam,
   onRemove,
   onApplyTradeException,
+  validation,
 }) => {
   const [activeTab, setActiveTab] = useState('players');
   const [editingTeam, setEditingTeam] = useState(false);
@@ -193,6 +194,24 @@ const TradeTeamCard = ({
             }}
           />
         </div>
+
+        {validation && (
+          <span
+            className={`text-xs mr-6 ${
+              validation.passed
+                ? 'text-green-400'
+                : validation.violations?.length
+                  ? 'text-red-400'
+                  : 'text-yellow-400'
+            }`}
+          >
+            {validation.passed
+              ? '✔'
+              : validation.violations?.length
+                ? '✖'
+                : '!'}
+          </span>
+        )}
 
         {onRemove && (
           <button

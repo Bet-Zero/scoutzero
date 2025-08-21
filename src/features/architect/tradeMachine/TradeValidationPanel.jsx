@@ -78,7 +78,7 @@ const TradeValidationPanel = ({ result }) => {
   const [expanded, setExpanded] = React.useState(false);
   const [detailsOpen, setDetailsOpen] = React.useState({});
   if (!result) return null;
-  const { teamResults = [] } = result;
+  const teamResults = result.details?.teamResults || [];
 
   const handleToggleDetails = (teamIdx, ruleIdx) => {
     setDetailsOpen((prev) => ({

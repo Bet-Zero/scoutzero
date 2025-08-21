@@ -84,7 +84,6 @@ const TradeEditor = ({
           <button
             onClick={() => {
               handleValidate();
-              setPreviewOpen(true);
             }}
             className="bg-blue-600 hover:bg-blue-700 text-sm font-medium px-3 py-1.5 rounded"
           >
@@ -128,6 +127,7 @@ const TradeEditor = ({
               yearKey={yearKey}
               otherTeams={otherTeams}
               playersMap={playersMap}
+              validation={result?.perTeam?.[t.team?.id]}
               onSetPlayerTrade={(p, action, dest) =>
                 setPlayerTrade(idx, p, action, dest)
               }
@@ -153,7 +153,8 @@ const TradeEditor = ({
               onApplyTrade(tradeData);
             }
           }}
-          className="bg-green-600 hover:bg-green-700 text-sm font-medium px-3 py-1.5 rounded"
+          disabled={result && !result.passed && !forceTrade}
+          className="bg-green-600 hover:bg-green-700 text-sm font-medium px-3 py-1.5 rounded disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Apply Trade
         </button>
@@ -172,6 +173,7 @@ const TradeEditor = ({
         teams={teams}
         result={result}
         yearKey={yearKey}
+        forceTrade={forceTrade}
       />
     </div>
   );

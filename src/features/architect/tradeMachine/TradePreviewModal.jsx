@@ -3,7 +3,7 @@ import { X } from 'lucide-react';
 import useImageDownload from '@/hooks/useImageDownload';
 import TradeExportCapture from './TradeExportCapture';
 
-const TradePreviewModal = ({ open, onClose, teams = [], result, yearKey }) => {
+const TradePreviewModal = ({ open, onClose, teams = [], result, yearKey, forceTrade = false }) => {
   if (!open) return null;
 
   const exportRef = useRef(null);
@@ -74,7 +74,8 @@ const TradePreviewModal = ({ open, onClose, teams = [], result, yearKey }) => {
             <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-30">
               <button
                 onClick={handleDownload}
-                className="bg-neutral-200 text-black text-lg font-semibold px-4 py-1.5 rounded shadow-lg hover:bg-neutral-300 transition"
+                disabled={result && !result.passed && !forceTrade}
+                className="bg-neutral-200 text-black text-lg font-semibold px-4 py-1.5 rounded shadow-lg hover:bg-neutral-300 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Download
               </button>

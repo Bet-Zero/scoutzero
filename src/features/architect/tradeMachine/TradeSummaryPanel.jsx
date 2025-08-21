@@ -29,10 +29,9 @@ function TradeSummaryPanel({
 }) {
   if (!result) return null;
 
-  // Top status banner text
   const topStatus = forceTrade
     ? '⚠️ Trade Forced – Not CBA Legal'
-    : result.legal
+    : result.passed
       ? '✅ Trade is CBA Legal'
       : '❌ Trade is NOT CBA Legal';
 
@@ -41,7 +40,7 @@ function TradeSummaryPanel({
       {/* Top Status Message */}
       <div>
         <strong className="text-base">{topStatus}</strong>
-        {!result.legal && !forceTrade && (
+        {!result.passed && !forceTrade && (
           <div className="text-xs text-white/60 mt-1">
             Fix the issues below or toggle Force Trade to proceed (for sandbox
             testing).
@@ -50,13 +49,13 @@ function TradeSummaryPanel({
       </div>
 
       {/* Rule Explanations (surface-level) */}
-      {showRuleExplanations && result?.failures?.length > 0 && (
+      {showRuleExplanations && result?.violations?.length > 0 && (
         <div className="bg-[#121212] border border-red-500/30 rounded p-3">
           <div className="font-semibold mb-2">Why it fails</div>
           <ul className="list-disc list-inside space-y-1">
-            {result.failures.map((f, idx) => (
+            {result.violations.map((msg, idx) => (
               <li key={idx} className="text-red-300">
-                {f.message || f.reason || String(f)}
+                {msg}
               </li>
             ))}
           </ul>
@@ -65,10 +64,10 @@ function TradeSummaryPanel({
 
       {/* Team Summaries — revamped to cards with logo/color + rows */}
       <div className="grid md:grid-cols-2 gap-4">
-        {result.summaryByTeamIndex?.map((t, i) => {
+        {result.details?.summaryByTeamIndex?.map((t, i) => {
           if (!t) return null;
 
-          const teamResult = result.teamResults?.[i];
+          const teamResult = result.details?.teamResults?.[i];
           const isIllegal = teamResult ? !teamResult.legal : false;
 
           const teamMeta =

@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { validateTrade } from '@/utils/architect/tradeMachine/engine/tradeValidator';
 import { loadTeamCapSheet } from '@/utils/architect/firebaseTeamPlanHelpers';
 import { getSalaryForYear, areSamePick } from '@/utils/architect/tradeHelpers';
 import { TeamMap } from '@/constants/teamList';
+import { useTradeValidation } from './useTradeValidation.js';
 
 /* ============================
    Helpers: numeric + payroll + season keys
@@ -141,12 +141,11 @@ export const useTradeMachine = (
 ) => {
   // Main state
   const [teams, setTeams] = useState([]);
-  const [result, setResult] = useState(null);
   const [forceTrade, setForceTrade] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  // Use the selected season end-year everywhere (no hardcoding)
   const yearKey = currentYear;
+  const { result, revalidate } = useTradeValidation(teams, capProjections, yearKey);
 
   // Memoized calculations
   const incomingAssets = useMemo(() => {
@@ -379,68 +378,9 @@ export const useTradeMachine = (
   // Trade validation and execution
   const handleValidate = useCallback(() => {
     if (teams.filter((t) => t.team).length < 2) return;
-
-    // (Optional) last-second safety net: if any team is missing payroll, patch it
-    const patchedTeams = teams.map((t) => {
-      if (!t.team) return t;
-      if (
-        !Number.isFinite(t.team.teamTotalSalary) ||
-        t.team.teamTotalSalary === 0
-      ) {
-        const baseline = payrollForYearFromCapSheet(t.team, yearKey);
-        const dead = deadMoneyForYear(t.team, yearKey);
-        return {
-          ...t,
-          team: {
-            ...t.team,
-            teamTotalSalary: baseline + dead,
-            projectedSalary: baseline + dead,
-          },
-        };
-      }
-      return t;
-    });
-
-    // LOG C) Right before validateTrade(...) in handleValidate()
-    console.log(
-      '[validate -> teams payroll]',
-      teams.map(
-        (t) =>
-          t.team && {
-            team: t.team.nickname || t.team.name || t.team.id,
-            teamTotalSalary: t.team.teamTotalSalary,
-            projectedSalary: t.team.projectedSalary,
-          }
-      )
-    );
-    const validation = validateTrade({
-      teams: patchedTeams
-        .filter((t) => t.team)
-        .map((t) => ({
-          team: t.team,
-          sends: t.sends,
-          picksOut: t.picksOut,
-          hardCapped: t.team.hardCapped,
-        })),
-      capProjections,
-      currentYear: yearKey,
-    });
-
-    setResult({
-      ...validation,
-      legal: forceTrade ? true : validation.overallLegal,
-    });
+    revalidate();
     setPreviewOpen(true);
-    console.log(
-      '[after validate]',
-      validation.teamResults.map((tr) => ({
-        team: tr.team?.nickname || tr.team?.name || tr.team?.id,
-        pre: tr.preTradeStatus?.projectedSalary,
-        post: tr.postTradeStatus?.projectedSalary,
-        apron: tr.postTradeStatus?.isAtOrAboveSecondApron,
-      }))
-    );
-  }, [teams, capProjections, yearKey, forceTrade]);
+  }, [teams, revalidate]);
 
   const exportCurrentTrade = useCallback(() => {
     return teams
@@ -461,7 +401,6 @@ export const useTradeMachine = (
 
   const resetTrade = useCallback(() => {
     setTeams((prev) => prev.map((t) => ({ ...t, sends: [], picksOut: [] })));
-    setResult(null);
     setForceTrade(false);
   }, []);
 
