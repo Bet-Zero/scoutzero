@@ -148,15 +148,32 @@ const TradeEditor = ({
       <div className="flex flex-wrap gap-3 items-center">
         <button
           onClick={() => {
+            // Block trade application if validation fails and not forced
+            if (!forceTrade && result && !result.legal) {
+              alert('Cannot apply trade: ' + (result.reason || 'Trade validation failed'));
+              return;
+            }
+            
             const tradeData = exportCurrentTrade();
             if (onApplyTrade && tradeData) {
               onApplyTrade(tradeData);
             }
           }}
-          className="bg-green-600 hover:bg-green-700 text-sm font-medium px-3 py-1.5 rounded"
+          disabled={!forceTrade && result && !result.legal}
+          className={`text-sm font-medium px-3 py-1.5 rounded transition-colors ${
+            !forceTrade && result && !result.legal
+              ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+              : 'bg-green-600 hover:bg-green-700 text-white'
+          }`}
         >
           Apply Trade
         </button>
+        
+        {!forceTrade && result && !result.legal && (
+          <span className="text-red-400 text-xs">
+            Trade blocked: {result.reason || 'Validation failed'}
+          </span>
+        )}
       </div>
 
       {/* Summary */}

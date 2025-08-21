@@ -376,9 +376,12 @@ export const useTradeMachine = (
     setTeams((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
-  // Trade validation and execution
-  const handleValidate = useCallback(() => {
-    if (teams.filter((t) => t.team).length < 2) return;
+  // Core validation function - extracted for reuse
+  const validateCurrentTrade = useCallback(() => {
+    if (teams.filter((t) => t.team).length < 2) {
+      setResult(null);
+      return null;
+    }
 
     // (Optional) last-second safety net: if any team is missing payroll, patch it
     const patchedTeams = teams.map((t) => {
@@ -401,7 +404,7 @@ export const useTradeMachine = (
       return t;
     });
 
-    // LOG C) Right before validateTrade(...) in handleValidate()
+    // LOG C) Right before validateTrade(...) in validateCurrentTrade()
     console.log(
       '[validate -> teams payroll]',
       teams.map(
@@ -426,11 +429,12 @@ export const useTradeMachine = (
       currentYear: yearKey,
     });
 
-    setResult({
+    const result = {
       ...validation,
-      legal: forceTrade ? true : validation.overallLegal,
-    });
-    setPreviewOpen(true);
+      legal: forceTrade ? true : validation.legal,
+    };
+
+    setResult(result);
     console.log(
       '[after validate]',
       validation.teamResults.map((tr) => ({
@@ -440,7 +444,22 @@ export const useTradeMachine = (
         apron: tr.postTradeStatus?.isAtOrAboveSecondApron,
       }))
     );
+
+    return result;
   }, [teams, capProjections, yearKey, forceTrade]);
+
+  // Auto-validation effect - triggers validation whenever trade state changes
+  useEffect(() => {
+    validateCurrentTrade();
+  }, [teams, forceTrade, yearKey, capProjections]);
+
+  // Manual validation trigger (for UI components that need explicit validation)
+  const handleValidate = useCallback(() => {
+    const result = validateCurrentTrade();
+    if (result) {
+      setPreviewOpen(true);
+    }
+  }, [validateCurrentTrade]);
 
   const exportCurrentTrade = useCallback(() => {
     return teams
