@@ -23,23 +23,53 @@ export function useRealtimeValidation(teams, capProjections, currentYear, forceT
         // Filter teams that have actual team data
         const validTeams = teamsData.filter(t => t.team);
         
-        if (validTeams.length < 2) {
+        if (validTeams.length === 0) {
           setValidationResult(null);
+          return;
+        }
+
+        // For single team, create a minimal valid result
+        if (validTeams.length === 1) {
+          setValidationResult({
+            legal: true,
+            teamResults: [{
+              teamId: validTeams[0].team.id,
+              teamName: validTeams[0].team.name || validTeams[0].team.nickname,
+              legal: true,
+              violations: [],
+              warnings: [],
+            }],
+            reason: 'Single team selected',
+            performance: { validationTime: 0 },
+          });
           return;
         }
 
         // Prepare team data for validation
         const formattedTeams = validTeams.map((t) => ({
+          teamId: t.team.id, // Add explicit teamId
           team: t.team,
           sends: t.sends || [],
           picksOut: t.picksOut || [],
           hardCapped: t.team.hardCapped || false,
         }));
 
+        console.log('🔍 About to validate with teams:', formattedTeams.map(t => ({ 
+          teamId: t.teamId, 
+          teamName: t.team.name || t.team.nickname,
+          teamProps: Object.keys(t.team)
+        })));
+
         const validation = validateTrade({
           teams: formattedTeams,
           capProjections: capData,
           currentYear: year,
+        });
+
+        console.log('✅ Validation returned:', {
+          legal: validation.legal,
+          teamResultsCount: validation.teamResults?.length,
+          teamIds: validation.teamResults?.map(tr => tr.teamId)
         });
 
         setValidationResult(validation);
@@ -88,7 +118,7 @@ export function useRealtimeValidation(teams, capProjections, currentYear, forceT
     const allViolations = [];
 
     (validationResult.teamResults || []).forEach((teamResult) => {
-      const teamId = teamResult.teamId || teamResult.team?.id;
+      const teamId = teamResult.teamId;
       if (!teamId) return;
 
       const teamWarnings = teamResult.warnings || [];
@@ -120,6 +150,9 @@ export function useRealtimeValidation(teams, capProjections, currentYear, forceT
 
   // Get status for a specific team
   const getTeamStatus = useCallback((teamId) => {
+    const hasTeamData = normalizedResult.perTeam[teamId];
+    console.log(`🎯 getTeamStatus(${teamId}): ${hasTeamData ? 'FOUND' : 'NOT FOUND'} - perTeam keys: [${Object.keys(normalizedResult.perTeam).join(', ')}]`);
+    
     if (!teamId || !normalizedResult.perTeam[teamId]) {
       return { status: 'unknown', icon: '❓', color: 'text-gray-400' };
     }
