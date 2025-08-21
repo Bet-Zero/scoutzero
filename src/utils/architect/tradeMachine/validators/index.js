@@ -1,34 +1,49 @@
-// Export all validators and rules
-// Core validation functions
+/**
+ * COMPATIBILITY LAYER - DEPRECATED
+ * 
+ * This file provides backwards compatibility for external imports.
+ * Internal tradeMachine code should import from the new structure:
+ * - engine/ for orchestration and main validateTrade function
+ * - rules/ for pure validation functions
+ * - utils/ for utility functions
+ * - constants/ for shared constants
+ * - cache/ for caching (engine only)
+ * 
+ * TODO: Remove this compatibility layer once all external imports are updated
+ */
+
+// Re-export from new structure for backwards compatibility
+
+// Core validation functions - now in rules/
+export { validateTradeExceptions } from '../rules/validateTradeExceptions.js';
+export { validateCash } from '../rules/validateCash.js';
+export { validateFaExceptionUsage } from '../rules/validateFaExceptionUsage.js';
+export { validateSalaryMatching } from '../rules/validateSalaryMatching.js';
+export { validateRoster, enforceRosterWindow } from '../rules/validateRoster.js';
+export { validateHardCap } from '../rules/validateHardCap.js';
+export { validateStepien } from '../rules/validateStepien.js';
+export { validateSecondApronRules } from '../rules/validateSecondApronRules.js';
+export { validateBYC } from '../rules/validateBYC.js';
+export { validateConsent } from '../rules/validateConsent.js';
+export { validateEligibility } from '../rules/validateEligibility.js';
+export { validateTiming } from '../rules/validateTiming.js';
+export { validateSignAndTrade } from '../rules/validateSignAndTrade.js';
+
+// Enforcement functions - now in rules/
+export { enforceSecondApronHandcuffs } from '../rules/enforceSecondApronHandcuffs.js';
+export { enforceConsent } from '../rules/enforceConsent.js';
+export { enforceEligibility } from '../rules/enforceEligibility.js';
+export { enforceTiming } from '../rules/enforceTiming.js';
+
+// Utility functions - now in utils/
+export { getIncomingCeilingForTeam } from '../utils/salaryMargin.js';
+export { computeMatchingValues } from '../utils/computeMatchingValues.js';
+export * from '../utils/validateInput.js';
+export * from '../utils/normalizeTradeInput.js';
+
+// Stepien utility - from parent architect utils
 export { hasStepienViolation } from '../../stepienUtils.js';
-export { computeMatchingValues } from '../computeMatchingValues.js';
-export { validateTradeExceptions } from './validateTradeExceptions.js';
-export { validateCash } from './validateCash.js';
-export { validateFaExceptionUsage } from './validateFaExceptionUsage.js';
-export { validateSalaryMatching } from './validateSalaryMatching.js';
-export { validateRoster, enforceRosterWindow } from './validateRoster.js';
-export { validateHardCap } from './validateHardCap.js';
-export { validateStepien } from './validateStepien.js';
-export { validateSecondApronRules } from './validateSecondApronRules.js';
-export { validateBYC } from './validateBYC.js';
-export { validateConsent } from './validateConsent.js';
-export { validateEligibility } from './validateEligibility.js';
-export { validateTiming } from './validateTiming.js';
 
-// Enforcement functions
-export { enforceSecondApronHandcuffs } from './enforceSecondApronHandcuffs.js';
-export { enforceConsent } from './enforceConsent.js';
-export { enforceEligibility } from './validateEligibility.js';
-export { enforceTiming } from './enforceTiming.js';
-
-// Additional utility functions
-export { getIncomingCeilingForTeam } from './salaryMargin.js';
-
-// Re-export from other modules for convenience
-export * from './validateSignAndTrade.js';
-export * from './validateInput.js';
-export * from './normalizeTradeInput.js';
-
-// Cache and debugging
-export { validationCache } from './validationCache.js';
-export { default as debug } from '../debug.js';
+// Cache and debugging - now in engine/ and cache/
+export { validationCache } from '../cache/validationCache.js';
+export { default as debug } from '../engine/debug.js';
