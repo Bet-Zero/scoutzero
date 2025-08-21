@@ -46,6 +46,26 @@ const baseValidators = {
 };
 const validators = wrapCommonValidators(baseValidators);
 
+// Helper function to extract cap settings for a specific year
+function getCapSettingsForYear(capProjections, year) {
+  if (!capProjections || typeof capProjections !== 'object') {
+    return {};
+  }
+  
+  // Try different year formats
+  const yearKey = String(year);
+  const seasonKey = `${year}-${String(year + 1).slice(-2)}`;
+  
+  const settings = capProjections[seasonKey] || capProjections[yearKey] || capProjections['2025-26'] || {};
+  
+  return {
+    salaryCap: settings.cap || 141000000,
+    firstApron: settings.firstApron || 179000000,
+    secondApron: settings.secondApron || 190000000,
+    luxuryTax: settings.tax || 171000000,
+  };
+}
+
 // Export functions for external use
 export { enforceRosterWindow, validateFaExceptionUsage };
 
@@ -125,7 +145,8 @@ export function validateTrade({
       cashReceived: team.cashReceived || 0,
       context: {
         ...context,
-        capSettings: context.capProjections || {},
+        capSettings: getCapSettingsForYear(context.capProjections, currentYear),
+        yearKey: currentYear,
       },
     };
   });
