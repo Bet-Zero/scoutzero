@@ -3,7 +3,7 @@
  * Validates that teams aren't trading consecutive future first-round picks
  */
 
-import { isMeaningfulProtection } from '../tradeUtils.js';
+import { isMeaningfulProtection } from '../utils/tradeUtils.js';
 
 /**
  * Checks if a set of outgoing picks violates the Stepien Rule

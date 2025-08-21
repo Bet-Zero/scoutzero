@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { enforceConsent } from '@/utils/architect/tradeMachine/validators/index.js';
+import { enforceConsent } from '@/utils/architect/tradeMachine/rules/enforceConsent.js';
 import { validationFlags } from '@/config/validationFlags.js';
 
 const makeTeam = (player) => ({ outgoingPlayers: [player] });

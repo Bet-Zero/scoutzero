@@ -12,13 +12,34 @@ import { wrapCommonValidators } from './validationDecorator.js';
 import debug from './debug.js';
 
 // Import base validators from new structure
-import * as baseValidators from '../validators/index.js';
-import { computeMatchingValues } from '../utils/computeMatchingValues.js';
-import { enforceRosterWindow } from '../rules/validateRoster.js';
+import { validateSalaryMatching } from '../rules/validateSalaryMatching.js';
+import { validateHardCap } from '../rules/validateHardCap.js';
+import { validateStepien } from '../rules/validateStepien.js';
+import { validateCash } from '../rules/validateCash.js';
+import { validateTradeExceptions } from '../rules/validateTradeExceptions.js';
+import { validateSignAndTrade } from '../rules/validateSignAndTrade.js';
+import { enforceConsent } from '../rules/enforceConsent.js';
+import { enforceEligibility } from '../rules/enforceEligibility.js';
+import { enforceTiming } from '../rules/enforceTiming.js';
+import { enforceSecondApronHandcuffs } from '../rules/enforceSecondApronHandcuffs.js';
+import { computeMatchingValues } from '../utils/matchingValues.js';
+import { enforceRosterWindow } from '../rules/enforceRosterWindow.js';
 import { validateFaExceptionUsage } from '../rules/validateFaExceptionUsage.js';
 import { validateAggregation } from '../rules/validateAggregation.js';
 
 // Create wrapped versions with performance monitoring and caching
+const baseValidators = {
+  validateSalaryMatching,
+  validateHardCap,
+  validateStepien,
+  validateCash,
+  validateTradeExceptions,
+  validateSignAndTrade,
+  enforceConsent,
+  enforceEligibility,
+  enforceTiming,
+  enforceSecondApronHandcuffs,
+};
 const validators = wrapCommonValidators(baseValidators);
 
 // Export functions for external use

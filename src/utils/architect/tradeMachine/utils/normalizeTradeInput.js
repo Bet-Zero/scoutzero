@@ -4,7 +4,7 @@
  */
 
 import { toNum, normalizeCaps } from './capUtils.js';
-import { getMatchingValue } from '../matchingValues.js';
+import { getMatchingValue } from './matchingValues.js';
 
 /**
  * Normalizes a player object with consistent properties
