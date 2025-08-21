@@ -52,6 +52,7 @@ export function validateSalaryMatching(team, context = {}) {
   const actualFirstApron = firstApron || apron;
 
   const violations = [];
+  let allowableIncoming = 0; // Initialize allowable incoming calculation
 
   // Check FA exception bucket limits first
   if (team.absorptionMode === 'FA_EXCEPTION' && team.bucketType) {
@@ -63,6 +64,8 @@ export function validateSalaryMatching(team, context = {}) {
         `FA Exception bucket insufficient (${bucketSize} remaining)`
       );
     }
+    // FA exception case
+    allowableIncoming = bucket ? bucket.remaining || 0 : 0;
   }
 
   // Check if team is using TPEs to cover incoming salary
@@ -79,6 +82,7 @@ export function validateSalaryMatching(team, context = {}) {
       violations: [],
       salaryIn,
       salaryOut,
+      allowableIncoming: totalTPEAmount,
       difference: salaryIn - salaryOut,
       message: 'Trade exception covers incoming salary',
       usingTPE: true,
@@ -91,6 +95,8 @@ export function validateSalaryMatching(team, context = {}) {
   if (totalSalary < salaryCap) {
     const remainingSpace = salaryCap - totalSalary;
     const netAddition = salaryIn - salaryOut;
+    allowableIncoming = salaryOut + remainingSpace; // Can absorb outgoing + remaining cap space
+    
     if (netAddition > remainingSpace) {
       violations.push(
         `Team has ${formatCurrency(remainingSpace)} in cap space but is adding ${formatCurrency(netAddition)} in net salary.`
@@ -99,6 +105,8 @@ export function validateSalaryMatching(team, context = {}) {
   }
   // Teams above second apron: strict 100% matching (cannot take back more than sent out)
   else if (totalSalary >= secondApron) {
+    allowableIncoming = salaryOut; // 100% matching for second apron teams
+    
     if (salaryIn > salaryOut) {
       violations.push(
         `Incoming salary exceeds allowable amount by ${formatCurrency(salaryIn - salaryOut)}. ` +
@@ -108,6 +116,8 @@ export function validateSalaryMatching(team, context = {}) {
   }
   // Teams above first apron: 100% matching (cannot take back more than sent out)
   else if (totalSalary >= actualFirstApron) {
+    allowableIncoming = salaryOut; // 100% matching for first apron teams
+    
     if (salaryIn > salaryOut) {
       violations.push(
         `Incoming salary exceeds allowable amount by ${formatCurrency(salaryIn - salaryOut)}. ` +
@@ -118,8 +128,6 @@ export function validateSalaryMatching(team, context = {}) {
   // Over-cap teams below first apron: use standard tiered matching rules
   else if (totalSalary > salaryCap) {
     // Calculate allowable incoming based on outgoing salary tiers
-    let allowableIncoming = 0;
-
     if (salaryOut <= 6_500_000) {
       allowableIncoming = salaryOut * 2 + 250_000;
     } else if (salaryOut <= 19_600_000) {
@@ -142,6 +150,7 @@ export function validateSalaryMatching(team, context = {}) {
     violations,
     salaryIn,
     salaryOut,
+    allowableIncoming,
     difference: salaryIn - salaryOut,
     message: violations.length ? violations[0] : 'Salary matching validated',
     warningsOnly: shouldWarnOnly('salaryMatching') && violations.length > 0,
