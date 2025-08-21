@@ -19,6 +19,7 @@ const TradeEditor = ({
   const {
     teams,
     result,
+    realtimeValidation, // NEW: Real-time validation result
     forceTrade,
     setForceTrade,
     setPlayerTrade,
@@ -156,27 +157,27 @@ const TradeEditor = ({
               onApplyTrade(tradeData);
             }
           }}
-          disabled={!result?.passed && !forceTrade}
+          disabled={!realtimeValidation?.passed && !forceTrade}
           className={`text-sm font-medium px-3 py-1.5 rounded transition-colors ${
-            !result?.passed && !forceTrade
+            !realtimeValidation?.passed && !forceTrade
               ? 'bg-gray-600 cursor-not-allowed text-gray-400'
               : 'bg-green-600 hover:bg-green-700 text-white'
           }`}
-          title={!result?.passed && !forceTrade ? 'Trade must be legal before applying' : ''}
+          title={!realtimeValidation?.passed && !forceTrade ? 'Trade must be legal before applying' : ''}
         >
           Apply Trade
         </button>
         
         {/* Show validation status */}
-        {result && !result.passed && !forceTrade && (
+        {realtimeValidation && !realtimeValidation.passed && !forceTrade && (
           <div className="text-red-400 text-sm">
-            ❌ Trade blocked: {result.violations.length > 0 ? result.violations[0] : 'Validation failed'}
+            ❌ Trade blocked: {realtimeValidation.violations.length > 0 ? realtimeValidation.violations[0] : 'Validation failed'}
           </div>
         )}
         
-        {result && result.warnings.length > 0 && (
+        {realtimeValidation && realtimeValidation.warnings.length > 0 && (
           <div className="text-yellow-400 text-sm">
-            ⚠️ {result.warnings.length} warning{result.warnings.length !== 1 ? 's' : ''}
+            ⚠️ {realtimeValidation.warnings.length} warning{realtimeValidation.warnings.length !== 1 ? 's' : ''}
           </div>
         )}
       </div>

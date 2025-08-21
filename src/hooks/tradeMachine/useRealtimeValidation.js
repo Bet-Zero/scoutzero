@@ -138,7 +138,18 @@ export function useRealtimeValidation(teams, capProjections, currentYear, forceT
 
   // Get status for a specific team
   const getTeamStatus = useCallback((teamId) => {
-    if (!teamId || !normalizedResult.perTeam[teamId]) {
+    // Don't show status if we're still validating or have no validation result yet
+    if (isValidating || !teamId) {
+      return null; // Don't show any status indicator
+    }
+    
+    // If we have no validation result yet, return null to hide the indicator
+    if (!validationResult) {
+      return null;
+    }
+    
+    // If this team isn't in the validation results, show unknown
+    if (!normalizedResult.perTeam[teamId]) {
       return { status: 'unknown', icon: '❓', color: 'text-gray-400' };
     }
 
@@ -151,7 +162,7 @@ export function useRealtimeValidation(teams, capProjections, currentYear, forceT
     } else {
       return { status: 'illegal', icon: '❌', color: 'text-red-400' };
     }
-  }, [normalizedResult]);
+  }, [normalizedResult, validationResult, isValidating]);
 
   return {
     validationResult: normalizedResult,

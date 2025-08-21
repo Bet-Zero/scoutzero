@@ -14,15 +14,13 @@ describe('useRealtimeValidation', () => {
     expect(result.current.isValidating).toBe(false);
   });
 
-  it('returns unknown status for non-existent team', () => {
+  it('returns null status when no validation data available', () => {
     const { result } = renderHook(() => 
       useRealtimeValidation([], {}, 2025, false)
     );
 
     const status = result.current.getTeamStatus('non-existent-team');
-    expect(status.status).toBe('unknown');
-    expect(status.icon).toBe('❓');
-    expect(status.color).toBe('text-gray-400');
+    expect(status).toBe(null); // Should return null when no validation data available
   });
 
   it('handles empty validation result correctly', () => {

@@ -515,7 +515,8 @@ export const useTradeMachine = (
 
   return {
     teams,
-    result: validationResult, // Use real-time validation result instead
+    result, // Keep original manual validation result
+    realtimeValidation: validationResult, // Add real-time validation as separate field
     forceTrade,
     previewOpen,
     setPreviewOpen,
