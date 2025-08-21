@@ -6,8 +6,6 @@ Always reference these instructions first and fallback to search or bash command
 
 HoopZero is a React + Vite + Firebase NBA scouting platform that provides a public-facing view of player data. It displays player bios, stats, roles, contracts, and grades using a clean layout. All player data is loaded from Firebase Firestore using a flattened player structure.
 
-**CRITICAL CURRENT STATE**: The project has existing build and import issues that prevent the application from building or running the dev server. These are known issues documented below.
-
 ## Working Effectively
 
 ### System Requirements
@@ -16,40 +14,36 @@ HoopZero is a React + Vite + Firebase NBA scouting platform that provides a publ
 - **Operating System**: Cross-platform (Windows, macOS, Linux supported)
 
 ### Bootstrap and Dependencies
-- Install dependencies: `npm install` -- takes 2 minutes. NEVER CANCEL. Set timeout to 5+ minutes.
-- Check linting: `npm run lint` -- Shows 1453+ existing errors (technical debt). Do not attempt to fix all unless specifically tasked.
+- Install dependencies: `npm install` -- takes 41 seconds. NEVER CANCEL. Set timeout to 120+ seconds.
+- Check linting: `npm run lint` -- Shows 1888 errors (technical debt). Takes 8 seconds. Do not attempt to fix all unless specifically tasked.
 
 ### Testing 
-- Run all tests: `npm run test -- --run` -- takes 15 seconds. NEVER CANCEL. Set timeout to 30+ minutes.
-- Run specific test file: `npm run test tests/capUtils.test.js -- --run` -- takes <1 second for individual files
-- **CURRENT STATE**: Tests have 73 failed, 126 passed due to missing `tradeDebug` import. This is expected.
+- Run all tests: `npm run test -- --run` -- takes 14 seconds. NEVER CANCEL. Set timeout to 60+ seconds.
+- Run specific test file: `npm run test tests/capUtils.test.js -- --run` -- takes 1.5 seconds for individual files
+- **CURRENT STATE**: 172 tests PASSING, 27 failures across 44 test files (199 total)
 - **WORKING TESTS**: `tests/capUtils.test.js` passes all 12 tests and can be used for validation
 - Test runner uses Vitest with jsdom environment
 - Test files are in `tests/` directory
 
-### Building (CURRENTLY BROKEN)
-- Build command: `npm run build` -- **FAILS** due to missing `tradeDebug` export from `src/utils/architect/tradeMachine/tradeValidator.js`
-- Error: `"tradeDebug" is not exported by "src/utils/architect/tradeMachine/tradeValidator.js"`
-- **DO NOT** expect builds to work until this import issue is resolved
+### Building (WORKING)
+- Build command: `npm run build` -- takes 7.3 seconds. NEVER CANCEL. Set timeout to 60+ seconds.
+- Creates production build in `dist/` directory
+- Build includes chunking warnings for large files (>500KB) which is normal
 
-### Development Server (CURRENTLY BROKEN)
-- Dev server command: `npm run dev` -- **FAILS** due to same import issues as build
-- Expected to run on `http://localhost:5173/` when working
-- **DO NOT** expect dev server to start until import issues are resolved
+### Development Server (WORKING)
+- Dev server command: `npm run dev` -- starts in 230ms
+- Available at `http://localhost:5173/` when running
+- Use Ctrl+C to stop the server
 
 ### Other Commands
-- Generate documentation: `npm run docs` -- takes <1 second. Creates component hierarchy docs in `docs/` folder
-- Code formatting: `npm run zen` -- Toggles view states (quick utility command)
-- Update stats: `npm run update-stats` -- Updates player statistics (requires Node.js script)
-- Create `.env` file in project root with Firebase configuration:
-```
-VITE_FIREBASE_API_KEY=<your key>
-VITE_FIREBASE_AUTH_DOMAIN=<your domain>
-VITE_FIREBASE_PROJECT_ID=<project id>
-VITE_FIREBASE_STORAGE_BUCKET=<bucket>
-VITE_FIREBASE_MESSAGING_SENDER_ID=<sender id>
-VITE_FIREBASE_APP_ID=<app id>
-```
+- Generate basic docs: `npm run docs` -- takes <1 second. Creates component hierarchy docs in `docs/` folder
+- **BROKEN COMMANDS** (missing files):
+  - `npm run zen` -- toggleView.cjs missing
+  - `npm run update-stats` -- updateStats.js missing
+  - `npm run docs:all` -- scripts/ directory missing
+- **WORKING DOC COMMANDS**:
+  - `npm run docs:api` -- requires `atlas-docs/` directory, generates API documentation
+
 ### Environment Setup
 - Create `.env` file in project root with Firebase configuration:
 ```
@@ -60,41 +54,29 @@ VITE_FIREBASE_STORAGE_BUCKET=<bucket>
 VITE_FIREBASE_MESSAGING_SENDER_ID=<sender id>
 VITE_FIREBASE_APP_ID=<app id>
 ```
-- Firebase credentials are required for the app to function properly
+- Firebase credentials are required for the app to function properly with real data
 - For Python upload helpers, place `serviceAccountKey.json` in `src/` directory
-- For Python upload helpers, place `serviceAccountKey.json` in `src/` directory
-
-## Known Issues and Workarounds
-
-### Import Issues (Blocking Build/Dev)
-1. **Missing `tradeDebug` export**: `src/features/architect/tradeMachine/TradeDebugPanel.jsx` imports `tradeDebug` but it's not exported from `tradeValidator.js`
-2. **Missing `debug` export**: Multiple files import `debug` from `debug.js` but proper export structure is incomplete
-3. **Cache function issues**: Tests fail due to missing cache functions like `validationCache.cacheRosterValidation`
-
-### Working Around Build Issues
-- Focus on file-level changes rather than full application testing
-- Use individual test files to validate specific functionality: `npm run test tests/specific-test.test.js`
-- Examine components in isolation rather than running the full application
-- Use linting for syntax validation: `npm run lint -- --ext .jsx src/path/to/file.jsx`
 
 ## Validation Scenarios
 
-Since the application cannot currently run, use these validation approaches:
-
 ### Component Validation
-- **Static Analysis**: Use ESLint to validate syntax and imports
-- **Unit Testing**: Run specific test files for components you modify
-- **Code Review**: Examine imports, exports, and React component structure
+- **Build Testing**: Always run `npm run build` to verify changes don't break production build
+- **Unit Testing**: Run specific test files for components you modify: `npm run test tests/filename.test.js`
+- **Static Analysis**: Use ESLint to validate syntax: `npm run lint -- --ext .jsx src/path/to/file.jsx`
+
+### Manual UI Validation
+- **Complete Workflow**: Always test these user scenarios after making changes:
+  1. Start dev server: `npm run dev`
+  2. Navigate to `http://localhost:5173/`
+  3. Test navigation: Click "Player Profiles", "Players", "Tools" dropdown
+  4. Test Tools features: "Roster Builder", "Tier Maker", "GM Tools"
+  5. Test roster builder: Select team (e.g., "Boston Celtics"), verify interface updates
+  6. Test search and filter functionality when players load
 
 ### Test-Driven Validation
-- Run specific test suites: `npm run test tests/capUtils.test.js` (this one passes)
+- Run specific test suites: `npm run test tests/capUtils.test.js` (all 12 tests pass)
 - Use test files to understand expected behavior
 - Write new tests for new functionality before implementing
-
-### Manual Code Inspection
-- Check import/export consistency across files
-- Validate React component structure and prop types
-- Ensure Firestore queries follow existing patterns in `src/hooks/useFirebaseQuery.js`
 
 ## Project Structure and Navigation
 
@@ -129,7 +111,18 @@ src/
 - **Player filtering**: `src/features/filters/` and `src/utils/filtering/`
 - **Player profile**: `src/features/profile/` for player detail views
 - **Data fetching**: `src/hooks/` for Firebase queries and data normalization
-- **Trade validation**: `src/utils/architect/tradeMachine/` (currently has import issues)
+- **Trade validation**: `src/utils/architect/tradeMachine/` (complex validation system)
+
+### Trade Validation Architecture
+The trade validation system has been reorganized into a layered architecture:
+- `engine/` - Main orchestration layer with `validateTrade()` function and debugging
+- `rules/` - Pure validation functions (salary matching, hard cap, etc.)
+- `utils/` - Utility functions for computations and input normalization
+- `constants/` - Shared constants and configuration
+- `cache/` - Performance caching for expensive validations
+- `validators/` - **DEPRECATED** compatibility layer for old imports
+
+**Important**: Always import from the new structure (`engine/`, `rules/`, `utils/`) rather than the deprecated `validators/` compatibility layer.
 
 ## Data Architecture
 
@@ -158,14 +151,14 @@ src/
 4. Review Firebase console logs if data-related issues
 
 ### Code Quality
-- Run linting before committing: `npm run lint` (expect many existing errors)
+- Run linting before committing: `npm run lint` (expect ~1888 existing errors)
 - Follow existing patterns in `src/features/table/` for component structure
 - Keep components under 200 lines; split into subcomponents when larger
 - Use named exports for components; default exports only for top-level views
 
 ## Technology Stack
 
-- **Frontend**: React 18.2.0 with Vite 4.5.14
+- **Frontend**: React 18.2.0 with Vite 4.4.0
 - **Styling**: Tailwind CSS with utility classes  
 - **Backend**: Firebase Firestore (no authentication required)
 - **Testing**: Vitest with jsdom environment
@@ -174,13 +167,13 @@ src/
 
 ## CRITICAL Reminders
 
-- **NEVER CANCEL** any npm install command - takes 2+ minutes
-- **NEVER CANCEL** any test runs - set 30+ minute timeouts
-- **DO NOT** expect builds or dev server to work until import issues are resolved
-- **ALWAYS** validate changes through individual test files rather than full application
+- **NEVER CANCEL** any npm install command - takes ~41 seconds, set 120+ second timeout
+- **NEVER CANCEL** any test runs - set 60+ second timeouts
+- **NEVER CANCEL** any builds - takes ~8 seconds, set 60+ second timeout
+- **ALWAYS** test complete user workflows after making changes
 - **NEVER** modify Firestore data - this is a read-only application
 - **ALWAYS** use `@/` import alias for src paths
-- **ALWAYS** check existing tests before making changes to understand expected behavior
+- **ALWAYS** run `npm run build` before committing to ensure production compatibility
 
 ## Getting Help
 

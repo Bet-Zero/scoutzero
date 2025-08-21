@@ -6,7 +6,7 @@ import TradeSummaryPanel from './TradeSummaryPanel';
 import TradeValidationPanel from './TradeValidationPanel';
 import TradePreviewModal from './TradePreviewModal';
 import TradeDebugPanel from './TradeDebugPanel';
-import '../../../utils/architect/tradeMachine/tradeValidator.debug'; // Add near other imports
+import '../../../utils/architect/tradeMachine/engine/tradeValidator.debug'; // Add near other imports
 
 const TradeEditor = ({
   primaryTeam,

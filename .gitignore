@@ -12,6 +12,7 @@ public/assets/headshots/
 *.log
 DataPipeline.md
 tournamentRanker.js
+dist/
 
 # VS Code settings
 .vscode/
