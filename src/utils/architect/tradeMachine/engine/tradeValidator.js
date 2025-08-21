@@ -18,6 +18,8 @@ import { validateStepien } from '../rules/validateStepien.js';
 import { validateCash } from '../rules/validateCash.js';
 import { validateTradeExceptions } from '../rules/validateTradeExceptions.js';
 import { validateSignAndTrade } from '../rules/validateSignAndTrade.js';
+import { validateConsent } from '../rules/validateConsent.js';
+import { validateReacquisition } from '../rules/validateReacquisition.js';
 import { enforceConsent } from '../rules/enforceConsent.js';
 import { enforceEligibility } from '../rules/enforceEligibility.js';
 import { enforceTiming } from '../rules/enforceTiming.js';
@@ -35,6 +37,8 @@ const baseValidators = {
   validateCash,
   validateTradeExceptions,
   validateSignAndTrade,
+  validateConsent,
+  validateReacquisition,
   enforceConsent,
   enforceEligibility,
   enforceTiming,
@@ -923,6 +927,10 @@ export function validateTrade({
           ? validators.validateEligibility(team, enhancedCtx)
           : { passed: true, violations: [] };
 
+        rules.reacquisition = validators.validateReacquisition
+          ? validators.validateReacquisition(team, enhancedCtx)
+          : { passed: true, violations: [] };
+
         rules.timing = validators.validateTiming
           ? validators.validateTiming(team, enhancedCtx)
           : { passed: true, violations: [] };
@@ -956,6 +964,7 @@ export function validateTrade({
         'secondApron',
         'eligibility',
         'consent',
+        'reacquisition',
         'salaryMatching',
         'roster',
         'timing',
