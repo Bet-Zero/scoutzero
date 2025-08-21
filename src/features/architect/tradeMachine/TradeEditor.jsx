@@ -33,6 +33,8 @@ const TradeEditor = ({
     resetTrade,
     yearKey,
     applyTradeException, // NEW: Added from useTradeMachine
+    isValidating,
+    getTeamStatus, // NEW: Function to get team validation status
   } = useTradeMachine(
     primaryTeam,
     capProjections,
@@ -138,7 +140,8 @@ const TradeEditor = ({
               onUndoPlayerTrade={undoPlayerTrade}
               onSelectTeam={(teamId) => selectTeam(idx, teamId)}
               onRemove={() => removeTeam(idx)}
-              onApplyTradeException={handleApplyTradeException} // NEW PROP
+              onApplyTradeException={handleApplyTradeException}
+              validationStatus={t.team ? getTeamStatus(t.team.id) : null} // NEW: Pass validation status
             />
           );
         })}
@@ -153,10 +156,29 @@ const TradeEditor = ({
               onApplyTrade(tradeData);
             }
           }}
-          className="bg-green-600 hover:bg-green-700 text-sm font-medium px-3 py-1.5 rounded"
+          disabled={!result?.passed && !forceTrade}
+          className={`text-sm font-medium px-3 py-1.5 rounded transition-colors ${
+            !result?.passed && !forceTrade
+              ? 'bg-gray-600 cursor-not-allowed text-gray-400'
+              : 'bg-green-600 hover:bg-green-700 text-white'
+          }`}
+          title={!result?.passed && !forceTrade ? 'Trade must be legal before applying' : ''}
         >
           Apply Trade
         </button>
+        
+        {/* Show validation status */}
+        {result && !result.passed && !forceTrade && (
+          <div className="text-red-400 text-sm">
+            ❌ Trade blocked: {result.violations.length > 0 ? result.violations[0] : 'Validation failed'}
+          </div>
+        )}
+        
+        {result && result.warnings.length > 0 && (
+          <div className="text-yellow-400 text-sm">
+            ⚠️ {result.warnings.length} warning{result.warnings.length !== 1 ? 's' : ''}
+          </div>
+        )}
       </div>
 
       {/* Summary */}

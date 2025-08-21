@@ -3,6 +3,7 @@ import { validateTrade } from '@/utils/architect/tradeMachine/engine/tradeValida
 import { loadTeamCapSheet } from '@/utils/architect/firebaseTeamPlanHelpers';
 import { getSalaryForYear, areSamePick } from '@/utils/architect/tradeHelpers';
 import { TeamMap } from '@/constants/teamList';
+import { useRealtimeValidation } from './useRealtimeValidation';
 
 /* ============================
    Helpers: numeric + payroll + season keys
@@ -174,6 +175,14 @@ export const useTradeMachine = (
   const salaryOut = useMemo(
     () => teams.map((t) => getSalaryForYear(t.sends, yearKey)),
     [teams, yearKey]
+  );
+
+  // Real-time validation
+  const { validationResult, isValidating, getTeamStatus } = useRealtimeValidation(
+    teams,
+    capProjections,
+    yearKey,
+    forceTrade
   );
 
   // Initialize teams (slot 0 = primary team, slot 1 = empty)
@@ -506,7 +515,7 @@ export const useTradeMachine = (
 
   return {
     teams,
-    result,
+    result: validationResult, // Use real-time validation result instead
     forceTrade,
     previewOpen,
     setPreviewOpen,
@@ -525,5 +534,7 @@ export const useTradeMachine = (
     yearKey,
     incomingAssets,
     salaryOut,
+    isValidating,
+    getTeamStatus, // New: function to get team validation status
   };
 };

@@ -37,6 +37,7 @@ const TradeTeamCard = ({
   onSelectTeam,
   onRemove,
   onApplyTradeException,
+  validationStatus, // New prop for validation status
 }) => {
   const [activeTab, setActiveTab] = useState('players');
   const [editingTeam, setEditingTeam] = useState(false);
@@ -184,7 +185,7 @@ const TradeTeamCard = ({
     >
       {/* Team Header */}
       <div className="relative flex items-center justify-between border-b border-white/10 pb-2">
-        <div className="w-48">
+        <div className="flex items-center gap-2 w-48">
           <TeamSelectDropdown
             selectedTeamId={team.id}
             onChange={(newId) => {
@@ -192,6 +193,21 @@ const TradeTeamCard = ({
               onSelectTeam(newId);
             }}
           />
+          {/* Validation Status Indicator */}
+          {validationStatus && (
+            <div 
+              className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${validationStatus.color}`}
+              title={`Trade status: ${validationStatus.status}`}
+            >
+              <span>{validationStatus.icon}</span>
+              <span className="hidden sm:inline">
+                {validationStatus.status === 'legal' && 'Legal'}
+                {validationStatus.status === 'warning' && 'Warning'}
+                {validationStatus.status === 'illegal' && 'Illegal'}
+                {validationStatus.status === 'unknown' && 'Unknown'}
+              </span>
+            </div>
+          )}
         </div>
 
         {onRemove && (
