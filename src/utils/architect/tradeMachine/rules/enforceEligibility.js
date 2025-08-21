@@ -15,7 +15,9 @@ export function enforceEligibility(
 
   // Check re-acquisition restrictions
   incomingPlayers.forEach((player) => {
-    if (player.lastTradedFrom === team.teamId) {
+    // Check for traded players (support multiple property names)
+    const lastTradedFromTeam = player.lastTradedFrom || player.lastTradedFromTeamId;
+    if (lastTradedFromTeam === team.teamId) {
       const lastTradeDate = player.lastTradeDate
         ? new Date(player.lastTradeDate)
         : null;
@@ -29,14 +31,15 @@ export function enforceEligibility(
         tradeDate - lastTradeDate < 365 * 24 * 60 * 60 * 1000
       ) {
         violations.push(
-          `Cannot reacquire ${player.name || 'player'} until one year after trading them`
+          `Re-acquisition bar: Cannot reacquire ${player.name || 'player'} until one year after trading them`
         );
       }
     }
 
-    // Check waiver history
-    if (player.lastWaivedFrom === team.teamId) {
-      const waivedDate = player.waivedDate ? new Date(player.waivedDate) : null;
+    // Check waiver history (support multiple property names)
+    const wasWaivedByTeam = player.lastWaivedFrom || player.wasWaivedByTeamId;
+    if (wasWaivedByTeam === team.teamId) {
+      const waivedDate = player.waivedDate || player.contractEndDate ? new Date(player.waivedDate || player.contractEndDate) : null;
       const july1 = new Date(waivedDate?.getFullYear() + 1, 6, 1); // July is 6 in JS dates
       const tradeDate = tradeCtx.asOfDate
         ? new Date(tradeCtx.asOfDate)
@@ -44,7 +47,7 @@ export function enforceEligibility(
 
       if (waivedDate && tradeDate < july1) {
         violations.push(
-          `Cannot reacquire ${player.name || 'player'} until July 1 after waiving them`
+          `Re-acquisition bar: Cannot reacquire ${player.name || 'player'} until July 1 after waiving them`
         );
       }
     }
