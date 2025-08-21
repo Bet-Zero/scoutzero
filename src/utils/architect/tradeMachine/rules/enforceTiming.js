@@ -15,12 +15,6 @@ export function enforceTiming(
   const { asOfDate = new Date().toISOString(), tradeDate } = tradeCtx;
   const tradeDateObj = new Date(tradeDate || asOfDate);
 
-      asOfDate,
-      tradeDate,
-      players: (team.sends || team.outgoingPlayers || []).map((p) => p.name),
-    });
-  }
-
   // Check trade moratorium (July 1-6, but using 0-based months so July = 6)
   if (
     isWithinMoratorium(tradeDateObj, {

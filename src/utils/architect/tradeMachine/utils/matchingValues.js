@@ -1,6 +1,6 @@
 // Handles Base Year Compensation (BYC), trade kicker, and poison pill calculations
-import { getSalaryForYear } from '../tradeHelpers.js';
-import { BYC_PERCENT } from './cbaConstants.js';
+import { getSalaryForYear } from '../../tradeHelpers.js';
+import { BYC_PERCENT } from '../constants/cbaConstants.js';
 
 export function getMatchingValue(player, yearKey, isOutgoing = false) {
   const salary = getSalaryForYear(player, yearKey);

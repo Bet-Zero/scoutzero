@@ -1,7 +1,7 @@
-import debug from '../debug.js';
+import debug from './debug.js';
 import { performanceMonitor } from './validationPerformanceMonitor.js';
-import { validationCache } from './validationCacheService.js';
-import { CACHE_TYPES } from './validationCacheService.js';
+import { validationCache } from '../cache/validationCacheService.js';
+import { CACHE_TYPES } from '../cache/validationCacheService.js';
 
 /**
  * Monitors validation performance and caching behavior in production

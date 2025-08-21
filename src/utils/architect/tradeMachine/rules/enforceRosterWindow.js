@@ -23,11 +23,6 @@ export function enforceRosterWindow(
     team.incomingPlayers.filter((p) => p.isTwoWay).length -
     team.outgoingPlayers.filter((p) => p.isTwoWay).length;
 
-      standardRosterSize,
-      twoWayRosterSize,
-    });
-  }
-
   // Check standard roster size (14-15 players)
   if (!gracePeriod && (standardRosterSize < 14 || standardRosterSize > 15)) {
     violations.push(
