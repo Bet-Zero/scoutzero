@@ -135,7 +135,7 @@ class ValidationCacheManager {
       hits: this.hits,
       misses: this.misses,
       invalidations: this.invalidations,
-      cacheSize: totalSize,
+      size: totalSize,  // Changed from cacheSize to size
     };
   }
 
