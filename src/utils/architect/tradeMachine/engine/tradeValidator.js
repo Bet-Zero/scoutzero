@@ -850,10 +850,20 @@ export function validateTrade({
         // Normal validation
         rules = {
           signAndTrade: validators.validateSignAndTrade
-            ? validators.validateSignAndTrade(team, {
+            ? validators.validateSignAndTrade({
+                ...team,
+                teamTotalSalary: totalSalary,
+                salaryIn,
+                salaryOut,
+                incomingPlayers: getIncomingPlayersDataForTeam(
+                  normalizedTeams,
+                  teamIndex
+                ),
+              }, {
                 ...enhancedCtx,
                 teams: normalizedTeams,
                 offseason: tradeCtx.offseason,
+                capSettings,
               })
             : { passed: true, violations: [] },
           hardCap: validators.validateHardCap
