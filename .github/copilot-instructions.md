@@ -18,20 +18,20 @@ HoopZero is a React + Vite + Firebase NBA scouting platform that provides a publ
 - Check linting: `npm run lint` -- Shows 1888 errors (technical debt). Takes 8 seconds. Do not attempt to fix all unless specifically tasked.
 
 ### Testing 
-- Run all tests: `npm run test -- --run` -- takes 15 seconds. NEVER CANCEL. Set timeout to 60+ seconds.
+- Run all tests: `npm run test -- --run` -- takes 14 seconds. NEVER CANCEL. Set timeout to 60+ seconds.
 - Run specific test file: `npm run test tests/capUtils.test.js -- --run` -- takes 1.5 seconds for individual files
-- **CURRENT STATE**: All 199 tests PASSING across 44 test files
+- **CURRENT STATE**: 172 tests PASSING, 27 failures across 44 test files (199 total)
 - **WORKING TESTS**: `tests/capUtils.test.js` passes all 12 tests and can be used for validation
 - Test runner uses Vitest with jsdom environment
 - Test files are in `tests/` directory
 
 ### Building (WORKING)
-- Build command: `npm run build` -- takes 8.3 seconds. NEVER CANCEL. Set timeout to 60+ seconds.
+- Build command: `npm run build` -- takes 7.3 seconds. NEVER CANCEL. Set timeout to 60+ seconds.
 - Creates production build in `dist/` directory
 - Build includes chunking warnings for large files (>500KB) which is normal
 
 ### Development Server (WORKING)
-- Dev server command: `npm run dev` -- starts in 238ms
+- Dev server command: `npm run dev` -- starts in 230ms
 - Available at `http://localhost:5173/` when running
 - Use Ctrl+C to stop the server
 
@@ -112,6 +112,17 @@ src/
 - **Player profile**: `src/features/profile/` for player detail views
 - **Data fetching**: `src/hooks/` for Firebase queries and data normalization
 - **Trade validation**: `src/utils/architect/tradeMachine/` (complex validation system)
+
+### Trade Validation Architecture
+The trade validation system has been reorganized into a layered architecture:
+- `engine/` - Main orchestration layer with `validateTrade()` function and debugging
+- `rules/` - Pure validation functions (salary matching, hard cap, etc.)
+- `utils/` - Utility functions for computations and input normalization
+- `constants/` - Shared constants and configuration
+- `cache/` - Performance caching for expensive validations
+- `validators/` - **DEPRECATED** compatibility layer for old imports
+
+**Important**: Always import from the new structure (`engine/`, `rules/`, `utils/`) rather than the deprecated `validators/` compatibility layer.
 
 ## Data Architecture
 
