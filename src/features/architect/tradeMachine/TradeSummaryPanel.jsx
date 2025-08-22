@@ -112,47 +112,12 @@ function TradeSummaryPanel({
                 {/* Salary snapshot */}
                 {teamResult &&
                   (() => {
-                    const calc = teamResult?.calculations?.salaryMatching || {};
-
-                    // salary in
-                    const salaryIn = Number.isFinite(
-                      teamResult?.calculations?.salaryIn
-                    )
-                      ? teamResult.calculations.salaryIn
-                      : Number(teamResult?.salaryIn) || 0;
-
-                    // salary out (prefer what validator attached; fall back to recompute)
-                    const out =
-                      Number(teamResult?.salaryOut) ||
-                      (typeof getSalaryForYear === 'function'
-                        ? getSalaryForYear(
-                            teamResult?.sends || [],
-                            result?.yearKey || result?.currentYear
-                          )
-                        : 0);
-
-                    // margin (what the validator returns after bands/apron/etc)
-                    const margin = Number.isFinite(calc.margin)
-                      ? calc.margin
-                      : // older builds used "allowableIncoming" for margin; if both exist, margin wins
-                        Number.isFinite(calc.allowableIncoming) &&
-                          !Number.isFinite(calc.allowedIncoming)
-                        ? Number(calc.allowableIncoming)
-                        : 0;
-
-                    // allowed incoming ceiling:
-                    // 1) use calc.allowedIncoming if present (new)
-                    // 2) else if the old field is actually the full allowed (rare), use it
-                    // 3) else compute as out + margin (correct for our validator changes)
-                    const allowedIncoming = Number.isFinite(
-                      calc.allowedIncoming
-                    )
-                      ? calc.allowedIncoming
-                      : Number.isFinite(calc.allowableIncoming) &&
-                          !Number.isFinite(calc.margin)
-                        ? Number(calc.allowableIncoming)
-                        : out + margin;
-
+                    // Use the calculations from the validator
+                    const calculations = teamResult.calculations || {};
+                    const salaryMatching = calculations.salaryMatching || {};
+                    
+                    const salaryIn = calculations.salaryIn || 0;
+                    const allowedIncoming = salaryMatching.allowedIncoming || 0;
                     const overBy = Math.max(0, salaryIn - allowedIncoming);
 
                     return (
