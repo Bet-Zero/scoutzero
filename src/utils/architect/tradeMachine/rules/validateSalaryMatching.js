@@ -24,6 +24,16 @@ export function validateSalaryMatching(team, context = {}) {
     };
   }
 
+  // Skip salary matching validation for hard-capped teams - let hard cap validation handle it
+  if (team.hardCapped === true || team.team?.hardCapTriggered) {
+    return {
+      passed: true,
+      violations: [],
+      message: 'Skipped for hard-capped team',
+      skipped: true,
+    };
+  }
+
   // Check cache first
   const yearKey = context.yearKey || team.context?.yearKey || 2025;
 
@@ -109,8 +119,7 @@ export function validateSalaryMatching(team, context = {}) {
     
     if (salaryIn > salaryOut) {
       violations.push(
-        `Incoming salary exceeds allowable amount by ${formatCurrency(salaryIn - salaryOut)}. ` +
-          `Second apron teams cannot receive more salary than sent out.`
+        `Second apron team cannot receive more salary than sent`
       );
     }
   }

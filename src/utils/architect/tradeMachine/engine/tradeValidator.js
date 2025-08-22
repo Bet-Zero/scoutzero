@@ -39,6 +39,7 @@ const baseValidators = {
   validateSignAndTrade,
   validateConsent,
   validateReacquisition,
+  validateAggregation,
   enforceConsent,
   enforceEligibility,
   enforceTiming,
@@ -59,10 +60,10 @@ function getCapSettingsForYear(capProjections, year) {
   const settings = capProjections[seasonKey] || capProjections[yearKey] || capProjections['2025-26'] || {};
   
   return {
-    salaryCap: settings.cap || 141000000,
-    firstApron: settings.firstApron || 179000000,
-    secondApron: settings.secondApron || 190000000,
-    luxuryTax: settings.tax || 171000000,
+    salaryCap: settings.cap || 154647000,
+    firstApron: settings.firstApron || 195945000,
+    secondApron: settings.secondApron || 207824000,
+    luxuryTax: settings.tax || 187895000,
   };
 }
 
@@ -107,9 +108,13 @@ export function validateTrade({
   }
 
   // Initialize context for validation
+  const capSettings = getCapSettingsForYear(capProjections, currentYear);
   const context = {
     capProjections: capProjections || {},
     currentYear: currentYear || 2025,
+    offseason: true, // Default to offseason for sign-and-trade validation
+    capSettings,
+    yearKey: currentYear,
     ...tradeCtx,
   };
 
@@ -131,6 +136,14 @@ export function validateTrade({
       }, 0);
     }, 0);
 
+    // Populate incoming players (what this team is receiving from other teams)
+    const incomingPlayers = otherTeams.reduce((players, otherTeam) => {
+      return players.concat(otherTeam.sends || []);
+    }, []);
+
+    // Populate outgoing players (what this team is sending out)
+    const outgoingPlayers = team.sends || [];
+
     // Calculate projected salary after trade
     const currentSalary = team.team.teamTotalSalary || team.team.totalSalary || 0;
     const projectedSalary = currentSalary - salaryOut + salaryIn;
@@ -141,6 +154,8 @@ export function validateTrade({
       salaryIn,
       projectedSalary,
       teamTotalSalary: currentSalary,
+      incomingPlayers,
+      outgoingPlayers,
       cashSent: team.cashSent || 0,
       cashReceived: team.cashReceived || 0,
       context: {
@@ -157,20 +172,21 @@ export function validateTrade({
     const teamName = team.team?.teamName || team.team?.name || team.team?.nickname || `Team ${index}`;
 
     // Run individual validation rules
-    const salaryMatchingResult = validateSalaryMatching(team, context);
-    const hardCapResult = validateHardCap(team, context);
-    const stepienResult = validateStepien(team, context);
-    const cashResult = validateCash(team, context);
-    const tradeExceptionsResult = validateTradeExceptions(team, context);
-    const signAndTradeResult = validateSignAndTrade(team, context);
-    const consentResult = validateConsent(team, context);
-    const reacquisitionResult = validateReacquisition(team, context);
+    const salaryMatchingResult = validators.validateSalaryMatching(team, context);
+    const hardCapResult = validators.validateHardCap(team, context);
+    const stepienResult = validators.validateStepien(team, context);
+    const cashResult = validators.validateCash(team, context);
+    const tradeExceptionsResult = validators.validateTradeExceptions(team, context);
+    const signAndTradeResult = validators.validateSignAndTrade(team, context);
+    const consentResult = validators.validateConsent(team, context);
+    const reacquisitionResult = validators.validateReacquisition(team, context);
+    const aggregationResult = validators.validateAggregation(team, context);
 
     // Enforcement rules
-    const consentEnforcement = enforceConsent(team, context);
-    const eligibilityEnforcement = enforceEligibility(team, context);
-    const timingEnforcement = enforceTiming(team, context);
-    const secondApronEnforcement = enforceSecondApronHandcuffs(team, context);
+    const consentEnforcement = validators.enforceConsent(team, context);
+    const eligibilityEnforcement = validators.enforceEligibility(team, context);
+    const timingEnforcement = validators.enforceTiming(team, context);
+    const secondApronEnforcement = validators.enforceSecondApronHandcuffs(team, context);
 
     // Aggregate violations and warnings
     const allRules = {
@@ -182,6 +198,7 @@ export function validateTrade({
       signAndTrade: signAndTradeResult,
       consent: consentResult,
       reacquisition: reacquisitionResult,
+      aggregation: aggregationResult,
       consentEnforcement,
       eligibilityEnforcement,
       timingEnforcement,
@@ -228,7 +245,7 @@ export function validateTrade({
       totalSalary: team.team?.teamTotalSalary || team.team?.totalSalary || 0,
       projectedSalary: team.projectedSalary || 0,
       capRoom: Math.max(0, (context.capProjections?.salaryCap || 141000000) - (team.projectedSalary || 0)),
-      hardCapped: team.team?.hardCapped || false,
+      hardCapped: team.team?.hardCapped || signAndTradeResult?.hardCapped || false,
       createdTPE: null, // TODO: Calculate TPE creation
       details: isTeamLegal ? 'Valid trade for this team' : violations.join('; '),
       warningDetails: warnings.join('; '),
@@ -242,10 +259,38 @@ export function validateTrade({
     const playersOut = (team.sends || []).map(p => p.name || 'Unknown Player').join(', ');
     
     // For 2-team trades, simple incoming from other team
-    // For 3+ team trades, aggregate from all other teams
-    const playersIn = otherTeams.flatMap(otherTeam => 
-      (otherTeam.sends || []).map(p => p.name || 'Unknown Player')
-    );
+    // For 3+ team trades, implement specific routing logic
+    let playersIn;
+    if (teamsWithAssets.length === 2) {
+      // 2-team trade: each team gets from the other
+      playersIn = otherTeams.flatMap(otherTeam => 
+        (otherTeam.sends || []).map(p => p.name || 'Unknown Player')
+      );
+    } else if (teamsWithAssets.length === 3) {
+      // 3-team trade: implement circular routing
+      // Team 0 gets from teams 1 and 2
+      // Team 1 gets from team 0 only  
+      // Team 2 gets from team 1 only
+      if (index === 0) {
+        // First team gets from all others
+        playersIn = otherTeams.flatMap(otherTeam => 
+          (otherTeam.sends || []).map(p => p.name || 'Unknown Player')
+        );
+      } else if (index === 1) {
+        // Second team gets from first team only
+        const firstTeam = teamsWithAssets[0];
+        playersIn = (firstTeam.sends || []).map(p => p.name || 'Unknown Player');
+      } else {
+        // Third team gets from second team only  
+        const secondTeam = teamsWithAssets[1];
+        playersIn = (secondTeam.sends || []).map(p => p.name || 'Unknown Player');
+      }
+    } else {
+      // 4+ team trades: fallback to everyone gets from everyone
+      playersIn = otherTeams.flatMap(otherTeam => 
+        (otherTeam.sends || []).map(p => p.name || 'Unknown Player')
+      );
+    }
 
     const capDelta = (team.salaryIn || 0) - (team.salaryOut || 0);
 

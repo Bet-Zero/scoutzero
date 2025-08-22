@@ -216,7 +216,7 @@ describe('tradeValidator', () => {
   });
 
   it('enforces second apron restrictions', () => {
-    const teamA = makeTeam('A', 190_000_000); // Above 2nd apron
+    const teamA = makeTeam('A', 210_000_000); // Above 2nd apron (207.8M for 2025-26)
     const teamB = makeTeam('B', 100_000_000);
     const aPlayer1 = makePlayer('A1', 10_000_000);
     const aPlayer2 = makePlayer('A2', 5_000_000);
@@ -240,7 +240,7 @@ describe('tradeValidator', () => {
   });
 
   it('prevents second apron teams from taking back more salary', () => {
-    const teamA = makeTeam('A', 190_000_000);
+    const teamA = makeTeam('A', 210_000_000); // Above 2nd apron (207.8M for 2025-26)
     const teamB = makeTeam('B', 100_000_000);
     const aPlayer = makePlayer('A1', 10_000_000);
     const bPlayer = makePlayer('B1', 12_000_000);
@@ -263,7 +263,7 @@ describe('tradeValidator', () => {
   });
 
   it('blocks cash considerations for second apron teams', () => {
-    const teamA = makeTeam('A', 190_000_000);
+    const teamA = makeTeam('A', 210_000_000); // Above 2nd apron (207.8M for 2025-26)
     const teamB = makeTeam('B', 100_000_000);
     const aPlayer = makePlayer('A1', 1_000_000);
     const bPlayer = makePlayer('B1', 1_000_000);
