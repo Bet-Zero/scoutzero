@@ -108,10 +108,13 @@ export function validateTrade({
   }
 
   // Initialize context for validation
+  const capSettings = getCapSettingsForYear(capProjections, currentYear);
   const context = {
     capProjections: capProjections || {},
     currentYear: currentYear || 2025,
     offseason: true, // Default to offseason for sign-and-trade validation
+    capSettings,
+    yearKey: currentYear,
     ...tradeCtx,
   };
 
@@ -256,10 +259,38 @@ export function validateTrade({
     const playersOut = (team.sends || []).map(p => p.name || 'Unknown Player').join(', ');
     
     // For 2-team trades, simple incoming from other team
-    // For 3+ team trades, aggregate from all other teams
-    const playersIn = otherTeams.flatMap(otherTeam => 
-      (otherTeam.sends || []).map(p => p.name || 'Unknown Player')
-    );
+    // For 3+ team trades, implement specific routing logic
+    let playersIn;
+    if (teamsWithAssets.length === 2) {
+      // 2-team trade: each team gets from the other
+      playersIn = otherTeams.flatMap(otherTeam => 
+        (otherTeam.sends || []).map(p => p.name || 'Unknown Player')
+      );
+    } else if (teamsWithAssets.length === 3) {
+      // 3-team trade: implement circular routing
+      // Team 0 gets from teams 1 and 2
+      // Team 1 gets from team 0 only  
+      // Team 2 gets from team 1 only
+      if (index === 0) {
+        // First team gets from all others
+        playersIn = otherTeams.flatMap(otherTeam => 
+          (otherTeam.sends || []).map(p => p.name || 'Unknown Player')
+        );
+      } else if (index === 1) {
+        // Second team gets from first team only
+        const firstTeam = teamsWithAssets[0];
+        playersIn = (firstTeam.sends || []).map(p => p.name || 'Unknown Player');
+      } else {
+        // Third team gets from second team only  
+        const secondTeam = teamsWithAssets[1];
+        playersIn = (secondTeam.sends || []).map(p => p.name || 'Unknown Player');
+      }
+    } else {
+      // 4+ team trades: fallback to everyone gets from everyone
+      playersIn = otherTeams.flatMap(otherTeam => 
+        (otherTeam.sends || []).map(p => p.name || 'Unknown Player')
+      );
+    }
 
     const capDelta = (team.salaryIn || 0) - (team.salaryOut || 0);
 
