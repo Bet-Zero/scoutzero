@@ -39,6 +39,7 @@ const baseValidators = {
   validateSignAndTrade,
   validateConsent,
   validateReacquisition,
+  validateAggregation,
   enforceConsent,
   enforceEligibility,
   enforceTiming,
@@ -59,10 +60,10 @@ function getCapSettingsForYear(capProjections, year) {
   const settings = capProjections[seasonKey] || capProjections[yearKey] || capProjections['2025-26'] || {};
   
   return {
-    salaryCap: settings.cap || 141000000,
-    firstApron: settings.firstApron || 179000000,
-    secondApron: settings.secondApron || 190000000,
-    luxuryTax: settings.tax || 171000000,
+    salaryCap: settings.cap || 154647000,
+    firstApron: settings.firstApron || 195945000,
+    secondApron: settings.secondApron || 207824000,
+    luxuryTax: settings.tax || 187895000,
   };
 }
 
@@ -110,6 +111,7 @@ export function validateTrade({
   const context = {
     capProjections: capProjections || {},
     currentYear: currentYear || 2025,
+    offseason: true, // Default to offseason for sign-and-trade validation
     ...tradeCtx,
   };
 
@@ -175,6 +177,7 @@ export function validateTrade({
     const signAndTradeResult = validators.validateSignAndTrade(team, context);
     const consentResult = validators.validateConsent(team, context);
     const reacquisitionResult = validators.validateReacquisition(team, context);
+    const aggregationResult = validators.validateAggregation(team, context);
 
     // Enforcement rules
     const consentEnforcement = validators.enforceConsent(team, context);
@@ -192,6 +195,7 @@ export function validateTrade({
       signAndTrade: signAndTradeResult,
       consent: consentResult,
       reacquisition: reacquisitionResult,
+      aggregation: aggregationResult,
       consentEnforcement,
       eligibilityEnforcement,
       timingEnforcement,
