@@ -35,6 +35,11 @@ export function validateSignAndTrade(team, tradeCtx = {}) {
     violations.push('Sign-and-trade players can only be traded during the offseason');
   }
 
+  // Rule 1.5: Sign-and-trade players must be traded alone
+  if (outgoingSignAndTradePlayers.length > 0 && (team.sends || []).length > 1) {
+    violations.push('Sign-and-trade player must be traded alone.');
+  }
+
   // Rule 2: Teams using taxpayer MLE cannot receive sign-and-trade players
   if (incomingSignAndTradePlayers.length > 0 && (team.team?.usedTaxpayerMLEThisSeason || team.usedTaxpayerMLEThisSeason)) {
     violations.push('Teams that used the taxpayer MLE cannot receive sign-and-trade players');
@@ -44,7 +49,7 @@ export function validateSignAndTrade(team, tradeCtx = {}) {
   incomingSignAndTradePlayers.forEach(player => {
     // Rule 3: Contract must be at least 3 years (reject 2 years)
     if (player.contractYears === 2) {
-      violations.push(`Sign-and-trade player ${player.name || player.id} has invalid contract length (2 years)`);
+      violations.push(`Sign-and-trade player ${player.name || player.id} contract must be 3-4 years`);
     }
 
     // Rule 4: First year must be guaranteed
@@ -57,7 +62,7 @@ export function validateSignAndTrade(team, tradeCtx = {}) {
   outgoingSignAndTradePlayers.forEach(player => {
     // Rule 3: Contract must be at least 3 years (reject 2 years)
     if (player.contractYears === 2) {
-      violations.push(`Sign-and-trade player ${player.name || player.id} has invalid contract length (2 years)`);
+      violations.push(`Sign-and-trade player ${player.name || player.id} contract must be 3-4 years`);
     }
 
     // Rule 4: First year must be guaranteed
@@ -83,12 +88,14 @@ export function validateSignAndTrade(team, tradeCtx = {}) {
     const projectedSalary = teamTotalSalary + salaryIn - salaryOut;
     
     // Get first apron from context
+    const currentYearKey = `${(tradeCtx.currentYear || 2025)-1}-${(tradeCtx.currentYear || 2025).toString().slice(-2)}`;
+    const yearSettings = tradeCtx.capProjections?.[currentYearKey] || {};
     const firstApron = tradeCtx.capSettings?.firstApron || 
-                      tradeCtx.context?.capSettings?.firstApron || 
-                      172_346_000; // Default 2025 first apron
+                      yearSettings.firstApron ||
+                      178_132_000; // Default 2025 first apron
     
     if (projectedSalary > firstApron) {
-      violations.push(`Team would exceed hard cap (first apron: ${firstApron.toLocaleString()}) after receiving sign-and-trade player`);
+      violations.push(`Team would exceed hard-cap (first apron: ${firstApron.toLocaleString()}) after receiving sign-and-trade player`);
     }
   }
 

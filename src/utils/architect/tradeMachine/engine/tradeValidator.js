@@ -110,6 +110,7 @@ export function validateTrade({
   const context = {
     capProjections: capProjections || {},
     currentYear: currentYear || 2025,
+    offseason: true, // Default to offseason for sign-and-trade validation
     ...tradeCtx,
   };
 
