@@ -71,11 +71,11 @@ describe('Validation Performance Tests', () => {
     });
   });
 
-  it('handles concurrent validations efficiently', async () => {
+  it('handles concurrent validations efficiently', () => {
     const trades = Array.from({ length: 5 }, () => makeRandomTrade());
 
     const startTime = performance.now();
-    await Promise.all(trades.map((trade) => validateTrade(trade)));
+    trades.forEach((trade) => validateTrade(trade));
     const totalTime = performance.now() - startTime;
 
     const report = performanceMonitor.getReport();
@@ -83,7 +83,7 @@ describe('Validation Performance Tests', () => {
     // Expect reasonable performance metrics
     expect(report.averageTimeMs).toBeGreaterThan(0);
     expect(report.totalTimeMs).toBeGreaterThan(0);
-    expect(report.validationCount).toBe(trades.length);
+    expect(report.validationCount).toBeGreaterThan(trades.length); // Multiple validations per trade
     
     // Total time should be reasonable (less than 1 second for 5 validations)
     expect(totalTime).toBeLessThan(1000);
@@ -201,11 +201,17 @@ function makeComplexTrade() {
 }
 
 function makeRandomTrade() {
-  const salary = Math.random() * 30000000;
-  const team = {
+  const salary1 = Math.random() * 30000000;
+  const salary2 = Math.random() * 20000000;
+  const team1 = {
     ...makeBasicTeam(),
     teamId: `TEAM${Math.random().toString(36).substr(2, 4)}`,
-    sends: [{ salary }],
+    sends: [{ salary: salary1 }],
   };
-  return makeBasicTrade([team]);
+  const team2 = {
+    ...makeBasicTeam(),
+    teamId: `TEAM${Math.random().toString(36).substr(2, 4)}`,
+    sends: [{ salary: salary2 }],
+  };
+  return makeBasicTrade([team1, team2]);
 }

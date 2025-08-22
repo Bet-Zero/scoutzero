@@ -131,6 +131,14 @@ export function validateTrade({
       }, 0);
     }, 0);
 
+    // Populate incoming players (what this team is receiving from other teams)
+    const incomingPlayers = otherTeams.reduce((players, otherTeam) => {
+      return players.concat(otherTeam.sends || []);
+    }, []);
+
+    // Populate outgoing players (what this team is sending out)
+    const outgoingPlayers = team.sends || [];
+
     // Calculate projected salary after trade
     const currentSalary = team.team.teamTotalSalary || team.team.totalSalary || 0;
     const projectedSalary = currentSalary - salaryOut + salaryIn;
@@ -141,6 +149,8 @@ export function validateTrade({
       salaryIn,
       projectedSalary,
       teamTotalSalary: currentSalary,
+      incomingPlayers,
+      outgoingPlayers,
       cashSent: team.cashSent || 0,
       cashReceived: team.cashReceived || 0,
       context: {
@@ -157,20 +167,20 @@ export function validateTrade({
     const teamName = team.team?.teamName || team.team?.name || team.team?.nickname || `Team ${index}`;
 
     // Run individual validation rules
-    const salaryMatchingResult = validateSalaryMatching(team, context);
-    const hardCapResult = validateHardCap(team, context);
-    const stepienResult = validateStepien(team, context);
-    const cashResult = validateCash(team, context);
-    const tradeExceptionsResult = validateTradeExceptions(team, context);
-    const signAndTradeResult = validateSignAndTrade(team, context);
-    const consentResult = validateConsent(team, context);
-    const reacquisitionResult = validateReacquisition(team, context);
+    const salaryMatchingResult = validators.validateSalaryMatching(team, context);
+    const hardCapResult = validators.validateHardCap(team, context);
+    const stepienResult = validators.validateStepien(team, context);
+    const cashResult = validators.validateCash(team, context);
+    const tradeExceptionsResult = validators.validateTradeExceptions(team, context);
+    const signAndTradeResult = validators.validateSignAndTrade(team, context);
+    const consentResult = validators.validateConsent(team, context);
+    const reacquisitionResult = validators.validateReacquisition(team, context);
 
     // Enforcement rules
-    const consentEnforcement = enforceConsent(team, context);
-    const eligibilityEnforcement = enforceEligibility(team, context);
-    const timingEnforcement = enforceTiming(team, context);
-    const secondApronEnforcement = enforceSecondApronHandcuffs(team, context);
+    const consentEnforcement = validators.enforceConsent(team, context);
+    const eligibilityEnforcement = validators.enforceEligibility(team, context);
+    const timingEnforcement = validators.enforceTiming(team, context);
+    const secondApronEnforcement = validators.enforceSecondApronHandcuffs(team, context);
 
     // Aggregate violations and warnings
     const allRules = {
@@ -228,7 +238,7 @@ export function validateTrade({
       totalSalary: team.team?.teamTotalSalary || team.team?.totalSalary || 0,
       projectedSalary: team.projectedSalary || 0,
       capRoom: Math.max(0, (context.capProjections?.salaryCap || 141000000) - (team.projectedSalary || 0)),
-      hardCapped: team.team?.hardCapped || false,
+      hardCapped: team.team?.hardCapped || signAndTradeResult?.hardCapped || false,
       createdTPE: null, // TODO: Calculate TPE creation
       details: isTeamLegal ? 'Valid trade for this team' : violations.join('; '),
       warningDetails: warnings.join('; '),
