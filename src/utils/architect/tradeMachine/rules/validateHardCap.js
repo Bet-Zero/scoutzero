@@ -9,8 +9,10 @@ export function validateHardCap(team, context = {}) {
 
   // Extract data from team object (tests pass data directly on team)
   const teamTotalSalary = team.team?.totalSalary || 0;
+  const salaryIn = team.salaryIn || 0;
+  const salaryOut = team.salaryOut || 0;
   const projectedSalary =
-    team.projectedSalary ?? context.projectedSalary ?? teamTotalSalary;
+    team.projectedSalary ?? context.projectedSalary ?? (teamTotalSalary + salaryIn - salaryOut);
 
   // Extract cap settings from team or context
   const teamCapSettings = team.capSettings || {};
@@ -46,6 +48,11 @@ export function validateHardCap(team, context = {}) {
 
   // Teams above second apron are automatically hard-capped and cannot exceed current salary
   if (isAboveSecondApron && projectedSalary > teamTotalSalary) {
+    violations.push(`Second apron team cannot receive more salary than sent`);
+  }
+
+  // Teams explicitly hard-capped (first or second apron) cannot receive more than they send
+  if ((isHardCappedFirstApron || isHardCappedSecondApron) && projectedSalary > teamTotalSalary) {
     violations.push(`Second apron team cannot receive more salary than sent`);
   }
 
