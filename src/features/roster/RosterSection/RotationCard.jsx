@@ -2,10 +2,15 @@ import React from 'react';
 import PlayerNameMini from '@/features/table/PlayerTable/PlayerRow/PlayerNameMini';
 import { getPlayerPositionLabel } from '@/utils/roles';
 
-const RotationCard = ({ player, onRemove, showRemove = true, isExport = false }) => {
+const RotationCard = ({
+  player,
+  onRemove,
+  showRemove = true,
+  isExport = false,
+}) => {
   if (!player) return null;
 
-  const headshot = player.headshot || '/default_headshot.png';
+  const headshot = player.headshot || '/assets/headshots/default.webp';
 
   return (
     <div className="relative overflow-visible p-[2px]">

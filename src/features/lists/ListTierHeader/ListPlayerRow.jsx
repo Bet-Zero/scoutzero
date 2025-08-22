@@ -24,7 +24,9 @@ const ListPlayerRow = ({
     formattedPosition:
       player.formattedPosition || POSITION_MAP[player.bio?.Position] || '—',
     headshotUrl:
-      player.headshotUrl || `/assets/headshots/${player.player_id}.png`,
+      player.headshot ||
+      player.headshotUrl ||
+      `/assets/headshots/${player.player_id}.webp`,
     offenseRole: player.roles?.offense1 || player.offenseRole || '—',
     defenseRole: player.roles?.defense1 || player.defenseRole || '—',
     shootingProfile: player.shootingProfile || '—',

@@ -14,7 +14,10 @@ const RankingResults = ({ ranking = [] }) => {
 
   const handleExportCSV = () => {
     const rows = ranking
-      .map((p, idx) => `${idx + 1},"${(p.display_name || p.name).replace(/"/g, '""')}"`)
+      .map(
+        (p, idx) =>
+          `${idx + 1},"${(p.display_name || p.name).replace(/"/g, '""')}"`
+      )
       .join('\n');
     const csv = `Rank,Name\n${rows}`;
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -50,7 +53,7 @@ const RankingResults = ({ ranking = [] }) => {
           const headshot =
             p.headshot ||
             p.headshotUrl ||
-            `/assets/headshots/${p.player_id || p.id}.png`;
+            `/assets/headshots/${p.player_id || p.id}.webp`;
           return (
             <li
               key={p.id}
@@ -62,7 +65,7 @@ const RankingResults = ({ ranking = [] }) => {
                 alt=""
                 className="w-8 h-8 rounded-full object-cover"
                 onError={(e) => {
-                  e.target.src = '/assets/headshots/default.png';
+                  e.target.src = '/assets/headshots/default.webp';
                 }}
               />
               <span className="truncate">{p.display_name || p.name}</span>

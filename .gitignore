@@ -2,7 +2,6 @@ node_modules/
 .venv/
 venv/
 data/
-public/assets/headshots/
 .vite/
 .github/
 .vercel/

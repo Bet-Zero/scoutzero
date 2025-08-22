@@ -8,9 +8,9 @@ const TierPlayerTile = ({ player }) => {
   if (!player) return null;
 
   const headshot =
-    player.headshot ||
     player.headshotUrl ||
-    `/assets/headshots/${player.player_id}.png`;
+    player.headshot ||
+    `/assets/headshots/${player.player_id}.webp`;
 
   const height = player.bio?.HT ? player.bio.HT.replace('-', `'`) : '—';
 
@@ -26,7 +26,7 @@ const TierPlayerTile = ({ player }) => {
   const lastName = nameParts.slice(1).join(' ').toUpperCase() || '';
 
   return (
-    <div className="relative overflow-visible p-[1px]">
+    <div className="relative overflow-visible p-[2px]">
       <div className="relative bg-gradient-to-br from-[#1e1e1e] to-[#111] border border-white/10 rounded-md overflow-hidden shadow-md flex flex-col w-[92px] h-[112px] text-[10px] hover:shadow-xl transition-all duration-200">
         <div className="flex-1 relative">
           <img
@@ -34,7 +34,7 @@ const TierPlayerTile = ({ player }) => {
             alt={player.name}
             className="w-full h-full object-cover"
             onError={(e) => {
-              e.target.src = '/assets/headshots/default.png';
+              e.target.src = '/assets/headshots/default.webp';
             }}
           />
           <div className="absolute top-1 left-1 px-[4px] py-[1px] bg-black/00 text-white/40 text-[12px] font-semibold uppercase rounded-sm tracking-wider shadow-md">

@@ -36,13 +36,13 @@ const PlayerRow = ({ player, ranking = '—' }) => {
         </div>
 
         {/* Player Image */}
-        <div className="h-full w-20 bg-[#2a2a2a] flex items-center justify-center overflow-hidden">
+        <div className="h-[58px] w-[56px] bg-[#2a2a2a] overflow-hidden">
           <img
             src={
-              player.headshotUrl || `/assets/headshots/${player.player_id}.png`
+              player.headshotUrl || `/assets/headshots/${player.player_id}.webp`
             }
             onError={(e) => {
-              e.target.src = '/assets/headshots/default.png';
+              e.target.src = '/assets/headshots/default.webp';
             }}
             alt={player.name}
             className="h-full w-full object-cover"

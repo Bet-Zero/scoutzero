@@ -5,7 +5,7 @@ export function normalizePlayer(player) {
   return {
     ...player,
     display_name: player.display_name || player.name || 'Unknown Player',
-    headshot: player.headshot || `/assets/headshots/${player.id}.png`,
+    headshot: player.headshot || `/assets/headshots/${player.id}.webp`,
     bio: {
       ...player.bio,
       Position: player.bio?.Position || 'Unknown',

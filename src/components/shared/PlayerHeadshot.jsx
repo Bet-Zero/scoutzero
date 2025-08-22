@@ -1,14 +1,14 @@
 import React from 'react';
 
 const PlayerHeadshot = ({ src, playerId, className = '' }) => {
-  const initialSrc = src || `/assets/headshots/${playerId}.png`;
+  const initialSrc = src || `/assets/headshots/${playerId}.webp`;
 
   const handleError = (e) => {
     if (!playerId) {
-      e.target.src = '/assets/headshots/default.png';
+      e.target.src = '/assets/headshots/default.webp';
       return;
     }
-    e.target.src = '/assets/headshots/default.png';
+    e.target.src = '/assets/headshots/default.webp';
   };
 
   return (
