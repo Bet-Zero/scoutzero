@@ -22,7 +22,8 @@
     "map:dups": "node scripts/find-duplicates.cjs",
     "map:suggest": "node scripts/suggest-buckets.cjs",
     "map:all": "npm run map:dups && npm run map:suggest",
-    "deps:check": "depcruise src/utils/architect/tradeMachine --config scripts/depcruise.architect.cjs"
+    "deps:check": "depcruise src/utils/architect/tradeMachine --config scripts/depcruise.architect.cjs",
+    "convert-headshots": "node scripts/convert-headshots.js"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.6",
