@@ -119,6 +119,7 @@ export function validateTrade({
     offseason: true, // Default to offseason for sign-and-trade validation
     capSettings,
     yearKey: currentYear,
+    teams: validTeams, // Add teams array for consent validation
     ...tradeCtx,
   };
 
