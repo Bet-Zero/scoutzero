@@ -30,10 +30,10 @@ const ListExportPlayerRowSingle = ({ player, rank }) => {
       <div className="h-full w-[70px] bg-[#2a2a2a] flex items-center justify-center overflow-hidden">
         <img
           src={
-            player.headshotUrl || `/assets/headshots/${player.player_id}.webp`
+            player.headshotUrl || `/assets/headshots/${player.player_id}.png`
           }
           onError={(e) => {
-            e.target.src = '/assets/headshots/default.webp';
+            e.target.src = '/assets/headshots/default.png';
           }}
           alt={player.name}
           className="h-full w-full object-cover"

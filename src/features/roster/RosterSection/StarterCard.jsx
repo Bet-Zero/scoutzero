@@ -10,9 +10,10 @@ const StarterCard = ({
 }) => {
   if (!player) return null;
 
-  const headshot =
-    player.headshot ||
-    'https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/default.webp';
+  const defaultHeadshotUrl =
+    'https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/default.png';
+
+  const headshot = player.headshot || defaultHeadshotUrl;
 
   return (
     <div className="relative overflow-visible p-[2px]">

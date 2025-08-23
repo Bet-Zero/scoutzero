@@ -11,7 +11,7 @@ const PlayerRowMini = ({ player, onClick }) => {
   const name = player.display_name || player.name || 'Unknown Player';
   const headshot =
     player.headshot ||
-    `https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/${player.id}.webp`;
+    `https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/${player.id}.png`;
 
   const rawPosition = player.bio?.Position || '—';
   const position = getPlayerPositionLabel(rawPosition);
@@ -42,7 +42,7 @@ const PlayerRowMini = ({ player, onClick }) => {
             src={headshot}
             onError={(e) => {
               e.target.src =
-                'https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/default.webp';
+                'https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/default.png';
             }}
             alt={name}
             className="h-full w-full object-cover"

@@ -10,7 +10,7 @@ const TierPlayerTile = ({ player }) => {
   const headshot =
     player.headshot ||
     player.headshotUrl ||
-    `https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/${player.player_id}.webp`;
+    `https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/${player.player_id}.png`;
 
   const height = player.bio?.HT ? player.bio.HT.replace('-', `'`) : '—';
 
@@ -35,7 +35,7 @@ const TierPlayerTile = ({ player }) => {
             className="w-full h-full object-cover"
             onError={(e) => {
               e.target.src =
-                'https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/default.webp';
+                'https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/default.png';
             }}
           />
           <div className="absolute top-1 left-1 px-[4px] py-[1px] bg-black/00 text-white/40 text-[12px] font-semibold uppercase rounded-sm tracking-wider shadow-md">

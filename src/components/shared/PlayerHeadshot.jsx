@@ -3,16 +3,16 @@ import React from 'react';
 const PlayerHeadshot = ({ src, playerId, className = '' }) => {
   const initialSrc =
     src ||
-    `https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/${playerId}.webp`;
+    `https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/${playerId}.png`;
 
   const handleError = (e) => {
     if (!playerId) {
       e.target.src =
-        'https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/default.webp';
+        'https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/default.png';
       return;
     }
     e.target.src =
-      'https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/default.webp';
+      'https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/default.png';
   };
 
   return (

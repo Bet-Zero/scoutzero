@@ -28,13 +28,17 @@ export function normalizePlayerData(playerData) {
     if (isNaN(salaryMap[s.year])) salaryMap[s.year] = null;
   });
 
+  const headshotUrl =
+    playerData.headshot_url ||
+    `https://ak-static.cms.nba.com/wp-content/uploads/headshots/nba/latest/260x190/${playerData.nba_id}.png`;
+
   return {
     ...playerData,
     formattedPosition,
     heightInInches: calculateHeight(playerData.bio?.HT),
     weight: parseInt(playerData.bio?.WT || 0),
     age: parseInt(playerData.bio?.AGE || 0),
-    headshotUrl: `/assets/headshots/${playerData.player_id}.webp`,
+    headshotUrl,
     offenseRole: playerData.roles?.offense1 || '—',
     defenseRole: playerData.roles?.defense1 || '—',
     shootingProfile: playerData.shootingProfile || '—',

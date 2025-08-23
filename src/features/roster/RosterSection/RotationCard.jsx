@@ -12,7 +12,7 @@ const RotationCard = ({
 
   const headshot =
     player.headshot ||
-    'https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/default.webp';
+    'https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/default.png';
 
   return (
     <div className="relative overflow-visible p-[2px]">
