@@ -10,7 +10,8 @@ const samplePlayer = {
   name: 'Aaron Gordon',
   display_name: 'Aaron Gordon',
   formattedPosition: 'F',
-  headshotUrl: '/assets/headshots/aaron_gordon.webp',
+  headshotUrl:
+    'https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/aaron_gordon.webp',
   bio: {
     HT: "6'8",
     WT: 235,

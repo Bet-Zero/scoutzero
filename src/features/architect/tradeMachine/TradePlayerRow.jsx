@@ -110,8 +110,11 @@ const TradePlayerRow = ({
       {/* Headshot - unchanged */}
       <div className="h-full w-[70px] bg-[#2a2a2a] flex items-center justify-center overflow-hidden">
         <img
-          src={`/assets/headshots/${player.player_id}.webp`}
-          onError={(e) => (e.target.src = '/assets/headshots/default.webp')}
+          src={`https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/${player.player_id}.webp`}
+          onError={(e) =>
+            (e.target.src =
+              'https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/default.webp')
+          }
           alt={player.display_name || player.name}
           className="h-full w-full object-cover"
         />

@@ -1,14 +1,18 @@
 import React from 'react';
 
 const PlayerHeadshot = ({ src, playerId, className = '' }) => {
-  const initialSrc = src || `/assets/headshots/${playerId}.webp`;
+  const initialSrc =
+    src ||
+    `https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/${playerId}.webp`;
 
   const handleError = (e) => {
     if (!playerId) {
-      e.target.src = '/assets/headshots/default.webp';
+      e.target.src =
+        'https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/default.webp';
       return;
     }
-    e.target.src = '/assets/headshots/default.webp';
+    e.target.src =
+      'https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/default.webp';
   };
 
   return (

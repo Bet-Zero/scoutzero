@@ -84,10 +84,12 @@ const FreeAgentRow = ({
       <div className="h-[43px] w-[50px] bg-[#2a2a2a] flex items-center justify-center overflow-hidden">
         <img
           src={
-            player.headshotUrl || `/assets/headshots/${player.player_id}.webp`
+            player.headshotUrl ||
+            `https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/${player.player_id}.webp`
           }
           onError={(e) => {
-            e.target.src = '/assets/headshots/default.webp';
+            e.target.src =
+              'https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/default.webp';
           }}
           alt={name}
           className="h-full w-full object-cover"

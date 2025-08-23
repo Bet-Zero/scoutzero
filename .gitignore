@@ -48,3 +48,5 @@ repomix-output.xmlArchitect.xml
 patch-temp.patch
 CHAT_CONTEXT.md
 atlas-docs/
+.vercel
+.env*.local

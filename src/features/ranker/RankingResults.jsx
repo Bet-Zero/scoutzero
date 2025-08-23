@@ -53,7 +53,7 @@ const RankingResults = ({ ranking = [] }) => {
           const headshot =
             p.headshot ||
             p.headshotUrl ||
-            `/assets/headshots/${p.player_id || p.id}.webp`;
+            `https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/${p.player_id || p.id}.webp`;
           return (
             <li
               key={p.id}
@@ -65,7 +65,8 @@ const RankingResults = ({ ranking = [] }) => {
                 alt=""
                 className="w-8 h-8 rounded-full object-cover"
                 onError={(e) => {
-                  e.target.src = '/assets/headshots/default.webp';
+                  e.target.src =
+                    'https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/default.webp';
                 }}
               />
               <span className="truncate">{p.display_name || p.name}</span>

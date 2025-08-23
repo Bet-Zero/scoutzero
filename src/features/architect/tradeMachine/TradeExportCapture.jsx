@@ -146,7 +146,7 @@ const TradeExportCapture = React.forwardRef(
                               const headshot =
                                 p.headshotUrl ||
                                 p.headshot ||
-                                `/assets/headshots/${p.id || p.player_id}.webp`;
+                                `https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/${p.id || p.player_id}.webp`;
                               return (
                                 <div
                                   key={i}
@@ -157,7 +157,7 @@ const TradeExportCapture = React.forwardRef(
                                     alt={p.name}
                                     onError={(e) => {
                                       e.target.src =
-                                        '/assets/headshots/default.webp';
+                                        'https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/default.webp';
                                     }}
                                     className="w-14 h-14 object-cover rounded-lg bg-neutral-700 shadow-md"
                                   />

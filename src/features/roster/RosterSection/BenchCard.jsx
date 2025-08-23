@@ -10,7 +10,9 @@ const BenchCard = ({
 }) => {
   if (!player) return null;
 
-  const headshot = player.headshot || '/assets/headshots/default.webp';
+  const headshot =
+    player.headshot ||
+    'https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/default.webp';
 
   return (
     <div className="relative overflow-visible p-[2px]">

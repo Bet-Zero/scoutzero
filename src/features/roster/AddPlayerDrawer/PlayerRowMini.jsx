@@ -9,7 +9,9 @@ const PlayerRowMini = ({ player, onClick }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const name = player.display_name || player.name || 'Unknown Player';
-  const headshot = player.headshot || `/assets/headshots/${player.id}.webp`;
+  const headshot =
+    player.headshot ||
+    `https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/${player.id}.webp`;
 
   const rawPosition = player.bio?.Position || '—';
   const position = getPlayerPositionLabel(rawPosition);
@@ -39,7 +41,8 @@ const PlayerRowMini = ({ player, onClick }) => {
           <img
             src={headshot}
             onError={(e) => {
-              e.target.src = '/assets/headshots/default.webp';
+              e.target.src =
+                'https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/default.webp';
             }}
             alt={name}
             className="h-full w-full object-cover"
