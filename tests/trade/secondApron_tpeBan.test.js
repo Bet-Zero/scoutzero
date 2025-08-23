@@ -39,7 +39,7 @@ describe('second apron prior-year TPE usage', () => {
   it('rejects prior-year TPEs for second-apron teams', () => {
     const res = runTrade(
       [{ amount: 5_000_000, createdSeason: currentYear - 1 }],
-      190_000_000
+      210_000_000 // Changed from 190M to be over 207.8M second apron
     );
     expect(res.teamResults[0].legal).toBe(false);
     expect(res.teamResults[0].violations).toContain(
@@ -50,7 +50,7 @@ describe('second apron prior-year TPE usage', () => {
   it('rejects current-year TPEs for second-apron teams', () => {
     const res = runTrade(
       [{ amount: 5_000_000, createdSeason: currentYear }],
-      190_000_000
+      210_000_000 // Changed from 190M to be over 207.8M second apron
     );
     expect(res.teamResults[0].legal).toBe(false);
     expect(res.teamResults[0].violations).toContain(

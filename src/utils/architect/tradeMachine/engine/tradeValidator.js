@@ -91,6 +91,8 @@ export function validateTrade({
       teamResults: [],
       summaryByTeamIndex: [],
       reason: 'Invalid trade: Need at least 2 teams',
+      error: 'INVALID_INPUT',
+      violations: ['Trade must include at least 2 teams'],
       performance: { validationTime: performance.now() - startTime },
     };
   }
@@ -103,6 +105,8 @@ export function validateTrade({
       teamResults: [],
       summaryByTeamIndex: [],
       reason: 'Invalid trade: Need at least 2 valid teams',
+      error: 'INVALID_INPUT',
+      violations: ['Trade must include at least 2 teams'],
       performance: { validationTime: performance.now() - startTime },
     };
   }
