@@ -50,6 +50,9 @@ CHAT_CONTEXT.md
 atlas-docs/
 .vercel
 .env*.local
+BOOT_PROMPT.md
+DIRECTION_CHARTER.md
+PROJECT_CONTEXT.md
 
 # Ignore all player headshots
 public/assets/headshots
