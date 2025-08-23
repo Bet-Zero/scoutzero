@@ -18,7 +18,7 @@ const makeTeam = (id, name, totalSalary, year, rosterSize = 14) => ({
 });
 
 function runPickTrade(pick, currentYear) {
-  const teamA = makeTeam(1, 'A', 190_000_000, currentYear);
+  const teamA = makeTeam(1, 'A', 210_000_000, currentYear); // Changed from 190M to be over 207.8M second apron
   const teamB = makeTeam(2, 'B', 100_000_000, currentYear);
   return validateTrade({
     teams: [

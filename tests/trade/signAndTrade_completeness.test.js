@@ -142,7 +142,7 @@ describe('sign-and-trade completeness', () => {
 
   it('enforces hard cap after sign-and-trade', () => {
     const teamA = makeTeam('A', 100_000_000);
-    const teamB = makeTeam('B', 171_000_000);
+    const teamB = makeTeam('B', 180_000_000); // Changed from 171M to be closer to first apron threshold
     const sat = makePlayer('SAT', 20_000_000, { signAndTrade: true, originTeamId: 'A' });
     const b = makePlayer('B1', 1_000_000, { originTeamId: 'B' });
     teamA.players.push(sat);

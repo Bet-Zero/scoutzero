@@ -77,13 +77,14 @@ export function validateTradeExceptions(team) {
       return;
     }
 
-    // Check if TPE is expired using multiple possible date properties
-    const currentDate = new Date();
-    if (tpe.expiryISO && isExpiredTPE(tpe, currentDate.toISOString())) {
+    // Check if TPE is expired using the trade date
+    const tradeDate = context.tradeDate || new Date().toISOString();
+    if (tpe.expiryISO && isExpiredTPE(tpe, tradeDate)) {
       tpeViolations.push(`Trade exception ${tpe.id} is expired`);
     } else if (tpe.expiryDate) {
       const expiryDate = new Date(tpe.expiryDate);
-      if (currentDate > expiryDate) {
+      const tradeDateObj = new Date(tradeDate);
+      if (tradeDateObj > expiryDate) {
         tpeViolations.push(`Trade exception ${tpe.id} is expired`);
       }
     }

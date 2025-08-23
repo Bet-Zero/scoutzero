@@ -57,17 +57,6 @@ export function validateHardCap(team, context = {}) {
     }
   }
 
-  // Teams explicitly hard-capped (first or second apron) cannot receive more than they send
-  if ((isHardCappedFirstApron || isHardCappedSecondApron) && projectedSalary > teamTotalSalary) {
-    // Check if this is due to sign-and-trade (look for incoming sign-and-trade players)
-    const hasIncomingSignAndTrade = (team.incomingPlayers || []).some(p => p.signAndTrade === true);
-    if (hasIncomingSignAndTrade) {
-      violations.push(`Team would exceed hard-cap after receiving sign-and-trade player`);
-    } else {
-      violations.push(`Second apron team cannot receive more salary than sent`);
-    }
-  }
-
   // Teams explicitly hard-capped at first apron cannot exceed first apron
   if (isHardCappedFirstApron && projectedSalary > actualFirstApron) {
     violations.push(
