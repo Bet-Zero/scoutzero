@@ -246,7 +246,7 @@ export function validateTrade({
       projectedSalary: team.projectedSalary || 0,
       capRoom: Math.max(0, (context.capProjections?.salaryCap || 141000000) - (team.projectedSalary || 0)),
       hardCapped: team.team?.hardCapped || signAndTradeResult?.hardCapped || false,
-      createdTPE: null, // TODO: Calculate TPE creation
+      createdTPE: tradeExceptionsResult?.createdTPE || null,
       details: isTeamLegal ? 'Valid trade for this team' : violations.join('; '),
       warningDetails: warnings.join('; '),
     };

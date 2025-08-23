@@ -22,7 +22,7 @@ const makeTeam = (name, totalSalary, rosterSize = 14) => ({
 
 describe('TPE creation and usage', () => {
   it('creates a TPE when sending out more salary than received', () => {
-    const teamA = makeTeam('A', 150_000_000);
+    const teamA = makeTeam('A', 160_000_000); // Changed from 150M to be over 154.6M cap
     const teamB = makeTeam('B', 120_000_000);
     const outgoing = { ...makePlayer('Out', 18_000_000), toTeamId: 'B' };
     const incoming = { ...makePlayer('In', 10_000_000), fromTeamId: 'B' };
@@ -118,7 +118,7 @@ describe('TPE creation and usage', () => {
   });
 
   it('rejects TPE usage for second-apron teams', () => {
-    const teamA = makeTeam('A', 195_000_000);
+    const teamA = makeTeam('A', 210_000_000); // Changed from 195M to be over 207.8M second apron
     const teamB = makeTeam('B', 120_000_000);
     const tpe = {
       id: 't3',
