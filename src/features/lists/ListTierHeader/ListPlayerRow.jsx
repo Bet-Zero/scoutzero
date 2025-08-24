@@ -26,7 +26,7 @@ const ListPlayerRow = ({
     headshotUrl:
       player.headshot ||
       player.headshotUrl ||
-      `/assets/headshots/${player.player_id}.webp`,
+      `/assets/headshots/${player.player_id}.png`,
     offenseRole: player.roles?.offense1 || player.offenseRole || '—',
     defenseRole: player.roles?.defense1 || player.defenseRole || '—',
     shootingProfile: player.shootingProfile || '—',

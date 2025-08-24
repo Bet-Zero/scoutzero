@@ -53,7 +53,7 @@ const RankingResults = ({ ranking = [] }) => {
           const headshot =
             p.headshot ||
             p.headshotUrl ||
-            `/assets/headshots/${p.player_id || p.id}.webp`;
+            `/assets/headshots/${p.player_id || p.id}.png`;
           return (
             <li
               key={p.id}
@@ -65,7 +65,7 @@ const RankingResults = ({ ranking = [] }) => {
                 alt=""
                 className="w-8 h-8 rounded-full object-cover"
                 onError={(e) => {
-                  e.target.src = '/assets/headshots/default.webp';
+                  e.target.src = '/assets/headshots/default.png';
                 }}
               />
               <span className="truncate">{p.display_name || p.name}</span>

@@ -34,7 +34,7 @@ export function normalizePlayerData(playerData) {
     heightInInches: calculateHeight(playerData.bio?.HT),
     weight: parseInt(playerData.bio?.WT || 0),
     age: parseInt(playerData.bio?.AGE || 0),
-    headshotUrl: `/assets/headshots/${playerData.player_id}.webp`,
+    headshotUrl: `/assets/headshots/${playerData.player_id}.png`,
     offenseRole: playerData.roles?.offense1 || '—',
     defenseRole: playerData.roles?.defense1 || '—',
     shootingProfile: playerData.shootingProfile || '—',

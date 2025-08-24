@@ -10,7 +10,7 @@ const TierPlayerTile = ({ player }) => {
   const headshot =
     player.headshotUrl ||
     player.headshot ||
-    `/assets/headshots/${player.player_id}.webp`;
+    `/assets/headshots/${player.player_id}.png`;
 
   const height = player.bio?.HT ? player.bio.HT.replace('-', `'`) : '—';
 
@@ -34,7 +34,7 @@ const TierPlayerTile = ({ player }) => {
             alt={player.name}
             className="w-full h-full object-cover"
             onError={(e) => {
-              e.target.src = '/assets/headshots/default.webp';
+              e.target.src = '/assets/headshots/default.png';
             }}
           />
           <div className="absolute top-1 left-1 px-[4px] py-[1px] bg-black/00 text-white/40 text-[12px] font-semibold uppercase rounded-sm tracking-wider shadow-md">
