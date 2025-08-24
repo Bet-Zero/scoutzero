@@ -5,6 +5,7 @@ import React from 'react';
 import PlayerRow from '@/features/table/PlayerTable/PlayerRow';
 import { ChevronUp, ChevronDown, X } from 'lucide-react';
 import { POSITION_MAP } from '@/utils/roles';
+import { buildHeadshotUrl } from '@/utils/headshots';
 
 const ListPlayerRow = ({
   player,
@@ -23,10 +24,7 @@ const ListPlayerRow = ({
     id: player.player_id,
     formattedPosition:
       player.formattedPosition || POSITION_MAP[player.bio?.Position] || '—',
-    headshotUrl:
-      player.headshot ||
-      player.headshotUrl ||
-      `https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/${player.player_id}.png`,
+    headshotUrl: buildHeadshotUrl(player),
     offenseRole: player.roles?.offense1 || player.offenseRole || '—',
     defenseRole: player.roles?.defense1 || player.defenseRole || '—',
     shootingProfile: player.shootingProfile || '—',

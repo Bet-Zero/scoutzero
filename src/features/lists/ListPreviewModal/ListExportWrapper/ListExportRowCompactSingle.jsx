@@ -2,6 +2,7 @@
 import React from 'react';
 import TeamLogo from '@/components/shared/TeamLogo';
 import { getPlayerPositionLabel } from '@/utils/roles';
+import { buildHeadshotUrl, DEFAULT_HEADSHOT } from '@/utils/headshots';
 
 const ListExportRowCompactSingle = ({ player, rank }) => {
   const name = player.display_name || player.name || 'Unknown Player';
@@ -28,15 +29,14 @@ const ListExportRowCompactSingle = ({ player, rank }) => {
       {/* Headshot */}
       <div className="h-[45px] w-[50px] bg-[#2a2a2a] flex items-center justify-center overflow-hidden rounded-sm">
         <img
-          src={
-            player.headshotUrl ||
-            `https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/${player.player_id}.png`
-          }
+          src={buildHeadshotUrl(player)}
+          alt={player?.name || 'player headshot'}
+          loading="lazy"
           onError={(e) => {
-            e.target.src =
-              'https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/default.png';
+            if (e.currentTarget.src !== DEFAULT_HEADSHOT) {
+              e.currentTarget.src = DEFAULT_HEADSHOT; // graceful fallback
+            }
           }}
-          alt={player.name}
           className="h-full w-full object-cover"
         />
       </div>
