@@ -29,10 +29,12 @@ const ListExportRowCompactSingle = ({ player, rank }) => {
       <div className="h-[45px] w-[50px] bg-[#2a2a2a] flex items-center justify-center overflow-hidden rounded-sm">
         <img
           src={
-            player.headshotUrl || `/assets/headshots/${player.player_id}.png`
+            player.headshotUrl ||
+            `https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/${player.player_id}.png`
           }
           onError={(e) => {
-            e.target.src = '/assets/headshots/default.png';
+            e.target.src =
+              'https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/default.png';
           }}
           alt={player.name}
           className="h-full w-full object-cover"

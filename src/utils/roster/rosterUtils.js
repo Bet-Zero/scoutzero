@@ -5,7 +5,9 @@ export function normalizePlayer(player) {
   return {
     ...player,
     display_name: player.display_name || player.name || 'Unknown Player',
-    headshot: player.headshot || `/assets/headshots/${player.id}.png`,
+    headshot:
+      player.headshot ||
+      `https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/${player.id}.png`,
     bio: {
       ...player.bio,
       Position: player.bio?.Position || 'Unknown',
