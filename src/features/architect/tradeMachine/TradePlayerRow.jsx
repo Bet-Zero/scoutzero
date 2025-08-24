@@ -5,6 +5,7 @@ import { getPlayerPositionLabel } from '@/utils/roles';
 import { formatSalary } from '@/utils/formatting';
 import { getYearsRemaining } from '@/utils/contracts';
 import { ArrowsRightLeftIcon } from '@heroicons/react/20/solid';
+import { buildHeadshotUrl, DEFAULT_HEADSHOT } from '@/utils/headshots';
 
 const TradePlayerRow = ({
   player,
@@ -110,12 +111,14 @@ const TradePlayerRow = ({
       {/* Headshot - unchanged */}
       <div className="h-full w-[70px] bg-[#2a2a2a] flex items-center justify-center overflow-hidden">
         <img
-          src={`https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/${player.player_id}.png`}
-          onError={(e) =>
-            (e.target.src =
-              'https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/default.png')
-          }
-          alt={player.display_name || player.name}
+          src={buildHeadshotUrl(player)}
+          alt={player?.display_name || player?.name || 'player headshot'}
+          loading="lazy"
+          onError={(e) => {
+            if (e.currentTarget.src !== DEFAULT_HEADSHOT) {
+              e.currentTarget.src = DEFAULT_HEADSHOT; // graceful fallback
+            }
+          }}
           className="h-full w-full object-cover"
         />
       </div>

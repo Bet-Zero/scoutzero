@@ -1,4 +1,5 @@
 import React from 'react';
+import { buildHeadshotUrl, DEFAULT_HEADSHOT } from '@/utils/headshots';
 
 // Simple grid display for final rankings. Renders a responsive list of
 // player names with their rank number. Designed to scale up to large player
@@ -50,10 +51,6 @@ const RankingResults = ({ ranking = [] }) => {
       </div>
       <ol className="list-none columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-4">
         {ranking.map((p, idx) => {
-          const headshot =
-            p.headshot ||
-            p.headshotUrl ||
-            `https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/${p.player_id || p.id}.png`;
           return (
             <li
               key={p.id}
@@ -61,12 +58,14 @@ const RankingResults = ({ ranking = [] }) => {
             >
               <span className="font-bold">#{idx + 1}</span>
               <img
-                src={headshot}
+                src={buildHeadshotUrl(p)}
                 alt=""
+                loading="lazy"
                 className="w-8 h-8 rounded-full object-cover"
                 onError={(e) => {
-                  e.target.src =
-                    'https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/default.png';
+                  if (e.currentTarget.src !== DEFAULT_HEADSHOT) {
+                    e.currentTarget.src = DEFAULT_HEADSHOT; // graceful fallback
+                  }
                 }}
               />
               <span className="truncate">{p.display_name || p.name}</span>

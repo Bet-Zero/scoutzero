@@ -9,6 +9,7 @@ import {
   formatCurrency,
 } from '@/utils/architect/tradeHelpers';
 import { format } from 'date-fns';
+import { buildHeadshotUrl, DEFAULT_HEADSHOT } from '@/utils/headshots';
 
 const TradeExportCapture = React.forwardRef(
   (
@@ -143,20 +144,19 @@ const TradeExportCapture = React.forwardRef(
                                   String(yearKey).match(/\d{4}/)?.[0] || yearKey
                                 )
                               );
-                              const headshot =
-                                p.headshotUrl ||
-                                `https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/${p.id || p.player_id}.png`;
                               return (
                                 <div
                                   key={i}
                                   className="flex items-center gap-4 bg-neutral-800/40 rounded-xl px-3 py-2 border border-neutral-600/20"
                                 >
                                   <img
-                                    src={headshot}
-                                    alt={p.name}
+                                    src={buildHeadshotUrl(p)}
+                                    alt={p?.name || 'player headshot'}
+                                    loading="lazy"
                                     onError={(e) => {
-                                      e.target.src =
-                                        'https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/default.png';
+                                      if (e.currentTarget.src !== DEFAULT_HEADSHOT) {
+                                        e.currentTarget.src = DEFAULT_HEADSHOT; // graceful fallback
+                                      }
                                     }}
                                     className="w-14 h-14 object-cover rounded-lg bg-neutral-700 shadow-md"
                                   />

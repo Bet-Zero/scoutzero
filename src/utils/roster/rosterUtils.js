@@ -1,13 +1,12 @@
 import { POSITION_MAP } from '../roles/positionMap.js';
+import { buildHeadshotUrl } from '@/utils/headshots';
 
 export function normalizePlayer(player) {
   if (!player) return null;
   return {
     ...player,
     display_name: player.display_name || player.name || 'Unknown Player',
-    headshot:
-      player.headshot ||
-      `https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/${player.id}.png`,
+    headshot: buildHeadshotUrl(player),
     bio: {
       ...player.bio,
       Position: player.bio?.Position || 'Unknown',
