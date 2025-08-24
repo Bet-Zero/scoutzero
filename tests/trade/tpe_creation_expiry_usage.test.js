@@ -118,13 +118,13 @@ describe('TPE creation and usage', () => {
   });
 
   it('rejects TPE usage for second-apron teams', () => {
-    const teamA = makeTeam('A', 195_000_000);
+    const teamA = makeTeam('A', 220_000_000); // Above 2025 second apron threshold
     const teamB = makeTeam('B', 120_000_000);
     const tpe = {
       id: 't3',
       amount: 5_000_000,
-      expiryISO: '2025-07-02T00:00:00.000Z',
-      createdSeason: 2024,
+      expiryISO: '2026-07-02T00:00:00.000Z', // Not expired in 2025
+      createdSeason: 2024, // Prior year TPE
     };
     teamA.tradeExceptions = [tpe];
     const incoming = {
