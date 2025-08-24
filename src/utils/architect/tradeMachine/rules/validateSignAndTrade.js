@@ -90,8 +90,8 @@ export function validateSignAndTrade(team, tradeCtx = {}) {
     // Get first apron from context
     const currentYearKey = `${(tradeCtx.currentYear || 2025)-1}-${(tradeCtx.currentYear || 2025).toString().slice(-2)}`;
     const yearSettings = tradeCtx.capProjections?.[currentYearKey] || {};
-    const firstApron = tradeCtx.capSettings?.firstApron || 
-                      yearSettings.firstApron ||
+    const firstApron = yearSettings.firstApron ||
+                      tradeCtx.capSettings?.firstApron || 
                       178_132_000; // Default 2025 first apron
     
     if (projectedSalary > firstApron) {
