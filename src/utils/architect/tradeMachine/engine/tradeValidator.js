@@ -10,6 +10,7 @@ import { validationCache } from '../cache/validationCacheService.js';
 import { performanceMonitor } from './validationPerformanceMonitor.js';
 import { wrapCommonValidators } from './validationDecorator.js';
 import debug from './debug.js';
+import { createTPE } from '../utils/tpeUtils.js';
 
 // Import base validators from new structure
 import { validateSalaryMatching } from '../rules/validateSalaryMatching.js';
@@ -88,6 +89,8 @@ export function validateTrade({
   if (!teams || !Array.isArray(teams) || teams.length < 2) {
     return {
       legal: false,
+      error: 'INVALID_INPUT',
+      violations: ['Trade must include at least 2 teams'],
       teamResults: [],
       summaryByTeamIndex: [],
       reason: 'Invalid trade: Need at least 2 teams',
@@ -100,6 +103,8 @@ export function validateTrade({
   if (validTeams.length < 2) {
     return {
       legal: false,
+      error: 'INVALID_INPUT',
+      violations: ['Trade must include at least 2 valid teams'],
       teamResults: [],
       summaryByTeamIndex: [],
       reason: 'Invalid trade: Need at least 2 valid teams',
@@ -115,23 +120,47 @@ export function validateTrade({
     offseason: true, // Default to offseason for sign-and-trade validation
     capSettings,
     yearKey: currentYear,
+    teams: validTeams, // Add teams to context for consent validation
     ...tradeCtx,
+  };
+
+  // Helper function to get salary for matching purposes (with BYC and poison pill conversions)
+  const getSalaryForMatching = (player, currentYear, direction) => {
+    const baseSalary = getSalaryForYear(player, currentYear);
+    
+    // BYC (Base Year Compensation) conversion for outgoing players
+    if (direction === 'outgoing' && player.isBYC && player.previousSalary) {
+      return player.previousSalary;
+    }
+    
+    // Poison pill averaging for incoming players
+    if (direction === 'incoming' && player.isPoisonPill) {
+      const currentSalary = player.currentSalary || 0;
+      const extensionTotal = (player.extensionYears || []).reduce((sum, year) => sum + (year.salary || 0), 0);
+      const totalYears = 1 + (player.extensionYears || []).length; // current year + extension years
+      
+      if (totalYears > 0) {
+        return (currentSalary + extensionTotal) / totalYears;
+      }
+    }
+    
+    return baseSalary;
   };
 
   // Calculate incoming/outgoing assets for each team
   const teamsWithAssets = validTeams.map((team, index) => {
     const otherTeams = validTeams.filter((_, i) => i !== index);
     
-    // Calculate outgoing salary
+    // Calculate outgoing salary with BYC conversion
     const salaryOut = (team.sends || []).reduce((sum, player) => {
-      const salary = getSalaryForYear(player, currentYear || 2025);
+      const salary = getSalaryForMatching(player, currentYear || 2025, 'outgoing');
       return sum + (salary || 0);
     }, 0);
 
-    // Calculate incoming salary from other teams
+    // Calculate incoming salary from other teams with poison pill conversion
     const salaryIn = otherTeams.reduce((sum, otherTeam) => {
       return sum + (otherTeam.sends || []).reduce((playerSum, player) => {
-        const salary = getSalaryForYear(player, currentYear || 2025);
+        const salary = getSalaryForMatching(player, currentYear || 2025, 'incoming');
         return playerSum + (salary || 0);
       }, 0);
     }, 0);
@@ -246,7 +275,21 @@ export function validateTrade({
       projectedSalary: team.projectedSalary || 0,
       capRoom: Math.max(0, (context.capProjections?.salaryCap || 141000000) - (team.projectedSalary || 0)),
       hardCapped: team.team?.hardCapped || signAndTradeResult?.hardCapped || false,
-      createdTPE: null, // TODO: Calculate TPE creation
+      createdTPE: (() => {
+        // TPE is created when team sends out more salary than received and is over cap
+        const salaryOut = team.salaryOut || 0;
+        const salaryIn = team.salaryIn || 0;
+        const teamTotalSalary = team.teamTotalSalary || 0;
+        const salaryCap = context.capProjections?.cap || context.capSettings?.cap || 141000000;
+        const isOverCap = teamTotalSalary > salaryCap;
+        
+        return createTPE({
+          teamCtx: { isOverCap },
+          outgoing: salaryOut,
+          incoming: salaryIn,
+          tradeDate: context.tradeDate
+        });
+      })(),
       details: isTeamLegal ? 'Valid trade for this team' : violations.join('; '),
       warningDetails: warnings.join('; '),
     };
