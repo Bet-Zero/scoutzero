@@ -18,7 +18,7 @@ const makeTeam = (id, name, totalSalary, year, rosterSize = 14) => ({
 });
 
 function runPickTrade(pick, currentYear) {
-  const teamA = makeTeam(1, 'A', 190_000_000, currentYear);
+  const teamA = makeTeam(1, 'A', 220_000_000, currentYear); // Above 2025 second apron threshold
   const teamB = makeTeam(2, 'B', 100_000_000, currentYear);
   return validateTrade({
     teams: [
