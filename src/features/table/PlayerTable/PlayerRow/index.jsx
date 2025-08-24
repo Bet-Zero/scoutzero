@@ -39,8 +39,9 @@ const PlayerRow = ({ player, ranking = '—' }) => {
         <div className="h-[58px] w-[56px] bg-[#2a2a2a] overflow-hidden">
           <img
             src={
+              player.headshot ||
               player.headshotUrl ||
-              `https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/${player.player_id}.png`
+              `https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/${player.id || player.player_id}.png`
             }
             onError={(e) => {
               e.target.src =
