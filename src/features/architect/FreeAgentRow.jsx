@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { getPlayerPositionLabel } from '@/utils/roles';
 import { formatName } from '@/utils/formatting';
+import { buildHeadshotUrl, DEFAULT_HEADSHOT } from '@/utils/headshots';
 
 const FreeAgentRow = ({
   player = {},
@@ -83,15 +84,14 @@ const FreeAgentRow = ({
       {/* Headshot */}
       <div className="h-[43px] w-[50px] bg-[#2a2a2a] flex items-center justify-center overflow-hidden">
         <img
-          src={
-            player.headshotUrl ||
-            `https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/${player.player_id}.png`
-          }
+          src={buildHeadshotUrl(player)}
+          alt={name || 'player headshot'}
+          loading="lazy"
           onError={(e) => {
-            e.target.src =
-              'https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/default.png';
+            if (e.currentTarget.src !== DEFAULT_HEADSHOT) {
+              e.currentTarget.src = DEFAULT_HEADSHOT; // graceful fallback
+            }
           }}
-          alt={name}
           className="h-full w-full object-cover"
         />
       </div>

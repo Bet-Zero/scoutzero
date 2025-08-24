@@ -1,6 +1,7 @@
 import React from 'react';
 import PlayerNameMini from '@/features/table/PlayerTable/PlayerRow/PlayerNameMini';
 import { getPlayerPositionLabel } from '@/utils/roles';
+import { buildHeadshotUrl, DEFAULT_HEADSHOT } from '@/utils/headshots';
 
 const StarterCard = ({
   player,
@@ -10,18 +11,19 @@ const StarterCard = ({
 }) => {
   if (!player) return null;
 
-  const defaultHeadshotUrl =
-    'https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/default.png';
-
-  const headshot = player.headshot || defaultHeadshotUrl;
-
   return (
     <div className="relative overflow-visible p-[2px]">
       <div className="relative bg-gradient-to-br from-[#1e1e1e] to-[#111] border border-white/10 rounded-md overflow-hidden shadow-md flex flex-col w-40 h-60 text-base hover:shadow-xl transition-all duration-200">
         <div className="flex-1 relative">
           <img
-            src={headshot}
-            alt={player.name}
+            src={buildHeadshotUrl(player)}
+            alt={player?.name || 'player headshot'}
+            loading="lazy"
+            onError={(e) => {
+              if (e.currentTarget.src !== DEFAULT_HEADSHOT) {
+                e.currentTarget.src = DEFAULT_HEADSHOT; // graceful fallback
+              }
+            }}
             className="w-full h-full object-cover"
           />
           {showRemove && (

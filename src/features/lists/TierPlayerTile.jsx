@@ -3,14 +3,10 @@
 import React from 'react';
 import { getPlayerPositionLabel } from '@/utils/roles';
 import { formatHeight } from '@/utils/formatting';
+import { buildHeadshotUrl, DEFAULT_HEADSHOT } from '@/utils/headshots';
 
 const TierPlayerTile = ({ player }) => {
   if (!player) return null;
-
-  const headshot =
-    player.headshot ||
-    player.headshotUrl ||
-    `https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/${player.player_id}.png`;
 
   const height = player.bio?.HT ? player.bio.HT.replace('-', `'`) : '—';
 
@@ -30,12 +26,14 @@ const TierPlayerTile = ({ player }) => {
       <div className="relative bg-gradient-to-br from-[#1e1e1e] to-[#111] border border-white/10 rounded-md overflow-hidden shadow-md flex flex-col w-[92px] h-[112px] text-[10px] hover:shadow-xl transition-all duration-200">
         <div className="flex-1 relative">
           <img
-            src={headshot}
-            alt={player.name}
+            src={buildHeadshotUrl(player)}
+            alt={player?.name || 'player headshot'}
+            loading="lazy"
             className="w-full h-full object-cover"
             onError={(e) => {
-              e.target.src =
-                'https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/default.png';
+              if (e.currentTarget.src !== DEFAULT_HEADSHOT) {
+                e.currentTarget.src = DEFAULT_HEADSHOT; // graceful fallback
+              }
             }}
           />
           <div className="absolute top-1 left-1 px-[4px] py-[1px] bg-black/00 text-white/40 text-[12px] font-semibold uppercase rounded-sm tracking-wider shadow-md">

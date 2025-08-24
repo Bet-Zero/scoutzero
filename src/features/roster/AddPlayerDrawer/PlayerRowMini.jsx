@@ -4,14 +4,12 @@ import PlayerNameMini from '@/features/table/PlayerTable/PlayerRow/PlayerNameMin
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { getPlayerPositionLabel } from '@/utils/roles';
 import { formatSalary } from '@/utils/formatting';
+import { buildHeadshotUrl, DEFAULT_HEADSHOT } from '@/utils/headshots';
 
 const PlayerRowMini = ({ player, onClick }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const name = player.display_name || player.name || 'Unknown Player';
-  const headshot =
-    player.headshot ||
-    `https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/${player.id}.png`;
 
   const rawPosition = player.bio?.Position || '—';
   const position = getPlayerPositionLabel(rawPosition);
@@ -39,12 +37,14 @@ const PlayerRowMini = ({ player, onClick }) => {
         {/* Headshot */}
         <div className="h-[58px] w-[56px] -ml-0.5 bg-[#1e1e1e] overflow-hidden">
           <img
-            src={headshot}
+            src={buildHeadshotUrl(player)}
+            alt={name || 'player headshot'}
+            loading="lazy"
             onError={(e) => {
-              e.target.src =
-                'https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/default.png';
+              if (e.currentTarget.src !== DEFAULT_HEADSHOT) {
+                e.currentTarget.src = DEFAULT_HEADSHOT; // graceful fallback
+              }
             }}
-            alt={name}
             className="h-full w-full object-cover"
           />
         </div>

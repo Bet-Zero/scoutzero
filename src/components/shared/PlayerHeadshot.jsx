@@ -1,18 +1,14 @@
 import React from 'react';
+import { buildHeadshotUrl, DEFAULT_HEADSHOT } from '@/utils/headshots';
 
 const PlayerHeadshot = ({ src, playerId, className = '' }) => {
-  const initialSrc =
-    src ||
-    `https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/${playerId}.png`;
+  // Use provided src or build from playerId using utility
+  const initialSrc = src || buildHeadshotUrl({ id: playerId });
 
   const handleError = (e) => {
-    if (!playerId) {
-      e.target.src =
-        'https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/default.png';
-      return;
+    if (e.currentTarget.src !== DEFAULT_HEADSHOT) {
+      e.currentTarget.src = DEFAULT_HEADSHOT;
     }
-    e.target.src =
-      'https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/default.png';
   };
 
   return (
@@ -23,6 +19,7 @@ const PlayerHeadshot = ({ src, playerId, className = '' }) => {
         src={initialSrc}
         onError={handleError}
         alt="Player headshot"
+        loading="lazy"
         className="w-full h-full object-cover"
       />
     </div>

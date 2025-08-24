@@ -8,6 +8,7 @@ import TeamLogo from '@/components/shared/TeamLogo';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import AddToListButton from '@/features/lists/AddToListButton';
 import { getCurrentSeasonYear, getYearsRemaining } from '@/utils/contracts';
+import { buildHeadshotUrl, DEFAULT_HEADSHOT } from '@/utils/headshots';
 
 const PlayerRow = ({ player, ranking = '—' }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -38,16 +39,14 @@ const PlayerRow = ({ player, ranking = '—' }) => {
         {/* Player Image */}
         <div className="h-[58px] w-[56px] bg-[#2a2a2a] overflow-hidden">
           <img
-            src={
-              player.headshot ||
-              player.headshotUrl ||
-              `https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/${player.id || player.player_id}.png`
-            }
+            src={buildHeadshotUrl(player)}
+            alt={player?.name || 'player headshot'}
+            loading="lazy"
             onError={(e) => {
-              e.target.src =
-                'https://ofbebc3ljlmaq3bj.public.blob.vercel-storage.com/headshots/default.png';
+              if (e.currentTarget.src !== DEFAULT_HEADSHOT) {
+                e.currentTarget.src = DEFAULT_HEADSHOT; // graceful fallback
+              }
             }}
-            alt={player.name}
             className="h-full w-full object-cover"
           />
         </div>
