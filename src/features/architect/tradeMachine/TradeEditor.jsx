@@ -4,6 +4,9 @@ import { useTradeMachine } from '@/hooks/tradeMachine/useTradeMachine';
 import TradeTeamCard from './TradeTeamCard';
 import TradeSummaryPanel from './TradeSummaryPanel';
 import TradeValidationPanel from './TradeValidationPanel';
+import TradeLegalChecker from './TradeLegalChecker';
+import TradeExceptionDashboard from './TradeExceptionDashboard';
+import FaExceptionTracker from './FaExceptionTracker';
 import TradePreviewModal from './TradePreviewModal';
 import TradeDebugPanel from './TradeDebugPanel';
 import '../../../utils/architect/tradeMachine/engine/tradeValidator.debug'; // Add near other imports
@@ -182,6 +185,22 @@ const TradeEditor = ({
         teams={teams}
         forceTrade={forceTrade}
       />
+      
+      {/* Quick Rule Compliance Overview */}
+      {result && result.teamResults && (
+        <TradeLegalChecker 
+          teamResults={result.teamResults}
+          capSettings={result.capSettings}
+        />
+      )}
+      
+      {/* Trade Exception Analysis */}
+      <TradeExceptionDashboard result={result} teams={teams} />
+      
+      {/* FA Exception Tracker */}
+      <FaExceptionTracker result={result} teams={teams} />
+      
+      {/* Detailed Validation Results */}
       <TradeValidationPanel result={result} />
       <TradePreviewModal
         open={previewOpen && !!result}

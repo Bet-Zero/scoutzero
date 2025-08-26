@@ -23,34 +23,62 @@ const TradeLegalChecker = ({ teamResults, capSettings }) => {
 
   return (
     <div className="bg-[#111] border border-white/10 rounded-lg p-4">
-      <h3 className="font-medium mb-3">CBA Rule Compliance</h3>
+      <h3 className="font-medium mb-3">CBA Rule Compliance Overview</h3>
 
       {teamResults?.map((team, index) => (
         <div key={index} className="mb-4 last:mb-0">
           <h4 className="font-medium text-sm mb-2">{team.teamName}</h4>
 
-          <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs">
+          <div className="grid grid-cols-3 gap-y-2 gap-x-4 text-xs">
+            {/* Core Rules */}
             <RuleDisplay
               rule={team.rules?.salaryMatching}
               label="Salary Matching"
             />
             <RuleDisplay rule={team.rules?.hardCap} label="Hard Cap" />
+            <RuleDisplay rule={team.rules?.stepienRule} label="Stepien Rule" />
+            
+            {/* CBA Compliance */}
             <RuleDisplay
               rule={team.rules?.signAndTrade}
               label="Sign-and-Trade"
             />
-            <RuleDisplay rule={team.rules?.stepienRule} label="Stepien Rule" />
             <RuleDisplay
-              rule={team.rules?.secondApron}
+              rule={team.rules?.secondApronEnforcement}
               label="2nd Apron Rules"
             />
             <RuleDisplay rule={team.rules?.rosterCount} label="Roster Count" />
+            
+            {/* Advanced Rules */}
+            <RuleDisplay
+              rule={team.rules?.consent || team.rules?.consentEnforcement}
+              label="Player Consent"
+            />
+            <RuleDisplay
+              rule={team.rules?.reacquisition}
+              label="Reacquisition"
+            />
+            <RuleDisplay
+              rule={team.rules?.aggregation}
+              label="Salary Aggregation"
+            />
+            
+            {/* Trade Mechanics */}
+            <RuleDisplay
+              rule={team.rules?.tradeExceptions}
+              label="Trade Exceptions"
+            />
+            <RuleDisplay rule={team.rules?.cash} label="Cash Inclusion" />
+            <RuleDisplay
+              rule={team.rules?.timingEnforcement}
+              label="Timing Restrictions"
+            />
           </div>
         </div>
       ))}
 
       <div className="mt-3 text-xs text-white/60">
-        <p>Green = Compliant, Red = Violation</p>
+        <p>🟢 Compliant • 🔴 Violation • ⚪ Not Applicable</p>
       </div>
     </div>
   );
