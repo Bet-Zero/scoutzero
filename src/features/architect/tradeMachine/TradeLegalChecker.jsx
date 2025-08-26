@@ -9,6 +9,12 @@ const TradeLegalChecker = ({ teamResults, capSettings }) => {
 
   const RuleDisplay = ({ rule, label }) => {
     if (!rule) return null;
+    
+    // Ensure rule is a proper rule object, not an array or other type
+    if (typeof rule !== 'object' || Array.isArray(rule) || rule.passed === undefined) {
+      return null;
+    }
+    
     return (
       <div>
         <div className={`${getRuleStatus(rule.passed)}`}>• {label}</div>
@@ -51,7 +57,7 @@ const TradeLegalChecker = ({ teamResults, capSettings }) => {
             
             {/* Advanced Rules */}
             <RuleDisplay
-              rule={team.rules?.consent || team.rules?.consentEnforcement}
+              rule={team.rules?.consent}
               label="Player Consent"
             />
             <RuleDisplay
