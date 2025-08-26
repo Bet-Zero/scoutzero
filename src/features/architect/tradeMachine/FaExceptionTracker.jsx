@@ -25,7 +25,7 @@ const FaExceptionTracker = ({ result, teams }) => {
       faUsage,
       teamTotalSalary: team.totalSalary || 0,
       projectedSalary: team.projectedSalary || 0,
-      hardCapped: team.hardCapped,
+      hardCapped: Boolean(team.hardCapped),
       apronStatus: team.apronStatus || '',
     };
   }).filter(team => team.buckets.length > 0 || team.faUsage.length > 0);
