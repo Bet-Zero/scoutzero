@@ -169,7 +169,7 @@ const TradeValidationPanel = ({ result }) => {
                                   </button>
                                   {detailsOpen[detailsKey] && (
                                     <div className="mt-1 p-2 bg-[#222] border border-red-400 rounded text-white text-xs max-w-xs">
-                                      {r.details}
+                                      {typeof r.details === 'string' ? r.details : r.message || JSON.stringify(r.details)}
                                     </div>
                                   )}
                                 </>

@@ -20,7 +20,7 @@ const TradeLegalChecker = ({ teamResults, capSettings }) => {
         <div className={`${getRuleStatus(rule.passed)}`}>• {label}</div>
         {rule.details && (
           <span className="block text-xs text-white/50 pl-4">
-            {rule.details}
+            {typeof rule.details === 'string' ? rule.details : rule.message || ''}
           </span>
         )}
       </div>
