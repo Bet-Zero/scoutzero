@@ -170,8 +170,13 @@ const CapSheetFull = ({ teamCapSheet, onSelectPlayer, playersMap = {} }) => {
                     return (
                       <tr key={idx} className="odd:bg-[#171717]">
                         <td className="p-2">
-                          {playersMap[p.name]?.display_name ||
-                            formatName(p.display_name || p.name)}
+                          <button
+                            onClick={() => onSelectPlayer && onSelectPlayer(p)}
+                            className="text-blue-400 hover:underline"
+                          >
+                            {playersMap[p.name]?.display_name ||
+                              formatName(p.display_name || p.name)}
+                          </button>
                         </td>
                         <td className="p-2">${amt.toLocaleString()}</td>
                         <td className="p-2">{reason}</td>

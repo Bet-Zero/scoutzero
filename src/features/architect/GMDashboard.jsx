@@ -14,6 +14,7 @@ import RosterVisual from './RosterVisual';
 import CapSheet from './CapSheet';
 import CapSheetFull from './CapSheetFull';
 import ContractEditorModal from './ContractEditorModal';
+import RosterManagementModal from './RosterManagementModal';
 import TradeEditor from './tradeMachine/TradeEditor';
 import FreeAgentPool from './FreeAgentPool';
 import OffseasonTab from './OffseasonTab';
@@ -418,6 +419,169 @@ const GMDashboard = () => {
     setTeamCapSheet(updatedCapSheet);
   };
 
+  const handleRosterMove = (moveData) => {
+    const { action, player, contractDetails } = moveData;
+    
+    setTeamCapSheet(prev => {
+      const updated = { ...prev };
+      const players = [...(updated.players || [])];
+      const waivedContracts = [...(updated.waivedContracts || [])];
+      
+      switch (action) {
+        case 'accept':
+          // Option already in contract, no change needed
+          break;
+          
+        case 'decline':
+          // Remove player's future years
+          const playerIndex = players.findIndex(p => p.name === player.name);
+          if (playerIndex >= 0) {
+            const updatedPlayer = { ...players[playerIndex] };
+            const salaries = { ...updatedPlayer.contract_clean?.salaries_by_year || {} };
+            
+            // Remove future years after current year
+            Object.keys(salaries).forEach(year => {
+              if (parseInt(year) > currentYear) {
+                delete salaries[year];
+              }
+            });
+            
+            updatedPlayer.contract_clean = {
+              ...updatedPlayer.contract_clean,
+              salaries_by_year: salaries
+            };
+            
+            // Add cap hold if becomes free agent
+            if (player.birdRights && player.birdRights !== 'None') {
+              updatedPlayer.cap_hold = {
+                amount: Math.min(player.previousSalary * 1.9, 15000000),
+                active: true,
+                reason: 'Declined option'
+              };
+            }
+            
+            players[playerIndex] = updatedPlayer;
+          }
+          break;
+          
+        case 'extend':
+          // Add extension years to existing contract
+          const extPlayerIndex = players.findIndex(p => p.name === player.name);
+          if (extPlayerIndex >= 0) {
+            const extPlayer = { ...players[extPlayerIndex] };
+            const existingSalaries = { ...extPlayer.contract_clean?.salaries_by_year || {} };
+            
+            // Find the last year of current contract
+            const existingYears = Object.keys(existingSalaries).map(Number).sort((a, b) => b - a);
+            const lastYear = existingYears[0] || currentYear;
+            
+            // Add extension years
+            contractDetails.salaries.forEach((salary, index) => {
+              existingSalaries[lastYear + index + 1] = {
+                salary,
+                guaranteed: true
+              };
+            });
+            
+            extPlayer.contract_clean = {
+              ...extPlayer.contract_clean,
+              salaries_by_year: existingSalaries
+            };
+            
+            players[extPlayerIndex] = extPlayer;
+          }
+          break;
+          
+        case 'resign':
+        case 'signNew':
+          // Add/update player with new contract
+          let signingPlayerIndex = players.findIndex(p => p.name === player.name);
+          const newSalaries = {};
+          
+          contractDetails.salaries.forEach((salary, index) => {
+            newSalaries[currentYear + 1 + index] = {
+              salary,
+              guaranteed: true
+            };
+          });
+          
+          const contractPlayer = {
+            ...player,
+            contract_clean: {
+              salaries_by_year: newSalaries,
+              contractType: contractDetails.contractType || 'Standard'
+            },
+            cap_hold: null // Remove cap hold when signed
+          };
+          
+          if (signingPlayerIndex >= 0) {
+            players[signingPlayerIndex] = contractPlayer;
+          } else {
+            players.push(contractPlayer);
+          }
+          break;
+          
+        case 'waive':
+        case 'waiveStretch':
+        case 'buyout':
+          // Move player to waived contracts
+          const waivePlayerIndex = players.findIndex(p => p.name === player.name);
+          if (waivePlayerIndex >= 0) {
+            const waivedPlayer = players[waivePlayerIndex];
+            const remainingContract = waivedPlayer.contract_clean?.salaries_by_year || {};
+            
+            // Calculate dead cap
+            const deadCap = {};
+            Object.keys(remainingContract).forEach(year => {
+              if (parseInt(year) > currentYear) {
+                let amount = remainingContract[year].salary;
+                
+                if (action === 'waiveStretch') {
+                  // Stretch over 2n+1 years
+                  const remainingYears = Object.keys(remainingContract)
+                    .filter(y => parseInt(y) > currentYear).length;
+                  const stretchYears = (remainingYears * 2) + 1;
+                  amount = amount / stretchYears;
+                }
+                
+                deadCap[year] = amount;
+              }
+            });
+            
+            waivedContracts.push({
+              name: waivedPlayer.name,
+              deadCap,
+              waivedDate: new Date().toISOString(),
+              type: action
+            });
+            
+            players.splice(waivePlayerIndex, 1);
+          }
+          break;
+          
+        case 'renounce':
+          // Remove cap hold
+          const renouncePlayerIndex = players.findIndex(p => p.name === player.name);
+          if (renouncePlayerIndex >= 0) {
+            players[renouncePlayerIndex] = {
+              ...players[renouncePlayerIndex],
+              cap_hold: null
+            };
+          }
+          break;
+          
+        default:
+          console.warn('Unknown roster action:', action);
+      }
+      
+      return {
+        ...updated,
+        players,
+        waivedContracts
+      };
+    });
+  };
+
   const handleResetCapSheet = () => {
     const confirmReset = window.confirm(
       'Are you sure you want to clear all contracts and reset the cap sheet?'
@@ -738,14 +902,14 @@ const GMDashboard = () => {
       )}
 
       {showContractModal && (
-        <ContractEditorModal
+        <RosterManagementModal
           isOpen={showContractModal}
           onClose={() => setShowContractModal(false)}
           player={selectedPlayer}
-          capProjections={capProjections}
           teamCapSheet={teamCapSheet}
-          onSign={handleSign}
-          playersMap={playersMap}
+          currentYear={currentYear}
+          onRosterMove={handleRosterMove}
+          context={{ playersMap }}
         />
       )}
 
