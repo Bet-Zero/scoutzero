@@ -21,11 +21,13 @@ TeamHistoryTab.jsx
 WaiveStretchTracker.jsx
 tradeMachine/
   CapImpactTiles.jsx
+  FaExceptionTracker.jsx
   OutgoingPicksList.jsx
   OutgoingPlayersList.jsx
   SelectTeamCard.jsx
   TradeDebugPanel.jsx
   TradeEditor.jsx
+  TradeExceptionDashboard.jsx
   TradeExceptionManager.jsx
   TradeExceptionModal.jsx
   TradeExportCapture.jsx
