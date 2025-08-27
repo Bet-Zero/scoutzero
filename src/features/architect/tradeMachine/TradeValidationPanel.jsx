@@ -87,6 +87,19 @@ const TradeValidationPanel = ({ result }) => {
     }));
   };
 
+  // Helper to identify second apron violations
+  const getSecondApronViolations = (team) => {
+    if (!team.rules) return [];
+    return Object.values(team.rules).filter(rule => 
+      rule.message && (
+        rule.message.includes('second apron') || 
+        rule.message.includes('Second Apron') ||
+        rule.message.includes('aggregate') ||
+        rule.message.includes('take back more')
+      )
+    );
+  };
+
   return (
     <div className="mt-6 p-4 bg-[#111] border border-white/10 rounded text-xs">
       <button
@@ -111,6 +124,12 @@ const TradeValidationPanel = ({ result }) => {
                       />
                     )}
                     <h4 className="font-bold text-sm">{team.teamName}</h4>
+                    {/* Second Apron Warning Badge */}
+                    {getSecondApronViolations(team).length > 0 && (
+                      <span className="px-2 py-1 bg-red-900/30 text-red-400 text-xs font-medium border border-red-500/50 rounded">
+                        2ND APRON
+                      </span>
+                    )}
                   </div>
                   <div className="space-y-2">
                     {(team.rules ? Object.values(team.rules) : []).map(
@@ -150,7 +169,7 @@ const TradeValidationPanel = ({ result }) => {
                                   </button>
                                   {detailsOpen[detailsKey] && (
                                     <div className="mt-1 p-2 bg-[#222] border border-red-400 rounded text-white text-xs max-w-xs">
-                                      {r.details}
+                                      {typeof r.details === 'string' ? r.details : r.message || JSON.stringify(r.details)}
                                     </div>
                                   )}
                                 </>
@@ -210,6 +229,26 @@ const TradeValidationPanel = ({ result }) => {
                           className="ml-1"
                           title="Team is near an apron threshold which may limit future moves"
                         />
+                      </div>
+                    )}
+                    
+                    {/* Enhanced Second Apron Information */}
+                    {getSecondApronViolations(team).length > 0 && (
+                      <div className="mt-3 p-3 bg-red-900/20 border border-red-500/30 rounded">
+                        <div className="text-red-400 font-medium text-xs mb-2 flex items-center gap-1">
+                          🚫 Second Apron Restrictions
+                        </div>
+                        <div className="space-y-1">
+                          {getSecondApronViolations(team).map((violation, vIndex) => (
+                            <div key={vIndex} className="text-xs text-red-300">
+                              • {violation.message}
+                            </div>
+                          ))}
+                          <div className="text-xs text-white/50 mt-2 border-t border-red-500/20 pt-2">
+                            Second apron teams cannot: aggregate salaries in trades, take back more money than sent, 
+                            include cash, use trade exceptions from prior years, or sign players using exceptions.
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
