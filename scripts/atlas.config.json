@@ -1,0 +1,14 @@
+{
+  "roots": ["src"],
+  "exclude": [
+    "node_modules/**",
+    "dist/**",
+    "build/**",
+    "coverage/**",
+    "atlas-docs/**",
+    ".next/**",
+    "out/**",
+    "public/**"
+  ],
+  "docs_dir": "atlas-docs"
+}
