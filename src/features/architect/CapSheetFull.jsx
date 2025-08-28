@@ -2,28 +2,28 @@
 import React, { useState } from 'react';
 import { formatName } from '@/utils/formatting';
 
-const CapSheetFull = ({ teamCapSheet, onSelectPlayer, playersMap = {} }) => {
+const CapSheetFull = ({ teamCapSheet, currentYear, onSelectPlayer, playersMap = {} }) => {
   if (!teamCapSheet || !teamCapSheet.players) return null;
 
   const [showCapHolds, setShowCapHolds] = useState(false);
 
-  // Always include 2025–2031
-  const allYears = Array.from({ length: 7 }, (_, i) => 2025 + i);
+  // Use currentYear as base, show 7 years total (current + 6 future)
+  const allYears = Array.from({ length: 7 }, (_, i) => currentYear + i);
 
-  // Sort players by 2025 salary descending
+  // Sort players by current year salary descending
   const sortedPlayers = teamCapSheet.players
     .filter(
       (p) => Object.keys(p.contract_clean?.salaries_by_year || {}).length > 0
     )
     .sort((a, b) => {
-      const aSalary = a.contract_clean?.salaries_by_year?.[2025]?.salary || 0;
-      const bSalary = b.contract_clean?.salaries_by_year?.[2025]?.salary || 0;
+      const aSalary = a.contract_clean?.salaries_by_year?.[currentYear]?.salary || 0;
+      const bSalary = b.contract_clean?.salaries_by_year?.[currentYear]?.salary || 0;
       return bSalary - aSalary;
     });
 
   const capHoldPlayers = teamCapSheet.players
     .filter((p) => {
-      const hasSalary = p.contract_clean?.salaries_by_year?.[2025]?.salary;
+      const hasSalary = p.contract_clean?.salaries_by_year?.[currentYear]?.salary;
       const holdAmount =
         typeof p.cap_hold === 'number' ? p.cap_hold : p.cap_hold?.amount || 0;
       const isActive =
@@ -170,8 +170,13 @@ const CapSheetFull = ({ teamCapSheet, onSelectPlayer, playersMap = {} }) => {
                     return (
                       <tr key={idx} className="odd:bg-[#171717]">
                         <td className="p-2">
-                          {playersMap[p.name]?.display_name ||
-                            formatName(p.display_name || p.name)}
+                          <button
+                            onClick={() => onSelectPlayer && onSelectPlayer(p)}
+                            className="text-blue-400 hover:underline"
+                          >
+                            {playersMap[p.name]?.display_name ||
+                              formatName(p.display_name || p.name)}
+                          </button>
                         </td>
                         <td className="p-2">${amt.toLocaleString()}</td>
                         <td className="p-2">{reason}</td>
