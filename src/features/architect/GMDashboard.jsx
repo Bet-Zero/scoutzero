@@ -764,6 +764,7 @@ const GMDashboard = () => {
         {activeTab === 'capfull' && (
           <CapSheetFull
             teamCapSheet={teamCapSheet}
+            currentYear={currentYear}
             onSelectPlayer={handleEditContract}
             playersMap={playersMap}
           />
