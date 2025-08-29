@@ -1,21 +1,17 @@
-// scripts/firebaseConfig.node.js  (ESM)
-import fs from 'fs';
-import { initializeApp, cert } from 'firebase-admin/app';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+// scripts/firebaseConfig.node.js
+const { initializeApp } = require('firebase/app');
+const { getFirestore } = require('firebase/firestore');
 
-const keyPath =
-  process.env.GOOGLE_APPLICATION_CREDENTIALS || './serviceAccountKey.json';
-const creds = JSON.parse(fs.readFileSync(keyPath, 'utf8'));
-initializeApp({ credential: cert(creds) });
-export const db = getFirestore();
+const firebaseConfig = {
+  apiKey: 'AIzaSyAXv8xJd08cDsM0X6hlMXZuWns-jwn3Lz8',
+  authDomain: 'scoutzero-bf1ae.firebaseapp.com',
+  projectId: 'scoutzero-bf1ae',
+  storageBucket: 'scoutzero-bf1ae.appspot.com',
+  messagingSenderId: '105500121903',
+  appId: '1:105500121903:web:119be1873ef2885949dfda',
+};
 
-// Minimal wrappers so your existing scripts barely change:
-export const collection = (dbInst, ...segs) =>
-  dbInst.collection(segs.join('/'));
-export const doc = (dbInst, ...segs) =>
-  dbInst.collection(segs.slice(0, -1).join('/')).doc(segs.at(-1));
-export const getDocs = (q) => q.get(); // QuerySnapshot
-export const setDoc = (ref, data, opts) =>
-  opts?.merge ? ref.set(data, { merge: true }) : ref.set(data);
-export const updateDoc = (ref, data) => ref.update(data);
-export const serverTimestamp = () => FieldValue.serverTimestamp();
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+module.exports = { db };

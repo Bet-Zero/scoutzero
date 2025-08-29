@@ -1,3 +1,9 @@
+#!/usr/bin/env python3
+"""
+Contract data parser - processes raw contract HTML data into clean format
+Based on original ScoutZero parsing logic with enhanced bird rights detection
+"""
+
 import json
 import re
 from bs4 import BeautifulSoup
@@ -72,8 +78,40 @@ def extract_agent_info(soup):
             agency_tag.get_text(strip=True) if agency_tag else None)
 
 def extract_bird_rights(soup):
+    """
+    Enhanced bird rights extraction that properly identifies different types:
+    - Full Bird Rights
+    - Early Bird Rights  
+    - Non-Bird Rights
+    - etc.
+    """
     bird_div = soup.find("div", class_="cont_t mt4 mb2")
-    return "Bird" if bird_div and "BIRD RIGHTS" in bird_div.get_text() else None
+    if not bird_div:
+        return None
+        
+    bird_text = bird_div.get_text().strip()
+    
+    # Look for specific bird rights types (case insensitive)
+    bird_text_lower = bird_text.lower()
+    
+    if "full bird rights" in bird_text_lower:
+        return "Full Bird Rights"
+    elif "early bird rights" in bird_text_lower:
+        return "Early Bird Rights"
+    elif "non-bird rights" in bird_text_lower:
+        return "Non-Bird Rights"
+    elif "bird rights" in bird_text_lower:
+        # If we find just "bird rights" without a prefix, try to extract the prefix
+        # Look for patterns like "X-Bird Rights" or "X Bird Rights"
+        match = re.search(r"(\w+)[-\s]*bird\s+rights", bird_text_lower)
+        if match:
+            prefix = match.group(1).strip()
+            if prefix and prefix != "bird":
+                return f"{prefix.title()} Bird Rights"
+        # Fallback to generic if no specific type found
+        return "Bird Rights"
+    
+    return None
 
 def extract_bio_and_draft(soup):
     bio = {
@@ -92,171 +130,132 @@ def extract_bio_and_draft(soup):
                 continue
                 
             if "BORN:" in text:
-                bio["birthdate"] = text.replace("BORN:", "").strip()
-            elif "BIRTHPLACE:" in text:
-                bio["birthplace"] = text.replace("BIRTHPLACE:", "").strip()
+                parts = text.replace("BORN:", "").strip().split(",")
+                if len(parts) >= 2:
+                    bio["birthdate"] = parts[0].strip()
+                    bio["birthplace"] = ",".join(parts[1:]).strip()
             elif "NATIONALITY:" in text:
-                nationalities = [span.text.strip() for span in div.find_all("span", class_="mr10")]
-                bio["nationality"] = ", ".join(nationalities) if nationalities else None
+                bio["nationality"] = text.replace("NATIONALITY:", "").strip()
             elif "HEIGHT:" in text:
-                height_div = div.find("div", style="width:50px")
-                if height_div:
-                    bio["height"] = height_div.text.strip()
+                bio["height"] = text.replace("HEIGHT:", "").strip()
             elif "WEIGHT:" in text:
-                weight_div = div.find("div", style="width:50px")
-                if weight_div:
-                    bio["weight_lbs"] = safe_int(weight_div.text.strip())
+                weight_match = re.search(r"(\d+)", text)
+                bio["weight_lbs"] = int(weight_match.group(1)) if weight_match else None
             elif "AGE:" in text:
-                bio["age"] = safe_int(text.replace("AGE:", "").strip())
+                age_match = re.search(r"(\d+)", text)
+                bio["age"] = int(age_match.group(1)) if age_match else None
             elif "SHOOTS:" in text:
                 bio["shoots"] = text.replace("SHOOTS:", "").strip()
+            elif "YEARS PRO:" in text:
+                years_match = re.search(r"(\d+)", text)
+                bio["years_pro"] = int(years_match.group(1)) if years_match else None
 
     # Draft Section
-    draft_container = soup.find("div", id="pld_cc")
+    draft_container = soup.find("div", class_="mt5")
     if draft_container:
-        for div in draft_container.find_all("div", class_="pld_c3"):
-            text = div.get_text(strip=True)
-            if not text:
-                continue
-                
-            if "DRAFT YEAR:" in text:
-                draft["year"] = safe_int(div.find("a").text) if div.find("a") else None
-            elif "DRAFTED OVERALL:" in text:
-                draft["pick"] = safe_int(text.replace("DRAFTED OVERALL:", "").strip())
-            elif "DRAFT ROUND:" in text:
-                draft["round"] = safe_int(text.replace("DRAFT ROUND:", "").strip())
-            elif "DRAFTED BY:" in text:
-                draft["team"] = text.replace("DRAFTED BY:", "").strip()
+        draft_text = draft_container.get_text()
+        year_match = re.search(r"(\d{4})", draft_text)
+        if year_match:
+            draft["year"] = int(year_match.group(1))
+        
+        round_match = re.search(r"ROUND (\d+)", draft_text)
+        if round_match:
+            draft["round"] = int(round_match.group(1))
+            
+        pick_match = re.search(r"PICK (\d+)", draft_text)
+        if pick_match:
+            draft["pick"] = int(pick_match.group(1))
 
     return bio, draft
 
 def extract_cap_hold(soup):
-    cap_section = soup.find("div", class_="sw_playerContract__financialDetails")
-    if cap_section:
-        match = re.search(r"Cap Hold [\d-]+: \$([\d,]+)", cap_section.get_text())
-        if match:
-            return int(match.group(1).replace(",", ""))
-    return 0
+    cap_hold_div = soup.find("div", class_="sw_capHold")
+    if cap_hold_div:
+        cap_text = cap_hold_div.get_text()
+        cap_match = re.search(r"\$?([\d,]+)", cap_text)
+        return safe_int(cap_match.group(1)) if cap_match else None
+    return None
 
-def parse_salary_table(soup):
-    salaries = []
-    table = soup.find("table")
-    if not table: return salaries
-    rows = table.find_all("tr")[1:]
-    for row in rows:
-        cells = row.find_all("td")
-        if not cells or "TOTAL" in cells[0].text: continue
-        try:
-            year = int(re.match(r"\d{4}", cells[0].text).group())
-            salary = int(re.sub(r"[^\d]", "", cells[3].text))
-            option = None
-            if cells[1].find("span", class_="contract_tag contract_option"):
-                option = "Player Option" if "player" in cells[1].text.lower() else "Team Option"
-            if year > 2000 and salary > 0:
-                salaries.append({ "year": year, "salary": salary, "guaranteed": True, "option": option })
-        except:
+def parse_contract_data():
+    """
+    Parse raw HTML contract data into structured format
+    """
+    print("🔧 Starting enhanced contract data parsing...")
+    
+    import os
+    data_dir = os.path.join(os.path.dirname(__file__), '../../data')
+    raw_contracts_file = os.path.join(data_dir, 'raw_contract_html.json')
+    parsed_contracts_file = os.path.join(data_dir, 'parsed_contracts.json')
+    
+    if not os.path.exists(raw_contracts_file):
+        print(f"❌ Raw contracts HTML file not found: {raw_contracts_file}")
+        print("💡 Run scrape_all_contracts.py first")
+        return None
+    
+    with open(raw_contracts_file, 'r') as f:
+        raw_data = json.load(f)
+    
+    parsed_players = {}
+    
+    for player_id, raw_html in raw_data.get('players', {}).items():
+        if not raw_html:
             continue
-    return salaries
-
-def parse_all_contracts(input_file, output_file):
-    with open(input_file, "r") as f:
-        data = json.load(f)
-
-    parsed_players = []
-    for player_id, player_data in data.items():
-        name = player_data.get("name")
-        raw_html = player_data.get("contractHtml", "")
-        if not raw_html.strip(): continue
-        soup = BeautifulSoup(raw_html, "html.parser")
-        body = soup.find("div", class_="sw_bodyContent")
-        scoped = body if body else soup
-        
-        # Find all contract sections (current + extensions)
-        contract_sections = scoped.find_all("div", class_="sw_playerContract")
-        if not contract_sections: continue
             
-        # Parse current contract (first section)
-        current_contract = contract_sections[0]
-        summary = parse_contract_summary_from_html_fixed(current_contract)
-        notes = parse_kicker_notes_section(current_contract)
-        salaries = parse_salary_table(current_contract)
-        
-        # Parse extension if exists
-        extension = None
-        extension_salaries = []
-        if len(contract_sections) > 1 and "extension" in contract_sections[1].get_text().lower():
-            extension_contract = contract_sections[1]
-            extension_summary = parse_contract_summary_from_html_fixed(extension_contract, is_extension=True)
-            extension_notes = parse_kicker_notes_section(extension_contract)
-            extension_salaries = parse_salary_table(extension_contract)
+        try:
+            soup = BeautifulSoup(raw_html, 'html.parser')
             
-            extension = {
-                "summary": extension_summary,
-                "notes": extension_notes,
-                "annual_salaries": extension_salaries,
-                "options": [{"year": s["year"], "type": s["option"]} for s in extension_salaries if s.get("option")],
-                "total_value": sum(s["salary"] for s in extension_salaries),
-                "contract_length": len(extension_salaries),
-                "signed_year": extension_salaries[0]["year"] if extension_salaries else None,
-                "signing_team": extension_summary["signing_team"],
-                "guaranteed_years": len([s for s in extension_salaries if s["guaranteed"]]),
-                "average_annual_value": int(sum(s["salary"] for s in extension_salaries)/len(extension_salaries)) if extension_salaries else None,
+            # Extract player name
+            name_tag = soup.find("h1") or soup.find("h2") or soup.find("h3")
+            name = name_tag.get_text(strip=True) if name_tag else "Unknown"
+            
+            # Parse contract sections
+            summary = parse_contract_summary_from_html_fixed(soup)
+            notes = parse_kicker_notes_section(soup)
+            
+            # Extract other data
+            team = extract_team_name(soup)
+            agent_name, agency = extract_agent_info(soup)
+            bird_rights = extract_bird_rights(soup)  # Enhanced parsing here
+            bio, draft = extract_bio_and_draft(soup)
+            cap_hold = extract_cap_hold(soup)
+            
+            # Build final player object
+            parsed = {
+                "player_id": player_id,
+                "name": name,
+                "team": team,
+                "bio": bio,
+                "agent": {"name": agent_name, "agency": agency},
+                "draft": draft,
+                "bird_rights": bird_rights,  # Now properly parsed
+                "cap_hold": cap_hold,
+                "signed_using": summary["signed_using"],
+                "trade_kicker": notes["trade_kicker"],
+                "no_trade_clause": notes["no_trade_clause"],
+                "contract_summary": summary,
+                "source": "enhanced_parser"
             }
-
-        # Calculate free agency year
-        free_agency_year = None
-        if extension_salaries:
-            free_agency_year = max(s["year"] for s in extension_salaries) + 1
-        elif salaries:
-            free_agency_year = max(s["year"] for s in salaries) + 1
-
-        # Get other player data
-        team = extract_team_name(scoped)
-        agent_name, agency = extract_agent_info(scoped)
-        bird_rights = extract_bird_rights(scoped)
-        bio, draft = extract_bio_and_draft(scoped)
-        cap_hold = extract_cap_hold(scoped)
-
-        # Build final player object
-        parsed = {
-            "player_id": player_id,
-            "name": name,
-            "team": team,
-            "position": None,
-            "status": None,
-            "bio": bio,
-            "agent": {"name": agent_name, "agency": agency},
-            "draft": draft,
-            "bird_rights": bird_rights,
-            "free_agent_type": "UFA" if "ufa" in raw_html.lower() else "RFA" if "rfa" in raw_html.lower() else None,
-            "free_agency_year": free_agency_year,  # New explicit field
-            "cap_hold": cap_hold,
-            "qualifying_offer": None,
-            "signed_using": summary["signed_using"],
-            "trade_kicker": notes["trade_kicker"],
-            "no_trade_clause": notes["no_trade_clause"],
-            "contract_summary": summary,
-            "contract": {
-                "annual_salaries": salaries,
-                "options": [{"year": s["year"], "type": s["option"]} for s in salaries if s.get("option")],
-                "total_value": sum(s["salary"] for s in salaries),
-                "contract_length": len(salaries),
-                "signed_year": salaries[0]["year"] if salaries else None,
-                "signing_team": summary["signing_team"],
-                "guaranteed_years": len([s for s in salaries if s["guaranteed"]]),
-                "average_annual_value": int(sum(s["salary"] for s in salaries)/len(salaries)) if salaries else None,
-                "incentives": {"likely": 0, "unlikely": 0},
-                "notes": notes["notes"],
-                "extension": extension,  # None if no extension exists
-                "free_agency_year": free_agency_year  # Also in contract for easy access
-            },
-            "source_url": f"https://www.salaryswish.com/players/{player_id.replace('_', '-')}"
-        }
-
-        parsed_players.append(parsed)
-
-    with open(output_file, "w") as f:
-        json.dump(parsed_players, f, indent=2)
+            
+            parsed_players[player_id] = parsed
+            
+        except Exception as e:
+            print(f"❌ Error parsing player {player_id}: {e}")
+            continue
+    
+    # Save parsed data
+    result = {
+        "last_updated": "2024-01-01T00:00:00",
+        "players": parsed_players,
+        "total_parsed": len(parsed_players)
+    }
+    
+    with open(parsed_contracts_file, 'w') as f:
+        json.dump(result, f, indent=2)
+    
+    print(f"✅ Enhanced parsing complete! Processed {len(parsed_players)} players")
+    print(f"📄 Results saved to {parsed_contracts_file}")
+    
+    return parsed_contracts_file
 
 if __name__ == "__main__":
-    parse_all_contracts("../data/raw_contract_html.json", "../data/contracts_parsed.json")
+    parse_contract_data()

@@ -1,112 +1,111 @@
-// generateCapSheets.js
-import { db, collection, doc, setDoc, getDocs } from './firebaseConfig.node.js';
-import { getDocs, collection, setDoc, doc } from 'firebase/firestore';
+// scripts/capsheets/generateCapSheets.js
+const { db } = require('../firebaseConfig.node.js');
+const { getDocs, collection, doc, setDoc } = require('firebase/firestore');
 
-const generateCapSheets = async () => {
-  console.log('📦 Loading players...');
-  const playerSnap = await getDocs(collection(db, 'players'));
-  const players = [];
-  playerSnap.forEach((doc) => players.push({ id: doc.id, ...doc.data() }));
-
-  const teamCapSheets = {};
-
-  for (const player of players) {
-    const team = player.bio?.Team?.toLowerCase();
-    const contract = player.contract;
-    if (!team || !contract) continue;
-
-    if (!teamCapSheets[team]) {
-      teamCapSheets[team] = {
-        players: [],
-        totalSalaryByYear: {},
-        totalCommitted: 0,
-        lastUpdated: Date.now(),
-      };
-    }
-
-    const sheet = teamCapSheets[team];
-
-    // Merge base + extension, giving priority to extension
-    const salariesByYear = {};
-
-    for (const entry of contract.annual_salaries || []) {
-      if (!entry?.year || !entry?.salary) continue;
-      salariesByYear[entry.year] = {
-        salary: entry.salary,
-        guaranteed: entry.guaranteed ?? true,
-        option: entry.option || null,
-        source: 'base',
-      };
-    }
-
-    for (const entry of contract.extension?.annual_salaries || []) {
-      if (!entry?.year || !entry?.salary) continue;
-      salariesByYear[entry.year] = {
-        salary: entry.salary,
-        guaranteed: entry.guaranteed ?? true,
-        option: entry.option || null,
-        source: 'extension',
-      };
-    }
-
-    // Build contract_clean block
-    const contract_clean = {
-      salaries_by_year: {},
-      fa_year: contract.free_agency_year || null,
-      fa_type: player.free_agent_type || null,
-      bird_rights: player.bird_rights || null,
-      total_value: 0,
-      average_value: 0,
-      years: 0,
-      has_extension: !!contract.extension,
-    };
-
-    let total = 0;
-    let yearCount = 0;
-
-    for (const [yearStr, data] of Object.entries(salariesByYear)) {
-      const year = parseInt(yearStr);
-      contract_clean.salaries_by_year[year] = data;
-
-      sheet.totalSalaryByYear[year] =
-        (sheet.totalSalaryByYear[year] || 0) + data.salary;
-      sheet.totalCommitted += data.salary;
-
-      total += data.salary;
-      yearCount++;
-    }
-
-    contract_clean.total_value = total;
-    contract_clean.years = yearCount;
-    contract_clean.average_value =
-      yearCount > 0 ? Math.round(total / yearCount) : 0;
-
-    // 🆕 Add age and position from bio
-    const age = player.bio?.age ?? null;
-    const position = player.bio?.positionFull || player.bio?.position || null;
-
-    // Push player entry to team
-    sheet.players.push({
-      name: player.name,
-      display_name: player.display_name || player.name,
-      player_id: player.player_id || null,
-      age: player.bio?.AGE ?? null,
-      position: player.bio?.Position ?? null,
-      height: player.bio?.HT ?? null,
-      weight: player.bio?.WT ?? null,
-      contract_clean,
+async function generateCapSheets() {
+  try {
+    console.log('🏀 Generating cap sheets for all teams...');
+    
+    // Get all players
+    const playerSnap = await getDocs(collection(db, 'players'));
+    const players = [];
+    
+    playerSnap.forEach(doc => {
+      const data = doc.data();
+      if (data.team && data.contract_summary) {
+        players.push({
+          id: doc.id,
+          ...data
+        });
+      }
     });
+    
+    console.log(`📊 Processing ${players.length} players with contract data...`);
+    
+    // Group by team
+    const teamData = {};
+    const currentYear = new Date().getFullYear();
+    
+    players.forEach(player => {
+      const team = player.team;
+      if (!teamData[team]) {
+        teamData[team] = {
+          players: [],
+          totalSalaryByYear: {},
+          totalCommitted: 0,
+          lastUpdated: Date.now()
+        };
+      }
+      
+      teamData[team].players.push({
+        player_id: player.id,
+        name: player.display_name || player.name,
+        contract_clean: player.contract_summary,
+        position: player.bio?.position || player.formattedPosition,
+        age: player.bio?.age || player.age,
+        height: player.bio?.height || player.heightInInches,
+        weight: player.bio?.weight
+      });
+      
+      // Calculate salary totals by year
+      if (player.contract_summary?.salaries_by_year) {
+        Object.entries(player.contract_summary.salaries_by_year).forEach(([year, salaryData]) => {
+          const yearNum = parseInt(year);
+          if (yearNum >= currentYear) {
+            if (!teamData[team].totalSalaryByYear[year]) {
+              teamData[team].totalSalaryByYear[year] = 0;
+            }
+            teamData[team].totalSalaryByYear[year] += salaryData.salary || 0;
+            
+            if (yearNum === currentYear) {
+              teamData[team].totalCommitted += salaryData.salary || 0;
+            }
+          }
+        });
+      }
+    });
+    
+    // Generate and save cap sheets
+    const promises = Object.entries(teamData).map(async ([teamId, data]) => {
+      const capSheet = {
+        players: data.players,
+        totalSalaryByYear: data.totalSalaryByYear,
+        totalCommitted: data.totalCommitted,
+        lastUpdated: data.lastUpdated,
+        generated: Date.now()
+      };
+      
+      await setDoc(doc(db, 'teams', teamId), { capSheet }, { merge: true });
+      console.log(`✅ Generated cap sheet for ${teamId}`);
+      return { teamId, playerCount: data.players.length, totalCommitted: data.totalCommitted };
+    });
+    
+    const results = await Promise.all(promises);
+    
+    console.log('\n📋 Cap Sheet Generation Complete:');
+    results.forEach(({ teamId, playerCount, totalCommitted }) => {
+      console.log(`  ${teamId}: ${playerCount} players, $${(totalCommitted / 1000000).toFixed(1)}M committed`);
+    });
+    
+    return results;
+    
+  } catch (error) {
+    console.error('❌ Error generating cap sheets:', error);
+    throw error;
   }
+}
 
-  console.log('🛠 Uploading team cap sheets...');
-  for (const [teamId, capSheet] of Object.entries(teamCapSheets)) {
-    await setDoc(doc(db, 'teams', teamId), { capSheet }, { merge: true });
-    console.log(`✅ Saved cap sheet for: ${teamId}`);
-  }
+// Run if called directly
+if (require.main === module) {
+  generateCapSheets()
+    .then(() => {
+      console.log('\n🎉 All cap sheets generated successfully!');
+      process.exit(0);
+    })
+    .catch(error => {
+      console.error('❌ Failed to generate cap sheets:', error);
+      process.exit(1);
+    });
+}
 
-  console.log(
-    '🎉 Done! Clean contract data with age and position saved in cap sheets.'
-  );
-};
-
-generateCapSheets();
+module.exports = { generateCapSheets };
