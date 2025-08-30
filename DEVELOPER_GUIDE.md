@@ -144,6 +144,35 @@ This project pulls player and contract data from two distinct Firestore collecti
 📄 Refer to [`DATA_SOURCE_MAP.md`](../docs/DATA_SOURCE_MAP.md) for usage rules  
 📄 Refer to [`FIRESTORE_SCHEMA.md`](../docs/FIRESTORE_SCHEMA.md) for field-level details
 
+## Season Management
+
+ScoutZero includes a comprehensive season management system for transitioning between NBA seasons while preserving all user data.
+
+### Quick Commands
+```bash
+# Complete season transition (recommended)
+npm run season:transition --from-season 2024 --to-season 2025
+
+# Individual operations
+npm run season:archive {year}      # Archive season data
+npm run season:create {year}       # Create new season
+npm run contracts:update           # Update contracts/bio data
+npm run season:prepare-stats       # Prepare stats for new season
+npm run season:validate {old} {new} # Validate transition integrity
+```
+
+### Key Principles
+- **User data preservation**: Grades, roles, traits, badges, blurbs always preserved
+- **Archive safety**: Complete historical data maintained in `seasons/{year}/` collections
+- **Player ID continuity**: Same player IDs across seasons ensure grade continuity
+- **Stats separation**: Old stats archived, new stats prepared separately
+
+### Documentation
+- **[Complete Guide](../docs/SEASON_TRANSITION_GUIDE.md)** - Comprehensive step-by-step process
+- **[Direct Answer](../docs/DIRECT_ANSWER_SEASON_UPDATE.md)** - Quick overview and FAQ
+- **[Troubleshooting](../docs/SEASON_TRANSITION_TROUBLESHOOTING.md)** - Common issues and solutions
+- **[Quick Start](../docs/SEASON_MANAGEMENT_README.md)** - Commands and workflow overview
+
 ## Adding Filters or Traits
 
 1. Define default values in `src/utils/filtering/playerFilterDefaults.js`.

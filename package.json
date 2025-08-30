@@ -28,6 +28,9 @@
     "season:create": "python3 scripts/season_manager.py create",
     "season:archive": "python3 scripts/season_manager.py archive",
     "season:list": "python3 scripts/season_manager.py list",
+    "season:prepare-stats": "python3 scripts/prepare_new_season_stats.py",
+    "season:validate": "python3 scripts/validate_season_transition.py",
+    "season:transition": "python3 scripts/season_transition_orchestrator.py",
     "capsheets:generate": "node scripts/capsheets/generateCapSheets.js"
   },
   "dependencies": {
