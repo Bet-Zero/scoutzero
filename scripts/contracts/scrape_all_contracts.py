@@ -108,9 +108,30 @@ def get_player_url(slug):
     
     return variations
 
-# Load bios from JSON
-with open("players_bios_2025.json", "r") as f:
-    players = json.load(f)
+# Load bios from available players data
+# Check multiple possible locations for player data
+players_file_paths = [
+    "../../public/players.json",  # Most likely location
+    "../public/players.json",
+    "players_bios_2025.json",     # Original expected file
+    "players.json"
+]
+
+players = None
+for path in players_file_paths:
+    try:
+        with open(path, "r") as f:
+            players = json.load(f)
+            print(f"✅ Loaded player data from: {path}")
+            break
+    except FileNotFoundError:
+        continue
+
+if players is None:
+    print("❌ No player data file found. Tried:")
+    for path in players_file_paths:
+        print(f"  - {path}")
+    exit(1)
 
 output = {}
 failed_players = []
@@ -150,9 +171,16 @@ for idx, (key, player) in enumerate(players.items(), 1):
     
     time.sleep(0.5)  # Be polite with requests
 
+# Ensure output directory exists
+import os
+os.makedirs("../data", exist_ok=True)
+
 # Save final scraped data
-with open("../data/raw_contract_html.json", "w") as f:
+output_path = "../data/raw_contract_html.json"
+with open(output_path, "w") as f:
     json.dump(output, f, indent=2)
+
+print(f"✅ Saved contract data to: {output_path}")
 
 # Save list of failed players
 if failed_players:
