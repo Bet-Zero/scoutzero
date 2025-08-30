@@ -194,19 +194,19 @@ def main():
     
     # Step 4: Update contracts and bio data (preserves grades)
     print(f"\n📄 Updating contracts and bio data...")
-    if not run_script("updateContracts.py"):
+    if not run_script("scripts/updateContracts.py"):
         print("❌ Failed to update contracts")
         sys.exit(1)
     
     # Step 5: Prepare stats structure for new season
     print(f"\n📊 Preparing stats structure...")
-    if not run_script("prepare_new_season_stats.py"):
+    if not run_script("scripts/prepare_new_season_stats.py"):
         print("❌ Failed to prepare stats structure")
         sys.exit(1)
     
     # Step 6: Validate data integrity
     print(f"\n✅ Validating transition...")
-    if not run_script("validate_season_transition.py"):
+    if not run_script("scripts/validate_season_transition.py"):
         print("❌ Validation failed")
         sys.exit(1)
     
