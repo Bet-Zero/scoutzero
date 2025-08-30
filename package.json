@@ -22,7 +22,16 @@
     "map:dups": "node scripts/find-duplicates.cjs",
     "map:suggest": "node scripts/suggest-buckets.cjs",
     "map:all": "npm run map:dups && npm run map:suggest",
-    "deps:check": "depcruise src/utils/architect/tradeMachine --config scripts/depcruise.architect.cjs"
+    "deps:check": "depcruise src/utils/architect/tradeMachine --config scripts/depcruise.architect.cjs",
+    "season:create": "python3 scripts/season_manager.py create",
+    "season:archive": "python3 scripts/season_manager.py archive",
+    "season:list": "python3 scripts/season_manager.py list",
+    "season:transition": "python3 scripts/season_transition_orchestrator.py",
+    "season:prepare-stats": "python3 scripts/prepare_new_season_stats.py",
+    "season:validate": "python3 scripts/validate_season_transition.py",
+    "contracts:update": "python3 scripts/updateContracts.py",
+    "stats:update": "python3 scripts/update_stats.py",
+    "capsheets:generate": "node scripts/capsheets/generateCapSheets.js"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.6",

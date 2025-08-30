@@ -1,14 +1,17 @@
 import os
 import json
-import pandas as pd
 import logging
 import re
 import unicodedata
 from difflib import get_close_matches
 
 # Configure logging - only log warnings for failures
+log_dir = "../data"
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir, exist_ok=True)
+
 logging.basicConfig(
-    filename='../data/merge_log.txt',
+    filename=os.path.join(log_dir, 'merge_log.txt'),
     level=logging.WARNING,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
@@ -258,166 +261,224 @@ def get_proper_display_name(player_id):
     return " ".join(parts).title()
 
 def load_and_prepare_stats(stats_path):
-    """Load stats CSV and prepare normalized player ID mapping"""
+    """Load stats CSV and prepare normalized player ID mapping - simplified version without pandas"""
+    if not os.path.exists(stats_path):
+        print(f"⚠️  Stats file not found: {stats_path}")
+        return {}
+    
     try:
-        stats_df = pd.read_csv(stats_path, encoding="ISO-8859-1")
-    except:
-        stats_df = pd.read_csv(stats_path, encoding="utf-8", errors="replace")
-    
-    problematic_players = ["Don_i_", "*ari*"]
-    for term in problematic_players:
-        matches = stats_df[stats_df["Player"].str.contains(term, na=False, regex=False)]
-        if not matches.empty:
-            for _, row in matches.iterrows():
-                original_name = row["Player"]
-                normalized = normalize_player_id(original_name)
-                logging.info(f"Special case - Player '{original_name}' normalized to '{normalized}'")
-    
-    stat_map = {}
-    
-    for _, row in stats_df.iterrows():
-        original_name = row["Player"]
-        player_id = normalize_player_id(original_name)
+        import csv
+        stat_map = {}
         
-        if pd.isna(row["G"]) or row["G"] == 0:
-            continue
+        with open(stats_path, 'r', encoding='utf-8', errors='replace') as f:
+            reader = csv.DictReader(f)
             
-        stats = {
-            col: float(val) if isinstance(val, (int, float)) or str(val).replace('.', '', 1).isdigit() else val
-            for col, val in row.items()
-            if col != "Player" and not pd.isna(val)
-        }
+            for row in reader:
+                if 'Player' not in row:
+                    continue
+                    
+                original_name = row['Player']
+                player_id = normalize_player_id(original_name)
+                
+                # Skip if no games played
+                games = row.get('G', '0')
+                try:
+                    if float(games) == 0:
+                        continue
+                except (ValueError, TypeError):
+                    continue
+                
+                # Convert numeric fields
+                stats = {}
+                for col, val in row.items():
+                    if col == 'Player':
+                        continue
+                    if val and val != '':
+                        try:
+                            # Try to convert to float
+                            stats[col] = float(val)
+                        except (ValueError, TypeError):
+                            stats[col] = val
+                
+                stat_map[player_id] = {
+                    "stats": stats,
+                    "original_name": original_name,
+                    "display_name": get_proper_display_name(player_id)
+                }
         
-        stat_map[player_id] = {
-            "stats": stats,
-            "original_name": original_name,
-            "display_name": get_proper_display_name(player_id)
-        }
-    
-    return stat_map
-
-def merge_player_data(contracts_path, bios_path, stats_path, output_path):
-    """Main function to merge all data sources"""
-    with open(contracts_path, "r") as f:
-        contracts = json.load(f)
-    
-    with open(bios_path, "r") as f:
-        bios = json.load(f)
-    
-    logging.info("Starting to load stats CSV...")
-    try:
-        stat_map = load_and_prepare_stats(stats_path)
+        return stat_map
+        
     except Exception as e:
-        logging.error(f"Error loading stats: {e}")
-        raise
-        
+        print(f"⚠️  Error loading stats CSV: {e}")
+        return {}
+
+def merge_player_data(contracts_path=None, bios_path=None, stats_path=None, output_path=None):
+    """Main function to merge all data sources - works with available data"""
+    
+    # Default paths with fallbacks
+    data_dir = "../data"
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir, exist_ok=True)
+    
+    # Try multiple sources for input data
+    input_sources = [
+        "../../public/players.json",
+        "../public/players.json", 
+        "../data/players.json",
+        "players.json"
+    ]
+    
+    base_players = None
+    for source in input_sources:
+        try:
+            with open(source, "r") as f:
+                base_players = json.load(f)
+                print(f"✅ Loaded base player data from: {source}")
+                break
+        except FileNotFoundError:
+            continue
+    
+    if base_players is None:
+        print("❌ No base player data found. Tried:")
+        for source in input_sources:
+            print(f"  - {source}")
+        return {}
+    
+    # Initialize data structures
+    contracts = {}
+    bios = {}
+    stats_map = {}
+    
+    # Load contracts if available
+    if contracts_path and os.path.exists(contracts_path):
+        try:
+            with open(contracts_path, "r") as f:
+                contracts_data = json.load(f)
+                print(f"✅ Loaded contracts from: {contracts_path}")
+                # Convert to expected format if needed
+                if isinstance(contracts_data, list):
+                    contracts = {item.get("player_id", ""): item for item in contracts_data}
+                else:
+                    contracts = contracts_data
+        except Exception as e:
+            print(f"⚠️  Failed to load contracts: {e}")
+    
+    # Load bios if available
+    if bios_path and os.path.exists(bios_path):
+        try:
+            with open(bios_path, "r") as f:
+                bios = json.load(f)
+                print(f"✅ Loaded bios from: {bios_path}")
+        except Exception as e:
+            print(f"⚠️  Failed to load bios: {e}")
+    
+    # Load stats if available
+    if stats_path and os.path.exists(stats_path):
+        try:
+            stats_map = load_and_prepare_stats(stats_path)
+            print(f"✅ Loaded stats from: {stats_path}")
+        except Exception as e:
+            print(f"⚠️  Failed to load stats: {e}")
+    
+    # Process base players data
     merged_players = {}
-    stats_matches = 0
-    stats_misses = []
-    bios_matches = 0
-    bios_misses = []
     
-    # Known injured players who won't have stats but should have bios and contracts
-    injured_players = {
-        "saddiq_bey": {"status": "Injured - Torn ACL", "games_played": 0},
-        "daron_holmes_ii": {"status": "Injured - Foot Fracture", "games_played": 0},
-        "nikola_topic": {"status": "Injured - Knee Surgery", "games_played": 0}
-    }
-    
-    for player in contracts:
-        player_id = player["player_id"]
-        merged = player.copy()
-        merged["system"] = merged.get("system", {})
-        merged["display_name"] = get_proper_display_name(player_id)
+    for player_id, player_data in base_players.items():
+        merged = {
+            "player_id": player_id,
+            "display_name": player_data.get("Name", get_proper_display_name(player_id)),
+            "system": {}
+        }
         
-        # Handle injured players first
-        if player_id in injured_players:
-            merged["system"]["stats"] = {
-                "status": injured_players[player_id]["status"],
-                "G": injured_players[player_id]["games_played"],
-                "note": "Injured - No stats available for current season"
-            }
-            stats_misses.append(player_id)
-        else:
-            # Try to match stats for non-injured players
-            normalized_id = normalize_player_id(player_id)
-            
-            if player_id == "luka_doncic":
-                normalized_id = "luka_doni"
-                if "luka_doni" in stat_map:
-                    merged["system"]["stats"] = stat_map["luka_doni"]["stats"]
-                    stats_matches += 1
-                else:
-                    stats_misses.append(player_id)
-                    logging.warning(f"Manual match for Luka Dončić failed")
-            elif player_id == "dario_saric":
-                normalized_id = "dario_ari"
-                if "dario_ari" in stat_map:
-                    merged["system"]["stats"] = stat_map["dario_ari"]["stats"]
-                    stats_matches += 1
-                else:
-                    stats_misses.append(player_id)
-                    logging.warning(f"Manual match for Dario Šarić failed")
-            elif normalized_id in stat_map:
-                merged["system"]["stats"] = stat_map[normalized_id]["stats"]
-                stats_matches += 1
-            else:
-                possible_matches = get_close_matches(
-                    normalized_id, stat_map.keys(), n=1, cutoff=0.85
-                )
-                if possible_matches:
-                    matched_id = possible_matches[0]
-                    merged["system"]["stats"] = stat_map[matched_id]["stats"]
-                    stats_matches += 1
-                else:
-                    stats_misses.append(player_id)
-                    logging.warning(f"No stats match for: {player_id} ({merged['display_name']})")
+        # Copy base data fields (bio info)
+        bio_fields = ["Name", "HT", "WT", "AGE", "Years Pro", "Team", "Position", "Contract", "Free Agent"]
+        for field in bio_fields:
+            if field in player_data:
+                merged[field] = player_data[field]
         
-        # Attach bio information (for all players, including injured ones)
+        # Copy stats fields
+        stats_fields = ["MIN", "PPG", "RPG", "APG", "FG%", "3PT%", "FT%", "EFG%", "Games Played"]
+        stats_data = {}
+        for field in stats_fields:
+            if field in player_data:
+                stats_data[field] = player_data[field]
+        
+        if stats_data:
+            merged["system"]["stats"] = stats_data
+        
+        # Merge contract data if available
+        if player_id in contracts:
+            contract_info = contracts[player_id]
+            for key, value in contract_info.items():
+                if key not in merged:  # Don't overwrite existing data
+                    merged[key] = value
+        
+        # Merge bio data if available
         if player_id in bios:
-            merged.update({
-                "bio": bios[player_id].get("bio", {}),
-                "status": bios[player_id].get("status")
-            })
-            bios_matches += 1
-        else:
-            bios_misses.append(player_id)
-            logging.warning(f"No bio match for: {player_id} ({merged['display_name']})")
+            bio_info = bios[player_id]
+            if "bio" in bio_info:
+                merged["bio"] = bio_info["bio"]
+            if "status" in bio_info:
+                merged["status"] = bio_info["status"]
+        
+        # Merge stats data if available
+        normalized_id = normalize_player_id(player_id)
+        if normalized_id in stats_map:
+            merged["system"]["stats"] = stats_map[normalized_id]["stats"]
         
         merged_players[player_id] = merged
     
+    # Set output path
+    if not output_path:
+        output_path = os.path.join(data_dir, "players_merged.json")
+    
+    # Save merged data
     with open(output_path, "w") as f:
         json.dump(merged_players, f, indent=2)
     
     print(f"\n{'='*50}")
-    print(f"✅ Successfully merged {len(contracts)} players")
-    print(f"📊 Stats attached: {stats_matches}/{len(contracts)}")
-    print(f"👤 Bios attached: {bios_matches}/{len(contracts)}")
+    print(f"✅ Successfully processed {len(merged_players)} players")
+    print(f"📁 Base data: {len(base_players)} players")
+    print(f"📄 Contract data: {len(contracts)} entries")
+    print(f"👤 Bio data: {len(bios)} entries") 
+    print(f"📊 Stats data: {len(stats_map)} entries")
+    print(f"💾 Output saved to {output_path}")
     print(f"{'='*50}")
     
-    if stats_misses:
-        print("\n⚠️ Players missing stats:")
-        for i, pid in enumerate(stats_misses, 1):
-            print(f"{i}. {pid} ({get_proper_display_name(pid)})")
-    
-    if bios_misses:
-        print("\n⚠️ Players missing bios:")
-        for i, pid in enumerate(bios_misses, 1):
-            print(f"{i}. {pid} ({get_proper_display_name(pid)})")
-    
-    print(f"\n💾 Output saved to {output_path}")
     return merged_players
 
 if __name__ == "__main__":
     DATA_DIR = "../data"
-    contracts_path = os.path.join(DATA_DIR, "contracts_parsed.json")
-    bios_path = os.path.join(DATA_DIR, "players_bios_2025.json")
-    stats_path = os.path.join(DATA_DIR, "nba_per_game_2025.csv")
-    output_path = os.path.join(DATA_DIR, "players.json")
     
-    merge_player_data(
+    # Check for available data files - use None if not found
+    contracts_path = os.path.join(DATA_DIR, "contracts_parsed.json")
+    if not os.path.exists(contracts_path):
+        print(f"⚠️  Contracts file not found: {contracts_path}")
+        contracts_path = None
+    
+    bios_path = os.path.join(DATA_DIR, "players_bios_2025.json")
+    if not os.path.exists(bios_path):
+        print(f"⚠️  Bios file not found: {bios_path}")
+        bios_path = None
+    
+    stats_path = os.path.join(DATA_DIR, "nba_per_game_2025.csv")
+    if not os.path.exists(stats_path):
+        print(f"⚠️  Stats file not found: {stats_path}")
+        stats_path = None
+    
+    output_path = os.path.join(DATA_DIR, "players_merged.json")
+    
+    print("🔄 Starting player data merge with available sources...")
+    
+    merged_data = merge_player_data(
         contracts_path=contracts_path,
         bios_path=bios_path,
         stats_path=stats_path,
         output_path=output_path
     )
+    
+    if merged_data:
+        print("\n✅ Merge completed successfully!")
+    else:
+        print("\n❌ Merge failed!")
+        exit(1)
