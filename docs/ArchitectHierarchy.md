@@ -15,6 +15,7 @@ GMDashboard.jsx
 LeagueView.jsx
 OffseasonTab.jsx
 OptionManager.jsx
+RosterManagementModal.jsx
 RosterVisual.jsx
 SavePlanModal.jsx
 TeamHistoryTab.jsx

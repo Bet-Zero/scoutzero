@@ -2,6 +2,7 @@
 
 ```
 BreakdownModal.jsx
+GradeArchivePanel.jsx
 PlayerDetails/
   BadgeSelector.jsx
   OverallBlurbBox.jsx
