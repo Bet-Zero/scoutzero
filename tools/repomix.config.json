@@ -1,0 +1,34 @@
+{
+  "output": {
+    "style": "markdown"
+  },
+  "compress": true,
+  "include": [
+    "src/",
+    "scripts/",
+    "config/",
+    "public/index.html",
+    "firebaseConfig.js",
+    "firebaseHelpers.js"
+  ],
+  "ignore": {
+    "patterns": [
+      "node_modules",
+      ".git",
+      "data",
+      "public/fonts",
+      "**/*.svg",
+      "**/*.woff2",
+      "**/*.csv",
+      "**/*.json",
+      "**/*.map",
+      "**/*.test.js",
+      "**/*.spec.js",
+      "dist",
+      "docs",
+      "out",
+      "coverage",
+      "*.txt"
+    ]
+  }
+}
