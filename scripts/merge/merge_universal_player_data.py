@@ -40,16 +40,20 @@ def merge_universal_player_data():
     for player_id, contract_data in contracts_data.items():
         player_record = {
             "player_id": player_id,
-            "name": contract_data.get('player_name', 'Unknown'),
-            "display_name": contract_data.get('player_name', 'Unknown'),
+            "name": contract_data.get('name', 'Unknown'),
+            "display_name": contract_data.get('name', 'Unknown'),
             "team": contract_data.get('team', 'UNK'),
-            "bio": {
+            "bio": contract_data.get('bio', {
                 "age": 25,  # Placeholder
                 "height": "6'6\"",  # Placeholder  
                 "weight": 200,  # Placeholder
                 "position": "SF"  # Placeholder
-            },
+            }),
             "contract_summary": contract_data.get('contract_summary', {}),
+            "salaries_by_year": contract_data.get('salaries_by_year', {}),
+            "bird_rights": contract_data.get('bird_rights'),
+            "trade_kicker": contract_data.get('trade_kicker'),
+            "no_trade_clause": contract_data.get('no_trade_clause', False),
             "status": "Signed",
             "last_updated": datetime.now().isoformat()
         }

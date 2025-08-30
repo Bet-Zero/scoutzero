@@ -1,6 +1,6 @@
 // scripts/firebaseConfig.node.js
-const { initializeApp } = require('firebase/app');
-const { getFirestore } = require('firebase/firestore');
+import { initializeApp } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyAXv8xJd08cDsM0X6hlMXZuWns-jwn3Lz8',
@@ -14,4 +14,4 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-module.exports = { db };
+export { db };

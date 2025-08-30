@@ -1,6 +1,6 @@
 // scripts/capsheets/generateCapSheets.js
-const { db } = require('../firebaseConfig.node.js');
-const { getDocs, collection, doc, setDoc } = require('firebase/firestore');
+import { db } from '../firebaseConfig.node.js';
+import { getDocs, collection, doc, setDoc } from 'firebase/firestore';
 
 async function generateCapSheets() {
   try {
@@ -96,7 +96,7 @@ async function generateCapSheets() {
 }
 
 // Run if called directly
-if (require.main === module) {
+if (process.argv[1] === new URL(import.meta.url).pathname) {
   generateCapSheets()
     .then(() => {
       console.log('\n🎉 All cap sheets generated successfully!');
@@ -108,4 +108,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { generateCapSheets };
+export { generateCapSheets };
