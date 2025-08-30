@@ -33,10 +33,13 @@ def run_script(script_path, script_type="python"):
     """Run a script and handle errors"""
     print(f"\n🔹 Running: {script_path}")
     try:
+        # Split the supplied script_path into the script and any following arguments.
+        parts = script_path.split()
         if script_type == "python":
-            result = subprocess.run(["python3", script_path], check=True, capture_output=True, text=True)
+            # prepend python interpreter and pass individual parts
+            result = subprocess.run(["python3", *parts], check=True, capture_output=True, text=True)
         elif script_type == "node":
-            result = subprocess.run(["node", script_path], check=True, capture_output=True, text=True)
+            result = subprocess.run(["node", *parts], check=True, capture_output=True, text=True)
         else:
             raise ValueError(f"Unknown script type: {script_type}")
         
@@ -180,7 +183,7 @@ def main():
     
     # Step 2: Create new season structure
     print(f"\n🆕 Creating {current_year-1}-{str(current_year)[-2:]} season structure...")
-    if not run_script("season_manager.py create"):
+    if not run_script("scripts/season_manager.py create"):
         print("❌ Failed to create new season")
         sys.exit(1)
     
