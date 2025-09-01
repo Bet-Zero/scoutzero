@@ -61,25 +61,40 @@ export function getContractSalaryForYear(player, yearKey) {
  * @returns {number} - Salary or 0
  */
 export function getSalaryWithFallback(player, yearKey) {
+  if (!player) {
+    console.log('--- Debug Output ---');
+    return 0;
+  }
+
   // Try contract_clean first
   const contractSalary = getContractSalaryForYear(player, yearKey);
   if (contractSalary > 0) {
     return contractSalary;
   }
 
-  // Fallback to other salary fields
-  if (player.newSalary) return player.newSalary;
-  if (player.salary) return player.salary;
-  if (player.currentSalary) return player.currentSalary;
-
   // Try the legacy contract structure
   if (player.contract?.annual_salaries) {
     const year = typeof yearKey === 'number' ? yearKey : parseInt(String(yearKey).match(/\d{4}/)?.[0]);
     const annualSalary = player.contract.annual_salaries.find((s) => parseInt(s.year) === year);
     if (annualSalary?.salary) {
-      return annualSalary.salary;
+      const legacySalary = Number(annualSalary.salary);
+      if (Number.isFinite(legacySalary)) {
+        return legacySalary;
+      }
     }
   }
 
+  // Fallback to other salary fields - ensure they're valid numbers
+  const fallbackSources = [player.newSalary, player.salary, player.currentSalary];
+  for (const source of fallbackSources) {
+    if (source != null) {
+      const numericValue = Number(source);
+      if (Number.isFinite(numericValue)) {
+        return numericValue;
+      }
+    }
+  }
+
+  console.log('--- Debug Output ---');
   return 0;
 }
