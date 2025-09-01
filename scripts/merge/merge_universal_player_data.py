@@ -461,7 +461,10 @@ def merge_player_data(contracts_path=None, bios_path=None, stats_path=None, outp
     return merged_players
 
 if __name__ == "__main__":
-    DATA_DIR = "../data"
+    # Look for data directory in the right location relative to script root
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(os.path.dirname(script_dir))
+    DATA_DIR = os.path.join(project_root, "data")
     
     # Check for available data files - use None if not found
     contracts_path = os.path.join(DATA_DIR, "contracts_parsed.json")
