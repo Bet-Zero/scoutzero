@@ -29,7 +29,7 @@
     "season:transition": "python3 data_pipeline/season_transition_streamlined.py",
     "contracts:update": "python3 data_pipeline/updateContracts_enhanced.py",
     "stats:update": "python3 data_pipeline/update_stats.py",
-    "capsheets:generate": "node data_pipeline/capsheets/generateCapSheets.js",
+    "capsheets:generate": "node data_pipeline/helpers/capsheets/generateCapSheets.js",
     "data:populate": "node scripts/populate-firestore-data.js",
     "data:populate-main": "node scripts/populate-firestore-data.js --main-only",
     "data:populate-season": "node scripts/populate-firestore-data.js --season"
