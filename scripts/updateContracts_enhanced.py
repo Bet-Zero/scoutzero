@@ -7,6 +7,10 @@ Uses fallback mechanisms when external data sources are unavailable
 import subprocess
 import os
 import sys
+import json
+import firebase_admin
+from firebase_admin import credentials, firestore
+from datetime import datetime, timezone
 
 def run_script(script_path, description="", required=True):
     """Run a script with error handling"""
@@ -48,6 +52,10 @@ def check_prerequisites():
     
     required_files = [
         ("public/players.json", "Base player data"),
+    ]
+    
+    # Check for merged data but don't require it
+    optional_files = [
         ("data/players_merged_with_discoveries.json", "Merged player data")
     ]
     
@@ -58,21 +66,127 @@ def check_prerequisites():
         else:
             print(f"   ✅ {description}: {file_path}")
     
+    for file_path, description in optional_files:
+        if os.path.exists(file_path):
+            print(f"   ✅ {description}: {file_path}")
+        else:
+            print(f"   ⚠️ Optional file missing: {description}")
+    
     if missing_files:
         print(f"❌ Missing required files:")
         for file_path, description in missing_files:
             print(f"   - {description}: {file_path}")
-        print(f"\n💡 Run player discovery first:")
-        print(f"   python3 scripts/discover_and_merge_players.py")
         return False
     
     return True
+
+def direct_firebase_upload():
+    """Direct merge and upload of contract data to Firebase"""
+    print("🔧 Direct contract merge and Firebase upload...")
+    
+    try:
+        # Check for Firebase credentials
+        if not os.path.exists("serviceAccountKey.json"):
+            print("   ⚠️ No Firebase credentials - skipping direct upload")
+            return False
+        
+        # Load base player data
+        print("   📁 Loading base player data...")
+        with open('public/players.json', 'r') as f:
+            base_players = json.load(f)
+        print(f"   ✅ Loaded {len(base_players)} base players")
+        
+        # Load correctly parsed contracts
+        if not os.path.exists('data/contracts_parsed.json'):
+            print("   ❌ No parsed contracts found")
+            return False
+            
+        print("   📄 Loading parsed contracts...")
+        with open('data/contracts_parsed.json', 'r') as f:
+            contracts = json.load(f)
+        print(f"   ✅ Loaded {len(contracts)} contract records")
+        
+        # Create contract lookup
+        contract_lookup = {}
+        for contract in contracts:
+            player_id = contract.get('player_id')
+            if player_id:
+                contract_lookup[player_id] = contract
+        
+        print(f"   📋 Created contract lookup: {len(contract_lookup)} entries")
+        
+        # Initialize Firebase
+        print("   🔥 Initializing Firebase...")
+        cred = credentials.Certificate('./serviceAccountKey.json')
+        firebase_admin.initialize_app(cred)
+        db = firestore.client()
+        
+        # Merge and upload
+        print("   📤 Merging and uploading to Firebase...")
+        batch = db.batch()
+        batch_count = 0
+        updated_count = 0
+        bird_rights_count = 0
+        
+        for player_id, player_data in base_players.items():
+            # Start with base player data
+            merged_data = dict(player_data)
+            
+            # Add contract data if available
+            if player_id in contract_lookup:
+                contract_data = contract_lookup[player_id]
+                
+                # Add Bird Rights and contract fields
+                merged_data['bird_rights'] = contract_data.get('bird_rights')
+                merged_data['free_agent_type'] = contract_data.get('free_agent_type')
+                merged_data['free_agency_year'] = contract_data.get('free_agency_year')
+                merged_data['contract_summary'] = contract_data.get('contract_summary')
+                merged_data['contract'] = contract_data.get('contract')
+                
+                if contract_data.get('bird_rights'):
+                    bird_rights_count += 1
+            
+            # Add metadata
+            merged_data['last_bio_update'] = datetime.now(timezone.utc)
+            
+            # Add to batch
+            doc_ref = db.collection("players").document(player_id)
+            batch.set(doc_ref, merged_data, merge=True)
+            
+            batch_count += 1
+            updated_count += 1
+            
+            # Show progress for first few and every 100 players
+            if updated_count <= 5 or updated_count % 100 == 0:
+                name = player_data.get('Name', player_id)
+                bird_rights = merged_data.get('bird_rights', 'None')
+                print(f"      [{updated_count}/{len(base_players)}] {name}: {bird_rights}")
+            
+            # Commit batch every 450 operations
+            if batch_count >= 450:
+                batch.commit()
+                batch = db.batch()
+                batch_count = 0
+                print(f"      📤 Committed batch ({updated_count} players processed)")
+        
+        # Commit final batch
+        if batch_count > 0:
+            batch.commit()
+        
+        print(f"   ✅ Direct upload complete!")
+        print(f"      📤 Updated {updated_count} players")
+        print(f"      🐦 Players with Bird Rights: {bird_rights_count}")
+        return True
+        
+    except Exception as e:
+        print(f"   ❌ Direct upload failed: {e}")
+        return False
 
 def main():
     """Main pipeline execution"""
     print("🏀 Enhanced Contracts Update Pipeline")
     print("=" * 50)
-    print("Streamlined for 2025-26 season with fallback mechanisms")
+    print("Streamlined for 2025-26 season with direct Bird Rights integration")
     
     # Check prerequisites
     if not check_prerequisites():
@@ -81,21 +195,16 @@ def main():
     # Get script directory
     base_dir = os.path.dirname(__file__)
     
-    # Pipeline steps with fallbacks
+    # Pipeline steps
     steps = [
         {
-            "script": os.path.join(base_dir, "contracts/scrape_all_contracts_fallback.py"),
-            "description": "Step 1: Contract data collection (with fallbacks)",
+            "script": os.path.join(base_dir, "contracts/scrape_all_contracts.py"),  # FIXED: Remove "fallback" from name
+            "description": "Step 1: Contract data collection (with smart URL detection)",
             "required": True
         },
         {
             "script": os.path.join(base_dir, "contracts/parse_contract_data_enhanced.py"),
             "description": "Step 2: Parse contract data",
-            "required": True
-        },
-        {
-            "script": os.path.join(base_dir, "merge/merge_universal_player_data.py"),
-            "description": "Step 3: Merge with universal player data",
             "required": True
         }
     ]
@@ -107,19 +216,30 @@ def main():
         if success:
             completed_steps += 1
     
-    # Try Firebase upload if credentials are available
-    print(f"\n🔹 Step 4: Upload to Firebase (optional)")
-    upload_script = os.path.join(base_dir, "upload/push_bio_and_contract.py")
-    
-    if os.path.exists("serviceAccountKey.json") or os.environ.get('GOOGLE_APPLICATION_CREDENTIALS'):
-        print("   🔑 Firebase credentials found - attempting upload...")
-        run_script(upload_script, "Upload to Firebase", required=False)
+    # NEW: Direct contract merge and Firebase upload
+    print(f"\n🔹 Step 3: Direct contract merge and Firebase upload")
+    if os.path.exists("serviceAccountKey.json"):
+        upload_success = direct_firebase_upload()
+        if upload_success:
+            completed_steps += 1
+            print("   ✅ Bird Rights successfully uploaded to Firebase!")
+        else:
+            print("   ❌ Direct upload failed - trying legacy method...")
+            # Fallback to old merge + upload
+            merge_script = os.path.join(base_dir, "merge/merge_universal_player_data.py")
+            upload_script = os.path.join(base_dir, "upload/push_bio_and_contract.py")
+            
+            print("   🔄 Running legacy merge...")
+            run_script(merge_script, "Legacy merge step", required=False)
+            
+            print("   📤 Running legacy upload...")
+            run_script(upload_script, "Legacy upload step", required=False)
     else:
         print("   ⚠️ No Firebase credentials - skipping upload")
         print("   💡 Place serviceAccountKey.json in project root to enable uploads")
     
     # Try cap sheets generation
-    print(f"\n🔹 Step 5: Generate cap sheets (optional)")
+    print(f"\n🔹 Step 4: Generate cap sheets (optional)")
     capsheets_script = os.path.join(base_dir, "capsheets/generateCapSheets.js")
     
     if os.path.exists(capsheets_script):
@@ -140,19 +260,18 @@ def main():
     # Summary
     print(f"\n🏁 Contracts Update Pipeline Complete")
     print("=" * 50)
-    print(f"   ✅ Completed steps: {completed_steps}/{len(steps)}")
+    print(f"   ✅ Completed core steps: {completed_steps}/3")
     
-    if completed_steps == len(steps):
-        print(f"   🎉 All core steps successful!")
-        print(f"   📁 Contract data ready for 2025-26 season")
+    if completed_steps >= 3:
+        print(f"   🎉 All steps successful - Bird Rights integrated!")
+        print(f"   🐦 Check Firebase for proper Bird Rights classifications")
     else:
         print(f"   ⚠️ Some steps failed - check logs above")
     
     print(f"\n📊 Output files:")
     output_files = [
         ("data/raw_contract_html.json", "Raw contract data"),
-        ("data/contracts_parsed.json", "Parsed contract data"),
-        ("data/players_merged.json", "Final merged player data")
+        ("data/contracts_parsed.json", "Parsed contract data")
     ]
     
     for file_path, description in output_files:

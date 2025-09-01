@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 """
 Push Bio and Contract Data to Firebase
@@ -66,7 +65,8 @@ def init_firebase():
 def find_player_data():
     """Find player data file in multiple possible locations"""
     possible_paths = [
-        "../data/players_merged.json",
+        "../data/merged_players.json",      # FIXED: Correct merged file name
+        "../data/players_merged.json",      # Backup name
         "../data/players.json",
         "../../public/players.json",
         "../public/players.json",

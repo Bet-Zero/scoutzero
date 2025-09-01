@@ -130,8 +130,51 @@ def safe_float(text):
     except:
         return None
 
+def extract_bird_rights(scoped):
+    """Extract Bird Rights at contract expiry"""
+    all_text = scoped.get_text()
+    
+    # Look for Bird Rights in the player summary section specifically
+    # The pattern should be "Bird Rights: [type] ([qualifier])" not just "Bird Rights:"
+    patterns = [
+        r"Bird Rights:\s*([A-Za-z-]+(?:\s+[A-Za-z-]+)*)\s*\([^)]+\)",  # "Bird Rights: Bird (QVFA)"
+        r"Bird Rights:\s*([A-Za-z-]+(?:\s+[A-Za-z-]+)*)",              # "Bird Rights: Early-Bird" 
+        r"BIRD RIGHTS:\s*([A-Za-z-]+(?:\s+[A-Za-z-]+)*)",              # Backup pattern
+    ]
+    
+    for pattern in patterns:
+        matches = re.findall(pattern, all_text, re.IGNORECASE)
+        # Filter out navigation menu matches and look for actual bird rights types
+        for match in matches:
+            match_clean = match.strip()
+            # Skip if it's clearly from navigation (like just "B" from "Bird Rights Calculator")
+            if len(match_clean) <= 1 or match_clean.lower() in ['calculator', 'qualifying', 'offer', 'hold']:
+                continue
+            
+            # This looks like a real Bird Rights type
+            bird_rights_mapping = {
+                "BIRD": "Bird",
+                "FULL BIRD": "Full Bird",
+                "FULL-BIRD": "Full Bird", 
+                "EARLY BIRD": "Early Bird",
+                "EARLY-BIRD": "Early Bird",
+                "NON-BIRD": "Non-Bird",
+                "NON BIRD": "Non-Bird",
+                "NONE": None,
+                "N/A": None,
+            }
+            
+            match_upper = match_clean.upper()
+            if match_upper in bird_rights_mapping:
+                return bird_rights_mapping[match_upper]
+            
+            # Return the cleaned match if it's not in our mapping but looks valid
+            return match_clean
+    
+    return None
+
 def parse_scraped_contract_html(player_id, player_data):
-    """Parse scraped HTML contract data (original logic)"""
+    """Parse scraped HTML contract data - FIXED VERSION"""
     raw_html = player_data.get("contractHtml", "")
     if not raw_html.strip():
         return None
@@ -140,7 +183,7 @@ def parse_scraped_contract_html(player_id, player_data):
     body = soup.find("div", class_="sw_bodyContent")
     scoped = body if body else soup
     
-    # Basic contract summary parsing (simplified from original)
+    # Basic contract summary parsing
     summary = {
         "type": "Standard Contract",
         "length": None,
@@ -158,27 +201,66 @@ def parse_scraped_contract_html(player_id, player_data):
         if title:
             summary["type"] = title.text.strip()
     
-    # Extract salary table if present
+    # Extract Bird Rights at contract expiry
+    bird_rights = extract_bird_rights(scoped)
+    
+    # Extract salary table if present - FIXED PARSING LOGIC
     salaries = []
     table = scoped.find("table")
     if table:
         rows = table.find_all("tr")[1:]  # Skip header
         for row in rows:
             cells = row.find_all("td")
-            if not cells or "TOTAL" in cells[0].text:
+            if len(cells) < 4:  # Need at least 4 columns
                 continue
+            
+            season_text = cells[0].text.strip()
+            cap_hit_text = cells[3].text.strip()  # "Cap Hit" column
+            
+            # Skip summary rows
+            if "TOTAL" in season_text.upper() or not season_text:
+                continue
+            
             try:
-                year = int(re.match(r"\d{4}", cells[0].text).group())
-                salary = int(re.sub(r"[^\d]", "", cells[3].text))
-                if year > 2000 and salary > 0:
-                    salaries.append({
-                        "year": year,
-                        "salary": salary,
-                        "guaranteed": True,
-                        "option": None
-                    })
-            except:
+                # Extract year from season (e.g., "2025-26 Max" -> 2025)
+                year_match = re.search(r"(\d{4})", season_text)
+                if not year_match:
+                    continue
+                year = int(year_match.group(1))
+                
+                # Extract salary from cap hit (e.g., "$54,126,450" -> 54126450)
+                salary_numbers = re.findall(r"[\d,]+", cap_hit_text.replace("$", ""))
+                if not salary_numbers:
+                    continue
+                salary = int(salary_numbers[0].replace(",", ""))
+                
+                # Validate reasonable values
+                if year < 2020 or year > 2035 or salary < 100000:
+                    continue
+                
+                salaries.append({
+                    "year": year,
+                    "salary": salary,
+                    "guaranteed": True,
+                    "option": None
+                })
+                
+            except (ValueError, IndexError, AttributeError) as e:
+                # Skip rows that can't be parsed
                 continue
+    
+    # Calculate contract totals
+    total_value = sum(s["salary"] for s in salaries) if salaries else 0
+    contract_length = len(salaries)
+    aav = int(total_value / contract_length) if contract_length > 0 else 0
+    
+    # Update summary with calculated values
+    summary.update({
+        "length": f"{contract_length} years" if contract_length > 0 else None,
+        "value": total_value,
+        "guaranteed": total_value,
+        "aav": aav
+    })
     
     return {
         "player_id": player_id,
@@ -189,7 +271,7 @@ def parse_scraped_contract_html(player_id, player_data):
         "bio": {},
         "agent": {"name": None, "agency": None},
         "draft": {},
-        "bird_rights": None,
+        "bird_rights": bird_rights,  # Bird Rights at contract expiry
         "free_agent_type": None,
         "free_agency_year": max(s["year"] for s in salaries) + 1 if salaries else None,
         "cap_hold": 0,
@@ -197,12 +279,12 @@ def parse_scraped_contract_html(player_id, player_data):
         "contract": {
             "annual_salaries": salaries,
             "options": [],
-            "total_value": sum(s["salary"] for s in salaries),
-            "contract_length": len(salaries),
+            "total_value": total_value,
+            "contract_length": contract_length,
             "signed_year": salaries[0]["year"] if salaries else None,
             "signing_team": None,
-            "guaranteed_years": len(salaries),
-            "average_annual_value": int(sum(s["salary"] for s in salaries)/len(salaries)) if salaries else 0,
+            "guaranteed_years": contract_length,
+            "average_annual_value": aav,
             "incentives": {"likely": 0, "unlikely": 0},
             "notes": None,
             "extension": None,
@@ -256,7 +338,7 @@ def main():
     
     if not os.path.exists(input_file):
         print(f"❌ Input file not found: {input_file}")
-        print("Run scrape_all_contracts_fallback.py first")
+        print("Run scrape_all_contracts.py first")
         return
     
     parse_all_contracts(input_file, output_file)

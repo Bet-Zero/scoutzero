@@ -346,15 +346,124 @@ class SeasonTransitionPipeline:
             return False
 
     def upload_to_firebase(self):
-        """Step 6: Upload to Firebase (optional)"""
-        if os.path.exists("serviceAccountKey.json") or os.environ.get('GOOGLE_APPLICATION_CREDENTIALS'):
-            script_path = os.path.join(self.script_dir, "upload", "push_bio_and_contract.py")
-            return self.run_script(script_path, "Upload to Firebase", required=False)
-        else:
-            self.log("No Firebase credentials - skipping upload", "WARNING")
-            self.log("Place serviceAccountKey.json in project root to enable uploads")
+        """Step 6: Upload to Firebase using direct Bird Rights integration"""
+        self.step_count += 1
+        self.log(f"Step {self.step_count}: Upload complete player data to Firebase with Bird Rights")
+        
+        # Check for Firebase credentials
+        if not os.path.exists(os.path.join(self.project_root, "serviceAccountKey.json")):
+            self.log("❌ Firebase credentials not found!", "ERROR")
+            self.log("   💡 Place serviceAccountKey.json in project root", "ERROR")
+            self.failed_steps.append("Upload to Firebase")
+            return False
+        
+        try:
+            # Use the SAME direct integration from updateContracts_enhanced.py
+            # This ensures Bird Rights are properly uploaded
+            self.log("   🔧 Using direct Bird Rights integration for Firebase upload...")
+            
+            # Import the direct upload function from the enhanced contract script
+            import sys
+            sys.path.append(self.script_dir)
+            
+            # Load base player data
+            players_file = os.path.join(self.project_root, "public", "players.json")
+            with open(players_file, 'r') as f:
+                base_players = json.load(f)
+            self.log(f"   ✅ Loaded {len(base_players)} base players")
+            
+            # Load correctly parsed contracts with Bird Rights
+            contracts_file = os.path.join(self.project_root, "data", "contracts_parsed.json")
+            if os.path.exists(contracts_file):
+                with open(contracts_file, 'r') as f:
+                    contracts = json.load(f)
+                self.log(f"   ✅ Loaded {len(contracts)} contract records with Bird Rights")
+                
+                # Create contract lookup
+                contract_lookup = {}
+                for contract in contracts:
+                    player_id = contract.get('player_id')
+                    if player_id:
+                        contract_lookup[player_id] = contract
+            else:
+                self.log("   ⚠️ No parsed contracts found - uploading without contract data", "WARNING")
+                contract_lookup = {}
+            
+            # Initialize Firebase with direct integration
+            import firebase_admin
+            from firebase_admin import credentials, firestore
+            from datetime import datetime, timezone
+            
+            cred = credentials.Certificate(os.path.join(self.project_root, "serviceAccountKey.json"))
+            firebase_admin.initialize_app(cred)
+            db = firestore.client()
+            
+            # Direct merge and upload with Bird Rights
+            self.log("   📤 Merging and uploading with Bird Rights to Firebase...")
+            batch = db.batch()
+            batch_count = 0
+            updated_count = 0
+            bird_rights_count = 0
+            
+            for player_id, player_data in base_players.items():
+                # Start with base player data
+                merged_data = dict(player_data)
+                
+                # Add contract data if available (including Bird Rights)
+                if player_id in contract_lookup:
+                    contract_data = contract_lookup[player_id]
+                    
+                    # Add Bird Rights and contract fields
+                    merged_data['bird_rights'] = contract_data.get('bird_rights')
+                    merged_data['free_agent_type'] = contract_data.get('free_agent_type')
+                    merged_data['free_agency_year'] = contract_data.get('free_agency_year')
+                    merged_data['contract_summary'] = contract_data.get('contract_summary')
+                    merged_data['contract'] = contract_data.get('contract')
+                    
+                    if contract_data.get('bird_rights'):
+                        bird_rights_count += 1
+                
+                # Add metadata
+                merged_data['last_bio_update'] = datetime.now(timezone.utc)
+                
+                # Add to batch
+                doc_ref = db.collection("players").document(player_id)
+                batch.set(doc_ref, merged_data, merge=True)
+                
+                batch_count += 1
+                updated_count += 1
+                
+                # Show progress for first few and every 100 players
+                if updated_count <= 5 or updated_count % 100 == 0:
+                    name = player_data.get('Name', player_id)
+                    bird_rights = merged_data.get('bird_rights', 'None')
+                    self.log(f"      [{updated_count}/{len(base_players)}] {name}: {bird_rights}")
+                
+                # Commit batch every 450 operations
+                if batch_count >= 450:
+                    batch.commit()
+                    batch = db.batch()
+                    self.log(f"      📤 Committed batch ({updated_count} players processed)")
+            
+            # Commit final batch
+            if batch_count > 0:
+                batch.commit()
+            
+            self.log(f"   ✅ Direct upload complete!")
+            self.log(f"      📤 Updated {updated_count} players")
+            self.log(f"      🐦 Players with Bird Rights: {bird_rights_count}")
+            self.log("   🎯 Bird Rights properly integrated in Firebase!", "SUCCESS")
+            
+            self.success_count += 1
             return True
-    
+            
+        except Exception as e:
+            self.log(f"   ❌ Direct upload failed: {e}", "ERROR")
+            # Fallback to old upload method
+            self.log("   🔄 Trying fallback upload method...", "WARNING")
+            script_path = os.path.join(self.script_dir, "upload", "push_bio_and_contract.py")
+            return self.run_script(script_path, "Fallback Firebase upload", required=False)
+
     def prepare_stats_structure(self):
         """Step 7: Prepare stats structure for new season"""
         script_path = os.path.join(self.script_dir, "prepare_new_season_stats.py")
@@ -423,7 +532,7 @@ class SeasonTransitionPipeline:
         self.log("🏀 Starting 2025-26 NBA Season Transition Pipeline")
         self.log("=" * 60)
         self.log("This will update all player data for the upcoming season")
-        self.log("Including new players, contracts, and data structure preparation")
+        self.log("Including new players, contracts, and Firebase upload")
         self.log("=" * 60)
         
         # Prerequisites check
@@ -431,30 +540,62 @@ class SeasonTransitionPipeline:
             self.log("Prerequisites check failed - aborting pipeline", "ERROR")
             sys.exit(1)
         
-        # Core pipeline steps - CORRECTED ORDER
+        # Core pipeline steps - FIXED: Firebase upload is now REQUIRED
         pipeline_steps = [
-            self.discover_new_players,      # Step 1: Find all players (existing + new)
-            self.update_bio_data,           # Step 2: Get fresh bio data (teams, positions, etc.)
-            self.update_contracts,          # Step 3: SCRAPE contracts for ALL players (rookies + veterans)
-            self.merge_player_data,         # Step 4: Merge all data sources
-            self.update_main_player_file,   # Step 5: Copy merged data to main app file
-            self.upload_to_firebase,        # Step 6: Upload to Firebase
-            self.prepare_stats_structure,   # Step 7: Prepare stats structure
-            self.validate_transition        # Step 8: Validate everything
+            (self.discover_new_players, True),      # Step 1: Find all players (existing + new)
+            (self.update_bio_data, False),          # Step 2: Get fresh bio data (optional)
+            (self.update_contracts, True),          # Step 3: SCRAPE contracts for ALL players 
+            (self.merge_player_data, True),         # Step 4: Merge all data sources
+            (self.update_main_player_file, True),   # Step 5: Copy merged data to main app file
+            (self.upload_to_firebase, True),        # Step 6: Upload to Firebase (REQUIRED!)
+            (self.prepare_stats_structure, False), # Step 7: Prepare stats structure (optional)
+            (self.validate_transition, False)       # Step 8: Validate everything (optional)
         ]
         
-        # Execute all steps
-        for step_func in pipeline_steps:
-            if not step_func():
-                # Continue even if optional steps fail
-                pass
+        # Execute all steps with proper failure handling
+        critical_failures = []
+        for step_func, is_required in pipeline_steps:
+            success = step_func()
+            
+            if not success and is_required:
+                # Critical step failed - this should stop the pipeline
+                step_name = step_func.__name__.replace('_', ' ').title()
+                critical_failures.append(step_name)
+                self.log(f"💥 CRITICAL FAILURE: {step_name}", "ERROR")
+                self.log("🛑 Pipeline cannot continue with failed critical steps", "ERROR")
+                break
+            elif not success:
+                # Optional step failed - log but continue
+                step_name = step_func.__name__.replace('_', ' ').title()
+                self.log(f"⚠️ Optional step failed: {step_name}", "WARNING")
         
         # Generate summary
         self.generate_summary_report()
         
-        # Final timing
+        # Final timing and status
         duration = time.time() - start_time
         self.log(f"Pipeline completed in {duration:.1f} seconds", "PROGRESS")
+        
+        # Exit with proper status
+        if critical_failures:
+            self.log("=" * 60, "ERROR")
+            self.log("❌ PIPELINE FAILED - Critical steps could not complete:", "ERROR")
+            for failure in critical_failures:
+                self.log(f"   - {failure}", "ERROR")
+            self.log("🔧 Fix the above issues and re-run the pipeline", "ERROR")
+            self.log("=" * 60, "ERROR")
+            sys.exit(1)
+        elif self.failed_steps:
+            self.log("=" * 60, "WARNING")
+            self.log("⚠️ PIPELINE COMPLETED WITH WARNINGS", "WARNING")
+            self.log("✅ All critical steps succeeded, but some optional steps failed", "WARNING")
+            self.log("=" * 60, "WARNING")
+        else:
+            self.log("=" * 60, "SUCCESS")
+            self.log("🎉 PIPELINE COMPLETED SUCCESSFULLY!", "SUCCESS")
+            self.log("✅ All data has been processed and uploaded to Firebase", "SUCCESS")
+            self.log("🚀 Your application is ready for the 2025-26 season!", "SUCCESS")
+            self.log("=" * 60, "SUCCESS")
 
 def main():
     """Main entry point"""
