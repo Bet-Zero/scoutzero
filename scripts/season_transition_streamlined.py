@@ -132,8 +132,149 @@ class SeasonTransitionPipeline:
         script_path = os.path.join(self.script_dir, "merge", "merge_universal_player_data.py")
         return self.run_script(script_path, "Merge universal player data")
     
+    def update_bio_data(self):
+        """Step 2: Update bio data for all players from NBA.com"""
+        self.step_count += 1
+        self.log(f"Step {self.step_count}: Update bio data from NBA.com")
+        
+        try:
+            # Use the existing bio data fetching tool
+            bio_script_path = os.path.join(self.project_root, "tools", "get_all_bios_nba.py")
+            
+            if not os.path.exists(bio_script_path):
+                self.log(f"Bio script not found: {bio_script_path}", "WARNING")
+                self.log("Skipping bio data update", "WARNING")
+                return True  # Don't fail the pipeline for this
+            
+            # Generate player ID mapping file needed by the bio script
+            players_file = os.path.join(self.project_root, "public", "players.json")
+            id_mapping_file = os.path.join(self.script_dir, "all_player_ids.json")
+            
+            # Create ID mapping from current players
+            with open(players_file, 'r') as f:
+                players = json.load(f)
+            
+            id_mapping = {}
+            for player_key, player_data in players.items():
+                if "nba_player_id" in player_data:
+                    id_mapping[player_key] = player_data["nba_player_id"]
+            
+            with open(id_mapping_file, 'w') as f:
+                json.dump(id_mapping, f, indent=2)
+            
+            self.log(f"   📋 Created ID mapping for {len(id_mapping)} players")
+            self.log(f"   ⏱️  This will take 5-10 minutes to fetch bio data from NBA.com...")
+            self.log(f"   📊 Progress will be shown as players are processed...")
+            
+            # Run the bio fetching script with real-time output
+            cmd = ["python3", bio_script_path]
+            process = subprocess.Popen(cmd, 
+                                     stdout=subprocess.PIPE, 
+                                     stderr=subprocess.STDOUT,
+                                     text=True,
+                                     cwd=self.project_root,
+                                     bufsize=1,
+                                     universal_newlines=True)
+            
+            # Show real-time progress
+            while True:
+                output = process.stdout.readline()
+                if output == '' and process.poll() is not None:
+                    break
+                if output:
+                    # Forward the bio script's output with our timestamp
+                    clean_output = output.strip()
+                    if clean_output:
+                        self.log(f"   {clean_output}")
+            
+            return_code = process.poll()
+            
+            if return_code == 0:
+                # Check if bio data was created
+                bio_output = os.path.join(self.project_root, "players_bios_2025.json")
+                if os.path.exists(bio_output):
+                    with open(bio_output, 'r') as f:
+                        bio_data = json.load(f)
+                    self.log(f"   ✓ Fetched bio data for {len(bio_data)} players")
+                    
+                    # Now merge this bio data with the main player file
+                    with open(players_file, 'r') as f:
+                        players = json.load(f)
+                    
+                    updated_count = 0
+                    for player_key, bio_info in bio_data.items():
+                        if player_key in players and "bio" in bio_info:
+                            bio = bio_info["bio"]
+                            # Update bio fields directly (flat structure)
+                            for field in ["HT", "WT", "AGE", "Years Pro", "Team", "Position"]:
+                                if field in bio and bio[field]:
+                                    players[player_key][field] = bio[field]
+                                    updated_count += 1
+                    
+                    # Save updated player data
+                    with open(players_file, 'w') as f:
+                        json.dump(players, f, indent=2)
+                    
+                    self.log(f"   ✓ Updated bio data for {updated_count} player fields")
+                    
+                self.success_count += 1
+                self.log("Completed: Update bio data from NBA.com", "SUCCESS")
+                return True
+            else:
+                self.log(f"Bio script returned error code: {return_code}", "WARNING")
+                self.log("Continuing pipeline without bio update", "WARNING")
+                return True  # Don't fail the pipeline
+            
+        except Exception as e:
+            self.log(f"Failed to update bio data: {e}", "WARNING")
+            self.log("Continuing pipeline without bio update", "WARNING")
+            return True  # Don't fail the pipeline
+
+    def update_main_player_file(self):
+        """Step 5: Update main players.json with merged discoveries"""
+        self.step_count += 1
+        self.log(f"Step {self.step_count}: Update main player data file")
+        
+        try:
+            # Source file with all the new discoveries and updates
+            source_file = os.path.join(self.project_root, "data", "players_merged_with_discoveries.json")
+            # Destination file that the React app actually reads
+            dest_file = os.path.join(self.project_root, "public", "players.json")
+            
+            if not os.path.exists(source_file):
+                self.log(f"Source file not found: {source_file}", "ERROR")
+                self.failed_steps.append("Update main player data file")
+                return False
+            
+            # Load and validate the source data
+            with open(source_file, 'r') as f:
+                merged_data = json.load(f)
+            
+            player_count = len(merged_data) if isinstance(merged_data, dict) else len(merged_data) if isinstance(merged_data, list) else 0
+            
+            if player_count == 0:
+                self.log("No player data found in merged file", "ERROR")
+                self.failed_steps.append("Update main player data file")
+                return False
+            
+            # Copy the merged data to the main file
+            with open(dest_file, 'w') as f:
+                json.dump(merged_data, f, indent=2)
+            
+            self.log(f"   ✓ Updated main player file with {player_count} players")
+            self.log(f"   ✓ New rookies and team changes now available to app")
+            
+            self.success_count += 1
+            self.log("Completed: Update main player data file", "SUCCESS")
+            return True
+            
+        except Exception as e:
+            self.log(f"Failed to update main player file: {e}", "ERROR")
+            self.failed_steps.append("Update main player data file")
+            return False
+
     def upload_to_firebase(self):
-        """Step 4: Upload to Firebase (optional)"""
+        """Step 6: Upload to Firebase (optional)"""
         if os.path.exists("serviceAccountKey.json") or os.environ.get('GOOGLE_APPLICATION_CREDENTIALS'):
             script_path = os.path.join(self.script_dir, "upload", "push_bio_and_contract.py")
             return self.run_script(script_path, "Upload to Firebase", required=False)
@@ -143,12 +284,12 @@ class SeasonTransitionPipeline:
             return True
     
     def prepare_stats_structure(self):
-        """Step 5: Prepare stats structure for new season"""
+        """Step 7: Prepare stats structure for new season"""
         script_path = os.path.join(self.script_dir, "prepare_new_season_stats.py")
         return self.run_script(script_path, "Prepare 2025-26 stats structure", required=False)
     
     def validate_transition(self):
-        """Step 6: Validate the transition"""
+        """Step 8: Validate the transition"""
         script_path = os.path.join(self.script_dir, "validate_season_transition.py")
         return self.run_script(script_path, "Validate season transition", required=False)
     
@@ -156,12 +297,12 @@ class SeasonTransitionPipeline:
         """Generate final summary of the transition"""
         self.log("Generating 2025-26 Season Transition Summary", "PROGRESS")
         
-        # Check output files
+        # Check output files - updated to match actual file names created by the pipeline
         output_files = [
             ("data/players_merged_with_discoveries.json", "New players discovered & merged"),
             ("data/raw_contract_html.json", "Contract data collected"),
             ("data/contracts_parsed.json", "Contract data parsed"),
-            ("data/players_merged.json", "Final merged player data")
+            ("public/players.json", "Updated main player data")  # This is the actual final merged data file
         ]
         
         existing_files = 0
@@ -218,14 +359,16 @@ class SeasonTransitionPipeline:
             self.log("Prerequisites check failed - aborting pipeline", "ERROR")
             sys.exit(1)
         
-        # Core pipeline steps
+        # Core pipeline steps - CORRECTED ORDER
         pipeline_steps = [
-            self.discover_new_players,
-            self.update_contracts,
-            self.merge_player_data,
-            self.upload_to_firebase,
-            self.prepare_stats_structure,
-            self.validate_transition
+            self.discover_new_players,      # Step 1: Find all players (existing + new)
+            self.update_bio_data,           # Step 2: Get fresh bio data (teams, positions, etc.)
+            self.update_contracts,          # Step 3: Update contracts (with correct team context)
+            self.merge_player_data,         # Step 4: Merge all data sources
+            self.update_main_player_file,   # Step 5: Copy merged data to main app file
+            self.upload_to_firebase,        # Step 6: Upload to Firebase
+            self.prepare_stats_structure,   # Step 7: Prepare stats structure
+            self.validate_transition        # Step 8: Validate everything
         ]
         
         # Execute all steps

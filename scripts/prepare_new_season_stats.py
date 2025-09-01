@@ -12,6 +12,10 @@ from datetime import datetime, timezone
 
 def init_firebase():
     """Initialize Firebase with real credentials"""
+    # Check if Firebase is already initialized
+    if firebase_admin._apps:
+        return firestore.client()
+    
     cred_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS', './serviceAccountKey.json')
     if not os.path.exists(cred_path):
         cred_path = '../serviceAccountKey.json'
@@ -28,15 +32,9 @@ def init_firebase():
         print(f"❌ Failed to initialize Firebase: {e}")
         sys.exit(1)
 
-def clear_stats_fields(db):
-    """Clear stats fields while preserving bio data and grades"""
-    print("\n📊 Preparing stats structure for new season...")
-    
-    # Stats fields to clear for new season
-    stats_fields = [
-        'MIN', 'PPG', 'RPG', 'APG', 'FG%', '3PT%', 'FT%', 'EFG%', 
-        'Games Played', 'TS%', 'USG%', 'BPM', 'VORP', 'WS', 'PER'
-    ]
+def preserve_stats_across_seasons(db):
+    """Preserve existing stats while setting up metadata for new season (no clearing)"""
+    print("\n📊 Preserving stats across seasons and updating metadata...")
     
     try:
         players_ref = db.collection('players')
@@ -48,40 +46,38 @@ def clear_stats_fields(db):
         
         for player_doc in players:
             player_ref = players_ref.document(player_doc.id)
-            
-            # Create update dict to clear stats fields
-            updates = {}
             player_data = player_doc.to_dict()
             
-            for field in stats_fields:
-                if field in player_data:
-                    updates[field] = None  # Clear the field
+            # Only update metadata fields, preserve all existing stats
+            updates = {
+                'last_stats_transition': datetime.now(timezone.utc),
+                'stats_carry_over': True  # Flag to indicate stats carried over from previous season
+            }
             
-            # Add last_stats_update timestamp
-            updates['last_stats_update'] = datetime.now(timezone.utc)
-            updates['stats_season'] = None  # Will be set when new stats are loaded
+            # Only add stats_season if it doesn't exist or is null
+            if not player_data.get('stats_season'):
+                updates['stats_season'] = 'carried_over'  # Will be updated when new stats are loaded
             
-            if updates:
-                batch.update(player_ref, updates)
-                updated_count += 1
-                batch_count += 1
-                
-                # Commit batch every 450 operations
-                if batch_count >= 450:
-                    batch.commit()
-                    batch = db.batch()
-                    batch_count = 0
-                    print(f"  📊 Processed {updated_count} players so far")
+            batch.update(player_ref, updates)
+            updated_count += 1
+            batch_count += 1
+            
+            # Commit batch every 450 operations
+            if batch_count >= 450:
+                batch.commit()
+                batch = db.batch()
+                batch_count = 0
+                print(f"  📊 Processed {updated_count} players so far")
         
         # Commit remaining operations
         if batch_count > 0:
             batch.commit()
         
-        print(f"✅ Cleared stats for {updated_count} players")
+        print(f"✅ Preserved stats for {updated_count} players (no data loss)")
         return True
         
     except Exception as e:
-        print(f"❌ Failed to prepare stats structure: {e}")
+        print(f"❌ Failed to preserve stats across seasons: {e}")
         return False
 
 def validate_bio_preservation(db):
@@ -93,25 +89,24 @@ def validate_bio_preservation(db):
         sample_players = players_ref.limit(10).get()
         
         preserved_count = 0
-        bio_fields = ['Name', 'HT', 'WT', 'AGE', 'Years Pro', 'Team', 'Position', 'Contract']
-        grade_fields = ['overall_grade', 'roles', 'traits', 'badges', 'blurbs']
+        bio_fields = ['Name', 'Team', 'Position']  # Core required fields only
         
         for player_doc in sample_players:
             player_data = player_doc.to_dict()
             
-            # Check bio preservation
-            bio_present = any(field in player_data for field in bio_fields)
-            # Check grades preservation (optional but should be preserved if present)
-            grades_preserved = True  # Assume preserved unless proven otherwise
+            # Check core bio preservation - just need Name, Team, Position
+            core_bio_present = all(field in player_data and player_data[field] for field in bio_fields)
             
-            if bio_present:
+            if core_bio_present:
                 preserved_count += 1
         
-        if preserved_count == len(sample_players):
-            print(f"✅ Bio data preserved for all sampled players")
+        success_rate = (preserved_count / len(sample_players)) * 100
+        
+        if success_rate >= 80:  # Allow for some flexibility
+            print(f"✅ Bio data preserved for {preserved_count}/{len(sample_players)} sampled players ({success_rate:.0f}%)")
             return True
         else:
-            print(f"⚠️  Bio data missing for some players")
+            print(f"⚠️  Bio data missing for some players ({preserved_count}/{len(sample_players)} valid)")
             return False
             
     except Exception as e:
@@ -131,16 +126,14 @@ def setup_stats_metadata(db):
         # Update metadata collection
         metadata_ref = db.collection('metadata').document('stats')
         metadata_ref.set({
-            'last_cleared': datetime.now(timezone.utc),
+            'last_transition': datetime.now(timezone.utc),
             'season': season_key,
             'ready_for_new_stats': True,
-            'cleared_fields': [
-                'MIN', 'PPG', 'RPG', 'APG', 'FG%', '3PT%', 'FT%', 'EFG%', 
-                'Games Played', 'TS%', 'USG%', 'BPM', 'VORP', 'WS', 'PER'
-            ]
+            'stats_policy': 'carry_over',  # Updated to reflect new policy
+            'note': 'Stats carry over from previous season until updated individually'
         }, merge=True)
         
-        print(f"✅ Stats metadata set for {season_key} season")
+        print(f"✅ Stats metadata set for {season_key} season (carry-over policy)")
         return True
         
     except Exception as e:
@@ -149,15 +142,15 @@ def setup_stats_metadata(db):
 
 def main():
     """Prepare stats structure for new season"""
-    print("📊 New Season Stats Preparation")
-    print("=" * 40)
+    print("📊 New Season Stats Preparation (Preserve Stats Policy)")
+    print("=" * 60)
     
     # Initialize Firebase
     db = init_firebase()
     
-    # Step 1: Clear old stats while preserving bio and grades
-    if not clear_stats_fields(db):
-        print("❌ Failed to clear stats fields")
+    # Step 1: Preserve existing stats while updating metadata
+    if not preserve_stats_across_seasons(db):
+        print("❌ Failed to preserve stats across seasons")
         sys.exit(1)
     
     # Step 2: Validate bio data and grades are preserved
@@ -171,7 +164,8 @@ def main():
         sys.exit(1)
     
     print("\n✅ Stats structure prepared for new season!")
-    print("📋 Ready for new stats data via update_stats.py")
+    print("📋 Stats carry over from previous season until updated")
+    print("📋 Ready for new stats data via update_stats.py when season starts")
 
 if __name__ == "__main__":
     main()

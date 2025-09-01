@@ -66,14 +66,70 @@ def try_scrape_contract(player_key, player_data, max_attempts=2):
     
     return None
 
+def get_current_team_from_nba_api(player_name):
+    """Get current team from NBA's official API/data"""
+    try:
+        # Try NBA.com stats API (this is more reliable for current rosters)
+        import requests
+        import json
+        
+        # NBA stats API endpoint for player info
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+        
+        # Search for player
+        search_url = "https://stats.nba.com/stats/commonallplayers"
+        params = {
+            'LeagueID': '00',
+            'Season': '2024-25',
+            'IsOnlyCurrentSeason': '1'
+        }
+        
+        response = requests.get(search_url, headers=headers, params=params, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            
+            # Look for player in results
+            for player in data.get('resultSets', [{}])[0].get('rowSet', []):
+                if len(player) > 2 and player_name.lower() in player[2].lower():
+                    team_id = player[7] if len(player) > 7 else None
+                    if team_id:
+                        # Convert team ID to team name
+                        team_mapping = {
+                            1610612737: "Hawks", 1610612738: "Celtics", 1610612751: "Nets",
+                            1610612766: "Hornets", 1610612741: "Bulls", 1610612739: "Cavaliers",
+                            1610612742: "Mavericks", 1610612743: "Nuggets", 1610612765: "Pistons",
+                            1610612744: "Warriors", 1610612745: "Rockets", 1610612754: "Pacers",
+                            1610612746: "Clippers", 1610612747: "Lakers", 1610612763: "Grizzlies",
+                            1610612748: "Heat", 1610612749: "Bucks", 1610612750: "Timberwolves",
+                            1610612740: "Pelicans", 1610612752: "Knicks", 1610612760: "Thunder",
+                            1610612753: "Magic", 1610612755: "76ers", 1610612756: "Suns",
+                            1610612757: "Trail Blazers", 1610612758: "Kings", 1610612759: "Spurs",
+                            1610612761: "Raptors", 1610612762: "Jazz", 1610612764: "Wizards"
+                        }
+                        return team_mapping.get(team_id, "Unknown")
+        
+        return None
+        
+    except Exception as e:
+        print(f"      NBA API lookup failed: {str(e)[:50]}...")
+        return None
+
 def create_fallback_contract_data(player_key, player_data):
     """Create contract data structure from existing player info"""
     name = player_data.get("Name", "").strip() or player_key.replace("_", " ").title()
     
+    # Try to get updated team info from NBA API first
+    current_team = get_current_team_from_nba_api(name)
+    team = current_team if current_team else player_data.get("Team", "")
+    
+    if current_team and current_team != player_data.get("Team", ""):
+        print(f"      📋 Updated {name}: {player_data.get('Team', '')} → {current_team}")
+    
     # Extract contract info from existing data
     contract_str = player_data.get("Contract", "")
     free_agent = player_data.get("Free Agent", "")
-    team = player_data.get("Team", "")
     
     # Parse basic contract information
     contract_value = None
@@ -99,15 +155,15 @@ def create_fallback_contract_data(player_key, player_data):
     return {
         "name": name,
         "contractData": {
-            "team": team,
+            "team": team,  # Use updated team info
             "contract_string": contract_str,
             "free_agent_info": free_agent,
             "estimated_value": contract_value,
             "estimated_years": contract_years,
             "free_agency_year": fa_year,
-            "source": "existing_data"
+            "source": "nba_api" if current_team else "existing_data"
         },
-        "source": "fallback"
+        "source": "fallback_enhanced"
     }
 
 def main():

@@ -385,55 +385,59 @@ def merge_player_data(contracts_path=None, bios_path=None, stats_path=None, outp
         except Exception as e:
             print(f"⚠️  Failed to load stats: {e}")
     
-    # Process base players data
+    # Process base players data - MAINTAIN FLAT STRUCTURE
     merged_players = {}
     
     for player_id, player_data in base_players.items():
-        merged = {
-            "player_id": player_id,
-            "display_name": player_data.get("Name", get_proper_display_name(player_id)),
-            "system": {}
-        }
+        # Start with existing player data to preserve everything
+        merged = dict(player_data)
         
-        # Copy base data fields (bio info) - structure under bio object
-        bio_fields = ["Name", "HT", "WT", "AGE", "Years Pro", "Team", "Position", "Contract", "Free Agent"]
-        bio_data = {}
-        for field in bio_fields:
-            if field in player_data:
-                bio_data[field] = player_data[field]
+        # Ensure basic fields exist
+        if "Name" not in merged:
+            merged["Name"] = get_proper_display_name(player_id)
         
-        if bio_data:
-            merged["bio"] = bio_data
-        
-        # Copy stats fields
-        stats_fields = ["MIN", "PPG", "RPG", "APG", "FG%", "3PT%", "FT%", "EFG%", "Games Played"]
-        stats_data = {}
-        for field in stats_fields:
-            if field in player_data:
-                stats_data[field] = player_data[field]
-        
-        if stats_data:
-            merged["system"]["stats"] = stats_data
-        
-        # Merge contract data if available
+        # Update with contract data if available (including team changes)
         if player_id in contracts:
             contract_info = contracts[player_id]
+            # Merge contract data at top level (flat structure)
             for key, value in contract_info.items():
-                if key not in merged:  # Don't overwrite existing data
+                if key in ["Team", "Position", "Contract", "Free Agent", "HT", "WT", "AGE"]:
+                    merged[key] = value  # Update bio fields from contracts
+                elif key not in ["player_id"]:  # Don't overwrite player_id
                     merged[key] = value
         
-        # Merge bio data if available
+        # Update with bio data if available
         if player_id in bios:
             bio_info = bios[player_id]
+            # If bio data is nested, flatten it
             if "bio" in bio_info:
-                merged["bio"] = bio_info["bio"]
-            if "status" in bio_info:
-                merged["status"] = bio_info["status"]
+                for key, value in bio_info["bio"].items():
+                    merged[key] = value
+            else:
+                # Bio data is already flat
+                for key, value in bio_info.items():
+                    if key not in ["player_id"]:
+                        merged[key] = value
         
-        # Merge stats data if available
+        # Update with stats data if available
         normalized_id = normalize_player_id(player_id)
         if normalized_id in stats_map:
-            merged["system"]["stats"] = stats_map[normalized_id]["stats"]
+            stats_data = stats_map[normalized_id]["stats"]
+            # Merge stats at top level (flat structure)
+            for key, value in stats_data.items():
+                merged[key] = value
+        
+        # Ensure NBA player ID is preserved
+        if "nba_player_id" not in merged and "player_id" in player_data:
+            merged["nba_player_id"] = player_data["player_id"]
+        
+        # Mark as active and add metadata
+        merged["is_active_nba"] = True
+        merged["discovery_source"] = "cached_discovery"
+        
+        # Add timestamp
+        import time
+        merged["last_updated"] = time.time()
         
         merged_players[player_id] = merged
     

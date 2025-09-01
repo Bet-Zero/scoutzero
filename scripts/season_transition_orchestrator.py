@@ -30,30 +30,37 @@ def init_firebase():
         sys.exit(1)
 
 def run_script(script_path, script_type="python"):
-    """Run a script and handle errors"""
+    """Run a script and stream its output live"""
     print(f"\n🔹 Running: {script_path}")
     try:
-        # Split the supplied script_path into the script and any following arguments.
         parts = script_path.split()
         if script_type == "python":
-            # prepend python interpreter and pass individual parts
-            result = subprocess.run(["python3", *parts], check=True, capture_output=True, text=True)
+            cmd = ["python3", "-u", *parts]   # -u = unbuffered
         elif script_type == "node":
-            result = subprocess.run(["node", *parts], check=True, capture_output=True, text=True)
+            cmd = ["node", *parts]
         else:
             raise ValueError(f"Unknown script type: {script_type}")
-        
-        if result.stdout:
-            print(result.stdout)
-        return True
-        
-    except subprocess.CalledProcessError as e:
+
+        proc = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,  # line buffered
+            env={**os.environ, "PYTHONUNBUFFERED": "1"},
+        )
+
+        # stream output as it arrives
+        for line in proc.stdout:
+            print(line.rstrip())
+
+        proc.wait()
+        return proc.returncode == 0
+
+    except Exception as e:
         print(f"❌ Error running {script_path}: {e}")
-        if e.stdout:
-            print("STDOUT:", e.stdout)
-        if e.stderr:
-            print("STDERR:", e.stderr)
         return False
+
 
 def discover_players_initial():
     """Initial discovery to find all players (no filtering)"""
