@@ -13,8 +13,14 @@ const generateCapSheets = async () => {
   const players = [];
   playerSnap.forEach((doc) => players.push({ id: doc.id, ...doc.data() }));
 
+  await generateCapSheetsFromPlayers(players);
+};
+
 const generateCapSheetsFromData = async (playersData) => {
-  const players = Object.entries(playersData).map(([id, data]) => ({ id, ...data }));
+  const players = Object.entries(playersData).map(([id, data]) => ({
+    id,
+    ...data,
+  }));
   await generateCapSheetsFromPlayers(players);
 };
 
