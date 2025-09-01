@@ -31,7 +31,10 @@
     "season:validate": "python3 scripts/validate_season_transition.py",
     "contracts:update": "python3 scripts/updateContracts_enhanced.py",
     "stats:update": "python3 scripts/update_stats.py",
-    "capsheets:generate": "node scripts/capsheets/generateCapSheets.js"
+    "capsheets:generate": "node scripts/capsheets/generateCapSheets.js",
+    "data:populate": "node scripts/populate-firestore-data.js",
+    "data:populate-main": "node scripts/populate-firestore-data.js --main-only",
+    "data:populate-season": "node scripts/populate-firestore-data.js --season"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.6",
