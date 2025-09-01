@@ -20,6 +20,15 @@ def init_firebase():
     
     if not os.path.exists(cred_path):
         print("❌ Firebase credentials not found. Place serviceAccountKey.json in project root.")
+        print("💡 SOLUTION:")
+        print("   1. Download serviceAccountKey.json from Firebase Console:")
+        print("      - Go to Project Settings → Service Accounts") 
+        print("      - Click 'Generate new private key'")
+        print("      - Save as serviceAccountKey.json in project root")
+        print("   2. OR set GOOGLE_APPLICATION_CREDENTIALS environment variable")
+        print("   3. Then re-run this script")
+        print("\n🧪 To test upload logic without credentials:")
+        print("   Run: python3 scripts/upload_bio_solution.py --test")
         sys.exit(1)
     
     try:
@@ -28,6 +37,7 @@ def init_firebase():
         return firestore.client()
     except Exception as e:
         print(f"❌ Failed to initialize Firebase: {e}")
+        print("💡 Check that your serviceAccountKey.json is valid")
         sys.exit(1)
 
 def find_player_data():
