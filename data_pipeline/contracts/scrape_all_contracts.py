@@ -352,7 +352,7 @@ def main():
     
     if scraped_count > 0:
         print(f"\n🚀 Ready for contract parsing! Run:")
-        print(f"   python3 scripts/contracts/parse_contract_data_enhanced.py")
+        print(f"   python3 data_pipeline/contracts/parse_contract_data_enhanced.py")
     else:
         print(f"\n⚠️ No contracts were scraped. Check network connection or service availability.")
 

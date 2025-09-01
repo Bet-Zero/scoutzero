@@ -21,12 +21,12 @@ def init_firebase():
     else:
         # Try multiple possible locations
         possible_paths = [
-            './serviceAccountKey.json',          # Project root (when run from root)
-            '../serviceAccountKey.json',         # Project root (when run from scripts/)
-            '../../serviceAccountKey.json',      # Project root (when run from scripts/upload/)
-            './src/serviceAccountKey.json',      # Src directory (when run from root)
-            '../src/serviceAccountKey.json',     # Src directory (when run from scripts/)
-            '../../src/serviceAccountKey.json',  # Src directory (when run from scripts/upload/)
+            './serviceAccountKey.json',          # Project root (when run from repo root)
+            '../serviceAccountKey.json',         # Project root (when run from data_pipeline/)
+            '../../serviceAccountKey.json',      # Project root (when run from data_pipeline/upload/)
+            './src/serviceAccountKey.json',      # Src directory (when run from repo root)
+            '../src/serviceAccountKey.json',     # Src directory (when run from data_pipeline/)
+            '../../src/serviceAccountKey.json',  # Src directory (when run from data_pipeline/upload/)
         ]
         
         cred_path = None
@@ -50,7 +50,7 @@ def init_firebase():
             print("   3. OR set GOOGLE_APPLICATION_CREDENTIALS environment variable")
             print("   4. Then re-run this script")
             print("\n🧪 To test upload logic without credentials:")
-            print("   Run: python3 scripts/upload_bio_solution.py --test")
+            print("   Run: python3 data_pipeline/upload_bio_solution.py --test")
             sys.exit(1)
     
     try:
@@ -64,12 +64,13 @@ def init_firebase():
 
 def find_player_data():
     """Find player data file in multiple possible locations"""
+    script_dir = os.path.dirname(os.path.abspath(__file__))
     possible_paths = [
-        "../data/merged_players.json",      # FIXED: Correct merged file name
-        "../data/players_merged.json",      # Backup name
-        "../data/players.json",
-        "../../public/players.json",
-        "../public/players.json",
+        os.path.join(script_dir, "..", "data", "merged_players.json"),      # FIXED: Correct merged file name
+        os.path.join(script_dir, "..", "data", "players_merged.json"),      # Backup name
+        os.path.join(script_dir, "..", "data", "players.json"),
+        os.path.join(script_dir, "..", "..", "public", "players.json"),
+        os.path.join(script_dir, "..", "public", "players.json"),
         "players.json"
     ]
     

@@ -39,7 +39,9 @@ teams = {
 }
 
 # Output folder
-output_dir = "public/assets/logos"
+TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(os.path.dirname(TOOLS_DIR))
+output_dir = os.path.join(PROJECT_ROOT, "public", "assets", "logos")
 os.makedirs(output_dir, exist_ok=True)
 
 for abbr, filename in teams.items():

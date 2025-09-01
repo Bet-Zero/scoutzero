@@ -151,12 +151,14 @@ for i, endpoint in enumerate(endpoints):
         print(f"❌ Endpoint {i + 1} failed")
 
 if success:
-    os.makedirs("tools/output", exist_ok=True)
-    
-    with open("tools/output/all_player_ids.json", "w", encoding="utf-8") as f:
+    output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output")
+    os.makedirs(output_dir, exist_ok=True)
+
+    output_file = os.path.join(output_dir, "all_player_ids.json")
+    with open(output_file, "w", encoding="utf-8") as f:
         json.dump(player_ids, f, indent=2)
-    
-    print(f"\n🎉 Successfully saved {len(player_ids)} CURRENT players to tools/output/all_player_ids.json")
+
+    print(f"\n🎉 Successfully saved {len(player_ids)} CURRENT players to {output_file}")
     print(f"📊 Expected range: Your existing 531 + new rookies/signings = ~600-700 total")
 else:
     print(f"\n❌ All NBA API endpoints failed")

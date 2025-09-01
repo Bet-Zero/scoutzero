@@ -4,7 +4,7 @@
 #!/usr/bin/env python3
 """
 NBA-only Bio Fetcher (no fallbacks)
-- Reads player IDs from scripts/all_player_ids.json
+- Reads player IDs from data_pipeline/data/all_player_ids.json
 - Fetches bios from stats.nba.com/commonplayerinfo
 - Prints per-player progress live (✅/❌)
 - Never aborts on a single timeout/error
@@ -31,9 +31,11 @@ from requests.exceptions import (
 from urllib3.util.retry import Retry
 
 # ---------- PATHS ----------
-PROJECT_ROOT = Path(__file__).resolve().parent.parent  # tools/ -> project root
-PLAYER_ID_FILE = PROJECT_ROOT / "scripts" / "all_player_ids.json"
-OUTPUT_DIR = PROJECT_ROOT / "data"
+TOOLS_DIR = Path(__file__).resolve().parent
+PIPELINE_DIR = TOOLS_DIR.parent
+PROJECT_ROOT = PIPELINE_DIR.parent
+PLAYER_ID_FILE = PIPELINE_DIR / "data" / "all_player_ids.json"
+OUTPUT_DIR = PIPELINE_DIR / "data"
 OUTPUT_FILE = OUTPUT_DIR / "players_bios_2025.json"
 EXISTING_PLAYERS_FILE = PROJECT_ROOT / "public" / "players.json"  # optional, not used for fallbacks
 
@@ -152,7 +154,7 @@ def main() -> int:
     # Load player IDs
     if not PLAYER_ID_FILE.exists():
         print(f"❌ Player ID file not found: {PLAYER_ID_FILE}")
-        print("   (Run your pipeline step that generates scripts/all_player_ids.json)")
+        print("   (Run your pipeline step that generates data_pipeline/data/all_player_ids.json)")
         return 1
 
     try:
@@ -293,7 +295,7 @@ def main() -> int:
 
 if __name__ == "__main__":
     # Force unbuffered stdout if invoked as a subprocess that might buffer output
-    # (also recommend running `python3 -u tools/get_all_bios_nba.py` from the shell)
+    # (also recommend running `python3 -u data_pipeline/tools/get_all_bios_nba.py` from the shell)
     try:
         sys.stdout.reconfigure(line_buffering=True)
     except Exception:

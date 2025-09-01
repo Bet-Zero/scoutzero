@@ -32,11 +32,12 @@ def init_firebase():
 
 def find_player_data():
     """Find player data file in multiple possible locations"""
+    script_dir = os.path.dirname(os.path.abspath(__file__))
     possible_paths = [
-        "../data/players_merged.json",
-        "../data/players.json",
-        "../../public/players.json",
-        "../public/players.json",
+        os.path.join(script_dir, "..", "data", "players_merged.json"),
+        os.path.join(script_dir, "..", "data", "players.json"),
+        os.path.join(script_dir, "..", "..", "public", "players.json"),
+        os.path.join(script_dir, "..", "public", "players.json"),
         "players.json"
     ]
     

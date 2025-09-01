@@ -1,9 +1,11 @@
-// scripts/dumpFieldStructure.js
+// scripts/dumpTeamFieldStructure.js
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs } from 'firebase/firestore';
 import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-// 🔐 Firebase config (inline version)
+// 🔐 Firebase config (same as before)
 const firebaseConfig = {
   apiKey: 'AIzaSyAXv8xJd08cDsM0X6hlMXZuWns-jwn3Lz8',
   authDomain: 'scoutzero-bf1ae.firebaseapp.com',
@@ -17,8 +19,8 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 async function dumpFieldStructure() {
-  const playersCol = collection(db, 'players');
-  const snapshot = await getDocs(playersCol);
+  const teamsCol = collection(db, 'teams'); // ✅ CHANGED from 'players' to 'teams'
+  const snapshot = await getDocs(teamsCol);
 
   const allKeys = new Set();
 
@@ -29,11 +31,13 @@ async function dumpFieldStructure() {
 
   const sortedKeys = Array.from(allKeys).sort();
 
-  // ✅ Save to file
-  fs.writeFileSync('./scripts/field_dump.txt', sortedKeys.join('\n'));
+  // ✅ Save to new file name to avoid overwrite
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const outPath = path.join(__dirname, 'team_field_dump.txt');
+  fs.writeFileSync(outPath, sortedKeys.join('\n'));
 
   // ✅ Print to terminal
-  console.log('🎯 Unique field paths across all player docs:\n');
+  console.log('📦 Unique field paths across all team docs:\n');
   sortedKeys.forEach((key) => console.log(key));
 }
 
