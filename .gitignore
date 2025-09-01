@@ -35,6 +35,7 @@ toggleView.cjs
 updateStats.js
 uploadPlayersToFirebase.js
 validatePlayersJson.js
+debug-*.js
 
 
 # Docs

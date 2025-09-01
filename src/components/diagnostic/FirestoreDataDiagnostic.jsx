@@ -1,0 +1,223 @@
+import React, { useState, useEffect } from 'react';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '@/firebaseConfig';
+import useSeasonPlayerData from '@/hooks/useSeasonPlayerData';
+
+/**
+ * Diagnostic component to help users understand their Firestore data structure
+ * and troubleshoot missing player data issues
+ */
+const FirestoreDataDiagnostic = () => {
+  const [diagnostics, setDiagnostics] = useState({
+    collections: {},
+    loading: true,
+    error: null
+  });
+  
+  const { players, loading: playersLoading, diagnostics: playerDiag } = useSeasonPlayerData();
+
+  useEffect(() => {
+    const runDiagnostics = async () => {
+      const results = {
+        collections: {},
+        loading: false,
+        error: null
+      };
+
+      try {
+        // Check main collections
+        const collectionsToCheck = ['players', 'teams', 'seasons'];
+        
+        for (const collectionName of collectionsToCheck) {
+          try {
+            const snap = await getDocs(collection(db, collectionName));
+            results.collections[collectionName] = {
+              exists: true,
+              count: snap.size,
+              error: null
+            };
+            
+            // For seasons, get detailed info
+            if (collectionName === 'seasons' && snap.size > 0) {
+              results.collections[collectionName].seasons = [];
+              
+              for (const doc of snap.docs) {
+                const seasonData = doc.data();
+                const seasonInfo = {
+                  id: doc.id,
+                  status: seasonData.status,
+                  display_name: seasonData.display_name,
+                  subcollections: {}
+                };
+                
+                // Check subcollections
+                const subcollections = ['metadata', 'playerGrades', 'teamData', 'players'];
+                for (const subCollection of subcollections) {
+                  try {
+                    const subSnap = await getDocs(collection(db, 'seasons', doc.id, subCollection));
+                    seasonInfo.subcollections[subCollection] = {
+                      count: subSnap.size,
+                      exists: true
+                    };
+                  } catch (e) {
+                    seasonInfo.subcollections[subCollection] = {
+                      count: 0,
+                      exists: false,
+                      error: e.message
+                    };
+                  }
+                }
+                
+                results.collections[collectionName].seasons.push(seasonInfo);
+              }
+            }
+            
+          } catch (error) {
+            results.collections[collectionName] = {
+              exists: false,
+              count: 0,
+              error: error.message
+            };
+          }
+        }
+        
+        setDiagnostics(results);
+      } catch (error) {
+        setDiagnostics({
+          collections: {},
+          loading: false,
+          error: error.message
+        });
+      }
+    };
+
+    runDiagnostics();
+  }, []);
+
+  const getStatusColor = (exists, count) => {
+    if (!exists) return 'text-red-600';
+    if (count === 0) return 'text-yellow-600'; 
+    return 'text-green-600';
+  };
+
+  const getStatusIcon = (exists, count) => {
+    if (!exists) return '❌';
+    if (count === 0) return '⚠️';
+    return '✅';
+  };
+
+  if (diagnostics.loading || playersLoading) {
+    return (
+      <div className="p-6 bg-gray-50 rounded-lg">
+        <div className="animate-pulse">
+          <h3 className="text-lg font-semibold mb-4">🔍 Running Firestore Diagnostics...</h3>
+          <div className="space-y-2">
+            <div className="h-4 bg-gray-300 rounded w-3/4"></div>
+            <div className="h-4 bg-gray-300 rounded w-1/2"></div>
+            <div className="h-4 bg-gray-300 rounded w-2/3"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 bg-gray-50 rounded-lg space-y-6">
+      <h2 className="text-xl font-bold text-gray-900">🔍 Firestore Data Diagnostic</h2>
+      
+      {/* Player Data Status */}
+      <div className="bg-white p-4 rounded border">
+        <h3 className="text-lg font-semibold mb-3">Player Data Status</h3>
+        <div className="space-y-2">
+          <div className={`flex justify-between items-center ${getStatusColor(players.length > 0, players.length)}`}>
+            <span>{getStatusIcon(players.length > 0, players.length)} Players Loaded</span>
+            <span className="font-mono">{players.length} players</span>
+          </div>
+          {playerDiag.source && (
+            <div className="text-sm text-gray-600">
+              <strong>Data Source:</strong> {playerDiag.source}
+              {playerDiag.fallbackUsed && <span className="text-orange-600"> (using fallback)</span>}
+            </div>
+          )}
+          {playerDiag.collectionsChecked.length > 0 && (
+            <div className="text-xs text-gray-500">
+              <strong>Locations Checked:</strong> {playerDiag.collectionsChecked.join(', ')}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Main Collections */}
+      <div className="bg-white p-4 rounded border">
+        <h3 className="text-lg font-semibold mb-3">Main Collections</h3>
+        <div className="space-y-2">
+          {Object.entries(diagnostics.collections).map(([name, info]) => (
+            <div key={name} className={`flex justify-between items-center ${getStatusColor(info.exists, info.count)}`}>
+              <span>{getStatusIcon(info.exists, info.count)} /{name}</span>
+              <span className="font-mono">
+                {info.exists ? `${info.count} documents` : `Error: ${info.error}`}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Season Details */}
+      {diagnostics.collections.seasons?.seasons && (
+        <div className="bg-white p-4 rounded border">
+          <h3 className="text-lg font-semibold mb-3">Season Collections</h3>
+          {diagnostics.collections.seasons.seasons.map((season) => (
+            <div key={season.id} className="mb-4 p-3 bg-gray-50 rounded">
+              <div className="font-semibold text-gray-900">
+                Season {season.id} ({season.display_name}) - {season.status}
+              </div>
+              <div className="mt-2 space-y-1">
+                {Object.entries(season.subcollections).map(([subName, subInfo]) => (
+                  <div key={subName} className={`text-sm flex justify-between ${getStatusColor(subInfo.exists, subInfo.count)}`}>
+                    <span>{getStatusIcon(subInfo.exists, subInfo.count)} {subName}</span>
+                    <span className="font-mono">
+                      {subInfo.exists ? `${subInfo.count} docs` : 'missing'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Recommendations */}
+      <div className="bg-blue-50 p-4 rounded border border-blue-200">
+        <h3 className="text-lg font-semibold text-blue-900 mb-3">💡 Recommendations</h3>
+        <div className="space-y-2 text-sm text-blue-800">
+          {players.length === 0 && (
+            <div>❗ <strong>No players found:</strong> Run season data population script or check Firebase credentials</div>
+          )}
+          
+          {playerDiag.fallbackUsed && (
+            <div>⚠️ <strong>Using fallback data:</strong> Consider populating Firestore with current season data</div>
+          )}
+          
+          {diagnostics.collections.seasons?.count === 0 && (
+            <div>📅 <strong>No seasons found:</strong> Run <code className="bg-blue-100 px-1 rounded">npm run season:create</code> to set up seasons</div>
+          )}
+          
+          {diagnostics.collections.seasons?.seasons?.some(s => s.subcollections.players?.count === 0) && (
+            <div>👥 <strong>Season missing players:</strong> Run season data population to add player data to season collections</div>
+          )}
+          
+          <div className="mt-3 p-2 bg-blue-100 rounded">
+            <strong>Quick Fix Commands:</strong>
+            <ul className="mt-1 space-y-1 text-xs font-mono">
+              <li>• npm run season:transition (full setup)</li>
+              <li>• npm run season:create (create season structure)</li>
+              <li>• npm run season:validate (check data integrity)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default FirestoreDataDiagnostic;
