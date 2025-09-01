@@ -110,9 +110,16 @@ def get_player_url(slug):
 
 # Load bios from available players data
 # Check multiple possible locations for player data
+import os
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(os.path.dirname(script_dir))
+
 players_file_paths = [
-    "../../public/players.json",  # Most likely location
-    "../public/players.json",
+    os.path.join(project_root, "data", "players_merged_with_discoveries.json"),  # NEW: Merged data from discovery
+    os.path.join(project_root, "public", "players.json"),  # Original player data
+    os.path.join(project_root, "data", "merged_players.json"),  # Legacy merged data
+    "../../public/players.json",  # From scripts/contracts/ to public/
+    "../../../public/players.json",  # Alternative path
     "players_bios_2025.json",     # Original expected file
     "players.json"
 ]
@@ -123,6 +130,7 @@ for path in players_file_paths:
         with open(path, "r") as f:
             players = json.load(f)
             print(f"✅ Loaded player data from: {path}")
+            print(f"📊 Found {len(players)} players to scrape contracts for")
             break
     except FileNotFoundError:
         continue

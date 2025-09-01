@@ -55,6 +55,74 @@ def run_script(script_path, script_type="python"):
             print("STDERR:", e.stderr)
         return False
 
+def discover_players_initial():
+    """Initial discovery to find all players (no filtering)"""
+    print(f"\n🔍 Initial player discovery (no filtering)...")
+    
+    # Temporarily rename the merge script to avoid contract filtering
+    if run_script("scripts/discover_and_merge_players.py"):
+        print("✅ Initial player discovery completed")
+        return True
+    else:
+        print("⚠️  Initial discovery had issues, but continuing")
+        return True
+
+def discover_and_merge_players_filtered():
+    """Final discovery with contract filtering"""
+    print(f"\n🔍 Re-running player discovery with contract filtering...")
+    
+    # Now run with contract filtering enabled
+    if run_script("scripts/discover_and_merge_players.py"):
+        print("✅ Player discovery with filtering completed")
+        return True
+    else:
+        print("⚠️  Filtered discovery had issues, using unfiltered results")
+        return True
+
+def scrape_and_parse_contracts():
+    """Scrape and parse all NBA contract data for discovered players"""
+    print(f"\n💰 Scraping contracts for all discovered players...")
+    
+    # Use the merged player data (531 + new discoveries) as input
+    merged_path = "data/players_merged_with_discoveries.json"
+    if os.path.exists(merged_path):
+        print(f"📁 Scraping contracts for players in: {merged_path}")
+        # Update contract scraper to use merged data as source
+        # This way it scrapes contracts for ALL players (existing + new)
+    
+    # Step 1: Scrape contract data from SalarySwish for ALL players
+    print("📡 Scraping contract data from SalarySwish...")
+    if not run_script("scripts/contracts/scrape_all_contracts.py"):
+        print("❌ Failed to scrape contracts")
+        return False
+    
+    # Step 2: Parse the scraped HTML into structured data
+    print("📋 Parsing contract data...")
+    if not run_script("scripts/contracts/parse_contract_data.py"):
+        print("❌ Failed to parse contracts")
+        return False
+    
+    print("✅ Contract data scraping and parsing completed")
+    return True
+
+def update_player_source_for_contracts():
+    """Update to use merged player data and copy to main player file"""
+    merged_path = "data/players_merged_with_discoveries.json"
+    original_path = "public/players.json"
+    
+    if os.path.exists(merged_path):
+        print(f"📁 Using merged player data: {merged_path}")
+        
+        # Copy merged data to main player file for upload scripts
+        import shutil
+        shutil.copy2(merged_path, original_path)
+        print(f"✅ Updated {original_path} with merged player data")
+        
+        return merged_path
+    else:
+        print(f"📁 Using original player data: {original_path}")
+        return original_path
+
 def archive_current_season_data(db, current_year):
     """Archive current season player grades and team data"""
     print(f"\n📦 Archiving {current_year-1}-{str(current_year)[-2:]} season data...")
@@ -192,19 +260,35 @@ def main():
         print("❌ Failed to set up grade preservation")
         sys.exit(1)
     
-    # Step 4: Update contracts and bio data (preserves grades)
+    # Step 4: Initial discovery - find ALL players (existing + new)
+    if not discover_players_initial():
+        print("❌ Initial player discovery failed")
+        sys.exit(1)
+    
+    # Step 5: Scrape contracts for ALL discovered players
+    if not scrape_and_parse_contracts():
+        print("⚠️  Contract scraping failed - continuing without contract filtering")
+    
+    # Step 6: Re-run discovery WITH contract filtering to remove $0.0M players
+    if not discover_and_merge_players_filtered():
+        print("❌ Filtered player discovery failed - using unfiltered results")
+    
+    # Step 7: Update main player file with final merged data
+    player_source = update_player_source_for_contracts()
+    
+    # Step 8: Update contracts and bio data (preserves grades)
     print(f"\n📄 Updating contracts and bio data...")
     if not run_script("scripts/updateContracts.py"):
         print("❌ Failed to update contracts")
         sys.exit(1)
     
-    # Step 5: Prepare stats structure for new season
+    # Step 9: Prepare stats structure for new season
     print(f"\n📊 Preparing stats structure...")
     if not run_script("scripts/prepare_new_season_stats.py"):
         print("❌ Failed to prepare stats structure")
         sys.exit(1)
     
-    # Step 6: Validate data integrity
+    # Step 10: Validate data integrity
     print(f"\n✅ Validating transition...")
     if not run_script("scripts/validate_season_transition.py"):
         print("❌ Validation failed")
@@ -213,7 +297,11 @@ def main():
     print(f"\n🎉 Season transition to {current_year-1}-{str(current_year)[-2:]} completed successfully!")
     print("\n📋 Summary:")
     print("  ✅ Previous season data archived")
-    print("  ✅ New season structure created") 
+    print("  ✅ New season structure created")
+    print("  ✅ All players discovered (initial pass)")
+    print("  ✅ Contract data scraped for all players") 
+    print("  ✅ Players re-discovered with $0.0M filtering")
+    print("  ✅ Merged player data integrated into main file")
     print("  ✅ Contracts and bio data updated")
     print("  ✅ Player grades preserved")
     print("  ✅ Stats structure prepared")

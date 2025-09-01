@@ -25,6 +25,15 @@ export function filterPlayers(players = [], filters) {
   const selectedPositions = expandPositionGroup(filters.position);
 
   return players.filter((p) => {
+    // Filter out new players with $0.0M contracts
+    // Check if player has a $0.0M contract (training camp invites, two-way, etc.)
+    const hasZeroContract = checkForZeroContract(p);
+
+    // If player has a zero contract AND is potentially new (no established data), filter them out
+    if (hasZeroContract && isLikelyNewPlayer(p)) {
+      return false;
+    }
+
     if (filters.nameSearch) {
       const playerName = (p.display_name || p.name || '').toLowerCase();
       const searchTerm = filters.nameSearch.toLowerCase();
@@ -180,6 +189,76 @@ export function filterPlayers(players = [], filters) {
 
     return true;
   });
+}
+
+/**
+ * Check if a player has a $0.0M contract indicating training camp invite or non-guaranteed deal
+ */
+function checkForZeroContract(player) {
+  // Check current year salary from contract
+  const currentYear = 2025;
+
+  // Check annual_salaries array
+  if (player.contract?.annual_salaries) {
+    const currentSalary = player.contract.annual_salaries.find(
+      (s) => s.year === currentYear
+    );
+    if (
+      currentSalary &&
+      (currentSalary.salary === 0 ||
+        currentSalary.salary === '0' ||
+        currentSalary.salary === '$0.0M')
+    ) {
+      return true;
+    }
+  }
+
+  // Check salaryByYear mapping
+  if (player.salaryByYear?.[currentYear] === 0) {
+    return true;
+  }
+
+  // Check contract string patterns
+  const contractStr = player.Contract || player.contract_summary || '';
+  if (contractStr.includes('$0.0M') || contractStr === '$0.0M / 1 yr') {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Determine if a player is likely new (not in last year's 531 established players)
+ * by checking for lack of established data that veterans would have
+ */
+function isLikelyNewPlayer(player) {
+  // Players with existing grades/traits are likely established (from previous 531)
+  if (player.traits && Object.keys(player.traits).length > 0) {
+    return false;
+  }
+
+  // Players with roles assigned are likely established
+  if (player.roles && (player.roles.offense1 || player.roles.defense1)) {
+    return false;
+  }
+
+  // Players with substantial stats history are likely established
+  if (player.system?.stats?.G && player.system.stats.G > 20) {
+    return false;
+  }
+
+  // Players with established minutes per game are likely not training camp invites
+  if (player.system?.stats?.MP && player.system.stats.MP > 15) {
+    return false;
+  }
+
+  // If player has overall grade, they're established
+  if (player.overall_grade || player.overall) {
+    return false;
+  }
+
+  // If none of the above, likely a new/training camp player
+  return true;
 }
 
 export function sortPlayers(

@@ -321,7 +321,12 @@ def merge_player_data(contracts_path=None, bios_path=None, stats_path=None, outp
         os.makedirs(data_dir, exist_ok=True)
     
     # Try multiple sources for input data
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(os.path.dirname(script_dir))
+    
     input_sources = [
+        os.path.join(project_root, "public", "players.json"),  # Absolute path to public/players.json
+        os.path.join(project_root, "data", "merged_players.json"),  # Check data directory
         "../../public/players.json",
         "../public/players.json", 
         "../data/players.json",
