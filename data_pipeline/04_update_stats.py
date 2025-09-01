@@ -14,8 +14,8 @@ def run(script):
 def main():
     base = os.path.dirname(os.path.abspath(__file__))  # current data_pipeline path
 
-    run(os.path.join(base, "merge", "merge_universal_player_data.py"))
-    run(os.path.join(base, "upload", "push_stat_data.py"))
+    run(os.path.join(base, "helpers", "merge", "merge_universal_player_data.py"))
+    run(os.path.join(base, "helpers", "upload", "push_stat_data.py"))
 
     print("\n✅ Stat update complete.\n")
 

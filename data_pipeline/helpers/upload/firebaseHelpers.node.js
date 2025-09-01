@@ -7,7 +7,7 @@ import {
   getDocs,
   updateDoc,
   serverTimestamp,
-} from '../firebaseConfig.node.js';
+} from '../../firebaseConfig.node.js';
 
 // 🔁 Save a single player to Firestore
 export const savePlayerData = async (playerId, playerData) => {

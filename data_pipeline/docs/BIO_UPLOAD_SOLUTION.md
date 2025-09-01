@@ -31,7 +31,7 @@ Created `data_pipeline/upload_bio_solution.py` with test mode:
 - ✅ Graceful fallback when credentials unavailable
 
 ### 3. Improved Error Messages
-Enhanced `data_pipeline/upload/push_bio_and_contract.py`:
+Enhanced `data_pipeline/helpers/upload/push_bio_and_contract.py`:
 - ✅ Clear instructions for obtaining Firebase credentials
 - ✅ Step-by-step setup guide
 - ✅ Reference to test mode for validation
@@ -46,7 +46,7 @@ Enhanced `data_pipeline/upload/push_bio_and_contract.py`:
 #    - Save as serviceAccountKey.json in project root
 
 # 2. Upload bio data to Firestore
-python3 data_pipeline/upload/push_bio_and_contract.py
+python3 data_pipeline/helpers/upload/push_bio_and_contract.py
 ```
 
 ### Option 2: Test Upload Logic (No Credentials Needed)
@@ -64,7 +64,7 @@ python3 data_pipeline/upload_bio_solution.py --test --max=10
 export GOOGLE_APPLICATION_CREDENTIALS=/path/to/serviceAccountKey.json
 
 # Upload bio data
-python3 data_pipeline/upload/push_bio_and_contract.py
+python3 data_pipeline/helpers/upload/push_bio_and_contract.py
 ```
 
 ## 📊 Validation Results

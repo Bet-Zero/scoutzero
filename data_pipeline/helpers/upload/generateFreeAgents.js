@@ -6,7 +6,7 @@ import {
   doc,
   setDoc,
   getDocs,
-} from '../firebaseConfig.node.js';
+} from '../../firebaseConfig.node.js';
 import { setDoc, doc, getDocs, collection } from 'firebase/firestore';
 
 const CURRENT_YEAR = 2025;

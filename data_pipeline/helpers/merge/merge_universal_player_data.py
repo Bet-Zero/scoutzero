@@ -6,7 +6,7 @@ import unicodedata
 from difflib import get_close_matches
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-log_dir = os.path.join(SCRIPT_DIR, "..", "data")
+log_dir = os.path.join(SCRIPT_DIR, "..", "..", "resources", "data")
 os.makedirs(log_dir, exist_ok=True)
 
 logging.basicConfig(
@@ -315,7 +315,7 @@ def merge_player_data(contracts_path=None, bios_path=None, stats_path=None, outp
     """Main function to merge all data sources - works with available data"""
     
     # Default paths with fallbacks
-    data_dir = os.path.join(SCRIPT_DIR, "..", "data")
+    data_dir = os.path.join(SCRIPT_DIR, "..", "..", "resources", "data")
     if not os.path.exists(data_dir):
         os.makedirs(data_dir, exist_ok=True)
     
@@ -326,7 +326,7 @@ def merge_player_data(contracts_path=None, bios_path=None, stats_path=None, outp
     input_sources = [
         os.path.join(project_root, "public", "players.json"),  # Absolute path to public/players.json
         os.path.join(project_root, "data", "merged_players.json"),  # Check data directory
-        os.path.join(SCRIPT_DIR, "..", "data", "players.json"),
+        os.path.join(SCRIPT_DIR, "..", "..", "resources", "data", "players.json"),
         "players.json"
     ]
     
@@ -475,7 +475,7 @@ def merge_player_data(contracts_path=None, bios_path=None, stats_path=None, outp
     return merged_players
 
 if __name__ == "__main__":
-    DATA_DIR = os.path.join(SCRIPT_DIR, "..", "data")
+    DATA_DIR = os.path.join(SCRIPT_DIR, "..", "..", "resources", "data")
     
     # Check for available data files - use None if not found
     contracts_path = os.path.join(DATA_DIR, "contracts_parsed.json")
