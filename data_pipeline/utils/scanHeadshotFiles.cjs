@@ -2,7 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const dir = path.resolve(__dirname, '../public/assets/headshots');
+const dir = path.resolve(__dirname, '../../public/assets/headshots');
 
 const files = fs.readdirSync(dir);
 const names = files

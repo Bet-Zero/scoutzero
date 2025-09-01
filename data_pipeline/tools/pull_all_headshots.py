@@ -4,9 +4,11 @@ import json
 import requests
 
 # === Config Paths ===
-PLAYERS_FILE = "public/players.json"
-ID_MAP_FILE = "tools/output/all_player_ids.json"
-HEADSHOTS_DIR = "public/assets/headshots"
+TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(os.path.dirname(TOOLS_DIR))
+PLAYERS_FILE = os.path.join(PROJECT_ROOT, "public", "players.json")
+ID_MAP_FILE = os.path.join(TOOLS_DIR, "output", "all_player_ids.json")
+HEADSHOTS_DIR = os.path.join(PROJECT_ROOT, "public", "assets", "headshots")
 
 # === Load Data ===
 with open(PLAYERS_FILE, "r", encoding="utf-8") as f:

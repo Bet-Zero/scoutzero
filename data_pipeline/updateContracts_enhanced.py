@@ -50,13 +50,16 @@ def check_prerequisites():
     """Check if required files exist"""
     print("🔍 Checking prerequisites...")
     
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(base_dir)
+
     required_files = [
-        ("public/players.json", "Base player data"),
+        (os.path.join(project_root, "public", "players.json"), "Base player data"),
     ]
-    
+
     # Check for merged data but don't require it
     optional_files = [
-        ("data/players_merged_with_discoveries.json", "Merged player data")
+        (os.path.join(base_dir, "data", "players_merged_with_discoveries.json"), "Merged player data")
     ]
     
     missing_files = []
@@ -86,23 +89,25 @@ def direct_firebase_upload():
     
     try:
         # Check for Firebase credentials
-        if not os.path.exists("serviceAccountKey.json"):
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.dirname(base_dir)
+        if not os.path.exists(os.path.join(project_root, "serviceAccountKey.json")):
             print("   ⚠️ No Firebase credentials - skipping direct upload")
             return False
-        
+
         # Load base player data
         print("   📁 Loading base player data...")
-        with open('public/players.json', 'r') as f:
+        with open(os.path.join(project_root, 'public', 'players.json'), 'r') as f:
             base_players = json.load(f)
         print(f"   ✅ Loaded {len(base_players)} base players")
         
         # Load correctly parsed contracts
-        if not os.path.exists('data/contracts_parsed.json'):
+        contracts_path = os.path.join(base_dir, 'data', 'contracts_parsed.json')
+        if not os.path.exists(contracts_path):
             print("   ❌ No parsed contracts found")
             return False
-            
         print("   📄 Loading parsed contracts...")
-        with open('data/contracts_parsed.json', 'r') as f:
+        with open(contracts_path, 'r') as f:
             contracts = json.load(f)
         print(f"   ✅ Loaded {len(contracts)} contract records")
         
@@ -193,7 +198,7 @@ def main():
         sys.exit(1)
     
     # Get script directory
-    base_dir = os.path.dirname(__file__)
+    base_dir = os.path.dirname(os.path.abspath(__file__))
     
     # Pipeline steps
     steps = [
@@ -269,11 +274,12 @@ def main():
         print(f"   ⚠️ Some steps failed - check logs above")
     
     print(f"\n📊 Output files:")
+    base_dir = os.path.dirname(os.path.abspath(__file__))
     output_files = [
-        ("data/raw_contract_html.json", "Raw contract data"),
-        ("data/contracts_parsed.json", "Parsed contract data")
+        (os.path.join(base_dir, "data", "raw_contract_html.json"), "Raw contract data"),
+        (os.path.join(base_dir, "data", "contracts_parsed.json"), "Parsed contract data")
     ]
-    
+
     for file_path, description in output_files:
         if os.path.exists(file_path):
             print(f"   ✅ {description}: {file_path}")

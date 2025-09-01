@@ -5,7 +5,7 @@
   "compress": true,
   "include": [
     "src/",
-    "scripts/",
+    "data_pipeline/",
     "config/",
     "public/index.html",
     "firebaseConfig.js",

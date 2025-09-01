@@ -2,13 +2,15 @@ import sys
 import json
 import os
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(os.path.dirname(SCRIPT_DIR))
 # ✅ Add the path to your src folder
-sys.path.append('./src')
+sys.path.append(os.path.join(PROJECT_ROOT, 'src'))
 
 from firebase_helpers import savePlayerData
 
 # Load merged player data
-with open("data/players.json", "r") as f:
+with open(os.path.join(SCRIPT_DIR, '..', 'data', 'players.json'), "r") as f:
     all_players = json.load(f)
 
 # Players to update

@@ -40,21 +40,21 @@ npm run season:transition
 
 #### 1. **Intelligent Contract Data Pipeline**
 
-- **Enhanced Script**: `scripts/contracts/scrape_all_contracts.py`
+- **Enhanced Script**: `data_pipeline/contracts/scrape_all_contracts.py`
 - **Fallback Logic**: Uses existing contract data when external scraping fails
 - **Fast Processing**: Tries external sources for first 5 players, then uses fallbacks
 - **Result**: 630 players processed successfully with contract information
 
 #### 2. **Robust Data Parsing**
 
-- **Enhanced Parser**: `scripts/contracts/parse_contract_data_enhanced.py`
+- **Enhanced Parser**: `data_pipeline/contracts/parse_contract_data_enhanced.py`
 - **Mixed Data Handling**: Processes both scraped HTML and fallback data
 - **Structured Output**: Creates consistent contract data format
 - **Result**: All 630 players have parsed contract data
 
 #### 3. **Streamlined Pipeline Orchestration**
 
-- **Main Script**: `scripts/season_transition_streamlined.py`
+- **Main Script**: `data_pipeline/season_transition_streamlined.py`
 - **Smart Error Handling**: Continues pipeline even when optional steps fail
 - **Comprehensive Logging**: Timestamped progress with clear success/failure indicators
 - **Intelligent Prerequisites**: Checks dependencies before starting

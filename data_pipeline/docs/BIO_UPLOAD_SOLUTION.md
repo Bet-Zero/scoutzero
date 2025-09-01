@@ -17,21 +17,21 @@ The bio data upload issue has been fully diagnosed:
 ## 🛠️ Complete Solution Implemented
 
 ### 1. Enhanced Diagnostic Tool
-Created `scripts/diagnose_bio_upload.py` to analyze the complete upload pipeline:
+Created `data_pipeline/diagnose_bio_upload.py` to analyze the complete upload pipeline:
 - ✅ Checks local bio data availability and structure
 - ✅ Verifies Firebase credentials
 - ✅ Confirms upload script dependencies
 - ✅ Provides actionable recommendations
 
 ### 2. Test Upload Capability
-Created `scripts/upload_bio_solution.py` with test mode:
+Created `data_pipeline/upload_bio_solution.py` with test mode:
 - ✅ Can test upload logic without Firebase credentials
 - ✅ Shows exactly what would be uploaded to Firestore
 - ✅ Validates bio data structure and formatting
 - ✅ Graceful fallback when credentials unavailable
 
 ### 3. Improved Error Messages
-Enhanced `scripts/upload/push_bio_and_contract.py`:
+Enhanced `data_pipeline/upload/push_bio_and_contract.py`:
 - ✅ Clear instructions for obtaining Firebase credentials
 - ✅ Step-by-step setup guide
 - ✅ Reference to test mode for validation
@@ -46,16 +46,16 @@ Enhanced `scripts/upload/push_bio_and_contract.py`:
 #    - Save as serviceAccountKey.json in project root
 
 # 2. Upload bio data to Firestore
-python3 scripts/upload/push_bio_and_contract.py
+python3 data_pipeline/upload/push_bio_and_contract.py
 ```
 
 ### Option 2: Test Upload Logic (No Credentials Needed)
 ```bash
 # Test what would be uploaded
-python3 scripts/upload_bio_solution.py --test
+python3 data_pipeline/upload_bio_solution.py --test
 
 # Test with limited players
-python3 scripts/upload_bio_solution.py --test --max=10
+python3 data_pipeline/upload_bio_solution.py --test --max=10
 ```
 
 ### Option 3: Use Environment Variable
@@ -64,7 +64,7 @@ python3 scripts/upload_bio_solution.py --test --max=10
 export GOOGLE_APPLICATION_CREDENTIALS=/path/to/serviceAccountKey.json
 
 # Upload bio data
-python3 scripts/upload/push_bio_and_contract.py
+python3 data_pipeline/upload/push_bio_and_contract.py
 ```
 
 ## 📊 Validation Results
@@ -104,9 +104,9 @@ After upload, each player document will have:
 
 ## 🔧 Tools Created
 
-1. **`scripts/diagnose_bio_upload.py`** - Complete diagnostic tool
-2. **`scripts/upload_bio_solution.py`** - Test-capable upload script  
-3. **`scripts/test_bio_upload.py`** - Simple test validator
+1. **`data_pipeline/diagnose_bio_upload.py`** - Complete diagnostic tool
+2. **`data_pipeline/upload_bio_solution.py`** - Test-capable upload script
+3. **`data_pipeline/test_bio_upload.py`** - Simple test validator
 4. Enhanced error handling in existing upload script
 
 All tools work without Firebase credentials and provide clear next steps.

@@ -1,7 +1,7 @@
 
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, getDocs } from "firebase/firestore";
-import firebaseConfig from "../src/firebaseConfig.js";
+import firebaseConfig from "../../src/firebaseConfig.js";
 import { getApps } from "firebase/app";
 
 const app = getApps().length === 0

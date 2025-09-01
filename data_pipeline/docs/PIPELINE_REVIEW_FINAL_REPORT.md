@@ -45,7 +45,7 @@ The ScoutZero data pipeline has been thoroughly reviewed and is **PRODUCTION REA
 ## Issues Found & Resolved 🔧
 
 ### Missing Components (Now Fixed)
-1. **`scripts/season_manager.py`** - Created comprehensive season management CLI
+1. **`data_pipeline/season_manager.py`** - Created comprehensive season management CLI
 2. **`scripts/populate-firestore-data.js`** - Created Firebase data upload utility
 3. **Enhanced `scripts/firebaseConfig.node.js`** - Improved credential discovery
 

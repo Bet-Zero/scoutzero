@@ -165,14 +165,13 @@ class SeasonTransitionPipeline:
             if return_code == 0:
                 # Check if contract data was created
                 contract_files = [
-                    ("data/raw_contract_html.json", "Raw contract data"),
-                    ("data/contracts_parsed.json", "Parsed contract data")
+                    (os.path.join(self.script_dir, "data", "raw_contract_html.json"), "Raw contract data"),
+                    (os.path.join(self.script_dir, "data", "contracts_parsed.json"), "Parsed contract data")
                 ]
-                
+
                 for file_path, description in contract_files:
-                    full_path = os.path.join(self.project_root, file_path)
-                    if os.path.exists(full_path):
-                        with open(full_path, 'r') as f:
+                    if os.path.exists(file_path):
+                        with open(file_path, 'r') as f:
                             data = json.load(f)
                         self.log(f"   ✓ {description}: {len(data)} players")
                 
@@ -201,7 +200,7 @@ class SeasonTransitionPipeline:
         
         try:
             # Use the existing bio data fetching tool
-            bio_script_path = os.path.join(self.project_root, "tools", "get_all_bios_nba.py")
+            bio_script_path = os.path.join(self.script_dir, "tools", "get_all_bios_nba.py")
             
             if not os.path.exists(bio_script_path):
                 self.log(f"Bio script not found: {bio_script_path}", "WARNING")
@@ -210,7 +209,7 @@ class SeasonTransitionPipeline:
             
             # Generate player ID mapping file needed by the bio script
             # Use the newly merged player data from step 1, not the old public file
-            merged_players_file = os.path.join(self.project_root, "data", "players_merged_with_discoveries.json")
+            merged_players_file = os.path.join(self.script_dir, "data", "players_merged_with_discoveries.json")
             players_file = os.path.join(self.project_root, "public", "players.json")
             id_mapping_file = os.path.join(self.script_dir, "all_player_ids.json")
             
@@ -262,7 +261,7 @@ class SeasonTransitionPipeline:
             
             if return_code == 0:
                 # Check if bio data was created
-                bio_output = os.path.join(self.project_root, "data", "players_bios_2025.json")
+                bio_output = os.path.join(self.script_dir, "data", "players_bios_2025.json")
                 if os.path.exists(bio_output):
                     with open(bio_output, 'r') as f:
                         bio_data = json.load(f)
@@ -309,7 +308,7 @@ class SeasonTransitionPipeline:
         
         try:
             # Source file with all the new discoveries and updates
-            source_file = os.path.join(self.project_root, "data", "players_merged_with_discoveries.json")
+            source_file = os.path.join(self.script_dir, "data", "players_merged_with_discoveries.json")
             # Destination file that the React app actually reads
             dest_file = os.path.join(self.project_root, "public", "players.json")
             
@@ -373,7 +372,7 @@ class SeasonTransitionPipeline:
             self.log(f"   ✅ Loaded {len(base_players)} base players")
             
             # Load correctly parsed contracts with Bird Rights
-            contracts_file = os.path.join(self.project_root, "data", "contracts_parsed.json")
+            contracts_file = os.path.join(self.script_dir, "data", "contracts_parsed.json")
             if os.path.exists(contracts_file):
                 with open(contracts_file, 'r') as f:
                     contracts = json.load(f)
@@ -480,20 +479,19 @@ class SeasonTransitionPipeline:
         
         # Check output files - updated to match actual file names created by the pipeline
         output_files = [
-            ("data/players_merged_with_discoveries.json", "New players discovered & merged"),
-            ("data/raw_contract_html.json", "Contract data collected"),
-            ("data/contracts_parsed.json", "Contract data parsed"),
-            ("public/players.json", "Updated main player data")  # This is the actual final merged data file
+            (os.path.join(self.script_dir, "data", "players_merged_with_discoveries.json"), "New players discovered & merged"),
+            (os.path.join(self.script_dir, "data", "raw_contract_html.json"), "Contract data collected"),
+            (os.path.join(self.script_dir, "data", "contracts_parsed.json"), "Contract data parsed"),
+            (os.path.join(self.project_root, "public", "players.json"), "Updated main player data")  # This is the actual final merged data file
         ]
-        
+
         existing_files = 0
         for file_path, description in output_files:
-            full_path = os.path.join(self.project_root, file_path)
-            if os.path.exists(full_path):
+            if os.path.exists(file_path):
                 try:
-                    with open(full_path, 'r') as f:
+                    with open(file_path, 'r') as f:
                         data = json.load(f)
-                    count = len(data) if isinstance(data, dict) else len(data) if isinstance(data, list) else "N/A"
+                    count = len(data) if isinstance(data, (dict, list)) else "N/A"
                     self.log(f"   ✓ {description}: {count} items", "SUCCESS")
                     existing_files += 1
                 except:

@@ -3,9 +3,9 @@
    MIGRATION:  add matchingValue / isBYC / ppaMultiplier to every player
    ------------------------------------------------------------------------
    USAGE:
-     node tools/migratePlayerMatchingValue.js --project scoutzero-bf1ae
-     node tools/migratePlayerMatchingValue.js --project scoutzero-bf1ae --write
-     node tools/migratePlayerMatchingValue.js --project scoutzero-bf1ae --write --targetCollection players_staging
+     node data_pipeline/tools/migratePlayerMatchingValue.js --project scoutzero-bf1ae
+     node data_pipeline/tools/migratePlayerMatchingValue.js --project scoutzero-bf1ae --write
+     node data_pipeline/tools/migratePlayerMatchingValue.js --project scoutzero-bf1ae --write --targetCollection players_staging
    ===================================================================== */
 
 import minimist from 'minimist';
@@ -27,7 +27,7 @@ if (!projectId) {
 /* ----------  Firebase Init  ---------------------------------------- */
 const serviceKeyPath = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
-  `../serviceAccountKey.json`
+  `../../serviceAccountKey.json`
 );
 
 admin.initializeApp({
