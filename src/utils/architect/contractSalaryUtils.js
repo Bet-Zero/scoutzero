@@ -1,9 +1,9 @@
 // src/utils/architect/contractSalaryUtils.js
 
 /**
- * Contract salary lookup that safely handles different year key formats for the SAME season
+ * Contract salary lookup using consistent end-year format
  * @param {Object} player - Player object with contract data  
- * @param {number|string} yearKey - Year key (e.g., 2025, "2024-25")
+ * @param {number|string} yearKey - Season end year (e.g., 2026 for 2025-26 season)
  * @returns {number} - Salary for the year, or 0 if not found
  */
 export function getContractSalaryForYear(player, yearKey) {
@@ -13,72 +13,35 @@ export function getContractSalaryForYear(player, yearKey) {
 
   const salariesByYear = player.contract_clean.salaries_by_year;
   
-  // Try the yearKey as-is first
-  if (salariesByYear[yearKey]?.salary) {
-    return salariesByYear[yearKey].salary;
-  }
-
-  // For season format strings like "2024-25", try extracting both years
+  // Convert yearKey to end year format
+  let endYear;
   if (typeof yearKey === 'string' && yearKey.includes('-')) {
+    // "2024-25" -> 2025
     const match = yearKey.match(/(\d{4})-(\d{2})/);
     if (match) {
-      const startYear = parseInt(match[1]); // "2024-25" -> 2024
-      const endYear = parseInt(match[1]) + 1; // "2024-25" -> 2025
-      
-      if (salariesByYear[endYear]?.salary) {
-        return salariesByYear[endYear].salary;
-      }
-      
-      if (salariesByYear[startYear]?.salary) {
-        return salariesByYear[startYear].salary;
-      }
+      endYear = parseInt(match[1]) + 1;
     }
+  } else {
+    // Assume it's already the end year
+    endYear = parseInt(yearKey);
   }
 
-  // If yearKey is a number, try the season string format for the SAME season
-  if (typeof yearKey === 'number') {
-    const seasonKey = `${yearKey - 1}-${String(yearKey).slice(-2)}`;
-    if (salariesByYear[seasonKey]?.salary) {
-      return salariesByYear[seasonKey].salary;
-    }
+  if (!Number.isFinite(endYear)) {
+    return 0;
   }
 
-  // SAFE FALLBACK: Only try start year if we detect this is likely a 
-  // contract format inconsistency (not missing data for this season)
-  if (typeof yearKey === 'number') {
-    const startYear = yearKey - 1;
-    const allKeys = Object.keys(salariesByYear);
-    
-    // Only fallback to start year if:
-    // 1. The start year exists in the contract
-    // 2. There are no other years beyond the start year (indicating this might be the final contract year)
-    // 3. OR there's evidence this contract uses start-year formatting consistently
-    if (salariesByYear[startYear]?.salary) {
-      const hasLaterYears = allKeys.some(key => {
-        const keyYear = parseInt(key);
-        return Number.isFinite(keyYear) && keyYear > startYear;
-      });
-      
-      // If there are no later years, this might be an expiring contract stored under start year
-      // If there are later years, don't fallback as it would return wrong season data
-      if (!hasLaterYears) {
-        return salariesByYear[startYear].salary;
-      }
-    }
-  }
-
-  return 0;
+  // Look up salary using the end year
+  return salariesByYear[endYear]?.salary || 0;
 }
 
 /**
  * Get salary with additional fallback to other contract fields
  * @param {Object} player - Player object
- * @param {number|string} yearKey - Year key
+ * @param {number|string} yearKey - Season end year
  * @returns {number} - Salary or 0
  */
 export function getSalaryWithFallback(player, yearKey) {
   if (!player) {
-    console.log('--- Debug Output ---');
     return 0;
   }
 
@@ -90,8 +53,16 @@ export function getSalaryWithFallback(player, yearKey) {
 
   // Try the legacy contract structure
   if (player.contract?.annual_salaries) {
-    const year = typeof yearKey === 'number' ? yearKey : parseInt(String(yearKey).match(/\d{4}/)?.[0]);
-    const annualSalary = player.contract.annual_salaries.find((s) => parseInt(s.year) === year);
+    // Convert yearKey to end year for legacy lookup
+    let endYear;
+    if (typeof yearKey === 'string' && yearKey.includes('-')) {
+      const match = yearKey.match(/(\d{4})-(\d{2})/);
+      endYear = match ? parseInt(match[1]) + 1 : parseInt(yearKey);
+    } else {
+      endYear = parseInt(yearKey);
+    }
+    
+    const annualSalary = player.contract.annual_salaries.find((s) => parseInt(s.year) === endYear);
     if (annualSalary?.salary) {
       const legacySalary = Number(annualSalary.salary);
       if (Number.isFinite(legacySalary)) {
@@ -111,6 +82,5 @@ export function getSalaryWithFallback(player, yearKey) {
     }
   }
 
-  console.log('--- Debug Output ---');
   return 0;
 }
