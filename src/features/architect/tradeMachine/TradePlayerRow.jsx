@@ -4,6 +4,7 @@ import TeamLogo from '@/components/shared/TeamLogo';
 import { getPlayerPositionLabel } from '@/utils/roles';
 import { formatSalary } from '@/utils/formatting';
 import { getYearsRemaining } from '@/utils/contracts';
+import { getSalaryWithFallback } from '@/utils/architect/contractSalaryUtils';
 import { ArrowsRightLeftIcon } from '@heroicons/react/20/solid';
 
 const TradePlayerRow = ({
@@ -56,11 +57,7 @@ const TradePlayerRow = ({
     typeof yearKey === 'number'
       ? yearKey
       : parseInt(yearKey.match(/\d{4}/)?.[0]);
-  const salary =
-    player.contract_clean?.salaries_by_year?.[yearKey]?.salary ||
-    player.contract?.annual_salaries?.find((s) => parseInt(s.year) === year)
-      ?.salary ||
-    0;
+  const salary = getSalaryWithFallback(player, yearKey);
   const faYear =
     player.contract_clean?.fa_year ?? player.fa_year ?? player.free_agency_year;
   const yearsLeft = getYearsRemaining(faYear, year);

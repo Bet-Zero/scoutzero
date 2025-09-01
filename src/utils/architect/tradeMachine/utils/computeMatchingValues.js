@@ -1,3 +1,5 @@
+import { getContractSalaryForYear } from '@/utils/architect/contractSalaryUtils';
+
 export function computeMatchingValues({
   teams = [],
   yearKey,
@@ -10,8 +12,7 @@ export function computeMatchingValues({
   teams.forEach((team) => {
     (team.sends || []).forEach((player) => {
       // Extract salary from different possible sources - prioritize contract data
-      const contractSalary =
-        player.contract_clean?.salaries_by_year?.[currentYear]?.salary;
+      const contractSalary = getContractSalaryForYear(player, currentYear);
       const newSalary =
         player.newSalary ||
         contractSalary ||
