@@ -45,14 +45,16 @@ def create_fallback_contract_data(player_id, player_data):
     value, years, aav = parse_existing_contract_string(contract_str)
     fa_year, fa_type = parse_free_agent_info(fa_info)
     
-    # Create annual salaries estimate (simplified)
+    # Create annual salaries estimate using END YEAR format for consistency
     annual_salaries = []
     if value and years and fa_year:
-        start_year = fa_year - years
+        # fa_year is when player becomes free agent, so last contract year is fa_year - 1
+        last_contract_end_year = fa_year - 1
+        first_contract_end_year = last_contract_end_year - years + 1
         yearly_salary = int(value / years)
         for i in range(years):
             annual_salaries.append({
-                "year": start_year + i,
+                "year": first_contract_end_year + i,  # Store using END YEAR format
                 "salary": yearly_salary,
                 "guaranteed": True,
                 "option": None
@@ -103,7 +105,7 @@ def create_fallback_contract_data(player_id, player_data):
             "options": [],
             "total_value": int(value) if value else 0,
             "contract_length": years or 0,
-            "signed_year": annual_salaries[0]["year"] if annual_salaries else None,
+            "signed_year": annual_salaries[0]["year"] - 1 if annual_salaries else None,  # Convert back to start year
             "signing_team": team,
             "guaranteed_years": years or 0,
             "average_annual_value": int(aav) if aav else 0,
@@ -222,11 +224,13 @@ def parse_scraped_contract_html(player_id, player_data):
                 continue
             
             try:
-                # Extract year from season (e.g., "2025-26 Max" -> 2025)
+                # Extract year from season and convert to END YEAR format
+                # e.g., "2025-26 Max" -> 2026 (end year of 2025-26 season)
                 year_match = re.search(r"(\d{4})", season_text)
                 if not year_match:
                     continue
-                year = int(year_match.group(1))
+                start_year = int(year_match.group(1))
+                end_year = start_year + 1  # Convert to end year format for consistency
                 
                 # Extract salary from cap hit (e.g., "$54,126,450" -> 54126450)
                 salary_numbers = re.findall(r"[\d,]+", cap_hit_text.replace("$", ""))
@@ -235,11 +239,11 @@ def parse_scraped_contract_html(player_id, player_data):
                 salary = int(salary_numbers[0].replace(",", ""))
                 
                 # Validate reasonable values
-                if year < 2020 or year > 2035 or salary < 100000:
+                if start_year < 2020 or start_year > 2035 or salary < 100000:
                     continue
                 
                 salaries.append({
-                    "year": year,
+                    "year": end_year,  # Store using END YEAR format
                     "salary": salary,
                     "guaranteed": True,
                     "option": None
@@ -273,7 +277,7 @@ def parse_scraped_contract_html(player_id, player_data):
         "draft": {},
         "bird_rights": bird_rights,  # Bird Rights at contract expiry
         "free_agent_type": None,
-        "free_agency_year": max(s["year"] for s in salaries) + 1 if salaries else None,
+        "free_agency_year": max(s["year"] for s in salaries) if salaries else None,
         "cap_hold": 0,
         "contract_summary": summary,
         "contract": {
@@ -281,14 +285,14 @@ def parse_scraped_contract_html(player_id, player_data):
             "options": [],
             "total_value": total_value,
             "contract_length": contract_length,
-            "signed_year": salaries[0]["year"] if salaries else None,
+            "signed_year": salaries[0]["year"] - 1 if salaries else None,  # Convert back to start year for signing year
             "signing_team": None,
             "guaranteed_years": contract_length,
             "average_annual_value": aav,
             "incentives": {"likely": 0, "unlikely": 0},
             "notes": None,
             "extension": None,
-            "free_agency_year": max(s["year"] for s in salaries) + 1 if salaries else None
+            "free_agency_year": max(s["year"] for s in salaries) if salaries else None
         },
         "data_source": "scraped"
     }
