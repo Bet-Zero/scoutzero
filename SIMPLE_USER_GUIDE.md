@@ -1,53 +1,84 @@
-# 🏀 ScoutZero Data Pipeline - Simple User Guide
+# 🏀 ScoutZero Data Pipeline - Simple Guide
 
 ## What This System Does
 
-This system helps you update NBA player data for your scouting app. Think of it like updating a database with fresh information about players, their contracts, and their stats.
+This system updates your NBA scouting app with fresh player data. It works with the complete player data in `public/players.json` and uploads it to Firebase where your app reads it.
+
+## Your Data Flow
+
+1. **`public/players.json`** - Contains 630+ NBA players with complete bio, contract, and stats data
+2. **Upload to Firebase** - Your app reads player data from Firebase  
+3. **Generate tools** - Capsheets and other tools read from Firebase
 
 ---
 
-## Super Simple Commands (Just Copy & Paste These)
+## Simple Commands
 
-### 1. 🔄 **Complete Season Update** (Use this most of the time)
+### 🔄 **Season Transition** (Start of new NBA season)
 ```bash
 npm run season:transition
 ```
-**What it does:** Updates everything for a new NBA season - gets new players, updates contracts, prepares for new stats. This is what you run when a new NBA season starts.
-**Time:** About 8-10 seconds
+**What it does:** Uploads `players.json` to Firebase, preserving all your existing grades and scouting data for players who were already there, and adds new players (rookies, trades, etc.)
 
-### 2. 💰 **Update Just Contracts** (For trades during season)
+### 💰 **Update Contracts** (When trades happen)
 ```bash
 npm run contracts:update
 ```
-**What it does:** Updates player contract information when trades happen or players sign new deals.
-**Time:** About 8-10 seconds
+**What it does:** Updates contract information in `players.json` and uploads to Firebase
 
-### 3. 📊 **Update Just Stats** (During the season)
+### 📊 **Update Stats** (During season)
 ```bash
-npm run stats:update
+npm run stats:update  
 ```
-**What it does:** Updates player performance statistics with the latest numbers.
-**Time:** About 2-3 seconds
+**What it does:** Updates player statistics in `players.json` and uploads to Firebase
 
-### 4. 🧾 **Generate Cap Sheets**
+### 🧾 **Generate Cap Sheets**
 ```bash
 npm run capsheets:generate
 ```
-**What it does:** Creates salary cap worksheets for all 30 NBA teams.
-**Time:** About 1-2 seconds
+**What it does:** Reads player data FROM Firebase and creates salary cap sheets for all 30 teams
 
 ---
 
 ## When To Use Each Command
 
-### Before New Season Starts (August)
+### Before New Season (August)
 - Run: `npm run season:transition`
-- This gets all the rookies, trades, and contract changes ready
+- This preserves all your grades and adds new players
 
-### During The Season (October - June)
-- **When players get traded:** `npm run contracts:update`
-- **When you want fresh stats:** `npm run stats:update`
-- **If you need cap info:** `npm run capsheets:generate`
+### During Season (October - June)  
+- **When trades happen:** `npm run contracts:update`
+- **For fresh stats:** `npm run stats:update`
+- **Need cap info:** `npm run capsheets:generate`
+
+---
+
+## Prerequisites
+
+- Place `serviceAccountKey.json` in your project root (download from Firebase Console)
+- Your `public/players.json` file contains the current player data
+
+---
+
+## What Gets Preserved
+
+When you run season transition, these are kept for existing players:
+- ✅ All your grades and evaluations
+- ✅ Scouting traits and characteristics  
+- ✅ Role assignments
+- ✅ Custom notes and blurbs
+
+New players get fresh, empty grade structures ready for scouting.
+
+---
+
+## That's It!
+
+Your system is designed to be simple:
+1. **`players.json`** has everything
+2. **Upload to Firebase** 
+3. **Your app reads from Firebase**
+4. **Tools read from Firebase**
 
 ### The Normal Flow
 **Step 1:** Your player data starts in `public/players.json` (630 NBA players)  

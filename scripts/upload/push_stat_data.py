@@ -13,24 +13,22 @@ from firebase_admin import credentials, firestore
 from datetime import datetime, timezone
 
 def init_firebase():
-    """Initialize Firebase with real credentials - optional"""
+    """Initialize Firebase with real credentials"""
     cred_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS', './serviceAccountKey.json')
     if not os.path.exists(cred_path):
         cred_path = '../serviceAccountKey.json'
     
     if not os.path.exists(cred_path):
-        print("⚠️  Firebase credentials not found. Skipping upload.")
-        print("💡 Place serviceAccountKey.json in project root to enable uploads.")
-        return None
+        print("❌ Firebase credentials not found. Place serviceAccountKey.json in project root.")
+        sys.exit(1)
     
     try:
         cred = credentials.Certificate(cred_path)
         firebase_admin.initialize_app(cred)
         return firestore.client()
     except Exception as e:
-        print(f"⚠️  Failed to initialize Firebase: {e}")
-        print("💡 Data processing completed successfully. Only upload step skipped.")
-        return None
+        print(f"❌ Failed to initialize Firebase: {e}")
+        sys.exit(1)
 
 def find_player_data():
     """Find player data file in multiple possible locations"""
@@ -74,9 +72,6 @@ def main():
     
     # Initialize Firebase
     db = init_firebase()
-    if db is None:
-        print("✅ Data processing completed. Upload skipped due to missing credentials.")
-        sys.exit(0)
     
     # Find player data
     data_file = find_player_data()

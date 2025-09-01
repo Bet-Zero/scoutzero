@@ -5,33 +5,17 @@ import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 
 const keyPath =
   process.env.GOOGLE_APPLICATION_CREDENTIALS || './serviceAccountKey.json';
-
-let db = null;
-
-try {
-  if (fs.existsSync(keyPath)) {
-    const creds = JSON.parse(fs.readFileSync(keyPath, 'utf8'));
-    initializeApp({ credential: cert(creds) });
-    db = getFirestore();
-    console.log('✅ Firebase initialized successfully');
-  } else {
-    console.log('⚠️  Firebase credentials not found - running in offline mode');
-    console.log('💡 Place serviceAccountKey.json in project root to enable Firebase features');
-  }
-} catch (error) {
-  console.log('⚠️  Firebase initialization failed - running in offline mode');
-  console.log('💡 Error:', error.message);
-}
-
-export { db };
+const creds = JSON.parse(fs.readFileSync(keyPath, 'utf8'));
+initializeApp({ credential: cert(creds) });
+export const db = getFirestore();
 
 // Minimal wrappers so your existing scripts barely change:
 export const collection = (dbInst, ...segs) =>
-  dbInst ? dbInst.collection(segs.join('/')) : null;
+  dbInst.collection(segs.join('/'));
 export const doc = (dbInst, ...segs) =>
-  dbInst ? dbInst.collection(segs.slice(0, -1).join('/')).doc(segs.at(-1)) : null;
-export const getDocs = (q) => q ? q.get() : Promise.resolve({ docs: [] }); // QuerySnapshot
+  dbInst.collection(segs.slice(0, -1).join('/')).doc(segs.at(-1));
+export const getDocs = (q) => q.get(); // QuerySnapshot
 export const setDoc = (ref, data, opts) =>
-  ref ? (opts?.merge ? ref.set(data, { merge: true }) : ref.set(data)) : Promise.resolve();
-export const updateDoc = (ref, data) => ref ? ref.update(data) : Promise.resolve();
-export const serverTimestamp = () => FieldValue ? FieldValue.serverTimestamp() : new Date();
+  opts?.merge ? ref.set(data, { merge: true }) : ref.set(data);
+export const updateDoc = (ref, data) => ref.update(data);
+export const serverTimestamp = () => FieldValue.serverTimestamp();
