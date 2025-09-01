@@ -1,6 +1,0 @@
-{
-  "roots": [
-    "src"
-  ],
-  "exclude": "(node_modules|^\\.git$|^dist$|^build$|^coverage$|^atlas\\-docs$|^public$|^scripts$|^\\.next$|^out$)"
-}
