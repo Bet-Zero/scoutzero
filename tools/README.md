@@ -14,11 +14,13 @@ npm run season:transition
 
 **This single command handles everything:**
 1. 📦 Archives current season data (preserves all user grades)
-2. 🆕 Creates new season structure in Firestore
+2. 🆕 Creates new season structure in Firestore  
 3. 📄 Updates contracts and bio data for all players
 4. 👥 Automatically detects and adds newly drafted/signed players
 5. 📊 Prepares stats structure for new season (ready for data)
 6. ✅ Validates data integrity and preservation
+
+**Firebase Credentials Required**: For live Firebase uploads, place `serviceAccountKey.json` in project root. Pipeline works offline without credentials for development/testing.
 
 **Example: 2024-25 → 2025-26 Transition**
 - Archives all 2024-25 player evaluations (grades, traits, roles, blurbs)
