@@ -4,8 +4,8 @@ const fs = require('fs');
 const path = require('path');
 const csv = require('csv-parser');
 
-const dataDir = path.resolve(__dirname, '../data');
-const outputPath = path.resolve(__dirname, '../data/alias_map.json');
+const dataDir = path.resolve(__dirname, '../../resources/data');
+const outputPath = path.resolve(__dirname, '../../resources/data/alias_map.json');
 
 const targetFiles = [
   'all_player_ids.json',

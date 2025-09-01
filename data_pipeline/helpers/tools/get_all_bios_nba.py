@@ -4,11 +4,11 @@
 #!/usr/bin/env python3
 """
 NBA-only Bio Fetcher (no fallbacks)
-- Reads player IDs from data_pipeline/data/all_player_ids.json
+- Reads player IDs from data_pipeline/resources/data/all_player_ids.json
 - Fetches bios from stats.nba.com/commonplayerinfo
 - Prints per-player progress live (✅/❌)
 - Never aborts on a single timeout/error
-- Saves to data/players_bios_2025.json (merge can ingest)
+- Saves to resources/data/players_bios_2025.json (merge can ingest)
 """
 
 from __future__ import annotations
@@ -32,10 +32,10 @@ from urllib3.util.retry import Retry
 
 # ---------- PATHS ----------
 TOOLS_DIR = Path(__file__).resolve().parent
-PIPELINE_DIR = TOOLS_DIR.parent
+PIPELINE_DIR = TOOLS_DIR.parent.parent  # data_pipeline
 PROJECT_ROOT = PIPELINE_DIR.parent
-PLAYER_ID_FILE = PIPELINE_DIR / "data" / "all_player_ids.json"
-OUTPUT_DIR = PIPELINE_DIR / "data"
+PLAYER_ID_FILE = PIPELINE_DIR / "resources" / "data" / "all_player_ids.json"
+OUTPUT_DIR = PIPELINE_DIR / "resources" / "data"
 OUTPUT_FILE = OUTPUT_DIR / "players_bios_2025.json"
 EXISTING_PLAYERS_FILE = PROJECT_ROOT / "public" / "players.json"  # optional, not used for fallbacks
 
@@ -154,7 +154,7 @@ def main() -> int:
     # Load player IDs
     if not PLAYER_ID_FILE.exists():
         print(f"❌ Player ID file not found: {PLAYER_ID_FILE}")
-        print("   (Run your pipeline step that generates data_pipeline/data/all_player_ids.json)")
+        print("   (Run your pipeline step that generates data_pipeline/resources/data/all_player_ids.json)")
         return 1
 
     try:

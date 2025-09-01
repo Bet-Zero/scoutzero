@@ -5,7 +5,7 @@ import {
   getDocs,
   setDoc,
   doc,
-} from '../firebaseConfig.node.js';
+} from '../../firebaseConfig.node.js';
 
 const generateCapSheets = async () => {
   console.log('📦 Loading players...');

@@ -59,7 +59,7 @@ def check_prerequisites():
 
     # Check for merged data but don't require it
     optional_files = [
-        (os.path.join(base_dir, "data", "players_merged_with_discoveries.json"), "Merged player data")
+        (os.path.join(base_dir, "resources", "data", "players_merged_with_discoveries.json"), "Merged player data")
     ]
     
     missing_files = []
@@ -102,7 +102,7 @@ def direct_firebase_upload():
         print(f"   ✅ Loaded {len(base_players)} base players")
         
         # Load correctly parsed contracts
-        contracts_path = os.path.join(base_dir, 'data', 'contracts_parsed.json')
+        contracts_path = os.path.join(base_dir, 'resources', 'data', 'contracts_parsed.json')
         if not os.path.exists(contracts_path):
             print("   ❌ No parsed contracts found")
             return False
@@ -203,12 +203,12 @@ def main():
     # Pipeline steps
     steps = [
         {
-            "script": os.path.join(base_dir, "contracts/scrape_all_contracts.py"),  # FIXED: Remove "fallback" from name
+            "script": os.path.join(base_dir, "helpers", "contracts", "scrape_all_contracts.py"),  # FIXED: Remove "fallback" from name
             "description": "Step 1: Contract data collection (with smart URL detection)",
             "required": True
         },
         {
-            "script": os.path.join(base_dir, "contracts/parse_contract_data_enhanced.py"),
+            "script": os.path.join(base_dir, "helpers", "contracts", "parse_contract_data_enhanced.py"),
             "description": "Step 2: Parse contract data",
             "required": True
         }
@@ -231,7 +231,7 @@ def main():
         else:
             print("   ❌ Direct upload failed - trying legacy method...")
             # Fallback to old merge + upload
-            merge_script = os.path.join(base_dir, "merge/merge_universal_player_data.py")
+            merge_script = os.path.join(base_dir, "helpers", "merge", "merge_universal_player_data.py")
             upload_script = os.path.join(base_dir, "upload/push_bio_and_contract.py")
             
             print("   🔄 Running legacy merge...")
@@ -276,8 +276,8 @@ def main():
     print(f"\n📊 Output files:")
     base_dir = os.path.dirname(os.path.abspath(__file__))
     output_files = [
-        (os.path.join(base_dir, "data", "raw_contract_html.json"), "Raw contract data"),
-        (os.path.join(base_dir, "data", "contracts_parsed.json"), "Parsed contract data")
+        (os.path.join(base_dir, "resources", "data", "raw_contract_html.json"), "Raw contract data"),
+        (os.path.join(base_dir, "resources", "data", "contracts_parsed.json"), "Parsed contract data")
     ]
 
     for file_path, description in output_files:

@@ -17,6 +17,8 @@ def init_firebase():
     cred_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS', './serviceAccountKey.json')
     if not os.path.exists(cred_path):
         cred_path = '../serviceAccountKey.json'
+    if not os.path.exists(cred_path):
+        cred_path = '../../serviceAccountKey.json'
     
     if not os.path.exists(cred_path):
         print("❌ Firebase credentials not found. Place serviceAccountKey.json in project root.")
@@ -34,10 +36,9 @@ def find_player_data():
     """Find player data file in multiple possible locations"""
     script_dir = os.path.dirname(os.path.abspath(__file__))
     possible_paths = [
-        os.path.join(script_dir, "..", "data", "players_merged.json"),
-        os.path.join(script_dir, "..", "data", "players.json"),
-        os.path.join(script_dir, "..", "..", "public", "players.json"),
-        os.path.join(script_dir, "..", "public", "players.json"),
+        os.path.join(script_dir, "..", "..", "resources", "data", "players_merged.json"),
+        os.path.join(script_dir, "..", "..", "resources", "data", "players.json"),
+        os.path.join(script_dir, "..", "..", "..", "public", "players.json"),
         "players.json"
     ]
     

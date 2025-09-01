@@ -119,7 +119,7 @@ class SeasonTransitionPipeline:
     
     def discover_new_players(self):
         """Step 1: Discover and merge new NBA players for 2025-26"""
-        script_path = os.path.join(self.script_dir, "discover_and_merge_players.py")
+        script_path = os.path.join(self.script_dir, "01_discover_and_merge_players.py")
         return self.run_script(script_path, "Discover & merge new 2025-26 players")
     
     def update_contracts(self):
@@ -129,7 +129,7 @@ class SeasonTransitionPipeline:
         
         try:
             # Run the contract update pipeline which includes scraping
-            script_path = os.path.join(self.script_dir, "updateContracts_enhanced.py")
+            script_path = os.path.join(self.script_dir, "03_update_contracts.py")
             
             if not os.path.exists(script_path):
                 self.log(f"Contract update script not found: {script_path}", "ERROR")
@@ -165,8 +165,8 @@ class SeasonTransitionPipeline:
             if return_code == 0:
                 # Check if contract data was created
                 contract_files = [
-                    (os.path.join(self.script_dir, "data", "raw_contract_html.json"), "Raw contract data"),
-                    (os.path.join(self.script_dir, "data", "contracts_parsed.json"), "Parsed contract data")
+                    (os.path.join(self.script_dir, "resources", "data", "raw_contract_html.json"), "Raw contract data"),
+                    (os.path.join(self.script_dir, "resources", "data", "contracts_parsed.json"), "Parsed contract data")
                 ]
 
                 for file_path, description in contract_files:
@@ -190,7 +190,7 @@ class SeasonTransitionPipeline:
     
     def merge_player_data(self):
         """Step 3: Merge all player data"""
-        script_path = os.path.join(self.script_dir, "merge", "merge_universal_player_data.py")
+        script_path = os.path.join(self.script_dir, "helpers", "merge", "merge_universal_player_data.py")
         return self.run_script(script_path, "Merge universal player data")
     
     def update_bio_data(self):
@@ -209,7 +209,7 @@ class SeasonTransitionPipeline:
             
             # Generate player ID mapping file needed by the bio script
             # Use the newly merged player data from step 1, not the old public file
-            merged_players_file = os.path.join(self.script_dir, "data", "players_merged_with_discoveries.json")
+            merged_players_file = os.path.join(self.script_dir, "resources", "data", "players_merged_with_discoveries.json")
             players_file = os.path.join(self.project_root, "public", "players.json")
             id_mapping_file = os.path.join(self.script_dir, "all_player_ids.json")
             
@@ -261,7 +261,7 @@ class SeasonTransitionPipeline:
             
             if return_code == 0:
                 # Check if bio data was created
-                bio_output = os.path.join(self.script_dir, "data", "players_bios_2025.json")
+                bio_output = os.path.join(self.script_dir, "resources", "data", "players_bios_2025.json")
                 if os.path.exists(bio_output):
                     with open(bio_output, 'r') as f:
                         bio_data = json.load(f)
@@ -308,7 +308,7 @@ class SeasonTransitionPipeline:
         
         try:
             # Source file with all the new discoveries and updates
-            source_file = os.path.join(self.script_dir, "data", "players_merged_with_discoveries.json")
+            source_file = os.path.join(self.script_dir, "resources", "data", "players_merged_with_discoveries.json")
             # Destination file that the React app actually reads
             dest_file = os.path.join(self.project_root, "public", "players.json")
             
@@ -357,7 +357,7 @@ class SeasonTransitionPipeline:
             return False
         
         try:
-            # Use the SAME direct integration from updateContracts_enhanced.py
+            # Use the SAME direct integration from 03_update_contracts.py
             # This ensures Bird Rights are properly uploaded
             self.log("   🔧 Using direct Bird Rights integration for Firebase upload...")
             
@@ -372,7 +372,7 @@ class SeasonTransitionPipeline:
             self.log(f"   ✅ Loaded {len(base_players)} base players")
             
             # Load correctly parsed contracts with Bird Rights
-            contracts_file = os.path.join(self.script_dir, "data", "contracts_parsed.json")
+            contracts_file = os.path.join(self.script_dir, "resources", "data", "contracts_parsed.json")
             if os.path.exists(contracts_file):
                 with open(contracts_file, 'r') as f:
                     contracts = json.load(f)
@@ -479,9 +479,9 @@ class SeasonTransitionPipeline:
         
         # Check output files - updated to match actual file names created by the pipeline
         output_files = [
-            (os.path.join(self.script_dir, "data", "players_merged_with_discoveries.json"), "New players discovered & merged"),
-            (os.path.join(self.script_dir, "data", "raw_contract_html.json"), "Contract data collected"),
-            (os.path.join(self.script_dir, "data", "contracts_parsed.json"), "Contract data parsed"),
+        (os.path.join(self.script_dir, "resources", "data", "players_merged_with_discoveries.json"), "New players discovered & merged"),
+        (os.path.join(self.script_dir, "resources", "data", "raw_contract_html.json"), "Contract data collected"),
+        (os.path.join(self.script_dir, "resources", "data", "contracts_parsed.json"), "Contract data parsed"),
             (os.path.join(self.project_root, "public", "players.json"), "Updated main player data")  # This is the actual final merged data file
         ]
 
@@ -516,7 +516,7 @@ class SeasonTransitionPipeline:
         # Next steps guidance
         if existing_files >= 3:  # Core files created
             self.log("🎯 Ready for 2025-26 season! Next steps:")
-            self.log("   1. Review data/players_merged_with_discoveries.json for new players")
+            self.log("   1. Review resources/data/players_merged_with_discoveries.json for new players")
             self.log("   2. Run manual validation checks if needed")
             self.log("   3. Set up Firebase credentials for live data uploads")
             self.log("   4. Update season-specific configurations")

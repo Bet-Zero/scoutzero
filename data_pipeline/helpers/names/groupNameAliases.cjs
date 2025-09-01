@@ -3,8 +3,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const inputPath = path.resolve(__dirname, '../data/name_variants_sorted.txt');
-const outputPath = path.resolve(__dirname, '../data/name_alias_map.json');
+const inputPath = path.resolve(__dirname, '../../resources/data/name_variants_sorted.txt');
+const outputPath = path.resolve(__dirname, '../../resources/data/name_alias_map.json');
 
 const raw = fs.readFileSync(inputPath, 'utf-8');
 const names = raw

@@ -120,7 +120,7 @@ def fetch_nba_players_with_retry() -> Dict:
     """Fetch current NBA players with multiple retry strategies"""
     
     # First, try to use cached/existing discovery data
-    cached_file = os.path.join(SCRIPT_DIR, "tools", "output", "all_player_ids.json")
+    cached_file = os.path.join(SCRIPT_DIR, "helpers", "tools", "output", "all_player_ids.json")
     if os.path.exists(cached_file):
         try:
             with open(cached_file, 'r', encoding='utf-8') as f:
@@ -377,8 +377,8 @@ def main():
     # Define paths
     project_root = os.path.dirname(SCRIPT_DIR)
     existing_players_path = os.path.join(project_root, "public", "players.json")
-    contract_data_path = os.path.join(SCRIPT_DIR, "data", "parsed_contracts.json")  # Add contract data path
-    output_path = os.path.join(SCRIPT_DIR, "data", "players_merged_with_discoveries.json")
+    contract_data_path = os.path.join(SCRIPT_DIR, "resources", "data", "parsed_contracts.json")  # Add contract data path
+    output_path = os.path.join(SCRIPT_DIR, "resources", "data", "players_merged_with_discoveries.json")
     
     # Load existing players
     existing_players = load_existing_players(existing_players_path)

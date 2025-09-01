@@ -21,12 +21,14 @@ def init_firebase():
     else:
         # Try multiple possible locations
         possible_paths = [
-            './serviceAccountKey.json',          # Project root (when run from repo root)
-            '../serviceAccountKey.json',         # Project root (when run from data_pipeline/)
-            '../../serviceAccountKey.json',      # Project root (when run from data_pipeline/upload/)
-            './src/serviceAccountKey.json',      # Src directory (when run from repo root)
-            '../src/serviceAccountKey.json',     # Src directory (when run from data_pipeline/)
-            '../../src/serviceAccountKey.json',  # Src directory (when run from data_pipeline/upload/)
+            './serviceAccountKey.json',           # Project root (run from repo root)
+            '../serviceAccountKey.json',          # Project root (run from data_pipeline/)
+            '../../serviceAccountKey.json',       # Project root (run from data_pipeline/helpers/)
+            '../../../serviceAccountKey.json',    # Project root (run from helpers/upload/)
+            './src/serviceAccountKey.json',       # Src directory (run from repo root)
+            '../src/serviceAccountKey.json',      # Src directory (run from data_pipeline/)
+            '../../src/serviceAccountKey.json',   # Src directory (run from data_pipeline/helpers/)
+            '../../../src/serviceAccountKey.json' # Src directory (run from helpers/upload/)
         ]
         
         cred_path = None
@@ -66,11 +68,10 @@ def find_player_data():
     """Find player data file in multiple possible locations"""
     script_dir = os.path.dirname(os.path.abspath(__file__))
     possible_paths = [
-        os.path.join(script_dir, "..", "data", "merged_players.json"),      # FIXED: Correct merged file name
-        os.path.join(script_dir, "..", "data", "players_merged.json"),      # Backup name
-        os.path.join(script_dir, "..", "data", "players.json"),
-        os.path.join(script_dir, "..", "..", "public", "players.json"),
-        os.path.join(script_dir, "..", "public", "players.json"),
+        os.path.join(script_dir, "..", "..", "resources", "data", "merged_players.json"),      # FIXED: Correct merged file name
+        os.path.join(script_dir, "..", "..", "resources", "data", "players_merged.json"),      # Backup name
+        os.path.join(script_dir, "..", "..", "resources", "data", "players.json"),
+        os.path.join(script_dir, "..", "..", "..", "public", "players.json"),
         "players.json"
     ]
     

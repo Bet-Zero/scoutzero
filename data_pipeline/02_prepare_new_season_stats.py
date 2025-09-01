@@ -165,7 +165,7 @@ def main():
     
     print("\n✅ Stats structure prepared for new season!")
     print("📋 Stats carry over from previous season until updated")
-    print("📋 Ready for new stats data via update_stats.py when season starts")
+    print("📋 Ready for new stats data via 04_update_stats.py when season starts")
 
 if __name__ == "__main__":
     main()
