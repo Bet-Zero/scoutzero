@@ -14,13 +14,45 @@ from datetime import datetime, timezone
 
 def init_firebase():
     """Initialize Firebase with real credentials"""
-    cred_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS', './serviceAccountKey.json')
-    if not os.path.exists(cred_path):
-        cred_path = '../serviceAccountKey.json'
+    # Check environment variable first
+    cred_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
     
-    if not os.path.exists(cred_path):
-        print("❌ Firebase credentials not found. Place serviceAccountKey.json in project root.")
-        sys.exit(1)
+    if cred_path and os.path.exists(cred_path):
+        print(f"🔑 Using credentials from GOOGLE_APPLICATION_CREDENTIALS: {cred_path}")
+    else:
+        # Try multiple possible locations
+        possible_paths = [
+            './serviceAccountKey.json',          # Project root (when run from root)
+            '../serviceAccountKey.json',         # Project root (when run from scripts/)
+            '../../serviceAccountKey.json',      # Project root (when run from scripts/upload/)
+            './src/serviceAccountKey.json',      # Src directory (when run from root)
+            '../src/serviceAccountKey.json',     # Src directory (when run from scripts/)
+            '../../src/serviceAccountKey.json',  # Src directory (when run from scripts/upload/)
+        ]
+        
+        cred_path = None
+        for path in possible_paths:
+            if os.path.exists(path):
+                cred_path = path
+                print(f"🔑 Found credentials at: {path}")
+                break
+        
+        if not cred_path:
+            print("❌ Firebase credentials not found in any expected location.")
+            print("💡 SOLUTION:")
+            print("   1. Download serviceAccountKey.json from Firebase Console:")
+            print("      - Go to Project Settings → Service Accounts") 
+            print("      - Click 'Generate new private key'")
+            print("      - Save as serviceAccountKey.json")
+            print("   2. Place it in one of these locations:")
+            for path in possible_paths[:3]:  # Show main locations
+                abs_path = os.path.abspath(path)
+                print(f"      - {abs_path}")
+            print("   3. OR set GOOGLE_APPLICATION_CREDENTIALS environment variable")
+            print("   4. Then re-run this script")
+            print("\n🧪 To test upload logic without credentials:")
+            print("   Run: python3 scripts/upload_bio_solution.py --test")
+            sys.exit(1)
     
     try:
         cred = credentials.Certificate(cred_path)
@@ -28,6 +60,7 @@ def init_firebase():
         return firestore.client()
     except Exception as e:
         print(f"❌ Failed to initialize Firebase: {e}")
+        print("💡 Check that your serviceAccountKey.json is valid")
         sys.exit(1)
 
 def find_player_data():
