@@ -395,11 +395,15 @@ def merge_player_data(contracts_path=None, bios_path=None, stats_path=None, outp
             "system": {}
         }
         
-        # Copy base data fields (bio info)
+        # Copy base data fields (bio info) - structure under bio object
         bio_fields = ["Name", "HT", "WT", "AGE", "Years Pro", "Team", "Position", "Contract", "Free Agent"]
+        bio_data = {}
         for field in bio_fields:
             if field in player_data:
-                merged[field] = player_data[field]
+                bio_data[field] = player_data[field]
+        
+        if bio_data:
+            merged["bio"] = bio_data
         
         # Copy stats fields
         stats_fields = ["MIN", "PPG", "RPG", "APG", "FG%", "3PT%", "FT%", "EFG%", "Games Played"]
