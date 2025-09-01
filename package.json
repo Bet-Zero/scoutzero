@@ -26,7 +26,7 @@
     "season:create": "python3 scripts/season_manager.py create",
     "season:archive": "python3 scripts/season_manager.py archive",
     "season:list": "python3 scripts/season_manager.py list",
-    "season:transition": "python3 scripts/season_transition_simple.py",
+    "season:transition": "python3 scripts/season_transition_streamlined.py",
     "contracts:update": "python3 scripts/updateContracts_enhanced.py",
     "stats:update": "python3 scripts/update_stats.py",
     "capsheets:generate": "node scripts/capsheets/generateCapSheets.js",
