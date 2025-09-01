@@ -387,14 +387,29 @@ def merge_player_data(contracts_path=None, bios_path=None, stats_path=None, outp
     
     # Process base players data - MAINTAIN FLAT STRUCTURE
     merged_players = {}
+    total_players = len(base_players)
+    processed_count = 0
+    
+    print(f"🔄 Processing {total_players} players with real-time updates...")
     
     for player_id, player_data in base_players.items():
+        processed_count += 1
+        
+        # Show progress every 10 players or for first/last few
+        if processed_count % 10 == 0 or processed_count <= 5 or processed_count > total_players - 5:
+            display_name = player_data.get('Name', player_id.replace('_', ' ').title())
+            print(f"  📋 [{processed_count}/{total_players}] Processing: {display_name}")
+        
         # Start with existing player data to preserve everything
         merged = dict(player_data)
         
         # Ensure basic fields exist
         if "Name" not in merged:
             merged["Name"] = get_proper_display_name(player_id)
+        
+        # CRITICAL: Preserve player_id field in final output
+        if "player_id" not in merged:
+            merged["player_id"] = player_id
         
         # Update with contract data if available (including team changes)
         if player_id in contracts:
@@ -412,11 +427,12 @@ def merge_player_data(contracts_path=None, bios_path=None, stats_path=None, outp
             # If bio data is nested, flatten it
             if "bio" in bio_info:
                 for key, value in bio_info["bio"].items():
-                    merged[key] = value
+                    if value and value != "":  # Only update with non-empty values
+                        merged[key] = value
             else:
                 # Bio data is already flat
                 for key, value in bio_info.items():
-                    if key not in ["player_id"]:
+                    if key not in ["player_id"] and value and value != "":
                         merged[key] = value
         
         # Update with stats data if available
@@ -446,11 +462,12 @@ def merge_player_data(contracts_path=None, bios_path=None, stats_path=None, outp
         output_path = os.path.join(data_dir, "players_merged.json")
     
     # Save merged data
+    print(f"\n💾 Saving merged data to: {output_path}")
     with open(output_path, "w") as f:
         json.dump(merged_players, f, indent=2)
     
     print(f"\n{'='*50}")
-    print(f"✅ Successfully processed {len(merged_players)} players")
+    print(f"✅ Successfully processed {processed_count}/{total_players} players")
     print(f"📁 Base data: {len(base_players)} players")
     print(f"📄 Contract data: {len(contracts)} entries")
     print(f"👤 Bio data: {len(bios)} entries") 

@@ -123,9 +123,71 @@ class SeasonTransitionPipeline:
         return self.run_script(script_path, "Discover & merge new 2025-26 players")
     
     def update_contracts(self):
-        """Step 2: Update contract information"""
-        script_path = os.path.join(self.script_dir, "updateContracts_enhanced.py")
-        return self.run_script(script_path, "Update contract data (with fallbacks)")
+        """Step 3: Update contract information using scraping + fallbacks"""
+        self.step_count += 1
+        self.log(f"Step {self.step_count}: Update contract data using scraping + fallbacks")
+        
+        try:
+            # Run the contract update pipeline which includes scraping
+            script_path = os.path.join(self.script_dir, "updateContracts_enhanced.py")
+            
+            if not os.path.exists(script_path):
+                self.log(f"Contract update script not found: {script_path}", "ERROR")
+                self.failed_steps.append("Update contract data")
+                return False
+            
+            self.log(f"   🕷️  This includes contract scraping for ALL players (rookies + veterans)")
+            self.log(f"   📊 Progress will show scraping results vs fallback usage...")
+            
+            # Run the script with real-time output to see scraping progress
+            cmd = ["python3", script_path]
+            process = subprocess.Popen(cmd, 
+                                     stdout=subprocess.PIPE, 
+                                     stderr=subprocess.STDOUT,
+                                     text=True,
+                                     cwd=self.project_root,
+                                     bufsize=1,
+                                     universal_newlines=True)
+            
+            # Show real-time progress
+            while True:
+                output = process.stdout.readline()
+                if output == '' and process.poll() is not None:
+                    break
+                if output:
+                    # Forward the contract update script's output with our timestamp
+                    clean_output = output.strip()
+                    if clean_output:
+                        self.log(f"   {clean_output}")
+            
+            return_code = process.poll()
+            
+            if return_code == 0:
+                # Check if contract data was created
+                contract_files = [
+                    ("data/raw_contract_html.json", "Raw contract data"),
+                    ("data/contracts_parsed.json", "Parsed contract data")
+                ]
+                
+                for file_path, description in contract_files:
+                    full_path = os.path.join(self.project_root, file_path)
+                    if os.path.exists(full_path):
+                        with open(full_path, 'r') as f:
+                            data = json.load(f)
+                        self.log(f"   ✓ {description}: {len(data)} players")
+                
+                self.success_count += 1
+                self.log("Completed: Update contract data using scraping + fallbacks", "SUCCESS")
+                return True
+            else:
+                self.log(f"Contract update script returned error code: {return_code}", "ERROR")
+                self.failed_steps.append("Update contract data")
+                return False
+            
+        except Exception as e:
+            self.log(f"Failed to update contract data: {e}", "ERROR")
+            self.failed_steps.append("Update contract data")
+            return False
     
     def merge_player_data(self):
         """Step 3: Merge all player data"""
@@ -147,8 +209,17 @@ class SeasonTransitionPipeline:
                 return True  # Don't fail the pipeline for this
             
             # Generate player ID mapping file needed by the bio script
+            # Use the newly merged player data from step 1, not the old public file
+            merged_players_file = os.path.join(self.project_root, "data", "players_merged_with_discoveries.json")
             players_file = os.path.join(self.project_root, "public", "players.json")
             id_mapping_file = os.path.join(self.script_dir, "all_player_ids.json")
+            
+            # Check which file to use for player data
+            if os.path.exists(merged_players_file):
+                players_file = merged_players_file
+                self.log(f"   📋 Using newly merged player data: {merged_players_file}")
+            else:
+                self.log(f"   📋 Using existing player data: {players_file}")
             
             # Create ID mapping from current players
             with open(players_file, 'r') as f:
@@ -191,13 +262,14 @@ class SeasonTransitionPipeline:
             
             if return_code == 0:
                 # Check if bio data was created
-                bio_output = os.path.join(self.project_root, "players_bios_2025.json")
+                bio_output = os.path.join(self.project_root, "data", "players_bios_2025.json")
                 if os.path.exists(bio_output):
                     with open(bio_output, 'r') as f:
                         bio_data = json.load(f)
                     self.log(f"   ✓ Fetched bio data for {len(bio_data)} players")
                     
-                    # Now merge this bio data with the main player file
+                    # Now merge this bio data with the player file we used
+                    # Read from the same file we used for ID mapping
                     with open(players_file, 'r') as f:
                         players = json.load(f)
                     
@@ -363,7 +435,7 @@ class SeasonTransitionPipeline:
         pipeline_steps = [
             self.discover_new_players,      # Step 1: Find all players (existing + new)
             self.update_bio_data,           # Step 2: Get fresh bio data (teams, positions, etc.)
-            self.update_contracts,          # Step 3: Update contracts (with correct team context)
+            self.update_contracts,          # Step 3: SCRAPE contracts for ALL players (rookies + veterans)
             self.merge_player_data,         # Step 4: Merge all data sources
             self.update_main_player_file,   # Step 5: Copy merged data to main app file
             self.upload_to_firebase,        # Step 6: Upload to Firebase

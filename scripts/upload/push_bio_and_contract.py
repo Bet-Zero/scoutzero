@@ -96,7 +96,7 @@ def main():
         print(f"❌ Failed to load player data: {e}")
         sys.exit(1)
     
-    print(f"👥 Processing {len(players)} players...")
+    print(f"👥 Processing {len(players)} players for Firebase upload...")
     
     # Process players in batches
     batch = db.batch()
@@ -106,6 +106,11 @@ def main():
     
     for player_id, full_data in players.items():
         try:
+            # Show progress every 50 players
+            if updated_count % 50 == 0 or updated_count < 5:
+                player_name = full_data.get('Name', player_id.replace('_', ' ').title())
+                print(f"  📤 [{updated_count + 1}/{len(players)}] Uploading: {player_name}")
+            
             # Get existing grades to preserve them
             existing_grades = preserve_existing_grades(db, player_id)
             
@@ -114,6 +119,21 @@ def main():
                 k: v for k, v in full_data.items()
                 if k not in ["system", "position", "source_url"]
             }
+            
+            # Ensure bio data is properly structured for rookies and newcomers
+            bio_fields = ["AGE", "HT", "WT", "Team", "Position", "Years Pro", "Contract", "Free Agent"]
+            bio_data = {}
+            for field in bio_fields:
+                if field in full_data and full_data[field] and full_data[field] != "":
+                    bio_data[field] = full_data[field]
+                else:
+                    bio_data[field] = ""  # Ensure field exists even if empty
+            
+            # Add player name to bio
+            bio_data["Name"] = full_data.get("Name", player_id.replace('_', ' ').title())
+            
+            # Create proper bio structure
+            update_data["bio"] = bio_data
             
             # Add preserved grades back
             update_data.update(existing_grades)
