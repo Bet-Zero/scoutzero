@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import TradePlayerRow from './TradePlayerRow';
 import EditContractModal from '@/components/shared/EditContractModal';
 import TradeExceptionModal from '@/components/shared/TradeExceptionModal';
+import { getSalaryWithFallback } from '@/utils/architect/contractSalaryUtils';
 
 const parseYear = (key) => {
   if (typeof key === 'number') return key;
@@ -55,11 +56,7 @@ export const OutgoingPlayersList = ({
       if (inB && !inA) return 1;
 
       const yr = parseYear(yearKey);
-      const getSalary = (player) =>
-        player.contract_clean?.salaries_by_year?.[yearKey]?.salary ||
-        player.contract?.annual_salaries?.find((s) => parseYear(s.year) === yr)
-          ?.salary ||
-        0;
+      const getSalary = (player) => getSalaryWithFallback(player, yearKey);
       return getSalary(b) - getSalary(a);
     });
   }, [available, incomingSet, yearKey]);
@@ -67,8 +64,7 @@ export const OutgoingPlayersList = ({
   // Check if player can be traded using TPE
   const canUseTPE = (player) => {
     if (!tradeExceptions?.length) return false;
-    const salary =
-      player.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0;
+    const salary = getSalaryWithFallback(player, yearKey);
     return tradeExceptions.some((tpe) => salary <= tpe.amount && !tpe.isUsed);
   };
 
