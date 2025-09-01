@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Contract Scraping with Fallback - Enhanced for 2025-26 Season
-Falls back to using existing contract data when external scraping fails
+Tests external scraping service availability. If working, scrapes all players.
+If not working, uses existing contract data without redundant NBA API calls.
 """
 
 import os
@@ -10,9 +11,6 @@ import requests
 import time
 import unicodedata
 import re
-
-# Global cache for NBA API data to avoid repeated calls
-_nba_players_cache = None
 
 # Manual overrides for edge cases (same as original)
 manual_slug_overrides = {
@@ -69,96 +67,12 @@ def try_scrape_contract(player_key, player_data, max_attempts=2):
     
     return None
 
-# Global cache for NBA API data to avoid repeated calls
-_nba_players_cache = None
-
-def get_all_nba_players_once():
-    """Get all NBA players in one API call and cache the results"""
-    global _nba_players_cache
-    
-    if _nba_players_cache is not None:
-        return _nba_players_cache
-    
-    try:
-        print("    📡 Fetching current NBA roster data (one-time call)...")
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-        
-        search_url = "https://stats.nba.com/stats/commonallplayers"
-        params = {
-            'LeagueID': '00',
-            'Season': '2024-25',
-            'IsOnlyCurrentSeason': '1'
-        }
-        
-        response = requests.get(search_url, headers=headers, params=params, timeout=15)
-        if response.status_code == 200:
-            data = response.json()
-            
-            # Convert team ID to team name mapping
-            team_mapping = {
-                1610612737: "Hawks", 1610612738: "Celtics", 1610612751: "Nets",
-                1610612766: "Hornets", 1610612741: "Bulls", 1610612739: "Cavaliers",
-                1610612742: "Mavericks", 1610612743: "Nuggets", 1610612765: "Pistons",
-                1610612744: "Warriors", 1610612745: "Rockets", 1610612754: "Pacers",
-                1610612746: "Clippers", 1610612747: "Lakers", 1610612763: "Grizzlies",
-                1610612748: "Heat", 1610612749: "Bucks", 1610612750: "Timberwolves",
-                1610612740: "Pelicans", 1610612752: "Knicks", 1610612760: "Thunder",
-                1610612753: "Magic", 1610612755: "76ers", 1610612756: "Suns",
-                1610612757: "Trail Blazers", 1610612758: "Kings", 1610612759: "Spurs",
-                1610612761: "Raptors", 1610612762: "Jazz", 1610612764: "Wizards"
-            }
-            
-            # Build player lookup dictionary
-            player_lookup = {}
-            for player in data.get('resultSets', [{}])[0].get('rowSet', []):
-                if len(player) > 7:
-                    player_name = player[2].lower()
-                    team_id = player[7]
-                    team_name = team_mapping.get(team_id, "Unknown")
-                    player_lookup[player_name] = team_name
-            
-            _nba_players_cache = player_lookup
-            print(f"    ✓ Cached current roster data for {len(player_lookup)} NBA players")
-            return player_lookup
-        
-        print("    ⚠️ NBA API call failed, will use existing team data")
-        return {}
-        
-    except Exception as e:
-        print(f"    ⚠️ NBA API error: {str(e)[:50]}...")
-        return {}
-
-def get_current_team_from_cache(player_name):
-    """Get current team from cached NBA data"""
-    nba_players = get_all_nba_players_once()
-    
-    if not nba_players:
-        return None
-    
-    # Try exact match first
-    player_name_lower = player_name.lower()
-    if player_name_lower in nba_players:
-        return nba_players[player_name_lower]
-    
-    # Try partial matches
-    for nba_name, team in nba_players.items():
-        if player_name_lower in nba_name or nba_name in player_name_lower:
-            return team
-    
-    return None
-
 def create_fallback_contract_data(player_key, player_data):
     """Create contract data structure from existing player info"""
     name = player_data.get("Name", "").strip() or player_key.replace("_", " ").title()
     
-    # Try to get updated team info from cached NBA data
-    current_team = get_current_team_from_cache(name)
-    team = current_team if current_team else player_data.get("Team", "")
-    
-    if current_team and current_team != player_data.get("Team", ""):
-        print(f"      📋 Updated {name}: {player_data.get('Team', '')} → {current_team}")
+    # Use existing team data (already updated in bio step - no need for NBA API calls)
+    team = player_data.get("Team", "")
     
     # Extract contract info from existing data
     contract_str = player_data.get("Contract", "")
@@ -188,13 +102,13 @@ def create_fallback_contract_data(player_key, player_data):
     return {
         "name": name,
         "contractData": {
-            "team": team,  # Use updated team info
+            "team": team,  # Use existing team info (already updated in bio step)
             "contract_string": contract_str,
             "free_agent_info": free_agent,
             "estimated_value": contract_value,
             "estimated_years": contract_years,
             "free_agency_year": fa_year,
-            "source": "nba_api" if current_team else "existing_data"
+            "source": "existing_data"
         },
         "source": "fallback_enhanced"
     }
@@ -237,7 +151,7 @@ def main():
     
     # Test if external scraping service is working
     print(f"\n🔍 Testing external contract scraping service...")
-    test_players = list(players.items())[:3]  # Test with 3 players
+    test_players = list(players.items())[:5]  # Test with 5 players
     external_working = False
     
     for key, player in test_players:
@@ -255,7 +169,7 @@ def main():
         print(f"🚀 External service working - will scrape ALL {total} players")
         use_external = True
     else:
-        print(f"⚡ External service unavailable - using fast fallback for all players")
+        print(f"⚡ External service unavailable - using existing data fallback for all players")
         use_external = False
     
     # Process all players based on service availability
