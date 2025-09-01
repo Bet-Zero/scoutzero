@@ -23,13 +23,16 @@ def check_possible_locations():
         # From environment variable
         ("Environment Variable", os.environ.get('GOOGLE_APPLICATION_CREDENTIALS', 'Not set')),
         
-        # From upload scripts
-        ("Project Root", "./serviceAccountKey.json"),
-        ("Scripts Directory", "./scripts/serviceAccountKey.json"), 
-        ("Parent Directory", "../serviceAccountKey.json"),
-        ("Src Directory", "./src/serviceAccountKey.json"),
+        # From upload scripts (all possible relative paths)
+        ("Project Root (from root)", "./serviceAccountKey.json"),
+        ("Project Root (from scripts/)", "../serviceAccountKey.json"), 
+        ("Project Root (from scripts/upload/)", "../../serviceAccountKey.json"),
+        ("Src Directory (from root)", "./src/serviceAccountKey.json"),
+        ("Src Directory (from scripts/)", "../src/serviceAccountKey.json"),
+        ("Src Directory (from scripts/upload/)", "../../src/serviceAccountKey.json"),
         
         # Additional common locations
+        ("Scripts Directory", "./scripts/serviceAccountKey.json"),
         ("Home Directory", os.path.expanduser("~/serviceAccountKey.json")),
         ("Current Working Dir", os.path.join(cwd, "serviceAccountKey.json")),
     ]

@@ -82,9 +82,13 @@ def check_firebase_credentials():
     
     # Check for service account key
     service_key_paths = [
-        "serviceAccountKey.json",
-        "scripts/serviceAccountKey.json",
-        "src/serviceAccountKey.json"
+        "serviceAccountKey.json",                  # Root
+        "scripts/serviceAccountKey.json",          # Scripts
+        "src/serviceAccountKey.json",              # Src  
+        "../serviceAccountKey.json",               # Parent (from scripts/)
+        "../../serviceAccountKey.json",            # Root (from scripts/upload/)
+        "../src/serviceAccountKey.json",           # Src (from scripts/)
+        "../../src/serviceAccountKey.json"         # Src (from scripts/upload/)
     ]
     
     found_creds = False
