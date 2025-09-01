@@ -13,11 +13,17 @@ const generateCapSheets = async () => {
   const players = [];
   playerSnap.forEach((doc) => players.push({ id: doc.id, ...doc.data() }));
 
+const generateCapSheetsFromData = async (playersData) => {
+  const players = Object.entries(playersData).map(([id, data]) => ({ id, ...data }));
+  await generateCapSheetsFromPlayers(players);
+};
+
+const generateCapSheetsFromPlayers = async (players) => {
   const teamCapSheets = {};
 
   for (const player of players) {
-    const team = player.bio?.Team?.toLowerCase();
-    const contract = player.contract;
+    const team = player.bio?.Team?.toLowerCase() || player.Team?.toLowerCase();
+    const contract = player.contract || player.Contract;
     if (!team || !contract) continue;
 
     if (!teamCapSheets[team]) {
@@ -86,14 +92,10 @@ const generateCapSheets = async () => {
     contract_clean.average_value =
       yearCount > 0 ? Math.round(total / yearCount) : 0;
 
-    // 🆕 Add age and position from bio
-    const age = player.bio?.age ?? null;
-    const position = player.bio?.positionFull || player.bio?.position || null;
-
     // Push player entry to team
     sheet.players.push({
-      name: player.name,
-      display_name: player.display_name || player.name,
+      name: player.name || player.Name,
+      display_name: player.display_name || player.Name,
       player_id: player.player_id || null,
       age: player.bio?.AGE ?? null,
       position: player.bio?.Position ?? null,
