@@ -17,7 +17,8 @@ describe('contractSalaryUtils', () => {
   const mockPlayerWithStartYear = {
     contract_clean: {
       salaries_by_year: {
-        2024: { salary: 10000000 }, // Current season 2024-25 stored under start year
+        2024: { salary: 10000000 }, // Final contract year stored under start year
+        // No later years - indicating this is likely an expiring contract
       }
     }
   };
@@ -27,8 +28,22 @@ describe('contractSalaryUtils', () => {
       expect(getContractSalaryForYear(mockPlayer, 2025)).toBe(12000000);
     });
 
-    it('returns salary for previous year when end year is not found', () => {
+    it('returns salary for start year when it appears to be final contract year', () => {
       expect(getContractSalaryForYear(mockPlayerWithStartYear, 2025)).toBe(10000000);
+    });
+
+    it('does NOT fallback to start year when later years exist (prevents wrong season data)', () => {
+      const playerWithMultiYear = {
+        contract_clean: {
+          salaries_by_year: {
+            2024: { salary: 10000000 }, // 2023-24 season
+            2026: { salary: 15000000 }, // 2025-26 season  
+            // Missing 2025 key for 2024-25 season
+          }
+        }
+      };
+      // Should return 0, not fallback to 2024 (which would be wrong season)
+      expect(getContractSalaryForYear(playerWithMultiYear, 2025)).toBe(0);
     });
 
     it('returns 0 for year not found', () => {

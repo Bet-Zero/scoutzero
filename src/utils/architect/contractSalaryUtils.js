@@ -1,8 +1,8 @@
 // src/utils/architect/contractSalaryUtils.js
 
 /**
- * Robust contract salary lookup that handles different year key formats
- * @param {Object} player - Player object with contract data
+ * Contract salary lookup that safely handles different year key formats for the SAME season
+ * @param {Object} player - Player object with contract data  
  * @param {number|string} yearKey - Year key (e.g., 2025, "2024-25")
  * @returns {number} - Salary for the year, or 0 if not found
  */
@@ -18,36 +18,52 @@ export function getContractSalaryForYear(player, yearKey) {
     return salariesByYear[yearKey].salary;
   }
 
-  // If yearKey is a number (like 2025), try the previous year (2024)
-  // This handles the case where contract data uses the start year of the season
-  if (typeof yearKey === 'number') {
-    const startYear = yearKey - 1;
-    if (salariesByYear[startYear]?.salary) {
-      return salariesByYear[startYear].salary;
-    }
-  }
-
-  // If yearKey is a string like "2024-25", try extracting the end year
+  // For season format strings like "2024-25", try extracting both years
   if (typeof yearKey === 'string' && yearKey.includes('-')) {
     const match = yearKey.match(/(\d{4})-(\d{2})/);
     if (match) {
-      const endYear = parseInt(match[1]) + 1; // Convert "2024-25" to 2025
+      const startYear = parseInt(match[1]); // "2024-25" -> 2024
+      const endYear = parseInt(match[1]) + 1; // "2024-25" -> 2025
+      
       if (salariesByYear[endYear]?.salary) {
         return salariesByYear[endYear].salary;
       }
       
-      const startYear = parseInt(match[1]); // Convert "2024-25" to 2024
       if (salariesByYear[startYear]?.salary) {
         return salariesByYear[startYear].salary;
       }
     }
   }
 
-  // If yearKey is a number, try converting to season string format
+  // If yearKey is a number, try the season string format for the SAME season
   if (typeof yearKey === 'number') {
     const seasonKey = `${yearKey - 1}-${String(yearKey).slice(-2)}`;
     if (salariesByYear[seasonKey]?.salary) {
       return salariesByYear[seasonKey].salary;
+    }
+  }
+
+  // SAFE FALLBACK: Only try start year if we detect this is likely a 
+  // contract format inconsistency (not missing data for this season)
+  if (typeof yearKey === 'number') {
+    const startYear = yearKey - 1;
+    const allKeys = Object.keys(salariesByYear);
+    
+    // Only fallback to start year if:
+    // 1. The start year exists in the contract
+    // 2. There are no other years beyond the start year (indicating this might be the final contract year)
+    // 3. OR there's evidence this contract uses start-year formatting consistently
+    if (salariesByYear[startYear]?.salary) {
+      const hasLaterYears = allKeys.some(key => {
+        const keyYear = parseInt(key);
+        return Number.isFinite(keyYear) && keyYear > startYear;
+      });
+      
+      // If there are no later years, this might be an expiring contract stored under start year
+      // If there are later years, don't fallback as it would return wrong season data
+      if (!hasLaterYears) {
+        return salariesByYear[startYear].salary;
+      }
     }
   }
 
