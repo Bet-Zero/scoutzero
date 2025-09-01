@@ -209,8 +209,17 @@ class SeasonTransitionPipeline:
                 return True  # Don't fail the pipeline for this
             
             # Generate player ID mapping file needed by the bio script
+            # Use the newly merged player data from step 1, not the old public file
+            merged_players_file = os.path.join(self.project_root, "data", "players_merged_with_discoveries.json")
             players_file = os.path.join(self.project_root, "public", "players.json")
             id_mapping_file = os.path.join(self.script_dir, "all_player_ids.json")
+            
+            # Check which file to use for player data
+            if os.path.exists(merged_players_file):
+                players_file = merged_players_file
+                self.log(f"   📋 Using newly merged player data: {merged_players_file}")
+            else:
+                self.log(f"   📋 Using existing player data: {players_file}")
             
             # Create ID mapping from current players
             with open(players_file, 'r') as f:
@@ -253,13 +262,14 @@ class SeasonTransitionPipeline:
             
             if return_code == 0:
                 # Check if bio data was created
-                bio_output = os.path.join(self.project_root, "players_bios_2025.json")
+                bio_output = os.path.join(self.project_root, "data", "players_bios_2025.json")
                 if os.path.exists(bio_output):
                     with open(bio_output, 'r') as f:
                         bio_data = json.load(f)
                     self.log(f"   ✓ Fetched bio data for {len(bio_data)} players")
                     
-                    # Now merge this bio data with the main player file
+                    # Now merge this bio data with the player file we used
+                    # Read from the same file we used for ID mapping
                     with open(players_file, 'r') as f:
                         players = json.load(f)
                     
