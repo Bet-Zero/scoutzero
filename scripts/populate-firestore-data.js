@@ -92,9 +92,43 @@ async function uploadMainPlayerData(playerData) {
     // Create document reference
     const docRef = playersRef.doc(playerId);
     
-    // Prepare player document with metadata
+    // Transform contract data to the expected format
+    const transformContractData = (player) => {
+      if (!player.contract?.annual_salaries) {
+        return player;
+      }
+
+      // Convert annual_salaries array to salaries_by_year object
+      const salaries_by_year = {};
+      player.contract.annual_salaries.forEach(salary => {
+        salaries_by_year[salary.year] = {
+          salary: salary.salary,
+          guaranteed: salary.guaranteed,
+          likely_bonus: 0, // Default to 0, can be enhanced later
+          option: salary.option || undefined
+        };
+      });
+
+      // Create contract_clean structure
+      const contract_clean = {
+        salaries_by_year,
+        contractType: player.contract_summary?.type || 'Standard',
+        extension: player.contract.extension,
+        fa_year: player.contract.free_agency_year,
+        total_value: player.contract.total_value,
+        guaranteed_value: player.contract.total_value, // Assuming fully guaranteed for now
+      };
+
+      return {
+        ...player,
+        contract_clean
+      };
+    };
+
+    // Prepare player document with metadata and transformed contract
+    const transformedPlayer = transformContractData(player);
     const playerDoc = {
-      ...player,
+      ...transformedPlayer,
       system: {
         id: playerId,
         lastUpdated: new Date().toISOString(),
