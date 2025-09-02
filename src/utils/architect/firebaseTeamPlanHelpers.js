@@ -11,7 +11,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
 import { calculateCapHold } from '@/utils/architect/contractUtils';
-import { attachDefaultPicks } from '@/utils/architect/defaultPicks';
+import { attachDefaultPicks } from '@/utils/architect/basicArchitectUtils';
 
 // ===== Utility to Prepare Cap Sheet =====
 

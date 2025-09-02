@@ -1,4 +1,4 @@
-import { POSITION_MAP } from '../roles/positionMap.js';
+import { POSITION_MAP } from '../roles';
 
 const calculateHeight = (ht = '0-0') => {
   const parts = ht.split('-');

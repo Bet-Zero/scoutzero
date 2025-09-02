@@ -24,7 +24,7 @@ import { validateReacquisition } from '../rules/validateReacquisition.js';
 import { enforceConsent } from '../rules/enforceConsent.js';
 import { enforceEligibility } from '../rules/enforceEligibility.js';
 import { enforceTiming } from '../rules/enforceTiming.js';
-import { enforceSecondApronHandcuffs } from '../rules/enforceSecondApronHandcuffs.js';
+import { enforceSecondApronHandcuffs } from '../rules/basicRules.js';
 import { computeMatchingValues } from '../utils/matchingValues.js';
 import { enforceRosterWindow } from '../rules/enforceRosterWindow.js';
 import { validateFaExceptionUsage } from '../rules/validateFaExceptionUsage.js';

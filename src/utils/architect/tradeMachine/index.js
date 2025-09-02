@@ -38,7 +38,7 @@ export { enforceConsent } from './rules/enforceConsent.js';
 export { enforceEligibility } from './rules/enforceEligibility.js';
 export { enforceTiming } from './rules/enforceTiming.js';
 export { enforceRosterWindow } from './rules/enforceRosterWindow.js';
-export { enforceSecondApronHandcuffs } from './rules/enforceSecondApronHandcuffs.js';
+export { enforceSecondApronHandcuffs } from './rules/basicRules.js';
 
 // Debug utilities - from engine
 export { default as debug } from './engine/debug.js';

@@ -25,7 +25,7 @@ export * from './stepienRule.js';
 // Second apron rules
 export * from './validateSecondApron.js';
 export * from './validateSecondApronRules.js';
-export * from './enforceSecondApronHandcuffs.js';
+export * from './basicRules.js';
 export * from './enforceSecondApronRules.js';
 
 // Cash validation
