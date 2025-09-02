@@ -11,7 +11,7 @@ export { validateTrade } from './engine/tradeValidator.js';
 export { validateCash } from './rules/eligibilityRules.js';
 export { validateStepien } from './rules/validateStepien.js';
 export { validateRoster } from './rules/validateRoster.js';
-export { validateHardCap } from './rules/validateHardCap.js';
+export { validateHardCap } from './rules/hardCapValidation.js';
 export { validateSalaryMatching } from './rules/validateSalaryMatching.js';
 export { validateTradeExceptions } from './rules/validateTradeExceptions.js';
 export { validateFaExceptionUsage } from './rules/validateFaExceptionUsage.js';
@@ -37,7 +37,7 @@ export {
 export { enforceConsent } from './rules/enforceConsent.js';
 export { enforceEligibility } from './rules/enforceEligibility.js';
 export { enforceTiming } from './rules/enforceTiming.js';
-export { enforceRosterWindow } from './rules/enforceRosterWindow.js';
+export { enforceRosterWindow } from './rules/rosterValidation.js';
 export { enforceSecondApronHandcuffs } from './rules/basicRules.js';
 
 // Debug utilities - from engine

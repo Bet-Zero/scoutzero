@@ -8,15 +8,12 @@
 export * from './validateSalaryMatching.js';
 export * from './salaryMatching.js';
 
-// Roster rules
+// Roster rules - consolidated
 export * from './validateRoster.js';
-export * from './enforceRosterWindow.js';
-export * from './rosterRules.js';  // includes rosterWindow.js
-export * from './enforceRosterRules.js';
+export * from './rosterValidation.js';  // consolidated: rosterRules + enforceRosterWindow + enforceRosterRules + validateRosterWindow
 
-// Hard cap rules
-export * from './validateHardCap.js';
-export * from './hardCap.js';
+// Hard cap rules - consolidated
+export * from './hardCapValidation.js';  // consolidated: hardCap + validateHardCap
 
 // Stepien rule
 export * from './draftRules.js';  // includes stepienRule.js and validateDraftPicks.js
@@ -48,10 +45,8 @@ export * from './validateConsent.js';
 export * from './enforceConsent.js';
 export * from './miscRules.js'; // includes playerConsent, enforceTradeKicker, validateAllNewRules
 
-// Timing rules
-export * from './validateTiming.js';
-export * from './enforceTiming.js';
-export * from './timingGates.js';
+// Timing rules - consolidated
+export * from './timingValidation.js';  // consolidated: enforceTiming + timingGates + validateTiming
 
 // Sign and trade rules
 export * from './validateSignAndTrade.js';
