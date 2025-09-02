@@ -32,7 +32,14 @@
     "capsheets:generate": "node data_pipeline/helpers/capsheets/generateCapSheets.js",
     "data:populate": "node scripts/populate-firestore-data.js",
     "data:populate-main": "node scripts/populate-firestore-data.js --main-only",
-    "data:populate-season": "node scripts/populate-firestore-data.js --season"
+    "data:populate-season": "node scripts/populate-firestore-data.js --season",
+    "pipeline:init": "node scripts/init-automated-pipeline.js",
+    "pipeline:start": "node scripts/init-automated-pipeline.js --start-scheduler",
+    "pipeline:stop": "node scripts/init-automated-pipeline.js --stop-scheduler",
+    "pipeline:status": "node scripts/init-automated-pipeline.js --status",
+    "pipeline:trigger": "node scripts/init-automated-pipeline.js --trigger-now",
+    "data:auto-update": "node scripts/init-automated-pipeline.js --trigger-now",
+    "data:auto-start": "node scripts/init-automated-pipeline.js"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.6",
