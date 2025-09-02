@@ -1,4 +1,4 @@
-import debug from './debug.js';
+import { debug } from './engineUtils.js';
 import { performanceMonitor } from './validationPerformanceMonitor.js';
 import { validationCache } from '../cache/validationCacheService.js';
 import { CACHE_TYPES } from '../cache/validationCacheService.js';

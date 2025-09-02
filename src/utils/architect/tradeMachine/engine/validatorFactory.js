@@ -1,7 +1,7 @@
 import { CACHE_TYPES } from './validationCacheService.js';
 import { validationCache } from './validationCacheService.js';
 import { createTrackedValidator } from './validationDecorator.js';
-import debug from '../debug.js';
+import { debug } from './engineUtils.js';
 
 /**
  * Factory for creating enhanced validators with built-in caching and monitoring

@@ -9,7 +9,7 @@ import {
 import { validationCache } from '../cache/validationCacheService.js';
 import { performanceMonitor } from './validationPerformanceMonitor.js';
 import { wrapCommonValidators } from './validationDecorator.js';
-import debug from './debug.js';
+import { debug } from './engineUtils.js';
 import { createTPE } from '../utils/tpeUtils.js';
 
 // Import base validators from new structure

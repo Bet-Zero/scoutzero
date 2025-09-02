@@ -1,4 +1,4 @@
-import { isMeaningfulProtection } from '@/utils/architect/tradeMachine/utils/tradeUtils.js';
+import { isMeaningfulProtection } from '@/utils/architect/tradeMachine/utils/tradeUtilities.js';
 import { CBA_THRESHOLDS } from '@/utils/architect/tradeMachine/cbaConstants.js';
 
 export function validateDraftPicks(team, allTeams) {

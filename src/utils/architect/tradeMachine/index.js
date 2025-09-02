@@ -41,8 +41,8 @@ export { enforceRosterWindow } from './rules/enforceRosterWindow.js';
 export { enforceSecondApronHandcuffs } from './rules/basicRules.js';
 
 // Debug utilities - from engine
-export { default as debug } from './engine/debug.js';
+export { debug } from './engine/engineUtils.js';
 
 // Constants and matching utilities - from utils
 export { computeMatchingValues, getMatchingValue } from './utils/matchingValues.js';
-export { isMeaningfulProtection } from './utils/tradeUtils.js';
+export { isMeaningfulProtection } from './utils/tradeUtilities.js';

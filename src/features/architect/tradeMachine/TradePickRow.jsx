@@ -2,7 +2,7 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import { formatPick } from '@/utils/architect/tradeHelpers';
-import { getPickOptions } from '@/utils/architect/tradeMachine/utils/pickOptions';
+import { getPickOptions } from '@/utils/architect/tradeMachine/utils/tradeUtilities';
 import { getTeamColors } from '@/utils/formatting';
 import TeamLogo from '@/components/shared/TeamLogo';
 

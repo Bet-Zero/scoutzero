@@ -5,7 +5,7 @@
 
 import { validationFlags } from '@/config/validationFlags.js';
 import { CBA_THRESHOLDS } from '@/utils/architect/tradeMachine/cbaConstants.js';
-import debug from '../debug.js';
+import { debug } from './engineUtils.js';
 
 /**
  * Validates [rule description]

@@ -16,13 +16,12 @@ export * from './validationDecorator.js';
 export * from './validatorFactory.js';
 
 // Debug utilities
-export * from './debug.js';
+export * from './engineUtils.js';
 export * from './tradeDebug.js';
 export * from './validationDebugMonitor.js';
 export * from './validatorDebug.js';
 
-// Trade-specific engine components
-export * from './tradeKicker.js';
+// Trade-specific engine components (trade kicker now in engineUtils.js)
 
 // Template and debugging
 export * from './templateValidator.js';

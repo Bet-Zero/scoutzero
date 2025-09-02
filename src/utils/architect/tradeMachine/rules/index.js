@@ -49,7 +49,7 @@ export * from './enforceEligibility.js';
 // Consent rules
 export * from './validateConsent.js';
 export * from './enforceConsent.js';
-export * from './playerConsent.js';
+export * from './miscRules.js'; // includes playerConsent, enforceTradeKicker, validateAllNewRules
 
 // Timing rules
 export * from './validateTiming.js';
@@ -66,8 +66,7 @@ export * from './validateDraftPicks.js';
 export * from './validateAggregation.js';
 export * from './aggregationValidator.js';
 
-// Trade kicker enforcement
-export * from './enforceTradeKicker.js';
+// Trade kicker enforcement - now in miscRules.js
 
 // Reacquisition rules
 export * from './reacquisition.js';
@@ -75,5 +74,4 @@ export * from './reacquisition.js';
 // General enforcement
 export * from './enforcement.js';
 
-// All new rules validation
-export * from './validateAllNewRules.js';
+// All new rules validation - now in miscRules.js

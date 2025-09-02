@@ -46,4 +46,4 @@ export { hasStepienViolation } from '../../stepienUtils.js';
 
 // Cache and debugging - now in engine/ and cache/
 export { validationCache } from '../cache/validationCache.js';
-export { default as debug } from '../engine/debug.js';
+export { debug } from '../engine/engineUtils.js';

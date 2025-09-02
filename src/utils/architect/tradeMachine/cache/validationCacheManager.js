@@ -1,4 +1,4 @@
-import debug from '../engine/debug.js';
+import { debug } from '../engine/engineUtils.js';
 
 /**
  * Manages validation caching lifecycle and performance monitoring
