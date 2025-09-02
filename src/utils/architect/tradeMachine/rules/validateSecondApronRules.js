@@ -1,5 +1,5 @@
 import { getApronStatus } from '@/utils/architect/tradeHelpers.js';
-import { isPriorYearTPE } from '@/utils/architect/tradeMachine/utils/tpeUtils.js';
+import { isPriorYearTPE } from '@/utils/architect/tradeMachine/utils/tradeUtilities.js';
 
 /**
  * Validates second apron rules for a team

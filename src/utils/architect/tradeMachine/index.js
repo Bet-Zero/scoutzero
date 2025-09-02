@@ -8,10 +8,10 @@
 export { validateTrade } from './engine/tradeValidator.js';
 
 // Core validators - from rules
-export { validateCash } from './rules/validateCash.js';
+export { validateCash } from './rules/eligibilityRules.js';
 export { validateStepien } from './rules/validateStepien.js';
 export { validateRoster } from './rules/validateRoster.js';
-export { validateHardCap } from './rules/validateHardCap.js';
+export { validateHardCap } from './rules/hardCapValidation.js';
 export { validateSalaryMatching } from './rules/validateSalaryMatching.js';
 export { validateTradeExceptions } from './rules/validateTradeExceptions.js';
 export { validateFaExceptionUsage } from './rules/validateFaExceptionUsage.js';
@@ -20,7 +20,7 @@ export { validateSignAndTrade } from './rules/validateSignAndTrade.js';
 export { validateEligibility } from './rules/validateEligibility.js';
 
 // Utility functions - from utils
-export { hasStepienViolation } from './rules/stepienRule.js';
+export { hasStepienViolation } from './rules/draftRules.js';
 export {
   toNum,
   toSeasonKey,
@@ -37,12 +37,12 @@ export {
 export { enforceConsent } from './rules/enforceConsent.js';
 export { enforceEligibility } from './rules/enforceEligibility.js';
 export { enforceTiming } from './rules/enforceTiming.js';
-export { enforceRosterWindow } from './rules/enforceRosterWindow.js';
+export { enforceRosterWindow } from './rules/rosterValidation.js';
 export { enforceSecondApronHandcuffs } from './rules/basicRules.js';
 
 // Debug utilities - from engine
-export { default as debug } from './engine/debug.js';
+export { debug } from './engine/engineUtils.js';
 
 // Constants and matching utilities - from utils
 export { computeMatchingValues, getMatchingValue } from './utils/matchingValues.js';
-export { isMeaningfulProtection } from './utils/tradeUtils.js';
+export { isMeaningfulProtection } from './utils/tradeUtilities.js';

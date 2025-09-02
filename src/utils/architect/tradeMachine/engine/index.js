@@ -12,18 +12,15 @@ export * from './performanceMonitor.js';
 export * from './validationPerformanceMonitor.js';
 
 // Validation decorators and factories
-export * from './validationDecorator.js';
-export * from './validatorFactory.js';
+export * from './validationUtils.js';  // includes validationDecorator.js, validatorDebug.js, templateValidator.js
 
 // Debug utilities
-export * from './debug.js';
+export * from './engineUtils.js';
 export * from './tradeDebug.js';
 export * from './validationDebugMonitor.js';
-export * from './validatorDebug.js';
+export * from './validationUtils.js';  // includes validatorDebug.js
 
-// Trade-specific engine components
-export * from './tradeKicker.js';
+// Trade-specific engine components (trade kicker now in engineUtils.js)
 
-// Template and debugging
-export * from './templateValidator.js';
+// Template and debugging (templateValidator.js now in validationUtils.js)
 export * from './tradeValidator.debug.js';

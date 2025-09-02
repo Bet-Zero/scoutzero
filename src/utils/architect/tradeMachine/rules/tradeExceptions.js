@@ -1,4 +1,4 @@
-import { isSecondApronTeam } from '../capHelpers.js';
+import { isSecondApronTeam } from '../utils/capUtils.js';
 
 export function validateTradeExceptions(team, tradeCtx = {}) {
   const violations = [];

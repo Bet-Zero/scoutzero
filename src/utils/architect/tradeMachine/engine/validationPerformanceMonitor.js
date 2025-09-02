@@ -1,4 +1,4 @@
-import debug from './debug.js';
+import { debug } from './engineUtils.js';
 import { validationCache } from '../cache/validationCache.js';
 
 /**

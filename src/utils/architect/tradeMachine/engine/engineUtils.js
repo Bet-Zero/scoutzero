@@ -1,3 +1,38 @@
+/**
+ * Engine utilities for trade validation
+ * Consolidated from: debug.js, tradeKicker.js
+ */
+
+// Debug functionality (from debug.js)
+class Debug {
+  constructor() {
+    this.enabled = false;
+  }
+
+  enable() {
+    this.enabled = true;
+  }
+
+  disable() {
+    this.enabled = false;
+  }
+
+  log(message, data) {
+    if (this.enabled) {
+      console.log(`[Trade Validator] ${message}`, data || '');
+    }
+  }
+
+  error(message, error) {
+    if (this.enabled) {
+      console.error(`[Trade Validator Error] ${message}`, error || '');
+    }
+  }
+}
+
+export const debug = new Debug();
+
+// Trade kicker calculation (from tradeKicker.js)
 export function computeTradeKicker(player, tradeCtx) {
   // No kicker if not specified
   if (!player.tradeKicker?.percentage) {

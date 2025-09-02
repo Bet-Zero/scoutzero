@@ -8,19 +8,15 @@
 export * from './validateSalaryMatching.js';
 export * from './salaryMatching.js';
 
-// Roster rules
+// Roster rules - consolidated
 export * from './validateRoster.js';
-export * from './enforceRosterWindow.js';
-export * from './rosterWindow.js';
-export * from './enforceRosterRules.js';
+export * from './rosterValidation.js';  // consolidated: rosterRules + enforceRosterWindow + enforceRosterRules + validateRosterWindow
 
-// Hard cap rules
-export * from './validateHardCap.js';
-export * from './hardCap.js';
+// Hard cap rules - consolidated
+export * from './hardCapValidation.js';  // consolidated: hardCap + validateHardCap
 
 // Stepien rule
-export * from './validateStepien.js';
-export * from './stepienRule.js';
+export * from './draftRules.js';  // includes stepienRule.js and validateDraftPicks.js
 
 // Second apron rules
 export * from './validateSecondApron.js';
@@ -29,8 +25,7 @@ export * from './basicRules.js';
 export * from './enforceSecondApronRules.js';
 
 // Cash validation
-export * from './validateCash.js';
-export * from './cashValidation.js';
+export * from './eligibilityRules.js';  // includes validateCash.js and reacquisition.js
 
 // Trade exceptions
 export * from './validateTradeExceptions.js';
@@ -40,34 +35,30 @@ export * from './tradeExceptions.js';
 export * from './validateFaExceptionUsage.js';
 
 // BYC rules
-export * from './validateBYC.js';
+export * from './miscRules.js';  // includes validateBYC.js
 
 // Eligibility rules
-export * from './validateEligibility.js';
-export * from './enforceEligibility.js';
+export * from './eligibilityRules.js';  // includes enforceEligibility.js
 
 // Consent rules
 export * from './validateConsent.js';
 export * from './enforceConsent.js';
-export * from './playerConsent.js';
+export * from './miscRules.js'; // includes playerConsent, enforceTradeKicker, validateAllNewRules
 
-// Timing rules
-export * from './validateTiming.js';
-export * from './enforceTiming.js';
-export * from './timingGates.js';
+// Timing rules - consolidated
+export * from './timingValidation.js';  // consolidated: enforceTiming + timingGates + validateTiming
 
 // Sign and trade rules
 export * from './validateSignAndTrade.js';
 
 // Draft pick rules
-export * from './validateDraftPicks.js';
+export * from './draftRules.js';  // includes validateDraftPicks.js
 
 // Aggregation rules
 export * from './validateAggregation.js';
 export * from './aggregationValidator.js';
 
-// Trade kicker enforcement
-export * from './enforceTradeKicker.js';
+// Trade kicker enforcement - now in miscRules.js
 
 // Reacquisition rules
 export * from './reacquisition.js';
@@ -75,5 +66,4 @@ export * from './reacquisition.js';
 // General enforcement
 export * from './enforcement.js';
 
-// All new rules validation
-export * from './validateAllNewRules.js';
+// All new rules validation - now in miscRules.js

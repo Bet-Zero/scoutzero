@@ -1,7 +1,50 @@
 /**
  * Cap utilities for trade validation
  * Handles cap calculations, payroll resolution, and team object normalization
+ * Consolidated from: capHelpers.js
  */
+
+/**
+ * Determines if a team is at or above the first apron threshold
+ * (From capHelpers.js)
+ */
+export function isFirstApronTeam(team, capSettings) {
+  if (!team || !capSettings) return false;
+  
+  const teamSalary = team.totalSalary || team.teamTotalSalary || 0;
+  const firstApron = capSettings.firstApron || capSettings.apron || 0;
+  
+  return teamSalary >= firstApron;
+}
+
+/**
+ * Determines if a team is at or above the second apron threshold
+ * (From capHelpers.js)
+ */
+export function isSecondApronTeam(team, capSettings) {
+  if (!team || !capSettings) return false;
+  
+  const teamSalary = team.totalSalary || team.teamTotalSalary || 0;
+  const secondApron = capSettings.secondApron || 0;
+  
+  return teamSalary >= secondApron;
+}
+
+/**
+ * Gets the apron status of a team
+ * (From capHelpers.js)
+ */
+export function getTeamApronStatus(team, capSettings) {
+  if (!team || !capSettings) return 'UNDER_CAP';
+  
+  const teamSalary = team.totalSalary || team.teamTotalSalary || 0;
+  const { salaryCap = 0, firstApron = 0, secondApron = 0 } = capSettings;
+  
+  if (teamSalary >= secondApron) return 'SECOND_APRON';
+  if (teamSalary >= firstApron) return 'FIRST_APRON';
+  if (teamSalary >= salaryCap) return 'OVER_CAP';
+  return 'UNDER_CAP';
+}
 
 /**
  * Converts a value to a number, handling various input types

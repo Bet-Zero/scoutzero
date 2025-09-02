@@ -6,20 +6,19 @@
 // Salary and cap utilities
 export * from './capUtils.js';
 export * from './salaryMargin.js';
-export * from './salaryCalculations.js';
+export * from './tradeUtilities.js';  // includes salaryCalculations.js
 export * from './salaryUtils.js';
 
 // Trade-specific utilities
-export * from './tradeUtils.js';
+export * from './tradeUtilities.js';
 export * from './matchingValues.js';
 export * from './computeMatchingValues.js';
 
-// Pick and option utilities
+// Pick utilities (combined with tradeUtilities.js)
 export * from './pickUtils.js';
-export * from './pickOptions.js';
 
-// TPE utilities
-export * from './tpeUtils.js';
+// TPE utilities (combined with tradeUtilities.js)
+export * from './tradeUtilities.js';
 
 // Input validation and normalization
 export * from './validateInput.js';
