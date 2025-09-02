@@ -1,33 +1,21 @@
 import { useMemo } from 'react';
 import useSimplePlayerData from './useSimplePlayerData';
-import useSeasonPlayerData from './useSeasonPlayerData';
 
 /**
- * Main hook for player data - simplified version using single data source
- * Maintains backward compatibility while using the new simplified data layer
+ * Main hook for player data - now fully simplified to single data source
+ * All components should use this unified interface
  */
 const usePlayerData = (season = null) => {
-  // Use the simple data hook for most cases (faster, real-time updates)
-  const { players: simplePlayers, loading: simpleLoading, error: simpleError } = useSimplePlayerData();
+  // Use the simple data hook for all cases (real-time updates, reliable)
+  const { players, loading, error } = useSimplePlayerData();
   
-  // Keep fallback to complex hook for season-specific requests
-  const { players: seasonPlayers, loading: seasonLoading, error: seasonError, diagnostics, isEmpty, isUsingFallback, dataSource } = useSeasonPlayerData(season);
-  
-  // Determine which data source to use
-  const useSeasonData = season !== null;
-  
-  const players = useSeasonData ? seasonPlayers : simplePlayers;
-  const loading = useSeasonData ? seasonLoading : simpleLoading;
-  const error = useSeasonData ? seasonError : simpleError;
+  // Log warning if season parameter is used (no longer supported in simplified architecture)
+  if (season !== null) {
+    console.warn('🚨 Season parameter is deprecated in usePlayerData. All data now comes from /players collection for consistency.');
+  }
 
-  // Provide backward compatible diagnostics
-  const diagnosticsCompat = useSeasonData ? {
-    isEmpty,
-    isUsingFallback,
-    dataSource,
-    playerCount: players.length,
-    collectionsChecked: diagnostics?.collectionsChecked || []
-  } : {
+  // Provide simplified diagnostics for backward compatibility
+  const diagnostics = {
     isEmpty: players.length === 0,
     isUsingFallback: false,
     dataSource: '/players',
@@ -35,13 +23,12 @@ const usePlayerData = (season = null) => {
     collectionsChecked: ['/players']
   };
 
-  // Log diagnostic info for troubleshooting
-  if (diagnosticsCompat && (diagnosticsCompat.isEmpty || diagnosticsCompat.isUsingFallback)) {
+  // Log diagnostic info only if there are issues
+  if (players.length === 0 && !loading) {
     console.log('🔍 Player Data Diagnostics:', {
       playersFound: players.length,
-      dataSource: diagnosticsCompat.dataSource,
-      usingFallback: diagnosticsCompat.isUsingFallback,
-      collectionsChecked: diagnosticsCompat.collectionsChecked
+      dataSource: diagnostics.dataSource,
+      error: error?.message || 'No error'
     });
   }
 
@@ -49,8 +36,8 @@ const usePlayerData = (season = null) => {
     players, 
     loading, 
     error,
-    // Additional diagnostic info for troubleshooting
-    diagnostics: diagnosticsCompat
+    // Backward compatible diagnostics
+    diagnostics
   };
 };
 

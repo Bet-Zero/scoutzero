@@ -11,7 +11,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { db } from '@/firebaseConfig';
 import CreateRosterModal from '@/features/roster/CreateRosterModal';
 import ListSearchBar from '@/features/lists/ListSearchBar';
-import usePlayerData from '@/hooks/usePlayerData.js';
+import useSimplePlayerData from '@/hooks/useSimplePlayerData';
 
 const RostersHome = () => {
   const [rosters, setRosters] = useState([]);
@@ -21,7 +21,7 @@ const RostersHome = () => {
   const [renameValue, setRenameValue] = useState('');
   const [deletingId, setDeletingId] = useState(null);
   const navigate = useNavigate();
-  const { players } = usePlayerData();
+  const { players } = useSimplePlayerData();
 
   const playersMap = useMemo(() => {
     const map = {};

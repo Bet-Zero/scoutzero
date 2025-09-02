@@ -1,7 +1,7 @@
 // PlayerProfileView.jsx
 
 import React, { useState, useEffect, useCallback } from 'react';
-import usePlayerData from '@/hooks/usePlayerData.js';
+import useSimplePlayerData from '@/hooks/useSimplePlayerData';
 import useAutoSavePlayer from '@/hooks/useAutoSavePlayer';
 
 import TeamPlayerDropdowns from '@/features/profile/TeamPlayerDropdowns';
@@ -40,7 +40,7 @@ const defaultBlurbs = {
 };
 
 const PlayerProfileView = () => {
-  const { players: fetchedPlayers, loading: isLoading } = usePlayerData();
+  const { players: fetchedPlayers, loading: isLoading } = useSimplePlayerData();
   const [playersData, setPlayersData] = useState({});
   const [teams, setTeams] = useState([]);
   const [filteredKeys, setFilteredKeys] = useState([]);

@@ -20,7 +20,7 @@ import OffseasonTab from './OffseasonTab';
 import TeamHistoryTab from './TeamHistoryTab';
 import ExceptionTracker from './ExceptionTracker';
 import SavePlanModal from './SavePlanModal';
-import usePlayerData from '@/hooks/usePlayerData.js';
+import useSimplePlayerData from '@/hooks/useSimplePlayerData';
 import { loadPlayerData } from '@/firebaseHelpers';
 import { normalizePlayerData } from '@/utils/roster';
 import { getPlayerPositionLabel } from '@/utils/roles';
@@ -116,7 +116,7 @@ const GMDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
-  const { players } = usePlayerData();
+  const { players } = useSimplePlayerData();
 
   const playersMap = useMemo(() => {
     const map = {};

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import usePlayerData from '@/hooks/usePlayerData.js';
+import useSimplePlayerData from '@/hooks/useSimplePlayerData';
 import useFirebaseQuery from '@/hooks/useFirebaseQuery';
 import { POSITION_MAP } from '@/utils/roles';
 import { TeamListFull } from '@/constants/teamList';
@@ -10,7 +10,7 @@ import RankingSession from './RankingSession';
 import TierPlayerTile from '@/features/lists/TierPlayerTile';
 
 const RankingBuilder = () => {
-  const { players: allPlayers, loading } = usePlayerData();
+  const { players: allPlayers, loading } = useSimplePlayerData();
   const { data: listsData } = useFirebaseQuery('lists');
 
   const processedPlayers = useMemo(

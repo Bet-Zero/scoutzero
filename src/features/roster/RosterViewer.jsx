@@ -1,6 +1,6 @@
 // src/components/roster/RosterViewer.jsx
 import React, { useState, useEffect } from 'react';
-import usePlayerData from '@/hooks/usePlayerData.js';
+import useSimplePlayerData from '@/hooks/useSimplePlayerData';
 import AddPlayerDrawer from './AddPlayerDrawer';
 import DrawerShell from '@/components/shared/ui/drawers/DrawerShell';
 import OpenDrawerButton from '@/components/shared/ui/drawers/OpenDrawerButton';
@@ -14,7 +14,7 @@ import { TeamMap } from '@/constants/teamList';
 import { useRosterManager } from '@/hooks/useRosterManager';
 
 const RosterViewer = ({ isExport = false, initialRosterId }) => {
-  const { players: allPlayers, loading: isLoading } = usePlayerData();
+  const { players: allPlayers, loading: isLoading } = useSimplePlayerData();
   const {
     roster,
     processedPlayers,

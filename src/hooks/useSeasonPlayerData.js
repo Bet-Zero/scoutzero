@@ -4,10 +4,19 @@ import { db } from '@/firebaseConfig';
 import { normalizePlayerData } from '@/utils/roster';
 
 /**
- * Enhanced hook that supports both legacy /players collection and new season-based structure
- * Provides fallback mechanism and clear diagnostics for missing data
+ * @deprecated Use usePlayerData or useSimplePlayerData instead
+ * 
+ * LEGACY: Enhanced hook that supports both legacy /players collection and new season-based structure
+ * This hook is deprecated as part of data layer consolidation.
+ * All components should use the simplified usePlayerData or useSimplePlayerData hooks.
+ * 
+ * Migration guide:
+ * - Replace useSeasonPlayerData() with useSimplePlayerData() for direct access
+ * - Replace useSeasonPlayerData(season) with usePlayerData() (season param deprecated)
  */
 const useSeasonPlayerData = (season = null) => {
+  console.warn('🚨 useSeasonPlayerData is DEPRECATED. Use usePlayerData or useSimplePlayerData instead.');
+  
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
