@@ -6,7 +6,7 @@ import {
   isPriorYearTPE,
   isExpiredTPE,
   createTPE,
-} from '@/utils/architect/tradeMachine/utils/tpeUtils.js';
+} from '@/utils/architect/tradeMachine/utils/tradeUtilities.js';
 import { formatCurrency } from '@/utils/architect/tradeHelpers.js';
 
 export function validateTradeExceptions(team) {

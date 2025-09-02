@@ -1,5 +1,14 @@
+/**
+ * Roster validation rules
+ * Consolidated from: rosterWindow.js
+ */
+
 import { validationFlags } from '../validationFlags.js';
 
+/**
+ * Enforces roster window constraints
+ * (Consolidated from rosterWindow.js)
+ */
 export function enforceRosterWindow(team, tradeCtx = {}, callbacks = {}) {
   const { warn = () => {}, reject = () => {} } = callbacks;
 

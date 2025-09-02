@@ -16,14 +16,14 @@
 
 // Core validation functions - now in rules/
 export { validateTradeExceptions } from '../rules/validateTradeExceptions.js';
-export { validateCash } from '../rules/validateCash.js';
+export { validateCash } from '../rules/eligibilityRules.js';
 export { validateFaExceptionUsage } from '../rules/validateFaExceptionUsage.js';
 export { validateSalaryMatching } from '../rules/validateSalaryMatching.js';
 export { validateRoster, enforceRosterWindow } from '../rules/validateRoster.js';
 export { validateHardCap } from '../rules/validateHardCap.js';
 export { validateStepien } from '../rules/validateStepien.js';
 export { validateSecondApronRules } from '../rules/validateSecondApronRules.js';
-export { validateBYC } from '../rules/validateBYC.js';
+export { validateBYC } from '../rules/miscRules.js';
 export { validateConsent } from '../rules/validateConsent.js';
 export { validateEligibility } from '../rules/validateEligibility.js';
 export { validateTiming } from '../rules/validateTiming.js';

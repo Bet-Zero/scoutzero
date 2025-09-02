@@ -9,7 +9,7 @@ import {
   MATCHING_BANDS_2023,
 } from '@/utils/architect/cbaConstants.js';
 export { wouldExceedHardCap } from '@/utils/architect/hardCapUtils.js';
-import { isPriorYearTPE } from '@/utils/architect/tradeMachine/utils/tpeUtils.js';
+import { isPriorYearTPE } from '@/utils/architect/tradeMachine/utils/tradeUtilities.js';
 import { getTeamFaExceptionBuckets } from '@/utils/architect/faExceptionUtils.js';
 
 export const getTierThresholds = (yearKey) => {

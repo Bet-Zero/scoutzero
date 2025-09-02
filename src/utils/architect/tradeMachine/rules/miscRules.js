@@ -1,14 +1,53 @@
 /**
  * Miscellaneous validation rules
- * Consolidated from: validateAllNewRules.js, playerConsent.js, enforceTradeKicker.js
+ * Consolidated from: validateAllNewRules.js, playerConsent.js, enforceTradeKicker.js, validateBYC.js
  */
 
 import { validateTradeExceptions } from './validateTradeExceptions.js';
 import { validateDraftPicks } from './validateDraftPicks.js';
-import { validateCash } from './validateCash.js';
+import { validateCash } from './eligibilityRules.js';
 import { validateSignAndTrade } from './validateSignAndTrade.js';
-import { validateBYC } from './validateBYC.js';
 import { validateSecondApronRules } from './validateSecondApronRules.js';
+import { BYC_PERCENT } from '@/utils/architect/cbaConstants.js';
+
+/**
+ * Validates Base Year Compensation (BYC) rules
+ * (Consolidated from validateBYC.js)
+ */
+export function validateBYC(team, context = {}) {
+  const violations = [];
+  const { currentYear = 2025 } = context;
+
+  // Check all outgoing players for BYC issues
+  const outgoingPlayers = team.sends || [];
+
+  outgoingPlayers.forEach((player) => {
+    const currentSalary =
+      player.contract_clean?.salaries_by_year?.[currentYear]?.salary || 0;
+    const previousSalary =
+      player.contract_clean?.salaries_by_year?.[currentYear - 1]?.salary || 0;
+
+    // BYC applies if current salary > 120% of previous salary
+    const isBYC = previousSalary > 0 && currentSalary > previousSalary * 1.2;
+
+    if (isBYC) {
+      // For BYC players, outgoing value is average of current and previous year
+      const bycValue = (currentSalary + previousSalary) / 2;
+
+      // Set the BYC matching values
+      player.matchOutgoing = bycValue;
+      player.isBYC = true;
+
+      // No violations - BYC is just a calculation adjustment
+    }
+  });
+
+  return {
+    passed: violations.length === 0,
+    violations,
+    warningsOnly: false,
+  };
+}
 
 // All new rules validation (from validateAllNewRules.js)
 export function validateAllNewRules(team, allTeams, tradeCtx = {}) {

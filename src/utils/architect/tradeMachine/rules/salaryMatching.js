@@ -1,5 +1,32 @@
-import { isFirstApronTeam, isSecondApronTeam } from '../capHelpers.js';
-import { getAllowableIncomingMargin } from '../matchingBands.js';
+import { isFirstApronTeam, isSecondApronTeam } from '../utils/capUtils.js';
+import { calculateAllowableIncoming } from '@/utils/architect/tradeHelpers.js';
+
+/**
+ * Calculates the allowable incoming salary margin for a team
+ * (Consolidated from matchingBands.js)
+ */
+function getAllowableIncomingMargin({
+  team,
+  teamTotalSalary = 0,
+  secondApron = 0,
+  isAtOrAboveSecondApron = false,
+}) {
+  // Second apron teams must match exactly (0% margin)
+  if (isAtOrAboveSecondApron || teamTotalSalary >= secondApron) {
+    return 0;
+  }
+
+  // For other teams, use the standard calculation from tradeHelpers
+  // This handles under-cap, over-cap, and first apron teams appropriately
+  return calculateAllowableIncoming(
+    teamTotalSalary,
+    0, // salaryOut - this will be added separately
+    [], // incomingPlayers
+    [], // tradeExceptions
+    { secondApron }, // capSettings
+    2025 // yearKey
+  );
+}
 
 export function validateSalaryMatching(team, capSettings) {
   if (!team || !capSettings) {

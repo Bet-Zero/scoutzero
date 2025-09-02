@@ -8,7 +8,7 @@
 export { validateTrade } from './engine/tradeValidator.js';
 
 // Core validators - from rules
-export { validateCash } from './rules/validateCash.js';
+export { validateCash } from './rules/eligibilityRules.js';
 export { validateStepien } from './rules/validateStepien.js';
 export { validateRoster } from './rules/validateRoster.js';
 export { validateHardCap } from './rules/validateHardCap.js';

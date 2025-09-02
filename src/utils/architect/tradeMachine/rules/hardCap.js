@@ -2,7 +2,7 @@ import {
   isFirstApronTeam,
   isSecondApronTeam,
   getTeamSalary,
-} from '../capHelpers.js';
+} from '../utils/capUtils.js';
 
 export function validateHardCap(team, capSettings) {
   if (!team?.team || !capSettings) {

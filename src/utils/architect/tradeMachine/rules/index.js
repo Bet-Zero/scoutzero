@@ -11,7 +11,7 @@ export * from './salaryMatching.js';
 // Roster rules
 export * from './validateRoster.js';
 export * from './enforceRosterWindow.js';
-export * from './rosterWindow.js';
+export * from './rosterRules.js';  // includes rosterWindow.js
 export * from './enforceRosterRules.js';
 
 // Hard cap rules
@@ -38,7 +38,7 @@ export * from './tradeExceptions.js';
 export * from './validateFaExceptionUsage.js';
 
 // BYC rules
-export * from './validateBYC.js';
+export * from './miscRules.js';  // includes validateBYC.js
 
 // Eligibility rules
 export * from './eligibilityRules.js';  // includes enforceEligibility.js
