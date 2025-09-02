@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
-import useSeasonPlayerData from '@/hooks/useSeasonPlayerData';
+import useSimplePlayerData from '@/hooks/useSimplePlayerData';
 
 /**
  * Diagnostic component to help users understand their Firestore data structure
@@ -14,7 +14,14 @@ const FirestoreDataDiagnostic = () => {
     error: null
   });
   
-  const { players, loading: playersLoading, diagnostics: playerDiag } = useSeasonPlayerData();
+  const [fallbackDiagnostics, setFallbackDiagnostics] = useState({
+    source: null,
+    collectionsChecked: [],
+    fallbackUsed: false
+  });
+  
+  // Use simplified data layer for main player data
+  const { players, loading: playersLoading, error: playersError } = useSimplePlayerData();
 
   useEffect(() => {
     const runDiagnostics = async () => {
@@ -91,8 +98,47 @@ const FirestoreDataDiagnostic = () => {
       }
     };
 
+    const runFallbackDiagnostics = async () => {
+      const fallbackDiag = {
+        source: '/players',
+        collectionsChecked: ['/players'],
+        fallbackUsed: false
+      };
+
+      // If simple data hook failed, check fallback scenarios for diagnostic purposes
+      if (playersError || players.length === 0) {
+        const fallbackSources = [
+          { path: '/seasons', description: 'Season-based collections' },
+          { path: 'local:/public/players.json', description: 'Local JSON fallback' }
+        ];
+
+        for (const source of fallbackSources) {
+          fallbackDiag.collectionsChecked.push(source.path);
+          
+          if (source.path.startsWith('local:')) {
+            try {
+              const response = await fetch('/players.json');
+              if (response.ok) {
+                const localData = await response.json();
+                if (Object.keys(localData).length > 0) {
+                  fallbackDiag.source = source.path;
+                  fallbackDiag.fallbackUsed = true;
+                  break;
+                }
+              }
+            } catch (e) {
+              // Local file not available
+            }
+          }
+        }
+      }
+
+      setFallbackDiagnostics(fallbackDiag);
+    };
+
     runDiagnostics();
-  }, []);
+    runFallbackDiagnostics();
+  }, [players.length, playersError]);
 
   const getStatusColor = (exists, count) => {
     if (!exists) return 'text-red-600';
@@ -133,15 +179,15 @@ const FirestoreDataDiagnostic = () => {
             <span>{getStatusIcon(players.length > 0, players.length)} Players Loaded</span>
             <span className="font-mono">{players.length} players</span>
           </div>
-          {playerDiag.source && (
+          {fallbackDiagnostics.source && (
             <div className="text-sm text-gray-600">
-              <strong>Data Source:</strong> {playerDiag.source}
-              {playerDiag.fallbackUsed && <span className="text-orange-600"> (using fallback)</span>}
+              <strong>Data Source:</strong> {fallbackDiagnostics.source}
+              {fallbackDiagnostics.fallbackUsed && <span className="text-orange-600"> (using fallback)</span>}
             </div>
           )}
-          {playerDiag.collectionsChecked.length > 0 && (
+          {fallbackDiagnostics.collectionsChecked.length > 0 && (
             <div className="text-xs text-gray-500">
-              <strong>Locations Checked:</strong> {playerDiag.collectionsChecked.join(', ')}
+              <strong>Locations Checked:</strong> {fallbackDiagnostics.collectionsChecked.join(', ')}
             </div>
           )}
         </div>
@@ -194,7 +240,7 @@ const FirestoreDataDiagnostic = () => {
             <div>❗ <strong>No players found:</strong> Run season data population script or check Firebase credentials</div>
           )}
           
-          {playerDiag.fallbackUsed && (
+          {fallbackDiagnostics.fallbackUsed && (
             <div>⚠️ <strong>Using fallback data:</strong> Consider populating Firestore with current season data</div>
           )}
           
