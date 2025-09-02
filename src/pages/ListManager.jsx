@@ -5,7 +5,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '@/firebaseConfig';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import usePlayerData from '@/hooks/usePlayerData.js';
+import useSimplePlayerData from '@/hooks/useSimplePlayerData';
 import { toast } from 'react-hot-toast';
 
 import RankedListTier from '@/features/lists/ListTierHeader';
@@ -45,7 +45,7 @@ const ListManager = () => {
     return map;
   }, [allLists]);
 
-  const { players, loading: playersLoading } = usePlayerData();
+  const { players, loading: playersLoading } = useSimplePlayerData();
 
   useEffect(() => {
     const loadLists = async () => {

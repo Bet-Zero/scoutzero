@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import TierRow from '@/features/tierMaker/TierRow';
-import usePlayerData from '@/hooks/usePlayerData.js';
+import useSimplePlayerData from '@/hooks/useSimplePlayerData';
 import useFirebaseQuery from '@/hooks/useFirebaseQuery';
 import { POSITION_MAP } from '@/utils/roles';
 import { TeamListFull } from '@/constants/teamList';
@@ -16,7 +16,7 @@ import { toast } from 'react-hot-toast';
 const DEFAULT_TIERS = ['S', 'A', 'B', 'C', 'D'];
 
 const TierMakerBoard = ({ players = [], initialTierListId = '' }) => {
-  const { players: allPlayers, loading } = usePlayerData();
+  const { players: allPlayers, loading } = useSimplePlayerData();
   const { data: listsData } = useFirebaseQuery('lists');
   const { data: tierListsData } = useFirebaseQuery('tierLists');
 

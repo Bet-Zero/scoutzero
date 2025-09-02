@@ -1,7 +1,7 @@
 // src/components/table/PlayerTable.jsx
 
 import React, { useState, useMemo } from 'react';
-import usePlayerData from '@/hooks/usePlayerData';
+import useSimplePlayerData from '@/hooks/useSimplePlayerData';
 import useFilteredPlayers from '@/hooks/useFilteredPlayers';
 import PlayerRow from '@/features/table/PlayerTable/PlayerRow';
 import FiltersPanel from '@/features/filters/FiltersPanel';
@@ -13,7 +13,7 @@ import { getDefaultPlayerFilters } from '@/utils/filtering';
 
 const PlayerTable = () => {
   const [filters, setFilters] = useState(getDefaultPlayerFilters());
-  const { players, loading } = usePlayerData();
+  const { players, loading } = useSimplePlayerData();
   const [showFilters, setShowFilters] = useState(false);
   const [showFullFilters, setShowFullFilters] = useState(false);
   const [showSort, setShowSort] = useState(false);

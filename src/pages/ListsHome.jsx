@@ -11,7 +11,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { db } from '@/firebaseConfig';
 import CreateListModal from '@/features/lists/CreateListModal';
 import ListSearchBar from '@/features/lists/ListSearchBar';
-import usePlayerData from '@/hooks/usePlayerData.js';
+import useSimplePlayerData from '@/hooks/useSimplePlayerData';
 
 const ListsHome = () => {
   const [lists, setLists] = useState([]);
@@ -22,7 +22,7 @@ const ListsHome = () => {
   const [deletingListId, setDeletingListId] = useState(null);
   const navigate = useNavigate();
 
-  const { players, loading: playersLoading } = usePlayerData();
+  const { players, loading: playersLoading } = useSimplePlayerData();
 
   const playersMap = useMemo(() => {
     const map = {};
