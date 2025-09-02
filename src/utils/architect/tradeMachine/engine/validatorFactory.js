@@ -1,6 +1,6 @@
 import { CACHE_TYPES } from './validationCacheService.js';
 import { validationCache } from './validationCacheService.js';
-import { createTrackedValidator } from './validationDecorator.js';
+import { createTrackedValidator } from './validationUtils.js';
 import { debug } from './engineUtils.js';
 
 /**

@@ -20,7 +20,7 @@ export { validateSignAndTrade } from './rules/validateSignAndTrade.js';
 export { validateEligibility } from './rules/validateEligibility.js';
 
 // Utility functions - from utils
-export { hasStepienViolation } from './rules/stepienRule.js';
+export { hasStepienViolation } from './rules/draftRules.js';
 export {
   toNum,
   toSeasonKey,
