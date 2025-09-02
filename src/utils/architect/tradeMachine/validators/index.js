@@ -30,7 +30,7 @@ export { validateTiming } from '../rules/validateTiming.js';
 export { validateSignAndTrade } from '../rules/validateSignAndTrade.js';
 
 // Enforcement functions - now in rules/
-export { enforceSecondApronHandcuffs } from '../rules/enforceSecondApronHandcuffs.js';
+export { enforceSecondApronHandcuffs } from '../rules/basicRules.js';
 export { enforceConsent } from '../rules/enforceConsent.js';
 export { enforceEligibility } from '../rules/enforceEligibility.js';
 export { enforceTiming } from '../rules/enforceTiming.js';
