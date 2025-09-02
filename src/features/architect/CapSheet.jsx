@@ -3,7 +3,7 @@ import { formatName } from '@/utils/formatting';
 import { getMinimumCapHit } from '@/utils/architect/contractUtils';
 import CapSummaryTiles from '@/features/architect/CapSummaryTiles';
 import { POSITION_MAP } from '@/utils/roles';
-import getCapPercentage from '@/utils/architect/getCapPercentage';
+import getCapPercentage from '@/utils/architect/basicArchitectUtils';
 import capProjections from '@/utils/architect/capProjections';
 
 const CapSheet = ({
