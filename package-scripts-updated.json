@@ -1,0 +1,34 @@
+{
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "test": "vitest",
+    "lint": "eslint --ext .js,.jsx src/",
+    "docs": "node generateDocs.cjs",
+    "docs:api": "npx jsdoc2md src/**/*.js > docs/api-documentation.md",
+    
+    "_comment_pipeline": "=== HYBRID AUTOMATED PIPELINE COMMANDS ===",
+    "pipeline:init": "node -e \"console.log('🚀 Initializing hybrid pipeline system...'); require('./src/services/hybridPipelineOrchestrator.js')\"",
+    "pipeline:start": "node -e \"const { DataOrchestrator } = require('./src/services/dataOrchestrator.js'); new DataOrchestrator().startScheduledPipeline()\"",
+    "pipeline:trigger": "node -e \"const { DataOrchestrator } = require('./src/services/dataOrchestrator.js'); new DataOrchestrator().runFullPipeline()\"",
+    "pipeline:full": "node -e \"const { HybridPipelineOrchestrator } = require('./src/services/hybridPipelineOrchestrator.js'); new HybridPipelineOrchestrator().runHybridPipeline()\"",
+    "pipeline:status": "node -e \"const { DataOrchestrator } = require('./src/services/dataOrchestrator.js'); new DataOrchestrator().getStatus()\"",
+    
+    "_comment_data": "=== DATA UPDATE COMMANDS ===",
+    "data:auto-update": "node -e \"const { DataOrchestrator } = require('./src/services/dataOrchestrator.js'); new DataOrchestrator().runQuickUpdate()\"",
+    "data:stats-only": "node -e \"const { nbaApi } = require('./src/services/nbaApi.js'); nbaApi.updatePlayerStats()\"",
+    
+    "_comment_contracts": "=== CONTRACT DATA COMMANDS (Python Integration) ===",
+    "contracts:update": "cd data_pipeline && python3 03_update_contracts.py",
+    "contracts:validate": "cd data_pipeline && python3 helpers/contracts/parse_contract_data_enhanced.py",
+    
+    "_comment_schema": "=== SCHEMA MIGRATION COMMANDS ===",
+    "schema:migrate": "node -e \"const { SchemaMigrationPlan } = require('./src/services/hybridPipelineOrchestrator.js'); new SchemaMigrationPlan().migrateToNewSchema()\"",
+    "schema:validate": "node -e \"console.log('Validating schema integrity across collections...')\"",
+    
+    "_comment_broken": "=== BROKEN COMMANDS (Missing Files) ===",
+    "zen": "echo 'BROKEN: toggleView.cjs missing'",
+    "update-stats": "echo 'BROKEN: updateStats.js missing'", 
+    "docs:all": "echo 'BROKEN: scripts/ directory missing'"
+  }
+}

@@ -60,12 +60,19 @@ export class DataOrchestrator {
         return { teamsUpdated: Object.keys(rosters).length };
       }));
 
-      // Step 3: Update player contracts (replaces 03_update_contracts.py)
+      // Step 3: Contract Updates - TEMPORARILY SKIPPED
+      // NOTE: Contract data requires separate implementation strategy
+      // See REALISTIC_CONTRACT_PLAN.md for viable options
       pipeline.steps.push(await this.executeStep('updateContracts', async () => {
-        console.log('💰 Step 3: Contract Updates...');
-        const contracts = await nbaApi.getPlayerContracts();
-        await this.syncContractsToFirestore(contracts);
-        return { contractsUpdated: 0 }; // Will implement real logic
+        console.log('⚠️ Step 3: Contract Updates - SKIPPED (not yet implemented)');
+        console.log('💡 Recommendation: Use hybrid Python scraping approach');
+        const contractStatus = await nbaApi.getPlayerContracts();
+        return { 
+          contractsUpdated: 0, 
+          status: 'skipped',
+          reason: 'Contract data source not implemented',
+          recommendation: 'See REALISTIC_CONTRACT_PLAN.md'
+        };
       }));
 
       // Step 4: Update player stats (replaces 04_update_stats.py)

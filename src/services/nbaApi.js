@@ -221,26 +221,32 @@ export class NBAApiService {
   }
 
   /**
-   * Get player contract information from external sources
-   * Enhanced contract data collection
+   * Contract data collection - NOT YET IMPLEMENTED
+   * 
+   * REALITY CHECK: Contract/salary data is NOT available through free APIs
+   * Current options:
+   * 1. Keep existing Python SalarySwish scraping (most realistic)
+   * 2. Port scraping logic to Node.js (complex)
+   * 3. Use paid APIs like SportsRadar ($500+/month)
+   * 
+   * This method is a placeholder until a real contract data strategy is implemented
    */
   async getPlayerContracts() {
-    console.log('💰 Fetching player contract data...');
+    console.log('⚠️ Contract data collection NOT IMPLEMENTED');
+    console.log('💡 Consider: Python scraping hybrid or paid API integration');
     
-    try {
-      // This would integrate with contract data sources
-      // For now, return structure that matches existing data format
-      return {
-        source: 'automated_collection',
-        timestamp: new Date().toISOString(),
-        contracts: {},
-        note: 'Contract data collection automated - replaces manual scraping'
-      };
-
-    } catch (error) {
-      console.error('❌ Failed to fetch contract data:', error);
-      return null;
-    }
+    return {
+      implemented: false,
+      source: 'not_available',
+      timestamp: new Date().toISOString(),
+      contracts: {},
+      note: 'Contract data requires separate implementation - see REALISTIC_CONTRACT_PLAN.md',
+      recommendations: [
+        'Keep Python SalarySwish scraping (most viable)',
+        'Evaluate SportsRadar API (paid solution)',
+        'Implement hybrid Node.js + Python approach'
+      ]
+    };
   }
 
   /**
