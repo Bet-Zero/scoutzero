@@ -1,0 +1,10 @@
+{
+  "timestamp": "2025-09-04T10:50:31.570Z",
+  "mode": "simulation",
+  "total_players": 630,
+  "successful_documents": 630,
+  "errors": 0,
+  "players_with_stats": 515,
+  "players_without_stats": 115,
+  "error_details": []
+}
