@@ -356,9 +356,21 @@ class DataPipeline {
 
   /**
    * Sync players to Firestore with merge to preserve user data
+   * CRITICAL: Never deletes existing players to preserve free agents and user evaluations
    */
   async syncPlayersToFirestore(players) {
     console.log(`💾 Syncing ${players.length} players to Firestore...`);
+    
+    // Get existing players to check for preservation needs
+    const existingSnapshot = await this.db.collection('players').get();
+    const existingPlayers = new Set(existingSnapshot.docs.map(doc => doc.id));
+    const discoveredPlayers = new Set(players.map(p => p.id));
+    
+    // Log preservation info
+    const preservedCount = existingPlayers.size - discoveredPlayers.size;
+    if (preservedCount > 0) {
+      console.log(`🔒 Preserving ${preservedCount} existing players not in current NBA rosters (free agents/retired)`);
+    }
     
     const batch = this.db.batch();
     let synced = 0;
@@ -367,12 +379,20 @@ class DataPipeline {
       const playerRef = this.db.collection('players').doc(player.id);
       
       // Merge to preserve existing user evaluations and grades
-      batch.set(playerRef, player, { merge: true });
+      // Mark as currently active NBA player
+      const playerData = {
+        ...player,
+        is_active_nba: true,
+        automated_update: true,
+        last_nba_discovery: admin.firestore.FieldValue.serverTimestamp()
+      };
+      
+      batch.set(playerRef, playerData, { merge: true });
       synced++;
     }
 
     await batch.commit();
-    console.log(`✅ Synced ${synced} players`);
+    console.log(`✅ Synced ${synced} active NBA players (${preservedCount} existing players preserved)`);
     return synced;
   }
 
