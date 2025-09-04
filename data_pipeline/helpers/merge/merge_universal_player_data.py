@@ -321,12 +321,13 @@ def merge_player_data(contracts_path=None, bios_path=None, stats_path=None, outp
     
     # Try multiple sources for input data
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.dirname(os.path.dirname(script_dir))
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(script_dir)))  # Go up from helpers/merge/ to project root
     
     input_sources = [
-        os.path.join(project_root, "public", "players.json"),  # Absolute path to public/players.json
+        os.path.join(project_root, "public", "players.json"),  # Main public file
+        os.path.join(script_dir, "..", "..", "resources", "data", "players_merged_with_discoveries.json"),  # Previous pipeline output
         os.path.join(project_root, "data", "merged_players.json"),  # Check data directory
-        os.path.join(SCRIPT_DIR, "..", "..", "resources", "data", "players.json"),
+        os.path.join(script_dir, "..", "..", "resources", "data", "players.json"),
         "players.json"
     ]
     
@@ -409,8 +410,21 @@ def merge_player_data(contracts_path=None, bios_path=None, stats_path=None, outp
             merged["player_id"] = player_id
         
         # Update with contract data if available (including team changes)
+        data_source = "cached_discovery"  # Default for existing player data
+        
         if player_id in contracts:
             contract_info = contracts[player_id]
+            
+            # Determine actual data source based on contract source
+            if contract_info.get("data_source") == "scraped":
+                data_source = "fresh_scraped"
+            elif contract_info.get("source") == "scraped":
+                data_source = "fresh_scraped"
+            elif "contractHtml" in contract_info:
+                data_source = "fresh_scraped"
+            else:
+                data_source = "fallback_parsed"
+            
             # Merge contract data at top level (flat structure)
             for key, value in contract_info.items():
                 if key in ["Team", "Position", "Contract", "Free Agent", "HT", "WT", "AGE"]:
@@ -446,7 +460,7 @@ def merge_player_data(contracts_path=None, bios_path=None, stats_path=None, outp
         
         # Mark as active and add metadata
         merged["is_active_nba"] = True
-        merged["discovery_source"] = "cached_discovery"
+        merged["discovery_source"] = data_source
         
         # Add timestamp
         import time

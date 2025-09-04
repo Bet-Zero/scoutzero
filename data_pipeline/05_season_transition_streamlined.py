@@ -199,8 +199,8 @@ class SeasonTransitionPipeline:
         self.log(f"Step {self.step_count}: Update bio data from NBA.com")
         
         try:
-            # Use the existing bio data fetching tool
-            bio_script_path = os.path.join(self.script_dir, "tools", "get_all_bios_nba.py")
+            # Use the existing bio data fetching tool - FIXED PATH
+            bio_script_path = os.path.join(self.script_dir, "helpers", "tools", "get_all_bios_nba.py")
             
             if not os.path.exists(bio_script_path):
                 self.log(f"Bio script not found: {bio_script_path}", "WARNING")
@@ -460,7 +460,7 @@ class SeasonTransitionPipeline:
             self.log(f"   ❌ Direct upload failed: {e}", "ERROR")
             # Fallback to old upload method
             self.log("   🔄 Trying fallback upload method...", "WARNING")
-            script_path = os.path.join(self.script_dir, "upload", "push_bio_and_contract.py")
+            script_path = os.path.join(self.script_dir, "helpers", "upload", "push_bio_and_contract.py")
             return self.run_script(script_path, "Fallback Firebase upload", required=False)
 
     def prepare_stats_structure(self):

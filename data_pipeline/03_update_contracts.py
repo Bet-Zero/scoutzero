@@ -232,7 +232,7 @@ def main():
             print("   ❌ Direct upload failed - trying legacy method...")
             # Fallback to old merge + upload
             merge_script = os.path.join(base_dir, "helpers", "merge", "merge_universal_player_data.py")
-            upload_script = os.path.join(base_dir, "upload/push_bio_and_contract.py")
+            upload_script = os.path.join(base_dir, "helpers", "upload", "push_bio_and_contract.py")
             
             print("   🔄 Running legacy merge...")
             run_script(merge_script, "Legacy merge step", required=False)
@@ -245,7 +245,7 @@ def main():
     
     # Try cap sheets generation
     print(f"\n🔹 Step 4: Generate cap sheets (optional)")
-    capsheets_script = os.path.join(base_dir, "capsheets/generateCapSheets.js")
+    capsheets_script = os.path.join(base_dir, "helpers", "capsheets", "generateCapSheets.js")
     
     if os.path.exists(capsheets_script):
         try:

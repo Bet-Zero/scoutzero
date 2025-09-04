@@ -26,7 +26,7 @@
     "season:create": "python3 data_pipeline/season_manager.py create",
     "season:archive": "python3 data_pipeline/season_manager.py archive",
     "season:list": "python3 data_pipeline/season_manager.py list",
-    "season:transition": "python3 data_pipeline/season_transition_streamlined.py",
+    "season:transition": "python3 data_pipeline/05_season_transition_streamlined.py",
     "contracts:update": "python3 data_pipeline/updateContracts_enhanced.py",
     "stats:update": "python3 data_pipeline/update_stats.py",
     "capsheets:generate": "node data_pipeline/helpers/capsheets/generateCapSheets.js",

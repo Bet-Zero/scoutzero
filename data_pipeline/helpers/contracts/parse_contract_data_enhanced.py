@@ -36,88 +36,6 @@ def parse_free_agent_info(fa_str):
     
     return year, fa_type
 
-def create_fallback_contract_data(player_id, player_data):
-    """Create contract data from existing player information"""
-    contract_str = player_data.get("contractData", {}).get("contract_string", "")
-    fa_info = player_data.get("contractData", {}).get("free_agent_info", "")
-    team = player_data.get("contractData", {}).get("team", "")
-    
-    value, years, aav = parse_existing_contract_string(contract_str)
-    fa_year, fa_type = parse_free_agent_info(fa_info)
-    
-    # Create annual salaries estimate using END YEAR format for consistency
-    annual_salaries = []
-    if value and years and fa_year:
-        # fa_year is when player becomes free agent, so last contract year is fa_year - 1
-        last_contract_end_year = fa_year - 1
-        first_contract_end_year = last_contract_end_year - years + 1
-        yearly_salary = int(value / years)
-        for i in range(years):
-            annual_salaries.append({
-                "year": first_contract_end_year + i,  # Store using END YEAR format
-                "salary": yearly_salary,
-                "guaranteed": True,
-                "option": None
-            })
-    
-    return {
-        "player_id": player_id,
-        "name": player_data.get("name", ""),
-        "team": team,
-        "position": None,
-        "status": "Active",
-        "bio": {
-            "birthdate": None,
-            "birthplace": None,
-            "nationality": None,
-            "height": None,
-            "weight_lbs": None,
-            "age": None,
-            "shoots": None,
-            "years_pro": None
-        },
-        "agent": {"name": None, "agency": None},
-        "draft": {"year": None, "round": None, "pick": None, "team": None},
-        "bird_rights": None,
-        "free_agent_type": fa_type,
-        "free_agency_year": fa_year,
-        "cap_hold": 0,
-        "qualifying_offer": None,
-        "signed_using": None,
-        "trade_kicker": None,
-        "no_trade_clause": False,
-        "contract_summary": {
-            "type": "Standard Contract",
-            "length": f"{years} years" if years else None,
-            "value": int(value) if value else None,
-            "guaranteed": int(value) if value else None,
-            "aav": int(aav) if aav else None,
-            "cap_percentage": None,
-            "signing_team": team,
-            "signing_date": None,
-            "signed_by": team,
-            "signed_using": None,
-            "source": "Fallback",
-            "is_extension": False
-        },
-        "contract": {
-            "annual_salaries": annual_salaries,
-            "options": [],
-            "total_value": int(value) if value else 0,
-            "contract_length": years or 0,
-            "signed_year": annual_salaries[0]["year"] - 1 if annual_salaries else None,  # Convert back to start year
-            "signing_team": team,
-            "guaranteed_years": years or 0,
-            "average_annual_value": int(aav) if aav else 0,
-            "incentives": {"likely": 0, "unlikely": 0},
-            "notes": f"Parsed from: {contract_str}",
-            "extension": None,
-            "free_agency_year": fa_year
-        },
-        "source_url": None,
-        "data_source": "fallback"
-    }
-
 def safe_int(text):
     """Safely convert text to integer"""
     try:
@@ -175,6 +93,41 @@ def extract_bird_rights(scoped):
     
     return None
 
+def detect_contract_extension(scoped, summary_type):
+    """Detect if this is a contract extension based on HTML content"""
+    all_text = scoped.get_text().lower()
+    
+    # Check for extension keywords in the contract type or content
+    extension_keywords = [
+        'extension', 'extend', 'extended', 'rookie extension', 
+        'max extension', 'supermax', 'designated veteran extension',
+        'veteran extension', 'contract extension'
+    ]
+    
+    # Check contract type first
+    if summary_type and any(keyword in summary_type.lower() for keyword in extension_keywords):
+        return True
+    
+    # Check page content for extension indicators
+    if any(keyword in all_text for keyword in extension_keywords):
+        return True
+    
+    # Look for specific extension patterns in text
+    extension_patterns = [
+        r'signed.*extension',
+        r'extension.*signed',
+        r'rookie.*extension',
+        r'max.*extension',
+        r'supermax.*extension',
+        r'designated.*veteran.*extension'
+    ]
+    
+    for pattern in extension_patterns:
+        if re.search(pattern, all_text, re.IGNORECASE):
+            return True
+    
+    return False
+
 def parse_scraped_contract_html(player_id, player_data):
     """Parse scraped HTML contract data - FIXED VERSION"""
     raw_html = player_data.get("contractHtml", "")
@@ -193,15 +146,21 @@ def parse_scraped_contract_html(player_id, player_data):
         "guaranteed": None,
         "aav": None,
         "source": "SalarySwish",
-        "is_extension": False
+        "is_extension": False  # Will be updated by extension detection
     }
     
     # Try to extract basic info
+    contract_type = "Standard Contract"
     header = scoped.find("div", class_="sw_playerContract__header")
     if header:
         title = header.find("h6")
         if title:
-            summary["type"] = title.text.strip()
+            contract_type = title.text.strip()
+            summary["type"] = contract_type
+    
+    # Detect if this is an extension - NOW ACTUALLY IMPLEMENTED
+    is_extension = detect_contract_extension(scoped, contract_type)
+    summary["is_extension"] = is_extension
     
     # Extract Bird Rights at contract expiry
     bird_rights = extract_bird_rights(scoped)
@@ -266,6 +225,33 @@ def parse_scraped_contract_html(player_id, player_data):
         "aav": aav
     })
     
+    # FIXED: Create extension object when extension is detected
+    extension_data = None
+    if is_extension:
+        # Extract extension details from the page content
+        all_text = scoped.get_text().lower()
+        
+        # Determine extension type
+        extension_type = "Contract Extension"
+        if "rookie extension" in all_text:
+            extension_type = "Rookie Extension"
+        elif "max extension" in all_text or "supermax" in all_text:
+            extension_type = "Max Extension"
+        elif "designated veteran" in all_text:
+            extension_type = "Designated Veteran Extension"
+        elif contract_type and "extension" in contract_type.lower():
+            extension_type = contract_type
+        
+        # Create extension object with available data
+        extension_data = {
+            "type": extension_type,
+            "is_extension": True,
+            "total_value": total_value,
+            "years": contract_length,
+            "aav": aav,
+            "notes": f"Extension detected from contract type: {contract_type}" if contract_type else "Extension detected from page content"
+        }
+    
     return {
         "player_id": player_id,
         "name": player_data.get("name", ""),
@@ -291,54 +277,65 @@ def parse_scraped_contract_html(player_id, player_data):
             "average_annual_value": aav,
             "incentives": {"likely": 0, "unlikely": 0},
             "notes": None,
-            "extension": None,
+            "extension": extension_data,  # FIXED: Now properly stores extension data instead of None
             "free_agency_year": max(s["year"] for s in salaries) if salaries else None
         },
         "data_source": "scraped"
     }
 
 def parse_all_contracts(input_file, output_file):
-    """Parse contracts from mixed scraped/fallback data"""
-    print("🔄 Parsing contract data...")
+    """Parse contracts from REAL scraped data only"""
+    print("🔄 Parsing contract data from REAL scraped sources only...")
     
     with open(input_file, "r") as f:
         data = json.load(f)
     
     parsed_players = []
     scraped_count = 0
-    fallback_count = 0
+    skipped_count = 0
     
     for player_id, player_data in data.items():
         source = player_data.get("source", "unknown")
         
+        # ONLY parse actual scraped HTML data
         if source == "scraped" and player_data.get("contractHtml"):
-            # Parse scraped HTML data
             parsed = parse_scraped_contract_html(player_id, player_data)
             if parsed:
                 parsed_players.append(parsed)
                 scraped_count += 1
+            else:
+                print(f"⚠️ Failed to parse HTML for {player_data.get('name', player_id)}")
+                skipped_count += 1
         else:
-            # Use fallback parsing
-            parsed = create_fallback_contract_data(player_id, player_data)
-            parsed_players.append(parsed)
-            fallback_count += 1
+            # Skip anything that's not real scraped data
+            skipped_count += 1
     
     # Save parsed data
     with open(output_file, "w") as f:
         json.dump(parsed_players, f, indent=2)
     
     print(f"✅ Contract parsing complete!")
-    print(f"   📡 Scraped contracts: {scraped_count}")
-    print(f"   🔄 Fallback contracts: {fallback_count}")
-    print(f"   📁 Total players: {len(parsed_players)}")
+    print(f"   📡 Parsed from real scraped data: {scraped_count}")
+    print(f"   ⏭️ Skipped non-scraped data: {skipped_count}")
+    print(f"   📁 Total valid contracts: {len(parsed_players)}")
     print(f"   💾 Output: {output_file}")
+    
+    if scraped_count == 0:
+        print(f"\n🛑 NO REAL CONTRACT DATA TO PARSE!")
+        print(f"   This means the scraper didn't find any actual contract data")
+        print(f"   Check if SalarySwish is accessible and working")
+    
+    return len(parsed_players) > 0
 
 def main():
     """Main execution"""
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.dirname(os.path.dirname(script_dir))
-    input_file = os.path.join(project_root, "data", "raw_contract_html.json")
-    output_file = os.path.join(project_root, "data", "contracts_parsed.json")
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(script_dir)))  # Go up from helpers/contracts/ to project root
+    data_pipeline_dir = os.path.join(project_root, "data_pipeline")
+    
+    # Use the correct pipeline locations
+    input_file = os.path.join(data_pipeline_dir, "resources", "data", "raw_contract_html.json")
+    output_file = os.path.join(data_pipeline_dir, "resources", "data", "contracts_parsed.json")
     
     if not os.path.exists(input_file):
         print(f"❌ Input file not found: {input_file}")

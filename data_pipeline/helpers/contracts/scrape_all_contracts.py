@@ -54,10 +54,19 @@ def generate_url_variants(player_key, player_name):
     # Generate variants for the actual name
     name_variants = []
     
-    # Clean the name and create base variant
+    # Clean the name and create base variant - FIXED: Remove Unicode chars first
     clean_name = re.sub(r'[^\w\s\-.]', '', base_name)
+    # Also create ASCII-only version by removing diacritics
+    ascii_name = unicodedata.normalize('NFD', base_name)
+    ascii_name = ''.join(c for c in ascii_name if unicodedata.category(c) != 'Mn')
+    ascii_name = re.sub(r'[^\w\s\-.]', '', ascii_name)
+    
     base_variant = re.sub(r'[-\s]+', '-', clean_name)
+    ascii_variant = re.sub(r'[-\s]+', '-', ascii_name)
+    
     name_variants.append(base_variant)
+    if ascii_variant != base_variant:
+        name_variants.append(ascii_variant)
     
     # Handle suffixes (Jr, Sr, II, III, etc.)
     suffix_patterns = [
@@ -76,6 +85,11 @@ def generate_url_variants(player_key, player_name):
                 variant = re.sub(pattern, replacement, clean_name)
                 variant = re.sub(r'[-\s]+', '-', variant)
                 name_variants.append(variant)
+        if re.search(pattern, ascii_name):
+            for replacement in replacements:
+                variant = re.sub(pattern, replacement, ascii_name)
+                variant = re.sub(r'[-\s]+', '-', variant)
+                name_variants.append(variant)
     
     # Handle hyphenated last names
     if '-' in player_name and ' ' in player_name:
@@ -84,10 +98,18 @@ def generate_url_variants(player_key, player_name):
         no_space_hyphens = re.sub(r'[-\s]+', '-', no_space_hyphens)
         name_variants.append(no_space_hyphens)
         
+        ascii_no_space = re.sub(r'\s*-\s*', '-', ascii_name)
+        ascii_no_space = re.sub(r'[-\s]+', '-', ascii_no_space)
+        name_variants.append(ascii_no_space)
+        
         # Try removing internal hyphens
         no_internal_hyphens = re.sub(r'(?<!^)(?<!-)(-)+(?!$)', '', clean_name)
         no_internal_hyphens = re.sub(r'[-\s]+', '-', no_internal_hyphens)
         name_variants.append(no_internal_hyphens)
+        
+        ascii_no_internal = re.sub(r'(?<!^)(?<!-)(-)+(?!$)', '', ascii_name)
+        ascii_no_internal = re.sub(r'[-\s]+', '-', ascii_no_internal)
+        name_variants.append(ascii_no_internal)
     
     # Add all name variants to main variants list
     variants.extend(name_variants)
@@ -142,52 +164,6 @@ def try_scrape_contract_with_fallbacks(player_key, player_data, max_attempts=2):
     print(f"    ❌ No working URL found for {name} after trying {len(url_variants)} variants")
     return None
 
-def create_fallback_contract_data(player_key, player_data):
-    """Create contract data structure from existing player info"""
-    name = player_data.get("Name", "").strip() or player_key.replace("_", " ").title()
-    
-    # Use existing team data (already updated in bio step - no need for NBA API calls)
-    team = player_data.get("Team", "")
-    
-    # Extract contract info from existing data
-    contract_str = player_data.get("Contract", "")
-    free_agent = player_data.get("Free Agent", "")
-    
-    # Parse basic contract information
-    contract_value = None
-    contract_years = None
-    
-    if contract_str:
-        # Try to extract value and years from format like "$6.0M / 1 yr"
-        value_match = re.search(r'\$([0-9.]+)M', contract_str)
-        years_match = re.search(r'(\d+)\s*yr', contract_str)
-        
-        if value_match:
-            contract_value = float(value_match.group(1)) * 1000000  # Convert to dollars
-        if years_match:
-            contract_years = int(years_match.group(1))
-    
-    # Parse free agency year
-    fa_year = None
-    if free_agent:
-        year_match = re.search(r'(\d{4})', free_agent)
-        if year_match:
-            fa_year = int(year_match.group(1))
-    
-    return {
-        "name": name,
-        "contractData": {
-            "team": team,  # Use existing team info (already updated in bio step)
-            "contract_string": contract_str,
-            "free_agent_info": free_agent,
-            "estimated_value": contract_value,
-            "estimated_years": contract_years,
-            "free_agency_year": fa_year,
-            "source": "existing_data"
-        },
-        "source": "fallback_enhanced"
-    }
-
 def try_scrape_contract(player_key, player_data, max_attempts=2):
     """Try to scrape contract data with corrected URL mapping (underscores to hyphens)"""
     name = player_data.get("Name", "").strip() or player_key.replace("_", " ").title()
@@ -221,18 +197,18 @@ def try_scrape_contract(player_key, player_data, max_attempts=2):
     return None
 
 def main():
-    """Main execution with fallback logic"""
-    print("🏀 Enhanced Contract Scraping with Smart URL Detection")
-    print("=" * 55)
+    """Main execution - ONLY scrape real data, no fallback nonsense"""
+    print("🏀 Contract Scraping - REAL DATA ONLY")
+    print("=" * 50)
     
-    # Load player data from multiple possible sources
+    # Load player data
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.dirname(os.path.dirname(script_dir))
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(script_dir)))
+    data_pipeline_dir = os.path.join(project_root, "data_pipeline")
     
     players_file_paths = [
-        os.path.join(project_root, "data", "players_merged_with_discoveries.json"),
+        os.path.join(data_pipeline_dir, "resources", "data", "players_merged_with_discoveries.json"),
         os.path.join(project_root, "public", "players.json"),
-        os.path.join(project_root, "data", "merged_players.json"),
     ]
     
     players = None
@@ -250,111 +226,96 @@ def main():
         print("❌ No player data file found!")
         return
     
-    # Process players with smart URL detection
-    output = {}
-    scraped_count = 0
-    fallback_count = 0
-    total = len(players)
-    
-    # Test if external scraping service is working with smart URL detection
-    print(f"\n🔍 Testing smart URL detection with sample players...")
-    test_players = [
-        ("jayson_tatum", players.get("jayson_tatum", {"Name": "Jayson Tatum"})),
-        ("stephen_curry", players.get("stephen_curry", {"Name": "Stephen Curry"})),
-        ("michael_porter_jr", players.get("michael_porter_jr", {"Name": "Michael Porter Jr"})),
-    ]
+    # Test if SalarySwish is working
+    print(f"\n🔍 Testing SalarySwish connectivity...")
+    test_players = ["jayson_tatum", "stephen_curry", "luka_doncic"]
     
     external_working = False
-    successful_urls = []
+    for test_key in test_players:
+        if test_key in players:
+            scraped_data = try_scrape_contract_with_fallbacks(test_key, players[test_key])
+            if scraped_data and scraped_data.get("source") == "scraped":
+                external_working = True
+                print(f"✅ SalarySwish is working! Successfully scraped {players[test_key].get('Name')}")
+                break
     
-    for key, player in test_players:
-        if key in players:
-            player = players[key]
-        name = player.get("Name", key.replace("_", " ").title())
-        print(f"\n  🧪 Testing URL variants for {name}:")
-        scraped_data = try_scrape_contract_with_fallbacks(key, player)
-        if scraped_data:
-            external_working = True
-            successful_urls.append(scraped_data.get("url_used", "unknown"))
-            print(f"  ✅ SUCCESS: Found working URL pattern!")
-        else:
-            print(f"  ❌ No working URLs found for {name}")
+    if not external_working:
+        print("❌ SalarySwish is not accessible or returning data")
+        print("🛑 STOPPING - No point in running a contract scraper that can't scrape")
+        print("💡 Try again later when SalarySwish is back online")
+        return
     
-    if external_working:
-        print(f"\n🚀 Smart URL detection working! Found {len(successful_urls)} successful patterns")
-        print(f"   Sample working URLs:")
-        for url in successful_urls[:3]:
-            print(f"   - {url}")
-        print(f"\n📡 Will attempt to scrape ALL {total} players with smart URL detection")
-        use_external = True
-    else:
-        print(f"\n⚠️ Smart URL detection failed - external service may be down")
-        print(f"⚡ Using existing data fallback for all players")
-        use_external = False
+    # Process all players - ONLY with real scraping
+    output = {}
+    scraped_count = 0
+    failed_count = 0
+    total = len(players)
     
-    # Process all players based on service availability
+    print(f"\n📡 Scraping contracts for all {total} players...")
+    
     for idx, (key, player) in enumerate(players.items(), 1):
         name = player.get("Name", key.replace("_", " ").title())
         
-        if idx % 25 == 0 or idx <= 10:  # More frequent progress updates
-            print(f"\n[{idx}/{total}] Processing {name}...")
+        if idx % 50 == 0 or idx <= 10:
+            print(f"[{idx}/{total}] Processing {name}...")
         
-        if use_external:
-            # Try smart URL detection for all players
-            scraped_data = try_scrape_contract_with_fallbacks(key, player)
-            if scraped_data:
-                output[key] = scraped_data
-                scraped_count += 1
-                continue
-        
-        # Use fallback (either external failed for this player, or service unavailable)
-        fallback_data = create_fallback_contract_data(key, player)
-        output[key] = fallback_data
-        fallback_count += 1
+        # ONLY try real scraping - no fallback nonsense
+        scraped_data = try_scrape_contract_with_fallbacks(key, player)
+        if scraped_data and scraped_data.get("source") == "scraped":
+            output[key] = scraped_data
+            scraped_count += 1
+        else:
+            failed_count += 1
     
-    # Ensure output directory exists
-    os.makedirs(os.path.join(project_root, "data"), exist_ok=True)
+    # Save ONLY the real scraped data
+    output_dir = os.path.join(data_pipeline_dir, "resources", "data")
+    os.makedirs(output_dir, exist_ok=True)
     
-    # Save processed data
-    output_path = os.path.join(project_root, "data", "raw_contract_html.json")
+    output_path = os.path.join(output_dir, "raw_contract_html.json")
     with open(output_path, "w") as f:
         json.dump(output, f, indent=2)
     
-    print(f"\n🎉 Contract processing complete!")
-    print(f"=" * 55)
-    print(f"📊 Final Results:")
-    print(f"   📡 Successfully scraped: {scraped_count} players")
-    print(f"   🔄 Used fallback data: {fallback_count} players")
-    print(f"   📁 Total processed: {len(output)} players")
+    print(f"\n🎉 Contract scraping complete!")
+    print(f"=" * 50)
+    print(f"📊 REAL Results:")
+    print(f"   ✅ Successfully scraped: {scraped_count} players")
+    print(f"   ❌ Failed to scrape: {failed_count} players")
+    print(f"   📈 Success rate: {(scraped_count/total)*100:.1f}%")
     print(f"   💾 Saved to: {output_path}")
     
-    # Calculate success rate
-    if scraped_count > 0:
-        success_rate = (scraped_count / total) * 100
-        print(f"   📈 Scraping success rate: {success_rate:.1f}%")
+    if scraped_count == 0:
+        print(f"\n🛑 NO CONTRACTS SCRAPED!")
+        print(f"   This means SalarySwish is completely inaccessible")
+        print(f"   Don't pretend we have 'contract data' when we don't")
+    elif scraped_count < total * 0.5:  # Less than 50% success
+        print(f"\n⚠️  LOW SUCCESS RATE!")
+        print(f"   Only {scraped_count}/{total} players have real contract data")
+        print(f"   The rest will not have current contract information")
+    else:
+        print(f"\n🚀 Good success rate! Ready for parsing step.")
     
-    # Create summary for next pipeline step
+    # Create honest summary
     summary = {
         "scraped_players": scraped_count,
-        "fallback_players": fallback_count,
-        "total_players": len(output),
-        "external_service_working": scraped_count > 0,
-        "scraping_success_rate": (scraped_count / total) * 100 if total > 0 else 0,
+        "failed_players": failed_count,
+        "total_players": total,
+        "success_rate": (scraped_count / total) * 100 if total > 0 else 0,
         "processing_date": time.time(),
-        "method": "smart_url_detection"
+        "method": "real_scraping_only",
+        "fallback_used": False,
+        "data_integrity": "high" if scraped_count > 0 else "none"
     }
     
-    summary_path = os.path.join(project_root, "data", "contract_processing_summary.json")
+    summary_path = os.path.join(output_dir, "contract_processing_summary.json")
     with open(summary_path, "w") as f:
         json.dump(summary, f, indent=2)
     
-    print(f"   📋 Processing summary: {summary_path}")
-    
-    if scraped_count > 0:
-        print(f"\n🚀 Ready for contract parsing! Run:")
-        print(f"   python3 data_pipeline/contracts/parse_contract_data_enhanced.py")
-    else:
-        print(f"\n⚠️ No contracts were scraped. Check network connection or service availability.")
+    print(f"   📋 Honest summary: {summary_path}")
+
+# REMOVE the fallback function entirely
+# def create_fallback_contract_data(player_key, player_data):
+#     """This function was removed because it's fundamentally broken logic"""
+#     pass
 
 if __name__ == "__main__":
     main()
