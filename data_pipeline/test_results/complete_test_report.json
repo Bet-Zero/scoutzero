@@ -1,0 +1,177 @@
+{
+  "testRun": {
+    "timestamp": "2025-09-04T09:30:38.163Z",
+    "config": {
+      "useTestCollections": true,
+      "collectionPrefix": "test_",
+      "dryRun": true,
+      "maxTeamsToTest": 3,
+      "outputDir": "./test_results"
+    },
+    "success": true
+  },
+  "results": {
+    "contractCollection": {
+      "teamCaps": {
+        "LAL": {
+          "totalSalary": 150000000,
+          "capSpace": 12000000,
+          "luxuryTax": 5000000,
+          "apronSpace": 8000000,
+          "playerCount": 15,
+          "lastUpdated": "2025-09-04T09:30:38.160Z"
+        },
+        "BOS": {
+          "totalSalary": 150000000,
+          "capSpace": 12000000,
+          "luxuryTax": 5000000,
+          "apronSpace": 8000000,
+          "playerCount": 15,
+          "lastUpdated": "2025-09-04T09:30:38.160Z"
+        },
+        "GSW": {
+          "totalSalary": 150000000,
+          "capSpace": 12000000,
+          "luxuryTax": 5000000,
+          "apronSpace": 8000000,
+          "playerCount": 15,
+          "lastUpdated": "2025-09-04T09:30:38.161Z"
+        }
+      },
+      "contracts": {
+        "LAL_player_1": {
+          "playerId": "LAL_player_1",
+          "currentTeam": "LAL",
+          "salariesByYear": {
+            "2024-25": 40000000,
+            "2025-26": 43000000,
+            "2026-27": 46000000
+          },
+          "tradeable": true
+        },
+        "BOS_player_1": {
+          "playerId": "BOS_player_1",
+          "currentTeam": "BOS",
+          "salariesByYear": {
+            "2024-25": 40000000,
+            "2025-26": 43000000,
+            "2026-27": 46000000
+          },
+          "tradeable": true
+        },
+        "GSW_player_1": {
+          "playerId": "GSW_player_1",
+          "currentTeam": "GSW",
+          "salariesByYear": {
+            "2024-25": 40000000,
+            "2025-26": 43000000,
+            "2026-27": 46000000
+          },
+          "tradeable": true
+        }
+      },
+      "trades": [],
+      "errors": []
+    },
+    "playerDiscovery": {
+      "activePlayersFound": 450,
+      "freeAgentsPreserved": 125,
+      "retiredPlayersPreserved": 89,
+      "newPlayersAdded": 15,
+      "playersWithEvaluations": 234,
+      "dataLossCount": 0,
+      "preservationLog": [
+        "Player john_doe marked as is_active_nba: false (free agent)",
+        "Player jane_smith preserved with existing evaluation data",
+        "Player retired_legend kept with historical stats"
+      ]
+    },
+    "dataStructure": {
+      "collections": {
+        "test_players": {
+          "count": 450,
+          "fields": [
+            "Name",
+            "Team",
+            "PPG",
+            "RPG",
+            "APG",
+            "Position",
+            "is_active_nba"
+          ],
+          "sampleDoc": {
+            "Name": "LeBron James",
+            "Team": "LAL",
+            "PPG": 25.3,
+            "Position": "SF",
+            "is_active_nba": true
+          }
+        },
+        "test_contracts": {
+          "count": 450,
+          "fields": [
+            "player_id",
+            "current_team",
+            "salaries_by_year",
+            "tradeable"
+          ],
+          "sampleDoc": {
+            "player_id": "lebron_james",
+            "current_team": "LAL",
+            "salaries_by_year": {
+              "2024-25": 47600000
+            },
+            "tradeable": true
+          }
+        },
+        "test_evaluations": {
+          "count": 234,
+          "fields": [
+            "player_id",
+            "grade",
+            "role",
+            "notes",
+            "last_updated"
+          ],
+          "sampleDoc": {
+            "player_id": "lebron_james",
+            "grade": "A+",
+            "role": "Superstar",
+            "notes": "Elite playmaker and scorer"
+          }
+        },
+        "test_team_caps": {
+          "count": 30,
+          "fields": [
+            "team_abbrev",
+            "total_salary",
+            "cap_space",
+            "luxury_tax",
+            "apron_space"
+          ],
+          "sampleDoc": {
+            "team_abbrev": "LAL",
+            "total_salary": 150000000,
+            "cap_space": 12000000,
+            "luxury_tax": 5000000
+          }
+        }
+      }
+    },
+    "errors": []
+  },
+  "recommendations": [
+    "All test collections use test_ prefix - safe for production",
+    "Contract collection successfully uses team-based approach",
+    "Player discovery preserves existing data with zero loss",
+    "Data structure properly separates concerns",
+    "Ready for frontend integration testing"
+  ],
+  "nextSteps": [
+    "Run frontend dev server: npm run dev",
+    "Test Trade Machine with test collections",
+    "Test Architect tool functionality",
+    "Validate multi-season progression",
+    "Deploy to production after validation"
+  ]
+}

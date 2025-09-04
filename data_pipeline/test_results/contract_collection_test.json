@@ -1,0 +1,62 @@
+{
+  "teamCaps": {
+    "LAL": {
+      "totalSalary": 150000000,
+      "capSpace": 12000000,
+      "luxuryTax": 5000000,
+      "apronSpace": 8000000,
+      "playerCount": 15,
+      "lastUpdated": "2025-09-04T09:30:38.160Z"
+    },
+    "BOS": {
+      "totalSalary": 150000000,
+      "capSpace": 12000000,
+      "luxuryTax": 5000000,
+      "apronSpace": 8000000,
+      "playerCount": 15,
+      "lastUpdated": "2025-09-04T09:30:38.160Z"
+    },
+    "GSW": {
+      "totalSalary": 150000000,
+      "capSpace": 12000000,
+      "luxuryTax": 5000000,
+      "apronSpace": 8000000,
+      "playerCount": 15,
+      "lastUpdated": "2025-09-04T09:30:38.161Z"
+    }
+  },
+  "contracts": {
+    "LAL_player_1": {
+      "playerId": "LAL_player_1",
+      "currentTeam": "LAL",
+      "salariesByYear": {
+        "2024-25": 40000000,
+        "2025-26": 43000000,
+        "2026-27": 46000000
+      },
+      "tradeable": true
+    },
+    "BOS_player_1": {
+      "playerId": "BOS_player_1",
+      "currentTeam": "BOS",
+      "salariesByYear": {
+        "2024-25": 40000000,
+        "2025-26": 43000000,
+        "2026-27": 46000000
+      },
+      "tradeable": true
+    },
+    "GSW_player_1": {
+      "playerId": "GSW_player_1",
+      "currentTeam": "GSW",
+      "salariesByYear": {
+        "2024-25": 40000000,
+        "2025-26": 43000000,
+        "2026-27": 46000000
+      },
+      "tradeable": true
+    }
+  },
+  "trades": [],
+  "errors": []
+}

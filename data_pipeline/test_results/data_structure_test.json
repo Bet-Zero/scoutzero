@@ -1,0 +1,72 @@
+{
+  "collections": {
+    "test_players": {
+      "count": 450,
+      "fields": [
+        "Name",
+        "Team",
+        "PPG",
+        "RPG",
+        "APG",
+        "Position",
+        "is_active_nba"
+      ],
+      "sampleDoc": {
+        "Name": "LeBron James",
+        "Team": "LAL",
+        "PPG": 25.3,
+        "Position": "SF",
+        "is_active_nba": true
+      }
+    },
+    "test_contracts": {
+      "count": 450,
+      "fields": [
+        "player_id",
+        "current_team",
+        "salaries_by_year",
+        "tradeable"
+      ],
+      "sampleDoc": {
+        "player_id": "lebron_james",
+        "current_team": "LAL",
+        "salaries_by_year": {
+          "2024-25": 47600000
+        },
+        "tradeable": true
+      }
+    },
+    "test_evaluations": {
+      "count": 234,
+      "fields": [
+        "player_id",
+        "grade",
+        "role",
+        "notes",
+        "last_updated"
+      ],
+      "sampleDoc": {
+        "player_id": "lebron_james",
+        "grade": "A+",
+        "role": "Superstar",
+        "notes": "Elite playmaker and scorer"
+      }
+    },
+    "test_team_caps": {
+      "count": 30,
+      "fields": [
+        "team_abbrev",
+        "total_salary",
+        "cap_space",
+        "luxury_tax",
+        "apron_space"
+      ],
+      "sampleDoc": {
+        "team_abbrev": "LAL",
+        "total_salary": 150000000,
+        "cap_space": 12000000,
+        "luxury_tax": 5000000
+      }
+    }
+  }
+}

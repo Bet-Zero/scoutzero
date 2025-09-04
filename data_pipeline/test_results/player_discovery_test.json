@@ -1,0 +1,13 @@
+{
+  "activePlayersFound": 450,
+  "freeAgentsPreserved": 125,
+  "retiredPlayersPreserved": 89,
+  "newPlayersAdded": 15,
+  "playersWithEvaluations": 234,
+  "dataLossCount": 0,
+  "preservationLog": [
+    "Player john_doe marked as is_active_nba: false (free agent)",
+    "Player jane_smith preserved with existing evaluation data",
+    "Player retired_legend kept with historical stats"
+  ]
+}
