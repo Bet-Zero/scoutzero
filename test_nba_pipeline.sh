@@ -80,6 +80,21 @@ else
 fi
 echo
 
+# Test 5: Create Actual Test Collections
+echo "🧪 TEST 5: Create Test Firebase Collections"
+echo "----------------------------------------"
+if [ -f "data_pipeline/create_test_collections.js" ]; then
+    echo "🔥 Creating actual Firebase test collections..."
+    echo "   This will create test_players, test_contracts, test_evaluations, test_team_caps"
+    cd data_pipeline
+    node create_test_collections.js
+    cd ..
+    echo "✅ Test collections creation completed"
+else
+    echo "❌ Test collection creator not found"
+fi
+echo
+
 # Test Summary
 echo "📊 TEST SUITE SUMMARY"
 echo "=" | head -c 30 && echo
@@ -89,14 +104,17 @@ echo "📁 Results saved in test_results/ directory"
 echo
 echo "🚀 NEXT STEPS:"
 echo "1. Review test results in test_results/ directory"
-echo "2. Run frontend: npm run dev"
-echo "3. Test Trade Machine functionality"
-echo "4. Test Architect tool features"
-echo "5. Deploy when ready: firebase deploy --only functions"
+echo "2. Check Firebase Console for new test_ collections"
+echo "3. Run frontend: npm run dev"
+echo "4. Test Trade Machine functionality with test_contracts"
+echo "5. Test Architect tool features with separated data"
+echo "6. Deploy when ready: firebase deploy --only functions"
 echo
 
 echo "⚠️  IMPORTANT NOTES:"
 echo "• All tests use mock/test data only"
-echo "• Production Firestore collections are unaffected"
+echo "• Production Firestore collections are unaffected" 
 echo "• Real scraping is limited to prevent rate limiting"
 echo "• Frontend integration testing recommended next"
+echo "• Check Firebase Console to see new test_ collections created"
+echo "• Test collections allow safe testing of new data structure"
