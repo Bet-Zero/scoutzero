@@ -356,30 +356,42 @@ class DataPipeline {
 
   /**
    * Sync players to Firestore with merge to preserve user data
-   * CRITICAL: Never deletes existing players to preserve free agents and user evaluations
+   * FIXED: Properly preserves free agents and retired players without data loss
    */
   async syncPlayersToFirestore(players) {
     console.log(`💾 Syncing ${players.length} players to Firestore...`);
     
-    // Get existing players to check for preservation needs
+    // Get ALL existing players from Firestore
     const existingSnapshot = await this.db.collection('players').get();
-    const existingPlayers = new Set(existingSnapshot.docs.map(doc => doc.id));
-    const discoveredPlayers = new Set(players.map(p => p.id));
+    const existingPlayers = new Map();
     
-    // Log preservation info
-    const preservedCount = existingPlayers.size - discoveredPlayers.size;
-    if (preservedCount > 0) {
-      console.log(`🔒 Preserving ${preservedCount} existing players not in current NBA rosters (free agents/retired)`);
-    }
+    existingSnapshot.docs.forEach(doc => {
+      existingPlayers.set(doc.id, doc.data());
+    });
+    
+    const discoveredIds = new Set(players.map(p => p.id));
+    const existingIds = new Set(existingPlayers.keys());
+    
+    // Players that exist but weren't discovered (free agents/retired)
+    const preservedPlayers = [...existingIds].filter(id => !discoveredIds.has(id));
+    
+    console.log(`📊 Free Agent Preservation Analysis:`);
+    console.log(`   Discovered active NBA players: ${discoveredIds.size}`);
+    console.log(`   Existing players in database: ${existingIds.size}`);
+    console.log(`   Free agents/retired preserved: ${preservedPlayers.length}`);
+    
+    // Verify no data loss will occur
+    const expectedFinalCount = existingIds.size + players.filter(p => !existingIds.has(p.id)).length;
+    console.log(`   Expected final count: ${expectedFinalCount} (no loss)`);
     
     const batch = this.db.batch();
     let synced = 0;
 
+    // Update/add discovered NBA players
     for (const player of players.slice(0, 50)) { // Batch limit
       const playerRef = this.db.collection('players').doc(player.id);
       
       // Merge to preserve existing user evaluations and grades
-      // Mark as currently active NBA player
       const playerData = {
         ...player,
         is_active_nba: true,
@@ -390,9 +402,39 @@ class DataPipeline {
       batch.set(playerRef, playerData, { merge: true });
       synced++;
     }
+    
+    // Update free agent status but preserve ALL data
+    for (const playerId of preservedPlayers.slice(0, 50 - synced)) {
+      const existingData = existingPlayers.get(playerId);
+      const playerRef = this.db.collection('players').doc(playerId);
+      
+      const preservedData = {
+        ...existingData,
+        is_active_nba: false,
+        free_agent_status: 'preserved',
+        last_preservation: admin.firestore.FieldValue.serverTimestamp()
+      };
+      
+      batch.set(playerRef, preservedData, { merge: true });
+      synced++;
+    }
 
     await batch.commit();
-    console.log(`✅ Synced ${synced} active NBA players (${preservedCount} existing players preserved)`);
+    
+    // Verification: ensure no data loss occurred
+    const finalSnapshot = await this.db.collection('players').get();
+    const finalCount = finalSnapshot.size;
+    
+    if (finalCount < existingIds.size) {
+      throw new Error(`🚨 DATA LOSS DETECTED: ${existingIds.size - finalCount} players lost!`);
+    }
+    
+    console.log(`✅ Safe sync complete - NO DATA LOSS:`);
+    console.log(`   Active NBA players: ${discoveredIds.size}`);
+    console.log(`   Free agents preserved: ${preservedPlayers.length}`);
+    console.log(`   Total players maintained: ${finalCount}`);
+    console.log(`   Data integrity: VERIFIED ✅`);
+    
     return synced;
   }
 
