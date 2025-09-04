@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * Create Test Collections Script
+ * Fixed Test Collections Script
+ * Addresses the WriteBatch commit error by properly managing batch lifecycle
  * Creates actual Firebase test collections with the new separated schema
- * Uses test_ prefixes to avoid affecting production data
  */
 
 import fs from 'fs';
@@ -24,8 +24,9 @@ try {
   process.exit(1);
 }
 
-class TestCollectionCreator {
+class FixedTestCollectionCreator {
   constructor() {
+    this.BATCH_SIZE = 400; // Firebase batch limit is 500, use 400 for safety
     this.results = {
       playersCreated: 0,
       contractsCreated: 0,
@@ -35,21 +36,59 @@ class TestCollectionCreator {
     };
   }
 
+  /**
+   * Helper function to manage batch operations properly
+   * Creates new batch when needed and handles commits
+   */
+  async writeBatchDocuments(collectionName, documents, logMessage) {
+    let batch = db.batch();
+    let count = 0;
+    let totalCount = 0;
+
+    console.log(`📝 Writing ${documents.length} documents to ${collectionName}...`);
+
+    for (const { docId, docData } of documents) {
+      const docRef = db.collection(collectionName).doc(docId);
+      batch.set(docRef, docData);
+      count++;
+      totalCount++;
+
+      // Commit batch every BATCH_SIZE documents
+      if (count >= this.BATCH_SIZE) {
+        await batch.commit();
+        console.log(`   📊 ${logMessage} ${totalCount} records...`);
+        
+        // Create new batch for remaining documents
+        batch = db.batch();
+        count = 0;
+      }
+    }
+
+    // Commit any remaining documents
+    if (count > 0) {
+      await batch.commit();
+    }
+
+    console.log(`✅ Created ${totalCount} records in ${collectionName} collection`);
+    return totalCount;
+  }
+
   async createAllTestCollections() {
-    console.log('🏀 Creating Test Firebase Collections');
-    console.log('====================================');
+    console.log('🏀 FIXED Test Firebase Collections Creator');
+    console.log('==========================================');
     console.log('🔒 Using test_ prefixes - safe for production');
+    console.log('🔧 Fixed WriteBatch commit error');
     console.log();
 
     try {
       // Load existing player data
       const playerData = await this.loadPlayerData();
       
-      // Create separated collections
-      await this.createTestPlayersCollection(playerData);
-      await this.createTestContractsCollection(playerData);
-      await this.createTestEvaluationsCollection(playerData);
-      await this.createTestTeamCapsCollection(playerData);
+      // Create separated collections with fixed batch handling
+      this.results.playersCreated = await this.createTestPlayersCollection(playerData);
+      this.results.contractsCreated = await this.createTestContractsCollection(playerData);
+      this.results.evaluationsCreated = await this.createTestEvaluationsCollection(playerData);
+      this.results.teamCapsCreated = await this.createTestTeamCapsCollection(playerData);
       
       // Generate summary report
       await this.generateSummaryReport();
@@ -81,12 +120,10 @@ class TestCollectionCreator {
   async createTestPlayersCollection(playerData) {
     console.log('👥 Creating test_players collection (NBA data only)...');
     
-    let batch = db.batch();
-    let count = 0;
+    const documents = [];
     
     for (const [playerId, player] of Object.entries(playerData)) {
       // Extract only NBA data (no contracts, no user evaluations)
-      // Handle undefined values by providing defaults or excluding fields
       const playerDoc = {
         Name: player.Name || 'Unknown',
         Team: player.Team || 'Free Agent',
@@ -95,9 +132,9 @@ class TestCollectionCreator {
         WT: player.WT || 'Unknown',
         AGE: player.AGE || 0,
         'Years Pro': player['Years Pro'] || 0,
-        is_active_nba: player.Team !== 'Free Agent' && player.Team !== undefined, // Mark free agents
+        is_active_nba: player.Team !== 'Free Agent' && player.Team !== undefined,
         last_updated: new Date().toISOString(),
-        source: 'test_data_creation'
+        source: 'fixed_test_data_creation'
       };
 
       // Only add statistical fields if they exist and are not undefined
@@ -111,88 +148,46 @@ class TestCollectionCreator {
       if (player['EFG%'] !== undefined && player['EFG%'] !== null) playerDoc['EFG%'] = player['EFG%'];
       if (player['Games Played'] !== undefined && player['Games Played'] !== null) playerDoc['Games Played'] = player['Games Played'];
       
-      const docRef = db.collection('test_players').doc(playerId);
-      batch.set(docRef, playerDoc);
-      count++;
-      
-      // Commit batch every 400 documents and create new batch
-      if (count % 400 === 0) {
-        await batch.commit();
-        console.log(`   📊 Created ${count} player records...`);
-        batch = db.batch(); // Create new batch after commit
-      }
+      documents.push({ docId: playerId, docData: playerDoc });
     }
     
-    // Commit remaining documents
-    if (count % 400 !== 0) {
-      await batch.commit();
-    }
-    
-    this.results.playersCreated = count;
-    console.log(`✅ Created ${count} records in test_players collection`);
+    return await this.writeBatchDocuments('test_players', documents, 'Created');
   }
 
   async createTestContractsCollection(playerData) {
     console.log('💰 Creating test_contracts collection (individual contracts)...');
     
-    let batch = db.batch();
-    let count = 0;
+    const documents = [];
     
     for (const [playerId, player] of Object.entries(playerData)) {
       if (player.Team === 'Free Agent') continue; // Skip free agents
       
-      // Parse contract information
       const contractDoc = {
         player_id: playerId,
         player_name: player.Name,
         current_team: player.Team,
         contract_details: player.Contract || 'Unknown',
         free_agent_year: this.parseFreeAgentYear(player['Free Agent']),
-        
-        // Mock salary data based on contract string
         estimated_salary: this.parseContractSalary(player.Contract),
-        
-        // Trading information
         tradeable: true,
         trade_eligible_date: new Date().toISOString(),
-        
-        // Metadata
         last_updated: new Date().toISOString(),
-        source: 'test_contract_creation'
+        source: 'fixed_test_contract_creation'
       };
       
-      const docRef = db.collection('test_contracts').doc(playerId);
-      batch.set(docRef, contractDoc);
-      count++;
-      
-      // Commit batch every 400 documents and create new batch
-      if (count % 400 === 0) {
-        await batch.commit();
-        console.log(`   📊 Created ${count} contract records...`);
-        batch = db.batch(); // Create new batch after commit
-      }
+      documents.push({ docId: playerId, docData: contractDoc });
     }
     
-    // Commit remaining documents
-    if (count % 400 !== 0) {
-      await batch.commit();
-    }
-    
-    this.results.contractsCreated = count;
-    console.log(`✅ Created ${count} records in test_contracts collection`);
+    return await this.writeBatchDocuments('test_contracts', documents, 'Created');
   }
 
   async createTestEvaluationsCollection(playerData) {
     console.log('🎯 Creating test_evaluations collection (user grades)...');
     
-    let batch = db.batch();
-    let count = 0;
-    
-    // Create sample evaluations for some players
+    const documents = [];
     const gradeOptions = ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'F'];
     const roleOptions = ['Superstar', 'Star', 'Starter', 'Role Player', 'Bench Player', 'Deep Bench'];
     
-    // Add evaluations for players with stats (those with PPG data)
     for (const [playerId, player] of Object.entries(playerData)) {
       // Only create evaluations for players with statistical data
       if (!player.PPG || player.PPG === undefined || player.PPG < 5) continue;
@@ -203,30 +198,15 @@ class TestCollectionCreator {
         grade: this.assignGrade(player.PPG, gradeOptions),
         role: this.assignRole(player.PPG, player.MIN || 0, roleOptions),
         notes: `Evaluation for ${player.Name || 'Unknown'} - ${player.PPG || 0} PPG, ${player.RPG || 0} RPG, ${player.APG || 0} APG`,
-        evaluator: 'test_system',
+        evaluator: 'fixed_test_system',
         last_updated: new Date().toISOString(),
-        locked: false // Can be modified by user
+        locked: false
       };
       
-      const docRef = db.collection('test_evaluations').doc(playerId);
-      batch.set(docRef, evaluationDoc);
-      count++;
-      
-      // Commit batch every 400 documents and create new batch
-      if (count % 400 === 0) {
-        await batch.commit();
-        console.log(`   📊 Created ${count} evaluation records...`);
-        batch = db.batch(); // Create new batch after commit
-      }
+      documents.push({ docId: playerId, docData: evaluationDoc });
     }
     
-    // Commit remaining documents
-    if (count % 400 !== 0) {
-      await batch.commit();
-    }
-    
-    this.results.evaluationsCreated = count;
-    console.log(`✅ Created ${count} records in test_evaluations collection`);
+    return await this.writeBatchDocuments('test_evaluations', documents, 'Created');
   }
 
   async createTestTeamCapsCollection(playerData) {
@@ -251,58 +231,42 @@ class TestCollectionCreator {
       teams[player.Team].rosterCount++;
     }
     
-    // Create team cap documents
-    const batch = db.batch();
-    let count = 0;
+    const documents = [];
+    const salaryCap = 140000000; // 2024-25 salary cap
+    const luxuryTax = 170000000;
     
     for (const [teamName, teamData] of Object.entries(teams)) {
-      const salaryCap = 140000000; // 2024-25 salary cap
-      const luxuryTax = 170000000;
-      
       const teamCapDoc = {
         team_name: teamName,
         team_abbrev: this.getTeamAbbrev(teamName),
         total_salary: teamData.totalSalary,
         roster_count: teamData.rosterCount,
-        
-        // Cap calculations
         salary_cap: salaryCap,
         cap_space: Math.max(0, salaryCap - teamData.totalSalary),
         luxury_tax_threshold: luxuryTax,
         luxury_tax_amount: Math.max(0, teamData.totalSalary - luxuryTax),
-        
-        // Mock apron data
         first_apron_space: Math.max(0, 178000000 - teamData.totalSalary),
         second_apron_space: Math.max(0, 188000000 - teamData.totalSalary),
-        
-        // Metadata
         last_updated: new Date().toISOString(),
         season: '2024-25',
-        source: 'test_team_caps_creation'
+        source: 'fixed_test_team_caps_creation'
       };
       
       const teamId = teamName.toLowerCase().replace(/\s+/g, '_');
-      const docRef = db.collection('test_team_caps').doc(teamId);
-      batch.set(docRef, teamCapDoc);
-      count++;
+      documents.push({ docId: teamId, docData: teamCapDoc });
     }
     
-    await batch.commit();
-    
-    this.results.teamCapsCreated = count;
-    console.log(`✅ Created ${count} records in test_team_caps collection`);
+    return await this.writeBatchDocuments('test_team_caps', documents, 'Created');
   }
 
   // Helper methods
   parseContractSalary(contractString) {
-    if (!contractString || contractString === 'Unknown') return 1000000; // Default 1M
-    
-    // Extract salary from strings like "$6.0M / 1 yr" or "$47.6M / 2 yrs"
+    if (!contractString || contractString === 'Unknown') return 1000000;
     const match = contractString.match(/\$(\d+\.?\d*)M/);
     if (match) {
       return parseFloat(match[1]) * 1000000;
     }
-    return 1000000; // Default
+    return 1000000;
   }
 
   parseFreeAgentYear(freeAgentString) {
@@ -348,8 +312,8 @@ class TestCollectionCreator {
 
   async generateSummaryReport() {
     console.log();
-    console.log('📊 TEST COLLECTIONS SUMMARY');
-    console.log('===========================');
+    console.log('📊 FIXED TEST COLLECTIONS SUMMARY');
+    console.log('==================================');
     console.log(`✅ test_players created: ${this.results.playersCreated} records`);
     console.log(`✅ test_contracts created: ${this.results.contractsCreated} records`);
     console.log(`✅ test_evaluations created: ${this.results.evaluationsCreated} records`);
@@ -358,6 +322,8 @@ class TestCollectionCreator {
     if (this.results.errors.length > 0) {
       console.log(`❌ Errors: ${this.results.errors.length}`);
       this.results.errors.forEach(error => console.log(`   - ${error}`));
+    } else {
+      console.log('✅ No errors encountered!');
     }
     
     console.log();
@@ -365,43 +331,22 @@ class TestCollectionCreator {
     console.log('==========================');
     console.log('1. 🔥 Check Firebase Console - you should see 4 new test_ collections');
     console.log('2. 🚀 Start dev server: npm run dev');
-    console.log('3. 🔧 Update frontend to use test_ collections temporarily');
-    console.log('4. 🎮 Test Trade Machine with individual contracts from test_contracts');
-    console.log('5. 🏗️ Test Architect tool with separated data structure');
-    console.log('6. ✅ When satisfied, switch to production collections');
-    
-    // Save detailed report
-    const report = {
-      timestamp: new Date().toISOString(),
-      collections_created: [
-        { name: 'test_players', count: this.results.playersCreated, purpose: 'NBA stats and bio data' },
-        { name: 'test_contracts', count: this.results.contractsCreated, purpose: 'Individual player contracts' },
-        { name: 'test_evaluations', count: this.results.evaluationsCreated, purpose: 'User grades and roles' },
-        { name: 'test_team_caps', count: this.results.teamCapsCreated, purpose: 'Team salary information' }
-      ],
-      data_separation: {
-        nba_data: 'test_players (safe for automation)',
-        contracts: 'test_contracts (from team scraping)',
-        user_data: 'test_evaluations (never automated)',
-        team_info: 'test_team_caps (salary cap management)'
-      },
-      testing_ready: true,
-      errors: this.results.errors
-    };
-    
-    const reportPath = './test_results/test_collections_created.json';
-    fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
-    console.log(`📋 Detailed report saved: ${reportPath}`);
+    console.log('3. 🎮 Test Trade Machine with individual contracts from test_contracts');
+    console.log('4. 🏗️ Test Architect tool with separated data structure');
+    console.log('5. ✅ WriteBatch error has been fixed!');
   }
 }
 
 // Run if called directly
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const creator = new TestCollectionCreator();
+  console.log('🔧 FIXED VERSION - WriteBatch Error Resolved');
+  console.log('==============================================');
+  
+  const creator = new FixedTestCollectionCreator();
   creator.createAllTestCollections().catch(error => {
     console.error('💥 Failed to create test collections:', error);
     process.exit(1);
   });
 }
 
-export { TestCollectionCreator };
+export { FixedTestCollectionCreator };
