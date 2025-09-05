@@ -1,16 +1,16 @@
-// Separated Schema Firebase Data Hook
-// Reads from new separated collections and combines data
+// New Separated Schema Firebase Data Hook
+// Reads ONLY from new separated collections - no fallback to old schema
 
 import { useState, useEffect } from 'react';
 import { collection, onSnapshot, query, orderBy, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
 
 /**
- * Enhanced player data hook that combines separated collections
+ * Player data hook for new separated schema architecture
  * - NBA data from 'nba_players' 
  * - Contracts from 'player_contracts'
  * - User evaluations from 'player_evaluations'
- * Falls back to original 'players' collection if new ones don't exist
+ * NO FALLBACK - uses new schema exclusively
  */
 const useSimplePlayerData = () => {
   const [players, setPlayers] = useState([]);
@@ -21,65 +21,37 @@ const useSimplePlayerData = () => {
     setLoading(true);
     setError(null);
 
-    // Try new separated schema first, fallback to original
-    const checkCollections = async () => {
-      try {
-        // Test if new collections exist
-        const nbaPlayersRef = collection(db, 'nba_players');
-        const testQuery = query(nbaPlayersRef, orderBy('name'));
-        
-        // Try to get a document to see if collection exists
-        const unsubscribe = onSnapshot(
-          testQuery,
-          async (snapshot) => {
-            if (snapshot.empty) {
-              // New collections don't exist, use original
-              console.log('📡 Using original players collection (new schema not migrated yet)');
-              setupOriginalListener();
-            } else {
-              // New collections exist, use separated schema
-              console.log('📡 Using new separated schema collections');
-              await setupSeparatedListener(snapshot);
-            }
-          },
-          (err) => {
-            console.log('📡 New collections not found, using original players collection');
-            setupOriginalListener();
-          }
-        );
-
-        return unsubscribe;
-      } catch (err) {
-        console.log('📡 Error checking collections, using original');
-        setupOriginalListener();
-      }
-    };
-
-    // Setup listener for original unified collection
-    const setupOriginalListener = () => {
-      const playersQuery = query(
-        collection(db, 'players'),
-        orderBy('Name')
-      );
-
-      return onSnapshot(
-        playersQuery,
-        (snapshot) => {
-          const playerData = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }));
-          
-          setPlayers(playerData);
+    // Use new separated schema exclusively
+    console.log('📡 Using new separated schema collections (no fallback)');
+    
+    const nbaPlayersRef = collection(db, 'nba_players');
+    const playersQuery = query(nbaPlayersRef, orderBy('name'));
+    
+    const unsubscribe = onSnapshot(
+      playersQuery,
+      async (snapshot) => {
+        if (snapshot.empty) {
+          console.warn('⚠️  No data in nba_players collection. Run data population script.');
+          setPlayers([]);
           setLoading(false);
-        },
-        (err) => {
-          console.error('Player data error:', err);
+          setError('No NBA data found. Please populate NBA data first.');
+          return;
+        }
+
+        try {
+          await setupSeparatedListener(snapshot);
+        } catch (err) {
+          console.error('Error setting up separated listener:', err);
           setError(err.message);
           setLoading(false);
         }
-      );
-    };
+      },
+      (err) => {
+        console.error('Error accessing nba_players collection:', err);
+        setError(`Cannot access NBA data: ${err.message}`);
+        setLoading(false);
+      }
+    );
 
     // Setup listener for separated collections
     const setupSeparatedListener = async (nbaSnapshot) => {
@@ -89,6 +61,8 @@ const useSimplePlayerData = () => {
           id: doc.id,
           ...doc.data()
         }));
+
+        console.log(`📊 Loaded ${nbaPlayers.length} players from nba_players collection`);
 
         // Combine with contracts and evaluations
         const combinedPlayers = await Promise.all(
@@ -114,6 +88,7 @@ const useSimplePlayerData = () => {
           })
         );
 
+        console.log(`✅ Combined data for ${combinedPlayers.length} players`);
         setPlayers(combinedPlayers);
         setLoading(false);
       } catch (err) {
@@ -122,11 +97,6 @@ const useSimplePlayerData = () => {
         setLoading(false);
       }
     };
-
-    let unsubscribe;
-    checkCollections().then(unsub => {
-      unsubscribe = unsub;
-    });
 
     return () => {
       if (unsubscribe) unsubscribe();
