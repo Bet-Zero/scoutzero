@@ -1,20 +1,29 @@
 /**
- * TEAM-BASED FRESH DATA SCRAPER - RUN LOCALLY ONLY
- * ===============================================
+ * COMPREHENSIVE TEAM-BASED FRESH DATA SCRAPER - RUN LOCALLY ONLY
+ * ============================================================
  * 
- * This script scrapes fresh data using TEAM-BASED approach:
- * - Scrapes 30 team payroll pages (NOT individual players)
- * - 30 requests total instead of 450+ individual player requests
- * - Gets all contracts for each team in one efficient request
+ * This script scrapes comprehensive contract data using DUAL-ENDPOINT approach:
+ * 
+ * MULTI-YEAR CONTRACTS (/yearly endpoint):
+ * - Scrapes 30 team yearly pages for complete 4-year contract tables (2025-29)
+ * - Gets future contract years that single-season endpoints miss
+ * 
+ * EXCEPTION DATA (/cap endpoint):
+ * - Scrapes 30 team cap pages for current season exception info
+ * - Free Agent Exceptions (MLE, BAE, etc.)
+ * - Traded Player Exceptions (TPE)
+ * 
+ * TOTAL: 60 requests (2 per team) instead of 450+ individual player requests
+ * RESULT: Complete multi-year contract data + essential exception information
  * 
  * Starting point: Your 630 player list from public/players.json
- * Output: Fresh NBA data + Fresh Spotrac contract data via team pages
+ * Output: Fresh NBA data + Comprehensive Spotrac contract/exception data
  * 
  * NO FALLBACKS - If scraping fails, results will be empty so you can see what works.
  * 
  * Usage:
  * 1. Run this script on your LOCAL machine: node local_fresh_data_scraper.js
- * 2. It creates fresh_data.json with all scraped results
+ * 2. It creates fresh_data.json with all scraped results including multi-year contracts
  * 3. Run migrate_and_structure.js to create separated schema
  * 4. Run load_to_firebase.js to upload to new collections
  */
@@ -22,7 +31,6 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import fetch from 'node-fetch';
 import * as cheerio from 'cheerio';
 
 // Get __dirname equivalent for ES modules
@@ -82,12 +90,12 @@ function sleep(ms) {
 }
 
 /**
- * Scrape player contracts from Spotrac team page
+ * Scrape multi-year contracts from Spotrac yearly page
  */
-async function scrapeTeamContracts(team) {
+async function scrapeMultiYearContracts(team) {
     try {
-        const url = `https://www.spotrac.com/nba/${team.id}/payroll/`;
-        logProgress(`  📊 Scraping ${team.name} contracts...`);
+        const url = `https://www.spotrac.com/nba/${team.id}/yearly/`;
+        logProgress(`    📅 Scraping multi-year contracts...`);
         
         const response = await fetch(url, {
             headers: {
@@ -98,7 +106,7 @@ async function scrapeTeamContracts(team) {
                 'Connection': 'keep-alive',
                 'Upgrade-Insecure-Requests': '1'
             },
-            signal: AbortSignal.timeout(15000) // Increased timeout
+            signal: AbortSignal.timeout(15000)
         });
         
         if (!response.ok) {
@@ -109,201 +117,219 @@ async function scrapeTeamContracts(team) {
         const $ = cheerio.load(html);
         const players = [];
         
-        logProgress(`    🔍 Finding payroll table...`);
-        
-        // Try multiple table selectors that Spotrac might use
+        // Find the multi-year table
         const tableSelectors = [
-            'table.payroll',           // Original selector
-            'table[class*="payroll"]', // Contains "payroll"
-            'table[class*="salary"]',  // Contains "salary"  
-            'table.datatable',         // Common datatable class
-            'table.dataTable',         // Case variation
-            'table[class*="dataTable"]', // Contains dataTable
-            'table.table',             // Generic table class
-            '.payroll-table table',    // Table inside payroll div
-            '.salary-table table',     // Table inside salary div
-            'table',                   // Any table (fallback)
+            'table.dataTable',
+            'table[class*="dataTable"]',
+            'table.table',
+            'table'
         ];
         
         let targetTable = null;
-        let usedSelector = '';
         
-        // Find the best table (largest with reasonable row count)
         for (const selector of tableSelectors) {
             const tables = $(selector);
             if (tables.length > 0) {
-                let bestTable = null;
-                let maxRows = 0;
-                
+                // Look for table with year columns (2024-25, 2025-26, etc.)
                 tables.each((i, table) => {
-                    const rowCount = $(table).find('tr').length;
-                    if (rowCount > maxRows && rowCount > 5) { // Must have at least 6 rows
-                        maxRows = rowCount;
-                        bestTable = $(table);
+                    const headerText = $(table).find('tr').first().text();
+                    if (headerText.includes('2025-26') || headerText.includes('2026-27') || 
+                        headerText.includes('2025') || headerText.includes('2026')) {
+                        targetTable = $(table);
+                        return false; // Break loop
                     }
                 });
-                
-                if (bestTable) {
-                    targetTable = bestTable;
-                    usedSelector = selector;
-                    logProgress(`    ✅ Found payroll table using: ${selector} (${maxRows} rows)`);
-                    break;
-                }
+                if (targetTable) break;
             }
         }
         
         if (!targetTable) {
-            logProgress(`    ❌ No suitable payroll table found`);
-            return {
-                team: team.abbrev,
-                players: [],
-                error: 'No payroll table found',
-                scrapedAt: new Date().toISOString(),
-                debugInfo: {
-                    htmlLength: html.length,
-                    totalTables: $('table').length
-                }
-            };
+            throw new Error('Multi-year contract table not found');
         }
         
-        // Parse the payroll table rows
-        logProgress(`    📋 Parsing table rows for player extraction...`);
-        targetTable.find('tr').each((i, row) => {
-            const cells = $(row).find('td, th');
-            
-            if (cells.length >= 1 && i < 5) {
-                // Show first 5 rows for debugging
-                const cellTexts = [];
-                cells.each((j, cell) => {
-                    const text = $(cell).text().trim();
-                    cellTexts.push(text.substring(0, 20));
-                });
-                logProgress(`      Row ${i + 1}: [${cellTexts.join(' | ')}]`);
-            }
-            
-            if (cells.length >= 2) {
-                // Try different column strategies
-                let playerName = '';
-                let salaryText = '';
-                let foundValidPair = false;
-                
-                // Strategy 1: First column = name, second = salary
-                const name1 = $(cells[0]).text().trim();
-                const salary1 = $(cells[1]).text().trim();
-                if (name1 && salary1 && salary1.includes('$')) {
-                    playerName = name1;
-                    salaryText = salary1;
-                    foundValidPair = true;
-                }
-                
-                // Strategy 2: Look for salary in any column 2-6 (expanded range)
-                if (!foundValidPair) {
-                    for (let j = 1; j < Math.min(cells.length, 7); j++) {
-                        const potentialSalary = $(cells[j]).text().trim();
-                        // More flexible salary pattern matching
-                        if ((potentialSalary.includes('$') || potentialSalary.match(/\d{1,3}(,\d{3})*(,\d{3})/)) && 
-                            (potentialSalary.match(/\$[\d,]+/) || potentialSalary.match(/\d+,\d{3}/))) {
-                            playerName = $(cells[0]).text().trim();
-                            salaryText = potentialSalary;
-                            foundValidPair = true;
-                            break;
-                        }
-                    }
-                }
-                
-                // Strategy 3: Look for any cell with large numbers (salary without $)
-                if (!foundValidPair) {
-                    for (let j = 1; j < Math.min(cells.length, 7); j++) {
-                        const potentialSalary = $(cells[j]).text().trim();
-                        // Match large numbers that could be salaries
-                        if (potentialSalary.match(/^\d{1,3}(,\d{3})+$/) && 
-                            parseInt(potentialSalary.replace(/,/g, '')) > 100000) {
-                            playerName = $(cells[0]).text().trim();
-                            salaryText = '$' + potentialSalary; // Add $ prefix
-                            foundValidPair = true;
-                            break;
-                        }
-                    }
-                }
-                
-                if (foundValidPair && playerName && salaryText) {
-                    // Skip header rows and total rows
-                    const nameCheck = playerName.toLowerCase();
-                    const salaryCheck = salaryText.toLowerCase();
-                    
-                    if (!nameCheck.includes('player') &&
-                        !nameCheck.includes('total') &&
-                        !nameCheck.includes('cap') &&
-                        !nameCheck.includes('payroll') &&
-                        !salaryCheck.includes('total') &&
-                        !salaryCheck.includes('cap') &&
-                        salaryText.includes('$') &&
-                        nameCheck.length > 3) { // Reasonable name length
-                        
-                        // More flexible salary parsing
-                        let salaryMatch = salaryText.match(/\$([0-9,]+)/);
-                        if (!salaryMatch) {
-                            // Try without $ prefix
-                            salaryMatch = salaryText.match(/([0-9,]+)/);
-                        }
-                        const salary = salaryMatch ? parseInt(salaryMatch[1].replace(/,/g, '')) : 0;
-                        
-                        // Extract contract length if available
-                        const contractYearsMatch = salaryText.match(/(\d+)\s*yr/i);
-                        const contractYears = contractYearsMatch ? parseInt(contractYearsMatch[1]) : 1;
-                        
-                        // Only add if we have a valid salary > $0
-                        if (salary > 0) {
-                            players.push({
-                                name: playerName,
-                                team: team.abbrev,
-                                salary: salary,
-                                salaryDisplay: salaryText,
-                                contractYears: contractYears,
-                                scrapedFrom: url,
-                                tableSelector: usedSelector
-                            });
-                        }
-                    }
-                }
+        // Parse multi-year contract data
+        const headerRow = targetTable.find('tr').first();
+        const yearColumns = [];
+        
+        // Find year column indices
+        headerRow.find('th, td').each((i, cell) => {
+            const text = $(cell).text().trim();
+            const yearMatch = text.match(/20\d{2}[-–]\d{2}/); // Match 2024-25 format
+            if (yearMatch) {
+                yearColumns.push({ index: i, year: yearMatch[0] });
             }
         });
         
-        logProgress(`    ✅ Found ${players.length} players with contracts`);
-        
-        if (players.length === 0) {
-            logProgress(`    🔍 Debug: First 5 rows from selected table:`);
-            targetTable.find('tr').slice(0, 5).each((i, row) => {
-                const cells = $(row).find('td, th');
-                const cellData = [];
-                cells.each((j, cell) => {
-                    const text = $(cell).text().trim();
-                    cellData.push(text.substring(0, 25));
-                });
-                logProgress(`       Row ${i + 1}: [${cellData.join(' | ')}]`);
-            });
+        // Parse player rows
+        targetTable.find('tr').slice(1).each((i, row) => {
+            const cells = $(row).find('td, th');
+            if (cells.length < 2) return;
             
-            logProgress(`    🔍 Looking for salary patterns in all cells...`);
-            let salaryFound = false;
-            targetTable.find('td, th').each((i, cell) => {
-                const text = $(cell).text().trim();
-                if (text.includes('$') && text.match(/\$[\d,]+/) && !salaryFound) {
-                    logProgress(`       💰 Found salary pattern: "${text}"`);
-                    salaryFound = true;
+            const playerName = $(cells[0]).text().trim();
+            
+            // Skip header and summary rows
+            const nameCheck = playerName.toLowerCase();
+            if (nameCheck.includes('player') || nameCheck.includes('total') || 
+                nameCheck.includes('cap') || nameCheck.length < 3) {
+                return;
+            }
+            
+            const playerContracts = { name: playerName, team: team.abbrev, yearlyContracts: {} };
+            
+            // Extract salary for each year
+            yearColumns.forEach(yearCol => {
+                if (yearCol.index < cells.length) {
+                    const salaryText = $(cells[yearCol.index]).text().trim();
+                    const salaryMatch = salaryText.match(/\$?([0-9,]+)/);
+                    const salary = salaryMatch ? parseInt(salaryMatch[1].replace(/,/g, '')) : 0;
+                    
+                    if (salary > 0) {
+                        playerContracts.yearlyContracts[yearCol.year] = {
+                            salary: salary,
+                            salaryDisplay: salaryText.includes('$') ? salaryText : '$' + salaryText
+                        };
+                    }
                 }
             });
             
-            if (!salaryFound) {
-                logProgress(`       ⚠️  No salary patterns ($xxx,xxx) found in table`);
+            if (Object.keys(playerContracts.yearlyContracts).length > 0) {
+                players.push(playerContracts);
             }
+        });
+        
+        return players;
+        
+    } catch (error) {
+        logProgress(`    ❌ Error scraping multi-year contracts: ${error.message}`);
+        return [];
+    }
+}
+
+/**
+ * Scrape current season exceptions from Spotrac cap page
+ */
+async function scrapeTeamExceptions(team) {
+    try {
+        const url = `https://www.spotrac.com/nba/${team.id}/cap/`;
+        logProgress(`    🔄 Scraping exceptions...`);
+        
+        const response = await fetch(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1'
+            },
+            signal: AbortSignal.timeout(15000)
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
+        
+        const html = await response.text();
+        const $ = cheerio.load(html);
+        
+        const exceptions = {
+            freeAgent: [],
+            tradedPlayer: []
+        };
+        
+        // Look for exception sections
+        $('table').each((i, table) => {
+            const tableText = $(table).text().toLowerCase();
+            
+            // Free Agent Exception
+            if (tableText.includes('exception') && (tableText.includes('free agent') || tableText.includes('mle'))) {
+                $(table).find('tr').each((j, row) => {
+                    const cells = $(row).find('td, th');
+                    if (cells.length >= 2) {
+                        const type = $(cells[0]).text().trim();
+                        const amount = $(cells[1]).text().trim();
+                        
+                        if (amount.includes('$')) {
+                            const amountMatch = amount.match(/\$([0-9,]+)/);
+                            const value = amountMatch ? parseInt(amountMatch[1].replace(/,/g, '')) : 0;
+                            
+                            if (value > 0) {
+                                exceptions.freeAgent.push({
+                                    type: type,
+                                    amount: value,
+                                    amountDisplay: amount
+                                });
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Traded Player Exception
+            if (tableText.includes('traded') && tableText.includes('exception')) {
+                $(table).find('tr').each((j, row) => {
+                    const cells = $(row).find('td, th');
+                    if (cells.length >= 3) {
+                        const player = $(cells[0]).text().trim();
+                        const amount = $(cells[1]).text().trim();
+                        const expires = $(cells[2]).text().trim();
+                        
+                        if (amount.includes('$')) {
+                            const amountMatch = amount.match(/\$([0-9,]+)/);
+                            const value = amountMatch ? parseInt(amountMatch[1].replace(/,/g, '')) : 0;
+                            
+                            if (value > 0) {
+                                exceptions.tradedPlayer.push({
+                                    player: player,
+                                    amount: value,
+                                    amountDisplay: amount,
+                                    expires: expires
+                                });
+                            }
+                        }
+                    }
+                });
+            }
+        });
+        
+        return exceptions;
+        
+    } catch (error) {
+        logProgress(`    ❌ Error scraping exceptions: ${error.message}`);
+        return { freeAgent: [], tradedPlayer: [] };
+    }
+}
+
+/**
+ * Scrape complete team data (multi-year contracts + exceptions)
+ */
+async function scrapeTeamContracts(team) {
+    try {
+        logProgress(`  📊 Scraping ${team.name} complete data...`);
+        
+        // Scrape both multi-year contracts and exceptions
+        const [multiYearPlayers, exceptions] = await Promise.all([
+            scrapeMultiYearContracts(team),
+            scrapeTeamExceptions(team)
+        ]);
+        
+        const playerCount = multiYearPlayers.length;
+        const exceptionCount = exceptions.freeAgent.length + exceptions.tradedPlayer.length;
+        
+        logProgress(`    ✅ Found ${playerCount} players with multi-year contracts`);
+        logProgress(`    ✅ Found ${exceptionCount} exceptions (${exceptions.freeAgent.length} FA, ${exceptions.tradedPlayer.length} TPE)`);
         
         return {
             team: team.abbrev,
-            players: players,
-            totalPlayers: players.length,
+            players: multiYearPlayers,
+            exceptions: exceptions,
+            totalPlayers: playerCount,
+            totalExceptions: exceptionCount,
             scrapedAt: new Date().toISOString(),
-            tableSelector: usedSelector
+            scrapedFrom: {
+                contracts: `https://www.spotrac.com/nba/${team.id}/yearly/`,
+                exceptions: `https://www.spotrac.com/nba/${team.id}/cap/`
+            }
         };
         
     } catch (error) {
@@ -311,6 +337,7 @@ async function scrapeTeamContracts(team) {
         return {
             team: team.abbrev,
             players: [],
+            exceptions: { freeAgent: [], tradedPlayer: [] },
             error: error.message,
             scrapedAt: new Date().toISOString()
         };
@@ -388,11 +415,13 @@ async function scrapeFreshData() {
     results.nbaStats = await scrapeNBAStats();
     await sleep(2000); // Rate limiting
     
-    // Step 2: Scrape team contracts from Spotrac (TEAM-BASED APPROACH)
+    // Step 2: Scrape team contracts from Spotrac (COMPREHENSIVE APPROACH)
     logProgress('');
-    logProgress('💰 Step 2: Scraping Team Contracts from Spotrac...');
-    logProgress(`   🎯 TEAM-BASED APPROACH: ${NBA_TEAMS.length} team payroll pages`);
-    logProgress(`   ⚡ Efficient: 30 requests instead of 450+ individual players`);
+    logProgress('💰 Step 2: Scraping Team Contracts + Exceptions from Spotrac...');
+    logProgress(`   🎯 COMPREHENSIVE APPROACH: Multi-year contracts + Exception data`);
+    logProgress(`   📅 Multi-year: /yearly endpoint (2025-26 through 2028-29)`);
+    logProgress(`   🔄 Exceptions: /cap endpoint (Free Agent + Traded Player exceptions)`);
+    logProgress(`   ⚡ Efficient: 60 requests total (2 per team) instead of 450+ individual players`);
     
     for (let i = 0; i < NBA_TEAMS.length; i++) {
         const team = NBA_TEAMS[i];
@@ -402,10 +431,11 @@ async function scrapeFreshData() {
         const teamData = await scrapeTeamContracts(team);
         results.teamContracts.push(teamData);
         
-        // Show individual team results immediately
+        // Show individual team results immediately  
         if (teamData.players && teamData.players.length > 0) {
-            logProgress(`  ✅ Found ${teamData.players.length} players with contracts`);
-            logProgress(`  ✅ ${teamData.players.length} contracts found for ${team.name}`);
+            const totalYears = teamData.players.reduce((sum, p) => sum + Object.keys(p.yearlyContracts || {}).length, 0);
+            logProgress(`  ✅ Found ${teamData.players.length} players with ${totalYears} total contract years`);
+            logProgress(`  ✅ Found ${teamData.totalExceptions} exceptions (FA: ${teamData.exceptions?.freeAgent?.length || 0}, TPE: ${teamData.exceptions?.tradedPlayer?.length || 0})`);
         } else if (teamData.error) {
             logProgress(`  ❌ Error scraping ${team.name}: ${teamData.error}`);
         } else {
@@ -419,12 +449,19 @@ async function scrapeFreshData() {
         if ((i + 1) % 3 === 0) {
             const processed = results.teamContracts.filter(t => t.players && t.players.length > 0).length;
             const totalContracts = results.teamContracts.reduce((sum, t) => sum + (t.players ? t.players.length : 0), 0);
-            logProgress(`   📊 Progress: ${i + 1}/${NBA_TEAMS.length} teams processed, ${processed} successful teams, ${totalContracts} contracts found`);
+            const totalExceptions = results.teamContracts.reduce((sum, t) => sum + (t.totalExceptions || 0), 0);
+            logProgress(`   📊 Progress: ${i + 1}/${NBA_TEAMS.length} teams processed, ${processed} successful teams`);
+            logProgress(`   📊 Found: ${totalContracts} players, ${totalExceptions} exceptions so far`);
         }
     }
     
     // Calculate summary
     const totalContracts = results.teamContracts.reduce((sum, team) => sum + (team.players ? team.players.length : 0), 0);
+    const totalExceptions = results.teamContracts.reduce((sum, team) => sum + (team.totalExceptions || 0), 0);
+    const totalContractYears = results.teamContracts.reduce((sum, team) => {
+        if (!team.players) return sum;
+        return sum + team.players.reduce((yearSum, player) => yearSum + Object.keys(player.yearlyContracts || {}).length, 0);
+    }, 0);
     const successfulTeams = results.teamContracts.filter(t => t.players && t.players.length > 0).length;
     const failedTeams = results.teamContracts.filter(t => t.error).length;
     
@@ -435,6 +472,8 @@ async function scrapeFreshData() {
         failedTeams: failedTeams,
         emptyTeams: NBA_TEAMS.length - successfulTeams - failedTeams,
         totalContractsFound: totalContracts,
+        totalExceptionsFound: totalExceptions,
+        totalContractYears: totalContractYears,
         scrapeCompleted: new Date().toISOString()
     };
     
@@ -447,7 +486,9 @@ async function scrapeFreshData() {
     logProgress('====================');
     logProgress(`📊 NBA Players: ${results.summary.nbaPlayersFound}`);
     logProgress(`🏀 Teams Scraped: ${successfulTeams}/${NBA_TEAMS.length}`);
-    logProgress(`💰 Contracts Found: ${totalContracts}`);
+    logProgress(`💰 Players with Contracts: ${totalContracts}`);
+    logProgress(`📅 Contract Years Found: ${totalContractYears}`);
+    logProgress(`🔄 Exceptions Found: ${totalExceptions}`);
     logProgress(`❌ Failed Teams: ${results.summary.failedTeams}`);
     logProgress(`⚠️  Empty Teams: ${results.summary.emptyTeams}`);
     logProgress(`💾 Results saved to: ${outputFile}`);

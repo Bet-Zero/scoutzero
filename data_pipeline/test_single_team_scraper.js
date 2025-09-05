@@ -1,8 +1,11 @@
 /**
- * TEST SPOTRAC SCRAPER - Single Team
- * =================================
+ * TEST SPOTRAC SCRAPER - Multi-Year Contracts + Exceptions
+ * ========================================================
  * 
- * Tests the scraper with just one team to validate it works
+ * Tests the enhanced scraper with:
+ * - Multi-year contract data (/yearly endpoint)  
+ * - Exception data (/cap endpoint)
+ * 
  * Run this locally to test the scraping logic before running the full pipeline
  * 
  * Usage: node test_single_team_scraper.js
@@ -11,7 +14,6 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import fetch from 'node-fetch';
 import * as cheerio from 'cheerio';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -25,25 +27,14 @@ function logProgress(message) {
     console.log(`[${timestamp}] ${message}`);
 }
 
-async function testTeamScraping() {
+async function testMultiYearContracts(team) {
     try {
-        const url = `https://www.spotrac.com/nba/${TEST_TEAM.id}/payroll/`;
-        logProgress(`🧪 TESTING TEAM SCRAPER`);
-        logProgress(`========================`);
-        logProgress(`Team: ${TEST_TEAM.name}`);
-        logProgress(`URL: ${url}`);
-        logProgress('');
-        
-        logProgress(`📡 Fetching data from Spotrac...`);
+        const url = `https://www.spotrac.com/nba/${team.id}/yearly/`;
+        logProgress(`📅 Testing multi-year contracts from: ${url}`);
         
         const response = await fetch(url, {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             },
             signal: AbortSignal.timeout(15000)
         });
@@ -55,210 +46,268 @@ async function testTeamScraping() {
         const html = await response.text();
         const $ = cheerio.load(html);
         
-        logProgress(`✅ Successfully fetched HTML (${html.length} characters)`);
-        logProgress('');
+        logProgress(`   ✅ Successfully fetched HTML (${html.length} characters)`);
         
-        // Try multiple table selectors
-        const tableSelectors = [
-            'table.payroll',
-            'table[class*="payroll"]',
-            'table[class*="salary"]',  
-            'table.datatable',
-            'table.dataTable',
-            'table[class*="dataTable"]',
-            'table.table',
-            '.payroll-table table',
-            '.salary-table table',
-            'table'
-        ];
-        
-        logProgress('🔍 FINDING PAYROLL TABLE...');
-        
-        // Quick table overview
-        const allTables = $('table');
-        logProgress(`   Found ${allTables.length} total tables on page`);
-        
-        // Find the best table
+        // Find the multi-year table
         let targetTable = null;
-        let usedSelector = '';
-        
-        for (const selector of tableSelectors) {
-            const tables = $(selector);
-            if (tables.length > 0) {
-                let bestTable = null;
-                let maxRows = 0;
-                
-                tables.each((i, table) => {
-                    const rowCount = $(table).find('tr').length;
-                    if (rowCount > maxRows) {
-                        maxRows = rowCount;
-                        bestTable = $(table);
-                    }
-                });
-                
-                if (bestTable && maxRows > 3) {
-                    targetTable = bestTable;
-                    usedSelector = selector;
-                    logProgress(`   ✅ Found payroll table using: ${selector} (${maxRows} rows)`);
-                    break;
-                }
+        $('table').each((i, table) => {
+            const headerText = $(table).find('tr').first().text();
+            if (headerText.includes('2025-26') || headerText.includes('2026-27') || 
+                headerText.includes('2025') || headerText.includes('2026')) {
+                targetTable = $(table);
+                return false;
             }
-        }
+        });
         
         if (!targetTable) {
-            logProgress('❌ Could not find a suitable payroll table');
-            logProgress('   Available tables with 10+ rows:');
-            allTables.each((i, table) => {
-                const rows = $(table).find('tr').length;
-                const classes = $(table).attr('class') || 'no-class';
-                if (rows > 10) {
-                    logProgress(`     Table ${i + 1}: ${rows} rows (${classes})`);
-                }
-            });
-            return;
+            logProgress(`   ❌ Could not find multi-year contract table`);
+            return [];
         }
         
-        // Parse the table
-        logProgress('');
-        logProgress('📋 Parsing table rows for player extraction...');
-        const players = [];
-        let validRows = 0;
-        let headerRows = 0;
+        logProgress(`   ✅ Found multi-year table (${targetTable.find('tr').length} rows)`);
         
-        targetTable.find('tr').each((i, row) => {
+        // Parse year columns
+        const headerRow = targetTable.find('tr').first();
+        const yearColumns = [];
+        headerRow.find('th, td').each((i, cell) => {
+            const text = $(cell).text().trim();
+            const yearMatch = text.match(/20\d{2}[-–]\d{2}/);
+            if (yearMatch) {
+                yearColumns.push({ index: i, year: yearMatch[0] });
+            }
+        });
+        
+        logProgress(`   📅 Found ${yearColumns.length} year columns: ${yearColumns.map(y => y.year).join(', ')}`);
+        
+        // Parse players
+        const players = [];
+        targetTable.find('tr').slice(1).each((i, row) => {
             const cells = $(row).find('td, th');
+            if (cells.length < 2) return;
             
-            if (cells.length < 2) {
-                return; // Skip rows with too few columns
+            const playerName = $(cells[0]).text().trim();
+            const nameCheck = playerName.toLowerCase();
+            if (nameCheck.includes('player') || nameCheck.includes('total') || nameCheck.length < 3) {
+                return;
             }
             
-            // Try different strategies to find name and salary
-            let playerName = '';
-            let salaryText = '';
-            let salary = 0;
+            const playerContracts = { name: playerName, yearlyContracts: {} };
             
-            // Strategy 1: Name in first column, salary in columns 2-6
-            const name = $(cells[0]).text().trim();
-            if (name) {
-                for (let j = 1; j < Math.min(cells.length, 7); j++) {
-                    const cellText = $(cells[j]).text().trim();
+            yearColumns.forEach(yearCol => {
+                if (yearCol.index < cells.length) {
+                    const salaryText = $(cells[yearCol.index]).text().trim();
+                    const salaryMatch = salaryText.match(/\$?([0-9,]+)/);
+                    const salary = salaryMatch ? parseInt(salaryMatch[1].replace(/,/g, '')) : 0;
                     
-                    // Look for salary patterns
-                    if (cellText.includes('$') || 
-                        (cellText.match(/^\d{1,3}(,\d{3})+$/) && parseInt(cellText.replace(/,/g, '')) > 500000)) {
-                        
-                        const salaryMatch = cellText.match(/\$?([0-9,]+)/);
-                        const parsedSalary = salaryMatch ? parseInt(salaryMatch[1].replace(/,/g, '')) : 0;
-                        
-                        if (parsedSalary > 0) {
-                            playerName = name;
-                            salaryText = cellText.includes('$') ? cellText : '$' + cellText;
-                            salary = parsedSalary;
-                            break;
-                        }
+                    if (salary > 0) {
+                        playerContracts.yearlyContracts[yearCol.year] = {
+                            salary: salary,
+                            salaryDisplay: salaryText.includes('$') ? salaryText : '$' + salaryText
+                        };
                     }
                 }
-            }
+            });
             
-            // Validate the result
-            if (playerName && salary > 0) {
-                const nameCheck = playerName.toLowerCase();
-                const isHeader = nameCheck.includes('player') || 
-                               nameCheck.includes('total') || 
-                               nameCheck.includes('cap') ||
-                               nameCheck.includes('payroll') ||
-                               nameCheck.includes('name');
+            if (Object.keys(playerContracts.yearlyContracts).length > 0) {
+                players.push(playerContracts);
+            }
+        });
+        
+        logProgress(`   ✅ Parsed ${players.length} players with multi-year contracts`);
+        return players;
+        
+    } catch (error) {
+        logProgress(`   ❌ Error testing multi-year contracts: ${error.message}`);
+        return [];
+    }
+}
+
+async function testExceptions(team) {
+    try {
+        const url = `https://www.spotrac.com/nba/${team.id}/cap/`;
+        logProgress(`🔄 Testing exceptions from: ${url}`);
+        
+        const response = await fetch(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            },
+            signal: AbortSignal.timeout(15000)
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const html = await response.text();
+        const $ = cheerio.load(html);
+        
+        logProgress(`   ✅ Successfully fetched HTML (${html.length} characters)`);
+        
+        const exceptions = { freeAgent: [], tradedPlayer: [] };
+        let foundExceptionTables = 0;
+        
+        $('table').each((i, table) => {
+            const tableText = $(table).text().toLowerCase();
+            
+            if (tableText.includes('exception')) {
+                foundExceptionTables++;
                 
-                if (isHeader) {
-                    headerRows++;
-                } else {
-                    validRows++;
-                    players.push({
-                        name: playerName,
-                        team: TEST_TEAM.abbrev,
-                        salary: salary,
-                        salaryDisplay: salaryText
+                if (tableText.includes('free agent') || tableText.includes('mle')) {
+                    $(table).find('tr').each((j, row) => {
+                        const cells = $(row).find('td, th');
+                        if (cells.length >= 2) {
+                            const type = $(cells[0]).text().trim();
+                            const amount = $(cells[1]).text().trim();
+                            
+                            if (amount.includes('$')) {
+                                const amountMatch = amount.match(/\$([0-9,]+)/);
+                                const value = amountMatch ? parseInt(amountMatch[1].replace(/,/g, '')) : 0;
+                                if (value > 0) {
+                                    exceptions.freeAgent.push({ type, amount: value, amountDisplay: amount });
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                if (tableText.includes('traded')) {
+                    $(table).find('tr').each((j, row) => {
+                        const cells = $(row).find('td, th');
+                        if (cells.length >= 3) {
+                            const player = $(cells[0]).text().trim();
+                            const amount = $(cells[1]).text().trim();
+                            const expires = $(cells[2]).text().trim();
+                            
+                            if (amount.includes('$')) {
+                                const amountMatch = amount.match(/\$([0-9,]+)/);
+                                const value = amountMatch ? parseInt(amountMatch[1].replace(/,/g, '')) : 0;
+                                if (value > 0) {
+                                    exceptions.tradedPlayer.push({ player, amount: value, amountDisplay: amount, expires });
+                                }
+                            }
+                        }
                     });
                 }
             }
         });
         
-        logProgress(`   Processed ${targetTable.find('tr').length} total rows`);
-        logProgress(`   Found ${headerRows} header/summary rows`);
-        logProgress(`   Found ${validRows} player rows with valid contracts`);
+        logProgress(`   📋 Found ${foundExceptionTables} tables with "exception" text`);
+        logProgress(`   ✅ Parsed ${exceptions.freeAgent.length} free agent exceptions, ${exceptions.tradedPlayer.length} traded player exceptions`);
+        
+        return exceptions;
+        
+    } catch (error) {
+        logProgress(`   ❌ Error testing exceptions: ${error.message}`);
+        return { freeAgent: [], tradedPlayer: [] };
+    }
+}
+
+async function testComprehensiveScraping() {
+    try {
+        logProgress(`🧪 TESTING COMPREHENSIVE TEAM SCRAPER`);
+        logProgress(`=====================================`);
+        logProgress(`Team: ${TEST_TEAM.name}`);
+        logProgress(`Testing: Multi-year contracts + Exceptions`);
+        logProgress('');
+        
+        // Test both endpoints
+        const [multiYearPlayers, exceptions] = await Promise.all([
+            testMultiYearContracts(TEST_TEAM),
+            testExceptions(TEST_TEAM)
+        ]);
         
         logProgress('');
-        logProgress('🏆 RESULTS:');
-        logProgress(`===========`);
+        logProgress('🏆 COMPREHENSIVE RESULTS:');
+        logProgress(`=========================`);
         
-        if (players.length > 0) {
-            logProgress(`✅ SUCCESS! Found ${players.length} ${TEST_TEAM.name} players with contracts:`);
+        if (multiYearPlayers.length > 0) {
+            logProgress(`✅ SUCCESS! Found ${multiYearPlayers.length} ${TEST_TEAM.name} players with multi-year contracts:`);
             logProgress('');
-            players.slice(0, 5).forEach((player, i) => {
-                logProgress(`   ${i + 1}. ${player.name}: $${player.salary.toLocaleString()}`);
+            
+            multiYearPlayers.slice(0, 5).forEach((player, i) => {
+                const years = Object.keys(player.yearlyContracts);
+                const currentYear = Object.entries(player.yearlyContracts)[0];
+                if (currentYear) {
+                    logProgress(`   ${i + 1}. ${player.name}: ${currentYear[1].salaryDisplay} (${years.length} years: ${years.join(', ')})`);
+                }
             });
             
-            if (players.length > 5) {
-                logProgress(`   ... and ${players.length - 5} more players`);
+            if (multiYearPlayers.length > 5) {
+                logProgress(`   ... and ${multiYearPlayers.length - 5} more players`);
             }
             
-            // Calculate total
-            const totalSalary = players.reduce((sum, p) => sum + p.salary, 0);
-            logProgress('');
-            logProgress(`📊 Total team payroll: $${totalSalary.toLocaleString()}`);
-            
-            // Save test results
-            const testFile = path.join(__dirname, 'test_results', `${TEST_TEAM.id}.json`);
-            
-            // Create test_results directory if it doesn't exist
-            const testDir = path.dirname(testFile);
-            if (!fs.existsSync(testDir)) {
-                fs.mkdirSync(testDir, { recursive: true });
-            }
-            
-            fs.writeFileSync(testFile, JSON.stringify({ 
-                team: TEST_TEAM, 
-                players, 
-                totalSalary,
-                scrapedAt: new Date().toISOString()
-            }, null, 2));
+            // Calculate totals per year
+            const yearlyTotals = {};
+            multiYearPlayers.forEach(player => {
+                Object.entries(player.yearlyContracts).forEach(([year, contract]) => {
+                    if (!yearlyTotals[year]) yearlyTotals[year] = 0;
+                    yearlyTotals[year] += contract.salary;
+                });
+            });
             
             logProgress('');
-            logProgress(`💾 Results saved to: ${testFile}`);
-            
+            logProgress('📊 Team Payroll by Year:');
+            Object.entries(yearlyTotals).forEach(([year, total]) => {
+                logProgress(`   ${year}: $${total.toLocaleString()}`);
+            });
         } else {
-            logProgress('❌ FAILED: No players with contracts found');
-            logProgress('');
-            logProgress('This could mean:');
-            logProgress('  • The table structure has changed');
-            logProgress('  • The salary detection patterns need adjustment');
-            logProgress('  • The page layout is different than expected');
-            
-            // Save debug info
-            const debugFile = path.join(__dirname, 'test_results', `debug_${TEST_TEAM.id}.html`);
-            const testDir = path.dirname(debugFile);
-            if (!fs.existsSync(testDir)) {
-                fs.mkdirSync(testDir, { recursive: true });
+            logProgress('❌ FAILED: No multi-year contract data found');
+        }
+        
+        logProgress('');
+        if (exceptions.freeAgent.length > 0 || exceptions.tradedPlayer.length > 0) {
+            logProgress(`✅ EXCEPTIONS FOUND:`);
+            if (exceptions.freeAgent.length > 0) {
+                logProgress(`   🆓 Free Agent Exceptions (${exceptions.freeAgent.length}):`);
+                exceptions.freeAgent.forEach((exc, i) => {
+                    logProgress(`      ${i + 1}. ${exc.type}: ${exc.amountDisplay}`);
+                });
             }
-            
-            // Save a sample of the HTML around the table
-            const tableHtml = targetTable.html();
-            fs.writeFileSync(debugFile, `
-                <h1>Debug Info for ${TEST_TEAM.name}</h1>
-                <h2>Selected Table (${usedSelector}):</h2>
-                <table class="debug-table">
-                ${tableHtml}
-                </table>
-            `);
-            
+            if (exceptions.tradedPlayer.length > 0) {
+                logProgress(`   🔄 Traded Player Exceptions (${exceptions.tradedPlayer.length}):`);
+                exceptions.tradedPlayer.forEach((exc, i) => {
+                    logProgress(`      ${i + 1}. ${exc.player}: ${exc.amountDisplay} (expires ${exc.expires})`);
+                });
+            }
+        } else {
+            logProgress('⚠️  No exceptions found (may not have any or structure changed)');
+        }
+        
+        // Save comprehensive test results
+        const testFile = path.join(__dirname, 'test_results', `comprehensive_${TEST_TEAM.id}.json`);
+        const testDir = path.dirname(testFile);
+        if (!fs.existsSync(testDir)) {
+            fs.mkdirSync(testDir, { recursive: true });
+        }
+        
+        fs.writeFileSync(testFile, JSON.stringify({ 
+            team: TEST_TEAM, 
+            multiYearPlayers, 
+            exceptions,
+            scrapedAt: new Date().toISOString()
+        }, null, 2));
+        
+        logProgress('');
+        logProgress(`💾 Comprehensive results saved to: ${testFile}`);
+        
+        // Provide guidance
+        if (multiYearPlayers.length > 0 && (exceptions.freeAgent.length > 0 || exceptions.tradedPlayer.length > 0)) {
             logProgress('');
-            logProgress(`🔍 Debug HTML saved to: ${debugFile}`);
+            logProgress('🎉 READY FOR FULL PIPELINE!');
+            logProgress('   Both multi-year contracts and exceptions are working');
+            logProgress('   Run: ./setup_complete_fresh_pipeline.sh');
+        } else if (multiYearPlayers.length > 0) {
+            logProgress('');
+            logProgress('✅ Multi-year contracts working, exceptions may need adjustment');
+            logProgress('   You can proceed with the pipeline - exception parsing can be refined later');
+        } else {
+            logProgress('');
+            logProgress('❌ Multi-year contract parsing needs fixes before running full pipeline');
         }
         
     } catch (error) {
         logProgress(`❌ Test failed: ${error.message}`);
         
-        // If it's a network error, provide helpful guidance
         if (error.message.includes('ENOTFOUND') || error.message.includes('getaddrinfo')) {
             logProgress('');
             logProgress('🔒 NETWORK ISSUE:');
@@ -269,4 +318,4 @@ async function testTeamScraping() {
 }
 
 // Run test
-testTeamScraping();
+testComprehensiveScraping();
