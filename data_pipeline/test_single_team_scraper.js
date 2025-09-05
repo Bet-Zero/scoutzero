@@ -72,20 +72,11 @@ async function testTeamScraping() {
             'table'
         ];
         
-        logProgress('🔍 TESTING TABLE SELECTORS:');
-        for (const selector of tableSelectors) {
-            const tables = $(selector);
-            logProgress(`   "${selector}": ${tables.length} matches`);
-            
-            if (tables.length > 0) {
-                tables.each((i, table) => {
-                    const rows = $(table).find('tr').length;
-                    const classes = $(table).attr('class') || 'no-class';
-                    logProgress(`     Table ${i + 1}: ${rows} rows, class="${classes}"`);
-                });
-            }
-        }
-        logProgress('');
+        logProgress('🔍 FINDING PAYROLL TABLE...');
+        
+        // Quick table overview
+        const allTables = $('table');
+        logProgress(`   Found ${allTables.length} total tables on page`);
         
         // Find the best table
         let targetTable = null;
@@ -108,122 +99,160 @@ async function testTeamScraping() {
                 if (bestTable && maxRows > 3) {
                     targetTable = bestTable;
                     usedSelector = selector;
-                    logProgress(`🎯 SELECTED TABLE: "${selector}" (${maxRows} rows)`);
+                    logProgress(`   ✅ Found payroll table using: ${selector} (${maxRows} rows)`);
                     break;
                 }
             }
         }
         
         if (!targetTable) {
-            logProgress('❌ NO SUITABLE TABLE FOUND');
+            logProgress('❌ Could not find a suitable payroll table');
+            logProgress('   Available tables with 10+ rows:');
+            allTables.each((i, table) => {
+                const rows = $(table).find('tr').length;
+                const classes = $(table).attr('class') || 'no-class';
+                if (rows > 10) {
+                    logProgress(`     Table ${i + 1}: ${rows} rows (${classes})`);
+                }
+            });
             return;
         }
         
         // Parse the table
         logProgress('');
-        logProgress('📋 PARSING TABLE ROWS:');
+        logProgress('📋 Parsing table rows for player extraction...');
         const players = [];
+        let validRows = 0;
+        let headerRows = 0;
         
         targetTable.find('tr').each((i, row) => {
             const cells = $(row).find('td, th');
             
-            if (cells.length >= 1) {
-                // Log all cells for debugging
-                const cellTexts = [];
-                cells.each((j, cell) => {
-                    const text = $(cell).text().trim();
-                    cellTexts.push(text.substring(0, 30));
-                });
-                logProgress(`   Row ${i + 1}: [${cellTexts.join(' | ')}]`);
-                
-                // Try different column combinations for name/salary
-                let playerName = '';
-                let salaryText = '';
-                let foundValidPair = false;
-                
-                // Strategy 1: Name in first column, salary in second
-                if (cells.length >= 2) {
-                    const name1 = $(cells[0]).text().trim();
-                    const salary1 = $(cells[1]).text().trim();
-                    if (name1 && salary1 && salary1.includes('$')) {
-                        playerName = name1;
-                        salaryText = salary1;
-                        foundValidPair = true;
-                        logProgress(`     Strategy 1: "${name1}" | "${salary1}"`);
-                    }
-                }
-                
-                // Strategy 2: Look for salary in any column
-                if (!foundValidPair && cells.length >= 2) {
-                    for (let j = 1; j < Math.min(cells.length, 7); j++) {
-                        const potentialSalary = $(cells[j]).text().trim();
-                        if ((potentialSalary.includes('$') && potentialSalary.match(/\$[\d,]+/)) ||
-                            (potentialSalary.match(/^\d{1,3}(,\d{3})+$/) && parseInt(potentialSalary.replace(/,/g, '')) > 100000)) {
-                            playerName = $(cells[0]).text().trim();
-                            salaryText = potentialSalary.includes('$') ? potentialSalary : '$' + potentialSalary;
-                            foundValidPair = true;
-                            logProgress(`     Strategy 2: "${playerName}" | "${salaryText}" (col ${j})`);
+            if (cells.length < 2) {
+                return; // Skip rows with too few columns
+            }
+            
+            // Try different strategies to find name and salary
+            let playerName = '';
+            let salaryText = '';
+            let salary = 0;
+            
+            // Strategy 1: Name in first column, salary in columns 2-6
+            const name = $(cells[0]).text().trim();
+            if (name) {
+                for (let j = 1; j < Math.min(cells.length, 7); j++) {
+                    const cellText = $(cells[j]).text().trim();
+                    
+                    // Look for salary patterns
+                    if (cellText.includes('$') || 
+                        (cellText.match(/^\d{1,3}(,\d{3})+$/) && parseInt(cellText.replace(/,/g, '')) > 500000)) {
+                        
+                        const salaryMatch = cellText.match(/\$?([0-9,]+)/);
+                        const parsedSalary = salaryMatch ? parseInt(salaryMatch[1].replace(/,/g, '')) : 0;
+                        
+                        if (parsedSalary > 0) {
+                            playerName = name;
+                            salaryText = cellText.includes('$') ? cellText : '$' + cellText;
+                            salary = parsedSalary;
                             break;
                         }
                     }
                 }
+            }
+            
+            // Validate the result
+            if (playerName && salary > 0) {
+                const nameCheck = playerName.toLowerCase();
+                const isHeader = nameCheck.includes('player') || 
+                               nameCheck.includes('total') || 
+                               nameCheck.includes('cap') ||
+                               nameCheck.includes('payroll') ||
+                               nameCheck.includes('name');
                 
-                if (foundValidPair && playerName && salaryText) {
-                    // Skip header and summary rows
-                    const nameCheck = playerName.toLowerCase();
-                    const salaryCheck = salaryText.toLowerCase();
-                    
-                    if (!nameCheck.includes('player') &&
-                        !nameCheck.includes('total') &&
-                        !nameCheck.includes('cap') &&
-                        !nameCheck.includes('payroll') &&
-                        !salaryCheck.includes('total') &&
-                        !salaryCheck.includes('cap') &&
-                        salaryText.includes('$')) {
-                        
-                        const salaryMatch = salaryText.match(/\$?([0-9,]+)/);
-                        const salary = salaryMatch ? parseInt(salaryMatch[1].replace(/,/g, '')) : 0;
-                        
-                        if (salary > 0) {
-                            players.push({
-                                name: playerName,
-                                team: TEST_TEAM.abbrev,
-                                salary: salary,
-                                salaryDisplay: salaryText,
-                                detectedStrategy: foundValidPair ? 'multi-column' : 'standard'
-                            });
-                            logProgress(`     ✅ Valid player: ${playerName} - $${salary.toLocaleString()}`);
-                        } else {
-                            logProgress(`     ⚠️  Valid format but zero salary: ${playerName} - ${salaryText}`);
-                        }
-                    } else {
-                        logProgress(`     ⏭️  Skipped (header/total): ${playerName} - ${salaryText}`);
-                    }
+                if (isHeader) {
+                    headerRows++;
                 } else {
-                    logProgress(`     ❌ No valid name/salary pair found`);
+                    validRows++;
+                    players.push({
+                        name: playerName,
+                        team: TEST_TEAM.abbrev,
+                        salary: salary,
+                        salaryDisplay: salaryText
+                    });
                 }
             }
         });
         
+        logProgress(`   Processed ${targetTable.find('tr').length} total rows`);
+        logProgress(`   Found ${headerRows} header/summary rows`);
+        logProgress(`   Found ${validRows} player rows with valid contracts`);
+        
         logProgress('');
-        logProgress('🏆 FINAL RESULTS:');
-        logProgress(`===============`);
-        logProgress(`Players found: ${players.length}`);
+        logProgress('🏆 RESULTS:');
+        logProgress(`===========`);
         
         if (players.length > 0) {
+            logProgress(`✅ SUCCESS! Found ${players.length} ${TEST_TEAM.name} players with contracts:`);
             logProgress('');
-            logProgress('Player list:');
-            players.forEach((player, i) => {
-                logProgress(`  ${i + 1}. ${player.name} - $${player.salary.toLocaleString()}`);
+            players.slice(0, 5).forEach((player, i) => {
+                logProgress(`   ${i + 1}. ${player.name}: $${player.salary.toLocaleString()}`);
             });
             
-            // Save test results
-            const testFile = path.join(__dirname, `test_results_${TEST_TEAM.id}.json`);
-            fs.writeFileSync(testFile, JSON.stringify({ team: TEST_TEAM, players }, null, 2));
+            if (players.length > 5) {
+                logProgress(`   ... and ${players.length - 5} more players`);
+            }
+            
+            // Calculate total
+            const totalSalary = players.reduce((sum, p) => sum + p.salary, 0);
             logProgress('');
-            logProgress(`💾 Test results saved to: ${testFile}`);
+            logProgress(`📊 Total team payroll: $${totalSalary.toLocaleString()}`);
+            
+            // Save test results
+            const testFile = path.join(__dirname, 'test_results', `${TEST_TEAM.id}.json`);
+            
+            // Create test_results directory if it doesn't exist
+            const testDir = path.dirname(testFile);
+            if (!fs.existsSync(testDir)) {
+                fs.mkdirSync(testDir, { recursive: true });
+            }
+            
+            fs.writeFileSync(testFile, JSON.stringify({ 
+                team: TEST_TEAM, 
+                players, 
+                totalSalary,
+                scrapedAt: new Date().toISOString()
+            }, null, 2));
+            
+            logProgress('');
+            logProgress(`💾 Results saved to: ${testFile}`);
+            
         } else {
-            logProgress('⚠️  No valid players found - check HTML structure');
+            logProgress('❌ FAILED: No players with contracts found');
+            logProgress('');
+            logProgress('This could mean:');
+            logProgress('  • The table structure has changed');
+            logProgress('  • The salary detection patterns need adjustment');
+            logProgress('  • The page layout is different than expected');
+            
+            // Save debug info
+            const debugFile = path.join(__dirname, 'test_results', `debug_${TEST_TEAM.id}.html`);
+            const testDir = path.dirname(debugFile);
+            if (!fs.existsSync(testDir)) {
+                fs.mkdirSync(testDir, { recursive: true });
+            }
+            
+            // Save a sample of the HTML around the table
+            const tableHtml = targetTable.html();
+            fs.writeFileSync(debugFile, `
+                <h1>Debug Info for ${TEST_TEAM.name}</h1>
+                <h2>Selected Table (${usedSelector}):</h2>
+                <table class="debug-table">
+                ${tableHtml}
+                </table>
+            `);
+            
+            logProgress('');
+            logProgress(`🔍 Debug HTML saved to: ${debugFile}`);
         }
         
     } catch (error) {

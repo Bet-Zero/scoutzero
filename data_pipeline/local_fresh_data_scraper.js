@@ -109,7 +109,7 @@ async function scrapeTeamContracts(team) {
         const $ = cheerio.load(html);
         const players = [];
         
-        logProgress(`    🔍 Analyzing HTML structure (${html.length} chars)...`);
+        logProgress(`    🔍 Finding payroll table...`);
         
         // Try multiple table selectors that Spotrac might use
         const tableSelectors = [
@@ -128,22 +128,22 @@ async function scrapeTeamContracts(team) {
         let targetTable = null;
         let usedSelector = '';
         
+        // Find the best table (largest with reasonable row count)
         for (const selector of tableSelectors) {
             const tables = $(selector);
             if (tables.length > 0) {
-                // Find table with most rows (likely the payroll table)
                 let bestTable = null;
                 let maxRows = 0;
                 
                 tables.each((i, table) => {
                     const rowCount = $(table).find('tr').length;
-                    if (rowCount > maxRows) {
+                    if (rowCount > maxRows && rowCount > 5) { // Must have at least 6 rows
                         maxRows = rowCount;
                         bestTable = $(table);
                     }
                 });
                 
-                if (bestTable && maxRows > 3) { // Lower threshold - any table with data
+                if (bestTable) {
                     targetTable = bestTable;
                     usedSelector = selector;
                     logProgress(`    ✅ Found payroll table using: ${selector} (${maxRows} rows)`);
@@ -153,13 +153,7 @@ async function scrapeTeamContracts(team) {
         }
         
         if (!targetTable) {
-            logProgress(`    ⚠️  No suitable payroll table found. Available tables:`);
-            $('table').each((i, table) => {
-                const classes = $(table).attr('class') || 'no-class';
-                const rows = $(table).find('tr').length;
-                logProgress(`       Table ${i + 1}: class="${classes}", rows=${rows}`);
-            });
-            
+            logProgress(`    ❌ No suitable payroll table found`);
             return {
                 team: team.abbrev,
                 players: [],
@@ -403,9 +397,20 @@ async function scrapeFreshData() {
     for (let i = 0; i < NBA_TEAMS.length; i++) {
         const team = NBA_TEAMS[i];
         logProgress(`[${i + 1}/${NBA_TEAMS.length}] ${team.name}...`);
+        logProgress(`  📊 Scraping ${team.name} contracts...`);
         
         const teamData = await scrapeTeamContracts(team);
         results.teamContracts.push(teamData);
+        
+        // Show individual team results immediately
+        if (teamData.players && teamData.players.length > 0) {
+            logProgress(`  ✅ Found ${teamData.players.length} players with contracts`);
+            logProgress(`  ✅ ${teamData.players.length} contracts found for ${team.name}`);
+        } else if (teamData.error) {
+            logProgress(`  ❌ Error scraping ${team.name}: ${teamData.error}`);
+        } else {
+            logProgress(`  ⚠️  Found 0 players with contracts (structure may have changed)`);
+        }
         
         // Rate limiting - be respectful to Spotrac
         await sleep(3000);
@@ -415,15 +420,6 @@ async function scrapeFreshData() {
             const processed = results.teamContracts.filter(t => t.players && t.players.length > 0).length;
             const totalContracts = results.teamContracts.reduce((sum, t) => sum + (t.players ? t.players.length : 0), 0);
             logProgress(`   📊 Progress: ${i + 1}/${NBA_TEAMS.length} teams processed, ${processed} successful teams, ${totalContracts} contracts found`);
-        }
-        
-        // Show individual team results immediately
-        if (teamData.players && teamData.players.length > 0) {
-            logProgress(`     ✅ ${teamData.players.length} contracts found for ${team.name}`);
-        } else if (teamData.error) {
-            logProgress(`     ❌ ${team.name}: ${teamData.error}`);
-        } else {
-            logProgress(`     ⚠️  ${team.name}: 0 contracts (check HTML structure)`);
         }
     }
     
