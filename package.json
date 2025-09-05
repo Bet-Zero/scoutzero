@@ -46,11 +46,16 @@
     "pipeline:status": "node scripts/init-automated-pipeline.js --status",
     "pipeline:trigger": "node scripts/init-automated-pipeline.js --trigger-now",
     "data:auto-update": "node scripts/init-automated-pipeline.js --trigger-now",
-    "data:auto-start": "node scripts/init-automated-pipeline.js"
+    "data:auto-start": "node scripts/init-automated-pipeline.js",
+    "fresh:pipeline": "cd data_pipeline && node complete_fresh_pipeline.js",
+    "fresh:migrate": "cd data_pipeline && node migrate_evaluations_only.js", 
+    "fresh:populate": "cd data_pipeline && node populate_nba_data.js",
+    "fresh:setup": "./setup_new_architecture.sh"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.6",
     "@heroicons/react": "^2.2.0",
+    "cheerio": "^1.0.0-rc.12",
     "clsx": "^2.1.1",
     "csv-parser": "^3.2.0",
     "date-fns": "^4.1.0",
@@ -61,6 +66,7 @@
     "html2canvas": "^1.4.1",
     "lodash.debounce": "^4.0.8",
     "lucide-react": "^0.503.0",
+    "node-fetch": "^3.3.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hot-toast": "^2.5.2",
