@@ -5,8 +5,26 @@
  * NBA data comes from fresh scraping system - NOT migrated from old data
  */
 
-import { db } from '../src/firebaseConfig.js';
-import { collection, getDocs, writeBatch, doc } from 'firebase/firestore';
+import fs from 'fs';
+import path from 'path';
+
+// Try to initialize Firebase with graceful error handling
+let db, getDocs, writeBatch, doc, collection;
+let hasFirebase = false;
+
+try {
+  const firebaseModule = await import('./firebaseConfig.node.js');
+  db = firebaseModule.db;
+  getDocs = firebaseModule.getDocs;
+  writeBatch = (firebaseInstance) => firebaseInstance.batch();
+  doc = firebaseModule.doc;
+  collection = firebaseModule.collection;
+  hasFirebase = true;
+  console.log('✅ Firebase connection available for evaluation migration');
+} catch (error) {
+  console.log('⚠️  Firebase credentials not available, will create sample evaluations structure');
+  hasFirebase = false;
+}
 
 class EvaluationOnlyMigrator {
   constructor() {
@@ -48,13 +66,18 @@ class EvaluationOnlyMigrator {
   async loadExistingPlayerData() {
     console.log('📂 Loading your existing player data...');
     
-    const playersSnapshot = await getDocs(collection(db, 'players'));
+    if (!hasFirebase) {
+      throw new Error('Firebase credentials not available. Cannot access existing player data.');
+    }
+    
+    const playersRef = collection(db, 'players');
+    const playersSnapshot = await getDocs(playersRef);
     const players = [];
     
-    playersSnapshot.forEach(doc => {
+    playersSnapshot.docs.forEach(docSnapshot => {
       players.push({
-        id: doc.id,
-        ...doc.data()
+        id: docSnapshot.id,
+        ...docSnapshot.data()
       });
     });
 
@@ -63,6 +86,12 @@ class EvaluationOnlyMigrator {
 
   async preserveUserEvaluations(players) {
     console.log('\n📝 Extracting user evaluations only...');
+    
+    if (!hasFirebase) {
+      console.log('⚠️  No Firebase connection - creating sample evaluation structure');
+      this.results.evaluationsPreserved = 0;
+      return;
+    }
     
     const evaluationsBatch = writeBatch(db);
     let evaluationsCount = 0;

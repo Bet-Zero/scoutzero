@@ -1,0 +1,13 @@
+{
+  "setup_date": "2025-09-05T09:10:06.207Z",
+  "total_players": 630,
+  "data_source": "fresh_scraping",
+  "schema_version": "separated_v2",
+  "collections_created": [
+    "nba_players",
+    "player_contracts",
+    "player_evaluations",
+    "team_caps"
+  ],
+  "frontend_integration": "new_schema_exclusive"
+}

@@ -1,0 +1,5042 @@
+{
+  "precious_achiuwa": {
+    "player_name": "Precious Achiuwa",
+    "team": "Knicks",
+    "contract": "$6.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "steven_adams": {
+    "player_name": "Steven Adams",
+    "team": "Rockets",
+    "contract": "$12.6M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "bam_adebayo": {
+    "player_name": "Bam Adebayo",
+    "team": "Heat",
+    "contract": "$34.8M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "ochai_agbaji": {
+    "player_name": "Ochai Agbaji",
+    "team": "Raptors",
+    "contract": "$4.3M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "santi_aldama": {
+    "player_name": "Santi Aldama",
+    "team": "Grizzlies",
+    "contract": "$4.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "trey_alexander": {
+    "player_name": "Trey Alexander",
+    "team": "Pelicans",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "nickeil_alexander-walker": {
+    "player_name": "Nickeil Alexander-Walker",
+    "team": "Hawks",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "grayson_allen": {
+    "player_name": "Grayson Allen",
+    "team": "Suns",
+    "contract": "$15.6M / 4 yrs",
+    "free_agent": "2028 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "jarrett_allen": {
+    "player_name": "Jarrett Allen",
+    "team": "Cavaliers",
+    "contract": "$20.0M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "jose_alvarado": {
+    "player_name": "Jose Alvarado",
+    "team": "Pelicans",
+    "contract": "$2.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "kyle_anderson": {
+    "player_name": "Kyle Anderson",
+    "team": "Jazz",
+    "contract": "$8.8M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "giannis_antetokounmpo": {
+    "player_name": "Giannis Antetokounmpo",
+    "team": "Bucks",
+    "contract": "$48.8M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "cole_anthony": {
+    "player_name": "Cole Anthony",
+    "team": "Bucks",
+    "contract": "$12.9M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "og_anunoby": {
+    "player_name": "Og Anunoby",
+    "team": "Knicks",
+    "contract": "$19.9M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "deni_avdija": {
+    "player_name": "Deni Avdija",
+    "team": "Blazers",
+    "contract": "$15.6M / 4 yrs",
+    "free_agent": "2028 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "deandre_ayton": {
+    "player_name": "Deandre Ayton",
+    "team": "Lakers",
+    "contract": "$34.0M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "marvin_bagley_iii": {
+    "player_name": "Marvin Bagley III",
+    "team": "Wizards",
+    "contract": "$12.5M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "patrick_baldwin_jr": {
+    "player_name": "Patrick Baldwin Jr",
+    "team": "Clippers",
+    "contract": "$0.0M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "lamelo_ball": {
+    "player_name": "Lamelo Ball",
+    "team": "Hornets",
+    "contract": "$35.1M / 5 yrs",
+    "free_agent": "2029 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "lonzo_ball": {
+    "player_name": "Lonzo Ball",
+    "team": "Cavaliers",
+    "contract": "$21.4M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "paolo_banchero": {
+    "player_name": "Paolo Banchero",
+    "team": "Magic",
+    "contract": "$12.2M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "desmond_bane": {
+    "player_name": "Desmond Bane",
+    "team": "Magic",
+    "contract": "$34.0M / 5 yrs",
+    "free_agent": "2029 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "dalano_banton": {
+    "player_name": "Dalano Banton",
+    "team": "Blazers",
+    "contract": "$2.2M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "dominick_barlow": {
+    "player_name": "Dominick Barlow",
+    "team": "76ers",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "harrison_barnes": {
+    "player_name": "Harrison Barnes",
+    "team": "Spurs",
+    "contract": "$18.0M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "scottie_barnes": {
+    "player_name": "Scottie Barnes",
+    "team": "Raptors",
+    "contract": "$10.1M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "rj_barrett": {
+    "player_name": "Rj Barrett",
+    "team": "Raptors",
+    "contract": "$25.8M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "charles_bassey": {
+    "player_name": "Charles Bassey",
+    "team": "Spurs",
+    "contract": "$2.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "emoni_bates": {
+    "player_name": "Emoni Bates",
+    "team": "Cavaliers",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "jamison_battle": {
+    "player_name": "Jamison Battle",
+    "team": "Raptors",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "nicolas_batum": {
+    "player_name": "Nicolas Batum",
+    "team": "Clippers",
+    "contract": "$4.7M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "damion_baugh": {
+    "player_name": "Damion Baugh",
+    "team": "Hornets",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "bradley_beal": {
+    "player_name": "Bradley Beal",
+    "team": "Clippers",
+    "contract": "$50.2M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "malik_beasley": {
+    "player_name": "Malik Beasley",
+    "team": "Pistons",
+    "contract": "$6.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "marjon_beauchamp": {
+    "player_name": "Marjon Beauchamp",
+    "team": "Knicks",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "reece_beekman": {
+    "player_name": "Reece Beekman",
+    "team": "Nets",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "saddiq_bey": {
+    "player_name": "Saddiq Bey",
+    "team": "Pelicans",
+    "contract": "$6.4M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "goga_bitadze": {
+    "player_name": "Goga Bitadze",
+    "team": "Magic",
+    "contract": "$9.1M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "bismack_biyombo": {
+    "player_name": "Bismack Biyombo",
+    "team": "Spurs",
+    "contract": "$0.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "anthony_black": {
+    "player_name": "Anthony Black",
+    "team": "Magic",
+    "contract": "$7.6M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "bogdan_bogdanović": {
+    "player_name": "Bogdan Bogdanović",
+    "team": "Clippers",
+    "contract": "$17.3M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "bol_bol": {
+    "player_name": "Bol Bol",
+    "team": "Suns",
+    "contract": "$2.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "adem_bona": {
+    "player_name": "Adem Bona",
+    "team": "76ers",
+    "contract": "$1.2M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "devin_booker": {
+    "player_name": "Devin Booker",
+    "team": "Suns",
+    "contract": "$49.2M / 4 yrs",
+    "free_agent": "2028 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "brandon_boston": {
+    "player_name": "Brandon Boston",
+    "team": "Pelicans",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "chris_boucher": {
+    "player_name": "Chris Boucher",
+    "team": "Celtics",
+    "contract": "$10.8M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "jamaree_bouyea": {
+    "player_name": "Jamaree Bouyea",
+    "team": "Bucks",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "tony_bradley": {
+    "player_name": "Tony Bradley",
+    "team": "Pacers",
+    "contract": "$0.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "malaki_branham": {
+    "player_name": "Malaki Branham",
+    "team": "Wizards",
+    "contract": "$3.2M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "christian_braun": {
+    "player_name": "Christian Braun",
+    "team": "Nuggets",
+    "contract": "$3.1M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "jalen_bridges": {
+    "player_name": "Jalen Bridges",
+    "team": "Suns",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "mikal_bridges": {
+    "player_name": "Mikal Bridges",
+    "team": "Knicks",
+    "contract": "$23.3M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "miles_bridges": {
+    "player_name": "Miles Bridges",
+    "team": "Hornets",
+    "contract": "$27.2M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "malcolm_brogdon": {
+    "player_name": "Malcolm Brogdon",
+    "team": "Wizards",
+    "contract": "$22.5M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "dillon_brooks": {
+    "player_name": "Dillon Brooks",
+    "team": "Suns",
+    "contract": "$22.3M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "keion_brooks_jr": {
+    "player_name": "Keion Brooks Jr",
+    "team": "Pelicans",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "bruce_brown": {
+    "player_name": "Bruce Brown",
+    "team": "Nuggets",
+    "contract": "$23.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "jaylen_brown": {
+    "player_name": "Jaylen Brown",
+    "team": "Celtics",
+    "contract": "$49.2M / 5 yrs",
+    "free_agent": "2029 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "kobe_brown": {
+    "player_name": "Kobe Brown",
+    "team": "Clippers",
+    "contract": "$2.5M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "jalen_brunson": {
+    "player_name": "Jalen Brunson",
+    "team": "Knicks",
+    "contract": "$25.0M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "thomas_bryant": {
+    "player_name": "Thomas Bryant",
+    "team": "Pacers",
+    "contract": "$2.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "kobe_bufkin": {
+    "player_name": "Kobe Bufkin",
+    "team": "Hawks",
+    "contract": "$4.3M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "alec_burks": {
+    "player_name": "Alec Burks",
+    "team": "Heat",
+    "contract": "$2.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "jared_butler": {
+    "player_name": "Jared Butler",
+    "team": "Suns",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "jimmy_butler_iii": {
+    "player_name": "Jimmy Butler III",
+    "team": "Warriors",
+    "contract": "$48.8M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "matas_buzelis": {
+    "player_name": "Matas Buzelis",
+    "team": "Bulls",
+    "contract": "$5.2M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "jamal_cain": {
+    "player_name": "Jamal Cain",
+    "team": "Magic",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "kentavious_caldwell-pope": {
+    "player_name": "Kentavious Caldwell-Pope",
+    "team": "Grizzlies",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "toumani_camara": {
+    "player_name": "Toumani Camara",
+    "team": "Blazers",
+    "contract": "$1.9M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "clint_capela": {
+    "player_name": "Clint Capela",
+    "team": "Rockets",
+    "contract": "$22.3M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "branden_carlson": {
+    "player_name": "Branden Carlson",
+    "team": "Thunder",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "bub_carrington": {
+    "player_name": "Bub Carrington",
+    "team": "Wizards",
+    "contract": "$4.5M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "devin_carter": {
+    "player_name": "Devin Carter",
+    "team": "Kings",
+    "contract": "$4.7M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "jevon_carter": {
+    "player_name": "Jevon Carter",
+    "team": "Bulls",
+    "contract": "$6.5M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "wendell_carter_jr": {
+    "player_name": "Wendell Carter Jr",
+    "team": "Magic",
+    "contract": "$11.9M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "alex_caruso": {
+    "player_name": "Alex Caruso",
+    "team": "Thunder",
+    "contract": "$9.9M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "stephon_castle": {
+    "player_name": "Stephon Castle",
+    "team": "Spurs",
+    "contract": "$9.1M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "colin_castleton": {
+    "player_name": "Colin Castleton",
+    "team": "Magic",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "julian_champagnie": {
+    "player_name": "Julian Champagnie",
+    "team": "Spurs",
+    "contract": "$3.0M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "justin_champagnie": {
+    "player_name": "Justin Champagnie",
+    "team": "Wizards",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "ulrich_chomche": {
+    "player_name": "Ulrich Chomche",
+    "team": "Raptors",
+    "contract": "$0.0M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "cam_christie": {
+    "player_name": "Cam Christie",
+    "team": "Clippers",
+    "contract": "$1.2M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "max_christie": {
+    "player_name": "Max Christie",
+    "team": "Mavericks",
+    "contract": "$7.1M / 4 yrs",
+    "free_agent": "2028 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "josh_christopher": {
+    "player_name": "Josh Christopher",
+    "team": "Heat",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "sidy_cissoko": {
+    "player_name": "Sidy Cissoko",
+    "team": "Blazers",
+    "contract": "$0.0M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "jaylen_clark": {
+    "player_name": "Jaylen Clark",
+    "team": "Timberwolves",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "brandon_clarke": {
+    "player_name": "Brandon Clarke",
+    "team": "Grizzlies",
+    "contract": "$12.5M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "jordan_clarkson": {
+    "player_name": "Jordan Clarkson",
+    "team": "Knicks",
+    "contract": "$14.1M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "nic_claxton": {
+    "player_name": "Nic Claxton",
+    "team": "Nets",
+    "contract": "$27.6M / 4 yrs",
+    "free_agent": "2028 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "donovan_clingan": {
+    "player_name": "Donovan Clingan",
+    "team": "Blazers",
+    "contract": "$6.8M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "noah_clowney": {
+    "player_name": "Noah Clowney",
+    "team": "Nets",
+    "contract": "$3.2M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "amir_coffey": {
+    "player_name": "Amir Coffey",
+    "team": "Bucks",
+    "contract": "$3.9M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "isaiah_collier": {
+    "player_name": "Isaiah Collier",
+    "team": "Jazz",
+    "contract": "$2.5M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "john_collins": {
+    "player_name": "John Collins",
+    "team": "Clippers",
+    "contract": "$26.6M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "zach_collins": {
+    "player_name": "Zach Collins",
+    "team": "Bulls",
+    "contract": "$16.7M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "mike_conley": {
+    "player_name": "Mike Conley",
+    "team": "Timberwolves",
+    "contract": "$10.0M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "pat_connaughton": {
+    "player_name": "Pat Connaughton",
+    "team": "Hornets",
+    "contract": "$9.4M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "bilal_coulibaly": {
+    "player_name": "Bilal Coulibaly",
+    "team": "Wizards",
+    "contract": "$6.9M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "ricky_council_iv": {
+    "player_name": "Ricky Council IV",
+    "team": "76ers",
+    "contract": "$1.9M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "torrey_craig": {
+    "player_name": "Torrey Craig",
+    "team": "Celtics",
+    "contract": "$0.8M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "isaiah_crawford": {
+    "player_name": "Isaiah Crawford",
+    "team": "Rockets",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "jae_crowder": {
+    "player_name": "Jae Crowder",
+    "team": "Kings",
+    "contract": "$1.7M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "cade_cunningham": {
+    "player_name": "Cade Cunningham",
+    "team": "Pistons",
+    "contract": "$13.9M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "seth_curry": {
+    "player_name": "Seth Curry",
+    "team": "Hornets",
+    "contract": "$2.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "stephen_curry": {
+    "player_name": "Stephen Curry",
+    "team": "Warriors",
+    "contract": "$55.8M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "pacôme_dadiet": {
+    "player_name": "Pacôme Dadiet",
+    "team": "Knicks",
+    "contract": "$1.8M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "dyson_daniels": {
+    "player_name": "Dyson Daniels",
+    "team": "Hawks",
+    "contract": "$6.1M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "nfaly_dante": {
+    "player_name": "Nfaly Dante",
+    "team": "Hawks",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "anthony_davis": {
+    "player_name": "Anthony Davis",
+    "team": "Mavericks",
+    "contract": "$43.2M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "terence_davis": {
+    "player_name": "Terence Davis",
+    "team": "Kings",
+    "contract": "$0.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "jd_davison": {
+    "player_name": "Jd Davison",
+    "team": "Rockets",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "demar_derozan": {
+    "player_name": "Demar Derozan",
+    "team": "Kings",
+    "contract": "$23.4M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "rayj_dennis": {
+    "player_name": "Rayj Dennis",
+    "team": "Pacers",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "donte_divincenzo": {
+    "player_name": "Donte Divincenzo",
+    "team": "Timberwolves",
+    "contract": "$11.4M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "moussa_diabaté": {
+    "player_name": "Moussa Diabaté",
+    "team": "Hornets",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "gradey_dick": {
+    "player_name": "Gradey Dick",
+    "team": "Raptors",
+    "contract": "$4.8M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "ousmane_dieng": {
+    "player_name": "Ousmane Dieng",
+    "team": "Thunder",
+    "contract": "$5.0M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "rob_dillingham": {
+    "player_name": "Rob Dillingham",
+    "team": "Timberwolves",
+    "contract": "$6.3M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "spencer_dinwiddie": {
+    "player_name": "Spencer Dinwiddie",
+    "team": "Hornets",
+    "contract": "$2.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "luka_dončić": {
+    "player_name": "Luka Dončić",
+    "team": "Lakers",
+    "contract": "$43.0M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "luguentz_dort": {
+    "player_name": "Luguentz Dort",
+    "team": "Thunder",
+    "contract": "$16.5M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "ayo_dosunmu": {
+    "player_name": "Ayo Dosunmu",
+    "team": "Bulls",
+    "contract": "$7.0M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "jeff_dowtin_jr": {
+    "player_name": "Jeff Dowtin Jr",
+    "team": "76ers",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "andre_drummond": {
+    "player_name": "Andre Drummond",
+    "team": "76ers",
+    "contract": "$5.0M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "alex_ducas": {
+    "player_name": "Alex Ducas",
+    "team": "Thunder",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "david_duke_jr": {
+    "player_name": "David Duke Jr",
+    "team": "Spurs",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "kris_dunn": {
+    "player_name": "Kris Dunn",
+    "team": "Clippers",
+    "contract": "$5.2M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "ryan_dunn": {
+    "player_name": "Ryan Dunn",
+    "team": "Suns",
+    "contract": "$2.5M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "kevin_durant": {
+    "player_name": "Kevin Durant",
+    "team": "Rockets",
+    "contract": "$51.2M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "jalen_duren": {
+    "player_name": "Jalen Duren",
+    "team": "Pistons",
+    "contract": "$4.5M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "tari_eason": {
+    "player_name": "Tari Eason",
+    "team": "Rockets",
+    "contract": "$3.7M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "zach_edey": {
+    "player_name": "Zach Edey",
+    "team": "Grizzlies",
+    "contract": "$5.8M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "anthony_edwards": {
+    "player_name": "Anthony Edwards",
+    "team": "Timberwolves",
+    "contract": "$42.2M / 5 yrs",
+    "free_agent": "2029 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "jesse_edwards": {
+    "player_name": "Jesse Edwards",
+    "team": "Timberwolves",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "justin_edwards": {
+    "player_name": "Justin Edwards",
+    "team": "76ers",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "kessler_edwards": {
+    "player_name": "Kessler Edwards",
+    "team": "Nuggets",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "keon_ellis": {
+    "player_name": "Keon Ellis",
+    "team": "Kings",
+    "contract": "$2.1M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "joel_embiid": {
+    "player_name": "Joel Embiid",
+    "team": "76ers",
+    "contract": "$51.4M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "tyson_etienne": {
+    "player_name": "Tyson Etienne",
+    "team": "Nets",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "drew_eubanks": {
+    "player_name": "Drew Eubanks",
+    "team": "Kings",
+    "contract": "$2.7M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "tosan_evbuomwan": {
+    "player_name": "Tosan Evbuomwan",
+    "team": "Nets",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "danté_exum": {
+    "player_name": "Danté Exum",
+    "team": "Mavericks",
+    "contract": "$3.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "kyle_filipowski": {
+    "player_name": "Kyle Filipowski",
+    "team": "Jazz",
+    "contract": "$3.0M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "dorian_finney-smith": {
+    "player_name": "Dorian Finney-Smith",
+    "team": "Rockets",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "adam_flagler": {
+    "player_name": "Adam Flagler",
+    "team": "Spurs",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "trentyn_flowers": {
+    "player_name": "Trentyn Flowers",
+    "team": "Clippers",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "simone_fontecchio": {
+    "player_name": "Simone Fontecchio",
+    "team": "Heat",
+    "contract": "$7.7M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "deaaron_fox": {
+    "player_name": "Deaaron Fox",
+    "team": "Spurs",
+    "contract": "$34.8M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "enrique_freeman": {
+    "player_name": "Enrique Freeman",
+    "team": "Timberwolves",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "markelle_fultz": {
+    "player_name": "Markelle Fultz",
+    "team": "Kings",
+    "contract": "$0.7M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "johnny_furphy": {
+    "player_name": "Johnny Furphy",
+    "team": "Pacers",
+    "contract": "$1.9M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "daniel_gafford": {
+    "player_name": "Daniel Gafford",
+    "team": "Mavericks",
+    "contract": "$13.4M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "darius_garland": {
+    "player_name": "Darius Garland",
+    "team": "Cavaliers",
+    "contract": "$36.7M / 4 yrs",
+    "free_agent": "2028 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "luka_garza": {
+    "player_name": "Luka Garza",
+    "team": "Celtics",
+    "contract": "$2.2M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "keyonte_george": {
+    "player_name": "Keyonte George",
+    "team": "Jazz",
+    "contract": "$4.1M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "kyshawn_george": {
+    "player_name": "Kyshawn George",
+    "team": "Wizards",
+    "contract": "$2.8M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "paul_george": {
+    "player_name": "Paul George",
+    "team": "76ers",
+    "contract": "$48.8M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "taj_gibson": {
+    "player_name": "Taj Gibson",
+    "team": "Hornets",
+    "contract": "$2.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "josh_giddey": {
+    "player_name": "Josh Giddey",
+    "team": "Bulls",
+    "contract": "$8.4M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "shai_gilgeous-alexander": {
+    "player_name": "Shai Gilgeous-Alexander",
+    "team": "Thunder",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "anthony_gill": {
+    "player_name": "Anthony Gill",
+    "team": "Wizards",
+    "contract": "$2.2M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "collin_gillespie": {
+    "player_name": "Collin Gillespie",
+    "team": "Suns",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "rudy_gobert": {
+    "player_name": "Rudy Gobert",
+    "team": "Timberwolves",
+    "contract": "$43.8M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.198Z"
+  },
+  "jordan_goodwin": {
+    "player_name": "Jordan Goodwin",
+    "team": "Suns",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "aaron_gordon": {
+    "player_name": "Aaron Gordon",
+    "team": "Nuggets",
+    "contract": "$22.8M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "eric_gordon": {
+    "player_name": "Eric Gordon",
+    "team": "76ers",
+    "contract": "$3.3M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jerami_grant": {
+    "player_name": "Jerami Grant",
+    "team": "Blazers",
+    "contract": "$29.8M / 4 yrs",
+    "free_agent": "2028 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "aj_green": {
+    "player_name": "Aj Green",
+    "team": "Bucks",
+    "contract": "$2.1M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "draymond_green": {
+    "player_name": "Draymond Green",
+    "team": "Warriors",
+    "contract": "$24.1M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jalen_green": {
+    "player_name": "Jalen Green",
+    "team": "Suns",
+    "contract": "$12.5M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "javonte_green": {
+    "player_name": "Javonte Green",
+    "team": "Pistons",
+    "contract": "$0.6M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jeff_green": {
+    "player_name": "Jeff Green",
+    "team": "Rockets",
+    "contract": "$8.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "josh_green": {
+    "player_name": "Josh Green",
+    "team": "Hornets",
+    "contract": "$12.7M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "quentin_grimes": {
+    "player_name": "Quentin Grimes",
+    "team": "76ers",
+    "contract": "$4.3M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "mouhamed_gueye": {
+    "player_name": "Mouhamed Gueye",
+    "team": "Hawks",
+    "contract": "$1.9M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "rui_hachimura": {
+    "player_name": "Rui Hachimura",
+    "team": "Lakers",
+    "contract": "$17.0M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "tyrese_haliburton": {
+    "player_name": "Tyrese Haliburton",
+    "team": "Pacers",
+    "contract": "$42.2M / 5 yrs",
+    "free_agent": "2029 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "pj_hall": {
+    "player_name": "Pj Hall",
+    "team": "Grizzlies",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "tim_hardaway_jr": {
+    "player_name": "Tim Hardaway Jr",
+    "team": "Nuggets",
+    "contract": "$16.2M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "james_harden": {
+    "player_name": "James Harden",
+    "team": "Clippers",
+    "contract": "$33.7M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jaden_hardy": {
+    "player_name": "Jaden Hardy",
+    "team": "Mavericks",
+    "contract": "$2.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "elijah_harkless": {
+    "player_name": "Elijah Harkless",
+    "team": "Jazz",
+    "contract": "$0.0M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "ron_harper_jr": {
+    "player_name": "Ron Harper Jr",
+    "team": "Pistons",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "gary_harris": {
+    "player_name": "Gary Harris",
+    "team": "Bucks",
+    "contract": "$7.5M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "tobias_harris": {
+    "player_name": "Tobias Harris",
+    "team": "Pistons",
+    "contract": "$25.4M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "josh_hart": {
+    "player_name": "Josh Hart",
+    "team": "Knicks",
+    "contract": "$18.1M / 4 yrs",
+    "free_agent": "2028 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "isaiah_hartenstein": {
+    "player_name": "Isaiah Hartenstein",
+    "team": "Thunder",
+    "contract": "$30.0M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "sam_hauser": {
+    "player_name": "Sam Hauser",
+    "team": "Celtics",
+    "contract": "$2.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jordan_hawkins": {
+    "player_name": "Jordan Hawkins",
+    "team": "Pelicans",
+    "contract": "$4.5M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jaxson_hayes": {
+    "player_name": "Jaxson Hayes",
+    "team": "Lakers",
+    "contract": "$2.5M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "scoot_henderson": {
+    "player_name": "Scoot Henderson",
+    "team": "Blazers",
+    "contract": "$10.3M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "taylor_hendricks": {
+    "player_name": "Taylor Hendricks",
+    "team": "Jazz",
+    "contract": "$5.8M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "tyler_herro": {
+    "player_name": "Tyler Herro",
+    "team": "Heat",
+    "contract": "$29.0M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "buddy_hield": {
+    "player_name": "Buddy Hield",
+    "team": "Warriors",
+    "contract": "$8.8M / 4 yrs",
+    "free_agent": "2028 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "haywood_highsmith": {
+    "player_name": "Haywood Highsmith",
+    "team": "Nets",
+    "contract": "$5.2M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "aaron_holiday": {
+    "player_name": "Aaron Holiday",
+    "team": "Rockets",
+    "contract": "$4.7M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jrue_holiday": {
+    "player_name": "Jrue Holiday",
+    "team": "Blazers",
+    "contract": "$30.0M / 4 yrs",
+    "free_agent": "2028 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "ronald_holland_ii": {
+    "player_name": "Ronald Holland II",
+    "team": "Pistons",
+    "contract": "$8.2M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "richaun_holmes": {
+    "player_name": "Richaun Holmes",
+    "team": "Wizards",
+    "contract": "$12.6M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "daron_holmes_ii": {
+    "player_name": "Daron Holmes II",
+    "team": "Nuggets",
+    "contract": "$3.1M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "chet_holmgren": {
+    "player_name": "Chet Holmgren",
+    "team": "Thunder",
+    "contract": "$10.9M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jalen_hood-schifino": {
+    "player_name": "Jalen Hood-Schifino",
+    "team": "76ers",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "al_horford": {
+    "player_name": "Al Horford",
+    "team": "Celtics",
+    "contract": "$9.5M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "talen_horton-tucker": {
+    "player_name": "Talen Horton-Tucker",
+    "team": "Bulls",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "caleb_houstan": {
+    "player_name": "Caleb Houstan",
+    "team": "Hawks",
+    "contract": "$2.0M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jett_howard": {
+    "player_name": "Jett Howard",
+    "team": "Magic",
+    "contract": "$5.3M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "kevin_huerter": {
+    "player_name": "Kevin Huerter",
+    "team": "Bulls",
+    "contract": "$16.8M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jay_huff": {
+    "player_name": "Jay Huff",
+    "team": "Pacers",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "ariel_hukporti": {
+    "player_name": "Ariel Hukporti",
+    "team": "Knicks",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "deandre_hunter": {
+    "player_name": "Deandre Hunter",
+    "team": "Cavaliers",
+    "contract": "$21.7M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "bones_hyland": {
+    "player_name": "Bones Hyland",
+    "team": "Timberwolves",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "oso_ighodaro": {
+    "player_name": "Oso Ighodaro",
+    "team": "Suns",
+    "contract": "$1.2M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "joe_ingles": {
+    "player_name": "Joe Ingles",
+    "team": "Timberwolves",
+    "contract": "$2.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "brandon_ingram": {
+    "player_name": "Brandon Ingram",
+    "team": "Raptors",
+    "contract": "$36.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "harrison_ingram": {
+    "player_name": "Harrison Ingram",
+    "team": "Spurs",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "kyrie_irving": {
+    "player_name": "Kyrie Irving",
+    "team": "Mavericks",
+    "contract": "$41.0M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jonathan_isaac": {
+    "player_name": "Jonathan Isaac",
+    "team": "Magic",
+    "contract": "$17.4M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jaden_ivey": {
+    "player_name": "Jaden Ivey",
+    "team": "Pistons",
+    "contract": "$8.0M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "gg_jackson": {
+    "player_name": "Gg Jackson",
+    "team": "Grizzlies",
+    "contract": "$1.9M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "isaiah_jackson": {
+    "player_name": "Isaiah Jackson",
+    "team": "Pacers",
+    "contract": "$4.4M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "quenton_jackson": {
+    "player_name": "Quenton Jackson",
+    "team": "Pacers",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "andre_jackson_jr": {
+    "player_name": "Andre Jackson Jr",
+    "team": "Bucks",
+    "contract": "$1.9M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jaren_jackson_jr": {
+    "player_name": "Jaren Jackson Jr",
+    "team": "Grizzlies",
+    "contract": "$25.3M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "trayce_jackson-davis": {
+    "player_name": "Trayce Jackson-Davis",
+    "team": "Warriors",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "bronny_james": {
+    "player_name": "Bronny James",
+    "team": "Lakers",
+    "contract": "$1.2M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "lebron_james": {
+    "player_name": "Lebron James",
+    "team": "Lakers",
+    "contract": "$48.7M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jaime_jaquez_jr": {
+    "player_name": "Jaime Jaquez Jr",
+    "team": "Heat",
+    "contract": "$3.7M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "daquan_jeffries": {
+    "player_name": "Daquan Jeffries",
+    "team": "Hornets",
+    "contract": "$2.4M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "trey_jemison_iii": {
+    "player_name": "Trey Jemison III",
+    "team": "Lakers",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "daniss_jenkins": {
+    "player_name": "Daniss Jenkins",
+    "team": "Pistons",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "ty_jerome": {
+    "player_name": "Ty Jerome",
+    "team": "Grizzlies",
+    "contract": "$2.6M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "isaiah_joe": {
+    "player_name": "Isaiah Joe",
+    "team": "Thunder",
+    "contract": "$2.2M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "aj_johnson": {
+    "player_name": "Aj Johnson",
+    "team": "Wizards",
+    "contract": "$2.8M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "cameron_johnson": {
+    "player_name": "Cameron Johnson",
+    "team": "Nuggets",
+    "contract": "$22.5M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jalen_johnson": {
+    "player_name": "Jalen Johnson",
+    "team": "Hawks",
+    "contract": "$4.5M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "james_johnson": {
+    "player_name": "James Johnson",
+    "team": "Pacers",
+    "contract": "$2.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "keldon_johnson": {
+    "player_name": "Keldon Johnson",
+    "team": "Spurs",
+    "contract": "$19.0M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "keon_johnson": {
+    "player_name": "Keon Johnson",
+    "team": "Nets",
+    "contract": "$2.2M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "keshad_johnson": {
+    "player_name": "Keshad Johnson",
+    "team": "Heat",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "nikola_jokić": {
+    "player_name": "Nikola Jokić",
+    "team": "Nuggets",
+    "contract": "$51.4M / 4 yrs",
+    "free_agent": "2028 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "colby_jones": {
+    "player_name": "Colby Jones",
+    "team": "Pistons",
+    "contract": "$2.1M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "dillon_jones": {
+    "player_name": "Dillon Jones",
+    "team": "Wizards",
+    "contract": "$2.6M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "herbert_jones": {
+    "player_name": "Herbert Jones",
+    "team": "Pelicans",
+    "contract": "$13.0M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "isaac_jones": {
+    "player_name": "Isaac Jones",
+    "team": "Kings",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "kai_jones": {
+    "player_name": "Kai Jones",
+    "team": "Mavericks",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "mason_jones": {
+    "player_name": "Mason Jones",
+    "team": "Kings",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "spencer_jones": {
+    "player_name": "Spencer Jones",
+    "team": "Nuggets",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "tre_jones": {
+    "player_name": "Tre Jones",
+    "team": "Bulls",
+    "contract": "$9.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "tyus_jones": {
+    "player_name": "Tyus Jones",
+    "team": "Magic",
+    "contract": "$2.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "derrick_jones_jr": {
+    "player_name": "Derrick Jones Jr",
+    "team": "Clippers",
+    "contract": "$9.5M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "deandre_jordan": {
+    "player_name": "Deandre Jordan",
+    "team": "Nuggets",
+    "contract": "$2.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "cory_joseph": {
+    "player_name": "Cory Joseph",
+    "team": "Magic",
+    "contract": "$3.3M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "nikola_jović": {
+    "player_name": "Nikola Jović",
+    "team": "Heat",
+    "contract": "$2.5M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "johnny_juzang": {
+    "player_name": "Johnny Juzang",
+    "team": "Jazz",
+    "contract": "$3.1M / 4 yrs",
+    "free_agent": "2028 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "yuki_kawamura": {
+    "player_name": "Yuki Kawamura",
+    "team": "Bulls",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "luke_kennard": {
+    "player_name": "Luke Kennard",
+    "team": "Hawks",
+    "contract": "$9.2M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "walker_kessler": {
+    "player_name": "Walker Kessler",
+    "team": "Jazz",
+    "contract": "$3.0M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "braxton_key": {
+    "player_name": "Braxton Key",
+    "team": "Warriors",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "corey_kispert": {
+    "player_name": "Corey Kispert",
+    "team": "Wizards",
+    "contract": "$5.7M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "maxi_kleber": {
+    "player_name": "Maxi Kleber",
+    "team": "Lakers",
+    "contract": "$11.0M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "bobi_klintman": {
+    "player_name": "Bobi Klintman",
+    "team": "Pistons",
+    "contract": "$1.3M / 4 yrs",
+    "free_agent": "2028 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "dalton_knecht": {
+    "player_name": "Dalton Knecht",
+    "team": "Lakers",
+    "contract": "$3.8M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "kevin_knox_ii": {
+    "player_name": "Kevin Knox II",
+    "team": "Warriors",
+    "contract": "$0.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "tyler_kolek": {
+    "player_name": "Tyler Kolek",
+    "team": "Knicks",
+    "contract": "$2.1M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "christian_koloko": {
+    "player_name": "Christian Koloko",
+    "team": "Lakers",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "john_konchar": {
+    "player_name": "John Konchar",
+    "team": "Grizzlies",
+    "contract": "$6.2M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "luke_kornet": {
+    "player_name": "Luke Kornet",
+    "team": "Spurs",
+    "contract": "$2.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "vít_krejčí": {
+    "player_name": "Vít Krejčí",
+    "team": "Hawks",
+    "contract": "$2.2M / 4 yrs",
+    "free_agent": "2028 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jonathan_kuminga": {
+    "player_name": "Jonathan Kuminga",
+    "team": "Warriors",
+    "contract": "$7.6M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "kyle_kuzma": {
+    "player_name": "Kyle Kuzma",
+    "team": "Bucks",
+    "contract": "$24.5M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jake_laravia": {
+    "player_name": "Jake Laravia",
+    "team": "Lakers",
+    "contract": "$3.4M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "zach_lavine": {
+    "player_name": "Zach Lavine",
+    "team": "Kings",
+    "contract": "$44.5M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jock_landale": {
+    "player_name": "Jock Landale",
+    "team": "Grizzlies",
+    "contract": "$8.0M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "pelle_larsson": {
+    "player_name": "Pelle Larsson",
+    "team": "Heat",
+    "contract": "$1.2M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "aj_lawson": {
+    "player_name": "Aj Lawson",
+    "team": "Raptors",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "caris_levert": {
+    "player_name": "Caris Levert",
+    "team": "Pistons",
+    "contract": "$16.6M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "damion_lee": {
+    "player_name": "Damion Lee",
+    "team": "Suns",
+    "contract": "$2.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "alex_len": {
+    "player_name": "Alex Len",
+    "team": "Lakers",
+    "contract": "$0.7M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "kawhi_leonard": {
+    "player_name": "Kawhi Leonard",
+    "team": "Clippers",
+    "contract": "$48.8M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "maxwell_lewis": {
+    "player_name": "Maxwell Lewis",
+    "team": "Nets",
+    "contract": "$1.9M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "ej_liddell": {
+    "player_name": "Ej Liddell",
+    "team": "Bulls",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "damian_lillard": {
+    "player_name": "Damian Lillard",
+    "team": "Blazers",
+    "contract": "$48.8M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "dereck_lively_ii": {
+    "player_name": "Dereck Lively II",
+    "team": "Mavericks",
+    "contract": "$5.0M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "chris_livingston": {
+    "player_name": "Chris Livingston",
+    "team": "Bucks",
+    "contract": "$1.9M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "kevon_looney": {
+    "player_name": "Kevon Looney",
+    "team": "Pelicans",
+    "contract": "$8.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "brook_lopez": {
+    "player_name": "Brook Lopez",
+    "team": "Clippers",
+    "contract": "$15.0M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "kevin_love": {
+    "player_name": "Kevin Love",
+    "team": "Jazz",
+    "contract": "$3.9M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "kyle_lowry": {
+    "player_name": "Kyle Lowry",
+    "team": "76ers",
+    "contract": "$2.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "trey_lyles": {
+    "player_name": "Trey Lyles",
+    "team": "Kings",
+    "contract": "$8.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "sandro_mamukelashvili": {
+    "player_name": "Sandro Mamukelashvili",
+    "team": "Raptors",
+    "contract": "$2.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "terance_mann": {
+    "player_name": "Terance Mann",
+    "team": "Nets",
+    "contract": "$11.4M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "tre_mann": {
+    "player_name": "Tre Mann",
+    "team": "Hornets",
+    "contract": "$4.9M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "lauri_markkanen": {
+    "player_name": "Lauri Markkanen",
+    "team": "Jazz",
+    "contract": "$18.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "naji_marshall": {
+    "player_name": "Naji Marshall",
+    "team": "Mavericks",
+    "contract": "$8.6M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "caleb_martin": {
+    "player_name": "Caleb Martin",
+    "team": "Mavericks",
+    "contract": "$7.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "cody_martin": {
+    "player_name": "Cody Martin",
+    "team": "Suns",
+    "contract": "$8.1M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jaylen_martin": {
+    "player_name": "Jaylen Martin",
+    "team": "Wizards",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "kj_martin": {
+    "player_name": "Kj Martin",
+    "team": "Jazz",
+    "contract": "$8.0M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "tyrese_martin": {
+    "player_name": "Tyrese Martin",
+    "team": "Nets",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "garrison_mathews": {
+    "player_name": "Garrison Mathews",
+    "team": "Hawks",
+    "contract": "$2.2M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "bennedict_mathurin": {
+    "player_name": "Bennedict Mathurin",
+    "team": "Pacers",
+    "contract": "$7.2M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "karlo_matković": {
+    "player_name": "Karlo Matković",
+    "team": "Pelicans",
+    "contract": "$1.4M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "tyrese_maxey": {
+    "player_name": "Tyrese Maxey",
+    "team": "76ers",
+    "contract": "$35.1M / 5 yrs",
+    "free_agent": "2029 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "miles_mcbride": {
+    "player_name": "Miles Mcbride",
+    "team": "Knicks",
+    "contract": "$4.7M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jared_mccain": {
+    "player_name": "Jared Mccain",
+    "team": "76ers",
+    "contract": "$4.0M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "mac_mcclung": {
+    "player_name": "Mac Mcclung",
+    "team": "Magic",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "cj_mccollum": {
+    "player_name": "Cj Mccollum",
+    "team": "Wizards",
+    "contract": "$33.3M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "tj_mcconnell": {
+    "player_name": "Tj Mcconnell",
+    "team": "Pacers",
+    "contract": "$9.3M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "kevin_mccullar_jr": {
+    "player_name": "Kevin Mccullar Jr",
+    "team": "Knicks",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jaden_mcdaniels": {
+    "player_name": "Jaden Mcdaniels",
+    "team": "Timberwolves",
+    "contract": "$23.0M / 5 yrs",
+    "free_agent": "2029 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "doug_mcdermott": {
+    "player_name": "Doug Mcdermott",
+    "team": "Kings",
+    "contract": "$2.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "bryce_mcgowens": {
+    "player_name": "Bryce Mcgowens",
+    "team": "Pelicans",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jordan_mclaughlin": {
+    "player_name": "Jordan Mclaughlin",
+    "team": "Spurs",
+    "contract": "$2.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jack_mcveigh": {
+    "player_name": "Jack Mcveigh",
+    "team": "Rockets",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "deanthony_melton": {
+    "player_name": "Deanthony Melton",
+    "team": "Nets",
+    "contract": "$12.8M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "sam_merrill": {
+    "player_name": "Sam Merrill",
+    "team": "Cavaliers",
+    "contract": "$2.2M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "vasilije_micić": {
+    "player_name": "Vasilije Micić",
+    "team": "Suns",
+    "contract": "$7.7M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "khris_middleton": {
+    "player_name": "Khris Middleton",
+    "team": "Wizards",
+    "contract": "$31.7M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "brandon_miller": {
+    "player_name": "Brandon Miller",
+    "team": "Hornets",
+    "contract": "$11.4M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "emanuel_miller": {
+    "player_name": "Emanuel Miller",
+    "team": "Bulls",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jordan_miller": {
+    "player_name": "Jordan Miller",
+    "team": "Clippers",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "leonard_miller": {
+    "player_name": "Leonard Miller",
+    "team": "Timberwolves",
+    "contract": "$1.9M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "patty_mills": {
+    "player_name": "Patty Mills",
+    "team": "Clippers",
+    "contract": "$2.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "shake_milton": {
+    "player_name": "Shake Milton",
+    "team": "Lakers",
+    "contract": "$2.9M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "justin_minaya": {
+    "player_name": "Justin Minaya",
+    "team": "Blazers",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "riley_minix": {
+    "player_name": "Riley Minix",
+    "team": "Spurs",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "josh_minott": {
+    "player_name": "Josh Minott",
+    "team": "Celtics",
+    "contract": "$2.0M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "yves_missi": {
+    "player_name": "Yves Missi",
+    "team": "Pelicans",
+    "contract": "$3.2M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "ajay_mitchell": {
+    "player_name": "Ajay Mitchell",
+    "team": "Thunder",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "davion_mitchell": {
+    "player_name": "Davion Mitchell",
+    "team": "Heat",
+    "contract": "$6.5M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "donovan_mitchell": {
+    "player_name": "Donovan Mitchell",
+    "team": "Cavaliers",
+    "contract": "$35.4M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "evan_mobley": {
+    "player_name": "Evan Mobley",
+    "team": "Cavaliers",
+    "contract": "$11.2M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jonathan_mogbo": {
+    "player_name": "Jonathan Mogbo",
+    "team": "Raptors",
+    "contract": "$1.9M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "malik_monk": {
+    "player_name": "Malik Monk",
+    "team": "Kings",
+    "contract": "$17.4M / 4 yrs",
+    "free_agent": "2028 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "moses_moody": {
+    "player_name": "Moses Moody",
+    "team": "Warriors",
+    "contract": "$5.8M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "wendell_moore_jr": {
+    "player_name": "Wendell Moore Jr",
+    "team": "Hornets",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "ja_morant": {
+    "player_name": "Ja Morant",
+    "team": "Grizzlies",
+    "contract": "$36.7M / 4 yrs",
+    "free_agent": "2028 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "markieff_morris": {
+    "player_name": "Markieff Morris",
+    "team": "Lakers",
+    "contract": "$2.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "monté_morris": {
+    "player_name": "Monté Morris",
+    "team": "Suns",
+    "contract": "$2.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "trey_murphy_iii": {
+    "player_name": "Trey Murphy III",
+    "team": "Pelicans",
+    "contract": "$5.2M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "dejounte_murray": {
+    "player_name": "Dejounte Murray",
+    "team": "Pelicans",
+    "contract": "$29.5M / 4 yrs",
+    "free_agent": "2028 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jamal_murray": {
+    "player_name": "Jamal Murray",
+    "team": "Nuggets",
+    "contract": "$36.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "keegan_murray": {
+    "player_name": "Keegan Murray",
+    "team": "Kings",
+    "contract": "$8.8M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "kris_murray": {
+    "player_name": "Kris Murray",
+    "team": "Blazers",
+    "contract": "$3.0M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "svi_mykhailiuk": {
+    "player_name": "Svi Mykhailiuk",
+    "team": "Jazz",
+    "contract": "$3.5M / 4 yrs",
+    "free_agent": "2028 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "pete_nance": {
+    "player_name": "Pete Nance",
+    "team": "Bucks",
+    "contract": "$0.0M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "larry_nance_jr": {
+    "player_name": "Larry Nance Jr",
+    "team": "Cavaliers",
+    "contract": "$11.2M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "andrew_nembhard": {
+    "player_name": "Andrew Nembhard",
+    "team": "Pacers",
+    "contract": "$2.0M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "aaron_nesmith": {
+    "player_name": "Aaron Nesmith",
+    "team": "Pacers",
+    "contract": "$11.0M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "tristen_newton": {
+    "player_name": "Tristen Newton",
+    "team": "Timberwolves",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "georges_niang": {
+    "player_name": "Georges Niang",
+    "team": "Jazz",
+    "contract": "$8.5M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "zeke_nnaji": {
+    "player_name": "Zeke Nnaji",
+    "team": "Nuggets",
+    "contract": "$8.9M / 4 yrs",
+    "free_agent": "2028 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "miles_norris": {
+    "player_name": "Miles Norris",
+    "team": "Celtics",
+    "contract": "$0.0M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jusuf_nurkić": {
+    "player_name": "Jusuf Nurkić",
+    "team": "Jazz",
+    "contract": "$18.1M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "royce_oneale": {
+    "player_name": "Royce Oneale",
+    "team": "Suns",
+    "contract": "$9.4M / 4 yrs",
+    "free_agent": "2028 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "chuma_okeke": {
+    "player_name": "Chuma Okeke",
+    "team": "Cavaliers",
+    "contract": "$0.1M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "josh_okogie": {
+    "player_name": "Josh Okogie",
+    "team": "Rockets",
+    "contract": "$3.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "onyeka_okongwu": {
+    "player_name": "Onyeka Okongwu",
+    "team": "Hawks",
+    "contract": "$14.0M / 4 yrs",
+    "free_agent": "2028 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "isaac_okoro": {
+    "player_name": "Isaac Okoro",
+    "team": "Bulls",
+    "contract": "$10.2M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "kelly_olynyk": {
+    "player_name": "Kelly Olynyk",
+    "team": "Spurs",
+    "contract": "$12.8M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "kelly_oubre_jr": {
+    "player_name": "Kelly Oubre Jr",
+    "team": "76ers",
+    "contract": "$8.0M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "chris_paul": {
+    "player_name": "Chris Paul",
+    "team": "Clippers",
+    "contract": "$10.5M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "cameron_payne": {
+    "player_name": "Cameron Payne",
+    "team": "Knicks",
+    "contract": "$2.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "elfrid_payton": {
+    "player_name": "Elfrid Payton",
+    "team": "Pelicans",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "gary_payton_ii": {
+    "player_name": "Gary Payton II",
+    "team": "Warriors",
+    "contract": "$9.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "drew_peterson": {
+    "player_name": "Drew Peterson",
+    "team": "Hornets",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "julian_phillips": {
+    "player_name": "Julian Phillips",
+    "team": "Bulls",
+    "contract": "$1.9M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jalen_pickett": {
+    "player_name": "Jalen Pickett",
+    "team": "Nuggets",
+    "contract": "$1.9M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "scotty_pippen_jr": {
+    "player_name": "Scotty Pippen Jr",
+    "team": "Grizzlies",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "daeqwon_plowden": {
+    "player_name": "Daeqwon Plowden",
+    "team": "Kings",
+    "contract": "$0.0M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "mason_plumlee": {
+    "player_name": "Mason Plumlee",
+    "team": "Hornets",
+    "contract": "$2.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "brandin_podziemski": {
+    "player_name": "Brandin Podziemski",
+    "team": "Warriors",
+    "contract": "$3.5M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jakob_poeltl": {
+    "player_name": "Jakob Poeltl",
+    "team": "Raptors",
+    "contract": "$19.5M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jordan_poole": {
+    "player_name": "Jordan Poole",
+    "team": "Pelicans",
+    "contract": "$29.7M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "craig_porter_jr": {
+    "player_name": "Craig Porter Jr",
+    "team": "Cavaliers",
+    "contract": "$1.9M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "kevin_porter_jr": {
+    "player_name": "Kevin Porter Jr",
+    "team": "Bucks",
+    "contract": "$2.4M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "michael_porter_jr": {
+    "player_name": "Michael Porter Jr",
+    "team": "Nets",
+    "contract": "$35.9M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "bobby_portis": {
+    "player_name": "Bobby Portis",
+    "team": "Bucks",
+    "contract": "$12.6M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "kristaps_porziņģis": {
+    "player_name": "Kristaps Porziņģis",
+    "team": "Hawks",
+    "contract": "$29.3M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "quinten_post": {
+    "player_name": "Quinten Post",
+    "team": "Warriors",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "micah_potter": {
+    "player_name": "Micah Potter",
+    "team": "Spurs",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "dwight_powell": {
+    "player_name": "Dwight Powell",
+    "team": "Mavericks",
+    "contract": "$4.0M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "norman_powell": {
+    "player_name": "Norman Powell",
+    "team": "Heat",
+    "contract": "$19.2M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "taurean_prince": {
+    "player_name": "Taurean Prince",
+    "team": "Bucks",
+    "contract": "$2.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "payton_pritchard": {
+    "player_name": "Payton Pritchard",
+    "team": "Celtics",
+    "contract": "$6.7M / 4 yrs",
+    "free_agent": "2028 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "olivier-maxence_prosper": {
+    "player_name": "Olivier-Maxence Prosper",
+    "team": "Mavericks",
+    "contract": "$2.9M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "zyon_pullin": {
+    "player_name": "Zyon Pullin",
+    "team": "Grizzlies",
+    "contract": "$0.0M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "trevelin_queen": {
+    "player_name": "Trevelin Queen",
+    "team": "Magic",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "neemias_queta": {
+    "player_name": "Neemias Queta",
+    "team": "Celtics",
+    "contract": "$2.2M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "immanuel_quickley": {
+    "player_name": "Immanuel Quickley",
+    "team": "Raptors",
+    "contract": "$32.5M / 5 yrs",
+    "free_agent": "2029 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "lester_quiñones": {
+    "player_name": "Lester Quiñones",
+    "team": "Pelicans",
+    "contract": "$0.0M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "julius_randle": {
+    "player_name": "Julius Randle",
+    "team": "Timberwolves",
+    "contract": "$33.1M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "duop_reath": {
+    "player_name": "Duop Reath",
+    "team": "Blazers",
+    "contract": "$2.0M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "austin_reaves": {
+    "player_name": "Austin Reaves",
+    "team": "Lakers",
+    "contract": "$13.0M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "paul_reed": {
+    "player_name": "Paul Reed",
+    "team": "Pistons",
+    "contract": "$1.4M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "alex_reese": {
+    "player_name": "Alex Reese",
+    "team": "76ers",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "antonio_reeves": {
+    "player_name": "Antonio Reeves",
+    "team": "Hornets",
+    "contract": "$1.2M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "naz_reid": {
+    "player_name": "Naz Reid",
+    "team": "Timberwolves",
+    "contract": "$14.0M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jared_rhoden": {
+    "player_name": "Jared Rhoden",
+    "team": "Raptors",
+    "contract": "$0.0M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "nick_richards": {
+    "player_name": "Nick Richards",
+    "team": "Suns",
+    "contract": "$5.0M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "zaccharie_risacher": {
+    "player_name": "Zaccharie Risacher",
+    "team": "Hawks",
+    "contract": "$12.6M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "duncan_robinson": {
+    "player_name": "Duncan Robinson",
+    "team": "Pistons",
+    "contract": "$19.4M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "mitchell_robinson": {
+    "player_name": "Mitchell Robinson",
+    "team": "Knicks",
+    "contract": "$14.3M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jeremiah_robinson-earl": {
+    "player_name": "Jeremiah Robinson-Earl",
+    "team": "Pelicans",
+    "contract": "$2.2M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "david_roddy": {
+    "player_name": "David Roddy",
+    "team": "Raptors",
+    "contract": "$0.0M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "ryan_rollins": {
+    "player_name": "Ryan Rollins",
+    "team": "Bucks",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jackson_rowe": {
+    "player_name": "Jackson Rowe",
+    "team": "Warriors",
+    "contract": "$0.0M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "terry_rozier": {
+    "player_name": "Terry Rozier",
+    "team": "Heat",
+    "contract": "$24.9M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "rayan_rupert": {
+    "player_name": "Rayan Rupert",
+    "team": "Blazers",
+    "contract": "$1.9M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "dangelo_russell": {
+    "player_name": "Dangelo Russell",
+    "team": "Mavericks",
+    "contract": "$18.7M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "domantas_sabonis": {
+    "player_name": "Domantas Sabonis",
+    "team": "Kings",
+    "contract": "$40.5M / 4 yrs",
+    "free_agent": "2028 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "tidjane_salaün": {
+    "player_name": "Tidjane Salaün",
+    "team": "Hornets",
+    "contract": "$7.5M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "gui_santos": {
+    "player_name": "Gui Santos",
+    "team": "Warriors",
+    "contract": "$1.9M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "alex_sarr": {
+    "player_name": "Alex Sarr",
+    "team": "Wizards",
+    "contract": "$11.2M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "marcus_sasser": {
+    "player_name": "Marcus Sasser",
+    "team": "Pistons",
+    "contract": "$2.8M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "baylor_scheierman": {
+    "player_name": "Baylor Scheierman",
+    "team": "Celtics",
+    "contract": "$2.5M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "dennis_schröder": {
+    "player_name": "Dennis Schröder",
+    "team": "Kings",
+    "contract": "$13.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "alperen_sengun": {
+    "player_name": "Alperen Sengun",
+    "team": "Rockets",
+    "contract": "$5.4M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "brice_sensabaugh": {
+    "player_name": "Brice Sensabaugh",
+    "team": "Jazz",
+    "contract": "$2.6M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "collin_sexton": {
+    "player_name": "Collin Sexton",
+    "team": "Hornets",
+    "contract": "$18.4M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "landry_shamet": {
+    "player_name": "Landry Shamet",
+    "team": "Knicks",
+    "contract": "$1.3M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "terrence_shannon_jr": {
+    "player_name": "Terrence Shannon Jr",
+    "team": "Timberwolves",
+    "contract": "$2.5M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "dayron_sharpe": {
+    "player_name": "Dayron Sharpe",
+    "team": "Nets",
+    "contract": "$4.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "shaedon_sharpe": {
+    "player_name": "Shaedon Sharpe",
+    "team": "Blazers",
+    "contract": "$6.6M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jamal_shead": {
+    "player_name": "Jamal Shead",
+    "team": "Raptors",
+    "contract": "$1.9M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "ben_sheppard": {
+    "player_name": "Ben Sheppard",
+    "team": "Pacers",
+    "contract": "$2.7M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "reed_sheppard": {
+    "player_name": "Reed Sheppard",
+    "team": "Rockets",
+    "contract": "$10.1M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "pascal_siakam": {
+    "player_name": "Pascal Siakam",
+    "team": "Pacers",
+    "contract": "$42.2M / 4 yrs",
+    "free_agent": "2028 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "ben_simmons": {
+    "player_name": "Ben Simmons",
+    "team": "Clippers",
+    "contract": "$0.8M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "anfernee_simons": {
+    "player_name": "Anfernee Simons",
+    "team": "Celtics",
+    "contract": "$25.9M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "kj_simpson": {
+    "player_name": "Kj Simpson",
+    "team": "Hornets",
+    "contract": "$0.0M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jericho_sims": {
+    "player_name": "Jericho Sims",
+    "team": "Bucks",
+    "contract": "$2.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "marcus_smart": {
+    "player_name": "Marcus Smart",
+    "team": "Lakers",
+    "contract": "$20.2M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "dru_smith": {
+    "player_name": "Dru Smith",
+    "team": "Heat",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jalen_smith": {
+    "player_name": "Jalen Smith",
+    "team": "Bulls",
+    "contract": "$5.4M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "tolu_smith": {
+    "player_name": "Tolu Smith",
+    "team": "Pistons",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "tyler_smith": {
+    "player_name": "Tyler Smith",
+    "team": "Bucks",
+    "contract": "$1.2M / 4 yrs",
+    "free_agent": "2028 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jabari_smith_jr": {
+    "player_name": "Jabari Smith Jr",
+    "team": "Rockets",
+    "contract": "$9.8M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "nick_smith_jr": {
+    "player_name": "Nick Smith Jr",
+    "team": "Hornets",
+    "contract": "$2.6M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jeremy_sochan": {
+    "player_name": "Jeremy Sochan",
+    "team": "Spurs",
+    "contract": "$5.6M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "cam_spencer": {
+    "player_name": "Cam Spencer",
+    "team": "Grizzlies",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "pat_spencer": {
+    "player_name": "Pat Spencer",
+    "team": "Warriors",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jaden_springer": {
+    "player_name": "Jaden Springer",
+    "team": "Pelicans",
+    "contract": "$0.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "isaiah_stevens": {
+    "player_name": "Isaiah Stevens",
+    "team": "Kings",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "lamar_stevens": {
+    "player_name": "Lamar Stevens",
+    "team": "Grizzlies",
+    "contract": "$0.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "isaiah_stewart": {
+    "player_name": "Isaiah Stewart",
+    "team": "Pistons",
+    "contract": "$15.0M / 4 yrs",
+    "free_agent": "2028 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "julian_strawther": {
+    "player_name": "Julian Strawther",
+    "team": "Nuggets",
+    "contract": "$2.6M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "max_strus": {
+    "player_name": "Max Strus",
+    "team": "Cavaliers",
+    "contract": "$15.2M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jalen_suggs": {
+    "player_name": "Jalen Suggs",
+    "team": "Magic",
+    "contract": "$9.2M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jaesean_tate": {
+    "player_name": "Jaesean Tate",
+    "team": "Rockets",
+    "contract": "$7.6M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jayson_tatum": {
+    "player_name": "Jayson Tatum",
+    "team": "Celtics",
+    "contract": "$34.8M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "garrett_temple": {
+    "player_name": "Garrett Temple",
+    "team": "Raptors",
+    "contract": "$2.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "dalen_terry": {
+    "player_name": "Dalen Terry",
+    "team": "Bulls",
+    "contract": "$3.5M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "cam_thomas": {
+    "player_name": "Cam Thomas",
+    "team": "Nets",
+    "contract": "$4.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "amen_thompson": {
+    "player_name": "Amen Thompson",
+    "team": "Rockets",
+    "contract": "$9.2M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "ausar_thompson": {
+    "player_name": "Ausar Thompson",
+    "team": "Pistons",
+    "contract": "$8.4M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "klay_thompson": {
+    "player_name": "Klay Thompson",
+    "team": "Mavericks",
+    "contract": "$15.9M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "tristan_thompson": {
+    "player_name": "Tristan Thompson",
+    "team": "Cavaliers",
+    "contract": "$2.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jt_thor": {
+    "player_name": "Jt Thor",
+    "team": "Wizards",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "matisse_thybulle": {
+    "player_name": "Matisse Thybulle",
+    "team": "Blazers",
+    "contract": "$11.0M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "xavier_tillman": {
+    "player_name": "Xavier Tillman",
+    "team": "Celtics",
+    "contract": "$2.2M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "drew_timme": {
+    "player_name": "Drew Timme",
+    "team": "Nets",
+    "contract": "$0.1M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "naeqwan_tomlin": {
+    "player_name": "Naeqwan Tomlin",
+    "team": "Cavaliers",
+    "contract": "$0.0M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "nikola_topić": {
+    "player_name": "Nikola Topić",
+    "team": "Thunder",
+    "contract": "$4.9M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jacob_toppin": {
+    "player_name": "Jacob Toppin",
+    "team": "Hawks",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "obi_toppin": {
+    "player_name": "Obi Toppin",
+    "team": "Pacers",
+    "contract": "$13.0M / 4 yrs",
+    "free_agent": "2028 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "karl-anthony_towns": {
+    "player_name": "Karl-Anthony Towns",
+    "team": "Knicks",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "luke_travers": {
+    "player_name": "Luke Travers",
+    "team": "Cavaliers",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "gary_trent_jr": {
+    "player_name": "Gary Trent Jr",
+    "team": "Bucks",
+    "contract": "$2.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "oscar_tshiebwe": {
+    "player_name": "Oscar Tshiebwe",
+    "team": "Jazz",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "pj_tucker": {
+    "player_name": "Pj Tucker",
+    "team": "Knicks",
+    "contract": "$0.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "myles_turner": {
+    "player_name": "Myles Turner",
+    "team": "Bucks",
+    "contract": "$19.9M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "hunter_tyson": {
+    "player_name": "Hunter Tyson",
+    "team": "Nuggets",
+    "contract": "$1.9M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jaylon_tyson": {
+    "player_name": "Jaylon Tyson",
+    "team": "Cavaliers",
+    "contract": "$3.3M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "stanley_umude": {
+    "player_name": "Stanley Umude",
+    "team": "Bucks",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jonas_valančiūnas": {
+    "player_name": "Jonas Valančiūnas",
+    "team": "Nuggets",
+    "contract": "$9.9M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "fred_vanvleet": {
+    "player_name": "Fred Vanvleet",
+    "team": "Rockets",
+    "contract": "$42.8M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jarred_vanderbilt": {
+    "player_name": "Jarred Vanderbilt",
+    "team": "Lakers",
+    "contract": "$10.7M / 4 yrs",
+    "free_agent": "2028 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "devin_vassell": {
+    "player_name": "Devin Vassell",
+    "team": "Spurs",
+    "contract": "$29.3M / 5 yrs",
+    "free_agent": "2029 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "gabe_vincent": {
+    "player_name": "Gabe Vincent",
+    "team": "Lakers",
+    "contract": "$11.0M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "tristan_vukcevic": {
+    "player_name": "Tristan Vukcevic",
+    "team": "Wizards",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "nikola_vučević": {
+    "player_name": "Nikola Vučević",
+    "team": "Bulls",
+    "contract": "$20.0M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "dean_wade": {
+    "player_name": "Dean Wade",
+    "team": "Cavaliers",
+    "contract": "$6.2M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "franz_wagner": {
+    "player_name": "Franz Wagner",
+    "team": "Magic",
+    "contract": "$7.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "moritz_wagner": {
+    "player_name": "Moritz Wagner",
+    "team": "Magic",
+    "contract": "$8.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jabari_walker": {
+    "player_name": "Jabari Walker",
+    "team": "76ers",
+    "contract": "$2.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jarace_walker": {
+    "player_name": "Jarace Walker",
+    "team": "Pacers",
+    "contract": "$6.4M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "lonnie_walker_iv": {
+    "player_name": "Lonnie Walker IV",
+    "team": "76ers",
+    "contract": "$0.8M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "cason_wallace": {
+    "player_name": "Cason Wallace",
+    "team": "Thunder",
+    "contract": "$5.6M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "keaton_wallace": {
+    "player_name": "Keaton Wallace",
+    "team": "Hawks",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jordan_walsh": {
+    "player_name": "Jordan Walsh",
+    "team": "Celtics",
+    "contract": "$1.9M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jakobe_walter": {
+    "player_name": "Jakobe Walter",
+    "team": "Raptors",
+    "contract": "$3.5M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "kelel_ware": {
+    "player_name": "Kelel Ware",
+    "team": "Heat",
+    "contract": "$4.2M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "pj_washington": {
+    "player_name": "Pj Washington",
+    "team": "Mavericks",
+    "contract": "$15.5M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "tyty_washington_jr": {
+    "player_name": "Tyty Washington Jr",
+    "team": "Clippers",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "lindy_waters_iii": {
+    "player_name": "Lindy Waters III",
+    "team": "Spurs",
+    "contract": "$2.2M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "trendon_watford": {
+    "player_name": "Trendon Watford",
+    "team": "76ers",
+    "contract": "$2.7M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "anton_watson": {
+    "player_name": "Anton Watson",
+    "team": "Knicks",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "peyton_watson": {
+    "player_name": "Peyton Watson",
+    "team": "Nuggets",
+    "contract": "$2.4M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jaylen_wells": {
+    "player_name": "Jaylen Wells",
+    "team": "Grizzlies",
+    "contract": "$1.2M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "victor_wembanyama": {
+    "player_name": "Victor Wembanyama",
+    "team": "Spurs",
+    "contract": "$12.8M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "blake_wesley": {
+    "player_name": "Blake Wesley",
+    "team": "Blazers",
+    "contract": "$2.6M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "russell_westbrook": {
+    "player_name": "Russell Westbrook",
+    "team": "Nuggets",
+    "contract": "$3.3M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "coby_white": {
+    "player_name": "Coby White",
+    "team": "Bulls",
+    "contract": "$12.0M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "derrick_white": {
+    "player_name": "Derrick White",
+    "team": "Celtics",
+    "contract": "$20.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "dariq_whitehead": {
+    "player_name": "Dariq Whitehead",
+    "team": "Nets",
+    "contract": "$3.1M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "cam_whitmore": {
+    "player_name": "Cam Whitmore",
+    "team": "Wizards",
+    "contract": "$3.4M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "aaron_wiggins": {
+    "player_name": "Aaron Wiggins",
+    "team": "Thunder",
+    "contract": "$2.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "andrew_wiggins": {
+    "player_name": "Andrew Wiggins",
+    "team": "Heat",
+    "contract": "$26.3M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "brandon_williams": {
+    "player_name": "Brandon Williams",
+    "team": "Mavericks",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "cody_williams": {
+    "player_name": "Cody Williams",
+    "team": "Jazz",
+    "contract": "$5.5M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "grant_williams": {
+    "player_name": "Grant Williams",
+    "team": "Hornets",
+    "contract": "$13.0M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jalen_williams": {
+    "player_name": "Jalen Williams",
+    "team": "Thunder",
+    "contract": "$4.8M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jaylin_williams": {
+    "player_name": "Jaylin Williams",
+    "team": "Thunder",
+    "contract": "$1.2M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "kenrich_williams": {
+    "player_name": "Kenrich Williams",
+    "team": "Thunder",
+    "contract": "$6.7M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "mark_williams": {
+    "player_name": "Mark Williams",
+    "team": "Suns",
+    "contract": "$4.1M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jeenathan_williams": {
+    "player_name": "Jeenathan Williams",
+    "team": "Rockets",
+    "contract": "$0.0M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "patrick_williams": {
+    "player_name": "Patrick Williams",
+    "team": "Bulls",
+    "contract": "$18.0M / 5 yrs",
+    "free_agent": "2029 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "ziaire_williams": {
+    "player_name": "Ziaire Williams",
+    "team": "Nets",
+    "contract": "$6.1M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "robert_williams_iii": {
+    "player_name": "Robert Williams III",
+    "team": "Blazers",
+    "contract": "$12.4M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "vince_williams_jr": {
+    "player_name": "Vince Williams Jr",
+    "team": "Grizzlies",
+    "contract": "$2.1M / 3 yrs",
+    "free_agent": "2027 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "zion_williamson": {
+    "player_name": "Zion Williamson",
+    "team": "Pelicans",
+    "contract": "$36.7M / 4 yrs",
+    "free_agent": "2028 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jalen_wilson": {
+    "player_name": "Jalen Wilson",
+    "team": "Nets",
+    "contract": "$1.9M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "delon_wright": {
+    "player_name": "Delon Wright",
+    "team": "Knicks",
+    "contract": "$2.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "guerschon_yabusele": {
+    "player_name": "Guerschon Yabusele",
+    "team": "Knicks",
+    "contract": "$2.1M / 1 yr",
+    "free_agent": "2025 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jahmir_young": {
+    "player_name": "Jahmir Young",
+    "team": "Bulls",
+    "contract": "$0.0M / 2 yrs",
+    "free_agent": "2026 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "trae_young": {
+    "player_name": "Trae Young",
+    "team": "Hawks",
+    "contract": "$43.0M / 3 yrs",
+    "free_agent": "2027 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "ivica_zubac": {
+    "player_name": "Ivica Zubac",
+    "team": "Clippers",
+    "contract": "$11.7M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "tristan_da_silva": {
+    "player_name": "Tristan Da Silva",
+    "team": "Magic",
+    "contract": "$3.6M / 4 yrs",
+    "free_agent": "2028 (RFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "vlatko_čančar": {
+    "player_name": "Vlatko Čančar",
+    "team": "Nuggets",
+    "contract": "$2.1M / 1 yr",
+    "free_agent": "2025 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "dario_šarić": {
+    "player_name": "Dario Šarić",
+    "team": "Kings",
+    "contract": "$5.2M / 2 yrs",
+    "free_agent": "2026 (UFA)",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "taran_armstrong": {
+    "player_name": "Taran Armstrong",
+    "team": "Warriors",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "ace_bailey": {
+    "player_name": "Ace Bailey",
+    "team": "Jazz",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "brooks_barnhizer": {
+    "player_name": "Brooks Barnhizer",
+    "team": "Thunder",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "tamar_bates": {
+    "player_name": "Tamar Bates",
+    "team": "Nuggets",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "joan_beringer": {
+    "player_name": "Joan Beringer",
+    "team": "Timberwolves",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "koby_brea": {
+    "player_name": "Koby Brea",
+    "team": "Suns",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "johni_broome": {
+    "player_name": "Johni Broome",
+    "team": "76ers",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "carter_bryant": {
+    "player_name": "Carter Bryant",
+    "team": "Spurs",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "dylan_cardwell": {
+    "player_name": "Dylan Cardwell",
+    "team": "Kings",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "moussa_cisse": {
+    "player_name": "Moussa Cisse",
+    "team": "Mavericks",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "walter_clayton_jr": {
+    "player_name": "Walter Clayton Jr",
+    "team": "Jazz",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "matthew_cleveland": {
+    "player_name": "Matthew Cleveland",
+    "team": "Mavericks",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "nique_clifford": {
+    "player_name": "Nique Clifford",
+    "team": "Kings",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "cedric_coward": {
+    "player_name": "Cedric Coward",
+    "team": "Grizzlies",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "rj_davis": {
+    "player_name": "Rj Davis",
+    "team": "Lakers",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "mohamed_diawara": {
+    "player_name": "Mohamed Diawara",
+    "team": "Knicks",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "hunter_dickinson": {
+    "player_name": "Hunter Dickinson",
+    "team": "Pelicans",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "eric_dixon": {
+    "player_name": "Eric Dixon",
+    "team": "Lakers",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "egor_dëmin": {
+    "player_name": "Egor Dëmin",
+    "team": "Nets",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "vj_edgecombe": {
+    "player_name": "Vj Edgecombe",
+    "team": "76ers",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "noa_essengue": {
+    "player_name": "Noa Essengue",
+    "team": "Bulls",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jeremiah_fears": {
+    "player_name": "Jeremiah Fears",
+    "team": "Pelicans",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "cooper_flagg": {
+    "player_name": "Cooper Flagg",
+    "team": "Mavericks",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "rasheer_fleming": {
+    "player_name": "Rasheer Fleming",
+    "team": "Suns",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "myron_gardner": {
+    "player_name": "Myron Gardner",
+    "team": "Heat",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "vladislav_goldin": {
+    "player_name": "Vladislav Goldin",
+    "team": "Heat",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "hugo_gonzález": {
+    "player_name": "Hugo González",
+    "team": "Celtics",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "hayden_gray": {
+    "player_name": "Hayden Gray",
+    "team": "Celtics",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "caleb_grill": {
+    "player_name": "Caleb Grill",
+    "team": "Bulls",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "dylan_harper": {
+    "player_name": "Dylan Harper",
+    "team": "Spurs",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "kevon_harris": {
+    "player_name": "Kevon Harris",
+    "team": "Rockets",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "nigel_hayes-davis": {
+    "player_name": "Nigel Hayes-Davis",
+    "team": "Kings",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "chucky_hepburn": {
+    "player_name": "Chucky Hepburn",
+    "team": "Raptors",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "cj_huntley": {
+    "player_name": "Cj Huntley",
+    "team": "Suns",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "kasparas_jakučionis": {
+    "player_name": "Kasparas Jakučionis",
+    "team": "Heat",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "sion_james": {
+    "player_name": "Sion James",
+    "team": "Hornets",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "tre_johnson": {
+    "player_name": "Tre Johnson",
+    "team": "Wizards",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "curtis_jones": {
+    "player_name": "Curtis Jones",
+    "team": "Nuggets",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "kam_jones": {
+    "player_name": "Kam Jones",
+    "team": "Pacers",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "david_jones_garcia": {
+    "player_name": "David Jones Garcia",
+    "team": "Spurs",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "ryan_kalkbrenner": {
+    "player_name": "Ryan Kalkbrenner",
+    "team": "Hornets",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "arthur_kaluma": {
+    "player_name": "Arthur Kaluma",
+    "team": "Lakers",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "kylor_kelley": {
+    "player_name": "Kylor Kelley",
+    "team": "Lakers",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "miles_kelly": {
+    "player_name": "Miles Kelly",
+    "team": "Mavericks",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "kon_knueppel": {
+    "player_name": "Kon Knueppel",
+    "team": "Hornets",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "chaz_lanier": {
+    "player_name": "Chaz Lanier",
+    "team": "Pistons",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "malevy_leons": {
+    "player_name": "Malevy Leons",
+    "team": "Thunder",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "isaiah_livers": {
+    "player_name": "Isaiah Livers",
+    "team": "Suns",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "caleb_love": {
+    "player_name": "Caleb Love",
+    "team": "Blazers",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "rj_luis_jr": {
+    "player_name": "Rj Luis Jr",
+    "team": "Celtics",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "khaman_maluach": {
+    "player_name": "Khaman Maluach",
+    "team": "Suns",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "bogoljub_marković": {
+    "player_name": "Bogoljub Marković",
+    "team": "Bucks",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "alijah_martin": {
+    "player_name": "Alijah Martin",
+    "team": "Raptors",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "augustas_marčiulionis": {
+    "player_name": "Augustas Marčiulionis",
+    "team": "Lakers",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jahmai_mashack": {
+    "player_name": "Jahmai Mashack",
+    "team": "Grizzlies",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "cameron_matthews": {
+    "player_name": "Cameron Matthews",
+    "team": "Rockets",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "chris_mañon": {
+    "player_name": "Chris Mañon",
+    "team": "Lakers",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "liam_mcneeley": {
+    "player_name": "Liam Mcneeley",
+    "team": "Hornets",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "igor_miličić,_jr": {
+    "player_name": "Igor Miličić, Jr",
+    "team": "76ers",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "collin_murray-boyles": {
+    "player_name": "Collin Murray-Boyles",
+    "team": "Raptors",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "eli_john_ndiaye": {
+    "player_name": "Eli John Ndiaye",
+    "team": "Hawks",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "ryan_nembhard": {
+    "player_name": "Ryan Nembhard",
+    "team": "Mavericks",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "asa_newell": {
+    "player_name": "Asa Newell",
+    "team": "Hawks",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "saliou_niang": {
+    "player_name": "Saliou Niang",
+    "team": "Cavaliers",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "yanic_konan_niederhäuser": {
+    "player_name": "Yanic Konan Niederhäuser",
+    "team": "Clippers",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "lachlan_olbrich": {
+    "player_name": "Lachlan Olbrich",
+    "team": "Bulls",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "micah_peavy": {
+    "player_name": "Micah Peavy",
+    "team": "Pelicans",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "noah_penda": {
+    "player_name": "Noah Penda",
+    "team": "Magic",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "taelon_peter": {
+    "player_name": "Taelon Peter",
+    "team": "Pacers",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "wooga_poplar": {
+    "player_name": "Wooga Poplar",
+    "team": "Bulls",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "drake_powell": {
+    "player_name": "Drake Powell",
+    "team": "Nets",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jason_preston": {
+    "player_name": "Jason Preston",
+    "team": "Clippers",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "tyrese_proctor": {
+    "player_name": "Tyrese Proctor",
+    "team": "Cavaliers",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "derik_queen": {
+    "player_name": "Derik Queen",
+    "team": "Pelicans",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "maxime_raynaud": {
+    "player_name": "Maxime Raynaud",
+    "team": "Kings",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "will_richard": {
+    "player_name": "Will Richard",
+    "team": "Warriors",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jase_richardson": {
+    "player_name": "Jase Richardson",
+    "team": "Magic",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "will_riley": {
+    "player_name": "Will Riley",
+    "team": "Wizards",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "orlando_robinson": {
+    "player_name": "Orlando Robinson",
+    "team": "Magic",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "hunter_sallis": {
+    "player_name": "Hunter Sallis",
+    "team": "76ers",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "kobe_sanders": {
+    "player_name": "Kobe Sanders",
+    "team": "Clippers",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "ben_saraf": {
+    "player_name": "Ben Saraf",
+    "team": "Nets",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "olivier_sarr": {
+    "player_name": "Olivier Sarr",
+    "team": "Raptors",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "mark_sears": {
+    "player_name": "Mark Sears",
+    "team": "Bucks",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "max_shulga": {
+    "player_name": "Max Shulga",
+    "team": "Celtics",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "javon_small": {
+    "player_name": "Javon Small",
+    "team": "Grizzlies",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "thomas_sorber": {
+    "player_name": "Thomas Sorber",
+    "team": "Thunder",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "adou_thiero": {
+    "player_name": "Adou Thiero",
+    "team": "Lakers",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "ethan_thompson": {
+    "player_name": "Ethan Thompson",
+    "team": "Heat",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "john_tonje": {
+    "player_name": "John Tonje",
+    "team": "Jazz",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "alex_toohey": {
+    "player_name": "Alex Toohey",
+    "team": "Warriors",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "nolan_traore": {
+    "player_name": "Nolan Traore",
+    "team": "Nets",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "jamir_watkins": {
+    "player_name": "Jamir Watkins",
+    "team": "Wizards",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "amari_williams": {
+    "player_name": "Amari Williams",
+    "team": "Celtics",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "james_wiseman": {
+    "player_name": "James Wiseman",
+    "team": "Pacers",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "danny_wolf": {
+    "player_name": "Danny Wolf",
+    "team": "Nets",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "hansen_yang": {
+    "player_name": "Hansen Yang",
+    "team": "Blazers",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "rocco_zikarsky": {
+    "player_name": "Rocco Zikarsky",
+    "team": "Timberwolves",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  },
+  "nikola_đurišić": {
+    "player_name": "Nikola Đurišić",
+    "team": "Hawks",
+    "contract": "Unknown",
+    "free_agent": "Unknown",
+    "contract_source": "scraped",
+    "last_updated": "2025-09-05T09:10:06.199Z"
+  }
+}

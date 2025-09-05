@@ -1,52 +1,92 @@
-[
-  {
-    "team_name": "Lakers",
-    "total_salary": 156110968,
+{
+  "los_angeles_lakers": {
+    "team_name": "Los Angeles Lakers",
+    "total_salary": 151094221,
     "luxury_tax_threshold": 170814000,
     "hard_cap": 178132000,
-    "available_space": 6760375,
-    "source": "mock_cap_scraping",
-    "last_updated": "2025-09-05T08:46:03.950Z",
-    "scraping_method": "fallback_mock"
+    "available_space": 18117055,
+    "source": "generated_realistic_data",
+    "last_updated": "2025-09-05T09:10:06.194Z"
   },
-  {
-    "team_name": "Warriors",
-    "total_salary": 130116738,
+  "golden_state_warriors": {
+    "team_name": "Golden State Warriors",
+    "total_salary": 155914385,
     "luxury_tax_threshold": 170814000,
     "hard_cap": 178132000,
-    "available_space": 10797037,
-    "source": "mock_cap_scraping",
-    "last_updated": "2025-09-05T08:46:03.950Z",
-    "scraping_method": "fallback_mock"
+    "available_space": 23267086,
+    "source": "generated_realistic_data",
+    "last_updated": "2025-09-05T09:10:06.194Z"
   },
-  {
-    "team_name": "Celtics",
-    "total_salary": 122383946,
+  "boston_celtics": {
+    "team_name": "Boston Celtics",
+    "total_salary": 155972103,
     "luxury_tax_threshold": 170814000,
     "hard_cap": 178132000,
-    "available_space": 1778425,
-    "source": "mock_cap_scraping",
-    "last_updated": "2025-09-05T08:46:03.950Z",
-    "scraping_method": "fallback_mock"
+    "available_space": 5405838,
+    "source": "generated_realistic_data",
+    "last_updated": "2025-09-05T09:10:06.194Z"
   },
-  {
-    "team_name": "Heat",
-    "total_salary": 124803218,
+  "miami_heat": {
+    "team_name": "Miami Heat",
+    "total_salary": 135242379,
     "luxury_tax_threshold": 170814000,
     "hard_cap": 178132000,
-    "available_space": 11511169,
-    "source": "mock_cap_scraping",
-    "last_updated": "2025-09-05T08:46:03.950Z",
-    "scraping_method": "fallback_mock"
+    "available_space": 11492798,
+    "source": "generated_realistic_data",
+    "last_updated": "2025-09-05T09:10:06.194Z"
   },
-  {
-    "team_name": "Nets",
-    "total_salary": 148209110,
+  "brooklyn_nets": {
+    "team_name": "Brooklyn Nets",
+    "total_salary": 127423616,
     "luxury_tax_threshold": 170814000,
     "hard_cap": 178132000,
-    "available_space": 10782641,
-    "source": "mock_cap_scraping",
-    "last_updated": "2025-09-05T08:46:03.950Z",
-    "scraping_method": "fallback_mock"
+    "available_space": 7809981,
+    "source": "generated_realistic_data",
+    "last_updated": "2025-09-05T09:10:06.194Z"
+  },
+  "phoenix_suns": {
+    "team_name": "Phoenix Suns",
+    "total_salary": 131907425,
+    "luxury_tax_threshold": 170814000,
+    "hard_cap": 178132000,
+    "available_space": 14129950,
+    "source": "generated_realistic_data",
+    "last_updated": "2025-09-05T09:10:06.194Z"
+  },
+  "milwaukee_bucks": {
+    "team_name": "Milwaukee Bucks",
+    "total_salary": 123598617,
+    "luxury_tax_threshold": 170814000,
+    "hard_cap": 178132000,
+    "available_space": 7766055,
+    "source": "generated_realistic_data",
+    "last_updated": "2025-09-05T09:10:06.194Z"
+  },
+  "philadelphia_76ers": {
+    "team_name": "Philadelphia 76ers",
+    "total_salary": 129659754,
+    "luxury_tax_threshold": 170814000,
+    "hard_cap": 178132000,
+    "available_space": 4616055,
+    "source": "generated_realistic_data",
+    "last_updated": "2025-09-05T09:10:06.194Z"
+  },
+  "denver_nuggets": {
+    "team_name": "Denver Nuggets",
+    "total_salary": 150812963,
+    "luxury_tax_threshold": 170814000,
+    "hard_cap": 178132000,
+    "available_space": 9932501,
+    "source": "generated_realistic_data",
+    "last_updated": "2025-09-05T09:10:06.194Z"
+  },
+  "memphis_grizzlies": {
+    "team_name": "Memphis Grizzlies",
+    "total_salary": 122930468,
+    "luxury_tax_threshold": 170814000,
+    "hard_cap": 178132000,
+    "available_space": 1879413,
+    "source": "generated_realistic_data",
+    "last_updated": "2025-09-05T09:10:06.194Z"
   }
-]
+}
