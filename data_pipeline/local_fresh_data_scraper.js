@@ -1,12 +1,14 @@
 /**
- * FRESH DATA SCRAPER - RUN LOCALLY ONLY
- * ====================================
+ * TEAM-BASED FRESH DATA SCRAPER - RUN LOCALLY ONLY
+ * ===============================================
  * 
- * This script scrapes fresh data from external sources and should be run
- * on your LOCAL machine where external APIs aren't blocked.
+ * This script scrapes fresh data using TEAM-BASED approach:
+ * - Scrapes 30 team payroll pages (NOT individual players)
+ * - 30 requests total instead of 450+ individual player requests
+ * - Gets all contracts for each team in one efficient request
  * 
  * Starting point: Your 630 player list from public/players.json
- * Output: Fresh NBA data + Fresh Spotrac contract data
+ * Output: Fresh NBA data + Fresh Spotrac contract data via team pages
  * 
  * NO FALLBACKS - If scraping fails, results will be empty so you can see what works.
  * 
@@ -213,10 +215,11 @@ async function scrapeFreshData() {
     results.nbaStats = await scrapeNBAStats();
     await sleep(2000); // Rate limiting
     
-    // Step 2: Scrape team contracts from Spotrac
+    // Step 2: Scrape team contracts from Spotrac (TEAM-BASED APPROACH)
     logProgress('');
     logProgress('💰 Step 2: Scraping Team Contracts from Spotrac...');
-    logProgress(`   Processing ${NBA_TEAMS.length} teams...`);
+    logProgress(`   🎯 TEAM-BASED APPROACH: ${NBA_TEAMS.length} team payroll pages`);
+    logProgress(`   ⚡ Efficient: 30 requests instead of 450+ individual players`);
     
     for (let i = 0; i < NBA_TEAMS.length; i++) {
         const team = NBA_TEAMS[i];
