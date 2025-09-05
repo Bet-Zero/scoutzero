@@ -5,7 +5,16 @@
  * This script scrapes fresh data from external sources and should be run
  * on your LOCAL machine where external APIs aren't blocked.
  * 
- * DO NOT RUN in sandboxed environments - external sites are blocked there.
+ * Starting point: Your 630 player list from public/players.json
+ * Output: Fresh NBA data + Fresh Spotrac contract data
+ * 
+ * NO FALLBACKS - If scraping fails, results will be empty so you can see what works.
+ * 
+ * Usage:
+ * 1. Run this script on your LOCAL machine: node local_fresh_data_scraper.js
+ * 2. It creates fresh_data.json with all scraped results
+ * 3. Run migrate_and_structure.js to create separated schema
+ * 4. Run load_to_firebase.js to upload to new collections
  */
 
 const fs = require('fs');
