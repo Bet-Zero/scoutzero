@@ -1,0 +1,302 @@
+[
+  {
+    "team": "Knicks",
+    "total_salary": 137000000,
+    "player_count": 21,
+    "luxury_tax_threshold": 170814000,
+    "over_luxury_tax": false,
+    "luxury_tax_bill": 0,
+    "source": "calculated_from_contracts",
+    "last_updated": "2025-09-05T09:41:44.364Z"
+  },
+  {
+    "team": "Rockets",
+    "total_salary": 190400000,
+    "player_count": 20,
+    "luxury_tax_threshold": 170814000,
+    "over_luxury_tax": true,
+    "luxury_tax_bill": 19586000,
+    "source": "calculated_from_contracts",
+    "last_updated": "2025-09-05T09:41:44.364Z"
+  },
+  {
+    "team": "Heat",
+    "total_salary": 162100000,
+    "player_count": 19,
+    "luxury_tax_threshold": 170814000,
+    "over_luxury_tax": false,
+    "luxury_tax_bill": 0,
+    "source": "calculated_from_contracts",
+    "last_updated": "2025-09-05T09:41:44.364Z"
+  },
+  {
+    "team": "Raptors",
+    "total_salary": 144500000,
+    "player_count": 21,
+    "luxury_tax_threshold": 170814000,
+    "over_luxury_tax": false,
+    "luxury_tax_bill": 0,
+    "source": "calculated_from_contracts",
+    "last_updated": "2025-09-05T09:41:44.365Z"
+  },
+  {
+    "team": "Grizzlies",
+    "total_salary": 106400000,
+    "player_count": 20,
+    "luxury_tax_threshold": 170814000,
+    "over_luxury_tax": false,
+    "luxury_tax_bill": 0,
+    "source": "calculated_from_contracts",
+    "last_updated": "2025-09-05T09:41:44.365Z"
+  },
+  {
+    "team": "Pelicans",
+    "total_salary": 141900000,
+    "player_count": 23,
+    "luxury_tax_threshold": 170814000,
+    "over_luxury_tax": false,
+    "luxury_tax_bill": 0,
+    "source": "calculated_from_contracts",
+    "last_updated": "2025-09-05T09:41:44.365Z"
+  },
+  {
+    "team": "Hawks",
+    "total_salary": 131300000,
+    "player_count": 19,
+    "luxury_tax_threshold": 170814000,
+    "over_luxury_tax": false,
+    "luxury_tax_bill": 0,
+    "source": "calculated_from_contracts",
+    "last_updated": "2025-09-05T09:41:44.365Z"
+  },
+  {
+    "team": "Suns",
+    "total_salary": 143900000,
+    "player_count": 23,
+    "luxury_tax_threshold": 170814000,
+    "over_luxury_tax": false,
+    "luxury_tax_bill": 0,
+    "source": "calculated_from_contracts",
+    "last_updated": "2025-09-05T09:41:44.365Z"
+  },
+  {
+    "team": "Cavaliers",
+    "total_salary": 188600000,
+    "player_count": 19,
+    "luxury_tax_threshold": 170814000,
+    "over_luxury_tax": true,
+    "luxury_tax_bill": 17786000,
+    "source": "calculated_from_contracts",
+    "last_updated": "2025-09-05T09:41:44.365Z"
+  },
+  {
+    "team": "Jazz",
+    "total_salary": 98400000,
+    "player_count": 20,
+    "luxury_tax_threshold": 170814000,
+    "over_luxury_tax": false,
+    "luxury_tax_bill": 0,
+    "source": "calculated_from_contracts",
+    "last_updated": "2025-09-05T09:41:44.365Z"
+  },
+  {
+    "team": "Bucks",
+    "total_salary": 145900000,
+    "player_count": 21,
+    "luxury_tax_threshold": 170814000,
+    "over_luxury_tax": false,
+    "luxury_tax_bill": 0,
+    "source": "calculated_from_contracts",
+    "last_updated": "2025-09-05T09:41:44.365Z"
+  },
+  {
+    "team": "Blazers",
+    "total_salary": 184900000,
+    "player_count": 19,
+    "luxury_tax_threshold": 170814000,
+    "over_luxury_tax": true,
+    "luxury_tax_bill": 14086000,
+    "source": "calculated_from_contracts",
+    "last_updated": "2025-09-05T09:41:44.365Z"
+  },
+  {
+    "team": "Lakers",
+    "total_salary": 225200000,
+    "player_count": 25,
+    "luxury_tax_threshold": 170814000,
+    "over_luxury_tax": true,
+    "luxury_tax_bill": 54386000,
+    "source": "calculated_from_contracts",
+    "last_updated": "2025-09-05T09:41:44.365Z"
+  },
+  {
+    "team": "Wizards",
+    "total_salary": 157900000,
+    "player_count": 22,
+    "luxury_tax_threshold": 170814000,
+    "over_luxury_tax": false,
+    "luxury_tax_bill": 0,
+    "source": "calculated_from_contracts",
+    "last_updated": "2025-09-05T09:41:44.365Z"
+  },
+  {
+    "team": "Clippers",
+    "total_salary": 239800000,
+    "player_count": 22,
+    "luxury_tax_threshold": 170814000,
+    "over_luxury_tax": true,
+    "luxury_tax_bill": 68986000,
+    "source": "calculated_from_contracts",
+    "last_updated": "2025-09-05T09:41:44.365Z"
+  },
+  {
+    "team": "Hornets",
+    "total_salary": 154200000,
+    "player_count": 25,
+    "luxury_tax_threshold": 170814000,
+    "over_luxury_tax": false,
+    "luxury_tax_bill": 0,
+    "source": "calculated_from_contracts",
+    "last_updated": "2025-09-05T09:41:44.365Z"
+  },
+  {
+    "team": "Magic",
+    "total_salary": 130700000,
+    "player_count": 20,
+    "luxury_tax_threshold": 170814000,
+    "over_luxury_tax": false,
+    "luxury_tax_bill": 0,
+    "source": "calculated_from_contracts",
+    "last_updated": "2025-09-05T09:41:44.365Z"
+  },
+  {
+    "team": "76ers",
+    "total_salary": 170600000,
+    "player_count": 23,
+    "luxury_tax_threshold": 170814000,
+    "over_luxury_tax": false,
+    "luxury_tax_bill": 0,
+    "source": "calculated_from_contracts",
+    "last_updated": "2025-09-05T09:41:44.365Z"
+  },
+  {
+    "team": "Spurs",
+    "total_salary": 153000000,
+    "player_count": 22,
+    "luxury_tax_threshold": 170814000,
+    "over_luxury_tax": false,
+    "luxury_tax_bill": 0,
+    "source": "calculated_from_contracts",
+    "last_updated": "2025-09-05T09:41:44.366Z"
+  },
+  {
+    "team": "Pistons",
+    "total_salary": 133600000,
+    "player_count": 19,
+    "luxury_tax_threshold": 170814000,
+    "over_luxury_tax": false,
+    "luxury_tax_bill": 0,
+    "source": "calculated_from_contracts",
+    "last_updated": "2025-09-05T09:41:44.366Z"
+  },
+  {
+    "team": "Nets",
+    "total_salary": 119400000,
+    "player_count": 23,
+    "luxury_tax_threshold": 170814000,
+    "over_luxury_tax": false,
+    "luxury_tax_bill": 0,
+    "source": "calculated_from_contracts",
+    "last_updated": "2025-09-05T09:41:44.366Z"
+  },
+  {
+    "team": "Celtics",
+    "total_salary": 172900000,
+    "player_count": 21,
+    "luxury_tax_threshold": 170814000,
+    "over_luxury_tax": true,
+    "luxury_tax_bill": 2086000,
+    "source": "calculated_from_contracts",
+    "last_updated": "2025-09-05T09:41:44.366Z"
+  },
+  {
+    "team": "Pacers",
+    "total_salary": 146600000,
+    "player_count": 20,
+    "luxury_tax_threshold": 170814000,
+    "over_luxury_tax": false,
+    "luxury_tax_bill": 0,
+    "source": "calculated_from_contracts",
+    "last_updated": "2025-09-05T09:41:44.366Z"
+  },
+  {
+    "team": "Nuggets",
+    "total_salary": 213200000,
+    "player_count": 21,
+    "luxury_tax_threshold": 170814000,
+    "over_luxury_tax": true,
+    "luxury_tax_bill": 42386000,
+    "source": "calculated_from_contracts",
+    "last_updated": "2025-09-05T09:41:44.366Z"
+  },
+  {
+    "team": "Warriors",
+    "total_salary": 165500000,
+    "player_count": 18,
+    "luxury_tax_threshold": 170814000,
+    "over_luxury_tax": false,
+    "luxury_tax_bill": 0,
+    "source": "calculated_from_contracts",
+    "last_updated": "2025-09-05T09:41:44.366Z"
+  },
+  {
+    "team": "Bulls",
+    "total_salary": 140700000,
+    "player_count": 23,
+    "luxury_tax_threshold": 170814000,
+    "over_luxury_tax": false,
+    "luxury_tax_bill": 0,
+    "source": "calculated_from_contracts",
+    "last_updated": "2025-09-05T09:41:44.366Z"
+  },
+  {
+    "team": "Thunder",
+    "total_salary": 99700000,
+    "player_count": 19,
+    "luxury_tax_threshold": 170814000,
+    "over_luxury_tax": false,
+    "luxury_tax_bill": 0,
+    "source": "calculated_from_contracts",
+    "last_updated": "2025-09-05T09:41:44.366Z"
+  },
+  {
+    "team": "Kings",
+    "total_salary": 174900000,
+    "player_count": 23,
+    "luxury_tax_threshold": 170814000,
+    "over_luxury_tax": true,
+    "luxury_tax_bill": 4086000,
+    "source": "calculated_from_contracts",
+    "last_updated": "2025-09-05T09:41:44.366Z"
+  },
+  {
+    "team": "Mavericks",
+    "total_salary": 187500000,
+    "player_count": 21,
+    "luxury_tax_threshold": 170814000,
+    "over_luxury_tax": true,
+    "luxury_tax_bill": 16686000,
+    "source": "calculated_from_contracts",
+    "last_updated": "2025-09-05T09:41:44.366Z"
+  },
+  {
+    "team": "Timberwolves",
+    "total_salary": 190300000,
+    "player_count": 18,
+    "luxury_tax_threshold": 170814000,
+    "over_luxury_tax": true,
+    "luxury_tax_bill": 19486000,
+    "source": "calculated_from_contracts",
+    "last_updated": "2025-09-05T09:41:44.366Z"
+  }
+]
