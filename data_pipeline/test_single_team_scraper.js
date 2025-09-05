@@ -123,36 +123,81 @@ async function testTeamScraping() {
         const players = [];
         
         targetTable.find('tr').each((i, row) => {
-            const cells = $(row).find('td');
-            if (cells.length >= 2) {
-                const nameCell = $(cells[0]);
-                const salaryCell = $(cells[1]);
+            const cells = $(row).find('td, th');
+            
+            if (cells.length >= 1) {
+                // Log all cells for debugging
+                const cellTexts = [];
+                cells.each((j, cell) => {
+                    const text = $(cell).text().trim();
+                    cellTexts.push(text.substring(0, 30));
+                });
+                logProgress(`   Row ${i + 1}: [${cellTexts.join(' | ')}]`);
                 
-                const playerName = nameCell.text().trim();
-                const salaryText = salaryCell.text().trim();
+                // Try different column combinations for name/salary
+                let playerName = '';
+                let salaryText = '';
+                let foundValidPair = false;
                 
-                logProgress(`   Row ${i + 1}: "${playerName}" | "${salaryText}"`);
-                
-                if (playerName && 
-                    salaryText && 
-                    !playerName.toLowerCase().includes('player') &&
-                    !playerName.toLowerCase().includes('total') &&
-                    !salaryText.toLowerCase().includes('total') &&
-                    !salaryText.toLowerCase().includes('cap') &&
-                    salaryText.includes('$')) {
-                    
-                    const salaryMatch = salaryText.match(/\$([0-9,]+)/);
-                    const salary = salaryMatch ? parseInt(salaryMatch[1].replace(/,/g, '')) : 0;
-                    
-                    if (salary > 0) {
-                        players.push({
-                            name: playerName,
-                            team: TEST_TEAM.abbrev,
-                            salary: salary,
-                            salaryDisplay: salaryText
-                        });
-                        logProgress(`     ✅ Valid player: ${playerName} - $${salary.toLocaleString()}`);
+                // Strategy 1: Name in first column, salary in second
+                if (cells.length >= 2) {
+                    const name1 = $(cells[0]).text().trim();
+                    const salary1 = $(cells[1]).text().trim();
+                    if (name1 && salary1 && salary1.includes('$')) {
+                        playerName = name1;
+                        salaryText = salary1;
+                        foundValidPair = true;
+                        logProgress(`     Strategy 1: "${name1}" | "${salary1}"`);
                     }
+                }
+                
+                // Strategy 2: Look for salary in any column
+                if (!foundValidPair && cells.length >= 2) {
+                    for (let j = 1; j < Math.min(cells.length, 5); j++) {
+                        const potentialSalary = $(cells[j]).text().trim();
+                        if (potentialSalary.includes('$') && potentialSalary.match(/\$[\d,]+/)) {
+                            playerName = $(cells[0]).text().trim();
+                            salaryText = potentialSalary;
+                            foundValidPair = true;
+                            logProgress(`     Strategy 2: "${playerName}" | "${potentialSalary}" (col ${j})`);
+                            break;
+                        }
+                    }
+                }
+                
+                if (foundValidPair && playerName && salaryText) {
+                    // Skip header and summary rows
+                    const nameCheck = playerName.toLowerCase();
+                    const salaryCheck = salaryText.toLowerCase();
+                    
+                    if (!nameCheck.includes('player') &&
+                        !nameCheck.includes('total') &&
+                        !nameCheck.includes('cap') &&
+                        !nameCheck.includes('payroll') &&
+                        !salaryCheck.includes('total') &&
+                        !salaryCheck.includes('cap') &&
+                        salaryText.includes('$')) {
+                        
+                        const salaryMatch = salaryText.match(/\$([0-9,]+)/);
+                        const salary = salaryMatch ? parseInt(salaryMatch[1].replace(/,/g, '')) : 0;
+                        
+                        if (salary > 0) {
+                            players.push({
+                                name: playerName,
+                                team: TEST_TEAM.abbrev,
+                                salary: salary,
+                                salaryDisplay: salaryText,
+                                detectedStrategy: foundValidPair ? 'multi-column' : 'standard'
+                            });
+                            logProgress(`     ✅ Valid player: ${playerName} - $${salary.toLocaleString()}`);
+                        } else {
+                            logProgress(`     ⚠️  Valid format but zero salary: ${playerName} - ${salaryText}`);
+                        }
+                    } else {
+                        logProgress(`     ⏭️  Skipped (header/total): ${playerName} - ${salaryText}`);
+                    }
+                } else {
+                    logProgress(`     ❌ No valid name/salary pair found`);
                 }
             }
         });

@@ -171,43 +171,82 @@ async function scrapeTeamContracts(team) {
         }
         
         // Parse the payroll table rows
+        logProgress(`    📋 Parsing table rows for player extraction...`);
         targetTable.find('tr').each((i, row) => {
-            const cells = $(row).find('td');
+            const cells = $(row).find('td, th');
+            
+            if (cells.length >= 1 && i < 5) {
+                // Show first 5 rows for debugging
+                const cellTexts = [];
+                cells.each((j, cell) => {
+                    const text = $(cell).text().trim();
+                    cellTexts.push(text.substring(0, 20));
+                });
+                logProgress(`      Row ${i + 1}: [${cellTexts.join(' | ')}]`);
+            }
+            
             if (cells.length >= 2) {
-                const nameCell = $(cells[0]);
-                const salaryCell = $(cells[1]);
+                // Try different column strategies
+                let playerName = '';
+                let salaryText = '';
+                let foundValidPair = false;
                 
-                const playerName = nameCell.text().trim();
-                const salaryText = salaryCell.text().trim();
+                // Strategy 1: First column = name, second = salary
+                const name1 = $(cells[0]).text().trim();
+                const salary1 = $(cells[1]).text().trim();
+                if (name1 && salary1 && salary1.includes('$')) {
+                    playerName = name1;
+                    salaryText = salary1;
+                    foundValidPair = true;
+                }
                 
-                // Skip header rows and total rows
-                if (playerName && 
-                    salaryText && 
-                    !playerName.toLowerCase().includes('player') &&
-                    !playerName.toLowerCase().includes('total') &&
-                    !salaryText.toLowerCase().includes('total') &&
-                    !salaryText.toLowerCase().includes('cap') &&
-                    salaryText.includes('$')) {
+                // Strategy 2: Look for salary in any column 2-5
+                if (!foundValidPair) {
+                    for (let j = 1; j < Math.min(cells.length, 5); j++) {
+                        const potentialSalary = $(cells[j]).text().trim();
+                        if (potentialSalary.includes('$') && potentialSalary.match(/\$[\d,]+/)) {
+                            playerName = $(cells[0]).text().trim();
+                            salaryText = potentialSalary;
+                            foundValidPair = true;
+                            break;
+                        }
+                    }
+                }
+                
+                if (foundValidPair && playerName && salaryText) {
+                    // Skip header rows and total rows
+                    const nameCheck = playerName.toLowerCase();
+                    const salaryCheck = salaryText.toLowerCase();
                     
-                    // Parse salary (e.g., "$25,000,000" -> 25000000)
-                    const salaryMatch = salaryText.match(/\$([0-9,]+)/);
-                    const salary = salaryMatch ? parseInt(salaryMatch[1].replace(/,/g, '')) : 0;
-                    
-                    // Extract contract length if available
-                    const contractYearsMatch = salaryText.match(/(\d+)\s*yr/i);
-                    const contractYears = contractYearsMatch ? parseInt(contractYearsMatch[1]) : 1;
-                    
-                    // Only add if we have a valid salary
-                    if (salary > 0) {
-                        players.push({
-                            name: playerName,
-                            team: team.abbrev,
-                            salary: salary,
-                            salaryDisplay: salaryText,
-                            contractYears: contractYears,
-                            scrapedFrom: url,
-                            tableSelector: usedSelector
-                        });
+                    if (!nameCheck.includes('player') &&
+                        !nameCheck.includes('total') &&
+                        !nameCheck.includes('cap') &&
+                        !nameCheck.includes('payroll') &&
+                        !salaryCheck.includes('total') &&
+                        !salaryCheck.includes('cap') &&
+                        salaryText.includes('$') &&
+                        nameCheck.length > 3) { // Reasonable name length
+                        
+                        // Parse salary (e.g., "$25,000,000" -> 25000000)
+                        const salaryMatch = salaryText.match(/\$([0-9,]+)/);
+                        const salary = salaryMatch ? parseInt(salaryMatch[1].replace(/,/g, '')) : 0;
+                        
+                        // Extract contract length if available
+                        const contractYearsMatch = salaryText.match(/(\d+)\s*yr/i);
+                        const contractYears = contractYearsMatch ? parseInt(contractYearsMatch[1]) : 1;
+                        
+                        // Only add if we have a valid salary > $0
+                        if (salary > 0) {
+                            players.push({
+                                name: playerName,
+                                team: team.abbrev,
+                                salary: salary,
+                                salaryDisplay: salaryText,
+                                contractYears: contractYears,
+                                scrapedFrom: url,
+                                tableSelector: usedSelector
+                            });
+                        }
                     }
                 }
             }
@@ -216,16 +255,30 @@ async function scrapeTeamContracts(team) {
         logProgress(`    ✅ Found ${players.length} players with contracts`);
         
         if (players.length === 0) {
-            logProgress(`    🔍 Debug: First 3 rows from table:`);
-            targetTable.find('tr').slice(0, 3).each((i, row) => {
+            logProgress(`    🔍 Debug: First 5 rows from selected table:`);
+            targetTable.find('tr').slice(0, 5).each((i, row) => {
                 const cells = $(row).find('td, th');
                 const cellData = [];
                 cells.each((j, cell) => {
                     const text = $(cell).text().trim();
-                    cellData.push(text.substring(0, 30));
+                    cellData.push(text.substring(0, 25));
                 });
                 logProgress(`       Row ${i + 1}: [${cellData.join(' | ')}]`);
             });
+            
+            logProgress(`    🔍 Looking for salary patterns in all cells...`);
+            let salaryFound = false;
+            targetTable.find('td, th').each((i, cell) => {
+                const text = $(cell).text().trim();
+                if (text.includes('$') && text.match(/\$[\d,]+/) && !salaryFound) {
+                    logProgress(`       💰 Found salary pattern: "${text}"`);
+                    salaryFound = true;
+                }
+            });
+            
+            if (!salaryFound) {
+                logProgress(`       ⚠️  No salary patterns ($xxx,xxx) found in table`);
+            }
         }
         
         return {
