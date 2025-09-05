@@ -63,8 +63,10 @@ async function testTeamScraping() {
             'table.payroll',
             'table[class*="payroll"]',
             'table[class*="salary"]',  
-            'table.table',
             'table.datatable',
+            'table.dataTable',
+            'table[class*="dataTable"]',
+            'table.table',
             '.payroll-table table',
             '.salary-table table',
             'table'
@@ -103,7 +105,7 @@ async function testTeamScraping() {
                     }
                 });
                 
-                if (bestTable && maxRows > 5) {
+                if (bestTable && maxRows > 3) {
                     targetTable = bestTable;
                     usedSelector = selector;
                     logProgress(`🎯 SELECTED TABLE: "${selector}" (${maxRows} rows)`);
@@ -153,13 +155,14 @@ async function testTeamScraping() {
                 
                 // Strategy 2: Look for salary in any column
                 if (!foundValidPair && cells.length >= 2) {
-                    for (let j = 1; j < Math.min(cells.length, 5); j++) {
+                    for (let j = 1; j < Math.min(cells.length, 7); j++) {
                         const potentialSalary = $(cells[j]).text().trim();
-                        if (potentialSalary.includes('$') && potentialSalary.match(/\$[\d,]+/)) {
+                        if ((potentialSalary.includes('$') && potentialSalary.match(/\$[\d,]+/)) ||
+                            (potentialSalary.match(/^\d{1,3}(,\d{3})+$/) && parseInt(potentialSalary.replace(/,/g, '')) > 100000)) {
                             playerName = $(cells[0]).text().trim();
-                            salaryText = potentialSalary;
+                            salaryText = potentialSalary.includes('$') ? potentialSalary : '$' + potentialSalary;
                             foundValidPair = true;
-                            logProgress(`     Strategy 2: "${playerName}" | "${potentialSalary}" (col ${j})`);
+                            logProgress(`     Strategy 2: "${playerName}" | "${salaryText}" (col ${j})`);
                             break;
                         }
                     }
@@ -178,7 +181,7 @@ async function testTeamScraping() {
                         !salaryCheck.includes('cap') &&
                         salaryText.includes('$')) {
                         
-                        const salaryMatch = salaryText.match(/\$([0-9,]+)/);
+                        const salaryMatch = salaryText.match(/\$?([0-9,]+)/);
                         const salary = salaryMatch ? parseInt(salaryMatch[1].replace(/,/g, '')) : 0;
                         
                         if (salary > 0) {

@@ -116,8 +116,10 @@ async function scrapeTeamContracts(team) {
             'table.payroll',           // Original selector
             'table[class*="payroll"]', // Contains "payroll"
             'table[class*="salary"]',  // Contains "salary"  
-            'table.table',             // Generic table class
             'table.datatable',         // Common datatable class
+            'table.dataTable',         // Case variation
+            'table[class*="dataTable"]', // Contains dataTable
+            'table.table',             // Generic table class
             '.payroll-table table',    // Table inside payroll div
             '.salary-table table',     // Table inside salary div
             'table',                   // Any table (fallback)
@@ -141,7 +143,7 @@ async function scrapeTeamContracts(team) {
                     }
                 });
                 
-                if (bestTable && maxRows > 5) { // Must have at least header + some data
+                if (bestTable && maxRows > 3) { // Lower threshold - any table with data
                     targetTable = bestTable;
                     usedSelector = selector;
                     logProgress(`    ✅ Found payroll table using: ${selector} (${maxRows} rows)`);
@@ -200,13 +202,30 @@ async function scrapeTeamContracts(team) {
                     foundValidPair = true;
                 }
                 
-                // Strategy 2: Look for salary in any column 2-5
+                // Strategy 2: Look for salary in any column 2-6 (expanded range)
                 if (!foundValidPair) {
-                    for (let j = 1; j < Math.min(cells.length, 5); j++) {
+                    for (let j = 1; j < Math.min(cells.length, 7); j++) {
                         const potentialSalary = $(cells[j]).text().trim();
-                        if (potentialSalary.includes('$') && potentialSalary.match(/\$[\d,]+/)) {
+                        // More flexible salary pattern matching
+                        if ((potentialSalary.includes('$') || potentialSalary.match(/\d{1,3}(,\d{3})*(,\d{3})/)) && 
+                            (potentialSalary.match(/\$[\d,]+/) || potentialSalary.match(/\d+,\d{3}/))) {
                             playerName = $(cells[0]).text().trim();
                             salaryText = potentialSalary;
+                            foundValidPair = true;
+                            break;
+                        }
+                    }
+                }
+                
+                // Strategy 3: Look for any cell with large numbers (salary without $)
+                if (!foundValidPair) {
+                    for (let j = 1; j < Math.min(cells.length, 7); j++) {
+                        const potentialSalary = $(cells[j]).text().trim();
+                        // Match large numbers that could be salaries
+                        if (potentialSalary.match(/^\d{1,3}(,\d{3})+$/) && 
+                            parseInt(potentialSalary.replace(/,/g, '')) > 100000) {
+                            playerName = $(cells[0]).text().trim();
+                            salaryText = '$' + potentialSalary; // Add $ prefix
                             foundValidPair = true;
                             break;
                         }
@@ -227,8 +246,12 @@ async function scrapeTeamContracts(team) {
                         salaryText.includes('$') &&
                         nameCheck.length > 3) { // Reasonable name length
                         
-                        // Parse salary (e.g., "$25,000,000" -> 25000000)
-                        const salaryMatch = salaryText.match(/\$([0-9,]+)/);
+                        // More flexible salary parsing
+                        let salaryMatch = salaryText.match(/\$([0-9,]+)/);
+                        if (!salaryMatch) {
+                            // Try without $ prefix
+                            salaryMatch = salaryText.match(/([0-9,]+)/);
+                        }
                         const salary = salaryMatch ? parseInt(salaryMatch[1].replace(/,/g, '')) : 0;
                         
                         // Extract contract length if available
