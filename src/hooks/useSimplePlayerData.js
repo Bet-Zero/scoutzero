@@ -25,7 +25,8 @@ const useSimplePlayerData = () => {
     console.log('📡 Using new separated schema collections (no fallback)');
     
     const nbaPlayersRef = collection(db, 'nba_players');
-    const playersQuery = query(nbaPlayersRef, orderBy('name'));
+    // Fixed: Use 'Name' instead of 'name' for ordering
+    const playersQuery = query(nbaPlayersRef, orderBy('Name'));
     
     const unsubscribe = onSnapshot(
       playersQuery,

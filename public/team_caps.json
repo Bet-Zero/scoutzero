@@ -1,0 +1,52 @@
+[
+  {
+    "team_name": "Lakers",
+    "total_salary": 156110968,
+    "luxury_tax_threshold": 170814000,
+    "hard_cap": 178132000,
+    "available_space": 6760375,
+    "source": "mock_cap_scraping",
+    "last_updated": "2025-09-05T08:46:03.950Z",
+    "scraping_method": "fallback_mock"
+  },
+  {
+    "team_name": "Warriors",
+    "total_salary": 130116738,
+    "luxury_tax_threshold": 170814000,
+    "hard_cap": 178132000,
+    "available_space": 10797037,
+    "source": "mock_cap_scraping",
+    "last_updated": "2025-09-05T08:46:03.950Z",
+    "scraping_method": "fallback_mock"
+  },
+  {
+    "team_name": "Celtics",
+    "total_salary": 122383946,
+    "luxury_tax_threshold": 170814000,
+    "hard_cap": 178132000,
+    "available_space": 1778425,
+    "source": "mock_cap_scraping",
+    "last_updated": "2025-09-05T08:46:03.950Z",
+    "scraping_method": "fallback_mock"
+  },
+  {
+    "team_name": "Heat",
+    "total_salary": 124803218,
+    "luxury_tax_threshold": 170814000,
+    "hard_cap": 178132000,
+    "available_space": 11511169,
+    "source": "mock_cap_scraping",
+    "last_updated": "2025-09-05T08:46:03.950Z",
+    "scraping_method": "fallback_mock"
+  },
+  {
+    "team_name": "Nets",
+    "total_salary": 148209110,
+    "luxury_tax_threshold": 170814000,
+    "hard_cap": 178132000,
+    "available_space": 10782641,
+    "source": "mock_cap_scraping",
+    "last_updated": "2025-09-05T08:46:03.950Z",
+    "scraping_method": "fallback_mock"
+  }
+]
