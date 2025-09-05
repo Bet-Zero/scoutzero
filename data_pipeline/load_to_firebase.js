@@ -6,24 +6,36 @@
  * Run after migrate_and_structure.js has created the JSON files.
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-// Firebase setup
-let admin;
-try {
-    admin = require('firebase-admin');
-    const serviceAccount = require('../serviceAccountKey.json');
-    
-    if (!admin.apps.length) {
-        admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount)
-        });
+// Get __dirname equivalent for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Firebase setup (dynamic import)
+let admin = null;
+let firebaseAvailable = false;
+
+async function initializeFirebase() {
+    try {
+        const { default: firebaseAdmin } = await import('firebase-admin');
+        admin = firebaseAdmin;
+        const { default: serviceAccount } = await import('../serviceAccountKey.json', { assert: { type: 'json' } });
+        
+        if (!admin.apps.length) {
+            admin.initializeApp({
+                credential: admin.credential.cert(serviceAccount)
+            });
+        }
+        firebaseAvailable = true;
+        console.log('✅ Firebase initialized successfully');
+    } catch (error) {
+        console.error('❌ Firebase setup failed. Ensure serviceAccountKey.json exists.');
+        console.error('   Run this script from your local environment with Firebase access.');
+        throw error;
     }
-} catch (error) {
-    console.error('❌ Firebase setup failed. Ensure serviceAccountKey.json exists.');
-    console.error('   Run this script from your local environment with Firebase access.');
-    process.exit(1);
 }
 
 const INPUT_DIR = path.join(__dirname, 'output', 'separated_schema');
@@ -126,6 +138,9 @@ async function createBackup(db, collectionNames) {
  * Main upload function
  */
 async function loadToFirebase() {
+    // Initialize Firebase first
+    await initializeFirebase();
+    
     logProgress('🚀 LOAD TO FIREBASE - SEPARATED SCHEMA');
     logProgress('=====================================');
     logProgress('📤 Uploading processed data to Firebase collections');
@@ -196,4 +211,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { loadToFirebase };
+export { loadToFirebase };

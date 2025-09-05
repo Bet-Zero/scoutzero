@@ -17,22 +17,35 @@
  * 3. Use load_to_firebase.js to upload to Firebase
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-// Check for Firebase (optional in this environment)
-let admin;
-try {
-    admin = require('firebase-admin');
-    const serviceAccount = require('../serviceAccountKey.json');
-    
-    if (!admin.apps.length) {
-        admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount)
-        });
+// Get __dirname equivalent for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Firebase setup (dynamic import)
+let admin = null;
+let firebaseAvailable = false;
+
+async function initializeFirebase() {
+    try {
+        const { default: firebaseAdmin } = await import('firebase-admin');
+        admin = firebaseAdmin;
+        const { default: serviceAccount } = await import('../serviceAccountKey.json', { assert: { type: 'json' } });
+        
+        if (!admin.apps.length) {
+            admin.initializeApp({
+                credential: admin.credential.cert(serviceAccount)
+            });
+        }
+        firebaseAvailable = true;
+        console.log('✅ Firebase initialized successfully');
+    } catch (error) {
+        console.log('⚠️  Firebase not available - will create JSON files only');
+        firebaseAvailable = false;
     }
-} catch (error) {
-    console.log('⚠️  Firebase not available - will create JSON files only');
 }
 
 const OUTPUT_DIR = path.join(__dirname, 'output', 'separated_schema');
@@ -84,6 +97,12 @@ async function migrateUserEvaluations() {
     if (!admin) {
         logProgress('⚠️  Firebase not available - will create empty evaluations');
         logProgress('   Add serviceAccountKey.json and run locally to migrate your evaluations');
+        return {};
+    }
+    
+    if (!firebaseAvailable || !admin) {
+        console.log('⚠️  Firebase not available - no evaluation migration');
+        console.log('   Evaluations will be empty in new schema');
         return {};
     }
     
@@ -326,6 +345,9 @@ function saveToFiles(nbaPlayers, contracts, evaluations, teamCaps) {
  * Main migration and structuring function
  */
 async function migrateAndStructure() {
+    // Initialize Firebase first
+    await initializeFirebase();
+    
     console.log('🔄 MIGRATE AND STRUCTURE - SEPARATED SCHEMA');
     console.log('===========================================');
     console.log('📊 NO FALLBACKS: Fresh data only + your evaluations only');
@@ -397,4 +419,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { migrateAndStructure };
+export { migrateAndStructure };

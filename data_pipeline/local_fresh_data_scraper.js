@@ -19,10 +19,15 @@
  * 4. Run load_to_firebase.js to upload to new collections
  */
 
-const fs = require('fs');
-const path = require('path');
-const axios = require('axios');
-const cheerio = require('cheerio');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fetch from 'node-fetch';
+import * as cheerio from 'cheerio';
+
+// Get __dirname equivalent for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Configuration
 const NBA_TEAMS = [
@@ -84,14 +89,15 @@ async function scrapeTeamContracts(team) {
         const url = `https://www.spotrac.com/nba/${team.id}/payroll/`;
         logProgress(`  📊 Scraping ${team.name} contracts...`);
         
-        const response = await axios.get(url, {
+        const response = await fetch(url, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
             },
-            timeout: 10000
+            signal: AbortSignal.timeout(10000) // 10 second timeout
         });
         
-        const $ = cheerio.load(response.data);
+        const html = await response.text();
+        const $ = cheerio.load(html);
         const players = [];
         
         // Parse salary table
@@ -154,16 +160,16 @@ async function scrapeNBAStats() {
         // NBA Stats API endpoint for all players
         const url = 'https://stats.nba.com/stats/commonallplayers?LeagueID=00&Season=2024-25&IsOnlyCurrentSeason=1';
         
-        const response = await axios.get(url, {
+        const response = await fetch(url, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
                 'Referer': 'https://stats.nba.com/',
                 'Accept': 'application/json'
             },
-            timeout: 15000
+            signal: AbortSignal.timeout(15000)
         });
         
-        const data = response.data;
+        const data = await response.json();
         const players = [];
         
         if (data.resultSets && data.resultSets[0] && data.resultSets[0].rowSet) {
@@ -267,12 +273,12 @@ async function scrapeFreshData() {
     return results;
 }
 
-// Run if called directly
-if (require.main === module) {
+// Run if script is executed directly (ES module equivalent)
+if (import.meta.url === `file://${process.argv[1]}`) {
     scrapeFreshData().catch(error => {
         logProgress(`❌ Fatal error: ${error.message}`);
         process.exit(1);
     });
 }
 
-module.exports = { scrapeFreshData };
+export { scrapeFreshData };
