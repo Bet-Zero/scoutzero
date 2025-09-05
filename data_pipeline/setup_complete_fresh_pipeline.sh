@@ -70,9 +70,14 @@ if [ "$SPOTRAC_AVAILABLE" = true ] && [ "$NBA_API_AVAILABLE" = true ]; then
     echo ""
     
     # Execute the pipeline
-    echo "📊 Step 1: Team-Based Fresh Data Scraping (30 team pages)..."
-    if node local_fresh_data_scraper.js; then
-        echo "✅ Fresh data scraping completed"
+    echo "🧪 Step 0: Testing scraper with single team..."
+    if node test_single_team_scraper.js; then
+        echo "✅ Single team test completed - check results above"
+        echo ""
+        
+        echo "📊 Step 1: Team-Based Fresh Data Scraping (30 team pages)..."
+        if node local_fresh_data_scraper.js; then
+            echo "✅ Fresh data scraping completed"
         
         echo ""
         echo "📊 Step 2: Creating Separated Schema..."
@@ -115,11 +120,13 @@ else
     echo "To run the complete fresh data pipeline:"
     echo ""
     echo "1. Download these scripts to your LOCAL machine:"
+    echo "   - test_single_team_scraper.js       # Test with one team first"
     echo "   - local_fresh_data_scraper.js"
     echo "   - migrate_and_structure.js" 
     echo "   - load_to_firebase.js"
     echo ""
     echo "2. On your LOCAL machine, run (TEAM-BASED APPROACH):"
+    echo "   node test_single_team_scraper.js    # Test scraping with one team first"
     echo "   node local_fresh_data_scraper.js    # Scrapes 30 team payroll pages (efficient!)"
     echo "   node migrate_and_structure.js       # Creates separated schema"
     echo "   node load_to_firebase.js            # Uploads to Firebase"

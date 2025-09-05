@@ -91,26 +91,104 @@ async function scrapeTeamContracts(team) {
         
         const response = await fetch(url, {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1'
             },
-            signal: AbortSignal.timeout(10000) // 10 second timeout
+            signal: AbortSignal.timeout(15000) // Increased timeout
         });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
         
         const html = await response.text();
         const $ = cheerio.load(html);
         const players = [];
         
-        // Parse salary table
-        $('table.payroll tr').each((i, row) => {
+        logProgress(`    🔍 Analyzing HTML structure (${html.length} chars)...`);
+        
+        // Try multiple table selectors that Spotrac might use
+        const tableSelectors = [
+            'table.payroll',           // Original selector
+            'table[class*="payroll"]', // Contains "payroll"
+            'table[class*="salary"]',  // Contains "salary"  
+            'table.table',             // Generic table class
+            'table.datatable',         // Common datatable class
+            '.payroll-table table',    // Table inside payroll div
+            '.salary-table table',     // Table inside salary div
+            'table',                   // Any table (fallback)
+        ];
+        
+        let targetTable = null;
+        let usedSelector = '';
+        
+        for (const selector of tableSelectors) {
+            const tables = $(selector);
+            if (tables.length > 0) {
+                // Find table with most rows (likely the payroll table)
+                let bestTable = null;
+                let maxRows = 0;
+                
+                tables.each((i, table) => {
+                    const rowCount = $(table).find('tr').length;
+                    if (rowCount > maxRows) {
+                        maxRows = rowCount;
+                        bestTable = $(table);
+                    }
+                });
+                
+                if (bestTable && maxRows > 5) { // Must have at least header + some data
+                    targetTable = bestTable;
+                    usedSelector = selector;
+                    logProgress(`    ✅ Found payroll table using: ${selector} (${maxRows} rows)`);
+                    break;
+                }
+            }
+        }
+        
+        if (!targetTable) {
+            logProgress(`    ⚠️  No suitable payroll table found. Available tables:`);
+            $('table').each((i, table) => {
+                const classes = $(table).attr('class') || 'no-class';
+                const rows = $(table).find('tr').length;
+                logProgress(`       Table ${i + 1}: class="${classes}", rows=${rows}`);
+            });
+            
+            return {
+                team: team.abbrev,
+                players: [],
+                error: 'No payroll table found',
+                scrapedAt: new Date().toISOString(),
+                debugInfo: {
+                    htmlLength: html.length,
+                    totalTables: $('table').length
+                }
+            };
+        }
+        
+        // Parse the payroll table rows
+        targetTable.find('tr').each((i, row) => {
             const cells = $(row).find('td');
-            if (cells.length > 0) {
+            if (cells.length >= 2) {
                 const nameCell = $(cells[0]);
                 const salaryCell = $(cells[1]);
                 
                 const playerName = nameCell.text().trim();
                 const salaryText = salaryCell.text().trim();
                 
-                if (playerName && salaryText && !salaryText.includes('Total') && !salaryText.includes('Cap')) {
+                // Skip header rows and total rows
+                if (playerName && 
+                    salaryText && 
+                    !playerName.toLowerCase().includes('player') &&
+                    !playerName.toLowerCase().includes('total') &&
+                    !salaryText.toLowerCase().includes('total') &&
+                    !salaryText.toLowerCase().includes('cap') &&
+                    salaryText.includes('$')) {
+                    
                     // Parse salary (e.g., "$25,000,000" -> 25000000)
                     const salaryMatch = salaryText.match(/\$([0-9,]+)/);
                     const salary = salaryMatch ? parseInt(salaryMatch[1].replace(/,/g, '')) : 0;
@@ -119,24 +197,43 @@ async function scrapeTeamContracts(team) {
                     const contractYearsMatch = salaryText.match(/(\d+)\s*yr/i);
                     const contractYears = contractYearsMatch ? parseInt(contractYearsMatch[1]) : 1;
                     
-                    players.push({
-                        name: playerName,
-                        team: team.abbrev,
-                        salary: salary,
-                        salaryDisplay: salaryText,
-                        contractYears: contractYears,
-                        scrapedFrom: url
-                    });
+                    // Only add if we have a valid salary
+                    if (salary > 0) {
+                        players.push({
+                            name: playerName,
+                            team: team.abbrev,
+                            salary: salary,
+                            salaryDisplay: salaryText,
+                            contractYears: contractYears,
+                            scrapedFrom: url,
+                            tableSelector: usedSelector
+                        });
+                    }
                 }
             }
         });
         
         logProgress(`    ✅ Found ${players.length} players with contracts`);
+        
+        if (players.length === 0) {
+            logProgress(`    🔍 Debug: First 3 rows from table:`);
+            targetTable.find('tr').slice(0, 3).each((i, row) => {
+                const cells = $(row).find('td, th');
+                const cellData = [];
+                cells.each((j, cell) => {
+                    const text = $(cell).text().trim();
+                    cellData.push(text.substring(0, 30));
+                });
+                logProgress(`       Row ${i + 1}: [${cellData.join(' | ')}]`);
+            });
+        }
+        
         return {
             team: team.abbrev,
             players: players,
             totalPlayers: players.length,
-            scrapedAt: new Date().toISOString()
+            scrapedAt: new Date().toISOString(),
+            tableSelector: usedSelector
         };
         
     } catch (error) {
@@ -237,21 +334,34 @@ async function scrapeFreshData() {
         // Rate limiting - be respectful to Spotrac
         await sleep(3000);
         
-        // Progress update every 5 teams
-        if ((i + 1) % 5 === 0) {
-            const processed = results.teamContracts.filter(t => t.players.length > 0).length;
-            logProgress(`   Progress: ${i + 1}/${NBA_TEAMS.length} teams processed, ${processed} successful`);
+        // Progress update every 3 teams instead of 5 for better monitoring
+        if ((i + 1) % 3 === 0) {
+            const processed = results.teamContracts.filter(t => t.players && t.players.length > 0).length;
+            const totalContracts = results.teamContracts.reduce((sum, t) => sum + (t.players ? t.players.length : 0), 0);
+            logProgress(`   📊 Progress: ${i + 1}/${NBA_TEAMS.length} teams processed, ${processed} successful teams, ${totalContracts} contracts found`);
+        }
+        
+        // Show individual team results immediately
+        if (teamData.players && teamData.players.length > 0) {
+            logProgress(`     ✅ ${teamData.players.length} contracts found for ${team.name}`);
+        } else if (teamData.error) {
+            logProgress(`     ❌ ${team.name}: ${teamData.error}`);
+        } else {
+            logProgress(`     ⚠️  ${team.name}: 0 contracts (check HTML structure)`);
         }
     }
     
     // Calculate summary
-    const totalContracts = results.teamContracts.reduce((sum, team) => sum + team.players.length, 0);
-    const successfulTeams = results.teamContracts.filter(t => t.players.length > 0).length;
+    const totalContracts = results.teamContracts.reduce((sum, team) => sum + (team.players ? team.players.length : 0), 0);
+    const successfulTeams = results.teamContracts.filter(t => t.players && t.players.length > 0).length;
+    const failedTeams = results.teamContracts.filter(t => t.error).length;
     
     results.summary = {
         nbaPlayersFound: results.nbaStats.length,
         teamsScraped: NBA_TEAMS.length,
         successfulTeams: successfulTeams,
+        failedTeams: failedTeams,
+        emptyTeams: NBA_TEAMS.length - successfulTeams - failedTeams,
         totalContractsFound: totalContracts,
         scrapeCompleted: new Date().toISOString()
     };
@@ -266,6 +376,8 @@ async function scrapeFreshData() {
     logProgress(`📊 NBA Players: ${results.summary.nbaPlayersFound}`);
     logProgress(`🏀 Teams Scraped: ${successfulTeams}/${NBA_TEAMS.length}`);
     logProgress(`💰 Contracts Found: ${totalContracts}`);
+    logProgress(`❌ Failed Teams: ${results.summary.failedTeams}`);
+    logProgress(`⚠️  Empty Teams: ${results.summary.emptyTeams}`);
     logProgress(`💾 Results saved to: ${outputFile}`);
     logProgress('');
     logProgress('Next Step: Run migrate_and_structure.js to create the separated schema');
