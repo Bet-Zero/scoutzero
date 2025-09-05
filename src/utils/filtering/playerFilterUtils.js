@@ -219,7 +219,7 @@ function checkForZeroContract(player) {
   }
 
   // Check contract string patterns
-  const contractStr = player.Contract || player.contract_summary || '';
+  const contractStr = String(player.Contract || player.contract_summary || '');
   if (contractStr.includes('$0.0M') || contractStr === '$0.0M / 1 yr') {
     return true;
   }
