@@ -1,0 +1,359 @@
+{
+  "metadata": {
+    "analyzedAt": "2025-09-06T10:42:35.551Z",
+    "sourceFile": "hawks_comprehensive_data.json",
+    "totalTables": 13,
+    "totalSections": 624
+  },
+  "summary": {
+    "highPriorityTables": 8,
+    "mediumPriorityTables": 5,
+    "lowPriorityTables": 0
+  },
+  "tableAnalysis": [
+    {
+      "index": 0,
+      "confidence": "HIGH",
+      "purpose": "Trade Exceptions",
+      "keyDataPoints": [
+        "TPE amounts",
+        "Usage",
+        "Expiration dates"
+      ],
+      "salaryCapRelevance": 6,
+      "rowCount": 4,
+      "columnCount": 6,
+      "classes": "sw_table__tradeExptn sw_table__default sw_table__fixed sw_table__sortable sw_table__collapsibleTeamColumn",
+      "headers": [
+        "Player",
+        "Exception",
+        "Used",
+        "Remaining",
+        "Start Date",
+        "End Date"
+      ]
+    },
+    {
+      "index": 1,
+      "confidence": "MEDIUM",
+      "purpose": "Moderate-Value Salary Data",
+      "keyDataPoints": [],
+      "salaryCapRelevance": 5,
+      "rowCount": 3,
+      "columnCount": 8,
+      "classes": "sw_table__default sw_table__fixed sw_table__stickyFirstColumn",
+      "headers": [
+        "Draft",
+        "2026",
+        "2027",
+        "2028",
+        "2029",
+        "2030",
+        "2031",
+        "2032"
+      ]
+    },
+    {
+      "index": 2,
+      "confidence": "HIGH",
+      "purpose": "Multi-Year Player Contracts",
+      "keyDataPoints": [
+        "Player salaries by year",
+        "Guaranteed money",
+        "Contract options",
+        "Free agency status"
+      ],
+      "salaryCapRelevance": 15,
+      "rowCount": 16,
+      "columnCount": 12,
+      "classes": "sw_teamProfileRosterSection__table sw_table__collapsiblePlayerColumn sw_table__default sw_table__fixed sw_table__stickyFirstColumn",
+      "headers": [
+        "Active (14 - $184,432,415)",
+        "Status",
+        "Acquired",
+        "Age",
+        "Pos",
+        "Terms",
+        "2025-26",
+        "2026-27",
+        "2027-28",
+        "2028-29",
+        "2029-30",
+        "2030-31"
+      ]
+    },
+    {
+      "index": 3,
+      "confidence": "HIGH",
+      "purpose": "Multi-Year Player Contracts",
+      "keyDataPoints": [
+        "Player salaries by year",
+        "Guaranteed money",
+        "Contract options",
+        "Free agency status"
+      ],
+      "salaryCapRelevance": 14,
+      "rowCount": 4,
+      "columnCount": 12,
+      "classes": "sw_teamProfileRosterSection__table sw_table__collapsiblePlayerColumn sw_table__default sw_table__fixed sw_table__stickyFirstColumn",
+      "headers": [
+        "Training Camp and Exhibit 10 (2 - $0)",
+        "Status",
+        "Acquired",
+        "Age",
+        "Pos",
+        "Terms",
+        "2025-26",
+        "2026-27",
+        "2027-28",
+        "2028-29",
+        "2029-30",
+        "2030-31"
+      ]
+    },
+    {
+      "index": 4,
+      "confidence": "HIGH",
+      "purpose": "Multi-Year Player Contracts",
+      "keyDataPoints": [
+        "Player salaries by year",
+        "Guaranteed money",
+        "Contract options",
+        "Free agency status"
+      ],
+      "salaryCapRelevance": 14,
+      "rowCount": 6,
+      "columnCount": 12,
+      "classes": "sw_teamProfileRosterSection__table sw_table__collapsiblePlayerColumn sw_table__default sw_table__fixed sw_table__stickyFirstColumn",
+      "headers": [
+        "Minors/G-League (4 - $0)",
+        "Status",
+        "Acquired",
+        "Age",
+        "Pos",
+        "Terms",
+        "2025-26",
+        "2026-27",
+        "2027-28",
+        "2028-29",
+        "2029-30",
+        "2030-31"
+      ]
+    },
+    {
+      "index": 5,
+      "confidence": "MEDIUM",
+      "purpose": "Salary Cap Statistics",
+      "keyDataPoints": [
+        "Cap space",
+        "Luxury tax",
+        "Roster limits"
+      ],
+      "salaryCapRelevance": 3,
+      "rowCount": 4,
+      "columnCount": 12,
+      "classes": "sw_teamProfileStats__table sw_table__collapsiblePlayerColumn sw_table__fixed rel",
+      "headers": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "ROSTER SIZE",
+        "20",
+        "11",
+        "7",
+        "3",
+        "1",
+        "-"
+      ]
+    },
+    {
+      "index": 6,
+      "confidence": "MEDIUM",
+      "purpose": "Salary Cap Statistics",
+      "keyDataPoints": [
+        "Cap space",
+        "Luxury tax",
+        "Roster limits"
+      ],
+      "salaryCapRelevance": 7,
+      "rowCount": 9,
+      "columnCount": 12,
+      "classes": "sw_teamProfileStats__table sw_table__collapsiblePlayerColumn sw_table__fixed rel",
+      "headers": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "ROSTER CAP HIT",
+        "$184,432,415",
+        "$143,256,969",
+        "$88,568,302",
+        "$51,962,703",
+        "$30,000,000",
+        "-"
+      ]
+    },
+    {
+      "index": 7,
+      "confidence": "MEDIUM",
+      "purpose": "Salary Cap Statistics",
+      "keyDataPoints": [
+        "Cap space",
+        "Luxury tax",
+        "Roster limits"
+      ],
+      "salaryCapRelevance": 8,
+      "rowCount": 12,
+      "columnCount": 12,
+      "classes": "sw_teamProfileStats__table sw_table__collapsiblePlayerColumn sw_table__fixed rel",
+      "headers": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "CAP",
+        "$154,647,000",
+        "$165,472,000",
+        "$182,019,000",
+        "$200,221,000",
+        "$220,243,000",
+        "$242,267,000"
+      ]
+    },
+    {
+      "index": 8,
+      "confidence": "HIGH",
+      "purpose": "Multi-Year Player Contracts",
+      "keyDataPoints": [
+        "Player salaries by year",
+        "Guaranteed money",
+        "Contract options",
+        "Free agency status"
+      ],
+      "salaryCapRelevance": 12,
+      "rowCount": 6,
+      "columnCount": 12,
+      "classes": "sw_teamProfileRosterSection__table sw_table__default sw_table__stickyFirstColumn sw_table__fixed sw_table__collapsiblePlayerColumn",
+      "headers": [
+        "2nd Rd Picks (4 - $0)",
+        "Status",
+        "Acquired",
+        "Age",
+        "Pos",
+        "Terms",
+        "2025-26",
+        "2026-27",
+        "2027-28",
+        "2028-29",
+        "2029-30",
+        "2030-31"
+      ]
+    },
+    {
+      "index": 9,
+      "confidence": "HIGH",
+      "purpose": "Multi-Year Player Contracts",
+      "keyDataPoints": [
+        "Player salaries by year",
+        "Guaranteed money",
+        "Contract options",
+        "Free agency status"
+      ],
+      "salaryCapRelevance": 15,
+      "rowCount": 13,
+      "columnCount": 12,
+      "classes": "sw_teamProfileRosterSection__table sw_table__default sw_table__stickyFirstColumn sw_table__fixed sw_table__collapsiblePlayerColumn",
+      "headers": [
+        "RFAs (11 - $0)",
+        "Status",
+        "Acquired",
+        "Age",
+        "Pos",
+        "Terms",
+        "2025-26",
+        "2026-27",
+        "2027-28",
+        "2028-29",
+        "2029-30",
+        "2030-31"
+      ]
+    },
+    {
+      "index": 10,
+      "confidence": "HIGH",
+      "purpose": "Multi-Year Player Contracts",
+      "keyDataPoints": [
+        "Player salaries by year",
+        "Guaranteed money",
+        "Contract options",
+        "Free agency status"
+      ],
+      "salaryCapRelevance": 15,
+      "rowCount": 11,
+      "columnCount": 12,
+      "classes": "sw_teamProfileRosterSection__table sw_table__default sw_table__stickyFirstColumn sw_table__fixed sw_table__collapsiblePlayerColumn",
+      "headers": [
+        "UFAs (9 - $0)",
+        "Status",
+        "Acquired",
+        "Age",
+        "Pos",
+        "Terms",
+        "2025-26",
+        "2026-27",
+        "2027-28",
+        "2028-29",
+        "2029-30",
+        "2030-31"
+      ]
+    },
+    {
+      "index": 11,
+      "confidence": "HIGH",
+      "purpose": "Multi-Year Player Contracts",
+      "keyDataPoints": [
+        "Player salaries by year",
+        "Guaranteed money",
+        "Contract options",
+        "Free agency status"
+      ],
+      "salaryCapRelevance": 12,
+      "rowCount": 6,
+      "columnCount": 12,
+      "classes": "sw_teamProfileRosterSection__table sw_table__default sw_table__stickyFirstColumn sw_table__fixed sw_table__collapsiblePlayerColumn",
+      "headers": [
+        "FA Cap Hold (4 - $8,937,316)",
+        "Status",
+        "Acquired",
+        "Age",
+        "Pos",
+        "Terms",
+        "2025-26",
+        "2026-27",
+        "2027-28",
+        "2028-29",
+        "2029-30",
+        "2030-31"
+      ]
+    },
+    {
+      "index": 12,
+      "confidence": "MEDIUM",
+      "purpose": "Moderate-Value Salary Data",
+      "keyDataPoints": [],
+      "salaryCapRelevance": 6,
+      "rowCount": 1,
+      "columnCount": 2,
+      "classes": "",
+      "headers": [
+        "Legend",
+        "IncentivesInjuredUnrestricted Free AgentRestricted Free AgentUnconfirmed Info38+Over 38 ContractRSCRookie Scale ContractNTCNo Trade Clause"
+      ]
+    }
+  ],
+  "recommendations": []
+}
