@@ -113,21 +113,22 @@ class ComprehensiveDataAnalyzer {
 
         tables.forEach((table, index) => {
             const tableScore = this.scoreTableValue(table);
+            const contentAnalysis = this.analyzeTableContent(table);
             const tableAnalysis = {
                 index: table.index,
                 classes: table.classes,
                 id: table.id,
-                size: `${table.summary.rows}x${table.summary.columns}`,
+                size: `${table.rowCount}x${table.columnCount}`,
                 headers: table.headers,
                 score: tableScore,
                 dataTypes: {
-                    salary: table.containsSalaryData,
-                    player: table.containsPlayerData,
-                    contract: table.containsContractData,
-                    exception: table.containsExceptionData
+                    salary: contentAnalysis.containsSalaryData,
+                    player: contentAnalysis.containsPlayerData,
+                    contract: contentAnalysis.containsContractData,
+                    exception: contentAnalysis.containsExceptionData
                 },
-                sampleContent: table.sampleRows.map(row => 
-                    row.map(cell => cell.text.substring(0, 50)).join(' | ')
+                sampleContent: table.rows.slice(0, 3).map(row => 
+                    row.slice(0, 5).join(' | ')
                 ).join('\n'),
                 recommendation: this.getTableRecommendation(table, tableScore)
             };
@@ -142,10 +143,10 @@ class ComprehensiveDataAnalyzer {
             }
             
             // Categorize by data type
-            if (table.containsSalaryData) analysis.salaryTables.push(tableAnalysis);
-            if (table.containsPlayerData) analysis.playerTables.push(tableAnalysis);
-            if (table.containsContractData) analysis.contractTables.push(tableAnalysis);
-            if (table.containsExceptionData) analysis.exceptionTables.push(tableAnalysis);
+            if (contentAnalysis.containsSalaryData) analysis.salaryTables.push(tableAnalysis);
+            if (contentAnalysis.containsPlayerData) analysis.playerTables.push(tableAnalysis);
+            if (contentAnalysis.containsContractData) analysis.contractTables.push(tableAnalysis);
+            if (contentAnalysis.containsExceptionData) analysis.exceptionTables.push(tableAnalysis);
         });
         
         // Sort by score
@@ -155,18 +156,49 @@ class ComprehensiveDataAnalyzer {
         return analysis;
     }
 
+    analyzeTableContent(table) {
+        const allText = table.allText.toLowerCase();
+        const headers = table.headers.map(h => h.toLowerCase());
+        
+        // Check for salary data
+        const containsSalaryData = allText.includes('$') || 
+                                 headers.some(h => h.includes('salary') || h.includes('cap') || h.includes('hit'));
+        
+        // Check for contract data
+        const containsContractData = headers.some(h => h.includes('contract') || h.includes('year') || h.includes('option')) ||
+                                   allText.includes('contract') || allText.includes('option');
+        
+        // Check for exception data
+        const containsExceptionData = headers.some(h => h.includes('exception') || h.includes('tpe')) ||
+                                    allText.includes('exception') || allText.includes('trade exception');
+        
+        // Check for player data
+        const containsPlayerData = headers.some(h => h.includes('player') || h.includes('name')) ||
+                                 table.rowCount > 2; // Likely has player rows if multiple rows
+        
+        return {
+            containsSalaryData,
+            containsContractData,
+            containsExceptionData,
+            containsPlayerData
+        };
+    }
+
     scoreTableValue(table) {
         let score = 0;
         
         // Size scoring
-        const dataSize = table.summary.rows * table.summary.columns;
+        const dataSize = table.rowCount * table.columnCount;
         score += dataSize;
         
+        // Analyze content on the fly
+        const contentAnalysis = this.analyzeTableContent(table);
+        
         // Content scoring
-        if (table.containsSalaryData) score += 100;
-        if (table.containsContractData) score += 75;
-        if (table.containsExceptionData) score += 85;
-        if (table.containsPlayerData) score += 50;
+        if (contentAnalysis.containsSalaryData) score += 100;
+        if (contentAnalysis.containsContractData) score += 75;
+        if (contentAnalysis.containsExceptionData) score += 85;
+        if (contentAnalysis.containsPlayerData) score += 50;
         
         // Multi-year data bonus
         const hasMultiYearHeaders = table.headers.some(h => /20\d{2}-\d{2}/.test(h));
@@ -176,7 +208,7 @@ class ComprehensiveDataAnalyzer {
         if (table.headers.length > 5) score += 25;
         
         // Penalty for tiny tables
-        if (table.summary.rows < 2) score -= 50;
+        if (table.rowCount < 2) score -= 50;
         
         return score;
     }
@@ -210,73 +242,61 @@ class ComprehensiveDataAnalyzer {
     }
 
     analyzeSalaryCapData(data) {
+        // Extract salary data from the structured text analysis
+        const allTextData = data.allText || {};
+        const tables = data.allTables || [];
+        
+        // Get salary amounts from the structured data
+        const salaryMatches = allTextData.dollarAmounts || [];
+        const uniqueSalaryAmounts = [...new Set(salaryMatches)];
+        
         const breakdown = {
             salaryElementsAnalysis: {
-                totalFound: data.salaryElements.length,
-                uniqueSalaryAmounts: [],
-                salaryRanges: { min: null, max: null },
-                commonSalaryPatterns: []
+                totalFound: salaryMatches.length,
+                uniqueSalaryAmounts: uniqueSalaryAmounts.slice(0, 10), // Show first 10
+                salaryRanges: this.getSalaryRanges(salaryMatches),
+                commonSalaryPatterns: this.getCommonSalaryPatterns(allTextData)
             },
             capElementsAnalysis: {
-                totalFound: data.capElements.length,
-                capTermsFound: [],
-                capSpaceReferences: 0,
-                luxuryTaxReferences: 0
+                totalFound: allTextData.fullTextLength || 0,
+                capTermsFound: this.extractCapTerms(allTextData),
+                capSpaceReferences: 0, // Will be calculated from table content
+                luxuryTaxReferences: 0 // Will be calculated from table content
             },
-            yearsCovered: data.dataAnalysis?.yearsCovered || [],
-            salaryDistribution: this.analyzeSalaryDistribution(data.salaryElements)
+            yearsCovered: allTextData.years || this.extractYearsCovered(tables),
+            salaryDistribution: this.analyzeSalaryDistributionFromText(salaryMatches)
         };
-        
-        // Analyze salary amounts
-        const allSalaries = data.salaryElements.flatMap(e => e.salaries.map(s => s.amount));
-        if (allSalaries.length > 0) {
-            breakdown.salaryElementsAnalysis.uniqueSalaryAmounts = [...new Set(allSalaries)].sort((a, b) => b - a);
-            breakdown.salaryElementsAnalysis.salaryRanges.min = Math.min(...allSalaries);
-            breakdown.salaryElementsAnalysis.salaryRanges.max = Math.max(...allSalaries);
-        }
-        
-        // Analyze cap elements
-        data.capElements.forEach(element => {
-            const text = element.text.toLowerCase();
-            if (text.includes('cap space')) breakdown.capElementsAnalysis.capSpaceReferences++;
-            if (text.includes('luxury tax')) breakdown.capElementsAnalysis.luxuryTaxReferences++;
-            
-            breakdown.capElementsAnalysis.capTermsFound.push({
-                text: element.text,
-                classes: element.classes
-            });
-        });
         
         return breakdown;
     }
 
     analyzeContractData(data) {
+        const allTextData = data.allText || {};
+        const tables = data.allTables || [];
+        
+        // Look for contract terms in table data
+        let contractTermCount = 0;
+        let optionCount = 0;
+        let guaranteedCount = 0;
+        
+        tables.forEach(table => {
+            const tableText = table.allText || '';
+            contractTermCount += (tableText.match(/contract/gi) || []).length;
+            optionCount += (tableText.match(/option/gi) || []).length;
+            guaranteedCount += (tableText.match(/guaranteed/gi) || []).length;
+        });
+        
         const breakdown = {
             contractElementsAnalysis: {
-                totalFound: data.contractElements.length,
-                optionReferences: 0,
-                guaranteedReferences: 0,
-                birdRightsReferences: 0,
-                freeAgentReferences: 0
+                totalFound: tables.length,
+                optionReferences: optionCount,
+                guaranteedReferences: guaranteedCount,
+                birdRightsReferences: 0, // Will be calculated from table scanning
+                freeAgentReferences: 0 // Will be calculated from table scanning
             },
-            contractTermsFound: [],
-            playerStatusTypes: []
+            contractTermsFound: this.extractContractTermsFromTables(tables),
+            playerStatusTypes: this.extractPlayerStatusTypes(tables)
         };
-        
-        data.contractElements.forEach(element => {
-            const text = element.text.toLowerCase();
-            if (text.includes('option')) breakdown.contractElementsAnalysis.optionReferences++;
-            if (text.includes('guaranteed')) breakdown.contractElementsAnalysis.guaranteedReferences++;
-            if (text.includes('bird rights')) breakdown.contractElementsAnalysis.birdRightsReferences++;
-            if (text.includes('free agent') || text.includes('rfa') || text.includes('ufa')) {
-                breakdown.contractElementsAnalysis.freeAgentReferences++;
-            }
-            
-            breakdown.contractTermsFound.push({
-                text: element.text,
-                classes: element.classes
-            });
-        });
         
         return breakdown;
     }
@@ -323,7 +343,7 @@ class ComprehensiveDataAnalyzer {
                 index: table.index,
                 classes: table.classes,
                 headers: table.headers,
-                size: `${table.summary.rows}x${table.summary.columns}`,
+                size: `${table.rowCount}x${table.columnCount}`,
                 score: score,
                 reason: recommendation.reason
             };
@@ -391,22 +411,28 @@ class ComprehensiveDataAnalyzer {
     }
 
     createCompleteTableDetails(tables) {
-        return tables.map(table => ({
-            index: table.index,
-            classes: table.classes,
-            id: table.id,
-            summary: table.summary,
-            headers: table.headers,
-            sampleRows: table.sampleRows,
-            dataTypes: {
-                salary: table.containsSalaryData,
-                player: table.containsPlayerData,
-                contract: table.containsContractData,
-                exception: table.containsExceptionData
-            },
-            textPreview: table.allTextContent.substring(0, 200),
-            htmlPreview: table.innerHTML.substring(0, 300)
-        }));
+        return tables.map(table => {
+            const contentAnalysis = this.analyzeTableContent(table);
+            return {
+                index: table.index,
+                classes: table.classes,
+                id: table.id,
+                summary: {
+                    rows: table.rowCount,
+                    columns: table.columnCount
+                },
+                headers: table.headers,
+                sampleRows: table.rows.slice(0, 3), // First 3 rows
+                dataTypes: {
+                    salary: contentAnalysis.containsSalaryData,
+                    player: contentAnalysis.containsPlayerData,
+                    contract: contentAnalysis.containsContractData,
+                    exception: contentAnalysis.containsExceptionData
+                },
+                textPreview: (table.allText || '').substring(0, 200),
+                htmlPreview: (table.html || '').substring(0, 300)
+            };
+        });
     }
 
     createReadableReport(analysis, teamSlug) {
@@ -637,6 +663,123 @@ ${summary.teamComparisons.map(team =>
             this.logProgress('Example: node comprehensive_data_analyzer.js --team hawks', 'info');
             this.logProgress('Example: node comprehensive_data_analyzer.js --summary', 'info');
         }
+    }
+
+    getSalaryRanges(salaryMatches) {
+        if (salaryMatches.length === 0) return { min: null, max: null };
+        
+        const amounts = salaryMatches.map(s => parseInt(s.replace(/[\$,]/g, '')))
+                                   .filter(n => !isNaN(n));
+        
+        return amounts.length > 0 ? {
+            min: Math.min(...amounts),
+            max: Math.max(...amounts)
+        } : { min: null, max: null };
+    }
+
+    getCommonSalaryPatterns(allTextData) {
+        const patterns = [];
+        
+        // Check tables for common patterns
+        if (allTextData.years && allTextData.years.length > 0) {
+            patterns.push('Multi-Year Data');
+        }
+        if (allTextData.dollarAmounts && allTextData.dollarAmounts.length > 10) {
+            patterns.push('Complex Salary Structure');
+        }
+        if (allTextData.percentages && allTextData.percentages.length > 0) {
+            patterns.push('Percentage-Based Elements');
+        }
+        
+        return patterns;
+    }
+
+    extractCapTerms(allTextData) {
+        // Since we don't have the raw text, extract from available data
+        const terms = [];
+        
+        if (allTextData.dollarAmounts && allTextData.dollarAmounts.length > 0) {
+            terms.push('salary data');
+        }
+        if (allTextData.years && allTextData.years.length > 0) {
+            terms.push('multi-year contracts');
+        }
+        
+        return terms;
+    }
+
+    extractYearsCovered(tables) {
+        const years = new Set();
+        
+        tables.forEach(table => {
+            table.headers.forEach(header => {
+                const yearMatch = header.match(/20\d{2}(-\d{2})?/);
+                if (yearMatch) years.add(yearMatch[0]);
+            });
+        });
+        
+        return Array.from(years).sort();
+    }
+
+    analyzeSalaryDistributionFromText(salaryMatches) {
+        if (salaryMatches.length === 0) return { distribution: 'No salary data found' };
+        
+        const amounts = salaryMatches.map(s => parseInt(s.replace(/[\$,]/g, '')))
+                                   .filter(n => !isNaN(n));
+        
+        if (amounts.length === 0) return { distribution: 'No valid salary amounts' };
+        
+        const sorted = amounts.sort((a, b) => a - b);
+        return {
+            distribution: `${amounts.length} salary amounts`,
+            range: `$${sorted[0].toLocaleString()} - $${sorted[sorted.length - 1].toLocaleString()}`,
+            median: sorted[Math.floor(sorted.length / 2)]
+        };
+    }
+
+    extractContractTerms(text) {
+        const terms = [];
+        const contractTerms = ['guaranteed', 'option', 'bird rights', 'rookie scale', 'max contract', 'mle', 'veteran minimum'];
+        
+        contractTerms.forEach(term => {
+            if (text.toLowerCase().includes(term)) {
+                terms.push(term);
+            }
+        });
+        
+        return terms.slice(0, 10); // Limit to first 10
+    }
+
+    extractContractTermsFromTables(tables) {
+        const terms = [];
+        
+        tables.forEach(table => {
+            if (table.allText) {
+                const text = table.allText.toLowerCase();
+                if (text.includes('option')) terms.push('Options');
+                if (text.includes('guaranteed')) terms.push('Guaranteed');
+                if (text.includes('bird')) terms.push('Bird Rights');
+                if (text.includes('exception')) terms.push('Exceptions');
+            }
+        });
+        
+        return [...new Set(terms)]; // Remove duplicates
+    }
+
+    extractPlayerStatusTypes(tables) {
+        const statusTypes = new Set();
+        
+        tables.forEach(table => {
+            if (table.allText) {
+                const text = table.allText.toLowerCase();
+                if (text.includes('rfa')) statusTypes.add('RFA');
+                if (text.includes('ufa')) statusTypes.add('UFA'); 
+                if (text.includes('rookie')) statusTypes.add('Rookie');
+                if (text.includes('veteran')) statusTypes.add('Veteran');
+            }
+        });
+        
+        return Array.from(statusTypes);
     }
 }
 

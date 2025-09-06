@@ -1,0 +1,756 @@
+{
+  "metadata": {
+    "team": {
+      "slug": "hawks",
+      "name": "Atlanta Hawks"
+    },
+    "generatedAt": "2025-09-06T13:11:58.270Z",
+    "basedOnAnalysis": "2025-09-06T13:11:50.478Z"
+  },
+  "extraction": {
+    "targetTables": [
+      0,
+      2,
+      3,
+      4,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ],
+    "totalTablesAvailable": 13,
+    "extractionCoverage": "10/13"
+  },
+  "tableDetails": [
+    {
+      "index": 0,
+      "classes": "sw_table__tradeExptn sw_table__default sw_table__fixed sw_table__sortable sw_table__collapsibleTeamColumn",
+      "id": "sw_table__tradeExptn_tm",
+      "summary": {
+        "rows": 4,
+        "columns": 6
+      },
+      "headers": [
+        "Player",
+        "Exception",
+        "Used",
+        "Remaining",
+        "Start Date",
+        "End Date"
+      ],
+      "sampleRows": [
+        [
+          "Player",
+          "Exception",
+          "Used",
+          "Remaining",
+          "Start Date",
+          "End Date"
+        ],
+        [
+          "Bogdan Bogdanovic",
+          "$13,101,561",
+          "$0",
+          "$13,101,561",
+          "Feb 6, 2025",
+          "Feb 6, 2026"
+        ],
+        [
+          "Cody Zeller",
+          "$3,500,000",
+          "$0",
+          "$3,500,000",
+          "Feb 6, 2025",
+          "Feb 6, 2026"
+        ]
+      ],
+      "dataTypes": {
+        "salary": true,
+        "player": true,
+        "contract": false,
+        "exception": true
+      },
+      "textPreview": "PlayerExceptionUsedRemainingStart DateEnd DateBogdan Bogdanovic$13,101,561$0$13,101,561Feb 6, 2025Feb 6, 2026Cody Zeller$3,500,000$0$3,500,000Feb 6, 2025Feb 6, 2026Clint Capela$6,700,000$0$6,700,000Ju",
+      "htmlPreview": "<thead><tr><th class=\"sw_table__alignLeft\" data-sort=\"player\" data-sort-type=\"string\">Player</th><th data-sort=\"exception\" data-sort-type=\"int\">Exception</th><th data-sort=\"used\" data-sort-type=\"int\">Used</th><th data-sort=\"remaining\" data-sort-type=\"int\">Remaining</th><th data-sort=\"start_date\" dat"
+    },
+    {
+      "index": 2,
+      "classes": "sw_teamProfileRosterSection__table sw_table__collapsiblePlayerColumn sw_table__default sw_table__fixed sw_table__stickyFirstColumn",
+      "id": "",
+      "summary": {
+        "rows": 16,
+        "columns": 12
+      },
+      "headers": [
+        "Active (14 - $184,432,415)",
+        "Status",
+        "Acquired",
+        "Age",
+        "Pos",
+        "Terms",
+        "2025-26",
+        "2026-27",
+        "2027-28",
+        "2028-29",
+        "2029-30",
+        "2030-31"
+      ],
+      "sampleRows": [
+        [
+          "Active (14 - $184,432,415)",
+          "Status",
+          "Acquired",
+          "Age",
+          "Pos",
+          "Terms",
+          "2025-26",
+          "2026-27",
+          "2027-28",
+          "2028-29",
+          "2029-30",
+          "2030-31"
+        ],
+        [
+          "Young, Trae",
+          "Active List",
+          "Draft",
+          "26",
+          "PG",
+          "Max",
+          "$45,999,660$45,999,660$45,999,660$0",
+          "P$48,967,380$48,967,380$48,967,380$0",
+          "UFA",
+          "",
+          "",
+          ""
+        ],
+        [
+          "Porzingis, Kristaps",
+          "Active List",
+          "Trade",
+          "30",
+          "PF",
+          "",
+          "$30,731,707$30,731,707$30,731,707$0",
+          "UFA",
+          "",
+          "",
+          "",
+          ""
+        ]
+      ],
+      "dataTypes": {
+        "salary": true,
+        "player": true,
+        "contract": false,
+        "exception": false
+      },
+      "textPreview": "Active (14 - $184,432,415)StatusAcquiredAgePosTerms2025-262026-272027-282028-292029-302030-31Young, TraeActive ListDraft26PGMax$45,999,660$45,999,660$45,999,660$0P$48,967,380$48,967,380$48,967,380$0UF",
+      "htmlPreview": "<thead><tr><th>Active <span style=\"text-wrap:nowrap\">(14 - $184,432,415)</span></th><th>Status</th><th>Acquired</th><th>Age</th><th>Pos</th><th>Terms</th><th>2025-26</th><th>2026-27</th><th>2027-28</th><th>2028-29</th><th>2029-30</th><th>2030-31</th></tr></thead><tbody><tr><td><a href=\"/players/trae"
+    },
+    {
+      "index": 3,
+      "classes": "sw_teamProfileRosterSection__table sw_table__collapsiblePlayerColumn sw_table__default sw_table__fixed sw_table__stickyFirstColumn",
+      "id": "",
+      "summary": {
+        "rows": 4,
+        "columns": 12
+      },
+      "headers": [
+        "Training Camp and Exhibit 10 (2 - $0)",
+        "Status",
+        "Acquired",
+        "Age",
+        "Pos",
+        "Terms",
+        "2025-26",
+        "2026-27",
+        "2027-28",
+        "2028-29",
+        "2029-30",
+        "2030-31"
+      ],
+      "sampleRows": [
+        [
+          "Training Camp and Exhibit 10 (2 - $0)",
+          "Status",
+          "Acquired",
+          "Age",
+          "Pos",
+          "Terms",
+          "2025-26",
+          "2026-27",
+          "2027-28",
+          "2028-29",
+          "2029-30",
+          "2030-31"
+        ],
+        [
+          "Johnson, Kobe",
+          "Training Camp and Exhibit 10",
+          "Signed",
+          "22",
+          "PG, SG",
+          "",
+          "$0$0$1,272,868$0",
+          "RFA",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "Houstan, Caleb",
+          "Training Camp and Exhibit 10",
+          "Signed",
+          "22",
+          "SF, SG",
+          "",
+          "$0$0$2,378,870$0",
+          "UFA",
+          "",
+          "",
+          "",
+          ""
+        ]
+      ],
+      "dataTypes": {
+        "salary": true,
+        "player": true,
+        "contract": false,
+        "exception": false
+      },
+      "textPreview": "Training Camp and Exhibit 10 (2 - $0)StatusAcquiredAgePosTerms2025-262026-272027-282028-292029-302030-31Johnson, KobeTraining Camp and Exhibit 10Signed22PG, SG$0$0$1,272,868$0RFAHoustan, CalebTraining",
+      "htmlPreview": "<thead><tr><th>Training Camp and Exhibit 10 <span style=\"text-wrap:nowrap\">(2 - $0)</span></th><th>Status</th><th>Acquired</th><th>Age</th><th>Pos</th><th>Terms</th><th>2025-26</th><th>2026-27</th><th>2027-28</th><th>2028-29</th><th>2029-30</th><th>2030-31</th></tr></thead><tbody><tr><td><a href=\"/p"
+    },
+    {
+      "index": 4,
+      "classes": "sw_teamProfileRosterSection__table sw_table__collapsiblePlayerColumn sw_table__default sw_table__fixed sw_table__stickyFirstColumn",
+      "id": "",
+      "summary": {
+        "rows": 6,
+        "columns": 12
+      },
+      "headers": [
+        "Minors/G-League (4 - $0)",
+        "Status",
+        "Acquired",
+        "Age",
+        "Pos",
+        "Terms",
+        "2025-26",
+        "2026-27",
+        "2027-28",
+        "2028-29",
+        "2029-30",
+        "2030-31"
+      ],
+      "sampleRows": [
+        [
+          "Minors/G-League (4 - $0)",
+          "Status",
+          "Acquired",
+          "Age",
+          "Pos",
+          "Terms",
+          "2025-26",
+          "2026-27",
+          "2027-28",
+          "2028-29",
+          "2029-30",
+          "2030-31"
+        ],
+        [
+          "Butler, Lamont",
+          "Minors/G-League",
+          "Signed",
+          "23",
+          "PG",
+          "Two-Way",
+          "$0$0$636,434$0",
+          "RFA",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "N'Diaye, Eli John",
+          "Minors/G-League",
+          "Signed",
+          "21",
+          "C",
+          "Two-Way",
+          "$0$85,300$636,434$0",
+          "RFA",
+          "",
+          "",
+          "",
+          ""
+        ]
+      ],
+      "dataTypes": {
+        "salary": true,
+        "player": true,
+        "contract": false,
+        "exception": false
+      },
+      "textPreview": "Minors/G-League (4 - $0)StatusAcquiredAgePosTerms2025-262026-272027-282028-292029-302030-31Butler, LamontMinors/G-LeagueSigned23PGTwo-Way$0$0$636,434$0RFAN'Diaye, Eli JohnMinors/G-LeagueSigned21CTwo-W",
+      "htmlPreview": "<thead><tr><th>Minors/G-League <span style=\"text-wrap:nowrap\">(4 - $0)</span></th><th>Status</th><th>Acquired</th><th>Age</th><th>Pos</th><th>Terms</th><th>2025-26</th><th>2026-27</th><th>2027-28</th><th>2028-29</th><th>2029-30</th><th>2030-31</th></tr></thead><tbody><tr><td><a href=\"/players/lamont"
+    },
+    {
+      "index": 6,
+      "classes": "sw_teamProfileStats__table sw_table__collapsiblePlayerColumn sw_table__fixed rel",
+      "id": "",
+      "summary": {
+        "rows": 9,
+        "columns": 12
+      },
+      "headers": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "ROSTER CAP HIT",
+        "$184,432,415",
+        "$143,256,969",
+        "$88,568,302",
+        "$51,962,703",
+        "$30,000,000",
+        "-"
+      ],
+      "sampleRows": [
+        [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "ROSTER CAP HIT",
+          "$184,432,415",
+          "$143,256,969",
+          "$88,568,302",
+          "$51,962,703",
+          "$30,000,000",
+          "-"
+        ],
+        [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "DEAD CAP HIT",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "INCOMPLETE ROSTER CHARGE",
+          "$0",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-"
+        ]
+      ],
+      "dataTypes": {
+        "salary": true,
+        "player": true,
+        "contract": false,
+        "exception": false
+      },
+      "textPreview": "ROSTER CAP HIT$184,432,415$143,256,969$88,568,302$51,962,703$30,000,000- DEAD CAP HIT------ INCOMPLETE ROSTER CHARGE$0----- HOLDS$8,937,316$95,837,128$80,723,731$74,852,554$48,376,230$45,000,000 TEAM ",
+      "htmlPreview": "<tbody><tr><td></td><td></td><td></td><td></td><td></td><td class=\"sw_teamProfileStats__table_rowTitle\"><span class=\"q\" title=\"This is the sum of cap hits due to the current active roster and injuries\"><img src=\"https://cdn.salaryswish.com/images/icons/general/q.svg\" alt=\"tooltip\" height=\"13\" width="
+    },
+    {
+      "index": 7,
+      "classes": "sw_teamProfileStats__table sw_table__collapsiblePlayerColumn sw_table__fixed rel",
+      "id": "",
+      "summary": {
+        "rows": 12,
+        "columns": 12
+      },
+      "headers": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "CAP",
+        "$154,647,000",
+        "$165,472,000",
+        "$182,019,000",
+        "$200,221,000",
+        "$220,243,000",
+        "$242,267,000"
+      ],
+      "sampleRows": [
+        [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "CAP",
+          "$154,647,000",
+          "$165,472,000",
+          "$182,019,000",
+          "$200,221,000",
+          "$220,243,000",
+          "$242,267,000"
+        ],
+        [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "CAP ROOM",
+          "-$29,785,415",
+          "-$73,622,097",
+          "$12,726,967",
+          "$73,405,743",
+          "$141,866,770",
+          "$197,267,000"
+        ],
+        [
+          ""
+        ]
+      ],
+      "dataTypes": {
+        "salary": true,
+        "player": true,
+        "contract": false,
+        "exception": false
+      },
+      "textPreview": "CAP$154,647,000$165,472,000$182,019,000$200,221,000$220,243,000$242,267,000 CAP ROOM-$29,785,415-$73,622,097$12,726,967$73,405,743$141,866,770$197,267,000 LUXURY TAX$187,895,000$201,048,000$221,153,00",
+      "htmlPreview": "<tbody><tr><td></td><td></td><td></td><td></td><td></td><td class=\"sw_teamProfileStats__table_rowTitle\"><span class=\"q\" title=\"The league salary cap limit\"><img src=\"https://cdn.salaryswish.com/images/icons/general/q.svg\" alt=\"tooltip\" height=\"13\" width=\"13\" style=\"margin-bottom:-1px\"></span> CAP</t"
+    },
+    {
+      "index": 8,
+      "classes": "sw_teamProfileRosterSection__table sw_table__default sw_table__stickyFirstColumn sw_table__fixed sw_table__collapsiblePlayerColumn",
+      "id": "",
+      "summary": {
+        "rows": 6,
+        "columns": 12
+      },
+      "headers": [
+        "2nd Rd Picks (4 - $0)",
+        "Status",
+        "Acquired",
+        "Age",
+        "Pos",
+        "Terms",
+        "2025-26",
+        "2026-27",
+        "2027-28",
+        "2028-29",
+        "2029-30",
+        "2030-31"
+      ],
+      "sampleRows": [
+        [
+          "2nd Rd Picks (4 - $0)",
+          "Status",
+          "Acquired",
+          "Age",
+          "Pos",
+          "Terms",
+          "2025-26",
+          "2026-27",
+          "2027-28",
+          "2028-29",
+          "2029-30",
+          "2030-31"
+        ],
+        [
+          "Binelli, Augusto (40th pick 1986)",
+          "Hold",
+          "",
+          "60",
+          "C",
+          "",
+          "$0$0",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "Digbeu, Alain (49th pick 1997)",
+          "Hold",
+          "",
+          "49",
+          "SF",
+          "",
+          "$0$0",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      ],
+      "dataTypes": {
+        "salary": true,
+        "player": true,
+        "contract": false,
+        "exception": false
+      },
+      "textPreview": "2nd Rd Picks (4 - $0)StatusAcquiredAgePosTerms2025-262026-272027-282028-292029-302030-31Binelli, Augusto (40th pick 1986)Hold60C$0$0Digbeu, Alain (49th pick 1997)Hold49SF$0$0Eriksson, Marcus (50th pic",
+      "htmlPreview": "<thead><tr><th>2nd Rd Picks <span style=\"text-wrap:nowrap\">(4 - $0)</span></th><th>Status</th><th>Acquired</th><th>Age</th><th>Pos</th><th>Terms</th><th>2025-26</th><th>2026-27</th><th>2027-28</th><th>2028-29</th><th>2029-30</th><th>2030-31</th></tr></thead><tbody><tr><td><a href=\"/players/augusto-b"
+    },
+    {
+      "index": 9,
+      "classes": "sw_teamProfileRosterSection__table sw_table__default sw_table__stickyFirstColumn sw_table__fixed sw_table__collapsiblePlayerColumn",
+      "id": "",
+      "summary": {
+        "rows": 13,
+        "columns": 12
+      },
+      "headers": [
+        "RFAs (11 - $0)",
+        "Status",
+        "Acquired",
+        "Age",
+        "Pos",
+        "Terms",
+        "2025-26",
+        "2026-27",
+        "2027-28",
+        "2028-29",
+        "2029-30",
+        "2030-31"
+      ],
+      "sampleRows": [
+        [
+          "RFAs (11 - $0)",
+          "Status",
+          "Acquired",
+          "Age",
+          "Pos",
+          "Terms",
+          "2025-26",
+          "2026-27",
+          "2027-28",
+          "2028-29",
+          "2029-30",
+          "2030-31"
+        ],
+        [
+          "Daniels, Dyson",
+          "RFA",
+          "",
+          "22",
+          "SG, SF",
+          "",
+          "",
+          "$23,123,127$0",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "Butler, Lamont",
+          "RFA",
+          "",
+          "23",
+          "PG",
+          "",
+          "",
+          "$2,191,886$0",
+          "",
+          "",
+          "",
+          ""
+        ]
+      ],
+      "dataTypes": {
+        "salary": true,
+        "player": true,
+        "contract": false,
+        "exception": false
+      },
+      "textPreview": "RFAs (11 - $0)StatusAcquiredAgePosTerms2025-262026-272027-282028-292029-302030-31Daniels, DysonRFA22SG, SF$23,123,127$0Butler, LamontRFA23PG$2,191,886$0Johnson, KobeRFA22PG, SG$2,191,886$0N'Diaye, Eli",
+      "htmlPreview": "<thead><tr><th>RFAs <span style=\"text-wrap:nowrap\">(11 - $0)</span></th><th>Status</th><th>Acquired</th><th>Age</th><th>Pos</th><th>Terms</th><th>2025-26</th><th>2026-27</th><th>2027-28</th><th>2028-29</th><th>2029-30</th><th>2030-31</th></tr></thead><tbody><tr><td><a href=\"/players/dyson-daniels\">D"
+    },
+    {
+      "index": 10,
+      "classes": "sw_teamProfileRosterSection__table sw_table__default sw_table__stickyFirstColumn sw_table__fixed sw_table__collapsiblePlayerColumn",
+      "id": "",
+      "summary": {
+        "rows": 11,
+        "columns": 12
+      },
+      "headers": [
+        "UFAs (9 - $0)",
+        "Status",
+        "Acquired",
+        "Age",
+        "Pos",
+        "Terms",
+        "2025-26",
+        "2026-27",
+        "2027-28",
+        "2028-29",
+        "2029-30",
+        "2030-31"
+      ],
+      "sampleRows": [
+        [
+          "UFAs (9 - $0)",
+          "Status",
+          "Acquired",
+          "Age",
+          "Pos",
+          "Terms",
+          "2025-26",
+          "2026-27",
+          "2027-28",
+          "2028-29",
+          "2029-30",
+          "2030-31"
+        ],
+        [
+          "Porzingis, Kristaps",
+          "UFA",
+          "",
+          "30",
+          "PF",
+          "",
+          "",
+          "$46,097,561$0",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "Kennard, Luke",
+          "UFA",
+          "",
+          "29",
+          "SG",
+          "",
+          "",
+          "$13,200,000$0",
+          "",
+          "",
+          "",
+          ""
+        ]
+      ],
+      "dataTypes": {
+        "salary": true,
+        "player": true,
+        "contract": false,
+        "exception": false
+      },
+      "textPreview": "UFAs (9 - $0)StatusAcquiredAgePosTerms2025-262026-272027-282028-292029-302030-31Porzingis, KristapsUFA30PF$46,097,561$0Kennard, LukeUFA29SG$13,200,000$0Houstan, CalebUFA22SF, SG$2,457,010$0Young, Trae",
+      "htmlPreview": "<thead><tr><th>UFAs <span style=\"text-wrap:nowrap\">(9 - $0)</span></th><th>Status</th><th>Acquired</th><th>Age</th><th>Pos</th><th>Terms</th><th>2025-26</th><th>2026-27</th><th>2027-28</th><th>2028-29</th><th>2029-30</th><th>2030-31</th></tr></thead><tbody><tr><td><a href=\"/players/kristaps-porzingi"
+    },
+    {
+      "index": 11,
+      "classes": "sw_teamProfileRosterSection__table sw_table__default sw_table__stickyFirstColumn sw_table__fixed sw_table__collapsiblePlayerColumn",
+      "id": "",
+      "summary": {
+        "rows": 6,
+        "columns": 12
+      },
+      "headers": [
+        "FA Cap Hold (4 - $8,937,316)",
+        "Status",
+        "Acquired",
+        "Age",
+        "Pos",
+        "Terms",
+        "2025-26",
+        "2026-27",
+        "2027-28",
+        "2028-29",
+        "2029-30",
+        "2030-31"
+      ],
+      "sampleRows": [
+        [
+          "FA Cap Hold (4 - $8,937,316)",
+          "Status",
+          "Acquired",
+          "Age",
+          "Pos",
+          "Terms",
+          "2025-26",
+          "2026-27",
+          "2027-28",
+          "2028-29",
+          "2029-30",
+          "2030-31"
+        ],
+        [
+          "Mathews, Garrison",
+          "FA Cap Hold",
+          "",
+          "28",
+          "SG",
+          "",
+          "$2,296,274$0",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "Matthews, Wesley",
+          "FA Cap Hold",
+          "",
+          "38",
+          "SF, SG",
+          "",
+          "$2,296,274$0",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      ],
+      "dataTypes": {
+        "salary": true,
+        "player": true,
+        "contract": false,
+        "exception": false
+      },
+      "textPreview": "FA Cap Hold (4 - $8,937,316)StatusAcquiredAgePosTerms2025-262026-272027-282028-292029-302030-31Mathews, GarrisonFA Cap Hold28SG$2,296,274$0Matthews, WesleyFA Cap Hold38SF, SG$2,296,274$0Forrest, Trent",
+      "htmlPreview": "<thead><tr><th>FA Cap Hold <span style=\"text-wrap:nowrap\">(4 - $8,937,316)</span></th><th>Status</th><th>Acquired</th><th>Age</th><th>Pos</th><th>Terms</th><th>2025-26</th><th>2026-27</th><th>2027-28</th><th>2028-29</th><th>2029-30</th><th>2030-31</th></tr></thead><tbody><tr><td><a href=\"/players/ga"
+    }
+  ],
+  "extractionRules": {
+    "parseSalaryAmounts": true,
+    "parseContractOptions": true,
+    "parseYearlyData": true,
+    "cleanPlayerNames": true,
+    "extractBirdRights": true,
+    "extractFreeAgentStatus": true
+  },
+  "outputFormat": {
+    "includeRawHTML": true,
+    "includeMetadata": true,
+    "preserveTableStructure": true
+  }
+}
