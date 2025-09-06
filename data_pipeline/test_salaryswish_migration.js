@@ -137,7 +137,7 @@ class MigrationTester {
         this.log('-' .repeat(40), 'INFO');
         
         await this.checkFile(
-            path.join(__dirname, 'targeted_salaryswish_scraper.js'),
+            path.join(__dirname, 'targeted_salaryswish_scraper.cjs'),
             'Generated targeted scraper'
         );
 
@@ -147,7 +147,7 @@ class MigrationTester {
         this.log('⚠️ This test may fail due to network restrictions', 'WARNING');
         
         await this.runCommand(
-            'node targeted_salaryswish_scraper.js --team hawks --test',
+            'node targeted_salaryswish_scraper.cjs --team hawks --test',
             'Hawks targeted scraper test'
         );
 
@@ -182,7 +182,7 @@ class MigrationTester {
         if (passedTests === totalTests) {
             this.log('\n🎉 ALL TESTS PASSED! SalarySwish migration system is working correctly.', 'SUCCESS');
             this.log('Next steps:', 'INFO');
-            this.log('   1. Run: node targeted_salaryswish_scraper.js --team hawks', 'INFO');
+            this.log('   1. Run: node targeted_salaryswish_scraper.cjs --team hawks', 'INFO');
             this.log('   2. Test with more teams: --teams hawks,celtics,warriors', 'INFO');
             this.log('   3. Full deployment: --all', 'INFO');
         } else {

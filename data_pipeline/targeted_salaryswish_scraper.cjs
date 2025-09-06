@@ -7,7 +7,6 @@
  * Extracts only essential salary cap data efficiently from SalarySwish.com
  */
 
-const axios = require('axios');
 const cheerio = require('cheerio');
 const fs = require('fs');
 
@@ -65,14 +64,20 @@ class SalarySwishScraper {
             console.log(`🏀 Scraping ${team.name} (${team.slug})...`);
             
             const url = `${this.baseURL}/${team.slug}`;
-            const response = await axios.get(url, {
-                timeout: 10000,
+            const response = await fetch(url, {
                 headers: {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                }
+                },
+                timeout: 10000
             });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const html = await response.text();
 
-            const $ = cheerio.load(response.data);
+            const $ = cheerio.load(html);
             const teamData = {
                 metadata: {
                     name: team.name,

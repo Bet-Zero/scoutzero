@@ -19,7 +19,7 @@ class SalarySwishMigrationWorkflow {
         this.steps = [
             { name: 'Analyze Hawks Data', script: 'analyze_salaryswish_data.cjs', required: true },
             { name: 'Generate Targeted Scraper', script: 'generate_targeted_salaryswish_scraper.cjs', required: true },
-            { name: 'Test Single Team', script: '../targeted_salaryswish_scraper.js', args: 'test hawks', required: true },
+            { name: 'Test Single Team', script: '../targeted_salaryswish_scraper.cjs', args: 'test hawks', required: true },
             { name: 'Validate Data Quality', method: 'validateTestResults', required: true },
             { name: 'Generate Migration Plan', method: 'generateMigrationPlan', required: true }
         ];

@@ -48,20 +48,20 @@ node data_pipeline/salaryswish_analysis/generate_targeted_salaryswish_scraper.cj
 
 ### Test Single Team (Hawks)
 ```bash
-node data_pipeline/targeted_salaryswish_scraper.js --team hawks
+node data_pipeline/targeted_salaryswish_scraper.cjs --team hawks
 ```
 **Expected Output**: Hawks salary cap data extracted from 8 tables
 
 ### Test Multiple Teams
 ```bash
 # Test with 5 diverse teams
-node data_pipeline/targeted_salaryswish_scraper.js --teams hawks,celtics,warriors,lakers,heat
+node data_pipeline/targeted_salaryswish_scraper.cjs --teams hawks,celtics,warriors,lakers,heat
 ```
 
 ### Full Production Run
 ```bash
 # Scrape all 30 teams (production deployment)
-node data_pipeline/targeted_salaryswish_scraper.js --all
+node data_pipeline/targeted_salaryswish_scraper.cjs --all
 ```
 
 ## 📊 Generated Files
@@ -71,7 +71,7 @@ node data_pipeline/targeted_salaryswish_scraper.js --all
 - `salaryswish_analysis/hawks_data_analysis.json` - Analysis with confidence scores
 
 **Production Scraper:**
-- `targeted_salaryswish_scraper.js` - Efficient scraper for all 30 teams
+- `targeted_salaryswish_scraper.cjs` - Efficient scraper for all 30 teams
 
 **Output Data:**
 - `output/salaryswish_contracts_TIMESTAMP.json` - Extracted salary cap data
