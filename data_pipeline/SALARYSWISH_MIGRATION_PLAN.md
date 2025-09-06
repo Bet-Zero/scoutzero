@@ -120,6 +120,27 @@ Based on standard salary cap sites, expecting:
 - **Consistent structure** across all teams
 - **Less brittle parsing** with unified table format
 
+## Comprehensive Data Discovery Approach
+
+Instead of guessing what data SalarySwish provides, we now use a comprehensive discovery approach:
+
+### Phase 1: Complete Data Extraction
+- **`test_salaryswish_comprehensive.js`** - Scrapes EVERYTHING from Hawks page
+- Captures all tables, sections, headings, and financial data
+- Saves complete structure analysis for human review
+- Documents ALL available salary cap information
+
+### Phase 2: Data Analysis & Scraper Generation  
+- **`analyze_salaryswish_data.js`** - Analyzes comprehensive data to identify valuable tables
+- **`generate_targeted_salaryswish_scraper.js`** - Creates production scraper based on analysis
+- **`complete_salaryswish_migration.js`** - Orchestrates entire migration workflow
+
+### Phase 3: Human-Guided Selection
+- User reviews comprehensive data structure
+- Identifies which data points are valuable for salary cap management  
+- System generates targeted scraper based on findings
+- Ensures we capture ALL needed data without guessing
+
 ## Migration Steps
 
 1. **Create team slug mapping** (30 team URLs)
