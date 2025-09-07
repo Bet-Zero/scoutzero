@@ -57,16 +57,18 @@ class CompleteReadableReportGenerator {
         report += `**Scraped:** ${scrapedAt}\n`;
         report += `**Total Tables Found:** ${data.allTables.length}\n\n`;
         
-        report += `## 🔍 IMPORTANT: About This Report\n\n`;
-        report += `**This report shows ALL data from each table found on SalarySwish.** The comprehensive scraper captures every row from every table to provide complete data inventory.\n\n`;
+        report += `## 🔍 IMPORTANT: About This Data\n\n`;
+        report += `**This report contains ALL data from every table found on the SalarySwish page.** Nothing is excluded or sampled.\n\n`;
         report += `**What you see below:**\n`;
-        report += `- Complete table structure (headers, size, data types)\n`;
-        report += `- ALL rows from each table showing complete data\n`;
-        report += `- Analysis of what each table contains\n\n`;
+        report += `- Every table found on the page with complete structure\n`;
+        report += `- ALL rows from each table (complete data, not samples)\n`;
+        report += `- Clear analysis of what each table contains\n`;
+        report += `- Complete data inventory for you to review and decide what you need\n\n`;
         report += `---\n\n`;
-        report += `## 📊 ALL DATA FOUND ON SALARYSWISH PAGE\n\n`;
-        report += `This report shows EVERY piece of data found on the SalarySwish page.\n`;
-        report += `Each table below contains ALL rows of data, not samples.\n\n`;
+        report += `## 📊 COMPLETE DATA FROM SALARYSWISH PAGE\n\n`;
+        report += `This report contains EVERY piece of data found on the SalarySwish page.\n`;
+        report += `Each table below shows ALL rows of data (complete extraction).\n`;
+        report += `Review this data to determine exactly what you need for your system.\n\n`;
 
         // Process each table
         data.allTables.forEach((table, index) => {
@@ -297,15 +299,16 @@ class CompleteReadableReportGenerator {
             summary += `- Contains: ${this.describeTableContent(table)}\n\n`;
         });
         
-        summary += `## 🚀 Next Steps\n\n`;
-        summary += `**To extract complete data from specific tables:**\n`;
-        summary += `1. Run the targeted scraper: \`node data_pipeline/targeted_extractor_generator.js --team ${data.metadata.team.slug}\`\n`;
-        summary += `2. This will generate a targeted extractor that captures ALL rows from high-value tables\n`;
-        summary += `3. The extractor focuses on tables containing salary cap data you identified as important\n\n`;
-        summary += `**This comprehensive-first approach ensures:**\n`;
-        summary += `- You see what data is available before deciding what to extract\n`;
-        summary += `- No wasted time extracting irrelevant data\n`;
-        summary += `- Efficient targeted extraction of only valuable tables\n\n`;
+        summary += `## 🔍 Data Review Process\n\n`;
+        summary += `**This report shows ALL data found on the SalarySwish page.**\n\n`;
+        summary += `**Next Steps:**\n`;
+        summary += `1. Review each table above to see all available data\n`;
+        summary += `2. Identify which tables and columns contain data you need\n`;
+        summary += `3. Specify exactly which data to extract and format for your system\n\n`;
+        summary += `**Complete Data Extraction:**\n`;
+        summary += `- Every table shows ALL rows (no samples or limits)\n`;
+        summary += `- Every column of data is captured and displayed\n`;
+        summary += `- You decide what's valuable based on your specific needs\n\n`;
         
         return summary;
     }
