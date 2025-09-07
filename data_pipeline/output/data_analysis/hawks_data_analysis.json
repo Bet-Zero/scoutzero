@@ -1,0 +1,711 @@
+{
+  "metadata": {
+    "team": {
+      "name": "Atlanta Hawks",
+      "slug": "hawks"
+    },
+    "analyzedAt": "2025-09-07T06:44:41.263Z",
+    "originalDataSize": 6030
+  },
+  "dataInventory": {
+    "totalTables": 3,
+    "totalSections": 1,
+    "totalHeadings": 2,
+    "totalSalaryElements": 2,
+    "totalPlayerElements": 2,
+    "totalContractElements": 1,
+    "totalCapElements": 1,
+    "totalExceptionElements": 1,
+    "totalDraftElements": 0
+  },
+  "tableAnalysis": {
+    "highValueTables": [
+      {
+        "index": 0,
+        "classes": "roster-table active-roster",
+        "id": "active-roster",
+        "size": "16x8",
+        "headers": [
+          "Player",
+          "Position",
+          "Age",
+          "2025-26",
+          "2026-27",
+          "2027-28",
+          "2028-29",
+          "2029-30"
+        ],
+        "score": 503,
+        "dataTypes": {
+          "salary": true,
+          "player": true,
+          "contract": false,
+          "exception": false
+        },
+        "sampleContent": "Jalen Johnson | PF, SF | 23 | $30,000,000 | $30,000,000\nTrae Young | PG | 26 | $43,031,940 | $46,494,496",
+        "recommendation": {
+          "priority": "HIGH",
+          "action": "MUST EXTRACT",
+          "reason": "Contains critical salary cap data with multi-year information"
+        }
+      },
+      {
+        "index": 1,
+        "classes": "cap-stats-table",
+        "id": "cap-statistics",
+        "size": "6x6",
+        "headers": [
+          "Year",
+          "Team Salary",
+          "Salary Cap",
+          "Cap Room",
+          "Luxury Tax",
+          "Tax Room"
+        ],
+        "score": 286,
+        "dataTypes": {
+          "salary": true,
+          "player": true,
+          "contract": true,
+          "exception": false
+        },
+        "sampleContent": "2025-26 | $184,432,415 | $214,217,830 | $29,785,415 | $187,680,245",
+        "recommendation": {
+          "priority": "HIGH",
+          "action": "MUST EXTRACT",
+          "reason": "Contains critical salary cap data with multi-year information"
+        }
+      }
+    ],
+    "mediumValueTables": [
+      {
+        "index": 2,
+        "classes": "trade-exceptions-table",
+        "id": "trade-exceptions",
+        "size": "2x6",
+        "headers": [
+          "Player",
+          "Amount",
+          "Used",
+          "Remaining",
+          "Start Date",
+          "End Date"
+        ],
+        "score": 187,
+        "dataTypes": {
+          "salary": true,
+          "player": true,
+          "contract": false,
+          "exception": false
+        },
+        "sampleContent": "Bogdan Bogdanovic | $13,101,561 | $0 | $13,101,561 | Feb 6, 2025",
+        "recommendation": {
+          "priority": "MEDIUM",
+          "action": "SHOULD EXTRACT",
+          "reason": "Contains valuable salary or contract data"
+        }
+      }
+    ],
+    "lowValueTables": [],
+    "salaryTables": [
+      {
+        "index": 0,
+        "classes": "roster-table active-roster",
+        "id": "active-roster",
+        "size": "16x8",
+        "headers": [
+          "Player",
+          "Position",
+          "Age",
+          "2025-26",
+          "2026-27",
+          "2027-28",
+          "2028-29",
+          "2029-30"
+        ],
+        "score": 503,
+        "dataTypes": {
+          "salary": true,
+          "player": true,
+          "contract": false,
+          "exception": false
+        },
+        "sampleContent": "Jalen Johnson | PF, SF | 23 | $30,000,000 | $30,000,000\nTrae Young | PG | 26 | $43,031,940 | $46,494,496",
+        "recommendation": {
+          "priority": "HIGH",
+          "action": "MUST EXTRACT",
+          "reason": "Contains critical salary cap data with multi-year information"
+        }
+      },
+      {
+        "index": 1,
+        "classes": "cap-stats-table",
+        "id": "cap-statistics",
+        "size": "6x6",
+        "headers": [
+          "Year",
+          "Team Salary",
+          "Salary Cap",
+          "Cap Room",
+          "Luxury Tax",
+          "Tax Room"
+        ],
+        "score": 286,
+        "dataTypes": {
+          "salary": true,
+          "player": true,
+          "contract": true,
+          "exception": false
+        },
+        "sampleContent": "2025-26 | $184,432,415 | $214,217,830 | $29,785,415 | $187,680,245",
+        "recommendation": {
+          "priority": "HIGH",
+          "action": "MUST EXTRACT",
+          "reason": "Contains critical salary cap data with multi-year information"
+        }
+      },
+      {
+        "index": 2,
+        "classes": "trade-exceptions-table",
+        "id": "trade-exceptions",
+        "size": "2x6",
+        "headers": [
+          "Player",
+          "Amount",
+          "Used",
+          "Remaining",
+          "Start Date",
+          "End Date"
+        ],
+        "score": 187,
+        "dataTypes": {
+          "salary": true,
+          "player": true,
+          "contract": false,
+          "exception": false
+        },
+        "sampleContent": "Bogdan Bogdanovic | $13,101,561 | $0 | $13,101,561 | Feb 6, 2025",
+        "recommendation": {
+          "priority": "MEDIUM",
+          "action": "SHOULD EXTRACT",
+          "reason": "Contains valuable salary or contract data"
+        }
+      }
+    ],
+    "playerTables": [
+      {
+        "index": 0,
+        "classes": "roster-table active-roster",
+        "id": "active-roster",
+        "size": "16x8",
+        "headers": [
+          "Player",
+          "Position",
+          "Age",
+          "2025-26",
+          "2026-27",
+          "2027-28",
+          "2028-29",
+          "2029-30"
+        ],
+        "score": 503,
+        "dataTypes": {
+          "salary": true,
+          "player": true,
+          "contract": false,
+          "exception": false
+        },
+        "sampleContent": "Jalen Johnson | PF, SF | 23 | $30,000,000 | $30,000,000\nTrae Young | PG | 26 | $43,031,940 | $46,494,496",
+        "recommendation": {
+          "priority": "HIGH",
+          "action": "MUST EXTRACT",
+          "reason": "Contains critical salary cap data with multi-year information"
+        }
+      },
+      {
+        "index": 1,
+        "classes": "cap-stats-table",
+        "id": "cap-statistics",
+        "size": "6x6",
+        "headers": [
+          "Year",
+          "Team Salary",
+          "Salary Cap",
+          "Cap Room",
+          "Luxury Tax",
+          "Tax Room"
+        ],
+        "score": 286,
+        "dataTypes": {
+          "salary": true,
+          "player": true,
+          "contract": true,
+          "exception": false
+        },
+        "sampleContent": "2025-26 | $184,432,415 | $214,217,830 | $29,785,415 | $187,680,245",
+        "recommendation": {
+          "priority": "HIGH",
+          "action": "MUST EXTRACT",
+          "reason": "Contains critical salary cap data with multi-year information"
+        }
+      },
+      {
+        "index": 2,
+        "classes": "trade-exceptions-table",
+        "id": "trade-exceptions",
+        "size": "2x6",
+        "headers": [
+          "Player",
+          "Amount",
+          "Used",
+          "Remaining",
+          "Start Date",
+          "End Date"
+        ],
+        "score": 187,
+        "dataTypes": {
+          "salary": true,
+          "player": true,
+          "contract": false,
+          "exception": false
+        },
+        "sampleContent": "Bogdan Bogdanovic | $13,101,561 | $0 | $13,101,561 | Feb 6, 2025",
+        "recommendation": {
+          "priority": "MEDIUM",
+          "action": "SHOULD EXTRACT",
+          "reason": "Contains valuable salary or contract data"
+        }
+      }
+    ],
+    "contractTables": [
+      {
+        "index": 1,
+        "classes": "cap-stats-table",
+        "id": "cap-statistics",
+        "size": "6x6",
+        "headers": [
+          "Year",
+          "Team Salary",
+          "Salary Cap",
+          "Cap Room",
+          "Luxury Tax",
+          "Tax Room"
+        ],
+        "score": 286,
+        "dataTypes": {
+          "salary": true,
+          "player": true,
+          "contract": true,
+          "exception": false
+        },
+        "sampleContent": "2025-26 | $184,432,415 | $214,217,830 | $29,785,415 | $187,680,245",
+        "recommendation": {
+          "priority": "HIGH",
+          "action": "MUST EXTRACT",
+          "reason": "Contains critical salary cap data with multi-year information"
+        }
+      }
+    ],
+    "exceptionTables": []
+  },
+  "salaryCapBreakdown": {
+    "salaryElementsAnalysis": {
+      "totalFound": 2,
+      "uniqueSalaryAmounts": [
+        "$30,000,000",
+        "$43,031,940"
+      ],
+      "salaryRanges": {
+        "min": 30000000,
+        "max": 43031940
+      },
+      "commonSalaryPatterns": [
+        "Multi-Year Data"
+      ]
+    },
+    "capElementsAnalysis": {
+      "totalFound": 1,
+      "capTermsFound": [
+        "salary data",
+        "multi-year contracts"
+      ],
+      "capSpaceReferences": 0,
+      "luxuryTaxReferences": 0
+    },
+    "yearsCovered": [
+      "2025-26",
+      "2026-27",
+      "2027-28",
+      "2028-29",
+      "2029-30"
+    ],
+    "salaryDistribution": {
+      "distribution": "2 salary amounts",
+      "range": "$30,000,000 - $43,031,940",
+      "median": 43031940
+    }
+  },
+  "contractDataBreakdown": {
+    "contractElementsAnalysis": {
+      "totalFound": 1,
+      "optionReferences": 0,
+      "guaranteedReferences": 0,
+      "birdRightsReferences": 0,
+      "freeAgentReferences": 0
+    },
+    "contractTermsFound": [],
+    "playerStatusTypes": []
+  },
+  "extractionRecommendations": {
+    "mustExtract": [
+      {
+        "index": 0,
+        "classes": "roster-table active-roster",
+        "headers": [
+          "Player",
+          "Position",
+          "Age",
+          "2025-26",
+          "2026-27",
+          "2027-28",
+          "2028-29",
+          "2029-30"
+        ],
+        "size": "16x8",
+        "score": 503,
+        "reason": "Contains critical salary cap data with multi-year information"
+      },
+      {
+        "index": 1,
+        "classes": "cap-stats-table",
+        "headers": [
+          "Year",
+          "Team Salary",
+          "Salary Cap",
+          "Cap Room",
+          "Luxury Tax",
+          "Tax Room"
+        ],
+        "size": "6x6",
+        "score": 286,
+        "reason": "Contains critical salary cap data with multi-year information"
+      }
+    ],
+    "shouldExtract": [
+      {
+        "index": 2,
+        "classes": "trade-exceptions-table",
+        "headers": [
+          "Player",
+          "Amount",
+          "Used",
+          "Remaining",
+          "Start Date",
+          "End Date"
+        ],
+        "size": "2x6",
+        "score": 187,
+        "reason": "Contains valuable salary or contract data"
+      }
+    ],
+    "considerExtracting": [],
+    "skipTables": [],
+    "extractionStrategy": {
+      "phase1_critical": 2,
+      "phase2_valuable": 1,
+      "phase3_supplementary": 0,
+      "totalTablesFound": 3,
+      "extractionCoverage": "3/3",
+      "recommendedApproach": {
+        "approach": "FOCUSED_EXTRACTION",
+        "description": "Several high-value tables found. Focus on critical tables first.",
+        "phases": 2
+      }
+    },
+    "priorityOrder": [
+      {
+        "index": 0,
+        "classes": "roster-table active-roster",
+        "headers": [
+          "Player",
+          "Position",
+          "Age",
+          "2025-26",
+          "2026-27",
+          "2027-28",
+          "2028-29",
+          "2029-30"
+        ],
+        "size": "16x8",
+        "score": 503,
+        "reason": "Contains critical salary cap data with multi-year information",
+        "phase": "CRITICAL"
+      },
+      {
+        "index": 1,
+        "classes": "cap-stats-table",
+        "headers": [
+          "Year",
+          "Team Salary",
+          "Salary Cap",
+          "Cap Room",
+          "Luxury Tax",
+          "Tax Room"
+        ],
+        "size": "6x6",
+        "score": 286,
+        "reason": "Contains critical salary cap data with multi-year information",
+        "phase": "CRITICAL"
+      },
+      {
+        "index": 2,
+        "classes": "trade-exceptions-table",
+        "headers": [
+          "Player",
+          "Amount",
+          "Used",
+          "Remaining",
+          "Start Date",
+          "End Date"
+        ],
+        "size": "2x6",
+        "score": 187,
+        "reason": "Contains valuable salary or contract data",
+        "phase": "VALUABLE"
+      }
+    ]
+  },
+  "completeTableDetails": [
+    {
+      "index": 0,
+      "classes": "roster-table active-roster",
+      "id": "active-roster",
+      "summary": {
+        "rows": 16,
+        "columns": 8
+      },
+      "headers": [
+        "Player",
+        "Position",
+        "Age",
+        "2025-26",
+        "2026-27",
+        "2027-28",
+        "2028-29",
+        "2029-30"
+      ],
+      "sampleRows": [
+        [
+          {
+            "text": "Jalen Johnson",
+            "html": "Jalen Johnson",
+            "classes": "player-name"
+          },
+          {
+            "text": "PF, SF",
+            "html": "PF, SF",
+            "classes": "position"
+          },
+          {
+            "text": "23",
+            "html": "23",
+            "classes": "age"
+          },
+          {
+            "text": "$30,000,000",
+            "html": "$30,000,000",
+            "classes": "salary"
+          },
+          {
+            "text": "$30,000,000",
+            "html": "$30,000,000",
+            "classes": "salary"
+          },
+          {
+            "text": "$30,000,000",
+            "html": "$30,000,000",
+            "classes": "salary"
+          },
+          {
+            "text": "$30,000,000",
+            "html": "$30,000,000",
+            "classes": "salary"
+          },
+          {
+            "text": "$30,000,000",
+            "html": "$30,000,000",
+            "classes": "salary"
+          }
+        ],
+        [
+          {
+            "text": "Trae Young",
+            "html": "Trae Young",
+            "classes": "player-name"
+          },
+          {
+            "text": "PG",
+            "html": "PG",
+            "classes": "position"
+          },
+          {
+            "text": "26",
+            "html": "26",
+            "classes": "age"
+          },
+          {
+            "text": "$43,031,940",
+            "html": "$43,031,940",
+            "classes": "salary"
+          },
+          {
+            "text": "$46,494,496",
+            "html": "$46,494,496",
+            "classes": "salary"
+          },
+          {
+            "text": "$49,957,052",
+            "html": "$49,957,052",
+            "classes": "salary"
+          },
+          {
+            "text": "$53,419,608",
+            "html": "$53,419,608",
+            "classes": "salary"
+          },
+          {
+            "text": "-",
+            "html": "-",
+            "classes": "empty"
+          }
+        ]
+      ],
+      "dataTypes": {
+        "salary": true,
+        "player": true,
+        "contract": false,
+        "exception": false
+      },
+      "textPreview": "Player Position Age 2025-26 2026-27 2027-28 2028-29 2029-30 Jalen Johnson PF, SF 23 $30,000,000 $30,000,000 $30,000,000 $30,000,000 $30,000,000 Trae Young PG 26 $43,031,940 $46,494,496 $49,957,052 $53",
+      "htmlPreview": "<thead><tr><th>Player</th><th>Position</th><th>Age</th><th>2025-26</th><th>2026-27</th><th>2027-28</th><th>2028-29</th><th>2029-30</th></tr></thead><tbody><tr><td>Jalen Johnson</td><td>PF, SF</td><td>23</td><td>$30,000,000</td><td>$30,000,000</td><td>$30,000,000</td><td>$30,000,000</td><td>$30,000,0"
+    },
+    {
+      "index": 1,
+      "classes": "cap-stats-table",
+      "id": "cap-statistics",
+      "summary": {
+        "rows": 6,
+        "columns": 6
+      },
+      "headers": [
+        "Year",
+        "Team Salary",
+        "Salary Cap",
+        "Cap Room",
+        "Luxury Tax",
+        "Tax Room"
+      ],
+      "sampleRows": [
+        [
+          {
+            "text": "2025-26",
+            "html": "2025-26",
+            "classes": "year"
+          },
+          {
+            "text": "$184,432,415",
+            "html": "$184,432,415",
+            "classes": "salary"
+          },
+          {
+            "text": "$214,217,830",
+            "html": "$214,217,830",
+            "classes": "cap"
+          },
+          {
+            "text": "$29,785,415",
+            "html": "$29,785,415",
+            "classes": "cap-room"
+          },
+          {
+            "text": "$187,680,245",
+            "html": "$187,680,245",
+            "classes": "luxury-tax"
+          },
+          {
+            "text": "$3,462,585",
+            "html": "$3,462,585",
+            "classes": "tax-room"
+          }
+        ]
+      ],
+      "dataTypes": {
+        "salary": true,
+        "player": true,
+        "contract": true,
+        "exception": false
+      },
+      "textPreview": "Year Team Salary Salary Cap Cap Room Luxury Tax Tax Room 2025-26 $184,432,415 $214,217,830 $29,785,415 $187,680,245 $3,462,585",
+      "htmlPreview": "<thead><tr><th>Year</th><th>Team Salary</th><th>Salary Cap</th><th>Cap Room</th><th>Luxury Tax</th><th>Tax Room</th></tr></thead><tbody><tr><td>2025-26</td><td>$184,432,415</td><td>$214,217,830</td><td>$29,785,415</td><td>$187,680,245</td><td>$3,462,585</td></tr></tbody>"
+    },
+    {
+      "index": 2,
+      "classes": "trade-exceptions-table",
+      "id": "trade-exceptions",
+      "summary": {
+        "rows": 2,
+        "columns": 6
+      },
+      "headers": [
+        "Player",
+        "Amount",
+        "Used",
+        "Remaining",
+        "Start Date",
+        "End Date"
+      ],
+      "sampleRows": [
+        [
+          {
+            "text": "Bogdan Bogdanovic",
+            "html": "Bogdan Bogdanovic",
+            "classes": "player-name"
+          },
+          {
+            "text": "$13,101,561",
+            "html": "$13,101,561",
+            "classes": "tpe-amount"
+          },
+          {
+            "text": "$0",
+            "html": "$0",
+            "classes": "tpe-used"
+          },
+          {
+            "text": "$13,101,561",
+            "html": "$13,101,561",
+            "classes": "tpe-remaining"
+          },
+          {
+            "text": "Feb 6, 2025",
+            "html": "Feb 6, 2025",
+            "classes": "tpe-start"
+          },
+          {
+            "text": "Feb 6, 2026",
+            "html": "Feb 6, 2026",
+            "classes": "tpe-end"
+          }
+        ]
+      ],
+      "dataTypes": {
+        "salary": true,
+        "player": true,
+        "contract": false,
+        "exception": false
+      },
+      "textPreview": "Player Amount Used Remaining Start Date End Date Bogdan Bogdanovic $13,101,561 $0 $13,101,561 Feb 6, 2025 Feb 6, 2026",
+      "htmlPreview": "<thead><tr><th>Player</th><th>Amount</th><th>Used</th><th>Remaining</th><th>Start Date</th><th>End Date</th></tr></thead><tbody><tr><td>Bogdan Bogdanovic</td><td>$13,101,561</td><td>$0</td><td>$13,101,561</td><td>Feb 6, 2025</td><td>Feb 6, 2026</td></tr></tbody>"
+    }
+  ]
+}

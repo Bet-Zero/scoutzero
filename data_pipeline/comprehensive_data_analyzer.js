@@ -118,7 +118,7 @@ class ComprehensiveDataAnalyzer {
                 index: table.index,
                 classes: table.classes,
                 id: table.id,
-                size: `${table.rowCount}x${table.columnCount}`,
+                size: `${table.summary?.rows || 0}x${table.summary?.columns || 0}`,
                 headers: table.headers,
                 score: tableScore,
                 dataTypes: {
@@ -127,8 +127,8 @@ class ComprehensiveDataAnalyzer {
                     contract: contentAnalysis.containsContractData,
                     exception: contentAnalysis.containsExceptionData
                 },
-                sampleContent: table.rows.slice(0, 3).map(row => 
-                    row.slice(0, 5).join(' | ')
+                sampleContent: table.sampleRows?.slice(0, 3).map(row => 
+                    row.slice(0, 5).map(cell => cell.text || cell).join(' | ')
                 ).join('\n'),
                 recommendation: this.getTableRecommendation(table, tableScore)
             };
@@ -157,8 +157,8 @@ class ComprehensiveDataAnalyzer {
     }
 
     analyzeTableContent(table) {
-        const allText = table.allText.toLowerCase();
-        const headers = table.headers.map(h => h.toLowerCase());
+        const allText = (table.allTextContent || table.allText || '').toLowerCase();
+        const headers = (table.headers || []).map(h => h.toLowerCase());
         
         // Check for salary data
         const containsSalaryData = allText.includes('$') || 
@@ -174,7 +174,7 @@ class ComprehensiveDataAnalyzer {
         
         // Check for player data
         const containsPlayerData = headers.some(h => h.includes('player') || h.includes('name')) ||
-                                 table.rowCount > 2; // Likely has player rows if multiple rows
+                                 (table.summary?.rows || 0) > 2; // Likely has player rows if multiple rows
         
         return {
             containsSalaryData,
@@ -188,7 +188,7 @@ class ComprehensiveDataAnalyzer {
         let score = 0;
         
         // Size scoring
-        const dataSize = table.rowCount * table.columnCount;
+        const dataSize = (table.summary?.rows || 0) * (table.summary?.columns || 0);
         score += dataSize;
         
         // Analyze content on the fly
@@ -208,7 +208,7 @@ class ComprehensiveDataAnalyzer {
         if (table.headers.length > 5) score += 25;
         
         // Penalty for tiny tables
-        if (table.rowCount < 2) score -= 50;
+        if ((table.summary?.rows || 0) < 2) score -= 50;
         
         return score;
     }
@@ -242,12 +242,14 @@ class ComprehensiveDataAnalyzer {
     }
 
     analyzeSalaryCapData(data) {
-        // Extract salary data from the structured text analysis
-        const allTextData = data.allText || {};
+        // Extract salary data from the comprehensive data structure
         const tables = data.allTables || [];
         
-        // Get salary amounts from the structured data
-        const salaryMatches = allTextData.dollarAmounts || [];
+        // Get salary amounts from salary elements
+        const salaryMatches = (data.salaryElements || []).flatMap(el => 
+            el.salaries?.map(s => s.text) || [el.text || '']
+        ).filter(text => text.includes('$'));
+        
         const uniqueSalaryAmounts = [...new Set(salaryMatches)];
         
         const breakdown = {
@@ -255,15 +257,15 @@ class ComprehensiveDataAnalyzer {
                 totalFound: salaryMatches.length,
                 uniqueSalaryAmounts: uniqueSalaryAmounts.slice(0, 10), // Show first 10
                 salaryRanges: this.getSalaryRanges(salaryMatches),
-                commonSalaryPatterns: this.getCommonSalaryPatterns(allTextData)
+                commonSalaryPatterns: this.getCommonSalaryPatterns(data)
             },
             capElementsAnalysis: {
-                totalFound: allTextData.fullTextLength || 0,
-                capTermsFound: this.extractCapTerms(allTextData),
+                totalFound: (data.capElements || []).length,
+                capTermsFound: this.extractCapTerms(data),
                 capSpaceReferences: 0, // Will be calculated from table content
                 luxuryTaxReferences: 0 // Will be calculated from table content
             },
-            yearsCovered: allTextData.years || this.extractYearsCovered(tables),
+            yearsCovered: this.extractYearsCovered(tables),
             salaryDistribution: this.analyzeSalaryDistributionFromText(salaryMatches)
         };
         
@@ -271,7 +273,6 @@ class ComprehensiveDataAnalyzer {
     }
 
     analyzeContractData(data) {
-        const allTextData = data.allText || {};
         const tables = data.allTables || [];
         
         // Look for contract terms in table data
@@ -280,7 +281,7 @@ class ComprehensiveDataAnalyzer {
         let guaranteedCount = 0;
         
         tables.forEach(table => {
-            const tableText = table.allText || '';
+            const tableText = (table.allTextContent || table.allText || '').toLowerCase();
             contractTermCount += (tableText.match(/contract/gi) || []).length;
             optionCount += (tableText.match(/option/gi) || []).length;
             guaranteedCount += (tableText.match(/guaranteed/gi) || []).length;
@@ -288,7 +289,7 @@ class ComprehensiveDataAnalyzer {
         
         const breakdown = {
             contractElementsAnalysis: {
-                totalFound: tables.length,
+                totalFound: (data.contractElements || []).length,
                 optionReferences: optionCount,
                 guaranteedReferences: guaranteedCount,
                 birdRightsReferences: 0, // Will be calculated from table scanning
@@ -343,7 +344,7 @@ class ComprehensiveDataAnalyzer {
                 index: table.index,
                 classes: table.classes,
                 headers: table.headers,
-                size: `${table.rowCount}x${table.columnCount}`,
+                size: `${table.summary?.rows || 0}x${table.summary?.columns || 0}`,
                 score: score,
                 reason: recommendation.reason
             };
@@ -418,19 +419,19 @@ class ComprehensiveDataAnalyzer {
                 classes: table.classes,
                 id: table.id,
                 summary: {
-                    rows: table.rowCount,
-                    columns: table.columnCount
+                    rows: table.summary?.rows || 0,
+                    columns: table.summary?.columns || 0
                 },
                 headers: table.headers,
-                sampleRows: table.rows.slice(0, 3), // First 3 rows
+                sampleRows: table.sampleRows?.slice(0, 3) || [], // First 3 rows
                 dataTypes: {
                     salary: contentAnalysis.containsSalaryData,
                     player: contentAnalysis.containsPlayerData,
                     contract: contentAnalysis.containsContractData,
                     exception: contentAnalysis.containsExceptionData
                 },
-                textPreview: (table.allText || '').substring(0, 200),
-                htmlPreview: (table.html || '').substring(0, 300)
+                textPreview: (table.allTextContent || table.allText || '').substring(0, 200),
+                htmlPreview: (table.innerHTML || '').substring(0, 300)
             };
         });
     }
@@ -677,31 +678,30 @@ ${summary.teamComparisons.map(team =>
         } : { min: null, max: null };
     }
 
-    getCommonSalaryPatterns(allTextData) {
+    getCommonSalaryPatterns(data) {
         const patterns = [];
         
         // Check tables for common patterns
-        if (allTextData.years && allTextData.years.length > 0) {
+        const years = this.extractYearsCovered(data.allTables || []);
+        if (years.length > 0) {
             patterns.push('Multi-Year Data');
         }
-        if (allTextData.dollarAmounts && allTextData.dollarAmounts.length > 10) {
+        const salaryElements = data.salaryElements || [];
+        if (salaryElements.length > 10) {
             patterns.push('Complex Salary Structure');
-        }
-        if (allTextData.percentages && allTextData.percentages.length > 0) {
-            patterns.push('Percentage-Based Elements');
         }
         
         return patterns;
     }
 
-    extractCapTerms(allTextData) {
-        // Since we don't have the raw text, extract from available data
+    extractCapTerms(data) {
         const terms = [];
         
-        if (allTextData.dollarAmounts && allTextData.dollarAmounts.length > 0) {
+        if ((data.salaryElements || []).length > 0) {
             terms.push('salary data');
         }
-        if (allTextData.years && allTextData.years.length > 0) {
+        const years = this.extractYearsCovered(data.allTables || []);
+        if (years.length > 0) {
             terms.push('multi-year contracts');
         }
         
@@ -754,13 +754,11 @@ ${summary.teamComparisons.map(team =>
         const terms = [];
         
         tables.forEach(table => {
-            if (table.allText) {
-                const text = table.allText.toLowerCase();
-                if (text.includes('option')) terms.push('Options');
-                if (text.includes('guaranteed')) terms.push('Guaranteed');
-                if (text.includes('bird')) terms.push('Bird Rights');
-                if (text.includes('exception')) terms.push('Exceptions');
-            }
+            const text = (table.allTextContent || table.allText || '').toLowerCase();
+            if (text.includes('option')) terms.push('Options');
+            if (text.includes('guaranteed')) terms.push('Guaranteed');
+            if (text.includes('bird')) terms.push('Bird Rights');
+            if (text.includes('exception')) terms.push('Exceptions');
         });
         
         return [...new Set(terms)]; // Remove duplicates
@@ -770,13 +768,11 @@ ${summary.teamComparisons.map(team =>
         const statusTypes = new Set();
         
         tables.forEach(table => {
-            if (table.allText) {
-                const text = table.allText.toLowerCase();
-                if (text.includes('rfa')) statusTypes.add('RFA');
-                if (text.includes('ufa')) statusTypes.add('UFA'); 
-                if (text.includes('rookie')) statusTypes.add('Rookie');
-                if (text.includes('veteran')) statusTypes.add('Veteran');
-            }
+            const text = (table.allTextContent || table.allText || '').toLowerCase();
+            if (text.includes('rfa')) statusTypes.add('RFA');
+            if (text.includes('ufa')) statusTypes.add('UFA'); 
+            if (text.includes('rookie')) statusTypes.add('Rookie');
+            if (text.includes('veteran')) statusTypes.add('Veteran');
         });
         
         return Array.from(statusTypes);

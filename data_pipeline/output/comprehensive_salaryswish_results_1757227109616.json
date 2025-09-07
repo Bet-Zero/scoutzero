@@ -1,0 +1,20 @@
+{
+  "metadata": {
+    "scrapedAt": "2025-09-07T06:38:29.552Z",
+    "approach": "comprehensive_first",
+    "totalTeams": 1
+  },
+  "teamSummaries": {},
+  "dataInventory": {
+    "totalHighValueTables": 0,
+    "uniqueDataTypes": [],
+    "tablesByDataType": {
+      "salary": 0,
+      "player": 0,
+      "contract": 0,
+      "exception": 0
+    },
+    "commonTableClasses": [],
+    "recommendedExtractionTargets": []
+  }
+}
