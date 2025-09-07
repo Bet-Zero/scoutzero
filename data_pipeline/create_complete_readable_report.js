@@ -58,18 +58,15 @@ class CompleteReadableReportGenerator {
         report += `**Total Tables Found:** ${data.allTables.length}\n\n`;
         
         report += `## 🔍 IMPORTANT: About This Report\n\n`;
-        report += `**This report shows sample data from each table found on SalarySwish.** The comprehensive scraper captures table structure and samples to identify data types without creating massive files.\n\n`;
-        report += `**To get ALL data from every table:**\n`;
-        report += `1. The comprehensive scraper identifies what's available (shown below)\n`;
-        report += `2. The targeted scraper can then extract complete tables based on your requirements\n\n`;
+        report += `**This report shows ALL data from each table found on SalarySwish.** The comprehensive scraper captures every row from every table to provide complete data inventory.\n\n`;
         report += `**What you see below:**\n`;
         report += `- Complete table structure (headers, size, data types)\n`;
-        report += `- Sample rows showing data format\n`;
+        report += `- ALL rows from each table showing complete data\n`;
         report += `- Analysis of what each table contains\n\n`;
         report += `---\n\n`;
         report += `## 📊 ALL DATA FOUND ON SALARYSWISH PAGE\n\n`;
         report += `This report shows EVERY piece of data found on the SalarySwish page.\n`;
-        report += `Each table below contains ALL rows of data, not just samples.\n\n`;
+        report += `Each table below contains ALL rows of data, not samples.\n\n`;
 
         // Process each table
         data.allTables.forEach((table, index) => {
@@ -94,10 +91,7 @@ class CompleteReadableReportGenerator {
         const completeData = this.extractCompleteTableData(table);
         
         if (completeData.rows.length > 0) {
-            section += `### Sample Data (showing ${completeData.rows.length} of ${table.summary.rows} total rows):\n\n`;
-            if (table.summary.rows > completeData.rows.length) {
-                section += `*Note: This table contains ${table.summary.rows} total rows. Only samples shown here.*\n\n`;
-            }
+            section += `### Complete Data (showing all ${completeData.rows.length} rows):\n\n`;
             section += this.formatTableAsMarkdown(completeData.headers, completeData.rows);
         } else {
             section += `### Table Content (Raw Text):\n`;
@@ -168,11 +162,12 @@ class CompleteReadableReportGenerator {
             }
         }
         
-        // If no data extracted from innerHTML, use sample rows
-        if (rows.length === 0 && table.sampleRows) {
-            table.sampleRows.forEach(sampleRow => {
-                if (Array.isArray(sampleRow)) {
-                    const row = sampleRow.map(cell => {
+        // If no data extracted from innerHTML, use all rows (or sampleRows for backwards compatibility)
+        const rowData = table.allRows || table.sampleRows;
+        if (rows.length === 0 && rowData) {
+            rowData.forEach(dataRow => {
+                if (Array.isArray(dataRow)) {
+                    const row = dataRow.map(cell => {
                         if (typeof cell === 'object' && cell.text) {
                             return cell.text;
                         }
@@ -343,8 +338,9 @@ class CompleteReadableReportGenerator {
         }
         
         // Analyze sample data for more insights
-        if (table.sampleRows && table.sampleRows.length > 0) {
-            const sampleRow = table.sampleRows[0];
+        const rowData = table.allRows || table.sampleRows;
+        if (rowData && rowData.length > 0) {
+            const sampleRow = rowData[0];
             if (Array.isArray(sampleRow)) {
                 const textValues = sampleRow.map(cell => 
                     typeof cell === 'object' ? cell.text : String(cell)

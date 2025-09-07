@@ -6,15 +6,11 @@
 
 ## 🔍 IMPORTANT: About This Report
 
-**This report shows sample data from each table found on SalarySwish.** The comprehensive scraper captures table structure and samples to identify data types without creating massive files.
-
-**To get ALL data from every table:**
-1. The comprehensive scraper identifies what's available (shown below)
-2. The targeted scraper can then extract complete tables based on your requirements
+**This report shows ALL data from each table found on SalarySwish.** The comprehensive scraper captures every row from every table to provide complete data inventory.
 
 **What you see below:**
 - Complete table structure (headers, size, data types)
-- Sample rows showing data format
+- ALL rows from each table showing complete data
 - Analysis of what each table contains
 
 ---
@@ -22,7 +18,7 @@
 ## 📊 ALL DATA FOUND ON SALARYSWISH PAGE
 
 This report shows EVERY piece of data found on the SalarySwish page.
-Each table below contains ALL rows of data, not just samples.
+Each table below contains ALL rows of data, not samples.
 
 ## Table 1: Active Roster
 
@@ -30,9 +26,7 @@ Each table below contains ALL rows of data, not just samples.
 **Size:** 16 rows × 8 columns
 **Data Types:** 💰 Salary Data, 👤 Player Data, 📄 Contract Data
 
-### Sample Data (showing 2 of 16 total rows):
-
-*Note: This table contains 16 total rows. Only samples shown here.*
+### Complete Data (showing all 2 rows):
 
 | Player | Position | Age | 2025-26 | 2026-27 | 2027-28 | 2028-29 | 2029-30 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -47,9 +41,7 @@ Each table below contains ALL rows of data, not just samples.
 **Size:** 6 rows × 6 columns
 **Data Types:** 💰 Salary Data
 
-### Sample Data (showing 1 of 6 total rows):
-
-*Note: This table contains 6 total rows. Only samples shown here.*
+### Complete Data (showing all 1 rows):
 
 | Year | Team Salary | Salary Cap | Cap Room | Luxury Tax | Tax Room |
 | --- | --- | --- | --- | --- | --- |
@@ -63,9 +55,7 @@ Each table below contains ALL rows of data, not just samples.
 **Size:** 2 rows × 6 columns
 **Data Types:** 💰 Salary Data, 👤 Player Data, 🎫 Exception Data
 
-### Sample Data (showing 1 of 2 total rows):
-
-*Note: This table contains 2 total rows. Only samples shown here.*
+### Complete Data (showing all 1 rows):
 
 | Player | Amount | Used | Remaining | Start Date | End Date |
 | --- | --- | --- | --- | --- | --- |

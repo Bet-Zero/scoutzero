@@ -188,7 +188,7 @@ class ComprehensiveSalarySwishScraper {
                     hasHeaders: table.querySelectorAll('thead, th').length > 0
                 },
                 headers: [],
-                sampleRows: [],
+                allRows: [],
                 allTextContent: table.textContent.trim(),
                 innerHTML: table.innerHTML
             };
@@ -209,9 +209,9 @@ class ComprehensiveSalarySwishScraper {
                 }
             }
             
-            // Extract sample rows (first 3 data rows)
+            // Extract ALL rows (complete data extraction)
             const rows = table.querySelectorAll('tbody tr, tr');
-            for (let i = 0; i < Math.min(3, rows.length); i++) {
+            for (let i = 0; i < rows.length; i++) {
                 const row = rows[i];
                 const rowData = [];
                 row.querySelectorAll('td, th').forEach(cell => {
@@ -222,7 +222,7 @@ class ComprehensiveSalarySwishScraper {
                     });
                 });
                 if (rowData.length > 0) {
-                    tableData.sampleRows.push(rowData);
+                    tableData.allRows.push(rowData);
                 }
             }
             

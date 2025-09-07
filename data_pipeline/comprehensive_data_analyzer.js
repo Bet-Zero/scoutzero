@@ -127,7 +127,7 @@ class ComprehensiveDataAnalyzer {
                     contract: contentAnalysis.containsContractData,
                     exception: contentAnalysis.containsExceptionData
                 },
-                sampleContent: table.sampleRows?.slice(0, 3).map(row => 
+                sampleContent: table.allRows?.slice(0, 3).map(row => 
                     row.slice(0, 5).map(cell => cell.text || cell).join(' | ')
                 ).join('\n'),
                 recommendation: this.getTableRecommendation(table, tableScore)
@@ -423,7 +423,7 @@ class ComprehensiveDataAnalyzer {
                     columns: table.summary?.columns || 0
                 },
                 headers: table.headers,
-                sampleRows: table.sampleRows?.slice(0, 3) || [], // First 3 rows
+                allRows: table.allRows || [], // ALL rows
                 dataTypes: {
                     salary: contentAnalysis.containsSalaryData,
                     player: contentAnalysis.containsPlayerData,
