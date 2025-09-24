@@ -22,7 +22,7 @@ import { validateSignAndTrade } from '../rules/validateSignAndTrade.js';
 import { validateConsent } from '../rules/validateConsent.js';
 import { validateReacquisition } from '../rules/eligibilityRules.js';
 import { enforceConsent } from '../rules/enforceConsent.js';
-import { enforceEligibility } from '../rules/enforceEligibility.js';
+import { enforceEligibility } from '../rules/tradeRules.js';
 import { enforceTiming } from '../rules/timingValidation.js';
 import { enforceSecondApronHandcuffs } from '../rules/basicRules.js';
 import { computeMatchingValues } from '../utils/matchingValues.js';
