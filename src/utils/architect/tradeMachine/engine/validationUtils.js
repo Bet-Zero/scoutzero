@@ -4,7 +4,7 @@
  */
 
 import { performanceMonitor } from './validationPerformanceMonitor.js';
-import { validationCache } from '../cache/validationCacheService.js';
+import { validationCache } from '../cache/validationCache.js';
 import { debug } from './engineUtils.js';
 import tradeDebug from './tradeDebug.js';
 import { validationFlags } from '@/config/validationFlags.js';

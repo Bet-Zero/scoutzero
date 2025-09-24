@@ -607,6 +607,21 @@ export class ValidationCache {
   keys() {
     return Array.from(this.cache.keys());
   }
+
+  /**
+   * Generic method to set cached result (for backwards compatibility)
+   * This method is used by the engine validation utils
+   */
+  setCachedResult(key, result) {
+    this.set(key, result);
+  }
+
+  /**
+   * Generic method to get cached result (for backwards compatibility)
+   */
+  getCachedResult(key) {
+    return this.get(key);
+  }
 }
 
 export const validationCache = new ValidationCache();
