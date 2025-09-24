@@ -1,3 +1,10 @@
+/**
+ * Purpose: Render min/max selects and report changes.
+ * Inputs: options[], minKey, maxKey, value(s), update(), allowNullMax.
+ * Outputs: onChange callbacks with normalized values.
+ * Risks: Unset vs 0 conflation; type inconsistencies; weak label association.
+ * Next TODO: Normalize to number|null; fix placeholder logic; link labels via id.
+ */
 import React from 'react';
 
 const RangeSelector = ({

@@ -1,3 +1,10 @@
+/**
+ * Purpose: UI control to select a season year.
+ * Inputs: year, onChange, min/max, options.
+ * Outputs: Controlled selector (dropdown/segmented control).
+ * Risks: A11y/keyboard unknown; range edges; styling consistency.
+ * Next TODO: Confirm control type; add labels/keyboard; prop types/TS & edge tests.
+ */
 // src/components/shared/SeasonYearSelect.jsx
 
 import React from 'react';

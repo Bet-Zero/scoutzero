@@ -1,3 +1,10 @@
+/**
+ * Purpose: Display/edit overall grade with color background.
+ * Inputs: grade (0–100), readOnly, onGradeChange.
+ * Outputs: Read-only view or inline editable input.
+ * Risks: parseInt radix; UX for invalid input; hardcoded color thresholds.
+ * Next TODO: Use parseInt(value,10) & clamp; externalize color map; improve a11y.
+ */
 import React, { useState, useEffect } from 'react';
 
 const getTraitColor = (rating) => {

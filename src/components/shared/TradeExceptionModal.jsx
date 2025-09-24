@@ -1,3 +1,10 @@
+/**
+ * Purpose: Show/manage trade exceptions in a modal.
+ * Inputs: exceptions[], onConfirm/onCancel, open state.
+ * Outputs: Modal with scrolling list and actions.
+ * Risks: A11y/keyboard handling unknown; duplication vs Dialog/Modal; long-list UX.
+ * Next TODO: Use shared Dialog/Modal; add keyboard/ARIA; set max-height & scroll.
+ */
 import React, { useState } from 'react';
 import { Dialog, DialogContent } from '@/components/shared/ui/Dialog';
 

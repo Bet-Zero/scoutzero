@@ -1,3 +1,10 @@
+/**
+ * Purpose: Toggleable button with selected styles.
+ * Inputs: selected (bool), onClick, disabled?, children.
+ * Outputs: Button reflecting pressed/selected state.
+ * Risks: Missing aria-pressed & type="button"; no focus-visible; no disabled.
+ * Next TODO: Add aria-pressed & type; add focus-visible ring; support disabled prop.
+ */
 // src/components/shared/ui/ToggleButton.jsx
 import React from 'react';
 import clsx from 'clsx';

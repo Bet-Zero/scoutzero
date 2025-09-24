@@ -1,3 +1,10 @@
+/**
+ * Purpose: Render a player headshot image with fallback.
+ * Inputs: src/url (string), alt (string), size/className (string).
+ * Outputs: <img> element sized to its container.
+ * Risks: Alt text may be generic; no loading state; unknown error handling.
+ * Next TODO: Confirm props/defaults; add descriptive alt/ARIA; consider skeleton.
+ */
 import React from 'react';
 
 const PlayerHeadshot = ({ src, playerId, className = '' }) => {

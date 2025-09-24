@@ -1,3 +1,10 @@
+/**
+ * Purpose: Simple centered modal overlay with close behavior.
+ * Inputs: isOpen, onClose, title, children.
+ * Outputs: Modal overlay with outside-click close.
+ * Risks: No focus trap/return focus; missing ESC handler; ARIA gaps.
+ * Next TODO: Add role/aria-modal/labelledby; trap focus; ESC to close; restore focus.
+ */
 // components/Modal.jsx
 import React, { useRef, useEffect } from 'react';
 

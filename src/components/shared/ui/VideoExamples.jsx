@@ -1,3 +1,10 @@
+/**
+ * Purpose: Display a list of embedded video examples.
+ * Inputs: videos (urls[]), titles/labels (optional).
+ * Outputs: Responsive iframe list with empty state.
+ * Risks: Missing sandbox/allow; duplicate titles; no URL validation; no lazy loading.
+ * Next TODO: Add allow/sandbox & loading="lazy"; unique titles; sanitize/whitelist URLs.
+ */
 import React from 'react';
 
 const VideoExamples = ({ videoUrls = [] }) => {

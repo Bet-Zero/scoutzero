@@ -1,3 +1,10 @@
+/**
+ * Purpose: Single-select dropdown (name implies multi-select).
+ * Inputs: value, onChange, options (object or primitive), placeholder.
+ * Outputs: <select> control with styled options.
+ * Risks: Name/API mismatch; label not linked; undefined label text edge cases.
+ * Next TODO: Rename or add multiple support; add htmlFor/id; provide label fallback.
+ */
 import React from 'react';
 import clsx from 'clsx';
 

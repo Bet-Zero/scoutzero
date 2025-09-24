@@ -1,3 +1,10 @@
+/**
+ * Purpose: Manage contract actions (options, FA, extend, S&T) in a modal.
+ * Inputs: player, CURRENT_YEAR, extReason/extMax, callbacks (onSave/onWaive/...).
+ * Outputs: User actions & formatted salary inputs per path.
+ * Risks: Salary string/number mismatch; Dialog export alignment; null extMax edge cases.
+ * Next TODO: Store numeric, format on display; verify Dialog exports; guard extend path.
+ */
 // EditContractModal.jsx
 
 import React, { useState, useEffect } from 'react';

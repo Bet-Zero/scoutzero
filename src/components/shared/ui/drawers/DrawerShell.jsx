@@ -1,3 +1,10 @@
+/**
+ * Purpose: Sliding drawer container with overlay.
+ * Inputs: isOpen, onClose, side/width (optional), children.
+ * Outputs: Drawer panel with transition and overlay click-to-close.
+ * Risks: Missing dialog roles/focus/ESC; fixed width; keyboard inaccessibility.
+ * Next TODO: Add a11y semantics & focus trap; ESC close; make size/side configurable.
+ */
 // src/components/roster/DrawerShell.jsx
 import React from 'react';
 

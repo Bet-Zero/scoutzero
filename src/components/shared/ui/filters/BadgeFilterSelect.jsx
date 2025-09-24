@@ -1,3 +1,10 @@
+/**
+ * Purpose: Provide a badge-style select UI for filtering.
+ * Inputs: value(s), onChange, options, className.
+ * Outputs: Interactive badge/toggle selection control.
+ * Risks: Keyboard/ARIA semantics unclear; state control pattern unspecified.
+ * Next TODO: Verify API; add keyboard/ARIA; define prop types/TS.
+ */
 import React, { useState } from 'react';
 import { BadgeList } from '@/constants/badgeList';
 

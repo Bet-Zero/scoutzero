@@ -1,3 +1,10 @@
+/**
+ * Purpose: Render a team logo by computed filename.
+ * Inputs: teamAbbr/teamId (key), size/className.
+ * Outputs: <img> with team logo and fallback.
+ * Risks: Hardcoded default path; weak alt; missing lazy/decoding; falsy key handling.
+ * Next TODO: Add alt fallback & guards; loading="lazy"; validate asset existence.
+ */
 import React from 'react';
 import { getTeamLogoFilename } from '@/utils/formatting';
 

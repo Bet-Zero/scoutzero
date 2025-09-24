@@ -1,3 +1,10 @@
+/**
+ * Purpose: Team selector using Headless UI Listbox.
+ * Inputs: teams, selectedTeamId, onChange, getTeamColors.
+ * Outputs: Button + options with team logos/colors.
+ * Risks: Blank state when undefined; long-name overflow; alias import portability.
+ * Next TODO: Add placeholder; add truncate/ellipsis; confirm alias/ARIA labels.
+ */
 // TeamSelectDropdown.jsx
 
 import React from 'react';

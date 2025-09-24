@@ -1,3 +1,10 @@
+/**
+ * Purpose: Floating button to open the drawer.
+ * Inputs: onClick, title/label, className.
+ * Outputs: Accessible button with hover/transition styles.
+ * Risks: Redundant inline transitions; missing aria-label; small hit target.
+ * Next TODO: Remove inline transition; add aria-label & focus-visible; ensure ≥44px target.
+ */
 import React from 'react';
 
 const OpenDrawerButton = ({ onClick }) => (

@@ -1,3 +1,10 @@
+/**
+ * Purpose: Layout group for multiple dropdowns/filters.
+ * Inputs: children, spacing/gap props, wrap behavior.
+ * Outputs: Responsive grouped layout.
+ * Risks: Hardcoded gaps; missing a11y grouping; small-screen reflow issues.
+ * Next TODO: Add spacing/wrap props; fieldset/legend where appropriate; add tests.
+ */
 // src/components/shared/DropdownGroup.jsx
 
 import React from 'react';
