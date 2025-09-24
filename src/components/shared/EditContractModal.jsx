@@ -2,12 +2,12 @@
  * Purpose: Manage contract actions (options, FA, extend, S&T) in a modal.
  * Inputs: player, CURRENT_YEAR, extReason/extMax, callbacks (onSave/onWaive/...).
  * Outputs: User actions & formatted salary inputs per path.
- * Risks: Salary string/number mismatch; Dialog export alignment; null extMax edge cases.
- * Next TODO: Store numeric, format on display; verify Dialog exports; guard extend path.
- */
+ * Risks: None known.
+ * Next TODO: Expand test coverage for salary input edge cases.
+*/
 // EditContractModal.jsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Dialog, DialogContent } from '@/components/shared/ui/Dialog';
 import { formatCurrencyFull } from '@/utils/formatting';
 import capProjections from '@/utils/architect/capProjections';
@@ -59,8 +59,11 @@ const EditContractModal = ({
   const [extReason, setExtReason] = useState('');
   const [extMax, setExtMax] = useState(null);
 
-  const today = new Date();
-  const CURRENT_YEAR = today.getFullYear() - (today.getMonth() < 6 ? 1 : 0);
+  const today = useMemo(() => new Date(), []);
+  const CURRENT_YEAR = useMemo(
+    () => today.getFullYear() - (today.getMonth() < 6 ? 1 : 0),
+    [today]
+  );
 
   const isFreeAgent =
     player?.free_agency_year && player.free_agency_year <= CURRENT_YEAR;
@@ -90,6 +93,11 @@ const EditContractModal = ({
 
   const actions = actionsOverride || ACTION_SETS[actionSet] || [];
 
+  const formatSalaryInput = useCallback((value) => {
+    if (!value) return '';
+    return formatCurrencyFull(value);
+  }, []);
+
   useEffect(() => {
     if (!player) return;
 
@@ -118,7 +126,7 @@ const EditContractModal = ({
       contractType: 'Standard',
       salaries: [lastSalary],
     });
-    setSalaryInputs([lastSalary ? formatCurrencyFull(lastSalary) : '']);
+    setSalaryInputs([formatSalaryInput(lastSalary)]);
     setSelectedAction('');
 
     const key = `${CURRENT_YEAR + 1}-${String(
@@ -127,21 +135,29 @@ const EditContractModal = ({
     const capSettings = capProjections[key] || {};
     setExtReason(getExtensionEligibilityReason(player, CURRENT_YEAR));
     setExtMax(getExtensionMaxDetails(player, capSettings));
-  }, [player]);
+  }, [CURRENT_YEAR, formatSalaryInput, player]);
 
   useEffect(() => {
     if (selectedAction !== 'extend' || !extMax) return;
+    const maxSalary = extMax.maxFirstYearSalary || 0;
+    const salaries = Array(extMax.maxYears).fill(maxSalary);
+
     setExtension({
       years: extMax.maxYears,
       contractType: 'Standard',
-      salaries: Array(extMax.maxYears).fill(extMax.maxFirstYearSalary),
+      salaries,
     });
-    setSalaryInputs(
-      Array(extMax.maxYears)
-        .fill(extMax.maxFirstYearSalary)
-        .map((s) => (s ? formatCurrencyFull(s) : ''))
-    );
-  }, [selectedAction, extMax]);
+    setSalaryInputs(salaries.map((value) => formatSalaryInput(value)));
+  }, [extMax, formatSalaryInput, selectedAction]);
+
+  const handleDialogOpenChange = useCallback(
+    (open) => {
+      if (!open) {
+        onClose?.();
+      }
+    },
+    [onClose]
+  );
 
   const handleConfirm = () => {
     switch (selectedAction) {
@@ -188,13 +204,13 @@ const EditContractModal = ({
         break;
     }
 
-    onClose();
+    onClose?.();
   };
 
   if (!player) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="p-5 max-w-md text-sm space-y-5">
         <h2 className="text-lg font-semibold">
           {hasOption
@@ -280,7 +296,9 @@ const EditContractModal = ({
                   });
                   setSalaryInputs(
                     Array.from({ length: yrs }, (_, i) =>
-                      extension.salaries[i] ? String(extension.salaries[i]) : ''
+                      extension.salaries[i]
+                        ? formatSalaryInput(extension.salaries[i])
+                        : ''
                     )
                   );
                 }}
@@ -304,7 +322,8 @@ const EditContractModal = ({
                     value={salaryInputs[idx] || ''}
                     onChange={(e) => {
                       const raw = e.target.value.replace(/[^0-9]/g, '');
-                      const val = Number(raw);
+                      const hasValue = Boolean(raw);
+                      const val = hasValue ? Number(raw) : 0;
                       setExtension((prev) => {
                         const arr = [...prev.salaries];
                         arr[idx] = val;
@@ -312,7 +331,7 @@ const EditContractModal = ({
                       });
                       setSalaryInputs((prev) => {
                         const arr = [...prev];
-                        arr[idx] = formatCurrencyFull(raw);
+                        arr[idx] = hasValue ? formatSalaryInput(val) : '';
                         return arr;
                       });
                     }}
@@ -337,16 +356,21 @@ const EditContractModal = ({
         {/* === Action Buttons === */}
         <div className="flex justify-end gap-2 pt-4">
           <button
-            onClick={onClose}
+            onClick={() => onClose?.()}
             className="px-3 py-1 text-sm rounded bg-neutral-700 hover:bg-neutral-600"
+            type="button"
           >
             Cancel
           </button>
           {selectedAction && (
             <button
               onClick={handleConfirm}
-              disabled={selectedAction === 'extend' && extReason !== 'Eligible'}
+              disabled={
+                selectedAction === 'extend' &&
+                (extReason !== 'Eligible' || !extMax)
+              }
               className="px-4 py-1 text-sm rounded bg-blue-600 hover:bg-blue-500 disabled:opacity-40"
+              type="button"
             >
               Confirm
             </button>

@@ -2,19 +2,20 @@
  * Purpose: Floating button to open the drawer.
  * Inputs: onClick, title/label, className.
  * Outputs: Accessible button with hover/transition styles.
- * Risks: Redundant inline transitions; missing aria-label; small hit target.
- * Next TODO: Remove inline transition; add aria-label & focus-visible; ensure ≥44px target.
- */
+ * Risks: None known.
+ * Next TODO: Monitor hit target sizing with future icon changes.
+*/
 import React from 'react';
 
 const OpenDrawerButton = ({ onClick }) => (
   <button
     onClick={onClick}
-    className="fixed left-0 top-1/2 -translate-y-1/2 z-30 bg-neutral-800 hover:bg-neutral-600 text-white shadow-lg transition-all duration-200 hover:translate-x-1 group rounded-r-lg"
-    style={{ transition: 'all 0.3s ease-in-out' }}
+    className="fixed left-0 top-1/2 -translate-y-1/2 z-30 bg-neutral-800 hover:bg-neutral-600 text-white shadow-lg transition-transform duration-200 hover:translate-x-1 group rounded-r-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 min-w-[44px] min-h-[44px]"
     title="Open player drawer"
+    aria-label="Open player drawer"
+    type="button"
   >
-    <div className="flex flex-col items-center py-3 px-1.5 gap-2">
+    <div className="flex flex-col items-center py-3 px-2 gap-2">
       <svg
         width="16"
         height="16"

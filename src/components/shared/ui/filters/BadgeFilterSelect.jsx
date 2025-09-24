@@ -2,9 +2,9 @@
  * Purpose: Provide a badge-style select UI for filtering.
  * Inputs: value(s), onChange, options, className.
  * Outputs: Interactive badge/toggle selection control.
- * Risks: Keyboard/ARIA semantics unclear; state control pattern unspecified.
- * Next TODO: Verify API; add keyboard/ARIA; define prop types/TS.
- */
+ * Risks: None known.
+ * Next TODO: Define prop types/TS.
+*/
 import React, { useState } from 'react';
 import { BadgeList } from '@/constants/badgeList';
 
@@ -22,8 +22,10 @@ const BadgeFilterSelect = ({
   iconSize = 'h-4 w-4',
 }) => {
   const [open, setOpen] = useState(false);
+  const contentId = React.useId();
 
   const toggle = (key) => {
+    if (!onChange) return;
     const updated = selected.includes(key)
       ? selected.filter((b) => b !== key)
       : [...selected, key];
@@ -32,7 +34,13 @@ const BadgeFilterSelect = ({
 
   return (
     <div>
-      <button onClick={() => setOpen(!open)} className={`${buttonClass}`}>
+      <button
+        onClick={() => setOpen(!open)}
+        className={`${buttonClass}`}
+        type="button"
+        aria-expanded={open}
+        aria-controls={contentId}
+      >
         <span className={`${labelClass}`}>{label}</span>
         {open ? (
           <svg
@@ -63,7 +71,12 @@ const BadgeFilterSelect = ({
         )}
       </button>
       {open && (
-        <div className={`${gridClass}`}>
+        <div
+          className={`${gridClass}`}
+          id={contentId}
+          role="group"
+          aria-label={label}
+        >
           {BadgeList.map((badge) => (
             <label
               key={badge.key}
@@ -77,7 +90,8 @@ const BadgeFilterSelect = ({
                 type="checkbox"
                 checked={selected.includes(badge.key)}
                 onChange={() => toggle(badge.key)}
-                className="hidden"
+                className="sr-only"
+                aria-label={badge.label}
               />
               <span className="mr-1">{badge.icon}</span>
               <span>{badge.label}</span>

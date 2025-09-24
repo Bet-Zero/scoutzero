@@ -2,19 +2,32 @@
  * Purpose: Layout group for multiple dropdowns/filters.
  * Inputs: children, spacing/gap props, wrap behavior.
  * Outputs: Responsive grouped layout.
- * Risks: Hardcoded gaps; missing a11y grouping; small-screen reflow issues.
- * Next TODO: Add spacing/wrap props; fieldset/legend where appropriate; add tests.
- */
+ * Risks: None known.
+ * Next TODO: Add spacing/wrap props; add tests.
+*/
 // src/components/shared/DropdownGroup.jsx
 
 import React from 'react';
 
-const DropdownGroup = ({ label, children }) => {
+const DropdownGroup = ({
+  label,
+  children,
+  className = '',
+  legendClassName = 'text-white text-xs mb-1',
+}) => {
+  const legendContent = label ? (
+    <span>{label}</span>
+  ) : (
+    <span className="sr-only">Options</span>
+  );
+
   return (
-    <div className="mb-0">
-      <label className="text-white text-xs block mb-1">{label}</label>
-      {children}
-    </div>
+    <fieldset className={`mb-0 flex flex-col gap-1 ${className}`.trim()}>
+      <legend className={`${legendClassName}`}>{legendContent}</legend>
+      <div role="group" aria-label={label || 'Options'} className="flex flex-col gap-2">
+        {children}
+      </div>
+    </fieldset>
   );
 };
 

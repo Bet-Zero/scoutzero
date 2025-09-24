@@ -2,8 +2,8 @@
  * Purpose: Render min/max selects and report changes.
  * Inputs: options[], minKey, maxKey, value(s), update(), allowNullMax.
  * Outputs: onChange callbacks with normalized values.
- * Risks: Unset vs 0 conflation; type inconsistencies; weak label association.
- * Next TODO: Normalize to number|null; fix placeholder logic; link labels via id.
+ * Risks: None known.
+ * Next TODO: Consider tighter prop typing & tests.
  */
 import React from 'react';
 
@@ -16,63 +16,87 @@ const RangeSelector = ({
   update,
   allowNullMax = false,
 }) => {
-  const handleMinChange = (e) => {
-    update(minKey, e.target.value ? parseInt(e.target.value, 10) : 0);
+  const baseId = React.useId();
+
+  const handleMinChange = (event) => {
+    if (!update) return;
+    const { value } = event.target;
+    if (value === '') {
+      update(minKey, null);
+      return;
+    }
+    const parsed = parseInt(value, 10);
+    update(minKey, Number.isNaN(parsed) ? null : parsed);
   };
 
-  const handleMaxChange = (e) => {
-    const value = e.target.value
-      ? parseInt(e.target.value, 10)
-      : allowNullMax
-        ? null
-        : '';
-    update(maxKey, value);
+  const handleMaxChange = (event) => {
+    if (!update) return;
+    const { value } = event.target;
+    if (value === '') {
+      update(maxKey, allowNullMax ? null : '');
+      return;
+    }
+    const parsed = parseInt(value, 10);
+    update(maxKey, Number.isNaN(parsed) ? (allowNullMax ? null : '') : parsed);
   };
 
-  const minValue = filters[minKey] || '';
-  const maxValue =
-    filters[maxKey] !== null && filters[maxKey] !== undefined
-      ? filters[maxKey]
+  const minValueRaw = filters?.[minKey];
+  const maxValueRaw = filters?.[maxKey];
+
+  const minValue =
+    typeof minValueRaw === 'number' && !Number.isNaN(minValueRaw)
+      ? String(minValueRaw)
       : '';
+  const maxValue =
+    typeof maxValueRaw === 'number' && !Number.isNaN(maxValueRaw)
+      ? String(maxValueRaw)
+      : allowNullMax && maxValueRaw === null
+        ? ''
+        : '';
 
   return (
     <div className="flex flex-col">
-      <label className="text-white mb-1 text-[11px] tracking-wide uppercase">
+      <label
+        className="text-white mb-1 text-[11px] tracking-wide uppercase"
+        htmlFor={`${baseId}-min`}
+      >
         {label}
       </label>
-      <div className="flex items-center gap-2">
+      <div
+        className="flex items-center gap-2"
+        role="group"
+        aria-label={label || 'Value range'}
+      >
         <select
+          id={`${baseId}-min`}
           value={minValue}
           onChange={handleMinChange}
           className={`bg-[#2a2a2a] p-1 rounded w-[80px] text-xs ${
-            !filters[minKey] ? 'text-white/40' : 'text-white'
+            minValue === '' ? 'text-white/40' : 'text-white'
           }`}
         >
-          <option value="" disabled hidden>
-            Min
-          </option>
-          {options.map(({ value, label }) => (
+          <option value="">Min</option>
+          {options.map(({ value, label: optionLabel }) => (
             <option key={value} value={value}>
-              {label}
+              {optionLabel}
             </option>
           ))}
         </select>
-        <span className="text-white/50 text-xs">to</span>
+        <span className="text-white/50 text-xs" aria-hidden="true">
+          to
+        </span>
         <select
+          id={`${baseId}-max`}
           value={maxValue}
           onChange={handleMaxChange}
           className={`bg-[#2a2a2a] p-1 rounded w-[80px] text-xs ${
-            filters[maxKey] === null || !filters[maxKey]
-              ? 'text-white/40'
-              : 'text-white'
+            maxValue === '' ? 'text-white/40' : 'text-white'
           }`}
         >
-          <option value="" disabled hidden>
-            Max
-          </option>
-          {options.map(({ value, label }) => (
+          <option value="">Max</option>
+          {options.map(({ value, label: optionLabel }) => (
             <option key={value} value={value}>
-              {label}
+              {optionLabel}
             </option>
           ))}
         </select>

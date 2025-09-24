@@ -2,9 +2,9 @@
  * Purpose: Team selector using Headless UI Listbox.
  * Inputs: teams, selectedTeamId, onChange, getTeamColors.
  * Outputs: Button + options with team logos/colors.
- * Risks: Blank state when undefined; long-name overflow; alias import portability.
- * Next TODO: Add placeholder; add truncate/ellipsis; confirm alias/ARIA labels.
- */
+ * Risks: None known.
+ * Next TODO: Confirm alias portability with tooling.
+*/
 // TeamSelectDropdown.jsx
 
 import React from 'react';
@@ -14,36 +14,43 @@ import TeamLogo from './TeamLogo';
 import { TeamListFull } from '@/constants/teamList';
 import { getTeamColors } from '@/utils/formatting';
 
-const TeamSelectDropdown = ({ selectedTeamId, onChange }) => {
+const placeholderLabel = 'Select a team';
+
+const TeamSelectDropdown = ({ selectedTeamId, onChange, buttonLabel = 'Team' }) => {
   const selectedTeam = TeamListFull.find((t) => t.id === selectedTeamId);
   const { primary: selectedColor } = getTeamColors(selectedTeamId) || {};
 
   return (
-    <Listbox value={selectedTeamId} onChange={onChange}>
+    <Listbox value={selectedTeamId} onChange={onChange} aria-label={buttonLabel}>
       <div className="relative w-[260px]">
         {/* Button */}
-        <Listbox.Button className="group w-full flex items-center justify-between px-3 py-2 bg-[#111] rounded border border-transparent hover:border-white/20 transition text-left">
-          {selectedTeam && (
-            <>
-              <div className="flex items-center gap-2">
+        <Listbox.Button className="group w-full flex items-center justify-between px-3 py-2 bg-[#111] rounded border border-transparent hover:border-white/20 transition text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40" type="button">
+          <div className="flex items-center gap-2 min-w-0">
+            {selectedTeam ? (
+              <>
                 <TeamLogo
                   teamAbbr={selectedTeam.id}
                   className="w-6 h-6 shrink-0"
                 />
                 <span
-                  className="text-[16px] font-semibold whitespace-nowrap"
+                  className="text-[16px] font-semibold truncate"
                   style={{ color: selectedColor }}
+                  title={selectedTeam.teamName}
                 >
                   {selectedTeam.teamName}
                 </span>
-              </div>
-              <ChevronUpDownIcon className="w-4 h-4 shrink-0 text-white/0 group-hover:text-white/30 transition" />
-            </>
-          )}
+              </>
+            ) : (
+              <span className="text-sm text-white/60 truncate" title={placeholderLabel}>
+                {placeholderLabel}
+              </span>
+            )}
+          </div>
+          <ChevronUpDownIcon className="w-4 h-4 shrink-0 text-white/40" aria-hidden="true" />
         </Listbox.Button>
 
         {/* Options */}
-        <Listbox.Options className="absolute z-50 mt-2 w-full bg-[#1a1a1a] rounded border border-white/10 shadow-lg max-h-60 overflow-y-auto">
+        <Listbox.Options className="absolute z-50 mt-2 w-full bg-[#1a1a1a] rounded border border-white/10 shadow-lg max-h-60 overflow-y-auto focus:outline-none">
           {TeamListFull.map((team) => (
             <Listbox.Option
               key={team.id}
@@ -55,7 +62,9 @@ const TeamSelectDropdown = ({ selectedTeamId, onChange }) => {
               }
             >
               <TeamLogo teamAbbr={team.id} className="w-5 h-5 shrink-0" />
-              <span className="text-sm whitespace-nowrap">{team.teamName}</span>
+              <span className="text-sm truncate" title={team.teamName}>
+                {team.teamName}
+              </span>
             </Listbox.Option>
           ))}
         </Listbox.Options>
