@@ -10,7 +10,48 @@
 // The map should look like an object keyed by oldPath.
 // Example: { "bio.AGE": "seasons.2025-26.bio.age", "FG%": "seasons.2025-26.stats.fgPct" }
 
-import schemaMap from '../../_exports/schema_map_2025-26.json'; // Updated path
+import fs from 'fs';
+import path from 'path';
+
+// Try multiple locations for the schema map
+const possiblePaths = [
+  '../../_exports/schema_map_2025-26.json',
+  '../_exports/schema_map_2025-26.json', 
+  './_exports/schema_map_2025-26.json',
+  path.resolve(process.cwd(), '_exports/schema_map_2025-26.json'),
+  path.resolve(process.cwd(), 'schema_transition/outputs/schema_map_2025-26.json')
+];
+
+let schemaMap = {};
+let loadedFrom = null;
+
+for (const schemaPath of possiblePaths) {
+  try {
+    const resolvedPath = path.resolve(path.dirname(new URL(import.meta.url).pathname), schemaPath);
+    if (fs.existsSync(resolvedPath)) {
+      const mapContent = fs.readFileSync(resolvedPath, 'utf8');
+      schemaMap = JSON.parse(mapContent);
+      loadedFrom = resolvedPath;
+      break;
+    }
+  } catch (err) {
+    // Try next path
+    continue;
+  }
+}
+
+if (!loadedFrom) {
+  console.warn('⚠️  No schema map found. Using fallback mappings. Run generate_schema_map_fallback.cjs to create proper mapping.');
+  // Minimal fallback to prevent complete failure
+  schemaMap = {
+    'bio.AGE': 'players/{id}/bio.age',
+    'bio.display_name': 'players/{id}/bio.displayName',
+    'Team': 'players/{id}/seasons/2025-26.team.code',
+    'system.stats.FG%': 'players/{id}/seasons/2025-26.stats.fgPct'
+  };
+} else {
+  console.log(`✅ Schema map loaded from: ${loadedFrom}`);
+}
 
 // Normalize the map to: { [oldPath: string]: newPath: string }
 const MAP = Array.isArray(schemaMap)
