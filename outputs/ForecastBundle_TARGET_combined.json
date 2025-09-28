@@ -1,0 +1,96 @@
+{
+  "lebron_james": {
+    "bio": {
+      "slug": "lebron_james",
+      "nbaId": 4984,
+      "name": {
+        "first": "LeBron",
+        "last": "James"
+      }
+    },
+    "xref": {
+      "nbaId": 6221,
+      "slug": "lebron_james"
+    },
+    "season": {
+      "seasonYear": "2025-26",
+      "team": "UNK",
+      "evaluation": {
+        "grades": {},
+        "roles": {
+          "offense": [],
+          "defense": []
+        },
+        "subRoles": [],
+        "traits": [],
+        "badges": [],
+        "status": "active",
+        "shootingProfile": "Unknown",
+        "blurbs": {
+          "shootingProfile": "No shooting profile available",
+          "twoWayMeter": "No two-way analysis available"
+        },
+        "twoWayMeter": 50
+      },
+      "contractView": {
+        "salary": 5000000,
+        "yearsRemaining": 1,
+        "freeAgent": {
+          "year": 2026
+        }
+      }
+    },
+    "contracts": [
+      {
+        "years": 1
+      }
+    ]
+  },
+  "anthony_davis": {
+    "bio": {
+      "slug": "anthony_davis",
+      "nbaId": 3356,
+      "name": {
+        "first": "Anthony",
+        "last": "Davis"
+      }
+    },
+    "xref": {
+      "nbaId": 6275,
+      "slug": "anthony_davis"
+    },
+    "season": {
+      "seasonYear": "2025-26",
+      "team": "UNK",
+      "evaluation": {
+        "grades": {},
+        "roles": {
+          "offense": [],
+          "defense": []
+        },
+        "subRoles": [],
+        "traits": [],
+        "badges": [],
+        "status": "active",
+        "shootingProfile": "Unknown",
+        "blurbs": {
+          "shootingProfile": "No shooting profile available",
+          "twoWayMeter": "No two-way analysis available"
+        },
+        "twoWayMeter": 50
+      },
+      "contractView": {
+        "salary": 5000000,
+        "yearsRemaining": 1,
+        "freeAgent": {
+          "year": 2026
+        }
+      }
+    },
+    "contracts": [
+      {
+        "years": 1
+      }
+    ]
+  }
+}
