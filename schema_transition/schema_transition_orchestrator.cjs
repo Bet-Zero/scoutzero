@@ -6,10 +6,11 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-const DRY_RUN = process.env.DRY_RUN === '1';
+const DRY_RUN = process.env.DRY_RUN !== '0';
 const SEASON = process.env.SEASON || '2025-26';
 const SAMPLE_PLAYERS = process.env.SAMPLE_PLAYERS || 'lebron_james';
 const SAMPLE_TEAMS = process.env.SAMPLE_TEAMS || 'lal';
+const BASE_DIR = __dirname;
 
 console.log('🔄 Schema Transition Master Orchestrator');
 console.log('=====================================');
@@ -115,6 +116,7 @@ function runCommand(cmd, args = [], env = {}) {
       stdio: 'pipe',
       env: fullEnv,
       shell: true,
+      cwd: BASE_DIR,
     });
 
     let stdout = '';
@@ -163,7 +165,7 @@ async function runStep(step) {
     let cmd, args;
     if (step.type === 'node') {
       cmd = 'node';
-      args = [step.script]; // Remove the scripts/ prefix since we're now in schema_transition
+      args = [path.join(BASE_DIR, step.script)];
 
       // Handle dynamic args (like first player replacement)
       if (step.args) {
@@ -230,15 +232,17 @@ async function main() {
   const startTime = Date.now();
 
   // Verify prerequisites
-  if (!fs.existsSync('./serviceAccountKey.json')) {
+  const serviceAccountGuess = path.join(process.cwd(), 'serviceAccountKey.json');
+  if (!fs.existsSync(serviceAccountGuess) && !process.env.SA_PATH) {
     console.error('❌ Missing serviceAccountKey.json in project root');
     console.error('   Place your Firebase service account key before running');
     process.exit(1);
   }
 
   // Create output directory
-  if (!fs.existsSync('./outputs')) {
-    fs.mkdirSync('./outputs', { recursive: true });
+  const outputDir = path.join(BASE_DIR, 'outputs');
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
   }
 
   // Run each step

@@ -1,0 +1,78 @@
+{
+  "players": [
+    {
+      "id": "sample_guard",
+      "season": "2025-26",
+      "before": {
+        "bio.display_name": "Jordan Example",
+        "bio.Position": "SG",
+        "bio.HT": "6'6\"",
+        "bio.WT": 215,
+        "Team": "LOS ANGELES LAKERS",
+        "system.stats.PTS": "24.3",
+        "system.stats['FG%']": "45.8%",
+        "system.stats['3P%']": "39.2%",
+        "contract.annual_salaries[0]": { "year": 2025, "salary": 41000000 },
+        "contract.free_agency_year": 2027,
+        "bird_rights": "Full",
+        "roles.offense1": "Primary Creator",
+        "roles.defense1": "Wing Stopper",
+        "subRoles.offense": ["Pick-and-Roll"],
+        "blurbs.shootingProfile": "Elite",
+        "twoWayMeter": 78
+      },
+      "after": {
+        "players/sample_guard/bio": {
+          "displayName": "Jordan Example",
+          "position": "SG",
+          "height": "6'6\"",
+          "weight": 215,
+          "nbaId": 999001
+        },
+        "players/sample_guard/seasons/2025-26": {
+          "bio": {
+            "displayName": "Jordan Example",
+            "position": "SG",
+            "height": "6'6\"",
+            "weight": 215
+          },
+          "team": { "code": "LAL" },
+          "stats": {
+            "pts": 24.3,
+            "fgPct": 0.458,
+            "tpPct": 0.392
+          },
+          "contractView": {
+            "salary": 41000000,
+            "yearsLeft": 2,
+            "freeAgentYear": 2027,
+            "rights": "Full",
+            "contractId": "std_2025"
+          },
+          "evaluations": {
+            "roles": { "offense": "Primary Creator", "defense": "Wing Stopper" },
+            "subroles": { "offense": ["Pick-and-Roll"], "defense": [] },
+            "shootingProfile": "Elite",
+            "twoWayMeter": 78
+          }
+        }
+      }
+    }
+  ],
+  "teams": [
+    {
+      "id": "lal",
+      "season": "2025-26",
+      "before": {
+        "capSheet.players[0].player_id": "sample_guard",
+        "capSheet.totalSalaryByYear.2025": 165000000
+      },
+      "after": {
+        "teams/lal/seasons/2025-26": {
+          "rosterIds": ["sample_guard", "sample_forward"],
+          "capTable": { "totalSalary": 165000000 }
+        }
+      }
+    }
+  ]
+}
