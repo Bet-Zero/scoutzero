@@ -9,7 +9,6 @@ import TradeExceptionDashboard from './TradeExceptionDashboard';
 import FaExceptionTracker from './FaExceptionTracker';
 import TradePreviewModal from './TradePreviewModal';
 import TradeDebugPanel from './TradeDebugPanel';
-import '../../../utils/architect/tradeMachine/engine/tradeValidator.debug'; // Add near other imports
 
 const TradeEditor = ({
   primaryTeam,
@@ -35,7 +34,7 @@ const TradeEditor = ({
     undoPlayerTrade,
     resetTrade,
     yearKey,
-    applyTradeException, // NEW: Added from useTradeMachine
+    applyTradeException,
   } = useTradeMachine(
     primaryTeam,
     capProjections,
@@ -71,7 +70,7 @@ const TradeEditor = ({
     4: 'Add Team',
   };
 
-  // NEW: Handle TPE application
+  // Handle TPE application
   const handleApplyTradeException = (player, tpe) => {
     const teamIndex = teams.findIndex((t) => t.team?.id === tpe.teamId);
     if (teamIndex !== -1) {
@@ -141,7 +140,7 @@ const TradeEditor = ({
               onUndoPlayerTrade={undoPlayerTrade}
               onSelectTeam={(teamId) => selectTeam(idx, teamId)}
               onRemove={() => removeTeam(idx)}
-              onApplyTradeException={handleApplyTradeException} // NEW PROP
+              onApplyTradeException={handleApplyTradeException}
             />
           );
         })}
@@ -153,10 +152,13 @@ const TradeEditor = ({
           onClick={() => {
             // Block trade application if validation fails and not forced
             if (!forceTrade && result && !result.legal) {
-              alert('Cannot apply trade: ' + (result.reason || 'Trade validation failed'));
+              alert(
+                'Cannot apply trade: ' +
+                  (result.reason || 'Trade validation failed')
+              );
               return;
             }
-            
+
             const tradeData = exportCurrentTrade();
             if (onApplyTrade && tradeData) {
               onApplyTrade(tradeData);
@@ -171,7 +173,7 @@ const TradeEditor = ({
         >
           Apply Trade
         </button>
-        
+
         {!forceTrade && result && !result.legal && (
           <span className="text-red-400 text-xs">
             Trade blocked: {result.reason || 'Validation failed'}
@@ -185,23 +187,24 @@ const TradeEditor = ({
         teams={teams}
         forceTrade={forceTrade}
       />
-      
+
       {/* Quick Rule Compliance Overview */}
       {result && result.teamResults && (
-        <TradeLegalChecker 
+        <TradeLegalChecker
           teamResults={result.teamResults}
           capSettings={result.capSettings}
         />
       )}
-      
+
       {/* Trade Exception Analysis */}
       <TradeExceptionDashboard result={result} teams={teams} />
-      
+
       {/* FA Exception Tracker */}
       <FaExceptionTracker result={result} teams={teams} />
-      
+
       {/* Detailed Validation Results */}
       <TradeValidationPanel result={result} />
+
       <TradePreviewModal
         open={previewOpen && !!result}
         onClose={() => setPreviewOpen(false)}
