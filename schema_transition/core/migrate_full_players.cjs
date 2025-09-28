@@ -23,7 +23,7 @@ const SAMPLE = (process.env.SAMPLE_PLAYERS || '')
   .map((s) => s.trim())
   .filter(Boolean);
 const SAMPLE_SET = new Set(SAMPLE);
-const BATCH_SIZE = Number(process.env.BATCH_SIZE || 250);
+const BATCH_SIZE = Math.min(Number(process.env.BATCH_SIZE || 250), 500); // Enforce Firestore limit
 const MAX_RETRIES = Number(process.env.MAX_RETRIES || 5);
 const SHADOW_PREFIX = process.env.SHADOW_PREFIX || 'players_shadow';
 const REQUIRE_SHADOW_CONFIRM = process.env.CONFIRM_SHADOW === '1';
@@ -148,6 +148,10 @@ function extractComparableLegacy(legacy) {
 }
 
 async function commitWithRetries(db, writes) {
+  if (writes.length > 500) {
+    throw new Error(`Batch size ${writes.length} exceeds Firestore limit of 500 operations`);
+  }
+  
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     const batch = db.batch();
     for (const write of writes) {
@@ -162,14 +166,34 @@ async function commitWithRetries(db, writes) {
     }
     try {
       await batch.commit();
+      eventLog('batch-commit-success', {
+        writeCount: writes.length,
+        attempt: attempt + 1
+      });
       return;
     } catch (err) {
-      const delay = Math.min(1000 * 2 ** attempt, 15000);
+      const isRateLimit = err.code === 'resource-exhausted' || err.message.includes('rate');
+      const isQuotaExceeded = err.code === 'quota-exceeded';
+      const delay = isRateLimit ? Math.min(2000 * 2 ** attempt, 30000) : Math.min(1000 * 2 ** attempt, 15000);
+      
       eventLog('batch-retry', {
-        attempt,
+        attempt: attempt + 1,
         delay,
         error: err.message,
+        errorCode: err.code,
+        isRateLimit,
+        isQuotaExceeded
       });
+      
+      if (attempt === MAX_RETRIES - 1) {
+        eventLog('batch-commit-final-failure', {
+          totalAttempts: MAX_RETRIES,
+          finalError: err.message,
+          errorCode: err.code
+        });
+        throw err;
+      }
+      
       await wait(delay);
     }
   }
@@ -184,7 +208,7 @@ async function loadSelectors() {
   return import(nodePathToFileURL(modulePath).href);
 }
 
-async function validateSeasonDoc(selectors, seasonDoc) {
+async function validateSeasonDoc(selectors, seasonDoc, playerId = 'unknown') {
   const issues = [];
   try {
     if (typeof selectors.assertSeasonDocShape === 'function') {
@@ -193,14 +217,18 @@ async function validateSeasonDoc(selectors, seasonDoc) {
   } catch (err) {
     issues.push(`shape:${err.message}`);
   }
+  
+  // Enhanced validation with more selectors
   const displayName = selectors.getDisplayName(seasonDoc, null);
   if (seasonDoc?.bio?.displayName && displayName !== seasonDoc.bio.displayName) {
     issues.push('selector-mismatch:bio.displayName');
   }
+  
   const teamCode = selectors.getTeamCode(seasonDoc, null);
   if (seasonDoc?.team?.code && teamCode !== seasonDoc.team.code) {
     issues.push('selector-mismatch:team.code');
   }
+  
   const salary = selectors.getSalary(seasonDoc, null);
   if (
     seasonDoc?.contractView?.salary != null &&
@@ -208,6 +236,44 @@ async function validateSeasonDoc(selectors, seasonDoc) {
   ) {
     issues.push('selector-mismatch:contractView.salary');
   }
+  
+  // Additional validations for critical fields
+  const position = selectors.getPosition(seasonDoc, null);
+  if (seasonDoc?.bio?.position && position !== seasonDoc.bio.position) {
+    issues.push('selector-mismatch:bio.position');
+  }
+  
+  const age = selectors.getAge(seasonDoc, null);
+  if (seasonDoc?.bio?.age != null && age !== seasonDoc.bio.age) {
+    issues.push('selector-mismatch:bio.age');
+  }
+  
+  // Validate stats normalization
+  const fgPct = selectors.getFGPct(seasonDoc, null);
+  if (seasonDoc?.stats?.fgPct != null) {
+    // Check that percentage is properly normalized (0-1 range)
+    if (fgPct > 1.001) {
+      issues.push('stats-normalization:fgPct-not-decimal');
+    }
+    if (Math.abs(fgPct - seasonDoc.stats.fgPct) > 0.001) {
+      issues.push('selector-mismatch:stats.fgPct');
+    }
+  }
+  
+  // Validate evaluation structure if present
+  if (seasonDoc?.evaluations && selectors.hasEvaluations(seasonDoc)) {
+    const grades = selectors.getEvalGrades(seasonDoc);
+    const roles = selectors.getEvalRoles(seasonDoc);
+    
+    if (Object.keys(grades).length === 0 && Object.keys(seasonDoc.evaluations.grades || {}).length > 0) {
+      issues.push('selector-mismatch:evaluations.grades');
+    }
+    
+    if (!roles.offense && seasonDoc.evaluations.roles?.offense) {
+      issues.push('selector-mismatch:evaluations.roles.offense');
+    }
+  }
+  
   return issues;
 }
 
