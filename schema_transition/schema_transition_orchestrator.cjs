@@ -1,110 +1,101 @@
 #!/usr/bin/env node
-// Master Schema Transition Orchestrator
-// Runs all 11 files in the correct sequence with error handling and progress tracking
+// Master Schema Transition Orchestrator (MODE-aware, emulator-friendly, live guard)
 
 const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const yargs = require('yargs/yargs');
+const { hideBin } = require('yargs/helpers');
 
-const DRY_RUN = process.env.DRY_RUN !== '0';
-const SEASON = process.env.SEASON || '2025-26';
-const SAMPLE_PLAYERS = process.env.SAMPLE_PLAYERS || 'lebron_james';
-const SAMPLE_TEAMS = process.env.SAMPLE_TEAMS || 'lal';
-const BASE_DIR = __dirname;
+// ─────────────────────────────────────────────────────────────────────────────
+// CLI + ENV
+// ─────────────────────────────────────────────────────────────────────────────
+const argv = yargs(hideBin(process.argv))
+  .option('mode', { type: 'string', choices: ['dry-run','shadow','live'] })
+  .option('season', { type: 'string' })
+  .option('sample-players', { type: 'string' })
+  .option('sample-teams', { type: 'string' })
+  .option('only', { type: 'string', desc: 'Comma list: players,contracts,teams' })
+  .option('i-understand-the-risks', { type: 'boolean', default: false })
+  .help(false)
+  .parse();
 
+const MODE = argv.mode || process.env.MODE || (process.env.DRY_RUN === '0' ? 'live' : 'dry-run'); // default safe
+const SEASON = argv.season || process.env.SEASON || '2025-26';
+const SAMPLE_PLAYERS = argv['sample-players'] || process.env.SAMPLE_PLAYERS || 'lebron_james';
+const SAMPLE_TEAMS = argv['sample-teams'] || process.env.SAMPLE_TEAMS || 'lal';
+const ONLY = (argv.only || process.env.ONLY || '').split(',').map(s => s.trim()).filter(Boolean);
+
+const LIVE_MODE = MODE === 'live';
+const SHADOW_MODE = MODE === 'shadow';
+const DRY_RUN = MODE === 'dry-run';
+
+// Live guard
+if (LIVE_MODE && !argv['i-understand-the-risks']) {
+  console.error('❌ Refusing LIVE mode without --i-understand-the-risks');
+  process.exit(2);
+}
+
+// Emulator awareness: allow no real key when emulator is set
+const USING_EMULATOR = !!process.env.FIRESTORE_EMULATOR_HOST;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Banner
+// ─────────────────────────────────────────────────────────────────────────────
 console.log('🔄 Schema Transition Master Orchestrator');
 console.log('=====================================');
-console.log(`Mode: ${DRY_RUN ? 'DRY RUN' : 'LIVE MIGRATION'}`);
+console.log(`Mode: ${MODE.toUpperCase()} ${USING_EMULATOR ? '(EMULATOR)' : ''}`);
 console.log(`Season: ${SEASON}`);
-if (DRY_RUN) {
+if (DRY_RUN || SHADOW_MODE) {
   console.log(`Sample Players: ${SAMPLE_PLAYERS}`);
   console.log(`Sample Teams: ${SAMPLE_TEAMS}`);
 }
+if (ONLY.length) console.log(`Only: ${ONLY.join(', ')}`);
 console.log('');
 
-// Define the complete pipeline
+// ─────────────────────────────────────────────────────────────────────────────
+// Steps (can be filtered by --only)
+// ─────────────────────────────────────────────────────────────────────────────
+const BASE_DIR = __dirname;
+
 const steps = [
-  {
-    name: 'Export Current Data',
-    script: 'core/export_current.js',
-    type: 'node',
-    description: 'Export existing Firestore structure to JSON',
-    required: true,
-  },
-  {
-    name: 'Build Schema Trees',
-    script: 'core/build_schema.cjs',
-    type: 'node',
-    description: 'Analyze exported data structure and build field trees',
-    required: true,
-  },
-  {
-    name: 'Scan Player Mapping',
-    script: 'utils/scan_and_map_player.cjs',
-    type: 'node',
-    env: { PLAYER: SAMPLE_PLAYERS.split(',')[0], SEASON },
-    description: 'Create detailed old→new field mappings for sample player',
-    required: false,
-  },
-  {
-    name: 'Generate Schema Map',
-    script: 'core/emit_schema_map.cjs',
-    type: 'node',
-    env: { SEASON },
-    description: 'Generate complete old→new path mappings',
-    required: true,
-  },
-  {
-    name: 'Generate Forecast Bundle',
-    script: 'utils/generate_forecast_bundle.cjs',
-    type: 'node',
-    env: { SEASON },
-    description: 'Create forecast bundles for validation testing',
-    required: true,
-  },
-  {
-    name: 'Validate Schema Compatibility',
-    script: 'utils/validate_forecast_compat.cjs',
-    type: 'node',
-    args: ['outputs/ForecastBundle_TARGET_{{FIRST_PLAYER}}.json'],
-    description: 'Test that new schema meets requirements',
-    required: false,
-  },
-  {
-    name: 'Migrate Contracts & Views',
-    script: 'core/migrate_contracts_and_views.cjs',
-    type: 'node',
-    env: { DRY_RUN: DRY_RUN ? '1' : '0', SEASON },
-    description: 'Create contract docs and season views with NBA ID lookups',
-    required: true,
-  },
-  {
-    name: 'Migrate Full Players',
-    script: 'core/migrate_full_players.cjs',
-    type: 'node',
-    env: {
-      DRY_RUN: DRY_RUN ? '1' : '0',
-      SEASON,
-      SAMPLE_PLAYERS: DRY_RUN ? SAMPLE_PLAYERS : undefined,
-    },
-    description:
-      'Migrate complete player data (bio, stats, evaluation, contracts)',
-    required: true,
-  },
-  {
-    name: 'Build Team Seasons',
-    script: 'core/build_team_seasons_full.cjs',
-    type: 'node',
-    env: {
-      DRY_RUN: DRY_RUN ? '1' : '0',
-      SEASON,
-      SAMPLE_TEAMS: DRY_RUN ? SAMPLE_TEAMS : undefined,
-    },
-    description: 'Create team season documents with roster IDs and cap tables',
-    required: true,
-  },
+  { key: 'export', name: 'Export Current Data', script: 'core/export_current.js', type: 'node', required: true, env: { SEASON } },
+  { key: 'schema', name: 'Build Schema Trees', script: 'core/build_schema.cjs', type: 'node', required: true, env: { SEASON } },
+  { key: 'scan', name: 'Scan Player Mapping', script: 'utils/scan_and_map_player.cjs', type: 'node', required: false, env: { PLAYER: SAMPLE_PLAYERS.split(',')[0], SEASON } },
+  { key: 'map', name: 'Generate Schema Map', script: 'core/emit_schema_map.cjs', type: 'node', required: true, env: { SEASON } },
+  { key: 'forecast', name: 'Generate Forecast Bundle', script: 'utils/generate_forecast_bundle.cjs', type: 'node', required: true, env: { SEASON } },
+  { key: 'validate', name: 'Validate Schema Compatibility', script: 'utils/validate_forecast_compat.cjs', type: 'node', required: false, args: ['outputs/ForecastBundle_TARGET_{{FIRST_PLAYER}}.json'] },
+  // Core migrations
+  { key: 'contracts', name: 'Migrate Contracts & Views', script: 'core/migrate_contracts_and_views.cjs', type: 'node', required: true, env: { MODE, SEASON } },
+  { key: 'players', name: 'Migrate Full Players', script: 'core/migrate_full_players.cjs', type: 'node', required: true, env: { MODE, SEASON, SAMPLE_PLAYERS: (DRY_RUN || SHADOW_MODE) ? SAMPLE_PLAYERS : undefined } },
+  { key: 'teams', name: 'Build Team Seasons', script: 'core/build_team_seasons_full.cjs', type: 'node', required: true, env: { MODE, SEASON, SAMPLE_TEAMS: (DRY_RUN || SHADOW_MODE) ? SAMPLE_TEAMS : undefined } },
 ];
 
+// Filter by --only
+const INCLUDE = ONLY.length
+  ? new Set(ONLY.map(x => x.toLowerCase()))
+  : null;
+
+const filteredSteps = steps.filter(s => {
+  if (!INCLUDE) return true;
+  // Map keys for convenience
+  const keyMap = {
+    players: 'players',
+    contracts: 'contracts',
+    teams: 'teams',
+    export: 'export',
+    schema: 'schema',
+    scan: 'scan',
+    map: 'map',
+    forecast: 'forecast',
+    validate: 'validate',
+  };
+  return INCLUDE.has(keyMap[s.key] || s.key);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Runner
+// ─────────────────────────────────────────────────────────────────────────────
 let currentStep = 0;
 let failures = [];
 let firstPlayer = null;
@@ -135,67 +126,46 @@ function runCommand(cmd, args = [], env = {}) {
     });
 
     child.on('close', (code) => {
-      if (code === 0) {
-        resolve({ stdout, stderr, code });
-      } else {
-        reject({
-          stdout,
-          stderr,
-          code,
-          error: `Process exited with code ${code}`,
-        });
-      }
+      if (code === 0) resolve({ stdout, stderr, code });
+      else reject({ stdout, stderr, code, error: `Process exited with code ${code}` });
     });
 
-    child.on('error', (error) => {
-      reject({ stdout, stderr, code: -1, error: error.message });
-    });
+    child.on('error', (error) => reject({ stdout, stderr, code: -1, error: error.message }));
   });
 }
 
 async function runStep(step) {
-  console.log(`\n📋 Step ${currentStep + 1}/${steps.length}: ${step.name}`);
-  console.log(`   ${step.description}`);
+  console.log(`\n📋 Step ${currentStep + 1}/${filteredSteps.length}: ${step.name}`);
+  console.log(`   ${step.description || ''}`);
   console.log(`   Running: ${step.script}`);
 
   const startTime = Date.now();
 
   try {
-    // Prepare command
-    let cmd, args;
-    if (step.type === 'node') {
-      cmd = 'node';
-      args = [path.join(BASE_DIR, step.script)];
+    let cmd = 'node';
+    let args = [path.join(BASE_DIR, step.script)];
 
-      // Handle dynamic args (like first player replacement)
-      if (step.args) {
-        const processedArgs = step.args.map((arg) => {
-          if (arg.includes('{{FIRST_PLAYER}}') && firstPlayer) {
-            return arg.replace('{{FIRST_PLAYER}}', firstPlayer);
-          }
-          return arg;
-        });
-        args.push(...processedArgs);
-      }
+    // arg template replacement
+    if (step.args) {
+      const processedArgs = step.args.map((arg) =>
+        arg.includes('{{FIRST_PLAYER}}') && firstPlayer ? arg.replace('{{FIRST_PLAYER}}', firstPlayer) : arg
+      );
+      args.push(...processedArgs);
     }
 
-    // Clean up environment (remove undefined values)
+    // Clean env
     const cleanEnv = {};
-    if (step.env) {
-      for (const [key, value] of Object.entries(step.env)) {
-        if (value !== undefined) {
-          cleanEnv[key] = value;
-        }
-      }
-    }
+    if (step.env) for (const [k, v] of Object.entries(step.env)) if (v !== undefined) cleanEnv[k] = v;
+
+    // Safety: never pass live if guard is not set
+    if (MODE === 'live' && !argv['i-understand-the-risks']) cleanEnv.MODE = 'shadow';
 
     const result = await runCommand(cmd, args, cleanEnv);
-
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
     console.log(`   ✅ Completed in ${duration}s`);
 
-    // Extract first player for validation step
-    if (step.name === 'Generate Forecast Bundle' && !firstPlayer) {
+    // Capture first player from forecast output
+    if (step.key === 'forecast' && !firstPlayer) {
       const match = result.stdout.match(/ForecastBundle_TARGET_(\w+)\.json/);
       if (match) {
         firstPlayer = match[1];
@@ -210,18 +180,10 @@ async function runStep(step) {
     console.log(`   Error: ${error.error || error.message}`);
 
     if (step.required) {
-      failures.push({
-        step: step.name,
-        error: error.error || error.message,
-        required: true,
-      });
+      failures.push({ step: step.name, error: error.error || error.message, required: true });
       throw error;
     } else {
-      failures.push({
-        step: step.name,
-        error: error.error || error.message,
-        required: false,
-      });
+      failures.push({ step: step.name, error: error.error || error.message, required: false });
       console.log(`   ⚠️  Non-critical step failed, continuing...`);
       return null;
     }
@@ -231,32 +193,26 @@ async function runStep(step) {
 async function main() {
   const startTime = Date.now();
 
-  // Verify prerequisites
-  const serviceAccountGuess = path.join(process.cwd(), 'serviceAccountKey.json');
-  if (!fs.existsSync(serviceAccountGuess) && !process.env.SA_PATH) {
-    console.error('❌ Missing serviceAccountKey.json in project root');
-    console.error('   Place your Firebase service account key before running');
+  // Preflight: keys/emulator check
+  const hasKey = fs.existsSync(path.join(process.cwd(), 'serviceAccountKey.json')) || !!process.env.SA_PATH;
+  if (!hasKey && !USING_EMULATOR && !DRY_RUN) {
+    console.error('❌ Missing credentials or emulator for MODE=' + MODE);
+    console.error('   Use Firestore emulator (set FIRESTORE_EMULATOR_HOST & GCLOUD_PROJECT) or supply SA_PATH.');
     process.exit(1);
   }
 
-  // Create output directory
+  // outputs/
   const outputDir = path.join(BASE_DIR, 'outputs');
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
-  }
+  if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
-  // Run each step
-  for (const step of steps) {
-    try {
-      await runStep(step);
-      currentStep++;
-    } catch (error) {
+  for (const step of filteredSteps) {
+    await runStep(step).then(() => currentStep++).catch(err => {
       if (step.required) {
         console.log(`\n💥 CRITICAL FAILURE: ${step.name}`);
         console.log('   Pipeline stopped due to required step failure');
-        break;
+        throw err;
       }
-    }
+    });
   }
 
   // Summary
@@ -265,37 +221,16 @@ async function main() {
   console.log('📊 Schema Transition Summary');
   console.log('='.repeat(50));
   console.log(`Total time: ${totalTime}s`);
-  console.log(`Steps completed: ${currentStep}/${steps.length}`);
-  console.log(`Mode: ${DRY_RUN ? 'DRY RUN' : 'LIVE MIGRATION'}`);
+  console.log(`Steps completed: ${currentStep}/${filteredSteps.length}`);
+  console.log(`Mode: ${MODE.toUpperCase()} ${USING_EMULATOR ? '(EMULATOR)' : ''}`);
 
   if (failures.length === 0) {
-    console.log('✅ All steps completed successfully!');
-
-    if (DRY_RUN) {
-      console.log('\n🔄 Next Steps:');
-      console.log('1. Review the dry-run output above');
-      console.log('2. Run without DRY_RUN=1 for live migration:');
-      console.log('   node scripts/schema_transition_orchestrator.cjs');
-    } else {
-      console.log('\n🎉 Schema transition complete!');
-      console.log(
-        'Your Firestore has been migrated to the new hierarchical structure.'
-      );
-    }
+    console.log('✅ All selected steps completed successfully!');
   } else {
     console.log(`⚠️  ${failures.length} step(s) had issues:`);
-    failures.forEach((f) => {
-      const icon = f.required ? '❌' : '⚠️ ';
-      console.log(`   ${icon} ${f.step}: ${f.error}`);
-    });
-
-    const criticalFailures = failures.filter((f) => f.required);
-    if (criticalFailures.length > 0) {
-      console.log('\n💥 Migration incomplete due to critical failures');
-      process.exit(1);
-    } else {
-      console.log('\n✅ Migration completed with warnings');
-    }
+    failures.forEach(f => console.log(`   ${f.required ? '❌' : '⚠️'} ${f.step}: ${f.error}`));
+    const crit = failures.some(f => f.required);
+    if (crit) process.exit(1);
   }
 }
 
