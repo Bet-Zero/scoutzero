@@ -10,7 +10,13 @@
 //   bio: { displayName, age, position, height, weight, ... },
 //   team: { code },                          // e.g., "LAL", "DEN"
 //   stats: { pts, ast, reb, fgPct, tpPct, ftPct, ... },
-//   contractView: { salary, yearsLeft, faYear, hasPlayerOption, hasTeamOption, ... },
+//   contractView: {
+//     salary,
+//     yearsLeft,
+//     freeAgentYear,
+//     optionType, // 'Player' | 'Team' | null
+//     rights,
+//   },
 //   evaluations?: {
 //     meta: { evaluatorId, updatedAt },
 //     grades: { Defense, Energy, Feel, IQ, Passing, Playmaking, Rebounding, Shooting },
@@ -82,13 +88,16 @@ export function getYearsLeft(seasonDoc, fallback = null) {
   return seasonDoc?.contractView?.yearsLeft ?? fallback;
 }
 export function getFAYear(seasonDoc, fallback = null) {
-  return seasonDoc?.contractView?.faYear ?? fallback;
+  return seasonDoc?.contractView?.freeAgentYear ?? fallback;
 }
 export function hasPlayerOption(seasonDoc) {
-  return !!seasonDoc?.contractView?.hasPlayerOption;
+  return seasonDoc?.contractView?.optionType?.toLowerCase() === 'player';
 }
 export function hasTeamOption(seasonDoc) {
-  return !!seasonDoc?.contractView?.hasTeamOption;
+  return seasonDoc?.contractView?.optionType?.toLowerCase() === 'team';
+}
+export function getContractRights(seasonDoc, fallback = 'None') {
+  return seasonDoc?.contractView?.rights ?? fallback;
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -119,7 +128,7 @@ export function getEvalBlurbs(seasonDoc) {
 // Utility: assert shape (optional, helps during transition)
 export function assertSeasonDocShape(seasonDoc) {
   if (!seasonDoc) throw new Error('seasonDoc is null/undefined');
-  // Soft checks (won't throw): you can log if critical sections are missing
-  // console.warn can be added here if needed.
+  if (!seasonDoc.bio) throw new Error('seasonDoc.bio missing');
+  if (!seasonDoc.team) throw new Error('seasonDoc.team missing');
   return true;
 }

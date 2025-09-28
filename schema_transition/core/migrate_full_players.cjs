@@ -1,414 +1,391 @@
-// Full player pass: bio + nbaId/xref + contracts + seasons/{SEASON}: {teamId, contractView, stats(full), evaluation, meta}
-// DRY mode prints only players you list in SAMPLE_PLAYERS (comma-separated slugs). Real write is additive/sparse.
-const fs = require('fs');
-const { initializeApp, cert } = require('firebase-admin/app');
-const { getFirestore } = require('firebase-admin/firestore');
+#!/usr/bin/env node
+/*
+ * Full player migration with dry-run, shadow-write, and live modes.
+ * - Maps legacy player docs to the new hierarchical schema using schemaAdapters.
+ * - Uses selectors/newSchemeSelectors.js to validate shape parity.
+ * - Supports verify-then-swap workflow by requiring a matching shadow document before live writes.
+ * - Emits detailed JSON + CSV summaries for auditing and rollback.
+ */
 
-const SA_PATH = '../serviceAccountKey.json';
+const fs = require('fs');
+const path = require('path');
+const { pathToFileURL: nodePathToFileURL } = require('url');
+const { initFirestore } = require('../utils/firestoreHelpers.cjs');
+const {
+  mapLegacyPlayerToNew,
+  mapNewSeasonToLegacy,
+} = require('../utils/schemaAdapters.cjs');
+
+const MODE = process.env.MODE || (process.env.DRY_RUN === '0' ? 'live' : 'dry-run');
 const SEASON = process.env.SEASON || '2025-26';
-const DRY = process.env.DRY_RUN === '1';
 const SAMPLE = (process.env.SAMPLE_PLAYERS || '')
   .split(',')
   .map((s) => s.trim())
   .filter(Boolean);
 const SAMPLE_SET = new Set(SAMPLE);
+const BATCH_SIZE = Number(process.env.BATCH_SIZE || 250);
+const MAX_RETRIES = Number(process.env.MAX_RETRIES || 5);
+const SHADOW_PREFIX = process.env.SHADOW_PREFIX || 'players_shadow';
+const REQUIRE_SHADOW_CONFIRM = process.env.CONFIRM_SHADOW === '1';
+const SUMMARY_DIR = path.resolve(process.cwd(), 'outputs');
+const SUMMARY_JSON = path.join(SUMMARY_DIR, `migrate_full_players_${MODE}.json`);
+const SUMMARY_CSV = path.join(SUMMARY_DIR, `migrate_full_players_${MODE}.csv`);
 
-function initDB() {
-  const sa = JSON.parse(fs.readFileSync(SA_PATH, 'utf8'));
-  initializeApp({ credential: cert(sa) });
-  return getFirestore();
+const DRY_RUN = MODE === 'dry-run';
+const SHADOW_MODE = MODE === 'shadow';
+const LIVE_MODE = MODE === 'live';
+
+if (!['dry-run', 'shadow', 'live'].includes(MODE)) {
+  console.error(`❌ Unknown MODE="${MODE}". Use dry-run | shadow | live.`);
+  process.exit(1);
 }
 
-/* ---- helpers ---- */
-const TEAM_CODE = {
-  'ATLANTA HAWKS': 'ATL',
-  'BOSTON CELTICS': 'BOS',
-  'BROOKLYN NETS': 'BKN',
-  'CHARLOTTE HORNETS': 'CHA',
-  'CHICAGO BULLS': 'CHI',
-  'CLEVELAND CAVALIERS': 'CLE',
-  'DALLAS MAVERICKS': 'DAL',
-  'DENVER NUGGETS': 'DEN',
-  'DETROIT PISTONS': 'DET',
-  'GOLDEN STATE WARRIORS': 'GSW',
-  'HOUSTON ROCKETS': 'HOU',
-  'INDIANA PACERS': 'IND',
-  'LA CLIPPERS': 'LAC',
-  'LOS ANGELES LAKERS': 'LAL',
-  'MEMPHIS GRIZZLIES': 'MEM',
-  'MIAMI HEAT': 'MIA',
-  'MILWAUKEE BUCKS': 'MIL',
-  'MINNESOTA TIMBERWOLVES': 'MIN',
-  'NEW ORLEANS PELICANS': 'NOP',
-  'NEW YORK KNICKS': 'NYK',
-  'OKLAHOMA CITY THUNDER': 'OKC',
-  'ORLANDO MAGIC': 'ORL',
-  'PHILADELPHIA 76ERS': 'PHI',
-  'PHOENIX SUNS': 'PHX',
-  'PORTLAND TRAIL BLAZERS': 'POR',
-  'SACRAMENTO KINGS': 'SAC',
-  'SAN ANTONIO SPURS': 'SAS',
-  'TORONTO RAPTORS': 'TOR',
-  'UTAH JAZZ': 'UTA',
-  'WASHINGTON WIZARDS': 'WAS',
-};
-const TEAM_ALIASES = {
-  HAWKS: 'ATL',
-  CELTICS: 'BOS',
-  NETS: 'BKN',
-  HORNETS: 'CHA',
-  BULLS: 'CHI',
-  CAVALIERS: 'CLE',
-  MAVERICKS: 'DAL',
-  NUGGETS: 'DEN',
-  PISTONS: 'DET',
-  WARRIORS: 'GSW',
-  ROCKETS: 'HOU',
-  PACERS: 'IND',
-  CLIPPERS: 'LAC',
-  LAKERS: 'LAL',
-  GRIZZLIES: 'MEM',
-  HEAT: 'MIA',
-  BUCKS: 'MIL',
-  TIMBERWOLVES: 'MIN',
-  PELICANS: 'NOP',
-  KNICKS: 'NYK',
-  THUNDER: 'OKC',
-  MAGIC: 'ORL',
-  '76ERS': 'PHI',
-  SIXERS: 'PHI',
-  SUNS: 'PHX',
-  'TRAIL BLAZERS': 'POR',
-  BLAZERS: 'POR',
-  KINGS: 'SAC',
-  SPURS: 'SAS',
-  RAPTORS: 'TOR',
-  JAZZ: 'UTA',
-  WIZARDS: 'WAS',
-};
-function toTeamId(raw) {
-  if (!raw) return null;
-  const t = String(raw)
-    .trim()
-    .toUpperCase()
-    .replace(/[.,]/g, '')
-    .replace(/\s+/g, ' ');
-  return TEAM_CODE[t] || TEAM_ALIASES[t] || null;
+if (LIVE_MODE && !REQUIRE_SHADOW_CONFIRM) {
+  console.error(
+    '❌ Live mode requires CONFIRM_SHADOW=1 to acknowledge shadow parity verification.',
+  );
+  process.exit(1);
 }
-function normRights(s) {
-  const t = String(s || '').toLowerCase();
-  if (!t) return 'None';
-  if (t.startsWith('full')) return 'Full';
-  if (t.startsWith('early')) return 'Early';
-  if (t.includes('non')) return 'Non';
-  return 'Full';
-}
-function toSeasonKeyFromYear(y) {
-  return `${y}-${String((y + 1) % 100).padStart(2, '0')}`;
-}
-const pct = (v) => {
-  if (v == null) return null;
-  if (typeof v === 'number') return v > 1.0001 ? v / 100 : v;
-  const s = String(v).trim();
-  const m = s.match(/^(\d+(\.\d+)?)%$/);
-  if (m) return Number(m[1]) / 100;
-  const num = Number(s);
-  return num > 1.0001 ? num / 100 : num;
-};
 
-/* ---- mappers ---- */
-function buildBio(p) {
-  const get = (k, alt) => p?.bio?.[k] ?? p?.[k] ?? alt;
-  const ht = get('HT') ?? get('height');
-  const wt = get('WT') ?? get('weight_lbs');
-  const bio = {
-    displayName: get('display_name') ?? get('Name') ?? get('name'), // Changed to displayName first
-    position: get('Position') ?? get('Pos'), // Changed to position
-    height: typeof ht === 'number' ? String(ht) : ht, // Changed to height
-    weight: typeof wt === 'string' ? Number(wt) || null : wt, // Changed to weight
-    age: get('AGE') ?? get('age'), // Added age field
-    dob:
-      p?.bio?.birthdate && String(p.bio.birthdate).length >= 4
-        ? String(p.bio.birthdate)
-        : undefined,
-    nationality: p?.bio?.nationality,
-    shoots: p?.bio?.shoots,
-    agent:
-      p?.agent?.name || p?.agent?.agency
-        ? { name: p.agent.name || null, agency: p.agent.agency || null }
-        : undefined,
-    draft: p?.draft
-      ? {
-          year: p.draft.year ?? null,
-          round: p.draft.round ?? null,
-          pick: p.draft.pick ?? null,
-          teamId: toTeamId(p.draft.team) || null,
-        }
-      : undefined,
+function eventLog(event, payload = {}) {
+  const line = {
+    timestamp: new Date().toISOString(),
+    event,
+    mode: MODE,
+    season: SEASON,
+    ...payload,
   };
-  for (const k of Object.keys(bio))
-    if (
-      bio[k] == null ||
-      (typeof bio[k] === 'object' && !Object.keys(bio[k] || {}).length)
-    )
-      delete bio[k];
-  return bio;
+  console.log(JSON.stringify(line));
 }
-function buildFullStats(p) {
-  const grab = (...keys) => {
-    for (const k of keys) {
-      if (p?.[k] != null) return p[k];
-      if (p?.system?.stats?.[k] != null) return p.system.stats[k];
-    }
-    return null;
-  };
-  const out = {
-    G: grab('G', 'Games Played'),
-    GS: grab('GS'),
-    MP: Number(grab('MP', 'MIN')) || null,
-    PTS: Number(grab('PTS', 'PPG')) || null,
-    AST: Number(grab('AST', 'APG')) || null,
-    TRB: Number(grab('TRB', 'RPG')) || null,
-    DRB: Number(grab('DRB')),
-    ORB: Number(grab('ORB')),
-    STL: Number(grab('STL')),
-    BLK: Number(grab('BLK')),
-    TOV: Number(grab('TOV')),
-    PF: Number(grab('PF')),
-    FG: Number(grab('FG')),
-    FGA: Number(grab('FGA')),
-    'FG%': pct(grab('FG%')),
-    '3P': Number(grab('3P')),
-    '3PA': Number(grab('3PA')),
-    '3P%': pct(grab('3P%', '3PT%')),
-    '2P': Number(grab('2P')),
-    '2PA': Number(grab('2PA')),
-    '2P%': pct(grab('2P%')),
-    FT: Number(grab('FT')),
-    FTA: Number(grab('FTA')),
-    'FT%': pct(grab('FT%')),
-    'eFG%': pct(grab('eFG%', 'EFG%')),
-  };
-  for (const k of Object.keys(out))
-    if (out[k] == null || Number.isNaN(out[k])) delete out[k];
+
+function chunk(array, size) {
+  const out = [];
+  for (let i = 0; i < array.length; i += size) out.push(array.slice(i, i + size));
   return out;
 }
-function buildEvaluation(p) {
-  const b = p?.blurbs || {};
-  const traits =
-    b.traits && Object.keys(b.traits).length ? b.traits : undefined;
-  const roles = b.roles && Object.keys(b.roles).length ? b.roles : undefined;
-  const comments = b.overall || b.shootingProfile || b.twoWayMeter || '';
-  const evalDoc = {
-    ...(traits ? { traits } : {}),
-    ...(roles ? { roles } : {}),
-    ...(comments ? { comments } : {}),
-    updatedAt: '<client-set>',
-  };
-  for (const k of Object.keys(evalDoc))
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function diffObjects(expected, actual, pathPrefix = '') {
+  const diffs = [];
+  const keys = new Set([
+    ...Object.keys(expected || {}),
+    ...Object.keys(actual || {}),
+  ]);
+  for (const key of keys) {
+    const pathKey = pathPrefix ? `${pathPrefix}.${key}` : key;
+    const expectedValue = expected ? expected[key] : undefined;
+    const actualValue = actual ? actual[key] : undefined;
     if (
-      evalDoc[k] == null ||
-      (typeof evalDoc[k] === 'object' && !Object.keys(evalDoc[k]).length)
-    )
-      delete evalDoc[k];
-  return evalDoc;
-}
-function buildMeta(p) {
-  const ts = p?.last_stats_update || p?.last_updated || null;
-  const carry = !!p?.stats_carry_over;
-  const tag = p?.stats_season || null;
-  const meta = {
-    ...(ts ? { lastStatsUpdate: ts } : {}),
-    ...(carry ? { statsCarryOver: true } : {}),
-    ...(tag ? { statsSeasonTag: tag } : {}),
-  };
-  return meta;
-}
-function buildContractFromAnnualSalaries(p) {
-  const ann = p?.contract?.annual_salaries;
-  if (!Array.isArray(ann) || !ann.length) return null;
-  const srt = ann
-    .filter((r) => r && r.year != null && r.salary != null)
-    .sort((a, b) => Number(a.year) - Number(b.year));
-  const startYear = Number(srt[0].year),
-    endYear = Number(srt[srt.length - 1].year);
-  const startSeason = toSeasonKeyFromYear(startYear),
-    endSeason = toSeasonKeyFromYear(endYear);
-  const salariesByYear = srt.map((r) => ({
-    season: toSeasonKeyFromYear(Number(r.year)),
-    salary: Number(r.salary),
-  }));
-  const totalValue = salariesByYear.reduce(
-    (s, r) => s + (Number(r.salary) || 0),
-    0
-  );
-  const contract = {
-    signedOn: p?.contract?.signed_year
-      ? `${p.contract.signed_year}-07-01`
-      : null,
-    type: p?.contract_summary?.is_extension === true ? 'extension' : 'standard',
-    startSeason,
-    endSeason,
-    signingTeamId:
-      toTeamId(p?.contract?.signing_team) || toTeamId(p?.bio?.Team || p?.Team),
-    totalValue,
-    years: salariesByYear.length,
-    rightsAtSigning: p?.bird_rights ? normRights(p.bird_rights) : undefined,
-    bonuses: p?.contract?.incentives
-      ? {
-          likely: Number(p.contract.incentives.likely || 0),
-          unlikely: Number(p.contract.incentives.unlikely || 0),
-        }
-      : undefined,
-    options: Array.isArray(p?.contract?.options)
-      ? p.contract.options.map((opt) => ({
-          season:
-            String(
-              opt.year
-                ? toSeasonKeyFromYear(Number(opt.year))
-                : opt.season || '' || ''
-            ).trim() || undefined,
-          type: opt.type || null,
-        }))
-      : undefined,
-    guarantees: Array.isArray(ann)
-      ? ann
-          .filter(
-            (y) => y.guaranteed !== undefined || y.guarantee_amt !== undefined
-          )
-          .map((y) => ({
-            season: toSeasonKeyFromYear(Number(y.year)),
-            amt:
-              y.guarantee_amt != null
-                ? Number(y.guarantee_amt)
-                : y.guaranteed === true
-                  ? Number(y.salary || 0)
-                  : 0,
-          }))
-      : undefined,
-    salariesByYear,
-    notes: p?.contract_summary
-      ? `aav:${p.contract_summary.aav || ''}; cap%:${p.contract_summary.cap_percentage || ''}`
-      : undefined,
-  };
-  for (const k of Object.keys(contract))
-    if (contract[k] == null) delete contract[k];
-  if (
-    Array.isArray(contract.options) &&
-    contract.options.every((o) => !o.type && !o.season)
-  )
-    delete contract.options;
-  if (
-    Array.isArray(contract.guarantees) &&
-    contract.guarantees.every((g) => !g.amt)
-  )
-    delete contract.guarantees;
-  return contract;
-}
-function pickSalaryForSeason(contract, seasonKey) {
-  const row = (contract?.salariesByYear || []).find(
-    (r) => r.season === seasonKey
-  );
-  return row ? Number(row.salary) : null;
-}
-function computeFA(p) {
-  const year = Number(p?.contract?.free_agency_year);
-  if (!year) return null;
-  const s = (p?.bio?.['Free Agent'] || p?.['Free Agent'] || '').toString();
-  const m = s.match(/\(([^)]+)\)/);
-  return { year, type: m ? m[1] : null };
-}
-
-/* ---- main ---- */
-async function main() {
-  const db = initDB();
-  const snap = await db.collection('players').get();
-  let writes = 0,
-    processed = 0;
-
-  for (const doc of snap.docs) {
-    const id = doc.id;
-    const show = SAMPLE_SET.size === 0 || SAMPLE_SET.has(id); // print only if in sample (or no sample specified)
-    const p = doc.data();
-
-    const bio = buildBio(p);
-    const nbaId = p?.nba_player_id ?? p?.nbaId ?? null;
-    if (nbaId != null) bio.nbaId = nbaId;
-
-    const contract = buildContractFromAnnualSalaries(p);
-    const contractId = contract
-      ? (contract.type === 'extension' ? 'ext_' : 'std_') +
-        contract.startSeason.replace('-', '')
-      : null;
-
-    const teamId = toTeamId(p?.bio?.Team || p?.Team);
-    const salary = contract ? pickSalaryForSeason(contract, SEASON) : null;
-    const rights = p?.bird_rights ? normRights(p.bird_rights) : 'None';
-    const fa = computeFA(p);
-
-    const stats = buildFullStats(p);
-    const evaluation = buildEvaluation(p);
-    const meta = buildMeta(p);
-
-    const seasonDoc = {
-      ...(teamId ? { teamId } : {}),
-      contractView: {
-        ...(contractId ? { contractId } : {}),
-        ...(salary != null ? { salary } : {}),
-        rights,
-        ...(fa ? { fa } : {}),
-      },
-      ...(Object.keys(stats).length ? { stats } : {}),
-      ...(Object.keys(evaluation).length ? { evaluation } : {}),
-      ...(Object.keys(meta).length ? { meta } : {}),
-    };
-
-    if (DRY) {
-      if (show) {
-        console.log('======================================');
-        console.log('[DRY FULL] Player:', id);
-        if (Object.keys(bio).length) console.log('  bio ->', bio);
-        if (nbaId != null)
-          console.log('  xref ->', `playersByNbaId/${String(nbaId)}`, {
-            playerId: id,
-          });
-        if (contract)
-          console.log('  contracts ->', { contractId, ...contract });
-        console.log(`  seasons/${SEASON} ->`, seasonDoc);
-      }
+      expectedValue &&
+      actualValue &&
+      typeof expectedValue === 'object' &&
+      typeof actualValue === 'object' &&
+      !Array.isArray(expectedValue) &&
+      !Array.isArray(actualValue)
+    ) {
+      diffs.push(...diffObjects(expectedValue, actualValue, pathKey));
       continue;
     }
+    const expectedJson = JSON.stringify(expectedValue);
+    const actualJson = JSON.stringify(actualValue);
+    if (expectedJson !== actualJson) {
+      diffs.push({ path: pathKey, expected: expectedValue, actual: actualValue });
+    }
+  }
+  return diffs;
+}
 
-    // Writes (sparse, additive)
-    const playerPath = `players/${id}`;
-    if (Object.keys(bio).length) {
-      await db.doc(playerPath).set({ bio }, { merge: true });
-      writes++;
+function extractComparableLegacy(legacy) {
+  const comparable = {};
+  if (legacy?.bio && typeof legacy.bio === 'object') {
+    comparable.bio = {
+      display_name: legacy.bio.display_name ?? legacy.bio.displayName ?? legacy.bio.Name ?? null,
+      Position: legacy.bio.Position ?? legacy.bio.position ?? null,
+      HT: legacy.bio.HT ?? legacy.bio.height ?? null,
+      WT: legacy.bio.WT ?? legacy.bio.weight ?? null,
+      AGE: legacy.bio.AGE ?? legacy.bio.age ?? null,
+    };
+  }
+  if (legacy?.Team) comparable.Team = legacy.Team;
+  if (legacy?.system?.stats) comparable.system = { stats: legacy.system.stats };
+  if (legacy?.traits) comparable.traits = legacy.traits;
+  if (legacy?.roles) comparable.roles = legacy.roles;
+  if (legacy?.subRoles) comparable.subRoles = legacy.subRoles;
+  if (legacy?.blurbs) comparable.blurbs = legacy.blurbs;
+  if (legacy?.shootingProfile != null) comparable.shootingProfile = legacy.shootingProfile;
+  if (legacy?.twoWayMeter != null) comparable.twoWayMeter = legacy.twoWayMeter;
+  const freeAgencyYear =
+    legacy?.contract?.free_agency_year || legacy?.contract?.freeAgencyYear || null;
+  const rights = legacy?.bird_rights || legacy?.contract?.rights || null;
+  if (freeAgencyYear != null || rights != null) {
+    comparable.contract = {
+      free_agency_year: freeAgencyYear,
+      rights,
+    };
+  }
+  if (legacy?.stats_season) comparable.stats_season = legacy.stats_season;
+  if (legacy?.stats_carry_over) comparable.stats_carry_over = legacy.stats_carry_over;
+  if (legacy?.last_stats_update) comparable.last_stats_update = legacy.last_stats_update;
+
+  const scrubbed = {};
+  for (const [key, value] of Object.entries(comparable)) {
+    if (value == null) continue;
+    if (typeof value === 'object' && !Array.isArray(value)) {
+      const nested = {};
+      for (const [nestedKey, nestedValue] of Object.entries(value)) {
+        if (nestedValue != null) nested[nestedKey] = nestedValue;
+      }
+      if (Object.keys(nested).length) scrubbed[key] = nested;
+    } else {
+      scrubbed[key] = value;
     }
-    if (nbaId != null) {
-      await db
-        .doc(`playersByNbaId/${String(nbaId)}`)
-        .set({ playerId: id }, { merge: true });
-      writes++;
-    }
-    if (contract && contractId) {
-      await db
-        .doc(`${playerPath}/contracts/${contractId}`)
-        .set(contract, { merge: true });
-      writes++;
-    }
-    await db
-      .doc(`${playerPath}/seasons/${SEASON}`)
-      .set(seasonDoc, { merge: true });
-    writes++;
-    processed++;
   }
 
-  console.log(
-    `Done players. Docs processed: ${snap.size}, writes: ${writes}${DRY ? ' (DRY)' : ''}.`
-  );
+  return scrubbed;
 }
-main().catch((e) => {
-  console.error(e);
+
+async function commitWithRetries(db, writes) {
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    const batch = db.batch();
+    for (const write of writes) {
+      const { ref, data, options } = write;
+      if (options?.merge) {
+        batch.set(ref, data, { merge: true });
+      } else if (options?.delete) {
+        batch.delete(ref);
+      } else {
+        batch.set(ref, data);
+      }
+    }
+    try {
+      await batch.commit();
+      return;
+    } catch (err) {
+      const delay = Math.min(1000 * 2 ** attempt, 15000);
+      eventLog('batch-retry', {
+        attempt,
+        delay,
+        error: err.message,
+      });
+      await wait(delay);
+    }
+  }
+  throw new Error('Exceeded max retries committing Firestore batch');
+}
+
+async function loadSelectors() {
+  const modulePath = path.resolve(
+    process.cwd(),
+    'src/utils/selectors/newSchemeSelectors.js',
+  );
+  return import(nodePathToFileURL(modulePath).href);
+}
+
+async function validateSeasonDoc(selectors, seasonDoc) {
+  const issues = [];
+  try {
+    if (typeof selectors.assertSeasonDocShape === 'function') {
+      selectors.assertSeasonDocShape(seasonDoc);
+    }
+  } catch (err) {
+    issues.push(`shape:${err.message}`);
+  }
+  const displayName = selectors.getDisplayName(seasonDoc, null);
+  if (seasonDoc?.bio?.displayName && displayName !== seasonDoc.bio.displayName) {
+    issues.push('selector-mismatch:bio.displayName');
+  }
+  const teamCode = selectors.getTeamCode(seasonDoc, null);
+  if (seasonDoc?.team?.code && teamCode !== seasonDoc.team.code) {
+    issues.push('selector-mismatch:team.code');
+  }
+  const salary = selectors.getSalary(seasonDoc, null);
+  if (
+    seasonDoc?.contractView?.salary != null &&
+    salary !== seasonDoc.contractView.salary
+  ) {
+    issues.push('selector-mismatch:contractView.salary');
+  }
+  return issues;
+}
+
+function summarizeEntry(result) {
+  const {
+    playerId,
+    seasonDoc,
+    seasonDiff,
+    warnings,
+    selectorIssues,
+    modeAction,
+  } = result;
+  return {
+    playerId,
+    seasonWritten: modeAction,
+    warnings: warnings.join('|') || '',
+    selectorIssues: selectorIssues.join('|') || '',
+    diffCount: seasonDiff.length,
+  };
+}
+
+function writeSummaries(summary) {
+  if (!fs.existsSync(SUMMARY_DIR)) fs.mkdirSync(SUMMARY_DIR, { recursive: true });
+  fs.writeFileSync(SUMMARY_JSON, JSON.stringify(summary, null, 2));
+  const header = 'playerId,seasonWritten,warnings,selectorIssues,diffCount\n';
+  const csvBody = summary
+    .map((row) =>
+      [
+        row.playerId,
+        row.seasonWritten,
+        row.warnings,
+        row.selectorIssues,
+        row.diffCount,
+      ]
+        .map((value) => `"${String(value ?? '').replace(/"/g, '""')}"`)
+        .join(','),
+    )
+    .join('\n');
+  fs.writeFileSync(SUMMARY_CSV, header + csvBody);
+}
+
+async function main() {
+  eventLog('start', { sampleCount: SAMPLE_SET.size, batchSize: BATCH_SIZE });
+  const db = initFirestore();
+  const selectors = await loadSelectors();
+
+  const playersSnap = await db.collection('players').get();
+  eventLog('players-read', { count: playersSnap.size });
+
+  const results = [];
+  const shadowFailures = [];
+
+  const docs = playersSnap.docs.filter((doc) =>
+    SAMPLE_SET.size ? SAMPLE_SET.has(doc.id) : true,
+  );
+
+  const targetPlayers = SAMPLE_SET.size ? docs : playersSnap.docs;
+  const chunks = chunk(targetPlayers, BATCH_SIZE);
+
+  for (const [chunkIndex, docsChunk] of chunks.entries()) {
+    const writes = [];
+    for (const doc of docsChunk) {
+      const legacy = doc.data();
+      const mapping = mapLegacyPlayerToNew(doc.id, legacy, SEASON);
+      const selectorIssues = await validateSeasonDoc(selectors, mapping.seasonDoc || {});
+
+      const legacyRoundTrip = mapNewSeasonToLegacy(
+        doc.id,
+        SEASON,
+        mapping.seasonDoc || {},
+      );
+      const expectedLegacy = extractComparableLegacy(legacy);
+      const parityDiff = diffObjects(expectedLegacy || {}, legacyRoundTrip || {});
+
+      let modeAction = 'skipped';
+      if (DRY_RUN) {
+        modeAction = 'dry-run';
+      } else {
+        const baseCollection = SHADOW_MODE ? SHADOW_PREFIX : 'players';
+        const xrefCollection = SHADOW_MODE
+          ? 'playersByNbaId_shadow'
+          : 'playersByNbaId';
+
+        if (LIVE_MODE) {
+          const shadowSeasonRef = db
+            .collection(`${SHADOW_PREFIX}`)
+            .doc(doc.id)
+            .collection('seasons')
+            .doc(SEASON);
+          const shadowSnap = await shadowSeasonRef.get();
+          if (!shadowSnap.exists) {
+            shadowFailures.push({ playerId: doc.id, reason: 'missing-shadow-season' });
+            modeAction = 'blocked-missing-shadow';
+          } else {
+            const shadowDiff = diffObjects(
+              mapping.seasonDoc || {},
+              shadowSnap.data() || {},
+            );
+            if (shadowDiff.length) {
+              shadowFailures.push({
+                playerId: doc.id,
+                reason: 'shadow-mismatch',
+                diff: shadowDiff,
+              });
+              modeAction = 'blocked-shadow-mismatch';
+            }
+          }
+        }
+
+        if (!(LIVE_MODE && modeAction.startsWith('blocked'))) {
+          if (Object.keys(mapping.playerDoc).length) {
+            const ref = db.collection(baseCollection).doc(mapping.playerId);
+            writes.push({ ref, data: mapping.playerDoc, options: { merge: true } });
+          }
+          if (mapping.seasonDoc) {
+            const ref = db
+              .collection(baseCollection)
+              .doc(mapping.playerId)
+              .collection('seasons')
+              .doc(SEASON);
+            writes.push({ ref, data: mapping.seasonDoc, options: { merge: true } });
+            modeAction = `${MODE}-season`;
+          }
+          for (const contract of mapping.contracts) {
+            const ref = db
+              .collection(baseCollection)
+              .doc(mapping.playerId)
+              .collection('contracts')
+              .doc(contract.id);
+            writes.push({ ref, data: contract.data, options: { merge: true } });
+          }
+          if (mapping.xref) {
+            const ref = db.collection(xrefCollection).doc(mapping.xref.id);
+            writes.push({ ref, data: mapping.xref.data, options: { merge: true } });
+          }
+        }
+      }
+
+      results.push(
+        summarizeEntry({
+          playerId: mapping.playerId,
+          seasonDoc: mapping.seasonDoc,
+          seasonDiff: parityDiff,
+          warnings: mapping.warnings,
+          selectorIssues,
+          modeAction,
+        }),
+      );
+    }
+
+    if (!DRY_RUN && writes.length) {
+      eventLog('batch-commit-start', {
+        chunk: chunkIndex,
+        writeCount: writes.length,
+      });
+      await commitWithRetries(db, writes);
+      eventLog('batch-commit-success', { chunk: chunkIndex });
+    }
+  }
+
+  if (shadowFailures.length) {
+    eventLog('shadow-verify-failed', { failures: shadowFailures.length });
+    fs.writeFileSync(
+      SUMMARY_JSON.replace('.json', '_shadow_failures.json'),
+      JSON.stringify(shadowFailures, null, 2),
+    );
+    if (LIVE_MODE) {
+      console.error('❌ Live migration blocked due to shadow verification failures.');
+      process.exit(2);
+    }
+  }
+
+  writeSummaries(results);
+  eventLog('complete', { processed: results.length, summaryJson: SUMMARY_JSON });
+}
+
+main().catch((err) => {
+  console.error('💥 migrate_full_players failed');
+  console.error(err);
   process.exit(1);
 });
