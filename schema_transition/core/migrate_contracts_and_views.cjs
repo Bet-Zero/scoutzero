@@ -1,297 +1,205 @@
-// Creates /players/{id}/contracts/* and /players/{id}/seasons/{seasonKey}.contractView
-// Adds bio.nbaId (if present) and a lookup doc: /playersByNbaId/{nbaId} -> { playerId }
-// Dry-run prints only 3 player samples.
+#!/usr/bin/env node
+/**
+ * Creates /players/{id}/contracts/* and /players/{id}/seasons/{seasonKey}.contractView
+ * Adds bio.nbaId (if present) and a lookup doc: /playersByNbaId/{nbaId} -> { playerId }
+ * 
+ * UPDATED: Now uses schemaAdapters and follows the same safety patterns as migrate_full_players.cjs
+ */
 const fs = require('fs');
-const { initializeApp, cert } = require('firebase-admin/app');
-const { getFirestore } = require('firebase-admin/firestore');
+const path = require('path');
+const { initFirestore } = require('../utils/firestoreHelpers.cjs');
+const { mapLegacyPlayerToNew } = require('../utils/schemaAdapters.cjs');
 
-const SA_PATH = '../serviceAccountKey.json'; // your file
+const MODE = process.env.MODE || (process.env.DRY_RUN === '0' ? 'live' : 'dry-run');
 const SEASON = process.env.SEASON || '2025-26';
-const DRY = process.env.DRY_RUN === '1';
+const SAMPLE = (process.env.SAMPLE_PLAYERS || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+const SAMPLE_SET = new Set(SAMPLE);
+const BATCH_SIZE = Math.min(Number(process.env.BATCH_SIZE || 250), 500);
+const MAX_RETRIES = Number(process.env.MAX_RETRIES || 5);
 
-function initDB() {
-  const sa = JSON.parse(fs.readFileSync(SA_PATH, 'utf8'));
-  initializeApp({ credential: cert(sa) });
-  return getFirestore();
+const DRY_RUN = MODE === 'dry-run';
+const SHADOW_MODE = MODE === 'shadow';
+const LIVE_MODE = MODE === 'live';
+
+if (!['dry-run', 'shadow', 'live'].includes(MODE)) {
+  console.error(`❌ Unknown MODE="${MODE}". Use dry-run | shadow | live.`);
+  process.exit(1);
 }
 
-/* ---------- TEAM CODE MAPPING ---------- */
-const TEAM_CODE = {
-  'ATLANTA HAWKS': 'ATL',
-  'BOSTON CELTICS': 'BOS',
-  'BROOKLYN NETS': 'BKN',
-  'CHARLOTTE HORNETS': 'CHA',
-  'CHICAGO BULLS': 'CHI',
-  'CLEVELAND CAVALIERS': 'CLE',
-  'DALLAS MAVERICKS': 'DAL',
-  'DENVER NUGGETS': 'DEN',
-  'DETROIT PISTONS': 'DET',
-  'GOLDEN STATE WARRIORS': 'GSW',
-  'HOUSTON ROCKETS': 'HOU',
-  'INDIANA PACERS': 'IND',
-  'LA CLIPPERS': 'LAC',
-  'LOS ANGELES LAKERS': 'LAL',
-  'MEMPHIS GRIZZLIES': 'MEM',
-  'MIAMI HEAT': 'MIA',
-  'MILWAUKEE BUCKS': 'MIL',
-  'MINNESOTA TIMBERWOLVES': 'MIN',
-  'NEW ORLEANS PELICANS': 'NOP',
-  'NEW YORK KNICKS': 'NYK',
-  'OKLAHOMA CITY THUNDER': 'OKC',
-  'ORLANDO MAGIC': 'ORL',
-  'PHILADELPHIA 76ERS': 'PHI',
-  'PHOENIX SUNS': 'PHX',
-  'PORTLAND TRAIL BLAZERS': 'POR',
-  'SACRAMENTO KINGS': 'SAC',
-  'SAN ANTONIO SPURS': 'SAS',
-  'TORONTO RAPTORS': 'TOR',
-  'UTAH JAZZ': 'UTA',
-  'WASHINGTON WIZARDS': 'WAS',
-};
-const TEAM_ALIASES = {
-  HAWKS: 'ATL',
-  CELTICS: 'BOS',
-  NETS: 'BKN',
-  HORNETS: 'CHA',
-  BULLS: 'CHI',
-  CAVALIERS: 'CLE',
-  MAVERICKS: 'DAL',
-  NUGGETS: 'DEN',
-  PISTONS: 'DET',
-  WARRIORS: 'GSW',
-  ROCKETS: 'HOU',
-  PACERS: 'IND',
-  CLIPPERS: 'LAC',
-  LAKERS: 'LAL',
-  GRIZZLIES: 'MEM',
-  HEAT: 'MIA',
-  BUCKS: 'MIL',
-  TIMBERWOLVES: 'MIN',
-  PELICANS: 'NOP',
-  KNICKS: 'NYK',
-  THUNDER: 'OKC',
-  MAGIC: 'ORL',
-  '76ERS': 'PHI',
-  SIXERS: 'PHI',
-  SUNS: 'PHX',
-  'TRAIL BLAZERS': 'POR',
-  BLAZERS: 'POR',
-  KINGS: 'SAC',
-  SPURS: 'SAS',
-  RAPTORS: 'TOR',
-  JAZZ: 'UTA',
-  WIZARDS: 'WAS',
-};
-function toTeamId(raw) {
-  if (!raw) return null;
-  const t = String(raw)
-    .trim()
-    .toUpperCase()
-    .replace(/[.,]/g, '')
-    .replace(/\s+/g, ' ');
-  return TEAM_CODE[t] || TEAM_ALIASES[t] || null;
-}
-
-/* ---------- RIGHTS ENUM NORMALIZER ---------- */
-function normRights(s) {
-  const t = String(s || '').toLowerCase();
-  if (!t) return 'None';
-  if (t.startsWith('full')) return 'Full';
-  if (t.startsWith('early')) return 'Early';
-  if (t.includes('non')) return 'Non';
-  return 'Full';
-}
-
-/* ---------- HELPERS ---------- */
-function toSeasonKeyFromYear(y) {
-  return `${y}-${String((y + 1) % 100).padStart(2, '0')}`;
-}
-
-function buildContractFromAnnualSalaries(p) {
-  const ann = p?.contract?.annual_salaries;
-  if (!Array.isArray(ann) || ann.length === 0) return null;
-
-  const sorted = ann
-    .filter((r) => r && r.year != null && r.salary != null)
-    .sort((a, b) => Number(a.year) - Number(b.year));
-
-  const startYear = Number(sorted[0].year);
-  const endYear = Number(sorted[sorted.length - 1].year);
-  const startSeason = toSeasonKeyFromYear(startYear);
-  const endSeason = toSeasonKeyFromYear(endYear);
-
-  const salariesByYear = sorted.map((r) => ({
-    season: toSeasonKeyFromYear(Number(r.year)),
-    salary: Number(r.salary),
-  }));
-  const totalValue = salariesByYear.reduce(
-    (s, r) => s + (Number(r.salary) || 0),
-    0
-  );
-
-  const contract = {
-    signedOn: p?.contract?.signed_year
-      ? `${p.contract.signed_year}-07-01`
-      : null,
-    type: p?.contract_summary?.is_extension === true ? 'extension' : 'standard',
-    startSeason,
-    endSeason,
-    signingTeamId:
-      toTeamId(p?.contract?.signing_team) || toTeamId(p?.bio?.Team || p?.Team),
-    totalValue,
-    years: salariesByYear.length,
-    rightsAtSigning: p?.bird_rights ? normRights(p.bird_rights) : undefined,
-    bonuses: p?.contract?.incentives
-      ? {
-          likely: Number(p.contract.incentives.likely || 0),
-          unlikely: Number(p.contract.incentives.unlikely || 0),
-        }
-      : undefined,
-    options: Array.isArray(p?.contract?.options)
-      ? p.contract.options.map((opt) => ({
-          season:
-            String(
-              opt.year
-                ? toSeasonKeyFromYear(Number(opt.year))
-                : opt.season || '' || ''
-            ).trim() || undefined,
-          type: opt.type || null,
-        }))
-      : undefined,
-    guarantees: Array.isArray(p?.contract?.annual_salaries)
-      ? p.contract.annual_salaries
-          .filter(
-            (y) => y.guaranteed !== undefined || y.guarantee_amt !== undefined
-          )
-          .map((y) => ({
-            season: toSeasonKeyFromYear(Number(y.year)),
-            amt:
-              y.guarantee_amt != null
-                ? Number(y.guarantee_amt)
-                : y.guaranteed === true
-                  ? Number(y.salary || 0)
-                  : 0,
-          }))
-      : undefined,
-    salariesByYear,
-    notes: p?.contract_summary
-      ? `aav:${p.contract_summary.aav || ''}; cap%:${p.contract_summary.cap_percentage || ''}`
-      : undefined,
+function eventLog(event, payload = {}) {
+  const line = {
+    timestamp: new Date().toISOString(),
+    event,
+    mode: MODE,
+    season: SEASON,
+    ...payload,
   };
-
-  for (const k of Object.keys(contract))
-    if (contract[k] == null) delete contract[k];
-  if (
-    Array.isArray(contract.options) &&
-    contract.options.every((o) => !o.type && !o.season)
-  )
-    delete contract.options;
-  if (
-    Array.isArray(contract.guarantees) &&
-    contract.guarantees.every((g) => !g.amt)
-  )
-    delete contract.guarantees;
-
-  return contract;
+  console.log(JSON.stringify(line));
 }
 
-function pickSalaryForSeason(contract, seasonKey) {
-  const row = (contract?.salariesByYear || []).find(
-    (r) => r.season === seasonKey
-  );
-  return row ? Number(row.salary) : null;
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function computeFA(p) {
-  const year = Number(p?.contract?.free_agency_year);
-  if (!year) return null;
-  const s = (p?.bio?.['Free Agent'] || p?.['Free Agent'] || '').toString();
-  const m = s.match(/\(([^)]+)\)/);
-  return { year, type: m ? m[1] : null };
+async function commitWithRetries(db, writes) {
+  if (writes.length > 500) {
+    throw new Error(`Batch size ${writes.length} exceeds Firestore limit of 500 operations`);
+  }
+  
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    const batch = db.batch();
+    for (const write of writes) {
+      const { ref, data, options } = write;
+      if (options?.merge) {
+        batch.set(ref, data, { merge: true });
+      } else {
+        batch.set(ref, data);
+      }
+    }
+    try {
+      await batch.commit();
+      eventLog('batch-commit-success', {
+        writeCount: writes.length,
+        attempt: attempt + 1
+      });
+      return;
+    } catch (err) {
+      const isRateLimit = err.code === 'resource-exhausted' || err.message.includes('rate');
+      const delay = Math.min(2000 * 2 ** attempt, 30000);
+      
+      eventLog('batch-retry', {
+        attempt: attempt + 1,
+        delay,
+        error: err.message,
+        errorCode: err.code,
+        isRateLimit
+      });
+      
+      if (attempt === MAX_RETRIES - 1) {
+        throw err;
+      }
+      
+      await wait(delay);
+    }
+  }
 }
 
-/* ---------- MAIN ---------- */
 async function main() {
-  const db = initDB();
-  const pSnap = await db.collection('players').get();
-  let writes = 0,
-    processed = 0;
-  let sampleLimit = 3;
+  console.log('🔄 Contract & Views Migration');
+  console.log('=============================');
+  console.log(`Mode: ${MODE}`);
+  console.log(`Season: ${SEASON}`);
+  if (SAMPLE_SET.size > 0) {
+    console.log(`Sample: ${Array.from(SAMPLE_SET).join(', ')}`);
+  }
+  console.log('');
 
-  for (const doc of pSnap.docs) {
-    const p = doc.data();
-
-    // 0) NBA ID add + lookup doc
-    const nbaId = p?.nba_player_id ?? p?.nbaId ?? null;
-    const playerPath = `players/${doc.id}`;
-    const xrefPath = nbaId != null ? `playersByNbaId/${String(nbaId)}` : null;
-
-    // 1) Build contract from annual_salaries
-    const contract = buildContractFromAnnualSalaries(p);
-    const contractId = contract
-      ? (contract.type === 'extension' ? 'ext_' : 'std_') +
-        contract.startSeason.replace('-', '')
-      : null;
-
-    // 2) Create season view for SEASON
-    const teamId = toTeamId(p?.bio?.Team || p?.Team);
-    const salary = contract ? pickSalaryForSeason(contract, SEASON) : null;
-    const fa = computeFA(p);
-    const rights = p?.bird_rights ? normRights(p.bird_rights) : 'None';
-
-    const seasonDoc = {
-      ...(teamId ? { teamId } : {}),
-      contractView: {
-        ...(contractId ? { contractId } : {}),
-        ...(salary != null ? { salary } : {}),
-        ...(fa ? { fa } : {}),
-        rights,
-      },
-    };
-
-    // ---- DRY RUN: print only first 3 samples
-    if (DRY && sampleLimit > 0) {
-      console.log('[DRY SAMPLE] Player:', doc.id);
-      if (nbaId != null) {
-        console.log('  bio patch ->', { 'bio.nbaId': nbaId });
-        console.log('  xref ->', xrefPath, { playerId: doc.id });
-      }
-      if (contract) console.log('  contract ->', { contractId, ...contract });
-      console.log('  seasonView ->', seasonDoc);
-      sampleLimit--;
-    }
-
-    // ---- REAL WRITES
-    if (!DRY) {
-      if (nbaId != null) {
-        await db.doc(playerPath).set({ 'bio.nbaId': nbaId }, { merge: true });
-        writes++;
-        await db.doc(xrefPath).set({ playerId: doc.id }, { merge: true });
-        writes++;
-      }
-      if (contract && contractId) {
-        await db
-          .doc(`players/${doc.id}/contracts/${contractId}`)
-          .set(contract, { merge: true });
-        writes++;
-      }
-      await db
-        .doc(`players/${doc.id}/seasons/${SEASON}`)
-        .set(seasonDoc, { merge: true });
-      writes++;
-    }
-
-    processed++;
-    if (!DRY && processed % 200 === 0)
-      console.log('Processed players:', processed);
+  eventLog('start', { sampleCount: SAMPLE_SET.size });
+  
+  const db = initFirestore();
+  if (!db) {
+    console.error('❌ Failed to initialize Firestore');
+    process.exit(1);
   }
 
-  console.log(
-    `Done players. Docs processed: ${processed}, writes: ${writes}${DRY ? ' (DRY)' : ''}.`
-  );
+  const playersSnap = await db.collection('players').get();
+  const results = [];
+  let processed = 0;
+  
+  for (const doc of playersSnap.docs) {
+    const playerId = doc.id;
+    const legacyData = doc.data();
+    
+    // Skip if sampling and not in sample set
+    if (SAMPLE_SET.size > 0 && !SAMPLE_SET.has(playerId)) {
+      continue;
+    }
+    
+    processed++;
+    
+    try {
+      // Use schema adapters for consistent mapping
+      const mapping = mapLegacyPlayerToNew(playerId, legacyData, SEASON);
+      
+      const writes = [];
+      const baseCollection = SHADOW_MODE ? 'players_shadow' : 'players';
+      const xrefCollection = SHADOW_MODE ? 'playersByNbaId_shadow' : 'playersByNbaId';
+      
+      if (!DRY_RUN) {
+        // Write contracts
+        for (const contract of mapping.contracts) {
+          const ref = db
+            .collection(baseCollection)
+            .doc(playerId)
+            .collection('contracts')
+            .doc(contract.id);
+          writes.push({ ref, data: contract.data, options: { merge: true } });
+        }
+        
+        // Write xref if exists
+        if (mapping.xref) {
+          const ref = db.collection(xrefCollection).doc(mapping.xref.id);
+          writes.push({ ref, data: mapping.xref.data, options: { merge: true } });
+        }
+        
+        // Commit batch
+        if (writes.length > 0) {
+          await commitWithRetries(db, writes);
+        }
+      }
+      
+      results.push({
+        playerId,
+        contractsWritten: mapping.contracts.length,
+        xrefWritten: mapping.xref ? 1 : 0,
+        warnings: mapping.warnings.join('|') || '',
+        mode: MODE
+      });
+      
+      if (DRY_RUN && processed <= 3) {
+        console.log(`\n[DRY] Player: ${playerId}`);
+        console.log(`  Contracts: ${mapping.contracts.length}`);
+        console.log(`  XRef: ${mapping.xref ? mapping.xref.id : 'none'}`);
+        console.log(`  Warnings: ${mapping.warnings.join(', ') || 'none'}`);
+      }
+      
+    } catch (err) {
+      eventLog('player-error', { playerId, error: err.message });
+      results.push({
+        playerId,
+        contractsWritten: 0,
+        xrefWritten: 0,
+        warnings: `error:${err.message}`,
+        mode: MODE
+      });
+    }
+  }
+  
+  // Write summary
+  const summaryPath = path.join(process.cwd(), 'outputs', `migrate_contracts_${MODE}.json`);
+  if (!fs.existsSync(path.dirname(summaryPath))) {
+    fs.mkdirSync(path.dirname(summaryPath), { recursive: true });
+  }
+  fs.writeFileSync(summaryPath, JSON.stringify(results, null, 2));
+  
+  eventLog('complete', { 
+    processed: results.length, 
+    totalContracts: results.reduce((sum, r) => sum + r.contractsWritten, 0),
+    totalXrefs: results.reduce((sum, r) => sum + r.xrefWritten, 0),
+    summaryJson: summaryPath 
+  });
+  
+  console.log(`\n✅ Contract migration complete`);
+  console.log(`   Processed: ${results.length} players`);
+  console.log(`   Mode: ${MODE}`);
+  console.log(`   Summary: ${summaryPath}`);
 }
 
-main().catch((e) => {
-  console.error(e);
+main().catch((err) => {
+  console.error('💥 migrate_contracts_and_views failed');
+  console.error(err);
   process.exit(1);
 });
