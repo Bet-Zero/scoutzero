@@ -1,0 +1,5042 @@
+[
+  {
+    "playerId": "aaron_gordon",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "aaron_holiday",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "aaron_nesmith",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "aaron_wiggins",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "ace_bailey",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "adam_flagler",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "adem_bona",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "adou_thiero",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "aj_green",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "aj_johnson",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "aj_lawson",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "ajay_mitchell",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "al_horford",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "alec_burks",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "alex_caruso",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "alex_ducas",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "alex_len",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "alex_reese",
+    "contractsWritten": 1,
+    "xrefWritten": 0,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "alex_sarr",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "alex_toohey",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "alijah_martin",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "alperen_sengun",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "amari_williams",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "amen_thompson",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "amir_coffey",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "andre_drummond",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "andre_jackson_jr",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "andrew_nembhard",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "andrew_wiggins",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "anfernee_simons",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "anthony_black",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "anthony_davis",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "anthony_edwards",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "anthony_gill",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "anton_watson",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "antonio_reeves",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "ariel_hukporti",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "arthur_kaluma",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "asa_newell",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "augustas_marčiulionis",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "ausar_thompson",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "austin_reaves",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "ayo_dosunmu",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "bam_adebayo",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "baylor_scheierman",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "ben_saraf",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "ben_sheppard",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "ben_simmons",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "bennedict_mathurin",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "bilal_coulibaly",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "bismack_biyombo",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "blake_wesley",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "bobby_portis",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "bobi_klintman",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "bogdan_bogdanović",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "bogoljub_marković",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "bol_bol",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "bones_hyland",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "bradley_beal",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "branden_carlson",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "brandin_podziemski",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "brandon_boston",
+    "contractsWritten": 0,
+    "xrefWritten": 0,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "brandon_clarke",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "brandon_ingram",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "brandon_miller",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "brandon_williams",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "braxton_key",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "brice_sensabaugh",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "bronny_james",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "brook_lopez",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "brooks_barnhizer",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "bruce_brown",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "bryce_mcgowens",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "bub_carrington",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "buddy_hield",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "cade_cunningham",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "caleb_grill",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "caleb_houstan",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "caleb_love",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "caleb_martin",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "cam_christie",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "cam_spencer",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "cam_thomas",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "cam_whitmore",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "cameron_johnson",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "cameron_matthews",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "cameron_payne",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "caris_levert",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "carter_bryant",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "cason_wallace",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "cedric_coward",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "charles_bassey",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "chaz_lanier",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "chet_holmgren",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "chris_boucher",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "chris_livingston",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "chris_mañon",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "chris_paul",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "christian_braun",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "christian_koloko",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "chucky_hepburn",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "chuma_okeke",
+    "contractsWritten": 1,
+    "xrefWritten": 0,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "cj_huntley",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "cj_mccollum",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "clint_capela",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "coby_white",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "cody_martin",
+    "contractsWritten": 1,
+    "xrefWritten": 0,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "cody_williams",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "colby_jones",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "cole_anthony",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "colin_castleton",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "collin_gillespie",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "collin_murray-boyles",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "collin_sexton",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "cooper_flagg",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "corey_kispert",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "cory_joseph",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "craig_porter_jr",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "curtis_jones",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "daeqwon_plowden",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "dalano_banton",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "dalen_terry",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "dalton_knecht",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "damian_lillard",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "damion_baugh",
+    "contractsWritten": 1,
+    "xrefWritten": 0,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "damion_lee",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "dangelo_russell",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "daniel_gafford",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "daniss_jenkins",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "danny_wolf",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "danté_exum",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "daquan_jeffries",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "dario_šarić",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "dariq_whitehead",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "darius_garland",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "daron_holmes_ii",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "david_duke_jr",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "david_jones_garcia",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "david_roddy",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "davion_mitchell",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "dayron_sharpe",
+    "contractsWritten": 1,
+    "xrefWritten": 0,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "deaaron_fox",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "dean_wade",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "deandre_ayton",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "deandre_hunter",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "deandre_jordan",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "deanthony_melton",
+    "contractsWritten": 0,
+    "xrefWritten": 0,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "dejounte_murray",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "delon_wright",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "demar_derozan",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "deni_avdija",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "dennis_schröder",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "dereck_lively_ii",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "derik_queen",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "derrick_jones_jr",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "derrick_white",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "desmond_bane",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "devin_booker",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "devin_carter",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "devin_vassell",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "dillon_brooks",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "dillon_jones",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "domantas_sabonis",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "dominick_barlow",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "donovan_clingan",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "donovan_mitchell",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "donte_divincenzo",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "dorian_finney-smith",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "doug_mcdermott",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "drake_powell",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "draymond_green",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "drew_eubanks",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "drew_peterson",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "drew_timme",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "dru_smith",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "duncan_robinson",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "duop_reath",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "dwight_powell",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "dylan_cardwell",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "dylan_harper",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "dyson_daniels",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "egor_dëmin",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "ej_liddell",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "elfrid_payton",
+    "contractsWritten": 0,
+    "xrefWritten": 0,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "eli_john_ndiaye",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "elijah_harkless",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "emanuel_miller",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "emoni_bates",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "enrique_freeman",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "eric_dixon",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "eric_gordon",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "ethan_thompson",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "evan_mobley",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "franz_wagner",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "fred_vanvleet",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "gabe_vincent",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "garrett_temple",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "garrison_mathews",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "gary_harris",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "gary_payton_ii",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "gary_trent_jr",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "georges_niang",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "gg_jackson",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "giannis_antetokounmpo",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "goga_bitadze",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "gradey_dick",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "grant_williams",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "grayson_allen",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "guerschon_yabusele",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "gui_santos",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "hansen_yang",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "harrison_barnes",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "harrison_ingram",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "hayden_gray",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "haywood_highsmith",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "herbert_jones",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "hugo_gonzález",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "hunter_dickinson",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "hunter_sallis",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "hunter_tyson",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "igor_miličić,_jr",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "immanuel_quickley",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "isaac_jones",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "isaac_okoro",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "isaiah_collier",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "isaiah_crawford",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "isaiah_hartenstein",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "isaiah_jackson",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "isaiah_joe",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "isaiah_livers",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "isaiah_stevens",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "isaiah_stewart",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "ivica_zubac",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "ja_morant",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jabari_smith_jr",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jabari_walker",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jack_mcveigh",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jackson_rowe",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jacob_toppin",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jaden_hardy",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jaden_ivey",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jaden_mcdaniels",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jaden_springer",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jae_crowder",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jaesean_tate",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jahmai_mashack",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jahmir_young",
+    "contractsWritten": 1,
+    "xrefWritten": 0,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jaime_jaquez_jr",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jake_laravia",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jakob_poeltl",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jakobe_walter",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jalen_bridges",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jalen_brunson",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jalen_duren",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jalen_green",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jalen_hood-schifino",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jalen_johnson",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jalen_pickett",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jalen_smith",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jalen_suggs",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jalen_williams",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jalen_wilson",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jamal_cain",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jamal_murray",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jamal_shead",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jamaree_bouyea",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "james_harden",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "james_johnson",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "james_wiseman",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jamir_watkins",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jamison_battle",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jarace_walker",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jared_butler",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jared_mccain",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jared_rhoden",
+    "contractsWritten": 1,
+    "xrefWritten": 0,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jaren_jackson_jr",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jarred_vanderbilt",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jarrett_allen",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jase_richardson",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jason_preston",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "javon_small",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "javonte_green",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jaxson_hayes",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jay_huff",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jaylen_brown",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jaylen_clark",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jaylen_martin",
+    "contractsWritten": 0,
+    "xrefWritten": 0,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jaylen_wells",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jaylin_williams",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jaylon_tyson",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jayson_tatum",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jd_davison",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jeenathan_williams",
+    "contractsWritten": 0,
+    "xrefWritten": 0,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jeff_dowtin_jr",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jeff_green",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jerami_grant",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jeremiah_fears",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jeremiah_robinson-earl",
+    "contractsWritten": 1,
+    "xrefWritten": 0,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jeremy_sochan",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jericho_sims",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jesse_edwards",
+    "contractsWritten": 0,
+    "xrefWritten": 0,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jett_howard",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jevon_carter",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jimmy_butler_iii",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "joan_beringer",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jock_landale",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "joe_ingles",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "joel_embiid",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "john_collins",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "john_konchar",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "john_tonje",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "johni_broome",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "johnny_furphy",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "johnny_juzang",
+    "contractsWritten": 1,
+    "xrefWritten": 0,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jonas_valančiūnas",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jonathan_isaac",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jonathan_kuminga",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jonathan_mogbo",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jordan_clarkson",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jordan_goodwin",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jordan_hawkins",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jordan_mclaughlin",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jordan_miller",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jordan_poole",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jordan_walsh",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jose_alvarado",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "josh_christopher",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "josh_giddey",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "josh_green",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "josh_hart",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "josh_minott",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "josh_okogie",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jrue_holiday",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jt_thor",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "julian_champagnie",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "julian_phillips",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "julian_strawther",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "julius_randle",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "justin_champagnie",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "justin_edwards",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "justin_minaya",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "jusuf_nurkić",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "kai_jones",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "kam_jones",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "karl-anthony_towns",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "karlo_matković",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "kasparas_jakučionis",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "kawhi_leonard",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "keaton_wallace",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "keegan_murray",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "keion_brooks_jr",
+    "contractsWritten": 1,
+    "xrefWritten": 0,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "keldon_johnson",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "kelel_ware",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "kelly_olynyk",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "kelly_oubre_jr",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "kenrich_williams",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "kentavious_caldwell-pope",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "keon_ellis",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "keon_johnson",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "keshad_johnson",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "kessler_edwards",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "kevin_durant",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "kevin_huerter",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "kevin_knox_ii",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "kevin_love",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "kevin_mccullar_jr",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "kevin_porter_jr",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "kevon_harris",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "kevon_looney",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "keyonte_george",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "khaman_maluach",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "khris_middleton",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "kj_martin",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "kj_simpson",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "klay_thompson",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "kobe_brown",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "kobe_bufkin",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "kobe_sanders",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "koby_brea",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "kon_knueppel",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "kris_dunn",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "kris_murray",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "kristaps_porziņģis",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "kyle_anderson",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "kyle_filipowski",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "kyle_kuzma",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "kyle_lowry",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "kylor_kelley",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "kyrie_irving",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "kyshawn_george",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "lachlan_olbrich",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "lamar_stevens",
+    "contractsWritten": 0,
+    "xrefWritten": 0,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "lamelo_ball",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "landry_shamet",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "larry_nance_jr",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "lauri_markkanen",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "lebron_james",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "leonard_miller",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "lester_quiñones",
+    "contractsWritten": 0,
+    "xrefWritten": 0,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "liam_mcneeley",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "lindy_waters_iii",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "lonnie_walker_iv",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "lonzo_ball",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "luguentz_dort",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "luka_dončić",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "luka_garza",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "luke_kennard",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "luke_kornet",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "luke_travers",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "mac_mcclung",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "malaki_branham",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "malcolm_brogdon",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "malevy_leons",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "malik_beasley",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "malik_monk",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "marcus_sasser",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "marcus_smart",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "marjon_beauchamp",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "mark_sears",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "mark_williams",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "markelle_fultz",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "markieff_morris",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "marvin_bagley_iii",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "mason_jones",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "mason_plumlee",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "matas_buzelis",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "matisse_thybulle",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "matthew_cleveland",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "max_christie",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "max_shulga",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "max_strus",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "maxi_kleber",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "maxime_raynaud",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "maxwell_lewis",
+    "contractsWritten": 1,
+    "xrefWritten": 0,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "micah_peavy",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "micah_potter",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "michael_porter_jr",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "mikal_bridges",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "mike_conley",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "miles_bridges",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "miles_kelly",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "miles_mcbride",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "miles_norris",
+    "contractsWritten": 0,
+    "xrefWritten": 0,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "mitchell_robinson",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "mohamed_diawara",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "monté_morris",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "moritz_wagner",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "moses_moody",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "mouhamed_gueye",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "moussa_cisse",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "moussa_diabaté",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "myles_turner",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "myron_gardner",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "naeqwan_tomlin",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "naji_marshall",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "naz_reid",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "neemias_queta",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "nfaly_dante",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "nic_claxton",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "nick_richards",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "nick_smith_jr",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "nickeil_alexander-walker",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "nicolas_batum",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "nigel_hayes-davis",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "nikola_jokić",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "nikola_jović",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "nikola_topić",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "nikola_vučević",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "nikola_đurišić",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "nique_clifford",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "noa_essengue",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "noah_clowney",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "noah_penda",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "nolan_traore",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "norman_powell",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "obi_toppin",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "ochai_agbaji",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "og_anunoby",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "olivier-maxence_prosper",
+    "contractsWritten": 1,
+    "xrefWritten": 0,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "olivier_sarr",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "onyeka_okongwu",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "orlando_robinson",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "oscar_tshiebwe",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "oso_ighodaro",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "ousmane_dieng",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "pacôme_dadiet",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "paolo_banchero",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "pascal_siakam",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "pat_connaughton",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "pat_spencer",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "patrick_baldwin_jr",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "patrick_williams",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "patty_mills",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "paul_george",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "paul_reed",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "payton_pritchard",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "pelle_larsson",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "pete_nance",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "peyton_watson",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "pj_hall",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "pj_tucker",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "pj_washington",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "precious_achiuwa",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "quentin_grimes",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "quenton_jackson",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "quinten_post",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "rasheer_fleming",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "rayan_rupert",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "rayj_dennis",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "reece_beekman",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "reed_sheppard",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "richaun_holmes",
+    "contractsWritten": 0,
+    "xrefWritten": 0,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "ricky_council_iv",
+    "contractsWritten": 1,
+    "xrefWritten": 0,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "riley_minix",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "rj_barrett",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "rj_davis",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "rj_luis_jr",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "rob_dillingham",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "robert_williams_iii",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "rocco_zikarsky",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "ron_harper_jr",
+    "contractsWritten": 0,
+    "xrefWritten": 0,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "ronald_holland_ii",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "royce_oneale",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "rudy_gobert",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "rui_hachimura",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "russell_westbrook",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "ryan_dunn",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "ryan_kalkbrenner",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "ryan_nembhard",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "ryan_rollins",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "saddiq_bey",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "saliou_niang",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "sam_hauser",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "sam_merrill",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "sandro_mamukelashvili",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "santi_aldama",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "scoot_henderson",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "scottie_barnes",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "scotty_pippen_jr",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "seth_curry",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "shaedon_sharpe",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "shai_gilgeous-alexander",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "shake_milton",
+    "contractsWritten": 1,
+    "xrefWritten": 0,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "sidy_cissoko",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "simone_fontecchio",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "sion_james",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "spencer_dinwiddie",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "spencer_jones",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "stanley_umude",
+    "contractsWritten": 1,
+    "xrefWritten": 0,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "stephen_curry",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "stephon_castle",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "steven_adams",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "svi_mykhailiuk",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "taelon_peter",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "taj_gibson",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "talen_horton-tucker",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "tamar_bates",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "taran_armstrong",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "tari_eason",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "taurean_prince",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "taylor_hendricks",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "terance_mann",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "terence_davis",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "terrence_shannon_jr",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "terry_rozier",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "thomas_bryant",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "thomas_sorber",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "tidjane_salaün",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "tim_hardaway_jr",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "tj_mcconnell",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "tobias_harris",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "tolu_smith",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "tony_bradley",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "torrey_craig",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "tosan_evbuomwan",
+    "contractsWritten": 1,
+    "xrefWritten": 0,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "toumani_camara",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "trae_young",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "trayce_jackson-davis",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "tre_johnson",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "tre_jones",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "tre_mann",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "trendon_watford",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "trentyn_flowers",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "trevelin_queen",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "trey_alexander",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "trey_jemison_iii",
+    "contractsWritten": 0,
+    "xrefWritten": 0,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "trey_lyles",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "trey_murphy_iii",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "tristan_da_silva",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "tristan_thompson",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "tristan_vukcevic",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "tristen_newton",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "ty_jerome",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "tyler_herro",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "tyler_kolek",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "tyler_smith",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "tyrese_haliburton",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "tyrese_martin",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "tyrese_maxey",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "tyrese_proctor",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "tyson_etienne",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "tyty_washington_jr",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "tyus_jones",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "ulrich_chomche",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "vasilije_micić",
+    "contractsWritten": 1,
+    "xrefWritten": 0,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "victor_wembanyama",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "vince_williams_jr",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "vj_edgecombe",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "vladislav_goldin",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "vlatko_čančar",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "vít_krejčí",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "walker_kessler",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "walter_clayton_jr",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "wendell_carter_jr",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "wendell_moore_jr",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "will_richard",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "will_riley",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "wooga_poplar",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "xavier_tillman",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "yanic_konan_niederhäuser",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "yuki_kawamura",
+    "contractsWritten": 0,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "yves_missi",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "zaccharie_risacher",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "zach_collins",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "zach_edey",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "zach_lavine",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "zeke_nnaji",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "ziaire_williams",
+    "contractsWritten": 1,
+    "xrefWritten": 0,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "zion_williamson",
+    "contractsWritten": 1,
+    "xrefWritten": 1,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  },
+  {
+    "playerId": "zyon_pullin",
+    "contractsWritten": 0,
+    "xrefWritten": 0,
+    "parityDiffs": 0,
+    "warnings": "",
+    "mode": "dry-run"
+  }
+]

@@ -1,0 +1,43 @@
+[
+  {
+    "id": "std_202627",
+    "data": {
+      "signedOn": "2025-07-01",
+      "type": "standard",
+      "startSeason": "2026-27",
+      "endSeason": "2028-29",
+      "signingTeamId": "DAL",
+      "years": 3,
+      "salariesByYear": [
+        {
+          "season": "2026-27",
+          "salary": 54126450,
+          "guaranteed": 54126450,
+          "option": null
+        },
+        {
+          "season": "2027-28",
+          "salary": 58456566,
+          "guaranteed": 58456566,
+          "option": null
+        },
+        {
+          "season": "2028-29",
+          "salary": 62786682,
+          "guaranteed": 62786682,
+          "option": null
+        }
+      ],
+      "totalValue": 175369698,
+      "rightsAtSigning": "Full",
+      "bonuses": {
+        "likely": 0,
+        "unlikely": 0
+      },
+      "notes": {
+        "averageAnnualValue": 58456566,
+        "capPercentage": 35
+      }
+    }
+  }
+]

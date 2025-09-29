@@ -1,0 +1,23 @@
+{
+  "bio": {
+    "displayName": "Wendell Carter Jr",
+    "position": "Center-Forward",
+    "height": "6' 10",
+    "weight": 270,
+    "age": 26,
+    "dob": "Apr 16, 1999",
+    "nationality": "United States",
+    "shoots": "Right",
+    "agent": {
+      "name": "Michael Miller",
+      "agency": "LIFT Sports Management"
+    },
+    "draft": {
+      "year": 2018,
+      "round": 1,
+      "pick": 7,
+      "teamId": null
+    },
+    "nbaId": 1628976
+  }
+}

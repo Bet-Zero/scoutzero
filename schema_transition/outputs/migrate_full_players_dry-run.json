@@ -1,0 +1,23 @@
+[
+  {
+    "playerId": "anthony_davis",
+    "seasonWritten": "dry-run",
+    "warnings": "",
+    "selectorIssues": "shape:seasonDoc.bio missing",
+    "diffCount": 38
+  },
+  {
+    "playerId": "lebron_james",
+    "seasonWritten": "dry-run",
+    "warnings": "",
+    "selectorIssues": "shape:seasonDoc.bio missing",
+    "diffCount": 38
+  },
+  {
+    "playerId": "wendell_carter_jr",
+    "seasonWritten": "dry-run",
+    "warnings": "",
+    "selectorIssues": "shape:seasonDoc.bio missing",
+    "diffCount": 36
+  }
+]

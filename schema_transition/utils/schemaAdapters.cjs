@@ -134,7 +134,7 @@ function buildStats(legacy) {
   for (const [modernKey, legacyKeys] of Object.entries(STAT_MAP)) {
     const raw = buckets.reduce(
       (acc, bucket) => (acc != null ? acc : pickStat(bucket, legacyKeys)),
-      null,
+      null
     );
     const normalized = normalizeStatValue(modernKey, raw);
     if (normalized != null) stats[modernKey] = normalized;
@@ -172,7 +172,7 @@ function yearsRemaining(seasonKey, endSeason) {
 function buildContract(legacy) {
   const rows = Array.isArray(legacy?.contract?.annual_salaries)
     ? legacy.contract.annual_salaries.filter(
-        (row) => row && row.year != null && row.salary != null,
+        (row) => row && row.year != null && row.salary != null
       )
     : [];
   if (!rows.length) return null;
@@ -185,8 +185,8 @@ function buildContract(legacy) {
       row.guarantee_amt != null
         ? Number(row.guarantee_amt)
         : row.guaranteed === true
-        ? Number(row.salary) || 0
-        : undefined,
+          ? Number(row.salary) || 0
+          : undefined,
     option: row.option || row.type || null,
   }));
 
@@ -197,14 +197,21 @@ function buildContract(legacy) {
     signedOn: legacy?.contract?.signed_year
       ? `${legacy.contract.signed_year}-07-01`
       : null,
-    type: legacy?.contract_summary?.is_extension === true ? 'extension' : 'standard',
+    type:
+      legacy?.contract_summary?.is_extension === true
+        ? 'extension'
+        : 'standard',
     startSeason,
     endSeason,
-    signingTeamId: toTeamId(legacy?.contract?.signing_team || legacy?.Team || legacy?.bio?.Team),
+    signingTeamId: toTeamId(
+      legacy?.contract?.signing_team || legacy?.Team || legacy?.bio?.Team
+    ),
     years: salariesByYear.length,
     salariesByYear,
     totalValue: salariesByYear.reduce((sum, row) => sum + (row.salary || 0), 0),
-    rightsAtSigning: legacy?.bird_rights ? normRights(legacy.bird_rights) : undefined,
+    rightsAtSigning: legacy?.bird_rights
+      ? normRights(legacy.bird_rights)
+      : undefined,
     bonuses: legacy?.contract?.incentives
       ? {
           likely: Number(legacy.contract.incentives.likely || 0) || 0,
@@ -215,7 +222,9 @@ function buildContract(legacy) {
       ? legacy.contract.options.map((opt) => ({
           season:
             opt?.season ||
-            (opt?.year != null ? toSeasonKeyFromYear(Number(opt.year)) : null) ||
+            (opt?.year != null
+              ? toSeasonKeyFromYear(Number(opt.year))
+              : null) ||
             null,
           type: opt?.type || null,
         }))
@@ -223,30 +232,39 @@ function buildContract(legacy) {
     notes: legacy?.contract_summary
       ? {
           averageAnnualValue: Number(legacy.contract_summary.aav || 0) || null,
-          capPercentage: Number(legacy.contract_summary.cap_percentage || 0) || null,
+          capPercentage:
+            Number(legacy.contract_summary.cap_percentage || 0) || null,
         }
       : undefined,
   };
 
-  for (const key of Object.keys(contract)) {
+  const data = { ...contract };
+
+  // Add freeAgentType and birdRights when available
+  if (legacy.contract?.faType) data.freeAgentType = legacy.contract.faType; // 'UFA' | 'RFA' | 'SFA'...
+  if (legacy.contract?.rights) data.birdRights = legacy.contract.rights; // 'Full Bird' | 'Early Bird' | 'Non-Bird'...
+
+  for (const key of Object.keys(data)) {
     if (
-      contract[key] == null ||
-      (typeof contract[key] === 'object' &&
-        !Array.isArray(contract[key]) &&
-        !Object.keys(contract[key] || {}).length)
+      data[key] == null ||
+      (typeof data[key] === 'object' &&
+        !Array.isArray(data[key]) &&
+        !Object.keys(data[key] || {}).length)
     ) {
-      delete contract[key];
+      delete data[key];
     }
   }
-  if (Array.isArray(contract.options)) {
-    contract.options = contract.options.filter((opt) => opt.season || opt.type);
-    if (!contract.options.length) delete contract.options;
+  if (Array.isArray(data.options)) {
+    data.options = data.options.filter((opt) => opt.season || opt.type);
+    if (!data.options.length) delete data.options;
   }
-  if (Array.isArray(contract.salariesByYear)) {
-    contract.salariesByYear = contract.salariesByYear.filter((row) => row.season && row.salary != null);
+  if (Array.isArray(data.salariesByYear)) {
+    data.salariesByYear = data.salariesByYear.filter(
+      (row) => row.season && row.salary != null
+    );
   }
 
-  return contract;
+  return data;
 }
 
 function contractViewForSeason(contract, seasonKey, legacy) {
@@ -254,12 +272,17 @@ function contractViewForSeason(contract, seasonKey, legacy) {
     const view = {
       freeAgentYear: legacy?.contract?.free_agency_year || null,
       rights: legacy?.bird_rights ? normRights(legacy.bird_rights) : 'None',
+      freeAgentType: legacy?.contract?.faType || null,
+      birdRights: legacy?.contract?.rights || null,
     };
-    for (const key of Object.keys(view)) if (view[key] == null) delete view[key];
+    for (const key of Object.keys(view))
+      if (view[key] == null) delete view[key];
     return view;
   }
 
-  const salaryRow = contract.salariesByYear.find((row) => row.season === seasonKey);
+  const salaryRow = contract.salariesByYear.find(
+    (row) => row.season === seasonKey
+  );
   const salary = salaryRow ? Number(salaryRow.salary) || 0 : null;
   const yearsLeft = yearsRemaining(seasonKey, contract.endSeason);
 
@@ -279,6 +302,8 @@ function contractViewForSeason(contract, seasonKey, legacy) {
     contractId: contract.startSeason
       ? `${contract.type === 'extension' ? 'ext' : 'std'}_${contract.startSeason.replace('-', '')}`
       : null,
+    freeAgentType: legacy?.contract?.faType || null,
+    birdRights: legacy?.contract?.rights || null,
   };
 
   for (const key of Object.keys(view)) {
@@ -289,9 +314,18 @@ function contractViewForSeason(contract, seasonKey, legacy) {
 }
 
 function buildEvaluations(legacy) {
-  const traits = legacy?.traits && typeof legacy.traits === 'object' ? legacy.traits : undefined;
-  const grades = legacy?.grades && typeof legacy.grades === 'object' ? legacy.grades : undefined;
-  const blurbs = legacy?.blurbs && typeof legacy.blurbs === 'object' ? legacy.blurbs : undefined;
+  const traits =
+    legacy?.traits && typeof legacy.traits === 'object'
+      ? legacy.traits
+      : undefined;
+  const grades =
+    legacy?.grades && typeof legacy.grades === 'object'
+      ? legacy.grades
+      : undefined;
+  const blurbs =
+    legacy?.blurbs && typeof legacy.blurbs === 'object'
+      ? legacy.blurbs
+      : undefined;
 
   const offenseRoles = Array.isArray(legacy?.roles?.offense)
     ? legacy.roles.offense
@@ -300,9 +334,10 @@ function buildEvaluations(legacy) {
     ? legacy.roles.defense
     : [legacy?.roles?.defense1, legacy?.roles?.defense2].filter(Boolean);
 
-  const subroles = legacy?.subRoles && typeof legacy.subRoles === 'object'
-    ? legacy.subRoles
-    : { offense: [], defense: [] };
+  const subroles =
+    legacy?.subRoles && typeof legacy.subRoles === 'object'
+      ? legacy.subRoles
+      : { offense: [], defense: [] };
 
   const meta = {};
   if (legacy?.last_updated) meta.updatedAt = legacy.last_updated;
@@ -318,7 +353,8 @@ function buildEvaluations(legacy) {
       offense: offenseRoles.length ? offenseRoles[0] : null,
       defense: defenseRoles.length ? defenseRoles[0] : null,
     };
-    if (!evaluations.roles.offense && !evaluations.roles.defense) delete evaluations.roles;
+    if (!evaluations.roles.offense && !evaluations.roles.defense)
+      delete evaluations.roles;
   }
   const normalizedSubroles = {
     offense: Array.isArray(subroles.offense) ? subroles.offense : [],
@@ -337,8 +373,8 @@ function buildEvaluations(legacy) {
     legacy?.twoWayMeter != null
       ? Number(legacy.twoWayMeter)
       : legacy?.blurbs?.twoWayMeter != null
-      ? Number(legacy.blurbs.twoWayMeter)
-      : null;
+        ? Number(legacy.blurbs.twoWayMeter)
+        : null;
   if (Number.isFinite(twoWay)) evaluations.twoWayMeter = twoWay;
   if (Object.keys(meta).length) evaluations.meta = meta;
 
@@ -361,21 +397,23 @@ function buildBio(legacy) {
   const position = fallback('position', ['Position', 'Pos']);
   const age = fallback('age', ['AGE']);
 
-  const draft = legacy?.draft && typeof legacy.draft === 'object'
-    ? {
-        year: legacy.draft.year ?? null,
-        round: legacy.draft.round ?? null,
-        pick: legacy.draft.pick ?? null,
-        teamId: toTeamId(legacy.draft.team) || null,
-      }
-    : undefined;
+  const draft =
+    legacy?.draft && typeof legacy.draft === 'object'
+      ? {
+          year: legacy.draft.year ?? null,
+          round: legacy.draft.round ?? null,
+          pick: legacy.draft.pick ?? null,
+          teamId: toTeamId(legacy.draft.team) || null,
+        }
+      : undefined;
 
   const bio = {
     displayName,
     position,
     height: typeof height === 'number' ? `${height}` : height || null,
-    weight: typeof weight === 'string' ? Number(weight) || null : weight ?? null,
-    age: typeof age === 'string' ? Number(age) || null : age ?? null,
+    weight:
+      typeof weight === 'string' ? Number(weight) || null : (weight ?? null),
+    age: typeof age === 'string' ? Number(age) || null : (age ?? null),
     dob: legacy?.bio?.birthdate || legacy?.birthdate || null,
     nationality: legacy?.bio?.nationality || legacy?.nationality || null,
     shoots: legacy?.bio?.shoots || legacy?.shoots || null,
@@ -393,7 +431,9 @@ function buildBio(legacy) {
   for (const key of Object.keys(bio)) {
     if (
       bio[key] == null ||
-      (typeof bio[key] === 'object' && !Array.isArray(bio[key]) && !Object.keys(bio[key] || {}).length)
+      (typeof bio[key] === 'object' &&
+        !Array.isArray(bio[key]) &&
+        !Object.keys(bio[key] || {}).length)
     ) {
       delete bio[key];
     }
@@ -407,8 +447,14 @@ function mapLegacyPlayerToNew(playerId, legacyPlayerDoc, seasonKey) {
   const stats = buildStats(legacyPlayerDoc);
   const evaluations = buildEvaluations(legacyPlayerDoc);
   const contract = buildContract(legacyPlayerDoc);
-  const seasonContractView = contractViewForSeason(contract, seasonKey, legacyPlayerDoc);
-  const teamCode = toTeamId(legacyPlayerDoc?.bio?.Team || legacyPlayerDoc?.Team || legacyPlayerDoc?.team);
+  const seasonContractView = contractViewForSeason(
+    contract,
+    seasonKey,
+    legacyPlayerDoc
+  );
+  const teamCode = toTeamId(
+    legacyPlayerDoc?.bio?.Team || legacyPlayerDoc?.Team || legacyPlayerDoc?.team
+  );
 
   const seasonDoc = {
     ...(Object.keys(bio).length ? { bio } : {}),
@@ -417,18 +463,28 @@ function mapLegacyPlayerToNew(playerId, legacyPlayerDoc, seasonKey) {
     contractView: seasonContractView,
     ...(Object.keys(evaluations).length ? { evaluations } : {}),
     meta: {
-      ...(legacyPlayerDoc?.last_stats_update ? { lastStatsUpdate: legacyPlayerDoc.last_stats_update } : {}),
-      ...(legacyPlayerDoc?.stats_carry_over ? { statsCarryOver: !!legacyPlayerDoc.stats_carry_over } : {}),
-      ...(legacyPlayerDoc?.stats_season ? { statsSeasonTag: legacyPlayerDoc.stats_season } : {}),
+      ...(legacyPlayerDoc?.last_stats_update
+        ? { lastStatsUpdate: legacyPlayerDoc.last_stats_update }
+        : {}),
+      ...(legacyPlayerDoc?.stats_carry_over
+        ? { statsCarryOver: !!legacyPlayerDoc.stats_carry_over }
+        : {}),
+      ...(legacyPlayerDoc?.stats_season
+        ? { statsSeasonTag: legacyPlayerDoc.stats_season }
+        : {}),
     },
   };
 
   if (!Object.keys(seasonDoc.meta).length) delete seasonDoc.meta;
-  if (!seasonDoc.contractView || Object.values(seasonDoc.contractView).every((v) => v == null)) {
+  if (
+    !seasonDoc.contractView ||
+    Object.values(seasonDoc.contractView).every((v) => v == null)
+  ) {
     delete seasonDoc.contractView;
   }
   if (!teamCode) delete seasonDoc.team;
-  if (!Object.keys(seasonDoc.evaluations || {}).length) delete seasonDoc.evaluations;
+  if (!Object.keys(seasonDoc.evaluations || {}).length)
+    delete seasonDoc.evaluations;
   const normalizedSeasonDoc = Object.keys(seasonDoc).length ? seasonDoc : null;
 
   const contracts = contract
@@ -440,12 +496,13 @@ function mapLegacyPlayerToNew(playerId, legacyPlayerDoc, seasonKey) {
       ].filter((c) => c.id)
     : [];
 
-  const xref = bio.nbaId != null
-    ? {
-        id: String(bio.nbaId),
-        data: { playerId },
-      }
-    : null;
+  const xref =
+    bio.nbaId != null
+      ? {
+          id: String(bio.nbaId),
+          data: { playerId },
+        }
+      : null;
 
   const warnings = [];
   if (!teamCode) warnings.push('missing-team-code');
@@ -515,7 +572,10 @@ function mapNewSeasonToLegacy(playerId, seasonKey, seasonDoc) {
       offense1: seasonDoc.evaluations.roles?.offense || null,
       defense1: seasonDoc.evaluations.roles?.defense || null,
     };
-    legacy.subRoles = seasonDoc.evaluations.subroles || { offense: [], defense: [] };
+    legacy.subRoles = seasonDoc.evaluations.subroles || {
+      offense: [],
+      defense: [],
+    };
     legacy.blurbs = seasonDoc.evaluations.blurbs || {};
     legacy.shootingProfile = seasonDoc.evaluations.shootingProfile || null;
     legacy.twoWayMeter = seasonDoc.evaluations.twoWayMeter || null;

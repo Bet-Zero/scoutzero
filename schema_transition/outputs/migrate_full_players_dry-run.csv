@@ -1,0 +1,4 @@
+playerId,seasonWritten,warnings,selectorIssues,diffCount
+"anthony_davis","dry-run","","shape:seasonDoc.bio missing","38"
+"lebron_james","dry-run","","shape:seasonDoc.bio missing","38"
+"wendell_carter_jr","dry-run","","shape:seasonDoc.bio missing","36"

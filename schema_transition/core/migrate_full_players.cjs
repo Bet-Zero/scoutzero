@@ -16,7 +16,8 @@ const {
   mapNewSeasonToLegacy,
 } = require('../utils/schemaAdapters.cjs');
 
-const MODE = process.env.MODE || (process.env.DRY_RUN === '0' ? 'live' : 'dry-run');
+const MODE =
+  process.env.MODE || (process.env.DRY_RUN === '0' ? 'live' : 'dry-run');
 const SEASON = process.env.SEASON || '2025-26';
 const SAMPLE = (process.env.SAMPLE_PLAYERS || '')
   .split(',')
@@ -28,7 +29,10 @@ const MAX_RETRIES = Number(process.env.MAX_RETRIES || 5);
 const SHADOW_PREFIX = process.env.SHADOW_PREFIX || 'players_shadow';
 const REQUIRE_SHADOW_CONFIRM = process.env.CONFIRM_SHADOW === '1';
 const SUMMARY_DIR = path.resolve(process.cwd(), 'outputs');
-const SUMMARY_JSON = path.join(SUMMARY_DIR, `migrate_full_players_${MODE}.json`);
+const SUMMARY_JSON = path.join(
+  SUMMARY_DIR,
+  `migrate_full_players_${MODE}.json`
+);
 const SUMMARY_CSV = path.join(SUMMARY_DIR, `migrate_full_players_${MODE}.csv`);
 
 const DRY_RUN = MODE === 'dry-run';
@@ -42,7 +46,7 @@ if (!['dry-run', 'shadow', 'live'].includes(MODE)) {
 
 if (LIVE_MODE && !REQUIRE_SHADOW_CONFIRM) {
   console.error(
-    '❌ Live mode requires CONFIRM_SHADOW=1 to acknowledge shadow parity verification.',
+    '❌ Live mode requires CONFIRM_SHADOW=1 to acknowledge shadow parity verification.'
   );
   process.exit(1);
 }
@@ -60,7 +64,8 @@ function eventLog(event, payload = {}) {
 
 function chunk(array, size) {
   const out = [];
-  for (let i = 0; i < array.length; i += size) out.push(array.slice(i, i + size));
+  for (let i = 0; i < array.length; i += size)
+    out.push(array.slice(i, i + size));
   return out;
 }
 
@@ -92,7 +97,11 @@ function diffObjects(expected, actual, pathPrefix = '') {
     const expectedJson = JSON.stringify(expectedValue);
     const actualJson = JSON.stringify(actualValue);
     if (expectedJson !== actualJson) {
-      diffs.push({ path: pathKey, expected: expectedValue, actual: actualValue });
+      diffs.push({
+        path: pathKey,
+        expected: expectedValue,
+        actual: actualValue,
+      });
     }
   }
   return diffs;
@@ -102,7 +111,11 @@ function extractComparableLegacy(legacy) {
   const comparable = {};
   if (legacy?.bio && typeof legacy.bio === 'object') {
     comparable.bio = {
-      display_name: legacy.bio.display_name ?? legacy.bio.displayName ?? legacy.bio.Name ?? null,
+      display_name:
+        legacy.bio.display_name ??
+        legacy.bio.displayName ??
+        legacy.bio.Name ??
+        null,
       Position: legacy.bio.Position ?? legacy.bio.position ?? null,
       HT: legacy.bio.HT ?? legacy.bio.height ?? null,
       WT: legacy.bio.WT ?? legacy.bio.weight ?? null,
@@ -115,10 +128,13 @@ function extractComparableLegacy(legacy) {
   if (legacy?.roles) comparable.roles = legacy.roles;
   if (legacy?.subRoles) comparable.subRoles = legacy.subRoles;
   if (legacy?.blurbs) comparable.blurbs = legacy.blurbs;
-  if (legacy?.shootingProfile != null) comparable.shootingProfile = legacy.shootingProfile;
+  if (legacy?.shootingProfile != null)
+    comparable.shootingProfile = legacy.shootingProfile;
   if (legacy?.twoWayMeter != null) comparable.twoWayMeter = legacy.twoWayMeter;
   const freeAgencyYear =
-    legacy?.contract?.free_agency_year || legacy?.contract?.freeAgencyYear || null;
+    legacy?.contract?.free_agency_year ||
+    legacy?.contract?.freeAgencyYear ||
+    null;
   const rights = legacy?.bird_rights || legacy?.contract?.rights || null;
   if (freeAgencyYear != null || rights != null) {
     comparable.contract = {
@@ -127,8 +143,10 @@ function extractComparableLegacy(legacy) {
     };
   }
   if (legacy?.stats_season) comparable.stats_season = legacy.stats_season;
-  if (legacy?.stats_carry_over) comparable.stats_carry_over = legacy.stats_carry_over;
-  if (legacy?.last_stats_update) comparable.last_stats_update = legacy.last_stats_update;
+  if (legacy?.stats_carry_over)
+    comparable.stats_carry_over = legacy.stats_carry_over;
+  if (legacy?.last_stats_update)
+    comparable.last_stats_update = legacy.last_stats_update;
 
   const scrubbed = {};
   for (const [key, value] of Object.entries(comparable)) {
@@ -149,9 +167,11 @@ function extractComparableLegacy(legacy) {
 
 async function commitWithRetries(db, writes) {
   if (writes.length > 500) {
-    throw new Error(`Batch size ${writes.length} exceeds Firestore limit of 500 operations`);
+    throw new Error(
+      `Batch size ${writes.length} exceeds Firestore limit of 500 operations`
+    );
   }
-  
+
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     const batch = db.batch();
     for (const write of writes) {
@@ -168,32 +188,35 @@ async function commitWithRetries(db, writes) {
       await batch.commit();
       eventLog('batch-commit-success', {
         writeCount: writes.length,
-        attempt: attempt + 1
+        attempt: attempt + 1,
       });
       return;
     } catch (err) {
-      const isRateLimit = err.code === 'resource-exhausted' || err.message.includes('rate');
+      const isRateLimit =
+        err.code === 'resource-exhausted' || err.message.includes('rate');
       const isQuotaExceeded = err.code === 'quota-exceeded';
-      const delay = isRateLimit ? Math.min(2000 * 2 ** attempt, 30000) : Math.min(1000 * 2 ** attempt, 15000);
-      
+      const delay = isRateLimit
+        ? Math.min(2000 * 2 ** attempt, 30000)
+        : Math.min(1000 * 2 ** attempt, 15000);
+
       eventLog('batch-retry', {
         attempt: attempt + 1,
         delay,
         error: err.message,
         errorCode: err.code,
         isRateLimit,
-        isQuotaExceeded
+        isQuotaExceeded,
       });
-      
+
       if (attempt === MAX_RETRIES - 1) {
         eventLog('batch-commit-final-failure', {
           totalAttempts: MAX_RETRIES,
           finalError: err.message,
-          errorCode: err.code
+          errorCode: err.code,
         });
         throw err;
       }
-      
+
       await wait(delay);
     }
   }
@@ -201,11 +224,11 @@ async function commitWithRetries(db, writes) {
 }
 
 async function loadSelectors() {
-  const modulePath = path.resolve(
-    process.cwd(),
-    'src/utils/selectors/newSchemeSelectors.js',
+  const modulePath = require('path').resolve(
+    __dirname,
+    '../../src/utils/selectors/newSchemeSelectors.js'
   );
-  return import(nodePathToFileURL(modulePath).href);
+  return import(require('url').pathToFileURL(modulePath).href);
 }
 
 async function validateSeasonDoc(selectors, seasonDoc, playerId = 'unknown') {
@@ -217,18 +240,21 @@ async function validateSeasonDoc(selectors, seasonDoc, playerId = 'unknown') {
   } catch (err) {
     issues.push(`shape:${err.message}`);
   }
-  
+
   // Enhanced validation with more selectors
   const displayName = selectors.getDisplayName(seasonDoc, null);
-  if (seasonDoc?.bio?.displayName && displayName !== seasonDoc.bio.displayName) {
+  if (
+    seasonDoc?.bio?.displayName &&
+    displayName !== seasonDoc.bio.displayName
+  ) {
     issues.push('selector-mismatch:bio.displayName');
   }
-  
+
   const teamCode = selectors.getTeamCode(seasonDoc, null);
   if (seasonDoc?.team?.code && teamCode !== seasonDoc.team.code) {
     issues.push('selector-mismatch:team.code');
   }
-  
+
   const salary = selectors.getSalary(seasonDoc, null);
   if (
     seasonDoc?.contractView?.salary != null &&
@@ -236,18 +262,18 @@ async function validateSeasonDoc(selectors, seasonDoc, playerId = 'unknown') {
   ) {
     issues.push('selector-mismatch:contractView.salary');
   }
-  
+
   // Additional validations for critical fields
   const position = selectors.getPosition(seasonDoc, null);
   if (seasonDoc?.bio?.position && position !== seasonDoc.bio.position) {
     issues.push('selector-mismatch:bio.position');
   }
-  
+
   const age = selectors.getAge(seasonDoc, null);
   if (seasonDoc?.bio?.age != null && age !== seasonDoc.bio.age) {
     issues.push('selector-mismatch:bio.age');
   }
-  
+
   // Validate stats normalization
   const fgPct = selectors.getFGPct(seasonDoc, null);
   if (seasonDoc?.stats?.fgPct != null) {
@@ -259,21 +285,24 @@ async function validateSeasonDoc(selectors, seasonDoc, playerId = 'unknown') {
       issues.push('selector-mismatch:stats.fgPct');
     }
   }
-  
+
   // Validate evaluation structure if present
   if (seasonDoc?.evaluations && selectors.hasEvaluations(seasonDoc)) {
     const grades = selectors.getEvalGrades(seasonDoc);
     const roles = selectors.getEvalRoles(seasonDoc);
-    
-    if (Object.keys(grades).length === 0 && Object.keys(seasonDoc.evaluations.grades || {}).length > 0) {
+
+    if (
+      Object.keys(grades).length === 0 &&
+      Object.keys(seasonDoc.evaluations.grades || {}).length > 0
+    ) {
       issues.push('selector-mismatch:evaluations.grades');
     }
-    
+
     if (!roles.offense && seasonDoc.evaluations.roles?.offense) {
       issues.push('selector-mismatch:evaluations.roles.offense');
     }
   }
-  
+
   return issues;
 }
 
@@ -296,7 +325,8 @@ function summarizeEntry(result) {
 }
 
 function writeSummaries(summary) {
-  if (!fs.existsSync(SUMMARY_DIR)) fs.mkdirSync(SUMMARY_DIR, { recursive: true });
+  if (!fs.existsSync(SUMMARY_DIR))
+    fs.mkdirSync(SUMMARY_DIR, { recursive: true });
   fs.writeFileSync(SUMMARY_JSON, JSON.stringify(summary, null, 2));
   const header = 'playerId,seasonWritten,warnings,selectorIssues,diffCount\n';
   const csvBody = summary
@@ -309,7 +339,7 @@ function writeSummaries(summary) {
         row.diffCount,
       ]
         .map((value) => `"${String(value ?? '').replace(/"/g, '""')}"`)
-        .join(','),
+        .join(',')
     )
     .join('\n');
   fs.writeFileSync(SUMMARY_CSV, header + csvBody);
@@ -327,7 +357,7 @@ async function main() {
   const shadowFailures = [];
 
   const docs = playersSnap.docs.filter((doc) =>
-    SAMPLE_SET.size ? SAMPLE_SET.has(doc.id) : true,
+    SAMPLE_SET.size ? SAMPLE_SET.has(doc.id) : true
   );
 
   const targetPlayers = SAMPLE_SET.size ? docs : playersSnap.docs;
@@ -338,15 +368,88 @@ async function main() {
     for (const doc of docsChunk) {
       const legacy = doc.data();
       const mapping = mapLegacyPlayerToNew(doc.id, legacy, SEASON);
-      const selectorIssues = await validateSeasonDoc(selectors, mapping.seasonDoc || {});
+
+      // Ensure seasonDoc strips bio before any writes AND before previews
+      if (mapping.seasonDoc && mapping.seasonDoc.bio)
+        delete mapping.seasonDoc.bio;
+
+      // Add gated payload preview right after mapping is computed (before batching)
+      if (process.env.FIRESTORE_PAYLOAD_PREVIEW === '1') {
+        const outDir = path.join(
+          SUMMARY_DIR,
+          'firestore_payload',
+          doc.id,
+          SEASON
+        );
+        fs.mkdirSync(outDir, { recursive: true });
+
+        // Top-level player doc
+        fs.writeFileSync(
+          path.join(outDir, 'players.doc.json'),
+          JSON.stringify(mapping.playerDoc || {}, null, 2)
+        );
+
+        // Season subdoc
+        fs.writeFileSync(
+          path.join(outDir, 'seasons.doc.json'),
+          JSON.stringify(mapping.seasonDoc || {}, null, 2)
+        );
+
+        // Contracts subcollection (array of {id,data})
+        fs.writeFileSync(
+          path.join(outDir, 'contracts.collection.json'),
+          JSON.stringify(
+            (mapping.contracts || []).map((c) => ({ id: c.id, data: c.data })),
+            null,
+            2
+          )
+        );
+
+        // Cross-ref doc
+        fs.writeFileSync(
+          path.join(outDir, 'playersByNbaId.doc.json'),
+          JSON.stringify(mapping.xref || null, null, 2)
+        );
+      }
+
+      const selectorIssues = await validateSeasonDoc(
+        selectors,
+        mapping.seasonDoc || {}
+      );
 
       const legacyRoundTrip = mapNewSeasonToLegacy(
         doc.id,
         SEASON,
-        mapping.seasonDoc || {},
+        mapping.seasonDoc || {}
       );
       const expectedLegacy = extractComparableLegacy(legacy);
-      const parityDiff = diffObjects(expectedLegacy || {}, legacyRoundTrip || {});
+      const parityDiff = diffObjects(
+        expectedLegacy || {},
+        legacyRoundTrip || {}
+      );
+
+      // Add local preview dump when DUMP_PREVIEW=1
+      if (process.env.DUMP_PREVIEW === '1') {
+        const out = {
+          playerId: doc.id,
+          legacyExpected: expectedLegacy,
+          mappedPlayer: mapping.playerDoc || {},
+          mappedSeason: mapping.seasonDoc || {},
+          contracts: (mapping.contracts || []).map((c) => ({
+            id: c.id,
+            data: c.data,
+          })),
+          xref: mapping.xref || null,
+          selectorIssues,
+          parityDiff,
+        };
+        const previewPath = path.join(
+          SUMMARY_DIR,
+          `preview_${doc.id}_${SEASON}.json`
+        );
+        fs.writeFileSync(previewPath, JSON.stringify(out, null, 2));
+        eventLog('preview-written', { playerId: doc.id, file: previewPath });
+      }
 
       let modeAction = 'skipped';
       if (DRY_RUN) {
@@ -365,12 +468,15 @@ async function main() {
             .doc(SEASON);
           const shadowSnap = await shadowSeasonRef.get();
           if (!shadowSnap.exists) {
-            shadowFailures.push({ playerId: doc.id, reason: 'missing-shadow-season' });
+            shadowFailures.push({
+              playerId: doc.id,
+              reason: 'missing-shadow-season',
+            });
             modeAction = 'blocked-missing-shadow';
           } else {
             const shadowDiff = diffObjects(
               mapping.seasonDoc || {},
-              shadowSnap.data() || {},
+              shadowSnap.data() || {}
             );
             if (shadowDiff.length) {
               shadowFailures.push({
@@ -386,15 +492,27 @@ async function main() {
         if (!(LIVE_MODE && modeAction.startsWith('blocked'))) {
           if (Object.keys(mapping.playerDoc).length) {
             const ref = db.collection(baseCollection).doc(mapping.playerId);
-            writes.push({ ref, data: mapping.playerDoc, options: { merge: true } });
+            writes.push({
+              ref,
+              data: mapping.playerDoc,
+              options: { merge: true },
+            });
           }
           if (mapping.seasonDoc) {
+            // Strip bio from seasonDoc before pushing to writes
+            if (mapping.seasonDoc && mapping.seasonDoc.bio)
+              delete mapping.seasonDoc.bio;
+
             const ref = db
               .collection(baseCollection)
               .doc(mapping.playerId)
               .collection('seasons')
               .doc(SEASON);
-            writes.push({ ref, data: mapping.seasonDoc, options: { merge: true } });
+            writes.push({
+              ref,
+              data: mapping.seasonDoc,
+              options: { merge: true },
+            });
             modeAction = `${MODE}-season`;
           }
           for (const contract of mapping.contracts) {
@@ -407,7 +525,11 @@ async function main() {
           }
           if (mapping.xref) {
             const ref = db.collection(xrefCollection).doc(mapping.xref.id);
-            writes.push({ ref, data: mapping.xref.data, options: { merge: true } });
+            writes.push({
+              ref,
+              data: mapping.xref.data,
+              options: { merge: true },
+            });
           }
         }
       }
@@ -420,7 +542,7 @@ async function main() {
           warnings: mapping.warnings,
           selectorIssues,
           modeAction,
-        }),
+        })
       );
     }
 
@@ -438,16 +560,21 @@ async function main() {
     eventLog('shadow-verify-failed', { failures: shadowFailures.length });
     fs.writeFileSync(
       SUMMARY_JSON.replace('.json', '_shadow_failures.json'),
-      JSON.stringify(shadowFailures, null, 2),
+      JSON.stringify(shadowFailures, null, 2)
     );
     if (LIVE_MODE) {
-      console.error('❌ Live migration blocked due to shadow verification failures.');
+      console.error(
+        '❌ Live migration blocked due to shadow verification failures.'
+      );
       process.exit(2);
     }
   }
 
   writeSummaries(results);
-  eventLog('complete', { processed: results.length, summaryJson: SUMMARY_JSON });
+  eventLog('complete', {
+    processed: results.length,
+    summaryJson: SUMMARY_JSON,
+  });
 }
 
 main().catch((err) => {
