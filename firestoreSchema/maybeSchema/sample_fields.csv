@@ -1,0 +1,56 @@
+path,type,example
+_slug,string,"wendell_carter_jr"
+Name,string,"Wendell Carter Jr"
+HT,string,"6-10"
+WT,string,"270"
+AGE,number,26
+Years Pro,number,7
+Team,string,"Magic"
+Position,string,"Center-Forward"
+Contract,string,"$11.9M / 2 yrs"
+Free Agent,string,"2026 (UFA)"
+MIN,number,25.9
+PPG,number,9.1
+RPG,number,7.2
+APG,number,2
+FG%,string,"46.0%"
+3PT%,string,"23.4%"
+FT%,string,"73.7%"
+EFG%,string,"49.8%"
+Games Played,number,68
+nba_player_id,number,1628976
+is_active_nba,boolean,true
+discovery_source,string,"cached_discovery"
+last_updated,number,1756772459.233035
+player_id,string,"wendell_carter_jr"
+name,string,"Wendell Carter Jr"
+team,string,"Magic"
+status,string,"Active"
+free_agent_type,string,"UFA"
+free_agency_year,number,2026
+cap_hold,number,0
+no_trade_clause,boolean,false
+contract_summary.type,string,"Standard Contract"
+contract_summary.length,string,"2 years"
+contract_summary.value,number,11900000
+contract_summary.guaranteed,number,11900000
+contract_summary.aav,number,5950000
+contract_summary.signing_team,string,"Magic"
+contract_summary.signed_by,string,"Magic"
+contract_summary.source,string,"Fallback"
+contract_summary.is_extension,boolean,false
+contract.annual_salaries[].year,number,2024
+contract.annual_salaries[].salary,number,5950000
+contract.annual_salaries[].guaranteed,boolean,true
+contract.options[],array,"[]"
+contract.total_value,number,11900000
+contract.contract_length,number,2
+contract.signed_year,number,2023
+contract.signing_team,string,"Magic"
+contract.guaranteed_years,number,2
+contract.average_annual_value,number,5950000
+contract.incentives.likely,number,0
+contract.incentives.unlikely,number,0
+contract.notes,string,"Parsed from: $11.9M / 2 yrs"
+contract.free_agency_year,number,2026
+data_source,string,"fallback"

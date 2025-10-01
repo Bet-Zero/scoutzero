@@ -1,0 +1,104 @@
+{
+  "_slug": "wendell_carter_jr",
+  "Name": "Wendell Carter Jr",
+  "HT": "6-10",
+  "WT": "270",
+  "AGE": 26,
+  "Years Pro": 7,
+  "Team": "Magic",
+  "Position": "Center-Forward",
+  "Contract": "$11.9M / 2 yrs",
+  "Free Agent": "2026 (UFA)",
+  "MIN": 25.9,
+  "PPG": 9.1,
+  "RPG": 7.2,
+  "APG": 2,
+  "FG%": "46.0%",
+  "3PT%": "23.4%",
+  "FT%": "73.7%",
+  "EFG%": "49.8%",
+  "Games Played": 68,
+  "nba_player_id": 1628976,
+  "is_active_nba": true,
+  "discovery_source": "cached_discovery",
+  "last_updated": 1756772459.233035,
+  "player_id": "wendell_carter_jr",
+  "name": "Wendell Carter Jr",
+  "team": "Magic",
+  "position": null,
+  "status": "Active",
+  "bio": {
+    "birthdate": null,
+    "birthplace": null,
+    "nationality": null,
+    "height": null,
+    "weight_lbs": null,
+    "age": null,
+    "shoots": null,
+    "years_pro": null
+  },
+  "agent": {
+    "name": null,
+    "agency": null
+  },
+  "draft": {
+    "year": null,
+    "round": null,
+    "pick": null,
+    "team": null
+  },
+  "bird_rights": null,
+  "free_agent_type": "UFA",
+  "free_agency_year": 2026,
+  "cap_hold": 0,
+  "qualifying_offer": null,
+  "signed_using": null,
+  "trade_kicker": null,
+  "no_trade_clause": false,
+  "contract_summary": {
+    "type": "Standard Contract",
+    "length": "2 years",
+    "value": 11900000,
+    "guaranteed": 11900000,
+    "aav": 5950000,
+    "cap_percentage": null,
+    "signing_team": "Magic",
+    "signing_date": null,
+    "signed_by": "Magic",
+    "signed_using": null,
+    "source": "Fallback",
+    "is_extension": false
+  },
+  "contract": {
+    "annual_salaries": [
+      {
+        "year": 2024,
+        "salary": 5950000,
+        "guaranteed": true,
+        "option": null
+      },
+      {
+        "year": 2025,
+        "salary": 5950000,
+        "guaranteed": true,
+        "option": null
+      }
+    ],
+    "options": [],
+    "total_value": 11900000,
+    "contract_length": 2,
+    "signed_year": 2023,
+    "signing_team": "Magic",
+    "guaranteed_years": 2,
+    "average_annual_value": 5950000,
+    "incentives": {
+      "likely": 0,
+      "unlikely": 0
+    },
+    "notes": "Parsed from: $11.9M / 2 yrs",
+    "extension": null,
+    "free_agency_year": 2026
+  },
+  "source_url": null,
+  "data_source": "fallback"
+}

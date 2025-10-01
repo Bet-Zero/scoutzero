@@ -1,0 +1,277 @@
+[
+  {
+    "path": "_slug",
+    "type": "string",
+    "example": "wendell_carter_jr"
+  },
+  {
+    "path": "Name",
+    "type": "string",
+    "example": "Wendell Carter Jr"
+  },
+  {
+    "path": "HT",
+    "type": "string",
+    "example": "6-10"
+  },
+  {
+    "path": "WT",
+    "type": "string",
+    "example": "270"
+  },
+  {
+    "path": "AGE",
+    "type": "number",
+    "example": 26
+  },
+  {
+    "path": "Years Pro",
+    "type": "number",
+    "example": 7
+  },
+  {
+    "path": "Team",
+    "type": "string",
+    "example": "Magic"
+  },
+  {
+    "path": "Position",
+    "type": "string",
+    "example": "Center-Forward"
+  },
+  {
+    "path": "Contract",
+    "type": "string",
+    "example": "$11.9M / 2 yrs"
+  },
+  {
+    "path": "Free Agent",
+    "type": "string",
+    "example": "2026 (UFA)"
+  },
+  {
+    "path": "MIN",
+    "type": "number",
+    "example": 25.9
+  },
+  {
+    "path": "PPG",
+    "type": "number",
+    "example": 9.1
+  },
+  {
+    "path": "RPG",
+    "type": "number",
+    "example": 7.2
+  },
+  {
+    "path": "APG",
+    "type": "number",
+    "example": 2
+  },
+  {
+    "path": "FG%",
+    "type": "string",
+    "example": "46.0%"
+  },
+  {
+    "path": "3PT%",
+    "type": "string",
+    "example": "23.4%"
+  },
+  {
+    "path": "FT%",
+    "type": "string",
+    "example": "73.7%"
+  },
+  {
+    "path": "EFG%",
+    "type": "string",
+    "example": "49.8%"
+  },
+  {
+    "path": "Games Played",
+    "type": "number",
+    "example": 68
+  },
+  {
+    "path": "nba_player_id",
+    "type": "number",
+    "example": 1628976
+  },
+  {
+    "path": "is_active_nba",
+    "type": "boolean",
+    "example": true
+  },
+  {
+    "path": "discovery_source",
+    "type": "string",
+    "example": "cached_discovery"
+  },
+  {
+    "path": "last_updated",
+    "type": "number",
+    "example": 1756772459.233035
+  },
+  {
+    "path": "player_id",
+    "type": "string",
+    "example": "wendell_carter_jr"
+  },
+  {
+    "path": "name",
+    "type": "string",
+    "example": "Wendell Carter Jr"
+  },
+  {
+    "path": "team",
+    "type": "string",
+    "example": "Magic"
+  },
+  {
+    "path": "status",
+    "type": "string",
+    "example": "Active"
+  },
+  {
+    "path": "free_agent_type",
+    "type": "string",
+    "example": "UFA"
+  },
+  {
+    "path": "free_agency_year",
+    "type": "number",
+    "example": 2026
+  },
+  {
+    "path": "cap_hold",
+    "type": "number",
+    "example": 0
+  },
+  {
+    "path": "no_trade_clause",
+    "type": "boolean",
+    "example": false
+  },
+  {
+    "path": "contract_summary.type",
+    "type": "string",
+    "example": "Standard Contract"
+  },
+  {
+    "path": "contract_summary.length",
+    "type": "string",
+    "example": "2 years"
+  },
+  {
+    "path": "contract_summary.value",
+    "type": "number",
+    "example": 11900000
+  },
+  {
+    "path": "contract_summary.guaranteed",
+    "type": "number",
+    "example": 11900000
+  },
+  {
+    "path": "contract_summary.aav",
+    "type": "number",
+    "example": 5950000
+  },
+  {
+    "path": "contract_summary.signing_team",
+    "type": "string",
+    "example": "Magic"
+  },
+  {
+    "path": "contract_summary.signed_by",
+    "type": "string",
+    "example": "Magic"
+  },
+  {
+    "path": "contract_summary.source",
+    "type": "string",
+    "example": "Fallback"
+  },
+  {
+    "path": "contract_summary.is_extension",
+    "type": "boolean",
+    "example": false
+  },
+  {
+    "path": "contract.annual_salaries[].year",
+    "type": "number",
+    "example": 2024
+  },
+  {
+    "path": "contract.annual_salaries[].salary",
+    "type": "number",
+    "example": 5950000
+  },
+  {
+    "path": "contract.annual_salaries[].guaranteed",
+    "type": "boolean",
+    "example": true
+  },
+  {
+    "path": "contract.options[]",
+    "type": "array",
+    "example": []
+  },
+  {
+    "path": "contract.total_value",
+    "type": "number",
+    "example": 11900000
+  },
+  {
+    "path": "contract.contract_length",
+    "type": "number",
+    "example": 2
+  },
+  {
+    "path": "contract.signed_year",
+    "type": "number",
+    "example": 2023
+  },
+  {
+    "path": "contract.signing_team",
+    "type": "string",
+    "example": "Magic"
+  },
+  {
+    "path": "contract.guaranteed_years",
+    "type": "number",
+    "example": 2
+  },
+  {
+    "path": "contract.average_annual_value",
+    "type": "number",
+    "example": 5950000
+  },
+  {
+    "path": "contract.incentives.likely",
+    "type": "number",
+    "example": 0
+  },
+  {
+    "path": "contract.incentives.unlikely",
+    "type": "number",
+    "example": 0
+  },
+  {
+    "path": "contract.notes",
+    "type": "string",
+    "example": "Parsed from: $11.9M / 2 yrs"
+  },
+  {
+    "path": "contract.free_agency_year",
+    "type": "number",
+    "example": 2026
+  },
+  {
+    "path": "data_source",
+    "type": "string",
+    "example": "fallback"
+  }
+]

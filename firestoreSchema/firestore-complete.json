@@ -1,0 +1,195 @@
+{
+  "players": {
+    "wendell_carter_jr": {
+      "bio": {
+        "displayName": "Wendell Carter Jr",
+        "name": "Wendell Carter Jr",
+        "playerId": "wendell_carter_jr",
+        "position": "Center-Forward",
+        "height": "6' 10",
+        "weight": 270,
+        "dob": "Apr 16, 1999",
+        "birthplace": "Farburn, Georgia, United States",
+        "nationality": "United States",
+        "shoots": "Right",
+        "agent": {
+          "name": "Michael Miller",
+          "agency": "LIFT Sports Management"
+        },
+        "draft": {
+          "year": 2018,
+          "round": 1,
+          "pick": 7,
+          "teamId": "CHI"
+        },
+        "display": {
+          "team": "Orlando Magic",
+          "yearsPro": 7,
+          "AAV": 5.9,
+          "yearsLeft": 1,
+          "freeAgentYear": 2026,
+          "freeAgentType": "UFA",
+          "teamId": "ORL",
+          "POS": "F/C"
+        },
+        "nbaId": 1628976
+      },
+      "evaluations": {
+        "traits": {
+          "Shooting": 56,
+          "Passing": 54,
+          "Playmaking": 52,
+          "Defense": 54,
+          "Feel": 53,
+          "Rebounding": 48,
+          "IQ": 59,
+          "Energy": 52
+        },
+        "twoWay": 63,
+        "shootingProfile": "Willing",
+        "roles": {
+          "offense1": "Versatile Big",
+          "offense2": "Floor Spacer",
+          "defense1": "Mobile Big",
+          "defense2": "Post Defender"
+        },
+        "subRoles": {
+          "offense": ["Rim Runner", "Baseline Crasher"],
+          "defense": ["Low-Man Tagger", "Dies on Screens"]
+        },
+        "badges": ["bully", "chess_piece", "high_iq"],
+        "overall_grade": 81,
+        "blurbs": {
+          "overall": "Wendell Carter is a good player.",
+          "shootingProfile": "One of the better shooting centers in the league",
+          "twoWayMeter": "Provides both, but more of an offensive piece",
+          "traits": {
+            "Shooting": "Good shooter",
+            "Passing": "Good passer",
+            "Playmaking": "Solid playmaker",
+            "Rebounding": "High level rebounder",
+            "Defense": "Legit defender",
+            "IQ": "Smart",
+            "Feel": "Good feel",
+            "Energy": "Plays hard"
+          },
+          "roles": {
+            "offense1": "Big body but can move",
+            "offense2": "Spaces the floor",
+            "defense1": "Surprisingly agile",
+            "defense2": "Big body post defender"
+          },
+          "subroles": {
+            "Rim Runner": "Big target",
+            "Low-Man Tagger": "Smart defender",
+            "Dies on Screens": "Struggles getting through screens",
+            "Baseline Crasher": "Crashes hard"
+          }
+        }
+      },
+      "contracts": {
+        "std_202425": {
+          "signingTeam": "ORL",
+          "contractType": "Standard Contract",
+          "signedUsing": "Bird Exception",
+          "contractValue": 11900000,
+          "contractLength": 2,
+          "averageAnnualValue": 5950000,
+          "guaranteedValue": 11900000,
+          "guaranteedYears": 2,
+          "capPercentage": null,
+          "signingDate": null,
+          "isExtension": false,
+          "incentives": {
+            "likely": 0,
+            "unlikely": 0
+          },
+          "noTradeClause": false,
+          "tradeKicker": null,
+          "options": [],
+          "salariesByYear": [
+            {
+              "guaranteed": true,
+              "salary": 5950000,
+              "option": null,
+              "year": 2024
+            },
+            {
+              "guaranteed": true,
+              "salary": 5950000,
+              "option": null,
+              "year": 2025
+            }
+          ],
+          "startSeason": "2024-25",
+          "endSeason": "2025-26",
+          "freeAgency": {
+            "freeAgencyYear": 2026,
+            "freeAgencyType": "UFA",
+            "capHold": 20615000,
+            "qualifyingOffer": null,
+            "birdRights": null
+          }
+        },
+        "last_updated": 1756771893.813493,
+        "last_bio_update": {
+          "_seconds": 1756772460,
+          "_nanoseconds": 21542000
+        }
+      },
+      "seasons": {
+        "2025-26": {
+          "age": 26,
+          "team": "ORL",
+          "stats": {
+            "PTS": 9.1,
+            "AST": 2,
+            "REB": 7.2,
+            "STL": 0.8,
+            "BLK": 0.6,
+            "TOV": 1.1,
+            "PF": 2.9,
+            "ORB": 2.2,
+            "DRB": 5,
+            "FGM": 3.3,
+            "FGA": 7.2,
+            "FG%": 0.46,
+            "3PM": 0.5,
+            "3PA": 2.3,
+            "3PT%": 0.234,
+            "2PM": 2.8,
+            "2PA": 4.9,
+            "2PT%": 0.568,
+            "FTM": 1.9,
+            "FTA": 2.6,
+            "FT%": 0.737,
+            "eFG%": 0.498,
+            "GP": 68,
+            "GS": 51,
+            "MIN": 25.9
+          },
+          "contractView": {
+            "salary": 5950000,
+            "contractValue": 11900000,
+            "contractLength": 2,
+            "aav": 5950000,
+            "yearsLeft": 1,
+            "freeAgentYear": 2026,
+            "freeAgentType": "UFA",
+            "options": null,
+            "birdRights": "None",
+            "contractId": "std_202425"
+          },
+          "meta": {
+            "lastStatsUpdate": {
+              "_seconds": 1756700524,
+              "_nanoseconds": 647267000
+            },
+            "statsCarryOver": true,
+            "statsSeasonTag": "carried_over"
+          }
+        }
+      }
+    }
+  }
+}

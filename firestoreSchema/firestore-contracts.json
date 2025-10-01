@@ -1,0 +1,51 @@
+{
+  "std_202425": {
+    "signingTeam": "ORL",
+    "contractType": "Standard Contract",
+    "signedUsing": "Bird Exception",
+    "contractValue": 11900000,
+    "contractLength": 2,
+    "averageAnnualValue": 5950000,
+    "guaranteedValue": 11900000,
+    "guaranteedYears": 2,
+    "capPercentage": null,
+    "signingDate": null,
+    "isExtension": false,
+    "incentives": {
+      "likely": 0,
+      "unlikely": 0
+    },
+    "noTradeClause": false,
+    "tradeKicker": null,
+    "options": [],
+    "salariesByYear": [
+      {
+        "guaranteed": true,
+        "salary": 5950000,
+        "option": null,
+        "year": 2024
+      },
+      {
+        "guaranteed": true,
+        "salary": 5950000,
+        "option": null,
+        "year": 2025
+      }
+    ],
+    "startSeason": "2024-25",
+    "endSeason": "2025-26",
+    "freeAgency": {
+      "freeAgencyYear": 2026,
+      "freeAgencyType": "UFA",
+      "capHold": 20615000,
+      "qualifyingOffer": null,
+      "birdRights": null
+    }
+  },
+
+  "last_updated": 1756771893.813493,
+  "last_bio_update": {
+    "_seconds": 1756772460,
+    "_nanoseconds": 21542000
+  }
+}

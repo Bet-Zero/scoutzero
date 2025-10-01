@@ -212,6 +212,8 @@ function buildContract(legacy) {
     rightsAtSigning: legacy?.bird_rights
       ? normRights(legacy.bird_rights)
       : undefined,
+    freeAgentType:
+      legacy.contract?.faType || legacy.contract?.freeAgency?.type || null,
     bonuses: legacy?.contract?.incentives
       ? {
           likely: Number(legacy.contract.incentives.likely || 0) || 0,
@@ -239,10 +241,6 @@ function buildContract(legacy) {
   };
 
   const data = { ...contract };
-
-  // Add freeAgentType and birdRights when available
-  if (legacy.contract?.faType) data.freeAgentType = legacy.contract.faType; // 'UFA' | 'RFA' | 'SFA'...
-  if (legacy.contract?.rights) data.birdRights = legacy.contract.rights; // 'Full Bird' | 'Early Bird' | 'Non-Bird'...
 
   for (const key of Object.keys(data)) {
     if (
@@ -272,8 +270,6 @@ function contractViewForSeason(contract, seasonKey, legacy) {
     const view = {
       freeAgentYear: legacy?.contract?.free_agency_year || null,
       rights: legacy?.bird_rights ? normRights(legacy.bird_rights) : 'None',
-      freeAgentType: legacy?.contract?.faType || null,
-      birdRights: legacy?.contract?.rights || null,
     };
     for (const key of Object.keys(view))
       if (view[key] == null) delete view[key];
@@ -302,8 +298,6 @@ function contractViewForSeason(contract, seasonKey, legacy) {
     contractId: contract.startSeason
       ? `${contract.type === 'extension' ? 'ext' : 'std'}_${contract.startSeason.replace('-', '')}`
       : null,
-    freeAgentType: legacy?.contract?.faType || null,
-    birdRights: legacy?.contract?.rights || null,
   };
 
   for (const key of Object.keys(view)) {

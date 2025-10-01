@@ -1,40 +1,57 @@
 const fs = require('fs');
 const path = require('path');
-const { initializeApp, applicationDefault, cert } = require('firebase-admin/app');
-const { getFirestore } = require('firebase-admin/firestore');
+const admin = require('firebase-admin');
 
 let appInstance = null;
+let dbInstance = null;
 
 function resolveServiceAccountPath() {
-  const envPath = process.env.SA_PATH || process.env.GOOGLE_APPLICATION_CREDENTIALS;
-  if (envPath) return path.resolve(process.cwd(), envPath);
-
-  const defaultCandidates = [
+  const candidates = [
+    process.env.SA_PATH,
+    process.env.GOOGLE_APPLICATION_CREDENTIALS,
     path.resolve(process.cwd(), 'serviceAccountKey.json'),
     path.resolve(__dirname, '..', 'serviceAccountKey.json'),
-  ];
+  ].filter(Boolean);
 
-  for (const candidate of defaultCandidates) {
-    if (fs.existsSync(candidate)) return candidate;
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
   }
   return null;
 }
 
 function initFirestore() {
-  if (appInstance) return getFirestore();
+  if (dbInstance) return dbInstance;
 
-  const saPath = resolveServiceAccountPath();
-  if (saPath && fs.existsSync(saPath)) {
-    const buffer = fs.readFileSync(saPath, 'utf8');
-    const credentials = JSON.parse(buffer);
-    appInstance = initializeApp({ credential: cert(credentials) });
+  const serviceAccountPath = resolveServiceAccountPath();
+
+  if (serviceAccountPath) {
+    // Use service account key
+    const serviceAccount = JSON.parse(
+      fs.readFileSync(serviceAccountPath, 'utf8')
+    );
+    appInstance = admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
   } else {
-    appInstance = initializeApp({ credential: applicationDefault() });
+    // Try application default credentials
+    try {
+      appInstance = admin.initializeApp();
+    } catch (error) {
+      throw new Error(
+        'Firebase Admin SDK initialization failed. Please provide a service account key file or set up Application Default Credentials.\n' +
+          'Expected locations:\n' +
+          '- Environment variable SA_PATH or GOOGLE_APPLICATION_CREDENTIALS\n' +
+          '- ./serviceAccountKey.json\n' +
+          '- ./schema_transition/serviceAccountKey.json\n\n' +
+          `Original error: ${error.message}`
+      );
+    }
   }
 
-  const db = getFirestore();
-  db.settings({ ignoreUndefinedProperties: true });
-  return db;
+  dbInstance = admin.firestore();
+  return dbInstance;
 }
 
 module.exports = {

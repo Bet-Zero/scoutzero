@@ -1,0 +1,53 @@
+{
+  "2025-26": {
+    "age": 26,
+    "team": "ORL"
+  },
+  "stats": {
+    "PTS": 9.1,
+    "AST": 2,
+    "REB": 7.2,
+    "STL": 0.8,
+    "BLK": 0.6,
+    "TOV": 1.1,
+    "PF": 2.9,
+    "ORB": 2.2,
+    "DRB": 5,
+    "FGM": 3.3,
+    "FGA": 7.2,
+    "FG%": 0.46,
+    "3PM": 0.5,
+    "3PA": 2.3,
+    "3PT%": 0.234,
+    "2PM": 2.8,
+    "2PA": 4.9,
+    "2PT%": 0.568,
+    "FTM": 1.9,
+    "FTA": 2.6,
+    "FT%": 0.737,
+    "eFG%": 0.498,
+    "GP": 68,
+    "GS": 51,
+    "MIN": 25.9
+  },
+  "contractView": {
+    "salary": 5950000,
+    "contractValue": 11900000,
+    "contractLength": 2,
+    "aav": 5950000,
+    "yearsLeft": 1,
+    "freeAgentYear": 2026,
+    "freeAgentType": "UFA",
+    "options": null,
+    "birdRights": "None",
+    "contractId": "std_202425"
+  },
+  "meta": {
+    "lastStatsUpdate": {
+      "_seconds": 1756700524,
+      "_nanoseconds": 647267000
+    },
+    "statsCarryOver": true,
+    "statsSeasonTag": "carried_over"
+  }
+}

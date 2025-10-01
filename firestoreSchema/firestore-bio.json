@@ -1,11 +1,13 @@
 {
   "bio": {
     "displayName": "Wendell Carter Jr",
+    "name": "Wendell Carter Jr",
+    "playerId": "wendell_carter_jr",
     "position": "Center-Forward",
     "height": "6' 10",
     "weight": 270,
-    "age": 26,
     "dob": "Apr 16, 1999",
+    "birthplace": "Farburn, Georgia, United States",
     "nationality": "United States",
     "shoots": "Right",
     "agent": {
@@ -16,7 +18,17 @@
       "year": 2018,
       "round": 1,
       "pick": 7,
-      "teamId": null
+      "teamId": "CHI"
+    },
+    "display": {
+      "team": "Orlando Magic",
+      "yearsPro": 7,
+      "AAV": 5.9,
+      "yearsLeft": 1,
+      "freeAgentYear": 2026,
+      "freeAgentType": "UFA",
+      "teamId": "ORL",
+      "POS": "F/C"
     },
     "nbaId": 1628976
   }
