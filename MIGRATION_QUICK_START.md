@@ -15,10 +15,10 @@ The migration system transforms legacy player data to the new firestore-complete
 - `seasons.{seasonId}.evaluationView` - denormalized evaluation data for quick access
 
 ✅ **Structure Organization**
-- `bio/` - Biographical information
-- `evaluations/` - Scouting evaluations  
-- `contracts/` - Contract details
-- `seasons/` - Season-specific data with contractView and evaluationView
+- `bio/` - Biographical information (main document)
+- `/contracts/{contractId}` - Contract details (subcollection)
+- `/seasons/{seasonId}` - Season-specific data with contractView and evaluationView (subcollection)
+- `/evaluations/current` - Scouting evaluations (subcollection)
 
 ## Running the Migration
 
@@ -110,6 +110,39 @@ Expected output:
 
 ## Expected Output Structure
 
+**IMPORTANT**: Data is now stored in Firestore **subcollections**, not nested objects!
+
+### Main Document Structure
+```
+/players/{playerId}
+  └── bio: { displayName, position, age, height, weight, agent, draft, display, ... }
+```
+
+### Subcollections Structure
+```
+/players/{playerId}/contracts/{contractId}
+  └── { signingTeam, contractType, contractValue, averageAnnualValue, ... }
+
+/players/{playerId}/seasons/{seasonId}
+  └── { team, age, stats, contractView, evaluationView, ... }
+
+/players/{playerId}/evaluations/current
+  └── { overallGrade, traits, roles, subRoles, badges, shootingProfile, ... }
+```
+
+### Example Firestore Paths
+- `/players/wendell_carter_jr` - Main bio document
+- `/players/wendell_carter_jr/contracts/std_202425` - Contract document
+- `/players/wendell_carter_jr/seasons/2025-26` - Season data document
+- `/players/wendell_carter_jr/evaluations/current` - Current evaluation document
+
+### Data in Firebase Console
+When you view a player document in Firebase Console, you'll see:
+1. **Main document fields**: Only `bio` object
+2. **Subcollections tab**: Shows `contracts`, `seasons`, `evaluations` subcollections
+3. Click into each subcollection to see individual documents
+
+### JSON Representation (for reference)
 ```json
 {
   "players": {
@@ -122,42 +155,13 @@ Expected output:
           "freeAgentYear": 2026,
           "freeAgentType": "UFA"
         }
-      },
-      "evaluations": {
-        "overallGrade": 81,
-        "traits": {...},
-        "roles": {...}
-      },
-      "contracts": {
-        "std_202425": {
-          "averageAnnualValue": 5950000,
-          "freeAgency": {
-            "freeAgentYear": 2026,
-            "freeAgentType": "UFA"
-          }
-        }
-      },
-      "seasons": {
-        "2025-26": {
-          "stats": {...},
-          "contractView": {
-            "averageAnnualValue": 5950000,
-            "freeAgentYear": 2026,
-            "freeAgentType": "UFA"
-          },
-          "evaluationView": {
-            "overallGrade": 81,
-            "roles": {...},
-            "shootingProfile": "...",
-            "twoWay": 63,
-            "badges": [...]
-          }
-        }
       }
     }
   }
 }
 ```
+
+**Note**: `contracts`, `seasons`, and `evaluations` are **NOT** nested objects in the JSON. They are separate Firestore subcollections.
 
 ## Troubleshooting
 
