@@ -13,6 +13,9 @@ DataPipeline.md
 tournamentRanker.js
 dist/
 
+# Archive folder with deprecated/old files
+archive/
+
 # VS Code settings
 .vscode/
 

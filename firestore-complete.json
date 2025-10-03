@@ -6,7 +6,7 @@
         "name": "Wendell Carter Jr",
         "playerId": "wendell_carter_jr",
         "position": "Center-Forward",
-        "height": "6' 10",
+        "height": 82,
         "weight": 270,
         "dob": "Apr 16, 1999",
         "birthplace": "Farburn, Georgia, United States",
@@ -25,7 +25,7 @@
         "display": {
           "team": "Orlando Magic",
           "yearsPro": 7,
-          "AAV": 5.9,
+          "averageAnnualValue": 5950000,
           "yearsLeft": 1,
           "freeAgentYear": 2026,
           "freeAgentType": "UFA",
@@ -58,7 +58,7 @@
           "defense": ["Low-Man Tagger", "Dies on Screens"]
         },
         "badges": ["bully", "chess_piece", "high_iq"],
-        "overall_grade": 81,
+        "overallGrade": 81,
         "blurbs": {
           "overall": "Wendell Carter is a good player.",
           "shootingProfile": "One of the better shooting centers in the league",
@@ -85,6 +85,12 @@
             "Dies on Screens": "Struggles getting through screens",
             "Baseline Crasher": "Crashes hard"
           }
+        },
+        "meta": {
+          "methodVersion": "v1.0",
+          "updatedAt": "2025-10-02T00:00:00Z",
+          "updatedBy": "system",
+          "seasonContext": "2025-26"
         }
       },
       "contracts": {
@@ -132,10 +138,7 @@
           }
         },
         "last_updated": 1756771893.813493,
-        "last_bio_update": {
-          "_seconds": 1756772460,
-          "_nanoseconds": 21542000
-        }
+        "last_bio_update": { "_seconds": 1756772460, "_nanoseconds": 21542000 }
       },
       "seasons": {
         "2025-26": {
@@ -179,6 +182,18 @@
             "options": null,
             "birdRights": "None",
             "contractId": "std_202425"
+          },
+          "evaluationView": {
+            "overallGrade": 81,
+            "roles": {
+              "offense1": "Versatile Big",
+              "offense2": "Floor Spacer",
+              "defense1": "Mobile Big",
+              "defense2": "Post Defender"
+            },
+            "shootingProfile": "Willing",
+            "twoWay": 63,
+            "badges": ["bully", "chess_piece", "high_iq"]
           },
           "meta": {
             "lastStatsUpdate": {
