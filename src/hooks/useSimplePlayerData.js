@@ -80,7 +80,10 @@ const normalizePlayerV2Data = (mainDoc, subcollections) => {
     id: mainDoc.id,
     player_id: mainDoc.id,
     
-    // Bio data (from main document)
+    // Preserve any additional fields from main document first
+    ...mainDoc,
+    
+    // Bio data (from main document) - override with enhanced version
     // Handle both old and new field names
     bio: {
       ...mainDoc.bio,
@@ -116,9 +119,6 @@ const normalizePlayerV2Data = (mainDoc, subcollections) => {
     subRoles: evaluation?.subRoles || { offense: [], defense: [] },
     badges: evaluation?.badges || [],
     overallGrade: evaluation?.overallGrade || null,
-    
-    // Preserve any additional fields from main document
-    ...mainDoc
   };
 
   return normalized;
@@ -138,9 +138,10 @@ const useSimplePlayerData = () => {
     setError(null);
 
     // Fetch from players_v2 collection
+    // Note: We can't orderBy 'bio.displayName' because it may not exist on all documents
+    // Firestore will throw an error if the field doesn't exist on all docs in the result set
     const playersQuery = query(
-      collection(db, 'players_v2'),
-      orderBy('bio.displayName')
+      collection(db, 'players_v2')
     );
 
     // Real-time updates - data stays fresh automatically
@@ -165,6 +166,13 @@ const useSimplePlayerData = () => {
             },
             50 // Process 50 players at a time
           );
+
+          // Sort players by name after fetching
+          playersWithSubcollections.sort((a, b) => {
+            const nameA = (a.display_name || a.name || '').toLowerCase();
+            const nameB = (b.display_name || b.name || '').toLowerCase();
+            return nameA.localeCompare(nameB);
+          });
 
           console.log(`✅ Successfully loaded ${playersWithSubcollections.length} players from players_v2`);
           setPlayers(playersWithSubcollections);
