@@ -22,19 +22,24 @@ module.exports = {
     deriveYearsLeft: (years) => {
       if (!Array.isArray(years)) return 0;
       const now = new Date();
-      const y = now.getMonth() >= 9 ? now.getFullYear() : now.getFullYear() - 1;
-      const tag = `${y}-${String((y + 1) % 100).padStart(2, '0')}`;
-      return years.filter((x) => x && x.season && String(x.season) >= tag).length;
+      // Since we're in October 2025, the current season is 2025-26
+      // We want years remaining AFTER the current season
+      const currentYear =
+        now.getMonth() >= 9 ? now.getFullYear() : now.getFullYear() - 1;
+
+      // Count salary years that are AFTER the current year
+      return years.filter((x) => x && x.year && Number(x.year) > currentYear)
+        .length;
     },
     deriveStartSeason: (years) =>
       Array.isArray(years) && years.length
-        ? String(years.map((y) => y.season).sort()[0])
+        ? String(years.map((y) => y.season || y.year).sort()[0])
         : null,
     deriveEndSeason: (years) =>
       Array.isArray(years) && years.length
         ? String(
             years
-              .map((y) => y.season)
+              .map((y) => y.season || y.year)
               .sort()
               .slice(-1)[0]
           )
@@ -43,7 +48,9 @@ module.exports = {
       if (!Array.isArray(years)) return null;
       const s =
         (ctx && ctx.placeholders && ctx.placeholders.seasonId) || '2025-26';
-      const row = years.find((y) => y && String(y.season) === s);
+      // Extract the starting year from season string (e.g., "2025-26" -> 2025)
+      const targetYear = parseInt(s.split('-')[0]);
+      const row = years.find((y) => y && Number(y.year) === targetYear);
       return row ? row.salary : null;
     },
     deriveWinningContractId: (_obj, ctx) =>
@@ -53,5 +60,5 @@ module.exports = {
       const ok = ['Elite', 'Plus', 'Capable', 'Willing', 'Hesitant', 'Non'];
       return ok.includes(v) ? v : null;
     },
-  }
+  },
 };
