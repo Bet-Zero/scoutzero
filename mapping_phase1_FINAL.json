@@ -763,13 +763,13 @@
     },
     {
       "from": "last_bio_update._seconds",
-      "to": "contracts.last_bio_update._seconds",
+      "to": "meta.lastBioUpdate.seconds",
       "type": "number",
       "transform": "toNumber"
     },
     {
       "from": "last_bio_update._nanoseconds",
-      "to": "contracts.last_bio_update._nanoseconds",
+      "to": "meta.lastBioUpdate.nanoseconds",
       "type": "number",
       "transform": "toNumber"
     },
