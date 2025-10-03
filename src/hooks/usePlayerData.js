@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import useSimplePlayerData from './useSimplePlayerData';
 
 /**
