@@ -43,7 +43,7 @@
           "__from_team": "team",
           "yearsPro": 7,
           "__from_yearsPro": "Years Pro",
-          "AAV": 5.9,
+          "aver": 5.9,
           "__from_AAV": "contract.average_annual_value",
           "yearsLeft": 1,
           "__from_yearsLeft": "contract.annual_salaries",

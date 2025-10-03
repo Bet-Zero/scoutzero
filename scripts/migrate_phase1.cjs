@@ -3,10 +3,16 @@
 const admin = require('firebase-admin');
 const fs = require('fs');
 const path = require('path');
-const { transforms } = require('./transforms');
-const { validateTarget } = require('./validate_target');
+const { transforms } = require('./transforms.cjs');
+const { validateTarget } = require('./validate_target.cjs');
 
-if (!admin.apps.length) { admin.initializeApp(); }
+// Initialize Firebase Admin with service account
+if (!admin.apps.length) {
+  const serviceAccount = require('../serviceAccountKey.json');
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+  });
+}
 const db = admin.firestore();
 
 function parseArgs(argv){ const a={}; for(let i=2;i<argv.length;i++){const k=argv[i]; if(k==='--dry-run'||k==='--shadow'){a[k.slice(2)]=true;continue;} if(k.startsWith('--')){a[k.slice(2)]=argv[i+1];i++;}} return a;}

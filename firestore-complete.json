@@ -175,7 +175,7 @@
             "salary": 5950000,
             "contractValue": 11900000,
             "contractLength": 2,
-            "aav": 5950000,
+            "averageAnnualValue": 5950000,
             "yearsLeft": 1,
             "freeAgentYear": 2026,
             "freeAgentType": "UFA",
