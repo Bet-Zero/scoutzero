@@ -9,25 +9,55 @@ A full schema reference for all Firestore collections used in ScoutZero + Archit
 ### 📦 Top-Level Fields:
 
 - `bio`: { AGE, HT, WT, Position, Team, Years Pro }
-- `traits`: { Shooting, Defense, IQ, etc. }
-- `roles`: { offense1, defense1, etc. }
-- `blurbs`: { traits, roles, subroles, shootingProfile, twoWayMeter }
+- `bio.displayName`: Player display name
+- `bio.position`: Player position
+- `bio.age`: Player age
+- `bio.height`: Height in inches
+- `bio.weight`: Weight in pounds
+- `bio.display`: { team, yearsPro, averageAnnualValue, freeAgentYear, freeAgentType, etc. }
+- `bio.agent`: { name, agency }
+- `bio.draft`: { year, round, pick, team }
+
+### 📂 Subcollection: `/players/{playerId}/contracts/{contractId}`
+
+Contract documents with details like:
+- `signingTeam`: Team that signed the contract
+- `contractType`: Type of contract (Standard, Two-Way, etc.)
+- `signedUsing`: Exception or method used (Bird Rights, MLE, etc.)
+- `contractValue`: Total contract value
+- `contractLength`: Number of years
+- `averageAnnualValue`: AAV of the contract
+- `guaranteedValue`: Guaranteed money
+- `salariesByYear[]`: Array of salary details per year
+- `options[]`: Player/team options
+- `incentives`: { likely, unlikely }
+- `noTradeClause`: Boolean
+- `tradeKicker`: Trade kicker percentage
+- `freeAgency`: { freeAgentYear, freeAgentType, capHold, birdRights }
+
+### 📂 Subcollection: `/players/{playerId}/seasons/{seasonId}`
+
+Season-specific data like:
+- `team`: Team abbreviation
+- `age`: Age during that season
+- `stats`: { PTS, AST, REB, FG%, 3PT%, FT%, etc. }
+- `contractView`: Denormalized contract info for quick access
+- `evaluationView`: Denormalized evaluation info for quick access
+
+### 📂 Subcollection: `/players/{playerId}/evaluations/{evaluationId}`
+
+Evaluation and grading data:
+- `traits`: { Shooting, Passing, Defense, IQ, etc. }
+- `roles`: { offense1, offense2, defense1, defense2 }
 - `subRoles`: { offense: [], defense: [] }
-- `badges`: array of badge strings
-- `overall_grade`: number or string
-- `shootingProfile`: string
-- `system.stats`: { PTS, AST, FG%, eFG%, etc. }
-- `contract`: raw scraped contract
-- `contract_summary`: readable metadata summary
-- `contract.extension`: full extension info (if signed)
-- `draft`: { year, round, pick, team }
-- `agent`: { name, agency }
-- `status`: 'Signed', 'FA', '2-Way', etc.
-- `team`: string
-- `position`: string
-- `player_id`: string
-- `name`, `display_name`: string
-- `cap_hold`, `qualifying_offer`, `no_trade_clause`, `trade_kicker`: flags
+- `badges`: Array of badge strings
+- `overallGrade`: Overall player grade (0-100)
+- `shootingProfile`: Shooting capability description
+- `twoWay`: Two-way rating
+- `blurbs`: { overall, shootingProfile, twoWayMeter, traits, roles, subroles }
+- `meta`: { methodVersion, updatedAt, updatedBy, seasonContext }
+
+**Note**: Current evaluations are stored with document ID `current` for easy access.
 
 ---
 

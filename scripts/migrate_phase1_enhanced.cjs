@@ -11,7 +11,9 @@ if (!admin.apps.length) { admin.initializeApp(); }
 const db = admin.firestore();
 
 // Constants
-const BATCH_SIZE = 450; // Safety margin below Firestore's 500 limit
+// Note: Each player generates ~4-6 operations (main doc + contracts + seasons + evaluations)
+// With 500 limit, we process fewer players per batch to stay safe
+const PLAYERS_PER_BATCH = 75; // Safe for up to 6 ops/player (75*6=450)
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
 
@@ -348,12 +350,12 @@ async function main() {
   const totalResults = { ok: 0, fail: 0, warnings: 0, edgeCases: 0 };
   const docs = snapshot.docs;
   
-  for (let i = 0; i < docs.length; i += BATCH_SIZE) {
-    const batchDocs = docs.slice(i, i + BATCH_SIZE);
-    const batchNum = Math.floor(i / BATCH_SIZE) + 1;
-    const totalBatches = Math.ceil(docs.length / BATCH_SIZE);
+  for (let i = 0; i < docs.length; i += PLAYERS_PER_BATCH) {
+    const batchDocs = docs.slice(i, i + PLAYERS_PER_BATCH);
+    const batchNum = Math.floor(i / PLAYERS_PER_BATCH) + 1;
+    const totalBatches = Math.ceil(docs.length / PLAYERS_PER_BATCH);
     
-    console.log(`📦 Batch ${batchNum}/${totalBatches} (${batchDocs.length} documents):`);
+    console.log(`📦 Batch ${batchNum}/${totalBatches} (${batchDocs.length} players):`);
     
     const batch = db.batch();
     const batchResults = await processBatch(
