@@ -84,8 +84,8 @@ def check_prerequisites():
     return True
 
 def direct_firebase_upload():
-    """Direct merge and upload of contract data to Firebase"""
-    print("🔧 Direct contract merge and Firebase upload...")
+    """Direct merge and upload of contract data to Firebase subcollections"""
+    print("🔧 Direct contract merge and Firebase upload to subcollections...")
     
     try:
         # Check for Firebase credentials
@@ -127,64 +127,77 @@ def direct_firebase_upload():
         db = firestore.client()
         
         # Merge and upload
-        print("   📤 Merging and uploading to Firebase...")
+        print("   📤 Merging and uploading to Firebase subcollections...")
         batch = db.batch()
         batch_count = 0
         updated_count = 0
         bird_rights_count = 0
+        contract_count = 0
         
         for player_id, player_data in base_players.items():
-            # Start with base player data
-            merged_data = dict(player_data)
+            # Update root document with basic bio data
+            doc_ref = db.collection("players").document(player_id)
             
-            # Add contract data if available
+            # Prepare root document data (non-contract fields)
+            root_data = {k: v for k, v in player_data.items() if k not in ['Contract', 'Free Agent']}
+            root_data['last_bio_update'] = datetime.now(timezone.utc)
+            
+            batch.set(doc_ref, root_data, merge=True)
+            batch_count += 1
+            
+            # Add contract data to subcollection if available
             if player_id in contract_lookup:
                 contract_data = contract_lookup[player_id]
                 
-                # Add Bird Rights and contract fields
-                merged_data['bird_rights'] = contract_data.get('bird_rights')
-                merged_data['free_agent_type'] = contract_data.get('free_agent_type')
-                merged_data['free_agency_year'] = contract_data.get('free_agency_year')
-                merged_data['contract_summary'] = contract_data.get('contract_summary')
-                merged_data['contract'] = contract_data.get('contract')
+                # Create contract subcollection document
+                current_year = datetime.now().year
+                contract_id = f"current_{current_year}"
+                contract_ref = doc_ref.collection("contracts").document(contract_id)
                 
-                if contract_data.get('bird_rights'):
-                    bird_rights_count += 1
+                # Prepare contract data
+                contract_payload = {
+                    'bird_rights': contract_data.get('bird_rights'),
+                    'free_agent_type': contract_data.get('free_agent_type'),
+                    'free_agency_year': contract_data.get('free_agency_year'),
+                    'contract_summary': contract_data.get('contract_summary'),
+                    'contract': contract_data.get('contract'),
+                    'updated_at': datetime.now(timezone.utc)
+                }
+                
+                # Remove None values
+                contract_payload = {k: v for k, v in contract_payload.items() if v is not None}
+                
+                if contract_payload:
+                    batch.set(contract_ref, contract_payload, merge=True)
+                    batch_count += 1
+                    contract_count += 1
+                    
+                    if contract_data.get('bird_rights'):
+                        bird_rights_count += 1
             
-            # Add metadata
-            merged_data['last_bio_update'] = datetime.now(timezone.utc)
-            
-            # Add to batch
-            doc_ref = db.collection("players").document(player_id)
-            batch.set(doc_ref, merged_data, merge=True)
-            
-            batch_count += 1
             updated_count += 1
-            
-            # Show progress for first few and every 100 players
-            if updated_count <= 5 or updated_count % 100 == 0:
-                name = player_data.get('Name', player_id)
-                bird_rights = merged_data.get('bird_rights', 'None')
-                print(f"      [{updated_count}/{len(base_players)}] {name}: {bird_rights}")
             
             # Commit batch every 450 operations
             if batch_count >= 450:
                 batch.commit()
                 batch = db.batch()
                 batch_count = 0
-                print(f"      📤 Committed batch ({updated_count} players processed)")
+                print(f"   📤 Committed batch ({updated_count}/{len(base_players)})")
         
-        # Commit final batch
+        # Commit remaining
         if batch_count > 0:
             batch.commit()
         
-        print(f"   ✅ Direct upload complete!")
-        print(f"      📤 Updated {updated_count} players")
-        print(f"      🐦 Players with Bird Rights: {bird_rights_count}")
+        print(f"   ✅ Upload complete!")
+        print(f"      - Root documents: {updated_count}")
+        print(f"      - Contract subcollections: {contract_count}")
+        print(f"      - Players with Bird Rights: {bird_rights_count}")
         return True
         
     except Exception as e:
-        print(f"   ❌ Direct upload failed: {e}")
+        print(f"   ❌ Upload failed: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 def main():

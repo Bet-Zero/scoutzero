@@ -6,9 +6,9 @@ A full schema reference for all Firestore collections used in ScoutZero + Archit
 
 ## 📁 Collection: `/players/{playerId}`
 
-### 📦 Top-Level Fields:
+### 📦 Top-Level Fields (Root Document):
 
-- `bio`: { AGE, HT, WT, Position, Team, Years Pro }
+- `bio`: { AGE, HT, WT, Position, Team, Years Pro, Name }
 - `traits`: { Shooting, Defense, IQ, etc. }
 - `roles`: { offense1, defense1, etc. }
 - `blurbs`: { traits, roles, subroles, shootingProfile, twoWayMeter }
@@ -16,18 +16,64 @@ A full schema reference for all Firestore collections used in ScoutZero + Archit
 - `badges`: array of badge strings
 - `overall_grade`: number or string
 - `shootingProfile`: string
-- `system.stats`: { PTS, AST, FG%, eFG%, etc. }
-- `contract`: raw scraped contract
-- `contract_summary`: readable metadata summary
-- `contract.extension`: full extension info (if signed)
 - `draft`: { year, round, pick, team }
-- `agent`: { name, agency }
-- `status`: 'Signed', 'FA', '2-Way', etc.
 - `team`: string
 - `position`: string
 - `player_id`: string
 - `name`, `display_name`: string
-- `cap_hold`, `qualifying_offer`, `no_trade_clause`, `trade_kicker`: flags
+- `nba_player_id`: number
+- `is_active_nba`: boolean
+- `discovery_source`: string
+- `last_updated`: timestamp
+- `last_bio_update`: timestamp
+
+### 📋 Subcollection: `/players/{playerId}/contracts/{contractId}`
+
+Contract data is now stored in a subcollection for better organization and historical tracking.
+
+**Document ID**: Typically `current_YYYY` (e.g., `current_2025`)
+
+**Fields**:
+- `Contract`: string (e.g., "$48.7M / 2 yrs")
+- `Free Agent`: string (e.g., "2026 (UFA)")
+- `bird_rights`: string (e.g., "Bird", "Early Bird", "Non-Bird")
+- `free_agent_type`: string (e.g., "UFA", "RFA")
+- `free_agency_year`: number
+- `contract_summary`: string
+- `contract`: object (raw scraped contract)
+- `contract_clean`: object (cleaned contract data)
+- `cap_hold`: number
+- `qualifying_offer`: number
+- `no_trade_clause`: boolean
+- `trade_kicker`: number
+- `agent`: { name, agency }
+- `status`: string (e.g., 'Signed', 'FA', '2-Way')
+- `updated_at`: timestamp
+
+### 📊 Subcollection: `/players/{playerId}/seasons/{seasonId}`
+
+Season statistics are now stored in a subcollection for multi-season support.
+
+**Document ID**: Season identifier (e.g., `2024-25`)
+
+**Fields**:
+- `MIN`: number (minutes per game)
+- `PPG`: number (points per game)
+- `RPG`: number (rebounds per game)
+- `APG`: number (assists per game)
+- `FG%`: string (field goal percentage)
+- `3PT%`: string (three-point percentage)
+- `FT%`: string (free throw percentage)
+- `EFG%`: string (effective field goal percentage)
+- `TS%`: string (true shooting percentage)
+- `USG%`: string (usage percentage)
+- `BPM`: number (box plus/minus)
+- `VORP`: number (value over replacement player)
+- `WS`: number (win shares)
+- `PER`: number (player efficiency rating)
+- `Games Played`: number
+- `season_id`: string (e.g., "2024-25")
+- `updated_at`: timestamp
 
 ---
 

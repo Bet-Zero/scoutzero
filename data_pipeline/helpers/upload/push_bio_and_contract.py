@@ -108,10 +108,20 @@ def preserve_existing_grades(db, player_id):
         print(f"⚠️  Could not retrieve existing grades for {player_id}: {e}")
         return {}
 
+def get_contract_id(player_data):
+    """Generate a contract ID based on contract data"""
+    # Use contract summary or free agency year as ID
+    if 'contract_summary' in player_data:
+        return f"current_{datetime.now().year}"
+    elif 'Free Agent' in player_data:
+        fa_year = player_data.get('Free Agent', '').split('(')[0].strip()
+        return f"current_{fa_year}" if fa_year else "current"
+    return "current"
+
 def main():
     """Upload bio and contract data while preserving grades"""
-    print("📤 Pushing Bio and Contract Data to Firebase")
-    print("=" * 50)
+    print("📤 Pushing Bio and Contract Data to Firebase with Subcollections")
+    print("=" * 60)
     
     # Initialize Firebase
     db = init_firebase()
@@ -133,10 +143,19 @@ def main():
     
     print(f"👥 Processing {len(players)} players for Firebase upload...")
     
+    # Define contract fields that should go to subcollection
+    CONTRACT_FIELDS = {
+        'Contract', 'Free Agent', 'bird_rights', 'free_agent_type', 
+        'free_agency_year', 'contract_summary', 'contract', 'contract_clean',
+        'cap_hold', 'qualifying_offer', 'no_trade_clause', 'trade_kicker',
+        'agent', 'status'
+    }
+    
     # Process players in batches
     batch = db.batch()
     batch_count = 0
     updated_count = 0
+    contract_count = 0
     errors = []
     
     for player_id, full_data in players.items():
@@ -149,38 +168,51 @@ def main():
             # Get existing grades to preserve them
             existing_grades = preserve_existing_grades(db, player_id)
             
-            # Prepare update data (exclude system fields that shouldn't be in main collection)
-            update_data = {
-                k: v for k, v in full_data.items()
-                if k not in ["system", "position", "source_url"]
-            }
+            # Separate contract fields from bio fields
+            bio_data = {}
+            contract_data = {}
+            
+            for k, v in full_data.items():
+                if k in CONTRACT_FIELDS:
+                    contract_data[k] = v
+                elif k not in ["system", "position", "source_url"]:
+                    bio_data[k] = v
             
             # Ensure bio data is properly structured for rookies and newcomers
-            bio_fields = ["AGE", "HT", "WT", "Team", "Position", "Years Pro", "Contract", "Free Agent"]
-            bio_data = {}
+            bio_fields = ["AGE", "HT", "WT", "Team", "Position", "Years Pro"]
+            bio_structure = {}
             for field in bio_fields:
                 if field in full_data and full_data[field] and full_data[field] != "":
-                    bio_data[field] = full_data[field]
+                    bio_structure[field] = full_data[field]
                 else:
-                    bio_data[field] = ""  # Ensure field exists even if empty
+                    bio_structure[field] = ""  # Ensure field exists even if empty
             
             # Add player name to bio
-            bio_data["Name"] = full_data.get("Name", player_id.replace('_', ' ').title())
+            bio_structure["Name"] = full_data.get("Name", player_id.replace('_', ' ').title())
             
-            # Create proper bio structure
-            update_data["bio"] = bio_data
+            # Create proper bio structure in root document
+            bio_data["bio"] = bio_structure
             
             # Add preserved grades back
-            update_data.update(existing_grades)
+            bio_data.update(existing_grades)
             
             # Add metadata
-            update_data["last_bio_update"] = datetime.now(timezone.utc)
+            bio_data["last_bio_update"] = datetime.now(timezone.utc)
             
-            # Add to batch
+            # Write root document (bio data)
             doc_ref = db.collection("players").document(player_id)
-            batch.set(doc_ref, update_data, merge=True)
-            
+            batch.set(doc_ref, bio_data, merge=True)
             batch_count += 1
+            
+            # Write contract subcollection if contract data exists
+            if contract_data:
+                contract_id = get_contract_id(contract_data)
+                contract_ref = doc_ref.collection("contracts").document(contract_id)
+                contract_data["updated_at"] = datetime.now(timezone.utc)
+                batch.set(contract_ref, contract_data, merge=True)
+                batch_count += 1
+                contract_count += 1
+            
             updated_count += 1
             
             # Commit batch every 450 operations (Firestore limit is 500)
@@ -200,13 +232,15 @@ def main():
         print(f"  📤 Final batch committed")
     
     # Summary
-    print(f"\n{'='*50}")
+    print(f"\n{'='*60}")
     print(f"✅ Successfully updated {updated_count} players")
+    print(f"   📄 Root documents (bio): {updated_count}")
+    print(f"   📋 Contract subcollections: {contract_count}")
     if errors:
         print(f"❌ Errors encountered: {len(errors)}")
         for error in errors[:5]:  # Show first 5 errors
             print(f"  - {error}")
-    print(f"{'='*50}")
+    print(f"{'='*60}")
 
 if __name__ == "__main__":
     main()

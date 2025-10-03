@@ -68,9 +68,9 @@ def extract_stats_from_player_data(player_data):
     return stats
 
 def main():
-    """Upload stats data while preserving other player data"""
-    print("📊 Pushing Stat Data to Firebase")
-    print("=" * 40)
+    """Upload stats data to seasons subcollection"""
+    print("📊 Pushing Stat Data to Firebase Seasons Subcollection")
+    print("=" * 60)
     
     # Initialize Firebase
     db = init_firebase()
@@ -97,6 +97,8 @@ def main():
     current_year = now.year + 1 if now.month >= 7 else now.year
     season_key = f"{current_year-1}-{str(current_year)[-2:]}"
     
+    print(f"📅 Using season ID: {season_key}")
+    
     # Process players in batches
     batch = db.batch()
     batch_count = 0
@@ -122,24 +124,22 @@ def main():
                 print(f"⚠️  Player {player_id} not found in Firestore, skipping stats update")
                 continue
             
-            # Prepare update payload with stats
-            update_payload = {}
+            # Create season subcollection document
+            season_ref = doc_ref.collection("seasons").document(season_key)
             
-            # Add individual stat fields for easy querying
+            # Prepare season data payload
+            season_payload = {}
+            
+            # Add all stat fields
             for stat_field, value in stats.items():
-                update_payload[stat_field] = value
-            
-            # Also store in system.stats for compatibility
-            update_payload["system"] = {
-                "stats": stats
-            }
+                season_payload[stat_field] = value
             
             # Add metadata
-            update_payload["last_stats_update"] = datetime.now(timezone.utc)
-            update_payload["stats_season"] = season_key
+            season_payload["updated_at"] = datetime.now(timezone.utc)
+            season_payload["season_id"] = season_key
             
-            # Add to batch
-            batch.update(doc_ref, update_payload)
+            # Write to seasons subcollection
+            batch.set(season_ref, season_payload, merge=True)
             
             batch_count += 1
             updated_count += 1
@@ -161,15 +161,16 @@ def main():
         print(f"  📊 Final batch committed")
     
     # Summary
-    print(f"\n{'='*40}")
+    print(f"\n{'='*60}")
     print(f"✅ Successfully updated {updated_count} players")
+    print(f"   📊 Season subcollections created: {updated_count}")
     print(f"⚠️  {no_stats_count} players had no stats")
     if errors:
         print(f"❌ Errors encountered: {len(errors)}")
         for error in errors[:5]:  # Show first 5 errors
             print(f"  - {error}")
-    print(f"📊 Stats season: {season_key}")
-    print(f"{'='*40}")
+    print(f"📅 Season: {season_key}")
+    print(f"{'='*60}")
 
 if __name__ == "__main__":
     main()
