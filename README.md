@@ -93,6 +93,16 @@ This project uses multiple Firestore collections to separate global player data 
 📄 See [`docs/DATA_SOURCE_MAP.md`](./docs/DATA_SOURCE_MAP.md) for full usage rules  
 📄 See [`docs/FIRESTORE_SCHEMA.md`](./docs/FIRESTORE_SCHEMA.md) for detailed field breakdowns
 
+### 🔄 Schema Migration
+
+A Firestore schema migration is in progress to transform the flat player structure into a hierarchical, season-scoped format. **Migration documentation:**
+
+📋 **[MIGRATION_EXECUTIVE_SUMMARY.md](./MIGRATION_EXECUTIVE_SUMMARY.md)** ← Start here for quick overview  
+📚 **[MIGRATION_README.md](./MIGRATION_README.md)** ← Complete documentation index  
+📖 **[FIRESTORE_MIGRATION_REVIEW.md](./FIRESTORE_MIGRATION_REVIEW.md)** ← Detailed analysis and recommendations
+
+**Status:** Migration plan reviewed, NOT ready for production yet. See documentation for details.
+
 ## Related Projects
 
 - **ScoutZero** – internal evaluation suite used to create player grades and roles. HoopZero presents this data in a read‑only form.
