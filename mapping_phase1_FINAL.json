@@ -524,7 +524,8 @@
       "type": "number",
       "transform": "toNumber",
       "required": false,
-      "allowNull": true
+      "allowNull": true,
+      "note": "Source field for overallGrade - overall_grade from legacy data"
     },
     {
       "from": "blurbs.overall",
@@ -690,13 +691,13 @@
     },
     {
       "from": "free_agency_year",
-      "to": "contracts.{contractId}.freeAgency.freeAgencyYear",
+      "to": "contracts.{contractId}.freeAgency.freeAgentYear",
       "type": "number",
       "transform": "toNumber"
     },
     {
       "from": "free_agent_type",
-      "to": "contracts.{contractId}.freeAgency.freeAgencyType",
+      "to": "contracts.{contractId}.freeAgency.freeAgentType",
       "type": "string",
       "transform": "copy"
     },
@@ -797,8 +798,8 @@
       "transform": "toNumber"
     },
     {
-      "from": "contract_summary.aav",
-      "to": "seasons.{seasonId}.contractView.aav",
+      "from": "contract.average_annual_value",
+      "to": "seasons.{seasonId}.contractView.averageAnnualValue",
       "type": "number",
       "transform": "toNumber"
     },
@@ -833,24 +834,56 @@
       "transform": "copy"
     },
     {
+      "from": "overall_grade",
+      "to": "seasons.{seasonId}.evaluationView.overallGrade",
+      "type": "number",
+      "transform": "toNumber"
+    },
+    {
+      "from": "roles.offense1",
+      "to": "seasons.{seasonId}.evaluationView.roles.offense1",
+      "type": "string",
+      "transform": "copy"
+    },
+    {
+      "from": "roles.offense2",
+      "to": "seasons.{seasonId}.evaluationView.roles.offense2",
+      "type": "string",
+      "transform": "copy"
+    },
+    {
+      "from": "roles.defense1",
+      "to": "seasons.{seasonId}.evaluationView.roles.defense1",
+      "type": "string",
+      "transform": "copy"
+    },
+    {
+      "from": "roles.defense2",
+      "to": "seasons.{seasonId}.evaluationView.roles.defense2",
+      "type": "string",
+      "transform": "copy"
+    },
+    {
+      "from": "shootingProfile",
+      "to": "seasons.{seasonId}.evaluationView.shootingProfile",
+      "type": "enum<ShootingProfile>",
+      "transform": "toShootingEnum"
+    },
+    {
+      "from": "roles.twoWay",
+      "to": "seasons.{seasonId}.evaluationView.twoWay",
+      "type": "number",
+      "transform": "toNumber"
+    },
+    {
+      "from": "badges",
+      "to": "seasons.{seasonId}.evaluationView.badges",
+      "type": "array<string>",
+      "transform": "copyArray"
+    },
+    {
       "from": "qualifying_offer",
       "to": "contracts.{contractId}.freeAgency.qualifyingOffer",
-      "type": "number",
-      "transform": "toNumber",
-      "required": false,
-      "allowNull": true
-    },
-    {
-      "from": "contract.average_annual_value",
-      "to": "bio.display.AAV",
-      "type": "number",
-      "transform": "toNumber",
-      "required": false,
-      "allowNull": true
-    },
-    {
-      "from": "overall_grade",
-      "to": "evaluations.overall_grade",
       "type": "number",
       "transform": "toNumber",
       "required": false,

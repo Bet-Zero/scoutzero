@@ -130,8 +130,8 @@
           "startSeason": "2024-25",
           "endSeason": "2025-26",
           "freeAgency": {
-            "freeAgencyYear": 2026,
-            "freeAgencyType": "UFA",
+            "freeAgentYear": 2026,
+            "freeAgentType": "UFA",
             "capHold": 20615000,
             "qualifyingOffer": null,
             "birdRights": null
