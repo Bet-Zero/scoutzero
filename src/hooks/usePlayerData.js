@@ -11,16 +11,16 @@ const usePlayerData = (season = null) => {
   
   // Log warning if season parameter is used (no longer supported in simplified architecture)
   if (season !== null) {
-    console.warn('🚨 Season parameter is deprecated in usePlayerData. All data now comes from /players collection for consistency.');
+    console.warn('🚨 Season parameter is deprecated in usePlayerData. All data now comes from /players_v2 collection with subcollections for consistency.');
   }
 
   // Provide simplified diagnostics for backward compatibility
   const diagnostics = {
     isEmpty: players.length === 0,
     isUsingFallback: false,
-    dataSource: '/players',
+    dataSource: '/players_v2 (with subcollections)',
     playerCount: players.length,
-    collectionsChecked: ['/players']
+    collectionsChecked: ['/players_v2', '/players_v2/{id}/contracts', '/players_v2/{id}/seasons', '/players_v2/{id}/evaluations']
   };
 
   // Log diagnostic info only if there are issues

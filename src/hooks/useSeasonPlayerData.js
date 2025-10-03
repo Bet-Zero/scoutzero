@@ -85,19 +85,19 @@ const useSeasonPlayerData = (season = null) => {
           }
         }
         
-        // Strategy 3: Fallback to legacy /players collection
+        // Strategy 3: Fallback to legacy /players_v2 collection
         if (players.length === 0) {
           try {
-            diag.collectionsChecked.push('/players');
-            const playersSnap = await getDocs(collection(db, 'players'));
+            diag.collectionsChecked.push('/players_v2');
+            const playersSnap = await getDocs(collection(db, 'players_v2'));
             if (playersSnap.size > 0) {
               players = playersSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-              diag.source = '/players';
+              diag.source = '/players_v2';
               diag.playerCount = players.length;
               diag.fallbackUsed = true;
             }
           } catch (err) {
-            console.warn('Legacy players collection not accessible:', err.message);
+            console.warn('players_v2 collection not accessible:', err.message);
           }
         }
         
