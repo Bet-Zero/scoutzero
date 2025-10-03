@@ -1,6 +1,7 @@
 # Architect Component Hierarchy
 
 ```
+ARCHITECT_FEATURE_README.md
 CapSheet.jsx
 CapSheetFull.jsx
 CapSummaryTiles.jsx
