@@ -46,7 +46,9 @@
     "migrate:shadow-backup": "node scripts/migrate_phase1_enhanced.cjs --shadow --backup",
     "migrate:live": "node scripts/migrate_phase1_enhanced.cjs --backup",
     "migrate:rollback": "node scripts/rollback_migration.cjs",
-    "migrate:rollback-confirm": "node scripts/rollback_migration.cjs --confirm"
+    "migrate:rollback-confirm": "node scripts/rollback_migration.cjs --confirm",
+    "migrate:rename": "node scripts/rename_collection.cjs",
+    "migrate:rename-confirm": "node scripts/rename_collection.cjs --confirm"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.6",
