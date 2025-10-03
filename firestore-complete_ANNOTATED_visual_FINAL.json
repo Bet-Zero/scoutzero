@@ -25,7 +25,7 @@
         "display": {
           "team": "Orlando Magic (from: team)",
           "yearsPro": "7 (from: Years Pro)",
-          "AAV": "5.9 (from: contract.average_annual_value)",
+          "averageAnnualValue": "5950000 (from: contract.average_annual_value)",
           "yearsLeft": "1 (from: contract.annual_salaries)",
           "freeAgentYear": "2026 (from: free_agency_year)",
           "freeAgentType": "UFA (from: free_agent_type)",
@@ -134,8 +134,8 @@
           "startSeason": "2024-25 (from: contract.annual_salaries)",
           "endSeason": "2025-26 (from: contract.annual_salaries)",
           "freeAgency": {
-            "freeAgencyYear": "2026 (from: free_agency_year)",
-            "freeAgencyType": "UFA (from: free_agent_type)",
+            "freeAgentYear": "2026 (from: free_agency_year)",
+            "freeAgentType": "UFA (from: free_agent_type)",
             "capHold": "20615000 (from: cap_hold)",
             "qualifyingOffer": "None (from: qualifying_offer)",
             "birdRights": "None (from: bird_rights)"
@@ -182,7 +182,7 @@
             "salary": "5950000 (from: contract.annual_salaries)",
             "contractValue": "11900000 (from: contract.total_value)",
             "contractLength": "2 (from: contract.contract_length)",
-            "aav": "5950000 (from: contract_summary.aav)",
+            "averageAnnualValue": "5950000 (from: contract.average_annual_value)",
             "yearsLeft": "1 (from: contract.annual_salaries)",
             "freeAgentYear": "2026 (from: free_agency_year)",
             "freeAgentType": "UFA (from: free_agent_type)",
