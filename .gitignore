@@ -16,6 +16,9 @@ dist/
 # Archive folder with deprecated/old files
 archive/
 
+# Player data backups
+players_backup.jsonl
+
 # VS Code settings
 .vscode/
 
@@ -39,6 +42,7 @@ updateStats.js
 uploadPlayersToFirebase.js
 validatePlayersJson.js
 debug-*.js
+backup_players.js
 
 
 # Docs
