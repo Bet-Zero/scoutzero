@@ -71,9 +71,14 @@ function setByPath(obj, path, value) {
   current[parts[parts.length - 1]] = value;
 }
 
-// Map document from legacy to new structure
+// Map document from legacy to new structure with subcollections support
 function mapDoc(legacy, mapping) {
   const targetDoc = {};
+  const subcollections = {
+    contracts: {},
+    seasons: {},
+    evaluations: {}
+  };
   const warnings = [];
   
   for (const row of mapping.mappings) {
@@ -92,14 +97,48 @@ function mapDoc(legacy, mapping) {
       });
       
       if (transformedValue !== undefined) {
-        setByPath(targetDoc, targetPath, transformedValue);
+        // Check if path should go to a subcollection
+        if (targetPath.startsWith('contracts.')) {
+          const pathParts = targetPath.split('.');
+          if (pathParts.length >= 2) {
+            const contractId = pathParts[1];
+            const fieldPath = pathParts.slice(2).join('.');
+            if (!subcollections.contracts[contractId]) {
+              subcollections.contracts[contractId] = {};
+            }
+            if (fieldPath) {
+              setByPath(subcollections.contracts[contractId], fieldPath, transformedValue);
+            }
+          }
+        } else if (targetPath.startsWith('seasons.')) {
+          const pathParts = targetPath.split('.');
+          if (pathParts.length >= 2) {
+            const seasonId = pathParts[1];
+            const fieldPath = pathParts.slice(2).join('.');
+            if (!subcollections.seasons[seasonId]) {
+              subcollections.seasons[seasonId] = {};
+            }
+            if (fieldPath) {
+              setByPath(subcollections.seasons[seasonId], fieldPath, transformedValue);
+            }
+          }
+        } else if (targetPath.startsWith('evaluations.')) {
+          const pathParts = targetPath.split('.');
+          const fieldPath = pathParts.slice(1).join('.');
+          if (fieldPath) {
+            setByPath(subcollections.evaluations, fieldPath, transformedValue);
+          }
+        } else {
+          // Regular field in main document
+          setByPath(targetDoc, targetPath, transformedValue);
+        }
       }
     } catch (error) {
       warnings.push(`${row.to}<-${row.from}: ${error.message}`);
     }
   }
   
-  return { targetDoc, warnings };
+  return { targetDoc, subcollections, warnings };
 }
 
 // Retry with exponential backoff
@@ -135,7 +174,7 @@ async function createBackup(sourceCollection, backupPath) {
 }
 
 // Validate edge cases
-function validateEdgeCases(targetDoc, playerId) {
+function validateEdgeCases(targetDoc, subcollections, playerId) {
   const issues = [];
   
   // Check for rookie data (minimal bio)
@@ -149,11 +188,11 @@ function validateEdgeCases(targetDoc, playerId) {
     issues.push('Free agent - verify contract data');
   }
   
-  // Check for complex contracts (options, incentives)
-  if (targetDoc.contracts) {
-    const contractIds = Object.keys(targetDoc.contracts);
+  // Check for complex contracts (options, incentives) in subcollections
+  if (subcollections.contracts) {
+    const contractIds = Object.keys(subcollections.contracts);
     contractIds.forEach(contractId => {
-      const contract = targetDoc.contracts[contractId];
+      const contract = subcollections.contracts[contractId];
       if (contract.options && contract.options.length > 0) {
         issues.push(`Contract has ${contract.options.length} options`);
       }
@@ -164,9 +203,9 @@ function validateEdgeCases(targetDoc, playerId) {
     });
   }
   
-  // Check season data consistency
-  if (targetDoc.seasons) {
-    const seasonIds = Object.keys(targetDoc.seasons);
+  // Check season data consistency in subcollections
+  if (subcollections.seasons) {
+    const seasonIds = Object.keys(subcollections.seasons);
     if (seasonIds.length === 0) {
       issues.push('No season data');
     }
@@ -185,7 +224,7 @@ async function processBatch(batch, docs, mapping, dstCollection, isDryRun) {
     const playerId = doc.id;
     
     // Transform document
-    const { targetDoc, warnings } = mapDoc(legacy, mapping);
+    const { targetDoc, subcollections, warnings } = mapDoc(legacy, mapping);
     
     // Validate target
     const validationErrors = validateTarget(targetDoc);
@@ -196,7 +235,7 @@ async function processBatch(batch, docs, mapping, dstCollection, isDryRun) {
     }
     
     // Check edge cases
-    const edgeCaseIssues = validateEdgeCases(targetDoc, playerId);
+    const edgeCaseIssues = validateEdgeCases(targetDoc, subcollections, playerId);
     if (edgeCaseIssues.length > 0) {
       console.log(`⚠️  EDGE CASE ${playerId}:`, edgeCaseIssues.join(', '));
       results.edgeCases++;
@@ -211,7 +250,37 @@ async function processBatch(batch, docs, mapping, dstCollection, isDryRun) {
       console.log(`✓ DRY ${playerId}`);
       results.ok++;
     } else {
+      // Main document
       batchOps.push({ ref: dstCollection.doc(playerId), data: targetDoc });
+      
+      // Contracts subcollection
+      if (subcollections.contracts) {
+        Object.entries(subcollections.contracts).forEach(([contractId, contractData]) => {
+          batchOps.push({ 
+            ref: dstCollection.doc(playerId).collection('contracts').doc(contractId), 
+            data: contractData 
+          });
+        });
+      }
+      
+      // Seasons subcollection
+      if (subcollections.seasons) {
+        Object.entries(subcollections.seasons).forEach(([seasonId, seasonData]) => {
+          batchOps.push({ 
+            ref: dstCollection.doc(playerId).collection('seasons').doc(seasonId), 
+            data: seasonData 
+          });
+        });
+      }
+      
+      // Evaluations subcollection (use 'current' as the doc ID)
+      if (subcollections.evaluations && Object.keys(subcollections.evaluations).length > 0) {
+        batchOps.push({ 
+          ref: dstCollection.doc(playerId).collection('evaluations').doc('current'), 
+          data: subcollections.evaluations 
+        });
+      }
+      
       results.ok++;
     }
   }
@@ -224,7 +293,7 @@ async function processBatch(batch, docs, mapping, dstCollection, isDryRun) {
     
     await retryWithBackoff(async () => {
       await batch.commit();
-      console.log(`✅ Batch committed: ${batchOps.length} documents`);
+      console.log(`✅ Batch committed: ${batchOps.length} documents/subcollections`);
     });
   }
   

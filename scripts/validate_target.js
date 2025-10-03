@@ -13,9 +13,8 @@ module.exports = {
       if (t.bio.height != null && typeof t.bio.height !== 'number')
         errs.push('bio.height number (inches)');
     }
-    const og = t.evaluations && t.evaluations.overallGrade;
-    if (og != null && (typeof og !== 'number' || og < 0 || og > 100))
-      errs.push('evaluations.overallGrade 0..100');
+    // Note: evaluations, contracts, seasons are now in subcollections, not main doc
+    // So we don't validate them here
     return errs;
   },
 };
