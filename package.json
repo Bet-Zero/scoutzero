@@ -40,7 +40,15 @@
     "schema:migrate-live": "MODE=live CONFIRM_SHADOW=1 SEASON=2025-26 node schema_transition/core/migrate_full_players.cjs",
     "schema:rollback-dry": "DRY_RUN=1 node schema_transition/utils/rollback_migration.cjs",
     "schema:rollback-live": "DRY_RUN=0 node schema_transition/utils/rollback_migration.cjs",
-    "schema:orchestrate": "node schema_transition/schema_transition_orchestrator.cjs"
+    "schema:orchestrate": "node schema_transition/schema_transition_orchestrator.cjs",
+    "migrate:dry": "node scripts/migrate_phase1_enhanced.cjs --dry-run",
+    "migrate:shadow": "node scripts/migrate_phase1_enhanced.cjs --shadow",
+    "migrate:shadow-backup": "node scripts/migrate_phase1_enhanced.cjs --shadow --backup",
+    "migrate:live": "node scripts/migrate_phase1_enhanced.cjs --backup",
+    "migrate:rollback": "node scripts/rollback_migration.cjs",
+    "migrate:rollback-confirm": "node scripts/rollback_migration.cjs --confirm",
+    "migrate:rename": "node scripts/rename_collection.cjs",
+    "migrate:rename-confirm": "node scripts/rename_collection.cjs --confirm"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.6",
