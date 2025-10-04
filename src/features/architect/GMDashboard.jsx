@@ -22,7 +22,7 @@ import ExceptionTracker from './ExceptionTracker';
 import SavePlanModal from './SavePlanModal';
 import useSimplePlayerData from '@/hooks/useSimplePlayerData';
 import { loadPlayerData } from '@/firebaseHelpers';
-import { normalizePlayerData } from '@/utils/roster';
+import { enrichPlayerData } from '@/utils/roster';
 import { getPlayerPositionLabel } from '@/utils/roles';
 import capProjections from '@/utils/architect/capProjections';
 
@@ -311,7 +311,7 @@ const GMDashboard = () => {
         let playerData = base;
         if (!playerData && (p.id || p.player_id)) {
           const loaded = await loadPlayerData(p.id || p.player_id);
-          if (loaded) playerData = normalizePlayerData(loaded);
+          if (loaded) playerData = enrichPlayerData(loaded);
         }
         const salaryMap =
           p.salaryByYear ||

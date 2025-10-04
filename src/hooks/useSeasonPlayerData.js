@@ -1,7 +1,8 @@
 import { useMemo, useState, useEffect } from 'react';
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
-import { normalizePlayerData } from '@/utils/roster';
+import { enrichPlayerData } from '@/utils/roster';
+import { PLAYERS_COLLECTION } from '@/constants/collections';
 
 /**
  * @deprecated Use usePlayerData or useSimplePlayerData instead
@@ -88,11 +89,11 @@ const useSeasonPlayerData = (season = null) => {
         // Strategy 3: Fallback to legacy /players collection
         if (players.length === 0) {
           try {
-            diag.collectionsChecked.push('/players');
-            const playersSnap = await getDocs(collection(db, 'players'));
+            diag.collectionsChecked.push(`/${PLAYERS_COLLECTION}`);
+            const playersSnap = await getDocs(collection(db, PLAYERS_COLLECTION));
             if (playersSnap.size > 0) {
               players = playersSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-              diag.source = '/players';
+              diag.source = `/${PLAYERS_COLLECTION}`;
               diag.playerCount = players.length;
               diag.fallbackUsed = true;
             }
@@ -145,7 +146,7 @@ const useSeasonPlayerData = (season = null) => {
 
   const players = useMemo(() => {
     if (!data.length) return [];
-    return data.map(normalizePlayerData);
+    return data.map(enrichPlayerData);
   }, [data]);
 
   return { 

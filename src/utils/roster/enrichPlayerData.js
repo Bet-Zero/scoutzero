@@ -5,7 +5,11 @@ const calculateHeight = (ht = '0-0') => {
   return parseInt(parts[0]) * 12 + parseInt(parts[1]);
 };
 
-export function normalizePlayerData(playerData) {
+/**
+ * Enrich player data with computed/convenience fields
+ * This adds helpful derived fields without changing the v2 schema structure
+ */
+export function enrichPlayerData(playerData) {
   const rawPosition = playerData.bio?.Position;
   const formattedPosition = POSITION_MAP[rawPosition] || rawPosition || '—';
 
