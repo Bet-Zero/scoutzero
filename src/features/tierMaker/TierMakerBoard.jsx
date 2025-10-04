@@ -25,7 +25,7 @@ const TierMakerBoard = ({ players = [], initialTierListId = '' }) => {
       allPlayers.map((player) => ({
         id: player.id,
         player_id: player.id,
-        name: (player.display_name || player.name || '').toLowerCase(),
+        name: (player.bio?.displayName || player.name || '').toLowerCase(),
         team: (player.bio?.Team || '').toLowerCase(),
         position:
           POSITION_MAP[player.bio?.Position] || player.bio?.Position || '',
@@ -43,8 +43,8 @@ const TierMakerBoard = ({ players = [], initialTierListId = '' }) => {
         badges: player.badges || [],
         salary: player.contract?.annual_salaries?.find((s) => s.year === 2025)
           ?.salary,
-        freeAgentYear: player.free_agency_year?.toString(),
-        freeAgentType: player.free_agent_type?.toLowerCase(),
+        freeAgentYear: player.freeAgentYear?.toString(),
+        freeAgentType: player.freeAgentType?.toLowerCase(),
         contractType: player.contract?.type?.toLowerCase(),
         extension: player.contract?.extension,
         options: player.contract?.options || [],

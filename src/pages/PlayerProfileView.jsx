@@ -82,7 +82,7 @@ const PlayerProfileView = () => {
     setBadges(data.badges || []);
     setShootingProfile(data.shootingProfile || '');
     setEditedBlurbs(data.blurbs || { ...defaultBlurbs });
-    setOverallGrade(data.overall_grade || null);
+    setOverallGrade(data.overallGrade || null);
     setHasChanges(false);
   }, [selectedPlayer, playersData]);
 

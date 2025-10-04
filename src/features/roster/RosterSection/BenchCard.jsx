@@ -37,7 +37,7 @@ const BenchCard = ({
         </div>
         <div className="bg-[#0f0f0f] px-2 pt-1 pb-2 h-[46px] flex flex-col items-center justify-center text-center border-t border-white/10">
           <PlayerNameMini
-            name={player.display_name || player.name}
+            name={player.bio?.displayName || player.name}
             scale={0.77}
             firstWeightClass={isExport ? 'font-normal' : 'font-light'}
             lastWeightClass={isExport ? 'font-normal' : 'font-bold'}

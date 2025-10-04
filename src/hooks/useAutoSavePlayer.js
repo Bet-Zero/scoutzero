@@ -25,7 +25,7 @@ const useAutoSavePlayer = ({
         subRoles,
         badges,
         shootingProfile,
-        overall_grade: overallGrade,
+        overallGrade: overallGrade,
         blurbs,
       });
       setHasChanges(false);

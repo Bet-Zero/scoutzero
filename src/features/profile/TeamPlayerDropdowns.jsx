@@ -57,7 +57,7 @@ const TeamPlayerDropdowns = ({
         <option value="">Select Player</option>
         {filteredKeys.map((key, index) => (
           <option key={`player-${index}-${key}`} value={key}>
-            {playersData[key]?.display_name || playersData[key]?.name || key}
+            {playersData[key]?.bio?.displayName || playersData[key]?.name || key}
           </option>
         ))}
       </select>

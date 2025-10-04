@@ -22,18 +22,18 @@ const PlayerHeader = ({ player, selectedPlayer }) => {
       ? `$${(currentSalary / 1_000_000).toFixed(1)}M / ${totalYears} yrs`
       : '—';
 
-  const freeAgentType = player.free_agent_type; // now from top-level
-  const freeAgencyYear = player.free_agency_year;
+  const freeAgentType = player.freeAgentType; // now from top-level
+  const freeAgentYear = player.freeAgentYear;
   const freeAgencyDisplay =
-    freeAgencyYear && freeAgentType
-      ? `${freeAgencyYear} (${freeAgentType})`
-      : freeAgencyYear || 'N/A';
+    freeAgentYear && freeAgentType
+      ? `${freeAgentYear} (${freeAgentType})`
+      : freeAgentYear || 'N/A';
 
   return (
     <div className="h-[220px] w-full max-w-[750px] flex items-center gap-4">
       <div className="flex w-[300px] justify-between">
         <div className="flex flex-col justify-center">
-          <PlayerName name={player.display_name || player.name || 'Unknown'} />
+          <PlayerName name={player.bio?.displayName || player.name || 'Unknown'} />
           <div className="flex items-center gap-4 mt-4">
             <TeamLogo teamAbbr={player.bio?.Team} />
             <div className="h-[2.5rem] w-[2px] bg-black" />

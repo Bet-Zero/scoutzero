@@ -35,7 +35,7 @@ export function filterPlayers(players = [], filters) {
     }
 
     if (filters.nameSearch) {
-      const playerName = (p.display_name || p.name || '').toLowerCase();
+      const playerName = (p.doc?.bio?.displayName || p.doc?.bio?.name || '').toLowerCase();
       const searchTerm = filters.nameSearch.toLowerCase();
       if (!playerName.includes(searchTerm)) return false;
     }
@@ -83,12 +83,12 @@ export function filterPlayers(players = [], filters) {
 
     if (
       filters.freeAgentYear &&
-      parseInt(p.free_agency_year || 0) !== parseInt(filters.freeAgentYear)
+      parseInt(p.freeAgentYear || 0) !== parseInt(filters.freeAgentYear)
     ) {
       return false;
     }
 
-    if (filters.freeAgentType && p.free_agent_type !== filters.freeAgentType) {
+    if (filters.freeAgentType && p.freeAgentType !== filters.freeAgentType) {
       return false;
     }
 
@@ -253,7 +253,7 @@ function isLikelyNewPlayer(player) {
   }
 
   // If player has overall grade, they're established
-  if (player.overall_grade || player.overall) {
+  if (player.overallGrade || player.overall) {
     return false;
   }
 
@@ -275,7 +275,7 @@ export function sortPlayers(
         return parseFloat(player.system.stats[field]) ?? -1;
       switch (field) {
         case 'name':
-          return (player.display_name || player.name || '').toLowerCase();
+          return (player.bio?.displayName || player.name || '').toLowerCase();
         case 'height':
           return player.heightInInches;
         case 'weight':
@@ -287,7 +287,7 @@ export function sortPlayers(
         case 'shootingProfile':
           return shootingProfileRank[player.shootingProfile] ?? 0;
         case 'yearsRemaining':
-          return parseInt(player.free_agency_year) - 2024 || -1;
+          return parseInt(player.freeAgentYear) - 2024 || -1;
         case 'totalContract':
           return Array.isArray(player.contract?.annual_salaries)
             ? player.contract.annual_salaries.reduce((sum, s) => {

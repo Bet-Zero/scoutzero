@@ -18,7 +18,7 @@ const TierPlayerTile = ({ player }) => {
     player.bio?.Position || player.formattedPosition
   );
   const nameParts = (
-    player.display_name ||
+    player.bio?.displayName ||
     player.name ||
     'Unknown Player'
   ).split(' ');

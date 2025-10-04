@@ -138,7 +138,7 @@ const TradeExportCapture = React.forwardRef(
                               const years = getYearsRemaining(
                                 p.contract_clean?.fa_year ||
                                   p.fa_year ||
-                                  p.free_agency_year,
+                                  p.freeAgentYear,
                                 parseInt(
                                   String(yearKey).match(/\d{4}/)?.[0] || yearKey
                                 )
@@ -163,7 +163,7 @@ const TradeExportCapture = React.forwardRef(
                                   />
                                   <div className="flex flex-col justify-center flex-1 overflow-hidden">
                                     <div className="text-white font-semibold text-[15px] truncate">
-                                      {p.display_name || p.name}
+                                      {p.bio?.displayName || p.name}
                                     </div>
                                     <div className="text-neutral-400 text-xs font-medium">
                                       {formatSalary(salary)} • {years} yrs

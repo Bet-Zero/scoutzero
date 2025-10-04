@@ -16,7 +16,7 @@ export function getCurrentSeasonYear(date = new Date()) {
 }
 
 // Calculate years remaining on contract
-export function getYearsRemaining(freeAgencyYear, currentSeason = getCurrentSeasonYear()) {
-  if (typeof freeAgencyYear !== 'number') return 0;
-  return Math.max(0, freeAgencyYear - currentSeason);
+export function getYearsRemaining(freeAgentYear, currentSeason = getCurrentSeasonYear()) {
+  if (typeof freeAgentYear !== 'number') return 0;
+  return Math.max(0, freeAgentYear - currentSeason);
 }

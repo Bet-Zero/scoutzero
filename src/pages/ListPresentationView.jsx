@@ -8,7 +8,7 @@ import TieredListView from '@/features/lists/TieredListView';
 const samplePlayer = {
   player_id: 'aaron_gordon',
   name: 'Aaron Gordon',
-  display_name: 'Aaron Gordon',
+  displayName: 'Aaron Gordon',
   formattedPosition: 'F',
   headshotUrl: '/assets/headshots/aaron_gordon.png',
   bio: {

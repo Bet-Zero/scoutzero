@@ -85,8 +85,8 @@ const CapSheetFull = ({ teamCapSheet, onSelectPlayer, playersMap = {} }) => {
                     onClick={() => onSelectPlayer && onSelectPlayer(player)}
                     className="text-blue-400 hover:underline"
                   >
-                    {playersMap[player.name]?.display_name ||
-                      formatName(player.display_name || player.name)}
+                    {playersMap[player.name]?.bio?.displayName ||
+                      formatName(player.bio?.displayName || player.name)}
                   </button>
                 </td>
                 {allYears.map((year) => {
@@ -170,8 +170,8 @@ const CapSheetFull = ({ teamCapSheet, onSelectPlayer, playersMap = {} }) => {
                     return (
                       <tr key={idx} className="odd:bg-[#171717]">
                         <td className="p-2">
-                          {playersMap[p.name]?.display_name ||
-                            formatName(p.display_name || p.name)}
+                          {playersMap[p.name]?.bio?.displayName ||
+                            formatName(p.bio?.displayName || p.name)}
                         </td>
                         <td className="p-2">${amt.toLocaleString()}</td>
                         <td className="p-2">{reason}</td>

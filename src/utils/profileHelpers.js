@@ -3,8 +3,8 @@ export function getPlayersForTeam(playersData, team) {
   return Object.keys(playersData)
     .filter((key) => playersData[key]?.bio?.Team === team)
     .sort((a, b) => {
-      const aName = playersData[a]?.display_name || playersData[a]?.name || '';
-      const bName = playersData[b]?.display_name || playersData[b]?.name || '';
+      const aName = playersData[a]?.bio?.displayName || playersData[a]?.name || '';
+      const bName = playersData[b]?.bio?.displayName || playersData[b]?.name || '';
       return aName
         .split(' ')
         .slice(-1)[0]

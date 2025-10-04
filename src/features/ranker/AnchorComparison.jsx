@@ -8,7 +8,7 @@ const PlayerButton = ({ player, selected, onClick }) => (
       selected ? 'bg-blue-600 border-blue-400' : 'bg-white/10 border-white/20'
     }`}
   >
-    {player.display_name || player.name}
+    {player.bio?.displayName || player.name}
   </button>
 );
 
@@ -29,7 +29,7 @@ export const AnchorComparison = ({ anchor, players = [], onComplete }) => {
     <div className="text-white p-4 max-w-[700px] mx-auto">
       <h2 className="text-2xl font-bold mb-4">Anchor Comparison</h2>
       <h3 className="font-semibold mb-2">
-        Select all players better than {anchor.display_name || anchor.name}
+        Select all players better than {anchor.bio?.displayName || anchor.name}
       </h3>
       <div className="flex flex-wrap gap-2 mb-4">
         {players.map((p) => (

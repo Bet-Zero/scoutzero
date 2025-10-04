@@ -8,7 +8,7 @@ import { formatSalary } from '@/utils/formatting';
 const PlayerRowMini = ({ player, onClick }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const name = player.display_name || player.name || 'Unknown Player';
+  const name = player.bio?.displayName || player.name || 'Unknown Player';
   const headshot = player.headshot || `/assets/headshots/${player.id}.png`;
 
   const rawPosition = player.bio?.Position || '—';
@@ -21,7 +21,7 @@ const PlayerRowMini = ({ player, onClick }) => {
   )?.salary;
   const formattedSalary = formatSalary(currentYearSalary);
   const rightSideValue =
-    formattedSalary !== '—' ? formattedSalary : player.free_agent_type || '—';
+    formattedSalary !== '—' ? formattedSalary : player.freeAgentType || '—';
 
   const handleChevronClick = (e) => {
     e.stopPropagation();
