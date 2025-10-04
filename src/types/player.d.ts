@@ -172,10 +172,10 @@ export interface PlayerMainDoc {
 
 /**
  * Full player V2 structure with subcollections
+ * For use with usePlayerDetail hook
  */
-export interface PlayerV2 {
+export interface PlayerV2 extends PlayerMainDoc {
   id: string;
-  doc: PlayerMainDoc;
   contracts?: Record<ContractId, ContractDoc>;
   seasons?: Record<SeasonId, SeasonDoc>;
   evaluations?: Record<string, EvaluationDoc>;
@@ -183,8 +183,8 @@ export interface PlayerV2 {
 
 /**
  * Simple player list item (for list views - main doc only)
+ * For use with useSimplePlayerData hook
  */
-export interface PlayerListItem {
+export interface PlayerListItem extends PlayerMainDoc {
   id: string;
-  doc: PlayerMainDoc;
 }

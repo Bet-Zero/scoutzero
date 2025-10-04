@@ -72,10 +72,10 @@ const usePlayerDetail = (playerId) => {
           evaluations[doc.id] = doc.data();
         });
 
-        // Step 4: Build v2 player structure
+        // Step 4: Build v2 player structure with spread pattern for easier access
         const playerV2 = {
           id: playerId,
-          doc: mainDoc,
+          ...mainDoc,  // Spread main doc fields (bio, etc.) at top level
           contracts: Object.keys(contracts).length > 0 ? contracts : undefined,
           seasons: Object.keys(seasons).length > 0 ? seasons : undefined,
           evaluations: Object.keys(evaluations).length > 0 ? evaluations : undefined

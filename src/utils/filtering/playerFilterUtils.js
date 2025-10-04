@@ -35,7 +35,7 @@ export function filterPlayers(players = [], filters) {
     }
 
     if (filters.nameSearch) {
-      const playerName = (p.doc?.bio?.displayName || p.doc?.bio?.name || '').toLowerCase();
+      const playerName = (p.bio?.displayName || p.bio?.name || '').toLowerCase();
       const searchTerm = filters.nameSearch.toLowerCase();
       if (!playerName.includes(searchTerm)) return false;
     }

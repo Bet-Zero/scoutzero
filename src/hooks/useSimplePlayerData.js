@@ -32,10 +32,13 @@ const useSimplePlayerData = () => {
     const unsubscribe = onSnapshot(
       playersQuery,
       (snapshot) => {
-        const playerData = snapshot.docs.map(doc => ({
-          id: doc.id,
-          doc: doc.data()
-        }));
+        const playerData = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data  // Spread v2 schema fields at top level for easier access
+          };
+        });
         
         setPlayers(playerData);
         setLoading(false);
