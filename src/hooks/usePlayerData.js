@@ -1,26 +1,27 @@
 import { useMemo } from 'react';
 import useSimplePlayerData from './useSimplePlayerData';
+import { PLAYERS_COLLECTION } from '@/constants/collections';
 
 /**
- * Main hook for player data - now fully simplified to single data source
- * All components should use this unified interface
+ * Main hook for player data - V2 schema
+ * Returns list of players from main collection (no subcollections)
  */
 const usePlayerData = (season = null) => {
   // Use the simple data hook for all cases (real-time updates, reliable)
   const { players, loading, error } = useSimplePlayerData();
   
-  // Log warning if season parameter is used (no longer supported in simplified architecture)
+  // Log warning if season parameter is used (no longer supported in v2 schema)
   if (season !== null) {
-    console.warn('🚨 Season parameter is deprecated in usePlayerData. All data now comes from /players collection for consistency.');
+    console.warn('🚨 Season parameter is deprecated in usePlayerData. All data now comes from v2 schema.');
   }
 
   // Provide simplified diagnostics for backward compatibility
   const diagnostics = {
     isEmpty: players.length === 0,
     isUsingFallback: false,
-    dataSource: '/players',
+    dataSource: PLAYERS_COLLECTION,
     playerCount: players.length,
-    collectionsChecked: ['/players']
+    collectionsChecked: [PLAYERS_COLLECTION]
   };
 
   // Log diagnostic info only if there are issues

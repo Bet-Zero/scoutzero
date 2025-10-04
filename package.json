@@ -12,6 +12,7 @@
     "test": "vitest",
     "zen": "node toggleView.cjs",
     "prepare": "echo skipped",
+    "check:legacy": "node scripts/scan_for_legacy.cjs",
     "docs:deps": "node scripts/generate-deps.cjs",
     "docs:candidates": "node scripts/detect-validators.cjs",
     "docs:api": "documentation build \"src/**/*.{js,ts,jsx,tsx}\" -f md -o atlas-docs/api.md --shallow",
