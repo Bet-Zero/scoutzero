@@ -109,7 +109,7 @@ const TradePlayerRow = ({
         <img
           src={`/assets/headshots/${player.player_id}.png`}
           onError={(e) => (e.target.src = '/assets/headshots/default.png')}
-          alt={player.display_name || player.name}
+          alt={player.bio?.displayName || player.name}
           className="h-full w-full object-cover"
         />
       </div>
@@ -118,7 +118,7 @@ const TradePlayerRow = ({
       <div className="flex flex-col justify-center ml-3">
         <div className="h-[32px] flex items-center mb-2">
           <PlayerNameMini
-            name={player.display_name || player.name}
+            name={player.bio?.displayName || player.name}
             scale={0.85}
           />
         </div>

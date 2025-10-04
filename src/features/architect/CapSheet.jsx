@@ -172,7 +172,7 @@ const CapSheet = ({
                     onClick={() => onSelectPlayer && onSelectPlayer(player)}
                     className="text-blue-400 hover:underline"
                   >
-                    {playersMap[player.name]?.display_name ||
+                    {playersMap[player.name]?.bio?.displayName ||
                       formatName(player.name)}
                   </button>
                 </td>
@@ -222,7 +222,7 @@ const CapSheet = ({
                   return (
                     <tr key={idx} className="odd:bg-[#171717]">
                       <td className="p-2">
-                        {playersMap[p.name]?.display_name || formatName(p.name)}
+                        {playersMap[player.name]?.bio?.displayName || formatName(p.name)}
                       </td>
                       <td className="p-2">${amt.toLocaleString()}</td>
                       <td className="p-2">{reason}</td>

@@ -31,7 +31,7 @@ const FreeAgentRow = ({
     }
     return undefined;
   }, [openMenu, askInfo.name, setOpenMenu]);
-  const name = player.display_name || player.name || formatName(askInfo.name);
+  const name = player.bio?.displayName || player.name || formatName(askInfo.name);
   const nameParts = name.split(' ');
   const firstName = nameParts[0]?.toUpperCase() || '';
   const lastName = nameParts.slice(1).join(' ').toUpperCase() || '';

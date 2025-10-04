@@ -45,7 +45,7 @@ const ListSearchBar = ({
     const matchedPlayers = Object.keys(playersData)
       .filter((id) => {
         const name =
-          playersData[id]?.display_name || playersData[id]?.name || '';
+          playersData[id]?.bio?.displayName || playersData[id]?.name || '';
         return name.toLowerCase().includes(lower);
       })
       .slice(0, 5)
@@ -55,7 +55,7 @@ const ListSearchBar = ({
         );
         return {
           id,
-          name: playersData[id]?.display_name || playersData[id]?.name || id,
+          name: playersData[id]?.bio?.displayName || playersData[id]?.name || id,
           lists,
         };
       })

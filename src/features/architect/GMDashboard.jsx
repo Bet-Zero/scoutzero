@@ -327,7 +327,10 @@ const GMDashboard = () => {
           ...(playerData || {}),
           name: playerData?.name || p.name,
           player_id: p.id || p.player_id || playerData?.player_id,
-          display_name: playerData?.display_name || p.display_name || p.name,
+          bio: {
+            ...playerData?.bio,
+            displayName: playerData?.bio?.displayName || p.bio?.displayName || p.name
+          },
           position,
           contract_clean: {
             ...(playerData?.contract_clean || {}),
@@ -382,8 +385,10 @@ const GMDashboard = () => {
         ...(base || {}),
         name: base.name || playerObj.name,
         player_id: playerObj.id || playerObj.player_id || base.player_id,
-        display_name:
-          base.display_name || playerObj.display_name || playerObj.name,
+        bio: {
+          ...base.bio,
+          displayName: base.bio?.displayName || playerObj.bio?.displayName || playerObj.name
+        },
         position,
         contract_clean: {
           ...(base.contract_clean || {}),

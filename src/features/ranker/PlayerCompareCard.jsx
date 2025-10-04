@@ -13,7 +13,7 @@ const PlayerCompareCard = ({ left, right, onSelect, onSkip, onUndo }) => {
           onClick={() => onSelect(left, right)}
         >
           <PlayerHeadshot playerId={left.id} />
-          <PlayerNameMini name={left.display_name || left.name} />
+          <PlayerNameMini name={left.bio?.displayName || left.name} />
         </button>
         <span className="text-xl font-bold text-white">vs</span>
         <button
@@ -21,7 +21,7 @@ const PlayerCompareCard = ({ left, right, onSelect, onSkip, onUndo }) => {
           onClick={() => onSelect(right, left)}
         >
           <PlayerHeadshot playerId={right.id} />
-          <PlayerNameMini name={right.display_name || right.name} />
+          <PlayerNameMini name={right.bio?.displayName || right.name} />
         </button>
       </div>
       <div className="flex gap-4 mt-4 text-sm text-white/70">

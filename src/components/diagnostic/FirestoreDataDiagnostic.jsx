@@ -53,7 +53,7 @@ const FirestoreDataDiagnostic = () => {
                 const seasonInfo = {
                   id: doc.id,
                   status: seasonData.status,
-                  display_name: seasonData.display_name,
+                  displayName: seasonData.bio?.displayName,
                   subcollections: {}
                 };
                 
@@ -215,7 +215,7 @@ const FirestoreDataDiagnostic = () => {
           {diagnostics.collections.seasons.seasons.map((season) => (
             <div key={season.id} className="mb-4 p-3 bg-gray-50 rounded">
               <div className="font-semibold text-gray-900">
-                Season {season.id} ({season.display_name}) - {season.status}
+                Season {season.id} ({season.displayName}) - {season.status}
               </div>
               <div className="mt-2 space-y-1">
                 {Object.entries(season.subcollections).map(([subName, subInfo]) => (

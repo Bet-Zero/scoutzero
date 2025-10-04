@@ -6,7 +6,7 @@ import { getPlayerPositionLabel } from '@/utils/roles';
 
 const ListExportPlayerRowSingle = ({ player, rank }) => {
   const nameParts = (
-    player.display_name ||
+    player.bio?.displayName ||
     player.name ||
     'Unknown Player'
   ).split(' ');
@@ -43,7 +43,7 @@ const ListExportPlayerRowSingle = ({ player, rank }) => {
       {/* Main Info */}
       <div className="flex flex-col justify-center ml-3">
         <div className="h-[40px] flex items-center">
-          <PlayerNameMini name={player.display_name || player.name} />
+          <PlayerNameMini name={player.bio?.displayName || player.name} />
         </div>
         <div className="flex items-center mt-[11px] -mb-1 gap-2 text-white/50 text-[13px]">
           <TeamLogo teamAbbr={player.bio?.Team} className="w-5 h-5" />

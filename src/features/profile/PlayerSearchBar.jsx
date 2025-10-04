@@ -14,7 +14,7 @@ const PlayerSearchBar = ({ playersData, onSelect }) => {
     const matches = Object.keys(playersData)
       .filter((id) => {
         const name =
-          playersData[id]?.display_name || playersData[id]?.name || '';
+          playersData[id]?.bio?.displayName || playersData[id]?.name || '';
         return name.toLowerCase().includes(lower);
       })
       .slice(0, 8);
@@ -49,7 +49,7 @@ const PlayerSearchBar = ({ playersData, onSelect }) => {
               className="px-2 py-1 text-white hover:bg-neutral-700 cursor-pointer text-sm"
               onClick={() => handleSelect(id)}
             >
-              {playersData[id]?.display_name || playersData[id]?.name || id}
+              {playersData[id]?.bio?.displayName || playersData[id]?.name || id}
             </li>
           ))}
         </ul>

@@ -12,7 +12,7 @@ import { getCurrentSeasonYear, getYearsRemaining } from '@/utils/contracts';
 const PlayerRow = ({ player, ranking = '—' }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const nameParts = (
-    player.display_name ||
+    player.bio?.displayName ||
     player.name ||
     'Unknown Player'
   ).split(' ');
@@ -52,7 +52,7 @@ const PlayerRow = ({ player, ranking = '—' }) => {
         {/* Name + Team Info */}
         <div className="ml-3 flex flex-col justify-center w-[140px]">
           <div className="h-[50px] mb-2">
-            <PlayerNameMini name={player.display_name || player.name} />
+            <PlayerNameMini name={player.bio?.displayName || player.name} />
           </div>
           <div className="flex items-center gap-2">
             <TeamLogo teamAbbr={player.bio?.Team} className="w-6 h-6" />
@@ -154,7 +154,7 @@ const PlayerRow = ({ player, ranking = '—' }) => {
 
         {/* Grade Block */}
         <div className="flex items-center justify-center">
-          <OverallGradeBlock grade={player.overall_grade} readOnly />
+          <OverallGradeBlock grade={player.overallGrade} readOnly />
         </div>
 
         {/* Expand Toggle */}

@@ -4,7 +4,7 @@ import TeamLogo from '@/components/shared/TeamLogo';
 import { getPlayerPositionLabel } from '@/utils/roles';
 
 const ListExportRowCompactTwoColumn = ({ player, rank }) => {
-  const name = player.display_name || player.name || 'Unknown Player';
+  const name = player.bio?.displayName || player.name || 'Unknown Player';
   const nameParts = name.split(' ');
   const firstName = nameParts[0]?.toUpperCase() || '';
   const lastName = nameParts.slice(1).join(' ').toUpperCase() || '';

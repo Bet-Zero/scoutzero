@@ -25,7 +25,7 @@ const ComparisonMatrix = ({ players, comparisons, className = '' }) => {
                 key={p.id}
                 className="border border-white/10 px-2 py-1 bg-black/40"
               >
-                {p.display_name || p.name}
+                {p.bio?.displayName || p.name}
               </th>
             ))}
           </tr>
@@ -34,7 +34,7 @@ const ComparisonMatrix = ({ players, comparisons, className = '' }) => {
           {players.map((rowPlayer) => (
             <tr key={rowPlayer.id}>
               <td className="border border-white/10 px-2 py-1 bg-black/40 font-semibold">
-                {rowPlayer.display_name || rowPlayer.name}
+                {rowPlayer.bio?.displayName || rowPlayer.name}
               </td>
               {players.map((colPlayer) => {
                 if (rowPlayer.id === colPlayer.id) {

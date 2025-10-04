@@ -9,7 +9,7 @@ const PlayerButton = ({ player, selected, onClick }) => (
       selected ? 'bg-blue-600 border-blue-400' : 'bg-white/10 border-white/20'
     }`}
   >
-    {player.display_name || player.name}
+    {player.bio?.displayName || player.name}
   </button>
 );
 
@@ -125,7 +125,7 @@ export const RankingSetup = ({ playerPool = [], onComplete }) => {
             <option value="">None</option>
             {playerPool.map((p) => (
               <option key={`first-${p.id}`} value={p.id}>
-                {p.display_name || p.name}
+                {p.bio?.displayName || p.name}
               </option>
             ))}
           </select>
@@ -140,7 +140,7 @@ export const RankingSetup = ({ playerPool = [], onComplete }) => {
             <option value="">None</option>
             {playerPool.map((p) => (
               <option key={`last-${p.id}`} value={p.id}>
-                {p.display_name || p.name}
+                {p.bio?.displayName || p.name}
               </option>
             ))}
           </select>

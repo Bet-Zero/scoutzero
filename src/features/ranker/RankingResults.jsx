@@ -7,7 +7,7 @@ import React from 'react';
 const RankingResults = ({ ranking = [] }) => {
   const handleCopy = () => {
     const text = ranking
-      .map((p, idx) => `#${idx + 1} ${p.display_name || p.name}`)
+      .map((p, idx) => `#${idx + 1} ${p.bio?.displayName || p.name}`)
       .join('\n');
     navigator.clipboard.writeText(text).catch(() => {});
   };
@@ -16,7 +16,7 @@ const RankingResults = ({ ranking = [] }) => {
     const rows = ranking
       .map(
         (p, idx) =>
-          `${idx + 1},"${(p.display_name || p.name).replace(/"/g, '""')}"`
+          `${idx + 1},"${(p.bio?.displayName || p.name).replace(/"/g, '""')}"`
       )
       .join('\n');
     const csv = `Rank,Name\n${rows}`;
@@ -68,7 +68,7 @@ const RankingResults = ({ ranking = [] }) => {
                   e.target.src = '/assets/headshots/default.png';
                 }}
               />
-              <span className="truncate">{p.display_name || p.name}</span>
+              <span className="truncate">{p.bio?.displayName || p.name}</span>
             </li>
           );
         })}

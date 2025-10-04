@@ -8,14 +8,14 @@ import TieredListView from '@/features/lists/TieredListView';
 const samplePlayer = {
   player_id: 'aaron_gordon',
   name: 'Aaron Gordon',
-  display_name: 'Aaron Gordon',
-  formattedPosition: 'F',
-  headshotUrl: '/assets/headshots/aaron_gordon.png',
   bio: {
+    displayName: 'Aaron Gordon',
     HT: "6'8",
     WT: 235,
     Team: 'DEN',
   },
+  formattedPosition: 'F',
+  headshotUrl: '/assets/headshots/aaron_gordon.png',
 };
 
 const sampleList = Array(15).fill(samplePlayer);
