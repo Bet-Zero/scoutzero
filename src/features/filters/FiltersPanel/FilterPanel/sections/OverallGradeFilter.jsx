@@ -1,8 +1,8 @@
 import React from 'react';
 
 const OverallGradeFilter = ({ filters, setFilters }) => {
-  const min = filters.min_overall_grade ?? '';
-  const max = filters.max_overall_grade ?? '';
+  const min = filters.minOverallGrade ?? '';
+  const max = filters.maxOverallGrade ?? '';
 
   const update = (key, value) => {
     setFilters((prev) => ({
@@ -29,7 +29,7 @@ const OverallGradeFilter = ({ filters, setFilters }) => {
             inputMode="numeric"
             pattern="[0-9]*"
             value={min}
-            onChange={(e) => update('min_overall_grade', e.target.value)}
+            onChange={(e) => update('minOverallGrade', e.target.value)}
             placeholder="Min"
             className={inputStyle(min)}
           />
@@ -44,7 +44,7 @@ const OverallGradeFilter = ({ filters, setFilters }) => {
             inputMode="numeric"
             pattern="[0-9]*"
             value={max}
-            onChange={(e) => update('max_overall_grade', e.target.value)}
+            onChange={(e) => update('maxOverallGrade', e.target.value)}
             placeholder="Max"
             className={inputStyle(max)}
           />

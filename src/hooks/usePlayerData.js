@@ -2,25 +2,27 @@ import { useMemo } from 'react';
 import useSimplePlayerData from './useSimplePlayerData';
 
 /**
- * Main hook for player data - now fully simplified to single data source
- * All components should use this unified interface
+ * Main hook for player data - returns v2 schema format
+ * Uses PLAYERS_COLLECTION constant for easy switching
+ * 
+ * For list views: Returns main player documents only (no subcollections)
+ * For detail views: Use usePlayerDetail hook instead
  */
 const usePlayerData = (season = null) => {
-  // Use the simple data hook for all cases (real-time updates, reliable)
+  // Use the simple data hook (main documents only)
   const { players, loading, error } = useSimplePlayerData();
   
-  // Log warning if season parameter is used (no longer supported in simplified architecture)
+  // Log warning if season parameter is used (no longer supported)
   if (season !== null) {
-    console.warn('🚨 Season parameter is deprecated in usePlayerData. All data now comes from /players_v2 collection with subcollections for consistency.');
+    console.warn('🚨 Season parameter is deprecated in usePlayerData. Use players_v2 collection with v2 schema.');
   }
 
-  // Provide simplified diagnostics for backward compatibility
+  // Provide diagnostics for troubleshooting
   const diagnostics = {
     isEmpty: players.length === 0,
-    isUsingFallback: false,
-    dataSource: '/players_v2 (with subcollections)',
+    dataSource: 'players_v2 (v2 schema)',
     playerCount: players.length,
-    collectionsChecked: ['/players_v2', '/players_v2/{id}/contracts', '/players_v2/{id}/seasons', '/players_v2/{id}/evaluations']
+    collectionsChecked: ['players_v2']
   };
 
   // Log diagnostic info only if there are issues
@@ -36,7 +38,6 @@ const usePlayerData = (season = null) => {
     players, 
     loading, 
     error,
-    // Backward compatible diagnostics
     diagnostics
   };
 };

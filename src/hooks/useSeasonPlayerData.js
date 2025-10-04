@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
 import { normalizePlayerData } from '@/utils/roster';
+import { PLAYERS_COLLECTION } from '@/constants/collections';
 
 /**
  * @deprecated Use usePlayerData or useSimplePlayerData instead
@@ -85,19 +86,19 @@ const useSeasonPlayerData = (season = null) => {
           }
         }
         
-        // Strategy 3: Fallback to legacy /players_v2 collection
+        // Strategy 3: Fallback to main players collection
         if (players.length === 0) {
           try {
-            diag.collectionsChecked.push('/players_v2');
-            const playersSnap = await getDocs(collection(db, 'players_v2'));
+            diag.collectionsChecked.push(`/${PLAYERS_COLLECTION}`);
+            const playersSnap = await getDocs(collection(db, PLAYERS_COLLECTION));
             if (playersSnap.size > 0) {
               players = playersSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-              diag.source = '/players_v2';
+              diag.source = `/${PLAYERS_COLLECTION}`;
               diag.playerCount = players.length;
               diag.fallbackUsed = true;
             }
           } catch (err) {
-            console.warn('players_v2 collection not accessible:', err.message);
+            console.warn(`${PLAYERS_COLLECTION} collection not accessible:`, err.message);
           }
         }
         

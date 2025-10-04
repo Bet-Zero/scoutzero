@@ -253,7 +253,7 @@ function isLikelyNewPlayer(player) {
   }
 
   // If player has overall grade, they're established
-  if (player.overall_grade || player.overall) {
+  if (player.overallGrade) {
     return false;
   }
 
