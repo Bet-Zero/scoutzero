@@ -8,6 +8,7 @@
     "preview": "vite preview",
     "update-stats": "node updateStats.js",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "check:legacy": "node scripts/scan_for_legacy.cjs",
     "docs": "node generateDocs.cjs",
     "test": "vitest",
     "zen": "node toggleView.cjs",

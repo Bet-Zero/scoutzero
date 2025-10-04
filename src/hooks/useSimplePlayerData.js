@@ -4,10 +4,14 @@
 import { useState, useEffect } from 'react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
+import { PLAYERS_COLLECTION } from '@/constants/collections';
 
 /**
  * Simple, reliable player data hook with real-time updates
  * Replaces the 4-strategy fallback complexity in useSeasonPlayerData
+ * 
+ * Returns main player documents only (no subcollections)
+ * Use usePlayerDetail for full player data with subcollections
  */
 const useSimplePlayerData = () => {
   const [players, setPlayers] = useState([]);
@@ -20,7 +24,7 @@ const useSimplePlayerData = () => {
 
     // Single data source - no fallbacks, no confusion
     const playersQuery = query(
-      collection(db, 'players'),
+      collection(db, PLAYERS_COLLECTION),
       orderBy('name')
     );
 
@@ -30,7 +34,7 @@ const useSimplePlayerData = () => {
       (snapshot) => {
         const playerData = snapshot.docs.map(doc => ({
           id: doc.id,
-          ...doc.data()
+          doc: doc.data()
         }));
         
         setPlayers(playerData);
