@@ -4,12 +4,12 @@ export function normalizePlayer(player) {
   if (!player) return null;
   return {
     ...player,
-    display_name: player.display_name || player.name || 'Unknown Player',
-    headshot: player.headshot || `/assets/headshots/${player.id}.png`,
     bio: {
       ...player.bio,
+      displayName: player.bio?.displayName || player.name || 'Unknown Player',
       Position: player.bio?.Position || 'Unknown',
     },
+    headshot: player.headshot || `/assets/headshots/${player.id}.png`,
   };
 }
 

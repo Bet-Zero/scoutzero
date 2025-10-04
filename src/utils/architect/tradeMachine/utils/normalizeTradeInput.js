@@ -14,7 +14,7 @@ function normalizePlayer(player, yearKey) {
 
   return {
     ...player,
-    name: player.name || player.display_name || 'Unknown Player',
+    name: player.name || player.bio?.displayName || 'Unknown Player',
     salary: toNum(player.salary || getMatchingValue(player, yearKey, false)),
     matchIncoming: toNum(player.matchIncoming),
     matchOutgoing: toNum(player.matchOutgoing),

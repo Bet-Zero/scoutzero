@@ -35,7 +35,7 @@ export function filterPlayers(players = [], filters) {
     }
 
     if (filters.nameSearch) {
-      const playerName = (p.display_name || p.name || '').toLowerCase();
+      const playerName = (p.bio?.displayName || p.name || '').toLowerCase();
       const searchTerm = filters.nameSearch.toLowerCase();
       if (!playerName.includes(searchTerm)) return false;
     }
@@ -253,7 +253,7 @@ function isLikelyNewPlayer(player) {
   }
 
   // If player has overall grade, they're established
-  if (player.overall_grade || player.overall) {
+  if (player.overallGrade || player.overall) {
     return false;
   }
 
@@ -275,7 +275,7 @@ export function sortPlayers(
         return parseFloat(player.system.stats[field]) ?? -1;
       switch (field) {
         case 'name':
-          return (player.display_name || player.name || '').toLowerCase();
+          return (player.bio?.displayName || player.name || '').toLowerCase();
         case 'height':
           return player.heightInInches;
         case 'weight':

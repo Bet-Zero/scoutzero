@@ -32,7 +32,7 @@ export const useRosterManager = (allPlayers = [], isLoading = false) => {
     () =>
       allPlayers.map((player) => ({
         id: player.id,
-        name: (player.display_name || player.name || '').toLowerCase(),
+        name: (player.bio?.displayName || player.name || '').toLowerCase(),
         team: (player.bio?.Team || '').toLowerCase(),
         position:
           POSITION_MAP[player.bio?.Position] || player.bio?.Position || '',
