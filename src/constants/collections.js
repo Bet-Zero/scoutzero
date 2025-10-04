@@ -5,6 +5,7 @@
  */
 
 // Main players collection - defaults to v2 schema, can be overridden via env
+// eslint-disable-next-line no-undef
 export const PLAYERS_COLLECTION = process.env.VITE_PLAYERS_COLLECTION || 'players_v2';
 
 // Team collection
