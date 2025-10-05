@@ -12,10 +12,11 @@ const TierPlayerTile = ({ player }) => {
     player.headshot ||
     `/assets/headshots/${player.player_id}.png`;
 
-  const height = player.bio?.HT ? player.bio.HT.replace('-', `'`) : '—';
+  // V2 structure: bio.height is in inches, use formatHeight to display
+  const height = player.bio?.height ? formatHeight(player.bio.height) : '—';
 
   const position = getPlayerPositionLabel(
-    player.bio?.Position || player.formattedPosition
+    player.bio?.position || player.formattedPosition
   );
   const nameParts = (
     player.bio?.displayName ||
