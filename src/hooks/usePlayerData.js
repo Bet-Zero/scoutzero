@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import useSimplePlayerData from './useSimplePlayerData';
+import { PLAYERS_COLLECTION } from '@/constants/collections';
 
 /**
  * Main hook for player data - now fully simplified to single data source
@@ -11,16 +12,16 @@ const usePlayerData = (season = null) => {
   
   // Log warning if season parameter is used (no longer supported in simplified architecture)
   if (season !== null) {
-    console.warn('🚨 Season parameter is deprecated in usePlayerData. All data now comes from /players collection for consistency.');
+    console.warn(`🚨 Season parameter is deprecated in usePlayerData. All data now comes from ${PLAYERS_COLLECTION} collection for consistency.`);
   }
 
   // Provide simplified diagnostics for backward compatibility
   const diagnostics = {
     isEmpty: players.length === 0,
     isUsingFallback: false,
-    dataSource: '/players',
+    dataSource: PLAYERS_COLLECTION,
     playerCount: players.length,
-    collectionsChecked: ['/players']
+    collectionsChecked: [PLAYERS_COLLECTION]
   };
 
   // Log diagnostic info only if there are issues
