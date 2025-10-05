@@ -1,19 +1,24 @@
 import { useState, useEffect } from 'react';
 import { doc, getDoc, getDocs } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
-import { playerRef, contractsCol, seasonsCol, evalsCol } from '@/data/firestorePaths';
+import {
+  playerRef,
+  contractsCol,
+  seasonsCol,
+  evalsCol,
+} from '@/data/firestorePaths.js';
 
 /**
  * Hook for fetching full player details including subcollections
- * 
+ *
  * Fetches:
  * 1. Main player document (bio, etc.)
  * 2. All contract documents (in parallel)
  * 3. All season documents (in parallel)
  * 4. All evaluation documents (in parallel)
- * 
+ *
  * Returns v2 schema structure directly - no legacy flattening
- * 
+ *
  * @param {string} playerId - Player document ID
  * @returns {Object} { player, loading, error }
  */
@@ -37,7 +42,7 @@ const usePlayerDetail = (playerId) => {
 
       try {
         // Step 1: Fetch main document
-        const mainDocRef = playerRef(db, playerId);
+        const mainDocRef = playerRef(playerId);
         const mainDocSnap = await getDoc(mainDocRef);
 
         if (!mainDocSnap.exists()) {
@@ -48,14 +53,14 @@ const usePlayerDetail = (playerId) => {
 
         // Step 2: Fetch all subcollections in parallel
         const [contractsSnap, seasonsSnap, evalsSnap] = await Promise.all([
-          getDocs(contractsCol(db, playerId)),
-          getDocs(seasonsCol(db, playerId)),
-          getDocs(evalsCol(db, playerId))
+          getDocs(contractsCol(playerId)),
+          getDocs(seasonsCol(playerId)),
+          getDocs(evalsCol(playerId)),
         ]);
 
         // Step 3: Convert subcollections to records
         const contracts = {};
-        contractsSnap.forEach(doc => {
+        contractsSnap.forEach((doc) => {
           // Filter out metadata fields like last_updated
           if (!doc.id.startsWith('last_')) {
             contracts[doc.id] = doc.data();
@@ -63,22 +68,23 @@ const usePlayerDetail = (playerId) => {
         });
 
         const seasons = {};
-        seasonsSnap.forEach(doc => {
+        seasonsSnap.forEach((doc) => {
           seasons[doc.id] = doc.data();
         });
 
         const evaluations = {};
-        evalsSnap.forEach(doc => {
+        evalsSnap.forEach((doc) => {
           evaluations[doc.id] = doc.data();
         });
 
         // Step 4: Build v2 player structure with spread pattern for easier access
         const playerV2 = {
           id: playerId,
-          ...mainDoc,  // Spread main doc fields (bio, etc.) at top level
+          ...mainDoc, // Spread main doc fields (bio, etc.) at top level
           contracts: Object.keys(contracts).length > 0 ? contracts : undefined,
           seasons: Object.keys(seasons).length > 0 ? seasons : undefined,
-          evaluations: Object.keys(evaluations).length > 0 ? evaluations : undefined
+          evaluations:
+            Object.keys(evaluations).length > 0 ? evaluations : undefined,
         };
 
         if (isMounted) {

@@ -61,8 +61,9 @@ export function enrichPlayerData(playerData) {
   let latestSeasonStats = {};
   let latestSeasonMeta = {};
   if (playerData.seasons && Object.keys(playerData.seasons).length > 0) {
-    const [seasonId, seasonData] = Object.entries(playerData.seasons)
-      .sort(([a], [b]) => b.localeCompare(a))[0];
+    const [seasonId, seasonData] = Object.entries(playerData.seasons).sort(
+      ([a], [b]) => b.localeCompare(a)
+    )[0];
     latestSeasonId = seasonId;
     latestSeasonStats = seasonData?.stats || {};
     latestSeasonMeta = seasonData?.meta || {};
@@ -70,7 +71,10 @@ export function enrichPlayerData(playerData) {
 
   // v2 evaluation data from evaluations subcollection (use first entry)
   let evaluationData = {};
-  if (playerData.evaluations && Object.keys(playerData.evaluations).length > 0) {
+  if (
+    playerData.evaluations &&
+    Object.keys(playerData.evaluations).length > 0
+  ) {
     const [evaluation] = Object.values(playerData.evaluations);
     evaluationData = evaluation || {};
   }

@@ -15,6 +15,7 @@ dist/
 
 # Archive folder with deprecated/old files
 archive/
+data_pipeline/
 
 # Player data backups
 players_backup.jsonl

@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import useSimplePlayerData from '@/hooks/useSimplePlayerData';
+import usePlayerDetail from '@/hooks/usePlayerDetail';
 import useAutoSavePlayer from '@/hooks/useAutoSavePlayer';
+import { enrichPlayerData } from '@/utils/roster/enrichPlayerData';
 
 import TeamPlayerDropdowns from '@/features/profile/TeamPlayerDropdowns';
 import PlayerNavigation from '@/features/profile/PlayerNavigation';
@@ -27,7 +29,7 @@ const defaultRoles = {
   offense2: '',
   defense1: '',
   defense2: '',
-  twoWay: 50,
+  // Removed twoWay from here - it should be separate
 };
 
 const defaultBlurbs = {
@@ -49,6 +51,7 @@ const PlayerProfileView = () => {
   const [player, setPlayer] = useState(null);
   const [traits, setTraits] = useState(defaultTraits);
   const [roles, setRoles] = useState(defaultRoles);
+  const [twoWay, setTwoWay] = useState(50); // Separate twoWay state
   const [shootingProfile, setShootingProfile] = useState('');
   const [subRoles, setSubRoles] = useState({ offense: [], defense: [] });
   const [badges, setBadges] = useState([]);
@@ -56,6 +59,10 @@ const PlayerProfileView = () => {
   const [editedBlurbs, setEditedBlurbs] = useState(defaultBlurbs);
   const [overallGrade, setOverallGrade] = useState(null);
   const [hasChanges, setHasChanges] = useState(false);
+
+  // Use usePlayerDetail for the selected player to get full data with subcollections
+  const { player: detailedPlayer, loading: detailLoading } =
+    usePlayerDetail(selectedPlayer);
 
   useEffect(() => {
     const data = {};
@@ -69,28 +76,30 @@ const PlayerProfileView = () => {
   }, [fetchedPlayers]);
 
   useEffect(() => {
-    if (!selectedPlayer || !playersData[selectedPlayer]) {
+    if (!selectedPlayer || !detailedPlayer) {
       setPlayer(null);
       return;
     }
 
-    const data = playersData[selectedPlayer];
+    const data = enrichPlayerData(detailedPlayer);
     setPlayer(data);
     setTraits(data.traits || { ...defaultTraits });
     setRoles({ ...defaultRoles, ...(data.roles || {}) });
+    setTwoWay(data.twoWay || 50); // Load twoWay separately
     setSubRoles(data.subRoles || { offense: [], defense: [] });
     setBadges(data.badges || []);
     setShootingProfile(data.shootingProfile || '');
     setEditedBlurbs(data.blurbs || { ...defaultBlurbs });
     setOverallGrade(data.overallGrade || null);
     setHasChanges(false);
-  }, [selectedPlayer, playersData]);
+  }, [selectedPlayer, detailedPlayer]);
 
   useAutoSavePlayer({
     playerId: selectedPlayer,
     player,
     traits,
     roles,
+    twoWay, // Pass twoWay separately
     subRoles,
     badges,
     shootingProfile,
@@ -205,6 +214,11 @@ const PlayerProfileView = () => {
             onTraitChange={handleTraitChange}
             roles={roles}
             onRoleChange={handleRoleChange}
+            twoWay={twoWay}
+            onTwoWayChange={(value) => {
+              setTwoWay(value);
+              setHasChanges(true);
+            }}
             subRoles={subRoles}
             setSubRoles={setSubRoles}
             shootingProfile={shootingProfile}

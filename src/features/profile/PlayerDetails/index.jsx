@@ -13,6 +13,8 @@ const PlayerDetails = ({
   onTraitChange,
   roles,
   onRoleChange,
+  twoWay,
+  onTwoWayChange,
   subRoles,
   setSubRoles,
   shootingProfile,
@@ -41,7 +43,8 @@ const PlayerDetails = ({
         setSubRoles={setSubRoles}
         shootingProfile={shootingProfile}
         setShootingProfile={setShootingProfile}
-        onTwoWayChange={(value) => onRoleChange('twoWay', value)}
+        twoWay={twoWay}
+        onTwoWayChange={onTwoWayChange}
         setOpenModal={setOpenModal}
       />
     </div>

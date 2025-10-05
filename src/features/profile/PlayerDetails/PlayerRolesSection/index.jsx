@@ -54,6 +54,7 @@ const PlayerRolesSection = ({
   setSubRoles,
   shootingProfile,
   setShootingProfile,
+  twoWay,
   onTwoWayChange,
   setOpenModal,
 }) => {
@@ -136,7 +137,7 @@ const PlayerRolesSection = ({
           onClick={setOpenModal}
           modalKey="two_way_meter"
         />
-        <TwoWayMeter twoWayValue={roles.twoWay} onChange={onTwoWayChange} />
+        <TwoWayMeter twoWayValue={twoWay} onChange={onTwoWayChange} />
       </div>
     </div>
   );
