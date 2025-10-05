@@ -39,7 +39,8 @@ const PlayerRow = ({ player, ranking = '—' }) => {
         <div className="h-full w-20 bg-[#2a2a2a] overflow-hidden">
           <img
             src={
-              player.headshotUrl || `/assets/headshots/${player.player_id}.png`
+              player.headshotUrl ||
+              `/assets/headshots/${player.bio?.playerId || player.id}.png`
             }
             onError={(e) => {
               e.target.src = '/assets/headshots/default.png';
@@ -55,7 +56,7 @@ const PlayerRow = ({ player, ranking = '—' }) => {
             <PlayerNameMini name={player.bio?.displayName || player.name} />
           </div>
           <div className="flex items-center gap-2">
-            <TeamLogo teamAbbr={player.bio?.display?.team || player.bio?.Team} className="w-6 h-6" />
+            <TeamLogo teamAbbr={player.bio?.display?.team} className="w-6 h-6" />
             <div className="text-[14px] text-white/50 tracking-wide">
               {player.bio?.height ? `${Math.floor(player.bio.height / 12)}-${player.bio.height % 12}` : '—'} <span className="text-white/30">|</span>{' '}
               {player.bio?.weight || '—'} lbs
@@ -83,7 +84,8 @@ const PlayerRow = ({ player, ranking = '—' }) => {
         <div className="ml-0 border-l border-[#333] text-[11px] tracking-wide w-[140px] leading-tight text-center break-words">
           {(() => {
             const CURRENT_YEAR = getCurrentSeasonYear();
-            const contractData = player.contracts ? Object.values(player.contracts)[0] : null;
+            const contractData = player.primaryContract ||
+              (player.contracts ? Object.values(player.contracts)[0] : null);
             const freeAgentYear = player.bio?.display?.freeAgentYear || contractData?.freeAgency?.freeAgentYear;
             const freeAgentType = player.bio?.display?.freeAgentType || contractData?.freeAgency?.freeAgentType;
 

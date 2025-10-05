@@ -38,37 +38,40 @@ const TierRow = ({
       )}
     </div>
     <div className="flex flex-wrap gap-[2px] flex-1">
-      {players.map((player) => (
-        <div key={player.player_id} className="relative">
-          <TierPlayerTile player={player} />
-          {!screenshotMode && (
-            <div className="absolute top-1 right-1 flex flex-col gap-1">
-              {tier !== 'S' && (
+      {players.map((player) => {
+        const playerId = player.id || player.player_id;
+        return (
+          <div key={playerId} className="relative">
+            <TierPlayerTile player={player} />
+            {!screenshotMode && (
+              <div className="absolute top-1 right-1 flex flex-col gap-1">
+                {tier !== 'S' && (
+                  <button
+                    onClick={() => movePlayer(playerId, tier, 'up')}
+                    className="text-xs text-white bg-black/40 px-[6px] rounded hover:bg-white/10"
+                  >
+                    ↑
+                  </button>
+                )}
+                {tier !== 'Pool' && (
+                  <button
+                    onClick={() => movePlayer(playerId, tier, 'down')}
+                    className="text-xs text-white bg-black/40 px-[6px] rounded hover:bg-white/10"
+                  >
+                    ↓
+                  </button>
+                )}
                 <button
-                  onClick={() => movePlayer(player.player_id, tier, 'up')}
-                  className="text-xs text-white bg-black/40 px-[6px] rounded hover:bg-white/10"
+                  onClick={() => removePlayer(playerId, tier)}
+                  className="text-xs text-red-300 bg-black/40 px-[6px] rounded hover:bg-red-600"
                 >
-                  ↑
+                  ✕
                 </button>
-              )}
-              {tier !== 'Pool' && (
-                <button
-                  onClick={() => movePlayer(player.player_id, tier, 'down')}
-                  className="text-xs text-white bg-black/40 px-[6px] rounded hover:bg-white/10"
-                >
-                  ↓
-                </button>
-              )}
-              <button
-                onClick={() => removePlayer(player.player_id, tier)}
-                className="text-xs text-red-300 bg-black/40 px-[6px] rounded hover:bg-red-600"
-              >
-                ✕
-              </button>
-            </div>
-          )}
-        </div>
-      ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   </div>
 );

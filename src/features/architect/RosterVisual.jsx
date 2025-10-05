@@ -29,8 +29,8 @@ const RosterVisual = ({
     const filtered = enriched.filter((p) => !isTwoWayContract(p));
     const sorted = filtered.sort(
       (a, b) =>
-        parseFloat(b.system?.stats?.MP || 0) -
-        parseFloat(a.system?.stats?.MP || 0)
+        parseFloat(b.MIN ?? b.latestSeasonStats?.MIN ?? 0) -
+        parseFloat(a.MIN ?? a.latestSeasonStats?.MIN ?? 0)
     );
 
     return buildInitialRoster(sorted);

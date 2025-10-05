@@ -11,68 +11,82 @@ import { POSITION_MAP } from '@/utils/roles/roleUtils';
  * - evaluations: { [evalId]: { roles, traits, badges, etc. } }
  */
 export function enrichPlayerData(playerData) {
+  if (!playerData) return null;
+
   // v2 nested position data (ONLY v2 structure)
   const rawPosition = playerData.bio?.position;
   const formattedPosition = POSITION_MAP[rawPosition] || rawPosition || '—';
 
-  // v2 salary data from contracts subcollection
+  // Determine the primary contract (first contract document)
+  let primaryContractId = null;
+  let primaryContract = null;
+  if (playerData.contracts && Object.keys(playerData.contracts).length > 0) {
+    const [firstId, firstContract] = Object.entries(playerData.contracts).sort(
+      ([a], [b]) => a.localeCompare(b)
+    )[0];
+    primaryContractId = firstId;
+    primaryContract = firstContract || null;
+  }
+
   const salaryMap = {};
-  const contractData = playerData.contracts
-    ? Object.values(playerData.contracts)[0]
-    : null;
-  const annualSalaries = contractData?.salariesByYear || [];
+  const annualSalaries = primaryContract?.salariesByYear || [];
 
   annualSalaries.forEach((s) => {
+    const key = s.year || s.season;
+    if (!key) return;
+
     let raw = s.salary;
     if (typeof raw === 'string') {
-      raw = raw.replace(/[\$,]/g, '');
-      if (raw.includes('M')) {
-        raw = raw.replace('M', '');
-        salaryMap[s.year || s.season] = parseFloat(raw);
+      const cleaned = raw.replace(/[\$,]/g, '').trim();
+      if (cleaned.endsWith('M')) {
+        const value = parseFloat(cleaned.slice(0, -1));
+        salaryMap[key] = Number.isFinite(value) ? value : null;
       } else {
-        salaryMap[s.year || s.season] = parseFloat(raw) / 1_000_000;
+        const value = parseFloat(cleaned);
+        salaryMap[key] = Number.isFinite(value) ? value / 1_000_000 : null;
       }
     } else if (typeof raw === 'number') {
-      salaryMap[s.year || s.season] = raw / 1_000_000;
+      salaryMap[key] = raw / 1_000_000;
     } else {
-      salaryMap[s.year || s.season] = null;
+      salaryMap[key] = null;
     }
-    if (isNaN(salaryMap[s.year || s.season]))
-      salaryMap[s.year || s.season] = null;
+
+    if (Number.isNaN(salaryMap[key])) {
+      salaryMap[key] = null;
+    }
   });
 
   // v2 stats data from seasons subcollection
-  let currentStats = {};
-  if (playerData.seasons) {
-    const seasons = Object.entries(playerData.seasons);
-    if (seasons.length > 0) {
-      // Use most recent season
-      const [, seasonData] = seasons.sort((a, b) =>
-        b[0].localeCompare(a[0])
-      )[0];
-      currentStats = seasonData.stats || {};
-    }
+  let latestSeasonId = null;
+  let latestSeasonStats = {};
+  let latestSeasonMeta = {};
+  if (playerData.seasons && Object.keys(playerData.seasons).length > 0) {
+    const [seasonId, seasonData] = Object.entries(playerData.seasons)
+      .sort(([a], [b]) => b.localeCompare(a))[0];
+    latestSeasonId = seasonId;
+    latestSeasonStats = seasonData?.stats || {};
+    latestSeasonMeta = seasonData?.meta || {};
   }
 
-  // v2 evaluation data from evaluations subcollection
+  // v2 evaluation data from evaluations subcollection (use first entry)
   let evaluationData = {};
-  if (playerData.evaluations) {
-    const evals = Object.values(playerData.evaluations);
-    if (evals.length > 0) {
-      evaluationData = evals[0]; // Use first evaluation
-    }
+  if (playerData.evaluations && Object.keys(playerData.evaluations).length > 0) {
+    const [evaluation] = Object.values(playerData.evaluations);
+    evaluationData = evaluation || {};
   }
 
   return {
     ...playerData,
-    // Add convenience fields for backward compatibility (all from v2 structure)
+    // Convenience fields sourced exclusively from v2 structure
     name: playerData.bio?.displayName || '',
     formattedPosition,
     heightInInches: playerData.bio?.height || 0,
     weight: playerData.bio?.weight || 0,
     age: playerData.bio?.age || 0,
     team: playerData.bio?.display?.team || null,
-    headshotUrl: `/assets/headshots/${playerData.bio?.playerId || playerData.id}.png`,
+    headshotUrl: `/assets/headshots/${
+      playerData.bio?.playerId || playerData.id
+    }.png`,
     offenseRole: evaluationData.roles?.offense1 || '—',
     defenseRole: evaluationData.roles?.defense1 || '—',
     shootingProfile: evaluationData.shootingProfile || '—',
@@ -82,11 +96,17 @@ export function enrichPlayerData(playerData) {
     },
     traits: evaluationData.traits || {},
     badges: evaluationData.badges || [],
-    overallGrade: evaluationData.overallGrade,
+    overallGrade: evaluationData.overallGrade ?? null,
     salaryByYear: salaryMap,
-    PPG: currentStats.PTS ?? null,
-    RPG: currentStats.REB ?? null,
-    APG: currentStats.AST ?? null,
-    ...currentStats,
+    latestSeasonId,
+    latestSeasonStats,
+    latestSeasonMeta,
+    primaryContractId,
+    primaryContract,
+    primaryEvaluation: evaluationData,
+    PPG: latestSeasonStats.PTS ?? null,
+    RPG: latestSeasonStats.REB ?? null,
+    APG: latestSeasonStats.AST ?? null,
+    ...latestSeasonStats,
   };
 }

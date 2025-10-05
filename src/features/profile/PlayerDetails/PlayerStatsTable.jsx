@@ -10,8 +10,8 @@ const formatStat = (stat, isInteger = false, multiply = false) => {
 };
 
 const PlayerStatsTable = ({ player }) => {
-  const stats = player.system?.stats || {};
-  const gamesPlayed = stats.G ?? player.bio?.['Games Played'] ?? 'N/A';
+  const stats = player.latestSeasonStats || {};
+  const gamesPlayed = stats.GP ?? 'N/A';
 
   return (
     <div className="w-full max-w-[750px] bg-[#1f1f1f] rounded-2xl shadow-lg px-6 pt-[0.5rem] pb-[0.75rem] text-white text-sm font-medium">
@@ -34,16 +34,16 @@ const PlayerStatsTable = ({ player }) => {
           G: {gamesPlayed}
         </div>
         <div className="h-4 w-[1px] bg-neutral-700" />
-        <div className="w-[50px] text-center">{formatStat(stats.MP)}</div>
+        <div className="w-[50px] text-center">{formatStat(stats.MIN)}</div>
         <div className="w-[50px] text-center">{formatStat(stats.PTS)}</div>
-        <div className="w-[50px] text-center">{formatStat(stats.TRB)}</div>
+        <div className="w-[50px] text-center">{formatStat(stats.REB)}</div>
         <div className="w-[50px] text-center">{formatStat(stats.AST)}</div>
         <div className="h-4 w-[1px] bg-neutral-700" />
         <div className="w-[50px] text-center">
           {formatStat(stats['FG%'], false, true)}
         </div>
         <div className="w-[50px] text-center">
-          {formatStat(stats['3P%'], false, true)}
+          {formatStat(stats['3PT%'], false, true)}
         </div>
         <div className="w-[50px] text-center">
           {formatStat(stats['FT%'], false, true)}

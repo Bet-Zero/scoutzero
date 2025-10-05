@@ -2,19 +2,21 @@ import { POSITION_MAP } from '../roles';
 
 export function normalizePlayer(player) {
   if (!player) return null;
+  const playerId = player.bio?.playerId || player.id;
   return {
     ...player,
     displayName: player.bio?.displayName || player.name || 'Unknown Player',
-    headshot: player.headshot || `/assets/headshots/${player.id}.png`,
+    headshot: player.headshot || `/assets/headshots/${playerId}.png`,
     bio: {
       ...player.bio,
-      Position: player.bio?.Position || 'Unknown',
+      position: player.bio?.position || player.formattedPosition || 'Unknown',
     },
   };
 }
 
 export function buildInitialRoster(teamPlayers) {
-  const getPosition = (p) => (p.bio?.Position || '').toUpperCase();
+  const getPosition = (p) =>
+    (p.bio?.position || p.formattedPosition || '').toUpperCase();
   const starterSlots = [null, null, null, null, null];
   const positionPriorities = [
     { test: (pos) => pos.includes('G') && !pos.includes('F'), slots: [0, 1] },

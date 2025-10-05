@@ -32,7 +32,7 @@ const BenchCard = ({
           <div
             className={`absolute top-1 left-1 px-1 py-[2px] bg-black/00 text-white/40 text-[12px] ${isExport ? 'font-normal' : 'font-semibold'} uppercase rounded-sm tracking-wider shadow-md`}
           >
-            {getPlayerPositionLabel(player.bio?.Position)}
+            {getPlayerPositionLabel(player.bio?.position || player.formattedPosition)}
           </div>
         </div>
         <div className="bg-[#0f0f0f] px-2 pt-1 pb-2 h-[46px] flex flex-col items-center justify-center text-center border-t border-white/10">

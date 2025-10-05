@@ -28,11 +28,11 @@ const TradePlayerRow = ({
   const details = playersMap[player.name] || {};
   const team =
     player.tradeTo ||
-    player.bio?.Team ||
+    player.bio?.display?.team ||
     player.team ||
     player.teamId ||
     player.teamAbbr ||
-    details.bio?.Team ||
+    details.bio?.display?.team ||
     details.team ||
     details.teamId ||
     details.teamAbbr;
@@ -53,19 +53,35 @@ const TradePlayerRow = ({
   }, [openMenu, player.name, setOpenMenu]);
 
   // Calculate player data (unchanged visual output)
+  const primaryContract =
+    player.primaryContract ||
+    (player.contracts ? Object.values(player.contracts)[0] : null) ||
+    details.primaryContract ||
+    (details.contracts ? Object.values(details.contracts)[0] : null);
+
   const year =
     typeof yearKey === 'number'
       ? yearKey
       : parseInt(yearKey.match(/\d{4}/)?.[0]);
   const salary = getSalaryWithFallback(player, yearKey);
   const faYear =
-    player.contract_clean?.fa_year ?? player.fa_year ?? player.freeAgentYear;
+    primaryContract?.freeAgency?.freeAgentYear ??
+    player.bio?.display?.freeAgentYear ??
+    player.freeAgentYear ??
+    null;
   const yearsLeft = getYearsRemaining(faYear, year);
+  const salaryForYear = Array.isArray(primaryContract?.salariesByYear)
+    ? primaryContract.salariesByYear.find(
+        (s) =>
+          String(s.year) === String(year) ||
+          (typeof s.season === 'string' && s.season.includes(String(year)))
+      )
+    : null;
   const position =
     getPlayerPositionLabel(
-      player.bio?.Position ||
+      player.bio?.position ||
         player.position ||
-        playersMap[player.name]?.bio?.Position
+        playersMap[player.name]?.bio?.position
     ) || '—';
 
   // Enhanced TPE check
@@ -107,7 +123,11 @@ const TradePlayerRow = ({
       {/* Headshot - unchanged */}
       <div className="h-full w-[70px] bg-[#2a2a2a] flex items-center justify-center overflow-hidden">
         <img
-          src={`/assets/headshots/${player.player_id}.png`}
+          src={`/assets/headshots/${
+            player.bio?.playerId ||
+            playersMap[player.name]?.bio?.playerId ||
+            player.player_id
+          }.png`}
           onError={(e) => (e.target.src = '/assets/headshots/default.png')}
           alt={player.bio?.displayName || player.name}
           className="h-full w-full object-cover"
@@ -130,7 +150,9 @@ const TradePlayerRow = ({
             fallbackClassName="bg-neutral-800 rounded-full"
           />
           <div>
-            {player.bio?.height ? `${Math.floor(player.bio.height / 12)}-${player.bio.height % 12}` : (player.height || player.height_ft_in || '—')}
+            {player.bio?.height
+              ? `${Math.floor(player.bio.height / 12)}-${player.bio.height % 12}`
+              : player.height || player.height_ft_in || '—'}
             <span className="text-white/30">|</span>{' '}
             {player.bio?.weight || player.weight || player.weight_lbs || '—'} lbs
           </div>
@@ -199,7 +221,7 @@ const TradePlayerRow = ({
 
             {/* Sign-and-Trade Option */}
             {!included &&
-              !player.contract_clean?.salaries_by_year?.[yearKey]?.salary &&
+              !salaryForYear?.salary &&
               (!signAndTradeActive || player.signAndTrade) && (
                 <button
                   onClick={() => {
@@ -257,7 +279,9 @@ const TradePlayerRow = ({
             {/* View Profile Option */}
             <button
               onClick={() =>
-                (window.location.href = `/profiles?player=${player.player_id}`)
+                (window.location.href = `/profiles?player=${
+                  player.bio?.playerId || player.id || player.player_id
+                }`)
               }
               className="block w-full text-left px-3 py-1 hover:bg-[#333]"
             >

@@ -11,7 +11,7 @@ const PlayerRowMini = ({ player, onClick }) => {
   const name = player.bio?.displayName || player.name || 'Unknown Player';
   const headshot = player.headshot || `/assets/headshots/${player.id}.png`;
 
-  const rawPosition = player.bio?.Position || '—';
+  const rawPosition = player.bio?.position || player.formattedPosition || '—';
   const position = getPlayerPositionLabel(rawPosition);
 
   const height = player.bio?.height || '—';

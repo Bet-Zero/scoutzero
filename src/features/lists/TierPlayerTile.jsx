@@ -10,7 +10,7 @@ const TierPlayerTile = ({ player }) => {
   const headshot =
     player.headshotUrl ||
     player.headshot ||
-    `/assets/headshots/${player.player_id}.png`;
+    `/assets/headshots/${player.bio?.playerId || player.id}.png`;
 
   // V2 structure: bio.height is in inches, use formatHeight to display
   const height = player.bio?.height ? formatHeight(player.bio.height) : '—';

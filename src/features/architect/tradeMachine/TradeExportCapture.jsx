@@ -175,7 +175,7 @@ const TradeExportCapture = React.forwardRef(
                                       p.teamId ||
                                       p.team ||
                                       p.teamAbbr ||
-                                      p.bio?.Team
+                                      p.bio?.display?.team
                                     }
                                     className="w-8 h-8 ml-2 shrink-0"
                                   />

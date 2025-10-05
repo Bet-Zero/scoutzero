@@ -100,8 +100,8 @@ const PlayerTable = () => {
       <div className="w-full max-w-[1100px] mx-auto relative z-10">
         {filteredPlayers.map((player, index) => (
           <PlayerRow
-            key={player.player_id || player.id || `player-${index}`}
-            player={{ id: player.player_id || player.id, ...player }}
+            key={player.id || player.bio?.playerId || `player-${index}`}
+            player={{ id: player.id || player.bio?.playerId, ...player }}
           />
         ))}
       </div>
