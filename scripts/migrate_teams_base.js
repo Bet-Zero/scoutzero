@@ -18,7 +18,7 @@ import { fileURLToPath } from 'url';
 import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
 import { db, getDocs, collection, doc, setDoc, serverTimestamp } from '../scripts/firebaseConfig.node.js';
-import teamCodeMapData from '../mapping/teamCodeMap.json' assert { type: 'json' };
+import teamCodeMapData from '../mapping/teamCodeMap.json' with { type: 'json' };
 import { TEAM_COLOR_MAP } from '../src/utils/formatting/teamColors.js';
 
 /* ========================================================================

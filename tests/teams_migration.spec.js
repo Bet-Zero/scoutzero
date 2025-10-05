@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import teamCodeMapData from '../mapping/teamCodeMap.json' assert { type: 'json' };
+import teamCodeMapData from '../mapping/teamCodeMap.json' with { type: 'json' };
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 

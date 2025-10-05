@@ -1,0 +1,170 @@
+{
+  "id": "spurs",
+  "capSheet": {
+    "lastUpdated": 1704067200000,
+    "players": [
+      {
+        "name": "Victor Wembanyama",
+        "display_name": "Victor Wembanyama",
+        "player_id": "vw-001",
+        "position": "C",
+        "age": 21,
+        "height": "7-4",
+        "weight": 230,
+        "contract_clean": {
+          "years": 4,
+          "total_value": 55174160,
+          "average_value": 13793540,
+          "bird_rights": "Early Bird",
+          "fa_type": "RFA",
+          "fa_year": 2028,
+          "has_extension": false,
+          "salaries_by_year": {
+            "2025": {
+              "salary": 12160680,
+              "guaranteed": 12160680,
+              "option": null,
+              "source": "spotrac"
+            },
+            "2026": {
+              "salary": 12768720,
+              "guaranteed": 12768720,
+              "option": null,
+              "source": "spotrac"
+            },
+            "2027": {
+              "salary": 16398360,
+              "guaranteed": 0,
+              "option": "Team",
+              "source": "spotrac"
+            },
+            "2028": {
+              "salary": 21476460,
+              "guaranteed": 0,
+              "option": "Team",
+              "source": "spotrac"
+            }
+          }
+        }
+      },
+      {
+        "name": "Devin Vassell",
+        "display_name": "Devin Vassell",
+        "player_id": "dv-001",
+        "position": "G-F",
+        "age": 24,
+        "height": "6-5",
+        "weight": 200,
+        "contract_clean": {
+          "years": 5,
+          "total_value": 146000000,
+          "average_value": 29200000,
+          "bird_rights": "Bird",
+          "fa_type": null,
+          "fa_year": 2029,
+          "has_extension": false,
+          "salaries_by_year": {
+            "2025": {
+              "salary": 25838710,
+              "guaranteed": 25838710,
+              "option": null,
+              "source": "spotrac"
+            },
+            "2026": {
+              "salary": 27905807,
+              "guaranteed": 27905807,
+              "option": null,
+              "source": "spotrac"
+            },
+            "2027": {
+              "salary": 29972904,
+              "guaranteed": 29972904,
+              "option": null,
+              "source": "spotrac"
+            },
+            "2028": {
+              "salary": 32040001,
+              "guaranteed": 32040001,
+              "option": null,
+              "source": "spotrac"
+            },
+            "2029": {
+              "salary": 34107098,
+              "guaranteed": 0,
+              "option": "Player",
+              "source": "spotrac"
+            }
+          }
+        }
+      },
+      {
+        "name": "Two-Way Player",
+        "display_name": "Two-Way Player",
+        "player_id": "tw-sas-001",
+        "position": "G",
+        "age": 23,
+        "height": "6-3",
+        "weight": 185,
+        "status": "2-Way",
+        "contract_clean": {
+          "years": 1,
+          "total_value": 578000,
+          "average_value": 578000,
+          "salaries_by_year": {
+            "2025": {
+              "salary": 578000,
+              "guaranteed": 0,
+              "option": null,
+              "source": "spotrac"
+            }
+          }
+        }
+      }
+    ],
+    "totalSalaryByYear": {
+      "2025": 38577390,
+      "2026": 40674527
+    }
+  },
+  "exceptions": [
+    {
+      "kind": "MLE",
+      "amount": 12860000,
+      "createdOn": "2024-07-01",
+      "expiresOn": "2025-06-30"
+    }
+  ],
+  "picks": {
+    "incoming": [
+      {
+        "year": 2025,
+        "round": 1,
+        "from": "ATL",
+        "protection": "Top-3 protected",
+        "swap": false
+      },
+      {
+        "year": 2026,
+        "round": 1,
+        "from": "CHI",
+        "protection": "Top-10 protected, becomes two 2nds if not conveyed",
+        "swap": false
+      },
+      {
+        "year": 2025,
+        "round": 2,
+        "from": "DAL",
+        "protection": null,
+        "swap": false
+      }
+    ],
+    "outgoing": []
+  },
+  "capHolds": [
+    {
+      "playerId": "fa-hold-001",
+      "faType": "UFA",
+      "amount": 8500000
+    }
+  ]
+}

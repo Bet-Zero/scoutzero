@@ -1,0 +1,131 @@
+{
+  "id": "heat",
+  "capSheet": {
+    "lastUpdated": 1704067200000,
+    "players": [
+      {
+        "name": "Jimmy Butler",
+        "display_name": "Jimmy Butler",
+        "player_id": "jb-mia-001",
+        "position": "F",
+        "age": 35,
+        "height": "6-7",
+        "weight": 230,
+        "contract_clean": {
+          "years": 2,
+          "total_value": 99728000,
+          "average_value": 49864000,
+          "bird_rights": "Bird",
+          "fa_type": null,
+          "fa_year": 2026,
+          "has_extension": false,
+          "salaries_by_year": {
+            "2025": {
+              "salary": 48798677,
+              "guaranteed": 48798677,
+              "option": null,
+              "source": "spotrac"
+            },
+            "2026": {
+              "salary": 52413900,
+              "guaranteed": 0,
+              "option": "Player",
+              "source": "spotrac"
+            }
+          }
+        }
+      },
+      {
+        "name": "Bam Adebayo",
+        "display_name": "Bam Adebayo",
+        "player_id": "ba-001",
+        "position": "C",
+        "age": 27,
+        "height": "6-9",
+        "weight": 255,
+        "contract_clean": {
+          "years": 3,
+          "total_value": 166055000,
+          "average_value": 55351667,
+          "bird_rights": "Bird",
+          "fa_type": null,
+          "fa_year": 2029,
+          "has_extension": true,
+          "salaries_by_year": {
+            "2025": {
+              "salary": 36669260,
+              "guaranteed": 36669260,
+              "option": null,
+              "source": "spotrac"
+            },
+            "2026": {
+              "salary": 48011340,
+              "guaranteed": 48011340,
+              "option": null,
+              "source": "spotrac"
+            },
+            "2027": {
+              "salary": 51842840,
+              "guaranteed": 51842840,
+              "option": null,
+              "source": "spotrac"
+            },
+            "2028": {
+              "salary": 55674340,
+              "guaranteed": 55674340,
+              "option": null,
+              "source": "spotrac"
+            },
+            "2029": {
+              "salary": 59505840,
+              "guaranteed": 0,
+              "option": "Player",
+              "source": "spotrac"
+            }
+          }
+        }
+      }
+    ],
+    "totalSalaryByYear": {
+      "2025": 85467937,
+      "2026": 100425240
+    }
+  },
+  "exceptions": [],
+  "tradeExceptions": [
+    {
+      "id": "tpe-mia-001",
+      "amount": 6400000,
+      "createdFrom": { "playerId": "kg-001" },
+      "expiresOn": "2025-07-15",
+      "usedAmount": 0
+    }
+  ],
+  "picks": {
+    "incoming": [],
+    "outgoing": [
+      {
+        "year": 2025,
+        "round": 1,
+        "to": "OKC",
+        "protection": null,
+        "swap": false
+      },
+      {
+        "year": 2027,
+        "round": 1,
+        "to": "OKC",
+        "protection": "Top-14 protected, becomes unprotected in 2028",
+        "swap": false
+      }
+    ]
+  },
+  "deadMoney": [
+    {
+      "playerId": "old-player-001",
+      "year": 2025,
+      "amount": 2500000,
+      "reason": "waive"
+    }
+  ]
+}
