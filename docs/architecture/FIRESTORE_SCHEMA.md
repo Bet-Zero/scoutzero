@@ -4,7 +4,7 @@ A full schema reference for all Firestore collections used in ScoutZero + Archit
 
 ---
 
-## 📁 Collection: `/players/{playerId}`
+## 📁 Collection: `/players_v2/{playerId}`
 
 ### 📦 Top-Level Fields:
 
@@ -18,9 +18,10 @@ A full schema reference for all Firestore collections used in ScoutZero + Archit
 - `bio.agent`: { name, agency }
 - `bio.draft`: { year, round, pick, team }
 
-### 📂 Subcollection: `/players/{playerId}/contracts/{contractId}`
+### 📂 Subcollection: `/players_v2/{playerId}/contracts/{contractId}`
 
 Contract documents with details like:
+
 - `signingTeam`: Team that signed the contract
 - `contractType`: Type of contract (Standard, Two-Way, etc.)
 - `signedUsing`: Exception or method used (Bird Rights, MLE, etc.)
@@ -35,18 +36,20 @@ Contract documents with details like:
 - `tradeKicker`: Trade kicker percentage
 - `freeAgency`: { freeAgentYear, freeAgentType, capHold, birdRights }
 
-### 📂 Subcollection: `/players/{playerId}/seasons/{seasonId}`
+### 📂 Subcollection: `/players_v2/{playerId}/seasons/{seasonId}`
 
 Season-specific data like:
+
 - `team`: Team abbreviation
 - `age`: Age during that season
 - `stats`: { PTS, AST, REB, FG%, 3PT%, FT%, etc. }
 - `contractView`: Denormalized contract info for quick access
 - `evaluationView`: Denormalized evaluation info for quick access
 
-### 📂 Subcollection: `/players/{playerId}/evaluations/{evaluationId}`
+### 📂 Subcollection: `/players_v2/{playerId}/evaluations/{evaluationId}`
 
 Evaluation and grading data:
+
 - `traits`: { Shooting, Passing, Defense, IQ, etc. }
 - `roles`: { offense1, offense2, defense1, defense2 }
 - `subRoles`: { offense: [], defense: [] }

@@ -45,7 +45,6 @@ validatePlayersJson.js
 debug-*.js
 backup_players.js
 
-
 # Docs
 GeminiPatchPrompt.md
 repomix-output-TradeMachine.xml
@@ -56,3 +55,36 @@ patch-temp.patch
 CHAT_CONTEXT.md
 atlas-docs/
 .env.local
+
+# Personal development files that confuse AI
+dev-local/
+copilot-instructions.md
+
+# Migration reference files (keep local but don't track)
+field_pairs.txt
+firestore-complete.json
+firestore-complete_*.json
+mapping_phase1_*.json
+
+# Generated/temporary data files
+dry_*.log
+*_backup.json*
+wendell_carter_jr_*.json
+
+# Documentation exports and generated files
+_exports/
+*.xml
+*.patch
+patch-temp.*
+
+# Firebase service account files (security)
+src/serviceAccountKey.json
+data/firebaseServiceAccountKey.json
+
+# CBA reference materials (large, not code-related)
+cba/
+
+# AI context files that are personal
+**/BOOT_PROMPT.md
+**/CHAT_CONTEXT.md
+**/GeminiPatchPrompt.md

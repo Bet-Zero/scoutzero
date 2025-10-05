@@ -1,6 +1,6 @@
 # HoopZero
 
-[![NBA Trade Audit: PASS](https://img.shields.io/badge/NBA%20Trade%20Audit-PASS-brightgreen)](docs/AUDIT_CERT.md)
+[![NBA Trade Audit: PASS](https://img.shields.io/badge/NBA%20Trade%20Audit-PASS-brightgreen)](docs/compliance/AUDIT_CERT.md)
 
 HoopZero is a public-facing NBA scouting platform focused on clear data presentation and role-based player analysis. It mirrors the internal **ScoutZero** grading tool but exposes a read-only interface backed entirely by Firebase. All player evaluations, roles, grades and contract details are fetched from Firestore, allowing fans and analysts to explore a flattened set of scouting data.
 
@@ -90,18 +90,8 @@ This project uses multiple Firestore collections to separate global player data 
 - `/players` — master player records, stats, grades, roles, and bio info
 - `/teams` — team rosters and `contract_clean` used for GM/cap tools
 
-📄 See [`docs/DATA_SOURCE_MAP.md`](./docs/DATA_SOURCE_MAP.md) for full usage rules  
-📄 See [`docs/FIRESTORE_SCHEMA.md`](./docs/FIRESTORE_SCHEMA.md) for detailed field breakdowns
-
-### 🔄 Schema Migration
-
-A Firestore schema migration is in progress to transform the flat player structure into a hierarchical, season-scoped format. **Migration documentation:**
-
-📋 **[MIGRATION_EXECUTIVE_SUMMARY.md](./MIGRATION_EXECUTIVE_SUMMARY.md)** ← Start here for quick overview  
-📚 **[MIGRATION_README.md](./MIGRATION_README.md)** ← Complete documentation index  
-📖 **[FIRESTORE_MIGRATION_REVIEW.md](./FIRESTORE_MIGRATION_REVIEW.md)** ← Detailed analysis and recommendations
-
-**Status:** Migration plan reviewed, NOT ready for production yet. See documentation for details.
+📄 See [`docs/architecture/DATA_SOURCE_MAP.md`](./docs/architecture/DATA_SOURCE_MAP.md) for full usage rules  
+📄 See [`docs/architecture/FIRESTORE_SCHEMA.md`](./docs/architecture/FIRESTORE_SCHEMA.md) for detailed field breakdowns
 
 ## Related Projects
 
@@ -110,23 +100,30 @@ A Firestore schema migration is in progress to transform the flat player structu
 
 ## Compliance
 
-- [Audit Certification](docs/AUDIT_CERT.md)
-- [Deep Audit](docs/AUDIT_DEEP.md)
-- [Compliance Matrix](docs/COMPLIANCE_MATRIX.csv)
-- [Order of Operations](docs/ORDER_OF_OPERATIONS.md)
+- [Audit Certification](docs/compliance/AUDIT_CERT.md)
+- [Deep Audit](docs/compliance/AUDIT_DEEP.md)
+- [Compliance Matrix](docs/compliance/COMPLIANCE_MATRIX.csv)
 
 ## Developer Guide
 
-See the upcoming [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) for deeper notes on data structure, component architecture and coding conventions.
+See [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) for deeper notes on data structure, component architecture and coding conventions.
 
-## Further Docs
+## Documentation
 
-The `docs/` folder contains reference maps of the codebase:
+The `docs/` folder contains organized reference documentation:
 
-- [FILE_MAP.md](docs/FILE_MAP.md) – high level project layout
-- [FiltersHierarchy.md](docs/FiltersHierarchy.md)
-- [ListsHierarchy.md](docs/ListsHierarchy.md)
-- [ProfileHierarchy.md](docs/ProfileHierarchy.md)
-- [RosterHierarchy.md](docs/RosterHierarchy.md)
-- [TableHierarchy.md](docs/TableHierarchy.md)
-- [TierMakerHierarchy.md](docs/TierMakerHierarchy.md)
+### Architecture & Technical References
+
+- [Project Context](docs/architecture/PROJECT_CONTEXT.md) – project overview and goals
+- [Firestore Schema](docs/architecture/FIRESTORE_SCHEMA.md) – detailed field breakdowns
+- [Data Source Map](docs/architecture/DATA_SOURCE_MAP.md) – collection usage rules
+
+### User & Development Guides
+
+- [Collection Naming Guide](docs/guides/COLLECTION_NAMING_AND_FRONTEND_GUIDE.md)
+- [Data Population Guide](docs/guides/DATA_POPULATION_GUIDE.md)
+- [Diagnostic Prompts](docs/guides/DATA_PIPELINE_DIAGNOSTIC_PROMPT.md)
+
+### Generated API Documentation
+
+- [Component Hierarchies](docs/api/) – auto-generated component structure maps

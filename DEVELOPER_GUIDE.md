@@ -141,8 +141,17 @@ This project pulls player and contract data from two distinct Firestore collecti
 - Use `usePlayerData()` when querying global player records (ScoutZero, rankings, etc.)
 - Use `useTeamRoster()` or direct `/teams` queries for anything related to contract logic, team building, or cap validation.
 
-📄 Refer to [`DATA_SOURCE_MAP.md`](../docs/DATA_SOURCE_MAP.md) for usage rules  
-📄 Refer to [`FIRESTORE_SCHEMA.md`](../docs/FIRESTORE_SCHEMA.md) for field-level details
+📄 Refer to [`docs/architecture/DATA_SOURCE_MAP.md`](./docs/architecture/DATA_SOURCE_MAP.md) for usage rules  
+📄 Refer to [`docs/architecture/FIRESTORE_SCHEMA.md`](./docs/architecture/FIRESTORE_SCHEMA.md) for field-level details
+
+## Documentation Structure
+
+The `docs/` folder is organized into specialized subdirectories:
+
+- **`docs/architecture/`** - Technical architecture documents, schemas, and project context
+- **`docs/guides/`** - User-facing guides for data population, collection naming, and diagnostics
+- **`docs/api/`** - Auto-generated component hierarchies and API documentation
+- **`docs/compliance/`** - Audit certificates and compliance matrices
 
 ## Adding Filters or Traits
 

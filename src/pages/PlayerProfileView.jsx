@@ -198,7 +198,11 @@ const PlayerProfileView = () => {
           />
         </div>
 
-        {!player && (
+        {(!player || detailLoading) && selectedPlayer && (
+          <div className="text-white/40 mt-10">Loading player data...</div>
+        )}
+
+        {!selectedPlayer && (
           <div className="text-white/40 mt-10">
             Select a player to view their profile.
           </div>
@@ -206,7 +210,7 @@ const PlayerProfileView = () => {
 
         <PlayerNavigation onPrev={handlePrevPlayer} onNext={handleNextPlayer} />
 
-        {player && (
+        {player && !detailLoading && (
           <PlayerDetails
             player={player}
             selectedPlayer={selectedPlayer}

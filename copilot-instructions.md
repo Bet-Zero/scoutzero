@@ -4,7 +4,7 @@ Always reference these instructions first and fallback to search or bash command
 
 ## Project Overview
 
-HoopZero is a React + Vite + Firebase NBA scouting platform that provides a public-facing view of player data. It displays player bios, stats, roles, contracts, and grades using a clean layout. All player data is loaded from Firebase Firestore using a flattened player structure.
+HoopZero is a React + Vite + Firebase NBA scouting platform that provides a public-facing view of player data. It displays player bios, stats, roles, contracts, and grades using a clean layout. All player data is loaded from Firebase Firestore using a hierarchical player structure.
 
 ## Working Effectively
 
@@ -23,7 +23,7 @@ HoopZero is a React + Vite + Firebase NBA scouting platform that provides a publ
 
 - Run all tests: `npm run test -- --run` -- takes 14 seconds. NEVER CANCEL. Set timeout to 60+ seconds.
 - Run specific test file: `npm run test tests/capUtils.test.js -- --run` -- takes 1.5 seconds for individual files
-- **CURRENT STATE**: 199 tests PASSING, 0 failures across 44 test files (199 total)
+- **CURRENT STATE**: Tests may have failures - check current status when running
 - **WORKING TESTS**: `tests/capUtils.test.js` passes all 12 tests and can be used for validation
 - Test runner uses Vitest with jsdom environment
 - Test files are in `tests/` directory
@@ -42,27 +42,25 @@ HoopZero is a React + Vite + Firebase NBA scouting platform that provides a publ
 
 ### Other Commands
 
-- Generate basic docs: `npm run docs` -- takes <1 second. Creates component hierarchy docs in `docs/` folder
-- **BROKEN COMMANDS** (missing files):
-  - `npm run zen` -- toggleView.cjs missing
-  - `npm run update-stats` -- updateStats.js missing
-  - `npm run docs:all` -- scripts/ directory missing
-- **WORKING DOC COMMANDS**:
-  - `npm run docs:api` -- requires `atlas-docs/` directory, generates API documentation
+- Generate basic docs: `npm run docs` -- takes <1 second. Creates component hierarchy docs in `docs/api/` folder
+- **WORKING COMMANDS**:
+  - `npm run zen` -- toggles VS Code view (toggleView.cjs is present)
+  - `npm run docs` -- generates component hierarchies
+- **ARCHIVED/MOVED COMMANDS** (files moved to archive):
+  - `npm run update-stats` -- updateStats.js moved to archive
+  - Many migration-related commands moved to archive
 
 ### Environment Setup
 
 - Create `.env` file in project root with Firebase configuration:
 
 ```
-
 VITE_FIREBASE_API_KEY=<your key>
 VITE_FIREBASE_AUTH_DOMAIN=<your domain>
 VITE_FIREBASE_PROJECT_ID=<project id>
 VITE_FIREBASE_STORAGE_BUCKET=<bucket>
 VITE_FIREBASE_MESSAGING_SENDER_ID=<sender id>
 VITE_FIREBASE_APP_ID=<app id>
-
 ```
 
 - Firebase credentials are required for the app to function properly with real data
@@ -97,24 +95,33 @@ VITE_FIREBASE_APP_ID=<app id>
 ### Key Directories
 
 ```
-
 src/
-├── components/ # Layout and shared UI components
-│ ├── layout/ # Site-wide layout (SiteLayout.jsx)
-│ └── shared/ # Reusable UI widgets
-├── features/ # Feature-specific components
-│ ├── filters/ # Player filtering UI
-│ ├── lists/ # Ranked list components
-│ ├── profile/ # Player profile editor
-│ ├── roster/ # Roster building tools
-│ ├── table/ # Player table view
-│ └── tierMaker/ # Tier list creation
-├── hooks/ # Custom React hooks
-├── utils/ # Helper functions and data transforms
-├── firebase/ # Firestore helper modules
-├── pages/ # Top-level route views
-└── constants/ # Data lists and enums
+├── components/          # Layout and shared UI components
+│   ├── layout/          # Site-wide layout (SiteLayout.jsx)
+│   └── shared/          # Reusable UI widgets
+├── features/            # Feature-specific components
+│   ├── filters/         # Player filtering UI
+│   ├── lists/           # Ranked list components
+│   ├── profile/         # Player profile editor
+│   ├── roster/          # Roster building tools
+│   ├── table/           # Player table view
+│   └── tierMaker/       # Tier list creation
+├── hooks/               # Custom React hooks
+├── utils/               # Helper functions and data transforms
+├── firebase/            # Firestore helper modules
+├── pages/               # Top-level route views
+└── constants/           # Data lists and enums
 
+docs/                    # Organized documentation
+├── architecture/        # Technical architecture and schemas
+├── guides/             # User and development guides
+├── api/                # Auto-generated component hierarchies
+├── compliance/         # Audit certificates and compliance
+└── legacy/             # Archived migration documentation
+
+archive/                # Historical files and migration work
+├── migrations/         # Migration scripts and data
+└── ...                # Other archived content
 ```
 
 ### Important Files
@@ -123,7 +130,8 @@ src/
 - `src/hooks/usePlayerData.js` - Main player data fetching hook
 - `src/utils/filtering/playerFilterUtils.js` - Player filtering logic
 - `DEVELOPER_GUIDE.md` - Detailed architectural documentation
-- `docs/` - Additional project documentation and hierarchies
+- `docs/architecture/` - Technical architecture documents
+- `docs/guides/` - User-facing guides and documentation
 
 ### Frequently Modified Areas
 
@@ -149,7 +157,7 @@ The trade validation system has been reorganized into a layered architecture:
 
 ### Firestore Collections
 
-- `/players` - Master player records with stats, grades, roles, and bio info (READ-ONLY)
+- `/players_v2` - Master player records with hierarchical structure (seasons, contracts, evaluations)
 - `/teams` - Team rosters and `contract_clean` used for GM/cap tools
 
 ### Key Data Patterns
@@ -158,6 +166,14 @@ The trade validation system has been reorganized into a layered architecture:
 - Components are organized by feature; shared UI lives under `src/components/shared`
 - Player data is normalized using `normalizePlayerData` from `src/utils/roster/`
 - Filtering uses `filterPlayers` and `sortPlayers` from `src/utils/filtering/playerFilterUtils.js`
+
+### Documentation Structure
+
+- **`docs/architecture/`** - Technical schemas, data source maps, project context
+- **`docs/guides/`** - Collection naming, data population, diagnostic guides
+- **`docs/api/`** - Auto-generated component hierarchies and API docs
+- **`docs/compliance/`** - Audit certificates and compliance matrices
+- **`archive/migrations/`** - Historical migration work and deprecated scripts
 
 ## Common Tasks
 
@@ -236,7 +252,3 @@ When handling **GM/CBA logic** (contracts, trades, cap rules, free agency, exten
 - Only touch files relevant to the current GM/CBA task.
 - Do not alter the `/cba/guides/` reference material unless specifically asked.
 - If unsure which rule card applies, ask me directly.
-
-```
-
-```
