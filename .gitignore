@@ -1,7 +1,7 @@
 node_modules/
 .venv/
 venv/
-data/
+/data/
 .vite/
 .github/
 .vercel/
