@@ -3,8 +3,8 @@ export function getPlayersForTeam(playersData, team) {
   return Object.keys(playersData)
     .filter((key) => {
       const player = playersData[key];
-      // Check v2 structure first (bio.display.team), then fallback to bio.Team for compatibility
-      const playerTeam = player?.bio?.display?.team || player?.bio?.Team || player?.team;
+      // V2 structure only: check bio.display.team or enriched team field
+      const playerTeam = player?.bio?.display?.team || player?.team;
       return playerTeam === team;
     })
     .sort((a, b) => {

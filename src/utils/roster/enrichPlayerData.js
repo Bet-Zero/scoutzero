@@ -11,8 +11,8 @@ import { POSITION_MAP } from '@/utils/roles/roleUtils';
  * - evaluations: { [evalId]: { roles, traits, badges, etc. } }
  */
 export function enrichPlayerData(playerData) {
-  // v2 nested position data
-  const rawPosition = playerData.bio?.position || playerData.bio?.Position;
+  // v2 nested position data (ONLY v2 structure)
+  const rawPosition = playerData.bio?.position;
   const formattedPosition = POSITION_MAP[rawPosition] || rawPosition || '—';
 
   // v2 salary data from contracts subcollection
@@ -65,11 +65,13 @@ export function enrichPlayerData(playerData) {
 
   return {
     ...playerData,
+    // Add convenience fields for backward compatibility (all from v2 structure)
+    name: playerData.bio?.displayName || '',
     formattedPosition,
     heightInInches: playerData.bio?.height || 0,
     weight: playerData.bio?.weight || 0,
     age: playerData.bio?.age || 0,
-    team: playerData.bio?.display?.team || playerData.bio?.Team || null, // Add team for backward compatibility
+    team: playerData.bio?.display?.team || null,
     headshotUrl: `/assets/headshots/${playerData.bio?.playerId || playerData.id}.png`,
     offenseRole: evaluationData.roles?.offense1 || '—',
     defenseRole: evaluationData.roles?.defense1 || '—',
