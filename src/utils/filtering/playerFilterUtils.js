@@ -195,13 +195,16 @@ export function filterPlayers(players = [], filters) {
  * Check if a player has a $0.0M contract indicating training camp invite or non-guaranteed deal
  */
 function checkForZeroContract(player) {
-  // Check current year salary from contract
+  // Check current year salary from contract subcollection
   const currentYear = 2025;
 
-  // Check annual_salaries array
-  if (player.contract?.annual_salaries) {
-    const currentSalary = player.contract.annual_salaries.find(
-      (s) => s.year === currentYear
+  // Get contract data from v2 structure
+  const contractData = player.contracts ? Object.values(player.contracts)[0] : null;
+  
+  // Check salariesByYear array in v2 structure
+  if (contractData?.salariesByYear) {
+    const currentSalary = contractData.salariesByYear.find(
+      (s) => s.year === currentYear || s.season?.startsWith(String(currentYear))
     );
     if (
       currentSalary &&
@@ -213,14 +216,8 @@ function checkForZeroContract(player) {
     }
   }
 
-  // Check salaryByYear mapping
+  // Check salaryByYear mapping (enriched data)
   if (player.salaryByYear?.[currentYear] === 0) {
-    return true;
-  }
-
-  // Check contract string patterns
-  const contractStr = player.Contract || player.contract_summary || '';
-  if (contractStr.includes('$0.0M') || contractStr === '$0.0M / 1 yr') {
     return true;
   }
 
@@ -238,23 +235,24 @@ function isLikelyNewPlayer(player) {
   }
 
   // Players with roles assigned are likely established
-  if (player.roles && (player.roles.offense1 || player.roles.defense1)) {
+  // Note: enrichPlayerData spreads these from evaluations subcollection
+  if (player.offenseRole && player.offenseRole !== '—') {
     return false;
   }
 
   // Players with substantial stats history are likely established
-  // Check both enriched stats (GP) and legacy system.stats
-  if ((player.GP && player.GP > 20) || (player.system?.stats?.G && player.system.stats.G > 20)) {
+  // Stats are enriched from seasons subcollection
+  if (player.GP && player.GP > 20) {
     return false;
   }
 
   // Players with established minutes per game are likely not training camp invites
-  if ((player.MIN && player.MIN > 15) || (player.system?.stats?.MP && player.system.stats.MP > 15)) {
+  if (player.MIN && player.MIN > 15) {
     return false;
   }
 
   // If player has overall grade, they're established
-  if (player.overallGrade || player.overall) {
+  if (player.overallGrade) {
     return false;
   }
 
@@ -272,11 +270,9 @@ export function sortPlayers(
   return [...players].sort((a, b) => {
     const getValue = (player, field) => {
       if (traitSort.includes(field)) return player.traits?.[field] ?? -1;
-      // Check enriched stats first (from seasons subcollection), then legacy system.stats
+      // Stats are enriched from seasons subcollection and spread to top level
       if (player.hasOwnProperty(field) && typeof player[field] === 'number')
         return player[field];
-      if (player.system?.stats?.hasOwnProperty(field))
-        return parseFloat(player.system.stats[field]) ?? -1;
       switch (field) {
         case 'name':
           return (player.bio?.displayName || player.name || '').toLowerCase();
@@ -291,10 +287,12 @@ export function sortPlayers(
         case 'shootingProfile':
           return shootingProfileRank[player.shootingProfile] ?? 0;
         case 'yearsRemaining':
-          return parseInt(player.freeAgentYear) - 2024 || -1;
+          return parseInt(player.freeAgentYear || player.bio?.display?.freeAgentYear) - 2024 || -1;
         case 'totalContract':
-          return Array.isArray(player.contract?.annual_salaries)
-            ? player.contract.annual_salaries.reduce((sum, s) => {
+          // Contract data is in contracts subcollection
+          const contractData = player.contracts ? Object.values(player.contracts)[0] : null;
+          return Array.isArray(contractData?.salariesByYear)
+            ? contractData.salariesByYear.reduce((sum, s) => {
                 const val =
                   typeof s.salary === 'number'
                     ? s.salary
@@ -303,7 +301,7 @@ export function sortPlayers(
               }, 0)
             : -1;
         case 'overall':
-          return parseFloat(player.overall) ?? -1;
+          return parseFloat(player.overallGrade) ?? -1;
         default:
           return -1;
       }

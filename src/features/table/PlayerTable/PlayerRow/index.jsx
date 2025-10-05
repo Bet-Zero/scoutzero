@@ -81,40 +81,39 @@ const PlayerRow = ({ player, ranking = '—' }) => {
 
         {/* Contract Info */}
         <div className="ml-0 border-l border-[#333] text-[11px] tracking-wide w-[140px] leading-tight text-center break-words">
-          {player.contract?.annual_salaries && player.freeAgentYear ? (
-            (() => {
-              const CURRENT_YEAR = getCurrentSeasonYear();
+          {(() => {
+            const CURRENT_YEAR = getCurrentSeasonYear();
+            const contractData = player.contracts ? Object.values(player.contracts)[0] : null;
+            const freeAgentYear = player.bio?.display?.freeAgentYear || contractData?.freeAgency?.freeAgentYear;
+            const freeAgentType = player.bio?.display?.freeAgentType || contractData?.freeAgency?.freeAgentType;
 
-              const currentSalary =
-                player.contract.annual_salaries.find(
-                  (s) => s.year === CURRENT_YEAR
-                )?.salary ??
-                player.contract.extension?.annual_salaries?.find(
-                  (s) => s.year === CURRENT_YEAR
-                )?.salary ??
-                0;
+            if (!contractData?.salariesByYear || !freeAgentYear) {
+              return <div className="text-white/40">—</div>;
+            }
 
-              const yearsLeft = getYearsRemaining(
-                player.fa_year ?? player.freeAgentYear,
-                CURRENT_YEAR
-              );
-              const formattedSalary = `$${(currentSalary / 1_000_000).toFixed(1)}M`;
+            const currentSalary =
+              contractData.salariesByYear.find(
+                (s) => s.year === CURRENT_YEAR || s.season?.startsWith(String(CURRENT_YEAR))
+              )?.salary ?? 0;
 
-              return (
-                <>
-                  <div>
-                    <span className="text-white">{formattedSalary}</span>
-                    <span className="text-white/40"> / {yearsLeft} YRS</span>
+            const yearsLeft = getYearsRemaining(
+              freeAgentYear,
+              CURRENT_YEAR
+            );
+            const formattedSalary = `$${(currentSalary / 1_000_000).toFixed(1)}M`;
+
+            return (
+              <>
+                <div>
+                  <span className="text-white">{formattedSalary}</span>
+                  <span className="text-white/40"> / {yearsLeft} YRS</span>
+                </div>
+                <div className="text-white/40">
+                  {freeAgentType || 'UFA'} {freeAgentYear}
                   </div>
-                  <div className="text-white/40">
-                    {player.freeAgentType || 'UFA'} {player.freeAgentYear}
-                  </div>
-                </>
-              );
-            })()
-          ) : (
-            <div className="text-white/40">Two-Way</div>
-          )}
+              </>
+            );
+          })()}
         </div>
 
         {/* Divider */}

@@ -20,21 +20,21 @@ const PlayerHeader = ({ player, selectedPlayer }) => {
 
   const thisYear = 2025;
   
-  // Get contract data from contracts subcollection or legacy contract field
-  const contractData = player.contracts ? Object.values(player.contracts)[0] : player.contract;
-  const totalYears = contractData?.contractLength || contractData?.annual_salaries?.length;
+  // Get contract data from contracts subcollection (v2 structure only)
+  const contractData = player.contracts ? Object.values(player.contracts)[0] : null;
+  const totalYears = contractData?.contractLength;
   const currentYearSalaryObj = contractData?.salariesByYear?.find(
     (s) => s.year === thisYear || s.season?.startsWith(String(thisYear))
-  ) || contractData?.annual_salaries?.find((s) => s.year === thisYear);
+  );
   const currentSalary = currentYearSalaryObj?.salary;
   const contractSummary =
     currentSalary && totalYears
       ? `$${(currentSalary / 1_000_000).toFixed(1)}M / ${totalYears} yrs`
       : '—';
 
-  // Get free agency info from contract or bio display
-  const freeAgentType = player.bio?.display?.freeAgentType || contractData?.freeAgency?.freeAgentType || player.freeAgentType;
-  const freeAgentYear = player.bio?.display?.freeAgentYear || contractData?.freeAgency?.freeAgentYear || player.freeAgentYear;
+  // Get free agency info from bio.display or contract subcollection (v2 structure only)
+  const freeAgentType = player.bio?.display?.freeAgentType || contractData?.freeAgency?.freeAgentType;
+  const freeAgentYear = player.bio?.display?.freeAgentYear || contractData?.freeAgency?.freeAgentYear;
   const freeAgencyDisplay =
     freeAgentYear && freeAgentType
       ? `${freeAgentYear} (${freeAgentType})`

@@ -45,15 +45,16 @@ export function getSalaryWithFallback(player, yearKey) {
     return 0;
   }
 
-  // Try contract_clean first
+  // Try contract_clean first (from teams collection)
   const contractSalary = getContractSalaryForYear(player, yearKey);
   if (contractSalary > 0) {
     return contractSalary;
   }
 
-  // Try the legacy contract structure
-  if (player.contract?.annual_salaries) {
-    // Convert yearKey to end year for legacy lookup
+  // Try v2 contracts subcollection structure
+  const contractData = player.contracts ? Object.values(player.contracts)[0] : null;
+  if (contractData?.salariesByYear) {
+    // Convert yearKey to end year for v2 lookup
     let endYear;
     if (typeof yearKey === 'string' && yearKey.includes('-')) {
       const match = yearKey.match(/(\d{4})-(\d{2})/);
@@ -62,11 +63,13 @@ export function getSalaryWithFallback(player, yearKey) {
       endYear = parseInt(yearKey);
     }
     
-    const annualSalary = player.contract.annual_salaries.find((s) => parseInt(s.year) === endYear);
+    const annualSalary = contractData.salariesByYear.find(
+      (s) => parseInt(s.year) === endYear || s.season?.startsWith(String(endYear - 1))
+    );
     if (annualSalary?.salary) {
-      const legacySalary = Number(annualSalary.salary);
-      if (Number.isFinite(legacySalary)) {
-        return legacySalary;
+      const v2Salary = Number(annualSalary.salary);
+      if (Number.isFinite(v2Salary)) {
+        return v2Salary;
       }
     }
   }

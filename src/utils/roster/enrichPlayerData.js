@@ -2,16 +2,19 @@ import { POSITION_MAP } from '../roles';
 
 /**
  * Enrich player data with computed/convenience fields
- * This adds helpful derived fields without changing the v2 schema structure
+ * This adds helpful derived fields from the v2 schema structure
+ * 
+ * IMPORTANT: This function assumes data is in v2 format ONLY
+ * No legacy fallbacks - data must come from subcollections
  */
 export function enrichPlayerData(playerData) {
-  const rawPosition = playerData.bio?.position || playerData.bio?.Position;
+  const rawPosition = playerData.bio?.position;
   const formattedPosition = POSITION_MAP[rawPosition] || rawPosition || '—';
 
-  // Handle salary data from contracts subcollection or legacy contract field
+  // Get contract data from contracts subcollection
   const salaryMap = {};
-  const contractData = playerData.contracts ? Object.values(playerData.contracts)[0] : playerData.contract;
-  const annualSalaries = contractData?.salariesByYear || contractData?.annual_salaries || [];
+  const contractData = playerData.contracts ? Object.values(playerData.contracts)[0] : null;
+  const annualSalaries = contractData?.salariesByYear || [];
   
   annualSalaries.forEach((s) => {
     let raw = s.salary;
@@ -31,36 +34,23 @@ export function enrichPlayerData(playerData) {
     if (isNaN(salaryMap[s.year || s.season])) salaryMap[s.year || s.season] = null;
   });
 
-  // Get current season stats - try from seasons subcollection first, then legacy
+  // Get current season stats from seasons subcollection
   let currentStats = {};
   if (playerData.seasons) {
-    // Use most recent season
     const seasons = Object.entries(playerData.seasons);
     if (seasons.length > 0) {
       const [, seasonData] = seasons.sort((a, b) => b[0].localeCompare(a[0]))[0];
       currentStats = seasonData.stats || {};
     }
-  } else if (playerData.system?.stats) {
-    // Legacy path
-    currentStats = playerData.system.stats;
   }
 
-  // Get evaluation data - try from evaluations subcollection first, then legacy
+  // Get evaluation data from evaluations subcollection
   let evaluationData = {};
   if (playerData.evaluations) {
     const evals = Object.values(playerData.evaluations);
     if (evals.length > 0) {
       evaluationData = evals[0]; // Use first evaluation
     }
-  } else {
-    // Legacy path - data at root level
-    evaluationData = {
-      roles: playerData.roles,
-      subRoles: playerData.subRoles,
-      traits: playerData.traits,
-      badges: playerData.badges,
-      shootingProfile: playerData.shootingProfile,
-    };
   }
 
   return {
@@ -69,7 +59,7 @@ export function enrichPlayerData(playerData) {
     heightInInches: playerData.bio?.height || 0,
     weight: playerData.bio?.weight || 0,
     age: playerData.bio?.age || 0,
-    headshotUrl: `/assets/headshots/${playerData.bio?.playerId || playerData.player_id}.png`,
+    headshotUrl: `/assets/headshots/${playerData.bio?.playerId || playerData.id}.png`,
     offenseRole: evaluationData.roles?.offense1 || '—',
     defenseRole: evaluationData.roles?.defense1 || '—',
     shootingProfile: evaluationData.shootingProfile || '—',
@@ -79,10 +69,11 @@ export function enrichPlayerData(playerData) {
     },
     traits: evaluationData.traits || {},
     badges: evaluationData.badges || [],
+    overallGrade: evaluationData.overallGrade,
     salaryByYear: salaryMap,
-    PPG: currentStats.PTS ?? currentStats.PPG ?? null,
-    RPG: currentStats.REB ?? currentStats.TRB ?? currentStats.RPG ?? null,
-    APG: currentStats.AST ?? currentStats.APG ?? null,
+    PPG: currentStats.PTS ?? null,
+    RPG: currentStats.REB ?? null,
+    APG: currentStats.AST ?? null,
     ...currentStats,
   };
 }
