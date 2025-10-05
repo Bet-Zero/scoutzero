@@ -1,6 +1,6 @@
 /**
  * Firestore Collection Constants
- * 
+ *
  * Centralized collection names for all Firestore queries.
  * Use these constants instead of hardcoded strings.
  */
@@ -9,7 +9,8 @@
  * Main players collection (v2 schema)
  * Can be overridden via environment variable for testing/migration
  */
-export const PLAYERS_COLLECTION = process.env.VITE_PLAYERS_COLLECTION || 'players_v2';
+export const PLAYERS_COLLECTION =
+  import.meta.env.VITE_PLAYERS_COLLECTION || 'players_v2';
 
 /**
  * Legacy players collection (deprecated - for reference only)

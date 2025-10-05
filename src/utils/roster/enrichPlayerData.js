@@ -1,21 +1,27 @@
-import { POSITION_MAP } from '../roles';
+import { POSITION_MAP } from '@/utils/roles/roleUtils';
 
 /**
  * Enrich player data with computed/convenience fields
- * This adds helpful derived fields from the v2 schema structure
- * 
- * IMPORTANT: This function assumes data is in v2 format ONLY
- * No legacy fallbacks - data must come from subcollections
+ * This handles the v2 nested schema structure only
+ *
+ * Expected v2 structure:
+ * - bio: { displayName, position, height, weight, age, team, etc. }
+ * - contracts: { [contractId]: { salariesByYear, etc. } }
+ * - seasons: { [seasonId]: { stats, team, etc. } }
+ * - evaluations: { [evalId]: { roles, traits, badges, etc. } }
  */
 export function enrichPlayerData(playerData) {
-  const rawPosition = playerData.bio?.position;
+  // v2 nested position data
+  const rawPosition = playerData.bio?.position || playerData.bio?.Position;
   const formattedPosition = POSITION_MAP[rawPosition] || rawPosition || '—';
 
-  // Get contract data from contracts subcollection
+  // v2 salary data from contracts subcollection
   const salaryMap = {};
-  const contractData = playerData.contracts ? Object.values(playerData.contracts)[0] : null;
+  const contractData = playerData.contracts
+    ? Object.values(playerData.contracts)[0]
+    : null;
   const annualSalaries = contractData?.salariesByYear || [];
-  
+
   annualSalaries.forEach((s) => {
     let raw = s.salary;
     if (typeof raw === 'string') {
@@ -31,20 +37,24 @@ export function enrichPlayerData(playerData) {
     } else {
       salaryMap[s.year || s.season] = null;
     }
-    if (isNaN(salaryMap[s.year || s.season])) salaryMap[s.year || s.season] = null;
+    if (isNaN(salaryMap[s.year || s.season]))
+      salaryMap[s.year || s.season] = null;
   });
 
-  // Get current season stats from seasons subcollection
+  // v2 stats data from seasons subcollection
   let currentStats = {};
   if (playerData.seasons) {
     const seasons = Object.entries(playerData.seasons);
     if (seasons.length > 0) {
-      const [, seasonData] = seasons.sort((a, b) => b[0].localeCompare(a[0]))[0];
+      // Use most recent season
+      const [, seasonData] = seasons.sort((a, b) =>
+        b[0].localeCompare(a[0])
+      )[0];
       currentStats = seasonData.stats || {};
     }
   }
 
-  // Get evaluation data from evaluations subcollection
+  // v2 evaluation data from evaluations subcollection
   let evaluationData = {};
   if (playerData.evaluations) {
     const evals = Object.values(playerData.evaluations);
