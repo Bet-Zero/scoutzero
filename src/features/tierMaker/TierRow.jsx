@@ -39,7 +39,7 @@ const TierRow = ({
     </div>
     <div className="flex flex-wrap gap-[2px] flex-1">
       {players.map((player) => {
-        const playerId = player.id || player.player_id;
+        const playerId = player.id;
         return (
           <div key={playerId} className="relative">
             <TierPlayerTile player={player} />
