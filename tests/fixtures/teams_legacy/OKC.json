@@ -1,0 +1,156 @@
+{
+  "id": "thunder",
+  "capSheet": {
+    "lastUpdated": 1704067200000,
+    "players": [
+      {
+        "name": "Shai Gilgeous-Alexander",
+        "display_name": "Shai Gilgeous-Alexander",
+        "player_id": "sga-001",
+        "position": "G",
+        "age": 26,
+        "height": "6-6",
+        "weight": 195,
+        "contract_clean": {
+          "years": 5,
+          "total_value": 207000000,
+          "average_value": 41400000,
+          "bird_rights": "Bird",
+          "fa_type": null,
+          "fa_year": 2027,
+          "has_extension": false,
+          "salaries_by_year": {
+            "2025": {
+              "salary": 35450000,
+              "guaranteed": 35450000,
+              "option": null,
+              "source": "spotrac"
+            },
+            "2026": {
+              "salary": 38286000,
+              "guaranteed": 38286000,
+              "option": null,
+              "source": "spotrac"
+            },
+            "2027": {
+              "salary": 41122000,
+              "guaranteed": 41122000,
+              "option": null,
+              "source": "spotrac"
+            }
+          }
+        }
+      },
+      {
+        "name": "Jalen Williams",
+        "display_name": "Jalen Williams",
+        "player_id": "jw-okc-001",
+        "position": "F",
+        "age": 23,
+        "height": "6-6",
+        "weight": 211,
+        "contract_clean": {
+          "years": 4,
+          "total_value": 11583600,
+          "average_value": 2895900,
+          "bird_rights": "Early Bird",
+          "fa_type": "RFA",
+          "fa_year": 2026,
+          "has_extension": false,
+          "salaries_by_year": {
+            "2025": {
+              "salary": 4338840,
+              "guaranteed": 4338840,
+              "option": null,
+              "source": "spotrac"
+            },
+            "2026": {
+              "salary": 5569602,
+              "guaranteed": 0,
+              "option": "Team",
+              "source": "spotrac"
+            }
+          }
+        }
+      },
+      {
+        "name": "Chet Holmgren",
+        "display_name": "Chet Holmgren",
+        "player_id": "ch-001",
+        "position": "F-C",
+        "age": 22,
+        "height": "7-0",
+        "weight": 195,
+        "contract_clean": {
+          "years": 4,
+          "total_value": 31518240,
+          "average_value": 7879560,
+          "bird_rights": "Early Bird",
+          "fa_type": "RFA",
+          "fa_year": 2027,
+          "has_extension": false,
+          "salaries_by_year": {
+            "2025": {
+              "salary": 10100160,
+              "guaranteed": 10100160,
+              "option": null,
+              "source": "spotrac"
+            },
+            "2026": {
+              "salary": 10605480,
+              "guaranteed": 10605480,
+              "option": null,
+              "source": "spotrac"
+            },
+            "2027": {
+              "salary": 13638600,
+              "guaranteed": 0,
+              "option": "Team",
+              "source": "spotrac"
+            }
+          }
+        }
+      }
+    ],
+    "totalSalaryByYear": {
+      "2025": 49889000,
+      "2026": 54461082,
+      "2027": 54760600
+    }
+  },
+  "exceptions": [
+    {
+      "kind": "MLE",
+      "amount": 12860000,
+      "createdOn": "2024-07-01",
+      "expiresOn": "2025-06-30",
+      "usedAmount": 0
+    }
+  ],
+  "picks": {
+    "incoming": [
+      {
+        "year": 2025,
+        "round": 1,
+        "from": "HOU",
+        "protection": "Top-4 protected, rolls to 2026 if not conveyed",
+        "swap": false
+      },
+      {
+        "year": 2025,
+        "round": 1,
+        "from": "LAC",
+        "protection": null,
+        "swap": false
+      },
+      {
+        "year": 2026,
+        "round": 1,
+        "from": "PHI",
+        "protection": "Top-6 protected",
+        "swap": false
+      }
+    ],
+    "outgoing": []
+  }
+}

@@ -1,0 +1,189 @@
+{
+  "id": "celtics",
+  "capSheet": {
+    "lastUpdated": 1704067200000,
+    "players": [
+      {
+        "name": "Jayson Tatum",
+        "display_name": "Jayson Tatum",
+        "player_id": "jt-001",
+        "position": "F",
+        "age": 26,
+        "height": "6-8",
+        "weight": 210,
+        "contract_clean": {
+          "years": 5,
+          "total_value": 314480000,
+          "average_value": 62896000,
+          "bird_rights": "Bird",
+          "fa_type": null,
+          "fa_year": 2030,
+          "has_extension": true,
+          "salaries_by_year": {
+            "2025": {
+              "salary": 54126480,
+              "guaranteed": 54126480,
+              "option": null,
+              "source": "spotrac"
+            },
+            "2026": {
+              "salary": 58456040,
+              "guaranteed": 58456040,
+              "option": null,
+              "source": "spotrac"
+            },
+            "2027": {
+              "salary": 62785600,
+              "guaranteed": 62785600,
+              "option": null,
+              "source": "spotrac"
+            },
+            "2028": {
+              "salary": 67115160,
+              "guaranteed": 67115160,
+              "option": null,
+              "source": "spotrac"
+            },
+            "2029": {
+              "salary": 71444720,
+              "guaranteed": 71444720,
+              "option": null,
+              "source": "spotrac"
+            },
+            "2030": {
+              "salary": 75552000,
+              "guaranteed": 0,
+              "option": "Player",
+              "source": "spotrac"
+            }
+          }
+        }
+      },
+      {
+        "name": "Jaylen Brown",
+        "display_name": "Jaylen Brown",
+        "player_id": "jb-001",
+        "position": "G-F",
+        "age": 28,
+        "height": "6-6",
+        "weight": 223,
+        "contract_clean": {
+          "years": 5,
+          "total_value": 285350000,
+          "average_value": 57070000,
+          "bird_rights": "Bird",
+          "fa_type": null,
+          "fa_year": 2029,
+          "has_extension": false,
+          "salaries_by_year": {
+            "2025": {
+              "salary": 52362305,
+              "guaranteed": 52362305,
+              "option": null,
+              "source": "spotrac"
+            },
+            "2026": {
+              "salary": 56551209,
+              "guaranteed": 56551209,
+              "option": null,
+              "source": "spotrac"
+            },
+            "2027": {
+              "salary": 60740113,
+              "guaranteed": 60740113,
+              "option": null,
+              "source": "spotrac"
+            },
+            "2028": {
+              "salary": 64929017,
+              "guaranteed": 64929017,
+              "option": null,
+              "source": "spotrac"
+            },
+            "2029": {
+              "salary": 68767921,
+              "guaranteed": 0,
+              "option": "Player",
+              "source": "spotrac"
+            }
+          }
+        }
+      },
+      {
+        "name": "Derrick White",
+        "display_name": "Derrick White",
+        "player_id": "dw-001",
+        "position": "G",
+        "age": 30,
+        "height": "6-4",
+        "weight": 190,
+        "contract_clean": {
+          "years": 4,
+          "total_value": 125900000,
+          "average_value": 31475000,
+          "bird_rights": "Bird",
+          "fa_type": null,
+          "fa_year": 2029,
+          "has_extension": true,
+          "salaries_by_year": {
+            "2025": {
+              "salary": 19612500,
+              "guaranteed": 19612500,
+              "option": null,
+              "source": "spotrac"
+            },
+            "2026": {
+              "salary": 30000000,
+              "guaranteed": 30000000,
+              "option": null,
+              "source": "spotrac"
+            },
+            "2027": {
+              "salary": 32400000,
+              "guaranteed": 32400000,
+              "option": null,
+              "source": "spotrac"
+            },
+            "2028": {
+              "salary": 34800000,
+              "guaranteed": 34800000,
+              "option": null,
+              "source": "spotrac"
+            },
+            "2029": {
+              "salary": 37087500,
+              "guaranteed": 0,
+              "option": "Player",
+              "source": "spotrac"
+            }
+          }
+        }
+      }
+    ],
+    "totalSalaryByYear": {
+      "2025": 126101285,
+      "2026": 145007249,
+      "2027": 155925713
+    }
+  },
+  "exceptions": [],
+  "picks": {
+    "incoming": [],
+    "outgoing": [
+      {
+        "year": 2025,
+        "round": 1,
+        "to": "MEM",
+        "protection": null,
+        "swap": false
+      },
+      {
+        "year": 2026,
+        "round": 1,
+        "to": "WAS",
+        "protection": null,
+        "swap": false
+      }
+    ]
+  }
+}

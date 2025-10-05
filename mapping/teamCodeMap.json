@@ -1,0 +1,302 @@
+{
+  "ATL": {
+    "teamCode": "ATL",
+    "id": "hawks",
+    "market": "Atlanta",
+    "name": "Hawks",
+    "abbreviation": "ATL",
+    "conference": "East",
+    "division": "Southeast",
+    "fullName": "Atlanta Hawks"
+  },
+  "BOS": {
+    "teamCode": "BOS",
+    "id": "celtics",
+    "market": "Boston",
+    "name": "Celtics",
+    "abbreviation": "BOS",
+    "conference": "East",
+    "division": "Atlantic",
+    "fullName": "Boston Celtics"
+  },
+  "BKN": {
+    "teamCode": "BKN",
+    "id": "nets",
+    "market": "Brooklyn",
+    "name": "Nets",
+    "abbreviation": "BKN",
+    "conference": "East",
+    "division": "Atlantic",
+    "fullName": "Brooklyn Nets"
+  },
+  "CHA": {
+    "teamCode": "CHA",
+    "id": "hornets",
+    "market": "Charlotte",
+    "name": "Hornets",
+    "abbreviation": "CHA",
+    "conference": "East",
+    "division": "Southeast",
+    "fullName": "Charlotte Hornets"
+  },
+  "CHI": {
+    "teamCode": "CHI",
+    "id": "bulls",
+    "market": "Chicago",
+    "name": "Bulls",
+    "abbreviation": "CHI",
+    "conference": "East",
+    "division": "Central",
+    "fullName": "Chicago Bulls"
+  },
+  "CLE": {
+    "teamCode": "CLE",
+    "id": "cavaliers",
+    "market": "Cleveland",
+    "name": "Cavaliers",
+    "abbreviation": "CLE",
+    "conference": "East",
+    "division": "Central",
+    "fullName": "Cleveland Cavaliers"
+  },
+  "DAL": {
+    "teamCode": "DAL",
+    "id": "mavericks",
+    "market": "Dallas",
+    "name": "Mavericks",
+    "abbreviation": "DAL",
+    "conference": "West",
+    "division": "Southwest",
+    "fullName": "Dallas Mavericks"
+  },
+  "DEN": {
+    "teamCode": "DEN",
+    "id": "nuggets",
+    "market": "Denver",
+    "name": "Nuggets",
+    "abbreviation": "DEN",
+    "conference": "West",
+    "division": "Northwest",
+    "fullName": "Denver Nuggets"
+  },
+  "DET": {
+    "teamCode": "DET",
+    "id": "pistons",
+    "market": "Detroit",
+    "name": "Pistons",
+    "abbreviation": "DET",
+    "conference": "East",
+    "division": "Central",
+    "fullName": "Detroit Pistons"
+  },
+  "GSW": {
+    "teamCode": "GSW",
+    "id": "warriors",
+    "market": "Golden State",
+    "name": "Warriors",
+    "abbreviation": "GSW",
+    "conference": "West",
+    "division": "Pacific",
+    "fullName": "Golden State Warriors"
+  },
+  "HOU": {
+    "teamCode": "HOU",
+    "id": "rockets",
+    "market": "Houston",
+    "name": "Rockets",
+    "abbreviation": "HOU",
+    "conference": "West",
+    "division": "Southwest",
+    "fullName": "Houston Rockets"
+  },
+  "IND": {
+    "teamCode": "IND",
+    "id": "pacers",
+    "market": "Indiana",
+    "name": "Pacers",
+    "abbreviation": "IND",
+    "conference": "East",
+    "division": "Central",
+    "fullName": "Indiana Pacers"
+  },
+  "LAC": {
+    "teamCode": "LAC",
+    "id": "clippers",
+    "market": "Los Angeles",
+    "name": "Clippers",
+    "abbreviation": "LAC",
+    "conference": "West",
+    "division": "Pacific",
+    "fullName": "Los Angeles Clippers"
+  },
+  "LAL": {
+    "teamCode": "LAL",
+    "id": "lakers",
+    "market": "Los Angeles",
+    "name": "Lakers",
+    "abbreviation": "LAL",
+    "conference": "West",
+    "division": "Pacific",
+    "fullName": "Los Angeles Lakers"
+  },
+  "MEM": {
+    "teamCode": "MEM",
+    "id": "grizzlies",
+    "market": "Memphis",
+    "name": "Grizzlies",
+    "abbreviation": "MEM",
+    "conference": "West",
+    "division": "Southwest",
+    "fullName": "Memphis Grizzlies"
+  },
+  "MIA": {
+    "teamCode": "MIA",
+    "id": "heat",
+    "market": "Miami",
+    "name": "Heat",
+    "abbreviation": "MIA",
+    "conference": "East",
+    "division": "Southeast",
+    "fullName": "Miami Heat"
+  },
+  "MIL": {
+    "teamCode": "MIL",
+    "id": "bucks",
+    "market": "Milwaukee",
+    "name": "Bucks",
+    "abbreviation": "MIL",
+    "conference": "East",
+    "division": "Central",
+    "fullName": "Milwaukee Bucks"
+  },
+  "MIN": {
+    "teamCode": "MIN",
+    "id": "timberwolves",
+    "market": "Minnesota",
+    "name": "Timberwolves",
+    "abbreviation": "MIN",
+    "conference": "West",
+    "division": "Northwest",
+    "fullName": "Minnesota Timberwolves"
+  },
+  "NOP": {
+    "teamCode": "NOP",
+    "id": "pelicans",
+    "market": "New Orleans",
+    "name": "Pelicans",
+    "abbreviation": "NOP",
+    "conference": "West",
+    "division": "Southwest",
+    "fullName": "New Orleans Pelicans"
+  },
+  "NYK": {
+    "teamCode": "NYK",
+    "id": "knicks",
+    "market": "New York",
+    "name": "Knicks",
+    "abbreviation": "NYK",
+    "conference": "East",
+    "division": "Atlantic",
+    "fullName": "New York Knicks"
+  },
+  "OKC": {
+    "teamCode": "OKC",
+    "id": "thunder",
+    "market": "Oklahoma City",
+    "name": "Thunder",
+    "abbreviation": "OKC",
+    "conference": "West",
+    "division": "Northwest",
+    "fullName": "Oklahoma City Thunder"
+  },
+  "ORL": {
+    "teamCode": "ORL",
+    "id": "magic",
+    "market": "Orlando",
+    "name": "Magic",
+    "abbreviation": "ORL",
+    "conference": "East",
+    "division": "Southeast",
+    "fullName": "Orlando Magic"
+  },
+  "PHI": {
+    "teamCode": "PHI",
+    "id": "76ers",
+    "market": "Philadelphia",
+    "name": "76ers",
+    "abbreviation": "PHI",
+    "conference": "East",
+    "division": "Atlantic",
+    "fullName": "Philadelphia 76ers"
+  },
+  "PHX": {
+    "teamCode": "PHX",
+    "id": "suns",
+    "market": "Phoenix",
+    "name": "Suns",
+    "abbreviation": "PHX",
+    "conference": "West",
+    "division": "Pacific",
+    "fullName": "Phoenix Suns"
+  },
+  "POR": {
+    "teamCode": "POR",
+    "id": "trail blazers",
+    "market": "Portland",
+    "name": "Trail Blazers",
+    "abbreviation": "POR",
+    "conference": "West",
+    "division": "Northwest",
+    "fullName": "Portland Trail Blazers"
+  },
+  "SAC": {
+    "teamCode": "SAC",
+    "id": "kings",
+    "market": "Sacramento",
+    "name": "Kings",
+    "abbreviation": "SAC",
+    "conference": "West",
+    "division": "Pacific",
+    "fullName": "Sacramento Kings"
+  },
+  "SAS": {
+    "teamCode": "SAS",
+    "id": "spurs",
+    "market": "San Antonio",
+    "name": "Spurs",
+    "abbreviation": "SAS",
+    "conference": "West",
+    "division": "Southwest",
+    "fullName": "San Antonio Spurs"
+  },
+  "TOR": {
+    "teamCode": "TOR",
+    "id": "raptors",
+    "market": "Toronto",
+    "name": "Raptors",
+    "abbreviation": "TOR",
+    "conference": "East",
+    "division": "Atlantic",
+    "fullName": "Toronto Raptors"
+  },
+  "UTA": {
+    "teamCode": "UTA",
+    "id": "jazz",
+    "market": "Utah",
+    "name": "Jazz",
+    "abbreviation": "UTA",
+    "conference": "West",
+    "division": "Northwest",
+    "fullName": "Utah Jazz"
+  },
+  "WAS": {
+    "teamCode": "WAS",
+    "id": "wizards",
+    "market": "Washington",
+    "name": "Wizards",
+    "abbreviation": "WAS",
+    "conference": "East",
+    "division": "Southeast",
+    "fullName": "Washington Wizards"
+  }
+}

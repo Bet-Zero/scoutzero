@@ -1,0 +1,156 @@
+{
+  "id": "lakers",
+  "capSheet": {
+    "lastUpdated": 1704067200000,
+    "players": [
+      {
+        "name": "LeBron James",
+        "display_name": "LeBron James",
+        "player_id": "lbj-001",
+        "position": "F",
+        "age": 39,
+        "height": "6-9",
+        "weight": 250,
+        "contract_clean": {
+          "years": 2,
+          "total_value": 101350000,
+          "average_value": 50675000,
+          "bird_rights": "Bird",
+          "fa_type": null,
+          "fa_year": 2026,
+          "has_extension": false,
+          "salaries_by_year": {
+            "2025": {
+              "salary": 48728845,
+              "guaranteed": 48728845,
+              "option": "Player",
+              "source": "spotrac"
+            },
+            "2026": {
+              "salary": 52621155,
+              "guaranteed": 52621155,
+              "option": null,
+              "source": "spotrac"
+            }
+          }
+        }
+      },
+      {
+        "name": "Anthony Davis",
+        "display_name": "Anthony Davis",
+        "player_id": "ad-001",
+        "position": "F-C",
+        "age": 31,
+        "height": "6-10",
+        "weight": 253,
+        "contract_clean": {
+          "years": 3,
+          "total_value": 186375000,
+          "average_value": 62125000,
+          "bird_rights": "Bird",
+          "fa_type": null,
+          "fa_year": 2028,
+          "has_extension": false,
+          "salaries_by_year": {
+            "2025": {
+              "salary": 43219440,
+              "guaranteed": 43219440,
+              "option": null,
+              "source": "spotrac"
+            },
+            "2026": {
+              "salary": 57577280,
+              "guaranteed": 57577280,
+              "option": null,
+              "source": "spotrac"
+            },
+            "2027": {
+              "salary": 62158280,
+              "guaranteed": 62158280,
+              "option": null,
+              "source": "spotrac"
+            },
+            "2028": {
+              "salary": 66739280,
+              "guaranteed": 0,
+              "option": "Player",
+              "source": "spotrac"
+            }
+          }
+        }
+      },
+      {
+        "name": "Austin Reaves",
+        "display_name": "Austin Reaves",
+        "player_id": "ar-001",
+        "position": "G",
+        "age": 26,
+        "height": "6-5",
+        "weight": 206,
+        "contract_clean": {
+          "years": 4,
+          "total_value": 53825000,
+          "average_value": 13456250,
+          "bird_rights": "Bird",
+          "fa_type": null,
+          "fa_year": 2027,
+          "has_extension": false,
+          "salaries_by_year": {
+            "2025": {
+              "salary": 12985000,
+              "guaranteed": 12985000,
+              "option": null,
+              "source": "spotrac"
+            },
+            "2026": {
+              "salary": 13694000,
+              "guaranteed": 13694000,
+              "option": null,
+              "source": "spotrac"
+            },
+            "2027": {
+              "salary": 14723000,
+              "guaranteed": 14723000,
+              "option": null,
+              "source": "spotrac"
+            }
+          }
+        }
+      }
+    ],
+    "totalSalaryByYear": {
+      "2025": 104933285,
+      "2026": 123892435,
+      "2027": 76881280
+    }
+  },
+  "exceptions": [
+    {
+      "kind": "MLE",
+      "amount": 12860000,
+      "createdOn": "2024-07-01",
+      "expiresOn": "2025-06-30",
+      "usedAmount": 0
+    }
+  ],
+  "picks": {
+    "incoming": [
+      {
+        "year": 2027,
+        "round": 1,
+        "from": "NOP",
+        "protection": "Top-10 protected, converts to two 2nds if not conveyed by 2028",
+        "swap": false
+      }
+    ],
+    "outgoing": [
+      {
+        "year": 2025,
+        "round": 1,
+        "to": "LAL",
+        "protection": null,
+        "swap": false
+      }
+    ]
+  }
+}
