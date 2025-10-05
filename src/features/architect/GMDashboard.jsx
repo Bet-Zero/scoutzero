@@ -322,7 +322,9 @@ const GMDashboard = () => {
         const position =
           playerData?.position ||
           playerData?.formattedPosition ||
-          getPlayerPositionLabel(playerData?.bio?.Position || p.position || '');
+          getPlayerPositionLabel(
+            playerData?.bio?.position || p.position || ''
+          );
         return {
           ...(playerData || {}),
           name: playerData?.name || p.name,
@@ -376,7 +378,9 @@ const GMDashboard = () => {
       const position =
         base.position ||
         base.formattedPosition ||
-        getPlayerPositionLabel(base.bio?.Position || playerObj.position || '');
+        getPlayerPositionLabel(
+          base.bio?.position || playerObj.position || ''
+        );
 
       const newPlayer = {
         ...(base || {}),

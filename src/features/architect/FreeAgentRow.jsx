@@ -36,7 +36,7 @@ const FreeAgentRow = ({
   const firstName = nameParts[0]?.toUpperCase() || '';
   const lastName = nameParts.slice(1).join(' ').toUpperCase() || '';
 
-  const rawPosition = player.bio?.Position || player.formattedPosition || '';
+  const rawPosition = player.bio?.position || player.formattedPosition || '';
   const position = getPlayerPositionLabel(rawPosition) || '—';
 
   const formatHeight = (inches) => {
@@ -54,6 +54,7 @@ const FreeAgentRow = ({
   const faType =
     askInfo.freeAgentType ||
     askInfo.fa_type ||
+    player.bio?.display?.freeAgentType ||
     player.freeAgentType ||
     player.fa_type ||
     'UFA';
@@ -89,7 +90,8 @@ const FreeAgentRow = ({
       <div className="h-[43px] w-[50px] bg-[#2a2a2a] flex items-center justify-center overflow-hidden">
         <img
           src={
-            player.headshotUrl || `/assets/headshots/${player.player_id}.png`
+            player.headshotUrl ||
+            `/assets/headshots/${player.bio?.playerId || player.id || player.player_id}.png`
           }
           onError={(e) => {
             e.target.src = '/assets/headshots/default.png';

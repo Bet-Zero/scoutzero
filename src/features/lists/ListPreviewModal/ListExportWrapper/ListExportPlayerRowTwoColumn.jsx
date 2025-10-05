@@ -13,7 +13,7 @@ const ListExportPlayerRowTwoColumn = ({ player, rank }) => {
   const firstName = nameParts[0]?.toUpperCase() || '';
   const lastName = nameParts.slice(1).join(' ').toUpperCase() || '';
 
-  const rawPosition = player.bio?.Position || player.formattedPosition || '';
+  const rawPosition = player.bio?.position || player.formattedPosition || '';
   const position = getPlayerPositionLabel(rawPosition) || '—';
 
   return (
@@ -30,7 +30,8 @@ const ListExportPlayerRowTwoColumn = ({ player, rank }) => {
       <div className="h-full w-[70px] bg-[#2a2a2a] flex items-center justify-center overflow-hidden">
         <img
           src={
-            player.headshotUrl || `/assets/headshots/${player.player_id}.png`
+            player.headshotUrl ||
+            `/assets/headshots/${player.bio?.playerId || player.player_id}.png`
           }
           onError={(e) => {
             e.target.src = '/assets/headshots/default.png';
@@ -46,7 +47,7 @@ const ListExportPlayerRowTwoColumn = ({ player, rank }) => {
           <PlayerNameMini name={player.bio?.displayName || player.name} />
         </div>
         <div className="flex items-center mt-[11px] -mb-1 gap-2 text-white/50 text-[13px]">
-          <TeamLogo teamAbbr={player.bio?.Team} className="w-5 h-5" />
+          <TeamLogo teamAbbr={player.bio?.display?.team} className="w-5 h-5" />
           <div>
             {player.bio?.height ? `${Math.floor(player.bio.height / 12)}-${player.bio.height % 12}` : '—'} <span className="text-white/30">|</span>{' '}
             {player.bio?.weight || '—'} lbs

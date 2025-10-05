@@ -9,7 +9,7 @@ const ListExportRowCompactTwoColumn = ({ player, rank }) => {
   const firstName = nameParts[0]?.toUpperCase() || '';
   const lastName = nameParts.slice(1).join(' ').toUpperCase() || '';
 
-  const rawPosition = player.bio?.Position || player.formattedPosition || '';
+  const rawPosition = player.bio?.position || player.formattedPosition || '';
   const position = getPlayerPositionLabel(rawPosition) || '—';
 
   const formatHeight = (inches) => {
@@ -34,7 +34,8 @@ const ListExportRowCompactTwoColumn = ({ player, rank }) => {
       <div className="h-[45px] w-[50px] bg-[#2a2a2a] flex items-center justify-center overflow-hidden rounded-sm">
         <img
           src={
-            player.headshotUrl || `/assets/headshots/${player.player_id}.png`
+            player.headshotUrl ||
+            `/assets/headshots/${player.bio?.playerId || player.player_id}.png`
           }
           onError={(e) => {
             e.target.src = '/assets/headshots/default.png';
@@ -57,7 +58,7 @@ const ListExportRowCompactTwoColumn = ({ player, rank }) => {
 
         {/* HT / WT / Team Logo */}
         <div className="flex items-center justify-end text-white/50 text-[13px] w-[130px] gap-2">
-          <TeamLogo teamAbbr={player.bio?.Team} className="w-4 h-4" />
+          <TeamLogo teamAbbr={player.bio?.display?.team} className="w-4 h-4" />
           <div className="whitespace-nowrap tabular-nums flex gap-1 items-center">
             <span className="w-[32px] text-right">{height}</span>
             <span className="text-white/30">|</span>

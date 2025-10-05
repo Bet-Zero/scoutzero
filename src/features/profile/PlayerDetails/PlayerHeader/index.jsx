@@ -21,7 +21,8 @@ const PlayerHeader = ({ player, selectedPlayer }) => {
   const thisYear = 2025;
   
   // Get contract data from contracts subcollection (v2 structure only)
-  const contractData = player.contracts ? Object.values(player.contracts)[0] : null;
+  const contractData = player.primaryContract ||
+    (player.contracts ? Object.values(player.contracts)[0] : null);
   const totalYears = contractData?.contractLength;
   const currentYearSalaryObj = contractData?.salariesByYear?.find(
     (s) => s.year === thisYear || s.season?.startsWith(String(thisYear))
@@ -33,8 +34,11 @@ const PlayerHeader = ({ player, selectedPlayer }) => {
       : '—';
 
   // Get free agency info from bio.display or contract subcollection (v2 structure only)
-  const freeAgentType = player.bio?.display?.freeAgentType || contractData?.freeAgency?.freeAgentType;
-  const freeAgentYear = player.bio?.display?.freeAgentYear || contractData?.freeAgency?.freeAgentYear;
+  const freeAgency = contractData?.freeAgency || {};
+  const freeAgentType =
+    player.bio?.display?.freeAgentType ?? freeAgency.freeAgentType;
+  const freeAgentYear =
+    player.bio?.display?.freeAgentYear ?? freeAgency.freeAgentYear;
   const freeAgencyDisplay =
     freeAgentYear && freeAgentType
       ? `${freeAgentYear} (${freeAgentType})`
@@ -46,10 +50,10 @@ const PlayerHeader = ({ player, selectedPlayer }) => {
         <div className="flex flex-col justify-center">
           <PlayerName name={player.bio?.displayName || player.name || 'Unknown'} />
           <div className="flex items-center gap-4 mt-4">
-            <TeamLogo teamAbbr={player.bio?.display?.team || player.bio?.Team} />
+            <TeamLogo teamAbbr={player.bio?.display?.team} />
             <div className="h-[2.5rem] w-[2px] bg-black" />
             <PlayerPosition
-              position={getAbbreviatedPosition(player.bio?.position || player.bio?.Position)}
+              position={getAbbreviatedPosition(player.bio?.position)}
               className="text-5xl"
             />
           </div>
@@ -71,13 +75,13 @@ const PlayerHeader = ({ player, selectedPlayer }) => {
           </p>
           <p>
             <span className="font-bold">YEARS PRO</span>:{' '}
-            {player.bio?.display?.yearsPro || player.bio?.['Years Pro'] || 'N/A'}
+            {player.bio?.display?.yearsPro ?? 'N/A'}
           </p>
         </div>
         <div className="h-6" />
         <div className="space-y-[2px]">
           <p>
-            <span className="font-bold">TEAM</span>: {player.bio?.display?.team || player.bio?.Team || 'N/A'}
+            <span className="font-bold">TEAM</span>: {player.bio?.display?.team || 'N/A'}
           </p>
           <p>
             <span className="font-bold">CONTRACT</span>: {contractSummary}

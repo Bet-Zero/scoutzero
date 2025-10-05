@@ -42,7 +42,8 @@ export function filterPlayers(players = [], filters) {
 
     if (
       filters.team &&
-      (p.bio?.Team || '').toLowerCase() !== filters.team.toLowerCase()
+      (p.bio?.display?.team || '').toLowerCase() !==
+        filters.team.toLowerCase()
     ) {
       return false;
     }
@@ -94,7 +95,7 @@ export function filterPlayers(players = [], filters) {
 
     if (
       filters.offenseRole &&
-      ![p.roles?.offense1, p.roles?.offense2]
+      ![p.offenseRole, p.primaryEvaluation?.roles?.offense2]
         .filter(Boolean)
         .some((role) =>
           role.toLowerCase().includes(filters.offenseRole.toLowerCase())
@@ -105,7 +106,7 @@ export function filterPlayers(players = [], filters) {
 
     if (
       filters.defenseRole &&
-      ![p.roles?.defense1, p.roles?.defense2]
+      ![p.defenseRole, p.primaryEvaluation?.roles?.defense2]
         .filter(Boolean)
         .some((role) =>
           role.toLowerCase().includes(filters.defenseRole.toLowerCase())
@@ -150,14 +151,14 @@ export function filterPlayers(players = [], filters) {
 
     if (
       !passesStat('PTS', 'PPG', 'PPG') ||
-      !passesStat('TRB', 'RPG', 'RPG') ||
+      !passesStat('REB', 'RPG', 'RPG') ||
       !passesStat('AST', 'APG', 'APG') ||
       !passesStat('FG%', 'FGP', 'FGP') ||
-      !passesStat('3P%', 'TPP', 'TPP') ||
+      !passesStat('3PT%', 'TPP', 'TPP') ||
       !passesStat('FT%', 'FTP', 'FTP') ||
       !passesStat('eFG%', 'eFGP', 'eFGP') ||
-      !passesStat('MP', 'MIN', 'MIN') ||
-      !passesStat('G', 'G', 'G')
+      !passesStat('MIN', 'MIN', 'MIN') ||
+      !passesStat('GP', 'G', 'G')
     ) {
       return false;
     }
@@ -199,7 +200,8 @@ function checkForZeroContract(player) {
   const currentYear = 2025;
 
   // Get contract data from v2 structure
-  const contractData = player.contracts ? Object.values(player.contracts)[0] : null;
+  const contractData = player.primaryContract ||
+    (player.contracts ? Object.values(player.contracts)[0] : null);
   
   // Check salariesByYear array in v2 structure
   if (contractData?.salariesByYear) {
@@ -290,7 +292,8 @@ export function sortPlayers(
           return parseInt(player.freeAgentYear || player.bio?.display?.freeAgentYear) - 2024 || -1;
         case 'totalContract':
           // Contract data is in contracts subcollection
-          const contractData = player.contracts ? Object.values(player.contracts)[0] : null;
+          const contractData = player.primaryContract ||
+            (player.contracts ? Object.values(player.contracts)[0] : null);
           return Array.isArray(contractData?.salariesByYear)
             ? contractData.salariesByYear.reduce((sum, s) => {
                 const val =

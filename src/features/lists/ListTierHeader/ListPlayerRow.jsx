@@ -20,19 +20,22 @@ const ListPlayerRow = ({
 }) => {
   const processedPlayer = {
     ...player,
-    id: player.player_id,
+    id: player.id,
     formattedPosition:
-      player.formattedPosition || POSITION_MAP[player.bio?.Position] || '—',
+      player.formattedPosition ||
+      POSITION_MAP[player.bio?.position] ||
+      player.bio?.position ||
+      '—',
     headshotUrl:
       player.headshot ||
       player.headshotUrl ||
-      `/assets/headshots/${player.player_id}.png`,
-    offenseRole: player.roles?.offense1 || player.offenseRole || '—',
-    defenseRole: player.roles?.defense1 || player.defenseRole || '—',
+      `/assets/headshots/${player.bio?.playerId || player.id}.png`,
+    offenseRole: player.offenseRole || '—',
+    defenseRole: player.defenseRole || '—',
     shootingProfile: player.shootingProfile || '—',
-    PPG: player.PPG ?? player.system?.stats?.PTS ?? null,
-    RPG: player.RPG ?? player.system?.stats?.TRB ?? null,
-    APG: player.APG ?? player.system?.stats?.AST ?? null,
+    PPG: player.PPG ?? null,
+    RPG: player.RPG ?? null,
+    APG: player.APG ?? null,
   };
 
   return (

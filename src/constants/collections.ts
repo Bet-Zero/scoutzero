@@ -13,12 +13,6 @@ export const PLAYERS_COLLECTION =
   import.meta.env.VITE_PLAYERS_COLLECTION || 'players_v2';
 
 /**
- * Legacy players collection (deprecated - for reference only)
- * DO NOT USE in new code
- */
-export const PLAYERS_COLLECTION_LEGACY = 'players';
-
-/**
  * Teams collection
  */
 export const TEAMS_COLLECTION = 'teams';

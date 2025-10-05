@@ -22,45 +22,51 @@ const TierMakerBoard = ({ players = [], initialTierListId = '' }) => {
 
   const processedPlayers = useMemo(
     () =>
-      allPlayers.map((player) => ({
-        id: player.id,
-        player_id: player.id,
-        name: (player.bio?.displayName || player.name || '').toLowerCase(),
-        team: (player.bio?.Team || '').toLowerCase(),
-        position:
-          POSITION_MAP[player.bio?.Position] || player.bio?.Position || '',
-        offenseRoles: [
-          player.roles?.offense1?.toLowerCase() || '',
-          player.roles?.offense2?.toLowerCase() || '',
-        ],
-        defenseRoles: [
-          player.roles?.defense1?.toLowerCase() || '',
-          player.roles?.defense2?.toLowerCase() || '',
-        ],
-        offenseSubroles: player.subRoles?.offense || [],
-        defenseSubroles: player.subRoles?.defense || [],
-        shootingProfile: (player.shootingProfile || '').toLowerCase(),
-        badges: player.badges || [],
-        salary: (() => {
-          const contractData = player.contracts ? Object.values(player.contracts)[0] : null;
-          return contractData?.salariesByYear?.find((s) => s.year === 2025 || s.season?.startsWith('2025'))?.salary;
-        })(),
-        freeAgentYear: player.freeAgentYear?.toString() || player.bio?.display?.freeAgentYear?.toString(),
-        freeAgentType: (player.freeAgentType || player.bio?.display?.freeAgentType)?.toLowerCase(),
-        contractType: (() => {
-          const contractData = player.contracts ? Object.values(player.contracts)[0] : null;
-          return contractData?.contractType?.toLowerCase();
-        })(),
-        extension: (() => {
-          const contracts = player.contracts ? Object.values(player.contracts) : [];
-          return contracts.find(c => c.isExtension);
-        })(),
-        options: (() => {
-          const contractData = player.contracts ? Object.values(player.contracts)[0] : null;
-          return contractData?.options || [];
-        })(),
-        original: player,
-      })),
+      allPlayers.map((player) => {
+        const contractData = player.primaryContract ||
+          (player.contracts ? Object.values(player.contracts)[0] : null);
+
+        return {
+          id: player.id,
+          player_id: player.id,
+          name: (player.bio?.displayName || player.name || '').toLowerCase(),
+          team: (player.bio?.display?.team || '').toLowerCase(),
+          position:
+            player.formattedPosition ||
+            POSITION_MAP[player.bio?.position] ||
+            player.bio?.position ||
+            '',
+          offenseRoles: [
+            player.offenseRole?.toLowerCase() || '',
+            player.primaryEvaluation?.roles?.offense2?.toLowerCase() || '',
+          ],
+          defenseRoles: [
+            player.defenseRole?.toLowerCase() || '',
+            player.primaryEvaluation?.roles?.defense2?.toLowerCase() || '',
+          ],
+          offenseSubroles: player.subRoles?.offense || [],
+          defenseSubroles: player.subRoles?.defense || [],
+          shootingProfile: (player.shootingProfile || '').toLowerCase(),
+          badges: player.badges || [],
+          salary: contractData?.salariesByYear?.find(
+            (s) => s.year === 2025 || s.season?.startsWith('2025')
+          )?.salary,
+          freeAgentYear:
+            player.bio?.display?.freeAgentYear?.toString() ||
+            contractData?.freeAgency?.freeAgentYear?.toString() ||
+            null,
+          freeAgentType: (
+            player.bio?.display?.freeAgentType ||
+            contractData?.freeAgency?.freeAgentType ||
+            ''
+          ).toLowerCase(),
+          contractType: (contractData?.contractType || '').toLowerCase(),
+          extension: (player.contracts ? Object.values(player.contracts) : [])
+            .find((c) => c.isExtension),
+          options: contractData?.options || [],
+          original: player,
+        };
+      }),
     [allPlayers]
   );
 
@@ -194,7 +200,7 @@ const TierMakerBoard = ({ players = [], initialTierListId = '' }) => {
   const handleAddTeamRoster = () => {
     if (!selectedTeam) return;
     const teamPlayers = allPlayers.filter(
-      (p) => (p.bio?.Team || '').toLowerCase() === selectedTeam.id
+      (p) => (p.bio?.display?.team || '').toLowerCase() === selectedTeam.id
     );
     addPlayersToPool(teamPlayers);
     setSelectedTeam(null);
