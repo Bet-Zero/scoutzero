@@ -88,3 +88,10 @@ cba/
 **/BOOT_PROMPT.md
 **/CHAT_CONTEXT.md
 **/GeminiPatchPrompt.md
+
+# Player data files that confuse AI about schema
+public/players.json
+players.json
+**/players.json
+data/players*.json
+data/merged_players.json
