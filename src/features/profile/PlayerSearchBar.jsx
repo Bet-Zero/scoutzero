@@ -25,7 +25,7 @@ const PlayerSearchBar = ({ playersData, onSelect }) => {
     if (!id) return;
     setSearch('');
     setResults([]);
-    onSelect(id, playersData[id]?.bio?.Team || '');
+    onSelect(id, playersData[id]?.bio?.display?.team || '');
   };
 
   return (
