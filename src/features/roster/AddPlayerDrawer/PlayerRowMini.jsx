@@ -14,8 +14,8 @@ const PlayerRowMini = ({ player, onClick }) => {
   const rawPosition = player.bio?.Position || '—';
   const position = getPlayerPositionLabel(rawPosition);
 
-  const height = player.bio?.HT || '—';
-  const weight = player.bio?.WT || '—';
+  const height = player.bio?.height || '—';
+  const weight = player.bio?.weight || '—';
   const currentYearSalary = player.contract?.annual_salaries?.find(
     (s) => s.year === 2025
   )?.salary;

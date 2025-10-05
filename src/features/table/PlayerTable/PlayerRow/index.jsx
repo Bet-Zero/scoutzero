@@ -55,10 +55,10 @@ const PlayerRow = ({ player, ranking = '—' }) => {
             <PlayerNameMini name={player.bio?.displayName || player.name} />
           </div>
           <div className="flex items-center gap-2">
-            <TeamLogo teamAbbr={player.bio?.Team} className="w-6 h-6" />
+            <TeamLogo teamAbbr={player.bio?.display?.team || player.bio?.Team} className="w-6 h-6" />
             <div className="text-[14px] text-white/50 tracking-wide">
-              {player.bio?.HT || '—'} <span className="text-white/30">|</span>{' '}
-              {player.bio?.WT || '—'} lbs
+              {player.bio?.height ? `${Math.floor(player.bio.height / 12)}-${player.bio.height % 12}` : '—'} <span className="text-white/30">|</span>{' '}
+              {player.bio?.weight || '—'} lbs
             </div>
           </div>
         </div>

@@ -10,20 +10,31 @@ export type SeasonId = string;   // e.g. "2025-26"
 export type ContractId = string; // e.g. "std_202425" | "ext_202627"
 
 /**
+ * Shooting profile enum
+ */
+export type ShootingProfile = 'Elite' | 'Plus' | 'Capable' | 'Willing' | 'Hesitant' | 'Non';
+
+/**
+ * Shoots enum
+ */
+export type Shoots = 'Right' | 'Left';
+
+/**
  * Bio information - main player biographical data
  */
 export interface Bio {
   displayName: string;
   name?: string;
+  slug?: string; // slugified player ID
   playerId?: string;
   position?: string;
   age?: number;
-  height?: number; // inches
+  height?: number; // inches (converted from feet-inches)
   weight?: number;
   dob?: string;
   birthplace?: string;
   nationality?: string;
-  shoots?: 'Right' | 'Left';
+  shoots?: Shoots;
   nbaId?: number;
   agent?: {
     name?: string;
@@ -37,13 +48,13 @@ export interface Bio {
   };
   display?: {
     team?: string;
+    teamId?: string;
+    POS?: string;
     yearsPro?: number;
     averageAnnualValue?: number;
     yearsLeft?: number;
     freeAgentYear?: number;
     freeAgentType?: string;
-    teamId?: string;
-    POS?: string;
   };
   [k: string]: unknown; // allow additional schema-backed fields
 }
@@ -82,10 +93,12 @@ export interface ContractDoc {
   contractValue?: number | null;
   contractLength?: number | null;
   averageAnnualValue?: number | null;
+  aav?: number | null; // alternative name for averageAnnualValue
   guaranteedValue?: number | null;
   guaranteedYears?: number | null;
   capPercentage?: number | null;
   signingDate?: string | null;
+  source?: string | null;
   isExtension?: boolean;
   noTradeClause?: boolean;
   tradeKicker?: number | null;
@@ -102,6 +115,7 @@ export interface ContractDoc {
  * Contract view - denormalized contract data in season/bio
  */
 export interface ContractView {
+  contractId?: string; // winning contract ID for this season
   salary?: number;
   contractValue?: number;
   contractLength?: number;
@@ -110,6 +124,8 @@ export interface ContractView {
   freeAgentYear?: number;
   freeAgentType?: string;
   signingTeam?: string;
+  options?: unknown[] | null;
+  birdRights?: string | null;
   [k: string]: unknown;
 }
 
@@ -119,7 +135,14 @@ export interface ContractView {
 export interface EvaluationView {
   overallGrade?: number;
   badges?: string[];
-  roles?: Record<string, string>;
+  roles?: {
+    offense1?: string;
+    offense2?: string;
+    defense1?: string;
+    defense2?: string;
+  };
+  shootingProfile?: ShootingProfile;
+  twoWay?: number;
   traits?: Record<string, number>;
   [k: string]: unknown;
 }
@@ -130,9 +153,45 @@ export interface EvaluationView {
 export interface SeasonDoc {
   age?: number;
   team?: string;
-  stats?: Record<string, number>;
+  pos?: string;
+  stats?: {
+    PTS?: number;
+    AST?: number;
+    REB?: number;
+    STL?: number;
+    BLK?: number;
+    TOV?: number;
+    PF?: number;
+    ORB?: number;
+    DRB?: number;
+    FGM?: number;
+    FGA?: number;
+    'FG%'?: number;
+    '3PM'?: number;
+    '3PA'?: number;
+    '3PT%'?: number;
+    '2PM'?: number;
+    '2PA'?: number;
+    '2PT%'?: number;
+    FTM?: number;
+    FTA?: number;
+    'FT%'?: number;
+    'eFG%'?: number;
+    GP?: number;
+    GS?: number;
+    MIN?: number;
+    [k: string]: number | undefined;
+  };
   evaluationView?: EvaluationView;
   contractView?: ContractView;
+  meta?: {
+    lastStatsUpdate?: {
+      _seconds?: number;
+      _nanoseconds?: number;
+    };
+    statsCarryOver?: boolean;
+    statsSeasonTag?: string;
+  };
   [k: string]: unknown;
 }
 
@@ -140,17 +199,52 @@ export interface SeasonDoc {
  * Evaluation document structure (subcollection)
  */
 export interface EvaluationDoc {
-  traits?: Record<string, number>;
+  traits?: {
+    Shooting?: number;
+    Passing?: number;
+    Playmaking?: number;
+    Defense?: number;
+    Feel?: number;
+    Rebounding?: number;
+    IQ?: number;
+    Energy?: number;
+  };
   twoWay?: number;
-  shootingProfile?: string;
-  roles?: Record<string, string>;
+  shootingProfile?: ShootingProfile;
+  roles?: {
+    offense1?: string;
+    offense2?: string;
+    defense1?: string;
+    defense2?: string;
+  };
   subRoles?: {
     offense?: string[];
     defense?: string[];
   };
   badges?: string[];
   overallGrade?: number;
-  blurbs?: Record<string, unknown>;
+  blurbs?: {
+    overall?: string;
+    shootingProfile?: string;
+    twoWayMeter?: string;
+    traits?: {
+      Shooting?: string;
+      Passing?: string;
+      Playmaking?: string;
+      Rebounding?: string;
+      Defense?: string;
+      IQ?: string;
+      Feel?: string;
+      Energy?: string;
+    };
+    roles?: {
+      offense1?: string;
+      offense2?: string;
+      defense1?: string;
+      defense2?: string;
+    };
+    subroles?: Record<string, string>;
+  };
   meta?: {
     methodVersion?: string;
     updatedAt?: string;
@@ -167,6 +261,12 @@ export interface PlayerMainDoc {
   bio: Bio;
   contractView?: ContractView;
   evaluationView?: EvaluationView;
+  meta?: {
+    lastBioUpdate?: {
+      seconds?: number;
+      nanoseconds?: number;
+    };
+  };
   [k: string]: unknown;
 }
 

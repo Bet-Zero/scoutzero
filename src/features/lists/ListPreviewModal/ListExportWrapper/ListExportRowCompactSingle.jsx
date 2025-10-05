@@ -12,8 +12,13 @@ const ListExportRowCompactSingle = ({ player, rank }) => {
   const rawPosition = player.bio?.Position || player.formattedPosition || '';
   const position = getPlayerPositionLabel(rawPosition) || '—';
 
-  const height = player.bio?.HT || '—';
-  const weight = player.bio?.WT ? `${player.bio.WT} lbs` : '— lbs';
+  const formatHeight = (inches) => {
+    if (!inches || inches === 0) return '—';
+    return `${Math.floor(inches / 12)}-${inches % 12}`;
+  };
+  
+  const height = formatHeight(player.bio?.height);
+  const weight = player.bio?.weight ? `${player.bio.weight} lbs` : '— lbs';
 
   return (
     <div className="w-full h-[45px] bg-neutral-800 rounded-sm flex items-center border border-black mb-0 pr-0 overflow-hidden">

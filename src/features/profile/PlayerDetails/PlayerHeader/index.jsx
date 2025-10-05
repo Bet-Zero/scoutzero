@@ -11,19 +11,30 @@ const PlayerHeader = ({ player, selectedPlayer }) => {
     return POSITION_MAP[position] || position;
   };
 
+  const formatHeight = (inches) => {
+    if (!inches || inches === 0) return 'N/A';
+    const feet = Math.floor(inches / 12);
+    const remainingInches = inches % 12;
+    return `${feet}-${remainingInches}`;
+  };
+
   const thisYear = 2025;
-  const totalYears = player.contract?.annual_salaries?.length;
-  const currentYearSalaryObj = player.contract?.annual_salaries?.find(
-    (s) => s.year === thisYear
-  );
+  
+  // Get contract data from contracts subcollection or legacy contract field
+  const contractData = player.contracts ? Object.values(player.contracts)[0] : player.contract;
+  const totalYears = contractData?.contractLength || contractData?.annual_salaries?.length;
+  const currentYearSalaryObj = contractData?.salariesByYear?.find(
+    (s) => s.year === thisYear || s.season?.startsWith(String(thisYear))
+  ) || contractData?.annual_salaries?.find((s) => s.year === thisYear);
   const currentSalary = currentYearSalaryObj?.salary;
   const contractSummary =
     currentSalary && totalYears
       ? `$${(currentSalary / 1_000_000).toFixed(1)}M / ${totalYears} yrs`
       : '—';
 
-  const freeAgentType = player.freeAgentType; // now from top-level
-  const freeAgentYear = player.freeAgentYear;
+  // Get free agency info from contract or bio display
+  const freeAgentType = player.bio?.display?.freeAgentType || contractData?.freeAgency?.freeAgentType || player.freeAgentType;
+  const freeAgentYear = player.bio?.display?.freeAgentYear || contractData?.freeAgency?.freeAgentYear || player.freeAgentYear;
   const freeAgencyDisplay =
     freeAgentYear && freeAgentType
       ? `${freeAgentYear} (${freeAgentType})`
@@ -35,10 +46,10 @@ const PlayerHeader = ({ player, selectedPlayer }) => {
         <div className="flex flex-col justify-center">
           <PlayerName name={player.bio?.displayName || player.name || 'Unknown'} />
           <div className="flex items-center gap-4 mt-4">
-            <TeamLogo teamAbbr={player.bio?.Team} />
+            <TeamLogo teamAbbr={player.bio?.display?.team || player.bio?.Team} />
             <div className="h-[2.5rem] w-[2px] bg-black" />
             <PlayerPosition
-              position={getAbbreviatedPosition(player.bio?.Position)}
+              position={getAbbreviatedPosition(player.bio?.position || player.bio?.Position)}
               className="text-5xl"
             />
           </div>
@@ -50,23 +61,23 @@ const PlayerHeader = ({ player, selectedPlayer }) => {
       <div className="w-[230px] h-[190px] bg-[#1f1f1f] rounded-2xl shadow-lg text-white text-[13px] font-thin px-4 py-3 flex flex-col relative top-[0.11rem] justify-center">
         <div className="space-y-[2px]">
           <p>
-            <span className="font-bold">HT</span>: {player.bio?.HT || 'N/A'}
+            <span className="font-bold">HT</span>: {formatHeight(player.bio?.height)}
           </p>
           <p>
-            <span className="font-bold">WT</span>: {player.bio?.WT || 'N/A'}
+            <span className="font-bold">WT</span>: {player.bio?.weight || 'N/A'}
           </p>
           <p>
-            <span className="font-bold">AGE</span>: {player.bio?.AGE || 'N/A'}
+            <span className="font-bold">AGE</span>: {player.bio?.age || 'N/A'}
           </p>
           <p>
             <span className="font-bold">YEARS PRO</span>:{' '}
-            {player.bio?.['Years Pro'] || 'N/A'}
+            {player.bio?.display?.yearsPro || player.bio?.['Years Pro'] || 'N/A'}
           </p>
         </div>
         <div className="h-6" />
         <div className="space-y-[2px]">
           <p>
-            <span className="font-bold">TEAM</span>: {player.bio?.Team || 'N/A'}
+            <span className="font-bold">TEAM</span>: {player.bio?.display?.team || player.bio?.Team || 'N/A'}
           </p>
           <p>
             <span className="font-bold">CONTRACT</span>: {contractSummary}

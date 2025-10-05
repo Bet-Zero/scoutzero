@@ -39,8 +39,13 @@ const FreeAgentRow = ({
   const rawPosition = player.bio?.Position || player.formattedPosition || '';
   const position = getPlayerPositionLabel(rawPosition) || '—';
 
-  const height = player.bio?.HT || player.height || askInfo.height || '—';
-  const weight = player.bio?.WT || player.weight || askInfo.weight || '—';
+  const formatHeight = (inches) => {
+    if (!inches || inches === 0) return null;
+    return `${Math.floor(inches / 12)}-${inches % 12}`;
+  };
+
+  const height = formatHeight(player.bio?.height) || player.height || askInfo.height || '—';
+  const weight = player.bio?.weight || player.weight || askInfo.weight || '—';
   const prevSalaryValue =
     askInfo.previousSalary ?? player.previousSalary ?? null;
   const prevSalary =

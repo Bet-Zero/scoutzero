@@ -130,9 +130,9 @@ const TradePlayerRow = ({
             fallbackClassName="bg-neutral-800 rounded-full"
           />
           <div>
-            {player.bio?.HT || player.height || player.height_ft_in || '—'}
+            {player.bio?.height ? `${Math.floor(player.bio.height / 12)}-${player.bio.height % 12}` : (player.height || player.height_ft_in || '—')}
             <span className="text-white/30">|</span>{' '}
-            {player.bio?.WT || player.weight || player.weight_lbs || '—'} lbs
+            {player.bio?.weight || player.weight || player.weight_lbs || '—'} lbs
           </div>
         </div>
       </div>

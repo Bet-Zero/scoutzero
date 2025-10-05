@@ -243,12 +243,13 @@ function isLikelyNewPlayer(player) {
   }
 
   // Players with substantial stats history are likely established
-  if (player.system?.stats?.G && player.system.stats.G > 20) {
+  // Check both enriched stats (GP) and legacy system.stats
+  if ((player.GP && player.GP > 20) || (player.system?.stats?.G && player.system.stats.G > 20)) {
     return false;
   }
 
   // Players with established minutes per game are likely not training camp invites
-  if (player.system?.stats?.MP && player.system.stats.MP > 15) {
+  if ((player.MIN && player.MIN > 15) || (player.system?.stats?.MP && player.system.stats.MP > 15)) {
     return false;
   }
 
@@ -271,6 +272,9 @@ export function sortPlayers(
   return [...players].sort((a, b) => {
     const getValue = (player, field) => {
       if (traitSort.includes(field)) return player.traits?.[field] ?? -1;
+      // Check enriched stats first (from seasons subcollection), then legacy system.stats
+      if (player.hasOwnProperty(field) && typeof player[field] === 'number')
+        return player[field];
       if (player.system?.stats?.hasOwnProperty(field))
         return parseFloat(player.system.stats[field]) ?? -1;
       switch (field) {
