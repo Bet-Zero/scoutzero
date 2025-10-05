@@ -63,7 +63,7 @@ const EditContractModal = ({
   const CURRENT_YEAR = today.getFullYear() - (today.getMonth() < 6 ? 1 : 0);
 
   const isFreeAgent =
-    player?.free_agency_year && player.free_agency_year <= CURRENT_YEAR;
+    player?.freeAgentYear && player.freeAgentYear <= CURRENT_YEAR;
 
   const isUnderContract =
     player?.contract_clean?.salaries_by_year &&

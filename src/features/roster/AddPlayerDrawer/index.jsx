@@ -84,7 +84,7 @@ const AddPlayerDrawer = ({ onClose, allPlayers, onSelect }) => {
 
         if (freeAgentYear) {
           if (p.freeAgentYear === freeAgentYear) return true;
-          if (p.extension?.free_agency_year?.toString() === freeAgentYear)
+          if (p.extension?.freeAgentYear?.toString() === freeAgentYear)
             return true;
           const hasOptionYear = p.options.some(
             (opt) => opt.year?.toString() === freeAgentYear

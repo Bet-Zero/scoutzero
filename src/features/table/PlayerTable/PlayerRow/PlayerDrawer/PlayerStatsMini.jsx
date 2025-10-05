@@ -2,12 +2,12 @@ import React from 'react';
 
 const statLabels = [
   { label: 'FG%', key: 'FG%' },
-  { label: '3PT%', key: '3P%' },
+  { label: '3PT%', key: '3PT%' },
   { label: 'FT%', key: 'FT%' },
   { label: 'eFG%', key: 'eFG%' },
   { label: '', key: 'SPACER' }, // spacer line
-  { label: 'MIN', key: 'MP' },
-  { label: 'G', key: 'G' },
+  { label: 'MIN', key: 'MIN' },
+  { label: 'G', key: 'GP' },
 ];
 
 const formatStat = (value, key) => {
