@@ -62,7 +62,9 @@ const PlayerProfileView = () => {
     const teamSet = new Set();
     fetchedPlayers.forEach((p) => {
       data[p.id] = p;
-      if (p.bio?.Team) teamSet.add(p.bio.Team);
+      // Check v2 structure (bio.display.team) first, then fallback paths, then enriched team
+      const playerTeam = p.bio?.display?.team || p.bio?.Team || p.team;
+      if (playerTeam) teamSet.add(playerTeam);
     });
     setPlayersData(data);
     setTeams(Array.from(teamSet).sort());

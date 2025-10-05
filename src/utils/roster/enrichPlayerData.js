@@ -69,6 +69,7 @@ export function enrichPlayerData(playerData) {
     heightInInches: playerData.bio?.height || 0,
     weight: playerData.bio?.weight || 0,
     age: playerData.bio?.age || 0,
+    team: playerData.bio?.display?.team || playerData.bio?.Team || null, // Add team for backward compatibility
     headshotUrl: `/assets/headshots/${playerData.bio?.playerId || playerData.id}.png`,
     offenseRole: evaluationData.roles?.offense1 || '—',
     defenseRole: evaluationData.roles?.defense1 || '—',

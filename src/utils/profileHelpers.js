@@ -1,7 +1,12 @@
 export function getPlayersForTeam(playersData, team) {
   if (!team) return [];
   return Object.keys(playersData)
-    .filter((key) => playersData[key]?.bio?.Team === team)
+    .filter((key) => {
+      const player = playersData[key];
+      // Check v2 structure first (bio.display.team), then fallback to bio.Team for compatibility
+      const playerTeam = player?.bio?.display?.team || player?.bio?.Team || player?.team;
+      return playerTeam === team;
+    })
     .sort((a, b) => {
       const aName = playersData[a]?.bio?.displayName || playersData[a]?.name || '';
       const bName = playersData[b]?.bio?.displayName || playersData[b]?.name || '';
