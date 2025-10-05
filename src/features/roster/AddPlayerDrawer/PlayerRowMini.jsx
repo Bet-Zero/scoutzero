@@ -16,12 +16,13 @@ const PlayerRowMini = ({ player, onClick }) => {
 
   const height = player.bio?.height || '—';
   const weight = player.bio?.weight || '—';
-  const currentYearSalary = player.contract?.annual_salaries?.find(
-    (s) => s.year === 2025
-  )?.salary;
+  const currentYearSalary = (() => {
+    const contractData = player.contracts ? Object.values(player.contracts)[0] : null;
+    return contractData?.salariesByYear?.find((s) => s.year === 2025 || s.season?.startsWith('2025'))?.salary;
+  })();
   const formattedSalary = formatSalary(currentYearSalary);
   const rightSideValue =
-    formattedSalary !== '—' ? formattedSalary : player.freeAgentType || '—';
+    formattedSalary !== '—' ? formattedSalary : (player.freeAgentType || player.bio?.display?.freeAgentType || '—');
 
   const handleChevronClick = (e) => {
     e.stopPropagation();

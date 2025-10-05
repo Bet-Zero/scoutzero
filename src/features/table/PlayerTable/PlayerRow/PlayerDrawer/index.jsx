@@ -31,14 +31,13 @@ const PlayerDrawer = ({ player }) => {
           />
           <Divider />
           <PlayerContractMini
-            contract={player.contract || {}}
-            bird_rights={player.bird_rights || 'Unknown'}
+            contract={player.contracts ? Object.values(player.contracts)[0] : {}}
+            bird_rights={player.contracts ? Object.values(player.contracts)[0]?.freeAgency?.birdRights : 'Unknown'}
             option_type={
-              player.contract?.extension?.options?.[0] ||
               player.contracts ? Object.values(player.contracts)[0]?.options?.[0] : null
             }
-            free_agent_year={player.bio?.display?.freeAgentYear}
-            free_agent_type={player.bio?.display?.freeAgentType}
+            free_agent_year={player.bio?.display?.freeAgentYear || (player.contracts ? Object.values(player.contracts)[0]?.freeAgency?.freeAgentYear : null)}
+            free_agent_type={player.bio?.display?.freeAgentType || (player.contracts ? Object.values(player.contracts)[0]?.freeAgency?.freeAgentType : null)}
           />
           <Divider />
           <PlayerStatsMini stats={player} />

@@ -34,13 +34,24 @@ const RankingBuilder = () => {
         defenseSubroles: player.subRoles?.defense || [],
         shootingProfile: (player.shootingProfile || '').toLowerCase(),
         badges: player.badges || [],
-        salary: player.contract?.annual_salaries?.find((s) => s.year === 2025)
-          ?.salary,
-        freeAgentYear: player.freeAgentYear?.toString(),
-        freeAgentType: player.freeAgentType?.toLowerCase(),
-        contractType: player.contract?.type?.toLowerCase(),
-        extension: player.contract?.extension,
-        options: player.contract?.options || [],
+        salary: (() => {
+          const contractData = player.contracts ? Object.values(player.contracts)[0] : null;
+          return contractData?.salariesByYear?.find((s) => s.year === 2025 || s.season?.startsWith('2025'))?.salary;
+        })(),
+        freeAgentYear: player.freeAgentYear?.toString() || player.bio?.display?.freeAgentYear?.toString(),
+        freeAgentType: (player.freeAgentType || player.bio?.display?.freeAgentType)?.toLowerCase(),
+        contractType: (() => {
+          const contractData = player.contracts ? Object.values(player.contracts)[0] : null;
+          return contractData?.contractType?.toLowerCase();
+        })(),
+        extension: (() => {
+          const contracts = player.contracts ? Object.values(player.contracts) : [];
+          return contracts.find(c => c.isExtension);
+        })(),
+        options: (() => {
+          const contractData = player.contracts ? Object.values(player.contracts)[0] : null;
+          return contractData?.options || [];
+        })(),
         original: player,
       })),
     [allPlayers]

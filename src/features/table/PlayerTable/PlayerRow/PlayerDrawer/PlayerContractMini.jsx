@@ -10,14 +10,14 @@ const PlayerContractMini = ({
   const today = new Date();
   const CURRENT_YEAR = today.getFullYear() - (today.getMonth() < 6 ? 1 : 0);
 
-  // Combine base and extension salaries (extension takes precedence)
-  const baseSalaries = contract?.annual_salaries || [];
-  const extensionSalaries = contract?.extension?.annual_salaries || [];
+  // Get salaries from v2 structure (salariesByYear)
+  const salaries = contract?.salariesByYear || [];
 
-  const allSalaries = [...baseSalaries, ...extensionSalaries].reduce(
+  const allSalaries = salaries.reduce(
     (acc, salary) => {
-      if (salary.year >= CURRENT_YEAR) {
-        acc[salary.year] = salary;
+      const year = salary.year || (salary.season ? parseInt(salary.season.split('-')[0]) + 1 : null);
+      if (year && year >= CURRENT_YEAR) {
+        acc[year] = salary;
       }
       return acc;
     },
@@ -28,22 +28,18 @@ const PlayerContractMini = ({
   const displaySeasons = Array.from({ length: 5 }, (_, i) => {
     const year = CURRENT_YEAR + i;
     const salaryData = allSalaries[year];
-    const isExtensionYear = extensionSalaries.some((s) => s.year === year);
 
-    // Determine option type (extension options take precedence)
+    // Determine option type
     let optionType = null;
     if (salaryData?.option) {
       optionType = salaryData.option;
-    } else if (option_type?.year === year && !isExtensionYear) {
+    } else if (option_type?.year === year) {
       optionType = option_type.type;
     }
 
-    // Determine free agency status (extension overrides base)
+    // Determine free agency status
     let freeAgentTag = null;
-    if (isExtensionYear && i === 4) {
-      // Only show FA tag on last displayed year
-      freeAgentTag = contract.extension?.free_agent_type || free_agent_type;
-    } else if (year === free_agent_year) {
+    if (year === free_agent_year) {
       freeAgentTag = free_agent_type;
     }
 
@@ -52,7 +48,7 @@ const PlayerContractMini = ({
       amount: salaryData?.salary || null,
       optionType,
       freeAgentTag,
-      isExtensionYear,
+      isExtensionYear: contract?.isExtension && salaryData,
     };
   });
 
