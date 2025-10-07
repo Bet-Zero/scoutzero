@@ -88,11 +88,68 @@ Evaluation and grading data:
 
 ---
 
+## 📁 Collection: `/worlds/{worldId}` - Architect GM Worlds
+
+**⚠️ See [ARCHITECT_SCHEMA_SUMMARY.md](./ARCHITECT_SCHEMA_SUMMARY.md) for complete Architect schema proposal**
+
+### Overview
+
+Architect uses a **transaction log architecture** where each user's GM plan is stored as a "world" with a chronological log of all moves (trades, signings, extensions, waives).
+
+### 📦 World Document Fields:
+
+- `worldId`: Unique identifier (e.g., `w_user123_lal_2025_v1`)
+- `userId`: Owner of this world
+- `worldName`: User-defined name
+- `teamId`: Team being managed (e.g., `lal`)
+- `baselineSnapshot`: Reference to NBA baseline (e.g., `teams/lal`)
+- `seasonYear`: Active season (e.g., `2025`)
+- `isActive`, `isArchived`: World state flags
+- `stats`: Denormalized quick stats (totalTransactions, currentSalaryCap, etc.)
+- `createdAt`, `lastModified`, `lastAccessed`: Timestamps
+
+### 📂 Subcollection: `/worlds/{worldId}/transactions/{txId}`
+
+Transaction documents recording each GM move:
+
+- `transactionId`: Unique ID (timestamp-based)
+- `type`: `'trade' | 'signing' | 'extension' | 'waive' | 'release'`
+- `timestamp`: When executed
+- `status`: `'completed' | 'pending' | 'reversed'`
+- `details`: Type-specific transaction data (outgoing/incoming players, contract terms, etc.)
+
+**Current State Computation**: `baseline + apply(transactions) = world state`
+
+---
+
+## 📁 Collection: `/users/{userId}/worldsIndex/{worldId}` - User World Index
+
+Quick lookup for a user's worlds:
+
+- `worldId`: Reference to world
+- `worldName`: Display name
+- `teamId`, `teamName`: Team info
+- `seasonYear`: Season
+- `lastAccessed`, `lastModified`: Timestamps
+- `isFavorite`, `isArchived`: Organization flags
+- `transactionCount`: Number of moves
+
+---
+
+## 📁 Collection: `/freeAgents/{year}` - Global Free Agent Pool
+
+Shared free agent pool across all worlds:
+
+- `agents[]`: Array of available free agents with player data
+
+---
+
 ## 🔐 Other Collections (optional / WIP)
 
 - `/lists`, `/tierLists`: ScoutZero ranking tables
-- `/rosterProjects`: Team-specific plans (WIP)
+- `/rosterProjects`: Team-specific plans (DEPRECATED - use `/worlds/`)
 - `/capSheets`: Archived snapshots per team per year (future use)
+- `/teamPlans`: Legacy Architect structure (DEPRECATED - migrating to `/worlds/`)
 
 ---
 
@@ -100,3 +157,5 @@ Evaluation and grading data:
 
 - `contract_clean` is generated during data cleaning and saved into `/teams`
 - Can be optionally pushed into `/players` if you want salary data visible in ScoutZero or HoopZero
+- **Architect Worlds**: Transaction log approach reduces storage by 66%+ vs. full cap sheet duplication
+- **Migration**: Dual-write mode during transition from `/teamPlans/` to `/worlds/`
