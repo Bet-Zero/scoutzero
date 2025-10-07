@@ -4,7 +4,20 @@ This folder contains a comprehensive review of the proposed Firestore schema v2 
 
 ## 📁 Documents in This Review
 
-### [EXECUTIVE-SUMMARY.md](./EXECUTIVE-SUMMARY.md) ⭐ **START HERE**
+### [LAYMAN-EXPLANATION.md](./LAYMAN-EXPLANATION.md) 🌟 **START HERE - Simple Version**
+- **Simple Explanations**: Non-technical overview with analogies
+- **What Each Method Does**: Proposed vs Recommended vs Current
+- **Visual Comparisons**: Bar charts and diagrams
+- **The Key Differences**: Side-by-side table
+- **Why Hybrid Wins**: User experience perspective
+
+### [VISUAL-FLOWS.md](./VISUAL-FLOWS.md) 📊 **Visual Diagrams**
+- **Step-by-Step Flows**: What happens when you trade/view
+- **Side-by-Side Comparison**: Write and read operations
+- **Real World Impact**: User experience scenarios
+- **The Math**: Storage and performance calculations
+
+### [EXECUTIVE-SUMMARY.md](./EXECUTIVE-SUMMARY.md) ⭐ **Technical Summary**
 - **TL;DR**: Quick decision guide (5 min read)
 - **The Problem**: Why pure diff reads are too slow
 - **The Solution**: Hybrid snapshot + diff approach
@@ -155,13 +168,19 @@ The pure diff-based read approach will cause:
 
 ## 📝 How to Use This Review
 
+### For Non-Technical Stakeholders
+- **Start here:** [LAYMAN-EXPLANATION.md](./LAYMAN-EXPLANATION.md) for simple, visual explanation
+- **Then view:** [VISUAL-FLOWS.md](./VISUAL-FLOWS.md) for step-by-step diagrams
+- **Quick summary:** [EXECUTIVE-SUMMARY.md](./EXECUTIVE-SUMMARY.md) for decision guide
+
 ### For Product/Design
-- **Start here:** [EXECUTIVE-SUMMARY.md](./EXECUTIVE-SUMMARY.md) for quick decision guide
+- **Start here:** [LAYMAN-EXPLANATION.md](./LAYMAN-EXPLANATION.md) for simple overview
 - Read: [01-SUMMARY.md](./01-SUMMARY.md) for goals and purpose
 - Read: [04-COMPREHENSIVE-REVIEW.md](./04-COMPREHENSIVE-REVIEW.md) executive summary
 - View: [05-VISUAL-DIAGRAMS.md](./05-VISUAL-DIAGRAMS.md) for architecture overview
 
 ### For Engineering
+- **Start here:** [VISUAL-FLOWS.md](./VISUAL-FLOWS.md) for flow understanding
 - **Start here:** [EXECUTIVE-SUMMARY.md](./EXECUTIVE-SUMMARY.md) for implementation approach
 - Read: [03-FILE-TREE.md](./03-FILE-TREE.md) for structure
 - Read: [02-SAMPLE-SCHEMAS.md](./02-SAMPLE-SCHEMAS.md) for examples
@@ -169,6 +188,7 @@ The pure diff-based read approach will cause:
 - View: [05-VISUAL-DIAGRAMS.md](./05-VISUAL-DIAGRAMS.md) for read/write flows
 
 ### For Implementation
+- **Start here:** [LAYMAN-EXPLANATION.md](./LAYMAN-EXPLANATION.md) to understand the why
 - **Start here:** [EXECUTIVE-SUMMARY.md](./EXECUTIVE-SUMMARY.md) for roadmap
 - Start with: [04-COMPREHENSIVE-REVIEW.md](./04-COMPREHENSIVE-REVIEW.md) section 9 (recommendations)
 - Reference: [03-FILE-TREE.md](./03-FILE-TREE.md) migration steps
