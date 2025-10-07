@@ -8,7 +8,17 @@ This directory contains the complete Firestore schema proposal for the **HoopZer
 
 ## 🎯 Start Here
 
-### New to Architect?
+### Executive / Business Stakeholder?
+**→ Read: [ARCHITECT_EXECUTIVE_BRIEFING.md](./ARCHITECT_EXECUTIVE_BRIEFING.md)**
+
+High-level summary with:
+- Financial impact and ROI
+- Feature enablement
+- Risk assessment
+- Implementation timeline
+- Strategic recommendations
+
+### Product Manager / Technical Lead?
 **→ Read: [ARCHITECT_SCHEMA_SUMMARY.md](./ARCHITECT_SCHEMA_SUMMARY.md)**
 
 Executive summary with:
@@ -18,11 +28,31 @@ Executive summary with:
 - Key advantages
 - Quick start examples
 
+### Developer / Engineer?
+**→ Read: [ARCHITECT_IMPLEMENTATION.md](./ARCHITECT_IMPLEMENTATION.md)**
+
+Implementation guide with:
+- Code examples and helper functions
+- Integration patterns
+- Migration scripts
+- Best practices
+
 ---
 
 ## 📖 Detailed Documentation
 
-### 1. Complete Schema Specification
+### 1. Executive Briefing (For Stakeholders)
+**→ Read: [ARCHITECT_EXECUTIVE_BRIEFING.md](./ARCHITECT_EXECUTIVE_BRIEFING.md)**
+
+Business-focused summary including:
+- Financial impact: 94% cost reduction
+- ROI projections at scale
+- Risk assessment and mitigation
+- Implementation timeline (5 weeks)
+- Revenue opportunities enabled
+- Decision matrix and recommendations
+
+### 2. Complete Schema Specification (For Architects)
 **→ Read: [ARCHITECT_FIRESTORE_PROPOSAL.md](./ARCHITECT_FIRESTORE_PROPOSAL.md)**
 
 Comprehensive schema design including:
@@ -33,7 +63,7 @@ Comprehensive schema design including:
 - Migration strategy
 - Sample queries
 
-### 2. Visual Diagrams & Data Flow
+### 2. Visual Diagrams & Data Flow (For Visual Learners)
 **→ Read: [ARCHITECT_DATA_FLOW.md](./ARCHITECT_DATA_FLOW.md)**
 
 Visual representations of:
@@ -44,7 +74,7 @@ Visual representations of:
 - Transaction application logic
 - Storage efficiency comparisons
 
-### 3. Implementation Guide
+### 3. Implementation Guide (For Developers)
 **→ Read: [ARCHITECT_IMPLEMENTATION.md](./ARCHITECT_IMPLEMENTATION.md)**
 
 Practical code examples:
@@ -52,6 +82,27 @@ Practical code examples:
 - GMDashboard integration example
 - Migration script from old structure
 - Complete working code samples
+
+### 4. Visual Quick Reference (For Quick Lookup)
+**→ Read: [ARCHITECT_VISUAL_GUIDE.md](./ARCHITECT_VISUAL_GUIDE.md)**
+
+One-page visual guide with:
+- Architecture diagrams
+- Transaction type visualizations
+- Storage efficiency charts
+- Data flow illustrations
+- Security model diagrams
+- Quick start code snippets
+
+### 5. Current vs. Proposed Comparison (For Decision Making)
+**→ Read: [ARCHITECT_COMPARISON.md](./ARCHITECT_COMPARISON.md)**
+
+Side-by-side analysis:
+- Architecture differences
+- Storage and cost comparison
+- Feature comparison matrix
+- Migration complexity assessment
+- Recommendation matrix
 
 ---
 
