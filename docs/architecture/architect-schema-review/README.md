@@ -4,6 +4,14 @@ This folder contains a comprehensive review of the proposed Firestore schema v2 
 
 ## 📁 Documents in This Review
 
+### [EXECUTIVE-SUMMARY.md](./EXECUTIVE-SUMMARY.md) ⭐ **START HERE**
+- **TL;DR**: Quick decision guide (5 min read)
+- **The Problem**: Why pure diff reads are too slow
+- **The Solution**: Hybrid snapshot + diff approach
+- **Key Metrics**: Performance and storage comparison
+- **Implementation Roadmap**: 6-8 week timeline
+- **Decision Checklist**: What to validate before starting
+
 ### [01-SUMMARY.md](./01-SUMMARY.md)
 - **Goal**: What the schema aims to accomplish
 - **Plan**: High-level architectural approach
@@ -148,17 +156,20 @@ The pure diff-based read approach will cause:
 ## 📝 How to Use This Review
 
 ### For Product/Design
+- **Start here:** [EXECUTIVE-SUMMARY.md](./EXECUTIVE-SUMMARY.md) for quick decision guide
 - Read: [01-SUMMARY.md](./01-SUMMARY.md) for goals and purpose
 - Read: [04-COMPREHENSIVE-REVIEW.md](./04-COMPREHENSIVE-REVIEW.md) executive summary
 - View: [05-VISUAL-DIAGRAMS.md](./05-VISUAL-DIAGRAMS.md) for architecture overview
 
 ### For Engineering
+- **Start here:** [EXECUTIVE-SUMMARY.md](./EXECUTIVE-SUMMARY.md) for implementation approach
 - Read: [03-FILE-TREE.md](./03-FILE-TREE.md) for structure
 - Read: [02-SAMPLE-SCHEMAS.md](./02-SAMPLE-SCHEMAS.md) for examples
 - Read: [04-COMPREHENSIVE-REVIEW.md](./04-COMPREHENSIVE-REVIEW.md) sections 2-6 for technical analysis
 - View: [05-VISUAL-DIAGRAMS.md](./05-VISUAL-DIAGRAMS.md) for read/write flows
 
 ### For Implementation
+- **Start here:** [EXECUTIVE-SUMMARY.md](./EXECUTIVE-SUMMARY.md) for roadmap
 - Start with: [04-COMPREHENSIVE-REVIEW.md](./04-COMPREHENSIVE-REVIEW.md) section 9 (recommendations)
 - Reference: [03-FILE-TREE.md](./03-FILE-TREE.md) migration steps
 - Follow: Implementation roadmap in section 9
