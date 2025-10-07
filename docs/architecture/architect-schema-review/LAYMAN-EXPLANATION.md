@@ -14,24 +14,24 @@ Let me explain with simple visuals!
 
 ## 📚 First: What IS the "Current" Method?
 
-**You're right!** You haven't fully implemented world-saving yet. What I meant by "current" is:
-
-### What EXISTS Today:
+### What EXISTS Today in Architect:
 ```
 /teamPlans/{userId}_{teamCode}    ← This exists in your code!
 ```
 
-**In your code right now** (`firebaseTeamPlanHelpers.js`):
+**In your Architect feature right now** (`firebaseTeamPlanHelpers.js`):
 - `saveUserTeamPlan()` - saves a team plan
 - `loadUserTeamPlan()` - loads a team plan
-- Used in `GMDashboard.jsx`
+- Used in `GMDashboard.jsx` (the GM Tools tab)
 
 **What this does:**
-- Saves the **ENTIRE** team data when you make changes
+- Saves the **ENTIRE** team data when you make changes in Architect
 - Like making a photocopy of a whole book when you only wrote one note
 
 **Example:** If Lakers have 15 players and you trade 1 player:
 - Saves ALL 15 players + all team info = **~500 KB**
+
+**Note:** This is the Architect feature (GM Tools: Cap Sheet, Trade Machine, etc.), which is separate from the Roster Builder feature.
 
 ---
 
@@ -250,10 +250,12 @@ Typical Usage:
 
 ## 🔧 What Actually Needs to Be Built
 
-**Good news:** A basic version EXISTS in your code already!
+**Good news:** A basic version EXISTS in the Architect feature already!
 - `saveUserTeamPlan()` in `firebaseTeamPlanHelpers.js`
 - `loadUserTeamPlan()` in `firebaseTeamPlanHelpers.js`
-- Used in `GMDashboard.jsx`
+- Used in `GMDashboard.jsx` (GM Tools tab - Cap Sheet, Trade Machine, etc.)
+
+**Note:** The Architect feature (GM Tools) is separate from the Roster Builder feature.
 
 **But it needs upgrading to:**
 
@@ -294,9 +296,12 @@ Typical Usage:
 - Includes extras: world names, action history
 
 **What the "CURRENT" method is:**
-- Your existing `saveUserTeamPlan/loadUserTeamPlan` functions
+- Your existing `saveUserTeamPlan/loadUserTeamPlan` functions in the Architect feature
+- Used in GM Tools (Cap Sheet, Trade Machine, etc.) 
 - Saves complete copies (wasteful storage)
 - Fast to view, but not isolated or organized
+
+**Note:** Architect (GM Tools) is separate from the Roster Builder feature.
 
 **Bottom line:**
 - PROPOSED = Too slow to use ❌
