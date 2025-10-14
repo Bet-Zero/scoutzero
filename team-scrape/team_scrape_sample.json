@@ -1,0 +1,107 @@
+{
+  "teamCode": "LAL",
+  "teamName": "Los Angeles Lakers",
+  "season": "2025-26",
+
+  "roster": [
+    {
+      "playerId": "__FILL_LATER__",
+      "displayName": "LeBron James",
+      "sourceUrl": "https://..."
+    },
+    {
+      "playerId": "__FILL_LATER__",
+      "displayName": "Anthony Davis",
+      "sourceUrl": "https://..."
+    }
+  ],
+
+  "deadCap": [
+    {
+      "playerId": "__FILL_LATER__",
+      "displayName": "Player X",
+      "season": "2025-26",
+      "amount": 3500000,
+      "reason": "stretched"
+    }
+  ],
+
+  "capHolds": [
+    {
+      "playerId": "__FILL_LATER__",
+      "displayName": "FA Y",
+      "type": "UFA",
+      "rights": "Bird",
+      "capHoldAmount": 21000000
+    }
+  ],
+
+  "exceptions": {
+    "mle": {
+      "type": "Non-Taxpayer",
+      "totalAmount": 12900000,
+      "usedAmount": 5000000,
+      "remainingAmount": 7900000,
+      "available": true,
+      "expiresOn": "2026-06-30"
+    },
+    "taxpayerMle": null,
+    "room": null,
+    "bae": {
+      "totalAmount": 4000000,
+      "usedAmount": 0,
+      "remainingAmount": 4000000,
+      "available": true
+    },
+    "dpe": null,
+    "tpe": [
+      {
+        "id": "TPE-LAL-2025-01",
+        "totalAmount": 4200000,
+        "usedAmount": 0,
+        "remainingAmount": 4200000,
+        "expiresOn": "2026-01-10"
+      }
+    ]
+  },
+
+  "draftPicks": [
+    {
+      "year": 2026,
+      "round": 1,
+      "status": "outgoing",
+      "protection": "top-10 protected",
+      "via": "to NOP",
+      "notes": "swap rights exist"
+    },
+    { "year": 2027, "round": 2, "status": "own" }
+  ],
+
+  "totals": {
+    "activeSalary": 195000000,
+    "deadCapTotal": 3500000,
+    "capHoldsTotal": 21000000,
+    "totalSalary": 219500000,
+    "salaryCap": 141000000,
+    "capSpace": -78500000,
+    "luxuryTaxLine": 172000000,
+    "taxSpace": -47500000,
+    "firstApronLine": 178000000,
+    "secondApronLine": 189500000,
+    "firstApronTriggered": true,
+    "secondApronTriggered": true,
+    "hardCappedAt": "secondApron",
+    "hardCapReason": "Used NTP-MLE + acquired player via S&T",
+    "incompleteRosterCharges": 0,
+    "twoWayCount": 2,
+    "rosterCount": 15
+  },
+
+  "source": {
+    "provider": "SalarySwish",
+    "teamPageUrl": "https://salaryswish.com/teams/lakers",
+    "scrapedAt": "2025-10-14T09:30:00Z"
+  },
+  "lastUpdated": "2025-10-14T09:30:00Z",
+  "version": "1.0"
+}

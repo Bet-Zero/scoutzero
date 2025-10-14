@@ -1,0 +1,40 @@
+// fetch_page.ts — with Playwright interactions for Draft
+import fs from 'node:fs/promises';
+import { chromium } from 'playwright';
+
+const URL = process.env.TEAM_URL!;
+if (!URL) {
+  console.error('Set TEAM_URL');
+  process.exit(1);
+}
+
+(async () => {
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+  await page.goto(URL, { waitUntil: 'networkidle' });
+
+  // Scroll to Draft block (near TRADE EXCEPTIONS)
+  await page.locator('text=TRADE EXCEPTIONS').scrollIntoViewIfNeeded();
+  // Try clicking a year & round so picks render
+  try {
+    await page
+      .locator('text=Draft')
+      .first()
+      .waitFor({ state: 'visible', timeout: 2000 });
+    // Click first available year button and both rounds if present
+    const yearBtn = page
+      .locator('button:has-text("2026"), a:has-text("2026")')
+      .first();
+    if (await yearBtn.isVisible()) await yearBtn.click();
+    const r1 = page.locator(':is(button,a):has-text("Round 1")').first();
+    if (await r1.isVisible()) await r1.click();
+    const r2 = page.locator(':is(button,a):has-text("Round 2")').first();
+    if (await r2.isVisible()) await r2.click();
+    await page.waitForTimeout(500); // allow DOM update
+  } catch {}
+
+  const html = await page.content();
+  await fs.writeFile('./page.html', html, 'utf8');
+  await browser.close();
+  console.log('Saved ./page.html (Playwright with Draft interactions)');
+})();
