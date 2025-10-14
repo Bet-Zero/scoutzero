@@ -1,4 +1,5 @@
 {
+  "_comment": "EXAMPLE DOCUMENT: This is a sample player record from the Firestore 'players_v2' collection. It demonstrates the complete flattened structure with bio, evaluations, contracts, and seasons data. This file is for reference only and should not be confused with other collection schemas.",
   "players": {
     "wendell_carter_jr": {
       "bio": {
