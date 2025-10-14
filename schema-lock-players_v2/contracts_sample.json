@@ -1,0 +1,158 @@
+[
+  {
+    "path": "players_v2/aaron_gordon/contracts/std_202425",
+    "data": {
+      "salariesByYear": [
+        {
+          "guaranteed": true,
+          "salary": 19690909,
+          "option": null,
+          "year": 2023
+        },
+        {
+          "guaranteed": true,
+          "salary": 22266182,
+          "option": null,
+          "year": 2024
+        },
+        {
+          "guaranteed": true,
+          "salary": 22841455,
+          "option": null,
+          "year": 2025
+        },
+        {
+          "guaranteed": true,
+          "salary": 22841455,
+          "option": null,
+          "year": 2026
+        }
+      ],
+      "capPercentage": 16,
+      "contractType": "VETERAN EXTENSION",
+      "signingDate": "September 27, 2021",
+      "signedUsing": "Bird Exception",
+      "source": "SalarySwish",
+      "startSeason": "2023",
+      "guaranteedValue": 87640001,
+      "noTradeClause": false,
+      "isExtension": null,
+      "contractValue": 87640001,
+      "endSeason": "2026",
+      "incentives": {
+        "likely": 0,
+        "unlikely": 0
+      },
+      "aav": 21910000,
+      "tradeKicker": null,
+      "options": [],
+      "averageAnnualValue": 21910000,
+      "guaranteedYears": 4,
+      "signingTeam": null,
+      "contractLength": 4,
+      "freeAgency": {
+        "freeAgentType": null,
+        "freeAgentYear": 2026,
+        "birdRights": "Bird",
+        "capHold": 34262183,
+        "qualifyingOffer": null
+      }
+    }
+  },
+  {
+    "path": "players_v2/aaron_holiday/contracts/std_202425",
+    "data": {
+      "salariesByYear": [
+        {
+          "guaranteed": true,
+          "salary": 2296274,
+          "option": null,
+          "year": 2026
+        }
+      ],
+      "capPercentage": 2,
+      "contractType": "VETERAN CONTRACT",
+      "signingDate": "July 8, 2025",
+      "signedUsing": "Minimum Salary Exception",
+      "source": "SalarySwish",
+      "startSeason": "2026",
+      "guaranteedValue": 2296274,
+      "noTradeClause": false,
+      "isExtension": null,
+      "contractValue": 2296274,
+      "endSeason": "2026",
+      "incentives": {
+        "likely": 0,
+        "unlikely": 0
+      },
+      "aav": 2296274,
+      "tradeKicker": null,
+      "options": [],
+      "averageAnnualValue": 2296274,
+      "guaranteedYears": 1,
+      "signingTeam": null,
+      "contractLength": 1,
+      "freeAgency": {
+        "freeAgentType": null,
+        "freeAgentYear": 2026,
+        "birdRights": "Bird",
+        "capHold": 2457010,
+        "qualifyingOffer": null
+      }
+    }
+  },
+  {
+    "path": "players_v2/aaron_nesmith/contracts/std_202425",
+    "data": {
+      "salariesByYear": [
+        {
+          "guaranteed": true,
+          "salary": 11000000,
+          "option": null,
+          "year": 2025
+        },
+        {
+          "guaranteed": true,
+          "salary": 11000000,
+          "option": null,
+          "year": 2026
+        },
+        {
+          "guaranteed": true,
+          "salary": 11000000,
+          "option": null,
+          "year": 2027
+        }
+      ],
+      "capPercentage": 7,
+      "contractType": "ROOKIE SCALE EXTENSION",
+      "signingDate": "October 23, 2023",
+      "signedUsing": "Bird Exception",
+      "source": "SalarySwish",
+      "startSeason": "2025",
+      "guaranteedValue": 33000000,
+      "noTradeClause": false,
+      "isExtension": null,
+      "contractValue": 33000000,
+      "endSeason": "2027",
+      "incentives": {
+        "likely": 0,
+        "unlikely": 0
+      },
+      "aav": 11000000,
+      "tradeKicker": null,
+      "options": [],
+      "averageAnnualValue": 11000000,
+      "guaranteedYears": 3,
+      "signingTeam": null,
+      "contractLength": 3,
+      "freeAgency": {
+        "freeAgentType": null,
+        "freeAgentYear": 2027,
+        "birdRights": "Bird",
+        "capHold": 20900000,
+        "qualifyingOffer": null
+      }
+    }
+  }
+]
