@@ -1,5 +1,10 @@
 // parse_team.ts — SalarySwish team page → team-only JSON (+ optional Fanspo enrich)
-// Run:
+//
+// DESCRIPTION:
+//   Parses NBA team salary cap data from SalarySwish team pages into a structured JSON format.
+//   Extracts roster, cap holds, exceptions, draft picks, and comprehensive salary cap totals.
+//
+// RUN:
 //   npm pkg set scripts.parse="tsx parse_team.ts"
 //   TEAM_URL="https://www.salaryswish.com/teams/lakers" TEAM_CODE="LAL" SEASON="2025-26" npm run parse
 //
@@ -9,7 +14,19 @@
 // Optional: enrich draft picks from Fanspo (one request)
 //   FANSPO_ENRICH=1 TEAM_SLUG="Lakers" TEAM_ID=14 npm run parse
 //
+// FEATURES:
+//   - Parses active roster (14-15 players) with player names and URLs
+//   - Extracts cap holds (RFAs, UFAs, FA cap holds, draft picks)
+//   - Parses signing exceptions (MLE, BAE, Room) and trade exceptions (TPE)
+//   - Extracts draft picks with status (own/outgoing/contested), protections, and trade dates
+//   - Captures comprehensive totals: salary, cap space, tax, aprons, roster counts
+//   - Optional enrichment from SalarySwish detail pages and Fanspo
+//
+// OUTPUT:
+//   ./team.json - Structured JSON matching team_scrape_schema.ts
+//
 // Requires: cheerio, got
+
 
 import fs from 'node:fs/promises';
 import * as cheerio from 'cheerio';
@@ -231,6 +248,78 @@ async function main() {
     }
   });
 
+  // Also capture additional totals from stats table if present
+  const statsTable = $('.sw_teamProfileStats__table');
+  if (statsTable.length) {
+    statsTable.find('tbody tr').each((_, tr) => {
+      const rowTitle = norm($(tr).find('.sw_teamProfileStats__table_rowTitle').text()).toUpperCase();
+      const cells = $(tr).find('td');
+      const firstDataCell = cells.eq(6); // Cell 6 is the first season data (cell 5 is the row title)
+      const value = norm(firstDataCell.text());
+      
+      if (rowTitle.includes('ROSTER SIZE') && !rowTitle.includes('&')) {
+        const match = value.match(/^\d+/);
+        totalsBox.rosterCount = match ? Number(match[0]) : undefined;
+      } else if (rowTitle.includes('TWO-WAY CONTRACTS')) {
+        const match = value.match(/^\d+/);
+        totalsBox.twoWayCount = match ? Number(match[0]) : undefined;
+      } else if (rowTitle.includes('ROSTER CAP HIT') && !rowTitle.includes('DEAD')) {
+        totalsBox.activeSalary = moneyNum(value);
+      } else if (rowTitle.includes('DEAD CAP HIT')) {
+        totalsBox.deadCapTotal = moneyNum(value);
+      } else if (rowTitle === 'HOLDS') {
+        totalsBox.capHoldsTotal = moneyNum(value);
+      } else if (rowTitle.includes('INCOMPLETE ROSTER CHARGE')) {
+        totalsBox.incompleteRosterCharges = moneyNum(value);
+      } else if (rowTitle === 'GUARANTEED') {
+        totalsBox.guaranteedSalary = moneyNum(value);
+      } else if (rowTitle.includes('LIKELY INCENTIVE')) {
+        totalsBox.likelyIncentives = moneyNum(value);
+      } else if (rowTitle.includes('UNLIKELY INCENTIVE')) {
+        totalsBox.unlikelyIncentives = moneyNum(value);
+      }
+    });
+  }
+
+  // Capture cap/tax/apron lines from detailed stats
+  $('.sw_teamProfileStats__table').find('tbody tr').each((_, tr) => {
+    const rowTitle = norm($(tr).find('.sw_teamProfileStats__table_rowTitle').text()).toUpperCase();
+    const cells = $(tr).find('td');
+    const firstDataCell = cells.eq(6); // Cell 6 is first season data
+    const value = norm(firstDataCell.text());
+    
+    if (rowTitle === 'CAP') {
+      totalsBox.salaryCap = moneyNum(value);
+    } else if (rowTitle === 'CAP ROOM') {
+      // Cap room from stats table (alternative to h5)
+      const capRoom = moneyNum(value);
+      if (capRoom !== undefined && totalsBox.capSpace === undefined) {
+        totalsBox.capSpace = capRoom;
+      }
+    } else if (rowTitle === 'LUXURY TAX') {
+      totalsBox.luxuryTaxLine = moneyNum(value);
+    } else if (rowTitle === 'LUXURY TAX ROOM') {
+      const taxRoom = moneyNum(value);
+      if (taxRoom !== undefined) {
+        totalsBox.luxuryTaxRoom = taxRoom;
+      }
+    } else if (rowTitle === 'APRON') {
+      totalsBox.firstApronLine = moneyNum(value);
+    } else if (rowTitle === '2ND APRON') {
+      totalsBox.secondApronLine = moneyNum(value);
+    } else if (rowTitle === 'APRON ROOM') {
+      const apronRoom = moneyNum(value);
+      if (apronRoom !== undefined && totalsBox.firstApronRoom === undefined) {
+        totalsBox.firstApronRoom = apronRoom;
+      }
+    } else if (rowTitle === '2ND APRON ROOM') {
+      const apronRoom2 = moneyNum(value);
+      if (apronRoom2 !== undefined && totalsBox.secondApronRoom === undefined) {
+        totalsBox.secondApronRoom = apronRoom2;
+      }
+    }
+  });
+
   // --- Signing Exceptions (h3 SIGNING EXCEPTIONS → UL) ---
   let mle: any = null,
     bae: any = null,
@@ -257,7 +346,7 @@ async function main() {
           available: (remaining || 0) > 0,
         };
         if (kind.startsWith('bi-')) bae = base;
-        else if (kind.startsWith('mid-')) mle = { type: undefined, ...base };
+        else if (kind.startsWith('mid-')) mle = { type: 'Non-Taxpayer' as const, ...base }; // Default to Non-Taxpayer
         else if (kind.startsWith('room')) room = base;
       });
     }
@@ -317,87 +406,68 @@ async function main() {
     }
   }
 
-  // --- Cap Holds (table OR card/grid under h3 HOLDS) ---
+  // --- Cap Holds (multiple tables under h3 HOLDS) ---
   const capHolds: Array<{
     displayName: string;
     capHoldAmount: number;
-    type?: 'UFA' | 'RFA' | 'Two-way' | 'Other';
+    type?: 'UFA' | 'RFA' | 'Two-way' | 'Draft Pick' | 'FA Cap Hold' | 'Other';
     rights?: 'Bird' | 'Early Bird' | 'Non-Bird';
     notes?: string;
+    playerId?: string;
+    sourceUrl?: string;
   }> = [];
   {
     const h3 = findHeading($, 'h3', 'HOLDS');
     if (h3) {
       const block = forwardUntilNextH3($, h3);
-      const tbl = block.filter((_, el) => $(el).is('table')).first();
-      if (tbl.length) {
-        // table path
+      const tables = block.find('table'); // Tables are inside divs, use find() not filter()
+      
+      // Process each table separately
+      tables.each((_, table) => {
+        const tbl = $(table);
+        const thead = norm(tbl.find('thead').text());
+        
+        // Determine table type from header
+        let tableType: 'RFA' | 'UFA' | 'Draft Pick' | 'FA Cap Hold' | 'Other' = 'Other';
+        if (/RFAs/i.test(thead)) tableType = 'RFA';
+        else if (/UFAs/i.test(thead)) tableType = 'UFA';
+        else if (/2nd Rd Picks/i.test(thead)) tableType = 'Draft Pick';
+        else if (/FA Cap Hold/i.test(thead)) tableType = 'FA Cap Hold';
+        
         tbl.find('tbody tr').each((_, tr) => {
           const tds = $(tr).find('td');
           if (!tds.length) return;
-          const name = norm(tds.eq(0).text());
-          const amount = moneyNum(
-            norm(tds.eq(1).text()) || norm(tds.eq(2).text())
-          );
+          
+          // Extract player name and link
+          const anchor = $(tr).find('a[href^="/players/"]').first();
+          const name = anchor.length ? norm(anchor.text()) : norm(tds.eq(0).text());
+          const href = anchor.length ? (anchor.attr('href') || '').trim() : '';
+          
+          // Find cap hit amount - usually in column 6 (2025-26 season)
+          const capHitCol = $(tr).find('.cap_hit.team_salary_data').first();
+          const amount = moneyNum(norm(capHitCol.text()));
+          
           const meta = norm($(tr).text()).toLowerCase();
-          if (name && amount != null) {
+          
+          if (name && amount != null && amount > 0) {
             capHolds.push({
+              playerId: undefined,
               displayName: name,
+              sourceUrl: href ? absoluteUrl(href) : undefined,
               capHoldAmount: amount,
-              type: /rfa/.test(meta)
-                ? 'RFA'
-                : /ufa/.test(meta)
-                  ? 'UFA'
-                  : /two-?way/.test(meta)
-                    ? 'Two-way'
-                    : 'Other',
-              rights: /early bird/.test(meta)
+              type: tableType,
+              rights: /early bird/i.test(meta)
                 ? 'Early Bird'
-                : /non-?bird/.test(meta)
+                : /non-?bird/i.test(meta)
                   ? 'Non-Bird'
-                  : /bird/.test(meta)
+                  : /bird/i.test(meta)
                     ? 'Bird'
                     : undefined,
-              notes: norm($(tr).text()),
+              notes: undefined, // Keep notes minimal to reduce clutter
             });
           }
         });
-      } else {
-        // card/grid path (no table)
-        const rows: cheerio.Cheerio[] = [];
-        block.find('a[href^="/players/"]').each((_, a) => {
-          const row = $(a).closest('div, li, article');
-          if (row.length && !rows.find((r) => r.get(0) === row.get(0)))
-            rows.push(row);
-        });
-        rows.forEach((row) => {
-          const name = norm(row.find('a[href^="/players/"]').first().text());
-          const text = norm(row.text());
-          const mAmt = text.match(/\$[\d,]+/);
-          const amount = mAmt ? moneyNum(mAmt[0]) : undefined;
-          if (name && amount != null) {
-            capHolds.push({
-              displayName: name,
-              capHoldAmount: amount,
-              type: /rfa/i.test(text)
-                ? 'RFA'
-                : /ufa/i.test(text)
-                  ? 'UFA'
-                  : /two-?way/i.test(text)
-                    ? 'Two-way'
-                    : 'Other',
-              rights: /early bird/i.test(text)
-                ? 'Early Bird'
-                : /non-?bird/i.test(text)
-                  ? 'Non-Bird'
-                  : /bird/i.test(text)
-                    ? 'Bird'
-                    : undefined,
-              notes: text,
-            });
-          }
-        });
-      }
+      });
     }
   }
 
@@ -570,7 +640,7 @@ async function main() {
     season,
 
     roster, // player refs; IDs resolved later by your mapper
-    deadCap: [], // not on this page
+    deadCap: [], // not on this page (would need waiver/transaction data)
     capHolds, // parsed above (may be [])
     exceptions: {
       mle: mle || undefined,
@@ -583,12 +653,41 @@ async function main() {
     draftPicks, // populated from draft table (+ optional enrich)
 
     totals: {
+      // Core salary totals
       totalSalary: totalsBox.totalSalary,
+      activeSalary: totalsBox.activeSalary,
+      deadCapTotal: totalsBox.deadCapTotal || 0,
+      capHoldsTotal: totalsBox.capHoldsTotal,
+      guaranteedSalary: totalsBox.guaranteedSalary,
+      
+      // Roster counts
+      rosterCount: totalsBox.rosterCount,
+      twoWayCount: totalsBox.twoWayCount,
+      
+      // Cap space calculations
+      salaryCap: totalsBox.salaryCap,
       capSpace: totalsBox.capSpace,
+      
+      // Luxury tax
+      luxuryTaxLine: totalsBox.luxuryTaxLine,
       taxSpace: totalsBox.luxuryTaxRoom,
+      
+      // Aprons
+      firstApronLine: totalsBox.firstApronLine,
       firstApronRoom: totalsBox.firstApronRoom,
+      firstApronTriggered: totalsBox.firstApronRoom != null && totalsBox.firstApronRoom < 0,
+      
+      secondApronLine: totalsBox.secondApronLine,
       secondApronRoom: totalsBox.secondApronRoom,
+      secondApronTriggered: totalsBox.secondApronRoom != null && totalsBox.secondApronRoom < 0,
+      
+      // Hard cap
       hardCappedAt: totalsBox.hardCappedAt || 'none',
+      
+      // Additional details
+      incompleteRosterCharges: totalsBox.incompleteRosterCharges,
+      likelyIncentives: totalsBox.likelyIncentives,
+      unlikelyIncentives: totalsBox.unlikelyIncentives,
     },
 
     source: {

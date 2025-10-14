@@ -63,32 +63,177 @@
   "deadCap": [],
   "capHolds": [
     {
-      "displayName": "Elonu, Chinemelu",
-      "capHoldAmount": 0,
-      "type": "Other",
-      "notes": "2nd Rd Picks (2 - $0)StatusAcquiredAgePosTerms2025-262026-272027-282028-292029-302030-31Elonu, Chinemelu (59th pick 2009)Hold38C, PF$0$0Labeyrie, Louis (57th pick 2014)Hold33PF$0$0TOTAL$0$0"
+      "displayName": "Watson, Anton",
+      "sourceUrl": "https://www.salaryswish.com/players/anton-watson",
+      "capHoldAmount": 2457010,
+      "type": "RFA"
     },
     {
-      "displayName": "Watson, Anton",
-      "capHoldAmount": 0,
-      "type": "RFA",
-      "notes": "RFAs (9 - $0)StatusAcquiredAgePosTerms2025-262026-272027-282028-292029-302030-31Watson, AntonRFA25PF, SF$2,457,010$0Williams, NateRFA26SG, SF$2,457,010$0Davis, RJRFA23SG, PG$2,191,886$0Manon, ChrisRFA23PG, SG$2,191,886$0Marčiulionis, AugustasRFA23PG$2,191,886$0Smith Jr., NickRFA21PG, SG$2,191,886$0Knecht, DaltonRFA24SG, SF$19,358,577$0James, BronnyRFA21PG, SG$2,972,982$0Thiero, AdouRFA21SF, PF$2,972,982$0TOTAL$13,681,564$0$25,304,541$0"
+      "displayName": "Williams, Nate",
+      "sourceUrl": "https://www.salaryswish.com/players/nate-williams",
+      "capHoldAmount": 2457010,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Davis, RJ",
+      "sourceUrl": "https://www.salaryswish.com/players/rj-davis",
+      "capHoldAmount": 2191886,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Manon, Chris",
+      "sourceUrl": "https://www.salaryswish.com/players/chris-manon",
+      "capHoldAmount": 2191886,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Marčiulionis, Augustas",
+      "sourceUrl": "https://www.salaryswish.com/players/augustas-marciulionis",
+      "capHoldAmount": 2191886,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Smith Jr., Nick",
+      "sourceUrl": "https://www.salaryswish.com/players/nick-smith-jr",
+      "capHoldAmount": 2191886,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Knecht, Dalton",
+      "sourceUrl": "https://www.salaryswish.com/players/dalton-knecht",
+      "capHoldAmount": 19358577,
+      "type": "RFA"
+    },
+    {
+      "displayName": "James, Bronny",
+      "sourceUrl": "https://www.salaryswish.com/players/bronny-james",
+      "capHoldAmount": 2972982,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Thiero, Adou",
+      "sourceUrl": "https://www.salaryswish.com/players/adou-thiero",
+      "capHoldAmount": 2972982,
+      "type": "RFA"
     },
     {
       "displayName": "James, LeBron",
-      "capHoldAmount": 0,
-      "type": "UFA",
-      "notes": "UFAs (12 - $0)StatusAcquiredAgePosTerms2025-262026-272027-282028-292029-302030-31James, LeBronUFA40PF, PG, SF, SG$57,915,200$0Hachimura, RuiUFA27PF$27,388,889$0Vincent, GabeUFA29PG$21,850,000$0Kleber, MaxiUFA33C, PF$20,900,000$0Hayes, JaxsonUFA25C, PF$6,553,714$0Koloko, ChristianUFA25C$2,191,886$0Reaves, AustinUFA27SG$28,307,693$0Ayton, DeandreUFA27C$10,535,200$0LaRavia, JakeUFA23SF, PF$7,800,000$0Smart, MarcusUFA31PG, SG$7,007,910$0Vanderbilt, JarredUFA26PF, SF$25,242,857$0Doncic, LukaUFA26PG, SG$77,085,050$0TOTAL$136,799,689$0$53,650,803$0$25,242,857$0$77,085,050$0"
+      "sourceUrl": "https://www.salaryswish.com/players/lebron-james",
+      "capHoldAmount": 57915200,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Hachimura, Rui",
+      "sourceUrl": "https://www.salaryswish.com/players/rui-hachimura",
+      "capHoldAmount": 27388889,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Vincent, Gabe",
+      "sourceUrl": "https://www.salaryswish.com/players/gabe-vincent",
+      "capHoldAmount": 21850000,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Kleber, Maxi",
+      "sourceUrl": "https://www.salaryswish.com/players/maxi-kleber",
+      "capHoldAmount": 20900000,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Hayes, Jaxson",
+      "sourceUrl": "https://www.salaryswish.com/players/jaxson-hayes",
+      "capHoldAmount": 6553714,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Koloko, Christian",
+      "sourceUrl": "https://www.salaryswish.com/players/christian-koloko",
+      "capHoldAmount": 2191886,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Reaves, Austin",
+      "sourceUrl": "https://www.salaryswish.com/players/austin-reaves",
+      "capHoldAmount": 28307693,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Ayton, Deandre",
+      "sourceUrl": "https://www.salaryswish.com/players/deandre-ayton",
+      "capHoldAmount": 10535200,
+      "type": "UFA"
+    },
+    {
+      "displayName": "LaRavia, Jake",
+      "sourceUrl": "https://www.salaryswish.com/players/jake-laravia",
+      "capHoldAmount": 7800000,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Smart, Marcus",
+      "sourceUrl": "https://www.salaryswish.com/players/marcus-smart",
+      "capHoldAmount": 7007910,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Vanderbilt, Jarred",
+      "sourceUrl": "https://www.salaryswish.com/players/jarred-vanderbilt",
+      "capHoldAmount": 25242857,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Doncic, Luka",
+      "sourceUrl": "https://www.salaryswish.com/players/luka-doncic",
+      "capHoldAmount": 77085050,
+      "type": "UFA"
     },
     {
       "displayName": "Ellington, Wayne",
-      "capHoldAmount": 16073918,
-      "type": "Other",
-      "notes": "FA Cap Hold (7 - $16,073,918)StatusAcquiredAgePosTerms2025-262026-272027-282028-292029-302030-31Ellington, WayneFA Cap Hold37SG$2,296,274$0Bradley, AveryFA Cap Hold34PG, SG$2,296,274$0Dudley, JaredFA Cap Hold40PF, SF, SG$2,296,274$0Howard, DwightFA Cap Hold39C, PF$2,296,274$0Morris, MarkieffFA Cap Hold36PF$2,296,274$0Waiters, DionFA Cap Hold33SG$2,296,274$0Anthony, CarmeloFA Cap Hold41PF, SF$2,296,274$0TOTAL$16,073,918$0"
+      "sourceUrl": "https://www.salaryswish.com/players/wayne-ellington",
+      "capHoldAmount": 2296274,
+      "type": "FA Cap Hold"
+    },
+    {
+      "displayName": "Bradley, Avery",
+      "sourceUrl": "https://www.salaryswish.com/players/avery-bradley",
+      "capHoldAmount": 2296274,
+      "type": "FA Cap Hold"
+    },
+    {
+      "displayName": "Dudley, Jared",
+      "sourceUrl": "https://www.salaryswish.com/players/jared-dudley",
+      "capHoldAmount": 2296274,
+      "type": "FA Cap Hold"
+    },
+    {
+      "displayName": "Howard, Dwight",
+      "sourceUrl": "https://www.salaryswish.com/players/dwight-howard",
+      "capHoldAmount": 2296274,
+      "type": "FA Cap Hold"
+    },
+    {
+      "displayName": "Morris, Markieff",
+      "sourceUrl": "https://www.salaryswish.com/players/markieff-morris",
+      "capHoldAmount": 2296274,
+      "type": "FA Cap Hold"
+    },
+    {
+      "displayName": "Waiters, Dion",
+      "sourceUrl": "https://www.salaryswish.com/players/dion-waiters",
+      "capHoldAmount": 2296274,
+      "type": "FA Cap Hold"
+    },
+    {
+      "displayName": "Anthony, Carmelo",
+      "sourceUrl": "https://www.salaryswish.com/players/carmelo-anthony",
+      "capHoldAmount": 2296274,
+      "type": "FA Cap Hold"
     }
   ],
   "exceptions": {
     "mle": {
+      "type": "Non-Taxpayer",
       "totalAmount": 14104000,
       "usedAmount": 14104000,
       "remainingAmount": 0,
@@ -236,17 +381,31 @@
   ],
   "totals": {
     "totalSalary": 210894723,
+    "activeSalary": 194820805,
+    "deadCapTotal": 0,
+    "capHoldsTotal": 16073918,
+    "guaranteedSalary": 194891405,
+    "rosterCount": 21,
+    "twoWayCount": 3,
+    "salaryCap": 154647000,
     "capSpace": -40173805,
+    "luxuryTaxLine": 187895000,
     "taxSpace": -6925805,
+    "firstApronLine": 195945000,
     "firstApronRoom": 1124195,
+    "firstApronTriggered": false,
+    "secondApronLine": 207824000,
     "secondApronRoom": 13003195,
-    "hardCappedAt": "firstApron"
+    "secondApronTriggered": false,
+    "hardCappedAt": "firstApron",
+    "incompleteRosterCharges": 0,
+    "likelyIncentives": 0
   },
   "source": {
     "provider": "SalarySwish",
     "teamPageUrl": "https://www.salaryswish.com/teams/lakers",
-    "scrapedAt": "2025-10-14T12:02:46.629Z"
+    "scrapedAt": "2025-10-14T12:48:48.255Z"
   },
-  "lastUpdated": "2025-10-14T12:02:46.629Z",
+  "lastUpdated": "2025-10-14T12:48:48.255Z",
   "version": "1.0"
 }

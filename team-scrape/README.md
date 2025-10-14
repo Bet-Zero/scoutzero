@@ -4,13 +4,20 @@
 >
 > This is an **early-stage attempt** at automating team data extraction from SalarySwish. It is **NOT production-ready** and should be considered a starting point for further development rather than a complete or accurate solution.
 >
+> **Recent Improvements:**
+>
+> - ✅ Enhanced totals parsing: Now captures 20+ salary cap fields including active salary, guaranteed salary, roster counts, cap/tax/apron lines and rooms
+> - ✅ Improved cap holds parsing: Properly categorizes RFAs, UFAs, FA cap holds, and draft picks with Bird rights
+> - ✅ Better data extraction: Fixed stats table parsing to correctly capture all numerical values
+> - ✅ Comprehensive output: Lakers sample now includes roster (14), cap holds (28), exceptions (MLE/BAE/3 TPEs), draft picks (14), and detailed totals
+>
 > **Known Limitations:**
 >
 > - Parsing logic may miss edge cases or fail on different team pages
 > - Data accuracy has not been fully validated against official sources
 > - Structure changes on SalarySwish will break the scrapers
 > - Manual verification and cleanup of output is required
-> - Many fields are incomplete or placeholder values
+> - Dead cap data is not available on team pages (requires transaction history)
 > - No automated testing or validation suite exists yet
 >
 > **Use at your own risk.** This is a proof-of-concept tool to explore the feasibility of scraping team cap data, not a reliable data pipeline.
@@ -87,6 +94,18 @@ The team scraping workflow has 3 main phases:
 - **What it does**:
   - Parses all team cap data into structured JSON format
   - Extracts: roster, cap totals, signing exceptions, trade exceptions, cap holds, draft picks
+  - **Enhanced totals parsing**: Captures comprehensive salary cap data including:
+    - Core salary totals (total, active, dead cap, cap holds, guaranteed)
+    - Roster counts (roster size, two-way contracts)
+    - Cap calculations (salary cap line, cap space)
+    - Luxury tax (tax line, tax space)
+    - Aprons (1st/2nd apron lines, rooms, triggered status)
+    - Hard cap status and additional details
+  - **Enhanced cap holds parsing**: Properly categorizes cap holds by type:
+    - RFAs (Restricted Free Agents) with Bird rights
+    - UFAs (Unrestricted Free Agents) with Bird rights
+    - FA Cap Holds (historical free agents)
+    - Draft Pick holds (2nd round picks)
   - Optional: enriches draft picks from SalarySwish detail pages (`ENRICH_DRAFT=1`)
   - Optional: enriches draft picks from Fanspo (`FANSPO_ENRICH=1`)
   - Writes output to `team.json`
