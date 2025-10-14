@@ -19,7 +19,10 @@ export function getSchemaPaths(): SchemaPaths {
   if (cached) return cached;
 
   // Load the lock (edit path if you store elsewhere)
-  const raw = fs.readFileSync('schema-lock-players_v2/players_schema.lock.json', 'utf8');
+  const raw = fs.readFileSync(
+    'schema-lock-players_v2/players_schema.lock.json',
+    'utf8'
+  );
   const lock = JSON.parse(raw) as {
     docs: Array<{ path: string; subcollections: string[] }>;
   };
