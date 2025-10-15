@@ -6,7 +6,7 @@
 >
 > **Recent Improvements:**
 >
-> - ✅ **FANSPO SCRAPER FIX**: Fixed "0 picks enriched" issue by using Playwright to handle Fanspo's dynamic React content (see [FANSPO_FIX.md](./FANSPO_FIX.md))
+> - ✅ **FANSPO SCRAPER**: Uses Playwright to handle Fanspo's dynamic React content for draft pick enrichment
 > - ✅ Enhanced totals parsing: Now captures 20+ salary cap fields including active salary, guaranteed salary, roster counts, cap/tax/apron lines and rooms
 > - ✅ Improved cap holds parsing: Properly categorizes RFAs, UFAs, FA cap holds, and draft picks with Bird rights
 > - ✅ Better data extraction: Fixed stats table parsing to correctly capture all numerical values
@@ -155,48 +155,6 @@ The team scraping workflow has 3 main phases:
 - **Use Case**: Quick reference for developers updating parsers when SalarySwish changes their HTML structure
 - **Note**: Some selectors may not perfectly match current implementation in `parse_team.ts` (which uses more dynamic traversal)
 
-#### `parse_team_with_mock.ts`
-
-- **Purpose**: Enhanced parser with mock Fanspo support
-- **Run**: `npm run parse-mock` (or with environment variables)
-- **What it does**:
-  - Same as `parse_team.ts` but with added mock mode support
-  - Can use mock Fanspo data when `FANSPO_MOCK=1` is set
-  - Enables testing Fanspo enrichment without network access
-- **Dependencies**: cheerio, got, plus mock_fanspo_data.ts
-- **Environment Variables**: Same as `parse_team.ts`, plus:
-  - `FANSPO_MOCK` - Set to "1" to use mock Fanspo data instead of live fetch
-- **Use Case**: Development and testing of Fanspo enrichment feature
-
-#### `test_fanspo_enrichment.ts`
-
-- **Purpose**: Unit tests for Fanspo enrichment logic
-- **Run**: `npx tsx team-scrape/test_fanspo_enrichment.ts`
-- **What it tests**:
-  - HTML parsing from Fanspo draft picks page
-  - Extraction of incoming/outgoing picks with teams and protections
-  - Merging enrichment data into existing draft picks
-  - Edge cases (duplicates, missing data, status correction)
-- **Use Case**: Validate Fanspo enrichment logic works correctly
-
-#### `mock_fanspo_data.ts`
-
-- **Purpose**: Mock Fanspo HTML responses for testing
-- **Contains**: Sample Fanspo draft picks HTML for Lakers, Celtics, Warriors
-- **Use Case**: Enable Fanspo enrichment testing without network access
-- **How to extend**: Add more teams by adding entries to `MOCK_FANSPO_RESPONSES`
-
-#### `FANSPO_ENRICHMENT.md`
-
-- **Purpose**: Comprehensive documentation for Fanspo enrichment feature
-- **Contains**:
-  - How Fanspo enrichment works
-  - Usage examples with live and mock data
-  - Implementation details
-  - Testing guide
-  - Troubleshooting tips
-- **Use Case**: Reference guide for developers using or maintaining Fanspo enrichment
-
 ### 📤 Output Files
 
 #### `team.json`
@@ -271,13 +229,13 @@ npm run parse
 
 To enrich draft picks with ownership, protections, and conveyance rules from Fanspo:
 
-**Prerequisites** (for live mode only):
+**Prerequisites**:
 ```bash
 npm install playwright
 npx playwright install chromium
 ```
 
-**With live Fanspo data** (fetches from fanspo.com using Playwright):
+**Usage** (fetches from fanspo.com using Playwright):
 ```bash
 FANSPO_ENRICH=1 \
 TEAM_SLUG="Lakers" \
@@ -286,14 +244,6 @@ TEAM_URL="https://www.salaryswish.com/teams/lakers" \
 TEAM_CODE="LAL" \
 SEASON="2025-26" \
 npm run parse
-```
-
-**With mock Fanspo data** (for testing/development, no Playwright needed):
-```bash
-FANSPO_ENRICH=1 FANSPO_MOCK=1 \
-TEAM_SLUG="Lakers" \
-TEAM_ID=14 \
-npm run parse-mock
 ```
 
 **Combined enrichment** (both SalarySwish and Fanspo):
@@ -307,8 +257,7 @@ TEAM_ID=14 \
 npm run parse
 ```
 
-📚 **See [FANSPO_ENRICHMENT.md](./FANSPO_ENRICHMENT.md) for detailed documentation**
-📚 **See [FANSPO_FIX.md](./FANSPO_FIX.md) for explanation of the React scraping fix**
+📚 **See [FANSPO_USAGE.md](./FANSPO_USAGE.md) for detailed documentation**
 
 ## Data Connections
 
