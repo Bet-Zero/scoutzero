@@ -1,38 +1,88 @@
 {
-  "playerId": "jayson_tatum",
-  "displayName": "JAYSON TATUM #0",
-  "teamCode": "BOS",
-  "teamName": "",
+  "playerId": "austin_reaves",
+  "displayName": "Austin Reaves #15",
+  "teamCode": "LAL",
+  "teamName": "Los Angeles Lakers",
   "bio": {
-    "height": "6",
-    "weight": "210",
-    "age": 27
+    "position": "G",
+    "height": "6-5",
+    "weight": "206",
+    "age": 26,
+    "birthdate": "5/29/1998",
+    "experience": 3
   },
   "contract": {
-    "contractType": "DESIGNATED ROOKIE EXTENSION",
-    "isExtension": true,
-    "isRookieScale": true,
-    "signingTeam": "BOS",
+    "contractType": "VETERAN CONTRACT",
+    "isExtension": false,
+    "isRookieScale": false,
+    "signedUsing": "Bird Exception",
+    "signingTeam": "LAL",
+    "signingDate": "6/29/2023",
     "signedByCurrentTeam": true,
     "startSeason": "2025-26",
-    "endSeason": "2025-26",
-    "contractLength": 0,
-    "yearsRemaining": 1,
-    "totalValue": 0,
-    "averageAnnualValue": 0,
-    "guaranteedValue": 0,
-    "guaranteedYears": 0,
-    "salariesByYear": [],
-    "noTradeClause": false,
+    "endSeason": "2027-28",
+    "contractLength": 3,
+    "yearsRemaining": 3,
+    "totalValue": 40900000,
+    "averageAnnualValue": 13633333.333333334,
+    "guaranteedValue": 40900000,
+    "guaranteedYears": 3,
+    "salariesByYear": [
+      {
+        "season": "2025-26",
+        "salary": 12000000,
+        "capHit": 12000000,
+        "guaranteed": true,
+        "guaranteedAmount": 12000000,
+        "option": null,
+        "tradeBonus": null,
+        "incentives": {
+          "likely": 0,
+          "unlikely": 0
+        }
+      },
+      {
+        "season": "2026-27",
+        "salary": 13900000,
+        "capHit": 13900000,
+        "guaranteed": true,
+        "guaranteedAmount": 13900000,
+        "option": null,
+        "tradeBonus": null,
+        "incentives": {
+          "likely": 0,
+          "unlikely": 0
+        }
+      },
+      {
+        "season": "2027-28",
+        "salary": 15000000,
+        "capHit": 15000000,
+        "guaranteed": true,
+        "guaranteedAmount": 15000000,
+        "option": "PO",
+        "tradeBonus": null,
+        "incentives": {
+          "likely": 0,
+          "unlikely": 0
+        }
+      }
+    ],
+    "noTradeClause": true,
     "tradeKicker": null,
     "tradeRestrictions": [],
     "birdRights": {
-      "status": "CalculatorQualifying Offer CalculatorHold CalculatorMinimum Salary & Two Way Calculator10-Day Contract CalculatorDEPTH CHARTS ▾DEPTH CHARTSDepth ChartsPlayer Status UpdatesTOOLS ▾TOOLSDraft BoardAgentsAgenciesContract ComparablesRookie Scale SalaryCoachesHead Executives of Basketball OperationsBi-Annual Exception"
+      "status": "Bird",
+      "eligibleFor": [
+        "Bird Exception",
+        "Early Bird Exception"
+      ]
     },
     "freeAgency": {
-      "type": null,
-      "capHold": 2030,
-      "qualifyingOffer": 12985021,
+      "type": "UFA",
+      "year": 2028,
+      "capHold": 18750000,
+      "qualifyingOffer": null,
       "earlyTerminationOption": null
     },
     "tradeEligibility": {
@@ -48,9 +98,9 @@
   },
   "source": {
     "provider": "SalarySwish",
-    "playerPageUrl": "Unknown",
-    "scrapedAt": "2025-10-15T05:58:14.514Z"
+    "playerPageUrl": "https://salaryswish.com/players/austin-reaves",
+    "scrapedAt": "2025-10-15T06:12:50.741Z"
   },
-  "lastUpdated": "2025-10-15T05:58:14.515Z",
+  "lastUpdated": "2025-10-15T06:12:50.741Z",
   "version": "1.0"
 }

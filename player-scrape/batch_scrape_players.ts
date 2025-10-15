@@ -24,7 +24,7 @@ import fs from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import got from 'got';
+import { chromium, Browser, BrowserContext } from 'playwright';
 import * as cheerio from 'cheerio';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -71,18 +71,30 @@ function findHeading($: cheerio.CheerioAPI, tag: 'h3' | 'h4' | 'h5', includes: s
   return null;
 }
 
-async function fetchPlayerPage(slug: string): Promise<string> {
+async function fetchPlayerPage(slug: string, browser: Browser, context: BrowserContext): Promise<string> {
   const url = `https://salaryswish.com/players/${slug}`;
   console.log(`  🔍 Fetching: ${url}`);
   
-  const response = await got(url, {
-    timeout: { request: 15000 },
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-    }
-  });
+  const page = await context.newPage();
   
-  return response.body;
+  try {
+    // Navigate and wait for network idle
+    await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
+    
+    // Wait for salary table to be rendered
+    await page.waitForSelector('table', { timeout: 10000 }).catch(() => {
+      console.warn('  ⚠️  No table found for', slug);
+    });
+    
+    // Extra wait for dynamic content
+    await page.waitForTimeout(1000);
+    
+    // Get fully rendered HTML
+    const html = await page.content();
+    return html;
+  } finally {
+    await page.close();
+  }
 }
 
 async function parsePlayerData(html: string, playerId: string, teamCode: string, playerUrl: string) {
@@ -207,8 +219,21 @@ async function parsePlayerData(html: string, playerId: string, teamCode: string,
   const signedByCurrentTeam = signingTeam === teamCode;
   
   // Parse Bird rights
-  const birdMatch = teamText.match(/Bird Rights[:\s]+([^\n(]+)/i);
-  const birdStatus = birdMatch ? norm(birdMatch[1]) : 'None';
+  const birdMatch1 = teamText.match(/Bird\s+Rights[:\s]+((?:Early\s+)?Bird|Non-Bird|None)(?:\s|$)/i);
+  let birdStatus = 'None';
+  
+  if (birdMatch1) {
+    birdStatus = norm(birdMatch1[1]);
+  } else {
+    const birdMatch2 = teamText.match(/Bird\s+Rights[:\s]+([A-Za-z\s]+?)(?:\n|\r|Free Agency|Cap Hold|Trade|$)/i);
+    if (birdMatch2) {
+      const extracted = norm(birdMatch2[1]).trim();
+      birdStatus = extracted.replace(/\s*(and|Free Agency|Cap Hold).*$/i, '').trim();
+      
+      if (!birdStatus || birdStatus.length > 50) birdStatus = 'None';
+      if (birdStatus.toLowerCase().includes('full')) birdStatus = 'Bird';
+    }
+  }
   
   const eligibleFor: string[] = [];
   if (birdStatus === 'Bird' || birdStatus === 'Full Bird') {
@@ -331,47 +356,67 @@ async function batchScrape() {
   await fs.mkdir(config.outputDir, { recursive: true });
   console.log(`📁 Output directory: ${config.outputDir}\n`);
   
+  // Initialize browser if not skipping fetch
+  let browser: Browser | null = null;
+  let context: BrowserContext | null = null;
+  
+  if (!config.skipFetch) {
+    console.log('🌐 Launching browser...\n');
+    browser = await chromium.launch({ headless: true });
+    context = await browser.newContext({
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    });
+  }
+  
   let successCount = 0;
   let failCount = 0;
   
-  for (let i = 0; i < playersList.length; i++) {
-    const player = playersList[i];
-    console.log(`[${i + 1}/${playersList.length}] Processing ${player.playerId}...`);
-    
-    try {
-      let html: string;
+  try {
+    for (let i = 0; i < playersList.length; i++) {
+      const player = playersList[i];
+      console.log(`[${i + 1}/${playersList.length}] Processing ${player.playerId}...`);
       
-      if (config.skipFetch) {
-        // Load from existing file
-        const htmlPath = join(__dirname, 'page.html');
-        html = await fs.readFile(htmlPath, 'utf-8');
-      } else {
-        // Fetch from SalarySwish
-        html = await fetchPlayerPage(player.slug);
+      try {
+        let html: string;
+        
+        if (config.skipFetch) {
+          // Load from existing file
+          const htmlPath = join(__dirname, 'page.html');
+          html = await fs.readFile(htmlPath, 'utf-8');
+        } else {
+          // Fetch from SalarySwish with browser
+          html = await fetchPlayerPage(player.slug, browser!, context!);
+        }
+        
+        // Parse player data
+        const playerUrl = `https://salaryswish.com/players/${player.slug}`;
+        const playerData = await parsePlayerData(html, player.playerId, player.teamCode, playerUrl);
+        
+        // Save to output file
+        const outputPath = join(config.outputDir, `${player.playerId}.json`);
+        await fs.writeFile(outputPath, JSON.stringify(playerData, null, 2), 'utf-8');
+        
+        console.log(`  ✅ Success: ${playerData.displayName} (${playerData.contract.contractType})`);
+        console.log(`     Years: ${playerData.contract.contractLength}, Value: $${(playerData.contract.totalValue / 1000000).toFixed(1)}M\n`);
+        
+        successCount++;
+        
+        // Rate limiting
+        if (!config.skipFetch && i < playersList.length - 1) {
+          console.log(`  ⏳ Rate limiting (${config.rateLimitMs}ms)...\n`);
+          await new Promise(resolve => setTimeout(resolve, config.rateLimitMs));
+        }
+        
+      } catch (error: any) {
+        console.error(`  ❌ Error: ${error.message}\n`);
+        failCount++;
       }
-      
-      // Parse player data
-      const playerUrl = `https://salaryswish.com/players/${player.slug}`;
-      const playerData = await parsePlayerData(html, player.playerId, player.teamCode, playerUrl);
-      
-      // Save to output file
-      const outputPath = join(config.outputDir, `${player.playerId}.json`);
-      await fs.writeFile(outputPath, JSON.stringify(playerData, null, 2), 'utf-8');
-      
-      console.log(`  ✅ Success: ${playerData.displayName} (${playerData.contract.contractType})`);
-      console.log(`     Years: ${playerData.contract.contractLength}, Value: $${(playerData.contract.totalValue / 1000000).toFixed(1)}M\n`);
-      
-      successCount++;
-      
-      // Rate limiting
-      if (!config.skipFetch && i < playersList.length - 1) {
-        console.log(`  ⏳ Rate limiting (${config.rateLimitMs}ms)...\n`);
-        await new Promise(resolve => setTimeout(resolve, config.rateLimitMs));
-      }
-      
-    } catch (error: any) {
-      console.error(`  ❌ Error: ${error.message}\n`);
-      failCount++;
+    }
+  } finally {
+    // Clean up browser
+    if (browser) {
+      console.log('\n🔒 Closing browser...');
+      await browser.close();
     }
   }
   

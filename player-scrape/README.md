@@ -4,6 +4,10 @@
 >
 > This folder contains tools for scraping NBA player contract data from SalarySwish player pages (e.g., https://salaryswish.com/players/austin-reaves). The output populates `/architect/basePlayers/{playerId}` with comprehensive contract details needed for trade validation.
 
+> ⚠️ **SETUP REQUIRED:** This scraper requires Playwright with Chromium browser installed. See [SETUP_GUIDE.md](./SETUP_GUIDE.md) for complete setup instructions.
+>
+> **Recent Fix:** Replaced `got` HTTP client with Playwright to properly render JavaScript-based salary tables. The old version could not extract salary data because SalarySwish uses dynamic JavaScript rendering.
+
 ---
 
 ## Overview
@@ -290,14 +294,19 @@ if (data.contract.tradeEligibility.rules.poisonPill) {
 ## Dependencies
 
 - **cheerio** - HTML parsing and CSS selector queries
-- **playwright** - Headless browser for JavaScript-rendered content
+- **playwright** - Headless browser for JavaScript-rendered content (**REQUIRED**)
 - **zod** - Schema validation and TypeScript types
 
-Install all dependencies:
+⚠️ **IMPORTANT:** Playwright must be installed with browsers for the scraper to work:
+
 ```bash
 npm install cheerio playwright zod
 npx playwright install chromium
 ```
+
+**Why Playwright is Required:** SalarySwish renders salary tables dynamically with JavaScript. Simple HTTP clients (like `got` or `axios`) only fetch raw HTML without executing JavaScript, resulting in empty salary data. Playwright executes JavaScript and waits for content to load before capturing HTML.
+
+See [SETUP_GUIDE.md](./SETUP_GUIDE.md) for detailed setup instructions and troubleshooting.
 
 ---
 
