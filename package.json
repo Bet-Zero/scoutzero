@@ -53,7 +53,11 @@
     "fetch": "tsx team-scrape/fetch_page.ts",
     "probe": "tsx team-scrape/probe.ts",
     "parse": "tsx team-scrape/parse_team.ts",
-    "inspect": "tsx team-scrape/inspect.ts"
+    "inspect": "tsx team-scrape/inspect.ts",
+    "fetch-player": "npx tsx player-scrape/fetch_player_page.ts",
+    "parse-player": "npx tsx player-scrape/parse_player.ts",
+    "validate-player": "npx tsx player-scrape/validate_player.ts",
+    "batch-scrape-players": "npx tsx player-scrape/batch_scrape_players.ts"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.6",
