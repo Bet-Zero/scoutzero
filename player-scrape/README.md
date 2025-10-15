@@ -82,6 +82,40 @@ PLAYER_URL="https://salaryswish.com/players/austin-reaves" PLAYER_ID="austin_rea
 
 ---
 
+#### `batch_scrape_players.ts`
+
+**Purpose:** Batch scrape multiple players from a list
+
+**Run:**
+```bash
+PLAYERS_FILE="players_list.json" OUTPUT_DIR="output/players" npm run batch-scrape-players
+```
+
+**What it does:**
+- Reads player list from JSON file
+- Fetches and parses each player page
+- Saves individual JSON files for each player
+- Includes rate limiting and error handling
+
+**Environment Variables:**
+- `PLAYERS_FILE` - Path to JSON file with player list (default: players_list.json)
+- `OUTPUT_DIR` - Directory for output files (default: output/players)
+- `RATE_LIMIT_MS` - Delay between requests in ms (default: 2000)
+- `SKIP_FETCH` - Set to "1" to skip fetching (use existing HTML files)
+
+**Input Format:**
+```json
+[
+  { "playerId": "lebron_james", "slug": "lebron-james", "teamCode": "LAL" },
+  { "playerId": "stephen_curry", "slug": "stephen-curry", "teamCode": "GSW" }
+]
+```
+
+**Output:**
+- Individual JSON files in `OUTPUT_DIR` (e.g., `output/players/lebron_james.json`)
+
+---
+
 ### 📋 Schema & Documentation
 
 #### `player_scrape_schema.ts`
@@ -143,34 +177,29 @@ cat player-scrape/player.json
 
 ### Batch Processing (All Players)
 
-To scrape all players for a team:
+To scrape all players for a team or league:
 
-```bash
-#!/bin/bash
-# scrape_all_lakers.sh
-
-PLAYERS=(
-  "lebron-james:lebron_james"
-  "anthony-davis:anthony_davis"
-  "austin-reaves:austin_reaves"
-  # ... add more players
-)
-
-for player in "${PLAYERS[@]}"; do
-  IFS=':' read -r slug id <<< "$player"
-  
-  echo "Scraping $id..."
-  PLAYER_URL="https://salaryswish.com/players/$slug" tsx player-scrape/fetch_player_page.ts
-  PLAYER_URL="https://salaryswish.com/players/$slug" PLAYER_ID="$id" tsx player-scrape/parse_player.ts
-  
-  # Move output to team folder
-  mkdir -p output/players
-  mv player-scrape/player.json "output/players/${id}.json"
-  
-  # Rate limiting
-  sleep 2
-done
+**1. Create a players list file** (`players_list.json`):
+```json
+[
+  { "playerId": "lebron_james", "slug": "lebron-james", "teamCode": "LAL" },
+  { "playerId": "anthony_davis", "slug": "anthony-davis", "teamCode": "LAL" },
+  { "playerId": "austin_reaves", "slug": "austin-reaves", "teamCode": "LAL" }
+]
 ```
+
+**2. Run batch scraper:**
+```bash
+PLAYERS_FILE="players_list.json" OUTPUT_DIR="output/players" npm run batch-scrape-players
+```
+
+**3. Upload to Firestore:**
+```bash
+# Use a separate upload script (see Integration section below)
+node scripts/upload-base-players.js output/players/
+```
+
+See `players_list_sample.json` for a complete example.
 
 ---
 
@@ -300,6 +329,64 @@ This scraper is **separate from** the `players_v2` collection because:
 - [ ] Integration with team scraper for cross-validation
 - [ ] Direct Firestore upload script
 - [ ] Batch processing for all 530 NBA players
+
+---
+
+## Quick Reference
+
+### NPM Scripts
+
+```bash
+# Single player scraping
+npm run fetch-player          # Fetch HTML (requires PLAYER_URL)
+npm run parse-player          # Parse HTML to JSON (requires PLAYER_ID, TEAM_CODE)
+npm run validate-player       # Validate JSON against schema
+
+# Batch processing
+npm run batch-scrape-players  # Scrape multiple players (requires PLAYERS_FILE)
+```
+
+### Common Commands
+
+```bash
+# Scrape a single player
+PLAYER_URL="https://salaryswish.com/players/lebron-james" npm run fetch-player
+PLAYER_ID="lebron_james" TEAM_CODE="LAL" npm run parse-player
+
+# Validate output
+npm run validate-player
+
+# Batch scrape from list
+PLAYERS_FILE="players_list.json" OUTPUT_DIR="output/players" npm run batch-scrape-players
+```
+
+### Output Structure
+
+All scraped players match this structure:
+```
+{
+  playerId: string
+  displayName: string
+  teamCode: string
+  teamName: string
+  bio: { position, height, weight, age, birthdate, experience }
+  contract: {
+    contractType, isExtension, isRookieScale
+    signedUsing, signingTeam, signingDate, signedByCurrentTeam
+    startSeason, endSeason, contractLength, yearsRemaining
+    totalValue, averageAnnualValue, guaranteedValue, guaranteedYears
+    salariesByYear: [{ season, salary, capHit, guaranteed, option, ... }]
+    noTradeClause, tradeKicker, tradeRestrictions
+    birdRights: { status, yearsOfService, eligibleFor }
+    freeAgency: { type, year, capHold, qualifyingOffer }
+    tradeEligibility: {
+      canBeTradedNow, restrictedUntil, reason
+      rules: { baseYearCompensation, poisonPill, aggregation }
+    }
+  }
+  source: { provider, playerPageUrl, scrapedAt }
+}
+```
 
 ---
 

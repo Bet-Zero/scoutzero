@@ -101,3 +101,5 @@ player-scrape/page.html
 player-scrape/player.json
 player-scrape/test_*.html
 player-scrape/*_backup.html
+player-scrape/output/
+player-scrape/players_list.json
