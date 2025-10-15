@@ -533,7 +533,7 @@ async function validate() {
   }
   
   // Validate sample player (LeBron)
-  const lebronDoc = await db.collection('architect/basePlayers/lebron_james').doc('data').get();
+  const lebronDoc = await db.collection('architect').doc('basePlayers').collection('lebron_james').doc('data').get();
   if (lebronDoc.exists) {
     const lebron = lebronDoc.data();
     console.log(`\n✅ LeBron James validation:`);
