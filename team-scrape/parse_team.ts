@@ -551,7 +551,7 @@ async function main() {
   }
 
   // --- Draft Picks (from #sw_teamProfile__draftTable) ---
-  const draftPicks: Array<{
+  let draftPicks: Array<{
     year: number;
     round: 1 | 2;
     status: 'own' | 'outgoing' | 'contested' | 'unknown';
