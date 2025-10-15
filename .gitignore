@@ -95,3 +95,4 @@ players.json
 **/players.json
 data/players*.json
 data/merged_players.json
+__pycache__/
