@@ -165,18 +165,74 @@ def parse_scraped_contract_html(player_id, player_data):
     # Extract Bird Rights at contract expiry
     bird_rights = extract_bird_rights(scoped)
     
-    # Extract salary table if present - FIXED PARSING LOGIC
+    # Extract salary table if present - ENHANCED PARSING LOGIC
     salaries = []
-    table = scoped.find("table")
+    
+    # Try multiple strategies to find the salary table
+    table = None
+    
+    # Strategy 1: Look for table with SalarySwish-specific classes
+    table = scoped.find("table", class_=lambda x: x and ("sw_table" in " ".join(x) if isinstance(x, list) else "sw_table" in x))
+    
+    # Strategy 2: Fall back to any table in the scoped area
+    if not table:
+        table = scoped.find("table")
+    
+    # Strategy 3: Try to find table anywhere in the document
+    if not table:
+        table = soup.find("table")
+    
     if table:
-        rows = table.find_all("tr")[1:]  # Skip header
-        for row in rows:
+        # Find all rows (handle both thead/tbody and flat structure)
+        all_rows = table.find_all("tr")
+        
+        # Identify header row and skip it
+        header_row_idx = 0
+        for idx, row in enumerate(all_rows):
+            if row.find("th"):
+                header_row_idx = idx
+                break
+        
+        # Get column headers to identify which column has cap hit/salary data
+        headers = []
+        if header_row_idx < len(all_rows):
+            header_cells = all_rows[header_row_idx].find_all(["th", "td"])
+            headers = [h.text.strip().upper() for h in header_cells]
+        
+        # Determine which column index contains the salary data
+        # Look for "CAP HIT", "SALARY", "BASE SALARY", etc.
+        salary_col_idx = None
+        for idx, header in enumerate(headers):
+            if any(keyword in header for keyword in ["CAP HIT", "SALARY", "BASE SALARY"]):
+                salary_col_idx = idx
+                break
+        
+        # If we can't find salary column by header, try column 3 (0-indexed) as default
+        if salary_col_idx is None:
+            salary_col_idx = 3 if len(headers) > 3 else -1
+        
+        # Process data rows
+        data_rows = all_rows[header_row_idx + 1:]
+        for row in data_rows:
             cells = row.find_all("td")
-            if len(cells) < 4:  # Need at least 4 columns
+            
+            # Skip rows with insufficient cells
+            if len(cells) < 2:
                 continue
             
-            season_text = cells[0].text.strip()
-            cap_hit_text = cells[3].text.strip()  # "Cap Hit" column
+            # Get season and salary text
+            season_text = cells[0].text.strip() if len(cells) > 0 else ""
+            
+            # Get salary from determined column, or try multiple columns
+            salary_text = ""
+            if salary_col_idx >= 0 and salary_col_idx < len(cells):
+                salary_text = cells[salary_col_idx].text.strip()
+            elif len(cells) > 3:
+                # Try column 3 as fallback
+                salary_text = cells[3].text.strip()
+            elif len(cells) > 1:
+                # Try column 1 as last resort
+                salary_text = cells[1].text.strip()
             
             # Skip summary rows
             if "TOTAL" in season_text.upper() or not season_text:
@@ -184,21 +240,31 @@ def parse_scraped_contract_html(player_id, player_data):
             
             try:
                 # Extract year from season and convert to END YEAR format
-                # e.g., "2025-26 Max" -> 2026 (end year of 2025-26 season)
+                # e.g., "2025-26" -> 2026 (end year of 2025-26 season)
                 year_match = re.search(r"(\d{4})", season_text)
                 if not year_match:
                     continue
                 start_year = int(year_match.group(1))
                 end_year = start_year + 1  # Convert to end year format for consistency
                 
-                # Extract salary from cap hit (e.g., "$54,126,450" -> 54126450)
-                salary_numbers = re.findall(r"[\d,]+", cap_hit_text.replace("$", ""))
-                if not salary_numbers:
-                    continue
-                salary = int(salary_numbers[0].replace(",", ""))
+                # Extract salary (handle various formats: "$54,126,450", "54126450", "54.1M")
+                salary = 0
+                
+                # Remove $ and other non-numeric chars except . and ,
+                cleaned = re.sub(r"[^\d,.]", "", salary_text)
+                
+                # Handle millions notation (e.g., "54.1M" -> 54100000)
+                if "M" in salary_text.upper():
+                    mil_match = re.search(r"([\d.]+)M", salary_text.upper())
+                    if mil_match:
+                        salary = int(float(mil_match.group(1)) * 1_000_000)
+                else:
+                    # Regular numeric value
+                    if cleaned:
+                        salary = int(cleaned.replace(",", ""))
                 
                 # Validate reasonable values
-                if start_year < 2020 or start_year > 2035 or salary < 100000:
+                if start_year < 2020 or start_year > 2035 or salary < 100_000:
                     continue
                 
                 salaries.append({

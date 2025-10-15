@@ -1,16 +1,23 @@
 #!/usr/bin/env python3
 """
-Contract Scraping with Fallback - Enhanced for 2025-26 Season
-Tests external scraping service availability. If working, scrapes all players.
-If not working, uses existing contract data without redundant NBA API calls.
+Contract Scraping with Playwright - Enhanced for 2025-26 Season
+Uses Playwright to fetch JavaScript-rendered pages from SalarySwish.
+Fallback to requests if Playwright is not available.
 """
 
 import os
 import json
-import requests
 import time
 import unicodedata
 import re
+
+# Try to import Playwright, fallback to requests
+try:
+    from playwright.sync_api import sync_playwright
+    PLAYWRIGHT_AVAILABLE = True
+except ImportError:
+    PLAYWRIGHT_AVAILABLE = False
+    import requests
 
 # Manual overrides for edge cases (same as original)
 manual_slug_overrides = {
@@ -125,6 +132,87 @@ def generate_url_variants(player_key, player_name):
     
     return unique_variants
 
+def scrape_with_playwright(url, max_retries=2):
+    """
+    Scrape using Playwright to render JavaScript
+    
+    Args:
+        url: URL to scrape
+        max_retries: Number of retry attempts
+    
+    Returns:
+        HTML content or None if failed
+    """
+    if not PLAYWRIGHT_AVAILABLE:
+        return None
+    
+    for attempt in range(max_retries):
+        try:
+            with sync_playwright() as p:
+                # Launch browser in headless mode
+                browser = p.chromium.launch(headless=True)
+                page = browser.new_page()
+                
+                # Navigate to page and wait for network to be idle
+                page.goto(url, wait_until="networkidle", timeout=30000)
+                
+                # Wait for table to load (if it exists)
+                try:
+                    page.wait_for_selector("table", timeout=10000)
+                except:
+                    # Table might not exist for this player, continue anyway
+                    pass
+                
+                # Get the full rendered HTML
+                html_content = page.content()
+                
+                browser.close()
+                
+                # Check if we got valid content
+                if "Player not found" in html_content:
+                    return None
+                
+                if len(html_content) > 1000:  # Basic sanity check
+                    return html_content
+                
+        except Exception as e:
+            if attempt < max_retries - 1:
+                time.sleep(1)
+            else:
+                print(f"    ⚠️ Playwright failed: {str(e)[:80]}...")
+    
+    return None
+
+def scrape_with_requests(url, max_retries=2):
+    """
+    Scrape using requests (fallback method)
+    Note: This may not work for JavaScript-rendered content
+    
+    Args:
+        url: URL to scrape
+        max_retries: Number of retry attempts
+    
+    Returns:
+        HTML content or None if failed
+    """
+    for attempt in range(max_retries):
+        try:
+            response = requests.get(url, timeout=10)
+            if response.status_code == 200:
+                # Check if we got a real player page
+                if "Player not found" not in response.text:
+                    return response.text
+                else:
+                    return None
+            else:
+                print(f"    ⚠️ HTTP {response.status_code}")
+        except Exception as e:
+            if attempt == 0:
+                print(f"    ⚠️ Request failed: {str(e)[:50]}...")
+            time.sleep(0.5)
+    
+    return None
+
 def try_scrape_contract_with_fallbacks(player_key, player_data, max_attempts=2):
     """Try to scrape contract data with multiple URL variants"""
     name = player_data.get("Name", "").strip() or player_key.replace("_", " ").title()
@@ -137,29 +225,33 @@ def try_scrape_contract_with_fallbacks(player_key, player_data, max_attempts=2):
     for i, slug in enumerate(url_variants):
         url = f"https://www.salaryswish.com/players/{slug}"
         
-        for attempt in range(max_attempts):
-            try:
-                response = requests.get(url, timeout=10)
-                if response.status_code == 200:
-                    # Check if we got a real player page (not "Player not found")
-                    if "Player not found" not in response.text:
-                        print(f"    ✅ Found contract data for {name} at variant {i+1}: {slug}")
-                        return {
-                            "name": name,
-                            "contractHtml": response.text,
-                            "source": "scraped",
-                            "url_used": url
-                        }
-                    else:
-                        print(f"    ⚠️ Variant {i+1} ({slug}) returned 'Player not found'")
-                        break  # No need to retry this URL
-                else:
-                    print(f"    ❌ Variant {i+1} ({slug}) returned HTTP {response.status_code}")
-                    
-            except Exception as e:
-                if attempt == 0:
-                    print(f"    ⚠️ Variant {i+1} ({slug}) failed: {str(e)[:50]}...")
-                time.sleep(0.5)
+        # Try Playwright first (for JavaScript-rendered content)
+        html_content = None
+        if PLAYWRIGHT_AVAILABLE:
+            html_content = scrape_with_playwright(url, max_retries=max_attempts)
+            if html_content:
+                print(f"    ✅ Playwright: Found contract data for {name} at variant {i+1}: {slug}")
+                return {
+                    "name": name,
+                    "contractHtml": html_content,
+                    "source": "scraped",
+                    "url_used": url,
+                    "method": "playwright"
+                }
+        
+        # Fallback to requests if Playwright not available or failed
+        html_content = scrape_with_requests(url, max_retries=max_attempts)
+        if html_content:
+            print(f"    ✅ Requests: Found contract data for {name} at variant {i+1}: {slug}")
+            return {
+                "name": name,
+                "contractHtml": html_content,
+                "source": "scraped",
+                "url_used": url,
+                "method": "requests"
+            }
+        else:
+            print(f"    ❌ Variant {i+1} ({slug}) - no data found")
     
     print(f"    ❌ No working URL found for {name} after trying {len(url_variants)} variants")
     return None
@@ -200,6 +292,13 @@ def main():
     """Main execution - ONLY scrape real data, no fallback nonsense"""
     print("🏀 Contract Scraping - REAL DATA ONLY")
     print("=" * 50)
+    
+    # Check if Playwright is available
+    if PLAYWRIGHT_AVAILABLE:
+        print("✅ Playwright is available - will use JavaScript rendering")
+    else:
+        print("⚠️ Playwright not available - using requests (may miss JavaScript content)")
+        print("   Install with: pip install playwright && playwright install chromium")
     
     # Load player data
     script_dir = os.path.dirname(os.path.abspath(__file__))
