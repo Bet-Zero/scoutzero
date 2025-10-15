@@ -288,7 +288,11 @@
       "contendingTeams": [
         "UTA",
         "LAL"
-      ]
+      ],
+      "fromTeams": [
+        "UTA"
+      ],
+      "protections": "Top 10 protected, conveys 2028-2030 if not conveyed"
     },
     {
       "year": 2028,
@@ -302,7 +306,11 @@
       "pickNumber": 14,
       "detailUrl": "https://www.salaryswish.com/draft/2029?pick=14",
       "title": "Pick traded away on Feb 2, 2025. click to view full details.",
-      "tradedOn": "Feb 2, 2025"
+      "tradedOn": "Feb 2, 2025",
+      "toTeams": [
+        "NOP"
+      ],
+      "protections": "Lottery protected"
     },
     {
       "year": 2030,
@@ -326,7 +334,10 @@
       "pickNumber": 44,
       "detailUrl": "https://www.salaryswish.com/draft/2026?pick=44",
       "title": "Pick traded away on Nov 23, 2020. click to view full details.",
-      "tradedOn": "Nov 23, 2020"
+      "tradedOn": "Nov 23, 2020",
+      "toTeams": [
+        "OWN"
+      ]
     },
     {
       "year": 2027,
@@ -335,7 +346,11 @@
       "pickNumber": 44,
       "detailUrl": "https://www.salaryswish.com/draft/2027?pick=44",
       "title": "Pick traded away on Dec 29, 2024. click to view full details.",
-      "tradedOn": "Dec 29, 2024"
+      "tradedOn": "Dec 29, 2024",
+      "toTeams": [
+        "OWN"
+      ],
+      "protections": "Unprotected"
     },
     {
       "year": 2028,
@@ -344,7 +359,10 @@
       "pickNumber": 44,
       "detailUrl": "https://www.salaryswish.com/draft/2028?pick=44",
       "title": "Pick traded away on Jan 23, 2023. click to view full details.",
-      "tradedOn": "Jan 23, 2023"
+      "tradedOn": "Jan 23, 2023",
+      "toTeams": [
+        "OWN"
+      ]
     },
     {
       "year": 2029,
@@ -353,7 +371,10 @@
       "pickNumber": 44,
       "detailUrl": "https://www.salaryswish.com/draft/2029?pick=44",
       "title": "Pick traded away on Jan 23, 2023. click to view full details.",
-      "tradedOn": "Jan 23, 2023"
+      "tradedOn": "Jan 23, 2023",
+      "toTeams": [
+        "OWN"
+      ]
     },
     {
       "year": 2030,
@@ -362,7 +383,10 @@
       "pickNumber": 44,
       "detailUrl": "https://www.salaryswish.com/draft/2030?pick=44",
       "title": "Pick traded away on Dec 29, 2024. click to view full details.",
-      "tradedOn": "Dec 29, 2024"
+      "tradedOn": "Dec 29, 2024",
+      "toTeams": [
+        "OWN"
+      ]
     },
     {
       "year": 2031,
@@ -371,7 +395,10 @@
       "pickNumber": 44,
       "detailUrl": "https://www.salaryswish.com/draft/2031?pick=44",
       "title": "Pick traded away on Dec 29, 2024. click to view full details.",
-      "tradedOn": "Dec 29, 2024"
+      "tradedOn": "Dec 29, 2024",
+      "toTeams": [
+        "OWN"
+      ]
     },
     {
       "year": 2032,
@@ -404,8 +431,8 @@
   "source": {
     "provider": "SalarySwish",
     "teamPageUrl": "https://www.salaryswish.com/teams/lakers",
-    "scrapedAt": "2025-10-15T06:45:48.303Z"
+    "scrapedAt": "2025-10-15T06:52:53.960Z"
   },
-  "lastUpdated": "2025-10-15T06:45:48.303Z",
+  "lastUpdated": "2025-10-15T06:52:53.960Z",
   "version": "1.0"
 }
