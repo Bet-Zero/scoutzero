@@ -6,6 +6,7 @@
 >
 > **Recent Improvements:**
 >
+> - ✅ **FANSPO SCRAPER FIX**: Fixed "0 picks enriched" issue by using Playwright to handle Fanspo's dynamic React content (see [FANSPO_FIX.md](./FANSPO_FIX.md))
 > - ✅ Enhanced totals parsing: Now captures 20+ salary cap fields including active salary, guaranteed salary, roster counts, cap/tax/apron lines and rooms
 > - ✅ Improved cap holds parsing: Properly categorizes RFAs, UFAs, FA cap holds, and draft picks with Bird rights
 > - ✅ Better data extraction: Fixed stats table parsing to correctly capture all numerical values
@@ -13,9 +14,10 @@
 >
 > **Known Limitations:**
 >
+> - Fanspo enrichment requires Playwright (install: `npm install playwright && npx playwright install chromium`)
 > - Parsing logic may miss edge cases or fail on different team pages
 > - Data accuracy has not been fully validated against official sources
-> - Structure changes on SalarySwish will break the scrapers
+> - Structure changes on SalarySwish or Fanspo will break the scrapers
 > - Manual verification and cleanup of output is required
 > - Dead cap data is not available on team pages (requires transaction history)
 > - No automated testing or validation suite exists yet
@@ -269,7 +271,13 @@ npm run parse
 
 To enrich draft picks with ownership, protections, and conveyance rules from Fanspo:
 
-**With live Fanspo data** (requires network access to fanspo.com):
+**Prerequisites** (for live mode only):
+```bash
+npm install playwright
+npx playwright install chromium
+```
+
+**With live Fanspo data** (fetches from fanspo.com using Playwright):
 ```bash
 FANSPO_ENRICH=1 \
 TEAM_SLUG="Lakers" \
@@ -280,7 +288,7 @@ SEASON="2025-26" \
 npm run parse
 ```
 
-**With mock Fanspo data** (for testing/development without network access):
+**With mock Fanspo data** (for testing/development, no Playwright needed):
 ```bash
 FANSPO_ENRICH=1 FANSPO_MOCK=1 \
 TEAM_SLUG="Lakers" \
@@ -299,7 +307,8 @@ TEAM_ID=14 \
 npm run parse
 ```
 
-📚 **See [FANSPO_ENRICHMENT.md](./FANSPO_ENRICHMENT.md) for detailed documentation on Fanspo enrichment**
+📚 **See [FANSPO_ENRICHMENT.md](./FANSPO_ENRICHMENT.md) for detailed documentation**
+📚 **See [FANSPO_FIX.md](./FANSPO_FIX.md) for explanation of the React scraping fix**
 
 ## Data Connections
 

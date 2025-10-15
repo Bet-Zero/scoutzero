@@ -9,6 +9,23 @@ The Fanspo draft pick enrichment feature augments the basic draft pick data scra
 - **Conveyance rules**: Complex conveyance logic when picks have conditions
 - **Swap rights**: Pick swap arrangements between teams
 
+## ⚠️ Important: Fanspo is a React Application
+
+**Fanspo.com is a modern React application that loads data dynamically via JavaScript.** The initial HTML shell does not contain the draft pick data - it's loaded asynchronously after the page loads.
+
+### The Problem (Fixed)
+
+Previously, the scraper used a simple HTTP client (`got`) which only fetched the initial HTML:
+- ❌ Result: "0 picks enriched" 
+- ❌ Reason: The HTML didn't contain any draft pick data (React hadn't rendered it yet)
+
+### The Solution
+
+The scraper now uses **Playwright**, a headless browser that:
+- ✅ Executes JavaScript like a real browser
+- ✅ Waits for the React app to load and render
+- ✅ Captures the fully rendered HTML with draft pick data
+
 ## How It Works
 
 ### Basic Process
@@ -64,6 +81,13 @@ If Fanspo shows a pick as outgoing but SalarySwish shows it as "own", the enrich
 
 ### With Live Fanspo Data
 
+**Prerequisites**: Playwright must be installed to fetch live Fanspo data:
+```bash
+npm install playwright
+npx playwright install chromium
+```
+
+Then run:
 ```bash
 FANSPO_ENRICH=1 \
 TEAM_SLUG="Lakers" \
@@ -74,7 +98,7 @@ SEASON="2025-26" \
 npm run parse
 ```
 
-**Note**: This requires network access to fanspo.com, which may not be available in sandboxed environments.
+**Note**: This uses Playwright to execute JavaScript and capture the dynamically loaded content from Fanspo's React application.
 
 ### With Mock Fanspo Data (Testing/Development)
 
@@ -153,6 +177,19 @@ Common team IDs for Fanspo:
 
 ## Implementation Details
 
+### Fetching Strategy
+
+The Fanspo fetcher uses **Playwright** (headless browser) instead of a simple HTTP client:
+
+1. **Launch Browser**: Starts a headless Chromium instance
+2. **Navigate**: Goes to the Fanspo draft picks page
+3. **Wait for Load**: Waits for network to be idle (JavaScript loaded)
+4. **Wait for Content**: Looks for "Incoming Draft Picks" or "Outgoing Draft Picks" text
+5. **Capture HTML**: Gets the fully rendered HTML after React has loaded the data
+6. **Parse**: Extracts draft pick data using Cheerio
+
+This approach ensures we get the actual draft pick data, not just an empty React shell.
+
 ### Parsing Logic
 
 The Fanspo parser (`fetchFanspoTeamPicks` function) works as follows:
@@ -227,19 +264,36 @@ Outgoing Draft Picks
 
 ## Error Handling
 
-The enrichment feature includes robust error handling:
+The enrichment feature includes robust error handling with helpful diagnostics:
 
-1. **Network Failures**: If Fanspo fetch fails, logs a warning and continues without enrichment
-2. **Parse Errors**: Invalid HTML or unexpected format logs errors but doesn't crash
-3. **Missing Mock Data**: Throws error in mock mode if team data not found (helps catch config issues)
-4. **Malformed Data**: Safely handles missing fields and invalid values
+1. **Network Failures**: If Playwright can't load the page, shows detailed error message
+2. **No Content Found**: If page loads but no draft picks found, warns about possible structure changes
+3. **Zero Picks**: If 0 picks are parsed, provides troubleshooting guidance
+4. **Missing Dependencies**: Suggests installing Playwright if it's not available
+5. **Parse Errors**: Safely handles missing fields and invalid values
+
+### Common Error Messages
+
+**"Failed to fetch Fanspo page"**
+- Cause: Network issue or Fanspo is down
+- Solution: Check internet connection, try again later, or use mock mode
+
+**"0 picks enriched"**
+- Cause: Page structure may have changed, or team has no traded picks
+- Solution: Verify Fanspo page manually, check if mock data is up to date
+
+**"Draft picks sections not found"**
+- Cause: React content didn't load in time, or HTML structure changed
+- Solution: Check Fanspo page manually, update selectors if needed
 
 ## Limitations
 
-1. **Fanspo Availability**: Requires access to fanspo.com (may be blocked in some environments)
-2. **HTML Structure**: Relies on Fanspo's current HTML structure (may break if they redesign)
-3. **Manual Team IDs**: Must manually specify team slug and ID for each team
-4. **Protection Parsing**: Captures protection text as-is without semantic parsing
+1. **Playwright Required**: Live mode requires Playwright to be installed (`npm install playwright`)
+2. **React Dependency**: Relies on Fanspo's React app loading correctly
+3. **HTML Structure**: May break if Fanspo redesigns their page
+4. **Performance**: Playwright is slower than simple HTTP (adds ~3-5 seconds per team)
+5. **Manual Team IDs**: Must manually specify team slug and ID for each team
+6. **Protection Parsing**: Captures protection text as-is without semantic parsing
 
 ## Future Enhancements
 
@@ -262,22 +316,37 @@ The enrichment feature includes robust error handling:
 FANSPO_ENRICH=1 FANSPO_MOCK=1 npm run parse-mock
 ```
 
+### "Fanspo enrichment failed: browserType.launch: Executable doesn't exist"
+
+**Cause**: Playwright browsers not installed
+
+**Solution**: Install Playwright browsers:
+```bash
+npm install playwright
+npx playwright install chromium
+```
+
 ### "No mock data available for {TeamSlug}-{TeamID}"
 
 **Cause**: Mock data not defined for that team
 
 **Solution**: Add mock data to `mock_fanspo_data.ts` or use a team with existing mock data (Lakers, Celtics, Warriors)
 
-### Picks not enriched
+### Picks not enriched (0 picks enriched)
 
 **Checklist**:
 - ✓ Is `FANSPO_ENRICH=1` set?
 - ✓ Are TEAM_SLUG and TEAM_ID correct?
+- ✓ In live mode, is Playwright installed?
 - ✓ In mock mode, is mock data available?
-- ✓ Check console for "Using mock Fanspo data" or error messages
+- ✓ Check console for "Draft picks content loaded" or error messages
+- ✓ Verify Fanspo page structure hasn't changed (visit URL manually)
 
 ### Wrong enrichment data
 
 **Cause**: Mock data might be outdated or TEAM_SLUG/TEAM_ID mismatch
 
-**Solution**: Verify team parameters and update mock data if needed
+**Solution**: 
+1. Verify team parameters match Fanspo URL structure
+2. Update mock data if needed
+3. Test with live mode to get current data
