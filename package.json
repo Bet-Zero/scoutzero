@@ -51,6 +51,8 @@
     "migrate:rename": "node scripts/rename_collection.cjs",
     "migrate:rename-confirm": "node scripts/rename_collection.cjs --confirm",
     "fetch": "tsx team-scrape/fetch_page.ts",
+    "fetch:simple": "python3 team-scrape/fetch_team_simple.py",
+    "fetch:api": "python3 team-scrape/fetch_team_nba_api.py",
     "probe": "tsx team-scrape/probe.ts",
     "parse": "tsx team-scrape/parse_team.ts",
     "inspect": "tsx team-scrape/inspect.ts",

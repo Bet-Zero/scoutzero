@@ -4,6 +4,14 @@
 >
 > This is an **early-stage attempt** at automating team data extraction from SalarySwish. It is **NOT production-ready** and should be considered a starting point for further development rather than a complete or accurate solution.
 >
+> **NEW: Alternative Fetch Methods** 🚀
+>
+> - ✅ **SIMPLE HTTP FETCH**: Lightweight Python script using requests (no browser needed)
+> - ✅ **NBA.com API**: Official API for roster data (fast, reliable, no scraping)
+> - ⚠️ **Playwright Fetch**: Original browser-based method (slow, prone to timeouts)
+>
+> 📚 **See [ALTERNATIVE_FETCH_METHODS.md](./ALTERNATIVE_FETCH_METHODS.md) for the new recommended workflow**
+>
 > **Recent Improvements:**
 >
 > - ✅ **FANSPO SCRAPER**: Uses Playwright to handle Fanspo's dynamic React content for draft pick enrichment
@@ -14,6 +22,7 @@
 >
 > **Known Limitations:**
 >
+> - Playwright fetch frequently times out (use `fetch:simple` or `fetch:api` instead)
 > - Fanspo enrichment requires Playwright (install: `npm install playwright && npx playwright install chromium`)
 > - Parsing logic may miss edge cases or fail on different team pages
 > - Data accuracy has not been fully validated against official sources
@@ -27,6 +36,35 @@
 ---
 
 This folder contains tools for scraping and parsing NBA team salary cap data from SalarySwish team pages (e.g., https://www.salaryswish.com/teams/lakers).
+
+## Quick Start (NEW Methods - Recommended)
+
+### Method 1: Simple HTTP Fetch (No browser needed)
+```bash
+# Fetch static HTML quickly
+TEAM_URL="https://www.salaryswish.com/teams/lakers" npm run fetch:simple
+
+# Parse to JSON
+TEAM_CODE="LAL" npm run parse
+```
+
+### Method 2: NBA.com API (Roster only, but fast)
+```bash
+# Get official roster data from NBA.com
+TEAM_CODE="LAL" npm run fetch:api
+# Output: team_nba_api.json
+```
+
+### Method 3: Playwright (Original - use only if needed)
+```bash
+# Only if you need draft picks and have stable network
+TEAM_URL="https://www.salaryswish.com/teams/lakers" npm run fetch
+TEAM_CODE="LAL" npm run parse
+```
+
+📚 **See [ALTERNATIVE_FETCH_METHODS.md](./ALTERNATIVE_FETCH_METHODS.md) for detailed comparison**
+
+---
 
 ## Overview
 
