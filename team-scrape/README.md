@@ -257,6 +257,8 @@ TEAM_ID=14 \
 npm run parse
 ```
 
+📚 **See [FANSPO_USAGE.md](./FANSPO_USAGE.md) for detailed documentation**
+
 ## Data Connections
 
 ### Between Files
