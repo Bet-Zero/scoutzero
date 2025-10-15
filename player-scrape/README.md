@@ -154,6 +154,9 @@ PLAYERS_FILE="players_list.json" OUTPUT_DIR="output/players" npm run batch-scrap
 - Trade eligibility: Restrictions and special rules
 - Source metadata: Provider, URL, timestamp
 
+**⚠️ Important Note on Sample Data:**
+The `sample_austin_reaves.json` file contains **placeholder test data** generated from a mock HTML file, not real SalarySwish data. When using this scraper in production, always fetch actual player pages from SalarySwish to ensure accurate contract information.
+
 ---
 
 ## Workflow
@@ -237,11 +240,13 @@ The scraper extracts these critical fields for CBA compliance:
 - [x] Trade eligibility rules determined
 - [x] Free agency info captured
 
-### Known Limitations
+## Known Limitations
 
 - **SalarySwish updates:** If SalarySwish changes HTML structure, selectors may need updates
 - **Data completeness:** Some fields may not be available on all player pages
 - **Manual verification:** Complex contracts (poison pill, BYC) should be double-checked
+- **Multiple contracts:** Current implementation does not handle players with both a current contract and a future extension (e.g., player signed extension that starts in a future season). Only the active contract's salary table is parsed.
+- **Sample data:** The `sample_austin_reaves.json` uses placeholder test data, not real SalarySwish data
 
 ---
 

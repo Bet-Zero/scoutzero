@@ -149,7 +149,19 @@ PLAYERS_FILE="players_list.json" OUTPUT_DIR="output/players" npm run batch-scrap
 node scripts/upload-base-players.js output/players/
 ```
 
-## 📋 Next Steps
+## ⚠️ Important Notes
+
+### Sample Data Limitations
+The `sample_austin_reaves.json` file contains **placeholder test data** generated from a mock HTML file for parser testing, not actual SalarySwish data. Contract values and details in the sample may not reflect real NBA contracts. Always use actual SalarySwish pages for production scraping.
+
+### Multiple Contracts
+The current parser implementation does **not handle players with multiple contracts** (e.g., a player on their current deal who has already signed a future extension). Only the active contract's salary table is parsed. This needs to be addressed for players like:
+- Jayson Tatum (has extension starting 2025-26)
+- Players who signed extensions before current contract expires
+
+**Solution needed:** Detect and parse multiple contract sections, or add a `futureContract` field to the schema.
+
+## Next Steps
 
 To complete the architect data pipeline:
 

@@ -240,6 +240,7 @@ if (data.contract.birdRights.status === 'Bird') {
 
 Potential improvements for future iterations:
 
+- [ ] **Multiple contract handling** - Parse both current and future extensions (e.g., player with 2024 extension starting 2026)
 - [ ] Historical contract tracking (extensions, restructures)
 - [ ] Cross-validation with Spotrac/Fanspo for accuracy
 - [ ] Automated testing suite with known contracts
@@ -248,6 +249,12 @@ Potential improvements for future iterations:
 - [ ] Incremental updates (only changed contracts)
 - [ ] Error recovery and retry logic
 - [ ] Progress tracking and resumable batches
+
+## ⚠️ Current Limitations
+
+1. **Sample Data:** The `sample_austin_reaves.json` contains placeholder test data from a mock HTML file, not real SalarySwish data
+2. **Multiple Contracts:** Parser doesn't handle players with both current contract and future extension (only parses the active salary table)
+3. **Network Dependency:** Requires actual SalarySwish access for production use (test samples work offline)
 
 ## 🏁 Conclusion
 
