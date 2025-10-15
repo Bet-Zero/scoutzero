@@ -349,13 +349,13 @@ async function parsePlayerPage() {
   const endSeason = salariesByYear[salariesByYear.length - 1]?.season || startSeason;
   const contractLength = salariesByYear.length;
   const totalValue = salariesByYear.reduce((sum, y) => sum + y.salary, 0);
-  const averageAnnualValue = totalValue / contractLength;
+  const averageAnnualValue = contractLength > 0 ? totalValue / contractLength : 0;
   const guaranteedValue = salariesByYear.reduce((sum, y) => sum + y.guaranteedAmount, 0);
   const guaranteedYears = salariesByYear.filter(y => y.guaranteed).length;
   
   // Calculate years remaining (from current season 2025-26)
   const currentSeasonYear = 2025;
-  const endSeasonYear = parseInt(endSeason.split('-')[0]);
+  const endSeasonYear = parseInt((endSeason || '2025-26').split('-')[0]);
   const yearsRemaining = Math.max(0, endSeasonYear - currentSeasonYear + 1);
   
   const freeAgency = parseFreeAgency($, endSeason);
@@ -377,61 +377,64 @@ async function parsePlayerPage() {
     const secondTableSalaries = parseSalaryTable($, salaryTables[1].table);
     const secondTableSeasons = secondTableSalaries.map(s => s.season);
     
-    // If second table starts after first table ends, it's a future contract
-    const firstEndYear = parseInt(firstTableSeasons[firstTableSeasons.length - 1].split('-')[0]);
-    const secondStartYear = parseInt(secondTableSeasons[0].split('-')[0]);
-    
-    if (secondStartYear >= firstEndYear) {
-      // Second table is future extension
-      const futureStartSeason = secondTableSeasons[0];
-      const futureEndSeason = secondTableSeasons[secondTableSeasons.length - 1];
-      const futureContractLength = secondTableSalaries.length;
-      const futureTotalValue = secondTableSalaries.reduce((sum, y) => sum + y.salary, 0);
-      const futureAverageAnnualValue = futureTotalValue / futureContractLength;
-      const futureGuaranteedValue = secondTableSalaries.reduce((sum, y) => sum + y.guaranteedAmount, 0);
-      const futureGuaranteedYears = secondTableSalaries.filter(y => y.guaranteed).length;
+    // Safety check: only proceed if both tables have data
+    if (firstTableSeasons.length > 0 && secondTableSeasons.length > 0) {
+      // If second table starts after first table ends, it's a future contract
+      const firstEndYear = parseInt(firstTableSeasons[firstTableSeasons.length - 1].split('-')[0]);
+      const secondStartYear = parseInt(secondTableSeasons[0].split('-')[0]);
       
-      const futureEndSeasonYear = parseInt(futureEndSeason.split('-')[0]);
-      const futureYearsRemaining = Math.max(0, futureEndSeasonYear - currentSeasonYear + 1);
-      
-      // Determine future contract type (likely an extension)
-      let futureContractType = 'EXTENSION';
-      if (salaryTables[1].isExtension || salaryTables[1].heading) {
-        const headingText = salaryTables[1].heading ? norm(salaryTables[1].heading.text()).toUpperCase() : '';
-        if (headingText.includes('DESIGNATED')) futureContractType = 'DESIGNATED EXTENSION';
-        else if (headingText.includes('SUPERMAX')) futureContractType = 'SUPERMAX EXTENSION';
-        else if (headingText.includes('ROOKIE')) futureContractType = 'ROOKIE EXTENSION';
-        else if (headingText.includes('MAX')) futureContractType = 'MAX EXTENSION';
-        else if (headingText.includes('VETERAN')) futureContractType = 'VETERAN EXTENSION';
-        else if (headingText) futureContractType = headingText;
+      if (secondStartYear >= firstEndYear) {
+        // Second table is future extension
+        const futureStartSeason = secondTableSeasons[0];
+        const futureEndSeason = secondTableSeasons[secondTableSeasons.length - 1];
+        const futureContractLength = secondTableSalaries.length;
+        const futureTotalValue = secondTableSalaries.reduce((sum, y) => sum + y.salary, 0);
+        const futureAverageAnnualValue = futureContractLength > 0 ? futureTotalValue / futureContractLength : 0;
+        const futureGuaranteedValue = secondTableSalaries.reduce((sum, y) => sum + y.guaranteedAmount, 0);
+        const futureGuaranteedYears = secondTableSalaries.filter(y => y.guaranteed).length;
+        
+        const futureEndSeasonYear = parseInt(futureEndSeason.split('-')[0]);
+        const futureYearsRemaining = Math.max(0, futureEndSeasonYear - currentSeasonYear + 1);
+        
+        // Determine future contract type (likely an extension)
+        let futureContractType = 'EXTENSION';
+        if (salaryTables[1].isExtension || salaryTables[1].heading) {
+          const headingText = salaryTables[1].heading ? norm(salaryTables[1].heading.text()).toUpperCase() : '';
+          if (headingText.includes('DESIGNATED')) futureContractType = 'DESIGNATED EXTENSION';
+          else if (headingText.includes('SUPERMAX')) futureContractType = 'SUPERMAX EXTENSION';
+          else if (headingText.includes('ROOKIE')) futureContractType = 'ROOKIE EXTENSION';
+          else if (headingText.includes('MAX')) futureContractType = 'MAX EXTENSION';
+          else if (headingText.includes('VETERAN')) futureContractType = 'VETERAN EXTENSION';
+          else if (headingText) futureContractType = headingText;
+        }
+        
+        futureContract = {
+          contractType: futureContractType,
+          isExtension: true,
+          isRookieScale: futureContractType.includes('ROOKIE'),
+          signedUsing: undefined,
+          signingTeam: teamCode,
+          signingDate: undefined,
+          signedByCurrentTeam: true,
+          startSeason: futureStartSeason,
+          endSeason: futureEndSeason,
+          contractLength: futureContractLength,
+          yearsRemaining: futureYearsRemaining,
+          totalValue: futureTotalValue,
+          averageAnnualValue: futureAverageAnnualValue,
+          guaranteedValue: futureGuaranteedValue,
+          guaranteedYears: futureGuaranteedYears,
+          salariesByYear: secondTableSalaries,
+          noTradeClause: hasNTC,
+          tradeKicker,
+          tradeRestrictions: [],
+          birdRights,
+          freeAgency: parseFreeAgency($, futureEndSeason),
+          tradeEligibility: parseTradeEligibility($, undefined, futureContractType.includes('ROOKIE'))
+        };
+        
+        console.log(`  📋 Found future contract: ${futureContractType} (${futureStartSeason} - ${futureEndSeason})`);
       }
-      
-      futureContract = {
-        contractType: futureContractType,
-        isExtension: true,
-        isRookieScale: futureContractType.includes('ROOKIE'),
-        signedUsing: undefined,
-        signingTeam: teamCode,
-        signingDate: undefined,
-        signedByCurrentTeam: true,
-        startSeason: futureStartSeason,
-        endSeason: futureEndSeason,
-        contractLength: futureContractLength,
-        yearsRemaining: futureYearsRemaining,
-        totalValue: futureTotalValue,
-        averageAnnualValue: futureAverageAnnualValue,
-        guaranteedValue: futureGuaranteedValue,
-        guaranteedYears: futureGuaranteedYears,
-        salariesByYear: secondTableSalaries,
-        noTradeClause: hasNTC,
-        tradeKicker,
-        tradeRestrictions: [],
-        birdRights,
-        freeAgency: parseFreeAgency($, futureEndSeason),
-        tradeEligibility: parseTradeEligibility($, undefined, futureContractType.includes('ROOKIE'))
-      };
-      
-      console.log(`  📋 Found future contract: ${futureContractType} (${futureStartSeason} - ${futureEndSeason})`);
     }
   }
   

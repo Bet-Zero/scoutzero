@@ -97,8 +97,6 @@ data/players*.json
 data/merged_players.json
 
 # Player scraper temporary files
-player-scrape/page.html
-player-scrape/player.json
 player-scrape/test_*.html
 player-scrape/*_backup.html
 player-scrape/output/

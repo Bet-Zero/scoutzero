@@ -1,0 +1,56 @@
+{
+  "playerId": "jayson_tatum",
+  "displayName": "JAYSON TATUM #0",
+  "teamCode": "BOS",
+  "teamName": "",
+  "bio": {
+    "height": "6",
+    "weight": "210",
+    "age": 27
+  },
+  "contract": {
+    "contractType": "DESIGNATED ROOKIE EXTENSION",
+    "isExtension": true,
+    "isRookieScale": true,
+    "signingTeam": "BOS",
+    "signedByCurrentTeam": true,
+    "startSeason": "2025-26",
+    "endSeason": "2025-26",
+    "contractLength": 0,
+    "yearsRemaining": 1,
+    "totalValue": 0,
+    "averageAnnualValue": 0,
+    "guaranteedValue": 0,
+    "guaranteedYears": 0,
+    "salariesByYear": [],
+    "noTradeClause": false,
+    "tradeKicker": null,
+    "tradeRestrictions": [],
+    "birdRights": {
+      "status": "CalculatorQualifying Offer CalculatorHold CalculatorMinimum Salary & Two Way Calculator10-Day Contract CalculatorDEPTH CHARTS ▾DEPTH CHARTSDepth ChartsPlayer Status UpdatesTOOLS ▾TOOLSDraft BoardAgentsAgenciesContract ComparablesRookie Scale SalaryCoachesHead Executives of Basketball OperationsBi-Annual Exception"
+    },
+    "freeAgency": {
+      "type": null,
+      "capHold": 2030,
+      "qualifyingOffer": 12985021,
+      "earlyTerminationOption": null
+    },
+    "tradeEligibility": {
+      "canBeTradedNow": true,
+      "restrictedUntil": null,
+      "reason": null,
+      "rules": {
+        "baseYearCompensation": false,
+        "poisonPill": false,
+        "aggregation": true
+      }
+    }
+  },
+  "source": {
+    "provider": "SalarySwish",
+    "playerPageUrl": "Unknown",
+    "scrapedAt": "2025-10-15T05:58:14.514Z"
+  },
+  "lastUpdated": "2025-10-15T05:58:14.515Z",
+  "version": "1.0"
+}
