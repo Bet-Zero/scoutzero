@@ -109,7 +109,7 @@ The team scraping workflow has 3 main phases:
     - FA Cap Holds (historical free agents)
     - Draft Pick holds (2nd round picks)
   - Optional: enriches draft picks from SalarySwish detail pages (`ENRICH_DRAFT=1`)
-  - Optional: enriches draft picks from Fanspo (`FANSPO_ENRICH=1`)
+  - Optional: **replaces draft picks entirely** with Fanspo data (`FANSPO_ENRICH=1`) - recommended for accuracy
   - Writes output to `team.json`
 - **Dependencies**: cheerio, got
 - **Environment Variables**:
@@ -117,7 +117,7 @@ The team scraping workflow has 3 main phases:
   - `TEAM_CODE` - 3-letter team code (default: "LAL")
   - `SEASON` - Season string (default: "2025-26")
   - `ENRICH_DRAFT` - Set to "1" to fetch additional pick details from SalarySwish
-  - `FANSPO_ENRICH` - Set to "1" to cross-reference with Fanspo draft data
+  - `FANSPO_ENRICH` - Set to "1" to **replace** draft picks with Fanspo data (more accurate)
   - `TEAM_SLUG` - Fanspo team slug (e.g., "Lakers")
   - `TEAM_ID` - Fanspo team ID number (e.g., 14)
 - **Reads**: `page.html`
@@ -235,7 +235,7 @@ npm install playwright
 npx playwright install chromium
 ```
 
-**Usage** (fetches from fanspo.com using Playwright):
+**Usage** (replaces SalarySwish picks entirely with Fanspo data):
 ```bash
 FANSPO_ENRICH=1 \
 TEAM_SLUG="Lakers" \
@@ -246,7 +246,7 @@ SEASON="2025-26" \
 npm run parse
 ```
 
-**Combined enrichment** (both SalarySwish and Fanspo):
+**Combined enrichment** (both SalarySwish and Fanspo - NOT RECOMMENDED):
 ```bash
 ENRICH_DRAFT=1 FANSPO_ENRICH=1 \
 TEAM_URL="https://www.salaryswish.com/teams/lakers" \
@@ -256,6 +256,8 @@ TEAM_SLUG="Lakers" \
 TEAM_ID=14 \
 npm run parse
 ```
+
+**Note:** When `FANSPO_ENRICH=1` is set, draft picks are **completely replaced** with Fanspo data (not merged). This ensures maximum accuracy with proper ownership tracking and protection details.
 
 📚 **See [FANSPO_USAGE.md](./FANSPO_USAGE.md) for detailed documentation**
 
