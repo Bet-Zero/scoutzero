@@ -11,7 +11,12 @@ if (!URL) {
 (async () => {
   const browser = await chromium.launch();
   const page = await browser.newPage();
-  await page.goto(URL, { waitUntil: 'networkidle' });
+  // Using 'load' instead of 'networkidle' as it's more reliable for modern web apps
+  // Increased timeout to 60s to handle slow page loads
+  await page.goto(URL, { 
+    waitUntil: 'load',
+    timeout: 60000 
+  });
 
   // Scroll to Draft block (near TRADE EXCEPTIONS)
   await page.locator('text=TRADE EXCEPTIONS').scrollIntoViewIfNeeded();

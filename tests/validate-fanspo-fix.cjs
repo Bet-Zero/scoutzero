@@ -23,11 +23,12 @@ if (parseTeamContent.includes("import { chromium } from 'playwright'")) {
   process.exit(1);
 }
 
-console.log('✅ Test 2: Checking parse_team.ts uses chromium.launch');
-if (parseTeamContent.includes('chromium.launch')) {
-  console.log('   ✓ Playwright browser launch found\n');
+console.log('✅ Test 2: Checking parse_team.ts uses increased timeout and load strategy');
+if (parseTeamContent.includes('timeout: 60000') && 
+    parseTeamContent.includes("waitUntil: 'load'")) {
+  console.log('   ✓ Increased timeout (60s) and load strategy found\n');
 } else {
-  console.error('   ✗ Playwright browser launch missing\n');
+  console.error('   ✗ Timeout/wait strategy not updated\n');
   process.exit(1);
 }
 
@@ -111,7 +112,22 @@ if (draftPicksMatch && draftPicksMatch[1] === 'let') {
   process.exit(1);
 }
 
-console.log('✅ Test 10: Checking fix documentation exists (if exists)');
+console.log('✅ Test 10: Checking fetch_page.ts also uses increased timeout');
+const fetchPagePath = path.join(__dirname, '../team-scrape/fetch_page.ts');
+if (fs.existsSync(fetchPagePath)) {
+  const fetchPageContent = fs.readFileSync(fetchPagePath, 'utf8');
+  if (fetchPageContent.includes('timeout: 60000') && 
+      fetchPageContent.includes("waitUntil: 'load'")) {
+    console.log('   ✓ fetch_page.ts updated with increased timeout and load strategy\n');
+  } else {
+    console.error('   ✗ fetch_page.ts still using old timeout/wait strategy\n');
+    process.exit(1);
+  }
+} else {
+  console.log('   ℹ fetch_page.ts does not exist (skipped)\n');
+}
+
+console.log('✅ Test 11: Checking fix documentation exists (if exists)');
 const fixDocsPath = path.join(__dirname, '../team-scrape/FANSPO_FIX.md');
 if (fs.existsSync(fixDocsPath)) {
   const fixContent = fs.readFileSync(fixDocsPath, 'utf8');
@@ -132,6 +148,8 @@ console.log('Summary:');
 console.log('--------');
 console.log('✅ Playwright integration added to both parsers');
 console.log('✅ Dynamic React content handling implemented');
+console.log('✅ Increased timeout (60s) and load strategy in parse_team.ts');
+console.log('✅ Increased timeout (60s) and load strategy in fetch_page.ts');
 console.log('✅ Error messages improved with diagnostics');
 console.log('✅ Documentation updated with fix explanation');
 console.log('✅ Fix properly documented in FANSPO_FIX.md');
@@ -139,3 +157,4 @@ console.log('✅ draftPicks declared as "let" to allow Fanspo replacement');
 console.log('\nThe Fanspo scraper has been successfully fixed to handle');
 console.log('dynamic React content using Playwright instead of got.');
 console.log('Draft picks are now properly replaced (not merged) when FANSPO_ENRICH=1.');
+console.log('Both fetch and parse commands now use increased timeouts (60s).');
