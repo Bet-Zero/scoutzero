@@ -47,10 +47,11 @@ export const CapHoldItem = z.object({
   // Free-agent cap holds retained by the team
   playerId: z.string().optional(), // placeholder; resolve later
   displayName: z.string().optional(),
-  type: z.enum(['UFA', 'RFA', 'Two-way', 'Other']).optional(),
+  type: z.enum(['UFA', 'RFA', 'Two-way', 'Draft Pick', 'FA Cap Hold', 'Other']).optional(),
   rights: z.enum(['Bird', 'Early Bird', 'Non-Bird']).optional(),
   capHoldAmount: z.number(), // USD
   notes: z.string().optional(),
+  sourceUrl: z.string().url().optional(), // URL to player page
 });
 
 export const MleLike = z.object({
@@ -105,7 +106,7 @@ export const Exceptions = z.object({
 export const DraftPick = z.object({
   year: z.number(), // 2025
   round: z.union([z.literal(1), z.literal(2)]),
-  status: z.enum(['own', 'incoming', 'outgoing', 'swap']),
+  status: z.enum(['own', 'incoming', 'outgoing', 'contested', 'swap', 'unknown']),
   originalTeam: z.string().optional(), // where it started
   currentOwner: z.string().optional(), // who holds it now (often this team)
   via: z.string().optional(), // "via BOS" etc.
@@ -113,6 +114,14 @@ export const DraftPick = z.object({
   protection: z.string().optional(), // "top-10 protected", etc.
   conveysIf: z.string().optional(), // textual conveyance logic if shown
   notes: z.string().optional(),
+  // Additional fields from parser
+  detailUrl: z.string().optional(),
+  title: z.string().optional(),
+  contendingTeams: z.array(z.string()).optional(),
+  tradedOn: z.string().optional(),
+  fromTeams: z.array(z.string()).optional(),
+  toTeams: z.array(z.string()).optional(),
+  protections: z.string().optional(),
 });
 
 export const Totals = z.object({
@@ -121,12 +130,15 @@ export const Totals = z.object({
   deadCapTotal: z.number().optional(),
   capHoldsTotal: z.number().optional(),
   totalSalary: z.number().optional(), // active + dead + etc.
+  guaranteedSalary: z.number().optional(),
   salaryCap: z.number().optional(), // league cap line (page may display)
   capSpace: z.number().optional(), // negative means over the cap
   luxuryTaxLine: z.number().optional(),
   taxSpace: z.number().optional(),
   firstApronLine: z.number().optional(),
+  firstApronRoom: z.number().optional(),
   secondApronLine: z.number().optional(),
+  secondApronRoom: z.number().optional(),
   firstApronTriggered: z.boolean().optional(),
   secondApronTriggered: z.boolean().optional(),
   hardCappedAt: z.enum(['none', 'firstApron', 'secondApron']).optional(),
@@ -134,6 +146,8 @@ export const Totals = z.object({
   incompleteRosterCharges: z.number().optional(),
   twoWayCount: z.number().optional(), // if page shows counts
   rosterCount: z.number().optional(),
+  likelyIncentives: z.number().optional(),
+  unlikelyIncentives: z.number().optional(),
 });
 
 export const TeamSourceMeta = z.object({
