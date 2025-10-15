@@ -9,20 +9,86 @@
     "age": 27
   },
   "contract": {
-    "contractType": "DESIGNATED ROOKIE EXTENSION",
+    "contractType": "VETERAN EXTENSION",
     "isExtension": true,
-    "isRookieScale": true,
+    "isRookieScale": false,
     "signingTeam": "BOS",
     "signedByCurrentTeam": true,
-    "startSeason": "2025-26",
-    "endSeason": "2025-26",
-    "contractLength": 0,
-    "yearsRemaining": 1,
-    "totalValue": 0,
-    "averageAnnualValue": 0,
-    "guaranteedValue": 0,
-    "guaranteedYears": 0,
-    "salariesByYear": [],
+    "startSeason": "2025-26 Max",
+    "endSeason": "2029-30 Max",
+    "contractLength": 5,
+    "yearsRemaining": 5,
+    "totalValue": 313933410,
+    "averageAnnualValue": 62786682,
+    "guaranteedValue": 313933410,
+    "guaranteedYears": 5,
+    "salariesByYear": [
+      {
+        "season": "2025-26 Max",
+        "salary": 54126450,
+        "capHit": 54126450,
+        "guaranteed": true,
+        "guaranteedAmount": 54126450,
+        "option": null,
+        "tradeBonus": null,
+        "incentives": {
+          "likely": 0,
+          "unlikely": 0
+        }
+      },
+      {
+        "season": "2026-27 Max",
+        "salary": 58456566,
+        "capHit": 58456566,
+        "guaranteed": true,
+        "guaranteedAmount": 58456566,
+        "option": null,
+        "tradeBonus": null,
+        "incentives": {
+          "likely": 0,
+          "unlikely": 0
+        }
+      },
+      {
+        "season": "2027-28 Max",
+        "salary": 62786682,
+        "capHit": 62786682,
+        "guaranteed": true,
+        "guaranteedAmount": 62786682,
+        "option": null,
+        "tradeBonus": null,
+        "incentives": {
+          "likely": 0,
+          "unlikely": 0
+        }
+      },
+      {
+        "season": "2028-29 Max",
+        "salary": 67116798,
+        "capHit": 67116798,
+        "guaranteed": true,
+        "guaranteedAmount": 67116798,
+        "option": null,
+        "tradeBonus": null,
+        "incentives": {
+          "likely": 0,
+          "unlikely": 0
+        }
+      },
+      {
+        "season": "2029-30 Max",
+        "salary": 71446914,
+        "capHit": 71446914,
+        "guaranteed": true,
+        "guaranteedAmount": 71446914,
+        "option": null,
+        "tradeBonus": null,
+        "incentives": {
+          "likely": 0,
+          "unlikely": 0
+        }
+      }
+    ],
     "noTradeClause": false,
     "tradeKicker": null,
     "tradeRestrictions": [],
@@ -52,9 +118,9 @@
   },
   "source": {
     "provider": "SalarySwish",
-    "playerPageUrl": "Unknown",
-    "scrapedAt": "2025-10-15T06:19:29.895Z"
+    "playerPageUrl": "https://salaryswish.com/players/jayson-tatum",
+    "scrapedAt": "2025-10-15T06:52:29.131Z"
   },
-  "lastUpdated": "2025-10-15T06:19:29.896Z",
+  "lastUpdated": "2025-10-15T06:52:29.132Z",
   "version": "1.0"
 }
