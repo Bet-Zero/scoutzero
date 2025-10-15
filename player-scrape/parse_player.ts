@@ -195,19 +195,8 @@ function parseTradeEligibility($: cheerio.CheerioAPI, signingDate: string | unde
 }
 
 // Parse salary table
-function parseSalaryTable($: cheerio.CheerioAPI) {
+function parseSalaryTable($: cheerio.CheerioAPI, table: cheerio.Cheerio) {
   const salariesByYear: any[] = [];
-  
-  // Find salary table
-  const table = $('table').filter((i, el) => {
-    const text = $(el).text();
-    return text.includes('Season') && text.includes('Salary');
-  });
-  
-  if (!table.length) {
-    console.warn('⚠️  No salary table found');
-    return [];
-  }
   
   // Parse table rows
   table.find('tbody tr').each((i, row) => {
@@ -254,6 +243,47 @@ function parseSalaryTable($: cheerio.CheerioAPI) {
   });
   
   return salariesByYear;
+}
+
+// Detect if a contract is an extension based on heading/context
+function detectExtension($: cheerio.CheerioAPI, heading: cheerio.Cheerio | null): boolean {
+  if (!heading) return false;
+  
+  const headingText = norm(heading.text()).toLowerCase();
+  const extensionKeywords = ['extension', 'extend', 'extended', 'supermax'];
+  
+  return extensionKeywords.some(keyword => headingText.includes(keyword));
+}
+
+// Find all salary tables and their associated headings
+function findSalaryTables($: cheerio.CheerioAPI) {
+  const tables: Array<{ table: cheerio.Cheerio, heading: cheerio.Cheerio | null, isExtension: boolean }> = [];
+  
+  $('table').each((i, el) => {
+    const table = $(el);
+    const text = table.text();
+    
+    // Check if this is a salary table
+    if (text.includes('Season') && text.includes('Salary')) {
+      // Find the heading (h3, h4, h5) before this table
+      let heading: cheerio.Cheerio | null = null;
+      let current = table.prev();
+      
+      while (current.length) {
+        const tag = (current.get(0) as any)?.name?.toLowerCase?.();
+        if (tag === 'h3' || tag === 'h4' || tag === 'h5') {
+          heading = current;
+          break;
+        }
+        current = current.prev();
+      }
+      
+      const isExtension = detectExtension($, heading);
+      tables.push({ table, heading, isExtension });
+    }
+  });
+  
+  return tables;
 }
 
 // Main parsing function
@@ -303,9 +333,18 @@ async function parsePlayerPage() {
   const { type: contractType, isExtension, isRookieScale } = parseContractType($);
   const signingDetails = parseSigningDetails($, teamCode);
   const birdRights = parseBirdRights($);
-  const salariesByYear = parseSalaryTable($);
   
-  // Calculate contract summary
+  // Find all salary tables (could be current contract + future extension)
+  const salaryTables = findSalaryTables($);
+  
+  if (salaryTables.length === 0) {
+    console.warn('⚠️  No salary table found');
+  }
+  
+  // Parse the first table as the primary contract
+  const salariesByYear = salaryTables.length > 0 ? parseSalaryTable($, salaryTables[0].table) : [];
+  
+  // Calculate contract summary for primary contract
   const startSeason = salariesByYear[0]?.season || '2025-26';
   const endSeason = salariesByYear[salariesByYear.length - 1]?.season || startSeason;
   const contractLength = salariesByYear.length;
@@ -329,8 +368,75 @@ async function parsePlayerPage() {
   const kickerMatch = teamText.match(/(\d+)%\s+trade\s+kicker/i);
   const tradeKicker = kickerMatch ? parseInt(kickerMatch[1]) : null;
   
+  // Parse future contract if multiple tables exist
+  let futureContract = undefined;
+  
+  if (salaryTables.length > 1) {
+    // Determine which is current vs future based on seasons
+    const firstTableSeasons = salariesByYear.map(s => s.season);
+    const secondTableSalaries = parseSalaryTable($, salaryTables[1].table);
+    const secondTableSeasons = secondTableSalaries.map(s => s.season);
+    
+    // If second table starts after first table ends, it's a future contract
+    const firstEndYear = parseInt(firstTableSeasons[firstTableSeasons.length - 1].split('-')[0]);
+    const secondStartYear = parseInt(secondTableSeasons[0].split('-')[0]);
+    
+    if (secondStartYear >= firstEndYear) {
+      // Second table is future extension
+      const futureStartSeason = secondTableSeasons[0];
+      const futureEndSeason = secondTableSeasons[secondTableSeasons.length - 1];
+      const futureContractLength = secondTableSalaries.length;
+      const futureTotalValue = secondTableSalaries.reduce((sum, y) => sum + y.salary, 0);
+      const futureAverageAnnualValue = futureTotalValue / futureContractLength;
+      const futureGuaranteedValue = secondTableSalaries.reduce((sum, y) => sum + y.guaranteedAmount, 0);
+      const futureGuaranteedYears = secondTableSalaries.filter(y => y.guaranteed).length;
+      
+      const futureEndSeasonYear = parseInt(futureEndSeason.split('-')[0]);
+      const futureYearsRemaining = Math.max(0, futureEndSeasonYear - currentSeasonYear + 1);
+      
+      // Determine future contract type (likely an extension)
+      let futureContractType = 'EXTENSION';
+      if (salaryTables[1].isExtension || salaryTables[1].heading) {
+        const headingText = salaryTables[1].heading ? norm(salaryTables[1].heading.text()).toUpperCase() : '';
+        if (headingText.includes('DESIGNATED')) futureContractType = 'DESIGNATED EXTENSION';
+        else if (headingText.includes('SUPERMAX')) futureContractType = 'SUPERMAX EXTENSION';
+        else if (headingText.includes('ROOKIE')) futureContractType = 'ROOKIE EXTENSION';
+        else if (headingText.includes('MAX')) futureContractType = 'MAX EXTENSION';
+        else if (headingText.includes('VETERAN')) futureContractType = 'VETERAN EXTENSION';
+        else if (headingText) futureContractType = headingText;
+      }
+      
+      futureContract = {
+        contractType: futureContractType,
+        isExtension: true,
+        isRookieScale: futureContractType.includes('ROOKIE'),
+        signedUsing: undefined,
+        signingTeam: teamCode,
+        signingDate: undefined,
+        signedByCurrentTeam: true,
+        startSeason: futureStartSeason,
+        endSeason: futureEndSeason,
+        contractLength: futureContractLength,
+        yearsRemaining: futureYearsRemaining,
+        totalValue: futureTotalValue,
+        averageAnnualValue: futureAverageAnnualValue,
+        guaranteedValue: futureGuaranteedValue,
+        guaranteedYears: futureGuaranteedYears,
+        salariesByYear: secondTableSalaries,
+        noTradeClause: hasNTC,
+        tradeKicker,
+        tradeRestrictions: [],
+        birdRights,
+        freeAgency: parseFreeAgency($, futureEndSeason),
+        tradeEligibility: parseTradeEligibility($, undefined, futureContractType.includes('ROOKIE'))
+      };
+      
+      console.log(`  📋 Found future contract: ${futureContractType} (${futureStartSeason} - ${futureEndSeason})`);
+    }
+  }
+  
   // Build output
-  const output = {
+  const output: any = {
     playerId,
     displayName,
     teamCode,
@@ -366,6 +472,11 @@ async function parsePlayerPage() {
     version: '1.0'
   };
   
+  // Add future contract if exists
+  if (futureContract) {
+    output.futureContract = futureContract;
+  }
+  
   // Write output
   const outputPath = join(__dirname, 'player.json');
   await fs.writeFile(outputPath, JSON.stringify(output, null, 2), 'utf-8');
@@ -377,6 +488,10 @@ async function parsePlayerPage() {
   console.log(`   Total Value: $${(totalValue / 1000000).toFixed(1)}M`);
   console.log(`   Bird Rights: ${birdRights.status}`);
   console.log(`   Can Trade Now: ${tradeEligibility.canBeTradedNow ? 'Yes' : 'No'}`);
+  if (futureContract) {
+    console.log(`   Future Extension: ${futureContract.contractType} (${futureContract.startSeason} - ${futureContract.endSeason})`);
+    console.log(`   Future Value: $${(futureContract.totalValue / 1000000).toFixed(1)}M`);
+  }
   console.log(`\n📁 Output saved to: ${outputPath}`);
   
   return output;

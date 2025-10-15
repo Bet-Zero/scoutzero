@@ -52,6 +52,13 @@ async function validatePlayer() {
     console.log(`   Poison Pill: ${data.contract.tradeEligibility.rules.poisonPill ? 'Yes' : 'No'}`);
     console.log(`   BYC: ${data.contract.tradeEligibility.rules.baseYearCompensation ? 'Yes' : 'No'}`);
     
+    if (data.futureContract) {
+      console.log(`\n📋 Future Contract:`);
+      console.log(`   Type: ${data.futureContract.contractType}`);
+      console.log(`   Years: ${data.futureContract.contractLength} (${data.futureContract.startSeason} - ${data.futureContract.endSeason})`);
+      console.log(`   Total Value: $${(data.futureContract.totalValue / 1000000).toFixed(1)}M`);
+      console.log(`   Extension: ${data.futureContract.isExtension ? 'Yes' : 'No'}`);
+    }
   } catch (error: any) {
     console.error('❌ Error:', error.message);
     process.exit(1);

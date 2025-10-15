@@ -131,6 +131,9 @@ export const basePlayerSchema = z.object({
   // Contract
   contract: ContractSchema,
   
+  // Future contract (for players with extensions)
+  futureContract: ContractSchema.optional(),
+  
   // Metadata
   source: SourceMetaSchema,
   lastUpdated: z.string(),

@@ -154,12 +154,21 @@ node scripts/upload-base-players.js output/players/
 ### Sample Data Limitations
 The `sample_austin_reaves.json` file contains **placeholder test data** generated from a mock HTML file for parser testing, not actual SalarySwish data. Contract values and details in the sample may not reflect real NBA contracts. Always use actual SalarySwish pages for production scraping.
 
-### Multiple Contracts
-The current parser implementation does **not handle players with multiple contracts** (e.g., a player on their current deal who has already signed a future extension). Only the active contract's salary table is parsed. This needs to be addressed for players like:
-- Jayson Tatum (has extension starting 2025-26)
-- Players who signed extensions before current contract expires
+### Multiple Contracts ✅ NOW SUPPORTED
+**UPDATE:** The parser now handles players with multiple contracts (current deal + future extension). When detected:
+- `contract` field contains the current active contract
+- `futureContract` field (optional) contains the extension starting in a future season
 
-**Solution needed:** Detect and parse multiple contract sections, or add a `futureContract` field to the schema.
+Examples of players with extensions:
+- Jayson Tatum (current rookie extension + supermax extension starting 2025-26)
+- Tyrese Maxey (rookie scale + designated extension)
+- Scottie Barnes (rookie scale + max extension)
+
+The parser:
+1. Detects multiple salary tables on the page
+2. Identifies which is current vs future based on season dates
+3. Parses both contracts with full details
+4. Determines extension type from heading text
 
 ## Next Steps
 
