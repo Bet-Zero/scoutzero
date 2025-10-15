@@ -127,21 +127,24 @@ async function fetchFanspoTeamPicks(
     browser = await chromium.launch({ headless: true });
     const page = await browser.newPage();
     
-    // Navigate to Fanspo draft picks page and wait for network to be idle
+    // Navigate to Fanspo draft picks page with increased timeout and wait for load
+    // Using 'load' instead of 'networkidle' as it's more reliable for React apps
     await page.goto(url, { 
-      waitUntil: 'networkidle',
-      timeout: 30000 
+      waitUntil: 'load',
+      timeout: 60000 
     });
     
-    // Wait for the draft picks content to be visible
+    // Wait for the draft picks content to be visible with increased timeout
     // Look for either "Incoming Draft Picks" or "Outgoing Draft Picks" text
     try {
       await page.waitForSelector('text=/Incoming Draft Picks|Outgoing Draft Picks/i', {
-        timeout: 10000
+        timeout: 30000
       });
       console.log(`  ✅ Draft picks content loaded`);
     } catch (e) {
-      console.warn(`  ⚠️  Draft picks sections not found, continuing anyway...`);
+      console.warn(`  ⚠️  Draft picks sections not found, trying alternative wait strategy...`);
+      // Wait a bit more for React to render
+      await page.waitForTimeout(5000);
     }
     
     // Get the fully rendered HTML
@@ -238,6 +241,37 @@ function mergeFanspoIntoPicks(picks: Array<any>, fanspo: EnrichedMap) {
     // Direction correction: trust Fanspo if it contradicts the grid
     if (e.toTeams && p.status === 'own') p.status = 'outgoing';
   }
+}
+
+/** Convert Fanspo enrichment map to standalone draft picks array */
+function convertFanspoPicks(fanspo: EnrichedMap): Array<any> {
+  const picks: Array<any> = [];
+  
+  for (const [key, data] of fanspo.entries()) {
+    const [yearStr, roundStr] = key.split('-');
+    const year = Number(yearStr);
+    const round = Number(roundStr) as 1 | 2;
+    
+    const pick: any = {
+      year,
+      round,
+      status: data.dir === 'incoming' ? 'own' : 'outgoing'
+    };
+    
+    if (data.fromTeams) pick.fromTeams = data.fromTeams;
+    if (data.toTeams) pick.toTeams = data.toTeams;
+    if (data.protections) pick.protections = data.protections;
+    
+    picks.push(pick);
+  }
+  
+  // Sort by year, then round
+  picks.sort((a, b) => {
+    if (a.year !== b.year) return a.year - b.year;
+    return a.round - b.round;
+  });
+  
+  return picks;
 }
 
 /* ------------------------------------------------------------------------ */
@@ -627,25 +661,28 @@ async function main() {
   // --- Optional: single-shot Fanspo enrichment (owners/protections/swap) ---
   if (FANSPO_ENRICH) {
     try {
-      console.log(`\n🔍 Enriching draft picks with Fanspo data...`);
+      console.log(`\n🔍 Fetching draft picks from Fanspo...`);
       const fanspo = await fetchFanspoTeamPicks(TEAM_SLUG, TEAM_ID);
       
       if (fanspo.size === 0) {
-        console.warn('⚠️  Fanspo enrichment returned 0 picks');
+        console.warn('⚠️  Fanspo returned 0 picks');
         console.warn('   This could mean:');
         console.warn('   - The team has no traded picks on Fanspo');
         console.warn('   - The page structure has changed');
         console.warn('   - JavaScript failed to load the content');
+        console.warn('   Falling back to SalarySwish draft picks...');
       } else {
-        mergeFanspoIntoPicks(draftPicks, fanspo);
-        const enrichedCount = draftPicks.filter(p => p.fromTeams || p.toTeams || p.protections).length;
-        console.log(`✅ Fanspo enrichment successful (${enrichedCount} picks enriched)`);
+        // Replace draft picks entirely with Fanspo data instead of merging
+        console.log(`📝 Replacing SalarySwish draft picks with Fanspo data...`);
+        draftPicks = convertFanspoPicks(fanspo);
+        console.log(`✅ Using ${draftPicks.length} draft picks from Fanspo`);
       }
     } catch (err) {
-      console.error('❌ Fanspo enrichment failed:', (err as Error).message);
+      console.error('❌ Fanspo fetch failed:', (err as Error).message);
       console.warn('   Fanspo is a React app that requires JavaScript to load draft pick data.');
       console.warn('   Make sure Playwright is installed: npm install playwright');
       console.warn('   If the issue persists, the Fanspo page structure may have changed.');
+      console.warn('   Falling back to SalarySwish draft picks...');
     }
   }
 

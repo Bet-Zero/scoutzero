@@ -13,7 +13,9 @@ Fanspo.com is a React application that loads draft pick data dynamically via Jav
 1. Execute JavaScript and wait for the React app to render
 2. Capture the fully-rendered HTML with draft pick data
 3. Parse incoming and outgoing picks with protections
-4. Merge enrichment data into SalarySwish picks
+4. **REPLACE** SalarySwish draft picks entirely with Fanspo data (more accurate and comprehensive)
+
+**Important:** When `FANSPO_ENRICH=1` is enabled, the scraper will **completely replace** draft picks from SalarySwish with Fanspo data instead of merging them. This ensures you get accurate ownership, protections, and conveyance rules directly from Fanspo.
 
 ## Prerequisites
 
@@ -67,7 +69,7 @@ Common Fanspo team IDs:
 
 ## Output
 
-### Before Enrichment
+### Before Enrichment (SalarySwish only)
 ```json
 {
   "year": 2027,
@@ -76,16 +78,18 @@ Common Fanspo team IDs:
 }
 ```
 
-### After Enrichment
+### After Fanspo Replacement (FANSPO_ENRICH=1)
 ```json
 {
   "year": 2027,
   "round": 1,
-  "status": "contested",
+  "status": "own",
   "fromTeams": ["UTA"],
   "protections": "Top 10 protected, conveys 2028-2030 if not conveyed"
 }
 ```
+
+**Note:** With `FANSPO_ENRICH=1`, draft picks are entirely sourced from Fanspo, not merged with SalarySwish data.
 
 ## Troubleshooting
 
@@ -95,11 +99,16 @@ Common Fanspo team IDs:
 - Network connectivity issues
 - Fanspo.com is down or changed structure
 - Playwright not installed
+- Timeout waiting for React content to load (increased to 60s page load + 30s selector wait)
 
 **Solutions:**
 1. Check internet connection
 2. Verify Fanspo page loads manually in browser
 3. Ensure Playwright is installed: `npm install playwright && npx playwright install chromium`
+4. Check console output for specific timeout errors
+5. If timeouts persist, the Fanspo page structure may have changed
+
+**Fallback:** If Fanspo fails, the scraper will fall back to using SalarySwish draft picks.
 
 ### Error: "0 picks enriched"
 
@@ -121,33 +130,35 @@ Common Fanspo team IDs:
 
 ## Implementation Details
 
-The enrichment is implemented in `parse_team.ts`:
+The Fanspo integration is implemented in `parse_team.ts`:
 
 1. **Fetch with Playwright**: Launches headless browser to execute JavaScript
-2. **Wait for Content**: Waits for "Incoming Draft Picks" or "Outgoing Draft Picks" text
-3. **Parse HTML**: Extracts pick data using Cheerio
-4. **Merge Data**: Adds `fromTeams`, `toTeams`, and `protections` to existing picks
+2. **Increased Timeouts**: 60s page load timeout, 30s selector wait, plus 5s fallback
+3. **Wait Strategy**: Uses 'load' event instead of 'networkidle' for better React compatibility
+4. **Parse HTML**: Extracts pick data using Cheerio after JavaScript execution
+5. **Replace Data**: **Completely replaces** SalarySwish picks with Fanspo data (not merged)
 
 The parser handles:
 - Multiple teams per pick (e.g., "2030 2-WAS or ORL")
 - Multi-line protections
-- Status correction (trusts Fanspo if it contradicts SalarySwish)
+- Incoming and outgoing picks
+- Pick swaps and complex conveyance rules
 
 ## Limitations
 
 1. **Playwright Required**: Live mode requires Playwright installation
 2. **React Dependency**: Relies on Fanspo's React app loading correctly
 3. **HTML Structure**: May break if Fanspo redesigns their page
-4. **Performance**: Playwright is slower than simple HTTP (~3-5 seconds per team)
+4. **Performance**: Playwright is slower than simple HTTP (~5-10 seconds per team with increased timeouts)
 5. **Manual Team IDs**: Must manually specify team slug and ID for each team
 6. **Network Access**: Requires internet connectivity to fanspo.com
 
 ## Data Quality
 
 Fanspo provides more comprehensive and accurate draft pick data than SalarySwish:
-- Clear ownership tracking
+- Clear ownership tracking (fromTeams/toTeams)
 - Detailed protection conditions
 - Complex conveyance rules
 - Pick swap arrangements
 
-The enrichment uses Fanspo as the source of truth for draft pick ownership and protections.
+**When `FANSPO_ENRICH=1` is enabled, Fanspo is used as the SOLE source for draft picks, completely replacing SalarySwish data.**
