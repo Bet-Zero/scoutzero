@@ -60,6 +60,9 @@ I've created **7 comprehensive documents** (90 KB total) to guide implementation
 ### **Deep Dive** (20+ min)
 6. **[SCRAPING_PIPELINE_GAP_ANALYSIS.md](./SCRAPING_PIPELINE_GAP_ANALYSIS.md)** - Comprehensive technical analysis
 
+### **Long-Term Strategy** (30+ min)
+7. **[OPERATIONAL_STRATEGY.md](./OPERATIONAL_STRATEGY.md)** - Periodic updates, season transitions, automation roadmap
+
 ---
 
 ## Implementation Timeline

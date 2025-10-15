@@ -62,6 +62,7 @@
 ### **Phase 2: Planning (30 min)**
 5. Read **ARCHITECT_UPLOAD_ACTION_PLAN.md** (30 min) - Study the code templates
 6. Review **IMPLEMENTATION_CHECKLIST.md** - Plan your days
+7. Read **OPERATIONAL_STRATEGY.md** (30 min) - Understand long-term maintenance
 
 ### **Phase 3: Implementation (2-3 days)**
 7. Use **IMPLEMENTATION_CHECKLIST.md** to track daily progress
@@ -81,8 +82,9 @@
 | **SCRAPING_PIPELINE_GAP_ANALYSIS.md** | 23 KB | Technical analysis | Engineers, PMs |
 | **ARCHITECT_UPLOAD_ACTION_PLAN.md** | 24 KB | Implementation guide | Developers |
 | **IMPLEMENTATION_CHECKLIST.md** | 11 KB | Progress tracker | Everyone |
+| **OPERATIONAL_STRATEGY.md** | 25 KB | Long-term operations | Everyone |
 
-**Total:** 84 KB of documentation
+**Total:** 110 KB of documentation (including operational strategy)
 
 ---
 
