@@ -116,9 +116,26 @@ function parseSigningDetails($: cheerio.CheerioAPI, currentTeam: string) {
 function parseBirdRights($: cheerio.CheerioAPI) {
   const text = $('body').text();
   
-  // Look for Bird rights status
-  const birdMatch = text.match(/Bird Rights[:\s]+([^\n(]+)/i);
-  const status = birdMatch ? norm(birdMatch[1]) : 'None';
+  // Look for Bird rights status - try multiple patterns
+  let status = 'None';
+  
+  // Pattern 1: "Bird Rights: <status>" where status is on same line
+  const birdMatch1 = text.match(/Bird\s+Rights[:\s]+((?:Early\s+)?Bird|Non-Bird|None)(?:\s|$)/i);
+  if (birdMatch1) {
+    status = norm(birdMatch1[1]);
+  } else {
+    // Pattern 2: Look for variations
+    const birdMatch2 = text.match(/Bird\s+Rights[:\s]+([A-Za-z\s]+?)(?:\n|\r|Free Agency|Cap Hold|Trade|$)/i);
+    if (birdMatch2) {
+      const extracted = norm(birdMatch2[1]).trim();
+      // Clean up common suffixes
+      status = extracted.replace(/\s*(and|Free Agency|Cap Hold).*$/i, '').trim();
+      
+      // Default to "Bird" if we found something that looks like bird rights
+      if (!status || status.length > 50) status = 'None';
+      if (status.toLowerCase().includes('full')) status = 'Bird';
+    }
+  }
   
   // Extract years of service (if available)
   const yearsMatch = text.match(/(\d+)\s+years?\s+with\s+team/i);

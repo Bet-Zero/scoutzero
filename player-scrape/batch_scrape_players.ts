@@ -219,8 +219,21 @@ async function parsePlayerData(html: string, playerId: string, teamCode: string,
   const signedByCurrentTeam = signingTeam === teamCode;
   
   // Parse Bird rights
-  const birdMatch = teamText.match(/Bird Rights[:\s]+([^\n(]+)/i);
-  const birdStatus = birdMatch ? norm(birdMatch[1]) : 'None';
+  const birdMatch1 = teamText.match(/Bird\s+Rights[:\s]+((?:Early\s+)?Bird|Non-Bird|None)(?:\s|$)/i);
+  let birdStatus = 'None';
+  
+  if (birdMatch1) {
+    birdStatus = norm(birdMatch1[1]);
+  } else {
+    const birdMatch2 = teamText.match(/Bird\s+Rights[:\s]+([A-Za-z\s]+?)(?:\n|\r|Free Agency|Cap Hold|Trade|$)/i);
+    if (birdMatch2) {
+      const extracted = norm(birdMatch2[1]).trim();
+      birdStatus = extracted.replace(/\s*(and|Free Agency|Cap Hold).*$/i, '').trim();
+      
+      if (!birdStatus || birdStatus.length > 50) birdStatus = 'None';
+      if (birdStatus.toLowerCase().includes('full')) birdStatus = 'Bird';
+    }
+  }
   
   const eligibleFor: string[] = [];
   if (birdStatus === 'Bird' || birdStatus === 'Full Bird') {
