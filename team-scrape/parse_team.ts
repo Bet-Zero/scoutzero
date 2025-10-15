@@ -31,6 +31,7 @@
 import fs from 'node:fs/promises';
 import * as cheerio from 'cheerio';
 import got from 'got';
+import { chromium } from 'playwright';
 
 type Money = number;
 
@@ -111,7 +112,50 @@ async function fetchFanspoTeamPicks(
   teamId: number
 ): Promise<EnrichedMap> {
   const url = `https://fanspo.com/nba/teams/${teamSlug}/${teamId}/draft-picks`;
-  const html = await got(url, { timeout: { request: 20000 } }).text();
+  
+  console.log(`  🌐 Fetching Fanspo page with Playwright: ${url}`);
+  
+  let browser;
+  let html;
+  
+  try {
+    // Launch headless browser to execute JavaScript
+    // NOTE: Fanspo is a React application that loads data dynamically via JavaScript.
+    // Using a simple HTTP client like `got` will only fetch the initial HTML shell
+    // without the actual draft pick data. Playwright is required to execute JavaScript
+    // and wait for the dynamic content to load.
+    browser = await chromium.launch({ headless: true });
+    const page = await browser.newPage();
+    
+    // Navigate to Fanspo draft picks page and wait for network to be idle
+    await page.goto(url, { 
+      waitUntil: 'networkidle',
+      timeout: 30000 
+    });
+    
+    // Wait for the draft picks content to be visible
+    // Look for either "Incoming Draft Picks" or "Outgoing Draft Picks" text
+    try {
+      await page.waitForSelector('text=/Incoming Draft Picks|Outgoing Draft Picks/i', {
+        timeout: 10000
+      });
+      console.log(`  ✅ Draft picks content loaded`);
+    } catch (e) {
+      console.warn(`  ⚠️  Draft picks sections not found, continuing anyway...`);
+    }
+    
+    // Get the fully rendered HTML
+    html = await page.content();
+    
+  } catch (error) {
+    throw new Error(`Failed to fetch Fanspo page: ${error.message}`);
+  } finally {
+    if (browser) {
+      await browser.close();
+    }
+  }
+  
+  // Parse the HTML with Cheerio
   const $ = cheerio.load(html);
 
   const lines = $('body')
@@ -168,6 +212,7 @@ async function fetchFanspoTeamPicks(
     }
   }
 
+  console.log(`  📊 Parsed ${map.size} draft picks from Fanspo`);
   return map;
 }
 
@@ -582,10 +627,25 @@ async function main() {
   // --- Optional: single-shot Fanspo enrichment (owners/protections/swap) ---
   if (FANSPO_ENRICH) {
     try {
+      console.log(`\n🔍 Enriching draft picks with Fanspo data...`);
       const fanspo = await fetchFanspoTeamPicks(TEAM_SLUG, TEAM_ID);
-      mergeFanspoIntoPicks(draftPicks, fanspo);
+      
+      if (fanspo.size === 0) {
+        console.warn('⚠️  Fanspo enrichment returned 0 picks');
+        console.warn('   This could mean:');
+        console.warn('   - The team has no traded picks on Fanspo');
+        console.warn('   - The page structure has changed');
+        console.warn('   - JavaScript failed to load the content');
+      } else {
+        mergeFanspoIntoPicks(draftPicks, fanspo);
+        const enrichedCount = draftPicks.filter(p => p.fromTeams || p.toTeams || p.protections).length;
+        console.log(`✅ Fanspo enrichment successful (${enrichedCount} picks enriched)`);
+      }
     } catch (err) {
-      console.warn('Fanspo enrichment failed:', (err as Error).message);
+      console.error('❌ Fanspo enrichment failed:', (err as Error).message);
+      console.warn('   Fanspo is a React app that requires JavaScript to load draft pick data.');
+      console.warn('   Make sure Playwright is installed: npm install playwright');
+      console.warn('   If the issue persists, the Fanspo page structure may have changed.');
     }
   }
 
