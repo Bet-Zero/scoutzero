@@ -71,29 +71,33 @@ function parseContractType($: cheerio.CheerioAPI): {
   isExtension: boolean;
   isRookieScale: boolean;
 } {
-  // Try to find any H3 that might be a contract type
-  let contractTypeHeading: cheerio.Cheerio | null = null;
-
-  $('h3').each((i, el) => {
-    const text = norm($(el).text()).toUpperCase();
-    if (
-      text.includes('CONTRACT') ||
-      text.includes('EXTENSION') ||
-      text.includes('ROOKIE') ||
-      text.includes('DESIGNATED') ||
-      text.includes('TWO-WAY')
-    ) {
-      contractTypeHeading = $(el);
-      return false; // break
-    }
-  });
-
+  // Find the first contract heading (H6 with class sw_playerContract__title)
+  const firstContractHeading = $('h6.sw_playerContract__title').first();
+  
   let text = '';
-  if (contractTypeHeading) {
-    text = norm(contractTypeHeading.text()).toUpperCase();
+  if (firstContractHeading.length > 0) {
+    text = norm(firstContractHeading.text()).toUpperCase();
   } else {
-    // If no H3 found, check body text for contract type keywords
-    text = $('body').text().toUpperCase();
+    // Fallback: Try to find any H3 that might be a contract type
+    let contractTypeHeading: cheerio.Cheerio | null = null;
+
+    $('h3').each((i, el) => {
+      const headingText = norm($(el).text()).toUpperCase();
+      if (
+        headingText.includes('CONTRACT') ||
+        headingText.includes('EXTENSION') ||
+        headingText.includes('ROOKIE') ||
+        headingText.includes('DESIGNATED') ||
+        headingText.includes('TWO-WAY')
+      ) {
+        contractTypeHeading = $(el);
+        return false; // break
+      }
+    });
+
+    if (contractTypeHeading) {
+      text = norm(contractTypeHeading.text()).toUpperCase();
+    }
   }
 
   const isExtension = text.includes('EXTENSION');
@@ -262,10 +266,10 @@ function parseSalaryTable($: cheerio.CheerioAPI, table: cheerio.Cheerio) {
   // Parse table rows
   table.find('tbody tr').each((i, row) => {
     const cells = $(row).find('td');
-    if (cells.length < 2) return;
+    if (cells.length < 4) return; // Need at least 4 columns for Cap Hit
 
     const season = norm(cells.eq(0).text());
-    const salaryText = cells.eq(1).text();
+    const salaryText = cells.eq(3).text(); // Cap Hit is in column 3 (4th column)
     const salary = moneyNum(salaryText);
 
     if (!season || !salary) return;
