@@ -1,14 +1,17 @@
 # Team Scraper Completion Summary
 
 ## Overview
+
 Successfully completed the team scraper implementation for the Lakers sample, filling out all target schema fields and validating the output.
 
 ## What Was Accomplished
 
 ### 1. Enhanced Totals Parsing (20+ fields)
+
 **Before:** Only 6 basic fields (totalSalary, capSpace, taxSpace, firstApronRoom, secondApronRoom, hardCappedAt)
 
 **After:** Comprehensive salary cap data:
+
 - **Core Salary Totals:**
   - `totalSalary`: $210,894,723
   - `activeSalary`: $194,820,805
@@ -44,9 +47,11 @@ Successfully completed the team scraper implementation for the Lakers sample, fi
   - `likelyIncentives`: $0
 
 ### 2. Improved Cap Holds Parsing
+
 **Before:** 0 cap holds (parsing was broken)
 
 **After:** 28 cap holds properly categorized:
+
 - 9 RFAs (Restricted Free Agents)
 - 12 UFAs (Unrestricted Free Agents)
 - 7 FA Cap Holds (historical free agents)
@@ -54,45 +59,58 @@ Successfully completed the team scraper implementation for the Lakers sample, fi
 - Player URLs extracted for future ID mapping
 
 **Fix Applied:**
+
 - Changed from `.filter()` to `.find()` for tables inside divs
 - Proper cell index (6 instead of 5) for stats table data
 - Better type categorization based on table headers
 
 ### 3. Roster Parsing
+
 **Result:** 14 active players correctly extracted
+
 - Properly limits to active roster count
 - Excludes training camp, two-way, and cap hold players
 - Includes player names and SalarySwish URLs
 
 ### 4. Exceptions Parsing
+
 **Signing Exceptions:**
+
 - MLE: $14,104,000 total, $0 remaining (fully used)
 - BAE: $5,135,000 total, $1,000 remaining
 
 **Trade Exceptions (3):**
+
 - Maxwell Lewis TPE: $1,891,857 (expires Dec 29, 2025)
 - D'Angelo Russell TPE: $893,140 (expires Dec 29, 2025)
 - Anthony Davis TPE: $187,500 (expires Feb 2, 2026)
 
 ### 5. Draft Picks Parsing
+
 **Result:** 14 draft picks (7 first round, 7 second round)
+
 - Status tracking: own, outgoing, contested
 - Protections and trade dates captured
 - Contending teams for contested picks
 
 **Example:**
+
 - 2027 1st round: contested between UTA and LAL
 - 2029 1st round: outgoing (traded Feb 2, 2025)
 
 ### 6. Schema Updates
+
 Enhanced `team_scrape_schema.ts` to match parser capabilities:
+
 - Added 'FA Cap Hold' and 'Draft Pick' to cap hold types
 - Added 'contested' and 'unknown' to draft pick status
 - Added enrichment fields (detailUrl, contendingTeams, etc.)
 - Added new totals fields (guaranteedSalary, firstApronRoom, etc.)
 
 ### 7. Validation System
+
 Created `validate_output.ts`:
+
 - Validates output against Zod schema
 - Provides detailed error reporting
 - Confirms all required fields are present
@@ -101,12 +119,14 @@ Created `validate_output.ts`:
 ## Technical Improvements
 
 ### Parser Enhancements
+
 1. **Stats Table Parsing:** Fixed cell indexing (cell 6 for data, cell 5 for row title)
 2. **Cap Holds Parsing:** Use `.find('table')` instead of `.filter()` for tables in divs
 3. **MLE Type:** Default to 'Non-Taxpayer' when ambiguous
 4. **Documentation:** Added comprehensive header comments explaining features
 
 ### Code Quality
+
 - Proper error handling in validation script
 - Clean separation of concerns (parsing vs validation)
 - Well-documented functions and logic
@@ -115,6 +135,7 @@ Created `validate_output.ts`:
 ## Output Validation
 
 ### Lakers Sample (team.json)
+
 ```
 ✅ Validation successful!
 
@@ -134,22 +155,43 @@ Created `validate_output.ts`:
 ## Next Steps (Recommendations)
 
 ### Immediate (Can be done now)
+
 1. ✅ Test with other teams (e.g., Warriors, Celtics, Nets)
 2. ✅ Run parser on all 30 teams
 3. ✅ Validate outputs for consistency
 4. ✅ Document any team-specific edge cases
 
 ### Short-term (Before expanding)
+
 1. Add dead cap parsing (requires transaction/waiver data)
 2. Implement player ID mapping (SalarySwish URL → ScoutZero player ID)
 3. Add automated testing suite
 4. Create batch processing script for all teams
 
 ### Long-term (Future enhancements)
+
 1. Historical season snapshots
-2. Validation against multiple sources (Fanspo, Spotrac)
+2. Validation against multiple sources (RealGM, Spotrac)
 3. Direct Firestore upload integration
 4. Scheduled/automated refresh (daily/weekly)
+5. **Merge with RealGM draft picks**: Combine team cap data with comprehensive draft pick data from `realgm_draft_picks.ts`
+
+## Architecture Update: Split-to-Merge Strategy
+
+**Important Note:** Since this completion summary was written, the draft pick approach has evolved:
+
+- **Team cap data** (this folder): Continues to use SalarySwish for salary/roster/exceptions data
+- **Draft picks data**: Now uses a separate RealGM scraper (`realgm_draft_picks.ts`) for comprehensive draft pick coverage
+- **Final integration**: Both datasets will be merged programmatically for complete team documents
+
+This split-to-merge approach provides:
+
+- More reliable draft pick data from RealGM's structured tables
+- Better handling of complex scenarios (swaps, protections, multi-team trades)
+- Current owner tracking for draft picks (organized by who actually owns them)
+- Comprehensive Stepien rule compliance checking
+
+See `QUICK_START_REALGM.md` for the new draft pick workflow.
 
 ## Files Modified
 

@@ -1,0 +1,82 @@
+[
+  {
+    "id": "MEM_2026_1st_to_CHA",
+    "year": 2026,
+    "round": 1,
+    "status": "contested",
+    "originalTeam": "WAS",
+    "currentOwner": "CHA",
+    "stepienEligible": false,
+    "tradeable": false,
+    "protection": null,
+    "isSwap": true,
+    "via": "WAS",
+    "recipient": "CHA",
+    "pickNumber": null,
+    "swapDetails": {
+      "swapType": "favorable",
+      "favorable": "most"
+    },
+    "route": [
+      "IND"
+    ],
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks",
+    "metadata": {
+      "sourcePage": "WAS",
+      "tradePath": [
+        "IND"
+      ],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks",
+      "hasComplexRouting": true,
+      "isFromOriginalTeam": false,
+      "pickJourney": {
+        "startedWith": "WAS",
+        "routedThrough": [
+          "WAS"
+        ],
+        "currentlyWith": "CHA",
+        "finalDestination": "CHA"
+      }
+    }
+  },
+  {
+    "id": "WAS_2026_1st_to_CHA",
+    "year": 2026,
+    "round": 1,
+    "status": "outgoing",
+    "originalTeam": "WAS",
+    "currentOwner": "CHA",
+    "stepienEligible": false,
+    "tradeable": false,
+    "protection": null,
+    "isSwap": true,
+    "via": "WAS",
+    "recipient": "CHA",
+    "pickNumber": null,
+    "swapDetails": {
+      "swapType": "bilateral",
+      "favorable": null
+    },
+    "route": [
+      "CHA"
+    ],
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks",
+    "metadata": {
+      "sourcePage": "WAS",
+      "tradePath": [
+        "CHA"
+      ],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks",
+      "hasComplexRouting": true,
+      "isFromOriginalTeam": false,
+      "pickJourney": {
+        "startedWith": "WAS",
+        "routedThrough": [
+          "WAS"
+        ],
+        "currentlyWith": "CHA",
+        "finalDestination": "CHA"
+      }
+    }
+  }
+]

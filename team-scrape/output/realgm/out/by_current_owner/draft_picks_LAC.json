@@ -1,0 +1,35 @@
+[
+  {
+    "id": "MEM_2026_2nd_to_LAC",
+    "year": 2026,
+    "round": 2,
+    "status": "outgoing",
+    "originalTeam": "MEM",
+    "currentOwner": "LAC",
+    "stepienEligible": false,
+    "tradeable": false,
+    "protection": null,
+    "isSwap": false,
+    "recipient": "LAC",
+    "pickNumber": null,
+    "route": [
+      "ATL"
+    ],
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks",
+    "metadata": {
+      "sourcePage": "MEM",
+      "tradePath": [
+        "ATL"
+      ],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks",
+      "hasComplexRouting": true,
+      "isFromOriginalTeam": false,
+      "pickJourney": {
+        "startedWith": "MEM",
+        "routedThrough": [],
+        "currentlyWith": "LAC",
+        "finalDestination": "LAC"
+      }
+    }
+  }
+]

@@ -13,9 +13,9 @@ if (!URL) {
   const page = await browser.newPage();
   // Using 'load' instead of 'networkidle' as it's more reliable for modern web apps
   // Increased timeout to 60s to handle slow page loads
-  await page.goto(URL, { 
+  await page.goto(URL, {
     waitUntil: 'load',
-    timeout: 60000 
+    timeout: 60000,
   });
 
   // Scroll to Draft block (near TRADE EXCEPTIONS)
@@ -39,7 +39,9 @@ if (!URL) {
   } catch {}
 
   const html = await page.content();
-  await fs.writeFile('./page.html', html, 'utf8');
+  await fs.writeFile('../working/page.html', html, 'utf8');
   await browser.close();
-  console.log('Saved ./page.html (Playwright with Draft interactions)');
+  console.log(
+    'Saved ../working/page.html (Playwright with Draft interactions)'
+  );
 })();

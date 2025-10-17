@@ -6,7 +6,7 @@
 //   NOTE: Draft picks are now handled by separate RealGM scraper (realgm_draft_picks.ts)
 //
 // RUN:
-//   npm pkg set scripts.parse="tsx parse_team.ts"
+//   npm pkg set scripts.parse="tsx team-scrape/scripts/parse_team.ts"
 //   TEAM_URL="https://www.salaryswish.com/teams/lakers" TEAM_CODE="LAL" SEASON="2025-26" npm run parse
 //
 // Optional: enrich draft picks with data from SalarySwish pick detail pages
@@ -21,7 +21,7 @@
 //   - Optional enrichment from SalarySwish detail pages
 //
 // OUTPUT:
-//   ./team.json - Structured JSON matching team_scrape_schema.ts
+//   ../output/team.json - Structured JSON matching team_scrape_schema.ts
 //
 // Requires: cheerio, got
 
@@ -100,7 +100,7 @@ async function main() {
   // NOTE: This script parses a saved HTML file by design.
   // If you want to live-fetch SalarySwish instead, replace the next two lines with:
   //   const html = await got(TEAM_URL, { timeout: { request: 30000 } }).text();
-  const html = await fs.readFile('./examples/page.html', 'utf8');
+  const html = await fs.readFile('../examples/page.html', 'utf8');
   const $ = cheerio.load(html);
 
   // --- Team identity ---
@@ -598,8 +598,12 @@ async function main() {
     version: '1.0',
   };
 
-  await fs.writeFile('./team.json', JSON.stringify(teamDoc, null, 2), 'utf8');
-  console.log('✅ Wrote ./team.json');
+  await fs.writeFile(
+    '../output/team.json',
+    JSON.stringify(teamDoc, null, 2),
+    'utf8'
+  );
+  console.log('✅ Wrote ../output/team.json');
   console.log(
     `  roster=${roster.length}  tpe=${tpe.length}  holds=${capHolds.length}  picks=${draftPicks.length}`
   );

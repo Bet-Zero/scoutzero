@@ -1,4 +1,4 @@
-// inspect.ts — Section x-ray for SalarySwish team pages (uses ./examples/page.html)
+// inspect.ts — Section x-ray for SalarySwish team pages (uses ../examples/page.html)
 //
 // RUN:
 //   npm run inspect
@@ -8,7 +8,7 @@
 //   Lists headings, sections, table structures, and sample data.
 //
 // READS:
-//   ./examples/page.html — saved HTML snapshot from fetch_page.ts
+//   ../examples/page.html — saved HTML snapshot from fetch_page.ts
 
 import fs from 'node:fs/promises';
 import * as cheerio from 'cheerio';
@@ -48,7 +48,7 @@ function forwardUntilNextH3($: cheerio.CheerioAPI, start: cheerio.Cheerio) {
 }
 
 (async () => {
-  const html = await fs.readFile('./examples/page.html', 'utf8');
+  const html = await fs.readFile('../examples/page.html', 'utf8');
   const $ = cheerio.load(html);
 
   console.log('H5 headings:');

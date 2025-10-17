@@ -1,0 +1,82 @@
+[
+  {
+    "id": "WAS_2028_1st_to_OKC",
+    "year": 2028,
+    "round": 1,
+    "status": "contested",
+    "originalTeam": "WAS",
+    "currentOwner": "OKC",
+    "stepienEligible": false,
+    "tradeable": false,
+    "protection": null,
+    "isSwap": true,
+    "recipient": "OKC",
+    "pickNumber": null,
+    "swapDetails": {
+      "swapType": "bilateral",
+      "favorable": null
+    },
+    "route": [
+      "IND"
+    ],
+    "dependsOn": [
+      "PHL_2026_1st_conditional"
+    ],
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks",
+    "metadata": {
+      "sourcePage": "WAS",
+      "tradePath": [
+        "IND"
+      ],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks",
+      "hasComplexRouting": true,
+      "isFromOriginalTeam": false,
+      "pickJourney": {
+        "startedWith": "WAS",
+        "routedThrough": [],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "WAS_2028_1st_to_OKC",
+    "year": 2028,
+    "round": 1,
+    "status": "contested",
+    "originalTeam": "WAS",
+    "currentOwner": "OKC",
+    "stepienEligible": false,
+    "tradeable": false,
+    "protection": null,
+    "isSwap": true,
+    "recipient": "OKC",
+    "pickNumber": null,
+    "swapDetails": {
+      "swapType": "bilateral",
+      "favorable": null
+    },
+    "route": [
+      "IND"
+    ],
+    "dependsOn": [
+      "PHL_2026_1st_conditional"
+    ],
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks",
+    "metadata": {
+      "sourcePage": "WAS",
+      "tradePath": [
+        "IND"
+      ],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks",
+      "hasComplexRouting": true,
+      "isFromOriginalTeam": false,
+      "pickJourney": {
+        "startedWith": "WAS",
+        "routedThrough": [],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  }
+]

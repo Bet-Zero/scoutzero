@@ -104,7 +104,7 @@ team-scrape/
 │       └── draft_picks_raw.json              # Raw RealGM text for debugging
 ├── examples/                  # REFERENCE/SAMPLES ("just in case"/"might need")
 │   ├── page.html             # Lakers HTML reference snapshot
-│   ├── team.json             # Lakers output reference  
+│   ├── team.json             # Lakers output reference
 │   └── team_scrape_sample.json # Hand-written schema example
 ├── docs/                      # DOCUMENTATION
 │   ├── README.md             # Main documentation (this file)
@@ -119,23 +119,27 @@ team-scrape/
 ### Key Directories Explained
 
 #### `scripts/` - Actual Scripts That Run
+
 - **Purpose**: Contains all executable scripts for the team scraping workflow
 - **Usage**: Run these scripts via npm commands or directly with tsx
 - **Organization**: Each script has a specific purpose in the scraping pipeline
 
-#### `working/` - Working Files (Generated/Temporary)  
+#### `working/` - Working Files (Generated/Temporary)
+
 - **Purpose**: Contains temporary files created and consumed during scraping
 - **`page.html`**: Current HTML snapshot downloaded by `fetch_page.ts`
 - **Lifecycle**: Files get replaced each time scripts run
 - **Note**: Kept ungitignored for AI access during development
 
 #### `output/` - Output Files (Generated Results)
+
 - **Purpose**: Contains the final structured data outputs from scraping
 - **`team.json`**: Latest team cap data from SalarySwish parsing
 - **`realgm/`**: All RealGM draft pick outputs in multiple formats
 - **Usage**: These files are consumed by other parts of the ScoutZero system
 
 #### `examples/` - Reference/Samples ("Just in Case"/"Might Need")
+
 - **Purpose**: Contains reference files for understanding expected structure
 - **`page.html`**: Lakers HTML snapshot for testing parser changes
 - **`team.json`**: Sample Lakers output for reference
@@ -143,11 +147,13 @@ team-scrape/
 - **Use Case**: Testing, documentation, and understanding expected formats
 
 #### `docs/` - Documentation
+
 - **Purpose**: All documentation related to team scraping
 - **Organization**: README, quick starts, implementation notes, output guides
 - **Audience**: Developers working with or extending the scraping system
 
 #### `config/` - Configuration/Reference ("Outline" Type)
+
 - **Purpose**: Schema definitions and reference materials
 - **`team_scrape_schema.ts`**: Zod schema for validation and TypeScript types
 - **`SELECTOR_MAP.ts`**: CSS selector reference for SalarySwish parsing

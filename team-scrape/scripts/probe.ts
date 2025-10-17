@@ -1,4 +1,15 @@
-// probe.ts — SalarySwish robust probe (roster filter, TPE picker, draft fallback)
+// probe.ts — Test data extraction for team salary cap parsing
+//
+// RUN:
+//   npm run probe
+//
+// PURPOSE:
+//   Detailed test of extraction logic before running the full parser.
+//   Validates that all expected data points can be captured from the HTML.
+//
+// READS:
+//   ../examples/page.html — saved HTML snapshot from fetch_page.ts
+
 import fs from 'node:fs/promises';
 import * as cheerio from 'cheerio';
 
@@ -60,7 +71,7 @@ function pickRealTableAfterHeading(
 }
 
 async function main() {
-  const html = await fs.readFile('./examples/page.html', 'utf8');
+  const html = await fs.readFile('../examples/page.html', 'utf8');
   const $ = cheerio.load(html);
 
   // TEAM

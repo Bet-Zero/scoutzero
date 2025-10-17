@@ -1,0 +1,30 @@
+[
+  {
+    "id": "MEM_2027_2nd_to_HOU",
+    "year": 2027,
+    "round": 2,
+    "status": "outgoing",
+    "originalTeam": "MEM",
+    "currentOwner": "HOU",
+    "stepienEligible": false,
+    "tradeable": false,
+    "protection": null,
+    "isSwap": false,
+    "recipient": "HOU",
+    "pickNumber": null,
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks",
+    "metadata": {
+      "sourcePage": "MEM",
+      "tradePath": [],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks",
+      "hasComplexRouting": false,
+      "isFromOriginalTeam": false,
+      "pickJourney": {
+        "startedWith": "MEM",
+        "routedThrough": [],
+        "currentlyWith": "HOU",
+        "finalDestination": "HOU"
+      }
+    }
+  }
+]
