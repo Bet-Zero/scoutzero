@@ -236,7 +236,8 @@ function groupDraftPicksByStatus(picks: DraftPick[]): MergedTeamData['draftPicks
       grouped.outgoing.push(pick);
     } else if (status === 'own') {
       grouped.own.push(pick);
-    } else if (status === 'contested') {
+    } else if (status === 'contested' || status === 'conditional') {
+      // Both contested and conditional picks go to contested array
       grouped.contested.push(pick);
     } else {
       // Unknown status - log warning and put in contested
