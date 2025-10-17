@@ -1,0 +1,41 @@
+[
+  {
+    "id": "WAS_2026_2nd_to_MIA",
+    "year": 2026,
+    "round": 2,
+    "status": "contested",
+    "originalTeam": "WAS",
+    "currentOwner": "MIA",
+    "stepienEligible": false,
+    "tradeable": false,
+    "protection": null,
+    "isSwap": true,
+    "recipient": "MIA",
+    "pickNumber": null,
+    "swapDetails": {
+      "swapType": "favorable",
+      "favorable": "least"
+    },
+    "route": [
+      "MIA",
+      "SAS"
+    ],
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks",
+    "metadata": {
+      "sourcePage": "WAS",
+      "tradePath": [
+        "MIA",
+        "SAS"
+      ],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks",
+      "hasComplexRouting": true,
+      "isFromOriginalTeam": false,
+      "pickJourney": {
+        "startedWith": "WAS",
+        "routedThrough": [],
+        "currentlyWith": "MIA",
+        "finalDestination": "MIA"
+      }
+    }
+  }
+]

@@ -26,6 +26,7 @@
 // Requires: cheerio, got
 
 import fs from 'node:fs/promises';
+import path from 'node:path';
 import * as cheerio from 'cheerio';
 import got from 'got';
 
@@ -97,10 +98,11 @@ async function main() {
   const SEASON = process.env.SEASON || '2025-26';
   const ENRICH_DRAFT = process.env.ENRICH_DRAFT === '1';
 
-  // NOTE: This script parses a saved HTML file by design.
-  // If you want to live-fetch SalarySwish instead, replace the next two lines with:
-  //   const html = await got(TEAM_URL, { timeout: { request: 30000 } }).text();
-  const html = await fs.readFile('../examples/page.html', 'utf8');
+  // Always fetch live data for team salary scraping
+  console.log('📡 Fetching live data from:', TEAM_URL);
+  const html = await got(TEAM_URL, { timeout: { request: 45000 } }).text();
+  console.log('✅ Successfully fetched team page');
+  
   const $ = cheerio.load(html);
 
   // --- Team identity ---
@@ -598,12 +600,13 @@ async function main() {
     version: '1.0',
   };
 
+  const outputPath = path.join(process.cwd(), 'team-scrape', 'output', 'team.json');
   await fs.writeFile(
-    '../output/team.json',
+    outputPath,
     JSON.stringify(teamDoc, null, 2),
     'utf8'
   );
-  console.log('✅ Wrote ../output/team.json');
+  console.log(`✅ Wrote ${outputPath}`);
   console.log(
     `  roster=${roster.length}  tpe=${tpe.length}  holds=${capHolds.length}  picks=${draftPicks.length}`
   );

@@ -1,0 +1,226 @@
+[
+  {
+    "teamName": "Memphis Grizzlies",
+    "teamCode": "MEM",
+    "seasonYear": 2026,
+    "firstRoundText": "Two most favorable of (i) MEM, (ii) less favorable of PHX and WAS 1-8 [or (ii) PHX if WAS not conveyable] and (iii) ORL then least favorable of (i), (ii) and (iii) to CHA (via WAS swap for PHX; via MEM swap of ORL for PHX or WAS; via MEM swap for PHX, WAS or ORL; via PHX to CHA)",
+    "secondRoundText": "31-42 to LAC (via UTH to ATL); | 43-60 to POR (via UTH to GOS); | | Most favorable LAC, BOS, IND and MIA (via MIA to IND; via MIL to MEM; via MEM swap of IND or MIA for BOS; via MEM swap of BOS, IND or MIA for LAC)",
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+  },
+  {
+    "teamName": "Memphis Grizzlies",
+    "teamCode": "MEM",
+    "seasonYear": 2027,
+    "firstRoundText": "Own",
+    "secondRoundText": "To HOU (via LAC)",
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+  },
+  {
+    "teamName": "Memphis Grizzlies",
+    "teamCode": "MEM",
+    "seasonYear": 2028,
+    "firstRoundText": "Own",
+    "secondRoundText": "To BRK (via PHX)",
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+  },
+  {
+    "teamName": "Memphis Grizzlies",
+    "teamCode": "MEM",
+    "seasonYear": 2029,
+    "firstRoundText": "Own or swap for ORL 3-301",
+    "secondRoundText": "To BRK (via PHX); | | ORL if ORL 1-2 in 2029; | | POR (via PHL to IND) + 1",
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+  },
+  {
+    "teamName": "Memphis Grizzlies",
+    "teamCode": "MEM",
+    "seasonYear": 2030,
+    "firstRoundText": "More favorable of (i) MEM and (ii) less favorable of PHX and WAS then least favorable of all to PHX (via WAS swap for PHX; via MEM swap for PHX or WAS); | | ORL",
+    "secondRoundText": "31-50 Own; | 51-60 to MIN",
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+  },
+  {
+    "teamName": "Memphis Grizzlies",
+    "teamCode": "MEM",
+    "seasonYear": 2031,
+    "firstRoundText": "Own",
+    "secondRoundText": "More favorable of (i) MEM and (ii) less favorable of IND and MIA then least favorable of all to IND (via MIA swap for IND; via MEM swap for IND or MIA)",
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+  },
+  {
+    "teamName": "Memphis Grizzlies",
+    "teamCode": "MEM",
+    "seasonYear": 2032,
+    "firstRoundText": "Own",
+    "secondRoundText": "Own; | | GOS 51-601 + 1",
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+  },
+  {
+    "teamName": "New York Knicks",
+    "teamCode": "NYK",
+    "seasonYear": 2026,
+    "firstRoundText": "Own; | | WAS 9-30 (via HOU to OKC) + 1",
+    "secondRoundText": "Less favorable of NYK and MIN; | most favorable of NYK, MIN, NOP and POR to BOS; | less favorable of (i) more favorable of NYK and MIN and (ii) more favorable of NOP and POR to WAS | (via MIN to NYK; via NOP to POR to NOP; via POR to DET to BOS; via DET to WAS); | | Least favorable of DET, MIL and ORL (via DET to LAC to ORL; via ORL to PHX to BRK to NYK); | | WAS if WAS does not convey 1st round pick to NYK in 2026 (via HOU to OKC) + 1",
+    "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+  },
+  {
+    "teamName": "New York Knicks",
+    "teamCode": "NYK",
+    "seasonYear": 2027,
+    "firstRoundText": "To BRK",
+    "secondRoundText": "Own; | | WAS if WAS does not convey 1st round pick to NYK in 2026 (via HOU to OKC); | | Second and third most favorable of OKC, HOU, IND and MIA (via HOU to DET to OKC to NYK) + 1",
+    "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+  },
+  {
+    "teamName": "New York Knicks",
+    "teamCode": "NYK",
+    "seasonYear": 2028,
+    "firstRoundText": "Least favorable of NYK, BRK and PHX if NYK and / or if PHL 9-30, if PHL conveys 1st round pick to OKC in 2026, is less favorable than BRK and PHX; or second most favorable of NYK, BRK and PHX in all other scenarios; | if (i) PHL 9-30, if conveyable, is third most favorable and (ii) NYK is most or second most favorable of NYK, BRK, PHL 9-30 if conveyable, and PHX, then most and third most favorable to BRK; or most / two most favorable to BRK in all other scenarios | (via BRK swap of BRK or PHL for PHX; via BRK swap of BRK or PHX for NYK; via WAS swap for PHX, BRK or PHL)",
+    "secondRoundText": "To DET [DET may convey to UTH]; | | BOS 46-60 (via ORL to PHX); | | Less favorable of IND and PHX (via IND) + 1",
+    "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+  },
+  {
+    "teamName": "New York Knicks",
+    "teamCode": "NYK",
+    "seasonYear": 2029,
+    "firstRoundText": "To BRK",
+    "secondRoundText": "Two most favorable of NYK, DET and MIL to DET then other to SAC (via NYK to DET; via MIL to BRK to DET)",
+    "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+  },
+  {
+    "teamName": "New York Knicks",
+    "teamCode": "NYK",
+    "seasonYear": 2030,
+    "firstRoundText": "Own",
+    "secondRoundText": "To POR",
+    "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+  },
+  {
+    "teamName": "New York Knicks",
+    "teamCode": "NYK",
+    "seasonYear": 2031,
+    "firstRoundText": "To BRK",
+    "secondRoundText": "To CHA",
+    "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+  },
+  {
+    "teamName": "New York Knicks",
+    "teamCode": "NYK",
+    "seasonYear": 2032,
+    "firstRoundText": "Own",
+    "secondRoundText": "Own",
+    "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+  },
+  {
+    "teamName": "Oklahoma City Thunder",
+    "teamCode": "OKC",
+    "seasonYear": 2026,
+    "firstRoundText": "Two most / more favorable of OKC, HOU 5-30 and LAC then other to WAS (via OKC to PHL); | | PHL 5-30; | | UTH 9-301 + 3",
+    "secondRoundText": "Most favorable of OKC, DAL and PHL; second most favorable to PHX and least favorable to WAS (via OKC to HOU to PHX; via OKC to MIA to SAN to WAS); | | HOU if HOU 1-4 in 20261 + 1",
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+  },
+  {
+    "teamName": "Oklahoma City Thunder",
+    "teamCode": "OKC",
+    "seasonYear": 2027,
+    "firstRoundText": "Two most / more favorable of OKC, DEN 6-30 and LAC (via OKC swap of OKC or DEN for LAC); | | PHL 5-30 if not already settled; | | SAN 17-30 (via SAC) + 3",
+    "secondRoundText": "Most favorable of OKC, HOU, IND and MIA; second and third most favorable to NYK; | more favorable of (i) SAN and (ii) least favorable of OKC, HOU, IND and MIA to SAN then least favorable of all to MIA | (via HOU to DET to OKC to NYK; via MIA to OKC to UTH to SAN to MIA); | | CHA if SAN 1-16 in 2027 (via SAC); | | SAC if SAN 1-16 in 2027; PHL if PHL has not conveyed 1st round pick to OKC by 20271 + 3",
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+  },
+  {
+    "teamName": "Oklahoma City Thunder",
+    "teamCode": "OKC",
+    "seasonYear": 2028,
+    "firstRoundText": "Own or swap for DAL; | | DEN 6-30 if not already settled + 1",
+    "secondRoundText": "Own; | | MIL (via BRK to HOU); | | UTH",
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+  },
+  {
+    "teamName": "Oklahoma City Thunder",
+    "teamCode": "OKC",
+    "seasonYear": 2029,
+    "firstRoundText": "Own; | | DEN 6-30 if not already settled; | or DEN 6-30 if DEN conveys a first potential 1st round pick to OKC in 20271 + 1",
+    "secondRoundText": "Own; | | ATL; | | BOS; | | DEN if DEN has not conveyed a first potential 1st round pick to OKC by 2029; | | MIA + 1",
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+  },
+  {
+    "teamName": "Oklahoma City Thunder",
+    "teamCode": "OKC",
+    "seasonYear": 2030,
+    "firstRoundText": "Own; | | DEN 6-30 if not already settled and if DEN has conveyed a first potential 1st round pick to OKC by 20281 + 1",
+    "secondRoundText": "Own; | | DEN (direct or via CHA); | | HOU; | | MIA",
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+  },
+  {
+    "teamName": "Oklahoma City Thunder",
+    "teamCode": "OKC",
+    "seasonYear": 2031,
+    "firstRoundText": "Own",
+    "secondRoundText": "Own; | | Less favorable of NOP and ORL (via ORL swap for NOP)",
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+  },
+  {
+    "teamName": "Oklahoma City Thunder",
+    "teamCode": "OKC",
+    "seasonYear": 2032,
+    "firstRoundText": "Own",
+    "secondRoundText": "Own",
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+  },
+  {
+    "teamName": "Washington Wizards",
+    "teamCode": "WAS",
+    "seasonYear": 2026,
+    "firstRoundText": "1-8 Own or swap for PHX; | two most favorable of (i) less favorable of WAS 1-8 and PHX [or (ii) PHX if WAS not conveyable], (ii) MEM and (iii) ORL to MEM then least favorable of all to CHA | (via WAS swap for PHX; via MEM swap of ORL for PHX or WAS; via MEM swap for PHX, WAS or ORL; via PHX to CHA); | WAS 9-30 to NYK (via HOU to OKC); | | Least / less favorable of OKC, HOU 5-30 and LAC (via OKC to PHL) + 1",
+    "secondRoundText": "To NYK if WAS does not convey 1st round pick to NYK in 2026 (via HOU to OKC); | | Less favorable of (i) more favorable of MIN and NYK and (ii) more favorable of NOP and POR (via MIN to NYK; via NOP to POR to NOP; via POR to DET to WAS); | | Least favorable of OKC, DAL and PHL (via OKC to MIA to SAN); | | PHX + 1",
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+  },
+  {
+    "teamName": "Washington Wizards",
+    "teamCode": "WAS",
+    "seasonYear": 2027,
+    "firstRoundText": "Own",
+    "secondRoundText": "To NYK if WAS does not convey 1st round pick to NYK in 2026 (via HOU to OKC); | | More favorable of BRK and DAL (via DAL to BRK to DET; via DET to WAS); | | CHI (in separate, protected conveyances; via WAS to NOP); | | Less favorable of GOS and PHX + 1",
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+  },
+  {
+    "teamName": "Washington Wizards",
+    "teamCode": "WAS",
+    "seasonYear": 2028,
+    "firstRoundText": "More favorable of (i) more favorable of (a) WAS and (b) least / less favorable of BRK, PHL 9-30 if PHL conveys 1st round pick to OKC in 2026, and PHX and (ii) less favorable of MIL and POR 1-14 if POR has not conveyed 1st round pick to CHI by 2027 [or (ii) MIL if POR not conveyable] then less favorable of (i) and (ii) to MIL; | or More favorable of (i) more favorable of (a) WAS and (b) least / less favorable of BRK, PHL 9-30 if PHL conveys 1st round pick to OKC in 2026, and PHX and (ii) less favorable of MIL and POR if POR has conveyed 1st round pick to CHI by 2027, then less favorable of (i) and (ii) to MIL;&nbsp; | least favorable of WAS, PHL 9-30 if PHL does not convey 1st round pick to BRK in 2027 and if PHL has conveyed 1st round pick to OKC by 2026, BRK and PHX to PHX | (via POR swap for MIL; via BRK swap of BRK or PHL for PHX; via WAS swap for PHX, BRK or PHL; via WAS swap of WAS, BRK, PHL or PHX for MIL or POR)",
+    "secondRoundText": "Less favorable of WAS and LAL then other to ORL (via WAS to LAL to ORL; via LAL to WAS); | | DEN 34-60 (via SAN to SAC) + 1",
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+  },
+  {
+    "teamName": "Washington Wizards",
+    "teamCode": "WAS",
+    "seasonYear": 2029,
+    "firstRoundText": "Own; | | Second most favorable of POR, BOS and MIL (via BOS to POR; via MIL to POR; via POR to WAS)",
+    "secondRoundText": "More favorable of WAS and IND to IND then other to POR (via IND to NYK); | | HOU (via OKC); | | LAL",
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+  },
+  {
+    "teamName": "Washington Wizards",
+    "teamCode": "WAS",
+    "seasonYear": 2030,
+    "firstRoundText": "More favorable of WAS and PHX; | more favorable of (i) MEM and (ii) less favorable of WAS and PHX to MEM then least favorable of all to PHX | (via WAS swap for PHX; via MEM swap for WAS or PHX); | | GOS 21-301 + 1",
+    "secondRoundText": "To PHL; | | GOS if GOS does not convey 1st round pick to WAS in 2030; | | Less favorable of PHX and POR + 1",
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+  },
+  {
+    "teamName": "Washington Wizards",
+    "teamCode": "WAS",
+    "seasonYear": 2031,
+    "firstRoundText": "Own",
+    "secondRoundText": "Own; | | More favorable of MIA and IND (via MIA swap for IND; via UTH)",
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+  },
+  {
+    "teamName": "Washington Wizards",
+    "teamCode": "WAS",
+    "seasonYear": 2032,
+    "firstRoundText": "Own",
+    "secondRoundText": "Own; | | UTH",
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+  }
+]

@@ -1,0 +1,39 @@
+[
+  {
+    "id": "WAS_2027_2nd_to_NOP",
+    "year": 2027,
+    "round": 2,
+    "status": "outgoing",
+    "originalTeam": "WAS",
+    "currentOwner": "NOP",
+    "stepienEligible": false,
+    "tradeable": false,
+    "protection": null,
+    "isSwap": false,
+    "via": "WAS",
+    "recipient": "NOP",
+    "pickNumber": null,
+    "protectionDetails": "CHI (in separate, protected conveyances; via WAS to NOP);",
+    "route": [
+      "WAS"
+    ],
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks",
+    "metadata": {
+      "sourcePage": "WAS",
+      "tradePath": [
+        "WAS"
+      ],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks",
+      "hasComplexRouting": true,
+      "isFromOriginalTeam": false,
+      "pickJourney": {
+        "startedWith": "WAS",
+        "routedThrough": [
+          "WAS"
+        ],
+        "currentlyWith": "NOP",
+        "finalDestination": "NOP"
+      }
+    }
+  }
+]

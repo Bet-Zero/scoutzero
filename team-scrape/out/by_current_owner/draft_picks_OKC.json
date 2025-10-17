@@ -1,0 +1,1078 @@
+[
+  {
+    "id": "NYK_2026_1st_to_OKC",
+    "year": 2026,
+    "round": 1,
+    "status": "outgoing",
+    "originalTeam": "HOU",
+    "currentOwner": "OKC",
+    "stepienEligible": false,
+    "tradeable": false,
+    "protection": null,
+    "isSwap": false,
+    "via": "HOU",
+    "recipient": "OKC",
+    "pickNumber": null,
+    "route": [
+      "HOU"
+    ],
+    "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks",
+    "metadata": {
+      "sourcePage": "HOU",
+      "tradePath": [
+        "HOU"
+      ],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks",
+      "hasComplexRouting": true,
+      "isFromOriginalTeam": false,
+      "pickJourney": {
+        "startedWith": "HOU",
+        "routedThrough": [
+          "HOU"
+        ],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "OKC_2026_1st",
+    "year": 2026,
+    "round": 1,
+    "status": "own",
+    "originalTeam": "OKC",
+    "currentOwner": "OKC",
+    "stepienEligible": true,
+    "tradeable": true,
+    "protection": null,
+    "isSwap": false,
+    "pickNumber": null,
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+    "metadata": {
+      "sourcePage": "OKC",
+      "tradePath": [],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+      "hasComplexRouting": false,
+      "isFromOriginalTeam": true,
+      "pickJourney": {
+        "startedWith": "OKC",
+        "routedThrough": [],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "OKC_2026_1st",
+    "year": 2026,
+    "round": 1,
+    "status": "own",
+    "originalTeam": "OKC",
+    "currentOwner": "OKC",
+    "stepienEligible": true,
+    "tradeable": true,
+    "protection": null,
+    "isSwap": false,
+    "pickNumber": null,
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+    "metadata": {
+      "sourcePage": "OKC",
+      "tradePath": [],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+      "hasComplexRouting": false,
+      "isFromOriginalTeam": true,
+      "pickJourney": {
+        "startedWith": "OKC",
+        "routedThrough": [],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "OKC_2026_2nd_swap",
+    "year": 2026,
+    "round": 2,
+    "status": "contested",
+    "originalTeam": "OKC",
+    "currentOwner": "OKC",
+    "stepienEligible": false,
+    "tradeable": false,
+    "protection": null,
+    "isSwap": true,
+    "pickNumber": null,
+    "swapDetails": {
+      "swapType": "favorable",
+      "favorable": "most"
+    },
+    "route": [
+      "HOU",
+      "MIA",
+      "SAS",
+      "WAS"
+    ],
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+    "metadata": {
+      "sourcePage": "OKC",
+      "tradePath": [
+        "HOU",
+        "MIA",
+        "SAS",
+        "WAS"
+      ],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+      "hasComplexRouting": true,
+      "isFromOriginalTeam": true,
+      "pickJourney": {
+        "startedWith": "OKC",
+        "routedThrough": [],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "OKC_2026_2nd",
+    "year": 2026,
+    "round": 2,
+    "status": "own",
+    "originalTeam": "OKC",
+    "currentOwner": "OKC",
+    "stepienEligible": false,
+    "tradeable": true,
+    "protection": null,
+    "isSwap": false,
+    "pickNumber": null,
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+    "metadata": {
+      "sourcePage": "OKC",
+      "tradePath": [],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+      "hasComplexRouting": false,
+      "isFromOriginalTeam": true,
+      "pickJourney": {
+        "startedWith": "OKC",
+        "routedThrough": [],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "OKC_2027_1st_swap",
+    "year": 2027,
+    "round": 1,
+    "status": "contested",
+    "originalTeam": "OKC",
+    "currentOwner": "OKC",
+    "stepienEligible": true,
+    "tradeable": true,
+    "protection": null,
+    "isSwap": true,
+    "pickNumber": null,
+    "swapDetails": {
+      "swapType": "bilateral",
+      "favorable": null
+    },
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+    "metadata": {
+      "sourcePage": "OKC",
+      "tradePath": [],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+      "hasComplexRouting": false,
+      "isFromOriginalTeam": true,
+      "pickJourney": {
+        "startedWith": "OKC",
+        "routedThrough": [],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "OKC_2027_1st",
+    "year": 2027,
+    "round": 1,
+    "status": "own",
+    "originalTeam": "OKC",
+    "currentOwner": "OKC",
+    "stepienEligible": true,
+    "tradeable": true,
+    "protection": null,
+    "isSwap": false,
+    "pickNumber": null,
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+    "metadata": {
+      "sourcePage": "OKC",
+      "tradePath": [],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+      "hasComplexRouting": false,
+      "isFromOriginalTeam": true,
+      "pickJourney": {
+        "startedWith": "OKC",
+        "routedThrough": [],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "OKC_2027_1st_from_SAC",
+    "year": 2027,
+    "round": 1,
+    "status": "incoming",
+    "originalTeam": "SAC",
+    "currentOwner": "OKC",
+    "stepienEligible": true,
+    "tradeable": true,
+    "protection": null,
+    "isSwap": false,
+    "via": "SAC",
+    "pickNumber": null,
+    "route": [
+      "SAC"
+    ],
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+    "metadata": {
+      "sourcePage": "SAC",
+      "tradePath": [
+        "SAC"
+      ],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+      "hasComplexRouting": true,
+      "isFromOriginalTeam": false,
+      "pickJourney": {
+        "startedWith": "SAC",
+        "routedThrough": [
+          "SAC"
+        ],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "OKC_2027_2nd_from_SAC",
+    "year": 2027,
+    "round": 2,
+    "status": "incoming",
+    "originalTeam": "SAC",
+    "currentOwner": "OKC",
+    "stepienEligible": false,
+    "tradeable": true,
+    "protection": null,
+    "isSwap": false,
+    "via": "SAC",
+    "pickNumber": null,
+    "route": [
+      "SAC"
+    ],
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+    "metadata": {
+      "sourcePage": "SAC",
+      "tradePath": [
+        "SAC"
+      ],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+      "hasComplexRouting": true,
+      "isFromOriginalTeam": false,
+      "pickJourney": {
+        "startedWith": "SAC",
+        "routedThrough": [
+          "SAC"
+        ],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "OKC_2027_2nd_to_OKC",
+    "year": 2027,
+    "round": 2,
+    "status": "outgoing",
+    "originalTeam": "OKC",
+    "currentOwner": "OKC",
+    "stepienEligible": false,
+    "tradeable": false,
+    "protection": null,
+    "isSwap": false,
+    "recipient": "OKC",
+    "pickNumber": null,
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+    "metadata": {
+      "sourcePage": "OKC",
+      "tradePath": [],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+      "hasComplexRouting": false,
+      "isFromOriginalTeam": true,
+      "pickJourney": {
+        "startedWith": "OKC",
+        "routedThrough": [],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "NYK_2028_1st_to_OKC",
+    "year": 2028,
+    "round": 1,
+    "status": "contested",
+    "originalTeam": "NYK",
+    "currentOwner": "OKC",
+    "stepienEligible": false,
+    "tradeable": false,
+    "protection": null,
+    "isSwap": true,
+    "recipient": "OKC",
+    "pickNumber": null,
+    "swapDetails": {
+      "swapType": "favorable",
+      "favorable": "least"
+    },
+    "dependsOn": [
+      "PHL_2026_1st_conditional"
+    ],
+    "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks",
+    "metadata": {
+      "sourcePage": "NYK",
+      "tradePath": [],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks",
+      "hasComplexRouting": false,
+      "isFromOriginalTeam": false,
+      "pickJourney": {
+        "startedWith": "NYK",
+        "routedThrough": [],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "OKC_2028_1st_swap",
+    "year": 2028,
+    "round": 1,
+    "status": "own",
+    "originalTeam": "OKC",
+    "currentOwner": "OKC",
+    "stepienEligible": true,
+    "tradeable": true,
+    "protection": null,
+    "isSwap": true,
+    "pickNumber": null,
+    "swapDetails": {
+      "swapType": "bilateral",
+      "favorable": null
+    },
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+    "metadata": {
+      "sourcePage": "OKC",
+      "tradePath": [],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+      "hasComplexRouting": false,
+      "isFromOriginalTeam": true,
+      "pickJourney": {
+        "startedWith": "OKC",
+        "routedThrough": [],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "OKC_2028_1st",
+    "year": 2028,
+    "round": 1,
+    "status": "own",
+    "originalTeam": "OKC",
+    "currentOwner": "OKC",
+    "stepienEligible": true,
+    "tradeable": true,
+    "protection": null,
+    "isSwap": false,
+    "pickNumber": null,
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+    "metadata": {
+      "sourcePage": "OKC",
+      "tradePath": [],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+      "hasComplexRouting": false,
+      "isFromOriginalTeam": true,
+      "pickJourney": {
+        "startedWith": "OKC",
+        "routedThrough": [],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "WAS_2028_1st_to_OKC",
+    "year": 2028,
+    "round": 1,
+    "status": "contested",
+    "originalTeam": "WAS",
+    "currentOwner": "OKC",
+    "stepienEligible": false,
+    "tradeable": false,
+    "protection": null,
+    "isSwap": true,
+    "recipient": "OKC",
+    "pickNumber": null,
+    "swapDetails": {
+      "swapType": "bilateral",
+      "favorable": null
+    },
+    "route": [
+      "IND"
+    ],
+    "dependsOn": [
+      "PHL_2026_1st_conditional"
+    ],
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks",
+    "metadata": {
+      "sourcePage": "WAS",
+      "tradePath": [
+        "IND"
+      ],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks",
+      "hasComplexRouting": true,
+      "isFromOriginalTeam": false,
+      "pickJourney": {
+        "startedWith": "WAS",
+        "routedThrough": [],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "WAS_2028_1st_to_OKC",
+    "year": 2028,
+    "round": 1,
+    "status": "contested",
+    "originalTeam": "WAS",
+    "currentOwner": "OKC",
+    "stepienEligible": false,
+    "tradeable": false,
+    "protection": null,
+    "isSwap": true,
+    "recipient": "OKC",
+    "pickNumber": null,
+    "swapDetails": {
+      "swapType": "bilateral",
+      "favorable": null
+    },
+    "route": [
+      "IND"
+    ],
+    "dependsOn": [
+      "PHL_2026_1st_conditional"
+    ],
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks",
+    "metadata": {
+      "sourcePage": "WAS",
+      "tradePath": [
+        "IND"
+      ],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks",
+      "hasComplexRouting": true,
+      "isFromOriginalTeam": false,
+      "pickJourney": {
+        "startedWith": "WAS",
+        "routedThrough": [],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "OKC_2028_2nd",
+    "year": 2028,
+    "round": 2,
+    "status": "own",
+    "originalTeam": "OKC",
+    "currentOwner": "OKC",
+    "stepienEligible": false,
+    "tradeable": true,
+    "protection": null,
+    "isSwap": false,
+    "pickNumber": null,
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+    "metadata": {
+      "sourcePage": "OKC",
+      "tradePath": [],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+      "hasComplexRouting": false,
+      "isFromOriginalTeam": true,
+      "pickJourney": {
+        "startedWith": "OKC",
+        "routedThrough": [],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "OKC_2028_2nd",
+    "year": 2028,
+    "round": 2,
+    "status": "own",
+    "originalTeam": "OKC",
+    "currentOwner": "OKC",
+    "stepienEligible": false,
+    "tradeable": true,
+    "protection": null,
+    "isSwap": false,
+    "pickNumber": null,
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+    "metadata": {
+      "sourcePage": "OKC",
+      "tradePath": [],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+      "hasComplexRouting": false,
+      "isFromOriginalTeam": true,
+      "pickJourney": {
+        "startedWith": "OKC",
+        "routedThrough": [],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "OKC_2029_1st",
+    "year": 2029,
+    "round": 1,
+    "status": "own",
+    "originalTeam": "OKC",
+    "currentOwner": "OKC",
+    "stepienEligible": true,
+    "tradeable": true,
+    "protection": null,
+    "isSwap": false,
+    "pickNumber": null,
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+    "metadata": {
+      "sourcePage": "OKC",
+      "tradePath": [],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+      "hasComplexRouting": false,
+      "isFromOriginalTeam": true,
+      "pickJourney": {
+        "startedWith": "OKC",
+        "routedThrough": [],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "OKC_2029_1st",
+    "year": 2029,
+    "round": 1,
+    "status": "own",
+    "originalTeam": "OKC",
+    "currentOwner": "OKC",
+    "stepienEligible": true,
+    "tradeable": true,
+    "protection": null,
+    "isSwap": false,
+    "pickNumber": null,
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+    "metadata": {
+      "sourcePage": "OKC",
+      "tradePath": [],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+      "hasComplexRouting": false,
+      "isFromOriginalTeam": true,
+      "pickJourney": {
+        "startedWith": "OKC",
+        "routedThrough": [],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "OKC_2029_1st_to_OKC",
+    "year": 2029,
+    "round": 1,
+    "status": "outgoing",
+    "originalTeam": "OKC",
+    "currentOwner": "OKC",
+    "stepienEligible": false,
+    "tradeable": false,
+    "protection": null,
+    "isSwap": false,
+    "recipient": "OKC",
+    "pickNumber": null,
+    "dependsOn": [
+      "DEN_2027_1st_conditional"
+    ],
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+    "metadata": {
+      "sourcePage": "OKC",
+      "tradePath": [],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+      "hasComplexRouting": false,
+      "isFromOriginalTeam": true,
+      "pickJourney": {
+        "startedWith": "OKC",
+        "routedThrough": [],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "OKC_2029_2nd",
+    "year": 2029,
+    "round": 2,
+    "status": "own",
+    "originalTeam": "OKC",
+    "currentOwner": "OKC",
+    "stepienEligible": false,
+    "tradeable": true,
+    "protection": null,
+    "isSwap": false,
+    "pickNumber": null,
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+    "metadata": {
+      "sourcePage": "OKC",
+      "tradePath": [],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+      "hasComplexRouting": false,
+      "isFromOriginalTeam": true,
+      "pickJourney": {
+        "startedWith": "OKC",
+        "routedThrough": [],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "OKC_2029_2nd",
+    "year": 2029,
+    "round": 2,
+    "status": "own",
+    "originalTeam": "OKC",
+    "currentOwner": "OKC",
+    "stepienEligible": false,
+    "tradeable": true,
+    "protection": null,
+    "isSwap": false,
+    "pickNumber": null,
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+    "metadata": {
+      "sourcePage": "OKC",
+      "tradePath": [],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+      "hasComplexRouting": false,
+      "isFromOriginalTeam": true,
+      "pickJourney": {
+        "startedWith": "OKC",
+        "routedThrough": [],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "OKC_2029_2nd",
+    "year": 2029,
+    "round": 2,
+    "status": "own",
+    "originalTeam": "OKC",
+    "currentOwner": "OKC",
+    "stepienEligible": false,
+    "tradeable": true,
+    "protection": null,
+    "isSwap": false,
+    "pickNumber": null,
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+    "metadata": {
+      "sourcePage": "OKC",
+      "tradePath": [],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+      "hasComplexRouting": false,
+      "isFromOriginalTeam": true,
+      "pickJourney": {
+        "startedWith": "OKC",
+        "routedThrough": [],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "OKC_2029_2nd_to_OKC",
+    "year": 2029,
+    "round": 2,
+    "status": "outgoing",
+    "originalTeam": "OKC",
+    "currentOwner": "OKC",
+    "stepienEligible": false,
+    "tradeable": false,
+    "protection": null,
+    "isSwap": false,
+    "recipient": "OKC",
+    "pickNumber": null,
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+    "metadata": {
+      "sourcePage": "OKC",
+      "tradePath": [],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+      "hasComplexRouting": false,
+      "isFromOriginalTeam": true,
+      "pickJourney": {
+        "startedWith": "OKC",
+        "routedThrough": [],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "OKC_2029_2nd",
+    "year": 2029,
+    "round": 2,
+    "status": "own",
+    "originalTeam": "OKC",
+    "currentOwner": "OKC",
+    "stepienEligible": false,
+    "tradeable": true,
+    "protection": null,
+    "isSwap": false,
+    "pickNumber": null,
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+    "metadata": {
+      "sourcePage": "OKC",
+      "tradePath": [],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+      "hasComplexRouting": false,
+      "isFromOriginalTeam": true,
+      "pickJourney": {
+        "startedWith": "OKC",
+        "routedThrough": [],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "OKC_2030_1st",
+    "year": 2030,
+    "round": 1,
+    "status": "own",
+    "originalTeam": "OKC",
+    "currentOwner": "OKC",
+    "stepienEligible": true,
+    "tradeable": true,
+    "protection": null,
+    "isSwap": false,
+    "pickNumber": null,
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+    "metadata": {
+      "sourcePage": "OKC",
+      "tradePath": [],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+      "hasComplexRouting": false,
+      "isFromOriginalTeam": true,
+      "pickJourney": {
+        "startedWith": "OKC",
+        "routedThrough": [],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "OKC_2030_1st_to_OKC",
+    "year": 2030,
+    "round": 1,
+    "status": "outgoing",
+    "originalTeam": "OKC",
+    "currentOwner": "OKC",
+    "stepienEligible": false,
+    "tradeable": false,
+    "protection": null,
+    "isSwap": false,
+    "recipient": "OKC",
+    "pickNumber": null,
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+    "metadata": {
+      "sourcePage": "OKC",
+      "tradePath": [],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+      "hasComplexRouting": false,
+      "isFromOriginalTeam": true,
+      "pickJourney": {
+        "startedWith": "OKC",
+        "routedThrough": [],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "OKC_2030_2nd",
+    "year": 2030,
+    "round": 2,
+    "status": "own",
+    "originalTeam": "OKC",
+    "currentOwner": "OKC",
+    "stepienEligible": false,
+    "tradeable": true,
+    "protection": null,
+    "isSwap": false,
+    "pickNumber": null,
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+    "metadata": {
+      "sourcePage": "OKC",
+      "tradePath": [],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+      "hasComplexRouting": false,
+      "isFromOriginalTeam": true,
+      "pickJourney": {
+        "startedWith": "OKC",
+        "routedThrough": [],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "OKC_2030_2nd_from_CHA",
+    "year": 2030,
+    "round": 2,
+    "status": "incoming",
+    "originalTeam": "CHA",
+    "currentOwner": "OKC",
+    "stepienEligible": false,
+    "tradeable": true,
+    "protection": null,
+    "isSwap": false,
+    "via": "CHA",
+    "pickNumber": null,
+    "route": [
+      "CHA"
+    ],
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+    "metadata": {
+      "sourcePage": "CHA",
+      "tradePath": [
+        "CHA"
+      ],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+      "hasComplexRouting": true,
+      "isFromOriginalTeam": false,
+      "pickJourney": {
+        "startedWith": "CHA",
+        "routedThrough": [
+          "CHA"
+        ],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "OKC_2030_2nd",
+    "year": 2030,
+    "round": 2,
+    "status": "own",
+    "originalTeam": "OKC",
+    "currentOwner": "OKC",
+    "stepienEligible": false,
+    "tradeable": true,
+    "protection": null,
+    "isSwap": false,
+    "pickNumber": null,
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+    "metadata": {
+      "sourcePage": "OKC",
+      "tradePath": [],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+      "hasComplexRouting": false,
+      "isFromOriginalTeam": true,
+      "pickJourney": {
+        "startedWith": "OKC",
+        "routedThrough": [],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "OKC_2030_2nd",
+    "year": 2030,
+    "round": 2,
+    "status": "own",
+    "originalTeam": "OKC",
+    "currentOwner": "OKC",
+    "stepienEligible": false,
+    "tradeable": true,
+    "protection": null,
+    "isSwap": false,
+    "pickNumber": null,
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+    "metadata": {
+      "sourcePage": "OKC",
+      "tradePath": [],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+      "hasComplexRouting": false,
+      "isFromOriginalTeam": true,
+      "pickJourney": {
+        "startedWith": "OKC",
+        "routedThrough": [],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "OKC_2031_1st",
+    "year": 2031,
+    "round": 1,
+    "status": "own",
+    "originalTeam": "OKC",
+    "currentOwner": "OKC",
+    "stepienEligible": true,
+    "tradeable": true,
+    "protection": null,
+    "isSwap": false,
+    "pickNumber": null,
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+    "metadata": {
+      "sourcePage": "OKC",
+      "tradePath": [],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+      "hasComplexRouting": false,
+      "isFromOriginalTeam": true,
+      "pickJourney": {
+        "startedWith": "OKC",
+        "routedThrough": [],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "OKC_2031_2nd",
+    "year": 2031,
+    "round": 2,
+    "status": "own",
+    "originalTeam": "OKC",
+    "currentOwner": "OKC",
+    "stepienEligible": false,
+    "tradeable": true,
+    "protection": null,
+    "isSwap": false,
+    "pickNumber": null,
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+    "metadata": {
+      "sourcePage": "OKC",
+      "tradePath": [],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+      "hasComplexRouting": false,
+      "isFromOriginalTeam": true,
+      "pickJourney": {
+        "startedWith": "OKC",
+        "routedThrough": [],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "OKC_2031_2nd_from_ORL",
+    "year": 2031,
+    "round": 2,
+    "status": "contested",
+    "originalTeam": "ORL",
+    "currentOwner": "OKC",
+    "stepienEligible": false,
+    "tradeable": true,
+    "protection": null,
+    "isSwap": true,
+    "via": "ORL",
+    "pickNumber": null,
+    "swapDetails": {
+      "swapType": "bilateral",
+      "favorable": null
+    },
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+    "metadata": {
+      "sourcePage": "ORL",
+      "tradePath": [],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+      "hasComplexRouting": false,
+      "isFromOriginalTeam": false,
+      "pickJourney": {
+        "startedWith": "ORL",
+        "routedThrough": [
+          "ORL"
+        ],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "OKC_2032_1st",
+    "year": 2032,
+    "round": 1,
+    "status": "own",
+    "originalTeam": "OKC",
+    "currentOwner": "OKC",
+    "stepienEligible": true,
+    "tradeable": true,
+    "protection": null,
+    "isSwap": false,
+    "pickNumber": null,
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+    "metadata": {
+      "sourcePage": "OKC",
+      "tradePath": [],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+      "hasComplexRouting": false,
+      "isFromOriginalTeam": true,
+      "pickJourney": {
+        "startedWith": "OKC",
+        "routedThrough": [],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  },
+  {
+    "id": "OKC_2032_2nd",
+    "year": 2032,
+    "round": 2,
+    "status": "own",
+    "originalTeam": "OKC",
+    "currentOwner": "OKC",
+    "stepienEligible": false,
+    "tradeable": true,
+    "protection": null,
+    "isSwap": false,
+    "pickNumber": null,
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+    "metadata": {
+      "sourcePage": "OKC",
+      "tradePath": [],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+      "hasComplexRouting": false,
+      "isFromOriginalTeam": true,
+      "pickJourney": {
+        "startedWith": "OKC",
+        "routedThrough": [],
+        "currentlyWith": "OKC",
+        "finalDestination": "OKC"
+      }
+    }
+  }
+]

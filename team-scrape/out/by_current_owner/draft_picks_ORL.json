@@ -1,0 +1,44 @@
+[
+  {
+    "id": "WAS_2028_2nd_to_ORL",
+    "year": 2028,
+    "round": 2,
+    "status": "contested",
+    "originalTeam": "WAS",
+    "currentOwner": "ORL",
+    "stepienEligible": false,
+    "tradeable": false,
+    "protection": null,
+    "isSwap": true,
+    "via": "WAS",
+    "recipient": "ORL",
+    "pickNumber": null,
+    "swapDetails": {
+      "swapType": "bilateral",
+      "favorable": null
+    },
+    "route": [
+      "WAS",
+      "ORL"
+    ],
+    "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks",
+    "metadata": {
+      "sourcePage": "WAS",
+      "tradePath": [
+        "WAS",
+        "ORL"
+      ],
+      "scrapedFrom": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks",
+      "hasComplexRouting": true,
+      "isFromOriginalTeam": false,
+      "pickJourney": {
+        "startedWith": "WAS",
+        "routedThrough": [
+          "WAS"
+        ],
+        "currentlyWith": "ORL",
+        "finalDestination": "ORL"
+      }
+    }
+  }
+]

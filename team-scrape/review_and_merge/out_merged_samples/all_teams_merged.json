@@ -1,299 +1,14 @@
 [
   {
     "teamCode": "LAL",
-    "teamName": "LOS ANGELES LAKERS",
+    "teamName": "LAL (Name Unknown)",
     "season": "2025-26",
-    "roster": [
-      {
-        "displayName": "James, LeBron",
-        "sourceUrl": "https://www.salaryswish.com/players/lebron-james"
-      },
-      {
-        "displayName": "Doncic, Luka",
-        "sourceUrl": "https://www.salaryswish.com/players/luka-doncic"
-      },
-      {
-        "displayName": "Hachimura, Rui",
-        "sourceUrl": "https://www.salaryswish.com/players/rui-hachimura"
-      },
-      {
-        "displayName": "Reaves, Austin",
-        "sourceUrl": "https://www.salaryswish.com/players/austin-reaves"
-      },
-      {
-        "displayName": "Vanderbilt, Jarred",
-        "sourceUrl": "https://www.salaryswish.com/players/jarred-vanderbilt"
-      },
-      {
-        "displayName": "Vincent, Gabe",
-        "sourceUrl": "https://www.salaryswish.com/players/gabe-vincent"
-      },
-      {
-        "displayName": "Kleber, Maxi",
-        "sourceUrl": "https://www.salaryswish.com/players/maxi-kleber"
-      },
-      {
-        "displayName": "Ayton, Deandre",
-        "sourceUrl": "https://www.salaryswish.com/players/deandre-ayton"
-      },
-      {
-        "displayName": "LaRavia, Jake",
-        "sourceUrl": "https://www.salaryswish.com/players/jake-laravia"
-      },
-      {
-        "displayName": "Smart, Marcus",
-        "sourceUrl": "https://www.salaryswish.com/players/marcus-smart"
-      },
-      {
-        "displayName": "Knecht, Dalton",
-        "sourceUrl": "https://www.salaryswish.com/players/dalton-knecht"
-      },
-      {
-        "displayName": "Hayes, Jaxson",
-        "sourceUrl": "https://www.salaryswish.com/players/jaxson-hayes"
-      },
-      {
-        "displayName": "James, Bronny",
-        "sourceUrl": "https://www.salaryswish.com/players/bronny-james"
-      },
-      {
-        "displayName": "Thiero, Adou",
-        "sourceUrl": "https://www.salaryswish.com/players/adou-thiero"
-      }
-    ],
-    "capHolds": [
-      {
-        "displayName": "Watson, Anton",
-        "sourceUrl": "https://www.salaryswish.com/players/anton-watson",
-        "capHoldAmount": 2457010,
-        "type": "RFA"
-      },
-      {
-        "displayName": "Williams, Nate",
-        "sourceUrl": "https://www.salaryswish.com/players/nate-williams",
-        "capHoldAmount": 2457010,
-        "type": "RFA"
-      },
-      {
-        "displayName": "Davis, RJ",
-        "sourceUrl": "https://www.salaryswish.com/players/rj-davis",
-        "capHoldAmount": 2191886,
-        "type": "RFA"
-      },
-      {
-        "displayName": "Manon, Chris",
-        "sourceUrl": "https://www.salaryswish.com/players/chris-manon",
-        "capHoldAmount": 2191886,
-        "type": "RFA"
-      },
-      {
-        "displayName": "Marčiulionis, Augustas",
-        "sourceUrl": "https://www.salaryswish.com/players/augustas-marciulionis",
-        "capHoldAmount": 2191886,
-        "type": "RFA"
-      },
-      {
-        "displayName": "Smith Jr., Nick",
-        "sourceUrl": "https://www.salaryswish.com/players/nick-smith-jr",
-        "capHoldAmount": 2191886,
-        "type": "RFA"
-      },
-      {
-        "displayName": "Knecht, Dalton",
-        "sourceUrl": "https://www.salaryswish.com/players/dalton-knecht",
-        "capHoldAmount": 19358577,
-        "type": "RFA"
-      },
-      {
-        "displayName": "James, Bronny",
-        "sourceUrl": "https://www.salaryswish.com/players/bronny-james",
-        "capHoldAmount": 2972982,
-        "type": "RFA"
-      },
-      {
-        "displayName": "Thiero, Adou",
-        "sourceUrl": "https://www.salaryswish.com/players/adou-thiero",
-        "capHoldAmount": 2972982,
-        "type": "RFA"
-      },
-      {
-        "displayName": "James, LeBron",
-        "sourceUrl": "https://www.salaryswish.com/players/lebron-james",
-        "capHoldAmount": 57915200,
-        "type": "UFA"
-      },
-      {
-        "displayName": "Hachimura, Rui",
-        "sourceUrl": "https://www.salaryswish.com/players/rui-hachimura",
-        "capHoldAmount": 27388889,
-        "type": "UFA"
-      },
-      {
-        "displayName": "Vincent, Gabe",
-        "sourceUrl": "https://www.salaryswish.com/players/gabe-vincent",
-        "capHoldAmount": 21850000,
-        "type": "UFA"
-      },
-      {
-        "displayName": "Kleber, Maxi",
-        "sourceUrl": "https://www.salaryswish.com/players/maxi-kleber",
-        "capHoldAmount": 20900000,
-        "type": "UFA"
-      },
-      {
-        "displayName": "Hayes, Jaxson",
-        "sourceUrl": "https://www.salaryswish.com/players/jaxson-hayes",
-        "capHoldAmount": 6553714,
-        "type": "UFA"
-      },
-      {
-        "displayName": "Koloko, Christian",
-        "sourceUrl": "https://www.salaryswish.com/players/christian-koloko",
-        "capHoldAmount": 2191886,
-        "type": "UFA"
-      },
-      {
-        "displayName": "Reaves, Austin",
-        "sourceUrl": "https://www.salaryswish.com/players/austin-reaves",
-        "capHoldAmount": 28307693,
-        "type": "UFA"
-      },
-      {
-        "displayName": "Ayton, Deandre",
-        "sourceUrl": "https://www.salaryswish.com/players/deandre-ayton",
-        "capHoldAmount": 10535200,
-        "type": "UFA"
-      },
-      {
-        "displayName": "LaRavia, Jake",
-        "sourceUrl": "https://www.salaryswish.com/players/jake-laravia",
-        "capHoldAmount": 7800000,
-        "type": "UFA"
-      },
-      {
-        "displayName": "Smart, Marcus",
-        "sourceUrl": "https://www.salaryswish.com/players/marcus-smart",
-        "capHoldAmount": 7007910,
-        "type": "UFA"
-      },
-      {
-        "displayName": "Vanderbilt, Jarred",
-        "sourceUrl": "https://www.salaryswish.com/players/jarred-vanderbilt",
-        "capHoldAmount": 25242857,
-        "type": "UFA"
-      },
-      {
-        "displayName": "Doncic, Luka",
-        "sourceUrl": "https://www.salaryswish.com/players/luka-doncic",
-        "capHoldAmount": 77085050,
-        "type": "UFA"
-      },
-      {
-        "displayName": "Ellington, Wayne",
-        "sourceUrl": "https://www.salaryswish.com/players/wayne-ellington",
-        "capHoldAmount": 2296274,
-        "type": "FA Cap Hold"
-      },
-      {
-        "displayName": "Bradley, Avery",
-        "sourceUrl": "https://www.salaryswish.com/players/avery-bradley",
-        "capHoldAmount": 2296274,
-        "type": "FA Cap Hold"
-      },
-      {
-        "displayName": "Dudley, Jared",
-        "sourceUrl": "https://www.salaryswish.com/players/jared-dudley",
-        "capHoldAmount": 2296274,
-        "type": "FA Cap Hold"
-      },
-      {
-        "displayName": "Howard, Dwight",
-        "sourceUrl": "https://www.salaryswish.com/players/dwight-howard",
-        "capHoldAmount": 2296274,
-        "type": "FA Cap Hold"
-      },
-      {
-        "displayName": "Morris, Markieff",
-        "sourceUrl": "https://www.salaryswish.com/players/markieff-morris",
-        "capHoldAmount": 2296274,
-        "type": "FA Cap Hold"
-      },
-      {
-        "displayName": "Waiters, Dion",
-        "sourceUrl": "https://www.salaryswish.com/players/dion-waiters",
-        "capHoldAmount": 2296274,
-        "type": "FA Cap Hold"
-      },
-      {
-        "displayName": "Anthony, Carmelo",
-        "sourceUrl": "https://www.salaryswish.com/players/carmelo-anthony",
-        "capHoldAmount": 2296274,
-        "type": "FA Cap Hold"
-      }
-    ],
+    "roster": [],
+    "capHolds": [],
     "exceptions": {
-      "mle": {
-        "type": "Non-Taxpayer",
-        "totalAmount": 14104000,
-        "usedAmount": 14104000,
-        "remainingAmount": 0,
-        "available": false
-      },
-      "bae": {
-        "totalAmount": 5135000,
-        "usedAmount": 5134000,
-        "remainingAmount": 1000,
-        "available": true
-      },
-      "tpe": [
-        {
-          "id": "TPE-LAL-Dec 29, 2025-1",
-          "totalAmount": 1891857,
-          "usedAmount": 0,
-          "remainingAmount": 1891857,
-          "createdFrom": "Maxwell Lewis",
-          "expiresOn": "Dec 29, 2025"
-        },
-        {
-          "id": "TPE-LAL-Dec 29, 2025-2",
-          "totalAmount": 893140,
-          "usedAmount": 0,
-          "remainingAmount": 893140,
-          "createdFrom": "D'Angelo Russell",
-          "expiresOn": "Dec 29, 2025"
-        },
-        {
-          "id": "TPE-LAL-Feb 2, 2026-3",
-          "totalAmount": 187500,
-          "usedAmount": 0,
-          "remainingAmount": 187500,
-          "createdFrom": "Anthony Davis",
-          "expiresOn": "Feb 2, 2026"
-        }
-      ]
+      "tpe": []
     },
-    "totals": {
-      "totalSalary": 210894723,
-      "activeSalary": 194820805,
-      "deadCapTotal": 0,
-      "capHoldsTotal": 16073918,
-      "guaranteedSalary": 194891405,
-      "rosterCount": 21,
-      "twoWayCount": 3,
-      "salaryCap": 154647000,
-      "capSpace": -40173805,
-      "luxuryTaxLine": 187895000,
-      "taxSpace": -6925805,
-      "firstApronLine": 195945000,
-      "firstApronRoom": 1124195,
-      "firstApronTriggered": false,
-      "secondApronLine": 207824000,
-      "secondApronRoom": 13003195,
-      "secondApronTriggered": false,
-      "hardCappedAt": "firstApron",
-      "incompleteRosterCharges": 0,
-      "likelyIncentives": 0
-    },
+    "totals": {},
     "draftPicks": {
       "incoming": [],
       "outgoing": [
@@ -585,17 +300,17 @@
     },
     "sources": {
       "salary": {
-        "provider": "SalarySwish",
-        "url": "https://www.salaryswish.com/teams/lakers",
-        "scrapedAt": "2025-10-16T05:42:43.365Z"
+        "provider": "None",
+        "url": "",
+        "scrapedAt": ""
       },
       "draftPicks": {
         "provider": "RealGM",
         "url": "https://basketball.realgm.com/nba/teams/Los-Angeles-Lakers/13/draft-picks",
-        "scrapedAt": "2025-10-17T07:21:53.231Z"
+        "scrapedAt": "2025-10-17T08:12:28.771Z"
       }
     },
-    "mergedAt": "2025-10-17T07:21:53.231Z",
+    "mergedAt": "2025-10-17T08:12:28.771Z",
     "version": "2.0"
   },
   {
@@ -972,10 +687,10 @@
       "draftPicks": {
         "provider": "RealGM",
         "url": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks",
-        "scrapedAt": "2025-10-17T07:21:53.234Z"
+        "scrapedAt": "2025-10-17T08:12:28.850Z"
       }
     },
-    "mergedAt": "2025-10-17T07:21:53.234Z",
+    "mergedAt": "2025-10-17T08:12:28.850Z",
     "version": "2.0"
   },
   {
@@ -1488,10 +1203,10 @@
       "draftPicks": {
         "provider": "RealGM",
         "url": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks",
-        "scrapedAt": "2025-10-17T07:21:53.235Z"
+        "scrapedAt": "2025-10-17T08:12:28.888Z"
       }
     },
-    "mergedAt": "2025-10-17T07:21:53.235Z",
+    "mergedAt": "2025-10-17T08:12:28.888Z",
     "version": "2.0"
   },
   {
@@ -2113,22 +1828,327 @@
       "draftPicks": {
         "provider": "RealGM",
         "url": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
-        "scrapedAt": "2025-10-17T07:21:53.237Z"
+        "scrapedAt": "2025-10-17T08:12:28.934Z"
       }
     },
-    "mergedAt": "2025-10-17T07:21:53.237Z",
+    "mergedAt": "2025-10-17T08:12:28.934Z",
     "version": "2.0"
   },
   {
     "teamCode": "WAS",
-    "teamName": "WAS (Name Unknown)",
+    "teamName": "WASHINGTON WIZARDS",
     "season": "2025-26",
-    "roster": [],
-    "capHolds": [],
+    "roster": [
+      {
+        "displayName": "Middleton, Khris",
+        "sourceUrl": "https://www.salaryswish.com/players/khris-middleton"
+      },
+      {
+        "displayName": "McCollum, CJ",
+        "sourceUrl": "https://www.salaryswish.com/players/cj-mccollum"
+      },
+      {
+        "displayName": "Kispert, Corey",
+        "sourceUrl": "https://www.salaryswish.com/players/corey-kispert"
+      },
+      {
+        "displayName": "Sarr, Alexandre",
+        "sourceUrl": "https://www.salaryswish.com/players/alexandre-sarr"
+      },
+      {
+        "displayName": "Johnson, Tre",
+        "sourceUrl": "https://www.salaryswish.com/players/tre-johnson"
+      },
+      {
+        "displayName": "Coulibaly, Bilal",
+        "sourceUrl": "https://www.salaryswish.com/players/bilal-coulibaly"
+      },
+      {
+        "displayName": "Branham, Malaki",
+        "sourceUrl": "https://www.salaryswish.com/players/malaki-branham"
+      },
+      {
+        "displayName": "Carrington, Carlton",
+        "sourceUrl": "https://www.salaryswish.com/players/carlton-carrington"
+      },
+      {
+        "displayName": "Whitmore, Cam",
+        "sourceUrl": "https://www.salaryswish.com/players/cam-whitmore"
+      },
+      {
+        "displayName": "Riley, Will",
+        "sourceUrl": "https://www.salaryswish.com/players/will-riley"
+      },
+      {
+        "displayName": "Johnson, A.J.",
+        "sourceUrl": "https://www.salaryswish.com/players/aj-johnson"
+      },
+      {
+        "displayName": "George, Kyshawn",
+        "sourceUrl": "https://www.salaryswish.com/players/kyshawn-george"
+      },
+      {
+        "displayName": "Jones, Dillon",
+        "sourceUrl": "https://www.salaryswish.com/players/dillon-jones"
+      },
+      {
+        "displayName": "Champagnie, Justin",
+        "sourceUrl": "https://www.salaryswish.com/players/justin-champagnie"
+      },
+      {
+        "displayName": "Bagley III, Marvin",
+        "sourceUrl": "https://www.salaryswish.com/players/marvin-bagleyiii"
+      },
+      {
+        "displayName": "Gill, Anthony",
+        "sourceUrl": "https://www.salaryswish.com/players/anthony-gill"
+      }
+    ],
+    "capHolds": [
+      {
+        "displayName": "Branham, Malaki",
+        "sourceUrl": "https://www.salaryswish.com/players/malaki-branham",
+        "capHoldAmount": 14886099,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Williams, Alondes",
+        "sourceUrl": "https://www.salaryswish.com/players/alondes-williams",
+        "capHoldAmount": 2457010,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Cooper, Sharife",
+        "sourceUrl": "https://www.salaryswish.com/players/sharife-cooper",
+        "capHoldAmount": 2191886,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Richmond, Kadary",
+        "sourceUrl": "https://www.salaryswish.com/players/kadary-richmond",
+        "capHoldAmount": 2191886,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Vukcevic, Tristan",
+        "sourceUrl": "https://www.salaryswish.com/players/tristan-vukcevic",
+        "capHoldAmount": 2191886,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Watkins, Jamir",
+        "sourceUrl": "https://www.salaryswish.com/players/jamir-watkins",
+        "capHoldAmount": 2191886,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Coulibaly, Bilal",
+        "sourceUrl": "https://www.salaryswish.com/players/bilal-coulibaly",
+        "capHoldAmount": 27720036,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Whitmore, Cam",
+        "sourceUrl": "https://www.salaryswish.com/players/cam-whitmore",
+        "capHoldAmount": 16374930,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Sarr, Alexandre",
+        "sourceUrl": "https://www.salaryswish.com/players/alexandre-sarr",
+        "capHoldAmount": 46835394,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Carrington, Carlton",
+        "sourceUrl": "https://www.salaryswish.com/players/carlton-carrington",
+        "capHoldAmount": 21773187,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Johnson, A.J.",
+        "sourceUrl": "https://www.salaryswish.com/players/aj-johnson",
+        "capHoldAmount": 16480179,
+        "type": "RFA"
+      },
+      {
+        "displayName": "George, Kyshawn",
+        "sourceUrl": "https://www.salaryswish.com/players/kyshawn-george",
+        "capHoldAmount": 16307676,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Jones, Dillon",
+        "sourceUrl": "https://www.salaryswish.com/players/dillon-jones",
+        "capHoldAmount": 15601935,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Johnson, Tre",
+        "sourceUrl": "https://www.salaryswish.com/players/tre-johnson",
+        "capHoldAmount": 34470630,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Riley, Will",
+        "sourceUrl": "https://www.salaryswish.com/players/will-riley",
+        "capHoldAmount": 18466056,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Middleton, Khris",
+        "sourceUrl": "https://www.salaryswish.com/players/khris-middleton",
+        "capHoldAmount": 50018519,
+        "type": "UFA"
+      },
+      {
+        "displayName": "McCollum, CJ",
+        "sourceUrl": "https://www.salaryswish.com/players/cj-mccollum",
+        "capHoldAmount": 45999999,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Bagley III, Marvin",
+        "sourceUrl": "https://www.salaryswish.com/players/marvin-bagleyiii",
+        "capHoldAmount": 2457010,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Gill, Anthony",
+        "sourceUrl": "https://www.salaryswish.com/players/anthony-gill",
+        "capHoldAmount": 2457010,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Champagnie, Justin",
+        "sourceUrl": "https://www.salaryswish.com/players/justin-champagnie",
+        "capHoldAmount": 2972982,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Kispert, Corey",
+        "sourceUrl": "https://www.salaryswish.com/players/corey-kispert",
+        "capHoldAmount": 24795000,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Mahinmi, Ian",
+        "sourceUrl": "https://www.salaryswish.com/players/ian-mahinmi",
+        "capHoldAmount": 23175077,
+        "type": "FA Cap Hold"
+      },
+      {
+        "displayName": "Nunn, Kendrick",
+        "sourceUrl": "https://www.salaryswish.com/players/kendrick-nunn",
+        "capHoldAmount": 6825000,
+        "type": "FA Cap Hold"
+      },
+      {
+        "displayName": "Satoransky, Tomas",
+        "sourceUrl": "https://www.salaryswish.com/players/tomas-satoransky",
+        "capHoldAmount": 2296274,
+        "type": "FA Cap Hold"
+      },
+      {
+        "displayName": "Napier, Shabazz",
+        "sourceUrl": "https://www.salaryswish.com/players/shabazz-napier",
+        "capHoldAmount": 2296274,
+        "type": "FA Cap Hold"
+      },
+      {
+        "displayName": "Lawson, Ty",
+        "sourceUrl": "https://www.salaryswish.com/players/ty-lawson",
+        "capHoldAmount": 2296274,
+        "type": "FA Cap Hold"
+      },
+      {
+        "displayName": "Sessions, Ramon",
+        "sourceUrl": "https://www.salaryswish.com/players/ramon-sessions",
+        "capHoldAmount": 2296274,
+        "type": "FA Cap Hold"
+      },
+      {
+        "displayName": "Williams, Johnathan",
+        "sourceUrl": "https://www.salaryswish.com/players/johnathan-williams",
+        "capHoldAmount": 2048494,
+        "type": "FA Cap Hold"
+      },
+      {
+        "displayName": "Winston, Cassius",
+        "sourceUrl": "https://www.salaryswish.com/players/cassius-winston",
+        "capHoldAmount": 2048494,
+        "type": "FA Cap Hold"
+      }
+    ],
     "exceptions": {
-      "tpe": []
+      "mle": {
+        "type": "Non-Taxpayer",
+        "totalAmount": 14104000,
+        "usedAmount": 0,
+        "remainingAmount": 14104000,
+        "available": true
+      },
+      "bae": {
+        "totalAmount": 5135000,
+        "usedAmount": 0,
+        "remainingAmount": 5135000,
+        "available": true
+      },
+      "tpe": [
+        {
+          "id": "TPE-WAS-Feb 5, 2026-1",
+          "totalAmount": 9900000,
+          "usedAmount": 0,
+          "remainingAmount": 9900000,
+          "createdFrom": "Jonas Valanciunas",
+          "expiresOn": "Feb 5, 2026"
+        },
+        {
+          "id": "TPE-WAS-Feb 6, 2026-2",
+          "totalAmount": 5291160,
+          "usedAmount": 4962033,
+          "remainingAmount": 329127,
+          "createdFrom": "Johnny Davis",
+          "expiresOn": "Feb 6, 2026"
+        },
+        {
+          "id": "TPE-WAS-Feb 6, 2026-3",
+          "totalAmount": 2448840,
+          "usedAmount": 2448840,
+          "remainingAmount": 0,
+          "createdFrom": "Patrick Baldwin Jr",
+          "expiresOn": "Feb 6, 2026"
+        },
+        {
+          "id": "TPE-WAS-Jul 8, 2026-4",
+          "totalAmount": 13445122,
+          "usedAmount": 0,
+          "remainingAmount": 13445122,
+          "createdFrom": "Kelly Olynyk",
+          "expiresOn": "Jul 8, 2026"
+        }
+      ]
     },
-    "totals": {},
+    "totals": {
+      "activeSalary": 137753384,
+      "deadCapTotal": 18384313,
+      "capHoldsTotal": 43282161,
+      "guaranteedSalary": 132556638,
+      "rosterCount": 18,
+      "twoWayCount": 3,
+      "salaryCap": 154647000,
+      "capSpace": -1490697,
+      "luxuryTaxLine": 187895000,
+      "taxSpace": 31757303,
+      "firstApronLine": 195945000,
+      "firstApronRoom": 39807303,
+      "firstApronTriggered": false,
+      "secondApronLine": 207824000,
+      "secondApronRoom": 48513465,
+      "secondApronTriggered": false,
+      "hardCappedAt": "firstApron",
+      "likelyIncentives": 3172838
+    },
     "draftPicks": {
       "incoming": [
         {
@@ -2903,17 +2923,17 @@
     },
     "sources": {
       "salary": {
-        "provider": "None",
-        "url": "",
-        "scrapedAt": ""
+        "provider": "SalarySwish",
+        "url": "https://www.salaryswish.com/teams/wizards",
+        "scrapedAt": "2025-10-17T08:09:23.704Z"
       },
       "draftPicks": {
         "provider": "RealGM",
         "url": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks",
-        "scrapedAt": "2025-10-17T07:21:53.239Z"
+        "scrapedAt": "2025-10-17T08:12:28.966Z"
       }
     },
-    "mergedAt": "2025-10-17T07:21:53.239Z",
+    "mergedAt": "2025-10-17T08:12:28.966Z",
     "version": "2.0"
   }
 ]

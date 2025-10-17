@@ -1,0 +1,58 @@
+[
+  {
+    "teamName": "New York Knicks",
+    "teamCode": "NYK",
+    "seasonYear": 2026,
+    "firstRoundText": "Own; | | WAS 9-30 (via HOU to OKC) + 1",
+    "secondRoundText": "Less favorable of NYK and MIN; | most favorable of NYK, MIN, NOP and POR to BOS; | less favorable of (i) more favorable of NYK and MIN and (ii) more favorable of NOP and POR to WAS | (via MIN to NYK; via NOP to POR to NOP; via POR to DET to BOS; via DET to WAS); | | Least favorable of DET, MIL and ORL (via DET to LAC to ORL; via ORL to PHX to BRK to NYK); | | WAS if WAS does not convey 1st round pick to NYK in 2026 (via HOU to OKC) + 1",
+    "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+  },
+  {
+    "teamName": "New York Knicks",
+    "teamCode": "NYK",
+    "seasonYear": 2027,
+    "firstRoundText": "To BRK",
+    "secondRoundText": "Own; | | WAS if WAS does not convey 1st round pick to NYK in 2026 (via HOU to OKC); | | Second and third most favorable of OKC, HOU, IND and MIA (via HOU to DET to OKC to NYK) + 1",
+    "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+  },
+  {
+    "teamName": "New York Knicks",
+    "teamCode": "NYK",
+    "seasonYear": 2028,
+    "firstRoundText": "Least favorable of NYK, BRK and PHX if NYK and / or if PHL 9-30, if PHL conveys 1st round pick to OKC in 2026, is less favorable than BRK and PHX; or second most favorable of NYK, BRK and PHX in all other scenarios; | if (i) PHL 9-30, if conveyable, is third most favorable and (ii) NYK is most or second most favorable of NYK, BRK, PHL 9-30 if conveyable, and PHX, then most and third most favorable to BRK; or most / two most favorable to BRK in all other scenarios | (via BRK swap of BRK or PHL for PHX; via BRK swap of BRK or PHX for NYK; via WAS swap for PHX, BRK or PHL)",
+    "secondRoundText": "To DET [DET may convey to UTH]; | | BOS 46-60 (via ORL to PHX); | | Less favorable of IND and PHX (via IND) + 1",
+    "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+  },
+  {
+    "teamName": "New York Knicks",
+    "teamCode": "NYK",
+    "seasonYear": 2029,
+    "firstRoundText": "To BRK",
+    "secondRoundText": "Two most favorable of NYK, DET and MIL to DET then other to SAC (via NYK to DET; via MIL to BRK to DET)",
+    "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+  },
+  {
+    "teamName": "New York Knicks",
+    "teamCode": "NYK",
+    "seasonYear": 2030,
+    "firstRoundText": "Own",
+    "secondRoundText": "To POR",
+    "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+  },
+  {
+    "teamName": "New York Knicks",
+    "teamCode": "NYK",
+    "seasonYear": 2031,
+    "firstRoundText": "To BRK",
+    "secondRoundText": "To CHA",
+    "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+  },
+  {
+    "teamName": "New York Knicks",
+    "teamCode": "NYK",
+    "seasonYear": 2032,
+    "firstRoundText": "Own",
+    "secondRoundText": "Own",
+    "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+  }
+]

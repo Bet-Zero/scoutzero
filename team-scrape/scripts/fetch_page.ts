@@ -1,6 +1,7 @@
 // fetch_page.ts — with Playwright interactions for Draft
 import fs from 'node:fs/promises';
 import { chromium } from 'playwright';
+import path from 'node:path';
 
 const URL = process.env.TEAM_URL!;
 if (!URL) {
@@ -39,9 +40,10 @@ if (!URL) {
   } catch {}
 
   const html = await page.content();
-  await fs.writeFile('../working/page.html', html, 'utf8');
+  const outputPath = path.join(process.cwd(), 'team-scrape', 'working', 'page.html');
+  await fs.writeFile(outputPath, html, 'utf8');
   await browser.close();
   console.log(
-    'Saved ../working/page.html (Playwright with Draft interactions)'
+    `Saved ${outputPath} (Playwright with Draft interactions)`
   );
 })();
