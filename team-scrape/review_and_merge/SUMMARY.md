@@ -186,16 +186,22 @@ review_and_merge/
 ├── SUMMARY.md                    # This file
 ├── docs/
 │   ├── REPORT.md                 # 27KB comprehensive review
-│   └── README_merge.md           # 10KB merge documentation
+│   ├── README_merge.md           # 10KB merge documentation
+│   └── README_clean_view.md      # 6KB clean view tool documentation
 ├── scripts/
-│   └── merge_team_outputs.ts    # 15KB merge implementation
-└── out_merged_samples/           # 180KB generated outputs
-    ├── LAL_merged.json          # 17KB
-    ├── MEM_merged.json          # 11KB
-    ├── NYK_merged.json          # 15KB
-    ├── OKC_merged.json          # 18KB
-    ├── WAS_merged.json          # 22KB
-    └── all_teams_merged.json    # 87KB
+│   ├── merge_team_outputs.ts    # 15KB merge implementation
+│   └── create_clean_view.ts     # 11KB UI-focused view generator
+├── out_merged_samples/           # 180KB merged outputs
+│   ├── LAL_merged.json          # 17KB
+│   ├── MEM_merged.json          # 11KB
+│   ├── NYK_merged.json          # 15KB
+│   ├── OKC_merged.json          # 18KB
+│   ├── WAS_merged.json          # 22KB
+│   └── all_teams_merged.json    # 87KB
+└── out_clean_views/              # Generated clean views (gitignored)
+    ├── *_clean.json             # JSON without URLs/metadata
+    ├── *_clean.md               # Human-readable Markdown
+    └── all_teams_clean.*        # Combined outputs
 ```
 
 ## Success Criteria
@@ -214,7 +220,7 @@ review_and_merge/
 **This review/merge work is isolated in its own subfolder** as requested:
 - Does not modify existing scraper code
 - Does not change output locations
-- Adds one npm script: `merge:samples`
+- Adds npm scripts: `merge:samples` and `clean-view`
 - Can be tested independently
 
 **When ready to integrate:**
@@ -223,16 +229,35 @@ review_and_merge/
 3. Add to main workflow documentation
 4. Create batch processing scripts
 
-### npm Script Added
+### npm Scripts Added
 
 Added to `package.json`:
 ```json
 {
   "scripts": {
-    "merge:samples": "tsx team-scrape/review_and_merge/scripts/merge_team_outputs.ts"
+    "merge:samples": "tsx team-scrape/review_and_merge/scripts/merge_team_outputs.ts",
+    "clean-view": "npx tsx team-scrape/review_and_merge/scripts/create_clean_view.ts"
   }
 }
 ```
+
+### Clean View Tool
+
+The `clean-view` script generates UI-focused views of the merged data:
+- Removes technical metadata and URLs
+- Formats currency values (e.g., `$194.82M`)
+- Creates human-readable draft pick descriptions
+- Outputs both JSON and Markdown formats
+
+**Usage:**
+```bash
+npm run clean-view
+
+# View output
+cat team-scrape/review_and_merge/out_clean_views/all_teams_clean.md
+```
+
+See `docs/README_clean_view.md` for complete documentation.
 
 ## Validation Commands
 

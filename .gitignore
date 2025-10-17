@@ -101,3 +101,6 @@ player-scrape/test_*.html
 player-scrape/*_backup.html
 player-scrape/output/
 player-scrape/players_list.json
+
+# Team scraper clean views (generated output)
+team-scrape/review_and_merge/out_clean_views/
