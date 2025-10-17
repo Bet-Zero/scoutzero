@@ -54,6 +54,7 @@
     "probe": "tsx team-scrape/scripts/probe.ts",
     "parse": "tsx team-scrape/scripts/parse_team.ts",
     "inspect": "tsx team-scrape/scripts/inspect.ts",
+    "merge:samples": "tsx team-scrape/review_and_merge/scripts/merge_team_outputs.ts",
     "fetch-player": "npx tsx player-scrape/fetch_player_page.ts",
     "parse-player": "npx tsx player-scrape/parse_player.ts",
     "validate-player": "npx tsx player-scrape/validate_player.ts",

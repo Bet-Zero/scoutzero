@@ -1,0 +1,516 @@
+{
+  "teamCode": "NYK",
+  "teamName": "NYK (Name Unknown)",
+  "season": "2025-26",
+  "roster": [],
+  "capHolds": [],
+  "exceptions": {
+    "tpe": []
+  },
+  "totals": {},
+  "draftPicks": {
+    "incoming": [
+      {
+        "id": "NYK_2028_1st_swap",
+        "year": 2028,
+        "round": 1,
+        "status": "incoming",
+        "originalTeam": "NYK",
+        "currentOwner": "NYK",
+        "stepienEligible": true,
+        "tradeable": true,
+        "protection": null,
+        "isSwap": true,
+        "pickNumber": null,
+        "swapDetails": {
+          "swapType": "bilateral",
+          "favorable": null
+        },
+        "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+      }
+    ],
+    "outgoing": [
+      {
+        "id": "NYK_2026_1st_to_OKC",
+        "year": 2026,
+        "round": 1,
+        "status": "outgoing",
+        "originalTeam": "HOU",
+        "currentOwner": "OKC",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": false,
+        "via": "HOU",
+        "recipient": "OKC",
+        "pickNumber": null,
+        "route": [
+          "HOU"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+      },
+      {
+        "id": "NYK_2026_2nd_to_NYK",
+        "year": 2026,
+        "round": 2,
+        "status": "outgoing",
+        "originalTeam": "MIN",
+        "currentOwner": "NYK",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": false,
+        "via": "MIN",
+        "recipient": "NYK",
+        "pickNumber": null,
+        "route": [
+          "MIN",
+          "POR",
+          "DET",
+          "BOS",
+          "WAS"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+      },
+      {
+        "id": "NYK_2026_2nd_to_NYK",
+        "year": 2026,
+        "round": 2,
+        "status": "outgoing",
+        "originalTeam": "HOU",
+        "currentOwner": "NYK",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": false,
+        "via": "HOU",
+        "recipient": "NYK",
+        "pickNumber": null,
+        "route": [
+          "HOU"
+        ],
+        "dependsOn": [
+          "WAS_2026_1st_conditional"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+      },
+      {
+        "id": "NYK_2027_1st_to_BRK",
+        "year": 2027,
+        "round": 1,
+        "status": "outgoing",
+        "originalTeam": "NYK",
+        "currentOwner": "BRK",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": false,
+        "recipient": "BRK",
+        "pickNumber": null,
+        "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+      },
+      {
+        "id": "NYK_2027_2nd_to_NYK",
+        "year": 2027,
+        "round": 2,
+        "status": "outgoing",
+        "originalTeam": "HOU",
+        "currentOwner": "NYK",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": false,
+        "via": "HOU",
+        "recipient": "NYK",
+        "pickNumber": null,
+        "route": [
+          "HOU"
+        ],
+        "dependsOn": [
+          "WAS_2026_1st_conditional"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+      },
+      {
+        "id": "NYK_2028_2nd_to_DET",
+        "year": 2028,
+        "round": 2,
+        "status": "outgoing",
+        "originalTeam": "NYK",
+        "currentOwner": "DET",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": false,
+        "recipient": "DET",
+        "pickNumber": null,
+        "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+      },
+      {
+        "id": "NYK_2028_2nd",
+        "year": 2028,
+        "round": 2,
+        "status": "outgoing",
+        "originalTeam": "ORL",
+        "currentOwner": "NYK",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": false,
+        "via": "ORL",
+        "pickNumber": null,
+        "route": [
+          "ORL"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+      },
+      {
+        "id": "NYK_2029_1st_to_BRK",
+        "year": 2029,
+        "round": 1,
+        "status": "outgoing",
+        "originalTeam": "NYK",
+        "currentOwner": "BRK",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": false,
+        "recipient": "BRK",
+        "pickNumber": null,
+        "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+      },
+      {
+        "id": "NYK_2030_2nd_to_POR",
+        "year": 2030,
+        "round": 2,
+        "status": "outgoing",
+        "originalTeam": "NYK",
+        "currentOwner": "POR",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": false,
+        "recipient": "POR",
+        "pickNumber": null,
+        "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+      },
+      {
+        "id": "NYK_2031_1st_to_BRK",
+        "year": 2031,
+        "round": 1,
+        "status": "outgoing",
+        "originalTeam": "NYK",
+        "currentOwner": "BRK",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": false,
+        "recipient": "BRK",
+        "pickNumber": null,
+        "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+      },
+      {
+        "id": "NYK_2031_2nd_to_CHA",
+        "year": 2031,
+        "round": 2,
+        "status": "outgoing",
+        "originalTeam": "NYK",
+        "currentOwner": "CHA",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": false,
+        "recipient": "CHA",
+        "pickNumber": null,
+        "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+      }
+    ],
+    "own": [
+      {
+        "id": "NYK_2026_1st",
+        "year": 2026,
+        "round": 1,
+        "status": "own",
+        "originalTeam": "NYK",
+        "currentOwner": "NYK",
+        "stepienEligible": true,
+        "tradeable": true,
+        "protection": null,
+        "isSwap": false,
+        "pickNumber": null,
+        "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+      },
+      {
+        "id": "NYK_2027_2nd",
+        "year": 2027,
+        "round": 2,
+        "status": "own",
+        "originalTeam": "NYK",
+        "currentOwner": "NYK",
+        "stepienEligible": false,
+        "tradeable": true,
+        "protection": null,
+        "isSwap": false,
+        "pickNumber": null,
+        "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+      },
+      {
+        "id": "NYK_2030_1st",
+        "year": 2030,
+        "round": 1,
+        "status": "own",
+        "originalTeam": "NYK",
+        "currentOwner": "NYK",
+        "stepienEligible": true,
+        "tradeable": true,
+        "protection": null,
+        "isSwap": false,
+        "pickNumber": null,
+        "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+      },
+      {
+        "id": "NYK_2032_1st",
+        "year": 2032,
+        "round": 1,
+        "status": "own",
+        "originalTeam": "NYK",
+        "currentOwner": "NYK",
+        "stepienEligible": true,
+        "tradeable": true,
+        "protection": null,
+        "isSwap": false,
+        "pickNumber": null,
+        "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+      },
+      {
+        "id": "NYK_2032_2nd",
+        "year": 2032,
+        "round": 2,
+        "status": "own",
+        "originalTeam": "NYK",
+        "currentOwner": "NYK",
+        "stepienEligible": false,
+        "tradeable": true,
+        "protection": null,
+        "isSwap": false,
+        "pickNumber": null,
+        "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+      }
+    ],
+    "contested": [
+      {
+        "id": "NYK_2026_2nd_contested",
+        "year": 2026,
+        "round": 2,
+        "status": "contested",
+        "originalTeam": "NYK",
+        "currentOwner": "NYK",
+        "stepienEligible": false,
+        "tradeable": true,
+        "protection": null,
+        "isSwap": true,
+        "pickNumber": null,
+        "swapDetails": {
+          "swapType": "bilateral",
+          "favorable": null
+        },
+        "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+      },
+      {
+        "id": "NYK_2026_2nd_to_BOS",
+        "year": 2026,
+        "round": 2,
+        "status": "contested",
+        "originalTeam": "NYK",
+        "currentOwner": "BOS",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": true,
+        "recipient": "BOS",
+        "pickNumber": null,
+        "swapDetails": {
+          "swapType": "favorable",
+          "favorable": "most"
+        },
+        "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+      },
+      {
+        "id": "NYK_2026_2nd_to_WAS",
+        "year": 2026,
+        "round": 2,
+        "status": "contested",
+        "originalTeam": "NYK",
+        "currentOwner": "WAS",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": true,
+        "recipient": "WAS",
+        "pickNumber": null,
+        "swapDetails": {
+          "swapType": "bilateral",
+          "favorable": null
+        },
+        "route": [
+          "IND"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+      },
+      {
+        "id": "NYK_2026_2nd_to_LAC",
+        "year": 2026,
+        "round": 2,
+        "status": "contested",
+        "originalTeam": "DET",
+        "currentOwner": "LAC",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": true,
+        "via": "DET",
+        "recipient": "LAC",
+        "pickNumber": null,
+        "swapDetails": {
+          "swapType": "favorable",
+          "favorable": "least"
+        },
+        "route": [
+          "DET",
+          "ORL"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+      },
+      {
+        "id": "NYK_2027_2nd_to_DET",
+        "year": 2027,
+        "round": 2,
+        "status": "contested",
+        "originalTeam": "HOU",
+        "currentOwner": "DET",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": true,
+        "via": "HOU",
+        "recipient": "DET",
+        "pickNumber": null,
+        "swapDetails": {
+          "swapType": "favorable",
+          "favorable": "most"
+        },
+        "route": [
+          "HOU",
+          "DET"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+      },
+      {
+        "id": "NYK_2028_1st_to_OKC",
+        "year": 2028,
+        "round": 1,
+        "status": "contested",
+        "originalTeam": "NYK",
+        "currentOwner": "OKC",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": true,
+        "recipient": "OKC",
+        "pickNumber": null,
+        "swapDetails": {
+          "swapType": "favorable",
+          "favorable": "least"
+        },
+        "dependsOn": [
+          "PHL_2026_1st_conditional"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+      },
+      {
+        "id": "NYK_2028_1st_to_BRK",
+        "year": 2028,
+        "round": 1,
+        "status": "contested",
+        "originalTeam": "NYK",
+        "currentOwner": "BRK",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": true,
+        "recipient": "BRK",
+        "pickNumber": null,
+        "swapDetails": {
+          "swapType": "favorable",
+          "favorable": "most"
+        },
+        "conveysIf": [
+          "if (i) PHL 9-30, if conveyable, is third most favorable and (ii) NYK is most or second most favorable of NYK, BRK, PHL 9-30 if conveyable, and PHX, then most and third most favorable to BRK"
+        ],
+        "route": [
+          "IND"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+      },
+      {
+        "id": "NYK_2028_2nd_from_IND",
+        "year": 2028,
+        "round": 2,
+        "status": "contested",
+        "originalTeam": "IND",
+        "currentOwner": "NYK",
+        "stepienEligible": false,
+        "tradeable": true,
+        "protection": null,
+        "isSwap": true,
+        "via": "IND",
+        "pickNumber": null,
+        "swapDetails": {
+          "swapType": "bilateral",
+          "favorable": null
+        },
+        "route": [
+          "IND"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+      },
+      {
+        "id": "NYK_2029_2nd_to_DET",
+        "year": 2029,
+        "round": 2,
+        "status": "contested",
+        "originalTeam": "NYK",
+        "currentOwner": "DET",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": true,
+        "recipient": "DET",
+        "pickNumber": null,
+        "swapDetails": {
+          "swapType": "favorable",
+          "favorable": "most"
+        },
+        "route": [
+          "DET",
+          "MIL"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+      }
+    ]
+  },
+  "sources": {
+    "salary": {
+      "provider": "None",
+      "url": "",
+      "scrapedAt": ""
+    },
+    "draftPicks": {
+      "provider": "RealGM",
+      "url": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks",
+      "scrapedAt": "2025-10-17T07:21:53.235Z"
+    }
+  },
+  "mergedAt": "2025-10-17T07:21:53.235Z",
+  "version": "2.0"
+}
