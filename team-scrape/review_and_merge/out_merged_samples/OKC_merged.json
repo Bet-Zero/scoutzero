@@ -1,13 +1,230 @@
 {
   "teamCode": "OKC",
-  "teamName": "OKC (Name Unknown)",
+  "teamName": "OKLAHOMA CITY THUNDER",
   "season": "2025-26",
-  "roster": [],
-  "capHolds": [],
+  "roster": [
+    {
+      "displayName": "Gilgeous-Alexander, Shai",
+      "sourceUrl": "https://www.salaryswish.com/players/shai-gilgeousalexander"
+    },
+    {
+      "displayName": "Hartenstein, Isaiah",
+      "sourceUrl": "https://www.salaryswish.com/players/isaiah-hartenstein"
+    },
+    {
+      "displayName": "Caruso, Alex",
+      "sourceUrl": "https://www.salaryswish.com/players/alex-caruso"
+    },
+    {
+      "displayName": "Dort, Luguentz",
+      "sourceUrl": "https://www.salaryswish.com/players/luguentz-dort"
+    },
+    {
+      "displayName": "Holmgren, Chet",
+      "sourceUrl": "https://www.salaryswish.com/players/chet-holmgren"
+    },
+    {
+      "displayName": "Joe, Isaiah",
+      "sourceUrl": "https://www.salaryswish.com/players/isaiah-joe"
+    },
+    {
+      "displayName": "Wiggins, Aaron",
+      "sourceUrl": "https://www.salaryswish.com/players/aaron-wiggins"
+    },
+    {
+      "displayName": "Williams, Jaylin",
+      "sourceUrl": "https://www.salaryswish.com/players/jaylin-williams"
+    },
+    {
+      "displayName": "Williams, Kenrich",
+      "sourceUrl": "https://www.salaryswish.com/players/kenrich-williams"
+    },
+    {
+      "displayName": "Dieng, Ousmane",
+      "sourceUrl": "https://www.salaryswish.com/players/ousmane-dieng"
+    },
+    {
+      "displayName": "Williams, Jalen",
+      "sourceUrl": "https://www.salaryswish.com/players/jalen-williams"
+    },
+    {
+      "displayName": "Wallace, Cason",
+      "sourceUrl": "https://www.salaryswish.com/players/cason-wallace"
+    },
+    {
+      "displayName": "Topić, Nikola",
+      "sourceUrl": "https://www.salaryswish.com/players/nikola-topic"
+    },
+    {
+      "displayName": "Sorber, Thomas",
+      "sourceUrl": "https://www.salaryswish.com/players/thomas-sorber"
+    },
+    {
+      "displayName": "Mitchell, Ajay",
+      "sourceUrl": "https://www.salaryswish.com/players/ajay-mitchell"
+    }
+  ],
+  "capHolds": [
+    {
+      "displayName": "Dieng, Ousmane",
+      "sourceUrl": "https://www.salaryswish.com/players/ousmane-dieng",
+      "capHoldAmount": 20012646,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Leons, Malevy",
+      "sourceUrl": "https://www.salaryswish.com/players/malevy-leons",
+      "capHoldAmount": 2457010,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Austin, Zach",
+      "sourceUrl": "https://www.salaryswish.com/players/zach-austin",
+      "capHoldAmount": 2191886,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Barnhizer, Brooks",
+      "sourceUrl": "https://www.salaryswish.com/players/brooks-barnhizer",
+      "capHoldAmount": 2191886,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Brown, Cameron",
+      "sourceUrl": "https://www.salaryswish.com/players/cameron-brown",
+      "capHoldAmount": 2191886,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Carlson, Branden",
+      "sourceUrl": "https://www.salaryswish.com/players/branden-carlson",
+      "capHoldAmount": 2191886,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Youngblood, Chris",
+      "sourceUrl": "https://www.salaryswish.com/players/chris-youngblood",
+      "capHoldAmount": 2191886,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Wallace, Cason",
+      "sourceUrl": "https://www.salaryswish.com/players/cason-wallace",
+      "capHoldAmount": 22262418,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Topić, Nikola",
+      "sourceUrl": "https://www.salaryswish.com/players/nikola-topic",
+      "capHoldAmount": 22446627,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Sorber, Thomas",
+      "sourceUrl": "https://www.salaryswish.com/players/thomas-sorber",
+      "capHoldAmount": 23548719,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Reynolds II, Erik",
+      "sourceUrl": "https://www.salaryswish.com/players/erik-reynolds-ii",
+      "capHoldAmount": 2191886,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Hartenstein, Isaiah",
+      "sourceUrl": "https://www.salaryswish.com/players/isaiah-hartenstein",
+      "capHoldAmount": 42750000,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Dort, Luguentz",
+      "sourceUrl": "https://www.salaryswish.com/players/luguentz-dort",
+      "capHoldAmount": 26583333,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Williams, Kenrich",
+      "sourceUrl": "https://www.salaryswish.com/players/kenrich-williams",
+      "capHoldAmount": 13609700,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Joe, Isaiah",
+      "sourceUrl": "https://www.salaryswish.com/players/isaiah-joe",
+      "capHoldAmount": 21513711,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Williams, Jaylin",
+      "sourceUrl": "https://www.salaryswish.com/players/jaylin-williams",
+      "capHoldAmount": 14706000,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Mitchell, Ajay",
+      "sourceUrl": "https://www.salaryswish.com/players/ajay-mitchell",
+      "capHoldAmount": 5415000,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Caruso, Alex",
+      "sourceUrl": "https://www.salaryswish.com/players/alex-caruso",
+      "capHoldAmount": 33669720,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Wiggins, Aaron",
+      "sourceUrl": "https://www.salaryswish.com/players/aaron-wiggins",
+      "capHoldAmount": 15182245,
+      "type": "UFA"
+    }
+  ],
   "exceptions": {
-    "tpe": []
+    "mle": {
+      "type": "Non-Taxpayer",
+      "totalAmount": 14104000,
+      "usedAmount": 4105954,
+      "remainingAmount": 9998046,
+      "available": true
+    },
+    "bae": {
+      "totalAmount": 5135000,
+      "usedAmount": 0,
+      "remainingAmount": 5135000,
+      "available": true
+    },
+    "tpe": [
+      {
+        "id": "TPE-OKC-Jun 28, 2026-1",
+        "totalAmount": 501669,
+        "usedAmount": 0,
+        "remainingAmount": 501669,
+        "createdFrom": "Dillon Jones",
+        "expiresOn": "Jun 28, 2026"
+      }
+    ]
   },
-  "totals": {},
+  "totals": {
+    "activeSalary": 185946954,
+    "deadCapTotal": 0,
+    "capHoldsTotal": 0,
+    "guaranteedSalary": 184689267,
+    "rosterCount": 19,
+    "twoWayCount": 2,
+    "salaryCap": 154647000,
+    "capSpace": -31299954,
+    "luxuryTaxLine": 187895000,
+    "taxSpace": 1948046,
+    "firstApronLine": 195945000,
+    "firstApronRoom": 9998046,
+    "firstApronTriggered": false,
+    "secondApronLine": 207824000,
+    "secondApronRoom": 20447140,
+    "secondApronTriggered": false,
+    "hardCappedAt": "none",
+    "likelyIncentives": 1429906
+  },
   "draftPicks": {
     "incoming": [
       {
@@ -610,16 +827,16 @@
   },
   "sources": {
     "salary": {
-      "provider": "None",
-      "url": "",
-      "scrapedAt": ""
+      "provider": "SalarySwish",
+      "url": "https://www.salaryswish.com/teams/thunder",
+      "scrapedAt": "2025-10-17T08:24:36.685Z"
     },
     "draftPicks": {
       "provider": "RealGM",
       "url": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
-      "scrapedAt": "2025-10-17T08:12:28.934Z"
+      "scrapedAt": "2025-10-17T08:30:33.504Z"
     }
   },
-  "mergedAt": "2025-10-17T08:12:28.934Z",
+  "mergedAt": "2025-10-17T08:30:33.504Z",
   "version": "2.0"
 }

@@ -1,0 +1,368 @@
+{
+  "teamCode": "NYK",
+  "teamName": "NEW YORK KNICKS",
+  "season": "2025-26",
+  "roster": [
+    {
+      "displayName": "Towns, Karl-Anthony",
+      "sourceUrl": "https://www.salaryswish.com/players/karl-anthony-towns"
+    },
+    {
+      "displayName": "Anunoby, OG",
+      "sourceUrl": "https://www.salaryswish.com/players/og-anunoby"
+    },
+    {
+      "displayName": "Brunson, Jalen",
+      "sourceUrl": "https://www.salaryswish.com/players/jalen-brunson"
+    },
+    {
+      "displayName": "Bridges, Mikal",
+      "sourceUrl": "https://www.salaryswish.com/players/mikal-bridges"
+    },
+    {
+      "displayName": "Hart, Josh",
+      "sourceUrl": "https://www.salaryswish.com/players/josh-hart"
+    },
+    {
+      "displayName": "Robinson, Mitchell",
+      "sourceUrl": "https://www.salaryswish.com/players/mitchell-robinson"
+    },
+    {
+      "displayName": "Yabusele, Guerschon",
+      "sourceUrl": "https://www.salaryswish.com/players/guerschon-yabusele"
+    },
+    {
+      "displayName": "McBride, Miles",
+      "sourceUrl": "https://www.salaryswish.com/players/miles-mcbride"
+    },
+    {
+      "displayName": "Dadiet, Pacôme",
+      "sourceUrl": "https://www.salaryswish.com/players/pacome-dadiet"
+    },
+    {
+      "displayName": "Clarkson, Jordan",
+      "sourceUrl": "https://www.salaryswish.com/players/jordan-clarkson"
+    },
+    {
+      "displayName": "Kolek, Tyler",
+      "sourceUrl": "https://www.salaryswish.com/players/tyler-kolek"
+    },
+    {
+      "displayName": "Hukporti, Ariel",
+      "sourceUrl": "https://www.salaryswish.com/players/ariel-hukporti"
+    }
+  ],
+  "deadCap": [],
+  "capHolds": [
+    {
+      "displayName": "Koponen, Petteri",
+      "sourceUrl": "https://www.salaryswish.com/players/petteri-koponen",
+      "capHoldAmount": 2743800,
+      "type": "Other"
+    },
+    {
+      "displayName": "Hukporti, Ariel",
+      "sourceUrl": "https://www.salaryswish.com/players/ariel-hukporti",
+      "capHoldAmount": 2457010,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Diawara, Mohamed",
+      "sourceUrl": "https://www.salaryswish.com/players/mohamed-diawara",
+      "capHoldAmount": 2191886,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Evbuomwan, Tosan",
+      "sourceUrl": "https://www.salaryswish.com/players/tosan-evbuomwan",
+      "capHoldAmount": 2191886,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Jemison, Trey",
+      "sourceUrl": "https://www.salaryswish.com/players/trey-jemison",
+      "capHoldAmount": 2191886,
+      "type": "RFA"
+    },
+    {
+      "displayName": "McCullar Jr., Kevin",
+      "sourceUrl": "https://www.salaryswish.com/players/kevin-mccullar-jr",
+      "capHoldAmount": 2191886,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Dadiet, Pacôme",
+      "sourceUrl": "https://www.salaryswish.com/players/pacome-dadiet",
+      "capHoldAmount": 16120824,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Kolek, Tyler",
+      "sourceUrl": "https://www.salaryswish.com/players/tyler-kolek",
+      "capHoldAmount": 2972982,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Robinson, Mitchell",
+      "sourceUrl": "https://www.salaryswish.com/players/mitchell-robinson",
+      "capHoldAmount": 24613637,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Brogdon, Malcolm",
+      "sourceUrl": "https://www.salaryswish.com/players/malcolm-brogdon",
+      "capHoldAmount": 2457010,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Clarkson, Jordan",
+      "sourceUrl": "https://www.salaryswish.com/players/jordan-clarkson",
+      "capHoldAmount": 2457010,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Len, Alex",
+      "sourceUrl": "https://www.salaryswish.com/players/alex-len",
+      "capHoldAmount": 2457010,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Mathews, Garrison",
+      "sourceUrl": "https://www.salaryswish.com/players/garrison-mathews",
+      "capHoldAmount": 2457010,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Ryan, Matt",
+      "sourceUrl": "https://www.salaryswish.com/players/matt-ryan",
+      "capHoldAmount": 2457010,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Shamet, Landry",
+      "sourceUrl": "https://www.salaryswish.com/players/landry-shamet",
+      "capHoldAmount": 2457010,
+      "type": "UFA"
+    },
+    {
+      "displayName": "McBride, Miles",
+      "sourceUrl": "https://www.salaryswish.com/players/miles-mcbride",
+      "capHoldAmount": 7517394,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Yabusele, Guerschon",
+      "sourceUrl": "https://www.salaryswish.com/players/guerschon-yabusele",
+      "capHoldAmount": 7507500,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Towns, Karl-Anthony",
+      "sourceUrl": "https://www.salaryswish.com/players/karl-anthony-towns",
+      "capHoldAmount": 70077350,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Hart, Josh",
+      "sourceUrl": "https://www.salaryswish.com/players/josh-hart",
+      "capHoldAmount": 33562920,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Anunoby, OG",
+      "sourceUrl": "https://www.salaryswish.com/players/og-anunoby",
+      "capHoldAmount": 72543102,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Brunson, Jalen",
+      "sourceUrl": "https://www.salaryswish.com/players/jalen-brunson",
+      "capHoldAmount": 64995842,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Bridges, Mikal",
+      "sourceUrl": "https://www.salaryswish.com/players/mikal-bridges",
+      "capHoldAmount": 62276784,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Tucker, P.J.",
+      "sourceUrl": "https://www.salaryswish.com/players/pj-tucker",
+      "capHoldAmount": 2296274,
+      "type": "FA Cap Hold"
+    }
+  ],
+  "exceptions": {
+    "mle": {
+      "type": "Non-Taxpayer",
+      "totalAmount": 5685000,
+      "usedAmount": 5500000,
+      "remainingAmount": 185000,
+      "available": true
+    },
+    "bae": {
+      "totalAmount": 0,
+      "usedAmount": 0,
+      "remainingAmount": 0,
+      "available": false
+    },
+    "tpe": [
+      {
+        "id": "TPE-NYK-Feb 6, 2026-1",
+        "totalAmount": 2092344,
+        "usedAmount": 0,
+        "remainingAmount": 2092344,
+        "createdFrom": "Jericho Sims",
+        "expiresOn": "Feb 6, 2026"
+      }
+    ]
+  },
+  "draftPicks": [
+    {
+      "year": 2026,
+      "round": 1,
+      "status": "own"
+    },
+    {
+      "year": 2027,
+      "round": 1,
+      "status": "outgoing",
+      "pickNumber": 20,
+      "detailUrl": "https://www.salaryswish.com/draft/2027?pick=20",
+      "title": "Pick traded away on Jul 6, 2024. click to view full details.",
+      "tradedOn": "Jul 6, 2024"
+    },
+    {
+      "year": 2028,
+      "round": 1,
+      "status": "contested",
+      "pickNumber": 20,
+      "detailUrl": "https://www.salaryswish.com/draft/2028?pick=20",
+      "title": "Pick is in contention due to an unresolved trade aspect, the final owner is to be determined. Contending teams: BKN, NYK. Click to view full details",
+      "contendingTeams": [
+        "BKN",
+        "NYK"
+      ]
+    },
+    {
+      "year": 2029,
+      "round": 1,
+      "status": "outgoing",
+      "pickNumber": 20,
+      "detailUrl": "https://www.salaryswish.com/draft/2029?pick=20",
+      "title": "Pick traded away on Jul 6, 2024. click to view full details.",
+      "tradedOn": "Jul 6, 2024"
+    },
+    {
+      "year": 2030,
+      "round": 1,
+      "status": "own"
+    },
+    {
+      "year": 2031,
+      "round": 1,
+      "status": "outgoing",
+      "pickNumber": 20,
+      "detailUrl": "https://www.salaryswish.com/draft/2031?pick=20",
+      "title": "Pick traded away on Jul 6, 2024. click to view full details.",
+      "tradedOn": "Jul 6, 2024"
+    },
+    {
+      "year": 2032,
+      "round": 1,
+      "status": "own"
+    },
+    {
+      "year": 2026,
+      "round": 2,
+      "status": "outgoing",
+      "pickNumber": 50,
+      "detailUrl": "https://www.salaryswish.com/draft/2026?pick=50",
+      "title": "Pick traded away on Jan 14, 2024. click to view full details.",
+      "tradedOn": "Jan 14, 2024"
+    },
+    {
+      "year": 2027,
+      "round": 2,
+      "status": "contested",
+      "pickNumber": 51,
+      "detailUrl": "https://www.salaryswish.com/draft/2027?pick=51",
+      "title": "Pick is in contention due to an unresolved trade aspect, the final owner is to be determined. Contending teams: NYK, MIA, OKC, SAS. Click to view full details",
+      "contendingTeams": [
+        "NYK",
+        "MIA",
+        "OKC",
+        "SAS"
+      ]
+    },
+    {
+      "year": 2028,
+      "round": 2,
+      "status": "outgoing",
+      "pickNumber": 50,
+      "detailUrl": "https://www.salaryswish.com/draft/2028?pick=50",
+      "title": "Pick traded away on Feb 6, 2025. click to view full details.",
+      "tradedOn": "Feb 6, 2025"
+    },
+    {
+      "year": 2029,
+      "round": 2,
+      "status": "outgoing",
+      "pickNumber": 50,
+      "detailUrl": "https://www.salaryswish.com/draft/2029?pick=50",
+      "title": "Pick traded away on Jul 7, 2025. click to view full details.",
+      "tradedOn": "Jul 7, 2025"
+    },
+    {
+      "year": 2030,
+      "round": 2,
+      "status": "outgoing",
+      "pickNumber": 50,
+      "detailUrl": "https://www.salaryswish.com/draft/2030?pick=50",
+      "title": "Pick traded away on Jun 27, 2024. click to view full details.",
+      "tradedOn": "Jun 27, 2024"
+    },
+    {
+      "year": 2031,
+      "round": 2,
+      "status": "outgoing",
+      "pickNumber": 50,
+      "detailUrl": "https://www.salaryswish.com/draft/2031?pick=50",
+      "title": "Pick traded away on Oct 2, 2024. click to view full details.",
+      "tradedOn": "Oct 2, 2024"
+    },
+    {
+      "year": 2032,
+      "round": 2,
+      "status": "own"
+    }
+  ],
+  "totals": {
+    "activeSalary": 204106495,
+    "deadCapTotal": 0,
+    "capHoldsTotal": 5040074,
+    "guaranteedSalary": 203270300,
+    "rosterCount": 18,
+    "twoWayCount": 3,
+    "salaryCap": 154647000,
+    "capSpace": -49459495,
+    "luxuryTaxLine": 187895000,
+    "taxSpace": -16211495,
+    "firstApronLine": 195945000,
+    "firstApronRoom": -8161495,
+    "firstApronTriggered": true,
+    "secondApronLine": 207824000,
+    "secondApronRoom": 3717505,
+    "secondApronTriggered": false,
+    "hardCappedAt": "secondApron",
+    "likelyIncentives": 0
+  },
+  "source": {
+    "provider": "SalarySwish",
+    "teamPageUrl": "https://www.salaryswish.com/teams/knicks",
+    "scrapedAt": "2025-10-17T08:24:25.946Z"
+  },
+  "lastUpdated": "2025-10-17T08:24:25.948Z",
+  "version": "1.0"
+}

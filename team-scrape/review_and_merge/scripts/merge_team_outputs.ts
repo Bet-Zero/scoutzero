@@ -41,7 +41,7 @@ const __dirname = path.dirname(__filename);
 const CONFIG = {
   // Input paths (relative to project root)
   salaryDir: 'team-scrape/output',
-  draftPicksDir: 'team-scrape/output/realgm/out/structured',
+  draftPicksDir: 'team-scrape/output/realgm/out/structured', // Correct path to the actual files
   
   // Output paths
   outputDir: 'team-scrape/review_and_merge/out_merged_samples',
@@ -334,30 +334,41 @@ function mergeTeamData(
  * Load salary data for a team (if available)
  */
 async function loadSalaryData(teamCode: string, projectRoot: string): Promise<SalaryData | null> {
-  // For LAL, the file is team.json
-  // For others, check if team_{CODE}.json exists (future)
-  const possiblePaths = [
-    path.join(projectRoot, CONFIG.salaryDir, 'team.json'),
-    path.join(projectRoot, CONFIG.salaryDir, `team_${teamCode}.json`),
-  ];
-  
-  for (const filePath of possiblePaths) {
-    if (await fileExists(filePath)) {
-      try {
-        const content = await fs.readFile(filePath, 'utf-8');
-        const data = JSON.parse(content) as SalaryData;
-        
-        // Verify it's the correct team
-        if (data.teamCode === teamCode) {
-          log(`✓ Loaded salary data for ${teamCode} from ${path.basename(filePath)}`);
-          return data;
-        }
-      } catch (err) {
-        error(`Failed to parse salary data from ${filePath}`, err);
-      }
+  // Check for individual team files first (preferred pattern)
+  const teamSpecificPath = path.join(projectRoot, CONFIG.salaryDir, `team_${teamCode}.json`);
+  if (await fileExists(teamSpecificPath)) {
+    try {
+      const content = await fs.readFile(teamSpecificPath, 'utf-8');
+      const data = JSON.parse(content) as SalaryData;
+      log(`✓ Loaded salary data for ${teamCode} from team_${teamCode}.json`);
+      return data;
+    } catch (err) {
+      error(`Failed to parse salary data from ${teamSpecificPath}`, err);
     }
   }
   
+  // Fallback to generic team.json file (legacy pattern)
+  const teamJsonPath = path.join(projectRoot, CONFIG.salaryDir, 'team.json');
+  if (await fileExists(teamJsonPath)) {
+    try {
+      const content = await fs.readFile(teamJsonPath, 'utf-8');
+      const data = JSON.parse(content) as SalaryData;
+      
+      // Check if this file contains data for the requested team
+      if (data.teamCode === teamCode) {
+        log(`✓ Loaded salary data for ${teamCode} from team.json`);
+        return data;
+      } else {
+        log(`⚠️  team.json contains ${data.teamCode} data, not ${teamCode}`);
+        return null;
+      }
+    } catch (err) {
+      error(`Failed to parse salary data from ${teamJsonPath}`, err);
+      return null;
+    }
+  }
+  
+  log(`⚠️  No salary data found for ${teamCode}`);
   return null;
 }
 

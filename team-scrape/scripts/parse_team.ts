@@ -600,7 +600,7 @@ async function main() {
     version: '1.0',
   };
 
-  const outputPath = path.join(process.cwd(), 'team-scrape', 'output', 'team.json');
+  const outputPath = path.join(process.cwd(), 'team-scrape', 'output', `team_${teamCode}.json`);
   await fs.writeFile(
     outputPath,
     JSON.stringify(teamDoc, null, 2),
