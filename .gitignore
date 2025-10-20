@@ -107,3 +107,6 @@ team-scrape/review_and_merge/out_clean_views/
 
 # Archive outdated planning/assessment documents that confuse AI
 assessment-docs/
+
+# Generated documentation hierarchy files
+docs/*Hierarchy.md

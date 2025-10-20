@@ -10,7 +10,7 @@ const DOCS_DIR = path.join(ROOT, 'docs');
 async function writeFileIfChanged(filePath, newContent) {
   try {
     const existingContent = await fs.readFile(filePath, 'utf8');
-    
+
     // Remove timestamps from both contents for comparison
     const stripTimestamps = (content) => {
       return content
@@ -18,10 +18,10 @@ async function writeFileIfChanged(filePath, newContent) {
         .replace(/\*Auto-updated by: npm run docs\*/g, '')
         .trim();
     };
-    
+
     const existingStripped = stripTimestamps(existingContent);
     const newStripped = stripTimestamps(newContent);
-    
+
     // Only write if content actually changed
     if (existingStripped !== newStripped) {
       await fs.writeFile(filePath, newContent, 'utf8');
