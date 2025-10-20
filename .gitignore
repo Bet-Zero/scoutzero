@@ -104,3 +104,6 @@ player-scrape/players_list.json
 
 # Team scraper clean views (generated output)
 team-scrape/review_and_merge/out_clean_views/
+
+# Archive outdated planning/assessment documents that confuse AI
+assessment-docs/
