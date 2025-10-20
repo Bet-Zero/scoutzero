@@ -6,6 +6,39 @@ const ROOT = process.cwd();
 const SRC = path.join(ROOT, 'src');
 const DOCS_DIR = path.join(ROOT, 'docs');
 
+// Helper function to check if file content has actually changed
+async function writeFileIfChanged(filePath, newContent) {
+  try {
+    const existingContent = await fs.readFile(filePath, 'utf8');
+    
+    // Remove timestamps from both contents for comparison
+    const stripTimestamps = (content) => {
+      return content
+        .replace(/\*Generated on: .*\*/g, '')
+        .replace(/\*Auto-updated by: npm run docs\*/g, '')
+        .trim();
+    };
+    
+    const existingStripped = stripTimestamps(existingContent);
+    const newStripped = stripTimestamps(newContent);
+    
+    // Only write if content actually changed
+    if (existingStripped !== newStripped) {
+      await fs.writeFile(filePath, newContent, 'utf8');
+      console.log(`Updated: ${path.basename(filePath)}`);
+      return true;
+    } else {
+      console.log(`Unchanged: ${path.basename(filePath)}`);
+      return false;
+    }
+  } catch (err) {
+    // File doesn't exist, write it
+    await fs.writeFile(filePath, newContent, 'utf8');
+    console.log(`Created: ${path.basename(filePath)}`);
+    return true;
+  }
+}
+
 async function generateFileMap() {
   const entries = [
     'AGENTS.md',
@@ -30,7 +63,7 @@ async function generateFileMap() {
   out += `\n\n---\n*Generated on: ${new Date().toISOString()}*\n`;
   out += `*Auto-updated by: npm run docs*\n`;
 
-  await fs.writeFile(path.join(DOCS_DIR, 'FILE_MAP.md'), out, 'utf8');
+  await writeFileIfChanged(path.join(DOCS_DIR, 'FILE_MAP.md'), out);
 }
 
 async function buildTree(dir, prefix = '') {
@@ -74,7 +107,7 @@ ${tree}
 *Auto-updated by: npm run docs*
 `;
     const file = path.join(DOCS_DIR, `${capitalize(feature.name)}Hierarchy.md`);
-    await fs.writeFile(file, md, 'utf8');
+    await writeFileIfChanged(file, md);
   }
 }
 
@@ -101,7 +134,7 @@ async function generateComponentIndex() {
   }
 
   index += `---\n*Generated on: ${new Date().toISOString()}*\n`;
-  await fs.writeFile(path.join(DOCS_DIR, 'COMPONENT_INDEX.md'), index, 'utf8');
+  await writeFileIfChanged(path.join(DOCS_DIR, 'COMPONENT_INDEX.md'), index);
 }
 
 async function getJsxFiles(dir) {
