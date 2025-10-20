@@ -6,11 +6,13 @@
  *   "## ... Future 1st Round Picks" and "## ... Future 2nd Round Picks"
  *   Lines come in groups: <YEAR>, <DESCRIPTION>, <COUNT>
  *
- * Outputs (same as before):
- *   team-scrape/out/draft_picks_raw.json
- *   team-scrape/out/draft_picks_structured.json
- *   team-scrape/out/raw/draft_picks_{CODE}.json
- *   team-scrape/out/structured/draft_picks_{CODE}.json
+ * Outputs:
+ *   team-scrape/output/draft-picks/draft_picks_raw.json
+ *   team-scrape/output/draft-picks/draft_picks_structured.json
+ *   team-scrape/output/draft-picks/draft_picks_by_current_owner.json
+ *   team-scrape/output/draft-picks/raw/draft_picks_{CODE}.json
+ *   team-scrape/output/draft-picks/structured/draft_picks_{CODE}.json
+ *   team-scrape/output/draft-picks/by_current_owner/draft_picks_{CODE}.json
  */
 
 import fs from 'node:fs/promises';
@@ -28,7 +30,7 @@ const getArgVal = (flag: string, def?: string) => {
 };
 
 const OUT_DIR =
-  process.env.OUT_DIR || getArgVal('--outDir', 'team-scrape/out')!;
+  process.env.OUT_DIR || getArgVal('--outDir', 'team-scrape/output/draft-picks')!;
 const PRETTY = asSet.has('--pretty') || process.env.PRETTY === '1';
 const serialize = (obj: unknown) =>
   PRETTY ? JSON.stringify(obj, null, 2) : JSON.stringify(obj);

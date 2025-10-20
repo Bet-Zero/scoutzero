@@ -48,19 +48,23 @@ The team scraping workflow has 3 main phases:
 2. **Inspect/Probe** - Analyze the HTML structure to verify data extraction
 3. **Parse** - Extract structured JSON data from the HTML (excluding draft picks)
 
-## ⚠️ WHICH OUTPUT FILES TO USE
+## ⚠️ OUTPUT FILES ORGANIZATION
 
-**For Draft Picks**: Always use files in `out/` directory:
-- ✅ **Main file**: `out/draft_picks_by_current_owner.json` - All picks organized by team
-- ✅ **Per-team**: `out/by_current_owner/draft_picks_{TEAM}.json` - Individual team files
-- ✅ **Full data**: `out/draft_picks_structured.json` - All picks with metadata
+**All outputs are now clearly organized in subfolders:**
 
-**DO NOT USE**:
-- ❌ `output/realgm/out/*` - Older format, may be incomplete
-- ❌ `review_and_merge/*` - Manual samples only
-- ❌ Duplicate files with same names in multiple directories
+**Team Cap Data** (`output/team-data/`):
+- ✅ **Per-team**: `output/team-data/team_{CODE}.json` - Individual team cap/roster data
+- ✅ **Latest**: `output/team-data/team.json` - Most recent team scraped
 
-**For Team Cap Data**: Use `output/team_{CODE}.json` or `output/team.json`
+**Draft Picks** (`output/draft-picks/`):
+- ✅ **Main file**: `output/draft-picks/draft_picks_by_current_owner.json` - All picks organized by team
+- ✅ **Per-team**: `output/draft-picks/by_current_owner/draft_picks_{TEAM}.json` - Individual team files
+- ✅ **Full data**: `output/draft-picks/draft_picks_structured.json` - All picks with metadata
+- ✅ **Raw data**: `output/draft-picks/draft_picks_raw.json` - Unprocessed scraped text
+
+**Merged Data** (`output/merged/`):
+- ✅ **Complete**: `output/merged/{TEAM}_merged.json` - Team data + draft picks combined
+- ✅ **All teams**: `output/merged/all_teams_merged.json` - All merged teams in one file
 
 ## Current Architecture: Split-to-Merge Strategy
 
@@ -105,17 +109,27 @@ team-scrape/
 │   └── validate_output.ts     # Output validation against schema
 ├── working/                   # WORKING FILES (generated/temporary)
 │   └── page.html             # Current HTML snapshot (working file)
-├── output/                    # OUTPUT FILES (generated results)
-│   ├── team.json             # Latest team cap data output
-│   └── realgm/               # RealGM draft pick outputs
-│       ├── by_current_owner/ # Per-team files organized by actual ownership
-│       │   ├── draft_picks_LAL.json # Lakers' actual pick assets
-│       │   ├── draft_picks_OKC.json # OKC's actual pick assets
-│       │   ├── draft_picks_MEM.json # Memphis' actual pick assets
-│       │   └── draft_picks_*.json   # Individual team files (14+ teams)
-│       ├── draft_picks_by_current_owner.json  # All picks organized by current owner
-│       ├── draft_picks_structured.json        # All picks with full metadata
-│       └── draft_picks_raw.json              # Raw RealGM text for debugging
+├── output/                    # OUTPUT FILES (all generated results, organized by type)
+│   ├── team-data/            # Team cap/roster data from SalarySwish
+│   │   ├── team.json         # Latest team cap data output
+│   │   └── team_{CODE}.json  # Per-team cap data files
+│   ├── draft-picks/          # Draft pick data from RealGM
+│   │   ├── draft_picks_raw.json              # Raw RealGM text for debugging
+│   │   ├── draft_picks_structured.json        # All picks with full metadata
+│   │   ├── draft_picks_by_current_owner.json  # All picks organized by current owner
+│   │   ├── by_current_owner/  # Per-team files organized by actual ownership
+│   │   │   └── draft_picks_{TEAM}.json # Individual team files (LAL, OKC, etc.)
+│   │   ├── raw/              # Per-team raw data
+│   │   │   └── draft_picks_{TEAM}.json
+│   │   └── structured/        # Per-team structured data
+│   │       └── draft_picks_{TEAM}.json
+│   └── merged/               # Combined team + draft pick data
+│       ├── {TEAM}_merged.json      # Per-team merged outputs
+│       └── all_teams_merged.json   # All teams combined
+├── review_and_merge/          # Merge tooling and documentation
+│   ├── scripts/              # Merge scripts
+│   │   └── merge_team_outputs.ts  # Main merge script
+│   └── docs/                 # Merge documentation
 ├── examples/                  # REFERENCE/SAMPLES ("just in case"/"might need")
 │   ├── page.html             # Lakers HTML reference snapshot
 │   ├── team.json             # Lakers output reference  
@@ -143,11 +157,21 @@ team-scrape/
 - **Lifecycle**: Files get replaced each time scripts run
 - **Note**: Kept ungitignored for AI access during development
 
-#### `out/` - **AUTHORITATIVE OUTPUT** (Main Output Directory) ✅
-- **Purpose**: Contains the final, authoritative structured data from RealGM draft pick scraping
-- **Status**: **USE THESE FILES** - Most recent, most complete data
+#### `output/` - **ALL OUTPUT FILES** (Organized by Process Type) ✅
+- **Purpose**: Contains all generated data, organized into clear subfolders by data type
+- **Structure**: Three main categories for clear separation
+
+##### `output/team-data/` - Team Cap/Roster Data
+- **Purpose**: SalarySwish team page data (roster, cap space, exceptions, etc.)
+- **Generated by**: `parse_team.ts` scraper
+- **Files**:
+  - `team.json` - Latest team cap data output
+  - `team_{CODE}.json` - Per-team cap data files (LAL, MEM, NYK, etc.)
+
+##### `output/draft-picks/` - Draft Pick Data
+- **Purpose**: RealGM draft pick ownership data
 - **Generated by**: `realgm_draft_picks.ts` scraper
-- **Structure**:
+- **Files**:
   - `draft_picks_raw.json` - Raw scraped text from RealGM (for debugging)
   - `draft_picks_structured.json` - All picks with full metadata and parsing
   - `draft_picks_by_current_owner.json` - All picks organized by current owner
@@ -155,19 +179,17 @@ team-scrape/
   - `raw/draft_picks_{TEAM}.json` - Per-team raw data
   - `structured/draft_picks_{TEAM}.json` - Per-team structured data
 
-#### `output/` - Legacy/Secondary Output Files ⚠️
-- **Purpose**: Contains older output formats and team cap data
-- **Status**: **SECONDARY** - May contain outdated or partial data
-- **`team.json`**: Latest team cap data from SalarySwish parsing (NOT draft picks)
-- **`team_{CODE}.json`**: Per-team cap data files
-- **`realgm/out/`**: Older RealGM output format (use `out/` instead)
-- **Note**: This directory may contain duplicate or obsolete data. Prefer `out/` for draft picks.
+##### `output/merged/` - Merged Data
+- **Purpose**: Combined team cap data + draft picks for complete team documents
+- **Generated by**: `review_and_merge/scripts/merge_team_outputs.ts`
+- **Files**:
+  - `{TEAM}_merged.json` - Per-team merged outputs (LAL_merged.json, etc.)
+  - `all_teams_merged.json` - All teams combined in one file
 
-#### `review_and_merge/` - Manual Review and Samples
-- **Purpose**: Contains manual review files and merged samples for validation
-- **Status**: Reference only, not for production use
-- **`out_merged_samples/`**: Sample merged outputs combining multiple sources
-- **Use Case**: Manual validation and testing of merge logic
+#### `review_and_merge/` - Merge Tooling
+- **Purpose**: Contains scripts and documentation for merging team data with draft picks
+- **Scripts**: `merge_team_outputs.ts` - Main merge script
+- **Documentation**: Merge process documentation and validation guides
 
 #### `examples/` - Reference/Samples ("Just in Case"/"Might Need")
 - **Purpose**: Contains reference files for understanding expected structure
@@ -339,7 +361,7 @@ team-scrape/
 
 4. **Review team data output**:
    ```bash
-   cat team-scrape/team.json
+   cat team-scrape/output/team-data/team_LAL.json
    ```
 
 ### Separate Draft Pick Scraping Workflow
@@ -347,21 +369,21 @@ team-scrape/
 1. **Scrape draft picks from RealGM**:
 
    ```bash
-   node --experimental-strip-types team-scrape/realgm_draft_picks.ts --teams LAL,MEM,WAS --pretty
+   npm run realgm:drafts -- --teams LAL,MEM,WAS --pretty
    ```
 
 2. **Review draft pick outputs**:
 
    ```bash
    # Organized by current owner (recommended for GM tools)
-   cat team-scrape/output/realgm/draft_picks_by_current_owner.json
+   cat team-scrape/output/draft-picks/draft_picks_by_current_owner.json
 
    # Individual team files by current ownership
-   ls team-scrape/output/realgm/by_current_owner/
-   cat team-scrape/output/realgm/by_current_owner/draft_picks_LAL.json
+   ls team-scrape/output/draft-picks/by_current_owner/
+   cat team-scrape/output/draft-picks/by_current_owner/draft_picks_LAL.json
 
    # All picks with full metadata
-   cat team-scrape/output/realgm/draft_picks_structured.json
+   cat team-scrape/output/draft-picks/draft_picks_structured.json
    ```
 
 ### Complete Team + Draft Picks Workflow
@@ -373,10 +395,13 @@ To get both team cap data AND draft picks for a team:
 TEAM_URL="https://www.salaryswish.com/teams/lakers" TEAM_CODE="LAL" npm run parse
 
 # Step 2: Get draft picks data
-node --experimental-strip-types team-scrape/realgm_draft_picks.ts --teams LAL --pretty
+npm run realgm:drafts -- --teams LAL --pretty
 
-# Step 3: Manual merge (automated merge coming in future)
-# team.json + output/realgm/by_current_owner/draft_picks_LAL.json = complete team document
+# Step 3: Merge team data with draft picks
+npm run merge:samples
+
+# Step 4: Review merged output
+cat team-scrape/output/merged/LAL_merged.json
 ```
 
 ## Data Connections

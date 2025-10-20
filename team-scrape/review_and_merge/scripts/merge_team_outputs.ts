@@ -12,12 +12,12 @@
  *   tsx team-scrape/review_and_merge/scripts/merge_team_outputs.ts
  *
  * INPUT:
- *   - Salary data: team-scrape/output/team.json (LAL only currently)
- *   - Draft picks: team-scrape/output/realgm/out/structured/draft_picks_{TEAM}.json
+ *   - Salary data: team-scrape/output/team-data/team_{TEAM}.json
+ *   - Draft picks: team-scrape/output/draft-picks/structured/draft_picks_{TEAM}.json
  *
  * OUTPUT:
- *   - Individual: team-scrape/review_and_merge/out_merged_samples/{TEAM}_merged.json
- *   - Combined: team-scrape/review_and_merge/out_merged_samples/all_teams_merged.json
+ *   - Individual: team-scrape/output/merged/{TEAM}_merged.json
+ *   - Combined: team-scrape/output/merged/all_teams_merged.json
  *
  * FEATURES:
  *   - Deterministic: Multiple runs produce identical results
@@ -40,11 +40,11 @@ const __dirname = path.dirname(__filename);
 
 const CONFIG = {
   // Input paths (relative to project root)
-  salaryDir: 'team-scrape/output',
-  draftPicksDir: 'team-scrape/output/realgm/out/structured', // Correct path to the actual files
+  salaryDir: 'team-scrape/output/team-data',
+  draftPicksDir: 'team-scrape/output/draft-picks/structured', // Updated path after reorganization
 
   // Output paths
-  outputDir: 'team-scrape/review_and_merge/out_merged_samples',
+  outputDir: 'team-scrape/output/merged',
 
   // Teams to process (based on available draft pick data)
   teams: ['LAL', 'MEM', 'NYK', 'OKC', 'WAS'],
