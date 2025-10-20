@@ -102,7 +102,7 @@ async function main() {
   console.log('📡 Fetching live data from:', TEAM_URL);
   const html = await got(TEAM_URL, { timeout: { request: 45000 } }).text();
   console.log('✅ Successfully fetched team page');
-  
+
   const $ = cheerio.load(html);
 
   // --- Team identity ---
@@ -600,12 +600,13 @@ async function main() {
     version: '1.0',
   };
 
-  const outputPath = path.join(process.cwd(), 'team-scrape', 'output', `team_${teamCode}.json`);
-  await fs.writeFile(
-    outputPath,
-    JSON.stringify(teamDoc, null, 2),
-    'utf8'
+  const outputPath = path.join(
+    process.cwd(),
+    'team-scrape',
+    'output',
+    `team_${teamCode}.json`
   );
+  await fs.writeFile(outputPath, JSON.stringify(teamDoc, null, 2), 'utf8');
   console.log(`✅ Wrote ${outputPath}`);
   console.log(
     `  roster=${roster.length}  tpe=${tpe.length}  holds=${capHolds.length}  picks=${draftPicks.length}`

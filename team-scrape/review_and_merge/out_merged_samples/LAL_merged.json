@@ -307,10 +307,7 @@
         "isSwap": false,
         "recipient": "TOR",
         "pickNumber": null,
-        "route": [
-          "CLE",
-          "MIA"
-        ],
+        "route": ["CLE", "MIA"],
         "detailUrl": "https://basketball.realgm.com/nba/teams/Los-Angeles-Lakers/13/draft-picks"
       },
       {
@@ -335,22 +332,16 @@
             "eligibleForStepien": false,
             "locksYears": [],
             "deadYears": [],
-            "affectedYears": [
-              2027
-            ]
+            "affectedYears": [2027]
           },
           "conditions": {
             "ifConveys": "LAL conveys 1st round pick to UTH in 2027&nbsp",
             "ifRolls": "resolves in current year",
             "protection": "conditional"
           },
-          "affects": [
-            "BRK"
-          ]
+          "affects": ["BRK"]
         },
-        "dependsOn": [
-          "LAL_2027_1st_conditional"
-        ],
+        "dependsOn": ["LAL_2027_1st_conditional"],
         "detailUrl": "https://basketball.realgm.com/nba/teams/Los-Angeles-Lakers/13/draft-picks"
       },
       {
@@ -533,12 +524,8 @@
           "finalYear": 2027,
           "stepienImpact": {
             "eligibleForStepien": false,
-            "locksYears": [
-              2026
-            ],
-            "deadYears": [
-              2027
-            ],
+            "locksYears": [2026],
+            "deadYears": [2027],
             "nextAvailableFirstRound": 2028,
             "conveyanceDeadline": 2027,
             "rolloverYears": []
@@ -548,9 +535,7 @@
             "ifRolls": "doesn't roll - resolves in 2027",
             "protection": "top-4 protected"
           },
-          "affects": [
-            "LAL_2027_2nd"
-          ]
+          "affects": ["LAL_2027_2nd"]
         },
         "detailUrl": "https://basketball.realgm.com/nba/teams/Los-Angeles-Lakers/13/draft-picks"
       },
@@ -572,10 +557,7 @@
           "swapType": "bilateral",
           "favorable": null
         },
-        "route": [
-          "WAS",
-          "ORL"
-        ],
+        "route": ["WAS", "ORL"],
         "detailUrl": "https://basketball.realgm.com/nba/teams/Los-Angeles-Lakers/13/draft-picks"
       }
     ]

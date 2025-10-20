@@ -40,10 +40,13 @@ if (!URL) {
   } catch {}
 
   const html = await page.content();
-  const outputPath = path.join(process.cwd(), 'team-scrape', 'working', 'page.html');
+  const outputPath = path.join(
+    process.cwd(),
+    'team-scrape',
+    'working',
+    'page.html'
+  );
   await fs.writeFile(outputPath, html, 'utf8');
   await browser.close();
-  console.log(
-    `Saved ${outputPath} (Playwright with Draft interactions)`
-  );
+  console.log(`Saved ${outputPath} (Playwright with Draft interactions)`);
 })();

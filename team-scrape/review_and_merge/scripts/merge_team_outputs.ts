@@ -1,24 +1,24 @@
 #!/usr/bin/env tsx
 /**
  * merge_team_outputs.ts - Merge salary and draft pick data into unified team documents
- * 
+ *
  * PURPOSE:
  *   Combines team salary data (from SalarySwish) with draft pick data (from RealGM)
  *   into a single merged JSON file per team following the proposed final schema.
- * 
+ *
  * USAGE:
  *   npm run merge:samples
  *   # or directly:
  *   tsx team-scrape/review_and_merge/scripts/merge_team_outputs.ts
- * 
+ *
  * INPUT:
  *   - Salary data: team-scrape/output/team.json (LAL only currently)
  *   - Draft picks: team-scrape/output/realgm/out/structured/draft_picks_{TEAM}.json
- * 
+ *
  * OUTPUT:
  *   - Individual: team-scrape/review_and_merge/out_merged_samples/{TEAM}_merged.json
  *   - Combined: team-scrape/review_and_merge/out_merged_samples/all_teams_merged.json
- * 
+ *
  * FEATURES:
  *   - Deterministic: Multiple runs produce identical results
  *   - Idempotent: Safe to run repeatedly
@@ -42,13 +42,13 @@ const CONFIG = {
   // Input paths (relative to project root)
   salaryDir: 'team-scrape/output',
   draftPicksDir: 'team-scrape/output/realgm/out/structured', // Correct path to the actual files
-  
+
   // Output paths
   outputDir: 'team-scrape/review_and_merge/out_merged_samples',
-  
+
   // Teams to process (based on available draft pick data)
   teams: ['LAL', 'MEM', 'NYK', 'OKC', 'WAS'],
-  
+
   // Pretty print JSON
   prettyPrint: true,
 };
@@ -207,7 +207,7 @@ async function ensureDir(dirPath: string): Promise<void> {
 }
 
 function serializeJSON(obj: any): string {
-  return CONFIG.prettyPrint 
+  return CONFIG.prettyPrint
     ? JSON.stringify(obj, null, 2)
     : JSON.stringify(obj);
 }
@@ -219,17 +219,19 @@ function serializeJSON(obj: any): string {
 /**
  * Group draft picks by status (incoming, outgoing, own, contested)
  */
-function groupDraftPicksByStatus(picks: DraftPick[]): MergedTeamData['draftPicks'] {
+function groupDraftPicksByStatus(
+  picks: DraftPick[]
+): MergedTeamData['draftPicks'] {
   const grouped: MergedTeamData['draftPicks'] = {
     incoming: [],
     outgoing: [],
     own: [],
     contested: [],
   };
-  
+
   for (const pick of picks) {
     const status = pick.status.toLowerCase();
-    
+
     if (status === 'incoming' || status === 'swap') {
       grouped.incoming.push(pick);
     } else if (status === 'outgoing') {
@@ -245,19 +247,19 @@ function groupDraftPicksByStatus(picks: DraftPick[]): MergedTeamData['draftPicks
       grouped.contested.push(pick);
     }
   }
-  
+
   // Sort each group by year, then round
-  const sortPicks = (picks: DraftPick[]) => 
+  const sortPicks = (picks: DraftPick[]) =>
     picks.sort((a, b) => {
       if (a.year !== b.year) return a.year - b.year;
       return a.round - b.round;
     });
-  
+
   grouped.incoming = sortPicks(grouped.incoming);
   grouped.outgoing = sortPicks(grouped.outgoing);
   grouped.own = sortPicks(grouped.own);
   grouped.contested = sortPicks(grouped.contested);
-  
+
   return grouped;
 }
 
@@ -270,11 +272,11 @@ function mergeTeamData(
   teamCode: string
 ): MergedTeamData {
   const now = new Date().toISOString();
-  
+
   // If no salary data, create minimal structure
   if (!salaryData) {
     warn(`No salary data for ${teamCode}, creating minimal merged document`);
-    
+
     return {
       teamCode,
       teamName: `${teamCode} (Name Unknown)`,
@@ -300,7 +302,7 @@ function mergeTeamData(
       version: '2.0',
     };
   }
-  
+
   // Create merged document from salary data + draft picks
   const merged: MergedTeamData = {
     teamCode: salaryData.teamCode,
@@ -326,16 +328,23 @@ function mergeTeamData(
     mergedAt: now,
     version: '2.0',
   };
-  
+
   return merged;
 }
 
 /**
  * Load salary data for a team (if available)
  */
-async function loadSalaryData(teamCode: string, projectRoot: string): Promise<SalaryData | null> {
+async function loadSalaryData(
+  teamCode: string,
+  projectRoot: string
+): Promise<SalaryData | null> {
   // Check for individual team files first (preferred pattern)
-  const teamSpecificPath = path.join(projectRoot, CONFIG.salaryDir, `team_${teamCode}.json`);
+  const teamSpecificPath = path.join(
+    projectRoot,
+    CONFIG.salaryDir,
+    `team_${teamCode}.json`
+  );
   if (await fileExists(teamSpecificPath)) {
     try {
       const content = await fs.readFile(teamSpecificPath, 'utf-8');
@@ -346,14 +355,14 @@ async function loadSalaryData(teamCode: string, projectRoot: string): Promise<Sa
       error(`Failed to parse salary data from ${teamSpecificPath}`, err);
     }
   }
-  
+
   // Fallback to generic team.json file (legacy pattern)
   const teamJsonPath = path.join(projectRoot, CONFIG.salaryDir, 'team.json');
   if (await fileExists(teamJsonPath)) {
     try {
       const content = await fs.readFile(teamJsonPath, 'utf-8');
       const data = JSON.parse(content) as SalaryData;
-      
+
       // Check if this file contains data for the requested team
       if (data.teamCode === teamCode) {
         log(`✓ Loaded salary data for ${teamCode} from team.json`);
@@ -367,7 +376,7 @@ async function loadSalaryData(teamCode: string, projectRoot: string): Promise<Sa
       return null;
     }
   }
-  
+
   log(`⚠️  No salary data found for ${teamCode}`);
   return null;
 }
@@ -375,18 +384,21 @@ async function loadSalaryData(teamCode: string, projectRoot: string): Promise<Sa
 /**
  * Load draft pick data for a team
  */
-async function loadDraftPickData(teamCode: string, projectRoot: string): Promise<DraftPick[]> {
+async function loadDraftPickData(
+  teamCode: string,
+  projectRoot: string
+): Promise<DraftPick[]> {
   const filePath = path.join(
     projectRoot,
     CONFIG.draftPicksDir,
     `draft_picks_${teamCode}.json`
   );
-  
+
   if (!(await fileExists(filePath))) {
     warn(`Draft pick file not found: ${filePath}`);
     return [];
   }
-  
+
   try {
     const content = await fs.readFile(filePath, 'utf-8');
     const picks = JSON.parse(content) as DraftPick[];
@@ -409,22 +421,22 @@ async function processTeam(
   log(`\n${'='.repeat(60)}`);
   log(`Processing team: ${teamCode}`);
   log('='.repeat(60));
-  
+
   // Load salary data (optional - may not exist for all teams yet)
   const salaryData = await loadSalaryData(teamCode, projectRoot);
-  
+
   // Load draft pick data (should exist for all sample teams)
   const draftPicks = await loadDraftPickData(teamCode, projectRoot);
-  
+
   if (!salaryData && draftPicks.length === 0) {
     warn(`No data found for ${teamCode}, skipping`);
     return null;
   }
-  
+
   // Merge the data
   log(`Merging data for ${teamCode}...`);
   const merged = mergeTeamData(salaryData, draftPicks, teamCode);
-  
+
   // Log merge summary
   log(`Merge summary for ${teamCode}:`);
   console.log(`  - Roster: ${merged.roster.length} players`);
@@ -436,12 +448,12 @@ async function processTeam(
   console.log(`    - Contested: ${merged.draftPicks.contested.length}`);
   console.log(`  - Total Salary: ${merged.totals.totalSalary || 'N/A'}`);
   console.log(`  - Cap Space: ${merged.totals.capSpace || 'N/A'}`);
-  
+
   // Write individual team file
   const outputPath = path.join(outputDir, `${teamCode}_merged.json`);
   await fs.writeFile(outputPath, serializeJSON(merged));
   log(`✓ Wrote merged output: ${outputPath}`);
-  
+
   return merged;
 }
 
@@ -460,16 +472,16 @@ async function main() {
   console.log(`  - Teams to process: ${CONFIG.teams.join(', ')}`);
   console.log(`  - Pretty print: ${CONFIG.prettyPrint}`);
   console.log('');
-  
+
   // Determine project root (3 levels up from this script)
   const projectRoot = path.resolve(__dirname, '../../..');
   log(`Project root: ${projectRoot}`);
-  
+
   // Ensure output directory exists
   const outputDir = path.join(projectRoot, CONFIG.outputDir);
   await ensureDir(outputDir);
   log(`Output directory ready: ${outputDir}\n`);
-  
+
   // Process each team
   const mergedTeams: MergedTeamData[] = [];
   const stats = {
@@ -478,13 +490,13 @@ async function main() {
     failed: 0,
     skipped: 0,
   };
-  
+
   for (const teamCode of CONFIG.teams) {
     stats.processed++;
-    
+
     try {
       const merged = await processTeam(teamCode, projectRoot, outputDir);
-      
+
       if (merged) {
         mergedTeams.push(merged);
         stats.successful++;
@@ -496,18 +508,18 @@ async function main() {
       stats.failed++;
     }
   }
-  
+
   // Write combined file (all teams)
   if (mergedTeams.length > 0) {
     log(`\n${'='.repeat(60)}`);
     log('Writing combined output file...');
-    
+
     const allTeamsPath = path.join(outputDir, 'all_teams_merged.json');
     await fs.writeFile(allTeamsPath, serializeJSON(mergedTeams));
     log(`✓ Wrote combined output: ${allTeamsPath}`);
     log(`  - ${mergedTeams.length} teams included`);
   }
-  
+
   // Final summary
   console.log('\n' + '='.repeat(70));
   console.log('MERGE COMPLETE');
@@ -518,19 +530,23 @@ async function main() {
   console.log(`  - Failed: ${stats.failed}`);
   console.log(`  - Skipped: ${stats.skipped}`);
   console.log(`\nOutput files:`);
-  console.log(`  - Individual: ${stats.successful} team files in ${CONFIG.outputDir}/`);
+  console.log(
+    `  - Individual: ${stats.successful} team files in ${CONFIG.outputDir}/`
+  );
   console.log(`  - Combined: all_teams_merged.json`);
   console.log('');
-  
+
   // Note about missing salary data
   if (stats.successful < CONFIG.teams.length) {
     console.log('⚠️  NOTE: Some teams are missing salary data. To complete:');
     console.log('   Run salary scraper for each team:');
-    console.log('   TEAM_URL="https://www.salaryswish.com/teams/{team}" TEAM_CODE="{CODE}" npm run parse');
+    console.log(
+      '   TEAM_URL="https://www.salaryswish.com/teams/{team}" TEAM_CODE="{CODE}" npm run parse'
+    );
     console.log('   Then re-run this merge script.');
     console.log('');
   }
-  
+
   process.exit(stats.failed > 0 ? 1 : 0);
 }
 
