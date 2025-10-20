@@ -161,4 +161,4 @@ Quick reference for all components in the ScoutZero project.
 - TierRow.jsx
 
 ---
-*Generated on: 2025-10-20T05:31:41.701Z*
+*Generated on: 2025-10-20T05:31:42.848Z*
