@@ -368,14 +368,21 @@ function parseSwap(text: string, MAP: Record<string, string>) {
 }
 function detectStatus(text: string): StructuredPick['status'] {
   const t = text.toLowerCase();
-  if (/^\s*to\s+/i.test(text)) return 'outgoing';
-  if (/\bto\s+/.test(t)) return 'outgoing';
-  if (/\bvia\s+/.test(t) || /\bincoming\b/.test(t)) return 'incoming';
+  
+  // Check for contested/swap picks FIRST (before checking "to")
   if (
     /(most|least)\s+favorable/i.test(text) ||
     /more|less favorable/i.test(text)
   )
     return 'contested';
+  
+  if (/^\s*to\s+/i.test(text)) return 'outgoing';
+  if (/\bto\s+/.test(t)) return 'outgoing';
+  if (/\bvia\s+/.test(t) || /\bincoming\b/.test(t)) return 'incoming';
+  
+  // NEW: Detect team code shorthand as incoming (e.g., "PHL 5-30", "UTH 9-30")
+  if (parseTeamCodePrefix(text)) return 'incoming';
+  
   if (/\bown\b/.test(t)) return 'own';
   return 'own';
 }
@@ -383,20 +390,58 @@ function parseVia(text: string): string | undefined {
   const m = text.match(/\bvia\s+([A-Z][A-Za-z .'\-]+?)(?:\s|[.;,)|]|$)/);
   return m ? teamCodeFromName(m[1], INTERNAL_TEAM_CODE_MAP) : undefined;
 }
+
+// NEW: Detect team code shorthand (e.g., "PHL 5-30" or "UTH 9-30")
+// This pattern means the pick is coming FROM that team
+function parseTeamCodePrefix(text: string): string | undefined {
+  // Match pattern: Team code at start, optionally followed by pick range or other text
+  // Must be followed by space and then digits (pick range) or end of string
+  const m = text.match(/^([A-Z]{2,3})(?:\s+[\d\-+\s;]*)?$/);
+  if (!m) return undefined;
+  
+  const candidateCode = m[1];
+  
+  // Map common variations (RealGM sometimes uses different codes)
+  const codeVariations: Record<string, string> = {
+    'PHL': 'PHI', // Philadelphia 
+    'PHX': 'PHO', // Phoenix (sometimes)
+    'SA': 'SAS',  // San Antonio
+    'GS': 'GSW',  // Golden State
+    'NO': 'NOP',  // New Orleans
+  };
+  
+  const normalizedCode = codeVariations[candidateCode] || candidateCode;
+  
+  // Check if it's a valid team code (either directly or after normalization)
+  const isValidCode = Object.values(INTERNAL_TEAM_CODE_MAP).includes(normalizedCode) ||
+                      Object.values(INTERNAL_TEAM_CODE_MAP).includes(candidateCode);
+  
+  return isValidCode ? normalizedCode : undefined;
+}
 function parseTo(text: string): string | undefined {
-  // First try to match team codes (2-3 uppercase letters) - Fixed regex
+  // First try to match team codes (2-3 uppercase letters)
   const codeMatch = text.match(/\bto\s+([A-Z]{2,3})(?:\b|$)/i);
 
   if (codeMatch) {
     const teamCode = codeMatch[1];
+    
+    // Map common variations (same as parseTeamCodePrefix)
+    const codeVariations: Record<string, string> = {
+      'PHL': 'PHI',
+      'PHX': 'PHO',
+      'SA': 'SAS',
+      'GS': 'GSW',
+      'NO': 'NOP',
+    };
+    
+    const normalizedCode = codeVariations[teamCode] || teamCode;
 
-    // Check if it's already a valid team code
-    const isValidCode = Object.values(INTERNAL_TEAM_CODE_MAP).includes(
-      teamCode
-    );
+    // Check if it's a valid team code (either directly or after normalization)
+    const isValidCode = Object.values(INTERNAL_TEAM_CODE_MAP).includes(normalizedCode) ||
+                        Object.values(INTERNAL_TEAM_CODE_MAP).includes(teamCode);
 
     if (isValidCode) {
-      return teamCode;
+      return normalizedCode;
     }
   }
 
@@ -792,6 +837,9 @@ function toStructured(row: RawRow, round: 1 | 2): StructuredPick[] {
     const beginsWithTo = /^\s*to\s+/i.test(part);
     const via = beginsWithTo ? undefined : parseVia(part);
     const toTeam = parseTo(part);
+    
+    // NEW: Check for team code prefix (e.g., "PHL 5-30" means via PHL)
+    const teamCodePrefix = parseTeamCodePrefix(part);
 
     const { protection, protectionDetails } = extractProtection(round, part);
     const swap = parseSwap(part, INTERNAL_TEAM_CODE_MAP);
@@ -801,17 +849,31 @@ function toStructured(row: RawRow, round: 1 | 2): StructuredPick[] {
     let originalTeam = row.teamCode;
     let currentOwner = row.teamCode;
 
-    if (via) originalTeam = via;
+    // Handle different pick types
+    if (via) {
+      originalTeam = via;
+    } else if (teamCodePrefix && status === 'incoming') {
+      // Team code shorthand: "PHL 5-30" means pick originally from PHL
+      originalTeam = teamCodePrefix;
+    }
+    
     if (status === 'outgoing' && toTeam) currentOwner = toTeam;
-    if (status === 'incoming' && via) currentOwner = row.teamCode;
+    if (status === 'incoming') currentOwner = row.teamCode;
 
     // Generate specific ID based on pick type
     let idSuffix = '';
-    if (status === 'outgoing' && toTeam) idSuffix = `to_${toTeam}`;
-    else if (status === 'incoming' && via) idSuffix = `from_${via}`;
-    else if (status === 'contested') idSuffix = 'contested';
-    else if (swap.isSwap) idSuffix = 'swap';
-    else if (protection) idSuffix = 'protected';
+    if (status === 'outgoing' && toTeam) {
+      idSuffix = `to_${toTeam}`;
+    } else if (status === 'incoming' && (via || teamCodePrefix)) {
+      const sourceTeam = via || teamCodePrefix;
+      idSuffix = `from_${sourceTeam}`;
+    } else if (status === 'contested') {
+      idSuffix = 'contested';
+    } else if (swap.isSwap) {
+      idSuffix = 'swap';
+    } else if (protection) {
+      idSuffix = 'protected';
+    }
 
     // Parse conveyance obligations for trading restrictions
     const conveyanceObligation = parseConveyanceObligation(
@@ -821,9 +883,14 @@ function toStructured(row: RawRow, round: 1 | 2): StructuredPick[] {
       round
     );
     const dependencies = extractPickDependencies(part);
+    
+    // Use originalTeam for ID generation to ensure unique IDs for incoming picks
+    const idBaseTeam = status === 'incoming' && originalTeam !== row.teamCode 
+      ? originalTeam 
+      : row.teamCode;
 
     const pick: StructuredPick = {
-      id: generatePickId(row.teamCode, row.seasonYear, round, idSuffix),
+      id: generatePickId(idBaseTeam, row.seasonYear, round, idSuffix),
       year: row.seasonYear,
       round,
       status,
@@ -838,7 +905,7 @@ function toStructured(row: RawRow, round: 1 | 2): StructuredPick[] {
       tradeable: !protection && status !== 'outgoing',
       protection,
       isSwap: swap.isSwap,
-      via,
+      via: via || (teamCodePrefix && status === 'incoming' ? teamCodePrefix : undefined),
       recipient: toTeam,
       pickNumber: null,
       protectionDetails,
