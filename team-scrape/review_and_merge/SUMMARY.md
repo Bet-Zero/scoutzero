@@ -191,17 +191,11 @@ review_and_merge/
 ├── scripts/
 │   ├── merge_team_outputs.ts    # 15KB merge implementation
 │   └── create_clean_view.ts     # 11KB UI-focused view generator
-├── out_merged_samples/           # 180KB merged outputs
-│   ├── LAL_merged.json          # 17KB
-│   ├── MEM_merged.json          # 11KB
-│   ├── NYK_merged.json          # 15KB
-│   ├── OKC_merged.json          # 18KB
-│   ├── WAS_merged.json          # 22KB
-│   └── all_teams_merged.json    # 87KB
-└── out_clean_views/              # Generated clean views (gitignored)
-    ├── *_clean.json             # JSON without URLs/metadata
-    ├── *_clean.md               # Human-readable Markdown
-    └── all_teams_clean.*        # Combined outputs
+└── docs/                        # Documentation
+
+**NOTE**: Merged outputs are now located at `../output/merged/` (parent directory)
+- LAL_merged.json, MEM_merged.json, NYK_merged.json, OKC_merged.json, WAS_merged.json
+- all_teams_merged.json (combined)
 ```
 
 ## Success Criteria

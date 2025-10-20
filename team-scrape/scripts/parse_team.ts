@@ -21,7 +21,7 @@
 //   - Optional enrichment from SalarySwish detail pages
 //
 // OUTPUT:
-//   ../output/team.json - Structured JSON matching team_scrape_schema.ts
+//   ../output/team-data/team_{CODE}.json - Structured JSON matching team_scrape_schema.ts
 //
 // Requires: cheerio, got
 
@@ -604,6 +604,7 @@ async function main() {
     process.cwd(),
     'team-scrape',
     'output',
+    'team-data',
     `team_${teamCode}.json`
   );
   await fs.writeFile(outputPath, JSON.stringify(teamDoc, null, 2), 'utf8');

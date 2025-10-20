@@ -1,0 +1,600 @@
+{
+  "teamCode": "MEM",
+  "teamName": "MEMPHIS GRIZZLIES",
+  "season": "2025-26",
+  "roster": [
+    {
+      "displayName": "Morant, Ja",
+      "sourceUrl": "https://www.salaryswish.com/players/ja-morant"
+    },
+    {
+      "displayName": "Jackson Jr., Jaren",
+      "sourceUrl": "https://www.salaryswish.com/players/jaren-jacksonjr"
+    },
+    {
+      "displayName": "Caldwell-Pope, Kentavious",
+      "sourceUrl": "https://www.salaryswish.com/players/kentavious-caldwellpope"
+    },
+    {
+      "displayName": "Aldama, Santi",
+      "sourceUrl": "https://www.salaryswish.com/players/santi-aldama"
+    },
+    {
+      "displayName": "Clarke, Brandon",
+      "sourceUrl": "https://www.salaryswish.com/players/brandon-clarke"
+    },
+    {
+      "displayName": "Jerome, Ty",
+      "sourceUrl": "https://www.salaryswish.com/players/ty-jerome"
+    },
+    {
+      "displayName": "Konchar, John",
+      "sourceUrl": "https://www.salaryswish.com/players/john-konchar"
+    },
+    {
+      "displayName": "Edey, Zach",
+      "sourceUrl": "https://www.salaryswish.com/players/zach-edey"
+    },
+    {
+      "displayName": "Coward, Cedric",
+      "sourceUrl": "https://www.salaryswish.com/players/cedric-coward"
+    },
+    {
+      "displayName": "Spencer, Cam",
+      "sourceUrl": "https://www.salaryswish.com/players/cam-spencer"
+    },
+    {
+      "displayName": "Williams Jr., Vince",
+      "sourceUrl": "https://www.salaryswish.com/players/vince-williams-jr"
+    },
+    {
+      "displayName": "Landale, Jock",
+      "sourceUrl": "https://www.salaryswish.com/players/jock-landale"
+    },
+    {
+      "displayName": "Pippen Jr., Scotty",
+      "sourceUrl": "https://www.salaryswish.com/players/scotty-pippen-jr"
+    },
+    {
+      "displayName": "Jackson II, GG",
+      "sourceUrl": "https://www.salaryswish.com/players/gg-jackson-ii"
+    },
+    {
+      "displayName": "Wells, Jaylen",
+      "sourceUrl": "https://www.salaryswish.com/players/jaylen-wells"
+    }
+  ],
+  "capHolds": [
+    {
+      "displayName": "Hinton, Nate",
+      "sourceUrl": "https://www.salaryswish.com/players/nate-hinton",
+      "capHoldAmount": 2457010,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Hall, PJ",
+      "sourceUrl": "https://www.salaryswish.com/players/pj-hall",
+      "capHoldAmount": 2191886,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Lovering, Lawson",
+      "sourceUrl": "https://www.salaryswish.com/players/lawson-lovering",
+      "capHoldAmount": 2191886,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Prosper, Olivier-Maxence",
+      "sourceUrl": "https://www.salaryswish.com/players/olivier-maxence-prosper",
+      "capHoldAmount": 2191886,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Jackson II, GG",
+      "sourceUrl": "https://www.salaryswish.com/players/gg-jackson-ii",
+      "capHoldAmount": 2702711,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Williams Jr., Vince",
+      "sourceUrl": "https://www.salaryswish.com/players/vince-williams-jr",
+      "capHoldAmount": 2702711,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Small, Javon",
+      "sourceUrl": "https://www.salaryswish.com/players/javon-small",
+      "capHoldAmount": 2411075,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Edey, Zach",
+      "sourceUrl": "https://www.salaryswish.com/players/zach-edey",
+      "capHoldAmount": 24203808,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Wells, Jaylen",
+      "sourceUrl": "https://www.salaryswish.com/players/jaylen-wells",
+      "capHoldAmount": 2972982,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Coward, Cedric",
+      "sourceUrl": "https://www.salaryswish.com/players/cedric-coward",
+      "capHoldAmount": 25028229,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Spencer, Cam",
+      "sourceUrl": "https://www.salaryswish.com/players/cam-spencer",
+      "capHoldAmount": 3270280,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Key, Braxton",
+      "sourceUrl": "https://www.salaryswish.com/players/braxton-key",
+      "capHoldAmount": 2457010,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Landale, Jock",
+      "sourceUrl": "https://www.salaryswish.com/players/jock-landale",
+      "capHoldAmount": 2457010,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Caldwell-Pope, Kentavious",
+      "sourceUrl": "https://www.salaryswish.com/players/kentavious-caldwellpope",
+      "capHoldAmount": 32432250,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Clarke, Brandon",
+      "sourceUrl": "https://www.salaryswish.com/players/brandon-clarke",
+      "capHoldAmount": 23750000,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Konchar, John",
+      "sourceUrl": "https://www.salaryswish.com/players/john-konchar",
+      "capHoldAmount": 11713500,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Morant, Ja",
+      "sourceUrl": "https://www.salaryswish.com/players/ja-morant",
+      "capHoldAmount": 60066300,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Aldama, Santi",
+      "sourceUrl": "https://www.salaryswish.com/players/santi-aldama",
+      "capHoldAmount": 25510565,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Jerome, Ty",
+      "sourceUrl": "https://www.salaryswish.com/players/ty-jerome",
+      "capHoldAmount": 18352290,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Pippen Jr., Scotty",
+      "sourceUrl": "https://www.salaryswish.com/players/scotty-pippen-jr",
+      "capHoldAmount": 2972982,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Jackson Jr., Jaren",
+      "sourceUrl": "https://www.salaryswish.com/players/jaren-jacksonjr",
+      "capHoldAmount": 80250000,
+      "type": "UFA"
+    }
+  ],
+  "exceptions": {
+    "mle": {
+      "type": "Non-Taxpayer",
+      "totalAmount": 8781000,
+      "usedAmount": 8781000,
+      "remainingAmount": 0,
+      "available": false
+    },
+    "bae": {
+      "totalAmount": 0,
+      "usedAmount": 0,
+      "remainingAmount": 0,
+      "available": false
+    },
+    "tpe": []
+  },
+  "totals": {
+    "activeSalary": 167343265,
+    "deadCapTotal": 4164050,
+    "capHoldsTotal": 0,
+    "guaranteedSalary": 190504456,
+    "rosterCount": 18,
+    "twoWayCount": 3,
+    "salaryCap": 154647000,
+    "capSpace": -16860315,
+    "luxuryTaxLine": 187895000,
+    "taxSpace": 16387685,
+    "firstApronLine": 195945000,
+    "firstApronRoom": 24437685,
+    "firstApronTriggered": false,
+    "secondApronLine": 207824000,
+    "secondApronRoom": 35816685,
+    "secondApronTriggered": false,
+    "hardCappedAt": "firstApron",
+    "likelyIncentives": 500000
+  },
+  "draftPicks": {
+    "incoming": [],
+    "outgoing": [
+      {
+        "id": "MEM_2026_2nd_to_LAC",
+        "year": 2026,
+        "round": 2,
+        "status": "outgoing",
+        "originalTeam": "MEM",
+        "currentOwner": "LAC",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": false,
+        "recipient": "LAC",
+        "pickNumber": null,
+        "route": [
+          "ATL"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+      },
+      {
+        "id": "MEM_2026_2nd_to_POR",
+        "year": 2026,
+        "round": 2,
+        "status": "outgoing",
+        "originalTeam": "MEM",
+        "currentOwner": "POR",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": false,
+        "recipient": "POR",
+        "pickNumber": null,
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+      },
+      {
+        "id": "MEM_2027_2nd_to_HOU",
+        "year": 2027,
+        "round": 2,
+        "status": "outgoing",
+        "originalTeam": "MEM",
+        "currentOwner": "HOU",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": false,
+        "recipient": "HOU",
+        "pickNumber": null,
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+      },
+      {
+        "id": "MEM_2028_2nd_to_BRK",
+        "year": 2028,
+        "round": 2,
+        "status": "outgoing",
+        "originalTeam": "MEM",
+        "currentOwner": "BRK",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": false,
+        "recipient": "BRK",
+        "pickNumber": null,
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+      },
+      {
+        "id": "MEM_2029_2nd_to_BRK",
+        "year": 2029,
+        "round": 2,
+        "status": "outgoing",
+        "originalTeam": "MEM",
+        "currentOwner": "BRK",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": false,
+        "recipient": "BRK",
+        "pickNumber": null,
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+      },
+      {
+        "id": "MEM_2029_2nd_to_IND",
+        "year": 2029,
+        "round": 2,
+        "status": "outgoing",
+        "originalTeam": "MEM",
+        "currentOwner": "IND",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": false,
+        "recipient": "IND",
+        "pickNumber": null,
+        "route": [
+          "IND"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+      }
+    ],
+    "own": [
+      {
+        "id": "MEM_2027_1st",
+        "year": 2027,
+        "round": 1,
+        "status": "own",
+        "originalTeam": "MEM",
+        "currentOwner": "MEM",
+        "stepienEligible": true,
+        "tradeable": true,
+        "protection": null,
+        "isSwap": false,
+        "pickNumber": null,
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+      },
+      {
+        "id": "MEM_2028_1st",
+        "year": 2028,
+        "round": 1,
+        "status": "own",
+        "originalTeam": "MEM",
+        "currentOwner": "MEM",
+        "stepienEligible": true,
+        "tradeable": true,
+        "protection": null,
+        "isSwap": false,
+        "pickNumber": null,
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+      },
+      {
+        "id": "MEM_2029_1st_swap",
+        "year": 2029,
+        "round": 1,
+        "status": "own",
+        "originalTeam": "MEM",
+        "currentOwner": "MEM",
+        "stepienEligible": true,
+        "tradeable": true,
+        "protection": null,
+        "isSwap": true,
+        "pickNumber": null,
+        "swapDetails": {
+          "swapType": "bilateral",
+          "favorable": null
+        },
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+      },
+      {
+        "id": "MEM_2029_2nd",
+        "year": 2029,
+        "round": 2,
+        "status": "own",
+        "originalTeam": "MEM",
+        "currentOwner": "MEM",
+        "stepienEligible": false,
+        "tradeable": true,
+        "protection": null,
+        "isSwap": false,
+        "pickNumber": null,
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+      },
+      {
+        "id": "MEM_2030_1st",
+        "year": 2030,
+        "round": 1,
+        "status": "own",
+        "originalTeam": "MEM",
+        "currentOwner": "MEM",
+        "stepienEligible": true,
+        "tradeable": true,
+        "protection": null,
+        "isSwap": false,
+        "pickNumber": null,
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+      },
+      {
+        "id": "MEM_2031_1st",
+        "year": 2031,
+        "round": 1,
+        "status": "own",
+        "originalTeam": "MEM",
+        "currentOwner": "MEM",
+        "stepienEligible": true,
+        "tradeable": true,
+        "protection": null,
+        "isSwap": false,
+        "pickNumber": null,
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+      },
+      {
+        "id": "MEM_2032_1st",
+        "year": 2032,
+        "round": 1,
+        "status": "own",
+        "originalTeam": "MEM",
+        "currentOwner": "MEM",
+        "stepienEligible": true,
+        "tradeable": true,
+        "protection": null,
+        "isSwap": false,
+        "pickNumber": null,
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+      },
+      {
+        "id": "MEM_2032_2nd",
+        "year": 2032,
+        "round": 2,
+        "status": "own",
+        "originalTeam": "MEM",
+        "currentOwner": "MEM",
+        "stepienEligible": false,
+        "tradeable": true,
+        "protection": null,
+        "isSwap": false,
+        "pickNumber": null,
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+      },
+      {
+        "id": "MEM_2032_2nd",
+        "year": 2032,
+        "round": 2,
+        "status": "own",
+        "originalTeam": "MEM",
+        "currentOwner": "MEM",
+        "stepienEligible": false,
+        "tradeable": true,
+        "protection": null,
+        "isSwap": false,
+        "pickNumber": null,
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+      }
+    ],
+    "contested": [
+      {
+        "id": "MEM_2026_1st_to_CHA",
+        "year": 2026,
+        "round": 1,
+        "status": "contested",
+        "originalTeam": "WAS",
+        "currentOwner": "CHA",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": true,
+        "via": "WAS",
+        "recipient": "CHA",
+        "pickNumber": null,
+        "swapDetails": {
+          "swapType": "favorable",
+          "favorable": "most"
+        },
+        "route": [
+          "IND"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+      },
+      {
+        "id": "MEM_2026_2nd_to_IND",
+        "year": 2026,
+        "round": 2,
+        "status": "contested",
+        "originalTeam": "MIA",
+        "currentOwner": "IND",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": true,
+        "via": "MIA",
+        "recipient": "IND",
+        "pickNumber": null,
+        "swapDetails": {
+          "swapType": "favorable",
+          "favorable": "most"
+        },
+        "route": [
+          "MIA",
+          "IND",
+          "MIL",
+          "MEM"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+      },
+      {
+        "id": "MEM_2030_1st_swap",
+        "year": 2030,
+        "round": 1,
+        "status": "contested",
+        "originalTeam": "WAS",
+        "currentOwner": "MEM",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": true,
+        "via": "WAS",
+        "pickNumber": null,
+        "swapDetails": {
+          "swapType": "favorable",
+          "favorable": "least"
+        },
+        "route": [
+          "IND"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+      },
+      {
+        "id": "MEM_2030_2nd_conditional",
+        "year": 2030,
+        "round": 2,
+        "status": "conditional",
+        "originalTeam": "MEM",
+        "currentOwner": "MEM",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": "top-50 protected",
+        "isSwap": false,
+        "conditions": [
+          {
+            "range": "31-50",
+            "outcome": "keep",
+            "recipient": "MEM"
+          },
+          {
+            "range": "51-60",
+            "outcome": "convey",
+            "recipient": "MIN"
+          }
+        ],
+        "conditionalRecipient": "MIN",
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+      },
+      {
+        "id": "MEM_2031_2nd_to_IND",
+        "year": 2031,
+        "round": 2,
+        "status": "contested",
+        "originalTeam": "MIA",
+        "currentOwner": "IND",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": true,
+        "via": "MIA",
+        "recipient": "IND",
+        "pickNumber": null,
+        "swapDetails": {
+          "swapType": "favorable",
+          "favorable": "least"
+        },
+        "route": [
+          "IND"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+      }
+    ]
+  },
+  "sources": {
+    "salary": {
+      "provider": "SalarySwish",
+      "url": "https://www.salaryswish.com/teams/grizzlies",
+      "scrapedAt": "2025-10-17T08:24:12.614Z"
+    },
+    "draftPicks": {
+      "provider": "RealGM",
+      "url": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks",
+      "scrapedAt": "2025-10-20T06:01:13.166Z"
+    }
+  },
+  "mergedAt": "2025-10-20T06:01:13.166Z",
+  "version": "2.0"
+}

@@ -17,16 +17,17 @@ The team-scrape pipeline uses a **split-to-merge architecture**:
 review_and_merge/
 ├── scripts/
 │   └── merge_team_outputs.ts    # Main merge script
-├── out_merged_samples/           # Merged output files (generated)
-│   ├── LAL_merged.json          # Individual team files
-│   ├── MEM_merged.json
-│   ├── NYK_merged.json
-│   ├── OKC_merged.json
-│   ├── WAS_merged.json
-│   └── all_teams_merged.json    # All teams combined
 └── docs/
     ├── REPORT.md                 # Comprehensive review and analysis
     └── README_merge.md          # This file
+
+../output/merged/                 # Merged output files (generated at parent level)
+├── LAL_merged.json              # Individual team files
+├── MEM_merged.json
+├── NYK_merged.json
+├── OKC_merged.json
+├── WAS_merged.json
+└── all_teams_merged.json        # All teams combined
 ```
 
 ## Quick Start
@@ -45,13 +46,13 @@ tsx team-scrape/review_and_merge/scripts/merge_team_outputs.ts
 
 ```bash
 # View individual team file
-cat team-scrape/review_and_merge/out_merged_samples/LAL_merged.json
+cat team-scrape/output/merged/LAL_merged.json
 
 # View all teams combined
-cat team-scrape/review_and_merge/out_merged_samples/all_teams_merged.json
+cat team-scrape/output/merged/all_teams_merged.json
 
 # Count merged teams
-ls team-scrape/review_and_merge/out_merged_samples/*_merged.json | wc -l
+ls team-scrape/output/merged/*_merged.json | wc -l
 ```
 
 ## Input Files
@@ -61,12 +62,12 @@ ls team-scrape/review_and_merge/out_merged_samples/*_merged.json | wc -l
 The merge script looks for these files:
 
 **Salary Data:**
-- Primary: `team-scrape/output/team.json` (LAL data)
-- Future: `team-scrape/output/team_{CODE}.json` (other teams)
+- Primary: `team-scrape/output/team-data/team.json` (latest team scraped)
+- Per-team: `team-scrape/output/team-data/team_{CODE}.json` (individual teams)
 
 **Draft Pick Data:**
-- Pattern: `team-scrape/output/realgm/out/structured/draft_picks_{CODE}.json`
-- Available for: LAL, MEM, NYK, OKC, WAS (5 teams)
+- Pattern: `team-scrape/output/draft-picks/structured/draft_picks_{CODE}.json`
+- Available for: MEM, NYK, OKC, WAS (4 teams with structured data)
 
 ### Sample Teams
 
@@ -186,9 +187,9 @@ Edit `CONFIG` object in `merge_team_outputs.ts`:
 
 ```typescript
 const CONFIG = {
-  salaryDir: 'team-scrape/output',
-  draftPicksDir: 'team-scrape/output/realgm/out/structured',
-  outputDir: 'team-scrape/review_and_merge/out_merged_samples',
+  salaryDir: 'team-scrape/output/team-data',
+  draftPicksDir: 'team-scrape/output/draft-picks/structured',
+  outputDir: 'team-scrape/output/merged',
   teams: ['LAL', 'MEM', 'NYK', 'OKC', 'WAS'],
   prettyPrint: true,
 };
@@ -202,7 +203,7 @@ const CONFIG = {
 
 **Check:**
 1. Output directory exists? Should auto-create.
-2. Input files exist? Check `team-scrape/output/` and `team-scrape/output/realgm/out/structured/`
+2. Input files exist? Check `team-scrape/output/team-data/` and `team-scrape/output/draft-picks/structured/`
 3. Permissions? Ensure write access to output directory
 
 ### Missing Salary Data Warning
@@ -214,7 +215,7 @@ const CONFIG = {
 **Solution:** Run salary scraper for other teams:
 ```bash
 TEAM_URL="https://www.salaryswish.com/teams/grizzlies" TEAM_CODE="MEM" npm run parse
-mv team-scrape/output/team.json team-scrape/output/team_MEM.json
+# Output automatically goes to team-scrape/output/team-data/team_MEM.json
 ```
 
 ### JSON Parse Errors
