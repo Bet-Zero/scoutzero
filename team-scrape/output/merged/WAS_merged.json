@@ -1,0 +1,1102 @@
+{
+  "teamCode": "WAS",
+  "teamName": "WASHINGTON WIZARDS",
+  "season": "2025-26",
+  "roster": [
+    {
+      "displayName": "Middleton, Khris",
+      "sourceUrl": "https://www.salaryswish.com/players/khris-middleton"
+    },
+    {
+      "displayName": "McCollum, CJ",
+      "sourceUrl": "https://www.salaryswish.com/players/cj-mccollum"
+    },
+    {
+      "displayName": "Kispert, Corey",
+      "sourceUrl": "https://www.salaryswish.com/players/corey-kispert"
+    },
+    {
+      "displayName": "Sarr, Alexandre",
+      "sourceUrl": "https://www.salaryswish.com/players/alexandre-sarr"
+    },
+    {
+      "displayName": "Johnson, Tre",
+      "sourceUrl": "https://www.salaryswish.com/players/tre-johnson"
+    },
+    {
+      "displayName": "Coulibaly, Bilal",
+      "sourceUrl": "https://www.salaryswish.com/players/bilal-coulibaly"
+    },
+    {
+      "displayName": "Branham, Malaki",
+      "sourceUrl": "https://www.salaryswish.com/players/malaki-branham"
+    },
+    {
+      "displayName": "Carrington, Carlton",
+      "sourceUrl": "https://www.salaryswish.com/players/carlton-carrington"
+    },
+    {
+      "displayName": "Whitmore, Cam",
+      "sourceUrl": "https://www.salaryswish.com/players/cam-whitmore"
+    },
+    {
+      "displayName": "Riley, Will",
+      "sourceUrl": "https://www.salaryswish.com/players/will-riley"
+    },
+    {
+      "displayName": "Johnson, A.J.",
+      "sourceUrl": "https://www.salaryswish.com/players/aj-johnson"
+    },
+    {
+      "displayName": "George, Kyshawn",
+      "sourceUrl": "https://www.salaryswish.com/players/kyshawn-george"
+    },
+    {
+      "displayName": "Jones, Dillon",
+      "sourceUrl": "https://www.salaryswish.com/players/dillon-jones"
+    },
+    {
+      "displayName": "Champagnie, Justin",
+      "sourceUrl": "https://www.salaryswish.com/players/justin-champagnie"
+    },
+    {
+      "displayName": "Bagley III, Marvin",
+      "sourceUrl": "https://www.salaryswish.com/players/marvin-bagleyiii"
+    },
+    {
+      "displayName": "Gill, Anthony",
+      "sourceUrl": "https://www.salaryswish.com/players/anthony-gill"
+    }
+  ],
+  "capHolds": [
+    {
+      "displayName": "Branham, Malaki",
+      "sourceUrl": "https://www.salaryswish.com/players/malaki-branham",
+      "capHoldAmount": 14886099,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Williams, Alondes",
+      "sourceUrl": "https://www.salaryswish.com/players/alondes-williams",
+      "capHoldAmount": 2457010,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Cooper, Sharife",
+      "sourceUrl": "https://www.salaryswish.com/players/sharife-cooper",
+      "capHoldAmount": 2191886,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Richmond, Kadary",
+      "sourceUrl": "https://www.salaryswish.com/players/kadary-richmond",
+      "capHoldAmount": 2191886,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Vukcevic, Tristan",
+      "sourceUrl": "https://www.salaryswish.com/players/tristan-vukcevic",
+      "capHoldAmount": 2191886,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Watkins, Jamir",
+      "sourceUrl": "https://www.salaryswish.com/players/jamir-watkins",
+      "capHoldAmount": 2191886,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Coulibaly, Bilal",
+      "sourceUrl": "https://www.salaryswish.com/players/bilal-coulibaly",
+      "capHoldAmount": 27720036,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Whitmore, Cam",
+      "sourceUrl": "https://www.salaryswish.com/players/cam-whitmore",
+      "capHoldAmount": 16374930,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Sarr, Alexandre",
+      "sourceUrl": "https://www.salaryswish.com/players/alexandre-sarr",
+      "capHoldAmount": 46835394,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Carrington, Carlton",
+      "sourceUrl": "https://www.salaryswish.com/players/carlton-carrington",
+      "capHoldAmount": 21773187,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Johnson, A.J.",
+      "sourceUrl": "https://www.salaryswish.com/players/aj-johnson",
+      "capHoldAmount": 16480179,
+      "type": "RFA"
+    },
+    {
+      "displayName": "George, Kyshawn",
+      "sourceUrl": "https://www.salaryswish.com/players/kyshawn-george",
+      "capHoldAmount": 16307676,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Jones, Dillon",
+      "sourceUrl": "https://www.salaryswish.com/players/dillon-jones",
+      "capHoldAmount": 15601935,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Johnson, Tre",
+      "sourceUrl": "https://www.salaryswish.com/players/tre-johnson",
+      "capHoldAmount": 34470630,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Riley, Will",
+      "sourceUrl": "https://www.salaryswish.com/players/will-riley",
+      "capHoldAmount": 18466056,
+      "type": "RFA"
+    },
+    {
+      "displayName": "Middleton, Khris",
+      "sourceUrl": "https://www.salaryswish.com/players/khris-middleton",
+      "capHoldAmount": 50018519,
+      "type": "UFA"
+    },
+    {
+      "displayName": "McCollum, CJ",
+      "sourceUrl": "https://www.salaryswish.com/players/cj-mccollum",
+      "capHoldAmount": 45999999,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Bagley III, Marvin",
+      "sourceUrl": "https://www.salaryswish.com/players/marvin-bagleyiii",
+      "capHoldAmount": 2457010,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Gill, Anthony",
+      "sourceUrl": "https://www.salaryswish.com/players/anthony-gill",
+      "capHoldAmount": 2457010,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Champagnie, Justin",
+      "sourceUrl": "https://www.salaryswish.com/players/justin-champagnie",
+      "capHoldAmount": 2972982,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Kispert, Corey",
+      "sourceUrl": "https://www.salaryswish.com/players/corey-kispert",
+      "capHoldAmount": 24795000,
+      "type": "UFA"
+    },
+    {
+      "displayName": "Mahinmi, Ian",
+      "sourceUrl": "https://www.salaryswish.com/players/ian-mahinmi",
+      "capHoldAmount": 23175077,
+      "type": "FA Cap Hold"
+    },
+    {
+      "displayName": "Nunn, Kendrick",
+      "sourceUrl": "https://www.salaryswish.com/players/kendrick-nunn",
+      "capHoldAmount": 6825000,
+      "type": "FA Cap Hold"
+    },
+    {
+      "displayName": "Satoransky, Tomas",
+      "sourceUrl": "https://www.salaryswish.com/players/tomas-satoransky",
+      "capHoldAmount": 2296274,
+      "type": "FA Cap Hold"
+    },
+    {
+      "displayName": "Napier, Shabazz",
+      "sourceUrl": "https://www.salaryswish.com/players/shabazz-napier",
+      "capHoldAmount": 2296274,
+      "type": "FA Cap Hold"
+    },
+    {
+      "displayName": "Lawson, Ty",
+      "sourceUrl": "https://www.salaryswish.com/players/ty-lawson",
+      "capHoldAmount": 2296274,
+      "type": "FA Cap Hold"
+    },
+    {
+      "displayName": "Sessions, Ramon",
+      "sourceUrl": "https://www.salaryswish.com/players/ramon-sessions",
+      "capHoldAmount": 2296274,
+      "type": "FA Cap Hold"
+    },
+    {
+      "displayName": "Williams, Johnathan",
+      "sourceUrl": "https://www.salaryswish.com/players/johnathan-williams",
+      "capHoldAmount": 2048494,
+      "type": "FA Cap Hold"
+    },
+    {
+      "displayName": "Winston, Cassius",
+      "sourceUrl": "https://www.salaryswish.com/players/cassius-winston",
+      "capHoldAmount": 2048494,
+      "type": "FA Cap Hold"
+    }
+  ],
+  "exceptions": {
+    "mle": {
+      "type": "Non-Taxpayer",
+      "totalAmount": 14104000,
+      "usedAmount": 0,
+      "remainingAmount": 14104000,
+      "available": true
+    },
+    "bae": {
+      "totalAmount": 5135000,
+      "usedAmount": 0,
+      "remainingAmount": 5135000,
+      "available": true
+    },
+    "tpe": [
+      {
+        "id": "TPE-WAS-Feb 5, 2026-1",
+        "totalAmount": 9900000,
+        "usedAmount": 0,
+        "remainingAmount": 9900000,
+        "createdFrom": "Jonas Valanciunas",
+        "expiresOn": "Feb 5, 2026"
+      },
+      {
+        "id": "TPE-WAS-Feb 6, 2026-2",
+        "totalAmount": 5291160,
+        "usedAmount": 4962033,
+        "remainingAmount": 329127,
+        "createdFrom": "Johnny Davis",
+        "expiresOn": "Feb 6, 2026"
+      },
+      {
+        "id": "TPE-WAS-Feb 6, 2026-3",
+        "totalAmount": 2448840,
+        "usedAmount": 2448840,
+        "remainingAmount": 0,
+        "createdFrom": "Patrick Baldwin Jr",
+        "expiresOn": "Feb 6, 2026"
+      },
+      {
+        "id": "TPE-WAS-Jul 8, 2026-4",
+        "totalAmount": 13445122,
+        "usedAmount": 0,
+        "remainingAmount": 13445122,
+        "createdFrom": "Kelly Olynyk",
+        "expiresOn": "Jul 8, 2026"
+      }
+    ]
+  },
+  "totals": {
+    "activeSalary": 137753384,
+    "deadCapTotal": 18384313,
+    "capHoldsTotal": 43282161,
+    "guaranteedSalary": 132556638,
+    "rosterCount": 18,
+    "twoWayCount": 3,
+    "salaryCap": 154647000,
+    "capSpace": -1490697,
+    "luxuryTaxLine": 187895000,
+    "taxSpace": 31757303,
+    "firstApronLine": 195945000,
+    "firstApronRoom": 39807303,
+    "firstApronTriggered": false,
+    "secondApronLine": 207824000,
+    "secondApronRoom": 48513465,
+    "secondApronTriggered": false,
+    "hardCappedAt": "firstApron",
+    "likelyIncentives": 3172838
+  },
+  "draftPicks": {
+    "incoming": [
+      {
+        "id": "WAS_2028_1st_from_POR",
+        "year": 2028,
+        "round": 1,
+        "status": "incoming",
+        "originalTeam": "POR",
+        "currentOwner": "WAS",
+        "stepienEligible": true,
+        "tradeable": true,
+        "protection": null,
+        "isSwap": true,
+        "via": "POR",
+        "pickNumber": null,
+        "swapDetails": {
+          "swapType": "bilateral",
+          "favorable": null
+        },
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      },
+      {
+        "id": "WAS_2029_2nd",
+        "year": 2029,
+        "round": 2,
+        "status": "incoming",
+        "originalTeam": "WAS",
+        "currentOwner": "WAS",
+        "stepienEligible": false,
+        "tradeable": true,
+        "protection": null,
+        "isSwap": false,
+        "pickNumber": null,
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      },
+      {
+        "id": "WAS_2030_1st_from_WAS",
+        "year": 2030,
+        "round": 1,
+        "status": "incoming",
+        "originalTeam": "WAS",
+        "currentOwner": "WAS",
+        "stepienEligible": true,
+        "tradeable": true,
+        "protection": null,
+        "isSwap": true,
+        "via": "WAS",
+        "pickNumber": null,
+        "swapDetails": {
+          "swapType": "bilateral",
+          "favorable": null
+        },
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      }
+    ],
+    "outgoing": [
+      {
+        "id": "WAS_2026_1st_to_CHA",
+        "year": 2026,
+        "round": 1,
+        "status": "outgoing",
+        "originalTeam": "WAS",
+        "currentOwner": "CHA",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": true,
+        "via": "WAS",
+        "recipient": "CHA",
+        "pickNumber": null,
+        "swapDetails": {
+          "swapType": "bilateral",
+          "favorable": null
+        },
+        "route": [
+          "CHA"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      },
+      {
+        "id": "WAS_2026_1st_to_NYK",
+        "year": 2026,
+        "round": 1,
+        "status": "outgoing",
+        "originalTeam": "HOU",
+        "currentOwner": "NYK",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": false,
+        "via": "HOU",
+        "recipient": "NYK",
+        "pickNumber": null,
+        "route": [
+          "HOU"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      },
+      {
+        "id": "WAS_2026_2nd_to_NYK",
+        "year": 2026,
+        "round": 2,
+        "status": "outgoing",
+        "originalTeam": "WAS",
+        "currentOwner": "NYK",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": false,
+        "recipient": "NYK",
+        "pickNumber": null,
+        "route": [
+          "HOU"
+        ],
+        "conveyanceObligation": {
+          "id": "WAS_2026_2nd_conditional",
+          "description": "WAS 2026 2nd conditional conveyance",
+          "originalYear": 2026,
+          "currentYear": 2026,
+          "stepienImpact": {
+            "eligibleForStepien": false,
+            "locksYears": [],
+            "deadYears": [],
+            "affectedYears": [
+              2026
+            ]
+          },
+          "conditions": {
+            "ifConveys": "WAS does not convey 1st round pick to NYK in 2026 (via HOU to OKC)",
+            "ifRolls": "resolves in current year",
+            "protection": "conditional"
+          },
+          "affects": [
+            "NYK"
+          ]
+        },
+        "dependsOn": [
+          "WAS_2026_1st_conditional"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      },
+      {
+        "id": "WAS_2027_2nd_to_NYK",
+        "year": 2027,
+        "round": 2,
+        "status": "outgoing",
+        "originalTeam": "WAS",
+        "currentOwner": "NYK",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": false,
+        "recipient": "NYK",
+        "pickNumber": null,
+        "route": [
+          "HOU"
+        ],
+        "conveyanceObligation": {
+          "id": "WAS_2027_2nd_conditional",
+          "description": "WAS 2027 2nd conditional conveyance",
+          "originalYear": 2027,
+          "currentYear": 2027,
+          "stepienImpact": {
+            "eligibleForStepien": false,
+            "locksYears": [],
+            "deadYears": [],
+            "affectedYears": [
+              2027
+            ]
+          },
+          "conditions": {
+            "ifConveys": "WAS does not convey 1st round pick to NYK in 2026 (via HOU to OKC)",
+            "ifRolls": "resolves in current year",
+            "protection": "conditional"
+          },
+          "affects": [
+            "NYK"
+          ]
+        },
+        "dependsOn": [
+          "WAS_2026_1st_conditional"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      },
+      {
+        "id": "WAS_2027_2nd_to_NOP",
+        "year": 2027,
+        "round": 2,
+        "status": "outgoing",
+        "originalTeam": "WAS",
+        "currentOwner": "NOP",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": false,
+        "via": "WAS",
+        "recipient": "NOP",
+        "pickNumber": null,
+        "protectionDetails": "CHI (in separate, protected conveyances; via WAS to NOP);",
+        "route": [
+          "WAS"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      },
+      {
+        "id": "WAS_2028_2nd_to_SAC",
+        "year": 2028,
+        "round": 2,
+        "status": "outgoing",
+        "originalTeam": "SAS",
+        "currentOwner": "SAC",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": false,
+        "via": "SAS",
+        "recipient": "SAC",
+        "pickNumber": null,
+        "route": [
+          "SAS",
+          "SAC"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      },
+      {
+        "id": "WAS_2030_2nd",
+        "year": 2030,
+        "round": 2,
+        "status": "outgoing",
+        "originalTeam": "WAS",
+        "currentOwner": "WAS",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": false,
+        "pickNumber": null,
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      },
+      {
+        "id": "WAS_2030_2nd_to_WAS",
+        "year": 2030,
+        "round": 2,
+        "status": "outgoing",
+        "originalTeam": "WAS",
+        "currentOwner": "WAS",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": false,
+        "recipient": "WAS",
+        "pickNumber": null,
+        "dependsOn": [
+          "GOS_2030_1st_conditional"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      }
+    ],
+    "own": [
+      {
+        "id": "WAS_2026_1st_swap",
+        "year": 2026,
+        "round": 1,
+        "status": "own",
+        "originalTeam": "WAS",
+        "currentOwner": "WAS",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": "top-8 protected",
+        "isSwap": true,
+        "pickNumber": null,
+        "protectionDetails": "1-8 Own",
+        "swapDetails": {
+          "swapType": "bilateral",
+          "favorable": null
+        },
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      },
+      {
+        "id": "WAS_2026_2nd",
+        "year": 2026,
+        "round": 2,
+        "status": "own",
+        "originalTeam": "WAS",
+        "currentOwner": "WAS",
+        "stepienEligible": false,
+        "tradeable": true,
+        "protection": null,
+        "isSwap": false,
+        "pickNumber": null,
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      },
+      {
+        "id": "WAS_2027_1st",
+        "year": 2027,
+        "round": 1,
+        "status": "own",
+        "originalTeam": "WAS",
+        "currentOwner": "WAS",
+        "stepienEligible": true,
+        "tradeable": true,
+        "protection": null,
+        "isSwap": false,
+        "pickNumber": null,
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      },
+      {
+        "id": "WAS_2029_1st",
+        "year": 2029,
+        "round": 1,
+        "status": "own",
+        "originalTeam": "WAS",
+        "currentOwner": "WAS",
+        "stepienEligible": true,
+        "tradeable": true,
+        "protection": null,
+        "isSwap": false,
+        "pickNumber": null,
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      },
+      {
+        "id": "WAS_2029_2nd",
+        "year": 2029,
+        "round": 2,
+        "status": "own",
+        "originalTeam": "WAS",
+        "currentOwner": "WAS",
+        "stepienEligible": false,
+        "tradeable": true,
+        "protection": null,
+        "isSwap": false,
+        "pickNumber": null,
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      },
+      {
+        "id": "WAS_2030_1st",
+        "year": 2030,
+        "round": 1,
+        "status": "own",
+        "originalTeam": "WAS",
+        "currentOwner": "WAS",
+        "stepienEligible": true,
+        "tradeable": true,
+        "protection": null,
+        "isSwap": false,
+        "pickNumber": null,
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      },
+      {
+        "id": "WAS_2031_1st",
+        "year": 2031,
+        "round": 1,
+        "status": "own",
+        "originalTeam": "WAS",
+        "currentOwner": "WAS",
+        "stepienEligible": true,
+        "tradeable": true,
+        "protection": null,
+        "isSwap": false,
+        "pickNumber": null,
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      },
+      {
+        "id": "WAS_2031_2nd",
+        "year": 2031,
+        "round": 2,
+        "status": "own",
+        "originalTeam": "WAS",
+        "currentOwner": "WAS",
+        "stepienEligible": false,
+        "tradeable": true,
+        "protection": null,
+        "isSwap": false,
+        "pickNumber": null,
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      },
+      {
+        "id": "WAS_2032_1st",
+        "year": 2032,
+        "round": 1,
+        "status": "own",
+        "originalTeam": "WAS",
+        "currentOwner": "WAS",
+        "stepienEligible": true,
+        "tradeable": true,
+        "protection": null,
+        "isSwap": false,
+        "pickNumber": null,
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      },
+      {
+        "id": "WAS_2032_2nd",
+        "year": 2032,
+        "round": 2,
+        "status": "own",
+        "originalTeam": "WAS",
+        "currentOwner": "WAS",
+        "stepienEligible": false,
+        "tradeable": true,
+        "protection": null,
+        "isSwap": false,
+        "pickNumber": null,
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      },
+      {
+        "id": "WAS_2032_2nd",
+        "year": 2032,
+        "round": 2,
+        "status": "own",
+        "originalTeam": "WAS",
+        "currentOwner": "WAS",
+        "stepienEligible": false,
+        "tradeable": true,
+        "protection": null,
+        "isSwap": false,
+        "pickNumber": null,
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      }
+    ],
+    "contested": [
+      {
+        "id": "WAS_2026_1st_to_MEM",
+        "year": 2026,
+        "round": 1,
+        "status": "contested",
+        "originalTeam": "WAS",
+        "currentOwner": "MEM",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": true,
+        "recipient": "MEM",
+        "pickNumber": null,
+        "swapDetails": {
+          "swapType": "favorable",
+          "favorable": "most"
+        },
+        "route": [
+          "IND"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      },
+      {
+        "id": "WAS_2026_1st_swap",
+        "year": 2026,
+        "round": 1,
+        "status": "contested",
+        "originalTeam": "WAS",
+        "currentOwner": "WAS",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": true,
+        "pickNumber": null,
+        "swapDetails": {
+          "swapType": "bilateral",
+          "favorable": null
+        },
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      },
+      {
+        "id": "WAS_2026_2nd_to_NYK",
+        "year": 2026,
+        "round": 2,
+        "status": "contested",
+        "originalTeam": "MIN",
+        "currentOwner": "NYK",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": true,
+        "via": "MIN",
+        "recipient": "NYK",
+        "pickNumber": null,
+        "swapDetails": {
+          "swapType": "bilateral",
+          "favorable": null
+        },
+        "route": [
+          "IND"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      },
+      {
+        "id": "WAS_2026_2nd_to_MIA",
+        "year": 2026,
+        "round": 2,
+        "status": "contested",
+        "originalTeam": "WAS",
+        "currentOwner": "MIA",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": true,
+        "recipient": "MIA",
+        "pickNumber": null,
+        "swapDetails": {
+          "swapType": "favorable",
+          "favorable": "least"
+        },
+        "route": [
+          "MIA",
+          "SAS"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      },
+      {
+        "id": "WAS_2027_2nd_to_BRK",
+        "year": 2027,
+        "round": 2,
+        "status": "contested",
+        "originalTeam": "DAL",
+        "currentOwner": "BRK",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": true,
+        "via": "DAL",
+        "recipient": "BRK",
+        "pickNumber": null,
+        "swapDetails": {
+          "swapType": "bilateral",
+          "favorable": null
+        },
+        "route": [
+          "DAL",
+          "DET",
+          "WAS"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      },
+      {
+        "id": "WAS_2027_2nd_contested",
+        "year": 2027,
+        "round": 2,
+        "status": "contested",
+        "originalTeam": "WAS",
+        "currentOwner": "WAS",
+        "stepienEligible": false,
+        "tradeable": true,
+        "protection": null,
+        "isSwap": true,
+        "pickNumber": null,
+        "swapDetails": {
+          "swapType": "bilateral",
+          "favorable": null
+        },
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      },
+      {
+        "id": "WAS_2028_1st_to_OKC",
+        "year": 2028,
+        "round": 1,
+        "status": "contested",
+        "originalTeam": "WAS",
+        "currentOwner": "OKC",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": true,
+        "recipient": "OKC",
+        "pickNumber": null,
+        "swapDetails": {
+          "swapType": "bilateral",
+          "favorable": null
+        },
+        "route": [
+          "IND"
+        ],
+        "dependsOn": [
+          "PHL_2026_1st_conditional"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      },
+      {
+        "id": "WAS_2028_1st_to_OKC",
+        "year": 2028,
+        "round": 1,
+        "status": "contested",
+        "originalTeam": "WAS",
+        "currentOwner": "OKC",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": true,
+        "recipient": "OKC",
+        "pickNumber": null,
+        "swapDetails": {
+          "swapType": "bilateral",
+          "favorable": null
+        },
+        "route": [
+          "IND"
+        ],
+        "dependsOn": [
+          "PHL_2026_1st_conditional"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      },
+      {
+        "id": "WAS_2028_1st_to_BRK",
+        "year": 2028,
+        "round": 1,
+        "status": "contested",
+        "originalTeam": "WAS",
+        "currentOwner": "BRK",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": true,
+        "recipient": "BRK",
+        "pickNumber": null,
+        "swapDetails": {
+          "swapType": "favorable",
+          "favorable": "least"
+        },
+        "dependsOn": [
+          "PHL_2027_1st_conditional"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      },
+      {
+        "id": "WAS_2028_2nd_to_ORL",
+        "year": 2028,
+        "round": 2,
+        "status": "contested",
+        "originalTeam": "WAS",
+        "currentOwner": "ORL",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": true,
+        "via": "WAS",
+        "recipient": "ORL",
+        "pickNumber": null,
+        "swapDetails": {
+          "swapType": "bilateral",
+          "favorable": null
+        },
+        "route": [
+          "WAS",
+          "ORL"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      },
+      {
+        "id": "WAS_2029_1st_to_POR",
+        "year": 2029,
+        "round": 1,
+        "status": "contested",
+        "originalTeam": "BOS",
+        "currentOwner": "POR",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": true,
+        "via": "BOS",
+        "recipient": "POR",
+        "pickNumber": null,
+        "swapDetails": {
+          "swapType": "favorable",
+          "favorable": "most"
+        },
+        "route": [
+          "BOS",
+          "POR",
+          "MIL",
+          "WAS"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      },
+      {
+        "id": "WAS_2029_2nd_to_IND",
+        "year": 2029,
+        "round": 2,
+        "status": "contested",
+        "originalTeam": "IND",
+        "currentOwner": "IND",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": true,
+        "via": "IND",
+        "recipient": "IND",
+        "pickNumber": null,
+        "swapDetails": {
+          "swapType": "bilateral",
+          "favorable": null
+        },
+        "route": [
+          "IND"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      },
+      {
+        "id": "WAS_2030_1st_contested",
+        "year": 2030,
+        "round": 1,
+        "status": "contested",
+        "originalTeam": "WAS",
+        "currentOwner": "WAS",
+        "stepienEligible": false,
+        "tradeable": true,
+        "protection": null,
+        "isSwap": true,
+        "pickNumber": null,
+        "swapDetails": {
+          "swapType": "bilateral",
+          "favorable": null
+        },
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      },
+      {
+        "id": "WAS_2030_1st_to_MEM",
+        "year": 2030,
+        "round": 1,
+        "status": "contested",
+        "originalTeam": "WAS",
+        "currentOwner": "MEM",
+        "stepienEligible": false,
+        "tradeable": false,
+        "protection": null,
+        "isSwap": true,
+        "recipient": "MEM",
+        "pickNumber": null,
+        "swapDetails": {
+          "swapType": "favorable",
+          "favorable": "least"
+        },
+        "route": [
+          "IND"
+        ],
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      },
+      {
+        "id": "WAS_2030_2nd_contested",
+        "year": 2030,
+        "round": 2,
+        "status": "contested",
+        "originalTeam": "WAS",
+        "currentOwner": "WAS",
+        "stepienEligible": false,
+        "tradeable": true,
+        "protection": null,
+        "isSwap": true,
+        "pickNumber": null,
+        "swapDetails": {
+          "swapType": "bilateral",
+          "favorable": null
+        },
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      },
+      {
+        "id": "WAS_2031_2nd_from_MIA",
+        "year": 2031,
+        "round": 2,
+        "status": "contested",
+        "originalTeam": "MIA",
+        "currentOwner": "WAS",
+        "stepienEligible": false,
+        "tradeable": true,
+        "protection": null,
+        "isSwap": true,
+        "via": "MIA",
+        "pickNumber": null,
+        "swapDetails": {
+          "swapType": "bilateral",
+          "favorable": null
+        },
+        "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+      }
+    ]
+  },
+  "sources": {
+    "salary": {
+      "provider": "SalarySwish",
+      "url": "https://www.salaryswish.com/teams/wizards",
+      "scrapedAt": "2025-10-17T08:24:47.749Z"
+    },
+    "draftPicks": {
+      "provider": "RealGM",
+      "url": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks",
+      "scrapedAt": "2025-10-20T06:01:13.173Z"
+    }
+  },
+  "mergedAt": "2025-10-20T06:01:13.173Z",
+  "version": "2.0"
+}

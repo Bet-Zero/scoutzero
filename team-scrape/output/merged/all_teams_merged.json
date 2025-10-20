@@ -1,0 +1,3605 @@
+[
+  {
+    "teamCode": "LAL",
+    "teamName": "LOS ANGELES LAKERS",
+    "season": "2025-26",
+    "roster": [
+      {
+        "displayName": "James, LeBron",
+        "sourceUrl": "https://www.salaryswish.com/players/lebron-james"
+      },
+      {
+        "displayName": "Doncic, Luka",
+        "sourceUrl": "https://www.salaryswish.com/players/luka-doncic"
+      },
+      {
+        "displayName": "Hachimura, Rui",
+        "sourceUrl": "https://www.salaryswish.com/players/rui-hachimura"
+      },
+      {
+        "displayName": "Reaves, Austin",
+        "sourceUrl": "https://www.salaryswish.com/players/austin-reaves"
+      },
+      {
+        "displayName": "Vanderbilt, Jarred",
+        "sourceUrl": "https://www.salaryswish.com/players/jarred-vanderbilt"
+      },
+      {
+        "displayName": "Vincent, Gabe",
+        "sourceUrl": "https://www.salaryswish.com/players/gabe-vincent"
+      },
+      {
+        "displayName": "Kleber, Maxi",
+        "sourceUrl": "https://www.salaryswish.com/players/maxi-kleber"
+      },
+      {
+        "displayName": "Ayton, Deandre",
+        "sourceUrl": "https://www.salaryswish.com/players/deandre-ayton"
+      },
+      {
+        "displayName": "LaRavia, Jake",
+        "sourceUrl": "https://www.salaryswish.com/players/jake-laravia"
+      },
+      {
+        "displayName": "Smart, Marcus",
+        "sourceUrl": "https://www.salaryswish.com/players/marcus-smart"
+      },
+      {
+        "displayName": "Knecht, Dalton",
+        "sourceUrl": "https://www.salaryswish.com/players/dalton-knecht"
+      },
+      {
+        "displayName": "Hayes, Jaxson",
+        "sourceUrl": "https://www.salaryswish.com/players/jaxson-hayes"
+      },
+      {
+        "displayName": "James, Bronny",
+        "sourceUrl": "https://www.salaryswish.com/players/bronny-james"
+      },
+      {
+        "displayName": "Thiero, Adou",
+        "sourceUrl": "https://www.salaryswish.com/players/adou-thiero"
+      }
+    ],
+    "capHolds": [
+      {
+        "displayName": "Watson, Anton",
+        "sourceUrl": "https://www.salaryswish.com/players/anton-watson",
+        "capHoldAmount": 2457010,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Williams, Nate",
+        "sourceUrl": "https://www.salaryswish.com/players/nate-williams",
+        "capHoldAmount": 2457010,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Davis, RJ",
+        "sourceUrl": "https://www.salaryswish.com/players/rj-davis",
+        "capHoldAmount": 2191886,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Manon, Chris",
+        "sourceUrl": "https://www.salaryswish.com/players/chris-manon",
+        "capHoldAmount": 2191886,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Marčiulionis, Augustas",
+        "sourceUrl": "https://www.salaryswish.com/players/augustas-marciulionis",
+        "capHoldAmount": 2191886,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Smith Jr., Nick",
+        "sourceUrl": "https://www.salaryswish.com/players/nick-smith-jr",
+        "capHoldAmount": 2191886,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Knecht, Dalton",
+        "sourceUrl": "https://www.salaryswish.com/players/dalton-knecht",
+        "capHoldAmount": 19358577,
+        "type": "RFA"
+      },
+      {
+        "displayName": "James, Bronny",
+        "sourceUrl": "https://www.salaryswish.com/players/bronny-james",
+        "capHoldAmount": 2972982,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Thiero, Adou",
+        "sourceUrl": "https://www.salaryswish.com/players/adou-thiero",
+        "capHoldAmount": 2972982,
+        "type": "RFA"
+      },
+      {
+        "displayName": "James, LeBron",
+        "sourceUrl": "https://www.salaryswish.com/players/lebron-james",
+        "capHoldAmount": 57915200,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Hachimura, Rui",
+        "sourceUrl": "https://www.salaryswish.com/players/rui-hachimura",
+        "capHoldAmount": 27388889,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Vincent, Gabe",
+        "sourceUrl": "https://www.salaryswish.com/players/gabe-vincent",
+        "capHoldAmount": 21850000,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Kleber, Maxi",
+        "sourceUrl": "https://www.salaryswish.com/players/maxi-kleber",
+        "capHoldAmount": 20900000,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Hayes, Jaxson",
+        "sourceUrl": "https://www.salaryswish.com/players/jaxson-hayes",
+        "capHoldAmount": 6553714,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Koloko, Christian",
+        "sourceUrl": "https://www.salaryswish.com/players/christian-koloko",
+        "capHoldAmount": 2191886,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Reaves, Austin",
+        "sourceUrl": "https://www.salaryswish.com/players/austin-reaves",
+        "capHoldAmount": 28307693,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Ayton, Deandre",
+        "sourceUrl": "https://www.salaryswish.com/players/deandre-ayton",
+        "capHoldAmount": 10535200,
+        "type": "UFA"
+      },
+      {
+        "displayName": "LaRavia, Jake",
+        "sourceUrl": "https://www.salaryswish.com/players/jake-laravia",
+        "capHoldAmount": 7800000,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Smart, Marcus",
+        "sourceUrl": "https://www.salaryswish.com/players/marcus-smart",
+        "capHoldAmount": 7007910,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Vanderbilt, Jarred",
+        "sourceUrl": "https://www.salaryswish.com/players/jarred-vanderbilt",
+        "capHoldAmount": 25242857,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Doncic, Luka",
+        "sourceUrl": "https://www.salaryswish.com/players/luka-doncic",
+        "capHoldAmount": 77085050,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Ellington, Wayne",
+        "sourceUrl": "https://www.salaryswish.com/players/wayne-ellington",
+        "capHoldAmount": 2296274,
+        "type": "FA Cap Hold"
+      },
+      {
+        "displayName": "Bradley, Avery",
+        "sourceUrl": "https://www.salaryswish.com/players/avery-bradley",
+        "capHoldAmount": 2296274,
+        "type": "FA Cap Hold"
+      },
+      {
+        "displayName": "Dudley, Jared",
+        "sourceUrl": "https://www.salaryswish.com/players/jared-dudley",
+        "capHoldAmount": 2296274,
+        "type": "FA Cap Hold"
+      },
+      {
+        "displayName": "Howard, Dwight",
+        "sourceUrl": "https://www.salaryswish.com/players/dwight-howard",
+        "capHoldAmount": 2296274,
+        "type": "FA Cap Hold"
+      },
+      {
+        "displayName": "Morris, Markieff",
+        "sourceUrl": "https://www.salaryswish.com/players/markieff-morris",
+        "capHoldAmount": 2296274,
+        "type": "FA Cap Hold"
+      },
+      {
+        "displayName": "Waiters, Dion",
+        "sourceUrl": "https://www.salaryswish.com/players/dion-waiters",
+        "capHoldAmount": 2296274,
+        "type": "FA Cap Hold"
+      },
+      {
+        "displayName": "Anthony, Carmelo",
+        "sourceUrl": "https://www.salaryswish.com/players/carmelo-anthony",
+        "capHoldAmount": 2296274,
+        "type": "FA Cap Hold"
+      }
+    ],
+    "exceptions": {
+      "mle": {
+        "type": "Non-Taxpayer",
+        "totalAmount": 14104000,
+        "usedAmount": 14104000,
+        "remainingAmount": 0,
+        "available": false
+      },
+      "bae": {
+        "totalAmount": 5135000,
+        "usedAmount": 5134000,
+        "remainingAmount": 1000,
+        "available": true
+      },
+      "tpe": [
+        {
+          "id": "TPE-LAL-Dec 29, 2025-1",
+          "totalAmount": 1891857,
+          "usedAmount": 0,
+          "remainingAmount": 1891857,
+          "createdFrom": "Maxwell Lewis",
+          "expiresOn": "Dec 29, 2025"
+        },
+        {
+          "id": "TPE-LAL-Dec 29, 2025-2",
+          "totalAmount": 893140,
+          "usedAmount": 0,
+          "remainingAmount": 893140,
+          "createdFrom": "D'Angelo Russell",
+          "expiresOn": "Dec 29, 2025"
+        },
+        {
+          "id": "TPE-LAL-Feb 2, 2026-3",
+          "totalAmount": 187500,
+          "usedAmount": 0,
+          "remainingAmount": 187500,
+          "createdFrom": "Anthony Davis",
+          "expiresOn": "Feb 2, 2026"
+        }
+      ]
+    },
+    "totals": {
+      "activeSalary": 194820805,
+      "deadCapTotal": 0,
+      "capHoldsTotal": 16073918,
+      "guaranteedSalary": 194891405,
+      "rosterCount": 18,
+      "twoWayCount": 3,
+      "salaryCap": 154647000,
+      "capSpace": -40173805,
+      "luxuryTaxLine": 187895000,
+      "taxSpace": -6925805,
+      "firstApronLine": 195945000,
+      "firstApronRoom": 1124195,
+      "firstApronTriggered": false,
+      "secondApronLine": 207824000,
+      "secondApronRoom": 13003195,
+      "secondApronTriggered": false,
+      "hardCappedAt": "firstApron",
+      "likelyIncentives": 0
+    },
+    "draftPicks": {
+      "incoming": [],
+      "outgoing": [],
+      "own": [],
+      "contested": []
+    },
+    "sources": {
+      "salary": {
+        "provider": "SalarySwish",
+        "url": "https://www.salaryswish.com/teams/lakers",
+        "scrapedAt": "2025-10-17T08:30:18.352Z"
+      },
+      "draftPicks": {
+        "provider": "RealGM",
+        "url": "",
+        "scrapedAt": "2025-10-20T06:01:13.164Z"
+      }
+    },
+    "mergedAt": "2025-10-20T06:01:13.164Z",
+    "version": "2.0"
+  },
+  {
+    "teamCode": "MEM",
+    "teamName": "MEMPHIS GRIZZLIES",
+    "season": "2025-26",
+    "roster": [
+      {
+        "displayName": "Morant, Ja",
+        "sourceUrl": "https://www.salaryswish.com/players/ja-morant"
+      },
+      {
+        "displayName": "Jackson Jr., Jaren",
+        "sourceUrl": "https://www.salaryswish.com/players/jaren-jacksonjr"
+      },
+      {
+        "displayName": "Caldwell-Pope, Kentavious",
+        "sourceUrl": "https://www.salaryswish.com/players/kentavious-caldwellpope"
+      },
+      {
+        "displayName": "Aldama, Santi",
+        "sourceUrl": "https://www.salaryswish.com/players/santi-aldama"
+      },
+      {
+        "displayName": "Clarke, Brandon",
+        "sourceUrl": "https://www.salaryswish.com/players/brandon-clarke"
+      },
+      {
+        "displayName": "Jerome, Ty",
+        "sourceUrl": "https://www.salaryswish.com/players/ty-jerome"
+      },
+      {
+        "displayName": "Konchar, John",
+        "sourceUrl": "https://www.salaryswish.com/players/john-konchar"
+      },
+      {
+        "displayName": "Edey, Zach",
+        "sourceUrl": "https://www.salaryswish.com/players/zach-edey"
+      },
+      {
+        "displayName": "Coward, Cedric",
+        "sourceUrl": "https://www.salaryswish.com/players/cedric-coward"
+      },
+      {
+        "displayName": "Spencer, Cam",
+        "sourceUrl": "https://www.salaryswish.com/players/cam-spencer"
+      },
+      {
+        "displayName": "Williams Jr., Vince",
+        "sourceUrl": "https://www.salaryswish.com/players/vince-williams-jr"
+      },
+      {
+        "displayName": "Landale, Jock",
+        "sourceUrl": "https://www.salaryswish.com/players/jock-landale"
+      },
+      {
+        "displayName": "Pippen Jr., Scotty",
+        "sourceUrl": "https://www.salaryswish.com/players/scotty-pippen-jr"
+      },
+      {
+        "displayName": "Jackson II, GG",
+        "sourceUrl": "https://www.salaryswish.com/players/gg-jackson-ii"
+      },
+      {
+        "displayName": "Wells, Jaylen",
+        "sourceUrl": "https://www.salaryswish.com/players/jaylen-wells"
+      }
+    ],
+    "capHolds": [
+      {
+        "displayName": "Hinton, Nate",
+        "sourceUrl": "https://www.salaryswish.com/players/nate-hinton",
+        "capHoldAmount": 2457010,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Hall, PJ",
+        "sourceUrl": "https://www.salaryswish.com/players/pj-hall",
+        "capHoldAmount": 2191886,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Lovering, Lawson",
+        "sourceUrl": "https://www.salaryswish.com/players/lawson-lovering",
+        "capHoldAmount": 2191886,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Prosper, Olivier-Maxence",
+        "sourceUrl": "https://www.salaryswish.com/players/olivier-maxence-prosper",
+        "capHoldAmount": 2191886,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Jackson II, GG",
+        "sourceUrl": "https://www.salaryswish.com/players/gg-jackson-ii",
+        "capHoldAmount": 2702711,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Williams Jr., Vince",
+        "sourceUrl": "https://www.salaryswish.com/players/vince-williams-jr",
+        "capHoldAmount": 2702711,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Small, Javon",
+        "sourceUrl": "https://www.salaryswish.com/players/javon-small",
+        "capHoldAmount": 2411075,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Edey, Zach",
+        "sourceUrl": "https://www.salaryswish.com/players/zach-edey",
+        "capHoldAmount": 24203808,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Wells, Jaylen",
+        "sourceUrl": "https://www.salaryswish.com/players/jaylen-wells",
+        "capHoldAmount": 2972982,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Coward, Cedric",
+        "sourceUrl": "https://www.salaryswish.com/players/cedric-coward",
+        "capHoldAmount": 25028229,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Spencer, Cam",
+        "sourceUrl": "https://www.salaryswish.com/players/cam-spencer",
+        "capHoldAmount": 3270280,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Key, Braxton",
+        "sourceUrl": "https://www.salaryswish.com/players/braxton-key",
+        "capHoldAmount": 2457010,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Landale, Jock",
+        "sourceUrl": "https://www.salaryswish.com/players/jock-landale",
+        "capHoldAmount": 2457010,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Caldwell-Pope, Kentavious",
+        "sourceUrl": "https://www.salaryswish.com/players/kentavious-caldwellpope",
+        "capHoldAmount": 32432250,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Clarke, Brandon",
+        "sourceUrl": "https://www.salaryswish.com/players/brandon-clarke",
+        "capHoldAmount": 23750000,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Konchar, John",
+        "sourceUrl": "https://www.salaryswish.com/players/john-konchar",
+        "capHoldAmount": 11713500,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Morant, Ja",
+        "sourceUrl": "https://www.salaryswish.com/players/ja-morant",
+        "capHoldAmount": 60066300,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Aldama, Santi",
+        "sourceUrl": "https://www.salaryswish.com/players/santi-aldama",
+        "capHoldAmount": 25510565,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Jerome, Ty",
+        "sourceUrl": "https://www.salaryswish.com/players/ty-jerome",
+        "capHoldAmount": 18352290,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Pippen Jr., Scotty",
+        "sourceUrl": "https://www.salaryswish.com/players/scotty-pippen-jr",
+        "capHoldAmount": 2972982,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Jackson Jr., Jaren",
+        "sourceUrl": "https://www.salaryswish.com/players/jaren-jacksonjr",
+        "capHoldAmount": 80250000,
+        "type": "UFA"
+      }
+    ],
+    "exceptions": {
+      "mle": {
+        "type": "Non-Taxpayer",
+        "totalAmount": 8781000,
+        "usedAmount": 8781000,
+        "remainingAmount": 0,
+        "available": false
+      },
+      "bae": {
+        "totalAmount": 0,
+        "usedAmount": 0,
+        "remainingAmount": 0,
+        "available": false
+      },
+      "tpe": []
+    },
+    "totals": {
+      "activeSalary": 167343265,
+      "deadCapTotal": 4164050,
+      "capHoldsTotal": 0,
+      "guaranteedSalary": 190504456,
+      "rosterCount": 18,
+      "twoWayCount": 3,
+      "salaryCap": 154647000,
+      "capSpace": -16860315,
+      "luxuryTaxLine": 187895000,
+      "taxSpace": 16387685,
+      "firstApronLine": 195945000,
+      "firstApronRoom": 24437685,
+      "firstApronTriggered": false,
+      "secondApronLine": 207824000,
+      "secondApronRoom": 35816685,
+      "secondApronTriggered": false,
+      "hardCappedAt": "firstApron",
+      "likelyIncentives": 500000
+    },
+    "draftPicks": {
+      "incoming": [],
+      "outgoing": [
+        {
+          "id": "MEM_2026_2nd_to_LAC",
+          "year": 2026,
+          "round": 2,
+          "status": "outgoing",
+          "originalTeam": "MEM",
+          "currentOwner": "LAC",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": false,
+          "recipient": "LAC",
+          "pickNumber": null,
+          "route": [
+            "ATL"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+        },
+        {
+          "id": "MEM_2026_2nd_to_POR",
+          "year": 2026,
+          "round": 2,
+          "status": "outgoing",
+          "originalTeam": "MEM",
+          "currentOwner": "POR",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": false,
+          "recipient": "POR",
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+        },
+        {
+          "id": "MEM_2027_2nd_to_HOU",
+          "year": 2027,
+          "round": 2,
+          "status": "outgoing",
+          "originalTeam": "MEM",
+          "currentOwner": "HOU",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": false,
+          "recipient": "HOU",
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+        },
+        {
+          "id": "MEM_2028_2nd_to_BRK",
+          "year": 2028,
+          "round": 2,
+          "status": "outgoing",
+          "originalTeam": "MEM",
+          "currentOwner": "BRK",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": false,
+          "recipient": "BRK",
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+        },
+        {
+          "id": "MEM_2029_2nd_to_BRK",
+          "year": 2029,
+          "round": 2,
+          "status": "outgoing",
+          "originalTeam": "MEM",
+          "currentOwner": "BRK",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": false,
+          "recipient": "BRK",
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+        },
+        {
+          "id": "MEM_2029_2nd_to_IND",
+          "year": 2029,
+          "round": 2,
+          "status": "outgoing",
+          "originalTeam": "MEM",
+          "currentOwner": "IND",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": false,
+          "recipient": "IND",
+          "pickNumber": null,
+          "route": [
+            "IND"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+        }
+      ],
+      "own": [
+        {
+          "id": "MEM_2027_1st",
+          "year": 2027,
+          "round": 1,
+          "status": "own",
+          "originalTeam": "MEM",
+          "currentOwner": "MEM",
+          "stepienEligible": true,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+        },
+        {
+          "id": "MEM_2028_1st",
+          "year": 2028,
+          "round": 1,
+          "status": "own",
+          "originalTeam": "MEM",
+          "currentOwner": "MEM",
+          "stepienEligible": true,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+        },
+        {
+          "id": "MEM_2029_1st_swap",
+          "year": 2029,
+          "round": 1,
+          "status": "own",
+          "originalTeam": "MEM",
+          "currentOwner": "MEM",
+          "stepienEligible": true,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": true,
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "bilateral",
+            "favorable": null
+          },
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+        },
+        {
+          "id": "MEM_2029_2nd",
+          "year": 2029,
+          "round": 2,
+          "status": "own",
+          "originalTeam": "MEM",
+          "currentOwner": "MEM",
+          "stepienEligible": false,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+        },
+        {
+          "id": "MEM_2030_1st",
+          "year": 2030,
+          "round": 1,
+          "status": "own",
+          "originalTeam": "MEM",
+          "currentOwner": "MEM",
+          "stepienEligible": true,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+        },
+        {
+          "id": "MEM_2031_1st",
+          "year": 2031,
+          "round": 1,
+          "status": "own",
+          "originalTeam": "MEM",
+          "currentOwner": "MEM",
+          "stepienEligible": true,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+        },
+        {
+          "id": "MEM_2032_1st",
+          "year": 2032,
+          "round": 1,
+          "status": "own",
+          "originalTeam": "MEM",
+          "currentOwner": "MEM",
+          "stepienEligible": true,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+        },
+        {
+          "id": "MEM_2032_2nd",
+          "year": 2032,
+          "round": 2,
+          "status": "own",
+          "originalTeam": "MEM",
+          "currentOwner": "MEM",
+          "stepienEligible": false,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+        },
+        {
+          "id": "MEM_2032_2nd",
+          "year": 2032,
+          "round": 2,
+          "status": "own",
+          "originalTeam": "MEM",
+          "currentOwner": "MEM",
+          "stepienEligible": false,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+        }
+      ],
+      "contested": [
+        {
+          "id": "MEM_2026_1st_to_CHA",
+          "year": 2026,
+          "round": 1,
+          "status": "contested",
+          "originalTeam": "WAS",
+          "currentOwner": "CHA",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": true,
+          "via": "WAS",
+          "recipient": "CHA",
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "favorable",
+            "favorable": "most"
+          },
+          "route": [
+            "IND"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+        },
+        {
+          "id": "MEM_2026_2nd_to_IND",
+          "year": 2026,
+          "round": 2,
+          "status": "contested",
+          "originalTeam": "MIA",
+          "currentOwner": "IND",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": true,
+          "via": "MIA",
+          "recipient": "IND",
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "favorable",
+            "favorable": "most"
+          },
+          "route": [
+            "MIA",
+            "IND",
+            "MIL",
+            "MEM"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+        },
+        {
+          "id": "MEM_2030_1st_swap",
+          "year": 2030,
+          "round": 1,
+          "status": "contested",
+          "originalTeam": "WAS",
+          "currentOwner": "MEM",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": true,
+          "via": "WAS",
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "favorable",
+            "favorable": "least"
+          },
+          "route": [
+            "IND"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+        },
+        {
+          "id": "MEM_2030_2nd_conditional",
+          "year": 2030,
+          "round": 2,
+          "status": "conditional",
+          "originalTeam": "MEM",
+          "currentOwner": "MEM",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": "top-50 protected",
+          "isSwap": false,
+          "conditions": [
+            {
+              "range": "31-50",
+              "outcome": "keep",
+              "recipient": "MEM"
+            },
+            {
+              "range": "51-60",
+              "outcome": "convey",
+              "recipient": "MIN"
+            }
+          ],
+          "conditionalRecipient": "MIN",
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+        },
+        {
+          "id": "MEM_2031_2nd_to_IND",
+          "year": 2031,
+          "round": 2,
+          "status": "contested",
+          "originalTeam": "MIA",
+          "currentOwner": "IND",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": true,
+          "via": "MIA",
+          "recipient": "IND",
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "favorable",
+            "favorable": "least"
+          },
+          "route": [
+            "IND"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks"
+        }
+      ]
+    },
+    "sources": {
+      "salary": {
+        "provider": "SalarySwish",
+        "url": "https://www.salaryswish.com/teams/grizzlies",
+        "scrapedAt": "2025-10-17T08:24:12.614Z"
+      },
+      "draftPicks": {
+        "provider": "RealGM",
+        "url": "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks",
+        "scrapedAt": "2025-10-20T06:01:13.166Z"
+      }
+    },
+    "mergedAt": "2025-10-20T06:01:13.166Z",
+    "version": "2.0"
+  },
+  {
+    "teamCode": "NYK",
+    "teamName": "NEW YORK KNICKS",
+    "season": "2025-26",
+    "roster": [
+      {
+        "displayName": "Towns, Karl-Anthony",
+        "sourceUrl": "https://www.salaryswish.com/players/karl-anthony-towns"
+      },
+      {
+        "displayName": "Anunoby, OG",
+        "sourceUrl": "https://www.salaryswish.com/players/og-anunoby"
+      },
+      {
+        "displayName": "Brunson, Jalen",
+        "sourceUrl": "https://www.salaryswish.com/players/jalen-brunson"
+      },
+      {
+        "displayName": "Bridges, Mikal",
+        "sourceUrl": "https://www.salaryswish.com/players/mikal-bridges"
+      },
+      {
+        "displayName": "Hart, Josh",
+        "sourceUrl": "https://www.salaryswish.com/players/josh-hart"
+      },
+      {
+        "displayName": "Robinson, Mitchell",
+        "sourceUrl": "https://www.salaryswish.com/players/mitchell-robinson"
+      },
+      {
+        "displayName": "Yabusele, Guerschon",
+        "sourceUrl": "https://www.salaryswish.com/players/guerschon-yabusele"
+      },
+      {
+        "displayName": "McBride, Miles",
+        "sourceUrl": "https://www.salaryswish.com/players/miles-mcbride"
+      },
+      {
+        "displayName": "Dadiet, Pacôme",
+        "sourceUrl": "https://www.salaryswish.com/players/pacome-dadiet"
+      },
+      {
+        "displayName": "Clarkson, Jordan",
+        "sourceUrl": "https://www.salaryswish.com/players/jordan-clarkson"
+      },
+      {
+        "displayName": "Kolek, Tyler",
+        "sourceUrl": "https://www.salaryswish.com/players/tyler-kolek"
+      },
+      {
+        "displayName": "Hukporti, Ariel",
+        "sourceUrl": "https://www.salaryswish.com/players/ariel-hukporti"
+      }
+    ],
+    "capHolds": [
+      {
+        "displayName": "Koponen, Petteri",
+        "sourceUrl": "https://www.salaryswish.com/players/petteri-koponen",
+        "capHoldAmount": 2743800,
+        "type": "Other"
+      },
+      {
+        "displayName": "Hukporti, Ariel",
+        "sourceUrl": "https://www.salaryswish.com/players/ariel-hukporti",
+        "capHoldAmount": 2457010,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Diawara, Mohamed",
+        "sourceUrl": "https://www.salaryswish.com/players/mohamed-diawara",
+        "capHoldAmount": 2191886,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Evbuomwan, Tosan",
+        "sourceUrl": "https://www.salaryswish.com/players/tosan-evbuomwan",
+        "capHoldAmount": 2191886,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Jemison, Trey",
+        "sourceUrl": "https://www.salaryswish.com/players/trey-jemison",
+        "capHoldAmount": 2191886,
+        "type": "RFA"
+      },
+      {
+        "displayName": "McCullar Jr., Kevin",
+        "sourceUrl": "https://www.salaryswish.com/players/kevin-mccullar-jr",
+        "capHoldAmount": 2191886,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Dadiet, Pacôme",
+        "sourceUrl": "https://www.salaryswish.com/players/pacome-dadiet",
+        "capHoldAmount": 16120824,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Kolek, Tyler",
+        "sourceUrl": "https://www.salaryswish.com/players/tyler-kolek",
+        "capHoldAmount": 2972982,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Robinson, Mitchell",
+        "sourceUrl": "https://www.salaryswish.com/players/mitchell-robinson",
+        "capHoldAmount": 24613637,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Brogdon, Malcolm",
+        "sourceUrl": "https://www.salaryswish.com/players/malcolm-brogdon",
+        "capHoldAmount": 2457010,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Clarkson, Jordan",
+        "sourceUrl": "https://www.salaryswish.com/players/jordan-clarkson",
+        "capHoldAmount": 2457010,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Len, Alex",
+        "sourceUrl": "https://www.salaryswish.com/players/alex-len",
+        "capHoldAmount": 2457010,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Mathews, Garrison",
+        "sourceUrl": "https://www.salaryswish.com/players/garrison-mathews",
+        "capHoldAmount": 2457010,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Ryan, Matt",
+        "sourceUrl": "https://www.salaryswish.com/players/matt-ryan",
+        "capHoldAmount": 2457010,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Shamet, Landry",
+        "sourceUrl": "https://www.salaryswish.com/players/landry-shamet",
+        "capHoldAmount": 2457010,
+        "type": "UFA"
+      },
+      {
+        "displayName": "McBride, Miles",
+        "sourceUrl": "https://www.salaryswish.com/players/miles-mcbride",
+        "capHoldAmount": 7517394,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Yabusele, Guerschon",
+        "sourceUrl": "https://www.salaryswish.com/players/guerschon-yabusele",
+        "capHoldAmount": 7507500,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Towns, Karl-Anthony",
+        "sourceUrl": "https://www.salaryswish.com/players/karl-anthony-towns",
+        "capHoldAmount": 70077350,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Hart, Josh",
+        "sourceUrl": "https://www.salaryswish.com/players/josh-hart",
+        "capHoldAmount": 33562920,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Anunoby, OG",
+        "sourceUrl": "https://www.salaryswish.com/players/og-anunoby",
+        "capHoldAmount": 72543102,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Brunson, Jalen",
+        "sourceUrl": "https://www.salaryswish.com/players/jalen-brunson",
+        "capHoldAmount": 64995842,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Bridges, Mikal",
+        "sourceUrl": "https://www.salaryswish.com/players/mikal-bridges",
+        "capHoldAmount": 62276784,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Tucker, P.J.",
+        "sourceUrl": "https://www.salaryswish.com/players/pj-tucker",
+        "capHoldAmount": 2296274,
+        "type": "FA Cap Hold"
+      }
+    ],
+    "exceptions": {
+      "mle": {
+        "type": "Non-Taxpayer",
+        "totalAmount": 5685000,
+        "usedAmount": 5500000,
+        "remainingAmount": 185000,
+        "available": true
+      },
+      "bae": {
+        "totalAmount": 0,
+        "usedAmount": 0,
+        "remainingAmount": 0,
+        "available": false
+      },
+      "tpe": [
+        {
+          "id": "TPE-NYK-Feb 6, 2026-1",
+          "totalAmount": 2092344,
+          "usedAmount": 0,
+          "remainingAmount": 2092344,
+          "createdFrom": "Jericho Sims",
+          "expiresOn": "Feb 6, 2026"
+        }
+      ]
+    },
+    "totals": {
+      "activeSalary": 204106495,
+      "deadCapTotal": 0,
+      "capHoldsTotal": 5040074,
+      "guaranteedSalary": 203270300,
+      "rosterCount": 18,
+      "twoWayCount": 3,
+      "salaryCap": 154647000,
+      "capSpace": -49459495,
+      "luxuryTaxLine": 187895000,
+      "taxSpace": -16211495,
+      "firstApronLine": 195945000,
+      "firstApronRoom": -8161495,
+      "firstApronTriggered": true,
+      "secondApronLine": 207824000,
+      "secondApronRoom": 3717505,
+      "secondApronTriggered": false,
+      "hardCappedAt": "secondApron",
+      "likelyIncentives": 0
+    },
+    "draftPicks": {
+      "incoming": [
+        {
+          "id": "NYK_2028_1st_swap",
+          "year": 2028,
+          "round": 1,
+          "status": "incoming",
+          "originalTeam": "NYK",
+          "currentOwner": "NYK",
+          "stepienEligible": true,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": true,
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "bilateral",
+            "favorable": null
+          },
+          "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+        }
+      ],
+      "outgoing": [
+        {
+          "id": "NYK_2026_1st_to_OKC",
+          "year": 2026,
+          "round": 1,
+          "status": "outgoing",
+          "originalTeam": "HOU",
+          "currentOwner": "OKC",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": false,
+          "via": "HOU",
+          "recipient": "OKC",
+          "pickNumber": null,
+          "route": [
+            "HOU"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+        },
+        {
+          "id": "NYK_2026_2nd_to_NYK",
+          "year": 2026,
+          "round": 2,
+          "status": "outgoing",
+          "originalTeam": "MIN",
+          "currentOwner": "NYK",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": false,
+          "via": "MIN",
+          "recipient": "NYK",
+          "pickNumber": null,
+          "route": [
+            "MIN",
+            "POR",
+            "DET",
+            "BOS",
+            "WAS"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+        },
+        {
+          "id": "NYK_2026_2nd_to_NYK",
+          "year": 2026,
+          "round": 2,
+          "status": "outgoing",
+          "originalTeam": "HOU",
+          "currentOwner": "NYK",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": false,
+          "via": "HOU",
+          "recipient": "NYK",
+          "pickNumber": null,
+          "route": [
+            "HOU"
+          ],
+          "dependsOn": [
+            "WAS_2026_1st_conditional"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+        },
+        {
+          "id": "NYK_2027_1st_to_BRK",
+          "year": 2027,
+          "round": 1,
+          "status": "outgoing",
+          "originalTeam": "NYK",
+          "currentOwner": "BRK",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": false,
+          "recipient": "BRK",
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+        },
+        {
+          "id": "NYK_2027_2nd_to_NYK",
+          "year": 2027,
+          "round": 2,
+          "status": "outgoing",
+          "originalTeam": "HOU",
+          "currentOwner": "NYK",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": false,
+          "via": "HOU",
+          "recipient": "NYK",
+          "pickNumber": null,
+          "route": [
+            "HOU"
+          ],
+          "dependsOn": [
+            "WAS_2026_1st_conditional"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+        },
+        {
+          "id": "NYK_2028_2nd_to_DET",
+          "year": 2028,
+          "round": 2,
+          "status": "outgoing",
+          "originalTeam": "NYK",
+          "currentOwner": "DET",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": false,
+          "recipient": "DET",
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+        },
+        {
+          "id": "NYK_2028_2nd",
+          "year": 2028,
+          "round": 2,
+          "status": "outgoing",
+          "originalTeam": "ORL",
+          "currentOwner": "NYK",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": false,
+          "via": "ORL",
+          "pickNumber": null,
+          "route": [
+            "ORL"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+        },
+        {
+          "id": "NYK_2029_1st_to_BRK",
+          "year": 2029,
+          "round": 1,
+          "status": "outgoing",
+          "originalTeam": "NYK",
+          "currentOwner": "BRK",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": false,
+          "recipient": "BRK",
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+        },
+        {
+          "id": "NYK_2030_2nd_to_POR",
+          "year": 2030,
+          "round": 2,
+          "status": "outgoing",
+          "originalTeam": "NYK",
+          "currentOwner": "POR",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": false,
+          "recipient": "POR",
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+        },
+        {
+          "id": "NYK_2031_1st_to_BRK",
+          "year": 2031,
+          "round": 1,
+          "status": "outgoing",
+          "originalTeam": "NYK",
+          "currentOwner": "BRK",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": false,
+          "recipient": "BRK",
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+        },
+        {
+          "id": "NYK_2031_2nd_to_CHA",
+          "year": 2031,
+          "round": 2,
+          "status": "outgoing",
+          "originalTeam": "NYK",
+          "currentOwner": "CHA",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": false,
+          "recipient": "CHA",
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+        }
+      ],
+      "own": [
+        {
+          "id": "NYK_2026_1st",
+          "year": 2026,
+          "round": 1,
+          "status": "own",
+          "originalTeam": "NYK",
+          "currentOwner": "NYK",
+          "stepienEligible": true,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+        },
+        {
+          "id": "NYK_2027_2nd",
+          "year": 2027,
+          "round": 2,
+          "status": "own",
+          "originalTeam": "NYK",
+          "currentOwner": "NYK",
+          "stepienEligible": false,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+        },
+        {
+          "id": "NYK_2030_1st",
+          "year": 2030,
+          "round": 1,
+          "status": "own",
+          "originalTeam": "NYK",
+          "currentOwner": "NYK",
+          "stepienEligible": true,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+        },
+        {
+          "id": "NYK_2032_1st",
+          "year": 2032,
+          "round": 1,
+          "status": "own",
+          "originalTeam": "NYK",
+          "currentOwner": "NYK",
+          "stepienEligible": true,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+        },
+        {
+          "id": "NYK_2032_2nd",
+          "year": 2032,
+          "round": 2,
+          "status": "own",
+          "originalTeam": "NYK",
+          "currentOwner": "NYK",
+          "stepienEligible": false,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+        }
+      ],
+      "contested": [
+        {
+          "id": "NYK_2026_2nd_contested",
+          "year": 2026,
+          "round": 2,
+          "status": "contested",
+          "originalTeam": "NYK",
+          "currentOwner": "NYK",
+          "stepienEligible": false,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": true,
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "bilateral",
+            "favorable": null
+          },
+          "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+        },
+        {
+          "id": "NYK_2026_2nd_to_BOS",
+          "year": 2026,
+          "round": 2,
+          "status": "contested",
+          "originalTeam": "NYK",
+          "currentOwner": "BOS",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": true,
+          "recipient": "BOS",
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "favorable",
+            "favorable": "most"
+          },
+          "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+        },
+        {
+          "id": "NYK_2026_2nd_to_WAS",
+          "year": 2026,
+          "round": 2,
+          "status": "contested",
+          "originalTeam": "NYK",
+          "currentOwner": "WAS",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": true,
+          "recipient": "WAS",
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "bilateral",
+            "favorable": null
+          },
+          "route": [
+            "IND"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+        },
+        {
+          "id": "NYK_2026_2nd_to_LAC",
+          "year": 2026,
+          "round": 2,
+          "status": "contested",
+          "originalTeam": "DET",
+          "currentOwner": "LAC",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": true,
+          "via": "DET",
+          "recipient": "LAC",
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "favorable",
+            "favorable": "least"
+          },
+          "route": [
+            "DET",
+            "ORL"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+        },
+        {
+          "id": "NYK_2027_2nd_to_DET",
+          "year": 2027,
+          "round": 2,
+          "status": "contested",
+          "originalTeam": "HOU",
+          "currentOwner": "DET",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": true,
+          "via": "HOU",
+          "recipient": "DET",
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "favorable",
+            "favorable": "most"
+          },
+          "route": [
+            "HOU",
+            "DET"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+        },
+        {
+          "id": "NYK_2028_1st_to_OKC",
+          "year": 2028,
+          "round": 1,
+          "status": "contested",
+          "originalTeam": "NYK",
+          "currentOwner": "OKC",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": true,
+          "recipient": "OKC",
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "favorable",
+            "favorable": "least"
+          },
+          "dependsOn": [
+            "PHL_2026_1st_conditional"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+        },
+        {
+          "id": "NYK_2028_1st_to_BRK",
+          "year": 2028,
+          "round": 1,
+          "status": "contested",
+          "originalTeam": "NYK",
+          "currentOwner": "BRK",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": true,
+          "recipient": "BRK",
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "favorable",
+            "favorable": "most"
+          },
+          "conveysIf": [
+            "if (i) PHL 9-30, if conveyable, is third most favorable and (ii) NYK is most or second most favorable of NYK, BRK, PHL 9-30 if conveyable, and PHX, then most and third most favorable to BRK"
+          ],
+          "route": [
+            "IND"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+        },
+        {
+          "id": "NYK_2028_2nd_from_IND",
+          "year": 2028,
+          "round": 2,
+          "status": "contested",
+          "originalTeam": "IND",
+          "currentOwner": "NYK",
+          "stepienEligible": false,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": true,
+          "via": "IND",
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "bilateral",
+            "favorable": null
+          },
+          "route": [
+            "IND"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+        },
+        {
+          "id": "NYK_2029_2nd_to_DET",
+          "year": 2029,
+          "round": 2,
+          "status": "contested",
+          "originalTeam": "NYK",
+          "currentOwner": "DET",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": true,
+          "recipient": "DET",
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "favorable",
+            "favorable": "most"
+          },
+          "route": [
+            "DET",
+            "MIL"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks"
+        }
+      ]
+    },
+    "sources": {
+      "salary": {
+        "provider": "SalarySwish",
+        "url": "https://www.salaryswish.com/teams/knicks",
+        "scrapedAt": "2025-10-17T08:24:25.946Z"
+      },
+      "draftPicks": {
+        "provider": "RealGM",
+        "url": "https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks",
+        "scrapedAt": "2025-10-20T06:01:13.168Z"
+      }
+    },
+    "mergedAt": "2025-10-20T06:01:13.168Z",
+    "version": "2.0"
+  },
+  {
+    "teamCode": "OKC",
+    "teamName": "OKLAHOMA CITY THUNDER",
+    "season": "2025-26",
+    "roster": [
+      {
+        "displayName": "Gilgeous-Alexander, Shai",
+        "sourceUrl": "https://www.salaryswish.com/players/shai-gilgeousalexander"
+      },
+      {
+        "displayName": "Hartenstein, Isaiah",
+        "sourceUrl": "https://www.salaryswish.com/players/isaiah-hartenstein"
+      },
+      {
+        "displayName": "Caruso, Alex",
+        "sourceUrl": "https://www.salaryswish.com/players/alex-caruso"
+      },
+      {
+        "displayName": "Dort, Luguentz",
+        "sourceUrl": "https://www.salaryswish.com/players/luguentz-dort"
+      },
+      {
+        "displayName": "Holmgren, Chet",
+        "sourceUrl": "https://www.salaryswish.com/players/chet-holmgren"
+      },
+      {
+        "displayName": "Joe, Isaiah",
+        "sourceUrl": "https://www.salaryswish.com/players/isaiah-joe"
+      },
+      {
+        "displayName": "Wiggins, Aaron",
+        "sourceUrl": "https://www.salaryswish.com/players/aaron-wiggins"
+      },
+      {
+        "displayName": "Williams, Jaylin",
+        "sourceUrl": "https://www.salaryswish.com/players/jaylin-williams"
+      },
+      {
+        "displayName": "Williams, Kenrich",
+        "sourceUrl": "https://www.salaryswish.com/players/kenrich-williams"
+      },
+      {
+        "displayName": "Dieng, Ousmane",
+        "sourceUrl": "https://www.salaryswish.com/players/ousmane-dieng"
+      },
+      {
+        "displayName": "Williams, Jalen",
+        "sourceUrl": "https://www.salaryswish.com/players/jalen-williams"
+      },
+      {
+        "displayName": "Wallace, Cason",
+        "sourceUrl": "https://www.salaryswish.com/players/cason-wallace"
+      },
+      {
+        "displayName": "Topić, Nikola",
+        "sourceUrl": "https://www.salaryswish.com/players/nikola-topic"
+      },
+      {
+        "displayName": "Sorber, Thomas",
+        "sourceUrl": "https://www.salaryswish.com/players/thomas-sorber"
+      },
+      {
+        "displayName": "Mitchell, Ajay",
+        "sourceUrl": "https://www.salaryswish.com/players/ajay-mitchell"
+      }
+    ],
+    "capHolds": [
+      {
+        "displayName": "Dieng, Ousmane",
+        "sourceUrl": "https://www.salaryswish.com/players/ousmane-dieng",
+        "capHoldAmount": 20012646,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Leons, Malevy",
+        "sourceUrl": "https://www.salaryswish.com/players/malevy-leons",
+        "capHoldAmount": 2457010,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Austin, Zach",
+        "sourceUrl": "https://www.salaryswish.com/players/zach-austin",
+        "capHoldAmount": 2191886,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Barnhizer, Brooks",
+        "sourceUrl": "https://www.salaryswish.com/players/brooks-barnhizer",
+        "capHoldAmount": 2191886,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Brown, Cameron",
+        "sourceUrl": "https://www.salaryswish.com/players/cameron-brown",
+        "capHoldAmount": 2191886,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Carlson, Branden",
+        "sourceUrl": "https://www.salaryswish.com/players/branden-carlson",
+        "capHoldAmount": 2191886,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Youngblood, Chris",
+        "sourceUrl": "https://www.salaryswish.com/players/chris-youngblood",
+        "capHoldAmount": 2191886,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Wallace, Cason",
+        "sourceUrl": "https://www.salaryswish.com/players/cason-wallace",
+        "capHoldAmount": 22262418,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Topić, Nikola",
+        "sourceUrl": "https://www.salaryswish.com/players/nikola-topic",
+        "capHoldAmount": 22446627,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Sorber, Thomas",
+        "sourceUrl": "https://www.salaryswish.com/players/thomas-sorber",
+        "capHoldAmount": 23548719,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Reynolds II, Erik",
+        "sourceUrl": "https://www.salaryswish.com/players/erik-reynolds-ii",
+        "capHoldAmount": 2191886,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Hartenstein, Isaiah",
+        "sourceUrl": "https://www.salaryswish.com/players/isaiah-hartenstein",
+        "capHoldAmount": 42750000,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Dort, Luguentz",
+        "sourceUrl": "https://www.salaryswish.com/players/luguentz-dort",
+        "capHoldAmount": 26583333,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Williams, Kenrich",
+        "sourceUrl": "https://www.salaryswish.com/players/kenrich-williams",
+        "capHoldAmount": 13609700,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Joe, Isaiah",
+        "sourceUrl": "https://www.salaryswish.com/players/isaiah-joe",
+        "capHoldAmount": 21513711,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Williams, Jaylin",
+        "sourceUrl": "https://www.salaryswish.com/players/jaylin-williams",
+        "capHoldAmount": 14706000,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Mitchell, Ajay",
+        "sourceUrl": "https://www.salaryswish.com/players/ajay-mitchell",
+        "capHoldAmount": 5415000,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Caruso, Alex",
+        "sourceUrl": "https://www.salaryswish.com/players/alex-caruso",
+        "capHoldAmount": 33669720,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Wiggins, Aaron",
+        "sourceUrl": "https://www.salaryswish.com/players/aaron-wiggins",
+        "capHoldAmount": 15182245,
+        "type": "UFA"
+      }
+    ],
+    "exceptions": {
+      "mle": {
+        "type": "Non-Taxpayer",
+        "totalAmount": 14104000,
+        "usedAmount": 4105954,
+        "remainingAmount": 9998046,
+        "available": true
+      },
+      "bae": {
+        "totalAmount": 5135000,
+        "usedAmount": 0,
+        "remainingAmount": 5135000,
+        "available": true
+      },
+      "tpe": [
+        {
+          "id": "TPE-OKC-Jun 28, 2026-1",
+          "totalAmount": 501669,
+          "usedAmount": 0,
+          "remainingAmount": 501669,
+          "createdFrom": "Dillon Jones",
+          "expiresOn": "Jun 28, 2026"
+        }
+      ]
+    },
+    "totals": {
+      "activeSalary": 185946954,
+      "deadCapTotal": 0,
+      "capHoldsTotal": 0,
+      "guaranteedSalary": 184689267,
+      "rosterCount": 19,
+      "twoWayCount": 2,
+      "salaryCap": 154647000,
+      "capSpace": -31299954,
+      "luxuryTaxLine": 187895000,
+      "taxSpace": 1948046,
+      "firstApronLine": 195945000,
+      "firstApronRoom": 9998046,
+      "firstApronTriggered": false,
+      "secondApronLine": 207824000,
+      "secondApronRoom": 20447140,
+      "secondApronTriggered": false,
+      "hardCappedAt": "none",
+      "likelyIncentives": 1429906
+    },
+    "draftPicks": {
+      "incoming": [
+        {
+          "id": "OKC_2027_1st_from_SAC",
+          "year": 2027,
+          "round": 1,
+          "status": "incoming",
+          "originalTeam": "SAC",
+          "currentOwner": "OKC",
+          "stepienEligible": true,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "via": "SAC",
+          "pickNumber": null,
+          "route": [
+            "SAC"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        },
+        {
+          "id": "OKC_2027_2nd_from_SAC",
+          "year": 2027,
+          "round": 2,
+          "status": "incoming",
+          "originalTeam": "SAC",
+          "currentOwner": "OKC",
+          "stepienEligible": false,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "via": "SAC",
+          "pickNumber": null,
+          "route": [
+            "SAC"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        },
+        {
+          "id": "OKC_2030_2nd_from_CHA",
+          "year": 2030,
+          "round": 2,
+          "status": "incoming",
+          "originalTeam": "CHA",
+          "currentOwner": "OKC",
+          "stepienEligible": false,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "via": "CHA",
+          "pickNumber": null,
+          "route": [
+            "CHA"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        }
+      ],
+      "outgoing": [
+        {
+          "id": "OKC_2027_2nd_to_DET",
+          "year": 2027,
+          "round": 2,
+          "status": "outgoing",
+          "originalTeam": "HOU",
+          "currentOwner": "DET",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": false,
+          "via": "HOU",
+          "recipient": "DET",
+          "pickNumber": null,
+          "route": [
+            "HOU",
+            "DET",
+            "MIA",
+            "SAS"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        },
+        {
+          "id": "OKC_2027_2nd_to_OKC",
+          "year": 2027,
+          "round": 2,
+          "status": "outgoing",
+          "originalTeam": "OKC",
+          "currentOwner": "OKC",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": false,
+          "recipient": "OKC",
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        },
+        {
+          "id": "OKC_2028_2nd_to_HOU",
+          "year": 2028,
+          "round": 2,
+          "status": "outgoing",
+          "originalTeam": "OKC",
+          "currentOwner": "HOU",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": false,
+          "recipient": "HOU",
+          "pickNumber": null,
+          "route": [
+            "HOU"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        },
+        {
+          "id": "OKC_2029_1st_to_OKC",
+          "year": 2029,
+          "round": 1,
+          "status": "outgoing",
+          "originalTeam": "OKC",
+          "currentOwner": "OKC",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": false,
+          "recipient": "OKC",
+          "pickNumber": null,
+          "dependsOn": [
+            "DEN_2027_1st_conditional"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        },
+        {
+          "id": "OKC_2029_2nd_to_OKC",
+          "year": 2029,
+          "round": 2,
+          "status": "outgoing",
+          "originalTeam": "OKC",
+          "currentOwner": "OKC",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": false,
+          "recipient": "OKC",
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        },
+        {
+          "id": "OKC_2030_1st_to_OKC",
+          "year": 2030,
+          "round": 1,
+          "status": "outgoing",
+          "originalTeam": "OKC",
+          "currentOwner": "OKC",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": false,
+          "recipient": "OKC",
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        }
+      ],
+      "own": [
+        {
+          "id": "OKC_2026_1st",
+          "year": 2026,
+          "round": 1,
+          "status": "own",
+          "originalTeam": "OKC",
+          "currentOwner": "OKC",
+          "stepienEligible": true,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        },
+        {
+          "id": "OKC_2026_1st",
+          "year": 2026,
+          "round": 1,
+          "status": "own",
+          "originalTeam": "OKC",
+          "currentOwner": "OKC",
+          "stepienEligible": true,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        },
+        {
+          "id": "OKC_2026_2nd",
+          "year": 2026,
+          "round": 2,
+          "status": "own",
+          "originalTeam": "OKC",
+          "currentOwner": "OKC",
+          "stepienEligible": false,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        },
+        {
+          "id": "OKC_2027_1st",
+          "year": 2027,
+          "round": 1,
+          "status": "own",
+          "originalTeam": "OKC",
+          "currentOwner": "OKC",
+          "stepienEligible": true,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        },
+        {
+          "id": "OKC_2028_1st_swap",
+          "year": 2028,
+          "round": 1,
+          "status": "own",
+          "originalTeam": "OKC",
+          "currentOwner": "OKC",
+          "stepienEligible": true,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": true,
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "bilateral",
+            "favorable": null
+          },
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        },
+        {
+          "id": "OKC_2028_1st",
+          "year": 2028,
+          "round": 1,
+          "status": "own",
+          "originalTeam": "OKC",
+          "currentOwner": "OKC",
+          "stepienEligible": true,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        },
+        {
+          "id": "OKC_2028_2nd",
+          "year": 2028,
+          "round": 2,
+          "status": "own",
+          "originalTeam": "OKC",
+          "currentOwner": "OKC",
+          "stepienEligible": false,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        },
+        {
+          "id": "OKC_2028_2nd",
+          "year": 2028,
+          "round": 2,
+          "status": "own",
+          "originalTeam": "OKC",
+          "currentOwner": "OKC",
+          "stepienEligible": false,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        },
+        {
+          "id": "OKC_2029_1st",
+          "year": 2029,
+          "round": 1,
+          "status": "own",
+          "originalTeam": "OKC",
+          "currentOwner": "OKC",
+          "stepienEligible": true,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        },
+        {
+          "id": "OKC_2029_1st",
+          "year": 2029,
+          "round": 1,
+          "status": "own",
+          "originalTeam": "OKC",
+          "currentOwner": "OKC",
+          "stepienEligible": true,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        },
+        {
+          "id": "OKC_2029_2nd",
+          "year": 2029,
+          "round": 2,
+          "status": "own",
+          "originalTeam": "OKC",
+          "currentOwner": "OKC",
+          "stepienEligible": false,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        },
+        {
+          "id": "OKC_2029_2nd",
+          "year": 2029,
+          "round": 2,
+          "status": "own",
+          "originalTeam": "OKC",
+          "currentOwner": "OKC",
+          "stepienEligible": false,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        },
+        {
+          "id": "OKC_2029_2nd",
+          "year": 2029,
+          "round": 2,
+          "status": "own",
+          "originalTeam": "OKC",
+          "currentOwner": "OKC",
+          "stepienEligible": false,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        },
+        {
+          "id": "OKC_2029_2nd",
+          "year": 2029,
+          "round": 2,
+          "status": "own",
+          "originalTeam": "OKC",
+          "currentOwner": "OKC",
+          "stepienEligible": false,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        },
+        {
+          "id": "OKC_2030_1st",
+          "year": 2030,
+          "round": 1,
+          "status": "own",
+          "originalTeam": "OKC",
+          "currentOwner": "OKC",
+          "stepienEligible": true,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        },
+        {
+          "id": "OKC_2030_2nd",
+          "year": 2030,
+          "round": 2,
+          "status": "own",
+          "originalTeam": "OKC",
+          "currentOwner": "OKC",
+          "stepienEligible": false,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        },
+        {
+          "id": "OKC_2030_2nd",
+          "year": 2030,
+          "round": 2,
+          "status": "own",
+          "originalTeam": "OKC",
+          "currentOwner": "OKC",
+          "stepienEligible": false,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        },
+        {
+          "id": "OKC_2030_2nd",
+          "year": 2030,
+          "round": 2,
+          "status": "own",
+          "originalTeam": "OKC",
+          "currentOwner": "OKC",
+          "stepienEligible": false,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        },
+        {
+          "id": "OKC_2031_1st",
+          "year": 2031,
+          "round": 1,
+          "status": "own",
+          "originalTeam": "OKC",
+          "currentOwner": "OKC",
+          "stepienEligible": true,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        },
+        {
+          "id": "OKC_2031_2nd",
+          "year": 2031,
+          "round": 2,
+          "status": "own",
+          "originalTeam": "OKC",
+          "currentOwner": "OKC",
+          "stepienEligible": false,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        },
+        {
+          "id": "OKC_2032_1st",
+          "year": 2032,
+          "round": 1,
+          "status": "own",
+          "originalTeam": "OKC",
+          "currentOwner": "OKC",
+          "stepienEligible": true,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        },
+        {
+          "id": "OKC_2032_2nd",
+          "year": 2032,
+          "round": 2,
+          "status": "own",
+          "originalTeam": "OKC",
+          "currentOwner": "OKC",
+          "stepienEligible": false,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        }
+      ],
+      "contested": [
+        {
+          "id": "OKC_2026_1st_to_WAS",
+          "year": 2026,
+          "round": 1,
+          "status": "contested",
+          "originalTeam": "OKC",
+          "currentOwner": "WAS",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": true,
+          "recipient": "WAS",
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "bilateral",
+            "favorable": null
+          },
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        },
+        {
+          "id": "OKC_2026_2nd_swap",
+          "year": 2026,
+          "round": 2,
+          "status": "contested",
+          "originalTeam": "OKC",
+          "currentOwner": "OKC",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": true,
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "favorable",
+            "favorable": "most"
+          },
+          "route": [
+            "HOU",
+            "MIA",
+            "SAS",
+            "WAS"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        },
+        {
+          "id": "OKC_2027_1st_swap",
+          "year": 2027,
+          "round": 1,
+          "status": "contested",
+          "originalTeam": "OKC",
+          "currentOwner": "OKC",
+          "stepienEligible": true,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": true,
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "bilateral",
+            "favorable": null
+          },
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        },
+        {
+          "id": "OKC_2027_2nd_to_NYK",
+          "year": 2027,
+          "round": 2,
+          "status": "contested",
+          "originalTeam": "OKC",
+          "currentOwner": "NYK",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": true,
+          "recipient": "NYK",
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "favorable",
+            "favorable": "most"
+          },
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        },
+        {
+          "id": "OKC_2027_2nd_to_SAS",
+          "year": 2027,
+          "round": 2,
+          "status": "contested",
+          "originalTeam": "OKC",
+          "currentOwner": "SAS",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": true,
+          "recipient": "SAS",
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "favorable",
+            "favorable": "least"
+          },
+          "route": [
+            "IND"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        },
+        {
+          "id": "OKC_2031_2nd_from_ORL",
+          "year": 2031,
+          "round": 2,
+          "status": "contested",
+          "originalTeam": "ORL",
+          "currentOwner": "OKC",
+          "stepienEligible": false,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": true,
+          "via": "ORL",
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "bilateral",
+            "favorable": null
+          },
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks"
+        }
+      ]
+    },
+    "sources": {
+      "salary": {
+        "provider": "SalarySwish",
+        "url": "https://www.salaryswish.com/teams/thunder",
+        "scrapedAt": "2025-10-17T08:24:36.685Z"
+      },
+      "draftPicks": {
+        "provider": "RealGM",
+        "url": "https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks",
+        "scrapedAt": "2025-10-20T06:01:13.170Z"
+      }
+    },
+    "mergedAt": "2025-10-20T06:01:13.170Z",
+    "version": "2.0"
+  },
+  {
+    "teamCode": "WAS",
+    "teamName": "WASHINGTON WIZARDS",
+    "season": "2025-26",
+    "roster": [
+      {
+        "displayName": "Middleton, Khris",
+        "sourceUrl": "https://www.salaryswish.com/players/khris-middleton"
+      },
+      {
+        "displayName": "McCollum, CJ",
+        "sourceUrl": "https://www.salaryswish.com/players/cj-mccollum"
+      },
+      {
+        "displayName": "Kispert, Corey",
+        "sourceUrl": "https://www.salaryswish.com/players/corey-kispert"
+      },
+      {
+        "displayName": "Sarr, Alexandre",
+        "sourceUrl": "https://www.salaryswish.com/players/alexandre-sarr"
+      },
+      {
+        "displayName": "Johnson, Tre",
+        "sourceUrl": "https://www.salaryswish.com/players/tre-johnson"
+      },
+      {
+        "displayName": "Coulibaly, Bilal",
+        "sourceUrl": "https://www.salaryswish.com/players/bilal-coulibaly"
+      },
+      {
+        "displayName": "Branham, Malaki",
+        "sourceUrl": "https://www.salaryswish.com/players/malaki-branham"
+      },
+      {
+        "displayName": "Carrington, Carlton",
+        "sourceUrl": "https://www.salaryswish.com/players/carlton-carrington"
+      },
+      {
+        "displayName": "Whitmore, Cam",
+        "sourceUrl": "https://www.salaryswish.com/players/cam-whitmore"
+      },
+      {
+        "displayName": "Riley, Will",
+        "sourceUrl": "https://www.salaryswish.com/players/will-riley"
+      },
+      {
+        "displayName": "Johnson, A.J.",
+        "sourceUrl": "https://www.salaryswish.com/players/aj-johnson"
+      },
+      {
+        "displayName": "George, Kyshawn",
+        "sourceUrl": "https://www.salaryswish.com/players/kyshawn-george"
+      },
+      {
+        "displayName": "Jones, Dillon",
+        "sourceUrl": "https://www.salaryswish.com/players/dillon-jones"
+      },
+      {
+        "displayName": "Champagnie, Justin",
+        "sourceUrl": "https://www.salaryswish.com/players/justin-champagnie"
+      },
+      {
+        "displayName": "Bagley III, Marvin",
+        "sourceUrl": "https://www.salaryswish.com/players/marvin-bagleyiii"
+      },
+      {
+        "displayName": "Gill, Anthony",
+        "sourceUrl": "https://www.salaryswish.com/players/anthony-gill"
+      }
+    ],
+    "capHolds": [
+      {
+        "displayName": "Branham, Malaki",
+        "sourceUrl": "https://www.salaryswish.com/players/malaki-branham",
+        "capHoldAmount": 14886099,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Williams, Alondes",
+        "sourceUrl": "https://www.salaryswish.com/players/alondes-williams",
+        "capHoldAmount": 2457010,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Cooper, Sharife",
+        "sourceUrl": "https://www.salaryswish.com/players/sharife-cooper",
+        "capHoldAmount": 2191886,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Richmond, Kadary",
+        "sourceUrl": "https://www.salaryswish.com/players/kadary-richmond",
+        "capHoldAmount": 2191886,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Vukcevic, Tristan",
+        "sourceUrl": "https://www.salaryswish.com/players/tristan-vukcevic",
+        "capHoldAmount": 2191886,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Watkins, Jamir",
+        "sourceUrl": "https://www.salaryswish.com/players/jamir-watkins",
+        "capHoldAmount": 2191886,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Coulibaly, Bilal",
+        "sourceUrl": "https://www.salaryswish.com/players/bilal-coulibaly",
+        "capHoldAmount": 27720036,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Whitmore, Cam",
+        "sourceUrl": "https://www.salaryswish.com/players/cam-whitmore",
+        "capHoldAmount": 16374930,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Sarr, Alexandre",
+        "sourceUrl": "https://www.salaryswish.com/players/alexandre-sarr",
+        "capHoldAmount": 46835394,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Carrington, Carlton",
+        "sourceUrl": "https://www.salaryswish.com/players/carlton-carrington",
+        "capHoldAmount": 21773187,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Johnson, A.J.",
+        "sourceUrl": "https://www.salaryswish.com/players/aj-johnson",
+        "capHoldAmount": 16480179,
+        "type": "RFA"
+      },
+      {
+        "displayName": "George, Kyshawn",
+        "sourceUrl": "https://www.salaryswish.com/players/kyshawn-george",
+        "capHoldAmount": 16307676,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Jones, Dillon",
+        "sourceUrl": "https://www.salaryswish.com/players/dillon-jones",
+        "capHoldAmount": 15601935,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Johnson, Tre",
+        "sourceUrl": "https://www.salaryswish.com/players/tre-johnson",
+        "capHoldAmount": 34470630,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Riley, Will",
+        "sourceUrl": "https://www.salaryswish.com/players/will-riley",
+        "capHoldAmount": 18466056,
+        "type": "RFA"
+      },
+      {
+        "displayName": "Middleton, Khris",
+        "sourceUrl": "https://www.salaryswish.com/players/khris-middleton",
+        "capHoldAmount": 50018519,
+        "type": "UFA"
+      },
+      {
+        "displayName": "McCollum, CJ",
+        "sourceUrl": "https://www.salaryswish.com/players/cj-mccollum",
+        "capHoldAmount": 45999999,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Bagley III, Marvin",
+        "sourceUrl": "https://www.salaryswish.com/players/marvin-bagleyiii",
+        "capHoldAmount": 2457010,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Gill, Anthony",
+        "sourceUrl": "https://www.salaryswish.com/players/anthony-gill",
+        "capHoldAmount": 2457010,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Champagnie, Justin",
+        "sourceUrl": "https://www.salaryswish.com/players/justin-champagnie",
+        "capHoldAmount": 2972982,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Kispert, Corey",
+        "sourceUrl": "https://www.salaryswish.com/players/corey-kispert",
+        "capHoldAmount": 24795000,
+        "type": "UFA"
+      },
+      {
+        "displayName": "Mahinmi, Ian",
+        "sourceUrl": "https://www.salaryswish.com/players/ian-mahinmi",
+        "capHoldAmount": 23175077,
+        "type": "FA Cap Hold"
+      },
+      {
+        "displayName": "Nunn, Kendrick",
+        "sourceUrl": "https://www.salaryswish.com/players/kendrick-nunn",
+        "capHoldAmount": 6825000,
+        "type": "FA Cap Hold"
+      },
+      {
+        "displayName": "Satoransky, Tomas",
+        "sourceUrl": "https://www.salaryswish.com/players/tomas-satoransky",
+        "capHoldAmount": 2296274,
+        "type": "FA Cap Hold"
+      },
+      {
+        "displayName": "Napier, Shabazz",
+        "sourceUrl": "https://www.salaryswish.com/players/shabazz-napier",
+        "capHoldAmount": 2296274,
+        "type": "FA Cap Hold"
+      },
+      {
+        "displayName": "Lawson, Ty",
+        "sourceUrl": "https://www.salaryswish.com/players/ty-lawson",
+        "capHoldAmount": 2296274,
+        "type": "FA Cap Hold"
+      },
+      {
+        "displayName": "Sessions, Ramon",
+        "sourceUrl": "https://www.salaryswish.com/players/ramon-sessions",
+        "capHoldAmount": 2296274,
+        "type": "FA Cap Hold"
+      },
+      {
+        "displayName": "Williams, Johnathan",
+        "sourceUrl": "https://www.salaryswish.com/players/johnathan-williams",
+        "capHoldAmount": 2048494,
+        "type": "FA Cap Hold"
+      },
+      {
+        "displayName": "Winston, Cassius",
+        "sourceUrl": "https://www.salaryswish.com/players/cassius-winston",
+        "capHoldAmount": 2048494,
+        "type": "FA Cap Hold"
+      }
+    ],
+    "exceptions": {
+      "mle": {
+        "type": "Non-Taxpayer",
+        "totalAmount": 14104000,
+        "usedAmount": 0,
+        "remainingAmount": 14104000,
+        "available": true
+      },
+      "bae": {
+        "totalAmount": 5135000,
+        "usedAmount": 0,
+        "remainingAmount": 5135000,
+        "available": true
+      },
+      "tpe": [
+        {
+          "id": "TPE-WAS-Feb 5, 2026-1",
+          "totalAmount": 9900000,
+          "usedAmount": 0,
+          "remainingAmount": 9900000,
+          "createdFrom": "Jonas Valanciunas",
+          "expiresOn": "Feb 5, 2026"
+        },
+        {
+          "id": "TPE-WAS-Feb 6, 2026-2",
+          "totalAmount": 5291160,
+          "usedAmount": 4962033,
+          "remainingAmount": 329127,
+          "createdFrom": "Johnny Davis",
+          "expiresOn": "Feb 6, 2026"
+        },
+        {
+          "id": "TPE-WAS-Feb 6, 2026-3",
+          "totalAmount": 2448840,
+          "usedAmount": 2448840,
+          "remainingAmount": 0,
+          "createdFrom": "Patrick Baldwin Jr",
+          "expiresOn": "Feb 6, 2026"
+        },
+        {
+          "id": "TPE-WAS-Jul 8, 2026-4",
+          "totalAmount": 13445122,
+          "usedAmount": 0,
+          "remainingAmount": 13445122,
+          "createdFrom": "Kelly Olynyk",
+          "expiresOn": "Jul 8, 2026"
+        }
+      ]
+    },
+    "totals": {
+      "activeSalary": 137753384,
+      "deadCapTotal": 18384313,
+      "capHoldsTotal": 43282161,
+      "guaranteedSalary": 132556638,
+      "rosterCount": 18,
+      "twoWayCount": 3,
+      "salaryCap": 154647000,
+      "capSpace": -1490697,
+      "luxuryTaxLine": 187895000,
+      "taxSpace": 31757303,
+      "firstApronLine": 195945000,
+      "firstApronRoom": 39807303,
+      "firstApronTriggered": false,
+      "secondApronLine": 207824000,
+      "secondApronRoom": 48513465,
+      "secondApronTriggered": false,
+      "hardCappedAt": "firstApron",
+      "likelyIncentives": 3172838
+    },
+    "draftPicks": {
+      "incoming": [
+        {
+          "id": "WAS_2028_1st_from_POR",
+          "year": 2028,
+          "round": 1,
+          "status": "incoming",
+          "originalTeam": "POR",
+          "currentOwner": "WAS",
+          "stepienEligible": true,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": true,
+          "via": "POR",
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "bilateral",
+            "favorable": null
+          },
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        },
+        {
+          "id": "WAS_2029_2nd",
+          "year": 2029,
+          "round": 2,
+          "status": "incoming",
+          "originalTeam": "WAS",
+          "currentOwner": "WAS",
+          "stepienEligible": false,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        },
+        {
+          "id": "WAS_2030_1st_from_WAS",
+          "year": 2030,
+          "round": 1,
+          "status": "incoming",
+          "originalTeam": "WAS",
+          "currentOwner": "WAS",
+          "stepienEligible": true,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": true,
+          "via": "WAS",
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "bilateral",
+            "favorable": null
+          },
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        }
+      ],
+      "outgoing": [
+        {
+          "id": "WAS_2026_1st_to_CHA",
+          "year": 2026,
+          "round": 1,
+          "status": "outgoing",
+          "originalTeam": "WAS",
+          "currentOwner": "CHA",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": true,
+          "via": "WAS",
+          "recipient": "CHA",
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "bilateral",
+            "favorable": null
+          },
+          "route": [
+            "CHA"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        },
+        {
+          "id": "WAS_2026_1st_to_NYK",
+          "year": 2026,
+          "round": 1,
+          "status": "outgoing",
+          "originalTeam": "HOU",
+          "currentOwner": "NYK",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": false,
+          "via": "HOU",
+          "recipient": "NYK",
+          "pickNumber": null,
+          "route": [
+            "HOU"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        },
+        {
+          "id": "WAS_2026_2nd_to_NYK",
+          "year": 2026,
+          "round": 2,
+          "status": "outgoing",
+          "originalTeam": "WAS",
+          "currentOwner": "NYK",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": false,
+          "recipient": "NYK",
+          "pickNumber": null,
+          "route": [
+            "HOU"
+          ],
+          "conveyanceObligation": {
+            "id": "WAS_2026_2nd_conditional",
+            "description": "WAS 2026 2nd conditional conveyance",
+            "originalYear": 2026,
+            "currentYear": 2026,
+            "stepienImpact": {
+              "eligibleForStepien": false,
+              "locksYears": [],
+              "deadYears": [],
+              "affectedYears": [
+                2026
+              ]
+            },
+            "conditions": {
+              "ifConveys": "WAS does not convey 1st round pick to NYK in 2026 (via HOU to OKC)",
+              "ifRolls": "resolves in current year",
+              "protection": "conditional"
+            },
+            "affects": [
+              "NYK"
+            ]
+          },
+          "dependsOn": [
+            "WAS_2026_1st_conditional"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        },
+        {
+          "id": "WAS_2027_2nd_to_NYK",
+          "year": 2027,
+          "round": 2,
+          "status": "outgoing",
+          "originalTeam": "WAS",
+          "currentOwner": "NYK",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": false,
+          "recipient": "NYK",
+          "pickNumber": null,
+          "route": [
+            "HOU"
+          ],
+          "conveyanceObligation": {
+            "id": "WAS_2027_2nd_conditional",
+            "description": "WAS 2027 2nd conditional conveyance",
+            "originalYear": 2027,
+            "currentYear": 2027,
+            "stepienImpact": {
+              "eligibleForStepien": false,
+              "locksYears": [],
+              "deadYears": [],
+              "affectedYears": [
+                2027
+              ]
+            },
+            "conditions": {
+              "ifConveys": "WAS does not convey 1st round pick to NYK in 2026 (via HOU to OKC)",
+              "ifRolls": "resolves in current year",
+              "protection": "conditional"
+            },
+            "affects": [
+              "NYK"
+            ]
+          },
+          "dependsOn": [
+            "WAS_2026_1st_conditional"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        },
+        {
+          "id": "WAS_2027_2nd_to_NOP",
+          "year": 2027,
+          "round": 2,
+          "status": "outgoing",
+          "originalTeam": "WAS",
+          "currentOwner": "NOP",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": false,
+          "via": "WAS",
+          "recipient": "NOP",
+          "pickNumber": null,
+          "protectionDetails": "CHI (in separate, protected conveyances; via WAS to NOP);",
+          "route": [
+            "WAS"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        },
+        {
+          "id": "WAS_2028_2nd_to_SAC",
+          "year": 2028,
+          "round": 2,
+          "status": "outgoing",
+          "originalTeam": "SAS",
+          "currentOwner": "SAC",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": false,
+          "via": "SAS",
+          "recipient": "SAC",
+          "pickNumber": null,
+          "route": [
+            "SAS",
+            "SAC"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        },
+        {
+          "id": "WAS_2030_2nd",
+          "year": 2030,
+          "round": 2,
+          "status": "outgoing",
+          "originalTeam": "WAS",
+          "currentOwner": "WAS",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        },
+        {
+          "id": "WAS_2030_2nd_to_WAS",
+          "year": 2030,
+          "round": 2,
+          "status": "outgoing",
+          "originalTeam": "WAS",
+          "currentOwner": "WAS",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": false,
+          "recipient": "WAS",
+          "pickNumber": null,
+          "dependsOn": [
+            "GOS_2030_1st_conditional"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        }
+      ],
+      "own": [
+        {
+          "id": "WAS_2026_1st_swap",
+          "year": 2026,
+          "round": 1,
+          "status": "own",
+          "originalTeam": "WAS",
+          "currentOwner": "WAS",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": "top-8 protected",
+          "isSwap": true,
+          "pickNumber": null,
+          "protectionDetails": "1-8 Own",
+          "swapDetails": {
+            "swapType": "bilateral",
+            "favorable": null
+          },
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        },
+        {
+          "id": "WAS_2026_2nd",
+          "year": 2026,
+          "round": 2,
+          "status": "own",
+          "originalTeam": "WAS",
+          "currentOwner": "WAS",
+          "stepienEligible": false,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        },
+        {
+          "id": "WAS_2027_1st",
+          "year": 2027,
+          "round": 1,
+          "status": "own",
+          "originalTeam": "WAS",
+          "currentOwner": "WAS",
+          "stepienEligible": true,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        },
+        {
+          "id": "WAS_2029_1st",
+          "year": 2029,
+          "round": 1,
+          "status": "own",
+          "originalTeam": "WAS",
+          "currentOwner": "WAS",
+          "stepienEligible": true,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        },
+        {
+          "id": "WAS_2029_2nd",
+          "year": 2029,
+          "round": 2,
+          "status": "own",
+          "originalTeam": "WAS",
+          "currentOwner": "WAS",
+          "stepienEligible": false,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        },
+        {
+          "id": "WAS_2030_1st",
+          "year": 2030,
+          "round": 1,
+          "status": "own",
+          "originalTeam": "WAS",
+          "currentOwner": "WAS",
+          "stepienEligible": true,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        },
+        {
+          "id": "WAS_2031_1st",
+          "year": 2031,
+          "round": 1,
+          "status": "own",
+          "originalTeam": "WAS",
+          "currentOwner": "WAS",
+          "stepienEligible": true,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        },
+        {
+          "id": "WAS_2031_2nd",
+          "year": 2031,
+          "round": 2,
+          "status": "own",
+          "originalTeam": "WAS",
+          "currentOwner": "WAS",
+          "stepienEligible": false,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        },
+        {
+          "id": "WAS_2032_1st",
+          "year": 2032,
+          "round": 1,
+          "status": "own",
+          "originalTeam": "WAS",
+          "currentOwner": "WAS",
+          "stepienEligible": true,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        },
+        {
+          "id": "WAS_2032_2nd",
+          "year": 2032,
+          "round": 2,
+          "status": "own",
+          "originalTeam": "WAS",
+          "currentOwner": "WAS",
+          "stepienEligible": false,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        },
+        {
+          "id": "WAS_2032_2nd",
+          "year": 2032,
+          "round": 2,
+          "status": "own",
+          "originalTeam": "WAS",
+          "currentOwner": "WAS",
+          "stepienEligible": false,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": false,
+          "pickNumber": null,
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        }
+      ],
+      "contested": [
+        {
+          "id": "WAS_2026_1st_to_MEM",
+          "year": 2026,
+          "round": 1,
+          "status": "contested",
+          "originalTeam": "WAS",
+          "currentOwner": "MEM",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": true,
+          "recipient": "MEM",
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "favorable",
+            "favorable": "most"
+          },
+          "route": [
+            "IND"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        },
+        {
+          "id": "WAS_2026_1st_swap",
+          "year": 2026,
+          "round": 1,
+          "status": "contested",
+          "originalTeam": "WAS",
+          "currentOwner": "WAS",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": true,
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "bilateral",
+            "favorable": null
+          },
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        },
+        {
+          "id": "WAS_2026_2nd_to_NYK",
+          "year": 2026,
+          "round": 2,
+          "status": "contested",
+          "originalTeam": "MIN",
+          "currentOwner": "NYK",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": true,
+          "via": "MIN",
+          "recipient": "NYK",
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "bilateral",
+            "favorable": null
+          },
+          "route": [
+            "IND"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        },
+        {
+          "id": "WAS_2026_2nd_to_MIA",
+          "year": 2026,
+          "round": 2,
+          "status": "contested",
+          "originalTeam": "WAS",
+          "currentOwner": "MIA",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": true,
+          "recipient": "MIA",
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "favorable",
+            "favorable": "least"
+          },
+          "route": [
+            "MIA",
+            "SAS"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        },
+        {
+          "id": "WAS_2027_2nd_to_BRK",
+          "year": 2027,
+          "round": 2,
+          "status": "contested",
+          "originalTeam": "DAL",
+          "currentOwner": "BRK",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": true,
+          "via": "DAL",
+          "recipient": "BRK",
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "bilateral",
+            "favorable": null
+          },
+          "route": [
+            "DAL",
+            "DET",
+            "WAS"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        },
+        {
+          "id": "WAS_2027_2nd_contested",
+          "year": 2027,
+          "round": 2,
+          "status": "contested",
+          "originalTeam": "WAS",
+          "currentOwner": "WAS",
+          "stepienEligible": false,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": true,
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "bilateral",
+            "favorable": null
+          },
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        },
+        {
+          "id": "WAS_2028_1st_to_OKC",
+          "year": 2028,
+          "round": 1,
+          "status": "contested",
+          "originalTeam": "WAS",
+          "currentOwner": "OKC",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": true,
+          "recipient": "OKC",
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "bilateral",
+            "favorable": null
+          },
+          "route": [
+            "IND"
+          ],
+          "dependsOn": [
+            "PHL_2026_1st_conditional"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        },
+        {
+          "id": "WAS_2028_1st_to_OKC",
+          "year": 2028,
+          "round": 1,
+          "status": "contested",
+          "originalTeam": "WAS",
+          "currentOwner": "OKC",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": true,
+          "recipient": "OKC",
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "bilateral",
+            "favorable": null
+          },
+          "route": [
+            "IND"
+          ],
+          "dependsOn": [
+            "PHL_2026_1st_conditional"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        },
+        {
+          "id": "WAS_2028_1st_to_BRK",
+          "year": 2028,
+          "round": 1,
+          "status": "contested",
+          "originalTeam": "WAS",
+          "currentOwner": "BRK",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": true,
+          "recipient": "BRK",
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "favorable",
+            "favorable": "least"
+          },
+          "dependsOn": [
+            "PHL_2027_1st_conditional"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        },
+        {
+          "id": "WAS_2028_2nd_to_ORL",
+          "year": 2028,
+          "round": 2,
+          "status": "contested",
+          "originalTeam": "WAS",
+          "currentOwner": "ORL",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": true,
+          "via": "WAS",
+          "recipient": "ORL",
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "bilateral",
+            "favorable": null
+          },
+          "route": [
+            "WAS",
+            "ORL"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        },
+        {
+          "id": "WAS_2029_1st_to_POR",
+          "year": 2029,
+          "round": 1,
+          "status": "contested",
+          "originalTeam": "BOS",
+          "currentOwner": "POR",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": true,
+          "via": "BOS",
+          "recipient": "POR",
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "favorable",
+            "favorable": "most"
+          },
+          "route": [
+            "BOS",
+            "POR",
+            "MIL",
+            "WAS"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        },
+        {
+          "id": "WAS_2029_2nd_to_IND",
+          "year": 2029,
+          "round": 2,
+          "status": "contested",
+          "originalTeam": "IND",
+          "currentOwner": "IND",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": true,
+          "via": "IND",
+          "recipient": "IND",
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "bilateral",
+            "favorable": null
+          },
+          "route": [
+            "IND"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        },
+        {
+          "id": "WAS_2030_1st_contested",
+          "year": 2030,
+          "round": 1,
+          "status": "contested",
+          "originalTeam": "WAS",
+          "currentOwner": "WAS",
+          "stepienEligible": false,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": true,
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "bilateral",
+            "favorable": null
+          },
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        },
+        {
+          "id": "WAS_2030_1st_to_MEM",
+          "year": 2030,
+          "round": 1,
+          "status": "contested",
+          "originalTeam": "WAS",
+          "currentOwner": "MEM",
+          "stepienEligible": false,
+          "tradeable": false,
+          "protection": null,
+          "isSwap": true,
+          "recipient": "MEM",
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "favorable",
+            "favorable": "least"
+          },
+          "route": [
+            "IND"
+          ],
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        },
+        {
+          "id": "WAS_2030_2nd_contested",
+          "year": 2030,
+          "round": 2,
+          "status": "contested",
+          "originalTeam": "WAS",
+          "currentOwner": "WAS",
+          "stepienEligible": false,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": true,
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "bilateral",
+            "favorable": null
+          },
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        },
+        {
+          "id": "WAS_2031_2nd_from_MIA",
+          "year": 2031,
+          "round": 2,
+          "status": "contested",
+          "originalTeam": "MIA",
+          "currentOwner": "WAS",
+          "stepienEligible": false,
+          "tradeable": true,
+          "protection": null,
+          "isSwap": true,
+          "via": "MIA",
+          "pickNumber": null,
+          "swapDetails": {
+            "swapType": "bilateral",
+            "favorable": null
+          },
+          "detailUrl": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks"
+        }
+      ]
+    },
+    "sources": {
+      "salary": {
+        "provider": "SalarySwish",
+        "url": "https://www.salaryswish.com/teams/wizards",
+        "scrapedAt": "2025-10-17T08:24:47.749Z"
+      },
+      "draftPicks": {
+        "provider": "RealGM",
+        "url": "https://basketball.realgm.com/nba/teams/Washington-Wizards/30/draft-picks",
+        "scrapedAt": "2025-10-20T06:01:13.173Z"
+      }
+    },
+    "mergedAt": "2025-10-20T06:01:13.173Z",
+    "version": "2.0"
+  }
+]

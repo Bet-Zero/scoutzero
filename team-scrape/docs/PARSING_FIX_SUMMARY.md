@@ -189,9 +189,10 @@ team-scrape/
 **For Team Cap Data** (Different Source - SalarySwish):
 - ✅ `output/team_{CODE}.json` or `output/team.json`
 
-**DO NOT USE**:
-- ❌ `output/realgm/out/*` - Obsolete format
-- ❌ `review_and_merge/*` - Manual samples only
+**NOTE**: Old directory structures have been reorganized. All outputs are now in:
+- `output/team-data/` - Team cap/roster data
+- `output/draft-picks/` - Draft pick data
+- `output/merged/` - Merged team + draft pick data
 
 ## How to Apply the Fix
 
@@ -223,7 +224,7 @@ Expected result: **0 errors, 0 warnings**
 ### Step 4: Verify Specific Cases
 ```bash
 # Check OKC 2026 first round
-cat team-scrape/out/by_current_owner/draft_picks_OKC.json | \
+cat team-scrape/output/draft-picks/by_current_owner/draft_picks_OKC.json | \
   jq '.[] | select(.year == 2026 and .round == 1) | {id, status, originalTeam}'
 
 # Should show unique IDs, correct statuses and teams
@@ -291,9 +292,9 @@ After re-scraping:
    - Flag anomalies for manual review
 
 4. **Cleanup**:
-   - Remove `output/realgm/out/` directory (obsolete)
-   - Consolidate output structure
-   - Add .gitignore for generated files
+   - ✅ COMPLETED: Reorganized output structure into clear subfolders
+   - ✅ COMPLETED: Removed obsolete `output/realgm/` and `out/` directories
+   - Add .gitignore for generated files if needed
 
 ## Files Changed
 
