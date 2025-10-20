@@ -42,18 +42,18 @@ Based on previous conversation context, there are basic save/load functions:
 
 ## Existing Data Collections
 
-### `/players` Collection (Current)
+### `/players_v2` Collection (Current)
 
 - **Purpose:** Player scouting data (bio, stats, grades, roles)
 - **Size:** ~530 documents
 - **Structure:** Flat player documents
-- **Will NOT be modified:** This stays for scouting features
+- **Will NOT be modified:** This is immutable & unrelated to Architect.
 
 ### `/teams` Collection (Current - if exists)
 
 - **Purpose:** Basic team information
-- **Status:** Read-only base data
-- **Will NOT be modified:** Separate from Architect data
+- **Status:** Read-only immutable real team data.
+- **Will NOT be modified:** Not part of Architect.
 
 ---
 
@@ -63,70 +63,68 @@ Based on previous conversation context, there are basic save/load functions:
 
 Based on the user's provided current schema:
 
-```javascript
-{
-  // Aggregate values
-  averageAnnualValue: 7976666,
-  capPercentage: 5,
-  contractLength: 3,
-  contractType: "VETERAN CONTRACT",
-  contractValue: 23930000,
-  endSeason: "2028",
-  startSeason: "2026",
-
-  // Free agency
-  freeAgency: {
-    birdRights: "Bird",
-    capHold: 14706000,
-    freeAgentType: null,
-    freeAgentYear: 2028,
-    qualifyingOffer: null
-  },
-
-  // Guarantees
-  guaranteedValue: 23930000,
-  guaranteedYears: 3,
-
-  // Incentives
-  incentives: {
-    likely: 0,
-    unlikely: 0
-  },
-
-  // Contract metadata
-  isExtension: null,
-  noTradeClause: false,
-  signedUsing: "Bird Exception",
-  signingDate: "June 29, 2025",
-  signingTeam: null,
-  tradeKicker: null,
-
-  // Per-year breakdown
-  salariesByYear: [
     {
-      year: 2026,          // ⚠️ Format to change to "2026-27"
-      salary: 8450000,
-      guaranteed: true,
-      option: null
-    },
-    {
-      year: 2027,
-      salary: 7740000,
-      guaranteed: true,
-      option: null
-    },
-    {
-      year: 2028,
-      salary: 7740000,
-      guaranteed: true,
-      option: null
+      // Aggregate values
+      averageAnnualValue: 7976666,
+      capPercentage: 5,
+      contractLength: 3,
+      contractType: "VETERAN CONTRACT",
+      contractValue: 23930000,
+      endSeason: "2028",
+      startSeason: "2026",
+
+      // Free agency
+      freeAgency: {
+        birdRights: "Bird",
+        capHold: 14706000,
+        freeAgentType: null,
+        freeAgentYear: 2028,
+        qualifyingOffer: null
+      },
+
+      // Guarantees
+      guaranteedValue: 23930000,
+      guaranteedYears: 3,
+
+      // Incentives
+      incentives: {
+        likely: 0,
+        unlikely: 0
+      },
+
+      // Contract metadata
+      isExtension: null,
+      noTradeClause: false,
+      signedUsing: "Bird Exception",
+      signingDate: "June 29, 2025",
+      signingTeam: null,
+      tradeKicker: null,
+
+      // Per-year breakdown
+      salariesByYear: [
+        {
+          year: 2026,          // ⚠️ Format to change to "2026-27"
+          salary: 8450000,
+          guaranteed: true,
+          option: null
+        },
+        {
+          year: 2027,
+          salary: 7740000,
+          guaranteed: true,
+          option: null
+        },
+        {
+          year: 2028,
+          salary: 7740000,
+          guaranteed: true,
+          option: null
+        }
+      ],
+
+      // Metadata
+      source: "SalarySwish"
     }
-  ],
-
-  // Metadata
-  source: "SalarySwish"
-}
-```
 
 ### Issues with Current Schema
 
@@ -143,21 +141,21 @@ Based on the user's provided current schema:
 
 ### Current Known Collections
 
-```
-/players            # Player scouting data (stays unchanged)
-/teams              # Basic team info (stays unchanged, if exists)
-/seasons            # Season metadata (if exists)
-/teamPlans          # User team plans (to be replaced)
-```
+    /players_v2         # Player scouting data (stays unchanged)
+    /teams              # Basic team info (stays unchanged, if exists)
+    /seasons            # Season metadata (if exists)
+    /teamPlans          # User team plans (to be replaced)
 
 ### What We're Adding
 
-```
-/architect/         # NEW: Architect-specific data
-  ├─ baseTeams/     # NEW: Immutable real NBA teams
-  ├─ basePlayers/   # NEW: Immutable real player contracts
-  └─ worlds/        # NEW: User simulation scenarios
-```
+    /architect/                 # NEW: Architect-only data (replaces legacy 'Teams')
+      baseTeams/{teamId}        # immutable baseline teams for Architect
+      basePlayers/{playerId}    # immutable baseline player contracts for Architect
+      worlds/{worldId}/metadata
+      worlds/{worldId}/snapshot/teams/{teamId}
+      worlds/{worldId}/snapshot/teams/{teamId}/players/{playerId}  # optional overrides
+
+> **Legacy top-level `Teams` (Architect v1) is deprecated and will be deleted after we cut over to `/architect`. Do not write new data to it.**
 
 ---
 
@@ -228,32 +226,30 @@ Based on repo exploration, there likely exists:
 
 ### Firestore Rules
 
-- Likely exist for `/players` collection
+- Likely exist for `/players_v2` collection
 - May exist for `/teams` or `/teamPlans` collections
 
 ### Will Need Updates
 
-```javascript
-// Need to add rules for:
-match /architect/{document=**} {
-  // Base collections (read-only to all)
-  match /baseTeams/{teamCode} {
-    allow read: if true;
-    allow write: if false;  // Admin only
-  }
+    // Need to add rules for:
+    match /architect/{document=**} {
+      // Base collections (read-only to all)
+      match /baseTeams/{teamId} {
+        allow read: if true;
+        allow write: if false;  // Admin only
+      }
 
-  match /basePlayers/{playerId} {
-    allow read: if true;
-    allow write: if false;  // Admin only
-  }
+      match /basePlayers/{playerId} {
+        allow read: if true;
+        allow write: if false;  // Admin only
+      }
 
-  // User worlds (read/write by owner)
-  match /worlds/{worldId} {
-    allow read, write: if request.auth != null &&
-      resource.data.createdBy == request.auth.uid;
-  }
-}
-```
+      // User worlds (read/write by owner)
+      match /worlds/{worldId} {
+        allow read, write: if request.auth != null &&
+          resource.data.createdBy == request.auth.uid;
+      }
+    }
 
 ---
 
@@ -290,7 +286,7 @@ User preference: Start fresh rather than migrate existing data
 
 **What We're Preserving:**
 
-- Player scouting data in `/players` (untouched)
+- Player scouting data in `/players_v2` (untouched)
 - Existing UI components (upgrade in place)
 - Cap calculation logic (extend, don't replace)
 
