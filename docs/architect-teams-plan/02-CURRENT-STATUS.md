@@ -1,6 +1,7 @@
 # Current Status & Existing Structure
 
 ## Overview
+
 This document describes what currently exists in the ScoutZero codebase related to the Architect feature, based on analysis of the repository.
 
 ---
@@ -8,24 +9,30 @@ This document describes what currently exists in the ScoutZero codebase related 
 ## Existing Architect Feature
 
 ### Location
+
 - **Main Entry:** `/src/pages/GMDashboard.jsx`
 - **Utils:** `/src/utils/architect/`
 - **Components:** Various components in `/src/components/`
 
 ### Current Capabilities
+
 The Architect (GM Tools) currently includes:
+
 1. **Cap Sheet** - View team salary cap situation
 2. **Trade Machine** - Validate trades between teams
 3. **Cap Sheet Full** - Detailed cap breakdown
 
 ### Existing Save/Load Functionality
+
 Based on previous conversation context, there are basic save/load functions:
+
 - `saveUserTeamPlan()` - Saves team modifications
 - `loadUserTeamPlan()` - Loads saved team plans
 
 **Location:** Likely in `/src/utils/architect/` or similar utility directory
 
 **Current Behavior (Best Understanding):**
+
 - Saves full team snapshots (not organized as "worlds")
 - No multi-season support
 - No branching capability
@@ -36,12 +43,14 @@ Based on previous conversation context, there are basic save/load functions:
 ## Existing Data Collections
 
 ### `/players` Collection (Current)
+
 - **Purpose:** Player scouting data (bio, stats, grades, roles)
 - **Size:** ~530 documents
 - **Structure:** Flat player documents
 - **Will NOT be modified:** This stays for scouting features
 
 ### `/teams` Collection (Current - if exists)
+
 - **Purpose:** Basic team information
 - **Status:** Read-only base data
 - **Will NOT be modified:** Separate from Architect data
@@ -51,6 +60,7 @@ Based on previous conversation context, there are basic save/load functions:
 ## Current Player Contract Schema
 
 ### Existing Fields (from previous comment)
+
 Based on the user's provided current schema:
 
 ```javascript
@@ -63,7 +73,7 @@ Based on the user's provided current schema:
   contractValue: 23930000,
   endSeason: "2028",
   startSeason: "2026",
-  
+
   // Free agency
   freeAgency: {
     birdRights: "Bird",
@@ -72,17 +82,17 @@ Based on the user's provided current schema:
     freeAgentYear: 2028,
     qualifyingOffer: null
   },
-  
+
   // Guarantees
   guaranteedValue: 23930000,
   guaranteedYears: 3,
-  
+
   // Incentives
   incentives: {
     likely: 0,
     unlikely: 0
   },
-  
+
   // Contract metadata
   isExtension: null,
   noTradeClause: false,
@@ -90,7 +100,7 @@ Based on the user's provided current schema:
   signingDate: "June 29, 2025",
   signingTeam: null,
   tradeKicker: null,
-  
+
   // Per-year breakdown
   salariesByYear: [
     {
@@ -112,13 +122,14 @@ Based on the user's provided current schema:
       option: null
     }
   ],
-  
+
   // Metadata
   source: "SalarySwish"
 }
 ```
 
 ### Issues with Current Schema
+
 1. **Year format:** Single year (2026) instead of season format ("2026-27")
 2. **Missing CBA fields:**
    - `yearsOfService` (needed for extension rules)
@@ -131,6 +142,7 @@ Based on the user's provided current schema:
 ## Existing Firestore Structure
 
 ### Current Known Collections
+
 ```
 /players            # Player scouting data (stays unchanged)
 /teams              # Basic team info (stays unchanged, if exists)
@@ -139,6 +151,7 @@ Based on the user's provided current schema:
 ```
 
 ### What We're Adding
+
 ```
 /architect/         # NEW: Architect-specific data
   ├─ baseTeams/     # NEW: Immutable real NBA teams
@@ -151,18 +164,22 @@ Based on the user's provided current schema:
 ## Existing Cap Calculation Logic
 
 ### Known Utilities (Likely Exist)
+
 Based on the Trade Machine feature, these probably exist:
+
 - Salary matching validation
 - Cap space calculations
 - Apron threshold checks
 - Trade eligibility rules
 
 ### Location (Best Guess)
+
 - `/src/utils/architect/tradeMachine/`
 - `/src/utils/architect/capUtils.js`
 - `/src/utils/capCalculations.js`
 
 ### Will Need Updates
+
 - Extend to read from new `/architect/baseTeams` and `/architect/basePlayers` collections
 - Support world-based data loading
 - Add multi-season calculation support
@@ -172,11 +189,13 @@ Based on the Trade Machine feature, these probably exist:
 ## Existing UI Components
 
 ### GMDashboard Components (Known)
+
 - **CapSheet component** - Displays team cap situation
 - **TradeMachine component** - Trade builder and validator
 - **Team selector** - Choose which team to view
 
 ### Will Need Additions
+
 - **World selector dropdown** - Choose scenario to view
 - **Season navigator** - Advance/rewind through seasons
 - **Branch button** - Fork current world
@@ -188,7 +207,9 @@ Based on the Trade Machine feature, these probably exist:
 ## Data Pipeline (Current)
 
 ### Existing Scraping/Import
+
 Based on repo exploration, there likely exists:
+
 - Python scripts in `/data_pipeline/` for player data imports
 - Firebase upload scripts in `/scripts/`
 - Some form of SalarySwish data collection (user mentioned previous scraping)
@@ -196,6 +217,7 @@ Based on repo exploration, there likely exists:
 **Status:** User deleted previous scraper, wants fresh start
 
 ### What We're Building
+
 - New team-focused scraper (team pages + player pages)
 - Target schema defined in `03-TARGET-SCHEMA.md`
 - Upload to new `/architect/` collections
@@ -205,10 +227,12 @@ Based on repo exploration, there likely exists:
 ## Security Rules (Current)
 
 ### Firestore Rules
+
 - Likely exist for `/players` collection
 - May exist for `/teams` or `/teamPlans` collections
 
 ### Will Need Updates
+
 ```javascript
 // Need to add rules for:
 match /architect/{document=**} {
@@ -217,15 +241,15 @@ match /architect/{document=**} {
     allow read: if true;
     allow write: if false;  // Admin only
   }
-  
+
   match /basePlayers/{playerId} {
     allow read: if true;
     allow write: if false;  // Admin only
   }
-  
+
   // User worlds (read/write by owner)
   match /worlds/{worldId} {
-    allow read, write: if request.auth != null && 
+    allow read, write: if request.auth != null &&
       resource.data.createdBy == request.auth.uid;
   }
 }
@@ -236,6 +260,7 @@ match /architect/{document=**} {
 ## Known Gaps / Missing Features
 
 ### Not Currently Implemented
+
 - ❌ Multi-season support
 - ❌ Branching/forking scenarios
 - ❌ Immutable baseline separation
@@ -244,6 +269,7 @@ match /architect/{document=**} {
 - ❌ Optimized read performance with snapshots
 
 ### Partial Implementation
+
 - ⚠️ Basic team plan saving (exists but needs upgrade)
 - ⚠️ Trade validation (exists but may need CBA accuracy improvements)
 - ⚠️ Cap calculations (exists but needs multi-season support)
@@ -253,14 +279,17 @@ match /architect/{document=**} {
 ## Migration Strategy
 
 ### Clean Slate Approach ✅
+
 User preference: Start fresh rather than migrate existing data
 
 **What We're NOT Migrating:**
+
 - Old team plans (if any exist in `/teamPlans`)
 - Previous player contract data (rebuilding from SalarySwish)
 - Historical scenarios
 
 **What We're Preserving:**
+
 - Player scouting data in `/players` (untouched)
 - Existing UI components (upgrade in place)
 - Cap calculation logic (extend, don't replace)
@@ -270,16 +299,19 @@ User preference: Start fresh rather than migrate existing data
 ## Technical Stack (Known)
 
 ### Frontend
+
 - React 18+
 - Vite (build tool)
 - Firebase SDK (client-side)
 
 ### Backend
+
 - Firebase Firestore (database)
 - Firebase Admin SDK (Node.js for data import)
 - Python (data pipeline scripts)
 
 ### Data Sources
+
 - SalarySwish.com (NBA contract data)
 - Manual team/player data entry (if needed)
 
@@ -288,6 +320,7 @@ User preference: Start fresh rather than migrate existing data
 ## Next Steps
 
 After this documentation phase, we'll move to:
+
 1. Confirm understanding of current system
 2. Validate target schema
 3. Begin implementation with data scraping

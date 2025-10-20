@@ -5,6 +5,7 @@ const path = require('path');
 const ROOT = process.cwd();
 const SRC = path.join(ROOT, 'src');
 const DOCS_DIR = path.join(ROOT, 'docs');
+const DEV_DOCS_DIR = path.join(ROOT, 'docs', 'development');
 
 // Helper function to check if file content has actually changed
 async function writeFileIfChanged(filePath, newContent) {
@@ -92,6 +93,9 @@ async function generateHierarchies() {
   const featuresDir = path.join(SRC, 'features');
   const features = await fs.readdir(featuresDir, { withFileTypes: true });
 
+  // Ensure development directory exists
+  await fs.mkdir(DEV_DOCS_DIR, { recursive: true });
+
   for (const feature of features) {
     if (!feature.isDirectory()) continue; // ✅ Only process actual folders
 
@@ -106,7 +110,10 @@ ${tree}
 *Generated on: ${new Date().toISOString()}*
 *Auto-updated by: npm run docs*
 `;
-    const file = path.join(DOCS_DIR, `${capitalize(feature.name)}Hierarchy.md`);
+    const file = path.join(
+      DEV_DOCS_DIR,
+      `${capitalize(feature.name)}Hierarchy.md`
+    );
     await writeFileIfChanged(file, md);
   }
 }
