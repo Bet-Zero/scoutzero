@@ -1089,13 +1089,47 @@ async function writeCombinedStructured(all: StructuredPick[]) {
   return p;
 }
 
+// NEW: Deduplicate picks - when same pick appears on multiple team pages
+function deduplicatePicks(allPicks: StructuredPick[]): StructuredPick[] {
+  const seen = new Map<string, StructuredPick>();
+  
+  for (const pick of allPicks) {
+    const key = `${pick.year}_${pick.round}_${pick.originalTeam}_${pick.currentOwner}`;
+    
+    // If we've seen this pick before, prefer the more detailed one
+    if (seen.has(key)) {
+      const existing = seen.get(key)!;
+      
+      // Keep the one with more information (protection details, routes, etc.)
+      const existingScore = (existing.protection ? 1 : 0) + 
+                           (existing.route?.length || 0) + 
+                           (existing.protectionDetails ? 1 : 0);
+      const newScore = (pick.protection ? 1 : 0) + 
+                      (pick.route?.length || 0) + 
+                      (pick.protectionDetails ? 1 : 0);
+      
+      if (newScore > existingScore) {
+        seen.set(key, pick);
+      }
+      // Otherwise keep the existing one
+    } else {
+      seen.set(key, pick);
+    }
+  }
+  
+  return Array.from(seen.values());
+}
+
 // NEW: Reorganize picks by current owner for team data integration
 function reorganizePicksByCurrentOwner(
   allPicks: StructuredPick[]
 ): Record<string, StructuredPick[]> {
+  // Deduplicate picks first
+  const uniquePicks = deduplicatePicks(allPicks);
+  
   const byCurrentOwner: Record<string, StructuredPick[]> = {};
 
-  for (const pick of allPicks) {
+  for (const pick of uniquePicks) {
     const owner = pick.currentOwner;
 
     if (!byCurrentOwner[owner]) {
