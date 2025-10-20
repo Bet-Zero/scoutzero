@@ -24,5 +24,5 @@ TeamPlayerSelector.jsx
 ```
 
 ---
-*Generated on: 2025-10-20T05:25:25.844Z*
+*Generated on: 2025-10-20T05:31:41.686Z*
 *Auto-updated by: npm run docs*
