@@ -66,13 +66,35 @@ Start by reading these files in order:
 3. Implement trade execution (`/src/utils/architect/tradeManager.js`)
    - `executeTrade()`, `signFreeAgent()`, `waivePlayer()`, `extendPlayer()`
    - All with atomic batch writes and cap recalculations
-4. Implement season advancement
+4. **Update existing validators for new schema** (`/src/utils/architect/tradeMachine/`)
+   - **CRITICAL**: Existing trade validation system has 58 files across engine, rules, utils, validators, cache, and constants
+   - Update validators to accept new data schema from `/architect/baseTeams` and `/architect/basePlayers`
+   - Create schema adapter layer to transform new format to validator-expected format
+   - Handle critical schema changes:
+     * Year format: `year: 2026` → `season: "2026-27"` (parse season string in validators)
+     * New fields: `yearsOfService` (extension eligibility), `isRookieScale` (poison pill logic)
+     * Per-year fields: `capHit` (differs from salary with incentives), `tradeBonus` breakdown
+   - Update affected validators (estimated ~20-30 files):
+     * `validateSalaryMatching.js` - salary calculations with new capHit field
+     * `validateEligibility.js` - trade eligibility using new date format
+     * `validateSignAndTrade.js` - poison pill with isRookieScale
+     * `extensionRules.js` - extension logic with yearsOfService
+     * All validators using player contract data
+   - Options for implementation:
+     * **Option A**: Create adapter layer (`schemaAdapter.js`) that transforms new schema → old schema expected by validators
+     * **Option B**: Update each validator to natively handle new schema (more work, cleaner long-term)
+     * **Recommended**: Option A initially, then refactor to Option B over time
+   - Test each validator with new schema to ensure CBA accuracy maintained
+5. Implement season advancement
    - `advanceSeason()`, `processSeasonTransition()`
    - Handle contract expiration, options, empty roster charges
 
 **Phase 3 Checklist**:
 - [ ] World CRUD operations complete
 - [ ] Team loading with fallback chain working
+- [ ] **Schema adapter created** (transforms new schema → validator-expected format)
+- [ ] **Validators updated** (all 20-30 affected validators handle new schema)
+- [ ] **Validator tests passing** (CBA accuracy maintained with new data)
 - [ ] Trade execution with CBA validation
 - [ ] Player signing/waiving implemented
 - [ ] Season advancement working
@@ -140,9 +162,78 @@ executeTrade(worldId, trade) {
 ```
 
 ### Critical Schema Changes
+
+**IMPORTANT**: These schema changes affect the entire validation system (58 files in `/src/utils/architect/tradeMachine/`)
+
 1. **Year format**: Change `year: 2026` → `season: "2026-27"` everywhere
+   - Affects: All validators using contract years, eligibility checks, multi-season calculations
+   - Required parser: Extract year from "YYYY-YY" format (e.g., "2026-27" → 2026)
+   
 2. **New fields**: Add `yearsOfService`, `isRookieScale`, per-year `capHit` and `tradeBonus`
+   - `yearsOfService`: Required for extension eligibility rules (impacts `extensionRules.js`)
+   - `isRookieScale`: Required for poison pill calculations (impacts `validateSignAndTrade.js`)
+   - `capHit`: Per-year cap hit differs from salary with incentives (impacts `validateSalaryMatching.js`, all cap calculations)
+   - `tradeBonus`: Per-year trade kicker breakdown (impacts salary matching and cap space calculations)
+   
 3. **Draft picks**: Full structure with status, swaps, Stepien rules, dependencies, conditions, routing
+   - Affects: `validateStepien.js`, draft pick validators
+   - New fields to validate: `stepienEligible`, `tradeable`, `isSwap`, `swapDetails`, `dependsOn`, `conveyanceObligation`
+
+### Validator Integration Strategy
+
+**Context**: The existing trade machine has 58 files with complex CBA logic. Integration requires careful handling.
+
+**Step 1: Create Schema Adapter** (`/src/utils/architect/schemaAdapter.js`)
+```javascript
+// Transforms new schema → validator-expected format
+export function adaptTeamForValidator(newSchemaTeam) {
+  return {
+    ...newSchemaTeam,
+    // Convert season format to year format for validators
+    contracts: newSchemaTeam.contracts?.map(c => ({
+      ...c,
+      year: parseSeasonYear(c.season), // "2026-27" → 2026
+      salary: c.capHit || c.salary, // Use capHit if available
+    })),
+    // Map new fields to expected locations
+    totalSalary: calculateTotalSalary(newSchemaTeam),
+    capSpace: calculateCapSpace(newSchemaTeam),
+  };
+}
+
+function parseSeasonYear(season) {
+  // "2026-27" → 2026, "2025-26" → 2025
+  return parseInt(season.split('-')[0]);
+}
+```
+
+**Step 2: Update Data Loaders**
+- Modify `teamLoader.js` to apply adapter before passing to validators
+- Ensure `getTeam()` returns adapter-compatible format
+- Add option flag for "raw" vs "adapted" data
+
+**Step 3: Test Validator Integration**
+- Test each validator with adapted data
+- Verify CBA rules still work correctly
+- Check edge cases (poison pill, BYC, extension eligibility)
+
+**Step 4: Update Specific Validators** (as needed)
+Critical validators to update:
+- `validateSalaryMatching.js` - Use `capHit` instead of `salary` for calculations
+- `validateEligibility.js` - Parse season format for trade eligibility dates
+- `validateSignAndTrade.js` - Use `isRookieScale` for poison pill logic
+- `extensionRules.js` - Use `yearsOfService` for extension eligibility
+- `validateStepien.js` - Handle new draft pick structure
+
+**Step 5: Validation Testing Checklist**
+- [ ] Salary matching with new capHit field
+- [ ] Trade eligibility with season format dates
+- [ ] Poison pill with isRookieScale flag
+- [ ] Extension rules with yearsOfService
+- [ ] Draft pick Stepien rule with new structure
+- [ ] Hard cap validation with new data
+- [ ] Sign-and-trade validation
+- [ ] All existing test suites pass
 
 ## Performance & Storage Targets
 
