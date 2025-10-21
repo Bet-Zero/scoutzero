@@ -64,9 +64,9 @@ The `/team-scrape` folder contains **working, tested code** for creating `/archi
 
 ### Implementation Status
 - **Phase 1**: Foundation & Planning ✅ COMPLETE
-- **Phase 2**: Data Migration (3-4 days) - Next phase
-- **Phase 3**: Core Implementation (3-4 days)
-- **Phase 4**: UI & Polish (2-3 days)
+- **Phase 2**: Data Migration - Next phase
+- **Phase 3**: Core Implementation
+- **Phase 4**: UI & Polish
 
 ## Usage
 
