@@ -1,7 +1,8 @@
 {
-  "_note": "This shows player-scrape output in architect/basePlayers format (no transformation needed)",
+  "_note": "This shows player-scrape output in architect/basePlayers format (FUTURE CONSIDERATION - not primary target)",
   "path": "architect/basePlayers/austin_reaves",
-  "format": "Direct player-scrape output - ready to use",
+  "format": "Direct player-scrape output - matches architect spec",
+  "status": "players_v2 is the PRIMARY target. architect/basePlayers is secondary.",
   "playerId": "austin_reaves",
   "displayName": "Austin Reaves",
   "teamCode": "LAL",

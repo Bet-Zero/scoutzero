@@ -1,14 +1,21 @@
 {
-  "_note": "This shows how player-scrape output can be transformed to match players_v2 Contract schema",
-  "path": "players_v2/austin_reaves/contracts/std_202425",
-  "transformed_from": "player-scrape output (architect/basePlayers format)",
+  "_note": "CORRECTED: This shows player-scrape output transformed for players_v2 subcollection",
+  "path": "players_v2/austin_reaves/contracts/std_202526",
+  "transformed_from": "player-scrape output (with transform layer)",
+  "corrections": [
+    "Season format is YYYY-YY (e.g., '2025-26'), not just year",
+    "Four new fields (isRookieScale, yearsOfService, capHit, tradeBonus) already in scraper",
+    "Transform layer flattens Bird rights and extracts options array"
+  ],
   "data": {
     "contractType": "VETERAN CONTRACT",
     "signingDate": "June 29, 2023",
     "signedUsing": "Bird Exception",
     "source": "SalarySwish",
-    "startSeason": "2025",
-    "endSeason": "2027",
+    
+    "startSeason": "2025-26",
+    "endSeason": "2027-28",
+    
     "guaranteedValue": 40900000,
     "noTradeClause": false,
     "isExtension": null,
@@ -24,22 +31,32 @@
     "contractLength": 3,
     "tradeKicker": null,
     "signingTeam": "LAL",
+    
+    "isRookieScale": false,
+    "yearsOfService": 3,
+    
     "salariesByYear": [
       {
         "year": 2025,
         "salary": 12000000,
+        "capHit": 12000000,
+        "tradeBonus": null,
         "guaranteed": true,
         "option": null
       },
       {
         "year": 2026,
         "salary": 13900000,
+        "capHit": 13900000,
+        "tradeBonus": null,
         "guaranteed": true,
         "option": null
       },
       {
         "year": 2027,
         "salary": 15000000,
+        "capHit": 15000000,
+        "tradeBonus": null,
         "guaranteed": true,
         "option": "PO"
       }

@@ -1,5 +1,6 @@
 # Player-Scrape Contract Flow Readiness Assessment
 **Generated:** 2025-10-21  
+**Revised:** 2025-10-21  
 **Reviewer:** Automated Assessment  
 **Status:** ALMOST READY (85% confidence)
 
@@ -7,7 +8,9 @@
 
 ## Executive Summary
 
-The **player-scrape** Contract SalarySwish Pages flow is **ALMOST READY** for production use to populate the `players_v2` Contract section. The codebase is well-structured, documented, and the schema validation passes. However, there are several gaps that need to be addressed before full deployment.
+The **player-scrape** Contract SalarySwish Pages flow is **ALMOST READY** for production use to **update and populate the `players_v2` Contract subcollection**. The codebase is well-structured, documented, and the schema validation passes. The scraper already outputs the correct "YYYY-YY" season format and includes all 4 required new fields. However, there are several gaps that need to be addressed before full deployment.
+
+**Key Correction:** This scraper's primary purpose is to update/populate the existing `players_v2/{playerId}/contracts/{contractId}` subcollection in Firestore, not architect/basePlayers.
 
 ### Key Findings
 
@@ -119,9 +122,11 @@ The player-scrape schema defines a comprehensive contract structure in `player-s
 }
 ```
 
-### 1.2 Players_v2 Contract Schema
+### 1.2 Players_v2 Contract Schema (Current)
 
 The players_v2 schema (from `docs/migrations/players-v1-to-v2/schema-lock-players_v2/contracts_sample.json`):
+
+**Path:** `players_v2/{playerId}/contracts/{contractId}`
 
 ```typescript
 {
@@ -130,8 +135,8 @@ The players_v2 schema (from `docs/migrations/players-v1-to-v2/schema-lock-player
   signingDate: string
   signedUsing: string
   source: string
-  startSeason: string           // "2023" (year only, not "2023-24")
-  endSeason: string             // "2026" (year only)
+  startSeason: string           // CURRENT: "2023" (year only) → TARGET: "2023-24" (YYYY-YY)
+  endSeason: string             // CURRENT: "2026" (year only) → TARGET: "2026-27" (YYYY-YY)
   guaranteedValue: number
   noTradeClause: boolean
   isExtension: null
@@ -140,7 +145,7 @@ The players_v2 schema (from `docs/migrations/players-v1-to-v2/schema-lock-player
   // Financial
   aav: number
   averageAnnualValue: number    // Duplicate of aav
-  capPercentage: number         // NOT in player-scrape
+  capPercentage: number
   guaranteedYears: number
   contractLength: number
   tradeKicker: null
@@ -150,11 +155,13 @@ The players_v2 schema (from `docs/migrations/players-v1-to-v2/schema-lock-player
     guaranteed: boolean
     salary: number
     option: null | string
-    year: number               // Just year (2025), not season string
+    year: number               // CURRENT: 2025 (year) → TARGET: keep as year for free agency
+    // MISSING: capHit (needed when incentives exist) ← NEW FIELD #1
+    // MISSING: tradeBonus (per-year breakdown) ← NEW FIELD #2
   }]
   
   // Options array (separate from salariesByYear)
-  options: []                   // NOT in player-scrape
+  options: []
   
   // Incentives object
   incentives: {
@@ -165,15 +172,25 @@ The players_v2 schema (from `docs/migrations/players-v1-to-v2/schema-lock-player
   // Free Agency
   freeAgency: {
     freeAgentType: null | string
-    freeAgentYear: number
-    birdRights: string          // Flat string, not object
+    freeAgentYear: number      // Just year (correct - free agency is single year)
+    birdRights: string         // Flat string
     capHold: number
     qualifyingOffer: null | number
   }
   
   signingTeam: null
+  
+  // MISSING FIELDS TO ADD:
+  // isRookieScale: boolean     ← NEW FIELD #3 (poison pill logic)
+  // yearsOfService: number     ← NEW FIELD #4 (extension rules)
 }
 ```
+
+**Note:** The 4 new fields needed are:
+1. `capHit` per year in salariesByYear (differs from salary when incentives exist)
+2. `tradeBonus` per year in salariesByYear (some kickers only apply to specific years)
+3. `isRookieScale` at contract level (needed for poison pill logic)
+4. `yearsOfService` at contract level (needed for extension rules)
 
 ### 1.3 Architect/BasePlayers Contract Schema
 
@@ -184,179 +201,73 @@ The architect/basePlayers schema (from `docs/architect-teams-plan/03-TARGET-SCHE
 - Comprehensive trade eligibility rules
 - Trade restrictions array
 
-**Verdict:** player-scrape schema matches architect/basePlayers schema almost perfectly.
+**Note:** This is a **secondary target** for the scraper. The primary focus is players_v2.
 
 ---
 
-## 2. Field Mapping Differences
+## 2. Field Mapping Analysis for players_v2
 
-### 2.1 Season Format Differences
+### 2.1 Season Format - Already Correct! ✅
 
-| Field | Player-Scrape | Players_v2 | Fix Required |
-|-------|--------------|------------|--------------|
-| `startSeason` | `"2025-26"` | `"2025"` | ✅ Yes - Transform to year only |
-| `endSeason` | `"2027-28"` | `"2027"` | ✅ Yes - Transform to year only |
-| `salariesByYear[].season` | `"2025-26"` | (uses `year` field) | ✅ Yes - Extract year from season |
-| `salariesByYear[].year` | N/A | `2025` | ✅ Yes - Add year field |
+**Good News:** player-scrape already outputs "YYYY-YY" format:
+- `startSeason: "2025-26"` ✅
+- `endSeason: "2027-28"` ✅
+- `salariesByYear[].season: "2025-26"` ✅
 
-**Impact:** HIGH - Season format mismatch will cause validation errors
+**Target for players_v2:** Use this format for season fields, but keep `year` as integer for salariesByYear to maintain compatibility.
 
-**Fix:** Create a transform function to convert seasons:
-```typescript
-function extractYear(season: string): number {
-  // "2025-26" -> 2025
-  return parseInt(season.split('-')[0]);
-}
-```
+### 2.2 Four New Fields - Already Present! ✅
 
-### 2.2 Missing Fields in Player-Scrape
+All 4 required new fields are already in player-scrape output:
 
-| Field | In Players_v2 | In Player-Scrape | Impact | Fix |
-|-------|--------------|------------------|--------|-----|
-| `capPercentage` | ✅ Yes | ❌ No | Medium | Calculate from salary/cap |
-| `options` array | ✅ Yes | ❌ No (merged into salariesByYear) | Low | Extract from salariesByYear |
-| `source` | ✅ Yes | ❌ No (at root level) | Low | Add at contract level |
+| New Field | Location in player-scrape | Status | Purpose |
+|-----------|--------------------------|--------|---------|
+| `isRookieScale` | `contract.isRookieScale` | ✅ Present | Poison pill logic |
+| `yearsOfService` | `contract.birdRights.yearsOfService` | ✅ Present | Extension rules |
+| `capHit` per year | `contract.salariesByYear[].capHit` | ✅ Present | Cap impact with incentives |
+| `tradeBonus` per year | `contract.salariesByYear[].tradeBonus` | ✅ Present | Per-year kicker breakdown |
 
-### 2.3 Field Structure Differences
+### 2.3 Field Transformations Needed
 
-| Field | Player-Scrape | Players_v2 | Fix Required |
-|-------|--------------|------------|--------------|
-| `birdRights` | Object `{status, years...}` | String `"Bird"` | ✅ Yes - Flatten to string |
-| `freeAgency.type` | `"RFA"` or `"UFA"` | `freeAgentType` | ✅ Yes - Rename field |
-| `freeAgency.year` | `2028` | `freeAgentYear` | ✅ Yes - Rename field |
-| `averageAnnualValue` | Single field | Duplicated as `aav` | Low | Add `aav` alias |
-| `contractValue` | Called `totalValue` | `contractValue` | ✅ Yes - Rename/add field |
+To match players_v2 contract structure, these transformations are needed:
 
-### 2.4 Extra Fields in Player-Scrape
+| Field | Player-Scrape | Players_v2 Target | Transform Needed |
+|-------|--------------|-------------------|------------------|
+| `startSeason` | `"2025-26"` | `"2025-26"` | ✅ Keep as-is (YYYY-YY format) |
+| `endSeason` | `"2027-28"` | `"2027-28"` | ✅ Keep as-is (YYYY-YY format) |
+| `salariesByYear[].season` | `"2025-26"` | Not used | ⚠️ Extract to `year` field |
+| `salariesByYear[].year` | N/A | `2025` | ✅ Add: `parseInt(season.split('-')[0])` |
+| `salariesByYear[].capHit` | ✅ Present | ✅ Add to v2 | ✅ Copy directly (NEW FIELD #1) |
+| `salariesByYear[].tradeBonus` | ✅ Present | ✅ Add to v2 | ✅ Copy directly (NEW FIELD #2) |
+| `isRookieScale` | ✅ Present | ✅ Add to v2 | ✅ Copy directly (NEW FIELD #3) |
+| `birdRights.yearsOfService` | ✅ Present | ✅ Add to v2 | ✅ Extract to root level (NEW FIELD #4) |
+| `birdRights` object | `{status, yearsOfService...}` | `"Bird"` (string) | ✅ Flatten: `birdRights.status` |
+| `contractValue` | Called `totalValue` | `contractValue` | ✅ Rename field |
+| `aav` | Only `averageAnnualValue` | Both `aav` and `averageAnnualValue` | ✅ Duplicate field |
+| `capPercentage` | Not present | Required | ✅ Calculate from salary/cap |
+| `options` array | Merged in salariesByYear | Separate array | ✅ Extract options |
 
-These fields are in player-scrape but NOT in players_v2:
-
-| Field | Purpose | Keep for Architect? |
-|-------|---------|---------------------|
-| `isRookieScale` | Poison pill logic | ✅ YES - Critical for CBA |
-| `signedByCurrentTeam` | Trade timing rules | ✅ YES - Important for CBA |
-| `yearsRemaining` | Calculated field | ⚠️ Optional - Can recalculate |
-| `guaranteedAmount` (per year) | Detailed guarantees | ✅ YES - Useful for CBA |
-| `capHit` (per year) | Cap impact with incentives | ✅ YES - Critical for cap calc |
-| `tradeRestrictions` | Trade clauses array | ✅ YES - Important for CBA |
-| `tradeEligibility` object | Full CBA rules | ✅ YES - Essential for trades |
-
-**Verdict:** These extra fields are valuable for architect/basePlayers but not needed for players_v2
-
----
-
-## 3. Architecture Decision: Copy vs Scrape Separately
-
-### Current State Analysis
-
-The codebase shows **TWO separate scraping pipelines**:
-
-1. **Player-Scrape** → Targets `architect/basePlayers` (CBA-focused)
-2. **Players_v2 Pipeline** → Uses different data sources (scouting-focused)
-
-### Question: Were we planning to...
-
-**A) COPY validated contract data from player-scrape into architect/basePlayers?**
-
-**B) SCRAPE architect/basePlayers separately with near-identical logic?**
-
-### Evidence from Codebase
-
-From `player-scrape/docs/README.md`:
-
-> "This folder contains tools for scraping NBA player contract data from SalarySwish player pages. The output populates `/architect/basePlayers/{playerId}` with comprehensive contract details needed for trade validation."
-
-From `docs/architect-teams-plan/03-TARGET-SCHEMA.md`:
-
-> "Path: `/architect/basePlayers/austin_reaves`"
-
-**Conclusion:** The plan was **OPTION B - Scrape architect/basePlayers separately**.
-
-### Pros & Cons Analysis
-
-#### Option A: Copy from player-scrape to architect/basePlayers
-
-✅ **Pros:**
-- Single source of truth for contract data
-- No duplicate scraping logic
-- Easier to maintain and update
-
-❌ **Cons:**
-- Still need field transformations for players_v2
-- Two different schemas to support
-- Complicates data flow
-
-#### Option B: Scrape architect/basePlayers separately (CURRENT PLAN)
-
-✅ **Pros:**
-- Clean separation: players_v2 (scouting) vs architect (CBA/trades)
-- Each schema optimized for its purpose
-- No coupling between systems
-
-❌ **Cons:**
-- Duplicate scraping infrastructure
-- Need to maintain two scrapers
-- Data consistency risk if sources diverge
-
-### Recommendation: **OPTION B (Current Plan)**
-
-**Keep separate pipelines** for these reasons:
-
-1. **Different purposes:**
-   - `players_v2/contracts`: Scouting/roster management view
-   - `architect/basePlayers`: CBA compliance and trade validation
-
-2. **Different schema requirements:**
-   - players_v2 uses simplified flat structure
-   - architect needs complex nested CBA objects
-
-3. **Different update frequencies:**
-   - players_v2 might update from multiple sources
-   - architect needs authoritative CBA-compliant data
-
-4. **Already built:** player-scrape is architected for basePlayers
-
-### Implementation Plan
-
-```
-┌─────────────────────┐
-│   SalarySwish.com   │
-└──────────┬──────────┘
-           │
-           ├─────────────────────┐
-           │                     │
-           ▼                     ▼
-  ┌─────────────────┐   ┌──────────────────┐
-  │  player-scrape  │   │ players_v2 scrape│
-  │  (CBA-focused)  │   │ (scout-focused)  │
-  └────────┬────────┘   └─────────┬────────┘
-           │                      │
-           ▼                      ▼
-  ┌─────────────────┐   ┌──────────────────┐
-  │ architect/      │   │ players_v2/      │
-  │ basePlayers     │   │ {player}/        │
-  │                 │   │ contracts/       │
-  └─────────────────┘   └──────────────────┘
-```
-
-### Field Delta for architect/basePlayers
-
-If copying data from player-scrape to architect/basePlayers, **NO CHANGES NEEDED** - schemas already match!
-
-If populating players_v2/contracts from player-scrape, these transforms needed:
+### 2.4 Transform Function Example
 
 ```typescript
-// Transform player-scrape → players_v2 contracts
 function transformToPlayersV2(scraped: BasePlayerDoc) {
+  // Extract options into separate array
+  const options = scraped.contract.salariesByYear
+    .filter(s => s.option)
+    .map(s => ({
+      year: parseInt(s.season.split('-')[0]),
+      type: s.option
+    }));
+
   return {
+    // Keep YYYY-YY format for seasons (per user requirement)
+    startSeason: scraped.contract.startSeason,    // "2025-26"
+    endSeason: scraped.contract.endSeason,         // "2027-28"
+    
     contractType: scraped.contract.contractType,
     signingDate: scraped.contract.signingDate,
     signedUsing: scraped.contract.signedUsing,
     source: scraped.source.provider,
-    
-    // Transform season format
-    startSeason: extractYear(scraped.contract.startSeason), // "2025-26" → "2025"
-    endSeason: extractYear(scraped.contract.endSeason),
     
     // Rename fields
     contractValue: scraped.contract.totalValue,
@@ -371,27 +282,33 @@ function transformToPlayersV2(scraped: BasePlayerDoc) {
     isExtension: scraped.contract.isExtension || null,
     signingTeam: scraped.contract.signingTeam || null,
     
-    // Calculate cap percentage (need current cap number)
+    // Calculate cap percentage (using 2025-26 cap: $140,588,000)
     capPercentage: Math.round((scraped.contract.totalValue / scraped.contract.contractLength) / 140588000 * 100),
     
-    // Transform salaries array
+    // NEW FIELD #3: Add isRookieScale
+    isRookieScale: scraped.contract.isRookieScale,
+    
+    // NEW FIELD #4: Add yearsOfService
+    yearsOfService: scraped.contract.birdRights.yearsOfService || null,
+    
+    // Transform salaries array with NEW FIELDS #1 and #2
     salariesByYear: scraped.contract.salariesByYear.map(s => ({
-      year: extractYear(s.season),
+      year: parseInt(s.season.split('-')[0]),
       salary: s.salary,
+      capHit: s.capHit,                    // NEW FIELD #1
+      tradeBonus: s.tradeBonus,            // NEW FIELD #2
       guaranteed: s.guaranteed,
       option: s.option
     })),
     
     // Extract options to separate array
-    options: scraped.contract.salariesByYear
-      .filter(s => s.option)
-      .map(s => ({ year: extractYear(s.season), type: s.option })),
+    options: options,
     
     // Flatten free agency
     freeAgency: {
       freeAgentType: scraped.contract.freeAgency.type,
       freeAgentYear: scraped.contract.freeAgency.year,
-      birdRights: scraped.contract.birdRights.status, // Flatten to string
+      birdRights: scraped.contract.birdRights.status,  // Flatten to string
       capHold: scraped.contract.freeAgency.capHold,
       qualifyingOffer: scraped.contract.freeAgency.qualifyingOffer
     },
@@ -404,6 +321,57 @@ function transformToPlayersV2(scraped: BasePlayerDoc) {
   };
 }
 ```
+
+---
+
+## 3. Architecture Decision: Primary Target is players_v2
+
+### Current State Analysis
+
+**CORRECTED UNDERSTANDING:** The primary purpose of player-scrape is to **update and populate `players_v2/{playerId}/contracts/{contractId}` subcollection** in Firestore.
+
+### Question: What about architect/basePlayers?
+
+**Decision:** Focus on players_v2 first. After this is working, we can decide separately how to populate architect/basePlayers (possibly reusing this scraper or creating a separate one).
+
+### Implementation Plan for players_v2
+
+```
+┌─────────────────────┐
+│   SalarySwish.com   │
+└──────────┬──────────┘
+           │
+           ▼
+  ┌─────────────────┐
+  │  player-scrape  │
+  │  + transform    │
+  └────────┬────────┘
+           │
+           ▼
+  ┌─────────────────────────┐
+  │ players_v2/{playerId}/  │
+  │   contracts/{contractId}│
+  └─────────────────────────┘
+```
+
+### Key Changes from Original Assessment
+
+1. **Primary target is players_v2** (not architect/basePlayers)
+2. **Season format is YYYY-YY** (e.g., "2025-26") - player-scrape already does this correctly ✅
+3. **Four new fields already present** in player-scrape output ✅
+4. **Transform layer needed** to match players_v2 structure (flatten Bird rights, add options array, etc.)
+
+### Field Coverage for players_v2
+
+**Current players_v2 fields:** All present in player-scrape ✅
+
+**Four new fields to add:**
+1. ✅ `isRookieScale` - Already in player-scrape
+2. ✅ `yearsOfService` - Already in player-scrape (birdRights.yearsOfService)
+3. ✅ `capHit` per year - Already in player-scrape (salariesByYear[].capHit)
+4. ✅ `tradeBonus` per year - Already in player-scrape (salariesByYear[].tradeBonus)
+
+**Verdict:** player-scrape already has everything needed! Just needs transformation layer.
 
 ---
 
@@ -435,20 +403,14 @@ function transformToPlayersV2(scraped: BasePlayerDoc) {
 
 - [ ] **Season Format Mismatch**
   - **File:** `player-scrape/scripts/parse_player.ts`
-  - **Fix:** Add optional format parameter to output year-only seasons for players_v2
-  - **Impact:** Data won't match players_v2 schema without transformation
+  - **Fix:** Season format is already correct (YYYY-YY)! But need to add `year` field to salariesByYear
+  - **Impact:** Need to extract year from season for salariesByYear array
   - **Patch:**
     ```typescript
-    // In parse_player.ts, add transform function:
-    function formatSeasonForPlayersV2(season: string): string {
-      // "2025-26" → "2025"
-      return season.split('-')[0];
-    }
-    
-    // Add to salariesByYear mapping:
+    // In parse_player.ts, add year field to salariesByYear:
     salariesByYear: salaries.map(s => ({
       ...s,
-      year: parseInt(s.season.split('-')[0]) // Add year field
+      year: parseInt(s.season.split('-')[0]) // Add year field for players_v2
     }))
     ```
 
@@ -472,26 +434,31 @@ function transformToPlayersV2(scraped: BasePlayerDoc) {
     });
     ```
 
-- [ ] **No Firestore Upload Script**
+- [ ] **No Firestore Upload Script for players_v2**
   - **File:** N/A (mentioned in docs but not implemented)
-  - **Fix:** Create upload script for basePlayers collection
+  - **Fix:** Create upload script for players_v2/{playerId}/contracts collection
   - **Impact:** Manual upload required
   - **Patch:**
     ```javascript
-    // Create player-scrape/scripts/upload_to_firestore.ts
+    // Create player-scrape/scripts/upload_to_players_v2.ts
     import admin from 'firebase-admin';
     import fs from 'fs/promises';
+    import { transformToPlayersV2 } from './transform_to_v2.ts';
     
-    async function uploadToBasePlayers(playerFile: string) {
+    async function uploadToPlayersV2(playerFile: string) {
       const data = JSON.parse(await fs.readFile(playerFile, 'utf-8'));
+      const transformed = transformToPlayersV2(data);
       const db = admin.firestore();
       
+      // Use standard contract naming: std_202425 for 2024-25 season
+      const contractId = `std_${data.contract.startSeason.replace('-', '')}`;
+      
       await db
-        .collection('architect')
-        .doc('basePlayers')
-        .collection(data.playerId)
-        .doc('contract')
-        .set(data.contract);
+        .collection('players_v2')
+        .doc(data.playerId)
+        .collection('contracts')
+        .doc(contractId)
+        .set(transformed);
     }
     ```
 
@@ -525,13 +492,25 @@ function transformToPlayersV2(scraped: BasePlayerDoc) {
 
 - [ ] **Cap Percentage Not Calculated**
   - **File:** `player-scrape/scripts/parse_player.ts`
-  - **Fix:** Add cap percentage calculation
-  - **Impact:** Missing field for players_v2 compatibility
+  - **Fix:** Add cap percentage calculation for players_v2
+  - **Impact:** Missing required field for players_v2 compatibility
   - **Patch:**
     ```typescript
     const CAP_2025_26 = 140588000;
-    capPercentage: Math.round((totalValue / contractLength) / CAP_2025_26 * 100)
+    const capPercentage = Math.round((totalValue / contractLength) / CAP_2025_26 * 100);
+    
+    // Add to contract output
+    contract: {
+      ...contractData,
+      capPercentage
+    }
     ```
+
+- [ ] **Missing Transform Layer**
+  - **File:** N/A (needs creation)
+  - **Fix:** Create transform function for players_v2 compatibility
+  - **Impact:** Cannot upload to players_v2 without transformation
+  - **Patch:** See section 2.4 for complete transform function
 
 ### 4.4 Low Priority Gaps (Future Enhancement)
 
@@ -741,19 +720,29 @@ The following JSON was successfully validated against the player-scrape schema:
 1. Install Playwright browsers
 2. Test with 5-10 real SalarySwish player pages
 3. Fix any parsing issues discovered
-4. Add field transformation for players_v2 compatibility (if needed)
-5. Create Firestore upload script
-6. Deploy to staging environment
+4. **Create transformation layer for players_v2 compatibility**
+5. **Add 4 new fields to output** (already in scraper, just need to expose at right level)
+6. Create Firestore upload script for players_v2/{playerId}/contracts
+7. Deploy to staging environment
 
 **Architecture Recommendation:**
-- **KEEP SEPARATE PIPELINES** (Option B)
-- player-scrape → architect/basePlayers (no changes needed)
-- Separate scraper/transformer → players_v2/contracts (if needed)
+- **PRIMARY TARGET: players_v2** - Focus on updating/populating existing players_v2 contracts subcollection
+- Season format: Keep YYYY-YY (e.g., "2025-26") - scraper already does this ✅
+- Four new fields: Already present in scraper output ✅
+- Transform layer: Needed to match players_v2 structure
+
+**Key Insight:** The scraper already outputs everything needed! It just needs:
+1. A transformation layer to match players_v2's flatter structure
+2. Extraction of `year` field from `season` for salariesByYear
+3. Flattening of Bird rights object to string
+4. Separate options array
+5. Upload script targeting players_v2 subcollection
 
 **Timeline Estimate:**
 - Playwright setup: 30 minutes
 - Real data validation: 2-4 hours
-- Field transformation: 2-3 hours
+- Create transformation layer: 3-4 hours
+- Firestore upload script: 2-3 hours
 - Integration testing: 4-6 hours
 - **Total: 1-2 days of focused work**
 
@@ -762,11 +751,12 @@ The following JSON was successfully validated against the player-scrape schema:
 1. ✅ **Install Playwright:** `npx playwright install chromium`
 2. ✅ **Test Real Scraping:** Validate 3-5 real player pages
 3. ✅ **Fix Parsing Issues:** Address any bugs found
-4. ✅ **Add Transformers:** Create players_v2 field mapping if needed
-5. ✅ **Create Upload Script:** Automate Firestore integration
-6. ✅ **Run Integration Tests:** End-to-end validation
-7. ✅ **Deploy to Staging:** Test with full roster
-8. ✅ **Production Rollout:** Scrape all 530 NBA players
+4. ✅ **Create Transform Layer:** Implement players_v2 field mapping
+5. ✅ **Add Missing Fields:** Ensure 4 new fields are properly mapped
+6. ✅ **Create Upload Script:** Automate players_v2 subcollection upload
+7. ✅ **Run Integration Tests:** End-to-end validation
+8. ✅ **Deploy to Staging:** Test with full roster
+9. ✅ **Production Rollout:** Update all players_v2 contracts
 
 ---
 
@@ -794,16 +784,23 @@ cat player-scrape/output/player.json | jq .
 
 ## Appendix B: Schema Field Reference
 
-### Field Mapping Quick Reference
+### Field Mapping Quick Reference (Updated)
 
-| Player-Scrape | Players_v2 | Architect/BasePlayers | Transform Needed |
-|---------------|------------|----------------------|-----------------|
-| `startSeason: "2025-26"` | `startSeason: "2025"` | `startSeason: "2025-26"` | Yes (for v2) |
-| `birdRights: {object}` | `birdRights: "Bird"` | `birdRights: {object}` | Yes (for v2) |
-| `totalValue` | `contractValue` | `totalValue` | Alias for v2 |
-| `isRookieScale` | N/A | ✅ | Keep for architect |
-| `tradeEligibility` | N/A | ✅ | Keep for architect |
-| `capPercentage` | ✅ | N/A | Add for v2 |
+| Player-Scrape | Players_v2 Target | Transform Needed |
+|---------------|-------------------|-----------------|
+| `startSeason: "2025-26"` | `startSeason: "2025-26"` | ✅ Keep YYYY-YY format |
+| `endSeason: "2027-28"` | `endSeason: "2027-28"` | ✅ Keep YYYY-YY format |
+| `birdRights: {object}` | `freeAgency.birdRights: "Bird"` | Flatten to string |
+| `totalValue` | `contractValue` | Rename |
+| `isRookieScale` | `isRookieScale` | ✅ NEW FIELD #3 - Copy directly |
+| `birdRights.yearsOfService` | `yearsOfService` | ✅ NEW FIELD #4 - Extract to root |
+| `salariesByYear[].capHit` | `salariesByYear[].capHit` | ✅ NEW FIELD #1 - Copy directly |
+| `salariesByYear[].tradeBonus` | `salariesByYear[].tradeBonus` | ✅ NEW FIELD #2 - Copy directly |
+| `salariesByYear[].season` | `salariesByYear[].year` | Extract year from season |
+| N/A | `capPercentage` | Calculate from salary/cap |
+| N/A | `options[]` | Extract from salariesByYear |
+
+**Key Change:** Season format is YYYY-YY everywhere (not just year), per user clarification.
 
 ---
 
