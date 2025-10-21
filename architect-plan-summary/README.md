@@ -12,7 +12,7 @@ Each of these files summarizes one of the original documentation files:
 3. **03-TARGET-SCHEMA-SUMMARY.md** - Complete Firestore schema with field-by-field examples
 4. **04-HOW-IT-WORKS-SUMMARY.md** - How the architecture achieves each goal
 5. **05-SAVE-LOAD-LOGIC-SUMMARY.md** - Implementation guide for reading/writing data
-6. **06-COMPREHENSIVE-SUMMARY-SUMMARY.md** - Consolidated reference covering problem, solution, and decisions
+6. **06-COMPREHENSIVE-SUMMARY.md** - Consolidated reference covering problem, solution, and decisions
 7. **07-IMPLEMENTATION-PLAN-SUMMARY.md** - Step-by-step implementation guide across all phases
 
 ### Combined Summary
