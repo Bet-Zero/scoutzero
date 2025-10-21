@@ -60,7 +60,23 @@ Documents the existing Architect feature implementation and current data structu
 - **Not migrating**: Old team plans, previous player contract data, historical scenarios
 - **Preserving**: Player scouting data in `/players_v2`, existing UI components, cap calculation logic
 
+### Implementation Resources Available
+
+**Complete scraping and merging infrastructure exists in `/team-scrape` folder:**
+- ✅ SalarySwish team scraper for cap/roster data (`parse_team.ts`)
+- ✅ RealGM draft picks scraper with comprehensive structure (`realgm_draft_picks.ts`)
+- ✅ Merge script that combines team data + draft picks (`review_and_merge/scripts/merge_team_outputs.ts`)
+- ✅ Sample merged outputs for 5 teams (LAL, MEM, NYK, OKC, WAS) in `review_and_merge/out_merged_samples/`
+- ✅ Complete schema definitions and field mappings
+- ✅ Exact format that will populate `/architect/baseTeams` collection
+
+**Key files showing exact structure:**
+- `team-scrape/review_and_merge/out_merged_samples/LAL_merged.json` - Complete Lakers team document example
+- `team-scrape/review_and_merge/out_merged_samples/all_teams_merged.json` - All 5 sample teams combined
+- `team-scrape/review_and_merge/docs/REPORT.md` - Comprehensive analysis of field mappings and schema
+
 ## Action Items
-- Confirm understanding of current system before implementation
+- Review `/team-scrape` folder for complete implementation of baseTeams population
+- Use existing merge script to generate all 30 team documents
 - Extend existing cap calculation logic for new structure
 - Upgrade existing Architect features to use new `/architect` collections

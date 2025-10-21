@@ -13,38 +13,67 @@ Provides both high-level roadmap and detailed, semi-executable steps for impleme
 ### Phase 2: Data Migration (3-4 days)
 **Goal**: Populate `/architect/baseTeams` and `/architect/basePlayers` with current NBA data
 
-**High-level timeline**:
-- Day 1: Build team and player page scrapers, validation scripts
-- Day 2: Scrape all 30 teams and ~530 players
-- Day 3: Upload to Firestore, verify data quality
-- Day 4 (if needed): Cleanup and fixes
+**IMPORTANT: Complete implementation already exists in `/team-scrape` folder:**
+- ✅ Team scraper built and tested (`parse_team.ts`)
+- ✅ Draft picks scraper built and tested (`realgm_draft_picks.ts`)
+- ✅ Merge script ready (`review_and_merge/scripts/merge_team_outputs.ts`)
+- ✅ Sample outputs for 5 teams showing exact format in `review_and_merge/out_merged_samples/`
+- ✅ Schema validation and field mappings documented
+- ✅ Output structure matches `/architect/baseTeams` schema exactly
+
+**High-level timeline (REVISED with existing tools)**:
+- Day 1: Run existing scrapers for all 30 teams using batch processing
+- Day 2: Run existing merge script to combine team + draft pick data, validate outputs
+- Day 3: Upload merged outputs to Firestore `/architect/baseTeams`, scrape player data
+- Day 4 (if needed): Validation, cleanup, and fixes
 
 **Detailed steps**:
-1. **Set up scraping environment**: Node.js 18+, Firebase Admin SDK, serviceAccountKey.json
-2. **Build team scraper** (`scrapeTeams.js`):
-   - Fetch team pages from SalarySwish
-   - Parse roster, cap data, exceptions, draft picks, cap holds, dead cap
-   - Normalize draft-pick inputs to structured schema (status, Stepien, swaps, dependencies, conditions, routing)
-   - De-duplicate repeated entries
-   - Output to `scraped_teams.json`
-3. **Build player scraper** (`scrapePlayers.js`):
-   - For each player ID from teams, fetch player page
-   - Parse bio, contract details, per-season breakdown
-   - **Critical**: Convert year to season format (2025 → "2025-26")
-   - Add new required fields (yearsOfService, isRookieScale, capHit, tradeBonus per year)
-   - Rate limit (1.5s between requests)
-   - Output to `scraped_players.json`
-4. **Validate data** (`validateData.js`):
-   - Check required fields present
-   - Verify season format ("YYYY-YY")
-   - Validate roster sizes (10-20 players)
-   - Check salary ranges reasonable ($50M-$250M)
-5. **Upload to Firestore** (`uploadToFirestore.js`):
-   - Batch upload teams (30 docs to `/architect/baseTeams`)
-   - Batch upload players (530 docs to `/architect/basePlayers`, 450 per batch due to 500 limit)
-   - Verify in Firebase Console
+**Detailed steps (REVISED)**:
 
-**Phase 2 checklist**: Environment setup, scrapers built and tested, all data scraped and validated, uploaded to Firestore, backup created
+1. **Use existing team scraper** (replaces "Build team scraper"):
+   ```bash
+   # Already built: team-scrape/scripts/parse_team.ts
+   # Run for each team (or create batch script):
+   TEAM_URL="https://www.salaryswish.com/teams/lakers" TEAM_CODE="LAL" npm run parse
+   ```
+   
+2. **Use existing draft picks scraper** (replaces "Build player scraper"):
+   ```bash
+   # Already built: team-scrape/scripts/realgm_draft_picks.ts
+   # Run for all teams:
+   npm run realgm:drafts -- --teams LAL,MEM,NYK,OKC,WAS,... --pretty
+   ```
+   
+3. **Use existing merge script** (NEW):
+   ```bash
+   # Already built: team-scrape/review_and_merge/scripts/merge_team_outputs.ts
+   # Merges team data + draft picks:
+   npm run merge:samples
+   # Output: team-scrape/output/merged/{TEAM}_merged.json
+   ```
+   
+4. **Validate using sample references**:
+   - Compare outputs against `team-scrape/review_and_merge/out_merged_samples/LAL_merged.json`
+   - Verify all required fields present
+   - Check draft pick structure matches schema
+   
+5. **Upload to Firestore** (`uploadToFirestore.js`):
+   ```javascript
+   // Read from team-scrape/output/merged/*.json
+   // Upload each to /architect/baseTeams/{teamCode}
+   ```
+
+**Phase 2 checklist (REVISED)**: 
+- [x] Team scraper exists and tested
+- [x] Draft picks scraper exists and tested  
+- [x] Merge script exists and tested
+- [x] Sample outputs available showing exact format
+- [ ] Run scrapers for all 30 teams (batch processing)
+- [ ] Run merge script for all teams
+- [ ] Validate outputs against samples
+- [ ] Upload to Firestore /architect/baseTeams
+- [ ] Scrape player data (separate from team data)
+- [ ] Upload to Firestore /architect/basePlayers
 
 ### Phase 2.5: Docs Alignment (No Code)
 - Replace references equating Architect with legacy `Teams` → `/architect/...`

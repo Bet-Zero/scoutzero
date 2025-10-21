@@ -39,6 +39,13 @@ The existing Architect feature includes Cap Sheet, Trade Machine, and Cap Sheet 
 
 **Migration Strategy**: Clean slate approach - start fresh rather than migrate existing data. The new structure adds `/architect/` with baseTeams, basePlayers, and worlds collections. Player scouting data in `/players_v2` remains unchanged and separate.
 
+**CRITICAL RESOURCE: Complete implementation exists in `/team-scrape` folder:**
+- ✅ Working team scraper, draft picks scraper, and merge script
+- ✅ Sample merged outputs for 5 teams showing exact `/architect/baseTeams` format
+- ✅ Files in `team-scrape/review_and_merge/out_merged_samples/` demonstrate precise field structure
+- ✅ Documentation in `team-scrape/README.md` and `team-scrape/review_and_merge/docs/REPORT.md`
+- ✅ Ready to scale to all 30 teams
+
 ---
 
 ## 3. Target Data Schema (03-TARGET-SCHEMA.md)

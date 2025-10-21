@@ -72,7 +72,26 @@ Draft picks are stored with complete semantics including:
 - Conditions (protection ranges, outcomes, recipients)
 - Routing (route, via, pickJourney metadata)
 
+### Implementation Available in `/team-scrape` Folder
+
+**Complete working implementation exists with exact field structure:**
+- ✅ Team scraper outputs match BaseTeamDoc schema
+- ✅ Draft picks scraper provides comprehensive pick structure with status, swaps, Stepien rules, conditions, routing
+- ✅ Merge script combines both into final format ready for `/architect/baseTeams`
+- ✅ Sample merged files show exact structure:
+  - `team-scrape/review_and_merge/out_merged_samples/LAL_merged.json` - Complete Lakers example with roster, cap holds, exceptions, totals, draft picks
+  - `team-scrape/review_and_merge/out_merged_samples/all_teams_merged.json` - 5 teams combined showing format consistency
+
+**Key structure details from samples:**
+- Roster: Array of `{displayName, sourceUrl}` objects
+- Cap holds: Categorized by type (RFA, UFA, draft picks)
+- Exceptions: MLE, BAE, TPE with usage tracking
+- Totals: 20+ cap fields (salary, cap space, tax, aprons, hard cap)
+- Draft picks: Organized by status (incoming, outgoing, own, contested) with full metadata
+- Sources: Data lineage tracking for salary and draft pick sources
+
 ## Action Items
-- Update scrapers to output new season format "YYYY-YY"
-- Ensure all new required fields are populated during data migration
-- Implement merge logic for player overrides
+- Use existing `/team-scrape` merge script to generate all 30 team documents
+- Upload merged outputs to `/architect/baseTeams` collection in Firestore
+- Validate data accuracy against samples in `team-scrape/review_and_merge/out_merged_samples/`
+- Implement merge logic for player overrides (player-level contracts handled separately)

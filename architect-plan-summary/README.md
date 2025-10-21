@@ -33,6 +33,22 @@ The original, detailed documentation files can be found at:
 
 ## Quick Reference
 
+### Critical Implementation Resources
+
+**⚠️ IMPORTANT: Complete scraping and merging infrastructure exists in `/team-scrape` folder:**
+
+The `/team-scrape` folder contains **working, tested code** for creating `/architect/baseTeams` collection:
+- ✅ Team scraper (`scripts/parse_team.ts`) - SalarySwish data extraction
+- ✅ Draft picks scraper (`scripts/realgm_draft_picks.ts`) - RealGM comprehensive scraping
+- ✅ Merge script (`review_and_merge/scripts/merge_team_outputs.ts`) - Combines team + draft picks
+- ✅ **Sample merged outputs** in `review_and_merge/out_merged_samples/`:
+  - `LAL_merged.json` (17KB) - Complete Lakers document showing exact format
+  - `MEM_merged.json`, `NYK_merged.json`, `OKC_merged.json`, `WAS_merged.json` - 4 more examples
+  - `all_teams_merged.json` (119KB) - All 5 teams combined
+- ✅ Full documentation: `team-scrape/README.md` and `team-scrape/review_and_merge/docs/REPORT.md`
+
+**These sample files show the EXACT field structure that will populate `/architect/baseTeams`.**
+
 ### Key Architecture Points
 - All Architect data lives under `/architect` (baseTeams, basePlayers, worlds)
 - `/players_v2` and `/teams` are immutable and NOT part of Architect
