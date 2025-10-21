@@ -21,8 +21,6 @@ The Architect Teams Plan aims to create a comprehensive NBA roster scenario plan
 
 **Key Architecture Decision**: All Architect data lives under `/architect` (baseTeams, basePlayers, worlds). The collections `/players_v2` and `/teams` are immutable and NOT part of Architect. Legacy top-level `Teams` (Architect v1) is deprecated and will be removed after cutover.
 
-**Timeline**: 10-14 days total (2-3 weeks) across 4 phases.
-
 ---
 
 ## 2. Current Status & Existing Structure (02-CURRENT-STATUS.md)
@@ -201,10 +199,10 @@ This file consolidates everything into a single reference covering:
 
 ## 7. Implementation Plan (07-IMPLEMENTATION-PLAN.md)
 
-### Phase 1: Foundation & Planning ✅ COMPLETE (2-3 days)
+### Phase 1: Foundation & Planning ✅ COMPLETE
 All documentation files created. **Next**: Stakeholder approval.
 
-### Phase 2: Data Migration (3-4 days)
+### Phase 2: Data Migration
 **Goal**: Populate `/architect/baseTeams` and `/architect/basePlayers`
 
 **Steps**:
@@ -219,7 +217,7 @@ All documentation files created. **Next**: Stakeholder approval.
 ### Phase 2.5: Docs Alignment (No Code)
 Replace legacy `Teams` references with `/architect/...`, add Authoritative Paths block to docs, add deprecation notice.
 
-### Phase 3: Core Implementation (3-4 days)
+### Phase 3: Core Implementation
 **Goal**: Build world management and team operations
 
 **Steps**:
@@ -230,7 +228,7 @@ Replace legacy `Teams` references with `/architect/...`, add Authoritative Paths
 
 **Checklist**: World CRUD, team loading with fallback, trade/signing/waiving, season advancement, branching, cap calculations, trade validation, tests passing.
 
-### Phase 4: UI & Polish (2-3 days)
+### Phase 4: UI & Polish
 **Goal**: Build user interface and test end-to-end
 
 **Steps**:
@@ -266,7 +264,7 @@ Monitor performance (league view <200ms, trades <500ms), usage (worlds/branches/
 
 5. **Data Integrity**: Five mechanisms ensure safety (immutable base, world isolation, audit trail, version tracking, atomic operations).
 
-6. **Timeline**: 10-14 days total across 4 phases (planning complete, data migration 3-4 days, core implementation 3-4 days, UI/polish 2-3 days).
+6. **Implementation Phases**: Four phases total (planning complete, data migration, core implementation, UI/polish).
 
 7. **Authoritative Paths**: `/architect` is the ONLY location for Architect data. `/players_v2` and `/teams` are immutable and separate. Legacy `/Teams` deprecated.
 

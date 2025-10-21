@@ -31,12 +31,11 @@ Defines the project goals, requirements, and success criteria for the Architect 
 - Real-time multiplayer, AI trade suggestions, historical data pre-2025, player performance projections, injury tracking, draft pick value calculators, salary cap predictions beyond current CBA
 - Not migrating existing player scouting data or historical user team plans
 
-### Timeline
-- **Phase 1**: Foundation (current) - Review and validate schema design
-- **Phase 2**: Data Migration (3-4 days) - Build scrapers, populate base collections
-- **Phase 3**: Core Implementation (3-4 days) - World CRUD, snapshot logic, season advancement, branching
-- **Phase 4**: Polish & Launch (2-3 days) - UI, testing, optimization, documentation
-- **Total**: 10-14 days (2-3 weeks)
+### Implementation Phases
+- **Phase 1**: Foundation - Review and validate schema design
+- **Phase 2**: Data Migration - Build scrapers, populate base collections
+- **Phase 3**: Core Implementation - World CRUD, snapshot logic, season advancement, branching
+- **Phase 4**: Polish & Launch - UI, testing, optimization, documentation
 
 ## Action Items
 - Validate target schema design

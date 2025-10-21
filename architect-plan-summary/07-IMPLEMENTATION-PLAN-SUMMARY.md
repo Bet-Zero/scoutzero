@@ -6,11 +6,10 @@ Provides both high-level roadmap and detailed, semi-executable steps for impleme
 ## Key Points
 
 ### Phase 1: Foundation & Planning ✅ COMPLETE
-**Duration**: 2-3 days (DONE)
 **Deliverables**: All documentation files created (01-GOALS through 07-IMPLEMENTATION-PLAN)
 **Next Action**: Stakeholder approval before proceeding to Phase 2
 
-### Phase 2: Data Migration (3-4 days)
+### Phase 2: Data Migration
 **Goal**: Populate `/architect/baseTeams` and `/architect/basePlayers` with current NBA data
 
 **IMPORTANT: Complete implementation already exists in `/team-scrape` folder:**
@@ -21,11 +20,11 @@ Provides both high-level roadmap and detailed, semi-executable steps for impleme
 - ✅ Schema validation and field mappings documented
 - ✅ Output structure matches `/architect/baseTeams` schema exactly
 
-**High-level timeline (REVISED with existing tools)**:
-- Day 1: Run existing scrapers for all 30 teams using batch processing
-- Day 2: Run existing merge script to combine team + draft pick data, validate outputs
-- Day 3: Upload merged outputs to Firestore `/architect/baseTeams`, scrape player data
-- Day 4 (if needed): Validation, cleanup, and fixes
+**High-level approach**:
+- Run existing scrapers for all 30 teams using batch processing
+- Run existing merge script to combine team + draft pick data, validate outputs
+- Upload merged outputs to Firestore `/architect/baseTeams`, scrape player data
+- Validation, cleanup, and fixes
 
 **Detailed steps**:
 **Detailed steps (REVISED)**:
@@ -80,14 +79,14 @@ Provides both high-level roadmap and detailed, semi-executable steps for impleme
 - Add Authoritative Paths block to README/overview docs
 - Add deprecation note: "Legacy top-level `Teams` will be removed after cutover"
 
-### Phase 3: Core Implementation (3-4 days)
+### Phase 3: Core Implementation
 **Goal**: Build world management and team operations
 
-**High-level timeline**:
-- Day 1: World CRUD (create, load, delete, update metadata)
-- Day 2: Team operations (execute trade, sign free agent, waive player, renounce rights)
-- Day 3: Season & branching (advance season, process contracts, fork/branch world, world navigation)
-- Day 4: Testing & polish (integration tests, CBA validation, error handling, performance optimization)
+**High-level approach**:
+- World CRUD (create, load, delete, update metadata)
+- Team operations (execute trade, sign free agent, waive player, renounce rights)
+- Season & branching (advance season, process contracts, fork/branch world, world navigation)
+- Testing & polish (integration tests, CBA validation, error handling, performance optimization)
 
 **Detailed steps**:
 1. **Create world management module** (`/src/utils/architect/worldManager.js`):
@@ -109,13 +108,13 @@ Provides both high-level roadmap and detailed, semi-executable steps for impleme
 
 **Phase 3 checklist**: World CRUD, team loading with fallback, trade execution, signing/waiving, season advancement, branching, cap calculations, trade validation, tests passing
 
-### Phase 4: UI & Polish (2-3 days)
+### Phase 4: UI & Polish
 **Goal**: Build user interface and test end-to-end
 
-**High-level timeline**:
-- Day 1: Core UI components (world selector, create modal, season navigator, branch button)
-- Day 2: Enhanced features (world management panel, decision tree visualizer, world comparison, action history)
-- Day 3: Testing & launch (E2E testing, performance optimization, bug fixes, production deployment)
+**High-level approach**:
+- Core UI components (world selector, create modal, season navigator, branch button)
+- Enhanced features (world management panel, decision tree visualizer, world comparison, action history)
+- Testing & launch (E2E testing, performance optimization, bug fixes, production deployment)
 
 **Detailed steps**:
 1. **Create world selector component** (`/src/components/Architect/WorldSelector.jsx`):
