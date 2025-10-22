@@ -4,6 +4,8 @@
 
 **CORRECTED FOCUS:** This scraper is for updating/populating **players_v2/{playerId}/contracts** subcollection in Firestore.
 
+> 🚀 **Want to get to 100%?** See **[GETTING_STARTED.md](./GETTING_STARTED.md)** for complete step-by-step instructions!
+
 ### What Works ✅
 - Complete TypeScript parser with Zod validation
 - Handles multiple contracts (current + future extensions)
