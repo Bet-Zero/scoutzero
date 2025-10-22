@@ -6,10 +6,13 @@ NBA player contract scraper for populating `players_v2` Firestore collection.
 
 **Current Status:** 85% Ready → [Get to 100% Ready](./GETTING_STARTED.md)
 
-**Want to get started right away?** Follow the **[GETTING_STARTED.md](./GETTING_STARTED.md)** guide for complete step-by-step instructions!
+**Want to get started right away?** 
+- **Fast track:** [PATH_TO_100.md](./PATH_TO_100.md) - Visual summary (3 steps, 1-2 days)
+- **Detailed guide:** [GETTING_STARTED.md](./GETTING_STARTED.md) - Complete instructions with code
 
 ## Documentation
 
+- **[PATH_TO_100.md](./PATH_TO_100.md)** - **QUICK VIEW!** Visual 3-step summary to 100%
 - **[GETTING_STARTED.md](./GETTING_STARTED.md)** - **START HERE!** Complete guide from 0% to 100% ready
 - **[READINESS_ASSESSMENT.md](./READINESS_ASSESSMENT.md)** - Detailed 85% readiness analysis
 - **[QUICK_SUMMARY.md](./QUICK_SUMMARY.md)** - Executive summary of current state
