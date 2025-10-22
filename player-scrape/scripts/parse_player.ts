@@ -345,28 +345,17 @@ function parseBio($: cheerio.CheerioAPI) {
   );
   if (mHeightQuote) {
     h = `${mHeightQuote[1]}-${mHeightQuote[2]}`;
-    if (DEBUG) console.log('🔎 height-quote:', mHeightQuote[0], '→', h);
   } else {
     const mHeightDash = text.match(
       /\bHEIGHT:\s*([0-9])\s*-\s*([0-9]{1,2})\s+/i
     );
     if (mHeightDash) {
       h = `${mHeightDash[1]}-${mHeightDash[2]}`;
-      if (DEBUG) console.log('🔎 height-dash:', mHeightDash[0], '→', h);
     } else {
       const mHeightFtIn = text.match(
         /\bHEIGHT:\s*([0-9])\s*ft\s*([0-9]{1,2})\s*in\b/i
       );
-      if (mHeightFtIn) {
-        h = `${mHeightFtIn[1]}-${mHeightFtIn[2]}`;
-        if (DEBUG) console.log('🔎 height-ftin:', mHeightFtIn[0], '→', h);
-      } else if (DEBUG) {
-        // Debug: show what's near HEIGHT
-        const idx = text.indexOf('HEIGHT:');
-        if (idx >= 0) {
-          console.log('🔎 height-debug:', text.substring(idx, idx + 50));
-        }
-      }
+      if (mHeightFtIn) h = `${mHeightFtIn[1]}-${mHeightFtIn[2]}`;
     }
   }
   if (h) bio.height = h;
@@ -378,22 +367,13 @@ function parseBio($: cheerio.CheerioAPI) {
     text.match(/\bWEIGHT:\s*([0-9]{2,3})(?=\s*lbs?\b)/i);
   if (mWeightLbs) {
     w = mWeightLbs[1];
-    if (DEBUG) console.log('🔎 weight-lbs:', mWeightLbs[0], '→', w);
   } else {
     const mWeightKg =
       text.match(/\bWEIGHT:\s*([0-9]{2,3})\s*kg\b/i) ||
       text.match(/\bWEIGHT:\s*([0-9]{2,3})(?=\s*kg\b)/i);
     if (mWeightKg) {
       const kg = parseInt(mWeightKg[1], 10);
-      if (Number.isFinite(kg)) {
-        w = String(Math.round(kg * 2.20462));
-        if (DEBUG) console.log('🔎 weight-kg:', mWeightKg[0], '→', w);
-      }
-    } else if (DEBUG) {
-      const idx = text.indexOf('WEIGHT:');
-      if (idx >= 0) {
-        console.log('🔎 weight-debug:', text.substring(idx, idx + 50));
-      }
+      if (Number.isFinite(kg)) w = String(Math.round(kg * 2.20462));
     }
   }
   if (w) bio.weight = w;
@@ -422,15 +402,7 @@ function parseBio($: cheerio.CheerioAPI) {
       nStr = nStr[0];
     }
     const n = parseInt(nStr, 10);
-    if (Number.isFinite(n) && n > 0 && n <= 50) {
-      bio.experience = n;
-      if (DEBUG) console.log('🔎 experience:', mYears[0], '→', n);
-    }
-  } else if (DEBUG) {
-    const idx = text.indexOf('Years of Service');
-    if (idx >= 0) {
-      console.log('🔎 experience-debug:', text.substring(idx, idx + 60));
-    }
+    if (Number.isFinite(n) && n > 0 && n <= 50) bio.experience = n;
   }
 
   if (process.env.DEBUG === '1') {
