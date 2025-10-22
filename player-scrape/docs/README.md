@@ -8,6 +8,8 @@
 >
 > **Recent Fix:** Replaced `got` HTTP client with Playwright to properly render JavaScript-based salary tables. The old version could not extract salary data because SalarySwish uses dynamic JavaScript rendering.
 
+> 🚀 **NEW:** **[Getting Started Guide](../GETTING_STARTED.md)** - Complete step-by-step instructions to get player-scrape from 85% to 100% production ready!
+
 ---
 
 ## Overview
