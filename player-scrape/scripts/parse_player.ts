@@ -1,4 +1,4 @@
-// parse_player.ts — SalarySwish player page → basePlayers JSON (strict scoping, noise-proof)
+// parse_player.ts — SalarySwish player page → structured player JSON (comprehensive contract & bio data)
 // RUN:
 //   npm pkg set scripts.parse-player="tsx player-scrape/scripts/parse_player.ts"
 //   PLAYER_URL="https://salaryswish.com/players/austin-reaves" PLAYER_ID="austin_reaves" npm run parse-player
@@ -305,12 +305,9 @@ function parseBio($: cheerio.CheerioAPI) {
     ' $1: '
   );
 
-  // 4) Fix run-on units (e.g. "6' 5195cm" -> "6' 5 195 cm", "197lbs89kg" -> "197 lbs 89 kg")  
+  // 4) Fix run-on units (e.g. "6' 5195cm" -> "6' 5 195 cm", "197lbs89kg" -> "197 lbs 89 kg")
   // First, handle height special case where inches digit is jammed with cm number: "5195" -> "5 195"
-  text = text.replace(
-    /(\d)\s*(['\u2019])\s*(\d)(\d{2,3})\s*/gi,
-    '$1$2 $3 $4 '
-  );
+  text = text.replace(/(\d)\s*(['\u2019])\s*(\d)(\d{2,3})\s*/gi, '$1$2 $3 $4 ');
   // Then normal unit separations
   text = text
     .replace(/(\d)(cm)\b/gi, '$1 $2')
@@ -416,24 +413,28 @@ function parseBio($: cheerio.CheerioAPI) {
       const yearMatch = draftText.match(/\b(\d{4})\b/);
       if (yearMatch) {
         bio.draftYear = yearMatch[1];
-        
+
         // Look for round and pick in the draft text
         // Round: "Round 1", "1st Round", "Round: 1", etc.
-        const roundMatch = draftText.match(/\bRound\s+(\d+)\b/i) ||
-                          draftText.match(/\b(\d+)(?:st|nd|rd|th)\s+Round\b/i) ||
-                          draftText.match(/\bRound:\s*(\d+)/i);
+        const roundMatch =
+          draftText.match(/\bRound\s+(\d+)\b/i) ||
+          draftText.match(/\b(\d+)(?:st|nd|rd|th)\s+Round\b/i) ||
+          draftText.match(/\bRound:\s*(\d+)/i);
         if (roundMatch) bio.draftRound = parseInt(roundMatch[1], 10);
-        
+
         // Pick: "Pick 15", "#15", "15th pick", "Pick: 15" etc.
-        const pickMatch = draftText.match(/\bPick\s+(\d+)\b/i) ||
-                         draftText.match(/\b#(\d+)\s+pick\b/i) ||
-                         draftText.match(/\b(\d+)(?:st|nd|rd|th)\s+pick\b/i) ||
-                         draftText.match(/\bPick:\s*(\d+)/i) ||
-                         draftText.match(/\b#(\d+)\b/);
+        const pickMatch =
+          draftText.match(/\bPick\s+(\d+)\b/i) ||
+          draftText.match(/\b#(\d+)\s+pick\b/i) ||
+          draftText.match(/\b(\d+)(?:st|nd|rd|th)\s+pick\b/i) ||
+          draftText.match(/\bPick:\s*(\d+)/i) ||
+          draftText.match(/\b#(\d+)\b/);
         if (pickMatch) bio.draftPick = parseInt(pickMatch[1], 10);
-        
+
         // Drafting team: look for team name after "by"
-        const teamMatch = draftText.match(/\bby\s+(?:the\s+)?([A-Za-z][a-zA-Z\s]+?)(?:\s+AGENT|\s+$|$)/i);
+        const teamMatch = draftText.match(
+          /\bby\s+(?:the\s+)?([A-Za-z][a-zA-Z\s]+?)(?:\s+AGENT|\s+$|$)/i
+        );
         if (teamMatch) {
           bio.draftedBy = teamMatch[1].trim();
         } else {
@@ -635,23 +636,23 @@ function parseAgentInfo($: cheerio.CheerioAPI) {
 /** Extract option summary from salary years */
 function extractOptionSummary(salariesByYear: any[]) {
   // Find years with options
-  const yearsWithOptions = salariesByYear.filter(y => y.option);
-  
+  const yearsWithOptions = salariesByYear.filter((y) => y.option);
+
   if (yearsWithOptions.length === 0) {
     return {
       hasOption: false,
       optionYear: null,
-      optionType: null
+      optionType: null,
     };
   }
-  
+
   // Take the first option found (usually the most relevant)
   const firstOption = yearsWithOptions[0];
-  
+
   return {
     hasOption: true,
     optionYear: firstOption.season,
-    optionType: firstOption.option
+    optionType: firstOption.option,
   };
 }
 
@@ -711,7 +712,7 @@ async function main() {
   const birdRights = parseBirdRights($);
   const freeAgency = parseFreeAgency($, endSeason, meta.capHold);
   if (freeAgency.type !== 'RFA') freeAgency.qualifyingOffer = null;
-  
+
   // Add option summary to free agency
   const optionSummary = extractOptionSummary(salariesByYear);
   Object.assign(freeAgency, optionSummary);
