@@ -12,7 +12,7 @@
 import fs from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { basePlayerSchema } from '../schema/player_scrape_schema.js';
+import { basePlayerSchema } from '../schema/player_scrape_schema.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 

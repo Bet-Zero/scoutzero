@@ -1,22 +1,13 @@
-// parse_player.ts — SalarySwish player page → basePlayers JSON
-//
-// DESCRIPTION:
-//   Parses NBA player contract data from SalarySwish player pages into structured JSON.
-//   Extracts contract details, Bird rights, trade eligibility, and free agency info.
-//
+// parse_player.ts — SalarySwish player page → basePlayers JSON (strict scoping, noise-proof)
 // RUN:
 //   npm pkg set scripts.parse-player="tsx player-scrape/scripts/parse_player.ts"
-//   PLAYER_URL="https://salaryswish.com/players/austin_reaves" PLAYER_ID="austin_reaves" npm run parse-player
+//   PLAYER_URL="https://salaryswish.com/players/austin-reaves" PLAYER_ID="austin_reaves" npm run parse-player
+//   DEBUG=1 … (optional) to see what sections were matched
 //
-// ENVIRONMENT VARIABLES:
-//   PLAYER_URL - Player page URL (default: from examples/page.html if previously fetched)
-//   PLAYER_ID - Player ID for output (default: extracted from URL)
-//   TEAM_CODE - Team code (optional, extracted from page if not provided)
+// INPUT:  ../examples/page.html (from fetch_player_page.ts)
+// OUTPUT: ../output/player.json
 //
-// OUTPUT:
-//   ../output/player.json - Structured JSON matching player_scrape_schema.ts
-//
-// Requires: cheerio, got
+// Requires: cheerio
 
 import fs from 'node:fs/promises';
 import * as cheerio from 'cheerio';
@@ -24,546 +15,614 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const DEBUG = process.env.DEBUG === '1';
 
 type Money = number;
 
-// Utility functions
 const norm = (s: string) => (s || '').replace(/\s+/g, ' ').trim();
+const squeezeSpaces = (s: string) => s.replace(/[ \t]+/g, ' ').trim();
 const moneyNum = (s?: string) => {
   if (!s) return undefined;
-  const v = Number(s.replace(/[$,]/g, ''));
+  const v = Number(s.replace(/[$, ]/g, ''));
   return Number.isFinite(v) ? v : undefined;
 };
+const titleCase = (s: string) =>
+  s.toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase());
+const seasonStartYear = (season?: string) => {
+  const m = season?.match(/^(\d{4})\s*-\s*\d{2}$/);
+  return m ? parseInt(m[1], 10) : undefined;
+};
+const cleanLabelVal = (t: string) => norm(t.replace(/\s*[:\-–]\s*/g, ': '));
 
-function findHeading(
-  $: cheerio.CheerioAPI,
-  tag: 'h3' | 'h4' | 'h5',
-  includes: string
-) {
-  const needle = includes.toLowerCase();
-  const nodes = $(tag);
-  for (let i = 0; i < nodes.length; i++) {
-    const el = nodes.eq(i);
-    if (norm(el.text()).toLowerCase().includes(needle)) return el;
+const teamSlugToCode: Record<string, string> = {
+  hawks: 'ATL',
+  celtics: 'BOS',
+  nets: 'BKN',
+  hornets: 'CHA',
+  bulls: 'CHI',
+  cavaliers: 'CLE',
+  mavericks: 'DAL',
+  nuggets: 'DEN',
+  pistons: 'DET',
+  warriors: 'GSW',
+  rockets: 'HOU',
+  pacers: 'IND',
+  clippers: 'LAC',
+  lakers: 'LAL',
+  grizzlies: 'MEM',
+  heat: 'MIA',
+  bucks: 'MIL',
+  timberwolves: 'MIN',
+  pelicans: 'NOP',
+  knicks: 'NYK',
+  thunder: 'OKC',
+  magic: 'ORL',
+  sixers: 'PHI',
+  suns: 'PHX',
+  blazers: 'POR',
+  trailblazers: 'POR',
+  kings: 'SAC',
+  spurs: 'SAS',
+  raptors: 'TOR',
+  jazz: 'UTA',
+  wizards: 'WAS',
+};
+const teamCodeToName: Record<string, string> = {
+  ATL: 'Atlanta Hawks',
+  BOS: 'Boston Celtics',
+  BKN: 'Brooklyn Nets',
+  CHA: 'Charlotte Hornets',
+  CHI: 'Chicago Bulls',
+  CLE: 'Cleveland Cavaliers',
+  DAL: 'Dallas Mavericks',
+  DEN: 'Denver Nuggets',
+  DET: 'Detroit Pistons',
+  GSW: 'Golden State Warriors',
+  HOU: 'Houston Rockets',
+  IND: 'Indiana Pacers',
+  LAC: 'LA Clippers',
+  LAL: 'Los Angeles Lakers',
+  MEM: 'Memphis Grizzlies',
+  MIA: 'Miami Heat',
+  MIL: 'Milwaukee Bucks',
+  MIN: 'Minnesota Timberwolves',
+  NOP: 'New Orleans Pelicans',
+  NYK: 'New York Knicks',
+  OKC: 'Oklahoma City Thunder',
+  ORL: 'Orlando Magic',
+  PHI: 'Philadelphia 76ers',
+  PHX: 'Phoenix Suns',
+  POR: 'Portland Trail Blazers',
+  SAC: 'Sacramento Kings',
+  SAS: 'San Antonio Spurs',
+  TOR: 'Toronto Raptors',
+  UTA: 'Utah Jazz',
+  WAS: 'Washington Wizards',
+};
+
+const dbg = (label: string, val: any) => {
+  if (DEBUG)
+    console.log(
+      `🔎 ${label}:`,
+      typeof val === 'string'
+        ? val.slice(0, 200) + (val.length > 200 ? '…' : '')
+        : val
+    );
+};
+
+/** Find the closest container section whose header text matches `re` */
+function sectionAfterHeader($: cheerio.CheerioAPI, re: RegExp) {
+  const hdr = $('h1,h2,h3,h4,h5,h6')
+    .filter((_, el) => re.test($(el).text()))
+    .first();
+  if (!hdr.length) return { node: $.root(), text: $.root().text() };
+  const container = hdr.closest('section,article,div');
+  const node = container.length ? container : hdr.parent();
+  return { node, text: node.text() };
+}
+
+/** Find a compact “bio” container by locating a label like BORN:/HEIGHT:/WEIGHT: and taking its ancestor block */
+function findBioContainer($: cheerio.CheerioAPI) {
+  const labelEl = $(
+    '*:contains("BORN:") , *:contains("HEIGHT:") , *:contains("WEIGHT:") , *:contains("SHOOTS:")'
+  ).first();
+  if (labelEl.length) {
+    const node = labelEl.closest('section,article,div');
+    if (node.length) return node;
+    return labelEl.parent();
+  }
+  // Fallback to the header block (usually near the name)
+  const headerBlock = $('h1').first().closest('section,article,div');
+  return headerBlock.length ? headerBlock : $.root();
+}
+
+/** Safely get the text of a node without script/style/ads noise (strip iframes/scripts) */
+function safeText($: cheerio.CheerioAPI, node: cheerio.Cheerio) {
+  node.find('script,style,iframe,noscript').remove();
+  return squeezeSpaces(node.text());
+}
+
+// ---------- salary table detection & parsing ----------
+function findFirstSalaryTable($: cheerio.CheerioAPI) {
+  const tables = $('table');
+  for (let i = 0; i < tables.length; i++) {
+    const t = tables.eq(i);
+    const headers = t
+      .find('thead th')
+      .map((_, th) => norm($(th).text()))
+      .get();
+    const H = headers.join('|').toLowerCase();
+    const looksSalary =
+      /season/.test(H) &&
+      /(salary|cap hit|guaranteed)/.test(H) &&
+      !/(pts|ast|reb|fg%|min|playoffs|regular)/.test(H);
+    if (looksSalary) return { table: t, headers };
   }
   return null;
 }
-
-function extractTextBetweenHeadings(
+const headerIndex = (headers: string[], ...cands: RegExp[]) => {
+  const L = headers.map((h) => h.toLowerCase());
+  for (const re of cands) {
+    const idx = L.findIndex((h) => re.test(h));
+    if (idx >= 0) return idx;
+  }
+  return -1;
+};
+function extractOptionFromCell($: cheerio.CheerioAPI, cell: cheerio.Cheerio) {
+  const txt = norm(cell.text()).toLowerCase();
+  if (/player option|\bpo\b/.test(txt)) return 'PO';
+  if (/team option|\bto\b/.test(txt)) return 'TO';
+  if (/early termination|eto/.test(txt)) return 'ETO';
+  const tag = cell.find('.contract_tag.contract_option').text().toLowerCase();
+  if (tag.includes('player')) return 'PO';
+  if (tag.includes('team')) return 'TO';
+  if (tag.includes('eto')) return 'ETO';
+  return null;
+}
+function parseSalaryTable(
   $: cheerio.CheerioAPI,
-  start: cheerio.Cheerio,
-  stopTag: string = 'h3'
+  table: cheerio.Cheerio,
+  headers: string[]
 ) {
-  const text: string[] = [];
-  let cur = start.next();
-  while (cur.length) {
-    const tag = (cur.get(0) as any)?.name?.toLowerCase?.();
-    if (tag === stopTag) break;
-    text.push(norm(cur.text()));
-    cur = cur.next();
-  }
-  return text.join(' ');
-}
+  const idxSeason = headerIndex(headers, /season/i);
+  const idxCapHit = headerIndex(headers, /cap\s*hit/i, /\bcap\b/i);
+  const idxSalary = headerIndex(headers, /base\s*salary/i, /\bsalary\b/i);
+  const idxGuaranteed = headerIndex(headers, /guaranteed/i);
+  const idxOption = headerIndex(headers, /option/i);
+  const idxLikely = headerIndex(headers, /likely/i);
+  const idxUnlikely = headerIndex(headers, /unlikely/i);
 
-// Parse contract type and determine if it's an extension or rookie scale
-function parseContractType($: cheerio.CheerioAPI): {
-  type: string;
-  isExtension: boolean;
-  isRookieScale: boolean;
-} {
-  // Find the first contract heading (H6 with class sw_playerContract__title)
-  const firstContractHeading = $('h6.sw_playerContract__title').first();
+  const rows: any[] = [];
+  table.find('tbody tr').each((_, tr) => {
+    const cells = $(tr).find('td');
+    if (!cells.length || idxSeason < 0) return;
 
-  let text = '';
-  if (firstContractHeading.length > 0) {
-    text = norm(firstContractHeading.text()).toUpperCase();
-  } else {
-    // Fallback: Try to find any H3 that might be a contract type
-    let contractTypeHeading: cheerio.Cheerio | null = null;
+    const season = norm(cells.eq(idxSeason).text());
+    if (!season) return;
 
-    $('h3').each((i, el) => {
-      const headingText = norm($(el).text()).toUpperCase();
-      if (
-        headingText.includes('CONTRACT') ||
-        headingText.includes('EXTENSION') ||
-        headingText.includes('ROOKIE') ||
-        headingText.includes('DESIGNATED') ||
-        headingText.includes('TWO-WAY')
-      ) {
-        contractTypeHeading = $(el);
-        return false; // break
-      }
-    });
+    const capHit =
+      idxCapHit >= 0 ? moneyNum(cells.eq(idxCapHit).text()) : undefined;
+    const basePay =
+      idxSalary >= 0 ? moneyNum(cells.eq(idxSalary).text()) : undefined;
+    const guarantee =
+      idxGuaranteed >= 0 ? moneyNum(cells.eq(idxGuaranteed).text()) : undefined;
 
-    if (contractTypeHeading) {
-      text = norm(contractTypeHeading.text()).toUpperCase();
+    let option: 'PO' | 'TO' | 'ETO' | null = null;
+    if (idxOption >= 0)
+      option = extractOptionFromCell($, cells.eq(idxOption)) as any;
+    if (!option)
+      cells.each((__, c) => {
+        if (!option) option = extractOptionFromCell($, $(c)) as any;
+      });
+
+    const likely =
+      idxLikely >= 0 ? (moneyNum(cells.eq(idxLikely).text()) ?? 0) : 0;
+    const unlikely =
+      idxUnlikely >= 0 ? (moneyNum(cells.eq(idxUnlikely).text()) ?? 0) : 0;
+
+    const salary = basePay ?? capHit ?? 0;
+    const resolvedCap = capHit ?? basePay ?? salary;
+
+    let guaranteed = false;
+    if (typeof guarantee === 'number') {
+      guaranteed = guarantee >= salary && salary > 0;
+    } else {
+      const rowTxt = $(tr).text().toLowerCase();
+      guaranteed = !/non-?guaranteed|\bng\b/.test(rowTxt);
     }
+
+    const rec: any = {
+      season,
+      salary,
+      capHit: resolvedCap,
+      guaranteed,
+      guaranteedAmount: guaranteed ? salary : 0,
+      option: option ?? null,
+      tradeBonus: null,
+      incentives: { likely, unlikely },
+    };
+
+    const kicker = $(tr)
+      .text()
+      .match(/(\d{1,2})%\s+(?:trade\s+)?(?:kicker|bonus)/i);
+    if (kicker) rec.tradeBonus = parseInt(kicker[1], 10);
+
+    rows.push(rec);
+  });
+  return rows;
+}
+
+// ---------- targeted scrapes ----------
+function parseName($: cheerio.CheerioAPI, fallbackId: string) {
+  const raw =
+    $('h1.c[style*="text-transform:none"]').first().text() ||
+    $('h1').first().text();
+  const cleaned = norm(raw).replace(/\s+#\d+\b/, '');
+  return cleaned
+    ? titleCase(cleaned)
+    : titleCase(fallbackId.replace(/_/g, ' '));
+}
+
+function parseTeam($: cheerio.CheerioAPI, teamCodeEnv?: string) {
+  // Prefer the contract area for team link; fallback to header; fallback to first /teams/ link.
+  const found = findFirstSalaryTable($);
+  let ctx = $('h1').first().closest('section,article,div');
+  if (found) {
+    const tctx = found.table.closest('section,article,div');
+    if (tctx.length) ctx = tctx;
   }
+  let teamLink = ctx.find('a[href^="/teams/"]').first();
+  if (!teamLink.length) teamLink = $('a[href^="/teams/"]').first();
 
-  const isExtension = text.includes('EXTENSION');
-  const isRookieScale = text.includes('ROOKIE') || text.includes('SCALE');
-  const isDesignated = text.includes('DESIGNATED');
-  const isTwoWay = text.includes('TWO-WAY') || text.includes('2-WAY');
-
-  if (isTwoWay) return { type: 'TWO-WAY', isExtension, isRookieScale: false };
-  if (isDesignated && isRookieScale)
-    return {
-      type: 'DESIGNATED ROOKIE EXTENSION',
-      isExtension: true,
-      isRookieScale: true,
-    };
-  if (isRookieScale)
-    return { type: 'ROOKIE SCALE', isExtension, isRookieScale: true };
-  if (isExtension)
-    return {
-      type: 'VETERAN EXTENSION',
-      isExtension: true,
-      isRookieScale: false,
-    };
-
-  return { type: 'VETERAN CONTRACT', isExtension, isRookieScale };
+  const slug =
+    (teamLink.attr('href') || '')
+      .split('/')
+      .filter(Boolean)
+      .pop()
+      ?.toLowerCase() || '';
+  const teamCode = teamCodeEnv || (teamSlugToCode[slug] ?? 'UNK');
+  const teamName = norm(teamLink.text()) || teamCodeToName[teamCode] || '';
+  return { teamName, teamCode };
 }
 
-// Extract signing details
-function parseSigningDetails($: cheerio.CheerioAPI, currentTeam: string) {
-  const text = $('body').text();
+function parseBio($: cheerio.CheerioAPI) {
+  // 1) Get full-page text, minus obvious noise
+  const root = $.root().clone();
+  root.find('script,style,iframe,noscript').remove();
 
-  // Find "Signed Using" text
-  const signedUsingMatch = text.match(/Signed Using[:\s]+([^\n]+)/i);
-  const signedUsing = signedUsingMatch ? norm(signedUsingMatch[1]) : undefined;
+  // 2) Normalize weird punctuation + whitespace
+  let text = root
+    .text()
+    .replace(/\u00a0/g, ' ') // nbsp -> space
+    .replace(/[ \t]+/g, ' ') // collapse spaces
+    .replace(/\s*\n+\s*/g, ' ') // collapse newlines
+    .replace(/：/g, ':') // fullwidth colon -> :
+    .replace(/’/g, "'"); // curly apostrophe -> '
 
-  // Find signing date
-  const dateMatch = text.match(/Signed[:\s]+(\d{1,2}\/\d{1,2}\/\d{4})/i);
-  const signingDate = dateMatch ? dateMatch[1] : undefined;
-
-  // Find signing team
-  const teamMatch = text.match(/Signing Team[:\s]+([A-Z]{2,3})/i);
-  const signingTeam = teamMatch ? teamMatch[1] : currentTeam;
-
-  const signedByCurrentTeam = signingTeam === currentTeam;
-
-  return { signedUsing, signingTeam, signingDate, signedByCurrentTeam };
-}
-
-// Parse Bird rights information
-function parseBirdRights($: cheerio.CheerioAPI) {
-  const text = $('body').text();
-
-  // Look for Bird rights status - try multiple patterns
-  let status = 'None';
-
-  // Pattern 1: "Bird Rights: <status>" where status is on same line
-  const birdMatch1 = text.match(
-    /Bird\s+Rights[:\s]+((?:Early\s+)?Bird|Non-Bird|None)(?:\s|$)/i
+  // 3) Ensure labels are anchorable even if jammed together
+  text = text.replace(
+    /(BORN|BIRTHPLACE|NATIONALITY|HEIGHT|WEIGHT|AGE|SHOOTS|DRAFT YEAR|Years of Service)\s*:/gi,
+    ' $1:'
   );
-  if (birdMatch1) {
-    status = norm(birdMatch1[1]);
-  } else {
-    // Pattern 2: Look for variations
-    const birdMatch2 = text.match(
-      /Bird\s+Rights[:\s]+([A-Za-z\s]+?)(?:\n|\r|Free Agency|Cap Hold|Trade|$)/i
-    );
-    if (birdMatch2) {
-      const extracted = norm(birdMatch2[1]).trim();
-      // Clean up common suffixes
-      status = extracted
-        .replace(/\s*(and|Free Agency|Cap Hold).*$/i, '')
-        .trim();
 
-      // Default to "Bird" if we found something that looks like bird rights
-      if (!status || status.length > 50) status = 'None';
-      if (status.toLowerCase().includes('full')) status = 'Bird';
+  // 4) Fix run-on units (e.g. "6-5195cm", "197lbs89kg")
+  text = text
+    .replace(/(\d)(cm)\b/gi, '$1 $2')
+    .replace(/(\d)(lbs)\b/gi, '$1 $2')
+    .replace(/(\d)(kg)\b/gi, '$1 $2')
+    // If HEIGHT has "6-5" immediately followed by cm digits, add a space: "6-5 195cm"
+    .replace(
+      /(HEIGHT:\s*[0-9])\s*[-']\s*([0-9]{1,2})(?=\s*\d{2,3}\s*cm)/i,
+      '$1-$2 '
+    );
+
+  const bio: any = {};
+
+  // ---- Birthdate ----
+  const mBorn = text.match(/\bBORN:\s*([A-Za-z]{3,9}\s+\d{1,2},\s*\d{4})\b/i);
+  if (mBorn) bio.birthdate = mBorn[1];
+
+  // ---- Height (prefer dash/quote; fallback ft-in) ----
+  // Guard inches: (?!\d) so we don't swallow the first digit of following cm value
+  let h: string | undefined;
+  const mHeightDash = text.match(
+    /\bHEIGHT:\s*([0-9])\s*[-']\s*([0-9]{1,2})(?!\d)/i
+  );
+  if (mHeightDash) {
+    h = `${mHeightDash[1]}-${mHeightDash[2]}`;
+  } else {
+    const mHeightFtIn = text.match(
+      /\bHEIGHT:\s*([0-9])\s*ft\s*([0-9]{1,2})\s*in\b/i
+    );
+    if (mHeightFtIn) h = `${mHeightFtIn[1]}-${mHeightFtIn[2]}`;
+  }
+  if (h) bio.height = h;
+
+  // ---- Weight (prefer lbs; fallback kg→lbs) ----
+  let w: string | undefined;
+  const mWeightLbs =
+    text.match(/\bWEIGHT:\s*([0-9]{2,3})\s*lbs?\b/i) ||
+    text.match(/\bWEIGHT:\s*([0-9]{2,3})(?=lbs?\b)/i); // jammed "197lbs"
+  if (mWeightLbs) {
+    w = mWeightLbs[1];
+  } else {
+    const mWeightKg =
+      text.match(/\bWEIGHT:\s*([0-9]{2,3})\s*kg\b/i) ||
+      text.match(/\bWEIGHT:\s*([0-9]{2,3})(?=kg\b)/i); // jammed "89kg"
+    if (mWeightKg) {
+      const kg = parseInt(mWeightKg[1], 10);
+      if (Number.isFinite(kg)) w = String(Math.round(kg * 2.20462));
     }
   }
+  if (w) bio.weight = w;
 
-  // Extract years of service (if available)
-  const yearsMatch = text.match(/(\d+)\s+years?\s+with\s+team/i);
-  const yearsWithTeam = yearsMatch ? parseInt(yearsMatch[1]) : undefined;
+  // ---- Shoots ----
+  const mShoots = text.match(/\bSHOOTS:\s*([A-Za-z]+)/i);
+  if (mShoots)
+    bio.shoots =
+      mShoots[1][0].toUpperCase() + mShoots[1].slice(1).toLowerCase();
 
-  const eligibleFor: string[] = [];
-  if (status === 'Bird' || status === 'Full Bird') {
-    eligibleFor.push('Bird Exception');
+  // ---- Years of Service (experience) ----
+  // ONLY the first 1–2 digits after the label; prevents "4" + "2025" from becoming 42025
+  const mYears = text.match(/\bYears?\s+of\s+Service\s*:\s*(\d{1,2})(?!\d)/i);
+  if (mYears) {
+    const n = parseInt(mYears[1], 10);
+    if (Number.isFinite(n) && n <= 50) bio.experience = n;
   }
-  if (status === 'Bird' || status === 'Early Bird') {
-    eligibleFor.push('Early Bird Exception');
+
+  if (process.env.DEBUG === '1') {
+    console.log('🔎 bio-extract:', bio);
   }
+  return bio;
+}
+
+function detectContractType($: cheerio.CheerioAPI) {
+  let text = '';
+  const h = $('h6.sw_playerContract__title').first();
+  if (h.length) text = norm(h.text());
+  else {
+    const H = $('h3,h4,h5,h6')
+      .filter((_, el) =>
+        /contract|extension|rookie|designated|two-way|max/i.test($(el).text())
+      )
+      .first();
+    if (H.length) text = norm(H.text());
+  }
+  const T = text.toUpperCase();
+  const isExtension = /EXTENSION/.test(T);
+  const isRookieScale = /ROOKIE|SCALE/.test(T);
+  const isDesignated = /DESIGNATED/.test(T);
+  const isTwoWay = /TWO-WAY|2-WAY/.test(T);
+  let contractType = 'VETERAN CONTRACT';
+  if (isTwoWay) contractType = 'TWO-WAY';
+  else if (isDesignated && isRookieScale)
+    contractType = 'DESIGNATED ROOKIE EXTENSION';
+  else if (isExtension && isRookieScale) contractType = 'ROOKIE EXTENSION';
+  else if (isRookieScale) contractType = 'ROOKIE SCALE';
+  else if (isExtension) contractType = 'VETERAN EXTENSION';
+  return { contractType, isExtension, isRookieScale };
+}
+
+/** Current Contract section: Signing Team / Method / Date / Cap Hold / Trade Kicker */
+function parseCurrentContractMeta($: cheerio.CheerioAPI) {
+  // Prefer “CURRENT CONTRACT”; else use the first salary table container
+  let scope = sectionAfterHeader($, /current\s*contract/i).node;
+  if (!scope.length) {
+    const found = findFirstSalaryTable($);
+    if (found) scope = found.table.closest('section,article,div');
+  }
+  const text = safeText($, scope);
+
+  // Signing Team
+  const signingTeam = text.match(/Signing\s*Team:\s*([A-Z]{2,3})/i)?.[1];
+
+  // Signing Method / Using  — stop at the next label so we don't swallow the rest of the paragraph
+  const methodMatch = text.match(
+    /Signing\s*(?:Method|Using)\s*:\s*([A-Za-z ':-]+?)(?=\s*(Signing\s*Date|Signing\s*Team|Source|Expiry|Length|Value|Cap\s*Hold|TRADE\s*KICKER|$))/i
+  );
+  let signedUsing = methodMatch?.[1]
+    ?.replace(/[:\-]+/g, ' ')
+    ?.replace(/\s+/g, ' ')
+    ?.trim();
+  if (signedUsing)
+    signedUsing = signedUsing
+      .split(' ')
+      .map((w) => (w[0] ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w))
+      .join(' ');
+
+  // Signing Date (supports "July 6, 2023" and "07/06/2023")
+  const signingDate =
+    text.match(/Signing\s*Date:\s*([A-Za-z]{3,9}\s+\d{1,2},\s*\d{4})/i)?.[1] ||
+    text.match(/Signing\s*Date:\s*(\d{1,2}\/\d{1,2}\/\d{4})/i)?.[1];
+
+  // Cap Hold — “Cap Hold 2027-28: $28,307,693”
+  const capHold = moneyNum(text.match(/Cap\s*Hold[^$]*\$\s*([\d,]+)/i)?.[1]);
+
+  // Trade Kicker — “TRADE KICKER: 15% …” or “… 15% trade kicker …”
+  const tk =
+    text.match(/TRADE\s*KICKER\s*:\s*(\d{1,2})%/i) ||
+    text.match(/(\d{1,2})%\s+(?:trade\s+)?(?:kicker|bonus)/i) ||
+    text.match(/(?:kicker|bonus)\s+of\s+(\d{1,2})%/i);
+  const tradeKicker = tk ? parseInt(tk[1], 10) : null;
 
   return {
-    status,
-    yearsOfService: yearsWithTeam,
-    yearsWithTeam,
-    eligibleFor: eligibleFor.length > 0 ? eligibleFor : undefined,
+    signingTeam: signingTeam || undefined,
+    signedUsing,
+    signingDate,
+    capHold,
+    tradeKicker,
   };
 }
 
-// Parse free agency information
-function parseFreeAgency($: cheerio.CheerioAPI, endSeason: string) {
-  const text = $('body').text();
+function parseFreeAgency(
+  $: cheerio.CheerioAPI,
+  endSeason?: string | null,
+  capHoldOverride?: number
+) {
+  // Use a Free Agency block if present; otherwise rely on current contract meta for cap hold.
+  const faScope = sectionAfterHeader(
+    $,
+    /free\s*agency|fa status|cap\s*hold|qualifying/i
+  ).node;
+  const text = safeText($, faScope);
+  const all = $.root().text();
 
-  // Look for FA type
-  const faMatch = text.match(/(RFA|UFA)[\s:]+(\d{4})/i);
-  const type = faMatch ? faMatch[1].toUpperCase() : null;
-  const year = faMatch ? parseInt(faMatch[2]) : undefined;
+  const fa = (text || all).match(/\b(RFA|UFA)\b(?:[:\s]+(\d{4}))?/i);
+  const type = fa ? fa[1].toUpperCase() : null;
+  const year =
+    fa && fa[2]
+      ? parseInt(fa[2], 10)
+      : endSeason
+        ? (seasonStartYear(endSeason) ?? 0) + 1
+        : undefined;
 
-  // Look for cap hold
-  const capHoldMatch = text.match(/Cap Hold[:\s]+\$?([\d,]+)/i);
-  const capHold = capHoldMatch ? moneyNum(capHoldMatch[1]) : undefined;
+  const capHold =
+    typeof capHoldOverride === 'number'
+      ? capHoldOverride
+      : moneyNum((text || all).match(/Cap\s*Hold[^$]*\$\s*([\d,]+)/i)?.[1]);
 
-  // Look for qualifying offer (for RFAs)
-  const qoMatch = text.match(/Qualifying Offer[:\s]+\$?([\d,]+)/i);
-  const qualifyingOffer = qoMatch ? moneyNum(qoMatch[1]) : null;
+  let qualifyingOffer: number | null = null;
+  if (type === 'RFA') {
+    qualifyingOffer =
+      moneyNum(
+        (text || all).match(/Qualifying\s*Offer[^$]*\$\s*([\d,]+)/i)?.[1]
+      ) ?? null;
+  }
 
   return { type, year, capHold, qualifyingOffer, earlyTerminationOption: null };
 }
 
-// Parse trade eligibility
-function parseTradeEligibility(
-  $: cheerio.CheerioAPI,
-  signingDate: string | undefined,
-  isRookieScale: boolean
-) {
-  const text = $('body').text();
-
-  // Check for trade restrictions
-  const restrictedMatch = text.match(
-    /Cannot be traded until[:\s]+(\d{1,2}\/\d{1,2}\/\d{4})/i
+function parseBirdRights($: cheerio.CheerioAPI) {
+  const scope = sectionAfterHeader($, /bird\s*rights|rights/i).node;
+  const text = safeText($, scope) || $.root().text();
+  // Prefer a short label value
+  let status =
+    text.match(/Bird\s*Rights\s*:\s*([A-Za-z \-]+)/i)?.[1] ||
+    text.match(/\b(Bird|Early Bird|Non-Bird)\b/i)?.[1] ||
+    'None';
+  status = titleCase(
+    norm(status)
+      .replace(/\s+QVFA.*$/i, '')
+      .trim()
   );
-  const restrictedUntil = restrictedMatch ? restrictedMatch[1] : null;
+  const eligibleFor: string[] = [];
+  if (/Early Bird/i.test(status)) eligibleFor.push('Early Bird Exception');
+  if (/Bird/i.test(status)) eligibleFor.push('Bird Exception');
+  return { status, eligibleFor: eligibleFor.length ? eligibleFor : undefined };
+}
 
-  let reason = null;
+function parseTradeEligibility($: cheerio.CheerioAPI, isRookieScale: boolean) {
+  const body = $.root().text().toLowerCase();
+  const m = body.match(
+    /cannot be traded until[:\s]+(\d{1,2}\/\d{1,2}\/\d{4})/i
+  );
+  const restrictedUntil = m ? m[1] : null;
+  let reason: string | null = null;
   if (restrictedUntil) {
-    if (text.includes('recently signed')) reason = 'Recent signing';
-    else if (text.includes('recently traded')) reason = 'Recent trade';
-    else if (text.includes('extension')) reason = 'Recent extension';
+    if (body.includes('recently signed')) reason = 'Recent signing';
+    else if (body.includes('recently traded')) reason = 'Recent trade';
+    else if (body.includes('extension')) reason = 'Recent extension';
   }
-
-  const canBeTradedNow = !restrictedUntil;
-
-  // Determine trade rules
-  const baseYearCompensation =
-    text.toLowerCase().includes('base year compensation') ||
-    text.toLowerCase().includes('byc');
-  const poisonPill =
-    isRookieScale && text.toLowerCase().includes('poison pill');
-  const aggregation = !text.toLowerCase().includes('cannot be aggregated');
-
+  const baseYearCompensation = /base year compensation|\bbyc\b/.test(body);
+  const poisonPill = isRookieScale && /poison pill/.test(body);
+  const aggregation = !/cannot be aggregated/.test(body);
   return {
-    canBeTradedNow,
+    canBeTradedNow: !restrictedUntil,
     restrictedUntil,
     reason,
-    rules: {
-      baseYearCompensation,
-      poisonPill,
-      aggregation,
-    },
+    rules: { baseYearCompensation, poisonPill, aggregation },
   };
 }
 
-// Parse salary table
-function parseSalaryTable($: cheerio.CheerioAPI, table: cheerio.Cheerio) {
-  const salariesByYear: any[] = [];
+/** AGENT DETAILS block: "Agency: AMR Agency  Primary Agent: Aaron Reilly" */
+function parseAgentInfo($: cheerio.CheerioAPI) {
+  const scope = sectionAfterHeader(
+    $,
+    /agent details|agent|agency|representation/i
+  ).node;
+  const text = safeText($, scope) || $.root().text();
 
-  // Parse table rows
-  table.find('tbody tr').each((i, row) => {
-    const cells = $(row).find('td');
-    if (cells.length < 4) return; // Need at least 4 columns for Cap Hit
+  // Agency: stop before "Primary Agent" or "Agent"
+  const agency = text
+    .match(
+      /\bAgency\s*:\s*([A-Za-z0-9 .,&'-]+?)(?=\s*(Primary\s*Agent|Agent\b|$))/i
+    )?.[1]
+    ?.trim();
 
-    const season = norm(cells.eq(0).text());
-    const salaryText = cells.eq(3).text(); // Cap Hit is in column 3 (4th column)
-    const salary = moneyNum(salaryText);
+  // Agent: prefer "Primary Agent", fall back to "Agent:"
+  const agent =
+    text.match(/\bPrimary\s*Agent\s*:\s*([A-Za-z .,'-]+)\b/)?.[1]?.trim() ||
+    text.match(/\bAgent\s*:\s*([A-Za-z .,'-]+)\b/)?.[1]?.trim();
 
-    if (!season || !salary) return;
-
-    // Determine if guaranteed
-    const rowText = $(row).text().toLowerCase();
-    const guaranteed =
-      !rowText.includes('non-guaranteed') && !rowText.includes('ng');
-
-    // Check for options
-    let option = null;
-    if (rowText.includes('player option') || rowText.includes('po'))
-      option = 'PO';
-    else if (rowText.includes('team option') || rowText.includes('to'))
-      option = 'TO';
-    else if (rowText.includes('eto')) option = 'ETO';
-
-    // Check for trade bonus/kicker
-    const tradeBonusMatch = rowText.match(/(\d+)%\s+trade\s+kicker/i);
-    const tradeBonus = tradeBonusMatch ? parseInt(tradeBonusMatch[1]) : null;
-
-    // Incentives (if specified)
-    const likelyMatch = rowText.match(/\$?([\d,]+)\s+likely/i);
-    const unlikelyMatch = rowText.match(/\$?([\d,]+)\s+unlikely/i);
-
-    salariesByYear.push({
-      season,
-      salary,
-      capHit: salary, // Default to salary, can be different if incentives
-      guaranteed,
-      guaranteedAmount: guaranteed ? salary : 0,
-      option,
-      tradeBonus,
-      incentives: {
-        likely: likelyMatch ? moneyNum(likelyMatch[1]) || 0 : 0,
-        unlikely: unlikelyMatch ? moneyNum(unlikelyMatch[1]) || 0 : 0,
-      },
-    });
-  });
-
-  return salariesByYear;
+  return { agent: agent || undefined, agency: agency || undefined };
 }
 
-// Detect if a contract is an extension based on heading/context
-function detectExtension(
-  $: cheerio.CheerioAPI,
-  heading: cheerio.Cheerio | null
-): boolean {
-  if (!heading) return false;
-
-  const headingText = norm(heading.text()).toLowerCase();
-  const extensionKeywords = ['extension', 'extend', 'extended', 'supermax'];
-
-  return extensionKeywords.some((keyword) => headingText.includes(keyword));
-}
-
-// Find all salary tables and their associated headings
-function findSalaryTables($: cheerio.CheerioAPI) {
-  const tables: Array<{
-    table: cheerio.Cheerio;
-    heading: cheerio.Cheerio | null;
-    isExtension: boolean;
-  }> = [];
-
-  $('table').each((i, el) => {
-    const table = $(el);
-    const text = table.text();
-
-    // Check if this is a salary table
-    if (text.includes('Season') && text.includes('Salary')) {
-      // Find the heading (h3, h4, h5) before this table
-      let heading: cheerio.Cheerio | null = null;
-      let current = table.prev();
-
-      while (current.length) {
-        const tag = (current.get(0) as any)?.name?.toLowerCase?.();
-        if (tag === 'h3' || tag === 'h4' || tag === 'h5') {
-          heading = current;
-          break;
-        }
-        current = current.prev();
-      }
-
-      const isExtension = detectExtension($, heading);
-      tables.push({ table, heading, isExtension });
-    }
-  });
-
-  return tables;
-}
-
-// Main parsing function
-async function parsePlayerPage() {
-  const playerUrl = process.env.PLAYER_URL || '';
-  const playerId =
+// ---------- main ----------
+async function main() {
+  const playerUrlEnv = (process.env.PLAYER_URL || '').replace('://www.', '://');
+  let playerId =
     process.env.PLAYER_ID ||
-    playerUrl.split('/').pop()?.replace(/-/g, '_') ||
+    (playerUrlEnv ? playerUrlEnv.split('/').pop()!.replace(/-/g, '_') : '') ||
     'unknown';
-  const teamCodeEnv = process.env.TEAM_CODE;
 
-  // Read HTML from file
   const htmlPath = join(__dirname, '../examples/page.html');
-  const html = await fs.readFile(htmlPath, 'utf-8');
+  const html = await fs.readFile(htmlPath, 'utf8');
+  const $ = cheerio.load(html);
 
   console.log(`📄 Parsing player page (${(html.length / 1024).toFixed(2)} KB)`);
 
-  const $ = cheerio.load(html);
-
-  // Extract player name
-  const playerNameEl = $('h1').first();
-  const displayName = norm(playerNameEl.text()) || playerId.replace(/_/g, ' ');
-
-  // Extract team info
-  const teamText = $('body').text();
-  const teamMatch = teamText.match(/Team[:\s]+([A-Z]{2,3})/i);
-  const teamCode = teamCodeEnv || (teamMatch ? teamMatch[1] : 'UNK');
-
-  const teamNameMatch = teamText.match(/Team[:\s]+[A-Z]{2,3}\s+-\s+([^\n]+)/i);
-  const teamName = teamNameMatch ? norm(teamNameMatch[1]) : '';
-
-  // Extract bio
-  const posMatch = teamText.match(/Position[:\s]+([A-Z]+)/i);
-  const heightMatch = teamText.match(/Height[:\s]+([\d-]+)/i);
-  const weightMatch = teamText.match(/Weight[:\s]+(\d+)/i);
-  const ageMatch = teamText.match(/Age[:\s]+(\d+)/i);
-  const birthdateMatch = teamText.match(/Born[:\s]+(\d{1,2}\/\d{1,2}\/\d{4})/i);
-  const expMatch = teamText.match(/Experience[:\s]+(\d+)/i);
-
-  const bio = {
-    position: posMatch ? posMatch[1] : undefined,
-    height: heightMatch ? heightMatch[1] : undefined,
-    weight: weightMatch ? weightMatch[1] : undefined,
-    age: ageMatch ? parseInt(ageMatch[1]) : undefined,
-    birthdate: birthdateMatch ? birthdateMatch[1] : undefined,
-    experience: expMatch ? parseInt(expMatch[1]) : undefined,
-  };
-
-  // Parse contract details
-  const {
-    type: contractType,
-    isExtension,
-    isRookieScale,
-  } = parseContractType($);
-  const signingDetails = parseSigningDetails($, teamCode);
-  const birdRights = parseBirdRights($);
-
-  // Find all salary tables (could be current contract + future extension)
-  const salaryTables = findSalaryTables($);
-
-  if (salaryTables.length === 0) {
-    console.warn('⚠️  No salary table found');
+  const displayName = parseName($, playerId);
+  if (playerId === 'unknown' && displayName) {
+    playerId = displayName
+      .toLowerCase()
+      .replace(/[^a-z]+/g, '_')
+      .replace(/^_+|_+$/g, '');
   }
 
-  // Parse the first table as the primary contract
-  const salariesByYear =
-    salaryTables.length > 0 ? parseSalaryTable($, salaryTables[0].table) : [];
+  const { teamName, teamCode } = parseTeam($, process.env.TEAM_CODE);
+  const bio = parseBio($);
 
-  // Calculate contract summary for primary contract
-  const startSeason = salariesByYear[0]?.season || '2025-26';
+  const found = findFirstSalaryTable($);
+  const salariesByYear = found
+    ? parseSalaryTable($, found.table, found.headers)
+    : [];
+
+  const { contractType, isExtension, isRookieScale } = detectContractType($);
+
+  const meta = parseCurrentContractMeta($); // signedUsing, signingTeam, signingDate, capHold, tradeKicker
+
+  const startSeason = salariesByYear[0]?.season || null;
   const endSeason =
     salariesByYear[salariesByYear.length - 1]?.season || startSeason;
+
   const contractLength = salariesByYear.length;
-  const totalValue = salariesByYear.reduce((sum, y) => sum + y.salary, 0);
-  const averageAnnualValue =
-    contractLength > 0 ? totalValue / contractLength : 0;
+  const totalValue = salariesByYear.reduce((s, y) => s + (y.salary || 0), 0);
+  const averageAnnualValue = contractLength ? totalValue / contractLength : 0;
   const guaranteedValue = salariesByYear.reduce(
-    (sum, y) => sum + y.guaranteedAmount,
+    (s, y) => s + (y.guaranteedAmount || 0),
     0
   );
   const guaranteedYears = salariesByYear.filter((y) => y.guaranteed).length;
 
-  // Calculate years remaining (from current season 2025-26)
-  const currentSeasonYear = 2025;
-  const endSeasonYear = parseInt((endSeason || '2025-26').split('-')[0]);
-  const yearsRemaining = Math.max(0, endSeasonYear - currentSeasonYear + 1);
+  const CURRENT_SEASON_START = 2025;
+  const endYearNum = endSeason
+    ? (seasonStartYear(endSeason!) ?? CURRENT_SEASON_START - 1)
+    : CURRENT_SEASON_START - 1;
+  const yearsRemaining = Math.max(0, endYearNum - CURRENT_SEASON_START + 1);
 
-  const freeAgency = parseFreeAgency($, endSeason);
-  const tradeEligibility = parseTradeEligibility(
-    $,
-    signingDetails.signingDate,
-    isRookieScale
-  );
+  const birdRights = parseBirdRights($);
+  const freeAgency = parseFreeAgency($, endSeason, meta.capHold);
+  if (freeAgency.type !== 'RFA') freeAgency.qualifyingOffer = null;
 
-  // Check for no-trade clause
-  const hasNTC =
-    teamText.toLowerCase().includes('no-trade clause') ||
-    teamText.toLowerCase().includes('ntc');
+  const tradeEligibility = parseTradeEligibility($, isRookieScale);
 
-  // Check for trade kicker
-  const kickerMatch = teamText.match(/(\d+)%\s+trade\s+kicker/i);
-  const tradeKicker = kickerMatch ? parseInt(kickerMatch[1]) : null;
+  const hasNTC = /\bno-?trade clause\b|\bntc\b/i.test($.root().text());
 
-  // Parse future contract if multiple tables exist
-  let futureContract = undefined;
+  const { agent, agency } = parseAgentInfo($);
 
-  if (salaryTables.length > 1) {
-    // Determine which is current vs future based on seasons
-    const firstTableSeasons = salariesByYear.map((s) => s.season);
-    const secondTableSalaries = parseSalaryTable($, salaryTables[1].table);
-    const secondTableSeasons = secondTableSalaries.map((s) => s.season);
-
-    // Safety check: only proceed if both tables have data
-    if (firstTableSeasons.length > 0 && secondTableSeasons.length > 0) {
-      // If second table starts after first table ends, it's a future contract
-      const firstEndYear = parseInt(
-        firstTableSeasons[firstTableSeasons.length - 1].split('-')[0]
-      );
-      const secondStartYear = parseInt(secondTableSeasons[0].split('-')[0]);
-
-      if (secondStartYear >= firstEndYear) {
-        // Second table is future extension
-        const futureStartSeason = secondTableSeasons[0];
-        const futureEndSeason =
-          secondTableSeasons[secondTableSeasons.length - 1];
-        const futureContractLength = secondTableSalaries.length;
-        const futureTotalValue = secondTableSalaries.reduce(
-          (sum, y) => sum + y.salary,
-          0
-        );
-        const futureAverageAnnualValue =
-          futureContractLength > 0
-            ? futureTotalValue / futureContractLength
-            : 0;
-        const futureGuaranteedValue = secondTableSalaries.reduce(
-          (sum, y) => sum + y.guaranteedAmount,
-          0
-        );
-        const futureGuaranteedYears = secondTableSalaries.filter(
-          (y) => y.guaranteed
-        ).length;
-
-        const futureEndSeasonYear = parseInt(futureEndSeason.split('-')[0]);
-        const futureYearsRemaining = Math.max(
-          0,
-          futureEndSeasonYear - currentSeasonYear + 1
-        );
-
-        // Determine future contract type (likely an extension)
-        let futureContractType = 'EXTENSION';
-        if (salaryTables[1].isExtension || salaryTables[1].heading) {
-          const headingText = salaryTables[1].heading
-            ? norm(salaryTables[1].heading.text()).toUpperCase()
-            : '';
-          if (headingText.includes('DESIGNATED'))
-            futureContractType = 'DESIGNATED EXTENSION';
-          else if (headingText.includes('SUPERMAX'))
-            futureContractType = 'SUPERMAX EXTENSION';
-          else if (headingText.includes('ROOKIE'))
-            futureContractType = 'ROOKIE EXTENSION';
-          else if (headingText.includes('MAX'))
-            futureContractType = 'MAX EXTENSION';
-          else if (headingText.includes('VETERAN'))
-            futureContractType = 'VETERAN EXTENSION';
-          else if (headingText) futureContractType = headingText;
-        }
-
-        futureContract = {
-          contractType: futureContractType,
-          isExtension: true,
-          isRookieScale: futureContractType.includes('ROOKIE'),
-          signedUsing: undefined,
-          signingTeam: teamCode,
-          signingDate: undefined,
-          signedByCurrentTeam: true,
-          startSeason: futureStartSeason,
-          endSeason: futureEndSeason,
-          contractLength: futureContractLength,
-          yearsRemaining: futureYearsRemaining,
-          totalValue: futureTotalValue,
-          averageAnnualValue: futureAverageAnnualValue,
-          guaranteedValue: futureGuaranteedValue,
-          guaranteedYears: futureGuaranteedYears,
-          salariesByYear: secondTableSalaries,
-          noTradeClause: hasNTC,
-          tradeKicker,
-          tradeRestrictions: [],
-          birdRights,
-          freeAgency: parseFreeAgency($, futureEndSeason),
-          tradeEligibility: parseTradeEligibility(
-            $,
-            undefined,
-            futureContractType.includes('ROOKIE')
-          ),
-        };
-
-        console.log(
-          `  📋 Found future contract: ${futureContractType} (${futureStartSeason} - ${futureEndSeason})`
-        );
-      }
-    }
-  }
-
-  // Build output
   const output: any = {
+    _note:
+      '⚠️ PLACEHOLDER TEST DATA - Parsed from a local HTML snapshot. For production, always fetch fresh SalarySwish HTML first.',
     playerId,
     displayName,
     teamCode,
@@ -573,7 +632,10 @@ async function parsePlayerPage() {
       contractType,
       isExtension,
       isRookieScale,
-      ...signingDetails,
+      signedUsing: meta.signedUsing,
+      signingTeam: meta.signingTeam || teamCode,
+      signingDate: meta.signingDate,
+      signedByCurrentTeam: (meta.signingTeam || teamCode) === teamCode,
       startSeason,
       endSeason,
       contractLength,
@@ -583,57 +645,48 @@ async function parsePlayerPage() {
       guaranteedValue,
       guaranteedYears,
       salariesByYear,
-      noTradeClause: hasNTC,
-      tradeKicker,
+      noTradeClause: !!hasNTC,
+      tradeKicker: meta.tradeKicker,
       tradeRestrictions: [],
       birdRights,
       freeAgency,
       tradeEligibility,
     },
+    representation: {
+      agent: agent ?? null,
+      agency: agency ?? null,
+    },
     source: {
       provider: 'SalarySwish',
-      playerPageUrl: playerUrl || 'Unknown',
+      playerPageUrl: playerUrlEnv || 'snapshot',
       scrapedAt: new Date().toISOString(),
     },
     lastUpdated: new Date().toISOString(),
     version: '1.0',
   };
 
-  // Add future contract if exists
-  if (futureContract) {
-    output.futureContract = futureContract;
-  }
-
-  // Write output
-  const outputPath = join(__dirname, '../output/player.json');
-  await fs.writeFile(outputPath, JSON.stringify(output, null, 2), 'utf-8');
+  const outDir = join(__dirname, '../output');
+  await fs.mkdir(outDir, { recursive: true });
+  const outPath = join(outDir, 'player.json');
+  await fs.writeFile(outPath, JSON.stringify(output, null, 2), 'utf8');
 
   console.log(`✅ Parsed player data for: ${displayName}`);
-  console.log(`   Team: ${teamName} (${teamCode})`);
+  console.log(`   Team: ${output.teamName} (${output.teamCode})`);
   console.log(`   Contract: ${contractType}`);
   console.log(
-    `   Years: ${salariesByYear.length} (${startSeason} - ${endSeason})`
+    `   Years: ${contractLength} (${startSeason ?? '-'} - ${endSeason ?? '-'})`
   );
-  console.log(`   Total Value: $${(totalValue / 1000000).toFixed(1)}M`);
+  console.log(`   Total Value: $${(totalValue / 1_000_000).toFixed(1)}M`);
   console.log(`   Bird Rights: ${birdRights.status}`);
-  console.log(
-    `   Can Trade Now: ${tradeEligibility.canBeTradedNow ? 'Yes' : 'No'}`
-  );
-  if (futureContract) {
-    console.log(
-      `   Future Extension: ${futureContract.contractType} (${futureContract.startSeason} - ${futureContract.endSeason})`
-    );
-    console.log(
-      `   Future Value: $${(futureContract.totalValue / 1000000).toFixed(1)}M`
-    );
-  }
-  console.log(`\n📁 Output saved to: ${outputPath}`);
-
-  return output;
+  console.log(`   Cap Hold: ${freeAgency.capHold ?? '—'}`);
+  console.log(`   Trade Kicker: ${meta.tradeKicker ?? '—'}%`);
+  console.log(`   Signed Using: ${meta.signedUsing ?? '—'}`);
+  console.log(`   Signed Date: ${meta.signingDate ?? '—'}`);
+  console.log(`   Agent/Agency: ${agent ?? '—'} / ${agency ?? '—'}`);
+  console.log(`📁 Output saved to: ${outPath}`);
 }
 
-// Run
-parsePlayerPage().catch((err) => {
+main().catch((err) => {
   console.error('❌ Error parsing player:', err);
   process.exit(1);
 });
