@@ -405,6 +405,46 @@ function parseBio($: cheerio.CheerioAPI) {
     if (Number.isFinite(n) && n > 0 && n <= 50) bio.experience = n;
   }
 
+  // ---- Draft Information ----
+  const mDraftYear = text.match(/\bDRAFT\s+YEAR:\s*([^\n]+)/i);
+  if (mDraftYear) {
+    const draftText = mDraftYear[1].trim();
+    if (/undrafted/i.test(draftText)) {
+      bio.draftYear = 'Undrafted';
+    } else {
+      // Try to extract year (4 digits)
+      const yearMatch = draftText.match(/\b(\d{4})\b/);
+      if (yearMatch) {
+        bio.draftYear = yearMatch[1];
+        
+        // Look for round and pick in the draft text
+        // Round: "Round 1", "1st Round", "Round: 1", etc.
+        const roundMatch = draftText.match(/\bRound\s+(\d+)\b/i) ||
+                          draftText.match(/\b(\d+)(?:st|nd|rd|th)\s+Round\b/i) ||
+                          draftText.match(/\bRound:\s*(\d+)/i);
+        if (roundMatch) bio.draftRound = parseInt(roundMatch[1], 10);
+        
+        // Pick: "Pick 15", "#15", "15th pick", "Pick: 15" etc.
+        const pickMatch = draftText.match(/\bPick\s+(\d+)\b/i) ||
+                         draftText.match(/\b#(\d+)\s+pick\b/i) ||
+                         draftText.match(/\b(\d+)(?:st|nd|rd|th)\s+pick\b/i) ||
+                         draftText.match(/\bPick:\s*(\d+)/i) ||
+                         draftText.match(/\b#(\d+)\b/);
+        if (pickMatch) bio.draftPick = parseInt(pickMatch[1], 10);
+        
+        // Drafting team: look for team name after "by"
+        const teamMatch = draftText.match(/\bby\s+(?:the\s+)?([A-Za-z][a-zA-Z\s]+?)(?:\s+AGENT|\s+$|$)/i);
+        if (teamMatch) {
+          bio.draftedBy = teamMatch[1].trim();
+        } else {
+          // Try to find team code (2-3 uppercase letters before year)
+          const teamCodeMatch = draftText.match(/\b([A-Z]{2,3})\s+\d{4}\b/);
+          if (teamCodeMatch) bio.draftedBy = teamCodeMatch[1];
+        }
+      }
+    }
+  }
+
   if (process.env.DEBUG === '1') {
     console.log('🔎 bio-extract:', bio);
   }
@@ -592,6 +632,29 @@ function parseAgentInfo($: cheerio.CheerioAPI) {
   return { agent: agent || undefined, agency: agency || undefined };
 }
 
+/** Extract option summary from salary years */
+function extractOptionSummary(salariesByYear: any[]) {
+  // Find years with options
+  const yearsWithOptions = salariesByYear.filter(y => y.option);
+  
+  if (yearsWithOptions.length === 0) {
+    return {
+      hasOption: false,
+      optionYear: null,
+      optionType: null
+    };
+  }
+  
+  // Take the first option found (usually the most relevant)
+  const firstOption = yearsWithOptions[0];
+  
+  return {
+    hasOption: true,
+    optionYear: firstOption.season,
+    optionType: firstOption.option
+  };
+}
+
 // ---------- main ----------
 async function main() {
   const playerUrlEnv = (process.env.PLAYER_URL || '').replace('://www.', '://');
@@ -648,6 +711,10 @@ async function main() {
   const birdRights = parseBirdRights($);
   const freeAgency = parseFreeAgency($, endSeason, meta.capHold);
   if (freeAgency.type !== 'RFA') freeAgency.qualifyingOffer = null;
+  
+  // Add option summary to free agency
+  const optionSummary = extractOptionSummary(salariesByYear);
+  Object.assign(freeAgency, optionSummary);
 
   const tradeEligibility = parseTradeEligibility($, isRookieScale);
 
