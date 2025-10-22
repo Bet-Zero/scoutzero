@@ -297,44 +297,66 @@ function parseBio($: cheerio.CheerioAPI) {
     .replace(/[ \t]+/g, ' ') // collapse spaces
     .replace(/\s*\n+\s*/g, ' ') // collapse newlines
     .replace(/：/g, ':') // fullwidth colon -> :
-    .replace(/’/g, "'"); // curly apostrophe -> '
+    .replace(/[\u2018\u2019']/g, "'"); // curly/smart apostrophes -> straight apostrophe
 
-  // 3) Ensure labels are anchorable even if jammed together
+  // 3) Ensure labels are anchorable even if jammed together, and add space after colon if missing
   text = text.replace(
     /(BORN|BIRTHPLACE|NATIONALITY|HEIGHT|WEIGHT|AGE|SHOOTS|DRAFT YEAR|Years of Service)\s*:/gi,
-    ' $1:'
+    ' $1: '
   );
 
-  // 4) Fix run-on units (e.g. "6-5195cm", "197lbs89kg")
+  // 4) Fix run-on units (e.g. "6' 5195cm" -> "6' 5 195 cm", "197lbs89kg" -> "197 lbs 89 kg")  
+  // First, handle height special case where inches digit is jammed with cm number: "5195" -> "5 195"
+  text = text.replace(
+    /(\d)\s*(['\u2019])\s*(\d)(\d{2,3})\s*/gi,
+    '$1$2 $3 $4 '
+  );
+  // Then normal unit separations
   text = text
     .replace(/(\d)(cm)\b/gi, '$1 $2')
+    .replace(/(\d)(lbs)(\d)/gi, '$1 $2 $3') // "197lbs89" -> "197 lbs 89"
     .replace(/(\d)(lbs)\b/gi, '$1 $2')
-    .replace(/(\d)(kg)\b/gi, '$1 $2')
-    // If HEIGHT has "6-5" immediately followed by cm digits, add a space: "6-5 195cm"
-    .replace(
-      /(HEIGHT:\s*[0-9])\s*[-']\s*([0-9]{1,2})(?=\s*\d{2,3}\s*cm)/i,
-      '$1-$2 '
-    );
+    .replace(/(\d)(kg)\b/gi, '$1 $2');
 
   const bio: any = {};
+
+  // ---- Position ----
+  // Extract from "Shooting Guard", "Point Guard", etc. or look for single letter codes
+  const mPositionLong = text.match(
+    /\b(Shooting Guard|Point Guard|Small Forward|Power Forward|Center)\b/i
+  );
+  if (mPositionLong) {
+    const pos = mPositionLong[1].toLowerCase();
+    if (pos.includes('guard')) bio.position = 'G';
+    else if (pos.includes('forward')) bio.position = 'F';
+    else if (pos.includes('center')) bio.position = 'C';
+  }
 
   // ---- Birthdate ----
   const mBorn = text.match(/\bBORN:\s*([A-Za-z]{3,9}\s+\d{1,2},\s*\d{4})\b/i);
   if (mBorn) bio.birthdate = mBorn[1];
 
   // ---- Height (prefer dash/quote; fallback ft-in) ----
-  // Guard inches: (?!\d) so we don't swallow the first digit of following cm value
+  // Look for patterns like "HEIGHT: 6' 5" or "HEIGHT: 6-5"
+  // Must stop before any following digits (cm values)
   let h: string | undefined;
-  const mHeightDash = text.match(
-    /\bHEIGHT:\s*([0-9])\s*[-']\s*([0-9]{1,2})(?!\d)/i
+  const mHeightQuote = text.match(
+    /\bHEIGHT:\s*([0-9])\s*['\u2019]\s*([0-9]{1,2})\s+/i
   );
-  if (mHeightDash) {
-    h = `${mHeightDash[1]}-${mHeightDash[2]}`;
+  if (mHeightQuote) {
+    h = `${mHeightQuote[1]}-${mHeightQuote[2]}`;
   } else {
-    const mHeightFtIn = text.match(
-      /\bHEIGHT:\s*([0-9])\s*ft\s*([0-9]{1,2})\s*in\b/i
+    const mHeightDash = text.match(
+      /\bHEIGHT:\s*([0-9])\s*-\s*([0-9]{1,2})\s+/i
     );
-    if (mHeightFtIn) h = `${mHeightFtIn[1]}-${mHeightFtIn[2]}`;
+    if (mHeightDash) {
+      h = `${mHeightDash[1]}-${mHeightDash[2]}`;
+    } else {
+      const mHeightFtIn = text.match(
+        /\bHEIGHT:\s*([0-9])\s*ft\s*([0-9]{1,2})\s*in\b/i
+      );
+      if (mHeightFtIn) h = `${mHeightFtIn[1]}-${mHeightFtIn[2]}`;
+    }
   }
   if (h) bio.height = h;
 
@@ -342,19 +364,26 @@ function parseBio($: cheerio.CheerioAPI) {
   let w: string | undefined;
   const mWeightLbs =
     text.match(/\bWEIGHT:\s*([0-9]{2,3})\s*lbs?\b/i) ||
-    text.match(/\bWEIGHT:\s*([0-9]{2,3})(?=lbs?\b)/i); // jammed "197lbs"
+    text.match(/\bWEIGHT:\s*([0-9]{2,3})(?=\s*lbs?\b)/i);
   if (mWeightLbs) {
     w = mWeightLbs[1];
   } else {
     const mWeightKg =
       text.match(/\bWEIGHT:\s*([0-9]{2,3})\s*kg\b/i) ||
-      text.match(/\bWEIGHT:\s*([0-9]{2,3})(?=kg\b)/i); // jammed "89kg"
+      text.match(/\bWEIGHT:\s*([0-9]{2,3})(?=\s*kg\b)/i);
     if (mWeightKg) {
       const kg = parseInt(mWeightKg[1], 10);
       if (Number.isFinite(kg)) w = String(Math.round(kg * 2.20462));
     }
   }
   if (w) bio.weight = w;
+
+  // ---- Age ----
+  const mAge = text.match(/\bAGE:\s*(\d{1,2})\b/i);
+  if (mAge) {
+    const age = parseInt(mAge[1], 10);
+    if (Number.isFinite(age) && age > 0 && age < 100) bio.age = age;
+  }
 
   // ---- Shoots ----
   const mShoots = text.match(/\bSHOOTS:\s*([A-Za-z]+)/i);
@@ -363,11 +392,57 @@ function parseBio($: cheerio.CheerioAPI) {
       mShoots[1][0].toUpperCase() + mShoots[1].slice(1).toLowerCase();
 
   // ---- Years of Service (experience) ----
-  // ONLY the first 1–2 digits after the label; prevents "4" + "2025" from becoming 42025
-  const mYears = text.match(/\bYears?\s+of\s+Service\s*:\s*(\d{1,2})(?!\d)/i);
+  // Match 1-2 digits, but if we see a 4-digit year right after, just take 1 digit
+  const mYears = text.match(/\bYears?\s+of\s+Service\s*:\s*(\d{1,2})/i);
   if (mYears) {
-    const n = parseInt(mYears[1], 10);
-    if (Number.isFinite(n) && n <= 50) bio.experience = n;
+    let nStr = mYears[1];
+    // If we matched 2 digits but the second digit is part of a year (next chars are digits), take only first digit
+    const afterMatch = text.substring(mYears.index! + mYears[0].length);
+    if (nStr.length === 2 && /^\d{2,}/.test(afterMatch)) {
+      nStr = nStr[0];
+    }
+    const n = parseInt(nStr, 10);
+    if (Number.isFinite(n) && n > 0 && n <= 50) bio.experience = n;
+  }
+
+  // ---- Draft Information ----
+  const mDraftYear = text.match(/\bDRAFT\s+YEAR:\s*([^\n]+)/i);
+  if (mDraftYear) {
+    const draftText = mDraftYear[1].trim();
+    if (/undrafted/i.test(draftText)) {
+      bio.draftYear = 'Undrafted';
+    } else {
+      // Try to extract year (4 digits)
+      const yearMatch = draftText.match(/\b(\d{4})\b/);
+      if (yearMatch) {
+        bio.draftYear = yearMatch[1];
+        
+        // Look for round and pick in the draft text
+        // Round: "Round 1", "1st Round", "Round: 1", etc.
+        const roundMatch = draftText.match(/\bRound\s+(\d+)\b/i) ||
+                          draftText.match(/\b(\d+)(?:st|nd|rd|th)\s+Round\b/i) ||
+                          draftText.match(/\bRound:\s*(\d+)/i);
+        if (roundMatch) bio.draftRound = parseInt(roundMatch[1], 10);
+        
+        // Pick: "Pick 15", "#15", "15th pick", "Pick: 15" etc.
+        const pickMatch = draftText.match(/\bPick\s+(\d+)\b/i) ||
+                         draftText.match(/\b#(\d+)\s+pick\b/i) ||
+                         draftText.match(/\b(\d+)(?:st|nd|rd|th)\s+pick\b/i) ||
+                         draftText.match(/\bPick:\s*(\d+)/i) ||
+                         draftText.match(/\b#(\d+)\b/);
+        if (pickMatch) bio.draftPick = parseInt(pickMatch[1], 10);
+        
+        // Drafting team: look for team name after "by"
+        const teamMatch = draftText.match(/\bby\s+(?:the\s+)?([A-Za-z][a-zA-Z\s]+?)(?:\s+AGENT|\s+$|$)/i);
+        if (teamMatch) {
+          bio.draftedBy = teamMatch[1].trim();
+        } else {
+          // Try to find team code (2-3 uppercase letters before year)
+          const teamCodeMatch = draftText.match(/\b([A-Z]{2,3})\s+\d{4}\b/);
+          if (teamCodeMatch) bio.draftedBy = teamCodeMatch[1];
+        }
+      }
+    }
   }
 
   if (process.env.DEBUG === '1') {
@@ -557,6 +632,29 @@ function parseAgentInfo($: cheerio.CheerioAPI) {
   return { agent: agent || undefined, agency: agency || undefined };
 }
 
+/** Extract option summary from salary years */
+function extractOptionSummary(salariesByYear: any[]) {
+  // Find years with options
+  const yearsWithOptions = salariesByYear.filter(y => y.option);
+  
+  if (yearsWithOptions.length === 0) {
+    return {
+      hasOption: false,
+      optionYear: null,
+      optionType: null
+    };
+  }
+  
+  // Take the first option found (usually the most relevant)
+  const firstOption = yearsWithOptions[0];
+  
+  return {
+    hasOption: true,
+    optionYear: firstOption.season,
+    optionType: firstOption.option
+  };
+}
+
 // ---------- main ----------
 async function main() {
   const playerUrlEnv = (process.env.PLAYER_URL || '').replace('://www.', '://');
@@ -613,6 +711,10 @@ async function main() {
   const birdRights = parseBirdRights($);
   const freeAgency = parseFreeAgency($, endSeason, meta.capHold);
   if (freeAgency.type !== 'RFA') freeAgency.qualifyingOffer = null;
+  
+  // Add option summary to free agency
+  const optionSummary = extractOptionSummary(salariesByYear);
+  Object.assign(freeAgency, optionSummary);
 
   const tradeEligibility = parseTradeEligibility($, isRookieScale);
 
