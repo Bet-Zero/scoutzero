@@ -738,9 +738,10 @@ function parseContractMetaFromTable(
 
   // Cap Hold — "Cap Hold 2027-28: $28,307,693"
   // Prefer afterText (more likely to have cap hold for extensions)
+  const capHoldPattern = /Cap\s*Hold[^$]*\$\s*([\d,]+)/i;
   const capHold = 
-    moneyNum(afterText.match(/Cap\s*Hold[^$]*\$\s*([\d,]+)/i)?.[1]) ||
-    moneyNum(text.match(/Cap\s*Hold[^$]*\$\s*([\d,]+)/i)?.[1]);
+    moneyNum(afterText.match(capHoldPattern)?.[1]) ||
+    moneyNum(text.match(capHoldPattern)?.[1]);
 
   // Trade Kicker — "TRADE KICKER: 15% …" or "… 15% trade kicker …"
   const tk =
