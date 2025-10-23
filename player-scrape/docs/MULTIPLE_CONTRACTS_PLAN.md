@@ -8,7 +8,15 @@ The parser now successfully handles players with **multiple contracts**:
 
 ### Implementation Status
 
-✅ **IMPLEMENTED** - The parser detects multiple salary tables, determines which is current vs future based on season dates, and outputs both in the response.
+✅ **IMPLEMENTED** (as of 2025-10-23) - The parser detects multiple salary tables, determines which is current vs future based on season dates, and outputs both in the response.
+
+### How It Works
+
+The parser uses a multi-table detection strategy:
+1. Finds all salary tables on the page
+2. Identifies associated contract type headings (e.g., "DESIGNATED SUPERMAX EXTENSION")
+3. Compares season dates to determine current vs future contracts
+4. Parses both tables and outputs futureContract field when extension exists
 
 ### Examples Working
 - **Jayson Tatum**: Current rookie extension + supermax extension starting 2025-26
