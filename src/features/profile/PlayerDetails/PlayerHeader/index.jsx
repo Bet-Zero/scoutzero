@@ -77,6 +77,12 @@ const PlayerHeader = ({ player, selectedPlayer }) => {
             <span className="font-bold">YEARS PRO</span>:{' '}
             {player.bio?.display?.yearsPro ?? 'N/A'}
           </p>
+          {player.bio?.draft?.pick && (
+            <p>
+              <span className="font-bold">DRAFTED</span>:{' '}
+              {player.bio.draft.year} Rd {player.bio.draft.round} Pick {player.bio.draft.pick}
+            </p>
+          )}
         </div>
         <div className="h-6" />
         <div className="space-y-[2px]">
