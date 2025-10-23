@@ -25,7 +25,13 @@ function normalizeContract(contract, playerId, currentSeason, options = {}) {
   const endSeason = normalizeSeason(contract.endSeason);
 
   // Determine kind and isExtension
-  const isExtension = Boolean(contract.isExtension);
+  let isExtension;
+  if (contract.isExtension === null || contract.isExtension === undefined) {
+    // Infer extension when the block starts after the current season
+    isExtension = compareSeason(startSeason, currentSeason) > 0;
+  } else {
+    isExtension = Boolean(contract.isExtension);
+  }
   const kind = isExtension ? 'ext' : 'std';
 
   // Build docId
@@ -42,7 +48,12 @@ function normalizeContract(contract, playerId, currentSeason, options = {}) {
   };
 
   // Detect max contract
-  const max = detectMaxContract(salariesByYear, startSeason, leagueCaps, contract);
+  const max = detectMaxContract(
+    salariesByYear,
+    startSeason,
+    leagueCaps,
+    contract
+  );
 
   // Normalize free agency
   const freeAgency = normalizeFreeAgency(contract.freeAgency || {});
@@ -66,9 +77,10 @@ function normalizeContract(contract, playerId, currentSeason, options = {}) {
     signedUsing: normalizeSignedUsing(contract.signedUsing),
     signingDate: normalizeSigningDate(contract.signingDate),
     noTradeClause: Boolean(contract.noTradeClause),
-    tradeKicker: contract.tradeKicker !== null && contract.tradeKicker !== undefined 
-      ? Number(contract.tradeKicker) 
-      : null,
+    tradeKicker:
+      contract.tradeKicker !== null && contract.tradeKicker !== undefined
+        ? Number(contract.tradeKicker)
+        : null,
     salariesByYear,
     freeAgency,
     status,
@@ -120,12 +132,15 @@ function normalizeFreeAgency(freeAgency) {
     type: freeAgency.type || freeAgency.freeAgentType || null,
     year: freeAgency.year || freeAgency.freeAgentYear || null,
     birdRights: freeAgency.birdRights?.status || freeAgency.birdRights || null,
-    capHold: freeAgency.capHold !== null && freeAgency.capHold !== undefined 
-      ? Number(freeAgency.capHold) 
-      : null,
-    qualifyingOffer: freeAgency.qualifyingOffer !== null && freeAgency.qualifyingOffer !== undefined 
-      ? Number(freeAgency.qualifyingOffer) 
-      : null,
+    capHold:
+      freeAgency.capHold !== null && freeAgency.capHold !== undefined
+        ? Number(freeAgency.capHold)
+        : null,
+    qualifyingOffer:
+      freeAgency.qualifyingOffer !== null &&
+      freeAgency.qualifyingOffer !== undefined
+        ? Number(freeAgency.qualifyingOffer)
+        : null,
   };
 }
 
@@ -136,9 +151,9 @@ function normalizeFreeAgency(freeAgency) {
  */
 function normalizeSignedUsing(signedUsing) {
   if (!signedUsing) return null;
-  
+
   const str = String(signedUsing).trim();
-  
+
   // Normalize common variations
   if (str.toLowerCase().includes('bird')) {
     if (str.toLowerCase().includes('early')) return 'Early Bird Exception';
@@ -146,7 +161,7 @@ function normalizeSignedUsing(signedUsing) {
   }
   if (str.toLowerCase().includes('mle')) return 'Mid-Level Exception';
   if (str.toLowerCase().includes('mid-level')) return 'Mid-Level Exception';
-  
+
   return str;
 }
 
@@ -157,12 +172,12 @@ function normalizeSignedUsing(signedUsing) {
  */
 function normalizeSigningDate(signingDate) {
   if (!signingDate) return null;
-  
+
   // If already ISO format, return as is
   if (/^\d{4}-\d{2}-\d{2}/.test(signingDate)) {
     return signingDate;
   }
-  
+
   // Try to parse common date formats
   try {
     const date = new Date(signingDate);
@@ -172,7 +187,7 @@ function normalizeSigningDate(signingDate) {
   } catch (e) {
     // Ignore parse errors
   }
-  
+
   return null;
 }
 
@@ -237,19 +252,21 @@ function detectMaxContract(salariesByYear, startSeason, leagueCaps, contract) {
  */
 function linkExtensions(contracts) {
   // Sort by start season
-  const sorted = [...contracts].sort((a, b) => compareSeason(a.startSeason, b.startSeason));
+  const sorted = [...contracts].sort((a, b) =>
+    compareSeason(a.startSeason, b.startSeason)
+  );
 
   // Find standard and extension pairs
   for (let i = 0; i < sorted.length; i++) {
     const contract = sorted[i];
-    
+
     if (contract.isExtension && i > 0) {
       // Link to previous standard contract
       const prevContract = sorted[i - 1];
       if (!prevContract.isExtension) {
         contract.extensionOf = prevContract.docId;
         prevContract.extendedBy = contract.docId;
-        
+
         // Set contract group ID to first standard contract's docId
         const groupId = prevContract.docId;
         contract.contractGroupId = groupId;
@@ -270,21 +287,21 @@ function linkExtensions(contracts) {
  */
 export function parseContractSituation(canonical, currentSeason, options = {}) {
   const playerId = canonical.playerId;
-  
+
   // Normalize current season
   const normalizedCurrentSeason = normalizeSeason(currentSeason);
 
   // Determine if we have a single contract or multiple
   let rawContracts = [];
-  
+
   if (canonical.contract) {
     rawContracts.push(canonical.contract);
   }
-  
+
   if (canonical.futureContract) {
     rawContracts.push(canonical.futureContract);
   }
-  
+
   if (canonical.contracts && Array.isArray(canonical.contracts)) {
     rawContracts = canonical.contracts;
   }
