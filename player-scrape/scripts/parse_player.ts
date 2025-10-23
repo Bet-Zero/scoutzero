@@ -233,6 +233,7 @@ function parseSalaryTable(
 
     const rec: any = {
       season,
+      year: parseInt(season.split('-')[0]), // Add year field for players_v2 compatibility
       salary,
       capHit: resolvedCap,
       guaranteed,
