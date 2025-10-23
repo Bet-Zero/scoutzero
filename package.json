@@ -57,7 +57,7 @@
     "merge:samples": "tsx team-scrape/review_and_merge/scripts/merge_team_outputs.ts",
     "clean-view": "npx tsx team-scrape/review_and_merge/scripts/create_clean_view.ts",
     "fetch-player": "npx tsx player-scrape/scripts/fetch_player_page.ts",
-    "parse-player": "tsx scripts/parse_player.ts",
+    "parse-player": "tsx player-scrape/scripts/parse_player.ts",
     "validate-player": "npx tsx player-scrape/scripts/validate_player.ts",
     "batch-scrape-players": "npx tsx player-scrape/scripts/batch_scrape_players.ts",
     "realgm:drafts": "tsx team-scrape/scripts/realgm_draft_picks.ts"
