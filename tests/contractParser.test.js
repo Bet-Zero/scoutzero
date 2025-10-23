@@ -407,5 +407,139 @@ describe('Contract Parser', () => {
       expect(result.contracts).toHaveLength(1);
       expect(result.contracts[0].docId).toBe('std_2023-24');
     });
+
+    it('correctly identifies 35% max contract tier', () => {
+      const canonical = {
+        playerId: 'test_player',
+        contract: {
+          contractType: 'VETERAN CONTRACT',
+          isExtension: false,
+          startSeason: '2025-26',
+          endSeason: '2029-30',
+          contractLength: 5,
+          totalValue: 250000000,
+          averageAnnualValue: 50000000,
+          guaranteedValue: 250000000,
+          guaranteedYears: 5,
+          signedUsing: 'Bird Exception',
+          signingDate: '2025-07-01',
+          noTradeClause: false,
+          tradeKicker: null,
+          capPercentage: 35.2,
+          salariesByYear: [
+            { season: '2025-26', salary: 48000000, guaranteed: true, option: null },
+            { season: '2026-27', salary: 50000000, guaranteed: true, option: null },
+            { season: '2027-28', salary: 52000000, guaranteed: true, option: null },
+            { season: '2028-29', salary: 54000000, guaranteed: true, option: null },
+            { season: '2029-30', salary: 56000000, guaranteed: true, option: 'PO' },
+          ],
+          freeAgency: {
+            type: 'UFA',
+            year: 2030,
+            birdRights: 'Full Bird',
+            capHold: 70000000,
+            qualifyingOffer: null,
+          },
+          source: {
+            provider: 'SalarySwish',
+            scrapedAt: '2025-01-01T00:00:00Z',
+          },
+        },
+      };
+
+      const result = parseContractSituation(canonical, '2025-26');
+      const contract = result.contracts[0];
+
+      expect(contract.max.isMax).toBe(true);
+      expect(contract.max.tierPercent).toBe(35);
+      expect(contract.max.firstYearCapPct).toBe(35.2);
+      expect(contract.max.basis).toBe('source_estimate');
+    });
+
+    it('handles edge case where cap % is just outside tolerance', () => {
+      const canonical = {
+        playerId: 'test_player',
+        contract: {
+          contractType: 'VETERAN CONTRACT',
+          isExtension: false,
+          startSeason: '2025-26',
+          endSeason: '2027-28',
+          contractLength: 3,
+          totalValue: 45000000,
+          averageAnnualValue: 15000000,
+          guaranteedValue: 45000000,
+          guaranteedYears: 3,
+          signedUsing: 'Bird Exception',
+          signingDate: '2025-07-01',
+          noTradeClause: false,
+          tradeKicker: null,
+          capPercentage: 24.0, // Outside ±0.75% of 25%
+          salariesByYear: [
+            { season: '2025-26', salary: 15000000, guaranteed: true, option: null },
+            { season: '2026-27', salary: 15000000, guaranteed: true, option: null },
+            { season: '2027-28', salary: 15000000, guaranteed: true, option: null },
+          ],
+          freeAgency: {
+            type: 'UFA',
+            year: 2028,
+          },
+          source: {
+            provider: 'SalarySwish',
+            scrapedAt: '2025-01-01T00:00:00Z',
+          },
+        },
+      };
+
+      const result = parseContractSituation(canonical, '2025-26');
+      const contract = result.contracts[0];
+
+      expect(contract.max.isMax).toBe(false);
+      expect(contract.max.tierPercent).toBe(null);
+      expect(contract.max.firstYearCapPct).toBe(24.0);
+    });
+
+    it('handles different season formats in input', () => {
+      const canonical = {
+        playerId: 'test_player',
+        contract: {
+          contractType: 'VETERAN CONTRACT',
+          isExtension: false,
+          startSeason: '2025', // Just year format
+          endSeason: '2027-2028', // Full year format
+          contractLength: 3,
+          totalValue: 30000000,
+          averageAnnualValue: 10000000,
+          guaranteedValue: 30000000,
+          guaranteedYears: 3,
+          signedUsing: 'Bird Exception',
+          signingDate: '2025-07-01',
+          noTradeClause: false,
+          tradeKicker: null,
+          salariesByYear: [
+            { season: '2025', salary: 10000000, guaranteed: true, option: null },
+            { season: '2026-2027', salary: 10000000, guaranteed: true, option: null },
+            { season: '2027-28', salary: 10000000, guaranteed: true, option: null },
+          ],
+          freeAgency: {
+            type: 'UFA',
+            year: 2028,
+          },
+          source: {
+            provider: 'SalarySwish',
+            scrapedAt: '2025-01-01T00:00:00Z',
+          },
+        },
+      };
+
+      const result = parseContractSituation(canonical, '2025-26');
+      const contract = result.contracts[0];
+
+      // All seasons should be normalized to YYYY-YY format
+      expect(contract.startSeason).toBe('2025-26');
+      expect(contract.endSeason).toBe('2027-28');
+      expect(contract.salariesByYear[0].season).toBe('2025-26');
+      expect(contract.salariesByYear[1].season).toBe('2026-27');
+      expect(contract.salariesByYear[2].season).toBe('2027-28');
+    });
   });
 });
