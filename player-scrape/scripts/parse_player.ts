@@ -180,16 +180,42 @@ function findAllSalaryTables($: cheerio.CheerioAPI) {
     
     if (looksSalary) {
       // Try to find the heading/title above this table
-      const container = t.closest('section,article,div');
-      const heading = container.find('h6.sw_playerContract__title, h4, h5, h6')
-        .filter((_, el) => {
-          const text = $(el).text();
-          return /contract|extension|rookie|veteran|two-way/i.test(text);
-        })
-        .first()
-        .text();
+      // Look for h6.sw_playerContract__title that comes before this table
+      let heading = '';
+      
+      // Strategy 1: Find preceding h6.sw_playerContract__title
+      const prevH6 = t.prevAll('h6.sw_playerContract__title').first();
+      if (prevH6.length) {
+        heading = norm(prevH6.text());
+      }
+      
+      // Strategy 2: Look in parent container for h6.sw_playerContract__title
+      if (!heading) {
+        const container = t.closest('section,article,div');
+        const h6 = container.find('h6.sw_playerContract__title').first();
+        if (h6.length) {
+          heading = norm(h6.text());
+        }
+      }
+      
+      // Strategy 3: Look for any h4, h5, h6 with contract keywords before this table
+      if (!heading) {
+        const prevHeading = t.prevAll('h4, h5, h6')
+          .filter((_, el) => {
+            const text = $(el).text();
+            return /contract|extension|rookie|veteran|two-way|supermax|designated/i.test(text);
+          })
+          .first();
+        if (prevHeading.length) {
+          heading = norm(prevHeading.text());
+        }
+      }
       
       salaryTables.push({ table: t, headers, heading: norm(heading || '') });
+      
+      if (DEBUG) {
+        dbg(`Salary table ${i+1} heading`, heading || '(none found)');
+      }
     }
   }
   
