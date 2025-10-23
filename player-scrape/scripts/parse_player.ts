@@ -702,7 +702,6 @@ function parseContractMetaFromTable(
   for (const el of relevantElements) {
     text += ' ' + safeText($, el);
   }
-  
   text = text.trim();
   afterText = afterText.trim();
   
