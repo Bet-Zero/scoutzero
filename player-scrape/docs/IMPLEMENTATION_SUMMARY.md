@@ -14,7 +14,8 @@ Enhanced `parse_player.ts` to:
 1. Detect all salary tables on a player's page (not just the first one)
 2. Identify which tables represent current vs future contracts based on season dates
 3. Parse contract type information from table headings (e.g., "DESIGNATED SUPERMAX EXTENSION")
-4. Output a `futureContract` field when a second table with future seasons is found
+4. **Parse metadata independently for each contract** (signing details, trade kicker, etc.)
+5. Output a `futureContract` field when a second table with future seasons is found
 
 ## Technical Details
 
@@ -33,6 +34,12 @@ Enhanced `parse_player.ts` to:
    - Supports: SUPERMAX, DESIGNATED, ROOKIE, EXTENSION, VETERAN, TWO-WAY
    - Returns structured contract type information
 
+3. **`parseContractMetaFromTable()`** ⭐ NEW (Issue #299 fix)
+   - Parses metadata from a specific table's surrounding section
+   - Extracts signing details (signedUsing, signingTeam, signingDate, tradeKicker)
+   - Traverses preceding siblings until hitting a heading or another table
+   - Ensures future contracts use their own metadata instead of copying from current contract
+
 ### Modified Logic
 
 **Main Parsing Flow:**
@@ -40,7 +47,8 @@ Enhanced `parse_player.ts` to:
 // Find all salary tables (instead of just first)
 const allSalaryTables = findAllSalaryTables($);
 
-// Parse first table as current contract
+// Parse first table as current contract with its metadata
+const meta = parseCurrentContractMeta($);
 const currentContract = parseSalaryTable(allSalaryTables[0]);
 
 // Check for second table
@@ -50,8 +58,15 @@ if (allSalaryTables.length > 1) {
   
   // Verify it's actually future (starts after current ends)
   if (futureStartYear >= currentEndYear) {
+    // Parse metadata from the future contract's own section (Issue #299 fix)
+    const futureMeta = parseContractMetaFromTable($, futureTable.table);
+    
     futureContract = {
       contractType: detectContractTypeFromHeading(futureTable.heading),
+      signedUsing: futureMeta.signedUsing,        // From future section, not copied
+      signingTeam: futureMeta.signingTeam,        // From future section, not copied
+      signingDate: futureMeta.signingDate,        // From future section, not copied
+      tradeKicker: futureMeta.tradeKicker,        // From future section, not copied
       // ... all other contract fields
     };
   }
@@ -60,12 +75,15 @@ if (allSalaryTables.length > 1) {
 
 ### Output Structure
 
-When an extension is detected, the output includes:
+When an extension is detected, the output includes both contracts with **independent metadata** (Issue #299 fix):
 
 ```json
 {
   "contract": {
     "contractType": "DESIGNATED ROOKIE EXTENSION",
+    "signedUsing": "Rookie Max Extension",
+    "signingDate": "July 1, 2020",
+    "tradeKicker": 5,
     "startSeason": "2024-25",
     "endSeason": "2024-25",
     // ... other fields
@@ -73,6 +91,9 @@ When an extension is detected, the output includes:
   "futureContract": {
     "contractType": "DESIGNATED SUPERMAX EXTENSION",
     "isExtension": true,
+    "signedUsing": "Supermax Extension",      // ✅ Parsed from future section
+    "signingDate": "July 1, 2024",            // ✅ Parsed from future section
+    "tradeKicker": null,                      // ✅ Not copied from current
     "startSeason": "2025-26",
     "endSeason": "2029-30",
     "totalValue": 314999680,
@@ -94,8 +115,15 @@ When an extension is detected, the output includes:
 2. **Player with extension (test fixture)**
    - ✅ Parses both current and future contracts
    - ✅ Correctly identifies contract types from headings
+   - ✅ **Future contract uses independent metadata** (Issue #299 fix)
    - ✅ Future contract only included when seasons are after current
    - ✅ Schema validation passes
+
+3. **Metadata Independence (Issue #299 validation)**
+   - ✅ Current contract signed in 2020 with "Rookie Max Extension"
+   - ✅ Future contract signed in 2024 with "Supermax Extension"
+   - ✅ Each contract reports its own signing date and method
+   - ✅ Trade kicker not copied when absent in future section
 
 ### Console Output
 

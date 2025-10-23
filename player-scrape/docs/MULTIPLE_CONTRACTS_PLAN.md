@@ -60,14 +60,21 @@ The following changes were made to support multiple contracts:
 - `detectExtension()` - Identifies extension keywords in headings
 - Multiple table logic determines current vs future based on season dates
 - Extension type detection from heading text (SUPERMAX, DESIGNATED, etc.)
+- **`parseContractMetaFromTable()`** - Parses metadata from each table independently (Issue #299 fix)
 
-### 3. Validation Updated ✅
+### 3. Metadata Independence (Issue #299 Fix) ✅
+- Future contracts now parse their own signing details from their surrounding section
+- No longer copy `signedUsing`, `signingTeam`, `signingDate`, or `tradeKicker` from current contract
+- Each contract accurately reports when and how it was signed
+
+### 4. Validation Updated ✅
 - `validate_player.ts` now shows future contract info when present
 
-### 4. Documentation Updated ✅
+### 5. Documentation Updated ✅
 - README.md marked limitation as resolved
 - COMPLETION_SUMMARY.md updated
 - FINAL_SUMMARY.md shows new capability
+- IMPLEMENTATION_SUMMARY.md documents metadata parsing fix
 
 ## How It Works
 
@@ -77,6 +84,7 @@ const salaryTables = findSalaryTables($);
 
 if (salaryTables.length > 1) {
   // Parse first table as current contract
+  const meta = parseCurrentContractMeta($);
   const currentSalaries = parseSalaryTable($, salaryTables[0].table);
   
   // Parse second table as future extension
@@ -84,7 +92,16 @@ if (salaryTables.length > 1) {
   
   // Verify it's actually future (starts after current ends)
   if (futureStartYear >= currentEndYear) {
-    futureContract = { /* extension details */ };
+    // Issue #299 fix: Parse metadata from future contract's own section
+    const futureMeta = parseContractMetaFromTable($, salaryTables[1].table);
+    
+    futureContract = {
+      signedUsing: futureMeta.signedUsing,      // Independent metadata
+      signingTeam: futureMeta.signingTeam,      // Not copied from current
+      signingDate: futureMeta.signingDate,      // Not copied from current
+      tradeKicker: futureMeta.tradeKicker,      // Not copied from current
+      /* other extension details */
+    };
   }
 }
 ```
@@ -96,6 +113,9 @@ if (salaryTables.length > 1) {
   "playerId": "jayson_tatum",
   "contract": {
     "contractType": "DESIGNATED ROOKIE EXTENSION",
+    "signedUsing": "Rookie Max Extension",
+    "signingDate": "July 1, 2020",
+    "tradeKicker": 5,
     "startSeason": "2024-25",
     "endSeason": "2024-25",
     ...
