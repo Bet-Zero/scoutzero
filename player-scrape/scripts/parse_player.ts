@@ -578,8 +578,8 @@ function detectContractType($: cheerio.CheerioAPI) {
   if (isTwoWay) contractType = 'TWO-WAY';
   else if (isDesignated && isRookieScale)
     contractType = 'DESIGNATED ROOKIE EXTENSION';
-  else if (isExtension && isRookieScale) contractType = 'ROOKIE EXTENSION';
-  else if (isRookieScale) contractType = 'ROOKIE SCALE';
+  else if (isExtension && isRookieScale) contractType = 'ROOKIE SCALE EXTENSION';
+  else if (isRookieScale) contractType = 'ROOKIE SCALE CONTRACT';
   else if (isExtension) contractType = 'VETERAN EXTENSION';
   return { contractType, isExtension, isRookieScale };
 }
@@ -599,8 +599,8 @@ function detectContractTypeFromHeading(headingText: string) {
     contractType = 'DESIGNATED SUPERMAX EXTENSION';
   else if (isDesignated && isRookieScale && isExtension)
     contractType = 'DESIGNATED ROOKIE EXTENSION';
-  else if (isExtension && isRookieScale) contractType = 'ROOKIE EXTENSION';
-  else if (isRookieScale) contractType = 'ROOKIE SCALE';
+  else if (isExtension && isRookieScale) contractType = 'ROOKIE SCALE EXTENSION';
+  else if (isRookieScale) contractType = 'ROOKIE SCALE CONTRACT';
   else if (isDesignated && isExtension) contractType = 'DESIGNATED EXTENSION';
   else if (isExtension) contractType = 'VETERAN EXTENSION';
 
@@ -664,7 +664,7 @@ function parseContractMetaFromTable(
   table: cheerio.Cheerio
 ) {
   // Strategy: Get text from elements between this table and the previous h4/h5/h6 heading
-  // or previous table (whichever comes first)
+  // or previous table (whichever comes first), PLUS elements after the table
 
   // Find all preceding siblings until we hit a heading or another table
   const relevantElements: cheerio.Cheerio[] = [];
@@ -685,24 +685,41 @@ function parseContractMetaFromTable(
     current = current.prev();
   }
 
-  // Collect text from these elements
+  // For elements after the table, we need to navigate to the contract container
+  // and find financial details divs (which contain cap hold)
+  const contractContainer = table.closest('.sw_playerContract');
+  let afterText = '';
+  if (contractContainer.length) {
+    // Find all financial details divs in this contract
+    const financialDetails = contractContainer.find('.sw_playerContract__financialDetails');
+    financialDetails.each((_, el) => {
+      afterText += ' ' + safeText($, $(el));
+    });
+  }
+
+  // Collect text from elements before table
   let text = '';
   for (const el of relevantElements) {
     text += ' ' + safeText($, el);
   }
   text = text.trim();
+  afterText = afterText.trim();
+  
+  // Combine for searching
+  let combinedText = text + ' ' + afterText;
 
   // If no text found, fall back to the closest container (old behavior)
-  if (!text) {
+  if (!combinedText.trim()) {
     const scope = table.closest('section,article,div');
     text = safeText($, scope);
+    combinedText = (text + ' ' + afterText).trim();
   }
 
   // Signing Team
-  const signingTeam = text.match(/Signing\s*Team:\s*([A-Z]{2,3})/i)?.[1];
+  const signingTeam = combinedText.match(/Signing\s*Team:\s*([A-Z]{2,3})/i)?.[1];
 
   // Signing Method / Using  — stop at the next label so we don't swallow the rest of the paragraph
-  const methodMatch = text.match(
+  const methodMatch = combinedText.match(
     /Signing\s*(?:Method|Using)\s*:\s*([A-Za-z ':-]+?)(?=\s*(Signing\s*Date|Signing\s*Team|Source|Expiry|Length|Value|Cap\s*Hold|TRADE\s*KICKER|$))/i
   );
   let signedUsing = methodMatch?.[1]
@@ -717,17 +734,21 @@ function parseContractMetaFromTable(
 
   // Signing Date (supports "July 6, 2023" and "07/06/2023")
   const signingDate =
-    text.match(/Signing\s*Date:\s*([A-Za-z]{3,9}\s+\d{1,2},\s*\d{4})/i)?.[1] ||
-    text.match(/Signing\s*Date:\s*(\d{1,2}\/\d{1,2}\/\d{4})/i)?.[1];
+    combinedText.match(/Signing\s*Date:\s*([A-Za-z]{3,9}\s+\d{1,2},\s*\d{4})/i)?.[1] ||
+    combinedText.match(/Signing\s*Date:\s*(\d{1,2}\/\d{1,2}\/\d{4})/i)?.[1];
 
   // Cap Hold — "Cap Hold 2027-28: $28,307,693"
-  const capHold = moneyNum(text.match(/Cap\s*Hold[^$]*\$\s*([\d,]+)/i)?.[1]);
+  // Prefer afterText (more likely to have cap hold for extensions)
+  const capHoldPattern = /Cap\s*Hold[^$]*\$\s*([\d,]+)/i;
+  const capHold = 
+    moneyNum(afterText.match(capHoldPattern)?.[1]) ||
+    moneyNum(text.match(capHoldPattern)?.[1]);
 
   // Trade Kicker — "TRADE KICKER: 15% …" or "… 15% trade kicker …"
   const tk =
-    text.match(/TRADE\s*KICKER\s*:\s*(\d{1,2})%/i) ||
-    text.match(/(\d{1,2})%\s+(?:trade\s+)?(?:kicker|bonus)/i) ||
-    text.match(/(?:kicker|bonus)\s+of\s+(\d{1,2})%/i);
+    combinedText.match(/TRADE\s*KICKER\s*:\s*(\d{1,2})%/i) ||
+    combinedText.match(/(\d{1,2})%\s+(?:trade\s+)?(?:kicker|bonus)/i) ||
+    combinedText.match(/(?:kicker|bonus)\s+of\s+(\d{1,2})%/i);
   const tradeKicker = tk ? parseInt(tk[1], 10) : null;
 
   return {
@@ -768,10 +789,10 @@ function parseFreeAgency(
 
   let qualifyingOffer: number | null = null;
   if (type === 'RFA') {
-    qualifyingOffer =
-      moneyNum(
-        (text || all).match(/Qualifying\s*Offer[^$]*\$\s*([\d,]+)/i)?.[1]
-      ) ?? null;
+    // Look for "Qualifying Offer:" (with colon) to avoid matching "Qualifying Offer Calculator"
+    // The actual QO appears as "Qualifying Offer: <a...>$10,389,992</a>"
+    const qoMatch = (text || all).match(/Qualifying\s*Offer\s*:[^$]*\$\s*([\d,]+)/i);
+    qualifyingOffer = moneyNum(qoMatch?.[1]) ?? null;
   }
 
   return { type, year, capHold, qualifyingOffer, earlyTerminationOption: null };
@@ -834,10 +855,10 @@ function parseAgentInfo($: cheerio.CheerioAPI) {
     )?.[1]
     ?.trim();
 
-  // Agent: prefer "Primary Agent", fall back to "Agent:"
+  // Agent: prefer "Primary Agent", fall back to "Agent:", stop before "Secondary"
   const agent =
-    text.match(/\bPrimary\s*Agent\s*:\s*([A-Za-z .,'-]+)\b/)?.[1]?.trim() ||
-    text.match(/\bAgent\s*:\s*([A-Za-z .,'-]+)\b/)?.[1]?.trim();
+    text.match(/\bPrimary\s*Agent\s*:\s*([A-Za-z .,'-]+?)(?=\s*(Secondary|$))/i)?.[1]?.trim() ||
+    text.match(/\bAgent\s*:\s*([A-Za-z .,'-]+?)(?=\s*(Secondary|$))/i)?.[1]?.trim();
 
   return { agent: agent || undefined, agency: agency || undefined };
 }
@@ -1006,6 +1027,10 @@ async function main() {
         const futureFAType = futureContractTypeInfo.isExtension ? 'UFA' : 
           (freeAgency.type || null);
         const futureFAYear = futureStartYear ? futureStartYear + futureContractLength : undefined;
+        
+        // Parse the cap hold from the future contract's cap hold value
+        // The extension cap hold appears in the HTML as "Cap Hold YYYY-YY: $XX,XXX,XXX" after the future contract table
+        const futureCapHold = futureMeta.capHold ?? null;
 
         futureContract = {
           contractType: futureContractTypeInfo.contractType,
@@ -1032,7 +1057,7 @@ async function main() {
           freeAgency: {
             type: futureFAType,
             year: futureFAYear,
-            capHold: null,
+            capHold: futureCapHold,
             qualifyingOffer: null,
             earlyTerminationOption: null,
             ...futureOptionSummary,
