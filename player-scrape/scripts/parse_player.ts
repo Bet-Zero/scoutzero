@@ -33,6 +33,11 @@ const seasonStartYear = (season?: string) => {
   return m ? parseInt(m[1], 10) : undefined;
 };
 const cleanLabelVal = (t: string) => norm(t.replace(/\s*[:\-–]\s*/g, ': '));
+/** Strip contract type tags from season strings (e.g., "2025-26 Max" -> "2025-26") */
+const cleanSeason = (s: string) => {
+  // Remove common contract tags: Max, PO (Player Option), TO (Team Option), ETO, etc.
+  return s.replace(/\s+(Max|PO|TO|ETO|Player Option|Team Option|Early Termination|Supermax|Designated|Rookie|Veteran|Two-Way|Extension).*$/i, '').trim();
+};
 
 const teamSlugToCode: Record<string, string> = {
   hawks: 'ATL',
@@ -187,13 +192,24 @@ function findAllSalaryTables($: cheerio.CheerioAPI) {
       // Look for h6.sw_playerContract__title that comes before this table
       let heading = '';
 
-      // Strategy 1: Find preceding h6.sw_playerContract__title
-      const prevH6 = t.prevAll('h6.sw_playerContract__title').first();
-      if (prevH6.length) {
-        heading = norm(prevH6.text());
+      // Strategy 1: Look in parent sw_playerContract for h6.sw_playerContract__title
+      const contractWrapper = t.closest('.sw_playerContract');
+      if (contractWrapper.length) {
+        const h6 = contractWrapper.find('h6.sw_playerContract__title').first();
+        if (h6.length) {
+          heading = norm(h6.text());
+        }
       }
 
-      // Strategy 2: Look in parent container for h6.sw_playerContract__title
+      // Strategy 2: Find preceding h6.sw_playerContract__title
+      if (!heading) {
+        const prevH6 = t.prevAll('h6.sw_playerContract__title').first();
+        if (prevH6.length) {
+          heading = norm(prevH6.text());
+        }
+      }
+
+      // Strategy 3: Look in parent container for h6.sw_playerContract__title
       if (!heading) {
         const container = t.closest('section,article,div');
         const h6 = container.find('h6.sw_playerContract__title').first();
@@ -202,7 +218,7 @@ function findAllSalaryTables($: cheerio.CheerioAPI) {
         }
       }
 
-      // Strategy 3: Look for any h4, h5, h6 with contract keywords before this table
+      // Strategy 4: Look for any h4, h5, h6 with contract keywords before this table
       if (!heading) {
         const prevHeading = t
           .prevAll('h4, h5, h6')
@@ -265,8 +281,10 @@ function parseSalaryTable(
     const cells = $(tr).find('td');
     if (!cells.length || idxSeason < 0) return;
 
-    const season = norm(cells.eq(idxSeason).text());
-    if (!season) return;
+    const rawSeason = norm(cells.eq(idxSeason).text());
+    if (!rawSeason) return;
+    
+    const season = cleanSeason(rawSeason);
 
     const capHit =
       idxCapHit >= 0 ? moneyNum(cells.eq(idxCapHit).text()) : undefined;
@@ -278,6 +296,16 @@ function parseSalaryTable(
     let option: 'PO' | 'TO' | 'ETO' | null = null;
     if (idxOption >= 0)
       option = extractOptionFromCell($, cells.eq(idxOption)) as any;
+    // Also check season cell for option tags (e.g., "2025-26 PO")
+    if (!option && /\b(PO|Player Option)\b/i.test(rawSeason)) {
+      option = 'PO';
+    }
+    if (!option && /\b(TO|Team Option)\b/i.test(rawSeason)) {
+      option = 'TO';
+    }
+    if (!option && /\b(ETO|Early Termination)\b/i.test(rawSeason)) {
+      option = 'ETO';
+    }
     if (!option)
       cells.each((__, c) => {
         if (!option) option = extractOptionFromCell($, $(c)) as any;
@@ -301,7 +329,6 @@ function parseSalaryTable(
 
     const rec: any = {
       season,
-      year: parseInt(season.split('-')[0]), // Add year field for players_v2 compatibility
       salary,
       capHit: resolvedCap,
       guaranteed,
@@ -478,8 +505,9 @@ function parseBio($: cheerio.CheerioAPI) {
     if (/undrafted/i.test(draftText)) {
       bio.draftYear = 'Undrafted';
     } else {
-      // Try to extract year (4 digits)
-      const yearMatch = draftText.match(/\b(\d{4})\b/);
+      // Try to extract year (4 digits) - get the FIRST occurrence at the start
+      // Since draft text might have other years (like "2025-26" season text), we want the first one
+      const yearMatch = draftText.match(/^(\d{4})/);
       if (yearMatch) {
         bio.draftYear = yearMatch[1];
 
@@ -499,19 +527,26 @@ function parseBio($: cheerio.CheerioAPI) {
           draftText.match(/\bPick:\s*(\d+)/i) ||
           draftText.match(/\b#(\d+)\b/);
         if (pickMatch) bio.draftPick = parseInt(pickMatch[1], 10);
-
-        // Drafting team: look for team name after "by"
-        const teamMatch = draftText.match(
-          /\bby\s+(?:the\s+)?([A-Za-z][a-zA-Z\s]+?)(?:\s+AGENT|\s+$|$)/i
-        );
-        if (teamMatch) {
-          bio.draftedBy = teamMatch[1].trim();
-        } else {
-          // Try to find team code (2-3 uppercase letters before year)
-          const teamCodeMatch = draftText.match(/\b([A-Z]{2,3})\s+\d{4}\b/);
-          if (teamCodeMatch) bio.draftedBy = teamCodeMatch[1];
-        }
       }
+    }
+  }
+
+  // Look for separate DRAFTED BY field (often separate from DRAFT YEAR)
+  const mDraftedBy = text.match(/\bDRAFTED\s+BY:\s*([A-Z]{2,3})\b/i);
+  if (mDraftedBy) {
+    bio.draftedBy = mDraftedBy[1];
+  } else if (mDraftYear) {
+    const draftText = mDraftYear[1].trim();
+    // Fallback: look for team name after "by" in draft year text
+    const teamMatch = draftText.match(
+      /\bby\s+(?:the\s+)?([A-Za-z][a-zA-Z\s]+?)(?:\s+AGENT|\s+in\s+|\s+$|$)/i
+    );
+    if (teamMatch) {
+      bio.draftedBy = teamMatch[1].trim();
+    } else {
+      // Try to find team code (2-3 uppercase letters)
+      const teamCodeMatch = draftText.match(/\b([A-Z]{2,3})\s+\d{4}\b/);
+      if (teamCodeMatch) bio.draftedBy = teamCodeMatch[1];
     }
   }
 
@@ -965,6 +1000,12 @@ async function main() {
         // Parse metadata from the future contract section (not from current contract)
         const futureMeta = parseContractMetaFromTable($, futureTable.table);
 
+        // Determine free agency type for future contract
+        // Extensions make players UFAs when they expire, not RFAs
+        const futureFAType = futureContractTypeInfo.isExtension ? 'UFA' : 
+          (freeAgency.type || null);
+        const futureFAYear = futureStartYear ? futureStartYear + futureContractLength : undefined;
+
         futureContract = {
           contractType: futureContractTypeInfo.contractType,
           isExtension: futureContractTypeInfo.isExtension,
@@ -988,11 +1029,12 @@ async function main() {
           tradeRestrictions: [],
           birdRights,
           freeAgency: {
-            ...freeAgency,
+            type: futureFAType,
+            year: futureFAYear,
+            capHold: null,
+            qualifyingOffer: null,
+            earlyTerminationOption: null,
             ...futureOptionSummary,
-            year: futureStartYear
-              ? futureStartYear + futureContractLength
-              : undefined,
           },
           tradeEligibility,
         };
