@@ -257,7 +257,8 @@ function extractOptionFromCell($: cheerio.CheerioAPI, cell: cheerio.Cheerio) {
   if (/player option|\bpo\b/.test(txt)) return 'PO';
   if (/team option|\bto\b/.test(txt)) return 'TO';
   if (/early termination|eto/.test(txt)) return 'ETO';
-  const tag = cell.find('.contract_tag.contract_option').text().toLowerCase();
+  // Look for contract_tag with contract_option or contract_option_green/red classes
+  const tag = cell.find('.contract_tag[class*="contract_option"]').text().toLowerCase();
   if (tag.includes('player')) return 'PO';
   if (tag.includes('team')) return 'TO';
   if (tag.includes('eto')) return 'ETO';
@@ -532,7 +533,7 @@ function parseBio($: cheerio.CheerioAPI) {
   }
 
   // Look for separate DRAFTED BY field (often separate from DRAFT YEAR)
-  const mDraftedBy = text.match(/\bDRAFTED\s+BY:\s*([A-Z]{2,3})\b/i);
+  const mDraftedBy = text.match(/DRAFTED\s+BY:\s*([A-Z]{2,3})/i);
   if (mDraftedBy) {
     bio.draftedBy = mDraftedBy[1];
   } else if (mDraftYear) {
