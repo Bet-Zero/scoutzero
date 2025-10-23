@@ -32,6 +32,7 @@ Scrapes NBA player contract data from [SalarySwish](https://salaryswish.com) and
 ✅ Trade eligibility and CBA-specific fields  
 ✅ Handles rookie scale, veteran, and extension contracts  
 ✅ **Detects and parses future contracts/extensions** (e.g., signed extensions that haven't started yet)  
+✅ **Independent metadata parsing** - Each contract (current and future) reports its own signing details  
 ✅ Batch processing for multiple players  
 
 ## Prerequisites

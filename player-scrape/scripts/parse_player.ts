@@ -614,6 +614,84 @@ function parseCurrentContractMeta($: cheerio.CheerioAPI) {
   };
 }
 
+/** Parse contract metadata from a specific table's surrounding section */
+function parseContractMetaFromTable($: cheerio.CheerioAPI, table: cheerio.Cheerio) {
+  // Strategy: Get text from elements between this table and the previous h4/h5/h6 heading
+  // or previous table (whichever comes first)
+  
+  // Find all preceding siblings until we hit a heading or another table
+  const relevantElements: cheerio.Cheerio[] = [];
+  let current = table.prev();
+  
+  while (current.length > 0) {
+    const tagName = current.prop('tagName')?.toLowerCase();
+    
+    // Stop if we hit a heading (h1-h6) or another table
+    if (tagName && /^h[1-6]$/.test(tagName)) {
+      break;
+    }
+    if (tagName === 'table') {
+      break;
+    }
+    
+    relevantElements.unshift(current);
+    current = current.prev();
+  }
+  
+  // Collect text from these elements
+  let text = '';
+  for (const el of relevantElements) {
+    text += ' ' + safeText($, el);
+  }
+  text = text.trim();
+  
+  // If no text found, fall back to the closest container (old behavior)
+  if (!text) {
+    const scope = table.closest('section,article,div');
+    text = safeText($, scope);
+  }
+
+  // Signing Team
+  const signingTeam = text.match(/Signing\s*Team:\s*([A-Z]{2,3})/i)?.[1];
+
+  // Signing Method / Using  — stop at the next label so we don't swallow the rest of the paragraph
+  const methodMatch = text.match(
+    /Signing\s*(?:Method|Using)\s*:\s*([A-Za-z ':-]+?)(?=\s*(Signing\s*Date|Signing\s*Team|Source|Expiry|Length|Value|Cap\s*Hold|TRADE\s*KICKER|$))/i
+  );
+  let signedUsing = methodMatch?.[1]
+    ?.replace(/[:\-]+/g, ' ')
+    ?.replace(/\s+/g, ' ')
+    ?.trim();
+  if (signedUsing)
+    signedUsing = signedUsing
+      .split(' ')
+      .map((w) => (w[0] ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w))
+      .join(' ');
+
+  // Signing Date (supports "July 6, 2023" and "07/06/2023")
+  const signingDate =
+    text.match(/Signing\s*Date:\s*([A-Za-z]{3,9}\s+\d{1,2},\s*\d{4})/i)?.[1] ||
+    text.match(/Signing\s*Date:\s*(\d{1,2}\/\d{1,2}\/\d{4})/i)?.[1];
+
+  // Cap Hold — "Cap Hold 2027-28: $28,307,693"
+  const capHold = moneyNum(text.match(/Cap\s*Hold[^$]*\$\s*([\d,]+)/i)?.[1]);
+
+  // Trade Kicker — "TRADE KICKER: 15% …" or "… 15% trade kicker …"
+  const tk =
+    text.match(/TRADE\s*KICKER\s*:\s*(\d{1,2})%/i) ||
+    text.match(/(\d{1,2})%\s+(?:trade\s+)?(?:kicker|bonus)/i) ||
+    text.match(/(?:kicker|bonus)\s+of\s+(\d{1,2})%/i);
+  const tradeKicker = tk ? parseInt(tk[1], 10) : null;
+
+  return {
+    signingTeam: signingTeam || undefined,
+    signedUsing,
+    signingDate,
+    capHold,
+    tradeKicker,
+  };
+}
+
 function parseFreeAgency(
   $: cheerio.CheerioAPI,
   endSeason?: string | null,
@@ -850,14 +928,17 @@ async function main() {
         // (they may have different signing details than current contract)
         const futureOptionSummary = extractOptionSummary(futureSalariesByYear);
         
+        // Parse metadata from the future contract section (not from current contract)
+        const futureMeta = parseContractMetaFromTable($, futureTable.table);
+        
         futureContract = {
           contractType: futureContractTypeInfo.contractType,
           isExtension: futureContractTypeInfo.isExtension,
           isRookieScale: futureContractTypeInfo.isRookieScale,
-          signedUsing: meta.signedUsing, // Usually same as current
-          signingTeam: meta.signingTeam || teamCode,
-          signingDate: meta.signingDate,
-          signedByCurrentTeam: (meta.signingTeam || teamCode) === teamCode,
+          signedUsing: futureMeta.signedUsing,
+          signingTeam: futureMeta.signingTeam ?? teamCode,
+          signingDate: futureMeta.signingDate,
+          signedByCurrentTeam: (futureMeta.signingTeam ?? teamCode) === teamCode,
           startSeason: futureStartSeason,
           endSeason: futureEndSeason,
           contractLength: futureContractLength,
@@ -868,7 +949,7 @@ async function main() {
           guaranteedYears: futureGuaranteedYears,
           salariesByYear: futureSalariesByYear,
           noTradeClause: !!hasNTC,
-          tradeKicker: meta.tradeKicker,
+          tradeKicker: futureMeta.tradeKicker,
           tradeRestrictions: [],
           birdRights,
           freeAgency: {

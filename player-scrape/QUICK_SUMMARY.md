@@ -9,6 +9,7 @@
 ### What Works ✅
 - Complete TypeScript parser with Zod validation
 - Handles multiple contracts (current + future extensions)
+- **Independent metadata parsing**: Each contract reports its own signing details (Issue #299 fixed)
 - **Season format already correct**: Outputs "YYYY-YY" (e.g., "2025-26") ✅
 - **All 4 new fields already present** in output ✅
 - Well-documented with setup guides

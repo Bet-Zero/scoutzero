@@ -330,6 +330,7 @@ The scraper extracts these critical fields for CBA compliance:
 - **Data completeness:** Some fields may not be available on all player pages
 - **Manual verification:** Complex contracts (poison pill, BYC) should be double-checked
 - **~~Multiple contracts~~** ✅ **NOW SUPPORTED:** Parser now detects and handles players with both current contract and future extension (e.g., Jayson Tatum with supermax extension). The `futureContract` field contains extension details when present.
+  - ✅ **Issue #299 Fixed:** Each contract now parses its own metadata independently. Future contracts no longer incorrectly copy signing details from the current contract.
 - **Sample data:** The `examples/sample_austin_reaves.json` uses placeholder test data, not real SalarySwish data
 
 ---
