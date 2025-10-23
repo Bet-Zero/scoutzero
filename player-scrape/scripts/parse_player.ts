@@ -706,12 +706,13 @@ function parseContractMetaFromTable(
   afterText = afterText.trim();
   
   // Combine for searching
-  const combinedText = text + ' ' + afterText;
+  let combinedText = text + ' ' + afterText;
 
   // If no text found, fall back to the closest container (old behavior)
   if (!combinedText.trim()) {
     const scope = table.closest('section,article,div');
     text = safeText($, scope);
+    combinedText = (text + ' ' + afterText).trim();
   }
 
   // Signing Team
