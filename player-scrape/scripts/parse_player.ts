@@ -160,6 +160,67 @@ function findFirstSalaryTable($: cheerio.CheerioAPI) {
   }
   return null;
 }
+
+/** Find ALL salary tables on the page (for detecting extensions/future contracts) */
+function findAllSalaryTables($: cheerio.CheerioAPI) {
+  const tables = $('table');
+  const salaryTables: Array<{ table: cheerio.Cheerio; headers: string[]; heading: string }> = [];
+  
+  for (let i = 0; i < tables.length; i++) {
+    const t = tables.eq(i);
+    const headers = t
+      .find('thead th')
+      .map((_, th) => norm($(th).text()))
+      .get();
+    const H = headers.join('|').toLowerCase();
+    const looksSalary =
+      /season/.test(H) &&
+      /(salary|cap hit|guaranteed)/.test(H) &&
+      !/(pts|ast|reb|fg%|min|playoffs|regular)/.test(H);
+    
+    if (looksSalary) {
+      // Try to find the heading/title above this table
+      // Look for h6.sw_playerContract__title that comes before this table
+      let heading = '';
+      
+      // Strategy 1: Find preceding h6.sw_playerContract__title
+      const prevH6 = t.prevAll('h6.sw_playerContract__title').first();
+      if (prevH6.length) {
+        heading = norm(prevH6.text());
+      }
+      
+      // Strategy 2: Look in parent container for h6.sw_playerContract__title
+      if (!heading) {
+        const container = t.closest('section,article,div');
+        const h6 = container.find('h6.sw_playerContract__title').first();
+        if (h6.length) {
+          heading = norm(h6.text());
+        }
+      }
+      
+      // Strategy 3: Look for any h4, h5, h6 with contract keywords before this table
+      if (!heading) {
+        const prevHeading = t.prevAll('h4, h5, h6')
+          .filter((_, el) => {
+            const text = $(el).text();
+            return /contract|extension|rookie|veteran|two-way|supermax|designated/i.test(text);
+          })
+          .first();
+        if (prevHeading.length) {
+          heading = norm(prevHeading.text());
+        }
+      }
+      
+      salaryTables.push({ table: t, headers, heading: norm(heading || '') });
+      
+      if (DEBUG) {
+        dbg(`Salary table ${i+1} heading`, heading || '(none found)');
+      }
+    }
+  }
+  
+  return salaryTables;
+}
 const headerIndex = (headers: string[], ...cands: RegExp[]) => {
   const L = headers.map((h) => h.toLowerCase());
   for (const re of cands) {
@@ -480,6 +541,28 @@ function detectContractType($: cheerio.CheerioAPI) {
   return { contractType, isExtension, isRookieScale };
 }
 
+/** Detect contract type from heading text (for multiple contracts) */
+function detectContractTypeFromHeading(headingText: string) {
+  const T = headingText.toUpperCase();
+  const isExtension = /EXTENSION/.test(T);
+  const isRookieScale = /ROOKIE|SCALE/.test(T);
+  const isDesignated = /DESIGNATED/.test(T);
+  const isSupermax = /SUPERMAX/.test(T);
+  const isTwoWay = /TWO-WAY|2-WAY/.test(T);
+  
+  let contractType = 'VETERAN CONTRACT';
+  if (isTwoWay) contractType = 'TWO-WAY';
+  else if (isSupermax && isExtension) contractType = 'DESIGNATED SUPERMAX EXTENSION';
+  else if (isDesignated && isRookieScale && isExtension)
+    contractType = 'DESIGNATED ROOKIE EXTENSION';
+  else if (isExtension && isRookieScale) contractType = 'ROOKIE EXTENSION';
+  else if (isRookieScale) contractType = 'ROOKIE SCALE';
+  else if (isDesignated && isExtension) contractType = 'DESIGNATED EXTENSION';
+  else if (isExtension) contractType = 'VETERAN EXTENSION';
+  
+  return { contractType, isExtension, isRookieScale };
+}
+
 /** Current Contract section: Signing Team / Method / Date / Cap Hold / Trade Kicker */
 function parseCurrentContractMeta($: cheerio.CheerioAPI) {
   // Prefer “CURRENT CONTRACT”; else use the first salary table container
@@ -682,7 +765,15 @@ async function main() {
   const { teamName, teamCode } = parseTeam($, process.env.TEAM_CODE);
   const bio = parseBio($);
 
-  const found = findFirstSalaryTable($);
+  // Find all salary tables to detect extensions/future contracts
+  const allSalaryTables = findAllSalaryTables($);
+  dbg('Found salary tables', allSalaryTables.length);
+  
+  // Parse first table as current contract (fallback to old method if no tables found)
+  const found = allSalaryTables.length > 0 
+    ? allSalaryTables[0]
+    : findFirstSalaryTable($);
+    
   const salariesByYear = found
     ? parseSalaryTable($, found.table, found.headers)
     : [];
@@ -724,6 +815,73 @@ async function main() {
 
   const { agent, agency } = parseAgentInfo($);
 
+  // Check for future contract (extension that hasn't started yet)
+  let futureContract: any = undefined;
+  
+  if (allSalaryTables.length > 1) {
+    dbg('Multiple salary tables found - checking for future contract', '');
+    
+    // Parse second table
+    const futureTable = allSalaryTables[1];
+    const futureSalariesByYear = parseSalaryTable($, futureTable.table, futureTable.headers);
+    
+    if (futureSalariesByYear.length > 0) {
+      const futureStartSeason = futureSalariesByYear[0]?.season;
+      const futureEndSeason = futureSalariesByYear[futureSalariesByYear.length - 1]?.season;
+      const futureStartYear = seasonStartYear(futureStartSeason);
+      const currentEndYear = seasonStartYear(endSeason!);
+      
+      // Verify this is actually a future contract (starts after current ends or in the future)
+      if (futureStartYear && currentEndYear && futureStartYear >= currentEndYear) {
+        dbg('Future contract detected', `${futureStartSeason} - ${futureEndSeason}`);
+        
+        const futureContractTypeInfo = detectContractTypeFromHeading(futureTable.heading);
+        const futureContractLength = futureSalariesByYear.length;
+        const futureTotalValue = futureSalariesByYear.reduce((s, y) => s + (y.salary || 0), 0);
+        const futureAverageAnnualValue = futureContractLength ? futureTotalValue / futureContractLength : 0;
+        const futureGuaranteedValue = futureSalariesByYear.reduce(
+          (s, y) => s + (y.guaranteedAmount || 0),
+          0
+        );
+        const futureGuaranteedYears = futureSalariesByYear.filter((y) => y.guaranteed).length;
+        const futureYearsRemaining = Math.max(0, (seasonStartYear(futureEndSeason) ?? 0) - CURRENT_SEASON_START + 1);
+        
+        // For future contracts, parse their metadata from the contract section
+        // (they may have different signing details than current contract)
+        const futureOptionSummary = extractOptionSummary(futureSalariesByYear);
+        
+        futureContract = {
+          contractType: futureContractTypeInfo.contractType,
+          isExtension: futureContractTypeInfo.isExtension,
+          isRookieScale: futureContractTypeInfo.isRookieScale,
+          signedUsing: meta.signedUsing, // Usually same as current
+          signingTeam: meta.signingTeam || teamCode,
+          signingDate: meta.signingDate,
+          signedByCurrentTeam: (meta.signingTeam || teamCode) === teamCode,
+          startSeason: futureStartSeason,
+          endSeason: futureEndSeason,
+          contractLength: futureContractLength,
+          yearsRemaining: futureYearsRemaining,
+          totalValue: futureTotalValue,
+          averageAnnualValue: futureAverageAnnualValue,
+          guaranteedValue: futureGuaranteedValue,
+          guaranteedYears: futureGuaranteedYears,
+          salariesByYear: futureSalariesByYear,
+          noTradeClause: !!hasNTC,
+          tradeKicker: meta.tradeKicker,
+          tradeRestrictions: [],
+          birdRights,
+          freeAgency: {
+            ...freeAgency,
+            ...futureOptionSummary,
+            year: futureStartYear ? futureStartYear + futureContractLength : undefined,
+          },
+          tradeEligibility,
+        };
+      }
+    }
+  }
+
   const output: any = {
     _note:
       '⚠️ PLACEHOLDER TEST DATA - Parsed from a local HTML snapshot. For production, always fetch fresh SalarySwish HTML first.',
@@ -756,6 +914,7 @@ async function main() {
       freeAgency,
       tradeEligibility,
     },
+    ...(futureContract ? { futureContract } : {}),
     representation: {
       agent: agent ?? null,
       agency: agency ?? null,
@@ -781,6 +940,13 @@ async function main() {
     `   Years: ${contractLength} (${startSeason ?? '-'} - ${endSeason ?? '-'})`
   );
   console.log(`   Total Value: $${(totalValue / 1_000_000).toFixed(1)}M`);
+  
+  if (futureContract) {
+    console.log(`   📋 Found future contract: ${futureContract.contractType} (${futureContract.startSeason} - ${futureContract.endSeason})`);
+    console.log(`   Future Extension: ${futureContract.contractType}`);
+    console.log(`   Future Value: $${(futureContract.totalValue / 1_000_000).toFixed(1)}M`);
+  }
+  
   console.log(`   Bird Rights: ${birdRights.status}`);
   console.log(`   Cap Hold: ${freeAgency.capHold ?? '—'}`);
   console.log(`   Trade Kicker: ${meta.tradeKicker ?? '—'}%`);
