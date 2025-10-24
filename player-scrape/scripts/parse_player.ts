@@ -695,8 +695,9 @@ function parseCurrentContractMeta($: cheerio.CheerioAPI) {
     text.match(/(?:kicker|bonus)\s+of\s+(\d{1,2})%/i);
   const tradeKicker = tk ? parseInt(tk[1], 10) : null;
 
-  // Signing Executive — "SIGNED BY: <name>" (appears in contract header)
-  const signingExecutive = text.match(/SIGNED\s*BY:\s*([A-Za-z][A-Za-z\s.'-]+?)(?=\s*(AGENT|Agent|PRIMARY\s*AGENT|BIRD\s*RIGHTS|$))/i)?.[1]?.trim();
+  // Signing Executive — "SIGNED BY: <name>" (appears in contract header, often in a link)
+  // Match pattern: "SIGNED BY: <a href="/staff/name">Executive Name</a>" or "SIGNED BY: Executive Name"
+  let signingExecutive = text.match(/SIGNED\s*BY:\s*(?:<[^>]+>)?([A-Za-z][A-Za-z\s.'-]+?)(?:<[^>]*>)?(?=\s*(?:AGENT|PRIMARY\s*AGENT|BIRD\s*RIGHTS|$))/i)?.[1]?.trim();
 
   return {
     signingTeam: signingTeam || undefined,
@@ -807,8 +808,9 @@ function parseContractMetaFromTable(
     combinedText.match(/(?:kicker|bonus)\s+of\s+(\d{1,2})%/i);
   const tradeKicker = tk ? parseInt(tk[1], 10) : null;
 
-  // Signing Executive — "SIGNED BY: <name>" (appears in contract header)
-  const signingExecutive = combinedText.match(/SIGNED\s*BY:\s*([A-Za-z][A-Za-z\s.'-]+?)(?=\s*(AGENT|Agent|PRIMARY\s*AGENT|BIRD\s*RIGHTS|$))/i)?.[1]?.trim();
+  // Signing Executive — "SIGNED BY: <name>" (appears in contract header, often in a link)
+  // Match pattern: "SIGNED BY: <a href="/staff/name">Executive Name</a>" or "SIGNED BY: Executive Name"
+  let signingExecutive = combinedText.match(/SIGNED\s*BY:\s*(?:<[^>]+>)?([A-Za-z][A-Za-z\s.'-]+?)(?:<[^>]*>)?(?=\s*(?:AGENT|PRIMARY\s*AGENT|BIRD\s*RIGHTS|$))/i)?.[1]?.trim();
 
   return {
     signingTeam: signingTeam || undefined,
