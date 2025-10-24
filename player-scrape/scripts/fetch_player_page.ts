@@ -76,15 +76,18 @@ async function blockNoisyRequests(context: BrowserContext) {
 }
 
 async function addDiagnostics(page: Page) {
-  page.on('console', (msg) =>
-    console.log('🖥️ console:', msg.type(), msg.text())
-  );
-  page.on('pageerror', (err) =>
-    console.warn('⚠️ pageerror:', err.message || String(err))
-  );
-  page.on('requestfailed', (req) =>
-    console.warn('⚠️ requestfailed:', req.url(), req.failure()?.errorText)
-  );
+  // Disable noisy console/error logging to keep terminal output clean
+  // The ad blockers and failed JS requests are expected and not useful for our scraping
+  // Uncomment these lines if you need to debug page loading issues:
+  // page.on('console', (msg) =>
+  //   console.log('🖥️ console:', msg.type(), msg.text())
+  // );
+  // page.on('pageerror', (err) =>
+  //   console.warn('⚠️ pageerror:', err.message || String(err))
+  // );
+  // page.on('requestfailed', (req) =>
+  //   console.warn('⚠️ requestfailed:', req.url(), req.failure()?.errorText)
+  // );
 }
 
 async function waitForAnySelector(

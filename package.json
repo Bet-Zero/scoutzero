@@ -60,6 +60,10 @@
     "parse-player": "tsx player-scrape/scripts/parse_player.ts",
     "validate-player": "npx tsx player-scrape/scripts/validate_player.ts",
     "batch-scrape-players": "npx tsx player-scrape/scripts/batch_scrape_players.ts",
+    "process-trio": "npx tsx player-scrape/scripts/batch_process_trio.ts",
+    "process-lakers": "npx tsx player-scrape/scripts/batch_process_lakers.ts",
+    "process-thunder": "npx tsx player-scrape/scripts/batch_process_thunder.ts",
+    "process-all-teams": "npx tsx player-scrape/scripts/batch_process_all_teams.ts",
     "realgm:drafts": "tsx team-scrape/scripts/realgm_draft_picks.ts"
   },
   "dependencies": {

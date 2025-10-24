@@ -36,7 +36,12 @@ const cleanLabelVal = (t: string) => norm(t.replace(/\s*[:\-–]\s*/g, ': '));
 /** Strip contract type tags from season strings (e.g., "2025-26 Max" -> "2025-26") */
 const cleanSeason = (s: string) => {
   // Remove common contract tags: Max, PO (Player Option), TO (Team Option), ETO, etc.
-  return s.replace(/\s+(Max|PO|TO|ETO|Player Option|Team Option|Early Termination|Supermax|Designated|Rookie|Veteran|Two-Way|Extension).*$/i, '').trim();
+  return s
+    .replace(
+      /\s+(Max|PO|TO|ETO|Player Option|Team Option|Early Termination|Supermax|Designated|Rookie|Veteran|Two-Way|Extension).*$/i,
+      ''
+    )
+    .trim();
 };
 
 const teamSlugToCode: Record<string, string> = {
@@ -258,7 +263,10 @@ function extractOptionFromCell($: cheerio.CheerioAPI, cell: cheerio.Cheerio) {
   if (/team option|\bto\b/.test(txt)) return 'TO';
   if (/early termination|eto/.test(txt)) return 'ETO';
   // Look for contract_tag with contract_option or contract_option_green/red classes
-  const tag = cell.find('.contract_tag[class*="contract_option"]').text().toLowerCase();
+  const tag = cell
+    .find('.contract_tag[class*="contract_option"]')
+    .text()
+    .toLowerCase();
   if (tag.includes('player')) return 'PO';
   if (tag.includes('team')) return 'TO';
   if (tag.includes('eto')) return 'ETO';
@@ -284,7 +292,7 @@ function parseSalaryTable(
 
     const rawSeason = norm(cells.eq(idxSeason).text());
     if (!rawSeason) return;
-    
+
     const season = cleanSeason(rawSeason);
 
     const capHit =
@@ -432,24 +440,38 @@ function parseBio($: cheerio.CheerioAPI) {
 
   // ---- Height (prefer dash/quote; fallback ft-in) ----
   // Look for patterns like "HEIGHT: 6' 5" or "HEIGHT: 6-5"
-  // Must stop before any following digits (cm values)
+  // Made more flexible to handle various formatting issues
   let h: string | undefined;
+
+  // Try quote format first: "6' 5", "6'5", "6' 05" etc.
   const mHeightQuote = text.match(
-    /\bHEIGHT:\s*([0-9])\s*['\u2019]\s*([0-9]{1,2})\s+/i
+    /\bHEIGHT:\s*([0-9])\s*['\u2019]\s*([0-9]{1,2})(?:\s|$|[^0-9])/i
   );
   if (mHeightQuote) {
     h = `${mHeightQuote[1]}-${mHeightQuote[2]}`;
   } else {
+    // Try dash format: "6-5", "6 - 5" etc.
     const mHeightDash = text.match(
-      /\bHEIGHT:\s*([0-9])\s*-\s*([0-9]{1,2})\s+/i
+      /\bHEIGHT:\s*([0-9])\s*-\s*([0-9]{1,2})(?:\s|$|[^0-9])/i
     );
     if (mHeightDash) {
       h = `${mHeightDash[1]}-${mHeightDash[2]}`;
     } else {
+      // Try ft/in format: "6 ft 5 in", "6ft 5in" etc.
       const mHeightFtIn = text.match(
         /\bHEIGHT:\s*([0-9])\s*ft\s*([0-9]{1,2})\s*in\b/i
       );
-      if (mHeightFtIn) h = `${mHeightFtIn[1]}-${mHeightFtIn[2]}`;
+      if (mHeightFtIn) {
+        h = `${mHeightFtIn[1]}-${mHeightFtIn[2]}`;
+      } else {
+        // Last resort: look for any two numbers after HEIGHT
+        const mHeightGeneric = text.match(
+          /\bHEIGHT:\s*([0-9])[^0-9]*([0-9]{1,2})/i
+        );
+        if (mHeightGeneric) {
+          h = `${mHeightGeneric[1]}-${mHeightGeneric[2]}`;
+        }
+      }
     }
   }
   if (h) bio.height = h;
@@ -505,6 +527,7 @@ function parseBio($: cheerio.CheerioAPI) {
     const draftText = mDraftYear[1].trim();
     if (/undrafted/i.test(draftText)) {
       bio.draftYear = 'Undrafted';
+      bio.draftedBy = null; // Explicitly set to null for undrafted players
     } else {
       // Try to extract year (4 digits) - get the FIRST occurrence at the start
       // Since draft text might have other years (like "2025-26" season text), we want the first one
@@ -521,34 +544,55 @@ function parseBio($: cheerio.CheerioAPI) {
         if (roundMatch) bio.draftRound = parseInt(roundMatch[1], 10);
 
         // Pick: "Pick 15", "#15", "15th pick", "Pick: 15" etc.
+        // Also look for "overall" patterns like "15th overall"
         const pickMatch =
           draftText.match(/\bPick\s+(\d+)\b/i) ||
-          draftText.match(/\b#(\d+)\s+pick\b/i) ||
-          draftText.match(/\b(\d+)(?:st|nd|rd|th)\s+pick\b/i) ||
+          draftText.match(/\b#(\d+)\s+(?:pick|overall)\b/i) ||
+          draftText.match(/\b(\d+)(?:st|nd|rd|th)\s+(?:pick|overall)\b/i) ||
           draftText.match(/\bPick:\s*(\d+)/i) ||
+          draftText.match(/\b(\d+)(?:st|nd|rd|th)\s+in\s+the\b/i) ||
           draftText.match(/\b#(\d+)\b/);
-        if (pickMatch) bio.draftPick = parseInt(pickMatch[1], 10);
+        if (pickMatch) {
+          // Find first number in the match groups
+          const pickNum = pickMatch[1] || pickMatch[2];
+          if (pickNum) bio.draftPick = parseInt(pickNum, 10);
+        }
+
+        // Look for team that drafted them - but avoid "the" artifacts
+        const teamMatch = draftText.match(
+          /\bby\s+(?:the\s+)?([A-Za-z][a-zA-Z\s]+?)(?:\s+AGENT|\s+in\s+|\s+$|$)/i
+        );
+        if (teamMatch && teamMatch[1] && teamMatch[1].toLowerCase() !== 'the') {
+          const teamName = teamMatch[1].trim();
+          // Convert team name to code if possible
+          const teamWords = teamName.toLowerCase().split(/\s+/);
+          let teamCode = null;
+          for (const [slug, code] of Object.entries(teamSlugToCode)) {
+            if (
+              teamWords.some(
+                (word) => slug.includes(word) || word.includes(slug)
+              )
+            ) {
+              teamCode = code;
+              break;
+            }
+          }
+          bio.draftedBy = teamCode || teamName;
+        } else {
+          // Try to find team code (2-3 uppercase letters) but avoid "the"
+          const teamCodeMatch = draftText.match(/\b([A-Z]{2,3})\s+\d{4}\b/);
+          if (teamCodeMatch && teamCodeMatch[1] !== 'THE') {
+            bio.draftedBy = teamCodeMatch[1];
+          }
+        }
       }
     }
   }
 
   // Look for separate DRAFTED BY field (often separate from DRAFT YEAR)
   const mDraftedBy = text.match(/DRAFTED\s+BY:\s*([A-Z]{2,3})/i);
-  if (mDraftedBy) {
+  if (mDraftedBy && mDraftedBy[1] !== 'THE') {
     bio.draftedBy = mDraftedBy[1];
-  } else if (mDraftYear) {
-    const draftText = mDraftYear[1].trim();
-    // Fallback: look for team name after "by" in draft year text
-    const teamMatch = draftText.match(
-      /\bby\s+(?:the\s+)?([A-Za-z][a-zA-Z\s]+?)(?:\s+AGENT|\s+in\s+|\s+$|$)/i
-    );
-    if (teamMatch) {
-      bio.draftedBy = teamMatch[1].trim();
-    } else {
-      // Try to find team code (2-3 uppercase letters)
-      const teamCodeMatch = draftText.match(/\b([A-Z]{2,3})\s+\d{4}\b/);
-      if (teamCodeMatch) bio.draftedBy = teamCodeMatch[1];
-    }
   }
 
   if (process.env.DEBUG === '1') {
@@ -578,7 +622,8 @@ function detectContractType($: cheerio.CheerioAPI) {
   if (isTwoWay) contractType = 'TWO-WAY';
   else if (isDesignated && isRookieScale)
     contractType = 'DESIGNATED ROOKIE EXTENSION';
-  else if (isExtension && isRookieScale) contractType = 'ROOKIE SCALE EXTENSION';
+  else if (isExtension && isRookieScale)
+    contractType = 'ROOKIE SCALE EXTENSION';
   else if (isRookieScale) contractType = 'ROOKIE SCALE CONTRACT';
   else if (isExtension) contractType = 'VETERAN EXTENSION';
   return { contractType, isExtension, isRookieScale };
@@ -599,7 +644,8 @@ function detectContractTypeFromHeading(headingText: string) {
     contractType = 'DESIGNATED SUPERMAX EXTENSION';
   else if (isDesignated && isRookieScale && isExtension)
     contractType = 'DESIGNATED ROOKIE EXTENSION';
-  else if (isExtension && isRookieScale) contractType = 'ROOKIE SCALE EXTENSION';
+  else if (isExtension && isRookieScale)
+    contractType = 'ROOKIE SCALE EXTENSION';
   else if (isRookieScale) contractType = 'ROOKIE SCALE CONTRACT';
   else if (isDesignated && isExtension) contractType = 'DESIGNATED EXTENSION';
   else if (isExtension) contractType = 'VETERAN EXTENSION';
@@ -691,7 +737,9 @@ function parseContractMetaFromTable(
   let afterText = '';
   if (contractContainer.length) {
     // Find all financial details divs in this contract
-    const financialDetails = contractContainer.find('.sw_playerContract__financialDetails');
+    const financialDetails = contractContainer.find(
+      '.sw_playerContract__financialDetails'
+    );
     financialDetails.each((_, el) => {
       afterText += ' ' + safeText($, $(el));
     });
@@ -704,7 +752,7 @@ function parseContractMetaFromTable(
   }
   text = text.trim();
   afterText = afterText.trim();
-  
+
   // Combine for searching
   let combinedText = text + ' ' + afterText;
 
@@ -716,7 +764,9 @@ function parseContractMetaFromTable(
   }
 
   // Signing Team
-  const signingTeam = combinedText.match(/Signing\s*Team:\s*([A-Z]{2,3})/i)?.[1];
+  const signingTeam = combinedText.match(
+    /Signing\s*Team:\s*([A-Z]{2,3})/i
+  )?.[1];
 
   // Signing Method / Using  — stop at the next label so we don't swallow the rest of the paragraph
   const methodMatch = combinedText.match(
@@ -734,13 +784,15 @@ function parseContractMetaFromTable(
 
   // Signing Date (supports "July 6, 2023" and "07/06/2023")
   const signingDate =
-    combinedText.match(/Signing\s*Date:\s*([A-Za-z]{3,9}\s+\d{1,2},\s*\d{4})/i)?.[1] ||
+    combinedText.match(
+      /Signing\s*Date:\s*([A-Za-z]{3,9}\s+\d{1,2},\s*\d{4})/i
+    )?.[1] ||
     combinedText.match(/Signing\s*Date:\s*(\d{1,2}\/\d{1,2}\/\d{4})/i)?.[1];
 
   // Cap Hold — "Cap Hold 2027-28: $28,307,693"
   // Prefer afterText (more likely to have cap hold for extensions)
   const capHoldPattern = /Cap\s*Hold[^$]*\$\s*([\d,]+)/i;
-  const capHold = 
+  const capHold =
     moneyNum(afterText.match(capHoldPattern)?.[1]) ||
     moneyNum(text.match(capHoldPattern)?.[1]);
 
@@ -791,7 +843,9 @@ function parseFreeAgency(
   if (type === 'RFA') {
     // Look for "Qualifying Offer:" (with colon) to avoid matching "Qualifying Offer Calculator"
     // The actual QO appears as "Qualifying Offer: <a...>$10,389,992</a>"
-    const qoMatch = (text || all).match(/Qualifying\s*Offer\s*:[^$]*\$\s*([\d,]+)/i);
+    const qoMatch = (text || all).match(
+      /Qualifying\s*Offer\s*:[^$]*\$\s*([\d,]+)/i
+    );
     qualifyingOffer = moneyNum(qoMatch?.[1]) ?? null;
   }
 
@@ -857,8 +911,14 @@ function parseAgentInfo($: cheerio.CheerioAPI) {
 
   // Agent: prefer "Primary Agent", fall back to "Agent:", stop before "Secondary"
   const agent =
-    text.match(/\bPrimary\s*Agent\s*:\s*([A-Za-z .,'-]+?)(?=\s*(Secondary|$))/i)?.[1]?.trim() ||
-    text.match(/\bAgent\s*:\s*([A-Za-z .,'-]+?)(?=\s*(Secondary|$))/i)?.[1]?.trim();
+    text
+      .match(
+        /\bPrimary\s*Agent\s*:\s*([A-Za-z .,'-]+?)(?=\s*(Secondary|$))/i
+      )?.[1]
+      ?.trim() ||
+    text
+      .match(/\bAgent\s*:\s*([A-Za-z .,'-]+?)(?=\s*(Secondary|$))/i)?.[1]
+      ?.trim();
 
   return { agent: agent || undefined, agency: agency || undefined };
 }
@@ -1024,10 +1084,13 @@ async function main() {
 
         // Determine free agency type for future contract
         // Extensions make players UFAs when they expire, not RFAs
-        const futureFAType = futureContractTypeInfo.isExtension ? 'UFA' : 
-          (freeAgency.type || null);
-        const futureFAYear = futureStartYear ? futureStartYear + futureContractLength : undefined;
-        
+        const futureFAType = futureContractTypeInfo.isExtension
+          ? 'UFA'
+          : freeAgency.type || null;
+        const futureFAYear = futureStartYear
+          ? futureStartYear + futureContractLength
+          : undefined;
+
         // Parse the cap hold from the future contract's cap hold value
         // The extension cap hold appears in the HTML as "Cap Hold YYYY-YY: $XX,XXX,XXX" after the future contract table
         const futureCapHold = futureMeta.capHold ?? null;

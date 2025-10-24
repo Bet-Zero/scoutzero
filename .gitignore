@@ -100,6 +100,8 @@ data/merged_players.json
 player-scrape/test_*.html
 player-scrape/*_backup.html
 player-scrape/output/
+player-scrape/outputs/lakers/
+player-scrape/outputs/thunder/
 player-scrape/players_list.json
 
 # Team scraper clean views (generated output)
