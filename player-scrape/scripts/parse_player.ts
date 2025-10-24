@@ -658,7 +658,7 @@ function detectContractType($: cheerio.CheerioAPI) {
   let contractType = 'VETERAN CONTRACT';
   if (isTwoWay) contractType = 'TWO-WAY';
   else if (isDesignated && isRookieScale)
-    contractType = 'DESIGNATED ROOKIE EXTENSION';
+    contractType = 'DESIGNATED ROOKIE SCALE EXTENSION';
   else if (isExtension && isRookieScale)
     contractType = 'ROOKIE SCALE EXTENSION';
   else if (isRookieScale) contractType = 'ROOKIE SCALE CONTRACT';
@@ -680,7 +680,7 @@ function detectContractTypeFromHeading(headingText: string) {
   else if (isSupermax && isExtension)
     contractType = 'DESIGNATED SUPERMAX EXTENSION';
   else if (isDesignated && isRookieScale && isExtension)
-    contractType = 'DESIGNATED ROOKIE EXTENSION';
+    contractType = 'DESIGNATED ROOKIE SCALE EXTENSION';
   else if (isExtension && isRookieScale)
     contractType = 'ROOKIE SCALE EXTENSION';
   else if (isRookieScale) contractType = 'ROOKIE SCALE CONTRACT';
@@ -936,7 +936,7 @@ function parseBirdRights($: cheerio.CheerioAPI) {
       .trim()
   );
   const eligibleFor: string[] = [];
-  if (/Early Bird/i.test(status)) eligibleFor.push('Early Bird Exception');
+  if (/Early Bird/i.test(status)) eligibleFor.push('Early-Bird Exception');
   if (/Bird/i.test(status)) eligibleFor.push('Bird Exception');
   return { status, eligibleFor: eligibleFor.length ? eligibleFor : undefined };
 }
@@ -1066,13 +1066,17 @@ function detectMaxContractInfo(
 
   if (isMax) {
     // Determine maxType based on cap percentage
+    // Always prefer page cap% if available, regardless of "Supermax" label
     if (pageCapPercentage !== null) {
       if (pageCapPercentage >= 32.5) {
         maxType = 'Max-35';
+        estimatedCapPercentage = 35; // Normalize to standard value
       } else if (pageCapPercentage >= 27.5) {
         maxType = 'Max-30';
+        estimatedCapPercentage = 30;
       } else if (pageCapPercentage >= 22.5) {
         maxType = 'Max-25';
+        estimatedCapPercentage = 25;
       } else {
         // Unknown max type, use generic
         maxType = 'Max';
@@ -1081,10 +1085,13 @@ function detectMaxContractInfo(
       // Fallback to old logic based on contract type
       if (isSupermax) {
         maxType = 'Max-35'; // Supermax is typically 35%
+        estimatedCapPercentage = 35;
       } else if (isRookieMax) {
         maxType = 'Max-30'; // Rookie max is typically 30%
+        estimatedCapPercentage = 30;
       } else {
         maxType = 'Max-30'; // Default veteran max
+        estimatedCapPercentage = 30;
       }
     }
   } else {
@@ -1093,10 +1100,13 @@ function detectMaxContractInfo(
     if (firstYearSalary > 45_000_000) {
       if (estimatedCapPercentage >= 32.5) {
         maxType = 'Max-35';
+        estimatedCapPercentage = 35;
       } else if (estimatedCapPercentage >= 27.5) {
         maxType = 'Max-30';
+        estimatedCapPercentage = 30;
       } else {
         maxType = 'Max-25';
+        estimatedCapPercentage = 25;
       }
     }
   }
@@ -1156,17 +1166,9 @@ function normalizeContractVoidedOptions(
     (y: any) => !y.voidedByExtension
   );
 
-  // Recompute totalValue / AAV from non-voided seasons
-  currentContract.totalValue = activeYears.reduce(
-    (sum: number, y: any) => sum + (y.salary || 0),
-    0
-  );
-  const activeYearCount = activeYears.length;
-  currentContract.contractLength = activeYearCount;
-  currentContract.averageAnnualValue = activeYearCount
-    ? currentContract.totalValue / activeYearCount
-    : 0;
-
+  // DO NOT change totalValue or averageAnnualValue - preserve headline numbers
+  // These reflect the original signed deal value
+  
   // Recompute guaranteedValue (exclude voided PO)
   currentContract.guaranteedValue = activeYears.reduce(
     (sum: number, y: any) => sum + (y.guaranteedAmount || 0),
