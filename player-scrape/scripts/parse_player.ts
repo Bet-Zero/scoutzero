@@ -697,7 +697,11 @@ function parseCurrentContractMeta($: cheerio.CheerioAPI) {
 
   // Signing Executive — "SIGNED BY: <name>" (appears in contract header, often in a link)
   // Match pattern: "SIGNED BY: <a href="/staff/name">Executive Name</a>" or "SIGNED BY: Executive Name"
-  let signingExecutive = text.match(/SIGNED\s*BY:\s*(?:<[^>]+>)?([A-Za-z][A-Za-z\s.'-]+?)(?:<[^>]*>)?(?=\s*(?:AGENT|PRIMARY\s*AGENT|BIRD\s*RIGHTS|$))/i)?.[1]?.trim();
+  let signingExecutive = text
+    .match(
+      /SIGNED\s*BY:\s*(?:<[^>]+>)?([A-Za-z][A-Za-z\s.'-]+?)(?:<[^>]*>)?(?=\s*(?:AGENT|PRIMARY\s*AGENT|BIRD\s*RIGHTS|$))/i
+    )?.[1]
+    ?.trim();
 
   return {
     signingTeam: signingTeam || undefined,
@@ -748,6 +752,14 @@ function parseContractMetaFromTable(
     financialDetails.each((_, el) => {
       afterText += ' ' + safeText($, $(el));
     });
+
+    // Also look for signing executive in contract header/title area
+    const contractHeader = contractContainer
+      .find('.sw_playerContract__title')
+      .parent();
+    if (contractHeader.length) {
+      afterText += ' ' + safeText($, contractHeader);
+    }
   }
 
   // Collect text from elements before table
@@ -768,13 +780,19 @@ function parseContractMetaFromTable(
     combinedText = (text + ' ' + afterText).trim();
   }
 
+  // Also search the entire page for signing executive if not found in local context
+  let pageText = '';
+  if (!combinedText.match(/SIGNED\s*BY:/i)) {
+    pageText = $.root().text();
+  }
+
+  const searchText = combinedText + ' ' + pageText;
+
   // Signing Team
-  const signingTeam = combinedText.match(
-    /Signing\s*Team:\s*([A-Z]{2,3})/i
-  )?.[1];
+  const signingTeam = searchText.match(/Signing\s*Team:\s*([A-Z]{2,3})/i)?.[1];
 
   // Signing Method / Using  — stop at the next label so we don't swallow the rest of the paragraph
-  const methodMatch = combinedText.match(
+  const methodMatch = searchText.match(
     /Signing\s*(?:Method|Using)\s*:\s*([A-Za-z ':-]+?)(?=\s*(Signing\s*Date|Signing\s*Team|Source|Expiry|Length|Value|Cap\s*Hold|TRADE\s*KICKER|$))/i
   );
   let signedUsing = methodMatch?.[1]
@@ -789,10 +807,10 @@ function parseContractMetaFromTable(
 
   // Signing Date (supports "July 6, 2023" and "07/06/2023")
   const signingDate =
-    combinedText.match(
+    searchText.match(
       /Signing\s*Date:\s*([A-Za-z]{3,9}\s+\d{1,2},\s*\d{4})/i
     )?.[1] ||
-    combinedText.match(/Signing\s*Date:\s*(\d{1,2}\/\d{1,2}\/\d{4})/i)?.[1];
+    searchText.match(/Signing\s*Date:\s*(\d{1,2}\/\d{1,2}\/\d{4})/i)?.[1];
 
   // Cap Hold — "Cap Hold 2027-28: $28,307,693"
   // Prefer afterText (more likely to have cap hold for extensions)
@@ -803,14 +821,18 @@ function parseContractMetaFromTable(
 
   // Trade Kicker — "TRADE KICKER: 15% …" or "… 15% trade kicker …"
   const tk =
-    combinedText.match(/TRADE\s*KICKER\s*:\s*(\d{1,2})%/i) ||
-    combinedText.match(/(\d{1,2})%\s+(?:trade\s+)?(?:kicker|bonus)/i) ||
-    combinedText.match(/(?:kicker|bonus)\s+of\s+(\d{1,2})%/i);
+    searchText.match(/TRADE\s*KICKER\s*:\s*(\d{1,2})%/i) ||
+    searchText.match(/(\d{1,2})%\s+(?:trade\s+)?(?:kicker|bonus)/i) ||
+    searchText.match(/(?:kicker|bonus)\s+of\s+(\d{1,2})%/i);
   const tradeKicker = tk ? parseInt(tk[1], 10) : null;
 
   // Signing Executive — "SIGNED BY: <name>" (appears in contract header, often in a link)
   // Match pattern: "SIGNED BY: <a href="/staff/name">Executive Name</a>" or "SIGNED BY: Executive Name"
-  let signingExecutive = combinedText.match(/SIGNED\s*BY:\s*(?:<[^>]+>)?([A-Za-z][A-Za-z\s.'-]+?)(?:<[^>]*>)?(?=\s*(?:AGENT|PRIMARY\s*AGENT|BIRD\s*RIGHTS|$))/i)?.[1]?.trim();
+  let signingExecutive = searchText
+    .match(
+      /SIGNED\s*BY:\s*(?:<[^>]+>)?([A-Za-z][A-Za-z\s.'-]+?)(?:<[^>]*>)?(?=\s*(?:AGENT|PRIMARY\s*AGENT|BIRD\s*RIGHTS|$))/i
+    )?.[1]
+    ?.trim();
 
   return {
     signingTeam: signingTeam || undefined,
@@ -822,6 +844,7 @@ function parseContractMetaFromTable(
   };
 }
 
+/** Parse free agency details */
 function parseFreeAgency(
   $: cheerio.CheerioAPI,
   endSeason?: string | null,
@@ -956,6 +979,71 @@ function extractOptionSummary(salariesByYear: any[]) {
   };
 }
 
+/** Detect if a contract is a max contract and calculate cap percentage estimates */
+function detectMaxContractInfo(
+  salariesByYear: any[],
+  contractType: string,
+  bio: any
+) {
+  if (!salariesByYear.length) {
+    return {
+      isMaxContract: false,
+      maxType: null,
+      estimatedCapPercentage: null,
+    };
+  }
+
+  const isMax = /max|supermax|designated/i.test(contractType);
+  const isSupermax = /supermax|designated.*extension/i.test(contractType);
+  const isRookieMax = /designated.*rookie/i.test(contractType);
+
+  // NBA salary cap is roughly $140M for 2024-25 (adjust as needed)
+  const ESTIMATED_CAP = 140_000_000;
+  const firstYearSalary = salariesByYear[0]?.salary || 0;
+
+  let maxType: string | null = null;
+  let estimatedCapPercentage: number | null = null;
+
+  if (isMax) {
+    if (isSupermax) {
+      maxType = 'Supermax';
+      estimatedCapPercentage = Math.round(
+        (firstYearSalary / ESTIMATED_CAP) * 100
+      );
+    } else if (isRookieMax) {
+      maxType = 'Rookie Max';
+      estimatedCapPercentage = Math.round(
+        (firstYearSalary / ESTIMATED_CAP) * 100
+      );
+    } else {
+      maxType = 'Veteran Max';
+      estimatedCapPercentage = Math.round(
+        (firstYearSalary / ESTIMATED_CAP) * 100
+      );
+    }
+  } else {
+    // Check if salary amounts suggest max contract even if not explicitly labeled
+    // Rough thresholds: $40M+ likely max, $50M+ likely supermax
+    if (firstYearSalary > 50_000_000) {
+      maxType = 'Supermax';
+      estimatedCapPercentage = Math.round(
+        (firstYearSalary / ESTIMATED_CAP) * 100
+      );
+    } else if (firstYearSalary > 40_000_000) {
+      maxType = 'Veteran Max';
+      estimatedCapPercentage = Math.round(
+        (firstYearSalary / ESTIMATED_CAP) * 100
+      );
+    }
+  }
+
+  return {
+    isMaxContract: !!maxType,
+    maxType,
+    estimatedCapPercentage,
+  };
+}
+
 // ---------- main ----------
 async function main() {
   const playerUrlEnv = (process.env.PLAYER_URL || '').replace('://www.', '://');
@@ -1080,9 +1168,13 @@ async function main() {
         const futureGuaranteedYears = futureSalariesByYear.filter(
           (y) => y.guaranteed
         ).length;
+        // For future contracts (extensions), yearsRemaining should only count the extension years
+        // not the current contract years before the extension kicks in
         const futureYearsRemaining = Math.max(
           0,
-          (seasonStartYear(futureEndSeason) ?? 0) - CURRENT_SEASON_START + 1
+          (seasonStartYear(futureEndSeason) ?? 0) -
+            (futureStartYear ?? CURRENT_SEASON_START) +
+            1
         );
 
         // For future contracts, parse their metadata from the contract section
@@ -1104,6 +1196,13 @@ async function main() {
         // Parse the cap hold from the future contract's cap hold value
         // The extension cap hold appears in the HTML as "Cap Hold YYYY-YY: $XX,XXX,XXX" after the future contract table
         const futureCapHold = futureMeta.capHold ?? null;
+
+        // Detect max contract info for future contract
+        const futureMaxContractInfo = detectMaxContractInfo(
+          futureSalariesByYear,
+          futureContractTypeInfo.contractType,
+          bio
+        );
 
         futureContract = {
           contractType: futureContractTypeInfo.contractType,
@@ -1137,10 +1236,17 @@ async function main() {
             ...futureOptionSummary,
           },
           tradeEligibility,
+          ...futureMaxContractInfo,
         };
       }
     }
   }
+
+  const maxContractInfo = detectMaxContractInfo(
+    salariesByYear,
+    contractType,
+    bio
+  );
 
   const output: any = {
     _note:
@@ -1174,6 +1280,7 @@ async function main() {
       birdRights,
       freeAgency,
       tradeEligibility,
+      ...maxContractInfo,
     },
     ...(futureContract ? { futureContract } : {}),
     representation: {
