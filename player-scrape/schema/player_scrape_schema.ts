@@ -37,11 +37,15 @@ const SalaryYearSchema = z.object({
   guaranteed: z.boolean(),
   guaranteedAmount: z.number(),
   option: z.string().nullable(), // "PO" | "TO" | "ETO" | null
+  optionUsed: z.string().optional(), // "No (2025-08-02)" | "Yes (2025-08-02)" | undefined
   tradeBonus: z.number().nullable(),
   incentives: z.object({
     likely: z.number(),
     unlikely: z.number()
-  })
+  }),
+  // Fields for tracking voided options (when extension supersedes a PO)
+  voidedByExtension: z.boolean().optional(),
+  voidedOn: z.string().optional() // ISO date when option was voided
 });
 
 const BirdRightsSchema = z.object({
@@ -108,7 +112,16 @@ const ContractSchema = z.object({
   freeAgency: FreeAgencySchema,
   
   // Trade eligibility
-  tradeEligibility: TradeEligibilitySchema
+  tradeEligibility: TradeEligibilitySchema,
+  
+  // Max contract fields
+  isMaxContract: z.boolean().optional(),
+  maxType: z.string().nullable().optional(), // "Max-25" | "Max-30" | "Max-35" | null
+  estimatedCapPercentage: z.number().nullable().optional(), // e.g., 25, 30, 35
+  
+  // Supersession tracking (when this contract is replaced by an extension)
+  supersededIn: z.string().optional(), // Season when superseded (e.g., "2026-27")
+  supersededByContractRef: z.string().optional() // Reference to the superseding contract
 });
 
 // ===== SOURCE METADATA =====

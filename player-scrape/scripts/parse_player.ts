@@ -120,6 +120,43 @@ const dbg = (label: string, val: any) => {
     );
 };
 
+/** Parse "Option Used: No (Aug 2, 2025)" or "Option Used: Yes (Aug 2, 2025)" into ISO date */
+function parseOptionUsedDate(text: string): { used: boolean; date: string | null } {
+  // Look for "Option Used: No (Aug 2, 2025)" or "Option Used: Yes (Aug 2, 2025)"
+  const match = text.match(/Option\s+Used:\s*(Yes|No)\s*\(([^)]+)\)/i);
+  if (!match) return { used: false, date: null };
+  
+  const used = match[1].toLowerCase() === 'yes';
+  const dateStr = match[2].trim();
+  
+  // Parse date like "Aug 2, 2025" to ISO
+  const dateMatch = dateStr.match(/([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})/);
+  if (dateMatch) {
+    const monthMap: Record<string, string> = {
+      jan: '01', january: '01',
+      feb: '02', february: '02',
+      mar: '03', march: '03',
+      apr: '04', april: '04',
+      may: '05',
+      jun: '06', june: '06',
+      jul: '07', july: '07',
+      aug: '08', august: '08',
+      sep: '09', september: '09',
+      oct: '10', october: '10',
+      nov: '11', november: '11',
+      dec: '12', december: '12'
+    };
+    const month = monthMap[dateMatch[1].toLowerCase()];
+    const day = dateMatch[2].padStart(2, '0');
+    const year = dateMatch[3];
+    if (month) {
+      return { used, date: `${year}-${month}-${day}` };
+    }
+  }
+  
+  return { used, date: dateStr };
+}
+
 /** Find the closest container section whose header text matches `re` */
 function sectionAfterHeader($: cheerio.CheerioAPI, re: RegExp) {
   const hdr = $('h1,h2,h3,h4,h5,h6')
@@ -981,9 +1018,10 @@ function extractOptionSummary(salariesByYear: any[]) {
 
 /** Detect if a contract is a max contract and calculate cap percentage estimates */
 function detectMaxContractInfo(
+  $: cheerio.CheerioAPI,
   salariesByYear: any[],
   contractType: string,
-  bio: any
+  table?: cheerio.Cheerio
 ) {
   if (!salariesByYear.length) {
     return {
@@ -1004,36 +1042,62 @@ function detectMaxContractInfo(
   let maxType: string | null = null;
   let estimatedCapPercentage: number | null = null;
 
+  // Try to extract cap% from the page (e.g., "Cap %: 30.00")
+  let pageCapPercentage: number | null = null;
+  if (table) {
+    const tableContainer = table.closest('.sw_playerContract, section, article, div');
+    const containerText = tableContainer.text();
+    const capMatch = containerText.match(/Cap\s*%\s*:\s*(\d+(?:\.\d+)?)/i);
+    if (capMatch) {
+      pageCapPercentage = parseFloat(capMatch[1]);
+    }
+  }
+  // Fallback to searching entire page
+  if (pageCapPercentage === null) {
+    const pageText = $.root().text();
+    const capMatch = pageText.match(/Cap\s*%\s*:\s*(\d+(?:\.\d+)?)/i);
+    if (capMatch) {
+      pageCapPercentage = parseFloat(capMatch[1]);
+    }
+  }
+
+  // Use page cap% if found, otherwise estimate from salary
+  estimatedCapPercentage = pageCapPercentage ?? Math.round((firstYearSalary / ESTIMATED_CAP) * 100);
+
   if (isMax) {
-    if (isSupermax) {
-      maxType = 'Supermax';
-      estimatedCapPercentage = Math.round(
-        (firstYearSalary / ESTIMATED_CAP) * 100
-      );
-    } else if (isRookieMax) {
-      maxType = 'Rookie Max';
-      estimatedCapPercentage = Math.round(
-        (firstYearSalary / ESTIMATED_CAP) * 100
-      );
+    // Determine maxType based on cap percentage
+    if (pageCapPercentage !== null) {
+      if (pageCapPercentage >= 32.5) {
+        maxType = 'Max-35';
+      } else if (pageCapPercentage >= 27.5) {
+        maxType = 'Max-30';
+      } else if (pageCapPercentage >= 22.5) {
+        maxType = 'Max-25';
+      } else {
+        // Unknown max type, use generic
+        maxType = 'Max';
+      }
     } else {
-      maxType = 'Veteran Max';
-      estimatedCapPercentage = Math.round(
-        (firstYearSalary / ESTIMATED_CAP) * 100
-      );
+      // Fallback to old logic based on contract type
+      if (isSupermax) {
+        maxType = 'Max-35'; // Supermax is typically 35%
+      } else if (isRookieMax) {
+        maxType = 'Max-30'; // Rookie max is typically 30%
+      } else {
+        maxType = 'Max-30'; // Default veteran max
+      }
     }
   } else {
     // Check if salary amounts suggest max contract even if not explicitly labeled
-    // Rough thresholds: $40M+ likely max, $50M+ likely supermax
-    if (firstYearSalary > 50_000_000) {
-      maxType = 'Supermax';
-      estimatedCapPercentage = Math.round(
-        (firstYearSalary / ESTIMATED_CAP) * 100
-      );
-    } else if (firstYearSalary > 40_000_000) {
-      maxType = 'Veteran Max';
-      estimatedCapPercentage = Math.round(
-        (firstYearSalary / ESTIMATED_CAP) * 100
-      );
+    // Rough thresholds: $45M+ likely max
+    if (firstYearSalary > 45_000_000) {
+      if (estimatedCapPercentage >= 32.5) {
+        maxType = 'Max-35';
+      } else if (estimatedCapPercentage >= 27.5) {
+        maxType = 'Max-30';
+      } else {
+        maxType = 'Max-25';
+      }
     }
   }
 
@@ -1042,6 +1106,78 @@ function detectMaxContractInfo(
     maxType,
     estimatedCapPercentage,
   };
+}
+
+/** 
+ * Post-parse normalizer: Detect when a future extension voids a PO in the current contract
+ * 
+ * If a player has:
+ * - Current contract with PO in season S (e.g., 2026-27)
+ * - Future extension starting in season S
+ * Then: Mark the PO as voided by extension
+ */
+function normalizeContractVoidedOptions(
+  currentContract: any,
+  futureContract: any | undefined,
+  pageText: string
+): void {
+  if (!futureContract || !currentContract.salariesByYear) return;
+  
+  const futureStartSeason = futureContract.startSeason;
+  if (!futureStartSeason) return;
+  
+  // Find PO year in current contract that matches future extension start
+  const poYear = currentContract.salariesByYear.find(
+    (y: any) => y.season === futureStartSeason && y.option === 'PO'
+  );
+  
+  if (!poYear) return;
+  
+  dbg('Detected PO voided by extension', `${poYear.season} PO voided by extension starting ${futureStartSeason}`);
+  
+  // Parse option used date from page text
+  const optionInfo = parseOptionUsedDate(pageText);
+  const voidedDate = optionInfo.date || futureContract.signingDate || new Date().toISOString().split('T')[0];
+  
+  // Mark the PO year as voided
+  poYear.option = 'PO';
+  poYear.optionUsed = optionInfo.date ? `No (${optionInfo.date})` : `No (${voidedDate})`;
+  poYear.guaranteed = false;
+  poYear.guaranteedAmount = 0;
+  poYear.voidedByExtension = true;
+  poYear.voidedOn = voidedDate;
+  
+  // Update current contract metadata
+  currentContract.supersededIn = futureStartSeason;
+  currentContract.supersededByContractRef = futureContract.contractType || 'extension';
+  
+  // Recompute guaranteedValue (exclude voided PO)
+  currentContract.guaranteedValue = currentContract.salariesByYear
+    .filter((y: any) => !y.voidedByExtension)
+    .reduce((sum: number, y: any) => sum + (y.guaranteedAmount || 0), 0);
+  
+  // Recompute guaranteedYears (exclude voided PO)
+  currentContract.guaranteedYears = currentContract.salariesByYear
+    .filter((y: any) => !y.voidedByExtension && y.guaranteed)
+    .length;
+  
+  // Recompute yearsRemaining (exclude voided season)
+  const CURRENT_SEASON_START = 2025;
+  const endSeason = currentContract.salariesByYear
+    .filter((y: any) => !y.voidedByExtension)
+    .slice(-1)[0]?.season;
+  
+  if (endSeason) {
+    const endYearNum = seasonStartYear(endSeason) ?? CURRENT_SEASON_START - 1;
+    currentContract.yearsRemaining = Math.max(0, endYearNum - CURRENT_SEASON_START + 1);
+  }
+  
+  dbg('Contract after PO voiding', {
+    guaranteedValue: currentContract.guaranteedValue,
+    guaranteedYears: currentContract.guaranteedYears,
+    yearsRemaining: currentContract.yearsRemaining,
+    supersededIn: currentContract.supersededIn
+  });
 }
 
 // ---------- main ----------
@@ -1199,9 +1335,10 @@ async function main() {
 
         // Detect max contract info for future contract
         const futureMaxContractInfo = detectMaxContractInfo(
+          $,
           futureSalariesByYear,
           futureContractTypeInfo.contractType,
-          bio
+          futureTable.table
         );
 
         futureContract = {
@@ -1243,10 +1380,42 @@ async function main() {
   }
 
   const maxContractInfo = detectMaxContractInfo(
+    $,
     salariesByYear,
     contractType,
-    bio
+    found?.table
   );
+
+  // Build contract object
+  const contract: any = {
+    contractType,
+    isExtension,
+    isRookieScale,
+    signedUsing: meta.signedUsing,
+    signingTeam: meta.signingTeam || teamCode,
+    signingDate: meta.signingDate,
+    signingExecutive: meta.signingExecutive,
+    signedByCurrentTeam: (meta.signingTeam || teamCode) === teamCode,
+    startSeason,
+    endSeason,
+    contractLength,
+    yearsRemaining,
+    totalValue,
+    averageAnnualValue,
+    guaranteedValue,
+    guaranteedYears,
+    salariesByYear,
+    noTradeClause: !!hasNTC,
+    tradeKicker: meta.tradeKicker,
+    tradeRestrictions: [],
+    birdRights,
+    freeAgency,
+    tradeEligibility,
+    ...maxContractInfo,
+  };
+
+  // Apply post-parse normalizer to detect voided POs
+  normalizeContractVoidedOptions(contract, futureContract, $.root().text());
 
   const output: any = {
     _note:
@@ -1256,32 +1425,7 @@ async function main() {
     teamCode,
     teamName,
     bio,
-    contract: {
-      contractType,
-      isExtension,
-      isRookieScale,
-      signedUsing: meta.signedUsing,
-      signingTeam: meta.signingTeam || teamCode,
-      signingDate: meta.signingDate,
-      signingExecutive: meta.signingExecutive,
-      signedByCurrentTeam: (meta.signingTeam || teamCode) === teamCode,
-      startSeason,
-      endSeason,
-      contractLength,
-      yearsRemaining,
-      totalValue,
-      averageAnnualValue,
-      guaranteedValue,
-      guaranteedYears,
-      salariesByYear,
-      noTradeClause: !!hasNTC,
-      tradeKicker: meta.tradeKicker,
-      tradeRestrictions: [],
-      birdRights,
-      freeAgency,
-      tradeEligibility,
-      ...maxContractInfo,
-    },
+    contract,
     ...(futureContract ? { futureContract } : {}),
     representation: {
       agent: agent ?? null,
