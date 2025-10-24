@@ -1151,21 +1151,36 @@ function normalizeContractVoidedOptions(
   currentContract.supersededIn = futureStartSeason;
   currentContract.supersededByContractRef = futureContract.contractType || 'extension';
   
+  // Filter out voided years for rollups
+  const activeYears = currentContract.salariesByYear.filter(
+    (y: any) => !y.voidedByExtension
+  );
+
+  // Recompute totalValue / AAV from non-voided seasons
+  currentContract.totalValue = activeYears.reduce(
+    (sum: number, y: any) => sum + (y.salary || 0),
+    0
+  );
+  const activeYearCount = activeYears.length;
+  currentContract.contractLength = activeYearCount;
+  currentContract.averageAnnualValue = activeYearCount
+    ? currentContract.totalValue / activeYearCount
+    : 0;
+
   // Recompute guaranteedValue (exclude voided PO)
-  currentContract.guaranteedValue = currentContract.salariesByYear
-    .filter((y: any) => !y.voidedByExtension)
-    .reduce((sum: number, y: any) => sum + (y.guaranteedAmount || 0), 0);
-  
+  currentContract.guaranteedValue = activeYears.reduce(
+    (sum: number, y: any) => sum + (y.guaranteedAmount || 0),
+    0
+  );
+
   // Recompute guaranteedYears (exclude voided PO)
-  currentContract.guaranteedYears = currentContract.salariesByYear
-    .filter((y: any) => !y.voidedByExtension && y.guaranteed)
-    .length;
-  
+  currentContract.guaranteedYears = activeYears.filter(
+    (y: any) => y.guaranteed
+  ).length;
+
   // Recompute yearsRemaining (exclude voided season)
   const CURRENT_SEASON_START = 2025;
-  const endSeason = currentContract.salariesByYear
-    .filter((y: any) => !y.voidedByExtension)
-    .slice(-1)[0]?.season;
+  const endSeason = activeYears.slice(-1)[0]?.season;
   
   if (endSeason) {
     const endYearNum = seasonStartYear(endSeason) ?? CURRENT_SEASON_START - 1;
@@ -1451,9 +1466,11 @@ async function main() {
   console.log(`   Team: ${output.teamName} (${output.teamCode})`);
   console.log(`   Contract: ${contractType}`);
   console.log(
-    `   Years: ${contractLength} (${startSeason ?? '-'} - ${endSeason ?? '-'})`
+    `   Years: ${contract.contractLength} (${contract.startSeason ?? '-'} - ${contract.endSeason ?? '-'})`
   );
-  console.log(`   Total Value: $${(totalValue / 1_000_000).toFixed(1)}M`);
+  console.log(
+    `   Total Value: $${(contract.totalValue / 1_000_000).toFixed(1)}M`
+  );
 
   if (futureContract) {
     console.log(
