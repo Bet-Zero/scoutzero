@@ -695,10 +695,14 @@ function parseCurrentContractMeta($: cheerio.CheerioAPI) {
     text.match(/(?:kicker|bonus)\s+of\s+(\d{1,2})%/i);
   const tradeKicker = tk ? parseInt(tk[1], 10) : null;
 
+  // Signing Executive — "SIGNED BY: <name>" (appears in contract header)
+  const signingExecutive = text.match(/SIGNED\s*BY:\s*([A-Za-z][A-Za-z\s.'-]+?)(?=\s*(AGENT|Agent|PRIMARY\s*AGENT|BIRD\s*RIGHTS|$))/i)?.[1]?.trim();
+
   return {
     signingTeam: signingTeam || undefined,
     signedUsing,
     signingDate,
+    signingExecutive,
     capHold,
     tradeKicker,
   };
@@ -803,10 +807,14 @@ function parseContractMetaFromTable(
     combinedText.match(/(?:kicker|bonus)\s+of\s+(\d{1,2})%/i);
   const tradeKicker = tk ? parseInt(tk[1], 10) : null;
 
+  // Signing Executive — "SIGNED BY: <name>" (appears in contract header)
+  const signingExecutive = combinedText.match(/SIGNED\s*BY:\s*([A-Za-z][A-Za-z\s.'-]+?)(?=\s*(AGENT|Agent|PRIMARY\s*AGENT|BIRD\s*RIGHTS|$))/i)?.[1]?.trim();
+
   return {
     signingTeam: signingTeam || undefined,
     signedUsing,
     signingDate,
+    signingExecutive,
     capHold,
     tradeKicker,
   };
@@ -1102,6 +1110,7 @@ async function main() {
           signedUsing: futureMeta.signedUsing,
           signingTeam: futureMeta.signingTeam ?? teamCode,
           signingDate: futureMeta.signingDate,
+          signingExecutive: futureMeta.signingExecutive,
           signedByCurrentTeam:
             (futureMeta.signingTeam ?? teamCode) === teamCode,
           startSeason: futureStartSeason,
@@ -1146,6 +1155,7 @@ async function main() {
       signedUsing: meta.signedUsing,
       signingTeam: meta.signingTeam || teamCode,
       signingDate: meta.signingDate,
+      signingExecutive: meta.signingExecutive,
       signedByCurrentTeam: (meta.signingTeam || teamCode) === teamCode,
       startSeason,
       endSeason,
@@ -1207,6 +1217,7 @@ async function main() {
   console.log(`   Trade Kicker: ${meta.tradeKicker ?? '—'}%`);
   console.log(`   Signed Using: ${meta.signedUsing ?? '—'}`);
   console.log(`   Signed Date: ${meta.signingDate ?? '—'}`);
+  console.log(`   Signed By: ${meta.signingExecutive ?? '—'}`);
   console.log(`   Agent/Agency: ${agent ?? '—'} / ${agency ?? '—'}`);
   console.log(`📁 Output saved to: ${outPath}`);
 }

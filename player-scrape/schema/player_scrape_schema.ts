@@ -80,6 +80,7 @@ const ContractSchema = z.object({
   signedUsing: z.string().optional(), // "Bird" | "Early Bird" | "MLE" | etc.
   signingTeam: z.string().optional(),
   signingDate: z.string().optional(),
+  signingExecutive: z.string().optional(), // Executive who signed the deal (e.g., "Rob Pelinka")
   signedByCurrentTeam: z.boolean().optional(),
   
   // Contract duration
