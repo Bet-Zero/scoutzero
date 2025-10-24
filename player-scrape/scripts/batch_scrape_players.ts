@@ -250,6 +250,10 @@ async function parsePlayerData(
   const signingTeam = teamMatch ? teamMatch[1] : teamCode;
   const signedByCurrentTeam = signingTeam === teamCode;
 
+  // Parse signing executive — "SIGNED BY: <name>" (appears in contract header, often in a link)
+  // Match pattern: "SIGNED BY: <a href="/staff/name">Executive Name</a>" or "SIGNED BY: Executive Name"
+  const signingExecutive = teamText.match(/SIGNED\s*BY:\s*(?:<[^>]+>)?([A-Za-z][A-Za-z\s.'-]+?)(?:<[^>]*>)?(?=\s*(?:AGENT|PRIMARY\s*AGENT|BIRD\s*RIGHTS|$))/i)?.[1]?.trim();
+
   // Parse Bird rights
   const birdMatch1 = teamText.match(
     /Bird\s+Rights[:\s]+((?:Early\s+)?Bird|Non-Bird|None)(?:\s|$)/i
@@ -355,6 +359,7 @@ async function parsePlayerData(
       signedUsing,
       signingTeam,
       signingDate,
+      signingExecutive,
       signedByCurrentTeam,
       startSeason,
       endSeason,
