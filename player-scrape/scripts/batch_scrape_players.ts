@@ -173,9 +173,11 @@ async function parsePlayerData(
 
   let contractType = 'VETERAN CONTRACT';
   if (isTwoWay) contractType = 'TWO-WAY';
-  else if (isDesignated && isRookieScale)
-    contractType = 'DESIGNATED ROOKIE EXTENSION';
-  else if (isRookieScale) contractType = 'ROOKIE SCALE';
+  else if (isDesignated && isRookieScale && isExtension)
+    contractType = 'DESIGNATED ROOKIE SCALE EXTENSION';
+  else if (isExtension && isRookieScale)
+    contractType = 'ROOKIE SCALE EXTENSION';
+  else if (isRookieScale) contractType = 'ROOKIE SCALE CONTRACT';
   else if (isExtension) contractType = 'VETERAN EXTENSION';
 
   // Parse salary table
