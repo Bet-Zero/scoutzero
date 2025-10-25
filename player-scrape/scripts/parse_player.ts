@@ -19,6 +19,9 @@ const DEBUG = process.env.DEBUG === '1';
 
 type Money = number;
 
+// Constant to indicate that a guarantee amount will be filled in later with the full salary
+const GUARANTEE_AMOUNT_TBD = 0;
+
 const norm = (s: string) => (s || '').replace(/\s+/g, ' ').trim();
 const squeezeSpaces = (s: string) => s.replace(/[ \t]+/g, ' ').trim();
 const moneyNum = (s?: string) => {
@@ -32,7 +35,7 @@ const seasonStartYear = (season?: string) => {
   const m = season?.match(/^(\d{4})\s*-\s*\d{2}$/);
   return m ? parseInt(m[1], 10) : undefined;
 };
-const cleanLabelVal = (t: string) => norm(t.replace(/\s*[:\-–]\s*/g, ': '));
+const cleanLabelVal = (t: string) => norm(t.replace(/\s*[:\-–]\s*/g, ' '));
 /** Strip contract type tags from season strings (e.g., "2025-26 Max" -> "2025-26") */
 const cleanSeason = (s: string) => {
   // Remove common contract tags: Max, PO (Player Option), TO (Team Option), ETO, etc.
@@ -132,43 +135,59 @@ function parseOptionUsedDate(text: string): {
   const used = match[1].toLowerCase() === 'yes';
   const dateStr = match[2].trim();
 
-  // Parse date like "Aug 2, 2025" to ISO
-  const dateMatch = dateStr.match(/([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})/);
-  if (dateMatch) {
-    const monthMap: Record<string, string> = {
-      jan: '01',
-      january: '01',
-      feb: '02',
-      february: '02',
-      mar: '03',
-      march: '03',
-      apr: '04',
-      april: '04',
-      may: '05',
-      jun: '06',
-      june: '06',
-      jul: '07',
-      july: '07',
-      aug: '08',
-      august: '08',
-      sep: '09',
-      september: '09',
-      oct: '10',
-      october: '10',
-      nov: '11',
-      november: '11',
-      dec: '12',
-      december: '12',
-    };
-    const month = monthMap[dateMatch[1].toLowerCase()];
-    const day = dateMatch[2].padStart(2, '0');
-    const year = dateMatch[3];
-    if (month) {
-      return { used, date: `${year}-${month}-${day}` };
-    }
-  }
-
+  // Return the original date string as-is (not converting to ISO format)
+  // to preserve the human-readable format from the source data
   return { used, date: dateStr };
+}
+
+/** Format option used info into standard string format */
+const formatOptionUsed = (info: {
+  used: boolean;
+  date: string | null;
+}): string | null => {
+  if (!info.date) return null;
+  return `${info.used ? 'Yes' : 'No'} (${info.date})`;
+};
+
+/** Convert human-readable date to ISO format (YYYY-MM-DD) */
+function toISODate(dateStr: string): string | null {
+  // Parse date like "Aug 2, 2025" to ISO "2025-08-02"
+  const dateMatch = dateStr.match(/([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})/);
+  if (!dateMatch) return null;
+
+  const monthMap: Record<string, string> = {
+    jan: '01',
+    january: '01',
+    feb: '02',
+    february: '02',
+    mar: '03',
+    march: '03',
+    apr: '04',
+    april: '04',
+    may: '05',
+    jun: '06',
+    june: '06',
+    jul: '07',
+    july: '07',
+    aug: '08',
+    august: '08',
+    sep: '09',
+    september: '09',
+    oct: '10',
+    october: '10',
+    nov: '11',
+    november: '11',
+    dec: '12',
+    december: '12',
+  };
+
+  const month = monthMap[dateMatch[1].toLowerCase()];
+  if (!month) return null;
+
+  const day = dateMatch[2].padStart(2, '0');
+  const year = dateMatch[3];
+
+  return `${year}-${month}-${day}`;
 }
 
 /**
@@ -191,6 +210,19 @@ function parseGuaranteeDetails(
   const guaranteeSection = sectionAfterHeader($, /guaranteed?\s+details?/i);
   const text = guaranteeSection.text;
 
+  // Find the line for this specific season
+  // Pattern: "2025-26: ... " - capture everything up to the next season or end
+  const seasonPattern = new RegExp(
+    `${season}:\\s*([^]*?)(?=\\d{4}-\\d{2}:|$)`,
+    'i'
+  );
+  const seasonMatch = text.match(seasonPattern);
+  if (!seasonMatch) {
+    return { guaranteedAmount: 0, guaranteeSchedule: null };
+  }
+
+  const seasonLine = seasonMatch[1] || seasonMatch[0];
+
   const schedule: Array<{
     effectiveDate: string;
     guaranteedAmount: number;
@@ -198,42 +230,45 @@ function parseGuaranteeDetails(
     note: string;
   }> = [];
 
-  // Pattern 1: "if player is not waived before [DATE] ... becomes fully guaranteed"
-  // Pattern 2: "if not waived prior to [DATE/EVENT] ... increases to $X"
-  const guaranteePatterns = [
-    // "if not waived before Jan 10, 2026 ... becomes fully guaranteed"
-    /if\s+(?:player\s+is\s+)?not\s+waived\s+(?:before|prior\s+to)\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})[^$]*(?:becomes\s+fully\s+guaranteed|increases\s+to)\s*\$?\s*([\d,]+)?/gi,
-    // "if not waived before the first regular season game ... increases to $381,695"
-    /if\s+not\s+waived\s+(?:before|prior\s+to)\s+(?:the\s+)?(first\s+regular\s+season\s+game[^$]*)\s+increases\s+to\s+\$\s*([\d,]+)/gi,
-    // "guarantees if not waived before [DATE]"
-    /guarantees?\s+if\s+not\s+waived\s+before\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})/gi,
-  ];
-
-  for (const pattern of guaranteePatterns) {
-    let match;
-    while ((match = pattern.exec(text)) !== null) {
-      const dateOrEvent = match[1];
-      const amountStr = match[2];
-      const amount = amountStr ? moneyNum(amountStr) : undefined;
-
-      if (dateOrEvent && amount) {
-        schedule.push({
-          effectiveDate: dateOrEvent.trim(),
-          guaranteedAmount: amount,
-          status: 'Decision Pending',
-          note: `Guarantees if not waived before ${dateOrEvent.trim()}`,
-        });
-      }
-    }
+  // Extract baseline guaranteed amount from "[Requirements Met]" portion
+  // Pattern: "$88,075 guaranteed [Requirements Met]"
+  let baselineAmount = 0;
+  const baselineMatch = seasonLine.match(
+    /\$\s*([\d,]+)\s+guaranteed\s+\[Requirements\s+Met\]/i
+  );
+  if (baselineMatch) {
+    baselineAmount = moneyNum(baselineMatch[1]) || 0;
   }
 
-  // If no schedule found, return basic structure
-  if (schedule.length === 0) {
-    return { guaranteedAmount: 0, guaranteeSchedule: null };
+  // Parse future guarantee triggers
+  // Pattern 1: "Guarantees if not waived before the first regular season game of SEASON, increases to $X"
+  const gamePattern =
+    /(?:G|g)uarantees\s+if\s+not\s+waived\s+before\s+(?:the\s+)?(first\s+regular\s+season\s+game[^,]*)[,\s]+increases\s+to\s+\$\s*([\d,]+)/gi;
+  let match;
+  while ((match = gamePattern.exec(seasonLine)) !== null) {
+    const event = match[1].trim();
+    const amount = moneyNum(match[2]) || 0;
+    schedule.push({
+      effectiveDate: event,
+      guaranteedAmount: amount,
+      status: 'Decision Pending',
+      note: `Guarantees if not waived before ${event}`,
+    });
   }
 
-  // Return the first/baseline guaranteed amount
-  const baselineAmount = schedule.length > 0 ? schedule[0].guaranteedAmount : 0;
+  // Pattern 2: "If player is not waived before [DATE], becomes fully guaranteed"
+  // Amount will be filled in enrichGuaranteeSchedules using GUARANTEE_AMOUNT_TBD placeholder
+  const datePattern =
+    /(?:I|i)f\s+(?:player\s+is\s+)?not\s+waived\s+before\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})[^$]*becomes\s+fully\s+guaranteed/gi;
+  while ((match = datePattern.exec(seasonLine)) !== null) {
+    const dateStr = match[1].trim();
+    schedule.push({
+      effectiveDate: dateStr,
+      guaranteedAmount: GUARANTEE_AMOUNT_TBD, // Will be filled in with salary amount later
+      status: 'Decision Pending',
+      note: `Guarantees if not waived before ${dateStr}`,
+    });
+  }
 
   return {
     guaranteedAmount: baselineAmount,
@@ -407,12 +442,18 @@ function parseSalaryTable(
   const idxUnlikely = headerIndex(headers, /unlikely/i);
 
   const rows: any[] = [];
-  table.find('tbody tr').each((_, tr) => {
+  const allRows = table.find('tbody tr').toArray();
+
+  for (let i = 0; i < allRows.length; i++) {
+    const tr = allRows[i];
     const cells = $(tr).find('td');
-    if (!cells.length || idxSeason < 0) return;
+    if (!cells.length || idxSeason < 0) continue;
 
     const rawSeason = norm(cells.eq(idxSeason).text());
-    if (!rawSeason) return;
+    if (!rawSeason) continue;
+
+    // Skip rows that only contain "Option Used" info (colspan rows)
+    if (/^Option\s+Used:/i.test(rawSeason)) continue;
 
     const season = cleanSeason(rawSeason);
 
@@ -432,9 +473,15 @@ function parseSalaryTable(
       // Check for "Option Used: Yes/No (date)" in the option cell
       const optionCellText = cells.eq(idxOption).text();
       const optionInfo = parseOptionUsedDate(optionCellText);
-      if (optionInfo.date) {
-        optionUsed = `${optionInfo.used ? 'Yes' : 'No'} (${optionInfo.date})`;
-      }
+      optionUsed = formatOptionUsed(optionInfo);
+    }
+
+    // Check the next row for optionUsed info (sometimes it's in a colspan row)
+    if (!optionUsed && i + 1 < allRows.length) {
+      const nextTr = allRows[i + 1];
+      const nextRowText = $(nextTr).text();
+      const nextOptionInfo = parseOptionUsedDate(nextRowText);
+      optionUsed = formatOptionUsed(nextOptionInfo);
     }
 
     // Also check season cell for option tags (e.g., "2025-26 PO")
@@ -492,7 +539,7 @@ function parseSalaryTable(
     if (kicker) rec.tradeBonus = parseInt(kicker[1], 10);
 
     rows.push(rec);
-  });
+  }
   return rows;
 }
 
@@ -900,7 +947,7 @@ function parseContractMetaFromTable(
   while (current.length > 0) {
     const tagName = current.prop('tagName')?.toLowerCase();
 
-    // Stop if we hit a heading (h1-h6) or another table
+    // Stop if we hit a heading (h1-6) or another table
     if (tagName && /^h[1-6]$/.test(tagName)) {
       break;
     }
@@ -1272,10 +1319,12 @@ function enrichGuaranteeSchedules(
   $: cheerio.CheerioAPI,
   salariesByYear: any[]
 ): void {
-  // For each year with partial guarantees, try to find guarantee schedule
+  // For each year that is not fully guaranteed, try to find guarantee schedule
+  // This includes both partially guaranteed years (guaranteedAmount > 0 but < salary)
+  // and fully non-guaranteed years (guaranteedAmount === 0)
   for (const yearRow of salariesByYear) {
-    // Skip fully guaranteed or non-guaranteed years
-    if (yearRow.guaranteed || yearRow.guaranteedAmount === 0) {
+    // Skip fully guaranteed years (where guaranteed === true)
+    if (yearRow.guaranteed) {
       continue;
     }
 
@@ -1286,14 +1335,25 @@ function enrichGuaranteeSchedules(
       guaranteeInfo.guaranteeSchedule &&
       guaranteeInfo.guaranteeSchedule.length > 0
     ) {
-      yearRow.guaranteeSchedule = guaranteeInfo.guaranteeSchedule;
+      // Fill in amounts for "becomes fully guaranteed" entries (where amount is GUARANTEE_AMOUNT_TBD)
+      const schedule = guaranteeInfo.guaranteeSchedule.map((entry) => {
+        if (entry.guaranteedAmount === GUARANTEE_AMOUNT_TBD) {
+          // This is a "becomes fully guaranteed" trigger - use the full salary
+          return {
+            ...entry,
+            guaranteedAmount: yearRow.salary,
+          };
+        }
+        return entry;
+      });
 
-      // Update guaranteedAmount to the first/baseline value if we found schedule
-      if (
-        guaranteeInfo.guaranteedAmount > 0 &&
-        yearRow.guaranteedAmount === 0
-      ) {
+      yearRow.guaranteeSchedule = schedule;
+
+      // Update guaranteedAmount to the baseline value from guarantee details
+      if (guaranteeInfo.guaranteedAmount > 0) {
         yearRow.guaranteedAmount = guaranteeInfo.guaranteedAmount;
+        // Recompute guaranteed boolean
+        yearRow.guaranteed = yearRow.guaranteedAmount === yearRow.salary;
       }
     }
   }
@@ -1343,18 +1403,34 @@ function normalizeContractVoidedOptions(
     `${poYear.season} PO voided by extension starting ${futureStartSeason}`
   );
 
-  // Parse option used date from page text
+  // Parse option used date from page text to get the human-readable format
   const optionInfo = parseOptionUsedDate(pageText);
-  const voidedDate =
-    optionInfo.date ||
-    futureContract.signingDate ||
-    new Date().toISOString().split('T')[0];
+
+  // For optionUsed: keep the full human-readable string "No (Aug 2, 2025)"
+  const optionUsedStr = optionInfo.date ? `No (${optionInfo.date})` : null;
+
+  // For voidedOn: extract date from optionUsed and convert to ISO format
+  let voidedDate: string;
+
+  if (optionUsedStr) {
+    // Extract the date part from "No (Aug 2, 2025)" -> "Aug 2, 2025"
+    const dateMatch = optionUsedStr.match(/\(([^)]+)\)/);
+    if (dateMatch) {
+      const extractedDate = dateMatch[1].trim();
+      const isoDate = toISODate(extractedDate);
+      voidedDate = isoDate || extractedDate; // fallback to original if conversion fails
+    } else {
+      voidedDate = optionInfo.date || new Date().toISOString().split('T')[0];
+    }
+  } else if (futureContract.signingDate) {
+    voidedDate = futureContract.signingDate;
+  } else {
+    voidedDate = new Date().toISOString().split('T')[0];
+  }
 
   // Mark the PO year as voided
   poYear.option = 'PO';
-  poYear.optionUsed = optionInfo.date
-    ? `No (${optionInfo.date})`
-    : `No (${voidedDate})`;
+  poYear.optionUsed = optionUsedStr || `No (${voidedDate})`;
   poYear.guaranteed = false;
   poYear.guaranteedAmount = 0;
   poYear.voidedByExtension = true;
@@ -1381,7 +1457,7 @@ function normalizeContractVoidedOptions(
 
   // Recompute guaranteedYears (exclude voided PO)
   currentContract.guaranteedYears = activeYears.filter(
-    (y: any) => y.guaranteed
+    (y: any) => (y.guaranteedAmount || 0) > 0
   ).length;
 
   // Recompute yearsRemaining (exclude voided season)
@@ -1467,7 +1543,9 @@ async function main() {
     (s, y) => s + (y.guaranteedAmount || 0),
     0
   );
-  const guaranteedYears = salariesByYear.filter((y) => y.guaranteed).length;
+  const guaranteedYears = salariesByYear.filter(
+    (y) => (y.guaranteedAmount || 0) > 0
+  ).length;
 
   const CURRENT_SEASON_START = 2025;
   const endYearNum = endSeason
@@ -1548,7 +1626,7 @@ async function main() {
           0
         );
         const futureGuaranteedYears = futureSalariesByYear.filter(
-          (y) => y.guaranteed
+          (y) => (y.guaranteedAmount || 0) > 0
         ).length;
         // For future contracts (extensions), yearsRemaining should only count the extension years
         // not the current contract years before the extension kicks in
