@@ -44,7 +44,9 @@ const NAV_TIMEOUT_MS = 60_000;
 const WAIT_TIMEOUT_MS = 45_000;
 const EXTRA_SETTLE_MS = 1_000;
 
-const OUTPUT_PATH = join(__dirname, '../examples/page.html');
+const OUTPUT_PATH = process.env.TEMP_FILE
+  ? join(__dirname, '../examples', process.env.TEMP_FILE)
+  : join(__dirname, '../examples/page.html');
 
 // Prefer non-www to reduce redirects / long-lived connections
 const playerUrl = playerUrlRaw.replace('://www.', '://');
