@@ -520,9 +520,10 @@ function parseSalaryTable(
       // function will update this based on GUARANTEED DETAILS section.
       // Only assume fully guaranteed if explicitly marked as such.
       const rowTxt = $(tr).text().toLowerCase();
-      const isExplicitlyGuaranteed = 
-        /fully\s+guaranteed|100%/.test(rowTxt) && 
-        !/non-?guaranteed|partial/.test(rowTxt);
+      const hasFullyGuaranteedText = /fully\s+guaranteed|100%/.test(rowTxt);
+      const hasPartialText = /non-?guaranteed|partial/.test(rowTxt);
+      const isExplicitlyGuaranteed = hasFullyGuaranteedText && !hasPartialText;
+      
       guaranteed = isExplicitlyGuaranteed;
       guaranteedAmount = guaranteed ? salary : 0;
     }
