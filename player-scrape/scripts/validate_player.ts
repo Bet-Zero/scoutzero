@@ -30,7 +30,15 @@ async function validatePlayer() {
 
     if (!result.success) {
       console.error('❌ Validation failed:');
-      console.error(result.error.format());
+      // Print detailed error information
+      result.error.issues.forEach((issue, index) => {
+        console.error(`\nError ${index + 1}:`);
+        console.error(`  Path: ${issue.path.join('.')}`);
+        console.error(`  Code: ${issue.code}`);
+        console.error(`  Message: ${issue.message}`);
+        if (issue.expected) console.error(`  Expected: ${issue.expected}`);
+        if (issue.received) console.error(`  Received: ${issue.received}`);
+      });
       process.exit(1);
     }
 

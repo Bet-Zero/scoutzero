@@ -26,7 +26,7 @@ const norm = (s: string) => (s || '').replace(/\s+/g, ' ').trim();
 const squeezeSpaces = (s: string) => s.replace(/[ \t]+/g, ' ').trim();
 const moneyNum = (s?: string) => {
   if (!s) return undefined;
-  
+
   // Try to extract just the first dollar amount using regex
   // Handles cases like "$88,075 (0—88.1k)" by extracting just "$88,075"
   const match = s.match(/\$\s*([\d,]+(?:\.\d+)?)/);
@@ -34,7 +34,7 @@ const moneyNum = (s?: string) => {
     const v = Number(match[1].replace(/,/g, ''));
     return Number.isFinite(v) ? v : undefined;
   }
-  
+
   // Fallback to original logic for non-dollar-prefixed numbers
   const v = Number(s.replace(/[$, ]/g, ''));
   return Number.isFinite(v) ? v : undefined;
@@ -216,22 +216,49 @@ function parseGuaranteeDetails(
     note: string;
   }> | null;
 } {
-  // Look for "Guaranteed Details" section
-  const guaranteeSection = sectionAfterHeader($, /guaranteed?\s+details?/i);
-  const text = guaranteeSection.text;
+  // Look for "Guaranteed Details" section - it's a div, not a header
+  // Pattern: <div class="">GUARANTEED DETAILS</div> followed by guarantee detail divs
+  const guaranteeDetailsDivs = $('div').filter((_, el) => {
+    const text = $(el).text().trim();
+    return /^GUARANTEED\s+DETAILS$/i.test(text);
+  });
 
-  // Find the line for this specific season
-  // Pattern: "2025-26: ... " - capture everything up to the next season or end
-  const seasonPattern = new RegExp(
-    `${season}:\\s*([^]*?)(?=\\d{4}-\\d{2}:|$)`,
-    'i'
-  );
-  const seasonMatch = text.match(seasonPattern);
-  if (!seasonMatch) {
+  if (guaranteeDetailsDivs.length === 0) {
+    if (DEBUG)
+      dbg(
+        `No GUARANTEED DETAILS section found for ${season}`,
+        'No guarantee details div found'
+      );
     return { guaranteedAmount: 0, guaranteeSchedule: null };
   }
 
-  const seasonLine = seasonMatch[1] || seasonMatch[0];
+  // Find the parent container and get all sibling divs that contain guarantee info for this season
+  const guaranteeContainer = guaranteeDetailsDivs.first().parent();
+  const seasonLines: string[] = [];
+
+  // Look for divs that start with the season pattern (e.g., "2025-26:")
+  guaranteeContainer.find('div').each((_, el) => {
+    const text = $(el).text().trim();
+    if (text.startsWith(`${season}:`)) {
+      seasonLines.push(text);
+    }
+  });
+
+  if (seasonLines.length === 0) {
+    if (DEBUG)
+      dbg(
+        `No guarantee lines found for ${season}`,
+        'No divs starting with season found'
+      );
+    return { guaranteedAmount: 0, guaranteeSchedule: null };
+  }
+
+  const seasonContent = seasonLines.join(' ');
+
+  if (DEBUG) {
+    dbg(`Guarantee lines for ${season}`, seasonLines);
+    dbg(`Combined guarantee text for ${season}`, seasonContent.slice(0, 500));
+  }
 
   const schedule: Array<{
     effectiveDate: string;
@@ -240,43 +267,74 @@ function parseGuaranteeDetails(
     note: string;
   }> = [];
 
-  // Extract baseline guaranteed amount from "[Requirements Met]" portion
-  // Pattern: "$88,075 guaranteed [Requirements Met]"
+  // Extract baseline guaranteed amount from initial "[Requirements Met]" portion
+  // Pattern: "$88,075 Team Option [Requirements Met]"
   let baselineAmount = 0;
-  const baselineMatch = seasonLine.match(
-    /\$\s*([\d,]+)\s+guaranteed\s+\[Requirements\s+Met\]/i
+  const baselineMatch = seasonContent.match(
+    /\$\s*([\d,]+)\s+(?:Team\s+Option\s+)?\[Requirements\s+Met\]/i
   );
   if (baselineMatch) {
     baselineAmount = moneyNum(baselineMatch[1]) || 0;
+    if (DEBUG) dbg(`Found baseline amount for ${season}`, baselineAmount);
   }
 
-  // Parse future guarantee triggers
-  // Pattern 1: "Guarantees if not waived before the first regular season game of SEASON, increases to $X"
-  const gamePattern =
-    /(?:G|g)uarantees\s+if\s+not\s+waived\s+before\s+(?:the\s+)?(first\s+regular\s+season\s+game[^,]*)[,\s]+increases\s+to\s+\$\s*([\d,]+)/gi;
+  // Parse guarantee increase triggers
+  // Pattern 1: "Increase from $X to $Y (+$Z) if the player is not waived prior to the first regular season game [Decision Pending]"
+  const gameIncreasePattern =
+    /Increase\s+from\s+\$\s*[\d,]+\s+to\s+\$\s*([\d,]+)\s+\([^)]+\)\s+if\s+(?:the\s+)?player\s+is\s+not\s+waived\s+(?:prior\s+to\s+)?(?:the\s+)?(first\s+regular\s+season\s+game)[^[]*\[([^\]]+)\]/gi;
   let match;
-  while ((match = gamePattern.exec(seasonLine)) !== null) {
-    const event = match[1].trim();
-    const amount = moneyNum(match[2]) || 0;
+  while ((match = gameIncreasePattern.exec(seasonContent)) !== null) {
+    const amount = moneyNum(match[1]) || 0;
+    const event = match[2].trim();
+    const status = match[3].trim();
     schedule.push({
       effectiveDate: event,
       guaranteedAmount: amount,
-      status: 'Decision Pending',
-      note: `Guarantees if not waived before ${event}`,
+      status: status,
+      note: `Increases to $${amount.toLocaleString()} if not waived before ${event}`,
     });
+    if (DEBUG)
+      dbg(`Found game trigger for ${season}`, { amount, event, status });
   }
 
-  // Pattern 2: "If player is not waived before [DATE], becomes fully guaranteed"
-  // Amount will be filled in enrichGuaranteeSchedules using GUARANTEE_AMOUNT_TBD placeholder
-  const datePattern =
-    /(?:I|i)f\s+(?:player\s+is\s+)?not\s+waived\s+before\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})[^$]*becomes\s+fully\s+guaranteed/gi;
-  while ((match = datePattern.exec(seasonLine)) !== null) {
-    const dateStr = match[1].trim();
+  // Pattern 2: "Increase from $X to $Y (+$Z) if player is not waived before [DATE] [Decision Pending]"
+  const dateIncreasePattern =
+    /Increase\s+from\s+\$\s*[\d,]+\s+to\s+\$\s*([\d,]+)\s+\([^)]+\)\s+if\s+(?:the\s+)?player\s+is\s+not\s+waived\s+before\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})[^[]*\[([^\]]+)\]/gi;
+  while ((match = dateIncreasePattern.exec(seasonContent)) !== null) {
+    const amount = moneyNum(match[1]) || 0;
+    const dateStr = match[2].trim();
+    const status = match[3].trim();
     schedule.push({
       effectiveDate: dateStr,
-      guaranteedAmount: GUARANTEE_AMOUNT_TBD, // Will be filled in with salary amount later
-      status: 'Decision Pending',
-      note: `Guarantees if not waived before ${dateStr}`,
+      guaranteedAmount: amount,
+      status: status,
+      note: `Increases to $${amount.toLocaleString()} if not waived before ${dateStr}`,
+    });
+    if (DEBUG)
+      dbg(`Found date trigger for ${season}`, { amount, dateStr, status });
+  }
+
+  // Pattern 3: Generic "if not waived before [DATE], becomes fully guaranteed" (fallback)
+  // For cases where the text format might vary
+  if (schedule.length === 0) {
+    const fallbackPattern =
+      /(?:I|i)f\s+(?:player\s+is\s+)?not\s+waived\s+before\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})[^$]*becomes\s+fully\s+guaranteed/gi;
+    while ((match = fallbackPattern.exec(seasonContent)) !== null) {
+      const dateStr = match[1].trim();
+      schedule.push({
+        effectiveDate: dateStr,
+        guaranteedAmount: GUARANTEE_AMOUNT_TBD, // Will be filled in with salary amount later
+        status: 'Decision Pending',
+        note: `Becomes fully guaranteed if not waived before ${dateStr}`,
+      });
+      if (DEBUG) dbg(`Found fallback trigger for ${season}`, { dateStr });
+    }
+  }
+
+  if (DEBUG) {
+    dbg(`Final guarantee schedule for ${season}`, {
+      baselineAmount,
+      scheduleLength: schedule.length,
     });
   }
 
@@ -471,8 +529,27 @@ function parseSalaryTable(
       idxCapHit >= 0 ? moneyNum(cells.eq(idxCapHit).text()) : undefined;
     const basePay =
       idxSalary >= 0 ? moneyNum(cells.eq(idxSalary).text()) : undefined;
-    const guarantee =
-      idxGuaranteed >= 0 ? moneyNum(cells.eq(idxGuaranteed).text()) : undefined;
+
+    // Fix guaranteed amount parsing to handle nested div tooltips
+    let guarantee: number | undefined = undefined;
+    if (idxGuaranteed >= 0) {
+      const guaranteedCell = cells.eq(idxGuaranteed);
+      // First try to get only the direct text content (excluding nested divs)
+      const cellClone = guaranteedCell.clone();
+      cellClone.find('div').remove(); // Remove tooltip divs
+      const cleanText = cellClone.text().trim();
+
+      if (cleanText) {
+        guarantee = moneyNum(cleanText);
+      } else {
+        // Fallback: extract the first money amount from the full text
+        const fullText = guaranteedCell.text();
+        const moneyMatch = fullText.match(/\$\s*([\d,]+)/);
+        if (moneyMatch) {
+          guarantee = moneyNum(moneyMatch[1]);
+        }
+      }
+    }
 
     let option: 'PO' | 'TO' | 'ETO' | null = null;
     let optionUsed: string | null = null;
@@ -533,7 +610,7 @@ function parseSalaryTable(
       const hasFullyGuaranteedText = /fully\s+guaranteed|100%/.test(rowTxt);
       const hasPartialText = /non-?guaranteed|partial/.test(rowTxt);
       const isExplicitlyGuaranteed = hasFullyGuaranteedText && !hasPartialText;
-      
+
       guaranteed = isExplicitlyGuaranteed;
       guaranteedAmount = guaranteed ? salary : 0;
     }

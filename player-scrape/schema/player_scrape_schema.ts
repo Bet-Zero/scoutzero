@@ -21,15 +21,25 @@ const BioSchema = z.object({
   age: z.number().optional(),
   birthdate: z.string().optional(),
   experience: z.number().optional(), // Years in NBA
-  draft: z.object({
-    year: z.number(),
-    round: z.number(),
-    pick: z.number(),
-    team: z.string()
-  }).optional()
+  draft: z
+    .object({
+      year: z.number(),
+      round: z.number(),
+      pick: z.number(),
+      team: z.string(),
+    })
+    .optional(),
 });
 
 // ===== CONTRACT DETAILS =====
+
+const GuaranteeScheduleEntrySchema = z.object({
+  effectiveDate: z.string(), // "first regular season game" | "Jan 10, 2026"
+  guaranteedAmount: z.number(),
+  status: z.string(), // "Requirements Met" | "Decision Pending"
+  note: z.string(), // Human-readable description
+});
+
 const SalaryYearSchema = z.object({
   season: z.string(), // "2025-26"
   salary: z.number(),
@@ -37,22 +47,24 @@ const SalaryYearSchema = z.object({
   guaranteed: z.boolean(),
   guaranteedAmount: z.number(),
   option: z.string().nullable(), // "PO" | "TO" | "ETO" | null
-  optionUsed: z.string().optional(), // "No (2025-08-02)" | "Yes (2025-08-02)" | undefined
+  optionUsed: z.string().nullable().optional(), // "No (2025-08-02)" | "Yes (2025-08-02)" | null | undefined
   tradeBonus: z.number().nullable(),
   incentives: z.object({
     likely: z.number(),
-    unlikely: z.number()
+    unlikely: z.number(),
   }),
+  // Guarantee schedule for partially guaranteed contracts
+  guaranteeSchedule: z.array(GuaranteeScheduleEntrySchema).optional(),
   // Fields for tracking voided options (when extension supersedes a PO)
   voidedByExtension: z.boolean().optional(),
-  voidedOn: z.string().optional() // ISO date when option was voided
+  voidedOn: z.string().optional(), // ISO date when option was voided
 });
 
 const BirdRightsSchema = z.object({
   status: z.string(), // "None" | "Non-Bird" | "Early Bird" | "Bird"
   yearsOfService: z.number().optional(),
   yearsWithTeam: z.number().optional(),
-  eligibleFor: z.array(z.string()).optional()
+  eligibleFor: z.array(z.string()).optional(),
 });
 
 const FreeAgencySchema = z.object({
@@ -60,7 +72,7 @@ const FreeAgencySchema = z.object({
   year: z.number().optional(),
   capHold: z.number().optional(),
   qualifyingOffer: z.number().nullable(),
-  earlyTerminationOption: z.string().nullable()
+  earlyTerminationOption: z.string().nullable(),
 });
 
 const TradeEligibilitySchema = z.object({
@@ -70,8 +82,8 @@ const TradeEligibilitySchema = z.object({
   rules: z.object({
     baseYearCompensation: z.boolean(),
     poisonPill: z.boolean(),
-    aggregation: z.boolean()
-  })
+    aggregation: z.boolean(),
+  }),
 });
 
 const ContractSchema = z.object({
@@ -79,56 +91,56 @@ const ContractSchema = z.object({
   contractType: z.string(), // "ROOKIE SCALE" | "VETERAN CONTRACT" | "TWO-WAY"
   isExtension: z.boolean(),
   isRookieScale: z.boolean(),
-  
+
   // Signing details
   signedUsing: z.string().optional(), // "Bird" | "Early Bird" | "MLE" | etc.
   signingTeam: z.string().optional(),
   signingDate: z.string().optional(),
   signingExecutive: z.string().optional(), // Executive who signed the deal (e.g., "Rob Pelinka")
   signedByCurrentTeam: z.boolean().optional(),
-  
+
   // Contract duration
   startSeason: z.string(),
   endSeason: z.string(),
   contractLength: z.number(),
   yearsRemaining: z.number(),
-  
+
   // Financial summary
   totalValue: z.number(),
   averageAnnualValue: z.number(),
   guaranteedValue: z.number(),
   guaranteedYears: z.number(),
-  
+
   // Per-season breakdown
   salariesByYear: z.array(SalaryYearSchema),
-  
+
   // Trade clauses
   noTradeClause: z.boolean(),
   tradeKicker: z.number().nullable(),
   tradeRestrictions: z.array(z.string()),
-  
+
   // Bird rights & free agency
   birdRights: BirdRightsSchema,
   freeAgency: FreeAgencySchema,
-  
+
   // Trade eligibility
   tradeEligibility: TradeEligibilitySchema,
-  
+
   // Max contract fields
   isMaxContract: z.boolean().optional(),
   maxType: z.string().nullable().optional(), // "Max-25" | "Max-30" | "Max-35" | null
   estimatedCapPercentage: z.number().nullable().optional(), // e.g., 25, 30, 35
-  
+
   // Supersession tracking (when this contract is replaced by an extension)
   supersededIn: z.string().optional(), // Season when superseded (e.g., "2026-27")
-  supersededByContractRef: z.string().optional() // Reference to the superseding contract
+  supersededByContractRef: z.string().optional(), // Reference to the superseding contract
 });
 
 // ===== SOURCE METADATA =====
 const SourceMetaSchema = z.object({
   provider: z.string(),
   playerPageUrl: z.string(),
-  scrapedAt: z.string()
+  scrapedAt: z.string(),
 });
 
 // ===== BASE PLAYER DOCUMENT =====
@@ -138,20 +150,20 @@ export const basePlayerSchema = z.object({
   displayName: z.string(),
   teamCode: z.string(),
   teamName: z.string(),
-  
+
   // Bio
   bio: BioSchema,
-  
+
   // Contract
   contract: ContractSchema,
-  
+
   // Future contract (for players with extensions)
   futureContract: ContractSchema.optional(),
-  
+
   // Metadata
   source: SourceMetaSchema,
   lastUpdated: z.string(),
-  version: z.string()
+  version: z.string(),
 });
 
 // Export TypeScript types
