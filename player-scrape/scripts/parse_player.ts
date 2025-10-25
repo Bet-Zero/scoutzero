@@ -129,31 +129,7 @@ function parseOptionUsedDate(text: string): { used: boolean; date: string | null
   const used = match[1].toLowerCase() === 'yes';
   const dateStr = match[2].trim();
   
-  // Parse date like "Aug 2, 2025" to ISO
-  const dateMatch = dateStr.match(/([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})/);
-  if (dateMatch) {
-    const monthMap: Record<string, string> = {
-      jan: '01', january: '01',
-      feb: '02', february: '02',
-      mar: '03', march: '03',
-      apr: '04', april: '04',
-      may: '05',
-      jun: '06', june: '06',
-      jul: '07', july: '07',
-      aug: '08', august: '08',
-      sep: '09', september: '09',
-      oct: '10', october: '10',
-      nov: '11', november: '11',
-      dec: '12', december: '12'
-    };
-    const month = monthMap[dateMatch[1].toLowerCase()];
-    const day = dateMatch[2].padStart(2, '0');
-    const year = dateMatch[3];
-    if (month) {
-      return { used, date: `${year}-${month}-${day}` };
-    }
-  }
-  
+  // Return the original date string as-is
   return { used, date: dateStr };
 }
 
@@ -177,6 +153,16 @@ function parseGuaranteeDetails(
   const guaranteeSection = sectionAfterHeader($, /guaranteed?\s+details?/i);
   const text = guaranteeSection.text;
   
+  // Find the line for this specific season
+  // Pattern: "2025-26: ... " - capture everything up to the next season or end
+  const seasonPattern = new RegExp(`${season}:\\s*([^]*?)(?=\\d{4}-\\d{2}:|$)`, 'i');
+  const seasonMatch = text.match(seasonPattern);
+  if (!seasonMatch) {
+    return { guaranteedAmount: 0, guaranteeSchedule: null };
+  }
+  
+  const seasonLine = seasonMatch[1] || seasonMatch[0];
+  
   const schedule: Array<{
     effectiveDate: string;
     guaranteedAmount: number;
@@ -184,42 +170,42 @@ function parseGuaranteeDetails(
     note: string;
   }> = [];
   
-  // Pattern 1: "if player is not waived before [DATE] ... becomes fully guaranteed"
-  // Pattern 2: "if not waived prior to [DATE/EVENT] ... increases to $X"
-  const guaranteePatterns = [
-    // "if not waived before Jan 10, 2026 ... becomes fully guaranteed"
-    /if\s+(?:player\s+is\s+)?not\s+waived\s+(?:before|prior\s+to)\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})[^$]*(?:becomes\s+fully\s+guaranteed|increases\s+to)\s*\$?\s*([\d,]+)?/gi,
-    // "if not waived before the first regular season game ... increases to $381,695"
-    /if\s+not\s+waived\s+(?:before|prior\s+to)\s+(?:the\s+)?(first\s+regular\s+season\s+game[^$]*)\s+increases\s+to\s+\$\s*([\d,]+)/gi,
-    // "guarantees if not waived before [DATE]"
-    /guarantees?\s+if\s+not\s+waived\s+before\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})/gi,
-  ];
-  
-  for (const pattern of guaranteePatterns) {
-    let match;
-    while ((match = pattern.exec(text)) !== null) {
-      const dateOrEvent = match[1];
-      const amountStr = match[2];
-      const amount = amountStr ? moneyNum(amountStr) : undefined;
-      
-      if (dateOrEvent && amount) {
-        schedule.push({
-          effectiveDate: dateOrEvent.trim(),
-          guaranteedAmount: amount,
-          status: 'Decision Pending',
-          note: `Guarantees if not waived before ${dateOrEvent.trim()}`,
-        });
-      }
-    }
+  // Extract baseline guaranteed amount from "[Requirements Met]" portion
+  // Pattern: "$88,075 guaranteed [Requirements Met]"
+  let baselineAmount = 0;
+  const baselineMatch = seasonLine.match(/\$\s*([\d,]+)\s+guaranteed\s+\[Requirements\s+Met\]/i);
+  if (baselineMatch) {
+    baselineAmount = moneyNum(baselineMatch[1]) || 0;
   }
   
-  // If no schedule found, return basic structure
-  if (schedule.length === 0) {
-    return { guaranteedAmount: 0, guaranteeSchedule: null };
+  // Parse future guarantee triggers
+  // Pattern 1: "Guarantees if not waived before the first regular season game of SEASON, increases to $X"
+  const gamePattern = /(?:G|g)uarantees\s+if\s+not\s+waived\s+before\s+(?:the\s+)?(first\s+regular\s+season\s+game[^,]*)[,\s]+increases\s+to\s+\$\s*([\d,]+)/gi;
+  let match;
+  while ((match = gamePattern.exec(seasonLine)) !== null) {
+    const event = match[1].trim();
+    const amount = moneyNum(match[2]) || 0;
+    schedule.push({
+      effectiveDate: event,
+      guaranteedAmount: amount,
+      status: 'Decision Pending',
+      note: `Guarantees if not waived before ${event}`,
+    });
   }
   
-  // Return the first/baseline guaranteed amount
-  const baselineAmount = schedule.length > 0 ? schedule[0].guaranteedAmount : 0;
+  // Pattern 2: "If player is not waived before [DATE], becomes fully guaranteed"
+  // This needs to extract the full salary amount from somewhere - we'll handle this in enrichGuaranteeSchedules
+  const datePattern = /(?:I|i)f\s+(?:player\s+is\s+)?not\s+waived\s+before\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})[^$]*becomes\s+fully\s+guaranteed/gi;
+  while ((match = datePattern.exec(seasonLine)) !== null) {
+    const dateStr = match[1].trim();
+    // We'll set amount to 0 for now and fill it in enrichGuaranteeSchedules with the full salary
+    schedule.push({
+      effectiveDate: dateStr,
+      guaranteedAmount: 0, // Will be filled in with salary amount later
+      status: 'Decision Pending',
+      note: `Guarantees if not waived before ${dateStr}`,
+    });
+  }
   
   return {
     guaranteedAmount: baselineAmount,
@@ -393,12 +379,18 @@ function parseSalaryTable(
   const idxUnlikely = headerIndex(headers, /unlikely/i);
 
   const rows: any[] = [];
-  table.find('tbody tr').each((_, tr) => {
+  const allRows = table.find('tbody tr').toArray();
+  
+  for (let i = 0; i < allRows.length; i++) {
+    const tr = allRows[i];
     const cells = $(tr).find('td');
-    if (!cells.length || idxSeason < 0) return;
+    if (!cells.length || idxSeason < 0) continue;
 
     const rawSeason = norm(cells.eq(idxSeason).text());
-    if (!rawSeason) return;
+    if (!rawSeason) continue;
+    
+    // Skip rows that only contain "Option Used" info (colspan rows)
+    if (/^Option\s+Used:/i.test(rawSeason)) continue;
 
     const season = cleanSeason(rawSeason);
 
@@ -420,6 +412,16 @@ function parseSalaryTable(
       const optionInfo = parseOptionUsedDate(optionCellText);
       if (optionInfo.date) {
         optionUsed = `${optionInfo.used ? 'Yes' : 'No'} (${optionInfo.date})`;
+      }
+    }
+    
+    // Check the next row for optionUsed info (sometimes it's in a colspan row)
+    if (!optionUsed && i + 1 < allRows.length) {
+      const nextTr = allRows[i + 1];
+      const nextRowText = $(nextTr).text();
+      const nextOptionInfo = parseOptionUsedDate(nextRowText);
+      if (nextOptionInfo.date) {
+        optionUsed = `${nextOptionInfo.used ? 'Yes' : 'No'} (${nextOptionInfo.date})`;
       }
     }
     
@@ -478,7 +480,7 @@ function parseSalaryTable(
     if (kicker) rec.tradeBonus = parseInt(kicker[1], 10);
 
     rows.push(rec);
-  });
+  }
   return rows;
 }
 
@@ -1246,8 +1248,8 @@ function enrichGuaranteeSchedules(
 ): void {
   // For each year with partial guarantees, try to find guarantee schedule
   for (const yearRow of salariesByYear) {
-    // Skip fully guaranteed or non-guaranteed years
-    if (yearRow.guaranteed || yearRow.guaranteedAmount === 0) {
+    // Skip fully guaranteed years (but DO process years with guaranteedAmount === 0)
+    if (yearRow.guaranteed) {
       continue;
     }
     
@@ -1255,11 +1257,25 @@ function enrichGuaranteeSchedules(
     const guaranteeInfo = parseGuaranteeDetails($, yearRow.season);
     
     if (guaranteeInfo.guaranteeSchedule && guaranteeInfo.guaranteeSchedule.length > 0) {
-      yearRow.guaranteeSchedule = guaranteeInfo.guaranteeSchedule;
+      // Fill in amounts for "becomes fully guaranteed" entries (where amount is 0)
+      const schedule = guaranteeInfo.guaranteeSchedule.map(entry => {
+        if (entry.guaranteedAmount === 0) {
+          // This is a "becomes fully guaranteed" trigger - use the full salary
+          return {
+            ...entry,
+            guaranteedAmount: yearRow.salary,
+          };
+        }
+        return entry;
+      });
       
-      // Update guaranteedAmount to the first/baseline value if we found schedule
-      if (guaranteeInfo.guaranteedAmount > 0 && yearRow.guaranteedAmount === 0) {
+      yearRow.guaranteeSchedule = schedule;
+      
+      // Update guaranteedAmount to the baseline value from guarantee details
+      if (guaranteeInfo.guaranteedAmount > 0) {
         yearRow.guaranteedAmount = guaranteeInfo.guaranteedAmount;
+        // Recompute guaranteed boolean
+        yearRow.guaranteed = (yearRow.guaranteedAmount === yearRow.salary);
       }
     }
   }
@@ -1338,7 +1354,7 @@ function normalizeContractVoidedOptions(
 
   // Recompute guaranteedYears (exclude voided PO)
   currentContract.guaranteedYears = activeYears.filter(
-    (y: any) => y.guaranteed
+    (y: any) => (y.guaranteedAmount || 0) > 0
   ).length;
 
   // Recompute yearsRemaining (exclude voided season)
@@ -1416,7 +1432,7 @@ async function main() {
     (s, y) => s + (y.guaranteedAmount || 0),
     0
   );
-  const guaranteedYears = salariesByYear.filter((y) => y.guaranteed).length;
+  const guaranteedYears = salariesByYear.filter((y) => (y.guaranteedAmount || 0) > 0).length;
 
   const CURRENT_SEASON_START = 2025;
   const endYearNum = endSeason
@@ -1497,7 +1513,7 @@ async function main() {
           0
         );
         const futureGuaranteedYears = futureSalariesByYear.filter(
-          (y) => y.guaranteed
+          (y) => (y.guaranteedAmount || 0) > 0
         ).length;
         // For future contracts (extensions), yearsRemaining should only count the extension years
         // not the current contract years before the extension kicks in

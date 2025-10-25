@@ -17,5 +17,11 @@ echo "2. Parsing Austin Reaves..."
 cp examples/austin_reaves_test.html examples/page.html
 PLAYER_ID="austin_reaves" TEAM_CODE="LAL" npx tsx scripts/parse_player.ts
 
+# Parse Jalen Wilson
+echo ""
+echo "3. Parsing Jalen Wilson..."
+cp examples/jalen_wilson_test.html examples/page.html
+PLAYER_ID="jalen_wilson" TEAM_CODE="BKN" npx tsx scripts/parse_player.ts
+
 echo ""
 echo "✅ All test cases parsed"
