@@ -4,14 +4,24 @@ NBA player contract scraper for populating `players_v2` Firestore collection.
 
 ## 🚀 Quick Start
 
-**Current Status:** 85% Ready → [Get to 100% Ready](./GETTING_STARTED.md)
+**Current Status:** Contract Normalization Complete ✅ → [See Updates](./NORMALIZATION_UPDATES.md)
+
+**Recent Updates:**
+- ✅ Enhanced contract type classification (ROOKIE SCALE vs ROOKIE CONTRACT)
+- ✅ Added guarantee schedule support for partial guarantees
+- ✅ Implemented extension voiding player options (Luka rule)
+- ✅ Player option policy (live POs treated as guaranteed)
+- ✅ Proper signedUsing normalization (Early-Bird Exception, etc.)
+- ✅ Test suite for validation
 
 **Want to get started right away?** 
 - **Fast track:** [PATH_TO_100.md](./PATH_TO_100.md) - Visual summary (3 steps, 1-2 days)
 - **Detailed guide:** [GETTING_STARTED.md](./GETTING_STARTED.md) - Complete instructions with code
+- **Latest Updates:** [NORMALIZATION_UPDATES.md](./NORMALIZATION_UPDATES.md) - Contract normalization spec implementation
 
 ## Documentation
 
+- **[NORMALIZATION_UPDATES.md](./NORMALIZATION_UPDATES.md)** - **NEW!** Contract normalization implementation details
 - **[PATH_TO_100.md](./PATH_TO_100.md)** - **QUICK VIEW!** Visual 3-step summary to 100%
 - **[GETTING_STARTED.md](./GETTING_STARTED.md)** - **START HERE!** Complete guide from 0% to 100% ready
 - **[READINESS_ASSESSMENT.md](./READINESS_ASSESSMENT.md)** - Detailed 85% readiness analysis
@@ -28,12 +38,17 @@ Scrapes NBA player contract data from [SalarySwish](https://salaryswish.com) and
 ## Key Features
 
 ✅ Comprehensive contract data (salary breakdown, options, guarantees)  
+✅ **NEW: Guarantee schedules** - Tracks partial guarantee triggers and dates  
+✅ **NEW: Option tracking** - Captures when options are exercised/declined with dates  
+✅ **NEW: Extension voiding** - Properly handles extensions that void player options  
+✅ **NEW: Contract type precision** - Distinguishes ROOKIE SCALE from ROOKIE CONTRACT  
 ✅ Bird rights and free agency information  
 ✅ Trade eligibility and CBA-specific fields  
 ✅ Handles rookie scale, veteran, and extension contracts  
 ✅ **Detects and parses future contracts/extensions** (e.g., signed extensions that haven't started yet)  
 ✅ **Independent metadata parsing** - Each contract (current and future) reports its own signing details  
 ✅ Batch processing for multiple players  
+✅ **Test suite** - Validates normalization against spec requirements  
 
 ## Prerequisites
 

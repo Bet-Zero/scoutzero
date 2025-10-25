@@ -157,6 +157,76 @@ function parseOptionUsedDate(text: string): { used: boolean; date: string | null
   return { used, date: dateStr };
 }
 
+/**
+ * Parse guarantee details from the page for a specific season
+ * Returns guarantee schedule with triggers and dates
+ */
+function parseGuaranteeDetails(
+  $: cheerio.CheerioAPI,
+  season: string
+): {
+  guaranteedAmount: number;
+  guaranteeSchedule: Array<{
+    effectiveDate: string;
+    guaranteedAmount: number;
+    status: string;
+    note: string;
+  }> | null;
+} {
+  // Look for "Guaranteed Details" section
+  const guaranteeSection = sectionAfterHeader($, /guaranteed?\s+details?/i);
+  const text = guaranteeSection.text;
+  
+  const schedule: Array<{
+    effectiveDate: string;
+    guaranteedAmount: number;
+    status: string;
+    note: string;
+  }> = [];
+  
+  // Pattern 1: "if player is not waived before [DATE] ... becomes fully guaranteed"
+  // Pattern 2: "if not waived prior to [DATE/EVENT] ... increases to $X"
+  const guaranteePatterns = [
+    // "if not waived before Jan 10, 2026 ... becomes fully guaranteed"
+    /if\s+(?:player\s+is\s+)?not\s+waived\s+(?:before|prior\s+to)\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})[^$]*(?:becomes\s+fully\s+guaranteed|increases\s+to)\s*\$?\s*([\d,]+)?/gi,
+    // "if not waived before the first regular season game ... increases to $381,695"
+    /if\s+not\s+waived\s+(?:before|prior\s+to)\s+(?:the\s+)?(first\s+regular\s+season\s+game[^$]*)\s+increases\s+to\s+\$\s*([\d,]+)/gi,
+    // "guarantees if not waived before [DATE]"
+    /guarantees?\s+if\s+not\s+waived\s+before\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})/gi,
+  ];
+  
+  for (const pattern of guaranteePatterns) {
+    let match;
+    while ((match = pattern.exec(text)) !== null) {
+      const dateOrEvent = match[1];
+      const amountStr = match[2];
+      const amount = amountStr ? moneyNum(amountStr) : undefined;
+      
+      if (dateOrEvent && amount) {
+        schedule.push({
+          effectiveDate: dateOrEvent.trim(),
+          guaranteedAmount: amount,
+          status: 'Decision Pending',
+          note: `Guarantees if not waived before ${dateOrEvent.trim()}`,
+        });
+      }
+    }
+  }
+  
+  // If no schedule found, return basic structure
+  if (schedule.length === 0) {
+    return { guaranteedAmount: 0, guaranteeSchedule: null };
+  }
+  
+  // Return the first/baseline guaranteed amount
+  const baselineAmount = schedule.length > 0 ? schedule[0].guaranteedAmount : 0;
+  
+  return {
+    guaranteedAmount: baselineAmount,
+    guaranteeSchedule: schedule.length > 0 ? schedule : null,
+  };
+}
+
 /** Find the closest container section whose header text matches `re` */
 function sectionAfterHeader($: cheerio.CheerioAPI, re: RegExp) {
   const hdr = $('h1,h2,h3,h4,h5,h6')
@@ -340,8 +410,19 @@ function parseSalaryTable(
       idxGuaranteed >= 0 ? moneyNum(cells.eq(idxGuaranteed).text()) : undefined;
 
     let option: 'PO' | 'TO' | 'ETO' | null = null;
-    if (idxOption >= 0)
+    let optionUsed: string | null = null;
+    
+    if (idxOption >= 0) {
       option = extractOptionFromCell($, cells.eq(idxOption)) as any;
+      
+      // Check for "Option Used: Yes/No (date)" in the option cell
+      const optionCellText = cells.eq(idxOption).text();
+      const optionInfo = parseOptionUsedDate(optionCellText);
+      if (optionInfo.date) {
+        optionUsed = `${optionInfo.used ? 'Yes' : 'No'} (${optionInfo.date})`;
+      }
+    }
+    
     // Also check season cell for option tags (e.g., "2025-26 PO")
     if (!option && /\b(PO|Player Option)\b/i.test(rawSeason)) {
       option = 'PO';
@@ -365,12 +446,18 @@ function parseSalaryTable(
     const salary = basePay ?? capHit ?? 0;
     const resolvedCap = capHit ?? basePay ?? salary;
 
+    // Determine guaranteed status
     let guaranteed = false;
+    let guaranteedAmount = 0;
+    
     if (typeof guarantee === 'number') {
+      guaranteedAmount = guarantee;
       guaranteed = guarantee >= salary && salary > 0;
     } else {
       const rowTxt = $(tr).text().toLowerCase();
+      // If not marked as non-guaranteed, assume guaranteed for now
       guaranteed = !/non-?guaranteed|\bng\b/.test(rowTxt);
+      guaranteedAmount = guaranteed ? salary : 0;
     }
 
     const rec: any = {
@@ -378,8 +465,9 @@ function parseSalaryTable(
       salary,
       capHit: resolvedCap,
       guaranteed,
-      guaranteedAmount: guaranteed ? salary : 0,
+      guaranteedAmount,
       option: option ?? null,
+      optionUsed: optionUsed,
       tradeBonus: null,
       incentives: { likely, unlikely },
     };
@@ -638,7 +726,7 @@ function parseBio($: cheerio.CheerioAPI) {
   return bio;
 }
 
-function detectContractType($: cheerio.CheerioAPI) {
+function detectContractType($: cheerio.CheerioAPI, signedUsing?: string) {
   let text = '';
   const h = $('h6.sw_playerContract__title').first();
   if (h.length) text = norm(h.text());
@@ -652,42 +740,56 @@ function detectContractType($: cheerio.CheerioAPI) {
   }
   const T = text.toUpperCase();
   const isExtension = /EXTENSION/.test(T);
-  const isRookieScale = /ROOKIE|SCALE/.test(T);
+  const hasRookieInTitle = /ROOKIE/.test(T);
+  const hasScaleInTitle = /SCALE/.test(T);
   const isDesignated = /DESIGNATED/.test(T);
   const isTwoWay = /TWO-WAY|2-WAY/.test(T);
+  
+  // Check signing method to determine if truly rookie-scale (1st round pick) vs other rookie deals
+  const isActualRookieScale = (hasRookieInTitle || hasScaleInTitle) && 
+    !/second\s+round|mle|mid-?level|bi-?annual|bae|minimum/i.test(signedUsing || '');
+  
   let contractType = 'VETERAN CONTRACT';
   if (isTwoWay) contractType = 'TWO-WAY';
-  else if (isDesignated && isRookieScale)
+  else if (isDesignated && hasScaleInTitle)
     contractType = 'DESIGNATED ROOKIE SCALE EXTENSION';
-  else if (isExtension && isRookieScale)
+  else if (isExtension && hasScaleInTitle)
     contractType = 'ROOKIE SCALE EXTENSION';
-  else if (isRookieScale) contractType = 'ROOKIE SCALE CONTRACT';
+  else if (hasScaleInTitle && isActualRookieScale) contractType = 'ROOKIE SCALE CONTRACT';
+  else if (hasRookieInTitle) contractType = 'ROOKIE CONTRACT';
   else if (isExtension) contractType = 'VETERAN EXTENSION';
-  return { contractType, isExtension, isRookieScale };
+  
+  return { contractType, isExtension, isRookieScale: isActualRookieScale };
 }
 
 /** Detect contract type from heading text (for multiple contracts) */
-function detectContractTypeFromHeading(headingText: string) {
+function detectContractTypeFromHeading(headingText: string, signedUsing?: string) {
   const T = headingText.toUpperCase();
   const isExtension = /EXTENSION/.test(T);
-  const isRookieScale = /ROOKIE|SCALE/.test(T);
+  const hasRookieInTitle = /ROOKIE/.test(T);
+  const hasScaleInTitle = /SCALE/.test(T);
   const isDesignated = /DESIGNATED/.test(T);
   const isSupermax = /SUPERMAX/.test(T);
   const isTwoWay = /TWO-WAY|2-WAY/.test(T);
+
+  // Check signing method to determine if truly rookie-scale
+  const isActualRookieScale = (hasRookieInTitle || hasScaleInTitle) && 
+    !/second\s+round|mle|mid-?level|bi-?annual|bae|minimum/i.test(signedUsing || '');
 
   let contractType = 'VETERAN CONTRACT';
   if (isTwoWay) contractType = 'TWO-WAY';
   else if (isSupermax && isExtension)
     contractType = 'DESIGNATED SUPERMAX EXTENSION';
-  else if (isDesignated && isRookieScale && isExtension)
+  else if (isDesignated && hasScaleInTitle && isExtension)
     contractType = 'DESIGNATED ROOKIE SCALE EXTENSION';
-  else if (isExtension && isRookieScale)
+  else if (isExtension && hasScaleInTitle)
     contractType = 'ROOKIE SCALE EXTENSION';
-  else if (isRookieScale) contractType = 'ROOKIE SCALE CONTRACT';
+  else if (hasScaleInTitle && isActualRookieScale) contractType = 'ROOKIE SCALE CONTRACT';
+  else if (hasRookieInTitle) contractType = 'ROOKIE CONTRACT';
   else if (isDesignated && isExtension) contractType = 'DESIGNATED EXTENSION';
   else if (isExtension) contractType = 'VETERAN EXTENSION';
 
-  return { contractType, isExtension, isRookieScale };
+  return { contractType, isExtension, isRookieScale: isActualRookieScale };
 }
 
 /** Current Contract section: Signing Team / Method / Date / Cap Hold / Trade Kicker */
@@ -711,11 +813,19 @@ function parseCurrentContractMeta($: cheerio.CheerioAPI) {
     ?.replace(/[:\-]+/g, ' ')
     ?.replace(/\s+/g, ' ')
     ?.trim();
-  if (signedUsing)
+  if (signedUsing) {
     signedUsing = signedUsing
       .split(' ')
       .map((w) => (w[0] ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w))
       .join(' ');
+    
+    // Restore proper hyphenation for specific terms
+    signedUsing = signedUsing
+      .replace(/\bEarly Bird\b/gi, 'Early-Bird')
+      .replace(/\bNon Bird\b/gi, 'Non-Bird')
+      .replace(/\bMid Level\b/gi, 'Mid-Level')
+      .replace(/\bBi Annual\b/gi, 'Bi-Annual');
+  }
 
   // Signing Date (supports "July 6, 2023" and "07/06/2023")
   const signingDate =
@@ -836,11 +946,19 @@ function parseContractMetaFromTable(
     ?.replace(/[:\-]+/g, ' ')
     ?.replace(/\s+/g, ' ')
     ?.trim();
-  if (signedUsing)
+  if (signedUsing) {
     signedUsing = signedUsing
       .split(' ')
       .map((w) => (w[0] ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w))
       .join(' ');
+    
+    // Restore proper hyphenation for specific terms
+    signedUsing = signedUsing
+      .replace(/\bEarly Bird\b/gi, 'Early-Bird')
+      .replace(/\bNon Bird\b/gi, 'Non-Bird')
+      .replace(/\bMid Level\b/gi, 'Mid-Level')
+      .replace(/\bBi Annual\b/gi, 'Bi-Annual');
+  }
 
   // Signing Date (supports "July 6, 2023" and "07/06/2023")
   const signingDate =
@@ -1119,6 +1237,49 @@ function detectMaxContractInfo(
 }
 
 /** 
+ * Post-parse enrichment: Add guarantee schedules to partially guaranteed years
+ * This looks for guarantee details in the page and attaches them to relevant salary years
+ */
+function enrichGuaranteeSchedules(
+  $: cheerio.CheerioAPI,
+  salariesByYear: any[]
+): void {
+  // For each year with partial guarantees, try to find guarantee schedule
+  for (const yearRow of salariesByYear) {
+    // Skip fully guaranteed or non-guaranteed years
+    if (yearRow.guaranteed || yearRow.guaranteedAmount === 0) {
+      continue;
+    }
+    
+    // Try to parse guarantee details for this season
+    const guaranteeInfo = parseGuaranteeDetails($, yearRow.season);
+    
+    if (guaranteeInfo.guaranteeSchedule && guaranteeInfo.guaranteeSchedule.length > 0) {
+      yearRow.guaranteeSchedule = guaranteeInfo.guaranteeSchedule;
+      
+      // Update guaranteedAmount to the first/baseline value if we found schedule
+      if (guaranteeInfo.guaranteedAmount > 0 && yearRow.guaranteedAmount === 0) {
+        yearRow.guaranteedAmount = guaranteeInfo.guaranteedAmount;
+      }
+    }
+  }
+}
+
+/**
+ * Apply house rule: Treat live player options as guaranteed
+ * This sets PO years to guaranteed unless they have optionUsed="No"
+ */
+function applyPlayerOptionPolicy(salariesByYear: any[]): void {
+  for (const yearRow of salariesByYear) {
+    if (yearRow.option === 'PO' && !yearRow.optionUsed?.startsWith('No')) {
+      // Live player option - treat as guaranteed
+      yearRow.guaranteed = true;
+      yearRow.guaranteedAmount = yearRow.salary;
+    }
+  }
+}
+
+/** 
  * Post-parse normalizer: Detect when a future extension voids a PO in the current contract
  * 
  * If a player has:
@@ -1234,9 +1395,15 @@ async function main() {
     ? parseSalaryTable($, found.table, found.headers)
     : [];
 
-  const { contractType, isExtension, isRookieScale } = detectContractType($);
-
   const meta = parseCurrentContractMeta($); // signedUsing, signingTeam, signingDate, capHold, tradeKicker
+
+  const { contractType, isExtension, isRookieScale } = detectContractType($, meta.signedUsing);
+  
+  // Enrich guarantee schedules for partially guaranteed years
+  enrichGuaranteeSchedules($, salariesByYear);
+  
+  // Apply player option policy (treat live PO years as guaranteed)
+  applyPlayerOptionPolicy(salariesByYear);
 
   const startSeason = salariesByYear[0]?.season || null;
   const endSeason =
@@ -1303,9 +1470,20 @@ async function main() {
           `${futureStartSeason} - ${futureEndSeason}`
         );
 
+        // Parse metadata from the future contract section (not from current contract)
+        const futureMeta = parseContractMetaFromTable($, futureTable.table);
+
         const futureContractTypeInfo = detectContractTypeFromHeading(
-          futureTable.heading
+          futureTable.heading,
+          futureMeta.signedUsing
         );
+        
+        // Enrich guarantee schedules for future contract years
+        enrichGuaranteeSchedules($, futureSalariesByYear);
+        
+        // Apply player option policy to future contract
+        applyPlayerOptionPolicy(futureSalariesByYear);
+        
         const futureContractLength = futureSalariesByYear.length;
         const futureTotalValue = futureSalariesByYear.reduce(
           (s, y) => s + (y.salary || 0),
@@ -1333,9 +1511,6 @@ async function main() {
         // For future contracts, parse their metadata from the contract section
         // (they may have different signing details than current contract)
         const futureOptionSummary = extractOptionSummary(futureSalariesByYear);
-
-        // Parse metadata from the future contract section (not from current contract)
-        const futureMeta = parseContractMetaFromTable($, futureTable.table);
 
         // Determine free agency type for future contract
         // Extensions make players UFAs when they expire, not RFAs
