@@ -19,6 +19,9 @@ const DEBUG = process.env.DEBUG === '1';
 
 type Money = number;
 
+// Constant to indicate that a guarantee amount will be filled in later with the full salary
+const GUARANTEE_AMOUNT_TBD = 0;
+
 const norm = (s: string) => (s || '').replace(/\s+/g, ' ').trim();
 const squeezeSpaces = (s: string) => s.replace(/[ \t]+/g, ' ').trim();
 const moneyNum = (s?: string) => {
@@ -129,9 +132,16 @@ function parseOptionUsedDate(text: string): { used: boolean; date: string | null
   const used = match[1].toLowerCase() === 'yes';
   const dateStr = match[2].trim();
   
-  // Return the original date string as-is
+  // Return the original date string as-is (not converting to ISO format)
+  // to preserve the human-readable format from the source data
   return { used, date: dateStr };
 }
+
+/** Format option used info into standard string format */
+const formatOptionUsed = (info: { used: boolean; date: string | null }): string | null => {
+  if (!info.date) return null;
+  return `${info.used ? 'Yes' : 'No'} (${info.date})`;
+};
 
 /**
  * Parse guarantee details from the page for a specific season
@@ -194,14 +204,13 @@ function parseGuaranteeDetails(
   }
   
   // Pattern 2: "If player is not waived before [DATE], becomes fully guaranteed"
-  // This needs to extract the full salary amount from somewhere - we'll handle this in enrichGuaranteeSchedules
+  // Amount will be filled in enrichGuaranteeSchedules using GUARANTEE_AMOUNT_TBD placeholder
   const datePattern = /(?:I|i)f\s+(?:player\s+is\s+)?not\s+waived\s+before\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})[^$]*becomes\s+fully\s+guaranteed/gi;
   while ((match = datePattern.exec(seasonLine)) !== null) {
     const dateStr = match[1].trim();
-    // We'll set amount to 0 for now and fill it in enrichGuaranteeSchedules with the full salary
     schedule.push({
       effectiveDate: dateStr,
-      guaranteedAmount: 0, // Will be filled in with salary amount later
+      guaranteedAmount: GUARANTEE_AMOUNT_TBD, // Will be filled in with salary amount later
       status: 'Decision Pending',
       note: `Guarantees if not waived before ${dateStr}`,
     });
@@ -410,9 +419,7 @@ function parseSalaryTable(
       // Check for "Option Used: Yes/No (date)" in the option cell
       const optionCellText = cells.eq(idxOption).text();
       const optionInfo = parseOptionUsedDate(optionCellText);
-      if (optionInfo.date) {
-        optionUsed = `${optionInfo.used ? 'Yes' : 'No'} (${optionInfo.date})`;
-      }
+      optionUsed = formatOptionUsed(optionInfo);
     }
     
     // Check the next row for optionUsed info (sometimes it's in a colspan row)
@@ -420,9 +427,7 @@ function parseSalaryTable(
       const nextTr = allRows[i + 1];
       const nextRowText = $(nextTr).text();
       const nextOptionInfo = parseOptionUsedDate(nextRowText);
-      if (nextOptionInfo.date) {
-        optionUsed = `${nextOptionInfo.used ? 'Yes' : 'No'} (${nextOptionInfo.date})`;
-      }
+      optionUsed = formatOptionUsed(nextOptionInfo);
     }
     
     // Also check season cell for option tags (e.g., "2025-26 PO")
@@ -1246,9 +1251,11 @@ function enrichGuaranteeSchedules(
   $: cheerio.CheerioAPI,
   salariesByYear: any[]
 ): void {
-  // For each year with partial guarantees, try to find guarantee schedule
+  // For each year that is not fully guaranteed, try to find guarantee schedule
+  // This includes both partially guaranteed years (guaranteedAmount > 0 but < salary)
+  // and fully non-guaranteed years (guaranteedAmount === 0)
   for (const yearRow of salariesByYear) {
-    // Skip fully guaranteed years (but DO process years with guaranteedAmount === 0)
+    // Skip fully guaranteed years (where guaranteed === true)
     if (yearRow.guaranteed) {
       continue;
     }
@@ -1257,9 +1264,9 @@ function enrichGuaranteeSchedules(
     const guaranteeInfo = parseGuaranteeDetails($, yearRow.season);
     
     if (guaranteeInfo.guaranteeSchedule && guaranteeInfo.guaranteeSchedule.length > 0) {
-      // Fill in amounts for "becomes fully guaranteed" entries (where amount is 0)
+      // Fill in amounts for "becomes fully guaranteed" entries (where amount is GUARANTEE_AMOUNT_TBD)
       const schedule = guaranteeInfo.guaranteeSchedule.map(entry => {
-        if (entry.guaranteedAmount === 0) {
+        if (entry.guaranteedAmount === GUARANTEE_AMOUNT_TBD) {
           // This is a "becomes fully guaranteed" trigger - use the full salary
           return {
             ...entry,
