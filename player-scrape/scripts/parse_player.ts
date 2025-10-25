@@ -26,6 +26,16 @@ const norm = (s: string) => (s || '').replace(/\s+/g, ' ').trim();
 const squeezeSpaces = (s: string) => s.replace(/[ \t]+/g, ' ').trim();
 const moneyNum = (s?: string) => {
   if (!s) return undefined;
+  
+  // Try to extract just the first dollar amount using regex
+  // Handles cases like "$88,075 (0—88.1k)" by extracting just "$88,075"
+  const match = s.match(/\$\s*([\d,]+(?:\.\d+)?)/);
+  if (match) {
+    const v = Number(match[1].replace(/,/g, ''));
+    return Number.isFinite(v) ? v : undefined;
+  }
+  
+  // Fallback to original logic for non-dollar-prefixed numbers
   const v = Number(s.replace(/[$, ]/g, ''));
   return Number.isFinite(v) ? v : undefined;
 };
