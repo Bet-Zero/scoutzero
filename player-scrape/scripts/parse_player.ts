@@ -143,6 +143,36 @@ const formatOptionUsed = (info: { used: boolean; date: string | null }): string 
   return `${info.used ? 'Yes' : 'No'} (${info.date})`;
 };
 
+/** Convert human-readable date to ISO format (YYYY-MM-DD) */
+function toISODate(dateStr: string): string | null {
+  // Parse date like "Aug 2, 2025" to ISO "2025-08-02"
+  const dateMatch = dateStr.match(/([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})/);
+  if (!dateMatch) return null;
+  
+  const monthMap: Record<string, string> = {
+    jan: '01', january: '01',
+    feb: '02', february: '02',
+    mar: '03', march: '03',
+    apr: '04', april: '04',
+    may: '05',
+    jun: '06', june: '06',
+    jul: '07', july: '07',
+    aug: '08', august: '08',
+    sep: '09', september: '09',
+    oct: '10', october: '10',
+    nov: '11', november: '11',
+    dec: '12', december: '12'
+  };
+  
+  const month = monthMap[dateMatch[1].toLowerCase()];
+  if (!month) return null;
+  
+  const day = dateMatch[2].padStart(2, '0');
+  const year = dateMatch[3];
+  
+  return `${year}-${month}-${day}`;
+}
+
 /**
  * Parse guarantee details from the page for a specific season
  * Returns guarantee schedule with triggers and dates
@@ -1331,11 +1361,24 @@ function normalizeContractVoidedOptions(
   
   // Parse option used date from page text
   const optionInfo = parseOptionUsedDate(pageText);
-  const voidedDate = optionInfo.date || futureContract.signingDate || new Date().toISOString().split('T')[0];
+  
+  // For optionUsed: keep the full human-readable string "No (Aug 2, 2025)"
+  const optionUsedStr = optionInfo.date ? `No (${optionInfo.date})` : null;
+  
+  // For voidedOn: convert to ISO format "2025-08-02"
+  let voidedDate: string;
+  if (optionInfo.date) {
+    const isoDate = toISODate(optionInfo.date);
+    voidedDate = isoDate || optionInfo.date; // fallback to original if conversion fails
+  } else if (futureContract.signingDate) {
+    voidedDate = futureContract.signingDate;
+  } else {
+    voidedDate = new Date().toISOString().split('T')[0];
+  }
   
   // Mark the PO year as voided
   poYear.option = 'PO';
-  poYear.optionUsed = optionInfo.date ? `No (${optionInfo.date})` : `No (${voidedDate})`;
+  poYear.optionUsed = optionUsedStr || `No (${voidedDate})`;
   poYear.guaranteed = false;
   poYear.guaranteedAmount = 0;
   poYear.voidedByExtension = true;
