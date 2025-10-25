@@ -46,6 +46,18 @@ const testCases: TestCase[] = [
       signedUsing: 'Early-Bird Exception',
     },
   },
+  {
+    name: 'Jalen Wilson - Team option with partial guarantees',
+    playerId: 'jalen_wilson',
+    htmlFile: 'jalen_wilson_test.html',
+    expectations: {
+      contractType: 'ROOKIE CONTRACT',
+      isRookieScale: false,
+      hasPartialGuarantees: true,
+      hasGuaranteeSchedule: true,
+      hasOptionExercised: true,
+    },
+  },
 ];
 
 async function runTests() {
@@ -117,6 +129,85 @@ async function runTests() {
           console.log(`   ✅ signedUsing: ${actual}`);
         } else {
           console.log(`   ❌ signedUsing: expected "${expected}", got "${actual}"`);
+          testPassed = false;
+        }
+      }
+      
+      if (test.expectations.hasPartialGuarantees) {
+        const partialGuarantees = output.contract.salariesByYear.filter(
+          (y: any) => !y.guaranteed && y.guaranteedAmount > 0
+        );
+        if (partialGuarantees.length > 0) {
+          console.log(`   ✅ Has partial guarantees: ${partialGuarantees.length} year(s)`);
+          // Verify the amounts are correct
+          const year2025 = output.contract.salariesByYear.find((y: any) => y.season === '2025-26');
+          if (year2025) {
+            if (year2025.guaranteedAmount === 88075 && year2025.salary === 2221677) {
+              console.log(`   ✅ 2025-26: $${year2025.guaranteedAmount.toLocaleString()} guaranteed of $${year2025.salary.toLocaleString()}`);
+            } else {
+              console.log(`   ❌ 2025-26: Expected guaranteedAmount=88075, salary=2221677, got ${year2025.guaranteedAmount}, ${year2025.salary}`);
+              testPassed = false;
+            }
+          }
+        } else {
+          console.log(`   ❌ No partial guarantees found`);
+          testPassed = false;
+        }
+      }
+      
+      if (test.expectations.hasGuaranteeSchedule) {
+        const withSchedule = output.contract.salariesByYear.filter(
+          (y: any) => y.guaranteeSchedule && y.guaranteeSchedule.length > 0
+        );
+        if (withSchedule.length > 0) {
+          console.log(`   ✅ Has guarantee schedule: ${withSchedule.length} year(s)`);
+          // Verify the schedule has both triggers for 2025-26
+          const year2025 = output.contract.salariesByYear.find((y: any) => y.season === '2025-26');
+          if (year2025?.guaranteeSchedule) {
+            if (year2025.guaranteeSchedule.length === 2) {
+              console.log(`   ✅ 2025-26 has 2 guarantee triggers`);
+              // Check amounts
+              const amounts = year2025.guaranteeSchedule.map((g: any) => g.guaranteedAmount);
+              if (amounts.includes(381695) && amounts.includes(2221677)) {
+                console.log(`   ✅ Trigger amounts: $381,695 and $2,221,677`);
+              } else {
+                console.log(`   ❌ Expected trigger amounts 381695 and 2221677, got ${amounts.join(', ')}`);
+                testPassed = false;
+              }
+            } else {
+              console.log(`   ❌ Expected 2 triggers, got ${year2025.guaranteeSchedule.length}`);
+              testPassed = false;
+            }
+          }
+        } else {
+          console.log(`   ❌ No guarantee schedules found`);
+          testPassed = false;
+        }
+      }
+      
+      if (test.expectations.hasOptionExercised) {
+        const exercised = output.contract.salariesByYear.filter(
+          (y: any) => y.optionUsed && y.optionUsed.startsWith('Yes')
+        );
+        if (exercised.length > 0) {
+          console.log(`   ✅ Has option exercised: ${exercised[0].season} (${exercised[0].optionUsed})`);
+          // Verify guaranteed totals
+          const expectedGuaranteedValue = 2829932;
+          const expectedGuaranteedYears = 3;
+          if (output.contract.guaranteedValue === expectedGuaranteedValue) {
+            console.log(`   ✅ guaranteedValue: $${output.contract.guaranteedValue.toLocaleString()}`);
+          } else {
+            console.log(`   ❌ guaranteedValue: expected ${expectedGuaranteedValue}, got ${output.contract.guaranteedValue}`);
+            testPassed = false;
+          }
+          if (output.contract.guaranteedYears === expectedGuaranteedYears) {
+            console.log(`   ✅ guaranteedYears: ${output.contract.guaranteedYears}`);
+          } else {
+            console.log(`   ❌ guaranteedYears: expected ${expectedGuaranteedYears}, got ${output.contract.guaranteedYears}`);
+            testPassed = false;
+          }
+        } else {
+          console.log(`   ❌ No option exercised found`);
           testPassed = false;
         }
       }
