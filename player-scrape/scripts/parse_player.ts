@@ -515,9 +515,15 @@ function parseSalaryTable(
       guaranteedAmount = guarantee;
       guaranteed = guarantee >= salary && salary > 0;
     } else {
+      // When guaranteed column is not a number, be conservative
+      // and default to not guaranteed. The enrichGuaranteeSchedules
+      // function will update this based on GUARANTEED DETAILS section.
+      // Only assume fully guaranteed if explicitly marked as such.
       const rowTxt = $(tr).text().toLowerCase();
-      // If not marked as non-guaranteed, assume guaranteed for now
-      guaranteed = !/non-?guaranteed|\bng\b/.test(rowTxt);
+      const isExplicitlyGuaranteed = 
+        /fully\s+guaranteed|100%/.test(rowTxt) && 
+        !/non-?guaranteed|partial/.test(rowTxt);
+      guaranteed = isExplicitlyGuaranteed;
       guaranteedAmount = guaranteed ? salary : 0;
     }
 
@@ -1319,12 +1325,15 @@ function enrichGuaranteeSchedules(
   $: cheerio.CheerioAPI,
   salariesByYear: any[]
 ): void {
-  // For each year that is not fully guaranteed, try to find guarantee schedule
-  // This includes both partially guaranteed years (guaranteedAmount > 0 but < salary)
-  // and fully non-guaranteed years (guaranteedAmount === 0)
+  // For each year, try to find guarantee schedule from GUARANTEED DETAILS section
+  // This handles:
+  // - Partially guaranteed years (guaranteedAmount > 0 but < salary)
+  // - Fully non-guaranteed years (guaranteedAmount === 0)
+  // - Years where the initial parse couldn't determine guarantee status
   for (const yearRow of salariesByYear) {
-    // Skip fully guaranteed years (where guaranteed === true)
-    if (yearRow.guaranteed) {
+    // Skip years that are already confirmed as fully guaranteed with a valid guaranteedAmount
+    // Only skip if both guaranteed===true AND guaranteedAmount equals the salary
+    if (yearRow.guaranteed && yearRow.guaranteedAmount === yearRow.salary) {
       continue;
     }
 
