@@ -71,7 +71,7 @@ async function runTests() {
     console.log(`   File: ${test.htmlFile}`);
     
     try {
-      const outputPath = join(__dirname, '../output', `${test.playerId}.json`);
+      const outputPath = join(__dirname, '../../output', `${test.playerId}.json`);
       const output = JSON.parse(await fs.readFile(outputPath, 'utf8'));
       
       // Run expectations

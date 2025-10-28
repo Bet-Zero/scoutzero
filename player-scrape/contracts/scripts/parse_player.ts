@@ -1592,8 +1592,8 @@ async function main() {
     'unknown';
 
   const htmlPath = process.env.TEMP_FILE
-    ? join(__dirname, '../examples', process.env.TEMP_FILE)
-    : join(__dirname, '../examples/page.html');
+    ? join(__dirname, '../../examples', process.env.TEMP_FILE)
+    : join(__dirname, '../../examples/page.html');
   const html = await fs.readFile(htmlPath, 'utf8');
   const $ = cheerio.load(html);
 
@@ -1864,7 +1864,7 @@ async function main() {
     version: '1.0',
   };
 
-  const outDir = join(__dirname, '../output');
+  const outDir = join(__dirname, '../../output');
   await fs.mkdir(outDir, { recursive: true });
 
   // Save to individual player file instead of overwriting player.json

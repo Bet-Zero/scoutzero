@@ -105,7 +105,7 @@ async function validateTestCase(testCase: TestCase): Promise<boolean> {
   console.log(`\n📋 Testing: ${testCase.name}`);
   console.log('─'.repeat(60));
 
-  const outputPath = join(__dirname, '../output', testCase.outputFile);
+  const outputPath = join(__dirname, '../../output', testCase.outputFile);
   let data: any;
 
   try {

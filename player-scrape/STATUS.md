@@ -52,25 +52,25 @@ All normalization requirements have been implemented:
 ### Parse a Single Player
 ```bash
 # From cached HTML
-PLAYER_ID="player_name" TEAM_CODE="XXX" npx tsx player-scrape/scripts/parse_player.ts
+PLAYER_ID="player_name" TEAM_CODE="XXX" npx tsx player-scrape/contracts/scripts/parse_player.ts
 
 # From fresh fetch
 PLAYER_URL="https://salaryswish.com/players/austin-reaves" \
 PLAYER_ID="austin_reaves" \
 TEAM_CODE="LAL" \
-npx tsx player-scrape/scripts/parse_player.ts
+npx tsx player-scrape/contracts/scripts/parse_player.ts
 ```
 
 ### Batch Process Players
 ```bash
 PLAYERS_FILE="examples/players_list_sample.json" \
 OUTPUT_DIR="output/players" \
-npx tsx player-scrape/scripts/batch_scrape_players.ts
+npx tsx player-scrape/contracts/scripts/batch_scrape_players.ts
 ```
 
 ### Validate Output
 ```bash
-npx tsx player-scrape/scripts/validate_player.ts
+npx tsx player-scrape/contracts/scripts/validate_player.ts
 ```
 
 ## What's Next (Optional Enhancements)
@@ -110,6 +110,7 @@ Validate (validate_player.ts) → ✅ Schema check
 ## Key Files
 
 ### Scripts (All Functional)
+Located in `contracts/scripts/`:
 - `fetch_player_page.ts` - Download player pages
 - `parse_player.ts` - Extract contract data
 - `batch_scrape_players.ts` - Batch processing
@@ -118,7 +119,7 @@ Validate (validate_player.ts) → ✅ Schema check
 - `validate_normalization.sh` - Normalization demo
 
 ### Schema
-- `schema/player_scrape_schema.ts` - TypeScript types and Zod validation
+- `shared/schema/player_scrape_schema.ts` - TypeScript types and Zod validation
 
 ### Examples
 - `examples/page.html` - Sample player page (Jalen Wilson)

@@ -1,6 +1,6 @@
 # Player-Scrape
 
-NBA player contract scraper for populating `players_v2` Firestore collection.
+NBA player data scraper for populating `players_v2` Firestore collection.
 
 ## 🚀 Quick Start
 
@@ -8,24 +8,34 @@ NBA player contract scraper for populating `players_v2` Firestore collection.
 
 **System is fully functional** with all contract normalization features implemented and tested.
 
+## 📁 Structure
+
+This directory is organized into focused modules:
+
+- **`contracts/`** - Contract scraping scripts and logic (production ready)
+- **`stats/`** - Stats scraping scripts and logic (coming soon)
+- **`shared/`** - Shared utilities and schemas used across modules
+- **`docs/`** - Documentation for all modules
+- **`examples/`** - Example data and test HTML files
+
 ### Quick Commands
 
 ```bash
-# Parse a single player (using cached HTML)
-PLAYER_ID="player_name" TEAM_CODE="XXX" npx tsx player-scrape/scripts/parse_player.ts
+# Parse a single player contract (using cached HTML)
+PLAYER_ID="player_name" TEAM_CODE="XXX" npx tsx player-scrape/contracts/scripts/parse_player.ts
 
 # Fetch and parse from SalarySwish
 PLAYER_URL="https://salaryswish.com/players/austin-reaves" \
 PLAYER_ID="austin_reaves" \
 TEAM_CODE="LAL" \
-npx tsx player-scrape/scripts/parse_player.ts
+npx tsx player-scrape/contracts/scripts/parse_player.ts
 
 # Batch process multiple players
 PLAYERS_FILE="examples/players_list_sample.json" \
-npx tsx player-scrape/scripts/batch_scrape_players.ts
+npx tsx player-scrape/contracts/scripts/batch_scrape_players.ts
 
 # Validate output
-npx tsx player-scrape/scripts/validate_player.ts
+npx tsx player-scrape/contracts/scripts/validate_player.ts
 ```
 
 ## Documentation

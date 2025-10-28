@@ -12,13 +12,13 @@
 import fs from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { basePlayerSchema } from '../schema/player_scrape_schema.ts';
+import { basePlayerSchema } from '../../shared/schema/player_scrape_schema.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 async function validatePlayer() {
   const playerFile = process.env.PLAYER_FILE || 'player.json';
-  const filePath = join(__dirname, '../output', playerFile);
+  const filePath = join(__dirname, '../../output', playerFile);
 
   console.log(`🔍 Validating: ${filePath}`);
 

@@ -45,8 +45,8 @@ interface ScraperConfig {
 const config: ScraperConfig = {
   playersFile:
     process.env.PLAYERS_FILE ||
-    join(__dirname, '../examples/players_list_sample.json'),
-  outputDir: process.env.OUTPUT_DIR || join(__dirname, '../output/players'),
+    join(__dirname, '../../examples/players_list_sample.json'),
+  outputDir: process.env.OUTPUT_DIR || join(__dirname, '../../output/players'),
   rateLimitMs: parseInt(process.env.RATE_LIMIT_MS || '2000'),
   skipFetch: process.env.SKIP_FETCH === '1',
 };
