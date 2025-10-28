@@ -74,7 +74,7 @@ After the fix, the same player correctly outputs:
 
 ## Files Changed
 
-- **`player-scrape/scripts/parse_player.ts`**
+- **`player-scrape/contracts/scripts/parse_player.ts`**
   - Added `parseContractMetaFromTable()` function (78 lines)
   - Updated future contract parsing to use new function (4 lines modified)
 

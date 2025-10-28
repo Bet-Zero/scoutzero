@@ -79,7 +79,7 @@ player-scrape/
 **Run:**
 
 ```bash
-PLAYER_URL="https://salaryswish.com/players/austin-reaves" tsx player-scrape/scripts/fetch_player_page.ts
+PLAYER_URL="https://salaryswish.com/players/austin-reaves" tsx player-scrape/contracts/scripts/fetch_player_page.ts
 ```
 
 **What it does:**
@@ -101,7 +101,7 @@ PLAYER_URL="https://salaryswish.com/players/austin-reaves" tsx player-scrape/scr
 **Run:**
 
 ```bash
-PLAYER_URL="https://salaryswish.com/players/austin-reaves" PLAYER_ID="austin_reaves" tsx player-scrape/scripts/parse_player.ts
+PLAYER_URL="https://salaryswish.com/players/austin-reaves" PLAYER_ID="austin_reaves" tsx player-scrape/contracts/scripts/parse_player.ts
 ```
 
 **What it does:**
@@ -132,7 +132,7 @@ PLAYER_URL="https://salaryswish.com/players/austin-reaves" PLAYER_ID="austin_rea
 **Run:**
 
 ```bash
-PLAYERS_FILE="examples/players_list_sample.json" OUTPUT_DIR="output/players" tsx player-scrape/scripts/batch_scrape_players.ts
+PLAYERS_FILE="examples/players_list_sample.json" OUTPUT_DIR="output/players" tsx player-scrape/contracts/scripts/batch_scrape_players.ts
 ```
 
 **What it does:**
@@ -171,7 +171,7 @@ PLAYERS_FILE="examples/players_list_sample.json" OUTPUT_DIR="output/players" tsx
 **Run:**
 
 ```bash
-tsx player-scrape/scripts/validate_player.ts
+tsx player-scrape/contracts/scripts/validate_player.ts
 ```
 
 **What it does:**
@@ -238,19 +238,19 @@ The `examples/sample_austin_reaves.json` file contains **placeholder test data**
 1. **Fetch the page:**
 
 ```bash
-PLAYER_URL="https://salaryswish.com/players/austin-reaves" tsx player-scrape/scripts/fetch_player_page.ts
+PLAYER_URL="https://salaryswish.com/players/austin-reaves" tsx player-scrape/contracts/scripts/fetch_player_page.ts
 ```
 
 2. **Parse to JSON:**
 
 ```bash
-PLAYER_URL="https://salaryswish.com/players/austin_reaves" PLAYER_ID="austin_reaves" TEAM_CODE="LAL" tsx player-scrape/scripts/parse_player.ts
+PLAYER_URL="https://salaryswish.com/players/austin_reaves" PLAYER_ID="austin_reaves" TEAM_CODE="LAL" tsx player-scrape/contracts/scripts/parse_player.ts
 ```
 
 3. **Validate output:**
 
 ```bash
-tsx player-scrape/scripts/validate_player.ts
+tsx player-scrape/contracts/scripts/validate_player.ts
 ```
 
 4. **Review output:**
@@ -276,7 +276,7 @@ To scrape all players for a team or league:
 **2. Run batch scraper:**
 
 ```bash
-PLAYERS_FILE="examples/players_list.json" OUTPUT_DIR="output/players" tsx player-scrape/scripts/batch_scrape_players.ts
+PLAYERS_FILE="examples/players_list.json" OUTPUT_DIR="output/players" tsx player-scrape/contracts/scripts/batch_scrape_players.ts
 ```
 
 **3. Upload to Firestore:**
@@ -456,14 +456,14 @@ npm run batch-scrape-players  # Scrape multiple players (requires PLAYERS_FILE)
 
 ```bash
 # Scrape a single player
-PLAYER_URL="https://salaryswish.com/players/lebron-james" tsx player-scrape/scripts/fetch_player_page.ts
-PLAYER_ID="lebron_james" TEAM_CODE="LAL" tsx player-scrape/scripts/parse_player.ts
+PLAYER_URL="https://salaryswish.com/players/lebron-james" tsx player-scrape/contracts/scripts/fetch_player_page.ts
+PLAYER_ID="lebron_james" TEAM_CODE="LAL" tsx player-scrape/contracts/scripts/parse_player.ts
 
 # Validate output
-tsx player-scrape/scripts/validate_player.ts
+tsx player-scrape/contracts/scripts/validate_player.ts
 
 # Batch scrape from list
-PLAYERS_FILE="examples/players_list.json" OUTPUT_DIR="output/players" tsx player-scrape/scripts/batch_scrape_players.ts
+PLAYERS_FILE="examples/players_list.json" OUTPUT_DIR="output/players" tsx player-scrape/contracts/scripts/batch_scrape_players.ts
 ```
 
 ### Output Structure

@@ -5,7 +5,7 @@
 //   Runs through test cases for Luka Doncic and Austin Reaves to ensure correct behavior.
 //
 // USAGE:
-//   npx tsx player-scrape/scripts/validate_po_voiding.ts
+//   npx tsx player-scrape/contracts/scripts/validate_po_voiding.ts
 
 import { readFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';

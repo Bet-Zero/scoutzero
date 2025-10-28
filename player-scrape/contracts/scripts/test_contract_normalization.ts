@@ -1,5 +1,5 @@
 // test_contract_normalization.ts — Test contract normalization against spec requirements
-// RUN: npx tsx player-scrape/scripts/test_contract_normalization.ts
+// RUN: npx tsx player-scrape/contracts/scripts/test_contract_normalization.ts
 
 import fs from 'node:fs/promises';
 import * as cheerio from 'cheerio';

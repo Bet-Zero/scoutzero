@@ -281,14 +281,14 @@ npm run validate-po-voiding
 
 ## Files Modified
 
-1. **player-scrape/scripts/parse_player.ts**
+1. **player-scrape/contracts/scripts/parse_player.ts**
    - Line 661: Updated contract type detection
    - Line 683: Updated contract type detection (future contracts)
    - Line 939: Hyphenated "Early-Bird Exception"
    - Lines 1064-1110: Enhanced max contract detection with Cap % mapping
    - Lines 1160-1198: Modified PO voiding to preserve headline totals
 
-2. **player-scrape/scripts/batch_scrape_players.ts**
+2. **player-scrape/contracts/scripts/batch_scrape_players.ts**
    - Lines 176-178: Updated contract type detection for batch processing
 
 ---

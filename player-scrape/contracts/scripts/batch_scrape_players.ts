@@ -5,7 +5,7 @@
 //   Outputs individual JSON files for each player ready for basePlayers collection.
 //
 // RUN:
-//   PLAYERS_FILE="players_list.json" OUTPUT_DIR="output/players" npx tsx player-scrape/scripts/batch_scrape_players.ts
+//   PLAYERS_FILE="players_list.json" OUTPUT_DIR="output/players" npx tsx player-scrape/contracts/scripts/batch_scrape_players.ts
 //
 // INPUT FORMAT (players_list.json):
 //   [
@@ -15,8 +15,8 @@
 //   ]
 //
 // ENVIRONMENT VARIABLES:
-//   PLAYERS_FILE - Path to JSON file with player list (default: ../examples/players_list_sample.json)
-//   OUTPUT_DIR - Directory for output files (default: ../output/players)
+//   PLAYERS_FILE - Path to JSON file with player list (default: ../../examples/players_list_sample.json)
+//   OUTPUT_DIR - Directory for output files (default: ../../output/players)
 //   RATE_LIMIT_MS - Delay between requests in ms (default: 2000)
 //   SKIP_FETCH - Set to "1" to skip fetching (use existing page.html files)
 

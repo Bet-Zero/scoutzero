@@ -1,14 +1,14 @@
 #!/bin/bash
 # validate_normalization.sh - Demonstrate all contract normalization features
 
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 echo "🔍 Contract Normalization Validation Demo"
 echo "=========================================="
 echo ""
 
 echo "📋 Parsing test cases..."
-bash scripts/parse_all_tests.sh > /dev/null 2>&1
+bash contracts/scripts/parse_all_tests.sh > /dev/null 2>&1
 
 echo ""
 echo "1️⃣  LUKA DONČIĆ - Extension Voiding Player Option"
@@ -38,4 +38,4 @@ echo ""
 echo "✅ All normalization features validated!"
 echo ""
 echo "📊 Run full test suite:"
-echo "   npx tsx player-scrape/scripts/test_contract_normalization.ts"
+echo "   npx tsx player-scrape/contracts/scripts/test_contract_normalization.ts"

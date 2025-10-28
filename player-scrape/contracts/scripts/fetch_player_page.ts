@@ -5,10 +5,10 @@
 //   Avoids 'networkidle' (modern sites rarely go idle), blocks noisy requests,
 //   performs gentle interactions (scroll/tab/year click) if needed, and
 //   waits on concrete selectors that indicate salary/contract content is present.
-//   Saves fully rendered HTML to ../examples/page.html for parsing with parse_player.ts
+//   Saves fully rendered HTML to ../../examples/page.html for parsing with parse_player.ts
 //
 // RUN:
-//   PLAYER_URL="https://salaryswish.com/players/austin-reaves" npx tsx player-scrape/scripts/fetch_player_page.ts
+//   PLAYER_URL="https://salaryswish.com/players/austin-reaves" npx tsx player-scrape/contracts/scripts/fetch_player_page.ts
 //   OR
 //   PLAYER_URL="https://salaryswish.com/players/austin-reaves" npm run fetch-player
 //
@@ -18,7 +18,7 @@
 //   INTERACT=1            - (optional) Enable extra interactions (tabs/years) before snapshot
 //
 // OUTPUT:
-//   ../examples/page.html - Fully rendered HTML snapshot with JavaScript executed
+//   ../../examples/page.html - Fully rendered HTML snapshot with JavaScript executed
 
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -31,7 +31,7 @@ const playerUrlRaw = process.env.PLAYER_URL;
 if (!playerUrlRaw) {
   console.error('❌ Missing PLAYER_URL environment variable');
   console.error(
-    'Usage: PLAYER_URL="https://salaryswish.com/players/austin-reaves" npx tsx player-scrape/scripts/fetch_player_page.ts'
+    'Usage: PLAYER_URL="https://salaryswish.com/players/austin-reaves" npx tsx player-scrape/contracts/scripts/fetch_player_page.ts'
   );
   process.exit(1);
 }

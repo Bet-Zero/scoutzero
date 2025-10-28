@@ -1,11 +1,11 @@
 // parse_player.ts — SalarySwish player page → structured player JSON (comprehensive contract & bio data)
 // RUN:
-//   npm pkg set scripts.parse-player="tsx player-scrape/scripts/parse_player.ts"
+//   npm pkg set scripts.parse-player="tsx player-scrape/contracts/scripts/parse_player.ts"
 //   PLAYER_URL="https://salaryswish.com/players/austin-reaves" PLAYER_ID="austin_reaves" npm run parse-player
 //   DEBUG=1 … (optional) to see what sections were matched
 //
-// INPUT:  ../examples/page.html (from fetch_player_page.ts)
-// OUTPUT: ../output/player.json
+// INPUT:  ../../examples/page.html (from fetch_player_page.ts)
+// OUTPUT: ../../output/player.json
 //
 // Requires: cheerio
 

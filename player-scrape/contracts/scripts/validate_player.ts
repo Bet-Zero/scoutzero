@@ -4,7 +4,7 @@
 //   Validates the parsed player JSON against the Zod schema to ensure data quality.
 //
 // RUN:
-//   npx tsx player-scrape/scripts/validate_player.ts
+//   npx tsx player-scrape/contracts/scripts/validate_player.ts
 //
 // USAGE:
 //   Will validate player.json by default, or specify file via PLAYER_FILE env var
