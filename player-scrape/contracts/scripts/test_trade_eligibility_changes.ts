@@ -214,7 +214,7 @@ async function runTests() {
   console.log(`\n${'='.repeat(60)}`);
   console.log(`✅ Passed: ${passed}`);
   console.log(`❌ Failed: ${failed}`);
-  console.log(`📊 Total: 2`);
+  console.log(`📊 Total: ${passed + failed}`);
 
   if (failed > 0) {
     process.exit(1);
