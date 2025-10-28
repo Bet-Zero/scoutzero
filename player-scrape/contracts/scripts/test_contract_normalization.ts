@@ -49,7 +49,7 @@ const testCases: TestCase[] = [
   {
     name: 'Jalen Wilson - Team option with partial guarantees',
     playerId: 'jalen_wilson',
-    htmlFile: 'jalen_wilson_test.html',
+    htmlFile: 'jalen_wilson_correct.html',
     expectations: {
       contractType: 'ROOKIE CONTRACT',
       isRookieScale: false,
@@ -104,7 +104,8 @@ async function runTests() {
           (y: any) => y.voidedByExtension === true
         );
         if (voidedPO) {
-          console.log(`   ✅ Has voided PO: ${voidedPO.season} (optionUsed: ${voidedPO.optionUsed})`);
+          const dateStr = voidedPO.optionDecisionDate ? ` on ${voidedPO.optionDecisionDate}` : '';
+          console.log(`   ✅ Has voided PO: ${voidedPO.season} (optionUsed: ${voidedPO.optionUsed}${dateStr})`);
         } else {
           console.log(`   ❌ No voided PO found`);
           testPassed = false;
@@ -187,10 +188,12 @@ async function runTests() {
       
       if (test.expectations.hasOptionExercised) {
         const exercised = output.contract.salariesByYear.filter(
-          (y: any) => y.optionUsed && y.optionUsed.startsWith('Yes')
+          (y: any) => y.optionUsed === true
         );
         if (exercised.length > 0) {
-          console.log(`   ✅ Has option exercised: ${exercised[0].season} (${exercised[0].optionUsed})`);
+          const exYear = exercised[0];
+          const dateStr = exYear.optionDecisionDate ? ` (${exYear.optionDecisionDate})` : '';
+          console.log(`   ✅ Has option exercised: ${exYear.season} - optionUsed: ${exYear.optionUsed}${dateStr}`);
           // Verify guaranteed totals
           const expectedGuaranteedValue = 2829932;
           const expectedGuaranteedYears = 3;
