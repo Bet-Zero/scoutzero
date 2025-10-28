@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { mkdirSync, copyFileSync, unlinkSync, existsSync } from 'node:fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const projectRoot = join(__dirname, '../..');
+const projectRoot = join(__dirname, '../../..');
 
 // Player configuration type
 interface Player {

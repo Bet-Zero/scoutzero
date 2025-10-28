@@ -132,10 +132,10 @@ Created `test_contract_normalization.ts` to validate key scenarios:
 ### Running Tests
 ```bash
 # Parse all test cases
-bash player-scrape/scripts/parse_all_tests.sh
+bash player-scrape/contracts/scripts/parse_all_tests.sh
 
 # Run test suite
-npx tsx player-scrape/scripts/test_contract_normalization.ts
+npx tsx player-scrape/contracts/scripts/test_contract_normalization.ts
 ```
 
 ## Remaining Work
@@ -158,9 +158,9 @@ To complete the full specification:
 
 ## Files Modified
 
-- `player-scrape/scripts/parse_player.ts` - Main parser with all normalization logic
-- `player-scrape/scripts/test_contract_normalization.ts` - Test suite (new)
-- `player-scrape/scripts/parse_all_tests.sh` - Test helper script (new)
+- `player-scrape/contracts/scripts/parse_player.ts` - Main parser with all normalization logic
+- `player-scrape/contracts/scripts/test_contract_normalization.ts` - Test suite (new)
+- `player-scrape/contracts/scripts/parse_all_tests.sh` - Test helper script (new)
 
 ## Key Functions Added/Modified
 

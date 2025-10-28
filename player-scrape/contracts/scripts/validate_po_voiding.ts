@@ -5,7 +5,7 @@
 //   Runs through test cases for Luka Doncic and Austin Reaves to ensure correct behavior.
 //
 // USAGE:
-//   npx tsx player-scrape/scripts/validate_po_voiding.ts
+//   npx tsx player-scrape/contracts/scripts/validate_po_voiding.ts
 
 import { readFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
@@ -105,7 +105,7 @@ async function validateTestCase(testCase: TestCase): Promise<boolean> {
   console.log(`\n📋 Testing: ${testCase.name}`);
   console.log('─'.repeat(60));
 
-  const outputPath = join(__dirname, '../output', testCase.outputFile);
+  const outputPath = join(__dirname, '../../output', testCase.outputFile);
   let data: any;
 
   try {

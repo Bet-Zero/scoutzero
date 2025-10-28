@@ -1,5 +1,5 @@
 // test_contract_normalization.ts — Test contract normalization against spec requirements
-// RUN: npx tsx player-scrape/scripts/test_contract_normalization.ts
+// RUN: npx tsx player-scrape/contracts/scripts/test_contract_normalization.ts
 
 import fs from 'node:fs/promises';
 import * as cheerio from 'cheerio';
@@ -71,7 +71,7 @@ async function runTests() {
     console.log(`   File: ${test.htmlFile}`);
     
     try {
-      const outputPath = join(__dirname, '../output', `${test.playerId}.json`);
+      const outputPath = join(__dirname, '../../output', `${test.playerId}.json`);
       const output = JSON.parse(await fs.readFile(outputPath, 'utf8'));
       
       // Run expectations

@@ -140,7 +140,7 @@ Parser now shows when future contracts are detected:
 
 ## Files Modified
 
-1. **player-scrape/scripts/parse_player.ts**
+1. **player-scrape/contracts/scripts/parse_player.ts**
    - Added `findAllSalaryTables()` function
    - Added `detectContractTypeFromHeading()` function
    - Enhanced main parsing logic to handle multiple contracts
@@ -197,4 +197,4 @@ npm run validate-player
 
 - Schema definition: `player-scrape/schema/player_scrape_schema.ts`
 - Documentation: `player-scrape/docs/MULTIPLE_CONTRACTS_PLAN.md`
-- Validation script: `player-scrape/scripts/validate_player.ts`
+- Validation script: `player-scrape/contracts/scripts/validate_player.ts`
