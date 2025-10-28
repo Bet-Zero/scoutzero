@@ -1258,7 +1258,7 @@ function parseTradeEligibility($: cheerio.CheerioAPI, isRookieScale: boolean) {
   const poisonPill = isRookieScale && /poison pill/.test(body);
   const aggregation = !/cannot be aggregated/.test(body);
   return {
-    canBeTradedNow: !restrictedUntil,
+    canBeTradedNow: null,
     restrictedUntil,
     reason,
     rules: { baseYearCompensation, poisonPill, aggregation },
@@ -1799,6 +1799,7 @@ async function main() {
             ...futureOptionSummary,
           },
           tradeEligibility,
+          supersedesContractRef: contractType,
           ...futureMaxContractInfo,
         };
       }
