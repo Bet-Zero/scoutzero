@@ -135,29 +135,22 @@ const dbg = (label: string, val: any) => {
 
 /** Parse "Option Used: No (Aug 2, 2025)" or "Option Used: Yes (Aug 2, 2025)" into ISO date */
 function parseOptionUsedDate(text: string): {
-  used: boolean;
-  date: string | null;
+  optionUsed: boolean | null;
+  optionDecisionDate: string | null;
 } {
   // Look for "Option Used: No (Aug 2, 2025)" or "Option Used: Yes (Aug 2, 2025)"
-  const match = text.match(/Option\s+Used:\s*(Yes|No)\s*\(([^)]+)\)/i);
-  if (!match) return { used: false, date: null };
+  // OR just "Yes (Aug 2, 2025)" or "No (Aug 2, 2025)" when in the Option Used column
+  const match = text.match(/(?:Option\s+Used:\s*)?(Yes|No)\s*\(([^)]+)\)/i);
+  if (!match) return { optionUsed: null, optionDecisionDate: null };
 
-  const used = match[1].toLowerCase() === 'yes';
+  const optionUsed = match[1].toLowerCase() === 'yes';
   const dateStr = match[2].trim();
 
-  // Return the original date string as-is (not converting to ISO format)
-  // to preserve the human-readable format from the source data
-  return { used, date: dateStr };
-}
+  // Convert the date to ISO format (YYYY-MM-DD)
+  const optionDecisionDate = toISODate(dateStr);
 
-/** Format option used info into standard string format */
-const formatOptionUsed = (info: {
-  used: boolean;
-  date: string | null;
-}): string | null => {
-  if (!info.date) return null;
-  return `${info.used ? 'Yes' : 'No'} (${info.date})`;
-};
+  return { optionUsed, optionDecisionDate };
+}
 
 /** Convert human-readable date to ISO format (YYYY-MM-DD) */
 function toISODate(dateStr: string): string | null {
@@ -511,7 +504,8 @@ function parseSalaryTable(
   const idxCapHit = headerIndex(headers, /cap\s*hit/i, /\bcap\b/i);
   const idxSalary = headerIndex(headers, /base\s*salary/i, /\bsalary\b/i);
   const idxGuaranteed = headerIndex(headers, /guaranteed/i);
-  const idxOption = headerIndex(headers, /option/i);
+  const idxOption = headerIndex(headers, /^option$/i); // Match "Option" column only, not "Option Used"
+  const idxOptionUsed = headerIndex(headers, /option\s*used/i); // Match "Option Used" column
   const idxLikely = headerIndex(headers, /likely/i);
   const idxUnlikely = headerIndex(headers, /unlikely/i);
 
@@ -558,23 +552,39 @@ function parseSalaryTable(
     }
 
     let option: 'PO' | 'TO' | 'ETO' | null = null;
-    let optionUsed: string | null = null;
+    let optionUsed: boolean | null = null;
+    let optionDecisionDate: string | null = null;
 
     if (idxOption >= 0) {
       option = extractOptionFromCell($, cells.eq(idxOption)) as any;
-
-      // Check for "Option Used: Yes/No (date)" in the option cell
-      const optionCellText = cells.eq(idxOption).text();
-      const optionInfo = parseOptionUsedDate(optionCellText);
-      optionUsed = formatOptionUsed(optionInfo);
     }
 
-    // Check the next row for optionUsed info (sometimes it's in a colspan row)
-    if (!optionUsed && i + 1 < allRows.length) {
+    // Check the "Option Used" column if it exists
+    if (idxOptionUsed >= 0) {
+      const optionUsedCellText = cells.eq(idxOptionUsed).text();
+      const optionInfo = parseOptionUsedDate(optionUsedCellText);
+      optionUsed = optionInfo.optionUsed;
+      optionDecisionDate = optionInfo.optionDecisionDate;
+    }
+
+    // Fallback: Check for "Option Used: Yes/No (date)" in the option cell (old format)
+    if (optionUsed === null && idxOption >= 0) {
+      const optionCellText = cells.eq(idxOption).text();
+      const optionInfo = parseOptionUsedDate(optionCellText);
+      optionUsed = optionInfo.optionUsed;
+      optionDecisionDate = optionInfo.optionDecisionDate;
+    }
+
+    // Check the next row for optionUsed info (sometimes it's in a colspan row with "Option Used:" label)
+    if (optionUsed === null && i + 1 < allRows.length) {
       const nextTr = allRows[i + 1];
       const nextRowText = $(nextTr).text();
-      const nextOptionInfo = parseOptionUsedDate(nextRowText);
-      optionUsed = formatOptionUsed(nextOptionInfo);
+      // Only check next row if it contains "Option Used:" label (indicating a colspan row)
+      if (/Option\s+Used:/i.test(nextRowText)) {
+        const nextOptionInfo = parseOptionUsedDate(nextRowText);
+        optionUsed = nextOptionInfo.optionUsed;
+        optionDecisionDate = nextOptionInfo.optionDecisionDate;
+      }
     }
 
     // Also check season cell for option tags (e.g., "2025-26 PO")
@@ -629,6 +639,7 @@ function parseSalaryTable(
       guaranteedAmount,
       option: option ?? null,
       optionUsed: optionUsed,
+      optionDecisionDate: optionDecisionDate,
       tradeBonus: null,
       incentives: { likely, unlikely },
     };
@@ -1464,11 +1475,11 @@ function enrichGuaranteeSchedules(
 
 /**
  * Apply house rule: Treat live player options as guaranteed
- * This sets PO years to guaranteed unless they have optionUsed="No"
+ * This sets PO years to guaranteed unless they have optionUsed=false
  */
 function applyPlayerOptionPolicy(salariesByYear: any[]): void {
   for (const yearRow of salariesByYear) {
-    if (yearRow.option === 'PO' && !yearRow.optionUsed?.startsWith('No')) {
+    if (yearRow.option === 'PO' && yearRow.optionUsed !== false) {
       // Live player option - treat as guaranteed
       yearRow.guaranteed = true;
       yearRow.guaranteedAmount = yearRow.salary;
@@ -1506,25 +1517,15 @@ function normalizeContractVoidedOptions(
     `${poYear.season} PO voided by extension starting ${futureStartSeason}`
   );
 
-  // Parse option used date from page text to get the human-readable format
+  // Parse option used date from page text to get both optionUsed and optionDecisionDate
   const optionInfo = parseOptionUsedDate(pageText);
 
-  // For optionUsed: keep the full human-readable string "No (Aug 2, 2025)"
-  const optionUsedStr = optionInfo.date ? `No (${optionInfo.date})` : null;
-
-  // For voidedOn: extract date from optionUsed and convert to ISO format
+  // For voidedOn: use the decision date from optionInfo
   let voidedDate: string;
 
-  if (optionUsedStr) {
-    // Extract the date part from "No (Aug 2, 2025)" -> "Aug 2, 2025"
-    const dateMatch = optionUsedStr.match(/\(([^)]+)\)/);
-    if (dateMatch) {
-      const extractedDate = dateMatch[1].trim();
-      const isoDate = toISODate(extractedDate);
-      voidedDate = isoDate || extractedDate; // fallback to original if conversion fails
-    } else {
-      voidedDate = optionInfo.date || new Date().toISOString().split('T')[0];
-    }
+  if (optionInfo.optionDecisionDate) {
+    // Use the ISO date directly
+    voidedDate = optionInfo.optionDecisionDate;
   } else if (futureContract.signingDate) {
     voidedDate = futureContract.signingDate;
   } else {
@@ -1533,7 +1534,8 @@ function normalizeContractVoidedOptions(
 
   // Mark the PO year as voided
   poYear.option = 'PO';
-  poYear.optionUsed = optionUsedStr || `No (${voidedDate})`;
+  poYear.optionUsed = false; // Player option was declined
+  poYear.optionDecisionDate = voidedDate;
   poYear.guaranteed = false;
   poYear.guaranteedAmount = 0;
   poYear.voidedByExtension = true;

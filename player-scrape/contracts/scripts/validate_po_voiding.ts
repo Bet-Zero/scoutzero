@@ -33,7 +33,8 @@ interface TestCase {
       guaranteed: boolean;
       guaranteedAmount: number;
       voidedByExtension: boolean;
-      optionUsed?: string;
+      optionUsed?: boolean | null;
+      optionDecisionDate?: string | null;
       voidedOn?: string;
     };
     futureContract?: {
@@ -70,7 +71,8 @@ const testCases: TestCase[] = [
         guaranteed: false,
         guaranteedAmount: 0,
         voidedByExtension: true,
-        optionUsed: 'No (2025-08-02)',
+        optionUsed: false,
+        optionDecisionDate: '2025-08-02',
         voidedOn: '2025-08-02'
       },
       futureContract: {
