@@ -287,8 +287,10 @@ function parseGuaranteeDetails(
     const amount = moneyNum(match[1]) || 0;
     const event = match[2].trim();
     const status = match[3].trim();
+    // Normalize effectiveDate: append season to "first regular season game"
+    const normalizedDate = `${event} ${season}`;
     schedule.push({
-      effectiveDate: event,
+      effectiveDate: normalizedDate,
       guaranteedAmount: amount,
       status: status,
       note: `Increases to $${amount.toLocaleString()} if not waived before ${event}`,
@@ -304,8 +306,10 @@ function parseGuaranteeDetails(
     const amount = moneyNum(match[1]) || 0;
     const dateStr = match[2].trim();
     const status = match[3].trim();
+    // Normalize effectiveDate: convert to ISO format (YYYY-MM-DD)
+    const normalizedDate = toISODate(dateStr) || dateStr;
     schedule.push({
-      effectiveDate: dateStr,
+      effectiveDate: normalizedDate,
       guaranteedAmount: amount,
       status: status,
       note: `Increases to $${amount.toLocaleString()} if not waived before ${dateStr}`,
@@ -321,8 +325,10 @@ function parseGuaranteeDetails(
       /(?:I|i)f\s+(?:player\s+is\s+)?not\s+waived\s+before\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})[^$]*becomes\s+fully\s+guaranteed/gi;
     while ((match = fallbackPattern.exec(seasonContent)) !== null) {
       const dateStr = match[1].trim();
+      // Normalize effectiveDate: convert to ISO format (YYYY-MM-DD)
+      const normalizedDate = toISODate(dateStr) || dateStr;
       schedule.push({
-        effectiveDate: dateStr,
+        effectiveDate: normalizedDate,
         guaranteedAmount: GUARANTEE_AMOUNT_TBD, // Will be filled in with salary amount later
         status: 'Decision Pending',
         note: `Becomes fully guaranteed if not waived before ${dateStr}`,
