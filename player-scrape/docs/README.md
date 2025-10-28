@@ -1,14 +1,14 @@
 # Player Scrape Tools
 
-> 🎯 **Production-Ready Player Contract Scraper for Architect**
+> 🎯 **Production-Ready Player Contract Scraper**
 >
-> This folder contains tools for scraping NBA player contract data from SalarySwish player pages (e.g., https://salaryswish.com/players/austin-reaves). The output populates `/architect/basePlayers/{playerId}` with comprehensive contract details needed for trade validation.
+> This folder contains tools for scraping NBA player contract data from SalarySwish player pages (e.g., https://salaryswish.com/players/austin-reaves). The output populates `players_v2/{playerId}/contracts` in Firestore with comprehensive contract details.
 
-> ⚠️ **SETUP REQUIRED:** This scraper requires Playwright with Chromium browser installed. See [SETUP_GUIDE.md](./SETUP_GUIDE.md) for complete setup instructions.
+> ✅ **Status:** System is fully functional and production-ready. See [../STATUS.md](../STATUS.md) for current capabilities.
 >
-> **Recent Fix:** Replaced `got` HTTP client with Playwright to properly render JavaScript-based salary tables. The old version could not extract salary data because SalarySwish uses dynamic JavaScript rendering.
-
-> 🚀 **NEW:** **[Getting Started Guide](../GETTING_STARTED.md)** - Complete step-by-step instructions to get player-scrape from 85% to 100% production ready!
+> 🛠️ **Setup:** Requires Playwright with Chromium browser installed. See [SETUP_GUIDE.md](./SETUP_GUIDE.md) for installation instructions.
+>
+> 📚 **Quick Links:** [Main README](../README.md) | [Setup Guide](./SETUP_GUIDE.md) | [Status](../STATUS.md) | [Changelog](../CHANGELOG.md)
 
 ---
 
