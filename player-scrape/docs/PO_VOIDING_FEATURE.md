@@ -265,6 +265,6 @@ Potential improvements:
 ## References
 
 - Schema: `player-scrape/schema/player_scrape_schema.ts`
-- Parser: `player-scrape/scripts/parse_player.ts`
-- Tests: `player-scrape/scripts/validate_po_voiding.ts`
+- Parser: `player-scrape/contracts/scripts/parse_player.ts`
+- Tests: `player-scrape/contracts/scripts/validate_po_voiding.ts`
 - Changelog: `player-scrape/CHANGELOG.md`

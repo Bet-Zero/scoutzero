@@ -9,7 +9,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const projectRoot = join(__dirname, '../..');
+const projectRoot = join(__dirname, '../../..');
 
 // Player configuration
 const PLAYERS = [

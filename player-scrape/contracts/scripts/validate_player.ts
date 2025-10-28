@@ -4,7 +4,7 @@
 //   Validates the parsed player JSON against the Zod schema to ensure data quality.
 //
 // RUN:
-//   npx tsx player-scrape/scripts/validate_player.ts
+//   npx tsx player-scrape/contracts/scripts/validate_player.ts
 //
 // USAGE:
 //   Will validate player.json by default, or specify file via PLAYER_FILE env var
@@ -12,13 +12,13 @@
 import fs from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { basePlayerSchema } from '../schema/player_scrape_schema.ts';
+import { basePlayerSchema } from '../../shared/schema/player_scrape_schema.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 async function validatePlayer() {
   const playerFile = process.env.PLAYER_FILE || 'player.json';
-  const filePath = join(__dirname, '../output', playerFile);
+  const filePath = join(__dirname, '../../output', playerFile);
 
   console.log(`🔍 Validating: ${filePath}`);
 
