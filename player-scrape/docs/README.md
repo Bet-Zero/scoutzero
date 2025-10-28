@@ -227,7 +227,7 @@ tsx player-scrape/contracts/scripts/validate_player.ts
 - Source metadata: Provider, URL, timestamp
 
 **⚠️ Important Note on Sample Data:**
-The `examples/sample_austin_reaves.json` file contains **placeholder test data** generated from a mock HTML file, not real SalarySwish data. When using this scraper in production, always fetch actual player pages from SalarySwish to ensure accurate contract information.
+The `shared/schema/sample_austin_reaves.json` file contains **placeholder test data** generated from a mock HTML file, not real SalarySwish data. When using this scraper in production, always fetch actual player pages from SalarySwish to ensure accurate contract information.
 
 ---
 
@@ -331,7 +331,7 @@ The scraper extracts these critical fields for CBA compliance:
 - **Manual verification:** Complex contracts (poison pill, BYC) should be double-checked
 - **~~Multiple contracts~~** ✅ **NOW SUPPORTED:** Parser now detects and handles players with both current contract and future extension (e.g., Jayson Tatum with supermax extension). The `futureContract` field contains extension details when present.
   - ✅ **Issue #299 Fixed:** Each contract now parses its own metadata independently. Future contracts no longer incorrectly copy signing details from the current contract.
-- **Sample data:** The `examples/sample_austin_reaves.json` uses placeholder test data, not real SalarySwish data
+- **Sample data:** The `shared/schema/sample_austin_reaves.json` uses placeholder test data, not real SalarySwish data
 
 ---
 

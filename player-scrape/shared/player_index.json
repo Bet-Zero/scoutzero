@@ -1,0 +1,3596 @@
+{
+  "precious_achiuwa": {
+    "fullName": "Precious Achiuwa",
+    "nbaId": 1630173,
+    "salarySwishSlug": "precious-achiuwa",
+    "teamCode": "NYK"
+  },
+  "steven_adams": {
+    "fullName": "Steven Adams",
+    "nbaId": 203500,
+    "salarySwishSlug": "steven-adams",
+    "teamCode": "HOU"
+  },
+  "bam_adebayo": {
+    "fullName": "Bam Adebayo",
+    "nbaId": 1628389,
+    "salarySwishSlug": "bam-adebayo",
+    "teamCode": "MIA"
+  },
+  "ochai_agbaji": {
+    "fullName": "Ochai Agbaji",
+    "nbaId": 1630534,
+    "salarySwishSlug": "ochai-agbaji",
+    "teamCode": "TOR"
+  },
+  "santi_aldama": {
+    "fullName": "Santi Aldama",
+    "nbaId": 1630583,
+    "salarySwishSlug": "santi-aldama",
+    "teamCode": "MEM"
+  },
+  "trey_alexander": {
+    "fullName": "Trey Alexander",
+    "nbaId": 1641725,
+    "salarySwishSlug": "trey-alexander",
+    "teamCode": "NOP"
+  },
+  "nickeil_alexander-walker": {
+    "fullName": "Nickeil Alexander-walker",
+    "nbaId": 1629638,
+    "salarySwishSlug": "nickeil-alexander-walker",
+    "teamCode": "ATL"
+  },
+  "grayson_allen": {
+    "fullName": "Grayson Allen",
+    "nbaId": 1628960,
+    "salarySwishSlug": "grayson-allen",
+    "teamCode": "PHX"
+  },
+  "jarrett_allen": {
+    "fullName": "Jarrett Allen",
+    "nbaId": 1628386,
+    "salarySwishSlug": "jarrett-allen",
+    "teamCode": "CLE"
+  },
+  "jose_alvarado": {
+    "fullName": "Jose Alvarado",
+    "nbaId": 1630631,
+    "salarySwishSlug": "jose-alvarado",
+    "teamCode": "NOP"
+  },
+  "kyle_anderson": {
+    "fullName": "Kyle Anderson",
+    "nbaId": 203937,
+    "salarySwishSlug": "kyle-anderson",
+    "teamCode": "UTA"
+  },
+  "giannis_antetokounmpo": {
+    "fullName": "Giannis Antetokounmpo",
+    "nbaId": 203507,
+    "salarySwishSlug": "giannis-antetokounmpo",
+    "teamCode": "MIL"
+  },
+  "cole_anthony": {
+    "fullName": "Cole Anthony",
+    "nbaId": 1630175,
+    "salarySwishSlug": "cole-anthony",
+    "teamCode": "MIL"
+  },
+  "og_anunoby": {
+    "fullName": "Og Anunoby",
+    "nbaId": 1628384,
+    "salarySwishSlug": "og-anunoby",
+    "teamCode": "NYK"
+  },
+  "deni_avdija": {
+    "fullName": "Deni Avdija",
+    "nbaId": 1630166,
+    "salarySwishSlug": "deni-avdija",
+    "teamCode": "POR"
+  },
+  "deandre_ayton": {
+    "fullName": "Deandre Ayton",
+    "nbaId": 1629028,
+    "salarySwishSlug": "deandre-ayton",
+    "teamCode": "LAL"
+  },
+  "marvin_bagley_iii": {
+    "fullName": "Marvin Bagley Iii",
+    "nbaId": 1628963,
+    "salarySwishSlug": "marvin-bagley-iii",
+    "teamCode": "WAS"
+  },
+  "patrick_baldwin_jr": {
+    "fullName": "Patrick Baldwin Jr",
+    "nbaId": 1631116,
+    "salarySwishSlug": "patrick-baldwin-jr",
+    "teamCode": "LAC"
+  },
+  "lamelo_ball": {
+    "fullName": "Lamelo Ball",
+    "nbaId": 1630163,
+    "salarySwishSlug": "lamelo-ball",
+    "teamCode": "CHA"
+  },
+  "lonzo_ball": {
+    "fullName": "Lonzo Ball",
+    "nbaId": 1628366,
+    "salarySwishSlug": "lonzo-ball",
+    "teamCode": "CLE"
+  },
+  "paolo_banchero": {
+    "fullName": "Paolo Banchero",
+    "nbaId": 1631094,
+    "salarySwishSlug": "paolo-banchero",
+    "teamCode": "ORL"
+  },
+  "desmond_bane": {
+    "fullName": "Desmond Bane",
+    "nbaId": 1630217,
+    "salarySwishSlug": "desmond-bane",
+    "teamCode": "ORL"
+  },
+  "dalano_banton": {
+    "fullName": "Dalano Banton",
+    "nbaId": 1630625,
+    "salarySwishSlug": "dalano-banton",
+    "teamCode": "POR"
+  },
+  "dominick_barlow": {
+    "fullName": "Dominick Barlow",
+    "nbaId": 1631230,
+    "salarySwishSlug": "dominick-barlow",
+    "teamCode": "PHI"
+  },
+  "harrison_barnes": {
+    "fullName": "Harrison Barnes",
+    "nbaId": 203084,
+    "salarySwishSlug": "harrison-barnes",
+    "teamCode": "SAS"
+  },
+  "scottie_barnes": {
+    "fullName": "Scottie Barnes",
+    "nbaId": 1630567,
+    "salarySwishSlug": "scottie-barnes",
+    "teamCode": "TOR"
+  },
+  "rj_barrett": {
+    "fullName": "Rj Barrett",
+    "nbaId": 1629628,
+    "salarySwishSlug": "rj-barrett",
+    "teamCode": "TOR"
+  },
+  "charles_bassey": {
+    "fullName": "Charles Bassey",
+    "nbaId": 1629646,
+    "salarySwishSlug": "charles-bassey",
+    "teamCode": "SAS"
+  },
+  "emoni_bates": {
+    "fullName": "Emoni Bates",
+    "nbaId": 1641734,
+    "salarySwishSlug": "emoni-bates",
+    "teamCode": "CLE"
+  },
+  "jamison_battle": {
+    "fullName": "Jamison Battle",
+    "nbaId": 1642419,
+    "salarySwishSlug": "jamison-battle",
+    "teamCode": "TOR"
+  },
+  "nicolas_batum": {
+    "fullName": "Nicolas Batum",
+    "nbaId": 201587,
+    "salarySwishSlug": "nicolas-batum",
+    "teamCode": "LAC"
+  },
+  "bradley_beal": {
+    "fullName": "Bradley Beal",
+    "nbaId": 203078,
+    "salarySwishSlug": "bradley-beal",
+    "teamCode": "LAC"
+  },
+  "malik_beasley": {
+    "fullName": "Malik Beasley",
+    "nbaId": 1627736,
+    "salarySwishSlug": "malik-beasley",
+    "teamCode": "DET"
+  },
+  "marjon_beauchamp": {
+    "fullName": "Marjon Beauchamp",
+    "nbaId": 1630699,
+    "salarySwishSlug": "marjon-beauchamp",
+    "teamCode": "NYK"
+  },
+  "reece_beekman": {
+    "fullName": "Reece Beekman",
+    "nbaId": 1641736,
+    "salarySwishSlug": "reece-beekman",
+    "teamCode": "BKN"
+  },
+  "saddiq_bey": {
+    "fullName": "Saddiq Bey",
+    "nbaId": 1630180,
+    "salarySwishSlug": "saddiq-bey",
+    "teamCode": "NOP"
+  },
+  "goga_bitadze": {
+    "fullName": "Goga Bitadze",
+    "nbaId": 1629048,
+    "salarySwishSlug": "goga-bitadze",
+    "teamCode": "ORL"
+  },
+  "bismack_biyombo": {
+    "fullName": "Bismack Biyombo",
+    "nbaId": 202687,
+    "salarySwishSlug": "bismack-biyombo",
+    "teamCode": "SAS"
+  },
+  "anthony_black": {
+    "fullName": "Anthony Black",
+    "nbaId": 1641710,
+    "salarySwishSlug": "anthony-black",
+    "teamCode": "ORL"
+  },
+  "bogdan_bogdanović": {
+    "fullName": "Bogdan Bogdanović",
+    "nbaId": 203992,
+    "salarySwishSlug": "bogdan-bogdanović",
+    "teamCode": "LAC"
+  },
+  "bol_bol": {
+    "fullName": "Bol Bol",
+    "nbaId": 1629626,
+    "salarySwishSlug": "bol-bol",
+    "teamCode": "PHX"
+  },
+  "adem_bona": {
+    "fullName": "Adem Bona",
+    "nbaId": 1641737,
+    "salarySwishSlug": "adem-bona",
+    "teamCode": "PHI"
+  },
+  "devin_booker": {
+    "fullName": "Devin Booker",
+    "nbaId": 1626164,
+    "salarySwishSlug": "devin-booker",
+    "teamCode": "PHX"
+  },
+  "chris_boucher": {
+    "fullName": "Chris Boucher",
+    "nbaId": 1628449,
+    "salarySwishSlug": "chris-boucher",
+    "teamCode": "BOS"
+  },
+  "jamaree_bouyea": {
+    "fullName": "Jamaree Bouyea",
+    "nbaId": 1631123,
+    "salarySwishSlug": "jamaree-bouyea",
+    "teamCode": "MIL"
+  },
+  "tony_bradley": {
+    "fullName": "Tony Bradley",
+    "nbaId": 1628396,
+    "salarySwishSlug": "tony-bradley",
+    "teamCode": "IND"
+  },
+  "malaki_branham": {
+    "fullName": "Malaki Branham",
+    "nbaId": 1631103,
+    "salarySwishSlug": "malaki-branham",
+    "teamCode": "WAS"
+  },
+  "christian_braun": {
+    "fullName": "Christian Braun",
+    "nbaId": 1631128,
+    "salarySwishSlug": "christian-braun",
+    "teamCode": "DEN"
+  },
+  "jalen_bridges": {
+    "fullName": "Jalen Bridges",
+    "nbaId": 1641779,
+    "salarySwishSlug": "jalen-bridges",
+    "teamCode": "PHX"
+  },
+  "mikal_bridges": {
+    "fullName": "Mikal Bridges",
+    "nbaId": 1628969,
+    "salarySwishSlug": "mikal-bridges",
+    "teamCode": "NYK"
+  },
+  "miles_bridges": {
+    "fullName": "Miles Bridges",
+    "nbaId": 1628970,
+    "salarySwishSlug": "miles-bridges",
+    "teamCode": "CHA"
+  },
+  "malcolm_brogdon": {
+    "fullName": "Malcolm Brogdon",
+    "nbaId": 1627763,
+    "salarySwishSlug": "malcolm-brogdon",
+    "teamCode": "WAS"
+  },
+  "dillon_brooks": {
+    "fullName": "Dillon Brooks",
+    "nbaId": 1628415,
+    "salarySwishSlug": "dillon-brooks",
+    "teamCode": "PHX"
+  },
+  "bruce_brown": {
+    "fullName": "Bruce Brown",
+    "nbaId": 1628971,
+    "salarySwishSlug": "bruce-brown",
+    "teamCode": "DEN"
+  },
+  "jaylen_brown": {
+    "fullName": "Jaylen Brown",
+    "nbaId": 1627759,
+    "salarySwishSlug": "jaylen-brown",
+    "teamCode": "BOS"
+  },
+  "kobe_brown": {
+    "fullName": "Kobe Brown",
+    "nbaId": 1641738,
+    "salarySwishSlug": "kobe-brown",
+    "teamCode": "LAC"
+  },
+  "jalen_brunson": {
+    "fullName": "Jalen Brunson",
+    "nbaId": 1628973,
+    "salarySwishSlug": "jalen-brunson",
+    "teamCode": "NYK"
+  },
+  "thomas_bryant": {
+    "fullName": "Thomas Bryant",
+    "nbaId": 1628418,
+    "salarySwishSlug": "thomas-bryant",
+    "teamCode": "IND"
+  },
+  "kobe_bufkin": {
+    "fullName": "Kobe Bufkin",
+    "nbaId": 1641723,
+    "salarySwishSlug": "kobe-bufkin",
+    "teamCode": "ATL"
+  },
+  "alec_burks": {
+    "fullName": "Alec Burks",
+    "nbaId": 202692,
+    "salarySwishSlug": "alec-burks",
+    "teamCode": "MIA"
+  },
+  "jared_butler": {
+    "fullName": "Jared Butler",
+    "nbaId": 1630215,
+    "salarySwishSlug": "jared-butler",
+    "teamCode": "PHX"
+  },
+  "jimmy_butler_iii": {
+    "fullName": "Jimmy Butler Iii",
+    "nbaId": 202710,
+    "salarySwishSlug": "jimmy-butler-iii",
+    "teamCode": "GSW"
+  },
+  "matas_buzelis": {
+    "fullName": "Matas Buzelis",
+    "nbaId": 1641824,
+    "salarySwishSlug": "matas-buzelis",
+    "teamCode": "CHI"
+  },
+  "jamal_cain": {
+    "fullName": "Jamal Cain",
+    "nbaId": 1631288,
+    "salarySwishSlug": "jamal-cain",
+    "teamCode": "ORL"
+  },
+  "kentavious_caldwell-pope": {
+    "fullName": "Kentavious Caldwell-pope",
+    "nbaId": 203484,
+    "salarySwishSlug": "kentavious-caldwell-pope",
+    "teamCode": "MEM"
+  },
+  "toumani_camara": {
+    "fullName": "Toumani Camara",
+    "nbaId": 1641739,
+    "salarySwishSlug": "toumani-camara",
+    "teamCode": "POR"
+  },
+  "clint_capela": {
+    "fullName": "Clint Capela",
+    "nbaId": 203991,
+    "salarySwishSlug": "clint-capela",
+    "teamCode": "HOU"
+  },
+  "branden_carlson": {
+    "fullName": "Branden Carlson",
+    "nbaId": 1642382,
+    "salarySwishSlug": "branden-carlson",
+    "teamCode": "OKC"
+  },
+  "bub_carrington": {
+    "fullName": "Bub Carrington",
+    "nbaId": 1642267,
+    "salarySwishSlug": "bub-carrington",
+    "teamCode": "WAS"
+  },
+  "devin_carter": {
+    "fullName": "Devin Carter",
+    "nbaId": 1642269,
+    "salarySwishSlug": "devin-carter",
+    "teamCode": "SAC"
+  },
+  "jevon_carter": {
+    "fullName": "Jevon Carter",
+    "nbaId": 1628975,
+    "salarySwishSlug": "jevon-carter",
+    "teamCode": "CHI"
+  },
+  "wendell_carter_jr": {
+    "fullName": "Wendell Carter Jr",
+    "nbaId": 1628976,
+    "salarySwishSlug": "wendell-carter-jr",
+    "teamCode": "ORL"
+  },
+  "alex_caruso": {
+    "fullName": "Alex Caruso",
+    "nbaId": 1627936,
+    "salarySwishSlug": "alex-caruso",
+    "teamCode": "OKC"
+  },
+  "stephon_castle": {
+    "fullName": "Stephon Castle",
+    "nbaId": 1642264,
+    "salarySwishSlug": "stephon-castle",
+    "teamCode": "SAS"
+  },
+  "colin_castleton": {
+    "fullName": "Colin Castleton",
+    "nbaId": 1630658,
+    "salarySwishSlug": "colin-castleton",
+    "teamCode": "ORL"
+  },
+  "julian_champagnie": {
+    "fullName": "Julian Champagnie",
+    "nbaId": 1630577,
+    "salarySwishSlug": "julian-champagnie",
+    "teamCode": "SAS"
+  },
+  "justin_champagnie": {
+    "fullName": "Justin Champagnie",
+    "nbaId": 1630551,
+    "salarySwishSlug": "justin-champagnie",
+    "teamCode": "WAS"
+  },
+  "ulrich_chomche": {
+    "fullName": "Ulrich Chomche",
+    "nbaId": 1642279,
+    "salarySwishSlug": "ulrich-chomche",
+    "teamCode": "TOR"
+  },
+  "cam_christie": {
+    "fullName": "Cam Christie",
+    "nbaId": 1642353,
+    "salarySwishSlug": "cam-christie",
+    "teamCode": "LAC"
+  },
+  "max_christie": {
+    "fullName": "Max Christie",
+    "nbaId": 1631108,
+    "salarySwishSlug": "max-christie",
+    "teamCode": "DAL"
+  },
+  "josh_christopher": {
+    "fullName": "Josh Christopher",
+    "nbaId": 1630528,
+    "salarySwishSlug": "josh-christopher",
+    "teamCode": "MIA"
+  },
+  "sidy_cissoko": {
+    "fullName": "Sidy Cissoko",
+    "nbaId": 1631321,
+    "salarySwishSlug": "sidy-cissoko",
+    "teamCode": "POR"
+  },
+  "jaylen_clark": {
+    "fullName": "Jaylen Clark",
+    "nbaId": 1641740,
+    "salarySwishSlug": "jaylen-clark",
+    "teamCode": "MIN"
+  },
+  "brandon_clarke": {
+    "fullName": "Brandon Clarke",
+    "nbaId": 1629634,
+    "salarySwishSlug": "brandon-clarke",
+    "teamCode": "MEM"
+  },
+  "jordan_clarkson": {
+    "fullName": "Jordan Clarkson",
+    "nbaId": 203903,
+    "salarySwishSlug": "jordan-clarkson",
+    "teamCode": "NYK"
+  },
+  "nic_claxton": {
+    "fullName": "Nic Claxton",
+    "nbaId": 1629651,
+    "salarySwishSlug": "nic-claxton",
+    "teamCode": "BKN"
+  },
+  "donovan_clingan": {
+    "fullName": "Donovan Clingan",
+    "nbaId": 1642270,
+    "salarySwishSlug": "donovan-clingan",
+    "teamCode": "POR"
+  },
+  "noah_clowney": {
+    "fullName": "Noah Clowney",
+    "nbaId": 1641730,
+    "salarySwishSlug": "noah-clowney",
+    "teamCode": "BKN"
+  },
+  "amir_coffey": {
+    "fullName": "Amir Coffey",
+    "nbaId": 1629599,
+    "salarySwishSlug": "amir-coffey",
+    "teamCode": "MIL"
+  },
+  "isaiah_collier": {
+    "fullName": "Isaiah Collier",
+    "nbaId": 1642268,
+    "salarySwishSlug": "isaiah-collier",
+    "teamCode": "UTA"
+  },
+  "john_collins": {
+    "fullName": "John Collins",
+    "nbaId": 1628381,
+    "salarySwishSlug": "john-collins",
+    "teamCode": "LAC"
+  },
+  "zach_collins": {
+    "fullName": "Zach Collins",
+    "nbaId": 1628380,
+    "salarySwishSlug": "zach-collins",
+    "teamCode": "CHI"
+  },
+  "mike_conley": {
+    "fullName": "Mike Conley",
+    "nbaId": 201144,
+    "salarySwishSlug": "mike-conley",
+    "teamCode": "MIN"
+  },
+  "pat_connaughton": {
+    "fullName": "Pat Connaughton",
+    "nbaId": 1626192,
+    "salarySwishSlug": "pat-connaughton",
+    "teamCode": "CHA"
+  },
+  "bilal_coulibaly": {
+    "fullName": "Bilal Coulibaly",
+    "nbaId": 1641731,
+    "salarySwishSlug": "bilal-coulibaly",
+    "teamCode": "WAS"
+  },
+  "torrey_craig": {
+    "fullName": "Torrey Craig",
+    "nbaId": 1628470,
+    "salarySwishSlug": "torrey-craig",
+    "teamCode": "BOS"
+  },
+  "isaiah_crawford": {
+    "fullName": "Isaiah Crawford",
+    "nbaId": 1642384,
+    "salarySwishSlug": "isaiah-crawford",
+    "teamCode": "HOU"
+  },
+  "jae_crowder": {
+    "fullName": "Jae Crowder",
+    "nbaId": 203109,
+    "salarySwishSlug": "jae-crowder",
+    "teamCode": "SAC"
+  },
+  "cade_cunningham": {
+    "fullName": "Cade Cunningham",
+    "nbaId": 1630595,
+    "salarySwishSlug": "cade-cunningham",
+    "teamCode": "DET"
+  },
+  "seth_curry": {
+    "fullName": "Seth Curry",
+    "nbaId": 203552,
+    "salarySwishSlug": "seth-curry",
+    "teamCode": "CHA"
+  },
+  "stephen_curry": {
+    "fullName": "Stephen Curry",
+    "nbaId": 201939,
+    "salarySwishSlug": "stephen-curry",
+    "teamCode": "GSW"
+  },
+  "pacôme_dadiet": {
+    "fullName": "Pacôme Dadiet",
+    "nbaId": 1642359,
+    "salarySwishSlug": "pacôme-dadiet",
+    "teamCode": "NYK"
+  },
+  "dyson_daniels": {
+    "fullName": "Dyson Daniels",
+    "nbaId": 1630700,
+    "salarySwishSlug": "dyson-daniels",
+    "teamCode": "ATL"
+  },
+  "nfaly_dante": {
+    "fullName": "Nfaly Dante",
+    "nbaId": 1642368,
+    "salarySwishSlug": "nfaly-dante",
+    "teamCode": "ATL"
+  },
+  "anthony_davis": {
+    "fullName": "Anthony Davis",
+    "nbaId": 203076,
+    "salarySwishSlug": "anthony-davis",
+    "teamCode": "DAL"
+  },
+  "terence_davis": {
+    "fullName": "Terence Davis",
+    "nbaId": 1629056,
+    "salarySwishSlug": "terence-davis",
+    "teamCode": "SAC"
+  },
+  "jd_davison": {
+    "fullName": "Jd Davison",
+    "nbaId": 1631120,
+    "salarySwishSlug": "jd-davison",
+    "teamCode": "HOU"
+  },
+  "demar_derozan": {
+    "fullName": "Demar Derozan",
+    "nbaId": 201942,
+    "salarySwishSlug": "demar-derozan",
+    "teamCode": "SAC"
+  },
+  "rayj_dennis": {
+    "fullName": "Rayj Dennis",
+    "nbaId": 1642484,
+    "salarySwishSlug": "rayj-dennis",
+    "teamCode": "IND"
+  },
+  "donte_divincenzo": {
+    "fullName": "Donte Divincenzo",
+    "nbaId": 1628978,
+    "salarySwishSlug": "donte-divincenzo",
+    "teamCode": "MIN"
+  },
+  "moussa_diabaté": {
+    "fullName": "Moussa Diabaté",
+    "nbaId": 1631217,
+    "salarySwishSlug": "moussa-diabaté",
+    "teamCode": "CHA"
+  },
+  "gradey_dick": {
+    "fullName": "Gradey Dick",
+    "nbaId": 1641711,
+    "salarySwishSlug": "gradey-dick",
+    "teamCode": "TOR"
+  },
+  "ousmane_dieng": {
+    "fullName": "Ousmane Dieng",
+    "nbaId": 1631172,
+    "salarySwishSlug": "ousmane-dieng",
+    "teamCode": "OKC"
+  },
+  "rob_dillingham": {
+    "fullName": "Rob Dillingham",
+    "nbaId": 1642265,
+    "salarySwishSlug": "rob-dillingham",
+    "teamCode": "MIN"
+  },
+  "spencer_dinwiddie": {
+    "fullName": "Spencer Dinwiddie",
+    "nbaId": 203915,
+    "salarySwishSlug": "spencer-dinwiddie",
+    "teamCode": "CHA"
+  },
+  "luka_dončić": {
+    "fullName": "Luka Dončić",
+    "nbaId": 1629029,
+    "salarySwishSlug": "luka-dončić",
+    "teamCode": "LAL"
+  },
+  "luguentz_dort": {
+    "fullName": "Luguentz Dort",
+    "nbaId": 1629652,
+    "salarySwishSlug": "luguentz-dort",
+    "teamCode": "OKC"
+  },
+  "ayo_dosunmu": {
+    "fullName": "Ayo Dosunmu",
+    "nbaId": 1630245,
+    "salarySwishSlug": "ayo-dosunmu",
+    "teamCode": "CHI"
+  },
+  "jeff_dowtin_jr": {
+    "fullName": "Jeff Dowtin Jr",
+    "nbaId": 1630288,
+    "salarySwishSlug": "jeff-dowtin-jr",
+    "teamCode": "PHI"
+  },
+  "andre_drummond": {
+    "fullName": "Andre Drummond",
+    "nbaId": 203083,
+    "salarySwishSlug": "andre-drummond",
+    "teamCode": "PHI"
+  },
+  "alex_ducas": {
+    "fullName": "Alex Ducas",
+    "nbaId": 1642505,
+    "salarySwishSlug": "alex-ducas",
+    "teamCode": "OKC"
+  },
+  "david_duke_jr": {
+    "fullName": "David Duke Jr",
+    "nbaId": 1630561,
+    "salarySwishSlug": "david-duke-jr",
+    "teamCode": "SAS"
+  },
+  "kris_dunn": {
+    "fullName": "Kris Dunn",
+    "nbaId": 1627739,
+    "salarySwishSlug": "kris-dunn",
+    "teamCode": "LAC"
+  },
+  "ryan_dunn": {
+    "fullName": "Ryan Dunn",
+    "nbaId": 1642346,
+    "salarySwishSlug": "ryan-dunn",
+    "teamCode": "PHX"
+  },
+  "kevin_durant": {
+    "fullName": "Kevin Durant",
+    "nbaId": 201142,
+    "salarySwishSlug": "kevin-durant",
+    "teamCode": "HOU"
+  },
+  "jalen_duren": {
+    "fullName": "Jalen Duren",
+    "nbaId": 1631105,
+    "salarySwishSlug": "jalen-duren",
+    "teamCode": "DET"
+  },
+  "tari_eason": {
+    "fullName": "Tari Eason",
+    "nbaId": 1631106,
+    "salarySwishSlug": "tari-eason",
+    "teamCode": "HOU"
+  },
+  "zach_edey": {
+    "fullName": "Zach Edey",
+    "nbaId": 1641744,
+    "salarySwishSlug": "zach-edey",
+    "teamCode": "MEM"
+  },
+  "anthony_edwards": {
+    "fullName": "Anthony Edwards",
+    "nbaId": 1630162,
+    "salarySwishSlug": "anthony-edwards",
+    "teamCode": "MIN"
+  },
+  "justin_edwards": {
+    "fullName": "Justin Edwards",
+    "nbaId": 1642348,
+    "salarySwishSlug": "justin-edwards",
+    "teamCode": "PHI"
+  },
+  "kessler_edwards": {
+    "fullName": "Kessler Edwards",
+    "nbaId": 1630556,
+    "salarySwishSlug": "kessler-edwards",
+    "teamCode": "DEN"
+  },
+  "keon_ellis": {
+    "fullName": "Keon Ellis",
+    "nbaId": 1631165,
+    "salarySwishSlug": "keon-ellis",
+    "teamCode": "SAC"
+  },
+  "joel_embiid": {
+    "fullName": "Joel Embiid",
+    "nbaId": 203954,
+    "salarySwishSlug": "joel-embiid",
+    "teamCode": "PHI"
+  },
+  "tyson_etienne": {
+    "fullName": "Tyson Etienne",
+    "nbaId": 1630623,
+    "salarySwishSlug": "tyson-etienne",
+    "teamCode": "BKN"
+  },
+  "drew_eubanks": {
+    "fullName": "Drew Eubanks",
+    "nbaId": 1629234,
+    "salarySwishSlug": "drew-eubanks",
+    "teamCode": "SAC"
+  },
+  "danté_exum": {
+    "fullName": "Danté Exum",
+    "nbaId": 203957,
+    "salarySwishSlug": "danté-exum",
+    "teamCode": "DAL"
+  },
+  "kyle_filipowski": {
+    "fullName": "Kyle Filipowski",
+    "nbaId": 1642271,
+    "salarySwishSlug": "kyle-filipowski",
+    "teamCode": "UTA"
+  },
+  "dorian_finney-smith": {
+    "fullName": "Dorian Finney-smith",
+    "nbaId": 1627827,
+    "salarySwishSlug": "dorian-finney-smith",
+    "teamCode": "HOU"
+  },
+  "adam_flagler": {
+    "fullName": "Adam Flagler",
+    "nbaId": 1641745,
+    "salarySwishSlug": "adam-flagler",
+    "teamCode": "SAS"
+  },
+  "trentyn_flowers": {
+    "fullName": "Trentyn Flowers",
+    "nbaId": 1642280,
+    "salarySwishSlug": "trentyn-flowers",
+    "teamCode": "LAC"
+  },
+  "simone_fontecchio": {
+    "fullName": "Simone Fontecchio",
+    "nbaId": 1631323,
+    "salarySwishSlug": "simone-fontecchio",
+    "teamCode": "MIA"
+  },
+  "deaaron_fox": {
+    "fullName": "Deaaron Fox",
+    "nbaId": 1628368,
+    "salarySwishSlug": "deaaron-fox",
+    "teamCode": "SAS"
+  },
+  "enrique_freeman": {
+    "fullName": "Enrique Freeman",
+    "nbaId": 1642402,
+    "salarySwishSlug": "enrique-freeman",
+    "teamCode": "MIN"
+  },
+  "markelle_fultz": {
+    "fullName": "Markelle Fultz",
+    "nbaId": 1628365,
+    "salarySwishSlug": "markelle-fultz",
+    "teamCode": "SAC"
+  },
+  "johnny_furphy": {
+    "fullName": "Johnny Furphy",
+    "nbaId": 1642277,
+    "salarySwishSlug": "johnny-furphy",
+    "teamCode": "IND"
+  },
+  "daniel_gafford": {
+    "fullName": "Daniel Gafford",
+    "nbaId": 1629655,
+    "salarySwishSlug": "daniel-gafford",
+    "teamCode": "DAL"
+  },
+  "darius_garland": {
+    "fullName": "Darius Garland",
+    "nbaId": 1629636,
+    "salarySwishSlug": "darius-garland",
+    "teamCode": "CLE"
+  },
+  "luka_garza": {
+    "fullName": "Luka Garza",
+    "nbaId": 1630568,
+    "salarySwishSlug": "luka-garza",
+    "teamCode": "BOS"
+  },
+  "keyonte_george": {
+    "fullName": "Keyonte George",
+    "nbaId": 1641718,
+    "salarySwishSlug": "keyonte-george",
+    "teamCode": "UTA"
+  },
+  "kyshawn_george": {
+    "fullName": "Kyshawn George",
+    "nbaId": 1642273,
+    "salarySwishSlug": "kyshawn-george",
+    "teamCode": "WAS"
+  },
+  "paul_george": {
+    "fullName": "Paul George",
+    "nbaId": 202331,
+    "salarySwishSlug": "paul-george",
+    "teamCode": "PHI"
+  },
+  "taj_gibson": {
+    "fullName": "Taj Gibson",
+    "nbaId": 201959,
+    "salarySwishSlug": "taj-gibson",
+    "teamCode": "CHA"
+  },
+  "josh_giddey": {
+    "fullName": "Josh Giddey",
+    "nbaId": 1630581,
+    "salarySwishSlug": "josh-giddey",
+    "teamCode": "CHI"
+  },
+  "shai_gilgeous-alexander": {
+    "fullName": "Shai Gilgeous-alexander",
+    "nbaId": 1628983,
+    "salarySwishSlug": "shai-gilgeous-alexander",
+    "teamCode": "OKC"
+  },
+  "anthony_gill": {
+    "fullName": "Anthony Gill",
+    "nbaId": 1630264,
+    "salarySwishSlug": "anthony-gill",
+    "teamCode": "WAS"
+  },
+  "collin_gillespie": {
+    "fullName": "Collin Gillespie",
+    "nbaId": 1631221,
+    "salarySwishSlug": "collin-gillespie",
+    "teamCode": "PHX"
+  },
+  "rudy_gobert": {
+    "fullName": "Rudy Gobert",
+    "nbaId": 203497,
+    "salarySwishSlug": "rudy-gobert",
+    "teamCode": "MIN"
+  },
+  "jordan_goodwin": {
+    "fullName": "Jordan Goodwin",
+    "nbaId": 1630692,
+    "salarySwishSlug": "jordan-goodwin",
+    "teamCode": "PHX"
+  },
+  "aaron_gordon": {
+    "fullName": "Aaron Gordon",
+    "nbaId": 203932,
+    "salarySwishSlug": "aaron-gordon",
+    "teamCode": "DEN"
+  },
+  "eric_gordon": {
+    "fullName": "Eric Gordon",
+    "nbaId": 201569,
+    "salarySwishSlug": "eric-gordon",
+    "teamCode": "PHI"
+  },
+  "jerami_grant": {
+    "fullName": "Jerami Grant",
+    "nbaId": 203924,
+    "salarySwishSlug": "jerami-grant",
+    "teamCode": "POR"
+  },
+  "aj_green": {
+    "fullName": "Aj Green",
+    "nbaId": 1631260,
+    "salarySwishSlug": "aj-green",
+    "teamCode": "MIL"
+  },
+  "draymond_green": {
+    "fullName": "Draymond Green",
+    "nbaId": 203110,
+    "salarySwishSlug": "draymond-green",
+    "teamCode": "GSW"
+  },
+  "jalen_green": {
+    "fullName": "Jalen Green",
+    "nbaId": 1630224,
+    "salarySwishSlug": "jalen-green",
+    "teamCode": "PHX"
+  },
+  "javonte_green": {
+    "fullName": "Javonte Green",
+    "nbaId": 1629750,
+    "salarySwishSlug": "javonte-green",
+    "teamCode": "DET"
+  },
+  "jeff_green": {
+    "fullName": "Jeff Green",
+    "nbaId": 201145,
+    "salarySwishSlug": "jeff-green",
+    "teamCode": "HOU"
+  },
+  "josh_green": {
+    "fullName": "Josh Green",
+    "nbaId": 1630182,
+    "salarySwishSlug": "josh-green",
+    "teamCode": "CHA"
+  },
+  "quentin_grimes": {
+    "fullName": "Quentin Grimes",
+    "nbaId": 1629656,
+    "salarySwishSlug": "quentin-grimes",
+    "teamCode": "PHI"
+  },
+  "mouhamed_gueye": {
+    "fullName": "Mouhamed Gueye",
+    "nbaId": 1631243,
+    "salarySwishSlug": "mouhamed-gueye",
+    "teamCode": "ATL"
+  },
+  "rui_hachimura": {
+    "fullName": "Rui Hachimura",
+    "nbaId": 1629060,
+    "salarySwishSlug": "rui-hachimura",
+    "teamCode": "LAL"
+  },
+  "tyrese_haliburton": {
+    "fullName": "Tyrese Haliburton",
+    "nbaId": 1630169,
+    "salarySwishSlug": "tyrese-haliburton",
+    "teamCode": "IND"
+  },
+  "pj_hall": {
+    "fullName": "Pj Hall",
+    "nbaId": 1641790,
+    "salarySwishSlug": "pj-hall",
+    "teamCode": "MEM"
+  },
+  "tim_hardaway_jr": {
+    "fullName": "Tim Hardaway Jr",
+    "nbaId": 203501,
+    "salarySwishSlug": "tim-hardaway-jr",
+    "teamCode": "DEN"
+  },
+  "james_harden": {
+    "fullName": "James Harden",
+    "nbaId": 201935,
+    "salarySwishSlug": "james-harden",
+    "teamCode": "LAC"
+  },
+  "jaden_hardy": {
+    "fullName": "Jaden Hardy",
+    "nbaId": 1630702,
+    "salarySwishSlug": "jaden-hardy",
+    "teamCode": "DAL"
+  },
+  "elijah_harkless": {
+    "fullName": "Elijah Harkless",
+    "nbaId": 1641989,
+    "salarySwishSlug": "elijah-harkless",
+    "teamCode": "UTA"
+  },
+  "gary_harris": {
+    "fullName": "Gary Harris",
+    "nbaId": 203914,
+    "salarySwishSlug": "gary-harris",
+    "teamCode": "MIL"
+  },
+  "tobias_harris": {
+    "fullName": "Tobias Harris",
+    "nbaId": 202699,
+    "salarySwishSlug": "tobias-harris",
+    "teamCode": "DET"
+  },
+  "josh_hart": {
+    "fullName": "Josh Hart",
+    "nbaId": 1628404,
+    "salarySwishSlug": "josh-hart",
+    "teamCode": "NYK"
+  },
+  "isaiah_hartenstein": {
+    "fullName": "Isaiah Hartenstein",
+    "nbaId": 1628392,
+    "salarySwishSlug": "isaiah-hartenstein",
+    "teamCode": "OKC"
+  },
+  "sam_hauser": {
+    "fullName": "Sam Hauser",
+    "nbaId": 1630573,
+    "salarySwishSlug": "sam-hauser",
+    "teamCode": "BOS"
+  },
+  "jordan_hawkins": {
+    "fullName": "Jordan Hawkins",
+    "nbaId": 1641722,
+    "salarySwishSlug": "jordan-hawkins",
+    "teamCode": "NOP"
+  },
+  "jaxson_hayes": {
+    "fullName": "Jaxson Hayes",
+    "nbaId": 1629637,
+    "salarySwishSlug": "jaxson-hayes",
+    "teamCode": "LAL"
+  },
+  "scoot_henderson": {
+    "fullName": "Scoot Henderson",
+    "nbaId": 1630703,
+    "salarySwishSlug": "scoot-henderson",
+    "teamCode": "POR"
+  },
+  "taylor_hendricks": {
+    "fullName": "Taylor Hendricks",
+    "nbaId": 1641707,
+    "salarySwishSlug": "taylor-hendricks",
+    "teamCode": "UTA"
+  },
+  "tyler_herro": {
+    "fullName": "Tyler Herro",
+    "nbaId": 1629639,
+    "salarySwishSlug": "tyler-herro",
+    "teamCode": "MIA"
+  },
+  "buddy_hield": {
+    "fullName": "Buddy Hield",
+    "nbaId": 1627741,
+    "salarySwishSlug": "buddy-hield",
+    "teamCode": "GSW"
+  },
+  "haywood_highsmith": {
+    "fullName": "Haywood Highsmith",
+    "nbaId": 1629312,
+    "salarySwishSlug": "haywood-highsmith",
+    "teamCode": "BKN"
+  },
+  "aaron_holiday": {
+    "fullName": "Aaron Holiday",
+    "nbaId": 1628988,
+    "salarySwishSlug": "aaron-holiday",
+    "teamCode": "HOU"
+  },
+  "jrue_holiday": {
+    "fullName": "Jrue Holiday",
+    "nbaId": 201950,
+    "salarySwishSlug": "jrue-holiday",
+    "teamCode": "POR"
+  },
+  "ronald_holland_ii": {
+    "fullName": "Ronald Holland Ii",
+    "nbaId": 1641842,
+    "salarySwishSlug": "ronald-holland-ii",
+    "teamCode": "DET"
+  },
+  "daron_holmes_ii": {
+    "fullName": "Daron Holmes Ii",
+    "nbaId": 1641747,
+    "salarySwishSlug": "daron-holmes-ii",
+    "teamCode": "DEN"
+  },
+  "chet_holmgren": {
+    "fullName": "Chet Holmgren",
+    "nbaId": 1631096,
+    "salarySwishSlug": "chet-holmgren",
+    "teamCode": "OKC"
+  },
+  "jalen_hood-schifino": {
+    "fullName": "Jalen Hood-schifino",
+    "nbaId": 1641720,
+    "salarySwishSlug": "jalen-hood-schifino",
+    "teamCode": "PHI"
+  },
+  "al_horford": {
+    "fullName": "Al Horford",
+    "nbaId": 201143,
+    "salarySwishSlug": "al-horford",
+    "teamCode": "BOS"
+  },
+  "talen_horton-tucker": {
+    "fullName": "Talen Horton-tucker",
+    "nbaId": 1629659,
+    "salarySwishSlug": "talen-horton-tucker",
+    "teamCode": "CHI"
+  },
+  "caleb_houstan": {
+    "fullName": "Caleb Houstan",
+    "nbaId": 1631216,
+    "salarySwishSlug": "caleb-houstan",
+    "teamCode": "ATL"
+  },
+  "jett_howard": {
+    "fullName": "Jett Howard",
+    "nbaId": 1641724,
+    "salarySwishSlug": "jett-howard",
+    "teamCode": "ORL"
+  },
+  "kevin_huerter": {
+    "fullName": "Kevin Huerter",
+    "nbaId": 1628989,
+    "salarySwishSlug": "kevin-huerter",
+    "teamCode": "CHI"
+  },
+  "jay_huff": {
+    "fullName": "Jay Huff",
+    "nbaId": 1630643,
+    "salarySwishSlug": "jay-huff",
+    "teamCode": "IND"
+  },
+  "ariel_hukporti": {
+    "fullName": "Ariel Hukporti",
+    "nbaId": 1630574,
+    "salarySwishSlug": "ariel-hukporti",
+    "teamCode": "NYK"
+  },
+  "deandre_hunter": {
+    "fullName": "Deandre Hunter",
+    "nbaId": 1629631,
+    "salarySwishSlug": "deandre-hunter",
+    "teamCode": "CLE"
+  },
+  "bones_hyland": {
+    "fullName": "Bones Hyland",
+    "nbaId": 1630538,
+    "salarySwishSlug": "bones-hyland",
+    "teamCode": "MIN"
+  },
+  "oso_ighodaro": {
+    "fullName": "Oso Ighodaro",
+    "nbaId": 1642345,
+    "salarySwishSlug": "oso-ighodaro",
+    "teamCode": "PHX"
+  },
+  "joe_ingles": {
+    "fullName": "Joe Ingles",
+    "nbaId": 204060,
+    "salarySwishSlug": "joe-ingles",
+    "teamCode": "MIN"
+  },
+  "brandon_ingram": {
+    "fullName": "Brandon Ingram",
+    "nbaId": 1627742,
+    "salarySwishSlug": "brandon-ingram",
+    "teamCode": "TOR"
+  },
+  "harrison_ingram": {
+    "fullName": "Harrison Ingram",
+    "nbaId": 1631127,
+    "salarySwishSlug": "harrison-ingram",
+    "teamCode": "SAS"
+  },
+  "kyrie_irving": {
+    "fullName": "Kyrie Irving",
+    "nbaId": 202681,
+    "salarySwishSlug": "kyrie-irving",
+    "teamCode": "DAL"
+  },
+  "jonathan_isaac": {
+    "fullName": "Jonathan Isaac",
+    "nbaId": 1628371,
+    "salarySwishSlug": "jonathan-isaac",
+    "teamCode": "ORL"
+  },
+  "jaden_ivey": {
+    "fullName": "Jaden Ivey",
+    "nbaId": 1631093,
+    "salarySwishSlug": "jaden-ivey",
+    "teamCode": "DET"
+  },
+  "gg_jackson": {
+    "fullName": "Gg Jackson",
+    "nbaId": 1641713,
+    "salarySwishSlug": "gg-jackson",
+    "teamCode": "MEM"
+  },
+  "isaiah_jackson": {
+    "fullName": "Isaiah Jackson",
+    "nbaId": 1630543,
+    "salarySwishSlug": "isaiah-jackson",
+    "teamCode": "IND"
+  },
+  "quenton_jackson": {
+    "fullName": "Quenton Jackson",
+    "nbaId": 1631245,
+    "salarySwishSlug": "quenton-jackson",
+    "teamCode": "IND"
+  },
+  "andre_jackson_jr": {
+    "fullName": "Andre Jackson Jr",
+    "nbaId": 1641748,
+    "salarySwishSlug": "andre-jackson-jr",
+    "teamCode": "MIL"
+  },
+  "jaren_jackson_jr": {
+    "fullName": "Jaren Jackson Jr",
+    "nbaId": 1628991,
+    "salarySwishSlug": "jaren-jackson-jr",
+    "teamCode": "MEM"
+  },
+  "trayce_jackson-davis": {
+    "fullName": "Trayce Jackson-davis",
+    "nbaId": 1631218,
+    "salarySwishSlug": "trayce-jackson-davis",
+    "teamCode": "GSW"
+  },
+  "bronny_james": {
+    "fullName": "Bronny James",
+    "nbaId": 1642355,
+    "salarySwishSlug": "bronny-james",
+    "teamCode": "LAL"
+  },
+  "lebron_james": {
+    "fullName": "Lebron James",
+    "nbaId": 2544,
+    "salarySwishSlug": "lebron-james",
+    "teamCode": "LAL"
+  },
+  "jaime_jaquez_jr": {
+    "fullName": "Jaime Jaquez Jr",
+    "nbaId": 1631170,
+    "salarySwishSlug": "jaime-jaquez-jr",
+    "teamCode": "MIA"
+  },
+  "daquan_jeffries": {
+    "fullName": "Daquan Jeffries",
+    "nbaId": 1629610,
+    "salarySwishSlug": "daquan-jeffries",
+    "teamCode": "CHA"
+  },
+  "daniss_jenkins": {
+    "fullName": "Daniss Jenkins",
+    "nbaId": 1642450,
+    "salarySwishSlug": "daniss-jenkins",
+    "teamCode": "DET"
+  },
+  "ty_jerome": {
+    "fullName": "Ty Jerome",
+    "nbaId": 1629660,
+    "salarySwishSlug": "ty-jerome",
+    "teamCode": "MEM"
+  },
+  "isaiah_joe": {
+    "fullName": "Isaiah Joe",
+    "nbaId": 1630198,
+    "salarySwishSlug": "isaiah-joe",
+    "teamCode": "OKC"
+  },
+  "aj_johnson": {
+    "fullName": "Aj Johnson",
+    "nbaId": 1642358,
+    "salarySwishSlug": "aj-johnson",
+    "teamCode": "WAS"
+  },
+  "cameron_johnson": {
+    "fullName": "Cameron Johnson",
+    "nbaId": 1629661,
+    "salarySwishSlug": "cameron-johnson",
+    "teamCode": "DEN"
+  },
+  "jalen_johnson": {
+    "fullName": "Jalen Johnson",
+    "nbaId": 1630552,
+    "salarySwishSlug": "jalen-johnson",
+    "teamCode": "ATL"
+  },
+  "james_johnson": {
+    "fullName": "James Johnson",
+    "nbaId": 201949,
+    "salarySwishSlug": "james-johnson",
+    "teamCode": "IND"
+  },
+  "keldon_johnson": {
+    "fullName": "Keldon Johnson",
+    "nbaId": 1629640,
+    "salarySwishSlug": "keldon-johnson",
+    "teamCode": "SAS"
+  },
+  "keon_johnson": {
+    "fullName": "Keon Johnson",
+    "nbaId": 1630553,
+    "salarySwishSlug": "keon-johnson",
+    "teamCode": "BKN"
+  },
+  "keshad_johnson": {
+    "fullName": "Keshad Johnson",
+    "nbaId": 1642352,
+    "salarySwishSlug": "keshad-johnson",
+    "teamCode": "MIA"
+  },
+  "nikola_jokić": {
+    "fullName": "Nikola Jokić",
+    "nbaId": 203999,
+    "salarySwishSlug": "nikola-jokić",
+    "teamCode": "DEN"
+  },
+  "colby_jones": {
+    "fullName": "Colby Jones",
+    "nbaId": 1641732,
+    "salarySwishSlug": "colby-jones",
+    "teamCode": "DET"
+  },
+  "dillon_jones": {
+    "fullName": "Dillon Jones",
+    "nbaId": 1641794,
+    "salarySwishSlug": "dillon-jones",
+    "teamCode": "WAS"
+  },
+  "herbert_jones": {
+    "fullName": "Herbert Jones",
+    "nbaId": 1630529,
+    "salarySwishSlug": "herbert-jones",
+    "teamCode": "NOP"
+  },
+  "isaac_jones": {
+    "fullName": "Isaac Jones",
+    "nbaId": 1642403,
+    "salarySwishSlug": "isaac-jones",
+    "teamCode": "SAC"
+  },
+  "kai_jones": {
+    "fullName": "Kai Jones",
+    "nbaId": 1630539,
+    "salarySwishSlug": "kai-jones",
+    "teamCode": "DAL"
+  },
+  "mason_jones": {
+    "fullName": "Mason Jones",
+    "nbaId": 1630222,
+    "salarySwishSlug": "mason-jones",
+    "teamCode": "SAC"
+  },
+  "spencer_jones": {
+    "fullName": "Spencer Jones",
+    "nbaId": 1642461,
+    "salarySwishSlug": "spencer-jones",
+    "teamCode": "DEN"
+  },
+  "tre_jones": {
+    "fullName": "Tre Jones",
+    "nbaId": 1630200,
+    "salarySwishSlug": "tre-jones",
+    "teamCode": "CHI"
+  },
+  "tyus_jones": {
+    "fullName": "Tyus Jones",
+    "nbaId": 1626145,
+    "salarySwishSlug": "tyus-jones",
+    "teamCode": "ORL"
+  },
+  "derrick_jones_jr": {
+    "fullName": "Derrick Jones Jr",
+    "nbaId": 1627884,
+    "salarySwishSlug": "derrick-jones-jr",
+    "teamCode": "LAC"
+  },
+  "deandre_jordan": {
+    "fullName": "Deandre Jordan",
+    "nbaId": 201599,
+    "salarySwishSlug": "deandre-jordan",
+    "teamCode": "DEN"
+  },
+  "cory_joseph": {
+    "fullName": "Cory Joseph",
+    "nbaId": 202709,
+    "salarySwishSlug": "cory-joseph",
+    "teamCode": "ORL"
+  },
+  "nikola_jović": {
+    "fullName": "Nikola Jović",
+    "nbaId": 1631107,
+    "salarySwishSlug": "nikola-jović",
+    "teamCode": "MIA"
+  },
+  "yuki_kawamura": {
+    "fullName": "Yuki Kawamura",
+    "nbaId": 1642530,
+    "salarySwishSlug": "yuki-kawamura",
+    "teamCode": "CHI"
+  },
+  "luke_kennard": {
+    "fullName": "Luke Kennard",
+    "nbaId": 1628379,
+    "salarySwishSlug": "luke-kennard",
+    "teamCode": "ATL"
+  },
+  "walker_kessler": {
+    "fullName": "Walker Kessler",
+    "nbaId": 1631117,
+    "salarySwishSlug": "walker-kessler",
+    "teamCode": "UTA"
+  },
+  "braxton_key": {
+    "fullName": "Braxton Key",
+    "nbaId": 1630296,
+    "salarySwishSlug": "braxton-key",
+    "teamCode": "GSW"
+  },
+  "corey_kispert": {
+    "fullName": "Corey Kispert",
+    "nbaId": 1630557,
+    "salarySwishSlug": "corey-kispert",
+    "teamCode": "WAS"
+  },
+  "maxi_kleber": {
+    "fullName": "Maxi Kleber",
+    "nbaId": 1628467,
+    "salarySwishSlug": "maxi-kleber",
+    "teamCode": "LAL"
+  },
+  "bobi_klintman": {
+    "fullName": "Bobi Klintman",
+    "nbaId": 1641752,
+    "salarySwishSlug": "bobi-klintman",
+    "teamCode": "DET"
+  },
+  "dalton_knecht": {
+    "fullName": "Dalton Knecht",
+    "nbaId": 1642261,
+    "salarySwishSlug": "dalton-knecht",
+    "teamCode": "LAL"
+  },
+  "kevin_knox_ii": {
+    "fullName": "Kevin Knox Ii",
+    "nbaId": 1628995,
+    "salarySwishSlug": "kevin-knox-ii",
+    "teamCode": "GSW"
+  },
+  "tyler_kolek": {
+    "fullName": "Tyler Kolek",
+    "nbaId": 1642278,
+    "salarySwishSlug": "tyler-kolek",
+    "teamCode": "NYK"
+  },
+  "christian_koloko": {
+    "fullName": "Christian Koloko",
+    "nbaId": 1631132,
+    "salarySwishSlug": "christian-koloko",
+    "teamCode": "LAL"
+  },
+  "john_konchar": {
+    "fullName": "John Konchar",
+    "nbaId": 1629723,
+    "salarySwishSlug": "john-konchar",
+    "teamCode": "MEM"
+  },
+  "luke_kornet": {
+    "fullName": "Luke Kornet",
+    "nbaId": 1628436,
+    "salarySwishSlug": "luke-kornet",
+    "teamCode": "SAS"
+  },
+  "vít_krejčí": {
+    "fullName": "Vít Krejčí",
+    "nbaId": 1630249,
+    "salarySwishSlug": "vít-krejčí",
+    "teamCode": "ATL"
+  },
+  "jonathan_kuminga": {
+    "fullName": "Jonathan Kuminga",
+    "nbaId": 1630228,
+    "salarySwishSlug": "jonathan-kuminga",
+    "teamCode": "GSW"
+  },
+  "kyle_kuzma": {
+    "fullName": "Kyle Kuzma",
+    "nbaId": 1628398,
+    "salarySwishSlug": "kyle-kuzma",
+    "teamCode": "MIL"
+  },
+  "jake_laravia": {
+    "fullName": "Jake Laravia",
+    "nbaId": 1631222,
+    "salarySwishSlug": "jake-laravia",
+    "teamCode": "LAL"
+  },
+  "zach_lavine": {
+    "fullName": "Zach Lavine",
+    "nbaId": 203897,
+    "salarySwishSlug": "zach-lavine",
+    "teamCode": "SAC"
+  },
+  "jock_landale": {
+    "fullName": "Jock Landale",
+    "nbaId": 1629111,
+    "salarySwishSlug": "jock-landale",
+    "teamCode": "MEM"
+  },
+  "pelle_larsson": {
+    "fullName": "Pelle Larsson",
+    "nbaId": 1641796,
+    "salarySwishSlug": "pelle-larsson",
+    "teamCode": "MIA"
+  },
+  "aj_lawson": {
+    "fullName": "Aj Lawson",
+    "nbaId": 1630639,
+    "salarySwishSlug": "aj-lawson",
+    "teamCode": "TOR"
+  },
+  "caris_levert": {
+    "fullName": "Caris Levert",
+    "nbaId": 1627747,
+    "salarySwishSlug": "caris-levert",
+    "teamCode": "DET"
+  },
+  "damion_lee": {
+    "fullName": "Damion Lee",
+    "nbaId": 1627814,
+    "salarySwishSlug": "damion-lee",
+    "teamCode": "PHX"
+  },
+  "alex_len": {
+    "fullName": "Alex Len",
+    "nbaId": 203458,
+    "salarySwishSlug": "alex-len",
+    "teamCode": "LAL"
+  },
+  "kawhi_leonard": {
+    "fullName": "Kawhi Leonard",
+    "nbaId": 202695,
+    "salarySwishSlug": "kawhi-leonard",
+    "teamCode": "LAC"
+  },
+  "ej_liddell": {
+    "fullName": "Ej Liddell",
+    "nbaId": 1630604,
+    "salarySwishSlug": "ej-liddell",
+    "teamCode": "CHI"
+  },
+  "damian_lillard": {
+    "fullName": "Damian Lillard",
+    "nbaId": 203081,
+    "salarySwishSlug": "damian-lillard",
+    "teamCode": "POR"
+  },
+  "dereck_lively_ii": {
+    "fullName": "Dereck Lively Ii",
+    "nbaId": 1641726,
+    "salarySwishSlug": "dereck-lively-ii",
+    "teamCode": "DAL"
+  },
+  "chris_livingston": {
+    "fullName": "Chris Livingston",
+    "nbaId": 1641753,
+    "salarySwishSlug": "chris-livingston",
+    "teamCode": "MIL"
+  },
+  "kevon_looney": {
+    "fullName": "Kevon Looney",
+    "nbaId": 1626172,
+    "salarySwishSlug": "kevon-looney",
+    "teamCode": "NOP"
+  },
+  "brook_lopez": {
+    "fullName": "Brook Lopez",
+    "nbaId": 201572,
+    "salarySwishSlug": "brook-lopez",
+    "teamCode": "LAC"
+  },
+  "kevin_love": {
+    "fullName": "Kevin Love",
+    "nbaId": 201567,
+    "salarySwishSlug": "kevin-love",
+    "teamCode": "UTA"
+  },
+  "kyle_lowry": {
+    "fullName": "Kyle Lowry",
+    "nbaId": 200768,
+    "salarySwishSlug": "kyle-lowry",
+    "teamCode": "PHI"
+  },
+  "trey_lyles": {
+    "fullName": "Trey Lyles",
+    "nbaId": 1626168,
+    "salarySwishSlug": "trey-lyles",
+    "teamCode": "SAC"
+  },
+  "sandro_mamukelashvili": {
+    "fullName": "Sandro Mamukelashvili",
+    "nbaId": 1630572,
+    "salarySwishSlug": "sandro-mamukelashvili",
+    "teamCode": "TOR"
+  },
+  "terance_mann": {
+    "fullName": "Terance Mann",
+    "nbaId": 1629611,
+    "salarySwishSlug": "terance-mann",
+    "teamCode": "BKN"
+  },
+  "tre_mann": {
+    "fullName": "Tre Mann",
+    "nbaId": 1630544,
+    "salarySwishSlug": "tre-mann",
+    "teamCode": "CHA"
+  },
+  "lauri_markkanen": {
+    "fullName": "Lauri Markkanen",
+    "nbaId": 1628374,
+    "salarySwishSlug": "lauri-markkanen",
+    "teamCode": "UTA"
+  },
+  "naji_marshall": {
+    "fullName": "Naji Marshall",
+    "nbaId": 1630230,
+    "salarySwishSlug": "naji-marshall",
+    "teamCode": "DAL"
+  },
+  "caleb_martin": {
+    "fullName": "Caleb Martin",
+    "nbaId": 1628997,
+    "salarySwishSlug": "caleb-martin",
+    "teamCode": "DAL"
+  },
+  "kj_martin": {
+    "fullName": "Kj Martin",
+    "nbaId": 1630231,
+    "salarySwishSlug": "kj-martin",
+    "teamCode": "UTA"
+  },
+  "tyrese_martin": {
+    "fullName": "Tyrese Martin",
+    "nbaId": 1631213,
+    "salarySwishSlug": "tyrese-martin",
+    "teamCode": "BKN"
+  },
+  "garrison_mathews": {
+    "fullName": "Garrison Mathews",
+    "nbaId": 1629726,
+    "salarySwishSlug": "garrison-mathews",
+    "teamCode": "ATL"
+  },
+  "bennedict_mathurin": {
+    "fullName": "Bennedict Mathurin",
+    "nbaId": 1631097,
+    "salarySwishSlug": "bennedict-mathurin",
+    "teamCode": "IND"
+  },
+  "karlo_matković": {
+    "fullName": "Karlo Matković",
+    "nbaId": 1631255,
+    "salarySwishSlug": "karlo-matković",
+    "teamCode": "NOP"
+  },
+  "tyrese_maxey": {
+    "fullName": "Tyrese Maxey",
+    "nbaId": 1630178,
+    "salarySwishSlug": "tyrese-maxey",
+    "teamCode": "PHI"
+  },
+  "miles_mcbride": {
+    "fullName": "Miles Mcbride",
+    "nbaId": 1630540,
+    "salarySwishSlug": "miles-mcbride",
+    "teamCode": "NYK"
+  },
+  "jared_mccain": {
+    "fullName": "Jared Mccain",
+    "nbaId": 1642272,
+    "salarySwishSlug": "jared-mccain",
+    "teamCode": "PHI"
+  },
+  "mac_mcclung": {
+    "fullName": "Mac Mcclung",
+    "nbaId": 1630644,
+    "salarySwishSlug": "mac-mcclung",
+    "teamCode": "ORL"
+  },
+  "cj_mccollum": {
+    "fullName": "Cj Mccollum",
+    "nbaId": 203468,
+    "salarySwishSlug": "cj-mccollum",
+    "teamCode": "WAS"
+  },
+  "tj_mcconnell": {
+    "fullName": "Tj Mcconnell",
+    "nbaId": 204456,
+    "salarySwishSlug": "tj-mcconnell",
+    "teamCode": "IND"
+  },
+  "kevin_mccullar_jr": {
+    "fullName": "Kevin Mccullar Jr",
+    "nbaId": 1641755,
+    "salarySwishSlug": "kevin-mccullar-jr",
+    "teamCode": "NYK"
+  },
+  "jaden_mcdaniels": {
+    "fullName": "Jaden Mcdaniels",
+    "nbaId": 1630183,
+    "salarySwishSlug": "jaden-mcdaniels",
+    "teamCode": "MIN"
+  },
+  "doug_mcdermott": {
+    "fullName": "Doug Mcdermott",
+    "nbaId": 203926,
+    "salarySwishSlug": "doug-mcdermott",
+    "teamCode": "SAC"
+  },
+  "bryce_mcgowens": {
+    "fullName": "Bryce Mcgowens",
+    "nbaId": 1631121,
+    "salarySwishSlug": "bryce-mcgowens",
+    "teamCode": "NOP"
+  },
+  "jordan_mclaughlin": {
+    "fullName": "Jordan Mclaughlin",
+    "nbaId": 1629162,
+    "salarySwishSlug": "jordan-mclaughlin",
+    "teamCode": "SAS"
+  },
+  "jack_mcveigh": {
+    "fullName": "Jack Mcveigh",
+    "nbaId": 1629098,
+    "salarySwishSlug": "jack-mcveigh",
+    "teamCode": "HOU"
+  },
+  "sam_merrill": {
+    "fullName": "Sam Merrill",
+    "nbaId": 1630241,
+    "salarySwishSlug": "sam-merrill",
+    "teamCode": "CLE"
+  },
+  "khris_middleton": {
+    "fullName": "Khris Middleton",
+    "nbaId": 203114,
+    "salarySwishSlug": "khris-middleton",
+    "teamCode": "WAS"
+  },
+  "brandon_miller": {
+    "fullName": "Brandon Miller",
+    "nbaId": 1641706,
+    "salarySwishSlug": "brandon-miller",
+    "teamCode": "CHA"
+  },
+  "emanuel_miller": {
+    "fullName": "Emanuel Miller",
+    "nbaId": 1641801,
+    "salarySwishSlug": "emanuel-miller",
+    "teamCode": "CHI"
+  },
+  "jordan_miller": {
+    "fullName": "Jordan Miller",
+    "nbaId": 1641757,
+    "salarySwishSlug": "jordan-miller",
+    "teamCode": "LAC"
+  },
+  "leonard_miller": {
+    "fullName": "Leonard Miller",
+    "nbaId": 1631159,
+    "salarySwishSlug": "leonard-miller",
+    "teamCode": "MIN"
+  },
+  "patty_mills": {
+    "fullName": "Patty Mills",
+    "nbaId": 201988,
+    "salarySwishSlug": "patty-mills",
+    "teamCode": "LAC"
+  },
+  "justin_minaya": {
+    "fullName": "Justin Minaya",
+    "nbaId": 1631303,
+    "salarySwishSlug": "justin-minaya",
+    "teamCode": "POR"
+  },
+  "riley_minix": {
+    "fullName": "Riley Minix",
+    "nbaId": 1642434,
+    "salarySwishSlug": "riley-minix",
+    "teamCode": "SAS"
+  },
+  "josh_minott": {
+    "fullName": "Josh Minott",
+    "nbaId": 1631169,
+    "salarySwishSlug": "josh-minott",
+    "teamCode": "BOS"
+  },
+  "yves_missi": {
+    "fullName": "Yves Missi",
+    "nbaId": 1642274,
+    "salarySwishSlug": "yves-missi",
+    "teamCode": "NOP"
+  },
+  "ajay_mitchell": {
+    "fullName": "Ajay Mitchell",
+    "nbaId": 1642349,
+    "salarySwishSlug": "ajay-mitchell",
+    "teamCode": "OKC"
+  },
+  "davion_mitchell": {
+    "fullName": "Davion Mitchell",
+    "nbaId": 1630558,
+    "salarySwishSlug": "davion-mitchell",
+    "teamCode": "MIA"
+  },
+  "donovan_mitchell": {
+    "fullName": "Donovan Mitchell",
+    "nbaId": 1628378,
+    "salarySwishSlug": "donovan-mitchell",
+    "teamCode": "CLE"
+  },
+  "evan_mobley": {
+    "fullName": "Evan Mobley",
+    "nbaId": 1630596,
+    "salarySwishSlug": "evan-mobley",
+    "teamCode": "CLE"
+  },
+  "jonathan_mogbo": {
+    "fullName": "Jonathan Mogbo",
+    "nbaId": 1642367,
+    "salarySwishSlug": "jonathan-mogbo",
+    "teamCode": "TOR"
+  },
+  "malik_monk": {
+    "fullName": "Malik Monk",
+    "nbaId": 1628370,
+    "salarySwishSlug": "malik-monk",
+    "teamCode": "SAC"
+  },
+  "moses_moody": {
+    "fullName": "Moses Moody",
+    "nbaId": 1630541,
+    "salarySwishSlug": "moses-moody",
+    "teamCode": "GSW"
+  },
+  "wendell_moore_jr": {
+    "fullName": "Wendell Moore Jr",
+    "nbaId": 1631111,
+    "salarySwishSlug": "wendell-moore-jr",
+    "teamCode": "CHA"
+  },
+  "ja_morant": {
+    "fullName": "Ja Morant",
+    "nbaId": 1629630,
+    "salarySwishSlug": "ja-morant",
+    "teamCode": "MEM"
+  },
+  "markieff_morris": {
+    "fullName": "Markieff Morris",
+    "nbaId": 202693,
+    "salarySwishSlug": "markieff-morris",
+    "teamCode": "LAL"
+  },
+  "monté_morris": {
+    "fullName": "Monté Morris",
+    "nbaId": 1628420,
+    "salarySwishSlug": "monté-morris",
+    "teamCode": "PHX"
+  },
+  "trey_murphy_iii": {
+    "fullName": "Trey Murphy Iii",
+    "nbaId": 1630530,
+    "salarySwishSlug": "trey-murphy-iii",
+    "teamCode": "NOP"
+  },
+  "dejounte_murray": {
+    "fullName": "Dejounte Murray",
+    "nbaId": 1627749,
+    "salarySwishSlug": "dejounte-murray",
+    "teamCode": "NOP"
+  },
+  "jamal_murray": {
+    "fullName": "Jamal Murray",
+    "nbaId": 1627750,
+    "salarySwishSlug": "jamal-murray",
+    "teamCode": "DEN"
+  },
+  "keegan_murray": {
+    "fullName": "Keegan Murray",
+    "nbaId": 1631099,
+    "salarySwishSlug": "keegan-murray",
+    "teamCode": "SAC"
+  },
+  "kris_murray": {
+    "fullName": "Kris Murray",
+    "nbaId": 1631200,
+    "salarySwishSlug": "kris-murray",
+    "teamCode": "POR"
+  },
+  "svi_mykhailiuk": {
+    "fullName": "Svi Mykhailiuk",
+    "nbaId": 1629004,
+    "salarySwishSlug": "svi-mykhailiuk",
+    "teamCode": "UTA"
+  },
+  "pete_nance": {
+    "fullName": "Pete Nance",
+    "nbaId": 1631250,
+    "salarySwishSlug": "pete-nance",
+    "teamCode": "MIL"
+  },
+  "larry_nance_jr": {
+    "fullName": "Larry Nance Jr",
+    "nbaId": 1626204,
+    "salarySwishSlug": "larry-nance-jr",
+    "teamCode": "CLE"
+  },
+  "andrew_nembhard": {
+    "fullName": "Andrew Nembhard",
+    "nbaId": 1629614,
+    "salarySwishSlug": "andrew-nembhard",
+    "teamCode": "IND"
+  },
+  "aaron_nesmith": {
+    "fullName": "Aaron Nesmith",
+    "nbaId": 1630174,
+    "salarySwishSlug": "aaron-nesmith",
+    "teamCode": "IND"
+  },
+  "tristen_newton": {
+    "fullName": "Tristen Newton",
+    "nbaId": 1641803,
+    "salarySwishSlug": "tristen-newton",
+    "teamCode": "MIN"
+  },
+  "georges_niang": {
+    "fullName": "Georges Niang",
+    "nbaId": 1627777,
+    "salarySwishSlug": "georges-niang",
+    "teamCode": "UTA"
+  },
+  "zeke_nnaji": {
+    "fullName": "Zeke Nnaji",
+    "nbaId": 1630192,
+    "salarySwishSlug": "zeke-nnaji",
+    "teamCode": "DEN"
+  },
+  "jusuf_nurkić": {
+    "fullName": "Jusuf Nurkić",
+    "nbaId": 203994,
+    "salarySwishSlug": "jusuf-nurkić",
+    "teamCode": "UTA"
+  },
+  "royce_oneale": {
+    "fullName": "Royce Oneale",
+    "nbaId": 1626220,
+    "salarySwishSlug": "royce-oneale",
+    "teamCode": "PHX"
+  },
+  "josh_okogie": {
+    "fullName": "Josh Okogie",
+    "nbaId": 1629006,
+    "salarySwishSlug": "josh-okogie",
+    "teamCode": "HOU"
+  },
+  "onyeka_okongwu": {
+    "fullName": "Onyeka Okongwu",
+    "nbaId": 1630168,
+    "salarySwishSlug": "onyeka-okongwu",
+    "teamCode": "ATL"
+  },
+  "isaac_okoro": {
+    "fullName": "Isaac Okoro",
+    "nbaId": 1630171,
+    "salarySwishSlug": "isaac-okoro",
+    "teamCode": "CHI"
+  },
+  "kelly_olynyk": {
+    "fullName": "Kelly Olynyk",
+    "nbaId": 203482,
+    "salarySwishSlug": "kelly-olynyk",
+    "teamCode": "SAS"
+  },
+  "kelly_oubre_jr": {
+    "fullName": "Kelly Oubre Jr",
+    "nbaId": 1626162,
+    "salarySwishSlug": "kelly-oubre-jr",
+    "teamCode": "PHI"
+  },
+  "chris_paul": {
+    "fullName": "Chris Paul",
+    "nbaId": 101108,
+    "salarySwishSlug": "chris-paul",
+    "teamCode": "LAC"
+  },
+  "cameron_payne": {
+    "fullName": "Cameron Payne",
+    "nbaId": 1626166,
+    "salarySwishSlug": "cameron-payne",
+    "teamCode": "NYK"
+  },
+  "gary_payton_ii": {
+    "fullName": "Gary Payton Ii",
+    "nbaId": 1627780,
+    "salarySwishSlug": "gary-payton-ii",
+    "teamCode": "GSW"
+  },
+  "drew_peterson": {
+    "fullName": "Drew Peterson",
+    "nbaId": 1641809,
+    "salarySwishSlug": "drew-peterson",
+    "teamCode": "CHA"
+  },
+  "julian_phillips": {
+    "fullName": "Julian Phillips",
+    "nbaId": 1641763,
+    "salarySwishSlug": "julian-phillips",
+    "teamCode": "CHI"
+  },
+  "jalen_pickett": {
+    "fullName": "Jalen Pickett",
+    "nbaId": 1629618,
+    "salarySwishSlug": "jalen-pickett",
+    "teamCode": "DEN"
+  },
+  "scotty_pippen_jr": {
+    "fullName": "Scotty Pippen Jr",
+    "nbaId": 1630590,
+    "salarySwishSlug": "scotty-pippen-jr",
+    "teamCode": "MEM"
+  },
+  "daeqwon_plowden": {
+    "fullName": "Daeqwon Plowden",
+    "nbaId": 1631342,
+    "salarySwishSlug": "daeqwon-plowden",
+    "teamCode": "SAC"
+  },
+  "mason_plumlee": {
+    "fullName": "Mason Plumlee",
+    "nbaId": 203486,
+    "salarySwishSlug": "mason-plumlee",
+    "teamCode": "CHA"
+  },
+  "brandin_podziemski": {
+    "fullName": "Brandin Podziemski",
+    "nbaId": 1641764,
+    "salarySwishSlug": "brandin-podziemski",
+    "teamCode": "GSW"
+  },
+  "jakob_poeltl": {
+    "fullName": "Jakob Poeltl",
+    "nbaId": 1627751,
+    "salarySwishSlug": "jakob-poeltl",
+    "teamCode": "TOR"
+  },
+  "jordan_poole": {
+    "fullName": "Jordan Poole",
+    "nbaId": 1629673,
+    "salarySwishSlug": "jordan-poole",
+    "teamCode": "NOP"
+  },
+  "craig_porter_jr": {
+    "fullName": "Craig Porter Jr",
+    "nbaId": 1641854,
+    "salarySwishSlug": "craig-porter-jr",
+    "teamCode": "CLE"
+  },
+  "kevin_porter_jr": {
+    "fullName": "Kevin Porter Jr",
+    "nbaId": 1629645,
+    "salarySwishSlug": "kevin-porter-jr",
+    "teamCode": "MIL"
+  },
+  "michael_porter_jr": {
+    "fullName": "Michael Porter Jr",
+    "nbaId": 1629008,
+    "salarySwishSlug": "michael-porter-jr",
+    "teamCode": "BKN"
+  },
+  "bobby_portis": {
+    "fullName": "Bobby Portis",
+    "nbaId": 1626171,
+    "salarySwishSlug": "bobby-portis",
+    "teamCode": "MIL"
+  },
+  "kristaps_porziņģis": {
+    "fullName": "Kristaps Porziņģis",
+    "nbaId": 204001,
+    "salarySwishSlug": "kristaps-porziņģis",
+    "teamCode": "ATL"
+  },
+  "quinten_post": {
+    "fullName": "Quinten Post",
+    "nbaId": 1642366,
+    "salarySwishSlug": "quinten-post",
+    "teamCode": "GSW"
+  },
+  "micah_potter": {
+    "fullName": "Micah Potter",
+    "nbaId": 1630695,
+    "salarySwishSlug": "micah-potter",
+    "teamCode": "SAS"
+  },
+  "dwight_powell": {
+    "fullName": "Dwight Powell",
+    "nbaId": 203939,
+    "salarySwishSlug": "dwight-powell",
+    "teamCode": "DAL"
+  },
+  "norman_powell": {
+    "fullName": "Norman Powell",
+    "nbaId": 1626181,
+    "salarySwishSlug": "norman-powell",
+    "teamCode": "MIA"
+  },
+  "taurean_prince": {
+    "fullName": "Taurean Prince",
+    "nbaId": 1627752,
+    "salarySwishSlug": "taurean-prince",
+    "teamCode": "MIL"
+  },
+  "payton_pritchard": {
+    "fullName": "Payton Pritchard",
+    "nbaId": 1630202,
+    "salarySwishSlug": "payton-pritchard",
+    "teamCode": "BOS"
+  },
+  "trevelin_queen": {
+    "fullName": "Trevelin Queen",
+    "nbaId": 1630243,
+    "salarySwishSlug": "trevelin-queen",
+    "teamCode": "ORL"
+  },
+  "neemias_queta": {
+    "fullName": "Neemias Queta",
+    "nbaId": 1629674,
+    "salarySwishSlug": "neemias-queta",
+    "teamCode": "BOS"
+  },
+  "immanuel_quickley": {
+    "fullName": "Immanuel Quickley",
+    "nbaId": 1630193,
+    "salarySwishSlug": "immanuel-quickley",
+    "teamCode": "TOR"
+  },
+  "julius_randle": {
+    "fullName": "Julius Randle",
+    "nbaId": 203944,
+    "salarySwishSlug": "julius-randle",
+    "teamCode": "MIN"
+  },
+  "duop_reath": {
+    "fullName": "Duop Reath",
+    "nbaId": 1641871,
+    "salarySwishSlug": "duop-reath",
+    "teamCode": "POR"
+  },
+  "austin_reaves": {
+    "fullName": "Austin Reaves",
+    "nbaId": 1630559,
+    "salarySwishSlug": "austin-reaves",
+    "teamCode": "LAL"
+  },
+  "paul_reed": {
+    "fullName": "Paul Reed",
+    "nbaId": 1630194,
+    "salarySwishSlug": "paul-reed",
+    "teamCode": "DET"
+  },
+  "antonio_reeves": {
+    "fullName": "Antonio Reeves",
+    "nbaId": 1641810,
+    "salarySwishSlug": "antonio-reeves",
+    "teamCode": "CHA"
+  },
+  "naz_reid": {
+    "fullName": "Naz Reid",
+    "nbaId": 1629675,
+    "salarySwishSlug": "naz-reid",
+    "teamCode": "MIN"
+  },
+  "nick_richards": {
+    "fullName": "Nick Richards",
+    "nbaId": 1630208,
+    "salarySwishSlug": "nick-richards",
+    "teamCode": "PHX"
+  },
+  "zaccharie_risacher": {
+    "fullName": "Zaccharie Risacher",
+    "nbaId": 1642258,
+    "salarySwishSlug": "zaccharie-risacher",
+    "teamCode": "ATL"
+  },
+  "duncan_robinson": {
+    "fullName": "Duncan Robinson",
+    "nbaId": 1629130,
+    "salarySwishSlug": "duncan-robinson",
+    "teamCode": "DET"
+  },
+  "mitchell_robinson": {
+    "fullName": "Mitchell Robinson",
+    "nbaId": 1629011,
+    "salarySwishSlug": "mitchell-robinson",
+    "teamCode": "NYK"
+  },
+  "david_roddy": {
+    "fullName": "David Roddy",
+    "nbaId": 1631223,
+    "salarySwishSlug": "david-roddy",
+    "teamCode": "TOR"
+  },
+  "ryan_rollins": {
+    "fullName": "Ryan Rollins",
+    "nbaId": 1631157,
+    "salarySwishSlug": "ryan-rollins",
+    "teamCode": "MIL"
+  },
+  "jackson_rowe": {
+    "fullName": "Jackson Rowe",
+    "nbaId": 1642050,
+    "salarySwishSlug": "jackson-rowe",
+    "teamCode": "GSW"
+  },
+  "terry_rozier": {
+    "fullName": "Terry Rozier",
+    "nbaId": 1626179,
+    "salarySwishSlug": "terry-rozier",
+    "teamCode": "MIA"
+  },
+  "rayan_rupert": {
+    "fullName": "Rayan Rupert",
+    "nbaId": 1641712,
+    "salarySwishSlug": "rayan-rupert",
+    "teamCode": "POR"
+  },
+  "dangelo_russell": {
+    "fullName": "Dangelo Russell",
+    "nbaId": 1626156,
+    "salarySwishSlug": "dangelo-russell",
+    "teamCode": "DAL"
+  },
+  "domantas_sabonis": {
+    "fullName": "Domantas Sabonis",
+    "nbaId": 1627734,
+    "salarySwishSlug": "domantas-sabonis",
+    "teamCode": "SAC"
+  },
+  "tidjane_salaün": {
+    "fullName": "Tidjane Salaün",
+    "nbaId": 1642275,
+    "salarySwishSlug": "tidjane-salaün",
+    "teamCode": "CHA"
+  },
+  "gui_santos": {
+    "fullName": "Gui Santos",
+    "nbaId": 1630611,
+    "salarySwishSlug": "gui-santos",
+    "teamCode": "GSW"
+  },
+  "alex_sarr": {
+    "fullName": "Alex Sarr",
+    "nbaId": 1642259,
+    "salarySwishSlug": "alex-sarr",
+    "teamCode": "WAS"
+  },
+  "marcus_sasser": {
+    "fullName": "Marcus Sasser",
+    "nbaId": 1631204,
+    "salarySwishSlug": "marcus-sasser",
+    "teamCode": "DET"
+  },
+  "baylor_scheierman": {
+    "fullName": "Baylor Scheierman",
+    "nbaId": 1631248,
+    "salarySwishSlug": "baylor-scheierman",
+    "teamCode": "BOS"
+  },
+  "dennis_schröder": {
+    "fullName": "Dennis Schröder",
+    "nbaId": 203471,
+    "salarySwishSlug": "dennis-schröder",
+    "teamCode": "SAC"
+  },
+  "alperen_sengun": {
+    "fullName": "Alperen Sengun",
+    "nbaId": 1630578,
+    "salarySwishSlug": "alperen-sengun",
+    "teamCode": "HOU"
+  },
+  "brice_sensabaugh": {
+    "fullName": "Brice Sensabaugh",
+    "nbaId": 1641729,
+    "salarySwishSlug": "brice-sensabaugh",
+    "teamCode": "UTA"
+  },
+  "collin_sexton": {
+    "fullName": "Collin Sexton",
+    "nbaId": 1629012,
+    "salarySwishSlug": "collin-sexton",
+    "teamCode": "CHA"
+  },
+  "landry_shamet": {
+    "fullName": "Landry Shamet",
+    "nbaId": 1629013,
+    "salarySwishSlug": "landry-shamet",
+    "teamCode": "NYK"
+  },
+  "terrence_shannon_jr": {
+    "fullName": "Terrence Shannon Jr",
+    "nbaId": 1630545,
+    "salarySwishSlug": "terrence-shannon-jr",
+    "teamCode": "MIN"
+  },
+  "shaedon_sharpe": {
+    "fullName": "Shaedon Sharpe",
+    "nbaId": 1631101,
+    "salarySwishSlug": "shaedon-sharpe",
+    "teamCode": "POR"
+  },
+  "jamal_shead": {
+    "fullName": "Jamal Shead",
+    "nbaId": 1642347,
+    "salarySwishSlug": "jamal-shead",
+    "teamCode": "TOR"
+  },
+  "ben_sheppard": {
+    "fullName": "Ben Sheppard",
+    "nbaId": 1641767,
+    "salarySwishSlug": "ben-sheppard",
+    "teamCode": "IND"
+  },
+  "reed_sheppard": {
+    "fullName": "Reed Sheppard",
+    "nbaId": 1642263,
+    "salarySwishSlug": "reed-sheppard",
+    "teamCode": "HOU"
+  },
+  "pascal_siakam": {
+    "fullName": "Pascal Siakam",
+    "nbaId": 1627783,
+    "salarySwishSlug": "pascal-siakam",
+    "teamCode": "IND"
+  },
+  "ben_simmons": {
+    "fullName": "Ben Simmons",
+    "nbaId": 1627732,
+    "salarySwishSlug": "ben-simmons",
+    "teamCode": "LAC"
+  },
+  "anfernee_simons": {
+    "fullName": "Anfernee Simons",
+    "nbaId": 1629014,
+    "salarySwishSlug": "anfernee-simons",
+    "teamCode": "BOS"
+  },
+  "kj_simpson": {
+    "fullName": "Kj Simpson",
+    "nbaId": 1642354,
+    "salarySwishSlug": "kj-simpson",
+    "teamCode": "CHA"
+  },
+  "jericho_sims": {
+    "fullName": "Jericho Sims",
+    "nbaId": 1630579,
+    "salarySwishSlug": "jericho-sims",
+    "teamCode": "MIL"
+  },
+  "marcus_smart": {
+    "fullName": "Marcus Smart",
+    "nbaId": 203935,
+    "salarySwishSlug": "marcus-smart",
+    "teamCode": "LAL"
+  },
+  "dru_smith": {
+    "fullName": "Dru Smith",
+    "nbaId": 1630696,
+    "salarySwishSlug": "dru-smith",
+    "teamCode": "MIA"
+  },
+  "jalen_smith": {
+    "fullName": "Jalen Smith",
+    "nbaId": 1630188,
+    "salarySwishSlug": "jalen-smith",
+    "teamCode": "CHI"
+  },
+  "tolu_smith": {
+    "fullName": "Tolu Smith",
+    "nbaId": 1642449,
+    "salarySwishSlug": "tolu-smith",
+    "teamCode": "DET"
+  },
+  "tyler_smith": {
+    "fullName": "Tyler Smith",
+    "nbaId": 1641890,
+    "salarySwishSlug": "tyler-smith",
+    "teamCode": "MIL"
+  },
+  "jabari_smith_jr": {
+    "fullName": "Jabari Smith Jr",
+    "nbaId": 1631095,
+    "salarySwishSlug": "jabari-smith-jr",
+    "teamCode": "HOU"
+  },
+  "nick_smith_jr": {
+    "fullName": "Nick Smith Jr",
+    "nbaId": 1641733,
+    "salarySwishSlug": "nick-smith-jr",
+    "teamCode": "CHA"
+  },
+  "jeremy_sochan": {
+    "fullName": "Jeremy Sochan",
+    "nbaId": 1631110,
+    "salarySwishSlug": "jeremy-sochan",
+    "teamCode": "SAS"
+  },
+  "cam_spencer": {
+    "fullName": "Cam Spencer",
+    "nbaId": 1642285,
+    "salarySwishSlug": "cam-spencer",
+    "teamCode": "MEM"
+  },
+  "pat_spencer": {
+    "fullName": "Pat Spencer",
+    "nbaId": 1630311,
+    "salarySwishSlug": "pat-spencer",
+    "teamCode": "GSW"
+  },
+  "jaden_springer": {
+    "fullName": "Jaden Springer",
+    "nbaId": 1630531,
+    "salarySwishSlug": "jaden-springer",
+    "teamCode": "NOP"
+  },
+  "isaiah_stevens": {
+    "fullName": "Isaiah Stevens",
+    "nbaId": 1641815,
+    "salarySwishSlug": "isaiah-stevens",
+    "teamCode": "SAC"
+  },
+  "isaiah_stewart": {
+    "fullName": "Isaiah Stewart",
+    "nbaId": 1630191,
+    "salarySwishSlug": "isaiah-stewart",
+    "teamCode": "DET"
+  },
+  "julian_strawther": {
+    "fullName": "Julian Strawther",
+    "nbaId": 1631124,
+    "salarySwishSlug": "julian-strawther",
+    "teamCode": "DEN"
+  },
+  "max_strus": {
+    "fullName": "Max Strus",
+    "nbaId": 1629622,
+    "salarySwishSlug": "max-strus",
+    "teamCode": "CLE"
+  },
+  "jalen_suggs": {
+    "fullName": "Jalen Suggs",
+    "nbaId": 1630591,
+    "salarySwishSlug": "jalen-suggs",
+    "teamCode": "ORL"
+  },
+  "jaesean_tate": {
+    "fullName": "Jaesean Tate",
+    "nbaId": 1630256,
+    "salarySwishSlug": "jaesean-tate",
+    "teamCode": "HOU"
+  },
+  "jayson_tatum": {
+    "fullName": "Jayson Tatum",
+    "nbaId": 1628369,
+    "salarySwishSlug": "jayson-tatum",
+    "teamCode": "BOS"
+  },
+  "garrett_temple": {
+    "fullName": "Garrett Temple",
+    "nbaId": 202066,
+    "salarySwishSlug": "garrett-temple",
+    "teamCode": "TOR"
+  },
+  "dalen_terry": {
+    "fullName": "Dalen Terry",
+    "nbaId": 1631207,
+    "salarySwishSlug": "dalen-terry",
+    "teamCode": "CHI"
+  },
+  "cam_thomas": {
+    "fullName": "Cam Thomas",
+    "nbaId": 1630560,
+    "salarySwishSlug": "cam-thomas",
+    "teamCode": "BKN"
+  },
+  "amen_thompson": {
+    "fullName": "Amen Thompson",
+    "nbaId": 1641708,
+    "salarySwishSlug": "amen-thompson",
+    "teamCode": "HOU"
+  },
+  "ausar_thompson": {
+    "fullName": "Ausar Thompson",
+    "nbaId": 1641709,
+    "salarySwishSlug": "ausar-thompson",
+    "teamCode": "DET"
+  },
+  "klay_thompson": {
+    "fullName": "Klay Thompson",
+    "nbaId": 202691,
+    "salarySwishSlug": "klay-thompson",
+    "teamCode": "DAL"
+  },
+  "tristan_thompson": {
+    "fullName": "Tristan Thompson",
+    "nbaId": 202684,
+    "salarySwishSlug": "tristan-thompson",
+    "teamCode": "CLE"
+  },
+  "jt_thor": {
+    "fullName": "Jt Thor",
+    "nbaId": 1630550,
+    "salarySwishSlug": "jt-thor",
+    "teamCode": "WAS"
+  },
+  "matisse_thybulle": {
+    "fullName": "Matisse Thybulle",
+    "nbaId": 1629680,
+    "salarySwishSlug": "matisse-thybulle",
+    "teamCode": "POR"
+  },
+  "xavier_tillman": {
+    "fullName": "Xavier Tillman",
+    "nbaId": 1630214,
+    "salarySwishSlug": "xavier-tillman",
+    "teamCode": "BOS"
+  },
+  "drew_timme": {
+    "fullName": "Drew Timme",
+    "nbaId": 1631166,
+    "salarySwishSlug": "drew-timme",
+    "teamCode": "BKN"
+  },
+  "naeqwan_tomlin": {
+    "fullName": "Naeqwan Tomlin",
+    "nbaId": 1641772,
+    "salarySwishSlug": "naeqwan-tomlin",
+    "teamCode": "CLE"
+  },
+  "nikola_topić": {
+    "fullName": "Nikola Topić",
+    "nbaId": 1642260,
+    "salarySwishSlug": "nikola-topić",
+    "teamCode": "OKC"
+  },
+  "jacob_toppin": {
+    "fullName": "Jacob Toppin",
+    "nbaId": 1631210,
+    "salarySwishSlug": "jacob-toppin",
+    "teamCode": "ATL"
+  },
+  "obi_toppin": {
+    "fullName": "Obi Toppin",
+    "nbaId": 1630167,
+    "salarySwishSlug": "obi-toppin",
+    "teamCode": "IND"
+  },
+  "karl-anthony_towns": {
+    "fullName": "Karl-anthony Towns",
+    "nbaId": 1626157,
+    "salarySwishSlug": "karl-anthony-towns",
+    "teamCode": "NYK"
+  },
+  "luke_travers": {
+    "fullName": "Luke Travers",
+    "nbaId": 1631247,
+    "salarySwishSlug": "luke-travers",
+    "teamCode": "CLE"
+  },
+  "gary_trent_jr": {
+    "fullName": "Gary Trent Jr",
+    "nbaId": 1629018,
+    "salarySwishSlug": "gary-trent-jr",
+    "teamCode": "MIL"
+  },
+  "oscar_tshiebwe": {
+    "fullName": "Oscar Tshiebwe",
+    "nbaId": 1631131,
+    "salarySwishSlug": "oscar-tshiebwe",
+    "teamCode": "UTA"
+  },
+  "pj_tucker": {
+    "fullName": "Pj Tucker",
+    "nbaId": 200782,
+    "salarySwishSlug": "pj-tucker",
+    "teamCode": "NYK"
+  },
+  "myles_turner": {
+    "fullName": "Myles Turner",
+    "nbaId": 1626167,
+    "salarySwishSlug": "myles-turner",
+    "teamCode": "MIL"
+  },
+  "hunter_tyson": {
+    "fullName": "Hunter Tyson",
+    "nbaId": 1641816,
+    "salarySwishSlug": "hunter-tyson",
+    "teamCode": "DEN"
+  },
+  "jaylon_tyson": {
+    "fullName": "Jaylon Tyson",
+    "nbaId": 1642281,
+    "salarySwishSlug": "jaylon-tyson",
+    "teamCode": "CLE"
+  },
+  "jonas_valančiūnas": {
+    "fullName": "Jonas Valančiūnas",
+    "nbaId": 202685,
+    "salarySwishSlug": "jonas-valančiūnas",
+    "teamCode": "DEN"
+  },
+  "fred_vanvleet": {
+    "fullName": "Fred Vanvleet",
+    "nbaId": 1627832,
+    "salarySwishSlug": "fred-vanvleet",
+    "teamCode": "HOU"
+  },
+  "jarred_vanderbilt": {
+    "fullName": "Jarred Vanderbilt",
+    "nbaId": 1629020,
+    "salarySwishSlug": "jarred-vanderbilt",
+    "teamCode": "LAL"
+  },
+  "devin_vassell": {
+    "fullName": "Devin Vassell",
+    "nbaId": 1630170,
+    "salarySwishSlug": "devin-vassell",
+    "teamCode": "SAS"
+  },
+  "gabe_vincent": {
+    "fullName": "Gabe Vincent",
+    "nbaId": 1629216,
+    "salarySwishSlug": "gabe-vincent",
+    "teamCode": "LAL"
+  },
+  "tristan_vukcevic": {
+    "fullName": "Tristan Vukcevic",
+    "nbaId": 1641774,
+    "salarySwishSlug": "tristan-vukcevic",
+    "teamCode": "WAS"
+  },
+  "nikola_vučević": {
+    "fullName": "Nikola Vučević",
+    "nbaId": 202696,
+    "salarySwishSlug": "nikola-vučević",
+    "teamCode": "CHI"
+  },
+  "dean_wade": {
+    "fullName": "Dean Wade",
+    "nbaId": 1629731,
+    "salarySwishSlug": "dean-wade",
+    "teamCode": "CLE"
+  },
+  "franz_wagner": {
+    "fullName": "Franz Wagner",
+    "nbaId": 1630532,
+    "salarySwishSlug": "franz-wagner",
+    "teamCode": "ORL"
+  },
+  "moritz_wagner": {
+    "fullName": "Moritz Wagner",
+    "nbaId": 1629021,
+    "salarySwishSlug": "moritz-wagner",
+    "teamCode": "ORL"
+  },
+  "jabari_walker": {
+    "fullName": "Jabari Walker",
+    "nbaId": 1631133,
+    "salarySwishSlug": "jabari-walker",
+    "teamCode": "PHI"
+  },
+  "jarace_walker": {
+    "fullName": "Jarace Walker",
+    "nbaId": 1641716,
+    "salarySwishSlug": "jarace-walker",
+    "teamCode": "IND"
+  },
+  "lonnie_walker_iv": {
+    "fullName": "Lonnie Walker Iv",
+    "nbaId": 1629022,
+    "salarySwishSlug": "lonnie-walker-iv",
+    "teamCode": "PHI"
+  },
+  "cason_wallace": {
+    "fullName": "Cason Wallace",
+    "nbaId": 1641717,
+    "salarySwishSlug": "cason-wallace",
+    "teamCode": "OKC"
+  },
+  "keaton_wallace": {
+    "fullName": "Keaton Wallace",
+    "nbaId": 1630811,
+    "salarySwishSlug": "keaton-wallace",
+    "teamCode": "ATL"
+  },
+  "jordan_walsh": {
+    "fullName": "Jordan Walsh",
+    "nbaId": 1641775,
+    "salarySwishSlug": "jordan-walsh",
+    "teamCode": "BOS"
+  },
+  "jakobe_walter": {
+    "fullName": "Jakobe Walter",
+    "nbaId": 1642266,
+    "salarySwishSlug": "jakobe-walter",
+    "teamCode": "TOR"
+  },
+  "kelel_ware": {
+    "fullName": "Kelel Ware",
+    "nbaId": 1642276,
+    "salarySwishSlug": "kelel-ware",
+    "teamCode": "MIA"
+  },
+  "pj_washington": {
+    "fullName": "Pj Washington",
+    "nbaId": 1629023,
+    "salarySwishSlug": "pj-washington",
+    "teamCode": "DAL"
+  },
+  "tyty_washington_jr": {
+    "fullName": "Tyty Washington Jr",
+    "nbaId": 1631102,
+    "salarySwishSlug": "tyty-washington-jr",
+    "teamCode": "LAC"
+  },
+  "lindy_waters_iii": {
+    "fullName": "Lindy Waters Iii",
+    "nbaId": 1630322,
+    "salarySwishSlug": "lindy-waters-iii",
+    "teamCode": "SAS"
+  },
+  "trendon_watford": {
+    "fullName": "Trendon Watford",
+    "nbaId": 1630570,
+    "salarySwishSlug": "trendon-watford",
+    "teamCode": "PHI"
+  },
+  "anton_watson": {
+    "fullName": "Anton Watson",
+    "nbaId": 1641817,
+    "salarySwishSlug": "anton-watson",
+    "teamCode": "NYK"
+  },
+  "peyton_watson": {
+    "fullName": "Peyton Watson",
+    "nbaId": 1631212,
+    "salarySwishSlug": "peyton-watson",
+    "teamCode": "DEN"
+  },
+  "jaylen_wells": {
+    "fullName": "Jaylen Wells",
+    "nbaId": 1642377,
+    "salarySwishSlug": "jaylen-wells",
+    "teamCode": "MEM"
+  },
+  "victor_wembanyama": {
+    "fullName": "Victor Wembanyama",
+    "nbaId": 1641705,
+    "salarySwishSlug": "victor-wembanyama",
+    "teamCode": "SAS"
+  },
+  "blake_wesley": {
+    "fullName": "Blake Wesley",
+    "nbaId": 1631104,
+    "salarySwishSlug": "blake-wesley",
+    "teamCode": "POR"
+  },
+  "russell_westbrook": {
+    "fullName": "Russell Westbrook",
+    "nbaId": 201566,
+    "salarySwishSlug": "russell-westbrook",
+    "teamCode": "DEN"
+  },
+  "coby_white": {
+    "fullName": "Coby White",
+    "nbaId": 1629632,
+    "salarySwishSlug": "coby-white",
+    "teamCode": "CHI"
+  },
+  "derrick_white": {
+    "fullName": "Derrick White",
+    "nbaId": 1628401,
+    "salarySwishSlug": "derrick-white",
+    "teamCode": "BOS"
+  },
+  "dariq_whitehead": {
+    "fullName": "Dariq Whitehead",
+    "nbaId": 1641727,
+    "salarySwishSlug": "dariq-whitehead",
+    "teamCode": "BKN"
+  },
+  "cam_whitmore": {
+    "fullName": "Cam Whitmore",
+    "nbaId": 1641715,
+    "salarySwishSlug": "cam-whitmore",
+    "teamCode": "WAS"
+  },
+  "aaron_wiggins": {
+    "fullName": "Aaron Wiggins",
+    "nbaId": 1630598,
+    "salarySwishSlug": "aaron-wiggins",
+    "teamCode": "OKC"
+  },
+  "andrew_wiggins": {
+    "fullName": "Andrew Wiggins",
+    "nbaId": 203952,
+    "salarySwishSlug": "andrew-wiggins",
+    "teamCode": "MIA"
+  },
+  "brandon_williams": {
+    "fullName": "Brandon Williams",
+    "nbaId": 1630314,
+    "salarySwishSlug": "brandon-williams",
+    "teamCode": "DAL"
+  },
+  "cody_williams": {
+    "fullName": "Cody Williams",
+    "nbaId": 1642262,
+    "salarySwishSlug": "cody-williams",
+    "teamCode": "UTA"
+  },
+  "grant_williams": {
+    "fullName": "Grant Williams",
+    "nbaId": 1629684,
+    "salarySwishSlug": "grant-williams",
+    "teamCode": "CHA"
+  },
+  "jalen_williams": {
+    "fullName": "Jalen Williams",
+    "nbaId": 1631114,
+    "salarySwishSlug": "jalen-williams",
+    "teamCode": "OKC"
+  },
+  "jaylin_williams": {
+    "fullName": "Jaylin Williams",
+    "nbaId": 1631119,
+    "salarySwishSlug": "jaylin-williams",
+    "teamCode": "OKC"
+  },
+  "kenrich_williams": {
+    "fullName": "Kenrich Williams",
+    "nbaId": 1629026,
+    "salarySwishSlug": "kenrich-williams",
+    "teamCode": "OKC"
+  },
+  "mark_williams": {
+    "fullName": "Mark Williams",
+    "nbaId": 1631109,
+    "salarySwishSlug": "mark-williams",
+    "teamCode": "PHX"
+  },
+  "patrick_williams": {
+    "fullName": "Patrick Williams",
+    "nbaId": 1630172,
+    "salarySwishSlug": "patrick-williams",
+    "teamCode": "CHI"
+  },
+  "robert_williams_iii": {
+    "fullName": "Robert Williams Iii",
+    "nbaId": 1629057,
+    "salarySwishSlug": "robert-williams-iii",
+    "teamCode": "POR"
+  },
+  "vince_williams_jr": {
+    "fullName": "Vince Williams Jr",
+    "nbaId": 1631246,
+    "salarySwishSlug": "vince-williams-jr",
+    "teamCode": "MEM"
+  },
+  "zion_williamson": {
+    "fullName": "Zion Williamson",
+    "nbaId": 1629627,
+    "salarySwishSlug": "zion-williamson",
+    "teamCode": "NOP"
+  },
+  "jalen_wilson": {
+    "fullName": "Jalen Wilson",
+    "nbaId": 1630592,
+    "salarySwishSlug": "jalen-wilson",
+    "teamCode": "BKN"
+  },
+  "delon_wright": {
+    "fullName": "Delon Wright",
+    "nbaId": 1626153,
+    "salarySwishSlug": "delon-wright",
+    "teamCode": "NYK"
+  },
+  "guerschon_yabusele": {
+    "fullName": "Guerschon Yabusele",
+    "nbaId": 1627824,
+    "salarySwishSlug": "guerschon-yabusele",
+    "teamCode": "NYK"
+  },
+  "trae_young": {
+    "fullName": "Trae Young",
+    "nbaId": 1629027,
+    "salarySwishSlug": "trae-young",
+    "teamCode": "ATL"
+  },
+  "ivica_zubac": {
+    "fullName": "Ivica Zubac",
+    "nbaId": 1627826,
+    "salarySwishSlug": "ivica-zubac",
+    "teamCode": "LAC"
+  },
+  "tristan_da_silva": {
+    "fullName": "Tristan Da Silva",
+    "nbaId": 1641783,
+    "salarySwishSlug": "tristan-da-silva",
+    "teamCode": "ORL"
+  },
+  "vlatko_čančar": {
+    "fullName": "Vlatko Čančar",
+    "nbaId": 1628427,
+    "salarySwishSlug": "vlatko-čančar",
+    "teamCode": "DEN"
+  },
+  "dario_šarić": {
+    "fullName": "Dario Šarić",
+    "nbaId": 203967,
+    "salarySwishSlug": "dario-šarić",
+    "teamCode": "SAC"
+  },
+  "taran_armstrong": {
+    "fullName": "Taran Armstrong",
+    "nbaId": 1642379,
+    "salarySwishSlug": "taran-armstrong",
+    "teamCode": "GSW"
+  },
+  "ace_bailey": {
+    "fullName": "Ace Bailey",
+    "nbaId": 1642846,
+    "salarySwishSlug": "ace-bailey",
+    "teamCode": "UTA"
+  },
+  "brooks_barnhizer": {
+    "fullName": "Brooks Barnhizer",
+    "nbaId": 1642964,
+    "salarySwishSlug": "brooks-barnhizer",
+    "teamCode": "OKC"
+  },
+  "tamar_bates": {
+    "fullName": "Tamar Bates",
+    "nbaId": 1642926,
+    "salarySwishSlug": "tamar-bates",
+    "teamCode": "DEN"
+  },
+  "joan_beringer": {
+    "fullName": "Joan Beringer",
+    "nbaId": 1642866,
+    "salarySwishSlug": "joan-beringer",
+    "teamCode": "MIN"
+  },
+  "koby_brea": {
+    "fullName": "Koby Brea",
+    "nbaId": 1642886,
+    "salarySwishSlug": "koby-brea",
+    "teamCode": "PHX"
+  },
+  "johni_broome": {
+    "fullName": "Johni Broome",
+    "nbaId": 1641780,
+    "salarySwishSlug": "johni-broome",
+    "teamCode": "PHI"
+  },
+  "carter_bryant": {
+    "fullName": "Carter Bryant",
+    "nbaId": 1642868,
+    "salarySwishSlug": "carter-bryant",
+    "teamCode": "SAS"
+  },
+  "dylan_cardwell": {
+    "fullName": "Dylan Cardwell",
+    "nbaId": 1642928,
+    "salarySwishSlug": "dylan-cardwell",
+    "teamCode": "SAC"
+  },
+  "moussa_cisse": {
+    "fullName": "Moussa Cisse",
+    "nbaId": 1630619,
+    "salarySwishSlug": "moussa-cisse",
+    "teamCode": "DAL"
+  },
+  "walter_clayton_jr": {
+    "fullName": "Walter Clayton Jr",
+    "nbaId": 1642383,
+    "salarySwishSlug": "walter-clayton-jr",
+    "teamCode": "UTA"
+  },
+  "matthew_cleveland": {
+    "fullName": "Matthew Cleveland",
+    "nbaId": 1642888,
+    "salarySwishSlug": "matthew-cleveland",
+    "teamCode": "DAL"
+  },
+  "nique_clifford": {
+    "fullName": "Nique Clifford",
+    "nbaId": 1642363,
+    "salarySwishSlug": "nique-clifford",
+    "teamCode": "SAC"
+  },
+  "cedric_coward": {
+    "fullName": "Cedric Coward",
+    "nbaId": 1642907,
+    "salarySwishSlug": "cedric-coward",
+    "teamCode": "MEM"
+  },
+  "rj_davis": {
+    "fullName": "Rj Davis",
+    "nbaId": 1642930,
+    "salarySwishSlug": "rj-davis",
+    "teamCode": "LAL"
+  },
+  "mohamed_diawara": {
+    "fullName": "Mohamed Diawara",
+    "nbaId": 1642885,
+    "salarySwishSlug": "mohamed-diawara",
+    "teamCode": "NYK"
+  },
+  "hunter_dickinson": {
+    "fullName": "Hunter Dickinson",
+    "nbaId": 1630621,
+    "salarySwishSlug": "hunter-dickinson",
+    "teamCode": "NOP"
+  },
+  "eric_dixon": {
+    "fullName": "Eric Dixon",
+    "nbaId": 1642915,
+    "salarySwishSlug": "eric-dixon",
+    "teamCode": "LAL"
+  },
+  "egor_dëmin": {
+    "fullName": "Egor Dëmin",
+    "nbaId": 1642856,
+    "salarySwishSlug": "egor-dëmin",
+    "teamCode": "BKN"
+  },
+  "vj_edgecombe": {
+    "fullName": "Vj Edgecombe",
+    "nbaId": 1642845,
+    "salarySwishSlug": "vj-edgecombe",
+    "teamCode": "PHI"
+  },
+  "noa_essengue": {
+    "fullName": "Noa Essengue",
+    "nbaId": 1642855,
+    "salarySwishSlug": "noa-essengue",
+    "teamCode": "CHI"
+  },
+  "jeremiah_fears": {
+    "fullName": "Jeremiah Fears",
+    "nbaId": 1642847,
+    "salarySwishSlug": "jeremiah-fears",
+    "teamCode": "NOP"
+  },
+  "cooper_flagg": {
+    "fullName": "Cooper Flagg",
+    "nbaId": 1642843,
+    "salarySwishSlug": "cooper-flagg",
+    "teamCode": "DAL"
+  },
+  "rasheer_fleming": {
+    "fullName": "Rasheer Fleming",
+    "nbaId": 1642853,
+    "salarySwishSlug": "rasheer-fleming",
+    "teamCode": "PHX"
+  },
+  "myron_gardner": {
+    "fullName": "Myron Gardner",
+    "nbaId": 1642066,
+    "salarySwishSlug": "myron-gardner",
+    "teamCode": "MIA"
+  },
+  "vladislav_goldin": {
+    "fullName": "Vladislav Goldin",
+    "nbaId": 1642884,
+    "salarySwishSlug": "vladislav-goldin",
+    "teamCode": "MIA"
+  },
+  "hugo_gonzález": {
+    "fullName": "Hugo González",
+    "nbaId": 1642864,
+    "salarySwishSlug": "hugo-gonzález",
+    "teamCode": "BOS"
+  },
+  "hayden_gray": {
+    "fullName": "Hayden Gray",
+    "nbaId": 1643060,
+    "salarySwishSlug": "hayden-gray",
+    "teamCode": "BOS"
+  },
+  "caleb_grill": {
+    "fullName": "Caleb Grill",
+    "nbaId": 1642934,
+    "salarySwishSlug": "caleb-grill",
+    "teamCode": "CHI"
+  },
+  "dylan_harper": {
+    "fullName": "Dylan Harper",
+    "nbaId": 1642844,
+    "salarySwishSlug": "dylan-harper",
+    "teamCode": "SAS"
+  },
+  "kevon_harris": {
+    "fullName": "Kevon Harris",
+    "nbaId": 1630284,
+    "salarySwishSlug": "kevon-harris",
+    "teamCode": "HOU"
+  },
+  "nigel_hayes-davis": {
+    "fullName": "Nigel Hayes-davis",
+    "nbaId": 1628502,
+    "salarySwishSlug": "nigel-hayes-davis",
+    "teamCode": "SAC"
+  },
+  "chucky_hepburn": {
+    "fullName": "Chucky Hepburn",
+    "nbaId": 1642935,
+    "salarySwishSlug": "chucky-hepburn",
+    "teamCode": "TOR"
+  },
+  "cj_huntley": {
+    "fullName": "Cj Huntley",
+    "nbaId": 1643047,
+    "salarySwishSlug": "cj-huntley",
+    "teamCode": "PHX"
+  },
+  "kasparas_jakučionis": {
+    "fullName": "Kasparas Jakučionis",
+    "nbaId": 1642857,
+    "salarySwishSlug": "kasparas-jakučionis",
+    "teamCode": "MIA"
+  },
+  "sion_james": {
+    "fullName": "Sion James",
+    "nbaId": 1642883,
+    "salarySwishSlug": "sion-james",
+    "teamCode": "CHA"
+  },
+  "tre_johnson": {
+    "fullName": "Tre Johnson",
+    "nbaId": 1642848,
+    "salarySwishSlug": "tre-johnson",
+    "teamCode": "WAS"
+  },
+  "curtis_jones": {
+    "fullName": "Curtis Jones",
+    "nbaId": 1642938,
+    "salarySwishSlug": "curtis-jones",
+    "teamCode": "DEN"
+  },
+  "kam_jones": {
+    "fullName": "Kam Jones",
+    "nbaId": 1642880,
+    "salarySwishSlug": "kam-jones",
+    "teamCode": "IND"
+  },
+  "david_jones_garcia": {
+    "fullName": "David Jones Garcia",
+    "nbaId": 1642357,
+    "salarySwishSlug": "david-jones-garcia",
+    "teamCode": "SAS"
+  },
+  "ryan_kalkbrenner": {
+    "fullName": "Ryan Kalkbrenner",
+    "nbaId": 1641750,
+    "salarySwishSlug": "ryan-kalkbrenner",
+    "teamCode": "CHA"
+  },
+  "arthur_kaluma": {
+    "fullName": "Arthur Kaluma",
+    "nbaId": 1641751,
+    "salarySwishSlug": "arthur-kaluma",
+    "teamCode": "LAL"
+  },
+  "kylor_kelley": {
+    "fullName": "Kylor Kelley",
+    "nbaId": 1630283,
+    "salarySwishSlug": "kylor-kelley",
+    "teamCode": "LAL"
+  },
+  "miles_kelly": {
+    "fullName": "Miles Kelly",
+    "nbaId": 1642939,
+    "salarySwishSlug": "miles-kelly",
+    "teamCode": "DAL"
+  },
+  "kon_knueppel": {
+    "fullName": "Kon Knueppel",
+    "nbaId": 1642851,
+    "salarySwishSlug": "kon-knueppel",
+    "teamCode": "CHA"
+  },
+  "chaz_lanier": {
+    "fullName": "Chaz Lanier",
+    "nbaId": 1642404,
+    "salarySwishSlug": "chaz-lanier",
+    "teamCode": "DET"
+  },
+  "malevy_leons": {
+    "fullName": "Malevy Leons",
+    "nbaId": 1642502,
+    "salarySwishSlug": "malevy-leons",
+    "teamCode": "OKC"
+  },
+  "isaiah_livers": {
+    "fullName": "Isaiah Livers",
+    "nbaId": 1630587,
+    "salarySwishSlug": "isaiah-livers",
+    "teamCode": "PHX"
+  },
+  "caleb_love": {
+    "fullName": "Caleb Love",
+    "nbaId": 1631126,
+    "salarySwishSlug": "caleb-love",
+    "teamCode": "POR"
+  },
+  "rj_luis_jr": {
+    "fullName": "Rj Luis Jr",
+    "nbaId": 1642961,
+    "salarySwishSlug": "rj-luis-jr",
+    "teamCode": "BOS"
+  },
+  "khaman_maluach": {
+    "fullName": "Khaman Maluach",
+    "nbaId": 1642863,
+    "salarySwishSlug": "khaman-maluach",
+    "teamCode": "PHX"
+  },
+  "bogoljub_marković": {
+    "fullName": "Bogoljub Marković",
+    "nbaId": 1642881,
+    "salarySwishSlug": "bogoljub-marković",
+    "teamCode": "MIL"
+  },
+  "alijah_martin": {
+    "fullName": "Alijah Martin",
+    "nbaId": 1642918,
+    "salarySwishSlug": "alijah-martin",
+    "teamCode": "TOR"
+  },
+  "augustas_marčiulionis": {
+    "fullName": "Augustas Marčiulionis",
+    "nbaId": 1643051,
+    "salarySwishSlug": "augustas-marčiulionis",
+    "teamCode": "LAL"
+  },
+  "jahmai_mashack": {
+    "fullName": "Jahmai Mashack",
+    "nbaId": 1642942,
+    "salarySwishSlug": "jahmai-mashack",
+    "teamCode": "MEM"
+  },
+  "cameron_matthews": {
+    "fullName": "Cameron Matthews",
+    "nbaId": 1643069,
+    "salarySwishSlug": "cameron-matthews",
+    "teamCode": "HOU"
+  },
+  "chris_mañon": {
+    "fullName": "Chris Mañon",
+    "nbaId": 1643024,
+    "salarySwishSlug": "chris-mañon",
+    "teamCode": "LAL"
+  },
+  "liam_mcneeley": {
+    "fullName": "Liam Mcneeley",
+    "nbaId": 1642862,
+    "salarySwishSlug": "liam-mcneeley",
+    "teamCode": "CHA"
+  },
+  "igor_miličić,_jr": {
+    "fullName": "Igor Miličić, Jr",
+    "nbaId": 1642945,
+    "salarySwishSlug": "igor-miličić,-jr",
+    "teamCode": "PHI"
+  },
+  "collin_murray-boyles": {
+    "fullName": "Collin Murray-boyles",
+    "nbaId": 1642867,
+    "salarySwishSlug": "collin-murray-boyles",
+    "teamCode": "TOR"
+  },
+  "eli_john_ndiaye": {
+    "fullName": "Eli John Ndiaye",
+    "nbaId": 1642947,
+    "salarySwishSlug": "eli-john-ndiaye",
+    "teamCode": "ATL"
+  },
+  "ryan_nembhard": {
+    "fullName": "Ryan Nembhard",
+    "nbaId": 1642948,
+    "salarySwishSlug": "ryan-nembhard",
+    "teamCode": "DAL"
+  },
+  "asa_newell": {
+    "fullName": "Asa Newell",
+    "nbaId": 1642854,
+    "salarySwishSlug": "asa-newell",
+    "teamCode": "ATL"
+  },
+  "saliou_niang": {
+    "fullName": "Saliou Niang",
+    "nbaId": 1643008,
+    "salarySwishSlug": "saliou-niang",
+    "teamCode": "CLE"
+  },
+  "yanic_konan_niederhäuser": {
+    "fullName": "Yanic Konan Niederhäuser",
+    "nbaId": 1642949,
+    "salarySwishSlug": "yanic-konan-niederhäuser",
+    "teamCode": "LAC"
+  },
+  "lachlan_olbrich": {
+    "fullName": "Lachlan Olbrich",
+    "nbaId": 1642950,
+    "salarySwishSlug": "lachlan-olbrich",
+    "teamCode": "CHI"
+  },
+  "micah_peavy": {
+    "fullName": "Micah Peavy",
+    "nbaId": 1642877,
+    "salarySwishSlug": "micah-peavy",
+    "teamCode": "NOP"
+  },
+  "noah_penda": {
+    "fullName": "Noah Penda",
+    "nbaId": 1642869,
+    "salarySwishSlug": "noah-penda",
+    "teamCode": "ORL"
+  },
+  "taelon_peter": {
+    "fullName": "Taelon Peter",
+    "nbaId": 1643007,
+    "salarySwishSlug": "taelon-peter",
+    "teamCode": "IND"
+  },
+  "wooga_poplar": {
+    "fullName": "Wooga Poplar",
+    "nbaId": 1642390,
+    "salarySwishSlug": "wooga-poplar",
+    "teamCode": "CHI"
+  },
+  "drake_powell": {
+    "fullName": "Drake Powell",
+    "nbaId": 1642962,
+    "salarySwishSlug": "drake-powell",
+    "teamCode": "BKN"
+  },
+  "jason_preston": {
+    "fullName": "Jason Preston",
+    "nbaId": 1630554,
+    "salarySwishSlug": "jason-preston",
+    "teamCode": "LAC"
+  },
+  "tyrese_proctor": {
+    "fullName": "Tyrese Proctor",
+    "nbaId": 1642878,
+    "salarySwishSlug": "tyrese-proctor",
+    "teamCode": "CLE"
+  },
+  "derik_queen": {
+    "fullName": "Derik Queen",
+    "nbaId": 1642852,
+    "salarySwishSlug": "derik-queen",
+    "teamCode": "NOP"
+  },
+  "maxime_raynaud": {
+    "fullName": "Maxime Raynaud",
+    "nbaId": 1642875,
+    "salarySwishSlug": "maxime-raynaud",
+    "teamCode": "SAC"
+  },
+  "will_richard": {
+    "fullName": "Will Richard",
+    "nbaId": 1642954,
+    "salarySwishSlug": "will-richard",
+    "teamCode": "GSW"
+  },
+  "jase_richardson": {
+    "fullName": "Jase Richardson",
+    "nbaId": 1642859,
+    "salarySwishSlug": "jase-richardson",
+    "teamCode": "ORL"
+  },
+  "will_riley": {
+    "fullName": "Will Riley",
+    "nbaId": 1642860,
+    "salarySwishSlug": "will-riley",
+    "teamCode": "WAS"
+  },
+  "orlando_robinson": {
+    "fullName": "Orlando Robinson",
+    "nbaId": 1631115,
+    "salarySwishSlug": "orlando-robinson",
+    "teamCode": "ORL"
+  },
+  "hunter_sallis": {
+    "fullName": "Hunter Sallis",
+    "nbaId": 1642282,
+    "salarySwishSlug": "hunter-sallis",
+    "teamCode": "PHI"
+  },
+  "kobe_sanders": {
+    "fullName": "Kobe Sanders",
+    "nbaId": 1642920,
+    "salarySwishSlug": "kobe-sanders",
+    "teamCode": "LAC"
+  },
+  "ben_saraf": {
+    "fullName": "Ben Saraf",
+    "nbaId": 1642879,
+    "salarySwishSlug": "ben-saraf",
+    "teamCode": "BKN"
+  },
+  "olivier_sarr": {
+    "fullName": "Olivier Sarr",
+    "nbaId": 1630846,
+    "salarySwishSlug": "olivier-sarr",
+    "teamCode": "TOR"
+  },
+  "mark_sears": {
+    "fullName": "Mark Sears",
+    "nbaId": 1641813,
+    "salarySwishSlug": "mark-sears",
+    "teamCode": "MIL"
+  },
+  "max_shulga": {
+    "fullName": "Max Shulga",
+    "nbaId": 1642917,
+    "salarySwishSlug": "max-shulga",
+    "teamCode": "BOS"
+  },
+  "javon_small": {
+    "fullName": "Javon Small",
+    "nbaId": 1642914,
+    "salarySwishSlug": "javon-small",
+    "teamCode": "MEM"
+  },
+  "thomas_sorber": {
+    "fullName": "Thomas Sorber",
+    "nbaId": 1642850,
+    "salarySwishSlug": "thomas-sorber",
+    "teamCode": "OKC"
+  },
+  "adou_thiero": {
+    "fullName": "Adou Thiero",
+    "nbaId": 1642876,
+    "salarySwishSlug": "adou-thiero",
+    "teamCode": "LAL"
+  },
+  "ethan_thompson": {
+    "fullName": "Ethan Thompson",
+    "nbaId": 1630679,
+    "salarySwishSlug": "ethan-thompson",
+    "teamCode": "MIA"
+  },
+  "john_tonje": {
+    "fullName": "John Tonje",
+    "nbaId": 1642910,
+    "salarySwishSlug": "john-tonje",
+    "teamCode": "UTA"
+  },
+  "alex_toohey": {
+    "fullName": "Alex Toohey",
+    "nbaId": 1642893,
+    "salarySwishSlug": "alex-toohey",
+    "teamCode": "GSW"
+  },
+  "nolan_traore": {
+    "fullName": "Nolan Traore",
+    "nbaId": 1642849,
+    "salarySwishSlug": "nolan-traore",
+    "teamCode": "BKN"
+  },
+  "jamir_watkins": {
+    "fullName": "Jamir Watkins",
+    "nbaId": 1642364,
+    "salarySwishSlug": "jamir-watkins",
+    "teamCode": "WAS"
+  },
+  "amari_williams": {
+    "fullName": "Amari Williams",
+    "nbaId": 1642873,
+    "salarySwishSlug": "amari-williams",
+    "teamCode": "BOS"
+  },
+  "james_wiseman": {
+    "fullName": "James Wiseman",
+    "nbaId": 1630164,
+    "salarySwishSlug": "james-wiseman",
+    "teamCode": "IND"
+  },
+  "danny_wolf": {
+    "fullName": "Danny Wolf",
+    "nbaId": 1642874,
+    "salarySwishSlug": "danny-wolf",
+    "teamCode": "BKN"
+  },
+  "hansen_yang": {
+    "fullName": "Hansen Yang",
+    "nbaId": 1642905,
+    "salarySwishSlug": "hansen-yang",
+    "teamCode": "POR"
+  },
+  "rocco_zikarsky": {
+    "fullName": "Rocco Zikarsky",
+    "nbaId": 1642911,
+    "salarySwishSlug": "rocco-zikarsky",
+    "teamCode": "MIN"
+  },
+  "nikola_đurišić": {
+    "fullName": "Nikola Đurišić",
+    "nbaId": 1642365,
+    "salarySwishSlug": "nikola-đurišić",
+    "teamCode": "ATL"
+  }
+}
