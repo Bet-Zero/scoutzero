@@ -423,10 +423,12 @@ const contract = {
 ### Test Coverage
 
 Normalization rules are validated by:
-- `tests/contractNormalizationValidation.test.js` (16 tests)
-- `tests/contractNormalizationRulesValidation.test.js` (24 tests)
+- `tests/contractNormalizationValidation.test.js` (16 tests) - Legacy validation tests
+- `tests/contractNormalizationRulesValidation.test.js` (24 tests) - Comprehensive rule validation
+- `tests/contractOptionUsed.test.js` (4 tests) - Option usage validation
+- `tests/contractYears.test.js` (3 tests) - Contract years calculation
 
-Total: **40 passing tests** covering all rule combinations
+Total: **47 passing tests** covering all rule combinations and edge cases
 
 ### Implementation Location
 
