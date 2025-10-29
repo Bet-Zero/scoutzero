@@ -1488,6 +1488,37 @@ function applyPlayerOptionPolicy(salariesByYear: any[]): void {
 }
 
 /**
+ * Validate option field pairing: optionUsed and optionDecisionDate must both be null or both be set
+ * This prevents invalid states like optionUsed=null with a date, or vice versa
+ * 
+ * Requirements (per contract normalization spec):
+ * - If optionUsed is null, then optionDecisionDate MUST be null (pending option)
+ * - If optionUsed is true/false, then optionDecisionDate MUST be set to ISO 8601 date (YYYY-MM-DD format)
+ * - Never have one field set without the other
+ * 
+ * Examples:
+ * - Valid: optionUsed=null, optionDecisionDate=null (live PO, decision pending)
+ * - Valid: optionUsed=true, optionDecisionDate="2025-06-28" (exercised TO)
+ * - Valid: optionUsed=false, optionDecisionDate="2025-08-02" (declined/voided PO)
+ * - Invalid: optionUsed=null, optionDecisionDate="2025-06-28" (inconsistent)
+ * - Invalid: optionUsed=true, optionDecisionDate=null (inconsistent)
+ */
+function validateOptionFieldPairing(salariesByYear: any[]): void {
+  for (const yearRow of salariesByYear) {
+    const hasOptionUsed = yearRow.optionUsed !== null && yearRow.optionUsed !== undefined;
+    const hasOptionDate = yearRow.optionDecisionDate !== null && yearRow.optionDecisionDate !== undefined;
+    
+    if (hasOptionUsed !== hasOptionDate) {
+      throw new Error(
+        `Invalid option field pairing in ${yearRow.season}: ` +
+        `optionUsed=${yearRow.optionUsed}, optionDecisionDate=${yearRow.optionDecisionDate}. ` +
+        `Both must be null or both must be set.`
+      );
+    }
+  }
+}
+
+/**
  * Post-parse normalizer: Detect when a future extension voids a PO in the current contract
  *
  * If a player has:
@@ -1637,6 +1668,9 @@ async function main() {
   // Apply player option policy (treat live PO years as guaranteed)
   applyPlayerOptionPolicy(salariesByYear);
 
+  // Validate option field pairing
+  validateOptionFieldPairing(salariesByYear);
+
   const startSeason = salariesByYear[0]?.season || null;
   const endSeason =
     salariesByYear[salariesByYear.length - 1]?.season || startSeason;
@@ -1717,6 +1751,9 @@ async function main() {
 
         // Apply player option policy to future contract
         applyPlayerOptionPolicy(futureSalariesByYear);
+
+        // Validate option field pairing for future contract
+        validateOptionFieldPairing(futureSalariesByYear);
 
         const futureContractLength = futureSalariesByYear.length;
         const futureTotalValue = futureSalariesByYear.reduce(
@@ -1843,6 +1880,12 @@ async function main() {
 
   // Apply post-parse normalizer to detect voided POs
   normalizeContractVoidedOptions(contract, futureContract, $.root().text());
+
+  // Final validation of option field pairing after all transformations
+  validateOptionFieldPairing(contract.salariesByYear);
+  if (futureContract) {
+    validateOptionFieldPairing(futureContract.salariesByYear);
+  }
 
   const output: any = {
     _note:
