@@ -8,6 +8,48 @@
 // OUTPUT: ../../output/player.json
 //
 // Requires: cheerio
+//
+// ============================================================================
+// CONTRACT NORMALIZATION RULES (LOCKED SPECIFICATION)
+// ============================================================================
+// These rules apply universally to all players. No player-specific logic.
+//
+// 1. optionUsed / optionDecisionDate Pairing
+//    - Both must be null together, or both must be set together
+//    - If optionUsed is true|false, optionDecisionDate MUST be ISO "YYYY-MM-DD"
+//    - If optionUsed is null, optionDecisionDate MUST be null
+//    - Enforced by: validateOptionFieldPairing()
+//
+// 2. ISO Date Requirement
+//    - All dates (optionDecisionDate, voidedOn, etc.) MUST be ISO "YYYY-MM-DD"
+//    - Never emit human formats like "Aug 2, 2025"
+//    - Enforced by: toISODate() and parseOptionUsedDate()
+//
+// 3. yearsRemaining Logic
+//    - Count ONLY seasons in salariesByYear that are:
+//      a) Still live after today (based on CURRENT_SEASON_START)
+//      b) NOT marked voidedByExtension
+//    - Enforced by: normalizeContractVoidedOptions() recalculation
+//
+// 4. Player Option Guarantee Policy
+//    - Live PO (optionUsed=null): guaranteed=true, guaranteedAmount=salary
+//    - Declined/voided PO (optionUsed=false): guaranteed=false, guaranteedAmount=0
+//    - Enforced by: applyPlayerOptionPolicy()
+//
+// 5. Contract Linkage Metadata
+//    - Old contract: supersededIn (season), supersededByContractRef (contractType)
+//    - New contract: supersedesContractRef (old contractType)
+//    - Enforced by: normalizeContractVoidedOptions()
+//
+// 6. signedByCurrentTeam Semantics
+//    - Compares signingTeam to current teamCode at scrape time
+//    - Not historical - reflects current team ownership
+//
+// 7. Money Headlines Preservation
+//    - DO NOT change: totalValue, averageAnnualValue (reflect original contract)
+//    - DO recompute: guaranteedValue, guaranteedYears (based on active years)
+//    - Enforced by: normalizeContractVoidedOptions()
+// ============================================================================
 
 import fs from 'node:fs/promises';
 import * as cheerio from 'cheerio';
