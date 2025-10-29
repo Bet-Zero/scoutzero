@@ -47,8 +47,8 @@ const SalaryYearSchema = z.object({
   guaranteed: z.boolean(),
   guaranteedAmount: z.number(),
   option: z.string().nullable(), // "PO" | "TO" | "ETO" | null
-  optionUsed: z.boolean().nullable().optional(), // true | false | null | undefined
-  optionDecisionDate: z.string().nullable().optional(), // ISO date string for option decision
+  optionUsed: z.boolean().nullable(), // true | false | null (never undefined)
+  optionDecisionDate: z.string().nullable(), // ISO date string for option decision (YYYY-MM-DD format)
   tradeBonus: z.number().nullable(),
   incentives: z.object({
     likely: z.number(),
