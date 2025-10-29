@@ -77,7 +77,7 @@ const FreeAgencySchema = z.object({
 });
 
 const TradeEligibilitySchema = z.object({
-  canBeTradedNow: z.boolean().nullable(),
+  canBeTradedNow: z.null(), // Always null per spec - not calculated at scrape time
   restrictedUntil: z.string().nullable(),
   reason: z.string().nullable(),
   rules: z.object({
@@ -135,6 +135,7 @@ const ContractSchema = z.object({
   // Supersession tracking (when this contract is replaced by an extension)
   supersededIn: z.string().optional(), // Season when superseded (e.g., "2026-27")
   supersededByContractRef: z.string().optional(), // Reference to the superseding contract
+  supersedesContractRef: z.string().optional(), // Reference to the superseded contract (for extensions)
 });
 
 // ===== SOURCE METADATA =====

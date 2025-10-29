@@ -1,0 +1,140 @@
+{
+  "_note": "⚠️ PLACEHOLDER TEST DATA - Parsed from a local HTML snapshot. For production, always fetch fresh SalarySwish HTML first.",
+  "playerId": "jalen_wilson",
+  "displayName": "Jalen Wilson",
+  "teamCode": "BKN",
+  "teamName": "Brooklyn Nets",
+  "bio": {
+    "position": "F",
+    "birthdate": "Nov 4, 2000",
+    "height": "6-8",
+    "weight": "225",
+    "age": 24,
+    "shoots": "Right",
+    "experience": 2,
+    "draftYear": "2023",
+    "draftRound": 2,
+    "draftPick": 51,
+    "draftedBy": "BKN"
+  },
+  "contract": {
+    "contractType": "ROOKIE CONTRACT",
+    "isExtension": false,
+    "isRookieScale": false,
+    "signedUsing": "Second Round Rookie Exception",
+    "signingTeam": "BKN",
+    "signingDate": "July 1, 2023",
+    "signingExecutive": "Sean Marks",
+    "signedByCurrentTeam": true,
+    "startSeason": "2023-24",
+    "endSeason": "2025-26",
+    "contractLength": 3,
+    "yearsRemaining": 1,
+    "totalValue": 6274452,
+    "averageAnnualValue": 2091484,
+    "guaranteedValue": 2829932,
+    "guaranteedYears": 3,
+    "salariesByYear": [
+      {
+        "season": "2023-24",
+        "salary": 1119563,
+        "capHit": 1119563,
+        "guaranteed": true,
+        "guaranteedAmount": 1119563,
+        "option": null,
+        "optionUsed": null,
+        "optionDecisionDate": null,
+        "tradeBonus": null,
+        "incentives": {
+          "likely": 0,
+          "unlikely": 0
+        }
+      },
+      {
+        "season": "2024-25",
+        "salary": 1622294,
+        "capHit": 1622294,
+        "guaranteed": true,
+        "guaranteedAmount": 1622294,
+        "option": null,
+        "optionUsed": null,
+        "optionDecisionDate": null,
+        "tradeBonus": null,
+        "incentives": {
+          "likely": 0,
+          "unlikely": 0
+        }
+      },
+      {
+        "season": "2025-26",
+        "salary": 2221677,
+        "capHit": 2221677,
+        "guaranteed": false,
+        "guaranteedAmount": 88075,
+        "option": "TO",
+        "optionUsed": true,
+        "optionDecisionDate": "2025-06-28",
+        "tradeBonus": null,
+        "incentives": {
+          "likely": 0,
+          "unlikely": 0
+        },
+        "guaranteeSchedule": [
+          {
+            "effectiveDate": "first regular season game 2025-26",
+            "guaranteedAmount": 381695,
+            "status": "Decision Pending",
+            "note": "Increases to $381,695 if not waived before first regular season game"
+          },
+          {
+            "effectiveDate": "2026-01-10",
+            "guaranteedAmount": 2221677,
+            "status": "Decision Pending",
+            "note": "Increases to $2,221,677 if not waived before Jan 10, 2026"
+          }
+        ]
+      }
+    ],
+    "noTradeClause": false,
+    "tradeKicker": null,
+    "tradeRestrictions": [],
+    "birdRights": {
+      "status": "Non-Bird",
+      "eligibleFor": [
+        "Non-Bird Exception"
+      ]
+    },
+    "freeAgency": {
+      "type": "RFA",
+      "year": 2026,
+      "capHold": 2221677,
+      "qualifyingOffer": 2332761,
+      "earlyTerminationOption": null,
+      "hasOption": true,
+      "optionYear": "2025-26",
+      "optionType": "TO"
+    },
+    "tradeEligibility": {
+      "canBeTradedNow": null,
+      "restrictedUntil": null,
+      "reason": null,
+      "rules": {
+        "baseYearCompensation": false,
+        "poisonPill": false,
+        "aggregation": true
+      }
+    },
+    "isMaxContract": false,
+    "maxType": null,
+    "estimatedCapPercentage": null
+  },
+  "representation": {
+    "agent": null,
+    "agency": null
+  },
+  "source": {
+    "provider": "SalarySwish",
+    "playerPageUrl": "snapshot"
+  },
+  "version": "1.0"
+}

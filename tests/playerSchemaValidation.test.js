@@ -38,6 +38,8 @@ describe('Player Schema Validation - Trade Eligibility', () => {
           guaranteed: true,
           guaranteedAmount: 10000000,
           option: null,
+          optionUsed: null,
+          optionDecisionDate: null,
           tradeBonus: null,
           incentives: { likely: 0, unlikely: 0 },
         },
@@ -88,7 +90,7 @@ describe('Player Schema Validation - Trade Eligibility', () => {
     expect(result.data?.contract.tradeEligibility.canBeTradedNow).toBeNull();
   });
 
-  it('should accept true for contract.tradeEligibility.canBeTradedNow', () => {
+  it('should REJECT true for contract.tradeEligibility.canBeTradedNow (must be null per spec)', () => {
     const dataWithTrue = {
       ...basePlayerData,
       contract: {
@@ -101,11 +103,11 @@ describe('Player Schema Validation - Trade Eligibility', () => {
     };
     
     const result = basePlayerSchema.safeParse(dataWithTrue);
-    expect(result.success).toBe(true);
-    expect(result.data?.contract.tradeEligibility.canBeTradedNow).toBe(true);
+    // Per spec: canBeTradedNow MUST be null, not boolean
+    expect(result.success).toBe(false);
   });
 
-  it('should accept false for contract.tradeEligibility.canBeTradedNow', () => {
+  it('should REJECT false for contract.tradeEligibility.canBeTradedNow (must be null per spec)', () => {
     const dataWithFalse = {
       ...basePlayerData,
       contract: {
@@ -118,8 +120,8 @@ describe('Player Schema Validation - Trade Eligibility', () => {
     };
     
     const result = basePlayerSchema.safeParse(dataWithFalse);
-    expect(result.success).toBe(true);
-    expect(result.data?.contract.tradeEligibility.canBeTradedNow).toBe(false);
+    // Per spec: canBeTradedNow MUST be null, not boolean
+    expect(result.success).toBe(false);
   });
 
   it('should accept null for futureContract.tradeEligibility.canBeTradedNow', () => {
