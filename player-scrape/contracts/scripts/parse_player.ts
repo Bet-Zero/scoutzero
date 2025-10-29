@@ -1493,7 +1493,7 @@ function applyPlayerOptionPolicy(salariesByYear: any[]): void {
  * 
  * Requirements (per contract normalization spec):
  * - If optionUsed is null, then optionDecisionDate MUST be null (pending option)
- * - If optionUsed is true/false, then optionDecisionDate MUST be set to ISO date (exercised/declined option)
+ * - If optionUsed is true/false, then optionDecisionDate MUST be set to ISO 8601 date (YYYY-MM-DD format)
  * - Never have one field set without the other
  * 
  * Examples:
