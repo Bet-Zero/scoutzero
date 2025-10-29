@@ -32,9 +32,9 @@
 //    - Enforced by: normalizeContractVoidedOptions() recalculation
 //
 // 4. Player Option Guarantee Policy
-//    - Live PO (optionUsed=null): guaranteed=true, guaranteedAmount=salary
-//    - Declined/voided PO (optionUsed=false): guaranteed=false, guaranteedAmount=0
-//    - Enforced by: applyPlayerOptionPolicy()
+//    - Live PO (optionUsed=null AND NOT voidedByExtension): guaranteed=true, guaranteedAmount=salary
+//    - Declined/voided PO (optionUsed=false OR voidedByExtension=true): guaranteed=false, guaranteedAmount=0
+//    - Enforced by: applyPlayerOptionPolicy() for live POs; normalizeContractVoidedOptions() for voided POs
 //
 // 5. Contract Linkage Metadata
 //    - Old contract: supersededIn (season), supersededByContractRef (contractType)
@@ -198,41 +198,52 @@ function parseOptionUsedDate(text: string): {
 function toISODate(dateStr: string): string | null {
   // Parse date like "Aug 2, 2025" to ISO "2025-08-02"
   const dateMatch = dateStr.match(/([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})/);
-  if (!dateMatch) return null;
+  if (dateMatch) {
+    const monthMap: Record<string, string> = {
+      jan: '01',
+      january: '01',
+      feb: '02',
+      february: '02',
+      mar: '03',
+      march: '03',
+      apr: '04',
+      april: '04',
+      may: '05',
+      jun: '06',
+      june: '06',
+      jul: '07',
+      july: '07',
+      aug: '08',
+      august: '08',
+      sep: '09',
+      september: '09',
+      oct: '10',
+      october: '10',
+      nov: '11',
+      november: '11',
+      dec: '12',
+      december: '12',
+    };
 
-  const monthMap: Record<string, string> = {
-    jan: '01',
-    january: '01',
-    feb: '02',
-    february: '02',
-    mar: '03',
-    march: '03',
-    apr: '04',
-    april: '04',
-    may: '05',
-    jun: '06',
-    june: '06',
-    jul: '07',
-    july: '07',
-    aug: '08',
-    august: '08',
-    sep: '09',
-    september: '09',
-    oct: '10',
-    october: '10',
-    nov: '11',
-    november: '11',
-    dec: '12',
-    december: '12',
-  };
+    const month = monthMap[dateMatch[1].toLowerCase()];
+    if (!month) return null;
 
-  const month = monthMap[dateMatch[1].toLowerCase()];
-  if (!month) return null;
+    const day = dateMatch[2].padStart(2, '0');
+    const year = dateMatch[3];
 
-  const day = dateMatch[2].padStart(2, '0');
-  const year = dateMatch[3];
+    return `${year}-${month}-${day}`;
+  }
 
-  return `${year}-${month}-${day}`;
+  // Parse date like "07/06/2023" to ISO "2023-07-06"
+  const slashMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (slashMatch) {
+    const month = slashMatch[1].padStart(2, '0');
+    const day = slashMatch[2].padStart(2, '0');
+    const year = slashMatch[3];
+    return `${year}-${month}-${day}`;
+  }
+
+  return null;
 }
 
 /**
@@ -1517,11 +1528,17 @@ function enrichGuaranteeSchedules(
 
 /**
  * Apply house rule: Treat live player options as guaranteed
- * This sets PO years to guaranteed unless they have optionUsed=false
+ * This sets PO years to guaranteed ONLY if optionUsed is null (pending decision)
+ * Does NOT apply to voided options (voidedByExtension=true)
  */
 function applyPlayerOptionPolicy(salariesByYear: any[]): void {
   for (const yearRow of salariesByYear) {
-    if (yearRow.option === 'PO' && yearRow.optionUsed !== false) {
+    // Only apply to live POs (optionUsed=null) that are not voided by extension
+    if (
+      yearRow.option === 'PO' &&
+      yearRow.optionUsed === null &&
+      !yearRow.voidedByExtension
+    ) {
       // Live player option - treat as guaranteed
       yearRow.guaranteed = true;
       yearRow.guaranteedAmount = yearRow.salary;
@@ -1600,7 +1617,9 @@ function normalizeContractVoidedOptions(
     // Use the ISO date directly
     voidedDate = optionInfo.optionDecisionDate;
   } else if (futureContract.signingDate) {
-    voidedDate = futureContract.signingDate;
+    // Convert signingDate to ISO format if it's not already
+    const converted = toISODate(futureContract.signingDate);
+    voidedDate = converted || futureContract.signingDate;
   } else {
     voidedDate = new Date().toISOString().split('T')[0];
   }
