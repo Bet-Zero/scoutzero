@@ -77,7 +77,7 @@ const FreeAgencySchema = z.object({
 });
 
 const TradeEligibilitySchema = z.object({
-  canBeTradedNow: z.boolean(),
+  canBeTradedNow: z.boolean().nullable(),
   restrictedUntil: z.string().nullable(),
   reason: z.string().nullable(),
   rules: z.object({
