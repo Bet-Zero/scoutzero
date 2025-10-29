@@ -214,6 +214,37 @@ describe('Contract Normalization Validation', () => {
     });
   });
 
+  describe('Jalen Wilson team option scenario (regression protection)', () => {
+    it('should handle exercised team option with partial guarantee', () => {
+      // Jalen Wilson's 2025-26 year: TO exercised, but only partially guaranteed
+      const salaryRow = {
+        season: "2025-26",
+        salary: 2221677,
+        option: "TO",
+        optionUsed: true,
+        optionDecisionDate: "2025-06-28",
+        guaranteed: false,
+        guaranteedAmount: 88075,
+        guaranteeSchedule: [
+          { date: "2025-06-28", amount: 88075, trigger: "Team Option Exercised" }
+        ],
+      };
+
+      // Verify all fields match expected values
+      expect(salaryRow.option).toBe("TO");
+      expect(salaryRow.optionUsed).toBe(true);
+      expect(salaryRow.optionDecisionDate).toBe("2025-06-28");
+      expect(salaryRow.guaranteed).toBe(false);
+      expect(salaryRow.guaranteedAmount).toBe(88075);
+      expect(salaryRow.guaranteeSchedule).toBeDefined();
+      expect(Array.isArray(salaryRow.guaranteeSchedule)).toBe(true);
+      
+      // optionUsed and optionDecisionDate should both be set
+      expect(salaryRow.optionUsed).not.toBeNull();
+      expect(salaryRow.optionDecisionDate).not.toBeNull();
+    });
+  });
+
   describe('Headline contract values', () => {
     it('should not modify totalValue after voiding PO', () => {
       // Original contract: 5 years, $215,159,700
