@@ -1490,6 +1490,18 @@ function applyPlayerOptionPolicy(salariesByYear: any[]): void {
 /**
  * Validate option field pairing: optionUsed and optionDecisionDate must both be null or both be set
  * This prevents invalid states like optionUsed=null with a date, or vice versa
+ * 
+ * Requirements (per contract normalization spec):
+ * - If optionUsed is null, then optionDecisionDate MUST be null (pending option)
+ * - If optionUsed is true/false, then optionDecisionDate MUST be set to ISO date (exercised/declined option)
+ * - Never have one field set without the other
+ * 
+ * Examples:
+ * - Valid: optionUsed=null, optionDecisionDate=null (live PO, decision pending)
+ * - Valid: optionUsed=true, optionDecisionDate="2025-06-28" (exercised TO)
+ * - Valid: optionUsed=false, optionDecisionDate="2025-08-02" (declined/voided PO)
+ * - Invalid: optionUsed=null, optionDecisionDate="2025-06-28" (inconsistent)
+ * - Invalid: optionUsed=true, optionDecisionDate=null (inconsistent)
  */
 function validateOptionFieldPairing(salariesByYear: any[]): void {
   for (const yearRow of salariesByYear) {
