@@ -32,9 +32,9 @@
 //    - Enforced by: normalizeContractVoidedOptions() recalculation
 //
 // 4. Player Option Guarantee Policy
-//    - Live PO (optionUsed=null): guaranteed=true, guaranteedAmount=salary
-//    - Declined/voided PO (optionUsed=false): guaranteed=false, guaranteedAmount=0
-//    - Enforced by: applyPlayerOptionPolicy()
+//    - Live PO (optionUsed=null AND NOT voidedByExtension): guaranteed=true, guaranteedAmount=salary
+//    - Declined/voided PO (optionUsed=false OR voidedByExtension=true): guaranteed=false, guaranteedAmount=0
+//    - Enforced by: applyPlayerOptionPolicy() for live POs; normalizeContractVoidedOptions() for voided POs
 //
 // 5. Contract Linkage Metadata
 //    - Old contract: supersededIn (season), supersededByContractRef (contractType)
@@ -1517,11 +1517,17 @@ function enrichGuaranteeSchedules(
 
 /**
  * Apply house rule: Treat live player options as guaranteed
- * This sets PO years to guaranteed unless they have optionUsed=false
+ * This sets PO years to guaranteed ONLY if optionUsed is null (pending decision)
+ * Does NOT apply to voided options (voidedByExtension=true)
  */
 function applyPlayerOptionPolicy(salariesByYear: any[]): void {
   for (const yearRow of salariesByYear) {
-    if (yearRow.option === 'PO' && yearRow.optionUsed !== false) {
+    // Only apply to live POs (optionUsed=null) that are not voided by extension
+    if (
+      yearRow.option === 'PO' &&
+      yearRow.optionUsed === null &&
+      !yearRow.voidedByExtension
+    ) {
       // Live player option - treat as guaranteed
       yearRow.guaranteed = true;
       yearRow.guaranteedAmount = yearRow.salary;
