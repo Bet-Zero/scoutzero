@@ -1,0 +1,36 @@
+name: Player Scrape Regression Tests
+
+on:
+  push:
+    paths:
+      - 'player-scrape/scripts/**'
+      - 'player-scrape/snapshots/**'
+      - 'player-scrape/fixtures/**'
+  pull_request:
+    paths:
+      - 'player-scrape/scripts/**'
+      - 'player-scrape/snapshots/**'
+      - 'player-scrape/fixtures/**'
+  workflow_dispatch:
+
+jobs:
+  regression-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      
+      - name: Install dependencies
+        run: PUPPETEER_SKIP_DOWNLOAD=true npm ci
+      
+      - name: Run type checking
+        run: npm run typecheck
+        continue-on-error: true
+      
+      - name: Run regression tests
+        run: npm run regress

@@ -1,0 +1,150 @@
+{
+  "playerId": "jordan_poole",
+  "displayName": "Bronny James",
+  "teamCode": "LAL",
+  "teamName": "Los Angeles Lakers",
+  "bio": {
+    "position": "G",
+    "birthdate": "Oct 6, 2004",
+    "height": "6-2",
+    "weight": "210",
+    "age": 21,
+    "shoots": "Right",
+    "experience": 1,
+    "draftYear": "2024",
+    "draftRound": 2,
+    "draftPick": 55,
+    "draftedBy": "LAL"
+  },
+  "contract": {
+    "contractType": "ROOKIE CONTRACT",
+    "isExtension": false,
+    "isRookieScale": false,
+    "signedUsing": "Second Round Rookie Exception",
+    "signingTeam": "LAL",
+    "signingDate": "July 3, 2024",
+    "signingExecutive": "Rob Pelinka",
+    "signedByCurrentTeam": true,
+    "startSeason": "2024-25",
+    "endSeason": "2027-28",
+    "contractLength": 4,
+    "yearsRemaining": 3,
+    "totalValue": 7895796,
+    "averageAnnualValue": 1973949,
+    "guaranteedValue": 4371403,
+    "guaranteedYears": 3,
+    "salariesByYear": [
+      {
+        "season": "2024-25",
+        "salary": 1157153,
+        "capHit": 1157153,
+        "guaranteed": true,
+        "guaranteedAmount": 1157153,
+        "option": null,
+        "optionUsed": null,
+        "optionDecisionDate": null,
+        "tradeBonus": null,
+        "incentives": {
+          "likely": 0,
+          "unlikely": 0
+        }
+      },
+      {
+        "season": "2025-26",
+        "salary": 1955377,
+        "capHit": 1955377,
+        "guaranteed": true,
+        "guaranteedAmount": 1955377,
+        "option": null,
+        "optionUsed": null,
+        "optionDecisionDate": null,
+        "tradeBonus": null,
+        "incentives": {
+          "likely": 0,
+          "unlikely": 0
+        }
+      },
+      {
+        "season": "2026-27",
+        "salary": 2296271,
+        "capHit": 2296271,
+        "guaranteed": false,
+        "guaranteedAmount": 1258873,
+        "option": null,
+        "optionUsed": null,
+        "optionDecisionDate": null,
+        "tradeBonus": null,
+        "incentives": {
+          "likely": 0,
+          "unlikely": 0
+        },
+        "guaranteeSchedule": [
+          {
+            "effectiveDate": "2026-06-29",
+            "guaranteedAmount": 2296271,
+            "status": "Decision Pending",
+            "note": "Increases to $2,296,271 if not waived before Jun 29, 2026"
+          }
+        ]
+      },
+      {
+        "season": "2027-28",
+        "salary": 2486995,
+        "capHit": 2486995,
+        "guaranteed": false,
+        "guaranteedAmount": 0,
+        "option": "TO",
+        "optionUsed": null,
+        "optionDecisionDate": null,
+        "tradeBonus": null,
+        "incentives": {
+          "likely": 0,
+          "unlikely": 0
+        }
+      }
+    ],
+    "noTradeClause": false,
+    "tradeKicker": null,
+    "tradeRestrictions": [],
+    "birdRights": {
+      "status": "Bird",
+      "eligibleFor": [
+        "Bird Exception"
+      ]
+    },
+    "freeAgency": {
+      "type": "RFA",
+      "year": 2028,
+      "capHold": 2972982,
+      "qualifyingOffer": 3386852,
+      "earlyTerminationOption": null,
+      "hasOption": true,
+      "optionYear": "2027-28",
+      "optionType": "TO"
+    },
+    "tradeEligibility": {
+      "canBeTradedNow": null,
+      "restrictedUntil": null,
+      "reason": null,
+      "rules": {
+        "baseYearCompensation": false,
+        "poisonPill": false,
+        "aggregation": true
+      }
+    },
+    "isMaxContract": false,
+    "maxType": null,
+    "estimatedCapPercentage": 1
+  },
+  "representation": {
+    "agent": "Rich Paul",
+    "agency": "Imperative Sports Consultants"
+  },
+  "source": {
+    "provider": "SalarySwish",
+    "playerPageUrl": "snapshot",
+    "scrapedAt": "2025-10-30T07:35:26.523Z"
+  },
+  "lastUpdated": "2025-10-30T07:35:26.523Z",
+  "version": "1.0"
+}
