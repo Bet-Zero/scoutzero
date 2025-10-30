@@ -50,7 +50,7 @@ PLAYER_ID="jalen_wilson" \
 npm run fetch-player
 ```
 
-This will save the HTML to `player-scrape/examples/jalen_wilson.html`
+This will save the HTML to `player-scrape/contracts/working/jalen_wilson.html`
 
 ### Step 2: Parse the Snapshot
 

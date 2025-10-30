@@ -103,7 +103,7 @@ Using `examples/page.html` (Austin Reaves):
 
 ```bash
 # Test with extension example
-cp player-scrape/examples/page_with_extension.html player-scrape/examples/page.html
+cp player-scrape/contracts/working/page_with_extension.html player-scrape/contracts/working/page.html
 PLAYER_ID="test" npm run parse-player
 
 # Verify independent metadata

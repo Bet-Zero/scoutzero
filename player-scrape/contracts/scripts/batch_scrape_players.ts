@@ -15,7 +15,7 @@
 //   ]
 //
 // ENVIRONMENT VARIABLES:
-//   PLAYERS_FILE - Path to JSON file with player list (default: ../../examples/players_list_sample.json)
+//   PLAYERS_FILE - Path to JSON file with player list (default: ../../shared/schema/players_list_sample.json)
 //   OUTPUT_DIR - Directory for output files (default: ../../output/players)
 //   RATE_LIMIT_MS - Delay between requests in ms (default: 2000)
 //   SKIP_FETCH - Set to "1" to skip fetching (use existing page.html files)
@@ -45,7 +45,7 @@ interface ScraperConfig {
 const config: ScraperConfig = {
   playersFile:
     process.env.PLAYERS_FILE ||
-    join(__dirname, '../../examples/players_list_sample.json'),
+    join(__dirname, '../../shared/schema/players_list_sample.json'),
   outputDir: process.env.OUTPUT_DIR || join(__dirname, '../../output/players'),
   rateLimitMs: parseInt(process.env.RATE_LIMIT_MS || '2000'),
   skipFetch: process.env.SKIP_FETCH === '1',

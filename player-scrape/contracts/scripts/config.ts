@@ -8,8 +8,8 @@ export const REGRESSION_FIXTURES = [
 export type FixtureId = (typeof REGRESSION_FIXTURES)[number];
 
 export const paths = {
-  snapshotsDir: "player-scrape/snapshots",
-  fixturesDir: "player-scrape/fixtures",
+  snapshotsDir: "player-scrape/contracts/snapshots",
+  fixturesDir: "player-scrape/contracts/fixtures",
   outputDir: "player-scrape/output",
 };
 

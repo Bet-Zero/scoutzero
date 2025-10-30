@@ -116,7 +116,7 @@ async function processPlayer(player: Player, tempId: string): Promise<void> {
     // Clean up temp file
     const tempFilePath = join(
       projectRoot,
-      'player-scrape/examples',
+      'player-scrape/contracts/working',
       uniqueTempFile
     );
     if (existsSync(tempFilePath)) {
@@ -131,7 +131,7 @@ async function processPlayer(player: Player, tempId: string): Promise<void> {
     // Clean up temp file on error
     const tempFilePath = join(
       projectRoot,
-      'player-scrape/examples',
+      'player-scrape/contracts/working',
       uniqueTempFile
     );
     if (existsSync(tempFilePath)) {

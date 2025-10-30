@@ -220,11 +220,11 @@ npm run validate-po-voiding
 ### Manual Testing
 ```bash
 # Test Luka (with voiding)
-cp player-scrape/examples/luka_doncic_test.html player-scrape/examples/page.html
+cp player-scrape/contracts/working/luka_doncic_test.html player-scrape/contracts/working/page.html
 PLAYER_ID="luka_doncic" TEAM_CODE="DAL" npm run parse-player
 
 # Test Austin (no voiding)
-cp player-scrape/examples/austin_reaves_test.html player-scrape/examples/page.html
+cp player-scrape/contracts/working/austin_reaves_test.html player-scrape/contracts/working/page.html
 PLAYER_ID="austin_reaves" TEAM_CODE="LAL" npm run parse-player
 ```
 

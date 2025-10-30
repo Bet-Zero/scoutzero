@@ -155,7 +155,7 @@ Parser now shows when future contracts are detected:
 
 ## Files Added
 
-1. **player-scrape/examples/page_with_extension.html**
+1. **player-scrape/contracts/working/page_with_extension.html**
    - Test fixture demonstrating extension parsing
    - Contains two salary tables (current + future)
 
