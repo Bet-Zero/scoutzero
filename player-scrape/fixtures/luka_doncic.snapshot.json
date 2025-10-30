@@ -1,45 +1,75 @@
 {
   "playerId": "luka_doncic",
-  "displayName": "Bronny James",
-  "teamCode": "LAL",
-  "teamName": "Los Angeles Lakers",
+  "displayName": "Luka Doncic",
+  "teamCode": "DAL",
+  "teamName": "Dallas Mavericks",
   "bio": {
     "position": "G",
-    "birthdate": "Oct 6, 2004",
-    "height": "6-2",
-    "weight": "210",
-    "age": 21,
+    "birthdate": "Feb 28, 1999",
+    "height": "6-8",
+    "weight": "230",
+    "age": 26,
     "shoots": "Right",
-    "experience": 1,
-    "draftYear": "2024",
-    "draftRound": 2,
-    "draftPick": 55,
-    "draftedBy": "LAL"
+    "experience": 7,
+    "draftYear": "2018",
+    "draftRound": 1,
+    "draftPick": 3,
+    "draftedBy": "ATL"
   },
   "contract": {
-    "contractType": "ROOKIE CONTRACT",
-    "isExtension": false,
-    "isRookieScale": false,
-    "signedUsing": "Second Round Rookie Exception",
-    "signingTeam": "LAL",
-    "signingDate": "July 3, 2024",
-    "signingExecutive": "Rob Pelinka",
+    "contractType": "DESIGNATED ROOKIE SCALE EXTENSION",
+    "isExtension": true,
+    "isRookieScale": true,
+    "signedUsing": "Bird Exception",
+    "signingTeam": "DAL",
+    "signingDate": "August 10, 2021",
+    "signingExecutive": "Nico Harrison",
     "signedByCurrentTeam": true,
-    "startSeason": "2024-25",
-    "endSeason": "2027-28",
-    "contractLength": 4,
-    "yearsRemaining": 3,
-    "totalValue": 7895796,
-    "averageAnnualValue": 1973949,
-    "guaranteedValue": 4371403,
-    "guaranteedYears": 3,
+    "startSeason": "2022-23",
+    "endSeason": "2026-27",
+    "contractLength": 5,
+    "yearsRemaining": 1,
+    "totalValue": 215159700,
+    "averageAnnualValue": 43031940,
+    "guaranteedValue": 166192320,
+    "guaranteedYears": 4,
     "salariesByYear": [
       {
-        "season": "2024-25",
-        "salary": 1157153,
-        "capHit": 1157153,
+        "season": "2022-23",
+        "salary": 37096500,
+        "capHit": 37096500,
         "guaranteed": true,
-        "guaranteedAmount": 1157153,
+        "guaranteedAmount": 37096500,
+        "option": null,
+        "optionUsed": null,
+        "optionDecisionDate": null,
+        "tradeBonus": null,
+        "incentives": {
+          "likely": 0,
+          "unlikely": 0
+        }
+      },
+      {
+        "season": "2023-24",
+        "salary": 40064220,
+        "capHit": 40064220,
+        "guaranteed": true,
+        "guaranteedAmount": 40064220,
+        "option": null,
+        "optionUsed": null,
+        "optionDecisionDate": null,
+        "tradeBonus": null,
+        "incentives": {
+          "likely": 0,
+          "unlikely": 0
+        }
+      },
+      {
+        "season": "2024-25",
+        "salary": 43031940,
+        "capHit": 43031940,
+        "guaranteed": true,
+        "guaranteedAmount": 43031940,
         "option": null,
         "optionUsed": null,
         "optionDecisionDate": null,
@@ -51,10 +81,10 @@
       },
       {
         "season": "2025-26",
-        "salary": 1955377,
-        "capHit": 1955377,
+        "salary": 45999660,
+        "capHit": 45999660,
         "guaranteed": true,
-        "guaranteedAmount": 1955377,
+        "guaranteedAmount": 45999660,
         "option": null,
         "optionUsed": null,
         "optionDecisionDate": null,
@@ -66,10 +96,81 @@
       },
       {
         "season": "2026-27",
-        "salary": 2296271,
-        "capHit": 2296271,
+        "salary": 48967380,
+        "capHit": 48967380,
         "guaranteed": false,
-        "guaranteedAmount": 1258873,
+        "guaranteedAmount": 0,
+        "option": "PO",
+        "optionUsed": false,
+        "optionDecisionDate": "2025-08-02",
+        "tradeBonus": null,
+        "incentives": {
+          "likely": 0,
+          "unlikely": 0
+        },
+        "voidedByExtension": true,
+        "voidedOn": "2025-08-02"
+      }
+    ],
+    "noTradeClause": false,
+    "tradeKicker": 15,
+    "tradeRestrictions": [],
+    "birdRights": {
+      "status": "Bird",
+      "eligibleFor": [
+        "Bird Exception"
+      ]
+    },
+    "freeAgency": {
+      "type": "UFA",
+      "year": 2027,
+      "capHold": 49641600,
+      "qualifyingOffer": null,
+      "earlyTerminationOption": null,
+      "hasOption": true,
+      "optionYear": "2026-27",
+      "optionType": "PO"
+    },
+    "tradeEligibility": {
+      "canBeTradedNow": null,
+      "restrictedUntil": null,
+      "reason": null,
+      "rules": {
+        "baseYearCompensation": false,
+        "poisonPill": false,
+        "aggregation": true
+      }
+    },
+    "isMaxContract": true,
+    "maxType": "Max-30",
+    "estimatedCapPercentage": 30,
+    "supersededIn": "2026-27",
+    "supersededByContractRef": "VETERAN EXTENSION"
+  },
+  "futureContract": {
+    "contractType": "VETERAN EXTENSION",
+    "isExtension": true,
+    "isRookieScale": false,
+    "signedUsing": "Bird Exception",
+    "signingTeam": "LAL",
+    "signingDate": "August 2, 2025",
+    "signingExecutive": "Rob Pelinka",
+    "signedByCurrentTeam": false,
+    "startSeason": "2026-27",
+    "endSeason": "2028-29",
+    "contractLength": 3,
+    "yearsRemaining": 3,
+    "totalValue": 165348864,
+    "averageAnnualValue": 55116288,
+    "guaranteedValue": 165348864,
+    "guaranteedYears": 3,
+    "salariesByYear": [
+      {
+        "season": "2026-27",
+        "salary": 51033600,
+        "capHit": 51033600,
+        "guaranteed": true,
+        "guaranteedAmount": 51033600,
         "option": null,
         "optionUsed": null,
         "optionDecisionDate": null,
@@ -77,23 +178,30 @@
         "incentives": {
           "likely": 0,
           "unlikely": 0
-        },
-        "guaranteeSchedule": [
-          {
-            "effectiveDate": "2026-06-29",
-            "guaranteedAmount": 2296271,
-            "status": "Decision Pending",
-            "note": "Increases to $2,296,271 if not waived before Jun 29, 2026"
-          }
-        ]
+        }
       },
       {
         "season": "2027-28",
-        "salary": 2486995,
-        "capHit": 2486995,
-        "guaranteed": false,
-        "guaranteedAmount": 0,
-        "option": "TO",
+        "salary": 55116288,
+        "capHit": 55116288,
+        "guaranteed": true,
+        "guaranteedAmount": 55116288,
+        "option": null,
+        "optionUsed": null,
+        "optionDecisionDate": null,
+        "tradeBonus": null,
+        "incentives": {
+          "likely": 0,
+          "unlikely": 0
+        }
+      },
+      {
+        "season": "2028-29",
+        "salary": 59198976,
+        "capHit": 59198976,
+        "guaranteed": true,
+        "guaranteedAmount": 59198976,
+        "option": "PO",
         "optionUsed": null,
         "optionDecisionDate": null,
         "tradeBonus": null,
@@ -113,14 +221,14 @@
       ]
     },
     "freeAgency": {
-      "type": "RFA",
-      "year": 2028,
-      "capHold": 2972982,
-      "qualifyingOffer": 3386852,
+      "type": "UFA",
+      "year": 2029,
+      "capHold": 77085050,
+      "qualifyingOffer": null,
       "earlyTerminationOption": null,
       "hasOption": true,
-      "optionYear": "2027-28",
-      "optionType": "TO"
+      "optionYear": "2028-29",
+      "optionType": "PO"
     },
     "tradeEligibility": {
       "canBeTradedNow": null,
@@ -132,19 +240,20 @@
         "aggregation": true
       }
     },
-    "isMaxContract": false,
-    "maxType": null,
-    "estimatedCapPercentage": 1
+    "supersedesContractRef": "DESIGNATED ROOKIE SCALE EXTENSION",
+    "isMaxContract": true,
+    "maxType": "Max-30",
+    "estimatedCapPercentage": 30
   },
   "representation": {
-    "agent": "Rich Paul",
-    "agency": "Imperative Sports Consultants"
+    "agent": "Bill Duffy",
+    "agency": "WME Basketball"
   },
   "source": {
     "provider": "SalarySwish",
     "playerPageUrl": "snapshot",
-    "scrapedAt": "2025-10-30T07:35:25.002Z"
+    "scrapedAt": "2025-10-30T07:58:37.420Z"
   },
-  "lastUpdated": "2025-10-30T07:35:25.002Z",
+  "lastUpdated": "2025-10-30T07:58:37.421Z",
   "version": "1.0"
 }

@@ -1,105 +1,97 @@
 {
   "playerId": "jordan_poole",
-  "displayName": "Bronny James",
-  "teamCode": "LAL",
-  "teamName": "Los Angeles Lakers",
+  "displayName": "Jordan Poole",
+  "teamCode": "GSW",
+  "teamName": "Golden State Warriors",
   "bio": {
     "position": "G",
-    "birthdate": "Oct 6, 2004",
-    "height": "6-2",
-    "weight": "210",
-    "age": 21,
+    "birthdate": "Jun 19, 1999",
+    "height": "6-4",
+    "weight": "194",
+    "age": 26,
     "shoots": "Right",
-    "experience": 1,
-    "draftYear": "2024",
-    "draftRound": 2,
-    "draftPick": 55,
-    "draftedBy": "LAL"
+    "experience": 6,
+    "draftYear": "2019",
+    "draftRound": 1,
+    "draftPick": 28,
+    "draftedBy": "GSW"
   },
   "contract": {
-    "contractType": "ROOKIE CONTRACT",
-    "isExtension": false,
-    "isRookieScale": false,
-    "signedUsing": "Second Round Rookie Exception",
-    "signingTeam": "LAL",
-    "signingDate": "July 3, 2024",
-    "signingExecutive": "Rob Pelinka",
+    "contractType": "ROOKIE SCALE EXTENSION",
+    "isExtension": true,
+    "isRookieScale": true,
+    "signedUsing": "Bird Exception",
+    "signingTeam": "GSW",
+    "signingDate": "October 15, 2022",
+    "signingExecutive": "Bob Myers",
     "signedByCurrentTeam": true,
-    "startSeason": "2024-25",
-    "endSeason": "2027-28",
+    "startSeason": "2023-24",
+    "endSeason": "2026-27",
     "contractLength": 4,
-    "yearsRemaining": 3,
-    "totalValue": 7895796,
-    "averageAnnualValue": 1973949,
-    "guaranteedValue": 4371403,
-    "guaranteedYears": 3,
+    "yearsRemaining": 2,
+    "totalValue": 123000000,
+    "averageAnnualValue": 30750000,
+    "guaranteedValue": 123000000,
+    "guaranteedYears": 4,
     "salariesByYear": [
       {
-        "season": "2024-25",
-        "salary": 1157153,
-        "capHit": 1157153,
+        "season": "2023-24",
+        "salary": 27455357,
+        "capHit": 27455357,
         "guaranteed": true,
-        "guaranteedAmount": 1157153,
+        "guaranteedAmount": 27455357,
         "option": null,
         "optionUsed": null,
         "optionDecisionDate": null,
         "tradeBonus": null,
         "incentives": {
           "likely": 0,
-          "unlikely": 0
+          "unlikely": 4250000
+        }
+      },
+      {
+        "season": "2024-25",
+        "salary": 29651786,
+        "capHit": 29651786,
+        "guaranteed": true,
+        "guaranteedAmount": 29651786,
+        "option": null,
+        "optionUsed": null,
+        "optionDecisionDate": null,
+        "tradeBonus": null,
+        "incentives": {
+          "likely": 0,
+          "unlikely": 4250000
         }
       },
       {
         "season": "2025-26",
-        "salary": 1955377,
-        "capHit": 1955377,
+        "salary": 31848215,
+        "capHit": 31848215,
         "guaranteed": true,
-        "guaranteedAmount": 1955377,
+        "guaranteedAmount": 31848215,
         "option": null,
         "optionUsed": null,
         "optionDecisionDate": null,
         "tradeBonus": null,
         "incentives": {
           "likely": 0,
-          "unlikely": 0
+          "unlikely": 4250000
         }
       },
       {
         "season": "2026-27",
-        "salary": 2296271,
-        "capHit": 2296271,
-        "guaranteed": false,
-        "guaranteedAmount": 1258873,
+        "salary": 34044642,
+        "capHit": 34044642,
+        "guaranteed": true,
+        "guaranteedAmount": 34044642,
         "option": null,
         "optionUsed": null,
         "optionDecisionDate": null,
         "tradeBonus": null,
         "incentives": {
           "likely": 0,
-          "unlikely": 0
-        },
-        "guaranteeSchedule": [
-          {
-            "effectiveDate": "2026-06-29",
-            "guaranteedAmount": 2296271,
-            "status": "Decision Pending",
-            "note": "Increases to $2,296,271 if not waived before Jun 29, 2026"
-          }
-        ]
-      },
-      {
-        "season": "2027-28",
-        "salary": 2486995,
-        "capHit": 2486995,
-        "guaranteed": false,
-        "guaranteedAmount": 0,
-        "option": "TO",
-        "optionUsed": null,
-        "optionDecisionDate": null,
-        "tradeBonus": null,
-        "incentives": {
-          "likely": 0,
-          "unlikely": 0
+          "unlikely": 4250000
         }
       }
     ],
@@ -113,14 +105,14 @@
       ]
     },
     "freeAgency": {
-      "type": "RFA",
-      "year": 2028,
-      "capHold": 2972982,
-      "qualifyingOffer": 3386852,
+      "type": "UFA",
+      "year": 2027,
+      "capHold": 51066963,
+      "qualifyingOffer": null,
       "earlyTerminationOption": null,
-      "hasOption": true,
-      "optionYear": "2027-28",
-      "optionType": "TO"
+      "hasOption": false,
+      "optionYear": null,
+      "optionType": null
     },
     "tradeEligibility": {
       "canBeTradedNow": null,
@@ -134,17 +126,17 @@
     },
     "isMaxContract": false,
     "maxType": null,
-    "estimatedCapPercentage": 1
+    "estimatedCapPercentage": 20
   },
   "representation": {
-    "agent": "Rich Paul",
-    "agency": "Imperative Sports Consultants"
+    "agent": "Andrew Morrison",
+    "agency": "CAA Basketball"
   },
   "source": {
     "provider": "SalarySwish",
     "playerPageUrl": "snapshot",
-    "scrapedAt": "2025-10-30T07:35:26.523Z"
+    "scrapedAt": "2025-10-30T07:58:42.902Z"
   },
-  "lastUpdated": "2025-10-30T07:35:26.523Z",
+  "lastUpdated": "2025-10-30T07:58:42.905Z",
   "version": "1.0"
 }

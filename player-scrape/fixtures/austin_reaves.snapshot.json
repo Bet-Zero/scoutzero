@@ -1,45 +1,58 @@
 {
   "playerId": "austin_reaves",
-  "displayName": "Bronny James",
+  "displayName": "Austin Reaves",
   "teamCode": "LAL",
   "teamName": "Los Angeles Lakers",
   "bio": {
     "position": "G",
-    "birthdate": "Oct 6, 2004",
-    "height": "6-2",
-    "weight": "210",
-    "age": 21,
+    "birthdate": "May 29, 1998",
+    "height": "6-5",
+    "weight": "197",
+    "age": 27,
     "shoots": "Right",
-    "experience": 1,
-    "draftYear": "2024",
-    "draftRound": 2,
-    "draftPick": 55,
-    "draftedBy": "LAL"
+    "experience": 4,
+    "draftYear": "Undrafted",
+    "draftedBy": null
   },
   "contract": {
-    "contractType": "ROOKIE CONTRACT",
+    "contractType": "VETERAN CONTRACT",
     "isExtension": false,
     "isRookieScale": false,
-    "signedUsing": "Second Round Rookie Exception",
+    "signedUsing": "Early-Bird Exception",
     "signingTeam": "LAL",
-    "signingDate": "July 3, 2024",
+    "signingDate": "July 6, 2023",
     "signingExecutive": "Rob Pelinka",
     "signedByCurrentTeam": true,
-    "startSeason": "2024-25",
-    "endSeason": "2027-28",
+    "startSeason": "2023-24",
+    "endSeason": "2026-27",
     "contractLength": 4,
-    "yearsRemaining": 3,
-    "totalValue": 7895796,
-    "averageAnnualValue": 1973949,
-    "guaranteedValue": 4371403,
-    "guaranteedYears": 3,
+    "yearsRemaining": 2,
+    "totalValue": 53827872,
+    "averageAnnualValue": 13456968,
+    "guaranteedValue": 53827872,
+    "guaranteedYears": 4,
     "salariesByYear": [
       {
-        "season": "2024-25",
-        "salary": 1157153,
-        "capHit": 1157153,
+        "season": "2023-24",
+        "salary": 12015150,
+        "capHit": 12015150,
         "guaranteed": true,
-        "guaranteedAmount": 1157153,
+        "guaranteedAmount": 12015150,
+        "option": null,
+        "optionUsed": null,
+        "optionDecisionDate": null,
+        "tradeBonus": null,
+        "incentives": {
+          "likely": 0,
+          "unlikely": 0
+        }
+      },
+      {
+        "season": "2024-25",
+        "salary": 12976362,
+        "capHit": 12976362,
+        "guaranteed": true,
+        "guaranteedAmount": 12976362,
         "option": null,
         "optionUsed": null,
         "optionDecisionDate": null,
@@ -51,10 +64,10 @@
       },
       {
         "season": "2025-26",
-        "salary": 1955377,
-        "capHit": 1955377,
+        "salary": 13937574,
+        "capHit": 13937574,
         "guaranteed": true,
-        "guaranteedAmount": 1955377,
+        "guaranteedAmount": 13937574,
         "option": null,
         "optionUsed": null,
         "optionDecisionDate": null,
@@ -66,34 +79,11 @@
       },
       {
         "season": "2026-27",
-        "salary": 2296271,
-        "capHit": 2296271,
-        "guaranteed": false,
-        "guaranteedAmount": 1258873,
-        "option": null,
-        "optionUsed": null,
-        "optionDecisionDate": null,
-        "tradeBonus": null,
-        "incentives": {
-          "likely": 0,
-          "unlikely": 0
-        },
-        "guaranteeSchedule": [
-          {
-            "effectiveDate": "2026-06-29",
-            "guaranteedAmount": 2296271,
-            "status": "Decision Pending",
-            "note": "Increases to $2,296,271 if not waived before Jun 29, 2026"
-          }
-        ]
-      },
-      {
-        "season": "2027-28",
-        "salary": 2486995,
-        "capHit": 2486995,
-        "guaranteed": false,
-        "guaranteedAmount": 0,
-        "option": "TO",
+        "salary": 14898786,
+        "capHit": 14898786,
+        "guaranteed": true,
+        "guaranteedAmount": 14898786,
+        "option": "PO",
         "optionUsed": null,
         "optionDecisionDate": null,
         "tradeBonus": null,
@@ -104,7 +94,7 @@
       }
     ],
     "noTradeClause": false,
-    "tradeKicker": null,
+    "tradeKicker": 15,
     "tradeRestrictions": [],
     "birdRights": {
       "status": "Bird",
@@ -113,14 +103,14 @@
       ]
     },
     "freeAgency": {
-      "type": "RFA",
-      "year": 2028,
-      "capHold": 2972982,
-      "qualifyingOffer": 3386852,
+      "type": "UFA",
+      "year": 2027,
+      "capHold": 28307693,
+      "qualifyingOffer": null,
       "earlyTerminationOption": null,
       "hasOption": true,
-      "optionYear": "2027-28",
-      "optionType": "TO"
+      "optionYear": "2026-27",
+      "optionType": "PO"
     },
     "tradeEligibility": {
       "canBeTradedNow": null,
@@ -134,17 +124,17 @@
     },
     "isMaxContract": false,
     "maxType": null,
-    "estimatedCapPercentage": 1
+    "estimatedCapPercentage": 8.83
   },
   "representation": {
-    "agent": "Rich Paul",
-    "agency": "Imperative Sports Consultants"
+    "agent": "Aaron Reilly",
+    "agency": "AMR Agency"
   },
   "source": {
     "provider": "SalarySwish",
     "playerPageUrl": "snapshot",
-    "scrapedAt": "2025-10-30T07:35:27.267Z"
+    "scrapedAt": "2025-10-30T07:58:45.791Z"
   },
-  "lastUpdated": "2025-10-30T07:35:27.267Z",
+  "lastUpdated": "2025-10-30T07:58:45.795Z",
   "version": "1.0"
 }
