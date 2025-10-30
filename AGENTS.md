@@ -48,6 +48,8 @@ styles/        Tailwind and additional styles
 - ✅ Use **smart, readable file naming** (`TraitGradesBlock.jsx`, `AddPlayerDrawer.jsx`, etc.)
 - ✅ Preserve modals, filters, blurbs, and Firestore reads
 - ✅ Leave the worktree **clean** (`git status` should show no changes)
+- ✅ **Keep PROJECT_SCHEMA.md in sync** when adding directories, scripts, or changing artifact paths
+- ✅ Run `npm run validate:project` to verify structural changes don't break schema
 - ❌ Never create new branches
 - ❌ Never amend or squash existing commits
 

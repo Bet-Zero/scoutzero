@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "validate:project": "tsx scripts/validate-project-schema.ts",
     "scrape:one": "tsx player-scrape/contracts/scripts/scrape_player.ts",
     "regress": "tsx player-scrape/contracts/scripts/run_regress.ts",
     "dev": "vite",
