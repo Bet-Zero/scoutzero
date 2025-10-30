@@ -4,7 +4,7 @@
 //   PLAYER_URL="https://salaryswish.com/players/austin-reaves" PLAYER_ID="austin_reaves" npm run parse-player
 //   DEBUG=1 … (optional) to see what sections were matched
 //
-// INPUT:  ../../examples/page.html (from fetch_player_page.ts)
+// INPUT:  ../working/page.html (from fetch_player_page.ts)
 // OUTPUT: ../../output/player.json
 //
 // Requires: cheerio
@@ -1981,8 +1981,8 @@ async function main() {
     'unknown';
 
   const htmlPath = process.env.TEMP_FILE
-    ? join(__dirname, '../../examples', process.env.TEMP_FILE)
-    : join(__dirname, '../../examples/page.html');
+    ? join(__dirname, '../working', process.env.TEMP_FILE)
+    : join(__dirname, '../working/page.html');
   const html = await fs.readFile(htmlPath, 'utf8');
 
   const output = await parsePlayer(html, { playerId, sourceUrl: playerUrlEnv });

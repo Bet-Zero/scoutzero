@@ -27,7 +27,7 @@ export async function getPlayerHtml(playerId: string, sourceUrl: string): Promis
 }
 
 /**
- * CLI entrypoint - fetch player page using Playwright and save to examples/page.html
+ * CLI entrypoint - fetch player page using Playwright and save to working/page.html
  * Usage: PLAYER_URL="https://salaryswish.com/players/lebron-james" npm run fetch-player
  */
 async function main() {
@@ -62,8 +62,8 @@ async function main() {
     // Get the HTML
     const html = await page.content();
 
-    // Save to examples/page.html
-    const outputPath = path.join(__dirname, '../../examples/page.html');
+    // Save to working/page.html
+    const outputPath = path.join(__dirname, '../working/page.html');
     await fs.writeFile(outputPath, html, 'utf8');
 
     console.log(`✅ Saved HTML to: ${outputPath}`);
