@@ -1678,20 +1678,20 @@ function normalizeContractVoidedOptions(
 }
 
 // ---------- main ----------
-async function main() {
-  const playerUrlEnv = (process.env.PLAYER_URL || '').replace('://www.', '://');
-  let playerId =
-    process.env.PLAYER_ID ||
-    (playerUrlEnv ? playerUrlEnv.split('/').pop()!.replace(/-/g, '_') : '') ||
-    'unknown';
+/**
+ * parsePlayer - Parse player HTML to normalized JSON
+ * @param html - HTML content to parse
+ * @param options - Player ID and source URL
+ * @returns Normalized player data
+ */
+export async function parsePlayer(
+  html: string,
+  options: { playerId: string; sourceUrl: string }
+): Promise<any> {
+  const playerUrlEnv = options.sourceUrl;
+  let playerId = options.playerId;
 
-  const htmlPath = process.env.TEMP_FILE
-    ? join(__dirname, '../../examples', process.env.TEMP_FILE)
-    : join(__dirname, '../../examples/page.html');
-  const html = await fs.readFile(htmlPath, 'utf8');
   const $ = cheerio.load(html);
-
-  console.log(`📄 Parsing player page (${(html.length / 1024).toFixed(2)} KB)`);
 
   const displayName = parseName($, playerId);
   if (playerId === 'unknown' && displayName) {
@@ -1701,7 +1701,7 @@ async function main() {
       .replace(/^_+|_+$/g, '');
   }
 
-  const { teamName, teamCode } = parseTeam($, process.env.TEAM_CODE);
+  const { teamName, teamCode } = parseTeam($, undefined);
   const bio = parseBio($);
 
   // Find all salary tables to detect extensions/future contracts
@@ -1949,8 +1949,6 @@ async function main() {
   }
 
   const output: any = {
-    _note:
-      '⚠️ PLACEHOLDER TEST DATA - Parsed from a local HTML snapshot. For production, always fetch fresh SalarySwish HTML first.',
     playerId,
     displayName,
     teamCode,
@@ -1971,44 +1969,65 @@ async function main() {
     version: '1.0',
   };
 
-  const outDir = join(__dirname, '../../output');
+  return output;
+}
+
+// CLI entrypoint (kept for backward compatibility)
+async function main() {
+  const playerUrlEnv = (process.env.PLAYER_URL || '').replace('://www.', '://');
+  let playerId =
+    process.env.PLAYER_ID ||
+    (playerUrlEnv ? playerUrlEnv.split('/').pop()!.replace(/-/g, '_') : '') ||
+    'unknown';
+
+  const htmlPath = process.env.TEMP_FILE
+    ? join(__dirname, '../examples', process.env.TEMP_FILE)
+    : join(__dirname, '../examples/page.html');
+  const html = await fs.readFile(htmlPath, 'utf8');
+
+  const output = await parsePlayer(html, { playerId, sourceUrl: playerUrlEnv });
+
+  const outDir = join(__dirname, '../output');
   await fs.mkdir(outDir, { recursive: true });
 
   // Save to individual player file instead of overwriting player.json
   const outPath = join(outDir, `${playerId}.json`);
   await fs.writeFile(outPath, JSON.stringify(output, null, 2), 'utf8');
 
-  console.log(`✅ Parsed player data for: ${displayName}`);
+  console.log(`✅ Parsed player data for: ${output.displayName}`);
   console.log(`   Team: ${output.teamName} (${output.teamCode})`);
-  console.log(`   Contract: ${contractType}`);
+  console.log(`   Contract: ${output.contract.contractType}`);
   console.log(
-    `   Years: ${contract.contractLength} (${contract.startSeason ?? '-'} - ${contract.endSeason ?? '-'})`
+    `   Years: ${output.contract.contractLength} (${output.contract.startSeason ?? '-'} - ${output.contract.endSeason ?? '-'})`
   );
   console.log(
-    `   Total Value: $${(contract.totalValue / 1_000_000).toFixed(1)}M`
+    `   Total Value: $${(output.contract.totalValue / 1_000_000).toFixed(1)}M`
   );
 
-  if (futureContract) {
+  if (output.futureContract) {
     console.log(
-      `   📋 Found future contract: ${futureContract.contractType} (${futureContract.startSeason} - ${futureContract.endSeason})`
+      `   📋 Found future contract: ${output.futureContract.contractType} (${output.futureContract.startSeason} - ${output.futureContract.endSeason})`
     );
-    console.log(`   Future Extension: ${futureContract.contractType}`);
+    console.log(`   Future Extension: ${output.futureContract.contractType}`);
     console.log(
-      `   Future Value: $${(futureContract.totalValue / 1_000_000).toFixed(1)}M`
+      `   Future Value: $${(output.futureContract.totalValue / 1_000_000).toFixed(1)}M`
     );
   }
 
-  console.log(`   Bird Rights: ${birdRights.status}`);
-  console.log(`   Cap Hold: ${freeAgency.capHold ?? '—'}`);
-  console.log(`   Trade Kicker: ${meta.tradeKicker ?? '—'}%`);
-  console.log(`   Signed Using: ${meta.signedUsing ?? '—'}`);
-  console.log(`   Signed Date: ${meta.signingDate ?? '—'}`);
-  console.log(`   Signed By: ${meta.signingExecutive ?? '—'}`);
-  console.log(`   Agent/Agency: ${agent ?? '—'} / ${agency ?? '—'}`);
+  console.log(`   Bird Rights: ${output.contract.birdRights.status}`);
+  console.log(`   Cap Hold: ${output.contract.freeAgency.capHold ?? '—'}`);
+  console.log(`   Trade Kicker: ${output.contract.tradeKicker ?? '—'}%`);
+  console.log(`   Signed Using: ${output.contract.signedUsing ?? '—'}`);
+  console.log(`   Signed Date: ${output.contract.signingDate ?? '—'}`);
+  console.log(`   Signed By: ${output.contract.signingExecutive ?? '—'}`);
+  console.log(`   Agent/Agency: ${output.representation.agent ?? '—'} / ${output.representation.agency ?? '—'}`);
   console.log(`📁 Output saved to: ${outPath}`);
 }
 
-main().catch((err) => {
-  console.error('❌ Error parsing player:', err);
-  process.exit(1);
-});
+// Only run main if this file is executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((err) => {
+    console.error('❌ Error parsing player:', err);
+    process.exit(1);
+  });
+}

@@ -20,24 +20,27 @@ This system implements a two-phase scraping approach with rock-solid normalizati
 
 ```
 player-scrape/
-├── scripts/
-│   ├── config.ts              # Regression fixtures list and paths
-│   ├── fetch_player_page.ts   # Smart HTML fetcher (snapshot or live)
-│   ├── parse_player.ts        # Main parser with normalization rules
-│   ├── scrape_player.ts       # Production entrypoint
-│   ├── run_regress.ts         # Regression test runner
-│   └── test_utils.ts          # Stable diff utilities (prunes volatile fields)
-├── snapshots/                 # Pinned HTML for regression tests (COMMITTED)
-│   ├── luka_doncic.html
-│   ├── jalen_wilson.html
-│   ├── jordan_poole.html
-│   └── austin_reaves.html
-├── fixtures/                  # Expected JSON outputs (COMMITTED)
-│   ├── luka_doncic.snapshot.json
-│   ├── jalen_wilson.snapshot.json
-│   ├── jordan_poole.snapshot.json
-│   └── austin_reaves.snapshot.json
-└── output/                    # Generated JSON (GITIGNORED except .gitkeep)
+├── contracts/
+│   ├── scripts/
+│   │   ├── config.ts              # Regression fixtures list and paths
+│   │   ├── fetch_player_page.ts   # Smart HTML fetcher (snapshot or live)
+│   │   ├── parse_player.ts        # Main parser with normalization rules
+│   │   ├── scrape_player.ts       # Production entrypoint
+│   │   ├── run_regress.ts         # Regression test runner
+│   │   └── test_utils.ts          # Stable diff utilities (prunes volatile fields)
+│   ├── snapshots/                 # Pinned HTML for regression tests (COMMITTED)
+│   │   ├── luka_doncic.html
+│   │   ├── jalen_wilson.html
+│   │   ├── jordan_poole.html
+│   │   └── austin_reaves.html
+│   └── fixtures/                  # Expected JSON outputs (COMMITTED)
+│       ├── luka_doncic.snapshot.json
+│       ├── jalen_wilson.snapshot.json
+│       ├── jordan_poole.snapshot.json
+│       └── austin_reaves.snapshot.json
+├── stats/                         # Stats-related scraping (future)
+├── shared/                        # Shared utilities and schemas
+└── output/                        # Generated JSON (GITIGNORED except .gitkeep)
     └── .gitkeep
 ```
 

@@ -3,14 +3,14 @@ name: Player Scrape Regression Tests
 on:
   push:
     paths:
-      - 'player-scrape/scripts/**'
-      - 'player-scrape/snapshots/**'
-      - 'player-scrape/fixtures/**'
+      - 'player-scrape/contracts/scripts/**'
+      - 'player-scrape/contracts/snapshots/**'
+      - 'player-scrape/contracts/fixtures/**'
   pull_request:
     paths:
-      - 'player-scrape/scripts/**'
-      - 'player-scrape/snapshots/**'
-      - 'player-scrape/fixtures/**'
+      - 'player-scrape/contracts/scripts/**'
+      - 'player-scrape/contracts/snapshots/**'
+      - 'player-scrape/contracts/fixtures/**'
   workflow_dispatch:
 
 jobs:
