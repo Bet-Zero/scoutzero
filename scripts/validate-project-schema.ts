@@ -216,7 +216,7 @@ async function validatePlayerContractFiles(schema: ProjectSchema): Promise<void>
           }
           
         } catch (err) {
-          error(`Failed to parse JSON in ${path.relative(repoRoot, file)}: ${err}`);
+          error(`Failed to parse JSON in ${path.relative(repoRoot, file)}: ${err instanceof Error ? err.message : String(err)}`);
         }
       }
     }
@@ -251,7 +251,7 @@ async function validatePlayerContractFiles(schema: ProjectSchema): Promise<void>
           error(`Fixture filename mismatch: ${basename} has playerId "${content.playerId}"`);
         }
       } catch (err) {
-        error(`Failed to parse fixture JSON ${filename}: ${err}`);
+        error(`Failed to parse fixture JSON ${filename}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
   }
@@ -311,7 +311,7 @@ async function validateSnapshotFiles(schema: ProjectSchema): Promise<void> {
         }
       }
     } catch (err) {
-      warn(`Could not read snapshots directory: ${err}`);
+      warn(`Could not read snapshots directory: ${err instanceof Error ? err.message : String(err)}`);
     }
   } else {
     info('Snapshots directory not found (creating it is recommended)');
