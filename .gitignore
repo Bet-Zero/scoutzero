@@ -106,6 +106,13 @@ player-scrape/players_list.json
 player-scrape/shared/all_player_ids.json
 player-scrape/shared/players_bios_2025.json
 
+# scrape outputs (kept local)
+player-scrape/output/*.json
+
+# never commit bulk HTML; snapshots folder holds only curated fixtures
+player-scrape/page.html
+player-scrape/*.html
+
 # Team scraper clean views (generated output)
 team-scrape/review_and_merge/out_clean_views/
 

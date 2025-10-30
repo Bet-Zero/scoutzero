@@ -3,6 +3,9 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
+    "typecheck": "tsc --noEmit",
+    "scrape:one": "tsx player-scrape/scripts/scrape_player.ts",
+    "regress": "tsx player-scrape/scripts/run_regress.ts",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
@@ -125,6 +128,7 @@
     "type": "git",
     "url": "git+https://github.com/Bet-Zero/scoutzero.git"
   },
+  "engines": { "node": ">=18.17" },
   "keywords": [],
   "author": "",
   "license": "ISC",
