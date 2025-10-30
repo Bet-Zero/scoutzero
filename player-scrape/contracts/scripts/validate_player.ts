@@ -8,6 +8,7 @@
 //
 // USAGE:
 //   Will validate player.json by default, or specify file via PLAYER_FILE env var
+//   Optionally specify TEAM_CODE to search in a specific team subdirectory
 
 import fs from 'node:fs/promises';
 import { dirname, join } from 'node:path';
@@ -16,17 +17,59 @@ import { basePlayerSchema } from '../../shared/schema/player_scrape_schema.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+async function findPlayerFile(playerFile: string, teamCode?: string): Promise<string | null> {
+  const outputDir = join(__dirname, '../output');
+  
+  // If team code is provided, look in that specific subdirectory
+  if (teamCode) {
+    const filePath = join(outputDir, teamCode, playerFile);
+    try {
+      await fs.access(filePath);
+      return filePath;
+    } catch {
+      return null;
+    }
+  }
+  
+  // Otherwise, search all team subdirectories
+  try {
+    const entries = await fs.readdir(outputDir, { withFileTypes: true });
+    
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        const filePath = join(outputDir, entry.name, playerFile);
+        try {
+          await fs.access(filePath);
+          return filePath;
+        } catch {
+          // Continue searching
+        }
+      }
+    }
+  } catch (error) {
+    // Output directory doesn't exist or is empty
+  }
+  
+  return null;
+}
+
 async function validatePlayer() {
   const playerFile = process.env.PLAYER_FILE || 'player.json';
   const teamCode = process.env.TEAM_CODE; // Optional team code for team-organized structure
   
-  // Construct file path - if TEAM_CODE is provided, use team subdirectory
-  let filePath: string;
-  if (teamCode) {
-    filePath = join(__dirname, '../output', teamCode, playerFile);
-  } else {
-    // Fallback to direct path for backward compatibility
-    filePath = join(__dirname, '../output', playerFile);
+  // Search for the player file
+  const filePath = await findPlayerFile(playerFile, teamCode);
+  
+  if (!filePath) {
+    if (teamCode) {
+      console.error(`❌ File not found: ${playerFile} in team ${teamCode}`);
+      console.error(`   Expected location: player-scrape/contracts/output/${teamCode}/${playerFile}`);
+    } else {
+      console.error(`❌ File not found: ${playerFile}`);
+      console.error(`   Searched in: player-scrape/contracts/output/{TEAM_CODE}/${playerFile}`);
+      console.error(`   Tip: Set TEAM_CODE env var to specify a team directory`);
+    }
+    process.exit(1);
   }
 
   console.log(`🔍 Validating: ${filePath}`);
