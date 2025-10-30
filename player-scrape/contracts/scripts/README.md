@@ -42,8 +42,13 @@ player-scrape/
 │       └── page.html              # Fetched player page for parsing
 ├── stats/                         # Stats-related scraping (future)
 ├── shared/                        # Shared utilities and schemas
-└── output/                        # Generated JSON (GITIGNORED except .gitkeep)
-    └── .gitkeep
+└── contracts/
+    └── output/                    # Generated JSON (GITIGNORED except .gitkeep)
+        ├── .gitkeep
+        ├── LAL/                   # Team-organized subdirectories
+        │   └── player_name.json
+        └── OKC/
+            └── player_name.json
 ```
 
 ## Commands
@@ -63,7 +68,7 @@ PLAYER_ID=herb_jones SOURCE_URL="https://www.salaryswish.com/players/herb-jones"
 
 - If the player is a regression fixture, uses the snapshot
 - Otherwise, fetches live HTML
-- Outputs to `player-scrape/output/{PLAYER_ID}.json`
+- Outputs to `player-scrape/contracts/output/{TEAM_CODE}/{PLAYER_ID}.json`
 - **Never saves HTML** for non-fixture players
 
 ### Type Check

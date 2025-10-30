@@ -1987,11 +1987,13 @@ async function main() {
 
   const output = await parsePlayer(html, { playerId, sourceUrl: playerUrlEnv });
 
-  const outDir = join(__dirname, '../../output');
-  await fs.mkdir(outDir, { recursive: true });
+  // Create team-specific output directory
+  const baseOutDir = join(__dirname, '../output');
+  const teamOutDir = join(baseOutDir, output.teamCode);
+  await fs.mkdir(teamOutDir, { recursive: true });
 
-  // Save to individual player file instead of overwriting player.json
-  const outPath = join(outDir, `${playerId}.json`);
+  // Save to team-organized individual player file
+  const outPath = join(teamOutDir, `${playerId}.json`);
   await fs.writeFile(outPath, JSON.stringify(output, null, 2), 'utf8');
 
   console.log(`✅ Parsed player data for: ${output.displayName}`);

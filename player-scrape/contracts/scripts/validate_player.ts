@@ -18,7 +18,16 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 async function validatePlayer() {
   const playerFile = process.env.PLAYER_FILE || 'player.json';
-  const filePath = join(__dirname, '../../output', playerFile);
+  const teamCode = process.env.TEAM_CODE; // Optional team code for team-organized structure
+  
+  // Construct file path - if TEAM_CODE is provided, use team subdirectory
+  let filePath: string;
+  if (teamCode) {
+    filePath = join(__dirname, '../output', teamCode, playerFile);
+  } else {
+    // Fallback to direct path for backward compatibility
+    filePath = join(__dirname, '../output', playerFile);
+  }
 
   console.log(`🔍 Validating: ${filePath}`);
 

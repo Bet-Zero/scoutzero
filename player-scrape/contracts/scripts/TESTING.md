@@ -61,7 +61,7 @@ TEMP_FILE="jalen_wilson.html" \
 npm run parse-player
 ```
 
-This will create `player-scrape/output/jalen_wilson.json`
+This will create `player-scrape/contracts/output/{TEAM_CODE}/jalen_wilson.json`
 
 ### Step 3: Run Tests
 
