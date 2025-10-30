@@ -106,8 +106,8 @@ Using `examples/page.html` (Austin Reaves):
 cp player-scrape/contracts/working/page_with_extension.html player-scrape/contracts/working/page.html
 PLAYER_ID="test" npm run parse-player
 
-# Verify independent metadata
-cat player-scrape/output/player.json | jq '.contract.signingDate, .futureContract.signingDate'
+# Verify independent metadata (output will be in team-specific directory)
+cat player-scrape/contracts/output/{TEAM_CODE}/test.json | jq '.contract.signingDate, .futureContract.signingDate'
 # Output:
 # "July 1, 2020"
 # "July 1, 2024"

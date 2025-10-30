@@ -128,7 +128,9 @@
     "type": "git",
     "url": "git+https://github.com/Bet-Zero/scoutzero.git"
   },
-  "engines": { "node": ">=18.17" },
+  "engines": {
+    "node": ">=18.17"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",

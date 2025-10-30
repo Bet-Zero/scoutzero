@@ -16,7 +16,7 @@ const TEAM_CONFIGS = {
   lakers: {
     name: 'Los Angeles Lakers',
     code: 'LAL',
-    outputDir: 'player-scrape/outputs/lakers',
+    outputDir: 'player-scrape/contracts/output/LAL',
     players: [
       {
         name: 'Deandre Ayton',
@@ -108,7 +108,7 @@ const TEAM_CONFIGS = {
   thunder: {
     name: 'Oklahoma City Thunder',
     code: 'OKC',
-    outputDir: 'player-scrape/outputs/thunder',
+    outputDir: 'player-scrape/contracts/output/OKC',
     players: [
       {
         name: 'Brooks Barnhizer',

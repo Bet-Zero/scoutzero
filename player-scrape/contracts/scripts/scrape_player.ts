@@ -16,7 +16,11 @@ if (!playerId || !sourceUrl) {
   const html = await getPlayerHtml(playerId, sourceUrl);
   const normalized = await parsePlayer(html, { playerId, sourceUrl });
 
-  const outPath = path.join(paths.outputDir, `${playerId}.json`);
+  // Create team-specific output directory
+  const teamOutDir = path.join(paths.outputDir, normalized.teamCode);
+  await fs.mkdir(teamOutDir, { recursive: true });
+
+  const outPath = path.join(teamOutDir, `${playerId}.json`);
   await fs.writeFile(outPath, JSON.stringify(normalized, null, 2), "utf8");
   console.log(`✅ Wrote ${outPath}`);
 })();

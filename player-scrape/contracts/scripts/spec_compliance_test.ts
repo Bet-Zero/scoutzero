@@ -10,7 +10,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 async function testLukaCompliance() {
   console.log('🧪 Testing Luka Dončić Spec Compliance\n');
   
-  const outputPath = join(__dirname, '../../output/luka_doncic.json');
+  // Luka is on DAL team
+  const outputPath = join(__dirname, '../output/DAL/luka_doncic.json');
   const output = JSON.parse(await fs.readFile(outputPath, 'utf8'));
   
   let passed = 0;

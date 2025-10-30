@@ -46,7 +46,7 @@ const config: ScraperConfig = {
   playersFile:
     process.env.PLAYERS_FILE ||
     join(__dirname, '../../shared/schema/players_list_sample.json'),
-  outputDir: process.env.OUTPUT_DIR || join(__dirname, '../../output/players'),
+  outputDir: process.env.OUTPUT_DIR || join(__dirname, '../output'),
   rateLimitMs: parseInt(process.env.RATE_LIMIT_MS || '2000'),
   skipFetch: process.env.SKIP_FETCH === '1',
 };
@@ -457,8 +457,10 @@ async function batchScrape() {
           playerUrl
         );
 
-        // Save to output file
-        const outputPath = join(config.outputDir, `${player.playerId}.json`);
+        // Create team-specific output directory and save to output file
+        const teamOutDir = join(config.outputDir, playerData.teamCode);
+        await fs.mkdir(teamOutDir, { recursive: true });
+        const outputPath = join(teamOutDir, `${player.playerId}.json`);
         await fs.writeFile(
           outputPath,
           JSON.stringify(playerData, null, 2),

@@ -64,7 +64,7 @@ function runCommand(
 // Process a single player through the complete workflow with unique temp file
 async function processPlayer(player: Player, tempId: string): Promise<void> {
   const uniqueTempFile = `page_${tempId}.html`;
-  const outputDir = `player-scrape/outputs/${player.teamCode.toLowerCase()}`;
+  const outputDir = `player-scrape/contracts/output/${player.teamCode}`;
 
   try {
     // Ensure output directory exists

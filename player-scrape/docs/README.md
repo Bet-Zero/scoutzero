@@ -256,7 +256,8 @@ tsx player-scrape/contracts/scripts/validate_player.ts
 4. **Review output:**
 
 ```bash
-cat player-scrape/output/player.json
+# Output files are organized by team code
+cat player-scrape/contracts/output/{TEAM_CODE}/{PLAYER_ID}.json
 ```
 
 ### Batch Processing (All Players)
