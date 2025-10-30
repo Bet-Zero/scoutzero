@@ -88,7 +88,7 @@ async function processPlayer(player: (typeof PLAYERS)[0]) {
 
     console.log(`\n🎉 Successfully processed ${player.name}!`);
     console.log(
-      `   📁 Output saved to: player-scrape/output/${player.id}.json`
+      `   📁 Output saved to: player-scrape/contracts/output/${player.teamCode}/${player.id}.json`
     );
   } catch (error) {
     console.error(`\n❌ Error processing ${player.name}:`, error.message);
@@ -152,7 +152,7 @@ async function processTrio() {
   if (successCount > 0) {
     console.log('\n📁 Output Files Generated:');
     PLAYERS.forEach((player) => {
-      console.log(`   • player-scrape/output/${player.id}.json`);
+      console.log(`   • player-scrape/contracts/output/${player.teamCode}/${player.id}.json`);
     });
   }
 

@@ -16,6 +16,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 interface TestCase {
   name: string;
   playerId: string;
+  teamCode: string; // Team code for file organization
   outputFile: string;
   expectations: {
     contract: {
@@ -54,6 +55,7 @@ const testCases: TestCase[] = [
   {
     name: 'Luka Dončić - DRSE with voided PO',
     playerId: 'luka_doncic',
+    teamCode: 'DAL',
     outputFile: 'luka_doncic.json',
     expectations: {
       contract: {
@@ -90,6 +92,7 @@ const testCases: TestCase[] = [
   {
     name: 'Austin Reaves - Veteran contract with PO remaining guaranteed',
     playerId: 'austin_reaves',
+    teamCode: 'LAL',
     outputFile: 'austin_reaves.json',
     expectations: {
       contract: {
@@ -107,7 +110,7 @@ async function validateTestCase(testCase: TestCase): Promise<boolean> {
   console.log(`\n📋 Testing: ${testCase.name}`);
   console.log('─'.repeat(60));
 
-  const outputPath = join(__dirname, '../../output', testCase.outputFile);
+  const outputPath = join(__dirname, '../output', testCase.teamCode, testCase.outputFile);
   let data: any;
 
   try {
