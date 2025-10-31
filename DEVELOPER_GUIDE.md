@@ -166,3 +166,39 @@ The `docs/` folder is organized into specialized subdirectories:
 2. Start the dev server via `npm run dev`.
 3. Add components within feature folders and split files over ~200 lines.
 4. Run `npm run lint` and `npm test` before committing.
+
+## Validation & CI
+
+The repository structure and conventions are documented and validated via the **Project Schema** system:
+
+- **Schema Documentation**: [PROJECT_SCHEMA.md](PROJECT_SCHEMA.md) - Authoritative documentation of repo layout, naming conventions, script interfaces, and data contracts
+- **Machine Schema**: `project.schema.json` - Machine-readable contract for automated validation
+- **Validation Tool**: Run `npm run validate:project` to check:
+  - Required directories exist
+  - Player contract files follow naming conventions
+  - Filename ↔ playerId consistency
+  - File structure matches documented patterns
+
+The validator runs automatically in CI on all PRs and pushes to ensure the repository structure stays consistent with documentation.
+
+### Running Validation Locally
+
+```bash
+# Validate project structure and naming conventions
+npm run validate:project
+
+# Should output:
+# ✅ All validations passed!
+```
+
+### When to Update Schema
+
+Update `PROJECT_SCHEMA.md` and `project.schema.json` when:
+
+- Adding new top-level directories
+- Adding new script entry points
+- Changing artifact output locations
+- Modifying naming conventions
+- Adding new validation rules
+
+See the Contributing Rules section in `PROJECT_SCHEMA.md` for complete guidelines.

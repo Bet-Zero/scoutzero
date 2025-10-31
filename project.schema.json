@@ -1,0 +1,268 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "version": "1.0.0",
+  "title": "ScoutZero Project Schema",
+  "description": "Machine-readable contract for ScoutZero repository structure, naming conventions, and artifact paths",
+  "directories": {
+    "required": [
+      "player-scrape/contracts/output",
+      "player-scrape/contracts/fixtures",
+      "player-scrape/contracts/snapshots",
+      "player-scrape/contracts/working",
+      "player-scrape/contracts/scripts",
+      "player-scrape/shared/schema",
+      "team-scrape/output",
+      "team-scrape/scripts",
+      "scripts",
+      "src",
+      "tests",
+      "docs"
+    ],
+    "optional": [
+      "player-scrape/stats",
+      "team-scrape/config",
+      "_exports"
+    ]
+  },
+  "patterns": {
+    "playerId": {
+      "description": "Player identifier format: lowercase snake_case",
+      "regex": "^[a-z]+(_[a-z]+)*$",
+      "examples": [
+        "luka_doncic",
+        "austin_reaves",
+        "jalen_wilson"
+      ]
+    },
+    "teamCode": {
+      "description": "NBA team code: 3 uppercase letters",
+      "regex": "^[A-Z]{3}$",
+      "examples": [
+        "DAL",
+        "LAL",
+        "BOS",
+        "GSW"
+      ]
+    },
+    "season": {
+      "description": "NBA season format: YYYY-YY",
+      "regex": "^\\d{4}-\\d{2}$",
+      "examples": [
+        "2024-25",
+        "2025-26"
+      ]
+    },
+    "isoDate": {
+      "description": "ISO date format: YYYY-MM-DD",
+      "regex": "^\\d{4}-\\d{2}-\\d{2}$",
+      "examples": [
+        "2024-06-15",
+        "2025-01-10"
+      ]
+    }
+  },
+  "artifacts": {
+    "playerContract": {
+      "description": "Player contract JSON output",
+      "pathTemplate": "player-scrape/contracts/output/{TEAM}/{playerId}.json",
+      "schema": "player-scrape/shared/schema/player_scrape_schema.ts",
+      "namingRules": [
+        "filename must match playerId field in JSON",
+        "playerId must match playerId pattern",
+        "file must validate against Zod schema"
+      ]
+    },
+    "htmlSnapshot": {
+      "description": "Raw SalarySwish HTML snapshot for regression testing",
+      "pathTemplate": "player-scrape/contracts/snapshots/{playerId}.html",
+      "namingRules": [
+        "filename must match playerId pattern"
+      ]
+    },
+    "testFixture": {
+      "description": "Test fixture for regression testing",
+      "pathTemplate": "player-scrape/contracts/fixtures/{playerId}.{expected|snapshot}.json",
+      "types": [
+        "expected",
+        "snapshot"
+      ],
+      "namingRules": [
+        "filename must match playerId pattern",
+        "must use .expected.json or .snapshot.json extension"
+      ]
+    },
+    "teamData": {
+      "description": "Team roster data output",
+      "pathTemplate": "team-scrape/output/team-data/{teamFile}.json",
+      "namingRules": [
+        "TBD - structure being defined"
+      ]
+    }
+  },
+  "scripts": {
+    "scrapePlayer": {
+      "path": "player-scrape/contracts/scripts/scrape_player.ts",
+      "command": "npm run scrape:one",
+      "description": "Fetch and parse a single player contract",
+      "requiredEnvVars": [
+        "PLAYER_ID",
+        "SOURCE_URL"
+      ],
+      "optionalEnvVars": [],
+      "outputs": [
+        "player-scrape/contracts/output/{TEAM}/{playerId}.json"
+      ],
+      "exitCodes": {
+        "0": "Success",
+        "1": "Missing env vars or parse failure"
+      }
+    },
+    "parsePlayer": {
+      "path": "player-scrape/contracts/scripts/parse_player.ts",
+      "command": "npm run parse-player",
+      "description": "Parse player contract from HTML snapshot",
+      "requiredEnvVars": [
+        "PLAYER_URL",
+        "PLAYER_ID"
+      ],
+      "optionalEnvVars": [
+        "DEBUG"
+      ],
+      "inputs": [
+        "player-scrape/contracts/working/page.html"
+      ],
+      "outputs": [
+        "player-scrape/contracts/output/player.json"
+      ]
+    },
+    "fetchPlayerPage": {
+      "path": "player-scrape/contracts/scripts/fetch_player_page.ts",
+      "command": "npm run fetch-player",
+      "description": "Fetch raw HTML from SalarySwish",
+      "requiredEnvVars": [
+        "PLAYER_URL"
+      ],
+      "outputs": [
+        "player-scrape/contracts/working/page.html"
+      ]
+    },
+    "validatePlayer": {
+      "path": "player-scrape/contracts/scripts/validate_player.ts",
+      "command": "npm run validate-player",
+      "description": "Validate scraped player contract against schema",
+      "inputs": [
+        "player-scrape/contracts/output/player.json"
+      ],
+      "schema": "player-scrape/shared/schema/player_scrape_schema.ts"
+    },
+    "runRegression": {
+      "path": "player-scrape/contracts/scripts/run_regress.ts",
+      "command": "npm run regress",
+      "description": "Run regression tests against known fixtures",
+      "fixtures": [
+        "luka_doncic",
+        "jalen_wilson",
+        "jordan_poole",
+        "austin_reaves"
+      ],
+      "exitCodes": {
+        "0": "All tests pass",
+        "1": "One or more tests fail"
+      }
+    },
+    "batchScrape": {
+      "path": "player-scrape/contracts/scripts/batch_scrape_players.ts",
+      "command": "npm run batch-scrape-players",
+      "description": "Batch process multiple players",
+      "optionalEnvVars": [
+        "PLAYERS_FILE",
+        "OUTPUT_DIR",
+        "RATE_LIMIT_MS",
+        "SKIP_FETCH"
+      ]
+    },
+    "typecheck": {
+      "command": "npm run typecheck",
+      "description": "TypeScript type checking without emitting files"
+    },
+    "test": {
+      "command": "npm run test -- --run",
+      "description": "Run Vitest test suite"
+    },
+    "lint": {
+      "command": "npm run lint",
+      "description": "ESLint code quality check"
+    },
+    "build": {
+      "command": "npm run build",
+      "description": "Build production bundle",
+      "outputs": [
+        "dist/"
+      ]
+    }
+  },
+  "validation": {
+    "filenameIdMatch": {
+      "description": "Contract filename must match playerId field",
+      "applies": [
+        "player-scrape/contracts/output/**/*.json",
+        "player-scrape/contracts/fixtures/**/*.json"
+      ],
+      "rule": "path.basename(file, '.json') === json.playerId"
+    },
+    "teamCodeFormat": {
+      "description": "Team codes must be 3 uppercase letters",
+      "pattern": "^[A-Z]{3}$"
+    },
+    "playerIdFormat": {
+      "description": "Player IDs must be lowercase snake_case",
+      "pattern": "^[a-z]+(_[a-z]+)*$"
+    },
+    "dateFormat": {
+      "description": "All dates must be ISO YYYY-MM-DD",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+      "applies": [
+        "optionDecisionDate",
+        "birthdate",
+        "any date fields"
+      ]
+    },
+    "optionFieldPairing": {
+      "description": "optionUsed and optionDecisionDate must both be null or both set",
+      "rule": "(optionUsed === null && optionDecisionDate === null) || (optionUsed !== null && optionDecisionDate !== null)"
+    },
+    "zodSchemaValidation": {
+      "description": "Player contracts must validate against Zod schema",
+      "schema": "player-scrape/shared/schema/player_scrape_schema.ts",
+      "validator": "basePlayerSchema.safeParse()"
+    }
+  },
+  "runtime": {
+    "node": ">=18.17",
+    "packageManager": "npm",
+    "typescript": true,
+    "testFramework": "vitest",
+    "buildTool": "vite"
+  },
+  "firestore": {
+    "collections": {
+      "players_v2": {
+        "status": "stable",
+        "structure": "hierarchical",
+        "subcollections": [
+          "contracts",
+          "seasons",
+          "evaluations"
+        ],
+        "documentationRef": "docs/schema/CURRENT_FIRESTORE_SCHEMA.md"
+      },
+      "teams": {
+        "status": "migrating",
+        "targetCollections": [
+          "/architect/*"
+        ],
+        "documentationRef": "docs/migrations/teams-to-architect/TARGET_SCHEMA.md"
+      }
+    }
+  }
+}
