@@ -181,6 +181,12 @@ The repository structure and conventions are documented and validated via the **
 
 The validator runs automatically in CI on all PRs and pushes to ensure the repository structure stays consistent with documentation.
 
+## Schemas
+
+- Canonical source of truth is code-first Zod schemas in `src/schemas/`.
+- Generated references live under `docs/schema/`.
+- Do not declare duplicate `Player*` or `Contract*` interfaces outside `src/schemas/`.
+
 ### Running Validation Locally
 
 ```bash
