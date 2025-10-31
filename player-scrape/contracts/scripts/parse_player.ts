@@ -407,7 +407,7 @@ function sectionAfterHeader($: cheerio.CheerioAPI, re: RegExp) {
   return { node, text: node.text() };
 }
 
-/** Find a compact “bio” container by locating a label like BORN:/HEIGHT:/WEIGHT: and taking its ancestor block */
+/** Find a compact "bio" container by locating a label like BORN:/HEIGHT:/WEIGHT: and taking its ancestor block */
 function findBioContainer($: cheerio.CheerioAPI) {
   const labelEl = $(
     '*:contains("BORN:") , *:contains("HEIGHT:") , *:contains("WEIGHT:") , *:contains("SHOOTS:")'
@@ -1030,7 +1030,7 @@ function detectContractTypeFromHeading(
 
 /** Current Contract section: Signing Team / Method / Date / Cap Hold / Trade Kicker */
 function parseCurrentContractMeta($: cheerio.CheerioAPI) {
-  // Prefer “CURRENT CONTRACT”; else use the first salary table container
+  // Prefer "CURRENT CONTRACT"; else use the first salary table container
   let scope = sectionAfterHeader($, /current\s*contract/i).node;
   if (!scope.length) {
     const found = findFirstSalaryTable($);
@@ -1068,10 +1068,10 @@ function parseCurrentContractMeta($: cheerio.CheerioAPI) {
     text.match(/Signing\s*Date:\s*([A-Za-z]{3,9}\s+\d{1,2},\s*\d{4})/i)?.[1] ||
     text.match(/Signing\s*Date:\s*(\d{1,2}\/\d{1,2}\/\d{4})/i)?.[1];
 
-  // Cap Hold — “Cap Hold 2027-28: $28,307,693”
+  // Cap Hold — "Cap Hold 2027-28: $28,307,693"
   const capHold = moneyNum(text.match(/Cap\s*Hold[^$]*\$\s*([\d,]+)/i)?.[1]);
 
-  // Trade Kicker — “TRADE KICKER: 15% …” or “… 15% trade kicker …”
+  // Trade Kicker — "TRADE KICKER: 15% …" or "… 15% trade kicker …"
   const tk =
     text.match(/TRADE\s*KICKER\s*:\s*(\d{1,2})%/i) ||
     text.match(/(\d{1,2})%\s+(?:trade\s+)?(?:kicker|bonus)/i) ||
@@ -1549,12 +1549,12 @@ function applyPlayerOptionPolicy(salariesByYear: any[]): void {
 /**
  * Validate option field pairing: optionUsed and optionDecisionDate must both be null or both be set
  * This prevents invalid states like optionUsed=null with a date, or vice versa
- * 
+ *
  * Requirements (per contract normalization spec):
  * - If optionUsed is null, then optionDecisionDate MUST be null (pending option)
  * - If optionUsed is true/false, then optionDecisionDate MUST be set to ISO 8601 date (YYYY-MM-DD format)
  * - Never have one field set without the other
- * 
+ *
  * Examples:
  * - Valid: optionUsed=null, optionDecisionDate=null (live PO, decision pending)
  * - Valid: optionUsed=true, optionDecisionDate="2025-06-28" (exercised TO)
@@ -1564,14 +1564,17 @@ function applyPlayerOptionPolicy(salariesByYear: any[]): void {
  */
 function validateOptionFieldPairing(salariesByYear: any[]): void {
   for (const yearRow of salariesByYear) {
-    const hasOptionUsed = yearRow.optionUsed !== null && yearRow.optionUsed !== undefined;
-    const hasOptionDate = yearRow.optionDecisionDate !== null && yearRow.optionDecisionDate !== undefined;
-    
+    const hasOptionUsed =
+      yearRow.optionUsed !== null && yearRow.optionUsed !== undefined;
+    const hasOptionDate =
+      yearRow.optionDecisionDate !== null &&
+      yearRow.optionDecisionDate !== undefined;
+
     if (hasOptionUsed !== hasOptionDate) {
       throw new Error(
         `Invalid option field pairing in ${yearRow.season}: ` +
-        `optionUsed=${yearRow.optionUsed}, optionDecisionDate=${yearRow.optionDecisionDate}. ` +
-        `Both must be null or both must be set.`
+          `optionUsed=${yearRow.optionUsed}, optionDecisionDate=${yearRow.optionDecisionDate}. ` +
+          `Both must be null or both must be set.`
       );
     }
   }
@@ -1942,6 +1945,64 @@ export async function parsePlayer(
   // Apply post-parse normalizer to detect voided POs
   normalizeContractVoidedOptions(contract, futureContract, $.root().text());
 
+  // --- begin: season backfill helpers ---
+  function seasonFromDateISO(iso: string): string {
+    const d = iso ? new Date(iso) : new Date();
+    const y = d.getUTCFullYear();
+    const m = d.getUTCMonth() + 1; // 1-12
+    const start = m >= 8 ? y : y - 1;
+    const endShort = String((start + 1) % 100).padStart(2, '0');
+    return `${start}-${endShort}`;
+  }
+  function inferSeasonsFromSalaryKeys(salariesByYear?: Record<string, any>) {
+    if (!salariesByYear) return null;
+    const keys = Object.keys(salariesByYear).filter(Boolean).sort();
+    if (!keys.length) return null;
+    return { start: keys[0], end: keys[keys.length - 1] };
+  }
+  function inferSeasonsFromSalaryArray(rows?: Array<{ season?: string }>) {
+    if (!rows || !Array.isArray(rows) || rows.length === 0) return null;
+    const seasons = rows
+      .map((r) => r?.season)
+      .filter((s): s is string => typeof s === 'string' && !!s)
+      .sort();
+    if (!seasons.length) return null;
+    return { start: seasons[0], end: seasons[seasons.length - 1] };
+  }
+  function isNonStandardShortTerm(contract: any): boolean {
+    const t =
+      `${contract?.contractType ?? ''} ${contract?.signedUsing ?? ''}`.toLowerCase();
+    return /two[-\s]?way|exhibit\s*10|camp|training/.test(t);
+  }
+  function backfillSeasons(c: any) {
+    // Prefer inferring from the parsed salaries array if present
+    const fromArray = inferSeasonsFromSalaryArray(c?.salariesByYear);
+    if (fromArray) {
+      if (!c.startSeason) c.startSeason = fromArray.start;
+      if (!c.endSeason) c.endSeason = fromArray.end;
+      return;
+    }
+    // Fallback: handle map-shaped input if ever provided
+    const inferred = inferSeasonsFromSalaryKeys(c?.salariesByYear as any);
+    if (inferred) {
+      if (!c.startSeason) c.startSeason = inferred.start;
+      if (!c.endSeason) c.endSeason = inferred.end;
+    } else if (
+      isNonStandardShortTerm(c) ||
+      (Array.isArray(c?.salariesByYear) && c.salariesByYear.length === 0)
+    ) {
+      const season = seasonFromDateISO(
+        c?.signingDate || new Date().toISOString()
+      );
+      if (!c.startSeason) c.startSeason = season;
+      if (!c.endSeason) c.endSeason = season;
+    }
+  }
+  // --- end: season backfill helpers ---
+
+  backfillSeasons(contract);
+  if (futureContract) backfillSeasons(futureContract);
+
   // Final validation of option field pairing after all transformations
   validateOptionFieldPairing(contract.salariesByYear);
   if (futureContract) {
@@ -1972,7 +2033,7 @@ export async function parsePlayer(
   return output;
 }
 
-// CLI entrypoint (kept for backward compatibility)
+// CLI entrypoint (canonical temp → working/player.json; runner will place by team)
 async function main() {
   const playerUrlEnv = (process.env.PLAYER_URL || '').replace('://www.', '://');
   let playerId =
@@ -1980,22 +2041,23 @@ async function main() {
     (playerUrlEnv ? playerUrlEnv.split('/').pop()!.replace(/-/g, '_') : '') ||
     'unknown';
 
+  // Read the fetched HTML from working/
   const htmlPath = process.env.TEMP_FILE
     ? join(__dirname, '../working', process.env.TEMP_FILE)
     : join(__dirname, '../working/page.html');
   const html = await fs.readFile(htmlPath, 'utf8');
 
+  // Parse to structured object
   const output = await parsePlayer(html, { playerId, sourceUrl: playerUrlEnv });
 
-  // Create team-specific output directory
-  const baseOutDir = join(__dirname, '../output');
-  const teamOutDir = join(baseOutDir, output.teamCode);
-  await fs.mkdir(teamOutDir, { recursive: true });
+  // ✳️ Write to per-player temp file: contracts/working/<id>.json
+  const workingDir = join(__dirname, '../working');
+  await fs.mkdir(workingDir, { recursive: true });
+  const outTempJson = process.env.TEMP_JSON || 'player.json';
+  const tempJsonPath = join(workingDir, outTempJson);
+  await fs.writeFile(tempJsonPath, JSON.stringify(output, null, 2), 'utf8');
 
-  // Save to team-organized individual player file
-  const outPath = join(teamOutDir, `${playerId}.json`);
-  await fs.writeFile(outPath, JSON.stringify(output, null, 2), 'utf8');
-
+  // Console summary (no final placement here; runner will move it)
   console.log(`✅ Parsed player data for: ${output.displayName}`);
   console.log(`   Team: ${output.teamName} (${output.teamCode})`);
   console.log(`   Contract: ${output.contract.contractType}`);
@@ -2010,7 +2072,6 @@ async function main() {
     console.log(
       `   📋 Found future contract: ${output.futureContract.contractType} (${output.futureContract.startSeason} - ${output.futureContract.endSeason})`
     );
-    console.log(`   Future Extension: ${output.futureContract.contractType}`);
     console.log(
       `   Future Value: $${(output.futureContract.totalValue / 1_000_000).toFixed(1)}M`
     );
@@ -2022,8 +2083,13 @@ async function main() {
   console.log(`   Signed Using: ${output.contract.signedUsing ?? '—'}`);
   console.log(`   Signed Date: ${output.contract.signingDate ?? '—'}`);
   console.log(`   Signed By: ${output.contract.signingExecutive ?? '—'}`);
-  console.log(`   Agent/Agency: ${output.representation.agent ?? '—'} / ${output.representation.agency ?? '—'}`);
-  console.log(`📁 Output saved to: ${outPath}`);
+  console.log(
+    `   Agent/Agency: ${output.representation.agent ?? '—'} / ${output.representation.agency ?? '—'}`
+  );
+  console.log(`📁 Temp JSON saved to: ${tempJsonPath}`);
+  console.log(
+    `   (Runner will place file to: contracts/output/<TEAM>/${playerId}.json)`
+  );
 }
 
 // Only run main if this file is executed directly

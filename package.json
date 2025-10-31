@@ -64,6 +64,11 @@
     "validate-player": "npx tsx player-scrape/contracts/scripts/validate_player.ts",
     "validate-po-voiding": "npx tsx player-scrape/contracts/scripts/validate_po_voiding.ts",
     "batch-scrape-players": "npx tsx player-scrape/contracts/scripts/batch_scrape_players.ts",
+    "// ---------- Contracts Pipeline ----------": "",
+    "contracts:run": "tsx player-scrape/contracts/scripts/run_contracts.ts",
+    "contracts:team": "tsx player-scrape/contracts/scripts/run_contracts.ts --team=LAL --concurrency=6 --resume",
+    "contracts:one": "tsx player-scrape/contracts/scripts/run_contracts.ts --player=austin_reaves --resume",
+    "contracts:push": "tsx player-scrape/contracts/scripts/run_contracts.ts --push --resume",
     "build-player-index": "npx tsx player-scrape/shared/scripts/build_player_index.ts",
     "process-trio": "npx tsx player-scrape/contracts/scripts/batch_process_trio.ts",
     "process-lakers": "npx tsx player-scrape/contracts/scripts/batch_process_lakers.ts",
@@ -97,6 +102,8 @@
   "devDependencies": {
     "@testing-library/jest-dom": "^6.2.0",
     "@testing-library/react": "^14.2.1",
+    "@typescript-eslint/eslint-plugin": "^8.46.2",
+    "@typescript-eslint/parser": "^8.46.2",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.21",
     "c8": "^10.1.3",
@@ -120,6 +127,7 @@
     "sharp": "^0.34.3",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
     "vite": "^4.4.0",
     "vitest": "^1.6.1"
   },

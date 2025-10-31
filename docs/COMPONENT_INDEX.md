@@ -159,6 +159,8 @@ Quick reference for all components in the ScoutZero project.
 - CreateTierListModal.jsx
 - TierMakerBoard.jsx
 - TierRow.jsx
+- TieramidBoard.jsx
+- TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2025-10-20T05:31:42.848Z*
+*Generated on: 2025-10-31T07:32:00.174Z*

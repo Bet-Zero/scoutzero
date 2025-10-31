@@ -1,0 +1,44 @@
+{
+  "playerId": "austin_reaves",
+  "teamCode": "LAL",
+  "seasons": {
+    "2025-26": {
+      "team": "LAL",
+      "age": null,
+      "pos": null,
+      "stats": {
+        "PTS": 34.2,
+        "AST": 10,
+        "REB": 5.6,
+        "STL": 1.8,
+        "BLK": 0,
+        "TOV": 3.8,
+        "PF": 2,
+        "ORB": 0.4,
+        "DRB": 5.2,
+        "FGM": 10.4,
+        "FGA": 19.8,
+        "FG%": 0.525,
+        "3PM": 3,
+        "3PA": 7.8,
+        "3PT%": 0.385,
+        "FTM": 10.4,
+        "FTA": 11.6,
+        "FT%": 0.897,
+        "GP": 5,
+        "MIN": 38.2,
+        "eFG%": 0.601010101010101,
+        "TS%": 0.6866366848699005
+      }
+    }
+  },
+  "meta": {
+    "lastStatsUpdate": {
+      "_seconds": 1761894969,
+      "_nanoseconds": 0
+    },
+    "statsSeasonTag": "2025-26",
+    "statsCarryOver": false,
+    "provenance": "nba_stats"
+  }
+}

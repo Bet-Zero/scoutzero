@@ -102,6 +102,8 @@ player-scrape/*_backup.html
 # Player scrape output - organized by team
 player-scrape/contracts/output/*
 !player-scrape/contracts/output/.gitkeep
+# Working directory with temporary scraping files
+player-scrape/contracts/working/
 # Legacy output directories (deprecated)
 player-scrape/output/
 player-scrape/outputs/
