@@ -363,7 +363,10 @@ const TieramidBoard = ({ onScreenshotChange }) => {
       >
         <div className="flex flex-col gap-1.5 w-full max-w-[1000px] mx-auto pt-6 pb-12x">
           {/* Pyramid center wrapper with backdrop and spotlight */}
-          <div className="relative mx-auto mt-6 mb-6" style={{ width: `${PYRAMID_MAX_PX + LABEL_GUTTER + 80}px` }}>
+          <div
+            className="relative mx-auto mt-6 mb-6"
+            style={{ width: `${PYRAMID_MAX_PX + LABEL_GUTTER + 80}px` }}
+          >
             <div
               className={`relative rounded-xl border border-white/10 bg-[#0b0b0b]/40 shadow-[0_12px_36px_rgba(0,0,0,0.35)]`}
               style={{ width: `${PYRAMID_MAX_PX + LABEL_GUTTER + 24}px` }}
@@ -375,101 +378,107 @@ const TieramidBoard = ({ onScreenshotChange }) => {
                     'radial-gradient(ellipse at 50% 35%, rgba(255,255,255,0.07), rgba(255,255,255,0.02) 45%, rgba(255,255,255,0) 70%)',
                 }}
               />
-            <div
-              className={`py-3`}
-              style={{ paddingLeft: `${LABEL_GUTTER}px`, paddingRight: '12px' }}
-            >
-              {/* Pyramid center wrapper with fixed max width so rows center visually */}
-              <div className="mx-auto" style={{ width: `${PYRAMID_MAX_PX}px` }}>
-                {rowOrder
-                  .filter((r) => r !== 'Pool')
-                  .map((row, i) => {
-                    const spots = getSpotsInRow(i);
-                    return (
-                      <div
-                        key={row}
-                        className="relative mx-auto flex justify-center items-center mb-1"
-                        style={{ width: `${ROW_WIDTH * spots}px` }}
-                      >
-                        {/* Absolute left label so it doesn't affect centering */}
+              <div
+                className={`py-3`}
+                style={{
+                  paddingLeft: `${LABEL_GUTTER}px`,
+                  paddingRight: '12px',
+                }}
+              >
+                {/* Pyramid center wrapper with fixed max width so rows center visually */}
+                <div
+                  className="mx-auto"
+                  style={{ width: `${PYRAMID_MAX_PX}px` }}
+                >
+                  {rowOrder
+                    .filter((r) => r !== 'Pool')
+                    .map((row, i) => {
+                      const spots = getSpotsInRow(i);
+                      return (
                         <div
-                          className="absolute flex items-center gap-1"
-                          style={{
-                            left: `-${LABEL_GUTTER - 6}px`,
-                            width: `${LABEL_GUTTER - 10}px`,
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                          }}
+                          key={row}
+                          className="relative mx-auto flex justify-center items-center mb-1"
+                          style={{ width: `${ROW_WIDTH * spots}px` }}
                         >
-                          {!screenshotMode && (
-                            <button
-                              onClick={() => renameRow(row)}
-                              className="text-[10px] text-white bg-black/40 px-[4px] rounded hover:bg-white/10 flex-shrink-0"
-                              title="Rename Row"
-                            >
-                              ✎
-                            </button>
-                          )}
-                          <span className="text-white text-sm font-semibold whitespace-nowrap">
-                            {row}
-                          </span>
-                        </div>
+                          {/* Absolute left label so it doesn't affect centering */}
+                          <div
+                            className="absolute flex items-center gap-1"
+                            style={{
+                              left: `-${LABEL_GUTTER - 6}px`,
+                              width: `${LABEL_GUTTER - 10}px`,
+                              top: '50%',
+                              transform: 'translateY(-50%)',
+                            }}
+                          >
+                            {!screenshotMode && (
+                              <button
+                                onClick={() => renameRow(row)}
+                                className="text-[10px] text-white bg-black/40 px-[4px] rounded hover:bg-white/10 flex-shrink-0"
+                                title="Rename Row"
+                              >
+                                ✎
+                              </button>
+                            )}
+                            <span className="text-white text-sm font-semibold whitespace-nowrap">
+                              {row}
+                            </span>
+                          </div>
 
-                        <div className="flex gap-2 justify-center">
-                          {Array.from({ length: spots }).map((_, j) => {
-                            const player = rows[row][j];
-                            if (!player) {
+                          <div className="flex gap-2 justify-center">
+                            {Array.from({ length: spots }).map((_, j) => {
+                              const player = rows[row][j];
+                              if (!player) {
+                                return (
+                                  <div
+                                    key={j}
+                                    className="w-[80px] h-[80px] bg-slate-800/30 border border-dashed border-white/20 rounded-md flex items-center justify-center text-white/30 text-[10px]"
+                                  >
+                                    Empty
+                                  </div>
+                                );
+                              }
                               return (
-                                <div
-                                  key={j}
-                                  className="w-[80px] h-[80px] bg-slate-800/30 border border-dashed border-white/20 rounded-md flex items-center justify-center text-white/30 text-[10px]"
-                                >
-                                  Empty
+                                <div key={j} className="relative">
+                                  <TieramidPlayerTile player={player} />
+                                  <div className="absolute top-1 right-1 flex flex-col gap-1 bg-transparent z-10">
+                                    <button
+                                      onClick={() => movePlayer(i, j, 'up')}
+                                      title="Move Up"
+                                      className="text-xs text-white bg-black/40 px-[4px] rounded"
+                                    >
+                                      ↑
+                                    </button>
+                                    <button
+                                      onClick={() => movePlayer(i, j, 'down')}
+                                      title="Move Down"
+                                      className="text-xs text-white bg-black/40 px-[4px] rounded"
+                                    >
+                                      ↓
+                                    </button>
+                                    <button
+                                      onClick={() => movePlayer(i, j, 'left')}
+                                      title="Move Left"
+                                      className="text-xs text-white bg-black/40 px-[4px] rounded"
+                                    >
+                                      ←
+                                    </button>
+                                    <button
+                                      onClick={() => movePlayer(i, j, 'right')}
+                                      title="Move Right"
+                                      className="text-xs text-white bg-black/40 px-[4px] rounded"
+                                    >
+                                      →
+                                    </button>
+                                  </div>
                                 </div>
                               );
-                            }
-                            return (
-                              <div key={j} className="relative">
-                                <TieramidPlayerTile player={player} />
-                                <div className="absolute top-1 right-1 flex flex-col gap-1 bg-transparent z-10">
-                                  <button
-                                    onClick={() => movePlayer(i, j, 'up')}
-                                    title="Move Up"
-                                    className="text-xs text-white bg-black/40 px-[4px] rounded"
-                                  >
-                                    ↑
-                                  </button>
-                                  <button
-                                    onClick={() => movePlayer(i, j, 'down')}
-                                    title="Move Down"
-                                    className="text-xs text-white bg-black/40 px-[4px] rounded"
-                                  >
-                                    ↓
-                                  </button>
-                                  <button
-                                    onClick={() => movePlayer(i, j, 'left')}
-                                    title="Move Left"
-                                    className="text-xs text-white bg-black/40 px-[4px] rounded"
-                                  >
-                                    ←
-                                  </button>
-                                  <button
-                                    onClick={() => movePlayer(i, j, 'right')}
-                                    title="Move Right"
-                                    className="text-xs text-white bg-black/40 px-[4px] rounded"
-                                  >
-                                    →
-                                  </button>
-                                </div>
-                              </div>
-                            );
-                          })}
+                            })}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                </div>
               </div>
-            </div>
             </div>
             {/* Add/Remove row buttons outside backdrop */}
             {!screenshotMode && (
@@ -477,7 +486,9 @@ const TieramidBoard = ({ onScreenshotChange }) => {
                 <button
                   onClick={addRow}
                   className="w-8 h-8 rounded bg-white/10 text-white hover:bg-white/20 transition-all flex items-center justify-center text-lg leading-none disabled:opacity-30 disabled:cursor-not-allowed"
-                  disabled={rowOrder.filter((r) => r !== 'Pool').length >= MAX_ROWS}
+                  disabled={
+                    rowOrder.filter((r) => r !== 'Pool').length >= MAX_ROWS
+                  }
                   title="Add Row"
                 >
                   +
