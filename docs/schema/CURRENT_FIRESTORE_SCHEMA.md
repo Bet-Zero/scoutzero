@@ -55,5 +55,18 @@ const players = team.data().capSheet.players; // Flattened structure
 - **In Progress**: `teams` → `/architect/` collections (use `docs/architect-teams-plan/`)
 
 ---
+
+## Artifact to Firestore Pipeline
+
+Player contract data is scraped and validated before being uploaded to Firestore:
+
+**Pipeline Flow:**
+1. Scrape from SalarySwish → `player-scrape/contracts/output/{TEAM}/{playerId}.json`
+2. Validate against Zod schema (`player-scrape/shared/schema/player_scrape_schema.ts`)
+3. Transform and upload to `/players_v2/{playerId}/contracts/{contractId}` (manual/script-driven)
+
+See [PROJECT_SCHEMA.md](../../PROJECT_SCHEMA.md) for complete artifact flow documentation and validation rules.
+
+---
 *Current as of: ${new Date().toISOString()}*
 *🚧 = In Migration | ✅ = Migration Complete*

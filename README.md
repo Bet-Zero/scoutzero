@@ -108,6 +108,19 @@ This project uses multiple Firestore collections to separate global player data 
 
 See [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) for deeper notes on data structure, component architecture and coding conventions.
 
+## Project Schema
+
+This repository follows a documented structure defined in [PROJECT_SCHEMA.md](PROJECT_SCHEMA.md), which provides:
+
+- **Repo Layout** - Authoritative map of directories and their purposes
+- **Naming Conventions** - Player IDs (snake_case), team codes (3-letter), file naming patterns
+- **Script Interfaces** - CLI tools, environment variables, inputs/outputs, exit codes
+- **Data Contracts** - JSON artifact schemas and validation rules
+- **Pipelines** - Data flow from scraping to Firestore
+- **Validation Rules** - Automated checks enforced by CI
+
+The schema is validated automatically via `npm run validate:project` and enforced in CI to prevent structural drift.
+
 ## Documentation
 
 The `docs/` folder contains organized reference documentation:
