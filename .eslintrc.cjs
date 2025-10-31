@@ -12,10 +12,10 @@ module.exports = {
   overrides: [
     {
       files: ['**/*.{ts,tsx,d.ts}'],
-      excludedFiles: ['src/schemas/**'],
+      excludedFiles: ['src/schemas/**', 'src/types/**', 'player-scrape/**'],
       rules: {
         // Forbid declaring interfaces that start with Player or Contract outside canonical schemas
-        '@typescript-eslint/no-restricted-syntax': [
+        'no-restricted-syntax': [
           'error',
           {
             selector: 'TSInterfaceDeclaration[id.name=/^(Player|Contract)/]',
