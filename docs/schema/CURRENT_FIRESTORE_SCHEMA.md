@@ -8,6 +8,10 @@
 
 ## Active Collections (Production)
 
+> Canonical schema sources:
+> - players_v2: see `docs/schema/players_v2.md` (generated from `src/schemas/players_v2.ts`)
+> - architect: see `docs/schema/architect.md` (generated from `src/schemas/architect.ts`)
+
 ### `/players_v2/{playerId}` - Player Data ✅ FINAL
 **Status**: ✅ Migration complete - this is the target schema
 **Usage**: All player queries should use this collection

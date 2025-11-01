@@ -6,6 +6,17 @@
  * including main document and subcollections (contracts, seasons, evaluations)
  */
 
+/**
+ * DEPRECATION NOTICE:
+ * Canonical schemas now live in `src/schemas/players_v2.ts`.
+ * Prefer importing the types below instead of these legacy interfaces.
+ */
+export type CanonicalPlayerMainDoc = import('@/schemas/players_v2').PlayerMainDoc;
+export type CanonicalContractDoc = import('@/schemas/players_v2').ContractDoc;
+export type CanonicalSeasonDoc = import('@/schemas/players_v2').SeasonDoc;
+export type CanonicalEvaluationDoc = import('@/schemas/players_v2').EvaluationDoc;
+export type CanonicalPlayerV2 = import('@/schemas/players_v2').PlayerV2;
+
 export type SeasonId = string;   // e.g. "2025-26"
 export type ContractId = string; // e.g. "std_202425" | "ext_202627"
 

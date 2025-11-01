@@ -7,6 +7,9 @@ import {
   seasonsCol,
   evalsCol,
 } from '@/data/firestorePaths.js';
+// Dev-only schema validation
+// eslint-disable-next-line import/no-relative-packages
+import { PlayerMainDocZ, ContractDocZ, SeasonDocZ, EvaluationDocZ } from '@/schemas/players_v2';
 
 /**
  * Hook for fetching full player details including subcollections
@@ -50,6 +53,14 @@ const usePlayerDetail = (playerId) => {
         }
 
         const mainDoc = mainDocSnap.data();
+        if (import.meta.env.DEV) {
+          const res = PlayerMainDocZ.safeParse(mainDoc);
+          if (!res.success) {
+            // Non-blocking: log for awareness
+            // eslint-disable-next-line no-console
+            console.warn('players_v2 main doc failed schema validation', playerId, res.error?.issues);
+          }
+        }
 
         // Step 2: Fetch all subcollections in parallel
         const [contractsSnap, seasonsSnap, evalsSnap] = await Promise.all([
@@ -63,18 +74,42 @@ const usePlayerDetail = (playerId) => {
         contractsSnap.forEach((doc) => {
           // Filter out metadata fields like last_updated
           if (!doc.id.startsWith('last_')) {
-            contracts[doc.id] = doc.data();
+            const data = doc.data();
+            if (import.meta.env.DEV) {
+              const r = ContractDocZ.safeParse(data);
+              if (!r.success) {
+                // eslint-disable-next-line no-console
+                console.warn('contract doc failed schema validation', playerId, doc.id, r.error?.issues);
+              }
+            }
+            contracts[doc.id] = data;
           }
         });
 
         const seasons = {};
         seasonsSnap.forEach((doc) => {
-          seasons[doc.id] = doc.data();
+          const data = doc.data();
+          if (import.meta.env.DEV) {
+            const r = SeasonDocZ.safeParse(data);
+            if (!r.success) {
+              // eslint-disable-next-line no-console
+              console.warn('season doc failed schema validation', playerId, doc.id, r.error?.issues);
+            }
+          }
+          seasons[doc.id] = data;
         });
 
         const evaluations = {};
         evalsSnap.forEach((doc) => {
-          evaluations[doc.id] = doc.data();
+          const data = doc.data();
+          if (import.meta.env.DEV) {
+            const r = EvaluationDocZ.safeParse(data);
+            if (!r.success) {
+              // eslint-disable-next-line no-console
+              console.warn('evaluation doc failed schema validation', playerId, doc.id, r.error?.issues);
+            }
+          }
+          evaluations[doc.id] = data;
         });
 
         // Step 4: Build v2 player structure with spread pattern for easier access

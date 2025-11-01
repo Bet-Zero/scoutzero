@@ -12,6 +12,8 @@
     "preview": "vite preview",
     "update-stats": "node updateStats.js",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "schema:generate": "tsx scripts/generate-schemas.ts",
+    "schema:check": "npm run schema:generate && git diff --quiet -- docs/schema schemas/json || (echo 'Schema outputs are out of date. Run npm run schema:generate' && exit 1)",
     "check:legacy": "node scripts/scan_for_legacy.cjs",
     "docs": "node generateDocs.cjs",
     "test": "vitest",
