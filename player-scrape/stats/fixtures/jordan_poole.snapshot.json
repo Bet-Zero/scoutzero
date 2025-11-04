@@ -1,0 +1,40 @@
+{
+  "meta": {
+    "statsSeasonTag": "2024-25",
+    "statsCarryOver": false,
+    "provenance": "nba_stats"
+  },
+  "playerId": "jordan_poole",
+  "seasons": {
+    "2024-25": {
+      "age": null,
+      "pos": null,
+      "stats": {
+        "3PA": 9.1,
+        "3PM": 3.5,
+        "3PT%": 0.378,
+        "AST": 4.5,
+        "BLK": 0.4,
+        "DRB": 2.5,
+        "FG%": 0.432,
+        "FGA": 15.5,
+        "FGM": 6.7,
+        "FT%": 0.883,
+        "FTA": 4,
+        "FTM": 3.6,
+        "GP": 68,
+        "MIN": 29.4,
+        "ORB": 0.5,
+        "PF": 3,
+        "PTS": 20.5,
+        "REB": 3,
+        "STL": 1.3,
+        "TOV": 3,
+        "TS%": 0.5938586326767091,
+        "eFG%": 0.5451612903225806
+      },
+      "team": "WAS"
+    }
+  },
+  "teamCode": "WAS"
+}

@@ -9,7 +9,7 @@
 //
 // RELATED:
 //   - parse_player.ts uses this schema for validation
-//   - architect-teams-plan/03-TARGET-SCHEMA.md defines the target structure
+//   - docs/schema/architect.md defines the target structure (canonical)
 
 import { z } from 'zod';
 
@@ -21,14 +21,11 @@ const BioSchema = z.object({
   age: z.number().optional(),
   birthdate: z.string().optional(),
   experience: z.number().optional(), // Years in NBA
-  draft: z
-    .object({
-      year: z.number(),
-      round: z.number(),
-      pick: z.number(),
-      team: z.string(),
-    })
-    .optional(),
+  shoots: z.string().optional(),
+  draftYear: z.string().optional(),
+  draftRound: z.number().optional(),
+  draftPick: z.number().optional(),
+  draftedBy: z.string().nullable().optional(),
 });
 
 // ===== CONTRACT DETAILS =====
@@ -74,6 +71,9 @@ const FreeAgencySchema = z.object({
   capHold: z.number().optional(),
   qualifyingOffer: z.number().nullable(),
   earlyTerminationOption: z.string().nullable(),
+  hasOption: z.boolean().optional(),
+  optionYear: z.string().nullable().optional(),
+  optionType: z.string().nullable().optional(),
 });
 
 const TradeEligibilitySchema = z.object({
@@ -145,6 +145,12 @@ const SourceMetaSchema = z.object({
   scrapedAt: z.string(),
 });
 
+// ===== REPRESENTATION (Agent/Agency) =====
+const RepresentationSchema = z.object({
+  agent: z.string().nullable(),
+  agency: z.string().nullable(),
+});
+
 // ===== BASE PLAYER DOCUMENT =====
 export const basePlayerSchema = z.object({
   // Player identity
@@ -162,6 +168,9 @@ export const basePlayerSchema = z.object({
   // Future contract (for players with extensions)
   futureContract: ContractSchema.optional(),
 
+  // Representation
+  representation: RepresentationSchema.optional(),
+
   // Metadata
   source: SourceMetaSchema,
   lastUpdated: z.string(),
@@ -176,4 +185,5 @@ export type BirdRights = z.infer<typeof BirdRightsSchema>;
 export type FreeAgency = z.infer<typeof FreeAgencySchema>;
 export type TradeEligibility = z.infer<typeof TradeEligibilitySchema>;
 export type Contract = z.infer<typeof ContractSchema>;
+export type Representation = z.infer<typeof RepresentationSchema>;
 export type SourceMeta = z.infer<typeof SourceMetaSchema>;

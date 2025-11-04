@@ -9,6 +9,7 @@ type PlayerIndexEntry = {
   salarySwishSlug?: string;
   teamCode?: string;
   displayName?: string;
+  nbaId?: string | number;
   nbaStatsId?: string | number;
   [k: string]: unknown;
 };
@@ -31,15 +32,20 @@ async function writeJson<T>(p: string, data: T): Promise<void> {
   await fs.writeFile(p, JSON.stringify(data, null, 2), 'utf8');
 }
 
-export async function resolveNbaPlayerId(playerId: string): Promise<string | null> {
+export async function resolveNbaPlayerId(
+  playerId: string
+): Promise<string | null> {
   // 1) Explicit override via env
   const envId = process.env.NBA_ID;
   if (envId) return String(envId);
 
-  // 2) Shared player index
+  // 2) Shared player index (check both nbaId and nbaStatsId for compatibility)
   const index = (await readJson<PlayerIndex>(paths.sharedIndex)) || {};
   const entry = index[playerId];
-  if (entry && entry.nbaStatsId != null) return String(entry.nbaStatsId);
+  if (entry) {
+    const id = (entry as any).nbaId || entry.nbaStatsId;
+    if (id != null) return String(id);
+  }
 
   // 3) Local cache (non-destructive)
   const cache = (await readJson<IdCache>(paths.idsCache)) || {};
@@ -49,11 +55,12 @@ export async function resolveNbaPlayerId(playerId: string): Promise<string | nul
   return null;
 }
 
-export async function cacheNbaPlayerId(playerId: string, nbaId: string): Promise<void> {
+export async function cacheNbaPlayerId(
+  playerId: string,
+  nbaId: string
+): Promise<void> {
   const cache = (await readJson<IdCache>(paths.idsCache)) || {};
   if (cache[playerId] === nbaId) return;
   cache[playerId] = nbaId;
   await writeJson(paths.idsCache, cache);
 }
-
-

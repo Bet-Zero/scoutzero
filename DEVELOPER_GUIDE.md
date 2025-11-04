@@ -21,6 +21,7 @@ src/
 ├── pages/               # Top level route views
 ├── utils/               # Helper functions and data transforms
 ├── firebase/            # Firestore helper modules
+├── schemas/             # Canonical Zod schemas for Firestore collections
 └── styles/              # Additional style sheets
 ```
 
@@ -142,7 +143,7 @@ This project pulls player and contract data from two distinct Firestore collecti
 - Use `useTeamRoster()` or direct `/teams` queries for anything related to contract logic, team building, or cap validation.
 
 📄 Refer to [`docs/architecture/DATA_SOURCE_MAP.md`](./docs/architecture/DATA_SOURCE_MAP.md) for usage rules  
-📄 Refer to [`docs/architecture/FIRESTORE_SCHEMA.md`](./docs/architecture/FIRESTORE_SCHEMA.md) for field-level details
+📄 Refer to [`docs/schema/CURRENT_FIRESTORE_SCHEMA.md`](./docs/schema/CURRENT_FIRESTORE_SCHEMA.md) for canonical schema reference
 
 ## Documentation Structure
 

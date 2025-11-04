@@ -297,7 +297,7 @@ See `examples/players_list_sample.json` for a complete example.
 
 - **Input:** SalarySwish player pages (external source)
 - **Output:** `output/player.json` files ready for import into basePlayers collection
-- **Schema:** Output matches `/architect/basePlayers/{playerId}` structure from `docs/architect-teams-plan/03-TARGET-SCHEMA.md`
+- **Schema:** Output matches `/architect/basePlayers/{playerId}` structure from `docs/schema/architect.md` (canonical)
 
 ### Key Fields for Trade Validation
 
@@ -506,4 +506,4 @@ If you encounter problems:
 2. Verify SalarySwish page structure hasn't changed
 3. Review console output for parsing warnings
 4. Check that all dependencies are installed
-5. Compare output against `docs/architect-teams-plan/03-TARGET-SCHEMA.md`
+5. Compare output against `docs/schema/architect.md` (canonical schema)

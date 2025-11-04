@@ -32,6 +32,7 @@ pages/         Route-level views
 utils/         Helpers for filtering, formatting, roster logic
 constants/     Role lists, badge sets, etc.
 firebase/      Firestore helpers + config
+schemas/       Canonical Zod schemas for Firestore collections
 styles/        Tailwind and additional styles
 ```
 
@@ -59,14 +60,15 @@ styles/        Tailwind and additional styles
 
 This project uses **two main Firestore collections** for player/team data:
 
-| Collection | Used For | Structure |
-| ---------- | -------- | --------- |
-| `/players_v2` | Player bio, contracts, seasons, evaluations | Hierarchical with subcollections |
-| `/teams` | Team rosters, cap sheets (currently in migration to `/architect/`) | Flattened structure |
+| Collection    | Used For                                                           | Structure                        |
+| ------------- | ------------------------------------------------------------------ | -------------------------------- |
+| `/players_v2` | Player bio, contracts, seasons, evaluations                        | Hierarchical with subcollections |
+| `/teams`      | Team rosters, cap sheets (currently in migration to `/architect/`) | Flattened structure              |
 
 ### Current Data Access Patterns
 
 **For `/players_v2` (hierarchical structure):**
+
 ```javascript
 // Access player bio data
 const player = await getDoc(doc(db, 'players_v2', playerId));
@@ -75,13 +77,18 @@ const age = player.data().bio.age;
 const position = player.data().bio.position;
 
 // Access contract subcollection
-const contracts = await getDocs(collection(doc(db, 'players_v2', playerId), 'contracts'));
+const contracts = await getDocs(
+  collection(doc(db, 'players_v2', playerId), 'contracts')
+);
 
-// Access season stats subcollection  
-const seasons = await getDocs(collection(doc(db, 'players_v2', playerId), 'seasons'));
+// Access season stats subcollection
+const seasons = await getDocs(
+  collection(doc(db, 'players_v2', playerId), 'seasons')
+);
 ```
 
 **For `/teams` (current structure during migration):**
+
 ```javascript
 // Access team roster data
 const team = await getDoc(doc(db, 'teams', teamId));
@@ -89,12 +96,14 @@ const players = team.data().capSheet.players; // Array of flattened player objec
 ```
 
 ### Migration Context
+
 - **`/players_v2`**: Migration complete - use hierarchical access patterns
-- **`/teams`**: Currently migrating to `/architect/` collections - see `docs/architect-teams-plan/` for target schema
+- **`/teams`**: Currently migrating to `/architect/` collections - see `docs/schema/architect.md` for target schema
 - **Legacy `/players`**: Preserved for rollback, do not use for new code
 
-📄 Reference `docs/CURRENT_FIRESTORE_SCHEMA.md` for current schema status  
-📄 See `docs/architect-teams-plan/03-TARGET-SCHEMA.md` for migration targets
+📄 Reference `docs/schema/CURRENT_FIRESTORE_SCHEMA.md` for current schema status  
+📄 See `docs/schema/architect.md` for architect collection schema  
+📄 See `docs/ARCHITECT_PLAN_INDEX.md` for complete Architect feature documentation
 
 ---
 
@@ -106,6 +115,17 @@ const players = team.data().capSheet.players; // Array of flattened player objec
   - `teams`: team rosters + `capSheet.players[]` with `contract_clean` (migrating to `/architect/`)
 
 ⚠️ Do not modify Firestore read logic without validating against `usePlayerData.js` and Firebase helpers.
+
+---
+
+## Schema Rules
+
+- Canonical source: `src/schemas/` (Zod-based code-first schemas)
+- Generated docs: `docs/schema/` (auto-generated from schemas)
+- Do not declare duplicate `Player*` or `Contract*` interfaces outside `src/schemas/`
+
+📄 See `docs/schema/players_v2.md` for players_v2 structure  
+📄 See `docs/schema/architect.md` for architect collections
 
 ---
 
@@ -123,13 +143,14 @@ const players = team.data().capSheet.players; // Array of flattened player objec
 This project includes **generated docs** for navigation:
 
 - **Component hierarchies**: `docs/ArchitectHierarchy.md`, `docs/FiltersHierarchy.md`, etc.
-- **Migration documentation**: `docs/architect-teams-plan/` for target schema
-- **Current schema**: `docs/CURRENT_FIRESTORE_SCHEMA.md` for active collections
+- **Schema documentation**: `docs/schema/` for all Firestore collections
+- **Current schema**: `docs/schema/CURRENT_FIRESTORE_SCHEMA.md` for active collections
 
 ### Refresh Documentation
 
 ```bash
-npm run docs
+npm run docs          # Generate component hierarchies
+npm run schema:generate  # Generate schema docs from Zod sources
 ```
 
 ---
@@ -138,5 +159,5 @@ npm run docs
 
 - `DEVELOPER_GUIDE.md` → detailed file structure, key files, and component logic
 - `README.md` → setup instructions
-- `docs/architect-teams-plan/` → target schema for teams migration
+- `docs/schema/architect.md` → architect collection schema
 - Use `/features/profile/` and `/features/lists/` as **structural examples**

@@ -220,6 +220,11 @@ async function runOne(p, attempt = 1, maxAttempts = 3) {
       await appendPreview(p.id, payload);
       if (DO_CLEANUP) await rm(placedPath, { force: true });
     }
+    // Clean up temp files from working directory after successful processing
+    const tempHtml = resolve(WORKING_DIR, `${p.fileId}.html`);
+    const tempJson = resolve(WORKING_DIR, `${p.fileId}.json`);
+    await rm(tempHtml, { force: true }).catch(() => {});
+    await rm(tempJson, { force: true }).catch(() => {});
     console.log(`[${now()}] ✅ DONE  ${p.team}/${p.id}`);
     return { id: p.id, status: 'ok' };
   } catch (err) {

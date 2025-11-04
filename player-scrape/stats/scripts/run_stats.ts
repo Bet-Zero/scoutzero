@@ -11,7 +11,7 @@ import {
   fetchPlayerStatsAdvanced,
   fetchTeamStatsPerGame,
 } from './fetch_player_stats';
-import { parseStats } from './parse_stats';
+import { parseStats, type ParsedSeason } from './parse_stats';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -28,6 +28,109 @@ type PlayerIndex = Record<
 
 async function readJson<T>(p: string): Promise<T> {
   return JSON.parse(await fs.readFile(p, 'utf8')) as T;
+}
+
+// Helper function to compute USG% from team stats (exported for regression tests)
+function computeUsagePercent(
+  parsed: ParsedSeason,
+  teamCode: string | undefined,
+  teamStatsJson: any
+): void {
+  if (!teamStatsJson || !teamCode) return;
+  try {
+    const set = (
+      teamStatsJson.resultSets ||
+      teamStatsJson.ResultSets ||
+      []
+    ).find(
+      (s: any) =>
+        String(s.name || s.Name)
+          .toLowerCase()
+          .includes('leaguedashteamstats') || true
+    );
+    if (set) {
+      const headers: string[] = set.headers || set.Headers || [];
+      const rows: any[][] = set.rowSet || set.RowSet || [];
+      const idxAbbr = headers.findIndex(
+        (h) =>
+          String(h).toUpperCase().includes('TEAM_ABBREVIATION') ||
+          String(h).toUpperCase() === 'TEAM_ABBREVIATION'
+      );
+      const idxFGA = headers.findIndex(
+        (h) => String(h).toUpperCase() === 'FGA'
+      );
+      const idxFTA = headers.findIndex(
+        (h) => String(h).toUpperCase() === 'FTA'
+      );
+      const idxTOV = headers.findIndex(
+        (h) => String(h).toUpperCase() === 'TOV'
+      );
+      const idxMIN = headers.findIndex(
+        (h) => String(h).toUpperCase() === 'MIN'
+      );
+      const row = rows.find((r) => String(r[idxAbbr]) === teamCode);
+      if (row) {
+        const tFGA = Number(row[idxFGA]);
+        const tFTA = Number(row[idxFTA]);
+        const tTOV = Number(row[idxTOV]);
+        const tMIN = Number(row[idxMIN]);
+        const FGA = parsed.stats['FGA'] ?? 0;
+        const FTA = parsed.stats['FTA'] ?? 0;
+        const TOV = parsed.stats['TOV'] ?? 0;
+        const MIN = parsed.stats['MIN'] ?? 0;
+        const denom = MIN * (tFGA + 0.44 * tFTA + tTOV);
+        if (denom && tMIN) {
+          parsed.stats['USG%'] =
+            (100 * ((FGA + 0.44 * FTA + TOV) * (tMIN / 5))) / denom;
+        }
+      }
+    }
+  } catch {}
+}
+
+// Helper function to build output structure (exported for regression tests)
+export function buildStatsOutput(
+  parsed: ParsedSeason,
+  playerId: string,
+  teamCode: string | undefined,
+  teamStatsJson?: any
+): {
+  playerId: string;
+  teamCode: string | null;
+  seasons: Record<string, any>;
+  meta: {
+    lastStatsUpdate: { _seconds: number; _nanoseconds: number };
+    statsSeasonTag: string;
+    statsCarryOver: boolean;
+    provenance: string;
+  };
+} {
+  // Compute USG% if team stats provided
+  if (teamStatsJson) {
+    computeUsagePercent(parsed, parsed.team || teamCode, teamStatsJson);
+  }
+
+  return {
+    playerId,
+    teamCode: parsed.team || teamCode || null,
+    seasons: {
+      [parsed.seasonId]: {
+        team: parsed.team || teamCode || null,
+        age: parsed.age ?? null,
+        pos: parsed.pos ?? null,
+        stats: parsed.stats,
+      },
+    },
+    meta: {
+      lastStatsUpdate: {
+        _seconds: Math.floor(Date.now() / 1000),
+        _nanoseconds: 0,
+      },
+      statsSeasonTag: parsed.seasonId,
+      statsCarryOver: false,
+      provenance: 'nba_stats',
+    },
+  };
 }
 
 async function main() {
@@ -73,74 +176,12 @@ async function main() {
   const parsed = parseStats(base, adv, { season, teamCode, pos, age });
 
   // Compute USG% if possible using team per-game totals
+  let teamStatsJson: any = null;
   try {
-    const teamStats = await fetchTeamStatsPerGame(season);
-    const set = (teamStats.resultSets || teamStats.ResultSets || []).find(
-      (s: any) =>
-        String(s.name || s.Name)
-          .toLowerCase()
-          .includes('leaguedashteamstats') || true
-    );
-    if (set) {
-      const headers: string[] = set.headers || set.Headers || [];
-      const rows: any[][] = set.rowSet || set.RowSet || [];
-      const idxAbbr = headers.findIndex(
-        (h) =>
-          String(h).toUpperCase().includes('TEAM_ABBREVIATION') ||
-          String(h).toUpperCase() === 'TEAM_ABBREVIATION'
-      );
-      const idxFGA = headers.findIndex(
-        (h) => String(h).toUpperCase() === 'FGA'
-      );
-      const idxFTA = headers.findIndex(
-        (h) => String(h).toUpperCase() === 'FTA'
-      );
-      const idxTOV = headers.findIndex(
-        (h) => String(h).toUpperCase() === 'TOV'
-      );
-      const idxMIN = headers.findIndex(
-        (h) => String(h).toUpperCase() === 'MIN'
-      );
-      const row = rows.find((r) => teamCode && String(r[idxAbbr]) === teamCode);
-      if (row) {
-        const tFGA = Number(row[idxFGA]);
-        const tFTA = Number(row[idxFTA]);
-        const tTOV = Number(row[idxTOV]);
-        const tMIN = Number(row[idxMIN]);
-        const FGA = parsed.stats['FGA'] ?? 0;
-        const FTA = parsed.stats['FTA'] ?? 0;
-        const TOV = parsed.stats['TOV'] ?? 0;
-        const MIN = parsed.stats['MIN'] ?? 0;
-        const denom = MIN * (tFGA + 0.44 * tFTA + tTOV);
-        if (denom && tMIN) {
-          parsed.stats['USG%'] =
-            (100 * ((FGA + 0.44 * FTA + TOV) * (tMIN / 5))) / denom;
-        }
-      }
-    }
+    teamStatsJson = await fetchTeamStatsPerGame(season);
   } catch {}
 
-  const out = {
-    playerId,
-    teamCode: parsed.team || teamCode || null,
-    seasons: {
-      [parsed.seasonId]: {
-        team: parsed.team || teamCode || null,
-        age: parsed.age ?? null,
-        pos: parsed.pos ?? null,
-        stats: parsed.stats,
-      },
-    },
-    meta: {
-      lastStatsUpdate: {
-        _seconds: Math.floor(Date.now() / 1000),
-        _nanoseconds: 0,
-      },
-      statsSeasonTag: parsed.seasonId,
-      statsCarryOver: false,
-      provenance: 'nba_stats',
-    },
-  };
+  const out = buildStatsOutput(parsed, playerId, teamCode, teamStatsJson);
 
   const teamOutDir = path.join(
     paths.outputDir,

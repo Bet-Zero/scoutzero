@@ -64,6 +64,7 @@ src/
   utils/            Helper utilities for filtering, formatting and roster logic
   constants/        Shared constants (role lists, badges)
   firebase/         Firestore helper modules
+  schemas/          Canonical Zod schemas for players_v2 and architect collections
   styles/           Additional style sheets
   firebaseConfig.js Firebase client initialization
   firebaseHelpers.js Helper functions for Firestore writes
@@ -91,7 +92,7 @@ This project uses multiple Firestore collections to separate global player data 
 - `/teams` — team rosters and `contract_clean` used for GM/cap tools
 
 📄 See [`docs/architecture/DATA_SOURCE_MAP.md`](./docs/architecture/DATA_SOURCE_MAP.md) for full usage rules  
-📄 See [`docs/architecture/FIRESTORE_SCHEMA.md`](./docs/architecture/FIRESTORE_SCHEMA.md) for detailed field breakdowns
+📄 See [`docs/schema/CURRENT_FIRESTORE_SCHEMA.md`](./docs/schema/CURRENT_FIRESTORE_SCHEMA.md) for canonical schema reference
 
 ## Related Projects
 

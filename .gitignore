@@ -123,3 +123,6 @@ assessment-docs/
 
 # Generated documentation hierarchy files
 docs/*Hierarchy.md
+
+# Player scrape output files
+player-scrape/stats/output/

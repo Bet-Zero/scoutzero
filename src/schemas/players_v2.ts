@@ -4,7 +4,6 @@ import {
   MoneyZ,
   OptionTypeZ,
   PlayerIdZ,
-  PositionCodeZ,
   SeasonCodeZ,
   TeamCodeZ,
   TimestampZ,
@@ -108,7 +107,7 @@ export const ContractDocZ = z.object({
 });
 
 // Seasons subcollection
-export const SeasonStatsZ = z.record(z.union([z.string(), z.literal('%')]), z.any()).catchall(z.any());
+export const SeasonStatsZ = z.record(z.union([z.string(), z.literal('%')]), z.any());
 
 export const SeasonDocZ = z.object({
   age: z.number().int().optional(),
