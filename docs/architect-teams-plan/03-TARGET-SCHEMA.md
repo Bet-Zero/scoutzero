@@ -4,6 +4,10 @@
 
 This document provides exact, field-by-field examples of the target Firestore data structure for the Architect Teams Plan.
 
+**Canonical schema**: `src/schemas/architect.ts` (Zod definitions)  
+**Generated docs**: `docs/schema/architect.md` (auto-generated from Zod schemas)  
+**This document**: Detailed examples and implementation guidance for the Architect Teams Plan
+
 ---
 
 ## 1. Base Team Document
@@ -255,7 +259,12 @@ This document provides exact, field-by-field examples of the target Firestore da
         "weight": "206",
         "age": 26,
         "birthdate": "1998-05-29",
-        "experience": 3  // Years in NBA
+        "experience": 3,  // Years in NBA
+        "shoots": "Right",
+        "draftYear": "2021",
+        "draftRound": 2,
+        "draftPick": 39,
+        "draftedBy": "LAL"
       },
 
       // ===== CONTRACT SUMMARY =====
@@ -269,6 +278,7 @@ This document provides exact, field-by-field examples of the target Firestore da
         "signedUsing": "Bird Exception",  // "Bird" | "Early Bird" | "Non-Bird" | "MLE" | "Room" | "Minimum" | "TPE"
         "signingTeam": "LAL",
         "signingDate": "2023-06-29",
+        "signingExecutive": "Rob Pelinka",
         "signedByCurrentTeam": true,
 
         // Contract duration
@@ -292,11 +302,16 @@ This document provides exact, field-by-field examples of the target Firestore da
             "guaranteed": true,
             "guaranteedAmount": 12000000,
             "option": null,  // null | "PO" (Player Option) | "TO" (Team Option) | "ETO" (Early Termination)
+            "optionUsed": null,
+            "optionDecisionDate": null,
             "tradeBonus": null,  // null or dollar amount
             "incentives": {
               "likely": 0,
               "unlikely": 0
-            }
+            },
+            "guaranteeSchedule": null,
+            "voidedByExtension": false,
+            "voidedOn": null
           },
           {
             "season": "2026-27",
@@ -305,11 +320,16 @@ This document provides exact, field-by-field examples of the target Firestore da
             "guaranteed": true,
             "guaranteedAmount": 13900000,
             "option": null,
+            "optionUsed": null,
+            "optionDecisionDate": null,
             "tradeBonus": null,
             "incentives": {
               "likely": 0,
               "unlikely": 0
-            }
+            },
+            "guaranteeSchedule": null,
+            "voidedByExtension": false,
+            "voidedOn": null
           },
           {
             "season": "2027-28",
@@ -318,11 +338,16 @@ This document provides exact, field-by-field examples of the target Firestore da
             "guaranteed": false,
             "guaranteedAmount": 0,
             "option": "PO",  // Player option
+            "optionUsed": null,  // null | true | false (decided upon)
+            "optionDecisionDate": null,  // Date when option decision made
             "tradeBonus": null,
             "incentives": {
               "likely": 0,
               "unlikely": 0
-            }
+            },
+            "guaranteeSchedule": null,  // Optional array of guarantee milestones
+            "voidedByExtension": false,  // If year voided by extension
+            "voidedOn": null  // Date when voided, if applicable
           }
         ],
 
@@ -344,12 +369,15 @@ This document provides exact, field-by-field examples of the target Firestore da
           "year": 2028,  // When they become FA (if option declined)
           "capHold": 18750000,  // Cap hold amount if unsigned
           "qualifyingOffer": null,  // For RFAs only
-          "earlyTerminationOption": null  // If player has ETO
+          "earlyTerminationOption": null,  // If player has ETO
+          "hasOption": true,  // If current contract has option
+          "optionYear": "2027-28",  // Which year has the option
+          "optionType": "PO"  // "PO" | "TO" | "ETO"
         },
 
         // ===== TRADE ELIGIBILITY =====
         "tradeEligibility": {
-          "canBeTradedNow": true,
+          "canBeTradedNow": null,  // Always null in base schema (validation happens at runtime)
           "restrictedUntil": null,  // Date string if recently signed/traded
           "reason": null,  // "Recent signing" | "Recent trade" | "Two-way conversion" | null
           "rules": {
@@ -357,7 +385,24 @@ This document provides exact, field-by-field examples of the target Firestore da
             "poisonPill": false,  // Poison pill applies?
             "aggregation": true  // Can be aggregated with other salaries?
           }
-        }
+        },
+
+        // ===== CONTRACT METADATA =====
+        "isMaxContract": false,  // If player on max contract
+        "maxType": null,  // null | "25%" | "30%" | "35%" (max tier)
+        "estimatedCapPercentage": 8.5,  // Estimated % of cap
+        "supersededIn": null,  // Season when superseded by extension
+        "supersededByContractRef": null,  // Reference to replacement contract
+        "supersedesContractRef": null  // Reference to contract this supersedes
+      },
+
+      // ===== FUTURE CONTRACT (Optional) =====
+      "futureContract": null,  // Contract that starts after current one (e.g., supermax extension)
+
+      // ===== REPRESENTATION (Optional) =====
+      "representation": {
+        "agent": "Austin Brown",
+        "agency": "CAA"
       },
 
       // ===== METADATA =====
@@ -391,12 +436,11 @@ This document provides exact, field-by-field examples of the target Firestore da
         "age": 23,
         "birthdate": "2001-08-05",
         "experience": 4,
-        "draft": {
-          "year": 2020,
-          "round": 1,
-          "pick": 1,
-          "team": "MIN"
-        }
+        "shoots": "Right",
+        "draftYear": "2020",
+        "draftRound": 1,
+        "draftPick": 1,
+        "draftedBy": "MIN"
       },
 
       "contract": {
@@ -407,6 +451,7 @@ This document provides exact, field-by-field examples of the target Firestore da
         "signedUsing": "Bird Exception",
         "signingTeam": "MIN",
         "signingDate": "2024-07-06",
+        "signingExecutive": "Tim Connelly",
         "signedByCurrentTeam": true,
 
         "startSeason": "2024-25",
@@ -427,8 +472,13 @@ This document provides exact, field-by-field examples of the target Firestore da
             "guaranteed": true,
             "guaranteedAmount": 42295455,
             "option": null,
+            "optionUsed": null,
+            "optionDecisionDate": null,
             "tradeBonus": null,
-            "incentives": { "likely": 0, "unlikely": 500000 }  // All-NBA bonus
+            "incentives": { "likely": 0, "unlikely": 500000 },  // All-NBA bonus
+            "guaranteeSchedule": null,
+            "voidedByExtension": false,
+            "voidedOn": null
           },
           {
             "season": "2026-27",
@@ -437,8 +487,13 @@ This document provides exact, field-by-field examples of the target Firestore da
             "guaranteed": true,
             "guaranteedAmount": 45679242,
             "option": null,
+            "optionUsed": null,
+            "optionDecisionDate": null,
             "tradeBonus": null,
-            "incentives": { "likely": 0, "unlikely": 500000 }
+            "incentives": { "likely": 0, "unlikely": 500000 },
+            "guaranteeSchedule": null,
+            "voidedByExtension": false,
+            "voidedOn": null
           },
           {
             "season": "2027-28",
@@ -447,8 +502,13 @@ This document provides exact, field-by-field examples of the target Firestore da
             "guaranteed": true,
             "guaranteedAmount": 49063028,
             "option": null,
+            "optionUsed": null,
+            "optionDecisionDate": null,
             "tradeBonus": null,
-            "incentives": { "likely": 0, "unlikely": 500000 }
+            "incentives": { "likely": 0, "unlikely": 500000 },
+            "guaranteeSchedule": null,
+            "voidedByExtension": false,
+            "voidedOn": null
           },
           {
             "season": "2028-29",
@@ -457,8 +517,13 @@ This document provides exact, field-by-field examples of the target Firestore da
             "guaranteed": true,
             "guaranteedAmount": 52446815,
             "option": null,
+            "optionUsed": null,
+            "optionDecisionDate": null,
             "tradeBonus": 15,  // 15% trade kicker in final year
-            "incentives": { "likely": 0, "unlikely": 500000 }
+            "incentives": { "likely": 0, "unlikely": 500000 },
+            "guaranteeSchedule": null,
+            "voidedByExtension": false,
+            "voidedOn": null
           }
         ],
 
@@ -478,11 +543,14 @@ This document provides exact, field-by-field examples of the target Firestore da
           "year": 2029,
           "capHold": null,
           "qualifyingOffer": null,
-          "earlyTerminationOption": null
+          "earlyTerminationOption": null,
+          "hasOption": false,
+          "optionYear": null,
+          "optionType": null
         },
 
         "tradeEligibility": {
-          "canBeTradedNow": true,
+          "canBeTradedNow": null,
           "restrictedUntil": "2025-01-06",  // 6 months after extension signed
           "reason": "Recent extension",
           "rules": {
@@ -490,7 +558,21 @@ This document provides exact, field-by-field examples of the target Firestore da
             "poisonPill": true,  // ← Poison pill applies (rookie extension)
             "aggregation": true
           }
-        }
+        },
+
+        // ===== CONTRACT METADATA =====
+        "isMaxContract": true,
+        "maxType": "25%",
+        "estimatedCapPercentage": 30.0,
+        "supersededIn": null,
+        "supersededByContractRef": null,
+        "supersedesContractRef": null
+      },
+
+      "futureContract": null,
+      "representation": {
+        "agent": "Omar Wilkes",
+        "agency": "Klutch Sports"
       },
 
       "source": {
@@ -679,6 +761,44 @@ This document provides exact, field-by-field examples of the target Firestore da
 - Base: 4 MB (shared)
 - Worlds: 50 × 150 KB = **7.5 MB**
 - **Total:** **~12 MB** (very manageable)
+
+---
+
+---
+
+## Field Reference Notes
+
+### Per-Year Salary Fields
+
+**Standard Fields** (all years):
+
+- `season`, `salary`, `capHit`, `guaranteed`, `guaranteedAmount`, `option`, `tradeBonus`, `incentives`
+
+**Optional Fields** (present when relevant):
+
+- `optionUsed`: `null` (not decided), `true` (picked up), `false` (declined)
+- `optionDecisionDate`: Date string when option decision made
+- `guaranteeSchedule`: Array of `{effectiveDate, guaranteedAmount, status, note}` for partial guarantees
+- `voidedByExtension`: `true` if this year voided by extension
+- `voidedOn`: Date string when voided
+
+### Contract Metadata Fields
+
+**Max Contract Tracking**:
+
+- `isMaxContract`: `true` if on max contract
+- `maxType`: `"25%"` | `"30%"` | `"35%"` for max tier
+- `estimatedCapPercentage`: Estimated percentage of cap
+
+**Extension Relationships**:
+
+- `supersededIn`: Season when replaced by extension
+- `supersededByContractRef`: Reference to replacement contract
+- `supersedesContractRef`: Reference to contract this supersedes
+
+### Trade Eligibility
+
+**Important**: `canBeTradedNow` is always `null` in the base schema. Trade eligibility is determined at runtime based on other fields (signingDate, restrictedUntil, etc.)
 
 ---
 
