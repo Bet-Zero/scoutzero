@@ -46,7 +46,7 @@ export const ExceptionsZ = z.object({
 export const ExceptionsExtraFieldsZ = z.record(z.string(), z.any());
 
 export const DraftPickZ = z.object({
-  season: SeasonCodeZ,
+  year: z.number().int(),
   round: z.number().int(),
   pick: z.number().int().nullable(),
   owner: TeamCodeZ,

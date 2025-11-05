@@ -74,7 +74,12 @@
     "contracts:one": "tsx player-scrape/contracts/scripts/run_contracts.ts --player=austin_reaves --resume",
     "contracts:push": "tsx player-scrape/contracts/scripts/run_contracts.ts --push --resume",
     "build-player-index": "npx tsx player-scrape/shared/scripts/build_player_index.ts",
-    "realgm:drafts": "tsx team-scrape/scripts/realgm_draft_picks.ts"
+    "realgm:drafts": "tsx team-scrape/scripts/realgm_draft_picks.ts",
+    "peek:ids": "node -e \"const p=require('./player-scrape/shared/outputs/all_player_ids.json'); console.log(Object.keys(p).length)\"",
+    "peek:has": "node -e \"const p=require('./player-scrape/shared/outputs/all_player_ids.json'); const ids=(process.env.IDS||'').split(',').map(x=>+x).filter(Boolean); for (const id of ids){let key=null; for(const [k,v] of Object.entries(p)) if(v===id){key=k;break} console.log(id,Boolean(key),key||'')}\"",
+    "peek:unresolved": "node -e \"console.log(JSON.stringify(require('./player-scrape/shared/reports/unresolved_names.json'),null,2))\"",
+    "peek:dupes": "node -e \"console.log(JSON.stringify(require('./player-scrape/shared/reports/dupe_name_candidates.json'),null,2))\"",
+    "peek:filtered": "node -e \"console.log(JSON.stringify(require('./player-scrape/shared/reports/filtered_out.json'),null,2))\""
   },
   "dependencies": {
     "@headlessui/react": "^2.2.6",

@@ -127,6 +127,8 @@ interface DraftPick {
   metadata?: any;
   recipient?: string;
   contendingTeams?: string[];
+  // Optional minimal fields for upload
+  owner?: string; // mirrors currentOwner for minimal drafts schema
 }
 
 interface MergedTeamData {
@@ -143,6 +145,8 @@ interface MergedTeamData {
     own: DraftPick[];
     contested: DraftPick[];
   };
+  // Flat array used by Trade Machine to quickly list tradable picks
+  tradablePicks: DraftPick[];
   sources: {
     salary: {
       provider: string;
@@ -216,6 +220,11 @@ function serializeJSON(obj: any): string {
 // MERGE LOGIC
 // ============================================================================
 
+// Normalize draft pick fields for architect compatibility (year-based)
+function normalizeDraftPickForTeam(pick: DraftPick): DraftPick {
+  return { ...pick, owner: pick.currentOwner };
+}
+
 /**
  * Group draft picks by status (incoming, outgoing, own, contested)
  */
@@ -273,6 +282,19 @@ function mergeTeamData(
 ): MergedTeamData {
   const now = new Date().toISOString();
 
+  // 1) Filter to picks that this team currently owns (assignment by currentOwner)
+  const ownedByTeam = (draftPicks || []).filter(
+    (p) => p.currentOwner === teamCode
+  );
+
+  // 2) Add season/owner fields for schema alignment
+  const normalizedOwned = ownedByTeam.map((p) => normalizeDraftPickForTeam(p));
+
+  // 3) Build a flat list of tradable picks for Trade Machine convenience
+  const tradablePicks = normalizedOwned
+    .filter((p) => p.tradeable)
+    .sort((a, b) => (a.year !== b.year ? a.year - b.year : a.round - b.round));
+
   // If no salary data, create minimal structure
   if (!salaryData) {
     warn(`No salary data for ${teamCode}, creating minimal merged document`);
@@ -285,7 +307,8 @@ function mergeTeamData(
       capHolds: [],
       exceptions: { tpe: [] },
       totals: {},
-      draftPicks: groupDraftPicksByStatus(draftPicks),
+      draftPicks: groupDraftPicksByStatus(normalizedOwned),
+      tradablePicks,
       sources: {
         salary: {
           provider: 'None',
@@ -294,7 +317,7 @@ function mergeTeamData(
         },
         draftPicks: {
           provider: 'RealGM',
-          url: draftPicks[0]?.detailUrl || '',
+          url: normalizedOwned[0]?.detailUrl || '',
           scrapedAt: now,
         },
       },
@@ -312,7 +335,8 @@ function mergeTeamData(
     capHolds: salaryData.capHolds,
     exceptions: salaryData.exceptions,
     totals: salaryData.totals,
-    draftPicks: groupDraftPicksByStatus(draftPicks),
+    draftPicks: groupDraftPicksByStatus(normalizedOwned),
+    tradablePicks,
     sources: {
       salary: {
         provider: salaryData.source.provider,
@@ -321,7 +345,7 @@ function mergeTeamData(
       },
       draftPicks: {
         provider: 'RealGM',
-        url: draftPicks[0]?.detailUrl || '',
+        url: normalizedOwned[0]?.detailUrl || '',
         scrapedAt: now,
       },
     },
