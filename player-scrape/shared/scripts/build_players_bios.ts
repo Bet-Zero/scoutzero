@@ -126,6 +126,7 @@ function extractFromCommonPlayerInfo(json: any): {
   weight: string | null;
   age: number | null;
   yearsPro: number | null;
+  birthdate: string | null;
 } {
   // The response has a ResultSets with headers/rowSet; find the set that has PLAYER_ID
   const rs = (json.resultSets ?? json.ResultSets)?.find(
@@ -139,6 +140,7 @@ function extractFromCommonPlayerInfo(json: any): {
       weight: null,
       age: null,
       yearsPro: null,
+      birthdate: null,
     };
 
   const idx = Object.fromEntries(
@@ -153,6 +155,7 @@ function extractFromCommonPlayerInfo(json: any): {
       weight: null,
       age: null,
       yearsPro: null,
+      birthdate: null,
     };
 
   const teamFull = String(row[idx['TEAM_NAME']] ?? '').trim();
@@ -178,7 +181,7 @@ function extractFromCommonPlayerInfo(json: any): {
     }
   }
 
-  return { teamName, position, height, weight, age, yearsPro };
+  return { teamName, position, height, weight, age, yearsPro, birthdate: birthDate };
 }
 
 function isEmptyInfo(info: {
@@ -254,13 +257,20 @@ function extractFromPlayerHtml(html: string): {
         // height weight
         if (lowerKeys.has('height') && results.height == null) {
           const v = (node as any)['height'];
-          if (typeof v === 'string' && /\d-\d/.test(v)) results.height = v.trim();
-          if (results.height == null && typeof v === 'number') results.height = String(v);
+          // Only accept string format matching "X-Y" pattern (e.g., "6-8")
+          if (typeof v === 'string' && /^\d+-\d+$/.test(v.trim())) {
+            results.height = v.trim();
+          }
         }
         if (lowerKeys.has('weight') && results.weight == null) {
           const v = (node as any)['weight'];
-          if (typeof v === 'string' && /\d{2,3}/.test(v)) results.weight = (v.match(/\d{2,3}/) || [''])[0];
-          if (results.weight == null && typeof v === 'number') results.weight = String(v);
+          // Only accept valid weight strings or numbers
+          if (typeof v === 'string' && /\d{2,3}/.test(v)) {
+            results.weight = (v.match(/\d{2,3}/) || [''])[0];
+          } else if (typeof v === 'number' && v >= 100 && v <= 400) {
+            // Reasonable weight range for NBA players
+            results.weight = String(v);
+          }
         }
 
         // birthdate
@@ -373,6 +383,7 @@ async function main() {
           position: h.position,
           height: h.height,
           weight: h.weight,
+          birthdate: (h as any).birthdate ?? info.birthdate,
           age: (() => {
             // compute from birthdate when present
             const bd = (h as any).birthdate as string | null;
@@ -398,12 +409,13 @@ async function main() {
 
       output[nameKey] = {
         bio: {
-          HT: finalInfo.height ?? undefined,
-          WT: finalInfo.weight ?? undefined,
-          AGE: finalInfo.age ?? undefined,
-          'Years Pro': finalInfo.yearsPro ?? undefined,
-          Team: finalInfo.teamName ?? undefined,
-          Position: finalInfo.position ?? undefined,
+          height: finalInfo.height ?? undefined,
+          weight: finalInfo.weight ?? undefined,
+          age: finalInfo.age ?? undefined,
+          experience: finalInfo.yearsPro ?? undefined,
+          position: finalInfo.position ?? undefined,
+          team: finalInfo.teamName ?? undefined,
+          birthdate: (finalInfo as any).birthdate ?? undefined,
         },
       };
       const ms = Date.now() - start;
