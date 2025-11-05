@@ -5,7 +5,7 @@
 //      { "precious_achiuwa": 1630173, ... }
 //
 //  - player-scrape/shared/players_bios_2025.json
-//      { "precious_achiuwa": { bio: { Team: "Knicks", ... } }, ... }
+//      { "precious_achiuwa": { bio: { team: "Knicks", ... } }, ... }
 //
 // Output:
 //  - player-scrape/shared/player_index.json
@@ -65,8 +65,13 @@ type PlayerBiosFile = Record<
   {
     bio?: {
       Team?: string;
+      team?: string;
       Position?: string;
+      position?: string;
       AGE?: number;
+      age?: number;
+      experience?: number | string | null;
+      yearsPro?: number | null;
       [key: string]: any;
     };
     [key: string]: any;
@@ -200,7 +205,7 @@ function main() {
 
   for (const [playerId, nbaId] of Object.entries(allPlayerIds)) {
     const bioEntry = biosData[playerId];
-    const bioTeamName = bioEntry?.bio?.Team ?? null;
+    const bioTeamName = bioEntry?.bio?.team ?? bioEntry?.bio?.Team ?? null;
 
     const fullName = toFullName(playerId);
     const salarySwishSlug = slugOverrides[playerId] || toSalarySwishSlug(playerId);
