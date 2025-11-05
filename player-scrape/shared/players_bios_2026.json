@@ -1,1 +1,37 @@
-{}
+{
+  "aaron_gordon": {
+    "bio": {
+      "HT": "360",
+      "Team": "DEN",
+      "Position": "F"
+    }
+  },
+  "aaron_holiday": {
+    "bio": {
+      "HT": "360",
+      "Team": "HOU",
+      "Position": "G"
+    }
+  },
+  "aaron_nesmith": {
+    "bio": {
+      "HT": "360",
+      "Team": "IND",
+      "Position": "F"
+    }
+  },
+  "aaron_wiggins": {
+    "bio": {
+      "HT": "360",
+      "Team": "OKC",
+      "Position": "F"
+    }
+  },
+  "ace_bailey": {
+    "bio": {
+      "HT": "360",
+      "Team": "UTA",
+      "Position": "F"
+    }
+  }
+}
