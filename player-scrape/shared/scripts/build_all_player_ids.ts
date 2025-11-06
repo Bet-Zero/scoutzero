@@ -451,7 +451,7 @@ function writePretty(path: string, obj: any) {
   for (const id of idSet) {
     const stableKey = prevIdToKey.get(id);
     if (stableKey) {
-      output[stableKey] = id; // preserve previous key
+      output[stableKey] = id;
       continue;
     }
     const fullName = idToName.get(id) || `id_${id}`;

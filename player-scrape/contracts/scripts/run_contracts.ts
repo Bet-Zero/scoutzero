@@ -41,7 +41,12 @@ const CONTRACTS_DIR = resolve(PLAYER_SCRAPE_ROOT, 'contracts');
 const WORKING_DIR = resolve(CONTRACTS_DIR, 'working');
 const SCRIPTS_DIR = resolve(CONTRACTS_DIR, 'scripts');
 const OUT_BASE = resolve(CONTRACTS_DIR, 'output');
-const INDEX_PATH = resolve(PLAYER_SCRAPE_ROOT, 'shared', 'player_index.json');
+const INDEX_PATH = resolve(
+  PLAYER_SCRAPE_ROOT,
+  'shared',
+  'outputs',
+  'player_index.json'
+);
 
 const FETCH_SCRIPT = resolve(SCRIPTS_DIR, 'fetch_player_page.ts');
 const PARSE_SCRIPT = resolve(SCRIPTS_DIR, 'parse_player.ts');

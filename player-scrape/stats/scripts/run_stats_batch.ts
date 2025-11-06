@@ -73,7 +73,10 @@ const SEASON_INPUT = getArg('season', undefined);
 
 /** ---------- Load player index ---------- */
 async function loadIndex(): Promise<Array<{ id: string; entry: any }>> {
-  const indexPath = path.resolve(__dirname, '../../shared/player_index.json');
+  const indexPath = path.resolve(
+    __dirname,
+    '../../shared/outputs/player_index.json'
+  );
   const index = JSON.parse(await fs.readFile(indexPath, 'utf8')) as PlayerIndex;
 
   const players: Array<{ id: string; entry: any }> = [];

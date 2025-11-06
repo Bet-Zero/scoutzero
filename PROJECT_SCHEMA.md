@@ -445,7 +445,7 @@ npm run realgm:drafts
 
 ### Player Index
 
-**Location:** Built via `npm run build-player-index`
+**Location:** `player-scrape/shared/outputs/player_index.json` (built via `npm run build-player-index`)
 
 **Format:** JSON list of player metadata
 

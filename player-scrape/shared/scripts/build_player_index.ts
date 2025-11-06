@@ -52,10 +52,20 @@ function arg(flag: string, fallback?: string) {
 
 const SEASON_LABEL = Number(process.env.SEASON ?? arg('season', '2026'));
 const IDS_PATH = path.resolve(OUTPUTS_DIR, 'all_player_ids.json');
-const BIOS_PATH = path.resolve(SHARED_DIR, `players_bios_${SEASON_LABEL}.json`);
-const OUTPUT_PATH = path.resolve(SHARED_DIR, 'player_index.json');
+const BIOS_PATH = path.resolve(
+  OUTPUTS_DIR,
+  `players_bios_${SEASON_LABEL}.json`
+);
+const OUTPUT_PATH = path.resolve(OUTPUTS_DIR, 'player_index.json');
 const REPORTS_DIR = path.resolve(SHARED_DIR, 'reports');
-const SLUG_OVERRIDES_PATH = path.resolve(OVERLAYS_DIR, 'salaryswish_overrides.json');
+const SLUG_OVERRIDES_PATH = path.resolve(
+  OVERLAYS_DIR,
+  'salaryswish_overrides.json'
+);
+const TEAM_OVERRIDES_PATH = path.resolve(OVERLAYS_DIR, 'team_overrides.json');
+const FA_LIST_JSON = path.resolve(OVERLAYS_DIR, 'free_agents.json');
+const FA_LIST_TXT = (season: number) =>
+  path.resolve(OUTPUTS_DIR, `free_agents_${season}.txt`);
 
 // ---- types ----
 type AllPlayerIds = Record<string, number>;
@@ -174,6 +184,19 @@ function mapTeamNameToCode(teamNameRaw: any): string | null {
   return null; // FA, two-way not mapped cleanly, etc.
 }
 
+function isFreeAgentTeamString(teamNameRaw: any): boolean {
+  if (!teamNameRaw || typeof teamNameRaw !== 'string') return false;
+  const s = teamNameRaw.trim().toLowerCase();
+  return (
+    s === 'fa' ||
+    s === 'free agent' ||
+    s === 'free-agent' ||
+    s === 'unsigned' ||
+    s === 'waived' ||
+    s.includes('free agent')
+  );
+}
+
 function readJson<T>(p: string, fallback: T): T {
   try {
     return JSON.parse(fs.readFileSync(p, 'utf8')) as T;
@@ -199,7 +222,29 @@ function main() {
   }
   const biosRaw = fs.readFileSync(BIOS_PATH, 'utf8');
   const biosData: PlayerBiosFile = JSON.parse(biosRaw);
-  const slugOverrides = readJson<Record<string, string>>(SLUG_OVERRIDES_PATH, {});
+  const slugOverrides = readJson<Record<string, string>>(
+    SLUG_OVERRIDES_PATH,
+    {}
+  );
+  const teamOverrides = readJson<Record<string, string | null>>(
+    TEAM_OVERRIDES_PATH,
+    {}
+  );
+  // Optional free agent lists (either JSON array or newline-delimited txt)
+  const faSet = new Set<string>();
+  const faJson = readJson<string[]>(FA_LIST_JSON, []);
+  faJson.forEach((id) => faSet.add(String(id)));
+  try {
+    const faTxtPath = FA_LIST_TXT(SEASON_LABEL);
+    if (fs.existsSync(faTxtPath)) {
+      const raw = fs.readFileSync(faTxtPath, 'utf8');
+      raw
+        .split(/\r?\n/g)
+        .map((l) => l.trim())
+        .filter(Boolean)
+        .forEach((id) => faSet.add(id));
+    }
+  } catch {}
 
   const output: PlayerIndex = {};
 
@@ -208,8 +253,23 @@ function main() {
     const bioTeamName = bioEntry?.bio?.team ?? bioEntry?.bio?.Team ?? null;
 
     const fullName = toFullName(playerId);
-    const salarySwishSlug = slugOverrides[playerId] || toSalarySwishSlug(playerId);
-    const teamCode = mapTeamNameToCode(bioTeamName);
+    const salarySwishSlug =
+      slugOverrides[playerId] || toSalarySwishSlug(playerId);
+    const override = teamOverrides[playerId];
+    const teamCode =
+      // 1) explicit override takes precedence
+      override === null
+        ? null
+        : override
+          ? String(override).toUpperCase()
+          : // 2) bulk FA list forces null
+            faSet.has(playerId)
+            ? null
+            : // 3) heuristic: bios saying FA/unsigned
+              isFreeAgentTeamString(bioTeamName)
+              ? null
+              : // 4) otherwise map team normally (may still become null if unmapped)
+                mapTeamNameToCode(bioTeamName);
 
     output[playerId] = {
       fullName,
@@ -255,10 +315,15 @@ function main() {
     missingBios,
     missingTeamCount: missingTeam.length,
   };
-  const gapsPath = path.resolve(reportsDir, `player_index_gaps_${SEASON_LABEL}.json`);
+  const gapsPath = path.resolve(
+    reportsDir,
+    `player_index_gaps_${SEASON_LABEL}.json`
+  );
   fs.writeFileSync(gapsPath, JSON.stringify(gaps, null, 2), 'utf8');
   if (missingBios.length) {
-    console.warn(`⚠️ ${missingBios.length} players missing bios; see ${gapsPath}`);
+    console.warn(
+      `⚠️ ${missingBios.length} players missing bios; see ${gapsPath}`
+    );
   }
 }
 
