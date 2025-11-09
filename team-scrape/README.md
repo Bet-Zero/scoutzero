@@ -61,10 +61,10 @@ The team scraping workflow has 3 main phases:
 
 - ✅ **Per-team structured**: `draft-picks/output/structured/draft_picks_{TEAM}.json` - Picks the team currently controls (no outgoing obligations)
 
-**Shared Merge Data** (`shared/output/merged/`):
+**Shared Merge Data** (`shared/firestore_staging/output/merged/`):
 
-- ✅ **Complete**: `shared/output/merged/{TEAM}_merged.json` - Team data + draft picks combined
-- ✅ **All teams**: `shared/output/merged/all_teams_merged.json` - All merged teams in one file
+- ✅ **Complete**: `shared/firestore_staging/output/merged/{TEAM}_merged.json` - Team data + draft picks combined
+- ✅ **All teams**: `shared/firestore_staging/output/merged/all_teams_merged.json` - All merged teams in one file
 
 ## Current Architecture: Split-to-Merge Strategy
 
@@ -342,7 +342,7 @@ npm run realgm:drafts -- --teams LAL --pretty
 npm run merge:samples
 
 # Step 4: Review merged output
-cat team-scrape/shared/output/merged/LAL_merged.json
+cat team-scrape/shared/firestore_staging/output/merged/LAL_merged.json
 ```
 
 ## Data Connections

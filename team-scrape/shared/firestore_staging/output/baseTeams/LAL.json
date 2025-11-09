@@ -29,6 +29,7 @@
       "playerName": "Chris Manon",
       "amount": 2191886,
       "type": "RFA",
+      "season": "2026-27",
       "isSigned": false
     },
     {
@@ -36,6 +37,7 @@
       "playerName": "Nick Smith Jr",
       "amount": 2191886,
       "type": "RFA",
+      "season": "2026-27",
       "isSigned": false
     },
     {
@@ -43,6 +45,7 @@
       "playerName": "Dalton Knecht",
       "amount": 19358577,
       "type": "RFA",
+      "season": "2028-29",
       "isSigned": false
     },
     {
@@ -50,6 +53,7 @@
       "playerName": "Bronny James",
       "amount": 2972982,
       "type": "RFA",
+      "season": "2028-29",
       "isSigned": false
     },
     {
@@ -57,6 +61,7 @@
       "playerName": "Adou Thiero",
       "amount": 2972982,
       "type": "RFA",
+      "season": "2028-29",
       "isSigned": false
     },
     {
@@ -64,6 +69,7 @@
       "playerName": "LeBron James",
       "amount": 57915200,
       "type": "UFA",
+      "season": "2026-27",
       "isSigned": false
     },
     {
@@ -71,6 +77,7 @@
       "playerName": "Rui Hachimura",
       "amount": 27388889,
       "type": "UFA",
+      "season": "2026-27",
       "isSigned": false
     },
     {
@@ -78,6 +85,7 @@
       "playerName": "Gabe Vincent",
       "amount": 21850000,
       "type": "UFA",
+      "season": "2026-27",
       "isSigned": false
     },
     {
@@ -85,6 +93,7 @@
       "playerName": "Maxi Kleber",
       "amount": 20900000,
       "type": "UFA",
+      "season": "2026-27",
       "isSigned": false
     },
     {
@@ -92,6 +101,7 @@
       "playerName": "Jaxson Hayes",
       "amount": 6553714,
       "type": "UFA",
+      "season": "2026-27",
       "isSigned": false
     },
     {
@@ -99,6 +109,7 @@
       "playerName": "Christian Koloko",
       "amount": 2191886,
       "type": "UFA",
+      "season": "2026-27",
       "isSigned": false
     },
     {
@@ -106,6 +117,7 @@
       "playerName": "Austin Reaves",
       "amount": 28307693,
       "type": "UFA",
+      "season": "2027-28",
       "isSigned": false
     },
     {
@@ -113,6 +125,7 @@
       "playerName": "Deandre Ayton",
       "amount": 10535200,
       "type": "UFA",
+      "season": "2027-28",
       "isSigned": false
     },
     {
@@ -120,6 +133,7 @@
       "playerName": "Jake LaRavia",
       "amount": 7800000,
       "type": "UFA",
+      "season": "2027-28",
       "isSigned": false
     },
     {
@@ -127,6 +141,7 @@
       "playerName": "Marcus Smart",
       "amount": 7007910,
       "type": "UFA",
+      "season": "2027-28",
       "isSigned": false
     },
     {
@@ -134,6 +149,7 @@
       "playerName": "Jarred Vanderbilt",
       "amount": 25242857,
       "type": "UFA",
+      "season": "2028-29",
       "isSigned": false
     },
     {
@@ -141,6 +157,7 @@
       "playerName": "Luka Doncic",
       "amount": 77085050,
       "type": "UFA",
+      "season": "2029-30",
       "isSigned": false
     },
     {
@@ -148,6 +165,7 @@
       "playerName": "Wayne Ellington",
       "amount": 2296274,
       "type": "FA Cap Hold",
+      "season": "2025-26",
       "isSigned": false
     },
     {
@@ -155,6 +173,7 @@
       "playerName": "Avery Bradley",
       "amount": 2296274,
       "type": "FA Cap Hold",
+      "season": "2025-26",
       "isSigned": false
     },
     {
@@ -162,6 +181,7 @@
       "playerName": "Jared Dudley",
       "amount": 2296274,
       "type": "FA Cap Hold",
+      "season": "2025-26",
       "isSigned": false
     },
     {
@@ -169,6 +189,7 @@
       "playerName": "Dwight Howard",
       "amount": 2296274,
       "type": "FA Cap Hold",
+      "season": "2025-26",
       "isSigned": false
     },
     {
@@ -176,6 +197,7 @@
       "playerName": "Markieff Morris",
       "amount": 2296274,
       "type": "FA Cap Hold",
+      "season": "2025-26",
       "isSigned": false
     },
     {
@@ -183,6 +205,7 @@
       "playerName": "Dion Waiters",
       "amount": 2296274,
       "type": "FA Cap Hold",
+      "season": "2025-26",
       "isSigned": false
     },
     {
@@ -190,6 +213,7 @@
       "playerName": "Carmelo Anthony",
       "amount": 2296274,
       "type": "FA Cap Hold",
+      "season": "2025-26",
       "isSigned": false
     }
   ],
@@ -236,136 +260,178 @@
   },
   "draftPicks": [
     {
-      "id": "LAL_2026_1st",
       "year": 2026,
       "round": 1,
       "pick": null,
       "owner": "LAL",
+      "id": "LAL_2026_1st",
       "originalTeam": "LAL",
       "status": "own",
-      "detailUrl": "https://basketball.realgm.com/nba/teams/Los-Angeles-Lakers/13/draft-picks",
       "isSwap": false,
       "protection": null,
       "stepienEligible": true,
       "tradeable": true
     },
     {
-      "id": "LAL_2027_1st_conditional",
       "year": 2027,
       "round": 1,
       "pick": null,
       "owner": "LAL",
+      "id": "LAL_2027_1st_conditional",
       "originalTeam": "LAL",
       "status": "conditional",
-      "detailUrl": "https://basketball.realgm.com/nba/teams/Los-Angeles-Lakers/13/draft-picks",
       "isSwap": false,
       "protection": "top-4 protected",
       "stepienEligible": false,
-      "tradeable": false
+      "tradeable": false,
+      "notes": "Status: Conditional | Protection: top-4 protected | Not tradeable currently | Stepien restricted | Lakers 2027 1st is top-4 protected to Utah. If conveys, 2nd goes to Brooklyn. If doesn't convey, 2nd goes to Utah. | Condition: top-4 protected | If conveys: picks 5-30 to Utah | If rolls: doesn't roll - resolves in 2027",
+      "conveyance": {
+        "id": "LAL_2027_protected_obligation",
+        "description": "Lakers 2027 1st is top-4 protected to Utah. If conveys, 2nd goes to Brooklyn. If doesn't convey, 2nd goes to Utah.",
+        "originalYear": 2027,
+        "currentYear": 2027,
+        "finalYear": 2027,
+        "stepienImpact": {
+          "eligibleForStepien": false,
+          "locksYears": [2026],
+          "deadYears": [2027],
+          "nextAvailableFirstRound": 2028,
+          "conveyanceDeadline": 2027,
+          "rolloverYears": []
+        },
+        "conditions": {
+          "ifConveys": "picks 5-30 to Utah",
+          "ifRolls": "doesn't roll - resolves in 2027",
+          "protection": "top-4 protected"
+        },
+        "affects": ["LAL_2027_2nd"]
+      }
     },
     {
-      "id": "LAL_2027_2nd",
       "year": 2027,
       "round": 2,
       "pick": null,
       "owner": "LAL",
+      "id": "LAL_2027_2nd",
       "originalTeam": "LAL",
       "status": "outgoing",
-      "detailUrl": "https://basketball.realgm.com/nba/teams/Los-Angeles-Lakers/13/draft-picks",
       "isSwap": false,
       "protection": null,
       "stepienEligible": false,
-      "tradeable": false
+      "tradeable": false,
+      "notes": "Status: Outgoing | Not tradeable currently | Stepien restricted | LAL 2027 2nd conditional conveyance | Condition: conditional | If conveys: LAL does not convey 1st round pick to UTH in | If rolls: resolves in current year",
+      "conveyance": {
+        "id": "LAL_2027_2nd_conditional",
+        "description": "LAL 2027 2nd conditional conveyance",
+        "originalYear": 2027,
+        "currentYear": 2027,
+        "stepienImpact": {
+          "eligibleForStepien": false,
+          "locksYears": [],
+          "deadYears": [],
+          "affectedYears": [2027]
+        },
+        "conditions": {
+          "ifConveys": "LAL does not convey 1st round pick to UTH in",
+          "ifRolls": "resolves in current year",
+          "protection": "conditional"
+        },
+        "affects": ["UTH"]
+      }
     },
     {
-      "id": "LAL_2028_1st",
       "year": 2028,
       "round": 1,
       "pick": null,
       "owner": "LAL",
+      "id": "LAL_2028_1st",
       "originalTeam": "LAL",
       "status": "own",
-      "detailUrl": "https://basketball.realgm.com/nba/teams/Los-Angeles-Lakers/13/draft-picks",
       "isSwap": false,
       "protection": null,
       "stepienEligible": true,
       "tradeable": true
     },
     {
-      "id": "LAL_2028_2nd_contested",
       "year": 2028,
       "round": 2,
       "pick": null,
       "owner": "LAL",
+      "id": "LAL_2028_2nd_contested",
       "originalTeam": "WAS",
       "status": "contested",
-      "detailUrl": "https://basketball.realgm.com/nba/teams/Los-Angeles-Lakers/13/draft-picks",
       "isSwap": true,
       "protection": null,
+      "stepienEligible": false,
+      "tradeable": true,
       "via": "WAS",
       "recipient": "ORL",
-      "stepienEligible": false,
-      "tradeable": true
+      "route": ["WAS", "ORL"],
+      "notes": "Status: Contested → ORL | Original team: WAS | Via WAS | Includes swap rights | Stepien restricted | Route: WAS → ORL",
+      "metadata": {
+        "swapDetails": {
+          "swapType": "bilateral",
+          "favorable": null
+        }
+      }
     },
     {
-      "id": "LAL_2030_1st",
       "year": 2030,
       "round": 1,
       "pick": null,
       "owner": "LAL",
+      "id": "LAL_2030_1st",
       "originalTeam": "LAL",
       "status": "own",
-      "detailUrl": "https://basketball.realgm.com/nba/teams/Los-Angeles-Lakers/13/draft-picks",
       "isSwap": false,
       "protection": null,
       "stepienEligible": true,
       "tradeable": true
     },
     {
-      "id": "LAL_2031_1st",
       "year": 2031,
       "round": 1,
       "pick": null,
       "owner": "LAL",
+      "id": "LAL_2031_1st",
       "originalTeam": "LAL",
       "status": "own",
-      "detailUrl": "https://basketball.realgm.com/nba/teams/Los-Angeles-Lakers/13/draft-picks",
       "isSwap": false,
       "protection": null,
       "stepienEligible": true,
       "tradeable": true
     },
     {
-      "id": "LAL_2032_1st",
       "year": 2032,
       "round": 1,
       "pick": null,
       "owner": "LAL",
+      "id": "LAL_2032_1st",
       "originalTeam": "LAL",
       "status": "own",
-      "detailUrl": "https://basketball.realgm.com/nba/teams/Los-Angeles-Lakers/13/draft-picks",
       "isSwap": false,
       "protection": null,
       "stepienEligible": true,
       "tradeable": true
     },
     {
-      "id": "LAL_2032_2nd",
       "year": 2032,
       "round": 2,
       "pick": null,
       "owner": "LAL",
+      "id": "LAL_2032_2nd",
       "originalTeam": "LAL",
       "status": "own",
-      "detailUrl": "https://basketball.realgm.com/nba/teams/Los-Angeles-Lakers/13/draft-picks",
       "isSwap": false,
       "protection": null,
       "stepienEligible": false,
-      "tradeable": true
+      "tradeable": true,
+      "notes": "Stepien restricted"
     }
   ],
   "totals": {
     "totalSalary": 210894723,
+    "capHit": 194820805,
     "guaranteedSalary": 194891405,
     "rosterCount": 14,
     "twoWayContracts": 3,
@@ -377,17 +443,18 @@
     "secondApron": 207824000,
     "secondApronRoom": 13003195,
     "isSecondApron": false,
-    "hardCapLevel": "firstApron"
+    "hardCapLevel": "firstApron",
+    "hardCapDetail": "1st Apron"
   },
   "source": {
     "provider": "RealGM",
     "teamPageUrl": "https://www.salaryswish.com/teams/lakers",
-    "scrapedAt": "2025-11-08T11:33:26.690Z",
+    "scrapedAt": "2025-11-09T08:20:33.534Z",
     "season": "2025-26",
     "type": "SalarySwish",
     "baseTeamVersion": "1.0",
-    "generatedAt": "2025-11-08T13:02:21.000Z"
+    "generatedAt": "2025-11-09T08:20:41.141Z"
   },
-  "lastUpdated": "2025-11-08T11:33:26.691Z",
+  "lastUpdated": "2025-11-09T08:20:33.541Z",
   "version": "1.0"
 }

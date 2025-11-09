@@ -17,7 +17,7 @@
       "team-scrape/draft-picks/output",
       "team-scrape/shared/firestore_staging",
       "team-scrape/shared/review_and_merge/scripts",
-      "team-scrape/shared/output/merged",
+      "team-scrape/shared/firestore_staging/output/merged",
       "scripts",
       "src",
       "tests",

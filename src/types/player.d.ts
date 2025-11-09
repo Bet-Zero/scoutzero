@@ -70,57 +70,9 @@ export interface Bio {
   [k: string]: unknown; // allow additional schema-backed fields
 }
 
-/**
- * Free agency information within contract
- */
-export interface ContractFreeAgency {
-  freeAgentType?: string;
-  freeAgentYear?: number;
-  qualifyingOffer?: number | null;
-  capHold?: number | null;
-  birdRights?: string | null;
-  [k: string]: unknown;
-}
-
-/**
- * Salary information by year
- */
-export interface SalaryByYear {
-  year?: number;
-  season?: SeasonId;
-  salary?: number;
-  guaranteed?: boolean;
-  option?: string | null;
-  [k: string]: unknown;
-}
-
-/**
- * Contract document structure (subcollection)
- */
-export interface ContractDoc {
-  signingTeam?: string | null;
-  contractType?: string | null;
-  signedUsing?: string | null;
-  contractValue?: number | null;
-  contractLength?: number | null;
-  averageAnnualValue?: number | null;
-  aav?: number | null; // alternative name for averageAnnualValue
-  guaranteedValue?: number | null;
-  guaranteedYears?: number | null;
-  capPercentage?: number | null;
-  signingDate?: string | null;
-  source?: string | null;
-  isExtension?: boolean;
-  noTradeClause?: boolean;
-  tradeKicker?: number | null;
-  options?: unknown[] | null;
-  incentives?: { likely?: number | null; unlikely?: number | null } | null;
-  freeAgency?: ContractFreeAgency | null;
-  salariesByYear?: SalaryByYear[];
-  startSeason?: SeasonId | null;
-  endSeason?: SeasonId | null;
-  [k: string]: unknown;
-}
+export type ContractDoc = CanonicalContractDoc;
+export type ContractFreeAgency = ContractDoc['freeAgency'];
+export type SalaryByYear = ContractDoc['salariesByYear'][number];
 
 /**
  * Contract view - denormalized contract data in season/bio

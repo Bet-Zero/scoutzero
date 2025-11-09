@@ -157,12 +157,14 @@ async function main() {
     else if (t.includes('2ND APRON ROOM'))
       totalsBox.secondApronRoom = valAfterColon(raw);
     else if (t.includes('HARD CAPPED')) {
-      const txt = raw.split(':').slice(1).join(':').trim().toLowerCase();
-      totalsBox.hardCappedAt = txt.startsWith('1st')
+      const detail = raw.split(':').slice(1).join(':').trim();
+      const normalized = detail.toLowerCase();
+      totalsBox.hardCapLevel = normalized.startsWith('1st')
         ? 'firstApron'
-        : txt.startsWith('2nd')
+        : normalized.startsWith('2nd')
           ? 'secondApron'
           : 'none';
+      totalsBox.hardCapDetail = detail || undefined;
     }
   });
 
@@ -366,24 +368,77 @@ async function main() {
         else if (/2nd Rd Picks/i.test(thead)) tableType = 'Draft Pick';
         else if (/FA Cap Hold/i.test(thead)) tableType = 'FA Cap Hold';
 
+        const thTexts = tbl
+          .find('thead th')
+          .map((i, th) => norm($(th).text()))
+          .get();
+
+        const firstSeasonIdx = thTexts.findIndex((text) =>
+          /^\d{4}-\d{2}$/.test(text)
+        );
+
         tbl.find('tbody tr').each((_, tr) => {
           const tds = $(tr).find('td');
           if (!tds.length) return;
 
-          // Extract player name and link
-          const anchor = $(tr).find('a[href^="/players/"]').first();
-          const name = anchor.length
-            ? norm(anchor.text())
-            : norm(tds.eq(0).text());
-          const href = anchor.length ? (anchor.attr('href') || '').trim() : '';
+          const nameCell = tds.eq(0);
+          const name = norm(
+            $(tr).find('a[href^="/players/"]').first().text() || nameCell.text()
+          );
+          if (!name || /^total$/i.test(name)) {
+            return;
+          }
 
-          // Find cap hit amount - usually in column 6 (2025-26 season)
-          const capHitCol = $(tr).find('.cap_hit.team_salary_data').first();
-          const amount = moneyNum(norm(capHitCol.text()));
+          const href = $(tr).find('a[href^="/players/"]').first().attr('href');
+
+          let chosenSeason: string | null = null;
+          let amount: number | undefined;
+
+          if (firstSeasonIdx >= 0) {
+            for (
+              let col = firstSeasonIdx;
+              col < thTexts.length && chosenSeason === null;
+              col += 1
+            ) {
+              const td = tds.eq(col);
+              if (!td.length) continue;
+              const val = moneyNum(
+                norm(td.find('.cap_hit.team_salary_data').first().text())
+              );
+              if (val && val > 0) {
+                chosenSeason = thTexts[col];
+                amount = val;
+              }
+            }
+          }
+
+          if (!chosenSeason || !amount) {
+            const defaultSeason = (() => {
+              const [start, end] = season.split('-');
+              const startYear = Number(start);
+              const endYear = Number(end);
+              if (
+                Number.isFinite(startYear) &&
+                Number.isFinite(endYear) &&
+                endYear >= 0 &&
+                endYear <= 99
+              ) {
+                const nextStart = startYear + 1;
+                const nextEnd = (endYear + 1) % 100;
+                return `${nextStart}-${String(nextEnd).padStart(2, '0')}`;
+              }
+              return season;
+            })();
+            chosenSeason = defaultSeason;
+            const fallbackAmount = moneyNum(
+              norm($(tr).find('.cap_hit.team_salary_data').first().text())
+            );
+            amount = fallbackAmount ?? 0;
+          }
 
           const meta = norm($(tr).text()).toLowerCase();
 
-          if (name && amount != null && amount > 0) {
+          if (amount && amount > 0) {
             capHolds.push({
               playerId: undefined,
               displayName: name,
@@ -397,8 +452,8 @@ async function main() {
                   : /bird/i.test(meta)
                     ? 'Bird'
                     : undefined,
-              season,
-              notes: undefined, // Keep notes minimal to reduce clutter
+              season: chosenSeason,
+              notes: undefined,
             });
           }
         });
@@ -508,7 +563,9 @@ async function main() {
       await Promise.all(new Array(workers).fill(0).map(runner));
     }
   } else {
-    console.log('ℹ️ Skipping SalarySwish draft picks (use RealGM scraper output)');
+    console.log(
+      'ℹ️ Skipping SalarySwish draft picks (use RealGM scraper output)'
+    );
   }
 
   const capHoldSum = capHolds.reduce(
@@ -520,7 +577,8 @@ async function main() {
   }
   if (
     !Number.isFinite(totalsBox.totalSalary) &&
-    (Number.isFinite(totalsBox.activeSalary) || Number.isFinite(totalsBox.capHoldsTotal))
+    (Number.isFinite(totalsBox.activeSalary) ||
+      Number.isFinite(totalsBox.capHoldsTotal))
   ) {
     const active = Number(totalsBox.activeSalary) || 0;
     const holds = Number(totalsBox.capHoldsTotal) || 0;
@@ -658,7 +716,9 @@ async function main() {
         totalsBox.secondApronRoom != null && totalsBox.secondApronRoom < 0,
 
       // Hard cap
-      hardCappedAt: totalsBox.hardCappedAt || 'none',
+      capHit: totalsBox.capHit,
+      hardCapLevel: totalsBox.hardCapLevel || 'none',
+      hardCapDetail: totalsBox.hardCapDetail,
 
       // Additional details
       incompleteRosterCharges: totalsBox.incompleteRosterCharges,

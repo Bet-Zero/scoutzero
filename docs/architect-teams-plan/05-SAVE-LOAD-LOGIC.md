@@ -295,7 +295,8 @@ When loading `draftPicks`, keep the complete shape in memory (including `status`
         newTeam.exceptions.mle.usedAmount += salary;
         newTeam.exceptions.mle.remainingAmount -= salary;
         newTeam.totals.isHardCapped = true;  // Triggers hard cap
-        newTeam.totals.hardCapLevel = "First Apron";
+        newTeam.totals.hardCapLevel = "firstApron";
+        newTeam.totals.hardCapDetail = "Triggered by Non-Taxpayer MLE";
       }
 
       // Step 5: Remove cap hold if player had one

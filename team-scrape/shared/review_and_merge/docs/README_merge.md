@@ -21,7 +21,7 @@ review_and_merge/
     ├── REPORT.md                 # Comprehensive review and analysis
     └── README_merge.md          # This file
 
-../output/merged/                 # Merged output files (generated at parent level)
+../firestore_staging/output/merged/  # Merged output files (generated under staging)
 ├── LAL_merged.json              # Individual team files
 ├── MEM_merged.json
 ├── NYK_merged.json
@@ -46,14 +46,18 @@ tsx team-scrape/shared/review_and_merge/scripts/merge_team_outputs.ts
 
 ```bash
 # View individual team file
-cat team-scrape/shared/output/merged/LAL_merged.json
+cat team-scrape/shared/firestore_staging/output/merged/LAL_merged.json
 
 # View all teams combined
-cat team-scrape/shared/output/merged/all_teams_merged.json
+cat team-scrape/shared/firestore_staging/output/merged/all_teams_merged.json
 
 # Count merged teams
-ls team-scrape/shared/output/merged/*_merged.json | wc -l
+ls team-scrape/shared/firestore_staging/output/merged/*_merged.json | wc -l
 ```
+
+## Visual Reference
+
+Need a sample to compare against? Review the staging walkthrough in `team-scrape/shared/firestore_staging/docs/LAL_visuals.md`.
 
 ## Input Files
 
@@ -189,7 +193,7 @@ Edit `CONFIG` object in `merge_team_outputs.ts`:
 const CONFIG = {
   salaryDir: 'team-scrape/team-data/output',
   draftPicksDir: 'team-scrape/draft-picks/output/structured',
-  outputDir: 'team-scrape/shared/output/merged',
+  outputDir: 'team-scrape/shared/firestore_staging/output/merged',
   teams: ['LAL', 'MEM', 'NYK', 'OKC', 'WAS'],
   prettyPrint: true,
 };

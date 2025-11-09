@@ -560,8 +560,10 @@ function buildPlayersV2Payload(
     const entry = seasonMap.get(code);
     const seasonEntry: Record<string, any> = {
       season: code,
-      salary: entry ? entry.salary : 0,
     };
+    if (entry) {
+      seasonEntry.salary = entry.salary;
+    }
     if (entry && entry.guaranteedAmount < entry.salary) {
       seasonEntry.nonGuaranteed = { guaranteedAmount: entry.guaranteedAmount };
     }
@@ -600,7 +602,10 @@ function buildPlayersV2Payload(
     (season) => season.season === currentSeasonCode
   );
   const yearsRemaining = timelineSeasons.filter(
-    (season) => getSeasonStartYear(season.season) >= currentSeasonYear && season.salary > 0
+    (season) =>
+      getSeasonStartYear(season.season) >= currentSeasonYear &&
+      typeof season.salary === 'number' &&
+      season.salary > 0
   ).length;
   const averageAnnualValueRounded = Math.round(display.averageAnnualValue ?? 0);
 
@@ -614,7 +619,7 @@ function buildPlayersV2Payload(
         freeAgentYear,
         freeAgentType,
         birdRights,
-        currentSalary: currentSeasonEntry?.salary ?? 0,
+        currentSalary: currentSeasonEntry?.salary ?? null,
         yearsRemaining,
         averageAnnualValue: averageAnnualValueRounded,
       },

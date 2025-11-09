@@ -222,7 +222,8 @@ This document provides exact, field-by-field examples of the target Firestore da
 
         // Hard cap (if applicable)
         "isHardCapped": false,
-        "hardCapLevel": null,  // "First Apron" | "Second Apron" | null
+        "hardCapLevel": "none",  // "none" | "firstApron" | "secondApron"
+        "hardCapDetail": null,
         "hardCapRoom": null
       },
 

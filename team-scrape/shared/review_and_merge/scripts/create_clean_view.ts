@@ -244,7 +244,7 @@ function generateMarkdownView(cleanData: CleanTeamData): string {
 async function main() {
   const inputDir = path.join(
     process.cwd(),
-    'team-scrape/shared/review_and_merge/out_merged_samples'
+    'team-scrape/shared/firestore_staging/output/merged'
   );
   const outputDir = path.join(
     process.cwd(),

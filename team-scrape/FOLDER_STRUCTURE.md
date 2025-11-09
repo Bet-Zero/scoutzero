@@ -44,7 +44,7 @@ team-scrape/
 - `by_current_owner/draft_picks_{CODE}.json` – Ownership-centric view
 - `draft_picks_raw.json` – Raw RealGM scrape (debug)
 
-### Shared Merge (`shared/output/merged/`)
+### Shared Merge (`shared/firestore_staging/output/merged/`)
 
 - `{CODE}_merged.json` – Combined team + draft pick payload
 - `all_teams_merged.json` – Aggregate of all merged teams
@@ -78,14 +78,14 @@ npm run realgm:drafts -- --teams LAL --pretty
 npm run merge:samples
 
 # Inspect merged result
-cat team-scrape/shared/output/merged/LAL_merged.json
+cat team-scrape/shared/firestore_staging/output/merged/LAL_merged.json
 ```
 
 ### Inspect Outputs
 
 - Team data: `ls team-scrape/team-data/output/`
 - Draft picks: `ls team-scrape/draft-picks/output/structured/`
-- Merged: `ls team-scrape/shared/output/merged/`
+- Merged: `ls team-scrape/shared/firestore_staging/output/merged/`
 
 ### Stage for Architect Review
 

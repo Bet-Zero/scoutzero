@@ -235,7 +235,8 @@ This document explains how the proposed Firestore schema accomplishes the stated
 
       // Hard cap triggered
       team.totals.isHardCapped = true;
-      team.totals.hardCapLevel = "First Apron";
+      team.totals.hardCapLevel = "firstApron";
+      team.totals.hardCapDetail = "Triggered by Non-Taxpayer MLE";
     }
 
 **4. Poison Pill Extensions**

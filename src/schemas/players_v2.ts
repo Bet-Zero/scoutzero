@@ -2,13 +2,13 @@ import { z } from 'zod';
 import {
   FreeAgentTypeZ,
   MoneyZ,
-  OptionTypeZ,
   PlayerIdZ,
   SeasonCodeZ,
   TeamCodeZ,
   TimestampZ,
   YearZ
 } from './common';
+import { BasePlayerContractZ } from './architect';
 
 // ============================
 // players_v2 canonical schemas
@@ -56,54 +56,15 @@ export const PlayerBioZ = z.object({
 });
 
 // Contracts subcollection
-export const ContractYearItemZ = z.object({
-  year: YearZ,
-  salary: MoneyZ,
-  capHit: MoneyZ.optional().nullable(),
-  tradeBonus: MoneyZ.optional().nullable(),
-  guaranteed: z.boolean(),
-  option: OptionTypeZ
+export const ContractMetadataZ = z.object({
+  startSeason: SeasonCodeZ,
+  endSeason: SeasonCodeZ,
+  isCurrent: z.boolean(),
+  label: z.string()
 });
 
-export const ContractOptionsItemZ = z.object({
-  year: YearZ,
-  type: z.enum(['PO', 'TO', 'ETO'])
-});
-
-export const ContractFreeAgencyZ = z.object({
-  freeAgentType: FreeAgentTypeZ.optional().nullable(),
-  freeAgentYear: YearZ.optional().nullable(),
-  capHold: MoneyZ.optional().nullable(),
-  qualifyingOffer: MoneyZ.optional().nullable(),
-  birdRights: z.string().optional().nullable()
-});
-
-export const ContractDocZ = z.object({
-  signingTeam: TeamCodeZ,
-  contractType: z.string(),
-  signedUsing: z.string().optional().nullable(),
-  contractValue: MoneyZ,
-  contractLength: z.number().int(),
-  averageAnnualValue: MoneyZ.optional().nullable(),
-  guaranteedValue: MoneyZ.optional().nullable(),
-  guaranteedYears: z.number().int().optional().nullable(),
-  capPercentage: z.number().nullable().optional(),
-  signingDate: z.string().nullable().optional(),
-  isExtension: z.boolean().nullable().optional(),
-  incentives: z
-    .object({ likely: MoneyZ, unlikely: MoneyZ })
-    .partial()
-    .default({}) as unknown as z.ZodType<{ likely?: number; unlikely?: number }>,
-  noTradeClause: z.boolean().optional().nullable(),
-  tradeKicker: z.number().nullable().optional(),
-  options: z.array(ContractOptionsItemZ).optional().default([]),
-  salariesByYear: z.array(ContractYearItemZ),
-  startSeason: SeasonCodeZ.optional(),
-  endSeason: SeasonCodeZ.optional(),
-  freeAgency: ContractFreeAgencyZ.optional(),
-  // Extended fields introduced by scraper normalization
-  isRookieScale: z.boolean().optional(),
-  yearsOfService: z.number().int().optional()
+export const ContractDocZ = BasePlayerContractZ.extend({
+  metadata: ContractMetadataZ
 });
 
 // Seasons subcollection

@@ -135,6 +135,7 @@ npx tsx validate_output.ts
 ```json
 {
   "totalSalary": 210894723,
+  "capHit": 194820805,
   "activeSalary": 194820805,
   "deadCapTotal": 0,
   "capHoldsTotal": 16073918,
@@ -151,7 +152,8 @@ npx tsx validate_output.ts
   "secondApronLine": 207824000,
   "secondApronRoom": 13003195,
   "secondApronTriggered": false,
-  "hardCappedAt": "firstApron",
+  "hardCapLevel": "firstApron",
+  "hardCapDetail": "1st Apron",
   "incompleteRosterCharges": 0,
   "likelyIncentives": 0
 }

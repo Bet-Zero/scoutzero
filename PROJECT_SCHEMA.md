@@ -572,7 +572,7 @@ SalarySwish URL
 
 - `team-scrape/team-data/output/`
 - `team-scrape/draft-picks/output/`
-- `team-scrape/shared/output/merged/`
+- `team-scrape/shared/firestore_staging/output/merged/`
 
 **Target Firestore:** Migrating to `/architect/` collections
 
@@ -687,7 +687,7 @@ assert(result.success, `Schema validation failed: ${result.error}`);
 - `player-scrape/contracts/working/`
 - `team-scrape/team-data/output/`
 - `team-scrape/draft-picks/output/`
-- `team-scrape/shared/output/merged/`
+- `team-scrape/shared/firestore_staging/output/merged/`
 - `scripts/`
 - `src/`
 - `tests/`

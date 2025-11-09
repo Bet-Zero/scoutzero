@@ -146,6 +146,7 @@ node --experimental-strip-types team-scrape/draft-picks/scripts/realgm_draft_pic
   },
   totals: {
     totalSalary: number,
+    capHit?: number,
     activeSalary: number,
     capHoldsTotal: number,
     guaranteedSalary: number,
@@ -159,7 +160,8 @@ node --experimental-strip-types team-scrape/draft-picks/scripts/realgm_draft_pic
     secondApronRoom: number,
     firstApronTriggered: boolean,
     secondApronTriggered: boolean,
-    hardCappedAt: "none" | "firstApron" | "secondApron",
+    hardCapLevel: "none" | "firstApron" | "secondApron",
+    hardCapDetail?: string,
     rosterCount: number,
     twoWayCount: number
   },
@@ -392,6 +394,7 @@ Array<{
   // Salary Totals (from SalarySwish)
   totals: {
     totalSalary: number,
+    capHit?: number,
     activeSalary: number,
     deadCapTotal: number,
     capHoldsTotal: number,
@@ -406,7 +409,8 @@ Array<{
     secondApronRoom: number,
     firstApronTriggered: boolean,
     secondApronTriggered: boolean,
-    hardCappedAt: "none" | "firstApron" | "secondApron",
+    hardCapLevel: "none" | "firstApron" | "secondApron",
+    hardCapDetail?: string,
     rosterCount: number,
     twoWayCount: number,
     incompleteRosterCharges: number,

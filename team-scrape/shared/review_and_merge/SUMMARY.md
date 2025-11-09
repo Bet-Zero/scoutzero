@@ -186,14 +186,14 @@ review_and_merge/
 ├── SUMMARY.md                    # This file
 ├── docs/
 │   ├── REPORT.md                 # 27KB comprehensive review
-│   ├── README_merge.md           # 10KB merge documentation
-│   └── README_clean_view.md      # 6KB clean view tool documentation
+│   └── README_merge.md           # Merge usage + config
 ├── scripts/
 │   ├── merge_team_outputs.ts    # 15KB merge implementation
 │   └── create_clean_view.ts     # 11KB UI-focused view generator
 └── docs/                        # Documentation
 
-**NOTE**: Merged outputs are now located at `../output/merged/` (parent directory)
+**NOTE**: Merged outputs are now located at `../firestore_staging/output/merged/`
+- For visuals, reference `../firestore_staging/docs/LAL_visuals.md` (sample staging walkthrough)
 - LAL_merged.json, MEM_merged.json, NYK_merged.json, OKC_merged.json, WAS_merged.json
 - all_teams_merged.json (combined)
 ```
@@ -219,7 +219,7 @@ review_and_merge/
 
 **When ready to integrate:**
 1. Move merge script to `team-scrape/shared/review_and_merge/scripts/`
-2. Update output paths to `team-scrape/shared/output/merged/`
+2. Update output paths to `team-scrape/shared/firestore_staging/output/merged/`
 3. Add to main workflow documentation
 4. Create batch processing scripts
 
@@ -251,28 +251,28 @@ npm run clean-view
 cat team-scrape/review_and_merge/out_clean_views/all_teams_clean.md
 ```
 
-See `docs/README_clean_view.md` for complete documentation.
+See `../firestore_staging/docs/LAL_visuals.md` for the canonical staging visuals.
 
 ## Validation Commands
 
 ```bash
 # List all outputs
-ls -lh team-scrape/review_and_merge/out_merged_samples/
+ls -lh team-scrape/shared/firestore_staging/output/merged/
 
 # Validate JSON
-jq empty team-scrape/review_and_merge/out_merged_samples/*.json
+jq empty team-scrape/shared/firestore_staging/output/merged/*.json
 
 # Check structure
 jq '{teamCode, version, draftPickKeys: (.draftPicks | keys)}' \
-   team-scrape/review_and_merge/out_merged_samples/LAL_merged.json
+   team-scrape/shared/firestore_staging/output/merged/LAL_merged.json
 
 # Count picks by status
 jq '.draftPicks | to_entries | map({key, count: (.value | length)})' \
-   team-scrape/review_and_merge/out_merged_samples/LAL_merged.json
+   team-scrape/shared/firestore_staging/output/merged/LAL_merged.json
 
 # View all teams summary
 jq 'map({teamCode, roster: (.roster | length), picks: (.draftPicks | map_values(length))})' \
-   team-scrape/review_and_merge/out_merged_samples/all_teams_merged.json
+   team-scrape/shared/firestore_staging/output/merged/all_teams_merged.json
 ```
 
 ## Questions?

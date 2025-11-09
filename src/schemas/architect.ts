@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { MoneyZ, PlayerIdZ, SeasonCodeZ, TeamCodeZ } from './common';
 
+const HardCapLevelZ = z.enum(['none', 'firstApron', 'secondApron']);
+
 // ============================
 // architect canonical schemas
 // ============================
@@ -26,8 +28,10 @@ export const CapHoldItemZ = z.object({
   playerName: z.string(),
   amount: MoneyZ,
   type: z.string(),
+  season: SeasonCodeZ.optional(),
   isSigned: z.boolean().optional(),
   expiresOn: z.string().optional(),
+  notes: z.string().optional(),
 });
 
 const MleExceptionZ = z.object({
@@ -81,16 +85,63 @@ export const ExceptionsZ = z
 
 export const ExceptionsExtraFieldsZ = z.record(z.string(), z.any());
 
+const DraftPickConveyanceZ = z
+  .object({
+    id: z.string().optional(),
+    description: z.string().optional(),
+    originalYear: z.number().int().optional(),
+    currentYear: z.number().int().optional(),
+    finalYear: z.number().int().optional(),
+    stepienImpact: z
+      .object({
+        // ⚠️  These Stepien flags are informational hints from the scrape.
+        // Architect recomputes Stepien eligibility after each simulated move,
+        // so downstream code must not rely on these values as a source of truth.
+        eligibleForStepien: z.boolean().optional(),
+        locksYears: z.array(z.number().int()).optional(),
+        deadYears: z.array(z.number().int()).optional(),
+        affectedYears: z.array(z.number().int()).optional(),
+        nextAvailableFirstRound: z.number().int().optional(),
+        conveyanceDeadline: z.number().int().optional(),
+        rolloverYears: z.array(z.number().int()).optional(),
+      })
+      .passthrough()
+      .optional(),
+    conditions: z
+      .object({
+        protection: z.string().optional(),
+        ifConveys: z.string().optional(),
+        ifRolls: z.string().optional(),
+      })
+      .optional(),
+    affects: z.array(z.string()).optional(),
+  })
+  .passthrough()
+  .optional();
+
 export const DraftPickZ = z.object({
+  id: z.string().optional(),
   year: z.number().int(),
   round: z.number().int(),
   pick: z.number().int().nullable(),
   owner: TeamCodeZ,
+  originalTeam: TeamCodeZ.optional(),
+  status: z.string().optional(),
+  isSwap: z.boolean().optional(),
+  protection: z.string().nullable().optional(),
+  stepienEligible: z.boolean().optional(),
+  tradeable: z.boolean().optional(),
+  via: TeamCodeZ.optional(),
+  recipient: TeamCodeZ.optional(),
+  route: z.array(TeamCodeZ).optional(),
   notes: z.string().optional(),
+  conveyance: DraftPickConveyanceZ,
+  metadata: z.object({}).passthrough().optional(),
 });
 
 export const TeamTotalsZ = z.object({
   totalSalary: MoneyZ.optional(),
+  capHit: MoneyZ.optional(),
   guaranteedSalary: MoneyZ.optional(),
   nonGuaranteedSalary: MoneyZ.optional(),
   rosterCount: z.number().int().optional(),
@@ -113,7 +164,8 @@ export const TeamTotalsZ = z.object({
   secondApronRoom: z.number().optional(),
   isSecondApron: z.boolean().optional(),
   isHardCapped: z.boolean().optional(),
-  hardCapLevel: z.string().nullable().optional(),
+  hardCapLevel: HardCapLevelZ.optional(),
+  hardCapDetail: z.string().optional(),
   hardCapRoom: z.number().nullable().optional(),
 });
 
@@ -253,11 +305,13 @@ export const BasePlayerDocZ = z.object({
       agency: z.string().nullable(),
     })
     .optional(),
-  source: z.object({
-    provider: z.string(),
-    playerPageUrl: z.string(),
-    scrapedAt: z.string(),
-  }),
+  source: z
+    .object({
+      provider: z.string(),
+      playerPageUrl: z.string(),
+      scrapedAt: z.string(),
+    })
+    .optional(),
   lastUpdated: z.string(),
   version: z.string(),
 });

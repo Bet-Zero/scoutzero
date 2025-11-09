@@ -8,12 +8,13 @@ Successfully completed the team scraper implementation for the Lakers sample, fi
 
 ### 1. Enhanced Totals Parsing (20+ fields)
 
-**Before:** Only 6 basic fields (totalSalary, capSpace, taxSpace, firstApronRoom, secondApronRoom, hardCappedAt)
+**Before:** Only 6 basic fields (totalSalary, capSpace, taxSpace, firstApronRoom, secondApronRoom, hardCapLevel)
 
 **After:** Comprehensive salary cap data:
 
 - **Core Salary Totals:**
   - `totalSalary`: $210,894,723
+  - `capHit`: $194,820,805
   - `activeSalary`: $194,820,805
   - `deadCapTotal`: $0 (not available on team pages)
   - `capHoldsTotal`: $16,073,918
@@ -40,7 +41,8 @@ Successfully completed the team scraper implementation for the Lakers sample, fi
   - `secondApronTriggered`: false
 
 - **Hard Cap:**
-  - `hardCappedAt`: "firstApron"
+  - `hardCapLevel`: "firstApron"
+  - `hardCapDetail`: "1st Apron"
 
 - **Additional:**
   - `incompleteRosterCharges`: $0

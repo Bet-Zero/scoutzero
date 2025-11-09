@@ -15,7 +15,10 @@ import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { BaseTeamDocZ, type BaseTeamDoc } from '../../../src/schemas/architect.js';
+import {
+  BaseTeamDocZ,
+  type BaseTeamDoc,
+} from '../../../src/schemas/architect.js';
 
 type CliArgs = {
   team: string;
@@ -34,6 +37,7 @@ type RawCapHoldEntry = RawTeamRosterEntry & {
   capHoldAmount?: number;
   type?: string;
   rights?: string;
+  season?: string;
 };
 
 type RawException = {
@@ -109,6 +113,8 @@ type StructuredDraftPickGroup = {
   contested?: RawDraftPick[];
 };
 
+type NormalizedDraftPick = BaseTeamDoc['draftPicks'][number];
+
 type PlayerIndexEntry = {
   fullName: string;
   nbaId?: number;
@@ -124,22 +130,26 @@ const __dirname = path.dirname(__filename);
 const PROJECT_ROOT = path.join(__dirname, '..', '..', '..');
 const PLAYER_INDEX_PATH = path.join(
   PROJECT_ROOT,
-  'player-scrape/shared/outputs/player_index.json',
+  'player-scrape/shared/outputs/player_index.json'
 );
-const TEAM_DATA_DIR = path.join(PROJECT_ROOT, 'team-scrape', 'team-data', 'output');
+const TEAM_DATA_DIR = path.join(
+  PROJECT_ROOT,
+  'team-scrape',
+  'team-data',
+  'output'
+);
 const DRAFT_PICKS_DIR = path.join(
   PROJECT_ROOT,
   'team-scrape',
   'draft-picks',
-  'output',
-  'structured',
+  'output'
 );
 const MERGED_DIR = path.join(
   PROJECT_ROOT,
   'team-scrape',
   'shared',
   'output',
-  'merged',
+  'merged'
 );
 
 function parseArgs(): CliArgs {
@@ -152,7 +162,7 @@ function parseArgs(): CliArgs {
       'team-scrape',
       'shared',
       'firestore_staging',
-      'output',
+      'output'
     ),
   };
 
@@ -213,12 +223,18 @@ function toPlayerIdSeed(value: string): string {
 function fallbackPlayerId(name: string, salt?: string): string {
   const base = toPlayerIdSeed(name);
   if (!salt) return `tmp_${base}`;
-  const hash = createHash('md5').update(`${name}:${salt}`).digest('hex').slice(0, 6);
+  const hash = createHash('md5')
+    .update(`${name}:${salt}`)
+    .digest('hex')
+    .slice(0, 6);
   return `tmp_${base}_${hash}`;
 }
 
 type PlayerIdResolver = {
-  resolve: (entry: RawTeamRosterEntry, context: string) => {
+  resolve: (
+    entry: RawTeamRosterEntry,
+    context: string
+  ) => {
     playerId: string;
     playerName: string;
     resolvedVia: string;
@@ -244,10 +260,15 @@ function buildResolver(index: PlayerIndex): PlayerIdResolver {
 
   return {
     resolve(entry, context) {
-      const name = normalizeDisplayName(entry.displayName) ?? entry.displayName ?? '';
+      const name =
+        normalizeDisplayName(entry.displayName) ?? entry.displayName ?? '';
       const normalizedName = name.trim().toLowerCase();
       if (normalizedName && nameToId.has(normalizedName)) {
-        return { playerId: nameToId.get(normalizedName)!, playerName: name, resolvedVia: 'fullName' };
+        return {
+          playerId: nameToId.get(normalizedName)!,
+          playerName: name,
+          resolvedVia: 'fullName',
+        };
       }
 
       const slug = slugFromUrl(entry.sourceUrl);
@@ -255,7 +276,11 @@ function buildResolver(index: PlayerIndex): PlayerIdResolver {
         const resolvedId = slugToId.get(slug)!;
         const resolvedName =
           index[resolvedId]?.fullName ?? (name || resolvedId);
-        return { playerId: resolvedId, playerName: resolvedName, resolvedVia: 'slug' };
+        return {
+          playerId: resolvedId,
+          playerName: resolvedName,
+          resolvedVia: 'slug',
+        };
       }
 
       if (entry.playerId) {
@@ -268,7 +293,11 @@ function buildResolver(index: PlayerIndex): PlayerIdResolver {
 
       const fallbackId = fallbackPlayerId(name || context, slug ?? context);
       unresolved.add(`${context}::${name || 'UNKNOWN'}`);
-      return { playerId: fallbackId, playerName: name || context, resolvedVia: 'fallback' };
+      return {
+        playerId: fallbackId,
+        playerName: name || context,
+        resolvedVia: 'fallback',
+      };
     },
     unresolved,
   };
@@ -338,74 +367,261 @@ function coalesceDraftPicks(args: {
   if (args.primary?.length) return args.primary;
 
   if (args.grouped) {
-    const { incoming = [], outgoing = [], own = [], contested = [] } = args.grouped;
+    const {
+      incoming = [],
+      outgoing = [],
+      own = [],
+      contested = [],
+    } = args.grouped;
     return [...incoming, ...outgoing, ...own, ...contested];
   }
 
   return args.fallback ?? [];
 }
 
-function normalizeDraftPick(teamCode: string, pick: RawDraftPick) {
-  const owner = pick.currentOwner ?? (pick.status === 'incoming' ? teamCode : teamCode);
-  const notes: string[] = [];
-  if (pick.notes) notes.push(pick.notes);
-  if (pick.title) notes.push(pick.title);
-  if (pick.tradedOn) notes.push(`Traded on ${pick.tradedOn}`);
-  if (pick.contendingTeams?.length) {
-    notes.push(`Contending teams: ${pick.contendingTeams.join(', ')}`);
-  }
-  const combinedNotes = notes.length ? notes.join(' | ') : undefined;
+function capitalize(value: string): string {
+  if (!value) return value;
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
 
-  return {
-    id: pick.id ?? `${teamCode}_${pick.year}_${pick.round}_${pick.status}`,
+function buildDraftPickNotes(
+  teamCode: string,
+  pick: RawDraftPick
+): string | undefined {
+  const segments = new Set<string>();
+  const add = (value?: string | null) => {
+    const trimmed = value?.trim();
+    if (trimmed) {
+      segments.add(trimmed);
+    }
+  };
+
+  if (pick.status && pick.status.toLowerCase() !== 'own') {
+    const recipient = pick.recipient ?? pick.currentOwner;
+    const targetSuffix =
+      recipient && recipient !== teamCode ? ` → ${recipient}` : '';
+    add(`Status: ${capitalize(pick.status)}${targetSuffix}`);
+  }
+
+  const originalTeam =
+    pick.originalTeam ??
+    (pick as unknown as { originalTeamCode?: string }).originalTeamCode;
+  if (originalTeam && originalTeam !== teamCode) {
+    add(`Original team: ${originalTeam}`);
+  }
+
+  if (pick.via) {
+    add(`Via ${pick.via}`);
+  }
+
+  if (pick.protection) {
+    add(`Protection: ${pick.protection}`);
+  }
+
+  if (pick.isSwap) {
+    add('Includes swap rights');
+  }
+
+  if (pick.tradeable === false) {
+    add('Not tradeable currently');
+  }
+
+  if (pick.stepienEligible === false) {
+    add('Stepien restricted');
+  }
+
+  add(pick.notes);
+  add(pick.title);
+
+  if (pick.tradedOn) {
+    add(`Traded on ${pick.tradedOn}`);
+  }
+
+  if (pick.contendingTeams?.length) {
+    add(`Contending teams: ${pick.contendingTeams.join(', ')}`);
+  }
+
+  if (pick.route?.length) {
+    add(`Route: ${pick.route.join(' → ')}`);
+  }
+
+  const conveyance = (
+    pick as unknown as {
+      conveyanceObligation?: {
+        description?: string;
+        conditions?: {
+          protection?: string;
+          ifConveys?: string;
+          ifRolls?: string;
+        };
+      };
+    }
+  ).conveyanceObligation;
+
+  if (conveyance?.description) {
+    add(conveyance.description);
+  }
+  if (conveyance?.conditions?.protection) {
+    add(`Condition: ${conveyance.conditions.protection}`);
+  }
+  if (conveyance?.conditions?.ifConveys) {
+    add(`If conveys: ${conveyance.conditions.ifConveys}`);
+  }
+  if (conveyance?.conditions?.ifRolls) {
+    add(`If rolls: ${conveyance.conditions.ifRolls}`);
+  }
+
+  if (segments.size === 0) {
+    return undefined;
+  }
+
+  return Array.from(segments).join(' | ');
+}
+
+function normalizeDraftPick(
+  teamCode: string,
+  pick: RawDraftPick
+): NormalizedDraftPick {
+  const owner = pick.currentOwner ?? teamCode;
+  const notes = buildDraftPickNotes(teamCode, pick);
+
+  const normalized: NormalizedDraftPick = {
     year: pick.year,
     round: pick.round,
     pick: pick.pickNumber ?? null,
     owner,
-    originalTeam: pick.originalTeam ?? teamCode,
-    status: pick.status,
-    notes: combinedNotes,
-    detailUrl: pick.detailUrl,
-    isSwap: pick.isSwap ?? false,
-    protection: pick.protection ?? null,
-    via: pick.via,
-    recipient: pick.recipient,
-    stepienEligible: pick.stepienEligible ?? null,
-    tradeable: pick.tradeable ?? null,
   };
+
+  if (pick.id) normalized.id = pick.id;
+  if (pick.originalTeam) normalized.originalTeam = pick.originalTeam;
+  if (pick.status) normalized.status = pick.status;
+  if (typeof pick.isSwap === 'boolean') normalized.isSwap = pick.isSwap;
+  if (pick.protection !== undefined)
+    normalized.protection = pick.protection ?? null;
+  if (typeof pick.stepienEligible === 'boolean') {
+    normalized.stepienEligible = pick.stepienEligible;
+  }
+  if (typeof pick.tradeable === 'boolean') {
+    normalized.tradeable = pick.tradeable;
+  }
+  if (pick.via) normalized.via = pick.via;
+  if (pick.recipient) normalized.recipient = pick.recipient;
+  if (pick.route?.length) normalized.route = pick.route;
+  if (notes) normalized.notes = notes;
+
+  const conveyance = (
+    pick as unknown as {
+      conveyanceObligation?: {
+        id?: string;
+        description?: string;
+        originalYear?: number;
+        currentYear?: number;
+        finalYear?: number;
+        stepienImpact?: Record<string, unknown>;
+        conditions?: Record<string, unknown>;
+        affects?: string[];
+      };
+    }
+  ).conveyanceObligation;
+
+  if (conveyance) {
+    normalized.conveyance = {
+      id: conveyance.id,
+      description: conveyance.description,
+      originalYear: conveyance.originalYear,
+      currentYear: conveyance.currentYear,
+      finalYear: conveyance.finalYear,
+      stepienImpact: conveyance.stepienImpact,
+      conditions: conveyance.conditions,
+      affects: conveyance.affects,
+    } as NormalizedDraftPick['conveyance'];
+  }
+
+  const metadata: Record<string, unknown> = {};
+
+  if (
+    (pick as unknown as { swapDetails?: unknown }).swapDetails !== undefined
+  ) {
+    metadata.swapDetails = (
+      pick as unknown as { swapDetails?: unknown }
+    ).swapDetails;
+  }
+
+  if (pick.contendingTeams?.length) {
+    metadata.contendingTeams = pick.contendingTeams;
+  }
+
+  if (Object.keys(metadata).length > 0) {
+    normalized.metadata = metadata;
+  }
+
+  return normalized;
 }
 
-function normalizeTotals(rawTotals: RawTeamData['totals']): BaseTeamDoc['totals'] | undefined {
+function normalizeTotals(
+  rawTotals: RawTeamData['totals']
+): BaseTeamDoc['totals'] | undefined {
   if (!rawTotals) return undefined;
   const totals: BaseTeamDoc['totals'] = {};
   const mapNumber = (value: unknown): number | undefined =>
     typeof value === 'number' ? value : undefined;
 
-  const assignments: Array<[keyof BaseTeamDoc['totals'], number | undefined]> = [
-    ['totalSalary', mapNumber(rawTotals.totalSalary)],
-    ['guaranteedSalary', mapNumber(rawTotals.guaranteedSalary)],
-    ['nonGuaranteedSalary', mapNumber(rawTotals.nonGuaranteedSalary)],
-    ['rosterCount', mapNumber(rawTotals.rosterCount)],
-    ['guaranteedContracts', mapNumber(rawTotals.guaranteedContracts)],
-    ['nonGuaranteedContracts', mapNumber(rawTotals.nonGuaranteedContracts)],
-    ['twoWayContracts', mapNumber(rawTotals.twoWayCount ?? rawTotals.twoWayContracts)],
-    ['emptyRosterCharges', mapNumber(rawTotals.incompleteRosterCharges)],
-    ['capSpace', mapNumber(rawTotals.capSpace)],
-    ['capRoom', mapNumber(rawTotals.capRoom)],
-    ['effectiveCap', mapNumber(rawTotals.effectiveCap)],
-    ['luxuryTaxLine', mapNumber(rawTotals.luxuryTaxLine)],
-    ['taxablePayroll', mapNumber(rawTotals.taxablePayroll)],
-    ['isOverTax', typeof rawTotals.isOverTax === 'boolean' ? rawTotals.isOverTax : undefined],
-    ['taxBill', mapNumber(rawTotals.taxBill)],
-    ['taxRate', mapNumber(rawTotals.taxRate)],
-    ['firstApron', mapNumber(rawTotals.firstApron ?? rawTotals.firstApronLine)],
-    ['firstApronRoom', mapNumber(rawTotals.firstApronRoom)],
-    ['isFirstApron', typeof rawTotals.firstApronTriggered === 'boolean' ? rawTotals.firstApronTriggered : undefined],
-    ['secondApron', mapNumber(rawTotals.secondApron ?? rawTotals.secondApronLine)],
-    ['secondApronRoom', mapNumber(rawTotals.secondApronRoom)],
-    ['isSecondApron', typeof rawTotals.secondApronTriggered === 'boolean' ? rawTotals.secondApronTriggered : undefined],
-    ['isHardCapped', typeof rawTotals.isHardCapped === 'boolean' ? rawTotals.isHardCapped : undefined],
-  ];
+  const assignments: Array<[keyof BaseTeamDoc['totals'], number | undefined]> =
+    [
+      ['totalSalary', mapNumber(rawTotals.totalSalary)],
+      ['capHit', mapNumber(rawTotals.capHit)],
+      ['guaranteedSalary', mapNumber(rawTotals.guaranteedSalary)],
+      ['nonGuaranteedSalary', mapNumber(rawTotals.nonGuaranteedSalary)],
+      ['rosterCount', mapNumber(rawTotals.rosterCount)],
+      ['guaranteedContracts', mapNumber(rawTotals.guaranteedContracts)],
+      ['nonGuaranteedContracts', mapNumber(rawTotals.nonGuaranteedContracts)],
+      [
+        'twoWayContracts',
+        mapNumber(rawTotals.twoWayCount ?? rawTotals.twoWayContracts),
+      ],
+      ['emptyRosterCharges', mapNumber(rawTotals.incompleteRosterCharges)],
+      ['capSpace', mapNumber(rawTotals.capSpace)],
+      ['capRoom', mapNumber(rawTotals.capRoom)],
+      ['effectiveCap', mapNumber(rawTotals.effectiveCap)],
+      ['luxuryTaxLine', mapNumber(rawTotals.luxuryTaxLine)],
+      ['taxablePayroll', mapNumber(rawTotals.taxablePayroll)],
+      [
+        'isOverTax',
+        typeof rawTotals.isOverTax === 'boolean'
+          ? rawTotals.isOverTax
+          : undefined,
+      ],
+      ['taxBill', mapNumber(rawTotals.taxBill)],
+      ['taxRate', mapNumber(rawTotals.taxRate)],
+      [
+        'firstApron',
+        mapNumber(rawTotals.firstApron ?? rawTotals.firstApronLine),
+      ],
+      ['firstApronRoom', mapNumber(rawTotals.firstApronRoom)],
+      [
+        'isFirstApron',
+        typeof rawTotals.firstApronTriggered === 'boolean'
+          ? rawTotals.firstApronTriggered
+          : undefined,
+      ],
+      [
+        'secondApron',
+        mapNumber(rawTotals.secondApron ?? rawTotals.secondApronLine),
+      ],
+      ['secondApronRoom', mapNumber(rawTotals.secondApronRoom)],
+      [
+        'isSecondApron',
+        typeof rawTotals.secondApronTriggered === 'boolean'
+          ? rawTotals.secondApronTriggered
+          : undefined,
+      ],
+      [
+        'isHardCapped',
+        typeof rawTotals.isHardCapped === 'boolean'
+          ? rawTotals.isHardCapped
+          : undefined,
+      ],
+    ];
 
   for (const [key, value] of assignments) {
     if (value !== undefined) {
@@ -413,14 +629,21 @@ function normalizeTotals(rawTotals: RawTeamData['totals']): BaseTeamDoc['totals'
     }
   }
 
-  const hardCapReason = (rawTotals as Record<string, unknown>).hardCapReason;
-  if (typeof hardCapReason === 'string') {
-    totals.hardCapLevel = hardCapReason;
+  const hardCapDetail =
+    (rawTotals as Record<string, unknown>).hardCapDetail ??
+    (rawTotals as Record<string, unknown>).hardCapReason;
+  if (typeof hardCapDetail === 'string' && hardCapDetail.trim()) {
+    totals.hardCapDetail = hardCapDetail.trim();
   }
 
-  const hardCapLevel = (rawTotals as Record<string, unknown>).hardCappedAt;
+  const hardCapLevel =
+    (rawTotals as Record<string, unknown>).hardCapLevel ??
+    (rawTotals as Record<string, unknown>).hardCappedAt;
   if (typeof hardCapLevel === 'string') {
-    totals.hardCapLevel = hardCapLevel;
+    const normalized = hardCapLevel.trim();
+    if (['none', 'firstApron', 'secondApron'].includes(normalized)) {
+      totals.hardCapLevel = normalized as BaseTeamDoc['totals']['hardCapLevel'];
+    }
   }
 
   return Object.keys(totals).length ? totals : undefined;
@@ -433,7 +656,9 @@ async function loadPlayerIndex(): Promise<PlayerIndex> {
 async function loadTeamData(teamCode: string): Promise<RawTeamData> {
   const pathCandidates = [
     path.join(TEAM_DATA_DIR, `team_${teamCode}.json`),
+    path.join(TEAM_DATA_DIR, 'team-data', `team_${teamCode}.json`),
     path.join(TEAM_DATA_DIR, 'team.json'),
+    path.join(TEAM_DATA_DIR, 'team-data', 'team.json'),
   ];
 
   for (const candidate of pathCandidates) {
@@ -447,7 +672,7 @@ async function loadTeamData(teamCode: string): Promise<RawTeamData> {
   }
 
   throw new Error(
-    `Unable to locate team data for ${teamCode}. Run the SalarySwish parser first (npm run parse).`,
+    `Unable to locate team data for ${teamCode}. Run the SalarySwish parser first (npm run parse).`
   );
 }
 
@@ -455,19 +680,36 @@ async function loadDraftPicks(teamCode: string): Promise<{
   picks: RawDraftPick[];
   source?: { provider?: string; url?: string; scrapedAt?: string };
 }> {
-  const structuredPath = path.join(DRAFT_PICKS_DIR, `draft_picks_${teamCode}.json`);
-  try {
-    const picks = await readJson<RawDraftPick[]>(structuredPath);
-    return { picks, source: { provider: 'RealGM', url: undefined } };
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
+  const structuredCandidates = [
+    path.join(DRAFT_PICKS_DIR, `draft_picks_${teamCode}.json`),
+    path.join(DRAFT_PICKS_DIR, 'structured', `draft_picks_${teamCode}.json`),
+    path.join(DRAFT_PICKS_DIR, 'draft-picks', `draft_picks_${teamCode}.json`),
+    path.join(
+      DRAFT_PICKS_DIR,
+      'draft-picks',
+      'structured',
+      `draft_picks_${teamCode}.json`
+    ),
+  ];
+
+  for (const candidate of structuredCandidates) {
+    try {
+      const picks = await readJson<RawDraftPick[]>(candidate);
+      return { picks, source: { provider: 'RealGM', url: undefined } };
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+        throw err;
+      }
+    }
   }
 
   const mergedPath = path.join(MERGED_DIR, `${teamCode}_merged.json`);
   try {
     const merged = await readJson<{
       draftPicks?: StructuredDraftPickGroup;
-      sources?: { draftPicks?: { provider?: string; url?: string; scrapedAt?: string } };
+      sources?: {
+        draftPicks?: { provider?: string; url?: string; scrapedAt?: string };
+      };
     }>(mergedPath);
     const picks = coalesceDraftPicks({
       teamCode,
@@ -491,13 +733,13 @@ function buildBaseTeamDoc({
   seasonOverride,
 }: {
   rawTeam: RawTeamData;
-  draftPicks: RawDraftPick[];
+  draftPicks: NormalizedDraftPick[];
   pickSource?: { provider?: string; url?: string; scrapedAt?: string };
   resolver: PlayerIdResolver;
   seasonOverride?: string;
 }): BaseTeamDoc {
-  const rosterIds = (rawTeam.roster ?? []).map((entry) =>
-    resolver.resolve(entry, `roster`).playerId,
+  const rosterIds = (rawTeam.roster ?? []).map(
+    (entry) => resolver.resolve(entry, `roster`).playerId
   );
 
   const capHolds = (rawTeam.capHolds ?? []).map((entry) => {
@@ -507,12 +749,11 @@ function buildBaseTeamDoc({
       playerName: resolved.playerName,
       amount: entry.capHoldAmount ?? 0,
       type: entry.type ?? entry.rights ?? 'Unknown',
+      season: entry.season ?? rawTeam.season,
       expiresOn: undefined,
       isSigned: false,
     };
   });
-
-  const normalizedPicks = draftPicks.map((pick) => normalizeDraftPick(rawTeam.teamCode, pick));
 
   const totals = normalizeTotals(rawTeam.totals);
 
@@ -525,7 +766,7 @@ function buildBaseTeamDoc({
     deadCap: [],
     capHolds,
     exceptions: buildExceptions(rawTeam.exceptions),
-    draftPicks: normalizedPicks,
+    draftPicks,
     totals,
     source: {
       provider: rawTeam.source?.provider,
@@ -553,29 +794,34 @@ async function stageTeam({ team, season, validate, outDir }: CliArgs) {
   ]);
 
   const resolver = buildResolver(playerIndex);
-  const { picks: structuredPicks, source: pickSource } = await loadDraftPicks(teamCode);
+  const { picks: structuredPicks, source: pickSource } =
+    await loadDraftPicks(teamCode);
   const fallbackPicks =
     structuredPicks.length > 0
       ? structuredPicks
       : process.env.ALLOW_SALARYSWISH_DRAFT_BACKFILL === '1'
-        ? rawTeam.draftPicks ?? []
+        ? (rawTeam.draftPicks ?? [])
         : [];
 
   if (structuredPicks.length === 0) {
     if (process.env.ALLOW_SALARYSWISH_DRAFT_BACKFILL === '1') {
       console.warn(
-        `⚠️  No RealGM draft picks found for ${teamCode}. Falling back to SalarySwish draftPicks from team_data.`,
+        `⚠️  No RealGM draft picks found for ${teamCode}. Falling back to SalarySwish draftPicks from team_data.`
       );
     } else {
       console.warn(
-        `⚠️  No RealGM draft picks found for ${teamCode}. Draft picks will be empty until RealGM scrape succeeds.`,
+        `⚠️  No RealGM draft picks found for ${teamCode}. Draft picks will be empty until RealGM scrape succeeds.`
       );
     }
   }
 
+  const normalizedPicks = fallbackPicks.map((pick) =>
+    normalizeDraftPick(rawTeam.teamCode, pick)
+  );
+
   const baseTeamDoc = buildBaseTeamDoc({
     rawTeam,
-    draftPicks: fallbackPicks,
+    draftPicks: normalizedPicks,
     pickSource,
     resolver,
     seasonOverride: season,
@@ -596,20 +842,28 @@ async function stageTeam({ team, season, validate, outDir }: CliArgs) {
   await writeFile(
     path.join(baseTeamsDir, `${teamCode}.json`),
     JSON.stringify(baseTeamDoc, null, 2),
-    'utf8',
+    'utf8'
   );
 
   await writeFile(
     path.join(teamSnapshotDir, 'team_data.json'),
     JSON.stringify(rawTeam, null, 2),
-    'utf8',
+    'utf8'
   );
 
   await writeFile(
     path.join(teamSnapshotDir, 'draft_picks.json'),
-    JSON.stringify(fallbackPicks, null, 2),
-    'utf8',
+    JSON.stringify(normalizedPicks, null, 2),
+    'utf8'
   );
+
+  if (fallbackPicks.length > 0) {
+    await writeFile(
+      path.join(teamSnapshotDir, 'draft_picks_raw.json'),
+      JSON.stringify(fallbackPicks, null, 2),
+      'utf8'
+    );
+  }
 
   if (resolver.unresolved.size > 0) {
     console.warn(`⚠️  Unresolved player names (${resolver.unresolved.size}):`);
@@ -619,7 +873,9 @@ async function stageTeam({ team, season, validate, outDir }: CliArgs) {
   }
 
   console.log('✅ baseTeams document staged successfully.');
-  console.log(`   → ${path.relative(PROJECT_ROOT, path.join(baseTeamsDir, `${teamCode}.json`))}`);
+  console.log(
+    `   → ${path.relative(PROJECT_ROOT, path.join(baseTeamsDir, `${teamCode}.json`))}`
+  );
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
@@ -628,4 +884,3 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     process.exit(1);
   });
 }
-

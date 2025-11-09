@@ -131,6 +131,7 @@ export const Totals = z.object({
   deadCapTotal: z.number().optional(),
   capHoldsTotal: z.number().optional(),
   totalSalary: z.number().optional(), // active + dead + etc.
+  capHit: z.number().optional(),
   guaranteedSalary: z.number().optional(),
   salaryCap: z.number().optional(), // league cap line (page may display)
   capSpace: z.number().optional(), // negative means over the cap
@@ -142,8 +143,8 @@ export const Totals = z.object({
   secondApronRoom: z.number().optional(),
   firstApronTriggered: z.boolean().optional(),
   secondApronTriggered: z.boolean().optional(),
-  hardCappedAt: z.enum(['none', 'firstApron', 'secondApron']).optional(),
-  hardCapReason: z.string().optional(),
+  hardCapLevel: z.enum(['none', 'firstApron', 'secondApron']).optional(),
+  hardCapDetail: z.string().optional(),
   incompleteRosterCharges: z.number().optional(),
   twoWayCount: z.number().optional(), // if page shows counts
   rosterCount: z.number().optional(),

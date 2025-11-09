@@ -48,17 +48,17 @@ Provides both high-level roadmap and detailed, semi-executable steps for impleme
    # Already built: team-scrape/review_and_merge/scripts/merge_team_outputs.ts
    # Merges team data + draft picks:
    npm run merge:samples
-   # Output: team-scrape/shared/output/merged/{TEAM}_merged.json
+   # Output: team-scrape/shared/firestore_staging/output/merged/{TEAM}_merged.json
    ```
    
 4. **Validate using sample references**:
-   - Compare outputs against `team-scrape/review_and_merge/out_merged_samples/LAL_merged.json`
+- Compare outputs against `team-scrape/shared/firestore_staging/output/merged/LAL_merged.json`
    - Verify all required fields present
    - Check draft pick structure matches schema
    
 5. **Upload to Firestore** (`uploadToFirestore.js`):
    ```javascript
-   // Read from team-scrape/shared/output/merged/*.json
+  // Read from team-scrape/shared/firestore_staging/output/merged/*.json
    // Upload each to /architect/baseTeams/{teamCode}
    ```
 

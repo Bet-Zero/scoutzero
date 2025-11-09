@@ -16,8 +16,8 @@
  *   - Draft picks: team-scrape/draft-picks/output/structured/draft_picks_{TEAM}.json
  *
  * OUTPUT:
- *   - Individual: team-scrape/shared/output/merged/{TEAM}_merged.json
- *   - Combined: team-scrape/shared/output/merged/all_teams_merged.json
+ *   - Individual: team-scrape/shared/firestore_staging/output/merged/{TEAM}_merged.json
+ *   - Combined: team-scrape/shared/firestore_staging/output/merged/all_teams_merged.json
  *
  * FEATURES:
  *   - Deterministic: Multiple runs produce identical results
@@ -44,7 +44,7 @@ const CONFIG = {
   draftPicksDir: 'team-scrape/draft-picks/output/structured',
 
   // Output paths
-  outputDir: 'team-scrape/shared/output/merged',
+  outputDir: 'team-scrape/shared/firestore_staging/output/merged',
 
   // Teams to process (based on available draft pick data)
   teams: ['LAL', 'MEM', 'NYK', 'OKC', 'WAS'],
@@ -79,6 +79,7 @@ interface SalaryData {
   };
   totals: {
     totalSalary?: number;
+    capHit?: number;
     activeSalary?: number;
     deadCapTotal?: number;
     capHoldsTotal?: number;
@@ -93,7 +94,8 @@ interface SalaryData {
     secondApronRoom?: number;
     firstApronTriggered?: boolean;
     secondApronTriggered?: boolean;
-    hardCappedAt?: string;
+    hardCapLevel?: 'none' | 'firstApron' | 'secondApron';
+    hardCapDetail?: string;
     rosterCount?: number;
     twoWayCount?: number;
     incompleteRosterCharges?: number;

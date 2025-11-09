@@ -82,6 +82,7 @@
     "deadCapTotal": 3500000,
     "capHoldsTotal": 21000000,
     "totalSalary": 219500000,
+    "capHit": 205000000,
     "salaryCap": 141000000,
     "capSpace": -78500000,
     "luxuryTaxLine": 172000000,
@@ -90,8 +91,8 @@
     "secondApronLine": 189500000,
     "firstApronTriggered": true,
     "secondApronTriggered": true,
-    "hardCappedAt": "secondApron",
-    "hardCapReason": "Used NTP-MLE + acquired player via S&T",
+    "hardCapLevel": "secondApron",
+    "hardCapDetail": "Used NTP-MLE + acquired player via S&T",
     "incompleteRosterCharges": 0,
     "twoWayCount": 2,
     "rosterCount": 15
