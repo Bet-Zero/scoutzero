@@ -20,7 +20,11 @@
   "include": [
     "src/**/*",
     "player-scrape/scripts/**/*",
-    "team-scrape/scripts/**/*"
+    "player-scrape/firestore_staging/**/*",
+    "team-scrape/team-data/scripts/**/*",
+    "team-scrape/draft-picks/scripts/**/*",
+    "team-scrape/shared/firestore_staging/**/*",
+    "team-scrape/shared/review_and_merge/scripts/**/*"
   ],
   "exclude": [
     "node_modules",

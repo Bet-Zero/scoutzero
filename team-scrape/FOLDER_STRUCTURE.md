@@ -1,172 +1,101 @@
-# Team-Scrape Output Folder Structure
+# Team-Scrape Folder Structure
 
 ## Overview
 
-The team-scrape output folders have been reorganized for clarity, separating different types of data into clearly named subfolders.
+The `team-scrape/` workspace is now split into three process-specific areas plus a shared toolbox. Each process owns its own scripts, documentation, examples, and outputs. Shared utilities (merge + staging) live alongside combined outputs.
 
-## New Structure
+## Layout
 
 ```
-team-scrape/output/
-├── team-data/           # Team cap/roster data from SalarySwish
-│   ├── team.json        # Latest team scraped
-│   └── team_{CODE}.json # Per-team files (LAL, MEM, NYK, OKC, WAS, etc.)
-│
-├── draft-picks/         # Draft pick data from RealGM
-│   ├── draft_picks_raw.json              # Raw scraped text (debugging)
-│   ├── draft_picks_structured.json       # All picks with metadata
-│   ├── draft_picks_by_current_owner.json # All picks organized by owner
-│   ├── by_current_owner/                 # Per-team by current owner
-│   │   └── draft_picks_{CODE}.json       # LAL, OKC, NYK, etc.
-│   ├── raw/                              # Per-team raw data
-│   │   └── draft_picks_{CODE}.json
-│   └── structured/                       # Per-team structured data
-│       └── draft_picks_{CODE}.json
-│
-└── merged/              # Combined team + draft pick data
-    ├── {CODE}_merged.json      # Per-team merged (LAL_merged.json, etc.)
-    └── all_teams_merged.json   # All teams in one file
+team-scrape/
+├── draft-picks/                      # RealGM draft pick workflow
+│   ├── docs/                         # Draft-pick specific docs
+│   ├── output/                       # Structured + debug pick JSON
+│   └── scripts/                      # Playwright + validation scripts
+├── shared/                           # Cross-process tooling
+│   ├── firestore_staging/            # Architect staging CLI + docs
+│   ├── output/
+│   │   └── merged/                   # Team + pick merged JSON
+│   └── review_and_merge/             # Merge scripts + documentation
+├── team-data/                        # SalarySwish cap/roster workflow
+│   ├── config/                       # Selector map + Zod schema
+│   ├── docs/                         # Team-data write-ups
+│   ├── examples/                     # Sample HTML/JSON snapshots
+│   ├── output/                       # SalarySwish JSON outputs
+│   ├── scripts/                      # Fetch/inspect/probe/parse tools
+│   └── working/                      # Playwright cache (`page.html`)
+├── FOLDER_STRUCTURE.md               # This guide
+├── README.md                         # Detailed overview
+└── team.plan.md                      # Agent plan tracker (read-only)
 ```
 
-## What Changed?
+## Outputs by Process
 
-### Before (Confusing)
-- `out/` - Draft pick files
-- `output/` - Team data AND draft picks in `output/realgm/out/`
-- **Problem**: Duplicates, unclear separation, hard to find files
+### Team Data (`team-data/output/`)
 
-### After (Clear)
-- `output/team-data/` - **Only** team cap/roster data
-- `output/draft-picks/` - **Only** draft pick data
-- `output/merged/` - **Only** merged team + draft picks
-- **Result**: Clear separation, no duplicates, easy to navigate
+- `team_{CODE}.json` – Structured SalarySwish output per team
+- `team.json` – Legacy latest-run snapshot (optional)
 
-## Which Files to Use?
+### Draft Picks (`draft-picks/output/`)
 
-### For Team Cap Data (Salary, Roster, Exceptions)
-✅ **Use**: `output/team-data/team_{CODE}.json`
-- Example: `output/team-data/team_LAL.json`
+- `structured/draft_picks_{CODE}.json` – Canonical per-team files
+- `draft_picks_structured.json` – All picks + metadata (optional)
+- `draft_picks_by_current_owner.json` – Aggregated by current owner
+- `by_current_owner/draft_picks_{CODE}.json` – Ownership-centric view
+- `draft_picks_raw.json` – Raw RealGM scrape (debug)
 
-### For Draft Picks (Ownership, Protections, Swaps)
-✅ **Use**: 
-- Main file: `output/draft-picks/draft_picks_by_current_owner.json`
-- Per-team: `output/draft-picks/by_current_owner/draft_picks_{CODE}.json`
-- Full data: `output/draft-picks/draft_picks_structured.json`
+### Shared Merge (`shared/output/merged/`)
 
-### For Complete Team Documents (Cap + Draft Picks)
-✅ **Use**: `output/merged/{CODE}_merged.json`
-- Example: `output/merged/OKC_merged.json`
-- All teams: `output/merged/all_teams_merged.json`
+- `{CODE}_merged.json` – Combined team + draft pick payload
+- `all_teams_merged.json` – Aggregate of all merged teams
 
-## How Scripts Updated
+## Script Entry Points
 
-### Draft Pick Scraper (`realgm_draft_picks.ts`)
-- **Before**: Wrote to `team-scrape/out/`
-- **After**: Writes to `team-scrape/output/draft-picks/`
-- **Run**: `npm run realgm:drafts -- --teams LAL,OKC --pretty`
+| Purpose            | Location                                             | Command                          | Notes                                   |
+| ------------------ | ---------------------------------------------------- | -------------------------------- | --------------------------------------- |
+| Fetch HTML         | `team-data/scripts/fetch_page.ts`                    | `npm run fetch`                  | Writes `team-data/working/page.html`    |
+| Probe / Inspect    | `team-data/scripts/{inspect,probe}.ts`               | `npm run inspect`, `npm run probe` | Uses `team-data/examples/page.html`     |
+| Parse Team Data    | `team-data/scripts/parse_team.ts`                    | `npm run parse`                  | Writes `team-data/output/team_{CODE}.json` |
+| Validate Team JSON | `team-data/scripts/validate_output.ts`               | `npm run validate:team`? (set env)| Reads `team-data/examples/team.json` by default |
+| Draft Picks Scrape | `draft-picks/scripts/realgm_draft_picks.ts`          | `npm run realgm:drafts -- --teams LAL,OKC` | Writes under `draft-picks/output/` |
+| Draft Picks Check  | `draft-picks/scripts/validate_pick_parsing.ts`       | `npx tsx ...`                    | Validates structured outputs            |
+| Merge              | `shared/review_and_merge/scripts/merge_team_outputs.ts` | `npm run merge:samples`          | Reads team-data + draft-picks outputs   |
+| Clean View         | `shared/review_and_merge/scripts/create_clean_view.ts` | `npm run clean-view`             | Produces markdown summaries             |
+| Stage to Firestore | `shared/firestore_staging/stage_team.ts`             | `npm run stage:team -- --team=LAL` | Uses merged outputs for architect docs |
 
-### Team Data Scraper (`parse_team.ts`)
-- **Before**: Wrote to `team-scrape/output/`
-- **After**: Writes to `team-scrape/output/team-data/`
-- **Run**: `TEAM_CODE=LAL npm run parse`
+## Common Tasks
 
-### Merge Script (`merge_team_outputs.ts`)
-- **Before**: Read from `output/` and `output/realgm/out/structured/`
-- **After**: Reads from `output/team-data/` and `output/draft-picks/structured/`
-- **Before**: Wrote to `review_and_merge/out_merged_samples/`
-- **After**: Writes to `output/merged/`
-- **Run**: `npm run merge:samples`
+### Scrape + Merge One Team
 
-## Directory Purpose
-
-### `team-data/`
-**Purpose**: Store team salary cap and roster information
-**Source**: SalarySwish team pages
-**Contains**:
-- Player roster with cap hits
-- Cap holds (RFAs, UFAs, draft pick holds)
-- Exceptions (MLE, BAE, Trade Exceptions)
-- Cap space, tax calculations, apron status
-
-### `draft-picks/`
-**Purpose**: Store draft pick ownership and trading information
-**Source**: RealGM team pages
-**Contains**:
-- Draft pick ownership by year and round
-- Pick protections and conditions
-- Swap rights
-- Trade routes and current owners
-
-### `merged/`
-**Purpose**: Combine team data + draft picks into complete documents
-**Source**: Merge script combining the two sources above
-**Contains**:
-- Everything from team-data
-- Everything from draft-picks
-- Organized by pick status (incoming, outgoing, own, contested)
-- Data lineage tracking
-
-## Migration Notes
-
-### Old Paths (Removed)
-- ❌ `team-scrape/out/` - Removed (moved to `output/draft-picks/`)
-- ❌ `output/realgm/out/` - Removed (was duplicate of `out/`)
-- ❌ `review_and_merge/out_merged_samples/` - Deprecated (use `output/merged/`)
-
-### New Paths (Current)
-- ✅ `output/team-data/` - Team cap/roster files
-- ✅ `output/draft-picks/` - Draft pick files
-- ✅ `output/merged/` - Merged outputs
-
-## Benefits of New Structure
-
-1. **Clarity**: Folder names clearly indicate content type
-2. **No Duplicates**: Single source of truth for each data type
-3. **Consistent**: All outputs under `output/` parent folder
-4. **Organized**: Subfolders group related files together
-5. **Scalable**: Easy to add new output types in the future
-
-## Example Workflows
-
-### Get Complete Data for One Team (e.g., Lakers)
 ```bash
-# 1. Scrape team cap data
-TEAM_CODE=LAL npm run parse
+# Team cap data (SalarySwish)
+TEAM_URL="https://www.salaryswish.com/teams/lakers" TEAM_CODE="LAL" npm run parse
 
-# 2. Scrape draft picks
+# Draft picks (RealGM)
 npm run realgm:drafts -- --teams LAL --pretty
 
-# 3. Merge them together
+# Merge into a single payload
 npm run merge:samples
 
-# 4. View complete document
-cat team-scrape/output/merged/LAL_merged.json
+# Inspect merged result
+cat team-scrape/shared/output/merged/LAL_merged.json
 ```
 
-### Get Draft Picks for Multiple Teams
+### Inspect Outputs
+
+- Team data: `ls team-scrape/team-data/output/`
+- Draft picks: `ls team-scrape/draft-picks/output/structured/`
+- Merged: `ls team-scrape/shared/output/merged/`
+
+### Stage for Architect Review
+
 ```bash
-npm run realgm:drafts -- --teams LAL,OKC,MEM,NYK,WAS --pretty
-
-# View all picks organized by owner
-cat team-scrape/output/draft-picks/draft_picks_by_current_owner.json
-
-# View specific team
-cat team-scrape/output/draft-picks/by_current_owner/draft_picks_OKC.json
+npm run stage:team -- --team=LAL --validate
+open team-scrape/shared/firestore_staging/output/baseTeams/LAL.json
 ```
 
-### Merge Existing Data
-```bash
-# If you already have team data and draft picks scraped
-npm run merge:samples
+## Notes
 
-# Check merged outputs
-ls team-scrape/output/merged/
-```
-
-## Questions?
-
-See the main [README.md](README.md) for detailed documentation on:
-- Complete workflow steps
-- Script parameters and options
-- Output schemas and formats
-- Troubleshooting guide
+- Each process keeps its own docs to avoid cross-contamination.
+- Shared tooling should only live under `shared/`.
+- Update this file whenever directories or script entry points change so agents stay in sync.

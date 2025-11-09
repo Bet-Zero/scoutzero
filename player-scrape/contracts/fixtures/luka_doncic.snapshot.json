@@ -1,8 +1,8 @@
 {
   "playerId": "luka_doncic",
   "displayName": "Luka Doncic",
-  "teamCode": "DAL",
-  "teamName": "Dallas Mavericks",
+  "teamCode": "LAL",
+  "teamName": "Los Angeles Lakers",
   "bio": {
     "position": "G",
     "birthdate": "Feb 28, 1999",
@@ -24,7 +24,7 @@
     "signingTeam": "DAL",
     "signingDate": "August 10, 2021",
     "signingExecutive": "Nico Harrison",
-    "signedByCurrentTeam": true,
+    "signedByCurrentTeam": false,
     "startSeason": "2022-23",
     "endSeason": "2026-27",
     "contractLength": 5,
@@ -117,9 +117,7 @@
     "tradeRestrictions": [],
     "birdRights": {
       "status": "Bird",
-      "eligibleFor": [
-        "Bird Exception"
-      ]
+      "eligibleFor": ["Bird Exception"]
     },
     "freeAgency": {
       "type": "UFA",
@@ -155,7 +153,7 @@
     "signingTeam": "LAL",
     "signingDate": "August 2, 2025",
     "signingExecutive": "Rob Pelinka",
-    "signedByCurrentTeam": false,
+    "signedByCurrentTeam": true,
     "startSeason": "2026-27",
     "endSeason": "2028-29",
     "contractLength": 3,
@@ -216,9 +214,7 @@
     "tradeRestrictions": [],
     "birdRights": {
       "status": "Bird",
-      "eligibleFor": [
-        "Bird Exception"
-      ]
+      "eligibleFor": ["Bird Exception"]
     },
     "freeAgency": {
       "type": "UFA",

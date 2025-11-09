@@ -52,6 +52,39 @@ const FETCH_SCRIPT = resolve(SCRIPTS_DIR, 'fetch_player_page.ts');
 const PARSE_SCRIPT = resolve(SCRIPTS_DIR, 'parse_player.ts');
 const VALIDATE_SCRIPT = resolve(SCRIPTS_DIR, 'validate_player.ts');
 
+const TEAM_CODE_TO_NAME: Record<string, string> = {
+  ATL: 'Atlanta Hawks',
+  BOS: 'Boston Celtics',
+  BKN: 'Brooklyn Nets',
+  CHA: 'Charlotte Hornets',
+  CHI: 'Chicago Bulls',
+  CLE: 'Cleveland Cavaliers',
+  DAL: 'Dallas Mavericks',
+  DEN: 'Denver Nuggets',
+  DET: 'Detroit Pistons',
+  GSW: 'Golden State Warriors',
+  HOU: 'Houston Rockets',
+  IND: 'Indiana Pacers',
+  LAC: 'LA Clippers',
+  LAL: 'Los Angeles Lakers',
+  MEM: 'Memphis Grizzlies',
+  MIA: 'Miami Heat',
+  MIL: 'Milwaukee Bucks',
+  MIN: 'Minnesota Timberwolves',
+  NOP: 'New Orleans Pelicans',
+  NYK: 'New York Knicks',
+  OKC: 'Oklahoma City Thunder',
+  ORL: 'Orlando Magic',
+  PHI: 'Philadelphia 76ers',
+  PHX: 'Phoenix Suns',
+  POR: 'Portland Trail Blazers',
+  SAC: 'Sacramento Kings',
+  SAS: 'San Antonio Spurs',
+  TOR: 'Toronto Raptors',
+  UTA: 'Utah Jazz',
+  WAS: 'Washington Wizards',
+};
+
 /** ---------- Flags (kept simple) ---------- */
 // Supports:
 //   --name=value
@@ -123,6 +156,10 @@ async function loadIndex() {
     fileId: normalizeIdForFile(id),
     url: `https://salaryswish.com/players/${v['salarySwishSlug']}`,
     team: v['teamCode'],
+    teamName:
+      (typeof v['teamName'] === 'string' && v['teamName']) ||
+      TEAM_CODE_TO_NAME[v['teamCode']] ||
+      undefined,
   }));
   if (TEAM_FILTER) items = items.filter((p) => p.team === TEAM_FILTER);
   if (PLAYER_FILTER) items = items.filter((p) => p.id === PLAYER_FILTER);
@@ -137,7 +174,16 @@ function buildCommands(p) {
   const tempHtml = `${p.fileId}.html`;
   const tempJson = `${p.fileId}.json`;
   const fetchCmd = `PLAYER_URL="${p.url}" PLAYER_ID="${p.id}" TEMP_FILE="${tempHtml}" npx tsx "${FETCH_SCRIPT}"`;
-  const parseCmd = `PLAYER_URL="${p.url}" PLAYER_ID="${p.id}" TEMP_FILE="${tempHtml}" TEMP_JSON="${tempJson}" npx tsx "${PARSE_SCRIPT}"`;
+  const envParts = [
+    `PLAYER_URL="${p.url}"`,
+    `PLAYER_ID="${p.id}"`,
+    `TEMP_FILE="${tempHtml}"`,
+    `TEMP_JSON="${tempJson}"`,
+  ];
+  if (p.team) envParts.push(`PLAYER_TEAM_CODE="${p.team}"`);
+  if (p.teamName)
+    envParts.push(`PLAYER_TEAM_NAME="${p.teamName.replace(/"/g, '\\"')}"`);
+  const parseCmd = `${envParts.join(' ')} npx tsx "${PARSE_SCRIPT}"`;
   return { fetchCmd, parseCmd };
 }
 

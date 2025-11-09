@@ -48,24 +48,6 @@ The team scraping workflow has 3 main phases:
 2. **Inspect/Probe** - Analyze the HTML structure to verify data extraction
 3. **Parse** - Extract structured JSON data from the HTML (excluding draft picks)
 
-## ⚠️ OUTPUT FILES ORGANIZATION
-
-**All outputs are now clearly organized in subfolders:**
-
-**Team Cap Data** (`team-data/output/`):
-
-- ✅ **Per-team**: `team-data/output/team_{CODE}.json` - Individual team cap/roster data
-- ✅ **Latest**: `team-data/output/team.json` - Most recent team scraped (legacy fallback)
-
-**Draft Picks** (`draft-picks/output/`):
-
-- ✅ **Per-team structured**: `draft-picks/output/structured/draft_picks_{TEAM}.json` - Picks the team currently controls (no outgoing obligations)
-
-**Shared Merge Data** (`shared/output/merged/`):
-
-- ✅ **Complete**: `shared/output/merged/{TEAM}_merged.json` - Team data + draft picks combined
-- ✅ **All teams**: `shared/output/merged/all_teams_merged.json` - All merged teams in one file
-
 ## Current Architecture: Split-to-Merge Strategy
 
 ### Phase 1: Team Data (SalarySwish)
@@ -100,55 +82,82 @@ Planned integration:
 
 ```
 team-scrape/
-├── draft-picks/                      # RealGM draft pick scraping workflow
-│   ├── docs/                         # Draft pick–specific documentation
-│   ├── output/                       # Draft pick outputs (structured/, raw/, etc.)
-│   └── scripts/                      # Playwright/cheerio automation for picks
-├── shared/                           # Cross-process tooling and outputs
-│   ├── firestore_staging/            # Architect staging pipeline + README/docs
-│   ├── output/
-│   │   └── merged/                   # Merged team + pick JSON (shared assets)
-│   └── review_and_merge/             # Merge utilities + documentation
-├── team-data/                        # SalarySwish team cap scraping workflow
-│   ├── config/                       # Selector maps + Zod schema
-│   ├── docs/                         # Team-data-specific documentation
-│   ├── examples/                     # Reference HTML/JSON snapshots
-│   ├── output/                       # SalarySwish-derived team JSON
-│   ├── scripts/                      # Fetch/inspect/probe/parse/validate scripts
-│   └── working/                      # Playwright snapshots (`page.html`, etc.)
-├── FOLDER_STRUCTURE.md               # High-level summary of this hierarchy
-├── README.md                         # (this file)
-└── team.plan.md                      # Agent task tracker (do not edit)
+├── scripts/                    # ACTUAL SCRIPTS THAT RUN
+│   ├── fetch_page.ts          # Download team pages with Playwright
+│   ├── parse_team.ts          # Main team cap data parser (SalarySwish → JSON)
+│   ├── realgm_draft_picks.ts  # Dedicated RealGM draft pick scraper
+│   ├── inspect.ts             # Quick HTML structure inspection
+│   ├── probe.ts               # Detailed data extraction testing
+│   └── validate_output.ts     # Output validation against schema
+├── working/                   # WORKING FILES (generated/temporary)
+│   └── page.html             # Current HTML snapshot (working file)
+├── output/                    # OUTPUT FILES (generated results)
+│   ├── team.json             # Latest team cap data output
+│   └── realgm/               # RealGM draft pick outputs
+│       ├── by_current_owner/ # Per-team files organized by actual ownership
+│       │   ├── draft_picks_LAL.json # Lakers' actual pick assets
+│       │   ├── draft_picks_OKC.json # OKC's actual pick assets
+│       │   ├── draft_picks_MEM.json # Memphis' actual pick assets
+│       │   └── draft_picks_*.json   # Individual team files (14+ teams)
+│       ├── draft_picks_by_current_owner.json  # All picks organized by current owner
+│       ├── draft_picks_structured.json        # All picks with full metadata
+│       └── draft_picks_raw.json              # Raw RealGM text for debugging
+├── examples/                  # REFERENCE/SAMPLES ("just in case"/"might need")
+│   ├── page.html             # Lakers HTML reference snapshot
+│   ├── team.json             # Lakers output reference
+│   └── team_scrape_sample.json # Hand-written schema example
+├── docs/                      # DOCUMENTATION
+│   ├── README.md             # Main documentation (this file)
+│   ├── QUICK_START_REALGM.md # RealGM scraper quick start
+│   ├── COMPLETION_SUMMARY.md # Implementation completion notes
+│   └── FINAL_OUTPUT.md       # Output format documentation
+└── config/                    # CONFIGURATION/REFERENCE ("outline" type)
+    ├── team_scrape_schema.ts  # Zod schema definitions
+    └── SELECTOR_MAP.ts        # CSS selector reference chart
 ```
 
 ### Key Directories Explained
 
-#### `team-data/` – SalarySwish Cap & Roster Pipeline
+#### `scripts/` - Actual Scripts That Run
 
-- **scripts/** – `fetch_page.ts`, `inspect.ts`, `probe.ts`, `parse_team.ts`, `validate_output.ts`
-- **config/** – Selector map (`SELECTOR_MAP.ts`) + Zod schema (`team_scrape_schema.ts`)
-- **examples/** – Reference HTML/JSON (Lakers sample)
-- **working/** – Playwright cache (`page.html`) for offline parsing
-- **output/** – Generated SalarySwish JSON (`team_{CODE}.json`, legacy `team.json`)
-- **docs/** – Completion summary, final output notes, and other team-data guides
+- **Purpose**: Contains all executable scripts for the team scraping workflow
+- **Usage**: Run these scripts via npm commands or directly with tsx
+- **Organization**: Each script has a specific purpose in the scraping pipeline
 
-#### `draft-picks/` – RealGM Draft Asset Pipeline
+#### `working/` - Working Files (Generated/Temporary)
 
-- **scripts/** – `realgm_draft_picks.ts` and `validate_pick_parsing.ts`
-- **output/** – Structured per-team JSON plus optional debug snapshots
-- **docs/** – Quick start, parsing fix summary, output structure references
+- **Purpose**: Contains temporary files created and consumed during scraping
+- **`page.html`**: Current HTML snapshot downloaded by `fetch_page.ts`
+- **Lifecycle**: Files get replaced each time scripts run
+- **Note**: Kept ungitignored for AI access during development
 
-#### `shared/` – Cross-Process Utilities
+#### `output/` - Output Files (Generated Results)
 
-- **review_and_merge/** – Merge scripts (`merge_team_outputs.ts`, `create_clean_view.ts`) + docs
-- **firestore_staging/** – `stage_team.ts` pipeline and visuals for architect staging
-- **output/merged/** – Combined SalarySwish + RealGM payloads
+- **Purpose**: Contains the final structured data outputs from scraping
+- **`team.json`**: Latest team cap data from SalarySwish parsing
+- **`realgm/`**: All RealGM draft pick outputs in multiple formats
+- **Usage**: These files are consumed by other parts of the ScoutZero system
 
-#### Root Docs
+#### `examples/` - Reference/Samples ("Just in Case"/"Might Need")
 
-- `README.md` – This overview
-- `FOLDER_STRUCTURE.md` – Snapshot of the hierarchy (keep in sync when restructuring)
-- `team.plan.md` – Agent task progress tracker (do not edit manually)
+- **Purpose**: Contains reference files for understanding expected structure
+- **`page.html`**: Lakers HTML snapshot for testing parser changes
+- **`team.json`**: Sample Lakers output for reference
+- **`team_scrape_sample.json`**: Hand-written example showing ideal schema
+- **Use Case**: Testing, documentation, and understanding expected formats
+
+#### `docs/` - Documentation
+
+- **Purpose**: All documentation related to team scraping
+- **Organization**: README, quick starts, implementation notes, output guides
+- **Audience**: Developers working with or extending the scraping system
+
+#### `config/` - Configuration/Reference ("Outline" Type)
+
+- **Purpose**: Schema definitions and reference materials
+- **`team_scrape_schema.ts`**: Zod schema for validation and TypeScript types
+- **`SELECTOR_MAP.ts`**: CSS selector reference for SalarySwish parsing
+- **Usage**: Referenced by scripts but not executed directly
 
 ## Files
 
@@ -164,10 +173,10 @@ team-scrape/
 
 ### 🛠️ Executable Scripts
 
-#### `team-data/scripts/fetch_page.ts`
+#### `fetch_page.ts`
 
 - **Purpose**: Download team page HTML with JavaScript interactions
-- **Run**: `npm run fetch` (or `TEAM_URL="https://..." tsx team-scrape/team-data/scripts/fetch_page.ts`)
+- **Run**: `npm run fetch` (or `TEAM_URL="https://..." tsx team-scrape/fetch_page.ts`)
 - **What it does**:
   - Launches headless browser using Playwright
   - Loads the team page and waits for network idle
@@ -177,7 +186,7 @@ team-scrape/
 - **Environment Variables**:
   - `TEAM_URL` (required) - SalarySwish team page URL
 
-#### `team-data/scripts/inspect.ts`
+#### `inspect.ts`
 
 - **Purpose**: Quick visual inspection of HTML structure
 - **Run**: `npm run inspect`
@@ -189,7 +198,7 @@ team-scrape/
 - **Use Case**: Verify page structure before/after SalarySwish changes their HTML
 - **Reads**: `page.html`
 
-#### `team-data/scripts/probe.ts`
+#### `probe.ts`
 
 - **Purpose**: Detailed data extraction probe with validation
 - **Run**: `npm run probe`
@@ -203,7 +212,7 @@ team-scrape/
 - **Use Case**: Test extraction logic and verify all data points are captured
 - **Reads**: `page.html`
 
-#### `team-data/scripts/parse_team.ts`
+#### `parse_team.ts`
 
 - **Purpose**: Main parser - converts HTML to structured JSON (team cap data only)
 - **Run**: `npm run parse` (or with environment variables for customization)
@@ -230,12 +239,12 @@ team-scrape/
   - `TEAM_CODE` - 3-letter team code (default: "LAL")
   - `SEASON` - Season string (default: "2025-26")
 - **Reads**: `page.html`
-- **Writes**: `team-data/output/team_{CODE}.json` (and legacy `team.json` when run locally)
+- **Writes**: `team.json`
 
-#### `draft-picks/scripts/realgm_draft_picks.ts`
+#### `realgm_draft_picks.ts`
 
 - **Purpose**: Dedicated RealGM draft pick scraper (separate from team data)
-- **Run**: `npm run realgm:drafts -- --teams LAL,OKC,NYK --pretty`
+- **Run**: `node --experimental-strip-types team-scrape/realgm_draft_picks.ts --teams LAL,OKC,NYK --pretty`
 - **What it does**:
   - Scrapes comprehensive draft pick data from RealGM team pages
   - Handles complex scenarios: swaps, protections, multi-team trades, conditional picks
@@ -243,10 +252,10 @@ team-scrape/
   - Generates Stepien rule compliance data and trading restrictions
   - Creates rich metadata tracking pick journey and source information
 - **Output**: Multiple file formats for different use cases:
-  - `draft-picks/output/by_current_owner/draft_picks_{TEAM}.json` - Per-team files by current ownership
-  - `draft-picks/output/draft_picks_structured.json` - All picks with full metadata
-  - `draft-picks/output/draft_picks_raw.json` - Raw RealGM text for debugging
-  - `draft-picks/output/draft_picks_by_current_owner.json` - Aggregate by current owner (optional)
+  - `out/draft_picks_by_current_owner.json` - Organized by who actually owns picks
+  - `out/by_current_owner/draft_picks_{TEAM}.json` - Per-team files by current ownership
+  - `out/draft_picks_structured.json` - All picks with full metadata
+  - `out/draft_picks_raw.json` - Raw RealGM text for debugging
 - **Use Case**: Get accurate draft pick ownership for trade validation and GM tools
 
 ### 📤 Output Files
@@ -302,7 +311,7 @@ team-scrape/
 
 4. **Review team data output**:
    ```bash
-   cat team-scrape/team-data/output/team_LAL.json
+   cat team-scrape/team.json
    ```
 
 ### Separate Draft Pick Scraping Workflow
@@ -338,11 +347,8 @@ TEAM_URL="https://www.salaryswish.com/teams/lakers" TEAM_CODE="LAL" npm run pars
 # Step 2: Get draft picks data
 npm run realgm:drafts -- --teams LAL --pretty
 
-# Step 3: Merge team data with draft picks
-npm run merge:samples
-
-# Step 4: Review merged output
-cat team-scrape/shared/output/merged/LAL_merged.json
+# Step 3: Manual merge (until automated merge completes)
+# team-data/output/team_LAL.json + draft-picks/output/by_current_owner/draft_picks_LAL.json
 ```
 
 ## Data Connections

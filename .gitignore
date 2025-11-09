@@ -117,6 +117,7 @@ player-scrape/*.html
 
 # Team scraper clean views (generated output)
 team-scrape/review_and_merge/out_clean_views/
+team-scrape/firestore_staging/output/
 
 # Archive outdated planning/assessment documents that confuse AI
 assessment-docs/
@@ -131,3 +132,6 @@ player-scrape/stats/output/
 # Firestore staging artifacts
 player-scrape/firestore_staging/examples/
 player-scrape/firestore_staging/output/
+
+# Team scrape working files
+team-scrape/team-data/working/

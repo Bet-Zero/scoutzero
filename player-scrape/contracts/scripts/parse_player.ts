@@ -718,7 +718,18 @@ function parseName($: cheerio.CheerioAPI, fallbackId: string) {
     : titleCase(fallbackId.replace(/_/g, ' '));
 }
 
-function parseTeam($: cheerio.CheerioAPI, teamCodeEnv?: string) {
+function resolveTeamName(code?: string | null, fallbackName?: string): string {
+  if (typeof code === 'string' && code in teamCodeToName) {
+    return teamCodeToName[code];
+  }
+  return fallbackName ? norm(fallbackName) : '';
+}
+
+function parseTeam(
+  $: cheerio.CheerioAPI,
+  teamCodeEnv?: string,
+  teamNameEnv?: string
+) {
   // Prefer the contract area for team link; fallback to header; fallback to first /teams/ link.
   const found = findFirstSalaryTable($);
   let ctx = $('h1').first().closest('section,article,div');
@@ -735,8 +746,17 @@ function parseTeam($: cheerio.CheerioAPI, teamCodeEnv?: string) {
       .filter(Boolean)
       .pop()
       ?.toLowerCase() || '';
-  const teamCode = teamCodeEnv || (teamSlugToCode[slug] ?? 'UNK');
-  const teamName = norm(teamLink.text()) || teamCodeToName[teamCode] || '';
+  const scrapedCode = teamSlugToCode[slug] ?? 'UNK';
+  const scrapedName = norm(teamLink.text());
+  const teamCode = teamCodeEnv || scrapedCode;
+  const preferredFromEnv =
+    teamNameEnv ??
+    (teamCodeEnv ? resolveTeamName(teamCodeEnv, scrapedName) : undefined);
+  const teamName =
+    preferredFromEnv ||
+    scrapedName ||
+    resolveTeamName(teamCode, scrapedName) ||
+    '';
   return { teamName, teamCode };
 }
 
@@ -1080,7 +1100,7 @@ function parseCurrentContractMeta($: cheerio.CheerioAPI) {
 
   // Signing Executive — "SIGNED BY: <name>" (appears in contract header, often in a link)
   // Match pattern: "SIGNED BY: <a href="/staff/name">Executive Name</a>" or "SIGNED BY: Executive Name"
-  let signingExecutive = text
+  const signingExecutive = text
     .match(
       /SIGNED\s*BY:\s*(?:<[^>]+>)?([A-Za-z][A-Za-z\s.'-]+?)(?:<[^>]*>)?(?=\s*(?:AGENT|PRIMARY\s*AGENT|BIRD\s*RIGHTS|$))/i
     )?.[1]
@@ -1219,7 +1239,7 @@ function parseContractMetaFromTable(
 
   // Signing Executive — "SIGNED BY: <name>" (appears in contract header, often in a link)
   // Match pattern: "SIGNED BY: <a href="/staff/name">Executive Name</a>" or "SIGNED BY: Executive Name"
-  let signingExecutive = searchText
+  const signingExecutive = searchText
     .match(
       /SIGNED\s*BY:\s*(?:<[^>]+>)?([A-Za-z][A-Za-z\s.'-]+?)(?:<[^>]*>)?(?=\s*(?:AGENT|PRIMARY\s*AGENT|BIRD\s*RIGHTS|$))/i
     )?.[1]
@@ -1687,9 +1707,16 @@ function normalizeContractVoidedOptions(
  * @param options - Player ID and source URL
  * @returns Normalized player data
  */
+type ParsePlayerOptions = {
+  playerId: string;
+  sourceUrl: string;
+  teamCode?: string;
+  teamName?: string;
+};
+
 export async function parsePlayer(
   html: string,
-  options: { playerId: string; sourceUrl: string }
+  options: ParsePlayerOptions
 ): Promise<any> {
   const playerUrlEnv = options.sourceUrl;
   let playerId = options.playerId;
@@ -1704,7 +1731,14 @@ export async function parsePlayer(
       .replace(/^_+|_+$/g, '');
   }
 
-  const { teamName, teamCode } = parseTeam($, undefined);
+  const teamCodeOverride = options.teamCode ?? process.env.PLAYER_TEAM_CODE;
+  const teamNameOverride = options.teamName ?? process.env.PLAYER_TEAM_NAME;
+
+  const { teamName, teamCode } = parseTeam(
+    $,
+    teamCodeOverride,
+    teamNameOverride
+  );
   const bio = parseBio($);
 
   // Find all salary tables to detect extensions/future contracts
@@ -2036,7 +2070,7 @@ export async function parsePlayer(
 // CLI entrypoint (canonical temp → working/player.json; runner will place by team)
 async function main() {
   const playerUrlEnv = (process.env.PLAYER_URL || '').replace('://www.', '://');
-  let playerId =
+  const playerId =
     process.env.PLAYER_ID ||
     (playerUrlEnv ? playerUrlEnv.split('/').pop()!.replace(/-/g, '_') : '') ||
     'unknown';

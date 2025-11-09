@@ -34,6 +34,7 @@ Top-level directory structure and purposes:
   - `scripts/` - Shared utility scripts
 - `stats/` - Player statistics scraping (TBD)
 - `docs/` - Player scraping documentation
+- `firestore_staging/` - Preparation utilities for staging Firestore payloads (no writes)
 
 **team-scrape/**
 
@@ -199,6 +200,11 @@ PLAYER_URL="https://salaryswish.com/players/player-name" npm run fetch-player
 
 #### `player-scrape/contracts/scripts/validate_player.ts`
 
+- `player-scrape/firestore_staging/stage_player.ts`
+  - **Purpose:** Transform scraped contract + stats outputs into staged JSON payloads for `players_v2` and `/architect/basePlayers`
+  - **Usage:** `npx tsx player-scrape/firestore_staging/stage_player.ts --player=toumani_camara [--outDir=custom] [--validate]`
+  - **Notes:** Produces files under `player-scrape/firestore_staging/output/` for manual review; validation flag enforces Zod schema checks
+
 **Purpose:** Validate scraped player contract against schema
 
 **Usage:**
@@ -246,7 +252,7 @@ npm run regress
 
 ### Team Scraping
 
-#### `team-scrape/scripts/fetch_page.ts`
+#### `team-scrape/team-data/scripts/fetch_page.ts`
 
 **Purpose:** Fetch team roster page HTML
 
@@ -256,7 +262,7 @@ npm run regress
 npm run fetch
 ```
 
-#### `team-scrape/scripts/parse_team.ts`
+#### `team-scrape/team-data/scripts/parse_team.ts`
 
 **Purpose:** Parse team roster from HTML
 
@@ -266,7 +272,7 @@ npm run fetch
 npm run parse
 ```
 
-#### `team-scrape/scripts/probe.ts`
+#### `team-scrape/team-data/scripts/probe.ts`
 
 **Purpose:** Interactive HTML structure probe tool
 
@@ -276,7 +282,7 @@ npm run parse
 npm run probe
 ```
 
-#### `team-scrape/scripts/inspect.ts`
+#### `team-scrape/team-data/scripts/inspect.ts`
 
 **Purpose:** Inspect team data structure
 
@@ -286,7 +292,7 @@ npm run probe
 npm run inspect
 ```
 
-#### `team-scrape/scripts/realgm_draft_picks.ts`
+#### `team-scrape/draft-picks/scripts/realgm_draft_picks.ts`
 
 **Purpose:** Scrape draft pick data from RealGM
 
@@ -295,6 +301,11 @@ npm run inspect
 ```bash
 npm run realgm:drafts
 ```
+
+- `team-scrape/shared/firestore_staging/stage_team.ts`
+  - **Purpose:** Transform SalarySwish + RealGM outputs into staged `/architect/baseTeams/{teamCode}` documents
+  - **Usage:** `npx tsx team-scrape/shared/firestore_staging/stage_team.ts --team=LAL [--season=2025-26] [--outDir=custom] [--validate]`
+  - **Notes:** Writes previews to `team-scrape/shared/firestore_staging/output/` (git-ignored) and reuses the shared player index for name → playerId resolution
 
 ### Build & Development
 
@@ -439,7 +450,7 @@ npm run realgm:drafts
 
 ### Team Data Artifacts
 
-**Location:** `team-scrape/output/team-data/`
+**Location:** `team-scrape/team-data/output/`
 
 **Format:** JSON (structure TBD based on actual outputs)
 
@@ -559,9 +570,9 @@ SalarySwish URL
 
 **Output Locations:**
 
-- `team-scrape/output/team-data/`
-- `team-scrape/output/draft-picks/`
-- `team-scrape/output/merged/`
+- `team-scrape/team-data/output/`
+- `team-scrape/draft-picks/output/`
+- `team-scrape/shared/output/merged/`
 
 **Target Firestore:** Migrating to `/architect/` collections
 
@@ -674,7 +685,9 @@ assert(result.success, `Schema validation failed: ${result.error}`);
 - `player-scrape/contracts/fixtures/`
 - `player-scrape/contracts/snapshots/`
 - `player-scrape/contracts/working/`
-- `team-scrape/output/`
+- `team-scrape/team-data/output/`
+- `team-scrape/draft-picks/output/`
+- `team-scrape/shared/output/merged/`
 - `scripts/`
 - `src/`
 - `tests/`

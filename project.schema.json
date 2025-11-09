@@ -11,8 +11,13 @@
       "player-scrape/contracts/working",
       "player-scrape/contracts/scripts",
       "player-scrape/shared/schema",
-      "team-scrape/output",
-      "team-scrape/scripts",
+      "team-scrape/team-data/scripts",
+      "team-scrape/team-data/output",
+      "team-scrape/draft-picks/scripts",
+      "team-scrape/draft-picks/output",
+      "team-scrape/shared/firestore_staging",
+      "team-scrape/shared/review_and_merge/scripts",
+      "team-scrape/shared/output/merged",
       "scripts",
       "src",
       "tests",
@@ -20,7 +25,7 @@
     ],
     "optional": [
       "player-scrape/stats",
-      "team-scrape/config",
+      "team-scrape/team-data/config",
       "_exports"
     ]
   },
@@ -93,7 +98,7 @@
     },
     "teamData": {
       "description": "Team roster data output",
-      "pathTemplate": "team-scrape/output/team-data/{teamFile}.json",
+      "pathTemplate": "team-scrape/team-data/output/{teamFile}.json",
       "namingRules": [
         "TBD - structure being defined"
       ]

@@ -30,18 +30,54 @@ export const CapHoldItemZ = z.object({
   expiresOn: z.string().optional(),
 });
 
-export const ExceptionsZ = z.object({
-  mle: z
-    .object({
-      type: z.string().optional(),
-      available: z.boolean().optional(),
-      totalAmount: MoneyZ.optional(),
-      usedAmount: MoneyZ.optional(),
-      remainingAmount: MoneyZ.optional(),
-      expiresOn: z.string().optional(),
-    })
-    .optional(),
+const MleExceptionZ = z.object({
+  type: z.string().optional(),
+  available: z.boolean().optional(),
+  totalAmount: MoneyZ.optional(),
+  usedAmount: MoneyZ.optional(),
+  remainingAmount: MoneyZ.optional(),
+  expiresOn: z.string().optional(),
+  createdFrom: z.string().optional(),
+  createdOn: z.string().optional(),
 });
+
+const BaeExceptionZ = z.object({
+  available: z.boolean().optional(),
+  totalAmount: MoneyZ.optional(),
+  usedAmount: MoneyZ.optional(),
+  remainingAmount: MoneyZ.optional(),
+  expiresOn: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+const DpeExceptionZ = z.object({
+  totalAmount: MoneyZ.optional(),
+  createdOn: z.string().optional(),
+  expiresOn: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+const TradeExceptionZ = z.object({
+  id: z.string(),
+  totalAmount: MoneyZ.optional(),
+  usedAmount: MoneyZ.optional(),
+  remainingAmount: MoneyZ.optional(),
+  createdFrom: z.string().optional(),
+  createdOn: z.string().optional(),
+  expiresOn: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+export const ExceptionsZ = z
+  .object({
+    mle: MleExceptionZ.optional(),
+    taxpayerMle: MleExceptionZ.optional(),
+    room: MleExceptionZ.optional(),
+    bae: BaeExceptionZ.optional(),
+    dpe: DpeExceptionZ.optional(),
+    tpe: z.array(TradeExceptionZ).optional(),
+  })
+  .optional();
 
 export const ExceptionsExtraFieldsZ = z.record(z.string(), z.any());
 
@@ -104,7 +140,7 @@ export const BaseTeamDocZ = z.object({
   roster: z.array(PlayerIdZ),
   deadCap: z.array(DeadCapItemZ).optional().default([]),
   capHolds: z.array(CapHoldItemZ).optional().default([]),
-  exceptions: ExceptionsZ.optional(),
+  exceptions: ExceptionsZ,
   draftPicks: z.array(DraftPickZ).optional().default([]),
   totals: TeamTotalsZ.optional(),
   source: ArchitectSourceZ.optional(),

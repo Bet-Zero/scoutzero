@@ -650,9 +650,8 @@ async function stagePlayer({ playerId, outDir, validate }: CliArgs) {
     statsData = null;
   }
 
-  const basePlayerDoc = BasePlayerDocZ.parse({
-    ...contractData,
-  });
+  const basePlayerParsed = BasePlayerDocZ.parse(contractData);
+  const { source: _baseSource, ...basePlayerDoc } = basePlayerParsed;
 
   const playersV2Payload = buildPlayersV2Payload(
     playerId,

@@ -12,7 +12,10 @@ const path = require('path');
 console.log('🔍 Validating Fanspo Scraper Fix...\n');
 
 // Check that parse_team.ts has been updated
-const parseTeamPath = path.join(__dirname, '../team-scrape/parse_team.ts');
+const parseTeamPath = path.join(
+  __dirname,
+  '../team-scrape/team-data/scripts/parse_team.ts'
+);
 const parseTeamContent = fs.readFileSync(parseTeamPath, 'utf8');
 
 console.log('✅ Test 1: Checking parse_team.ts imports Playwright');
@@ -51,7 +54,10 @@ if (fetchFanspoMatch && !fetchFanspoMatch[0].includes('await got(url')) {
 }
 
 console.log('✅ Test 5: Checking parse_team_with_mock.ts is also updated (if it exists)');
-const parseTeamMockPath = path.join(__dirname, '../team-scrape/parse_team_with_mock.ts');
+const parseTeamMockPath = path.join(
+  __dirname,
+  '../team-scrape/team-data/scripts/parse_team_with_mock.ts'
+);
 if (fs.existsSync(parseTeamMockPath)) {
   const parseTeamMockContent = fs.readFileSync(parseTeamMockPath, 'utf8');
   if (parseTeamMockContent.includes("import { chromium } from 'playwright'") &&

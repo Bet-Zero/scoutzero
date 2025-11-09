@@ -1,0 +1,393 @@
+{
+  "teamCode": "LAL",
+  "teamName": "LOS ANGELES LAKERS",
+  "season": "2025-26",
+  "abbreviation": "LAL",
+  "roster": [
+    "luka_doncic",
+    "rui_hachimura",
+    "jarred_vanderbilt",
+    "deandre_ayton",
+    "jake_laravia",
+    "marcus_smart",
+    "dalton_knecht",
+    "jaxson_hayes",
+    "bronny_james",
+    "nick_smith_jr",
+    "lebron_james",
+    "austin_reaves",
+    "gabe_vincent",
+    "maxi_kleber",
+    "adou_thiero",
+    "chris_manon",
+    "christian_koloko"
+  ],
+  "deadCap": [],
+  "capHolds": [
+    {
+      "playerId": "chris_manon",
+      "playerName": "Chris Manon",
+      "amount": 2191886,
+      "type": "RFA",
+      "isSigned": false
+    },
+    {
+      "playerId": "nick_smith_jr",
+      "playerName": "Nick Smith Jr",
+      "amount": 2191886,
+      "type": "RFA",
+      "isSigned": false
+    },
+    {
+      "playerId": "dalton_knecht",
+      "playerName": "Dalton Knecht",
+      "amount": 19358577,
+      "type": "RFA",
+      "isSigned": false
+    },
+    {
+      "playerId": "bronny_james",
+      "playerName": "Bronny James",
+      "amount": 2972982,
+      "type": "RFA",
+      "isSigned": false
+    },
+    {
+      "playerId": "adou_thiero",
+      "playerName": "Adou Thiero",
+      "amount": 2972982,
+      "type": "RFA",
+      "isSigned": false
+    },
+    {
+      "playerId": "lebron_james",
+      "playerName": "LeBron James",
+      "amount": 57915200,
+      "type": "UFA",
+      "isSigned": false
+    },
+    {
+      "playerId": "rui_hachimura",
+      "playerName": "Rui Hachimura",
+      "amount": 27388889,
+      "type": "UFA",
+      "isSigned": false
+    },
+    {
+      "playerId": "gabe_vincent",
+      "playerName": "Gabe Vincent",
+      "amount": 21850000,
+      "type": "UFA",
+      "isSigned": false
+    },
+    {
+      "playerId": "maxi_kleber",
+      "playerName": "Maxi Kleber",
+      "amount": 20900000,
+      "type": "UFA",
+      "isSigned": false
+    },
+    {
+      "playerId": "jaxson_hayes",
+      "playerName": "Jaxson Hayes",
+      "amount": 6553714,
+      "type": "UFA",
+      "isSigned": false
+    },
+    {
+      "playerId": "christian_koloko",
+      "playerName": "Christian Koloko",
+      "amount": 2191886,
+      "type": "UFA",
+      "isSigned": false
+    },
+    {
+      "playerId": "austin_reaves",
+      "playerName": "Austin Reaves",
+      "amount": 28307693,
+      "type": "UFA",
+      "isSigned": false
+    },
+    {
+      "playerId": "deandre_ayton",
+      "playerName": "Deandre Ayton",
+      "amount": 10535200,
+      "type": "UFA",
+      "isSigned": false
+    },
+    {
+      "playerId": "jake_laravia",
+      "playerName": "Jake LaRavia",
+      "amount": 7800000,
+      "type": "UFA",
+      "isSigned": false
+    },
+    {
+      "playerId": "marcus_smart",
+      "playerName": "Marcus Smart",
+      "amount": 7007910,
+      "type": "UFA",
+      "isSigned": false
+    },
+    {
+      "playerId": "jarred_vanderbilt",
+      "playerName": "Jarred Vanderbilt",
+      "amount": 25242857,
+      "type": "UFA",
+      "isSigned": false
+    },
+    {
+      "playerId": "luka_doncic",
+      "playerName": "Luka Doncic",
+      "amount": 77085050,
+      "type": "UFA",
+      "isSigned": false
+    },
+    {
+      "playerId": "tmp_wayne_ellington_b2b231",
+      "playerName": "Wayne Ellington",
+      "amount": 2296274,
+      "type": "FA Cap Hold",
+      "isSigned": false
+    },
+    {
+      "playerId": "tmp_avery_bradley_d1bf8a",
+      "playerName": "Avery Bradley",
+      "amount": 2296274,
+      "type": "FA Cap Hold",
+      "isSigned": false
+    },
+    {
+      "playerId": "tmp_jared_dudley_5f9da6",
+      "playerName": "Jared Dudley",
+      "amount": 2296274,
+      "type": "FA Cap Hold",
+      "isSigned": false
+    },
+    {
+      "playerId": "tmp_dwight_howard_d0c5ad",
+      "playerName": "Dwight Howard",
+      "amount": 2296274,
+      "type": "FA Cap Hold",
+      "isSigned": false
+    },
+    {
+      "playerId": "tmp_markieff_morris_7e2286",
+      "playerName": "Markieff Morris",
+      "amount": 2296274,
+      "type": "FA Cap Hold",
+      "isSigned": false
+    },
+    {
+      "playerId": "tmp_dion_waiters_b0474f",
+      "playerName": "Dion Waiters",
+      "amount": 2296274,
+      "type": "FA Cap Hold",
+      "isSigned": false
+    },
+    {
+      "playerId": "tmp_carmelo_anthony_622e68",
+      "playerName": "Carmelo Anthony",
+      "amount": 2296274,
+      "type": "FA Cap Hold",
+      "isSigned": false
+    }
+  ],
+  "exceptions": {
+    "mle": {
+      "type": "Non-Taxpayer",
+      "available": false,
+      "totalAmount": 14104000,
+      "usedAmount": 14104000,
+      "remainingAmount": 0
+    },
+    "bae": {
+      "available": true,
+      "totalAmount": 5135000,
+      "usedAmount": 5134000,
+      "remainingAmount": 1000
+    },
+    "tpe": [
+      {
+        "id": "TPE-LAL-Dec 29, 2025-1",
+        "totalAmount": 1891857,
+        "usedAmount": 0,
+        "remainingAmount": 1891857,
+        "createdFrom": "Maxwell Lewis",
+        "expiresOn": "Dec 29, 2025"
+      },
+      {
+        "id": "TPE-LAL-Dec 29, 2025-2",
+        "totalAmount": 893140,
+        "usedAmount": 0,
+        "remainingAmount": 893140,
+        "createdFrom": "D'Angelo Russell",
+        "expiresOn": "Dec 29, 2025"
+      },
+      {
+        "id": "TPE-LAL-Feb 2, 2026-3",
+        "totalAmount": 187500,
+        "usedAmount": 0,
+        "remainingAmount": 187500,
+        "createdFrom": "Anthony Davis",
+        "expiresOn": "Feb 2, 2026"
+      }
+    ]
+  },
+  "draftPicks": [
+    {
+      "id": "LAL_2026_1st",
+      "year": 2026,
+      "round": 1,
+      "pick": null,
+      "owner": "LAL",
+      "originalTeam": "LAL",
+      "status": "own",
+      "detailUrl": "https://basketball.realgm.com/nba/teams/Los-Angeles-Lakers/13/draft-picks",
+      "isSwap": false,
+      "protection": null,
+      "stepienEligible": true,
+      "tradeable": true
+    },
+    {
+      "id": "LAL_2027_1st_conditional",
+      "year": 2027,
+      "round": 1,
+      "pick": null,
+      "owner": "LAL",
+      "originalTeam": "LAL",
+      "status": "conditional",
+      "detailUrl": "https://basketball.realgm.com/nba/teams/Los-Angeles-Lakers/13/draft-picks",
+      "isSwap": false,
+      "protection": "top-4 protected",
+      "stepienEligible": false,
+      "tradeable": false
+    },
+    {
+      "id": "LAL_2027_2nd",
+      "year": 2027,
+      "round": 2,
+      "pick": null,
+      "owner": "LAL",
+      "originalTeam": "LAL",
+      "status": "outgoing",
+      "detailUrl": "https://basketball.realgm.com/nba/teams/Los-Angeles-Lakers/13/draft-picks",
+      "isSwap": false,
+      "protection": null,
+      "stepienEligible": false,
+      "tradeable": false
+    },
+    {
+      "id": "LAL_2028_1st",
+      "year": 2028,
+      "round": 1,
+      "pick": null,
+      "owner": "LAL",
+      "originalTeam": "LAL",
+      "status": "own",
+      "detailUrl": "https://basketball.realgm.com/nba/teams/Los-Angeles-Lakers/13/draft-picks",
+      "isSwap": false,
+      "protection": null,
+      "stepienEligible": true,
+      "tradeable": true
+    },
+    {
+      "id": "LAL_2028_2nd_contested",
+      "year": 2028,
+      "round": 2,
+      "pick": null,
+      "owner": "LAL",
+      "originalTeam": "WAS",
+      "status": "contested",
+      "detailUrl": "https://basketball.realgm.com/nba/teams/Los-Angeles-Lakers/13/draft-picks",
+      "isSwap": true,
+      "protection": null,
+      "via": "WAS",
+      "recipient": "ORL",
+      "stepienEligible": false,
+      "tradeable": true
+    },
+    {
+      "id": "LAL_2030_1st",
+      "year": 2030,
+      "round": 1,
+      "pick": null,
+      "owner": "LAL",
+      "originalTeam": "LAL",
+      "status": "own",
+      "detailUrl": "https://basketball.realgm.com/nba/teams/Los-Angeles-Lakers/13/draft-picks",
+      "isSwap": false,
+      "protection": null,
+      "stepienEligible": true,
+      "tradeable": true
+    },
+    {
+      "id": "LAL_2031_1st",
+      "year": 2031,
+      "round": 1,
+      "pick": null,
+      "owner": "LAL",
+      "originalTeam": "LAL",
+      "status": "own",
+      "detailUrl": "https://basketball.realgm.com/nba/teams/Los-Angeles-Lakers/13/draft-picks",
+      "isSwap": false,
+      "protection": null,
+      "stepienEligible": true,
+      "tradeable": true
+    },
+    {
+      "id": "LAL_2032_1st",
+      "year": 2032,
+      "round": 1,
+      "pick": null,
+      "owner": "LAL",
+      "originalTeam": "LAL",
+      "status": "own",
+      "detailUrl": "https://basketball.realgm.com/nba/teams/Los-Angeles-Lakers/13/draft-picks",
+      "isSwap": false,
+      "protection": null,
+      "stepienEligible": true,
+      "tradeable": true
+    },
+    {
+      "id": "LAL_2032_2nd",
+      "year": 2032,
+      "round": 2,
+      "pick": null,
+      "owner": "LAL",
+      "originalTeam": "LAL",
+      "status": "own",
+      "detailUrl": "https://basketball.realgm.com/nba/teams/Los-Angeles-Lakers/13/draft-picks",
+      "isSwap": false,
+      "protection": null,
+      "stepienEligible": false,
+      "tradeable": true
+    }
+  ],
+  "totals": {
+    "totalSalary": 210894723,
+    "guaranteedSalary": 194891405,
+    "rosterCount": 14,
+    "twoWayContracts": 3,
+    "capSpace": -40173805,
+    "luxuryTaxLine": 187895000,
+    "firstApron": 195945000,
+    "firstApronRoom": 1124195,
+    "isFirstApron": false,
+    "secondApron": 207824000,
+    "secondApronRoom": 13003195,
+    "isSecondApron": false,
+    "hardCapLevel": "firstApron"
+  },
+  "source": {
+    "provider": "RealGM",
+    "teamPageUrl": "https://www.salaryswish.com/teams/lakers",
+    "scrapedAt": "2025-11-08T11:33:26.690Z",
+    "season": "2025-26",
+    "type": "SalarySwish",
+    "baseTeamVersion": "1.0",
+    "generatedAt": "2025-11-08T13:02:21.000Z"
+  },
+  "lastUpdated": "2025-11-08T11:33:26.691Z",
+  "version": "1.0"
+}

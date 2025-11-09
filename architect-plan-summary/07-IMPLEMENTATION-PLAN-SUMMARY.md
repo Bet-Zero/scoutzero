@@ -31,14 +31,14 @@ Provides both high-level roadmap and detailed, semi-executable steps for impleme
 
 1. **Use existing team scraper** (replaces "Build team scraper"):
    ```bash
-   # Already built: team-scrape/scripts/parse_team.ts
+   # Already built: team-scrape/team-data/scripts/parse_team.ts
    # Run for each team (or create batch script):
    TEAM_URL="https://www.salaryswish.com/teams/lakers" TEAM_CODE="LAL" npm run parse
    ```
    
 2. **Use existing draft picks scraper** (replaces "Build player scraper"):
    ```bash
-   # Already built: team-scrape/scripts/realgm_draft_picks.ts
+   # Already built: team-scrape/draft-picks/scripts/realgm_draft_picks.ts
    # Run for all teams:
    npm run realgm:drafts -- --teams LAL,MEM,NYK,OKC,WAS,... --pretty
    ```
@@ -48,7 +48,7 @@ Provides both high-level roadmap and detailed, semi-executable steps for impleme
    # Already built: team-scrape/review_and_merge/scripts/merge_team_outputs.ts
    # Merges team data + draft picks:
    npm run merge:samples
-   # Output: team-scrape/output/merged/{TEAM}_merged.json
+   # Output: team-scrape/shared/output/merged/{TEAM}_merged.json
    ```
    
 4. **Validate using sample references**:
@@ -58,7 +58,7 @@ Provides both high-level roadmap and detailed, semi-executable steps for impleme
    
 5. **Upload to Firestore** (`uploadToFirestore.js`):
    ```javascript
-   // Read from team-scrape/output/merged/*.json
+   // Read from team-scrape/shared/output/merged/*.json
    // Upload each to /architect/baseTeams/{teamCode}
    ```
 
