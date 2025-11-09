@@ -138,8 +138,8 @@ Player Overrides (Contract Changes Only)
 **Supporting Infrastructure**
 
 - [x] Comprehensive CBA rule engine (`src/utils/architect/tradeMachine/`)
-- [x] Team scraper (`team-scrape/scripts/parse_team.ts`)
-- [x] Draft picks scraper (`team-scrape/scripts/realgm_draft_picks.ts`)
+- [x] Team scraper (`team-scrape/team-data/scripts/parse_team.ts`)
+- [x] Draft picks scraper (`team-scrape/draft-picks/scripts/realgm_draft_picks.ts`)
 - [x] Merge script (`team-scrape/review_and_merge/scripts/merge_team_outputs.ts`)
 - [x] Sample outputs for 5 teams
 - [x] Basic UI components (GMDashboard, Cap Sheet, Trade Machine)
@@ -260,8 +260,8 @@ See `docs/schema/CURRENT_FIRESTORE_SCHEMA.md` for full migration status.
 
 ### Data Scraping
 
-- **Team data**: `team-scrape/scripts/parse_team.ts`
-- **Draft picks**: `team-scrape/scripts/realgm_draft_picks.ts`
+- **Team data**: `team-scrape/team-data/scripts/parse_team.ts`
+- **Draft picks**: `team-scrape/draft-picks/scripts/realgm_draft_picks.ts`
 - **Merge**: `team-scrape/review_and_merge/scripts/merge_team_outputs.ts`
 
 ### Trade Validation

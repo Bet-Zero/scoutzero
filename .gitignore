@@ -127,3 +127,7 @@ docs/*Hierarchy.md
 # Player scrape output files
 player-scrape/stats/output/
 *.backup
+
+# Firestore staging artifacts
+player-scrape/firestore_staging/examples/
+player-scrape/firestore_staging/output/

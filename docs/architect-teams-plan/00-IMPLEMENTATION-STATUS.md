@@ -45,8 +45,8 @@ All planning documentation has been completed:
 - ✅ Performance monitoring and caching
 
 ### Data Scraping Infrastructure
-- ✅ Team scraper: `team-scrape/scripts/parse_team.ts` (SalarySwish → JSON)
-- ✅ Draft picks scraper: `team-scrape/scripts/realgm_draft_picks.ts` (RealGM → JSON)
+- ✅ Team scraper: `team-scrape/team-data/scripts/parse_team.ts` (SalarySwish → JSON)
+- ✅ Draft picks scraper: `team-scrape/draft-picks/scripts/realgm_draft_picks.ts` (RealGM → JSON)
 - ✅ Merge script: `team-scrape/review_and_merge/scripts/merge_team_outputs.ts`
 - ✅ Sample outputs for 5 teams showing exact `/architect/baseTeams` format
 - ✅ Ready to scale to all 30 teams
