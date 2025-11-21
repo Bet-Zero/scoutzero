@@ -27,14 +27,12 @@ const CapSheet = ({
   // Generate years starting from current year (not future)
   // Include current year and 6 future years (7 total)
   const allYears = generateYears(currentYear, 7);
-  const yearKey = `${selectedYear}-${String((selectedYear + 1) % 100).padStart(
-    2,
-    '0'
-  )}`;
+  // selectedYear is the end-year, convert to season format for capProjections lookup
+  const yearKey = endYearToSeason(selectedYear); // 2025 → "2024-25"
   const salaryCap = capProjections[yearKey]?.cap || 1;
 
-  const formatYearLabel = (year) =>
-    `${year}-${String((year + 1) % 100).padStart(2, '0')}`;
+  // Format display label for a given end-year (e.g., 2025 → "2024-25")
+  const formatYearLabel = (year) => endYearToSeason(year);
 
   const getCapHit = (player, yearKey) => {
     // yearKey is the END year (e.g., 2025 for 2024-25 season)
