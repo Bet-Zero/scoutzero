@@ -36,10 +36,11 @@ const CapSheet = ({
     `${year}-${String((year + 1) % 100).padStart(2, '0')}`;
 
   const getCapHit = (player, yearKey) => {
-    // Convert yearKey to season string if needed
+    // yearKey is the END year (e.g., 2025 for 2024-25 season)
+    // Convert to season string using START year for architect schema
     const season = typeof yearKey === 'string' && yearKey.includes('-')
       ? yearKey
-      : `${yearKey}-${String((yearKey + 1) % 100).padStart(2, '0')}`;
+      : `${yearKey - 1}-${String(yearKey % 100).padStart(2, '0')}`; // 2025 → "2024-25"
     
     // Try new schema: contract.salariesByYear array (prefer capHit)
     if (player?.contract?.salariesByYear) {
@@ -82,10 +83,11 @@ const CapSheet = ({
     }, 0);
 
   const renderNotes = (player, yearKey) => {
-    // Try new schema first
+    // yearKey is the END year (e.g., 2025 for 2024-25 season)
+    // Convert to season string using START year for architect schema
     const season = typeof yearKey === 'string' && yearKey.includes('-')
       ? yearKey
-      : `${yearKey}-${String((yearKey + 1) % 100).padStart(2, '0')}`;
+      : `${yearKey - 1}-${String(yearKey % 100).padStart(2, '0')}`; // 2025 → "2024-25"
     
     let option = null;
     let guaranteed = true;
@@ -129,10 +131,11 @@ const CapSheet = ({
 
   // Filter players who have salary data for the selected year
   // Exclude two-way contracts from cap calculations
-  // Check both selectedYear and selectedYear-1 since contracts might be keyed by start or end year
-  const season = `${selectedYear}-${String((selectedYear + 1) % 100).padStart(2, '0')}`;
-  const prevSeason = `${selectedYear - 1}-${String(selectedYear % 100).padStart(2, '0')}`;
-  const nextSeason = `${selectedYear + 1}-${String((selectedYear + 2) % 100).padStart(2, '0')}`;
+  // selectedYear is the END year (e.g., 2025 for 2024-25 season)
+  // Architect contracts use START year, so 2025 → "2024-25"
+  const season = `${selectedYear - 1}-${String(selectedYear % 100).padStart(2, '0')}`;
+  const prevSeason = `${selectedYear - 2}-${String((selectedYear - 1) % 100).padStart(2, '0')}`;
+  const nextSeason = `${selectedYear}-${String((selectedYear + 1) % 100).padStart(2, '0')}`;
   
   const filteredPlayers = teamCapSheet.players
     .filter((p) => {

@@ -14,9 +14,11 @@ export function payrollForYearFromCapSheet(capSheet, year) {
   if (!capSheet) return 0;
   
   // Convert year to season string if needed
+  // If year is already a season string, use it as-is
+  // If year is a number (end-year like 2025), convert to season start-year (2024) first
   const season = typeof year === 'string' && year.includes('-')
     ? year
-    : yearToSeason(year);
+    : yearToSeason(year - 1); // Convert end-year to start-year: 2025 → yearToSeason(2024) → "2024-25"
   const y = String(year);
 
   // Try activeContracts first (may have salaryByYear map for backward compat)

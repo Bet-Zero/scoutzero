@@ -23,8 +23,9 @@ const toSeasonKey = (endYear) => `${endYear - 1}-${String(endYear).slice(-2)}`;
 const payrollForYearFromCapSheet = (capSheet, endYear) => {
   if (!capSheet) return 0;
 
-  // Convert year to season string if needed
-  const season = `${endYear}-${String((endYear + 1) % 100).padStart(2, '0')}`;
+  // endYear is the season END year (e.g., 2025 for 2024-25 season)
+  // Architect contracts use START year, so convert: 2025 → "2024-25"
+  const season = `${endYear - 1}-${String(endYear % 100).padStart(2, '0')}`;
   const y = String(endYear);
 
   // Preferred source: activeContracts (try new schema first)
