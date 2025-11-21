@@ -1,11 +1,10 @@
 import React from 'react';
 import capProjections from '@/utils/architect/capProjections';
+import { toSeasonKey } from '@/utils/architect/seasonUtils';
 
 const CapSummaryTiles = ({ teamCapSheet, selectedYear }) => {
-  const yearKey = `${selectedYear}-${String((selectedYear + 1) % 100).padStart(
-    2,
-    '0'
-  )}`;
+  // Convert end-year to season format: 2025 -> "2024-25"
+  const yearKey = toSeasonKey(selectedYear);
   const capData = capProjections[yearKey] || {};
 
   const salaryCap = capData.cap || 0;

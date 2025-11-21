@@ -20,6 +20,7 @@ import {
   isFaExceptionEligibleType,
 } from '@/utils/architect/faExceptionUtils.js';
 import { validationFlags } from '@/config/validationFlags.js';
+import { toSeasonKey } from '@/utils/architect/seasonUtils';
 
 const TradeTeamCard = ({
   team,
@@ -106,7 +107,8 @@ const TradeTeamCard = ({
   );
 
   const capSettings = useMemo(() => {
-    const key = `${yearKey}-${String((yearKey + 1) % 100).padStart(2, '0')}`;
+    // yearKey is already the end-year (e.g., 2025), convert to season format: "2024-25"
+    const key = toSeasonKey(yearKey);
     return capProjections[key] || {};
   }, [yearKey]);
 

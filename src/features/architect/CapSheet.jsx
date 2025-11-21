@@ -6,6 +6,7 @@ import { POSITION_MAP } from '@/utils/roles';
 import getCapPercentage from '@/utils/architect/basicArchitectUtils';
 import capProjections from '@/utils/architect/capProjections';
 import { isTwoWayContract } from '@/utils/roster/contractUtils';
+import { toSeasonKey } from '@/utils/architect/seasonUtils';
 
 const CapSheet = ({
   teamCapSheet,
@@ -26,20 +27,17 @@ const CapSheet = ({
   // Generate years starting from current year (not future)
   // Include current year and 6 future years (7 total)
   const allYears = generateYears(currentYear, 7);
-  const yearKey = `${selectedYear}-${String((selectedYear + 1) % 100).padStart(
-    2,
-    '0'
-  )}`;
+  // Convert end-year to season format: 2025 -> "2024-25"
+  const yearKey = toSeasonKey(selectedYear);
   const salaryCap = capProjections[yearKey]?.cap || 1;
 
-  const formatYearLabel = (year) =>
-    `${year}-${String((year + 1) % 100).padStart(2, '0')}`;
+  const formatYearLabel = (year) => toSeasonKey(year);
 
   const getCapHit = (player, yearKey) => {
-    // Convert yearKey to season string if needed
+    // Convert yearKey (end-year) to season format: 2025 -> "2024-25"
     const season = typeof yearKey === 'string' && yearKey.includes('-')
       ? yearKey
-      : `${yearKey}-${String((yearKey + 1) % 100).padStart(2, '0')}`;
+      : toSeasonKey(yearKey);
     
     // Try new schema: contract.salariesByYear array (prefer capHit)
     if (player?.contract?.salariesByYear) {
@@ -83,9 +81,10 @@ const CapSheet = ({
 
   const renderNotes = (player, yearKey) => {
     // Try new schema first
+    // Convert yearKey (end-year) to season format: 2025 -> "2024-25"
     const season = typeof yearKey === 'string' && yearKey.includes('-')
       ? yearKey
-      : `${yearKey}-${String((yearKey + 1) % 100).padStart(2, '0')}`;
+      : toSeasonKey(yearKey);
     
     let option = null;
     let guaranteed = true;
@@ -129,10 +128,10 @@ const CapSheet = ({
 
   // Filter players who have salary data for the selected year
   // Exclude two-way contracts from cap calculations
-  // Check both selectedYear and selectedYear-1 since contracts might be keyed by start or end year
-  const season = `${selectedYear}-${String((selectedYear + 1) % 100).padStart(2, '0')}`;
-  const prevSeason = `${selectedYear - 1}-${String(selectedYear % 100).padStart(2, '0')}`;
-  const nextSeason = `${selectedYear + 1}-${String((selectedYear + 2) % 100).padStart(2, '0')}`;
+  // Check both selectedYear and adjacent seasons for robust matching
+  const season = toSeasonKey(selectedYear); // 2025 -> "2024-25"
+  const prevSeason = toSeasonKey(selectedYear - 1); // 2024 -> "2023-24"
+  const nextSeason = toSeasonKey(selectedYear + 1); // 2026 -> "2025-26"
   
   const filteredPlayers = teamCapSheet.players
     .filter((p) => {

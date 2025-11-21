@@ -1,6 +1,7 @@
 import React from 'react';
 import capProjections from '@/utils/architect/capProjections';
 import { formatSalary } from '@/utils/formatting';
+import { toSeasonKey } from '@/utils/architect/seasonUtils';
 
 const CapImpactTiles = ({
   team,
@@ -10,7 +11,8 @@ const CapImpactTiles = ({
 }) => {
   if (!team) return null;
 
-  const key = `${yearKey}-${String((yearKey + 1) % 100).padStart(2, '0')}`;
+  // yearKey is the end-year (e.g., 2025), convert to season format: "2024-25"
+  const key = toSeasonKey(yearKey);
   const capData = capProjections[key] || {};
   const salaryCap = capData.cap || 0;
   const firstApron = capData.firstApron || 0;
