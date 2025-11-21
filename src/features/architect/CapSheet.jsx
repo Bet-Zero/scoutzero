@@ -6,7 +6,7 @@ import { POSITION_MAP } from '@/utils/roles';
 import getCapPercentage from '@/utils/architect/basicArchitectUtils';
 import capProjections from '@/utils/architect/capProjections';
 import { isTwoWayContract } from '@/utils/roster/contractUtils';
-import { yearToSeason } from '@/utils/architect/tradeMachine/utils/seasonUtils';
+import { endYearToSeason } from '@/utils/architect/tradeMachine/utils/seasonUtils';
 
 const CapSheet = ({
   teamCapSheet,
@@ -41,7 +41,7 @@ const CapSheet = ({
     // Convert to season string using START year for architect schema
     const season = typeof yearKey === 'string' && yearKey.includes('-')
       ? yearKey
-      : yearToSeason(yearKey - 1); // Convert end-year to start-year: 2025 → yearToSeason(2024) → "2024-25"
+      : endYearToSeason(yearKey); // Convert end-year to season: 2025 → "2024-25"
     
     // Try new schema: contract.salariesByYear array (prefer capHit)
     if (player?.contract?.salariesByYear) {
@@ -88,7 +88,7 @@ const CapSheet = ({
     // Convert to season string using START year for architect schema
     const season = typeof yearKey === 'string' && yearKey.includes('-')
       ? yearKey
-      : yearToSeason(yearKey - 1); // Convert end-year to start-year: 2025 → yearToSeason(2024) → "2024-25"
+      : endYearToSeason(yearKey); // Convert end-year to season: 2025 → "2024-25"
     
     let option = null;
     let guaranteed = true;
@@ -134,9 +134,9 @@ const CapSheet = ({
   // Exclude two-way contracts from cap calculations
   // selectedYear is the END year (e.g., 2025 for 2024-25 season)
   // Architect contracts use START year, so convert: 2025 → "2024-25"
-  const season = yearToSeason(selectedYear - 1);
-  const prevSeason = yearToSeason(selectedYear - 2);
-  const nextSeason = yearToSeason(selectedYear);
+  const season = endYearToSeason(selectedYear);
+  const prevSeason = endYearToSeason(selectedYear - 1);
+  const nextSeason = endYearToSeason(selectedYear + 1);
   
   const filteredPlayers = teamCapSheet.players
     .filter((p) => {

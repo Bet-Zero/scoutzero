@@ -1,5 +1,5 @@
 // src/utils/architect/salaryUtils.js
-import { getCapHitForSeason, yearToSeason } from './tradeMachine/utils/seasonUtils.js';
+import { getCapHitForSeason, endYearToSeason } from './tradeMachine/utils/seasonUtils.js';
 
 const num = (v) => {
   if (v == null) return 0;
@@ -15,10 +15,10 @@ export function payrollForYearFromCapSheet(capSheet, year) {
   
   // Convert year to season string if needed
   // If year is already a season string, use it as-is
-  // If year is a number (end-year like 2025), convert to season start-year (2024) first
+  // If year is a number (end-year like 2025), convert to season: 2025 → "2024-25"
   const season = typeof year === 'string' && year.includes('-')
     ? year
-    : yearToSeason(year - 1); // Convert end-year to start-year: 2025 → yearToSeason(2024) → "2024-25"
+    : endYearToSeason(year);
   const y = String(year);
 
   // Try activeContracts first (may have salaryByYear map for backward compat)

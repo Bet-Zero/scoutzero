@@ -29,6 +29,17 @@ export function yearToSeason(year) {
 }
 
 /**
+ * Convert season end-year to season string
+ * @param {number} endYear - Season end-year (e.g., 2025 for 2024-25 season)
+ * @returns {string} Season in "YYYY-YY" format (e.g., "2024-25")
+ * @example endYearToSeason(2025) → "2024-25"
+ */
+export function endYearToSeason(endYear) {
+  if (!endYear || typeof endYear !== 'number') return null;
+  return yearToSeason(endYear - 1);
+}
+
+/**
  * Find season string for a given numeric year from player contract
  * @param {Object} player - Player object with contract data
  * @param {number} year - Numeric year to find
