@@ -38,8 +38,9 @@ export function computeMatchingValues({ teams, yearKey, context = {} }) {
       // Check isRookieScale flag from new schema
       const contract = player.contract || player.primaryContract;
       const isRookieScale = contract?.isRookieScale || player.isRookieScale || false;
+      const isPoisonPill = player.isPoisonPill || isRookieScale;
       
-      if (isRookieScale && player.extensionYears?.length) {
+      if (isPoisonPill && player.extensionYears?.length) {
         const extensionTotal = player.extensionYears.reduce(
           (sum, year) => sum + year.salary,
           0

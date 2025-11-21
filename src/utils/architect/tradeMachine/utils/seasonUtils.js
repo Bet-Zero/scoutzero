@@ -88,10 +88,12 @@ export function getSalaryForSeason(player, season, useCapHit = false) {
   }
 
   // Try old schema format: contract_clean.salaries_by_year (backward compat)
+  // Note: contract_clean uses end-year keys (e.g., 2025 for "2024-25")
   if (player.contract_clean?.salaries_by_year) {
-    const year = seasonToYear(normalizedSeason);
-    if (year) {
-      const yearData = player.contract_clean.salaries_by_year[String(year)];
+    const startYear = seasonToYear(normalizedSeason);
+    if (startYear) {
+      const endYear = startYear + 1; // Convert to end-year for legacy schema
+      const yearData = player.contract_clean.salaries_by_year[String(endYear)];
       if (yearData) {
         if (useCapHit && typeof yearData.capHit === 'number') {
           return yearData.capHit;
