@@ -34,8 +34,12 @@ export function computeMatchingValues({ teams, yearKey, context = {} }) {
         return;
       }
 
-      // Poison Pill (Extension)
-      if (player.extensionYears?.length) {
+      // Poison Pill (Extension) - only for rookie scale contracts
+      // Check isRookieScale flag from new schema
+      const contract = player.contract || player.primaryContract;
+      const isRookieScale = contract?.isRookieScale || player.isRookieScale || false;
+      
+      if (isRookieScale && player.extensionYears?.length) {
         const extensionTotal = player.extensionYears.reduce(
           (sum, year) => sum + year.salary,
           0

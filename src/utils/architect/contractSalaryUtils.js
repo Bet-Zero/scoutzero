@@ -1,37 +1,44 @@
 // src/utils/architect/contractSalaryUtils.js
 
+import { getSalaryForSeason, yearToSeason, seasonToYear } from '@/utils/architect/tradeMachine/utils/seasonUtils.js';
+
 /**
- * Contract salary lookup using consistent end-year format
+ * Contract salary lookup - works with new schema (salariesByYear array) and old schema (salaries_by_year object)
  * @param {Object} player - Player object with contract data  
- * @param {number|string} yearKey - Season end year (e.g., 2026 for 2025-26 season)
- * @returns {number} - Salary for the year, or 0 if not found
+ * @param {number|string} yearKey - Numeric year (2026) or season string ("2026-27")
+ * @returns {number} - Salary for the year/season, or 0 if not found
  */
 export function getContractSalaryForYear(player, yearKey) {
-  if (!player?.contract_clean?.salaries_by_year) {
-    return 0;
-  }
+  if (!player || !yearKey) return 0;
 
-  const salariesByYear = player.contract_clean.salaries_by_year;
-  
-  // Convert yearKey to end year format
-  let endYear;
-  if (typeof yearKey === 'string' && yearKey.includes('-')) {
-    // "2024-25" -> 2025
-    const match = yearKey.match(/(\d{4})-(\d{2})/);
-    if (match) {
-      endYear = parseInt(match[1]) + 1;
+  // Convert to season string if needed
+  const season = typeof yearKey === 'string' && yearKey.includes('-')
+    ? yearKey
+    : yearToSeason(yearKey);
+
+  // Try new schema format: contract.salariesByYear[] array
+  const contract = player.contract || player.primaryContract;
+  if (contract?.salariesByYear && season) {
+    const yearEntry = contract.salariesByYear.find(
+      (entry) => entry.season === season
+    );
+    if (yearEntry) {
+      return yearEntry.salary || 0;
     }
-  } else {
-    // Assume it's already the end year
-    endYear = parseInt(yearKey);
   }
 
-  if (!Number.isFinite(endYear)) {
-    return 0;
+  // Fallback to old schema format: contract_clean.salaries_by_year object
+  if (player.contract_clean?.salaries_by_year) {
+    const numericYear = typeof yearKey === 'number' ? yearKey : seasonToYear(yearKey);
+    if (numericYear) {
+      const yearData = player.contract_clean.salaries_by_year[String(numericYear)];
+      if (yearData?.salary) {
+        return yearData.salary;
+      }
+    }
   }
 
-  // Look up salary using the end year
-  return salariesByYear[endYear]?.salary || 0;
+  return 0;
 }
 
 /**

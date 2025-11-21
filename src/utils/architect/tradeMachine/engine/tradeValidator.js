@@ -133,8 +133,13 @@ export function validateTrade({
       return player.previousSalary;
     }
     
-    // Poison pill averaging for incoming players
-    if (direction === 'incoming' && player.isPoisonPill) {
+    // Poison pill averaging for incoming players (only for rookie scale contracts)
+    // Check isRookieScale flag from new schema
+    const contract = player.contract || player.primaryContract;
+    const isRookieScale = contract?.isRookieScale || player.isRookieScale || false;
+    const isPoisonPill = player.isPoisonPill || isRookieScale;
+    
+    if (direction === 'incoming' && isPoisonPill) {
       const currentSalary = player.currentSalary || 0;
       const extensionTotal = (player.extensionYears || []).reduce((sum, year) => sum + (year.salary || 0), 0);
       const totalYears = 1 + (player.extensionYears || []).length; // current year + extension years
