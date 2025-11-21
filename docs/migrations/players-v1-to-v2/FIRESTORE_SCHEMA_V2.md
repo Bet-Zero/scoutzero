@@ -17,6 +17,9 @@ A full schema reference for all Firestore collections used in ScoutZero + Archit
 - `bio.display`: { team, yearsPro, averageAnnualValue, freeAgentYear, freeAgentType, etc. }
 - `bio.agent`: { name, agency }
 - `bio.draft`: { year, round, pick, team }
+- `currentContractView`: Denormalized contract view for fast filtering (optional)
+- `currentEvaluationView`: Denormalized evaluation view for fast filtering (optional)
+- `currentSeasonStats`: Denormalized latest season stats for fast filtering (optional)
 
 ### 📂 Subcollection: `/players_v2/{playerId}/contracts/{contractId}`
 
@@ -61,6 +64,18 @@ Evaluation and grading data:
 - `meta`: { methodVersion, updatedAt, updatedBy, seasonContext }
 
 **Note**: Current evaluations are stored with document ID `current` for easy access.
+
+### 🔄 Denormalized Views (Root Document)
+
+For performance optimization, frequently accessed data is denormalized into the root document:
+
+- **`currentContractView`**: Contains current contract information (`freeAgentYear`, `freeAgentType`, `contractType`, `options`, `birdRights`, `salaryByYear`, `currentSalary`, `yearsRemaining`, `averageAnnualValue`, `maxType`). Built from contracts subcollection during staging and updated automatically when contracts change.
+
+- **`currentEvaluationView`**: Contains current evaluation data (`roles`, `subRoles`, `shootingProfile`, `badges`, `traits`, `overallGrade`). Built from evaluations subcollection and updated automatically when evaluations are saved via `useAutoSavePlayer`.
+
+- **`currentSeasonStats`**: Contains latest season stats (`PTS`, `REB`, `AST`, `FG%`, `3PT%`, `FT%`, `eFG%`, `MIN`, `GP`). Built from the latest season document in the seasons subcollection and updated automatically when new season data is added.
+
+These views enable fast single-query loading for table views and filtering without needing to load subcollections. The application code (`enrichPlayerData`) prioritizes these denormalized views but falls back to subcollections for backward compatibility.
 
 ---
 
