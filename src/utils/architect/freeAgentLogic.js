@@ -1,3 +1,5 @@
+import { toSeasonKey } from './seasonUtils';
+
 export function canSignFreeAgent(
   player,
   teamCapSheet,
@@ -12,7 +14,8 @@ export function canSignFreeAgent(
     return sum + sal;
   }, 0);
 
-  const key = `${year}-${String((year + 1) % 100).padStart(2, '0')}`;
+  // year is the end-year (e.g., 2025), convert to season format: "2024-25"
+  const key = toSeasonKey(year);
   const capData = capProjections[key] || {};
 
   const overCap = teamSalary > (capData.cap || 0);
