@@ -36,7 +36,7 @@ const CapSheet = ({
 
   const getCapHit = (player, yearKey) => {
     // yearKey is the END year (e.g., 2025 for 2024-25 season)
-    // Convert to season string using START year for architect schema
+    // Convert end-year to season format for architect schema lookup
     const season = typeof yearKey === 'string' && yearKey.includes('-')
       ? yearKey
       : endYearToSeason(yearKey); // Convert end-year to season: 2025 → "2024-25"
@@ -83,7 +83,7 @@ const CapSheet = ({
 
   const renderNotes = (player, yearKey) => {
     // yearKey is the END year (e.g., 2025 for 2024-25 season)
-    // Convert to season string using START year for architect schema
+    // Convert end-year to season format for architect schema lookup
     const season = typeof yearKey === 'string' && yearKey.includes('-')
       ? yearKey
       : endYearToSeason(yearKey); // Convert end-year to season: 2025 → "2024-25"

@@ -15,7 +15,7 @@ export function payrollForYearFromCapSheet(capSheet, year) {
   
   // Convert year to season string if needed
   // If year is already a season string, use it as-is
-  // If year is a number (end-year like 2025), convert to season: 2025 → "2024-25"
+  // If year is a number (end-year like 2025), convert to season format: endYearToSeason(2025) → "2024-25"
   const season = typeof year === 'string' && year.includes('-')
     ? year
     : endYearToSeason(year);
