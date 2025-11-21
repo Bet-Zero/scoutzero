@@ -17,14 +17,14 @@ For each regression test player, capture the NBA API JSON responses:
 ```bash
 # Capture snapshots for a player (requires NBA_ID)
 PLAYER_ID="luka_doncic" NBA_ID="1629029" SEASON="2024-25" \
-  npx tsx player-scrape/stats/scripts/capture_snapshot.ts
+  npx tsx player-scrape/stats/scripts/_dev/capture_snapshot.ts
 ```
 
 This creates:
 - `snapshots/luka_doncic_base.json` - Player stats API response
 - `snapshots/luka_doncic_team.json` - Team stats API response (optional, for USG%)
 
-**Note:** If `NBA_ID` isn't set, the script will try to resolve it from `player-scrape/shared/nba_ids_cache.json` or `player-scrape/shared/player_index.json`.
+**Note:** If `NBA_ID` isn't set, the script will try to resolve it from `player-scrape/shared/_artifacts/outputs/player_index.json`.
 
 ### Step 2: Generate Fixtures
 
@@ -33,7 +33,7 @@ After capturing snapshots, generate the expected fixture files:
 ```bash
 # Generate fixture from snapshot
 PLAYER_ID="luka_doncic" \
-  npx tsx player-scrape/stats/scripts/generate_fixture.ts
+  npx tsx player-scrape/stats/scripts/_dev/generate_fixture.ts
 ```
 
 This creates:
@@ -52,7 +52,7 @@ npm run regress:stats
 Or directly:
 
 ```bash
-npx tsx player-scrape/stats/scripts/run_regress.ts
+npx tsx player-scrape/stats/scripts/_dev/run_regress.ts
 ```
 
 The test will:
@@ -73,11 +73,11 @@ Here's the full workflow for setting up a new test player:
 ```bash
 # 1. Capture snapshots (you'll need the NBA ID)
 PLAYER_ID="luka_doncic" NBA_ID="1629029" SEASON="2024-25" \
-  npx tsx player-scrape/stats/scripts/capture_snapshot.ts
+  npx tsx player-scrape/stats/scripts/_dev/capture_snapshot.ts
 
 # 2. Generate fixture
 PLAYER_ID="luka_doncic" \
-  npx tsx player-scrape/stats/scripts/generate_fixture.ts
+  npx tsx player-scrape/stats/scripts/_dev/generate_fixture.ts
 
 # 3. Verify it works
 npm run regress:stats
@@ -86,8 +86,8 @@ npm run regress:stats
 ## Adding a New Test Player
 
 1. Add the player ID to `REGRESSION_FIXTURES` in `scripts/config.ts`
-2. Capture snapshots using `capture_snapshot.ts`
-3. Generate fixture using `generate_fixture.ts`
+2. Capture snapshots using `scripts/_dev/capture_snapshot.ts`
+3. Generate fixture using `scripts/_dev/generate_fixture.ts`
 4. Verify with `npm run regress:stats`
 
 ## Validation
@@ -117,8 +117,7 @@ PLAYER_FILE="luka_doncic.json" TEAM_CODE="DAL" \
 - The snapshot might not have a `SEASON_ID` field. Check the API response structure.
 
 **"NBA_ID not found"**
-- Set `NBA_ID` env var, or update `player-scrape/shared/nba_ids_cache.json`
-- Or run `PLAYER_ID=... NBA_ID=... npx tsx player-scrape/stats/scripts/run_stats.ts` first to cache the ID
+- Set `NBA_ID` env var, or ensure player is in `player-scrape/shared/_artifacts/outputs/player_index.json`
 
 **Test failures**
 - Check `output/{playerId}.actual.json` vs `output/{playerId}.expected.json`

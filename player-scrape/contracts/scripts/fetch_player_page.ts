@@ -67,7 +67,9 @@ async function main() {
   console.log(`🔎 Player: ${playerId}`);
   console.log(`🔍 Source: ${playerUrl}`);
 
-  const workingDir = path.join(__dirname, '../working');
+  const workingDir = process.env.WORKING_DIR_OVERRIDE
+    ? path.resolve(process.env.WORKING_DIR_OVERRIDE)
+    : path.join(__dirname, '../_artifacts/working');
   await fs.mkdir(workingDir, { recursive: true });
   const outFile = process.env.TEMP_FILE || 'page.html';
   const outPath = path.join(workingDir, outFile);

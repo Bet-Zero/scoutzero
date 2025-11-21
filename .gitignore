@@ -77,6 +77,46 @@ _exports/
 *.patch
 patch-temp.*
 
+# Pipeline-generated JSON files (comprehensive coverage)
+# Contract processing outputs
+**/contracts_parsed.json
+**/parsed_contracts.json
+**/raw_contracts.json
+**/contract_processing_summary.json
+
+# Player data merge outputs
+**/merged_players.json
+**/players_merged_with_discoveries.json
+
+# Mapping and discovery outputs
+**/alias_map.json
+**/name_alias_map.json
+**/complete_url_mapping_results.json
+**/url_mapping_test_results.json
+
+# Schema exports and generated mappings
+**/schema_map_*.json
+_exports/*.json
+
+# Artifacts directories (generated/working files - comprehensive coverage)
+**/_artifacts/
+
+# Draft picks generated files (comprehensive coverage)
+# Team scrape draft pick outputs
+**/draft_picks*.json
+**/draft_picks_*.json
+**/draft_picks_raw.json
+
+# Team data output files (comprehensive coverage)
+# Team scrape data outputs
+**/team_*.json
+**/team_data*.json
+
+# Scraper log files and batch summaries (generated during pipeline runs)
+**/logs/
+**/*batch*.summary.json
+**/*batch*summary*.json
+
 # Firebase service account files (security)
 src/serviceAccountKey.json
 data/firebaseServiceAccountKey.json
@@ -99,12 +139,7 @@ data/merged_players.json
 # Player scraper temporary files
 player-scrape/test_*.html
 player-scrape/*_backup.html
-# Player scrape output - organized by team
-player-scrape/contracts/output/*
-!player-scrape/contracts/output/.gitkeep
-# Working directory with temporary scraping files
-player-scrape/contracts/working/
-# Legacy output directories (deprecated)
+# Legacy output directories (deprecated - now in _artifacts/)
 player-scrape/output/
 player-scrape/outputs/
 player-scrape/players_list.json
@@ -115,9 +150,8 @@ player-scrape/shared/players_bios_2025.json
 player-scrape/page.html
 player-scrape/*.html
 
-# Team scraper clean views (generated output)
+# Team scraper clean views (generated output - now in _artifacts/)
 team-scrape/review_and_merge/out_clean_views/
-team-scrape/firestore_staging/output/
 
 # Archive outdated planning/assessment documents that confuse AI
 assessment-docs/
@@ -125,13 +159,10 @@ assessment-docs/
 # Generated documentation hierarchy files
 docs/*Hierarchy.md
 
-# Player scrape output files
-player-scrape/stats/output/
+# Backup files
 *.backup
 
-# Firestore staging artifacts
-player-scrape/firestore_staging/examples/
-player-scrape/firestore_staging/output/
-
-# Team scrape working files
-team-scrape/team-data/working/
+# Cursor workspace temporary directories (keep templates and examples)
+cursor_work/*
+!cursor_work/_templates/
+!cursor_work/add-player-ids/

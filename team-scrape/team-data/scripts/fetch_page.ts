@@ -19,8 +19,15 @@ if (!URL) {
     timeout: 60000,
   });
 
-  // Scroll to Draft block (near TRADE EXCEPTIONS)
-  await page.locator('text=TRADE EXCEPTIONS').scrollIntoViewIfNeeded();
+  // Scroll to Draft block (near TRADE EXCEPTIONS) - optional, some teams may not have this section
+  try {
+    await page
+      .locator('text=TRADE EXCEPTIONS')
+      .scrollIntoViewIfNeeded({ timeout: 5000 });
+  } catch {
+    // Fallback: scroll to bottom to ensure all content loads
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  }
   // Try clicking a year & round so picks render
   try {
     await page

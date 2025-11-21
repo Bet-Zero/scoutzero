@@ -13,9 +13,20 @@ export const PLAYERS_COLLECTION =
   import.meta.env.VITE_PLAYERS_COLLECTION || 'players_v2';
 
 /**
- * Teams collection
+ * Architect base players path (collection or collection group)
+ * Defaults to the canonical `architect_basePlayers` (single collection name)
+ * Note: Using underscore instead of slash because Firestore requires odd number of segments for collections
  */
-export const TEAMS_COLLECTION = 'teams';
+export const ARCHITECT_BASE_PLAYERS_PATH =
+  import.meta.env.VITE_ARCHITECT_BASE_PLAYERS_PATH || 'architect_basePlayers';
+
+/**
+ * Architect base teams path (collection or collection group)
+ * Defaults to the canonical `architect_baseTeams` (single collection name)
+ * Note: Using underscore instead of slash because Firestore requires odd number of segments for collections
+ */
+export const ARCHITECT_BASE_TEAMS_PATH =
+  import.meta.env.VITE_ARCHITECT_BASE_TEAMS_PATH || 'architect_baseTeams';
 
 /**
  * Subcollection names (under players)

@@ -3,7 +3,9 @@
 ## Migration Status Overview
 
 - 🟢 **`players_v2`**: Migration COMPLETE (current = target)
-- 🟡 **`teams`**: Migration IN PROGRESS (current → `/architect/` collections)
+- 🟢 **`architect_basePlayers`**: Migration COMPLETE (active)
+- 🟢 **`architect_baseTeams`**: Migration COMPLETE (active)
+- 🔴 **`teams`**: Migration COMPLETE - Legacy collection deprecated, use `/architect/` collections
 
 ---
 
@@ -19,23 +21,41 @@
 **Status**: ✅ Migration complete - this is the target schema
 **Usage**: All player queries should use this collection
 
-**Structure**: Hierarchical with subcollections
+**Structure**: Hierarchical with subcollections + denormalized views
 
 - `bio.*` - Player biographical information
+- `currentContractView` - Denormalized contract view for fast filtering (optional)
+- `currentEvaluationView` - Denormalized evaluation view for fast filtering (optional)
+- `currentSeasonStats` - Denormalized latest season stats for fast filtering (optional)
 - `/contracts/{contractId}` - Contract subcollection
 - `/seasons/{seasonId}` - Season stats subcollection
 - `/evaluations/{evaluationId}` - Player grades subcollection
 
-### `/teams/{teamId}` - Team Rosters 🚧 MIGRATING → `/architect/`
+**Performance Optimization**: The main document includes denormalized views (`currentContractView`, `currentEvaluationView`, `currentSeasonStats`) to enable fast single-query loading for table views and filtering without needing to load subcollections. These views are kept in sync with their respective subcollections.
 
-**Status**: 🚧 Currently in migration to `/architect/` collections - see migration docs for target schema
-**Current Structure**:
+### `/architect_baseTeams/{teamCode}` - Team Rosters ✅ FINAL
+
+**Status**: ✅ Migration complete - this is the target schema
+**Usage**: All architect/GM mode team queries should use this collection
+
+**Structure**: See `docs/schema/architect.md` for complete schema
+
+### `/architect_basePlayers/{playerId}` - Player Contracts ✅ FINAL
+
+**Status**: ✅ Migration complete - this is the target schema  
+**Usage**: All architect/GM mode player contract queries should use this collection
+
+**Structure**: See `docs/schema/architect.md` for complete schema
+
+### `/teams/{teamId}` - Team Rosters 🔴 DEPRECATED
+
+**Status**: 🔴 DEPRECATED - Do not use. Migrated to `/architect/` collections.
+**Legacy Structure** (for reference only):
 
 - `capSheet.players[]` - Array with flattened player objects + `contract_clean`
 - `capSheet.lastUpdated` - Timestamp
 
-**⚠️ IMPORTANT**: This collection is being migrated to `/architect/` collections. For canonical target schema, see:
-`docs/schema/architect.md` (auto-generated from `src/schemas/architect.ts`)
+**⚠️ IMPORTANT**: This collection is deprecated and will be deleted. Use `/architect_baseTeams` instead.
 
 ---
 
@@ -49,23 +69,33 @@ const playersRef = collection(db, 'players_v2');
 const player = await getDoc(doc(db, 'players_v2', playerId));
 ```
 
-### For `/teams` (Migration Context)
+### For `/architect_baseTeams` (Use This)
 
 ```javascript
-// CURRENT (what exists now):
-const team = await getDoc(doc(db, 'teams', teamId));
-const players = team.data().capSheet.players; // Flattened structure
+// Use architect collections for GM mode
+import { baseTeamRef } from '@/data/firestorePaths';
+const team = await getDoc(baseTeamRef(teamCode));
+const roster = team.data().roster; // Array of player IDs
+```
 
-// TARGET (what we're migrating to - /architect/ collections):
-// See docs/schema/architect.md for complete target architecture
+### For `/teams` (DEPRECATED - Do Not Use)
+
+```javascript
+// ❌ DEPRECATED - Do not use
+// const team = await getDoc(doc(db, 'teams', teamId));
+
+// ✅ Use architect collections instead
+import { baseTeamRef } from '@/data/firestorePaths';
+const team = await getDoc(baseTeamRef(teamCode));
 ```
 
 ---
 
 ## Migration Context
 
-- **Completed**: `players` → `players_v2` (use `docs/migrations/players-v1-to-v2/`)
-- **In Progress**: `teams` → `/architect/` collections (see `docs/schema/architect.md`)
+- **Completed**: `players` → `players_v2` (see `docs/migrations/players-v1-to-v2/`)
+- **Completed**: `teams` → `/architect_baseTeams` (see `docs/schema/architect.md`)
+- **Completed**: Player contracts → `/architect_basePlayers` (see `docs/schema/architect.md`)
 
 ---
 

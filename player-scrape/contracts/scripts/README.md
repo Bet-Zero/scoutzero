@@ -11,19 +11,22 @@ Production-ready scripts for scraping and parsing NBA player contract data from 
 - **`run_contracts.ts`** - Main batch processing pipeline (fetch → parse → validate → save)
 - **`parse_player.ts`** - Core parser with normalization logic
 - **`fetch_player_page.ts`** - HTML fetcher with snapshot support
-- **`run_regress.ts`** - Regression test runner
 
 ### Validation
 
 - **`validate_player.ts`** - Schema validation
-- **`validate_po_voiding.ts`** - PO voiding logic validation
 
 ### Supporting Files
 
 - **`config.ts`** - Configuration and paths
 - **`normalization_helpers.ts`** - Contract normalization utilities
+
+### Development/Testing Utilities (`_dev/`)
+
+- **`run_regress.ts`** - Regression test runner
+- **`validate_po_voiding.ts`** - PO voiding logic validation
 - **`test_utils.ts`** - Test helper functions
-- **`TESTING.md`** - Testing documentation
+- See `TESTING.md` for testing documentation
 
 ## Commands
 
@@ -38,7 +41,7 @@ npm run contracts:one -- --player=austin_reaves  # Process single player
 ### Regression Tests
 
 ```bash
-npm run regress
+npx tsx player-scrape/contracts/scripts/_dev/run_regress.ts
 ```
 
 Parses regression fixtures and validates against expected outputs.

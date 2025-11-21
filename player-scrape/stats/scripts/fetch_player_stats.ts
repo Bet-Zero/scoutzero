@@ -19,6 +19,17 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
       return await fn();
     } catch (err: any) {
       attempt += 1;
+      const isTimeout =
+        err?.message?.includes('Timeout') || err?.message?.includes('timeout');
+
+      // For timeout errors, use longer delays and more retries
+      if (isTimeout && attempt <= rateLimit.maxRetries + 2) {
+        // Extra retries for timeouts, with longer delays
+        await sleep(delay * 2 + jitter());
+        delay = Math.min(delay * 2, 5000); // Max 5 second delay for timeouts
+        continue;
+      }
+
       if (attempt > rateLimit.maxRetries) throw err;
       await sleep(delay + jitter());
       delay = Math.min(delay * 2, 2500);
@@ -26,30 +37,50 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
   }
 }
 
+// Create a single shared context at module level
+let sharedContext: Awaited<
+  ReturnType<typeof import('playwright').request.newContext>
+> | null = null;
+
+async function getSharedContext() {
+  if (!sharedContext) {
+    const { request } = await import('playwright');
+    const proxyServer = process.env.PROXY_URL;
+    const proxy = proxyServer
+      ? {
+          server: proxyServer,
+          username: process.env.PROXY_USER,
+          password: process.env.PROXY_PASS,
+        }
+      : undefined;
+    sharedContext = await request.newContext({
+      proxy,
+      extraHTTPHeaders: { ...nbaHeaders },
+      timeout: 90000, // 90 second timeout (increased from default 30s)
+    });
+  }
+  return sharedContext;
+}
+
 async function fetchJsonViaApiRequest(url: string): Promise<any> {
-  const { request } = await import('playwright');
-  const proxyServer = process.env.PROXY_URL;
-  const proxy = proxyServer
-    ? {
-        server: proxyServer,
-        username: process.env.PROXY_USER,
-        password: process.env.PROXY_PASS,
-      }
-    : undefined;
-  const ctx = await request.newContext({
-    proxy,
-    extraHTTPHeaders: { ...nbaHeaders },
+  const ctx = await getSharedContext();
+  const res = await ctx.get(url, {
+    headers: nbaHeaders,
+    timeout: 90000, // 90 second timeout per request
   });
-  try {
-    const res = await ctx.get(url, { headers: nbaHeaders });
-    const status = res.status();
-    const text = await res.text();
-    if (status < 200 || status >= 300) {
-      throw new Error(`HTTP ${status} ${text.slice(0, 160)}…`);
-    }
-    return JSON.parse(text);
-  } finally {
-    await ctx.dispose();
+  const status = res.status();
+  const text = await res.text();
+  if (status < 200 || status >= 300) {
+    throw new Error(`HTTP ${status} ${text.slice(0, 160)}…`);
+  }
+  return JSON.parse(text);
+}
+
+// Add cleanup function
+export async function cleanupContext() {
+  if (sharedContext) {
+    await sharedContext.dispose();
+    sharedContext = null;
   }
 }
 

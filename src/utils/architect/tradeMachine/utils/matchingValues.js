@@ -1,6 +1,7 @@
 // Handles Base Year Compensation (BYC), trade kicker, and poison pill calculations
 import { getSalaryForYear } from '../../tradeHelpers.js';
 import { BYC_PERCENT } from '../constants/cbaConstants.js';
+import { getCapHitForSeason, yearToSeason } from './seasonUtils.js';
 
 export function getMatchingValue(player, yearKey, isOutgoing = false) {
   const salary = getSalaryForYear(player, yearKey);
@@ -32,9 +33,14 @@ export function getMatchingValue(player, yearKey, isOutgoing = false) {
   }
 
   // For poison pill players, use average of current + extension years for incoming
+  // Check isRookieScale flag from new schema
+  const contract = player.contract || player.primaryContract;
+  const isRookieScale = contract?.isRookieScale || player.isRookieScale || false;
+  const isPoisonPill = player.isPoisonPill || isRookieScale;
+  
   if (
     !isOutgoing &&
-    player.isPoisonPill &&
+    isPoisonPill &&
     Array.isArray(player.extensionYears)
   ) {
     const extensionTotal = player.extensionYears.reduce(
@@ -56,13 +62,27 @@ export function computeMatchingValues({
 }) {
   teams.forEach((team) => {
     (team.sends || []).forEach((player) => {
-      // Get base salary from contract structure
-      const baseSalary =
-        player.contract_clean?.salaries_by_year?.[yearKey]?.salary ||
-        player.newSalary ||
-        player.salary ||
-        getSalaryForYear(player, yearKey) ||
-        0;
+      // Get base salary from contract structure (prefer capHit for cap calculations)
+      // Convert yearKey to season string if needed
+      const season = typeof yearKey === 'string' && yearKey.includes('-')
+        ? yearKey
+        : yearToSeason(yearKey);
+      
+      // Try to get capHit first (for cap calculations), fallback to salary
+      let baseSalary = 0;
+      if (season) {
+        baseSalary = getCapHitForSeason(player, season);
+      }
+      
+      // Fallback to old extraction methods
+      if (baseSalary === 0) {
+        baseSalary =
+          player.contract_clean?.salaries_by_year?.[yearKey]?.salary ||
+          player.newSalary ||
+          player.salary ||
+          getSalaryForYear(player, yearKey) ||
+          0;
+      }
 
       // Start with base salary for both
       player.matchOutgoing = baseSalary;
@@ -77,8 +97,13 @@ export function computeMatchingValues({
         player.matchOutgoing = Math.max(prevSalary, fiftyPercentNew);
       }
 
-      // Apply poison pill average
-      if (player.isPoisonPill) {
+      // Apply poison pill average (only for rookie scale extensions)
+      // Check isRookieScale flag from new schema
+      const contract = player.contract || player.primaryContract;
+      const isRookieScale = contract?.isRookieScale || player.isRookieScale || false;
+      const isPoisonPill = player.isPoisonPill || isRookieScale;
+      
+      if (isPoisonPill) {
         let currentSalary = player.currentSalary || baseSalary;
         let averageSalary;
 

@@ -1,0 +1,14 @@
+/**
+ * FILE: <RELATIVE_PATH_FROM_REPO_ROOT>
+ * PURPOSE: <short description of what this file does>
+ * OWNERSHIP: <feature or domain, e.g. "Feature: architect/tradeMachine (Auto-suggest enhancement)">
+ *
+ * HISTORY:
+ *  - <YYYY-MM-DD>: Created by plan `plans/<PLAN_SLUG>/plan.md`, chunk_XX
+ *  - <YYYY-MM-DD>: Updated <brief reason> (chunk_YY)
+ *
+ * LINKS:
+ *  - Plan: plans/<PLAN_SLUG>/plan.md
+ *  - Latest Chunk: plans/<PLAN_SLUG>/chunks/chunk_YY.md
+ */
+

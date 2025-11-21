@@ -18,21 +18,46 @@ const num = (v) => {
 // Map season end-year (e.g., 2025) -> "2024-25"
 const toSeasonKey = (endYear) => `${endYear - 1}-${String(endYear).slice(-2)}`;
 
-// Baseline payroll from your cap sheet: prefer activeContracts, fallback to players.contract_clean
+// Baseline payroll from your cap sheet: prefer activeContracts, fallback to players.contract
+// Works with both new schema (contract.salariesByYear array) and old schema (contract_clean.salaries_by_year object)
 const payrollForYearFromCapSheet = (capSheet, endYear) => {
   if (!capSheet) return 0;
 
+  // Convert year to season string if needed
+  const season = `${endYear}-${String((endYear + 1) % 100).padStart(2, '0')}`;
   const y = String(endYear);
 
-  // Preferred source: activeContracts salaryByYear[endYear]
+  // Preferred source: activeContracts (try new schema first)
   const fromActive = (capSheet.activeContracts || []).reduce((sum, c) => {
+    // Try new schema: contract.salariesByYear array
+    if (c?.contract?.salariesByYear) {
+      const yearEntry = c.contract.salariesByYear.find(
+        (entry) => entry.season === season
+      );
+      if (yearEntry) {
+        return sum + num(yearEntry.capHit || yearEntry.salary || 0);
+      }
+    }
+    
+    // Fallback to old salaryByYear map
     const s = c?.salaryByYear?.[endYear] ?? c?.salaryByYear?.[y] ?? 0;
     return sum + num(s);
   }, 0);
   if (fromActive > 0) return fromActive;
 
-  // Fallback: players.contract_clean.salaries_by_year[endYear].salary
+  // Fallback: players (try new schema first)
   const fromPlayers = (capSheet.players || []).reduce((sum, p) => {
+    // Try new schema: contract.salariesByYear array
+    if (p?.contract?.salariesByYear) {
+      const yearEntry = p.contract.salariesByYear.find(
+        (entry) => entry.season === season
+      );
+      if (yearEntry) {
+        return sum + num(yearEntry.capHit || yearEntry.salary || 0);
+      }
+    }
+    
+    // Fallback to old schema: contract_clean.salaries_by_year object
     const s =
       p?.contract_clean?.salaries_by_year?.[endYear]?.salary ??
       p?.contract_clean?.salaries_by_year?.[y]?.salary ??
@@ -190,6 +215,8 @@ export const useTradeMachine = (
           ...baseTeam,
           ...data,
           tradeExceptions: data.tradeExceptions || [],
+          // Map draftPicks to picks for trade machine compatibility
+          picks: data.draftPicks || data.picks || [],
         };
         augmentTeamWithExceptions(teamObj, yearKey, capProjections);
 

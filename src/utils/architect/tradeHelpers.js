@@ -11,6 +11,7 @@ import {
 export { wouldExceedHardCap } from '@/utils/architect/hardCapUtils.js';
 import { isPriorYearTPE } from '@/utils/architect/tradeMachine/utils/tradeUtilities.js';
 import { getTeamFaExceptionBuckets } from '@/utils/architect/faExceptionUtils.js';
+import { getSalaryForSeason, yearToSeason, seasonToYear } from '@/utils/architect/tradeMachine/utils/seasonUtils.js';
 
 export const getTierThresholds = (yearKey) => {
   const key = String(yearKey); // normalise
@@ -22,31 +23,75 @@ export const MIN_SALARY = 1_119_563;
 
 /*────────────────────────  Salary Helpers  ────────────────────────*/
 /******************** SCSP™ BLOCK: getSalaryForYear ********************/
+/**
+ * Get salary for a year or season from player(s)
+ * Works with both new schema (salariesByYear array) and old schema (salaries_by_year object)
+ * @param {Object|Array} input - Single player or array of players
+ * @param {number|string} year - Numeric year (2026) or season string ("2026-27")
+ * @returns {number} Total salary including likely incentives
+ */
 export const getSalaryForYear = (input, year) => {
   if (!year) return 0;
 
   // Accept a single player or an array
   const players = Array.isArray(input) ? input : [input];
 
+  // Convert year to season string if needed
+  const season = typeof year === 'string' && year.includes('-') 
+    ? year 
+    : yearToSeason(year);
+
   return players.reduce((sum, p) => {
-    const yData = p.contract_clean?.salaries_by_year?.[year] ?? {};
-    const salaryMap = p.salaryByYear?.[year];
-    const fallback = p.salary;
+    let base = 0;
+    let likely = 0;
 
-    const base =
-      typeof yData.salary === 'number'
-        ? yData.salary
-        : typeof salaryMap === 'number'
-          ? salaryMap
-          : typeof fallback === 'number'
-            ? fallback
-            : 0;
+    // Try new schema format: contract.salariesByYear[] array
+    const contract = p.contract || p.primaryContract;
+    if (contract?.salariesByYear && season) {
+      const yearEntry = contract.salariesByYear.find(
+        (entry) => entry.season === season
+      );
+      if (yearEntry) {
+        base = yearEntry.salary || 0;
+        // Extract likely incentives from new schema
+        if (yearEntry.incentives?.likely) {
+          likely = yearEntry.incentives.likely;
+        }
+      }
+    }
 
-    // tests look specifically for `likely_bonus`
-    const likely =
-      (typeof yData.likely_bonus === 'number' ? yData.likely_bonus : 0) ||
-      (yData.bonuses?.likely ?? yData.likelyIncentives ?? 0) ||
-      (p.bonusesByYear?.[year]?.likely ?? 0);
+    // Fallback to old schema format: contract_clean.salaries_by_year object
+    if (base === 0) {
+      const numericYear = typeof year === 'number' ? year : seasonToYear(year);
+      if (numericYear) {
+        const yData = p.contract_clean?.salaries_by_year?.[numericYear] ?? {};
+        base = typeof yData.salary === 'number' ? yData.salary : 0;
+        
+        // Old schema likely bonus extraction
+        likely =
+          (typeof yData.likely_bonus === 'number' ? yData.likely_bonus : 0) ||
+          (yData.bonuses?.likely ?? yData.likelyIncentives ?? 0);
+      }
+    }
+
+    // Additional fallbacks
+    if (base === 0) {
+      const numericYear = typeof year === 'number' ? year : seasonToYear(year);
+      const salaryMap = p.salaryByYear?.[numericYear];
+      const fallback = p.salary;
+      
+      base = typeof salaryMap === 'number'
+        ? salaryMap
+        : typeof fallback === 'number'
+          ? fallback
+          : 0;
+    }
+
+    // Old schema bonusesByYear fallback
+    if (likely === 0) {
+      const numericYear = typeof year === 'number' ? year : seasonToYear(year);
+      likely = p.bonusesByYear?.[numericYear]?.likely ?? 0;
+    }
 
     return sum + base + likely;
   }, 0);

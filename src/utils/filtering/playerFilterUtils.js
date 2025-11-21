@@ -35,15 +35,18 @@ export function filterPlayers(players = [], filters) {
     }
 
     if (filters.nameSearch) {
-      const playerName = (p.bio?.displayName || p.bio?.name || '').toLowerCase();
+      const playerName = (
+        p.bio?.displayName ||
+        p.bio?.name ||
+        ''
+      ).toLowerCase();
       const searchTerm = filters.nameSearch.toLowerCase();
       if (!playerName.includes(searchTerm)) return false;
     }
 
     if (
       filters.team &&
-      (p.bio?.display?.team || '').toLowerCase() !==
-        filters.team.toLowerCase()
+      (p.bio?.display?.team || '').toLowerCase() !== filters.team.toLowerCase()
     ) {
       return false;
     }
@@ -199,10 +202,21 @@ function checkForZeroContract(player) {
   // Check current year salary from contract subcollection
   const currentYear = 2025;
 
+  // Prioritize currentContractView (denormalized)
+  if (player.currentContractView) {
+    const salary =
+      player.currentContractView.currentSalary ||
+      player.currentContractView.salaryByYear?.[currentYear];
+    if (salary === 0 || salary === null || salary === undefined) {
+      return true;
+    }
+  }
+
   // Get contract data from v2 structure
-  const contractData = player.primaryContract ||
+  const contractData =
+    player.primaryContract ||
     (player.contracts ? Object.values(player.contracts)[0] : null);
-  
+
   // Check salariesByYear array in v2 structure
   if (contractData?.salariesByYear) {
     const currentSalary = contractData.salariesByYear.find(
@@ -289,10 +303,15 @@ export function sortPlayers(
         case 'shootingProfile':
           return shootingProfileRank[player.shootingProfile] ?? 0;
         case 'yearsRemaining':
-          return parseInt(player.freeAgentYear || player.bio?.display?.freeAgentYear) - 2024 || -1;
+          return (
+            parseInt(
+              player.freeAgentYear || player.bio?.display?.freeAgentYear
+            ) - 2024 || -1
+          );
         case 'totalContract':
           // Contract data is in contracts subcollection
-          const contractData = player.primaryContract ||
+          const contractData =
+            player.primaryContract ||
             (player.contracts ? Object.values(player.contracts)[0] : null);
           return Array.isArray(contractData?.salariesByYear)
             ? contractData.salariesByYear.reduce((sum, s) => {

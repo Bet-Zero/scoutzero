@@ -1,4 +1,5 @@
 import { getContractSalaryForYear } from '@/utils/architect/contractSalaryUtils';
+import { getCapHitForSeason, yearToSeason } from './seasonUtils.js';
 
 export function computeMatchingValues({
   teams = [],
@@ -11,8 +12,22 @@ export function computeMatchingValues({
 
   teams.forEach((team) => {
     (team.sends || []).forEach((player) => {
-      // Extract salary from different possible sources - prioritize contract data
-      const contractSalary = getContractSalaryForYear(player, currentYear);
+      // Convert yearKey to season string if needed
+      const season = typeof currentYear === 'string' && currentYear.includes('-')
+        ? currentYear
+        : yearToSeason(currentYear);
+      
+      // Extract salary from different possible sources - prioritize capHit for cap calculations
+      let contractSalary = 0;
+      if (season) {
+        contractSalary = getCapHitForSeason(player, season);
+      }
+      
+      // Fallback to old extraction methods
+      if (contractSalary === 0) {
+        contractSalary = getContractSalaryForYear(player, currentYear);
+      }
+      
       const newSalary =
         player.newSalary ||
         contractSalary ||
@@ -70,8 +85,13 @@ export function computeMatchingValues({
       // Set incoming matching value (includes trade kicker)
       let incomingValue = currentSalary + proratedKicker;
 
-      // Handle poison pill - use currentSalary for the average calculation
-      if (player.isPoisonPill && player.extensionYears?.length > 0) {
+      // Handle poison pill - only for rookie scale contracts
+      // Check isRookieScale flag from new schema
+      const contract = player.contract || player.primaryContract;
+      const isRookieScale = contract?.isRookieScale || player.isRookieScale || false;
+      const isPoisonPill = player.isPoisonPill || isRookieScale;
+      
+      if (isPoisonPill && player.extensionYears?.length > 0) {
         const totalExtensionSalary = player.extensionYears.reduce(
           (sum, year) => sum + year.salary,
           0

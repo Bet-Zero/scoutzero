@@ -4,8 +4,8 @@
 //   PLAYER_URL="https://salaryswish.com/players/austin-reaves" PLAYER_ID="austin_reaves" npm run parse-player
 //   DEBUG=1 … (optional) to see what sections were matched
 //
-// INPUT:  ../working/page.html (from fetch_player_page.ts)
-// OUTPUT: ../../output/player.json
+// INPUT:  ../_artifacts/working/page.html (from fetch_player_page.ts)
+// OUTPUT: ../_artifacts/output/player.json
 //
 // Requires: cheerio
 //
@@ -782,7 +782,12 @@ function parseBio($: cheerio.CheerioAPI) {
 
   // 4) Fix run-on units (e.g. "6' 5195cm" -> "6' 5 195 cm", "197lbs89kg" -> "197 lbs 89 kg")
   // First, handle height special case where inches digit is jammed with cm number: "5195" -> "5 195"
-  text = text.replace(/(\d)\s*(['\u2019])\s*(\d)(\d{2,3})\s*/gi, '$1$2 $3 $4 ');
+  // IMPORTANT: Only split when there are 4+ digits total after quote (e.g., "5195cm"), not valid heights like "6' 10" or "6' 11"
+  // This prevents breaking up valid heights like "6' 10" into "6' 1 0" or "6' 11" into "6' 1 1"
+  text = text.replace(
+    /(\d)\s*(['\u2019])\s*(\d)(\d{3,})(cm|in|ft|\s)/gi,
+    '$1$2 $3 $4 $5'
+  );
   // Then normal unit separations
   text = text
     .replace(/(\d)(cm)\b/gi, '$1 $2')
@@ -813,37 +818,98 @@ function parseBio($: cheerio.CheerioAPI) {
   // Made more flexible to handle various formatting issues
   let h: string | undefined;
 
-  // Try quote format first: "6' 5", "6'5", "6' 05" etc.
-  const mHeightQuote = text.match(
-    /\bHEIGHT:\s*([0-9])\s*['\u2019]\s*([0-9]{1,2})(?:\s|$|[^0-9])/i
+  // Debug: Extract height-related text for troubleshooting
+  const heightContext = text.match(/\bHEIGHT:\s*[^\n]{0,50}/i)?.[0];
+  if (heightContext && DEBUG) {
+    console.error(`[HEIGHT DEBUG] Context: "${heightContext}"`);
+  }
+
+  // Try quote format first: "6' 5", "6'5", "6' 10", "6' 11" etc.
+  // IMPORTANT: Match 2-digit inches FIRST (10, 11, 12) before single digits
+  // Handle both "6' 10" (with space) and "6'10" (no space) formats
+
+  // First try: 2-digit inches format "6' 10", "6'10", "6' 11", "6'11"
+  const mHeightQuote2 = text.match(
+    /\bHEIGHT:\s*([0-9])\s*['\u2019]\s*([0-9]{2})(?:\s|$|[^0-9]|cm|in|ft)/i
   );
-  if (mHeightQuote) {
-    h = `${mHeightQuote[1]}-${mHeightQuote[2]}`;
-  } else {
-    // Try dash format: "6-5", "6 - 5" etc.
-    const mHeightDash = text.match(
-      /\bHEIGHT:\s*([0-9])\s*-\s*([0-9]{1,2})(?:\s|$|[^0-9])/i
+  if (mHeightQuote2) {
+    h = `${mHeightQuote2[1]}-${mHeightQuote2[2]}`;
+    if (DEBUG) console.error(`[DEBUG] Matched 2-digit quote format: ${h}`);
+  }
+
+  // Second try: single digit format "6' 5", "6'5" (only if 2-digit didn't match)
+  if (!h) {
+    const mHeightQuote1 = text.match(
+      /\bHEIGHT:\s*([0-9])\s*['\u2019]\s*([0-9])(?:\s|$|[^0-9]|cm|in|ft)/i
     );
-    if (mHeightDash) {
-      h = `${mHeightDash[1]}-${mHeightDash[2]}`;
+    if (mHeightQuote1) {
+      h = `${mHeightQuote1[1]}-${mHeightQuote1[2]}`;
+      if (DEBUG) console.error(`[DEBUG] Matched 1-digit quote format: ${h}`);
+    }
+  }
+
+  // Third try: dash format "6-10", "6-11", "6 - 5" etc.
+  if (!h) {
+    // Match 2-digit inches FIRST (10, 11, 12) before single digits
+    const mHeightDash2 = text.match(
+      /\bHEIGHT:\s*([0-9])\s*-\s*([0-9]{2})(?=\s|$|[^0-9]|cm|in|ft)/i
+    );
+    if (mHeightDash2) {
+      h = `${mHeightDash2[1]}-${mHeightDash2[2]}`;
+      if (DEBUG) console.error(`[DEBUG] Matched 2-digit dash format: ${h}`);
     } else {
-      // Try ft/in format: "6 ft 5 in", "6ft 5in" etc.
-      const mHeightFtIn = text.match(
-        /\bHEIGHT:\s*([0-9])\s*ft\s*([0-9]{1,2})\s*in\b/i
+      // Single digit dash format
+      const mHeightDash1 = text.match(
+        /\bHEIGHT:\s*([0-9])\s*-\s*([0-9])(?=\s|$|[^0-9]|cm|in|ft)/i
       );
-      if (mHeightFtIn) {
-        h = `${mHeightFtIn[1]}-${mHeightFtIn[2]}`;
-      } else {
-        // Last resort: look for any two numbers after HEIGHT
-        const mHeightGeneric = text.match(
-          /\bHEIGHT:\s*([0-9])[^0-9]*([0-9]{1,2})/i
-        );
-        if (mHeightGeneric) {
-          h = `${mHeightGeneric[1]}-${mHeightGeneric[2]}`;
-        }
+      if (mHeightDash1) {
+        h = `${mHeightDash1[1]}-${mHeightDash1[2]}`;
+        if (DEBUG) console.error(`[DEBUG] Matched 1-digit dash format: ${h}`);
       }
     }
   }
+
+  // Fourth try: ft/in format "6 ft 10 in", "6ft 11in" etc.
+  if (!h) {
+    // 2-digit inches first
+    const mHeightFtIn2 = text.match(
+      /\bHEIGHT:\s*([0-9])\s*ft\s*([0-9]{2})\s*in\b/i
+    );
+    if (mHeightFtIn2) {
+      h = `${mHeightFtIn2[1]}-${mHeightFtIn2[2]}`;
+      if (DEBUG) console.error(`[DEBUG] Matched 2-digit ft/in format: ${h}`);
+    } else {
+      // Single digit inches
+      const mHeightFtIn1 = text.match(
+        /\bHEIGHT:\s*([0-9])\s*ft\s*([0-9])\s*in\b/i
+      );
+      if (mHeightFtIn1) {
+        h = `${mHeightFtIn1[1]}-${mHeightFtIn1[2]}`;
+        if (DEBUG) console.error(`[DEBUG] Matched 1-digit ft/in format: ${h}`);
+      }
+    }
+  }
+
+  // Last resort: generic number extraction (2-digit first)
+  if (!h) {
+    const mHeightGeneric2 = text.match(
+      /\bHEIGHT:\s*([0-9])[^0-9]*([0-9]{2})(?:\s|$|[^0-9])/i
+    );
+    if (mHeightGeneric2) {
+      h = `${mHeightGeneric2[1]}-${mHeightGeneric2[2]}`;
+      if (DEBUG) console.error(`[DEBUG] Matched 2-digit generic format: ${h}`);
+    } else {
+      const mHeightGeneric1 = text.match(
+        /\bHEIGHT:\s*([0-9])[^0-9]*([0-9])(?:\s|$|[^0-9])/i
+      );
+      if (mHeightGeneric1) {
+        h = `${mHeightGeneric1[1]}-${mHeightGeneric1[2]}`;
+        if (DEBUG)
+          console.error(`[DEBUG] Matched 1-digit generic format: ${h}`);
+      }
+    }
+  }
+
   if (h) bio.height = h;
 
   // ---- Weight (prefer lbs; fallback kg→lbs) ----
@@ -2076,16 +2142,18 @@ async function main() {
     'unknown';
 
   // Read the fetched HTML from working/
+  const workingDir = process.env.WORKING_DIR_OVERRIDE
+    ? join(process.env.WORKING_DIR_OVERRIDE)
+    : join(__dirname, '../_artifacts/working');
   const htmlPath = process.env.TEMP_FILE
-    ? join(__dirname, '../working', process.env.TEMP_FILE)
-    : join(__dirname, '../working/page.html');
+    ? join(workingDir, process.env.TEMP_FILE)
+    : join(workingDir, 'page.html');
   const html = await fs.readFile(htmlPath, 'utf8');
 
   // Parse to structured object
   const output = await parsePlayer(html, { playerId, sourceUrl: playerUrlEnv });
 
   // ✳️ Write to per-player temp file: contracts/working/<id>.json
-  const workingDir = join(__dirname, '../working');
   await fs.mkdir(workingDir, { recursive: true });
   const outTempJson = process.env.TEMP_JSON || 'player.json';
   const tempJsonPath = join(workingDir, outTempJson);

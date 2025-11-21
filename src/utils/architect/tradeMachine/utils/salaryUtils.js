@@ -1,4 +1,5 @@
 import { getApronStatus } from '@/utils/architect/tradeHelpers.js';
+import { getCapHitForSeason as getCapHitForSeasonUtil } from './seasonUtils.js';
 
 /**
  * Computes final matching values for trade validation accounting for:
@@ -46,6 +47,17 @@ export function computeMatchingValues({ teams, yearKey }) {
       }
     });
   });
+}
+
+/**
+ * Get cap hit for a player for a specific season
+ * Uses capHit field when available, falls back to salary
+ * @param {Object} player - Player object with contract data
+ * @param {string|number} seasonOrYear - Season string ("2026-27") or numeric year (2026)
+ * @returns {number} Cap hit amount, 0 if not found
+ */
+export function getCapHitForSeason(player, seasonOrYear) {
+  return getCapHitForSeasonUtil(player, seasonOrYear);
 }
 
 export function getIncomingCeilingForTeam(team) {
