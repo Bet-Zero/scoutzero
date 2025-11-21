@@ -1,6 +1,7 @@
 import React from 'react';
 import capProjections from '@/utils/architect/capProjections';
 import { toSeasonKey } from '@/utils/architect/seasonUtils';
+import { getCapHitForSeason } from '@/utils/architect/tradeMachine/utils/seasonUtils.js';
 
 const CapSummaryTiles = ({ teamCapSheet, selectedYear }) => {
   // Convert end-year to season format: 2025 -> "2024-25"
@@ -13,7 +14,9 @@ const CapSummaryTiles = ({ teamCapSheet, selectedYear }) => {
 
   const totalCapAllocations = teamCapSheet.players.reduce((sum, player) => {
     const salary =
-      player.contract_clean?.salaries_by_year?.[selectedYear]?.salary || 0;
+      getCapHitForSeason(player, yearKey) ||
+      player.contract_clean?.salaries_by_year?.[selectedYear]?.salary ||
+      0;
     const holdAmount =
       typeof player.cap_hold === 'number'
         ? player.cap_hold
