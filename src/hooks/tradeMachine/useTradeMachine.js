@@ -3,6 +3,7 @@ import { validateTrade } from '@/utils/architect/tradeMachine/engine/tradeValida
 import { loadTeamCapSheet } from '@/utils/architect/firebaseTeamPlanHelpers';
 import { getSalaryForYear, areSamePick } from '@/utils/architect/tradeHelpers';
 import { TeamMap } from '@/constants/teamList';
+import { endYearToSeason } from '@/utils/architect/tradeMachine/utils/seasonUtils';
 
 /* ============================
    Helpers: numeric + payroll + season keys
@@ -15,9 +16,6 @@ const num = (v) => {
   return Number.isFinite(n) ? n : 0;
 };
 
-// Map season end-year (e.g., 2025) -> "2024-25"
-const toSeasonKey = (endYear) => `${endYear - 1}-${String(endYear).slice(-2)}`;
-
 // Baseline payroll from your cap sheet: prefer activeContracts, fallback to players.contract
 // Works with both new schema (contract.salariesByYear array) and old schema (contract_clean.salaries_by_year object)
 const payrollForYearFromCapSheet = (capSheet, endYear) => {
@@ -25,7 +23,7 @@ const payrollForYearFromCapSheet = (capSheet, endYear) => {
 
   // endYear is the season END year (e.g., 2025 for 2024-25 season)
   // Architect contracts use START year, so convert: 2025 → "2024-25"
-  const season = toSeasonKey(endYear); // Uses existing helper: endYear → "start-YY"
+  const season = endYearToSeason(endYear); // Convert end-year to season: 2025 → "2024-25"
   const y = String(endYear);
 
   // Preferred source: activeContracts (try new schema first)
@@ -103,7 +101,7 @@ const deadMoneyForYear = (capSheet, endYear) => {
 function getMLEBAEForYear(endYear, capProjections) {
   if (!capProjections) return { fullMLE: 0, roomMLE: 0, bae: 0 };
 
-  const key = toSeasonKey(endYear); // e.g., 2025 -> "2024-25"
+  const key = endYearToSeason(endYear); // Convert end-year to season: 2025 → "2024-25"
   const fromComposite = capProjections?.[key] || {};
   const fromNumeric = capProjections?.[endYear] || {};
   const src = Object.keys(fromComposite).length ? fromComposite : fromNumeric;
