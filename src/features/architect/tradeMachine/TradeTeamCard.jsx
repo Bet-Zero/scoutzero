@@ -20,6 +20,7 @@ import {
   isFaExceptionEligibleType,
 } from '@/utils/architect/faExceptionUtils.js';
 import { validationFlags } from '@/config/validationFlags.js';
+import { getCapHitForSeason } from '@/utils/architect/tradeMachine/utils/seasonUtils.js';
 import { toSeasonKey } from '@/utils/architect/seasonUtils';
 
 const TradeTeamCard = ({
@@ -148,9 +149,16 @@ const TradeTeamCard = ({
 
   const tpeEligiblePlayers = useMemo(() => {
     if (!team) return [];
+    const seasonKey =
+      typeof yearKey === 'string' && yearKey.includes('-')
+        ? yearKey
+        : toSeasonKey(yearKey);
+
     return incomingPlayers.filter((player) => {
       const playerSalary =
-        player.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0;
+        getCapHitForSeason(player, seasonKey) ||
+        player.contract_clean?.salaries_by_year?.[yearKey]?.salary ||
+        0;
       return (team.tradeExceptions || []).some(
         (tpe) =>
           !tpe.isUsed &&

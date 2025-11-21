@@ -18,14 +18,15 @@ export function seasonToYear(season) {
 }
 
 /**
- * Convert numeric year to season string
- * @param {number} year - Year as number (e.g., 2026)
- * @returns {string} Season in "YYYY-YY" format (e.g., "2026-27")
+ * Convert numeric year (end-year) to season string
+ * @param {number} year - Season end year as number (e.g., 2026 for 2025-26)
+ * @returns {string} Season in "YYYY-YY" format (e.g., "2025-26")
  */
 export function yearToSeason(year) {
   if (!year || typeof year !== 'number') return null;
-  const nextYear = year + 1;
-  return `${year}-${String(nextYear).slice(-2)}`;
+  const startYear = year - 1;
+  if (!Number.isFinite(startYear)) return null;
+  return `${startYear}-${String(year).slice(-2)}`;
 }
 
 /**
