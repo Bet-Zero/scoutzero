@@ -105,9 +105,16 @@ export interface TradeTeam {
   absorptionMode?: string;
   incomingPlayers?: any[];
   outgoingPlayers?: any[];
+  outgoingPicks?: any[];
+  projectedRosterCount?: number;
+  initialRosterCount?: number;
+  postTradeStatus?: {
+    isAtOrAboveSecondApron?: boolean;
+  };
   team?: {
     hardCapTriggered?: boolean | 'FirstApron' | 'SecondApron';
     twoWayPlayers?: any[];
+    picks?: any[];
   };
   context?: {
     yearKey: number | string;
@@ -142,6 +149,10 @@ export interface RosterResult extends ValidationResult {
   rosterCounts?: {
     standard: number;
     twoWay: number;
+    projected?: number;
+    current?: number;
+    incomingTwoWay?: number;
+    outgoingTwoWay?: number;
   };
 }
 

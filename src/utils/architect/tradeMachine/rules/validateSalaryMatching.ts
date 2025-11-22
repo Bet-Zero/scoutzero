@@ -3,8 +3,8 @@ import {
   formatCurrency,
   getIncomingCeilingViaFaException,
 } from '@/utils/architect/tradeHelpers.js';
-import { validatorDebug } from './validatorDebug.js';
-import { TradeTeam, SalaryMatchingResult } from './types';
+import { validatorDebug } from '../engine/validatorDebug.js';
+import { TradeTeam, SalaryMatchingResult } from '../constants/types';
 
 /**
  * Validates salary matching rules for a team in a trade.
