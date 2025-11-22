@@ -1,7 +1,8 @@
 export function isTwoWayContract(player) {
   if (!player) return false;
 
-  const contract = player.primaryContract ||
+  const contract = player.contract ||
+    player.primaryContract ||
     (player.contracts ? Object.values(player.contracts)[0] : null) ||
     player.contractView ||
     null;

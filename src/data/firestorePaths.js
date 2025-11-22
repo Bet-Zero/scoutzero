@@ -28,3 +28,10 @@ export const evalRef = (playerId, evalId) =>
 // Collection references
 export const playersCol = () => collection(db, 'players_v2');
 export const teamsCol = () => collection(db, 'teams');
+
+// Architect base collections (for GM tools and trade machine)
+// Canonical paths (documentation): /architect/baseTeams/{teamCode} and /architect/basePlayers/{playerId}
+// Actual Firestore collections: architect_baseTeams and architect_basePlayers
+export const baseTeamsCol = () => collection(db, 'architect_baseTeams');
+export const baseTeamRef = (teamCode) => doc(db, 'architect_baseTeams', teamCode);
+export const basePlayerRef = (playerId) => doc(db, 'architect_basePlayers', playerId);

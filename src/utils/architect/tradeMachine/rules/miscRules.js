@@ -25,8 +25,15 @@ export function validateBYC(team, context = {}) {
   const currentSeason = typeof yearKey === 'string' && yearKey.includes('-')
     ? yearKey
     : yearToSeason(yearKey);
+  
+  // Calculate previous season correctly
+  // If yearKey is a season string like "2024-25":
+  //   - seasonToYear("2024-25") extracts start year → 2024
+  //   - yearToSeason(2024) computes (2024-1) + "-24" → "2023-24" (previous season)
+  // This works because yearToSeason expects an end-year input, and the start year 
+  // of the current season (2024) equals the end year of the previous season
   const previousSeason = typeof yearKey === 'string' && yearKey.includes('-')
-    ? yearToSeason(seasonToYear(yearKey) - 1)
+    ? yearToSeason(seasonToYear(yearKey))
     : yearToSeason(yearKey - 1);
 
   // Check all outgoing players for BYC issues
@@ -51,8 +58,12 @@ export function validateBYC(team, context = {}) {
     }
     
     // Fallback to old extraction methods
+    // getSalaryForYear expects numeric end-year input (e.g., 2024 for "2023-24")
+    // For season strings: seasonToYear("2024-25") returns 2024 (start year of current season)
+    //   which equals the end year of previous season "2023-24", so getSalaryForYear(2024) correctly looks up "2023-24"
+    // For numeric years: yearKey - 1 is already the end year of the previous season
     if (previousSalary === 0) {
-      const prevYear = typeof yearKey === 'number' ? yearKey - 1 : seasonToYear(yearKey) - 1;
+      const prevYear = typeof yearKey === 'number' ? yearKey - 1 : seasonToYear(yearKey);
       previousSalary = getSalaryForYear(player, prevYear);
     }
 
