@@ -1,7 +1,7 @@
 // Handles Base Year Compensation (BYC), trade kicker, and poison pill calculations
 import { getSalaryForYear } from '../../tradeHelpers.js';
 import { BYC_PERCENT } from '../constants/cbaConstants.js';
-import { getCapHitForSeason, yearToSeason } from './seasonUtils.js';
+import { getCapHitForSeason, yearToSeason, normalizeYearInput } from './seasonUtils.js';
 
 export function getMatchingValue(player, yearKey, isOutgoing = false) {
   const salary = getSalaryForYear(player, yearKey);
@@ -62,22 +62,21 @@ export function computeMatchingValues({
 }) {
   teams.forEach((team) => {
     (team.sends || []).forEach((player) => {
-      // Get base salary from contract structure (prefer capHit for cap calculations)
-      // Convert yearKey to season string if needed
-      const season = typeof yearKey === 'string' && yearKey.includes('-')
-        ? yearKey
-        : yearToSeason(yearKey);
+      // Normalize yearKey to get both formats for consistent schema access
+      const normalized = normalizeYearInput(yearKey);
       
-      // Try to get capHit first (for cap calculations), fallback to salary
+      // Get base salary from contract structure (prefer capHit for cap calculations)
       let baseSalary = 0;
-      if (season) {
-        baseSalary = getCapHitForSeason(player, season);
+      if (normalized) {
+        // Try new schema first with season string
+        baseSalary = getCapHitForSeason(player, normalized.seasonString);
       }
       
-      // Fallback to old extraction methods
+      // Fallback to old extraction methods using proper end-year format
       if (baseSalary === 0) {
+        const endYear = normalized ? normalized.endYear : yearKey;
         baseSalary =
-          player.contract_clean?.salaries_by_year?.[yearKey]?.salary ||
+          player.contract_clean?.salaries_by_year?.[endYear]?.salary ||
           player.newSalary ||
           player.salary ||
           getSalaryForYear(player, yearKey) ||

@@ -116,3 +116,57 @@ export function getCapHitForSeason(player, season) {
   return getSalaryForSeason(player, season, true);
 }
 
+/**
+ * Normalize year input to both end-year and season string formats
+ * This eliminates the need for repeated conversion logic throughout validators
+ * 
+ * @param {number|string} input - Numeric year (end-year) or season string ("2024-25")
+ * @returns {{ endYear: number, seasonString: string } | null} Normalized formats or null if invalid
+ * 
+ * @example
+ * normalizeYearInput(2025) → { endYear: 2025, seasonString: "2024-25" }
+ * normalizeYearInput("2024-25") → { endYear: 2025, seasonString: "2024-25" }
+ * normalizeYearInput("2024") → { endYear: 2024, seasonString: "2023-24" }
+ */
+export function normalizeYearInput(input) {
+  if (!input) return null;
+  
+  // Handle numeric input (assumed to be end-year)
+  if (typeof input === 'number') {
+    const seasonString = yearToSeason(input);
+    if (!seasonString) return null;
+    return {
+      endYear: input,
+      seasonString
+    };
+  }
+  
+  // Handle string input
+  if (typeof input === 'string') {
+    // Season string format "2024-25"
+    if (input.includes('-')) {
+      const normalized = normalizeSeason(input);
+      if (!normalized) return null;
+      const startYear = seasonToYear(normalized);
+      if (!startYear) return null;
+      return {
+        endYear: startYear + 1,
+        seasonString: normalized
+      };
+    }
+    
+    // Numeric string "2025"
+    const numericYear = parseInt(input, 10);
+    if (!isNaN(numericYear) && isFinite(numericYear)) {
+      const seasonString = yearToSeason(numericYear);
+      if (!seasonString) return null;
+      return {
+        endYear: numericYear,
+        seasonString
+      };
+    }
+  }
+  
+  return null;
+}
+

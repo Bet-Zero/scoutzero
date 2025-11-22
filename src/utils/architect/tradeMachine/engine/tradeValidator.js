@@ -29,6 +29,7 @@ import { computeMatchingValues } from '../utils/matchingValues.js';
 import { enforceRosterWindow } from '../rules/rosterValidation.js';
 import { validateFaExceptionUsage } from '../rules/validateFaExceptionUsage.js';
 import { validateAggregation } from '../rules/validateAggregation.js';
+import { normalizeYearInput, yearToSeason } from '../utils/seasonUtils.js';
 
 // Create wrapped versions with performance monitoring and caching
 const baseValidators = {
@@ -114,12 +115,19 @@ export function validateTrade({
 
   // Initialize context for validation
   const capSettings = getCapSettingsForYear(capProjections, currentYear);
+  
+  // Normalize year input to provide both formats consistently to all validators
+  // This eliminates format conversion duplication across validator files
+  const normalizedYear = normalizeYearInput(currentYear);
+  
   const context = {
     capProjections: capProjections || {},
     currentYear: currentYear || 2025,
     offseason: true, // Default to offseason for sign-and-trade validation
     capSettings,
     yearKey: currentYear,
+    // Provide both normalized formats for validators
+    normalizedYear: normalizedYear || { endYear: currentYear || 2025, seasonString: yearToSeason(currentYear || 2025) },
     teams: validTeams, // Add teams to context for consent validation
     ...tradeCtx,
   };
@@ -198,6 +206,15 @@ export function validateTrade({
         yearKey: currentYear,
       },
     };
+  });
+
+  // Compute matching values for all teams before validation
+  // This ensures matchIncoming/matchOutgoing are set for TPE and other validators
+  computeMatchingValues({
+    teams: teamsWithAssets,
+    yearKey: currentYear,
+    daysRemainingInSeason: context.daysRemainingInSeason,
+    daysInSeason: context.daysInSeason,
   });
 
   // Run validation rules for each team
