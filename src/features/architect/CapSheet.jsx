@@ -228,26 +228,20 @@ const CapSheet = ({
         </thead>
         <tbody>
           {filteredPlayers.map((player, idx) => {
-            // Get salary from new schema first
+            // Get salary from new schema first - only exact season match
             let salary = 0;
             if (player?.contract?.salariesByYear) {
               const yearEntry = player.contract.salariesByYear.find(
-                (entry) => entry.season === season || entry.season === prevSeason || entry.season === nextSeason
+                (entry) => entry.season === season
               );
               if (yearEntry) {
                 salary = yearEntry.salary || 0;
               }
             }
             
-            // Fallback to old schema
+            // Fallback to old schema - only exact year
             if (salary === 0) {
-              salary =
-                player.contract_clean?.salaries_by_year?.[selectedYear]?.salary ||
-                player.contract_clean?.salaries_by_year?.[selectedYear - 1]
-                  ?.salary ||
-                player.contract_clean?.salaries_by_year?.[selectedYear + 1]
-                  ?.salary ||
-                0;
+              salary = player.contract_clean?.salaries_by_year?.[selectedYear]?.salary || 0;
             }
             
             const capHit = getCapHit(player, selectedYear);
