@@ -39,7 +39,7 @@ const CapSheet = ({
       ? yearKey
       : toSeasonKey(yearKey);
     
-    // Try new schema: contract.salariesByYear array (prefer capHit)
+    // Get from new schema: contract.salariesByYear array (use capHit)
     if (player?.contract?.salariesByYear) {
       const yearEntry = player.contract.salariesByYear.find(
         (entry) => entry.season === season
@@ -53,13 +53,8 @@ const CapSheet = ({
       }
     }
     
-    // Fallback to old schema: contract_clean.salaries_by_year object
-    // Only return salary for exact year match, not adjacent years
-    const salary = player.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0;
-    if (player.isMinimum && player.yearsOfService >= 3) {
-      return getMinimumCapHit(player.yearsOfService);
-    }
-    return salary;
+    // No data found
+    return 0;
   };
 
   // Helper to aggregate cap hits for a group of players
@@ -94,12 +89,6 @@ const CapSheet = ({
         option = yearEntry.option || null;
         guaranteed = yearEntry.guaranteed !== false;
       }
-    }
-    
-    // Fallback to old schema
-    if (option === null) {
-      option = player.contract_clean?.salaries_by_year?.[yearKey]?.option || null;
-      guaranteed = player.contract_clean?.salaries_by_year?.[yearKey]?.guaranteed !== false;
     }
     
     const isPO = option === 'Player Option';
@@ -154,17 +143,12 @@ const CapSheet = ({
 
   const capHoldPlayers = teamCapSheet.players
     .filter((p) => {
-      // Check if player has salary for exact season (try new schema first)
+      // Check if player has salary for exact season in new schema
       let hasSalary = false;
       if (p?.contract?.salariesByYear) {
         hasSalary = p.contract.salariesByYear.some(
           (entry) => entry.season === season
         );
-      }
-      
-      // Fallback to old schema - only check exact year
-      if (!hasSalary) {
-        hasSalary = !!p.contract_clean?.salaries_by_year?.[selectedYear]?.salary;
       }
       
       const holdAmount =

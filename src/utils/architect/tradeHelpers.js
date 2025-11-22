@@ -22,35 +22,12 @@ export const getTierThresholds = (yearKey) => {
 export const MIN_SALARY = 1_119_563;
 
 /*────────────────────────  Salary Helpers  ────────────────────────*/
-/******************** SCSP™ BLOCK: getSalaryForYear ********************/
-/**
- * Convert year parameter to numeric year for old schema lookup
- * Old schema uses end-year keys (e.g., 2025 for "2024-25" season)
- * @param {number|string} year - Numeric end year (e.g., 2025) or season string (e.g., "2024-25")
- * @returns {number|null} Numeric end year for old schema lookup
- * 
- * Note: When a numeric year is passed, it is assumed to already be an end year
- * and is returned unchanged. Season strings are converted from start year to end year.
- */
-const convertYearForOldSchema = (year) => {
-  if (typeof year === 'number') {
-    // Numeric years are assumed to already be end years (e.g., 2025 for "2024-25")
-    return year;
-  }
-  if (typeof year === 'string' && year.includes('-')) {
-    // Convert season string (e.g., "2024-25") to end year (2025)
-    const startYear = seasonToYear(year);
-    return startYear ? startYear + 1 : null;
-  }
-  return null;
-};
-
 /**
  * Get salary for a year or season from player(s)
- * Works with both new schema (salariesByYear array) and old schema (salaries_by_year object)
+ * Works with new architect schema (contract.salariesByYear array)
  * @param {Object|Array} input - Single player or array of players
  * @param {number|string} year - Numeric year (2026) or season string ("2026-27")
- * @returns {number} Total salary including likely incentives
+ * @returns {number} Total salary including likely incentives (capHit)
  */
 export const getSalaryForYear = (input, year) => {
   if (!year) return 0;
@@ -64,73 +41,29 @@ export const getSalaryForYear = (input, year) => {
     : yearToSeason(year);
 
   return players.reduce((sum, p) => {
-    let base = 0;
-    let likely = 0;
-
-    // Try new schema format: contract.salariesByYear[] array
+    // Get from new schema format: contract.salariesByYear[] array
     const contract = p.contract || p.primaryContract;
     if (contract?.salariesByYear && season) {
       const yearEntry = contract.salariesByYear.find(
         (entry) => entry.season === season
       );
       if (yearEntry) {
-        // Prefer capHit over salary (architect schema may only populate capHit)
-        // Note: capHit already includes likely incentives, so don't add them separately
+        // Use capHit (includes likely incentives) or salary as fallback
         if (typeof yearEntry.capHit === 'number') {
-          base = yearEntry.capHit;
-          // Set likely to -1 to skip bonuses fallback (capHit already includes incentives)
-          likely = -1;
+          return sum + yearEntry.capHit;
         } else if (typeof yearEntry.salary === 'number') {
-          base = yearEntry.salary;
-          // Extract likely incentives from new schema (only when using salary)
-          if (yearEntry.incentives?.likely) {
-            likely = yearEntry.incentives.likely;
-          }
+          const base = yearEntry.salary;
+          const likely = yearEntry.incentives?.likely || 0;
+          return sum + base + likely;
         }
       }
     }
 
-    // Fallback to old schema format: contract_clean.salaries_by_year object
-    // Note: old schema uses end-year keys (e.g., 2025 for "2024-25" season)
-    if (base === 0) {
-      const numericYear = convertYearForOldSchema(year);
-      if (numericYear) {
-        const yData = p.contract_clean?.salaries_by_year?.[numericYear] ?? {};
-        base = typeof yData.salary === 'number' ? yData.salary : 0;
-        
-        // Old schema likely bonus extraction
-        likely =
-          (typeof yData.likely_bonus === 'number' ? yData.likely_bonus : 0) ||
-          (yData.bonuses?.likely ?? yData.likelyIncentives ?? 0);
-      }
-    }
-
-    // Additional fallbacks
-    if (base === 0) {
-      const numericYear = convertYearForOldSchema(year);
-      const salaryMap = p.salaryByYear?.[numericYear];
-      const fallback = p.salary;
-      
-      base = typeof salaryMap === 'number'
-        ? salaryMap
-        : typeof fallback === 'number'
-          ? fallback
-          : 0;
-    }
-
-    // Old schema bonusesByYear fallback
-    // Skip if likely is -1 (sentinel value indicating capHit was used)
-    if (likely === 0) {
-      const numericYear = convertYearForOldSchema(year);
-      likely = p.bonusesByYear?.[numericYear]?.likely ?? 0;
-    }
-
-    // Reset likely to 0 if it's the sentinel value (capHit already includes incentives)
-    const finalLikely = likely === -1 ? 0 : likely;
-    return sum + base + finalLikely;
+    // Fallback to direct player properties if no contract data
+    const fallback = p.salary || 0;
+    return sum + fallback;
   }, 0);
 };
-/****************** END SCSP™ BLOCK: getSalaryForYear ******************/
 
 /*─────────────────────  Incoming-Salary (CBA rules)  ─────────────────────*/
 

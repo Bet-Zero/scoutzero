@@ -19,22 +19,26 @@ import { getSalaryForYear } from '@/utils/architect/tradeHelpers.js';
  */
 export function validateBYC(team, context = {}) {
   const violations = [];
-  const { currentYear = 2025, yearKey = currentYear } = context;
+  const { currentYear = 2025, yearKey = currentYear, normalizedYear } = context;
   
-  // Convert to season string if needed
-  const currentSeason = typeof yearKey === 'string' && yearKey.includes('-')
-    ? yearKey
-    : yearToSeason(yearKey);
+  // Use pre-normalized year from context if available, otherwise normalize here
+  let currentSeason, currentEndYear, prevEndYear;
   
-  // Calculate previous season correctly
-  // If yearKey is a season string like "2024-25":
-  //   - seasonToYear("2024-25") extracts start year → 2024
-  //   - yearToSeason(2024) computes (2024-1) + "-24" → "2023-24" (previous season)
-  // This works because yearToSeason expects an end-year input, and the start year 
-  // of the current season (2024) equals the end year of the previous season
-  const previousSeason = typeof yearKey === 'string' && yearKey.includes('-')
-    ? yearToSeason(seasonToYear(yearKey))
-    : yearToSeason(yearKey - 1);
+  if (normalizedYear) {
+    currentSeason = normalizedYear.seasonString;
+    currentEndYear = normalizedYear.endYear;
+    prevEndYear = currentEndYear - 1;
+  } else {
+    // Fallback: do conversion locally if normalizedYear not provided
+    currentSeason = typeof yearKey === 'string' && yearKey.includes('-')
+      ? yearKey
+      : yearToSeason(yearKey);
+    currentEndYear = typeof yearKey === 'number' ? yearKey : seasonToYear(currentSeason) + 1;
+    prevEndYear = currentEndYear - 1;
+  }
+  
+  // Previous season string
+  const previousSeason = yearToSeason(prevEndYear);
 
   // Check all outgoing players for BYC issues
   const outgoingPlayers = team.sends || [];
