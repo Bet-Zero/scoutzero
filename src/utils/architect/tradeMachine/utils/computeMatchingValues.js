@@ -67,8 +67,9 @@ export function computeMatchingValues({
 
       // Calculate raw kicker value - use guaranteed amount as base
       // Note: tradeKickerPct is already in decimal form (0.15 = 15%)
+      // Use nullish coalescing to distinguish 0 (no guarantees) from undefined
       const guaranteedAmount =
-        player.remainingGuaranteedOnCurrentContract || currentSalary;
+        player.remainingGuaranteedOnCurrentContract ?? currentSalary;
       const rawKickerValue = Math.min(
         guaranteedAmount * kickerPercentage,
         maxKicker
