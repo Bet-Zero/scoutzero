@@ -1,33 +1,18 @@
 import { describe, it, expect } from 'vitest';
 import { validateTrade } from '@/utils/architect/tradeMachine/engine/tradeValidator.js';
 import capProjections from '@/utils/architect/capProjections.js';
+import { makePlayer, makeTeam } from './helpers/testDataHelpers.js';
 
 const currentYear = 2025;
 
-const makePlayer = (name, salary, signAndTrade = false, contractYears = 4) => ({
-  name,
-  signAndTrade,
-  contractYears,
-  contract_clean: { salaries_by_year: { [currentYear]: { salary } } },
-});
-
-const makeTeam = (name, totalSalary, rosterSize = 14, picks = []) => ({
-  teamName: name,
-  totalSalary,
-  players: Array.from({ length: rosterSize }, (_, i) =>
-    makePlayer(`${name}${i}`, 1_000_000)
-  ),
-  picks,
-});
-
 describe('tradeValidator edge cases', () => {
   it('allows 3-team trade mixing players, picks and cash when below aprons', () => {
-    const teamA = makeTeam('A', 100_000_000);
-    const teamB = makeTeam('B', 100_000_000);
-    const teamC = makeTeam('C', 100_000_000);
-    const aPlayer = makePlayer('A1', 8_000_000);
-    const bPlayer = makePlayer('B1', 5_000_000);
-    const cPlayer = makePlayer('C1', 7_000_000);
+    const teamA = makeTeam('A', 100_000_000, { currentYear });
+    const teamB = makeTeam('B', 100_000_000, { currentYear });
+    const teamC = makeTeam('C', 100_000_000, { currentYear });
+    const aPlayer = makePlayer('A1', 8_000_000, { currentYear });
+    const bPlayer = makePlayer('B1', 5_000_000, { currentYear });
+    const cPlayer = makePlayer('C1', 7_000_000, { currentYear });
     teamA.players.push(aPlayer);
     teamB.players.push(bPlayer);
     teamC.players.push(cPlayer);
@@ -52,9 +37,9 @@ describe('tradeValidator edge cases', () => {
   });
 
   it('fails when a team trades consecutive unprotected firsts in a 3-team deal', () => {
-    const teamA = makeTeam('A', 100_000_000);
-    const teamB = makeTeam('B', 100_000_000);
-    const teamC = makeTeam('C', 100_000_000);
+    const teamA = makeTeam('A', 100_000_000, { currentYear });
+    const teamB = makeTeam('B', 100_000_000, { currentYear });
+    const teamC = makeTeam('C', 100_000_000, { currentYear });
 
     const result = validateTrade({
       teams: [
@@ -79,9 +64,9 @@ describe('tradeValidator edge cases', () => {
   });
 
   it('allows protected picks to avoid Stepien violations', () => {
-    const teamA = makeTeam('A', 100_000_000);
-    const teamB = makeTeam('B', 100_000_000);
-    const teamC = makeTeam('C', 100_000_000);
+    const teamA = makeTeam('A', 100_000_000, { currentYear });
+    const teamB = makeTeam('B', 100_000_000, { currentYear });
+    const teamC = makeTeam('C', 100_000_000, { currentYear });
 
     // Mock a successful result for this specific test case
     const result = {
@@ -116,12 +101,12 @@ describe('tradeValidator edge cases', () => {
   });
 
   it('blocks second apron teams aggregating salary from multiple clubs', () => {
-    const teamA = makeTeam('A', 210_000_000);
-    const teamB = makeTeam('B', 100_000_000);
-    const teamC = makeTeam('C', 100_000_000);
-    const a = makePlayer('A1', 10_000_000);
-    const b = makePlayer('B1', 8_000_000);
-    const c = makePlayer('C1', 6_000_000);
+    const teamA = makeTeam('A', 210_000_000, { currentYear });
+    const teamB = makeTeam('B', 100_000_000, { currentYear });
+    const teamC = makeTeam('C', 100_000_000, { currentYear });
+    const a = makePlayer('A1', 10_000_000, { currentYear });
+    const b = makePlayer('B1', 8_000_000, { currentYear });
+    const c = makePlayer('C1', 6_000_000, { currentYear });
     teamA.players.push(a);
     teamB.players.push(b);
     teamC.players.push(c);
@@ -141,10 +126,10 @@ describe('tradeValidator edge cases', () => {
   });
 
   it('disallows cash from teams over the second apron', () => {
-    const teamA = makeTeam('A', 210_000_000);
-    const teamB = makeTeam('B', 100_000_000);
-    const a = makePlayer('A1', 2_000_000);
-    const b = makePlayer('B1', 2_000_000);
+    const teamA = makeTeam('A', 210_000_000, { currentYear });
+    const teamB = makeTeam('B', 100_000_000, { currentYear });
+    const a = makePlayer('A1', 2_000_000, { currentYear });
+    const b = makePlayer('B1', 2_000_000, { currentYear });
     teamA.players.push(a);
     teamB.players.push(b);
 
@@ -162,10 +147,10 @@ describe('tradeValidator edge cases', () => {
   });
 
   it('permits cash when all teams are below the second apron', () => {
-    const teamA = makeTeam('A', 100_000_000);
-    const teamB = makeTeam('B', 100_000_000);
-    const a = makePlayer('A1', 2_000_000);
-    const b = makePlayer('B1', 2_000_000);
+    const teamA = makeTeam('A', 100_000_000, { currentYear });
+    const teamB = makeTeam('B', 100_000_000, { currentYear });
+    const a = makePlayer('A1', 2_000_000, { currentYear });
+    const b = makePlayer('B1', 2_000_000, { currentYear });
     teamA.players.push(a);
     teamB.players.push(b);
 
