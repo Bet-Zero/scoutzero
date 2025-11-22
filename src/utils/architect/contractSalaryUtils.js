@@ -28,10 +28,21 @@ export function getContractSalaryForYear(player, yearKey) {
   }
 
   // Fallback to old schema format: contract_clean.salaries_by_year object
+  // Note: contract_clean uses end-year keys (e.g., 2025 for "2024-25")
   if (player.contract_clean?.salaries_by_year) {
-    const numericYear = typeof yearKey === 'number' ? yearKey : seasonToYear(yearKey);
-    if (numericYear) {
-      const yearData = player.contract_clean.salaries_by_year[String(numericYear)];
+    let endYear;
+    if (typeof yearKey === 'number') {
+      endYear = yearKey;
+    } else if (typeof yearKey === 'string' && yearKey.includes('-')) {
+      // Season string: convert start year to end year
+      const startYear = seasonToYear(yearKey);
+      endYear = startYear ? startYear + 1 : null;
+    } else {
+      endYear = parseInt(yearKey);
+    }
+    
+    if (endYear) {
+      const yearData = player.contract_clean.salaries_by_year[String(endYear)];
       if (yearData?.salary) {
         return yearData.salary;
       }
