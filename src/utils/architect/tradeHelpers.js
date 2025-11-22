@@ -338,6 +338,13 @@ export const isMeaningfulProtection = (prot) =>
 /*────────────────────────  Trade-Exception Helpers  ───────────────────────*/
 export const calculateTPERemaining = (tpe, used = 0) => tpe.amount - used;
 
+/**
+ * Check if a player's salary fits within a trade exception
+ * @param {Object} player - Player object with contract data
+ * @param {number|string} yearKey - Season end-year (2025) or season string ("2024-25")
+ * @param {Object} tpe - Trade exception object with amount and expiration
+ * @returns {boolean} True if player fits in TPE and TPE hasn't expired
+ */
 export const playerFitsInTPE = (player, yearKey, tpe) => {
   if (!tpe || tpe.isUsed) return false;
 

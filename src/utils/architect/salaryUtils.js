@@ -8,8 +8,14 @@ const num = (v) => {
   return Number.isFinite(n) ? n : 0;
 };
 
-// Try activeContracts first (cleanest source), otherwise fall back to players.contract
-// Works with both new schema (contract.salariesByYear array) and old schema (contract_clean.salaries_by_year object)
+/**
+ * Calculate total payroll from cap sheet for a specific year/season
+ * Works with both new schema (contract.salariesByYear array) and old schema (contract_clean.salaries_by_year object)
+ * 
+ * @param {Object} capSheet - Cap sheet object with activeContracts or players array
+ * @param {number|string} year - Season end-year (2025) or season string ("2024-25")
+ * @returns {number} Total payroll amount
+ */
 export function payrollForYearFromCapSheet(capSheet, year) {
   if (!capSheet) return 0;
   
@@ -61,7 +67,14 @@ export function payrollForYearFromCapSheet(capSheet, year) {
   return fromPlayers;
 }
 
-// Optional dead money (varies by your schema). We safely look in a few places.
+/**
+ * Calculate dead money obligations for a specific year
+ * Checks waivedContracts, stretchHistory, and flat deadMoney fields
+ * 
+ * @param {Object} capSheet - Cap sheet object
+ * @param {number|string} year - Season end-year (2025) or numeric year
+ * @returns {number} Total dead money amount
+ */
 export function deadMoneyForYear(capSheet, year) {
   const y = String(year);
   const arrs = []
