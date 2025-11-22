@@ -74,7 +74,8 @@ export const getSalaryForYear = (input, year) => {
         (entry) => entry.season === season
       );
       if (yearEntry) {
-        base = yearEntry.salary || 0;
+        // Prefer capHit over salary (architect schema may only populate capHit)
+        base = yearEntry.capHit ?? yearEntry.salary ?? 0;
         // Extract likely incentives from new schema
         if (yearEntry.incentives?.likely) {
           likely = yearEntry.incentives.likely;
