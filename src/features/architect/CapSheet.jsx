@@ -54,11 +54,8 @@ const CapSheet = ({
     }
     
     // Fallback to old schema: contract_clean.salaries_by_year object
-    const salary =
-      player.contract_clean?.salaries_by_year?.[yearKey]?.salary ||
-      player.contract_clean?.salaries_by_year?.[yearKey - 1]?.salary ||
-      player.contract_clean?.salaries_by_year?.[yearKey + 1]?.salary ||
-      0;
+    // Only return salary for exact year match, not adjacent years
+    const salary = player.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0;
     if (player.isMinimum && player.yearsOfService >= 3) {
       return getMinimumCapHit(player.yearsOfService);
     }
@@ -128,29 +125,25 @@ const CapSheet = ({
 
   // Filter players who have salary data for the selected year
   // Exclude two-way contracts from cap calculations
-  // Check both selectedYear and adjacent seasons for robust matching
+  // Only include players with exact season match, not adjacent seasons
   const season = toSeasonKey(selectedYear); // 2025 -> "2024-25"
-  const prevSeason = toSeasonKey(selectedYear - 1); // 2024 -> "2023-24"
-  const nextSeason = toSeasonKey(selectedYear + 1); // 2026 -> "2025-26"
-  
+
   const filteredPlayers = teamCapSheet.players
     .filter((p) => {
       // Exclude two-way contracts from cap calculations
       if (isTwoWayContract(p)) return false;
       
       // Try new schema: contract.salariesByYear array
+      // Only check for exact season match to avoid including adjacent-season contracts
       if (p?.contract?.salariesByYear) {
         const hasSalary = p.contract.salariesByYear.some(
-          (entry) => entry.season === season || entry.season === prevSeason || entry.season === nextSeason
+          (entry) => entry.season === season
         );
         if (hasSalary) return true;
       }
       
-      // Fallback to old schema
-      const hasSalary =
-        p.contract_clean?.salaries_by_year?.[selectedYear] ||
-        p.contract_clean?.salaries_by_year?.[selectedYear - 1] ||
-        p.contract_clean?.salaries_by_year?.[selectedYear + 1];
+      // Fallback to old schema - only check exact year
+      const hasSalary = p.contract_clean?.salaries_by_year?.[selectedYear];
       return !!hasSalary;
     })
     .sort((a, b) => {
@@ -161,20 +154,17 @@ const CapSheet = ({
 
   const capHoldPlayers = teamCapSheet.players
     .filter((p) => {
-      // Check if player has salary (try new schema first)
+      // Check if player has salary for exact season (try new schema first)
       let hasSalary = false;
       if (p?.contract?.salariesByYear) {
         hasSalary = p.contract.salariesByYear.some(
-          (entry) => entry.season === season || entry.season === prevSeason || entry.season === nextSeason
+          (entry) => entry.season === season
         );
       }
       
-      // Fallback to old schema
+      // Fallback to old schema - only check exact year
       if (!hasSalary) {
-        hasSalary =
-          !!p.contract_clean?.salaries_by_year?.[selectedYear]?.salary ||
-          !!p.contract_clean?.salaries_by_year?.[selectedYear - 1]?.salary ||
-          !!p.contract_clean?.salaries_by_year?.[selectedYear + 1]?.salary;
+        hasSalary = !!p.contract_clean?.salaries_by_year?.[selectedYear]?.salary;
       }
       
       const holdAmount =
@@ -238,26 +228,20 @@ const CapSheet = ({
         </thead>
         <tbody>
           {filteredPlayers.map((player, idx) => {
-            // Get salary from new schema first
+            // Get salary from new schema first - only exact season match
             let salary = 0;
             if (player?.contract?.salariesByYear) {
               const yearEntry = player.contract.salariesByYear.find(
-                (entry) => entry.season === season || entry.season === prevSeason || entry.season === nextSeason
+                (entry) => entry.season === season
               );
               if (yearEntry) {
                 salary = yearEntry.salary || 0;
               }
             }
             
-            // Fallback to old schema
+            // Fallback to old schema - only exact year
             if (salary === 0) {
-              salary =
-                player.contract_clean?.salaries_by_year?.[selectedYear]?.salary ||
-                player.contract_clean?.salaries_by_year?.[selectedYear - 1]
-                  ?.salary ||
-                player.contract_clean?.salaries_by_year?.[selectedYear + 1]
-                  ?.salary ||
-                0;
+              salary = player.contract_clean?.salaries_by_year?.[selectedYear]?.salary || 0;
             }
             
             const capHit = getCapHit(player, selectedYear);
