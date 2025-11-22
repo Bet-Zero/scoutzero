@@ -25,8 +25,11 @@ export function validateBYC(team, context = {}) {
   const currentSeason = typeof yearKey === 'string' && yearKey.includes('-')
     ? yearKey
     : yearToSeason(yearKey);
+  
+  // Calculate previous season correctly
+  // If yearKey is already a season string, extract start year, then convert back with +1 for end year
   const previousSeason = typeof yearKey === 'string' && yearKey.includes('-')
-    ? yearToSeason(seasonToYear(yearKey) - 1)
+    ? yearToSeason(seasonToYear(yearKey)) // seasonToYear gets start year, yearToSeason needs end year (start+1)
     : yearToSeason(yearKey - 1);
 
   // Check all outgoing players for BYC issues
