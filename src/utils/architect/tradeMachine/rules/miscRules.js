@@ -58,8 +58,11 @@ export function validateBYC(team, context = {}) {
     }
     
     // Fallback to old extraction methods
+    // getSalaryForYear expects numeric end-year input (e.g., 2024 for "2023-24")
+    // For season strings: seasonToYear("2024-25") = 2024, which is the end year of "2023-24"
+    // For numeric years: yearKey - 1 is already the end year of the previous season
     if (previousSalary === 0) {
-      const prevYear = typeof yearKey === 'number' ? yearKey - 1 : seasonToYear(yearKey) - 1;
+      const prevYear = typeof yearKey === 'number' ? yearKey - 1 : seasonToYear(yearKey);
       previousSalary = getSalaryForYear(player, prevYear);
     }
 
