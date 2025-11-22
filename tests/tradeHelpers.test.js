@@ -56,6 +56,30 @@ describe('getSalaryForYear', () => {
     };
     expect(getSalaryForYear(p, year)).toBe(5_500_000);
   });
+
+  it('handles numeric string year keys (e.g., from query params)', () => {
+    const p = {
+      contract_clean: {
+        salaries_by_year: {
+          [year]: { salary: 7_000_000 },
+        },
+      },
+    };
+    // Test with string year instead of numeric year
+    expect(getSalaryForYear(p, '2025')).toBe(7_000_000);
+  });
+
+  it('handles season string year keys', () => {
+    const p = {
+      contract_clean: {
+        salaries_by_year: {
+          [year]: { salary: 8_000_000 },
+        },
+      },
+    };
+    // Test with season string (2024-25 maps to end year 2025)
+    expect(getSalaryForYear(p, '2024-25')).toBe(8_000_000);
+  });
 });
 
 /* --------------------------------------------------------------------------

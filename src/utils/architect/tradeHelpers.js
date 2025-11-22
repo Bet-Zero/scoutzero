@@ -37,10 +37,17 @@ const convertYearForOldSchema = (year) => {
     // Numeric years are assumed to already be end years (e.g., 2025 for "2024-25")
     return year;
   }
-  if (typeof year === 'string' && year.includes('-')) {
-    // Convert season string (e.g., "2024-25") to end year (2025)
-    const startYear = seasonToYear(year);
-    return startYear ? startYear + 1 : null;
+  if (typeof year === 'string') {
+    if (year.includes('-')) {
+      // Convert season string (e.g., "2024-25") to end year (2025)
+      const startYear = seasonToYear(year);
+      return startYear ? startYear + 1 : null;
+    }
+    // Handle numeric strings (e.g., '2025' from query params or JSON)
+    const numericValue = Number(year);
+    if (!isNaN(numericValue) && numericValue > 0) {
+      return numericValue;
+    }
   }
   return null;
 };
