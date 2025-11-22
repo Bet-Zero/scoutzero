@@ -24,6 +24,28 @@ export const MIN_SALARY = 1_119_563;
 /*────────────────────────  Salary Helpers  ────────────────────────*/
 /******************** SCSP™ BLOCK: getSalaryForYear ********************/
 /**
+ * Convert year parameter to numeric year for old schema lookup
+ * Old schema uses end-year keys (e.g., 2025 for "2024-25" season)
+ * @param {number|string} year - Numeric end year (e.g., 2025) or season string (e.g., "2024-25")
+ * @returns {number|null} Numeric end year for old schema lookup
+ * 
+ * Note: When a numeric year is passed, it is assumed to already be an end year
+ * and is returned unchanged. Season strings are converted from start year to end year.
+ */
+const convertYearForOldSchema = (year) => {
+  if (typeof year === 'number') {
+    // Numeric years are assumed to already be end years (e.g., 2025 for "2024-25")
+    return year;
+  }
+  if (typeof year === 'string' && year.includes('-')) {
+    // Convert season string (e.g., "2024-25") to end year (2025)
+    const startYear = seasonToYear(year);
+    return startYear ? startYear + 1 : null;
+  }
+  return null;
+};
+
+/**
  * Get salary for a year or season from player(s)
  * Works with both new schema (salariesByYear array) and old schema (salaries_by_year object)
  * @param {Object|Array} input - Single player or array of players
@@ -61,8 +83,9 @@ export const getSalaryForYear = (input, year) => {
     }
 
     // Fallback to old schema format: contract_clean.salaries_by_year object
+    // Note: old schema uses end-year keys (e.g., 2025 for "2024-25" season)
     if (base === 0) {
-      const numericYear = typeof year === 'number' ? year : seasonToYear(year);
+      const numericYear = convertYearForOldSchema(year);
       if (numericYear) {
         const yData = p.contract_clean?.salaries_by_year?.[numericYear] ?? {};
         base = typeof yData.salary === 'number' ? yData.salary : 0;
@@ -76,7 +99,7 @@ export const getSalaryForYear = (input, year) => {
 
     // Additional fallbacks
     if (base === 0) {
-      const numericYear = typeof year === 'number' ? year : seasonToYear(year);
+      const numericYear = convertYearForOldSchema(year);
       const salaryMap = p.salaryByYear?.[numericYear];
       const fallback = p.salary;
       
@@ -89,7 +112,7 @@ export const getSalaryForYear = (input, year) => {
 
     // Old schema bonusesByYear fallback
     if (likely === 0) {
-      const numericYear = typeof year === 'number' ? year : seasonToYear(year);
+      const numericYear = convertYearForOldSchema(year);
       likely = p.bonusesByYear?.[numericYear]?.likely ?? 0;
     }
 
