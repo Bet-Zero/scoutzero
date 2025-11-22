@@ -13,12 +13,9 @@ export function canSignFreeAgent(
   const key = toSeasonKey(year);
   const capData = capProjections[key] || {};
 
-  // Safely calculate current salary obligations using new architect schema
+  // Calculate current salary obligations using new architect schema
   const teamSalary = (teamCapSheet.players || []).reduce((sum, p) => {
-    const capHit =
-      getCapHitForSeason(p, key) ||
-      p.contract_clean?.salaries_by_year?.[year]?.salary ||
-      0;
+    const capHit = getCapHitForSeason(p, key) || 0;
     return sum + capHit;
   }, 0);
 

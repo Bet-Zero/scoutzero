@@ -30,11 +30,8 @@ const CapImpactTiles = ({
   ];
 
   const totalCapAllocations = playersAfterTrade.reduce((sum, player) => {
-    // Try new schema with season key ("2024-25"), fallback to old schema with end-year (2025)
-    const salary =
-      getCapHitForSeason(player, key) ||
-      player.contract_clean?.salaries_by_year?.[yearKey]?.salary ||
-      0;
+    // Get from new schema with season key ("2024-25")
+    const salary = getCapHitForSeason(player, key) || 0;
     const holdAmount =
       typeof player.cap_hold === 'number'
         ? player.cap_hold

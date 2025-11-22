@@ -10,7 +10,7 @@ const num = (v) => {
 
 /**
  * Calculate total payroll from cap sheet for a specific year/season
- * Works with both new schema (contract.salariesByYear array) and old schema (contract_clean.salaries_by_year object)
+ * Works with new architect schema (contract.salariesByYear array)
  * 
  * @param {Object} capSheet - Cap sheet object with activeContracts or players array
  * @param {number|string} year - Season end-year (2025) or season string ("2024-25")
@@ -23,11 +23,9 @@ export function payrollForYearFromCapSheet(capSheet, year) {
   const season = typeof year === 'string' && year.includes('-')
     ? year
     : yearToSeason(year);
-  const y = String(year);
 
-  // Try activeContracts first (may have salaryByYear map for backward compat)
+  // Check activeContracts first
   const fromActive = (capSheet.activeContracts || []).reduce((sum, c) => {
-    // Try new schema: contract.salariesByYear array
     if (c?.contract?.salariesByYear && season) {
       const yearEntry = c.contract.salariesByYear.find(
         (entry) => entry.season === season
@@ -36,17 +34,13 @@ export function payrollForYearFromCapSheet(capSheet, year) {
         return sum + num(yearEntry.capHit || yearEntry.salary || 0);
       }
     }
-    
-    // Fallback to old salaryByYear map
-    const s = c?.salaryByYear?.[year] ?? c?.salaryByYear?.[y] ?? 0;
-    return sum + num(s);
+    return sum;
   }, 0);
 
   if (fromActive > 0) return fromActive;
 
-  // Try players with new schema format
+  // Check players array with new schema format
   const fromPlayers = (capSheet.players || []).reduce((sum, p) => {
-    // Try new schema: contract.salariesByYear array
     if (p?.contract?.salariesByYear && season) {
       const yearEntry = p.contract.salariesByYear.find(
         (entry) => entry.season === season
@@ -55,13 +49,7 @@ export function payrollForYearFromCapSheet(capSheet, year) {
         return sum + num(yearEntry.capHit || yearEntry.salary || 0);
       }
     }
-    
-    // Fallback to old schema: contract_clean.salaries_by_year object
-    const s =
-      p?.contract_clean?.salaries_by_year?.[year]?.salary ??
-      p?.contract_clean?.salaries_by_year?.[y]?.salary ??
-      0;
-    return sum + num(s);
+    return sum;
   }, 0);
 
   return fromPlayers;

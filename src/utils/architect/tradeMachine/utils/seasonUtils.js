@@ -38,7 +38,7 @@ export function yearToSeason(year) {
 export function getSeasonForYear(player, year) {
   if (!player || !year) return null;
 
-  // Try new schema format: contract.salariesByYear[]
+  // Get season string from new schema format: contract.salariesByYear[]
   const contract = player.contract || player.primaryContract;
   if (contract?.salariesByYear) {
     const targetSeason = yearToSeason(year);
@@ -46,14 +46,6 @@ export function getSeasonForYear(player, year) {
       (entry) => entry.season === targetSeason
     );
     if (yearEntry) return yearEntry.season;
-  }
-
-  // Try old schema format: contract_clean.salaries_by_year (backward compat)
-  if (player.contract_clean?.salaries_by_year) {
-    const yearKey = String(year);
-    if (player.contract_clean.salaries_by_year[yearKey]) {
-      return yearToSeason(year);
-    }
   }
 
   return null;
@@ -73,7 +65,7 @@ export function getSalaryForSeason(player, season, useCapHit = false) {
   const normalizedSeason = normalizeSeason(season);
   if (!normalizedSeason) return 0;
 
-  // Try new schema format: contract.salariesByYear[]
+  // Get from new schema format: contract.salariesByYear[]
   const contract = player.contract || player.primaryContract;
   if (contract?.salariesByYear) {
     const yearEntry = contract.salariesByYear.find(
@@ -84,22 +76,6 @@ export function getSalaryForSeason(player, season, useCapHit = false) {
         return yearEntry.capHit;
       }
       return yearEntry.salary || 0;
-    }
-  }
-
-  // Try old schema format: contract_clean.salaries_by_year (backward compat)
-  // Note: contract_clean uses end-year keys (e.g., 2025 for "2024-25")
-  if (player.contract_clean?.salaries_by_year) {
-    const startYear = seasonToYear(normalizedSeason);
-    if (startYear) {
-      const endYear = startYear + 1; // Convert to end-year for legacy schema
-      const yearData = player.contract_clean.salaries_by_year[String(endYear)];
-      if (yearData) {
-        if (useCapHit && typeof yearData.capHit === 'number') {
-          return yearData.capHit;
-        }
-        return yearData.salary || 0;
-      }
     }
   }
 

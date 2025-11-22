@@ -62,25 +62,18 @@ export function computeMatchingValues({
 }) {
   teams.forEach((team) => {
     (team.sends || []).forEach((player) => {
-      // Normalize yearKey to get both formats for consistent schema access
+      // Normalize yearKey to get season string for new schema
       const normalized = normalizeYearInput(yearKey);
       
-      // Get base salary from contract structure (prefer capHit for cap calculations)
+      // Get base salary from new contract schema (using capHit)
       let baseSalary = 0;
       if (normalized) {
-        // Try new schema first with season string
         baseSalary = getCapHitForSeason(player, normalized.seasonString);
       }
       
-      // Fallback to old extraction methods using proper end-year format
+      // Fallback to direct player properties if contract data missing
       if (baseSalary === 0) {
-        const endYear = normalized ? normalized.endYear : yearKey;
-        baseSalary =
-          player.contract_clean?.salaries_by_year?.[endYear]?.salary ||
-          player.newSalary ||
-          player.salary ||
-          getSalaryForYear(player, yearKey) ||
-          0;
+        baseSalary = player.newSalary || player.salary || 0;
       }
 
       // Start with base salary for both

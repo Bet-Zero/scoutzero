@@ -13,10 +13,7 @@ const CapSummaryTiles = ({ teamCapSheet, selectedYear }) => {
   const secondApron = capData.secondApron || 0;
 
   const totalCapAllocations = teamCapSheet.players.reduce((sum, player) => {
-    const salary =
-      getCapHitForSeason(player, yearKey) ||
-      player.contract_clean?.salaries_by_year?.[selectedYear]?.salary ||
-      0;
+    const salary = getCapHitForSeason(player, yearKey) || 0;
     const holdAmount =
       typeof player.cap_hold === 'number'
         ? player.cap_hold
