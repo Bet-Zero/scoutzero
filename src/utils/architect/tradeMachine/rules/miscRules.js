@@ -28,9 +28,10 @@ export function validateBYC(team, context = {}) {
   
   // Calculate previous season correctly
   // If yearKey is a season string like "2024-25":
-  //   - seasonToYear extracts start year (2024)
-  //   - yearToSeason treats that as an end year to produce previous season ("2023-24")
-  // This works because the start year of current season equals the end year of previous season
+  //   - seasonToYear("2024-25") extracts start year → 2024
+  //   - yearToSeason(2024) computes (2024-1) + "-24" → "2023-24" (previous season)
+  // This works because yearToSeason expects an end-year input, and the start year 
+  // of the current season (2024) equals the end year of the previous season
   const previousSeason = typeof yearKey === 'string' && yearKey.includes('-')
     ? yearToSeason(seasonToYear(yearKey))
     : yearToSeason(yearKey - 1);
