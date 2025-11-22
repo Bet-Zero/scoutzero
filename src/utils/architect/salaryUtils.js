@@ -8,8 +8,14 @@ const num = (v) => {
   return Number.isFinite(n) ? n : 0;
 };
 
-// Try activeContracts first (cleanest source), otherwise fall back to players.contract
-// Works with both new schema (contract.salariesByYear array) and old schema (contract_clean.salaries_by_year object)
+/**
+ * Calculate total payroll from cap sheet for a specific year/season
+ * Works with both new schema (contract.salariesByYear array) and old schema (contract_clean.salaries_by_year object)
+ * 
+ * @param {Object} capSheet - Cap sheet object with activeContracts or players array
+ * @param {number|string} year - Season end-year (2025) or season string ("2024-25")
+ * @returns {number} Total payroll amount
+ */
 export function payrollForYearFromCapSheet(capSheet, year) {
   if (!capSheet) return 0;
   
@@ -61,7 +67,14 @@ export function payrollForYearFromCapSheet(capSheet, year) {
   return fromPlayers;
 }
 
-// Optional dead money (varies by your schema). We safely look in a few places.
+/**
+ * Calculate dead money obligations for a specific year
+ * Checks waivedContracts, stretchHistory, and flat deadMoney fields
+ * 
+ * @param {Object} capSheet - Cap sheet object
+ * @param {number|string} year - Season end-year (2025) or numeric year
+ * @returns {number} Total dead money amount
+ */
 export function deadMoneyForYear(capSheet, year) {
   const y = String(year);
   const arrs = []
@@ -81,33 +94,4 @@ export function deadMoneyForYear(capSheet, year) {
     num(capSheet?.deadMoney?.[year]) + num(capSheet?.deadMoney?.[y]);
 
   return fromArrays + fromFlat;
-}
-
-// Computes matching values for incoming and outgoing salary in trades
-export function computeMatchingValues({ teams, yearKey }) {
-  teams.forEach((team) => {
-    (team.sends || []).forEach((player) => {
-      if (player.isBYC) {
-        // BYC = max(previous salary, 50% new salary)
-        const prevSalary = player.previousSalary || 0;
-        const newSalary = player.salary || player.newSalary || 0;
-        player.matchOutgoing = Math.max(prevSalary, newSalary * 0.5);
-        player.matchIncoming = newSalary; // BYC only affects outgoing value
-      } else if (player.tradeKickerPct) {
-        // Trade kicker adds to incoming value only
-        const salary = player.salary || 0;
-        const kickerPct =
-          (player.tradeKickerWaivedPct || 0) > 0
-            ? player.tradeKickerPct * (1 - player.tradeKickerWaivedPct)
-            : player.tradeKickerPct;
-        player.matchOutgoing = salary;
-        player.matchIncoming = salary * (1 + kickerPct);
-      } else {
-        // Default case - use actual salary for both
-        const salary = player.salary || 0;
-        player.matchOutgoing = salary;
-        player.matchIncoming = salary;
-      }
-    });
-  });
 }

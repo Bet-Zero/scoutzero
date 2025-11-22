@@ -1,6 +1,18 @@
 import { getContractSalaryForYear } from '@/utils/architect/contractSalaryUtils';
 import { getCapHitForSeason, yearToSeason } from './seasonUtils.js';
 
+/**
+ * Computes matching values for trade validation accounting for:
+ * - Base Year Compensation (BYC)
+ * - Trade kickers with proration
+ * - Poison pill averaging for rookie scale contracts
+ * 
+ * @param {Object} params - Parameters object
+ * @param {Array} params.teams - Array of team objects with sends[] arrays
+ * @param {number|string} params.yearKey - Season end-year (2025) or season string ("2024-25")
+ * @param {number} [params.daysRemainingInSeason] - Days remaining for trade kicker proration
+ * @param {number} [params.daysInSeason] - Total days in season for trade kicker proration
+ */
 export function computeMatchingValues({
   teams = [],
   yearKey,

@@ -338,11 +338,32 @@ export const isMeaningfulProtection = (prot) =>
 /*────────────────────────  Trade-Exception Helpers  ───────────────────────*/
 export const calculateTPERemaining = (tpe, used = 0) => tpe.amount - used;
 
+/**
+ * Check if a player's salary fits within a trade exception
+ * @param {Object} player - Player object with contract data
+ * @param {number|string} yearKey - Season end-year (2025) or season string ("2024-25")
+ * @param {Object} tpe - Trade exception object with amount and expiration
+ * @returns {boolean} True if player fits in TPE and TPE hasn't expired
+ */
 export const playerFitsInTPE = (player, yearKey, tpe) => {
   if (!tpe || tpe.isUsed) return false;
 
-  const salary =
-    player.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0;
+  // Try new schema first, then fallback to old schema
+  // Use capHit (not salary) since TPE validation should check against cap impact
+  const season = typeof yearKey === 'string' && yearKey.includes('-')
+    ? yearKey
+    : yearToSeason(yearKey);
+  
+  let salary = 0;
+  if (season) {
+    // Use capHit for architect contracts (useCapHit=true)
+    salary = getSalaryForSeason(player, season, true);
+  }
+  
+  // Fallback to old schema if new schema returned 0
+  if (salary === 0) {
+    salary = player.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0;
+  }
 
   const now = Date.now();
   const exp = tpe.expirationDate ? Date.parse(tpe.expirationDate) : Infinity;
