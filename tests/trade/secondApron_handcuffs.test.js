@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { enforceSecondApronHandcuffs } from '@/utils/architect/tradeMachine/rules/enforceSecondApronHandcuffs.js';
+import { enforceSecondApronHandcuffs } from '@/utils/architect/tradeMachine/rules/basicRules.js';
 
 const baseTeam = {
   context: { yearKey: 2025 },

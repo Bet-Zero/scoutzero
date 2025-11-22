@@ -38,6 +38,11 @@ class ValidationCacheManager {
     this._cache.salaryMatching.set(key, result);
   }
 
+  // Generic set method for compatibility with validationUtils.js
+  setCachedResult(key, result) {
+    this._cache.salaryMatching.set(key, result);
+  }
+
   // Hard cap cache methods
   getCachedHardCap(key) {
     const result = this._cache.hardCapStatus.get(key);

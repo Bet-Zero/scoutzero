@@ -36,7 +36,7 @@ export {
 // Enforcers (rules with enforcement logic) - from rules
 export { enforceConsent } from './rules/enforceConsent.js';
 export { enforceEligibility } from './rules/enforceEligibility.js';
-export { enforceTiming } from './rules/enforceTiming.js';
+export { enforceTiming } from './rules/timingValidation.js';
 export { enforceRosterWindow } from './rules/rosterValidation.js';
 export { enforceSecondApronHandcuffs } from './rules/basicRules.js';
 
