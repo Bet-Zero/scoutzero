@@ -20,20 +20,20 @@ export { validateCash } from '../rules/eligibilityRules.js';
 export { validateFaExceptionUsage } from '../rules/validateFaExceptionUsage.js';
 export { validateSalaryMatching } from '../rules/validateSalaryMatching.js';
 export { validateRoster, enforceRosterWindow } from '../rules/validateRoster.js';
-export { validateHardCap } from '../rules/validateHardCap.js';
+export { validateHardCap } from '../rules/hardCapValidation.js';
 export { validateStepien } from '../rules/validateStepien.js';
 export { validateSecondApronRules } from '../rules/validateSecondApronRules.js';
 export { validateBYC } from '../rules/miscRules.js';
 export { validateConsent } from '../rules/validateConsent.js';
 export { validateEligibility } from '../rules/validateEligibility.js';
-export { validateTiming } from '../rules/validateTiming.js';
+export { validateTiming } from '../rules/timingValidation.js';
 export { validateSignAndTrade } from '../rules/validateSignAndTrade.js';
 
 // Enforcement functions - now in rules/
 export { enforceSecondApronHandcuffs } from '../rules/basicRules.js';
 export { enforceConsent } from '../rules/enforceConsent.js';
 export { enforceEligibility } from '../rules/enforceEligibility.js';
-export { enforceTiming } from '../rules/enforceTiming.js';
+export { enforceTiming } from '../rules/timingValidation.js';
 
 // Utility functions - now in utils/
 export { getIncomingCeilingForTeam } from '../utils/salaryMargin.js';
