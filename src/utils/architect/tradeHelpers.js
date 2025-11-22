@@ -74,10 +74,18 @@ export const getSalaryForYear = (input, year) => {
         (entry) => entry.season === season
       );
       if (yearEntry) {
-        base = yearEntry.salary || 0;
-        // Extract likely incentives from new schema
-        if (yearEntry.incentives?.likely) {
-          likely = yearEntry.incentives.likely;
+        // Prefer capHit over salary (architect schema may only populate capHit)
+        // Note: capHit already includes likely incentives, so don't add them separately
+        if (typeof yearEntry.capHit === 'number') {
+          base = yearEntry.capHit;
+          // Set likely to -1 to skip bonuses fallback (capHit already includes incentives)
+          likely = -1;
+        } else if (typeof yearEntry.salary === 'number') {
+          base = yearEntry.salary;
+          // Extract likely incentives from new schema (only when using salary)
+          if (yearEntry.incentives?.likely) {
+            likely = yearEntry.incentives.likely;
+          }
         }
       }
     }
@@ -111,12 +119,15 @@ export const getSalaryForYear = (input, year) => {
     }
 
     // Old schema bonusesByYear fallback
+    // Skip if likely is -1 (sentinel value indicating capHit was used)
     if (likely === 0) {
       const numericYear = convertYearForOldSchema(year);
       likely = p.bonusesByYear?.[numericYear]?.likely ?? 0;
     }
 
-    return sum + base + likely;
+    // Reset likely to 0 if it's the sentinel value (capHit already includes incentives)
+    const finalLikely = likely === -1 ? 0 : likely;
+    return sum + base + finalLikely;
   }, 0);
 };
 /****************** END SCSP™ BLOCK: getSalaryForYear ******************/
