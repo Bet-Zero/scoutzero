@@ -349,13 +349,15 @@ export const playerFitsInTPE = (player, yearKey, tpe) => {
   if (!tpe || tpe.isUsed) return false;
 
   // Try new schema first, then fallback to old schema
+  // Use capHit (not salary) since TPE validation should check against cap impact
   const season = typeof yearKey === 'string' && yearKey.includes('-')
     ? yearKey
     : yearToSeason(yearKey);
   
   let salary = 0;
   if (season) {
-    salary = getSalaryForSeason(player, season);
+    // Use capHit for architect contracts (useCapHit=true)
+    salary = getSalaryForSeason(player, season, true);
   }
   
   // Fallback to old schema if new schema returned 0

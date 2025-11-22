@@ -152,6 +152,40 @@ describe('TPE Validation with New Schema', () => {
     const fits = playerFitsInTPE(newSchemaPlayer, '2024-25', tpe);
     expect(fits).toBe(true);
   });
+
+  it('should use capHit for architect contracts with only capHit populated', () => {
+    // Player with only capHit, no salary field
+    const capHitOnlyPlayer = {
+      id: 'cap-hit-only',
+      displayName: 'Cap Hit Only Player',
+      contract: {
+        salariesByYear: [
+          {
+            season: '2024-25',
+            capHit: 4500000,
+            // No salary field
+            guaranteed: true
+          }
+        ]
+      }
+    };
+    
+    const tpeFits = {
+      amount: 5000000,
+      expirationDate: '2025-12-31',
+      isUsed: false
+    };
+    
+    const tpeDoesntFit = {
+      amount: 4000000,
+      expirationDate: '2025-12-31',
+      isUsed: false
+    };
+    
+    // Should correctly check capHit (4.5M) against TPE
+    expect(playerFitsInTPE(capHitOnlyPlayer, 2025, tpeFits)).toBe(true);
+    expect(playerFitsInTPE(capHitOnlyPlayer, 2025, tpeDoesntFit)).toBe(false);
+  });
 });
 
 describe('Mixed Schema Trade Validation', () => {
