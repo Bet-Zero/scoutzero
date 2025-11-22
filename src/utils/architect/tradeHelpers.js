@@ -26,14 +26,19 @@ export const MIN_SALARY = 1_119_563;
 /**
  * Convert year parameter to numeric year for old schema lookup
  * Old schema uses end-year keys (e.g., 2025 for "2024-25" season)
- * @param {number|string} year - Numeric year or season string
+ * @param {number|string} year - Numeric end year (e.g., 2025) or season string (e.g., "2024-25")
  * @returns {number|null} Numeric end year for old schema lookup
+ * 
+ * Note: When a numeric year is passed, it is assumed to already be an end year
+ * and is returned unchanged. Season strings are converted from start year to end year.
  */
 const convertYearForOldSchema = (year) => {
   if (typeof year === 'number') {
+    // Numeric years are assumed to already be end years (e.g., 2025 for "2024-25")
     return year;
   }
   if (typeof year === 'string' && year.includes('-')) {
+    // Convert season string (e.g., "2024-25") to end year (2025)
     const startYear = seasonToYear(year);
     return startYear ? startYear + 1 : null;
   }
