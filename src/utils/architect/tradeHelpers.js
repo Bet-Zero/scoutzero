@@ -341,8 +341,20 @@ export const calculateTPERemaining = (tpe, used = 0) => tpe.amount - used;
 export const playerFitsInTPE = (player, yearKey, tpe) => {
   if (!tpe || tpe.isUsed) return false;
 
-  const salary =
-    player.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0;
+  // Try new schema first, then fallback to old schema
+  const season = typeof yearKey === 'string' && yearKey.includes('-')
+    ? yearKey
+    : yearToSeason(yearKey);
+  
+  let salary = 0;
+  if (season) {
+    salary = getSalaryForSeason(player, season);
+  }
+  
+  // Fallback to old schema if new schema returned 0
+  if (salary === 0) {
+    salary = player.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0;
+  }
 
   const now = Date.now();
   const exp = tpe.expirationDate ? Date.parse(tpe.expirationDate) : Infinity;
