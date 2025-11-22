@@ -61,8 +61,17 @@ export const getSalaryForYear = (input, year) => {
     }
 
     // Fallback to old schema format: contract_clean.salaries_by_year object
+    // Note: old schema uses end-year keys (e.g., 2025 for "2024-25" season)
     if (base === 0) {
-      const numericYear = typeof year === 'number' ? year : seasonToYear(year);
+      let numericYear;
+      if (typeof year === 'number') {
+        numericYear = year;
+      } else if (typeof year === 'string' && year.includes('-')) {
+        // Convert season string to end year for old schema lookup
+        const startYear = seasonToYear(year);
+        numericYear = startYear ? startYear + 1 : null;
+      }
+      
       if (numericYear) {
         const yData = p.contract_clean?.salaries_by_year?.[numericYear] ?? {};
         base = typeof yData.salary === 'number' ? yData.salary : 0;
@@ -76,7 +85,15 @@ export const getSalaryForYear = (input, year) => {
 
     // Additional fallbacks
     if (base === 0) {
-      const numericYear = typeof year === 'number' ? year : seasonToYear(year);
+      let numericYear;
+      if (typeof year === 'number') {
+        numericYear = year;
+      } else if (typeof year === 'string' && year.includes('-')) {
+        // Convert season string to end year for old schema lookup
+        const startYear = seasonToYear(year);
+        numericYear = startYear ? startYear + 1 : null;
+      }
+      
       const salaryMap = p.salaryByYear?.[numericYear];
       const fallback = p.salary;
       
@@ -89,7 +106,14 @@ export const getSalaryForYear = (input, year) => {
 
     // Old schema bonusesByYear fallback
     if (likely === 0) {
-      const numericYear = typeof year === 'number' ? year : seasonToYear(year);
+      let numericYear;
+      if (typeof year === 'number') {
+        numericYear = year;
+      } else if (typeof year === 'string' && year.includes('-')) {
+        // Convert season string to end year for old schema lookup
+        const startYear = seasonToYear(year);
+        numericYear = startYear ? startYear + 1 : null;
+      }
       likely = p.bonusesByYear?.[numericYear]?.likely ?? 0;
     }
 
