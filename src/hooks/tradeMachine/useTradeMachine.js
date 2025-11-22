@@ -362,6 +362,8 @@ export const useTradeMachine = (
           ...baseTeam,
           ...data,
           tradeExceptions: data.tradeExceptions || [],
+          // Map draftPicks to picks for trade machine compatibility
+          picks: data.draftPicks || data.picks || [],
         };
         augmentTeamWithExceptions(teamObj, yearKey, capProjections);
 
