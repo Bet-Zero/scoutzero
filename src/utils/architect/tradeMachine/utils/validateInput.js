@@ -48,7 +48,11 @@ function validateTeamInput(team, index) {
       return;
     }
 
-    if (!player.contract_clean?.salaries_by_year) {
+    // Check for new schema (contract.salariesByYear) or old schema (contract_clean.salaries_by_year)
+    const hasNewSchema = player.contract?.salariesByYear && Array.isArray(player.contract.salariesByYear);
+    const hasOldSchema = player.contract_clean?.salaries_by_year;
+    
+    if (!hasNewSchema && !hasOldSchema) {
       errors.push('missing required salary data');
     }
   });

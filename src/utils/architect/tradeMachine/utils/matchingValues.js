@@ -74,8 +74,8 @@ export function computeMatchingValues({
         baseSalary = getCapHitForSeason(player, season);
       }
       
-      // Fallback to old extraction methods
-      if (baseSalary === 0) {
+      // Fallback to old schema extraction if new schema returns 0
+      if (baseSalary === 0 && player.contract_clean?.salaries_by_year) {
         baseSalary =
           player.contract_clean?.salaries_by_year?.[yearKey]?.salary ||
           player.newSalary ||

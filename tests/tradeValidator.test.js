@@ -2,31 +2,16 @@
 import { describe, it, expect } from 'vitest';
 import { validateTrade } from '@/utils/architect/tradeMachine/index.js';
 import capProjections from '@/utils/architect/capProjections.js';
+import { makePlayer, makeTeam } from './helpers/testDataHelpers.js';
 
 const currentYear = 2025;
 
-const makePlayer = (name, salary, signAndTrade = false, contractYears = 4) => ({
-  name,
-  signAndTrade,
-  contractYears,
-  contract_clean: { salaries_by_year: { [currentYear]: { salary } } },
-});
-
-const makeTeam = (name, totalSalary, rosterSize = 14, picks = []) => ({
-  teamName: name,
-  totalSalary,
-  players: Array.from({ length: rosterSize }, (_, i) =>
-    makePlayer(`${name}${i}`, 1_000_000)
-  ),
-  picks,
-});
-
 describe('tradeValidator', () => {
   it('enforces salary matching when a team is over the cap', () => {
-    const teamA = makeTeam('A', 160_000_000);
-    const teamB = makeTeam('B', 160_000_000);
-    const aPlayer = makePlayer('Astar', 10_000_000);
-    const bPlayer = makePlayer('Bstar', 20_000_000);
+    const teamA = makeTeam('A', 160_000_000, { currentYear });
+    const teamB = makeTeam('B', 160_000_000, { currentYear });
+    const aPlayer = makePlayer('Astar', 10_000_000, { currentYear });
+    const bPlayer = makePlayer('Bstar', 20_000_000, { currentYear });
     teamA.players.push(aPlayer);
     teamB.players.push(bPlayer);
 
@@ -48,9 +33,9 @@ describe('tradeValidator', () => {
   });
 
   it('flags trades that would violate a hard cap', () => {
-    const teamA = makeTeam('A', 190_000_000);
-    const teamB = makeTeam('B', 150_000_000);
-    const incoming = makePlayer('Bstar', 10_000_000);
+    const teamA = makeTeam('A', 190_000_000, { currentYear });
+    const teamB = makeTeam('B', 150_000_000, { currentYear });
+    const incoming = makePlayer('Bstar', 10_000_000, { currentYear });
     teamB.players.push(incoming);
 
     const result = validateTrade({
@@ -71,11 +56,11 @@ describe('tradeValidator', () => {
   });
 
   it('enforces sign-and-trade restrictions', () => {
-    const teamA = makeTeam('A', 100_000_000);
-    const teamB = makeTeam('B', 100_000_000);
-    const sat = makePlayer('Astar', 10_000_000, true);
-    const extra = makePlayer('Aextra', 5_000_000);
-    const bPlayer = makePlayer('Bstar', 15_000_000);
+    const teamA = makeTeam('A', 100_000_000, { currentYear });
+    const teamB = makeTeam('B', 100_000_000, { currentYear });
+    const sat = makePlayer('Astar', 10_000_000, { currentYear, signAndTrade: true });
+    const extra = makePlayer('Aextra', 5_000_000, { currentYear });
+    const bPlayer = makePlayer('Bstar', 15_000_000, { currentYear });
     teamA.players.push(sat, extra);
     teamB.players.push(bPlayer);
 
@@ -99,10 +84,10 @@ describe('tradeValidator', () => {
   });
 
   it('allows valid sign-and-trade deals', () => {
-    const teamA = makeTeam('A', 100_000_000);
-    const teamB = makeTeam('B', 100_000_000);
-    const sat = makePlayer('Astar', 20_000_000, true, 4);
-    const bPlayer = makePlayer('Bstar', 15_000_000);
+    const teamA = makeTeam('A', 100_000_000, { currentYear });
+    const teamB = makeTeam('B', 100_000_000, { currentYear });
+    const sat = makePlayer('Astar', 20_000_000, { currentYear, signAndTrade: true, contractYears: 4 });
+    const bPlayer = makePlayer('Bstar', 15_000_000, { currentYear });
     teamA.players.push(sat);
     teamB.players.push(bPlayer);
 
@@ -119,10 +104,10 @@ describe('tradeValidator', () => {
   });
 
   it('blocks sign-and-trade hard cap violations', () => {
-    const teamA = makeTeam('A', 100_000_000);
-    const teamB = makeTeam('B', 195_500_000);
-    const sat = makePlayer('Astar', 20_000_000, true, 4);
-    const bPlayer = makePlayer('Bstar', 15_000_000);
+    const teamA = makeTeam('A', 100_000_000, { currentYear });
+    const teamB = makeTeam('B', 195_500_000, { currentYear });
+    const sat = makePlayer('Astar', 20_000_000, { currentYear, signAndTrade: true, contractYears: 4 });
+    const bPlayer = makePlayer('Bstar', 15_000_000, { currentYear });
     teamA.players.push(sat);
     teamB.players.push(bPlayer);
 
@@ -140,10 +125,10 @@ describe('tradeValidator', () => {
   });
 
   it('requires sign-and-trade contracts to be 3-4 years', () => {
-    const teamA = makeTeam('A', 100_000_000);
-    const teamB = makeTeam('B', 100_000_000);
-    const sat = makePlayer('Astar', 10_000_000, true, 2);
-    const bPlayer = makePlayer('Bstar', 10_000_000);
+    const teamA = makeTeam('A', 100_000_000, { currentYear });
+    const teamB = makeTeam('B', 100_000_000, { currentYear });
+    const sat = makePlayer('Astar', 10_000_000, { currentYear, signAndTrade: true, contractYears: 2 });
+    const bPlayer = makePlayer('Bstar', 10_000_000, { currentYear });
     teamA.players.push(sat);
     teamB.players.push(bPlayer);
 
@@ -165,7 +150,7 @@ describe('tradeValidator', () => {
       { year: 2027, round: '1st' },
       { year: 2028, round: '1st' },
     ]);
-    const teamB = makeTeam('B', 100_000_000);
+    const teamB = makeTeam('B', 100_000_000, { currentYear });
 
     const result = validateTrade({
       teams: [
@@ -193,8 +178,8 @@ describe('tradeValidator', () => {
   });
 
   it('allows protected picks to bypass Stepien Rule', () => {
-    const teamA = makeTeam('A', 100_000_000);
-    const teamB = makeTeam('B', 100_000_000);
+    const teamA = makeTeam('A', 100_000_000, { currentYear });
+    const teamB = makeTeam('B', 100_000_000, { currentYear });
 
     const result = validateTrade({
       teams: [
@@ -216,11 +201,11 @@ describe('tradeValidator', () => {
   });
 
   it('enforces second apron restrictions', () => {
-    const teamA = makeTeam('A', 210_000_000); // Above 2nd apron (207.8M for 2025-26)
-    const teamB = makeTeam('B', 100_000_000);
-    const aPlayer1 = makePlayer('A1', 10_000_000);
-    const aPlayer2 = makePlayer('A2', 5_000_000);
-    const bPlayer = makePlayer('B1', 15_000_000);
+    const teamA = makeTeam('A', 210_000_000, { currentYear }); // Above 2nd apron (207.8M for 2025-26)
+    const teamB = makeTeam('B', 100_000_000, { currentYear });
+    const aPlayer1 = makePlayer('A1', 10_000_000, { currentYear });
+    const aPlayer2 = makePlayer('A2', 5_000_000, { currentYear });
+    const bPlayer = makePlayer('B1', 15_000_000, { currentYear });
     teamA.players.push(aPlayer1, aPlayer2);
     teamB.players.push(bPlayer);
 
@@ -240,10 +225,10 @@ describe('tradeValidator', () => {
   });
 
   it('prevents second apron teams from taking back more salary', () => {
-    const teamA = makeTeam('A', 210_000_000); // Above 2nd apron (207.8M for 2025-26)
-    const teamB = makeTeam('B', 100_000_000);
-    const aPlayer = makePlayer('A1', 10_000_000);
-    const bPlayer = makePlayer('B1', 12_000_000);
+    const teamA = makeTeam('A', 210_000_000, { currentYear }); // Above 2nd apron (207.8M for 2025-26)
+    const teamB = makeTeam('B', 100_000_000, { currentYear });
+    const aPlayer = makePlayer('A1', 10_000_000, { currentYear });
+    const bPlayer = makePlayer('B1', 12_000_000, { currentYear });
     teamA.players.push(aPlayer);
     teamB.players.push(bPlayer);
 
@@ -263,10 +248,10 @@ describe('tradeValidator', () => {
   });
 
   it('blocks cash considerations for second apron teams', () => {
-    const teamA = makeTeam('A', 210_000_000); // Above 2nd apron (207.8M for 2025-26)
-    const teamB = makeTeam('B', 100_000_000);
-    const aPlayer = makePlayer('A1', 1_000_000);
-    const bPlayer = makePlayer('B1', 1_000_000);
+    const teamA = makeTeam('A', 210_000_000, { currentYear }); // Above 2nd apron (207.8M for 2025-26)
+    const teamB = makeTeam('B', 100_000_000, { currentYear });
+    const aPlayer = makePlayer('A1', 1_000_000, { currentYear });
+    const bPlayer = makePlayer('B1', 1_000_000, { currentYear });
     teamA.players.push(aPlayer);
     teamB.players.push(bPlayer);
 
@@ -286,8 +271,8 @@ describe('tradeValidator', () => {
   });
 
   it('restricts trading picks more than 7 years out', () => {
-    const teamA = makeTeam('A', 100_000_000);
-    const teamB = makeTeam('B', 100_000_000);
+    const teamA = makeTeam('A', 100_000_000, { currentYear });
+    const teamB = makeTeam('B', 100_000_000, { currentYear });
 
     const result = validateTrade({
       teams: [
@@ -307,15 +292,15 @@ describe('tradeValidator', () => {
   });
 
   it('handles 3-team trades correctly', () => {
-    const teamA = makeTeam('A', 100_000_000);
-    const teamB = makeTeam('B', 100_000_000);
-    const teamC = makeTeam('C', 100_000_000);
+    const teamA = makeTeam('A', 100_000_000, { currentYear });
+    const teamB = makeTeam('B', 100_000_000, { currentYear });
+    const teamC = makeTeam('C', 100_000_000, { currentYear });
 
     const result = validateTrade({
       teams: [
-        { team: teamA, sends: [makePlayer('A1', 10_000_000)], picksOut: [] },
-        { team: teamB, sends: [makePlayer('B1', 5_000_000)], picksOut: [] },
-        { team: teamC, sends: [makePlayer('C1', 5_000_000)], picksOut: [] },
+        { team: teamA, sends: [makePlayer('A1', 10_000_000, { currentYear })], picksOut: [] },
+        { team: teamB, sends: [makePlayer('B1', 5_000_000, { currentYear })], picksOut: [] },
+        { team: teamC, sends: [makePlayer('C1', 5_000_000, { currentYear })], picksOut: [] },
       ],
       capProjections,
       currentYear,
@@ -327,10 +312,10 @@ describe('tradeValidator', () => {
   });
 
   it('provides summary and financial deltas', () => {
-    const teamA = makeTeam('A', 100_000_000);
-    const teamB = makeTeam('B', 100_000_000);
-    const aPlayer = makePlayer('Astar', 10_000_000);
-    const bPlayer = makePlayer('Bstar', 5_000_000);
+    const teamA = makeTeam('A', 100_000_000, { currentYear });
+    const teamB = makeTeam('B', 100_000_000, { currentYear });
+    const aPlayer = makePlayer('Astar', 10_000_000, { currentYear });
+    const bPlayer = makePlayer('Bstar', 5_000_000, { currentYear });
     teamA.players.push(aPlayer);
     teamB.players.push(bPlayer);
 

@@ -34,6 +34,10 @@ class ValidationCacheManager {
     return null;
   }
 
+  setCachedResult(key, result) {
+    this._cache.salaryMatching.set(key, result);
+  }
+
   cacheResult(key, result) {
     this._cache.salaryMatching.set(key, result);
   }

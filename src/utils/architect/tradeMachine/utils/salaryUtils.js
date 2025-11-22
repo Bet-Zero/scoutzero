@@ -10,8 +10,27 @@ import { getCapHitForSeason as getCapHitForSeasonUtil } from './seasonUtils.js';
 export function computeMatchingValues({ teams, yearKey }) {
   teams.forEach((team) => {
     (team.sends || []).forEach((player) => {
-      const current =
-        player.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0;
+      // Try new schema first, then fall back to old schema
+      let current = 0;
+      
+      // Try new schema: convert yearKey to season string
+      const season = typeof yearKey === 'string' && yearKey.includes('-')
+        ? yearKey
+        : `${yearKey - 1}-${String(yearKey).slice(-2)}`;
+      
+      if (player.contract?.salariesByYear) {
+        const yearEntry = player.contract.salariesByYear.find(
+          (entry) => entry.season === season
+        );
+        if (yearEntry) {
+          current = yearEntry.capHit || yearEntry.salary || 0;
+        }
+      }
+      
+      // Fallback to old schema
+      if (current === 0) {
+        current = player.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0;
+      }
       const newSalary = player.newSalary || 0;
       const previous = player.previousSalary || 0;
       const kicker = player.tradeKicker || 0;
