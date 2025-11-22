@@ -1,5 +1,5 @@
 import { getApronStatus } from '@/utils/architect/tradeHelpers.js';
-import { getCapHitForSeason as getCapHitForSeasonUtil } from './seasonUtils.js';
+import { getCapHitForSeason as getCapHitForSeasonUtil, yearToSeason } from './seasonUtils.js';
 
 /**
  * Computes final matching values for trade validation accounting for:
@@ -13,10 +13,10 @@ export function computeMatchingValues({ teams, yearKey }) {
       // Try new schema first, then fall back to old schema
       let current = 0;
       
-      // Try new schema: convert yearKey to season string
+      // Try new schema: convert yearKey to season string using helper
       const season = typeof yearKey === 'string' && yearKey.includes('-')
         ? yearKey
-        : `${yearKey - 1}-${String(yearKey).slice(-2)}`;
+        : yearToSeason(yearKey);
       
       if (player.contract?.salariesByYear) {
         const yearEntry = player.contract.salariesByYear.find(

@@ -68,14 +68,20 @@ export function computeMatchingValues({
         ? yearKey
         : yearToSeason(yearKey);
       
-      // Try to get capHit first (for cap calculations), fallback to salary
+      // Track whether we found the contract in new schema
+      let foundInNewSchema = false;
       let baseSalary = 0;
+      
+      // Try to get capHit first (for cap calculations), fallback to salary
       if (season) {
         baseSalary = getCapHitForSeason(player, season);
+        // If we have a contract object with salariesByYear, we tried the new schema
+        foundInNewSchema = !!(player.contract?.salariesByYear);
       }
       
-      // Fallback to old schema extraction if new schema returns 0
-      if (baseSalary === 0 && player.contract_clean?.salaries_by_year) {
+      // Only fallback to old schema if new schema wasn't found (not just if salary is 0)
+      // This prevents masking legitimate 0 salaries in the new schema
+      if (!foundInNewSchema && player.contract_clean?.salaries_by_year) {
         baseSalary =
           player.contract_clean?.salaries_by_year?.[yearKey]?.salary ||
           player.newSalary ||

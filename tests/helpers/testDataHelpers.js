@@ -23,7 +23,8 @@ export const makePlayer = (name, salary, options = {}) => {
       salaries_by_year: { [currentYear]: { salary } },
     };
   } else {
-    const seasonKey = `${currentYear - 1}-${String(currentYear).slice(-2)}`;
+    // Use helper function for consistency (defined at bottom of file)
+    const seasonKey = yearToSeason(currentYear);
     player.contract = {
       salariesByYear: [{ season: seasonKey, salary, capHit: salary, guaranteed: true }],
       contractType: 'Standard',
@@ -38,6 +39,9 @@ export const makePlayer = (name, salary, options = {}) => {
       guaranteedValue: salary * contractYears,
       guaranteedYears: contractYears,
     };
+    // IMPORTANT: Also add legacy schema for backward compatibility.
+    // Both schemas maintained to support validators checking either format.
+    // This duplication is intentional during migration and will be removed later.
     player.contract_clean = {
       salaries_by_year: { [currentYear]: { salary } },
     };
@@ -74,7 +78,8 @@ export const makePlayerWithYears = (name, salaries, options = {}) => {
   } else {
     const salariesByYear = salaries.map((salary, index) => {
       const year = startYear + index;
-      const seasonKey = `${year - 1}-${String(year).slice(-2)}`;
+      // Use helper function for consistency
+      const seasonKey = yearToSeason(year);
       return { season: seasonKey, salary, capHit: salary, guaranteed: true };
     });
     player.contract = {

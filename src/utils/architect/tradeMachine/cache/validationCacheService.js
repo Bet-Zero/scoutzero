@@ -34,12 +34,21 @@ class ValidationCacheManager {
     return null;
   }
 
+  /**
+   * Set cached result - primary method for caching validation results
+   * @param {string} key - Cache key
+   * @param {Object} result - Validation result to cache
+   */
   setCachedResult(key, result) {
     this._cache.salaryMatching.set(key, result);
   }
 
+  /**
+   * Alias for setCachedResult - maintained for backward compatibility
+   * @deprecated Use setCachedResult instead
+   */
   cacheResult(key, result) {
-    this._cache.salaryMatching.set(key, result);
+    this.setCachedResult(key, result);
   }
 
   // Hard cap cache methods
