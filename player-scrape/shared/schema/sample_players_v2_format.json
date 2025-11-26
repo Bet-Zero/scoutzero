@@ -13,32 +13,31 @@
     "signedUsing": "Bird Exception",
     "signingExecutive": "Rob Pelinka",
     "source": "SalarySwish",
+    "isExtension": false,
+    "isRookieScale": false,
     
     "startSeason": "2025-26",
     "endSeason": "2027-28",
     
     "guaranteedValue": 40900000,
     "noTradeClause": false,
-    "isExtension": null,
-    "contractValue": 40900000,
+    "totalValue": 40900000,
     "incentives": {
       "likely": 0,
       "unlikely": 0
     },
-    "aav": 13633333,
     "averageAnnualValue": 13633333,
     "capPercentage": 10,
     "guaranteedYears": 3,
     "contractLength": 3,
+    "yearsRemaining": 3,
     "tradeKicker": null,
+    "tradeRestrictions": [],
     "signingTeam": "LAL",
-    
-    "isRookieScale": false,
-    "yearsOfService": 3,
     
     "salariesByYear": [
       {
-        "year": 2025,
+        "season": "2025-26",
         "salary": 12000000,
         "capHit": 12000000,
         "tradeBonus": null,
@@ -46,7 +45,7 @@
         "option": null
       },
       {
-        "year": 2026,
+        "season": "2026-27",
         "salary": 13900000,
         "capHit": 13900000,
         "tradeBonus": null,
@@ -54,7 +53,7 @@
         "option": null
       },
       {
-        "year": 2027,
+        "season": "2027-28",
         "salary": 15000000,
         "capHit": 15000000,
         "tradeBonus": null,
@@ -62,18 +61,32 @@
         "option": "PO"
       }
     ],
-    "options": [
-      {
-        "year": 2027,
-        "type": "PO"
-      }
-    ],
+    "birdRights": {
+      "status": "Bird",
+      "yearsOfService": 3
+    },
     "freeAgency": {
-      "freeAgentType": "UFA",
-      "freeAgentYear": 2028,
-      "birdRights": "Bird",
+      "type": "UFA",
+      "year": 2028,
       "capHold": 18750000,
-      "qualifyingOffer": null
+      "qualifyingOffer": null,
+      "earlyTerminationOption": null
+    },
+    "tradeEligibility": {
+      "canBeTradedNow": null,
+      "restrictedUntil": null,
+      "reason": null,
+      "rules": {
+        "baseYearCompensation": false,
+        "poisonPill": false,
+        "aggregation": false
+      }
+    },
+    "metadata": {
+      "isCurrent": true,
+      "label": "std_202526",
+      "startSeason": "2025-26",
+      "endSeason": "2027-28"
     }
   }
 }
