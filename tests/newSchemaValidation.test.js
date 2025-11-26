@@ -188,29 +188,29 @@ describe('TPE Validation with New Schema', () => {
   });
 });
 
-describe('Mixed Schema Trade Validation', () => {
-  it('should handle trades with both new and old schema players', () => {
-    const oldSchemaPlayer = {
-      id: 'old-player',
-      displayName: 'Old Player',
-      contract_clean: {
-        salaries_by_year: {
-          2025: {
+describe('Mixed roster validation with new schema players', () => {
+  it('computes matching values for multiple new-schema players', () => {
+    const secondPlayer = {
+      id: 'new-player-2',
+      displayName: 'New Player 2',
+      contract: {
+        salariesByYear: [
+          {
+            season: '2024-25',
             salary: 4000000,
             guaranteed: true
           }
-        }
+        ]
       }
     };
-    
+
     const teams = [{
-      sends: [{ ...newSchemaPlayer }, oldSchemaPlayer]
+      sends: [{ ...newSchemaPlayer }, secondPlayer]
     }];
-    
+
     computeMatchingValues({ teams, yearKey: 2025 });
-    
-    // Both players should have matching values computed
-    expect(teams[0].sends[0].matchOutgoing).toBe(5000000); // new schema
-    expect(teams[0].sends[1].matchOutgoing).toBe(4000000); // old schema
+
+    expect(teams[0].sends[0].matchOutgoing).toBe(5000000);
+    expect(teams[0].sends[1].matchOutgoing).toBe(4000000);
   });
 });

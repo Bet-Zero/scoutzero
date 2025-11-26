@@ -3,10 +3,12 @@
  * Ensures data meets minimum requirements before normalization
  */
 
+import { getSalaryForYear } from '@/utils/architect/tradeHelpers.js';
+
 /**
  * Validates a single team's input data
  */
-function validateTeamInput(team, index) {
+function validateTeamInput(team, index, { currentYear }) {
   const errors = [];
 
   if (!team) {
@@ -48,7 +50,12 @@ function validateTeamInput(team, index) {
       return;
     }
 
-    if (!player.contract_clean?.salaries_by_year) {
+    const salaryForYear = getSalaryForYear(player, currentYear);
+    const hasContract =
+      player.contract?.salariesByYear?.length ||
+      player.primaryContract?.salariesByYear?.length;
+
+    if (!hasContract || salaryForYear === 0) {
       errors.push('missing required salary data');
     }
   });
@@ -129,7 +136,7 @@ export function validateTradeInput({
 
   // Validate each team's data
   teams.forEach((team, index) => {
-    const teamErrors = validateTeamInput(team, index);
+    const teamErrors = validateTeamInput(team, index, { currentYear });
     errors.push(...teamErrors);
   });
 
