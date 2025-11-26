@@ -2,17 +2,14 @@
 
 /**
  * Contract salary lookup using consistent end-year format
+ * Prefers Architect contract.salariesByYear, falls back to contract_clean
  * @param {Object} player - Player object with contract data  
  * @param {number|string} yearKey - Season end year (e.g., 2026 for 2025-26 season)
  * @returns {number} - Salary for the year, or 0 if not found
  */
 export function getContractSalaryForYear(player, yearKey) {
-  if (!player?.contract_clean?.salaries_by_year) {
-    return 0;
-  }
+  if (!player) return 0;
 
-  const salariesByYear = player.contract_clean.salaries_by_year;
-  
   // Convert yearKey to end year format
   let endYear;
   if (typeof yearKey === 'string' && yearKey.includes('-')) {
@@ -30,8 +27,25 @@ export function getContractSalaryForYear(player, yearKey) {
     return 0;
   }
 
-  // Look up salary using the end year
-  return salariesByYear[endYear]?.salary || 0;
+  // Prefer Architect contract.salariesByYear
+  if (player.contract?.salariesByYear?.length) {
+    const seasonKey = `${endYear - 1}-${String(endYear).slice(-2)}`;
+    const yearEntry =
+      player.contract.salariesByYear.find((y) => y.season === seasonKey) ||
+      player.contract.salariesByYear.find(
+        (y) => String(y.season) === String(endYear)
+      );
+    if (yearEntry) {
+      return yearEntry.capHit ?? yearEntry.salary ?? 0;
+    }
+  }
+
+  // Legacy fallback: contract_clean.salaries_by_year
+  if (player.contract_clean?.salaries_by_year) {
+    return player.contract_clean.salaries_by_year[endYear]?.salary || 0;
+  }
+
+  return 0;
 }
 
 /**

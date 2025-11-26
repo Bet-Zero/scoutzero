@@ -7,8 +7,18 @@ export function canSignFreeAgent(
   const rights = player.birdRights || 'None';
 
   // Safely calculate current salary obligations
+  // Prefer Architect contract.salariesByYear, fall back to contract_clean
   const teamSalary = (teamCapSheet.players || []).reduce((sum, p) => {
-    const sal = p.contract_clean?.salaries_by_year?.[year]?.salary || 0;
+    let sal = 0;
+    if (p.contract?.salariesByYear?.length) {
+      const seasonKey = `${year - 1}-${String(year).slice(-2)}`;
+      const yearEntry =
+        p.contract.salariesByYear.find((y) => y.season === seasonKey) ||
+        p.contract.salariesByYear.find((y) => String(y.season) === String(year));
+      sal = yearEntry?.capHit ?? yearEntry?.salary ?? 0;
+    } else {
+      sal = p.contract_clean?.salaries_by_year?.[year]?.salary || 0;
+    }
     return sum + sal;
   }, 0);
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import capProjections from '@/utils/architect/capProjections';
 import { formatSalary } from '@/utils/formatting';
+import { getSalaryForYear } from '@/utils/architect/tradeHelpers';
 
 const CapImpactTiles = ({
   team,
@@ -27,8 +28,7 @@ const CapImpactTiles = ({
   ];
 
   const totalCapAllocations = playersAfterTrade.reduce((sum, player) => {
-    const salary =
-      player.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0;
+    const salary = getSalaryForYear(player, yearKey);
     const holdAmount =
       typeof player.cap_hold === 'number'
         ? player.cap_hold
