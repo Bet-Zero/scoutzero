@@ -4,6 +4,37 @@ import { useNavigate } from 'react-router-dom';
 import { TeamListFull } from '@/constants/teamList';
 import TeamLogo from '@/components/shared/TeamLogo';
 
+// Prefer Architect contract shape (BasePlayerContractZ) but fall back to legacy contract_clean
+const getCapHitForSeason = (player, endYear) => {
+  if (!player) return 0;
+
+  const contract = player.contract;
+  if (contract?.salariesByYear?.length) {
+    const seasonKey = `${endYear - 1}-${String(endYear).slice(-2)}`;
+    const yearEntry =
+      contract.salariesByYear.find((y) => y.season === seasonKey) ||
+      contract.salariesByYear.find((y) => String(y.season) === String(endYear));
+
+    if (yearEntry) {
+      return (
+        yearEntry.capHit ??
+        yearEntry.salary ??
+        (typeof yearEntry.capHit === 'number' ? yearEntry.capHit : 0)
+      );
+    }
+  }
+
+  // Legacy fallback: contract_clean.salaries_by_year[endYear].salary
+  const legacy =
+    player.contract_clean?.salaries_by_year?.[endYear]?.salary ||
+    player.contract_clean?.salaries_by_year?.[
+      `${endYear}-${String((endYear + 1) % 100).padStart(2, '0')}`
+    ]?.salary ||
+    0;
+
+  return legacy;
+};
+
 const teamsList = TeamListFull;
 
 const LeagueView = () => {
@@ -13,14 +44,13 @@ const LeagueView = () => {
   useEffect(() => {
     const loadAllTeams = async () => {
       const summaries = [];
+      const endYear = 2025; // League view currently keyed to 2024-25 season
       for (const t of teamsList) {
         const capSheet = await loadTeamCapSheet(t.id);
         if (capSheet) {
           const totalSalary =
             capSheet.players?.reduce((sum, p) => {
-              return (
-                sum + (p.contract_clean?.salaries_by_year?.[2025]?.salary || 0)
-              );
+              return sum + getCapHitForSeason(p, endYear);
             }, 0) || 0;
           summaries.push({
             id: t.id,

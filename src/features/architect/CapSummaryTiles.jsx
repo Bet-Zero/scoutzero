@@ -13,8 +13,27 @@ const CapSummaryTiles = ({ teamCapSheet, selectedYear }) => {
   const secondApron = capData.secondApron || 0;
 
   const totalCapAllocations = teamCapSheet.players.reduce((sum, player) => {
-    const salary =
-      player.contract_clean?.salaries_by_year?.[selectedYear]?.salary || 0;
+    const contract = player.contract;
+    let salary = 0;
+
+    if (contract?.salariesByYear?.length) {
+      const seasonEntry =
+        contract.salariesByYear.find((y) => y.season === yearKey) ||
+        contract.salariesByYear.find(
+          (y) => String(y.season) === String(selectedYear)
+        );
+      salary =
+        seasonEntry?.capHit ??
+        seasonEntry?.salary ??
+        (typeof seasonEntry?.capHit === 'number' ? seasonEntry.capHit : 0) ??
+        0;
+    } else {
+      // Legacy fallback
+      salary =
+        player.contract_clean?.salaries_by_year?.[selectedYear]?.salary ||
+        player.contract_clean?.salaries_by_year?.[yearKey]?.salary ||
+        0;
+    }
     const holdAmount =
       typeof player.cap_hold === 'number'
         ? player.cap_hold

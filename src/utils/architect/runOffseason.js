@@ -16,13 +16,27 @@ export function runOffseason(
   // Process contracts
   const yearKey = nextYear;
   for (const contract of teamCapSheet.players) {
-    const nextYearSalary =
-      contract.contract_clean?.salaries_by_year?.[yearKey]?.salary;
+    // Prefer Architect contract shape
+    let nextYearSalary = 0;
+    let optionType = null;
+    if (contract.contract?.salariesByYear?.length) {
+      const seasonKey = `${yearKey - 1}-${String(yearKey).slice(-2)}`;
+      const slice =
+        contract.contract.salariesByYear.find((y) => y.season === seasonKey) ||
+        contract.contract.salariesByYear.find(
+          (y) => String(y.season) === String(yearKey)
+        );
+      nextYearSalary = slice?.salary || slice?.capHit || 0;
+      optionType = slice?.option || null;
+    } else {
+      nextYearSalary =
+        contract.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0;
+      optionType =
+        contract.contract_clean?.salaries_by_year?.[yearKey]?.option || null;
+    }
     let isOptionDeclined = false;
 
     // Handle player options
-    const optionType =
-      contract.contract_clean?.salaries_by_year?.[yearKey]?.option;
     if (optionType === 'Player Option' || optionType === 'Team Option') {
       if (!optionDecisions[contract.name]) {
         isOptionDeclined = true;

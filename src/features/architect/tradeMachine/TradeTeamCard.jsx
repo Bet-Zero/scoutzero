@@ -147,8 +147,7 @@ const TradeTeamCard = ({
   const tpeEligiblePlayers = useMemo(() => {
     if (!team) return [];
     return incomingPlayers.filter((player) => {
-      const playerSalary =
-        player.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0;
+      const playerSalary = getSalaryForYear(player, yearKey);
       return (team.tradeExceptions || []).some(
         (tpe) =>
           !tpe.isUsed &&

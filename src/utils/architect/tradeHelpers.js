@@ -28,25 +28,60 @@ export const getSalaryForYear = (input, year) => {
   // Accept a single player or an array
   const players = Array.isArray(input) ? input : [input];
 
-  return players.reduce((sum, p) => {
-    const yData = p.contract_clean?.salaries_by_year?.[year] ?? {};
-    const salaryMap = p.salaryByYear?.[year];
-    const fallback = p.salary;
+  const toEndYear = (season) => {
+    const s = String(season);
+    if (/^\d{4}-\d{2}$/.test(s)) {
+      const tail = parseInt(s.split('-')[1], 10);
+      return 2000 + tail;
+    }
+    const n = parseInt(s, 10);
+    return Number.isFinite(n) ? n : null;
+  };
 
-    const base =
-      typeof yData.salary === 'number'
-        ? yData.salary
-        : typeof salaryMap === 'number'
-          ? salaryMap
-          : typeof fallback === 'number'
-            ? fallback
-            : 0;
+  return players.reduce((sum, p) => {
+    // Prefer Architect contract.salariesByYear if present
+    let base = 0;
+    let yData = {};
+
+    if (p.contract?.salariesByYear?.length) {
+      const slice =
+        p.contract.salariesByYear.find((y) => toEndYear(y.season) === year) ||
+        p.contract.salariesByYear.find(
+          (y) => String(y.season) === String(year)
+        );
+      if (slice) {
+        yData = slice;
+        base = slice.capHit ?? slice.salary ?? 0;
+      }
+    }
+
+    // Legacy / fallback paths
+    if (!base) {
+      yData =
+        p.contract_clean?.salaries_by_year?.[year] ??
+        p.contract_clean?.salaries_by_year?.[String(year)] ??
+        {};
+      const salaryMap =
+        p.salaryByYear?.[year] ?? p.salaryByYear?.[String(year)];
+      const fallback = p.salary;
+
+      base =
+        typeof yData.salary === 'number'
+          ? yData.salary
+          : typeof salaryMap === 'number'
+            ? salaryMap
+            : typeof fallback === 'number'
+              ? fallback
+              : 0;
+    }
 
     // tests look specifically for `likely_bonus`
     const likely =
       (typeof yData.likely_bonus === 'number' ? yData.likely_bonus : 0) ||
       (yData.bonuses?.likely ?? yData.likelyIncentives ?? 0) ||
-      (p.bonusesByYear?.[year]?.likely ?? 0);
+      (p.bonusesByYear?.[year]?.likely ??
+        p.bonusesByYear?.[String(year)]?.likely ??
+        0);
 
     return sum + base + likely;
   }, 0);
@@ -262,8 +297,7 @@ export const calculateTPERemaining = (tpe, used = 0) => tpe.amount - used;
 export const playerFitsInTPE = (player, yearKey, tpe) => {
   if (!tpe || tpe.isUsed) return false;
 
-  const salary =
-    player.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0;
+  const salary = getSalaryForYear(player, yearKey);
 
   const now = Date.now();
   const exp = tpe.expirationDate ? Date.parse(tpe.expirationDate) : Infinity;

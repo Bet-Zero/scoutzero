@@ -142,16 +142,44 @@ export function getMinimumSalary(yearsOfService) {
 
 // 6. Stretch provision calculator
 export function stretchContract(contract, currentYear) {
-  const yearKeys = Object.keys(
-    contract.contract_clean?.salaries_by_year || {}
-  ).map(Number);
+  // Prefer Architect contract shape if available
+  let yearKeys = [];
+  if (contract?.contract?.salariesByYear?.length) {
+    yearKeys = contract.contract.salariesByYear
+      .map((y) => {
+        const season = String(y.season);
+        // Season codes are typically "2024-25" – derive end-year
+        if (/^\d{4}-\d{2}$/.test(season)) {
+          const tail = parseInt(season.split('-')[1], 10);
+          return 2000 + tail;
+        }
+        const n = parseInt(season, 10);
+        return Number.isFinite(n) ? n : null;
+      })
+      .filter((y) => y != null);
+  } else {
+    yearKeys = Object.keys(contract.contract_clean?.salaries_by_year || {}).map(
+      Number
+    );
+  }
   const remainingYears = yearKeys.filter((y) => y >= currentYear).length;
 
   const totalOwed = yearKeys
     .filter((y) => y >= currentYear)
     .reduce(
       (sum, key) =>
-        sum + (contract.contract_clean.salaries_by_year[key]?.salary || 0),
+        sum +
+        (contract.contract?.salariesByYear?.find((y) => {
+          // Same season → same end-year
+          const season = String(y.season);
+          if (/^\d{4}-\d{2}$/.test(season)) {
+            const tail = parseInt(season.split('-')[1], 10);
+            return 2000 + tail === key;
+          }
+          return String(season) === String(key);
+        })?.salary ||
+          contract.contract_clean?.salaries_by_year?.[key]?.salary ||
+          0),
       0
     );
 
@@ -175,8 +203,29 @@ export function getMinimumCapHit(yearsOfService) {
 // 8. Cap hold logic
 export function calculateCapHold(player, capProjections, year = 2025) {
   const experience = player.bio?.yearsExperience || 0;
-  const rights = player.contract_clean?.birdRights || 'None';
-  const lastSalary = player.contract_clean?.lastSalary || 0;
+  const rights =
+    player.contract?.birdRights?.status ||
+    player.contract_clean?.birdRights ||
+    'None';
+
+  let lastSalary = 0;
+  if (player.contract?.salariesByYear?.length) {
+    const sorted = [...player.contract.salariesByYear].sort((a, b) => {
+      const sa = String(a.season);
+      const sb = String(b.season);
+      const ya = /^\d{4}-\d{2}$/.test(sa)
+        ? 2000 + parseInt(sa.split('-')[1], 10)
+        : parseInt(sa, 10);
+      const yb = /^\d{4}-\d{2}$/.test(sb)
+        ? 2000 + parseInt(sb.split('-')[1], 10)
+        : parseInt(sb, 10);
+      return (ya || 0) - (yb || 0);
+    });
+    const last = sorted[sorted.length - 1];
+    lastSalary = last?.salary || last?.capHit || 0;
+  } else {
+    lastSalary = player.contract_clean?.lastSalary || 0;
+  }
   const pickNumber = player.draft?.pick || null;
   const draftRound = player.draft?.round || null;
 

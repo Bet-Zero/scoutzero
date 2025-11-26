@@ -1,6 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { formatName } from '@/utils/formatting';
 
+// Prefer Architect contract shape (BasePlayerContractZ) but fall back to legacy contract_clean
+const getContractYearSlice = (player, endYear) => {
+  if (!player) return null;
+
+  const contract = player.contract;
+  if (contract?.salariesByYear?.length) {
+    const seasonKey = `${endYear - 1}-${String(endYear).slice(-2)}`;
+    const yearEntry =
+      contract.salariesByYear.find((y) => y.season === seasonKey) ||
+      contract.salariesByYear.find((y) => String(y.season) === String(endYear));
+    if (yearEntry) return yearEntry;
+  }
+
+  const legacyEntry =
+    player.contract_clean?.salaries_by_year?.[endYear] ||
+    player.contract_clean?.salaries_by_year?.[
+      `${endYear}-${String((endYear + 1) % 100).padStart(2, '0')}`
+    ];
+
+  if (!legacyEntry) return null;
+
+  return {
+    season: `${endYear - 1}-${String(endYear).slice(-2)}`,
+    salary: legacyEntry.salary || 0,
+    capHit: legacyEntry.salary || 0,
+    guaranteed:
+      typeof legacyEntry.guaranteed === 'boolean'
+        ? legacyEntry.guaranteed
+        : true,
+    option: legacyEntry.option || null,
+  };
+};
+
 const OptionManager = ({
   teamCapSheet,
   currentYear,
@@ -14,8 +47,8 @@ const OptionManager = ({
     const nextYear = currentYear + 1;
     const options = teamCapSheet.players
       .map((p) => {
-        const entry = p.contract_clean?.salaries_by_year?.[nextYear];
-        const salary = entry?.salary;
+        const entry = getContractYearSlice(p, nextYear);
+        const salary = entry?.salary || entry?.capHit;
         const optionType = entry?.option || null;
         if (!salary || !optionType) return null;
 
