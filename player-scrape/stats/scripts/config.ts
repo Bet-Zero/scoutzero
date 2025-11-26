@@ -16,8 +16,7 @@ export const paths = {
   fixturesDir: 'player-scrape/stats/fixtures',
   outputDir: 'player-scrape/stats/output',
   workingDir: 'player-scrape/stats/working',
-  sharedIndex: 'player-scrape/shared/outputs/player_index.json',
-  idsCache: 'player-scrape/shared/nba_ids_cache.json',
+  sharedIndex: 'player-scrape/shared/_artifacts/outputs/player_index.json',
 };
 
 export const isRegressionFixture = (playerId: string): playerId is FixtureId =>
@@ -41,9 +40,19 @@ export const nbaHeaders: Record<string, string> = {
 // Simple rate limit/backoff configuration
 export const rateLimit = {
   maxConcurrency: Math.max(1, Number(process.env.NBA_CONCURRENCY || 3)),
-  baseDelayMs: 250,
-  maxRetries: 4,
+  baseDelayMs: 500, // Increased from 250ms
+  maxRetries: 6, // Increased from 4
 };
+
+export function getCurrentSeasonStartYear(asOf = new Date()): number {
+  const y = asOf.getUTCFullYear();
+  const m = asOf.getUTCMonth(); // 0=Jan .. 6=Jul .. 11=Dec
+  const d = asOf.getUTCDate();
+  // NBA season rolls over July 1
+  // July 1 or later → current year is season start
+  // Before July 1 → previous year is season start
+  return m > 6 || (m === 6 && d >= 1) ? y : y - 1;
+}
 
 export function seasonToDisplay(season: number): string {
   const next = (season + 1).toString().slice(-2);
@@ -53,5 +62,5 @@ export function seasonToDisplay(season: number): string {
 export function displayToSeasonInt(display: string): number {
   // "2024-25" -> 2024
   const m = display.match(/^(\d{4})/);
-  return m ? Number(m[1]) : new Date().getFullYear();
+  return m ? Number(m[1]) : getCurrentSeasonStartYear();
 }

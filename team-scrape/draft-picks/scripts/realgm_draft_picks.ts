@@ -32,7 +32,10 @@ const PRETTY = asSet.has('--pretty') || process.env.PRETTY === '1';
 const serialize = (obj: unknown) =>
   PRETTY ? JSON.stringify(obj, null, 2) : JSON.stringify(obj);
 
-const TEAMS_ARG = getArgVal('--teams', process.env.TEAMS || 'LAL,OKC,NYK');
+// Default to all configured teams if none specified (all 30 NBA teams)
+const DEFAULT_TEAMS =
+  'ATL,BOS,BKN,CHA,CHI,CLE,DAL,DEN,DET,GSW,HOU,IND,LAC,LAL,MEM,MIA,MIL,MIN,NOP,NYK,OKC,ORL,PHI,PHX,POR,SAC,SAS,TOR,UTA,WAS';
+const TEAMS_ARG = getArgVal('--teams', process.env.TEAMS || DEFAULT_TEAMS);
 const TEAM_FILTER = TEAMS_ARG.split(',')
   .map((s) => s.trim().toUpperCase())
   .filter(Boolean);
@@ -86,25 +89,150 @@ const REALGM_TEAM_URLS: Record<
   string,
   { code: string; name: string; url: string }
 > = {
+  ATL: {
+    code: 'ATL',
+    name: 'Atlanta Hawks',
+    url: 'https://basketball.realgm.com/nba/teams/Atlanta-Hawks/1/draft-picks',
+  },
+  BOS: {
+    code: 'BOS',
+    name: 'Boston Celtics',
+    url: 'https://basketball.realgm.com/nba/teams/Boston-Celtics/2/draft-picks',
+  },
+  BKN: {
+    code: 'BKN',
+    name: 'Brooklyn Nets',
+    url: 'https://basketball.realgm.com/nba/teams/Brooklyn-Nets/38/draft-picks',
+  },
+  CHA: {
+    code: 'CHA',
+    name: 'Charlotte Hornets',
+    url: 'https://basketball.realgm.com/nba/teams/Charlotte-Hornets/3/draft-picks',
+  },
+  CHI: {
+    code: 'CHI',
+    name: 'Chicago Bulls',
+    url: 'https://basketball.realgm.com/nba/teams/Chicago-Bulls/4/draft-picks',
+  },
+  CLE: {
+    code: 'CLE',
+    name: 'Cleveland Cavaliers',
+    url: 'https://basketball.realgm.com/nba/teams/Cleveland-Cavaliers/5/draft-picks',
+  },
+  DAL: {
+    code: 'DAL',
+    name: 'Dallas Mavericks',
+    url: 'https://basketball.realgm.com/nba/teams/Dallas-Mavericks/6/draft-picks',
+  },
+  DEN: {
+    code: 'DEN',
+    name: 'Denver Nuggets',
+    url: 'https://basketball.realgm.com/nba/teams/Denver-Nuggets/7/draft-picks',
+  },
+  DET: {
+    code: 'DET',
+    name: 'Detroit Pistons',
+    url: 'https://basketball.realgm.com/nba/teams/Detroit-Pistons/8/draft-picks',
+  },
+  GSW: {
+    code: 'GSW',
+    name: 'Golden State Warriors',
+    url: 'https://basketball.realgm.com/nba/teams/Golden-State-Warriors/9/draft-picks',
+  },
+  HOU: {
+    code: 'HOU',
+    name: 'Houston Rockets',
+    url: 'https://basketball.realgm.com/nba/teams/Houston-Rockets/10/draft-picks',
+  },
+  IND: {
+    code: 'IND',
+    name: 'Indiana Pacers',
+    url: 'https://basketball.realgm.com/nba/teams/Indiana-Pacers/11/draft-picks',
+  },
+  LAC: {
+    code: 'LAC',
+    name: 'LA Clippers',
+    url: 'https://basketball.realgm.com/nba/teams/LA-Clippers/12/draft-picks',
+  },
   LAL: {
     code: 'LAL',
     name: 'Los Angeles Lakers',
     url: 'https://basketball.realgm.com/nba/teams/Los-Angeles-Lakers/13/draft-picks',
   },
-  OKC: {
-    code: 'OKC',
-    name: 'Oklahoma City Thunder',
-    url: 'https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks',
+  MEM: {
+    code: 'MEM',
+    name: 'Memphis Grizzlies',
+    url: 'https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks',
+  },
+  MIA: {
+    code: 'MIA',
+    name: 'Miami Heat',
+    url: 'https://basketball.realgm.com/nba/teams/Miami-Heat/15/draft-picks',
+  },
+  MIL: {
+    code: 'MIL',
+    name: 'Milwaukee Bucks',
+    url: 'https://basketball.realgm.com/nba/teams/Milwaukee-Bucks/16/draft-picks',
+  },
+  MIN: {
+    code: 'MIN',
+    name: 'Minnesota Timberwolves',
+    url: 'https://basketball.realgm.com/nba/teams/Minnesota-Timberwolves/17/draft-picks',
+  },
+  NOP: {
+    code: 'NOP',
+    name: 'New Orleans Pelicans',
+    url: 'https://basketball.realgm.com/nba/teams/New-Orleans-Pelicans/19/draft-picks',
   },
   NYK: {
     code: 'NYK',
     name: 'New York Knicks',
     url: 'https://basketball.realgm.com/nba/teams/New-York-Knicks/20/draft-picks',
   },
-  MEM: {
-    code: 'MEM',
-    name: 'Memphis Grizzlies',
-    url: 'https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/draft-picks',
+  OKC: {
+    code: 'OKC',
+    name: 'Oklahoma City Thunder',
+    url: 'https://basketball.realgm.com/nba/teams/Oklahoma-City-Thunder/33/draft-picks',
+  },
+  ORL: {
+    code: 'ORL',
+    name: 'Orlando Magic',
+    url: 'https://basketball.realgm.com/nba/teams/Orlando-Magic/21/draft-picks',
+  },
+  PHI: {
+    code: 'PHI',
+    name: 'Philadelphia 76ers',
+    url: 'https://basketball.realgm.com/nba/teams/Philadelphia-Sixers/22/draft-picks',
+  },
+  PHX: {
+    code: 'PHX',
+    name: 'Phoenix Suns',
+    url: 'https://basketball.realgm.com/nba/teams/Phoenix-Suns/23/draft-picks',
+  },
+  POR: {
+    code: 'POR',
+    name: 'Portland Trail Blazers',
+    url: 'https://basketball.realgm.com/nba/teams/Portland-Trail-Blazers/24/draft-picks',
+  },
+  SAC: {
+    code: 'SAC',
+    name: 'Sacramento Kings',
+    url: 'https://basketball.realgm.com/nba/teams/Sacramento-Kings/25/draft-picks',
+  },
+  SAS: {
+    code: 'SAS',
+    name: 'San Antonio Spurs',
+    url: 'https://basketball.realgm.com/nba/teams/San-Antonio-Spurs/26/draft-picks',
+  },
+  TOR: {
+    code: 'TOR',
+    name: 'Toronto Raptors',
+    url: 'https://basketball.realgm.com/nba/teams/Toronto-Raptors/28/draft-picks',
+  },
+  UTA: {
+    code: 'UTA',
+    name: 'Utah Jazz',
+    url: 'https://basketball.realgm.com/nba/teams/Utah-Jazz/29/draft-picks',
   },
   WAS: {
     code: 'WAS',

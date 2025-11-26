@@ -10,7 +10,18 @@ const BenchCard = ({
 }) => {
   if (!player) return null;
 
-  const headshot = player.headshot || '/assets/headshots/default.png';
+  const playerId = player.bio?.playerId || player.id;
+  // Normalize special characters for headshot lookup
+  const normalizedId = playerId
+    ? playerId
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+    : 'default';
+  const headshot =
+    player.headshot ||
+    player.headshotUrl ||
+    `/assets/headshots/${normalizedId}.png`;
 
   return (
     <div className="relative overflow-visible p-[2px]">
@@ -20,6 +31,9 @@ const BenchCard = ({
             src={headshot}
             alt={player.name}
             className="w-full h-full object-cover"
+            onError={(e) => {
+              e.target.src = '/assets/headshots/default.png';
+            }}
           />
           {showRemove && (
             <button
@@ -32,7 +46,9 @@ const BenchCard = ({
           <div
             className={`absolute top-1 left-1 px-1 py-[2px] bg-black/00 text-white/40 text-[12px] ${isExport ? 'font-normal' : 'font-semibold'} uppercase rounded-sm tracking-wider shadow-md`}
           >
-            {getPlayerPositionLabel(player.bio?.position || player.formattedPosition)}
+            {getPlayerPositionLabel(
+              player.bio?.position || player.formattedPosition
+            )}
           </div>
         </div>
         <div className="bg-[#0f0f0f] px-2 pt-1 pb-2 h-[46px] flex flex-col items-center justify-center text-center border-t border-white/10">

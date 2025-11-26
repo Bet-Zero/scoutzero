@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
-import { doc, setDoc, writeBatch } from 'firebase/firestore';
+import { setDoc, writeBatch } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
+import { evalRef, seasonRef, playerRef } from '@/data/firestorePaths';
 
 const useAutoSavePlayer = ({
   playerId,
@@ -46,17 +47,11 @@ const useAutoSavePlayer = ({
         const batch = writeBatch(db);
 
         // 1. Save to main evaluations subcollection
-        const evalRef = doc(
-          db,
-          'players_v2',
-          playerId,
-          'evaluations',
-          'current'
-        );
-        batch.set(evalRef, evaluationData, { merge: true });
+        const evaluationDocRef = evalRef(playerId, 'current');
+        batch.set(evaluationDocRef, evaluationData, { merge: true });
 
         // 2. Update denormalized evaluationView in current season
-        const seasonRef = doc(db, 'players_v2', playerId, 'seasons', seasonId);
+        const seasonDocRef = seasonRef(playerId, seasonId);
         const evaluationView = {
           overallGrade,
           roles: {
@@ -69,8 +64,27 @@ const useAutoSavePlayer = ({
           twoWay, // Update the denormalized copy too!
           badges,
         };
-        batch.update(seasonRef, {
+        batch.update(seasonDocRef, {
           evaluationView,
+        });
+
+        // 3. Update denormalized currentEvaluationView in main document
+        const playerDocRef = playerRef(playerId);
+        const currentEvaluationView = {
+          overallGrade,
+          roles: {
+            offense1: roles.offense1 || null,
+            offense2: roles.offense2 || null,
+            defense1: roles.defense1 || null,
+            defense2: roles.defense2 || null,
+          },
+          subRoles: subRoles || undefined,
+          shootingProfile,
+          badges: badges || [],
+          traits: traits || {},
+        };
+        batch.update(playerDocRef, {
+          currentEvaluationView,
         });
 
         await batch.commit();

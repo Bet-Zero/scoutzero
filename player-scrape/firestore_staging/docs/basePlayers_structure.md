@@ -91,13 +91,10 @@ Provided when the scraper captured a future/extension table.
 
 ## Luka Doncic Snapshot
 
-For comparison, `luka_doncic` includes the Lakers extension as the future contract while the current contract is still the Dallas rookie extension. You can inspect the full payload in `player-scrape/firestore_staging/output/basePlayers/luka_doncic.json` after running the staging script (outputs are git-ignored).
+For comparison, `luka_doncic` includes the Lakers extension as the future contract while the current contract is still the Dallas rookie extension. You can inspect the full payload in `player-scrape/firestore_staging/_artifacts/output/basePlayers/luka_doncic.json` after running the staging script (outputs are git-ignored).
 
 ## Quick Reference
 
 - No subcollections; everything for a player lives in a single document.
 - Fields align 1:1 with `BasePlayerDocZ` defined in `src/schemas/architect.ts`.
-- Staged JSON lives under `player-scrape/firestore_staging/output/basePlayers/` (git-ignored by default).
-
-
-
+- Staged JSON lives under `player-scrape/firestore_staging/_artifacts/output/basePlayers/` (git-ignored by default).

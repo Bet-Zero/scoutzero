@@ -71,7 +71,25 @@ const PlayerHeader = ({ player, selectedPlayer }) => {
             <span className="font-bold">WT</span>: {player.bio?.weight || 'N/A'}
           </p>
           <p>
-            <span className="font-bold">AGE</span>: {player.bio?.age || 'N/A'}
+            <span className="font-bold">AGE</span>: {(() => {
+              // Calculate age from DOB if age field is missing
+              if (player.bio?.age) return player.bio.age;
+              if (player.bio?.dob) {
+                try {
+                  const birthDate = new Date(player.bio.dob);
+                  if (!isNaN(birthDate.getTime())) {
+                    const today = new Date();
+                    let age = today.getFullYear() - birthDate.getFullYear();
+                    const monthDiff = today.getMonth() - birthDate.getMonth();
+                    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                      age--;
+                    }
+                    return age >= 0 ? age : 'N/A';
+                  }
+                } catch {}
+              }
+              return 'N/A';
+            })()}
           </p>
           <p>
             <span className="font-bold">YEARS PRO</span>:{' '}

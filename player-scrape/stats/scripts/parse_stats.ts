@@ -39,28 +39,100 @@ function pickSeasonRow(set: ResultSet, seasonDisplay: string): Record<string, an
   return row ? rowToObject(set.headers, row) : null;
 }
 
+// Find the most recent season from the result set
+function findMostRecentSeason(set: ResultSet): { row: Record<string, any>; seasonId: string } | null {
+  if (!set || !set.rowSet || set.rowSet.length === 0) return null;
+  
+  const idxSeason = set.headers.indexOf('SEASON_ID');
+  if (idxSeason === -1) return null;
+  
+  // Sort seasons by SEASON_ID (newest first) - season IDs are strings like "2024-25"
+  const sorted = [...set.rowSet].sort((a, b) => {
+    const seasonA = String(a[idxSeason] || '');
+    const seasonB = String(b[idxSeason] || '');
+    // Compare by extracting year (first 4 digits)
+    const yearA = parseInt(seasonA.substring(0, 4), 10) || 0;
+    const yearB = parseInt(seasonB.substring(0, 4), 10) || 0;
+    return yearB - yearA; // Descending (newest first)
+  });
+  
+  if (sorted.length === 0) return null;
+  
+  const mostRecentRow = sorted[0];
+  const seasonId = String(mostRecentRow[idxSeason]);
+  return {
+    row: rowToObject(set.headers, mostRecentRow),
+    seasonId,
+  };
+}
+
+// Find career averages from the API response
+function findCareerAverages(json: any): Record<string, any> | null {
+  const careerSet = findResultSet(json, 'careertotalsregularseason');
+  if (!careerSet || !careerSet.rowSet || careerSet.rowSet.length === 0) return null;
+  return rowToObject(careerSet.headers, careerSet.rowSet[0]);
+}
+
 export type ParsedSeason = {
   seasonId: string;
   team?: string;
   age?: number;
   pos?: string;
   stats: Record<string, number>;
+  _fallbackType?: 'current' | 'most_recent' | 'career';
 };
 
 export function parseStats(
   baseJson: any,
   advancedJson: any,
-  opts: { season: number; teamCode?: string; age?: number; pos?: string }
+  opts: { season: number; teamCode?: string; age?: number; pos?: string; allowFallback?: boolean }
 ): ParsedSeason {
-  const seasonDisplay = seasonToDisplay(opts.season);
+  const requestedSeasonDisplay = seasonToDisplay(opts.season);
+  const allowFallback = opts.allowFallback !== false; // Default to true
 
   const baseSet =
     findResultSet(baseJson, 'seasontotalsregularseason') ||
     findResultSet(baseJson, 'season totals');
   const advSet = findResultSet(advancedJson, 'seasonadvanced');
 
-  const baseRow = baseSet ? pickSeasonRow(baseSet, seasonDisplay) : null;
-  const advRow = advSet ? pickSeasonRow(advSet, seasonDisplay) : null;
+  // Try to find requested season first
+  let baseRow = baseSet ? pickSeasonRow(baseSet, requestedSeasonDisplay) : null;
+  let seasonDisplay = requestedSeasonDisplay;
+  let fallbackType: 'current' | 'most_recent' | 'career' = 'current';
+  let advRow = advSet ? pickSeasonRow(advSet, seasonDisplay) : null;
+
+  // Fallback logic: try most recent season, then career averages
+  if (!baseRow && allowFallback) {
+    if (baseSet) {
+      // Try most recent season
+      const mostRecent = findMostRecentSeason(baseSet);
+      if (mostRecent) {
+        baseRow = mostRecent.row;
+        seasonDisplay = mostRecent.seasonId;
+        fallbackType = 'most_recent';
+        advRow = advSet ? pickSeasonRow(advSet, seasonDisplay) : null;
+      }
+    }
+    
+    // If still no row, try career averages
+    if (!baseRow) {
+      const careerRow = findCareerAverages(baseJson);
+      if (careerRow) {
+        baseRow = careerRow;
+        seasonDisplay = 'CAREER'; // Special marker for career averages
+        fallbackType = 'career';
+        // Career averages don't have advanced stats, so advRow stays null
+      }
+    }
+  }
+
+  // Final validation
+  if (!baseRow) {
+    throw new Error(
+      `No stats found for player. Requested season ${requestedSeasonDisplay} not available, ` +
+      `and no fallback data (most recent season or career averages) found.`
+    );
+  }
 
   const team = (baseRow?.TEAM_ABBREVIATION as string) || opts.teamCode;
   const gp = Number(baseRow?.GP ?? 0) || 0;
@@ -110,6 +182,7 @@ export function parseStats(
     age: opts.age,
     pos: opts.pos,
     stats,
+    _fallbackType: fallbackType,
   };
 }
 

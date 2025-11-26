@@ -31,13 +31,19 @@ const PlayerDrawer = ({ player }) => {
           />
           <Divider />
           <PlayerContractMini
-            contract={player.contracts ? Object.values(player.contracts)[0] : {}}
-            bird_rights={player.contracts ? Object.values(player.contracts)[0]?.freeAgency?.birdRights : 'Unknown'}
+            contract={player.primaryContract || (player.contracts ? Object.values(player.contracts)[0] : {})}
+            bird_rights={player.currentContractView?.birdRights?.status || 
+              (player.contracts ? Object.values(player.contracts)[0]?.freeAgency?.birdRights : 'Unknown')}
             option_type={
               player.contracts ? Object.values(player.contracts)[0]?.options?.[0] : null
             }
-            free_agent_year={player.bio?.display?.freeAgentYear || (player.contracts ? Object.values(player.contracts)[0]?.freeAgency?.freeAgentYear : null)}
-            free_agent_type={player.bio?.display?.freeAgentType || (player.contracts ? Object.values(player.contracts)[0]?.freeAgency?.freeAgentType : null)}
+            free_agent_year={player.currentContractView?.freeAgentYear || 
+              player.bio?.display?.freeAgentYear || 
+              (player.contracts ? Object.values(player.contracts)[0]?.freeAgency?.freeAgentYear : null)}
+            free_agent_type={player.currentContractView?.freeAgentType || 
+              player.bio?.display?.freeAgentType || 
+              (player.contracts ? Object.values(player.contracts)[0]?.freeAgency?.freeAgentType : null)}
+            currentContractView={player.currentContractView}
           />
           <Divider />
           <PlayerStatsMini stats={player} />

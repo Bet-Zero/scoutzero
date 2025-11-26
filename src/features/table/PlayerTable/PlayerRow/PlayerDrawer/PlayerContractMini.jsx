@@ -6,23 +6,40 @@ const PlayerContractMini = ({
   option_type = {},
   free_agent_year,
   free_agent_type,
+  currentContractView, // Accept denormalized view
 }) => {
   const today = new Date();
   const CURRENT_YEAR = today.getFullYear() - (today.getMonth() < 6 ? 1 : 0);
 
-  // Get salaries from v2 structure (salariesByYear)
-  const salaries = contract?.salariesByYear || [];
-
-  const allSalaries = salaries.reduce(
-    (acc, salary) => {
-      const year = salary.year || (salary.season ? parseInt(salary.season.split('-')[0]) + 1 : null);
-      if (year && year >= CURRENT_YEAR) {
-        acc[year] = salary;
+  // Prioritize currentContractView (denormalized), fallback to contract.salariesByYear array
+  let allSalaries = {};
+  
+  if (currentContractView?.salaryByYear) {
+    // Convert object to array format
+    Object.entries(currentContractView.salaryByYear).forEach(([year, salary]) => {
+      const yearNum = parseInt(year, 10);
+      if (yearNum >= CURRENT_YEAR && typeof salary === 'number') {
+        allSalaries[yearNum] = { year: yearNum, salary };
       }
-      return acc;
-    },
-    {}
-  );
+    });
+  } else {
+    // Fallback to contract.salariesByYear array
+    const salaries = contract?.salariesByYear || [];
+    allSalaries = salaries.reduce(
+      (acc, salary) => {
+        const year = salary.year || (salary.season ? parseInt(salary.season.split('-')[0]) + 1 : null);
+        if (year && year >= CURRENT_YEAR) {
+          acc[year] = salary;
+        }
+        return acc;
+      },
+      {}
+    );
+  }
+  
+  // Use free agent info from currentContractView if available
+  const effectiveFreeAgentYear = free_agent_year || currentContractView?.freeAgentYear;
+  const effectiveFreeAgentType = free_agent_type || currentContractView?.freeAgentType;
 
   // Generate exactly 5 seasons (current year + 4 future years)
   const displaySeasons = Array.from({ length: 5 }, (_, i) => {
@@ -39,8 +56,8 @@ const PlayerContractMini = ({
 
     // Determine free agency status
     let freeAgentTag = null;
-    if (year === free_agent_year) {
-      freeAgentTag = free_agent_type;
+    if (year === effectiveFreeAgentYear) {
+      freeAgentTag = effectiveFreeAgentType;
     }
 
     return {

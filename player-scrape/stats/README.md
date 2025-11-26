@@ -25,23 +25,51 @@ No alternative/community/CDN sources are used in the production path.
 
 ## Commands
 
-Run for a given player-season (example for 2025-26):
+### Batch Processing (Recommended)
+
+Process all players for a specific season:
+```bash
+npx tsx player-scrape/stats/scripts/run_stats_batch.ts --season=2025-26
+```
+
+Filter by team:
+```bash
+npx tsx player-scrape/stats/scripts/run_stats_batch.ts --season=2025-26 --team=LAL
+```
+
+Process a single player:
+```bash
+npx tsx player-scrape/stats/scripts/run_stats_batch.ts --season=2025-26 --player=austin_reaves
+```
+
+### Single Player (Alternative)
+
+Run for a single player-season:
 ```bash
 PLAYER_ID="austin_reaves" TEAM_CODE="LAL" NBA_ID="1630559" SEASON="2025-26" \
   npx tsx player-scrape/stats/scripts/run_stats.ts
 ```
 
-Proxy (optional) if the API intermittently 4xx/5xx:
+### Proxy Support (If API is Unreliable)
+
+If the NBA API is returning intermittent 5xx errors, use a proxy:
 ```bash
 PROXY_URL="http://host:port" PROXY_USER="user" PROXY_PASS="pass" \
-PLAYER_ID="austin_reaves" TEAM_CODE="LAL" NBA_ID="1630559" SEASON="2025-26" \
-  npx tsx player-scrape/stats/scripts/run_stats.ts
+  npx tsx player-scrape/stats/scripts/run_stats_batch.ts --season=2025-26
 ```
+
+### Validation
 
 Validate the last output:
 ```bash
 npx tsx player-scrape/stats/scripts/validate_stats.ts
 ```
+
+## Failure Policy
+
+- **No fallback to previous season**: The scraper will **never** write last season's stats when the current season fails. If the requested season is unavailable, the scraper will fail with a clear error message.
+- **Retry logic**: All API requests use exponential backoff with jitter (up to 4 retries) to handle transient errors.
+- **Hard failures**: If retries are exhausted or the requested season doesn't exist in the API response, the scraper will fail without writing any data. Re-run later or use a proxy if the API is unreliable.
 
 ## Active Files
 

@@ -4,8 +4,8 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { paths, seasonToDisplay, displayToSeasonInt } from './config';
-import { resolveNbaPlayerId, cacheNbaPlayerId } from './id_resolver';
+import { paths, seasonToDisplay, displayToSeasonInt, getCurrentSeasonStartYear } from './config';
+import { resolveNbaPlayerId } from './id_resolver';
 import {
   fetchPlayerStatsBase,
   fetchPlayerStatsAdvanced,
@@ -103,10 +103,11 @@ export function buildStatsOutput(
     statsSeasonTag: string;
     statsCarryOver: boolean;
     provenance: string;
+    fallbackType?: 'current' | 'most_recent' | 'career';
   };
 } {
-  // Compute USG% if team stats provided
-  if (teamStatsJson) {
+  // Compute USG% if team stats provided (skip for career averages as team context is unclear)
+  if (teamStatsJson && parsed._fallbackType !== 'career') {
     computeUsagePercent(parsed, parsed.team || teamCode, teamStatsJson);
   }
 
@@ -127,8 +128,9 @@ export function buildStatsOutput(
         _nanoseconds: 0,
       },
       statsSeasonTag: parsed.seasonId,
-      statsCarryOver: false,
+      statsCarryOver: parsed._fallbackType !== 'current',
       provenance: 'nba_stats',
+      fallbackType: parsed._fallbackType,
     },
   };
 }
@@ -136,8 +138,10 @@ export function buildStatsOutput(
 async function main() {
   const playerId = process.env.PLAYER_ID;
   const teamCodeEnv = process.env.TEAM_CODE;
+  // Default to current season (consistent with batch scraper)
+  // Uses July 1 boundary: season starts July 1, so before July 1 uses previous year
   const seasonDisplay =
-    process.env.SEASON || seasonToDisplay(new Date().getFullYear() - 1);
+    process.env.SEASON || seasonToDisplay(getCurrentSeasonStartYear());
   // Single source: NBA Stats API
   const season = displayToSeasonInt(seasonDisplay);
 
@@ -173,7 +177,15 @@ async function main() {
   const base = await fetchPlayerStatsBase(nbaId, season);
   const adv = await fetchPlayerStatsAdvanced(nbaId, season);
 
-  const parsed = parseStats(base, adv, { season, teamCode, pos, age });
+  const parsed = parseStats(base, adv, { season, teamCode, pos, age, allowFallback: true });
+  
+  // Log fallback usage if applicable
+  if (parsed._fallbackType && parsed._fallbackType !== 'current') {
+    const fallbackMsg = parsed._fallbackType === 'most_recent' 
+      ? `most recent season (${parsed.seasonId})` 
+      : 'career averages';
+    console.warn(`⚠️  ${playerId}: Using ${fallbackMsg} (requested ${seasonToDisplay(season)} not available)`);
+  }
 
   // Compute USG% if possible using team per-game totals
   let teamStatsJson: any = null;
@@ -191,9 +203,6 @@ async function main() {
   const outPath = path.join(teamOutDir, `${playerId}.json`);
   await fs.writeFile(outPath, JSON.stringify(out, null, 2), 'utf8');
   console.log(`✅ Wrote ${outPath}`);
-
-  // Cache NBA ID for future runs
-  await cacheNbaPlayerId(playerId, nbaId);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
