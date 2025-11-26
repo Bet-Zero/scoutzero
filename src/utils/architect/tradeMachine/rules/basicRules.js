@@ -116,7 +116,7 @@ export function validateSecondApronRules(team, context = {}) {
  * @param {Object} team - Team object
  * @param {Object} ctx - Context object
  * @param {Object} handlers - Warning/rejection handlers
- * @returns {Object} Validation result with passed/violations
+ * @returns {Array} Array of violation strings (for backward compatibility)
  */
 export function enforceSecondApronHandcuffs(
   team,
@@ -128,7 +128,7 @@ export function enforceSecondApronHandcuffs(
   // All second apron violations are hard errors
   result.violations.forEach((msg) => reject(msg));
 
-  return result;
+  return result.violations;
 }
 
 // Legacy aliases for backward compatibility

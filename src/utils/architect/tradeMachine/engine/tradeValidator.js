@@ -260,12 +260,19 @@ export function validateTrade({
     const warnings = [];
 
     // Collect violations and warnings from all rules
+    // Handle both array returns (enforcement functions) and object returns (validators)
     Object.values(allRules).forEach(rule => {
-      if (rule && rule.violations) {
-        violations.push(...rule.violations);
-      }
-      if (rule && rule.warnings) {
-        warnings.push(...rule.warnings);
+      if (rule) {
+        if (Array.isArray(rule)) {
+          // Enforcement functions return arrays directly
+          violations.push(...rule);
+        } else if (rule.violations) {
+          // Validators return objects with violations property
+          violations.push(...rule.violations);
+        }
+        if (rule.warnings) {
+          warnings.push(...rule.warnings);
+        }
       }
     });
 
