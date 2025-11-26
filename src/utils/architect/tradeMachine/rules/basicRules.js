@@ -44,7 +44,6 @@ export function validateSecondApronRules(team, context = {}) {
   const {
     salaryOut = 0,
     salaryIn = 0,
-    totalSalary = 0,
     capSettings = {},
   } = context;
   const violations = [];
@@ -52,10 +51,22 @@ export function validateSecondApronRules(team, context = {}) {
   // Check if team is at or above second apron
   const secondApron = capSettings.secondApron || 188931000;
   
-  // Check multiple ways to determine second apron status
+  // Get team's pre-trade salary from multiple sources
+  const teamTotalSalary = 
+    team?.teamTotalSalary ||
+    team?.team?.teamTotalSalary || 
+    team?.team?.totalSalary || 
+    0;
+  
+  // Get team's projected post-trade salary (catches apron-crossing trades)
+  const projectedSalary = team?.projectedSalary || teamTotalSalary;
+  
+  // Check if team is at/above second apron EITHER before OR after trade
+  // This catches both teams already above apron AND teams crossing into apron
   const isAtOrAboveSecondApron = 
     team?.postTradeStatus?.isAtOrAboveSecondApron ||
-    totalSalary >= secondApron ||
+    teamTotalSalary >= secondApron ||
+    projectedSalary >= secondApron ||
     (team?.context?.isAtOrAboveSecondApron) ||
     false;
 
@@ -110,7 +121,7 @@ export function validateSecondApronRules(team, context = {}) {
  * @param {Object} team - Team object
  * @param {Object} ctx - Context object
  * @param {Object} handlers - Warning/rejection handlers
- * @returns {Array} Array of violations
+ * @returns {Array} Array of violation strings (for backward compatibility)
  */
 export function enforceSecondApronHandcuffs(
   team,
