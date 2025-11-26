@@ -3,12 +3,13 @@ import { validateTrade } from '@/utils/architect/tradeMachine/engine/tradeValida
 import capProjections from '@/utils/architect/capProjections.js';
 
 const currentYear = 2025;
+const season = `${currentYear - 1}-${String(currentYear).slice(-2)}`;
 
 const makePlayer = (name, salary, signAndTrade = false, contractYears = 4) => ({
   name,
   signAndTrade,
   contractYears,
-  contract_clean: { salaries_by_year: { [currentYear]: { salary } } },
+  contract: { salariesByYear: [{ season, salary }] },
 });
 
 const makeTeam = (name, totalSalary, rosterSize = 14, picks = []) => ({

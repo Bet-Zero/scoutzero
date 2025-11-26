@@ -2,13 +2,12 @@ import { describe, it, expect } from 'vitest';
 import { computeMatchingValues } from '@/utils/architect/tradeMachine/utils/matchingValues.js';
 
 const yearKey = 2025;
+const season = `${yearKey - 1}-${String(yearKey).slice(-2)}`;
 
 const makePlayer = (overrides = {}) => ({
   name: 'Player',
-  contract_clean: {
-    salaries_by_year: {
-      [yearKey]: { salary: overrides.salary ?? 0 },
-    },
+  contract: {
+    salariesByYear: [{ season, salary: overrides.salary ?? 0 }],
   },
   ...overrides,
 });

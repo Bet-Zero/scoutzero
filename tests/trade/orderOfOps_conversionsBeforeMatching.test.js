@@ -3,10 +3,11 @@ import { validateTrade } from '@/utils/architect/tradeMachine/engine/tradeValida
 import capProjections from '@/utils/architect/capProjections.js';
 
 const currentYear = 2025;
+const season = `${currentYear - 1}-${String(currentYear).slice(-2)}`;
 
 const makePlayer = (name, salary) => ({
   name,
-  contract_clean: { salaries_by_year: { [currentYear]: { salary } } },
+  contract: { salariesByYear: [{ season, salary }] },
 });
 
 const makeTeam = (name, totalSalary = 100_000_000, rosterSize = 14) => ({
@@ -25,9 +26,7 @@ describe('order of operations: conversions before matching', () => {
       isBYC: true,
       previousSalary: 9_000_000,
       matchOutgoing: 5_000_000,
-      contract_clean: {
-        salaries_by_year: { [currentYear]: { salary: 10_000_000 } },
-      },
+      contract: { salariesByYear: [{ season, salary: 10_000_000 }] },
     };
 
     const teamA = makeTeam('A');
@@ -59,9 +58,7 @@ describe('order of operations: conversions before matching', () => {
         { salary: 10_000_000 },
       ],
       matchIncoming: 4_000_000,
-      contract_clean: {
-        salaries_by_year: { [currentYear]: { salary: 10_000_000 } },
-      },
+      contract: { salariesByYear: [{ season, salary: 10_000_000 }] },
     };
 
     const teamA = makeTeam('A');

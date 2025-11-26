@@ -4,7 +4,11 @@ import capProjections from '@/utils/architect/capProjections.js';
 
 const makePlayer = (name, salary, year) => ({
   name,
-  contract_clean: { salaries_by_year: { [year]: { salary } } },
+  contract: {
+    salariesByYear: [
+      { season: `${year - 1}-${String(year).slice(-2)}`, salary },
+    ],
+  },
 });
 
 const makeTeam = (id, name, totalSalary, year, rosterSize = 14) => ({
