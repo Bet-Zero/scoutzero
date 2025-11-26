@@ -74,6 +74,10 @@ const debug = {
   logSecondApron(team, violations) {
     if (!team.overSecondApron && !team.willBeOverSecond) return;
 
+    const normalizedYear =
+      team.context?.normalizedYear || normalizeYearInput(team.context?.yearKey);
+    const seasonKey = normalizedYear?.seasonString;
+
     this.log('Second Apron Rules:', {
       team: team.team.teamName,
       rule: 'secondApron',
