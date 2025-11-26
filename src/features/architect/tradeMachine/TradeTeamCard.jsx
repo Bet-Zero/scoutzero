@@ -155,10 +155,7 @@ const TradeTeamCard = ({
         : toSeasonKey(yearKey);
 
     return incomingPlayers.filter((player) => {
-      const playerSalary =
-        getCapHitForSeason(player, seasonKey) ||
-        player.contract_clean?.salaries_by_year?.[yearKey]?.salary ||
-        0;
+      const playerSalary = getCapHitForSeason(player, seasonKey) || 0;
       return (team.tradeExceptions || []).some(
         (tpe) =>
           !tpe.isUsed &&

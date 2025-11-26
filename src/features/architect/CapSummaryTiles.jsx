@@ -1,11 +1,11 @@
 import React from 'react';
 import capProjections from '@/utils/architect/capProjections';
-import { toSeasonKey } from '@/utils/architect/seasonUtils';
-import { getCapHitForSeason } from '@/utils/architect/tradeMachine/utils/seasonUtils.js';
 
 const CapSummaryTiles = ({ teamCapSheet, selectedYear }) => {
-  // Convert end-year to season format: 2025 -> "2024-25"
-  const yearKey = toSeasonKey(selectedYear);
+  const yearKey = `${selectedYear}-${String((selectedYear + 1) % 100).padStart(
+    2,
+    '0'
+  )}`;
   const capData = capProjections[yearKey] || {};
 
   const salaryCap = capData.cap || 0;
@@ -13,7 +13,27 @@ const CapSummaryTiles = ({ teamCapSheet, selectedYear }) => {
   const secondApron = capData.secondApron || 0;
 
   const totalCapAllocations = teamCapSheet.players.reduce((sum, player) => {
-    const salary = getCapHitForSeason(player, yearKey) || 0;
+    const contract = player.contract;
+    let salary = 0;
+
+    if (contract?.salariesByYear?.length) {
+      const seasonEntry =
+        contract.salariesByYear.find((y) => y.season === yearKey) ||
+        contract.salariesByYear.find(
+          (y) => String(y.season) === String(selectedYear)
+        );
+      salary =
+        seasonEntry?.capHit ??
+        seasonEntry?.salary ??
+        (typeof seasonEntry?.capHit === 'number' ? seasonEntry.capHit : 0) ??
+        0;
+    } else {
+      // Legacy fallback
+      salary =
+        player.contract_clean?.salaries_by_year?.[selectedYear]?.salary ||
+        player.contract_clean?.salaries_by_year?.[yearKey]?.salary ||
+        0;
+    }
     const holdAmount =
       typeof player.cap_hold === 'number'
         ? player.cap_hold

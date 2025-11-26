@@ -1,30 +1,48 @@
 // src/utils/architect/contractSalaryUtils.js
 
-import { getSalaryForSeason, yearToSeason, seasonToYear } from '@/utils/architect/tradeMachine/utils/seasonUtils.js';
-
 /**
- * Contract salary lookup - works with new architect schema (salariesByYear array)
+ * Contract salary lookup using consistent end-year format
+ * Prefers Architect contract.salariesByYear, falls back to contract_clean
  * @param {Object} player - Player object with contract data  
- * @param {number|string} yearKey - Numeric year (2026) or season string ("2026-27")
- * @returns {number} - Salary for the year/season, or 0 if not found
+ * @param {number|string} yearKey - Season end year (e.g., 2026 for 2025-26 season)
+ * @returns {number} - Salary for the year, or 0 if not found
  */
 export function getContractSalaryForYear(player, yearKey) {
-  if (!player || !yearKey) return 0;
+  if (!player) return 0;
 
-  // Convert to season string if needed
-  const season = typeof yearKey === 'string' && yearKey.includes('-')
-    ? yearKey
-    : yearToSeason(yearKey);
-
-  // Use new schema format: contract.salariesByYear[] array
-  const contract = player.contract || player.primaryContract;
-  if (contract?.salariesByYear && season) {
-    const yearEntry = contract.salariesByYear.find(
-      (entry) => entry.season === season
-    );
-    if (yearEntry) {
-      return yearEntry.salary || 0;
+  // Convert yearKey to end year format
+  let endYear;
+  if (typeof yearKey === 'string' && yearKey.includes('-')) {
+    // "2024-25" -> 2025
+    const match = yearKey.match(/(\d{4})-(\d{2})/);
+    if (match) {
+      endYear = parseInt(match[1]) + 1;
     }
+  } else {
+    // Assume it's already the end year
+    endYear = parseInt(yearKey);
+  }
+
+  if (!Number.isFinite(endYear)) {
+    return 0;
+  }
+
+  // Prefer Architect contract.salariesByYear
+  if (player.contract?.salariesByYear?.length) {
+    const seasonKey = `${endYear - 1}-${String(endYear).slice(-2)}`;
+    const yearEntry =
+      player.contract.salariesByYear.find((y) => y.season === seasonKey) ||
+      player.contract.salariesByYear.find(
+        (y) => String(y.season) === String(endYear)
+      );
+    if (yearEntry) {
+      return yearEntry.capHit ?? yearEntry.salary ?? 0;
+    }
+  }
+
+  // Legacy fallback: contract_clean.salaries_by_year
+  if (player.contract_clean?.salaries_by_year) {
+    return player.contract_clean.salaries_by_year[endYear]?.salary || 0;
   }
 
   return 0;
@@ -41,29 +59,31 @@ export function getSalaryWithFallback(player, yearKey) {
     return 0;
   }
 
-  // Try contract first (new architect schema: contract.salariesByYear array)
+  // Try contract_clean first (from teams collection)
   const contractSalary = getContractSalaryForYear(player, yearKey);
   if (contractSalary > 0) {
     return contractSalary;
   }
 
-  // Try contracts subcollection structure (also uses new format)
+  // Try v2 contracts subcollection structure
   const contractData = player.contracts ? Object.values(player.contracts)[0] : null;
   if (contractData?.salariesByYear) {
-    // Convert yearKey to season string for v2 lookup
-    const season = typeof yearKey === 'string' && yearKey.includes('-')
-      ? yearKey
-      : yearToSeason(yearKey);
+    // Convert yearKey to end year for v2 lookup
+    let endYear;
+    if (typeof yearKey === 'string' && yearKey.includes('-')) {
+      const match = yearKey.match(/(\d{4})-(\d{2})/);
+      endYear = match ? parseInt(match[1]) + 1 : parseInt(yearKey);
+    } else {
+      endYear = parseInt(yearKey);
+    }
     
-    if (season) {
-      const annualSalary = contractData.salariesByYear.find(
-        (s) => s.season === season
-      );
-      if (annualSalary?.salary) {
-        const v2Salary = Number(annualSalary.salary);
-        if (Number.isFinite(v2Salary)) {
-          return v2Salary;
-        }
+    const annualSalary = contractData.salariesByYear.find(
+      (s) => parseInt(s.year) === endYear || s.season?.startsWith(String(endYear - 1))
+    );
+    if (annualSalary?.salary) {
+      const v2Salary = Number(annualSalary.salary);
+      if (Number.isFinite(v2Salary)) {
+        return v2Salary;
       }
     }
   }

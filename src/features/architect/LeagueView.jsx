@@ -3,7 +3,11 @@ import { loadTeamCapSheet } from '@/utils/architect/firebaseTeamPlanHelpers';
 import { useNavigate } from 'react-router-dom';
 import { TeamListFull } from '@/constants/teamList';
 import TeamLogo from '@/components/shared/TeamLogo';
-import { getDefaultSeasonEndYear } from '@/utils/architect/seasonUtils';
+import {
+  getDefaultSeasonEndYear,
+  toSeasonKey,
+} from '@/utils/architect/seasonUtils';
+import { getCapHitForSeason } from '@/utils/architect/tradeMachine/utils/seasonUtils.js';
 
 const teamsList = TeamListFull;
 
@@ -14,6 +18,8 @@ const LeagueView = () => {
   useEffect(() => {
     const loadAllTeams = async () => {
       const currentYear = getDefaultSeasonEndYear();
+      const seasonKey = toSeasonKey(currentYear);
+
       // Load all teams in parallel for better performance
       const teamPromises = teamsList.map(async (t) => {
         try {
@@ -21,10 +27,7 @@ const LeagueView = () => {
           if (capSheet) {
             const totalSalary =
               capSheet.players?.reduce((sum, p) => {
-                return (
-                  sum +
-                  (p.contract_clean?.salaries_by_year?.[currentYear]?.salary || 0)
-                );
+                return sum + getCapHitForSeason(p, seasonKey);
               }, 0) || 0;
             return {
               id: t.id,
@@ -35,6 +38,7 @@ const LeagueView = () => {
             };
           }
         } catch (error) {
+          // eslint-disable-next-line no-console
           console.warn(`Failed to load team ${t.code || t.id}:`, error);
         }
         // Fallback for teams that fail to load
@@ -46,7 +50,7 @@ const LeagueView = () => {
           conference: t.conference,
         };
       });
-      
+
       const summaries = await Promise.all(teamPromises);
       setTeamSummaries(summaries);
     };

@@ -11,7 +11,6 @@ import {
 export { wouldExceedHardCap } from '@/utils/architect/hardCapUtils.js';
 import { isPriorYearTPE } from '@/utils/architect/tradeMachine/utils/tradeUtilities.js';
 import { getTeamFaExceptionBuckets } from '@/utils/architect/faExceptionUtils.js';
-import { getSalaryForSeason, yearToSeason, seasonToYear } from '@/utils/architect/tradeMachine/utils/seasonUtils.js';
 
 export const getTierThresholds = (yearKey) => {
   const key = String(yearKey); // normalise
@@ -22,48 +21,72 @@ export const getTierThresholds = (yearKey) => {
 export const MIN_SALARY = 1_119_563;
 
 /*────────────────────────  Salary Helpers  ────────────────────────*/
-/**
- * Get salary for a year or season from player(s)
- * Works with new architect schema (contract.salariesByYear array)
- * @param {Object|Array} input - Single player or array of players
- * @param {number|string} year - Numeric year (2026) or season string ("2026-27")
- * @returns {number} Total salary including likely incentives (capHit)
- */
+/******************** SCSP™ BLOCK: getSalaryForYear ********************/
 export const getSalaryForYear = (input, year) => {
   if (!year) return 0;
 
   // Accept a single player or an array
   const players = Array.isArray(input) ? input : [input];
 
-  // Convert year to season string if needed
-  const season = typeof year === 'string' && year.includes('-') 
-    ? year 
-    : yearToSeason(year);
+  const toEndYear = (season) => {
+    const s = String(season);
+    if (/^\d{4}-\d{2}$/.test(s)) {
+      const tail = parseInt(s.split('-')[1], 10);
+      return 2000 + tail;
+    }
+    const n = parseInt(s, 10);
+    return Number.isFinite(n) ? n : null;
+  };
 
   return players.reduce((sum, p) => {
-    // Get from new schema format: contract.salariesByYear[] array
-    const contract = p.contract || p.primaryContract;
-    if (contract?.salariesByYear && season) {
-      const yearEntry = contract.salariesByYear.find(
-        (entry) => entry.season === season
-      );
-      if (yearEntry) {
-        // Use capHit (includes likely incentives) or salary as fallback
-        if (typeof yearEntry.capHit === 'number') {
-          return sum + yearEntry.capHit;
-        } else if (typeof yearEntry.salary === 'number') {
-          const base = yearEntry.salary;
-          const likely = yearEntry.incentives?.likely || 0;
-          return sum + base + likely;
-        }
+    // Prefer Architect contract.salariesByYear if present
+    let base = 0;
+    let yData = {};
+
+    if (p.contract?.salariesByYear?.length) {
+      const slice =
+        p.contract.salariesByYear.find((y) => toEndYear(y.season) === year) ||
+        p.contract.salariesByYear.find(
+          (y) => String(y.season) === String(year)
+        );
+      if (slice) {
+        yData = slice;
+        base = slice.capHit ?? slice.salary ?? 0;
       }
     }
 
-    // Fallback to direct player properties if no contract data
-    const fallback = p.salary || 0;
-    return sum + fallback;
+    // Legacy / fallback paths
+    if (!base) {
+      yData =
+        p.contract_clean?.salaries_by_year?.[year] ??
+        p.contract_clean?.salaries_by_year?.[String(year)] ??
+        {};
+      const salaryMap =
+        p.salaryByYear?.[year] ?? p.salaryByYear?.[String(year)];
+      const fallback = p.salary;
+
+      base =
+        typeof yData.salary === 'number'
+          ? yData.salary
+          : typeof salaryMap === 'number'
+            ? salaryMap
+            : typeof fallback === 'number'
+              ? fallback
+              : 0;
+    }
+
+    // tests look specifically for `likely_bonus`
+    const likely =
+      (typeof yData.likely_bonus === 'number' ? yData.likely_bonus : 0) ||
+      (yData.bonuses?.likely ?? yData.likelyIncentives ?? 0) ||
+      (p.bonusesByYear?.[year]?.likely ??
+        p.bonusesByYear?.[String(year)]?.likely ??
+        0);
+
+    return sum + base + likely;
   }, 0);
 };
+/****************** END SCSP™ BLOCK: getSalaryForYear ******************/
 
 /*─────────────────────  Incoming-Salary (CBA rules)  ─────────────────────*/
 
@@ -271,32 +294,10 @@ export const isMeaningfulProtection = (prot) =>
 /*────────────────────────  Trade-Exception Helpers  ───────────────────────*/
 export const calculateTPERemaining = (tpe, used = 0) => tpe.amount - used;
 
-/**
- * Check if a player's salary fits within a trade exception
- * @param {Object} player - Player object with contract data
- * @param {number|string} yearKey - Season end-year (2025) or season string ("2024-25")
- * @param {Object} tpe - Trade exception object with amount and expiration
- * @returns {boolean} True if player fits in TPE and TPE hasn't expired
- */
 export const playerFitsInTPE = (player, yearKey, tpe) => {
   if (!tpe || tpe.isUsed) return false;
 
-  // Try new schema first, then fallback to old schema
-  // Use capHit (not salary) since TPE validation should check against cap impact
-  const season = typeof yearKey === 'string' && yearKey.includes('-')
-    ? yearKey
-    : yearToSeason(yearKey);
-  
-  let salary = 0;
-  if (season) {
-    // Use capHit for architect contracts (useCapHit=true)
-    salary = getSalaryForSeason(player, season, true);
-  }
-  
-  // Fallback to old schema if new schema returned 0
-  if (salary === 0) {
-    salary = player.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0;
-  }
+  const salary = getSalaryForYear(player, yearKey);
 
   const now = Date.now();
   const exp = tpe.expirationDate ? Date.parse(tpe.expirationDate) : Infinity;

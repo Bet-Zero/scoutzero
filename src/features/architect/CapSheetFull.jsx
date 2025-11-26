@@ -2,6 +2,39 @@
 import React, { useState } from 'react';
 import { formatName } from '@/utils/formatting';
 
+// Prefer Architect contract shape (BasePlayerContractZ) but fall back to legacy contract_clean
+const getContractYearSlice = (player, endYear) => {
+  if (!player) return null;
+
+  const contract = player.contract;
+  if (contract?.salariesByYear?.length) {
+    const seasonKey = `${endYear - 1}-${String(endYear).slice(-2)}`;
+    const yearEntry =
+      contract.salariesByYear.find((y) => y.season === seasonKey) ||
+      contract.salariesByYear.find((y) => String(y.season) === String(endYear));
+    if (yearEntry) return yearEntry;
+  }
+
+  const legacyEntry =
+    player.contract_clean?.salaries_by_year?.[endYear] ||
+    player.contract_clean?.salaries_by_year?.[
+      `${endYear}-${String((endYear + 1) % 100).padStart(2, '0')}`
+    ];
+
+  if (!legacyEntry) return null;
+
+  return {
+    season: `${endYear - 1}-${String(endYear).slice(-2)}`,
+    salary: legacyEntry.salary || 0,
+    capHit: legacyEntry.salary || 0,
+    guaranteed:
+      typeof legacyEntry.guaranteed === 'boolean'
+        ? legacyEntry.guaranteed
+        : true,
+    option: legacyEntry.option || null,
+  };
+};
+
 const CapSheetFull = ({ teamCapSheet, onSelectPlayer, playersMap = {} }) => {
   if (!teamCapSheet || !teamCapSheet.players) return null;
 
@@ -12,18 +45,19 @@ const CapSheetFull = ({ teamCapSheet, onSelectPlayer, playersMap = {} }) => {
 
   // Sort players by 2025 salary descending
   const sortedPlayers = teamCapSheet.players
-    .filter(
-      (p) => Object.keys(p.contract_clean?.salaries_by_year || {}).length > 0
-    )
+    .filter((p) => getContractYearSlice(p, 2025))
     .sort((a, b) => {
-      const aSalary = a.contract_clean?.salaries_by_year?.[2025]?.salary || 0;
-      const bSalary = b.contract_clean?.salaries_by_year?.[2025]?.salary || 0;
+      const aSlice = getContractYearSlice(a, 2025);
+      const bSlice = getContractYearSlice(b, 2025);
+      const aSalary = aSlice?.salary || aSlice?.capHit || 0;
+      const bSalary = bSlice?.salary || bSlice?.capHit || 0;
       return bSalary - aSalary;
     });
 
   const capHoldPlayers = teamCapSheet.players
     .filter((p) => {
-      const hasSalary = p.contract_clean?.salaries_by_year?.[2025]?.salary;
+      const slice = getContractYearSlice(p, 2025);
+      const hasSalary = slice?.salary || slice?.capHit;
       const holdAmount =
         typeof p.cap_hold === 'number' ? p.cap_hold : p.cap_hold?.amount || 0;
       const isActive =
@@ -42,8 +76,8 @@ const CapSheetFull = ({ teamCapSheet, onSelectPlayer, playersMap = {} }) => {
   const yearTotals = {};
   for (const year of allYears) {
     yearTotals[year] = sortedPlayers.reduce((sum, player) => {
-      const salary =
-        player.contract_clean?.salaries_by_year?.[year]?.salary || 0;
+      const slice = getContractYearSlice(player, year);
+      const salary = slice?.salary || slice?.capHit || 0;
       const holdAmount =
         typeof player.cap_hold === 'number'
           ? player.cap_hold
@@ -90,10 +124,10 @@ const CapSheetFull = ({ teamCapSheet, onSelectPlayer, playersMap = {} }) => {
                   </button>
                 </td>
                 {allYears.map((year) => {
-                  const entry = player.contract_clean?.salaries_by_year?.[year];
-                  const faYear = player.contract_clean?.fa_year;
-                  const faType = player.contract_clean?.fa_type;
-                  if (!entry?.salary) {
+                  const entry = getContractYearSlice(player, year);
+                  const faYear = player.contract?.freeAgency?.year;
+                  const faType = player.contract?.freeAgency?.type;
+                  if (!entry?.salary && !entry?.capHit) {
                     if (faYear === year && faType) {
                       const tagColor =
                         faType === 'UFA'

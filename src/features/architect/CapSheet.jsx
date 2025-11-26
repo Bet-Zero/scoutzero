@@ -5,8 +5,40 @@ import CapSummaryTiles from '@/features/architect/CapSummaryTiles';
 import { POSITION_MAP } from '@/utils/roles';
 import getCapPercentage from '@/utils/architect/basicArchitectUtils';
 import capProjections from '@/utils/architect/capProjections';
-import { isTwoWayContract } from '@/utils/roster/contractUtils';
-import { toSeasonKey } from '@/utils/architect/seasonUtils';
+
+// Prefer Architect contract shape (BasePlayerContractZ) but fall back to legacy contract_clean
+const getContractYearSlice = (player, endYear) => {
+  if (!player) return null;
+
+  const contract = player.contract;
+  if (contract?.salariesByYear?.length) {
+    const seasonKey = `${endYear - 1}-${String(endYear).slice(-2)}`;
+    const yearEntry =
+      contract.salariesByYear.find((y) => y.season === seasonKey) ||
+      contract.salariesByYear.find((y) => String(y.season) === String(endYear));
+    if (yearEntry) return yearEntry;
+  }
+
+  // Legacy fallback: project contract_clean.salaries_by_year into a compatible slice
+  const legacyEntry =
+    player.contract_clean?.salaries_by_year?.[endYear] ||
+    player.contract_clean?.salaries_by_year?.[
+      `${endYear}-${String((endYear + 1) % 100).padStart(2, '0')}`
+    ];
+
+  if (!legacyEntry) return null;
+
+  return {
+    season: `${endYear - 1}-${String(endYear).slice(-2)}`,
+    salary: legacyEntry.salary || 0,
+    capHit: legacyEntry.salary || 0,
+    guaranteed:
+      typeof legacyEntry.guaranteed === 'boolean'
+        ? legacyEntry.guaranteed
+        : true,
+    option: legacyEntry.option || null,
+  };
+};
 
 const CapSheet = ({
   teamCapSheet,
@@ -24,37 +56,23 @@ const CapSheet = ({
   const generateYears = (startYear, count) =>
     Array.from({ length: count }, (_, i) => startYear + i);
 
-  // Generate years starting from current year (not future)
-  // Include current year and 6 future years (7 total)
   const allYears = generateYears(currentYear, 7);
-  // Convert end-year to season format: 2025 -> "2024-25"
-  const yearKey = toSeasonKey(selectedYear);
+  const yearKey = `${selectedYear}-${String((selectedYear + 1) % 100).padStart(
+    2,
+    '0'
+  )}`;
   const salaryCap = capProjections[yearKey]?.cap || 1;
 
-  const formatYearLabel = (year) => toSeasonKey(year);
+  const formatYearLabel = (year) =>
+    `${year}-${String((year + 1) % 100).padStart(2, '0')}`;
 
   const getCapHit = (player, yearKey) => {
-    // Convert yearKey (end-year) to season format: 2025 -> "2024-25"
-    const season = typeof yearKey === 'string' && yearKey.includes('-')
-      ? yearKey
-      : toSeasonKey(yearKey);
-    
-    // Get from new schema: contract.salariesByYear array (use capHit)
-    if (player?.contract?.salariesByYear) {
-      const yearEntry = player.contract.salariesByYear.find(
-        (entry) => entry.season === season
-      );
-      if (yearEntry) {
-        const capHit = yearEntry.capHit || yearEntry.salary || 0;
-        if (player.isMinimum && player.yearsOfService >= 3) {
-          return getMinimumCapHit(player.yearsOfService);
-        }
-        return capHit;
-      }
+    const slice = getContractYearSlice(player, yearKey);
+    const salary = slice?.capHit ?? slice?.salary ?? 0;
+    if (player.isMinimum && player.yearsOfService >= 3) {
+      return getMinimumCapHit(player.yearsOfService);
     }
-    
-    // No data found
-    return 0;
+    return salary;
   };
 
   // Helper to aggregate cap hits for a group of players
@@ -72,28 +90,11 @@ const CapSheet = ({
     }, 0);
 
   const renderNotes = (player, yearKey) => {
-    // Try new schema first
-    // Convert yearKey (end-year) to season format: 2025 -> "2024-25"
-    const season = typeof yearKey === 'string' && yearKey.includes('-')
-      ? yearKey
-      : toSeasonKey(yearKey);
-    
-    let option = null;
-    let guaranteed = true;
-    
-    if (player?.contract?.salariesByYear) {
-      const yearEntry = player.contract.salariesByYear.find(
-        (entry) => entry.season === season
-      );
-      if (yearEntry) {
-        option = yearEntry.option || null;
-        guaranteed = yearEntry.guaranteed !== false;
-      }
-    }
-    
+    const slice = getContractYearSlice(player, yearKey);
+    const option = slice?.option || null;
     const isPO = option === 'Player Option';
     const isTO = option === 'Team Option';
-    const isNG = guaranteed === false;
+    const isNG = slice && slice.guaranteed === false;
 
     const notes = [];
     if (isPO)
@@ -112,45 +113,20 @@ const CapSheet = ({
     );
   };
 
-  // Filter players who have salary data for the selected year
-  // Exclude two-way contracts from cap calculations
-  // Only include players with exact season match, not adjacent seasons
-  const season = toSeasonKey(selectedYear); // 2025 -> "2024-25"
-
   const filteredPlayers = teamCapSheet.players
-    .filter((p) => {
-      // Exclude two-way contracts from cap calculations
-      if (isTwoWayContract(p)) return false;
-      
-      // Try new schema: contract.salariesByYear array
-      // Only check for exact season match to avoid including adjacent-season contracts
-      if (p?.contract?.salariesByYear) {
-        const hasSalary = p.contract.salariesByYear.some(
-          (entry) => entry.season === season
-        );
-        if (hasSalary) return true;
-      }
-      
-      // Fallback to old schema - only check exact year
-      const hasSalary = p.contract_clean?.salaries_by_year?.[selectedYear];
-      return !!hasSalary;
-    })
+    .filter((p) => getContractYearSlice(p, selectedYear))
     .sort((a, b) => {
-      const aSalary = getCapHit(a, selectedYear);
-      const bSalary = getCapHit(b, selectedYear);
+      const aSlice = getContractYearSlice(a, selectedYear);
+      const bSlice = getContractYearSlice(b, selectedYear);
+      const aSalary = aSlice?.salary || aSlice?.capHit || 0;
+      const bSalary = bSlice?.salary || bSlice?.capHit || 0;
       return bSalary - aSalary;
     });
 
   const capHoldPlayers = teamCapSheet.players
     .filter((p) => {
-      // Check if player has salary for exact season in new schema
-      let hasSalary = false;
-      if (p?.contract?.salariesByYear) {
-        hasSalary = p.contract.salariesByYear.some(
-          (entry) => entry.season === season
-        );
-      }
-      
+      const slice = getContractYearSlice(p, selectedYear);
+      const hasSalary = slice?.salary || slice?.capHit;
       const holdAmount =
         typeof p.cap_hold === 'number' ? p.cap_hold : p.cap_hold?.amount || 0;
       const isActive =
@@ -212,22 +188,8 @@ const CapSheet = ({
         </thead>
         <tbody>
           {filteredPlayers.map((player, idx) => {
-            // Get salary from new schema first - only exact season match
-            let salary = 0;
-            if (player?.contract?.salariesByYear) {
-              const yearEntry = player.contract.salariesByYear.find(
-                (entry) => entry.season === season
-              );
-              if (yearEntry) {
-                salary = yearEntry.salary || 0;
-              }
-            }
-            
-            // Fallback to old schema - only exact year
-            if (salary === 0) {
-              salary = player.contract_clean?.salaries_by_year?.[selectedYear]?.salary || 0;
-            }
-            
+            const slice = getContractYearSlice(player, selectedYear);
+            const salary = slice?.salary || slice?.capHit || 0;
             const capHit = getCapHit(player, selectedYear);
 
             const age = player.age ?? '-';
@@ -242,12 +204,8 @@ const CapSheet = ({
                     onClick={() => onSelectPlayer && onSelectPlayer(player)}
                     className="text-blue-400 hover:underline"
                   >
-                    {player.displayName ||
-                      playersMap[player.name]?.bio?.displayName ||
-                      playersMap[player.displayName]?.bio?.displayName ||
-                      formatName(
-                        player.name || player.displayName || player.id
-                      )}
+                    {playersMap[player.name]?.bio?.displayName ||
+                      formatName(player.name)}
                   </button>
                 </td>
                 <td className="p-2">
@@ -296,10 +254,7 @@ const CapSheet = ({
                   return (
                     <tr key={idx} className="odd:bg-[#171717]">
                       <td className="p-2">
-                        {p.displayName ||
-                          playersMap[p.name]?.bio?.displayName ||
-                          playersMap[p.displayName]?.bio?.displayName ||
-                          formatName(p.name || p.displayName || p.id)}
+                        {playersMap[p.name]?.bio?.displayName || formatName(p.name)}
                       </td>
                       <td className="p-2">${amt.toLocaleString()}</td>
                       <td className="p-2">{reason}</td>
