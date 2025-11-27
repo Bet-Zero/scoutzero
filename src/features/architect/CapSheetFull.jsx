@@ -18,20 +18,25 @@ const getContractYearSlice = (player, endYear) => {
   return null;
 };
 
-const CapSheetFull = ({ teamCapSheet, onSelectPlayer, playersMap = {} }) => {
+const CapSheetFull = ({
+  teamCapSheet,
+  currentYear,
+  onSelectPlayer,
+  playersMap = {},
+}) => {
   if (!teamCapSheet || !teamCapSheet.players) return null;
 
   const [showCapHolds, setShowCapHolds] = useState(false);
 
-  // Always include 2025–2031
-  const allYears = Array.from({ length: 7 }, (_, i) => 2025 + i);
+  // Generate 7 years starting from currentYear
+  const allYears = Array.from({ length: 7 }, (_, i) => currentYear + i);
 
-  // Sort players by 2025 salary descending
+  // Sort players by current year salary descending
   const sortedPlayers = teamCapSheet.players
-    .filter((p) => getContractYearSlice(p, 2025))
+    .filter((p) => getContractYearSlice(p, currentYear))
     .sort((a, b) => {
-      const aSlice = getContractYearSlice(a, 2025);
-      const bSlice = getContractYearSlice(b, 2025);
+      const aSlice = getContractYearSlice(a, currentYear);
+      const bSlice = getContractYearSlice(b, currentYear);
       const aSalary = aSlice?.salary || aSlice?.capHit || 0;
       const bSalary = bSlice?.salary || bSlice?.capHit || 0;
       return bSalary - aSalary;
@@ -39,7 +44,7 @@ const CapSheetFull = ({ teamCapSheet, onSelectPlayer, playersMap = {} }) => {
 
   const capHoldPlayers = teamCapSheet.players
     .filter((p) => {
-      const slice = getContractYearSlice(p, 2025);
+      const slice = getContractYearSlice(p, currentYear);
       const hasSalary = slice?.salary || slice?.capHit;
       const holdAmount =
         typeof p.cap_hold === 'number' ? p.cap_hold : p.cap_hold?.amount || 0;

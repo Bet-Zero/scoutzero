@@ -31,7 +31,7 @@ import capProjections from '@/features/architect/utils/capProjections';
 const LOCAL_SEASON_KEY = 'hz.currentSeasonEndYear';
 
 const getDefaultSeasonEndYear = (date = new Date()) => {
-  // NBA season flips July 1 → 2024-25 ends in 2025
+  // NBA season flips July 1 → 2024-25 ends in 2025, 2025-26 ends in 2026
   const y = date.getFullYear();
   return date.getMonth() >= 6 ? y + 1 : y;
 };
@@ -66,7 +66,7 @@ const normalizeSalaryValue = (val) => {
 // Helper to ensure contract has proper structure
 const ensureContractStructure = (contract, overrides = {}) => {
   if (!contract) return null;
-  
+
   // If contract already has salariesByYear array, use it directly
   if (contract.salariesByYear && Array.isArray(contract.salariesByYear)) {
     return {
@@ -74,7 +74,7 @@ const ensureContractStructure = (contract, overrides = {}) => {
       ...overrides,
     };
   }
-  
+
   // If no contract data, return null
   return null;
 };
@@ -110,7 +110,14 @@ const GMDashboard = () => {
   const [showModal, setShowModal] = useState(false);
   const [plans, setPlans] = useState([]);
   const [selectedPlan, setSelectedPlan] = useState('');
-  const [viewMode, setViewMode] = useState('plan'); // 'plan' or 'baseline'
+  const [viewMode, setViewMode] = useState(
+    () => localStorage.getItem('architect.viewMode') || 'baseline'
+  ); // 'plan' or 'baseline'
+
+  // Persist viewMode to localStorage
+  useEffect(() => {
+    localStorage.setItem('architect.viewMode', viewMode);
+  }, [viewMode]);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [newPlanName, setNewPlanName] = useState('');
   const [showContractModal, setShowContractModal] = useState(false);
@@ -292,16 +299,13 @@ const GMDashboard = () => {
     // Add the incoming traded players
     const newContracts = incoming.map((p) => {
       // Use contract directly if it has salariesByYear array, otherwise use player's contract
-      const architectContract = ensureContractStructure(
-        p.contract || p,
-        {
-          contractType: p.contractType || 'Trade',
-          isExtension: !!p.isExtension,
-          isRookieScale: !!p.isRookieScale,
-          signingTeam: teamId,
-        }
-      );
-      
+      const architectContract = ensureContractStructure(p.contract || p, {
+        contractType: p.contractType || 'Trade',
+        isExtension: !!p.isExtension,
+        isRookieScale: !!p.isRookieScale,
+        signingTeam: teamId,
+      });
+
       return {
         name: p.name,
         player_id: p.id || p.player_id,
@@ -338,7 +342,7 @@ const GMDashboard = () => {
             };
           }
         }
-        
+
         // Use contract from trade data or player data, ensuring it has proper structure
         const architectContract = ensureContractStructure(
           p.contract || playerData?.contract,
@@ -353,14 +357,13 @@ const GMDashboard = () => {
         const position =
           playerData?.position ||
           playerData?.formattedPosition ||
-          getPlayerPositionLabel(
-            playerData?.bio?.position || p.position || ''
-          );
+          getPlayerPositionLabel(playerData?.bio?.position || p.position || '');
         return {
           ...(playerData || {}),
           name: playerData?.name || p.name,
           player_id: p.id || p.player_id || playerData?.player_id,
-          displayName: playerData?.bio?.displayName || p.bio?.displayName || p.name,
+          displayName:
+            playerData?.bio?.displayName || p.bio?.displayName || p.name,
           position,
           contract: architectContract || playerData?.contract,
         };
@@ -413,9 +416,7 @@ const GMDashboard = () => {
       const position =
         base.position ||
         base.formattedPosition ||
-        getPlayerPositionLabel(
-          base.bio?.position || playerObj.position || ''
-        );
+        getPlayerPositionLabel(base.bio?.position || playerObj.position || '');
 
       const newPlayer = {
         ...(base || {}),
@@ -641,6 +642,7 @@ const GMDashboard = () => {
         {activeTab === 'capfull' && (
           <CapSheetFull
             teamCapSheet={teamCapSheet}
+            currentYear={currentYear}
             onSelectPlayer={handleEditContract}
             playersMap={playersMap}
           />

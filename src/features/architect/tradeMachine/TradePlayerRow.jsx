@@ -28,14 +28,16 @@ const TradePlayerRow = ({
   const details = playersMap[player.name] || {};
   const team =
     player.tradeTo ||
-    player.bio?.display?.team ||
-    player.team ||
-    player.teamId ||
+    player.teamCode ||
     player.teamAbbr ||
-    details.bio?.display?.team ||
-    details.team ||
+    player.teamId ||
+    player.team ||
+    player.bio?.display?.team ||
+    details.teamCode ||
+    details.teamAbbr ||
     details.teamId ||
-    details.teamAbbr;
+    details.team ||
+    details.bio?.display?.team;
 
   // Click outside handler (unchanged UI behavior)
   useEffect(() => {
@@ -64,12 +66,19 @@ const TradePlayerRow = ({
       ? yearKey
       : parseInt(yearKey.match(/\d{4}/)?.[0]);
   const salary = getSalaryWithFallback(player, yearKey);
-  const faYear =
-    primaryContract?.freeAgency?.freeAgentYear ??
-    player.bio?.display?.freeAgentYear ??
-    player.freeAgentYear ??
-    null;
-  const yearsLeft = getYearsRemaining(faYear, year);
+  // Get years remaining from contract schema (most reliable)
+  const yearsLeft =
+    player.contract?.yearsRemaining ??
+    primaryContract?.yearsRemaining ??
+    (() => {
+      const faYear =
+        player.contract?.freeAgency?.year ??
+        primaryContract?.freeAgency?.year ??
+        player.bio?.display?.freeAgentYear ??
+        player.freeAgentYear ??
+        null;
+      return faYear ? getYearsRemaining(faYear, year) : 0;
+    })();
   const salaryForYear = Array.isArray(primaryContract?.salariesByYear)
     ? primaryContract.salariesByYear.find(
         (s) =>
@@ -150,11 +159,10 @@ const TradePlayerRow = ({
             fallbackClassName="bg-neutral-800 rounded-full"
           />
           <div>
-            {player.bio?.height
-              ? `${Math.floor(player.bio.height / 12)}-${player.bio.height % 12}`
-              : player.height || player.height_ft_in || '—'}
+            {player.bio?.height || player.height || player.height_ft_in || '—'}
             <span className="text-white/30">|</span>{' '}
-            {player.bio?.weight || player.weight || player.weight_lbs || '—'} lbs
+            {player.bio?.weight || player.weight || player.weight_lbs || '—'}{' '}
+            lbs
           </div>
         </div>
       </div>

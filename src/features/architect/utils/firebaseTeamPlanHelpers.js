@@ -67,6 +67,8 @@ const buildPlayerEntry = (playerId, playerData) => {
     displayName: playerData.displayName || playerId,
     position: playerData.bio?.position || '',
     age: playerData.bio?.age || null,
+    teamCode: playerData.teamCode || null,
+    teamName: playerData.teamName || null,
     contract: playerData.contract || null,
     futureContract: playerData.futureContract || null,
     bio: {
@@ -113,7 +115,8 @@ export const hydrateBaseTeam = async (teamCode, baseDoc) => {
         signAndTrade: false,
         guaranteed: true,
         isMinimum: false,
-        yearsOfService: p.bio?.experience || contract?.birdRights?.yearsOfService || null,
+        yearsOfService:
+          p.bio?.experience || contract?.birdRights?.yearsOfService || null,
       };
     });
 
