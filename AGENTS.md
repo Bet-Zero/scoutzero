@@ -1,5 +1,74 @@
 # AGENTS.md – HoopZero/ScoutZero AI Instructions
 
+# CRITICAL NON-NEGOTIABLE RULES (READ FIRST)
+
+For EVERY non-trivial task, you MUST follow these rules:
+
+1. **TEMPORARY WORK ALWAYS GOES IN `plans/<slug>/temp/`**:
+   - All scratch, experiments, drafts, and temporary scripts/files MUST be created under `plans/<slug>/temp/`.
+   - NEVER leave temp files in `src/`, `data/`, `tools/`, or `tests/`.
+   - When plan is completed, delete entire `plans/<slug>/temp/` directory.
+   - **📖 See `docs/workspace-rules/FILE_PLACEMENT_GUIDE.md` for complete decision tree**
+
+2. **ALWAYS USE PLANS FOR NON-TRIVIAL TASKS**:
+   - Most tasks use just `plan.md` with explicit PROGRESS tracking
+   - Chunks are ONLY for massive multi-phase plans (refactor entire project, etc.)
+   - **📖 See `docs/workspace-rules/WHEN_TO_USE_PLAN_MODE.md` for when to use plan mode**
+   - **📖 See `docs/workspace-rules/WORKFLOW_CHECKLIST.md` for complete execution steps**
+
+3. **ASK BEFORE GUESSING STRUCTURE**:
+   - If you are unsure where new files should live, ASK the user.
+   - Do NOT invent new top-level folders without explicit confirmation.
+   - See `docs/workspace-rules/COMMUNICATION_RULES.md` for when to ask vs. decide.
+
+4. **UPDATE STATE AFTER EXECUTION**:
+   - After completing work, always update:
+     - Chunk `STATE` and `ERROR_LOG` (if needed)
+     - Plan `CURRENT_STATE` and `CHUNK_INDEX`
+   - Update documentation for significant changes - see `docs/workspace-rules/DOCUMENTATION_UPDATE_RULES.md`.
+
+---
+
+## WHEN USING CURSOR'S PLAN MODE
+
+When you are operating in **Cursor's Plan Mode**, you MUST:
+
+1. **FIRST, read these workflow documents at the start**:
+   - `docs/workspace-rules/WORKFLOW_CHECKLIST.md` - Complete step-by-step execution process
+   - `docs/workspace-rules/FILE_PLACEMENT_GUIDE.md` - Decision tree for file placement
+   - `docs/workspace-rules/WHEN_TO_USE_PLAN_MODE.md` - When to use plans vs simple edits
+
+2. **Then follow the workflow exactly as specified in `WORKFLOW_CHECKLIST.md`**
+   - The checklist is your single source of truth for execution steps
+   - Update progress in `plan.md` as you complete each step
+   - Follow the file placement rules from `FILE_PLACEMENT_GUIDE.md`
+
+3. **The user expects you to execute the plan, not just discuss it**
+   - Plan Mode means: read the instructions, execute them, track progress
+   - If something is unclear about project direction/requirements, ask
+   - If it's a technical decision, make it independently and document it
+
+---
+
+## 0.1 PRE-EXECUTION SELF-CHECK
+
+Before you start planning or editing for any non-trivial request, you MUST:
+
+1. **Explicitly answer these questions in your own words**:
+   - Where should I put temporary/scratch files for this task? → `plans/<slug>/temp/`
+   - Do I need a plan in `plans/` for this task? If yes, what will its slug be?
+   - Do I need chunks? (Only for massive multi-phase plans)
+   - Which permanent folders (`src/`, `data/`, `tools/`, `docs/`, `tests/`) will be affected?
+
+2. **If you cannot answer any of these clearly, you MUST**:
+   - Open `AGENTS.md` and re-read the NON-NEGOTIABLES section
+   - Check `docs/workspace-rules/WHEN_TO_USE_PLAN_MODE.md` to determine if plan mode is needed
+   - Ask the user for clarification if still unclear
+
+**This self-check ensures you follow the workspace, plan, and file placement rules before starting work.**
+
+---
+
 ## Project Overview
 
 HoopZero is a public-facing NBA scouting platform. It displays player bios, stats, roles, contracts, and grades using a clean layout. All player data is loaded from Firebase Firestore using a **hierarchical player structure with subcollections** (not flattened documents).
@@ -16,6 +85,11 @@ Agents should **never write to Firestore** or attempt to save data — only read
 - Style: **Tailwind CSS** with utility classes
 - Imports: Use alias paths (e.g., `@/components/...`)
 - File Format: **Named exports** preferred; default exports only for top-level views
+- **TypeScript vs JavaScript**:
+  - **New files should use TypeScript** (`.ts` for utilities, `.tsx` for React components)
+  - The project is migrating from JavaScript to TypeScript - existing `.js`/`.jsx` files are legacy
+  - When creating new files, prefer `.ts`/`.tsx` unless there's a specific reason to use JavaScript
+  - When modifying existing `.js`/`.jsx` files, consider migrating to TypeScript if making significant changes
 
 ---
 
@@ -39,7 +113,46 @@ styles/        Tailwind and additional styles
 - New code should be grouped by **feature** where possible
 - Reusable UI or logic goes in `shared/`, `hooks/`, or `utils/`
 
+### Per-Feature Structure and Documentation Requirements
+
+**CRITICAL**: When creating a NEW feature, tool, or data module, you MUST:
+
+1. **CREATE A FOLDER-LEVEL README**:
+   - For features: `src/features/<featureSlug>/README.md` (or `src/architect/<featureSlug>/README.md` for Architect-specific)
+   - For tools: `tools/<toolSlug>/README.md`
+   - For data modules: `data/<area>/README.md`
+   - Each README must document: PURPOSE, ENTRY POINTS, STRUCTURE, and LINKS to relevant plans/docs
+
+2. **USE INDEX-BASED STRUCTURE FOR COMPOSED COMPONENTS**:
+   - Create `index.tsx` (or `index.ts`/`index.jsx`) at feature root that exports main component
+   - Place subcomponents in subfolders with their own `index.tsx`
+   - Keep hierarchy consistent with visual/logic composition (parent components above children in folder depth)
+
+3. **ALWAYS ADD FILE HEADERS FOR NEW OR SIGNIFICANTLY MODIFIED FILES**:
+   - For all new files in `src/`, `data/`, and `tools/`
+   - Use `docs/templates/file_header.template.txt`
+   - Fill in: FILE, PURPOSE, OWNERSHIP, HISTORY, LINKS
+   - **If unsure about PURPOSE or OWNERSHIP, ASK the user** instead of guessing
+
+📄 See `docs/workspace-rules/CREATING_PERMANENT_DOCS.md` for detailed guidance on folder-level READMEs, index-based structure, and file headers.
+
 ---
+
+## Communication and Decision-Making Rules
+
+**CRITICAL: Ask Questions, Don't Assume**
+
+- **Project Direction & Requirements**: Ask clarifying questions rather than assume intent
+  - User does not have coding experience - they cannot make technical decisions
+  - User expects many questions to clarify project direction and exact requirements
+  - Build plans with extreme detail before execution - confidence that it will build exactly what's wanted
+  - If something is unclear about what they want, ask rather than guess
+- **Technical Decisions**: Make these independently
+  - Code patterns, types, frameworks, architecture choices
+  - File structure, naming conventions, implementation details
+  - User has no opinion on technical matters - these are agent decisions
+
+**Plan Mode Philosophy**: Build plans with so much detail and clarity that execution is straightforward and results match expectations exactly.
 
 ## Task Rules for Agents
 
@@ -49,7 +162,12 @@ styles/        Tailwind and additional styles
 - ✅ Use **smart, readable file naming** (`TraitGradesBlock.jsx`, `AddPlayerDrawer.jsx`, etc.)
 - ✅ Preserve modals, filters, blurbs, and Firestore reads
 - ✅ Leave the worktree **clean** (`git status` should show no changes)
-- ✅ **Keep PROJECT_SCHEMA.md in sync** when adding directories, scripts, or changing artifact paths
+- ✅ **Update documentation automatically** - See `docs/workspace-rules/DOCUMENTATION_UPDATE_RULES.md` for mandatory documentation updates
+  - **Keep PROJECT_SCHEMA.md in sync** when adding directories, scripts, or changing artifact paths
+  - **Run `npm run schema:generate`** when modifying Zod schemas in `src/schemas/`
+  - **Run `npm run docs`** when adding/modifying React components
+  - **Update DEVELOPER_GUIDE.md** when feature structure changes
+  - Documentation updates are **mandatory** - never leave docs out of date
 - ✅ Run `npm run validate:project` to verify structural changes don't break schema
 - ❌ Never create new branches
 - ❌ Never amend or squash existing commits
@@ -152,6 +270,45 @@ This project includes **generated docs** for navigation:
 npm run docs          # Generate component hierarchies
 npm run schema:generate  # Generate schema docs from Zod sources
 ```
+
+---
+
+## Custom Cursor Commands
+
+This project includes custom Cursor commands for structured code review, explanation, and cleanup workflows.
+
+### Command Overview
+
+The commands are located in `.cursor/commands/` and reference detailed prompt instructions in `docs/cursor-prompts/`:
+
+| Command           | Purpose                                                          | Prompt File                                  |
+| ----------------- | ---------------------------------------------------------------- | -------------------------------------------- |
+| `/explain`        | Explain selected code in plain English without changing anything | `docs/cursor-prompts/ExplainPrompt.md`       |
+| `/audit`          | Run the Apex Audit on selected files, folders, or full codebase  | `docs/cursor-prompts/ApexAuditPrompt.md`     |
+| `/audit-review`   | Review an existing audit and build a structured Fix Plan         | `docs/cursor-prompts/AuditReviewPrompt.md`   |
+| `/apply-critical` | Apply Critical SAFE_AUTO fixes from a Fix Plan                   | `docs/cursor-prompts/ApplyCriticalPrompt.md` |
+| `/fix-all`        | Apply all appropriate fixes from a Fix Plan                      | `docs/cursor-prompts/FixAllPrompt.md`        |
+| `/doc-sync`       | Update docs and comments to match current code behavior          | `docs/cursor-prompts/DocSyncPrompt.md`       |
+| `/cleanup`        | Safely clean up and refactor code without changing behavior      | `docs/cursor-prompts/CleanupPrompt.md`       |
+
+### Typical Workflow
+
+1. **`/explain`** → Understand code before making changes
+2. **`/audit`** → Identify issues in code
+3. **`/audit-review`** → Review audit findings and create a Fix Plan
+4. **`/apply-critical`** or **`/fix-all`** → Apply fixes from the Fix Plan
+5. **`/doc-sync`** → Keep documentation in sync with code changes
+6. **`/cleanup`** → Safe refactoring and hygiene improvements
+
+### Command Structure
+
+Each command file in `.cursor/commands/` contains:
+
+- Command metadata (name, description)
+- High-level instructions
+- Reference to the detailed prompt in `docs/cursor-prompts/`
+
+The detailed prompt files in `docs/cursor-prompts/` contain the complete instructions that agents should follow when executing the command.
 
 ---
 

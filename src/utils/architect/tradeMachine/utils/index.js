@@ -23,3 +23,6 @@ export * from './tradeUtilities.js';
 // Input validation and normalization
 export * from './validateInput.js';
 export * from './normalizeTradeInput.js';
+
+// Season utilities
+export * from './seasonUtils.js';

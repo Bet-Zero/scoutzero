@@ -1,51 +1,24 @@
 import { getApronStatus } from '@/utils/architect/tradeHelpers.js';
+import { computeMatchingValues as computeMatchingValuesNew } from './computeMatchingValues.js';
+import { getCapHitForSeason as getCapHitForSeasonUtil } from './seasonUtils.js';
 
 /**
- * Computes final matching values for trade validation accounting for:
- * - Base Year Compensation (BYC)
- * - Trade kickers
- * - Poison pill averaging
+ * Legacy wrapper preserved for back-compat. Delegates to the new-schema
+ * matching implementation that reads contract.salariesByYear exclusively.
  */
-export function computeMatchingValues({ teams, yearKey }) {
-  teams.forEach((team) => {
-    (team.sends || []).forEach((player) => {
-      const current =
-        player.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0;
-      const newSalary = player.newSalary || 0;
-      const previous = player.previousSalary || 0;
-      const kicker = player.tradeKicker || 0;
-      const remainingYears = player.remainingGuaranteedYears || 0;
+export function computeMatchingValues(params) {
+  return computeMatchingValuesNew(params);
+}
 
-      // Calculate outgoing matching value
-      if (player.isBYC) {
-        // BYC outgoing = max(50% of new salary, prior salary)
-        const bycValue = Math.max(newSalary * 0.5, previous);
-        player.matchOutgoing = bycValue;
-      } else {
-        player.matchOutgoing = current;
-      }
-
-      // Calculate incoming matching value with trade kicker
-      if (kicker > 0 && remainingYears > 0) {
-        // Prorate kicker based on remaining guaranteed years
-        const kickerAmount = (current * kicker) / remainingYears;
-        player.matchIncoming = current + kickerAmount;
-      } else {
-        player.matchIncoming = current;
-      }
-
-      // Handle poison pill contracts (salary spikes)
-      if (player.extensionYears?.length) {
-        const futureTotal = player.extensionYears.reduce(
-          (sum, yr) => sum + yr.salary,
-          0
-        );
-        const averageSalary =
-          (current + futureTotal) / (1 + player.extensionYears.length);
-        player.matchIncoming = Math.max(player.matchIncoming, averageSalary);
-      }
-    });
-  });
+/**
+ * Get cap hit for a player for a specific season
+ * Uses capHit field when available, falls back to salary
+ * @param {Object} player - Player object with contract data
+ * @param {string|number} seasonOrYear - Season string ("2026-27") or numeric year (2026)
+ * @returns {number} Cap hit amount, 0 if not found
+ */
+export function getCapHitForSeason(player, seasonOrYear) {
+  return getCapHitForSeasonUtil(player, seasonOrYear);
 }
 
 export function getIncomingCeilingForTeam(team) {

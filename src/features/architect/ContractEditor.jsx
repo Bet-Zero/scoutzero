@@ -212,17 +212,21 @@ const ContractEditor = ({
         </div>
       )}
 
-      {preview?.salaries_by_year && (
+      {preview?.salariesByYear && preview.salariesByYear.length > 0 && (
         <div className="bg-[#1a1a1a] p-4 rounded border border-white/10 mt-4">
           <h3 className="font-semibold mb-2">Contract Preview:</h3>
           <ul>
-            {Object.entries(preview.salaries_by_year).map(([year, data]) => (
-              <li key={year}>
-                {year}: ${data.salary.toLocaleString()}{' '}
-                {data.option ? `(${data.option})` : ''}
+            {preview.salariesByYear.map((yearEntry) => (
+              <li key={yearEntry.season}>
+                {yearEntry.season}: ${yearEntry.salary.toLocaleString()}{' '}
+                {yearEntry.option ? `(${yearEntry.option})` : ''}
               </li>
             ))}
           </ul>
+
+          <p>
+            Total Value: ${(preview.totalValue || 0).toLocaleString()}
+          </p>
 
           <p>
             Guarantee:{' '}

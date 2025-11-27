@@ -8,6 +8,20 @@ debug.logs = [];
 // Helper function for cleaner salary formatting
 const formatSalary = (amount) => `$${(amount || 0).toLocaleString()}`;
 
+// Helper to convert contract data to Architect contract.salariesByYear format
+const makeContract = (year, salary) => ({
+  contract: {
+    salariesByYear: [
+      {
+        season: `${year}-${String((year + 1) % 100).padStart(2, '0')}`,
+        salary,
+        capHit: salary,
+        guaranteed: true,
+      },
+    ],
+  },
+});
+
 // ===== TEST CASE 1: 2-for-1 with higher incoming salary (Should Fail) =====
 const warriorsTrade = {
   description: 'Warriors 2-for-1 with higher incoming salary (Should: Fail)',
@@ -23,22 +37,28 @@ const warriorsTrade = {
         sends: [
           {
             name: 'Chris Paul',
-            contract_clean: {
-              salaries_by_year: { 2024: { salary: 30000000 } },
+            contract: {
+              salariesByYear: [
+                { season: '2024-25', salary: 30000000, capHit: 30000000, guaranteed: true },
+              ],
             },
           },
           {
             name: 'Andrew Wiggins',
-            contract_clean: {
-              salaries_by_year: { 2024: { salary: 24000000 } },
+            contract: {
+              salariesByYear: [
+                { season: '2024-25', salary: 24000000, capHit: 24000000, guaranteed: true },
+              ],
             },
           },
         ],
         incomingPlayers: [
           {
             name: 'Pascal Siakam',
-            contract_clean: {
-              salaries_by_year: { 2024: { salary: 37000000 } },
+            contract: {
+              salariesByYear: [
+                { season: '2024-25', salary: 37000000, capHit: 37000000, guaranteed: true },
+              ],
             },
           },
         ],
@@ -53,8 +73,10 @@ const warriorsTrade = {
         sends: [
           {
             name: 'Pascal Siakam',
-            contract_clean: {
-              salaries_by_year: { 2024: { salary: 37000000 } },
+            contract: {
+              salariesByYear: [
+                { season: '2024-25', salary: 37000000, capHit: 37000000, guaranteed: true },
+              ],
             },
           },
         ],
@@ -84,36 +106,13 @@ const lakersTrade = {
           players: [],
         },
         sends: [
-          {
-            name: "D'Angelo Russell",
-            contract_clean: {
-              salaries_by_year: { 2024: { salary: 17000000 } },
-            },
-          },
-          {
-            name: 'Rui Hachimura',
-            contract_clean: {
-              salaries_by_year: { 2024: { salary: 15000000 } },
-            },
-          },
-          {
-            name: 'Jalen Hood-Schifino',
-            contract_clean: { salaries_by_year: { 2024: { salary: 3000000 } } },
-          },
+          { name: "D'Angelo Russell", ...makeContract(2024, 17000000) },
+          { name: 'Rui Hachimura', ...makeContract(2024, 15000000) },
+          { name: 'Jalen Hood-Schifino', ...makeContract(2024, 3000000) },
         ],
         incomingPlayers: [
-          {
-            name: 'Alex Caruso',
-            contract_clean: {
-              salaries_by_year: { 2024: { salary: 16000000 } },
-            },
-          },
-          {
-            name: 'Andre Drummond',
-            contract_clean: {
-              salaries_by_year: { 2024: { salary: 12000000 } },
-            },
-          },
+          { name: 'Alex Caruso', ...makeContract(2024, 16000000) },
+          { name: 'Andre Drummond', ...makeContract(2024, 12000000) },
         ],
       },
       {
@@ -124,18 +123,8 @@ const lakersTrade = {
           players: [],
         },
         sends: [
-          {
-            name: 'Alex Caruso',
-            contract_clean: {
-              salaries_by_year: { 2024: { salary: 16000000 } },
-            },
-          },
-          {
-            name: 'Andre Drummond',
-            contract_clean: {
-              salaries_by_year: { 2024: { salary: 12000000 } },
-            },
-          },
+          { name: 'Alex Caruso', ...makeContract(2024, 16000000) },
+          { name: 'Andre Drummond', ...makeContract(2024, 12000000) },
         ],
         incomingPlayers: [
           { name: "D'Angelo Russell" },
@@ -165,25 +154,10 @@ const bucksTrade = {
           totalSalary: 183000000,
           players: [],
         },
-        sends: [
-          {
-            name: 'Khris Middleton',
-            contract_clean: {
-              salaries_by_year: { 2024: { salary: 29000000 } },
-            },
-          },
-        ],
+        sends: [{ name: 'Khris Middleton', ...makeContract(2024, 29000000) }],
         incomingPlayers: [
-          {
-            name: 'Bogdan Bogdanovic',
-            contract_clean: {
-              salaries_by_year: { 2024: { salary: 18000000 } },
-            },
-          },
-          {
-            name: 'Onyeka Okongwu',
-            contract_clean: { salaries_by_year: { 2024: { salary: 8000000 } } },
-          },
+          { name: 'Bogdan Bogdanovic', ...makeContract(2024, 18000000) },
+          { name: 'Onyeka Okongwu', ...makeContract(2024, 8000000) },
         ],
       },
       {
@@ -194,16 +168,8 @@ const bucksTrade = {
           players: [],
         },
         sends: [
-          {
-            name: 'Bogdan Bogdanovic',
-            contract_clean: {
-              salaries_by_year: { 2024: { salary: 18000000 } },
-            },
-          },
-          {
-            name: 'Onyeka Okongwu',
-            contract_clean: { salaries_by_year: { 2024: { salary: 8000000 } } },
-          },
+          { name: 'Bogdan Bogdanovic', ...makeContract(2024, 18000000) },
+          { name: 'Onyeka Okongwu', ...makeContract(2024, 8000000) },
         ],
         incomingPlayers: [{ name: 'Khris Middleton' }],
       },
@@ -247,33 +213,11 @@ const testCases = [
             totalSalary: 182000000,
             players: [],
           },
-          sends: [
-            {
-              name: 'Malcolm Brogdon',
-              contract_clean: {
-                salaries_by_year: { 2024: { salary: 22500000 } },
-              },
-            },
-          ],
+          sends: [{ name: 'Malcolm Brogdon', ...makeContract(2024, 22500000) }],
           incomingPlayers: [
-            {
-              name: 'Kelly Olynyk',
-              contract_clean: {
-                salaries_by_year: { 2024: { salary: 12000000 } },
-              },
-            },
-            {
-              name: 'Delon Wright',
-              contract_clean: {
-                salaries_by_year: { 2024: { salary: 8000000 } },
-              },
-            },
-            {
-              name: 'Jevon Carter',
-              contract_clean: {
-                salaries_by_year: { 2024: { salary: 2000000 } },
-              },
-            },
+            { name: 'Kelly Olynyk', ...makeContract(2024, 12000000) },
+            { name: 'Delon Wright', ...makeContract(2024, 8000000) },
+            { name: 'Jevon Carter', ...makeContract(2024, 2000000) },
           ],
         },
         {
@@ -284,24 +228,9 @@ const testCases = [
             players: [],
           },
           sends: [
-            {
-              name: 'Kelly Olynyk',
-              contract_clean: {
-                salaries_by_year: { 2024: { salary: 12000000 } },
-              },
-            },
-            {
-              name: 'Delon Wright',
-              contract_clean: {
-                salaries_by_year: { 2024: { salary: 8000000 } },
-              },
-            },
-            {
-              name: 'Jevon Carter',
-              contract_clean: {
-                salaries_by_year: { 2024: { salary: 2000000 } },
-              },
-            },
+            { name: 'Kelly Olynyk', ...makeContract(2024, 12000000) },
+            { name: 'Delon Wright', ...makeContract(2024, 8000000) },
+            { name: 'Jevon Carter', ...makeContract(2024, 2000000) },
           ],
           incomingPlayers: [{ name: 'Malcolm Brogdon' }],
         },
@@ -327,27 +256,10 @@ const testCases = [
             totalSalary: 184000000,
             players: [],
           },
-          sends: [
-            {
-              name: 'Michael Porter Jr.',
-              contract_clean: {
-                salaries_by_year: { 2024: { salary: 33000000 } },
-              },
-            },
-          ],
+          sends: [{ name: 'Michael Porter Jr.', ...makeContract(2024, 33000000) }],
           incomingPlayers: [
-            {
-              name: 'Luguentz Dort',
-              contract_clean: {
-                salaries_by_year: { 2024: { salary: 15000000 } },
-              },
-            },
-            {
-              name: 'Davis Bertans',
-              contract_clean: {
-                salaries_by_year: { 2024: { salary: 17000000 } },
-              },
-            },
+            { name: 'Luguentz Dort', ...makeContract(2024, 15000000) },
+            { name: 'Davis Bertans', ...makeContract(2024, 17000000) },
           ],
         },
         {
@@ -358,18 +270,8 @@ const testCases = [
             players: [],
           },
           sends: [
-            {
-              name: 'Luguentz Dort',
-              contract_clean: {
-                salaries_by_year: { 2024: { salary: 15000000 } },
-              },
-            },
-            {
-              name: 'Davis Bertans',
-              contract_clean: {
-                salaries_by_year: { 2024: { salary: 17000000 } },
-              },
-            },
+            { name: 'Luguentz Dort', ...makeContract(2024, 15000000) },
+            { name: 'Davis Bertans', ...makeContract(2024, 17000000) },
           ],
           incomingPlayers: [{ name: 'Michael Porter Jr.' }],
         },
@@ -397,38 +299,13 @@ const testCases = [
             players: [],
           },
           sends: [
-            {
-              name: 'Kyle Lowry',
-              contract_clean: {
-                salaries_by_year: { 2024: { salary: 28000000 } },
-              },
-            },
-            {
-              name: 'Duncan Robinson',
-              contract_clean: {
-                salaries_by_year: { 2024: { salary: 18000000 } },
-              },
-            },
+            { name: 'Kyle Lowry', ...makeContract(2024, 28000000) },
+            { name: 'Duncan Robinson', ...makeContract(2024, 18000000) },
           ],
           incomingPlayers: [
-            {
-              name: 'Terry Rozier',
-              contract_clean: {
-                salaries_by_year: { 2024: { salary: 23000000 } },
-              },
-            },
-            {
-              name: 'P.J. Washington',
-              contract_clean: {
-                salaries_by_year: { 2024: { salary: 16000000 } },
-              },
-            },
-            {
-              name: 'Nick Richards',
-              contract_clean: {
-                salaries_by_year: { 2024: { salary: 5000000 } },
-              },
-            },
+            { name: 'Terry Rozier', ...makeContract(2024, 23000000) },
+            { name: 'P.J. Washington', ...makeContract(2024, 16000000) },
+            { name: 'Nick Richards', ...makeContract(2024, 5000000) },
           ],
         },
         {
@@ -439,24 +316,9 @@ const testCases = [
             players: [],
           },
           sends: [
-            {
-              name: 'Terry Rozier',
-              contract_clean: {
-                salaries_by_year: { 2024: { salary: 23000000 } },
-              },
-            },
-            {
-              name: 'P.J. Washington',
-              contract_clean: {
-                salaries_by_year: { 2024: { salary: 16000000 } },
-              },
-            },
-            {
-              name: 'Nick Richards',
-              contract_clean: {
-                salaries_by_year: { 2024: { salary: 5000000 } },
-              },
-            },
+            { name: 'Terry Rozier', ...makeContract(2024, 23000000) },
+            { name: 'P.J. Washington', ...makeContract(2024, 16000000) },
+            { name: 'Nick Richards', ...makeContract(2024, 5000000) },
           ],
           incomingPlayers: [
             { name: 'Kyle Lowry' },

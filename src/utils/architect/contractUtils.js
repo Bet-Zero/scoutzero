@@ -1,3 +1,5 @@
+import { toSeasonCode, toEndYear } from './seasonFormat.js';
+
 // 1. Generate any generic contract
 export function generateContract({
   baseSalary,
@@ -7,29 +9,44 @@ export function generateContract({
   startYear = 2025,
   roundTo = 100,
 }) {
-  const salaries_by_year = {};
+  const salariesByYear = [];
   let salary = baseSalary;
 
   for (let i = 0; i < years; i++) {
-    const year = startYear + i;
-    salaries_by_year[year] = {
-      salary: Math.round(salary / roundTo) * roundTo,
+    const endYear = startYear + i;
+    const season = toSeasonCode(endYear);
+    const roundedSalary = Math.round(salary / roundTo) * roundTo;
+    
+    const yearEntry = {
+      season,
+      salary: roundedSalary,
+      capHit: roundedSalary,
       guaranteed: options.guaranteed === false ? false : true,
+      guaranteedAmount: options.guaranteed === false ? 0 : roundedSalary,
+      option: null,
+      optionUsed: null,
+      tradeBonus: null,
     };
+
+    // Add option to last year if specified
+    if (i === years - 1) {
+      if (options.playerOption) yearEntry.option = 'Player Option';
+      if (options.teamOption) yearEntry.option = 'Team Option';
+    }
+
+    salariesByYear.push(yearEntry);
     salary *= 1 + raisePct;
   }
 
-  const lastYear = startYear + years - 1;
-  if (options.playerOption) salaries_by_year[lastYear].option = 'Player Option';
-  if (options.teamOption) salaries_by_year[lastYear].option = 'Team Option';
+  const totalValue = salariesByYear.reduce(
+    (sum, yr) => sum + (yr.salary || 0),
+    0
+  );
 
   return {
-    salaries_by_year,
+    salariesByYear,
     extension: options.extension || false,
-    totalValue: Object.values(salaries_by_year).reduce(
-      (sum, yr) => sum + (yr.salary || 0),
-      0
-    ),
+    totalValue,
     yearsLeft: years,
     birdRights: 'Full Bird',
     freeAgency: `${startYear + years} (UFA)`,
@@ -142,16 +159,28 @@ export function getMinimumSalary(yearsOfService) {
 
 // 6. Stretch provision calculator
 export function stretchContract(contract, currentYear) {
-  const yearKeys = Object.keys(
-    contract.contract_clean?.salaries_by_year || {}
-  ).map(Number);
+  // Prefer Architect contract shape if available
+  // Contract parameter may be a contract object or a player object with contract property
+  const salariesByYear = contract?.salariesByYear || contract?.contract?.salariesByYear;
+  
+  let yearKeys = [];
+  if (salariesByYear?.length) {
+    yearKeys = salariesByYear
+      .map((y) => toEndYear(y.season))
+      .filter((y) => y != null);
+  }
   const remainingYears = yearKeys.filter((y) => y >= currentYear).length;
 
   const totalOwed = yearKeys
     .filter((y) => y >= currentYear)
     .reduce(
-      (sum, key) =>
-        sum + (contract.contract_clean.salaries_by_year[key]?.salary || 0),
+      (sum, key) => {
+        const yearEntry = salariesByYear?.find((y) => {
+          const entryEndYear = toEndYear(y.season);
+          return entryEndYear === key;
+        });
+        return sum + (yearEntry?.salary || 0);
+      },
       0
     );
 
@@ -175,8 +204,26 @@ export function getMinimumCapHit(yearsOfService) {
 // 8. Cap hold logic
 export function calculateCapHold(player, capProjections, year = 2025) {
   const experience = player.bio?.yearsExperience || 0;
-  const rights = player.contract_clean?.birdRights || 'None';
-  const lastSalary = player.contract_clean?.lastSalary || 0;
+  const rights =
+    player.contract?.birdRights?.status ||
+    'None';
+
+  let lastSalary = 0;
+  if (player.contract?.salariesByYear?.length) {
+    const sorted = [...player.contract.salariesByYear].sort((a, b) => {
+      const sa = String(a.season);
+      const sb = String(b.season);
+      const ya = /^\d{4}-\d{2}$/.test(sa)
+        ? 2000 + parseInt(sa.split('-')[1], 10)
+        : parseInt(sa, 10);
+      const yb = /^\d{4}-\d{2}$/.test(sb)
+        ? 2000 + parseInt(sb.split('-')[1], 10)
+        : parseInt(sb, 10);
+      return (ya || 0) - (yb || 0);
+    });
+    const last = sorted[sorted.length - 1];
+    lastSalary = last?.salary || last?.capHit || 0;
+  }
   const pickNumber = player.draft?.pick || null;
   const draftRound = player.draft?.round || null;
 
@@ -228,16 +275,9 @@ export function generateDefaultFreeAgentContract(
     startYear,
   });
 
-  const salaryByYear = Object.keys(contract.salaries_by_year).reduce(
-    (acc, yr) => {
-      acc[yr] = contract.salaries_by_year[yr].salary;
-      return acc;
-    },
-    {}
-  );
-
+  // Return contract with new salariesByYear array format
   return {
-    salaryByYear,
+    ...contract,
     options: {},
     signAndTrade: false,
     guaranteed: true,

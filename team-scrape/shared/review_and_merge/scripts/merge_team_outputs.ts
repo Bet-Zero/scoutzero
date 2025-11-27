@@ -27,6 +27,7 @@
  */
 
 import fs from 'node:fs/promises';
+import { createWriteStream, type WriteStream } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -38,7 +39,7 @@ const __dirname = path.dirname(__filename);
 // CONFIGURATION
 // ============================================================================
 
-const CONFIG = {
+const DEFAULT_CONFIG = {
   // Input paths (relative to project root)
   salaryDir: 'team-scrape/team-data/output',
   draftPicksDir: 'team-scrape/draft-picks/output/structured',
@@ -52,6 +53,69 @@ const CONFIG = {
   // Pretty print JSON
   prettyPrint: true,
 };
+
+type RuntimeConfig = typeof DEFAULT_CONFIG & {
+  teams: string[];
+  logFile?: string;
+  prettyPrint: boolean;
+};
+
+function parseArg(name: string): string | undefined {
+  const args = process.argv.slice(2);
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === `--${name}`) {
+      const next = args[i + 1];
+      if (!next || next.startsWith('--')) return 'true';
+      return next;
+    }
+    if (arg.startsWith(`--${name}=`)) {
+      const [, val] = arg.split('=');
+      return val ?? 'true';
+    }
+  }
+  return undefined;
+}
+
+function parseListArg(name: string): string[] | undefined {
+  const raw = parseArg(name);
+  if (!raw) return undefined;
+  return raw
+    .split(',')
+    .map((code) => code.trim().toUpperCase())
+    .filter(Boolean);
+}
+
+function parseBoolArg(name: string, def: boolean): boolean {
+  const raw = parseArg(name);
+  if (raw == null) return def;
+  if (raw === 'true' || raw === '1' || raw === '') return true;
+  if (raw === 'false' || raw === '0') return false;
+  return def;
+}
+
+let logWriter: WriteStream | null = null;
+
+async function initLogWriter(filePath?: string) {
+  if (!filePath) return;
+  await ensureDir(path.dirname(filePath));
+  logWriter = createWriteStream(filePath, { flags: 'a' });
+  logWriter.write(`\n=== Merge run started ${new Date().toISOString()} ===\n`);
+}
+
+async function closeLogWriter() {
+  if (!logWriter) return;
+  await new Promise<void>((resolve) => {
+    logWriter!.end(() => resolve());
+  });
+  logWriter = null;
+}
+
+function writeLogLine(message: string) {
+  if (logWriter) {
+    logWriter.write(`${message}\n`);
+  }
+}
 
 // ============================================================================
 // TYPES
@@ -171,25 +235,34 @@ interface MergedTeamData {
 
 function log(message: string, data?: any) {
   const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
-  console.log(`[${timestamp}] ${message}`);
+  const line = `[${timestamp}] ${message}`;
+  console.log(line);
+  writeLogLine(line);
   if (data !== undefined) {
     console.log(JSON.stringify(data, null, 2));
+    writeLogLine(JSON.stringify(data, null, 2));
   }
 }
 
 function warn(message: string, data?: any) {
   const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
-  console.warn(`[${timestamp}] ⚠️  ${message}`);
+  const line = `[${timestamp}] ⚠️  ${message}`;
+  console.warn(line);
+  writeLogLine(line);
   if (data !== undefined) {
     console.warn(JSON.stringify(data, null, 2));
+    writeLogLine(JSON.stringify(data, null, 2));
   }
 }
 
 function error(message: string, err?: any) {
   const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
-  console.error(`[${timestamp}] ❌ ${message}`);
+  const line = `[${timestamp}] ❌ ${message}`;
+  console.error(line);
+  writeLogLine(line);
   if (err) {
     console.error(err);
+    writeLogLine(String(err));
   }
 }
 
@@ -212,10 +285,8 @@ async function ensureDir(dirPath: string): Promise<void> {
   }
 }
 
-function serializeJSON(obj: any): string {
-  return CONFIG.prettyPrint
-    ? JSON.stringify(obj, null, 2)
-    : JSON.stringify(obj);
+function serializeJSON(obj: any, pretty: boolean): string {
+  return pretty ? JSON.stringify(obj, null, 2) : JSON.stringify(obj);
 }
 
 // ============================================================================
@@ -363,12 +434,13 @@ function mergeTeamData(
  */
 async function loadSalaryData(
   teamCode: string,
-  projectRoot: string
+  projectRoot: string,
+  config: RuntimeConfig
 ): Promise<SalaryData | null> {
   // Check for individual team files first (preferred pattern)
   const teamSpecificPath = path.join(
     projectRoot,
-    CONFIG.salaryDir,
+    config.salaryDir,
     `team_${teamCode}.json`
   );
   if (await fileExists(teamSpecificPath)) {
@@ -383,7 +455,7 @@ async function loadSalaryData(
   }
 
   // Fallback to generic team.json file (legacy pattern)
-  const teamJsonPath = path.join(projectRoot, CONFIG.salaryDir, 'team.json');
+  const teamJsonPath = path.join(projectRoot, config.salaryDir, 'team.json');
   if (await fileExists(teamJsonPath)) {
     try {
       const content = await fs.readFile(teamJsonPath, 'utf-8');
@@ -412,11 +484,12 @@ async function loadSalaryData(
  */
 async function loadDraftPickData(
   teamCode: string,
-  projectRoot: string
+  projectRoot: string,
+  config: RuntimeConfig
 ): Promise<DraftPick[]> {
   const filePath = path.join(
     projectRoot,
-    CONFIG.draftPicksDir,
+    config.draftPicksDir,
     `draft_picks_${teamCode}.json`
   );
 
@@ -442,17 +515,18 @@ async function loadDraftPickData(
 async function processTeam(
   teamCode: string,
   projectRoot: string,
-  outputDir: string
+  outputDir: string,
+  config: RuntimeConfig
 ): Promise<MergedTeamData | null> {
   log(`\n${'='.repeat(60)}`);
   log(`Processing team: ${teamCode}`);
   log('='.repeat(60));
 
   // Load salary data (optional - may not exist for all teams yet)
-  const salaryData = await loadSalaryData(teamCode, projectRoot);
+  const salaryData = await loadSalaryData(teamCode, projectRoot, config);
 
   // Load draft pick data (should exist for all sample teams)
-  const draftPicks = await loadDraftPickData(teamCode, projectRoot);
+  const draftPicks = await loadDraftPickData(teamCode, projectRoot, config);
 
   if (!salaryData && draftPicks.length === 0) {
     warn(`No data found for ${teamCode}, skipping`);
@@ -477,10 +551,42 @@ async function processTeam(
 
   // Write individual team file
   const outputPath = path.join(outputDir, `${teamCode}_merged.json`);
-  await fs.writeFile(outputPath, serializeJSON(merged));
+  await fs.writeFile(outputPath, serializeJSON(merged, config.prettyPrint));
   log(`✓ Wrote merged output: ${outputPath}`);
 
   return merged;
+}
+
+async function discoverTeams(
+  projectRoot: string,
+  salaryDir: string,
+  draftDir: string
+): Promise<string[]> {
+  const teams = new Set<string>();
+
+  const salaryPath = path.join(projectRoot, salaryDir);
+  try {
+    const salaryEntries = await fs.readdir(salaryPath);
+    for (const entry of salaryEntries) {
+      const match = entry.match(/^team_([A-Z]{3})\.json$/);
+      if (match) teams.add(match[1]);
+    }
+  } catch {
+    warn(`Salary directory not found or unreadable: ${salaryPath}`);
+  }
+
+  const draftPath = path.join(projectRoot, draftDir);
+  try {
+    const draftEntries = await fs.readdir(draftPath);
+    for (const entry of draftEntries) {
+      const match = entry.match(/^draft_picks_([A-Z]{3})\.json$/);
+      if (match) teams.add(match[1]);
+    }
+  } catch {
+    warn(`Draft picks directory not found or unreadable: ${draftPath}`);
+  }
+
+  return Array.from(teams).sort();
 }
 
 // ============================================================================
@@ -491,20 +597,64 @@ async function main() {
   console.log('\n' + '='.repeat(70));
   console.log('TEAM DATA MERGE SCRIPT');
   console.log('='.repeat(70));
-  console.log(`\nConfiguration:`);
-  console.log(`  - Salary dir: ${CONFIG.salaryDir}`);
-  console.log(`  - Draft picks dir: ${CONFIG.draftPicksDir}`);
-  console.log(`  - Output dir: ${CONFIG.outputDir}`);
-  console.log(`  - Teams to process: ${CONFIG.teams.join(', ')}`);
-  console.log(`  - Pretty print: ${CONFIG.prettyPrint}`);
-  console.log('');
 
   // Determine project root (3 levels up from this script)
   const projectRoot = path.resolve(__dirname, '../../../..');
   log(`Project root: ${projectRoot}`);
 
+  const runtimeConfig: RuntimeConfig = {
+    ...DEFAULT_CONFIG,
+    salaryDir: parseArg('salaryDir') ?? DEFAULT_CONFIG.salaryDir,
+    draftPicksDir: parseArg('draftDir') ?? DEFAULT_CONFIG.draftPicksDir,
+    outputDir: parseArg('outputDir') ?? DEFAULT_CONFIG.outputDir,
+    prettyPrint: parseBoolArg('pretty', DEFAULT_CONFIG.prettyPrint),
+    teams: [],
+    logFile: undefined,
+  };
+
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const logDirArg = parseArg('logDir');
+  const logFileArg = parseArg('logFile');
+  const resolvedLogDir = path.resolve(
+    projectRoot,
+    logDirArg ?? 'team-scrape/logs'
+  );
+  const logFilePath = logFileArg
+    ? path.resolve(projectRoot, logFileArg)
+    : path.join(resolvedLogDir, `merge-${timestamp}.log`);
+  runtimeConfig.logFile = logFilePath;
+  await initLogWriter(runtimeConfig.logFile);
+
+  const teamOverride = parseListArg('teams');
+  if (teamOverride && teamOverride.length > 0) {
+    runtimeConfig.teams = teamOverride;
+  } else {
+    runtimeConfig.teams = await discoverTeams(
+      projectRoot,
+      runtimeConfig.salaryDir,
+      runtimeConfig.draftPicksDir
+    );
+  }
+
+  if (!runtimeConfig.teams.length) {
+    error(
+      'No teams detected. Provide scraped salary/draft outputs or pass --teams.'
+    );
+    await closeLogWriter();
+    process.exit(1);
+  }
+
+  console.log(`\nConfiguration:`);
+  console.log(`  - Salary dir: ${runtimeConfig.salaryDir}`);
+  console.log(`  - Draft picks dir: ${runtimeConfig.draftPicksDir}`);
+  console.log(`  - Output dir: ${runtimeConfig.outputDir}`);
+  console.log(`  - Log file: ${runtimeConfig.logFile}`);
+  console.log(`  - Teams to process: ${runtimeConfig.teams.join(', ')}`);
+  console.log(`  - Pretty print: ${runtimeConfig.prettyPrint}`);
+  console.log('');
+
   // Ensure output directory exists
-  const outputDir = path.join(projectRoot, CONFIG.outputDir);
+  const outputDir = path.join(projectRoot, runtimeConfig.outputDir);
   await ensureDir(outputDir);
   log(`Output directory ready: ${outputDir}\n`);
 
@@ -517,11 +667,16 @@ async function main() {
     skipped: 0,
   };
 
-  for (const teamCode of CONFIG.teams) {
+  for (const teamCode of runtimeConfig.teams) {
     stats.processed++;
 
     try {
-      const merged = await processTeam(teamCode, projectRoot, outputDir);
+      const merged = await processTeam(
+        teamCode,
+        projectRoot,
+        outputDir,
+        runtimeConfig
+      );
 
       if (merged) {
         mergedTeams.push(merged);
@@ -541,7 +696,10 @@ async function main() {
     log('Writing combined output file...');
 
     const allTeamsPath = path.join(outputDir, 'all_teams_merged.json');
-    await fs.writeFile(allTeamsPath, serializeJSON(mergedTeams));
+    await fs.writeFile(
+      allTeamsPath,
+      serializeJSON(mergedTeams, runtimeConfig.prettyPrint)
+    );
     log(`✓ Wrote combined output: ${allTeamsPath}`);
     log(`  - ${mergedTeams.length} teams included`);
   }
@@ -557,13 +715,13 @@ async function main() {
   console.log(`  - Skipped: ${stats.skipped}`);
   console.log(`\nOutput files:`);
   console.log(
-    `  - Individual: ${stats.successful} team files in ${CONFIG.outputDir}/`
+    `  - Individual: ${stats.successful} team files in ${runtimeConfig.outputDir}/`
   );
   console.log(`  - Combined: all_teams_merged.json`);
   console.log('');
 
   // Note about missing salary data
-  if (stats.successful < CONFIG.teams.length) {
+  if (stats.successful < runtimeConfig.teams.length) {
     console.log('⚠️  NOTE: Some teams are missing salary data. To complete:');
     console.log('   Run salary scraper for each team:');
     console.log(
@@ -573,11 +731,14 @@ async function main() {
     console.log('');
   }
 
+  await closeLogWriter();
+
   process.exit(stats.failed > 0 ? 1 : 0);
 }
 
 // Run main function
-main().catch((err) => {
+main().catch(async (err) => {
   error('Unhandled error in main', err);
+  await closeLogWriter();
   process.exit(1);
 });

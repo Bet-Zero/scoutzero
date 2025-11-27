@@ -1,8 +1,7 @@
 // stats/scripts/id_resolver.ts
-// Resolve NBA stats player ID from our shared index or cache file
+// Resolve NBA stats player ID from shared player index
 
 import fs from 'node:fs/promises';
-import path from 'node:path';
 import { paths } from './config';
 
 type PlayerIndexEntry = {
@@ -16,8 +15,6 @@ type PlayerIndexEntry = {
 
 type PlayerIndex = Record<string, PlayerIndexEntry>;
 
-type IdCache = Record<string, string>;
-
 async function readJson<T>(p: string): Promise<T | null> {
   try {
     const raw = await fs.readFile(p, 'utf8');
@@ -25,11 +22,6 @@ async function readJson<T>(p: string): Promise<T | null> {
   } catch {
     return null;
   }
-}
-
-async function writeJson<T>(p: string, data: T): Promise<void> {
-  await fs.mkdir(path.dirname(p), { recursive: true });
-  await fs.writeFile(p, JSON.stringify(data, null, 2), 'utf8');
 }
 
 export async function resolveNbaPlayerId(
@@ -47,20 +39,6 @@ export async function resolveNbaPlayerId(
     if (id != null) return String(id);
   }
 
-  // 3) Local cache (non-destructive)
-  const cache = (await readJson<IdCache>(paths.idsCache)) || {};
-  if (cache[playerId]) return cache[playerId];
-
-  // 4) Defer network resolution to runtime (caller may fetch and then cache)
+  // 3) Not found - caller must resolve via network or provide manually
   return null;
-}
-
-export async function cacheNbaPlayerId(
-  playerId: string,
-  nbaId: string
-): Promise<void> {
-  const cache = (await readJson<IdCache>(paths.idsCache)) || {};
-  if (cache[playerId] === nbaId) return;
-  cache[playerId] = nbaId;
-  await writeJson(paths.idsCache, cache);
 }

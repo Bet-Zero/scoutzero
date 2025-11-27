@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { formatName } from '@/utils/formatting';
 import { canSignFreeAgent } from '@/utils/architect/freeAgentLogic';
-import { generateDefaultFreeAgentContract } from '@/utils/architect/contractUtils';
+import {
+  generateDefaultFreeAgentContract,
+} from '@/utils/architect/contractUtils';
+import { toSeasonCode } from '@/utils/architect/seasonFormat';
 import FreeAgentRow from './FreeAgentRow';
 import EditContractModal from '@/components/shared/EditContractModal';
 
@@ -71,18 +74,39 @@ const FreeAgentPool = ({
   };
 
   const handleSaveFromModal = async (playerObj, values) => {
-    const salaryByYear = {};
+    // Build salariesByYear array with exact values from form (new schema format)
+    const salariesByYear = [];
     for (let i = 0; i < values.years; i++) {
-      salaryByYear[currentYear + i] = values.salaries[i] || 0;
+      const endYear = currentYear + i;
+      const season = toSeasonCode(endYear);
+      const salary = values.salaries[i] || 0;
+      
+      salariesByYear.push({
+        season,
+        salary,
+        capHit: salary,
+        guaranteed: true,
+        guaranteedAmount: salary,
+        option: null,
+        optionUsed: null,
+        tradeBonus: null,
+      });
     }
+    
+    const totalValue = salariesByYear.reduce((sum, y) => sum + (y.salary || 0), 0);
+    
+    // Create contract with new salariesByYear array format
     const contract = {
-      salaryByYear,
+      salariesByYear,
+      totalValue,
+      yearsLeft: values.years,
       options: {},
       signAndTrade: false,
       guaranteed: true,
       isMinimum: values.salaries[0] <= 2200000,
       yearsOfService: playerObj.yearsOfService || playerObj.yearsPro || 0,
     };
+    
     await onSign(playerObj, contract);
   };
 

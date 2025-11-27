@@ -22,7 +22,8 @@ export const isExtensionEligible = (player, currentYear) => {
 
 export const getExtensionEligibilityReason = (player, currentYear) => {
   const now = new Date();
-  const contract = player?.contract_clean;
+  // Use Architect contract shape (BasePlayerContractZ)
+  const contract = player?.contract;
   if (!contract) return 'Missing contract';
 
   const signed = player?.signedDate ? parseISO(player.signedDate) : null;
@@ -66,7 +67,7 @@ export const getExtensionEligibilityReason = (player, currentYear) => {
 };
 
 export const getExtensionEligibilityDate = (player) => {
-  const contract = player?.contract_clean;
+  const contract = player?.contract;
   if (!contract || !player?.signedDate) return null;
   const signed = parseISO(player.signedDate);
 
@@ -80,16 +81,45 @@ export const getExtensionEligibilityDate = (player) => {
 };
 
 export const getExtensionMaxDetails = (player, capSettings) => {
-  const contract = player?.contract_clean;
+  const contract = player?.contract;
   if (!contract) return null;
-  const salaries = contract?.salaries_by_year || {};
+  const salaries =
+    contract?.salariesByYear ||
+    contract?.salaries ||
+    {};
   const now = new Date();
-  const yearKeys = Object.keys(salaries)
-    .map(Number)
-    .sort((a, b) => a - b);
+  const yearKeys = Array.isArray(salaries)
+    ? salaries
+        .map((y) => {
+          const season = String(y.season);
+          if (/^\d{4}-\d{2}$/.test(season)) {
+            const tail = parseInt(season.split('-')[1], 10);
+            return 2000 + tail;
+          }
+          const n = parseInt(season, 10);
+          return Number.isFinite(n) ? n : null;
+        })
+        .filter((y) => y != null)
+        .sort((a, b) => a - b)
+    : Object.keys(salaries)
+        .map(Number)
+        .sort((a, b) => a - b);
   const currentYear = now.getFullYear();
   const nextYear = yearKeys.find((y) => y >= currentYear);
-  const baseSalary = salaries[nextYear]?.salary || 0;
+  let baseSalary = 0;
+  if (Array.isArray(salaries)) {
+    const seasonEntry = salaries.find((y) => {
+      const season = String(y.season);
+      if (/^\d{4}-\d{2}$/.test(season)) {
+        const tail = parseInt(season.split('-')[1], 10);
+        return 2000 + tail === nextYear;
+      }
+      return String(season) === String(nextYear);
+    });
+    baseSalary = seasonEntry?.salary || seasonEntry?.capHit || 0;
+  } else if (nextYear != null) {
+    baseSalary = salaries[nextYear]?.salary || 0;
+  }
 
   if (contract.contractType === 'RookieScale') {
     const rookieTier = getRookieMaxPercent(player);

@@ -12,11 +12,16 @@ const formatStat = (stat, isInteger = false, multiply = false) => {
 const PlayerStatsTable = ({ player }) => {
   const stats = player.latestSeasonStats || {};
   const gamesPlayed = stats.GP ?? 'N/A';
+  
+  // Get current season from latestSeasonMeta or default to current year
+  const currentYear = new Date().getFullYear();
+  const seasonYear = currentYear - (new Date().getMonth() < 6 ? 1 : 0);
+  const seasonLabel = player.latestSeasonMeta?.statsSeasonTag || `${seasonYear - 1}-${seasonYear.toString().slice(-2)}`;
 
   return (
     <div className="w-full max-w-[750px] bg-[#1f1f1f] rounded-2xl shadow-lg px-6 pt-[0.5rem] pb-[0.75rem] text-white text-sm font-medium">
       <div className="flex justify-between items-center mb-[0.5rem] font-bold">
-        <div className="w-[60px] font-bold whitespace-nowrap">2024-25</div>
+        <div className="w-[60px] font-bold whitespace-nowrap">{seasonLabel}</div>
         <div className="h-4 w-[1px] bg-neutral-700" />
         <div className="w-[50px] text-center">MIN</div>
         <div className="w-[50px] text-center">PTS</div>

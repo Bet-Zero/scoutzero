@@ -1,12 +1,25 @@
 import { POSITION_MAP } from '../roles';
 
+/**
+ * Normalize playerId for headshot path lookup
+ * Handles special characters (e.g., kristaps_porzingis -> kristaps_porziņģis)
+ */
+function normalizeHeadshotId(playerId) {
+  if (!playerId) return 'default';
+  return playerId
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
 export function normalizePlayer(player) {
   if (!player) return null;
   const playerId = player.bio?.playerId || player.id;
+  const normalizedId = normalizeHeadshotId(playerId);
   return {
     ...player,
     displayName: player.bio?.displayName || player.name || 'Unknown Player',
-    headshot: player.headshot || `/assets/headshots/${playerId}.png`,
+    headshot: player.headshot || player.headshotUrl || `/assets/headshots/${normalizedId}.png`,
     bio: {
       ...player.bio,
       position: player.bio?.position || player.formattedPosition || 'Unknown',

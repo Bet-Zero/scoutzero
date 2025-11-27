@@ -39,7 +39,7 @@ export function wrapCommonValidators(validators) {
 
         // Cache result if valid
         if (result && typeof result === 'object') {
-          validationCache.setCachedResult(cacheKey, result);
+          validationCache.cacheResult(cacheKey, result);
         }
 
         performanceMonitor.endValidation(name);

@@ -18,7 +18,7 @@ import { basePlayerSchema } from '../../shared/schema/player_scrape_schema.ts';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 async function findPlayerFile(playerFile: string, teamCode?: string): Promise<string | null> {
-  const outputDir = join(__dirname, '../output');
+  const outputDir = join(__dirname, '../_artifacts/output');
   
   // If team code is provided, look in that specific subdirectory
   if (teamCode) {

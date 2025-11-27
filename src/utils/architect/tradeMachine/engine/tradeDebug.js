@@ -1,4 +1,5 @@
 import { formatCurrency, getApronStatus } from '@/utils/architect/tradeHelpers.js';
+import { getCapHitForSeason, normalizeYearInput } from '../utils/seasonUtils.js';
 
 const debug = {
   enabled: false,
@@ -43,9 +44,12 @@ const debug = {
 
   logSalaries(team) {
     this.log('Outgoing:', { team: team.team.teamName, salary: true });
+    const normalizedYear =
+      team.context?.normalizedYear || normalizeYearInput(team.context?.yearKey);
+    const seasonKey = normalizedYear?.seasonString;
+
     (team.sends || []).forEach((p) => {
-      const salary =
-        p.contract_clean?.salaries_by_year?.[team.context.yearKey]?.salary || 0;
+      const salary = seasonKey ? getCapHitForSeason(p, seasonKey) : 0;
       this.log(`  - ${p.name}: ${formatCurrency(salary)}`, {
         team: team.team.teamName,
         salary: true,
@@ -54,8 +58,7 @@ const debug = {
 
     this.log('Incoming:', { team: team.team.teamName, salary: true });
     (team.incomingPlayers || []).forEach((p) => {
-      const salary =
-        p.contract_clean?.salaries_by_year?.[team.context.yearKey]?.salary || 0;
+      const salary = seasonKey ? getCapHitForSeason(p, seasonKey) : 0;
       this.log(`  - ${p.name}: ${formatCurrency(salary)}`, {
         team: team.team.teamName,
         salary: true,
@@ -71,6 +74,10 @@ const debug = {
   logSecondApron(team, violations) {
     if (!team.overSecondApron && !team.willBeOverSecond) return;
 
+    const normalizedYear =
+      team.context?.normalizedYear || normalizeYearInput(team.context?.yearKey);
+    const seasonKey = normalizedYear?.seasonString;
+
     this.log('Second Apron Rules:', {
       team: team.team.teamName,
       rule: 'secondApron',
@@ -84,8 +91,9 @@ const debug = {
     );
 
     if (team.sends.length === 1) {
-      const outgoing =
-        team.sends[0].contract_clean?.salaries_by_year?.[team.context.yearKey]?.salary || 0;
+      const outgoing = seasonKey
+        ? getCapHitForSeason(team.sends[0], seasonKey)
+        : 0;
       this.log(`1-to-Many max incoming: ${formatCurrency(outgoing)}`, {
         team: team.team.teamName,
         rule: 'secondApron',

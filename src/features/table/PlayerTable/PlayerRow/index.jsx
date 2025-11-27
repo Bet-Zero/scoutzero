@@ -38,10 +38,18 @@ const PlayerRow = ({ player, ranking = '—' }) => {
         {/* Player Image */}
         <div className="h-full w-20 bg-[#2a2a2a] overflow-hidden">
           <img
-            src={
-              player.headshotUrl ||
-              `/assets/headshots/${player.bio?.playerId || player.id}.png`
-            }
+            src={(() => {
+              // Use normalized headshot path for foreign players with accent marks
+              if (player.headshotUrl) return player.headshotUrl;
+              const playerId = player.bio?.playerId || player.id;
+              if (!playerId) return '/assets/headshots/default.png';
+              // Normalize special characters (e.g., kristaps_porzingis -> kristaps_porziņģis)
+              const normalizedId = playerId
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase();
+              return `/assets/headshots/${normalizedId}.png`;
+            })()}
             onError={(e) => {
               e.target.src = '/assets/headshots/default.png';
             }}
@@ -56,9 +64,15 @@ const PlayerRow = ({ player, ranking = '—' }) => {
             <PlayerNameMini name={player.bio?.displayName || player.name} />
           </div>
           <div className="flex items-center gap-2">
-            <TeamLogo teamAbbr={player.bio?.display?.team} className="w-6 h-6" />
+            <TeamLogo
+              teamAbbr={player.bio?.display?.team}
+              className="w-6 h-6"
+            />
             <div className="text-[14px] text-white/50 tracking-wide">
-              {player.bio?.height ? `${Math.floor(player.bio.height / 12)}-${player.bio.height % 12}` : '—'} <span className="text-white/30">|</span>{' '}
+              {player.bio?.height
+                ? `${Math.floor(player.bio.height / 12)}-${player.bio.height % 12}`
+                : '—'}{' '}
+              <span className="text-white/30">|</span>{' '}
               {player.bio?.weight || '—'} lbs
             </div>
           </div>
@@ -84,35 +98,65 @@ const PlayerRow = ({ player, ranking = '—' }) => {
         <div className="ml-0 border-l border-[#333] text-[11px] tracking-wide w-[140px] leading-tight text-center break-words">
           {(() => {
             const CURRENT_YEAR = getCurrentSeasonYear();
-            const contractData = player.primaryContract ||
+            // Prioritize currentContractView (denormalized), fallback to primaryContract
+            const contractView = player.currentContractView;
+            const contractData =
+              player.primaryContract ||
               (player.contracts ? Object.values(player.contracts)[0] : null);
-            const freeAgentYear = player.bio?.display?.freeAgentYear || contractData?.freeAgency?.freeAgentYear;
-            const freeAgentType = player.bio?.display?.freeAgentType || contractData?.freeAgency?.freeAgentType;
 
-            if (!contractData?.salariesByYear || !freeAgentYear) {
+            // Get free agent info from currentContractView or fallback
+            const freeAgentYear =
+              contractView?.freeAgentYear ||
+              player.bio?.display?.freeAgentYear ||
+              contractData?.freeAgency?.freeAgentYear;
+            const freeAgentType =
+              contractView?.freeAgentType ||
+              player.bio?.display?.freeAgentType ||
+              contractData?.freeAgency?.freeAgentType;
+
+            // Get current salary from currentContractView or contractData
+            let currentSalary = 0;
+            if (contractView?.currentSalary) {
+              currentSalary = contractView.currentSalary;
+            } else if (
+              contractView?.salaryByYear &&
+              contractView.salaryByYear[CURRENT_YEAR]
+            ) {
+              currentSalary = contractView.salaryByYear[CURRENT_YEAR];
+            } else if (contractData?.salariesByYear) {
+              const salaryEntry = contractData.salariesByYear.find(
+                (s) =>
+                  s.year === CURRENT_YEAR ||
+                  s.season?.startsWith(String(CURRENT_YEAR))
+              );
+              currentSalary = salaryEntry?.salary ?? 0;
+            }
+
+            if (!freeAgentYear && currentSalary === 0) {
               return <div className="text-white/40">—</div>;
             }
 
-            const currentSalary =
-              contractData.salariesByYear.find(
-                (s) => s.year === CURRENT_YEAR || s.season?.startsWith(String(CURRENT_YEAR))
-              )?.salary ?? 0;
-
-            const yearsLeft = getYearsRemaining(
-              freeAgentYear,
-              CURRENT_YEAR
-            );
-            const formattedSalary = `$${(currentSalary / 1_000_000).toFixed(1)}M`;
+            const yearsLeft = freeAgentYear
+              ? getYearsRemaining(freeAgentYear, CURRENT_YEAR)
+              : (contractView?.yearsRemaining ?? 0);
+            const formattedSalary =
+              currentSalary > 0
+                ? `$${(currentSalary / 1_000_000).toFixed(1)}M`
+                : '—';
 
             return (
               <>
                 <div>
                   <span className="text-white">{formattedSalary}</span>
-                  <span className="text-white/40"> / {yearsLeft} YRS</span>
+                  {yearsLeft > 0 && (
+                    <span className="text-white/40"> / {yearsLeft} YRS</span>
+                  )}
                 </div>
-                <div className="text-white/40">
-                  {freeAgentType || 'UFA'} {freeAgentYear}
+                {freeAgentYear && (
+                  <div className="text-white/40">
+                    {freeAgentType || 'UFA'} {freeAgentYear}
                   </div>
+                )}
               </>
             );
           })()}

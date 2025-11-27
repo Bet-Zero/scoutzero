@@ -32,7 +32,7 @@ export const CapHoldItemZ = z.object({
   isSigned: z.boolean().optional(),
   expiresOn: z.string().optional(),
   notes: z.string().optional(),
-});
+}).passthrough();
 
 const MleExceptionZ = z.object({
   type: z.string().optional(),
@@ -81,6 +81,7 @@ export const ExceptionsZ = z
     dpe: DpeExceptionZ.optional(),
     tpe: z.array(TradeExceptionZ).optional(),
   })
+  .passthrough()
   .optional();
 
 export const ExceptionsExtraFieldsZ = z.record(z.string(), z.any());
@@ -167,7 +168,7 @@ export const TeamTotalsZ = z.object({
   hardCapLevel: HardCapLevelZ.optional(),
   hardCapDetail: z.string().optional(),
   hardCapRoom: z.number().nullable().optional(),
-});
+}).passthrough();
 
 export const ArchitectSourceZ = z.object({
   provider: z.string().optional(),
@@ -198,6 +199,7 @@ export const BaseTeamDocZ = z.object({
   source: ArchitectSourceZ.optional(),
   lastUpdated: z.string().optional(),
   version: z.string().optional(),
+  mergedAt: z.string().optional(),
 });
 
 // Base Player Document: /architect/basePlayers/{playerId}

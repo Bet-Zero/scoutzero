@@ -5,6 +5,7 @@ import { normalizeTradeInput } from '@/utils/architect/tradeMachine/utils/normal
 import capProjections from '@/utils/architect/capProjections.js';
 
 const currentYear = 2025;
+const season = `${currentYear - 1}-${String(currentYear).slice(-2)}`;
 
 describe('Trade Input Validation', () => {
   it('catches missing teams array', () => {
@@ -113,8 +114,8 @@ describe('Trade Input Normalization', () => {
           sends: [
             {
               name: 'Player A',
-              contract_clean: {
-                salaries_by_year: { [currentYear]: { salary: 10_000_000 } },
+              contract: {
+                salariesByYear: [{ season, salary: 10_000_000 }],
               },
               signAndTrade: true,
             },

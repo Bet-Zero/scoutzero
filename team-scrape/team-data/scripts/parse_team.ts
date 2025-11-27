@@ -21,7 +21,7 @@
 //   - Optional enrichment from SalarySwish detail pages
 //
 // OUTPUT:
-//   ../output/team-data/team_{CODE}.json - Structured JSON matching team_scrape_schema.ts
+//   ../_artifacts/output/team-data/team_{CODE}.json - Structured JSON matching team_scrape_schema.ts
 //
 // Requires: cheerio, got
 

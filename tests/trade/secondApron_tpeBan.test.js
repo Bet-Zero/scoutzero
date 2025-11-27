@@ -6,7 +6,11 @@ const currentYear = 2025;
 
 const makePlayer = (name, salary) => ({
   name,
-  contract_clean: { salaries_by_year: { [currentYear]: { salary } } },
+  contract: {
+    salariesByYear: [
+      { season: `${currentYear - 1}-${String(currentYear).slice(-2)}`, salary },
+    ],
+  },
 });
 
 const makeTeam = (name, totalSalary, rosterSize = 14) => ({

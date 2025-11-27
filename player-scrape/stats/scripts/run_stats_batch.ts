@@ -10,19 +10,25 @@
 //   npx tsx player-scrape/stats/scripts/run_stats_batch.ts --season=2024-25
 //
 // Notes:
-// - Reads from player-scrape/shared/player_index.json
+// - Reads from player-scrape/shared/_artifacts/outputs/player_index.json
 // - Requires nbaStatsId (or NBA_ID env var) for each player
-// - Outputs to player-scrape/stats/output/{TEAM_CODE}/{playerId}.json
+// - Outputs to player-scrape/stats/_artifacts/output/{TEAM_CODE}/{playerId}.json
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { paths, seasonToDisplay, displayToSeasonInt } from './config';
+import {
+  paths,
+  seasonToDisplay,
+  displayToSeasonInt,
+  getCurrentSeasonStartYear,
+} from './config';
 import { resolveNbaPlayerId } from './id_resolver';
 import {
   fetchPlayerStatsBase,
   fetchPlayerStatsAdvanced,
   fetchTeamStatsPerGame,
+  cleanupContext,
 } from './fetch_player_stats';
 import { parseStats } from './parse_stats';
 import { buildStatsOutput } from './run_stats';
@@ -68,14 +74,14 @@ function getNumberArg(name: string, def: number): number {
 
 const TEAM_FILTER = getArg('team', undefined);
 const PLAYER_FILTER = getArg('player', undefined);
-const CONCURRENCY = getNumberArg('concurrency', 3);
+const CONCURRENCY = getNumberArg('concurrency', 3); // Reduced from 10 to 3 to avoid rate limiting
 const SEASON_INPUT = getArg('season', undefined);
 
 /** ---------- Load player index ---------- */
 async function loadIndex(): Promise<Array<{ id: string; entry: any }>> {
   const indexPath = path.resolve(
     __dirname,
-    '../../shared/outputs/player_index.json'
+    '../../shared/_artifacts/outputs/player_index.json'
   );
   const index = JSON.parse(await fs.readFile(indexPath, 'utf8')) as PlayerIndex;
 
@@ -108,7 +114,9 @@ function sleep(ms: number): Promise<void> {
 async function processPlayer(
   playerId: string,
   entry: any,
-  season: number
+  season: number,
+  teamStatsJson: any,
+  requestedSeasonDisplay: string
 ): Promise<{ status: 'ok' | 'skipped' | 'error'; error?: string }> {
   const teamCode = entry.teamCode as string | undefined;
   const pos = entry.position as string | undefined;
@@ -124,55 +132,39 @@ async function processPlayer(
   }
 
   try {
-    // Small delay to avoid hammering the API (rate limiting)
-    await sleep(300);
+    // Add small delay to avoid hammering the API and triggering rate limits
+    await sleep(500); // 500ms delay between requests
 
-    // Try to fetch stats for requested season
+    // Fetch stats for requested season
     let base: any;
     let adv: any;
-    let actualSeason = season;
 
-    try {
-      base = await fetchPlayerStatsBase(nbaId, season);
-      adv = await fetchPlayerStatsAdvanced(nbaId, season);
-    } catch (err: any) {
-      const errorMsg = err.message || String(err);
-      // If 500 error and we're trying current season, fallback to last season
-      if (
-        (errorMsg.includes('500') ||
-          errorMsg.includes('Internal Server Error')) &&
-        season === new Date().getFullYear()
-      ) {
-        console.log(
-          `   ⚠️  ${playerId}: No ${season} data, trying ${season - 1}...`
-        );
-        actualSeason = season - 1;
-        base = await fetchPlayerStatsBase(nbaId, actualSeason);
-        adv = await fetchPlayerStatsAdvanced(nbaId, actualSeason);
-      } else {
-        throw err;
-      }
-    }
+    // Fetch stats for requested season - no fallback
+    // Retry logic in fetch_player_stats.ts handles transient errors
+    base = await fetchPlayerStatsBase(nbaId, season);
+    adv = await fetchPlayerStatsAdvanced(nbaId, season);
 
-    // Parse with the actual season we fetched
+    // Parse with the requested season (with fallback enabled)
     const parsed = parseStats(base, adv, {
-      season: actualSeason,
+      season,
       teamCode,
       pos,
       age,
+      allowFallback: true,
     });
 
-    // Fetch team stats for USG% (optional) - use actualSeason we fetched
-    let teamStatsJson: any = null;
-    try {
-      teamStatsJson = await fetchTeamStatsPerGame(actualSeason);
-    } catch {
-      // Team stats fetch failed, continue without USG%
+    // Log fallback usage if applicable
+    if (parsed._fallbackType && parsed._fallbackType !== 'current') {
+      const fallbackMsg =
+        parsed._fallbackType === 'most_recent'
+          ? `most recent season (${parsed.seasonId})`
+          : 'career averages';
+      console.log(
+        `⚠️  ${playerId}: Using ${fallbackMsg} (requested ${requestedSeasonDisplay} not available)`
+      );
     }
 
-    // Build output
-    // For batch processing with team filter, use index teamCode (current team) for organization
-    // but preserve parsed.team in season data for historical accuracy
+    // Use passed-in teamStatsJson directly
     const out = buildStatsOutput(parsed, playerId, teamCode, teamStatsJson);
 
     // When filtering by team, always use the filter team for output organization
@@ -217,8 +209,8 @@ async function runBatch() {
   }
 
   // Determine season (default to current season for production scraping)
-  const currentYear = new Date().getFullYear();
-  const seasonDisplay = SEASON_INPUT || seasonToDisplay(currentYear);
+  const seasonDisplay =
+    SEASON_INPUT || seasonToDisplay(getCurrentSeasonStartYear());
   const season = displayToSeasonInt(seasonDisplay);
 
   console.log(
@@ -237,22 +229,31 @@ async function runBatch() {
     failed = 0;
   const errors: Array<{ player: string; error: string }> = [];
 
+  // Fetch team stats ONCE at the start (same for all players)
+  let teamStatsJson: any = null;
+  try {
+    teamStatsJson = await fetchTeamStatsPerGame(season);
+  } catch {
+    console.warn('⚠️  Team stats fetch failed, continuing without USG%');
+  }
+
   await new Promise((resolveDone) => {
     const next = () => {
       if (idx >= players.length && inFlight === 0) {
         console.log(
-          `\n📊 Summary → ok: ${ok}, skipped: ${skipped}, failed: ${failed}`
+          `\n�� Summary → ok: ${ok}, skipped: ${skipped}, failed: ${failed}`
         );
         if (errors.length > 0) {
           console.log('\n❌ Errors:');
           errors.forEach((e) => console.log(`   ${e.player}: ${e.error}`));
         }
-        return resolveDone(undefined);
+        cleanupContext().then(() => resolveDone(undefined));
+        return;
       }
       while (inFlight < CONCURRENCY && idx < players.length) {
         const { id: playerId, entry } = players[idx++];
         inFlight++;
-        processPlayer(playerId, entry, season)
+        processPlayer(playerId, entry, season, teamStatsJson, seasonDisplay)
           .then((res) => {
             if (res.status === 'ok') {
               ok++;

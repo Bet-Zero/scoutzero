@@ -16,6 +16,7 @@ import {
   getExtensionMaxDetails,
 } from '@/utils/architect/extensionRules';
 import { generateExtensionContract } from '@/utils/architect/contractUtils';
+import { toEndYear } from '@/utils/architect/seasonFormat';
 
 const ACTION_SETS = {
   option: ['accept', 'decline', 'signNew'],
@@ -62,21 +63,31 @@ const EditContractModal = ({
   const today = new Date();
   const CURRENT_YEAR = today.getFullYear() - (today.getMonth() < 6 ? 1 : 0);
 
+  // Helper to get contract years from Architect schema (contract.salariesByYear[])
+  const getContractYears = () => {
+    if (!player?.contract?.salariesByYear?.length) return [];
+    return player.contract.salariesByYear
+      .map(y => ({
+        year: toEndYear(y.season),
+        season: y.season,
+        salary: y.salary || y.capHit || 0,
+        option: y.option,
+        guaranteed: y.guaranteed,
+      }))
+      .filter(y => y.year != null)
+      .sort((a, b) => a.year - b.year);
+  };
+
+  const contractYears = getContractYears();
+
   const isFreeAgent =
     player?.freeAgentYear && player.freeAgentYear <= CURRENT_YEAR;
 
-  const isUnderContract =
-    player?.contract_clean?.salaries_by_year &&
-    Object.keys(player.contract_clean.salaries_by_year)
-      .map(Number)
-      .some((y) => y > CURRENT_YEAR);
+  const isUnderContract = contractYears.some(y => y.year > CURRENT_YEAR);
 
-  const optionYear = Object.keys(player?.contract_clean?.salaries_by_year || {})
-    .map(Number)
-    .find((y) => y >= CURRENT_YEAR);
-
-  const optionType =
-    player?.contract_clean?.salaries_by_year?.[optionYear]?.option || null;
+  const optionYearEntry = contractYears.find(y => y.year >= CURRENT_YEAR && y.option);
+  const optionYear = optionYearEntry?.year || null;
+  const optionType = optionYearEntry?.option || null;
 
   const hasOption = !!optionType;
 
@@ -93,23 +104,19 @@ const EditContractModal = ({
   useEffect(() => {
     if (!player) return;
 
-    const salaryYears = Object.keys(
-      player?.contract_clean?.salaries_by_year || {}
-    )
-      .map(Number)
-      .sort((a, b) => b - a);
+    // Get contract years from Architect schema
+    const years = contractYears.sort((a, b) => b.year - a.year);
 
     let lastSalary = 0;
-    if (salaryYears.length) {
+    if (years.length) {
       if (isFreeAgent) {
-        const lastYear =
-          salaryYears.find((y) => y <= CURRENT_YEAR) ?? salaryYears[0];
-        lastSalary =
-          player.contract_clean.salaries_by_year[lastYear]?.salary || 0;
+        const lastYearEntry =
+          years.find((y) => y.year <= CURRENT_YEAR) ?? years[0];
+        lastSalary = lastYearEntry?.salary || 0;
       } else {
-        lastSalary =
-          player.contract_clean.salaries_by_year?.[optionYear ?? salaryYears[0]]
-            ?.salary || 0;
+        const targetYear = optionYear ?? years[0]?.year;
+        const targetEntry = years.find(y => y.year === targetYear);
+        lastSalary = targetEntry?.salary || 0;
       }
     }
 

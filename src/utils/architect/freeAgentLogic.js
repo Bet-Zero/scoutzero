@@ -1,3 +1,6 @@
+import { getCapHitForSeason } from './tradeMachine/utils/seasonUtils.js';
+import { toSeasonKey } from './seasonUtils';
+
 export function canSignFreeAgent(
   player,
   teamCapSheet,
@@ -6,14 +9,15 @@ export function canSignFreeAgent(
 ) {
   const rights = player.birdRights || 'None';
 
-  // Safely calculate current salary obligations
-  const teamSalary = (teamCapSheet.players || []).reduce((sum, p) => {
-    const sal = p.contract_clean?.salaries_by_year?.[year]?.salary || 0;
-    return sum + sal;
-  }, 0);
-
-  const key = `${year}-${String((year + 1) % 100).padStart(2, '0')}`;
+  // year is the end-year (e.g., 2025), convert to season format: "2024-25"
+  const key = toSeasonKey(year);
   const capData = capProjections[key] || {};
+
+  // Calculate current salary obligations using new architect schema
+  const teamSalary = (teamCapSheet.players || []).reduce((sum, p) => {
+    const capHit = getCapHitForSeason(p, key) || 0;
+    return sum + capHit;
+  }, 0);
 
   const overCap = teamSalary > (capData.cap || 0);
   const hardCapped = teamCapSheet.hardCapped;

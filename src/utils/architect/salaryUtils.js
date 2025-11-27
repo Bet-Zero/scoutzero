@@ -1,4 +1,6 @@
 // src/utils/architect/salaryUtils.js
+import { getCapHitForSeason, yearToSeason } from './tradeMachine/utils/seasonUtils.js';
+
 const num = (v) => {
   if (v == null) return 0;
   if (typeof v === 'number') return v;
@@ -6,30 +8,61 @@ const num = (v) => {
   return Number.isFinite(n) ? n : 0;
 };
 
-// Try activeContracts first (cleanest source), otherwise fall back to players.contract_clean
+/**
+ * Calculate total payroll from cap sheet for a specific year/season
+ * Works with new architect schema (contract.salariesByYear array)
+ * 
+ * @param {Object} capSheet - Cap sheet object with activeContracts or players array
+ * @param {number|string} year - Season end-year (2025) or season string ("2024-25")
+ * @returns {number} Total payroll amount
+ */
 export function payrollForYearFromCapSheet(capSheet, year) {
   if (!capSheet) return 0;
-  const y = String(year);
+  
+  // Convert year to season string if needed
+  const season = typeof year === 'string' && year.includes('-')
+    ? year
+    : yearToSeason(year);
 
+  // Check activeContracts first
   const fromActive = (capSheet.activeContracts || []).reduce((sum, c) => {
-    const s = c?.salaryByYear?.[year] ?? c?.salaryByYear?.[y] ?? 0;
-    return sum + num(s);
+    if (c?.contract?.salariesByYear && season) {
+      const yearEntry = c.contract.salariesByYear.find(
+        (entry) => entry.season === season
+      );
+      if (yearEntry) {
+        return sum + num(yearEntry.capHit || yearEntry.salary || 0);
+      }
+    }
+    return sum;
   }, 0);
 
   if (fromActive > 0) return fromActive;
 
+  // Check players array with new schema format
   const fromPlayers = (capSheet.players || []).reduce((sum, p) => {
-    const s =
-      p?.contract_clean?.salaries_by_year?.[year]?.salary ??
-      p?.contract_clean?.salaries_by_year?.[y]?.salary ??
-      0;
-    return sum + num(s);
+    if (p?.contract?.salariesByYear && season) {
+      const yearEntry = p.contract.salariesByYear.find(
+        (entry) => entry.season === season
+      );
+      if (yearEntry) {
+        return sum + num(yearEntry.capHit || yearEntry.salary || 0);
+      }
+    }
+    return sum;
   }, 0);
 
   return fromPlayers;
 }
 
-// Optional dead money (varies by your schema). We safely look in a few places.
+/**
+ * Calculate dead money obligations for a specific year
+ * Checks waivedContracts, stretchHistory, and flat deadMoney fields
+ * 
+ * @param {Object} capSheet - Cap sheet object
+ * @param {number|string} year - Season end-year (2025) or numeric year
+ * @returns {number} Total dead money amount
+ */
 export function deadMoneyForYear(capSheet, year) {
   const y = String(year);
   const arrs = []
@@ -49,33 +82,4 @@ export function deadMoneyForYear(capSheet, year) {
     num(capSheet?.deadMoney?.[year]) + num(capSheet?.deadMoney?.[y]);
 
   return fromArrays + fromFlat;
-}
-
-// Computes matching values for incoming and outgoing salary in trades
-export function computeMatchingValues({ teams, yearKey }) {
-  teams.forEach((team) => {
-    (team.sends || []).forEach((player) => {
-      if (player.isBYC) {
-        // BYC = max(previous salary, 50% new salary)
-        const prevSalary = player.previousSalary || 0;
-        const newSalary = player.salary || player.newSalary || 0;
-        player.matchOutgoing = Math.max(prevSalary, newSalary * 0.5);
-        player.matchIncoming = newSalary; // BYC only affects outgoing value
-      } else if (player.tradeKickerPct) {
-        // Trade kicker adds to incoming value only
-        const salary = player.salary || 0;
-        const kickerPct =
-          (player.tradeKickerWaivedPct || 0) > 0
-            ? player.tradeKickerPct * (1 - player.tradeKickerWaivedPct)
-            : player.tradeKickerPct;
-        player.matchOutgoing = salary;
-        player.matchIncoming = salary * (1 + kickerPct);
-      } else {
-        // Default case - use actual salary for both
-        const salary = player.salary || 0;
-        player.matchOutgoing = salary;
-        player.matchIncoming = salary;
-      }
-    });
-  });
 }

@@ -18,26 +18,46 @@ const num = (v) => {
 // Map season end-year (e.g., 2025) -> "2024-25"
 const toSeasonKey = (endYear) => `${endYear - 1}-${String(endYear).slice(-2)}`;
 
-// Baseline payroll from your cap sheet: prefer activeContracts, fallback to players.contract_clean
+// Baseline payroll from your cap sheet: prefer activeContracts, fallback to players.contract
+// Uses Architect contract.salariesByYear schema
 const payrollForYearFromCapSheet = (capSheet, endYear) => {
   if (!capSheet) return 0;
 
+  // Convert end-year to season start-year format: 2025 -> "2024-25"
+  const season = toSeasonKey(endYear);
   const y = String(endYear);
 
-  // Preferred source: activeContracts salaryByYear[endYear]
+  // Preferred source: activeContracts
   const fromActive = (capSheet.activeContracts || []).reduce((sum, c) => {
+    // Use Architect schema: contract.salariesByYear array
+    if (c?.contract?.salariesByYear) {
+      const yearEntry = c.contract.salariesByYear.find(
+        (entry) => entry.season === season
+      );
+      if (yearEntry) {
+        return sum + num(yearEntry.capHit || yearEntry.salary || 0);
+      }
+    }
+    
+    // Fallback to salaryByYear map (temporary format during trade creation)
     const s = c?.salaryByYear?.[endYear] ?? c?.salaryByYear?.[y] ?? 0;
     return sum + num(s);
   }, 0);
   if (fromActive > 0) return fromActive;
 
-  // Fallback: players.contract_clean.salaries_by_year[endYear].salary
+  // Fallback: players array
   const fromPlayers = (capSheet.players || []).reduce((sum, p) => {
-    const s =
-      p?.contract_clean?.salaries_by_year?.[endYear]?.salary ??
-      p?.contract_clean?.salaries_by_year?.[y]?.salary ??
-      0;
-    return sum + num(s);
+    // Use Architect schema: contract.salariesByYear array
+    if (p?.contract?.salariesByYear) {
+      const yearEntry = p.contract.salariesByYear.find(
+        (entry) => entry.season === season
+      );
+      if (yearEntry) {
+        return sum + num(yearEntry.capHit || yearEntry.salary || 0);
+      }
+    }
+    
+    return sum;
   }, 0);
 
   return fromPlayers;
@@ -190,6 +210,8 @@ export const useTradeMachine = (
           ...baseTeam,
           ...data,
           tradeExceptions: data.tradeExceptions || [],
+          // Map draftPicks to picks for trade machine compatibility
+          picks: data.draftPicks || data.picks || [],
         };
         augmentTeamWithExceptions(teamObj, yearKey, capProjections);
 
@@ -335,6 +357,8 @@ export const useTradeMachine = (
           ...baseTeam,
           ...data,
           tradeExceptions: data.tradeExceptions || [],
+          // Map draftPicks to picks for trade machine compatibility
+          picks: data.draftPicks || data.picks || [],
         };
         augmentTeamWithExceptions(teamObj, yearKey, capProjections);
 

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { computeMatchingValues } from '@/utils/architect/tradeMachine/utils/matchingValues.js';
 
 const yearKey = 2025;
+const season = `${yearKey - 1}-${String(yearKey).slice(-2)}`;
 
 const makePlayer = ({
   currentSalary,
@@ -16,12 +17,10 @@ const makePlayer = ({
   extensionYears,
   isBYC,
   previousSalary,
-  contract_clean: {
-    salaries_by_year: {
-      [yearKey]: {
-        salary: newSalary ?? extensionYears[0]?.salary ?? currentSalary,
-      },
-    },
+  contract: {
+    salariesByYear: [
+      { season, salary: newSalary ?? extensionYears[0]?.salary ?? currentSalary },
+    ],
   },
 });
 

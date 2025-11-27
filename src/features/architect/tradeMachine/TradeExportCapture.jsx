@@ -136,7 +136,7 @@ const TradeExportCapture = React.forwardRef(
                             players.map((p, i) => {
                               const salary = getSalaryForYear([p], yearKey);
                               const years = getYearsRemaining(
-                                p.contract_clean?.fa_year ||
+                                p.contract?.freeAgency?.year ||
                                   p.fa_year ||
                                   p.freeAgentYear,
                                 parseInt(

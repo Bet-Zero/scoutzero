@@ -20,41 +20,35 @@ const settings = {
 describe('getSalaryForYear', () => {
   const year = 2025;
 
-  it('sums salary from contract_clean', () => {
+  it('extracts capHit from contract.salariesByYear', () => {
     const p = {
-      contract_clean: {
-        salaries_by_year: {
-          [year]: { salary: 10_000_000, likely_bonus: 2_000_000 },
-        },
+      contract: {
+        salariesByYear: [
+          { season: '2024-25', capHit: 12_000_000, salary: 10_000_000 },
+        ],
       },
     };
     expect(getSalaryForYear(p, year)).toBe(12_000_000);
   });
 
-  it('sums salary from salaryByYear when contract_clean missing', () => {
-    const p = { salaryByYear: { [year]: 8_500_000 } };
-    expect(getSalaryForYear(p, year)).toBe(8_500_000);
-  });
-
-  it('prefers contract_clean value when both provided', () => {
+  it('adds likely incentives to base salary when no capHit is present', () => {
     const p = {
-      contract_clean: {
-        salaries_by_year: { [year]: { salary: 6_000_000 } },
-      },
-      salaryByYear: { [year]: 4_000_000 },
-    };
-    expect(getSalaryForYear(p, year)).toBe(6_000_000);
-  });
-
-  it('includes likely bonuses in salary', () => {
-    const p = {
-      contract_clean: {
-        salaries_by_year: {
-          [year]: { salary: 5_000_000, likely_bonus: 500_000 },
-        },
+      contract: {
+        salariesByYear: [
+          {
+            season: '2024-25',
+            salary: 5_000_000,
+            incentives: { likely: 500_000 },
+          },
+        ],
       },
     };
     expect(getSalaryForYear(p, year)).toBe(5_500_000);
+  });
+
+  it('falls back to salary property when contract data missing', () => {
+    const p = { salary: 8_500_000 };
+    expect(getSalaryForYear(p, year)).toBe(8_500_000);
   });
 });
 

@@ -21,6 +21,8 @@ export const getTierThresholds = (yearKey) => {
 export const MIN_SALARY = 1_119_563;
 
 /*────────────────────────  Salary Helpers  ────────────────────────*/
+import { toEndYear } from './seasonFormat.js';
+
 /******************** SCSP™ BLOCK: getSalaryForYear ********************/
 export const getSalaryForYear = (input, year) => {
   if (!year) return 0;
@@ -29,24 +31,34 @@ export const getSalaryForYear = (input, year) => {
   const players = Array.isArray(input) ? input : [input];
 
   return players.reduce((sum, p) => {
-    const yData = p.contract_clean?.salaries_by_year?.[year] ?? {};
-    const salaryMap = p.salaryByYear?.[year];
-    const fallback = p.salary;
+    // Prefer Architect contract.salariesByYear if present
+    let base = 0;
+    let yData = {};
 
-    const base =
-      typeof yData.salary === 'number'
-        ? yData.salary
-        : typeof salaryMap === 'number'
-          ? salaryMap
-          : typeof fallback === 'number'
-            ? fallback
-            : 0;
+    if (p.contract?.salariesByYear?.length) {
+      const slice =
+        p.contract.salariesByYear.find((y) => toEndYear(y.season) === year) ||
+        p.contract.salariesByYear.find(
+          (y) => String(y.season) === String(year)
+        );
+      if (slice) {
+        yData = slice;
+        base = slice.capHit ?? slice.salary ?? 0;
+      }
+    }
+
+    // If no contract data found, return 0 (player has no salary for this year)
+    if (!base) {
+      base = 0;
+    }
 
     // tests look specifically for `likely_bonus`
     const likely =
       (typeof yData.likely_bonus === 'number' ? yData.likely_bonus : 0) ||
       (yData.bonuses?.likely ?? yData.likelyIncentives ?? 0) ||
-      (p.bonusesByYear?.[year]?.likely ?? 0);
+      (p.bonusesByYear?.[year]?.likely ??
+        p.bonusesByYear?.[String(year)]?.likely ??
+        0);
 
     return sum + base + likely;
   }, 0);
@@ -262,8 +274,7 @@ export const calculateTPERemaining = (tpe, used = 0) => tpe.amount - used;
 export const playerFitsInTPE = (player, yearKey, tpe) => {
   if (!tpe || tpe.isUsed) return false;
 
-  const salary =
-    player.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0;
+  const salary = getSalaryForYear(player, yearKey);
 
   const now = Date.now();
   const exp = tpe.expirationDate ? Date.parse(tpe.expirationDate) : Infinity;

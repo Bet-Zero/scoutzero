@@ -3,6 +3,11 @@ import { loadTeamCapSheet } from '@/utils/architect/firebaseTeamPlanHelpers';
 import { useNavigate } from 'react-router-dom';
 import { TeamListFull } from '@/constants/teamList';
 import TeamLogo from '@/components/shared/TeamLogo';
+import {
+  getDefaultSeasonEndYear,
+  toSeasonKey,
+} from '@/utils/architect/seasonUtils';
+import { getCapHitForSeason } from '@/utils/architect/tradeMachine/utils/seasonUtils.js';
 
 const teamsList = TeamListFull;
 
@@ -12,38 +17,48 @@ const LeagueView = () => {
 
   useEffect(() => {
     const loadAllTeams = async () => {
-      const summaries = [];
-      for (const t of teamsList) {
-        const capSheet = await loadTeamCapSheet(t.id);
-        if (capSheet) {
-          const totalSalary =
-            capSheet.players?.reduce((sum, p) => {
-              return (
-                sum + (p.contract_clean?.salaries_by_year?.[2025]?.salary || 0)
-              );
-            }, 0) || 0;
-          summaries.push({
-            id: t.id,
-            teamName: t.teamName,
-            totalSalary,
-            conference: t.conference,
-          });
-        } else {
-          summaries.push({
-            id: t.id,
-            teamName: t.teamName,
-            totalSalary: 0,
-            conference: t.conference,
-          });
+      const currentYear = getDefaultSeasonEndYear();
+      const seasonKey = toSeasonKey(currentYear);
+
+      // Load all teams in parallel for better performance
+      const teamPromises = teamsList.map(async (t) => {
+        try {
+          const capSheet = await loadTeamCapSheet(t.code || t.id);
+          if (capSheet) {
+            const totalSalary =
+              capSheet.players?.reduce((sum, p) => {
+                return sum + getCapHitForSeason(p, seasonKey);
+              }, 0) || 0;
+            return {
+              id: t.id,
+              code: t.code,
+              teamName: t.teamName,
+              totalSalary,
+              conference: t.conference,
+            };
+          }
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.warn(`Failed to load team ${t.code || t.id}:`, error);
         }
-      }
+        // Fallback for teams that fail to load
+        return {
+          id: t.id,
+          code: t.code,
+          teamName: t.teamName,
+          totalSalary: 0,
+          conference: t.conference,
+        };
+      });
+
+      const summaries = await Promise.all(teamPromises);
       setTeamSummaries(summaries);
     };
     loadAllTeams();
   }, []);
 
-  const goToTeam = (teamId) => {
-    navigate(`/gm/${teamId.toLowerCase()}`);
+  const goToTeam = (teamSlug) => {
+    navigate(`/gm/${teamSlug}`);
   };
 
   const eastTeams = teamSummaries

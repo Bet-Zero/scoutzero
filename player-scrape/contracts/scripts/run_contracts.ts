@@ -2,8 +2,8 @@
 //
 // One-command batch: fetch → parse → validate → save by team
 // - Index: player-scrape/player_index.json (object map keyed by id)
-// - Temp files (current player only): player-scrape/contracts/working/page.html, player.json
-// - Final file: player-scrape/contracts/output/<TEAM>/<id>.json
+// - Temp files (current player only): player-scrape/contracts/_artifacts/working/page.html, player.json
+// - Final file: player-scrape/contracts/_artifacts/output/<TEAM>/<id>.json
 // - Mock publish: player-scrape/contracts/output/_publish_preview.jsonl
 //
 // Examples:
@@ -14,12 +14,12 @@
 //
 // Notes:
 // - No Firestore writes yet. --push only builds a preview file.
-// - Parser is expected to drop temp output at contracts/working/player.json.
-//   Runner moves that into output/<TEAM>/<id>.json and validates there.
+// - Parser is expected to drop temp output at contracts/_artifacts/working/player.json.
+//   Runner moves that into _artifacts/output/<TEAM>/<id>.json and validates there.
 
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
-import { dirname, resolve } from 'node:path';
+import { dirname, resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   readFile,
@@ -30,7 +30,9 @@ import {
   rm,
   cp,
   appendFile,
+  mkdtemp,
 } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 
 const sh = promisify(exec);
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -38,13 +40,13 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 /** ---------- Paths you care about (fixed) ---------- */
 const PLAYER_SCRAPE_ROOT = resolve(__dirname, '..', '..');
 const CONTRACTS_DIR = resolve(PLAYER_SCRAPE_ROOT, 'contracts');
-const WORKING_DIR = resolve(CONTRACTS_DIR, 'working');
+const WORKING_DIR = resolve(CONTRACTS_DIR, '_artifacts', 'working');
 const SCRIPTS_DIR = resolve(CONTRACTS_DIR, 'scripts');
-const OUT_BASE = resolve(CONTRACTS_DIR, 'output');
+const OUT_BASE = resolve(CONTRACTS_DIR, '_artifacts', 'output');
 const INDEX_PATH = resolve(
   PLAYER_SCRAPE_ROOT,
   'shared',
-  'outputs',
+  '_artifacts', 'outputs',
   'player_index.json'
 );
 
@@ -148,18 +150,115 @@ function normalizeIdForFile(id) {
     .replace(/_+/g, '_');
 }
 
+const SALARY_SWISH_SLUG_OVERRIDES_BY_ID: Record<string, string> = {
+  shai_gilgeous_alexander: 'shai-gilgeousalexander',
+  // Manual overrides from url_mapping_test_results.json
+  marvin_bagley_iii: 'marvin-bagleyiii',
+  bogdan_bogdanović: 'bogdan-bogdanovic',
+  brandon_boston: 'brandon-boston-jr',
+  bruce_brown: 'bruce-brown-jr',
+  bub_carrington: 'carlton-carrington',
+  wendell_carter_jr: 'wendell-carterjr',
+  nic_claxton: 'nicolas-claxton',
+  pacôme_dadiet: 'pacome-dadiet',
+  moussa_diabaté: 'moussa-diabate',
+  luka_dončić: 'luka-doncic',
+  danté_exum: 'dante-exum',
+  tim_hardaway_jr: 'tim-hardawayjr',
+  ronald_holland_ii: 'ron-holland-ii',
+  gg_jackson: 'gg-jackson-ii',
+  jaren_jackson_jr: 'jaren-jacksonjr',
+  nikola_jokić: 'nikola-jokic',
+  derrick_jones_jr: 'derrick-jonesjr',
+  nikola_jović: 'nikola-jovic',
+  vít_krejčí: 'vit-krejci',
+  karlo_matković: 'karlo-matkovic',
+  vasilije_micić: 'vasilije-micic',
+  monté_morris: 'monte-morris',
+  larry_nance_jr: 'larry-nancejr',
+  jusuf_nurkić: 'jusuf-nurkic',
+  kelly_oubre_jr: 'kelly-oubrejr',
+  gary_payton_ii: 'gary-paytonii',
+  kevin_porter_jr: 'kevin-porterjr',
+  michael_porter_jr: 'michael-porterjr',
+  kristaps_porziņģis: 'kristaps-porzingis',
+  lester_quiñones: 'lester-quinones',
+  tidjane_salaün: 'tidjane-salaun',
+  dennis_schröder: 'dennis-schroder',
+  nikola_topić: 'nikola-topic',
+  gary_trent_jr: 'gary-trentjr',
+  jonas_valančiūnas: 'jonas-valanciunas',
+  nikola_vučević: 'nikola-vucevic',
+  lonnie_walker_iv: 'lonnie-walkeriv',
+  robert_williams_iii: 'robert-williamsiii',
+  vlatko_čančar: 'vlatko-cancar',
+  dario_šarić: 'dario-saric',
+  egor_dëmin: 'egor-demin',
+  hugo_gonzález: 'hugo-gonzalez',
+  kasparas_jakučionis: 'kasparas-jakucionis',
+  bogoljub_marković: 'bogoljub-markovic',
+  augustas_marčiulionis: 'augustas-marciulionis',
+  chris_mañon: 'chris-manon',
+  // Additional manual fixes from complete_url_mapping_results.json
+  nickeil_alexander_walker: 'nickeil-alexanderwalker',
+  daron_holmes_ii: 'daron-holmes',
+  kj_simpson: 'k-j-simpson',
+  tolu_smith: 'tolu-smith-iii',
+  xavier_tillman: 'xavier-tillman-sr',
+  david_jones_garcia: 'david-jones',
+  alex_sarr: 'alexandre-sarr',
+  yanic_konan_niederhauser: 'yanic-niederhauser',
+  svi_mykhailiuk: 'sviatoslav-mykhailiuk',
+  nikola_urisic: 'nikola-durisic',
+  // More from complete_url_mapping_results.json
+  jimmy_butler_iii: 'jimmy-butler',
+  cam_christie: 'cameron-christie',
+  jeff_dowtin_jr: 'jeff-dowtin',
+  bones_hyland: 'nahshon-bones-hyland',
+  trey_jemison_iii: 'trey-jemison',
+  kevin_knox_ii: 'kevin-knox',
+  kj_martin: 'kenyon-martin-jr',
+  shake_milton: 'malik-shake-milton',
+  cameron_payne: 'cam-payne',
+  jeenathan_williams: 'nate-williams',
+  rj_luis_jr: 'rj-luis',
+  'igor_miličić,_jr': 'igor-milicic',
+  // Additional fixes
+  yang_hansen: 'yang-hansen',
+};
+
+function normalizeSalarySwishSlug(id: string, rawSlug: unknown): string {
+  if (typeof rawSlug !== 'string' || !rawSlug.trim()) {
+    return '';
+  }
+
+  const override = SALARY_SWISH_SLUG_OVERRIDES_BY_ID[id];
+  if (override) return override;
+
+  // Basic cleanup: collapse unicode apostrophes, trim whitespace, single hyphen separation
+  return rawSlug
+    .replace(/[’']/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .trim();
+}
+
 async function loadIndex() {
   const raw = await readFile(INDEX_PATH, 'utf8');
   const obj = JSON.parse(raw);
   let items = Object.entries(obj).map(([id, v]) => ({
     id,
     fileId: normalizeIdForFile(id),
-    url: `https://salaryswish.com/players/${v['salarySwishSlug']}`,
-    team: v['teamCode'],
+    url: `https://salaryswish.com/players/${normalizeSalarySwishSlug(
+      id,
+      v['salarySwishSlug']
+    )}`,
+    team: v['teamCode'] || 'FREE', // Use 'FREE' for free agents (null teamCode)
     teamName:
       (typeof v['teamName'] === 'string' && v['teamName']) ||
       TEAM_CODE_TO_NAME[v['teamCode']] ||
-      undefined,
+      (v['teamCode'] ? undefined : 'Free Agent'),
   }));
   if (TEAM_FILTER) items = items.filter((p) => p.team === TEAM_FILTER);
   if (PLAYER_FILTER) items = items.filter((p) => p.id === PLAYER_FILTER);
@@ -167,14 +266,24 @@ async function loadIndex() {
 }
 
 function finalPath(team, fileId) {
-  return resolve(OUT_BASE, team, `${fileId}.json`);
+  return resolve(OUT_BASE, team || 'FREE', `${fileId}.json`);
 }
 
-function buildCommands(p) {
-  const tempHtml = `${p.fileId}.html`;
-  const tempJson = `${p.fileId}.json`;
-  const fetchCmd = `PLAYER_URL="${p.url}" PLAYER_ID="${p.id}" TEMP_FILE="${tempHtml}" npx tsx "${FETCH_SCRIPT}"`;
+function buildCommands(
+  p,
+  workingDirOverride: string,
+  tempHtml: string,
+  tempJson: string
+) {
+  const fetchCmd = [
+    `WORKING_DIR_OVERRIDE="${workingDirOverride}"`,
+    `PLAYER_URL="${p.url}"`,
+    `PLAYER_ID="${p.id}"`,
+    `TEMP_FILE="${tempHtml}"`,
+    `npx tsx "${FETCH_SCRIPT}"`,
+  ].join(' ');
   const envParts = [
+    `WORKING_DIR_OVERRIDE="${workingDirOverride}"`,
     `PLAYER_URL="${p.url}"`,
     `PLAYER_ID="${p.id}"`,
     `TEMP_FILE="${tempHtml}"`,
@@ -187,10 +296,12 @@ function buildCommands(p) {
   return { fetchCmd, parseCmd };
 }
 
-async function collectAndPlace(p) {
+async function collectAndPlace(p, tempJsonPath?: string) {
   const dest = finalPath(p.team, p.fileId);
   await mkdir(resolve(OUT_BASE, p.team), { recursive: true });
-  const perPlayer = resolve(WORKING_DIR, `${p.fileId}.json`);
+  const perPlayer = tempJsonPath
+    ? resolve(tempJsonPath)
+    : resolve(WORKING_DIR, `${p.fileId}.json`);
   const canonical = resolve(WORKING_DIR, 'player.json');
   const candidateLegacy = resolve(CONTRACTS_DIR, 'player.json');
   const candidateFinal = resolve(OUT_BASE, p.team, `${p.fileId}.json`);
@@ -246,10 +357,11 @@ async function appendPreview(id, data) {
   await appendFile(PREVIEW_PATH, line + '\n', { encoding: 'utf8' });
 }
 
-async function runOne(p, attempt = 1, maxAttempts = 3) {
+async function runOne(p, attempt = 1, maxAttempts = 3, progressInfo?: { current: number; total: number }) {
   const dest = finalPath(p.team, p.fileId);
   if (RESUME && (await exists(dest))) {
-    console.log(`[${now()}] ▶︎ SKIP (exists)  ${p.team}/${p.id}`);
+    const progress = progressInfo ? `[${progressInfo.current}/${progressInfo.total}]` : '';
+    console.log(`[${now()}] ${progress} ▶︎ SKIP (exists)  ${p.team}/${p.id}`);
     if (DO_PUSH_PREVIEW) {
       const payload = JSON.parse(await readFile(dest, 'utf8'));
       await appendPreview(p.id, payload);
@@ -257,14 +369,24 @@ async function runOne(p, attempt = 1, maxAttempts = 3) {
     }
     return { id: p.id, status: 'skipped' };
   }
-  const { fetchCmd, parseCmd } = buildCommands(p);
+  const tempDir = await mkdtemp(join(tmpdir(), 'player-scrape-'));
+  const tempHtmlName = `${p.fileId}.html`;
+  const tempJsonName = `${p.fileId}.json`;
+  const { fetchCmd, parseCmd } = buildCommands(
+    p,
+    tempDir,
+    tempHtmlName,
+    tempJsonName
+  );
+  const progress = progressInfo ? `[${progressInfo.current}/${progressInfo.total}]` : '';
   console.log(
-    `[${now()}] ▶︎ START (${attempt}/${maxAttempts}) ${p.team}/${p.id}`
+    `[${now()}] ${progress} ▶︎ START (${attempt}/${maxAttempts}) ${p.team}/${p.id}`
   );
   try {
     await sh(fetchCmd, { cwd: CONTRACTS_DIR, maxBuffer: 1024 * 1024 * 20 });
     await sh(parseCmd, { cwd: CONTRACTS_DIR, maxBuffer: 1024 * 1024 * 20 });
-    const placedPath = await collectAndPlace(p);
+    const tempJsonPath = join(tempDir, tempJsonName);
+    const placedPath = await collectAndPlace(p, tempJsonPath);
     await runValidate(p, placedPath);
     if (DO_PUSH_PREVIEW) {
       const payload = JSON.parse(await readFile(placedPath, 'utf8'));
@@ -272,19 +394,22 @@ async function runOne(p, attempt = 1, maxAttempts = 3) {
       if (DO_CLEANUP) await rm(placedPath, { force: true });
     }
     // Clean up temp files from working directory after successful processing
-    const tempHtml = resolve(WORKING_DIR, `${p.fileId}.html`);
-    const tempJson = resolve(WORKING_DIR, `${p.fileId}.json`);
-    await rm(tempHtml, { force: true }).catch(() => {});
-    await rm(tempJson, { force: true }).catch(() => {});
-    console.log(`[${now()}] ✅ DONE  ${p.team}/${p.id}`);
+    const tempHtmlPath = join(tempDir, tempHtmlName);
+    await rm(tempHtmlPath, { force: true }).catch(() => {});
+    await rm(tempJsonPath, { force: true }).catch(() => {});
+    await rm(tempDir, { recursive: true, force: true }).catch(() => {});
+    const progress = progressInfo ? `[${progressInfo.current}/${progressInfo.total}]` : '';
+    console.log(`[${now()}] ${progress} ✅ DONE  ${p.team}/${p.id}`);
     return { id: p.id, status: 'ok' };
   } catch (err) {
+    const progress = progressInfo ? `[${progressInfo.current}/${progressInfo.total}]` : '';
     console.error(
-      `[${now()}] ❌ FAIL (${attempt}/${maxAttempts}) ${p.team}/${p.id}`
+      `[${now()}] ${progress} ❌ FAIL (${attempt}/${maxAttempts}) ${p.team}/${p.id}`
     );
+    await rm(tempDir, { recursive: true, force: true }).catch(() => {});
     if (attempt < maxAttempts) {
       await sleep(500 + attempt * 1000);
-      return runOne(p, attempt + 1, maxAttempts);
+      return runOne(p, attempt + 1, maxAttempts, progressInfo);
     }
     console.error(err?.stdout || '');
     console.error(err?.stderr || '');
@@ -333,9 +458,10 @@ async function runAll() {
         return resolveDone(undefined);
       }
       while (inFlight < CONCURRENCY && idx < players.length) {
-        const p = players[idx++];
+        const p = players[idx];
+        const currentIdx = idx++;
         inFlight++;
-        runOne(p)
+        runOne(p, 1, 3, { current: currentIdx + 1, total: players.length })
           .then((res) => {
             if (res.status === 'ok') ok++;
             else if (res.status === 'skipped') skipped++;

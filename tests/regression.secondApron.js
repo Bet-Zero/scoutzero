@@ -29,15 +29,29 @@ describe('Second-apron regression: cannot take back more than send out', () => {
 
     const graysonAllen = {
       name: 'Grayson Allen',
-      contract_clean: {
-        salaries_by_year: { [currentYear]: { salary: 15_600_000 } },
+      contract: {
+        salariesByYear: [
+          {
+            season: seasonKey,
+            salary: 15_600_000,
+            capHit: 15_600_000,
+            guaranteed: true,
+          },
+        ],
       },
     };
 
     const dejounteMurray = {
       name: 'Dejounte Murray',
-      contract_clean: {
-        salaries_by_year: { [currentYear]: { salary: 29_500_000 } },
+      contract: {
+        salariesByYear: [
+          {
+            season: seasonKey,
+            salary: 29_500_000,
+            capHit: 29_500_000,
+            guaranteed: true,
+          },
+        ],
       },
     };
 

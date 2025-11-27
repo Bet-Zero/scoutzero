@@ -25,10 +25,11 @@ import { enforceConsent } from '../rules/enforceConsent.js';
 import { enforceEligibility } from '../rules/enforceEligibility.js';
 import { enforceTiming } from '../rules/timingValidation.js';
 import { enforceSecondApronHandcuffs } from '../rules/basicRules.js';
-import { computeMatchingValues } from '../utils/matchingValues.js';
+import { computeMatchingValues } from '../utils/salaryUtils.js';
 import { enforceRosterWindow } from '../rules/rosterValidation.js';
 import { validateFaExceptionUsage } from '../rules/validateFaExceptionUsage.js';
 import { validateAggregation } from '../rules/validateAggregation.js';
+import { normalizeYearInput, yearToSeason } from '../utils/seasonUtils.js';
 
 // Create wrapped versions with performance monitoring and caching
 const baseValidators = {
@@ -114,12 +115,19 @@ export function validateTrade({
 
   // Initialize context for validation
   const capSettings = getCapSettingsForYear(capProjections, currentYear);
+  
+  // Normalize year input to provide both formats consistently to all validators
+  // This eliminates format conversion duplication across validator files
+  const normalizedYear = normalizeYearInput(currentYear);
+  
   const context = {
     capProjections: capProjections || {},
     currentYear: currentYear || 2025,
     offseason: true, // Default to offseason for sign-and-trade validation
     capSettings,
     yearKey: currentYear,
+    // Provide both normalized formats for validators
+    normalizedYear: normalizedYear || { endYear: currentYear || 2025, seasonString: yearToSeason(currentYear || 2025) },
     teams: validTeams, // Add teams to context for consent validation
     ...tradeCtx,
   };
@@ -133,8 +141,13 @@ export function validateTrade({
       return player.previousSalary;
     }
     
-    // Poison pill averaging for incoming players
-    if (direction === 'incoming' && player.isPoisonPill) {
+    // Poison pill averaging for incoming players (only for rookie scale contracts)
+    // Check isRookieScale flag from new schema
+    const contract = player.contract || player.primaryContract;
+    const isRookieScale = contract?.isRookieScale || player.isRookieScale || false;
+    const isPoisonPill = player.isPoisonPill || isRookieScale;
+    
+    if (direction === 'incoming' && isPoisonPill) {
       const currentSalary = player.currentSalary || 0;
       const extensionTotal = (player.extensionYears || []).reduce((sum, year) => sum + (year.salary || 0), 0);
       const totalYears = 1 + (player.extensionYears || []).length; // current year + extension years
@@ -195,6 +208,15 @@ export function validateTrade({
     };
   });
 
+  // Compute matching values for all teams before validation
+  // This ensures matchIncoming/matchOutgoing are set for TPE and other validators
+  computeMatchingValues({
+    teams: teamsWithAssets,
+    yearKey: currentYear,
+    daysRemainingInSeason: context.daysRemainingInSeason,
+    daysInSeason: context.daysInSeason,
+  });
+
   // Run validation rules for each team
   const teamResults = teamsWithAssets.map((team, index) => {
     const teamId = team.teamId || team.team?.teamId || team.team?.id || `team-${index}`;
@@ -238,12 +260,19 @@ export function validateTrade({
     const warnings = [];
 
     // Collect violations and warnings from all rules
+    // Handle both array returns (enforcement functions) and object returns (validators)
     Object.values(allRules).forEach(rule => {
-      if (rule && rule.violations) {
-        violations.push(...rule.violations);
-      }
-      if (rule && rule.warnings) {
-        warnings.push(...rule.warnings);
+      if (rule) {
+        if (Array.isArray(rule)) {
+          // Enforcement functions return arrays directly
+          violations.push(...rule);
+        } else if (rule.violations) {
+          // Validators return objects with violations property
+          violations.push(...rule.violations);
+        }
+        if (rule.warnings) {
+          warnings.push(...rule.warnings);
+        }
       }
     });
 

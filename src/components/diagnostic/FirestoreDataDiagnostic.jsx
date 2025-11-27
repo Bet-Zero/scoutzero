@@ -32,16 +32,24 @@ const FirestoreDataDiagnostic = () => {
       };
 
       try {
-        // Check main collections
-        const collectionsToCheck = ['players', 'teams', 'seasons'];
+        // Check main collections (new architecture)
+        const collectionsToCheck = [
+          { name: 'players_v2', label: 'players_v2 (active)' },
+          { name: 'architect_basePlayers', label: 'architect_basePlayers (active)' },
+          { name: 'architect_baseTeams', label: 'architect_baseTeams (active)' },
+          { name: 'players', label: 'players (legacy - deprecated)' },
+          { name: 'teams', label: 'teams (legacy - deprecated)' },
+          { name: 'seasons', label: 'seasons (legacy - deprecated)' }
+        ];
         
-        for (const collectionName of collectionsToCheck) {
+        for (const { name: collectionName, label } of collectionsToCheck) {
           try {
             const snap = await getDocs(collection(db, collectionName));
             results.collections[collectionName] = {
               exists: true,
               count: snap.size,
-              error: null
+              error: null,
+              label
             };
             
             // For seasons, get detailed info
@@ -199,7 +207,10 @@ const FirestoreDataDiagnostic = () => {
         <div className="space-y-2">
           {Object.entries(diagnostics.collections).map(([name, info]) => (
             <div key={name} className={`flex justify-between items-center ${getStatusColor(info.exists, info.count)}`}>
-              <span>{getStatusIcon(info.exists, info.count)} /{name}</span>
+              <span>
+                {getStatusIcon(info.exists, info.count)} /{name}
+                {info.label && <span className="text-xs text-gray-500 ml-2">({info.label})</span>}
+              </span>
               <span className="font-mono">
                 {info.exists ? `${info.count} documents` : `Error: ${info.error}`}
               </span>

@@ -1,5 +1,18 @@
 import { getContractSalaryForYear } from '@/utils/architect/contractSalaryUtils';
+import { getCapHitForSeason, yearToSeason } from './seasonUtils.js';
 
+/**
+ * Computes matching values for trade validation accounting for:
+ * - Base Year Compensation (BYC)
+ * - Trade kickers with proration
+ * - Poison pill averaging for rookie scale contracts
+ * 
+ * @param {Object} params - Parameters object
+ * @param {Array} params.teams - Array of team objects with sends[] arrays
+ * @param {number|string} params.yearKey - Season end-year (2025) or season string ("2024-25")
+ * @param {number} [params.daysRemainingInSeason] - Days remaining for trade kicker proration
+ * @param {number} [params.daysInSeason] - Total days in season for trade kicker proration
+ */
 export function computeMatchingValues({
   teams = [],
   yearKey,
@@ -11,8 +24,22 @@ export function computeMatchingValues({
 
   teams.forEach((team) => {
     (team.sends || []).forEach((player) => {
-      // Extract salary from different possible sources - prioritize contract data
-      const contractSalary = getContractSalaryForYear(player, currentYear);
+      // Convert yearKey to season string if needed
+      const season = typeof currentYear === 'string' && currentYear.includes('-')
+        ? currentYear
+        : yearToSeason(currentYear);
+      
+      // Extract salary from different possible sources - prioritize capHit for cap calculations
+      let contractSalary = 0;
+      if (season) {
+        contractSalary = getCapHitForSeason(player, season);
+      }
+      
+      // Fallback to old extraction methods
+      if (contractSalary === 0) {
+        contractSalary = getContractSalaryForYear(player, currentYear);
+      }
+      
       const newSalary =
         player.newSalary ||
         contractSalary ||
@@ -40,8 +67,9 @@ export function computeMatchingValues({
 
       // Calculate raw kicker value - use guaranteed amount as base
       // Note: tradeKickerPct is already in decimal form (0.15 = 15%)
+      // Use nullish coalescing to distinguish 0 (no guarantees) from undefined
       const guaranteedAmount =
-        player.remainingGuaranteedOnCurrentContract || currentSalary;
+        player.remainingGuaranteedOnCurrentContract ?? currentSalary;
       const rawKickerValue = Math.min(
         guaranteedAmount * kickerPercentage,
         maxKicker
@@ -70,8 +98,13 @@ export function computeMatchingValues({
       // Set incoming matching value (includes trade kicker)
       let incomingValue = currentSalary + proratedKicker;
 
-      // Handle poison pill - use currentSalary for the average calculation
-      if (player.isPoisonPill && player.extensionYears?.length > 0) {
+      // Handle poison pill - only for rookie scale contracts
+      // Check isRookieScale flag from new schema
+      const contract = player.contract || player.primaryContract;
+      const isRookieScale = contract?.isRookieScale || player.isRookieScale || false;
+      const isPoisonPill = player.isPoisonPill || isRookieScale;
+      
+      if (isPoisonPill && player.extensionYears?.length > 0) {
         const totalExtensionSalary = player.extensionYears.reduce(
           (sum, year) => sum + year.salary,
           0

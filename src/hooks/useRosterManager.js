@@ -31,7 +31,8 @@ export const useRosterManager = (allPlayers = [], isLoading = false) => {
   const processedPlayers = useMemo(
     () =>
       allPlayers.map((player) => {
-        const contractData = player.primaryContract ||
+        const contractData =
+          player.primaryContract ||
           (player.contracts ? Object.values(player.contracts)[0] : null);
 
         return {
@@ -68,8 +69,10 @@ export const useRosterManager = (allPlayers = [], isLoading = false) => {
             ''
           ).toLowerCase(),
           contractType: (contractData?.contractType || '').toLowerCase(),
-          extension: (player.contracts ? Object.values(player.contracts) : [])
-            .find((c) => c.isExtension),
+          extension: (player.contracts
+            ? Object.values(player.contracts)
+            : []
+          ).find((c) => c.isExtension),
           options: contractData?.options || [],
           original: player,
         };
@@ -115,9 +118,18 @@ export const useRosterManager = (allPlayers = [], isLoading = false) => {
 
       if (loadMethod === 'current') {
         if (!selectedTeam) return;
-        const rawTeamPlayers = allPlayers.filter(
-          (p) => (p.bio?.display?.team || '').toLowerCase() === selectedTeam.id
-        );
+        // Match by team name (full name like "Los Angeles Lakers") or team slug
+        const rawTeamPlayers = allPlayers.filter((p) => {
+          const playerTeam = (p.bio?.display?.team || '').toLowerCase();
+          const teamNameMatch =
+            playerTeam === selectedTeam.teamName?.toLowerCase();
+          const teamIdMatch = playerTeam === selectedTeam.id;
+          // Also check if player team contains team nickname (e.g., "lakers" in "los angeles lakers")
+          const nicknameMatch =
+            selectedTeam.nickname &&
+            playerTeam.includes(selectedTeam.nickname.toLowerCase());
+          return teamNameMatch || teamIdMatch || nicknameMatch;
+        });
 
         const teamPlayers = rawTeamPlayers
           .filter((p) => !isTwoWayContract(p))

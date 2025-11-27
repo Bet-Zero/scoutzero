@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   FreeAgentTypeZ,
   MoneyZ,
+  OptionTypeZ,
   PlayerIdZ,
   SeasonCodeZ,
   TeamCodeZ,
@@ -18,7 +19,7 @@ import { BasePlayerContractZ } from './architect';
 export const PlayerAgentZ = z.object({
   name: z.string().optional().nullable(),
   agency: z.string().optional().nullable()
-});
+}).optional();
 
 export const PlayerDraftZ = z.object({
   year: YearZ.optional().nullable(),
@@ -42,7 +43,7 @@ export const PlayerBioZ = z.object({
   displayName: z.string(),
   name: z.string().optional(),
   playerId: PlayerIdZ,
-  position: z.string(),
+  position: z.string().nullable().optional(),
   height: z.number().int().optional(),
   weight: z.number().int().optional(),
   dob: z.string().optional(),
@@ -53,19 +54,119 @@ export const PlayerBioZ = z.object({
   draft: PlayerDraftZ.optional(),
   display: PlayerDisplayZ.optional(),
   nbaId: z.number().int().optional()
-});
+}).optional();
 
 // Contracts subcollection
-export const ContractMetadataZ = z.object({
-  startSeason: SeasonCodeZ,
-  endSeason: SeasonCodeZ,
-  isCurrent: z.boolean(),
-  label: z.string()
-});
+export const ContractMetadataZ = z
+  .object({
+    startSeason: SeasonCodeZ,
+    endSeason: SeasonCodeZ,
+    isCurrent: z.boolean(),
+    label: z.string(),
+    currentSalary: MoneyZ.optional(),
+    averageAnnualValue: MoneyZ.optional(),
+    yearsRemaining: z.number().int().optional(),
+    freeAgentYear: YearZ.optional(),
+    freeAgentType: FreeAgentTypeZ.optional(),
+    maxType: z.string().nullable().optional()
+  })
+  .passthrough();
 
 export const ContractDocZ = BasePlayerContractZ.extend({
   metadata: ContractMetadataZ
 });
+
+// Views - Contracts
+export const ContractViewSeasonZ = z.object({
+  season: SeasonCodeZ,
+  salary: MoneyZ.optional(),
+  guaranteed: z.boolean().optional(),
+  guaranteedAmount: MoneyZ.optional(),
+  optionType: OptionTypeZ.optional(),
+  optionDecisionDate: z.string().optional(),
+  voidedByExtension: z.boolean().optional(),
+  sourceContractId: z.string().optional()
+});
+
+export const ContractsViewDocZ = z
+  .object({
+    seasons: z.array(ContractViewSeasonZ),
+    freeAgentYear: YearZ.optional(),
+    freeAgentType: FreeAgentTypeZ.optional(),
+    birdRights: z
+      .object({
+        status: z.string(),
+        eligibleFor: z.array(z.string()).optional()
+      })
+      .optional(),
+    currentSalary: MoneyZ.optional(),
+    yearsRemaining: z.number().int().optional(),
+    averageAnnualValue: MoneyZ.optional(),
+    maxType: z.string().nullable().optional(),
+    contractType: z.string().optional()
+  })
+  .passthrough();
+
+// Denormalized views for main document (fast filtering/table views)
+export const CurrentContractViewZ = z
+  .object({
+    freeAgentYear: YearZ.optional(),
+    freeAgentType: FreeAgentTypeZ.optional(),
+    contractType: z.string().optional(),
+    options: z.array(z.any()).optional(),
+    birdRights: z
+      .object({
+        status: z.string(),
+        eligibleFor: z.array(z.string()).optional()
+      })
+      .optional(),
+    salaryByYear: z.record(YearZ, MoneyZ).optional(),
+    currentSalary: MoneyZ.optional(),
+    yearsRemaining: z.number().int().optional(),
+    averageAnnualValue: MoneyZ.optional(),
+    maxType: z.string().nullable().optional()
+  })
+  .passthrough()
+  .optional();
+
+export const CurrentEvaluationViewZ = z
+  .object({
+    roles: z
+      .object({
+        offense1: z.string().optional(),
+        offense2: z.string().optional(),
+        defense1: z.string().optional(),
+        defense2: z.string().optional()
+      })
+      .optional(),
+    subRoles: z
+      .object({
+        offense: z.array(z.string()).optional(),
+        defense: z.array(z.string()).optional()
+      })
+      .optional(),
+    shootingProfile: z.string().optional(),
+    badges: z.array(z.string()).optional(),
+    traits: z.record(z.string(), z.number()).optional(),
+    overallGrade: z.number().optional()
+  })
+  .passthrough()
+  .optional();
+
+export const CurrentSeasonStatsZ = z
+  .object({
+    PTS: z.number().optional(),
+    REB: z.number().optional(),
+    AST: z.number().optional(),
+    'FG%': z.number().optional(),
+    '3PT%': z.number().optional(),
+    'FT%': z.number().optional(),
+    'eFG%': z.number().optional(),
+    MIN: z.number().optional(),
+    GP: z.number().optional()
+  })
+  .passthrough()
+  .optional();
 
 // Seasons subcollection
 export const SeasonStatsZ = z.record(z.union([z.string(), z.literal('%')]), z.any());
@@ -141,7 +242,10 @@ export const EvaluationDocZ = z.object({
 export const PlayerMainDocZ = z.object({
   bio: PlayerBioZ,
   createdAt: TimestampZ.optional(),
-  updatedAt: TimestampZ.optional()
+  updatedAt: TimestampZ.optional(),
+  currentContractView: CurrentContractViewZ,
+  currentEvaluationView: CurrentEvaluationViewZ,
+  currentSeasonStats: CurrentSeasonStatsZ
 });
 
 // Types
@@ -149,6 +253,11 @@ export type PlayerMainDoc = z.infer<typeof PlayerMainDocZ>;
 export type ContractDoc = z.infer<typeof ContractDocZ>;
 export type SeasonDoc = z.infer<typeof SeasonDocZ>;
 export type EvaluationDoc = z.infer<typeof EvaluationDocZ>;
+export type ContractViewSeason = z.infer<typeof ContractViewSeasonZ>;
+export type ContractsViewDoc = z.infer<typeof ContractsViewDocZ>;
+export type CurrentContractView = z.infer<typeof CurrentContractViewZ>;
+export type CurrentEvaluationView = z.infer<typeof CurrentEvaluationViewZ>;
+export type CurrentSeasonStats = z.infer<typeof CurrentSeasonStatsZ>;
 
 // Aggregated type for convenience (not a Firestore document by itself)
 export interface PlayerV2 extends PlayerMainDoc {

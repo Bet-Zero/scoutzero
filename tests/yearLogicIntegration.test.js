@@ -6,12 +6,12 @@ import { getContractSalaryForYear } from '@/utils/architect/contractSalaryUtils'
 describe('Year Logic Integration Test', () => {
   const samplePlayer = {
     name: 'Test Player',
-    contract_clean: {
-      salaries_by_year: {
-        2025: { salary: 10000000 }, // 2024-25 season
-        2026: { salary: 12000000 }, // 2025-26 season (current)
-        2027: { salary: 15000000 }, // 2026-27 season
-      }
+    contract: {
+      salariesByYear: [
+        { season: '2024-25', salary: 10000000 }, // 2024-25 season
+        { season: '2025-26', salary: 12000000 }, // 2025-26 season (current)
+        { season: '2026-27', salary: 15000000 }, // 2026-27 season
+      ]
     }
   };
 

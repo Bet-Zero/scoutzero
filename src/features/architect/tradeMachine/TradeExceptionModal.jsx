@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { formatCurrency } from '@/utils/architect/tradeHelpers';
+import { formatCurrency, getSalaryForYear } from '@/utils/architect/tradeHelpers';
 import { AlertTriangle, Clock } from 'lucide-react';
 
 const processTPE = (tpe, playerSalary) => {
@@ -31,8 +31,7 @@ const TradeExceptionModal = ({
 }) => {
   const [selectedTPE, setSelectedTPE] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const playerSalary =
-    player.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0;
+  const playerSalary = getSalaryForYear(player, yearKey);
 
   const enriched = useMemo(
     () => tradeExceptions.map((tpe) => processTPE(tpe, playerSalary)),

@@ -6,6 +6,22 @@ import { POSITION_MAP } from '@/utils/roles';
 import getCapPercentage from '@/utils/architect/basicArchitectUtils';
 import capProjections from '@/utils/architect/capProjections';
 
+// Get contract year data from Architect contract shape (BasePlayerContractZ)
+const getContractYearSlice = (player, endYear) => {
+  if (!player) return null;
+
+  const contract = player.contract;
+  if (contract?.salariesByYear?.length) {
+    const seasonKey = `${endYear - 1}-${String(endYear).slice(-2)}`;
+    const yearEntry =
+      contract.salariesByYear.find((y) => y.season === seasonKey) ||
+      contract.salariesByYear.find((y) => String(y.season) === String(endYear));
+    if (yearEntry) return yearEntry;
+  }
+
+  return null;
+};
+
 const CapSheet = ({
   teamCapSheet,
   currentYear,
@@ -33,8 +49,8 @@ const CapSheet = ({
     `${year}-${String((year + 1) % 100).padStart(2, '0')}`;
 
   const getCapHit = (player, yearKey) => {
-    const salary =
-      player.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0;
+    const slice = getContractYearSlice(player, yearKey);
+    const salary = slice?.capHit ?? slice?.salary ?? 0;
     if (player.isMinimum && player.yearsOfService >= 3) {
       return getMinimumCapHit(player.yearsOfService);
     }
@@ -56,12 +72,11 @@ const CapSheet = ({
     }, 0);
 
   const renderNotes = (player, yearKey) => {
-    const option =
-      player.contract_clean?.salaries_by_year?.[yearKey]?.option || null;
+    const slice = getContractYearSlice(player, yearKey);
+    const option = slice?.option || null;
     const isPO = option === 'Player Option';
     const isTO = option === 'Team Option';
-    const isNG =
-      player.contract_clean?.salaries_by_year?.[yearKey]?.guaranteed === false;
+    const isNG = slice && slice.guaranteed === false;
 
     const notes = [];
     if (isPO)
@@ -81,19 +96,19 @@ const CapSheet = ({
   };
 
   const filteredPlayers = teamCapSheet.players
-    .filter((p) => p.contract_clean?.salaries_by_year?.[selectedYear])
+    .filter((p) => getContractYearSlice(p, selectedYear))
     .sort((a, b) => {
-      const aSalary =
-        a.contract_clean?.salaries_by_year?.[selectedYear]?.salary || 0;
-      const bSalary =
-        b.contract_clean?.salaries_by_year?.[selectedYear]?.salary || 0;
+      const aSlice = getContractYearSlice(a, selectedYear);
+      const bSlice = getContractYearSlice(b, selectedYear);
+      const aSalary = aSlice?.salary || aSlice?.capHit || 0;
+      const bSalary = bSlice?.salary || bSlice?.capHit || 0;
       return bSalary - aSalary;
     });
 
   const capHoldPlayers = teamCapSheet.players
     .filter((p) => {
-      const hasSalary =
-        p.contract_clean?.salaries_by_year?.[selectedYear]?.salary;
+      const slice = getContractYearSlice(p, selectedYear);
+      const hasSalary = slice?.salary || slice?.capHit;
       const holdAmount =
         typeof p.cap_hold === 'number' ? p.cap_hold : p.cap_hold?.amount || 0;
       const isActive =
@@ -155,9 +170,8 @@ const CapSheet = ({
         </thead>
         <tbody>
           {filteredPlayers.map((player, idx) => {
-            const salary =
-              player.contract_clean?.salaries_by_year?.[selectedYear]?.salary ||
-              0;
+            const slice = getContractYearSlice(player, selectedYear);
+            const salary = slice?.salary || slice?.capHit || 0;
             const capHit = getCapHit(player, selectedYear);
 
             const age = player.age ?? '-';

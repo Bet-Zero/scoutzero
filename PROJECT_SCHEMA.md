@@ -32,6 +32,9 @@ Top-level directory structure and purposes:
 - `shared/` - Shared schemas and utilities
   - `schema/` - Zod schemas for player data structures
   - `scripts/` - Shared utility scripts
+  - `tools/headshots/` - Headshot downloader tool
+    - `download_headshots.ts` - Download NBA player headshots from CDN
+    - `README.md` - Usage documentation
 - `stats/` - Player statistics scraping (TBD)
 - `docs/` - Player scraping documentation
 - `firestore_staging/` - Preparation utilities for staging Firestore payloads (no writes)
@@ -72,6 +75,7 @@ Top-level directory structure and purposes:
 - `components/` - Component hierarchy documentation
 - `migrations/` - Migration documentation and plans
 - `architect-teams-plan/` - Architect feature planning docs (multi-season roster planning)
+- `runbooks/` - Operational runbooks for scrapes, staging, and deployment workflows
 
 ## Naming Conventions
 
@@ -204,6 +208,10 @@ PLAYER_URL="https://salaryswish.com/players/player-name" npm run fetch-player
   - **Purpose:** Transform scraped contract + stats outputs into staged JSON payloads for `players_v2` and `/architect/basePlayers`
   - **Usage:** `npx tsx player-scrape/firestore_staging/stage_player.ts --player=toumani_camara [--outDir=custom] [--validate]`
   - **Notes:** Produces files under `player-scrape/firestore_staging/output/` for manual review; validation flag enforces Zod schema checks
+- `player-scrape/firestore_staging/run_full_scrape.ts`
+  - **Purpose:** Full-league orchestrator that runs contract + stats scrapers with configurable batching, exponential backoff, and per-phase logging
+  - **Usage:** `npx tsx player-scrape/firestore_staging/run_full_scrape.ts [--teams=LAL,BOS] [--batchSize=4] [--concurrency=6] [--maxRetries=4]`
+  - **Notes:** Streams logs to `player-scrape/logs/<timestamp>/{contracts,stats}/TEAM.log`; supports `--contractsOnly` / `--statsOnly` modes and auto-resume for previously scraped players
 
 **Purpose:** Validate scraped player contract against schema
 
@@ -242,6 +250,39 @@ npm run regress
 - `batch_process_thunder.ts` - Process Thunder roster
 - `batch_process_trio.ts` - Process specific player trio
 - `batch_process_parallel.ts` - Parallel batch processing
+
+#### `player-scrape/shared/tools/headshots/download_headshots.ts`
+
+**Purpose:** Download NBA player headshots from official CDN and save to `public/assets/headshots/`
+
+**Usage:**
+
+```bash
+# Annual full-season refresh (overwrites all)
+npx tsx player-scrape/shared/tools/headshots/download_headshots.ts --all
+
+# Targeted updates (trades, new signings)
+npx tsx player-scrape/shared/tools/headshots/download_headshots.ts --filter=lebron_james,austin_reaves
+
+# Dry run (preview without writing)
+npx tsx player-scrape/shared/tools/headshots/download_headshots.ts --all --dry-run
+
+# Custom concurrency
+npx tsx player-scrape/shared/tools/headshots/download_headshots.ts --all --concurrency=5
+```
+
+**Input:** `player-scrape/shared/outputs/player_index.json` (requires `nbaId` field)
+
+**Output:** `public/assets/headshots/{playerId}.png`
+
+**Flags:**
+- `--all` - Process all players (default: overwrite existing)
+- `--filter=<ids>` - Comma-separated player IDs to process
+- `--overwrite` - Overwrite existing files (default: true with `--all`, false otherwise)
+- `--dry-run` - Preview without writing files
+- `--concurrency=<n>` - Max concurrent downloads (default: 10)
+
+**Notes:** Replaces legacy Python script (`archive/data_pipeline/helpers/tools/pull_all_headshots.py`). Uses same `player_index.json` as contract/stats scrapers.
 
 **Common Environment Variables:**
 
@@ -306,6 +347,22 @@ npm run realgm:drafts
   - **Purpose:** Transform SalarySwish + RealGM outputs into staged `/architect/baseTeams/{teamCode}` documents
   - **Usage:** `npx tsx team-scrape/shared/firestore_staging/stage_team.ts --team=LAL [--season=2025-26] [--outDir=custom] [--validate]`
   - **Notes:** Writes previews to `team-scrape/shared/firestore_staging/output/` (git-ignored) and reuses the shared player index for name → playerId resolution
+- `team-scrape/shared/firestore_staging/run_full_team_scrape.ts`
+  - **Purpose:** Full-team orchestrator that fetches SalarySwish pages via Playwright, parses outputs, stages Firestore payloads, and rate-limits between steps
+  - **Usage:** `npx tsx team-scrape/shared/firestore_staging/run_full_team_scrape.ts [--teams=LAL,NYK] [--batchSize=3] [--delayMs=1500] [--maxRetries=3]`
+  - **Notes:** Logs per-phase execution to `team-scrape/logs/<timestamp>/{fetch,parse,stage}/TEAM.log`; auto-discovers SalarySwish slugs and supports backoff tuning
+- `team-scrape/shared/review_and_merge/scripts/merge_team_outputs.ts`
+  - **Purpose:** Merge SalarySwish team data with RealGM draft picks, emitting per-team and combined JSON plus execution logs
+  - **Usage:** `npx tsx team-scrape/shared/review_and_merge/scripts/merge_team_outputs.ts [--teams=LAL,BOS] [--logDir=team-scrape/logs] [--pretty=true]`
+  - **Notes:** Discovers teams dynamically from input directories, writes logs to `team-scrape/logs/merge-<timestamp>.log`, and respects `--outputDir` / `--salaryDir` / `--draftDir` overrides
+- `player-scrape/firestore_staging/push_staged_players.ts`
+  - **Purpose:** Push staged player documents (`players_v2` + `/architect/basePlayers`) using Firebase Admin credentials
+  - **Usage:** `npx tsx player-scrape/firestore_staging/push_staged_players.ts player_id [player_id...]`
+  - **Notes:** Reads `PLAYERS_V2_COLLECTION` / `BASE_PLAYERS_COLLECTION` from env, expects `serviceAccountKey.json` in repo root, and respects staged outputs in `player-scrape/firestore_staging/output/`
+- `team-scrape/shared/firestore_staging/push_staged_teams.ts`
+  - **Purpose:** Push staged `/architect/baseTeams` documents with retry/backoff support
+  - **Usage:** `npx tsx team-scrape/shared/firestore_staging/push_staged_teams.ts TEAM_CODE [TEAM_CODE...] [--stageDir=path] [--delayMs=500] [--maxRetries=3]`
+  - **Notes:** Applies exponential backoff (`--retryDelayMs`, `--backoffMultiplier`) between attempts and logs progress per team
 
 ### Build & Development
 
@@ -468,12 +525,15 @@ npm run realgm:drafts
 
 **Status:** ✅ Migration complete (active/stable)
 
-**Structure:** Hierarchical with subcollections
+**Structure:** Hierarchical with subcollections + denormalized views
 
 **Top-Level Fields:**
 
 - `bio.*` - Player biographical information
 - `createdAt`, `updatedAt` - Timestamps
+- `currentContractView` - Denormalized contract view for fast filtering (optional)
+- `currentEvaluationView` - Denormalized evaluation view for fast filtering (optional)
+- `currentSeasonStats` - Denormalized latest season stats for fast filtering (optional)
 
 **Subcollections:**
 

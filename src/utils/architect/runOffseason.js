@@ -1,3 +1,5 @@
+import { toSeasonCode } from './seasonFormat.js';
+
 export function runOffseason(
   teamCapSheet,
   currentYear,
@@ -15,28 +17,38 @@ export function runOffseason(
 
   // Process contracts
   const yearKey = nextYear;
-  for (const contract of teamCapSheet.players) {
-    const nextYearSalary =
-      contract.contract_clean?.salaries_by_year?.[yearKey]?.salary;
+  for (const player of teamCapSheet.players) {
+    // Prefer Architect contract shape
+    // Player objects have flat structure: player.contract.salariesByYear
+    let nextYearSalary = 0;
+    let optionType = null;
+    if (player.contract?.salariesByYear?.length) {
+      const seasonKey = toSeasonCode(yearKey);
+      const slice =
+        player.contract.salariesByYear.find((y) => y.season === seasonKey) ||
+        player.contract.salariesByYear.find(
+          (y) => String(y.season) === String(yearKey)
+        );
+      nextYearSalary = slice?.salary || slice?.capHit || 0;
+      optionType = slice?.option || null;
+    }
     let isOptionDeclined = false;
 
     // Handle player options
-    const optionType =
-      contract.contract_clean?.salaries_by_year?.[yearKey]?.option;
     if (optionType === 'Player Option' || optionType === 'Team Option') {
-      if (!optionDecisions[contract.name]) {
+      if (!optionDecisions[player.name]) {
         isOptionDeclined = true;
-        declinedOptions.push(contract.name);
+        declinedOptions.push(player.name);
       }
     }
 
     // Remove if no next year or option declined
     if (!nextYearSalary || isOptionDeclined) {
-      expiredContracts.push(contract.name);
+      expiredContracts.push(player.name);
       continue;
     }
 
-    updatedContracts.push(contract);
+    updatedContracts.push(player);
   }
 
   // Handle expired TPEs

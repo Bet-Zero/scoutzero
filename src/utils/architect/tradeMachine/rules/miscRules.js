@@ -9,34 +9,79 @@ import { validateCash } from './eligibilityRules.js';
 import { validateSignAndTrade } from './validateSignAndTrade.js';
 import { validateSecondApronRules } from './validateSecondApronRules.js';
 import { BYC_PERCENT } from '@/utils/architect/cbaConstants.js';
+import { getCapHitForSeason, yearToSeason, seasonToYear } from '../utils/seasonUtils.js';
+import { getSalaryForYear } from '@/utils/architect/tradeHelpers.js';
 
 /**
  * Validates Base Year Compensation (BYC) rules
+ * Auto-detects BYC eligibility by comparing current vs previous season salary
  * (Consolidated from validateBYC.js)
  */
 export function validateBYC(team, context = {}) {
   const violations = [];
-  const { currentYear = 2025 } = context;
+  const { currentYear = 2025, yearKey = currentYear, normalizedYear } = context;
+  
+  // Use pre-normalized year from context if available, otherwise normalize here
+  let currentSeason, currentEndYear, prevEndYear;
+  
+  if (normalizedYear) {
+    currentSeason = normalizedYear.seasonString;
+    currentEndYear = normalizedYear.endYear;
+    prevEndYear = currentEndYear - 1;
+  } else {
+    // Fallback: do conversion locally if normalizedYear not provided
+    currentSeason = typeof yearKey === 'string' && yearKey.includes('-')
+      ? yearKey
+      : yearToSeason(yearKey);
+    currentEndYear = typeof yearKey === 'number' ? yearKey : seasonToYear(currentSeason) + 1;
+    prevEndYear = currentEndYear - 1;
+  }
+  
+  // Previous season string
+  const previousSeason = yearToSeason(prevEndYear);
 
   // Check all outgoing players for BYC issues
   const outgoingPlayers = team.sends || [];
 
   outgoingPlayers.forEach((player) => {
-    const currentSalary =
-      player.contract_clean?.salaries_by_year?.[currentYear]?.salary || 0;
-    const previousSalary =
-      player.contract_clean?.salaries_by_year?.[currentYear - 1]?.salary || 0;
+    // Get current season salary (prefer capHit for cap calculations)
+    let currentSalary = 0;
+    if (currentSeason) {
+      currentSalary = getCapHitForSeason(player, currentSeason);
+    }
+    
+    // Fallback to old extraction methods
+    if (currentSalary === 0) {
+      currentSalary = getSalaryForYear(player, yearKey);
+    }
+    
+    // Get previous season salary
+    let previousSalary = 0;
+    if (previousSeason) {
+      previousSalary = getCapHitForSeason(player, previousSeason);
+    }
+    
+    // Fallback to old extraction methods
+    // getSalaryForYear expects numeric end-year input (e.g., 2024 for "2023-24")
+    // For season strings: seasonToYear("2024-25") returns 2024 (start year of current season)
+    //   which equals the end year of previous season "2023-24", so getSalaryForYear(2024) correctly looks up "2023-24"
+    // For numeric years: yearKey - 1 is already the end year of the previous season
+    if (previousSalary === 0) {
+      const prevYear = typeof yearKey === 'number' ? yearKey - 1 : seasonToYear(yearKey);
+      previousSalary = getSalaryForYear(player, prevYear);
+    }
 
     // BYC applies if current salary > 120% of previous salary
     const isBYC = previousSalary > 0 && currentSalary > previousSalary * 1.2;
 
     if (isBYC) {
-      // For BYC players, outgoing value is average of current and previous year
-      const bycValue = (currentSalary + previousSalary) / 2;
+      // For BYC players, outgoing value is max(previous salary, 50% of new salary)
+      const bycValue = Math.max(previousSalary, Math.floor(currentSalary * BYC_PERCENT));
 
       // Set the BYC matching values
       player.matchOutgoing = bycValue;
       player.isBYC = true;
+      player.previousSalary = previousSalary; // Store for use in matching calculations
 
       // No violations - BYC is just a calculation adjustment
     }
