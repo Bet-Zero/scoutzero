@@ -6,7 +6,7 @@ import {
   isSeasonActive,
   isSeasonFuture,
   isSeasonExpired,
-} from '@/utils/contracts/seasonNormalizer.js';
+} from '@/shared/utils/contracts/seasonNormalizer.js';
 
 describe('Season Normalizer', () => {
   describe('normalizeSeason', () => {

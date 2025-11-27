@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { formatName } from '@/utils/formatting';
-import { canSignFreeAgent } from '@/utils/architect/freeAgentLogic';
+import { formatName } from '@/shared/utils/formatting';
+import { canSignFreeAgent } from '@/features/architect/utils/freeAgentLogic';
 import {
   generateDefaultFreeAgentContract,
-} from '@/utils/architect/contractUtils';
-import { toSeasonCode } from '@/utils/architect/seasonFormat';
+} from '@/features/architect/utils/contractUtils';
+import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
 import FreeAgentRow from './FreeAgentRow';
-import EditContractModal from '@/components/shared/EditContractModal';
+import EditContractModal from '@/shared/components/EditContractModal';
 
 const FreeAgentPool = ({
   freeAgents,

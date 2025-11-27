@@ -4,7 +4,7 @@
 import React from 'react';
 import PlayerRow from '@/features/table/PlayerTable/PlayerRow';
 import { ChevronUp, ChevronDown, X } from 'lucide-react';
-import { POSITION_MAP } from '@/utils/roles';
+import { POSITION_MAP } from '@/shared/utils/roles';
 
 const ListPlayerRow = ({
   player,

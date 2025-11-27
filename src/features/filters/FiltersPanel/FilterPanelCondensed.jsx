@@ -1,13 +1,13 @@
 // src/components/filters/FilterPanelCondensed.jsx
 
 import React from 'react';
-import MultiSelectFilter from '@/components/shared/ui/filters/MultiSelectFilter';
+import MultiSelectFilter from '@/shared/components/ui/filters/MultiSelectFilter';
 import { TeamListFull } from '@/constants/teamList';
 import {
   offensiveRoles,
   defensiveRoles,
   shootingProfileTiers,
-} from '@/utils/roles';
+} from '@/shared/utils/roles';
 
 const FilterPanelCondensed = ({ filters, setFilters }) => {
   const update = (key, value) => {

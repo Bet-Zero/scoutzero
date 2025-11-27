@@ -1,8 +1,8 @@
 // src/components/roster/AddPlayerDrawer.jsx
 import React, { useState, useMemo } from 'react';
 import PlayerRowMini from './PlayerRowMini';
-import { expandPositionGroup } from '@/utils/roles';
-import { getDefaultAddPlayerFilters } from '@/utils/filtering';
+import { expandPositionGroup } from '@/shared/utils/roles';
+import { getDefaultAddPlayerFilters } from '@/shared/utils/filtering';
 import DrawerHeader from './addPlayer/DrawerHeader';
 import PlayerSearchBar from './addPlayer/PlayerSearchBar';
 import FilterTabs from './addPlayer/FilterTabs';

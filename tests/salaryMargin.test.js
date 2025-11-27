@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   getAllowableIncomingMargin,
   getIncomingCeilingForTeam,
-} from '@/utils/architect/tradeMachine/utils/salaryMargin.js';
+} from '@/features/architect/utils/tradeMachine/utils/salaryMargin.js';
 
 describe('Salary Margin Utilities', () => {
   describe('getAllowableIncomingMargin', () => {

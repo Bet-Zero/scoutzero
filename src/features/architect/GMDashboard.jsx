@@ -9,7 +9,7 @@ import {
   loadNamedTeamPlan,
   saveFreeAgents,
   loadFreeAgents,
-} from '@/utils/architect/firebaseTeamPlanHelpers';
+} from '@/features/architect/utils/firebaseTeamPlanHelpers';
 import RosterVisual from './RosterVisual';
 import CapSheet from './CapSheet';
 import CapSheetFull from './CapSheetFull';
@@ -20,12 +20,12 @@ import OffseasonTab from './OffseasonTab';
 import TeamHistoryTab from './TeamHistoryTab';
 import ExceptionTracker from './ExceptionTracker';
 import SavePlanModal from './SavePlanModal';
-import useArchitectPlayerData from '@/hooks/useArchitectPlayerData';
-import { enrichPlayerData } from '@/utils/roster';
+import useArchitectPlayerData from '@/features/architect/hooks/useArchitectPlayerData';
+import { enrichPlayerData } from '@/features/roster/utils';
 import { basePlayerRef } from '@/data/firestorePaths';
 import { getDoc } from 'firebase/firestore';
-import { getPlayerPositionLabel } from '@/utils/roles';
-import capProjections from '@/utils/architect/capProjections';
+import { getPlayerPositionLabel } from '@/shared/utils/roles';
+import capProjections from '@/features/architect/utils/capProjections';
 
 // ==== Season helpers (inline for now; you can extract later) ====
 const LOCAL_SEASON_KEY = 'hz.currentSeasonEndYear';

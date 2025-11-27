@@ -1,7 +1,7 @@
 // src/features/profile/TeamPlayerDropdowns.jsx
 
 import React, { useEffect } from 'react';
-import { getPlayersForTeam } from '@/utils/profileHelpers';
+import { getPlayersForTeam } from '@/features/profile/utils/profileHelpers';
 import { styles } from '@/constants/styles';
 
 const TeamPlayerDropdowns = ({

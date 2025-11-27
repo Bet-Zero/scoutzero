@@ -1,7 +1,7 @@
 // TieramidPlayerTile.jsx
 // Compact headshot-only tile for pyramid display mode
 import React from 'react';
-import { getPlayerPositionLabel } from '@/utils/roles';
+import { getPlayerPositionLabel } from '@/shared/utils/roles';
 
 const TieramidPlayerTile = ({ player }) => {
   if (!player) return null;

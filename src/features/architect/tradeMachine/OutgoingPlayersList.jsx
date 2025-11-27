@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import TradePlayerRow from './TradePlayerRow';
-import EditContractModal from '@/components/shared/EditContractModal';
-import TradeExceptionModal from '@/components/shared/TradeExceptionModal';
-import { getSalaryWithFallback } from '@/utils/architect/contractSalaryUtils';
+import EditContractModal from '@/shared/components/EditContractModal';
+import TradeExceptionModal from '@/shared/components/TradeExceptionModal';
+import { getSalaryWithFallback } from '@/features/architect/utils/contractSalaryUtils';
 
 const parseYear = (key) => {
   if (typeof key === 'number') return key;

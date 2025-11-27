@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { hasStepienViolation } from '@/utils/architect/tradeMachine/rules/stepienRule.js';
+import { hasStepienViolation } from '@/features/architect/utils/tradeMachine/rules/stepienRule.js';
 
 describe('hasStepienViolation', () => {
   it('fails on consecutive unprotected own picks', () => {

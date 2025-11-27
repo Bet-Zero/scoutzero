@@ -5,7 +5,7 @@ import {
   normalizeCaps,
   getTeamObject,
   resolvePayroll,
-} from '@/utils/architect/tradeMachine/utils/capUtils.js';
+} from '@/features/architect/utils/tradeMachine/utils/capUtils.js';
 
 describe('Cap Utilities', () => {
   describe('toNum', () => {

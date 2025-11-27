@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import OptionManager from './OptionManager';
-import { runOffseason } from '@/utils/architect/runOffseason';
+import { runOffseason } from '@/features/architect/utils/runOffseason';
 
 const OffseasonTab = ({
   teamCapSheet,

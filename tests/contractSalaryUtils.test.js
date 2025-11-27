@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getContractSalaryForYear, getSalaryWithFallback } from '@/utils/architect/contractSalaryUtils';
+import { getContractSalaryForYear, getSalaryWithFallback } from '@/features/architect/utils/contractSalaryUtils';
 
 describe('contractSalaryUtils', () => {
   // New architect schema: contract.salariesByYear array with season strings

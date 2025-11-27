@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { formatCurrency, getSalaryForYear } from '@/utils/architect/tradeHelpers';
+import { formatCurrency, getSalaryForYear } from '@/features/architect/utils/tradeHelpers';
 import { AlertTriangle, Clock } from 'lucide-react';
 
 const processTPE = (tpe, playerSalary) => {

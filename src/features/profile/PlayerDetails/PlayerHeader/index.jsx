@@ -1,9 +1,9 @@
 import React from 'react';
 import PlayerName from './ProfilePlayerName';
 import PlayerPosition from './ProfilePlayerPosition';
-import TeamLogo from '@/components/shared/TeamLogo';
-import PlayerHeadshot from '@/components/shared/PlayerHeadshot';
-import { POSITION_MAP } from '@/utils/roles';
+import TeamLogo from '@/shared/components/TeamLogo';
+import PlayerHeadshot from '@/shared/components/PlayerHeadshot';
+import { POSITION_MAP } from '@/shared/utils/roles';
 
 const PlayerHeader = ({ player, selectedPlayer }) => {
   const getAbbreviatedPosition = (position) => {

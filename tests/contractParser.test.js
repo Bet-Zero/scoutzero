@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseContractSituation } from '@/utils/contracts/contractParser.js';
+import { parseContractSituation } from '@/shared/utils/contracts/contractParser.js';
 
 describe('Contract Parser', () => {
   describe('parseContractSituation', () => {

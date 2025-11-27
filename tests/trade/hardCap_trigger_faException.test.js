@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { validateFaExceptionUsage } from '@/utils/architect/tradeMachine/engine/tradeValidator.js';
-import { isHardCappedAtFirstApron, wouldExceedHardCap } from '@/utils/architect/hardCapUtils.js';
+import { validateFaExceptionUsage } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
+import { isHardCappedAtFirstApron, wouldExceedHardCap } from '@/features/architect/utils/hardCapUtils.js';
 
 const teamBase = {
   context: {

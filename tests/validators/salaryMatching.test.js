@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateSalaryMatching } from '@/utils/architect/tradeMachine/rules/validateSalaryMatching.js';
+import { validateSalaryMatching } from '@/features/architect/utils/tradeMachine/rules/validateSalaryMatching.js';
 
 describe('validateSalaryMatching', () => {
   const makeTeam = (params) => ({

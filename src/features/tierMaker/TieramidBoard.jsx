@@ -1,13 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import TieramidPlayerTile from '@/features/tierMaker/TieramidPlayerTile';
 import { fetchTierList, saveTierList } from '@/firebase/listHelpers';
-import useSimplePlayerData from '@/hooks/useSimplePlayerData';
-import useFirebaseQuery from '@/hooks/useFirebaseQuery';
+import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
+import useFirebaseQuery from '@/shared/hooks/useFirebaseQuery';
 import CreateTierListModal from '@/features/tierMaker/CreateTierListModal';
 import { TeamListFull } from '@/constants/teamList';
-import { POSITION_MAP } from '@/utils/roles';
-import DrawerShell from '@/components/shared/ui/drawers/DrawerShell';
-import OpenDrawerButton from '@/components/shared/ui/drawers/OpenDrawerButton';
+import { POSITION_MAP } from '@/shared/utils/roles';
+import DrawerShell from '@/shared/components/ui/drawers/DrawerShell';
+import OpenDrawerButton from '@/shared/components/ui/drawers/OpenDrawerButton';
 import AddPlayerDrawer from '@/features/roster/AddPlayerDrawer/index.jsx';
 import { toast } from 'react-hot-toast';
 

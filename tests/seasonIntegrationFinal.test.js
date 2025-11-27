@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { getDefaultSeasonEndYear, toSeasonKey } from '@/utils/architect/seasonUtils';
-import { getCurrentSeasonYear } from '@/utils/contracts/getCurrentSeasonYear';
+import { getDefaultSeasonEndYear, toSeasonKey } from '@/features/architect/utils/seasonUtils';
+import { getCurrentSeasonYear } from '@/shared/utils/contracts/getCurrentSeasonYear';
 
 describe('Season Year Integration - End to End', () => {
   it('demonstrates the complete fix works with consistent year handling', () => {

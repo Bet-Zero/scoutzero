@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   generateRankingFromComparisons,
   suggestNextPair,
-} from '@/utils/ranker/rankingEngine.js';
+} from '@/features/ranker/utils/rankingEngine.js';
 
 const players = [
   { id: '1', name: 'A' },

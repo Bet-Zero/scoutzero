@@ -16,7 +16,7 @@ import {
   deleteWorld,
   branchWorld,
   updateWorldStats,
-} from '@/utils/architect/worldManager';
+} from '@/features/architect/utils/worldManager';
 import {
   seedWorldMetadata,
   getMockWorldMetadata,

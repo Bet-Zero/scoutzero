@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { getPlayerPositionLabel } from '@/utils/roles';
-import { formatName } from '@/utils/formatting';
+import { getPlayerPositionLabel } from '@/shared/utils/roles';
+import { formatName } from '@/shared/utils/formatting';
 
 const FreeAgentRow = ({
   player = {},

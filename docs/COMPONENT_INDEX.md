@@ -21,6 +21,8 @@ Quick reference for all components in the ScoutZero project.
 - SavePlanModal.jsx
 - TeamHistoryTab.jsx
 - WaiveStretchTracker.jsx
+- hooks/useArchitectPlayerData.js
+- hooks/useTradeMachine.js
 - tradeMachine/CapImpactTiles.jsx
 - tradeMachine/FaExceptionTracker.jsx
 - tradeMachine/OutgoingPicksList.jsx
@@ -40,6 +42,88 @@ Quick reference for all components in the ScoutZero project.
 - tradeMachine/TradeSummaryPanel.jsx
 - tradeMachine/TradeTeamCard.jsx
 - tradeMachine/TradeValidationPanel.jsx
+- utils/architectCore.js
+- utils/basicArchitectUtils.js
+- utils/capProjections.js
+- utils/capUtils.js
+- utils/cashUtils.js
+- utils/cbaConstants.js
+- utils/consentUtils.js
+- utils/contractSalaryUtils.js
+- utils/contractUtils.js
+- utils/draftPickUtils.js
+- utils/extensionRules.js
+- utils/faExceptionUtils.js
+- utils/firebaseTeamPlanHelpers.js
+- utils/freeAgentLogic.js
+- utils/hardCapUtils.js
+- utils/reacqUtils.js
+- utils/rosterUtils.js
+- utils/runOffseason.js
+- utils/salaryUtils.js
+- utils/schemaAdapter.js
+- utils/seasonFormat.js
+- utils/seasonManager.js
+- utils/seasonUtils.js
+- utils/stepienUtils.js
+- utils/teamLoader.js
+- utils/timingUtils.js
+- utils/tradeHelpers.js
+- utils/tradeMachine/cache/cacheInvalidationManager.js
+- utils/tradeMachine/cache/index.js
+- utils/tradeMachine/cache/validationCache.js
+- utils/tradeMachine/cache/validationCacheManager.js
+- utils/tradeMachine/cache/validationCacheService.js
+- utils/tradeMachine/constants/cbaConstants.js
+- utils/tradeMachine/engine/engineUtils.js
+- utils/tradeMachine/engine/index.js
+- utils/tradeMachine/engine/performanceMonitor.js
+- utils/tradeMachine/engine/tradeDebug.js
+- utils/tradeMachine/engine/tradeValidator.debug.js
+- utils/tradeMachine/engine/tradeValidator.js
+- utils/tradeMachine/engine/validationDebugMonitor.js
+- utils/tradeMachine/engine/validationPerformanceMonitor.js
+- utils/tradeMachine/engine/validationUtils.js
+- utils/tradeMachine/engine/validatorFactory.js
+- utils/tradeMachine/index.js
+- utils/tradeMachine/rules/aggregationValidator.js
+- utils/tradeMachine/rules/basicRules.js
+- utils/tradeMachine/rules/draftRules.js
+- utils/tradeMachine/rules/eligibilityRules.js
+- utils/tradeMachine/rules/enforceConsent.js
+- utils/tradeMachine/rules/enforceEligibility.js
+- utils/tradeMachine/rules/enforcement.js
+- utils/tradeMachine/rules/enforcementValidation.js
+- utils/tradeMachine/rules/hardCapValidation.js
+- utils/tradeMachine/rules/index.js
+- utils/tradeMachine/rules/miscRules.js
+- utils/tradeMachine/rules/rosterValidation.js
+- utils/tradeMachine/rules/salaryMatching.js
+- utils/tradeMachine/rules/timingValidation.js
+- utils/tradeMachine/rules/tradeExceptions.js
+- utils/tradeMachine/rules/validateAggregation.js
+- utils/tradeMachine/rules/validateConsent.js
+- utils/tradeMachine/rules/validateEligibility.js
+- utils/tradeMachine/rules/validateFaExceptionUsage.js
+- utils/tradeMachine/rules/validateRoster.js
+- utils/tradeMachine/rules/validateSalaryMatching.js
+- utils/tradeMachine/rules/validateSecondApronRules.js
+- utils/tradeMachine/rules/validateSignAndTrade.js
+- utils/tradeMachine/rules/validateStepien.js
+- utils/tradeMachine/rules/validateTradeExceptions.js
+- utils/tradeMachine/utils/capUtils.js
+- utils/tradeMachine/utils/computeMatchingValues.js
+- utils/tradeMachine/utils/index.js
+- utils/tradeMachine/utils/matchingValues.js
+- utils/tradeMachine/utils/normalizeTradeInput.js
+- utils/tradeMachine/utils/salaryMargin.js
+- utils/tradeMachine/utils/salaryUtils.js
+- utils/tradeMachine/utils/seasonUtils.js
+- utils/tradeMachine/utils/tradeUtilities.js
+- utils/tradeMachine/utils/validateInput.js
+- utils/tradeMachine/validators/index.js
+- utils/tradeManager.js
+- utils/worldManager.js
 
 ## Filters
 - ActiveFiltersDisplay/FilterPill/FilterContent.jsx
@@ -101,6 +185,8 @@ Quick reference for all components in the ScoutZero project.
 - PlayerSearchBar.jsx
 - TeamPlayerDropdowns.jsx
 - TeamPlayerSelector.jsx
+- hooks/useAutoSavePlayer.js
+- utils/profileHelpers.js
 
 ## Ranker
 - AnchorComparison.jsx
@@ -112,6 +198,7 @@ Quick reference for all components in the ScoutZero project.
 - RankingSession.jsx
 - RankingSetup.jsx
 - tournamentRanker.js
+- utils/rankingEngine.js
 
 ## Roster
 - AddPlayerDrawer/PlayerRowMini.jsx
@@ -135,6 +222,11 @@ Quick reference for all components in the ScoutZero project.
 - RosterSection/index.jsx
 - RosterViewer.jsx
 - SaveRosterModal.jsx
+- hooks/useRosterManager.js
+- utils/contractUtils.js
+- utils/enrichPlayerData.js
+- utils/index.js
+- utils/rosterUtils.js
 
 ## Table
 - PlayerTable/PlayerRow/PlayerDrawer/BadgeMini.jsx
@@ -154,6 +246,7 @@ Quick reference for all components in the ScoutZero project.
 - PlayerTable/index.jsx
 - SubRolePill.jsx
 - TwoWayMini.jsx
+- hooks/useFilteredPlayers.js
 
 ## TierMaker
 - CreateTierListModal.jsx
@@ -163,4 +256,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2025-10-31T07:32:00.174Z*
+*Generated on: 2025-11-27T08:34:36.689Z*

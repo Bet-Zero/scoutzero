@@ -1,11 +1,11 @@
 import React from 'react';
-import Modal from '@/components/shared/ui/Modal';
-import VideoExamples from '@/components/shared/ui/VideoExamples';
+import Modal from '@/shared/components/ui/Modal';
+import VideoExamples from '@/shared/components/ui/VideoExamples';
 import {
   getModalTitle,
   getBlurbValue,
   getVideoExamples,
-} from '@/utils/profileHelpers';
+} from '@/features/profile/utils/profileHelpers';
 
 const BreakdownModal = ({ modalKey, blurbs, onChange, onClose }) => (
   <Modal title={getModalTitle(modalKey)} onClose={onClose}>

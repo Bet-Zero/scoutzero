@@ -1,7 +1,7 @@
 // src/components/filters/sections/MetadataFilters.jsx
 
 import React from 'react';
-import MultiSelectFilter from '@/components/shared/ui/filters/MultiSelectFilter';
+import MultiSelectFilter from '@/shared/components/ui/filters/MultiSelectFilter';
 import { TeamListFull } from '@/constants/teamList';
 
 const MetadataFilters = ({ filters, setFilters }) => {

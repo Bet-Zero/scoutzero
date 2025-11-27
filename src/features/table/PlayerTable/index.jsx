@@ -1,15 +1,15 @@
 // src/components/table/PlayerTable.jsx
 
 import React, { useState, useMemo } from 'react';
-import useSimplePlayerData from '@/hooks/useSimplePlayerData';
-import useFilteredPlayers from '@/hooks/useFilteredPlayers';
+import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
+import useFilteredPlayers from '@/features/table/hooks/useFilteredPlayers';
 import PlayerRow from '@/features/table/PlayerTable/PlayerRow';
 import FiltersPanel from '@/features/filters/FiltersPanel';
 import ActiveFiltersDisplay from '@/features/filters/ActiveFiltersDisplay';
 import ViewControls from '@/features/filters/FiltersPanel/FilterPanel/sections/ViewControls';
 import PlayerTableHeader from '@/features/table/PlayerTable/PlayerTableHeader';
 import debounce from 'lodash.debounce';
-import { getDefaultPlayerFilters } from '@/utils/filtering';
+import { getDefaultPlayerFilters } from '@/shared/utils/filtering';
 
 const PlayerTable = () => {
   const [filters, setFilters] = useState(getDefaultPlayerFilters());

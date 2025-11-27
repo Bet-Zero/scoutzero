@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { RotateCcw } from 'lucide-react';
-import { useTradeMachine } from '@/hooks/tradeMachine/useTradeMachine';
+import { useTradeMachine } from '@/features/architect/hooks/useTradeMachine';
 import TradeTeamCard from './TradeTeamCard';
 import TradeSummaryPanel from './TradeSummaryPanel';
 import TradeValidationPanel from './TradeValidationPanel';

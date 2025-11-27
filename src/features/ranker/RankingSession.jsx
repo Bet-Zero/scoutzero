@@ -9,7 +9,7 @@ import {
   suggestNextPair,
   estimateRemainingComparisons,
   buildAnchorComparisons,
-} from '@/utils/ranker/rankingEngine';
+} from '@/features/ranker/utils/rankingEngine';
 
 const RankingSession = ({ playerPool = [] }) => {
   const players = useMemo(

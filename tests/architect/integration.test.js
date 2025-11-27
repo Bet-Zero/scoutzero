@@ -12,10 +12,10 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createWorld, branchWorld } from '@/utils/architect/worldManager';
-import { getTeam, getLeague } from '@/utils/architect/teamLoader';
-import { executeTrade, signFreeAgent, waivePlayer } from '@/utils/architect/tradeManager';
-import { advanceSeason } from '@/utils/architect/seasonManager';
+import { createWorld, branchWorld } from '@/features/architect/utils/worldManager';
+import { getTeam, getLeague } from '@/features/architect/utils/teamLoader';
+import { executeTrade, signFreeAgent, waivePlayer } from '@/features/architect/utils/tradeManager';
+import { advanceSeason } from '@/features/architect/utils/seasonManager';
 import {
   seedBaseData,
   createMockCapProjections,
@@ -24,7 +24,7 @@ import {
 import { getMockData } from '../__mocks__/firebase.js';
 
 // Mock validateTrade to return valid trades for testing
-vi.mock('@/utils/architect/tradeMachine', () => ({
+vi.mock('@/features/architect/utils/tradeMachine', () => ({
   validateTrade: vi.fn(() => ({
     legal: true,
     reason: 'Trade is valid',

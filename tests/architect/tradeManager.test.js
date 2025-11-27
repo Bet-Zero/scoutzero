@@ -14,7 +14,7 @@ import {
   waivePlayer,
   extendPlayer,
   updateTeamCapTotals,
-} from '@/utils/architect/tradeManager';
+} from '@/features/architect/utils/tradeManager';
 import {
   seedBaseData,
   seedWorldMetadata,
@@ -26,7 +26,7 @@ import {
 import { getMockData } from '../__mocks__/firebase.js';
 
 // Mock validateTrade to return valid trades for testing
-vi.mock('@/utils/architect/tradeMachine', () => ({
+vi.mock('@/features/architect/utils/tradeMachine', () => ({
   validateTrade: vi.fn(() => ({
     legal: true,
     reason: 'Trade is valid',
@@ -200,7 +200,7 @@ describe('Trade Manager', () => {
     });
 
     it('throws error for invalid trade', async () => {
-      const { validateTrade } = await import('@/utils/architect/tradeMachine');
+      const { validateTrade } = await import('@/features/architect/utils/tradeMachine');
       vi.mocked(validateTrade).mockReturnValueOnce({
         legal: false,
         reason: 'Trade violates salary matching rules',

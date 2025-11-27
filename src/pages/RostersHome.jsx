@@ -11,7 +11,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { db } from '@/firebaseConfig';
 import CreateRosterModal from '@/features/roster/CreateRosterModal';
 import ListSearchBar from '@/features/lists/ListSearchBar';
-import useSimplePlayerData from '@/hooks/useSimplePlayerData';
+import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
 
 const RostersHome = () => {
   const [rosters, setRosters] = useState([]);

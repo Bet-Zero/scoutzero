@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { advanceSeason, processSeasonTransition } from '@/utils/architect/seasonManager';
+import { advanceSeason, processSeasonTransition } from '@/features/architect/utils/seasonManager';
 import {
   seedBaseData,
   seedWorldMetadata,

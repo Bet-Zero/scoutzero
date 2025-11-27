@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { getTeam, getLeague, getPlayer, mergePlayerOverride } from '@/utils/architect/teamLoader';
+import { getTeam, getLeague, getPlayer, mergePlayerOverride } from '@/features/architect/utils/teamLoader';
 import {
   seedBaseData,
   seedWorldMetadata,

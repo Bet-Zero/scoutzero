@@ -1,27 +1,27 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { getTeamColors } from '@/utils/formatting';
-import capProjections from '@/utils/architect/capProjections';
+import { getTeamColors } from '@/shared/utils/formatting';
+import capProjections from '@/features/architect/utils/capProjections';
 import {
   getSalaryForYear,
   formatPick,
   calculateAllowableIncoming,
   getIncomingCeiling,
-} from '@/utils/architect/tradeHelpers';
-import { formatSalary } from '@/utils/formatting';
+} from '@/features/architect/utils/tradeHelpers';
+import { formatSalary } from '@/shared/utils/formatting';
 import CapImpactTiles from './CapImpactTiles';
 import { SelectTeamCard } from './SelectTeamCard';
 import { OutgoingPlayersList } from './OutgoingPlayersList';
 import { OutgoingPicksList } from './OutgoingPicksList';
-import TeamSelectDropdown from '@/components/shared/TeamSelectDropdown';
+import TeamSelectDropdown from '@/shared/components/TeamSelectDropdown';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import TradeExceptionManager from './TradeExceptionManager';
 import {
   getTeamFaExceptionBuckets,
   isFaExceptionEligibleType,
-} from '@/utils/architect/faExceptionUtils.js';
+} from '@/features/architect/utils/faExceptionUtils.js';
 import { validationFlags } from '@/config/validationFlags.js';
-import { getCapHitForSeason } from '@/utils/architect/tradeMachine/utils/seasonUtils.js';
-import { toSeasonKey } from '@/utils/architect/seasonUtils';
+import { getCapHitForSeason } from '@/features/architect/utils/tradeMachine/utils/seasonUtils.js';
+import { toSeasonKey } from '@/features/architect/utils/seasonUtils';
 
 const TradeTeamCard = ({
   team,

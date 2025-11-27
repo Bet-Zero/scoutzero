@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { validateTrade } from '@/utils/architect/tradeMachine/engine/tradeValidator.js';
-import { validateTradeInput } from '@/utils/architect/tradeMachine/utils/validateInput.js';
-import { normalizeTradeInput } from '@/utils/architect/tradeMachine/utils/normalizeTradeInput.js';
-import capProjections from '@/utils/architect/capProjections.js';
+import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
+import { validateTradeInput } from '@/features/architect/utils/tradeMachine/utils/validateInput.js';
+import { normalizeTradeInput } from '@/features/architect/utils/tradeMachine/utils/normalizeTradeInput.js';
+import capProjections from '@/features/architect/utils/capProjections.js';
 
 const currentYear = 2025;
 const season = `${currentYear - 1}-${String(currentYear).slice(-2)}`;

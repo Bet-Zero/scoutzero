@@ -1,9 +1,9 @@
 import React, { useRef } from 'react';
 import { X } from 'lucide-react';
-import useImageDownload from '@/hooks/useImageDownload';
+import useImageDownload from '@/shared/hooks/useImageDownload';
 import RosterExportCapture from './RosterExportCapture';
-import { getTeamColors } from '@/utils/formatting/teamColors';
-import { getTeamLogoFilename } from '@/utils/formatting/teamLogos';
+import { getTeamColors } from '@/shared/utils/formatting/teamColors';
+import { getTeamLogoFilename } from '@/shared/utils/formatting/teamLogos';
 import RosterSection from './RosterSection';
 
 const RosterPreviewModal = ({ open, onClose, roster, team }) => {

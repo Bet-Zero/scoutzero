@@ -1,16 +1,16 @@
 // PlayerProfileView.jsx
 
 import React, { useState, useEffect, useCallback } from 'react';
-import useSimplePlayerData from '@/hooks/useSimplePlayerData';
-import usePlayerDetail from '@/hooks/usePlayerDetail';
-import useAutoSavePlayer from '@/hooks/useAutoSavePlayer';
-import { enrichPlayerData } from '@/utils/roster/enrichPlayerData';
+import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
+import usePlayerDetail from '@/shared/hooks/usePlayerDetail';
+import useAutoSavePlayer from '@/features/profile/hooks/useAutoSavePlayer';
+import { enrichPlayerData } from '@/features/roster/utils/enrichPlayerData';
 
 import TeamPlayerDropdowns from '@/features/profile/TeamPlayerDropdowns';
 import PlayerNavigation from '@/features/profile/PlayerNavigation';
 import PlayerDetails from '@/features/profile/PlayerDetails';
 import BreakdownModal from '@/features/profile/BreakdownModal';
-import { getPlayersForTeam } from '@/utils/profileHelpers';
+import { getPlayersForTeam } from '@/features/profile/utils/profileHelpers';
 import PlayerSearchBar from '@/features/profile/PlayerSearchBar';
 
 const defaultTraits = {

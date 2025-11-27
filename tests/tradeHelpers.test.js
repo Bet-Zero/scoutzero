@@ -5,7 +5,7 @@ import {
   getSalaryForYear,
   areSamePick,
   calculateAllowableIncoming,
-} from '@/utils/architect/tradeHelpers';
+} from '@/features/architect/utils/tradeHelpers';
 
 // 🔧  simple mock cap settings for 2025 season
 const settings = {

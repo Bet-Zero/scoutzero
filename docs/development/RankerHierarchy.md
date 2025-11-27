@@ -11,8 +11,10 @@ RankingSession.jsx
 RankingSetup.jsx
 ranker.css
 tournamentRanker.js
+utils/
+  rankingEngine.js
 ```
 
 ---
-*Generated on: 2025-10-20T05:31:42.830Z*
+*Generated on: 2025-11-27T08:34:36.661Z*
 *Auto-updated by: npm run docs*

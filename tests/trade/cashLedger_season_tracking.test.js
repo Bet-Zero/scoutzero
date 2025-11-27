@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateCash } from '@/utils/architect/tradeMachine/rules/validateCash.js';
+import { validateCash } from '@/features/architect/utils/tradeMachine/rules/validateCash.js';
 import { validationFlags } from '@/config/validationFlags.js';
 
 describe('seasonal cash ledger tracking', () => {

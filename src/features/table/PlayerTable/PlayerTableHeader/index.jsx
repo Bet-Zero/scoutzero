@@ -1,7 +1,7 @@
 import React from 'react';
 import SearchBar from './SearchBar';
 import ControlButtons from './ControlButtons';
-import { getDefaultSeasonEndYear, toSeasonKey } from '@/utils/architect/seasonUtils';
+import { getDefaultSeasonEndYear, toSeasonKey } from '@/features/architect/utils/seasonUtils';
 
 const PlayerTableHeader = ({
   filteredCount,

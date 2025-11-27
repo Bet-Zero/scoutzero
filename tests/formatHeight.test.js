@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatHeight } from '@/utils/formatting/formatHeight.js';
+import { formatHeight } from '@/shared/utils/formatting/formatHeight.js';
 
 describe('formatHeight', () => {
   it('formats inches into feet and inches', () => {

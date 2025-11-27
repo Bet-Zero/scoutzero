@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { getSalaryForYear } from '@/utils/architect/tradeHelpers';
-import { getContractSalaryForYear } from '@/utils/architect/contractSalaryUtils';
+import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers';
+import { getContractSalaryForYear } from '@/features/architect/utils/contractSalaryUtils';
 
 describe('Contract Data Fix Validation', () => {
   // Data using new architect schema (contract.salariesByYear array)

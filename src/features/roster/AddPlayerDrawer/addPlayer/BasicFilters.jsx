@@ -1,9 +1,9 @@
 // src/components/filters/sections/BasicFilters.jsx
 import React from 'react';
-import MultiSelectFilter from '@/components/shared/ui/filters/MultiSelectFilter';
-import BadgeFilterSelect from '@/components/shared/ui/filters/BadgeFilterSelect';
-import { teamOptions } from '@/utils/filtering';
-import { shootingProfileTiers } from '@/utils/roles';
+import MultiSelectFilter from '@/shared/components/ui/filters/MultiSelectFilter';
+import BadgeFilterSelect from '@/shared/components/ui/filters/BadgeFilterSelect';
+import { teamOptions } from '@/shared/utils/filtering';
+import { shootingProfileTiers } from '@/shared/utils/roles';
 
 const BasicFilters = ({ filters, setFilters }) => {
   return (

@@ -1,7 +1,7 @@
 // src/features/tierMaker/CreateTierListModal.jsx
 import React, { useState } from 'react';
 import { createTierList } from '@/firebase/listHelpers';
-import { Dialog, DialogContent } from '@/components/shared/ui/Dialog';
+import { Dialog, DialogContent } from '@/shared/components/ui/Dialog';
 
 const CreateTierListModal = ({ isOpen, onClose, onCreated }) => {
   const [name, setName] = useState('');

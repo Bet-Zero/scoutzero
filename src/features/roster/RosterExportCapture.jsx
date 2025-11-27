@@ -1,7 +1,7 @@
 // src/components/roster/RosterExportCapture.jsx
 import React from 'react';
-import { getTeamColors } from '@/utils/formatting/teamColors';
-import { getTeamLogoFilename } from '@/utils/formatting/teamLogos';
+import { getTeamColors } from '@/shared/utils/formatting/teamColors';
+import { getTeamLogoFilename } from '@/shared/utils/formatting/teamLogos';
 import RosterSection from './RosterSection';
 
 const RosterExportCapture = React.forwardRef(({ roster, team }, ref) => {

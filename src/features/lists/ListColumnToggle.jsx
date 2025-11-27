@@ -1,6 +1,6 @@
 // src/features/lists/ListColumnToggle.jsx
 import React from 'react';
-import ToggleButton from '@/components/shared/ui/ToggleButton';
+import ToggleButton from '@/shared/components/ui/ToggleButton';
 
 const ListColumnToggle = ({ twoColumn, onChange }) => {
   return (

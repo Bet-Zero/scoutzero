@@ -1,7 +1,7 @@
 import React from 'react';
-import capProjections from '@/utils/architect/capProjections';
-import { formatSalary } from '@/utils/formatting';
-import { getSalaryForYear } from '@/utils/architect/tradeHelpers';
+import capProjections from '@/features/architect/utils/capProjections';
+import { formatSalary } from '@/shared/utils/formatting';
+import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers';
 
 const CapImpactTiles = ({
   team,

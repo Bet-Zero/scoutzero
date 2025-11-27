@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import useSimplePlayerData from '@/hooks/useSimplePlayerData';
-import useFirebaseQuery from '@/hooks/useFirebaseQuery';
-import { POSITION_MAP } from '@/utils/roles';
+import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
+import useFirebaseQuery from '@/shared/hooks/useFirebaseQuery';
+import { POSITION_MAP } from '@/shared/utils/roles';
 import { TeamListFull } from '@/constants/teamList';
-import DrawerShell from '@/components/shared/ui/drawers/DrawerShell';
-import OpenDrawerButton from '@/components/shared/ui/drawers/OpenDrawerButton';
+import DrawerShell from '@/shared/components/ui/drawers/DrawerShell';
+import OpenDrawerButton from '@/shared/components/ui/drawers/OpenDrawerButton';
 import AddPlayerDrawer from '@/features/roster/AddPlayerDrawer';
 import RankingSession from './RankingSession';
 import TierPlayerTile from '@/features/lists/TierPlayerTile';

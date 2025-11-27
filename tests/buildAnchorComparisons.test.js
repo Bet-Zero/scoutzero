@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildAnchorComparisons } from '@/utils/ranker/rankingEngine.js';
+import { buildAnchorComparisons } from '@/features/ranker/utils/rankingEngine.js';
 
 describe('buildAnchorComparisons', () => {
   it('creates directional relationships against anchor', () => {

@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { loadTeamCapSheet } from '@/utils/architect/firebaseTeamPlanHelpers';
+import { loadTeamCapSheet } from '@/features/architect/utils/firebaseTeamPlanHelpers';
 import { useNavigate } from 'react-router-dom';
 import { TeamListFull } from '@/constants/teamList';
-import TeamLogo from '@/components/shared/TeamLogo';
+import TeamLogo from '@/shared/components/TeamLogo';
 import {
   getDefaultSeasonEndYear,
   toSeasonKey,
-} from '@/utils/architect/seasonUtils';
-import { getCapHitForSeason } from '@/utils/architect/tradeMachine/utils/seasonUtils.js';
+} from '@/features/architect/utils/seasonUtils';
+import { getCapHitForSeason } from '@/features/architect/utils/tradeMachine/utils/seasonUtils.js';
 
 const teamsList = TeamListFull;
 

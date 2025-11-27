@@ -5,7 +5,7 @@ import { describe, it, expect } from 'vitest';
 import {
   calculateAllowableIncoming,
   getIncomingCeiling,
-} from '@/utils/architect/tradeHelpers.js';
+} from '@/features/architect/utils/tradeHelpers.js';
 
 const capSettings = {
   salaryCap: 141_000_000,

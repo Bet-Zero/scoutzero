@@ -1,10 +1,10 @@
 import React from 'react';
-import RangeSelector from '@/components/shared/ui/filters/RangeSelector';
+import RangeSelector from '@/shared/components/ui/filters/RangeSelector';
 import {
   generateHeightOptions,
   generateWeightOptions,
   generateAgeOptions,
-} from '@/utils/filtering';
+} from '@/shared/utils/filtering';
 
 const PhysicalFilters = ({ filters, setFilters }) => {
   const update = (key, value) => {

@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { formatName } from '@/utils/formatting';
-import { getMinimumCapHit } from '@/utils/architect/contractUtils';
+import { formatName } from '@/shared/utils/formatting';
+import { getMinimumCapHit } from '@/features/architect/utils/contractUtils';
 import CapSummaryTiles from '@/features/architect/CapSummaryTiles';
-import { POSITION_MAP } from '@/utils/roles';
-import getCapPercentage from '@/utils/architect/basicArchitectUtils';
-import capProjections from '@/utils/architect/capProjections';
+import { POSITION_MAP } from '@/shared/utils/roles';
+import getCapPercentage from '@/features/architect/utils/basicArchitectUtils';
+import capProjections from '@/features/architect/utils/capProjections';
 
 // Get contract year data from Architect contract shape (BasePlayerContractZ)
 const getContractYearSlice = (player, endYear) => {

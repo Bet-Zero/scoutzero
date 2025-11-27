@@ -1,8 +1,8 @@
 // TierPlayerTile.jsx
 // Small visual player card used in tier layouts (ListTierExport and TierMaker).
 import React from 'react';
-import { getPlayerPositionLabel } from '@/utils/roles';
-import { formatHeight } from '@/utils/formatting';
+import { getPlayerPositionLabel } from '@/shared/utils/roles';
+import { formatHeight } from '@/shared/utils/formatting';
 
 const TierPlayerTile = ({ player }) => {
   if (!player) return null;

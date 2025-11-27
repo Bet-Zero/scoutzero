@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createRosterProject } from '@/firebase/rosterHelpers';
-import { Dialog, DialogContent } from '@/components/shared/ui/Dialog';
+import { Dialog, DialogContent } from '@/shared/components/ui/Dialog';
 
 const CreateRosterModal = ({ isOpen, onClose, onCreated }) => {
   const [name, setName] = useState('');

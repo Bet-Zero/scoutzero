@@ -1,17 +1,17 @@
 // src/components/roster/RosterViewer.jsx
 import React, { useState, useEffect } from 'react';
-import useSimplePlayerData from '@/hooks/useSimplePlayerData';
+import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
 import AddPlayerDrawer from './AddPlayerDrawer';
-import DrawerShell from '@/components/shared/ui/drawers/DrawerShell';
-import OpenDrawerButton from '@/components/shared/ui/drawers/OpenDrawerButton';
+import DrawerShell from '@/shared/components/ui/drawers/DrawerShell';
+import OpenDrawerButton from '@/shared/components/ui/drawers/OpenDrawerButton';
 import RosterControls from './RosterControls';
 import RosterSection from './RosterSection';
 import SaveRosterModal from './SaveRosterModal';
 import RosterPreviewModal from './RosterPreviewModal';
-import { getTeamColors } from '@/utils/formatting/teamColors';
-import { getTeamLogoFilename } from '@/utils/formatting/teamLogos';
+import { getTeamColors } from '@/shared/utils/formatting/teamColors';
+import { getTeamLogoFilename } from '@/shared/utils/formatting/teamLogos';
 import { TeamMap } from '@/constants/teamList';
-import { useRosterManager } from '@/hooks/useRosterManager';
+import { useRosterManager } from '@/features/roster/hooks/useRosterManager';
 
 const RosterViewer = ({ isExport = false, initialRosterId }) => {
   const { players: allPlayers, loading: isLoading } = useSimplePlayerData();

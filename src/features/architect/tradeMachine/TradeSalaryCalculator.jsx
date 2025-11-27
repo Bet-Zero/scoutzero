@@ -4,7 +4,7 @@ import {
   calculateAllowableIncoming,
   getSalaryForYear,
   MIN_SALARY,
-} from '@/utils/architect/tradeHelpers';
+} from '@/features/architect/utils/tradeHelpers';
 
 const TradeSalaryCalculator = ({
   teamSalary,

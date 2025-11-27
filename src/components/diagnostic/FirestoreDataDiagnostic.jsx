@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
-import useSimplePlayerData from '@/hooks/useSimplePlayerData';
+import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
 
 /**
  * Diagnostic component to help users understand their Firestore data structure

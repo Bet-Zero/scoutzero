@@ -5,7 +5,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '@/firebaseConfig';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import useSimplePlayerData from '@/hooks/useSimplePlayerData';
+import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
 import { toast } from 'react-hot-toast';
 
 import RankedListTier from '@/features/lists/ListTierHeader';

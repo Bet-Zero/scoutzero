@@ -1,6 +1,6 @@
 import React from 'react';
-import { formatCurrency } from '@/utils/architect/tradeHelpers';
-import TeamLogo from '@/components/shared/TeamLogo';
+import { formatCurrency } from '@/features/architect/utils/tradeHelpers';
+import TeamLogo from '@/shared/components/TeamLogo';
 
 const TradeExceptionManager = ({
   exceptions = [],

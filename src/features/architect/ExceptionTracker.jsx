@@ -1,6 +1,6 @@
 import React from 'react';
-import capProjections from '@/utils/architect/capProjections';
-import { toSeasonKey } from '@/utils/architect/seasonUtils';
+import capProjections from '@/features/architect/utils/capProjections';
+import { toSeasonKey } from '@/features/architect/utils/seasonUtils';
 
 const ExceptionTracker = ({ teamCapSheet, currentYear }) => {
   const {

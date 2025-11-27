@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import RoleChecklist from '@/components/shared/ui/filters/RoleChecklist';
+import RoleChecklist from '@/shared/components/ui/filters/RoleChecklist';
 import {
   toggleSubroleSelection,
   offensiveRoles,
   defensiveRoles,
-} from '@/utils/roles';
+} from '@/shared/utils/roles';
 import { SubRoleMasterList } from '@/constants/SubRoleMasterList';
 
 const RolesFilters = ({ filters, setFilters }) => {

@@ -4,7 +4,7 @@ import SubRoleSelector from './SubRoleSelector';
 import ShootingProfileSelector from './ShootingProfileSelector';
 import TwoWayMeter from './TwoWayMeter';
 import { NotebookText } from 'lucide-react';
-import { offensiveRoles, defensiveRoles } from '@/utils/roles';
+import { offensiveRoles, defensiveRoles } from '@/shared/utils/roles';
 
 const RoleSelect = ({ value, onChange, setOpenModal, options, roleKey }) => (
   <div className="relative w-full mb-2">

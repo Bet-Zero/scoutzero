@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { validateTrade } from '@/utils/architect/tradeMachine/engine/tradeValidator.js';
-import { validationCache } from '@/utils/architect/tradeMachine/cache/validationCacheService.js';
-import { performanceMonitor } from '@/utils/architect/tradeMachine/engine/validationPerformanceMonitor.js';
-import { cacheInvalidationManager } from '@/utils/architect/tradeMachine/cache/cacheInvalidationManager.js';
-import { debugMonitor } from '@/utils/architect/tradeMachine/engine/validationDebugMonitor.js';
+import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
+import { validationCache } from '@/features/architect/utils/tradeMachine/cache/validationCacheService.js';
+import { performanceMonitor } from '@/features/architect/utils/tradeMachine/engine/validationPerformanceMonitor.js';
+import { cacheInvalidationManager } from '@/features/architect/utils/tradeMachine/cache/cacheInvalidationManager.js';
+import { debugMonitor } from '@/features/architect/utils/tradeMachine/engine/validationDebugMonitor.js';
 
 describe('Validation Performance Tests', () => {
   beforeEach(() => {

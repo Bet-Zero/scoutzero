@@ -6,10 +6,10 @@ import React from 'react';
 import {
   formatCurrency,
   getSalaryForYear,
-} from '@/utils/architect/tradeHelpers';
+} from '@/features/architect/utils/tradeHelpers';
 import { HelpCircle } from 'lucide-react';
-import { getTeamColors } from '@/utils/formatting';
-import TeamLogo from '@/components/shared/TeamLogo';
+import { getTeamColors } from '@/shared/utils/formatting';
+import TeamLogo from '@/shared/components/TeamLogo';
 
 // Helper used for pick chip text
 const getPickLabel = (p) => {

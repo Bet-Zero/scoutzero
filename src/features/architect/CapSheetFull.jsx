@@ -1,6 +1,6 @@
 // CapSheetFull.jsx
 import React, { useState } from 'react';
-import { formatName } from '@/utils/formatting';
+import { formatName } from '@/shared/utils/formatting';
 
 // Get contract year data from Architect contract shape (BasePlayerContractZ)
 const getContractYearSlice = (player, endYear) => {

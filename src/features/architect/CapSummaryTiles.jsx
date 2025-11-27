@@ -1,5 +1,5 @@
 import React from 'react';
-import capProjections from '@/utils/architect/capProjections';
+import capProjections from '@/features/architect/utils/capProjections';
 
 const CapSummaryTiles = ({ teamCapSheet, selectedYear }) => {
   const yearKey = `${selectedYear}-${String((selectedYear + 1) % 100).padStart(

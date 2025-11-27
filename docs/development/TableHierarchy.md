@@ -22,8 +22,10 @@ PlayerTable/
   index.jsx
 SubRolePill.jsx
 TwoWayMini.jsx
+hooks/
+  useFilteredPlayers.js
 ```
 
 ---
-*Generated on: 2025-10-20T05:31:42.833Z*
+*Generated on: 2025-11-27T08:34:36.674Z*
 *Auto-updated by: npm run docs*

@@ -1,5 +1,5 @@
 import React from 'react';
-import PlayerHeadshot from '@/components/shared/PlayerHeadshot';
+import PlayerHeadshot from '@/shared/components/PlayerHeadshot';
 import PlayerNameMini from '@/features/table/PlayerTable/PlayerRow/PlayerNameMini';
 
 const PlayerCompareCard = ({ left, right, onSelect, onSkip, onUndo }) => {

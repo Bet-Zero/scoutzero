@@ -2,8 +2,8 @@
 import React, { useState } from 'react';
 import PlayerNameMini from '@/features/table/PlayerTable/PlayerRow/PlayerNameMini';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import { getPlayerPositionLabel } from '@/utils/roles';
-import { formatSalary } from '@/utils/formatting';
+import { getPlayerPositionLabel } from '@/shared/utils/roles';
+import { formatSalary } from '@/shared/utils/formatting';
 
 const PlayerRowMini = ({ player, onClick }) => {
   const [isExpanded, setIsExpanded] = useState(false);

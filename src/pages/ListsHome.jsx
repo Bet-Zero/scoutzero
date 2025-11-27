@@ -11,7 +11,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { db } from '@/firebaseConfig';
 import CreateListModal from '@/features/lists/CreateListModal';
 import ListSearchBar from '@/features/lists/ListSearchBar';
-import useSimplePlayerData from '@/hooks/useSimplePlayerData';
+import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
 
 const ListsHome = () => {
   const [lists, setLists] = useState([]);

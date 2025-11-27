@@ -1,8 +1,8 @@
 import React from 'react';
-import TeamLogo from '@/components/shared/TeamLogo';
+import TeamLogo from '@/shared/components/TeamLogo';
 import { BadgeList } from '@/constants/badgeList';
 import { SubRoleMasterList } from '@/constants/SubRoleMasterList';
-import { getFilterStyles } from '@/utils/filtering';
+import { getFilterStyles } from '@/shared/utils/filtering';
 
 const FilterContent = ({ filter }) => {
   const { key, value, isSubrole } = filter;

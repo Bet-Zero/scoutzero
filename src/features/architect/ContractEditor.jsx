@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { formatName, formatCurrencyFull } from '@/utils/formatting';
+import { formatName, formatCurrencyFull } from '@/shared/utils/formatting';
 import {
   generateContract,
   createMaxContract,
   generateRookieContract,
   getMinimumSalary,
-} from '@/utils/architect/contractUtils';
+} from '@/features/architect/utils/contractUtils';
 
 const ContractEditor = ({
   player,

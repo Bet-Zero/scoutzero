@@ -1,7 +1,7 @@
 // src/features/lists/ListExportRowCompactSingle.jsx
 import React from 'react';
-import TeamLogo from '@/components/shared/TeamLogo';
-import { getPlayerPositionLabel } from '@/utils/roles';
+import TeamLogo from '@/shared/components/TeamLogo';
+import { getPlayerPositionLabel } from '@/shared/utils/roles';
 
 const ListExportRowCompactSingle = ({ player, rank }) => {
   const name = player.bio?.displayName || player.name || 'Unknown Player';

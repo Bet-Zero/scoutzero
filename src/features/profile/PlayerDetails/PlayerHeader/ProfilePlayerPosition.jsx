@@ -1,6 +1,6 @@
 // PlayerPosition.jsx
 import React from 'react';
-import { POSITION_MAP } from '@/utils/roles';
+import { POSITION_MAP } from '@/shared/utils/roles';
 
 const getAbbreviatedPosition = (position) => {
   if (!position) return 'N/A';

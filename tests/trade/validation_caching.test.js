@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { validateTrade } from '@/utils/architect/tradeMachine/engine/tradeValidator.js';
-import { validationCache } from '@/utils/architect/tradeMachine/cache/validationCacheService.js';
+import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
+import { validationCache } from '@/features/architect/utils/tradeMachine/cache/validationCacheService.js';
 
 describe('Validation Caching', () => {
   const makeTrade = (params = {}) => ({

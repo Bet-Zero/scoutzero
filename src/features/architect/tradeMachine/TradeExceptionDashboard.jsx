@@ -1,6 +1,6 @@
 // src/features/architect/tradeMachine/TradeExceptionDashboard.jsx
 import React from 'react';
-import { formatCurrency } from '@/utils/architect/tradeHelpers';
+import { formatCurrency } from '@/features/architect/utils/tradeHelpers';
 
 const TradeExceptionDashboard = ({ result, teams }) => {
   if (!result?.teamResults) return null;

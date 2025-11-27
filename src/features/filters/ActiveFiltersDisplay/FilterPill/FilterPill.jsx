@@ -1,7 +1,7 @@
 import React from 'react';
 import FilterContent from './FilterContent';
 import { SubRoleMasterList } from '@/constants/SubRoleMasterList';
-import { getFilterStyles } from '@/utils/filtering';
+import { getFilterStyles } from '@/shared/utils/filtering';
 
 const FilterPill = ({ filter, onRemove }) => {
   const { key, value, isSubrole } = filter;

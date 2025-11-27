@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { areSamePick } from '@/utils/architect/tradeHelpers';
+import { areSamePick } from '@/features/architect/utils/tradeHelpers';
 import TradePickRow from './TradePickRow';
 
 export const OutgoingPicksList = ({

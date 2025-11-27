@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { getCurrentSeasonYear } from '@/utils/contracts/getCurrentSeasonYear';
-import { getDefaultSeasonEndYear } from '@/utils/architect/seasonUtils';
-import { getContractSalaryForYear } from '@/utils/architect/contractSalaryUtils';
+import { getCurrentSeasonYear } from '@/shared/utils/contracts/getCurrentSeasonYear';
+import { getDefaultSeasonEndYear } from '@/features/architect/utils/seasonUtils';
+import { getContractSalaryForYear } from '@/features/architect/utils/contractSalaryUtils';
 
 describe('Year Logic Integration Test', () => {
   const samplePlayer = {

@@ -4,9 +4,9 @@ import {
   buildInitialRoster,
   normalizePlayer,
   isTwoWayContract,
-} from '@/utils/roster';
-import { getTeamColors } from '@/utils/formatting/teamColors';
-import { getTeamLogoFilename } from '@/utils/formatting/teamLogos';
+} from '@/features/roster/utils';
+import { getTeamColors } from '@/shared/utils/formatting/teamColors';
+import { getTeamLogoFilename } from '@/shared/utils/formatting/teamLogos';
 import { TeamMap } from '@/constants/teamList';
 import { useParams } from 'react-router-dom';
 

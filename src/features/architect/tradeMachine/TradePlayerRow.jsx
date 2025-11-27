@@ -1,10 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import PlayerNameMini from '@/features/table/PlayerTable/PlayerRow/PlayerNameMini';
-import TeamLogo from '@/components/shared/TeamLogo';
-import { getPlayerPositionLabel } from '@/utils/roles';
-import { formatSalary } from '@/utils/formatting';
-import { getYearsRemaining } from '@/utils/contracts';
-import { getSalaryWithFallback } from '@/utils/architect/contractSalaryUtils';
+import TeamLogo from '@/shared/components/TeamLogo';
+import { getPlayerPositionLabel } from '@/shared/utils/roles';
+import { formatSalary } from '@/shared/utils/formatting';
+import { getYearsRemaining } from '@/shared/utils/contracts';
+import { getSalaryWithFallback } from '@/features/architect/utils/contractSalaryUtils';
 import { ArrowsRightLeftIcon } from '@heroicons/react/20/solid';
 
 const TradePlayerRow = ({

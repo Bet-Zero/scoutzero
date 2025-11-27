@@ -1,6 +1,6 @@
 import React, { useRef, useLayoutEffect, useState } from 'react';
 import { X } from 'lucide-react';
-import useImageDownload from '@/hooks/useImageDownload';
+import useImageDownload from '@/shared/hooks/useImageDownload';
 import TradeExportCapture from './TradeExportCapture';
 
 const TradePreviewModal = ({ open, onClose, teams = [], result, yearKey }) => {

@@ -1,13 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
-import TeamLogo from '@/components/shared/TeamLogo';
-import { getTeamColors } from '@/utils/formatting/teamColors';
-import { getYearsRemaining } from '@/utils/contracts';
-import { formatSalary } from '@/utils/formatting';
+import TeamLogo from '@/shared/components/TeamLogo';
+import { getTeamColors } from '@/shared/utils/formatting/teamColors';
+import { getYearsRemaining } from '@/shared/utils/contracts';
+import { formatSalary } from '@/shared/utils/formatting';
 import {
   formatPick,
   getSalaryForYear,
   formatCurrency,
-} from '@/utils/architect/tradeHelpers';
+} from '@/features/architect/utils/tradeHelpers';
 import { format } from 'date-fns';
 
 const TradeExportCapture = React.forwardRef(

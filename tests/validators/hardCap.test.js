@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateHardCap } from '@/utils/architect/tradeMachine/rules/validateHardCap.js';
+import { validateHardCap } from '@/features/architect/utils/tradeMachine/rules/validateHardCap.js';
 
 describe('validateHardCap', () => {
   const makeTeam = (params) => ({

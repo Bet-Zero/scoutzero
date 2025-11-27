@@ -1,6 +1,6 @@
 import React from 'react';
 import PlayerNameMini from '@/features/table/PlayerTable/PlayerRow/PlayerNameMini';
-import { getPlayerPositionLabel } from '@/utils/roles';
+import { getPlayerPositionLabel } from '@/shared/utils/roles';
 
 const RotationCard = ({
   player,

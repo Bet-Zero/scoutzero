@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dialog, DialogContent } from '@/components/shared/ui/Dialog';
+import { Dialog, DialogContent } from '@/shared/components/ui/Dialog';
 import RosterViewer from './RosterViewer';
 
 const RosterExportModal = ({ open, onClose }) => {

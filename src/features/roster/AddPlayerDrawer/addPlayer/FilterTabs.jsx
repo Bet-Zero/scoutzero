@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import BasicFilters from './BasicFilters';
 import RolesFilters from './RolesFilters';
 import ContractFilters from './ContractFilters';
-import { getDefaultAddPlayerFilters } from '@/utils/filtering';
+import { getDefaultAddPlayerFilters } from '@/shared/utils/filtering';
 import { X } from 'lucide-react'; // Import the close icon
 
 const FilterTabs = ({ filters, setFilters, onCloseFilters }) => {
