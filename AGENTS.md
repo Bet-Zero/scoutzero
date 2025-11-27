@@ -281,15 +281,15 @@ This project includes custom Cursor commands for structured code review, explana
 
 The commands are located in `.cursor/commands/` and reference detailed prompt instructions in `docs/cursor-prompts/`:
 
-| Command | Purpose | Prompt File |
-|---------|---------|-------------|
-| `/explain` | Explain selected code in plain English without changing anything | `docs/cursor-prompts/ExplainPrompt.md` |
-| `/audit` | Run the Apex Audit on selected files, folders, or full codebase | `docs/cursor-prompts/ApexAuditPrompt.md` |
-| `/audit-review` | Review an existing audit and build a structured Fix Plan | `docs/cursor-prompts/AuditReviewPrompt.md` |
-| `/apply-critical` | Apply Critical SAFE_AUTO fixes from a Fix Plan | `docs/cursor-prompts/ApplyCriticalPrompt.md` |
-| `/fix-all` | Apply all appropriate fixes from a Fix Plan | `docs/cursor-prompts/FixAllPrompt.md` |
-| `/doc-sync` | Update docs and comments to match current code behavior | `docs/cursor-prompts/DocSyncPrompt.md` |
-| `/cleanup` | Safely clean up and refactor code without changing behavior | `docs/cursor-prompts/CleanupPrompt.md` |
+| Command           | Purpose                                                          | Prompt File                                  |
+| ----------------- | ---------------------------------------------------------------- | -------------------------------------------- |
+| `/explain`        | Explain selected code in plain English without changing anything | `docs/cursor-prompts/ExplainPrompt.md`       |
+| `/audit`          | Run the Apex Audit on selected files, folders, or full codebase  | `docs/cursor-prompts/ApexAuditPrompt.md`     |
+| `/audit-review`   | Review an existing audit and build a structured Fix Plan         | `docs/cursor-prompts/AuditReviewPrompt.md`   |
+| `/apply-critical` | Apply Critical SAFE_AUTO fixes from a Fix Plan                   | `docs/cursor-prompts/ApplyCriticalPrompt.md` |
+| `/fix-all`        | Apply all appropriate fixes from a Fix Plan                      | `docs/cursor-prompts/FixAllPrompt.md`        |
+| `/doc-sync`       | Update docs and comments to match current code behavior          | `docs/cursor-prompts/DocSyncPrompt.md`       |
+| `/cleanup`        | Safely clean up and refactor code without changing behavior      | `docs/cursor-prompts/CleanupPrompt.md`       |
 
 ### Typical Workflow
 
@@ -303,6 +303,7 @@ The commands are located in `.cursor/commands/` and reference detailed prompt in
 ### Command Structure
 
 Each command file in `.cursor/commands/` contains:
+
 - Command metadata (name, description)
 - High-level instructions
 - Reference to the detailed prompt in `docs/cursor-prompts/`
