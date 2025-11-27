@@ -8,7 +8,7 @@ debug.logs = [];
 // Helper function for cleaner salary formatting
 const formatSalary = (amount) => `$${(amount || 0).toLocaleString()}`;
 
-// Helper to convert old contract_clean format to new contract.salariesByYear format
+// Helper to convert contract data to Architect contract.salariesByYear format
 const makeContract = (year, salary) => ({
   contract: {
     salariesByYear: [

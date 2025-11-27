@@ -20,9 +20,10 @@ import OffseasonTab from './OffseasonTab';
 import TeamHistoryTab from './TeamHistoryTab';
 import ExceptionTracker from './ExceptionTracker';
 import SavePlanModal from './SavePlanModal';
-import useSimplePlayerData from '@/hooks/useSimplePlayerData';
-import { loadPlayerData } from '@/firebaseHelpers';
+import useArchitectPlayerData from '@/hooks/useArchitectPlayerData';
 import { enrichPlayerData } from '@/utils/roster';
+import { basePlayerRef } from '@/data/firestorePaths';
+import { getDoc } from 'firebase/firestore';
 import { getPlayerPositionLabel } from '@/utils/roles';
 import capProjections from '@/utils/architect/capProjections';
 
@@ -62,125 +63,20 @@ const normalizeSalaryValue = (val) => {
   return Math.round(num);
 };
 
-const normalizeSalaryByYear = (salaryByYear = {}) =>
-  Object.fromEntries(
-    Object.entries(salaryByYear).map(([yr, val]) => [
-      yr,
-      normalizeSalaryValue(val),
-    ])
-  );
-
-const toSalaryMap = (salaryByYear = {}) =>
-  Object.fromEntries(
-    Object.entries(normalizeSalaryByYear(salaryByYear)).map(([yr, val]) => [
-      yr,
-      { salary: val },
-    ])
-  );
-
-const buildArchitectContractFromSalaryMap = (
-  salaryByYear = {},
-  options = {},
-  overrides = {}
-) => {
-  const entries = Object.entries(normalizeSalaryByYear(salaryByYear));
-  if (!entries.length) {
-    return null;
-  }
-
-  const years = entries
-    .map(([year]) => parseInt(year, 10))
-    .filter((y) => Number.isFinite(y))
-    .sort((a, b) => a - b);
-
-  const contractYears = entries.map(([year, value]) => {
-    const endYear = parseInt(year, 10);
-    const season =
-      Number.isFinite(endYear) && endYear > 1900
-        ? `${endYear - 1}-${String(endYear).slice(-2)}`
-        : String(year);
-
-    const optionInfo = options?.[year] || {};
-
+// Helper to ensure contract has proper structure
+const ensureContractStructure = (contract, overrides = {}) => {
+  if (!contract) return null;
+  
+  // If contract already has salariesByYear array, use it directly
+  if (contract.salariesByYear && Array.isArray(contract.salariesByYear)) {
     return {
-      season,
-      salary: value,
-      capHit: value,
-      guaranteed:
-        typeof optionInfo.guaranteed === 'boolean'
-          ? optionInfo.guaranteed
-          : true,
-      guaranteedAmount: optionInfo.guaranteedAmount || value,
-      option: optionInfo.option || null,
-      optionUsed:
-        typeof optionInfo.optionUsed === 'boolean'
-          ? optionInfo.optionUsed
-          : null,
+      ...contract,
+      ...overrides,
     };
-  });
-
-  const totalValue = contractYears.reduce((sum, y) => sum + (y.salary || 0), 0);
-  const startSeason = contractYears[0].season;
-  const endSeason = contractYears[contractYears.length - 1].season;
-
-  return {
-    contractType: overrides.contractType || 'Standard',
-    isExtension: !!overrides.isExtension,
-    isRookieScale: !!overrides.isRookieScale,
-    signedUsing: overrides.signedUsing,
-    signingTeam: overrides.signingTeam,
-    signingDate: overrides.signingDate,
-    signingExecutive: overrides.signingExecutive,
-    signedByCurrentTeam: overrides.signedByCurrentTeam,
-    startSeason,
-    endSeason,
-    contractLength: contractYears.length,
-    yearsRemaining: overrides.yearsRemaining || contractYears.length,
-    totalValue,
-    averageAnnualValue: Math.round(totalValue / contractYears.length),
-    guaranteedValue: contractYears.reduce(
-      (sum, y) => sum + (y.guaranteedAmount || y.salary || 0),
-      0
-    ),
-    guaranteedYears: contractYears.filter((y) => y.guaranteed !== false).length,
-    salariesByYear: contractYears,
-    noTradeClause: !!overrides.noTradeClause,
-    tradeKicker: overrides.tradeKicker ?? null,
-    tradeRestrictions: overrides.tradeRestrictions || {
-      baseYearCompensation: false,
-      poisonPill: false,
-      aggregation: false,
-    },
-    birdRights: overrides.birdRights || {
-      status: overrides.birdRightsStatus || 'Unknown',
-    },
-    freeAgency: overrides.freeAgency || {
-      type: null,
-      year: years[years.length - 1] || undefined,
-      capHold: overrides.capHold,
-      qualifyingOffer: null,
-      earlyTerminationOption: null,
-      hasOption: false,
-      optionYear: null,
-      optionType: null,
-    },
-    tradeEligibility: overrides.tradeEligibility || {
-      canBeTradedNow: null,
-      restrictedUntil: null,
-      reason: null,
-      rules: {
-        baseYearCompensation: false,
-        poisonPill: false,
-        aggregation: false,
-      },
-    },
-    isMaxContract: overrides.isMaxContract,
-    maxType: overrides.maxType || null,
-    estimatedCapPercentage: overrides.estimatedCapPercentage ?? null,
-    supersededIn: overrides.supersededIn,
-    supersededByContractRef: overrides.supersededByContractRef,
-    supersedesContractRef: overrides.supersedesContractRef,
-  };
+  }
+  
+  // If no contract data, return null
+  return null;
 };
 
 const GMDashboard = () => {
@@ -221,7 +117,7 @@ const GMDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
-  const { players } = useSimplePlayerData();
+  const { players } = useArchitectPlayerData();
 
   const playersMap = useMemo(() => {
     const map = {};
@@ -395,10 +291,9 @@ const GMDashboard = () => {
 
     // Add the incoming traded players
     const newContracts = incoming.map((p) => {
-      const salaryMap = normalizeSalaryByYear(p.salaryByYear || {});
-      const architectContract = buildArchitectContractFromSalaryMap(
-        salaryMap,
-        p.options,
+      // Use contract directly if it has salariesByYear array, otherwise use player's contract
+      const architectContract = ensureContractStructure(
+        p.contract || p,
         {
           contractType: p.contractType || 'Trade',
           isExtension: !!p.isExtension,
@@ -406,11 +301,11 @@ const GMDashboard = () => {
           signingTeam: teamId,
         }
       );
+      
       return {
         name: p.name,
         player_id: p.id || p.player_id,
-        salaryByYear: salaryMap,
-        years: Object.keys(salaryMap).length || 1,
+        years: architectContract?.salariesByYear?.length || 1,
         options: p.options || {},
         type: 'Trade',
         signAndTrade: !!p.signAndTrade,
@@ -426,17 +321,27 @@ const GMDashboard = () => {
         const base = playersMap[p.name] || playersMap[p.player_id] || null;
         let playerData = base;
         if (!playerData && (p.id || p.player_id)) {
-          const loaded = await loadPlayerData(p.id || p.player_id);
-          if (loaded) playerData = enrichPlayerData(loaded);
+          // Load from architect_basePlayers collection
+          const playerSnap = await getDoc(basePlayerRef(p.id || p.player_id));
+          if (playerSnap.exists()) {
+            const loaded = playerSnap.data();
+            playerData = {
+              id: loaded.playerId || p.id || p.player_id,
+              player_id: loaded.playerId || p.id || p.player_id,
+              name: loaded.displayName || p.name,
+              displayName: loaded.displayName || p.name,
+              position: loaded.bio?.position || '',
+              age: loaded.bio?.age || null,
+              contract: loaded.contract || null,
+              bio: loaded.bio || {},
+              ...loaded,
+            };
+          }
         }
-        const salaryMap =
-          p.salaryByYear ||
-          playerData?.contract_clean?.salaries_by_year ||
-          playerData?.salaryByYear ||
-          {};
-        const architectContract = buildArchitectContractFromSalaryMap(
-          salaryMap,
-          p.options || playerData?.contract_clean?.options,
+        
+        // Use contract from trade data or player data, ensuring it has proper structure
+        const architectContract = ensureContractStructure(
+          p.contract || playerData?.contract,
           {
             contractType: p.contractType || 'Trade',
             isExtension: !!p.isExtension,
@@ -458,11 +363,6 @@ const GMDashboard = () => {
           displayName: playerData?.bio?.displayName || p.bio?.displayName || p.name,
           position,
           contract: architectContract || playerData?.contract,
-          contract_clean: {
-            ...(playerData?.contract_clean || {}),
-            salaries_by_year: toSalaryMap(salaryMap),
-            options: p.options || playerData?.contract_clean?.options || {},
-          },
         };
       })
     );
@@ -479,27 +379,25 @@ const GMDashboard = () => {
   };
 
   const handleSign = (playerObj, contract) => {
+    // Contract should already have salariesByYear array format
+    const architectContract = ensureContractStructure(contract, {
+      contractType: contract.contractType || 'Signed FA',
+      isExtension: !!contract.isExtension,
+      isRookieScale: !!contract.isRookieScale,
+      signingTeam: teamId,
+    });
+
     const newContract = {
       name: playerObj.name,
       player_id: playerObj.id || playerObj.player_id,
-      salaryByYear: contract.salaryByYear,
-      years: Object.keys(contract.salaryByYear).length,
-      options: contract.options,
+      years: architectContract?.salariesByYear?.length || 1,
+      options: contract.options || {},
       type: contract.signAndTrade ? 'Sign & Trade' : 'Signed FA',
       signAndTrade: contract.signAndTrade || false,
       guaranteed: contract.guaranteed,
       isMinimum: contract.isMinimum,
       yearsOfService: contract.yearsOfService,
-      contract: buildArchitectContractFromSalaryMap(
-        contract.salaryByYear,
-        contract.options,
-        {
-          contractType: contract.contractType || 'Signed FA',
-          isExtension: !!contract.isExtension,
-          isRookieScale: !!contract.isRookieScale,
-          signingTeam: teamId,
-        }
-      ),
+      contract: architectContract,
     };
 
     setTeamCapSheet((prev) => {
@@ -527,21 +425,12 @@ const GMDashboard = () => {
           base.bio?.displayName || playerObj.bio?.displayName || playerObj.name,
         position,
         contract:
-          buildArchitectContractFromSalaryMap(
-            contract.salaryByYear,
-            contract.options,
-            {
-              contractType: contract.contractType || 'Signed FA',
-              isExtension: !!contract.isExtension,
-              isRookieScale: !!contract.isRookieScale,
-              signingTeam: teamId,
-            }
-          ) || base.contract,
-        contract_clean: {
-          ...(base.contract_clean || {}),
-          salaries_by_year: toSalaryMap(contract.salaryByYear),
-          options: contract.options || base.contract_clean?.options || {},
-        },
+          ensureContractStructure(contract, {
+            contractType: contract.contractType || 'Signed FA',
+            isExtension: !!contract.isExtension,
+            isRookieScale: !!contract.isRookieScale,
+            signingTeam: teamId,
+          }) || base.contract,
       };
 
       return {

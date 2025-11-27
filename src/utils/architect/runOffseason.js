@@ -1,3 +1,5 @@
+import { toSeasonCode } from './seasonFormat.js';
+
 export function runOffseason(
   teamCapSheet,
   currentYear,
@@ -15,42 +17,38 @@ export function runOffseason(
 
   // Process contracts
   const yearKey = nextYear;
-  for (const contract of teamCapSheet.players) {
+  for (const player of teamCapSheet.players) {
     // Prefer Architect contract shape
+    // Player objects have flat structure: player.contract.salariesByYear
     let nextYearSalary = 0;
     let optionType = null;
-    if (contract.contract?.salariesByYear?.length) {
-      const seasonKey = `${yearKey - 1}-${String(yearKey).slice(-2)}`;
+    if (player.contract?.salariesByYear?.length) {
+      const seasonKey = toSeasonCode(yearKey);
       const slice =
-        contract.contract.salariesByYear.find((y) => y.season === seasonKey) ||
-        contract.contract.salariesByYear.find(
+        player.contract.salariesByYear.find((y) => y.season === seasonKey) ||
+        player.contract.salariesByYear.find(
           (y) => String(y.season) === String(yearKey)
         );
       nextYearSalary = slice?.salary || slice?.capHit || 0;
       optionType = slice?.option || null;
-    } else {
-      nextYearSalary =
-        contract.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0;
-      optionType =
-        contract.contract_clean?.salaries_by_year?.[yearKey]?.option || null;
     }
     let isOptionDeclined = false;
 
     // Handle player options
     if (optionType === 'Player Option' || optionType === 'Team Option') {
-      if (!optionDecisions[contract.name]) {
+      if (!optionDecisions[player.name]) {
         isOptionDeclined = true;
-        declinedOptions.push(contract.name);
+        declinedOptions.push(player.name);
       }
     }
 
     // Remove if no next year or option declined
     if (!nextYearSalary || isOptionDeclined) {
-      expiredContracts.push(contract.name);
+      expiredContracts.push(player.name);
       continue;
     }
 
-    updatedContracts.push(contract);
+    updatedContracts.push(player);
   }
 
   // Handle expired TPEs

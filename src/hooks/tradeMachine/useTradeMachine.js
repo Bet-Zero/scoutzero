@@ -19,7 +19,7 @@ const num = (v) => {
 const toSeasonKey = (endYear) => `${endYear - 1}-${String(endYear).slice(-2)}`;
 
 // Baseline payroll from your cap sheet: prefer activeContracts, fallback to players.contract
-// Works with both new schema (contract.salariesByYear array) and old schema (contract_clean.salaries_by_year object)
+// Uses Architect contract.salariesByYear schema
 const payrollForYearFromCapSheet = (capSheet, endYear) => {
   if (!capSheet) return 0;
 
@@ -27,9 +27,9 @@ const payrollForYearFromCapSheet = (capSheet, endYear) => {
   const season = toSeasonKey(endYear);
   const y = String(endYear);
 
-  // Preferred source: activeContracts (try new schema first)
+  // Preferred source: activeContracts
   const fromActive = (capSheet.activeContracts || []).reduce((sum, c) => {
-    // Try new schema: contract.salariesByYear array
+    // Use Architect schema: contract.salariesByYear array
     if (c?.contract?.salariesByYear) {
       const yearEntry = c.contract.salariesByYear.find(
         (entry) => entry.season === season
@@ -39,15 +39,15 @@ const payrollForYearFromCapSheet = (capSheet, endYear) => {
       }
     }
     
-    // Fallback to old salaryByYear map
+    // Fallback to salaryByYear map (temporary format during trade creation)
     const s = c?.salaryByYear?.[endYear] ?? c?.salaryByYear?.[y] ?? 0;
     return sum + num(s);
   }, 0);
   if (fromActive > 0) return fromActive;
 
-  // Fallback: players (try new schema first)
+  // Fallback: players array
   const fromPlayers = (capSheet.players || []).reduce((sum, p) => {
-    // Try new schema: contract.salariesByYear array
+    // Use Architect schema: contract.salariesByYear array
     if (p?.contract?.salariesByYear) {
       const yearEntry = p.contract.salariesByYear.find(
         (entry) => entry.season === season
@@ -57,12 +57,7 @@ const payrollForYearFromCapSheet = (capSheet, endYear) => {
       }
     }
     
-    // Fallback to old schema: contract_clean.salaries_by_year object
-    const s =
-      p?.contract_clean?.salaries_by_year?.[endYear]?.salary ??
-      p?.contract_clean?.salaries_by_year?.[y]?.salary ??
-      0;
-    return sum + num(s);
+    return sum;
   }, 0);
 
   return fromPlayers;

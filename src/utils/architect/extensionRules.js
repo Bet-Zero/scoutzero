@@ -22,8 +22,8 @@ export const isExtensionEligible = (player, currentYear) => {
 
 export const getExtensionEligibilityReason = (player, currentYear) => {
   const now = new Date();
-  // Prefer Architect contract shape, fall back to legacy contract_clean
-  const contract = player?.contract || player?.contract_clean;
+  // Use Architect contract shape (BasePlayerContractZ)
+  const contract = player?.contract;
   if (!contract) return 'Missing contract';
 
   const signed = player?.signedDate ? parseISO(player.signedDate) : null;
@@ -67,7 +67,7 @@ export const getExtensionEligibilityReason = (player, currentYear) => {
 };
 
 export const getExtensionEligibilityDate = (player) => {
-  const contract = player?.contract || player?.contract_clean;
+  const contract = player?.contract;
   if (!contract || !player?.signedDate) return null;
   const signed = parseISO(player.signedDate);
 
@@ -81,11 +81,10 @@ export const getExtensionEligibilityDate = (player) => {
 };
 
 export const getExtensionMaxDetails = (player, capSettings) => {
-  const contract = player?.contract || player?.contract_clean;
+  const contract = player?.contract;
   if (!contract) return null;
   const salaries =
     contract?.salariesByYear ||
-    contract?.salaries_by_year ||
     contract?.salaries ||
     {};
   const now = new Date();

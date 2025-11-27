@@ -27,12 +27,6 @@ const CapSummaryTiles = ({ teamCapSheet, selectedYear }) => {
         seasonEntry?.salary ??
         (typeof seasonEntry?.capHit === 'number' ? seasonEntry.capHit : 0) ??
         0;
-    } else {
-      // Legacy fallback
-      salary =
-        player.contract_clean?.salaries_by_year?.[selectedYear]?.salary ||
-        player.contract_clean?.salaries_by_year?.[yearKey]?.salary ||
-        0;
     }
     const holdAmount =
       typeof player.cap_hold === 'number'

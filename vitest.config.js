@@ -11,6 +11,6 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
-    setupFiles: ['./tests/setupDebug.js']
-  }
+    setupFiles: ['./tests/setupFirebaseMocks.js', './tests/setupDebug.js'],
+  },
 });

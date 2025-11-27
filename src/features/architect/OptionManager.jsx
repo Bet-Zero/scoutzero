@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { formatName } from '@/utils/formatting';
 
-// Prefer Architect contract shape (BasePlayerContractZ) but fall back to legacy contract_clean
+// Get contract year data from Architect contract shape (BasePlayerContractZ)
 const getContractYearSlice = (player, endYear) => {
   if (!player) return null;
 
@@ -14,24 +14,7 @@ const getContractYearSlice = (player, endYear) => {
     if (yearEntry) return yearEntry;
   }
 
-  const legacyEntry =
-    player.contract_clean?.salaries_by_year?.[endYear] ||
-    player.contract_clean?.salaries_by_year?.[
-      `${endYear}-${String((endYear + 1) % 100).padStart(2, '0')}`
-    ];
-
-  if (!legacyEntry) return null;
-
-  return {
-    season: `${endYear - 1}-${String(endYear).slice(-2)}`,
-    salary: legacyEntry.salary || 0,
-    capHit: legacyEntry.salary || 0,
-    guaranteed:
-      typeof legacyEntry.guaranteed === 'boolean'
-        ? legacyEntry.guaranteed
-        : true,
-    option: legacyEntry.option || null,
-  };
+  return null;
 };
 
 const OptionManager = ({

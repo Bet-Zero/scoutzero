@@ -41,7 +41,6 @@ export const evalRef = (playerId, evalId) =>
 
 // Collection references
 export const playersCol = () => collection(db, ...playerSegments);
-export const teamsCol = () => collection(db, 'teams');
 
 // Architect base collections (for GM tools and trade machine)
 // Canonical paths (documentation): /architect/baseTeams/{teamCode} and /architect/basePlayers/{playerId}

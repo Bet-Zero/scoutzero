@@ -79,7 +79,7 @@ const buildPlayerEntry = (playerId, playerData) => {
   };
 };
 
-const hydrateBaseTeam = async (teamCode, baseDoc) => {
+export const hydrateBaseTeam = async (teamCode, baseDoc) => {
   const players = [];
   for (const playerId of baseDoc.roster || []) {
     try {

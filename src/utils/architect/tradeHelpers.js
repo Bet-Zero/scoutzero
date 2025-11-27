@@ -21,22 +21,14 @@ export const getTierThresholds = (yearKey) => {
 export const MIN_SALARY = 1_119_563;
 
 /*────────────────────────  Salary Helpers  ────────────────────────*/
+import { toEndYear } from './seasonFormat.js';
+
 /******************** SCSP™ BLOCK: getSalaryForYear ********************/
 export const getSalaryForYear = (input, year) => {
   if (!year) return 0;
 
   // Accept a single player or an array
   const players = Array.isArray(input) ? input : [input];
-
-  const toEndYear = (season) => {
-    const s = String(season);
-    if (/^\d{4}-\d{2}$/.test(s)) {
-      const tail = parseInt(s.split('-')[1], 10);
-      return 2000 + tail;
-    }
-    const n = parseInt(s, 10);
-    return Number.isFinite(n) ? n : null;
-  };
 
   return players.reduce((sum, p) => {
     // Prefer Architect contract.salariesByYear if present
@@ -55,24 +47,9 @@ export const getSalaryForYear = (input, year) => {
       }
     }
 
-    // Legacy / fallback paths
+    // If no contract data found, return 0 (player has no salary for this year)
     if (!base) {
-      yData =
-        p.contract_clean?.salaries_by_year?.[year] ??
-        p.contract_clean?.salaries_by_year?.[String(year)] ??
-        {};
-      const salaryMap =
-        p.salaryByYear?.[year] ?? p.salaryByYear?.[String(year)];
-      const fallback = p.salary;
-
-      base =
-        typeof yData.salary === 'number'
-          ? yData.salary
-          : typeof salaryMap === 'number'
-            ? salaryMap
-            : typeof fallback === 'number'
-              ? fallback
-              : 0;
+      base = 0;
     }
 
     // tests look specifically for `likely_bonus`
