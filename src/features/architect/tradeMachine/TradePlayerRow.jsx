@@ -159,7 +159,7 @@ const TradePlayerRow = ({
             fallbackClassName="bg-neutral-800 rounded-full"
           />
           <div>
-            {player.bio?.height || player.height || player.height_ft_in || '—'}
+            {player.bio?.height || player.height || player.height_ft_in || '—'}{' '}
             <span className="text-white/30">|</span>{' '}
             {player.bio?.weight || player.weight || player.weight_lbs || '—'}{' '}
             lbs
