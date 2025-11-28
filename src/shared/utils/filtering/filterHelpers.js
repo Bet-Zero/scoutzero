@@ -1,6 +1,11 @@
 import { formatHeight } from '@/shared/utils/formatting';
 
 export function getFilterDisplayValue(key, value) {
+  // Handle boolean filters
+  if (key === 'showFreeAgents') {
+    return value === false ? 'Hide Free Agents' : null;
+  }
+
   const statAbbreviations = {
     PPG: 'ppg',
     RPG: 'rpg',

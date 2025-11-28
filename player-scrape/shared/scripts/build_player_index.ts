@@ -246,16 +246,40 @@ function main() {
     }
   } catch {}
 
+  // STICKY: Load existing player_index.json to preserve slugs and other fields
+  let existingIndex: PlayerIndex = {};
+  if (fs.existsSync(OUTPUT_PATH)) {
+    try {
+      const existingRaw = fs.readFileSync(OUTPUT_PATH, 'utf8');
+      existingIndex = JSON.parse(existingRaw) as PlayerIndex;
+      console.log(
+        `📥 Loaded existing player_index.json with ${Object.keys(existingIndex).length} players (preserving slugs)`
+      );
+    } catch (err) {
+      console.warn(
+        `⚠️  Could not load existing player_index.json: ${err}. Starting fresh.`
+      );
+    }
+  }
+
   const output: PlayerIndex = {};
 
   for (const [playerId, nbaId] of Object.entries(allPlayerIds)) {
+    const existingEntry = existingIndex[playerId];
     const bioEntry = biosData[playerId];
     const bioTeamName = bioEntry?.bio?.team ?? bioEntry?.bio?.Team ?? null;
 
-    const fullName = toFullName(playerId);
+    // Preserve existing fields if player already exists, otherwise generate new
+    const fullName = existingEntry?.fullName || toFullName(playerId);
+    
+    // STICKY SLUG: Preserve existing slug, or use override, or generate new
     const salarySwishSlug =
-      slugOverrides[playerId] || toSalarySwishSlug(playerId);
+      existingEntry?.salarySwishSlug || // Preserve existing slug (highest priority)
+      slugOverrides[playerId] || // Use manual override if provided
+      toSalarySwishSlug(playerId); // Generate new slug only for new players
+
     const override = teamOverrides[playerId];
+    // Team code can change, so we always recalculate it (but preserve other fields)
     const teamCode =
       // 1) explicit override takes precedence
       override === null

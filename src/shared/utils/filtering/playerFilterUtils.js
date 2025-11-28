@@ -25,13 +25,13 @@ export function filterPlayers(players = [], filters) {
   const selectedPositions = expandPositionGroup(filters.position);
 
   return players.filter((p) => {
-    // Filter out new players with $0.0M contracts
-    // Check if player has a $0.0M contract (training camp invites, two-way, etc.)
-    const hasZeroContract = checkForZeroContract(p);
-
-    // If player has a zero contract AND is potentially new (no established data), filter them out
-    if (hasZeroContract && isLikelyNewPlayer(p)) {
-      return false;
+    // Filter free agents if showFreeAgents is false
+    if (filters.showFreeAgents === false) {
+      const teamId = p.bio?.display?.teamId || '';
+      const team = p.bio?.display?.team || '';
+      if (teamId === 'FREE' || team === 'Free Agent') {
+        return false;
+      }
     }
 
     if (filters.nameSearch) {

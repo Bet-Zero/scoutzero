@@ -146,6 +146,20 @@ player-scrape/players_list.json
 player-scrape/shared/all_player_ids.json
 player-scrape/shared/players_bios_2025.json
 
+# Player scraper reference files (keep local, don't track)
+player-scrape/shared/outputs/
+player-scrape/shared/reports/
+player-scrape/shared/schema/*.json
+player-scrape/contracts/fixtures/
+player-scrape/contracts/snapshots/
+player-scrape/stats/fixtures/
+player-scrape/stats/snapshots/
+player-scrape/stats/output/
+player-scrape/firestore_staging/push_staged_players.ts
+
+# Team scraper reference files (keep local, don't track)
+team-scrape/team-data/examples/
+
 # never commit bulk HTML; snapshots folder holds only curated fixtures
 player-scrape/page.html
 player-scrape/*.html

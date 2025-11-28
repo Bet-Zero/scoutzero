@@ -32,6 +32,20 @@ const MetadataFilters = ({ filters, setFilters }) => {
           selectClass="w-[125px]"
         />
       </div>
+
+      {/* Show Free Agents Checkbox */}
+      <div className="flex items-center gap-2 text-white text-sm">
+        <input
+          type="checkbox"
+          id="showFreeAgents"
+          checked={filters.showFreeAgents}
+          onChange={(e) => update('showFreeAgents', e.target.checked)}
+          className="w-4 h-4 accent-blue-500"
+        />
+        <label htmlFor="showFreeAgents" className="cursor-pointer">
+          Show Free Agents
+        </label>
+      </div>
     </div>
   );
 };
