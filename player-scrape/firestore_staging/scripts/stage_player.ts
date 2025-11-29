@@ -135,8 +135,8 @@ type StatsOutput = {
 };
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(__dirname, '../..');
-const PLAYER_SCRAPE_ROOT = path.join(ROOT, 'player-scrape');
+// __dirname is player-scrape/firestore_staging/scripts, so ../.. = player-scrape/
+const PLAYER_SCRAPE_ROOT = path.resolve(__dirname, '../..');
 const CONTRACTS_DIR = path.join(
   PLAYER_SCRAPE_ROOT,
   'contracts',
@@ -152,7 +152,6 @@ const STATS_DIR = path.join(
 const PLAYER_INDEX_PATH = path.join(
   PLAYER_SCRAPE_ROOT,
   'shared',
-  '_artifacts',
   'outputs',
   'player_index.json'
 );

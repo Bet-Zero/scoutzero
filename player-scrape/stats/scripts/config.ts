@@ -16,7 +16,7 @@ export const paths = {
   fixturesDir: 'player-scrape/stats/fixtures',
   outputDir: 'player-scrape/stats/output',
   workingDir: 'player-scrape/stats/working',
-  sharedIndex: 'player-scrape/shared/_artifacts/outputs/player_index.json',
+  sharedIndex: 'player-scrape/shared/outputs/player_index.json',
 };
 
 export const isRegressionFixture = (playerId: string): playerId is FixtureId =>

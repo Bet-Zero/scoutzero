@@ -14,9 +14,8 @@ const __dirname = path.dirname(__filename);
 const PROJECT_ROOT = path.resolve(__dirname, '../..');
 const INDEX_PATH = path.join(
   PROJECT_ROOT,
-  'player-scrape',
   'shared',
-  '_artifacts', 'outputs',
+  'outputs',
   'player_index.json'
 );
 const STAGE_SCRIPT = path.join(__dirname, 'stage_player.ts');

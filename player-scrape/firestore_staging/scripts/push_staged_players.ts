@@ -1,16 +1,17 @@
 import admin from 'firebase-admin';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import {
   PlayerMainDocZ,
   ContractDocZ,
   SeasonDocZ,
   ContractsViewDocZ,
-} from '../../src/schemas/players_v2';
-import { BasePlayerDocZ } from '../../src/schemas/architect';
+} from '@/schemas/players_v2';
+import { BasePlayerDocZ } from '@/schemas/architect';
 
 const SERVICE_ACCOUNT_PATH = path.resolve('serviceAccountKey.json');
-const STAGE_DIR = path.resolve('player-scrape/firestore_staging/_artifacts/output');
+// Stage script writes to scripts/_artifacts/output, not _artifacts/output
+const STAGE_DIR = path.resolve('player-scrape/firestore_staging/scripts/_artifacts/output');
 
 const PLAYERS_V2_COLLECTION = process.env.PLAYERS_V2_COLLECTION ?? 'players_v2';
 const BASE_PLAYERS_COLLECTION =
@@ -163,13 +164,35 @@ async function pushPlayer(playerId: string) {
   console.log(`✅ Pushed ${playerId}`);
 }
 
+async function getAllStagedPlayers(): Promise<string[]> {
+  const playersV2Dir = path.join(STAGE_DIR, 'players_v2');
+  try {
+    const files = await readdir(playersV2Dir);
+    return files
+      .filter((f) => f.endsWith('.json'))
+      .map((f) => f.replace('.json', ''));
+  } catch (error) {
+    throw new Error(
+      `Failed to read staged players directory: ${playersV2Dir}. Make sure you've run the staging script first.`
+    );
+  }
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const players: string[] = [];
+  let pushAll = false;
+
+  // Check for --all flag
+  if (args.includes('--all')) {
+    pushAll = true;
+  }
 
   // Parse arguments - support both --player=id and positional args
   for (const arg of args) {
-    if (arg.startsWith('--player=')) {
+    if (arg === '--all') {
+      continue; // Already handled
+    } else if (arg.startsWith('--player=')) {
       players.push(arg.replace('--player=', ''));
     } else if (arg.startsWith('--player')) {
       // Skip --player flag, next arg is the value
@@ -183,20 +206,30 @@ async function main() {
     }
   }
 
+  // If --all flag, get all staged players
+  if (pushAll) {
+    const allStaged = await getAllStagedPlayers();
+    players.push(...allStaged);
+    console.log(`📦 Found ${allStaged.length} staged players to push`);
+  }
+
   if (!players.length) {
     console.error(
-      'Usage: npx tsx push_staged_players.ts [--player=]player_id [player_id...]'
+      'Usage: npx tsx push_staged_players.ts [--all] [--player=]player_id [player_id...]'
     );
     console.error('Examples:');
+    console.error('  npx tsx push_staged_players.ts --all');
     console.error('  npx tsx push_staged_players.ts paolo_banchero');
     console.error('  npx tsx push_staged_players.ts --player=paolo_banchero');
     process.exit(1);
   }
 
+  console.log(`🚀 Pushing ${players.length} player(s)...\n`);
+
   for (const playerId of players) {
     await pushPlayer(playerId);
   }
-  console.log('🎉 All players pushed.');
+  console.log('\n🎉 All players pushed.');
 }
 
 main().catch((err) => {

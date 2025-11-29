@@ -46,7 +46,7 @@ const OUT_BASE = resolve(CONTRACTS_DIR, '_artifacts', 'output');
 const INDEX_PATH = resolve(
   PLAYER_SCRAPE_ROOT,
   'shared',
-  '_artifacts', 'outputs',
+  'outputs',
   'player_index.json'
 );
 
@@ -357,10 +357,17 @@ async function appendPreview(id, data) {
   await appendFile(PREVIEW_PATH, line + '\n', { encoding: 'utf8' });
 }
 
-async function runOne(p, attempt = 1, maxAttempts = 3, progressInfo?: { current: number; total: number }) {
+async function runOne(
+  p,
+  attempt = 1,
+  maxAttempts = 3,
+  progressInfo?: { current: number; total: number }
+) {
   const dest = finalPath(p.team, p.fileId);
   if (RESUME && (await exists(dest))) {
-    const progress = progressInfo ? `[${progressInfo.current}/${progressInfo.total}]` : '';
+    const progress = progressInfo
+      ? `[${progressInfo.current}/${progressInfo.total}]`
+      : '';
     console.log(`[${now()}] ${progress} ▶︎ SKIP (exists)  ${p.team}/${p.id}`);
     if (DO_PUSH_PREVIEW) {
       const payload = JSON.parse(await readFile(dest, 'utf8'));
@@ -378,7 +385,9 @@ async function runOne(p, attempt = 1, maxAttempts = 3, progressInfo?: { current:
     tempHtmlName,
     tempJsonName
   );
-  const progress = progressInfo ? `[${progressInfo.current}/${progressInfo.total}]` : '';
+  const progress = progressInfo
+    ? `[${progressInfo.current}/${progressInfo.total}]`
+    : '';
   console.log(
     `[${now()}] ${progress} ▶︎ START (${attempt}/${maxAttempts}) ${p.team}/${p.id}`
   );
@@ -398,11 +407,15 @@ async function runOne(p, attempt = 1, maxAttempts = 3, progressInfo?: { current:
     await rm(tempHtmlPath, { force: true }).catch(() => {});
     await rm(tempJsonPath, { force: true }).catch(() => {});
     await rm(tempDir, { recursive: true, force: true }).catch(() => {});
-    const progress = progressInfo ? `[${progressInfo.current}/${progressInfo.total}]` : '';
+    const progress = progressInfo
+      ? `[${progressInfo.current}/${progressInfo.total}]`
+      : '';
     console.log(`[${now()}] ${progress} ✅ DONE  ${p.team}/${p.id}`);
     return { id: p.id, status: 'ok' };
   } catch (err) {
-    const progress = progressInfo ? `[${progressInfo.current}/${progressInfo.total}]` : '';
+    const progress = progressInfo
+      ? `[${progressInfo.current}/${progressInfo.total}]`
+      : '';
     console.error(
       `[${now()}] ${progress} ❌ FAIL (${attempt}/${maxAttempts}) ${p.team}/${p.id}`
     );
