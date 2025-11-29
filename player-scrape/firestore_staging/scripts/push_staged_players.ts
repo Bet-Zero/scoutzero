@@ -11,7 +11,7 @@ import { BasePlayerDocZ } from '@/schemas/architect';
 
 const SERVICE_ACCOUNT_PATH = path.resolve('serviceAccountKey.json');
 // Stage script writes to scripts/_artifacts/output, not _artifacts/output
-const STAGE_DIR = path.resolve('player-scrape/firestore_staging/scripts/_artifacts/output');
+const STAGE_DIR = path.resolve('player-scrape/firestore_staging/_artifacts/output');
 
 const PLAYERS_V2_COLLECTION = process.env.PLAYERS_V2_COLLECTION ?? 'players_v2';
 const BASE_PLAYERS_COLLECTION =
