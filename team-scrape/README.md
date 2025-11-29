@@ -48,6 +48,14 @@ The team scraping workflow has 3 main phases:
 2. **Inspect/Probe** - Analyze the HTML structure to verify data extraction
 3. **Parse** - Extract structured JSON data from the HTML (excluding draft picks)
 
+## Command Shortcuts
+
+- `npm run team:salaryswish -- --teams=LAL --season=2025-26` — Full SalarySwish fetch/parse/stage pipeline (team filter optional; defaults to all teams discovered via `player_index.json`). Staging validates by default; pass `--validate=false` to skip.
+- `npm run team:draft-picks -- --teams=LAL --pretty` — RealGM draft-pick scrape that writes to `team-scrape/draft-picks/_artifacts/output/structured` (staging-ready). Omit `--teams` for all.
+- `npm run team:full -- --teams=LAL --season=2025-26 --pretty` — Combined run: RealGM draft picks (into `_artifacts/output`) followed by the SalarySwish pipeline using those picks (staging validates by default).
+
+Note: Calling the RealGM script directly still defaults to `team-scrape/draft-picks/output/`; the npm shortcut switches to `_artifacts/output` so `stage_team.ts` can consume the structured picks without manual copying.
+
 ## ⚠️ OUTPUT FILES ORGANIZATION
 
 **All outputs are now clearly organized in subfolders:**
