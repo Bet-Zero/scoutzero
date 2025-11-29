@@ -15,6 +15,7 @@ const FreeAgentPool = ({
   currentYear,
   onSign,
   playersMap = {},
+  playersById = {},
 }) => {
   const [selectedPlayers, setSelectedPlayers] = useState([]);
   const [signResults, setSignResults] = useState({});
@@ -123,6 +124,15 @@ const FreeAgentPool = ({
     (a, b) => (b.previousSalary || 0) - (a.previousSalary || 0)
   );
 
+  const normalizeLookupKey = (name) => {
+    if (!name) return '';
+    return name
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9]/g, '')
+      .toLowerCase();
+  };
+
   return (
     <div className="text-white">
       <h2 className="text-xl font-semibold mb-2">Free Agent Pool</h2>
@@ -131,6 +141,7 @@ const FreeAgentPool = ({
       <div className="px-6 mb-1">
         <div className="flex items-center text-white/60 text-[11px] font-semibold h-5 mr-2">
           <div className="w-[45px] text-center">POS</div>
+          <div className="w-[50px] text-center ml-1">TEAM</div>
           <div className="w-[50px]" />
           <div className="flex items-center ml-3 flex-1 justify-between mr-2">
             <span>PLAYER</span>
@@ -190,9 +201,41 @@ const FreeAgentPool = ({
 
       <ul className="space-y-[3px] mb-4 px-6">
         {sortedAgents.map((p) => {
-          const playerData = playersMap[p.name] || { name: p.name };
+          // Try to find full player data
+          let playerData = null;
+          
+          // 1. Try ID lookup
+          // Assuming playersById is passed as a prop or available in scope
+          if (playersById && (p.id || p.player_id)) {
+             playerData = playersById[p.id || p.player_id];
+          }
+          
+          // 2. Fallback to name lookup
+          if (!playerData) {
+             playerData = playersMap[normalizeLookupKey(p.name)];
+          }
+          
+          // 3. Fallback to basic object
+          if (!playerData) {
+             playerData = { name: p.name };
+          }
+
+          // Ensure we use the "fixed" name from p if the looked-up player has "Player Not Found"
+          // or just always prefer p.name since we fixed it in GMDashboard
+          if (p.name && p.name !== 'Player Not Found' && p.name !== 'Unknown') {
+              // Create a shallow copy to avoid mutating the original ref
+              playerData = { 
+                  ...playerData, 
+                  name: p.name,
+                  bio: {
+                      ...playerData.bio,
+                      displayName: p.name
+                  }
+              };
+          }
+
           return (
-            <li key={p.name}>
+            <li key={p.id || p.player_id || p.name}>
               <FreeAgentRow
                 player={playerData}
                 askInfo={p}

@@ -9,9 +9,27 @@ import {
 } from '@/schemas/players_v2';
 import { BasePlayerDocZ } from '@/schemas/architect';
 
+/**
+ * Canonical normalization function to prevent duplicate player IDs
+ * Converts all hyphens to underscores for consistent storage
+ */
+function canonicalNormalize(playerId: string): string {
+  return playerId
+    .toLowerCase()
+    .replace(/['']/g, '') // Remove apostrophes
+    .replace(/[‑–—−]/g, '-') // Normalize various dashes to regular hyphen
+    .replace(/-+/g, '_') // Convert hyphens to underscores
+    .replace(/\s+/g, '_') // Convert spaces to underscores
+    .replace(/_+/g, '_') // Collapse multiple underscores
+    .replace(/^_+|_+$/g, '') // Remove leading/trailing underscores
+    .trim();
+}
+
 const SERVICE_ACCOUNT_PATH = path.resolve('serviceAccountKey.json');
 // Stage script writes to scripts/_artifacts/output, not _artifacts/output
-const STAGE_DIR = path.resolve('player-scrape/firestore_staging/_artifacts/output');
+const STAGE_DIR = path.resolve(
+  'player-scrape/firestore_staging/scripts/_artifacts/output'
+);
 
 const PLAYERS_V2_COLLECTION = process.env.PLAYERS_V2_COLLECTION ?? 'players_v2';
 const BASE_PLAYERS_COLLECTION =
@@ -26,6 +44,48 @@ const db = admin.firestore();
 async function loadJson(filepath: string) {
   const raw = await readFile(filepath, 'utf8');
   return JSON.parse(raw);
+}
+
+/**
+ * Check for existing duplicates before pushing
+ */
+async function checkForExistingDuplicates(playerId: string): Promise<{
+  hasDuplicates: boolean;
+  existingIds: string[];
+  canonicalId: string;
+}> {
+  const canonicalId = canonicalNormalize(playerId);
+  const potentialDuplicates = [
+    playerId,
+    canonicalId,
+    playerId.replace(/_/g, '-'),
+    playerId.replace(/-/g, '_'),
+  ];
+
+  const uniqueVariants = [...new Set(potentialDuplicates)];
+  const existingIds: string[] = [];
+
+  for (const variant of uniqueVariants) {
+    try {
+      const [v2Doc, baseDoc] = await Promise.all([
+        db.collection(PLAYERS_V2_COLLECTION).doc(variant).get(),
+        db.collection(BASE_PLAYERS_COLLECTION).doc(variant).get(),
+      ]);
+
+      if (v2Doc.exists || baseDoc.exists) {
+        existingIds.push(variant);
+      }
+    } catch (error) {
+      // Ignore individual document check errors
+      continue;
+    }
+  }
+
+  return {
+    hasDuplicates: existingIds.length > 0,
+    existingIds,
+    canonicalId,
+  };
 }
 
 async function validatePlayer(
@@ -108,6 +168,33 @@ async function validatePlayer(
 }
 
 async function pushPlayer(playerId: string) {
+  // Check for duplicates before pushing
+  console.log(`🔍 Checking for duplicates of ${playerId}...`);
+  const duplicateCheck = await checkForExistingDuplicates(playerId);
+
+  if (duplicateCheck.hasDuplicates) {
+    console.warn(
+      `⚠️  Found existing player(s): ${duplicateCheck.existingIds.join(', ')}`
+    );
+    console.warn(`   Canonical ID would be: ${duplicateCheck.canonicalId}`);
+
+    // If the canonical ID already exists, skip this upload
+    if (duplicateCheck.existingIds.includes(duplicateCheck.canonicalId)) {
+      console.log(
+        `✅ Canonical version "${duplicateCheck.canonicalId}" already exists. Skipping.`
+      );
+      return;
+    }
+
+    // If non-canonical versions exist, warn but proceed with canonical
+    if (duplicateCheck.existingIds.length > 0) {
+      console.warn(
+        `⚠️  Non-canonical versions exist. Will use canonical ID: ${duplicateCheck.canonicalId}`
+      );
+      playerId = duplicateCheck.canonicalId; // Use canonical form
+    }
+  }
+
   // Validate before pushing
   console.log(`🔍 Validating ${playerId}...`);
   const validation = await validatePlayer(playerId);

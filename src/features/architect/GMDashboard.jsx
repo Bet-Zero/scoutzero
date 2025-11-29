@@ -26,6 +26,7 @@ import { basePlayerRef } from '@/data/firestorePaths';
 import { getDoc } from 'firebase/firestore';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
 import capProjections from '@/features/architect/utils/capProjections';
+import { toEndYear } from '@/features/architect/utils/seasonFormat';
 
 // ==== Season helpers (inline for now; you can extract later) ====
 const LOCAL_SEASON_KEY = 'hz.currentSeasonEndYear';
@@ -79,6 +80,15 @@ const ensureContractStructure = (contract, overrides = {}) => {
   return null;
 };
 
+const normalizeLookupKey = (name) => {
+  if (!name) return '';
+  return name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .toLowerCase();
+};
+
 const GMDashboard = () => {
   const { teamId } = useParams();
   const userId = 'demoUser';
@@ -129,7 +139,13 @@ const GMDashboard = () => {
   const playersMap = useMemo(() => {
     const map = {};
     players.forEach((p) => {
-      map[p.name] = p;
+      if (p.name) {
+        map[p.name] = p;
+        map[normalizeLookupKey(p.name)] = p;
+      }
+      if (p.id) map[p.id] = p;
+      if (p.player_id) map[p.player_id] = p;
+      if (p.bio?.playerId) map[p.bio.playerId] = p;
     });
     return map;
   }, [players]);
@@ -156,7 +172,7 @@ const GMDashboard = () => {
         if (plan) setTeamCapSheet(plan);
         else if (base) setTeamCapSheet(JSON.parse(JSON.stringify(base)));
         else console.warn('No saved team found, using blank slate.');
-        if (loadedFA.length > 0) setFreeAgents(loadedFA);
+        // if (loadedFA.length > 0) setFreeAgents(loadedFA);
       } catch (err) {
         console.error(err);
         setError('Error loading team data');
@@ -206,6 +222,119 @@ const GMDashboard = () => {
     currentYear,
   ]);
 
+  // Derive free agents dynamically from the player pool
+  useEffect(() => {
+    if (!players || players.length === 0) return;
+
+    const upcomingFreeAgents = players.filter((p) => {
+      // 0. Filter out invalid players (only if no ID is present)
+      if ((!p.name || p.name === 'Unknown') && !p.id && !p.player_id) return false;
+
+      // 1. Check if player has NO contract or empty salaries
+      if (!p.contract || !p.contract.salariesByYear || p.contract.salariesByYear.length === 0) {
+        return true; // Current Free Agent
+      }
+
+      // 2. Find the last year of the contract
+      const sortedYears = [...p.contract.salariesByYear].sort((a, b) => {
+        const ya = toEndYear(a.season);
+        const yb = toEndYear(b.season);
+        return (ya || 0) - (yb || 0);
+      });
+
+      const lastYearEntry = sortedYears[sortedYears.length - 1];
+      if (!lastYearEntry) return true; // Should have been caught above, but safe fallback
+
+      // Parse the end year
+      const endYear = toEndYear(lastYearEntry.season);
+      if (!endYear) return true; // Invalid year data, treat as FA
+
+      // 3. Check if it expires in the current view year OR has an option for the next year
+      // (If currentYear is 2026, we want players whose contracts end in 2026)
+      // (OR players whose contracts end in 2027 but have an option for that 2027 season)
+      
+      // Also include players whose contracts expired BEFORE the current year
+      const isExpired = endYear < currentYear;
+      const isExpiring = endYear === currentYear;
+      
+      // Check for option in the last year entry
+      // Some data sources might use 'option' or 'optionType'
+      const optionVal = lastYearEntry.option || lastYearEntry.optionType;
+      const isPlayerOption = optionVal === 'Player Option' || optionVal === 'Player' || optionVal === 'PO';
+      const isTeamOption = optionVal === 'Team Option' || optionVal === 'Team' || optionVal === 'TO';
+      
+      const hasOptionNextYear = endYear === currentYear + 1 && (isPlayerOption || isTeamOption);
+
+      if (!isExpired && !isExpiring && !hasOptionNextYear) return false;
+
+      return true;
+    }).map(p => {
+      // Determine FA Type
+      let faType = 'UFA';
+      let previousSalary = 0;
+      let birdRights = 'None';
+      
+      if (p.contract && p.contract.salariesByYear && p.contract.salariesByYear.length > 0) {
+        const sortedYears = [...p.contract.salariesByYear].sort((a, b) => {
+            const ya = toEndYear(a.season);
+            const yb = toEndYear(b.season);
+            return (ya || 0) - (yb || 0);
+        });
+        const lastYearEntry = sortedYears[sortedYears.length - 1];
+        previousSalary = lastYearEntry.salary || 0;
+        birdRights = p.contract.birdRights?.status || 'None';
+        
+        const optionVal = lastYearEntry.option || lastYearEntry.optionType;
+        if (optionVal === 'Player Option' || optionVal === 'Player' || optionVal === 'PO') faType = 'PO';
+        else if (optionVal === 'Team Option' || optionVal === 'Team' || optionVal === 'TO') faType = 'TO';
+        else if (p.contract.birdRights?.status === 'Restricted') faType = 'RFA';
+      }
+
+      // Fix "Player Not Found" names
+      let fixedName = p.name;
+      if ((!fixedName || fixedName === 'Player Not Found' || fixedName === 'Unknown') && (p.id || p.player_id)) {
+         const id = p.id || p.player_id;
+         
+         // Known hyphenated names map
+         const hyphenatedNames = {
+             'dorian_finney_smith': 'Dorian Finney-Smith',
+             'shai_gilgeous_alexander': 'Shai Gilgeous-Alexander',
+             'kentavious_caldwell_pope': 'Kentavious Caldwell-Pope',
+             'talen_horton_tucker': 'Talen Horton-Tucker',
+             'keita_bates_diop': 'Keita Bates-Diop',
+             'nickeil_alexander_walker': 'Nickeil Alexander-Walker',
+             'michael_carter_williams': 'Michael Carter-Williams',
+             'karl_anthony_towns': 'Karl-Anthony Towns',
+             'willie_cauley_stein': 'Willie Cauley-Stein',
+             'rondae_hollis_jefferson': 'Rondae Hollis-Jefferson'
+         };
+
+         if (hyphenatedNames[id]) {
+             fixedName = hyphenatedNames[id];
+         } else {
+             // Convert snake_case to Title Case (e.g. dorian_finney_smith -> Dorian Finney Smith)
+             fixedName = id.split('_')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
+         }
+      }
+
+      return {
+        ...p,
+        name: fixedName,
+        previousSalary,
+        birdRights,
+        freeAgentType: faType,
+        // Ensure team info is preserved
+        teamCode: p.teamCode,
+        teamName: p.teamName,
+      };
+    });
+
+    setFreeAgents(upcomingFreeAgents);
+  }, [players, currentYear]);
+
+  /*
   useEffect(() => {
     if (freeAgents.length === 0) return;
     const saveAgents = async () => {
@@ -217,6 +346,7 @@ const GMDashboard = () => {
     };
     saveAgents();
   }, [freeAgents]);
+  */
 
   useEffect(() => {
     const loadPlan = async () => {

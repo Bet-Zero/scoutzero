@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
 import { formatName } from '@/shared/utils/formatting';
+import { TeamCodeMap } from '@/constants/teamList';
 
 const FreeAgentRow = ({
   player = {},
@@ -31,16 +32,18 @@ const FreeAgentRow = ({
     }
     return undefined;
   }, [openMenu, askInfo.name, setOpenMenu]);
-  const name = player.bio?.displayName || player.name || formatName(askInfo.name);
-  const nameParts = name.split(' ');
-  const firstName = nameParts[0]?.toUpperCase() || '';
-  const lastName = nameParts.slice(1).join(' ').toUpperCase() || '';
+  const rawName = player.bio?.displayName || player.name || askInfo.name || '';
+  const formattedName = formatName(rawName);
+  const nameParts = formattedName.split(' ');
+  const firstName = nameParts[0] || '';
+  const lastName = nameParts.slice(1).join(' ') || '';
 
   const rawPosition = player.bio?.position || player.formattedPosition || '';
   const position = getPlayerPositionLabel(rawPosition) || '—';
 
   const formatHeight = (inches) => {
     if (!inches || inches === 0) return null;
+    if (isNaN(inches)) return inches; // Return as-is if not a number (e.g. "6-5")
     return `${Math.floor(inches / 12)}-${inches % 12}`;
   };
 
@@ -86,17 +89,41 @@ const FreeAgentRow = ({
         {position}
       </div>
 
+      {/* Team Logo */}
+      <div className="w-[50px] flex items-center justify-center ml-1">
+        {player.teamCode && (
+          <img
+            src={`/assets/logos/${
+              TeamCodeMap[player.teamCode]?.id || 'default'
+            }.png`}
+            alt={player.teamCode}
+            className="h-6 w-6 object-contain opacity-80"
+            onError={(e) => {
+              e.target.style.display = 'none';
+            }}
+          />
+        )}
+      </div>
+
       {/* Headshot */}
       <div className="h-[43px] w-[50px] bg-[#2a2a2a] flex items-center justify-center overflow-hidden">
         <img
           src={
             player.headshotUrl ||
-            `/assets/headshots/${player.bio?.playerId || player.id || player.player_id}.png`
+            `/assets/headshots/${
+              player.bio?.playerId ||
+              player.id ||
+              player.player_id ||
+              (player.name || askInfo.name || '')
+                .toLowerCase()
+                .replace(/['.]/g, '')
+                .replace(/\s+/g, '_')
+            }.png`
           }
           onError={(e) => {
             e.target.src = '/assets/headshots/default.png';
           }}
-          alt={name}
+          alt={formattedName}
           className="h-full w-full object-cover"
         />
       </div>
