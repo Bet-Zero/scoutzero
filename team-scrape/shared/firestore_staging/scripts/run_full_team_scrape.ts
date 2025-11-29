@@ -19,6 +19,7 @@ interface RunConfig {
   season: string;
   batchSize: number;
   statsOnly: boolean;
+  validate: boolean;
 }
 
 interface PhaseResult {
@@ -195,9 +196,18 @@ function buildCommand(
       env: baseEnv,
     };
   }
+  const args = [
+    'tsx',
+    STAGE_SCRIPT,
+    `--team=${team}`,
+    `--season=${config.season}`,
+  ];
+  if (config.validate) {
+    args.push('--validate');
+  }
   return {
     cmd: 'npx',
-    args: ['tsx', STAGE_SCRIPT, `--team=${team}`, `--season=${config.season}`],
+    args,
     env: {
       ...baseEnv,
       USE_LOCAL_HTML: '1',
@@ -392,6 +402,7 @@ async function main() {
       .slice(-2)}`) as string,
     batchSize: parseNumberArg('batchSize', 3),
     statsOnly: parseBoolArg('statsOnly', false),
+    validate: parseBoolArg('validate', true),
   };
 
   console.log(
@@ -402,6 +413,7 @@ async function main() {
       `Delay between phases: ${config.delayMs}ms\n` +
       `Max retries: ${config.maxRetries}\n` +
       `Backoff: ${config.backoffMs}ms x${config.backoffMultiplier}\n` +
+      `Validate staged payloads: ${config.validate ? 'yes' : 'no'}\n` +
       `Log dir: ${runDir}\n`
   );
 
@@ -450,4 +462,3 @@ main().catch((err) => {
   console.error('Fatal error during team scrape:', err);
   process.exit(1);
 });
-

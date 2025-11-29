@@ -20,6 +20,26 @@ npm run stage:team
 npm run stage:team -- --team=LAL --season=2025-26 --validate
 ```
 
+### Pipeline shortcuts
+
+```bash
+# RealGM draft picks → _artifacts/output/structured (staging-ready)
+npm run team:draft-picks -- --teams=LAL --pretty
+
+# SalarySwish fetch/parse/stage (uses existing RealGM outputs if present, validates by default)
+npm run team:salaryswish -- --teams=LAL --season=2025-26
+
+# Combined: RealGM draft picks then SalarySwish pipeline (staging validates by default)
+npm run team:full -- --teams=LAL --season=2025-26 --pretty
+
+# Disable validation explicitly if needed
+npm run team:salaryswish -- --validate=false
+npm run team:full -- --validate=false
+
+# Push staged baseTeams to Firestore (after review)
+npm run team:push -- LAL BOS --stageDir=/abs/path/to/output
+```
+
 Outputs:
 
 - `firestore_staging/_artifacts/output/baseTeams/LAL.json` – Firestore payload
@@ -61,7 +81,7 @@ The output directory is git-ignored; copy snippets into docs if you need to shar
 | Input | Source | Command |
 | --- | --- | --- |
 | `team-scrape/team-data/_artifacts/output/team_{TEAM}.json` | SalarySwish parser | `npm run parse` |
-| `team-scrape/draft-picks/_artifacts/output/structured/draft_picks_{TEAM}.json` | RealGM scraper | `npm run realgm:drafts -- --teams TEAM` |
+| `team-scrape/draft-picks/_artifacts/output/structured/draft_picks_{TEAM}.json` | RealGM scraper | `npm run team:draft-picks -- --teams TEAM` |
 | `player-scrape/shared/_artifacts/outputs/player_index.json` | Player scrape shared outputs | `npm run build:index` |
 
 If RealGM data is missing, the stager falls back to the lighter `draftPicks` array embedded in the SalarySwish output and logs a warning.
@@ -98,4 +118,3 @@ This is the team-side counterpart to `player-scrape/firestore_staging/scripts/st
 - Write git-ignored JSON for human review
 
 Keep both staging directories in sync so downstream tooling can rely on consistent shapes.
-
