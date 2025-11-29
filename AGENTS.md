@@ -10,26 +10,34 @@ For EVERY non-trivial task, you MUST follow these rules:
    - When plan is completed, delete entire `plans/<slug>/temp/` directory.
    - **📖 See `docs/workspace-rules/FILE_PLACEMENT_GUIDE.md` for complete decision tree**
 
-2. **ALWAYS USE PLANS FOR NON-TRIVIAL TASKS**:
-   - Most tasks use just `plan.md` with explicit PROGRESS tracking
-   - Chunks are ONLY for massive multi-phase plans (refactor entire project, etc.)
-   - **📖 See `docs/workspace-rules/WHEN_TO_USE_PLAN_MODE.md` for when to use plan mode**
-   - **📖 See `docs/workspace-rules/WORKFLOW_CHECKLIST.md` for complete execution steps**
+2. **PLAN RULES (single vs multi-step vs large)**:
+   - Single-step tasks → no plan mode.
+   - Multi-step tasks → use plan mode with `plan.md` (no chunks unless the work is large).
+   - Large/multi-phase work (cross-feature refactors, migrations, multi-day efforts) → plan mode **with** chunks.
+   - Default to plan mode if unsure; add chunks only when scope clearly meets “large.”
+   - **📖 See `docs/workspace-rules/WHEN_TO_USE_PLAN_MODE.md` for thresholds**
+   - **📖 See `docs/workspace-rules/WORKFLOW_CHECKLIST.md` for execution steps**
 
 3. **ASK BEFORE GUESSING STRUCTURE**:
    - If you are unsure where new files should live, ASK the user.
    - Do NOT invent new top-level folders without explicit confirmation.
    - See `docs/workspace-rules/COMMUNICATION_RULES.md` for when to ask vs. decide.
 
-4. **UPDATE STATE AFTER EXECUTION**:
-   - After completing work, always update:
-     - Chunk `STATE` and `ERROR_LOG` (if needed)
-     - Plan `CURRENT_STATE` and `CHUNK_INDEX`
-   - Update documentation for significant changes - see `docs/workspace-rules/DOCUMENTATION_UPDATE_RULES.md`.
+4. **UPDATE STATE AFTER EXECUTION (WHEN USING PLAN MODE)**:
+   - If plan mode is used:
+     - Update chunk `STATE`/`ERROR_LOG` (if chunks exist)
+     - Update plan `CURRENT_STATE` and `CHUNK_INDEX`
+   - Always update documentation for significant changes - see `docs/workspace-rules/DOCUMENTATION_UPDATE_RULES.md`.
+
+5. **ARCHIVE COMPLETED PLANS**:
+   - When a plan is complete and temp/drafts are deleted, move the entire plan folder to `plans/_archive/<slug>/` (keep templates in `_templates/`).
+   - Plans remain tracked in git; only temp/draft folders are removed.
 
 ---
 
 ## WHEN USING CURSOR'S PLAN MODE
+
+Use plan mode for any multi-step task; skip it for single-step work. Add chunks only when the plan is large/multi-phase (cross-feature refactors, migrations, multi-day efforts).
 
 When you are operating in **Cursor's Plan Mode**, you MUST:
 
@@ -55,15 +63,17 @@ When you are operating in **Cursor's Plan Mode**, you MUST:
 Before you start planning or editing for any non-trivial request, you MUST:
 
 1. **Explicitly answer these questions in your own words**:
+   - Is this single-step (no plan) or multi-step (plan mode)? If multi-step, what is the plan slug?
+   - Is it “large” (cross-feature refactor/migration/multi-day)? If yes, chunks are required.
    - Where should I put temporary/scratch files for this task? → `plans/<slug>/temp/`
-   - Do I need a plan in `plans/` for this task? If yes, what will its slug be?
-   - Do I need chunks? (Only for massive multi-phase plans)
    - Which permanent folders (`src/`, `data/`, `tools/`, `docs/`, `tests/`) will be affected?
 
 2. **If you cannot answer any of these clearly, you MUST**:
    - Open `AGENTS.md` and re-read the NON-NEGOTIABLES section
    - Check `docs/workspace-rules/WHEN_TO_USE_PLAN_MODE.md` to determine if plan mode is needed
    - Ask the user for clarification if still unclear
+
+**Rule of thumb**: Large = cross-feature refactors, schema migrations, or multi-day execution. Multi-step but not large = plan without chunks. Single-step = no plan.
 
 **This self-check ensures you follow the workspace, plan, and file placement rules before starting work.**
 
@@ -232,7 +242,7 @@ const players = team.data().capSheet.players; // Array of flattened player objec
   - `players_v2`: hierarchical player docs with bio, contracts, seasons, evaluations subcollections
   - `teams`: team rosters + `capSheet.players[]` with `contract_clean` (migrating to `/architect/`)
 
-⚠️ Do not modify Firestore read logic without validating against `usePlayerData.js` and Firebase helpers.
+⚠️ Do not modify Firestore read logic without validating against `src/shared/hooks/useSimplePlayerData.ts` (primary list hook), `src/shared/hooks/usePlayerDetail.js` (full player doc + subcollections), and Firebase helpers (`src/data/firestorePaths.js`). `usePlayerData.ts` is a diagnostics wrapper over `useSimplePlayerData`—prefer the base hook unless diagnostics are required.
 
 ---
 

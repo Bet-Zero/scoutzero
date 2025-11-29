@@ -106,8 +106,8 @@ Feature components under `src/features/*` are not moved in this plan.
 | `src/hooks/useRosterManager.js`             | `src/features/roster/hooks/useRosterManager.js`          | Roster    | Roster / roster builder feature |
 | `src/hooks/tradeMachine/useTradeMachine.js` | `src/features/architect/hooks/useTradeMachine.js`        | Architect | Trade Machine inside Architect  |
 | `src/hooks/useFilteredPlayers.js`           | `src/features/table/hooks/useFilteredPlayers.js`         | Table     | Primarily used by player table  |
-| `src/hooks/usePlayerData.js`                | `src/shared/hooks/usePlayerData.js`                      | Shared    | Used across multiple features   |
-| `src/hooks/useSimplePlayerData.js`          | `src/shared/hooks/useSimplePlayerData.js`                | Shared    | Used across multiple features   |
+| `src/hooks/usePlayerData.js`                | `src/shared/hooks/usePlayerData.ts`                      | Shared    | Used across multiple features   |
+| `src/hooks/useSimplePlayerData.js`          | `src/shared/hooks/useSimplePlayerData.ts`                | Shared    | Used across multiple features   |
 | `src/hooks/useFirebaseQuery.js`             | `src/shared/hooks/useFirebaseQuery.js`                   | Shared    | Generic Firebase hook           |
 | `src/hooks/usePlayerDetail.js`              | `src/shared/hooks/usePlayerDetail.js`                    | Shared    | Used by profile + others        |
 | `src/hooks/useAutoSavePlayer.js`            | `src/features/profile/hooks/useAutoSavePlayer.js`        | Profile   | Player profile-specific         |

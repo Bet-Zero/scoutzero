@@ -125,6 +125,9 @@
   - [ ] Ensure all file headers reference correct plan/chunk
   - [ ] Update any related docs referenced in `RELATED_DOCS`
   - [ ] Verify `PERMANENT_FILE_MAP` is accurate
+- [ ] **Archive plan**:
+  - [ ] After cleanup (temp/drafts removed), move the completed plan folder to `plans/_archive/<plan-slug>/` (leave templates in `_templates/`)
+  - [ ] Plans remain tracked in git; only temporary folders are deleted
 
 ## Ongoing Maintenance
 

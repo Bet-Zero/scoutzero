@@ -14,6 +14,7 @@ Top-level directory structure and purposes:
 | `scripts/`       | Utility scripts for Firebase, schema tools, and documentation          |
 | `tests/`         | Vitest test suites for utils, contracts, and trade validation          |
 | `docs/`          | Organized documentation (architecture, guides, compliance, migrations) |
+| `plans/`         | Active plans (`plan.md`, chunks) and execution tracking; completed plans are archived under `plans/_archive/` |
 | `public/`        | Static assets (fonts, team logos, player headshots)                    |
 | `cba/`           | NBA CBA reference materials (guides, articles, rule cards)             |
 | `_exports/`      | Export artifacts and build outputs                                     |

@@ -6,11 +6,12 @@ This document provides a comprehensive overview of all custom Cursor commands av
 
 ## Command Categories
 
-The commands fall into three main categories:
+The commands fall into four main categories:
 
 1. **Understanding & Analysis** - Commands that help you understand code without changing it
 2. **Code Quality & Fixes** - Commands that identify and fix issues in the codebase
 3. **Project Management** - Commands that help organize and structure work
+4. **Artifact & Output Review** - Commands that analyze the relevance of files and outputs
 
 ---
 
@@ -507,6 +508,7 @@ The commands fall into three main categories:
 - `/cleanup` - Standalone cleanup
 - `/plan-mode` - Standalone planning/execution
 - `/group-by-feature` - Standalone refactoring (with chunk specification)
+- `/relevance` - Standalone artifact & output review
 
 ---
 
@@ -552,17 +554,18 @@ The commands fall into three main categories:
 
 ## Quick Reference
 
-| Command             | Category      | Changes Code?      | Input Type             | Output               |
-| ------------------- | ------------- | ------------------ | ---------------------- | -------------------- |
-| `/explain`          | Understanding | ❌ No              | Files/folders/codebase | Explanation          |
-| `/audit`            | Quality       | ❌ No              | Files/folders/codebase | Audit file           |
-| `/audit-review`     | Quality       | ❌ No              | Audit file             | Fix Plan             |
-| `/apply-critical`   | Quality       | ✅ Yes             | Fix Plan               | Code changes         |
-| `/fix-all`          | Quality       | ✅ Yes             | Fix Plan               | Code changes         |
-| `/doc-sync`         | Quality       | ✅ Yes (docs only) | Files/folders/codebase | Doc updates          |
-| `/cleanup`          | Quality       | ✅ Yes             | Files/folders/codebase | Code cleanup         |
-| `/plan-mode`        | Management    | ✅ Yes             | User request           | Plan + execution     |
-| `/group-by-feature` | Management    | ✅ Yes             | Chunk spec             | Refactored structure |
+| Command             | Category                 | Changes Code?      | Input Type             | Output                            |
+| ------------------- | ------------------------ | ------------------ | ---------------------- | --------------------------------- |
+| `/explain`          | Understanding            | ❌ No              | Files/folders/codebase | Explanation                       |
+| `/audit`            | Quality                  | ❌ No              | Files/folders/codebase | Audit file                        |
+| `/audit-review`     | Quality                  | ❌ No              | Audit file             | Fix Plan                          |
+| `/apply-critical`   | Quality                  | ✅ Yes             | Fix Plan               | Code changes                      |
+| `/fix-all`          | Quality                  | ✅ Yes             | Fix Plan               | Code changes                      |
+| `/doc-sync`         | Quality                  | ✅ Yes (docs only) | Files/folders/codebase | Doc updates                       |
+| `/cleanup`          | Quality                  | ✅ Yes             | Files/folders/codebase | Code cleanup                      |
+| `/plan-mode`        | Management               | ✅ Yes             | User request           | Plan + execution                  |
+| `/group-by-feature` | Management               | ✅ Yes             | Chunk spec             | Refactored structure              |
+| `/relevance`        | Artifact & Output Review | ❌ No              | Files/folders/codebase | Relevance report + cleanup script |
 
 ---
 
