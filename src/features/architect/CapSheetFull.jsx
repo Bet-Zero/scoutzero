@@ -18,6 +18,15 @@ const getContractYearSlice = (player, endYear) => {
   return null;
 };
 
+// Color scheme matching FreeAgentRow
+const getTagColor = (type) => {
+  if (type === 'UFA') return 'bg-blue-500/30 text-white/70';
+  if (type === 'RFA') return 'bg-red-600/30 text-white/70';
+  if (type === 'PO') return 'bg-green-600/30 text-white/70';
+  if (type === 'TO') return 'bg-orange-500/30 text-white/70';
+  return 'bg-gray-600 text-white/70';
+};
+
 const CapSheetFull = ({
   teamCapSheet,
   currentYear,
@@ -91,7 +100,7 @@ const CapSheetFull = ({
               <th className="px-2 py-1 text-left w-48">Player</th>
               {allYears.map((year) => (
                 <th key={year} className="px-2 py-1 text-center w-[70px]">
-                  {year}-{String((parseInt(year) + 1) % 100).padStart(2, '0')}
+                  {year - 1}-{String(year % 100).padStart(2, '0')}
                 </th>
               ))}
             </tr>
@@ -115,17 +124,25 @@ const CapSheetFull = ({
                   const entry = getContractYearSlice(player, year);
                   const faYear = player.contract?.freeAgency?.year;
                   const faType = player.contract?.freeAgency?.type;
+                  
+                  // Debug logging
+                  if (player.name === 'LeBron James' && year === 2027) {
+                    console.log('🔍 LeBron 2027 Debug:', {
+                      player: player.name,
+                      year,
+                      entry,
+                      faYear,
+                      faType,
+                      fullContract: player.contract
+                    });
+                  }
+                  
+                  // Handle free agency years (no salary)
                   if (!entry?.salary && !entry?.capHit) {
                     if (faYear === year && faType) {
-                      const tagColor =
-                        faType === 'UFA'
-                          ? 'bg-blue-500/30 text-white/70'
-                          : faType === 'RFA'
-                            ? 'bg-red-600/30 text-white/70'
-                            : 'bg-gray-600 text-white';
                       return (
                         <td key={year} className="px-2 py-1 text-center">
-                          <span className={`px-6 rounded ${tagColor}`}>
+                          <span className={`px-1.5 py-[2px] rounded text-[11px] font-semibold ${getTagColor(faType)}`}>
                             {faType}
                           </span>
                         </td>
@@ -134,16 +151,40 @@ const CapSheetFull = ({
                     return <td key={year} className="px-2 py-1" />;
                   }
 
-                  const isPO = entry.option === 'Player Option';
-                  const isTO = entry.option === 'Team Option';
-                  const style = isPO
-                    ? 'text-green-400 font-semibold'
-                    : isTO
-                      ? 'text-red-400 font-semibold'
-                      : '';
+                  // Handle contract years with options
+                  const isPO = entry.option === 'Player Option' || entry.option === 'PO';
+                  const isTO = entry.option === 'Team Option' || entry.option === 'TO';
+                  
+                  // Debug logging for options
+                  if (entry.option) {
+                    console.log('🔍 Option found:', {
+                      player: player.name,
+                      year,
+                      option: entry.option,
+                      isPO,
+                      isTO
+                    });
+                  }
+                  
+                  if (isPO || isTO) {
+                    const optionType = isPO ? 'PO' : 'TO';
+                    return (
+                      <td key={year} className="px-2 py-1 text-center">
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className={`px-1.5 py-[2px] rounded text-[11px] font-semibold ${getTagColor(optionType)}`}>
+                            {optionType}
+                          </span>
+                          <span className="text-white/70">
+                            ${entry.salary.toLocaleString()}
+                          </span>
+                        </div>
+                      </td>
+                    );
+                  }
 
+                  // Regular contract year
                   return (
-                    <td key={year} className={`px-2 py-1 text-center ${style}`}>
+                    <td key={year} className="px-2 py-1 text-center text-white/70">
                       ${entry.salary.toLocaleString()}
                     </td>
                   );

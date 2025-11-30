@@ -39,14 +39,14 @@ const CapSheet = ({
     Array.from({ length: count }, (_, i) => startYear + i);
 
   const allYears = generateYears(currentYear, 7);
-  const yearKey = `${selectedYear}-${String((selectedYear + 1) % 100).padStart(
+  const yearKey = `${selectedYear - 1}-${String(selectedYear % 100).padStart(
     2,
     '0'
   )}`;
   const salaryCap = capProjections[yearKey]?.cap || 1;
 
   const formatYearLabel = (year) =>
-    `${year}-${String((year + 1) % 100).padStart(2, '0')}`;
+    `${year - 1}-${String(year % 100).padStart(2, '0')}`;
 
   const getCapHit = (player, yearKey) => {
     const slice = getContractYearSlice(player, yearKey);

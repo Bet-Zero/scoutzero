@@ -2,7 +2,7 @@ import React from 'react';
 import capProjections from '@/features/architect/utils/capProjections';
 
 const CapSummaryTiles = ({ teamCapSheet, selectedYear }) => {
-  const yearKey = `${selectedYear}-${String((selectedYear + 1) % 100).padStart(
+  const yearKey = `${selectedYear - 1}-${String(selectedYear % 100).padStart(
     2,
     '0'
   )}`;

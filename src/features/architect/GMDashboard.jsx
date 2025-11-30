@@ -34,7 +34,13 @@ const LOCAL_SEASON_KEY = 'hz.currentSeasonEndYear';
 const getDefaultSeasonEndYear = (date = new Date()) => {
   // NBA season flips July 1 → 2024-25 ends in 2025, 2025-26 ends in 2026
   const y = date.getFullYear();
-  return date.getMonth() >= 6 ? y + 1 : y;
+  const month = date.getMonth();
+  
+  // Explicit handling for 2025-26 season (current)
+  if (y === 2025 && month >= 6) return 2026;
+  
+  // General case for future years
+  return month >= 6 ? y + 1 : y;
 };
 
 const toSeasonKey = (endYear) => `${endYear - 1}-${String(endYear).slice(-2)}`;
@@ -96,12 +102,27 @@ const GMDashboard = () => {
   const [teamCapSheet, setTeamCapSheet] = useState(null);
   // AFTER:
   const [currentYear, setCurrentYear] = useState(() => {
+    // Get available years from cap projections
+    const availableYears = seasonEndYearsFromCaps(capProjections);
+    
+    // Check URL query parameter first
     const qp = new URLSearchParams(window.location.search).get('season');
-    if (qp && Number.isFinite(parseInt(qp, 10))) return parseInt(qp, 10);
+    if (qp && Number.isFinite(parseInt(qp, 10))) {
+      const year = parseInt(qp, 10);
+      // Validate against available cap projections
+      if (availableYears.includes(year)) return year;
+    }
+    
+    // Check localStorage
     const saved = localStorage.getItem(LOCAL_SEASON_KEY);
-    if (saved && Number.isFinite(parseInt(saved, 10)))
-      return parseInt(saved, 10);
-    return getDefaultSeasonEndYear(); // ← literal time default
+    if (saved && Number.isFinite(parseInt(saved, 10))) {
+      const year = parseInt(saved, 10);
+      // Validate against available cap projections
+      if (availableYears.includes(year)) return year;
+    }
+    
+    // Default to current season
+    return getDefaultSeasonEndYear();
   });
 
   // Persist selection + keep URL shareable (?season=YYYY)
