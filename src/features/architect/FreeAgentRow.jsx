@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import PropTypes from 'prop-types';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
 import { formatName } from '@/shared/utils/formatting';
 import { TeamCodeMap } from '@/constants/teamList';
@@ -41,13 +42,16 @@ const FreeAgentRow = ({
   const rawPosition = player.bio?.position || player.formattedPosition || '';
   const position = getPlayerPositionLabel(rawPosition) || '—';
 
+  const age = player.bio?.age || player.age || null;
+
   const formatHeight = (inches) => {
     if (!inches || inches === 0) return null;
     if (isNaN(inches)) return inches; // Return as-is if not a number (e.g. "6-5")
     return `${Math.floor(inches / 12)}-${inches % 12}`;
   };
 
-  const height = formatHeight(player.bio?.height) || player.height || askInfo.height || '—';
+  const height =
+    formatHeight(player.bio?.height) || player.height || askInfo.height || '—';
   const weight = player.bio?.weight || player.weight || askInfo.weight || '—';
   const prevSalaryValue =
     askInfo.previousSalary ?? player.previousSalary ?? null;
@@ -131,11 +135,14 @@ const FreeAgentRow = ({
       {/* Name + Rights */}
       <div className="flex items-center ml-3 flex-1 justify-between mr-2">
         <div
-          className="text-white font-anton font-bold uppercase tracking-normal leading-none whitespace-nowrap overflow-visible"
+          className="flex items-center text-white font-anton font-bold uppercase tracking-normal leading-none whitespace-nowrap overflow-visible"
           style={{ fontSize: '17px', maxWidth: '300px' }}
         >
-          {firstName}{' '}
-          <span className="text-white/70 font-light">{lastName}</span>
+          <span>
+            {firstName}{' '}
+            <span className="text-white/70 font-light">{lastName}</span>
+          </span>
+          {age && <span className="text-white/50 font-light ml-2" style={{ fontSize: '12px' }}>({age})</span>}
         </div>
         <div className="flex items-center justify-end text-white/50 text-[13px] gap-2 whitespace-nowrap">
           <span>{rights}</span>
@@ -203,6 +210,16 @@ const FreeAgentRow = ({
       </div>
     </div>
   );
+};
+
+FreeAgentRow.propTypes = {
+  player: PropTypes.object,
+  askInfo: PropTypes.object,
+  onSelect: PropTypes.func,
+  isSelected: PropTypes.bool,
+  openMenu: PropTypes.string,
+  setOpenMenu: PropTypes.func,
+  onSign: PropTypes.func,
 };
 
 export default FreeAgentRow;

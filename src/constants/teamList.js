@@ -52,7 +52,7 @@ export const TeamListFull = [
   },
   { id: 'magic', code: 'ORL', teamName: 'Orlando Magic', nickname: 'Magic', conference: 'East' },
   {
-    id: '76ers',
+    id: 'sixers',
     code: 'PHI',
     teamName: 'Philadelphia 76ers',
     nickname: 'Sixers',
@@ -60,7 +60,7 @@ export const TeamListFull = [
   },
   { id: 'suns', code: 'PHX', teamName: 'Phoenix Suns', nickname: 'Suns', conference: 'West' },
   {
-    id: 'trail blazers',
+    id: 'blazers',
     code: 'POR',
     teamName: 'Portland Trail Blazers',
     nickname: 'Blazers',
