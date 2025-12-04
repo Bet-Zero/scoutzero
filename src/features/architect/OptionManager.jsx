@@ -85,7 +85,7 @@ const OptionManager = ({
             {optionsList.map((opt) => (
               <tr key={opt.name} className="odd:bg-[#171717]">
                 <td className="p-2">
-                  {playersMap[opt.name]?.bio?.displayName || formatName(opt.name)}
+                  {opt.displayName || opt.bio?.displayName || opt.name}
                 </td>
                 <td className="p-2">{opt.type}</td>
                 <td className="p-2">${opt.salary.toLocaleString()}</td>

@@ -122,8 +122,7 @@ const CapSheetFull = ({
                       onClick={() => onSelectPlayer && onSelectPlayer(player)}
                       className="text-xs font-medium text-white/90 hover:text-blue-400 transition-colors text-left truncate w-full"
                     >
-                      {playersMap[player.name]?.bio?.displayName ||
-                        formatName(player.bio?.displayName || player.name)}
+                      {player.displayName || player.bio?.displayName || player.name}
                     </button>
                   </div>
 
@@ -225,7 +224,7 @@ const CapSheetFull = ({
                     return (
                       <div key={idx} className="grid grid-cols-[2fr,1.2fr,3fr] gap-2 px-4 py-2 items-center hover:bg-white/[0.02]">
                         <div className="text-xs text-white/60">
-                          {playersMap[p.name]?.bio?.displayName || formatName(p.name)}
+                          {p.displayName || p.bio?.displayName || p.name}
                         </div>
                         <div className="text-xs text-white/40 tabular-nums">${amt.toLocaleString()}</div>
                         <div className="text-[10px] text-white/30">{reason}</div>

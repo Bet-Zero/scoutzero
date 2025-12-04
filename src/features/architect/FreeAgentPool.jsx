@@ -165,7 +165,7 @@ const FreeAgentPool = ({
           {selectedPlayers.map((sp) => (
             <div key={sp.name} className="w-64">
               <h3 className="font-semibold mb-1">
-                {playersMap[sp.name]?.bio?.displayName || formatName(sp.name)}
+                {sp.displayName || sp.bio?.displayName || sp.name}
               </h3>
               <p className="text-sm mb-1">
                 Asking{' '}

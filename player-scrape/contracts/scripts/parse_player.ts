@@ -713,9 +713,9 @@ function parseName($: cheerio.CheerioAPI, fallbackId: string) {
     $('h1.c[style*="text-transform:none"]').first().text() ||
     $('h1').first().text();
   const cleaned = norm(raw).replace(/\s+#\d+\b/, '');
-  return cleaned
-    ? titleCase(cleaned)
-    : titleCase(fallbackId.replace(/_/g, ' '));
+  // Preserve original capitalization from the scraped HTML
+  // Only use titleCase for the fallback case (converting playerId to name)
+  return cleaned || titleCase(fallbackId.replace(/_/g, ' '));
 }
 
 function resolveTeamName(code?: string | null, fallbackName?: string): string {

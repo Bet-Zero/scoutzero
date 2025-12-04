@@ -106,7 +106,7 @@ const ContractEditor = ({
     <div className="text-white">
       <h2 className="text-xl font-semibold mb-3">
         Create Contract for{' '}
-        {playersMap[player.name]?.bio?.displayName || formatName(player.name)}
+        {player.displayName || player.bio?.displayName || player.name}
       </h2>
 
       <label className="block mb-1">Contract Type:</label>

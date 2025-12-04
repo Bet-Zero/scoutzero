@@ -33,8 +33,8 @@ const FreeAgentRow = ({
     }
     return undefined;
   }, [openMenu, askInfo.name, setOpenMenu]);
-  const rawName = player.bio?.displayName || player.name || askInfo.name || '';
-  const formattedName = formatName(rawName);
+  // Use displayName from player data - the authoritative source
+  const formattedName = player.bio?.displayName || player.displayName || player.name || askInfo.name || '';
   const nameParts = formattedName.split(' ');
   const firstName = nameParts[0] || '';
   const lastName = nameParts.slice(1).join(' ') || '';

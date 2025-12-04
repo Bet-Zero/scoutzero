@@ -229,6 +229,7 @@ async function fetchCurrentRosterMap(
 
 // ---------- Extractors ----------
 function extractFromCommonPlayerInfo(json: any): {
+  displayName: string | null;
   teamName: string | null;
   position: string | null;
   height: string | null;
@@ -245,6 +246,7 @@ function extractFromCommonPlayerInfo(json: any): {
     );
 
   const blank = {
+    displayName: null,
     teamName: null,
     position: null,
     height: null,
@@ -260,6 +262,10 @@ function extractFromCommonPlayerInfo(json: any): {
   );
   const row = (rs.rowSet as any[])[0];
   if (!row) return blank;
+
+  // Extract displayName from DISPLAY_FIRST_LAST field
+  const displayName =
+    String(row[idx['DISPLAY_FIRST_LAST']] ?? '').trim() || null;
 
   const teamFull = String(row[idx['TEAM_NAME']] ?? '').trim();
   const teamName = teamFull
@@ -290,6 +296,7 @@ function extractFromCommonPlayerInfo(json: any): {
   }
 
   return {
+    displayName,
     teamName,
     position,
     height,
@@ -301,6 +308,7 @@ function extractFromCommonPlayerInfo(json: any): {
 }
 
 function isEmptyInfo(info: {
+  displayName?: string | null;
   teamName: string | null;
   position: string | null;
   height: string | null;
@@ -308,6 +316,7 @@ function isEmptyInfo(info: {
   age: number | null;
 }) {
   return (
+    !info.displayName &&
     !info.teamName &&
     !info.position &&
     !info.height &&
@@ -331,6 +340,7 @@ async function fetchPlayerPageHtml(
 }
 
 function extractFromPlayerHtml(html: string): {
+  displayName: string | null;
   teamName: string | null;
   position: string | null;
   height: string | null;
@@ -346,6 +356,7 @@ function extractFromPlayerHtml(html: string): {
     if (m?.[1]) {
       const json = JSON.parse(m[1]);
       const results: any = {
+        displayName: null,
         teamName: null,
         position: null,
         height: null,
@@ -573,6 +584,7 @@ async function main() {
         const html = await fetchPlayerPageHtml(personId, REQUEST_TIMEOUT_MS);
         const h = extractFromPlayerHtml(html);
         finalInfo = {
+          displayName: h.displayName ?? info.displayName ?? null,
           teamName: h.teamName ?? null,
           position: h.position ?? null,
           height: h.height ?? null,
@@ -613,6 +625,7 @@ async function main() {
       // ✅ Output schema restored
       output[nameKey] = {
         bio: {
+          displayName: finalInfo.displayName ?? undefined,
           height: finalInfo.height ?? undefined,
           weight: finalInfo.weight ?? undefined,
           age: finalInfo.age ?? undefined,

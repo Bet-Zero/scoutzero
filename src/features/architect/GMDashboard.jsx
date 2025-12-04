@@ -13,7 +13,7 @@ import {
 import RosterVisual from './RosterVisual';
 import CapSheet from './CapSheet';
 import CapSheetFull from './CapSheetFull';
-import ContractEditorModal from './ContractEditorModal';
+import EditContractModal from '@/shared/components/EditContractModal';
 import TradeEditor from './tradeMachine/TradeEditor';
 import FreeAgentPool from './FreeAgentPool';
 import OffseasonTab from './OffseasonTab';
@@ -607,6 +607,160 @@ const GMDashboard = () => {
     setShowContractModal(true);
   };
 
+  const handleSaveContract = (player, contractData) => {
+    setTeamCapSheet((prev) => {
+      const updatedPlayers = prev.players.map((p) => {
+        if (p.id === player.id || p.player_id === player.player_id) {
+          // Construct new contract structure
+          const newContract = ensureContractStructure(contractData, {
+             contractType: contractData.contractType || 'Standard',
+             signingTeam: teamId
+          });
+          
+          return {
+            ...p,
+            contract: newContract
+          };
+        }
+        return p;
+      });
+      
+      // Also update activeContracts if present
+      const updatedActive = (prev.activeContracts || []).map(c => {
+         if (c.player_id === player.id || c.player_id === player.player_id) {
+             const newContract = ensureContractStructure(contractData, {
+                 contractType: contractData.contractType || 'Standard',
+                 signingTeam: teamId
+             });
+             return {
+                 ...c,
+                 contract: newContract,
+                 years: newContract?.salariesByYear?.length || 1,
+                 // Update other fields as needed
+             }
+         }
+         return c;
+      });
+
+      return {
+        ...prev,
+        players: updatedPlayers,
+        activeContracts: updatedActive
+      };
+    });
+    setShowContractModal(false);
+  };
+
+  const handleExtendContract = (player, extensionContract) => {
+      setTeamCapSheet((prev) => {
+          const updatedPlayers = prev.players.map(p => {
+              if (p.id === player.id || p.player_id === player.player_id) {
+                  // Merge extension into existing contract
+                  // This logic depends on how generateExtensionContract formats data
+                  // Assuming it returns a full contract object or we need to append years
+                  // For now, let's assume it returns a compatible contract structure or we replace it
+                  // Ideally we append the new years to the existing salariesByYear
+                  
+                  const existingSalaries = p.contract?.salariesByYear || [];
+                  const newSalaries = extensionContract.salariesByYear || [];
+                  
+                  // Filter out overlapping years from new salaries if any (shouldn't be for extension)
+                  // or just combine and sort
+                  const combined = [...existingSalaries, ...newSalaries].sort((a,b) => {
+                      return toEndYear(a.season) - toEndYear(b.season);
+                  });
+                  
+                  return {
+                      ...p,
+                      contract: {
+                          ...p.contract,
+                          salariesByYear: combined
+                      }
+                  };
+              }
+              return p;
+          });
+          return { ...prev, players: updatedPlayers };
+      });
+      setShowContractModal(false);
+  };
+
+  const handleWaiveContract = (player, { stretch, buyout }) => {
+      // For now, just remove from active roster and maybe add to dead cap if we had that logic ready
+      // The requirement is to be "modify-able", waiving is a modification.
+      // We will just remove them from the players list for now or mark them as waived.
+      // A more complete implementation would calculate dead cap.
+      
+      const confirmMsg = stretch ? "Waive and stretch this player?" : "Waive this player?";
+      if(!window.confirm(confirmMsg)) return;
+
+      setTeamCapSheet(prev => {
+          const updatedPlayers = prev.players.filter(p => p.id !== player.id && p.player_id !== player.player_id);
+          const updatedActive = (prev.activeContracts || []).filter(c => c.player_id !== player.id && c.player_id !== player.player_id);
+          
+          // TODO: Add to waivedContracts / dead cap calculation
+          
+          return {
+              ...prev,
+              players: updatedPlayers,
+              activeContracts: updatedActive
+          };
+      });
+      setShowContractModal(false);
+  };
+
+  const handleOptionDecision = (player, accepted) => {
+      setTeamCapSheet(prev => {
+          const updatedPlayers = prev.players.map(p => {
+              if (p.id === player.id || p.player_id === player.player_id) {
+                  const salaries = p.contract?.salariesByYear || [];
+                  // Find the option year (first year >= currentYear with option)
+                  // Logic similar to EditContractModal
+                  const optionEntryIndex = salaries.findIndex(y => {
+                      const yr = toEndYear(y.season);
+                      return yr >= currentYear && (y.option === 'Player Option' || y.option === 'Team Option' || y.option === 'PO' || y.option === 'TO');
+                  });
+                  
+                  if (optionEntryIndex !== -1) {
+                      const newSalaries = [...salaries];
+                      if (accepted) {
+                          // Remove option flag, make guaranteed?
+                          newSalaries[optionEntryIndex] = {
+                              ...newSalaries[optionEntryIndex],
+                              option: null, // Option exercised
+                              guaranteed: true // Usually guaranteed if exercised
+                          };
+                      } else {
+                          // Declined - remove this year and subsequent years? 
+                          // Or just remove this year? Usually declining an option ends the contract there.
+                          // So we slice up to this index
+                          // Actually if it's the current year, they are gone?
+                          // If it's next year, contract ends this year.
+                          
+                          // For simplicity, let's just remove the option year and future years
+                          newSalaries.splice(optionEntryIndex); 
+                      }
+                      
+                      return {
+                          ...p,
+                          contract: {
+                              ...p.contract,
+                              salariesByYear: newSalaries
+                          }
+                      };
+                  }
+              }
+              return p;
+          });
+          
+          return {
+              ...prev,
+              players: updatedPlayers
+          };
+      });
+      setShowContractModal(false);
+  };
+
   const handleUpdateRoster = (updatedCapSheet) => {
     setTeamCapSheet(updatedCapSheet);
   };
@@ -807,6 +961,7 @@ const GMDashboard = () => {
             playersMap={playersMap}
             onApplyTrade={applyTradeToCapSheet}
             primaryTeamData={teamCapSheet}
+            onEditContract={handleEditContract}
           />
         )}
 
@@ -932,13 +1087,17 @@ const GMDashboard = () => {
       )}
 
       {showContractModal && (
-        <ContractEditorModal
+        <EditContractModal
           isOpen={showContractModal}
           onClose={() => setShowContractModal(false)}
           player={selectedPlayer}
           capProjections={capProjections}
           teamCapSheet={teamCapSheet}
           onSign={handleSign}
+          onSave={handleSaveContract}
+          onExtend={handleExtendContract}
+          onWaive={handleWaiveContract}
+          onOptionDecision={handleOptionDecision}
           playersMap={playersMap}
         />
       )}

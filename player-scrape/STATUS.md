@@ -1,7 +1,14 @@
 # Player-Scrape System Status
 
-**Last Updated:** October 2025  
+**Last Updated:** December 2025  
 **System Status:** ✅ Production Ready
+
+## Recent Updates (December 2025)
+
+- ✅ **Fixed displayName formatting**: Player names now use proper capitalization from NBA API (e.g., "LeBron James" instead of "LEBRON JAMES")
+- ✅ **Reorganized output structure**: Moved `_artifacts` directory from `scripts/` to `firestore_staging/` for cleaner organization
+- ✅ **Corrected stats integration**: Fixed path configuration to properly include season statistics in staged player data
+- ✅ **Updated both collections**: Fixed displayName formatting for both `players_v2` and `architect_basePlayers` collections
 
 ## Quick Status
 
@@ -16,40 +23,38 @@ The player-scrape system is **complete and functional**:
 ## What Works
 
 ### Core Functionality
+
 - **Fetch**: Downloads player pages from SalarySwish using Playwright
 - **Parse**: Extracts contract data, Bird rights, trade eligibility
 - **Validate**: Schema validation with Zod
 - **Batch**: Process multiple players from a list
 
 ### Contract Normalization Features
+
 All normalization requirements have been implemented:
 
 1. **Contract Type Classification** ✅
    - Distinguishes ROOKIE SCALE from ROOKIE CONTRACT
    - Proper detection of extensions and veteran deals
-   
 2. **Guarantee Tracking** ✅
    - Current guaranteed amounts vs future triggers
    - Guarantee schedules for partial guarantees
-   
 3. **Option Tracking** ✅
    - Player options (PO), Team options (TO), Early Termination Options (ETO)
    - Option exercise dates and status
    - Live player options treated as guaranteed
-   
 4. **Extension Voiding** ✅
    - Detects when extensions void player options (Luka Rule)
    - Proper recalculation of guaranteed values
-   
 5. **Max Contract Normalization** ✅
    - Cap percentage-based classification (Max-25, Max-30, Max-35)
-   
 6. **Signing Method Normalization** ✅
    - Proper hyphenation (Early-Bird, Mid-Level, etc.)
 
 ## Usage Examples
 
 ### Parse a Single Player
+
 ```bash
 # From cached HTML
 PLAYER_ID="player_name" TEAM_CODE="XXX" npx tsx player-scrape/contracts/scripts/parse_player.ts
@@ -62,6 +67,7 @@ npx tsx player-scrape/contracts/scripts/parse_player.ts
 ```
 
 ### Batch Process Players
+
 ```bash
 PLAYERS_FILE="examples/players_list_sample.json" \
 OUTPUT_DIR="output/players" \
@@ -69,6 +75,7 @@ npx tsx player-scrape/contracts/scripts/batch_scrape_players.ts
 ```
 
 ### Validate Output
+
 ```bash
 npx tsx player-scrape/contracts/scripts/validate_player.ts
 ```
@@ -110,7 +117,9 @@ Validate (validate_player.ts) → ✅ Schema check
 ## Key Files
 
 ### Scripts (All Functional)
+
 Located in `contracts/scripts/`:
+
 - `fetch_player_page.ts` - Download player pages
 - `parse_player.ts` - Extract contract data
 - `batch_scrape_players.ts` - Batch processing
@@ -119,9 +128,11 @@ Located in `contracts/scripts/`:
 - `validate_normalization.sh` - Normalization demo
 
 ### Schema
+
 - `shared/schema/player_scrape_schema.ts` - TypeScript types and Zod validation
 
 ### Examples
+
 - `examples/page.html` - Sample player page (Jalen Wilson)
 - `examples/players_list_sample.json` - Sample batch input
 - `examples/*.html` - Test cases (Luka, Austin Reaves, etc.)

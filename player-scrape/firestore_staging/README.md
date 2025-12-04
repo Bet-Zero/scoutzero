@@ -20,7 +20,7 @@ This guide captures how scraped player data maps into the two Firestore targets 
 
 - **Contract scrape** (`player-scrape/contracts/_artifacts/output/<TEAM>/<playerId>.json`)
   - Top-level `teamCode`, `teamName`, `bio`, `contract`, optional `futureContract`, `representation`, `source`, `lastUpdated`.
-- **Stats scrape** (`player-scrape/stats/_artifacts/output/<TEAM>/<playerId>.json`)
+- **Stats scrape** (`player-scrape/stats/output/<playerId>.json`)
   - Top-level `teamCode`, `seasons`, `meta` (season tag, timestamps).
 - **Player index** (`player-scrape/shared/_artifacts/outputs/player_index.json`)
   - `fullName`, `nbaId`, `salarySwishSlug`, `teamCode` (roster assignment).

@@ -6,19 +6,19 @@ This document provides an authoritative map of the ScoutZero/HoopZero repository
 
 Top-level directory structure and purposes:
 
-| Directory        | Purpose                                                                |
-| ---------------- | ---------------------------------------------------------------------- |
-| `src/`           | Main React/Vite application source (HoopZero frontend)                 |
-| `player-scrape/` | Player contract & stats scraping pipeline                              |
-| `team-scrape/`   | Team roster & draft pick scraping pipeline                             |
-| `scripts/`       | Utility scripts for Firebase, schema tools, and documentation          |
-| `tests/`         | Vitest test suites for utils, contracts, and trade validation          |
-| `docs/`          | Organized documentation (architecture, guides, compliance, migrations) |
+| Directory        | Purpose                                                                                                       |
+| ---------------- | ------------------------------------------------------------------------------------------------------------- |
+| `src/`           | Main React/Vite application source (HoopZero frontend)                                                        |
+| `player-scrape/` | Player contract & stats scraping pipeline                                                                     |
+| `team-scrape/`   | Team roster & draft pick scraping pipeline                                                                    |
+| `scripts/`       | Utility scripts for Firebase, schema tools, and documentation                                                 |
+| `tests/`         | Vitest test suites for utils, contracts, and trade validation                                                 |
+| `docs/`          | Organized documentation (architecture, guides, compliance, migrations)                                        |
 | `plans/`         | Active plans (`plan.md`, chunks) and execution tracking; completed plans are archived under `plans/_archive/` |
-| `public/`        | Static assets (fonts, team logos, player headshots)                    |
-| `cba/`           | NBA CBA reference materials (guides, articles, rule cards)             |
-| `_exports/`      | Export artifacts and build outputs                                     |
-| `.github/`       | GitHub Actions workflows and configuration                             |
+| `public/`        | Static assets (fonts, team logos, player headshots)                                                           |
+| `cba/`           | NBA CBA reference materials (guides, articles, rule cards)                                                    |
+| `_exports/`      | Export artifacts and build outputs                                                                            |
+| `.github/`       | GitHub Actions workflows and configuration                                                                    |
 
 ### Key Subdirectories
 
@@ -208,7 +208,7 @@ PLAYER_URL="https://salaryswish.com/players/player-name" npm run fetch-player
 - `player-scrape/firestore_staging/stage_player.ts`
   - **Purpose:** Transform scraped contract + stats outputs into staged JSON payloads for `players_v2` and `/architect/basePlayers`
   - **Usage:** `npx tsx player-scrape/firestore_staging/stage_player.ts --player=toumani_camara [--outDir=custom] [--validate]`
-  - **Notes:** Produces files under `player-scrape/firestore_staging/output/` for manual review; validation flag enforces Zod schema checks
+  - **Notes:** Produces files under `player-scrape/firestore_staging/_artifacts/output/` for manual review; validation flag enforces Zod schema checks
 - `player-scrape/firestore_staging/run_full_scrape.ts`
   - **Purpose:** Full-league orchestrator that runs contract + stats scrapers with configurable batching, exponential backoff, and per-phase logging
   - **Usage:** `npx tsx player-scrape/firestore_staging/run_full_scrape.ts [--teams=LAL,BOS] [--batchSize=4] [--concurrency=6] [--maxRetries=4]`
@@ -277,6 +277,7 @@ npx tsx player-scrape/shared/tools/headshots/download_headshots.ts --all --concu
 **Output:** `public/assets/headshots/{playerId}.png`
 
 **Flags:**
+
 - `--all` - Process all players (default: overwrite existing)
 - `--filter=<ids>` - Comma-separated player IDs to process
 - `--overwrite` - Overwrite existing files (default: true with `--all`, false otherwise)
@@ -359,7 +360,7 @@ npm run realgm:drafts
 - `player-scrape/firestore_staging/push_staged_players.ts`
   - **Purpose:** Push staged player documents (`players_v2` + `/architect/basePlayers`) using Firebase Admin credentials
   - **Usage:** `npx tsx player-scrape/firestore_staging/push_staged_players.ts player_id [player_id...]`
-  - **Notes:** Reads `PLAYERS_V2_COLLECTION` / `BASE_PLAYERS_COLLECTION` from env, expects `serviceAccountKey.json` in repo root, and respects staged outputs in `player-scrape/firestore_staging/output/`
+  - **Notes:** Reads `PLAYERS_V2_COLLECTION` / `BASE_PLAYERS_COLLECTION` from env, expects `serviceAccountKey.json` in repo root, and respects staged outputs in `player-scrape/firestore_staging/_artifacts/output/`
 - `team-scrape/shared/firestore_staging/push_staged_teams.ts`
   - **Purpose:** Push staged `/architect/baseTeams` documents with retry/backoff support
   - **Usage:** `npx tsx team-scrape/shared/firestore_staging/push_staged_teams.ts TEAM_CODE [TEAM_CODE...] [--stageDir=path] [--delayMs=500] [--maxRetries=3]`

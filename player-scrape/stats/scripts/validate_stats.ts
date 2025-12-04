@@ -51,7 +51,10 @@ async function findPlayerFile(
   playerFile: string,
   teamCode?: string
 ): Promise<string | null> {
-  const outputDir = join(__dirname, '../_artifacts/output');
+  const outputDir = join(
+    __dirname,
+    '../../firestore_staging/_artifacts/output'
+  );
 
   // If team code is provided, look in that specific subdirectory
   if (teamCode) {

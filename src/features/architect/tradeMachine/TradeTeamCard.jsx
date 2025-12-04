@@ -39,6 +39,7 @@ const TradeTeamCard = ({
   onSelectTeam,
   onRemove,
   onApplyTradeException,
+  onEditContract,
 }) => {
   const [activeTab, setActiveTab] = useState('players');
   const [editingTeam, setEditingTeam] = useState(false);
@@ -402,6 +403,7 @@ const TradeTeamCard = ({
           onSetPlayerTrade={handleSetPlayerTrade}
           onUndoPlayerTrade={handleUndoPlayerTrade}
           tradeExceptions={team.tradeExceptions}
+          onEditContract={onEditContract}
         />
       )}
 

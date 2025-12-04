@@ -20,9 +20,9 @@ export const OutgoingPlayersList = ({
   onSetPlayerTrade,
   onUndoPlayerTrade,
   tradeExceptions = [],
+  onEditContract,
 }) => {
   const [openMenu, setOpenMenu] = useState(null);
-  const [contractPlayer, setContractPlayer] = useState(null);
   const [tpePlayer, setTpePlayer] = useState(null);
 
   // Memoized available players list
@@ -86,7 +86,7 @@ export const OutgoingPlayersList = ({
             onUndoPlayerTrade={onUndoPlayerTrade}
             openMenu={openMenu}
             setOpenMenu={setOpenMenu}
-            setContractPlayer={setContractPlayer}
+            setContractPlayer={onEditContract}
             tradeExceptions={tradeExceptions}
             signAndTradeActive={signAndTradeActive}
           />
@@ -96,20 +96,7 @@ export const OutgoingPlayersList = ({
         )}
       </div>
 
-      {contractPlayer && (
-        <EditContractModal
-          player={contractPlayer}
-          isOpen={!!contractPlayer}
-          onClose={() => setContractPlayer(null)}
-          onSave={(plr, values) => console.log('Save contract', plr, values)}
-          onWaive={(plr) => console.log('Waive player', plr)}
-          onOptionDecision={(plr, val) =>
-            console.log('Option decision', plr, val)
-          }
-          onExtend={(plr, ext) => console.log('Extend', plr, ext)}
-          onSignAndTrade={(plr, val) => console.log('S&T', plr, val)}
-        />
-      )}
+
 
       {tpePlayer && (
         <TradeExceptionModal

@@ -90,6 +90,7 @@ type PlayerBiosFile = Record<
 
 type PlayerIndexEntry = {
   fullName: string;
+  displayName?: string;
   nbaId: number;
   salarySwishSlug: string;
   teamCode: string | null;
@@ -268,10 +269,11 @@ function main() {
     const existingEntry = existingIndex[playerId];
     const bioEntry = biosData[playerId];
     const bioTeamName = bioEntry?.bio?.team ?? bioEntry?.bio?.Team ?? null;
+    const bioDisplayName = bioEntry?.bio?.displayName ?? null;
 
     // Preserve existing fields if player already exists, otherwise generate new
     const fullName = existingEntry?.fullName || toFullName(playerId);
-    
+
     // STICKY SLUG: Preserve existing slug, or use override, or generate new
     const salarySwishSlug =
       existingEntry?.salarySwishSlug || // Preserve existing slug (highest priority)
@@ -297,6 +299,7 @@ function main() {
 
     output[playerId] = {
       fullName,
+      displayName: bioDisplayName || undefined,
       nbaId,
       salarySwishSlug,
       teamCode,

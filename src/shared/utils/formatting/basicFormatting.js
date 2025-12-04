@@ -37,7 +37,18 @@ export function formatCurrencyFull(value) {
   return `$${num.toLocaleString()}`;
 }
 
+export function formatCurrency(value) {
+  if (value === null || value === undefined || value === '') return '-';
+  const num =
+    typeof value === 'number'
+      ? value
+      : Number(String(value).replace(/[^0-9.-]/g, ''));
+  if (Number.isNaN(num)) return '-';
+  return `$${num.toLocaleString('en-US')}`;
+}
+
 // Format player names with proper capitalization and suffix handling
+// Note: This is a fallback - prefer using displayName from player data when available
 export function formatName(name = '') {
   if (!name) return '';
   const suffixes = ['jr', 'sr', 'ii', 'iii', 'iv', 'v'];

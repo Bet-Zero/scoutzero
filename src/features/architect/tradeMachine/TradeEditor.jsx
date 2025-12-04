@@ -17,6 +17,7 @@ const TradeEditor = ({
   playersMap = {},
   onApplyTrade,
   primaryTeamData = null,
+  onEditContract,
 }) => {
   const {
     teams,
@@ -141,6 +142,7 @@ const TradeEditor = ({
               onSelectTeam={(teamId) => selectTeam(idx, teamId)}
               onRemove={() => removeTeam(idx)}
               onApplyTradeException={handleApplyTradeException}
+              onEditContract={onEditContract}
             />
           );
         })}

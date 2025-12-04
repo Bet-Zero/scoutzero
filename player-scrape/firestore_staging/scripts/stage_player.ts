@@ -143,12 +143,7 @@ const CONTRACTS_DIR = path.join(
   '_artifacts',
   'output'
 );
-const STATS_DIR = path.join(
-  PLAYER_SCRAPE_ROOT,
-  'stats',
-  '_artifacts',
-  'output'
-);
+const STATS_DIR = path.join(PLAYER_SCRAPE_ROOT, 'stats', 'output');
 const PLAYER_INDEX_PATH = path.join(
   PLAYER_SCRAPE_ROOT,
   'shared',
@@ -185,7 +180,7 @@ function parseArgs(): CliArgs {
     playerId,
     outDir: outDir
       ? path.resolve(process.cwd(), outDir)
-      : path.join(__dirname, '_artifacts', 'output'),
+      : path.join(__dirname, '..', '_artifacts', 'output'),
     validate,
   };
 }
@@ -802,7 +797,7 @@ function buildPlayersV2Payload(
   // Build mainDoc with denormalized views included
   const mainDoc = PlayerMainDocZ.parse({
     bio: {
-      displayName: contractData.displayName,
+      displayName: indexEntry.displayName ?? contractData.displayName,
       name: indexEntry.fullName ?? contractData.displayName,
       playerId,
       position: contractData.bio.position ?? 'UNK',
@@ -1070,6 +1065,11 @@ async function stagePlayer({ playerId, outDir, validate }: CliArgs) {
         futureContract: undefined,
       };
     }
+  }
+
+  // Update contractData with the correct displayName from bio data before creating basePlayerDoc
+  if (indexEntry.displayName) {
+    contractData.displayName = indexEntry.displayName;
   }
 
   const basePlayerParsed = BasePlayerDocZ.parse(contractData);
