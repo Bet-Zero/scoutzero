@@ -80,16 +80,21 @@ const CapSheet = ({
 
     const notes = [];
     if (isPO)
-      notes.push(<span className="text-green-400 font-semibold">PO</span>);
+      notes.push(<span className="text-green-400">PO</span>);
     if (isTO)
-      notes.push(<span className="text-red-400 font-semibold">TO</span>);
+      notes.push(<span className="text-orange-400">TO</span>);
     if (player.isMinimum && player.yearsOfService >= 3) notes.push('Vet Min');
     if (isNG) notes.push('Non-Guaranteed');
 
     return (
-      <span className="flex flex-wrap gap-1">
+      <span className="flex flex-wrap gap-1.5 justify-end">
         {notes.map((note, i) => (
-          <span key={i}>{note}</span>
+          <span
+            key={i}
+            className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-white/5 text-white/50 border border-white/10"
+          >
+            {note}
+          </span>
         ))}
       </span>
     );
@@ -129,46 +134,49 @@ const CapSheet = ({
   const totalCapHit = playersCapTotal + (showCapHolds ? capHoldsTotal : 0);
 
   return (
-    <div className="text-white">
-      <h3 className="text-xl font-semibold mb-2">
-        Cap Sheet – {formatYearLabel(selectedYear)}
-      </h3>
+    <div className="text-white font-sans">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-bold tracking-tight text-white/90">
+          Cap Sheet <span className="text-white/40 font-light">|</span> {formatYearLabel(selectedYear)}
+        </h3>
+
+        {/* Year Selector */}
+        <div className="flex bg-[#0f0f0f] p-0.5 rounded-md border border-white/5">
+          {allYears.map((year) => (
+            <button
+              key={year}
+              onClick={() => setSelectedYear(year)}
+              className={`px-3 py-1 rounded text-[10px] font-medium transition-all duration-200 ${year === selectedYear
+                ? 'bg-white text-black shadow-sm'
+                : 'text-white/40 hover:text-white hover:bg-white/5'
+                }`}
+            >
+              {formatYearLabel(year)}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <CapSummaryTiles
         teamCapSheet={teamCapSheet}
         selectedYear={selectedYear}
       />
 
-      {/* Year Selector */}
-      <div className="flex gap-2 mb-3 flex-wrap">
-        {allYears.map((year) => (
-          <button
-            key={year}
-            onClick={() => setSelectedYear(year)}
-            className={`px-3 py-1 rounded text-sm font-medium border ${
-              year === selectedYear
-                ? 'bg-lakers text-black border-transparent'
-                : 'bg-[#1a1a1a] border-white/20 hover:bg-white/10'
-            }`}
-          >
-            {formatYearLabel(year)}
-          </button>
-        ))}
-      </div>
+      {/* Roster Cap Table (Grid Layout) */}
+      <div className="mt-4 bg-[#0f0f0f] border border-white/5 rounded-lg overflow-hidden shadow-2xl shadow-black/50">
+        {/* Header */}
+        <div className="grid grid-cols-[2fr,0.8fr,0.6fr,1.2fr,0.8fr,1.2fr,1.5fr] gap-2 px-4 py-2 bg-white/5 border-b border-white/5 text-[10px] uppercase tracking-wider font-semibold text-white/40">
+          <div>Player</div>
+          <div>Pos</div>
+          <div>Age</div>
+          <div className="text-right">Cap Hit</div>
+          <div className="text-right">Cap %</div>
+          <div className="text-right">Base Salary</div>
+          <div>Notes</div>
+        </div>
 
-      {/* Roster Cap Table */}
-      <table className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded">
-        <thead className="bg-[#111]">
-          <tr>
-            <th className="p-2 text-left">Player</th>
-            <th className="p-2 text-left">Pos</th>
-            <th className="p-2 text-left">Age</th>
-            <th className="p-2 text-left">Cap Hit</th>
-            <th className="p-2 text-left">Cap %</th>
-            <th className="p-2 text-left">Base Salary</th>
-            <th className="p-2 text-left">Notes</th>
-          </tr>
-        </thead>
-        <tbody>
+        {/* Rows */}
+        <div className="divide-y divide-white/5">
           {filteredPlayers.map((player, idx) => {
             const slice = getContractYearSlice(player, selectedYear);
             const salary = slice?.salary || slice?.capHit || 0;
@@ -180,78 +188,89 @@ const CapSheet = ({
             const capPctDisplay = capPct ? `${capPct}%` : '—';
 
             return (
-              <tr key={`${player.name}-${idx}`} className="odd:bg-[#171717]">
-                <td className="p-2">
+              <div
+                key={`${player.name}-${idx}`}
+                className="grid grid-cols-[2fr,0.8fr,0.6fr,1.2fr,0.8fr,1.2fr,1.5fr] gap-2 px-4 py-2 items-center hover:bg-white/[0.02] transition-colors group"
+              >
+                <div className="font-medium text-xs text-white/90 truncate">
                   <button
                     onClick={() => onSelectPlayer && onSelectPlayer(player)}
-                    className="text-blue-400 hover:underline"
+                    className="hover:text-blue-400 transition-colors text-left truncate w-full"
                   >
                     {playersMap[player.name]?.bio?.displayName ||
                       formatName(player.name)}
                   </button>
-                </td>
-                <td className="p-2">
-                  {POSITION_MAP[position] || position || '—'}
-                </td>
-                <td className="p-2">{age}</td>
-                <td className="p-2">${capHit.toLocaleString()}</td>
-                <td className="p-2 text-white/60">{capPctDisplay}</td>
-                <td className="p-2">${salary.toLocaleString()}</td>
-                <td className="p-2">{renderNotes(player, selectedYear)}</td>
-              </tr>
+                </div>
+                <div className="text-[10px] text-white/50">{POSITION_MAP[position] || position || '—'}</div>
+                <div className="text-[10px] text-white/50">{age}</div>
+                <div className="text-xs font-medium text-white/90 text-right tabular-nums tracking-tight">
+                  ${capHit.toLocaleString()}
+                </div>
+                <div className="text-[10px] text-white/50 text-right tabular-nums">{capPctDisplay}</div>
+                <div className="text-[10px] text-white/50 text-right tabular-nums">${salary.toLocaleString()}</div>
+                <div className="text-[10px]">{renderNotes(player, selectedYear)}</div>
+              </div>
             );
           })}
-        </tbody>
-      </table>
+        </div>
 
-      {capHoldPlayers.length > 0 && (
-        <>
-          <button
-            onClick={() => setShowCapHolds(!showCapHolds)}
-            className="mt-4 mb-2 px-3 py-1 rounded bg-[#1a1a1a] hover:bg-[#222] border border-white/20"
-          >
-            {showCapHolds
-              ? 'Hide Cap Holds'
-              : `Show Cap Holds (${capHoldPlayers.length})`}
-          </button>
+        {/* Footer Section (Cap Holds + Total) */}
+        <div className="bg-white/[0.02] border-t border-white/5">
+          {/* Cap Holds Toggle */}
+          {capHoldPlayers.length > 0 && (
+            <div className="border-b border-white/5">
+              <button
+                onClick={() => setShowCapHolds(!showCapHolds)}
+                className="w-full flex items-center justify-between px-4 py-2 text-[10px] font-medium text-white/40 hover:text-white hover:bg-white/5 transition-all"
+              >
+                <div className="flex items-center gap-2">
+                  <span>{showCapHolds ? 'Hide' : 'Show'} Cap Holds</span>
+                  <span className="bg-white/10 px-1.5 py-0.5 rounded text-white/60">{capHoldPlayers.length}</span>
+                </div>
+                <span className="text-xs opacity-50">{showCapHolds ? '−' : '+'}</span>
+              </button>
 
-          {showCapHolds && (
-            <table className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded mb-2">
-              <thead className="bg-[#111]">
-                <tr>
-                  <th className="p-2 text-left">Player</th>
-                  <th className="p-2 text-left">Amount</th>
-                  <th className="p-2 text-left">Reason</th>
-                </tr>
-              </thead>
-              <tbody>
-                {capHoldPlayers.map((p, idx) => {
-                  const amt =
-                    typeof p.cap_hold === 'number'
-                      ? p.cap_hold
-                      : p.cap_hold?.amount || 0;
-                  const reason =
-                    typeof p.cap_hold === 'object' ? p.cap_hold?.reason : '';
+              {showCapHolds && (
+                <div className="bg-black/20 border-t border-white/5">
+                  <div className="grid grid-cols-[2fr,1.2fr,3fr] gap-2 px-4 py-2 text-[10px] uppercase tracking-wider font-semibold text-white/30">
+                    <div>Player</div>
+                    <div>Amount</div>
+                    <div>Reason</div>
+                  </div>
+                  <div className="divide-y divide-white/5">
+                    {capHoldPlayers.map((p, idx) => {
+                      const amt =
+                        typeof p.cap_hold === 'number'
+                          ? p.cap_hold
+                          : p.cap_hold?.amount || 0;
+                      const reason =
+                        typeof p.cap_hold === 'object' ? p.cap_hold?.reason : '';
 
-                  return (
-                    <tr key={idx} className="odd:bg-[#171717]">
-                      <td className="p-2">
-                        {playersMap[p.name]?.bio?.displayName || formatName(p.name)}
-                      </td>
-                      <td className="p-2">${amt.toLocaleString()}</td>
-                      <td className="p-2">{reason}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      return (
+                        <div key={idx} className="grid grid-cols-[2fr,1.2fr,3fr] gap-2 px-4 py-2 items-center hover:bg-white/[0.02]">
+                          <div className="text-xs text-white/60">
+                            {playersMap[p.name]?.bio?.displayName || formatName(p.name)}
+                          </div>
+                          <div className="text-xs text-white/40 tabular-nums">${amt.toLocaleString()}</div>
+                          <div className="text-[10px] text-white/30">{reason}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
-        </>
-      )}
 
-      <p className="mt-2 font-semibold">
-        Total Cap Hit: ${totalCapHit.toLocaleString()}
-      </p>
+          {/* Total Cap Hit */}
+          <div className="px-4 py-3 flex items-center justify-between bg-white/[0.02]">
+            <span className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">Total Cap Hit</span>
+            <span className="text-lg font-bold text-white tabular-nums tracking-tight">
+              ${totalCapHit.toLocaleString()}
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
