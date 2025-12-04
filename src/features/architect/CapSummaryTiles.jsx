@@ -1,5 +1,6 @@
 import React from 'react';
 import capProjections from '@/features/architect/utils/capProjections';
+import { getContractYearSlice } from '@/features/architect/utils/contractUtils';
 
 const CapSummaryTiles = ({ teamCapSheet, selectedYear }) => {
   const yearKey = `${selectedYear - 1}-${String(selectedYear % 100).padStart(
@@ -13,21 +14,12 @@ const CapSummaryTiles = ({ teamCapSheet, selectedYear }) => {
   const secondApron = capData.secondApron || 0;
 
   const totalCapAllocations = teamCapSheet.players.reduce((sum, player) => {
-    const contract = player.contract;
-    let salary = 0;
-
-    if (contract?.salariesByYear?.length) {
-      const seasonEntry =
-        contract.salariesByYear.find((y) => y.season === yearKey) ||
-        contract.salariesByYear.find(
-          (y) => String(y.season) === String(selectedYear)
-        );
-      salary =
-        seasonEntry?.capHit ??
-        seasonEntry?.salary ??
-        (typeof seasonEntry?.capHit === 'number' ? seasonEntry.capHit : 0) ??
-        0;
-    }
+    const seasonEntry = getContractYearSlice(player, selectedYear);
+    const salary =
+      seasonEntry?.capHit ??
+      seasonEntry?.salary ??
+      (typeof seasonEntry?.capHit === 'number' ? seasonEntry.capHit : 0) ??
+      0;
     const holdAmount =
       typeof player.cap_hold === 'number'
         ? player.cap_hold

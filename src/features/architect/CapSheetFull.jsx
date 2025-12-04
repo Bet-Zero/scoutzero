@@ -1,22 +1,6 @@
 // CapSheetFull.jsx
 import React, { useState } from 'react';
-import { formatName } from '@/shared/utils/formatting';
-
-// Get contract year data from Architect contract shape (BasePlayerContractZ)
-const getContractYearSlice = (player, endYear) => {
-  if (!player) return null;
-
-  const contract = player.contract;
-  if (contract?.salariesByYear?.length) {
-    const seasonKey = `${endYear - 1}-${String(endYear).slice(-2)}`;
-    const yearEntry =
-      contract.salariesByYear.find((y) => y.season === seasonKey) ||
-      contract.salariesByYear.find((y) => String(y.season) === String(endYear));
-    if (yearEntry) return yearEntry;
-  }
-
-  return null;
-};
+import { getContractYearSlice } from '@/features/architect/utils/contractUtils';
 
 // Color scheme matching FreeAgentRow
 const getTagColor = (type) => {
@@ -46,15 +30,15 @@ const CapSheetFull = ({
     .sort((a, b) => {
       const aSlice = getContractYearSlice(a, currentYear);
       const bSlice = getContractYearSlice(b, currentYear);
-      const aSalary = aSlice?.salary || aSlice?.capHit || 0;
-      const bSalary = bSlice?.salary || bSlice?.capHit || 0;
+      const aSalary = aSlice?.salary ?? aSlice?.capHit ?? 0;
+      const bSalary = bSlice?.salary ?? bSlice?.capHit ?? 0;
       return bSalary - aSalary;
     });
 
   const capHoldPlayers = teamCapSheet.players
     .filter((p) => {
       const slice = getContractYearSlice(p, currentYear);
-      const hasSalary = slice?.salary || slice?.capHit;
+      const hasSalary = slice?.salary ?? slice?.capHit;
       const holdAmount =
         typeof p.cap_hold === 'number' ? p.cap_hold : p.cap_hold?.amount || 0;
       const isActive =
@@ -74,7 +58,7 @@ const CapSheetFull = ({
   for (const year of allYears) {
     yearTotals[year] = sortedPlayers.reduce((sum, player) => {
       const slice = getContractYearSlice(player, year);
-      const salary = slice?.salary || slice?.capHit || 0;
+      const salary = slice?.salary ?? slice?.capHit ?? 0;
       const holdAmount =
         typeof player.cap_hold === 'number'
           ? player.cap_hold
@@ -129,11 +113,20 @@ const CapSheetFull = ({
                   {/* Years */}
                   {allYears.map((year) => {
                     const entry = getContractYearSlice(player, year);
-                    const faYear = player.contract?.freeAgency?.year;
-                    const faType = player.contract?.freeAgency?.type;
+                    const freeAgency =
+                      player.futureContract?.freeAgency ||
+                      player.contract?.freeAgency ||
+                      {};
+                    const faYear = freeAgency?.year;
+                    const faType = freeAgency?.type;
+                    const isExtension = entry?.isExtensionSeason;
+                    const salaryValue = entry?.salary ?? entry?.capHit ?? 0;
 
                     // Handle free agency years (no salary)
-                    if (!entry?.salary && !entry?.capHit) {
+                    if (
+                      !entry ||
+                      (entry?.salary == null && entry?.capHit == null)
+                    ) {
                       if (faYear === year && faType) {
                         return (
                           <div key={year} className="flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[36px]">
@@ -156,9 +149,13 @@ const CapSheetFull = ({
                         : 'bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border-b-2 border-orange-500/30';
 
                       return (
-                        <div key={year} className={`flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[36px] transition-colors ${optionStyle}`}>
+                        <div
+                          key={year}
+                          className={`flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[36px] transition-colors ${optionStyle} ${isExtension ? 'ring-1 ring-cyan-500/40' : ''
+                            }`}
+                        >
                           <span className="text-xs font-medium tabular-nums tracking-tight">
-                            ${entry.salary.toLocaleString()}
+                            ${salaryValue.toLocaleString()}
                           </span>
                         </div>
                       );
@@ -166,9 +163,16 @@ const CapSheetFull = ({
 
                     // Regular contract year
                     return (
-                      <div key={year} className="flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[36px]">
-                        <span className="text-xs font-medium text-white/60 tabular-nums tracking-tight">
-                          ${entry.salary.toLocaleString()}
+                      <div
+                        key={year}
+                        className={`flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[36px] ${isExtension ? 'bg-cyan-500/5 border-cyan-500/20' : ''
+                          }`}
+                      >
+                        <span
+                          className={`text-xs font-medium tabular-nums tracking-tight ${isExtension ? 'text-cyan-100' : 'text-white/60'
+                            }`}
+                        >
+                          ${salaryValue.toLocaleString()}
                         </span>
                       </div>
                     );

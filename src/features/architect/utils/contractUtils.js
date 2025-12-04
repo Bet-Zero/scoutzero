@@ -70,6 +70,36 @@ export function generateExtensionContract({
   });
 }
 
+// Helper: get salary entry for a given season, including future extensions
+export function getContractYearSlice(player, endYear) {
+  if (!player) return null;
+
+  const withFlag = (entries, isExtension) =>
+    (entries || []).map((entry) => ({
+      ...entry,
+      isExtensionSeason: isExtension,
+      source: isExtension ? 'extension' : 'contract',
+    }));
+
+  const combined = [
+    ...withFlag(player.futureContract?.salariesByYear, true),
+    ...withFlag(player.contract?.salariesByYear, false),
+  ];
+
+  if (!combined.length) return null;
+
+  const seasonMap = new Map();
+  combined.forEach((entry) => {
+    const end = toEndYear(entry.season);
+    if (end == null) return;
+    if (!seasonMap.has(end)) {
+      seasonMap.set(end, entry);
+    }
+  });
+
+  return seasonMap.get(endYear) || null;
+}
+
 // 3. Create max contract based on years of service
 export function createMaxContract(
   playerName,

@@ -1,26 +1,12 @@
 import React, { useState } from 'react';
-import { formatName } from '@/shared/utils/formatting';
-import { getMinimumCapHit } from '@/features/architect/utils/contractUtils';
+import {
+  getMinimumCapHit,
+  getContractYearSlice,
+} from '@/features/architect/utils/contractUtils';
 import CapSummaryTiles from '@/features/architect/CapSummaryTiles';
 import { POSITION_MAP } from '@/shared/utils/roles';
 import getCapPercentage from '@/features/architect/utils/basicArchitectUtils';
 import capProjections from '@/features/architect/utils/capProjections';
-
-// Get contract year data from Architect contract shape (BasePlayerContractZ)
-const getContractYearSlice = (player, endYear) => {
-  if (!player) return null;
-
-  const contract = player.contract;
-  if (contract?.salariesByYear?.length) {
-    const seasonKey = `${endYear - 1}-${String(endYear).slice(-2)}`;
-    const yearEntry =
-      contract.salariesByYear.find((y) => y.season === seasonKey) ||
-      contract.salariesByYear.find((y) => String(y.season) === String(endYear));
-    if (yearEntry) return yearEntry;
-  }
-
-  return null;
-};
 
 const CapSheet = ({
   teamCapSheet,
@@ -74,26 +60,34 @@ const CapSheet = ({
   const renderNotes = (player, yearKey) => {
     const slice = getContractYearSlice(player, yearKey);
     const option = slice?.option || null;
-    const isPO = option === 'Player Option';
-    const isTO = option === 'Team Option';
+    const isPO = option === 'Player Option' || option === 'PO';
+    const isTO = option === 'Team Option' || option === 'TO';
     const isNG = slice && slice.guaranteed === false;
 
     const notes = [];
     if (isPO)
-      notes.push(<span className="text-green-400">PO</span>);
+      notes.push({
+        label: 'PO',
+        className: 'bg-green-500/10 border-green-500/30 text-green-300',
+      });
     if (isTO)
-      notes.push(<span className="text-orange-400">TO</span>);
-    if (player.isMinimum && player.yearsOfService >= 3) notes.push('Vet Min');
-    if (isNG) notes.push('Non-Guaranteed');
+      notes.push({
+        label: 'TO',
+        className: 'bg-orange-500/10 border-orange-500/30 text-orange-300',
+      });
+    if (player.isMinimum && player.yearsOfService >= 3)
+      notes.push({ label: 'Vet Min' });
+    if (isNG) notes.push({ label: 'Non-Guaranteed' });
 
     return (
       <span className="flex flex-wrap gap-1.5 justify-end">
         {notes.map((note, i) => (
           <span
             key={i}
-            className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-white/5 text-white/50 border border-white/10"
+            className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-white/5 text-white/50 border border-white/10 ${note.className || ''
+              }`}
           >
-            {note}
+            {note.label}
           </span>
         ))}
       </span>
@@ -105,15 +99,15 @@ const CapSheet = ({
     .sort((a, b) => {
       const aSlice = getContractYearSlice(a, selectedYear);
       const bSlice = getContractYearSlice(b, selectedYear);
-      const aSalary = aSlice?.salary || aSlice?.capHit || 0;
-      const bSalary = bSlice?.salary || bSlice?.capHit || 0;
+      const aSalary = aSlice?.salary ?? aSlice?.capHit ?? 0;
+      const bSalary = bSlice?.salary ?? bSlice?.capHit ?? 0;
       return bSalary - aSalary;
     });
 
   const capHoldPlayers = teamCapSheet.players
     .filter((p) => {
       const slice = getContractYearSlice(p, selectedYear);
-      const hasSalary = slice?.salary || slice?.capHit;
+      const hasSalary = slice?.salary ?? slice?.capHit;
       const holdAmount =
         typeof p.cap_hold === 'number' ? p.cap_hold : p.cap_hold?.amount || 0;
       const isActive =
@@ -179,8 +173,9 @@ const CapSheet = ({
         <div className="divide-y divide-white/5">
           {filteredPlayers.map((player, idx) => {
             const slice = getContractYearSlice(player, selectedYear);
-            const salary = slice?.salary || slice?.capHit || 0;
+            const salary = slice?.salary ?? slice?.capHit ?? 0;
             const capHit = getCapHit(player, selectedYear);
+            const isExtensionSeason = slice?.isExtensionSeason;
 
             const age = player.age ?? '-';
             const position = player.position ?? '-';
@@ -202,11 +197,25 @@ const CapSheet = ({
                 </div>
                 <div className="text-[10px] text-white/50">{POSITION_MAP[position] || position || '—'}</div>
                 <div className="text-[10px] text-white/50">{age}</div>
-                <div className="text-xs font-medium text-white/90 text-right tabular-nums tracking-tight">
-                  ${capHit.toLocaleString()}
+                <div className="text-xs font-medium text-right tabular-nums tracking-tight">
+                  <span
+                    className={`inline-flex items-center justify-end tabular-nums ${isExtensionSeason
+                      ? 'text-cyan-100 bg-cyan-500/10 border border-cyan-500/30 rounded px-2 py-1'
+                      : 'text-white/90'
+                      }`}
+                  >
+                    ${capHit.toLocaleString()}
+                  </span>
                 </div>
                 <div className="text-[10px] text-white/50 text-right tabular-nums">{capPctDisplay}</div>
-                <div className="text-[10px] text-white/50 text-right tabular-nums">${salary.toLocaleString()}</div>
+                <div className="text-[10px] text-right tabular-nums">
+                  <span
+                    className={`inline-flex items-center justify-end ${isExtensionSeason ? 'text-cyan-100' : 'text-white/50'
+                      }`}
+                  >
+                    ${salary.toLocaleString()}
+                  </span>
+                </div>
                 <div className="text-[10px]">{renderNotes(player, selectedYear)}</div>
               </div>
             );
