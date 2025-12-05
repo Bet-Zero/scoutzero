@@ -6,8 +6,9 @@
  * Changes persist during session but reset on page refresh.
  */
 import { useState, useCallback, useMemo } from 'react';
-import { generateExtensionContract, getContractYearSlice } from '@/features/architect/utils/contractUtils';
+import { generateExtensionContract, getContractYearSlice, calculateCapHold } from '@/features/architect/utils/contractUtils';
 import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
+import capProjections from '@/features/architect/utils/capProjections';
 
 /**
  * Action types for history tracking
@@ -42,6 +43,11 @@ export function useCapSheetState({ initialCapSheet, currentYear }) {
   // Modified players state - starts as copy of initial data
   const [players, setPlayers] = useState(() => 
     (initialCapSheet?.players || []).map(clonePlayer)
+  );
+
+  // Cap Holds state - managed as a separate array
+  const [capHolds, setCapHolds] = useState(() => 
+    initialCapSheet?.capHolds || []
   );
   
   // Action history for undo
@@ -133,6 +139,26 @@ export function useCapSheetState({ initialCapSheet, currentYear }) {
         if (!p.contract.freeAgency) p.contract.freeAgency = {};
         p.contract.freeAgency.year = targetYear - 1; // FA year is season start year
         p.contract.freeAgency.type = 'UFA';
+
+        const capHoldAmt = calculateCapHold(p, capProjections, currentYear);
+        if (capHoldAmt) {
+          const newHold = {
+             playerId: p.id || p.player_id || p.name,
+             playerName: p.displayName || p.name,
+             amount: capHoldAmt,
+             type: 'FA Cap Hold', // or derive from rights
+             season: toSeasonCode(targetYear),
+             isSigned: false,
+             reason: 'Declined Option',
+             active: true
+          };
+          
+          setCapHolds(prev => {
+             // Avoid dupes
+             const filtered = prev.filter(h => h.playerId !== newHold.playerId);
+             return [...filtered, newHold];
+          });
+        }
       }
       
       return p;
@@ -227,6 +253,7 @@ export function useCapSheetState({ initialCapSheet, currentYear }) {
         totalValue: salaries.reduce((sum, y) => sum + y.salary, 0),
         startYear: startYear - 1, // Contract starts in the start year
         originalLength: years,
+        exceptionType: contractData.exceptionType || null,
       };
       
       // Clear free agent status
@@ -301,18 +328,20 @@ export function useCapSheetState({ initialCapSheet, currentYear }) {
   /**
    * Renounce rights to a free agent
    * 
-   * @param {Object} player - Player object
+   * @param {Object} player - Player object or Cap Hold object
    */
-  const renounceRights = useCallback((player) => {
-    const playerId = player.playerId || player.id || player.name;
+  const renounceRights = useCallback((playerOrHold) => {
+    const idToRenounce = playerOrHold.playerId || playerOrHold.id || playerOrHold.player_id || playerOrHold.name;
     
-    updatePlayer(playerId, (p) => {
-      // Clear cap hold
-      p.cap_hold = null;
-      
-      // Mark as renounced
-      p.renounced = true;
-      p.renouncedDate = new Date().toISOString();
+    // Remove from capHolds array
+    setCapHolds(prev => prev.filter(h => h.playerId !== idToRenounce));
+    
+    // Also update the player object if it exists (for visual consistency if needed, though UI should drive off capHolds)
+    updatePlayer(idToRenounce, (p) => {
+      // Logic to mark as renounced if we were keeping track on player, 
+      // but primarily we just want to ensure proper state is reflected.
+      // Maybe set a flag 'rightsRenounced' if helpful for other UI.
+      p.rightsRenounced = true; 
       
       // Clear bird rights
       if (p.contract?.birdRights) {
@@ -321,7 +350,7 @@ export function useCapSheetState({ initialCapSheet, currentYear }) {
       
       return p;
     }, ACTION_TYPES.RENOUNCE, {});
-  }, [updatePlayer]);
+  }, [updatePlayer, setCapHolds]);
   
   /**
    * Undo the last action
@@ -335,6 +364,7 @@ export function useCapSheetState({ initialCapSheet, currentYear }) {
     
     // Reset to initial state
     setPlayers((initialCapSheet?.players || []).map(clonePlayer));
+    setCapHolds(initialCapSheet?.capHolds || []); // Reset cap holds too
     setActionHistory([]);
     
     // TODO: Replay actions if we want cumulative undo
@@ -351,6 +381,7 @@ export function useCapSheetState({ initialCapSheet, currentYear }) {
    */
   const reset = useCallback(() => {
     setPlayers((initialCapSheet?.players || []).map(clonePlayer));
+    setCapHolds(initialCapSheet?.capHolds || []); // Reset cap holds too
     setActionHistory([]);
   }, [initialCapSheet]);
   
@@ -359,6 +390,7 @@ export function useCapSheetState({ initialCapSheet, currentYear }) {
    */
   const refreshFromSource = useCallback((newCapSheet) => {
     setPlayers((newCapSheet?.players || []).map(clonePlayer));
+    setCapHolds(newCapSheet?.capHolds || []); // Refresh cap holds too
     setActionHistory([]);
   }, []);
   

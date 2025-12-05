@@ -233,6 +233,8 @@ export function getMinimumCapHit(yearsOfService) {
 
 // 8. Cap hold logic
 export function calculateCapHold(player, capProjections, year = 2025) {
+  if (player.renounced) return null;
+
   const experience = player.bio?.yearsExperience || 0;
   const rights =
     player.contract?.birdRights?.status ||

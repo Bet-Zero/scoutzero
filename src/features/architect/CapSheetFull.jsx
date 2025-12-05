@@ -53,23 +53,20 @@ const CapSheetFull = ({
       return bSalary - aSalary;
     });
 
-  const capHoldPlayers = teamCapSheet.players
-    .filter((p) => {
-      const slice = getContractYearSlice(p, currentYear);
-      const hasSalary = slice?.salary ?? slice?.capHit;
-      const holdAmount =
-        typeof p.cap_hold === 'number' ? p.cap_hold : p.cap_hold?.amount || 0;
-      const isActive =
-        typeof p.cap_hold === 'object' ? p.cap_hold?.active : holdAmount > 0;
-      return !hasSalary && isActive && holdAmount > 0;
-    })
-    .sort((a, b) => {
-      const aAmt =
-        typeof a.cap_hold === 'number' ? a.cap_hold : a.cap_hold?.amount || 0;
-      const bAmt =
-        typeof b.cap_hold === 'number' ? b.cap_hold : b.cap_hold?.amount || 0;
-      return bAmt - aAmt;
-    });
+  // Determine active cap holds
+  const activeCapHolds = (teamCapSheet.capHolds || []).filter(h => 
+    !h.isSigned && (h.season === `${currentYear}-${String(currentYear + 1).slice(-2)}` || h.season === String(currentYear))
+    // Note: Schema says season like "2026-27"
+    // If currentYear is 2025 (season 2025-26), cap holds often apply to the *next* season (2026-27) if they are FAs?
+    // Actually, cap holds apply to the free agency year.
+    // If we look at LAL.json: LeBron 2026-27 UFA. This implies the hold is relevant for the 2026-27 cap sheet.
+    // So if currentYear is 2025 (viewing 2025-26), do we show 2026-27 holds? 
+    // Usually the Cap Sheet shows multiple years. The cap hold should contribute to the column of its season.
+  );
+  
+  // For the separate table below, likely show all active holds or just imminent ones?
+  // Let's show all valid holds.
+  const displayedCapHolds = (teamCapSheet.capHolds || []).filter(h => !h.isSigned);
 
   // Build totals per year (excluding two-way contracts from cap hit)
   const yearTotals = {};
@@ -81,17 +78,30 @@ const CapSheetFull = ({
       }
       const slice = getContractYearSlice(player, year);
       const salary = slice?.salary ?? slice?.capHit ?? 0;
-      const holdAmount =
-        typeof player.cap_hold === 'number'
-          ? player.cap_hold
-          : player.cap_hold?.amount || 0;
-      const isActive =
-        typeof player.cap_hold === 'object'
-          ? player.cap_hold?.active
-          : holdAmount > 0;
-      const hold = !salary && isActive ? holdAmount : 0;
-      return sum + salary + hold;
+      // Add Cap Holds relevant to this year
+      // A hold for "2026-27" contributes to the 2026 (start year) or 2027 (end year) column?
+      // In this codebase, `currentYear` seems to be the end year (e.g. 2026 for 2025-26).
+      // LAL json: LeBron 2026-27 UFA. Access key should be matches.
+      
+      const holdsForYear = (teamCapSheet.capHolds || []).filter(h => {
+        if (h.isSigned) return false;
+        // Parsing h.season: "2026-27"
+        if (!h.season) return false;
+        const seasonEnd = parseInt(h.season.split('-')[0]) + 1; // 2026 -> 2027
+        return seasonEnd === year;
+      });
+      
+      const holdsSum = holdsForYear.reduce((acc, h) => acc + (h.amount || 0), 0);
+
+      return sum + salary + 0; // Don't add per-player hold here, add global holds sum later
     }, 0);
+    
+    // Add external cap holds sum to the year total
+    const externalHoldsSum = (teamCapSheet.capHolds || [])
+      .filter(h => !h.isSigned && (parseInt(h.season.split('-')[0]) + 1) === year)
+      .reduce((acc, h) => acc + (h.amount || 0), 0);
+      
+    yearTotals[year] += externalHoldsSum;
   }
 
   return (
@@ -267,62 +277,138 @@ const CapSheetFull = ({
         </div>
 
         {/* Footer Section (Cap Holds) */}
-        {capHoldPlayers.length > 0 && (
-          <div className="bg-white/[0.02] border-t border-white/5">
-            <button
-              onClick={() => setShowCapHolds(!showCapHolds)}
-              className="w-full flex items-center justify-between px-4 py-2 text-[10px] font-medium text-white/40 hover:text-white hover:bg-white/5 transition-all"
-            >
-              <div className="flex items-center gap-2">
-                <span>{showCapHolds ? 'Hide' : 'Show'} Cap Holds</span>
-                <span className="bg-white/10 px-1.5 py-0.5 rounded text-white/60">
-                  {capHoldPlayers.length}
-                </span>
-              </div>
-              <span className="text-xs opacity-50">
-                {showCapHolds ? '−' : '+'}
-              </span>
-            </button>
-
-            {showCapHolds && (
-              <div className="bg-black/20 border-t border-white/5">
-                <div className="grid grid-cols-[2fr,1.2fr,3fr] gap-2 px-4 py-2 text-[10px] uppercase tracking-wider font-semibold text-white/30">
-                  <div>Player</div>
-                  <div>Amount</div>
-                  <div>Reason</div>
-                </div>
-                <div className="divide-y divide-white/5">
-                  {capHoldPlayers.map((p, idx) => {
-                    const amt =
-                      typeof p.cap_hold === 'number'
-                        ? p.cap_hold
-                        : p.cap_hold?.amount || 0;
-                    const reason =
-                      typeof p.cap_hold === 'object' ? p.cap_hold?.reason : '';
-
-                    return (
-                      <div
-                        key={idx}
-                        className="grid grid-cols-[2fr,1.2fr,3fr] gap-2 px-4 py-2 items-center hover:bg-white/[0.02]"
-                      >
-                        <div className="text-xs text-white/60">
-                          {p.displayName || p.bio?.displayName || p.name}
-                        </div>
-                        <div className="text-xs text-white/40 tabular-nums">
-                          ${amt.toLocaleString()}
-                        </div>
-                        <div className="text-[10px] text-white/30">
-                          {reason}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
       </div>
+
+      {/* Separate Cap Holds Table */}
+      {/* Separate Cap Holds Table */}
+      {displayedCapHolds.length > 0 && (() => {
+        // 1. Create a map of player ID/Name to index from the main sortedPlayers list
+        // This allows us to replicate the main table's sort order.
+        const playerSortMap = new Map();
+        sortedPlayers.forEach((p, idx) => {
+          if (p.id) playerSortMap.set(p.id, idx);
+          if (p.player_id) playerSortMap.set(p.player_id, idx);
+          if (p.name) playerSortMap.set(p.name, idx);
+        });
+
+        // 2. Split holds into "Roster Players" (Group A) and "Legacy/Other" (Group B)
+        const rosterHolds = [];
+        const otherHolds = [];
+
+        displayedCapHolds.forEach(h => {
+             const id = h.playerId || h.playerName;
+             if (playerSortMap.has(id) || playerSortMap.has(h.playerName)) {
+                 rosterHolds.push(h);
+             } else {
+                 otherHolds.push(h);
+             }
+        });
+
+        // 3. Sort Group A to match main table
+        rosterHolds.sort((a, b) => {
+            const idxA = playerSortMap.get(a.playerId) ?? playerSortMap.get(a.playerName) ?? 9999;
+            const idxB = playerSortMap.get(b.playerId) ?? playerSortMap.get(b.playerName) ?? 9999;
+            return idxA - idxB;
+        });
+        
+        const renderHoldRow = (h, idx, isLegacy = false) => (
+             <div key={`${h.playerId}-${idx}`} className={`grid grid-cols-[140px_60px_repeat(7,minmax(100px,1fr))] items-center hover:bg-white/[0.02] transition-colors group ${isLegacy ? 'bg-white/[0.01]' : ''}`}>
+                    {/* Name Column */}
+                    <div className="px-4 py-2 flex items-center border-r border-white/5 h-[36px] relative overflow-hidden">
+                       <span className="text-xs font-medium text-white/90 truncate w-full" title={h.playerName || h.playerId}>
+                          {h.playerName || h.playerId}
+                       </span>
+                       
+                       {/* Renounce Button - Absolute Positioned on Hover */}
+                       <div className="absolute inset-0 bg-[#1a1a1a] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                         <button
+                          onClick={(e) => { e.stopPropagation(); onActionClick?.(h, 'renounce'); }}
+                          className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-red-500/20 text-red-300 hover:bg-red-500/30 rounded border border-red-500/20"
+                         >
+                           Absolve
+                         </button>
+                       </div>
+                    </div>
+
+                    {/* Tag Column */}
+                    <div className="px-1 py-1 flex items-center justify-center border-r border-white/5 h-[36px]">
+                      <span className={`${getTagColor(h.type)} px-1 py-px rounded-[2px] text-[8px] font-bold uppercase tracking-wider truncate max-w-full`}>
+                        {h.type === 'FA Cap Hold' ? 'HOLD' : (h.type || 'HOLD')}
+                      </span>
+                    </div>
+
+                    {/* Year Columns */}
+                    {allYears.map((year) => {
+                       const seasonStr = `${year - 1}-${String(year % 100).padStart(2, '0')}`;
+                       const matchSeason = h.season === seasonStr;
+                       
+                       if (matchSeason) {
+                         return (
+                           <div key={year} className="flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[36px] bg-cyan-900/10">
+                             <span className="text-xs font-mono text-cyan-200 tabular-nums">
+                               ${(h.amount || 0).toLocaleString()}
+                             </span>
+                           </div>
+                         );
+                       }
+                       
+                       return (
+                         <div key={year} className="border-l border-white/[0.02] h-[36px] opacity-30" />
+                       );
+                    })}
+                  </div>
+        );
+
+        return (
+        <div className="mt-8">
+          <button 
+             onClick={() => setShowCapHolds(!showCapHolds)}
+             className="w-full flex items-center justify-between text-left group mb-3"
+          >
+              <h3 className="text-md font-bold tracking-tight text-white/90 flex items-center gap-2 group-hover:text-white transition-colors">
+                <span className={`transform transition-transform duration-200 ${showCapHolds ? 'rotate-90' : ''}`}>▶</span>
+                Cap Holds
+                <span className="bg-white/10 text-white/60 px-2 py-0.5 rounded textxs">{displayedCapHolds.length}</span>
+              </h3>
+              <div className="h-px bg-white/10 flex-1 ml-4 group-hover:bg-white/20 transition-colors"></div>
+          </button>
+          
+          {showCapHolds && (
+          <div className="bg-[#0f0f0f] border border-white/5 rounded-lg overflow-hidden shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
+            {/* Header */}
+            <div className="grid grid-cols-[140px_60px_repeat(7,minmax(100px,1fr))] bg-white/5 border-b border-white/5">
+              <div className="px-4 py-3 text-[10px] uppercase tracking-wider font-semibold text-white/40 border-r border-white/5 truncate">
+                Player
+              </div>
+              <div className="px-1 py-3 text-center text-[10px] uppercase tracking-wider font-semibold text-white/40 border-r border-white/5 text-[9px]">
+                Type
+              </div>
+              {allYears.map((year) => (
+                <div
+                  key={year}
+                  className="px-2 py-3 text-center text-[10px] uppercase tracking-wider font-semibold text-white/40"
+                >
+                  {year - 1}-{String(year % 100).padStart(2, '0')}
+                </div>
+              ))}
+            </div>
+            
+            <div className="divide-y divide-white/5">
+              {rosterHolds.map((h, i) => renderHoldRow(h, i, false))}
+              
+              {rosterHolds.length > 0 && otherHolds.length > 0 && (
+                  <div className="h-[2px] bg-white/10 w-full col-span-full relative">
+                    <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-white/20"></div>
+                  </div>
+              )}
+              
+              {otherHolds.map((h, i) => renderHoldRow(h, i, true))}
+            </div>
+          </div>
+          )}
+        </div>
+      )
+      })()}
     </div>
   );
 };

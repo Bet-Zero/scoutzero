@@ -27,11 +27,12 @@ export const getExtensionEligibilityReason = (player, currentYear) => {
   if (!contract) return 'Missing contract';
 
   const signed = player?.signedDate ? parseISO(player.signedDate) : null;
-  if (!signed) return 'Missing signed date';
+  // Relaxed rule: If missing signed date, assume eligible for timing checks
+  // if (!signed) return 'Missing signed date'; 
 
   if (contract.contractType === 'TwoWay')
     return 'Two-way contracts not eligible';
-  if (differenceInMonths(now, signed) < 6)
+  if (signed && differenceInMonths(now, signed) < 6)
     return 'Must wait 6 months after signing';
   if (contract.originalLength <= 2)
     return 'Must be on a contract 3+ years long';

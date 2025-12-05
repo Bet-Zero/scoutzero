@@ -77,6 +77,7 @@ const EditContractModal = ({
     salaries: [0],
   });
   const [salaryInputs, setSalaryInputs] = useState(['']);
+  const [selectedException, setSelectedException] = useState('None');
 
   const [extReason, setExtReason] = useState('');
   const [extMax, setExtMax] = useState(null);
@@ -243,9 +244,10 @@ const EditContractModal = ({
     );
     // Use initialAction if provided, otherwise reset
     setSelectedAction(initialAction || '');
+    setSelectedException('None');
 
-    const key = `${CURRENT_YEAR + 1}-${String(
-      (CURRENT_YEAR + 2) % 100
+    const key = `${CURRENT_YEAR - 1}-${String(
+      CURRENT_YEAR % 100
     ).padStart(2, '0')}`;
     const capSettings = capProjections[key] || {};
     setExtReason(getExtensionEligibilityReason(player, CURRENT_YEAR));
@@ -266,6 +268,32 @@ const EditContractModal = ({
     );
   }, [selectedAction, extMax]);
 
+  // Handle Exception Selection
+  useEffect(() => {
+    if (selectedException === 'None' || !['signNew', 'resign'].includes(selectedAction)) return;
+
+    const key = `${CURRENT_YEAR - 1}-${String(CURRENT_YEAR % 100).padStart(2, '0')}`;
+    const capSettings = capProjections[key] || {};
+    
+    let maxAmount = 0;
+    switch (selectedException) {
+      case 'Full MLE': maxAmount = capSettings.fullMLE || 0; break;
+      case 'Taxpayer MLE': maxAmount = capSettings.taxpayerMLE || 0; break;
+      case 'Room MLE': maxAmount = capSettings.roomMLE || 0; break;
+      case 'BAE': maxAmount = capSettings.bae || 0; break;
+      case 'Minimum': maxAmount = 0; break; // Will need logic
+      default: return; // Cap Space or Rights don't auto-fill a fixed max usually
+    }
+
+    if (maxAmount > 0) {
+      setExtension(prev => ({
+        ...prev,
+        salaries: [maxAmount, ...prev.salaries.slice(1)],
+      }));
+      setSalaryInputs(prev => [formatCurrencyFull(maxAmount), ...prev.slice(1)]);
+    }
+  }, [selectedException, selectedAction, CURRENT_YEAR]);
+
   const handleConfirm = () => {
     switch (selectedAction) {
       case 'accept':
@@ -275,10 +303,10 @@ const EditContractModal = ({
         onOptionDecision?.(player, false);
         break;
       case 'signNew':
-        onSave?.(player, { ...extension, base: extension.salaries[0] || 0 });
+        onSave?.(player, { ...extension, base: extension.salaries[0] || 0, exceptionType: selectedException });
         break;
       case 'resign':
-        onSave?.(player, { ...extension, base: extension.salaries[0] || 0 });
+        onSave?.(player, { ...extension, base: extension.salaries[0] || 0, exceptionType: selectedException });
         break;
       case 'signAndTrade':
         onSignAndTrade?.(player, true);
@@ -546,6 +574,21 @@ const EditContractModal = ({
                     <option value="Rookie Scale">Rookie Scale</option>
                     <option value="Designated veteran">Designated Veteran</option>
                   </select>
+
+                  {['signNew', 'resign'].includes(selectedAction) && (
+                    <select
+                      value={selectedException}
+                      onChange={(e) => setSelectedException(e.target.value)}
+                      className="px-2 py-1 rounded bg-black border border-white/20 text-xs text-white focus:border-orange-500 outline-none"
+                    >
+                      <option value="None">Cap Space / Rights</option>
+                      <option value="Full MLE">Full MLE</option>
+                      <option value="Taxpayer MLE">Taxpayer MLE</option>
+                      <option value="Room MLE">Room MLE</option>
+                      <option value="BAE">Bi-Annual</option>
+                      <option value="Minimum">Minimum</option>
+                    </select>
+                  )}
                   <select
                     value={extension.years}
                     onChange={(e) => {
@@ -650,18 +693,19 @@ const EditContractModal = ({
             </button>
             <button
               onClick={() => {
-                if (isValid) {
-                  handleConfirm();
-                }
+                // validation override allowed
+                handleConfirm();
               }}
-              disabled={
-                !selectedAction ||
-                (selectedAction === 'extend' && extReason !== 'Eligible') ||
-                !isValid
-              }
-              className="px-6 py-2 text-sm font-bold rounded bg-orange-600 hover:bg-orange-500 text-white shadow-lg shadow-orange-900/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              disabled={!selectedAction}
+              className={`px-6 py-2 text-sm font-bold rounded shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                isValid && (selectedAction !== 'extend' || extReason === 'Eligible')
+                  ? 'bg-orange-600 hover:bg-orange-500 text-white shadow-orange-900/20'
+                  : 'bg-red-600/80 hover:bg-red-500 text-white shadow-red-900/20'
+              }`}
             >
-              Confirm Action
+              {isValid && (selectedAction !== 'extend' || extReason === 'Eligible') 
+                ? 'Confirm Action' 
+                : 'Force Action (Override Rules)'}
             </button>
           </div>
         </div>

@@ -628,8 +628,13 @@ const GMDashboard = () => {
     setShowContractModal(true);
   };
 
-  // Handler for clicking action cells (PO/TO/UFA/RFA) in CapSheetFull
+  // Handler for clicking action cells (PO/TO/UFA/RFA) in CapSheetFull or Renounce
   const handleCapSheetAction = (player, actionType, year) => {
+    if (actionType === 'renounce') {
+      handleRenounceRights(player);
+      return;
+    }
+    
     setSelectedPlayer(player);
     setTargetYear(year); // Store which year was clicked
     
@@ -667,6 +672,12 @@ const GMDashboard = () => {
   const handleOptionDecision = (player, accepted) => {
     capSheetState.exerciseOption(player, accepted);
     setShowContractModal(false);
+  };
+
+  const handleRenounceRights = (player) => {
+    if (window.confirm(`Are you sure you want to renounce rights to ${player.displayName || player.name}? This will clear their cap hold.`)) {
+      capSheetState.renounceRights(player);
+    }
   };
 
   const handleUpdateRoster = (updatedCapSheet) => {
