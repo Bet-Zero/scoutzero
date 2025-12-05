@@ -261,6 +261,30 @@ function buildResolver(index: PlayerIndex): PlayerIdResolver {
       slugToId.set(entry.salarySwishSlug.toLowerCase(), playerId);
     }
   }
+  
+  // Populate cleaned names (no punctuation)
+  const cleanNameToId = new Map<string, string>();
+  for (const [name, id] of nameToId.entries()) {
+      cleanNameToId.set(name.replace(/[.,']/g, ''), id);
+  }
+
+  // Known manual overrides for tricky names
+  const MANUAL_OVERRIDES: Record<string, string> = {
+    'ron holland ii': 'ronald_holland_ii',
+    'tolu smith iii': 'tolu_smith',
+    'nahshon bones hyland': 'bones_hyland',
+    'bones hyland': 'bones_hyland',
+    'xavier tillman sr': 'xavier_tillman',
+    'nicolas claxton': 'nic_claxton',
+    'cameron thomas': 'cam_thomas',
+    'royce oneale': 'royce_o_neale',
+    'jasean tate': 'ja_sean_tate',
+    'mo bamba': 'mohamed_bamba',
+    'robert williams iii': 'robert_williams',
+    'bruce brown jr': 'bruce_brown',
+    'daron holmes': 'daron_holmes_ii',
+    'trey jemison': 'trey_jemison_iii',
+  };
 
   const unresolved = new Set<string>();
 
@@ -269,6 +293,17 @@ function buildResolver(index: PlayerIndex): PlayerIdResolver {
       const name =
         normalizeDisplayName(entry.displayName) ?? entry.displayName ?? '';
       const normalizedName = name.trim().toLowerCase();
+
+      // Check manual overrides first
+      if (MANUAL_OVERRIDES[normalizedName]) {
+        const overrideId = MANUAL_OVERRIDES[normalizedName];
+        return {
+          playerId: overrideId,
+          playerName: index[overrideId]?.fullName ?? name,
+          resolvedVia: 'manual_override',
+        };
+      }
+
       // Try exact match first
       if (normalizedName && nameToId.has(normalizedName)) {
         return {
@@ -277,6 +312,7 @@ function buildResolver(index: PlayerIndex): PlayerIdResolver {
           resolvedVia: 'fullName',
         };
       }
+
       // Try with hyphens/spaces normalized (e.g., "alexander-walker" -> "alexander walker")
       const normalizedHyphen = normalizedName.replace(/[- ]/g, ' ');
       if (normalizedHyphen && nameToId.has(normalizedHyphen)) {
@@ -286,6 +322,27 @@ function buildResolver(index: PlayerIndex): PlayerIdResolver {
           resolvedVia: 'fullName',
         };
       }
+
+      // Try with punctuation removed (e.g., "jr." -> "jr", "o'neale" -> "oneale")
+      const normalizedClean = normalizedName.replace(/[.,']/g, '');
+      if (normalizedClean && cleanNameToId.has(normalizedClean)) {
+        return {
+          playerId: cleanNameToId.get(normalizedClean)!,
+          playerName: name,
+          resolvedVia: 'fullNameClean',
+        };
+      }
+
+      // Try with punctuation removed from the hyphen-normalized version as well for max coverage
+      const normalizedHyphenClean = normalizedHyphen.replace(/[.,']/g, '');
+       if (normalizedHyphenClean && cleanNameToId.has(normalizedHyphenClean)) {
+        return {
+          playerId: cleanNameToId.get(normalizedHyphenClean)!,
+          playerName: name,
+          resolvedVia: 'fullNameClean',
+        };
+      }
+
 
       const slug = slugFromUrl(entry.sourceUrl);
       if (slug && slugToId.has(slug)) {

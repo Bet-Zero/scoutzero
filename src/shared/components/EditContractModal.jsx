@@ -465,7 +465,7 @@ const EditContractModal = ({
               <p>
                 <span className="text-white font-semibold">{player.name}</span>{' '}
                 has a <span className="text-orange-400">{optionType}</span> for
-                the upcoming season. You may choose to accept it to retain him,
+                the {optionYear ? `${optionYear - 1}-${String(optionYear % 100).padStart(2, '0')}` : 'upcoming'} season. You may choose to accept it to retain him,
                 decline it to make him a Free Agent, or negotiate a new
                 contract.
               </p>

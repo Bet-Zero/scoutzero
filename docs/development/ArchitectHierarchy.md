@@ -10,6 +10,7 @@ ContractEditorModal.jsx
 DraftPickTracker.jsx
 ExceptionHistoryTracker.jsx
 ExceptionTracker.jsx
+FreeAgentCard.jsx
 FreeAgentPool.jsx
 FreeAgentRow.jsx
 GMDashboard.jsx
@@ -146,5 +147,5 @@ utils/
 ```
 
 ---
-*Generated on: 2025-12-05T08:54:07.317Z*
+*Generated on: 2025-12-05T12:44:26.046Z*
 *Auto-updated by: npm run docs*

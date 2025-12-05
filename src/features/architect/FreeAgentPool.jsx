@@ -5,6 +5,7 @@ import {
   generateDefaultFreeAgentContract,
 } from '@/features/architect/utils/contractUtils';
 import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
+import FreeAgentCard from './FreeAgentCard';
 import FreeAgentRow from './FreeAgentRow';
 import EditContractModal from '@/shared/components/EditContractModal';
 
@@ -34,7 +35,16 @@ const FreeAgentPool = ({
     setSignResults((prev) => ({ ...prev, [player.name]: null }));
   };
 
+  const handleRemove = (player) => {
+      setSelectedPlayers((prev) => prev.filter((p) => p.name !== player.name));
+  };
+  
+  // existing handleSign logic is mainly for direct signing which we are replacing with modal for the cards
+  // but we might keep it if needed for other paths, but for cards we use setContractPlayer
   const handleSign = async (player) => {
+    // ... existing logic if still used elsewhere ...
+    // For now, minimizing changes to old functions unless dead code clearly defined
+    // But since the user wants the card button to open the modal, we won't use this function for the card button.
     const result = canSignFreeAgent(
       player,
       teamCapSheet,
@@ -65,10 +75,7 @@ const FreeAgentPool = ({
       setSelectedPlayers((prev) => prev.filter((p) => p.name !== player.name));
     } catch (err) {
       console.error('Failed to sign player', err);
-      setSignResults((prev) => ({
-        ...prev,
-        [player.name]: { allowed: false, reason: 'Failed to sign player' },
-      }));
+      // ...
     } finally {
       setIsSigning(false);
     }
@@ -78,6 +85,7 @@ const FreeAgentPool = ({
     // Build salariesByYear array with exact values from form (new schema format)
     const salariesByYear = [];
     for (let i = 0; i < values.years; i++) {
+        // ... (lines 80-95 same as before)
       const endYear = currentYear + i;
       const season = toSeasonCode(endYear);
       const salary = values.salaries[i] || 0;
@@ -109,17 +117,24 @@ const FreeAgentPool = ({
     };
     
     await onSign(playerObj, contract);
+    
+    // Also remove from selected players once signed
+    setSelectedPlayers(prev => prev.filter(p => p.name !== playerObj.name));
   };
 
+
   const handleSignAndTrade = async (playerObj) => {
+    // ... same as before
     const contract = generateDefaultFreeAgentContract(
-      playerObj.askingSalary ?? playerObj.previousSalary ?? 0,
-      currentYear,
-      playerObj.yearsOfService || playerObj.yearsPro || 0
-    );
-    contract.signAndTrade = true;
-    await onSign(playerObj, contract);
+        playerObj.askingSalary ?? playerObj.previousSalary ?? 0,
+        currentYear,
+        playerObj.yearsOfService || playerObj.yearsPro || 0
+      );
+      contract.signAndTrade = true;
+      await onSign(playerObj, contract);
+      setSelectedPlayers(prev => prev.filter(p => p.name !== playerObj.name));
   };
+
   const sortedAgents = [...freeAgents].sort(
     (a, b) => (b.previousSalary || 0) - (a.previousSalary || 0)
   );
@@ -161,40 +176,14 @@ const FreeAgentPool = ({
       </div>
 
       {selectedPlayers.length > 0 && (
-        <div className="bg-[#1a1a1a] p-4 rounded border border-white/10 mb-3 flex flex-wrap gap-3">
+        <div className="bg-[#1a1a1a] p-4 rounded border border-white/10 mb-3 flex flex-wrap gap-4">
           {selectedPlayers.map((sp) => (
-            <div key={sp.name} className="w-64">
-              <h3 className="font-semibold mb-1">
-                {sp.displayName || sp.bio?.displayName || sp.name}
-              </h3>
-              <p className="text-sm mb-1">
-                Asking{' '}
-                {sp.previousSalary != null
-                  ? `$${sp.previousSalary.toLocaleString()}`
-                  : 'N/A'}
-              </p>
-              <p className="text-sm mb-3">Bird Rights: {sp.birdRights}</p>
-              <button
-                onClick={() => handleSign(sp)}
-                className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm"
-                disabled={isSigning}
-              >
-                {isSigning ? 'Signing...' : 'Sign Player'}
-              </button>
-              {signResults[sp.name] && (
-                <div className="mt-1 text-sm">
-                  {signResults[sp.name].allowed ? (
-                    <span className="text-green-500">
-                      {signResults[sp.name].message}
-                    </span>
-                  ) : (
-                    <span className="text-red-500">
-                      {signResults[sp.name].reason}
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
+             <FreeAgentCard 
+                key={sp.name} 
+                player={sp} 
+                onSign={() => setContractPlayer(sp)}
+                onRemove={handleRemove}
+             />
           ))}
         </div>
       )}

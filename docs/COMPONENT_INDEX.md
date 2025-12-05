@@ -11,6 +11,7 @@ Quick reference for all components in the ScoutZero project.
 - DraftPickTracker.jsx
 - ExceptionHistoryTracker.jsx
 - ExceptionTracker.jsx
+- FreeAgentCard.jsx
 - FreeAgentPool.jsx
 - FreeAgentRow.jsx
 - GMDashboard.jsx
@@ -259,4 +260,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2025-12-05T08:54:07.341Z*
+*Generated on: 2025-12-05T12:44:26.068Z*

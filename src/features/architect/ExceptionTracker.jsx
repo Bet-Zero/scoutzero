@@ -71,30 +71,26 @@ const HardCapCard = ({ capData, hardCapped, reason }) => {
   );
 };
 
-const CompactTradeExceptionRow = ({ tpe, daysRemaining }) => {
-  const isExpired = daysRemaining <= 0;
-  
+const CompactTradeExceptionRow = ({ tpe }) => {
   return (
-    <div className="grid grid-cols-[1fr,1.5fr,auto] gap-3 items-center py-1.5 border-b border-white/5 last:border-0 hover:bg-white/[0.02] px-2 -mx-2 rounded transition-colors group">
+    <div className="grid grid-cols-[80px_1fr_auto] gap-3 items-center py-2 px-3 border-b border-white/5 last:border-0 hover:bg-white/[0.04] transition-all group relative overflow-hidden">
+      {/* "Spice" - left accent */}
+      <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-purple-500/50 opacity-0 group-hover:opacity-100 transition-opacity" />
+      
       <div className="flex flex-col">
-        <span className="text-xs font-bold text-white/80 tabular-nums group-hover:text-white transition-colors">
-          ${tpe.amount.toLocaleString()}
+        <span className="text-xs font-bold text-white/90 tabular-nums group-hover:text-purple-200 transition-colors">
+          ${(tpe.amount || 0).toLocaleString()}
         </span>
       </div>
       
-      {/* Removed truncation, let it take space */}
-      <div className="flex items-center text-[9px] text-white/40">
+      <div className="flex items-center text-[10px] text-white/40 group-hover:text-white/60 transition-colors truncate">
         {tpe.createdFrom && <span>from {tpe.createdFrom}</span>}
       </div>
 
       <div className="text-right whitespace-nowrap">
-       {isExpired ? (
-          <span className="text-[9px] text-red-500/80 font-medium">Expired</span>
-       ) : daysRemaining <= 30 ? (
-          <span className="text-[9px] text-amber-400/80 font-medium">{daysRemaining}d left</span>
-       ) : (
-          <span className="text-[9px] text-white/20">{tpe.expires}</span>
-       )}
+        <span className="text-[10px] text-white/30 font-medium group-hover:text-white/50 transition-colors">
+          {tpe.expires}
+        </span>
       </div>
     </div>
   );
@@ -111,11 +107,7 @@ const ExceptionTracker = ({ teamCapSheet, currentYear }) => {
 
   const yearKey = toSeasonKey(currentYear);
   const capData = capProjections[yearKey] || {};
-  const today = new Date();
-
-  const daysUntil = (exp) =>
-    Math.floor((new Date(exp) - today) / (1000 * 60 * 60 * 24));
-
+  // No longer using daysUntil for display
   const getRemaining = (exception, defaultAmount = 0) => {
     const amount = exception?.amount ?? defaultAmount;
     const used = exception?.used || 0;
@@ -232,7 +224,6 @@ const ExceptionTracker = ({ teamCapSheet, currentYear }) => {
                   <CompactTradeExceptionRow
                     key={idx}
                     tpe={tpe}
-                    daysRemaining={daysUntil(tpe.expires)}
                   />
                ))}
             </div>
