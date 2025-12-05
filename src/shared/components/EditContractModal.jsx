@@ -525,7 +525,7 @@ const EditContractModal = ({
 
           {/* === Contract Details (Cap Table Row Preview) === */}
           {['signNew', 'resign', 'extend', 'signAndTrade'].includes(selectedAction) && (
-            <div className="bg-[#0f0f0f] rounded-lg border border-white/10 p-4">
+            <div className="bg-white/5 rounded-lg border border-white/20 p-4">
               <div className="flex items-center justify-between mb-4">
                 <h4 className="font-semibold text-sm text-white flex items-center gap-2">
                   <span className="w-1 h-4 bg-orange-500 rounded-full"></span>

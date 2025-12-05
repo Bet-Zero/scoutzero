@@ -23,6 +23,7 @@ Quick reference for all components in the ScoutZero project.
 - ValidationWarnings.jsx
 - WaiveStretchTracker.jsx
 - hooks/useArchitectPlayerData.js
+- hooks/useCapSheetState.js
 - hooks/useCapValidation.js
 - hooks/useTradeMachine.js
 - tradeMachine/CapImpactTiles.jsx
@@ -258,4 +259,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2025-12-05T08:19:09.454Z*
+*Generated on: 2025-12-05T08:54:07.341Z*

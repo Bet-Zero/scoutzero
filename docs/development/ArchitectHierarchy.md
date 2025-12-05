@@ -23,6 +23,7 @@ ValidationWarnings.jsx
 WaiveStretchTracker.jsx
 hooks/
   useArchitectPlayerData.js
+  useCapSheetState.js
   useCapValidation.js
   useTradeMachine.js
 tradeMachine/
@@ -145,5 +146,5 @@ utils/
 ```
 
 ---
-*Generated on: 2025-12-05T08:19:09.288Z*
+*Generated on: 2025-12-05T08:54:07.317Z*
 *Auto-updated by: npm run docs*
