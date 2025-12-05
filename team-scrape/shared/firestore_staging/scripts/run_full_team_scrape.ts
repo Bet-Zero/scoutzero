@@ -1,10 +1,6 @@
 import { spawn } from 'node:child_process';
 import { createWriteStream } from 'node:fs';
-import {
-  mkdir,
-  readFile,
-  writeFile,
-} from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -66,19 +62,8 @@ const TEAM_SLUGS: Record<string, string> = {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const PROJECT_ROOT = path.join(__dirname, '..', '..', '..');
-const PLAYER_INDEX_PATH = path.join(
-  PROJECT_ROOT,
-  'player-scrape',
-  'shared',
-  '_artifacts', 'outputs',
-  'player_index.json'
-);
-const LOG_ROOT = path.join(
-  PROJECT_ROOT,
-  'team-scrape',
-  'logs'
-);
+const PROJECT_ROOT = path.join(__dirname, '..', '..', '..', '..');
+const LOG_ROOT = path.join(PROJECT_ROOT, 'team-scrape', 'logs');
 
 const FETCH_SCRIPT = path.join(
   PROJECT_ROOT,
@@ -99,6 +84,7 @@ const STAGE_SCRIPT = path.join(
   'team-scrape',
   'shared',
   'firestore_staging',
+  'scripts',
   'stage_team.ts'
 );
 
@@ -150,15 +136,8 @@ async function ensureDir(dirPath: string) {
 }
 
 async function loadTeams(): Promise<string[]> {
-  const raw = await readFile(PLAYER_INDEX_PATH, 'utf8');
-  const index = JSON.parse(raw) as Record<string, { teamCode?: string }>;
-  const teams = new Set<string>();
-  for (const entry of Object.values(index)) {
-    if (entry.teamCode && TEAM_SLUGS[entry.teamCode]) {
-      teams.add(entry.teamCode);
-    }
-  }
-  return Array.from(teams).sort();
+  // Return all 30 NBA team codes directly from TEAM_SLUGS
+  return Object.keys(TEAM_SLUGS).sort();
 }
 
 function getTeamSlug(team: string): string {
@@ -257,7 +236,9 @@ async function runCommandWithLogging(
     });
 
     child.on('close', (code) => {
-      writer.write(`\n${new Date().toISOString()} :: Exit code ${code ?? -1}\n`);
+      writer.write(
+        `\n${new Date().toISOString()} :: Exit code ${code ?? -1}\n`
+      );
       writer.end();
       resolve({ code: code ?? -1, stderr });
     });
@@ -311,13 +292,7 @@ async function runPhaseWithRetries(
     `[${phase.toUpperCase()}:${team}] Attempt ${attempt} failed. Retrying in ${delay}ms`
   );
   await sleep(delay);
-  return runPhaseWithRetries(
-    phase,
-    team,
-    config,
-    baseLogDir,
-    attempt + 1
-  );
+  return runPhaseWithRetries(phase, team, config, baseLogDir, attempt + 1);
 }
 
 async function runPipelineForTeam(
@@ -383,10 +358,7 @@ async function main() {
   }
 
   const now = new Date();
-  const runDir = path.join(
-    LOG_ROOT,
-    now.toISOString().replace(/[:.]/g, '-')
-  );
+  const runDir = path.join(LOG_ROOT, now.toISOString().replace(/[:.]/g, '-'));
   await ensureDir(path.join(runDir, 'fetch'));
   await ensureDir(path.join(runDir, 'parse'));
   await ensureDir(path.join(runDir, 'stage'));
@@ -397,9 +369,10 @@ async function main() {
     maxRetries: parseNumberArg('maxRetries', 3),
     backoffMs: parseNumberArg('backoffMs', 2000),
     backoffMultiplier: parseNumberArg('backoffMultiplier', 2),
-    season: parseArg('season', `${now.getFullYear()}-${(now.getFullYear() + 1)
-      .toString()
-      .slice(-2)}`) as string,
+    season: parseArg(
+      'season',
+      `${now.getFullYear()}-${(now.getFullYear() + 1).toString().slice(-2)}`
+    ) as string,
     batchSize: parseNumberArg('batchSize', 3),
     statsOnly: parseBoolArg('statsOnly', false),
     validate: parseBoolArg('validate', true),

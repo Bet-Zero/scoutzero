@@ -74,43 +74,73 @@ const EditContractModal = ({
   const [extMax, setExtMax] = useState(null);
 
   const today = new Date();
-  const CURRENT_YEAR = today.getFullYear() - (today.getMonth() < 6 ? 1 : 0);
+  // CURRENT_YEAR = the END year of the current NBA season
+  // e.g., in Dec 2025 we're in the 2025-26 season, so CURRENT_YEAR = 2026
+  // After June, we're in the next season (e.g., July 2025 = 2025-26 season = 2026)
+  const CURRENT_YEAR = today.getFullYear() + (today.getMonth() >= 6 ? 1 : 0);
 
   // Helper to get contract years from Architect schema (contract.salariesByYear[])
+  // Includes both base contract and extension years (from futureContract)
   const contractYears = useMemo(() => {
-    if (!player?.contract?.salariesByYear?.length) return [];
-    return player.contract.salariesByYear
-      .map((y) => ({
+    if (!player) return [];
+
+    const baseYears = (player.contract?.salariesByYear || []).map((y) => ({
+      year: toEndYear(y.season),
+      season: y.season,
+      salary: y.salary || y.capHit || 0,
+      option: y.option,
+      guaranteed: y.guaranteed,
+      isExtension: false,
+    }));
+
+    const extensionYears = (player.futureContract?.salariesByYear || []).map(
+      (y) => ({
         year: toEndYear(y.season),
         season: y.season,
         salary: y.salary || y.capHit || 0,
         option: y.option,
         guaranteed: y.guaranteed,
-      }))
-      .filter((y) => y.year != null)
-      .sort((a, b) => a.year - b.year);
+        isExtension: true,
+      })
+    );
+
+    // Combine and dedupe by year, preferring extension years (they're more recent)
+    const yearMap = new Map();
+    [...baseYears, ...extensionYears].forEach((y) => {
+      if (y.year != null) {
+        yearMap.set(y.year, y);
+      }
+    });
+
+    return Array.from(yearMap.values()).sort((a, b) => a.year - b.year);
   }, [player]);
 
   const isFreeAgent =
     player?.freeAgentYear && player.freeAgentYear <= CURRENT_YEAR;
 
-  const isUnderContract = contractYears.some((y) => y.year > CURRENT_YEAR);
-
+  // Only consider options on future years (not current season - that decision is already made)
   const optionYearEntry = contractYears.find(
-    (y) => y.year >= CURRENT_YEAR && y.option
+    (y) => y.year > CURRENT_YEAR && y.option
   );
   const optionYear = optionYearEntry?.year || null;
   const optionType = optionYearEntry?.option || null;
 
   const hasOption = !!optionType;
 
+  // Player is "under contract" if they have the current season or future guaranteed years
+  const isUnderContract = contractYears.some((y) => y.year >= CURRENT_YEAR);
+
+  // Player is expiring (for context text) - under contract now but no future years
+  const isExpiring =
+    isUnderContract && !contractYears.some((y) => y.year > CURRENT_YEAR);
+
   const actionSet = hasOption
     ? 'option'
-    : isFreeAgent
-    ? 'freeAgent'
-    : isUnderContract
-    ? 'underContract'
-    : null;
+    : isFreeAgent && !isUnderContract
+      ? 'freeAgent'
+      : isUnderContract
+        ? 'underContract'
+        : null;
 
   const actions = actionsOverride || ACTION_SETS[actionSet] || [];
 
@@ -118,12 +148,33 @@ const EditContractModal = ({
   const summary = useMemo(() => {
     const totalValue = contractYears.reduce((sum, y) => sum + y.salary, 0);
     const totalYears = contractYears.length;
-    
-    const remainingYearsList = contractYears.filter(y => y.year >= CURRENT_YEAR);
-    const remainingValue = remainingYearsList.reduce((sum, y) => sum + y.salary, 0);
+
+    // Remaining = current season + future years
+    const remainingYearsList = contractYears.filter(
+      (y) => y.year >= CURRENT_YEAR
+    );
+    const remainingValue = remainingYearsList.reduce(
+      (sum, y) => sum + y.salary,
+      0
+    );
     const remainingYears = remainingYearsList.length;
 
-    return { totalValue, totalYears, remainingValue, remainingYears };
+    // Extension calculations
+    const extensionYearsList = contractYears.filter((y) => y.isExtension);
+    const extensionValue = extensionYearsList.reduce(
+      (sum, y) => sum + y.salary,
+      0
+    );
+    const extensionYears = extensionYearsList.length;
+
+    return {
+      totalValue,
+      totalYears,
+      remainingValue,
+      remainingYears,
+      extensionValue,
+      extensionYears,
+    };
   }, [contractYears, CURRENT_YEAR]);
 
   useEffect(() => {
@@ -227,67 +278,152 @@ const EditContractModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl bg-[#0f0f0f] border border-white/10 p-0 overflow-hidden flex flex-col md:flex-row h-[600px]">
+      <DialogContent className="max-w-6xl w-[95vw] bg-[#0f0f0f] border-2 border-white/20 rounded-xl shadow-2xl shadow-black/50 p-0 overflow-hidden flex flex-col lg:flex-row min-h-[500px] max-h-[85vh]">
         {/* === LEFT PANEL: Contract Summary === */}
-        <div className="w-full md:w-[40%] bg-[#161616] border-r border-white/5 p-6 flex flex-col">
+        <div className="w-full lg:w-[35%] bg-[#161616] border-r border-white/10 p-8 flex flex-col">
           {/* Header Total */}
           <div className="text-center mb-6">
             <div className="text-2xl font-bold text-white tracking-tight">
-              {formatCurrency(summary.totalValue)} <span className="text-white/40 mx-1">-</span> {summary.totalYears} yrs
+              {formatCurrency(summary.totalValue)}{' '}
+              <span className="text-white/40 mx-1">-</span> {summary.totalYears}{' '}
+              yrs
             </div>
-            <div className="text-xs uppercase tracking-wider text-white/40 font-semibold mt-1">Total Contract</div>
+            <div className="text-xs uppercase tracking-wider text-white/40 font-semibold mt-1">
+              Total Contract
+            </div>
           </div>
 
           {/* Years List */}
           <div className="flex-1 overflow-y-auto space-y-1 pr-2">
-            {contractYears.map((y) => {
-              const isFuture = y.year >= CURRENT_YEAR;
-              const isOption = !!y.option;
-              return (
-                <div key={y.season} className={`flex items-center justify-between py-3 border-b border-white/5 ${isFuture ? 'opacity-100' : 'opacity-40'}`}>
-                  <div className="flex flex-col">
-                    <span className="text-xs font-mono text-white/60">{y.season}</span>
-                    {isOption && <span className="text-[10px] text-orange-400 font-bold uppercase">{y.option}</span>}
+            {contractYears
+              .filter((y) => {
+                // When extensions exist, only show from current year onward
+                if (summary.extensionYears > 0) {
+                  return y.year >= CURRENT_YEAR;
+                }
+                return true;
+              })
+              .map((y) => {
+                // CURRENT_YEAR is the end year of the current season (e.g., 2026 for 2025-26 season)
+                // Only years strictly greater than CURRENT_YEAR are future years
+                const isFuture = y.year > CURRENT_YEAR;
+                const isCurrent = y.year === CURRENT_YEAR;
+                const isOption = !!y.option;
+                const isExtension = y.isExtension;
+                return (
+                  <div
+                    key={y.season}
+                    className={`flex items-center justify-between py-3 border-b border-white/5 ${
+                      isFuture || isCurrent ? 'opacity-100' : 'opacity-40'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono text-white/60">
+                        {y.season}
+                      </span>
+                      {isExtension && (
+                        <span className="text-[10px] text-cyan-400 font-bold uppercase tracking-wider">
+                          EXT
+                        </span>
+                      )}
+                      {isOption && (
+                        <span
+                          className={`text-[10px] font-bold uppercase ${
+                            y.option === 'TO' || y.option === 'Team Option'
+                              ? 'text-orange-400'
+                              : 'text-emerald-400'
+                          }`}
+                        >
+                          {y.option}
+                        </span>
+                      )}
+                    </div>
+                    <span
+                      className={`font-mono text-sm ${
+                        isOption
+                          ? y.option === 'TO' || y.option === 'Team Option'
+                            ? 'text-orange-400 font-bold'
+                            : 'text-emerald-400 font-bold'
+                          : isExtension
+                            ? 'text-cyan-300 font-bold'
+                            : isFuture || isCurrent
+                              ? 'text-white font-medium'
+                              : 'text-white/60'
+                      }`}
+                    >
+                      {formatCurrencyFull(y.salary)}
+                    </span>
                   </div>
-                  <span className={`font-mono text-sm ${isFuture ? 'text-orange-500 font-bold' : 'text-white'}`}>
-                    {formatCurrencyFull(y.salary)}
-                  </span>
-                </div>
-              );
-            })}
+                );
+              })}
           </div>
 
-          {/* Footer Remaining */}
+          {/* Footer Remaining + Extension */}
           <div className="text-center mt-6 pt-6 border-t border-white/5">
             <div className="text-xl font-bold text-white tracking-tight">
-              {formatCurrency(summary.remainingValue)} <span className="text-white/40 mx-1">-</span> {summary.remainingYears} yrs
+              {formatCurrency(summary.remainingValue)}{' '}
+              <span className="text-white/40 mx-1">-</span>{' '}
+              {summary.remainingYears} yrs
             </div>
-            <div className="text-xs uppercase tracking-wider text-white/40 font-semibold mt-1">Remaining</div>
+            <div className="text-xs uppercase tracking-wider text-white/40 font-semibold mt-1">
+              Remaining
+            </div>
+
+            {/* Extension Summary */}
+            {summary.extensionYears > 0 && (
+              <div className="mt-4 pt-4 border-t border-cyan-500/20">
+                <div className="text-lg font-bold text-cyan-100 tracking-tight">
+                  {formatCurrency(summary.extensionValue)}{' '}
+                  <span className="text-cyan-400/40 mx-1">-</span>{' '}
+                  {summary.extensionYears} yrs
+                </div>
+                <div className="text-xs uppercase tracking-wider text-cyan-400/60 font-semibold mt-1">
+                  Extension
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         {/* === RIGHT PANEL: Actions === */}
-        <div className="w-full md:w-[60%] p-6 bg-[#0f0f0f] flex flex-col overflow-y-auto">
-          <h2 className="text-lg font-bold text-white mb-4">Available Actions</h2>
-          
+        <div className="w-full lg:w-[65%] p-8 bg-[#0f0f0f] flex flex-col overflow-y-auto">
+          <h2 className="text-xl font-bold text-white mb-6">
+            Available Actions
+          </h2>
+
           {/* Context Text */}
           <div className="mb-6 text-sm text-white/70 leading-relaxed">
             {hasOption && (
               <p>
-                <span className="text-white font-semibold">{player.name}</span> has a <span className="text-orange-400">{optionType}</span> for the upcoming season. 
-                You may choose to accept it to retain him, decline it to make him a Free Agent, or negotiate a new contract.
+                <span className="text-white font-semibold">{player.name}</span>{' '}
+                has a <span className="text-orange-400">{optionType}</span> for
+                the upcoming season. You may choose to accept it to retain him,
+                decline it to make him a Free Agent, or negotiate a new
+                contract.
               </p>
             )}
-            {isFreeAgent && (
+            {actionSet === 'freeAgent' && (
               <p>
-                <span className="text-white font-semibold">{player.name}</span> is currently a Free Agent (Cap Hold). 
-                You can re-sign him using Bird Rights (if applicable), renounce his rights to clear cap space, or execute a sign-and-trade.
+                <span className="text-white font-semibold">{player.name}</span>{' '}
+                is currently a Free Agent (Cap Hold). You can re-sign him using
+                Bird Rights (if applicable), renounce his rights to clear cap
+                space, or execute a sign-and-trade.
               </p>
             )}
-            {isUnderContract && (
+            {actionSet === 'underContract' && isExpiring && (
               <p>
-                <span className="text-white font-semibold">{player.name}</span> is under contract. 
-                You can extend his deal if eligible, or waive him to clear a roster spot (with potential dead cap implications).
+                <span className="text-white font-semibold">{player.name}</span>{' '}
+                is on an expiring contract. You can extend his deal if eligible,
+                or waive him to clear a roster spot (with potential dead cap
+                implications). He will become a free agent after this season.
+              </p>
+            )}
+            {actionSet === 'underContract' && !isExpiring && (
+              <p>
+                <span className="text-white font-semibold">{player.name}</span>{' '}
+                is under contract. You can extend his deal if eligible, or waive
+                him to clear a roster spot (with potential dead cap
+                implications).
               </p>
             )}
           </div>
@@ -311,7 +447,9 @@ const EditContractModal = ({
                   className="mt-1 accent-orange-500"
                 />
                 <div>
-                  <div className={`font-medium ${selectedAction === type ? 'text-orange-400' : 'text-white'}`}>
+                  <div
+                    className={`font-medium ${selectedAction === type ? 'text-orange-400' : 'text-white'}`}
+                  >
                     {actionLabelsOverride[type] || ACTION_LABELS[type]}
                   </div>
                   <div className="text-xs text-white/50 mt-0.5">
@@ -329,24 +467,33 @@ const EditContractModal = ({
                 <span className="w-1 h-4 bg-orange-500 rounded-full"></span>
                 Contract Details
               </h4>
-              
+
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
-                  <label className="text-xs text-white/40 mb-1 block">Type</label>
+                  <label className="text-xs text-white/40 mb-1 block">
+                    Type
+                  </label>
                   <select
                     value={extension.contractType}
                     onChange={(e) =>
-                      setExtension({ ...extension, contractType: e.target.value })
+                      setExtension({
+                        ...extension,
+                        contractType: e.target.value,
+                      })
                     }
                     className="w-full p-2 rounded bg-black border border-white/20 text-sm text-white focus:border-orange-500 outline-none"
                   >
                     <option value="Standard">Standard</option>
                     <option value="Rookie Scale">Rookie Scale</option>
-                    <option value="Designated veteran">Designated veteran</option>
+                    <option value="Designated veteran">
+                      Designated veteran
+                    </option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-white/40 mb-1 block">Years</label>
+                  <label className="text-xs text-white/40 mb-1 block">
+                    Years
+                  </label>
                   <select
                     value={extension.years}
                     onChange={(e) => {
@@ -361,7 +508,9 @@ const EditContractModal = ({
                       });
                       setSalaryInputs(
                         Array.from({ length: yrs }, (_, i) =>
-                          extension.salaries[i] ? String(extension.salaries[i]) : ''
+                          extension.salaries[i]
+                            ? String(extension.salaries[i])
+                            : ''
                         )
                       );
                     }}
@@ -377,34 +526,40 @@ const EditContractModal = ({
               </div>
 
               <div className="space-y-2">
-                {extension.salaries.slice(0, extension.years).map((sal, idx) => (
-                  <div key={idx} className="flex items-center gap-3">
-                    <label className="text-xs text-white/40 w-16">Year {idx + 1}</label>
-                    <div className="relative flex-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 text-sm">$</span>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        value={salaryInputs[idx] || ''}
-                        onChange={(e) => {
-                          const raw = e.target.value.replace(/[^0-9]/g, '');
-                          const val = Number(raw);
-                          setExtension((prev) => {
-                            const arr = [...prev.salaries];
-                            arr[idx] = val;
-                            return { ...prev, salaries: arr };
-                          });
-                          setSalaryInputs((prev) => {
-                            const arr = [...prev];
-                            arr[idx] = formatCurrencyFull(raw);
-                            return arr;
-                          });
-                        }}
-                        className="w-full pl-6 pr-3 py-1.5 rounded bg-black border border-white/20 text-sm text-white focus:border-orange-500 outline-none font-mono"
-                      />
+                {extension.salaries
+                  .slice(0, extension.years)
+                  .map((sal, idx) => (
+                    <div key={idx} className="flex items-center gap-3">
+                      <label className="text-xs text-white/40 w-16">
+                        Year {idx + 1}
+                      </label>
+                      <div className="relative flex-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 text-sm">
+                          $
+                        </span>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={salaryInputs[idx] || ''}
+                          onChange={(e) => {
+                            const raw = e.target.value.replace(/[^0-9]/g, '');
+                            const val = Number(raw);
+                            setExtension((prev) => {
+                              const arr = [...prev.salaries];
+                              arr[idx] = val;
+                              return { ...prev, salaries: arr };
+                            });
+                            setSalaryInputs((prev) => {
+                              const arr = [...prev];
+                              arr[idx] = formatCurrencyFull(raw);
+                              return arr;
+                            });
+                          }}
+                          className="w-full pl-6 pr-3 py-1.5 rounded bg-black border border-white/20 text-sm text-white focus:border-orange-500 outline-none font-mono"
+                        />
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
               </div>
 
               {selectedAction === 'extend' && (
@@ -430,7 +585,9 @@ const EditContractModal = ({
             {selectedAction && (
               <button
                 onClick={handleConfirm}
-                disabled={selectedAction === 'extend' && extReason !== 'Eligible'}
+                disabled={
+                  selectedAction === 'extend' && extReason !== 'Eligible'
+                }
                 className="px-6 py-2 text-sm font-bold rounded bg-orange-600 hover:bg-orange-500 text-white shadow-lg shadow-orange-900/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 Confirm Action

@@ -18,7 +18,7 @@ import { fileURLToPath } from 'node:url';
 import {
   BaseTeamDocZ,
   type BaseTeamDoc,
-} from '../../../src/schemas/architect.js';
+} from '../../../../src/schemas/architect.js';
 
 type CliArgs = {
   team: string;
@@ -127,16 +127,15 @@ type PlayerIndex = Record<string, PlayerIndexEntry>;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PROJECT_ROOT = path.join(__dirname, '..', '..', '..');
+const PROJECT_ROOT = path.join(__dirname, '..', '..', '..', '..');
 const PLAYER_INDEX_PATH = path.join(
   PROJECT_ROOT,
-  'player-scrape/shared/_artifacts/outputs/player_index.json'
+  'player-scrape/shared/outputs/player_index.json'
 );
 const TEAM_DATA_DIR = path.join(
   PROJECT_ROOT,
   'team-scrape',
   'team-data',
-  '_artifacts',
   'output'
 );
 const DRAFT_PICKS_DIR = path.join(

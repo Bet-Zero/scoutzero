@@ -14,11 +14,11 @@ export const Dialog = ({ open, onOpenChange, children }) => {
 
   return (
     <div
-      className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       onClick={() => onOpenChange(false)}
     >
       <div
-        className="bg-[#111] border border-white/10 rounded-lg shadow-xl p-6 max-w-md w-full"
+        className="relative"
         onClick={(e) => e.stopPropagation()} // prevent modal from closing when clicking inside
       >
         {children}

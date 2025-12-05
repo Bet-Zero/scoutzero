@@ -8,6 +8,13 @@ import { POSITION_MAP } from '@/shared/utils/roles';
 import getCapPercentage from '@/features/architect/utils/basicArchitectUtils';
 import capProjections from '@/features/architect/utils/capProjections';
 
+// Helper to identify two-way contracts (don't count against cap)
+const isTwoWayContract = (player) => {
+  const contractType =
+    player?.contractType || player?.contract?.contractType || '';
+  return contractType.toLowerCase() === 'two-way' || contractType === 'TWO-WAY';
+};
+
 const CapSheet = ({
   teamCapSheet,
   currentYear,
@@ -35,6 +42,10 @@ const CapSheet = ({
     `${year - 1}-${String(year % 100).padStart(2, '0')}`;
 
   const getCapHit = (player, yearKey) => {
+    // Two-way contracts don't count against the cap
+    if (isTwoWayContract(player)) {
+      return 0;
+    }
     const slice = getContractYearSlice(player, yearKey);
     const salary = slice?.capHit ?? slice?.salary ?? 0;
     if (player.isMinimum && player.yearsOfService >= 3) {
@@ -63,8 +74,14 @@ const CapSheet = ({
     const isPO = option === 'Player Option' || option === 'PO';
     const isTO = option === 'Team Option' || option === 'TO';
     const isNG = slice && slice.guaranteed === false;
+    const isTwoWay = isTwoWayContract(player);
 
     const notes = [];
+    if (isTwoWay)
+      notes.push({
+        label: '2W',
+        className: 'bg-white/5 border-white/20 text-white/50',
+      });
     if (isPO)
       notes.push({
         label: 'PO',
@@ -77,15 +94,16 @@ const CapSheet = ({
       });
     if (player.isMinimum && player.yearsOfService >= 3)
       notes.push({ label: 'Vet Min' });
-    if (isNG) notes.push({ label: 'Non-Guaranteed' });
+    if (isNG) notes.push({ label: 'NG' });
 
     return (
       <span className="flex flex-wrap gap-1.5 justify-end">
         {notes.map((note, i) => (
           <span
             key={i}
-            className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-white/5 text-white/50 border border-white/10 ${note.className || ''
-              }`}
+            className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-white/5 text-white/50 border border-white/10 ${
+              note.className || ''
+            }`}
           >
             {note.label}
           </span>
@@ -131,7 +149,8 @@ const CapSheet = ({
     <div className="text-white font-sans">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-bold tracking-tight text-white/90">
-          Cap Sheet <span className="text-white/40 font-light">|</span> {formatYearLabel(selectedYear)}
+          Cap Sheet <span className="text-white/40 font-light">|</span>{' '}
+          {formatYearLabel(selectedYear)}
         </h3>
 
         {/* Year Selector */}
@@ -140,10 +159,11 @@ const CapSheet = ({
             <button
               key={year}
               onClick={() => setSelectedYear(year)}
-              className={`px-3 py-1 rounded text-[10px] font-medium transition-all duration-200 ${year === selectedYear
-                ? 'bg-white text-black shadow-sm'
-                : 'text-white/40 hover:text-white hover:bg-white/5'
-                }`}
+              className={`px-3 py-1 rounded text-[10px] font-medium transition-all duration-200 ${
+                year === selectedYear
+                  ? 'bg-white text-black shadow-sm'
+                  : 'text-white/40 hover:text-white hover:bg-white/5'
+              }`}
             >
               {formatYearLabel(year)}
             </button>
@@ -192,31 +212,41 @@ const CapSheet = ({
                     onClick={() => onSelectPlayer && onSelectPlayer(player)}
                     className="hover:text-blue-400 transition-colors text-left truncate w-full"
                   >
-                    {player.displayName || player.bio?.displayName || player.name}
+                    {player.displayName ||
+                      player.bio?.displayName ||
+                      player.name}
                   </button>
                 </div>
-                <div className="text-[10px] text-white/50">{POSITION_MAP[position] || position || '—'}</div>
+                <div className="text-[10px] text-white/50">
+                  {POSITION_MAP[position] || position || '—'}
+                </div>
                 <div className="text-[10px] text-white/50">{age}</div>
                 <div className="text-xs font-medium text-right tabular-nums tracking-tight">
                   <span
-                    className={`inline-flex items-center justify-end tabular-nums ${isExtensionSeason
-                      ? 'text-cyan-100 bg-cyan-500/10 border border-cyan-500/30 rounded px-2 py-1'
-                      : 'text-white/90'
-                      }`}
+                    className={`inline-flex items-center justify-end tabular-nums ${
+                      isExtensionSeason
+                        ? 'text-cyan-100 bg-cyan-500/10 border border-cyan-500/30 rounded px-2 py-1'
+                        : 'text-white/90'
+                    }`}
                   >
                     ${capHit.toLocaleString()}
                   </span>
                 </div>
-                <div className="text-[10px] text-white/50 text-right tabular-nums">{capPctDisplay}</div>
+                <div className="text-[10px] text-white/50 text-right tabular-nums">
+                  {capPctDisplay}
+                </div>
                 <div className="text-[10px] text-right tabular-nums">
                   <span
-                    className={`inline-flex items-center justify-end ${isExtensionSeason ? 'text-cyan-100' : 'text-white/50'
-                      }`}
+                    className={`inline-flex items-center justify-end ${
+                      isExtensionSeason ? 'text-cyan-100' : 'text-white/50'
+                    }`}
                   >
                     ${salary.toLocaleString()}
                   </span>
                 </div>
-                <div className="text-[10px]">{renderNotes(player, selectedYear)}</div>
+                <div className="text-[10px]">
+                  {renderNotes(player, selectedYear)}
+                </div>
               </div>
             );
           })}
@@ -233,9 +263,13 @@ const CapSheet = ({
               >
                 <div className="flex items-center gap-2">
                   <span>{showCapHolds ? 'Hide' : 'Show'} Cap Holds</span>
-                  <span className="bg-white/10 px-1.5 py-0.5 rounded text-white/60">{capHoldPlayers.length}</span>
+                  <span className="bg-white/10 px-1.5 py-0.5 rounded text-white/60">
+                    {capHoldPlayers.length}
+                  </span>
                 </div>
-                <span className="text-xs opacity-50">{showCapHolds ? '−' : '+'}</span>
+                <span className="text-xs opacity-50">
+                  {showCapHolds ? '−' : '+'}
+                </span>
               </button>
 
               {showCapHolds && (
@@ -252,15 +286,24 @@ const CapSheet = ({
                           ? p.cap_hold
                           : p.cap_hold?.amount || 0;
                       const reason =
-                        typeof p.cap_hold === 'object' ? p.cap_hold?.reason : '';
+                        typeof p.cap_hold === 'object'
+                          ? p.cap_hold?.reason
+                          : '';
 
                       return (
-                        <div key={idx} className="grid grid-cols-[2fr,1.2fr,3fr] gap-2 px-4 py-2 items-center hover:bg-white/[0.02]">
+                        <div
+                          key={idx}
+                          className="grid grid-cols-[2fr,1.2fr,3fr] gap-2 px-4 py-2 items-center hover:bg-white/[0.02]"
+                        >
                           <div className="text-xs text-white/60">
                             {p.displayName || p.bio?.displayName || p.name}
                           </div>
-                          <div className="text-xs text-white/40 tabular-nums">${amt.toLocaleString()}</div>
-                          <div className="text-[10px] text-white/30">{reason}</div>
+                          <div className="text-xs text-white/40 tabular-nums">
+                            ${amt.toLocaleString()}
+                          </div>
+                          <div className="text-[10px] text-white/30">
+                            {reason}
+                          </div>
                         </div>
                       );
                     })}
@@ -272,7 +315,9 @@ const CapSheet = ({
 
           {/* Total Cap Hit */}
           <div className="px-4 py-3 flex items-center justify-between bg-white/[0.02]">
-            <span className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">Total Cap Hit</span>
+            <span className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">
+              Total Cap Hit
+            </span>
             <span className="text-lg font-bold text-white tabular-nums tracking-tight">
               ${totalCapHit.toLocaleString()}
             </span>
