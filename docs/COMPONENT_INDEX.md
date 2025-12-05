@@ -20,8 +20,10 @@ Quick reference for all components in the ScoutZero project.
 - RosterVisual.jsx
 - SavePlanModal.jsx
 - TeamHistoryTab.jsx
+- ValidationWarnings.jsx
 - WaiveStretchTracker.jsx
 - hooks/useArchitectPlayerData.js
+- hooks/useCapValidation.js
 - hooks/useTradeMachine.js
 - tradeMachine/CapImpactTiles.jsx
 - tradeMachine/FaExceptionTracker.jsx
@@ -256,4 +258,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2025-11-27T08:34:36.689Z*
+*Generated on: 2025-12-05T08:19:09.454Z*

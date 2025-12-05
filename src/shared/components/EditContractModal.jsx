@@ -17,6 +17,8 @@ import {
 } from '@/features/architect/utils/extensionRules';
 import { generateExtensionContract } from '@/features/architect/utils/contractUtils';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
+import useCapValidation from '@/features/architect/hooks/useCapValidation';
+import ValidationWarnings from '@/features/architect/ValidationWarnings';
 
 const ACTION_SETS = {
   option: ['accept', 'decline', 'signNew'],
@@ -59,10 +61,16 @@ const EditContractModal = ({
   onOptionDecision,
   onExtend,
   onSignAndTrade,
+  initialAction = null,
+  targetYear = null,
+  actionContext = null, // 'option' | 'freeAgent' | null - from clicked cell
+  teamCapSheet = null,
+  currentYear: currentYearProp = null,
   actionsOverride = null,
   actionLabelsOverride = {},
 }) => {
   const [selectedAction, setSelectedAction] = useState('');
+  const [showValidationErrors, setShowValidationErrors] = useState(false);
   const [extension, setExtension] = useState({
     years: 1,
     contractType: 'Standard',
@@ -77,7 +85,18 @@ const EditContractModal = ({
   // CURRENT_YEAR = the END year of the current NBA season
   // e.g., in Dec 2025 we're in the 2025-26 season, so CURRENT_YEAR = 2026
   // After June, we're in the next season (e.g., July 2025 = 2025-26 season = 2026)
-  const CURRENT_YEAR = today.getFullYear() + (today.getMonth() >= 6 ? 1 : 0);
+  const CURRENT_YEAR = currentYearProp || (today.getFullYear() + (today.getMonth() >= 6 ? 1 : 0));
+
+  // CBA Validation - get warnings/errors for current action
+  // Use targetYear for option/FA actions, currentYear for extensions/waivers
+  const { warnings, errors, isValid } = useCapValidation({
+    player,
+    action: selectedAction,
+    contractData: extension,
+    teamCapSheet,
+    currentYear: CURRENT_YEAR,
+    targetYear: targetYear, // The specific year the action applies to
+  });
 
   // Helper to get contract years from Architect schema (contract.salariesByYear[])
   // Includes both base contract and extension years (from futureContract)
@@ -107,7 +126,7 @@ const EditContractModal = ({
     // Combine and dedupe by year, preferring extension years (they're more recent)
     const yearMap = new Map();
     [...baseYears, ...extensionYears].forEach((y) => {
-      if (y.year != null) {
+      if (!yearMap.has(y.year) || y.isExtension) {
         yearMap.set(y.year, y);
       }
     });
@@ -134,15 +153,31 @@ const EditContractModal = ({
   const isExpiring =
     isUnderContract && !contractYears.some((y) => y.year > CURRENT_YEAR);
 
-  const actionSet = hasOption
-    ? 'option'
-    : isFreeAgent && !isUnderContract
-      ? 'freeAgent'
-      : isUnderContract
-        ? 'underContract'
-        : null;
+  // Determine action set:
+  // If actionContext is provided (from cell click), use it directly
+  // Otherwise, infer from player's contract state (when clicking player name)
+  const actionSet = actionContext 
+    ? actionContext 
+    : hasOption
+      ? 'option'
+      : isFreeAgent && !isUnderContract
+        ? 'freeAgent'
+        : isUnderContract
+          ? 'underContract'
+          : null;
 
   const actions = actionsOverride || ACTION_SETS[actionSet] || [];
+
+  // Determine if option actions are currently actionable (timing check)
+  // ONLY applies when this is an option scenario, not for free agents or under contract
+  const isOptionActionable = actionSet !== 'option' || !targetYear || targetYear === CURRENT_YEAR + 1;
+  
+  // Get the timing error message for display - ONLY for option scenarios
+  const optionTimingError = actionSet === 'option' && !isOptionActionable && targetYear
+    ? targetYear < CURRENT_YEAR + 1
+      ? `This option has already been decided (past season)`
+      : `Cannot act on this option yet. It can be decided during the ${targetYear - 2}-${String((targetYear - 1) % 100).padStart(2, '0')} offseason.`
+    : null;
 
   // Contract Summary Calculations
   const summary = useMemo(() => {
@@ -196,13 +231,18 @@ const EditContractModal = ({
       }
     }
 
+    // Default pre-fill with last salary for all years
+    const defaultYears = 3; // Default to 3 years for new contracts
     setExtension({
-      years: 1,
+      years: defaultYears,
       contractType: 'Standard',
-      salaries: [lastSalary],
+      salaries: Array(5).fill(lastSalary), // Pre-fill all 5 possible years with last salary
     });
-    setSalaryInputs([lastSalary ? formatCurrencyFull(lastSalary) : '']);
-    setSelectedAction('');
+    setSalaryInputs(
+      Array(5).fill(lastSalary).map((s) => (s ? formatCurrencyFull(s) : ''))
+    );
+    // Use initialAction if provided, otherwise reset
+    setSelectedAction(initialAction || '');
 
     const key = `${CURRENT_YEAR + 1}-${String(
       (CURRENT_YEAR + 2) % 100
@@ -210,7 +250,7 @@ const EditContractModal = ({
     const capSettings = capProjections[key] || {};
     setExtReason(getExtensionEligibilityReason(player, CURRENT_YEAR));
     setExtMax(getExtensionMaxDetails(player, capSettings));
-  }, [player, contractYears, isFreeAgent, optionYear, CURRENT_YEAR]);
+  }, [player, contractYears, isFreeAgent, optionYear, CURRENT_YEAR, initialAction]);
 
   useEffect(() => {
     if (selectedAction !== 'extend' || !extMax) return;
@@ -430,49 +470,68 @@ const EditContractModal = ({
 
           {/* Action Selection */}
           <div className="space-y-3 mb-6">
-            {actions.map((type) => (
-              <label
-                key={type}
-                className={`flex items-start gap-3 p-3 rounded border transition-all cursor-pointer ${
-                  selectedAction === type
-                    ? 'bg-orange-500/10 border-orange-500/50'
-                    : 'bg-white/[0.02] border-white/5 hover:bg-white/5'
-                }`}
-              >
-                <input
-                  type="radio"
-                  value={type}
-                  checked={selectedAction === type}
-                  onChange={() => setSelectedAction(type)}
-                  className="mt-1 accent-orange-500"
-                />
-                <div>
-                  <div
-                    className={`font-medium ${selectedAction === type ? 'text-orange-400' : 'text-white'}`}
-                  >
-                    {actionLabelsOverride[type] || ACTION_LABELS[type]}
+            {/* Show timing error for future options immediately */}
+            {optionTimingError && (
+              <div className="flex items-start gap-2 px-3 py-2 rounded border bg-red-500/10 border-red-500/30 mb-3">
+                <span className="shrink-0 text-sm">❌</span>
+                <span className="text-xs text-red-300">{optionTimingError}</span>
+              </div>
+            )}
+            
+            {actions.map((type) => {
+              // Option actions (accept/decline) are disabled when not actionable
+              const isOptionAction = type === 'accept' || type === 'decline';
+              const isDisabled = isOptionAction && !isOptionActionable;
+              
+              return (
+                <label
+                  key={type}
+                  className={`flex items-start gap-3 p-3 rounded border transition-all ${
+                    isDisabled
+                      ? 'cursor-not-allowed opacity-40 bg-white/[0.01] border-white/5'
+                      : selectedAction === type
+                        ? 'bg-orange-500/10 border-orange-500/50 cursor-pointer'
+                        : 'bg-white/[0.02] border-white/5 hover:bg-white/5 cursor-pointer'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    value={type}
+                    checked={selectedAction === type}
+                    onChange={() => !isDisabled && setSelectedAction(type)}
+                    disabled={isDisabled}
+                    className="mt-1 accent-orange-500 disabled:opacity-50"
+                  />
+                  <div>
+                    <div
+                      className={`font-medium ${
+                        isDisabled
+                          ? 'text-white/40'
+                          : selectedAction === type
+                            ? 'text-orange-400'
+                            : 'text-white'
+                      }`}
+                    >
+                      {actionLabelsOverride[type] || ACTION_LABELS[type]}
+                    </div>
+                    <div className="text-xs text-white/50 mt-0.5">
+                      {ACTION_DESCRIPTIONS[type]}
+                    </div>
                   </div>
-                  <div className="text-xs text-white/50 mt-0.5">
-                    {ACTION_DESCRIPTIONS[type]}
-                  </div>
-                </div>
-              </label>
-            ))}
+                </label>
+              );
+            })}
           </div>
 
-          {/* === Contract Inputs (Conditional) === */}
-          {['signNew', 'resign', 'extend'].includes(selectedAction) && (
-            <div className="bg-[#161616] p-4 rounded border border-white/10 animate-in fade-in slide-in-from-bottom-2">
-              <h4 className="font-semibold text-sm text-white mb-3 flex items-center gap-2">
-                <span className="w-1 h-4 bg-orange-500 rounded-full"></span>
-                Contract Details
-              </h4>
-
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="text-xs text-white/40 mb-1 block">
-                    Type
-                  </label>
+          {/* === Contract Details (Cap Table Row Preview) === */}
+          {['signNew', 'resign', 'extend', 'signAndTrade'].includes(selectedAction) && (
+            <div className="bg-[#0f0f0f] rounded-lg border border-white/10 p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="font-semibold text-sm text-white flex items-center gap-2">
+                  <span className="w-1 h-4 bg-orange-500 rounded-full"></span>
+                  New Contract Preview
+                </h4>
+                <div className="flex items-center gap-2">
                   <select
                     value={extension.contractType}
                     onChange={(e) =>
@@ -481,19 +540,12 @@ const EditContractModal = ({
                         contractType: e.target.value,
                       })
                     }
-                    className="w-full p-2 rounded bg-black border border-white/20 text-sm text-white focus:border-orange-500 outline-none"
+                    className="px-2 py-1 rounded bg-black border border-white/20 text-xs text-white focus:border-orange-500 outline-none"
                   >
                     <option value="Standard">Standard</option>
                     <option value="Rookie Scale">Rookie Scale</option>
-                    <option value="Designated veteran">
-                      Designated veteran
-                    </option>
+                    <option value="Designated veteran">Designated Veteran</option>
                   </select>
-                </div>
-                <div>
-                  <label className="text-xs text-white/40 mb-1 block">
-                    Years
-                  </label>
                   <select
                     value={extension.years}
                     onChange={(e) => {
@@ -509,37 +561,40 @@ const EditContractModal = ({
                       setSalaryInputs(
                         Array.from({ length: yrs }, (_, i) =>
                           extension.salaries[i]
-                            ? String(extension.salaries[i])
+                            ? formatCurrencyFull(extension.salaries[i])
                             : ''
                         )
                       );
                     }}
-                    className="w-full p-2 rounded bg-black border border-white/20 text-sm text-white focus:border-orange-500 outline-none"
+                    className="px-2 py-1 rounded bg-black border border-white/20 text-xs text-white focus:border-orange-500 outline-none"
                   >
                     {[1, 2, 3, 4, 5].map((yr) => (
                       <option key={yr} value={yr}>
-                        {yr} year{yr > 1 ? 's' : ''}
+                        {yr}yr
                       </option>
                     ))}
                   </select>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                {extension.salaries
-                  .slice(0, extension.years)
-                  .map((sal, idx) => (
-                    <div key={idx} className="flex items-center gap-3">
-                      <label className="text-xs text-white/40 w-16">
-                        Year {idx + 1}
-                      </label>
-                      <div className="relative flex-1">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 text-sm">
-                          $
-                        </span>
+              {/* Salary Inputs Grid */}
+              <div className="grid grid-cols-5 gap-2 bg-white/5 rounded-lg p-3">
+                {Array.from({ length: 5 }, (_, idx) => {
+                  const isActive = idx < extension.years;
+                  const year = CURRENT_YEAR + idx + (selectedAction === 'extend' ? 1 : 0);
+                  
+                  return (
+                    <div key={idx} className={`${isActive ? 'opacity-100' : 'opacity-30'}`}>
+                      <div className="text-[10px] text-white/50 text-center mb-1 font-medium">
+                        {year - 1}-{String(year % 100).padStart(2, '0')}
+                      </div>
+                      <div className="relative">
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-white/40 text-xs">$</span>
                         <input
                           type="text"
                           inputMode="decimal"
+                          placeholder="0"
+                          disabled={!isActive}
                           value={salaryInputs[idx] || ''}
                           onChange={(e) => {
                             const raw = e.target.value.replace(/[^0-9]/g, '');
@@ -551,19 +606,21 @@ const EditContractModal = ({
                             });
                             setSalaryInputs((prev) => {
                               const arr = [...prev];
-                              arr[idx] = formatCurrencyFull(raw);
+                              arr[idx] = raw ? formatCurrencyFull(raw) : '';
                               return arr;
                             });
                           }}
-                          className="w-full pl-6 pr-3 py-1.5 rounded bg-black border border-white/20 text-sm text-white focus:border-orange-500 outline-none font-mono"
+                          className="w-full pl-5 pr-2 py-2 rounded bg-black/50 border border-white/10 text-xs text-white font-medium text-center focus:border-cyan-500 focus:bg-cyan-500/10 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                       </div>
                     </div>
-                  ))}
+                  );
+                })}
               </div>
 
+              {/* Extension Eligibility Note */}
               {selectedAction === 'extend' && (
-                <div className="mt-3 p-2 bg-orange-500/10 border border-orange-500/20 rounded text-xs text-orange-200">
+                <div className="mt-3 px-3 py-2 bg-orange-500/10 border border-orange-500/20 rounded text-xs text-orange-200">
                   {extReason === 'Eligible'
                     ? `Max ${extMax?.maxYears || 0} years starting at $${
                         extMax?.maxFirstYearSalary?.toLocaleString() || 0
@@ -574,6 +631,15 @@ const EditContractModal = ({
             </div>
           )}
 
+          {/* === Validation Warnings === */}
+          {selectedAction && (warnings.length > 0 || errors.length > 0) && (
+            <ValidationWarnings
+              warnings={warnings}
+              errors={errors}
+              showErrors={showValidationErrors}
+            />
+          )}
+
           {/* Footer Buttons */}
           <div className="mt-auto pt-6 flex justify-end gap-3">
             <button
@@ -582,17 +648,21 @@ const EditContractModal = ({
             >
               Cancel
             </button>
-            {selectedAction && (
-              <button
-                onClick={handleConfirm}
-                disabled={
-                  selectedAction === 'extend' && extReason !== 'Eligible'
+            <button
+              onClick={() => {
+                if (isValid) {
+                  handleConfirm();
                 }
-                className="px-6 py-2 text-sm font-bold rounded bg-orange-600 hover:bg-orange-500 text-white shadow-lg shadow-orange-900/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-              >
-                Confirm Action
-              </button>
-            )}
+              }}
+              disabled={
+                !selectedAction ||
+                (selectedAction === 'extend' && extReason !== 'Eligible') ||
+                !isValid
+              }
+              className="px-6 py-2 text-sm font-bold rounded bg-orange-600 hover:bg-orange-500 text-white shadow-lg shadow-orange-900/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              Confirm Action
+            </button>
           </div>
         </div>
       </DialogContent>

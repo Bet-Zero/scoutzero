@@ -32,6 +32,7 @@ const CapSheetFull = ({
   teamCapSheet,
   currentYear,
   onSelectPlayer,
+  onActionClick,
   playersMap = {},
 }) => {
   if (!teamCapSheet || !teamCapSheet.players) return null;
@@ -172,10 +173,11 @@ const CapSheetFull = ({
                           return (
                             <div
                               key={year}
-                              className="flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[36px]"
+                              onClick={() => onActionClick?.(player, faType === 'RFA' ? 'rfa' : 'ufa', year)}
+                              className="flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[36px] cursor-pointer hover:ring-2 hover:ring-inset hover:ring-white/20 transition-all"
                             >
                               <span
-                                className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${getTagColor(faType)}`}
+                                className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${getTagColor(faType)} hover:scale-105 transition-transform`}
                               >
                                 {faType}
                               </span>
@@ -205,7 +207,9 @@ const CapSheetFull = ({
                         return (
                           <div
                             key={year}
-                            className={`flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[36px] transition-colors ${optionStyle}`}
+                            onClick={() => onActionClick?.(player, isPO ? 'po' : 'to', year)}
+                            className={`flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[36px] transition-colors cursor-pointer hover:ring-2 hover:ring-inset hover:ring-white/20 ${optionStyle}`}
+                            title={`Click to manage ${isPO ? 'Player' : 'Team'} Option`}
                           >
                             <span
                               className={`text-xs font-medium tabular-nums tracking-tight ${

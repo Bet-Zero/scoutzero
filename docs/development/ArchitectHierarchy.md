@@ -19,9 +19,11 @@ OptionManager.jsx
 RosterVisual.jsx
 SavePlanModal.jsx
 TeamHistoryTab.jsx
+ValidationWarnings.jsx
 WaiveStretchTracker.jsx
 hooks/
   useArchitectPlayerData.js
+  useCapValidation.js
   useTradeMachine.js
 tradeMachine/
   CapImpactTiles.jsx
@@ -143,5 +145,5 @@ utils/
 ```
 
 ---
-*Generated on: 2025-11-27T08:34:36.615Z*
+*Generated on: 2025-12-05T08:19:09.288Z*
 *Auto-updated by: npm run docs*

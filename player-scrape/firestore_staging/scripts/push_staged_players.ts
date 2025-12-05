@@ -27,9 +27,7 @@ function canonicalNormalize(playerId: string): string {
 
 const SERVICE_ACCOUNT_PATH = path.resolve('serviceAccountKey.json');
 // Stage script writes to _artifacts/output in the firestore_staging directory
-const STAGE_DIR = path.resolve(
-  'player-scrape/firestore_staging/_artifacts/output'
-);
+const STAGE_DIR = path.resolve('./firestore_staging/_artifacts/output');
 
 const PLAYERS_V2_COLLECTION = process.env.PLAYERS_V2_COLLECTION ?? 'players_v2';
 const BASE_PLAYERS_COLLECTION =
@@ -167,12 +165,12 @@ async function validatePlayer(
   }
 }
 
-async function pushPlayer(playerId: string) {
+async function pushPlayer(playerId: string, force: boolean = false) {
   // Check for duplicates before pushing
   console.log(`🔍 Checking for duplicates of ${playerId}...`);
   const duplicateCheck = await checkForExistingDuplicates(playerId);
 
-  if (duplicateCheck.hasDuplicates) {
+  if (duplicateCheck.hasDuplicates && !force) {
     console.warn(
       `⚠️  Found existing player(s): ${duplicateCheck.existingIds.join(', ')}`
     );
@@ -193,6 +191,11 @@ async function pushPlayer(playerId: string) {
       );
       playerId = duplicateCheck.canonicalId; // Use canonical form
     }
+  } else if (duplicateCheck.hasDuplicates && force) {
+    console.log(
+      `🔄 Found existing player(s): ${duplicateCheck.existingIds.join(', ')} - FORCING UPDATE`
+    );
+    playerId = duplicateCheck.canonicalId; // Use canonical form
   }
 
   // Validate before pushing
@@ -269,10 +272,16 @@ async function main() {
   const args = process.argv.slice(2);
   const players: string[] = [];
   let pushAll = false;
+  let force = false;
 
   // Check for --all flag
   if (args.includes('--all')) {
     pushAll = true;
+  }
+
+  // Check for --force flag
+  if (args.includes('--force')) {
+    force = true;
   }
 
   // Parse arguments - support both --player=id and positional args
@@ -314,7 +323,7 @@ async function main() {
   console.log(`🚀 Pushing ${players.length} player(s)...\n`);
 
   for (const playerId of players) {
-    await pushPlayer(playerId);
+    await pushPlayer(playerId, force);
   }
   console.log('\n🎉 All players pushed.');
 }

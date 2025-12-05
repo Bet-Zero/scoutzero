@@ -152,6 +152,9 @@ const GMDashboard = () => {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [newPlanName, setNewPlanName] = useState('');
   const [showContractModal, setShowContractModal] = useState(false);
+  const [initialAction, setInitialAction] = useState(null); // Pre-select action in modal
+  const [targetYear, setTargetYear] = useState(null); // Year the action applies to (for options/FA)
+  const [actionContext, setActionContext] = useState(null); // 'option' | 'freeAgent' | null - what was clicked
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
@@ -604,6 +607,27 @@ const GMDashboard = () => {
 
   const handleEditContract = (player) => {
     setSelectedPlayer(player);
+    setInitialAction(null); // No pre-selection when just clicking player name
+    setTargetYear(null); // No specific year context
+    setActionContext(null); // No specific action context - show based on player state
+    setShowContractModal(true);
+  };
+
+  // Handler for clicking action cells (PO/TO/UFA/RFA) in CapSheetFull
+  const handleCapSheetAction = (player, actionType, year) => {
+    setSelectedPlayer(player);
+    setTargetYear(year); // Store which year was clicked
+    
+    // Determine action context based on what was clicked
+    const contextMap = {
+      'po': 'option',
+      'to': 'option',
+      'ufa': 'freeAgent',
+      'rfa': 'freeAgent',
+    };
+    
+    setInitialAction(null); // No pre-selection - user picks
+    setActionContext(contextMap[actionType] || null);
     setShowContractModal(true);
   };
 
@@ -949,6 +973,7 @@ const GMDashboard = () => {
             teamCapSheet={teamCapSheet}
             currentYear={currentYear}
             onSelectPlayer={handleEditContract}
+            onActionClick={handleCapSheetAction}
             playersMap={playersMap}
           />
         )}
@@ -1089,10 +1114,19 @@ const GMDashboard = () => {
       {showContractModal && (
         <EditContractModal
           isOpen={showContractModal}
-          onClose={() => setShowContractModal(false)}
+          onClose={() => {
+            setShowContractModal(false);
+            setInitialAction(null);
+            setTargetYear(null);
+            setActionContext(null);
+          }}
           player={selectedPlayer}
+          initialAction={initialAction}
+          targetYear={targetYear}
+          actionContext={actionContext}
           capProjections={capProjections}
           teamCapSheet={teamCapSheet}
+          currentYear={currentYear}
           onSign={handleSign}
           onSave={handleSaveContract}
           onExtend={handleExtendContract}
