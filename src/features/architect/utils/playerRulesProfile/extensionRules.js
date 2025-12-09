@@ -45,7 +45,9 @@ const RAISE_PERCENTAGES = {
 };
 
 /**
- * Estimated average player salary (update annually)
+ * Estimated average player salary (update annually with cap projections)
+ * This is used as a floor for extension calculations
+ * Reference: CBA_Article_7_RuleCards.md, Rule Card 16
  */
 const ESTIMATED_AVERAGE_SALARY = 11_100_000;
 
@@ -87,9 +89,14 @@ export function computeExtensionEligibility(player, leagueContext) {
     };
   }
 
-  // Check if used Early Termination Option
+  // Check if used Early Termination Option (ETO blocks extensions)
   if (player.usedETO) {
-    blockers.push('Used Early Termination Option');
+    return {
+      isEligible: false,
+      reason: 'Cannot extend contract after using Early Termination Option',
+      blockers: ['Used Early Termination Option'],
+      extensionType: EXTENSION_TYPES.INELIGIBLE,
+    };
   }
 
   // Check timing from last renegotiation (must wait 3 years after >10% increase)

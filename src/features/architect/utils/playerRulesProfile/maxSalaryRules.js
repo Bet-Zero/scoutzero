@@ -122,10 +122,14 @@ export function checkSupermaxEligibility(player, leagueContext) {
   const yearsOfService = getYearsOfService(player);
   const awards = player?.awards || [];
 
-  // Check for qualifying awards in the past 3 seasons
+  // Check for qualifying awards in the past 3 seasons (current + prior 2)
+  // For currentYear 2025, eligible awards are from 2025, 2024, or 2023 seasons
   const recentAwards = awards.filter(award => {
     const awardYear = award.year || award.season;
-    return awardYear && (currentYear - awardYear) <= 2;
+    if (!awardYear) return false;
+    // Award must be from current year or the two prior years
+    const yearDiff = currentYear - awardYear;
+    return yearDiff >= 0 && yearDiff <= 2;
   });
 
   const hasQualifyingAward = recentAwards.some(award => {

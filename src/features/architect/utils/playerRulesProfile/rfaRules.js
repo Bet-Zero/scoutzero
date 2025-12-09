@@ -371,13 +371,15 @@ function parseSeasonEndYear(season) {
 /**
  * Compute QO acceptance deadline
  *
- * Per CBA: Player has until October 1 to accept QO
+ * Per CBA Article XI, Sec. 4(c): Player has until October 1 to accept QO
+ * Note: Deadline is in Eastern Time per CBA, but we use midnight UTC
+ * for simplicity in simulation context
  *
  * @param {number} currentYear - Current season end year
  * @returns {Date} QO acceptance deadline
  */
 function computeQOAcceptanceDeadline(currentYear) {
-  // October 1 of the offseason before the new season
+  // October 1 of the offseason before the new season (UTC midnight)
   // For 2024-25 season (currentYear = 2025), deadline is Oct 1, 2024
-  return new Date(currentYear - 1, 9, 1); // Month is 0-indexed, so 9 = October
+  return new Date(Date.UTC(currentYear - 1, 9, 1, 23, 59, 59)); // Oct 1, 11:59:59 PM UTC
 }

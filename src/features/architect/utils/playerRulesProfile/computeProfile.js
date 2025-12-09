@@ -313,9 +313,12 @@ function createEmptyProfile(playerId, reason) {
 /**
  * Get current NBA season year
  *
- * NBA season rolls over July 1:
- * - Before July 1: previous season (e.g., June 2024 = 2023-24 = year 2024)
- * - July 1 or later: current season (e.g., July 2024 = 2024-25 = year 2025)
+ * NBA free agency and league year starts July 1:
+ * - Before July 1: current season (e.g., May 2024 = 2023-24 = year 2024)
+ * - July 1 or later: next season (e.g., July 2024 = 2024-25 = year 2025)
+ *
+ * Note: Regular season starts in October, but for CBA purposes,
+ * the league year (free agency, extensions, etc.) begins July 1.
  *
  * @param {Date} date - Date to evaluate
  * @returns {number} Season end year
@@ -324,7 +327,7 @@ function getCurrentSeasonYear(date) {
   const year = date.getFullYear();
   const month = date.getMonth(); // 0 = Jan, 6 = Jul
 
-  // After July 1, we're in the next season
+  // July 1 is the start of the new league year
   return month >= 6 ? year + 1 : year;
 }
 

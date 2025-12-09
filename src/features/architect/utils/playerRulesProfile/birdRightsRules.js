@@ -280,7 +280,10 @@ function computeSigningAbilities(type, config, priorSalary, salaryCap, averageSa
 
     case BIRD_RIGHTS_TYPES.NON_BIRD:
       // Non-Bird: 120% of prior salary or minimum
-      const nonBirdMax = priorSalary > 0 ? priorSalary * 1.20 : averageSalary * 0.5;
+      // If no prior salary, default to 50% of average salary as reasonable estimate
+      // for a player who might be on a minimum contract
+      const NON_BIRD_DEFAULT_SALARY_FACTOR = 0.5;
+      const nonBirdMax = priorSalary > 0 ? priorSalary * 1.20 : averageSalary * NON_BIRD_DEFAULT_SALARY_FACTOR;
       return {
         ...base,
         maxFirstYearSalary: Math.round(nonBirdMax),

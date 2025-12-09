@@ -77,7 +77,7 @@ const ROOKIE_FOURTH_YEAR = {
     draftRound: 1,
     draftPick: 5,
   },
-  draftYear: 2021,
+  // Note: draftYear also in bio for consistency with player data sources
   contract: {
     contractType: 'Rookie Scale',
     isRookieScale: true,
