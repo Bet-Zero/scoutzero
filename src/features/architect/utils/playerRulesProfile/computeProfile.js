@@ -18,13 +18,13 @@
  * @file src/features/architect/utils/playerRulesProfile/computeProfile.js
  */
 
-import { computeExtensionEligibility, computeExtensionTerms } from './extensionRules.js';
-import { computeBirdRights } from './birdRightsRules.js';
-import { computeMinimumSalary, getYearsOfService } from './minimumSalaryRules.js';
-import { computeRFAStatus } from './rfaRules.js';
-import { computeMaxSalary } from './maxSalaryRules.js';
-import { parseSeasonEndYear } from '../seasonUtils.js';
-import { DEFAULT_AVERAGE_SALARY } from '../cbaConstants.js';
+import { computeExtensionEligibility, computeExtensionTerms } from '@/features/architect/utils/playerRulesProfile/extensionRules.js';
+import { computeBirdRights } from '@/features/architect/utils/playerRulesProfile/birdRightsRules.js';
+import { computeMinimumSalary, getYearsOfService } from '@/features/architect/utils/playerRulesProfile/minimumSalaryRules.js';
+import { computeRFAStatus } from '@/features/architect/utils/playerRulesProfile/rfaRules.js';
+import { computeMaxSalary } from '@/features/architect/utils/playerRulesProfile/maxSalaryRules.js';
+import { parseSeasonEndYear } from '@/features/architect/utils/seasonUtils.js';
+import { DEFAULT_AVERAGE_SALARY } from '@/features/architect/utils/cbaConstants.js';
 
 /**
  * Default cap settings (2024-25 values)
