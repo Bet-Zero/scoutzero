@@ -101,7 +101,7 @@
  * @property {Object} contractSummary - Summary of current contract situation
  * @property {number} contractSummary.yearsOfService - Total years of NBA service
  * @property {number} contractSummary.yearsRemaining - Years remaining on current contract
- * @property {string} contractSummary.freeAgencyYear - Year player becomes a free agent
+ * @property {number|null} contractSummary.freeAgencyYear - Year player becomes a free agent
  * @property {string} contractSummary.freeAgencyType - Type of free agency ('UFA', 'RFA')
  * @property {number} [contractSummary.currentSalary] - Current season salary
  */
