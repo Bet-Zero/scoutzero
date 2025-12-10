@@ -23,6 +23,8 @@ import { computeBirdRights } from './birdRightsRules.js';
 import { computeMinimumSalary, getYearsOfService } from './minimumSalaryRules.js';
 import { computeRFAStatus } from './rfaRules.js';
 import { computeMaxSalary } from './maxSalaryRules.js';
+import { parseSeasonEndYear } from '../seasonUtils.js';
+import { DEFAULT_AVERAGE_SALARY } from '../cbaConstants.js';
 
 /**
  * Default cap settings (2024-25 values)
@@ -33,7 +35,7 @@ const DEFAULT_CAP_SETTINGS = {
   firstApron: 178_132_000,
   secondApron: 188_938_000,
   taxLine: 170_818_000,
-  averageSalary: 11_100_000,
+  averageSalary: DEFAULT_AVERAGE_SALARY,
 };
 
 /**
@@ -340,22 +342,4 @@ function getCurrentSeasonYear(date) {
 function toSeasonCode(endYear) {
   const startYear = endYear - 1;
   return `${startYear}-${String(endYear).slice(-2)}`;
-}
-
-/**
- * Parse season code to end year
- *
- * @param {string} season - Season code (e.g., "2024-25")
- * @returns {number|null} End year
- */
-function parseSeasonEndYear(season) {
-  if (!season) return null;
-
-  if (/^\d{4}-\d{2}$/.test(season)) {
-    const tail = parseInt(season.split('-')[1], 10);
-    return 2000 + tail;
-  }
-
-  const year = parseInt(season, 10);
-  return Number.isFinite(year) ? year : null;
 }

@@ -16,6 +16,9 @@
  * @file src/features/architect/utils/playerRulesProfile/birdRightsRules.js
  */
 
+import { formatSalary } from '@/shared/utils/formatting/basicFormatting.js';
+import { DEFAULT_AVERAGE_SALARY } from '../cbaConstants.js';
+
 /**
  * Bird rights type constants
  */
@@ -76,7 +79,7 @@ const BIRD_RIGHTS_CONFIG = {
 export function computeBirdRights(player, leagueContext) {
   const { capSettings = {} } = leagueContext || {};
   const salaryCap = capSettings.salaryCap || 140_588_000;
-  const averageSalary = capSettings.averageSalary || 11_100_000;
+  const averageSalary = capSettings.averageSalary || DEFAULT_AVERAGE_SALARY;
 
   // Try to get Bird rights from existing contract data
   const existingBirdRights = extractExistingBirdRights(player);
@@ -255,7 +258,7 @@ function computeSigningAbilities(type, config, priorSalary, salaryCap, averageSa
   };
 
   switch (type) {
-    case BIRD_RIGHTS_TYPES.FULL:
+    case BIRD_RIGHTS_TYPES.FULL: {
       // Full Bird can sign to max salary
       return {
         ...base,
@@ -263,6 +266,7 @@ function computeSigningAbilities(type, config, priorSalary, salaryCap, averageSa
         canSignToMax: true,
         method: 'Full Bird rights - can sign to max salary',
       };
+    }
 
     case BIRD_RIGHTS_TYPES.EARLY:
       {
@@ -350,15 +354,14 @@ function buildBirdRightsSummary(type, abilities) {
 }
 
 /**
- * Format currency for display
+ * Format currency for display using the shared formatSalary utility.
+ * Returns '$0' for falsy values instead of '-' (shared utility behavior)
+ * because in Bird rights context, showing $0 is more meaningful than a dash.
  *
  * @param {number} amount - Amount in dollars
  * @returns {string} Formatted string
  */
 function formatCurrency(amount) {
   if (!amount) return '$0';
-  if (amount >= 1_000_000) {
-    return `$${(amount / 1_000_000).toFixed(1)}M`;
-  }
-  return `$${amount.toLocaleString()}`;
+  return formatSalary(amount);
 }

@@ -12,6 +12,8 @@
  * @file src/features/architect/utils/playerRulesProfile/maxSalaryRules.js
  */
 
+import { getYearsOfService } from './minimumSalaryRules.js';
+
 /**
  * Max salary tier definitions
  */
@@ -148,7 +150,7 @@ export function checkSupermaxEligibility(player, leagueContext) {
     };
   }
 
-  if (!meetsServiceRequirement && yearsOfService < 7) {
+  if (!meetsServiceRequirement) {
     // Can still get 30% Higher Max in rookie extension
     return {
       isEligible: true,
@@ -227,8 +229,4 @@ function buildMaxSalaryReason(yearsOfService, percent, supermaxInfo) {
   return `0-6 year player max (${percentLabel} of cap)`;
 }
 
-import { getYearsOfService } from './minimumSalaryRules.js';
 
-/**
- * Max Salary Rules
- * ... (rest of file continues)

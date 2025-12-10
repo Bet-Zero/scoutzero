@@ -599,11 +599,19 @@ describe('Full Profile Scenarios', () => {
     const profile1 = computePlayerRulesProfile(VETERAN_STAR, TEAM_CONTEXT, LEAGUE_CONTEXT);
     const profile2 = computePlayerRulesProfile(VETERAN_STAR, TEAM_CONTEXT, LEAGUE_CONTEXT);
 
-    // Compare key fields (excluding timestamp)
+    // Compare key fields - evaluatedAt is intentionally excluded from equality checks
+    // as it captures the timestamp of evaluation which may differ slightly between calls
     expect(profile1.extensionEligibility).toEqual(profile2.extensionEligibility);
     expect(profile1.birdRights).toEqual(profile2.birdRights);
     expect(profile1.minimumSalary).toEqual(profile2.minimumSalary);
     expect(profile1.maxSalary).toEqual(profile2.maxSalary);
+
+    // Verify evaluatedAt timestamps are present and within reasonable bounds (< 1000ms apart)
+    expect(profile1.evaluatedAt).toBeDefined();
+    expect(profile2.evaluatedAt).toBeDefined();
+    const time1 = new Date(profile1.evaluatedAt).getTime();
+    const time2 = new Date(profile2.evaluatedAt).getTime();
+    expect(Math.abs(time2 - time1)).toBeLessThan(1000);
   });
 
   it('handles player from test fixtures (LeBron-style)', () => {

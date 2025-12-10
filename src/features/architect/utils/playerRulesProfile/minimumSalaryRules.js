@@ -62,8 +62,8 @@ export function getMinimumSalaryScale(season) {
 
   // Fall back to the latest available scale
   const seasons = Object.keys(MINIMUM_SALARY_SCALE).sort((a, b) => {
-    const yearA = parseInt(a.split('-')[0], 10);
-    const yearB = parseInt(b.split('-')[0], 10);
+    const yearA = parseInt(a.split('-')[0], 10) || 0;
+    const yearB = parseInt(b.split('-')[0], 10) || 0;
     return yearA - yearB;
   });
   const latestSeason = seasons[seasons.length - 1];
@@ -149,7 +149,8 @@ export function getMinimumCapHit(yearsOfService, season = '2024-25') {
   // Per trade rules, minimum cap hit for matching purposes
   // is based on a 2-year veteran minimum for players with 3+ years
   if (yearsOfService >= 3) {
-    return scale[2] || 2_092_400;
+    // Use scale[2] from the requested season, falling back to 2024-25 scale if not available
+    return scale[2] || MINIMUM_SALARY_SCALE['2024-25'][2];
   }
 
   const cappedYears = Math.min(yearsOfService, 10);

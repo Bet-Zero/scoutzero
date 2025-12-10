@@ -20,6 +20,7 @@
  */
 
 import { getYearsOfService, getMinimumSalaryScale } from './minimumSalaryRules.js';
+import { parseSeasonEndYear } from '../seasonUtils.js';
 
 /**
  * RFA status constants
@@ -347,24 +348,6 @@ function getContractSigningYear(contract) {
   }
 
   return null;
-}
-
-/**
- * Parse season code to end year
- *
- * @param {string} season - Season code (e.g., "2024-25")
- * @returns {number|null} End year
- */
-function parseSeasonEndYear(season) {
-  if (!season) return null;
-
-  if (/^\d{4}-\d{2}$/.test(season)) {
-    const tail = parseInt(season.split('-')[1], 10);
-    return 2000 + tail;
-  }
-
-  const year = parseInt(season, 10);
-  return Number.isFinite(year) ? year : null;
 }
 
 /**
