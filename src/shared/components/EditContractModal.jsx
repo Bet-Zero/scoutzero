@@ -19,6 +19,7 @@ import { generateExtensionContract } from '@/features/architect/utils/contractUt
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import useCapValidation from '@/features/architect/hooks/useCapValidation';
 import ValidationWarnings from '@/features/architect/ValidationWarnings';
+import { usePlayerRulesProfile } from '@/features/architect/hooks/usePlayerRulesProfile';
 
 const ACTION_SETS = {
   option: ['accept', 'decline', 'signNew'],
@@ -87,6 +88,17 @@ const EditContractModal = ({
   // e.g., in Dec 2025 we're in the 2025-26 season, so CURRENT_YEAR = 2026
   // After June, we're in the next season (e.g., July 2025 = 2025-26 season = 2026)
   const CURRENT_YEAR = currentYearProp || (today.getFullYear() + (today.getMonth() >= 6 ? 1 : 0));
+
+  // Use the Player Rules Profile hook for centralized CBA rules
+  const { getExtensionModalData, getResignModalData, getPlayerProfile } = usePlayerRulesProfile({
+    teamCapSheet,
+    currentYear: CURRENT_YEAR,
+  });
+
+  // Get rules-driven extension and resign data
+  const rulesProfile = useMemo(() => getPlayerProfile(player), [player, getPlayerProfile]);
+  const extensionModalData = useMemo(() => getExtensionModalData(player), [player, getExtensionModalData]);
+  const resignModalData = useMemo(() => getResignModalData(player), [player, getResignModalData]);
 
   // CBA Validation - get warnings/errors for current action
   // Use targetYear for option/FA actions, currentYear for extensions/waivers
@@ -246,13 +258,33 @@ const EditContractModal = ({
     setSelectedAction(initialAction || '');
     setSelectedException('None');
 
-    const key = `${CURRENT_YEAR - 1}-${String(
-      CURRENT_YEAR % 100
-    ).padStart(2, '0')}`;
-    const capSettings = capProjections[key] || {};
-    setExtReason(getExtensionEligibilityReason(player, CURRENT_YEAR));
-    setExtMax(getExtensionMaxDetails(player, capSettings));
-  }, [player, contractYears, isFreeAgent, optionYear, CURRENT_YEAR, initialAction]);
+    // Use rules profile for extension eligibility (centralized CBA logic)
+    if (extensionModalData) {
+      setExtReason(extensionModalData.isEligible ? 'Eligible' : extensionModalData.reason);
+      if (extensionModalData.constraints) {
+        setExtMax({
+          maxYears: extensionModalData.constraints.maxYears,
+          maxFirstYearSalary: extensionModalData.constraints.maxFirstYearSalary,
+          minFirstYearSalary: extensionModalData.constraints.minFirstYearSalary,
+          baseRaisePct: extensionModalData.constraints.raisePercentage,
+          type: extensionModalData.extensionType,
+          basedOn: extensionModalData.basedOn,
+          notes: extensionModalData.notes,
+        });
+      } else {
+        // Fallback to old logic if rules profile didn't return constraints
+        const key = `${CURRENT_YEAR - 1}-${String(CURRENT_YEAR % 100).padStart(2, '0')}`;
+        const capSettings = capProjections[key] || {};
+        setExtMax(getExtensionMaxDetails(player, capSettings));
+      }
+    } else {
+      // Fallback to legacy extension rules if rules profile not available
+      const key = `${CURRENT_YEAR - 1}-${String(CURRENT_YEAR % 100).padStart(2, '0')}`;
+      const capSettings = capProjections[key] || {};
+      setExtReason(getExtensionEligibilityReason(player, CURRENT_YEAR));
+      setExtMax(getExtensionMaxDetails(player, capSettings));
+    }
+  }, [player, contractYears, isFreeAgent, optionYear, CURRENT_YEAR, initialAction, extensionModalData]);
 
   useEffect(() => {
     if (selectedAction !== 'extend' || !extMax) return;
