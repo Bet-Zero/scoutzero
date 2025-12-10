@@ -7,6 +7,7 @@ import CapSummaryTiles from '@/features/architect/CapSummaryTiles';
 import { POSITION_MAP } from '@/shared/utils/roles';
 import getCapPercentage from '@/features/architect/utils/basicArchitectUtils';
 import capProjections from '@/features/architect/utils/capProjections';
+import { usePlayerRulesProfile } from '@/features/architect/hooks/usePlayerRulesProfile';
 
 // Helper to identify two-way contracts (don't count against cap)
 const isTwoWayContract = (player) => {
@@ -27,6 +28,12 @@ const CapSheet = ({
 
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [showCapHolds, setShowCapHolds] = useState(false);
+
+  // Use player rules profile hook for CBA-driven indicators
+  const { getCapSheetRowData, getActionAvailability } = usePlayerRulesProfile({
+    teamCapSheet,
+    currentYear: selectedYear,
+  });
 
   const generateYears = (startYear, count) =>
     Array.from({ length: count }, (_, i) => startYear + i);
