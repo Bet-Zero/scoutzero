@@ -74,7 +74,15 @@ const ROOKIE_QO_INCREASES = {
  * @returns {Object} RFA status information
  */
 export function computeRFAStatus(player, leagueContext) {
-  const currentYear = leagueContext?.currentYear || new Date().getFullYear();
+  const currentYear = leagueContext?.currentYear;
+  if (!currentYear) {
+    return {
+      isRFA: false,
+      qualifyingOfferEligible: false,
+      reason: 'Missing currentYear in leagueContext',
+      status: RFA_STATUS.UNKNOWN,
+    };
+  }
   const contract = player?.contract;
 
   // Check if player is under contract
