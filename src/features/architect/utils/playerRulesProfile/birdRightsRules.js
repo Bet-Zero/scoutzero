@@ -160,7 +160,7 @@ function normalizeBirdRightsType(type) {
  * @param {Object} player - Player data object
  * @returns {number} Years with team
  */
-function computeYearsWithTeam(player) {
+function computeYearsWithTeam(player, currentYear) {
   // Check multiple possible sources
   if (player?.contract?.birdRights?.yearsWithTeam) {
     return player.contract.birdRights.yearsWithTeam;
@@ -169,7 +169,6 @@ function computeYearsWithTeam(player) {
   // Calculate from contract start if available
   if (player?.contract?.startSeason) {
     const startYear = parseSeasonYear(player.contract.startSeason);
-    const currentYear = new Date().getFullYear();
     if (startYear) {
       return Math.max(0, currentYear - startYear);
     }
