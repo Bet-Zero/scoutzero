@@ -26,6 +26,7 @@ Quick reference for all components in the ScoutZero project.
 - hooks/useArchitectPlayerData.js
 - hooks/useCapSheetState.js
 - hooks/useCapValidation.js
+- hooks/usePlayerRulesProfiles.js
 - hooks/useTradeMachine.js
 - tradeMachine/CapImpactTiles.jsx
 - tradeMachine/FaExceptionTracker.jsx
@@ -61,6 +62,14 @@ Quick reference for all components in the ScoutZero project.
 - utils/firebaseTeamPlanHelpers.js
 - utils/freeAgentLogic.js
 - utils/hardCapUtils.js
+- utils/playerRulesProfile/birdRightsRules.js
+- utils/playerRulesProfile/computeProfile.js
+- utils/playerRulesProfile/extensionRules.js
+- utils/playerRulesProfile/index.js
+- utils/playerRulesProfile/maxSalaryRules.js
+- utils/playerRulesProfile/minimumSalaryRules.js
+- utils/playerRulesProfile/rfaRules.js
+- utils/playerRulesProfile/types.js
 - utils/reacqUtils.js
 - utils/rosterUtils.js
 - utils/runOffseason.js
@@ -260,4 +269,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2025-12-05T12:44:26.068Z*
+*Generated on: 2025-12-10T10:26:22.098Z*

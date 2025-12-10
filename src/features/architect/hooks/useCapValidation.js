@@ -1,4 +1,17 @@
 /**
+ * FILE: src/features/architect/hooks/useCapValidation.js
+ * PURPOSE: Provide real-time CBA validation for Architect contract actions, leveraging PlayerRulesProfile when available.
+ * OWNERSHIP: Feature: architect/contracts validation
+ *
+ * HISTORY:
+ *  - 2025-12-10: Added PlayerRulesProfile-aware extension checks (chunk_01).
+ *  - 2025-12-10: Added rules profile gating for FA/QO validation (chunk_02).
+ *
+ * LINKS:
+ *  - Plan: plans/_archive/player-rules-architect/plan.md
+ *  - Latest Chunk: plans/_archive/player-rules-architect/chunks/chunk_02.md
+ */
+/**
  * useCapValidation Hook
  * 
  * Provides real-time CBA validation for contract actions.
@@ -43,6 +56,7 @@ const getCapSettings = (year) => {
  * @param {Object} params.teamCapSheet - Team's current cap sheet
  * @param {number} params.currentYear - The current NBA season end year (e.g., 2026 for 2025-26)
  * @param {number} params.targetYear - The year the action applies to (e.g., option year)
+ * @param {Object} params.rulesProfile - PlayerRulesProfile data for the player (optional)
  */
 export function useCapValidation({
   player,
@@ -51,6 +65,7 @@ export function useCapValidation({
   teamCapSheet,
   currentYear,
   targetYear = null,
+  rulesProfile = null,
 }) {
   return useMemo(() => {
     const warnings = [];
@@ -128,37 +143,93 @@ export function useCapValidation({
     
     // ===== EXTENSIONS =====
     if (action === 'extend') {
-      const eligibilityReason = getExtensionEligibilityReason(player, currentYear);
-      
-      if (eligibilityReason !== 'Eligible') {
-        errors.push({
-          severity: 'error',
-          message: eligibilityReason,
-        });
+      if (rulesProfile?.extensionEligibility) {
+        const eligibility = rulesProfile.extensionEligibility;
+        const terms = rulesProfile.extensionTerms;
+        const proposedFirstYear =
+          contractData.salaries?.[0] || contractData.base || 0;
+
+        if (!eligibility.isEligible) {
+          errors.push({
+            severity: 'error',
+            message: eligibility.reason || 'Not extension eligible',
+          });
+        }
+
+        if (terms) {
+          if (
+            terms.minFirstYearSalary != null &&
+            proposedFirstYear < terms.minFirstYearSalary
+          ) {
+            errors.push({
+              severity: 'error',
+              message: `Below minimum first year ($${(
+                terms.minFirstYearSalary / 1_000_000
+              ).toFixed(2)}M)`,
+            });
+          }
+
+          if (
+            terms.maxFirstYearSalary != null &&
+            proposedFirstYear > terms.maxFirstYearSalary
+          ) {
+            errors.push({
+              severity: 'error',
+              message: `Exceeds max first year ($${(
+                terms.maxFirstYearSalary / 1_000_000
+              ).toFixed(2)}M)`,
+            });
+          }
+
+          if (contractData.years && terms.maxYears && contractData.years > terms.maxYears) {
+            errors.push({
+              severity: 'error',
+              message: `Exceeds max years (${terms.maxYears} years)`,
+            });
+          }
+
+          if (eligibility?.isEligible) {
+            warnings.push({
+              severity: 'info',
+              message: `${terms.extensionType || 'Extension'}: Max ${terms.maxYears}yr @ $${(
+                (terms.maxFirstYearSalary || 0) / 1_000_000
+              ).toFixed(1)}M`,
+            });
+          }
+        }
       } else {
-        const extMax = getExtensionMaxDetails(player, capSettings);
-        const proposedFirstYear = contractData.salaries?.[0] || 0;
+        const eligibilityReason = getExtensionEligibilityReason(player, currentYear);
         
-        if (extMax && proposedFirstYear > extMax.maxFirstYearSalary) {
+        if (eligibilityReason !== 'Eligible') {
           errors.push({
             severity: 'error',
-            message: `Exceeds max first year salary ($${(extMax.maxFirstYearSalary / 1000000).toFixed(2)}M)`,
+            message: eligibilityReason,
           });
-        }
-        
-        if (extMax && contractData.years > extMax.maxYears) {
-          errors.push({
-            severity: 'error',
-            message: `Exceeds max years (${extMax.maxYears} years)`,
-          });
-        }
-        
-        // Advisory: extension type info
-        if (extMax) {
-          warnings.push({
-            severity: 'info',
-            message: `${extMax.type}: Max ${extMax.maxYears}yr @ $${(extMax.maxFirstYearSalary / 1000000).toFixed(1)}M`,
-          });
+        } else {
+          const extMax = getExtensionMaxDetails(player, capSettings);
+          const proposedFirstYear = contractData.salaries?.[0] || 0;
+          
+          if (extMax && proposedFirstYear > extMax.maxFirstYearSalary) {
+            errors.push({
+              severity: 'error',
+              message: `Exceeds max first year salary ($${(extMax.maxFirstYearSalary / 1000000).toFixed(2)}M)`,
+            });
+          }
+          
+          if (extMax && contractData.years > extMax.maxYears) {
+            errors.push({
+              severity: 'error',
+              message: `Exceeds max years (${extMax.maxYears} years)`,
+            });
+          }
+          
+          // Advisory: extension type info
+          if (extMax) {
+            warnings.push({
+              severity: 'info',
+              message: `${extMax.type}: Max ${extMax.maxYears}yr @ $${(extMax.maxFirstYearSalary / 1000000).toFixed(1)}M`,
+            });
+          }
         }
       }
     }
@@ -169,7 +240,46 @@ export function useCapValidation({
       const currentYearCapHit = calculateTeamCapHit(teamPlayers, currentYear);
       const currentCapSettings = getCapSettings(currentYear);
       const projectedCap = currentYearCapHit + proposedSalary;
-      
+
+      if (rulesProfile) {
+        const minAllowed = Math.max(
+          rulesProfile.minimumSalary || 0,
+          rulesProfile.restrictedFreeAgency?.qualifyingOfferAmount || 0
+        );
+        const maxBirdSalary =
+          rulesProfile.birdRights?.signingAbilities?.maxFirstYearSalary ?? null;
+        const maxSalaryCap =
+          maxBirdSalary ?? rulesProfile.maxSalary?.maxSalary ?? null;
+
+        if (minAllowed && proposedSalary < minAllowed) {
+          errors.push({
+            severity: 'error',
+            message: `Below minimum allowed first year ($${(
+              minAllowed / 1_000_000
+            ).toFixed(2)}M)`,
+          });
+        }
+
+        if (maxSalaryCap && proposedSalary > maxSalaryCap) {
+          errors.push({
+            severity: 'error',
+            message: `Exceeds allowed first year ($${(
+              maxSalaryCap / 1_000_000
+            ).toFixed(2)}M)`,
+          });
+        }
+
+        if (rulesProfile.restrictedFreeAgency?.isRFA) {
+          const rfaReason = rulesProfile.restrictedFreeAgency.reason;
+          if (rfaReason) {
+            warnings.push({
+              severity: 'info',
+              message: rfaReason,
+            });
+          }
+        }
+      }
+
       // Check if team has cap room
       const hasCapRoom = currentYearCapHit < currentCapSettings.cap;
       
@@ -255,8 +365,7 @@ export function useCapValidation({
     const isValid = errors.length === 0;
     
     return { warnings, errors, isValid };
-  }, [player, action, contractData, teamCapSheet, currentYear, targetYear]);
+  }, [player, action, contractData, teamCapSheet, currentYear, targetYear, rulesProfile]);
 }
 
 export default useCapValidation;
-

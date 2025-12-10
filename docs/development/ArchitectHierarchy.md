@@ -26,6 +26,7 @@ hooks/
   useArchitectPlayerData.js
   useCapSheetState.js
   useCapValidation.js
+  usePlayerRulesProfiles.js
   useTradeMachine.js
 tradeMachine/
   CapImpactTiles.jsx
@@ -63,6 +64,15 @@ utils/
   firebaseTeamPlanHelpers.js
   freeAgentLogic.js
   hardCapUtils.js
+  playerRulesProfile/
+    birdRightsRules.js
+    computeProfile.js
+    extensionRules.js
+    index.js
+    maxSalaryRules.js
+    minimumSalaryRules.js
+    rfaRules.js
+    types.js
   reacqUtils.js
   rosterUtils.js
   runOffseason.js
@@ -147,5 +157,5 @@ utils/
 ```
 
 ---
-*Generated on: 2025-12-05T12:44:26.046Z*
+*Generated on: 2025-12-10T10:26:21.775Z*
 *Auto-updated by: npm run docs*

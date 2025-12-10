@@ -1,3 +1,15 @@
+/**
+ * FILE: src/features/architect/CapSheet.jsx
+ * PURPOSE: Current-year cap sheet grid for Architect teams, now annotated with player rules profiles.
+ * OWNERSHIP: Feature: architect/cap-sheet
+ *
+ * HISTORY:
+ *  - 2025-12-10: Added PlayerRulesProfile-driven annotations (chunk_01).
+ *
+ * LINKS:
+ *  - Plan: plans/player-rules-architect/plan.md
+ *  - Latest Chunk: plans/player-rules-architect/chunks/chunk_01.md
+ */
 import React, { useState } from 'react';
 import {
   getMinimumCapHit,
@@ -7,6 +19,7 @@ import CapSummaryTiles from '@/features/architect/CapSummaryTiles';
 import { POSITION_MAP } from '@/shared/utils/roles';
 import getCapPercentage from '@/features/architect/utils/basicArchitectUtils';
 import capProjections from '@/features/architect/utils/capProjections';
+import { usePlayerRulesProfiles } from '@/features/architect/hooks/usePlayerRulesProfiles';
 
 // Helper to identify two-way contracts (don't count against cap)
 const isTwoWayContract = (player) => {
@@ -21,12 +34,19 @@ const CapSheet = ({
   onSelectPlayer,
   playersMap = {},
 }) => {
+  const [selectedYear, setSelectedYear] = useState(currentYear);
+  const [showCapHolds, setShowCapHolds] = useState(false);
+
+  const { getProfile } = usePlayerRulesProfiles({
+    players: teamCapSheet?.players || [],
+    teamCapSheet,
+    currentYear: selectedYear,
+    teamCode: teamCapSheet?.teamCode,
+  });
+
   if (!teamCapSheet) {
     return <div className="text-white/60 p-4">Loading cap sheet...</div>;
   }
-
-  const [selectedYear, setSelectedYear] = useState(currentYear);
-  const [showCapHolds, setShowCapHolds] = useState(false);
 
   const generateYears = (startYear, count) =>
     Array.from({ length: count }, (_, i) => startYear + i);
@@ -68,7 +88,7 @@ const CapSheet = ({
       return isActive ? sum + amt : sum;
     }, 0);
 
-  const renderNotes = (player, yearKey) => {
+  const renderNotes = (player, yearKey, rulesProfile) => {
     const slice = getContractYearSlice(player, yearKey);
     const option = slice?.option || null;
     const isPO = option === 'Player Option' || option === 'PO';
@@ -95,6 +115,16 @@ const CapSheet = ({
     if (player.isMinimum && player.yearsOfService >= 3)
       notes.push({ label: 'Vet Min' });
     if (isNG) notes.push({ label: 'NG' });
+    if (rulesProfile?.extensionEligibility) {
+      const { isEligible, reason } = rulesProfile.extensionEligibility;
+      notes.push({
+        label: 'EXT',
+        className: isEligible
+          ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-200'
+          : 'bg-red-500/10 border-red-500/30 text-red-200',
+        title: isEligible ? 'Extension eligible' : reason || 'Not extension eligible',
+      });
+    }
 
     return (
       <span className="flex flex-wrap gap-1.5 justify-end">
@@ -104,6 +134,7 @@ const CapSheet = ({
             className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-white/5 text-white/50 border border-white/10 ${
               note.className || ''
             }`}
+            title={note.title}
           >
             {note.label}
           </span>
@@ -196,6 +227,7 @@ const CapSheet = ({
             const salary = slice?.salary ?? slice?.capHit ?? 0;
             const capHit = getCapHit(player, selectedYear);
             const isExtensionSeason = slice?.isExtensionSeason;
+            const rulesProfile = getProfile(player);
 
             const age = player.age ?? '-';
             const position = player.position ?? '-';
@@ -245,7 +277,7 @@ const CapSheet = ({
                   </span>
                 </div>
                 <div className="text-[10px]">
-                  {renderNotes(player, selectedYear)}
+                  {renderNotes(player, selectedYear, rulesProfile)}
                 </div>
               </div>
             );

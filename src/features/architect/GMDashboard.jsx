@@ -1,3 +1,16 @@
+/**
+ * FILE: src/features/architect/GMDashboard.jsx
+ * PURPOSE: Primary Architect dashboard for managing cap sheets, contracts, trades, and free agency flows.
+ * OWNERSHIP: Feature: architect/core dashboard
+ *
+ * HISTORY:
+ *  - 2025-12-10: Updated to surface player rules profile integration (chunk_01).
+ *  - 2025-12-10: Wired multi-year rules context into cap table + contract modal flows (chunk_02).
+ *
+ * LINKS:
+ *  - Plan: plans/_archive/player-rules-architect/plan.md
+ *  - Latest Chunk: plans/_archive/player-rules-architect/chunks/chunk_02.md
+ */
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import {
@@ -22,6 +35,7 @@ import ExceptionTracker from './ExceptionTracker';
 import SavePlanModal from './SavePlanModal';
 import useArchitectPlayerData from '@/features/architect/hooks/useArchitectPlayerData';
 import { useCapSheetState } from '@/features/architect/hooks/useCapSheetState';
+import { usePlayerRulesProfiles } from '@/features/architect/hooks/usePlayerRulesProfiles';
 import { enrichPlayerData } from '@/features/roster/utils';
 import { basePlayerRef } from '@/data/firestorePaths';
 import { getDoc } from 'firebase/firestore';
@@ -141,6 +155,7 @@ const GMDashboard = () => {
   const [offseasonSummary, setOffseasonSummary] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [plans, setPlans] = useState([]);
+  const [selectedRulesYear, setSelectedRulesYear] = useState(currentYear);
   const [selectedPlan, setSelectedPlan] = useState('');
   const [viewMode, setViewMode] = useState(
     () => localStorage.getItem('architect.viewMode') || 'baseline'
@@ -150,6 +165,13 @@ const GMDashboard = () => {
   useEffect(() => {
     localStorage.setItem('architect.viewMode', viewMode);
   }, [viewMode]);
+  const capTableYears = useMemo(
+    () => Array.from({ length: 7 }, (_, i) => currentYear + i),
+    [currentYear]
+  );
+  useEffect(() => {
+    setSelectedRulesYear(currentYear);
+  }, [currentYear]);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [newPlanName, setNewPlanName] = useState('');
   const [showContractModal, setShowContractModal] = useState(false);
@@ -181,6 +203,32 @@ const GMDashboard = () => {
     initialCapSheet: teamCapSheet,
     currentYear,
   });
+
+  const simulatedRulesDate = useMemo(
+    () => new Date(currentYear - 1, 6, 15),
+    [currentYear]
+  );
+
+  const {
+    leagueContext: rulesLeagueContext,
+    leagueContextByYear,
+    getProfile: getRulesProfile,
+    getProfileForYear,
+  } = usePlayerRulesProfiles({
+    players: capSheetState.modifiedCapSheet?.players || [],
+    teamCapSheet: capSheetState.modifiedCapSheet,
+    currentYear,
+    teamCode: teamId,
+    simulationDate: simulatedRulesDate,
+    evaluationYears: capTableYears,
+  });
+
+  const selectedPlayerRulesProfile = selectedPlayer
+    ? getRulesProfile(selectedPlayer, selectedRulesYear)
+    : null;
+  const selectedRulesLeagueContext =
+    (selectedRulesYear && leagueContextByYear?.get(selectedRulesYear)) ||
+    rulesLeagueContext;
 
   // Sync hook state when teamCapSheet changes (e.g., from loading plans)
   useEffect(() => {
@@ -625,6 +673,7 @@ const GMDashboard = () => {
     setInitialAction(null); // No pre-selection when just clicking player name
     setTargetYear(null); // No specific year context
     setActionContext(null); // No specific action context - show based on player state
+    setSelectedRulesYear(currentYear);
     setShowContractModal(true);
   };
 
@@ -637,6 +686,7 @@ const GMDashboard = () => {
     
     setSelectedPlayer(player);
     setTargetYear(year); // Store which year was clicked
+    setSelectedRulesYear(year || currentYear);
     
     // Determine action context based on what was clicked
     const contextMap = {
@@ -894,6 +944,7 @@ const GMDashboard = () => {
             onSelectPlayer={handleEditContract}
             onActionClick={handleCapSheetAction}
             playersMap={playersMap}
+            getRulesProfileForYear={getProfileForYear}
           />
         )}
 
@@ -1038,6 +1089,7 @@ const GMDashboard = () => {
             setInitialAction(null);
             setTargetYear(null);
             setActionContext(null);
+            setSelectedRulesYear(currentYear);
           }}
           player={selectedPlayer}
           initialAction={initialAction}
@@ -1052,6 +1104,8 @@ const GMDashboard = () => {
           onWaive={handleWaiveContract}
           onOptionDecision={handleOptionDecision}
           playersMap={playersMap}
+          playerRulesProfile={selectedPlayerRulesProfile}
+          rulesLeagueContext={selectedRulesLeagueContext}
         />
       )}
 

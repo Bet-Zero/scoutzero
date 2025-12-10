@@ -1,4 +1,15 @@
-// CapSheetFull.jsx
+/**
+ * FILE: src/features/architect/CapSheetFull.jsx
+ * PURPOSE: Multi-year cap table view with option/FA actions and rules profile annotations.
+ * OWNERSHIP: Feature: architect/cap-sheet
+ *
+ * HISTORY:
+ *  - 2025-12-10: Added PlayerRulesProfile indicators for multi-year cap view (chunk_02).
+ *
+ * LINKS:
+ *  - Plan: plans/_archive/player-rules-architect/plan.md
+ *  - Latest Chunk: plans/_archive/player-rules-architect/chunks/chunk_02.md
+ */
 import React, { useState } from 'react';
 import { getContractYearSlice } from '@/features/architect/utils/contractUtils';
 
@@ -28,12 +39,18 @@ const getTagColor = (type) => {
   return 'bg-gray-600 text-white/70';
 };
 
+const formatQOText = (amount) => {
+  if (amount == null) return null;
+  return `QO $${(amount / 1_000_000).toFixed(1)}M`;
+};
+
 const CapSheetFull = ({
   teamCapSheet,
   currentYear,
   onSelectPlayer,
   onActionClick,
   playersMap = {},
+  getRulesProfileForYear = null,
 }) => {
   if (!teamCapSheet || !teamCapSheet.players) return null;
 
@@ -133,6 +150,9 @@ const CapSheetFull = ({
             <div className="divide-y divide-white/5">
               {sortedPlayers.map((player, idx) => {
                 const isTwoWay = isTwoWayContract(player);
+                const profileForCurrentYear =
+                  getRulesProfileForYear?.(player, currentYear) || null;
+                const birdRightsType = profileForCurrentYear?.birdRights?.type;
                 return (
                   <div
                     key={idx}
@@ -155,6 +175,14 @@ const CapSheetFull = ({
                           2W
                         </span>
                       )}
+                      {birdRightsType && (
+                        <span
+                          className="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider shrink-0 bg-white/5 text-white/50 border border-white/10"
+                          title={`Bird rights: ${birdRightsType}`}
+                        >
+                          {birdRightsType}
+                        </span>
+                      )}
                     </div>
 
                     {/* Years */}
@@ -164,15 +192,49 @@ const CapSheetFull = ({
                         player.futureContract?.freeAgency ||
                         player.contract?.freeAgency ||
                         {};
-                      const faYear = freeAgency?.year;
-                      const faType = normalizeFAType(freeAgency?.type);
+                      const fallbackFaYear = freeAgency?.year;
+                      const fallbackFaType = normalizeFAType(freeAgency?.type);
+                      const rulesProfileForYear =
+                        getRulesProfileForYear?.(player, year) || null;
+                      const extensionInfo =
+                        rulesProfileForYear?.extensionEligibility;
+                      const rfaInfo =
+                        rulesProfileForYear?.restrictedFreeAgency;
+                      const birdRightsTypeForYear =
+                        rulesProfileForYear?.birdRights?.type;
+                      const derivedFaYear =
+                        rulesProfileForYear?.contractSummary?.freeAgencyYear ??
+                        fallbackFaYear;
+                      const derivedFaTypeRaw =
+                        rulesProfileForYear?.contractSummary?.freeAgencyType ||
+                        fallbackFaType;
+                      const derivedFaType = normalizeFAType(derivedFaTypeRaw);
                       const isExtension = entry?.isExtensionSeason;
                       const salaryValue = entry?.salary ?? entry?.capHit ?? 0;
+                      const faLabel = derivedFaType || 'FA';
 
                       // Free agency year: faYear of 2027 means they become FA in 2027, for the 2027-28 season
                       // The column showing "2027-28" has year === 2028, so check faYear + 1 === year
                       const isFreeAgentYear =
-                        faYear && faType && faYear + 1 === year;
+                        derivedFaYear && derivedFaType && derivedFaYear + 1 === year;
+
+                      const extensionBadge =
+                        extensionInfo != null ? (
+                          <span
+                            className={`absolute top-1 right-1 text-[9px] font-bold uppercase px-1 rounded ${
+                              extensionInfo.isEligible
+                                ? 'bg-cyan-500/20 text-cyan-100 border border-cyan-500/30'
+                                : 'bg-red-500/20 text-red-100 border border-red-500/30'
+                            }`}
+                            title={
+                              extensionInfo.isEligible
+                                ? 'Extension eligible'
+                                : extensionInfo.reason || 'Not extension eligible'
+                            }
+                          >
+                            EXT
+                          </span>
+                        ) : null;
 
                       // Handle free agency years (no salary)
                       if (
@@ -183,14 +245,33 @@ const CapSheetFull = ({
                           return (
                             <div
                               key={year}
-                              onClick={() => onActionClick?.(player, faType === 'RFA' ? 'rfa' : 'ufa', year)}
-                              className="flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[36px] cursor-pointer hover:ring-2 hover:ring-inset hover:ring-white/20 transition-all"
+                              onClick={() => onActionClick?.(player, faLabel === 'RFA' ? 'rfa' : 'ufa', year)}
+                              className="relative flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[36px] cursor-pointer hover:ring-2 hover:ring-inset hover:ring-white/20 transition-all"
+                              title={
+                                rfaInfo?.reason ||
+                                rulesProfileForYear?.contractSummary?.freeAgencyType
+                              }
                             >
                               <span
-                                className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${getTagColor(faType)} hover:scale-105 transition-transform`}
+                                className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${getTagColor(faLabel)} hover:scale-105 transition-transform`}
                               >
-                                {faType}
+                                {faLabel}
                               </span>
+                              {(birdRightsTypeForYear ||
+                                rfaInfo?.qualifyingOfferAmount != null) && (
+                                <span className="absolute bottom-1 right-1 text-[10px] text-white/60 leading-tight text-right">
+                                  {birdRightsTypeForYear && (
+                                    <span className="block">
+                                      Bird: {birdRightsTypeForYear}
+                                    </span>
+                                  )}
+                                  {rfaInfo?.qualifyingOfferAmount != null && (
+                                    <span className="block">
+                                      {formatQOText(rfaInfo.qualifyingOfferAmount)}
+                                    </span>
+                                  )}
+                                </span>
+                              )}
                             </div>
                           );
                         }
@@ -218,9 +299,10 @@ const CapSheetFull = ({
                           <div
                             key={year}
                             onClick={() => onActionClick?.(player, isPO ? 'po' : 'to', year)}
-                            className={`flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[36px] transition-colors cursor-pointer hover:ring-2 hover:ring-inset hover:ring-white/20 ${optionStyle}`}
+                            className={`relative flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[36px] transition-colors cursor-pointer hover:ring-2 hover:ring-inset hover:ring-white/20 ${optionStyle}`}
                             title={`Click to manage ${isPO ? 'Player' : 'Team'} Option`}
                           >
+                            {extensionBadge}
                             <span
                               className={`text-xs font-medium tabular-nums tracking-tight ${
                                 isExtension
@@ -238,12 +320,13 @@ const CapSheetFull = ({
                       return (
                         <div
                           key={year}
-                          className={`flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[36px] ${
+                          className={`relative flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[36px] ${
                             isExtension
                               ? 'bg-cyan-500/5 border-cyan-500/20'
                               : ''
                           }`}
                         >
+                          {extensionBadge}
                           <span
                             className={`text-xs font-medium tabular-nums tracking-tight ${
                               isExtension ? 'text-cyan-200/90' : 'text-white/60'

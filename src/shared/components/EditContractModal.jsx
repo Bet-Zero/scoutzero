@@ -1,22 +1,27 @@
 /**
- * Purpose: Manage contract actions (options, FA, extend, S&T) in a modal.
- * Inputs: player, CURRENT_YEAR, extReason/extMax, callbacks (onSave/onWaive/...).
- * Outputs: User actions & formatted salary inputs per path.
- * Risks: Salary string/number mismatch; Dialog export alignment; null extMax edge cases.
- * Next TODO: Store numeric, format on display; verify Dialog exports; guard extend path.
+ * FILE: src/shared/components/EditContractModal.jsx
+ * PURPOSE: Manage Architect contract actions (options, FA, extensions, waivers) with validation and rules profile guidance.
+ * OWNERSHIP: Feature: architect/contracts
+ *
+ * HISTORY:
+ *  - 2025-12-10: Integrated PlayerRulesProfile for extension defaults/validation (chunk_01).
+ *  - 2025-12-10: Added fallback extension gating and FA/QO validation via rules profile (chunk_02).
+ *
+ * LINKS:
+ *  - Plan: plans/_archive/player-rules-architect/plan.md
+ *  - Latest Chunk: plans/_archive/player-rules-architect/chunks/chunk_02.md
  */
-// EditContractModal.jsx
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent } from '@/shared/components/ui/Dialog';
 import { formatCurrencyFull, formatCurrency } from '@/shared/utils/formatting';
 import capProjections from '@/features/architect/utils/capProjections';
+import { generateExtensionContract } from '@/features/architect/utils/contractUtils';
+import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import {
   getExtensionEligibilityReason,
   getExtensionMaxDetails,
 } from '@/features/architect/utils/extensionRules';
-import { generateExtensionContract } from '@/features/architect/utils/contractUtils';
-import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import useCapValidation from '@/features/architect/hooks/useCapValidation';
 import ValidationWarnings from '@/features/architect/ValidationWarnings';
 
@@ -52,6 +57,11 @@ const ACTION_DESCRIPTIONS = {
   buyout: 'Negotiate a reduced amount to release player.',
 };
 
+const getCapSettings = (year) => {
+  const key = `${year - 1}-${String(year % 100).padStart(2, '0')}`;
+  return capProjections[key] || capProjections['2025-26'];
+};
+
 const EditContractModal = ({
   player,
   isOpen,
@@ -66,6 +76,8 @@ const EditContractModal = ({
   actionContext = null, // 'option' | 'freeAgent' | null - from clicked cell
   teamCapSheet = null,
   currentYear: currentYearProp = null,
+  playerRulesProfile = null,
+  rulesLeagueContext = null,
   actionsOverride = null,
   actionLabelsOverride = {},
 }) => {
@@ -86,7 +98,11 @@ const EditContractModal = ({
   // CURRENT_YEAR = the END year of the current NBA season
   // e.g., in Dec 2025 we're in the 2025-26 season, so CURRENT_YEAR = 2026
   // After June, we're in the next season (e.g., July 2025 = 2025-26 season = 2026)
-  const CURRENT_YEAR = currentYearProp || (today.getFullYear() + (today.getMonth() >= 6 ? 1 : 0));
+  const simDate = rulesLeagueContext?.simulationDate || today;
+  const CURRENT_YEAR =
+    currentYearProp ||
+    rulesLeagueContext?.currentYear ||
+    (simDate.getFullYear() + (simDate.getMonth() >= 6 ? 1 : 0));
 
   // CBA Validation - get warnings/errors for current action
   // Use targetYear for option/FA actions, currentYear for extensions/waivers
@@ -97,6 +113,7 @@ const EditContractModal = ({
     teamCapSheet,
     currentYear: CURRENT_YEAR,
     targetYear: targetYear, // The specific year the action applies to
+    rulesProfile: playerRulesProfile,
   });
 
   // Helper to get contract years from Architect schema (contract.salariesByYear[])
@@ -168,6 +185,14 @@ const EditContractModal = ({
           : null;
 
   const actions = actionsOverride || ACTION_SETS[actionSet] || [];
+  const extensionEligibility = playerRulesProfile?.extensionEligibility;
+  const isExtendEligible =
+    extensionEligibility?.isEligible ?? extReason === 'Eligible';
+  const disableConfirm =
+    !selectedAction ||
+    (selectedAction === 'extend' && (!isValid || !isExtendEligible));
+  const showForceState =
+    !isValid || (selectedAction === 'extend' && !isExtendEligible);
 
   // Determine if option actions are currently actionable (timing check)
   // ONLY applies when this is an option scenario, not for free agents or under contract
@@ -246,27 +271,98 @@ const EditContractModal = ({
     setSelectedAction(initialAction || '');
     setSelectedException('None');
 
-    const key = `${CURRENT_YEAR - 1}-${String(
-      CURRENT_YEAR % 100
-    ).padStart(2, '0')}`;
-    const capSettings = capProjections[key] || {};
-    setExtReason(getExtensionEligibilityReason(player, CURRENT_YEAR));
-    setExtMax(getExtensionMaxDetails(player, capSettings));
-  }, [player, contractYears, isFreeAgent, optionYear, CURRENT_YEAR, initialAction]);
+    const eligibility = playerRulesProfile?.extensionEligibility;
+    const terms = playerRulesProfile?.extensionTerms;
+    if (eligibility) {
+      setExtReason(
+        eligibility.isEligible ? 'Eligible' : eligibility.reason || 'Not eligible'
+      );
+      setExtMax(
+        terms
+          ? {
+              maxYears: terms.maxYears,
+              maxFirstYearSalary: terms.maxFirstYearSalary,
+              minFirstYearSalary: terms.minFirstYearSalary,
+              baseRaisePct: terms.raisePercentage,
+              type: terms.extensionType,
+              basedOn: terms.basedOn,
+              notes: terms.notes,
+            }
+          : null
+      );
+      return;
+    }
+
+    const fallbackReason = getExtensionEligibilityReason(player, CURRENT_YEAR);
+    setExtReason(fallbackReason);
+
+    if (fallbackReason !== 'Eligible') {
+      setExtMax(null);
+      return;
+    }
+
+    const fallbackTerms = getExtensionMaxDetails(
+      player,
+      getCapSettings(CURRENT_YEAR)
+    );
+    setExtMax(
+      fallbackTerms
+        ? {
+            maxYears: fallbackTerms.maxYears,
+            maxFirstYearSalary: fallbackTerms.maxFirstYearSalary,
+            minFirstYearSalary:
+              fallbackTerms.minFirstYearSalary ??
+              fallbackTerms.maxFirstYearSalary ??
+              null,
+            baseRaisePct: fallbackTerms.baseRaisePct,
+            type: fallbackTerms.type,
+            basedOn: fallbackTerms.basedOn,
+            notes: fallbackTerms.notes,
+          }
+        : null
+    );
+  }, [
+    CURRENT_YEAR,
+    contractYears,
+    initialAction,
+    isFreeAgent,
+    optionYear,
+    player,
+    playerRulesProfile,
+  ]);
 
   useEffect(() => {
-    if (selectedAction !== 'extend' || !extMax) return;
+    if (selectedAction !== 'extend') return;
+    if (!extMax) {
+      setExtension((prev) => ({
+        ...prev,
+        years: prev.years || 1,
+        salaries: prev.salaries || [0],
+      }));
+      setSalaryInputs((prev) => (prev.length ? prev : ['']));
+      return;
+    }
+
+    const firstYearSalary = (() => {
+      const min = extMax.minFirstYearSalary ?? 0;
+      const max = extMax.maxFirstYearSalary ?? min;
+      const target = extMax.maxFirstYearSalary ?? min;
+      const clamped = Math.max(min, Math.min(target, max || target));
+      return clamped;
+    })();
+    const years = extMax.maxYears || extension.years || 1;
+
     setExtension({
-      years: extMax.maxYears,
+      years,
       contractType: 'Standard',
-      salaries: Array(extMax.maxYears).fill(extMax.maxFirstYearSalary),
+      salaries: Array(years).fill(firstYearSalary),
     });
     setSalaryInputs(
-      Array(extMax.maxYears)
-        .fill(extMax.maxFirstYearSalary)
+      Array(years)
+        .fill(firstYearSalary)
         .map((s) => (s ? formatCurrencyFull(s) : ''))
     );
-  }, [selectedAction, extMax]);
+  }, [extMax, selectedAction]);
 
   // Handle Exception Selection
   useEffect(() => {
@@ -509,7 +605,9 @@ const EditContractModal = ({
             {actions.map((type) => {
               // Option actions (accept/decline) are disabled when not actionable
               const isOptionAction = type === 'accept' || type === 'decline';
-              const isDisabled = isOptionAction && !isOptionActionable;
+              const extendBlocked = type === 'extend' && !isExtendEligible;
+              const isDisabled =
+                (isOptionAction && !isOptionActionable) || extendBlocked;
               
               return (
                 <label
@@ -544,6 +642,12 @@ const EditContractModal = ({
                     </div>
                     <div className="text-xs text-white/50 mt-0.5">
                       {ACTION_DESCRIPTIONS[type]}
+                      {extendBlocked && (
+                        <span className="block text-red-300 mt-1">
+                          {playerRulesProfile?.extensionEligibility?.reason ||
+                            'Not extension eligible'}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </label>
@@ -592,7 +696,11 @@ const EditContractModal = ({
                   <select
                     value={extension.years}
                     onChange={(e) => {
-                      const yrs = Number(e.target.value);
+                      const maxYearsOption =
+                        selectedAction === 'extend' && extMax?.maxYears
+                          ? extMax.maxYears
+                          : 5;
+                      const yrs = Math.min(Number(e.target.value), maxYearsOption);
                       setExtension({
                         ...extension,
                         years: yrs,
@@ -611,11 +719,17 @@ const EditContractModal = ({
                     }}
                     className="px-2 py-1 rounded bg-black border border-white/20 text-xs text-white focus:border-orange-500 outline-none"
                   >
-                    {[1, 2, 3, 4, 5].map((yr) => (
-                      <option key={yr} value={yr}>
-                        {yr}yr
-                      </option>
-                    ))}
+                    {[1, 2, 3, 4, 5].map((yr) => {
+                      const maxYearsOption =
+                        selectedAction === 'extend' && extMax?.maxYears
+                          ? extMax.maxYears
+                          : 5;
+                      return (
+                        <option key={yr} value={yr} disabled={yr > maxYearsOption}>
+                          {yr}yr
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
               </div>
@@ -663,12 +777,34 @@ const EditContractModal = ({
 
               {/* Extension Eligibility Note */}
               {selectedAction === 'extend' && (
-                <div className="mt-3 px-3 py-2 bg-orange-500/10 border border-orange-500/20 rounded text-xs text-orange-200">
-                  {extReason === 'Eligible'
-                    ? `Max ${extMax?.maxYears || 0} years starting at $${
-                        extMax?.maxFirstYearSalary?.toLocaleString() || 0
-                      }`
-                    : `Not eligible: ${extReason}`}
+                <div className="mt-3 px-3 py-2 bg-orange-500/10 border border-orange-500/20 rounded text-xs text-orange-200 space-y-1">
+                  {isExtendEligible && extMax ? (
+                    <>
+                      <div>
+                        {`Up to ${extMax?.maxYears || 0} years — first-year range ${formatCurrencyFull(
+                          extMax?.minFirstYearSalary ?? 0
+                        )} to ${formatCurrencyFull(
+                          extMax?.maxFirstYearSalary ?? 0
+                        )}`}
+                      </div>
+                      <div className="text-[11px] text-orange-100/80">
+                        Raises: {Math.round((extMax?.baseRaisePct || 0) * 100)}%
+                        {extMax?.basedOn ? ` • ${extMax.basedOn}` : ''}
+                      </div>
+                      {(extMax?.notes || extMax?.type) && (
+                        <div className="text-[11px] text-orange-100/60">
+                          {extMax?.notes || extMax?.type}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <span>
+                      {`Not eligible: ${
+                        playerRulesProfile?.extensionEligibility?.reason ||
+                        extReason
+                      }`}
+                    </span>
+                  )}
                 </div>
               )}
             </div>
@@ -696,15 +832,15 @@ const EditContractModal = ({
                 // validation override allowed
                 handleConfirm();
               }}
-              disabled={!selectedAction}
+              disabled={disableConfirm}
               className={`px-6 py-2 text-sm font-bold rounded shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                isValid && (selectedAction !== 'extend' || extReason === 'Eligible')
+                !showForceState
                   ? 'bg-orange-600 hover:bg-orange-500 text-white shadow-orange-900/20'
                   : 'bg-red-600/80 hover:bg-red-500 text-white shadow-red-900/20'
               }`}
             >
-              {isValid && (selectedAction !== 'extend' || extReason === 'Eligible') 
-                ? 'Confirm Action' 
+              {!showForceState
+                ? 'Confirm Action'
                 : 'Force Action (Override Rules)'}
             </button>
           </div>
