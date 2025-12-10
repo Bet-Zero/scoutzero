@@ -265,30 +265,34 @@ function computeSigningAbilities(type, config, priorSalary, salaryCap, averageSa
       };
 
     case BIRD_RIGHTS_TYPES.EARLY:
-      // Early Bird: greater of 175% of prior salary or 105% of average salary
-      const earlyBirdMax = Math.max(
-        priorSalary * 1.75,
-        averageSalary * 1.05
-      );
-      return {
-        ...base,
-        maxFirstYearSalary: Math.round(earlyBirdMax),
-        canSignToMax: false,
-        method: 'Early Bird rights - max of 175% prior salary or 105% average salary',
-      };
+      {
+        // Early Bird: greater of 175% of prior salary or 105% of average salary
+        const earlyBirdMax = Math.max(
+          priorSalary * 1.75,
+          averageSalary * 1.05
+        );
+        return {
+          ...base,
+          maxFirstYearSalary: Math.round(earlyBirdMax),
+          canSignToMax: false,
+          method: 'Early Bird rights - max of 175% prior salary or 105% average salary',
+        };
+      }
 
     case BIRD_RIGHTS_TYPES.NON_BIRD:
-      // Non-Bird: 120% of prior salary or minimum
-      // If no prior salary, default to 50% of average salary as reasonable estimate
-      // for a player who might be on a minimum contract
-      const NON_BIRD_DEFAULT_SALARY_FACTOR = 0.5;
-      const nonBirdMax = priorSalary > 0 ? priorSalary * 1.20 : averageSalary * NON_BIRD_DEFAULT_SALARY_FACTOR;
-      return {
-        ...base,
-        maxFirstYearSalary: Math.round(nonBirdMax),
-        canSignToMax: false,
-        method: 'Non-Bird rights - up to 120% of prior salary',
-      };
+      {
+        // Non-Bird: 120% of prior salary or minimum
+        // If no prior salary, default to 50% of average salary as reasonable estimate
+        // for a player who might be on a minimum contract
+        const NON_BIRD_DEFAULT_SALARY_FACTOR = 0.5;
+        const nonBirdMax = priorSalary > 0 ? priorSalary * 1.20 : averageSalary * NON_BIRD_DEFAULT_SALARY_FACTOR;
+        return {
+          ...base,
+          maxFirstYearSalary: Math.round(nonBirdMax),
+          canSignToMax: false,
+          method: 'Non-Bird rights - up to 120% of prior salary',
+        };
+      }
 
     default:
       // No Bird rights - needs cap space or exception
