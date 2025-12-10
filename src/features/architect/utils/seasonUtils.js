@@ -11,6 +11,24 @@ export function toSeasonKey(endYear) {
   return `${startYear}-${String(endYear).slice(-2)}`; // 2025 -> "2024-25"
 }
 
+/**
+ * Parse season code to end year
+ *
+ * @param {string} season - Season code (e.g., "2024-25")
+ * @returns {number|null} End year
+ */
+export function parseSeasonEndYear(season) {
+  if (!season) return null;
+
+  if (/^\d{4}-\d{2}$/.test(season)) {
+    const tail = parseInt(season.split('-')[1], 10);
+    return 2000 + tail;
+  }
+
+  const year = parseInt(season, 10);
+  return Number.isFinite(year) ? year : null;
+}
+
 export function seasonEndYearsFromCaps(capProjections) {
   const keys = Object.keys(capProjections || {});
   const years = keys

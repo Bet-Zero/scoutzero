@@ -7,8 +7,8 @@ import {
   isBefore,
   startOfDay,
 } from 'date-fns';
+import { DEFAULT_AVERAGE_SALARY } from './cbaConstants.js';
 
-const ESTIMATED_AVERAGE_SALARY = 11100000; // Replace with real value
 const SUPERMAX_PERCENT = 0.35;
 const STANDARD_EXTENSION_PERCENT = 1.4;
 const TRADE_EXTENSION_PERCENT = 1.2;
@@ -158,7 +158,7 @@ export const getExtensionMaxDetails = (player, capSettings) => {
 
   const floor = Math.max(
     baseSalary * STANDARD_EXTENSION_PERCENT,
-    ESTIMATED_AVERAGE_SALARY * STANDARD_EXTENSION_PERCENT
+    DEFAULT_AVERAGE_SALARY * STANDARD_EXTENSION_PERCENT
   );
 
   return {

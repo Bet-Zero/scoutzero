@@ -4,6 +4,15 @@
  * - Adds getMatchingTiers(year) helper for tradeHelpers.js (defaults to 2025)
  * - Keeps BYC_PERCENT / PPP_MULTIPLIER / roster limits untouched
  * -------------------------------------------------------------------------------*/
+
+/**
+ * Default average player salary fallback (2024-25 value).
+ * Update annually with cap projections when the league year changes.
+ * Used as a fallback for extension calculations, Bird rights, etc.
+ * Reference: CBA_Article_7_RuleCards.md, Rule Card 16
+ */
+export const DEFAULT_AVERAGE_SALARY = 11_100_000;
+
 export const CBA_BY_YEAR = {
   2025: {
     salaryCap: 141_000_000,
