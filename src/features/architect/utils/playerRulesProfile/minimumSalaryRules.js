@@ -149,8 +149,9 @@ export function getMinimumCapHit(yearsOfService, season = '2024-25') {
   // Per trade rules, minimum cap hit for matching purposes
   // is based on a 2-year veteran minimum for players with 3+ years
   if (yearsOfService >= 3) {
-    // Use scale[2] from the requested season; rely on getMinimumSalaryScale's
-    // fallback logic to provide a valid scale if the season is not defined
+    // Use scale[2] from the requested season; getMinimumSalaryScale always returns
+    // a complete scale (falling back to most recent if season is undefined), so
+    // scale[2] should always exist. The || scale[0] guard is defensive.
     return scale[2] || scale[0];
   }
 
@@ -159,7 +160,12 @@ export function getMinimumCapHit(yearsOfService, season = '2024-25') {
 }
 
 /**
- * Normalize season input to season code format
+ * Normalize season input to season code format.
+ *
+ * Note: This is a utility function used for parsing season parameters.
+ * It only falls back to current date when the season parameter is invalid/empty,
+ * which happens during initialization. Callers should provide explicit season
+ * codes via leagueContext for simulation-aware behavior.
  *
  * @param {string|number} season - Season code or year
  * @returns {string} Season code in "YYYY-YY" format
@@ -175,11 +181,12 @@ function normalizeSeasonCode(season) {
     return `${year - 1}-${String(year).slice(-2)}`;
   }
 
-  // Dynamic fallback based on current date (NBA league year starts July 1)
-  const now = new Date();
-  const currentMonth = now.getMonth(); // 0 = Jan, 6 = Jul
-  const currentYear = now.getFullYear();
-  // After July 1, we're in the next season's league year
-  const seasonEndYear = currentMonth >= 6 ? currentYear + 1 : currentYear;
-  return `${seasonEndYear - 1}-${String(seasonEndYear).slice(-2)}`;
+  // Fallback for invalid/empty season: use latest defined scale season
+  // This avoids hardcoding a season that will become stale
+  const definedSeasons = Object.keys(MINIMUM_SALARY_SCALE).sort((a, b) => {
+    const yearA = parseInt(a.split('-')[0], 10) || 0;
+    const yearB = parseInt(b.split('-')[0], 10) || 0;
+    return yearA - yearB;
+  });
+  return definedSeasons[definedSeasons.length - 1] || '2024-25';
 }

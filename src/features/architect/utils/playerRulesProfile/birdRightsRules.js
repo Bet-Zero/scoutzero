@@ -80,8 +80,13 @@ export function computeBirdRights(player, leagueContext) {
   const { capSettings = {} } = leagueContext || {};
   const salaryCap = capSettings.salaryCap || 140_588_000;
   const averageSalary = capSettings.averageSalary || DEFAULT_AVERAGE_SALARY;
-  // Use currentYear from leagueContext, fallback to new Date() only as last resort
-  const currentYear = leagueContext?.currentYear || new Date().getFullYear();
+
+  // Require currentYear from leagueContext for deterministic behavior
+  const currentYear = leagueContext?.currentYear;
+  if (!currentYear) {
+    // Return a safe default without attempting date-based computation
+    return buildBirdRightsInfo(BIRD_RIGHTS_TYPES.NONE, 0, player, salaryCap, averageSalary);
+  }
 
   // Try to get Bird rights from existing contract data
   const existingBirdRights = extractExistingBirdRights(player);
