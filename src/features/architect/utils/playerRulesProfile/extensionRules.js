@@ -46,8 +46,9 @@ const RAISE_PERCENTAGES = {
 };
 
 /**
- * Default average player salary fallback (update annually with cap projections)
- * This is used as a floor for extension calculations when not provided via leagueContext
+ * Default average player salary fallback (2024-25 value).
+ * Update annually with cap projections when the league year changes.
+ * This is used as a floor for extension calculations when not provided via leagueContext.capSettings.averageSalary
  * Reference: CBA_Article_7_RuleCards.md, Rule Card 16
  */
 const DEFAULT_AVERAGE_SALARY = 11_100_000;
