@@ -22,6 +22,7 @@ import ExceptionTracker from './ExceptionTracker';
 import SavePlanModal from './SavePlanModal';
 import useArchitectPlayerData from '@/features/architect/hooks/useArchitectPlayerData';
 import { useCapSheetState } from '@/features/architect/hooks/useCapSheetState';
+import usePlayerRulesProfiles from '@/features/architect/hooks/usePlayerRulesProfiles';
 import { enrichPlayerData } from '@/features/roster/utils';
 import { basePlayerRef } from '@/data/firestorePaths';
 import { getDoc } from 'firebase/firestore';

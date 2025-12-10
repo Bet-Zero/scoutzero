@@ -11,14 +11,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent } from '@/shared/components/ui/Dialog';
 import { formatCurrencyFull, formatCurrency } from '@/shared/utils/formatting';
 import capProjections from '@/features/architect/utils/capProjections';
-import {
-  getExtensionEligibilityReason,
-  getExtensionMaxDetails,
-} from '@/features/architect/utils/extensionRules';
 import { generateExtensionContract } from '@/features/architect/utils/contractUtils';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import useCapValidation from '@/features/architect/hooks/useCapValidation';
 import ValidationWarnings from '@/features/architect/ValidationWarnings';
+import { computePlayerRulesProfile } from '@/features/architect/utils/playerRulesProfile';
 
 const ACTION_SETS = {
   option: ['accept', 'decline', 'signNew'],
@@ -68,6 +65,9 @@ const EditContractModal = ({
   currentYear: currentYearProp = null,
   actionsOverride = null,
   actionLabelsOverride = {},
+  rulesProfile = null,
+  leagueContext = null,
+  teamContext = {},
 }) => {
   const [selectedAction, setSelectedAction] = useState('');
   const [showValidationErrors, setShowValidationErrors] = useState(false);
@@ -88,6 +88,22 @@ const EditContractModal = ({
   // After June, we're in the next season (e.g., July 2025 = 2025-26 season = 2026)
   const CURRENT_YEAR = currentYearProp || (today.getFullYear() + (today.getMonth() >= 6 ? 1 : 0));
 
+  const effectiveLeagueContext = useMemo(() => {
+    if (leagueContext) return leagueContext;
+    const startYear = CURRENT_YEAR - 1;
+    return {
+      currentYear: CURRENT_YEAR,
+      currentSeason: `${startYear}-${String(CURRENT_YEAR % 100).padStart(2, '0')}`,
+      simulationDate: new Date(startYear, 6, 15),
+    };
+  }, [leagueContext, CURRENT_YEAR]);
+
+  const activeRulesProfile = useMemo(() => {
+    if (!player) return null;
+    if (rulesProfile) return rulesProfile;
+    return computePlayerRulesProfile(player, teamContext || {}, effectiveLeagueContext);
+  }, [player, rulesProfile, teamContext, effectiveLeagueContext]);
+
   // CBA Validation - get warnings/errors for current action
   // Use targetYear for option/FA actions, currentYear for extensions/waivers
   const { warnings, errors, isValid } = useCapValidation({
@@ -97,7 +113,28 @@ const EditContractModal = ({
     teamCapSheet,
     currentYear: CURRENT_YEAR,
     targetYear: targetYear, // The specific year the action applies to
+    teamContext,
+    leagueContext: effectiveLeagueContext,
+    rulesProfile: activeRulesProfile,
   });
+
+  const extensionLimits = useMemo(() => {
+    const eligibility = activeRulesProfile?.extensionEligibility;
+    const terms = extMax;
+    const firstYear = extension.salaries?.[0] || 0;
+
+    const salaryOk =
+      !terms ||
+      ((terms.minFirstYearSalary == null || firstYear >= terms.minFirstYearSalary) &&
+        (terms.maxFirstYearSalary == null || firstYear <= terms.maxFirstYearSalary));
+    const yearsOk = !terms || !terms.maxYears || extension.years <= terms.maxYears;
+
+    return {
+      isEligible: eligibility ? eligibility.isEligible : true,
+      salaryOk,
+      yearsOk,
+    };
+  }, [activeRulesProfile, extMax, extension]);
 
   // Helper to get contract years from Architect schema (contract.salariesByYear[])
   // Includes both base contract and extension years (from futureContract)
@@ -246,24 +283,26 @@ const EditContractModal = ({
     setSelectedAction(initialAction || '');
     setSelectedException('None');
 
-    const key = `${CURRENT_YEAR - 1}-${String(
-      CURRENT_YEAR % 100
-    ).padStart(2, '0')}`;
-    const capSettings = capProjections[key] || {};
-    setExtReason(getExtensionEligibilityReason(player, CURRENT_YEAR));
-    setExtMax(getExtensionMaxDetails(player, capSettings));
-  }, [player, contractYears, isFreeAgent, optionYear, CURRENT_YEAR, initialAction]);
+    const eligibility = activeRulesProfile?.extensionEligibility;
+    const terms = activeRulesProfile?.extensionTerms || null;
+    setExtReason(
+      eligibility?.isEligible ? 'Eligible' : eligibility?.reason || 'Not eligible'
+    );
+    setExtMax(terms);
+  }, [player, contractYears, isFreeAgent, optionYear, CURRENT_YEAR, initialAction, activeRulesProfile]);
 
   useEffect(() => {
     if (selectedAction !== 'extend' || !extMax) return;
+    const baseFirstYear = extMax.maxFirstYearSalary ?? 0;
+    const firstYear = Math.max(extMax.minFirstYearSalary || 0, baseFirstYear);
     setExtension({
       years: extMax.maxYears,
       contractType: 'Standard',
-      salaries: Array(extMax.maxYears).fill(extMax.maxFirstYearSalary),
+      salaries: Array(extMax.maxYears).fill(firstYear),
     });
     setSalaryInputs(
       Array(extMax.maxYears)
-        .fill(extMax.maxFirstYearSalary)
+        .fill(firstYear)
         .map((s) => (s ? formatCurrencyFull(s) : ''))
     );
   }, [selectedAction, extMax]);
@@ -316,11 +355,28 @@ const EditContractModal = ({
         break;
       case 'extend':
         {
+          if (
+            !extensionLimits.isEligible ||
+            !extensionLimits.salaryOk ||
+            !extensionLimits.yearsOk
+          ) {
+            setShowValidationErrors(true);
+            return;
+          }
           const startYear = optionYear ? optionYear + 1 : CURRENT_YEAR + 1;
+          const desiredFirst = extension.salaries[0] || 0;
+          const cappedFirst =
+            extMax && extMax.maxFirstYearSalary != null
+              ? Math.min(extMax.maxFirstYearSalary, desiredFirst)
+              : desiredFirst;
+          const firstYearSalary = extMax
+            ? Math.max(extMax.minFirstYearSalary || 0, cappedFirst)
+            : desiredFirst;
+          const raisePct = extMax?.raisePercentage ?? extMax?.baseRaisePct ?? 0.08;
           const contract = generateExtensionContract({
-            firstYearSalary: extension.salaries[0] || 0,
+            firstYearSalary,
             years: extension.years,
-            raisePct: extMax?.baseRaisePct || 0.08,
+            raisePct,
             startYear,
           });
           onExtend?.(player, contract);
@@ -509,7 +565,12 @@ const EditContractModal = ({
             {actions.map((type) => {
               // Option actions (accept/decline) are disabled when not actionable
               const isOptionAction = type === 'accept' || type === 'decline';
-              const isDisabled = isOptionAction && !isOptionActionable;
+              const isExtensionAction = type === 'extend';
+              const extensionBlocked =
+                isExtensionAction &&
+                activeRulesProfile?.extensionEligibility &&
+                !activeRulesProfile.extensionEligibility.isEligible;
+              const isDisabled = (isOptionAction && !isOptionActionable) || extensionBlocked;
               
               return (
                 <label
@@ -545,6 +606,12 @@ const EditContractModal = ({
                     <div className="text-xs text-white/50 mt-0.5">
                       {ACTION_DESCRIPTIONS[type]}
                     </div>
+                    {isExtensionAction && extensionBlocked && (
+                      <div className="text-[10px] text-red-300 mt-1">
+                        {activeRulesProfile?.extensionEligibility?.reason ||
+                          'Not extension eligible at this time'}
+                      </div>
+                    )}
                   </div>
                 </label>
               );
@@ -664,11 +731,9 @@ const EditContractModal = ({
               {/* Extension Eligibility Note */}
               {selectedAction === 'extend' && (
                 <div className="mt-3 px-3 py-2 bg-orange-500/10 border border-orange-500/20 rounded text-xs text-orange-200">
-                  {extReason === 'Eligible'
-                    ? `Max ${extMax?.maxYears || 0} years starting at $${
-                        extMax?.maxFirstYearSalary?.toLocaleString() || 0
-                      }`
-                    : `Not eligible: ${extReason}`}
+                  {extensionLimits.isEligible && extMax
+                    ? `Max ${extMax?.maxYears || 0} years at $${extMax?.maxFirstYearSalary?.toLocaleString() || 0} (min $${extMax?.minFirstYearSalary?.toLocaleString() || 0})`
+                    : `Not eligible: ${extReason || activeRulesProfile?.extensionEligibility?.reason || 'Outside extension window'}`}
                 </div>
               )}
             </div>
@@ -696,14 +761,29 @@ const EditContractModal = ({
                 // validation override allowed
                 handleConfirm();
               }}
-              disabled={!selectedAction}
+              disabled={
+                !selectedAction ||
+                !isValid ||
+                (selectedAction === 'extend' &&
+                  (!extensionLimits.isEligible ||
+                    !extensionLimits.salaryOk ||
+                    !extensionLimits.yearsOk))
+              }
               className={`px-6 py-2 text-sm font-bold rounded shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                isValid && (selectedAction !== 'extend' || extReason === 'Eligible')
+                isValid &&
+                (selectedAction !== 'extend' ||
+                  (extensionLimits.isEligible &&
+                    extensionLimits.salaryOk &&
+                    extensionLimits.yearsOk))
                   ? 'bg-orange-600 hover:bg-orange-500 text-white shadow-orange-900/20'
                   : 'bg-red-600/80 hover:bg-red-500 text-white shadow-red-900/20'
               }`}
             >
-              {isValid && (selectedAction !== 'extend' || extReason === 'Eligible') 
+              {isValid &&
+              (selectedAction !== 'extend' ||
+                (extensionLimits.isEligible &&
+                  extensionLimits.salaryOk &&
+                  extensionLimits.yearsOk)) 
                 ? 'Confirm Action' 
                 : 'Force Action (Override Rules)'}
             </button>
