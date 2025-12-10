@@ -74,7 +74,6 @@ const ROOKIE_QO_INCREASES = {
  */
 export function computeRFAStatus(player, leagueContext) {
   const currentYear = leagueContext?.currentYear || new Date().getFullYear();
-  const simulationDate = leagueContext?.simulationDate || new Date();
   const contract = player?.contract;
 
   // Check if player is under contract
