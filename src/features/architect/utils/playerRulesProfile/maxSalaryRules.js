@@ -227,20 +227,8 @@ function buildMaxSalaryReason(yearsOfService, percent, supermaxInfo) {
   return `0-6 year player max (${percentLabel} of cap)`;
 }
 
+import { getYearsOfService } from './minimumSalaryRules.js';
+
 /**
- * Extract years of service from player data
- */
-function getYearsOfService(player) {
-  if (!player) return 0;
-
-  const experience =
-    player.bio?.experience ??
-    player.bio?.yearsExperience ??
-    player.yearsOfService ??
-    player.years_of_service ??
-    player.experience ??
-    0;
-
-  const years = parseInt(experience, 10);
-  return Number.isFinite(years) && years >= 0 ? years : 0;
-}
+ * Max Salary Rules
+ * ... (rest of file continues)
