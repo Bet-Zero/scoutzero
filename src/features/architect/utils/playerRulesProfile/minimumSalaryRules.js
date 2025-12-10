@@ -149,8 +149,9 @@ export function getMinimumCapHit(yearsOfService, season = '2024-25') {
   // Per trade rules, minimum cap hit for matching purposes
   // is based on a 2-year veteran minimum for players with 3+ years
   if (yearsOfService >= 3) {
-    // Use scale[2] from the requested season, falling back to 2024-25 scale if not available
-    return scale[2] || MINIMUM_SALARY_SCALE['2024-25'][2];
+    // Use scale[2] from the requested season; rely on getMinimumSalaryScale's
+    // fallback logic to provide a valid scale if the season is not defined
+    return scale[2] || scale[0];
   }
 
   const cappedYears = Math.min(yearsOfService, 10);
@@ -174,5 +175,11 @@ function normalizeSeasonCode(season) {
     return `${year - 1}-${String(year).slice(-2)}`;
   }
 
-  return '2024-25'; // Default
+  // Dynamic fallback based on current date (NBA league year starts July 1)
+  const now = new Date();
+  const currentMonth = now.getMonth(); // 0 = Jan, 6 = Jul
+  const currentYear = now.getFullYear();
+  // After July 1, we're in the next season's league year
+  const seasonEndYear = currentMonth >= 6 ? currentYear + 1 : currentYear;
+  return `${seasonEndYear - 1}-${String(seasonEndYear).slice(-2)}`;
 }

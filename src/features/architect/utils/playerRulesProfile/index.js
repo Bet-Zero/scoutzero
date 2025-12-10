@@ -16,6 +16,6 @@
 export { computePlayerRulesProfile } from './computeProfile.js';
 export { computeExtensionEligibility, computeExtensionTerms } from './extensionRules.js';
 export { computeBirdRights, BIRD_RIGHTS_TYPES } from './birdRightsRules.js';
-export { computeMinimumSalary, getMinimumSalaryScale } from './minimumSalaryRules.js';
+export { computeMinimumSalary, getMinimumSalaryScale, getYearsOfService } from './minimumSalaryRules.js';
 export { computeRFAStatus, computeQualifyingOffer } from './rfaRules.js';
 export { computeMaxSalary, MAX_SALARY_TIERS } from './maxSalaryRules.js';

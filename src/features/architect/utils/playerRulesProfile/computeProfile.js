@@ -72,7 +72,7 @@ const DEFAULT_CAP_SETTINGS = {
 export function computePlayerRulesProfile(player, teamContext = {}, leagueContext = {}) {
   // Validate input
   if (!player) {
-    return createEmptyProfile('Unknown', 'No player data provided');
+    return createEmptyProfile('Unknown', 'No player data provided', leagueContext.simulationDate);
   }
 
   // Normalize league context with defaults
@@ -101,7 +101,7 @@ export function computePlayerRulesProfile(player, teamContext = {}, leagueContex
     // Identity
     playerId,
     playerName,
-    evaluatedAt: new Date().toISOString(),
+    evaluatedAt: (normalizedLeagueContext.simulationDate || new Date()).toISOString(),
     evaluatedForSeason: normalizedLeagueContext.currentSeason,
 
     // Extension eligibility and terms
@@ -251,12 +251,13 @@ function buildContractSummary(player, currentYear) {
  * @param {string} reason - Reason for empty profile
  * @returns {Object} Empty profile
  */
-function createEmptyProfile(playerId, reason) {
+function createEmptyProfile(playerId, reason, simulationDate = null) {
+  const evalDate = simulationDate || new Date();
   return {
     playerId,
     playerName: playerId,
-    evaluatedAt: new Date().toISOString(),
-    evaluatedForSeason: toSeasonCode(getCurrentSeasonYear(new Date())),
+    evaluatedAt: evalDate.toISOString(),
+    evaluatedForSeason: toSeasonCode(getCurrentSeasonYear(evalDate)),
     error: reason,
 
     extensionEligibility: {

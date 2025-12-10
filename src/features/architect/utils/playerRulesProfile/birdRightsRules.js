@@ -80,6 +80,8 @@ export function computeBirdRights(player, leagueContext) {
   const { capSettings = {} } = leagueContext || {};
   const salaryCap = capSettings.salaryCap || 140_588_000;
   const averageSalary = capSettings.averageSalary || DEFAULT_AVERAGE_SALARY;
+  // Use currentYear from leagueContext, fallback to new Date() only as last resort
+  const currentYear = leagueContext?.currentYear || new Date().getFullYear();
 
   // Try to get Bird rights from existing contract data
   const existingBirdRights = extractExistingBirdRights(player);
@@ -95,7 +97,7 @@ export function computeBirdRights(player, leagueContext) {
   }
 
   // Compute Bird rights based on tenure
-  const yearsWithTeam = computeYearsWithTeam(player);
+  const yearsWithTeam = computeYearsWithTeam(player, currentYear);
   const birdRightsType = determineBirdRightsType(yearsWithTeam);
 
   return buildBirdRightsInfo(birdRightsType, yearsWithTeam, player, salaryCap, averageSalary);
@@ -161,6 +163,7 @@ function normalizeBirdRightsType(type) {
  * Compute years with current team from player data
  *
  * @param {Object} player - Player data object
+ * @param {number} currentYear - Current season end year (passed from leagueContext)
  * @returns {number} Years with team
  */
 function computeYearsWithTeam(player, currentYear) {
@@ -170,7 +173,7 @@ function computeYearsWithTeam(player, currentYear) {
   }
 
   // Calculate from contract start if available
-  if (player?.contract?.startSeason) {
+  if (player?.contract?.startSeason && currentYear) {
     const startYear = parseSeasonYear(player.contract.startSeason);
     if (startYear) {
       return Math.max(0, currentYear - startYear);
