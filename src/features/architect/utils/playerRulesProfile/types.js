@@ -57,6 +57,7 @@
  * @property {string} summary - Human-readable summary of Bird rights implications
  * @property {Object} signingAbilities - What signing mechanisms are available
  * @property {boolean} signingAbilities.canSignOverCap - Can team sign player while over cap
+ * @property {boolean} signingAbilities.canSignToMax - Can player be signed to max salary
  * @property {number} [signingAbilities.maxFirstYearSalary] - Max first year salary using Bird rights
  * @property {number} [signingAbilities.maxYears] - Max contract length using Bird rights
  * @property {number} [signingAbilities.raisePercentage] - Max annual raise percentage

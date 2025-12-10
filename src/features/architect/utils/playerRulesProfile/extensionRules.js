@@ -23,6 +23,7 @@
 
 import { getYearsOfService } from './minimumSalaryRules.js';
 import { checkSupermaxEligibility } from './maxSalaryRules.js';
+import { parseSeasonEndYear } from '../seasonUtils.js';
 
 /**
  * Extension type constants
@@ -45,11 +46,11 @@ const RAISE_PERCENTAGES = {
 };
 
 /**
- * Estimated average player salary (update annually with cap projections)
- * This is used as a floor for extension calculations
+ * Default average player salary fallback (update annually with cap projections)
+ * This is used as a floor for extension calculations when not provided via leagueContext
  * Reference: CBA_Article_7_RuleCards.md, Rule Card 16
  */
-const ESTIMATED_AVERAGE_SALARY = 11_100_000;
+const DEFAULT_AVERAGE_SALARY = 11_100_000;
 
 /**
  * Compute extension eligibility for a player
@@ -312,11 +313,11 @@ export function computeExtensionTerms(player, leagueContext, eligibility = null)
       return computeDesignatedVeteranTerms(player, salaryCap);
 
     case EXTENSION_TYPES.TRADE_RESTRICTED:
-      return computeTradeRestrictedTerms(player, contract);
+      return computeTradeRestrictedTerms(player, contract, leagueContext);
 
     case EXTENSION_TYPES.VETERAN:
     default:
-      return computeVeteranExtensionTerms(player, contract, salaryCap);
+      return computeVeteranExtensionTerms(player, contract, salaryCap, leagueContext);
   }
 }
 
@@ -381,10 +382,12 @@ function computeDesignatedVeteranTerms(player, salaryCap) {
  *
  * @param {Object} player - Player data
  * @param {Object} contract - Contract data
+ * @param {Object} leagueContext - League context
  * @returns {Object} Extension terms
  */
-function computeTradeRestrictedTerms(player, contract) {
-  const currentSalary = getCurrentSalary(contract);
+function computeTradeRestrictedTerms(player, contract, leagueContext) {
+  const currentYear = leagueContext?.currentYear || new Date().getFullYear();
+  const currentSalary = getCurrentSalary(contract, currentYear);
   const maxFirstYearSalary = Math.round(currentSalary * 1.05); // 105% of current
 
   return {
@@ -404,11 +407,13 @@ function computeTradeRestrictedTerms(player, contract) {
  * @param {Object} player - Player data
  * @param {Object} contract - Contract data
  * @param {number} salaryCap - Salary cap
+ * @param {Object} leagueContext - League context
  * @returns {Object} Extension terms
  */
-function computeVeteranExtensionTerms(player, contract, salaryCap) {
-  const currentSalary = getCurrentSalary(contract);
-  const averageSalary = ESTIMATED_AVERAGE_SALARY;
+function computeVeteranExtensionTerms(player, contract, salaryCap, leagueContext) {
+  const currentYear = leagueContext?.currentYear || new Date().getFullYear();
+  const currentSalary = getCurrentSalary(contract, currentYear);
+  const averageSalary = leagueContext?.capSettings?.averageSalary || DEFAULT_AVERAGE_SALARY;
 
   // Max first year: 140% of current salary OR 140% of average salary, whichever is greater
   const maxFirstYearSalary = Math.round(
@@ -439,12 +444,12 @@ function computeVeteranExtensionTerms(player, contract, salaryCap) {
  * Get current salary from contract
  *
  * @param {Object} contract - Contract data
+ * @param {number} currentYear - Current season end year (e.g., 2025 for 2024-25 season)
  * @returns {number} Current salary
  */
-function getCurrentSalary(contract) {
+function getCurrentSalary(contract, currentYear) {
   if (!contract?.salariesByYear?.length) return 0;
 
-  const currentYear = new Date().getFullYear();
   const currentSeason = `${currentYear - 1}-${String(currentYear).slice(-2)}`;
 
   // Find current season salary
@@ -493,24 +498,6 @@ function computeYearsElapsed(contract, currentYear) {
   }
 
   return 0;
-}
-
-/**
- * Parse season code to end year
- *
- * @param {string} season - Season code (e.g., "2024-25")
- * @returns {number|null} End year
- */
-function parseSeasonEndYear(season) {
-  if (!season) return null;
-
-  if (/^\d{4}-\d{2}$/.test(season)) {
-    const tail = parseInt(season.split('-')[1], 10);
-    return 2000 + tail;
-  }
-
-  const year = parseInt(season, 10);
-  return Number.isFinite(year) ? year : null;
 }
 
 /**
