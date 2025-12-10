@@ -13,6 +13,7 @@
  */
 
 import { getYearsOfService } from './minimumSalaryRules.js';
+import { parseSeasonEndYear } from '../seasonUtils.js';
 
 /**
  * Max salary tier definitions
@@ -133,8 +134,23 @@ export function checkSupermaxEligibility(player, leagueContext) {
   // Check for qualifying awards in the past 3 seasons (current + prior 2)
   // For currentYear 2025, eligible awards are from 2025, 2024, or 2023 seasons
   const recentAwards = awards.filter(award => {
-    const awardYear = award.year || award.season;
-    if (!awardYear) return false;
+    const rawAwardYear = award.year || award.season;
+    if (!rawAwardYear) return false;
+    
+    // Parse award year - handles both numeric years (2024) and season codes ('2023-24')
+    let awardYear;
+    if (typeof rawAwardYear === 'number') {
+      awardYear = rawAwardYear;
+    } else if (typeof rawAwardYear === 'string') {
+      // Try parsing as season code first (e.g., '2023-24' -> 2024)
+      const parsedSeason = parseSeasonEndYear(rawAwardYear);
+      awardYear = parsedSeason !== null ? parsedSeason : parseInt(rawAwardYear, 10);
+    } else {
+      return false;
+    }
+    
+    if (!Number.isFinite(awardYear)) return false;
+    
     // Award must be from current year or the two prior years
     const yearDiff = currentYear - awardYear;
     return yearDiff >= 0 && yearDiff <= 2;

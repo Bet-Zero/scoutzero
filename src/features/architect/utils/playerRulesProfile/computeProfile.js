@@ -167,18 +167,22 @@ export function computePlayerRulesProfile(player, teamContext = {}, leagueContex
 /**
  * Normalize league context with defaults
  *
+ * When simulationDate is provided, derive currentYear/currentSeason from it
+ * to ensure all rules are evaluated for the correct league year.
+ *
  * @param {Object} leagueContext - Raw league context
  * @returns {Object} Normalized league context
  */
 function normalizeLeagueContext(leagueContext) {
-  const now = new Date();
-  const defaultYear = getCurrentSeasonYear(now);
+  // Use simulationDate if provided, otherwise fall back to real-world time
+  const effectiveDate = leagueContext.simulationDate || new Date();
+  const defaultYear = getCurrentSeasonYear(effectiveDate);
   const defaultSeason = toSeasonCode(defaultYear);
 
   return {
     currentYear: leagueContext.currentYear || defaultYear,
     currentSeason: leagueContext.currentSeason || defaultSeason,
-    simulationDate: leagueContext.simulationDate || now,
+    simulationDate: effectiveDate,
     leaguePhase: leagueContext.leaguePhase || 'regular',
     capSettings: {
       ...DEFAULT_CAP_SETTINGS,
