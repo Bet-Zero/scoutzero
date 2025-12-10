@@ -298,6 +298,8 @@ export function computeExtensionTerms(player, leagueContext, eligibility = null)
   const { capSettings = {} } = leagueContext || {};
   const salaryCap = capSettings.salaryCap || 140_588_000;
   const contract = player?.contract;
+  // Compute currentYear once here to fully decouple from JS clock
+  const currentYear = leagueContext?.currentYear || new Date().getFullYear();
 
   switch (extEligibility.extensionType) {
     case EXTENSION_TYPES.ROOKIE:
@@ -307,11 +309,11 @@ export function computeExtensionTerms(player, leagueContext, eligibility = null)
       return computeDesignatedVeteranTerms(player, salaryCap);
 
     case EXTENSION_TYPES.TRADE_RESTRICTED:
-      return computeTradeRestrictedTerms(player, contract, leagueContext);
+      return computeTradeRestrictedTerms(player, contract, currentYear);
 
     case EXTENSION_TYPES.VETERAN:
     default:
-      return computeVeteranExtensionTerms(player, contract, salaryCap, leagueContext);
+      return computeVeteranExtensionTerms(player, contract, salaryCap, leagueContext, currentYear);
   }
 }
 
@@ -376,11 +378,10 @@ function computeDesignatedVeteranTerms(player, salaryCap) {
  *
  * @param {Object} player - Player data
  * @param {Object} contract - Contract data
- * @param {Object} leagueContext - League context
+ * @param {number} currentYear - Current season end year
  * @returns {Object} Extension terms
  */
-function computeTradeRestrictedTerms(player, contract, leagueContext) {
-  const currentYear = leagueContext?.currentYear || new Date().getFullYear();
+function computeTradeRestrictedTerms(player, contract, currentYear) {
   const currentSalary = getCurrentSalary(contract, currentYear);
   const maxFirstYearSalary = Math.round(currentSalary * 1.05); // 105% of current
 
@@ -402,10 +403,10 @@ function computeTradeRestrictedTerms(player, contract, leagueContext) {
  * @param {Object} contract - Contract data
  * @param {number} salaryCap - Salary cap
  * @param {Object} leagueContext - League context
+ * @param {number} currentYear - Current season end year
  * @returns {Object} Extension terms
  */
-function computeVeteranExtensionTerms(player, contract, salaryCap, leagueContext) {
-  const currentYear = leagueContext?.currentYear || new Date().getFullYear();
+function computeVeteranExtensionTerms(player, contract, salaryCap, leagueContext, currentYear) {
   const currentSalary = getCurrentSalary(contract, currentYear);
   const averageSalary = leagueContext?.capSettings?.averageSalary || DEFAULT_AVERAGE_SALARY;
 
