@@ -17,6 +17,22 @@ import useCapValidation from '@/features/architect/hooks/useCapValidation';
 import ValidationWarnings from '@/features/architect/ValidationWarnings';
 import { computePlayerRulesProfile } from '@/features/architect/utils/playerRulesProfile';
 
+const calculateExtensionFirstYearSalary = (extMax, desiredFirst) => {
+  if (!extMax) return desiredFirst || 0;
+  const minFirst = extMax.minFirstYearSalary ?? 0;
+  const maxFirst =
+    extMax.maxFirstYearSalary ??
+    extMax.minFirstYearSalary ??
+    desiredFirst ??
+    0;
+  const base = desiredFirst != null ? desiredFirst : maxFirst;
+  const capped =
+    extMax.maxFirstYearSalary != null
+      ? Math.min(extMax.maxFirstYearSalary, base)
+      : base;
+  return Math.max(minFirst, capped);
+};
+
 const ACTION_SETS = {
   option: ['accept', 'decline', 'signNew'],
   freeAgent: ['resign', 'signAndTrade', 'renounce'],
@@ -135,6 +151,21 @@ const EditContractModal = ({
       yearsOk,
     };
   }, [activeRulesProfile, extMax, extension]);
+
+  const extensionNoteText = useMemo(() => {
+    if (selectedAction !== 'extend') return '';
+    if (extensionLimits.isEligible && extMax) {
+      const maxYearsText = extMax.maxYears ? `${extMax.maxYears} years` : 'extension';
+      const maxFirst = extMax.maxFirstYearSalary?.toLocaleString() || '0';
+      const minFirst = extMax.minFirstYearSalary?.toLocaleString() || '0';
+      return `Max ${maxYearsText} at $${maxFirst} (min $${minFirst})`;
+    }
+    const reasonText =
+      extReason ||
+      activeRulesProfile?.extensionEligibility?.reason ||
+      'Outside extension window';
+    return `Not eligible: ${reasonText}`;
+  }, [selectedAction, extensionLimits, extMax, extReason, activeRulesProfile]);
 
   // Helper to get contract years from Architect schema (contract.salariesByYear[])
   // Includes both base contract and extension years (from futureContract)
@@ -293,8 +324,10 @@ const EditContractModal = ({
 
   useEffect(() => {
     if (selectedAction !== 'extend' || !extMax) return;
-    const baseFirstYear = extMax.maxFirstYearSalary ?? 0;
-    const firstYear = Math.max(extMax.minFirstYearSalary || 0, baseFirstYear);
+    const firstYear = calculateExtensionFirstYearSalary(
+      extMax,
+      extMax.maxFirstYearSalary
+    );
     setExtension({
       years: extMax.maxYears,
       contractType: 'Standard',
@@ -365,13 +398,10 @@ const EditContractModal = ({
           }
           const startYear = optionYear ? optionYear + 1 : CURRENT_YEAR + 1;
           const desiredFirst = extension.salaries[0] || 0;
-          const cappedFirst =
-            extMax && extMax.maxFirstYearSalary != null
-              ? Math.min(extMax.maxFirstYearSalary, desiredFirst)
-              : desiredFirst;
-          const firstYearSalary = extMax
-            ? Math.max(extMax.minFirstYearSalary || 0, cappedFirst)
-            : desiredFirst;
+          const firstYearSalary = calculateExtensionFirstYearSalary(
+            extMax,
+            desiredFirst
+          );
           const raisePct = extMax?.raisePercentage ?? extMax?.baseRaisePct ?? 0.08;
           const contract = generateExtensionContract({
             firstYearSalary,
@@ -731,9 +761,7 @@ const EditContractModal = ({
               {/* Extension Eligibility Note */}
               {selectedAction === 'extend' && (
                 <div className="mt-3 px-3 py-2 bg-orange-500/10 border border-orange-500/20 rounded text-xs text-orange-200">
-                  {extensionLimits.isEligible && extMax
-                    ? `Max ${extMax?.maxYears || 0} years at $${extMax?.maxFirstYearSalary?.toLocaleString() || 0} (min $${extMax?.minFirstYearSalary?.toLocaleString() || 0})`
-                    : `Not eligible: ${extReason || activeRulesProfile?.extensionEligibility?.reason || 'Outside extension window'}`}
+                  {extensionNoteText}
                 </div>
               )}
             </div>

@@ -8,7 +8,6 @@ import { useMemo } from 'react';
 import capProjections from '@/features/architect/utils/capProjections';
 import { getContractYearSlice } from '@/features/architect/utils/contractUtils';
 import { computePlayerRulesProfile } from '@/features/architect/utils/playerRulesProfile';
-import { toSeasonCode } from '@/features/architect/utils/seasonUtils';
 
 /**
  * Calculate team's total cap hit for a given year
@@ -32,6 +31,9 @@ const getCapSettings = (year) => {
   return capProjections[key] || capProjections['2025-26'];
 };
 
+const toSeasonCodeLocal = (endYear) =>
+  `${endYear - 1}-${String(endYear % 100).padStart(2, '0')}`;
+
 /**
  * Build a basic league context from a season end year
  */
@@ -40,7 +42,7 @@ const getLeagueContextFromYear = (year) => {
   const startYear = year - 1;
   return {
     currentYear: year,
-    currentSeason: toSeasonCode(year),
+    currentSeason: toSeasonCodeLocal(year),
     simulationDate: new Date(startYear, 6, 15), // July 15 of start year
   };
 };

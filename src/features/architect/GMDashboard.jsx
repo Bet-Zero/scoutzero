@@ -22,13 +22,14 @@ import ExceptionTracker from './ExceptionTracker';
 import SavePlanModal from './SavePlanModal';
 import useArchitectPlayerData from '@/features/architect/hooks/useArchitectPlayerData';
 import { useCapSheetState } from '@/features/architect/hooks/useCapSheetState';
-import usePlayerRulesProfiles from '@/features/architect/hooks/usePlayerRulesProfiles';
+import usePlayerRulesProfiles, { getPlayerKey } from '@/features/architect/hooks/usePlayerRulesProfiles';
 import { enrichPlayerData } from '@/features/roster/utils';
 import { basePlayerRef } from '@/data/firestorePaths';
 import { getDoc } from 'firebase/firestore';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
 import capProjections from '@/features/architect/utils/capProjections';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
+import { getContractYearSlice } from '@/features/architect/utils/contractUtils';
 
 // ==== Season helpers (inline for now; you can extract later) ====
 const LOCAL_SEASON_KEY = 'hz.currentSeasonEndYear';
@@ -182,6 +183,51 @@ const GMDashboard = () => {
     initialCapSheet: teamCapSheet,
     currentYear,
   });
+
+  const leagueContext = useMemo(() => {
+    if (!currentYear) return {};
+    const startYear = currentYear - 1;
+    return {
+      currentYear,
+      currentSeason: `${startYear}-${String(currentYear % 100).padStart(2, '0')}`,
+      simulationDate: new Date(startYear, 6, 15),
+      leaguePhase: 'regular',
+    };
+  }, [currentYear]);
+
+  const teamContext = useMemo(() => {
+    const key = `${currentYear - 1}-${String(currentYear % 100).padStart(2, '0')}`;
+    const capSettings = capProjections[key] || {};
+    const salary = (capSheetState.modifiedCapSheet?.players || []).reduce((sum, p) => {
+      const slice = getContractYearSlice(p, currentYear);
+      return sum + (slice?.capHit ?? slice?.salary ?? 0);
+    }, 0);
+    const firstApron = capSettings.firstApron || capSettings.first_apron || 0;
+    const secondApron = capSettings.secondApron || capSettings.second_apron || 0;
+    return {
+      teamCode: teamId,
+      teamSalary: salary,
+      isOverCap: capSettings.cap ? salary > capSettings.cap : false,
+      apronStatus:
+        secondApron && salary > secondApron
+          ? 'second'
+          : firstApron && salary > firstApron
+            ? 'first'
+            : null,
+    };
+  }, [capSheetState.modifiedCapSheet, currentYear, teamId]);
+
+  const rulesProfiles = usePlayerRulesProfiles(
+    capSheetState.modifiedCapSheet?.players || [],
+    teamContext,
+    leagueContext
+  );
+
+  const selectedRulesProfile = useMemo(() => {
+    if (!selectedPlayer) return null;
+    const key = getPlayerKey(selectedPlayer);
+    return key ? rulesProfiles.get(key) : null;
+  }, [selectedPlayer, rulesProfiles]);
 
   // Sync hook state when teamCapSheet changes (e.g., from loading plans)
   useEffect(() => {
@@ -878,6 +924,7 @@ const GMDashboard = () => {
                 currentYear={currentYear}
                 onSelectPlayer={handleEditContract}
                 playersMap={playersMap}
+                rulesProfiles={rulesProfiles}
               />
               <ExceptionTracker
                 teamCapSheet={capSheetState.modifiedCapSheet}
@@ -895,6 +942,7 @@ const GMDashboard = () => {
             onSelectPlayer={handleEditContract}
             onActionClick={handleCapSheetAction}
             playersMap={playersMap}
+            rulesProfiles={rulesProfiles}
           />
         )}
 
@@ -1053,6 +1101,9 @@ const GMDashboard = () => {
           onWaive={handleWaiveContract}
           onOptionDecision={handleOptionDecision}
           playersMap={playersMap}
+          rulesProfile={selectedRulesProfile}
+          leagueContext={leagueContext}
+          teamContext={teamContext}
         />
       )}
 

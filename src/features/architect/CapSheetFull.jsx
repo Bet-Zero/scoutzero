@@ -34,6 +34,7 @@ const CapSheetFull = ({
   onSelectPlayer,
   onActionClick,
   playersMap = {},
+  rulesProfiles = null,
 }) => {
   if (!teamCapSheet || !teamCapSheet.players) return null;
 
@@ -133,6 +134,17 @@ const CapSheetFull = ({
             <div className="divide-y divide-white/5">
               {sortedPlayers.map((player, idx) => {
                 const isTwoWay = isTwoWayContract(player);
+                const profileKey = getPlayerKey(player);
+                const rulesProfile = rulesProfiles?.get?.(profileKey);
+                const extEligibleDate = rulesProfile?.extensionEligibility?.eligibleDate
+                  ? new Date(rulesProfile.extensionEligibility.eligibleDate)
+                  : null;
+                const extEligibleYear = extEligibleDate
+                  ? extEligibleDate.getMonth() >= 6
+                    ? extEligibleDate.getFullYear() + 1
+                    : extEligibleDate.getFullYear()
+                  : null;
+                const isCurrentlyExtEligible = rulesProfile?.extensionEligibility?.isEligible;
                 return (
                   <div
                     key={idx}
@@ -148,6 +160,11 @@ const CapSheetFull = ({
                           player.bio?.displayName ||
                           player.name}
                       </button>
+                      {isCurrentlyExtEligible && (
+                        <span className="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider shrink-0 bg-cyan-500/20 text-cyan-200">
+                          Ext Eligible
+                        </span>
+                      )}
                       {isTwoWay && (
                         <span
                           className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider shrink-0 ${getTagColor('TWO-WAY')}`}
@@ -168,6 +185,8 @@ const CapSheetFull = ({
                       const faType = normalizeFAType(freeAgency?.type);
                       const isExtension = entry?.isExtensionSeason;
                       const salaryValue = entry?.salary ?? entry?.capHit ?? 0;
+                      const isFirstEligibleYear =
+                        extEligibleYear && year === extEligibleYear;
 
                       // Free agency year: faYear of 2027 means they become FA in 2027, for the 2027-28 season
                       // The column showing "2027-28" has year === 2028, so check faYear + 1 === year
@@ -246,11 +265,18 @@ const CapSheetFull = ({
                         >
                           <span
                             className={`text-xs font-medium tabular-nums tracking-tight ${
-                              isExtension ? 'text-cyan-200/90' : 'text-white/60'
+                              isExtension || isFirstEligibleYear
+                                ? 'text-cyan-200/90'
+                                : 'text-white/60'
                             }`}
                           >
                             ${salaryValue.toLocaleString()}
                           </span>
+                          {isFirstEligibleYear && (
+                            <span className="ml-1 text-[9px] text-cyan-300 font-semibold uppercase">
+                              Ext
+                            </span>
+                          )}
                         </div>
                       );
                     })}
@@ -414,3 +440,4 @@ const CapSheetFull = ({
 };
 
 export default CapSheetFull;
+import { getPlayerKey } from '@/features/architect/hooks/usePlayerRulesProfiles';

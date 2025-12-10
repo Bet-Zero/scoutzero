@@ -1,6 +1,9 @@
 import { useMemo } from 'react';
 import { computePlayerRulesProfile } from '@/features/architect/utils/playerRulesProfile';
 
+export const getPlayerKey = (player) =>
+  player?.playerId || player?.id || player?.player_id || player?.name || null;
+
 /**
  * Build a memoized map of playerId -> PlayerRulesProfile
  * so UI layers can consume a single source of truth for CBA rules.
@@ -15,7 +18,7 @@ export function usePlayerRulesProfiles(players = [], teamContext = {}, leagueCon
     const profiles = new Map();
     players.forEach((player) => {
       if (!player) return;
-      const key = player.playerId || player.id || player.player_id || player.name;
+      const key = getPlayerKey(player);
       if (!key) return;
 
       profiles.set(
