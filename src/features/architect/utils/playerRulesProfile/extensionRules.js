@@ -24,6 +24,7 @@
 import { getYearsOfService } from './minimumSalaryRules.js';
 import { checkSupermaxEligibility } from './maxSalaryRules.js';
 import { parseSeasonEndYear } from '../seasonUtils.js';
+import { DEFAULT_AVERAGE_SALARY } from '../cbaConstants.js';
 
 /**
  * Extension type constants
@@ -44,14 +45,6 @@ const RAISE_PERCENTAGES = {
   nonBird: 0.05,  // 5% for non-Bird
   trade: 0.05,    // 5% for trade extensions
 };
-
-/**
- * Default average player salary fallback (2024-25 value).
- * Update annually with cap projections when the league year changes.
- * This is used as a floor for extension calculations when not provided via leagueContext.capSettings.averageSalary
- * Reference: CBA_Article_7_RuleCards.md, Rule Card 16
- */
-const DEFAULT_AVERAGE_SALARY = 11_100_000;
 
 /**
  * Compute extension eligibility for a player

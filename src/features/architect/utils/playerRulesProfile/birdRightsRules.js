@@ -17,6 +17,7 @@
  */
 
 import { formatSalary } from '@/shared/utils/formatting/basicFormatting.js';
+import { DEFAULT_AVERAGE_SALARY } from '../cbaConstants.js';
 
 /**
  * Bird rights type constants
@@ -78,7 +79,7 @@ const BIRD_RIGHTS_CONFIG = {
 export function computeBirdRights(player, leagueContext) {
   const { capSettings = {} } = leagueContext || {};
   const salaryCap = capSettings.salaryCap || 140_588_000;
-  const averageSalary = capSettings.averageSalary || 11_100_000;
+  const averageSalary = capSettings.averageSalary || DEFAULT_AVERAGE_SALARY;
 
   // Try to get Bird rights from existing contract data
   const existingBirdRights = extractExistingBirdRights(player);

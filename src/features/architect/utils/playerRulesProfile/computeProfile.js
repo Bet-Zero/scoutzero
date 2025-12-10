@@ -24,6 +24,7 @@ import { computeMinimumSalary, getYearsOfService } from './minimumSalaryRules.js
 import { computeRFAStatus } from './rfaRules.js';
 import { computeMaxSalary } from './maxSalaryRules.js';
 import { parseSeasonEndYear } from '../seasonUtils.js';
+import { DEFAULT_AVERAGE_SALARY } from '../cbaConstants.js';
 
 /**
  * Default cap settings (2024-25 values)
@@ -34,7 +35,7 @@ const DEFAULT_CAP_SETTINGS = {
   firstApron: 178_132_000,
   secondApron: 188_938_000,
   taxLine: 170_818_000,
-  averageSalary: 11_100_000,
+  averageSalary: DEFAULT_AVERAGE_SALARY,
 };
 
 /**
