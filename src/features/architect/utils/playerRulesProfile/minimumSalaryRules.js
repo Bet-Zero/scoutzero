@@ -61,7 +61,11 @@ export function getMinimumSalaryScale(season) {
   }
 
   // Fall back to the latest available scale
-  const seasons = Object.keys(MINIMUM_SALARY_SCALE).sort();
+  const seasons = Object.keys(MINIMUM_SALARY_SCALE).sort((a, b) => {
+    const yearA = parseInt(a.split('-')[0], 10);
+    const yearB = parseInt(b.split('-')[0], 10);
+    return yearA - yearB;
+  });
   const latestSeason = seasons[seasons.length - 1];
   return MINIMUM_SALARY_SCALE[latestSeason];
 }
