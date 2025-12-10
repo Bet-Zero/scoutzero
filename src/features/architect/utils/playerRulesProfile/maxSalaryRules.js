@@ -120,7 +120,13 @@ export function getMaxSalaryTier(yearsOfService) {
  * @returns {Object} Supermax eligibility info
  */
 export function checkSupermaxEligibility(player, leagueContext) {
-  const currentYear = leagueContext?.currentYear || new Date().getFullYear();
+  const currentYear = leagueContext?.currentYear;
+  if (!currentYear) {
+    return {
+      isEligible: false,
+      reason: 'Cannot determine supermax eligibility: currentYear not provided in leagueContext',
+    };
+  }
   const yearsOfService = getYearsOfService(player);
   const awards = player?.awards || [];
 
