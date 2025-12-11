@@ -149,8 +149,30 @@ export function compareSeasons(a: SeasonId, b: SeasonId): -1 | 0 | 1;
 
 /**
  * Get current NBA season based on a date (July 1 rule)
+ * 
+ * The NBA league year begins on July 1. This function determines which season
+ * a given date falls into:
+ * 
+ * - If date is between July 1 and December 31 of year Y:
+ *   Returns season "Y-(Y+1 last 2 digits)" (e.g., Aug 15, 2024 → "2024-25")
+ * 
+ * - If date is between January 1 and June 30 of year Y:
+ *   Returns season "(Y-1)-(Y last 2 digits)" (e.g., Mar 10, 2025 → "2024-25")
+ * 
+ * Edge Cases:
+ * - Seasons beyond 2031-32: Function will still compute correctly, but cap data
+ *   may not be available in capProjections.js
+ * - Pre-2014 seasons: Function computes correctly, but historical cap data
+ *   is not guaranteed to be available
+ * - Exactly July 1 at midnight: Treated as start of new season
+ * 
  * @param date - Date to evaluate (defaults to now)
  * @returns Current SeasonId (e.g., if date is Aug 2024, returns "2024-25")
+ * 
+ * @example
+ * getCurrentSeasonId(new Date('2024-08-15')) // → "2024-25"
+ * getCurrentSeasonId(new Date('2025-03-10')) // → "2024-25"
+ * getCurrentSeasonId(new Date('2025-07-01')) // → "2025-26"
  */
 export function getCurrentSeasonId(date?: Date): SeasonId;
 
@@ -165,6 +187,19 @@ export function isValidSeasonId(value: string): value is SeasonId;
  * 
  * @returns SeasonId if valid, null if input cannot be parsed
  * @note Callers should validate the result is not null before using
+ * 
+ * Valid Inputs:
+ * - "2024-25" → "2024-25" (already canonical)
+ * - "2025" → "2024-25" (interpreted as end year)
+ * - 2025 → "2024-25" (numeric end year)
+ * - "2024-2025" → "2024-25" (full year format)
+ * 
+ * Invalid Inputs (returns null):
+ * - "" (empty string)
+ * - "invalid"
+ * - "20-25" (malformed)
+ * - "2024-2026" (non-consecutive years)
+ * - NaN, Infinity, negative numbers
  */
 export function normalizeToSeasonId(input: string | number): SeasonId | null;
 ```
@@ -224,12 +259,36 @@ export interface TimingContext {
   /** Which season's cap table to use for max %, apron thresholds, etc. */
   capSeasonId: SeasonId;
   
-  /** Current league phase for timing rules */
-  phase: 'preseason' | 'regular' | 'playoffs' | 'offseason' | 'moratorium';
+  /**
+   * Current league phase for timing rules
+   * 
+   * Phase-sensitive rules:
+   * - 'moratorium': No signings allowed (July 1-6), only verbal agreements
+   * - 'offseason': Free agency signings, extensions, trades allowed
+   * - 'regular': In-season trades, 10-day contracts, hardship exceptions
+   * - 'playoffs': Trade deadline has passed, limited signings
+   * - 'preseason': Training camp signings, roster finalization
+   * 
+   * Derivation:
+   * - Computed by builder from operationDate + NBA league calendar
+   * - NOT a separate input; derived automatically
+   * - Calendar dates: Moratorium (Jul 1-6), Offseason (Jul 7 - Oct ~15),
+   *   Preseason (Oct ~15 - Oct ~22), Regular (Oct ~22 - Apr), Playoffs (Apr - Jun)
+   * 
+   * Simulation Note:
+   * - When simulating across phase boundaries, phase is recalculated
+   * - Phase is immutable within a single RuleContext evaluation
+   */
+  phase: LeaguePhase;
   
   /** Date/time of the operation (for timing restrictions like 30-day rules) */
   operationDate: Date;
 }
+
+/**
+ * League phase enum for timing context
+ */
+export type LeaguePhase = 'preseason' | 'regular' | 'playoffs' | 'offseason' | 'moratorium';
 
 /**
  * Player-specific inputs for rule calculations
@@ -238,19 +297,54 @@ export interface PlayerContext {
   playerId: string;
   displayName: string;
   
-  /** Years of NBA service at time of operation (not draft year!) */
+  /**
+   * Years of NBA service at time of operation (not draft year!)
+   * 
+   * @source COMPUTED by builder
+   * @derivation Calculated from player.bio.draftYear and player.contract.yearsAcquired
+   *             relative to operationSeasonId. Formula:
+   *             yearsOfService = operationSeasonId.startYear - draftYear
+   *             (adjusted for seasons actually played)
+   */
   yearsOfServiceAtOperation: number;
   
-  /** Bird type player will have when operation executes */
-  birdTypeAtOperation: 'None' | 'Non-Bird' | 'Early Bird' | 'Full Bird';
+  /**
+   * Bird type player will have when operation executes
+   * 
+   * @source COMPUTED by builder
+   * @derivation Calculated from player.contract.birdRights.status and
+   *             player's continuous tenure with team. Bird rights accrue
+   *             based on years with team without being waived/renounced.
+   */
+  birdTypeAtOperation: BirdType;
   
-  /** Salary from referenceSeasonId (null if no prior contract) */
+  /**
+   * Salary from referenceSeasonId (null if no prior contract)
+   * 
+   * @source LOADED from player.contract.salariesByYear[]
+   * @derivation Looks up salary entry where entry.season === referenceSeasonId
+   *             from TimingContext. If no entry exists, returns null.
+   *             Used for 105%/140% calculations in extensions and Bird signings.
+   */
   priorSeasonSalary: number | null;
   
-  /** Current season salary (if under contract) */
+  /**
+   * Current season salary (if under contract)
+   * 
+   * @source LOADED from player.contract.salariesByYear[]
+   * @derivation Looks up salary entry where entry.season === operationSeasonId
+   */
   currentSeasonSalary: number | null;
   
-  /** Max salary percentage bucket (25%, 30%, 35%) */
+  /**
+   * Max salary percentage bucket (25%, 30%, 35%)
+   * 
+   * @source COMPUTED by builder
+   * @derivation Based on yearsOfServiceAtOperation:
+   *             0-6 years → 0.25 (25%)
+   *             7-9 years → 0.30 (30%)
+   *             10+ years → 0.35 (35%)
+   */
   maxPercentBucket: 0.25 | 0.30 | 0.35;
   
   /** Contract end season if currently under contract */
@@ -268,19 +362,59 @@ export interface PlayerContext {
 }
 
 /**
+ * Bird rights type for player context
+ */
+export type BirdType = 'None' | 'Non-Bird' | 'Early Bird' | 'Full Bird';
+
+/**
  * Team-specific inputs for rule calculations
  */
 export interface TeamContext {
   teamId: string;
   teamCode: string;
   
-  /** Team's total salary commitments for operationSeasonId */
+  /**
+   * Team's total salary commitments for operationSeasonId
+   * 
+   * @source COMPUTED by builder
+   * @derivation Sum of all player cap hits for operationSeasonId from
+   *             team.players[].contract.salariesByYear[] where season matches.
+   *             Includes: guaranteed salaries, cap holds for Bird rights players,
+   *             dead money from waived players, incomplete roster charges.
+   *             Excludes: two-way contract salaries (don't count against cap).
+   */
   teamSalaryAtOperation: number;
   
-  /** Team's apron status for operationSeasonId */
-  apronLevelAtOperation: 'UNDER_CAP' | 'OVER_CAP' | 'FIRST_APRON' | 'SECOND_APRON';
+  /**
+   * Team's apron status for operationSeasonId
+   * 
+   * @source COMPUTED by builder
+   * @derivation Calculated by comparing teamSalaryAtOperation against cap thresholds
+   *             from capSeasonId in CapContext:
+   *             
+   *             if (teamSalary >= cap.secondApron) → 'SECOND_APRON'
+   *             else if (teamSalary >= cap.firstApron) → 'FIRST_APRON'  
+   *             else if (teamSalary >= cap.salaryCap) → 'OVER_CAP'
+   *             else → 'UNDER_CAP'
+   *             
+   * @note This calculation does NOT account for:
+   *       - Pending trade exceptions (TPEs don't affect cap until used)
+   *       - Repeater tax penalties (tracked separately, not a cap threshold)
+   *       - Cash sent in trades (one-time, not salary commitment)
+   *       
+   *       It DOES include:
+   *       - Cap holds for unsigned free agents with Bird rights
+   *       - Guaranteed money on waived players (dead cap)
+   *       - Incomplete roster charges (minimum team salary floor)
+   */
+  apronLevelAtOperation: ApronLevel;
   
-  /** Available cap space (0 if over cap) */
+  /**
+   * Available cap space (0 if over cap)
+   * 
+   * @source COMPUTED by builder
+   * @derivation cap.salaryCap - teamSalaryAtOperation, floored at 0
+   */
   capSpaceAtOperation: number;
   
   /** Whether team is hard-capped and at which level */
@@ -299,6 +433,11 @@ export interface TeamContext {
     tradeExceptions: Array<{ id: string; amount: number; expiresSeasonId: SeasonId }>;
   };
 }
+
+/**
+ * Apron level enum for team context
+ */
+export type ApronLevel = 'UNDER_CAP' | 'OVER_CAP' | 'FIRST_APRON' | 'SECOND_APRON';
 
 /**
  * Operation-specific inputs
@@ -409,25 +548,148 @@ export function buildRuleContextForPlayerMove(
 | **RFA Signing** | First contract year | Most recent completed season | Same as operationSeasonId |
 | **Veteran Extension** | First extension year (after current contract ends) | Last year of current contract | Same as operationSeasonId |
 | **Rookie Extension** | 5th year (first extension year) | 4th year (final rookie scale year) | operationSeasonId or current season for max calc |
+| **Designated Veteran Extension** | First extension year (after current contract ends) | Last year of current contract | Same as operationSeasonId (uses 35% max tier) |
 | **Trade** | Current season | Current season | Current season |
 | **Sign-and-Trade** | First contract year | Most recent completed season | First contract year |
 | **Minimum Signing** | Current or next season | N/A (not used for min signings) | Same as operationSeasonId |
 | **Exception Signing** | Current or next season | Current season (for exception caps) | Same as operationSeasonId |
+| **Qualifying Offer** | Next season (following contract expiration) | Final year of expiring contract | Same as operationSeasonId (QO salary = 125-150% of prior year) |
+| **Two-Way Signing** | Current or next season | N/A (two-way contracts have fixed terms) | Same as operationSeasonId (two-way salary is fixed per CBA) |
 
 ### 4.4 Handling Missing Data
+
+#### Error Types and Handling Strategy
+
+```typescript
+/**
+ * Error thrown when RuleContext cannot be built due to missing/invalid data
+ */
+export class RuleContextValidationError extends Error {
+  constructor(
+    public code: RuleContextErrorCode,
+    public details: string,
+    public userFacingMessage: string
+  ) {
+    super(`RuleContext validation failed: ${code} - ${details}`);
+    this.name = 'RuleContextValidationError';
+  }
+}
+
+/**
+ * Error codes for RuleContext validation failures
+ */
+export type RuleContextErrorCode =
+  | 'MISSING_CAP_DATA'        // capProjections doesn't have the requested season
+  | 'MISSING_PRIOR_SALARY'    // No salary data for referenceSeasonId (when required)
+  | 'MISSING_PLAYER_DATA'     // Player object lacks required fields
+  | 'MISSING_TEAM_DATA'       // Team state incomplete
+  | 'INVALID_SEASON_ID'       // Season format invalid or out of range
+  | 'INVALID_OPERATION_TYPE'  // Unknown operation type
+  | 'SEASON_OUT_OF_RANGE';    // Season beyond supported cap projection range
+```
+
+#### Error Handling by Data Type
 
 **Prior Salary**:
 - If player has no contract in `referenceSeasonId`, set `priorSeasonSalary = null`
 - Rules must handle `null` explicitly (not treat as `0`)
 - For 105%/140% calculations, `null` means "use average player salary" per CBA
+- **Not an error** — `null` is a valid state for free agents without prior contracts
 
 **Missing Cap Data**:
-- If `capProjections` doesn't have the `capSeasonId`, throw an error
+- If `capProjections` doesn't have the `capSeasonId`, throw `RuleContextValidationError`:
+  ```typescript
+  import { getSupportedSeasonRange } from './capHelpers';
+  
+  const { earliest, latest } = getSupportedSeasonRange(); // e.g., { earliest: "2024-25", latest: "2031-32" }
+  throw new RuleContextValidationError(
+    'MISSING_CAP_DATA',
+    `No cap projections available for season ${capSeasonId}`,
+    `Cannot evaluate move: cap data for ${capSeasonId} is not available. Supported seasons: ${earliest} through ${latest}.`
+  );
+  ```
 - Don't silently fall back to another season
+- **User-facing**: Display the `userFacingMessage` in UI; internal logging uses `details`
 
 **Missing Player Data**:
 - Return validation error with clear message
 - Don't proceed with incomplete context
+  ```typescript
+  throw new RuleContextValidationError(
+    'MISSING_PLAYER_DATA',
+    `Player ${playerId} missing required field: contract.salariesByYear`,
+    `Cannot evaluate move: player contract data is incomplete.`
+  );
+  ```
+
+#### RuleContext Validation Function
+
+```typescript
+/**
+ * Validate that a RuleContext is complete before use
+ * Call this before passing RuleContext to any rule function
+ * 
+ * @throws RuleContextValidationError if context is incomplete
+ */
+export function validateRuleContext(ctx: RuleContext): void {
+  // Timing validation
+  if (!ctx.timing.operationSeasonId) {
+    throw new RuleContextValidationError(
+      'INVALID_SEASON_ID',
+      'operationSeasonId is required',
+      'Cannot evaluate move: operation season not specified.'
+    );
+  }
+  
+  // Cap validation
+  if (!ctx.cap.salaryCap || ctx.cap.salaryCap <= 0) {
+    throw new RuleContextValidationError(
+      'MISSING_CAP_DATA',
+      `Invalid salary cap: ${ctx.cap.salaryCap}`,
+      `Cannot evaluate move: cap data is missing or invalid.`
+    );
+  }
+  
+  // Player validation (when player context is required)
+  if (ctx.operation.operationType !== 'TRADE' && !ctx.player.playerId) {
+    throw new RuleContextValidationError(
+      'MISSING_PLAYER_DATA',
+      'playerId is required for non-trade operations',
+      'Cannot evaluate move: player not specified.'
+    );
+  }
+  
+  // Add additional validations as needed...
+}
+```
+
+#### Distinguishing Error Types in Callers
+
+```typescript
+try {
+  const ctx = buildRuleContextForPlayerMove(planState, playerId, 'UFA_SIGNING');
+  validateRuleContext(ctx);
+  const result = computeMaxSalary(ctx);
+} catch (error) {
+  if (error instanceof RuleContextValidationError) {
+    switch (error.code) {
+      case 'MISSING_CAP_DATA':
+        // Show UI warning about unsupported season
+        showWarning(error.userFacingMessage);
+        break;
+      case 'MISSING_PLAYER_DATA':
+        // Log and show generic error
+        console.error(error.details);
+        showError('Player data incomplete');
+        break;
+      default:
+        showError('An error occurred evaluating this move');
+    }
+  } else {
+    throw error; // Re-throw unexpected errors
+  }
+}
+```
 
 ### 4.5 State Sources
 
@@ -572,6 +834,144 @@ if (!ctx.timing.operationSeasonId) {
 - Verify calculations change appropriately
 - Test extension eligibility display
 
+### Migration Timeline & Backward Compatibility
+
+#### Timeline Overview
+
+| Phase | Duration | Milestone |
+|-------|----------|-----------|
+| Phase 1-2 | Week 1-2 | Foundation complete, new helpers available |
+| Phase 3-4 | Week 3-4 | Core rules updated, dual support active |
+| Phase 5 | Week 5 | Trade Machine updated |
+| Phase 6 | Week 6 | Hard-coded defaults removed, deprecation warnings active |
+| Phase 7 | Week 7 | Testing complete, ready for release |
+| Deprecation Period | +6 weeks (2 release cycles) | Old signatures still work with warnings |
+| Removal | Week 13+ | Old signatures removed (post-deprecation cleanup) |
+
+#### Deprecation Warning Timeline
+
+1. **Phase 1.3** (Week 1-2): Add deprecation comments to `seasonFormat.js` and `seasonUtils.js`
+   - Re-exports with `@deprecated` JSDoc tags
+   - Console warnings in development mode only
+   - Warnings should include migration path: "Use `seasonHelpers.ts` instead"
+
+2. **Phase 3-5** (Week 3-5): Old function signatures still work
+   - Add `@deprecated` JSDoc to old signatures
+   - Log warning on first call per session (not every call)
+   - Example: `console.warn('[DEPRECATED] computeMaxSalary(player, leagueContext) - use computeMaxSalary(ruleContext) instead')`
+
+3. **Phase 6** (Week 6): Escalate warnings
+   - Warnings appear in production (not just dev)
+   - Documentation updated to show new patterns only
+
+4. **Removal** (Week 13+): Old signatures removed
+   - Breaking change documented in release notes
+   - Migration guide published
+
+#### Backward Compatibility Adapter
+
+To support gradual migration, provide adapter functions that construct `RuleContext` from old signatures:
+
+```typescript
+// src/features/architect/utils/legacyAdapters.ts
+
+import type { RuleContext } from '../types/ruleContext';
+import { buildRuleContextForPlayerMove } from './buildRuleContext';
+
+/**
+ * @deprecated Use computeMaxSalary(ruleContext) instead.
+ * This adapter will be removed in version X.Y.Z.
+ * 
+ * Legacy wrapper that constructs RuleContext from old signature.
+ * Provided for backward compatibility during migration period.
+ */
+export function computeMaxSalaryLegacy(
+  player: Player,
+  leagueContext: LegacyLeagueContext
+): MaxSalaryResult {
+  // Log deprecation warning (once per session)
+  warnOnce(
+    'computeMaxSalaryLegacy',
+    'computeMaxSalary(player, leagueContext) is deprecated. ' +
+    'Use computeMaxSalary(ruleContext) instead. ' +
+    'See migration guide: docs/architect/timing-migration.md'
+  );
+  
+  // Construct RuleContext from legacy inputs
+  const ruleContext = buildRuleContextFromLegacy(player, leagueContext, 'UFA_SIGNING');
+  
+  // Call new implementation
+  return computeMaxSalary(ruleContext);
+}
+
+/**
+ * Build RuleContext from legacy function parameters
+ * Used by adapter functions during migration period
+ */
+function buildRuleContextFromLegacy(
+  player: Player,
+  leagueContext: LegacyLeagueContext,
+  operationType: OperationType
+): RuleContext {
+  // Derive timing from legacy leagueContext
+  const operationSeasonId = leagueContext.currentSeason;
+  const referenceSeasonId = prevSeason(operationSeasonId);
+  
+  // Build minimal RuleContext
+  return {
+    timing: {
+      operationSeasonId,
+      referenceSeasonId,
+      capSeasonId: operationSeasonId,
+      phase: leagueContext.leaguePhase || 'regular',
+      operationDate: leagueContext.simulationDate || new Date(),
+    },
+    player: buildPlayerContextFromLegacy(player, operationSeasonId, referenceSeasonId),
+    team: buildMinimalTeamContext(), // Minimal context for max salary calc
+    operation: { operationType },
+    cap: buildCapContextFromSettings(leagueContext.capSettings),
+  };
+}
+
+// Helper to only warn once per function
+const warnedFunctions = new Set<string>();
+function warnOnce(fnName: string, message: string): void {
+  if (warnedFunctions.has(fnName)) return;
+  warnedFunctions.add(fnName);
+  console.warn(`[DEPRECATED] ${message}`);
+}
+```
+
+#### Phase 1.3 Re-exports with Deprecation
+
+```typescript
+// src/features/architect/utils/seasonFormat.js (updated)
+
+/**
+ * @deprecated Import from 'seasonHelpers.ts' instead.
+ * This file will be removed in version X.Y.Z.
+ * 
+ * Migration:
+ *   Before: import { toSeasonCode } from './seasonFormat';
+ *   After:  import { makeSeasonIdFromEndYear } from './seasonHelpers';
+ */
+
+import {
+  makeSeasonIdFromEndYear as toSeasonCode,
+  parseSeasonId,
+  normalizeToSeasonId as parseSeason,
+} from './seasonHelpers';
+
+// Re-export with original names for backward compatibility
+export { toSeasonCode, parseSeason };
+
+// toEndYear maps to parseSeasonId().endYear
+export function toEndYear(seasonCode) {
+  const parsed = parseSeasonId(seasonCode);
+  return parsed?.endYear ?? null;
+}
+```
+
 ---
 
 ## 6. RISKS & OPEN QUESTIONS
@@ -681,6 +1081,18 @@ Once implemented:
 ## REVISION_LOG
 
 - 2025-12-11: Initial planning document created
+- 2025-12-11: Added 3 missing operation types to season derivation table (DESIGNATED_VETERAN_EXTENSION, QUALIFYING_OFFER, TWO_WAY_SIGNING)
+- 2025-12-11: Expanded getCurrentSeasonId() documentation with explicit July 1 rule logic and edge cases
+- 2025-12-11: Added normalizeToSeasonId() examples for valid/invalid inputs
+- 2025-12-11: Added RuleContextValidationError type with error codes and handling strategy
+- 2025-12-11: Added validateRuleContext() function specification
+- 2025-12-11: Added @source annotations to PlayerContext fields documenting computed vs loaded data
+- 2025-12-11: Added BirdType and LeaguePhase type aliases
+- 2025-12-11: Expanded TeamContext.apronLevelAtOperation with derivation logic and inclusions/exclusions
+- 2025-12-11: Added ApronLevel type alias
+- 2025-12-11: Expanded TimingContext.phase with phase-sensitive rules and derivation documentation
+- 2025-12-11: Added Migration Timeline subsection with week-by-week schedule
+- 2025-12-11: Added backward compatibility adapter code examples (computeMaxSalaryLegacy)
 
 ---
 
