@@ -137,7 +137,20 @@ export function computeMaxSalary(playerOrContext, leagueContext) {
 export function computeMaxSalaryFromRuleContext(ctx) {
   const { timing, player: playerCtx, cap } = ctx;
 
-  const yearsOfService = playerCtx.yearsOfServiceAtOperation;
+  // Validate required cap data
+  if (!cap || typeof cap.salaryCap !== 'number' || !Number.isFinite(cap.salaryCap) || cap.salaryCap <= 0) {
+    return {
+      maxSalary: 0,
+      maxSalaryBird: 0,
+      tier: 'Unknown',
+      yearsOfService: playerCtx?.yearsOfServiceAtOperation ?? 0,
+      supermaxEligible: false,
+      supermaxReason: 'Cannot determine max salary: invalid or missing cap.salaryCap',
+      reason: 'Cannot determine max salary: salaryCap not provided or invalid in RuleContext.cap',
+    };
+  }
+
+  const yearsOfService = playerCtx?.yearsOfServiceAtOperation ?? 0;
   const salaryCap = cap.salaryCap;
 
   // Determine base tier
@@ -195,10 +208,10 @@ export function computeMaxSalaryFromRuleContext(ctx) {
  */
 function checkSupermaxEligibilityFromContext(ctx) {
   const { timing, player: playerCtx } = ctx;
-  const yearsOfService = playerCtx.yearsOfServiceAtOperation;
+  const yearsOfService = playerCtx?.yearsOfServiceAtOperation ?? 0;
 
   // Parse operation season to get the end year for award comparison
-  const parsed = parseSeasonId(timing.operationSeasonId);
+  const parsed = parseSeasonId(timing?.operationSeasonId);
   if (!parsed) {
     return {
       isEligible: false,
@@ -207,11 +220,14 @@ function checkSupermaxEligibilityFromContext(ctx) {
   }
   const currentYear = parsed.endYear;
 
-  // For now, we don't have awards in RuleContext
-  // This would need to be extended if award checking is needed
+  // TODO: When awards are added to RuleContext, compare against:
+  // - currentYear (most recent season)
+  // - currentYear - 1 (one season ago)
+  // - currentYear - 2 (two seasons ago)
+  // For now, return not eligible since award data is not available
   return {
     isEligible: false,
-    reason: 'Supermax eligibility requires award data not available in RuleContext',
+    reason: `Supermax eligibility requires award data (checking years ${currentYear}, ${currentYear - 1}, ${currentYear - 2}) not available in RuleContext`,
   };
 }
 

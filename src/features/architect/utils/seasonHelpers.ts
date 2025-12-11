@@ -288,9 +288,20 @@ export function normalizeToSeasonId(input: string | number | null | undefined): 
 
 /**
  * Get the range of seasons between two seasons (inclusive)
- * @param start - Starting season
- * @param end - Ending season
- * @returns Array of SeasonIds from start to end
+ * 
+ * Note: If start season is after end season, returns an empty array.
+ * This is intentional behavior to allow callers to safely handle
+ * reversed bounds without throwing an error.
+ * 
+ * @param start - Starting season (e.g., "2024-25")
+ * @param end - Ending season (e.g., "2026-27")
+ * @returns Array of SeasonIds from start to end, or empty array if start > end
+ * @throws Error if either season ID is invalid
+ * 
+ * @example
+ * getSeasonRange('2024-25', '2026-27') // ['2024-25', '2025-26', '2026-27']
+ * getSeasonRange('2024-25', '2024-25') // ['2024-25']
+ * getSeasonRange('2026-27', '2024-25') // [] (empty - reversed bounds)
  */
 export function getSeasonRange(start: SeasonId, end: SeasonId): SeasonId[] {
   const parsedStart = parseSeasonId(start);
@@ -298,6 +309,11 @@ export function getSeasonRange(start: SeasonId, end: SeasonId): SeasonId[] {
   
   if (!parsedStart || !parsedEnd) {
     throw new Error(`Invalid SeasonId(s): ${start}, ${end}`);
+  }
+  
+  // When start is after end, return empty array (intentional behavior)
+  if (parsedStart.startYear > parsedEnd.startYear) {
+    return [];
   }
   
   const result: SeasonId[] = [];

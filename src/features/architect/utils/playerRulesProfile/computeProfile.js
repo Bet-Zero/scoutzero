@@ -336,7 +336,7 @@ function createEmptyProfile(playerId, reason, simulationDate = null) {
     playerId,
     playerName: playerId,
     evaluatedAt: evalDate.toISOString(),
-    evaluatedForSeason: toSeasonCode(getCurrentSeasonYear(evalDate)),
+    evaluatedForSeason: getCurrentSeasonId(evalDate),
     error: reason,
 
     extensionEligibility: {

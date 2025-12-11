@@ -218,5 +218,37 @@ describe('SeasonId Helpers', () => {
       const range = getSeasonRange('2027-28', '2024-25');
       expect(range).toEqual([]);
     });
+
+    it('throws on invalid season IDs', () => {
+      expect(() => getSeasonRange('invalid', '2024-25')).toThrow();
+      expect(() => getSeasonRange('2024-25', 'bad')).toThrow();
+      expect(() => getSeasonRange('2024', '2025')).toThrow();
+    });
+  });
+
+  describe('navigation helpers with invalid input', () => {
+    it('prevSeason throws on invalid input', () => {
+      expect(() => prevSeason('invalid')).toThrow();
+      expect(() => prevSeason('2024')).toThrow();
+      expect(() => prevSeason('bad')).toThrow();
+    });
+
+    it('nextSeason throws on invalid input', () => {
+      expect(() => nextSeason('invalid')).toThrow();
+      expect(() => nextSeason('2024')).toThrow();
+      expect(() => nextSeason('bad')).toThrow();
+    });
+
+    it('addSeasons throws on invalid input', () => {
+      expect(() => addSeasons('invalid', 1)).toThrow();
+      expect(() => addSeasons('2024', 1)).toThrow();
+      expect(() => addSeasons('bad', 0)).toThrow();
+    });
+
+    it('compareSeasons throws on invalid input', () => {
+      expect(() => compareSeasons('invalid', '2024-25')).toThrow();
+      expect(() => compareSeasons('2024-25', 'bad')).toThrow();
+      expect(() => compareSeasons('2024', '2025')).toThrow();
+    });
   });
 });

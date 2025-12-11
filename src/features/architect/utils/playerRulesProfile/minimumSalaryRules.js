@@ -131,13 +131,49 @@ export function computeMinimumSalary(player, leagueContext) {
  * @returns {Object} Minimum salary information
  */
 export function computeMinimumSalaryFromRuleContext(ctx) {
+  // Validate ctx structure
+  if (!ctx || !ctx.timing || !ctx.player) {
+    return {
+      minimumSalary: 0,
+      yearsOfService: 0,
+      season: null,
+      reason: 'Cannot determine minimum salary: invalid or missing RuleContext',
+    };
+  }
+
   const { timing, player: playerCtx } = ctx;
-  const yearsOfService = playerCtx.yearsOfServiceAtOperation;
-  const season = timing.capSeasonId;
+  
+  // Coerce years of service to a valid number, default to 0
+  const rawYOS = playerCtx?.yearsOfServiceAtOperation;
+  const yearsOfService = Math.max(0, Math.min(10, Number(rawYOS) || 0));
+  
+  // Get season, fallback to null if not available
+  const season = timing?.capSeasonId ?? null;
+  
+  // If no season, return with a clear message
+  if (!season) {
+    return {
+      minimumSalary: 0,
+      yearsOfService,
+      season: null,
+      reason: 'Cannot determine minimum salary: capSeasonId not provided in timing context',
+    };
+  }
   
   const scale = getMinimumSalaryScale(season);
+  
+  // Handle case where scale is not available
+  if (!scale || typeof scale !== 'object') {
+    return {
+      minimumSalary: 0,
+      yearsOfService,
+      season,
+      reason: `Cannot determine minimum salary: no scale available for season ${season}`,
+    };
+  }
+  
   const cappedYears = Math.min(yearsOfService, 10);
-  const minimumSalary = scale[cappedYears] || scale[0];
+  const minimumSalary = scale[cappedYears] ?? scale[0] ?? 0;
 
   return {
     minimumSalary,
