@@ -25,6 +25,106 @@ import {
   getExtensionMaxDetails,
 } from '@/features/architect/utils/extensionRules';
 
+export const buildSigningGuardrails = (
+  rulesProfile = null,
+  capSettings = {},
+  exceptionType = 'None'
+) => {
+  const minSalary = rulesProfile?.minimumSalary || 0;
+  const qoAmount =
+    rulesProfile?.restrictedFreeAgency?.qualifyingOfferAmount || 0;
+  const minFirstYear = Math.max(minSalary, qoAmount);
+
+  const birdAbilities = rulesProfile?.birdRights?.signingAbilities;
+  const birdRightsType = rulesProfile?.birdRights?.type || null;
+  const maxSalaryCap = rulesProfile?.maxSalary?.maxSalary ?? null;
+
+  const baseMaxFirstYear = (() => {
+    if (birdAbilities?.canSignToMax && maxSalaryCap != null) {
+      return maxSalaryCap;
+    }
+    if (birdAbilities?.maxFirstYearSalary != null) {
+      return birdAbilities.maxFirstYearSalary;
+    }
+    return maxSalaryCap;
+  })();
+
+  const baseRaisePct =
+    birdAbilities?.raisePercentage != null
+      ? birdAbilities.raisePercentage
+      : 0.05;
+  const baseMaxYears =
+    birdAbilities?.maxYears ||
+    (birdRightsType === 'Full Bird' ? 5 : birdRightsType ? 4 : 4);
+
+  const baseGuardrails = {
+    source: birdRightsType || 'Cap Space / Rights',
+    minFirstYear,
+    maxFirstYear: baseMaxFirstYear,
+    raisePct: baseRaisePct,
+    maxYears: baseMaxYears,
+    qoAmount,
+    birdRightsType,
+    canSignToMax: birdAbilities?.canSignToMax ?? false,
+  };
+
+  const exceptionGuardrails = {
+    'Full MLE': {
+      source: 'Full MLE',
+      maxFirstYear: capSettings.fullMLE ?? null,
+      raisePct: 0.05,
+      maxYears: 4,
+    },
+    'Taxpayer MLE': {
+      source: 'Taxpayer MLE',
+      maxFirstYear: capSettings.taxpayerMLE ?? capSettings.fullMLE ?? null,
+      raisePct: 0.05,
+      maxYears: 3,
+    },
+    'Room MLE': {
+      source: 'Room MLE',
+      maxFirstYear: capSettings.roomMLE ?? capSettings.taxpayerMLE ?? null,
+      raisePct: 0.05,
+      maxYears: 2,
+    },
+    BAE: {
+      source: 'Bi-Annual Exception',
+      maxFirstYear: capSettings.bae ?? null,
+      raisePct: 0.05,
+      maxYears: 2,
+    },
+    Minimum: {
+      source: 'Minimum',
+      maxFirstYear: minFirstYear || capSettings.minimumSalary || null,
+      raisePct: 0.05,
+      maxYears: 2,
+    },
+  };
+
+  const selectedGuardrail =
+    exceptionGuardrails[exceptionType] ||
+    exceptionGuardrails[String(exceptionType)] ||
+    null;
+
+  const mergedGuardrails = {
+    ...baseGuardrails,
+    ...(selectedGuardrail || {}),
+  };
+
+  const maxFirstYear =
+    mergedGuardrails.maxFirstYear != null
+      ? Math.max(minFirstYear, mergedGuardrails.maxFirstYear)
+      : baseGuardrails.maxFirstYear != null
+        ? Math.max(minFirstYear, baseGuardrails.maxFirstYear)
+        : null;
+
+  return {
+    ...mergedGuardrails,
+    maxFirstYear,
+    minFirstYear,
+  };
+};
+
 /**
  * Calculate team's total cap hit for a given year
  */
@@ -236,40 +336,76 @@ export function useCapValidation({
     
     // ===== RE-SIGNING FREE AGENTS =====
     if (action === 'resign' || action === 'signNew') {
-      const proposedSalary = contractData.salaries?.[0] || contractData.base || 0;
       const currentYearCapHit = calculateTeamCapHit(teamPlayers, currentYear);
       const currentCapSettings = getCapSettings(currentYear);
+      const guardrails =
+        contractData.guardrails ||
+        buildSigningGuardrails(
+          rulesProfile,
+          currentCapSettings,
+          contractData.exceptionType || 'None'
+        );
+
+      const contractYears =
+        contractData.years ||
+        (contractData.salaries?.length || 0) ||
+        (contractData.base ? 1 : 0);
+      const salaries = (contractData.salaries || []).slice(
+        0,
+        contractYears || 1
+      );
+      const proposedSalary =
+        (salaries.length ? salaries[0] : null) || contractData.base || 0;
       const projectedCap = currentYearCapHit + proposedSalary;
 
-      if (rulesProfile) {
-        const minAllowed = Math.max(
-          rulesProfile.minimumSalary || 0,
-          rulesProfile.restrictedFreeAgency?.qualifyingOfferAmount || 0
-        );
-        const maxBirdSalary =
-          rulesProfile.birdRights?.signingAbilities?.maxFirstYearSalary ?? null;
-        const maxSalaryCap =
-          maxBirdSalary ?? rulesProfile.maxSalary?.maxSalary ?? null;
-
-        if (minAllowed && proposedSalary < minAllowed) {
+      if (guardrails) {
+        if (guardrails.minFirstYear && proposedSalary < guardrails.minFirstYear) {
           errors.push({
             severity: 'error',
             message: `Below minimum allowed first year ($${(
-              minAllowed / 1_000_000
+              guardrails.minFirstYear / 1_000_000
             ).toFixed(2)}M)`,
           });
         }
 
-        if (maxSalaryCap && proposedSalary > maxSalaryCap) {
+        if (
+          guardrails.maxFirstYear != null &&
+          proposedSalary > guardrails.maxFirstYear
+        ) {
           errors.push({
             severity: 'error',
             message: `Exceeds allowed first year ($${(
-              maxSalaryCap / 1_000_000
-            ).toFixed(2)}M)`,
+              guardrails.maxFirstYear / 1_000_000
+            ).toFixed(2)}M) for ${guardrails.source}`,
           });
         }
 
-        if (rulesProfile.restrictedFreeAgency?.isRFA) {
+        if (guardrails.maxYears && contractYears > guardrails.maxYears) {
+          errors.push({
+            severity: 'error',
+            message: `Exceeds allowed years (${guardrails.maxYears}) for ${guardrails.source}`,
+          });
+        }
+
+        if (guardrails.raisePct != null && salaries.length > 1) {
+          const maxRaisePct = guardrails.raisePct;
+          for (let i = 1; i < salaries.length; i += 1) {
+            const prevSalary = salaries[i - 1] || 0;
+            const allowed =
+              prevSalary * (1 + maxRaisePct + Number.EPSILON);
+            if (salaries[i] > allowed) {
+              errors.push({
+                severity: 'error',
+                message: `Year ${i + 1} exceeds allowed raise (${Math.round(
+                  maxRaisePct * 100
+                )}% max)`,
+              });
+              break;
+            }
+          }
+        }
+
+        if (rulesProfile?.restrictedFreeAgency?.isRFA) {
           const rfaReason = rulesProfile.restrictedFreeAgency.reason;
           if (rfaReason) {
             warnings.push({

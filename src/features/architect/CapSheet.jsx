@@ -115,14 +115,12 @@ const CapSheet = ({
     if (player.isMinimum && player.yearsOfService >= 3)
       notes.push({ label: 'Vet Min' });
     if (isNG) notes.push({ label: 'NG' });
-    if (rulesProfile?.extensionEligibility) {
-      const { isEligible, reason } = rulesProfile.extensionEligibility;
+    if (rulesProfile?.extensionEligibility?.isEligible) {
+      const { reason } = rulesProfile.extensionEligibility;
       notes.push({
         label: 'EXT',
-        className: isEligible
-          ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-200'
-          : 'bg-red-500/10 border-red-500/30 text-red-200',
-        title: isEligible ? 'Extension eligible' : reason || 'Not extension eligible',
+        className: 'bg-cyan-500/10 border-cyan-500/30 text-cyan-200',
+        title: reason || 'Extension eligible',
       });
     }
 

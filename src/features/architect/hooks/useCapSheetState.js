@@ -229,21 +229,37 @@ export function useCapSheetState({ initialCapSheet, currentYear }) {
     updatePlayer(playerId, (p) => {
       // Build new contract salaries
       const salaries = [];
-      const years = contractData.years || 1;
-      const baseSalary = contractData.salaries?.[0] || contractData.base || 0;
-      const raisePct = contractData.raisePct || 0.08;
+      const providedSalaries = (contractData.salaries || []).slice(
+        0,
+        contractData.years || contractData.salaries?.length || 0
+      );
+      const hasProvidedSalaries = providedSalaries.length > 0;
+      const years =
+        contractData.years || providedSalaries.length || 1;
+      const baseSalary =
+        (hasProvidedSalaries ? providedSalaries[0] : null) ||
+        contractData.base ||
+        0;
+      const raisePct =
+        contractData.raisePct === 0 || contractData.raisePct
+          ? contractData.raisePct
+          : 0.08;
       
       let salary = baseSalary;
       for (let i = 0; i < years; i++) {
         const endYear = startYear + i;
+        const yearSalary =
+          hasProvidedSalaries && providedSalaries[i] != null
+            ? providedSalaries[i]
+            : Math.round(salary);
         salaries.push({
           season: toSeasonCode(endYear),
-          salary: Math.round(salary),
-          capHit: Math.round(salary),
+          salary: Math.round(yearSalary),
+          capHit: Math.round(yearSalary),
           guaranteed: true,
           option: null,
         });
-        salary *= (1 + raisePct);
+        salary = yearSalary * (1 + raisePct);
       }
       
       // Replace or create new contract

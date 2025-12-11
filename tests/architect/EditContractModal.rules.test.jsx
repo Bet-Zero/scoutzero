@@ -173,15 +173,25 @@ describe('EditContractModal — PlayerRulesProfile integration', () => {
       />
     );
 
+    expect(screen.getByText(/rights\/exception/i)).toBeInTheDocument();
+    expect(screen.getByText(/first-year range/i)).toBeInTheDocument();
+
     const salaryInput = screen.getAllByPlaceholderText('0')[0];
     fireEvent.change(salaryInput, { target: { value: '1000000' } });
+    await waitFor(() => {
+      const parsed = Number(salaryInput.value.replace(/[^0-9]/g, ''));
+      expect(parsed).toBeGreaterThanOrEqual(8_000_000);
+    });
 
-    const confirmButton = screen.getByRole('button', { name: /action/i });
+    fireEvent.change(salaryInput, { target: { value: '20000000' } });
+    const secondYearInput = screen.getAllByPlaceholderText('0')[1];
+    fireEvent.change(secondYearInput, { target: { value: '25000000' } });
 
     await waitFor(() => {
-      expect(confirmButton).toBeEnabled();
-      expect(screen.getByText(/issue will block confirmation/i)).toBeInTheDocument();
-      expect(screen.getByText(/Force Action/i)).toBeInTheDocument();
+      const parsed = Number(
+        secondYearInput.value.replace(/[^0-9]/g, '')
+      );
+      expect(parsed).toBeLessThanOrEqual(21_600_000);
     });
   });
 });

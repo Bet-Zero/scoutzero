@@ -22,7 +22,7 @@ import {
   getExtensionEligibilityReason,
   getExtensionMaxDetails,
 } from '@/features/architect/utils/extensionRules';
-import useCapValidation from '@/features/architect/hooks/useCapValidation';
+import useCapValidation, { buildSigningGuardrails } from '@/features/architect/hooks/useCapValidation';
 import ValidationWarnings from '@/features/architect/ValidationWarnings';
 
 const ACTION_SETS = {
@@ -104,17 +104,22 @@ const EditContractModal = ({
     rulesLeagueContext?.currentYear ||
     (simDate.getFullYear() + (simDate.getMonth() >= 6 ? 1 : 0));
 
-  // CBA Validation - get warnings/errors for current action
-  // Use targetYear for option/FA actions, currentYear for extensions/waivers
-  const { warnings, errors, isValid } = useCapValidation({
-    player,
-    action: selectedAction,
-    contractData: extension,
-    teamCapSheet,
-    currentYear: CURRENT_YEAR,
-    targetYear: targetYear, // The specific year the action applies to
-    rulesProfile: playerRulesProfile,
-  });
+  const capSettings = useMemo(
+    () => getCapSettings(CURRENT_YEAR),
+    [CURRENT_YEAR]
+  );
+
+  const isSigningAction =
+    selectedAction === 'signNew' || selectedAction === 'resign';
+
+  const signingGuardrails = useMemo(() => {
+    if (!isSigningAction) return null;
+    return buildSigningGuardrails(
+      playerRulesProfile,
+      capSettings,
+      selectedException
+    );
+  }, [isSigningAction, playerRulesProfile, capSettings, selectedException]);
 
   // Helper to get contract years from Architect schema (contract.salariesByYear[])
   // Includes both base contract and extension years (from futureContract)
@@ -162,6 +167,23 @@ const EditContractModal = ({
   const optionYear = optionYearEntry?.year || null;
   const optionType = optionYearEntry?.option || null;
 
+  const lastSalaryForPrefill = useMemo(() => {
+    if (!player) return 0;
+
+    const years = [...contractYears].sort((a, b) => b.year - a.year);
+    if (!years.length) return 0;
+
+    if (isFreeAgent) {
+      const lastYearEntry =
+        years.find((y) => y.year <= CURRENT_YEAR) ?? years[0];
+      return lastYearEntry?.salary || 0;
+    }
+
+    const targetYearForBase = optionYear ?? years[0]?.year;
+    const targetEntry = years.find((y) => y.year === targetYearForBase);
+    return targetEntry?.salary || 0;
+  }, [CURRENT_YEAR, contractYears, isFreeAgent, optionYear, player]);
+
   const hasOption = !!optionType;
 
   // Player is "under contract" if they have the current season or future guaranteed years
@@ -188,11 +210,6 @@ const EditContractModal = ({
   const extensionEligibility = playerRulesProfile?.extensionEligibility;
   const isExtendEligible =
     extensionEligibility?.isEligible ?? extReason === 'Eligible';
-  const disableConfirm =
-    !selectedAction ||
-    (selectedAction === 'extend' && (!isValid || !isExtendEligible));
-  const showForceState =
-    !isValid || (selectedAction === 'extend' && !isExtendEligible);
 
   // Determine if option actions are currently actionable (timing check)
   // ONLY applies when this is an option scenario, not for free agents or under contract
@@ -204,6 +221,37 @@ const EditContractModal = ({
       ? `This option has already been decided (past season)`
       : `Cannot act on this option yet. It can be decided during the ${targetYear - 2}-${String((targetYear - 1) % 100).padStart(2, '0')} offseason.`
     : null;
+
+  const contractDataForValidation = useMemo(
+    () => ({
+      ...extension,
+      salaries: (extension.salaries || []).slice(
+        0,
+        extension.years || extension.salaries.length || 0
+      ),
+      guardrails: signingGuardrails,
+      exceptionType: selectedException,
+    }),
+    [extension, signingGuardrails, selectedException]
+  );
+
+  // CBA Validation - get warnings/errors for current action
+  // Use targetYear for option/FA actions, currentYear for extensions/waivers
+  const { warnings, errors, isValid } = useCapValidation({
+    player,
+    action: selectedAction,
+    contractData: contractDataForValidation,
+    teamCapSheet,
+    currentYear: CURRENT_YEAR,
+    targetYear: targetYear, // The specific year the action applies to
+    rulesProfile: playerRulesProfile,
+  });
+
+  const disableConfirm =
+    !selectedAction ||
+    (selectedAction === 'extend' && (!isValid || !isExtendEligible));
+  const showForceState =
+    !isValid || (selectedAction === 'extend' && !isExtendEligible);
 
   // Contract Summary Calculations
   const summary = useMemo(() => {
@@ -238,34 +286,23 @@ const EditContractModal = ({
     };
   }, [contractYears, CURRENT_YEAR]);
 
+  // Rebuild signing defaults when guardrails context changes; intentionally
+  // exclude extension deps to avoid clobbering user edits mid-entry.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!player) return;
 
-    // Get contract years from Architect schema
-    const years = [...contractYears].sort((a, b) => b.year - a.year);
-
-    let lastSalary = 0;
-    if (years.length) {
-      if (isFreeAgent) {
-        const lastYearEntry =
-          years.find((y) => y.year <= CURRENT_YEAR) ?? years[0];
-        lastSalary = lastYearEntry?.salary || 0;
-      } else {
-        const targetYear = optionYear ?? years[0]?.year;
-        const targetEntry = years.find((y) => y.year === targetYear);
-        lastSalary = targetEntry?.salary || 0;
-      }
-    }
-
     // Default pre-fill with last salary for all years
     const defaultYears = 3; // Default to 3 years for new contracts
+    const baseSalary = lastSalaryForPrefill || 0;
     setExtension({
       years: defaultYears,
       contractType: 'Standard',
-      salaries: Array(5).fill(lastSalary), // Pre-fill all 5 possible years with last salary
+      salaries: Array(5).fill(baseSalary), // Pre-fill all 5 possible years with last salary
+      raisePct: 0.05,
     });
     setSalaryInputs(
-      Array(5).fill(lastSalary).map((s) => (s ? formatCurrencyFull(s) : ''))
+      Array(5).fill(baseSalary).map((s) => (s ? formatCurrencyFull(s) : ''))
     );
     // Use initialAction if provided, otherwise reset
     setSelectedAction(initialAction || '');
@@ -323,10 +360,8 @@ const EditContractModal = ({
     );
   }, [
     CURRENT_YEAR,
-    contractYears,
     initialAction,
-    isFreeAgent,
-    optionYear,
+    lastSalaryForPrefill,
     player,
     playerRulesProfile,
   ]);
@@ -364,31 +399,69 @@ const EditContractModal = ({
     );
   }, [extMax, selectedAction]);
 
-  // Handle Exception Selection
+  const clampFirstYearToGuardrails = (value) => {
+    if (!signingGuardrails) return value || 0;
+    const min = signingGuardrails.minFirstYear || 0;
+    const max = signingGuardrails.maxFirstYear;
+    let next = Math.max(min, value || 0);
+    if (max != null) next = Math.min(next, max);
+    return next;
+  };
+
+  const buildSalarySeries = (firstYear, years, raisePct) => {
+    const totalYears = Math.min(Math.max(years, 1), 5);
+    const series = [];
+    for (let i = 0; i < totalYears; i += 1) {
+      if (i === 0) {
+        series.push(Math.round(firstYear));
+      } else {
+        series.push(Math.round(series[i - 1] * (1 + raisePct)));
+      }
+    }
+    return series;
+  };
+
+  const toSalaryInputs = (series, years) =>
+    Array.from({ length: 5 }, (_, idx) =>
+      idx < years && series[idx]
+        ? formatCurrencyFull(series[idx])
+        : ''
+    );
+
   useEffect(() => {
-    if (selectedException === 'None' || !['signNew', 'resign'].includes(selectedAction)) return;
+    if (!signingGuardrails || !isSigningAction) return;
 
-    const key = `${CURRENT_YEAR - 1}-${String(CURRENT_YEAR % 100).padStart(2, '0')}`;
-    const capSettings = capProjections[key] || {};
-    
-    let maxAmount = 0;
-    switch (selectedException) {
-      case 'Full MLE': maxAmount = capSettings.fullMLE || 0; break;
-      case 'Taxpayer MLE': maxAmount = capSettings.taxpayerMLE || 0; break;
-      case 'Room MLE': maxAmount = capSettings.roomMLE || 0; break;
-      case 'BAE': maxAmount = capSettings.bae || 0; break;
-      case 'Minimum': maxAmount = 0; break; // Will need logic
-      default: return; // Cap Space or Rights don't auto-fill a fixed max usually
-    }
+    const maxYears =
+      signingGuardrails.maxYears && signingGuardrails.maxYears > 0
+        ? Math.min(signingGuardrails.maxYears, 5)
+        : Math.min(extension.years || 3, 5);
 
-    if (maxAmount > 0) {
-      setExtension(prev => ({
-        ...prev,
-        salaries: [maxAmount, ...prev.salaries.slice(1)],
-      }));
-      setSalaryInputs(prev => [formatCurrencyFull(maxAmount), ...prev.slice(1)]);
-    }
-  }, [selectedException, selectedAction, CURRENT_YEAR]);
+    const baseFirstYear = clampFirstYearToGuardrails(
+      (selectedException !== 'None' &&
+      signingGuardrails.maxFirstYear != null
+        ? signingGuardrails.maxFirstYear
+        : extension.salaries?.[0]) ??
+        signingGuardrails.maxFirstYear ??
+        lastSalaryForPrefill ??
+        signingGuardrails.minFirstYear ??
+        0
+    );
+
+    const raisePct = signingGuardrails.raisePct ?? extension.raisePct ?? 0.05;
+    const series = buildSalarySeries(baseFirstYear, maxYears, raisePct);
+
+    setExtension((prev) => ({
+      ...prev,
+      years: maxYears,
+      salaries: series,
+      raisePct,
+    }));
+    setSalaryInputs(toSalaryInputs(series, maxYears));
+  }, [
+    isSigningAction,
+    signingGuardrails,
+    lastSalaryForPrefill,
+  ]);
 
   const handleConfirm = () => {
     switch (selectedAction) {
@@ -399,10 +472,32 @@ const EditContractModal = ({
         onOptionDecision?.(player, false);
         break;
       case 'signNew':
-        onSave?.(player, { ...extension, base: extension.salaries[0] || 0, exceptionType: selectedException });
+        onSave?.(player, {
+          ...extension,
+          years: extension.years,
+          salaries: (extension.salaries || []).slice(
+            0,
+            extension.years || extension.salaries.length || 0
+          ),
+          base: extension.salaries[0] || 0,
+          exceptionType: selectedException,
+          guardrails: signingGuardrails,
+          raisePct: extension.raisePct ?? signingGuardrails?.raisePct ?? 0.05,
+        });
         break;
       case 'resign':
-        onSave?.(player, { ...extension, base: extension.salaries[0] || 0, exceptionType: selectedException });
+        onSave?.(player, {
+          ...extension,
+          years: extension.years,
+          salaries: (extension.salaries || []).slice(
+            0,
+            extension.years || extension.salaries.length || 0
+          ),
+          base: extension.salaries[0] || 0,
+          exceptionType: selectedException,
+          guardrails: signingGuardrails,
+          raisePct: extension.raisePct ?? signingGuardrails?.raisePct ?? 0.05,
+        });
         break;
       case 'signAndTrade':
         onSignAndTrade?.(player, true);
@@ -696,26 +791,37 @@ const EditContractModal = ({
                   <select
                     value={extension.years}
                     onChange={(e) => {
+                      const guardrailYears =
+                        isSigningAction && signingGuardrails?.maxYears
+                          ? Math.min(signingGuardrails.maxYears, 5)
+                          : null;
                       const maxYearsOption =
                         selectedAction === 'extend' && extMax?.maxYears
                           ? extMax.maxYears
-                          : 5;
+                          : guardrailYears || 5;
                       const yrs = Math.min(Number(e.target.value), maxYearsOption);
+                      const raisePct =
+                        signingGuardrails?.raisePct ?? extension.raisePct ?? 0.05;
+                      const firstYear = isSigningAction
+                        ? clampFirstYearToGuardrails(
+                            extension.salaries?.[0] ??
+                              signingGuardrails?.minFirstYear ??
+                              0
+                          )
+                        : extension.salaries?.[0] || 0;
+                      const salaries = isSigningAction
+                        ? buildSalarySeries(firstYear, yrs, raisePct)
+                        : Array.from(
+                            { length: yrs },
+                            (_, i) => extension.salaries[i] || 0
+                          );
                       setExtension({
                         ...extension,
                         years: yrs,
-                        salaries: Array.from(
-                          { length: yrs },
-                          (_, i) => extension.salaries[i] || 0
-                        ),
+                        salaries,
+                        raisePct,
                       });
-                      setSalaryInputs(
-                        Array.from({ length: yrs }, (_, i) =>
-                          extension.salaries[i]
-                            ? formatCurrencyFull(extension.salaries[i])
-                            : ''
-                        )
-                      );
+                      setSalaryInputs(toSalaryInputs(salaries, yrs));
                     }}
                     className="px-2 py-1 rounded bg-black border border-white/20 text-xs text-white focus:border-orange-500 outline-none"
                   >
@@ -723,7 +829,9 @@ const EditContractModal = ({
                       const maxYearsOption =
                         selectedAction === 'extend' && extMax?.maxYears
                           ? extMax.maxYears
-                          : 5;
+                          : isSigningAction && signingGuardrails?.maxYears
+                            ? Math.min(signingGuardrails.maxYears, 5)
+                            : 5;
                       return (
                         <option key={yr} value={yr} disabled={yr > maxYearsOption}>
                           {yr}yr
@@ -733,6 +841,33 @@ const EditContractModal = ({
                   </select>
                 </div>
               </div>
+
+              {isSigningAction && signingGuardrails && (
+                <div className="mb-3 flex flex-wrap gap-2 text-[11px] text-white/70">
+                  <span className="px-2 py-1 rounded bg-white/5 border border-white/10">
+                    Rights/Exception: {signingGuardrails.source}
+                    {playerRulesProfile?.birdRights?.type
+                      ? ` (${playerRulesProfile.birdRights.type})`
+                      : ''}
+                  </span>
+                  <span className="px-2 py-1 rounded bg-white/5 border border-white/10">
+                    First-year range:{' '}
+                    {formatCurrencyFull(signingGuardrails.minFirstYear || 0)} -{' '}
+                    {signingGuardrails.maxFirstYear != null
+                      ? formatCurrencyFull(signingGuardrails.maxFirstYear)
+                      : 'Max'}
+                  </span>
+                  <span className="px-2 py-1 rounded bg-white/5 border border-white/10">
+                    Raises up to {Math.round((signingGuardrails.raisePct || 0) * 100)}% • Max{' '}
+                    {signingGuardrails.maxYears || '—'} yrs
+                  </span>
+                  {playerRulesProfile?.restrictedFreeAgency?.qualifyingOfferAmount ? (
+                    <span className="px-2 py-1 rounded bg-red-500/10 border border-red-500/20 text-red-100">
+                      QO: {formatCurrencyFull(playerRulesProfile.restrictedFreeAgency.qualifyingOfferAmount)}
+                    </span>
+                  ) : null}
+                </div>
+              )}
 
               {/* Salary Inputs Grid */}
               <div className="grid grid-cols-5 gap-2 bg-white/5 rounded-lg p-3">
@@ -755,17 +890,33 @@ const EditContractModal = ({
                           value={salaryInputs[idx] || ''}
                           onChange={(e) => {
                             const raw = e.target.value.replace(/[^0-9]/g, '');
-                            const val = Number(raw);
-                            setExtension((prev) => {
-                              const arr = [...prev.salaries];
-                              arr[idx] = val;
-                              return { ...prev, salaries: arr };
-                            });
-                            setSalaryInputs((prev) => {
-                              const arr = [...prev];
-                              arr[idx] = raw ? formatCurrencyFull(raw) : '';
+                            const parsed = Number(raw);
+                            const nextSalaries = (() => {
+                              const arr = [...extension.salaries];
+                              let nextVal = parsed;
+                              if (isSigningAction && signingGuardrails) {
+                                if (idx === 0) {
+                                  nextVal = clampFirstYearToGuardrails(parsed);
+                                } else if (signingGuardrails.raisePct != null) {
+                                  const prevSalary = arr[idx - 1] || 0;
+                                  const allowed = Math.round(
+                                    prevSalary * (1 + signingGuardrails.raisePct)
+                                  );
+                                  nextVal = Math.min(parsed || 0, allowed);
+                                }
+                              }
+                              arr[idx] = nextVal;
                               return arr;
-                            });
+                            })();
+                            const activeYears =
+                              extension.years || nextSalaries.length || 0;
+                            setExtension((prev) => ({
+                              ...prev,
+                              salaries: nextSalaries,
+                            }));
+                            setSalaryInputs(
+                              toSalaryInputs(nextSalaries, activeYears)
+                            );
                           }}
                           className="w-full pl-5 pr-2 py-2 rounded bg-black/50 border border-white/10 text-xs text-white font-medium text-center focus:border-cyan-500 focus:bg-cyan-500/10 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                         />

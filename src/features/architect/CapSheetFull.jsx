@@ -152,7 +152,9 @@ const CapSheetFull = ({
                 const isTwoWay = isTwoWayContract(player);
                 const profileForCurrentYear =
                   getRulesProfileForYear?.(player, currentYear) || null;
-                const birdRightsType = profileForCurrentYear?.birdRights?.type;
+                const extensionEligibility =
+                  profileForCurrentYear?.extensionEligibility;
+                const showExtensionBadge = extensionEligibility?.isEligible;
                 return (
                   <div
                     key={idx}
@@ -168,19 +170,23 @@ const CapSheetFull = ({
                           player.bio?.displayName ||
                           player.name}
                       </button>
+                      {showExtensionBadge && (
+                        <span
+                          className="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider shrink-0 bg-cyan-500/15 text-cyan-50 border border-cyan-500/30"
+                          data-testid="extension-eligibility-badge"
+                          title={
+                            extensionEligibility?.reason ||
+                            'Extension eligible'
+                          }
+                        >
+                          EXT
+                        </span>
+                      )}
                       {isTwoWay && (
                         <span
                           className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider shrink-0 ${getTagColor('TWO-WAY')}`}
                         >
                           2W
-                        </span>
-                      )}
-                      {birdRightsType && (
-                        <span
-                          className="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider shrink-0 bg-white/5 text-white/50 border border-white/10"
-                          title={`Bird rights: ${birdRightsType}`}
-                        >
-                          {birdRightsType}
                         </span>
                       )}
                     </div>
@@ -196,8 +202,6 @@ const CapSheetFull = ({
                       const fallbackFaType = normalizeFAType(freeAgency?.type);
                       const rulesProfileForYear =
                         getRulesProfileForYear?.(player, year) || null;
-                      const extensionInfo =
-                        rulesProfileForYear?.extensionEligibility;
                       const rfaInfo =
                         rulesProfileForYear?.restrictedFreeAgency;
                       const birdRightsTypeForYear =
@@ -217,24 +221,6 @@ const CapSheetFull = ({
                       // The column showing "2027-28" has year === 2028, so check faYear + 1 === year
                       const isFreeAgentYear =
                         derivedFaYear && derivedFaType && derivedFaYear + 1 === year;
-
-                      const extensionBadge =
-                        extensionInfo != null ? (
-                          <span
-                            className={`absolute top-1 right-1 text-[9px] font-bold uppercase px-1 rounded ${
-                              extensionInfo.isEligible
-                                ? 'bg-cyan-500/20 text-cyan-100 border border-cyan-500/30'
-                                : 'bg-red-500/20 text-red-100 border border-red-500/30'
-                            }`}
-                            title={
-                              extensionInfo.isEligible
-                                ? 'Extension eligible'
-                                : extensionInfo.reason || 'Not extension eligible'
-                            }
-                          >
-                            EXT
-                          </span>
-                        ) : null;
 
                       // Handle free agency years (no salary)
                       if (
@@ -260,8 +246,8 @@ const CapSheetFull = ({
                               {(birdRightsTypeForYear ||
                                 rfaInfo?.qualifyingOfferAmount != null) && (
                                 <span className="absolute bottom-1 right-1 text-[10px] text-white/60 leading-tight text-right">
-                                  {birdRightsTypeForYear && (
-                                    <span className="block">
+                              {birdRightsTypeForYear && (
+                                    <span className="block" data-testid="fa-bird-rights">
                                       Bird: {birdRightsTypeForYear}
                                     </span>
                                   )}
@@ -302,7 +288,6 @@ const CapSheetFull = ({
                             className={`relative flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[36px] transition-colors cursor-pointer hover:ring-2 hover:ring-inset hover:ring-white/20 ${optionStyle}`}
                             title={`Click to manage ${isPO ? 'Player' : 'Team'} Option`}
                           >
-                            {extensionBadge}
                             <span
                               className={`text-xs font-medium tabular-nums tracking-tight ${
                                 isExtension
@@ -326,7 +311,6 @@ const CapSheetFull = ({
                               : ''
                           }`}
                         >
-                          {extensionBadge}
                           <span
                             className={`text-xs font-medium tabular-nums tracking-tight ${
                               isExtension ? 'text-cyan-200/90' : 'text-white/60'

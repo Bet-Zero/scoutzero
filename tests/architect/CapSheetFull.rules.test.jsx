@@ -55,7 +55,7 @@ const getRulesProfileForYear = (player) => {
 };
 
 describe('CapSheetFull — rules profile indicators', () => {
-  it('shows extension badge when rules profile marks player eligible', () => {
+  it('shows extension badge once when rules profile marks player eligible', () => {
     render(
       <CapSheetFull
         teamCapSheet={TEAM_CAP_SHEET}
@@ -64,7 +64,12 @@ describe('CapSheetFull — rules profile indicators', () => {
       />
     );
 
-    expect(screen.getAllByTitle(/extension eligible/i).length).toBeGreaterThan(0);
+    const badges = screen.getAllByTestId('extension-eligibility-badge');
+    expect(badges).toHaveLength(1);
+    expect(badges[0]).toHaveAttribute(
+      'title',
+      expect.stringMatching(/extension/i)
+    );
   });
 
   it('shows RFA bird rights and qualifying offer info on free agency cell', () => {
@@ -76,7 +81,7 @@ describe('CapSheetFull — rules profile indicators', () => {
       />
     );
 
-    expect(screen.getAllByText(/bird: early bird/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByTestId('fa-bird-rights').length).toBeGreaterThan(0);
     expect(screen.getAllByText(/QO \$9\.0M/i).length).toBeGreaterThan(0);
   });
 });
