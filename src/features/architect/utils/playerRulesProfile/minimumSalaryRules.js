@@ -17,7 +17,7 @@
  */
 export const MINIMUM_SALARY_SCALE = {
   '2024-25': {
-    0: 1_119_563,   // Rookie minimum
+    0: 1_119_563, // Rookie minimum
     1: 1_820_000,
     2: 2_092_400,
     3: 2_390_000,
@@ -27,7 +27,7 @@ export const MINIMUM_SALARY_SCALE = {
     7: 3_200_000,
     8: 3_400_000,
     9: 3_600_000,
-    10: 3_800_000,  // 10+ years same as 10
+    10: 3_800_000, // 10+ years same as 10
   },
   '2025-26': {
     // Projected values with ~4% increase
@@ -99,11 +99,12 @@ export function computeMinimumSalary(player, leagueContext) {
     minimumSalary,
     yearsOfService,
     season,
-    reason: yearsOfService === 0
-      ? 'Rookie minimum salary'
-      : yearsOfService >= 10
-        ? 'Veteran minimum (10+ years)'
-        : `Veteran minimum (${yearsOfService} years of service)`,
+    reason:
+      yearsOfService === 0
+        ? 'Rookie minimum salary'
+        : yearsOfService >= 10
+          ? 'Veteran minimum (10+ years)'
+          : `Veteran minimum (${yearsOfService} years of service)`,
   };
 }
 
@@ -123,6 +124,9 @@ export function getYearsOfService(player) {
     player.yearsOfService ??
     player.years_of_service ??
     player.experience ??
+    player['Years Pro'] ??
+    player.bio?.['Years Pro'] ??
+    player.yearsPro ??
     0;
 
   // Ensure non-negative integer
@@ -176,7 +180,8 @@ function normalizeSeasonCode(season) {
   }
 
   // Convert numeric year to season code
-  const year = typeof season === 'number' ? season : parseInt(String(season), 10);
+  const year =
+    typeof season === 'number' ? season : parseInt(String(season), 10);
   if (Number.isFinite(year) && year >= 1900) {
     return `${year - 1}-${String(year).slice(-2)}`;
   }

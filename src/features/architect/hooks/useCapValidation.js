@@ -13,7 +13,7 @@
  */
 /**
  * useCapValidation Hook
- * 
+ *
  * Provides real-time CBA validation for contract actions.
  * Returns warnings (advisory) and errors (blocking on confirm).
  */
@@ -38,10 +38,11 @@ export const buildSigningGuardrails = (
   const birdAbilities = rulesProfile?.birdRights?.signingAbilities;
   const birdRightsType = rulesProfile?.birdRights?.type || null;
   const maxSalaryCap = rulesProfile?.maxSalary?.maxSalary ?? null;
+  const maxSalaryBird = rulesProfile?.maxSalary?.maxSalaryBird ?? maxSalaryCap;
 
   const baseMaxFirstYear = (() => {
-    if (birdAbilities?.canSignToMax && maxSalaryCap != null) {
-      return maxSalaryCap;
+    if (birdAbilities?.canSignToMax && maxSalaryBird != null) {
+      return maxSalaryBird;
     }
     if (birdAbilities?.maxFirstYearSalary != null) {
       return birdAbilities.maxFirstYearSalary;
@@ -130,10 +131,11 @@ export const buildSigningGuardrails = (
  */
 const calculateTeamCapHit = (players, year) => {
   return (players || []).reduce((sum, player) => {
-    const contractType = player?.contractType || player?.contract?.contractType || '';
+    const contractType =
+      player?.contractType || player?.contract?.contractType || '';
     // Two-way contracts don't count against cap
     if (contractType.toLowerCase() === 'two-way') return sum;
-    
+
     const slice = getContractYearSlice(player, year);
     return sum + (slice?.capHit ?? slice?.salary ?? 0);
   }, 0);
@@ -170,27 +172,28 @@ export function useCapValidation({
   return useMemo(() => {
     const warnings = [];
     const errors = [];
-    
+
     if (!player || !action) {
       return { warnings, errors, isValid: true };
     }
-    
+
     // Determine which year to use for cap calculations
     // For options/FA, use targetYear (the year clicked); otherwise use currentYear
     const actionYear = targetYear || currentYear;
-    
+
     const capSettings = getCapSettings(actionYear);
     const teamPlayers = teamCapSheet?.players || [];
     const yearCapHit = calculateTeamCapHit(teamPlayers, actionYear);
-    
-    const { cap, tax, firstApron, secondApron, fullMLE, taxpayerMLE, bae } = capSettings;
-    
+
+    const { cap, tax, firstApron, secondApron, fullMLE, taxpayerMLE, bae } =
+      capSettings;
+
     // ===== TIMING VALIDATION FOR OPTIONS =====
     if (action === 'accept' || action === 'decline') {
       // Options can only be exercised for the upcoming season
       // e.g., in the 2025-26 season (currentYear=2026), you can only decide on 2026-27 options (targetYear=2027)
       const isActionableOption = targetYear === currentYear + 1;
-      
+
       if (targetYear && !isActionableOption) {
         if (targetYear < currentYear + 1) {
           errors.push({
@@ -205,17 +208,17 @@ export function useCapValidation({
           });
         }
       }
-      
+
       // Get the salary for the option year
       const slice = getContractYearSlice(player, actionYear);
       const optionSalary = slice?.salary || slice?.capHit || 0;
-      
+
       if (action === 'accept' && targetYear === currentYear + 1) {
         // Calculate what the cap hit would be IF this option is exercised
         // The player's salary is already in yearCapHit if they have contract for that year
         // So we don't need to add it again - the team already committed this
         const projectedCap = yearCapHit;
-        
+
         // Show cap impact for the option YEAR (not current year)
         if (projectedCap > secondApron) {
           warnings.push({
@@ -240,7 +243,7 @@ export function useCapValidation({
         }
       }
     }
-    
+
     // ===== EXTENSIONS =====
     if (action === 'extend') {
       if (rulesProfile?.extensionEligibility) {
@@ -281,7 +284,11 @@ export function useCapValidation({
             });
           }
 
-          if (contractData.years && terms.maxYears && contractData.years > terms.maxYears) {
+          if (
+            contractData.years &&
+            terms.maxYears &&
+            contractData.years > terms.maxYears
+          ) {
             errors.push({
               severity: 'error',
               message: `Exceeds max years (${terms.maxYears} years)`,
@@ -298,8 +305,11 @@ export function useCapValidation({
           }
         }
       } else {
-        const eligibilityReason = getExtensionEligibilityReason(player, currentYear);
-        
+        const eligibilityReason = getExtensionEligibilityReason(
+          player,
+          currentYear
+        );
+
         if (eligibilityReason !== 'Eligible') {
           errors.push({
             severity: 'error',
@@ -308,21 +318,21 @@ export function useCapValidation({
         } else {
           const extMax = getExtensionMaxDetails(player, capSettings);
           const proposedFirstYear = contractData.salaries?.[0] || 0;
-          
+
           if (extMax && proposedFirstYear > extMax.maxFirstYearSalary) {
             errors.push({
               severity: 'error',
               message: `Exceeds max first year salary ($${(extMax.maxFirstYearSalary / 1000000).toFixed(2)}M)`,
             });
           }
-          
+
           if (extMax && contractData.years > extMax.maxYears) {
             errors.push({
               severity: 'error',
               message: `Exceeds max years (${extMax.maxYears} years)`,
             });
           }
-          
+
           // Advisory: extension type info
           if (extMax) {
             warnings.push({
@@ -333,7 +343,7 @@ export function useCapValidation({
         }
       }
     }
-    
+
     // ===== RE-SIGNING FREE AGENTS =====
     if (action === 'resign' || action === 'signNew') {
       const currentYearCapHit = calculateTeamCapHit(teamPlayers, currentYear);
@@ -348,7 +358,8 @@ export function useCapValidation({
 
       const contractYears =
         contractData.years ||
-        (contractData.salaries?.length || 0) ||
+        contractData.salaries?.length ||
+        0 ||
         (contractData.base ? 1 : 0);
       const salaries = (contractData.salaries || []).slice(
         0,
@@ -359,7 +370,10 @@ export function useCapValidation({
       const projectedCap = currentYearCapHit + proposedSalary;
 
       if (guardrails) {
-        if (guardrails.minFirstYear && proposedSalary < guardrails.minFirstYear) {
+        if (
+          guardrails.minFirstYear &&
+          proposedSalary < guardrails.minFirstYear
+        ) {
           errors.push({
             severity: 'error',
             message: `Below minimum allowed first year ($${(
@@ -391,8 +405,7 @@ export function useCapValidation({
           const maxRaisePct = guardrails.raisePct;
           for (let i = 1; i < salaries.length; i += 1) {
             const prevSalary = salaries[i - 1] || 0;
-            const allowed =
-              prevSalary * (1 + maxRaisePct + Number.EPSILON);
+            const allowed = prevSalary * (1 + maxRaisePct + Number.EPSILON);
             if (salaries[i] > allowed) {
               errors.push({
                 severity: 'error',
@@ -418,11 +431,11 @@ export function useCapValidation({
 
       // Check if team has cap room
       const hasCapRoom = currentYearCapHit < currentCapSettings.cap;
-      
+
       if (!hasCapRoom && proposedSalary > 0) {
         // Over cap - check exception eligibility
         const birdRights = player.contract?.birdRights?.status || 'None';
-        
+
         if (birdRights === 'None' || birdRights === 'Non-Bird') {
           if (proposedSalary > currentCapSettings.fullMLE) {
             warnings.push({
@@ -431,7 +444,7 @@ export function useCapValidation({
             });
           }
         }
-        
+
         // Hard cap trigger warning
         if (projectedCap > currentCapSettings.firstApron) {
           warnings.push({
@@ -440,7 +453,7 @@ export function useCapValidation({
           });
         }
       }
-      
+
       // Apron warnings
       if (projectedCap > currentCapSettings.secondApron) {
         warnings.push({
@@ -454,24 +467,26 @@ export function useCapValidation({
         });
       }
     }
-    
+
     // ===== WAIVE / STRETCH =====
     if (action === 'waive' || action === 'waiveStretch') {
       const remainingGuaranteed = (player.contract?.salariesByYear || [])
-        .filter(y => {
+        .filter((y) => {
           const yearNum = parseInt(String(y.season).split('-')[1], 10) + 2000;
           return yearNum >= currentYear && y.guaranteed !== false;
         })
         .reduce((sum, y) => sum + (y.salary || y.capHit || 0), 0);
-      
+
       if (remainingGuaranteed > 0) {
         warnings.push({
           severity: 'info',
           message: `Dead cap: $${(remainingGuaranteed / 1000000).toFixed(1)}M remaining guaranteed`,
         });
-        
+
         if (action === 'waiveStretch') {
-          const stretchYears = Math.ceil((remainingGuaranteed / (remainingGuaranteed / 3)));
+          const stretchYears = Math.ceil(
+            remainingGuaranteed / (remainingGuaranteed / 3)
+          );
           warnings.push({
             severity: 'info',
             message: `Stretched over ~${stretchYears} years`,
@@ -479,17 +494,17 @@ export function useCapValidation({
         }
       }
     }
-    
+
     // ===== SIGN AND TRADE =====
     if (action === 'signAndTrade') {
       const currentYearCapHit = calculateTeamCapHit(teamPlayers, currentYear);
       const currentCapSettings = getCapSettings(currentYear);
-      
+
       warnings.push({
         severity: 'info',
         message: 'Sign-and-trade will hard cap receiving team at First Apron',
       });
-      
+
       if (currentYearCapHit > currentCapSettings.firstApron) {
         errors.push({
           severity: 'error',
@@ -497,11 +512,19 @@ export function useCapValidation({
         });
       }
     }
-    
+
     const isValid = errors.length === 0;
-    
+
     return { warnings, errors, isValid };
-  }, [player, action, contractData, teamCapSheet, currentYear, targetYear, rulesProfile]);
+  }, [
+    player,
+    action,
+    contractData,
+    teamCapSheet,
+    currentYear,
+    targetYear,
+    rulesProfile,
+  ]);
 }
 
 export default useCapValidation;

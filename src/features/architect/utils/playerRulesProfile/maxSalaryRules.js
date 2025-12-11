@@ -14,13 +14,14 @@
 
 import { getYearsOfService } from './minimumSalaryRules.js';
 import { parseSeasonEndYear } from '../seasonUtils.js';
+import { getLastSalary } from '../contractUtils.js';
 
 /**
  * Max salary tier definitions
  */
 export const MAX_SALARY_TIERS = {
   TIER_25: { percent: 0.25, label: '25%', minYears: 0, maxYears: 6 },
-  TIER_30: { percent: 0.30, label: '30%', minYears: 7, maxYears: 9 },
+  TIER_30: { percent: 0.3, label: '30%', minYears: 7, maxYears: 9 },
   TIER_35: { percent: 0.35, label: '35%', minYears: 10, maxYears: Infinity },
 };
 
@@ -68,23 +69,38 @@ export function computeMaxSalary(player, leagueContext) {
     if (yearsOfService >= 7 && yearsOfService <= 9) {
       // 7-9 year players can get 35% instead of 30%
       effectivePercent = 0.35;
-      effectiveTier = { ...MAX_SALARY_TIERS.TIER_35, label: '35% (Designated Veteran)' };
+      effectiveTier = {
+        ...MAX_SALARY_TIERS.TIER_35,
+        label: '35% (Designated Veteran)',
+      };
     } else if (yearsOfService < 7) {
       // Rookie extension can get 30% instead of 25%
-      effectivePercent = 0.30;
-      effectiveTier = { ...MAX_SALARY_TIERS.TIER_30, label: '30% (Higher Max)' };
+      effectivePercent = 0.3;
+      effectiveTier = {
+        ...MAX_SALARY_TIERS.TIER_30,
+        label: '30% (Higher Max)',
+      };
     }
   }
 
   const maxSalary = Math.round(salaryCap * effectivePercent);
 
+  // 105% of previous salary rule (for Bird Rights re-signing)
+  const lastSalary = getLastSalary(player);
+  const maxSalaryBird = Math.max(maxSalary, Math.round(lastSalary * 1.05));
+
   return {
     maxSalary,
+    maxSalaryBird,
     tier: effectiveTier.label,
     yearsOfService,
     supermaxEligible: supermaxEligibility.isEligible,
     supermaxReason: supermaxEligibility.reason,
-    reason: buildMaxSalaryReason(yearsOfService, effectivePercent, supermaxEligibility),
+    reason: buildMaxSalaryReason(
+      yearsOfService,
+      effectivePercent,
+      supermaxEligibility
+    ),
   };
 }
 
@@ -125,7 +141,8 @@ export function checkSupermaxEligibility(player, leagueContext) {
   if (!currentYear) {
     return {
       isEligible: false,
-      reason: 'Cannot determine supermax eligibility: currentYear not provided in leagueContext',
+      reason:
+        'Cannot determine supermax eligibility: currentYear not provided in leagueContext',
     };
   }
   const yearsOfService = getYearsOfService(player);
@@ -133,10 +150,10 @@ export function checkSupermaxEligibility(player, leagueContext) {
 
   // Check for qualifying awards in the past 3 seasons (current + prior 2)
   // For currentYear 2025, eligible awards are from 2025, 2024, or 2023 seasons
-  const recentAwards = awards.filter(award => {
+  const recentAwards = awards.filter((award) => {
     const rawAwardYear = award.year || award.season;
     if (!rawAwardYear) return false;
-    
+
     // Parse award year - handles both numeric years (2024) and season codes ('2023-24')
     let awardYear;
     if (typeof rawAwardYear === 'number') {
@@ -144,19 +161,20 @@ export function checkSupermaxEligibility(player, leagueContext) {
     } else if (typeof rawAwardYear === 'string') {
       // Try parsing as season code first (e.g., '2023-24' -> 2024)
       const parsedSeason = parseSeasonEndYear(rawAwardYear);
-      awardYear = parsedSeason !== null ? parsedSeason : parseInt(rawAwardYear, 10);
+      awardYear =
+        parsedSeason !== null ? parsedSeason : parseInt(rawAwardYear, 10);
     } else {
       return false;
     }
-    
+
     if (!Number.isFinite(awardYear)) return false;
-    
+
     // Award must be from current year or the two prior years
     const yearDiff = currentYear - awardYear;
     return yearDiff >= 0 && yearDiff <= 2;
   });
 
-  const hasQualifyingAward = recentAwards.some(award => {
+  const hasQualifyingAward = recentAwards.some((award) => {
     const awardType = normalizeAwardType(award);
     return SUPERMAX_QUALIFYING_AWARDS.includes(awardType);
   });
@@ -184,7 +202,8 @@ export function checkSupermaxEligibility(player, leagueContext) {
   if (meetsServiceRequirement) {
     return {
       isEligible: true,
-      reason: 'Eligible for Designated Veteran Extension (35%) based on All-NBA/MVP/DPOY and 7+ years of service',
+      reason:
+        'Eligible for Designated Veteran Extension (35%) based on All-NBA/MVP/DPOY and 7+ years of service',
     };
   }
 
@@ -236,7 +255,7 @@ function buildMaxSalaryReason(yearsOfService, percent, supermaxInfo) {
     return `Designated Veteran max (${percentLabel} of cap) - meets All-NBA/MVP/DPOY criteria with 7+ years of service`;
   }
 
-  if (supermaxInfo.isEligible && percent === 0.30 && yearsOfService < 7) {
+  if (supermaxInfo.isEligible && percent === 0.3 && yearsOfService < 7) {
     return `Higher Max rookie extension (${percentLabel} of cap) - meets All-NBA/MVP/DPOY criteria`;
   }
 
@@ -250,5 +269,3 @@ function buildMaxSalaryReason(yearsOfService, percent, supermaxInfo) {
 
   return `0-6 year player max (${percentLabel} of cap)`;
 }
-
-

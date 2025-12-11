@@ -16,7 +16,7 @@ export function generateContract({
     const endYear = startYear + i;
     const season = toSeasonCode(endYear);
     const roundedSalary = Math.round(salary / roundTo) * roundTo;
-    
+
     const yearEntry = {
       season,
       salary: roundedSalary,
@@ -191,8 +191,9 @@ export function getMinimumSalary(yearsOfService) {
 export function stretchContract(contract, currentYear) {
   // Prefer Architect contract shape if available
   // Contract parameter may be a contract object or a player object with contract property
-  const salariesByYear = contract?.salariesByYear || contract?.contract?.salariesByYear;
-  
+  const salariesByYear =
+    contract?.salariesByYear || contract?.contract?.salariesByYear;
+
   let yearKeys = [];
   if (salariesByYear?.length) {
     yearKeys = salariesByYear
@@ -203,16 +204,13 @@ export function stretchContract(contract, currentYear) {
 
   const totalOwed = yearKeys
     .filter((y) => y >= currentYear)
-    .reduce(
-      (sum, key) => {
-        const yearEntry = salariesByYear?.find((y) => {
-          const entryEndYear = toEndYear(y.season);
-          return entryEndYear === key;
-        });
-        return sum + (yearEntry?.salary || 0);
-      },
-      0
-    );
+    .reduce((sum, key) => {
+      const yearEntry = salariesByYear?.find((y) => {
+        const entryEndYear = toEndYear(y.season);
+        return entryEndYear === key;
+      });
+      return sum + (yearEntry?.salary || 0);
+    }, 0);
 
   const stretchYears = remainingYears * 2 + 1;
   const stretchedAnnual = Math.round(totalOwed / stretchYears);
@@ -236,9 +234,7 @@ export function calculateCapHold(player, capProjections, year = 2025) {
   if (player.renounced) return null;
 
   const experience = player.bio?.yearsExperience || 0;
-  const rights =
-    player.contract?.birdRights?.status ||
-    'None';
+  const rights = player.contract?.birdRights?.status || 'None';
 
   let lastSalary = 0;
   if (player.contract?.salariesByYear?.length) {
@@ -316,4 +312,25 @@ export function generateDefaultFreeAgentContract(
     isMinimum: baseSalary <= 2200000,
     yearsOfService,
   };
+}
+
+/**
+ * Get player's last salary from contract data
+ *
+ * @param {Object} player - Player data
+ * @returns {number} Last salary or 0
+ */
+export function getLastSalary(player) {
+  const salaries = player?.contract?.salariesByYear;
+
+  if (!salaries?.length) return 0;
+
+  // Sort by season and get most recent
+  const sorted = [...salaries].sort((a, b) => {
+    const yearA = toEndYear(a.season) || 0;
+    const yearB = toEndYear(b.season) || 0;
+    return yearB - yearA;
+  });
+
+  return sorted[0]?.salary || sorted[0]?.capHit || 0;
 }

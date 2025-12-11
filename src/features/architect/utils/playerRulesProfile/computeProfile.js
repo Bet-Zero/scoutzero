@@ -18,9 +18,15 @@
  * @file src/features/architect/utils/playerRulesProfile/computeProfile.js
  */
 
-import { computeExtensionEligibility, computeExtensionTerms } from '@/features/architect/utils/playerRulesProfile/extensionRules.js';
+import {
+  computeExtensionEligibility,
+  computeExtensionTerms,
+} from '@/features/architect/utils/playerRulesProfile/extensionRules.js';
 import { computeBirdRights } from '@/features/architect/utils/playerRulesProfile/birdRightsRules.js';
-import { computeMinimumSalary, getYearsOfService } from '@/features/architect/utils/playerRulesProfile/minimumSalaryRules.js';
+import {
+  computeMinimumSalary,
+  getYearsOfService,
+} from '@/features/architect/utils/playerRulesProfile/minimumSalaryRules.js';
 import { computeRFAStatus } from '@/features/architect/utils/playerRulesProfile/rfaRules.js';
 import { computeMaxSalary } from '@/features/architect/utils/playerRulesProfile/maxSalaryRules.js';
 import { parseSeasonEndYear } from '@/features/architect/utils/seasonUtils.js';
@@ -69,39 +75,63 @@ const DEFAULT_CAP_SETTINGS = {
  *
  * @returns {Object} PlayerRulesProfile - Comprehensive rules profile
  */
-export function computePlayerRulesProfile(player, teamContext = {}, leagueContext = {}) {
+export function computePlayerRulesProfile(
+  player,
+  teamContext = {},
+  leagueContext = {}
+) {
   // Validate input
   if (!player) {
-    return createEmptyProfile('Unknown', 'No player data provided', leagueContext.simulationDate);
+    return createEmptyProfile(
+      'Unknown',
+      'No player data provided',
+      leagueContext.simulationDate
+    );
   }
 
   // Normalize league context with defaults
   const normalizedLeagueContext = normalizeLeagueContext(leagueContext);
 
   // Extract player identity
-  const playerId = player.playerId || player.player_id || player.id || 'unknown';
+  const playerId =
+    player.playerId || player.player_id || player.id || 'unknown';
   const playerName = player.displayName || player.name || playerId;
 
   // Compute all rule components
-  const extensionEligibility = computeExtensionEligibility(player, normalizedLeagueContext);
+  const extensionEligibility = computeExtensionEligibility(
+    player,
+    normalizedLeagueContext
+  );
   const extensionTerms = extensionEligibility.isEligible
-    ? computeExtensionTerms(player, normalizedLeagueContext, extensionEligibility)
+    ? computeExtensionTerms(
+        player,
+        normalizedLeagueContext,
+        extensionEligibility
+      )
     : null;
 
   const birdRights = computeBirdRights(player, normalizedLeagueContext);
-  const minimumSalaryInfo = computeMinimumSalary(player, normalizedLeagueContext);
+  const minimumSalaryInfo = computeMinimumSalary(
+    player,
+    normalizedLeagueContext
+  );
   const maxSalaryInfo = computeMaxSalary(player, normalizedLeagueContext);
   const rfaStatus = computeRFAStatus(player, normalizedLeagueContext);
 
   // Build contract summary
-  const contractSummary = buildContractSummary(player, normalizedLeagueContext.currentYear);
+  const contractSummary = buildContractSummary(
+    player,
+    normalizedLeagueContext.currentYear
+  );
 
   // Assemble the complete profile
   return {
     // Identity
     playerId,
     playerName,
-    evaluatedAt: (normalizedLeagueContext.simulationDate || new Date()).toISOString(),
+    evaluatedAt: (
+      normalizedLeagueContext.simulationDate || new Date()
+    ).toISOString(),
     evaluatedForSeason: normalizedLeagueContext.currentSeason,
 
     // Extension eligibility and terms
@@ -112,15 +142,17 @@ export function computePlayerRulesProfile(player, teamContext = {}, leagueContex
       extensionType: extensionEligibility.extensionType,
       eligibleDate: extensionEligibility.eligibleDate || null,
     },
-    extensionTerms: extensionTerms ? {
-      maxYears: extensionTerms.maxYears,
-      maxFirstYearSalary: extensionTerms.maxFirstYearSalary,
-      minFirstYearSalary: extensionTerms.minFirstYearSalary,
-      raisePercentage: extensionTerms.raisePercentage,
-      extensionType: extensionTerms.extensionType,
-      basedOn: extensionTerms.basedOn,
-      notes: extensionTerms.notes,
-    } : null,
+    extensionTerms: extensionTerms
+      ? {
+          maxYears: extensionTerms.maxYears,
+          maxFirstYearSalary: extensionTerms.maxFirstYearSalary,
+          minFirstYearSalary: extensionTerms.minFirstYearSalary,
+          raisePercentage: extensionTerms.raisePercentage,
+          extensionType: extensionTerms.extensionType,
+          basedOn: extensionTerms.basedOn,
+          notes: extensionTerms.notes,
+        }
+      : null,
 
     // Bird rights
     birdRights: {
@@ -136,6 +168,7 @@ export function computePlayerRulesProfile(player, teamContext = {}, leagueContex
 
     maxSalary: {
       maxSalary: maxSalaryInfo.maxSalary,
+      maxSalaryBird: maxSalaryInfo.maxSalaryBird,
       tier: maxSalaryInfo.tier,
       supermaxEligible: maxSalaryInfo.supermaxEligible,
       reason: maxSalaryInfo.reason,
@@ -156,11 +189,13 @@ export function computePlayerRulesProfile(player, teamContext = {}, leagueContex
     contractSummary,
 
     // Team context if provided
-    teamContext: teamContext.teamCode ? {
-      teamCode: teamContext.teamCode,
-      isOverCap: teamContext.isOverCap || false,
-      apronStatus: teamContext.apronStatus || null,
-    } : null,
+    teamContext: teamContext.teamCode
+      ? {
+          teamCode: teamContext.teamCode,
+          isOverCap: teamContext.isOverCap || false,
+          apronStatus: teamContext.apronStatus || null,
+        }
+      : null,
   };
 }
 
@@ -226,7 +261,8 @@ function buildContractSummary(player, currentYear) {
     freeAgencyYear = parseSeasonEndYear(contract.endSeason);
   }
 
-  const freeAgencyType = contract.freeAgency?.type || 
+  const freeAgencyType =
+    contract.freeAgency?.type ||
     (yearsOfService < 4 ? 'Restricted' : 'Unrestricted');
 
   // Get current salary
@@ -234,7 +270,8 @@ function buildContractSummary(player, currentYear) {
   const currentSalaryEntry = contract.salariesByYear?.find(
     (entry) => entry.season === currentSeason
   );
-  const currentSalary = currentSalaryEntry?.salary || currentSalaryEntry?.capHit || null;
+  const currentSalary =
+    currentSalaryEntry?.salary || currentSalaryEntry?.capHit || null;
 
   return {
     yearsOfService,
@@ -244,7 +281,8 @@ function buildContractSummary(player, currentYear) {
     currentSalary,
     hasContract: true,
     contractType: contract.contractType || 'Standard',
-    isRookieScale: contract.isRookieScale || contract.contractType === 'Rookie Scale',
+    isRookieScale:
+      contract.isRookieScale || contract.contractType === 'Rookie Scale',
   };
 }
 
