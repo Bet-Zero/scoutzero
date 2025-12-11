@@ -32,7 +32,7 @@ import { computeMaxSalary } from '@/features/architect/utils/playerRulesProfile/
 import { parseSeasonEndYear } from '@/features/architect/utils/seasonUtils.js';
 import { DEFAULT_AVERAGE_SALARY } from '@/features/architect/utils/cbaConstants.js';
 import { getCapForSeason } from '@/features/architect/utils/capHelpers';
-import { getCurrentSeasonId } from '@/features/architect/utils/seasonHelpers';
+import { getCurrentSeasonId, getCurrentSeasonEndYear } from '@/features/architect/utils/seasonHelpers';
 
 /**
  * Get default cap settings for a season
@@ -241,9 +241,9 @@ function normalizeLeagueContext(leagueContext) {
   // Use simulationDate if provided, otherwise fall back to real-world time
   const effectiveDate = leagueContext.simulationDate || new Date();
   
-  // Use new seasonHelpers for proper season calculation
+  // Use seasonHelpers for proper season calculation
   const defaultSeason = getCurrentSeasonId(effectiveDate);
-  const defaultYear = getCurrentSeasonYear(effectiveDate);
+  const defaultYear = getCurrentSeasonEndYear(effectiveDate);
 
   const currentSeason = leagueContext.currentSeason || defaultSeason;
   const currentYear = leagueContext.currentYear || defaultYear;
@@ -390,27 +390,6 @@ function createEmptyProfile(playerId, reason, simulationDate = null) {
 
     teamContext: null,
   };
-}
-
-/**
- * Get current NBA season year
- *
- * NBA free agency and league year starts July 1:
- * - Before July 1: current season (e.g., May 2024 = 2023-24 = year 2024)
- * - July 1 or later: next season (e.g., July 2024 = 2024-25 = year 2025)
- *
- * Note: Regular season starts in October, but for CBA purposes,
- * the league year (free agency, extensions, etc.) begins July 1.
- *
- * @param {Date} date - Date to evaluate
- * @returns {number} Season end year
- */
-function getCurrentSeasonYear(date) {
-  const year = date.getFullYear();
-  const month = date.getMonth(); // 0 = Jan, 6 = Jul
-
-  // July 1 is the start of the new league year
-  return month >= 6 ? year + 1 : year;
 }
 
 /**

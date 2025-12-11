@@ -43,20 +43,23 @@ export const SUPERMAX_QUALIFYING_AWARDS = [
  *
  * Supports two calling conventions:
  * 1. Legacy: computeMaxSalary(player, leagueContext) - for backward compatibility
- * 2. RuleContext: computeMaxSalary(player, leagueContext) where leagueContext has
- *    the shape of a RuleContext (with timing, cap, player properties)
+ * 2. RuleContext: computeMaxSalary(ruleContext) - pass a RuleContext object as the only argument
  *
- * @param {Object} player - Player data object (or RuleContext)
- * @param {Object} leagueContext - League context (or undefined if first param is RuleContext)
+ * When a RuleContext is passed as the first argument (detected by presence of timing, cap, player properties),
+ * the function delegates to computeMaxSalaryFromRuleContext.
+ *
+ * @param {Object} playerOrContext - Player data object OR a RuleContext object
+ * @param {Object} [leagueContext] - League context (only used for legacy path)
  * @returns {Object} Max salary information
  */
-export function computeMaxSalary(player, leagueContext) {
-  // Detect if we're being called with a RuleContext
-  if (player && player.timing && player.cap && player.player) {
-    return computeMaxSalaryFromRuleContext(player);
+export function computeMaxSalary(playerOrContext, leagueContext) {
+  // Detect if we're being called with a RuleContext (single argument with timing/cap/player props)
+  if (playerOrContext && playerOrContext.timing && playerOrContext.cap && playerOrContext.player) {
+    return computeMaxSalaryFromRuleContext(playerOrContext);
   }
 
   // Legacy path: (player, leagueContext) signature
+  const player = playerOrContext;
   const yearsOfService = getYearsOfService(player);
   const { capSettings = {} } = leagueContext || {};
   

@@ -154,6 +154,13 @@ export interface BuildRuleContextInput {
 
 /**
  * Determine the league phase based on date
+ * 
+ * NBA Calendar:
+ * - July 1-6: Moratorium (no signings allowed)
+ * - July 7 - Oct ~15: Offseason (free agency period)
+ * - Oct ~15-22: Preseason (training camp)
+ * - Oct ~22 - April 30: Regular season
+ * - May - June: Playoffs
  */
 function deriveLeaguePhase(date: Date): LeaguePhase {
   const month = date.getMonth(); // 0 = Jan, 6 = Jul
@@ -172,11 +179,12 @@ function deriveLeaguePhase(date: Date): LeaguePhase {
   // October ~15 - October ~22: Preseason
   if (month === 9 && day > 15 && day <= 22) return 'preseason';
 
-  // October ~22 - April: Regular season
+  // October ~22 - April 30: Regular season
   if (month === 9 && day > 22) return 'regular';
-  if (month >= 10 || month <= 3) return 'regular'; // Nov-Apr
+  if (month >= 10 || month <= 3) return 'regular'; // Nov-Mar
+  if (month === 4 && day <= 30) return 'regular'; // April (month index 4 is May, so this is actually month 3)
 
-  // April - June: Playoffs
+  // May - June: Playoffs (months 4-5)
   if (month >= 4 && month <= 5) return 'playoffs';
 
   return 'regular'; // Default fallback
@@ -359,6 +367,12 @@ function deriveBirdType(player: BuildRuleContextInput['player']): BirdType {
   if (normalizedStatus.includes('non')) return 'Non-Bird';
   if (normalizedStatus === 'none') return 'None';
 
+  // Log warning for unrecognized bird rights status to help debug data issues
+  const playerId = player.playerId ?? player.player_id ?? player.id ?? 'unknown';
+  console.warn(
+    `Unrecognized Bird rights status "${status}" (normalized: "${normalizedStatus}") ` +
+    `for player ${playerId}. Defaulting to 'None'.`
+  );
   return 'None';
 }
 

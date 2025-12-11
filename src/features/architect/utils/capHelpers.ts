@@ -35,23 +35,37 @@ interface RawCapProjection {
 }
 
 /**
+ * Helper to sort seasons numerically by start year
+ */
+function sortSeasonsByStartYear(seasons: SeasonId[], descending = false): SeasonId[] {
+  return seasons.slice().sort((a, b) => {
+    const yearA = parseInt(a.split('-')[0], 10);
+    const yearB = parseInt(b.split('-')[0], 10);
+    return descending ? yearB - yearA : yearA - yearB;
+  });
+}
+
+/**
+ * Get all available season keys from cap projections
+ * @returns Array of available SeasonIds
+ */
+export function getAvailableSeasons(): SeasonId[] {
+  return Object.keys(capProjections).filter(isValidSeasonId) as SeasonId[];
+}
+
+/**
  * Get the range of supported seasons in capProjections
  * @returns Object with earliest and latest supported seasons
  */
 export function getSupportedSeasonRange(): { earliest: SeasonId; latest: SeasonId } {
-  const seasons = Object.keys(capProjections).filter(isValidSeasonId) as SeasonId[];
+  const seasons = getAvailableSeasons();
   
   if (seasons.length === 0) {
     // Fallback if no valid seasons found
     return { earliest: '2024-25' as SeasonId, latest: '2031-32' as SeasonId };
   }
   
-  // Sort seasons by start year
-  const sorted = seasons.sort((a, b) => {
-    const yearA = parseInt(a.split('-')[0], 10);
-    const yearB = parseInt(b.split('-')[0], 10);
-    return yearA - yearB;
-  });
+  const sorted = sortSeasonsByStartYear(seasons);
   
   return {
     earliest: sorted[0],
@@ -180,21 +194,9 @@ export function getMinimumSalaryScale(seasonId: SeasonId): Record<number, number
     return scales[seasonId];
   }
   
-  // Fall back to most recent available scale
-  const availableSeasons = Object.keys(scales) as SeasonId[];
-  const sorted = availableSeasons.sort((a, b) => {
-    const yearA = parseInt(a.split('-')[0], 10);
-    const yearB = parseInt(b.split('-')[0], 10);
-    return yearB - yearA; // Descending order
-  });
+  // Fall back to most recent available scale using shared sort helper
+  const availableScaleSeasons = Object.keys(scales) as SeasonId[];
+  const sorted = sortSeasonsByStartYear(availableScaleSeasons, true); // Descending order
   
-  return scales[sorted[0]] || scales['2024-25'];
-}
-
-/**
- * Get all available season keys from cap projections
- * @returns Array of available SeasonIds
- */
-export function getAvailableSeasons(): SeasonId[] {
-  return Object.keys(capProjections).filter(isValidSeasonId) as SeasonId[];
+  return scales[sorted[0]] || scales['2024-25' as SeasonId];
 }

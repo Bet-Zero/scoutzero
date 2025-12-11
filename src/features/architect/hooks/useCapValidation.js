@@ -149,14 +149,14 @@ const getCapSettings = (year) => {
   const settings = capProjections[key];
   
   if (!settings) {
-    // Log warning if cap data not found, but return latest available
-    // to avoid breaking the UI
+    // Sort seasons numerically by start year to ensure consistent ordering
     const availableSeasons = Object.keys(capProjections).sort((a, b) => {
-  if (!settings) {
-    // Fall back to latest available season to avoid breaking the UI
-    const availableSeasons = Object.keys(capProjections).sort();
+      const yearA = parseInt(a.split('-')[0], 10) || 0;
+      const yearB = parseInt(b.split('-')[0], 10) || 0;
+      return yearA - yearB;
+    });
     const latestSeason = availableSeasons[availableSeasons.length - 1];
-    console.warn(`Cap data not found for ${key}, falling back to ${latestSeason}`);
+    console.warn(`Cap data not found for season ${key}, falling back to ${latestSeason}`);
     return capProjections[latestSeason] || null;
   }
   
