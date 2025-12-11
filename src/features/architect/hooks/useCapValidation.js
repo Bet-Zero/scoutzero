@@ -151,7 +151,11 @@ const getCapSettings = (year) => {
   if (!settings) {
     // Log warning if cap data not found, but return latest available
     // to avoid breaking the UI
-    const availableSeasons = Object.keys(capProjections).sort();
+    const availableSeasons = Object.keys(capProjections).sort((a, b) => {
+      const yearA = parseInt(a.split('-')[0], 10) || 0;
+      const yearB = parseInt(b.split('-')[0], 10) || 0;
+      return yearA - yearB;
+    });
     const latestSeason = availableSeasons[availableSeasons.length - 1];
     return capProjections[latestSeason] || null;
   }
