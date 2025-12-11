@@ -24,8 +24,8 @@ import type {
   OperationType,
   ExceptionType,
   RuleContextErrorCode,
-  RuleContextValidationError as RuleContextValidationErrorType,
 } from '../types/ruleContext';
+import { RuleContextValidationError } from '../types/ruleContext';
 import {
   isValidSeasonId,
   parseSeasonId,
@@ -36,19 +36,8 @@ import {
 } from './seasonHelpers';
 import { getCapForSeason, getSupportedSeasonRange, hasCapDataForSeason } from './capHelpers';
 
-/**
- * Custom error class for RuleContext validation failures
- */
-export class RuleContextValidationError extends Error {
-  constructor(
-    public code: RuleContextErrorCode,
-    public details: string,
-    public userFacingMessage: string
-  ) {
-    super(`RuleContext validation failed: ${code} - ${details}`);
-    this.name = 'RuleContextValidationError';
-  }
-}
+// Re-export RuleContextValidationError for backward compatibility
+export { RuleContextValidationError } from '../types/ruleContext';
 
 /**
  * Input for building a RuleContext for a player move
@@ -313,25 +302,28 @@ function getSalaryForSeason(
   return entry.salary ?? entry.capHit ?? null;
 }
 
+// Import getYearsOfService from minimumSalaryRules for consistent YOS calculation
+import { getYearsOfService as getYearsOfServiceFromPlayer } from './playerRulesProfile/minimumSalaryRules';
+
 /**
  * Compute years of service at operation time
+ * 
+ * Uses the shared getYearsOfService helper first for consistency,
+ * then falls back to draft-year calculation if needed.
  */
 function computeYearsOfService(
   player: BuildRuleContextInput['player'],
   operationSeasonId: SeasonId
 ): number {
-  // Try direct values first
-  const direct =
-    player.yearsOfService ??
-    player.experience ??
-    player.bio?.experience ??
-    player.bio?.yearsExperience;
-
-  if (typeof direct === 'number' && direct >= 0) {
-    return direct;
+  // First, try using the shared getYearsOfService helper for consistency
+  // This checks multiple field paths (bio.experience, yearsOfService, etc.)
+  const fromHelper = getYearsOfServiceFromPlayer(player);
+  if (fromHelper > 0) {
+    return fromHelper;
   }
 
-  // Calculate from draft year
+  // Fallback: Calculate from draft year if direct experience not available
+  // This handles cases where only draft info is present
   const draftYear = player.bio?.draftYear;
   if (draftYear) {
     const parsed = parseSeasonId(operationSeasonId);
@@ -698,8 +690,32 @@ export function buildRuleContextForPlayerMove(
 }
 
 /**
- * Build a minimal RuleContext for simple season/cap lookups
- * Does not require full player/team data
+ * Build a minimal "cap-only" RuleContext for simple season/cap lookups.
+ * 
+ * This function creates a skeletal RuleContext with placeholder/synthetic values
+ * for player and team fields. It is intended for:
+ * - Quick cap threshold lookups
+ * - Season/timing calculations
+ * - Rules that only need cap data (salaryCap, apron thresholds, exceptions)
+ * 
+ * **WARNING**: Do not use this context for player-specific calculations like
+ * max salary, Bird rights, or QO amounts - those require full player data.
+ * The player fields (yearsOfService, priorSeasonSalary, etc.) are all set to
+ * safe defaults (0, null, 'None') and will produce incorrect results if used
+ * for actual player rule evaluation.
+ * 
+ * @param seasonId - The season to build context for (e.g., "2024-25" or 2025)
+ * @param operationType - Operation type for context (defaults to 'UFA_SIGNING')
+ * @returns A RuleContext with real cap data but placeholder player/team data
+ * @throws RuleContextValidationError if seasonId is invalid or cap data unavailable
+ * 
+ * @example
+ * // Good: Use for cap lookups
+ * const ctx = buildMinimalRuleContext('2025-26');
+ * const cap = ctx.cap.salaryCap; // Real 2025-26 cap value
+ * 
+ * // Bad: Don't use for player rules
+ * const maxSalary = computeMaxSalary(ctx); // Wrong! Uses placeholder YOS = 0
  */
 export function buildMinimalRuleContext(
   seasonId: SeasonId | string,
@@ -724,6 +740,7 @@ export function buildMinimalRuleContext(
     );
   }
 
+  // NOTE: Player and team fields are placeholders - do not use for player-specific rules
   return {
     timing: {
       operationSeasonId: normalized,

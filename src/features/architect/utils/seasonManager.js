@@ -4,7 +4,7 @@
  * Handles season advancement logic: contract expirations, options, empty roster charges,
  * draft pick updates, and cap hold processing.
  * 
- * @file src/utils/architect/seasonManager.js
+ * @file src/features/architect/utils/seasonManager.js
  * @module seasonManager
  */
 
