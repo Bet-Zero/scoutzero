@@ -59,7 +59,7 @@ Important background for this plan:
 
 **Blockers**: None
 
-**Last Updated**: 2025-12-10 07:39 EST
+**Last Updated**: 2025-12-11 03:29 EST
 
 ## PERMANENT_FILE_MAP
 
@@ -73,6 +73,7 @@ Important background for this plan:
 
 - 2025-12-10: Created plan, captured scope/next steps (cap-sheet-rules-fix).
 - 2025-12-10: Applied cap sheet indicator fixes and modal guardrails; tests added and run.
+- 2025-12-11: Added explicit extension eligibility year badges (per-season placement) and refreshed tests.
 
 ## KNOWN_LIMITATIONS
 

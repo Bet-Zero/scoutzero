@@ -44,6 +44,19 @@ const formatQOText = (amount) => {
   return `QO $${(amount / 1_000_000).toFixed(1)}M`;
 };
 
+const formatSeasonLabel = (year) =>
+  `${year - 1}-${String(year % 100).padStart(2, '0')}`;
+
+const formatExtLabel = (year) => `EXT '${String(year % 100).padStart(2, '0')}`;
+
+const getExtensionEligibleYear = (rulesProfile) => {
+  const eligibleDate = rulesProfile?.extensionEligibility?.eligibleDate;
+  if (!eligibleDate) return null;
+  const d = new Date(eligibleDate);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.getFullYear();
+};
+
 const CapSheetFull = ({
   teamCapSheet,
   currentYear,
@@ -152,9 +165,8 @@ const CapSheetFull = ({
                 const isTwoWay = isTwoWayContract(player);
                 const profileForCurrentYear =
                   getRulesProfileForYear?.(player, currentYear) || null;
-                const extensionEligibility =
-                  profileForCurrentYear?.extensionEligibility;
-                const showExtensionBadge = extensionEligibility?.isEligible;
+                const extensionEligibleYear =
+                  getExtensionEligibleYear(profileForCurrentYear);
                 return (
                   <div
                     key={idx}
@@ -170,18 +182,6 @@ const CapSheetFull = ({
                           player.bio?.displayName ||
                           player.name}
                       </button>
-                      {showExtensionBadge && (
-                        <span
-                          className="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider shrink-0 bg-cyan-500/15 text-cyan-50 border border-cyan-500/30"
-                          data-testid="extension-eligibility-badge"
-                          title={
-                            extensionEligibility?.reason ||
-                            'Extension eligible'
-                          }
-                        >
-                          EXT
-                        </span>
-                      )}
                       {isTwoWay && (
                         <span
                           className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider shrink-0 ${getTagColor('TWO-WAY')}`}
@@ -216,6 +216,8 @@ const CapSheetFull = ({
                       const isExtension = entry?.isExtensionSeason;
                       const salaryValue = entry?.salary ?? entry?.capHit ?? 0;
                       const faLabel = derivedFaType || 'FA';
+                      const isExtensionEligibleYear =
+                        extensionEligibleYear && extensionEligibleYear === year;
 
                       // Free agency year: faYear of 2027 means they become FA in 2027, for the 2027-28 season
                       // The column showing "2027-28" has year === 2028, so check faYear + 1 === year
@@ -305,12 +307,21 @@ const CapSheetFull = ({
                       return (
                         <div
                           key={year}
-                          className={`relative flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[36px] ${
-                            isExtension
+                            className={`relative flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[36px] ${
+                              isExtension
                               ? 'bg-cyan-500/5 border-cyan-500/20'
                               : ''
-                          }`}
-                        >
+                            }`}
+                          >
+                          {isExtensionEligibleYear && (
+                            <span
+                              className="absolute top-0.5 left-1 text-[9px] font-bold uppercase px-1 rounded bg-cyan-500/20 text-cyan-50 border border-cyan-500/30"
+                              data-testid="extension-eligibility-badge"
+                              title={`Extension eligible starting ${formatSeasonLabel(year)} offseason`}
+                            >
+                              {formatExtLabel(year)}
+                            </span>
+                          )}
                           <span
                             className={`text-xs font-medium tabular-nums tracking-tight ${
                               isExtension ? 'text-cyan-200/90' : 'text-white/60'

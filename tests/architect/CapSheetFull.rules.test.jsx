@@ -32,6 +32,11 @@ const getRulesProfileForYear = (player) => {
   if (player.name === 'Ext Player') {
     return {
       extensionEligibility: { isEligible: true, reason: 'Extension eligible' },
+      extensionEligibility: {
+        isEligible: true,
+        reason: 'Extension eligible',
+        eligibleDate: '2025-07-01T00:00:00.000Z',
+      },
       birdRights: { type: 'Full Bird' },
       contractSummary: { freeAgencyYear: 2027, freeAgencyType: 'Unrestricted' },
     };
@@ -66,9 +71,10 @@ describe('CapSheetFull — rules profile indicators', () => {
 
     const badges = screen.getAllByTestId('extension-eligibility-badge');
     expect(badges).toHaveLength(1);
+    expect(badges[0].textContent).toMatch(/EXT '25/i);
     expect(badges[0]).toHaveAttribute(
       'title',
-      expect.stringMatching(/extension/i)
+      expect.stringMatching(/2024-25/i)
     );
   });
 
