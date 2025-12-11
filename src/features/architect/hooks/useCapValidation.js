@@ -146,7 +146,17 @@ const calculateTeamCapHit = (players, year) => {
  */
 const getCapSettings = (year) => {
   const key = `${year - 1}-${String(year % 100).padStart(2, '0')}`;
-  return capProjections[key] || capProjections['2025-26'];
+  const settings = capProjections[key];
+  
+  if (!settings) {
+    // Log warning if cap data not found, but return latest available
+    // to avoid breaking the UI
+    const availableSeasons = Object.keys(capProjections).sort();
+    const latestSeason = availableSeasons[availableSeasons.length - 1];
+    return capProjections[latestSeason] || null;
+  }
+  
+  return settings;
 };
 
 /**

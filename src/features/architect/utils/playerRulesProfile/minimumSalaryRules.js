@@ -87,11 +87,55 @@ export function getMinimumSalaryScale(season) {
  * @returns {Object} Minimum salary information
  */
 export function computeMinimumSalary(player, leagueContext) {
+  // Detect if we're being called with a RuleContext
+  if (player && player.timing && player.cap && player.player) {
+    return computeMinimumSalaryFromRuleContext(player);
+  }
+
   const yearsOfService = getYearsOfService(player);
-  const season = leagueContext?.currentSeason || '2024-25';
+  
+  // Require season from context - no hard-coded fallback
+  const season = leagueContext?.currentSeason;
+  if (!season) {
+    return {
+      minimumSalary: 0,
+      yearsOfService,
+      season: null,
+      reason: 'Cannot determine minimum salary: currentSeason not provided in leagueContext',
+    };
+  }
+  
   const scale = getMinimumSalaryScale(season);
 
   // Cap years of service at 10 (10+ uses same minimum)
+  const cappedYears = Math.min(yearsOfService, 10);
+  const minimumSalary = scale[cappedYears] || scale[0];
+
+  return {
+    minimumSalary,
+    yearsOfService,
+    season,
+    reason:
+      yearsOfService === 0
+        ? 'Rookie minimum salary'
+        : yearsOfService >= 10
+          ? 'Veteran minimum (10+ years)'
+          : `Veteran minimum (${yearsOfService} years of service)`,
+  };
+}
+
+/**
+ * Compute minimum salary from RuleContext
+ * 
+ * @param {Object} ctx - RuleContext object
+ * @returns {Object} Minimum salary information
+ */
+export function computeMinimumSalaryFromRuleContext(ctx) {
+  const { timing, player: playerCtx } = ctx;
+  const yearsOfService = playerCtx.yearsOfServiceAtOperation;
+  const season = timing.capSeasonId;
+  
+  const scale = getMinimumSalaryScale(season);
   const cappedYears = Math.min(yearsOfService, 10);
   const minimumSalary = scale[cappedYears] || scale[0];
 
@@ -167,8 +211,8 @@ export function getMinimumCapHit(yearsOfService, season = '2024-25') {
  * Normalize season input to season code format.
  *
  * Note: This is a utility function used for parsing season parameters.
- * It only falls back to current date when the season parameter is invalid/empty,
- * which happens during initialization. Callers should provide explicit season
+ * It uses the latest defined scale season as fallback when the season 
+ * parameter is invalid/empty. Callers should provide explicit season
  * codes via leagueContext for simulation-aware behavior.
  *
  * @param {string|number} season - Season code or year
@@ -193,5 +237,11 @@ function normalizeSeasonCode(season) {
     const yearB = parseInt(b.split('-')[0], 10) || 0;
     return yearA - yearB;
   });
-  return definedSeasons[definedSeasons.length - 1] || '2024-25';
+  
+  // Return the latest defined season (or throw if none defined)
+  const latestSeason = definedSeasons[definedSeasons.length - 1];
+  if (!latestSeason) {
+    throw new Error('No minimum salary scales defined in MINIMUM_SALARY_SCALE');
+  }
+  return latestSeason;
 }

@@ -15,6 +15,7 @@
 import { getYearsOfService } from './minimumSalaryRules.js';
 import { parseSeasonEndYear } from '../seasonUtils.js';
 import { getLastSalary } from '../contractUtils.js';
+import { parseSeasonId } from '../seasonHelpers';
 
 /**
  * Max salary tier definitions
@@ -40,19 +41,38 @@ export const SUPERMAX_QUALIFYING_AWARDS = [
 /**
  * Compute maximum salary for a new contract
  *
- * @param {Object} player - Player data object
- * @param {Object} player.bio - Player bio information
- * @param {Array} [player.awards] - Player awards history
- * @param {Object} leagueContext - League context
- * @param {Object} leagueContext.capSettings - Cap settings
- * @param {number} leagueContext.capSettings.salaryCap - Salary cap amount
- * @param {number} leagueContext.currentYear - Current season end year
+ * Supports two calling conventions:
+ * 1. Legacy: computeMaxSalary(player, leagueContext) - for backward compatibility
+ * 2. RuleContext: computeMaxSalary(player, leagueContext) where leagueContext has
+ *    the shape of a RuleContext (with timing, cap, player properties)
+ *
+ * @param {Object} player - Player data object (or RuleContext)
+ * @param {Object} leagueContext - League context (or undefined if first param is RuleContext)
  * @returns {Object} Max salary information
  */
 export function computeMaxSalary(player, leagueContext) {
+  // Detect if we're being called with a RuleContext
+  if (player && player.timing && player.cap && player.player) {
+    return computeMaxSalaryFromRuleContext(player);
+  }
+
+  // Legacy path: (player, leagueContext) signature
   const yearsOfService = getYearsOfService(player);
   const { capSettings = {} } = leagueContext || {};
-  const salaryCap = capSettings.salaryCap || 140_588_000; // 2024-25 default
+  
+  // Use cap from leagueContext if available, no hard-coded fallback
+  const salaryCap = capSettings.salaryCap;
+  if (!salaryCap) {
+    return {
+      maxSalary: 0,
+      maxSalaryBird: 0,
+      tier: 'Unknown',
+      yearsOfService,
+      supermaxEligible: false,
+      supermaxReason: 'Cannot determine max salary: salaryCap not provided',
+      reason: 'Cannot determine max salary: salaryCap not provided in leagueContext.capSettings',
+    };
+  }
 
   // Determine base tier
   const tier = getMaxSalaryTier(yearsOfService);
@@ -101,6 +121,94 @@ export function computeMaxSalary(player, leagueContext) {
       effectivePercent,
       supermaxEligibility
     ),
+  };
+}
+
+/**
+ * Compute maximum salary using RuleContext
+ * Uses timing, player, and cap context for accurate calculations
+ *
+ * @param {Object} ctx - RuleContext object
+ * @returns {Object} Max salary information
+ */
+export function computeMaxSalaryFromRuleContext(ctx) {
+  const { timing, player: playerCtx, cap } = ctx;
+
+  const yearsOfService = playerCtx.yearsOfServiceAtOperation;
+  const salaryCap = cap.salaryCap;
+
+  // Determine base tier
+  const tier = getMaxSalaryTier(yearsOfService);
+
+  // Check for supermax eligibility using RuleContext
+  const supermaxEligibility = checkSupermaxEligibilityFromContext(ctx);
+
+  // Apply supermax if eligible
+  let effectiveTier = tier;
+  let effectivePercent = tier.percent;
+
+  if (supermaxEligibility.isEligible) {
+    if (yearsOfService >= 7 && yearsOfService <= 9) {
+      effectivePercent = 0.35;
+      effectiveTier = {
+        ...MAX_SALARY_TIERS.TIER_35,
+        label: '35% (Designated Veteran)',
+      };
+    } else if (yearsOfService < 7) {
+      effectivePercent = 0.3;
+      effectiveTier = {
+        ...MAX_SALARY_TIERS.TIER_30,
+        label: '30% (Higher Max)',
+      };
+    }
+  }
+
+  const maxSalary = Math.round(salaryCap * effectivePercent);
+
+  // 105% of previous salary rule (for Bird Rights re-signing)
+  // Use priorSeasonSalary from context if available
+  const priorSalary = playerCtx.priorSeasonSalary ?? 0;
+  const maxSalaryBird = Math.max(maxSalary, Math.round(priorSalary * 1.05));
+
+  return {
+    maxSalary,
+    maxSalaryBird,
+    tier: effectiveTier.label,
+    yearsOfService,
+    supermaxEligible: supermaxEligibility.isEligible,
+    supermaxReason: supermaxEligibility.reason,
+    reason: buildMaxSalaryReason(
+      yearsOfService,
+      effectivePercent,
+      supermaxEligibility
+    ),
+  };
+}
+
+/**
+ * Check supermax eligibility from RuleContext
+ * @param {Object} ctx - RuleContext
+ * @returns {Object} Supermax eligibility info
+ */
+function checkSupermaxEligibilityFromContext(ctx) {
+  const { timing, player: playerCtx } = ctx;
+  const yearsOfService = playerCtx.yearsOfServiceAtOperation;
+
+  // Parse operation season to get the end year for award comparison
+  const parsed = parseSeasonId(timing.operationSeasonId);
+  if (!parsed) {
+    return {
+      isEligible: false,
+      reason: 'Cannot determine supermax eligibility: invalid operationSeasonId',
+    };
+  }
+  const currentYear = parsed.endYear;
+
+  // For now, we don't have awards in RuleContext
+  // This would need to be extended if award checking is needed
+  return {
+    isEligible: false,
+    reason: 'Supermax eligibility requires award data not available in RuleContext',
   };
 }
 
