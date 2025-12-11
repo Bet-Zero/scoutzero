@@ -510,13 +510,16 @@ function buildTeamContext(
   };
 
   // Normalize trade exceptions
-  const tradeExceptions = (exceptionsAvailable.tradeExceptions ?? []).map((tpe) => ({
-    id: tpe.id,
-    amount: tpe.amount,
-    expiresSeasonId: (tpe.expiresSeasonId
+  const tradeExceptions = (exceptionsAvailable.tradeExceptions ?? []).map((tpe) => {
+    const normalized = tpe.expiresSeasonId
       ? normalizeToSeasonId(tpe.expiresSeasonId)
-      : operationSeasonId) as SeasonId,
-  }));
+      : null;
+    return {
+      id: tpe.id,
+      amount: tpe.amount,
+      expiresSeasonId: normalized ?? operationSeasonId,
+    };
+  });
 
   return {
     teamId,

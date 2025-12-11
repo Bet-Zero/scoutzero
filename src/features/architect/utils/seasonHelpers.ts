@@ -58,27 +58,13 @@ export function parseSeasonId(seasonId: SeasonId | string | null | undefined): {
   if (!match) return null;
   
   const startYear = parseInt(match[1], 10);
-  const endYearShort = parseInt(match[2], 10);
   
-  // Calculate full end year (handle century boundary)
-  const endYear = startYear < 2000
-    ? 1900 + endYearShort
-    : endYearShort < 50
-      ? 2000 + endYearShort
-      : 1900 + endYearShort;
+  // For NBA seasons, the end year is always start year + 1
+  // The two-digit suffix is just formatting: "2024-25" means 2024 to 2025
+  // This handles century boundaries correctly: "1999-00" means 1999 to 2000
+  const endYear = startYear + 1;
   
-  // For seasons like "2024-25", endYear should be 2025
-  // For seasons like "1999-00", endYear should be 2000
-  const expectedEndYear = startYear + 1;
-  if (endYear !== expectedEndYear && (endYear + 100) !== expectedEndYear && (endYear - 100) !== expectedEndYear) {
-    // Allow for century boundary: "1999-00" -> startYear=1999, endYear=2000
-    const adjustedEndYear = endYearShort === 0 ? startYear + 1 : 
-                            startYear + 1 === 2000 + endYearShort ? 2000 + endYearShort :
-                            startYear + 1;
-    return { startYear, endYear: adjustedEndYear };
-  }
-  
-  return { startYear, endYear: startYear + 1 };
+  return { startYear, endYear };
 }
 
 /**
