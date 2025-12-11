@@ -10,7 +10,7 @@
  *  - Plan: plans/architect-timing/plan.md
  */
 
-import type { SeasonId } from '../utils/seasonHelpers';
+import type { SeasonId } from '@/features/architect/utils/seasonHelpers';
 
 /**
  * League phase enum for timing context.
