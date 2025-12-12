@@ -590,7 +590,20 @@ export function computeExtensionFromRuleContext(ctx) {
     return null;
   };
 
-  const currentYear = parseSeasonYear(timing.operationSeasonId) || new Date().getFullYear();
+  const currentYear = parseSeasonYear(timing.operationSeasonId);
+  
+  // If we can't parse the season, return an error rather than using a fallback
+  if (!currentYear) {
+    return {
+      eligibility: {
+        isEligible: false,
+        reason: `Cannot compute extension: invalid operationSeasonId "${timing.operationSeasonId}"`,
+        blockers: ['Invalid season format'],
+        extensionType: EXTENSION_TYPES.INELIGIBLE,
+      },
+      terms: null,
+    };
+  }
 
   // Build a synthetic player object from RuleContext
   const syntheticPlayer = {

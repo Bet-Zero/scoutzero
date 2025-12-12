@@ -45,8 +45,8 @@ export interface MinSalaryInfo {
   minimumSalary: number;
   /** Player's years of NBA service */
   yearsOfService: number;
-  /** Season the scale was looked up for */
-  season: SeasonId | string | null;
+  /** Season the scale was looked up for (null if unavailable) */
+  season: SeasonId | null;
   /** Human-readable explanation */
   reason: string;
 }

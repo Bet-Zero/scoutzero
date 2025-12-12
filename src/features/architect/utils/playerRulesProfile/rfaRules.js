@@ -409,7 +409,17 @@ export function computeRFAFromRuleContext(ctx) {
     return null;
   };
 
-  const currentYear = parseSeasonYear(timing.operationSeasonId) || new Date().getFullYear();
+  const currentYear = parseSeasonYear(timing.operationSeasonId);
+  
+  // If we can't parse the season, return an error rather than using a fallback
+  if (!currentYear) {
+    return {
+      isRFA: false,
+      qualifyingOfferEligible: false,
+      reason: `Cannot compute RFA status: invalid operationSeasonId "${timing.operationSeasonId}"`,
+      status: RFA_STATUS.UNKNOWN,
+    };
+  }
 
   // Build a synthetic player object from RuleContext
   const syntheticPlayer = {
