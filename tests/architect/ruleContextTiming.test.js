@@ -213,6 +213,8 @@ describe('LeBron Full Bird UFA 2026 Case', () => {
     // Cap should be 2026-27 cap, NOT 2024-25
     const cap2627 = getCapForSeason('2026-27');
     const cap2425 = getCapForSeason('2024-25');
+    expect(cap2627).toBeTruthy();
+    expect(cap2425).toBeTruthy();
     expect(ctx.cap.salaryCap).toBe(cap2627.salaryCap);
     expect(ctx.cap.salaryCap).not.toBe(cap2425.salaryCap);
   });
