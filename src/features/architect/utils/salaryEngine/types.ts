@@ -10,7 +10,6 @@
  *  - Plan: plans/salary-engine-audit/plan.md
  */
 
-import type { RuleContext, PlayerRuleContext } from '../../types/ruleContext';
 import type { SeasonId } from '../seasonHelpers';
 
 // Re-export RuleContext types for convenience
