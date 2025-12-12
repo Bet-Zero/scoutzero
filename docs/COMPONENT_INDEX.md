@@ -14,7 +14,15 @@ Quick reference for all components in the ScoutZero project.
 - FreeAgentCard.jsx
 - FreeAgentPool.jsx
 - FreeAgentRow.jsx
-- GMDashboard.jsx
+- GMDashboard/GMDashboard.jsx
+- GMDashboard/index.jsx
+- GMDashboard/sections/CapSheetSection.jsx
+- GMDashboard/sections/CapTableSection.jsx
+- GMDashboard/sections/FreeAgencySection.jsx
+- GMDashboard/sections/HistorySection.jsx
+- GMDashboard/sections/OffseasonSection.jsx
+- GMDashboard/sections/RosterSection.jsx
+- GMDashboard/sections/TradeSection.jsx
 - LeagueView.jsx
 - OffseasonTab.jsx
 - OptionManager.jsx
@@ -269,4 +277,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2025-12-10T10:26:22.098Z*
+*Generated on: 2025-12-12T09:55:50.648Z*

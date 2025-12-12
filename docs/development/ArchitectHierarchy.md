@@ -13,7 +13,17 @@ ExceptionTracker.jsx
 FreeAgentCard.jsx
 FreeAgentPool.jsx
 FreeAgentRow.jsx
-GMDashboard.jsx
+GMDashboard/
+  GMDashboard.jsx
+  index.jsx
+  sections/
+    CapSheetSection.jsx
+    CapTableSection.jsx
+    FreeAgencySection.jsx
+    HistorySection.jsx
+    OffseasonSection.jsx
+    RosterSection.jsx
+    TradeSection.jsx
 LeagueView.jsx
 OffseasonTab.jsx
 OptionManager.jsx
@@ -83,6 +93,11 @@ utils/
   reacqUtils.js
   rosterUtils.js
   runOffseason.js
+  salaryEngine/
+    README.md
+    index.ts
+    salaryEngine.ts
+    types.ts
   salaryUtils.js
   schemaAdapter.js
   seasonFormat.js
@@ -165,5 +180,5 @@ utils/
 ```
 
 ---
-*Generated on: 2025-12-12T02:47:44.903Z*
+*Generated on: 2025-12-12T09:55:50.615Z*
 *Auto-updated by: npm run docs*

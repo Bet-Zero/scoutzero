@@ -1,15 +1,17 @@
 /**
- * FILE: src/features/architect/GMDashboard.jsx
+ * FILE: src/features/architect/GMDashboard/GMDashboard.jsx
  * PURPOSE: Primary Architect dashboard for managing cap sheets, contracts, trades, and free agency flows.
  * OWNERSHIP: Feature: architect/core dashboard
  *
  * HISTORY:
  *  - 2025-12-10: Updated to surface player rules profile integration (chunk_01).
  *  - 2025-12-10: Wired multi-year rules context into cap table + contract modal flows (chunk_02).
+ *  - 2025-01-XX: Refactored to extract tab sections into separate components.
+ *  - 2025-12-12: Refactored to use authenticated userId instead of hardcoded demoUser
  *
  * LINKS:
- *  - Plan: plans/_archive/player-rules-architect/plan.md
- *  - Latest Chunk: plans/_archive/player-rules-architect/chunks/chunk_02.md
+ *  - Plan: plans/gm-dashboard-userid/plan.md
+ *  - Latest Chunk: plans/gm-dashboard-userid/chunks/chunk_01.md
  */
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
@@ -23,19 +25,19 @@ import {
   saveFreeAgents,
   loadFreeAgents,
 } from '@/features/architect/utils/firebaseTeamPlanHelpers';
-import RosterVisual from './RosterVisual';
-import CapSheet from './CapSheet';
-import CapSheetFull from './CapSheetFull';
 import EditContractModal from '@/shared/components/EditContractModal';
-import TradeEditor from './tradeMachine/TradeEditor';
-import FreeAgentPool from './FreeAgentPool';
-import OffseasonTab from './OffseasonTab';
-import TeamHistoryTab from './TeamHistoryTab';
-import ExceptionTracker from './ExceptionTracker';
-import SavePlanModal from './SavePlanModal';
+import SavePlanModal from '@/features/architect/SavePlanModal';
+import RosterSection from './sections/RosterSection';
+import CapSheetSection from './sections/CapSheetSection';
+import CapTableSection from './sections/CapTableSection';
+import TradeSection from './sections/TradeSection';
+import FreeAgencySection from './sections/FreeAgencySection';
+import OffseasonSection from './sections/OffseasonSection';
+import HistorySection from './sections/HistorySection';
 import useArchitectPlayerData from '@/features/architect/hooks/useArchitectPlayerData';
 import { useCapSheetState } from '@/features/architect/hooks/useCapSheetState';
 import { usePlayerRulesProfiles } from '@/features/architect/hooks/usePlayerRulesProfiles';
+import useAuth from '@/shared/hooks/useAuth';
 import { enrichPlayerData } from '@/features/roster/utils';
 import { basePlayerRef } from '@/data/firestorePaths';
 import { getDoc } from 'firebase/firestore';
@@ -50,10 +52,7 @@ const getDefaultSeasonEndYear = (date = new Date()) => {
   // NBA season flips July 1 → 2024-25 ends in 2025, 2025-26 ends in 2026
   const y = date.getFullYear();
   const month = date.getMonth();
-  
-  // Explicit handling for 2025-26 season (current)
-  if (y === 2025 && month >= 6) return 2026;
-  
+
   // General case for future years
   return month >= 6 ? y + 1 : y;
 };
@@ -112,14 +111,14 @@ const normalizeLookupKey = (name) => {
 
 const GMDashboard = () => {
   const { teamId } = useParams();
-  const userId = 'demoUser';
+  const { userId, loading: authLoading } = useAuth();
   const [baselineCapSheet, setBaselineCapSheet] = useState(null);
   const [teamCapSheet, setTeamCapSheet] = useState(null);
   // AFTER:
   const [currentYear, setCurrentYear] = useState(() => {
     // Get available years from cap projections
     const availableYears = seasonEndYearsFromCaps(capProjections);
-    
+
     // Check URL query parameter first
     const qp = new URLSearchParams(window.location.search).get('season');
     if (qp && Number.isFinite(parseInt(qp, 10))) {
@@ -127,7 +126,7 @@ const GMDashboard = () => {
       // Validate against available cap projections
       if (availableYears.includes(year)) return year;
     }
-    
+
     // Check localStorage
     const saved = localStorage.getItem(LOCAL_SEASON_KEY);
     if (saved && Number.isFinite(parseInt(saved, 10))) {
@@ -135,7 +134,7 @@ const GMDashboard = () => {
       // Validate against available cap projections
       if (availableYears.includes(year)) return year;
     }
-    
+
     // Default to current season
     return getDefaultSeasonEndYear();
   });
@@ -165,6 +164,13 @@ const GMDashboard = () => {
   useEffect(() => {
     localStorage.setItem('architect.viewMode', viewMode);
   }, [viewMode]);
+
+  // Force baseline mode when userId is missing (fallback behavior)
+  useEffect(() => {
+    if (!authLoading && !userId && viewMode === 'plan') {
+      setViewMode('baseline');
+    }
+  }, [userId, authLoading, viewMode]);
   const capTableYears = useMemo(
     () => Array.from({ length: 7 }, (_, i) => currentYear + i),
     [currentYear]
@@ -243,23 +249,30 @@ const GMDashboard = () => {
       setError('');
       try {
         const base = await loadTeamCapSheet(teamId);
-        const planList = await listUserTeamPlans(userId, teamId);
-        setPlans(planList);
-        const first = planList[0]?.id || '';
-        let plan = null;
-        if (first) {
-          const data = await loadNamedTeamPlan(userId, teamId, first);
-          plan = data?.capSheet || data;
-          setSelectedPlan(first);
-        } else {
-          plan = await loadUserTeamPlan(userId, teamId);
+
+        // Only load user plans if userId is available
+        if (userId) {
+          const planList = await listUserTeamPlans(userId, teamId);
+          setPlans(planList);
+          const first = planList[0]?.id || '';
+          let plan = null;
+          if (first) {
+            const data = await loadNamedTeamPlan(userId, teamId, first);
+            plan = data?.capSheet || data;
+            setSelectedPlan(first);
+          } else {
+            plan = await loadUserTeamPlan(userId, teamId);
+          }
+          if (plan) setTeamCapSheet(plan);
         }
+
         const loadedFA = await loadFreeAgents();
         if (base) setBaselineCapSheet(base);
-        if (plan) setTeamCapSheet(plan);
-        else if (base) setTeamCapSheet(JSON.parse(JSON.stringify(base)));
-        else console.warn('No saved team found, using blank slate.');
-        // if (loadedFA.length > 0) setFreeAgents(loadedFA);
+        if (!userId || !teamCapSheet) {
+          // If no userId or no plan loaded, use baseline
+          if (base) setTeamCapSheet(JSON.parse(JSON.stringify(base)));
+          else console.warn('No saved team found, using blank slate.');
+        }
       } catch (err) {
         console.error(err);
         setError('Error loading team data');
@@ -267,8 +280,12 @@ const GMDashboard = () => {
         setIsLoading(false);
       }
     };
-    fetchData();
-  }, [teamId]);
+
+    // Wait for auth to finish loading before fetching data
+    if (!authLoading) {
+      fetchData();
+    }
+  }, [teamId, userId, authLoading]);
 
   useEffect(() => {
     if (!teamCapSheet) return;
@@ -313,127 +330,148 @@ const GMDashboard = () => {
   useEffect(() => {
     if (!players || players.length === 0) return;
 
-    const upcomingFreeAgents = players.filter((p) => {
-      // 0. Filter out invalid players (only if no ID is present)
-      if ((!p.name || p.name === 'Unknown') && !p.id && !p.player_id) return false;
+    const upcomingFreeAgents = players
+      .filter((p) => {
+        // 0. Filter out invalid players (only if no ID is present)
+        if ((!p.name || p.name === 'Unknown') && !p.id && !p.player_id)
+          return false;
 
-      // 1. Check if player has NO contract or empty salaries
-      if (!p.contract || !p.contract.salariesByYear || p.contract.salariesByYear.length === 0) {
-        return true; // Current Free Agent
-      }
+        // 1. Check if player has NO contract or empty salaries
+        if (
+          !p.contract ||
+          !p.contract.salariesByYear ||
+          p.contract.salariesByYear.length === 0
+        ) {
+          return true; // Current Free Agent
+        }
 
-      // 2. Find the last year of the contract
-      const sortedYears = [...p.contract.salariesByYear].sort((a, b) => {
-        const ya = toEndYear(a.season);
-        const yb = toEndYear(b.season);
-        return (ya || 0) - (yb || 0);
-      });
-
-      const lastYearEntry = sortedYears[sortedYears.length - 1];
-      if (!lastYearEntry) return true; // Should have been caught above, but safe fallback
-
-      // Parse the end year
-      const endYear = toEndYear(lastYearEntry.season);
-      if (!endYear) return true; // Invalid year data, treat as FA
-
-      // 3. Check if it expires in the current view year OR has an option for the next year
-      // (If currentYear is 2026, we want players whose contracts end in 2026)
-      // (OR players whose contracts end in 2027 but have an option for that 2027 season)
-      
-      // Also include players whose contracts expired BEFORE the current year
-      const isExpired = endYear < currentYear;
-      const isExpiring = endYear === currentYear;
-      
-      // Check for option in the last year entry
-      // Some data sources might use 'option' or 'optionType'
-      const optionVal = lastYearEntry.option || lastYearEntry.optionType;
-      const isPlayerOption = optionVal === 'Player Option' || optionVal === 'Player' || optionVal === 'PO';
-      const isTeamOption = optionVal === 'Team Option' || optionVal === 'Team' || optionVal === 'TO';
-      
-      const hasOptionNextYear = endYear === currentYear + 1 && (isPlayerOption || isTeamOption);
-
-      if (!isExpired && !isExpiring && !hasOptionNextYear) return false;
-
-      return true;
-    }).map(p => {
-      // Determine FA Type
-      let faType = 'UFA';
-      let previousSalary = 0;
-      let birdRights = 'None';
-      
-      if (p.contract && p.contract.salariesByYear && p.contract.salariesByYear.length > 0) {
+        // 2. Find the last year of the contract
         const sortedYears = [...p.contract.salariesByYear].sort((a, b) => {
+          const ya = toEndYear(a.season);
+          const yb = toEndYear(b.season);
+          return (ya || 0) - (yb || 0);
+        });
+
+        const lastYearEntry = sortedYears[sortedYears.length - 1];
+        if (!lastYearEntry) return true; // Should have been caught above, but safe fallback
+
+        // Parse the end year
+        const endYear = toEndYear(lastYearEntry.season);
+        if (!endYear) return true; // Invalid year data, treat as FA
+
+        // 3. Check if it expires in the current view year OR has an option for the next year
+        // (If currentYear is 2026, we want players whose contracts end in 2026)
+        // (OR players whose contracts end in 2027 but have an option for that 2027 season)
+
+        // Also include players whose contracts expired BEFORE the current year
+        const isExpired = endYear < currentYear;
+        const isExpiring = endYear === currentYear;
+
+        // Check for option in the last year entry
+        // Some data sources might use 'option' or 'optionType'
+        const optionVal = lastYearEntry.option || lastYearEntry.optionType;
+        const isPlayerOption =
+          optionVal === 'Player Option' ||
+          optionVal === 'Player' ||
+          optionVal === 'PO';
+        const isTeamOption =
+          optionVal === 'Team Option' ||
+          optionVal === 'Team' ||
+          optionVal === 'TO';
+
+        const hasOptionNextYear =
+          endYear === currentYear + 1 && (isPlayerOption || isTeamOption);
+
+        if (!isExpired && !isExpiring && !hasOptionNextYear) return false;
+
+        return true;
+      })
+      .map((p) => {
+        // Determine FA Type
+        let faType = 'UFA';
+        let previousSalary = 0;
+        let birdRights = 'None';
+
+        if (
+          p.contract &&
+          p.contract.salariesByYear &&
+          p.contract.salariesByYear.length > 0
+        ) {
+          const sortedYears = [...p.contract.salariesByYear].sort((a, b) => {
             const ya = toEndYear(a.season);
             const yb = toEndYear(b.season);
             return (ya || 0) - (yb || 0);
-        });
-        const lastYearEntry = sortedYears[sortedYears.length - 1];
-        previousSalary = lastYearEntry.salary || 0;
-        birdRights = p.contract.birdRights?.status || 'None';
-        
-        const optionVal = lastYearEntry.option || lastYearEntry.optionType;
-        if (optionVal === 'Player Option' || optionVal === 'Player' || optionVal === 'PO') faType = 'PO';
-        else if (optionVal === 'Team Option' || optionVal === 'Team' || optionVal === 'TO') faType = 'TO';
-        else if (p.contract.birdRights?.status === 'Restricted') faType = 'RFA';
-      }
+          });
+          const lastYearEntry = sortedYears[sortedYears.length - 1];
+          previousSalary = lastYearEntry.salary || 0;
+          birdRights = p.contract.birdRights?.status || 'None';
 
-      // Fix "Player Not Found" names
-      let fixedName = p.name;
-      if ((!fixedName || fixedName === 'Player Not Found' || fixedName === 'Unknown') && (p.id || p.player_id)) {
-         const id = p.id || p.player_id;
-         
-         // Known hyphenated names map
-         const hyphenatedNames = {
-             'dorian_finney_smith': 'Dorian Finney-Smith',
-             'shai_gilgeous_alexander': 'Shai Gilgeous-Alexander',
-             'kentavious_caldwell_pope': 'Kentavious Caldwell-Pope',
-             'talen_horton_tucker': 'Talen Horton-Tucker',
-             'keita_bates_diop': 'Keita Bates-Diop',
-             'nickeil_alexander_walker': 'Nickeil Alexander-Walker',
-             'michael_carter_williams': 'Michael Carter-Williams',
-             'karl_anthony_towns': 'Karl-Anthony Towns',
-             'willie_cauley_stein': 'Willie Cauley-Stein',
-             'rondae_hollis_jefferson': 'Rondae Hollis-Jefferson'
-         };
+          const optionVal = lastYearEntry.option || lastYearEntry.optionType;
+          if (
+            optionVal === 'Player Option' ||
+            optionVal === 'Player' ||
+            optionVal === 'PO'
+          )
+            faType = 'PO';
+          else if (
+            optionVal === 'Team Option' ||
+            optionVal === 'Team' ||
+            optionVal === 'TO'
+          )
+            faType = 'TO';
+          else if (p.contract.birdRights?.status === 'Restricted')
+            faType = 'RFA';
+        }
 
-         if (hyphenatedNames[id]) {
-             fixedName = hyphenatedNames[id];
-         } else {
-             // Convert snake_case to Title Case (e.g. dorian_finney_smith -> Dorian Finney Smith)
-             fixedName = id.split('_')
-                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                .join(' ');
-         }
-      }
+        // Fix "Player Not Found" names
+        let fixedName = p.name;
+        if (
+          (!fixedName ||
+            fixedName === 'Player Not Found' ||
+            fixedName === 'Unknown') &&
+          (p.id || p.player_id)
+        ) {
+          const id = p.id || p.player_id;
 
-      return {
-        ...p,
-        name: fixedName,
-        previousSalary,
-        birdRights,
-        freeAgentType: faType,
-        // Ensure team info is preserved
-        teamCode: p.teamCode,
-        teamName: p.teamName,
-      };
-    });
+          // Known hyphenated names map
+          const hyphenatedNames = {
+            dorian_finney_smith: 'Dorian Finney-Smith',
+            shai_gilgeous_alexander: 'Shai Gilgeous-Alexander',
+            kentavious_caldwell_pope: 'Kentavious Caldwell-Pope',
+            talen_horton_tucker: 'Talen Horton-Tucker',
+            keita_bates_diop: 'Keita Bates-Diop',
+            nickeil_alexander_walker: 'Nickeil Alexander-Walker',
+            michael_carter_williams: 'Michael Carter-Williams',
+            karl_anthony_towns: 'Karl-Anthony Towns',
+            willie_cauley_stein: 'Willie Cauley-Stein',
+            rondae_hollis_jefferson: 'Rondae Hollis-Jefferson',
+          };
+
+          if (hyphenatedNames[id]) {
+            fixedName = hyphenatedNames[id];
+          } else {
+            // Convert snake_case to Title Case (e.g. dorian_finney_smith -> Dorian Finney Smith)
+            fixedName = id
+              .split('_')
+              .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(' ');
+          }
+        }
+
+        return {
+          ...p,
+          name: fixedName,
+          previousSalary,
+          birdRights,
+          freeAgentType: faType,
+          // Ensure team info is preserved
+          teamCode: p.teamCode,
+          teamName: p.teamName,
+        };
+      });
 
     setFreeAgents(upcomingFreeAgents);
   }, [players, currentYear]);
-
-  /*
-  useEffect(() => {
-    if (freeAgents.length === 0) return;
-    const saveAgents = async () => {
-      try {
-        await saveFreeAgents(freeAgents);
-      } catch (err) {
-        console.error('Failed to save free agents', err);
-      }
-    };
-    saveAgents();
-  }, [freeAgents]);
-  */
 
   useEffect(() => {
     const loadPlan = async () => {
@@ -445,7 +483,8 @@ const GMDashboard = () => {
             setTeamCapSheet(JSON.parse(JSON.stringify(baselineCapSheet)));
           return;
         }
-        if (selectedPlan) {
+        // Only load named plans if userId is available
+        if (userId && selectedPlan) {
           const data = await loadNamedTeamPlan(userId, teamId, selectedPlan);
           if (data?.capSheet) setTeamCapSheet(data.capSheet);
         } else if (baselineCapSheet) {
@@ -458,8 +497,11 @@ const GMDashboard = () => {
         setIsLoading(false);
       }
     };
-    loadPlan();
-  }, [viewMode, selectedPlan, baselineCapSheet, teamId, userId]);
+    // Wait for auth to finish loading before loading plan
+    if (!authLoading) {
+      loadPlan();
+    }
+  }, [viewMode, selectedPlan, baselineCapSheet, teamId, userId, authLoading]);
 
   const applyTradeToCapSheet = async (tradeData) => {
     if (!tradeData || !Array.isArray(tradeData)) return;
@@ -475,15 +517,6 @@ const GMDashboard = () => {
 
     const incoming = targetTrade.incoming || [];
     const outgoing = targetTrade.outgoing || [];
-
-    console.log(
-      '🔍 OUTGOING:',
-      outgoing.map((p) => p.name)
-    );
-    console.log(
-      '📄 ACTIVE BEFORE FILTER:',
-      updated.activeContracts.map((c) => c.name)
-    );
 
     const normalize = (str = '') => str.toLowerCase().replace(/[^a-z0-9]/g, '');
     const isSamePlayer = (a, b) => {
@@ -683,19 +716,19 @@ const GMDashboard = () => {
       handleRenounceRights(player);
       return;
     }
-    
+
     setSelectedPlayer(player);
     setTargetYear(year); // Store which year was clicked
     setSelectedRulesYear(year || currentYear);
-    
+
     // Determine action context based on what was clicked
     const contextMap = {
-      'po': 'option',
-      'to': 'option',
-      'ufa': 'freeAgent',
-      'rfa': 'freeAgent',
+      po: 'option',
+      to: 'option',
+      ufa: 'freeAgent',
+      rfa: 'freeAgent',
     };
-    
+
     setInitialAction(null); // No pre-selection - user picks
     setActionContext(contextMap[actionType] || null);
     setShowContractModal(true);
@@ -712,8 +745,10 @@ const GMDashboard = () => {
   };
 
   const handleWaiveContract = (player, { stretch, buyout }) => {
-    const confirmMsg = stretch ? "Waive and stretch this player?" : "Waive this player?";
-    if(!window.confirm(confirmMsg)) return;
+    const confirmMsg = stretch
+      ? 'Waive and stretch this player?'
+      : 'Waive this player?';
+    if (!window.confirm(confirmMsg)) return;
 
     capSheetState.waivePlayer(player, { stretch, buyout });
     setShowContractModal(false);
@@ -725,7 +760,11 @@ const GMDashboard = () => {
   };
 
   const handleRenounceRights = (player) => {
-    if (window.confirm(`Are you sure you want to renounce rights to ${player.displayName || player.name}? This will clear their cap hold.`)) {
+    if (
+      window.confirm(
+        `Are you sure you want to renounce rights to ${player.displayName || player.name}? This will clear their cap hold.`
+      )
+    ) {
       capSheetState.renounceRights(player);
     }
   };
@@ -757,7 +796,7 @@ const GMDashboard = () => {
     setOffseasonSummary(null);
   };
 
-  if (isLoading) return <p>Loading GM Dashboard...</p>;
+  if (authLoading || isLoading) return <p>Loading GM Dashboard...</p>;
   if (!teamCapSheet) return <p>No team data</p>;
 
   return (
@@ -783,18 +822,20 @@ const GMDashboard = () => {
             </select>
           </label>
 
-          {/* View mode */}
-          <select
-            value={viewMode}
-            onChange={(e) => setViewMode(e.target.value)}
-            className="bg-[#1a1a1a] text-white text-sm px-2 py-1 rounded border border-white/10"
-          >
-            <option value="plan">Plan</option>
-            <option value="baseline">Baseline</option>
-          </select>
+          {/* View mode - only show plan option if userId is available */}
+          {userId && (
+            <select
+              value={viewMode}
+              onChange={(e) => setViewMode(e.target.value)}
+              className="bg-[#1a1a1a] text-white text-sm px-2 py-1 rounded border border-white/10"
+            >
+              <option value="plan">Plan</option>
+              <option value="baseline">Baseline</option>
+            </select>
+          )}
 
-          {/* Plan picker */}
-          {viewMode === 'plan' && (
+          {/* Plan picker - only show if userId is available and in plan mode */}
+          {userId && viewMode === 'plan' && (
             <select
               value={selectedPlan}
               onChange={(e) => setSelectedPlan(e.target.value)}
@@ -812,9 +853,11 @@ const GMDashboard = () => {
           {capSheetState.hasChanges && (
             <div className="flex items-center gap-2 ml-2 pl-2 border-l border-white/10">
               <span className="text-xs text-white/50">
-                {capSheetState.actionHistory.length} change{capSheetState.actionHistory.length !== 1 ? 's' : ''}
+                {capSheetState.actionHistory.length} change
+                {capSheetState.actionHistory.length !== 1 ? 's' : ''}
               </span>
               <button
+                type="button"
                 onClick={capSheetState.undo}
                 disabled={!capSheetState.canUndo}
                 className="px-2 py-1 text-xs font-medium rounded bg-orange-600/20 text-orange-400 hover:bg-orange-600/30 border border-orange-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
@@ -823,6 +866,7 @@ const GMDashboard = () => {
                 ↩ Undo
               </button>
               <button
+                type="button"
                 onClick={capSheetState.reset}
                 className="px-2 py-1 text-xs font-medium rounded bg-red-600/20 text-red-400 hover:bg-red-600/30 border border-red-500/30 transition-all"
                 title="Reset all changes"
@@ -911,34 +955,24 @@ const GMDashboard = () => {
 
       <div className="tab-content space-y-6">
         {activeTab === 'roster' && (
-          <RosterVisual
+          <RosterSection
             teamCapSheet={capSheetState.modifiedCapSheet}
             playersMap={playersMap}
             teamId={teamId}
           />
         )}
-        {/* Keep your other tab renders as-is */}
 
-        {activeTab === 'cap' &&
-          (teamCapSheet?.players ? (
-            <>
-              <CapSheet
-                teamCapSheet={capSheetState.modifiedCapSheet}
-                currentYear={currentYear}
-                onSelectPlayer={handleEditContract}
-                playersMap={playersMap}
-              />
-              <ExceptionTracker
-                teamCapSheet={capSheetState.modifiedCapSheet}
-                currentYear={currentYear}
-              />
-            </>
-          ) : (
-            <div className="text-white/80 mt-4">Loading cap sheet...</div>
-          ))}
+        {activeTab === 'cap' && (
+          <CapSheetSection
+            teamCapSheet={capSheetState.modifiedCapSheet}
+            currentYear={currentYear}
+            onSelectPlayer={handleEditContract}
+            playersMap={playersMap}
+          />
+        )}
 
         {activeTab === 'capfull' && (
-          <CapSheetFull
+          <CapTableSection
             teamCapSheet={capSheetState.modifiedCapSheet}
             currentYear={currentYear}
             onSelectPlayer={handleEditContract}
@@ -949,7 +983,7 @@ const GMDashboard = () => {
         )}
 
         {activeTab === 'trade' && (
-          <TradeEditor
+          <TradeSection
             primaryTeam={teamId}
             capProjections={capProjections}
             currentYear={currentYear}
@@ -961,9 +995,9 @@ const GMDashboard = () => {
         )}
 
         {activeTab === 'fa' && (
-          <FreeAgentPool
+          <FreeAgencySection
             freeAgents={freeAgents}
-            teamCapSheet={teamCapSheet}
+            teamCapSheet={capSheetState.modifiedCapSheet}
             capProjections={capProjections}
             currentYear={currentYear}
             onSign={handleSign}
@@ -972,8 +1006,8 @@ const GMDashboard = () => {
         )}
 
         {activeTab === 'offseason' && (
-          <OffseasonTab
-            teamCapSheet={teamCapSheet}
+          <OffseasonSection
+            teamCapSheet={capSheetState.modifiedCapSheet}
             setTeamCapSheet={setTeamCapSheet}
             currentYear={currentYear}
             setCurrentYear={setCurrentYear}
@@ -987,7 +1021,7 @@ const GMDashboard = () => {
         )}
 
         {activeTab === 'history' && (
-          <TeamHistoryTab teamCapSheet={teamCapSheet} />
+          <HistorySection teamCapSheet={teamCapSheet} />
         )}
       </div>
 
@@ -1109,7 +1143,7 @@ const GMDashboard = () => {
         />
       )}
 
-      {viewMode === 'plan' && (
+      {userId && viewMode === 'plan' && (
         <div className="fixed bottom-6 right-6 z-50">
           <button
             onClick={() => setShowSaveModal(true)}
