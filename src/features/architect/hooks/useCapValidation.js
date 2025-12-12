@@ -6,6 +6,7 @@
  * HISTORY:
  *  - 2025-12-10: Added PlayerRulesProfile-aware extension checks (chunk_01).
  *  - 2025-12-10: Added rules profile gating for FA/QO validation (chunk_02).
+ *  - 2025-12-12: Unified on rulesProfile, removed legacy extensionRules fallback.
  *
  * LINKS:
  *  - Plan: plans/_archive/player-rules-architect/plan.md
@@ -16,14 +17,14 @@
  *
  * Provides real-time CBA validation for contract actions.
  * Returns warnings (advisory) and errors (blocking on confirm).
+ *
+ * NOTE: This hook now requires rulesProfile for extension validation.
+ * If rulesProfile is not provided, extension validation is skipped with
+ * an info warning. This ensures consistent behavior via the Salary Engine.
  */
 import { useMemo } from 'react';
 import capProjections from '@/features/architect/utils/capProjections';
 import { getContractYearSlice } from '@/features/architect/utils/contractUtils';
-import {
-  getExtensionEligibilityReason,
-  getExtensionMaxDetails,
-} from '@/features/architect/utils/extensionRules';
 
 export const buildSigningGuardrails = (
   rulesProfile = null,
@@ -319,42 +320,13 @@ export function useCapValidation({
           }
         }
       } else {
-        const eligibilityReason = getExtensionEligibilityReason(
-          player,
-          currentYear
-        );
-
-        if (eligibilityReason !== 'Eligible') {
-          errors.push({
-            severity: 'error',
-            message: eligibilityReason,
-          });
-        } else {
-          const extMax = getExtensionMaxDetails(player, capSettings);
-          const proposedFirstYear = contractData.salaries?.[0] || 0;
-
-          if (extMax && proposedFirstYear > extMax.maxFirstYearSalary) {
-            errors.push({
-              severity: 'error',
-              message: `Exceeds max first year salary ($${(extMax.maxFirstYearSalary / 1000000).toFixed(2)}M)`,
-            });
-          }
-
-          if (extMax && contractData.years > extMax.maxYears) {
-            errors.push({
-              severity: 'error',
-              message: `Exceeds max years (${extMax.maxYears} years)`,
-            });
-          }
-
-          // Advisory: extension type info
-          if (extMax) {
-            warnings.push({
-              severity: 'info',
-              message: `${extMax.type}: Max ${extMax.maxYears}yr @ $${(extMax.maxFirstYearSalary / 1000000).toFixed(1)}M`,
-            });
-          }
-        }
+        // rulesProfile not provided - skip extension validation with info message
+        // This ensures we don't use deprecated legacy functions
+        // Callers should provide rulesProfile for complete validation
+        warnings.push({
+          severity: 'info',
+          message: 'Extension validation skipped: rulesProfile not provided',
+        });
       }
     }
 

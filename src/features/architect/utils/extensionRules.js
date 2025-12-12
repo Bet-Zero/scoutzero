@@ -1,5 +1,19 @@
 // src/utils/architect/extensionRules.js
 
+/**
+ * @deprecated This module is deprecated in favor of the Salary Engine.
+ * Use `@/features/architect/utils/salaryEngine` instead.
+ *
+ * Migration:
+ * - `isExtensionEligible(player, year)` → `getExtensionProfile(ctx).eligibility.isEligible`
+ * - `getExtensionEligibilityReason(player, year)` → `getExtensionProfile(ctx).eligibility.reason`
+ * - `getExtensionMaxDetails(player, caps)` → `getExtensionProfile(ctx).terms`
+ *
+ * The Salary Engine provides consistent timing and cap handling via RuleContext.
+ *
+ * @see src/features/architect/utils/salaryEngine/README.md for migration guide
+ */
+
 import {
   differenceInMonths,
   addYears,
@@ -14,12 +28,24 @@ const STANDARD_EXTENSION_PERCENT = 1.4;
 const TRADE_EXTENSION_PERCENT = 1.2;
 const OLD_TRADE_EXTENSION_PERCENT = 1.05;
 
-// -------------- Primary Exports --------------
+// -------------- Primary Exports (DEPRECATED) --------------
 
+/**
+ * @deprecated Use `getExtensionProfile(ctx).eligibility.isEligible` from salaryEngine instead.
+ * @param {Object} player - Player data object
+ * @param {number} currentYear - Current season end year
+ * @returns {boolean} Whether player is extension eligible
+ */
 export const isExtensionEligible = (player, currentYear) => {
   return getExtensionEligibilityReason(player, currentYear) === 'Eligible';
 };
 
+/**
+ * @deprecated Use `getExtensionProfile(ctx).eligibility.reason` from salaryEngine instead.
+ * @param {Object} player - Player data object
+ * @param {number} currentYear - Current season end year
+ * @returns {string} Eligibility reason or 'Eligible'
+ */
 export const getExtensionEligibilityReason = (player, currentYear) => {
   const now = new Date();
   // Use Architect contract shape (BasePlayerContractZ)
@@ -67,6 +93,11 @@ export const getExtensionEligibilityReason = (player, currentYear) => {
   return 'Eligible';
 };
 
+/**
+ * @deprecated Use `getExtensionProfile(ctx).eligibility.eligibleDate` from salaryEngine instead.
+ * @param {Object} player - Player data object
+ * @returns {Date|null} Date when extension becomes eligible
+ */
 export const getExtensionEligibilityDate = (player) => {
   const contract = player?.contract;
   if (!contract || !player?.signedDate) return null;
@@ -81,6 +112,12 @@ export const getExtensionEligibilityDate = (player) => {
   return null;
 };
 
+/**
+ * @deprecated Use `getExtensionProfile(ctx).terms` from salaryEngine instead.
+ * @param {Object} player - Player data object
+ * @param {Object} capSettings - Cap settings with cap, tax, etc.
+ * @returns {Object|null} Extension max details or null
+ */
 export const getExtensionMaxDetails = (player, capSettings) => {
   const contract = player?.contract;
   if (!contract) return null;

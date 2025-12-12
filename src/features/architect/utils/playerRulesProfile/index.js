@@ -14,8 +14,8 @@
 
 // Re-export all public functions from submodules
 export { computePlayerRulesProfile } from './computeProfile.js';
-export { computeExtensionEligibility, computeExtensionTerms } from './extensionRules.js';
-export { computeBirdRights, BIRD_RIGHTS_TYPES } from './birdRightsRules.js';
-export { computeMinimumSalary, getMinimumSalaryScale, getYearsOfService } from './minimumSalaryRules.js';
-export { computeRFAStatus, computeQualifyingOffer } from './rfaRules.js';
-export { computeMaxSalary, MAX_SALARY_TIERS } from './maxSalaryRules.js';
+export { computeExtensionEligibility, computeExtensionTerms, computeExtensionFromRuleContext, EXTENSION_TYPES } from './extensionRules.js';
+export { computeBirdRights, computeBirdRightsFromRuleContext, BIRD_RIGHTS_TYPES } from './birdRightsRules.js';
+export { computeMinimumSalary, computeMinimumSalaryFromRuleContext, getMinimumSalaryScale, getYearsOfService, getMinimumCapHit } from './minimumSalaryRules.js';
+export { computeRFAStatus, computeQualifyingOffer, computeRFAFromRuleContext, RFA_STATUS } from './rfaRules.js';
+export { computeMaxSalary, computeMaxSalaryFromRuleContext, MAX_SALARY_TIERS, checkSupermaxEligibility, getMaxSalaryTier } from './maxSalaryRules.js';

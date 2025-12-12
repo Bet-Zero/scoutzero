@@ -383,3 +383,57 @@ function formatCurrency(amount) {
   if (!amount) return '$0';
   return formatSalary(amount);
 }
+
+/**
+ * Compute Bird rights classification using RuleContext
+ *
+ * This variant extracts all necessary fields from RuleContext for
+ * consistent timing and cap data across the application.
+ *
+ * @param {Object} ctx - RuleContext object
+ * @param {Object} ctx.timing - Timing context
+ * @param {Object} ctx.player - Player context with birdTypeAtOperation, priorSeasonSalary
+ * @param {Object} ctx.cap - Cap context with salaryCap, averagePlayerSalary
+ * @returns {Object} Bird rights information
+ */
+export function computeBirdRightsFromRuleContext(ctx) {
+  // Validate required context
+  if (!ctx || !ctx.timing || !ctx.player || !ctx.cap) {
+    return buildBirdRightsInfo(BIRD_RIGHTS_TYPES.NONE, 0, {}, 0, DEFAULT_AVERAGE_SALARY);
+  }
+
+  const { player: playerCtx, cap } = ctx;
+
+  // Extract values from RuleContext
+  const salaryCap = cap.salaryCap || 0;
+  const averageSalary = cap.averagePlayerSalary || DEFAULT_AVERAGE_SALARY;
+
+  // Map birdTypeAtOperation to our constants
+  const birdTypeMap = {
+    'Full Bird': BIRD_RIGHTS_TYPES.FULL,
+    'Early Bird': BIRD_RIGHTS_TYPES.EARLY,
+    'Non-Bird': BIRD_RIGHTS_TYPES.NON_BIRD,
+    'None': BIRD_RIGHTS_TYPES.NONE,
+  };
+
+  const birdRightsType = birdTypeMap[playerCtx.birdTypeAtOperation] || BIRD_RIGHTS_TYPES.NONE;
+
+  // Create a synthetic player object for buildBirdRightsInfo
+  // We need the prior salary for signing ability calculations
+  const syntheticPlayer = {
+    contract: {
+      salariesByYear: playerCtx.priorSeasonSalary
+        ? [{ season: ctx.timing.referenceSeasonId, salary: playerCtx.priorSeasonSalary }]
+        : [],
+    },
+  };
+
+  // Use years from context (contract tenure is encoded in birdType derivation)
+  // Full Bird = 3+, Early Bird = 2, Non-Bird = 1, None = 0
+  const yearsWithTeam = 
+    birdRightsType === BIRD_RIGHTS_TYPES.FULL ? 3 :
+    birdRightsType === BIRD_RIGHTS_TYPES.EARLY ? 2 :
+    birdRightsType === BIRD_RIGHTS_TYPES.NON_BIRD ? 1 : 0;
+
+  return buildBirdRightsInfo(birdRightsType, yearsWithTeam, syntheticPlayer, salaryCap, averageSalary);
+}

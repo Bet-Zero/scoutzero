@@ -373,3 +373,96 @@ function computeQOAcceptanceDeadline(currentYear) {
   // For 2024-25 season (currentYear = 2025), deadline is Oct 1, 2024
   return new Date(Date.UTC(currentYear - 1, 9, 1, 23, 59, 59)); // Oct 1, 11:59:59 PM UTC
 }
+
+/**
+ * Compute RFA status and qualifying offer from RuleContext
+ *
+ * This variant extracts all necessary fields from RuleContext for
+ * consistent timing and cap data across the application.
+ *
+ * @param {Object} ctx - RuleContext object
+ * @param {Object} ctx.timing - Timing context with operationSeasonId, operationDate
+ * @param {Object} ctx.player - Player context with yearsOfServiceAtOperation, isRookieScale, etc.
+ * @param {Object} ctx.cap - Cap context with salaryCap
+ * @returns {Object} RFA status and qualifying offer information
+ */
+export function computeRFAFromRuleContext(ctx) {
+  // Validate required context
+  if (!ctx || !ctx.timing || !ctx.player || !ctx.cap) {
+    return {
+      isRFA: false,
+      qualifyingOfferEligible: false,
+      reason: 'Cannot compute RFA status: invalid or missing RuleContext',
+      status: RFA_STATUS.UNKNOWN,
+    };
+  }
+
+  const { timing, player: playerCtx, cap } = ctx;
+
+  // Parse the operation season to derive currentYear
+  const parseSeasonYear = (seasonId) => {
+    if (!seasonId) return null;
+    const match = String(seasonId).match(/^(\d{4})-(\d{2})$/);
+    if (match) {
+      return 2000 + parseInt(match[2], 10);
+    }
+    return null;
+  };
+
+  const currentYear = parseSeasonYear(timing.operationSeasonId) || new Date().getFullYear();
+
+  // Build a synthetic player object from RuleContext
+  const syntheticPlayer = {
+    playerId: playerCtx.playerId,
+    bio: {
+      experience: playerCtx.yearsOfServiceAtOperation ?? 0,
+      draftYear: playerCtx.draftInfo?.year ?? null,
+      draftPick: playerCtx.draftInfo?.pick ?? null,
+    },
+    yearsOfService: playerCtx.yearsOfServiceAtOperation ?? 0,
+    draftYear: playerCtx.draftInfo?.year ?? null,
+    contract: playerCtx.contractEndSeasonId
+      ? {
+          contractType: playerCtx.isRookieScale ? 'Rookie Scale' : 'Standard',
+          isRookieScale: playerCtx.isRookieScale,
+          endSeason: playerCtx.contractEndSeasonId,
+          yearsRemaining: 1, // Assume expiring for RFA context
+          salariesByYear: playerCtx.priorSeasonSalary
+            ? [{ season: timing.referenceSeasonId, salary: playerCtx.priorSeasonSalary }]
+            : playerCtx.currentSeasonSalary
+              ? [{ season: timing.operationSeasonId, salary: playerCtx.currentSeasonSalary }]
+              : [],
+          birdRights: {
+            status: playerCtx.birdTypeAtOperation,
+          },
+          freeAgency: {
+            year: currentYear,
+          },
+        }
+      : null,
+  };
+
+  // Build leagueContext from RuleContext
+  const leagueContext = {
+    currentSeason: timing.operationSeasonId,
+    currentYear,
+    simulationDate: timing.operationDate || new Date(),
+    capSettings: {
+      salaryCap: cap.salaryCap,
+    },
+  };
+
+  // Use the existing functions with the synthetic inputs
+  const rfaStatus = computeRFAStatus(syntheticPlayer, leagueContext);
+
+  // If RFA-eligible, also compute QO details
+  if (rfaStatus.isRFA && rfaStatus.qualifyingOfferEligible) {
+    const qoInfo = computeQualifyingOffer(syntheticPlayer, leagueContext);
+    return {
+      ...rfaStatus,
+      ...qoInfo,
+    };
+  }
+
+  return rfaStatus;
+}

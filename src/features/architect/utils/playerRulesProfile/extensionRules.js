@@ -551,3 +551,96 @@ function getMonthsBetween(startDate, endDate) {
     (endDate.getMonth() - startDate.getMonth());
   return Math.max(0, months);
 }
+
+/**
+ * Compute extension eligibility and terms from RuleContext
+ *
+ * This variant extracts all necessary fields from RuleContext for
+ * consistent timing and cap data across the application.
+ *
+ * @param {Object} ctx - RuleContext object
+ * @param {Object} ctx.timing - Timing context with operationDate, operationSeasonId
+ * @param {Object} ctx.player - Player context with playerId, isRookieScale, draftInfo, etc.
+ * @param {Object} ctx.cap - Cap context with salaryCap
+ * @returns {Object} Extension profile with eligibility and terms
+ */
+export function computeExtensionFromRuleContext(ctx) {
+  // Validate required context
+  if (!ctx || !ctx.timing || !ctx.player || !ctx.cap) {
+    return {
+      eligibility: {
+        isEligible: false,
+        reason: 'Cannot compute extension: invalid or missing RuleContext',
+        blockers: ['Missing context'],
+        extensionType: EXTENSION_TYPES.INELIGIBLE,
+      },
+      terms: null,
+    };
+  }
+
+  const { timing, player: playerCtx, cap } = ctx;
+
+  // Parse the operation season to derive currentYear
+  const parseSeasonYear = (seasonId) => {
+    if (!seasonId) return null;
+    const match = String(seasonId).match(/^(\d{4})-(\d{2})$/);
+    if (match) {
+      return 2000 + parseInt(match[2], 10);
+    }
+    return null;
+  };
+
+  const currentYear = parseSeasonYear(timing.operationSeasonId) || new Date().getFullYear();
+
+  // Build a synthetic player object from RuleContext
+  const syntheticPlayer = {
+    playerId: playerCtx.playerId,
+    bio: {
+      draftYear: playerCtx.draftInfo?.year ?? null,
+      experience: playerCtx.yearsOfServiceAtOperation ?? 0,
+    },
+    draftYear: playerCtx.draftInfo?.year ?? null,
+    contract: {
+      contractType: playerCtx.isRookieScale ? 'Rookie Scale' : 'Standard',
+      isRookieScale: playerCtx.isRookieScale,
+      endSeason: playerCtx.contractEndSeasonId,
+      // Estimate contract length and years remaining from context
+      // If we have contractEndSeasonId, we can derive some info
+      contractLength: 4, // Default assumption
+      yearsRemaining: playerCtx.contractEndSeasonId ? 1 : 0,
+      salariesByYear: playerCtx.priorSeasonSalary
+        ? [{ season: timing.referenceSeasonId, salary: playerCtx.priorSeasonSalary }]
+        : playerCtx.currentSeasonSalary
+          ? [{ season: timing.operationSeasonId, salary: playerCtx.currentSeasonSalary }]
+          : [],
+      birdRights: {
+        status: playerCtx.birdTypeAtOperation,
+        yearsWithTeam: 0, // Not directly available from PlayerContext
+      },
+    },
+    // Copy awards if present (for supermax check)
+    awards: [],
+  };
+
+  // Build leagueContext from RuleContext
+  const leagueContext = {
+    currentSeason: timing.operationSeasonId,
+    currentYear,
+    simulationDate: timing.operationDate || new Date(),
+    capSettings: {
+      salaryCap: cap.salaryCap,
+      averageSalary: cap.averagePlayerSalary,
+    },
+  };
+
+  // Use the existing functions with the synthetic inputs
+  const eligibility = computeExtensionEligibility(syntheticPlayer, leagueContext);
+  const terms = eligibility.isEligible
+    ? computeExtensionTerms(syntheticPlayer, leagueContext, eligibility)
+    : null;
+
+  return {
+    eligibility,
+    terms,
+  };
+}
