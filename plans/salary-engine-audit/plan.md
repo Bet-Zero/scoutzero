@@ -305,12 +305,13 @@ export const getMinSalaryProfile = computeMinimumSalaryFromRuleContext;
 
 1. **For `utils/extensionRules.js` callers:**
    - Replace `isExtensionEligible(player, year)` with `computePlayerRulesProfile(player, {}, leagueContext).extensionEligibility.isEligible`
+   - Replace `getExtensionEligibilityReason(player, year)` with `computePlayerRulesProfile(player, {}, leagueContext).extensionEligibility.reason`
    - Replace `getExtensionMaxDetails(player, capSettings)` with `computePlayerRulesProfile(player, {}, leagueContext).extensionTerms`
 
 2. **For `useCapValidation.js`:**
    - Remove fallback to `getExtensionEligibilityReason()` when `rulesProfile` is missing
-   - Always require `rulesProfile` parameter OR gracefully return empty validation when missing
-   - Fallback behavior: If `rulesProfile` is null/undefined, return `{ warnings: [], errors: [], isValid: true }` with a console warning
+   - Always require `rulesProfile` parameter OR gracefully skip validation when missing
+   - Fallback behavior: If `rulesProfile` is null/undefined, return `{ warnings: [{ severity: 'info', message: 'Validation skipped: rulesProfile not provided' }], errors: [], isValid: true, incomplete: true }` with a console warning
 
 3. **For `contractUtils.js` hard-coded scales:**
    - Migration will be **atomic** (single commit) since the function internals change but signature stays the same
@@ -323,12 +324,12 @@ export const getMinSalaryProfile = computeMinimumSalaryFromRuleContext;
 |-------|---------------------|
 | Phase 1 | **No new tests** - purely re-exports, existing tests cover underlying functions |
 | Phase 2 | **Unit tests for each `*FromRuleContext` variant**: `birdRightsRules.test.js` (add `computeBirdRightsFromRuleContext` tests), `extensionRules.test.js` (add `computeExtensionFromRuleContext` tests), `rfaRules.test.js` (add `computeRFAFromRuleContext` tests) |
-| Phase 3 | **Update `useCapValidation.test.js`**: Assert rulesProfile-only behavior, test fallback when rulesProfile is null/undefined returns empty validation, remove tests for legacy code paths |
+| Phase 3 | **Update `useCapValidation.test.js`**: Assert rulesProfile-only behavior, test fallback when rulesProfile is null/undefined returns incomplete validation state, remove tests for legacy code paths |
 | Phase 4 | **Integration tests**: Add `salaryEngine.integration.test.ts` testing full `getSalaryProfile()` flow with mock player data |
 
 **Test Assertions for Phase 3 (`useCapValidation`):**
 - When `rulesProfile` provided: validation uses profile values exclusively
-- When `rulesProfile` missing: returns `{ warnings: [], errors: [], isValid: true }` (no blocking validation)
+- When `rulesProfile` missing: returns `{ warnings: [...], errors: [], isValid: true, incomplete: true }` (validation skipped, not blocking, but flagged as incomplete)
 - No calls to legacy `getExtensionEligibilityReason()` in any code path
 
 ### Phase 4: Tests & Documentation
