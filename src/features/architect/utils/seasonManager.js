@@ -4,7 +4,7 @@
  * Handles season advancement logic: contract expirations, options, empty roster charges,
  * draft pick updates, and cap hold processing.
  * 
- * @file src/utils/architect/seasonManager.js
+ * @file src/features/architect/utils/seasonManager.js
  * @module seasonManager
  */
 
@@ -28,7 +28,12 @@ export async function advanceSeason(worldId, targetSeason = null) {
 
   // Get current world metadata
   const worldMeta = await getWorldMetadata(worldId);
-  const currentSeason = worldMeta.currentSeason || '2025-26';
+  
+  // Require currentSeason from world metadata - no hard-coded fallback
+  const currentSeason = worldMeta.currentSeason;
+  if (!currentSeason) {
+    throw new Error('World metadata missing currentSeason');
+  }
 
   // Determine target season
   let nextSeason = targetSeason;

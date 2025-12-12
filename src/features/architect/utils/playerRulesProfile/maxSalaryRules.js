@@ -15,6 +15,7 @@
 import { getYearsOfService } from './minimumSalaryRules.js';
 import { parseSeasonEndYear } from '../seasonUtils.js';
 import { getLastSalary } from '../contractUtils.js';
+import { parseSeasonId } from '../seasonHelpers';
 
 /**
  * Max salary tier definitions
@@ -40,19 +41,41 @@ export const SUPERMAX_QUALIFYING_AWARDS = [
 /**
  * Compute maximum salary for a new contract
  *
- * @param {Object} player - Player data object
- * @param {Object} player.bio - Player bio information
- * @param {Array} [player.awards] - Player awards history
- * @param {Object} leagueContext - League context
- * @param {Object} leagueContext.capSettings - Cap settings
- * @param {number} leagueContext.capSettings.salaryCap - Salary cap amount
- * @param {number} leagueContext.currentYear - Current season end year
+ * Supports two calling conventions:
+ * 1. Legacy: computeMaxSalary(player, leagueContext) - for backward compatibility
+ * 2. RuleContext: computeMaxSalary(ruleContext) - pass a RuleContext object as the only argument
+ *
+ * When a RuleContext is passed as the first argument (detected by presence of timing, cap, player properties),
+ * the function delegates to computeMaxSalaryFromRuleContext.
+ *
+ * @param {Object} playerOrContext - Player data object OR a RuleContext object
+ * @param {Object} [leagueContext] - League context (only used for legacy path)
  * @returns {Object} Max salary information
  */
-export function computeMaxSalary(player, leagueContext) {
+export function computeMaxSalary(playerOrContext, leagueContext) {
+  // Detect if we're being called with a RuleContext (single argument with timing/cap/player props)
+  if (playerOrContext && playerOrContext.timing && playerOrContext.cap && playerOrContext.player) {
+    return computeMaxSalaryFromRuleContext(playerOrContext);
+  }
+
+  // Legacy path: (player, leagueContext) signature
+  const player = playerOrContext;
   const yearsOfService = getYearsOfService(player);
   const { capSettings = {} } = leagueContext || {};
-  const salaryCap = capSettings.salaryCap || 140_588_000; // 2024-25 default
+  
+  // Use cap from leagueContext if available, no hard-coded fallback
+  const salaryCap = capSettings.salaryCap;
+  if (!salaryCap) {
+    return {
+      maxSalary: 0,
+      maxSalaryBird: 0,
+      tier: 'Unknown',
+      yearsOfService,
+      supermaxEligible: false,
+      supermaxReason: 'Cannot determine max salary: salaryCap not provided',
+      reason: 'Cannot determine max salary: salaryCap not provided in leagueContext.capSettings',
+    };
+  }
 
   // Determine base tier
   const tier = getMaxSalaryTier(yearsOfService);
@@ -101,6 +124,110 @@ export function computeMaxSalary(player, leagueContext) {
       effectivePercent,
       supermaxEligibility
     ),
+  };
+}
+
+/**
+ * Compute maximum salary using RuleContext
+ * Uses timing, player, and cap context for accurate calculations
+ *
+ * @param {Object} ctx - RuleContext object
+ * @returns {Object} Max salary information
+ */
+export function computeMaxSalaryFromRuleContext(ctx) {
+  const { timing, player: playerCtx, cap } = ctx;
+
+  // Validate required cap data
+  if (!cap || typeof cap.salaryCap !== 'number' || !Number.isFinite(cap.salaryCap) || cap.salaryCap <= 0) {
+    return {
+      maxSalary: 0,
+      maxSalaryBird: 0,
+      tier: 'Unknown',
+      yearsOfService: playerCtx?.yearsOfServiceAtOperation ?? 0,
+      supermaxEligible: false,
+      supermaxReason: 'Cannot determine max salary: invalid or missing cap.salaryCap',
+      reason: 'Cannot determine max salary: salaryCap not provided or invalid in RuleContext.cap',
+    };
+  }
+
+  const yearsOfService = playerCtx?.yearsOfServiceAtOperation ?? 0;
+  const salaryCap = cap.salaryCap;
+
+  // Determine base tier
+  const tier = getMaxSalaryTier(yearsOfService);
+
+  // Check for supermax eligibility using RuleContext
+  const supermaxEligibility = checkSupermaxEligibilityFromContext(ctx);
+
+  // Apply supermax if eligible
+  let effectiveTier = tier;
+  let effectivePercent = tier.percent;
+
+  if (supermaxEligibility.isEligible) {
+    if (yearsOfService >= 7 && yearsOfService <= 9) {
+      effectivePercent = 0.35;
+      effectiveTier = {
+        ...MAX_SALARY_TIERS.TIER_35,
+        label: '35% (Designated Veteran)',
+      };
+    } else if (yearsOfService < 7) {
+      effectivePercent = 0.3;
+      effectiveTier = {
+        ...MAX_SALARY_TIERS.TIER_30,
+        label: '30% (Higher Max)',
+      };
+    }
+  }
+
+  const maxSalary = Math.round(salaryCap * effectivePercent);
+
+  // 105% of previous salary rule (for Bird Rights re-signing)
+  // Use priorSeasonSalary from context if available
+  const priorSalary = playerCtx.priorSeasonSalary ?? 0;
+  const maxSalaryBird = Math.max(maxSalary, Math.round(priorSalary * 1.05));
+
+  return {
+    maxSalary,
+    maxSalaryBird,
+    tier: effectiveTier.label,
+    yearsOfService,
+    supermaxEligible: supermaxEligibility.isEligible,
+    supermaxReason: supermaxEligibility.reason,
+    reason: buildMaxSalaryReason(
+      yearsOfService,
+      effectivePercent,
+      supermaxEligibility
+    ),
+  };
+}
+
+/**
+ * Check supermax eligibility from RuleContext
+ * @param {Object} ctx - RuleContext
+ * @returns {Object} Supermax eligibility info
+ */
+function checkSupermaxEligibilityFromContext(ctx) {
+  const { timing, player: playerCtx } = ctx;
+  const yearsOfService = playerCtx?.yearsOfServiceAtOperation ?? 0;
+
+  // Parse operation season to get the end year for award comparison
+  const parsed = parseSeasonId(timing?.operationSeasonId);
+  if (!parsed) {
+    return {
+      isEligible: false,
+      reason: 'Cannot determine supermax eligibility: invalid operationSeasonId',
+    };
+  }
+  const currentYear = parsed.endYear;
+
+  // TODO: When awards are added to RuleContext, compare against:
+  // - currentYear (most recent season)
+  // - currentYear - 1 (one season ago)
+  // - currentYear - 2 (two seasons ago)
+  // For now, return not eligible since award data is not available
+  return {
+    isEligible: false,
+    reason: `Supermax eligibility requires award data (checking years ${currentYear}, ${currentYear - 1}, ${currentYear - 2}) not available in RuleContext`,
   };
 }
 

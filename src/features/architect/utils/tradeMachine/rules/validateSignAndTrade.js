@@ -87,15 +87,20 @@ export function validateSignAndTrade(team, tradeCtx = {}) {
     const salaryOut = team.salaryOut || 0;
     const projectedSalary = teamTotalSalary + salaryIn - salaryOut;
     
-    // Get first apron from context
-    const currentYearKey = `${(tradeCtx.currentYear || 2025)-1}-${(tradeCtx.currentYear || 2025).toString().slice(-2)}`;
-    const yearSettings = tradeCtx.capProjections?.[currentYearKey] || {};
-    const firstApron = yearSettings.firstApron ||
-                      tradeCtx.capSettings?.firstApron || 
-                      178_132_000; // Default 2025 first apron
-    
-    if (projectedSalary > firstApron) {
-      violations.push(`Team would exceed hard-cap (first apron: ${firstApron.toLocaleString()}) after receiving sign-and-trade player`);
+    // Get first apron from context - require explicit year, no hard-coded default
+    const currentYear = tradeCtx.currentYear;
+    if (!currentYear) {
+      violations.push('Cannot validate sign-and-trade: currentYear not provided in trade context');
+    } else {
+      const currentYearKey = `${currentYear - 1}-${currentYear.toString().slice(-2)}`;
+      const yearSettings = tradeCtx.capProjections?.[currentYearKey] || {};
+      const firstApron = yearSettings.firstApron || tradeCtx.capSettings?.firstApron;
+      
+      if (!firstApron) {
+        violations.push('Cannot validate sign-and-trade hard cap: firstApron not available for season');
+      } else if (projectedSalary > firstApron) {
+        violations.push(`Team would exceed hard-cap (first apron: ${firstApron.toLocaleString()}) after receiving sign-and-trade player`);
+      }
     }
   }
 

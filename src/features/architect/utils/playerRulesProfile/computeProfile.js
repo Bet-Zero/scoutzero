@@ -31,18 +31,47 @@ import { computeRFAStatus } from '@/features/architect/utils/playerRulesProfile/
 import { computeMaxSalary } from '@/features/architect/utils/playerRulesProfile/maxSalaryRules.js';
 import { parseSeasonEndYear } from '@/features/architect/utils/seasonUtils.js';
 import { DEFAULT_AVERAGE_SALARY } from '@/features/architect/utils/cbaConstants.js';
+import { getCapForSeason } from '@/features/architect/utils/capHelpers';
+import { getCurrentSeasonId, getCurrentSeasonEndYear } from '@/features/architect/utils/seasonHelpers';
 
 /**
- * Default cap settings (2024-25 values)
- * These serve as fallbacks when cap settings are not provided
+ * Get default cap settings for a season
+ * Uses capProjections if available, otherwise returns defaults for the latest known season
  */
-const DEFAULT_CAP_SETTINGS = {
-  salaryCap: 140_588_000,
-  firstApron: 178_132_000,
-  secondApron: 188_938_000,
-  taxLine: 170_818_000,
-  averageSalary: DEFAULT_AVERAGE_SALARY,
-};
+function getDefaultCapSettingsForSeason(seasonId) {
+  // Try to get from capProjections first
+  const capData = getCapForSeason(seasonId);
+  if (capData) {
+    return {
+      salaryCap: capData.salaryCap,
+      firstApron: capData.firstApron,
+      secondApron: capData.secondApron,
+      taxLine: capData.taxLine,
+      averageSalary: capData.averagePlayerSalary || DEFAULT_AVERAGE_SALARY,
+    };
+  }
+
+  // Fallback to latest available season data (2025-26)
+  const fallbackCap = getCapForSeason('2025-26');
+  if (fallbackCap) {
+    return {
+      salaryCap: fallbackCap.salaryCap,
+      firstApron: fallbackCap.firstApron,
+      secondApron: fallbackCap.secondApron,
+      taxLine: fallbackCap.taxLine,
+      averageSalary: fallbackCap.averagePlayerSalary || DEFAULT_AVERAGE_SALARY,
+    };
+  }
+
+  // Ultimate fallback (should rarely happen)
+  return {
+    salaryCap: 154_647_000, // 2025-26 cap
+    firstApron: 195_945_000,
+    secondApron: 207_824_000,
+    taxLine: 187_895_000,
+    averageSalary: DEFAULT_AVERAGE_SALARY,
+  };
+}
 
 /**
  * Compute comprehensive player rules profile
@@ -211,16 +240,24 @@ export function computePlayerRulesProfile(
 function normalizeLeagueContext(leagueContext) {
   // Use simulationDate if provided, otherwise fall back to real-world time
   const effectiveDate = leagueContext.simulationDate || new Date();
-  const defaultYear = getCurrentSeasonYear(effectiveDate);
-  const defaultSeason = toSeasonCode(defaultYear);
+  
+  // Use seasonHelpers for proper season calculation
+  const defaultSeason = getCurrentSeasonId(effectiveDate);
+  const defaultYear = getCurrentSeasonEndYear(effectiveDate);
+
+  const currentSeason = leagueContext.currentSeason || defaultSeason;
+  const currentYear = leagueContext.currentYear || defaultYear;
+  
+  // Get cap settings from capProjections for the current season
+  const defaultCapSettings = getDefaultCapSettingsForSeason(currentSeason);
 
   return {
-    currentYear: leagueContext.currentYear || defaultYear,
-    currentSeason: leagueContext.currentSeason || defaultSeason,
+    currentYear,
+    currentSeason,
     simulationDate: effectiveDate,
     leaguePhase: leagueContext.leaguePhase || 'regular',
     capSettings: {
-      ...DEFAULT_CAP_SETTINGS,
+      ...defaultCapSettings,
       ...leagueContext.capSettings,
     },
   };
@@ -299,7 +336,7 @@ function createEmptyProfile(playerId, reason, simulationDate = null) {
     playerId,
     playerName: playerId,
     evaluatedAt: evalDate.toISOString(),
-    evaluatedForSeason: toSeasonCode(getCurrentSeasonYear(evalDate)),
+    evaluatedForSeason: getCurrentSeasonId(evalDate),
     error: reason,
 
     extensionEligibility: {
@@ -353,27 +390,6 @@ function createEmptyProfile(playerId, reason, simulationDate = null) {
 
     teamContext: null,
   };
-}
-
-/**
- * Get current NBA season year
- *
- * NBA free agency and league year starts July 1:
- * - Before July 1: current season (e.g., May 2024 = 2023-24 = year 2024)
- * - July 1 or later: next season (e.g., July 2024 = 2024-25 = year 2025)
- *
- * Note: Regular season starts in October, but for CBA purposes,
- * the league year (free agency, extensions, etc.) begins July 1.
- *
- * @param {Date} date - Date to evaluate
- * @returns {number} Season end year
- */
-function getCurrentSeasonYear(date) {
-  const year = date.getFullYear();
-  const month = date.getMonth(); // 0 = Jan, 6 = Jul
-
-  // July 1 is the start of the new league year
-  return month >= 6 ? year + 1 : year;
 }
 
 /**

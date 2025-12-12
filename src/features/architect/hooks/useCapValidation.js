@@ -146,7 +146,21 @@ const calculateTeamCapHit = (players, year) => {
  */
 const getCapSettings = (year) => {
   const key = `${year - 1}-${String(year % 100).padStart(2, '0')}`;
-  return capProjections[key] || capProjections['2025-26'];
+  const settings = capProjections[key];
+  
+  if (!settings) {
+    // Sort seasons numerically by start year to ensure consistent ordering
+    const availableSeasons = Object.keys(capProjections).sort((a, b) => {
+      const yearA = parseInt(a.split('-')[0], 10) || 0;
+      const yearB = parseInt(b.split('-')[0], 10) || 0;
+      return yearA - yearB;
+    });
+    const latestSeason = availableSeasons[availableSeasons.length - 1];
+    console.warn(`Cap data not found for season ${key}, falling back to ${latestSeason}`);
+    return capProjections[latestSeason] || null;
+  }
+  
+  return settings;
 };
 
 /**

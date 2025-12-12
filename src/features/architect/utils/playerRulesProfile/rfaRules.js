@@ -205,7 +205,7 @@ export function computeQualifyingOffer(player, leagueContext) {
 
   // Ensure QO meets minimum salary
   const yearsOfService = getYearsOfService(player);
-  const minSalaryScale = getMinimumSalaryScale(leagueContext?.currentSeason || '2024-25');
+  const minSalaryScale = getMinimumSalaryScale(leagueContext?.currentSeason);
   const minimumSalary = minSalaryScale[Math.min(yearsOfService, 10)] || minSalaryScale[0];
   qualifyingOfferAmount = Math.max(qualifyingOfferAmount, minimumSalary);
 

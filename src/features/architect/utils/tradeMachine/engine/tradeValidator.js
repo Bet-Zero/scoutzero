@@ -52,20 +52,26 @@ const validators = wrapCommonValidators(baseValidators);
 // Helper function to extract cap settings for a specific year
 function getCapSettingsForYear(capProjections, year) {
   if (!capProjections || typeof capProjections !== 'object') {
-    return {};
+    return null;
   }
   
   // Try different year formats
   const yearKey = String(year);
   const seasonKey = `${year}-${String(year + 1).slice(-2)}`;
   
-  const settings = capProjections[seasonKey] || capProjections[yearKey] || capProjections['2025-26'] || {};
+  const settings = capProjections[seasonKey] || capProjections[yearKey];
+  
+  if (!settings) {
+    // Return null if no cap data available for the requested year
+    // Let callers handle the missing data case explicitly
+    return null;
+  }
   
   return {
-    salaryCap: settings.cap || 154647000,
-    firstApron: settings.firstApron || 195945000,
-    secondApron: settings.secondApron || 207824000,
-    luxuryTax: settings.tax || 187895000,
+    salaryCap: settings.cap,
+    firstApron: settings.firstApron,
+    secondApron: settings.secondApron,
+    luxuryTax: settings.tax,
   };
 }
 
