@@ -15,6 +15,8 @@ FreeAgentPool.jsx
 FreeAgentRow.jsx
 GMDashboard/
   GMDashboard.jsx
+  hooks/
+    useArchitectState.ts
   index.jsx
   sections/
     CapSheetSection.jsx
@@ -32,6 +34,8 @@ SavePlanModal.jsx
 TeamHistoryTab.jsx
 ValidationWarnings.jsx
 WaiveStretchTracker.jsx
+constants/
+  playerNameCorrections.ts
 data/
   minimumSalaryScales.ts
 hooks/
@@ -180,5 +184,5 @@ utils/
 ```
 
 ---
-*Generated on: 2025-12-12T09:55:50.615Z*
+*Generated on: 2025-12-12T10:41:35.801Z*
 *Auto-updated by: npm run docs*

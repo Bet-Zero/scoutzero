@@ -13,17 +13,11 @@
  *  - Plan: plans/gm-dashboard-userid/plan.md
  *  - Latest Chunk: plans/gm-dashboard-userid/chunks/chunk_01.md
  */
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import {
-  loadTeamCapSheet,
-  saveUserTeamPlan,
-  loadUserTeamPlan,
-  listUserTeamPlans,
   saveNamedTeamPlan,
-  loadNamedTeamPlan,
-  saveFreeAgents,
-  loadFreeAgents,
+  listUserTeamPlans,
 } from '@/features/architect/utils/firebaseTeamPlanHelpers';
 import EditContractModal from '@/shared/components/EditContractModal';
 import SavePlanModal from '@/features/architect/SavePlanModal';
@@ -34,29 +28,16 @@ import TradeSection from './sections/TradeSection';
 import FreeAgencySection from './sections/FreeAgencySection';
 import OffseasonSection from './sections/OffseasonSection';
 import HistorySection from './sections/HistorySection';
-import useArchitectPlayerData from '@/features/architect/hooks/useArchitectPlayerData';
+import { useArchitectState } from './hooks/useArchitectState';
 import { useCapSheetState } from '@/features/architect/hooks/useCapSheetState';
 import { usePlayerRulesProfiles } from '@/features/architect/hooks/usePlayerRulesProfiles';
 import useAuth from '@/shared/hooks/useAuth';
-import { enrichPlayerData } from '@/features/roster/utils';
 import { basePlayerRef } from '@/data/firestorePaths';
 import { getDoc } from 'firebase/firestore';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
 import capProjections from '@/features/architect/utils/capProjections';
-import { toEndYear } from '@/features/architect/utils/seasonFormat';
 
-// ==== Season helpers (inline for now; you can extract later) ====
-const LOCAL_SEASON_KEY = 'hz.currentSeasonEndYear';
-
-const getDefaultSeasonEndYear = (date = new Date()) => {
-  // NBA season flips July 1 → 2024-25 ends in 2025, 2025-26 ends in 2026
-  const y = date.getFullYear();
-  const month = date.getMonth();
-
-  // General case for future years
-  return month >= 6 ? y + 1 : y;
-};
-
+// ==== Season helpers ====
 const toSeasonKey = (endYear) => `${endYear - 1}-${String(endYear).slice(-2)}`;
 
 const seasonEndYearsFromCaps = (caps) => {
@@ -75,15 +56,6 @@ const seasonEndYearsFromCaps = (caps) => {
   return Array.from(new Set(years)).sort((a, b) => a - b);
 };
 
-const normalizeSalaryValue = (val) => {
-  let num =
-    typeof val === 'string' ? Number(val.replace(/[^0-9.-]/g, '')) : val || 0;
-  if (Number.isNaN(num)) num = 0;
-  // If the value looks like it's in millions (e.g. 3.1), convert to full dollars
-  if (num > 0 && num < 1000) num *= 1_000_000;
-  return Math.round(num);
-};
-
 // Helper to ensure contract has proper structure
 const ensureContractStructure = (contract, overrides = {}) => {
   if (!contract) return null;
@@ -100,108 +72,61 @@ const ensureContractStructure = (contract, overrides = {}) => {
   return null;
 };
 
-const normalizeLookupKey = (name) => {
-  if (!name) return '';
-  return name
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-zA-Z0-9]/g, '')
-    .toLowerCase();
-};
-
 const GMDashboard = () => {
   const { teamId } = useParams();
   const { userId, loading: authLoading } = useAuth();
-  const [baselineCapSheet, setBaselineCapSheet] = useState(null);
-  const [teamCapSheet, setTeamCapSheet] = useState(null);
-  // AFTER:
-  const [currentYear, setCurrentYear] = useState(() => {
-    // Get available years from cap projections
-    const availableYears = seasonEndYearsFromCaps(capProjections);
 
-    // Check URL query parameter first
-    const qp = new URLSearchParams(window.location.search).get('season');
-    if (qp && Number.isFinite(parseInt(qp, 10))) {
-      const year = parseInt(qp, 10);
-      // Validate against available cap projections
-      if (availableYears.includes(year)) return year;
-    }
+  // All state now from hook
+  const state = useArchitectState({ teamId, userId, authLoading });
 
-    // Check localStorage
-    const saved = localStorage.getItem(LOCAL_SEASON_KEY);
-    if (saved && Number.isFinite(parseInt(saved, 10))) {
-      const year = parseInt(saved, 10);
-      // Validate against available cap projections
-      if (availableYears.includes(year)) return year;
-    }
-
-    // Default to current season
-    return getDefaultSeasonEndYear();
-  });
-
-  // Persist selection + keep URL shareable (?season=YYYY)
-  useEffect(() => {
-    localStorage.setItem(LOCAL_SEASON_KEY, String(currentYear));
-    const url = new URL(window.location.href);
-    url.searchParams.set('season', String(currentYear));
-    window.history.replaceState({}, '', url);
-  }, [currentYear]);
-  const [selectedPlayer, setSelectedPlayer] = useState(null);
-  const [freeAgents, setFreeAgents] = useState([]);
-  const [activeTab, setActiveTab] = useState('roster');
-  const [lastCapSheet, setLastCapSheet] = useState(null);
-  const [offseasonRun, setOffseasonRun] = useState(false);
-  const [offseasonSummary, setOffseasonSummary] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const [plans, setPlans] = useState([]);
-  const [selectedRulesYear, setSelectedRulesYear] = useState(currentYear);
-  const [selectedPlan, setSelectedPlan] = useState('');
-  const [viewMode, setViewMode] = useState(
-    () => localStorage.getItem('architect.viewMode') || 'baseline'
-  ); // 'plan' or 'baseline'
-
-  // Persist viewMode to localStorage
-  useEffect(() => {
-    localStorage.setItem('architect.viewMode', viewMode);
-  }, [viewMode]);
-
-  // Force baseline mode when userId is missing (fallback behavior)
-  useEffect(() => {
-    if (!authLoading && !userId && viewMode === 'plan') {
-      setViewMode('baseline');
-    }
-  }, [userId, authLoading, viewMode]);
-  const capTableYears = useMemo(
-    () => Array.from({ length: 7 }, (_, i) => currentYear + i),
-    [currentYear]
-  );
-  useEffect(() => {
-    setSelectedRulesYear(currentYear);
-  }, [currentYear]);
-  const [showSaveModal, setShowSaveModal] = useState(false);
-  const [newPlanName, setNewPlanName] = useState('');
-  const [showContractModal, setShowContractModal] = useState(false);
-  const [initialAction, setInitialAction] = useState(null); // Pre-select action in modal
-  const [targetYear, setTargetYear] = useState(null); // Year the action applies to (for options/FA)
-  const [actionContext, setActionContext] = useState(null); // 'option' | 'freeAgent' | null - what was clicked
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState('');
-  const { players } = useArchitectPlayerData();
-
-  const playersMap = useMemo(() => {
-    const map = {};
-    players.forEach((p) => {
-      if (p.name) {
-        map[p.name] = p;
-        map[normalizeLookupKey(p.name)] = p;
-      }
-      if (p.id) map[p.id] = p;
-      if (p.player_id) map[p.player_id] = p;
-      if (p.bio?.playerId) map[p.bio.playerId] = p;
-    });
-    return map;
-  }, [players]);
+  // Destructure state for easier access
+  const {
+    teamCapSheet,
+    currentYear,
+    selectedRulesYear,
+    activeTab,
+    viewMode,
+    selectedPlayer,
+    selectedPlan,
+    freeAgents,
+    plans,
+    isLoading,
+    isSaving,
+    error,
+    showModal,
+    showSaveModal,
+    showContractModal,
+    newPlanName,
+    initialAction,
+    targetYear,
+    actionContext,
+    lastCapSheet,
+    offseasonRun,
+    offseasonSummary,
+    playersMap,
+    capTableYears,
+    setTeamCapSheet,
+    setCurrentYear,
+    setSelectedRulesYear,
+    setActiveTab,
+    setViewMode,
+    setSelectedPlayer,
+    setSelectedPlan,
+    setFreeAgents,
+    startSave,
+    finishSave,
+    setShowModal,
+    setShowSaveModal,
+    setShowContractModal,
+    setNewPlanName,
+    setInitialAction,
+    setTargetYear,
+    setActionContext,
+    setLastCapSheet,
+    setOffseasonRun,
+    setOffseasonSummary,
+    setPlans,
+  } = state;
 
   // === Cap Sheet State Management Hook ===
   // Provides undo capability and action history tracking
@@ -241,267 +166,7 @@ const GMDashboard = () => {
     if (teamCapSheet) {
       capSheetState.refreshFromSource(teamCapSheet);
     }
-  }, [teamCapSheet]);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      setError('');
-      try {
-        const base = await loadTeamCapSheet(teamId);
-
-        // Only load user plans if userId is available
-        if (userId) {
-          const planList = await listUserTeamPlans(userId, teamId);
-          setPlans(planList);
-          const first = planList[0]?.id || '';
-          let plan = null;
-          if (first) {
-            const data = await loadNamedTeamPlan(userId, teamId, first);
-            plan = data?.capSheet || data;
-            setSelectedPlan(first);
-          } else {
-            plan = await loadUserTeamPlan(userId, teamId);
-          }
-          if (plan) setTeamCapSheet(plan);
-        }
-
-        const loadedFA = await loadFreeAgents();
-        if (base) setBaselineCapSheet(base);
-        if (!userId || !teamCapSheet) {
-          // If no userId or no plan loaded, use baseline
-          if (base) setTeamCapSheet(JSON.parse(JSON.stringify(base)));
-          else console.warn('No saved team found, using blank slate.');
-        }
-      } catch (err) {
-        console.error(err);
-        setError('Error loading team data');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    // Wait for auth to finish loading before fetching data
-    if (!authLoading) {
-      fetchData();
-    }
-  }, [teamId, userId, authLoading]);
-
-  useEffect(() => {
-    if (!teamCapSheet) return;
-    const savePlan = async () => {
-      try {
-        if (viewMode === 'plan') {
-          if (selectedPlan) {
-            await saveNamedTeamPlan(
-              userId,
-              teamId,
-              selectedPlan,
-              teamCapSheet,
-              capProjections,
-              currentYear
-            );
-          } else {
-            await saveUserTeamPlan(
-              userId,
-              teamId,
-              teamCapSheet,
-              capProjections,
-              currentYear
-            );
-          }
-        }
-      } catch (err) {
-        console.error('Failed to save plan', err);
-      }
-    };
-    savePlan();
-  }, [
-    teamCapSheet,
-    teamId,
-    userId,
-    selectedPlan,
-    viewMode,
-    capProjections,
-    currentYear,
-  ]);
-
-  // Derive free agents dynamically from the player pool
-  useEffect(() => {
-    if (!players || players.length === 0) return;
-
-    const upcomingFreeAgents = players
-      .filter((p) => {
-        // 0. Filter out invalid players (only if no ID is present)
-        if ((!p.name || p.name === 'Unknown') && !p.id && !p.player_id)
-          return false;
-
-        // 1. Check if player has NO contract or empty salaries
-        if (
-          !p.contract ||
-          !p.contract.salariesByYear ||
-          p.contract.salariesByYear.length === 0
-        ) {
-          return true; // Current Free Agent
-        }
-
-        // 2. Find the last year of the contract
-        const sortedYears = [...p.contract.salariesByYear].sort((a, b) => {
-          const ya = toEndYear(a.season);
-          const yb = toEndYear(b.season);
-          return (ya || 0) - (yb || 0);
-        });
-
-        const lastYearEntry = sortedYears[sortedYears.length - 1];
-        if (!lastYearEntry) return true; // Should have been caught above, but safe fallback
-
-        // Parse the end year
-        const endYear = toEndYear(lastYearEntry.season);
-        if (!endYear) return true; // Invalid year data, treat as FA
-
-        // 3. Check if it expires in the current view year OR has an option for the next year
-        // (If currentYear is 2026, we want players whose contracts end in 2026)
-        // (OR players whose contracts end in 2027 but have an option for that 2027 season)
-
-        // Also include players whose contracts expired BEFORE the current year
-        const isExpired = endYear < currentYear;
-        const isExpiring = endYear === currentYear;
-
-        // Check for option in the last year entry
-        // Some data sources might use 'option' or 'optionType'
-        const optionVal = lastYearEntry.option || lastYearEntry.optionType;
-        const isPlayerOption =
-          optionVal === 'Player Option' ||
-          optionVal === 'Player' ||
-          optionVal === 'PO';
-        const isTeamOption =
-          optionVal === 'Team Option' ||
-          optionVal === 'Team' ||
-          optionVal === 'TO';
-
-        const hasOptionNextYear =
-          endYear === currentYear + 1 && (isPlayerOption || isTeamOption);
-
-        if (!isExpired && !isExpiring && !hasOptionNextYear) return false;
-
-        return true;
-      })
-      .map((p) => {
-        // Determine FA Type
-        let faType = 'UFA';
-        let previousSalary = 0;
-        let birdRights = 'None';
-
-        if (
-          p.contract &&
-          p.contract.salariesByYear &&
-          p.contract.salariesByYear.length > 0
-        ) {
-          const sortedYears = [...p.contract.salariesByYear].sort((a, b) => {
-            const ya = toEndYear(a.season);
-            const yb = toEndYear(b.season);
-            return (ya || 0) - (yb || 0);
-          });
-          const lastYearEntry = sortedYears[sortedYears.length - 1];
-          previousSalary = lastYearEntry.salary || 0;
-          birdRights = p.contract.birdRights?.status || 'None';
-
-          const optionVal = lastYearEntry.option || lastYearEntry.optionType;
-          if (
-            optionVal === 'Player Option' ||
-            optionVal === 'Player' ||
-            optionVal === 'PO'
-          )
-            faType = 'PO';
-          else if (
-            optionVal === 'Team Option' ||
-            optionVal === 'Team' ||
-            optionVal === 'TO'
-          )
-            faType = 'TO';
-          else if (p.contract.birdRights?.status === 'Restricted')
-            faType = 'RFA';
-        }
-
-        // Fix "Player Not Found" names
-        let fixedName = p.name;
-        if (
-          (!fixedName ||
-            fixedName === 'Player Not Found' ||
-            fixedName === 'Unknown') &&
-          (p.id || p.player_id)
-        ) {
-          const id = p.id || p.player_id;
-
-          // Known hyphenated names map
-          const hyphenatedNames = {
-            dorian_finney_smith: 'Dorian Finney-Smith',
-            shai_gilgeous_alexander: 'Shai Gilgeous-Alexander',
-            kentavious_caldwell_pope: 'Kentavious Caldwell-Pope',
-            talen_horton_tucker: 'Talen Horton-Tucker',
-            keita_bates_diop: 'Keita Bates-Diop',
-            nickeil_alexander_walker: 'Nickeil Alexander-Walker',
-            michael_carter_williams: 'Michael Carter-Williams',
-            karl_anthony_towns: 'Karl-Anthony Towns',
-            willie_cauley_stein: 'Willie Cauley-Stein',
-            rondae_hollis_jefferson: 'Rondae Hollis-Jefferson',
-          };
-
-          if (hyphenatedNames[id]) {
-            fixedName = hyphenatedNames[id];
-          } else {
-            // Convert snake_case to Title Case (e.g. dorian_finney_smith -> Dorian Finney Smith)
-            fixedName = id
-              .split('_')
-              .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-              .join(' ');
-          }
-        }
-
-        return {
-          ...p,
-          name: fixedName,
-          previousSalary,
-          birdRights,
-          freeAgentType: faType,
-          // Ensure team info is preserved
-          teamCode: p.teamCode,
-          teamName: p.teamName,
-        };
-      });
-
-    setFreeAgents(upcomingFreeAgents);
-  }, [players, currentYear]);
-
-  useEffect(() => {
-    const loadPlan = async () => {
-      setIsLoading(true);
-      setError('');
-      try {
-        if (viewMode === 'baseline') {
-          if (baselineCapSheet)
-            setTeamCapSheet(JSON.parse(JSON.stringify(baselineCapSheet)));
-          return;
-        }
-        // Only load named plans if userId is available
-        if (userId && selectedPlan) {
-          const data = await loadNamedTeamPlan(userId, teamId, selectedPlan);
-          if (data?.capSheet) setTeamCapSheet(data.capSheet);
-        } else if (baselineCapSheet) {
-          setTeamCapSheet(JSON.parse(JSON.stringify(baselineCapSheet)));
-        }
-      } catch (err) {
-        console.error(err);
-        setError('Error loading plan');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    // Wait for auth to finish loading before loading plan
-    if (!authLoading) {
-      loadPlan();
-    }
-  }, [viewMode, selectedPlan, baselineCapSheet, teamId, userId, authLoading]);
+  }, [teamCapSheet, capSheetState]);
 
   const applyTradeToCapSheet = async (tradeData) => {
     if (!tradeData || !Array.isArray(tradeData)) return;
@@ -1091,8 +756,7 @@ const GMDashboard = () => {
           onCancel={() => setShowSaveModal(false)}
           onSave={async () => {
             if (!newPlanName.trim()) return;
-            setIsSaving(true);
-            setError('');
+            startSave();
             try {
               await saveNamedTeamPlan(
                 userId,
@@ -1105,11 +769,10 @@ const GMDashboard = () => {
               setSelectedPlan(newPlanName.trim());
               setNewPlanName('');
               setShowSaveModal(false);
+              finishSave();
             } catch (err) {
               console.error('Failed to save plan', err);
-              setError('Failed to save plan');
-            } finally {
-              setIsSaving(false);
+              finishSave('Failed to save plan');
             }
           }}
         />
