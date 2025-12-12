@@ -296,24 +296,30 @@ export function computeExtensionTerms(player, leagueContext, eligibility = null)
   }
 
   const { capSettings = {} } = leagueContext || {};
-  const salaryCap = capSettings.salaryCap || 140_588_000;
+  // Require salaryCap from context - warn but continue for backward compatibility
+  // TODO: In future version, require salaryCap and return error result if missing
+  const salaryCap = capSettings.salaryCap;
+  if (!salaryCap) {
+    console.warn('[extensionRules] Missing capSettings.salaryCap in leagueContext. Extension terms may be inaccurate.');
+  }
+  const effectiveCap = salaryCap || 0; // Use 0 to make terms clearly invalid
   const contract = player?.contract;
   // Compute currentYear once here to fully decouple from JS clock
   const currentYear = leagueContext?.currentYear || new Date().getFullYear();
 
   switch (extEligibility.extensionType) {
     case EXTENSION_TYPES.ROOKIE:
-      return computeRookieExtensionTerms(player, salaryCap, leagueContext);
+      return computeRookieExtensionTerms(player, effectiveCap, leagueContext);
 
     case EXTENSION_TYPES.DESIGNATED_VETERAN:
-      return computeDesignatedVeteranTerms(player, salaryCap);
+      return computeDesignatedVeteranTerms(player, effectiveCap);
 
     case EXTENSION_TYPES.TRADE_RESTRICTED:
       return computeTradeRestrictedTerms(player, contract, currentYear);
 
     case EXTENSION_TYPES.VETERAN:
     default:
-      return computeVeteranExtensionTerms(player, contract, salaryCap, leagueContext, currentYear);
+      return computeVeteranExtensionTerms(player, contract, effectiveCap, leagueContext, currentYear);
   }
 }
 
