@@ -18,15 +18,16 @@ import React, { useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import EditContractModal from '@/shared/components/EditContractModal';
 import SavePlanModal from '@/features/architect/SavePlanModal';
-import RosterSection from './sections/RosterSection';
-import CapSheetSection from './sections/CapSheetSection';
-import CapTableSection from './sections/CapTableSection';
-import TradeSection from './sections/TradeSection';
-import FreeAgencySection from './sections/FreeAgencySection';
-import OffseasonSection from './sections/OffseasonSection';
-import HistorySection from './sections/HistorySection';
+import { RosterSection } from './sections/RosterSection';
+import { CapSheetSection } from './sections/CapSheetSection';
+import { CapTableSection } from './sections/CapTableSection';
+import { TradeSection } from './sections/TradeSection';
+import { FreeAgencySection } from './sections/FreeAgencySection';
+import { OffseasonSection } from './sections/OffseasonSection';
+import { HistorySection } from './sections/HistorySection';
 import { useArchitectState } from './hooks/useArchitectState';
 import { useArchitectActions } from './hooks/useArchitectActions';
+import { useArchitectModals } from './hooks/useArchitectModals';
 import { useCapSheetState } from '@/features/architect/hooks/useCapSheetState';
 import { usePlayerRulesProfiles } from '@/features/architect/hooks/usePlayerRulesProfiles';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -58,6 +59,9 @@ const GMDashboard = () => {
   // All state now from hook
   const state = useArchitectState({ teamId, userId, authLoading });
 
+  // All modal state now from hook
+  const modals = useArchitectModals();
+
   // Destructure state for easier access
   // Note: Many setters are no longer destructured here as they're used by useArchitectActions
   const {
@@ -73,13 +77,6 @@ const GMDashboard = () => {
     isLoading,
     isSaving,
     error,
-    showModal,
-    showSaveModal,
-    showContractModal,
-    newPlanName,
-    initialAction,
-    targetYear,
-    actionContext,
     offseasonSummary,
     playersMap,
     capTableYears,
@@ -89,12 +86,27 @@ const GMDashboard = () => {
     setActiveTab,
     setViewMode,
     setSelectedPlan,
-    setShowModal,
-    setNewPlanName,
     setLastCapSheet,
     setOffseasonRun,
     setOffseasonSummary,
   } = state;
+
+  // Destructure modals for easier access
+  const {
+    showOffseasonModal,
+    showSaveModal,
+    showContractModal,
+    newPlanName,
+    initialAction,
+    targetYear,
+    actionContext,
+    setNewPlanName,
+    openSaveModal,
+    closeSaveModal,
+    closeContractModal,
+    closeOffseasonModal,
+    setShowOffseasonModal,
+  } = modals;
 
   // === Cap Sheet State Management Hook ===
   // Provides undo capability and action history tracking
@@ -145,6 +157,7 @@ const GMDashboard = () => {
     state,
     capSheetState,
     playersMap,
+    modals,
   });
 
   if (authLoading || isLoading) return <p>Loading GM Dashboard...</p>;
@@ -366,7 +379,7 @@ const GMDashboard = () => {
             setLastCapSheet={setLastCapSheet}
             setOffseasonRun={setOffseasonRun}
             setOffseasonSummary={setOffseasonSummary}
-            setShowModal={setShowModal}
+            setShowOffseasonModal={setShowOffseasonModal}
             playersMap={playersMap}
           />
         )}
@@ -376,7 +389,7 @@ const GMDashboard = () => {
         )}
       </div>
 
-      {showModal && offseasonSummary && (
+      {showOffseasonModal && offseasonSummary && (
         <div className="modal-overlay">
           <div className="modal-content">
             <h3>Offseason Summary</h3>
@@ -429,7 +442,9 @@ const GMDashboard = () => {
                 <strong>MLE reset for new season.</strong>
               </p>
             )}
-            <button onClick={() => setShowModal(false)}>Close</button>
+            <button type="button" onClick={closeOffseasonModal}>
+              Close
+            </button>
           </div>
         </div>
       )}
@@ -439,7 +454,7 @@ const GMDashboard = () => {
           isOpen={showSaveModal}
           name={newPlanName}
           onNameChange={setNewPlanName}
-          onCancel={actions.closeSaveModal}
+          onCancel={closeSaveModal}
           onSave={actions.handleSavePlan}
         />
       )}
@@ -447,7 +462,7 @@ const GMDashboard = () => {
       {showContractModal && (
         <EditContractModal
           isOpen={showContractModal}
-          onClose={actions.closeContractModal}
+          onClose={closeContractModal}
           player={selectedPlayer}
           initialAction={initialAction}
           targetYear={targetYear}
@@ -469,7 +484,7 @@ const GMDashboard = () => {
       {userId && viewMode === 'plan' && (
         <div className="fixed bottom-6 right-6 z-50">
           <button
-            onClick={actions.openSaveModal}
+            onClick={openSaveModal}
             className="bg-black/20 text-white px-4 py-2 rounded hover:bg-white/20"
           >
             Save Plan

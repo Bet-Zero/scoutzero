@@ -1,6 +1,8 @@
-import { wouldExceedHardCap } from '@/features/architect/utils/tradeHelpers.js';
-import { formatCurrency } from '@/features/architect/utils/tradeHelpers.js';
-import { validatorDebug } from './validatorDebug.js';
+import {
+  wouldExceedHardCap,
+  formatCurrency,
+} from '@/features/architect/utils/tradeHelpers';
+import { validatorDebug } from '@/features/architect/utils/tradeMachine/engine/validatorDebug';
 import { TradeTeam, HardCapResult } from './types';
 
 type HardCapType = 'FirstApron' | 'SecondApron' | null;

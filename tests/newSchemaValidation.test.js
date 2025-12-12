@@ -4,14 +4,21 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { computeMatchingValues } from '../src/utils/architect/tradeMachine/utils/computeMatchingValues';
-import { getSalaryForYear, playerFitsInTPE } from '../src/utils/architect/tradeHelpers';
-import { getCapHitForSeason, getSalaryForSeason, yearToSeason } from '../src/utils/architect/tradeMachine/utils/seasonUtils';
+import { computeMatchingValues } from '@/features/architect/utils/tradeMachine/utils/computeMatchingValues';
+import {
+  getSalaryForYear,
+  playerFitsInTPE,
+} from '@/features/architect/utils/tradeHelpers';
+import {
+  getCapHitForSeason,
+  getSalaryForSeason,
+  yearToSeason,
+} from '@/features/architect/utils/tradeMachine/utils/seasonUtils';
 import {
   newSchemaPlayer,
   newSchemaRookiePlayer,
   newSchemaBYCPlayer,
-  newSchemaTradeKickerPlayer
+  newSchemaTradeKickerPlayer,
 } from './fixtures/newSchemaPlayer';
 
 describe('New Schema Player Salary Extraction', () => {
@@ -49,12 +56,14 @@ describe('New Schema Player Salary Extraction', () => {
 
 describe('computeMatchingValues with New Schema Players', () => {
   it('should compute non-zero matching values for standard new schema player', () => {
-    const teams = [{
-      sends: [{ ...newSchemaPlayer }]
-    }];
-    
+    const teams = [
+      {
+        sends: [{ ...newSchemaPlayer }],
+      },
+    ];
+
     computeMatchingValues({ teams, yearKey: 2025 });
-    
+
     const player = teams[0].sends[0];
     expect(player.matchOutgoing).toBeGreaterThan(0);
     expect(player.matchIncoming).toBeGreaterThan(0);
@@ -63,16 +72,18 @@ describe('computeMatchingValues with New Schema Players', () => {
   });
 
   it('should compute BYC matching values correctly for new schema player', () => {
-    const teams = [{
-      sends: [{ ...newSchemaBYCPlayer }]
-    }];
-    
+    const teams = [
+      {
+        sends: [{ ...newSchemaBYCPlayer }],
+      },
+    ];
+
     computeMatchingValues({ teams, yearKey: 2025 });
-    
+
     const player = teams[0].sends[0];
     expect(player.matchOutgoing).toBeGreaterThan(0);
     expect(player.matchIncoming).toBeGreaterThan(0);
-    
+
     // BYC outgoing should be max(previousSalary, 50% of current)
     // max(2,000,000, 5,000,000) = 5,000,000
     expect(player.matchOutgoing).toBe(5000000);
@@ -81,16 +92,18 @@ describe('computeMatchingValues with New Schema Players', () => {
   });
 
   it('should compute trade kicker matching values for new schema player', () => {
-    const teams = [{
-      sends: [{ ...newSchemaTradeKickerPlayer }]
-    }];
-    
+    const teams = [
+      {
+        sends: [{ ...newSchemaTradeKickerPlayer }],
+      },
+    ];
+
     computeMatchingValues({ teams, yearKey: 2025 });
-    
+
     const player = teams[0].sends[0];
     expect(player.matchOutgoing).toBeGreaterThan(0);
     expect(player.matchIncoming).toBeGreaterThan(0);
-    
+
     // Outgoing should be base salary
     expect(player.matchOutgoing).toBe(8000000);
     // Incoming should include 15% trade kicker
@@ -101,18 +114,17 @@ describe('computeMatchingValues with New Schema Players', () => {
   it('should identify rookie scale flag for poison pill logic', () => {
     const rookie = {
       ...newSchemaRookiePlayer,
-      extensionYears: [
-        { salary: 15000000 },
-        { salary: 16000000 }
-      ]
+      extensionYears: [{ salary: 15000000 }, { salary: 16000000 }],
     };
-    
-    const teams = [{
-      sends: [rookie]
-    }];
-    
+
+    const teams = [
+      {
+        sends: [rookie],
+      },
+    ];
+
     computeMatchingValues({ teams, yearKey: 2025 });
-    
+
     const player = teams[0].sends[0];
     // Should apply poison pill averaging since isRookieScale = true
     expect(player.matchIncoming).toBeGreaterThan(0);
@@ -124,9 +136,9 @@ describe('TPE Validation with New Schema', () => {
     const tpe = {
       amount: 6000000,
       expirationDate: '2025-12-31',
-      isUsed: false
+      isUsed: false,
     };
-    
+
     const fits = playerFitsInTPE(newSchemaPlayer, 2025, tpe);
     expect(fits).toBe(true);
   });
@@ -135,9 +147,9 @@ describe('TPE Validation with New Schema', () => {
     const tpe = {
       amount: 3000000,
       expirationDate: '2025-12-31',
-      isUsed: false
+      isUsed: false,
     };
-    
+
     const fits = playerFitsInTPE(newSchemaPlayer, 2025, tpe);
     expect(fits).toBe(false);
   });
@@ -146,9 +158,9 @@ describe('TPE Validation with New Schema', () => {
     const tpe = {
       amount: 6000000,
       expirationDate: '2025-12-31',
-      isUsed: false
+      isUsed: false,
     };
-    
+
     const fits = playerFitsInTPE(newSchemaPlayer, '2024-25', tpe);
     expect(fits).toBe(true);
   });
@@ -164,24 +176,24 @@ describe('TPE Validation with New Schema', () => {
             season: '2024-25',
             capHit: 4500000,
             // No salary field
-            guaranteed: true
-          }
-        ]
-      }
+            guaranteed: true,
+          },
+        ],
+      },
     };
-    
+
     const tpeFits = {
       amount: 5000000,
       expirationDate: '2025-12-31',
-      isUsed: false
+      isUsed: false,
     };
-    
+
     const tpeDoesntFit = {
       amount: 4000000,
       expirationDate: '2025-12-31',
-      isUsed: false
+      isUsed: false,
     };
-    
+
     // Should correctly check capHit (4.5M) against TPE
     expect(playerFitsInTPE(capHitOnlyPlayer, 2025, tpeFits)).toBe(true);
     expect(playerFitsInTPE(capHitOnlyPlayer, 2025, tpeDoesntFit)).toBe(false);
@@ -198,15 +210,17 @@ describe('Mixed roster validation with new schema players', () => {
           {
             season: '2024-25',
             salary: 4000000,
-            guaranteed: true
-          }
-        ]
-      }
+            guaranteed: true,
+          },
+        ],
+      },
     };
 
-    const teams = [{
-      sends: [{ ...newSchemaPlayer }, secondPlayer]
-    }];
+    const teams = [
+      {
+        sends: [{ ...newSchemaPlayer }, secondPlayer],
+      },
+    ];
 
     computeMatchingValues({ teams, yearKey: 2025 });
 

@@ -162,8 +162,7 @@ interface FreeAgent extends ArchitectPlayer {
   freeAgentType: 'UFA' | 'RFA' | 'PO' | 'TO';
 }
 
-/** Action context for contract modal */
-type ActionContext = 'option' | 'freeAgent' | null;
+import type { ActionContext, EditModalContext } from './useArchitectModals';
 
 /** Map of players by various keys for fast lookup */
 type PlayersMap = Record<string, ArchitectPlayer>;
@@ -172,7 +171,6 @@ type PlayersMap = Record<string, ArchitectPlayer>;
 interface ArchitectStateForActions {
   teamCapSheet: CapSheet | null;
   currentYear: number;
-  newPlanName: string;
   setTeamCapSheet: React.Dispatch<React.SetStateAction<CapSheet | null>>;
   setSelectedRulesYear: React.Dispatch<React.SetStateAction<number>>;
   setSelectedPlayer: React.Dispatch<
@@ -181,16 +179,19 @@ interface ArchitectStateForActions {
   setFreeAgents: React.Dispatch<React.SetStateAction<FreeAgent[]>>;
   startSave: () => void;
   finishSave: (errorMsg?: string) => void;
-  setShowSaveModal: React.Dispatch<React.SetStateAction<boolean>>;
-  setShowContractModal: React.Dispatch<React.SetStateAction<boolean>>;
-  setNewPlanName: React.Dispatch<React.SetStateAction<string>>;
-  setInitialAction: React.Dispatch<React.SetStateAction<string | null>>;
-  setTargetYear: React.Dispatch<React.SetStateAction<number | null>>;
-  setActionContext: React.Dispatch<React.SetStateAction<ActionContext>>;
   setOffseasonRun: React.Dispatch<React.SetStateAction<boolean>>;
   setOffseasonSummary: React.Dispatch<React.SetStateAction<unknown | null>>;
   setPlans: React.Dispatch<React.SetStateAction<PlanRef[]>>;
   setSelectedPlan: React.Dispatch<React.SetStateAction<string>>;
+}
+
+/** Modal helpers from useArchitectModals (subset needed by actions) */
+interface ArchitectModalsForActions {
+  newPlanName: string;
+  openContractModal: (context?: EditModalContext) => void;
+  closeContractModal: () => void;
+  closeSaveModal: () => void;
+  setNewPlanName: React.Dispatch<React.SetStateAction<string>>;
 }
 
 /** CapSheetState hook return type (subset needed by actions) */
@@ -217,6 +218,7 @@ export interface UseArchitectActionsParams {
   state: ArchitectStateForActions;
   capSheetState: CapSheetStateForActions;
   playersMap: PlayersMap;
+  modals: ArchitectModalsForActions;
 }
 
 /** Return type of the useArchitectActions hook */
@@ -246,10 +248,7 @@ export interface UseArchitectActionsReturn {
   // Trade actions
   applyTradeToCapSheet: (tradeData: TradeDataItem[]) => Promise<void>;
 
-  // Modal actions
-  openSaveModal: () => void;
-  closeSaveModal: () => void;
-  closeContractModal: () => void;
+  // Plan actions
   handleSavePlan: () => Promise<void>;
 }
 
@@ -289,29 +288,32 @@ export function useArchitectActions({
   state,
   capSheetState,
   playersMap,
+  modals,
 }: UseArchitectActionsParams): UseArchitectActionsReturn {
   // Destructure state for easier access
   const {
     teamCapSheet,
     currentYear,
-    newPlanName,
     setTeamCapSheet,
     setSelectedRulesYear,
     setSelectedPlayer,
     setFreeAgents,
     startSave,
     finishSave,
-    setShowSaveModal,
-    setShowContractModal,
-    setNewPlanName,
-    setInitialAction,
-    setTargetYear,
-    setActionContext,
     setOffseasonRun,
     setOffseasonSummary,
     setPlans,
     setSelectedPlan,
   } = state;
+
+  // Destructure modals for easier access
+  const {
+    newPlanName,
+    openContractModal,
+    closeContractModal,
+    closeSaveModal,
+    setNewPlanName,
+  } = modals;
 
   // === Trade Actions ===
 
@@ -550,21 +552,15 @@ export function useArchitectActions({
   const handleEditContract = useCallback(
     (player: ArchitectPlayer): void => {
       setSelectedPlayer(player);
-      setInitialAction(null); // No pre-selection when just clicking player name
-      setTargetYear(null); // No specific year context
-      setActionContext(null); // No specific action context - show based on player state
       setSelectedRulesYear(currentYear);
-      setShowContractModal(true);
+      // No pre-selection when just clicking player name - show based on player state
+      openContractModal({
+        initialAction: null,
+        targetYear: null,
+        actionContext: null,
+      });
     },
-    [
-      currentYear,
-      setSelectedPlayer,
-      setInitialAction,
-      setTargetYear,
-      setActionContext,
-      setSelectedRulesYear,
-      setShowContractModal,
-    ]
+    [currentYear, setSelectedPlayer, setSelectedRulesYear, openContractModal]
   );
 
   // Shared helper for renounce confirmation and execution
@@ -590,7 +586,6 @@ export function useArchitectActions({
       }
 
       setSelectedPlayer(player);
-      setTargetYear(year ?? null); // Store which year was clicked
       setSelectedRulesYear(year || currentYear);
 
       // Determine action context based on what was clicked
@@ -601,36 +596,36 @@ export function useArchitectActions({
         rfa: 'freeAgent',
       };
 
-      setInitialAction(null); // No pre-selection - user picks
-      setActionContext(contextMap[actionType] || null);
-      setShowContractModal(true);
+      // No pre-selection - user picks
+      openContractModal({
+        initialAction: null,
+        targetYear: year ?? null, // Store which year was clicked
+        actionContext: contextMap[actionType] || null,
+      });
     },
     [
       currentYear,
       confirmAndRenounceRights,
       setSelectedPlayer,
-      setTargetYear,
       setSelectedRulesYear,
-      setInitialAction,
-      setActionContext,
-      setShowContractModal,
+      openContractModal,
     ]
   );
 
   const handleSaveContract = useCallback(
     (player: ArchitectPlayer, contractData: SigningDetails): void => {
       capSheetState.signPlayer(player, contractData, 'signNew');
-      setShowContractModal(false);
+      closeContractModal();
     },
-    [capSheetState, setShowContractModal]
+    [capSheetState, closeContractModal]
   );
 
   const handleExtendContract = useCallback(
     (player: ArchitectPlayer, extensionContract: SigningDetails): void => {
       capSheetState.extendContract(player, extensionContract);
-      setShowContractModal(false);
+      closeContractModal();
     },
-    [capSheetState, setShowContractModal]
+    [capSheetState, closeContractModal]
   );
 
   const handleWaiveContract = useCallback(
@@ -641,17 +636,17 @@ export function useArchitectActions({
       if (!window.confirm(confirmMsg)) return;
 
       capSheetState.waivePlayer(player, { stretch, buyout });
-      setShowContractModal(false);
+      closeContractModal();
     },
-    [capSheetState, setShowContractModal]
+    [capSheetState, closeContractModal]
   );
 
   const handleOptionDecision = useCallback(
     (player: ArchitectPlayer, accepted: boolean): void => {
       capSheetState.exerciseOption(player, accepted);
-      setShowContractModal(false);
+      closeContractModal();
     },
-    [capSheetState, setShowContractModal]
+    [capSheetState, closeContractModal]
   );
 
   const handleRenounceRights = useCallback(
@@ -703,33 +698,6 @@ export function useArchitectActions({
     setOffseasonSummary,
   ]);
 
-  // === Modal Actions ===
-
-  const openSaveModal = useCallback((): void => {
-    // Guard: only allow if userId is available
-    if (!userId) return;
-    setShowSaveModal(true);
-  }, [userId, setShowSaveModal]);
-
-  const closeSaveModal = useCallback((): void => {
-    setShowSaveModal(false);
-  }, [setShowSaveModal]);
-
-  const closeContractModal = useCallback((): void => {
-    setShowContractModal(false);
-    setInitialAction(null);
-    setTargetYear(null);
-    setActionContext(null);
-    setSelectedRulesYear(currentYear);
-  }, [
-    currentYear,
-    setShowContractModal,
-    setInitialAction,
-    setTargetYear,
-    setActionContext,
-    setSelectedRulesYear,
-  ]);
-
   // === Save Plan Action ===
 
   const handleSavePlan = useCallback(async (): Promise<void> => {
@@ -748,7 +716,7 @@ export function useArchitectActions({
       setPlans(updated);
       setSelectedPlan(newPlanName.trim());
       setNewPlanName('');
-      setShowSaveModal(false);
+      closeSaveModal();
       finishSave();
     } catch (err) {
       console.error('Failed to save plan', err);
@@ -764,7 +732,7 @@ export function useArchitectActions({
     setPlans,
     setSelectedPlan,
     setNewPlanName,
-    setShowSaveModal,
+    closeSaveModal,
   ]);
 
   return {
@@ -783,10 +751,7 @@ export function useArchitectActions({
     // Trade actions
     applyTradeToCapSheet,
 
-    // Modal actions
-    openSaveModal,
-    closeSaveModal,
-    closeContractModal,
+    // Plan actions
     handleSavePlan,
   };
 }

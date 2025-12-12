@@ -4,13 +4,13 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { normalizeYearInput } from '../src/utils/architect/tradeMachine/utils/seasonUtils';
+import { normalizeYearInput } from '@/features/architect/utils/tradeMachine/utils/seasonUtils';
 
 describe('normalizeYearInput', () => {
   describe('with numeric year input', () => {
     it('should convert numeric end-year to both formats', () => {
       const result = normalizeYearInput(2025);
-      
+
       expect(result).toBeDefined();
       expect(result.endYear).toBe(2025);
       expect(result.seasonString).toBe('2024-25');
@@ -20,7 +20,7 @@ describe('normalizeYearInput', () => {
       const result2026 = normalizeYearInput(2026);
       expect(result2026.endYear).toBe(2026);
       expect(result2026.seasonString).toBe('2025-26');
-      
+
       const result2030 = normalizeYearInput(2030);
       expect(result2030.endYear).toBe(2030);
       expect(result2030.seasonString).toBe('2029-30');
@@ -30,7 +30,7 @@ describe('normalizeYearInput', () => {
   describe('with season string input', () => {
     it('should convert season string to both formats', () => {
       const result = normalizeYearInput('2024-25');
-      
+
       expect(result).toBeDefined();
       expect(result.endYear).toBe(2025);
       expect(result.seasonString).toBe('2024-25');
@@ -55,7 +55,7 @@ describe('normalizeYearInput', () => {
   describe('with numeric string input', () => {
     it('should convert numeric string to both formats', () => {
       const result = normalizeYearInput('2025');
-      
+
       expect(result).toBeDefined();
       expect(result.endYear).toBe(2025);
       expect(result.seasonString).toBe('2024-25');
@@ -79,7 +79,7 @@ describe('normalizeYearInput', () => {
       expect(result1999).toBeDefined();
       expect(result1999.endYear).toBe(1999);
       expect(result1999.seasonString).toBe('1998-99');
-      
+
       const result2050 = normalizeYearInput(2050);
       expect(result2050).toBeDefined();
       expect(result2050.endYear).toBe(2050);
@@ -92,10 +92,10 @@ describe('normalizeYearInput', () => {
       const fromNumeric = normalizeYearInput(2025);
       const fromSeason = normalizeYearInput('2024-25');
       const fromString = normalizeYearInput('2025');
-      
+
       expect(fromNumeric.endYear).toBe(fromSeason.endYear);
       expect(fromNumeric.seasonString).toBe(fromSeason.seasonString);
-      
+
       expect(fromNumeric.endYear).toBe(fromString.endYear);
       expect(fromNumeric.seasonString).toBe(fromString.seasonString);
     });
@@ -105,9 +105,9 @@ describe('normalizeYearInput', () => {
       // We should get back the same values
       const originalYear = 2025;
       const result = normalizeYearInput(originalYear);
-      
+
       expect(result.endYear).toBe(originalYear);
-      
+
       // And normalizing the season string should give same result
       const fromSeason = normalizeYearInput(result.seasonString);
       expect(fromSeason.endYear).toBe(result.endYear);

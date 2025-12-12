@@ -158,9 +158,6 @@ type ActiveTab =
   | 'offseason'
   | 'history';
 
-/** Action context for contract modal */
-type ActionContext = 'option' | 'freeAgent' | null;
-
 /** Map of players by various keys for fast lookup */
 type PlayersMap = Record<string, ArchitectPlayer>;
 
@@ -180,13 +177,6 @@ interface UseArchitectStateReturn {
   isLoading: boolean;
   isSaving: boolean;
   error: string;
-  showModal: boolean;
-  showSaveModal: boolean;
-  showContractModal: boolean;
-  newPlanName: string;
-  initialAction: string | null;
-  targetYear: number | null;
-  actionContext: ActionContext;
   lastCapSheet: CapSheet | null;
   offseasonRun: boolean;
   offseasonSummary: unknown | null;
@@ -207,13 +197,6 @@ interface UseArchitectStateReturn {
   setSelectedPlan: React.Dispatch<React.SetStateAction<string>>;
   setFreeAgents: React.Dispatch<React.SetStateAction<FreeAgent[]>>;
   setPlans: React.Dispatch<React.SetStateAction<PlanRef[]>>;
-  setShowModal: React.Dispatch<React.SetStateAction<boolean>>;
-  setShowSaveModal: React.Dispatch<React.SetStateAction<boolean>>;
-  setShowContractModal: React.Dispatch<React.SetStateAction<boolean>>;
-  setNewPlanName: React.Dispatch<React.SetStateAction<string>>;
-  setInitialAction: React.Dispatch<React.SetStateAction<string | null>>;
-  setTargetYear: React.Dispatch<React.SetStateAction<number | null>>;
-  setActionContext: React.Dispatch<React.SetStateAction<ActionContext>>;
   setLastCapSheet: React.Dispatch<React.SetStateAction<CapSheet | null>>;
   setOffseasonRun: React.Dispatch<React.SetStateAction<boolean>>;
   setOffseasonSummary: React.Dispatch<React.SetStateAction<unknown | null>>;
@@ -348,17 +331,6 @@ export function useArchitectState({
     // Only accept valid ViewMode values; fall back to 'baseline' for invalid/missing
     return stored === 'plan' || stored === 'baseline' ? stored : 'baseline';
   });
-
-  // === UI state ===
-  const [showModal, setShowModal] = useState<boolean>(false);
-  const [showSaveModal, setShowSaveModal] = useState<boolean>(false);
-  const [showContractModal, setShowContractModal] = useState<boolean>(false);
-  const [newPlanName, setNewPlanName] = useState<string>('');
-
-  // === Modal context ===
-  const [initialAction, setInitialAction] = useState<string | null>(null);
-  const [targetYear, setTargetYear] = useState<number | null>(null);
-  const [actionContext, setActionContext] = useState<ActionContext>(null);
 
   // === Offseason state ===
   const [lastCapSheet, setLastCapSheet] = useState<CapSheet | null>(null);
@@ -754,13 +726,6 @@ export function useArchitectState({
     isLoading,
     isSaving,
     error,
-    showModal,
-    showSaveModal,
-    showContractModal,
-    newPlanName,
-    initialAction,
-    targetYear,
-    actionContext,
     lastCapSheet,
     offseasonRun,
     offseasonSummary,
@@ -779,13 +744,6 @@ export function useArchitectState({
     setSelectedPlan,
     setFreeAgents,
     setPlans,
-    setShowModal,
-    setShowSaveModal,
-    setShowContractModal,
-    setNewPlanName,
-    setInitialAction,
-    setTargetYear,
-    setActionContext,
     setLastCapSheet,
     setOffseasonRun,
     setOffseasonSummary,

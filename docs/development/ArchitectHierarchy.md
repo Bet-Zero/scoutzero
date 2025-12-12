@@ -16,7 +16,9 @@ FreeAgentRow.jsx
 GMDashboard/
   GMDashboard.jsx
   hooks/
+    useArchitectActions.js
     useArchitectActions.ts
+    useArchitectModals.ts
     useArchitectState.ts
   index.jsx
   sections/
@@ -185,5 +187,5 @@ utils/
 ```
 
 ---
-*Generated on: 2025-12-12T11:31:40.010Z*
+*Generated on: 2025-12-12T12:52:32.080Z*
 *Auto-updated by: npm run docs*

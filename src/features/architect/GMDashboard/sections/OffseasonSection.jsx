@@ -22,7 +22,7 @@ const OffseasonSection = ({
   setLastCapSheet,
   setOffseasonRun,
   setOffseasonSummary,
-  setShowModal,
+  setShowOffseasonModal,
   playersMap,
 }) => (
   <OffseasonTab
@@ -34,7 +34,7 @@ const OffseasonSection = ({
     setLastCapSheet={setLastCapSheet}
     setOffseasonRun={setOffseasonRun}
     setOffseasonSummary={setOffseasonSummary}
-    setShowModal={setShowModal}
+    setShowOffseasonModal={setShowOffseasonModal}
     playersMap={playersMap}
   />
 );
