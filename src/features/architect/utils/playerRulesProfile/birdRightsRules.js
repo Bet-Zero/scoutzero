@@ -81,17 +81,21 @@ export function computeBirdRights(player, leagueContext) {
   // Require salaryCap from context - warn but continue with placeholder for backward compatibility
   // TODO: In future version, require salaryCap and return error result if missing
   const salaryCap = capSettings.salaryCap;
-  if (!salaryCap) {
-    console.warn('[birdRightsRules] Missing capSettings.salaryCap in leagueContext. Bird rights signing abilities may be inaccurate.');
+  const isValidCap = typeof salaryCap === 'number' && Number.isFinite(salaryCap) && salaryCap > 0;
+  if (!isValidCap) {
+    console.warn('[birdRightsRules] Missing or invalid capSettings.salaryCap in leagueContext. Bird rights signing abilities may be inaccurate.');
   }
-  const effectiveCap = salaryCap || 0; // Use 0 to make signing abilities clearly invalid
+  const effectiveCap = isValidCap ? salaryCap : 0; // Use 0 to make signing abilities clearly invalid
   const averageSalary = capSettings.averageSalary || DEFAULT_AVERAGE_SALARY;
 
   // Require currentYear from leagueContext for deterministic behavior
   const currentYear = leagueContext?.currentYear;
   if (!currentYear) {
+    console.warn('[birdRightsRules] Missing leagueContext.currentYear. Bird rights determination may be inaccurate.');
     // Return a safe default without attempting date-based computation
-    return buildBirdRightsInfo(BIRD_RIGHTS_TYPES.NONE, 0, player, effectiveCap, averageSalary);
+    const result = buildBirdRightsInfo(BIRD_RIGHTS_TYPES.NONE, 0, player, effectiveCap, averageSalary);
+    result.notes = 'Missing currentYear in leagueContext - determinism lost';
+    return result;
   }
 
   // Try to get Bird rights from existing contract data

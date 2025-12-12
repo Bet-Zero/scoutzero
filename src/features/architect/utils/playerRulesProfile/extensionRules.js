@@ -296,31 +296,51 @@ export function computeExtensionTerms(player, leagueContext, eligibility = null)
   }
 
   const { capSettings = {} } = leagueContext || {};
+  const currentSeason = leagueContext?.currentSeason || 'unknown';
   // Require salaryCap from context - warn but continue for backward compatibility
   // TODO: In future version, require salaryCap and return error result if missing
   const salaryCap = capSettings.salaryCap;
-  if (!salaryCap) {
-    console.warn('[extensionRules] Missing capSettings.salaryCap in leagueContext. Extension terms may be inaccurate.');
+  const isValidCap = typeof salaryCap === 'number' && Number.isFinite(salaryCap) && salaryCap > 0;
+  if (!isValidCap) {
+    console.warn(`[extensionRules] Missing or invalid capSettings.salaryCap in leagueContext for season ${currentSeason}. Extension terms may be inaccurate.`);
   }
-  const effectiveCap = salaryCap || 0; // Use 0 to make terms clearly invalid
+  const effectiveCap = isValidCap ? salaryCap : 0; // Use 0 to make terms clearly invalid
   const contract = player?.contract;
   // Compute currentYear once here to fully decouple from JS clock
   const currentYear = leagueContext?.currentYear || new Date().getFullYear();
 
+  let terms = null;
   switch (extEligibility.extensionType) {
     case EXTENSION_TYPES.ROOKIE:
-      return computeRookieExtensionTerms(player, effectiveCap, leagueContext);
+      terms = computeRookieExtensionTerms(player, effectiveCap, leagueContext);
+      break;
 
     case EXTENSION_TYPES.DESIGNATED_VETERAN:
-      return computeDesignatedVeteranTerms(player, effectiveCap);
+      terms = computeDesignatedVeteranTerms(player, effectiveCap);
+      break;
 
     case EXTENSION_TYPES.TRADE_RESTRICTED:
-      return computeTradeRestrictedTerms(player, contract, currentYear);
+      terms = computeTradeRestrictedTerms(player, contract, currentYear);
+      break;
 
     case EXTENSION_TYPES.VETERAN:
     default:
-      return computeVeteranExtensionTerms(player, contract, effectiveCap, leagueContext, currentYear);
+      terms = computeVeteranExtensionTerms(player, contract, effectiveCap, leagueContext, currentYear);
+      break;
   }
+
+  // Ensure min <= max invariant for any returned terms (create a new object to avoid mutation)
+  if (terms && typeof terms.minFirstYearSalary === 'number' && typeof terms.maxFirstYearSalary === 'number') {
+    if (terms.minFirstYearSalary > terms.maxFirstYearSalary) {
+      console.warn(`[extensionRules] Clamping minFirstYearSalary (${terms.minFirstYearSalary}) to maxFirstYearSalary (${terms.maxFirstYearSalary}). This may indicate an upstream calculation issue with effectiveCap=${effectiveCap}.`);
+      terms = {
+        ...terms,
+        minFirstYearSalary: terms.maxFirstYearSalary,
+      };
+    }
+  }
+
+  return terms;
 }
 
 /**

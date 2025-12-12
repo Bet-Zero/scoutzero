@@ -163,7 +163,7 @@ const ctx = buildRuleContextForPlayerMove({
     contract: {
       endSeason: '2025-26',
       salariesByYear: [
-        { season: '2025-26', salary: 52_000_000 }
+        { season: '2025-26', salary: 52_000_000 }  // illustrative value
       ],
       birdRights: { status: 'Full' },
     },
@@ -177,11 +177,15 @@ const ctx = buildRuleContextForPlayerMove({
 // - timing.operationSeasonId = '2026-27'
 // - timing.referenceSeasonId = '2025-26' (prior season for 105% calc)
 // - timing.capSeasonId = '2026-27'
-// - player.priorSeasonSalary = 52_000_000
+// - player.priorSeasonSalary = 52_000_000  (illustrative value)
 // - player.yearsOfServiceAtOperation = 22
 // - player.maxPercentBucket = 0.35 (10+ years)
-// - cap.salaryCap uses 2026-27 projection ($165.5M)
-// - Max salary = 35% × $165.5M ≈ $57.9M
+// - cap.salaryCap uses 2026-27 projection (see capProjections.js for current values)
+// - Max salary = 35% × cap (consult capProjections.js for exact amounts)
+//
+// NOTE: Dollar amounts above are illustrative examples. Actual cap projections
+// are time-dependent; refer to src/features/architect/utils/capProjections.js
+// for the canonical projection source.
 ```
 
 ### Example 3: Veteran Extension Starting 2027-28
@@ -195,7 +199,7 @@ const ctx = buildRuleContextForPlayerMove({
     contract: {
       endSeason: '2026-27',
       salariesByYear: [
-        { season: '2024-25', salary: 40_000_000 },
+        { season: '2024-25', salary: 40_000_000 },   // illustrative values
         { season: '2025-26', salary: 43_200_000 },
         { season: '2026-27', salary: 46_656_000 },
       ],
@@ -209,10 +213,14 @@ const ctx = buildRuleContextForPlayerMove({
 // - timing.operationSeasonId = '2027-28' (first extension year)
 // - timing.referenceSeasonId = '2026-27' (final year of current contract)
 // - timing.capSeasonId = '2027-28'
-// - player.priorSeasonSalary = 46_656_000
+// - player.priorSeasonSalary = 46_656_000  (illustrative value)
 // - player.yearsOfServiceAtOperation = 8
 // - player.maxPercentBucket = 0.30 (7-9 years)
-// - cap.salaryCap uses 2027-28 projection ($182M)
+// - cap.salaryCap uses 2027-28 projection (see capProjections.js for current values)
+//
+// NOTE: Dollar amounts above are illustrative examples. Actual cap projections
+// are time-dependent; refer to src/features/architect/utils/capProjections.js
+// for the canonical projection source.
 ```
 
 ## UI Integration
@@ -253,6 +261,7 @@ const ctx = buildRuleContextForPlayerMove({
 ## Migration Notes
 
 ### Before (Legacy Pattern)
+
 ```javascript
 // Hard-coded fallbacks
 const season = leagueContext.currentSeason || '2024-25';
@@ -260,6 +269,7 @@ const cap = capSettings.salaryCap || 140_588_000;
 ```
 
 ### After (RuleContext Pattern)
+
 ```javascript
 // Explicit context with validation
 const ctx = buildRuleContextForPlayerMove({ ... });

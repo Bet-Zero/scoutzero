@@ -213,8 +213,11 @@ describe('LeBron Full Bird UFA 2026 Case', () => {
     // Cap should be 2026-27 cap, NOT 2024-25
     const cap2627 = getCapForSeason('2026-27');
     const cap2425 = getCapForSeason('2024-25');
-    expect(cap2627).toBeTruthy();
-    expect(cap2425).toBeTruthy();
+    // Guard against null returns from getCapForSeason
+    expect(cap2627).toBeDefined();
+    expect(cap2627).not.toBeNull();
+    expect(cap2425).toBeDefined();
+    expect(cap2425).not.toBeNull();
     expect(ctx.cap.salaryCap).toBe(cap2627.salaryCap);
     expect(ctx.cap.salaryCap).not.toBe(cap2425.salaryCap);
   });
@@ -336,7 +339,17 @@ describe('Minimum Salary and Trade Cap Hit', () => {
     });
 
     expect(minResult.yearsOfService).toBe(2);
-    // 2 YOS should have a higher minimum than rookie
+    expect(minResult.minimumSalary).toBeGreaterThan(0);
+
+    // 2 YOS should have a higher minimum than rookie - compute rookie min for comparison
+    const rookieMinResult = computeMinimumSalary(ROOKIE_0_YOS, {
+      currentSeason: '2025-26',
+      currentYear: 2026,
+      capSettings: {
+        salaryCap: ctx.cap.salaryCap,
+      },
+    });
+    expect(minResult.minimumSalary).toBeGreaterThan(rookieMinResult.minimumSalary);
   });
 
   it('should compute 10+ year veteran minimum for 10 YOS', () => {
@@ -371,6 +384,26 @@ describe('Minimum Salary and Trade Cap Hit', () => {
 
     // 2027-28 cap should be higher (future projection)
     expect(ctx2728.cap.salaryCap).toBeGreaterThan(ctx2526.cap.salaryCap);
+
+    // Compute minimum salary for both contexts and verify season fields are different
+    const min2526 = computeMinimumSalary(VET_2_YOS, {
+      currentSeason: '2025-26',
+      currentYear: 2026,
+      capSettings: { salaryCap: ctx2526.cap.salaryCap },
+    });
+    const min2728 = computeMinimumSalary(VET_2_YOS, {
+      currentSeason: '2027-28',
+      currentYear: 2028,
+      capSettings: { salaryCap: ctx2728.cap.salaryCap },
+    });
+
+    // Verify season fields are correct
+    expect(min2526.season).toBe('2025-26');
+    expect(min2728.season).toBe('2027-28');
+
+    // Both should return valid minimum salaries
+    expect(min2526.minimumSalary).toBeGreaterThan(0);
+    expect(min2728.minimumSalary).toBeGreaterThan(0);
   });
 });
 
@@ -586,13 +619,13 @@ describe('RuleContext Validation', () => {
  * Test Suite 6: Season Derivation Logic
  */
 describe('Season Derivation by Operation Type', () => {
-  it('UFA_SIGNING should derive operationSeasonId from contract end + 1', () => {
-    // When no explicit operationSeasonId, should derive from player state
+  it('UFA_SIGNING should derive operationSeasonId from simulationDate/current season', () => {
+    // When no explicit operationSeasonId, should derive from simulation date
     const ctx = buildRuleContextForPlayerMove({
       player: LEBRON_2026_UFA,
       teamState: SAMPLE_TEAM_STATE,
       operationType: 'UFA_SIGNING',
-      // Not providing operationSeasonId - should derive
+      // Not providing operationSeasonId - should derive from simulationDate
       simulationDate: new Date('2025-07-15'), // Offseason 2025-26
     });
 
