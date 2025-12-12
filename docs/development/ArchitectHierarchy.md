@@ -22,6 +22,8 @@ SavePlanModal.jsx
 TeamHistoryTab.jsx
 ValidationWarnings.jsx
 WaiveStretchTracker.jsx
+data/
+  minimumSalaryScales.ts
 hooks/
   useArchitectPlayerData.js
   useCapSheetState.js
@@ -48,9 +50,14 @@ tradeMachine/
   TradeSummaryPanel.jsx
   TradeTeamCard.jsx
   TradeValidationPanel.jsx
+types/
+  index.ts
+  ruleContext.ts
 utils/
   architectCore.js
   basicArchitectUtils.js
+  buildRuleContext.ts
+  capHelpers.ts
   capProjections.js
   capUtils.js
   cashUtils.js
@@ -79,6 +86,7 @@ utils/
   salaryUtils.js
   schemaAdapter.js
   seasonFormat.js
+  seasonHelpers.ts
   seasonManager.js
   seasonUtils.js
   stepienUtils.js
@@ -157,5 +165,5 @@ utils/
 ```
 
 ---
-*Generated on: 2025-12-10T10:26:21.775Z*
+*Generated on: 2025-12-12T02:47:44.903Z*
 *Auto-updated by: npm run docs*
