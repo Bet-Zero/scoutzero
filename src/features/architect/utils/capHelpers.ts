@@ -15,6 +15,12 @@ import type { CapContext } from '../types/ruleContext';
 import { isValidSeasonId } from './seasonHelpers';
 import capProjections from './capProjections';
 import { DEFAULT_AVERAGE_SALARY } from './cbaConstants';
+import { 
+  MINIMUM_SALARY_SCALES, 
+  getScaleForSeason, 
+  getLatestScale,
+  getAvailableScaleSeasons 
+} from '../data/minimumSalaryScales';
 
 /**
  * Type for raw cap projection data from capProjections.js
@@ -153,50 +159,16 @@ export function getTaxLinesForSeason(seasonId: SeasonId): {
 
 /**
  * Get minimum salary scale for a specific season
- * This is a placeholder - actual scale should come from minimumSalaryRules.js
  * @param seasonId - Which season's minimum scale to retrieve
- * @returns Minimum salary scale or default
+ * @returns Minimum salary scale or fallback to latest available
  */
 export function getMinimumSalaryScale(seasonId: SeasonId): Record<number, number> {
-  // Import dynamically to avoid circular dependency
-  // For now, return a reference to where this should come from
-  const scales: Record<SeasonId, Record<number, number>> = {
-    '2024-25': {
-      0: 1_119_563,
-      1: 1_820_000,
-      2: 2_092_400,
-      3: 2_390_000,
-      4: 2_600_000,
-      5: 2_800_000,
-      6: 3_000_000,
-      7: 3_200_000,
-      8: 3_400_000,
-      9: 3_600_000,
-      10: 3_800_000,
-    },
-    '2025-26': {
-      0: 1_164_345,
-      1: 1_892_800,
-      2: 2_176_096,
-      3: 2_485_600,
-      4: 2_704_000,
-      5: 2_912_000,
-      6: 3_120_000,
-      7: 3_328_000,
-      8: 3_536_000,
-      9: 3_744_000,
-      10: 3_952_000,
-    },
-  };
-  
-  // Return scale for season if available, otherwise most recent
-  if (scales[seasonId]) {
-    return scales[seasonId];
+  // Try to get scale for requested season
+  const scale = getScaleForSeason(seasonId);
+  if (scale) {
+    return scale;
   }
   
-  // Fall back to most recent available scale using shared sort helper
-  const availableScaleSeasons = Object.keys(scales) as SeasonId[];
-  const sorted = sortSeasonsByStartYear(availableScaleSeasons, true); // Descending order
-  
-  return scales[sorted[0]] || scales['2024-25' as SeasonId];
+  // Fall back to latest available scale
+  return getLatestScale();
 }

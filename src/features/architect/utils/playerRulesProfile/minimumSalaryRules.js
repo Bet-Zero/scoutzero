@@ -9,41 +9,14 @@
  * @file src/features/architect/utils/playerRulesProfile/minimumSalaryRules.js
  */
 
+// Import centralized minimum salary scales
+import { MINIMUM_SALARY_SCALES } from '../../data/minimumSalaryScales';
+
 /**
- * Minimum salary scale by years of service for 2024-25 season
- * These values are based on the CBA and should be updated annually
- *
- * Reference: Article II, Sec. 6 - Minimum Player Salary Rule
+ * Re-export for backward compatibility
+ * @deprecated Import from '@/features/architect/data/minimumSalaryScales' instead
  */
-export const MINIMUM_SALARY_SCALE = {
-  '2024-25': {
-    0: 1_119_563, // Rookie minimum
-    1: 1_820_000,
-    2: 2_092_400,
-    3: 2_390_000,
-    4: 2_600_000,
-    5: 2_800_000,
-    6: 3_000_000,
-    7: 3_200_000,
-    8: 3_400_000,
-    9: 3_600_000,
-    10: 3_800_000, // 10+ years same as 10
-  },
-  '2025-26': {
-    // Projected values with ~4% increase
-    0: 1_164_345,
-    1: 1_892_800,
-    2: 2_176_096,
-    3: 2_485_600,
-    4: 2_704_000,
-    5: 2_912_000,
-    6: 3_120_000,
-    7: 3_328_000,
-    8: 3_536_000,
-    9: 3_744_000,
-    10: 3_952_000,
-  },
-};
+export const MINIMUM_SALARY_SCALE = MINIMUM_SALARY_SCALES;
 
 /**
  * Get the minimum salary scale for a given season
@@ -56,18 +29,18 @@ export function getMinimumSalaryScale(season) {
   const seasonCode = normalizeSeasonCode(season);
 
   // Return scale for the season, or fall back to most recent
-  if (MINIMUM_SALARY_SCALE[seasonCode]) {
-    return MINIMUM_SALARY_SCALE[seasonCode];
+  if (MINIMUM_SALARY_SCALES[seasonCode]) {
+    return MINIMUM_SALARY_SCALES[seasonCode];
   }
 
   // Fall back to the latest available scale
-  const seasons = Object.keys(MINIMUM_SALARY_SCALE).sort((a, b) => {
+  const seasons = Object.keys(MINIMUM_SALARY_SCALES).sort((a, b) => {
     const yearA = parseInt(a.split('-')[0], 10) || 0;
     const yearB = parseInt(b.split('-')[0], 10) || 0;
     return yearA - yearB;
   });
   const latestSeason = seasons[seasons.length - 1];
-  return MINIMUM_SALARY_SCALE[latestSeason];
+  return MINIMUM_SALARY_SCALES[latestSeason];
 }
 
 /**
