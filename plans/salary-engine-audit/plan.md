@@ -110,7 +110,7 @@ The "Salary Engine" is **NOT a new parallel system**. It is:
 
 ### Module Location
 
-```
+```plaintext
 src/features/architect/utils/salaryEngine/
 ├── index.ts           # Main exports (re-exports from submodules)
 ├── salaryEngine.ts    # Thin wrappers that handle context building
@@ -290,6 +290,46 @@ export const getMinSalaryProfile = computeMinimumSalaryFromRuleContext;
 2. Add `@deprecated` JSDoc to functions in `utils/extensionRules.js`
 3. Update `contractUtils.js` to use centralized scales
 4. Add deprecation warnings to legacy function calls
+
+### Deprecation & Migration
+
+| Deprecated Function | Location | Deprecated In | Removal Target | Migration Path |
+|---------------------|----------|---------------|----------------|----------------|
+| `isExtensionEligible()` | `utils/extensionRules.js` | Phase 3 | v2.0 or 6 months | Use `rulesProfile.extensionEligibility.isEligible` |
+| `getExtensionEligibilityReason()` | `utils/extensionRules.js` | Phase 3 | v2.0 or 6 months | Use `rulesProfile.extensionEligibility.reason` |
+| `getExtensionMaxDetails()` | `utils/extensionRules.js` | Phase 3 | v2.0 or 6 months | Use `rulesProfile.extensionTerms` |
+| `getMinimumSalary()` | `utils/contractUtils.js` | Phase 3 | v2.0 or 6 months | Use `computeMinimumSalary()` from `playerRulesProfile` |
+| `createMaxContract()` (hard-coded) | `utils/contractUtils.js` | Phase 3 | v2.0 or 6 months | Update internally to use `computeMaxSalary()` |
+
+**Caller Migration Steps:**
+
+1. **For `utils/extensionRules.js` callers:**
+   - Replace `isExtensionEligible(player, year)` with `computePlayerRulesProfile(player, {}, leagueContext).extensionEligibility.isEligible`
+   - Replace `getExtensionMaxDetails(player, capSettings)` with `computePlayerRulesProfile(player, {}, leagueContext).extensionTerms`
+
+2. **For `useCapValidation.js`:**
+   - Remove fallback to `getExtensionEligibilityReason()` when `rulesProfile` is missing
+   - Always require `rulesProfile` parameter OR gracefully return empty validation when missing
+   - Fallback behavior: If `rulesProfile` is null/undefined, return `{ warnings: [], errors: [], isValid: true }` with a console warning
+
+3. **For `contractUtils.js` hard-coded scales:**
+   - Migration will be **atomic** (single commit) since the function internals change but signature stays the same
+   - Rollback: If issues arise, revert the single commit; no phased rollback needed
+   - The hard-coded `rookieScale` object stays but `getMinimumSalary()` will delegate to centralized `MINIMUM_SALARY_SCALES`
+
+### Test Coverage Strategy
+
+| Phase | Tests to Add/Modify |
+|-------|---------------------|
+| Phase 1 | **No new tests** - purely re-exports, existing tests cover underlying functions |
+| Phase 2 | **Unit tests for each `*FromRuleContext` variant**: `birdRightsRules.test.js` (add `computeBirdRightsFromRuleContext` tests), `extensionRules.test.js` (add `computeExtensionFromRuleContext` tests), `rfaRules.test.js` (add `computeRFAFromRuleContext` tests) |
+| Phase 3 | **Update `useCapValidation.test.js`**: Assert rulesProfile-only behavior, test fallback when rulesProfile is null/undefined returns empty validation, remove tests for legacy code paths |
+| Phase 4 | **Integration tests**: Add `salaryEngine.integration.test.ts` testing full `getSalaryProfile()` flow with mock player data |
+
+**Test Assertions for Phase 3 (`useCapValidation`):**
+- When `rulesProfile` provided: validation uses profile values exclusively
+- When `rulesProfile` missing: returns `{ warnings: [], errors: [], isValid: true }` (no blocking validation)
+- No calls to legacy `getExtensionEligibilityReason()` in any code path
 
 ### Phase 4: Tests & Documentation
 **Scope**: ~2 hours
