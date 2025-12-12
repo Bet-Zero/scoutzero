@@ -100,6 +100,7 @@ interface RuleContext {
 ### From Direct `playerRulesProfile` Calls
 
 Before:
+
 ```typescript
 import { computeMaxSalary } from '@/features/architect/utils/playerRulesProfile';
 
@@ -107,6 +108,7 @@ const maxInfo = computeMaxSalary(player, leagueContext);
 ```
 
 After:
+
 ```typescript
 import { getMaxSalaryProfile, buildRuleContextForPlayerMove } from '@/features/architect/utils/salaryEngine';
 
@@ -131,7 +133,7 @@ The functions in `src/features/architect/utils/extensionRules.js` are **deprecat
 
 ## File Structure
 
-```
+```text
 src/features/architect/utils/salaryEngine/
 ├── index.ts           # Main exports (re-exports from submodules)
 ├── salaryEngine.ts    # Thin wrappers that handle RuleContext

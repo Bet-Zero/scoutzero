@@ -1,4 +1,4 @@
-// src/utils/architect/extensionRules.js
+// src/features/architect/utils/extensionRules.js
 
 /**
  * @deprecated This module is deprecated in favor of the Salary Engine.
@@ -7,6 +7,7 @@
  * Migration:
  * - `isExtensionEligible(player, year)` → `getExtensionProfile(ctx).eligibility.isEligible`
  * - `getExtensionEligibilityReason(player, year)` → `getExtensionProfile(ctx).eligibility.reason`
+ * - `getExtensionEligibilityDate(player)` → `getExtensionProfile(ctx).eligibility.eligibleDate`
  * - `getExtensionMaxDetails(player, caps)` → `getExtensionProfile(ctx).terms`
  *
  * The Salary Engine provides consistent timing and cap handling via RuleContext.

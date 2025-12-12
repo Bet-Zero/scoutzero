@@ -45,7 +45,7 @@ export {
   getRFAProfile,
   EXTENSION_TYPES,
   RFA_STATUS,
-} from './salaryEngine';
+} from '@/features/architect/utils/salaryEngine/salaryEngine';
 
 // ============= Profile Functions (delegated to playerRulesProfile) =============
 export {
@@ -74,7 +74,7 @@ export {
   computeRFAStatus,
   computeQualifyingOffer,
   computeRFAFromRuleContext,
-} from '../playerRulesProfile';
+} from '@/features/architect/utils/playerRulesProfile';
 
 // ============= Context Builders =============
 export {
@@ -82,7 +82,7 @@ export {
   buildMinimalRuleContext,
   validateRuleContext,
   RuleContextValidationError,
-} from '../buildRuleContext';
+} from '@/features/architect/utils/buildRuleContext';
 
 // ============= Cap Data Lookups =============
 export {
@@ -93,7 +93,7 @@ export {
   getAvailableSeasons,
   getSupportedSeasonRange,
   getTaxLinesForSeason,
-} from '../capHelpers';
+} from '@/features/architect/utils/capHelpers';
 
 // ============= Season Utilities =============
 export {
@@ -104,7 +104,7 @@ export {
   getCurrentSeasonId,
   makeSeasonIdFromEndYear,
   normalizeToSeasonId,
-} from '../seasonHelpers';
+} from '@/features/architect/utils/seasonHelpers';
 
 // ============= Types =============
 export type {
@@ -121,7 +121,7 @@ export type {
   RFAInfo,
   SigningAbilities,
   BirdRightsConfig,
-} from './types';
+} from '@/features/architect/utils/salaryEngine/types';
 
 // Re-export additional RuleContext types for completeness
 export type {
@@ -137,4 +137,4 @@ export type {
   ExceptionType,
   HardCapTrigger,
   RuleContextErrorCode,
-} from '../../types/ruleContext';
+} from '@/features/architect/types/ruleContext';

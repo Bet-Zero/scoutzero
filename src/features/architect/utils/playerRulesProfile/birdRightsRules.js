@@ -404,9 +404,13 @@ export function computeBirdRightsFromRuleContext(ctx) {
 
   const { player: playerCtx, cap } = ctx;
 
-  // Extract values from RuleContext
-  const salaryCap = cap.salaryCap || 0;
-  const averageSalary = cap.averagePlayerSalary || DEFAULT_AVERAGE_SALARY;
+  // Extract values from RuleContext with proper validation (consistent with computeBirdRights)
+  const salaryCap = typeof cap.salaryCap === 'number' && Number.isFinite(cap.salaryCap) && cap.salaryCap > 0
+    ? cap.salaryCap
+    : 0;
+  const averageSalary = typeof cap.averagePlayerSalary === 'number' && Number.isFinite(cap.averagePlayerSalary) && cap.averagePlayerSalary > 0
+    ? cap.averagePlayerSalary
+    : DEFAULT_AVERAGE_SALARY;
 
   // Map birdTypeAtOperation to our constants
   const birdTypeMap = {
@@ -422,7 +426,7 @@ export function computeBirdRightsFromRuleContext(ctx) {
   // We need the prior salary for signing ability calculations
   const syntheticPlayer = {
     contract: {
-      salariesByYear: playerCtx.priorSeasonSalary
+      salariesByYear: playerCtx.priorSeasonSalary != null
         ? [{ season: ctx.timing.referenceSeasonId, salary: playerCtx.priorSeasonSalary }]
         : [],
     },

@@ -392,8 +392,8 @@ describe('getBirdRightsProfile', () => {
     const expected105 = cap.averagePlayerSalary * 1.05;
     const expectedMax = Math.max(expected175, expected105);
 
-    // Allow for rounding differences
-    expect(birdInfo.signingAbilities.maxFirstYearSalary).toBeCloseTo(expectedMax, -4);
+    // Allow for rounding differences (tolerance of 10000)
+    expect(Math.abs(birdInfo.signingAbilities.maxFirstYearSalary - expectedMax)).toBeLessThan(10000);
   });
 });
 

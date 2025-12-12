@@ -399,6 +399,16 @@ export function computeRFAFromRuleContext(ctx) {
 
   const { timing, player: playerCtx, cap } = ctx;
 
+  // Require explicit operationDate - do not fall back to new Date()
+  if (!timing.operationDate) {
+    return {
+      isRFA: false,
+      qualifyingOfferEligible: false,
+      reason: 'Cannot compute RFA status: missing operationDate in RuleContext',
+      status: RFA_STATUS.UNKNOWN,
+    };
+  }
+
   // Parse the operation season to derive currentYear
   const parseSeasonYear = (seasonId) => {
     if (!seasonId) return null;
@@ -421,6 +431,16 @@ export function computeRFAFromRuleContext(ctx) {
     };
   }
 
+  // Require explicit contract expiry data - do not assume expiring
+  if (!playerCtx.contractEndSeasonId) {
+    return {
+      isRFA: false,
+      qualifyingOfferEligible: false,
+      reason: 'Cannot compute RFA status: missing contract expiry validation (no contractEndSeasonId)',
+      status: RFA_STATUS.UNKNOWN,
+    };
+  }
+
   // Build a synthetic player object from RuleContext
   const syntheticPlayer = {
     playerId: playerCtx.playerId,
@@ -431,32 +451,32 @@ export function computeRFAFromRuleContext(ctx) {
     },
     yearsOfService: playerCtx.yearsOfServiceAtOperation ?? 0,
     draftYear: playerCtx.draftInfo?.year ?? null,
-    contract: playerCtx.contractEndSeasonId
-      ? {
-          contractType: playerCtx.isRookieScale ? 'Rookie Scale' : 'Standard',
-          isRookieScale: playerCtx.isRookieScale,
-          endSeason: playerCtx.contractEndSeasonId,
-          yearsRemaining: 1, // Assume expiring for RFA context
-          salariesByYear: playerCtx.priorSeasonSalary
-            ? [{ season: timing.referenceSeasonId, salary: playerCtx.priorSeasonSalary }]
-            : playerCtx.currentSeasonSalary
-              ? [{ season: timing.operationSeasonId, salary: playerCtx.currentSeasonSalary }]
-              : [],
-          birdRights: {
-            status: playerCtx.birdTypeAtOperation,
-          },
-          freeAgency: {
-            year: currentYear,
-          },
-        }
-      : null,
+    contract: {
+      contractType: playerCtx.isRookieScale ? 'Rookie Scale' : 'Standard',
+      isRookieScale: playerCtx.isRookieScale,
+      endSeason: playerCtx.contractEndSeasonId,
+      // Note: yearsRemaining should ideally come from explicit context data
+      // Setting to 1 when we have contractEndSeasonId matching operation season
+      yearsRemaining: 1,
+      salariesByYear: playerCtx.priorSeasonSalary != null
+        ? [{ season: timing.referenceSeasonId, salary: playerCtx.priorSeasonSalary }]
+        : playerCtx.currentSeasonSalary != null
+          ? [{ season: timing.operationSeasonId, salary: playerCtx.currentSeasonSalary }]
+          : [],
+      birdRights: {
+        status: playerCtx.birdTypeAtOperation,
+      },
+      freeAgency: {
+        year: currentYear,
+      },
+    },
   };
 
   // Build leagueContext from RuleContext
   const leagueContext = {
     currentSeason: timing.operationSeasonId,
     currentYear,
-    simulationDate: timing.operationDate || new Date(),
+    simulationDate: timing.operationDate,
     capSettings: {
       salaryCap: cap.salaryCap,
     },

@@ -580,6 +580,19 @@ export function computeExtensionFromRuleContext(ctx) {
 
   const { timing, player: playerCtx, cap } = ctx;
 
+  // Validate required operationDate
+  if (!timing.operationDate) {
+    return {
+      eligibility: {
+        isEligible: false,
+        reason: 'Cannot compute extension: missing operationDate in RuleContext',
+        blockers: ['Missing operationDate'],
+        extensionType: EXTENSION_TYPES.INELIGIBLE,
+      },
+      terms: null,
+    };
+  }
+
   // Parse the operation season to derive currentYear
   const parseSeasonYear = (seasonId) => {
     if (!seasonId) return null;
@@ -605,7 +618,23 @@ export function computeExtensionFromRuleContext(ctx) {
     };
   }
 
+  // Validate contract metadata - return error if missing critical data
+  // Extension eligibility requires contract length and related metadata
+  if (!playerCtx.contractEndSeasonId) {
+    return {
+      eligibility: {
+        isEligible: false,
+        reason: 'Cannot compute extension: missing contract metadata in RuleContext (no contractEndSeasonId)',
+        blockers: ['Missing contract end season'],
+        extensionType: EXTENSION_TYPES.INELIGIBLE,
+      },
+      terms: null,
+    };
+  }
+
   // Build a synthetic player object from RuleContext
+  // Note: Some fields like originalLength, awards, lastTradedDate, signingDate
+  // are not available in RuleContext and would need to be added for complete eligibility checks
   const syntheticPlayer = {
     playerId: playerCtx.playerId,
     bio: {
@@ -617,13 +646,13 @@ export function computeExtensionFromRuleContext(ctx) {
       contractType: playerCtx.isRookieScale ? 'Rookie Scale' : 'Standard',
       isRookieScale: playerCtx.isRookieScale,
       endSeason: playerCtx.contractEndSeasonId,
-      // Estimate contract length and years remaining from context
-      // If we have contractEndSeasonId, we can derive some info
-      contractLength: 4, // Default assumption
-      yearsRemaining: playerCtx.contractEndSeasonId ? 1 : 0,
-      salariesByYear: playerCtx.priorSeasonSalary
+      // Note: contractLength and yearsRemaining are estimates when not explicitly provided
+      // For accurate eligibility, these should be added to PlayerContext in buildRuleContext
+      contractLength: 4, // Default assumption - may affect eligibility accuracy
+      yearsRemaining: 1, // Assume expiring since we have contractEndSeasonId
+      salariesByYear: playerCtx.priorSeasonSalary != null
         ? [{ season: timing.referenceSeasonId, salary: playerCtx.priorSeasonSalary }]
-        : playerCtx.currentSeasonSalary
+        : playerCtx.currentSeasonSalary != null
           ? [{ season: timing.operationSeasonId, salary: playerCtx.currentSeasonSalary }]
           : [],
       birdRights: {
@@ -631,7 +660,8 @@ export function computeExtensionFromRuleContext(ctx) {
         yearsWithTeam: 0, // Not directly available from PlayerContext
       },
     },
-    // Copy awards if present (for supermax check)
+    // Note: awards, lastTradedDate, signingDate not available in RuleContext
+    // This may affect supermax and trade-restriction eligibility checks
     awards: [],
   };
 
@@ -639,7 +669,7 @@ export function computeExtensionFromRuleContext(ctx) {
   const leagueContext = {
     currentSeason: timing.operationSeasonId,
     currentYear,
-    simulationDate: timing.operationDate || new Date(),
+    simulationDate: timing.operationDate,
     capSettings: {
       salaryCap: cap.salaryCap,
       averageSalary: cap.averagePlayerSalary,

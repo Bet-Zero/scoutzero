@@ -157,6 +157,12 @@ const getCapSettings = (year) => {
       return yearA - yearB;
     });
     const latestSeason = availableSeasons[availableSeasons.length - 1];
+    
+    // Guard against empty capProjections
+    if (!latestSeason) {
+      return null;
+    }
+    
     console.warn(`Cap data not found for season ${key}, falling back to ${latestSeason}`);
     return capProjections[latestSeason] || null;
   }
@@ -187,9 +193,10 @@ export function useCapValidation({
   return useMemo(() => {
     const warnings = [];
     const errors = [];
+    let incomplete = false;
 
     if (!player || !action) {
-      return { warnings, errors, isValid: true };
+      return { warnings, errors, isValid: true, incomplete };
     }
 
     // Determine which year to use for cap calculations
@@ -201,7 +208,7 @@ export function useCapValidation({
     const yearCapHit = calculateTeamCapHit(teamPlayers, actionYear);
 
     const { cap, tax, firstApron, secondApron, fullMLE, taxpayerMLE, bae } =
-      capSettings;
+      capSettings || {};
 
     // ===== TIMING VALIDATION FOR OPTIONS =====
     if (action === 'accept' || action === 'decline') {
@@ -323,6 +330,7 @@ export function useCapValidation({
         // rulesProfile not provided - skip extension validation with info message
         // This ensures we don't use deprecated legacy functions
         // Callers should provide rulesProfile for complete validation
+        incomplete = true;
         warnings.push({
           severity: 'info',
           message: 'Extension validation skipped: rulesProfile not provided',
@@ -501,7 +509,7 @@ export function useCapValidation({
 
     const isValid = errors.length === 0;
 
-    return { warnings, errors, isValid };
+    return { warnings, errors, isValid, incomplete };
   }, [
     player,
     action,

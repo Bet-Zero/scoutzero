@@ -19,7 +19,7 @@
  * - Backward compatible: Legacy functions are still accessible via re-exports
  */
 
-import type { RuleContext, PlayerRuleContext } from '../../types/ruleContext';
+import type { RuleContext } from '@/features/architect/types/ruleContext';
 import type {
   SalaryProfile,
   MaxSalaryInfo,
@@ -27,14 +27,14 @@ import type {
   BirdRightsInfo,
   ExtensionProfile,
   RFAInfo,
-} from './types';
+} from '@/features/architect/utils/salaryEngine/types';
 
 // Import from playerRulesProfile - the canonical implementations
-import { computeMaxSalaryFromRuleContext } from '../playerRulesProfile/maxSalaryRules';
-import { computeMinimumSalaryFromRuleContext } from '../playerRulesProfile/minimumSalaryRules';
-import { computeBirdRightsFromRuleContext } from '../playerRulesProfile/birdRightsRules';
-import { computeExtensionFromRuleContext, EXTENSION_TYPES } from '../playerRulesProfile/extensionRules';
-import { computeRFAFromRuleContext, RFA_STATUS } from '../playerRulesProfile/rfaRules';
+import { computeMaxSalaryFromRuleContext } from '@/features/architect/utils/playerRulesProfile/maxSalaryRules';
+import { computeMinimumSalaryFromRuleContext } from '@/features/architect/utils/playerRulesProfile/minimumSalaryRules';
+import { computeBirdRightsFromRuleContext } from '@/features/architect/utils/playerRulesProfile/birdRightsRules';
+import { computeExtensionFromRuleContext, EXTENSION_TYPES } from '@/features/architect/utils/playerRulesProfile/extensionRules';
+import { computeRFAFromRuleContext, RFA_STATUS } from '@/features/architect/utils/playerRulesProfile/rfaRules';
 
 /**
  * Get complete salary profile for a player using RuleContext

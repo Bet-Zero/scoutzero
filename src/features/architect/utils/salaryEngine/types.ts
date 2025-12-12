@@ -10,11 +10,9 @@
  *  - Plan: plans/salary-engine-audit/plan.md
  */
 
-import type { SeasonId } from '../seasonHelpers';
-
 // Re-export RuleContext types for convenience
-export type { RuleContext, PlayerRuleContext } from '../../types/ruleContext';
-export type { SeasonId } from '../seasonHelpers';
+export type { RuleContext, PlayerRuleContext } from '@/features/architect/types/ruleContext';
+export type { SeasonId } from '@/features/architect/utils/seasonHelpers';
 
 /**
  * Max salary information returned by getMaxSalaryProfile
