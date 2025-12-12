@@ -551,3 +551,152 @@ function getMonthsBetween(startDate, endDate) {
     (endDate.getMonth() - startDate.getMonth());
   return Math.max(0, months);
 }
+
+/**
+ * Compute extension eligibility and terms from RuleContext
+ *
+ * This variant extracts all necessary fields from RuleContext for
+ * consistent timing and cap data across the application.
+ *
+ * @param {Object} ctx - RuleContext object
+ * @param {Object} ctx.timing - Timing context with operationDate, operationSeasonId
+ * @param {Object} ctx.player - Player context with playerId, isRookieScale, draftInfo, etc.
+ * @param {Object} ctx.cap - Cap context with salaryCap
+ * @returns {Object} Extension profile with eligibility and terms
+ */
+export function computeExtensionFromRuleContext(ctx) {
+  // Validate required context
+  if (!ctx || !ctx.timing || !ctx.player || !ctx.cap) {
+    return {
+      eligibility: {
+        isEligible: false,
+        reason: 'Cannot compute extension: invalid or missing RuleContext',
+        blockers: ['Missing context'],
+        extensionType: EXTENSION_TYPES.INELIGIBLE,
+      },
+      terms: null,
+    };
+  }
+
+  const { timing, player: playerCtx, cap } = ctx;
+
+  // Validate required operationDate
+  if (!timing.operationDate) {
+    return {
+      eligibility: {
+        isEligible: false,
+        reason: 'Cannot compute extension: missing operationDate in RuleContext',
+        blockers: ['Missing operationDate'],
+        extensionType: EXTENSION_TYPES.INELIGIBLE,
+      },
+      terms: null,
+    };
+  }
+
+  // Parse the operation season to derive currentYear
+  const parseSeasonYear = (seasonId) => {
+    if (!seasonId) return null;
+    const match = String(seasonId).match(/^(\d{4})-(\d{2})$/);
+    if (match) {
+      return 2000 + parseInt(match[2], 10);
+    }
+    return null;
+  };
+
+  const currentYear = parseSeasonYear(timing.operationSeasonId);
+  
+  // If we can't parse the season, return an error rather than using a fallback
+  if (!currentYear) {
+    return {
+      eligibility: {
+        isEligible: false,
+        reason: `Cannot compute extension: invalid operationSeasonId "${timing.operationSeasonId}"`,
+        blockers: ['Invalid season format'],
+        extensionType: EXTENSION_TYPES.INELIGIBLE,
+      },
+      terms: null,
+    };
+  }
+
+  // Validate contract metadata - return error if missing critical data
+  // Extension eligibility requires contract length and related metadata
+  if (!playerCtx.contractEndSeasonId) {
+    return {
+      eligibility: {
+        isEligible: false,
+        reason: 'Cannot compute extension: missing contract metadata in RuleContext (no contractEndSeasonId)',
+        blockers: ['Missing contract end season'],
+        extensionType: EXTENSION_TYPES.INELIGIBLE,
+      },
+      terms: null,
+    };
+  }
+
+  // Check for required contract metadata fields
+  // originalContractLength is required for accurate extension eligibility calculations
+  if (!playerCtx.originalContractLength) {
+    return {
+      eligibility: {
+        isEligible: false,
+        reason: 'Missing contract metadata in RuleContext',
+        blockers: ['originalContractLength field required for extension eligibility'],
+        extensionType: EXTENSION_TYPES.INELIGIBLE,
+      },
+      terms: null,
+    };
+  }
+
+  // Build a synthetic player object from RuleContext
+  // Using actual contract metadata from playerCtx when available
+  const syntheticPlayer = {
+    playerId: playerCtx.playerId,
+    bio: {
+      draftYear: playerCtx.draftInfo?.year ?? null,
+      experience: playerCtx.yearsOfServiceAtOperation ?? 0,
+    },
+    draftYear: playerCtx.draftInfo?.year ?? null,
+    contract: {
+      contractType: playerCtx.isRookieScale ? 'Rookie Scale' : 'Standard',
+      isRookieScale: playerCtx.isRookieScale,
+      endSeason: playerCtx.contractEndSeasonId,
+      // Use actual contract metadata from playerCtx
+      contractLength: playerCtx.originalContractLength,
+      yearsRemaining: playerCtx.contractYearsRemaining ?? 1,
+      salariesByYear: playerCtx.priorSeasonSalary != null
+        ? [{ season: timing.referenceSeasonId, salary: playerCtx.priorSeasonSalary }]
+        : playerCtx.currentSeasonSalary != null
+          ? [{ season: timing.operationSeasonId, salary: playerCtx.currentSeasonSalary }]
+          : [],
+      birdRights: {
+        status: playerCtx.birdTypeAtOperation,
+        yearsWithTeam: 0, // Not directly available from PlayerContext
+      },
+    },
+    // Use actual awards/dates from playerCtx when available
+    awards: playerCtx.awards || [],
+    lastTradedDate: playerCtx.lastTradedDate || null,
+    signingDate: playerCtx.signingDate || null,
+  };
+
+  // Build leagueContext from RuleContext
+  const leagueContext = {
+    currentSeason: timing.operationSeasonId,
+    currentYear,
+    simulationDate: timing.operationDate,
+    capSettings: {
+      salaryCap: cap.salaryCap,
+      averageSalary: cap.averagePlayerSalary,
+    },
+  };
+
+  // Use the existing functions with the synthetic inputs
+  const eligibility = computeExtensionEligibility(syntheticPlayer, leagueContext);
+  const terms = eligibility.isEligible
+    ? computeExtensionTerms(syntheticPlayer, leagueContext, eligibility)
+    : null;
+
+  return {
+    eligibility,
+    terms,
+  };
+}
