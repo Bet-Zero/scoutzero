@@ -58,13 +58,14 @@ const LEBRON_2026_UFA = {
 };
 
 // Rookie with 0 years of service
-// Note: For 2025-26 season signing, a 2025 draftee has 0 YOS (first year)
+// For 2025-26 operation season, a player drafted in 2025 has 0 YOS
+// (Their rookie season is 2025-26, YOS = 2025 - 2025 = 0)
 const ROOKIE_0_YOS = {
   playerId: 'rookie_0_test',
   displayName: 'Rookie Zero YOS',
   bio: {
     experience: 0,
-    draftYear: 2025, // Drafted 2025 means 0 YOS in 2025-26
+    draftYear: 2025, // Drafted 2025 → rookie season 2025-26 → 0 YOS
     draftRound: 1,
     draftPick: 15,
   },
@@ -483,6 +484,7 @@ describe('View Season vs Operation Season', () => {
 
   it('should use explicit operationSeasonId over derived value', () => {
     // Player contract ends 2025-26, but we explicitly say operation is 2028-29
+    // This tests the ability to model future signings
     const ctx = buildRuleContextForPlayerMove({
       player: LEBRON_2026_UFA,
       teamState: SAMPLE_TEAM_STATE,
@@ -493,7 +495,8 @@ describe('View Season vs Operation Season', () => {
     // Explicit operationSeasonId should override any derivation
     expect(ctx.timing.operationSeasonId).toBe('2028-29');
 
-    // Reference season should be previous to operation
+    // Reference season is always the season before operation for UFA signings
+    // (used for cap lookups, not for player's contract salary - that comes from contract data)
     expect(ctx.timing.referenceSeasonId).toBe('2027-28');
   });
 
