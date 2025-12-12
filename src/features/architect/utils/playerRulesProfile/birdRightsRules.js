@@ -78,14 +78,24 @@ const BIRD_RIGHTS_CONFIG = {
  */
 export function computeBirdRights(player, leagueContext) {
   const { capSettings = {} } = leagueContext || {};
-  const salaryCap = capSettings.salaryCap || 140_588_000;
+  // Require salaryCap from context - warn but continue with placeholder for backward compatibility
+  // TODO: In future version, require salaryCap and return error result if missing
+  const salaryCap = capSettings.salaryCap;
+  const isValidCap = typeof salaryCap === 'number' && Number.isFinite(salaryCap) && salaryCap > 0;
+  if (!isValidCap) {
+    console.warn('[birdRightsRules] Missing or invalid capSettings.salaryCap in leagueContext. Bird rights signing abilities may be inaccurate.');
+  }
+  const effectiveCap = isValidCap ? salaryCap : 0; // Use 0 to make signing abilities clearly invalid
   const averageSalary = capSettings.averageSalary || DEFAULT_AVERAGE_SALARY;
 
   // Require currentYear from leagueContext for deterministic behavior
   const currentYear = leagueContext?.currentYear;
   if (!currentYear) {
+    console.warn('[birdRightsRules] Missing leagueContext.currentYear. Bird rights determination may be inaccurate.');
     // Return a safe default without attempting date-based computation
-    return buildBirdRightsInfo(BIRD_RIGHTS_TYPES.NONE, 0, player, salaryCap, averageSalary);
+    const result = buildBirdRightsInfo(BIRD_RIGHTS_TYPES.NONE, 0, player, effectiveCap, averageSalary);
+    result.notes = 'Missing currentYear in leagueContext - determinism lost';
+    return result;
   }
 
   // Try to get Bird rights from existing contract data
@@ -96,7 +106,7 @@ export function computeBirdRights(player, leagueContext) {
       existingBirdRights.type,
       existingBirdRights.yearsWithTeam,
       player,
-      salaryCap,
+      effectiveCap,
       averageSalary
     );
   }
@@ -105,7 +115,7 @@ export function computeBirdRights(player, leagueContext) {
   const yearsWithTeam = computeYearsWithTeam(player, currentYear);
   const birdRightsType = determineBirdRightsType(yearsWithTeam);
 
-  return buildBirdRightsInfo(birdRightsType, yearsWithTeam, player, salaryCap, averageSalary);
+  return buildBirdRightsInfo(birdRightsType, yearsWithTeam, player, effectiveCap, averageSalary);
 }
 
 /**
