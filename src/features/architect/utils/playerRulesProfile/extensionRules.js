@@ -632,9 +632,22 @@ export function computeExtensionFromRuleContext(ctx) {
     };
   }
 
+  // Check for required contract metadata fields
+  // originalContractLength is required for accurate extension eligibility calculations
+  if (!playerCtx.originalContractLength) {
+    return {
+      eligibility: {
+        isEligible: false,
+        reason: 'Missing contract metadata in RuleContext',
+        blockers: ['originalContractLength field required for extension eligibility'],
+        extensionType: EXTENSION_TYPES.INELIGIBLE,
+      },
+      terms: null,
+    };
+  }
+
   // Build a synthetic player object from RuleContext
-  // Note: Some fields like originalLength, awards, lastTradedDate, signingDate
-  // are not available in RuleContext and would need to be added for complete eligibility checks
+  // Using actual contract metadata from playerCtx when available
   const syntheticPlayer = {
     playerId: playerCtx.playerId,
     bio: {
@@ -646,10 +659,9 @@ export function computeExtensionFromRuleContext(ctx) {
       contractType: playerCtx.isRookieScale ? 'Rookie Scale' : 'Standard',
       isRookieScale: playerCtx.isRookieScale,
       endSeason: playerCtx.contractEndSeasonId,
-      // Note: contractLength and yearsRemaining are estimates when not explicitly provided
-      // For accurate eligibility, these should be added to PlayerContext in buildRuleContext
-      contractLength: 4, // Default assumption - may affect eligibility accuracy
-      yearsRemaining: 1, // Assume expiring since we have contractEndSeasonId
+      // Use actual contract metadata from playerCtx
+      contractLength: playerCtx.originalContractLength,
+      yearsRemaining: playerCtx.contractYearsRemaining ?? 1,
       salariesByYear: playerCtx.priorSeasonSalary != null
         ? [{ season: timing.referenceSeasonId, salary: playerCtx.priorSeasonSalary }]
         : playerCtx.currentSeasonSalary != null
@@ -660,9 +672,10 @@ export function computeExtensionFromRuleContext(ctx) {
         yearsWithTeam: 0, // Not directly available from PlayerContext
       },
     },
-    // Note: awards, lastTradedDate, signingDate not available in RuleContext
-    // This may affect supermax and trade-restriction eligibility checks
-    awards: [],
+    // Use actual awards/dates from playerCtx when available
+    awards: playerCtx.awards || [],
+    lastTradedDate: playerCtx.lastTradedDate || null,
+    signingDate: playerCtx.signingDate || null,
   };
 
   // Build leagueContext from RuleContext

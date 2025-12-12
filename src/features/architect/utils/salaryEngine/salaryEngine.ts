@@ -61,13 +61,14 @@ import { computeRFAFromRuleContext, RFA_STATUS } from '@/features/architect/util
  * ```
  */
 export function getSalaryProfile(ctx: RuleContext): SalaryProfile {
-  return {
-    maxSalary: computeMaxSalaryFromRuleContext(ctx) as MaxSalaryInfo,
-    minSalary: computeMinimumSalaryFromRuleContext(ctx) as MinSalaryInfo,
-    birdRights: computeBirdRightsFromRuleContext(ctx) as BirdRightsInfo,
-    extension: computeExtensionFromRuleContext(ctx) as ExtensionProfile,
-    rfa: computeRFAFromRuleContext(ctx) as RFAInfo,
-  };
+  const result = {
+    maxSalary: computeMaxSalaryFromRuleContext(ctx),
+    minSalary: computeMinimumSalaryFromRuleContext(ctx),
+    birdRights: computeBirdRightsFromRuleContext(ctx),
+    extension: computeExtensionFromRuleContext(ctx),
+    rfa: computeRFAFromRuleContext(ctx),
+  } satisfies SalaryProfile;
+  return result;
 }
 
 /**
@@ -90,7 +91,8 @@ export function getSalaryProfile(ctx: RuleContext): SalaryProfile {
  * ```
  */
 export function getMaxSalaryProfile(ctx: RuleContext): MaxSalaryInfo {
-  return computeMaxSalaryFromRuleContext(ctx) as MaxSalaryInfo;
+  const result = computeMaxSalaryFromRuleContext(ctx) satisfies MaxSalaryInfo;
+  return result;
 }
 
 /**
@@ -103,7 +105,8 @@ export function getMaxSalaryProfile(ctx: RuleContext): MaxSalaryInfo {
  * @returns Minimum salary information
  */
 export function getMinSalaryProfile(ctx: RuleContext): MinSalaryInfo {
-  return computeMinimumSalaryFromRuleContext(ctx) as MinSalaryInfo;
+  const result = computeMinimumSalaryFromRuleContext(ctx) satisfies MinSalaryInfo;
+  return result;
 }
 
 /**
@@ -119,7 +122,8 @@ export function getMinSalaryProfile(ctx: RuleContext): MinSalaryInfo {
  * @returns Bird rights information
  */
 export function getBirdRightsProfile(ctx: RuleContext): BirdRightsInfo {
-  return computeBirdRightsFromRuleContext(ctx) as BirdRightsInfo;
+  const result = computeBirdRightsFromRuleContext(ctx) satisfies BirdRightsInfo;
+  return result;
 }
 
 /**
@@ -135,7 +139,8 @@ export function getBirdRightsProfile(ctx: RuleContext): BirdRightsInfo {
  * @returns Extension profile with eligibility and terms
  */
 export function getExtensionProfile(ctx: RuleContext): ExtensionProfile {
-  return computeExtensionFromRuleContext(ctx) as ExtensionProfile;
+  const result = computeExtensionFromRuleContext(ctx) satisfies ExtensionProfile;
+  return result;
 }
 
 /**
@@ -150,7 +155,8 @@ export function getExtensionProfile(ctx: RuleContext): ExtensionProfile {
  * @returns RFA status and QO information
  */
 export function getRFAProfile(ctx: RuleContext): RFAInfo {
-  return computeRFAFromRuleContext(ctx) as RFAInfo;
+  const result = computeRFAFromRuleContext(ctx) satisfies RFAInfo;
+  return result;
 }
 
 // Re-export extension and RFA type constants for convenience
