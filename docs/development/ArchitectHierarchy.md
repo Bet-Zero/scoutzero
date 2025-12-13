@@ -134,6 +134,7 @@ types/
 utils/
   ARCHITECT_LAYERING.md
   architectCore.js
+  architectFirestorePaths.ts
   basicArchitectUtils.js
   buildRuleContext.ts
   capHelpers.ts
@@ -249,5 +250,5 @@ utils/
 ```
 
 ---
-*Generated on: 2025-12-13T12:55:54.767Z*
+*Generated on: 2025-12-13T13:33:06.295Z*
 *Auto-updated by: npm run docs*

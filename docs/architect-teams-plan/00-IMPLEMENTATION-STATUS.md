@@ -70,7 +70,7 @@ All planning documentation has been completed:
 - ❌ **Branching**: No copy-on-write branching scenarios
 - ❌ **Multi-season**: No season advancement or multi-year simulation
 - ❌ **Snapshots**: No team snapshot system with fallback chain
-- ❌ **Firestore Collections**: `/architect/baseTeams`, `/architect/basePlayers`, `/architect/worlds` do NOT exist yet
+- ❌ **Firestore Collections**: `architect_baseTeams`, `architect_basePlayers`, `architect_worlds` do NOT exist yet
 
 ### Missing Data Management
 - ❌ No world management module (`worldManager.js`)

@@ -589,7 +589,7 @@ This document provides exact, field-by-field examples of the target Firestore da
 
 ## 4. World Metadata Document
 
-**Path:** `/architect/worlds/world_abc123/metadata`
+**Path:** `architect_worlds/world_abc123`
 
     {
       "worldId": "world_abc123",
@@ -637,7 +637,7 @@ This document provides exact, field-by-field examples of the target Firestore da
 
 ## 5. World Team Snapshot
 
-**Path:** `/architect/worlds/world_abc123/snapshot/teams/LAL`
+**Path:** `architect_worlds/world_abc123/teams/LAL`
 
 **Content:** Same structure as base team document, but represents the modified state.
 
@@ -704,7 +704,7 @@ This document provides exact, field-by-field examples of the target Firestore da
 
 ## 6. World Player Override (Optional - Advanced)
 
-**Path:** `/architect/worlds/world_abc123/snapshot/teams/LAL/players/jordan_poole`
+**Path:** `architect_worlds/world_abc123/teams/LAL/players/jordan_poole`
 
 **Use Case:** Player contract was modified (extension, option picked up, etc.)
 

@@ -187,17 +187,19 @@ export function seedBaseData(teams = ['LAL', 'GSW', 'BOS'], players = null) {
 
 /**
  * Seed world metadata into mock Firestore
+ * Path: architect_worlds/{worldId}
  */
 export function seedWorldMetadata(worldId, metadata) {
-  const worldPath = `architect/worlds/${worldId}/metadata`;
+  const worldPath = `architect_worlds/${worldId}`;
   seedMockData(worldPath, metadata);
 }
 
 /**
  * Seed team snapshot into mock Firestore
+ * Path: architect_worlds/{worldId}/teams/{teamCode}
  */
 export function seedTeamSnapshot(worldId, teamCode, teamData) {
-  const snapshotPath = `architect/worlds/${worldId}/snapshot/teams/${teamCode}`;
+  const snapshotPath = `architect_worlds/${worldId}/teams/${teamCode}`;
   seedMockData(snapshotPath, teamData);
 }
 
@@ -252,17 +254,19 @@ export function getMockPlayer(playerId) {
 
 /**
  * Get world metadata from mock Firestore
+ * Path: architect_worlds/{worldId}
  */
 export function getMockWorldMetadata(worldId) {
-  const worldPath = `architect/worlds/${worldId}/metadata`;
+  const worldPath = `architect_worlds/${worldId}`;
   return getMockData(worldPath);
 }
 
 /**
  * Get team snapshot from mock Firestore
+ * Path: architect_worlds/{worldId}/teams/{teamCode}
  */
 export function getMockTeamSnapshot(worldId, teamCode) {
-  const snapshotPath = `architect/worlds/${worldId}/snapshot/teams/${teamCode}`;
+  const snapshotPath = `architect_worlds/${worldId}/teams/${teamCode}`;
   return getMockData(snapshotPath);
 }
 

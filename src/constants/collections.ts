@@ -29,6 +29,16 @@ export const ARCHITECT_BASE_TEAMS_PATH =
   import.meta.env.VITE_ARCHITECT_BASE_TEAMS_PATH || 'architect_baseTeams';
 
 /**
+ * Architect worlds collection (for world metadata and team snapshots)
+ * Path structure:
+ * - architect_worlds/{worldId} - World metadata
+ * - architect_worlds/{worldId}/teams/{teamCode} - Team snapshot
+ * - architect_worlds/{worldId}/teams/{teamCode}/players/{playerId} - Player override
+ */
+export const ARCHITECT_WORLDS_COLLECTION =
+  import.meta.env.VITE_ARCHITECT_WORLDS_COLLECTION || 'architect_worlds';
+
+/**
  * Subcollection names (under players)
  */
 export const CONTRACTS_SUBCOLLECTION = 'contracts';

@@ -673,12 +673,12 @@ This document provides both a high-level roadmap and detailed, semi-executable s
       const batch = writeBatch(db);
 
       // Create metadata doc
-      const metadataRef = doc(db, `architect/worlds/${worldId}/metadata`);
+      const metadataRef = doc(db, `architect_worlds/${worldId}`);
       batch.set(metadataRef, metadata);
 
       // Update parent's childWorlds
       if (parentWorldId) {
-        const parentRef = doc(db, `architect/worlds/${parentWorldId}/metadata`);
+        const parentRef = doc(db, `architect_worlds/${parentWorldId}`);
         batch.update(parentRef, {
           childWorlds: FieldValue.arrayUnion(worldId)
         });
@@ -693,7 +693,7 @@ This document provides both a high-level roadmap and detailed, semi-executable s
      * Load world metadata
      */
     export async function getWorldMetadata(worldId) {
-      const docRef = doc(db, `architect/worlds/${worldId}/metadata`);
+      const docRef = doc(db, `architect_worlds/${worldId}`);
       const docSnap = await getDoc(docRef);
 
       if (!docSnap.exists()) {
@@ -709,7 +709,7 @@ This document provides both a high-level roadmap and detailed, semi-executable s
     export async function deleteWorld(worldId) {
       // TODO: Recursively delete all subcollections (teams, players, etc.)
       // For now, just delete metadata
-      const metadataRef = doc(db, `architect/worlds/${worldId}/metadata`);
+      const metadataRef = doc(db, `architect_worlds/${worldId}`);
       await deleteDoc(metadataRef);
     }
 
@@ -717,7 +717,7 @@ This document provides both a high-level roadmap and detailed, semi-executable s
      * List user's worlds
      */
     export async function listUserWorlds(userId) {
-      const worldsRef = collection(db, 'architect/worlds');
+      const worldsRef = collection(db, 'architect_worlds');
       const snapshot = await getDocs(worldsRef);
 
       const worlds = [];
@@ -748,7 +748,7 @@ This document provides both a high-level roadmap and detailed, semi-executable s
       }
 
       // Try world snapshot
-      const worldTeamRef = doc(db, `architect/worlds/${worldId}/snapshot/teams/${teamCode}`);
+      const worldTeamRef = doc(db, `architect_worlds/${worldId}/teams/${teamCode}`);
       const worldTeamSnap = await getDoc(worldTeamRef);
 
       if (worldTeamSnap.exists()) {
@@ -756,7 +756,7 @@ This document provides both a high-level roadmap and detailed, semi-executable s
       }
 
       // Try parent world
-      const worldMetaRef = doc(db, `architect/worlds/${worldId}/metadata`);
+      const worldMetaRef = doc(db, `architect_worlds/${worldId}`);
       const worldMetaSnap = await getDoc(worldMetaRef);
 
       if (worldMetaSnap.exists()) {
@@ -774,7 +774,7 @@ This document provides both a high-level roadmap and detailed, semi-executable s
      * Get base team
      */
     async function getBaseTeam(teamCode) {
-      const baseTeamRef = doc(db, `architect/baseTeams/${teamCode}`);
+      const baseTeamRef = doc(db, `architect_baseTeams/${teamCode}`);
       const baseTeamSnap = await getDoc(baseTeamRef);
 
       if (!baseTeamSnap.exists()) {
@@ -812,7 +812,7 @@ This document provides both a high-level roadmap and detailed, semi-executable s
       }
 
       // Try world override
-      const overrideRef = doc(db, `architect/worlds/${worldId}/snapshot/teams/${teamCode}/players/${playerId}`);
+      const overrideRef = doc(db, `architect_worlds/${worldId}/teams/${teamCode}/players/${playerId}`);
       const overrideSnap = await getDoc(overrideRef);
 
       // Get base player
@@ -944,13 +944,13 @@ This document provides both a high-level roadmap and detailed, semi-executable s
       // 6. Atomic write
       const batch = writeBatch(db);
 
-      const teamARef = doc(db, `architect/worlds/${worldId}/snapshot/teams/${teamA}`);
+      const teamARef = doc(db, `architect_worlds/${worldId}/teams/${teamA}`);
       batch.set(teamARef, newTeamA);
 
-      const teamBRef = doc(db, `architect/worlds/${worldId}/snapshot/teams/${teamB}`);
+      const teamBRef = doc(db, `architect_worlds/${worldId}/teams/${teamB}`);
       batch.set(teamBRef, newTeamB);
 
-      const metadataRef = doc(db, `architect/worlds/${worldId}/metadata`);
+      const metadataRef = doc(db, `architect_worlds/${worldId}`);
       batch.update(metadataRef, {
         lastModifiedAt: serverTimestamp(),
         actionCount: FieldValue.increment(1),

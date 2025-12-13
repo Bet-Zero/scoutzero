@@ -318,7 +318,7 @@ export const BasePlayerDocZ = z.object({
   version: z.string(),
 });
 
-// World snapshot: /architect/worlds/{worldId}/snapshot/teams/{teamCode}
+// World snapshot: architect_worlds/{worldId}/teams/{teamCode}
 export const WorldTeamSnapshotZ = BaseTeamDocZ.extend({});
 
 // Types

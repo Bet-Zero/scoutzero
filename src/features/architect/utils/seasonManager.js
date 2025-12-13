@@ -9,10 +9,11 @@
  */
 
 import { db } from '@/firebaseConfig';
-import { doc, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { writeBatch, serverTimestamp } from 'firebase/firestore';
 import { getLeague, getTeam } from './teamLoader';
 import { getWorldMetadata } from './worldManager';
 import { toEndYear, toSeasonCode } from './seasonFormat';
+import { worldTeamRef, worldMetadataRef } from './architectFirestorePaths';
 
 /**
  * Advance world to next season
@@ -74,24 +75,18 @@ export async function processSeasonTransition(worldId, fromSeason, toSeason) {
     const updatedTeam = await processTeamSeasonTransition(team, fromSeason, toSeason);
 
     // Save snapshot if team was modified
+    // Path: architect_worlds/{worldId}/teams/{teamCode}
     if (updatedTeam) {
-      const snapshotRef = doc(
-        db,
-        'architect',
-        'worlds',
-        worldId,
-        'snapshot',
-        'teams',
-        teamCode
-      );
+      const snapshotRef = worldTeamRef(worldId, teamCode);
       batch.set(snapshotRef, updatedTeam);
       updatedTeams.push(teamCode);
     }
   }
 
   // Update world metadata
-  const worldMetadataRef = doc(db, 'architect', 'worlds', worldId, 'metadata');
-  batch.update(worldMetadataRef, {
+  // Path: architect_worlds/{worldId}
+  const metadataRef = worldMetadataRef(worldId);
+  batch.update(metadataRef, {
     currentSeason: toSeason,
     lastModifiedAt: serverTimestamp(),
   });

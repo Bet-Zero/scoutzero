@@ -227,7 +227,7 @@ export async function deleteDoc(docRef) {
 export async function getDocs(queryOrCollection) {
   if (queryOrCollection.type === 'collectionGroup') {
     // Collection group query - finds all documents in subcollections with the given name
-    // For path "architect/worlds/world_1/metadata", if querying collectionGroup('metadata'),
+    // For path "architect_worlds/world_1", if querying collectionGroup('metadata'),
     // we want to find documents where the last segment before the doc ID is 'metadata'
     const collectionId = queryOrCollection.id;
     const results = [];
@@ -235,7 +235,7 @@ export async function getDocs(queryOrCollection) {
     for (const [path, data] of mockDataStore.entries()) {
       const segments = path.split('/').filter(Boolean);
       // For collectionGroup('metadata'), find all documents where the last segment is 'metadata'
-      // This handles paths like "architect/worlds/world_1/metadata" where 'metadata' is the document
+      // This handles paths like "architect_worlds/world_1" where the world doc is the metadata
       // In Firestore, collectionGroup queries find documents in collections with the given name
       // But in our structure, 'metadata' is a document name, so we match paths ending with it
       if (segments.length > 0) {

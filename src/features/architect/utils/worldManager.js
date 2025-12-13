@@ -10,13 +10,8 @@
 
 import { db } from '@/firebaseConfig';
 import {
-  doc,
   getDoc,
-  setDoc,
   updateDoc,
-  deleteDoc,
-  collection,
-  collectionGroup,
   getDocs,
   query,
   where,
@@ -26,6 +21,7 @@ import {
   arrayUnion,
   arrayRemove,
 } from 'firebase/firestore';
+import { worldMetadataRef, worldsCol } from './architectFirestorePaths';
 
 /**
  * Generate unique world ID
@@ -110,12 +106,13 @@ export async function createWorld({
   const batch = writeBatch(db);
 
   // Create metadata document
-  const metadataRef = doc(db, 'architect', 'worlds', worldId, 'metadata');
+  // Path: architect_worlds/{worldId}
+  const metadataRef = worldMetadataRef(worldId);
   batch.set(metadataRef, metadata);
 
   // Update parent's childWorlds array if branching
   if (parentWorldId) {
-    const parentRef = doc(db, 'architect', 'worlds', parentWorldId, 'metadata');
+    const parentRef = worldMetadataRef(parentWorldId);
     batch.update(parentRef, {
       childWorlds: arrayUnion(worldId),
     });
@@ -138,7 +135,8 @@ export async function getWorldMetadata(worldId) {
     throw new Error('worldId is required');
   }
 
-  const metadataRef = doc(db, 'architect', 'worlds', worldId, 'metadata');
+  // Path: architect_worlds/{worldId}
+  const metadataRef = worldMetadataRef(worldId);
   const docSnap = await getDoc(metadataRef);
 
   if (!docSnap.exists()) {
@@ -169,13 +167,12 @@ export async function listUserWorlds(userId, options = {}) {
     orderDirection = 'desc',
   } = options;
 
-  // Use collection group query to find all metadata documents
-  // Note: This requires a Firestore index on 'architect/worlds/{worldId}/metadata' with 'createdBy' and 'lastModifiedAt'
-  // If the index doesn't exist, Firestore will provide a link to create it
+  // Query the architect_worlds collection directly
+  // Path: architect_worlds/{worldId} (each document is world metadata)
   try {
-    const metadataGroup = collectionGroup(db, 'metadata');
+    const worldsRef = worldsCol();
     const worldsQuery = query(
-      metadataGroup,
+      worldsRef,
       where('createdBy', '==', userId),
       ...(includeArchived ? [] : [where('isArchived', '==', false)]),
       orderBy(orderByField, orderDirection)
@@ -184,26 +181,22 @@ export async function listUserWorlds(userId, options = {}) {
     const snapshot = await getDocs(worldsQuery);
     return snapshot.docs.map((docSnap) => docSnap.data());
   } catch (error) {
-    // If collection group query fails (e.g., missing index), fall back to manual iteration
+    // If query fails (e.g., missing index), fall back to manual iteration
     console.warn(
-      'listUserWorlds: Collection group query failed. ' +
+      'listUserWorlds: Query failed. ' +
       'This may require a Firestore index. Error:',
       error.message
     );
     
-    // Fallback: Try to get all worlds from the worlds collection
-    // This is less efficient but works without an index
-    const worldsRef = collection(db, 'architect', 'worlds');
+    // Fallback: Get all worlds and filter in memory
+    const worldsRef = worldsCol();
     const snapshot = await getDocs(worldsRef);
     const worlds = [];
 
     for (const worldDoc of snapshot.docs) {
-      const metadataRef = doc(db, 'architect', 'worlds', worldDoc.id, 'metadata');
-      const metadataSnap = await getDoc(metadataRef);
+      const metadata = worldDoc.data();
       
-      if (!metadataSnap.exists()) continue;
-      
-      const metadata = metadataSnap.data();
+      if (!metadata) continue;
       
       // Filter by user
       if (metadata.createdBy !== userId) continue;
@@ -267,7 +260,8 @@ export async function updateWorldMetadata(worldId, updates) {
   // Always update lastModifiedAt
   filteredUpdates.lastModifiedAt = serverTimestamp();
 
-  const metadataRef = doc(db, 'architect', 'worlds', worldId, 'metadata');
+  // Path: architect_worlds/{worldId}
+  const metadataRef = worldMetadataRef(worldId);
   await updateDoc(metadataRef, filteredUpdates);
 }
 
@@ -300,20 +294,15 @@ export async function deleteWorld(worldId, userId) {
 
   // Remove from parent's childWorlds if it has a parent
   if (metadata.parentWorldId) {
-    const parentRef = doc(
-      db,
-      'architect',
-      'worlds',
-      metadata.parentWorldId,
-      'metadata'
-    );
+    const parentRef = worldMetadataRef(metadata.parentWorldId);
     batch.update(parentRef, {
       childWorlds: arrayRemove(worldId),
     });
   }
 
   // Delete metadata document
-  const metadataRef = doc(db, 'architect', 'worlds', worldId, 'metadata');
+  // Path: architect_worlds/{worldId}
+  const metadataRef = worldMetadataRef(worldId);
   batch.delete(metadataRef);
 
   await batch.commit();
@@ -376,7 +365,8 @@ export async function updateWorldStats(worldId, actionType, teamCodes = []) {
     teamsInvolved: 0,
   };
 
-  const metadataRef = doc(db, 'architect', 'worlds', worldId, 'metadata');
+  // Path: architect_worlds/{worldId}
+  const metadataRef = worldMetadataRef(worldId);
   const updates = {
     lastModifiedAt: serverTimestamp(),
     actionCount: (metadata.actionCount || 0) + 1,

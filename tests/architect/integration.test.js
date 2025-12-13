@@ -73,10 +73,10 @@ describe('Architect Integration Tests', () => {
 
       // Verify snapshots created
       const lalSnapshot = getMockData(
-        `architect/worlds/${worldResult.worldId}/snapshot/teams/LAL`
+        `architect_worlds/${worldResult.worldId}/teams/LAL`
       );
       const gswSnapshot = getMockData(
-        `architect/worlds/${worldResult.worldId}/snapshot/teams/GSW`
+        `architect_worlds/${worldResult.worldId}/teams/GSW`
       );
 
       expect(lalSnapshot).toBeDefined();
@@ -113,7 +113,7 @@ describe('Architect Integration Tests', () => {
       await executeTrade(worldResult.worldId, tradeData);
 
       const lalSnapshot = getMockData(
-        `architect/worlds/${worldResult.worldId}/snapshot/teams/LAL`
+        `architect_worlds/${worldResult.worldId}/teams/LAL`
       );
 
       expect(lalSnapshot.totals).toBeDefined();
@@ -300,14 +300,14 @@ describe('Architect Integration Tests', () => {
 
       // Verify branch has its own snapshot
       const branchLalSnapshot = getMockData(
-        `architect/worlds/${branchResult.worldId}/snapshot/teams/LAL`
+        `architect_worlds/${branchResult.worldId}/teams/LAL`
       );
       expect(branchLalSnapshot.roster).not.toContain('anthony_davis');
       expect(branchLalSnapshot.roster).toContain('jayson_tatum');
 
       // Verify parent snapshot unchanged
       const parentLalSnapshot = getMockData(
-        `architect/worlds/${parentResult.worldId}/snapshot/teams/LAL`
+        `architect_worlds/${parentResult.worldId}/teams/LAL`
       );
       expect(parentLalSnapshot.roster).not.toContain('lebron_james');
       expect(parentLalSnapshot.roster).toContain('stephen_curry');
@@ -387,7 +387,7 @@ describe('Architect Integration Tests', () => {
 
       const { seedMockData } = await import('../setupFirebaseMocks.js');
       seedMockData(
-        `architect/worlds/${worldResult.worldId}/snapshot/teams/LAL`,
+        `architect_worlds/${worldResult.worldId}/teams/LAL`,
         teamWithExpiring
       );
 
@@ -395,7 +395,7 @@ describe('Architect Integration Tests', () => {
       await advanceSeason(worldResult.worldId);
 
       const updatedTeam = getMockData(
-        `architect/worlds/${worldResult.worldId}/snapshot/teams/LAL`
+        `architect_worlds/${worldResult.worldId}/teams/LAL`
       );
       expect(updatedTeam.roster).not.toContain('player_expiring');
     });
@@ -423,14 +423,14 @@ describe('Architect Integration Tests', () => {
 
       const { seedMockData } = await import('../setupFirebaseMocks.js');
       seedMockData(
-        `architect/worlds/${worldResult.worldId}/snapshot/teams/BOS`,
+        `architect_worlds/${worldResult.worldId}/teams/BOS`,
         teamWithHolds
       );
 
       await advanceSeason(worldResult.worldId);
 
       const updatedTeam = getMockData(
-        `architect/worlds/${worldResult.worldId}/snapshot/teams/BOS`
+        `architect_worlds/${worldResult.worldId}/teams/BOS`
       );
       // Cap holds should still exist (not expired yet)
       expect(updatedTeam.capHolds).toBeDefined();
@@ -513,14 +513,14 @@ describe('Architect Integration Tests', () => {
 
       const { seedMockData } = await import('../setupFirebaseMocks.js');
       seedMockData(
-        `architect/worlds/${worldResult.worldId}/snapshot/teams/LAL`,
+        `architect_worlds/${worldResult.worldId}/teams/LAL`,
         teamWithMultiYear
       );
 
       // Advance first season
       await advanceSeason(worldResult.worldId);
       let updatedTeam = getMockData(
-        `architect/worlds/${worldResult.worldId}/snapshot/teams/LAL`
+        `architect_worlds/${worldResult.worldId}/teams/LAL`
       );
       let player = updatedTeam.players.find((p) => p.playerId === 'player1');
       expect(player.contract.yearsRemaining).toBe(2);
@@ -528,7 +528,7 @@ describe('Architect Integration Tests', () => {
       // Advance second season
       await advanceSeason(worldResult.worldId);
       updatedTeam = getMockData(
-        `architect/worlds/${worldResult.worldId}/snapshot/teams/LAL`
+        `architect_worlds/${worldResult.worldId}/teams/LAL`
       );
       player = updatedTeam.players.find((p) => p.playerId === 'player1');
       expect(player.contract.yearsRemaining).toBe(1);
@@ -591,7 +591,7 @@ describe('Architect Integration Tests', () => {
 
       // Verify all operations created snapshots
       const lalSnapshot = getMockData(
-        `architect/worlds/${worldResult.worldId}/snapshot/teams/LAL`
+        `architect_worlds/${worldResult.worldId}/teams/LAL`
       );
       expect(lalSnapshot).toBeDefined();
       expect(lalSnapshot.roster).toContain('test_fa');
@@ -628,7 +628,7 @@ describe('Architect Integration Tests', () => {
       await executeTrade(worldResult.worldId, tradeData);
 
       let lalSnapshot = getMockData(
-        `architect/worlds/${worldResult.worldId}/snapshot/teams/LAL`
+        `architect_worlds/${worldResult.worldId}/teams/LAL`
       );
       const initialCap = lalSnapshot.totals.capHit || 0;
 
@@ -653,7 +653,7 @@ describe('Architect Integration Tests', () => {
       });
 
       lalSnapshot = getMockData(
-        `architect/worlds/${worldResult.worldId}/snapshot/teams/LAL`
+        `architect_worlds/${worldResult.worldId}/teams/LAL`
       );
       expect(lalSnapshot.totals.capHit).toBeGreaterThan(initialCap);
 
@@ -661,7 +661,7 @@ describe('Architect Integration Tests', () => {
       await waivePlayer(worldResult.worldId, 'LAL', 'test_fa');
 
       lalSnapshot = getMockData(
-        `architect/worlds/${worldResult.worldId}/snapshot/teams/LAL`
+        `architect_worlds/${worldResult.worldId}/teams/LAL`
       );
       // Dead cap should be included
       expect(lalSnapshot.totals.deadCapTotal).toBeGreaterThan(0);

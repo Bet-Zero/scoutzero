@@ -70,18 +70,18 @@ This document explains how the proposed Firestore schema accomplishes the stated
 
     async function getTeam(worldId, teamCode) {
       // Try current world snapshot
-      let team = await getDoc(`/architect/worlds/${worldId}/snapshot/teams/${teamCode}`);
+      let team = await getDoc(`architect_worlds/${worldId}/teams/${teamCode}`);
       if (team.exists()) return team.data();
 
       // Try parent world snapshot (if world has parent)
-      const world = await getDoc(`/architect/worlds/${worldId}/metadata`);
+      const world = await getDoc(`architect_worlds/${worldId}`);
       if (world.data().parentWorldId) {
-        team = await getDoc(`/architect/worlds/${world.data().parentWorldId}/snapshot/teams/${teamCode}`);
+        team = await getDoc(`architect_worlds/${world.data().parentWorldId}/teams/${teamCode}`);
         if (team.exists()) return team.data();
       }
 
       // Fall back to base
-      return await getDoc(`/architect/baseTeams/${teamCode}`);
+      return await getDoc(`architect_baseTeams/${teamCode}`);
     }
 
 **Example Decision Tree:**
@@ -318,7 +318,7 @@ This document explains how the proposed Firestore schema accomplishes the stated
     worldId: "world_abc123" (random/unique)
 
     // Security rules enforce ownership
-    match /architect/worlds/{worldId} {
+    match /architect_worlds/{worldId} {
       allow read, write: if request.auth.uid == resource.data.createdBy;
     }
 
@@ -396,9 +396,9 @@ This document explains how the proposed Firestore schema accomplishes the stated
     // Trade is atomic: both teams update or neither
     const batch = db.batch();
 
-    batch.set(db.doc(`/architect/worlds/${worldId}/snapshot/teams/LAL`), lalSnapshot);
-    batch.set(db.doc(`/architect/worlds/${worldId}/snapshot/teams/NOP`), nopSnapshot);
-    batch.update(db.doc(`/architect/worlds/${worldId}/metadata`), {
+    batch.set(db.doc(`architect_worlds/${worldId}/teams/LAL`), lalSnapshot);
+    batch.set(db.doc(`architect_worlds/${worldId}/teams/NOP`), nopSnapshot);
+    batch.update(db.doc(`architect_worlds/${worldId}`), {
       lastModifiedAt: now(),
       actionCount: increment(1)
     });
@@ -423,7 +423,7 @@ This document explains how the proposed Firestore schema accomplishes the stated
 
     User: Click "New World"
     System:
-      - Create `/architect/worlds/world_abc/metadata`
+      - Create `architect_worlds/world_abc` (metadata document)
       - Set currentSeason = "2025-26"
       - Set parentWorldId = null (root world)
       - No snapshots yet (read from base)

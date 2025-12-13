@@ -95,7 +95,7 @@ describe('Trade Manager', () => {
       await executeTrade(worldId, tradeData);
 
       // Check LAL snapshot
-      const lalSnapshot = getMockData(`architect/worlds/${worldId}/snapshot/teams/LAL`);
+      const lalSnapshot = getMockData(`architect_worlds/${worldId}/teams/LAL`);
       expect(lalSnapshot).toBeDefined();
       expect(lalSnapshot.roster).not.toContain('lebron_james');
       expect(lalSnapshot.roster).toContain('stephen_curry');
@@ -130,8 +130,8 @@ describe('Trade Manager', () => {
 
       await executeTrade(worldId, tradeData);
 
-      const lalSnapshot = getMockData(`architect/worlds/${worldId}/snapshot/teams/LAL`);
-      const gswSnapshot = getMockData(`architect/worlds/${worldId}/snapshot/teams/GSW`);
+      const lalSnapshot = getMockData(`architect_worlds/${worldId}/teams/LAL`);
+      const gswSnapshot = getMockData(`architect_worlds/${worldId}/teams/GSW`);
 
       // LAL should not have the pick anymore
       const lalPick = lalSnapshot.draftPicks?.find((p) => p.id === 'lal_2026_1');
@@ -165,8 +165,8 @@ describe('Trade Manager', () => {
       await executeTrade(worldId, tradeData);
 
       // Both teams should have snapshots (both were in the trade)
-      const lalSnapshot = getMockData(`architect/worlds/${worldId}/snapshot/teams/LAL`);
-      const gswSnapshot = getMockData(`architect/worlds/${worldId}/snapshot/teams/GSW`);
+      const lalSnapshot = getMockData(`architect_worlds/${worldId}/teams/LAL`);
+      const gswSnapshot = getMockData(`architect_worlds/${worldId}/teams/GSW`);
 
       expect(lalSnapshot).toBeDefined();
       expect(gswSnapshot).toBeDefined();
@@ -194,7 +194,7 @@ describe('Trade Manager', () => {
 
       await executeTrade(worldId, tradeData);
 
-      const lalSnapshot = getMockData(`architect/worlds/${worldId}/snapshot/teams/LAL`);
+      const lalSnapshot = getMockData(`architect_worlds/${worldId}/teams/LAL`);
       expect(lalSnapshot.totals).toBeDefined();
       expect(typeof lalSnapshot.totals.totalSalary).toBe('number');
     });
@@ -337,7 +337,7 @@ describe('Trade Manager', () => {
 
       await signFreeAgent(worldId, signingData);
 
-      const lalSnapshot = getMockData(`architect/worlds/${worldId}/snapshot/teams/LAL`);
+      const lalSnapshot = getMockData(`architect_worlds/${worldId}/teams/LAL`);
       expect(lalSnapshot.exceptions.mle.usedAmount).toBe(10_000_000);
       expect(lalSnapshot.exceptions.mle.remainingAmount).toBe(2_860_000);
     });
@@ -365,7 +365,7 @@ describe('Trade Manager', () => {
 
       await signFreeAgent(worldId, signingData);
 
-      const lalSnapshot = getMockData(`architect/worlds/${worldId}/snapshot/teams/LAL`);
+      const lalSnapshot = getMockData(`architect_worlds/${worldId}/teams/LAL`);
       expect(lalSnapshot.totals.isHardCapped).toBe(true);
       expect(lalSnapshot.totals.hardCapLevel).toBe('firstApron');
     });
@@ -384,7 +384,7 @@ describe('Trade Manager', () => {
         ],
       });
       const { seedMockData } = await import('../setupFirebaseMocks.js');
-      seedMockData(`architect/worlds/${worldId}/snapshot/teams/BOS`, teamWithHold);
+      seedMockData(`architect_worlds/${worldId}/teams/BOS`, teamWithHold);
 
       const signingData = {
         playerId: 'test_player',
@@ -407,7 +407,7 @@ describe('Trade Manager', () => {
 
       await signFreeAgent(worldId, signingData);
 
-      const bosSnapshot = getMockData(`architect/worlds/${worldId}/snapshot/teams/BOS`);
+      const bosSnapshot = getMockData(`architect_worlds/${worldId}/teams/BOS`);
       const remainingHolds = bosSnapshot.capHolds?.filter((h) => h.playerId === 'test_player');
       expect(remainingHolds.length).toBe(0);
     });
@@ -434,7 +434,7 @@ describe('Trade Manager', () => {
     it('creates dead cap entry', async () => {
       await waivePlayer(worldId, 'LAL', 'lebron_james');
 
-      const lalSnapshot = getMockData(`architect/worlds/${worldId}/snapshot/teams/LAL`);
+      const lalSnapshot = getMockData(`architect_worlds/${worldId}/teams/LAL`);
       expect(lalSnapshot.deadCap).toBeDefined();
       expect(Array.isArray(lalSnapshot.deadCap)).toBe(true);
       const deadCapEntry = lalSnapshot.deadCap.find((d) => d.playerId === 'lebron_james');
@@ -444,7 +444,7 @@ describe('Trade Manager', () => {
     it('handles stretch provision', async () => {
       await waivePlayer(worldId, 'LAL', 'lebron_james', { stretch: true, stretchYears: 3 });
 
-      const lalSnapshot = getMockData(`architect/worlds/${worldId}/snapshot/teams/LAL`);
+      const lalSnapshot = getMockData(`architect_worlds/${worldId}/teams/LAL`);
       const deadCapEntry = lalSnapshot.deadCap.find((d) => d.playerId === 'lebron_james');
       expect(deadCapEntry.amountByYear.length).toBeGreaterThan(1); // Stretched over multiple years
     });

@@ -8,16 +8,19 @@
  * @module teamLoader
  */
 
-import { db } from '@/firebaseConfig';
 import {
-  doc,
   getDoc,
-  collection,
   getDocs,
 } from 'firebase/firestore';
-import { baseTeamRef, basePlayerRef } from '@/data/firestorePaths';
 import { getWorldMetadata } from './worldManager';
 import { hydrateBaseTeam } from './firebaseTeamPlanHelpers';
+import {
+  baseTeamRef,
+  basePlayerRef,
+  worldTeamRef,
+  worldTeamsCol,
+  worldPlayerRef,
+} from './architectFirestorePaths';
 
 /**
  * Get team data with fallback chain
@@ -42,15 +45,8 @@ export async function getTeam(worldId, teamCode) {
   }
 
   // Try world snapshot first
-  const worldSnapshotRef = doc(
-    db,
-    'architect',
-    'worlds',
-    worldId,
-    'snapshot',
-    'teams',
-    teamCode
-  );
+  // Path: architect_worlds/{worldId}/teams/{teamCode}
+  const worldSnapshotRef = worldTeamRef(worldId, teamCode);
   const worldSnapshotSnap = await getDoc(worldSnapshotRef);
 
   if (worldSnapshotSnap.exists()) {
@@ -161,14 +157,8 @@ export async function getLeague(worldId) {
   }
 
   // World mode: Batch read all world snapshots first
-  const snapshotCollectionRef = collection(
-    db,
-    'architect',
-    'worlds',
-    worldId,
-    'snapshot',
-    'teams'
-  );
+  // Path: architect_worlds/{worldId}/teams
+  const snapshotCollectionRef = worldTeamsCol(worldId);
   const snapshotQuery = await getDocs(snapshotCollectionRef);
 
   const snapshotMap = new Map();
@@ -216,7 +206,7 @@ export async function getLeague(worldId) {
 /**
  * Get player data with overrides
  * 
- * Player override path: architect/worlds/{worldId}/snapshot/teams/{teamCode}/players/{playerId}
+ * Player override path: architect_worlds/{worldId}/teams/{teamCode}/players/{playerId}
  * 
  * @param {string|null} worldId - World ID (null for base only)
  * @param {string} teamCode - Team code
@@ -241,17 +231,8 @@ export async function getPlayer(worldId, teamCode, playerId) {
   }
 
   // Try world-specific player override
-  const playerOverrideRef = doc(
-    db,
-    'architect',
-    'worlds',
-    worldId,
-    'snapshot',
-    'teams',
-    teamCode,
-    'players',
-    playerId
-  );
+  // Path: architect_worlds/{worldId}/teams/{teamCode}/players/{playerId}
+  const playerOverrideRef = worldPlayerRef(worldId, teamCode, playerId);
   const playerOverrideSnap = await getDoc(playerOverrideRef);
 
   if (playerOverrideSnap.exists()) {

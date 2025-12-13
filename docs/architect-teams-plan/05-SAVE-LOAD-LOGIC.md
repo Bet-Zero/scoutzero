@@ -23,17 +23,17 @@ This document explains exactly how data is saved to and loaded from Firestore fo
     async function getTeam(worldId, teamCode) {
       // Base mode: No world selected
       if (!worldId) {
-        return await getDoc(`/architect/baseTeams/${teamCode}`);
+        return await getDoc(`architect_baseTeams/${teamCode}`);
       }
 
       // Try current world snapshot
-      let teamDoc = await getDoc(`/architect/worlds/${worldId}/snapshot/teams/${teamCode}`);
+      let teamDoc = await getDoc(`architect_worlds/${worldId}/teams/${teamCode}`);
       if (teamDoc.exists()) {
         return teamDoc.data();
       }
 
       // Try parent world (recursive up the chain)
-      const worldMeta = await getDoc(`/architect/worlds/${worldId}/metadata`);
+      const worldMeta = await getDoc(`architect_worlds/${worldId}`);
       if (worldMeta.data().parentWorldId) {
         // Recursively check parent
         teamDoc = await getTeam(worldMeta.data().parentWorldId, teamCode);
@@ -41,7 +41,7 @@ This document explains exactly how data is saved to and loaded from Firestore fo
       }
 
       // Fall back to base
-      return await getDoc(`/architect/baseTeams/${teamCode}`);
+      return await getDoc(`architect_baseTeams/${teamCode}`);
     }
 
 ### Get Player Data
@@ -56,22 +56,22 @@ This document explains exactly how data is saved to and loaded from Firestore fo
     async function getPlayer(worldId, teamCode, playerId) {
       // Base mode: No world selected
       if (!worldId) {
-        return await getDoc(`/architect/basePlayers/${playerId}`);
+        return await getDoc(`architect_basePlayers/${playerId}`);
       }
 
       // Try world-specific player override
       let playerDoc = await getDoc(
-        `/architect/worlds/${worldId}/snapshot/teams/${teamCode}/players/${playerId}`
+        `architect_worlds/${worldId}/teams/${teamCode}/players/${playerId}`
       );
 
       if (playerDoc.exists()) {
         // Merge override with base
-        const basePlayer = await getDoc(`/architect/basePlayers/${playerId}`);
+        const basePlayer = await getDoc(`architect_basePlayers/${playerId}`);
         return mergePlayerOverride(basePlayer.data(), playerDoc.data());
       }
 
       // Try parent world
-      const worldMeta = await getDoc(`/architect/worlds/${worldId}/metadata`);
+      const worldMeta = await getDoc(`architect_worlds/${worldId}`);
       if (worldMeta.data().parentWorldId) {
         playerDoc = await getPlayer(worldMeta.data().parentWorldId, teamCode, playerId);
         if (playerDoc) return playerDoc;
@@ -127,13 +127,13 @@ This document explains exactly how data is saved to and loaded from Firestore fo
       if (!worldId) {
         // Base mode: Read all from baseTeams
         return await Promise.all(
-          allTeamCodes.map(code => getDoc(`/architect/baseTeams/${code}`))
+          allTeamCodes.map(code => getDoc(`architect_baseTeams/${code}`))
         );
       }
 
       // World mode: Read snapshots + fill gaps from base
       const snapshotQuery = await getDocs(
-        `/architect/worlds/${worldId}/snapshot/teams`
+        `architect_worlds/${worldId}/teams`
       );
 
       const snapshotMap = new Map();
@@ -149,13 +149,13 @@ This document explains exactly how data is saved to and loaded from Firestore fo
           }
 
           // Try parent, then base
-          const worldMeta = await getDoc(`/architect/worlds/${worldId}/metadata`);
+          const worldMeta = await getDoc(`architect_worlds/${worldId}`);
           if (worldMeta.data().parentWorldId) {
             const parentTeam = await getTeam(worldMeta.data().parentWorldId, code);
             if (parentTeam) return parentTeam;
           }
 
-          return await getDoc(`/architect/baseTeams/${code}`);
+          return await getDoc(`architect_baseTeams/${code}`);
         })
       );
 
@@ -236,17 +236,17 @@ When loading `draftPicks`, keep the complete shape in memory (including `status`
       const batch = db.batch();
 
       batch.set(
-        db.doc(`/architect/worlds/${worldId}/snapshot/teams/${teamA}`),
+        db.doc(`architect_worlds/${worldId}/teams/${teamA}`),
         newTeamA
       );
 
       batch.set(
-        db.doc(`/architect/worlds/${worldId}/snapshot/teams/${teamB}`),
+        db.doc(`architect_worlds/${worldId}/teams/${teamB}`),
         newTeamB
       );
 
       batch.update(
-        db.doc(`/architect/worlds/${worldId}/metadata`),
+        db.doc(`architect_worlds/${worldId}`),
         {
           lastModifiedAt: new Date().toISOString(),
           actionCount: FieldValue.increment(1),
@@ -330,19 +330,19 @@ When loading `draftPicks`, keep the complete shape in memory (including `status`
       const batch = db.batch();
 
       batch.set(
-        db.doc(`/architect/worlds/${worldId}/snapshot/teams/${teamCode}`),
+        db.doc(`architect_worlds/${worldId}/teams/${teamCode}`),
         newTeam
       );
 
       // If new player (not in base), create base player doc or world override
       batch.set(
-        db.doc(`/architect/basePlayers/${playerId}`),
+        db.doc(`architect_basePlayers/${playerId}`),
         newPlayerContract,
         { merge: true }  // Don't overwrite if exists
       );
 
       batch.update(
-        db.doc(`/architect/worlds/${worldId}/metadata`),
+        db.doc(`architect_worlds/${worldId}`),
         {
           lastModifiedAt: new Date().toISOString(),
           actionCount: FieldValue.increment(1),
@@ -403,12 +403,12 @@ When loading `draftPicks`, keep the complete shape in memory (including `status`
       const batch = db.batch();
 
       batch.set(
-        db.doc(`/architect/worlds/${worldId}/snapshot/teams/${teamCode}`),
+        db.doc(`architect_worlds/${worldId}/teams/${teamCode}`),
         newTeam
       );
 
       batch.update(
-        db.doc(`/architect/worlds/${worldId}/metadata`),
+        db.doc(`architect_worlds/${worldId}`),
         {
           lastModifiedAt: new Date().toISOString(),
           actionCount: FieldValue.increment(1),
@@ -493,18 +493,18 @@ When loading `draftPicks`, keep the complete shape in memory (including `status`
 
       // Write player override
       batch.set(
-        db.doc(`/architect/worlds/${worldId}/snapshot/teams/${teamCode}/players/${playerId}`),
+        db.doc(`architect_worlds/${worldId}/teams/${teamCode}/players/${playerId}`),
         playerOverride
       );
 
       // Update team snapshot
       batch.set(
-        db.doc(`/architect/worlds/${worldId}/snapshot/teams/${teamCode}`),
+        db.doc(`architect_worlds/${worldId}/teams/${teamCode}`),
         newTeam
       );
 
       batch.update(
-        db.doc(`/architect/worlds/${worldId}/metadata`),
+        db.doc(`architect_worlds/${worldId}`),
         {
           lastModifiedAt: new Date().toISOString(),
           actionCount: FieldValue.increment(1),
@@ -592,19 +592,19 @@ When loading `draftPicks`, keep the complete shape in memory (including `status`
       const batch = db.batch();
 
       batch.set(
-        db.doc(`/architect/worlds/${worldId}/snapshot/teams/${teamCode}/players/${playerId}`),
+        db.doc(`architect_worlds/${worldId}/teams/${teamCode}/players/${playerId}`),
         playerOverride
       );
 
       if (newTeam) {
         batch.set(
-          db.doc(`/architect/worlds/${worldId}/snapshot/teams/${teamCode}`),
+          db.doc(`architect_worlds/${worldId}/teams/${teamCode}`),
           newTeam
         );
       }
 
       batch.update(
-        db.doc(`/architect/worlds/${worldId}/metadata`),
+        db.doc(`architect_worlds/${worldId}`),
         {
           lastModifiedAt: new Date().toISOString(),
           actionCount: FieldValue.increment(1),
@@ -659,14 +659,14 @@ When loading `draftPicks`, keep the complete shape in memory (including `status`
 
       // Create world metadata
       batch.set(
-        db.doc(`/architect/worlds/${worldId}/metadata`),
+        db.doc(`architect_worlds/${worldId}`),
         metadata
       );
 
       // Update parent's childWorlds if branching
       if (parentWorldId) {
         batch.update(
-          db.doc(`/architect/worlds/${parentWorldId}/metadata`),
+          db.doc(`architect_worlds/${parentWorldId}`),
           {
             childWorlds: FieldValue.arrayUnion(worldId)
           }
@@ -686,7 +686,7 @@ When loading `draftPicks`, keep the complete shape in memory (including `status`
      */
     async function advanceSeason(worldId) {
       // Step 1: Get world metadata
-      const worldMeta = await getDoc(`/architect/worlds/${worldId}/metadata`);
+      const worldMeta = await getDoc(`architect_worlds/${worldId}`);
       const currentSeason = worldMeta.data().currentSeason;
       const nextSeason = calculateNextSeason(currentSeason);  // "2025-26" → "2026-27"
 
@@ -704,14 +704,14 @@ When loading `draftPicks`, keep the complete shape in memory (including `status`
 
         // Save updated team
         batch.set(
-          db.doc(`/architect/worlds/${worldId}/snapshot/teams/${teamCode}`),
+          db.doc(`architect_worlds/${worldId}/teams/${teamCode}`),
           newTeam
         );
       }
 
       // Step 4: Update world metadata
       batch.update(
-        db.doc(`/architect/worlds/${worldId}/metadata`),
+        db.doc(`architect_worlds/${worldId}`),
         {
           currentSeason: nextSeason,
           lastModifiedAt: new Date().toISOString(),

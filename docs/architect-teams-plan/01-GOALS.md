@@ -76,12 +76,12 @@ Maintain an immutable baseline with clear separation between real NBA data and u
 
 - `/players_v2` — immutable, real player data (not part of Architect)
 - `/teams` — immutable, real team data (if present; not part of Architect)
-- `/architect` — top-level for all Architect data:
-  - `/architect/baseTeams/{teamId}`
-  - `/architect/basePlayers/{playerId}`
-  - `/architect/worlds/{worldId}/metadata`
-  - `/architect/worlds/{worldId}/snapshot/teams/{teamId}`
-  - (optional) `/architect/worlds/{worldId}/snapshot/teams/{teamId}/players/{playerId}`
+- Architect collections (using `architect_*` prefix convention):
+  - `architect_baseTeams/{teamCode}`
+  - `architect_basePlayers/{playerId}`
+  - `architect_worlds/{worldId}` — world metadata
+  - `architect_worlds/{worldId}/teams/{teamCode}` — team snapshot
+  - (optional) `architect_worlds/{worldId}/teams/{teamCode}/players/{playerId}` — player override
 
 ---
 

@@ -80,12 +80,12 @@ This document consolidates all critical information from this PR conversation in
 
 - `/players_v2` — immutable, real player data (not part of Architect)
 - `/teams` — immutable, real team data (if present; not part of Architect)
-- `/architect` — top-level for all Architect data:
-  - `/architect/baseTeams/{teamId}`
-  - `/architect/basePlayers/{playerId}`
-  - `/architect/worlds/{worldId}/metadata`
-  - `/architect/worlds/{worldId}/snapshot/teams/{teamId}`
-  - (optional) `/architect/worlds/{worldId}/snapshot/teams/{teamId}/players/{playerId}`
+- Architect collections (using `architect_*` prefix convention):
+  - `architect_baseTeams/{teamCode}`
+  - `architect_basePlayers/{playerId}`
+  - `architect_worlds/{worldId}` — world metadata
+  - `architect_worlds/{worldId}/teams/{teamCode}` — team snapshot
+  - (optional) `architect_worlds/{worldId}/teams/{teamCode}/players/{playerId}` — player override
 
 ---
 
@@ -235,7 +235,7 @@ This document consolidates all critical information from this PR conversation in
     // Get team for league view
     async function getTeam(worldId, teamCode) {
       // 1. Try world snapshot
-      const worldTeam = await getDoc(`/architect/worlds/${worldId}/snapshot/teams/${teamCode}`);
+      const worldTeam = await getDoc(`architect_worlds/${worldId}/teams/${teamCode}`);
       if (worldTeam.exists()) return worldTeam.data();
 
       // 2. Try parent world (if exists)
@@ -246,7 +246,7 @@ This document consolidates all critical information from this PR conversation in
       }
 
       // 3. Fall back to base
-      return await getDoc(`/architect/baseTeams/${teamCode}`);
+      return await getDoc(`architect_baseTeams/${teamCode}`);
     }
 
 **Performance:**
@@ -262,11 +262,11 @@ This document consolidates all critical information from this PR conversation in
       const batch = db.batch();
 
       // 1. Create/update snapshots for both teams
-      batch.set(doc(`/architect/worlds/${worldId}/snapshot/teams/LAL`), newLAL);
-      batch.set(doc(`/architect/worlds/${worldId}/snapshot/teams/NOP`), newNOP);
+      batch.set(doc(`architect_worlds/${worldId}/teams/LAL`), newLAL);
+      batch.set(doc(`architect_worlds/${worldId}/teams/NOP`), newNOP);
 
       // 2. Update world metadata
-      batch.update(doc(`/architect/worlds/${worldId}/metadata`), {
+      batch.update(doc(`architect_worlds/${worldId}`), {
         lastModifiedAt: now(),
         actionCount: increment(1),
         modifiedTeams: arrayUnion("LAL", "NOP")

@@ -10,16 +10,14 @@
 
 import { db } from '@/firebaseConfig';
 import {
-  doc,
-  setDoc,
   writeBatch,
-  serverTimestamp,
 } from 'firebase/firestore';
 import { getTeam, getPlayer } from './teamLoader';
-import { getWorldMetadata, updateWorldStats } from './worldManager';
+import { updateWorldStats } from './worldManager';
 import { validateTrade } from './tradeMachine';
 import { buildTradeTeamInput, buildTradeInput } from './schemaAdapter';
 import { toEndYear } from './seasonFormat';
+import { worldTeamRef, worldPlayerRef } from './architectFirestorePaths';
 
 /**
  * Execute trade between teams
@@ -148,15 +146,8 @@ export async function executeTrade(worldId, tradeData) {
     updatedTeam.totals = await updateTeamCapTotals(updatedTeam);
 
     // Save snapshot
-    const snapshotRef = doc(
-      db,
-      'architect',
-      'worlds',
-      worldId,
-      'snapshot',
-      'teams',
-      teamCode
-    );
+    // Path: architect_worlds/{worldId}/teams/{teamCode}
+    const snapshotRef = worldTeamRef(worldId, teamCode);
     batch.set(snapshotRef, updatedTeam);
 
     updatedTeams.push({ teamCode, team: updatedTeam });
@@ -248,16 +239,9 @@ export async function signFreeAgent(worldId, teamCode, signingData) {
   };
 
   // Save snapshot
+  // Path: architect_worlds/{worldId}/teams/{teamCode}
   const batch = writeBatch(db);
-  const snapshotRef = doc(
-    db,
-    'architect',
-    'worlds',
-    worldId,
-    'snapshot',
-    'teams',
-    teamCode
-  );
+  const snapshotRef = worldTeamRef(worldId, teamCode);
   batch.set(snapshotRef, updatedTeam);
 
   // Update world metadata
@@ -361,16 +345,9 @@ export async function waivePlayer(worldId, teamCode, playerId, options = {}) {
   };
 
   // Save snapshot
+  // Path: architect_worlds/{worldId}/teams/{teamCode}
   const batch = writeBatch(db);
-  const snapshotRef = doc(
-    db,
-    'architect',
-    'worlds',
-    worldId,
-    'snapshot',
-    'teams',
-    teamCode
-  );
+  const snapshotRef = worldTeamRef(worldId, teamCode);
   batch.set(snapshotRef, updatedTeam);
 
   // Update world metadata
@@ -410,17 +387,8 @@ export async function extendPlayer(worldId, teamCode, playerId, extension) {
 
   // Create player override with extended contract
   // This would typically merge the extension with the existing contract
-  const playerOverrideRef = doc(
-    db,
-    'architect',
-    'worlds',
-    worldId,
-    'snapshot',
-    'teams',
-    teamCode,
-    'players',
-    playerId
-  );
+  // Path: architect_worlds/{worldId}/teams/{teamCode}/players/{playerId}
+  const playerOverrideRef = worldPlayerRef(worldId, teamCode, playerId);
 
   const updatedPlayer = {
     ...playerData,
@@ -440,15 +408,8 @@ export async function extendPlayer(worldId, teamCode, playerId, extension) {
   updatedTeam.totals = await updateTeamCapTotals(updatedTeam);
 
   // Update team snapshot
-  const teamSnapshotRef = doc(
-    db,
-    'architect',
-    'worlds',
-    worldId,
-    'snapshot',
-    'teams',
-    teamCode
-  );
+  // Path: architect_worlds/{worldId}/teams/{teamCode}
+  const teamSnapshotRef = worldTeamRef(worldId, teamCode);
   batch.set(teamSnapshotRef, updatedTeam);
 
   // Update world metadata

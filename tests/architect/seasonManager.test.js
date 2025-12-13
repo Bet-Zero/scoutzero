@@ -89,7 +89,7 @@ describe('Season Manager', () => {
       const result = await processSeasonTransition(worldId, '2025-26', '2026-27');
 
       expect(result.success).toBe(true);
-      const updatedTeam = getMockData(`architect/worlds/${worldId}/snapshot/teams/LAL`);
+      const updatedTeam = getMockData(`architect_worlds/${worldId}/teams/LAL`);
       expect(updatedTeam.roster).not.toContain('player_expiring');
     });
 
@@ -141,7 +141,7 @@ describe('Season Manager', () => {
 
       await processSeasonTransition(worldId, '2025-26', '2026-27');
 
-      const updatedTeam = getMockData(`architect/worlds/${worldId}/snapshot/teams/LAL`);
+      const updatedTeam = getMockData(`architect_worlds/${worldId}/teams/LAL`);
       expect(updatedTeam.roster).toContain('player1');
       expect(updatedTeam.roster).not.toContain('player_expiring');
     });
@@ -173,7 +173,7 @@ describe('Season Manager', () => {
 
       await processSeasonTransition(worldId, '2025-26', '2026-27');
 
-      const updatedTeam = getMockData(`architect/worlds/${worldId}/snapshot/teams/LAL`);
+      const updatedTeam = getMockData(`architect_worlds/${worldId}/teams/LAL`);
       const player = updatedTeam.players.find((p) => p.playerId === 'player_with_option');
       // Option should be exercised by default
       expect(player.contract.salariesByYear[0].optionUsed).toBe(true);
@@ -206,7 +206,7 @@ describe('Season Manager', () => {
 
       await processSeasonTransition(worldId, '2025-26', '2026-27');
 
-      const updatedTeam = getMockData(`architect/worlds/${worldId}/snapshot/teams/LAL`);
+      const updatedTeam = getMockData(`architect_worlds/${worldId}/teams/LAL`);
       expect(updatedTeam.roster).not.toContain('player_with_option');
     });
 
@@ -224,7 +224,7 @@ describe('Season Manager', () => {
 
       await processSeasonTransition(worldId, '2025-26', '2026-27');
 
-      const updatedTeam = getMockData(`architect/worlds/${worldId}/snapshot/teams/LAL`);
+      const updatedTeam = getMockData(`architect_worlds/${worldId}/teams/LAL`);
       expect(updatedTeam.totals.emptyRosterCharges).toBeGreaterThan(0);
       expect(updatedTeam.totals.rosterCount).toBe(2);
     });
@@ -255,7 +255,7 @@ describe('Season Manager', () => {
 
       await processSeasonTransition(worldId, '2025-26', '2026-27');
 
-      const updatedTeam = getMockData(`architect/worlds/${worldId}/snapshot/teams/BOS`);
+      const updatedTeam = getMockData(`architect_worlds/${worldId}/teams/BOS`);
       // Signed player's cap hold should be removed
       const signedHold = updatedTeam.capHolds?.find((h) => h.playerId === 'signed_player');
       expect(signedHold).toBeUndefined();
@@ -279,7 +279,7 @@ describe('Season Manager', () => {
 
       await processSeasonTransition(worldId, '2025-26', '2026-27');
 
-      const updatedTeam = getMockData(`architect/worlds/${worldId}/snapshot/teams/LAL`);
+      const updatedTeam = getMockData(`architect_worlds/${worldId}/teams/LAL`);
       const pick = updatedTeam.draftPicks.find((p) => p.id === 'lal_2026_1');
       // Pick year has passed, status may be updated
       expect(pick).toBeDefined();
@@ -332,7 +332,7 @@ describe('Season Manager', () => {
 
       await processSeasonTransition(worldId, '2025-26', '2026-27');
 
-      const updatedTeam = getMockData(`architect/worlds/${worldId}/snapshot/teams/LAL`);
+      const updatedTeam = getMockData(`architect_worlds/${worldId}/teams/LAL`);
       const player = updatedTeam.players.find((p) => p.playerId === 'player1');
       expect(player.contract.yearsRemaining).toBe(2);
     });
@@ -374,7 +374,7 @@ describe('Season Manager', () => {
 
       await processSeasonTransition(worldId, '2025-26', '2026-27');
 
-      const updatedTeam = getMockData(`architect/worlds/${worldId}/snapshot/teams/LAL`);
+      const updatedTeam = getMockData(`architect_worlds/${worldId}/teams/LAL`);
       const player = updatedTeam.players.find((p) => p.playerId === 'player1');
       // Expired years (2024-25, 2025-26) should be removed
       const expiredYears = player.contract.salariesByYear.filter(

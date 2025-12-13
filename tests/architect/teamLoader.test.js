@@ -224,7 +224,8 @@ describe('Team Loader', () => {
         },
       };
 
-      const overridePath = `architect/worlds/${worldId}/snapshot/teams/LAL/players/lebron_james`;
+      // Path: architect_worlds/{worldId}/teams/{teamCode}/players/{playerId}
+      const overridePath = `architect_worlds/${worldId}/teams/LAL/players/lebron_james`;
       const { seedMockData } = await import('../setupFirebaseMocks.js');
       seedMockData(overridePath, playerOverride);
 
@@ -254,7 +255,8 @@ describe('Team Loader', () => {
         },
       };
 
-      const overridePath = `architect/worlds/${parentWorldId}/snapshot/teams/LAL/players/lebron_james`;
+      // Path: architect_worlds/{worldId}/teams/{teamCode}/players/{playerId}
+      const overridePath = `architect_worlds/${parentWorldId}/teams/LAL/players/lebron_james`;
       const { seedMockData } = await import('../setupFirebaseMocks.js');
       seedMockData(overridePath, playerOverride);
 
