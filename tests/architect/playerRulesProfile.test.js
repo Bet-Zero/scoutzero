@@ -12,6 +12,10 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
+
+// NOTE: This test intentionally imports INTERNAL implementation directly.
+// Most Architect code must import from salaryEngine instead:
+//   import { ... } from '@/features/architect/utils/salaryEngine'
 import {
   computePlayerRulesProfile,
   computeExtensionEligibility,
@@ -48,8 +52,18 @@ const VETERAN_STAR = {
     endSeason: '2025-26',
     signingDate: '2022-07-01',
     salariesByYear: [
-      { season: '2024-25', salary: 45_000_000, capHit: 45_000_000, guaranteed: true },
-      { season: '2025-26', salary: 48_000_000, capHit: 48_000_000, guaranteed: true },
+      {
+        season: '2024-25',
+        salary: 45_000_000,
+        capHit: 45_000_000,
+        guaranteed: true,
+      },
+      {
+        season: '2025-26',
+        salary: 48_000_000,
+        capHit: 48_000_000,
+        guaranteed: true,
+      },
     ],
     birdRights: {
       status: 'Full',
@@ -86,7 +100,12 @@ const ROOKIE_FOURTH_YEAR = {
     startSeason: '2021-22',
     endSeason: '2024-25',
     salariesByYear: [
-      { season: '2024-25', salary: 9_500_000, capHit: 9_500_000, guaranteed: true },
+      {
+        season: '2024-25',
+        salary: 9_500_000,
+        capHit: 9_500_000,
+        guaranteed: true,
+      },
     ],
     birdRights: {
       status: 'Full',
@@ -114,7 +133,12 @@ const MID_CAREER = {
     startSeason: '2022-23',
     endSeason: '2024-25',
     salariesByYear: [
-      { season: '2024-25', salary: 15_000_000, capHit: 15_000_000, guaranteed: true },
+      {
+        season: '2024-25',
+        salary: 15_000_000,
+        capHit: 15_000_000,
+        guaranteed: true,
+      },
     ],
     birdRights: {
       status: 'Early',
@@ -142,7 +166,12 @@ const YOUNG_PLAYER = {
     startSeason: '2023-24',
     endSeason: '2024-25',
     salariesByYear: [
-      { season: '2024-25', salary: 5_000_000, capHit: 5_000_000, guaranteed: true },
+      {
+        season: '2024-25',
+        salary: 5_000_000,
+        capHit: 5_000_000,
+        guaranteed: true,
+      },
     ],
     birdRights: {
       status: 'Non-Bird',
@@ -167,7 +196,12 @@ const TWO_WAY_PLAYER = {
     isRookieScale: false,
     yearsRemaining: 1,
     salariesByYear: [
-      { season: '2024-25', salary: 560_000, capHit: 560_000, guaranteed: false },
+      {
+        season: '2024-25',
+        salary: 560_000,
+        capHit: 560_000,
+        guaranteed: false,
+      },
     ],
     birdRights: {
       status: 'None',
@@ -201,8 +235,18 @@ const TRADED_PLAYER = {
     startSeason: '2022-23',
     endSeason: '2025-26',
     salariesByYear: [
-      { season: '2024-25', salary: 25_000_000, capHit: 25_000_000, guaranteed: true },
-      { season: '2025-26', salary: 27_000_000, capHit: 27_000_000, guaranteed: true },
+      {
+        season: '2024-25',
+        salary: 25_000_000,
+        capHit: 25_000_000,
+        guaranteed: true,
+      },
+      {
+        season: '2025-26',
+        salary: 27_000_000,
+        capHit: 27_000_000,
+        guaranteed: true,
+      },
     ],
     birdRights: {
       status: 'Full',
@@ -239,7 +283,11 @@ const TEAM_CONTEXT = {
  */
 describe('computePlayerRulesProfile', () => {
   it('returns complete profile for veteran star player', () => {
-    const profile = computePlayerRulesProfile(VETERAN_STAR, TEAM_CONTEXT, LEAGUE_CONTEXT);
+    const profile = computePlayerRulesProfile(
+      VETERAN_STAR,
+      TEAM_CONTEXT,
+      LEAGUE_CONTEXT
+    );
 
     expect(profile.playerId).toBe('veteran_star');
     expect(profile.playerName).toBe('Veteran Star');
@@ -255,14 +303,22 @@ describe('computePlayerRulesProfile', () => {
   });
 
   it('returns empty profile with error for null player', () => {
-    const profile = computePlayerRulesProfile(null, TEAM_CONTEXT, LEAGUE_CONTEXT);
+    const profile = computePlayerRulesProfile(
+      null,
+      TEAM_CONTEXT,
+      LEAGUE_CONTEXT
+    );
 
     expect(profile.error).toBeDefined();
     expect(profile.extensionEligibility.isEligible).toBe(false);
   });
 
   it('includes team context when provided', () => {
-    const profile = computePlayerRulesProfile(VETERAN_STAR, TEAM_CONTEXT, LEAGUE_CONTEXT);
+    const profile = computePlayerRulesProfile(
+      VETERAN_STAR,
+      TEAM_CONTEXT,
+      LEAGUE_CONTEXT
+    );
 
     expect(profile.teamContext).toBeDefined();
     expect(profile.teamContext.teamCode).toBe('LAL');
@@ -275,7 +331,10 @@ describe('computePlayerRulesProfile', () => {
  */
 describe('computeExtensionEligibility', () => {
   it('veteran with 4-year contract after 2 years is eligible', () => {
-    const eligibility = computeExtensionEligibility(VETERAN_STAR, LEAGUE_CONTEXT);
+    const eligibility = computeExtensionEligibility(
+      VETERAN_STAR,
+      LEAGUE_CONTEXT
+    );
 
     expect(eligibility.isEligible).toBe(true);
     // Veteran star has All-NBA and 12 years of service, qualifies for Designated Veteran
@@ -283,14 +342,20 @@ describe('computeExtensionEligibility', () => {
   });
 
   it('rookie in 4th year is eligible for rookie extension', () => {
-    const eligibility = computeExtensionEligibility(ROOKIE_FOURTH_YEAR, LEAGUE_CONTEXT);
+    const eligibility = computeExtensionEligibility(
+      ROOKIE_FOURTH_YEAR,
+      LEAGUE_CONTEXT
+    );
 
     expect(eligibility.isEligible).toBe(true);
     expect(eligibility.extensionType).toBe('Rookie Scale Extension');
   });
 
   it('two-way player is not extension eligible', () => {
-    const eligibility = computeExtensionEligibility(TWO_WAY_PLAYER, LEAGUE_CONTEXT);
+    const eligibility = computeExtensionEligibility(
+      TWO_WAY_PLAYER,
+      LEAGUE_CONTEXT
+    );
 
     expect(eligibility.isEligible).toBe(false);
     expect(eligibility.reason).toContain('Two-way');
@@ -304,11 +369,16 @@ describe('computeExtensionEligibility', () => {
   });
 
   it('recently traded player has trade restriction', () => {
-    const eligibility = computeExtensionEligibility(TRADED_PLAYER, LEAGUE_CONTEXT);
+    const eligibility = computeExtensionEligibility(
+      TRADED_PLAYER,
+      LEAGUE_CONTEXT
+    );
 
     // May be eligible but with trade restrictions
     if (eligibility.isEligible) {
-      expect(['Veteran Extension', 'Trade-Restricted Extension']).toContain(eligibility.extensionType);
+      expect(['Veteran Extension', 'Trade-Restricted Extension']).toContain(
+        eligibility.extensionType
+      );
     }
   });
 
@@ -322,7 +392,10 @@ describe('computeExtensionEligibility', () => {
       },
     };
 
-    const eligibility = computeExtensionEligibility(shortContractPlayer, LEAGUE_CONTEXT);
+    const eligibility = computeExtensionEligibility(
+      shortContractPlayer,
+      LEAGUE_CONTEXT
+    );
 
     expect(eligibility.isEligible).toBe(false);
     expect(eligibility.reason).toContain('3+ years');
@@ -414,7 +487,9 @@ describe('computeBirdRights', () => {
     const expectedMax = Math.max(expected175, expected105);
 
     // Allow for rounding differences (tolerance of 10000)
-    expect(Math.abs(birdRights.signingAbilities.maxFirstYearSalary - expectedMax)).toBeLessThan(10000);
+    expect(
+      Math.abs(birdRights.signingAbilities.maxFirstYearSalary - expectedMax)
+    ).toBeLessThan(10000);
   });
 });
 
@@ -479,7 +554,7 @@ describe('computeMaxSalary', () => {
 
     expect(result.tier).toContain('30%');
     expect(result.maxSalary).toBeCloseTo(
-      LEAGUE_CONTEXT.capSettings.salaryCap * 0.30,
+      LEAGUE_CONTEXT.capSettings.salaryCap * 0.3,
       -3
     );
   });
@@ -544,7 +619,7 @@ describe('computeQualifyingOffer', () => {
 
     // Lottery pick (5) gets 30% increase
     const fourthYearSalary = 9_500_000;
-    const expectedQO = fourthYearSalary * 1.30;
+    const expectedQO = fourthYearSalary * 1.3;
 
     // Allow for rounding differences (tolerance of 10000)
     expect(Math.abs(qo.qualifyingOfferAmount - expectedQO)).toBeLessThan(10000);
@@ -571,7 +646,11 @@ describe('computeQualifyingOffer', () => {
  */
 describe('Contract Summary in Profile', () => {
   it('includes correct contract summary for veteran', () => {
-    const profile = computePlayerRulesProfile(VETERAN_STAR, TEAM_CONTEXT, LEAGUE_CONTEXT);
+    const profile = computePlayerRulesProfile(
+      VETERAN_STAR,
+      TEAM_CONTEXT,
+      LEAGUE_CONTEXT
+    );
 
     expect(profile.contractSummary.yearsOfService).toBe(12);
     expect(profile.contractSummary.yearsRemaining).toBe(2);
@@ -580,13 +659,21 @@ describe('Contract Summary in Profile', () => {
   });
 
   it('includes current salary', () => {
-    const profile = computePlayerRulesProfile(VETERAN_STAR, TEAM_CONTEXT, LEAGUE_CONTEXT);
+    const profile = computePlayerRulesProfile(
+      VETERAN_STAR,
+      TEAM_CONTEXT,
+      LEAGUE_CONTEXT
+    );
 
     expect(profile.contractSummary.currentSalary).toBe(45_000_000);
   });
 
   it('shows no contract for free agent', () => {
-    const profile = computePlayerRulesProfile(FREE_AGENT, TEAM_CONTEXT, LEAGUE_CONTEXT);
+    const profile = computePlayerRulesProfile(
+      FREE_AGENT,
+      TEAM_CONTEXT,
+      LEAGUE_CONTEXT
+    );
 
     expect(profile.contractSummary.hasContract).toBe(false);
     expect(profile.contractSummary.currentSalary).toBeNull();
@@ -598,12 +685,22 @@ describe('Contract Summary in Profile', () => {
  */
 describe('Full Profile Scenarios', () => {
   it('profile is deterministic - same inputs yield same output', () => {
-    const profile1 = computePlayerRulesProfile(VETERAN_STAR, TEAM_CONTEXT, LEAGUE_CONTEXT);
-    const profile2 = computePlayerRulesProfile(VETERAN_STAR, TEAM_CONTEXT, LEAGUE_CONTEXT);
+    const profile1 = computePlayerRulesProfile(
+      VETERAN_STAR,
+      TEAM_CONTEXT,
+      LEAGUE_CONTEXT
+    );
+    const profile2 = computePlayerRulesProfile(
+      VETERAN_STAR,
+      TEAM_CONTEXT,
+      LEAGUE_CONTEXT
+    );
 
     // Compare key fields - evaluatedAt is intentionally excluded from equality checks
     // as it captures the timestamp of evaluation which may differ slightly between calls
-    expect(profile1.extensionEligibility).toEqual(profile2.extensionEligibility);
+    expect(profile1.extensionEligibility).toEqual(
+      profile2.extensionEligibility
+    );
     expect(profile1.birdRights).toEqual(profile2.birdRights);
     expect(profile1.minimumSalary).toEqual(profile2.minimumSalary);
     expect(profile1.maxSalary).toEqual(profile2.maxSalary);
@@ -632,7 +729,12 @@ describe('Full Profile Scenarios', () => {
         isExtension: false,
         yearsRemaining: 1,
         salariesByYear: [
-          { season: '2024-25', salary: 47_607_350, capHit: 47_607_350, guaranteed: true },
+          {
+            season: '2024-25',
+            salary: 47_607_350,
+            capHit: 47_607_350,
+            guaranteed: true,
+          },
         ],
         birdRights: {
           status: 'Full',
@@ -646,7 +748,11 @@ describe('Full Profile Scenarios', () => {
       },
     };
 
-    const profile = computePlayerRulesProfile(lebronStyle, TEAM_CONTEXT, LEAGUE_CONTEXT);
+    const profile = computePlayerRulesProfile(
+      lebronStyle,
+      TEAM_CONTEXT,
+      LEAGUE_CONTEXT
+    );
 
     expect(profile.birdRights.type).toBe(BIRD_RIGHTS_TYPES.FULL);
     expect(profile.maxSalary.tier).toContain('35%');
@@ -655,11 +761,19 @@ describe('Full Profile Scenarios', () => {
   });
 
   it('handles rookie draft pick profile', () => {
-    const profile = computePlayerRulesProfile(ROOKIE_FOURTH_YEAR, TEAM_CONTEXT, LEAGUE_CONTEXT);
+    const profile = computePlayerRulesProfile(
+      ROOKIE_FOURTH_YEAR,
+      TEAM_CONTEXT,
+      LEAGUE_CONTEXT
+    );
 
     expect(profile.extensionEligibility.isEligible).toBe(true);
-    expect(profile.extensionEligibility.extensionType).toBe('Rookie Scale Extension');
+    expect(profile.extensionEligibility.extensionType).toBe(
+      'Rookie Scale Extension'
+    );
     expect(profile.restrictedFreeAgency.isRFA).toBe(true);
-    expect(profile.restrictedFreeAgency.qualifyingOfferAmount).toBeGreaterThan(0);
+    expect(profile.restrictedFreeAgency.qualifyingOfferAmount).toBeGreaterThan(
+      0
+    );
   });
 });

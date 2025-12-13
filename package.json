@@ -47,7 +47,9 @@
     "build:ids": "tsx player-scrape/shared/scripts/build_all_player_ids.ts --season=2026",
     "build:bios": "tsx player-scrape/shared/scripts/build_players_bios.ts --season=2026",
     "build:index": "tsx player-scrape/shared/scripts/build_player_index.ts --season=2026",
-    "build:foundation": "npm run build:ids && npm run build:bios && npm run build:index"
+    "build:foundation": "npm run build:ids && npm run build:bios && npm run build:index",
+    "firestore:architect:scan": "node scripts/firebase-utils/scan-architect-usage.js",
+    "firestore:architect:snapshot": "node scripts/firebase-utils/export-sanitized-snapshot.js"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.6",

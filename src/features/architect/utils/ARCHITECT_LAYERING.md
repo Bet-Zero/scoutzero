@@ -67,6 +67,22 @@ It blocks **both**:
 Import from @/features/architect/utils/salaryEngine instead. See ARCHITECT_LAYERING.md.
 ```
 
+### What to do when you hit the lint error
+
+1. **Do not “work around” the lint** (no relative imports, no deep-path imports into `playerRulesProfile/**`).
+2. **Import the same symbol from `salaryEngine` instead**:
+
+```typescript
+// Before (forbidden)
+import { computeBirdRights } from '@/features/architect/utils/playerRulesProfile';
+
+// After (allowed)
+import { computeBirdRights } from '@/features/architect/utils/salaryEngine';
+```
+
+3. **If the symbol you need isn’t exported yet**, add a re-export to:
+   `src/features/architect/utils/salaryEngine/index.ts` (no logic changes) so all consumers keep a single import path.
+
 ## Whitelisted Files
 
 The following files are allowed to import directly from `playerRulesProfile`:
