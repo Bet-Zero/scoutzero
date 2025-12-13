@@ -34,7 +34,11 @@ import {
   makeSeasonIdFromEndYear,
   normalizeToSeasonId,
 } from './seasonHelpers';
-import { getCapForSeason, getSupportedSeasonRange, hasCapDataForSeason } from './capHelpers';
+import {
+  getCapForSeason,
+  getSupportedSeasonRange,
+  hasCapDataForSeason,
+} from './capHelpers';
 
 // Re-export RuleContextValidationError for backward compatibility
 export { RuleContextValidationError } from '../types/ruleContext';
@@ -108,7 +112,11 @@ export interface BuildRuleContextInput {
       taxpayerMLE?: { available: boolean; remaining: number };
       roomMLE?: { available: boolean; remaining: number };
       bae?: { available: boolean; remaining: number };
-      tradeExceptions?: Array<{ id: string; amount: number; expiresSeasonId?: string }>;
+      tradeExceptions?: Array<{
+        id: string;
+        amount: number;
+        expiresSeasonId?: string;
+      }>;
     };
   };
 
@@ -143,7 +151,7 @@ export interface BuildRuleContextInput {
 
 /**
  * Determine the league phase based on date
- * 
+ *
  * NBA Calendar:
  * - July 1-6: Moratorium (no signings allowed)
  * - July 7 - Oct ~15: Offseason (free agency period)
@@ -228,7 +236,9 @@ function deriveOperationSeasonId(
       }
       // Fallback: assume extension starts next season
       const parsed = parseSeasonId(currentSeason);
-      return parsed ? makeSeasonIdFromEndYear(parsed.endYear + 1) : currentSeason;
+      return parsed
+        ? makeSeasonIdFromEndYear(parsed.endYear + 1)
+        : currentSeason;
     }
 
     default:
@@ -303,11 +313,10 @@ function getSalaryForSeason(
 }
 
 // Import getYearsOfService from minimumSalaryRules for consistent YOS calculation
-import { getYearsOfService as getYearsOfServiceFromPlayer } from './playerRulesProfile/minimumSalaryRules';
-
+import { getYearsOfService as getYearsOfServiceFromPlayer } from '@/features/architect/utils/salaryEngine';
 /**
  * Compute years of service at operation time
- * 
+ *
  * Uses the shared getYearsOfService helper first for consistency,
  * then falls back to draft-year calculation if needed.
  */
@@ -340,9 +349,9 @@ function computeYearsOfService(
 /**
  * Compute max salary percentage bucket based on years of service
  */
-function computeMaxPercentBucket(yearsOfService: number): 0.25 | 0.30 | 0.35 {
+function computeMaxPercentBucket(yearsOfService: number): 0.25 | 0.3 | 0.35 {
   if (yearsOfService >= 10) return 0.35;
-  if (yearsOfService >= 7) return 0.30;
+  if (yearsOfService >= 7) return 0.3;
   return 0.25;
 }
 
@@ -354,16 +363,18 @@ function deriveBirdType(player: BuildRuleContextInput['player']): BirdType {
   if (!status) return 'None';
 
   const normalizedStatus = String(status).toLowerCase().trim();
-  if (normalizedStatus.includes('full') || normalizedStatus === 'bird') return 'Full Bird';
+  if (normalizedStatus.includes('full') || normalizedStatus === 'bird')
+    return 'Full Bird';
   if (normalizedStatus.includes('early')) return 'Early Bird';
   if (normalizedStatus.includes('non')) return 'Non-Bird';
   if (normalizedStatus === 'none') return 'None';
 
   // Log warning for unrecognized bird rights status to help debug data issues
-  const playerId = player.playerId ?? player.player_id ?? player.id ?? 'unknown';
+  const playerId =
+    player.playerId ?? player.player_id ?? player.id ?? 'unknown';
   console.warn(
     `Unrecognized Bird rights status "${status}" (normalized: "${normalizedStatus}") ` +
-    `for player ${playerId}. Defaulting to 'None'.`
+      `for player ${playerId}. Defaulting to 'None'.`
   );
   return 'None';
 }
@@ -396,10 +407,7 @@ function computeTeamSalary(
 /**
  * Derive apron level from team salary and cap thresholds
  */
-function deriveApronLevel(
-  teamSalary: number,
-  cap: CapContext
-): ApronLevel {
+function deriveApronLevel(teamSalary: number, cap: CapContext): ApronLevel {
   if (teamSalary >= cap.secondApron) return 'SECOND_APRON';
   if (teamSalary >= cap.firstApron) return 'FIRST_APRON';
   if (teamSalary > cap.salaryCap) return 'OVER_CAP';
@@ -516,16 +524,18 @@ function buildTeamContext(
   };
 
   // Normalize trade exceptions
-  const tradeExceptions = (exceptionsAvailable.tradeExceptions ?? []).map((tpe) => {
-    const normalized = tpe.expiresSeasonId
-      ? normalizeToSeasonId(tpe.expiresSeasonId)
-      : null;
-    return {
-      id: tpe.id,
-      amount: tpe.amount,
-      expiresSeasonId: normalized ?? operationSeasonId,
-    };
-  });
+  const tradeExceptions = (exceptionsAvailable.tradeExceptions ?? []).map(
+    (tpe) => {
+      const normalized = tpe.expiresSeasonId
+        ? normalizeToSeasonId(tpe.expiresSeasonId)
+        : null;
+      return {
+        id: tpe.id,
+        amount: tpe.amount,
+        expiresSeasonId: normalized ?? operationSeasonId,
+      };
+    }
+  );
 
   return {
     teamId,
@@ -548,13 +558,19 @@ function buildOperationContext(
   input: BuildRuleContextInput,
   operationSeasonId: SeasonId
 ): OperationContext {
-  const { operationType, proposedContract, exceptionUsed, isSignAndTrade, isExtendAndTrade } =
-    input;
+  const {
+    operationType,
+    proposedContract,
+    exceptionUsed,
+    isSignAndTrade,
+    isExtendAndTrade,
+  } = input;
 
   let formattedContract: OperationContext['proposedContract'];
   if (proposedContract) {
     const startingSeasonId = proposedContract.startingSeasonId
-      ? (normalizeToSeasonId(proposedContract.startingSeasonId) ?? operationSeasonId)
+      ? (normalizeToSeasonId(proposedContract.startingSeasonId) ??
+        operationSeasonId)
       : operationSeasonId;
 
     formattedContract = {
@@ -582,7 +598,10 @@ function buildOperationContext(
  */
 export function validateRuleContext(ctx: RuleContext): void {
   // Timing validation
-  if (!ctx.timing.operationSeasonId || !isValidSeasonId(ctx.timing.operationSeasonId)) {
+  if (
+    !ctx.timing.operationSeasonId ||
+    !isValidSeasonId(ctx.timing.operationSeasonId)
+  ) {
     throw new RuleContextValidationError(
       'INVALID_SEASON_ID',
       'operationSeasonId is required and must be valid',
@@ -670,8 +689,16 @@ export function buildRuleContextForPlayerMove(
   );
 
   // Build all context pieces
-  const timing = buildTimingContext(input, operationSeasonId, referenceSeasonId);
-  const player = buildPlayerContext(input, operationSeasonId, referenceSeasonId);
+  const timing = buildTimingContext(
+    input,
+    operationSeasonId,
+    referenceSeasonId
+  );
+  const player = buildPlayerContext(
+    input,
+    operationSeasonId,
+    referenceSeasonId
+  );
   const team = buildTeamContext(input, operationSeasonId, cap);
   const operation = buildOperationContext(input, operationSeasonId);
 
@@ -691,29 +718,29 @@ export function buildRuleContextForPlayerMove(
 
 /**
  * Build a minimal "cap-only" RuleContext for simple season/cap lookups.
- * 
+ *
  * This function creates a skeletal RuleContext with placeholder/synthetic values
  * for player and team fields. It is intended for:
  * - Quick cap threshold lookups
  * - Season/timing calculations
  * - Rules that only need cap data (salaryCap, apron thresholds, exceptions)
- * 
+ *
  * **WARNING**: Do not use this context for player-specific calculations like
  * max salary, Bird rights, or QO amounts - those require full player data.
  * The player fields (yearsOfService, priorSeasonSalary, etc.) are all set to
  * safe defaults (0, null, 'None') and will produce incorrect results if used
  * for actual player rule evaluation.
- * 
+ *
  * @param seasonId - The season to build context for (e.g., "2024-25" or 2025)
  * @param operationType - Operation type for context (defaults to 'UFA_SIGNING')
  * @returns A RuleContext with real cap data but placeholder player/team data
  * @throws RuleContextValidationError if seasonId is invalid or cap data unavailable
- * 
+ *
  * @example
  * // Good: Use for cap lookups
  * const ctx = buildMinimalRuleContext('2025-26');
  * const cap = ctx.cap.salaryCap; // Real 2025-26 cap value
- * 
+ *
  * // Bad: Don't use for player rules
  * const maxSalary = computeMaxSalary(ctx); // Wrong! Uses placeholder YOS = 0
  */

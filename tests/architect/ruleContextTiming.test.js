@@ -17,10 +17,17 @@ import {
   validateRuleContext,
   RuleContextValidationError,
 } from '@/features/architect/utils/buildRuleContext';
-import { computeMaxSalary, computeMaxSalaryFromRuleContext } from '@/features/architect/utils/playerRulesProfile/maxSalaryRules';
-import { computeMinimumSalary } from '@/features/architect/utils/playerRulesProfile/minimumSalaryRules';
+import {
+  computeMaxSalary,
+  computeMaxSalaryFromRuleContext,
+  computeMinimumSalary,
+} from '@/features/architect/utils/salaryEngine';
 import { getCapForSeason } from '@/features/architect/utils/capHelpers';
-import { normalizeToSeasonId, parseSeasonId, prevSeason } from '@/features/architect/utils/seasonHelpers';
+import {
+  normalizeToSeasonId,
+  parseSeasonId,
+  prevSeason,
+} from '@/features/architect/utils/seasonHelpers';
 
 /**
  * Test Fixtures
@@ -43,8 +50,18 @@ const LEBRON_2026_UFA = {
   contract: {
     endSeason: '2025-26',
     salariesByYear: [
-      { season: '2024-25', salary: 47607350, capHit: 47607350, guaranteed: true },
-      { season: '2025-26', salary: 52000000, capHit: 52000000, guaranteed: true },
+      {
+        season: '2024-25',
+        salary: 47607350,
+        capHit: 47607350,
+        guaranteed: true,
+      },
+      {
+        season: '2025-26',
+        salary: 52000000,
+        capHit: 52000000,
+        guaranteed: true,
+      },
     ],
     birdRights: {
       status: 'Full',
@@ -116,7 +133,12 @@ const VET_10_YOS = {
   contract: {
     endSeason: '2024-25',
     salariesByYear: [
-      { season: '2024-25', salary: 10000000, capHit: 10000000, guaranteed: true },
+      {
+        season: '2024-25',
+        salary: 10000000,
+        capHit: 10000000,
+        guaranteed: true,
+      },
     ],
     birdRights: {
       status: 'Full',
@@ -145,9 +167,24 @@ const EXTENSION_ELIGIBLE_PLAYER = {
     isRookieScale: false,
     contractType: 'Standard',
     salariesByYear: [
-      { season: '2024-25', salary: 40000000, capHit: 40000000, guaranteed: true },
-      { season: '2025-26', salary: 43200000, capHit: 43200000, guaranteed: true },
-      { season: '2026-27', salary: 46656000, capHit: 46656000, guaranteed: true },
+      {
+        season: '2024-25',
+        salary: 40000000,
+        capHit: 40000000,
+        guaranteed: true,
+      },
+      {
+        season: '2025-26',
+        salary: 43200000,
+        capHit: 43200000,
+        guaranteed: true,
+      },
+      {
+        season: '2026-27',
+        salary: 46656000,
+        capHit: 46656000,
+        guaranteed: true,
+      },
     ],
     birdRights: {
       status: 'Full',
@@ -349,7 +386,9 @@ describe('Minimum Salary and Trade Cap Hit', () => {
         salaryCap: ctx.cap.salaryCap,
       },
     });
-    expect(minResult.minimumSalary).toBeGreaterThan(rookieMinResult.minimumSalary);
+    expect(minResult.minimumSalary).toBeGreaterThan(
+      rookieMinResult.minimumSalary
+    );
   });
 
   it('should compute 10+ year veteran minimum for 10 YOS', () => {
@@ -475,11 +514,11 @@ describe('Extension Timing', () => {
 
     // Player has 8 YOS -> 30% max tier
     expect(ctx.player.yearsOfServiceAtOperation).toBe(8);
-    expect(ctx.player.maxPercentBucket).toBe(0.30);
+    expect(ctx.player.maxPercentBucket).toBe(0.3);
 
     const maxResult = computeMaxSalaryFromRuleContext(ctx);
     const cap2728 = getCapForSeason('2027-28');
-    const expectedMax = Math.round(cap2728.salaryCap * 0.30);
+    const expectedMax = Math.round(cap2728.salaryCap * 0.3);
 
     expect(maxResult.maxSalary).toBe(expectedMax);
   });

@@ -13,7 +13,7 @@
  */
 
 import { useMemo } from 'react';
-import { computePlayerRulesProfile } from '@/features/architect/utils/playerRulesProfile/index.js';
+import { computePlayerRulesProfile } from '@/features/architect/utils/salaryEngine';
 import capProjections from '@/features/architect/utils/capProjections';
 import { getContractYearSlice } from '@/features/architect/utils/contractUtils';
 import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
@@ -104,11 +104,12 @@ export function usePlayerRulesProfiles({
   evaluationYears = null,
 } = {}) {
   return useMemo(() => {
-    const targetYears = (evaluationYears && evaluationYears.length
-      ? evaluationYears
-      : currentYear
-        ? [currentYear]
-        : []
+    const targetYears = (
+      evaluationYears && evaluationYears.length
+        ? evaluationYears
+        : currentYear
+          ? [currentYear]
+          : []
     ).filter(Boolean);
 
     if (targetYears.length === 0) {

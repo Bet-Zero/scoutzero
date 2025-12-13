@@ -71,6 +71,7 @@ types/
   index.ts
   ruleContext.ts
 utils/
+  ARCHITECT_LAYERING.md
   architectCore.js
   basicArchitectUtils.js
   buildRuleContext.ts
@@ -187,5 +188,5 @@ utils/
 ```
 
 ---
-*Generated on: 2025-12-12T12:52:32.080Z*
+*Generated on: 2025-12-13T09:40:39.306Z*
 *Auto-updated by: npm run docs*
