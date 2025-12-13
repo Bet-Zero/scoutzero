@@ -151,6 +151,7 @@ utils/
   firebaseTeamPlanHelpers.js
   freeAgentLogic.js
   hardCapUtils.js
+  loadArchitectBasePlayer.ts
   playerRulesProfile/
     birdRightsRules.js
     computeProfile.js
@@ -250,5 +251,5 @@ utils/
 ```
 
 ---
-*Generated on: 2025-12-13T13:33:06.295Z*
+*Generated on: 2025-12-13T14:54:17.419Z*
 *Auto-updated by: npm run docs*

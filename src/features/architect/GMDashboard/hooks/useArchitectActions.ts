@@ -15,8 +15,7 @@ import {
   saveNamedTeamPlan,
   listUserTeamPlans,
 } from '@/features/architect/utils/firebaseTeamPlanHelpers';
-import { basePlayerRef } from '@/data/firestorePaths';
-import { getDoc } from 'firebase/firestore';
+import { loadArchitectBasePlayer } from '@/features/architect/utils/loadArchitectBasePlayer';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
 import capProjections from '@/features/architect/utils/capProjections';
 
@@ -397,22 +396,12 @@ export function useArchitectActions({
           if (!playerData && (p.id || p.player_id)) {
             // Load from architect_basePlayers collection
             try {
-              const playerSnap = await getDoc(
-                basePlayerRef(p.id || p.player_id || '')
+              const loaded = await loadArchitectBasePlayer(
+                p.id || p.player_id || '',
+                p.name
               );
-              if (playerSnap.exists()) {
-                const loaded = playerSnap.data() as Record<string, unknown>;
-                playerData = {
-                  id: (loaded.playerId as string) || p.id || p.player_id,
-                  player_id: (loaded.playerId as string) || p.id || p.player_id,
-                  name: (loaded.displayName as string) || p.name,
-                  displayName: (loaded.displayName as string) || p.name,
-                  position: (loaded.bio as LocalBio)?.position || '',
-                  age: (loaded.bio as LocalBio)?.age || null,
-                  contract: (loaded.contract as LocalContract) || null,
-                  bio: (loaded.bio as LocalBio) || {},
-                  ...loaded,
-                };
+              if (loaded) {
+                playerData = loaded;
               }
             } catch (err) {
               console.warn(
