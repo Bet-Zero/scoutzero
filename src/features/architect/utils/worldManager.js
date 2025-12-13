@@ -1,9 +1,9 @@
 /**
  * World Management Module
- * 
+ *
  * Handles CRUD operations for Architect worlds (scenarios).
  * Worlds are user-created parallel universes where NBA roster changes are simulated.
- * 
+ *
  * @file src/utils/architect/worldManager.js
  * @module worldManager
  */
@@ -41,18 +41,18 @@ function getCurrentSeason() {
   const now = new Date();
   const currentYear = now.getFullYear();
   const month = now.getMonth();
-  
+
   // NBA season starts in October (month 9)
   // If before October, use previous season
   const seasonStartYear = month < 9 ? currentYear - 1 : currentYear;
   const seasonEndYear = seasonStartYear + 1;
-  
+
   return `${seasonStartYear}-${String(seasonEndYear).slice(-2)}`;
 }
 
 /**
  * Create new world
- * 
+ *
  * @param {Object} params - World creation parameters
  * @param {string} params.name - World name
  * @param {string} [params.description] - Optional description
@@ -125,7 +125,7 @@ export async function createWorld({
 
 /**
  * Get world metadata
- * 
+ *
  * @param {string} worldId - World ID
  * @returns {Promise<Object>} World metadata
  * @throws {Error} If world not found
@@ -148,7 +148,7 @@ export async function getWorldMetadata(worldId) {
 
 /**
  * List all worlds for a user
- * 
+ *
  * @param {string} userId - User ID
  * @param {Object} [options] - Query options
  * @param {boolean} [options.includeArchived=false] - Include archived worlds
@@ -184,10 +184,10 @@ export async function listUserWorlds(userId, options = {}) {
     // If query fails (e.g., missing index), fall back to manual iteration
     console.warn(
       'listUserWorlds: Query failed. ' +
-      'This may require a Firestore index. Error:',
+        'This may require a Firestore index. Error:',
       error.message
     );
-    
+
     // Fallback: Get all worlds and filter in memory
     const worldsRef = worldsCol();
     const snapshot = await getDocs(worldsRef);
@@ -195,15 +195,15 @@ export async function listUserWorlds(userId, options = {}) {
 
     for (const worldDoc of snapshot.docs) {
       const metadata = worldDoc.data();
-      
+
       if (!metadata) continue;
-      
+
       // Filter by user
       if (metadata.createdBy !== userId) continue;
-      
+
       // Filter by archived status
       if (!includeArchived && metadata.isArchived) continue;
-      
+
       worlds.push(metadata);
     }
 
@@ -223,7 +223,7 @@ export async function listUserWorlds(userId, options = {}) {
 
 /**
  * Update world metadata
- * 
+ *
  * @param {string} worldId - World ID
  * @param {Object} updates - Fields to update
  * @param {string} [updates.worldName] - New world name
@@ -267,10 +267,10 @@ export async function updateWorldMetadata(worldId, updates) {
 
 /**
  * Delete world
- * 
+ *
  * Note: This only deletes the metadata document. In a production system,
  * you would want to recursively delete all subcollections (snapshots, etc.)
- * 
+ *
  * @param {string} worldId - World ID
  * @param {string} userId - User ID (for permission check)
  * @returns {Promise<void>}
@@ -313,7 +313,7 @@ export async function deleteWorld(worldId, userId) {
 
 /**
  * Branch world (create a new world from an existing one)
- * 
+ *
  * @param {string} parentWorldId - Parent world ID to branch from
  * @param {string} name - Name for the new branch
  * @param {string} [description] - Optional description
@@ -345,7 +345,7 @@ export async function branchWorld(parentWorldId, name, description, userId) {
 
 /**
  * Update world stats after an action
- * 
+ *
  * @param {string} worldId - World ID
  * @param {string} actionType - Type of action ('trade', 'signing', 'waive')
  * @param {Array<string>} [teamCodes] - Team codes involved in the action
@@ -398,4 +398,3 @@ export async function updateWorldStats(worldId, actionType, teamCodes = []) {
 
   await updateDoc(metadataRef, updates);
 }
-

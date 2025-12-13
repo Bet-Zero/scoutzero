@@ -21,14 +21,16 @@ This document tracks the implementation status of the Architect Teams Plan featu
 ### ✅ Phase 1: Foundation & Planning - COMPLETE
 
 All planning documentation has been completed:
+
 - [x] Goals and requirements documented
-- [x] Current state analyzed  
+- [x] Current state analyzed
 - [x] Target schema designed
 - [x] Architecture patterns defined
 - [x] Save/load logic designed
 - [x] Implementation roadmap created
 
 **Deliverables**:
+
 - 7 comprehensive planning documents in `docs/architect-teams-plan/`
 - Schema defined in `src/schemas/architect.ts` (canonical)
 - Working scraping infrastructure in `team-scrape/` folder
@@ -38,6 +40,7 @@ All planning documentation has been completed:
 ## What's Implemented ✅
 
 ### Existing Trade Validation System
+
 - ✅ Comprehensive CBA rule engine in `src/utils/architect/tradeMachine/`
 - ✅ 58+ validation files across engine, rules, utils, validators, cache, constants
 - ✅ Trade eligibility, salary matching, Stepien rules, hard caps, roster validation
@@ -45,18 +48,21 @@ All planning documentation has been completed:
 - ✅ Performance monitoring and caching
 
 ### Data Scraping Infrastructure
+
 - ✅ Team scraper: `team-scrape/team-data/scripts/parse_team.ts` (SalarySwish → JSON)
 - ✅ Draft picks scraper: `team-scrape/draft-picks/scripts/realgm_draft_picks.ts` (RealGM → JSON)
 - ✅ Merge script: `team-scrape/review_and_merge/scripts/merge_team_outputs.ts`
-- ✅ Sample outputs for 5 teams showing exact `/architect/baseTeams` format
+- ✅ Sample outputs for 5 teams showing exact `architect_baseTeams/{teamCode}` document shape
 - ✅ Ready to scale to all 30 teams
 
 ### Schema Definitions
+
 - ✅ Zod schemas in `src/schemas/architect.ts` (canonical source)
 - ✅ Auto-generated docs in `docs/schema/architect.md`
 - ✅ All field structures documented and validated
 
 ### UI Components
+
 - ✅ GMDashboard entry point: `src/pages/GMDashboard.jsx`
 - ✅ Existing Cap Sheet, Trade Machine, Cap Sheet Full views
 - ✅ Basic save/load functions (not world-based yet)
@@ -66,6 +72,7 @@ All planning documentation has been completed:
 ## What's NOT Implemented ❌
 
 ### Missing Core Features
+
 - ❌ **Worlds system**: No `createWorld()`, `branchWorld()`, or world metadata
 - ❌ **Branching**: No copy-on-write branching scenarios
 - ❌ **Multi-season**: No season advancement or multi-year simulation
@@ -73,6 +80,7 @@ All planning documentation has been completed:
 - ❌ **Firestore Collections**: `architect_baseTeams`, `architect_basePlayers`, `architect_worlds` do NOT exist yet
 
 ### Missing Data Management
+
 - ❌ No world management module (`worldManager.js`)
 - ❌ No team data loader with fallback chain (`teamLoader.js`)
 - ❌ No trade execution with snapshot updates (`tradeManager.js`)
@@ -80,6 +88,7 @@ All planning documentation has been completed:
 - ❌ No player override system
 
 ### Missing UI
+
 - ❌ No world selector component
 - ❌ No branch button or decision tree visualization
 - ❌ No season navigator
@@ -90,19 +99,22 @@ All planning documentation has been completed:
 ## Next Steps: Phase 2 - Data Migration
 
 ### Goal
-Populate `/architect/baseTeams` and `/architect/basePlayers` with current NBA data
+
+Populate `architect_baseTeams` and `architect_basePlayers` with current NBA data
 
 ### Tasks
+
 1. ✅ Review scraping tools in `/team-scrape` folder
 2. [ ] Run scrapers for all 30 NBA teams
 3. [ ] Run merge script to combine team + draft pick data
 4. [ ] Validate outputs against schema
 5. [ ] Create Firestore upload script
-6. [ ] Upload to `/architect/baseTeams`
-7. [ ] Scrape and upload player data to `/architect/basePlayers`
+6. [ ] Upload to `architect_baseTeams`
+7. [ ] Scrape and upload player data to `architect_basePlayers`
 8. [ ] Verify data in Firebase Console
 
 ### Estimated Duration
+
 3-4 days
 
 ---
@@ -110,15 +122,18 @@ Populate `/architect/baseTeams` and `/architect/basePlayers` with current NBA da
 ## Architecture Reminder
 
 ### Collections Structure
+
 ```
-/architect/                         # ALL Architect data lives here
-  baseTeams/{teamCode}             # 30 teams, ~1.5 MB (immutable)
-  basePlayers/{playerId}           # 530 players, ~2.65 MB (immutable)
-  worlds/{worldId}/metadata        # World info (~2 KB per world)
-  worlds/{worldId}/snapshot/teams/{teamCode}  # Only modified teams
+# Architect collections (top-level Firestore collection IDs)
+architect_baseTeams/{teamCode}                  # 30 teams, ~1.5 MB (immutable)
+architect_basePlayers/{playerId}                # 530 players, ~2.65 MB (immutable)
+architect_worlds/{worldId}                      # World metadata (~2 KB per world)
+architect_worlds/{worldId}/teams/{teamCode}     # Only modified teams (snapshot)
+architect_worlds/{worldId}/teams/{teamCode}/players/{playerId}  # Player overrides
 ```
 
 ### Key Principles
+
 - **Immutable base**: Real NBA data never modified
 - **Isolated worlds**: User scenarios don't affect each other
 - **Copy-on-write**: Only snapshot what changes (93% storage savings)
@@ -126,9 +141,10 @@ Populate `/architect/baseTeams` and `/architect/basePlayers` with current NBA da
 - **Atomic batches**: All-or-nothing commits
 
 ### Authoritative Paths
+
 - `/players_v2` — immutable, NOT part of Architect
-- `/teams` — immutable, NOT part of Architect  
-- `/architect` — ONLY location for Architect data
+- `/teams` — immutable, NOT part of Architect
+- `architect_*` — ONLY location for Architect data
 - Legacy `/Teams` (Architect v1) deprecated, will be removed
 
 ---
@@ -136,6 +152,7 @@ Populate `/architect/baseTeams` and `/architect/basePlayers` with current NBA da
 ## Documentation References
 
 ### Planning Documents (Source of Truth)
+
 **Location**: `docs/architect-teams-plan/`
 
 1. `01-GOALS.md` - Project goals and success criteria
@@ -147,6 +164,7 @@ Populate `/architect/baseTeams` and `/architect/basePlayers` with current NBA da
 7. `07-IMPLEMENTATION-PLAN.md` - Detailed step-by-step guide
 
 ### Summary Documents (Agent-Friendly)
+
 **Location**: `architect-plan-summary/`
 
 1. `COMBINED-SUMMARY.md` - All 7 files synthesized
@@ -160,6 +178,7 @@ Populate `/architect/baseTeams` and `/architect/basePlayers` with current NBA da
 9. `EXECUTION-PROMPT.md` - **START HERE for implementation**
 
 ### Canonical Schemas
+
 **Location**: `src/schemas/`
 
 - `architect.ts` - Zod schemas for Architect collections
@@ -168,6 +187,7 @@ Populate `/architect/baseTeams` and `/architect/basePlayers` with current NBA da
 **Generated Docs**: `docs/schema/architect.md` (auto-generated)
 
 ### Implementation Resources
+
 - `team-scrape/` - Complete scraping infrastructure
 - `docs/schema/CURRENT_FIRESTORE_SCHEMA.md` - Current Firestore status
 - `AGENTS.md` - Project conventions and rules
@@ -177,12 +197,14 @@ Populate `/architect/baseTeams` and `/architect/basePlayers` with current NBA da
 ## Success Criteria
 
 ### Phase 2: Data Migration
+
 - [ ] All 30 base teams populated
 - [ ] All 530 base players populated
 - [ ] Data validated against schema
 - [ ] Ready for Phase 3 implementation
 
 ### Phase 3: Core Implementation
+
 - [ ] World CRUD operations working
 - [ ] Fallback chain implemented
 - [ ] Trade execution with snapshots
@@ -191,6 +213,7 @@ Populate `/architect/baseTeams` and `/architect/basePlayers` with current NBA da
 - [ ] CBA validation maintained
 
 ### Phase 4: UI & Polish
+
 - [ ] World selector integrated
 - [ ] Branch functionality working
 - [ ] E2E tests passing
@@ -200,4 +223,3 @@ Populate `/architect/baseTeams` and `/architect/basePlayers` with current NBA da
 ---
 
 **Status**: Planning complete. Ready to begin Phase 2 (Data Migration).
-

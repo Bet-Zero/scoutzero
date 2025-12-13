@@ -1,23 +1,29 @@
 /**
  * Season Manager
- * 
+ *
  * Handles season advancement logic: contract expirations, options, empty roster charges,
  * draft pick updates, and cap hold processing.
- * 
+ *
  * @file src/features/architect/utils/seasonManager.js
  * @module seasonManager
  */
 
 import { db } from '@/firebaseConfig';
 import { writeBatch, serverTimestamp } from 'firebase/firestore';
-import { getLeague, getTeam } from './teamLoader';
-import { getWorldMetadata } from './worldManager';
-import { toEndYear, toSeasonCode } from './seasonFormat';
-import { worldTeamRef, worldMetadataRef } from './architectFirestorePaths';
+import { getLeague, getTeam } from '@/features/architect/utils/teamLoader';
+import { getWorldMetadata } from '@/features/architect/utils/worldManager';
+import {
+  toEndYear,
+  toSeasonCode,
+} from '@/features/architect/utils/seasonFormat';
+import {
+  worldTeamRef,
+  worldMetadataRef,
+} from '@/features/architect/utils/architectFirestorePaths';
 
 /**
  * Advance world to next season
- * 
+ *
  * @param {string} worldId - World ID
  * @param {string} [targetSeason] - Target season code (e.g., "2026-27"). If not provided, advances by one season.
  * @returns {Promise<Object>} Season advancement result
@@ -29,7 +35,7 @@ export async function advanceSeason(worldId, targetSeason = null) {
 
   // Get current world metadata
   const worldMeta = await getWorldMetadata(worldId);
-  
+
   // Require currentSeason from world metadata - no hard-coded fallback
   const currentSeason = worldMeta.currentSeason;
   if (!currentSeason) {
@@ -50,7 +56,7 @@ export async function advanceSeason(worldId, targetSeason = null) {
 
 /**
  * Process season transition
- * 
+ *
  * @param {string} worldId - World ID
  * @param {string} fromSeason - Current season code
  * @param {string} toSeason - Target season code
@@ -72,7 +78,11 @@ export async function processSeasonTransition(worldId, fromSeason, toSeason) {
     const teamCode = team.teamCode;
 
     // Process team for season transition
-    const updatedTeam = await processTeamSeasonTransition(team, fromSeason, toSeason);
+    const updatedTeam = await processTeamSeasonTransition(
+      team,
+      fromSeason,
+      toSeason
+    );
 
     // Save snapshot if team was modified
     // Path: architect_worlds/{worldId}/teams/{teamCode}
@@ -103,7 +113,7 @@ export async function processSeasonTransition(worldId, fromSeason, toSeason) {
 
 /**
  * Process team for season transition
- * 
+ *
  * @param {Object} teamData - Team data
  * @param {string} fromSeason - Current season
  * @param {string} toSeason - Target season
@@ -117,7 +127,11 @@ async function processTeamSeasonTransition(teamData, fromSeason, toSeason) {
   updatedTeam.season = toSeason;
 
   // Process contract expirations
-  const contractResult = processContractExpirations(updatedTeam, fromSeason, toSeason);
+  const contractResult = processContractExpirations(
+    updatedTeam,
+    fromSeason,
+    toSeason
+  );
   if (contractResult.hasChanges) {
     hasChanges = true;
     updatedTeam.roster = contractResult.roster;
@@ -168,7 +182,7 @@ async function processTeamSeasonTransition(teamData, fromSeason, toSeason) {
 
 /**
  * Process contract expirations
- * 
+ *
  * @param {Object} teamData - Team data
  * @param {string} fromSeason - Current season
  * @param {string} toSeason - Target season
@@ -187,7 +201,8 @@ function processContractExpirations(teamData, fromSeason, toSeason) {
   const activePlayers = [];
 
   roster.forEach((playerId, index) => {
-    const player = players[index] || players.find((p) => p.player_id === playerId);
+    const player =
+      players[index] || players.find((p) => p.player_id === playerId);
 
     if (!player || !player.contract) {
       // Keep player if no contract data
@@ -246,7 +261,7 @@ function processContractExpirations(teamData, fromSeason, toSeason) {
 
 /**
  * Process player and team options
- * 
+ *
  * @param {Object} teamData - Team data
  * @param {string} season - Current season
  * @returns {Object} Result with updated roster and players
@@ -263,13 +278,13 @@ function processOptions(teamData, season) {
     const contract = player.contract;
 
     // Check salariesByYear for options
-    if (contract.salariesByYear && Array.isArray(contract.salariesByYear)) {
-      contract.salariesByYear.forEach((yearData) => {
-        const year = toEndYear(yearData.season);
-
+          if (yearData.optionUsed == null) {
         if (year === seasonYear && yearData.option) {
           // Option decision year
-          if (yearData.optionUsed === null || yearData.optionUsed === undefined) {
+          if (
+            yearData.optionUsed === null ||
+            yearData.optionUsed === undefined
+          ) {
             // Default: assume option is exercised if not specified
             // In a full implementation, this would be user input
             hasChanges = true;
@@ -298,7 +313,7 @@ function processOptions(teamData, season) {
 
 /**
  * Process empty roster charges
- * 
+ *
  * @param {Object} teamData - Team data
  * @returns {Object} Result with updated totals
  */
@@ -327,7 +342,7 @@ function processEmptyRosterCharges(teamData) {
 
 /**
  * Update cap holds for free agents
- * 
+ *
  * @param {Object} teamData - Team data
  * @param {string} season - Current season
  * @returns {Object} Result with updated cap holds
@@ -365,7 +380,7 @@ function updateCapHolds(teamData, season) {
 
 /**
  * Update draft picks for season transition
- * 
+ *
  * @param {Object} teamData - Team data
  * @param {string} fromSeason - Current season
  * @param {string} toSeason - Target season
@@ -400,4 +415,3 @@ function updateDraftPicks(teamData, fromSeason, toSeason) {
     draftPicks: updatedPicks,
   };
 }
-

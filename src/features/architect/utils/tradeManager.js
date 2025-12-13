@@ -1,27 +1,33 @@
 /**
- * Trade Manager
- * 
- * Handles trade execution, free agent signings, player waivers, and contract extensions.
- * All operations create world snapshots and update metadata atomically.
- * 
- * @file src/utils/architect/tradeManager.js
- * @module tradeManager
+ * FILE: src/features/architect/utils/tradeManager.js
+ * PURPOSE: Computes and validates trade-related roster transactions (trades, signings, waivers, extensions) and returns updated snapshots without persisting to Firestore.
+ * OWNERSHIP: Feature: architect/utils
+ *
+ * HISTORY:
+ *  - 2025-11-27: Created (Bet_Zero)
+ *  - 2025-12-13: Removed client-side Firestore write operations; module is now read-only (Copilot)
+ *
+ * LINKS:
+ *  - Plan: N/A (not created via plan)
+ *  - Latest Chunk: N/A
+ *  - Related: src/features/architect/utils/tradeMachine (trade validation)
  */
 
-import { db } from '@/firebaseConfig';
-import {
-  writeBatch,
-} from 'firebase/firestore';
-import { getTeam, getPlayer } from './teamLoader';
-import { updateWorldStats } from './worldManager';
-import { validateTrade } from './tradeMachine';
-import { buildTradeTeamInput, buildTradeInput } from './schemaAdapter';
-import { toEndYear } from './seasonFormat';
-import { worldTeamRef, worldPlayerRef } from './architectFirestorePaths';
+import { getTeam, getPlayer } from '@/features/architect/utils/teamLoader';
+import { validateTrade } from '@/features/architect/utils/tradeMachine';
+import { buildTradeTeamInput } from '@/features/architect/utils/schemaAdapter';
+import { toEndYear } from '@/features/architect/utils/seasonFormat';
+
+/**
+ * Client-side note:
+ * This module is intentionally READ-ONLY with respect to Firestore.
+ * It computes updated team/player snapshots and returns them to callers,
+ * but does not persist them. Persistence must be handled server-side.
+ */
 
 /**
  * Execute trade between teams
- * 
+ *
  * @param {string} worldId - World ID
  * @param {Object} tradeData - Trade data
  * @param {Array<Object>} tradeData.teams - Array of team trade objects
@@ -71,7 +77,6 @@ export async function executeTrade(worldId, tradeData) {
 
   // Execute trade: update rosters and draft picks
   const updatedTeams = [];
-  const batch = writeBatch(db);
 
   for (let i = 0; i < tradeData.teams.length; i++) {
     const teamTrade = tradeData.teams[i];
@@ -139,25 +144,15 @@ export async function executeTrade(worldId, tradeData) {
       type: 'world-snapshot',
       worldId,
       generatedAt: new Date().toISOString(),
-      baseTeamVersion: currentTeamState.source?.scrapedAt || currentTeamState.source?.version,
+      baseTeamVersion:
+        currentTeamState.source?.scrapedAt || currentTeamState.source?.version,
     };
 
     // Recalculate cap totals (simplified - full implementation would use cap calculation utils)
     updatedTeam.totals = await updateTeamCapTotals(updatedTeam);
 
-    // Save snapshot
-    // Path: architect_worlds/{worldId}/teams/{teamCode}
-    const snapshotRef = worldTeamRef(worldId, teamCode);
-    batch.set(snapshotRef, updatedTeam);
-
     updatedTeams.push({ teamCode, team: updatedTeam });
   }
-
-  // Update world metadata
-  await updateWorldStats(worldId, 'trade', teamCodes);
-
-  // Commit all changes atomically
-  await batch.commit();
 
   return {
     success: true,
@@ -168,7 +163,7 @@ export async function executeTrade(worldId, tradeData) {
 
 /**
  * Sign free agent to team
- * 
+ *
  * @param {string} worldId - World ID
  * @param {string} teamCode - Team code
  * @param {Object} signingData - Signing data
@@ -238,17 +233,6 @@ export async function signFreeAgent(worldId, teamCode, signingData) {
     baseTeamVersion: teamState.source?.scrapedAt || teamState.source?.version,
   };
 
-  // Save snapshot
-  // Path: architect_worlds/{worldId}/teams/{teamCode}
-  const batch = writeBatch(db);
-  const snapshotRef = worldTeamRef(worldId, teamCode);
-  batch.set(snapshotRef, updatedTeam);
-
-  // Update world metadata
-  await updateWorldStats(worldId, 'signing', [teamCode]);
-
-  await batch.commit();
-
   return {
     success: true,
     team: updatedTeam,
@@ -257,7 +241,7 @@ export async function signFreeAgent(worldId, teamCode, signingData) {
 
 /**
  * Waive player (with optional stretch)
- * 
+ *
  * @param {string} worldId - World ID
  * @param {string} teamCode - Team code
  * @param {string} playerId - Player ID
@@ -344,17 +328,6 @@ export async function waivePlayer(worldId, teamCode, playerId, options = {}) {
     baseTeamVersion: teamState.source?.scrapedAt || teamState.source?.version,
   };
 
-  // Save snapshot
-  // Path: architect_worlds/{worldId}/teams/{teamCode}
-  const batch = writeBatch(db);
-  const snapshotRef = worldTeamRef(worldId, teamCode);
-  batch.set(snapshotRef, updatedTeam);
-
-  // Update world metadata
-  await updateWorldStats(worldId, 'waive', [teamCode]);
-
-  await batch.commit();
-
   return {
     success: true,
     team: updatedTeam,
@@ -363,7 +336,7 @@ export async function waivePlayer(worldId, teamCode, playerId, options = {}) {
 
 /**
  * Extend player contract
- * 
+ *
  * @param {string} worldId - World ID
  * @param {string} teamCode - Team code
  * @param {string} playerId - Player ID
@@ -372,9 +345,7 @@ export async function waivePlayer(worldId, teamCode, playerId, options = {}) {
  */
 export async function extendPlayer(worldId, teamCode, playerId, extension) {
   if (!worldId || !teamCode || !playerId || !extension) {
-    throw new Error(
-      'worldId, teamCode, playerId, and extension are required'
-    );
+    throw new Error('worldId, teamCode, playerId, and extension are required');
   }
 
   // Load team and player states
@@ -385,11 +356,6 @@ export async function extendPlayer(worldId, teamCode, playerId, extension) {
     throw new Error(`Player ${playerId} not found or has no contract`);
   }
 
-  // Create player override with extended contract
-  // This would typically merge the extension with the existing contract
-  // Path: architect_worlds/{worldId}/teams/{teamCode}/players/{playerId}
-  const playerOverrideRef = worldPlayerRef(worldId, teamCode, playerId);
-
   const updatedPlayer = {
     ...playerData,
     contract: {
@@ -399,23 +365,9 @@ export async function extendPlayer(worldId, teamCode, playerId, extension) {
     },
   };
 
-  // Save player override
-  const batch = writeBatch(db);
-  batch.set(playerOverrideRef, updatedPlayer);
-
   // Recalculate team cap totals (player override affects team totals)
   const updatedTeam = { ...teamState };
   updatedTeam.totals = await updateTeamCapTotals(updatedTeam);
-
-  // Update team snapshot
-  // Path: architect_worlds/{worldId}/teams/{teamCode}
-  const teamSnapshotRef = worldTeamRef(worldId, teamCode);
-  batch.set(teamSnapshotRef, updatedTeam);
-
-  // Update world metadata
-  await updateWorldStats(worldId, 'extension', [teamCode]);
-
-  await batch.commit();
 
   return {
     success: true,
@@ -426,7 +378,7 @@ export async function extendPlayer(worldId, teamCode, playerId, extension) {
 
 /**
  * Update team cap totals after changes
- * 
+ *
  * This is a simplified implementation. A full implementation would:
  * - Sum all player salaries from roster
  * - Add dead cap amounts
@@ -434,7 +386,7 @@ export async function extendPlayer(worldId, teamCode, playerId, extension) {
  * - Calculate exceptions usage
  * - Determine hard cap status
  * - Calculate luxury tax, apron status, etc.
- * 
+ *
  * @param {Object} teamData - Team data
  * @returns {Promise<Object>} Updated totals object
  */
@@ -510,4 +462,3 @@ export async function updateTeamCapTotals(teamData) {
     capHoldsTotal,
   };
 }
-

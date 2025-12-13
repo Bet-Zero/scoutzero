@@ -4,6 +4,8 @@
 
 This document provides exact, field-by-field examples of the target Firestore data structure for the Architect Teams Plan.
 
+**Path notation note:** In this repo, Architect data lives in top-level Firestore collections named `architect_baseTeams`, `architect_basePlayers`, and `architect_worlds` (underscored). This document shows **absolute Firestore paths** with a leading `/` (e.g., `/architect_worlds/{worldId}/teams/{teamCode}`) for readability.
+
 **Canonical schema**: `src/schemas/architect.ts` (Zod definitions)  
 **Generated docs**: `docs/schema/architect.md` (auto-generated from Zod schemas)  
 **This document**: Detailed examples and implementation guidance for the Architect Teams Plan
@@ -12,7 +14,7 @@ This document provides exact, field-by-field examples of the target Firestore da
 
 ## 1. Base Team Document
 
-**Path:** `/architect/baseTeams/LAL`
+**Path:** `/architect_baseTeams/LAL`
 
     {
       // ===== TEAM IDENTITY =====
@@ -244,7 +246,7 @@ This document provides exact, field-by-field examples of the target Firestore da
 
 ## 2. Base Player Document
 
-**Path:** `/architect/basePlayers/austin_reaves`
+**Path:** `/architect_basePlayers/austin_reaves`
 
     {
       // ===== PLAYER IDENTITY =====
@@ -422,7 +424,7 @@ This document provides exact, field-by-field examples of the target Firestore da
 
 ## 3. Example Player with Rookie Scale Contract
 
-**Path:** `/architect/basePlayers/anthony_edwards`
+**Path:** `/architect_basePlayers/anthony_edwards`
 
     {
       "playerId": "anthony_edwards",
@@ -589,7 +591,7 @@ This document provides exact, field-by-field examples of the target Firestore da
 
 ## 4. World Metadata Document
 
-**Path:** `architect_worlds/world_abc123`
+**Path:** `/architect_worlds/world_abc123`
 
     {
       "worldId": "world_abc123",
@@ -637,12 +639,13 @@ This document provides exact, field-by-field examples of the target Firestore da
 
 ## 5. World Team Snapshot
 
-**Path:** `architect_worlds/world_abc123/teams/LAL`
+**Path:** `/architect_worlds/world_abc123/teams/LAL`
 
 **Content:** Same structure as base team document, but represents the modified state.
 
     {
-      // SAME FIELDS as baseTeams/LAL, but with modifications
+
+// SAME FIELDS as /architect_baseTeams/LAL, but with modifications
 
       "teamCode": "LAL",
       "teamName": "Los Angeles Lakers",
@@ -704,7 +707,7 @@ This document provides exact, field-by-field examples of the target Firestore da
 
 ## 6. World Player Override (Optional - Advanced)
 
-**Path:** `architect_worlds/world_abc123/teams/LAL/players/jordan_poole`
+**Path:** `/architect_worlds/world_abc123/teams/LAL/players/jordan_poole`
 
 **Use Case:** Player contract was modified (extension, option picked up, etc.)
 
@@ -746,15 +749,15 @@ This document provides exact, field-by-field examples of the target Firestore da
 
 ### Base Collections (One-Time)
 
-- `baseTeams/`: 30 teams × 50KB = **1.5 MB**
-- `basePlayers/`: 530 players × 5KB = **2.65 MB**
+- `architect_baseTeams`: 30 teams × 50KB = **1.5 MB**
+- `architect_basePlayers`: 530 players × 5KB = **2.65 MB**
 - **Total Base:** **~4 MB** (never changes after initial load)
 
 ### Per World
 
-- `metadata`: 1 doc × 2KB = **2 KB**
-- `snapshot/teams/`: 2-4 teams × 50KB = **100-200 KB**
-- `snapshot/.../players/`: 0-5 players × 5KB = **0-25 KB** (rare)
+- `/architect_worlds/{worldId}` (metadata doc): 1 doc × 2KB = **2 KB**
+- `/architect_worlds/{worldId}/teams/` (team snapshots): 2-4 teams × 50KB = **100-200 KB**
+- `/architect_worlds/{worldId}/teams/{teamCode}/players/` (player overrides): 0-5 players × 5KB = **0-25 KB** (rare)
 - **Total Per World:** **~150 KB typical, 250 KB max**
 
 ### 50 Worlds

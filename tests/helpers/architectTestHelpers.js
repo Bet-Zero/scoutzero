@@ -1,15 +1,20 @@
 /**
  * Test Helper Utilities for Architect Tests
- * 
+ *
  * Provides helper functions for creating mock worlds/teams/players,
  * seeding base data, and assertion helpers.
- * 
+ *
  * @file tests/helpers/architectTestHelpers.js
  */
 
 import { seedMockData, getMockData } from '../__mocks__/firebase.js';
 import { doc } from '../__mocks__/firebase.js';
-import { BASE_TEAMS, LAL_BASE_TEAM, GSW_BASE_TEAM, BOS_BASE_TEAM } from '../fixtures/architect/teams.js';
+import {
+  BASE_TEAMS,
+  LAL_BASE_TEAM,
+  GSW_BASE_TEAM,
+  BOS_BASE_TEAM,
+} from '../fixtures/architect/teams.js';
 import { BASE_PLAYERS } from '../fixtures/architect/players.js';
 import { SAMPLE_WORLD_METADATA } from '../fixtures/architect/worlds.js';
 
@@ -49,7 +54,7 @@ export function createMockTeam({
   ...overrides
 } = {}) {
   const baseTeam = BASE_TEAMS[teamCode] || LAL_BASE_TEAM;
-  
+
   return {
     ...baseTeam,
     teamCode,
@@ -71,7 +76,7 @@ export function createMockPlayer({
   ...overrides
 } = {}) {
   const basePlayer = BASE_PLAYERS[playerId] || null;
-  
+
   const player = {
     playerId,
     displayName,
@@ -153,11 +158,11 @@ export function createMockPlayer({
     lastUpdated: '2025-01-01T00:00:00Z',
     version: '1.0.0',
   };
-  
+
   if (basePlayer) {
     return { ...basePlayer, ...overrides };
   }
-  
+
   return { ...player, ...overrides };
 }
 
@@ -173,7 +178,7 @@ export function seedBaseData(teams = ['LAL', 'GSW', 'BOS'], players = null) {
       seedMockData(teamPath, baseTeam);
     }
   }
-  
+
   // Seed base players
   const playersToSeed = players || Object.keys(BASE_PLAYERS);
   for (const playerId of playersToSeed) {
@@ -323,4 +328,3 @@ export function createMockCapProjections(season = '2025-26') {
     },
   };
 }
-

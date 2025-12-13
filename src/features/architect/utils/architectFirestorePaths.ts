@@ -1,4 +1,12 @@
 /**
+ * FILE: src/features/architect/utils/architectFirestorePaths.ts
+ * PURPOSE: Centralized path helpers for all Architect collections
+ * OWNERSHIP: [Team/Owner TBD]
+ * HISTORY:
+ *   - Created: [Date] - Initial implementation of Architect Firestore path helpers
+ * LINKS:
+ *   - Related: src/data/firestorePaths.ts (base collection helpers)
+ *
  * Architect Firestore Path Helpers
  *
  * Centralized path helpers for all Architect collections:
@@ -12,17 +20,24 @@
  * - Player override:   architect_worlds/{worldId}/teams/{teamCode}/players/{playerId}
  * - Base teams:        architect_baseTeams/{teamCode}
  * - Base players:      architect_basePlayers/{playerId}
- *
- * @file src/features/architect/utils/architectFirestorePaths.ts
- * @module architectFirestorePaths
  */
 
-import { doc, collection, DocumentReference, CollectionReference } from 'firebase/firestore';
+import {
+  doc,
+  collection,
+  DocumentReference,
+  CollectionReference,
+} from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
 import { ARCHITECT_WORLDS_COLLECTION } from '@/constants/collections';
 
 // Re-export base collection helpers for convenience
-export { baseTeamRef, baseTeamsCol, basePlayerRef, basePlayersCol } from '@/data/firestorePaths';
+export {
+  baseTeamRef,
+  baseTeamsCol,
+  basePlayerRef,
+  basePlayersCol,
+} from '@/data/firestorePaths';
 
 /**
  * Get reference to the architect_worlds collection
@@ -55,7 +70,10 @@ export const worldTeamsCol = (worldId: string): CollectionReference =>
  * @param worldId - World ID
  * @param teamCode - Team code (e.g., "LAL")
  */
-export const worldTeamRef = (worldId: string, teamCode: string): DocumentReference =>
+export const worldTeamRef = (
+  worldId: string,
+  teamCode: string
+): DocumentReference =>
   doc(db, ARCHITECT_WORLDS_COLLECTION, worldId, 'teams', teamCode);
 
 /**
@@ -65,8 +83,18 @@ export const worldTeamRef = (worldId: string, teamCode: string): DocumentReferen
  * @param worldId - World ID
  * @param teamCode - Team code (e.g., "LAL")
  */
-export const worldPlayersCol = (worldId: string, teamCode: string): CollectionReference =>
-  collection(db, ARCHITECT_WORLDS_COLLECTION, worldId, 'teams', teamCode, 'players');
+export const worldPlayersCol = (
+  worldId: string,
+  teamCode: string
+): CollectionReference =>
+  collection(
+    db,
+    ARCHITECT_WORLDS_COLLECTION,
+    worldId,
+    'teams',
+    teamCode,
+    'players'
+  );
 
 /**
  * Get reference to a specific player override within a world team
@@ -81,4 +109,12 @@ export const worldPlayerRef = (
   teamCode: string,
   playerId: string
 ): DocumentReference =>
-  doc(db, ARCHITECT_WORLDS_COLLECTION, worldId, 'teams', teamCode, 'players', playerId);
+  doc(
+    db,
+    ARCHITECT_WORLDS_COLLECTION,
+    worldId,
+    'teams',
+    teamCode,
+    'players',
+    playerId
+  );

@@ -1,35 +1,32 @@
 /**
  * Team Data Loader with Fallback Chain
- * 
+ *
  * Implements the fallback chain pattern: world snapshot → parent world → base
  * This enables efficient storage by only snapshotting modified teams.
- * 
+ *
  * @file src/utils/architect/teamLoader.js
  * @module teamLoader
  */
 
-import {
-  getDoc,
-  getDocs,
-} from 'firebase/firestore';
-import { getWorldMetadata } from './worldManager';
-import { hydrateBaseTeam } from './firebaseTeamPlanHelpers';
+import { getDoc, getDocs } from 'firebase/firestore';
+import { getWorldMetadata } from '@/features/architect/utils/worldManager';
+import { hydrateBaseTeam } from '@/features/architect/utils/firebaseTeamPlanHelpers';
 import {
   baseTeamRef,
   basePlayerRef,
   worldTeamRef,
   worldTeamsCol,
   worldPlayerRef,
-} from './architectFirestorePaths';
+} from '@/features/architect/utils/architectFirestorePaths';
 
 /**
  * Get team data with fallback chain
- * 
+ *
  * Fallback order:
  * 1. World snapshot (if worldId provided)
  * 2. Parent world snapshot (recursive)
  * 3. Base team (architect_baseTeams)
- * 
+ *
  * @param {string|null} worldId - World ID (null for base only)
  * @param {string} teamCode - Team code (e.g., "LAL")
  * @returns {Promise<Object>} Team data
@@ -75,7 +72,7 @@ export async function getTeam(worldId, teamCode) {
 
 /**
  * Get base team (no world context)
- * 
+ *
  * @param {string} teamCode - Team code
  * @returns {Promise<Object>} Base team data
  */
@@ -93,7 +90,7 @@ async function getBaseTeam(teamCode) {
 /**
  * Hydrate team from snapshot data
  * Ensures roster is properly hydrated from base players
- * 
+ *
  * @param {Object} snapshotData - Snapshot team data
  * @param {string} teamCode - Team code
  * @returns {Promise<Object>} Hydrated team data
@@ -111,7 +108,7 @@ async function hydrateTeamFromSnapshot(snapshotData, teamCode) {
 /**
  * Get all 30 teams for league view
  * Optimized: Batch read world snapshots first, then fill gaps from base
- * 
+ *
  * @param {string|null} worldId - World ID (null for base only)
  * @returns {Promise<Array<Object>>} Array of all 30 teams
  */
@@ -151,9 +148,7 @@ export async function getLeague(worldId) {
 
   // Base mode: Read all from baseTeams
   if (!worldId) {
-    return await Promise.all(
-      TEAM_CODES.map((code) => getBaseTeam(code))
-    );
+    return await Promise.all(TEAM_CODES.map((code) => getBaseTeam(code)));
   }
 
   // World mode: Batch read all world snapshots first
@@ -205,9 +200,9 @@ export async function getLeague(worldId) {
 
 /**
  * Get player data with overrides
- * 
+ *
  * Player override path: architect_worlds/{worldId}/teams/{teamCode}/players/{playerId}
- * 
+ *
  * @param {string|null} worldId - World ID (null for base only)
  * @param {string} teamCode - Team code
  * @param {string} playerId - Player ID
@@ -263,7 +258,7 @@ export async function getPlayer(worldId, teamCode, playerId) {
 
 /**
  * Merge player override data with base player
- * 
+ *
  * @param {Object} basePlayer - Base player data
  * @param {Object} override - Override data (partial)
  * @returns {Object} Merged player data
@@ -307,7 +302,7 @@ export function mergePlayerOverride(basePlayer, override) {
 /**
  * Merge salariesByYear arrays
  * Override entries replace base entries for matching seasons
- * 
+ *
  * @param {Array<Object>} baseSalaries - Base salariesByYear array
  * @param {Array<Object>} overrideSalaries - Override salariesByYear array
  * @returns {Array<Object>} Merged salariesByYear array
@@ -336,4 +331,3 @@ function mergeSalariesByYear(baseSalaries, overrideSalaries) {
     return aYear - bYear;
   });
 }
-

@@ -1,20 +1,27 @@
 /**
  * Integration Tests
- * 
+ *
  * Tests critical workflows combining multiple Architect modules:
  * - World creation → trade flow
  * - Branching flow
  * - Season advancement flow
  * - Multi-season flow
  * - Trade → sign FA → waive flow
- * 
+ *
  * @file tests/architect/integration.test.js
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createWorld, branchWorld } from '@/features/architect/utils/worldManager';
+import {
+  createWorld,
+  branchWorld,
+} from '@/features/architect/utils/worldManager';
 import { getTeam, getLeague } from '@/features/architect/utils/teamLoader';
-import { executeTrade, signFreeAgent, waivePlayer } from '@/features/architect/utils/tradeManager';
+import {
+  executeTrade,
+  signFreeAgent,
+  waivePlayer,
+} from '@/features/architect/utils/tradeManager';
 import { advanceSeason } from '@/features/architect/utils/seasonManager';
 import {
   seedBaseData,
@@ -668,4 +675,3 @@ describe('Architect Integration Tests', () => {
     });
   });
 });
-

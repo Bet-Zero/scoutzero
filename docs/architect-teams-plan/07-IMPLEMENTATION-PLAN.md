@@ -4,6 +4,8 @@
 
 This document provides both a high-level roadmap and detailed, semi-executable steps for implementing the Architect Teams Plan.
 
+**Path notation note:** In prose, this plan refers to **absolute Firestore paths** using a leading `/` (e.g., `/architect_baseTeams/{teamCode}`). In code snippets, Firestore SDK/Admin calls typically use **collection IDs / path segments without a leading slash**.
+
 ---
 
 ## Phase 1: Foundation & Planning ✅ COMPLETE
@@ -29,7 +31,7 @@ This document provides both a high-level roadmap and detailed, semi-executable s
 ## Phase 2: Data Migration
 
 **Duration:** 3-4 days
-**Goal:** Populate `/architect/baseTeams` and `/architect/basePlayers` with current NBA data
+**Goal:** Populate `/architect_baseTeams` and `/architect_basePlayers` with current NBA data
 
 ### High-Level Overview
 
@@ -500,7 +502,7 @@ This document provides both a high-level roadmap and detailed, semi-executable s
       let count = 0;
 
       teams.forEach(team => {
-        const docRef = db.collection('architect').doc('baseTeams').collection('teams').doc(team.teamCode);
+        const docRef = db.collection('architect_baseTeams').doc(team.teamCode);
         batch.set(docRef, team);
         count++;
       });
@@ -519,7 +521,7 @@ This document provides both a high-level roadmap and detailed, semi-executable s
       let totalCount = 0;
 
       for (const player of players) {
-        const docRef = db.collection('architect').doc('basePlayers').collection('players').doc(player.playerId);
+        const docRef = db.collection('architect_basePlayers').doc(player.playerId);
         batch.set(docRef, player);
         batchCount++;
         totalCount++;
@@ -561,9 +563,8 @@ This document provides both a high-level roadmap and detailed, semi-executable s
 
 **Verify in Firebase Console:**
 
-    /architect/
-      ├─ baseTeams/ (30 docs)
-      └─ basePlayers/ (530 docs)
+/architect_baseTeams (30 docs)
+/architect_basePlayers (530 docs)
 
 ### Phase 2 Checklist
 
@@ -581,7 +582,7 @@ This document provides both a high-level roadmap and detailed, semi-executable s
 
 ### Phase 2.5: Docs Alignment (No Code)
 
-- Replace any references equating Architect with legacy `Teams` → `/architect/...`.
+- Replace any references equating Architect with legacy `Teams` → `architect_*`.
 - Add the Authoritative Paths block to README/overview docs.
 - Add a deprecation note: "Legacy top-level `Teams` will be removed after cutover."
 

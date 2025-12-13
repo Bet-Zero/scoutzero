@@ -1,14 +1,17 @@
 /**
  * Season Manager Tests
- * 
+ *
  * Comprehensive unit tests for seasonManager.js covering advanceSeason,
  * processSeasonTransition, contract expirations, options, empty roster charges, and cap holds.
- * 
+ *
  * @file tests/architect/seasonManager.test.js
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { advanceSeason, processSeasonTransition } from '@/features/architect/utils/seasonManager';
+import {
+  advanceSeason,
+  processSeasonTransition,
+} from '@/features/architect/utils/seasonManager';
 import {
   seedBaseData,
   seedWorldMetadata,
@@ -26,7 +29,11 @@ describe('Season Manager', () => {
 
   beforeEach(() => {
     seedBaseData(['LAL', 'GSW', 'BOS']);
-    const world = createMockWorld({ worldId, userId, currentSeason: '2025-26' });
+    const world = createMockWorld({
+      worldId,
+      userId,
+      currentSeason: '2025-26',
+    });
     seedWorldMetadata(worldId, world);
   });
 
@@ -86,7 +93,11 @@ describe('Season Manager', () => {
       });
       seedTeamSnapshot(worldId, 'LAL', teamWithExpiring);
 
-      const result = await processSeasonTransition(worldId, '2025-26', '2026-27');
+      const result = await processSeasonTransition(
+        worldId,
+        '2025-26',
+        '2026-27'
+      );
 
       expect(result.success).toBe(true);
       const updatedTeam = getMockData(`architect_worlds/${worldId}/teams/LAL`);
@@ -174,7 +185,9 @@ describe('Season Manager', () => {
       await processSeasonTransition(worldId, '2025-26', '2026-27');
 
       const updatedTeam = getMockData(`architect_worlds/${worldId}/teams/LAL`);
-      const player = updatedTeam.players.find((p) => p.playerId === 'player_with_option');
+      const player = updatedTeam.players.find(
+        (p) => p.playerId === 'player_with_option'
+      );
       // Option should be exercised by default
       expect(player.contract.salariesByYear[0].optionUsed).toBe(true);
     });
@@ -257,7 +270,9 @@ describe('Season Manager', () => {
 
       const updatedTeam = getMockData(`architect_worlds/${worldId}/teams/BOS`);
       // Signed player's cap hold should be removed
-      const signedHold = updatedTeam.capHolds?.find((h) => h.playerId === 'signed_player');
+      const signedHold = updatedTeam.capHolds?.find(
+        (h) => h.playerId === 'signed_player'
+      );
       expect(signedHold).toBeUndefined();
     });
 
@@ -387,22 +402,21 @@ describe('Season Manager', () => {
     });
 
     it('throws error when worldId is missing', async () => {
-      await expect(processSeasonTransition(null, '2025-26', '2026-27')).rejects.toThrow(
-        'worldId, fromSeason, and toSeason are required'
-      );
+      await expect(
+        processSeasonTransition(null, '2025-26', '2026-27')
+      ).rejects.toThrow('worldId, fromSeason, and toSeason are required');
     });
 
     it('throws error when fromSeason is missing', async () => {
-      await expect(processSeasonTransition(worldId, null, '2026-27')).rejects.toThrow(
-        'worldId, fromSeason, and toSeason are required'
-      );
+      await expect(
+        processSeasonTransition(worldId, null, '2026-27')
+      ).rejects.toThrow('worldId, fromSeason, and toSeason are required');
     });
 
     it('throws error when toSeason is missing', async () => {
-      await expect(processSeasonTransition(worldId, '2025-26', null)).rejects.toThrow(
-        'worldId, fromSeason, and toSeason are required'
-      );
+      await expect(
+        processSeasonTransition(worldId, '2025-26', null)
+      ).rejects.toThrow('worldId, fromSeason, and toSeason are required');
     });
   });
 });
-

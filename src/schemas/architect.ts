@@ -23,16 +23,18 @@ export const DeadCapItemZ = z.object({
   notes: z.string().optional(),
 });
 
-export const CapHoldItemZ = z.object({
-  playerId: PlayerIdZ,
-  playerName: z.string(),
-  amount: MoneyZ,
-  type: z.string(),
-  season: SeasonCodeZ.optional(),
-  isSigned: z.boolean().optional(),
-  expiresOn: z.string().optional(),
-  notes: z.string().optional(),
-}).passthrough();
+export const CapHoldItemZ = z
+  .object({
+    playerId: PlayerIdZ,
+    playerName: z.string(),
+    amount: MoneyZ,
+    type: z.string(),
+    season: SeasonCodeZ.optional(),
+    isSigned: z.boolean().optional(),
+    expiresOn: z.string().optional(),
+    notes: z.string().optional(),
+  })
+  .passthrough();
 
 const MleExceptionZ = z.object({
   type: z.string().optional(),
@@ -140,35 +142,37 @@ export const DraftPickZ = z.object({
   metadata: z.object({}).passthrough().optional(),
 });
 
-export const TeamTotalsZ = z.object({
-  totalSalary: MoneyZ.optional(),
-  capHit: MoneyZ.optional(),
-  guaranteedSalary: MoneyZ.optional(),
-  nonGuaranteedSalary: MoneyZ.optional(),
-  rosterCount: z.number().int().optional(),
-  guaranteedContracts: z.number().int().optional(),
-  nonGuaranteedContracts: z.number().int().optional(),
-  twoWayContracts: z.number().int().optional(),
-  emptyRosterCharges: z.number().int().optional(),
-  capSpace: z.number().optional(),
-  capRoom: z.number().optional(),
-  effectiveCap: z.number().optional(),
-  luxuryTaxLine: z.number().optional(),
-  taxablePayroll: z.number().optional(),
-  isOverTax: z.boolean().optional(),
-  taxBill: z.number().optional(),
-  taxRate: z.number().optional(),
-  firstApron: z.number().optional(),
-  firstApronRoom: z.number().optional(),
-  isFirstApron: z.boolean().optional(),
-  secondApron: z.number().optional(),
-  secondApronRoom: z.number().optional(),
-  isSecondApron: z.boolean().optional(),
-  isHardCapped: z.boolean().optional(),
-  hardCapLevel: HardCapLevelZ.optional(),
-  hardCapDetail: z.string().optional(),
-  hardCapRoom: z.number().nullable().optional(),
-}).passthrough();
+export const TeamTotalsZ = z
+  .object({
+    totalSalary: MoneyZ.optional(),
+    capHit: MoneyZ.optional(),
+    guaranteedSalary: MoneyZ.optional(),
+    nonGuaranteedSalary: MoneyZ.optional(),
+    rosterCount: z.number().int().optional(),
+    guaranteedContracts: z.number().int().optional(),
+    nonGuaranteedContracts: z.number().int().optional(),
+    twoWayContracts: z.number().int().optional(),
+    emptyRosterCharges: z.number().int().optional(),
+    capSpace: z.number().optional(),
+    capRoom: z.number().optional(),
+    effectiveCap: z.number().optional(),
+    luxuryTaxLine: z.number().optional(),
+    taxablePayroll: z.number().optional(),
+    isOverTax: z.boolean().optional(),
+    taxBill: z.number().optional(),
+    taxRate: z.number().optional(),
+    firstApron: z.number().optional(),
+    firstApronRoom: z.number().optional(),
+    isFirstApron: z.boolean().optional(),
+    secondApron: z.number().optional(),
+    secondApronRoom: z.number().optional(),
+    isSecondApron: z.boolean().optional(),
+    isHardCapped: z.boolean().optional(),
+    hardCapLevel: HardCapLevelZ.optional(),
+    hardCapDetail: z.string().optional(),
+    hardCapRoom: z.number().nullable().optional(),
+  })
+  .passthrough();
 
 export const ArchitectSourceZ = z.object({
   provider: z.string().optional(),

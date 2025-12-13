@@ -1,14 +1,19 @@
 /**
  * Team Loader Tests
- * 
+ *
  * Comprehensive unit tests for teamLoader.js covering fallback chain,
  * getLeague, getPlayer, mergePlayerOverride, and recursive parent fallback scenarios.
- * 
+ *
  * @file tests/architect/teamLoader.test.js
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { getTeam, getLeague, getPlayer, mergePlayerOverride } from '@/features/architect/utils/teamLoader';
+import {
+  getTeam,
+  getLeague,
+  getPlayer,
+  mergePlayerOverride,
+} from '@/features/architect/utils/teamLoader';
 import {
   seedBaseData,
   seedWorldMetadata,
@@ -129,11 +134,15 @@ describe('Team Loader', () => {
     });
 
     it('throws error when teamCode is missing', async () => {
-      await expect(getTeam('world_123', null)).rejects.toThrow('teamCode is required');
+      await expect(getTeam('world_123', null)).rejects.toThrow(
+        'teamCode is required'
+      );
     });
 
     it('throws error when base team not found', async () => {
-      await expect(getTeam(null, 'INVALID')).rejects.toThrow('Base team INVALID not found');
+      await expect(getTeam(null, 'INVALID')).rejects.toThrow(
+        'Base team INVALID not found'
+      );
     });
   });
 
@@ -275,9 +284,9 @@ describe('Team Loader', () => {
     });
 
     it('throws error when teamCode is missing', async () => {
-      await expect(getPlayer('world_123', null, 'lebron_james')).rejects.toThrow(
-        'teamCode and playerId are required'
-      );
+      await expect(
+        getPlayer('world_123', null, 'lebron_james')
+      ).rejects.toThrow('teamCode and playerId are required');
     });
 
     it('throws error when playerId is missing', async () => {
@@ -287,9 +296,9 @@ describe('Team Loader', () => {
     });
 
     it('throws error when base player not found', async () => {
-      await expect(getPlayer(null, 'LAL', 'nonexistent_player')).rejects.toThrow(
-        'Base player nonexistent_player not found'
-      );
+      await expect(
+        getPlayer(null, 'LAL', 'nonexistent_player')
+      ).rejects.toThrow('Base player nonexistent_player not found');
     });
   });
 
@@ -389,4 +398,3 @@ describe('Team Loader', () => {
     });
   });
 });
-

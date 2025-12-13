@@ -1,9 +1,9 @@
 /**
  * Trade Manager Tests
- * 
+ *
  * Comprehensive unit tests for tradeManager.js covering executeTrade,
  * signFreeAgent, waivePlayer, extendPlayer, and updateTeamCapTotals.
- * 
+ *
  * @file tests/architect/tradeManager.test.js
  */
 
@@ -134,11 +134,15 @@ describe('Trade Manager', () => {
       const gswSnapshot = getMockData(`architect_worlds/${worldId}/teams/GSW`);
 
       // LAL should not have the pick anymore
-      const lalPick = lalSnapshot.draftPicks?.find((p) => p.id === 'lal_2026_1');
+      const lalPick = lalSnapshot.draftPicks?.find(
+        (p) => p.id === 'lal_2026_1'
+      );
       expect(lalPick).toBeUndefined();
 
       // GSW should have the pick
-      const gswPick = gswSnapshot.draftPicks?.find((p) => p.id === 'lal_2026_1');
+      const gswPick = gswSnapshot.draftPicks?.find(
+        (p) => p.id === 'lal_2026_1'
+      );
       expect(gswPick).toBeDefined();
     });
 
@@ -200,7 +204,9 @@ describe('Trade Manager', () => {
     });
 
     it('throws error for invalid trade', async () => {
-      const { validateTrade } = await import('@/features/architect/utils/tradeMachine');
+      const { validateTrade } = await import(
+        '@/features/architect/utils/tradeMachine'
+      );
       vi.mocked(validateTrade).mockReturnValueOnce({
         legal: false,
         reason: 'Trade violates salary matching rules',
@@ -226,7 +232,9 @@ describe('Trade Manager', () => {
         currentYear: 2025,
       };
 
-      await expect(executeTrade(worldId, tradeData)).rejects.toThrow('Trade invalid');
+      await expect(executeTrade(worldId, tradeData)).rejects.toThrow(
+        'Trade invalid'
+      );
     });
 
     it('handles 3-team trade', async () => {
@@ -271,7 +279,9 @@ describe('Trade Manager', () => {
         currentYear: 2025,
       };
 
-      await expect(executeTrade(null, tradeData)).rejects.toThrow('worldId is required');
+      await expect(executeTrade(null, tradeData)).rejects.toThrow(
+        'worldId is required'
+      );
     });
 
     it('throws error when trade has less than 2 teams', async () => {
@@ -408,7 +418,9 @@ describe('Trade Manager', () => {
       await signFreeAgent(worldId, signingData);
 
       const bosSnapshot = getMockData(`architect_worlds/${worldId}/teams/BOS`);
-      const remainingHolds = bosSnapshot.capHolds?.filter((h) => h.playerId === 'test_player');
+      const remainingHolds = bosSnapshot.capHolds?.filter(
+        (h) => h.playerId === 'test_player'
+      );
       expect(remainingHolds.length).toBe(0);
     });
 
@@ -437,15 +449,22 @@ describe('Trade Manager', () => {
       const lalSnapshot = getMockData(`architect_worlds/${worldId}/teams/LAL`);
       expect(lalSnapshot.deadCap).toBeDefined();
       expect(Array.isArray(lalSnapshot.deadCap)).toBe(true);
-      const deadCapEntry = lalSnapshot.deadCap.find((d) => d.playerId === 'lebron_james');
+      const deadCapEntry = lalSnapshot.deadCap.find(
+        (d) => d.playerId === 'lebron_james'
+      );
       expect(deadCapEntry).toBeDefined();
     });
 
     it('handles stretch provision', async () => {
-      await waivePlayer(worldId, 'LAL', 'lebron_james', { stretch: true, stretchYears: 3 });
+      await waivePlayer(worldId, 'LAL', 'lebron_james', {
+        stretch: true,
+        stretchYears: 3,
+      });
 
       const lalSnapshot = getMockData(`architect_worlds/${worldId}/teams/LAL`);
-      const deadCapEntry = lalSnapshot.deadCap.find((d) => d.playerId === 'lebron_james');
+      const deadCapEntry = lalSnapshot.deadCap.find(
+        (d) => d.playerId === 'lebron_james'
+      );
       expect(deadCapEntry.amountByYear.length).toBeGreaterThan(1); // Stretched over multiple years
     });
 
@@ -523,8 +542,12 @@ describe('Trade Manager', () => {
 
       const result = await extendPlayer(worldId, extensionData);
 
-      expect(result.player.contract.salariesByYear.length).toBeGreaterThanOrEqual(2);
-      const newYear = result.player.contract.salariesByYear.find((y) => y.season === '2026-27');
+      expect(
+        result.player.contract.salariesByYear.length
+      ).toBeGreaterThanOrEqual(2);
+      const newYear = result.player.contract.salariesByYear.find(
+        (y) => y.season === '2026-27'
+      );
       expect(newYear).toBeDefined();
       expect(newYear.salary).toBe(50_000_000);
     });
@@ -666,4 +689,3 @@ describe('Trade Manager', () => {
     });
   });
 });
-

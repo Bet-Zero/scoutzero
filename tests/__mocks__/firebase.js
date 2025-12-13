@@ -1,9 +1,9 @@
 /**
  * Firebase Firestore Mock
- * 
+ *
  * Provides in-memory mock implementation of Firestore operations
  * for testing Architect modules without hitting real Firestore.
- * 
+ *
  * @file tests/__mocks__/firebase.js
  */
 
@@ -15,7 +15,10 @@ let currentBatch = null;
 
 // Mock serverTimestamp - returns fixed timestamp for tests
 const mockServerTimestamp = () => {
-  return { __type: 'serverTimestamp', value: new Date('2025-01-01T00:00:00Z').toISOString() };
+  return {
+    __type: 'serverTimestamp',
+    value: new Date('2025-01-01T00:00:00Z').toISOString(),
+  };
 };
 
 // Helper to build document path string
@@ -50,20 +53,20 @@ function deleteDataFromStore(path) {
 function queryCollection(collectionPath, filters = []) {
   const results = [];
   const prefix = collectionPath + '/';
-  
+
   for (const [path, data] of mockDataStore.entries()) {
     if (path.startsWith(prefix) && path !== collectionPath) {
       // Extract document ID
       const docId = path.substring(prefix.length).split('/')[0];
       const docPath = prefix + docId;
-      
+
       // Apply filters
       let matches = true;
       for (const filter of filters) {
         if (filter.type === 'where') {
           const { field, operator, value } = filter;
           const fieldValue = getNestedValue(data, field);
-          
+
           switch (operator) {
             case '==':
               matches = matches && fieldValue === value;
@@ -88,7 +91,7 @@ function queryCollection(collectionPath, filters = []) {
           }
         }
       }
-      
+
       if (matches) {
         results.push({
           id: docId,
@@ -99,7 +102,7 @@ function queryCollection(collectionPath, filters = []) {
       }
     }
   }
-  
+
   return results;
 }
 
@@ -127,10 +130,13 @@ export function collection(db, ...pathSegments) {
   return {
     id: pathSegments[pathSegments.length - 1] || null,
     path,
-    parent: pathSegments.length > 1 ? {
-      id: pathSegments[pathSegments.length - 2],
-      path: buildPath(...pathSegments.slice(0, -1)),
-    } : null,
+    parent:
+      pathSegments.length > 1
+        ? {
+            id: pathSegments[pathSegments.length - 2],
+            path: buildPath(...pathSegments.slice(0, -1)),
+          }
+        : null,
   };
 }
 
@@ -146,7 +152,7 @@ export function collectionGroup(db, collectionId) {
 export async function getDoc(docRef) {
   const path = typeof docRef === 'string' ? docRef : docRef.path;
   const data = getDataFromStore(path);
-  
+
   return {
     exists: () => data !== undefined,
     id: docRef.id || path.split('/').pop(),
@@ -164,10 +170,10 @@ export async function getDoc(docRef) {
 // Mock setDoc function
 export async function setDoc(docRef, data, options = {}) {
   const path = typeof docRef === 'string' ? docRef : docRef.path;
-  
+
   // Process serverTimestamp values
   const processedData = processServerTimestamps(data);
-  
+
   if (currentBatch) {
     currentBatch.operations.push({
       type: 'set',
@@ -188,13 +194,13 @@ export async function updateDoc(docRef, updates) {
   // the latest data from the store, not a cached clone
   const existingRaw = mockDataStore.get(path);
   const existing = existingRaw ? JSON.parse(JSON.stringify(existingRaw)) : {};
-  
+
   // Process serverTimestamp values
   const processedUpdates = processServerTimestamps(updates);
-  
+
   // Deep merge updates
   const updated = deepMerge(existing, processedUpdates);
-  
+
   if (currentBatch) {
     currentBatch.operations.push({
       type: 'update',
@@ -212,7 +218,7 @@ export async function updateDoc(docRef, updates) {
 // Mock deleteDoc function
 export async function deleteDoc(docRef) {
   const path = typeof docRef === 'string' ? docRef : docRef.path;
-  
+
   if (currentBatch) {
     currentBatch.operations.push({
       type: 'delete',
@@ -231,7 +237,7 @@ export async function getDocs(queryOrCollection) {
     // we want to find documents where the last segment before the doc ID is 'metadata'
     const collectionId = queryOrCollection.id;
     const results = [];
-    
+
     for (const [path, data] of mockDataStore.entries()) {
       const segments = path.split('/').filter(Boolean);
       // For collectionGroup('metadata'), find all documents where the last segment is 'metadata'
@@ -240,7 +246,7 @@ export async function getDocs(queryOrCollection) {
       // But in our structure, 'metadata' is a document name, so we match paths ending with it
       if (segments.length > 0) {
         const lastSegment = segments[segments.length - 1];
-        
+
         // Match if the last segment (document name) is the collection name we're querying
         // This works for our structure where metadata is a document
         if (lastSegment === collectionId) {
@@ -253,7 +259,7 @@ export async function getDocs(queryOrCollection) {
         }
       }
     }
-    
+
     // Apply filters if present
     let filteredResults = results;
     if (queryOrCollection.filters && queryOrCollection.filters.length > 0) {
@@ -264,7 +270,7 @@ export async function getDocs(queryOrCollection) {
           if (filter.type === 'where') {
             const { field, operator, value } = filter;
             const fieldValue = getNestedValue(docData, field);
-            
+
             switch (operator) {
               case '==':
                 matches = matches && fieldValue === value;
@@ -292,7 +298,7 @@ export async function getDocs(queryOrCollection) {
         return matches;
       });
     }
-    
+
     // Apply orderBy if present
     if (queryOrCollection.orderBy) {
       const { field, direction = 'asc' } = queryOrCollection.orderBy;
@@ -303,19 +309,19 @@ export async function getDocs(queryOrCollection) {
         return direction === 'desc' ? -comparison : comparison;
       });
     }
-    
+
     return {
       docs: filteredResults,
       empty: filteredResults.length === 0,
       size: filteredResults.length,
     };
   }
-  
+
   if (queryOrCollection.filters) {
     // Query with filters
     const collectionPath = queryOrCollection.collection.path;
     const results = queryCollection(collectionPath, queryOrCollection.filters);
-    
+
     // Apply orderBy if present
     if (queryOrCollection.orderBy) {
       const { field, direction = 'asc' } = queryOrCollection.orderBy;
@@ -326,24 +332,24 @@ export async function getDocs(queryOrCollection) {
         return direction === 'desc' ? -comparison : comparison;
       });
     }
-    
+
     return {
       docs: results,
       empty: results.length === 0,
       size: results.length,
     };
   }
-  
+
   // Simple collection query
   const collectionPath = queryOrCollection.path;
   const results = [];
   const prefix = collectionPath + '/';
-  
+
   for (const [path, data] of mockDataStore.entries()) {
     if (path.startsWith(prefix) && path !== collectionPath) {
       const docId = path.substring(prefix.length).split('/')[0];
       const docPath = prefix + docId;
-      
+
       // Only include direct children (not subcollections)
       if (path === docPath) {
         results.push({
@@ -355,7 +361,7 @@ export async function getDocs(queryOrCollection) {
       }
     }
   }
-  
+
   return {
     docs: results,
     empty: results.length === 0,
@@ -370,7 +376,7 @@ export function query(collectionRef, ...queryConstraints) {
     const filters = [];
     let orderByField = null;
     let orderDirection = 'asc';
-    
+
     for (const constraint of queryConstraints) {
       if (constraint.type === 'where') {
         filters.push(constraint);
@@ -379,20 +385,22 @@ export function query(collectionRef, ...queryConstraints) {
         orderDirection = constraint.direction || 'asc';
       }
     }
-    
+
     return {
       type: 'collectionGroup',
       id: collectionRef.id,
       filters,
-      orderBy: orderByField ? { field: orderByField, direction: orderDirection } : null,
+      orderBy: orderByField
+        ? { field: orderByField, direction: orderDirection }
+        : null,
     };
   }
-  
+
   // Regular collection query
   const filters = [];
   let orderByField = null;
   let orderDirection = 'asc';
-  
+
   for (const constraint of queryConstraints) {
     if (constraint.type === 'where') {
       filters.push(constraint);
@@ -401,11 +409,13 @@ export function query(collectionRef, ...queryConstraints) {
       orderDirection = constraint.direction || 'asc';
     }
   }
-  
+
   return {
     collection: collectionRef,
     filters,
-    orderBy: orderByField ? { field: orderByField, direction: orderDirection } : null,
+    orderBy: orderByField
+      ? { field: orderByField, direction: orderDirection }
+      : null,
   };
 }
 
@@ -432,7 +442,7 @@ export function orderBy(field, direction = 'asc') {
 export function writeBatch(db) {
   const batch = {
     operations: [],
-    set: function(docRef, data, options) {
+    set: function (docRef, data, options) {
       this.operations.push({
         type: 'set',
         path: typeof docRef === 'string' ? docRef : docRef.path,
@@ -441,14 +451,16 @@ export function writeBatch(db) {
       });
       return this;
     },
-    update: function(docRef, updates) {
+    update: function (docRef, updates) {
       const path = typeof docRef === 'string' ? docRef : docRef.path;
       // Get raw data from store for batch operations
       const existingRaw = mockDataStore.get(path);
-      const existing = existingRaw ? JSON.parse(JSON.stringify(existingRaw)) : {};
+      const existing = existingRaw
+        ? JSON.parse(JSON.stringify(existingRaw))
+        : {};
       const processedUpdates = processServerTimestamps(updates);
       const updated = deepMerge(existing, processedUpdates);
-      
+
       this.operations.push({
         type: 'update',
         path,
@@ -456,14 +468,14 @@ export function writeBatch(db) {
       });
       return this;
     },
-    delete: function(docRef) {
+    delete: function (docRef) {
       this.operations.push({
         type: 'delete',
         path: typeof docRef === 'string' ? docRef : docRef.path,
       });
       return this;
     },
-    commit: async function() {
+    commit: async function () {
       // Execute all operations atomically
       for (const op of this.operations) {
         if (op.type === 'set') {
@@ -478,7 +490,7 @@ export function writeBatch(db) {
       this.operations = [];
     },
   };
-  
+
   currentBatch = batch;
   return batch;
 }
@@ -509,11 +521,11 @@ function processServerTimestamps(data) {
   if (!data || typeof data !== 'object') {
     return data;
   }
-  
+
   if (Array.isArray(data)) {
     return data.map(processServerTimestamps);
   }
-  
+
   const processed = {};
   for (const [key, value] of Object.entries(data)) {
     if (value && typeof value === 'object') {
@@ -527,7 +539,7 @@ function processServerTimestamps(data) {
         // Handle arrayRemove
         const existing = processed[key] || [];
         const toRemove = new Set(value.elements);
-        processed[key] = existing.filter(item => !toRemove.has(item));
+        processed[key] = existing.filter((item) => !toRemove.has(item));
       } else {
         processed[key] = processServerTimestamps(value);
       }
@@ -535,22 +547,26 @@ function processServerTimestamps(data) {
       processed[key] = value;
     }
   }
-  
+
   return processed;
 }
 
 // Deep merge helper
 function deepMerge(target, source) {
   const output = { ...target };
-  
+
   for (const key in source) {
-    if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+    if (
+      source[key] &&
+      typeof source[key] === 'object' &&
+      !Array.isArray(source[key])
+    ) {
       output[key] = deepMerge(target[key] || {}, source[key]);
     } else {
       output[key] = source[key];
     }
   }
-  
+
   return output;
 }
 
@@ -576,4 +592,3 @@ export function getMockData(path) {
   // Return deep clone to prevent mutations affecting stored data
   return data ? JSON.parse(JSON.stringify(data)) : data;
 }
-
