@@ -1,27 +1,14 @@
-import React from 'react';
-import { Dialog, DialogContent } from '@/shared/components/ui/Dialog';
-import ContractEditor from './ContractEditor';
+/**
+ * FILE: src/features/architect/ContractEditorModal.jsx
+ * PURPOSE: Backwards-compatible re-export stub (moved to contract/).
+ * OWNERSHIP: Feature: architect
+ *
+ * HISTORY:
+ *  - 2025-12-13: Created as re-export stub during folder organization.
+ *
+ * LINKS:
+ *  - Plan: N/A (Phase 5 folder organization)
+ */
 
-const ContractEditorModal = ({
-  player,
-  isOpen,
-  onClose,
-  capProjections,
-  teamCapSheet,
-  onSign,
-  playersMap = {},
-}) => (
-  <Dialog open={isOpen} onOpenChange={onClose}>
-    <DialogContent className="p-4 max-w-xl">
-      <ContractEditor
-        player={player}
-        capProjections={capProjections}
-        teamCapSheet={teamCapSheet}
-        onSign={onSign}
-        playersMap={playersMap}
-      />
-    </DialogContent>
-  </Dialog>
-);
-
-export default ContractEditorModal;
+export { default } from './contract/ContractEditorModal';
+export * from './contract/ContractEditorModal';

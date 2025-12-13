@@ -77,6 +77,7 @@ const GMDashboard = () => {
     isLoading,
     isSaving,
     error,
+    offseasonRun,
     offseasonSummary,
     playersMap,
     capTableYears,
@@ -377,6 +378,7 @@ const GMDashboard = () => {
             setCurrentYear={setCurrentYear}
             capProjections={capProjections}
             setLastCapSheet={setLastCapSheet}
+            offseasonRun={offseasonRun}
             setOffseasonRun={setOffseasonRun}
             setOffseasonSummary={setOffseasonSummary}
             setShowOffseasonModal={setShowOffseasonModal}

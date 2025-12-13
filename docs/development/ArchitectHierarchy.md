@@ -37,16 +37,77 @@ SavePlanModal.jsx
 TeamHistoryTab.jsx
 ValidationWarnings.jsx
 WaiveStretchTracker.jsx
+capSheet/
+  CapSheet/
+    CapSheet.jsx
+    CapSummaryTiles.jsx
+    index.ts
+  CapSheetFull/
+    CapSheetFull.jsx
+    index.ts
+  ExceptionHistoryTracker/
+    ExceptionHistoryTracker.jsx
+    index.ts
+  ExceptionTracker/
+    ExceptionTracker.jsx
+    index.ts
+  index.ts
 constants/
   playerNameCorrections.ts
+contract/
+  ContractEditor/
+    ContractEditor.jsx
+    index.ts
+  ContractEditorModal/
+    ContractEditorModal.jsx
+    index.ts
+  index.ts
 data/
   minimumSalaryScales.ts
+freeAgency/
+  FreeAgentPool/
+    FreeAgentCard.jsx
+    FreeAgentPool.jsx
+    FreeAgentRow.jsx
+    index.ts
+  index.ts
+history/
+  TeamHistoryTab/
+    TeamHistoryTab.jsx
+    index.ts
+  index.ts
 hooks/
   useArchitectPlayerData.js
   useCapSheetState.js
   useCapValidation.js
   usePlayerRulesProfiles.js
   useTradeMachine.js
+offseason/
+  DraftPickTracker/
+    DraftPickTracker.jsx
+    index.ts
+  OffseasonTab/
+    OffseasonTab.jsx
+    OptionManager.jsx
+    index.ts
+  WaiveStretchTracker/
+    WaiveStretchTracker.jsx
+    index.ts
+  index.ts
+shared/
+  LeagueView/
+    LeagueView.jsx
+    index.ts
+  RosterVisual/
+    RosterVisual.jsx
+    index.ts
+  SavePlanModal/
+    SavePlanModal.jsx
+    index.ts
+  ValidationWarnings/
+    ValidationWarnings.jsx
+    index.ts
+  index.ts
 tradeMachine/
   CapImpactTiles.jsx
   FaExceptionTracker.jsx
@@ -188,5 +249,5 @@ utils/
 ```
 
 ---
-*Generated on: 2025-12-13T09:40:39.306Z*
+*Generated on: 2025-12-13T12:55:54.767Z*
 *Auto-updated by: npm run docs*

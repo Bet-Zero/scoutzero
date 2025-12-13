@@ -1,34 +1,14 @@
-import React from 'react';
-import WaiveStretchTracker from './WaiveStretchTracker';
-import ExceptionHistoryTracker from './ExceptionHistoryTracker';
-import DraftPickTracker from './DraftPickTracker';
+/**
+ * FILE: src/features/architect/TeamHistoryTab.jsx
+ * PURPOSE: Backwards-compatible re-export stub (moved to history/).
+ * OWNERSHIP: Feature: architect
+ *
+ * HISTORY:
+ *  - 2025-12-13: Created as re-export stub during folder organization.
+ *
+ * LINKS:
+ *  - Plan: N/A (Phase 5 folder organization)
+ */
 
-const TeamHistoryTab = ({ teamCapSheet }) => {
-  return (
-    <div className="text-white">
-      <h2 className="text-xl font-semibold mb-4">Team Transaction History</h2>
-      
-      <section className="mb-10">
-        <WaiveStretchTracker
-          waivedContracts={teamCapSheet.waivedContracts || []}
-        />
-      </section>
-
-      <section className="mb-10">
-        <ExceptionHistoryTracker
-          exceptionHistory={teamCapSheet.exceptionHistory || []}
-          mleHistory={teamCapSheet.mleHistory || []}
-        />
-      </section>
-      
-      <section>
-        <DraftPickTracker 
-          pickLog={teamCapSheet.pickLog || []} 
-          currentPicks={teamCapSheet.currentPicks || {}} 
-        />
-      </section>
-    </div>
-  );
-};
-
-export default TeamHistoryTab;
+export { default } from './history/TeamHistoryTab';
+export * from './history/TeamHistoryTab';

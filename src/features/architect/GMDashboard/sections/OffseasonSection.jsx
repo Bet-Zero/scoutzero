@@ -20,6 +20,7 @@ const OffseasonSection = ({
   setCurrentYear,
   capProjections,
   setLastCapSheet,
+  offseasonRun,
   setOffseasonRun,
   setOffseasonSummary,
   setShowOffseasonModal,
@@ -32,6 +33,7 @@ const OffseasonSection = ({
     setCurrentYear={setCurrentYear}
     capProjections={capProjections}
     setLastCapSheet={setLastCapSheet}
+    offseasonRun={offseasonRun}
     setOffseasonRun={setOffseasonRun}
     setOffseasonSummary={setOffseasonSummary}
     setShowOffseasonModal={setShowOffseasonModal}

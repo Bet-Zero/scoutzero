@@ -32,11 +32,30 @@ Quick reference for all components in the ScoutZero project.
 - TeamHistoryTab.jsx
 - ValidationWarnings.jsx
 - WaiveStretchTracker.jsx
+- capSheet/CapSheet/CapSheet.jsx
+- capSheet/CapSheet/CapSummaryTiles.jsx
+- capSheet/CapSheetFull/CapSheetFull.jsx
+- capSheet/ExceptionHistoryTracker/ExceptionHistoryTracker.jsx
+- capSheet/ExceptionTracker/ExceptionTracker.jsx
+- contract/ContractEditor/ContractEditor.jsx
+- contract/ContractEditorModal/ContractEditorModal.jsx
+- freeAgency/FreeAgentPool/FreeAgentCard.jsx
+- freeAgency/FreeAgentPool/FreeAgentPool.jsx
+- freeAgency/FreeAgentPool/FreeAgentRow.jsx
+- history/TeamHistoryTab/TeamHistoryTab.jsx
 - hooks/useArchitectPlayerData.js
 - hooks/useCapSheetState.js
 - hooks/useCapValidation.js
 - hooks/usePlayerRulesProfiles.js
 - hooks/useTradeMachine.js
+- offseason/DraftPickTracker/DraftPickTracker.jsx
+- offseason/OffseasonTab/OffseasonTab.jsx
+- offseason/OffseasonTab/OptionManager.jsx
+- offseason/WaiveStretchTracker/WaiveStretchTracker.jsx
+- shared/LeagueView/LeagueView.jsx
+- shared/RosterVisual/RosterVisual.jsx
+- shared/SavePlanModal/SavePlanModal.jsx
+- shared/ValidationWarnings/ValidationWarnings.jsx
 - tradeMachine/CapImpactTiles.jsx
 - tradeMachine/FaExceptionTracker.jsx
 - tradeMachine/OutgoingPicksList.jsx
@@ -278,4 +297,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2025-12-12T12:52:32.104Z*
+*Generated on: 2025-12-13T12:55:54.801Z*
