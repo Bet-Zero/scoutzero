@@ -684,7 +684,7 @@ export function useArchitectActions({
             return {
               ...p,
               contract: {
-                ...p.contract,
+                ...(p.contract || {}),
                 salariesByYear: salaries,
                 contractType: contractData.contractType || 'Signed FA',
                 isExtension: !!contractData.isExtension,
@@ -770,7 +770,7 @@ export function useArchitectActions({
 
   // handleWaiveContract - directly updates teamCapSheet
   const handleWaiveContract = useCallback(
-    (player: ArchitectPlayer, { stretch, buyout }: WaiveOptions): void => {
+    (player: ArchitectPlayer, { stretch, buyout, buyoutAmount }: WaiveOptions): void => {
       const confirmMsg = stretch
         ? 'Waive and stretch this player?'
         : 'Waive this player?';
@@ -792,7 +792,10 @@ export function useArchitectActions({
           })
           .reduce((sum, y) => sum + (y.salary || 0), 0);
 
-        const deadCapAmount = buyout ? 0 : remainingGuaranteed;
+        // For buyouts, dead cap = remaining guaranteed minus buyout amount
+        const deadCapAmount = buyout
+          ? Math.max(0, remainingGuaranteed - (buyoutAmount || 0))
+          : remainingGuaranteed;
 
         const updatedPlayers = (prev.players || []).map((p) => {
           if (
@@ -810,7 +813,7 @@ export function useArchitectActions({
                 buyout,
               },
               contract: {
-                ...p.contract,
+                ...(p.contract || {}),
                 salariesByYear: [],
                 waived: true,
               },
@@ -877,8 +880,14 @@ export function useArchitectActions({
                 (_, idx) => idx < optionIndex
               );
 
-              // Calculate cap hold for declined option
-              const capHoldResult = calculateCapHold(p);
+              // Calculate cap hold for declined option using filtered salaries
+              const capHoldResult = calculateCapHold({
+                ...p,
+                contract: {
+                  ...(p.contract || {}),
+                  salariesByYear: filteredSalaries,
+                },
+              });
               if (capHoldResult && capHoldResult.amount) {
                 newCapHold = {
                   playerId: p.id || p.player_id || p.name || '',
@@ -895,7 +904,7 @@ export function useArchitectActions({
               return {
                 ...p,
                 contract: {
-                  ...p.contract,
+                  ...(p.contract || {}),
                   salariesByYear: filteredSalaries,
                   freeAgency: {
                     year: targetYear - 1,
@@ -910,7 +919,7 @@ export function useArchitectActions({
             return {
               ...p,
               contract: {
-                ...p.contract,
+                ...(p.contract || {}),
                 salariesByYear: updatedSalaries,
               },
             };

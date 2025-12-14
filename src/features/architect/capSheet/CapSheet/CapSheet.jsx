@@ -310,7 +310,7 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer }) => {
                   <div className="divide-y divide-white/5">
                     {displayedCapHolds.map((h) => (
                       <div
-                        key={`${h.playerId}-${h.season}`}
+                        key={`${h.playerId}-${h.season}-${h.type}`}
                         className="grid grid-cols-[2fr,1.2fr,3fr] gap-2 px-4 py-2 items-center hover:bg-white/[0.02]"
                       >
                         <div className="text-xs text-white/60">
