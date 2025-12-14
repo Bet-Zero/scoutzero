@@ -74,7 +74,7 @@ export function getActiveUnsignedCapHoldsTotal(
   yearKey: number
 ): number {
   const activeHolds = getActiveUnsignedCapHolds(capHolds, yearKey);
-  return activeHolds.reduce((sum, h) => sum + (h.amount || 0), 0);
+  return activeHolds.reduce((sum, h) => sum + (h.amount ?? 0), 0);
 }
 
 /**
