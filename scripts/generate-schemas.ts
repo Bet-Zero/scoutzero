@@ -34,10 +34,7 @@ async function main() {
     md('architect (canonical)', [
       ['/architect/baseTeams/{teamCode}', 'BaseTeamDoc'],
       ['/architect/basePlayers/{playerId}', 'BasePlayerDoc'],
-      [
-        '/architect/worlds/{worldId}/snapshot/teams/{teamCode}',
-        'WorldTeamSnapshot',
-      ],
+      ['/architect_worlds/{worldId}/teams/{teamCode}', 'WorldTeamSnapshot'],
     ]) +
       '\n' +
       '- Canonical source: `src/schemas/architect.ts`\n' +

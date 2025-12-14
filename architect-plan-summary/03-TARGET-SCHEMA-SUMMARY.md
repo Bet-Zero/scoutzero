@@ -57,7 +57,7 @@ Provides complete, field-by-field examples of the target Firestore data structur
    - `representation.agent`, `representation.agency` (agent info)
    - `bio.shoots`, `bio.draftYear`, `bio.draftRound`, `bio.draftPick`, `bio.draftedBy` (bio fields)
 
-### World Metadata Document (`/architect/worlds/{worldId}/metadata`)
+### World Metadata Document (`/architect_worlds/{worldId}`)
 
 **Size**: ~2KB per world
 **Essential Fields**:
@@ -69,13 +69,13 @@ Provides complete, field-by-field examples of the target Firestore data structur
 - Modifications tracking (modifiedTeams, actionCount, lastAction)
 - Tags and flags (isArchived, isFavorite)
 
-### World Team Snapshot (`/architect/worlds/{worldId}/snapshot/teams/{teamCode}`)
+### World Team Snapshot (`/architect_worlds/{worldId}/teams/{teamCode}`)
 
 **Size**: ~50KB per modified team
 **Content**: Same structure as base team document, but represents modified state
 **Key Difference**: Source metadata shows it's a world snapshot with worldId and generation timestamp
 
-### World Player Override (`/architect/worlds/{worldId}/snapshot/teams/{teamCode}/players/{playerId}`)
+### World Player Override (`/architect_worlds/{worldId}/teams/{teamCode}/players/{playerId}`)
 
 **Size**: ~5KB per player
 **Use Case**: Optional, only needed for player-level contract changes (extensions, option decisions)
