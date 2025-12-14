@@ -5,7 +5,7 @@ import RosterViewer from '@/features/roster/RosterViewer';
 import RosterExportWrapper from '@/features/roster/RosterExportWrapper';
 
 const TeamRosterView = () => {
-  const [isExport, setIsExport] = useState(false);
+  const [isExport] = useState(false);
   const { rosterId } = useParams();
 
   return (

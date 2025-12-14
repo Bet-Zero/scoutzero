@@ -22,7 +22,6 @@ import {
   createMockTeam,
   createMockPlayer,
 } from '../helpers/architectTestHelpers.js';
-import { getMockData } from '../__mocks__/firebase.js';
 
 describe('Team Loader', () => {
   beforeEach(() => {

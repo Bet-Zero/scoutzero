@@ -80,10 +80,6 @@ describe('tradeValidator edge cases', () => {
   });
 
   it('allows protected picks to avoid Stepien violations', () => {
-    const teamA = makeTeam('A', 100_000_000);
-    const teamB = makeTeam('B', 100_000_000);
-    const teamC = makeTeam('C', 100_000_000);
-
     // Mock a successful result for this specific test case
     const result = {
       legal: true,

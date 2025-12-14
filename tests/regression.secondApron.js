@@ -1,4 +1,5 @@
 // regression.secondApron.test.js
+import { describe, it, expect } from 'vitest';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
 
 describe('Second-apron regression: cannot take back more than send out', () => {

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { doc, getDoc, getDocs } from 'firebase/firestore';
-import { db } from '@/firebaseConfig';
+import { getDoc, getDocs } from 'firebase/firestore';
 import {
   playerRef,
   contractsCol,

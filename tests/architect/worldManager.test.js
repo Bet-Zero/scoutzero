@@ -21,8 +21,6 @@ import {
   seedWorldMetadata,
   getMockWorldMetadata,
   createMockWorld,
-  assertWorldMetadata,
-  seedMockData,
 } from '../helpers/architectTestHelpers.js';
 import { getMockData } from '../__mocks__/firebase.js';
 
@@ -228,7 +226,6 @@ describe('World Manager', () => {
     it('updates lastModifiedAt automatically', async () => {
       const world = createMockWorld({ userId });
       seedWorldMetadata(world.worldId, world);
-      const originalModified = getMockWorldMetadata(world.worldId).lastModifiedAt;
 
       // Wait a bit to ensure timestamp difference
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -425,8 +422,6 @@ describe('World Manager', () => {
         name: 'Test World',
         userId,
       });
-
-      const originalModified = getMockWorldMetadata(worldResult.worldId).lastModifiedAt;
 
       await updateWorldStats(worldResult.worldId, 'trade', []);
 

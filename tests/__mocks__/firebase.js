@@ -439,7 +439,7 @@ export function orderBy(field, direction = 'asc') {
 }
 
 // Mock writeBatch function
-export function writeBatch(db) {
+export function writeBatch() {
   const batch = {
     operations: [],
     set: function (docRef, data, options) {

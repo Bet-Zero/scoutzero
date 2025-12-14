@@ -16,7 +16,7 @@ import {
   createWorld,
   branchWorld,
 } from '@/features/architect/utils/worldManager';
-import { getTeam, getLeague } from '@/features/architect/utils/teamLoader';
+import { getTeam } from '@/features/architect/utils/teamLoader';
 import {
   executeTrade,
   signFreeAgent,

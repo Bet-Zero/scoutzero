@@ -15,7 +15,7 @@ const DataDiagnosticPage = () => {
           </h1>
           <p className="text-gray-600 text-lg">
             This tool helps diagnose and troubleshoot issues with missing player data in your ScoutZero application.
-            Use this if you're seeing empty player lists or only partial data in your collections.
+            Use this if you&apos;re seeing empty player lists or only partial data in your collections.
           </p>
         </div>
         

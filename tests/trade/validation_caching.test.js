@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
 import { validationCache } from '@/features/architect/utils/tradeMachine/cache/validationCacheService.js';
 

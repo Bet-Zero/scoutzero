@@ -31,7 +31,6 @@ const TEAM_CAP_SHEET = {
 const getRulesProfileForYear = (player) => {
   if (player.name === 'Ext Player') {
     return {
-      extensionEligibility: { isEligible: true, reason: 'Extension eligible' },
       extensionEligibility: {
         isEligible: true,
         reason: 'Extension eligible',

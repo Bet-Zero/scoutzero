@@ -184,7 +184,7 @@ function normalizeSigningDate(signingDate) {
     if (!isNaN(date.getTime())) {
       return date.toISOString().split('T')[0];
     }
-  } catch (e) {
+  } catch {
     // Ignore parse errors
   }
 

@@ -98,7 +98,7 @@ const RostersHome = () => {
           <div className="text-white/60">Loading rosters...</div>
         ) : rosters.length === 0 ? (
           <div className="text-white/40">
-            You haven't created any rosters yet.
+            You haven&apos;t created any rosters yet.
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
