@@ -6,6 +6,7 @@
  * HISTORY:
  *  - 2025-12-12: Created - extracted all handlers from GMDashboard.jsx (Phase 3 refactor)
  *  - 2025-12-12: Converted to TypeScript with proper type annotations
+ *  - 2025-12-14: Option B refactor - removed capSheetState dependency, all mutations now update teamCapSheet directly
  *
  * LINKS:
  *  - Plan: plans/extract_gmdashboard_actions_b9466109.plan.md
@@ -17,6 +18,8 @@ import {
 } from '@/features/architect/utils/firebaseTeamPlanHelpers';
 import { loadArchitectBasePlayer } from '@/features/architect/utils/loadArchitectBasePlayer';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
+import { calculateCapHold } from '@/features/architect/utils/contractUtils';
+import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
 import capProjections from '@/features/architect/utils/capProjections';
 
 // ==== Type Definitions ====
@@ -29,6 +32,7 @@ interface SalaryByYear {
   optionType?: string;
   capHit?: number;
   guaranteed?: boolean;
+  optionUsed?: string;
 }
 
 /** Local contract structure for architect actions (avoids schema naming pattern) */
@@ -126,6 +130,18 @@ interface ActiveContract {
   [key: string]: unknown;
 }
 
+/** Cap hold structure */
+interface CapHold {
+  playerId: string;
+  playerName: string;
+  amount: number;
+  season: string;
+  type: string;
+  active: boolean;
+  isSigned: boolean;
+  reason?: string;
+}
+
 /** Cap sheet structure */
 interface CapSheet {
   teamCode?: string;
@@ -139,7 +155,7 @@ interface CapSheet {
   pickLog?: unknown[];
   currentPicks?: Record<string, unknown>;
   deadCap?: unknown[];
-  capHolds?: unknown[];
+  capHolds?: CapHold[];
   exceptions?: unknown;
   draftPicks?: unknown[];
   totals?: unknown;
@@ -193,29 +209,12 @@ interface ArchitectModalsForActions {
   setNewPlanName: React.Dispatch<React.SetStateAction<string>>;
 }
 
-/** CapSheetState hook return type (subset needed by actions) */
-interface CapSheetStateForActions {
-  signPlayer: (
-    player: ArchitectPlayer,
-    contractData: SigningDetails,
-    signingType?: string
-  ) => void;
-  extendContract: (
-    player: ArchitectPlayer,
-    extensionContract: SigningDetails
-  ) => void;
-  waivePlayer: (player: ArchitectPlayer, options: WaiveOptions) => void;
-  exerciseOption: (player: ArchitectPlayer, accepted: boolean) => void;
-  renounceRights: (player: ArchitectPlayer) => void;
-}
-
 /** Hook input parameters */
 export interface UseArchitectActionsParams {
   teamId: string;
   userId: string | null;
   authLoading?: boolean;
   state: ArchitectStateForActions;
-  capSheetState: CapSheetStateForActions;
   playersMap: PlayersMap;
   modals: ArchitectModalsForActions;
 }
@@ -285,7 +284,6 @@ export function useArchitectActions({
   userId,
   // authLoading is available but not currently used by handlers
   state,
-  capSheetState,
   playersMap,
   modals,
 }: UseArchitectActionsParams): UseArchitectActionsReturn {
@@ -553,17 +551,62 @@ export function useArchitectActions({
   );
 
   // Shared helper for renounce confirmation and execution
+  // Now directly updates teamCapSheet instead of using capSheetState
   const confirmAndRenounceRights = useCallback(
-    (player: ArchitectPlayer): void => {
+    (playerOrHold: ArchitectPlayer | CapHold): void => {
+      const playerName =
+        (playerOrHold as ArchitectPlayer).displayName ||
+        (playerOrHold as ArchitectPlayer).name ||
+        (playerOrHold as CapHold).playerName ||
+        'this player';
+
       if (
         window.confirm(
-          `Are you sure you want to renounce rights to ${player.displayName || player.name}? This will clear their cap hold.`
+          `Are you sure you want to renounce rights to ${playerName}? This will clear their cap hold.`
         )
       ) {
-        capSheetState.renounceRights(player);
+        const idToRenounce =
+          (playerOrHold as ArchitectPlayer).id ||
+          (playerOrHold as ArchitectPlayer).player_id ||
+          (playerOrHold as CapHold).playerId ||
+          (playerOrHold as ArchitectPlayer).name;
+
+        setTeamCapSheet((prev: CapSheet | null) => {
+          if (!prev) return prev;
+
+          // Remove from capHolds array
+          const updatedCapHolds = (prev.capHolds || []).filter(
+            (h) => h.playerId !== idToRenounce && h.playerName !== idToRenounce
+          );
+
+          // Update player object if it exists
+          const updatedPlayers = (prev.players || []).map((p) => {
+            if (
+              p.id === idToRenounce ||
+              p.player_id === idToRenounce ||
+              p.name === idToRenounce
+            ) {
+              const updated = { ...p, rightsRenounced: true };
+              if (updated.contract?.birdRights) {
+                updated.contract = {
+                  ...updated.contract,
+                  birdRights: { ...updated.contract.birdRights, status: 'None' },
+                };
+              }
+              return updated;
+            }
+            return p;
+          });
+
+          return {
+            ...prev,
+            players: updatedPlayers,
+            capHolds: updatedCapHolds,
+          };
+        });
       }
     },
-    [capSheetState]
+    [setTeamCapSheet]
   );
 
   // Handler for clicking action cells (PO/TO/UFA/RFA) in CapSheetFull or Renounce
@@ -601,22 +644,131 @@ export function useArchitectActions({
     ]
   );
 
+  // handleSaveContract - directly updates teamCapSheet
   const handleSaveContract = useCallback(
     (player: ArchitectPlayer, contractData: SigningDetails): void => {
-      capSheetState.signPlayer(player, contractData, 'signNew');
+      const playerId = player.id || player.player_id || player.name;
+      const startYear = currentYear + 1;
+
+      setTeamCapSheet((prev: CapSheet | null) => {
+        if (!prev) return prev;
+
+        // Build new contract salaries
+        const salaries: SalaryByYear[] = [];
+        const providedSalaries = (contractData.salariesByYear || []).slice(
+          0,
+          contractData.salariesByYear?.length || 0
+        );
+        const hasProvidedSalaries = providedSalaries.length > 0;
+
+        if (hasProvidedSalaries) {
+          providedSalaries.forEach((s, i) => {
+            const endYear = startYear + i;
+            salaries.push({
+              season: toSeasonCode(endYear),
+              salary: Math.round(s.salary || s.capHit || 0),
+              capHit: Math.round(s.capHit || s.salary || 0),
+              guaranteed: s.guaranteed ?? true,
+              option: s.option || null,
+            });
+          });
+        }
+
+        // Update player's contract in players array
+        const updatedPlayers = (prev.players || []).map((p) => {
+          if (
+            p.id === playerId ||
+            p.player_id === playerId ||
+            p.name === playerId
+          ) {
+            return {
+              ...p,
+              contract: {
+                ...p.contract,
+                salariesByYear: salaries,
+                contractType: contractData.contractType || 'Signed FA',
+                isExtension: !!contractData.isExtension,
+                isRookieScale: !!contractData.isRookieScale,
+                signingTeam: teamId,
+              },
+              freeAgentYear: null,
+              futureContract: null,
+            };
+          }
+          return p;
+        });
+
+        // Remove cap hold if any
+        const updatedCapHolds = (prev.capHolds || []).filter(
+          (h) => h.playerId !== playerId && h.playerName !== player.name
+        );
+
+        return {
+          ...prev,
+          players: updatedPlayers,
+          capHolds: updatedCapHolds,
+        };
+      });
+
       closeContractModal();
     },
-    [capSheetState, closeContractModal]
+    [currentYear, teamId, setTeamCapSheet, closeContractModal]
   );
 
+  // handleExtendContract - directly updates teamCapSheet
   const handleExtendContract = useCallback(
     (player: ArchitectPlayer, extensionContract: SigningDetails): void => {
-      capSheetState.extendContract(player, extensionContract);
+      const playerId = player.id || player.player_id || player.name;
+
+      setTeamCapSheet((prev: CapSheet | null) => {
+        if (!prev) return prev;
+
+        const updatedPlayers = (prev.players || []).map((p) => {
+          if (
+            p.id === playerId ||
+            p.player_id === playerId ||
+            p.name === playerId
+          ) {
+            // Add extension years to futureContract
+            const futureContract = p.futureContract || {
+              salariesByYear: [],
+              extension: true,
+            };
+
+            const newYears = (extensionContract.salariesByYear || []).map(
+              (y) => ({
+                ...y,
+                isExtensionSeason: true,
+              })
+            );
+
+            return {
+              ...p,
+              futureContract: {
+                ...futureContract,
+                salariesByYear: [
+                  ...(futureContract.salariesByYear || []),
+                  ...newYears,
+                ],
+                extension: true,
+              },
+            };
+          }
+          return p;
+        });
+
+        return {
+          ...prev,
+          players: updatedPlayers,
+        };
+      });
+
       closeContractModal();
     },
-    [capSheetState, closeContractModal]
+    [setTeamCapSheet, closeContractModal]
   );
 
+  // handleWaiveContract - directly updates teamCapSheet
   const handleWaiveContract = useCallback(
     (player: ArchitectPlayer, { stretch, buyout }: WaiveOptions): void => {
       const confirmMsg = stretch
@@ -624,18 +776,168 @@ export function useArchitectActions({
         : 'Waive this player?';
       if (!window.confirm(confirmMsg)) return;
 
-      capSheetState.waivePlayer(player, { stretch, buyout });
+      const playerId = player.id || player.player_id || player.name;
+
+      setTeamCapSheet((prev: CapSheet | null) => {
+        if (!prev) return prev;
+
+        // Calculate remaining guaranteed money
+        const remainingGuaranteed = (player.contract?.salariesByYear || [])
+          .filter((y) => {
+            const season = String(y.season);
+            const yearEnd = /^\d{4}-\d{2}$/.test(season)
+              ? 2000 + parseInt(season.split('-')[1], 10)
+              : parseInt(season, 10);
+            return yearEnd >= currentYear && y.guaranteed !== false;
+          })
+          .reduce((sum, y) => sum + (y.salary || 0), 0);
+
+        const deadCapAmount = buyout ? 0 : remainingGuaranteed;
+
+        const updatedPlayers = (prev.players || []).map((p) => {
+          if (
+            p.id === playerId ||
+            p.player_id === playerId ||
+            p.name === playerId
+          ) {
+            return {
+              ...p,
+              waived: true,
+              waivedDate: new Date().toISOString(),
+              deadCap: {
+                amount: deadCapAmount,
+                stretched: stretch,
+                buyout,
+              },
+              contract: {
+                ...p.contract,
+                salariesByYear: [],
+                waived: true,
+              },
+              futureContract: null,
+            };
+          }
+          return p;
+        });
+
+        return {
+          ...prev,
+          players: updatedPlayers,
+        };
+      });
+
       closeContractModal();
     },
-    [capSheetState, closeContractModal]
+    [currentYear, setTeamCapSheet, closeContractModal]
   );
 
+  // handleOptionDecision - directly updates teamCapSheet and manages cap holds
   const handleOptionDecision = useCallback(
     (player: ArchitectPlayer, accepted: boolean): void => {
-      capSheetState.exerciseOption(player, accepted);
+      const playerId = player.id || player.player_id || player.name;
+      const targetYear = currentYear + 1;
+
+      setTeamCapSheet((prev: CapSheet | null) => {
+        if (!prev) return prev;
+
+        let newCapHold: CapHold | null = null;
+
+        const updatedPlayers = (prev.players || []).map((p) => {
+          if (
+            p.id === playerId ||
+            p.player_id === playerId ||
+            p.name === playerId
+          ) {
+            const salaries = p.contract?.salariesByYear || [];
+
+            // Find the option year entry
+            const optionIndex = salaries.findIndex((y) => {
+              const season = String(y.season);
+              const yearEnd = /^\d{4}-\d{2}$/.test(season)
+                ? 2000 + parseInt(season.split('-')[1], 10)
+                : parseInt(season, 10);
+              return yearEnd === targetYear && y.option;
+            });
+
+            if (optionIndex === -1) {
+              console.warn(`No option found for year ${targetYear}`);
+              return p;
+            }
+
+            // Mark option as used
+            const updatedSalaries = [...salaries];
+            updatedSalaries[optionIndex] = {
+              ...updatedSalaries[optionIndex],
+              optionUsed: accepted ? 'accepted' : 'declined',
+            };
+
+            if (!accepted) {
+              // Declining: remove this year and all future years
+              const filteredSalaries = salaries.filter(
+                (_, idx) => idx < optionIndex
+              );
+
+              // Calculate cap hold for declined option
+              const capHoldResult = calculateCapHold(p);
+              if (capHoldResult && capHoldResult.amount) {
+                newCapHold = {
+                  playerId: p.id || p.player_id || p.name || '',
+                  playerName: p.displayName || p.name || '',
+                  amount: capHoldResult.amount,
+                  type: 'FA Cap Hold',
+                  season: toSeasonCode(targetYear),
+                  isSigned: false,
+                  reason: 'Declined Option',
+                  active: true,
+                };
+              }
+
+              return {
+                ...p,
+                contract: {
+                  ...p.contract,
+                  salariesByYear: filteredSalaries,
+                  freeAgency: {
+                    year: targetYear - 1,
+                    type: 'UFA' as const,
+                  },
+                },
+                freeAgentYear: targetYear,
+              };
+            }
+
+            // Accepted: just update the option status
+            return {
+              ...p,
+              contract: {
+                ...p.contract,
+                salariesByYear: updatedSalaries,
+              },
+            };
+          }
+          return p;
+        });
+
+        // Update capHolds array
+        let updatedCapHolds = prev.capHolds || [];
+        if (newCapHold) {
+          // Remove any existing hold for this player and add the new one
+          updatedCapHolds = updatedCapHolds.filter(
+            (h) => h.playerId !== newCapHold!.playerId
+          );
+          updatedCapHolds = [...updatedCapHolds, newCapHold];
+        }
+
+        return {
+          ...prev,
+          players: updatedPlayers,
+          capHolds: updatedCapHolds,
+        };
+      });
+
       closeContractModal();
     },
-    [capSheetState, closeContractModal]
+    [currentYear, setTeamCapSheet, closeContractModal]
   );
 
   const handleRenounceRights = useCallback(

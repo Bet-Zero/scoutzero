@@ -27,20 +27,45 @@ const CapImpactTiles = ({
     ...incomingPlayers,
   ];
 
-  const totalCapAllocations = playersAfterTrade.reduce((sum, player) => {
+  // Calculate salary total from players
+  const salaryTotal = playersAfterTrade.reduce((sum, player) => {
     const salary = getSalaryForYear(player, yearKey);
-    const holdAmount =
-      typeof player.cap_hold === 'number'
-        ? player.cap_hold
-        : player.cap_hold?.amount || 0;
-    const isActive =
-      typeof player.cap_hold === 'object'
-        ? player.cap_hold?.active
-        : holdAmount > 0;
-    const capHold = !salary && isActive ? holdAmount : 0;
-    return sum + salary + capHold;
+    return sum + salary;
   }, 0);
 
+  // Calculate cap holds total from team.capHolds (canonical source) if present
+  // with defensive fallback to player-level cap_hold for backwards compatibility
+  const capHoldsTotal = (() => {
+    // Prefer team.capHolds (canonical source)
+    if (Array.isArray(team.capHolds) && team.capHolds.length > 0) {
+      return team.capHolds
+        .filter((h) => {
+          if (!h.active || h.isSigned) return false;
+          // Match season to yearKey: "2024-25" matches yearKey 2025
+          if (!h.season || !String(h.season).includes('-')) return false;
+          const seasonStart = parseInt(String(h.season).split('-')[0], 10);
+          if (!Number.isFinite(seasonStart)) return false;
+          return seasonStart + 1 === yearKey;
+        })
+        .reduce((sum, h) => sum + (h.amount || 0), 0);
+    }
+    // Fallback to player-level cap_hold for backwards compatibility
+    return playersAfterTrade.reduce((sum, player) => {
+      const salary = getSalaryForYear(player, yearKey);
+      if (salary > 0) return sum; // Only count holds for players without salary
+      const holdAmount =
+        typeof player.cap_hold === 'number'
+          ? player.cap_hold
+          : player.cap_hold?.amount || 0;
+      const isActive =
+        typeof player.cap_hold === 'object'
+          ? player.cap_hold?.active
+          : holdAmount > 0;
+      return isActive ? sum + holdAmount : sum;
+    }, 0);
+  })();
+
+  const totalCapAllocations = salaryTotal + capHoldsTotal;
   const projectedTotal = totalCapAllocations;
   const capSpace = salaryCap - projectedTotal;
   const firstApronSpace = firstApron - projectedTotal;

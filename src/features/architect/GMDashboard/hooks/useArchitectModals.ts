@@ -81,14 +81,14 @@ export function useArchitectModals(): UseArchitectModalsReturn {
    * Open the offseason summary modal
    */
   const openOffseasonModal = useCallback((): void => {
-    setShowModal(true);
+    setShowOffseasonModal(true);
   }, []);
 
   /**
    * Close the offseason summary modal
    */
   const closeOffseasonModal = useCallback((): void => {
-    setShowModal(false);
+    setShowOffseasonModal(false);
   }, []);
 
   // === Save Modal Helpers ===

@@ -28,24 +28,29 @@ const CapSummaryTiles = ({ teamCapSheet, selectedYear }) => {
   
   const firstApronReason = isFirstApronHardCapped ? getFirstApronHardCapReason(teamCapSheet) : '';
 
-  const totalCapAllocations = teamCapSheet.players.reduce((sum, player) => {
+  // Calculate salary total from players
+  const salaryTotal = (teamCapSheet?.players || []).reduce((sum, player) => {
     const seasonEntry = getContractYearSlice(player, selectedYear);
     const salary =
       seasonEntry?.capHit ??
       seasonEntry?.salary ??
-      (typeof seasonEntry?.capHit === 'number' ? seasonEntry.capHit : 0) ??
       0;
-    const holdAmount =
-      typeof player.cap_hold === 'number'
-        ? player.cap_hold
-        : player.cap_hold?.amount || 0;
-    const isActive =
-      typeof player.cap_hold === 'object'
-        ? player.cap_hold?.active
-        : holdAmount > 0;
-    const capHold = !salary && isActive ? holdAmount : 0;
-    return sum + salary + capHold;
+    return sum + salary;
   }, 0);
+
+  // Calculate cap holds total from teamCapSheet.capHolds (canonical source)
+  const capHoldsTotal = (teamCapSheet?.capHolds || [])
+    .filter((h) => {
+      if (!h.active || h.isSigned) return false;
+      // Match season to selectedYear: "2024-25" matches selectedYear 2025
+      if (!h.season || !String(h.season).includes('-')) return false;
+      const seasonStart = parseInt(String(h.season).split('-')[0], 10);
+      if (!Number.isFinite(seasonStart)) return false;
+      return seasonStart + 1 === selectedYear;
+    })
+    .reduce((sum, h) => sum + (h.amount || 0), 0);
+
+  const totalCapAllocations = salaryTotal + capHoldsTotal;
 
   const capSpace = salaryCap - totalCapAllocations;
   const firstApronSpace = firstApron - totalCapAllocations;
