@@ -109,7 +109,7 @@ export {
 // ============= Types =============
 export type {
   RuleContext,
-  PlayerRuleContext,
+  ArchitectPlayerRuleContext,
   SeasonId,
   SalaryProfile,
   MaxSalaryInfo,
@@ -126,7 +126,7 @@ export type {
 // Re-export additional RuleContext types for completeness
 export type {
   TimingContext,
-  PlayerContext,
+  ArchitectPlayerContext,
   TeamContext,
   OperationContext,
   CapContext,

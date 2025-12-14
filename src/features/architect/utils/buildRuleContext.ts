@@ -14,7 +14,7 @@ import type { SeasonId } from './seasonHelpers';
 import type {
   RuleContext,
   TimingContext,
-  PlayerContext,
+  ArchitectPlayerContext,
   TeamContext,
   OperationContext,
   CapContext,
@@ -441,7 +441,7 @@ function buildPlayerContext(
   input: BuildRuleContextInput,
   operationSeasonId: SeasonId,
   referenceSeasonId: SeasonId
-): PlayerContext {
+): ArchitectPlayerContext {
   const { player } = input;
 
   const playerId =
@@ -464,7 +464,7 @@ function buildPlayerContext(
   }
 
   // Draft info
-  let draftInfo: PlayerContext['draftInfo'] = null;
+  let draftInfo: ArchitectPlayerContext['draftInfo'] = null;
   if (player.bio?.draftYear) {
     draftInfo = {
       year: player.bio.draftYear,
