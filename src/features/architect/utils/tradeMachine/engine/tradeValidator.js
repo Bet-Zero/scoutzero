@@ -2,10 +2,7 @@
 import {
   getSalaryForYear,
 } from '@/features/architect/utils/tradeHelpers.js';
-import { validationCache } from '../cache/validationCacheService.js';
-import { performanceMonitor } from './validationPerformanceMonitor.js';
 import { wrapCommonValidators } from './validationUtils.js';
-import { debug } from './engineUtils.js';
 import { createTPE } from '../utils/tradeUtilities.js';
 
 // Import base validators from new structure

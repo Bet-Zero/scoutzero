@@ -253,7 +253,7 @@ export function enforceTimingLegacy(
 export function enforceEligibilityLegacy(
   team,
   ctx = defaultContext,
-  { warn = () => {}, reject = () => {} } = {}
+  { reject = () => {} } = {}
 ) {
   const violations = [];
   const { incomingPlayers = [] } = team;
@@ -282,7 +282,8 @@ export function enforceEligibilityLegacy(
  */
 export function enforceRosterWindowLegacy(
   team,
-  ctx = {},
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _ctx = {},
   { warn = () => {}, reject = () => {} } = {}
 ) {
   const violations = [];
@@ -303,13 +304,6 @@ export function enforceRosterWindowLegacy(
   }
 
   return violations;
-}
-
-// Helper functions
-function isWithinOneYear(date1, date2) {
-  return (
-    Math.abs(new Date(date1) - new Date(date2)) < 365 * 24 * 60 * 60 * 1000
-  );
 }
 
 // Legacy exports for backward compatibility

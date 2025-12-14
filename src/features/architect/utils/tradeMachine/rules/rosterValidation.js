@@ -138,18 +138,30 @@ export function enforceRosterRules(team, ctx = {}, notifier = {}) {
   // Standard roster validation
   if (projected < MIN_ROSTER) {
     const msg = `Roster count (${projected}) below minimum ${MIN_ROSTER}`;
-    rosterMode === 'error' ? reject(msg) : warn(msg);
+    if (rosterMode === 'error') {
+      reject(msg);
+    } else {
+      warn(msg);
+    }
   }
 
   if (projected > MAX_ROSTER) {
     const msg = `Roster count (${projected}) exceeds maximum ${MAX_ROSTER}`;
-    rosterMode === 'error' ? reject(msg) : warn(msg);
+    if (rosterMode === 'error') {
+      reject(msg);
+    } else {
+      warn(msg);
+    }
   }
 
   // Two-way roster validation
   if (twoWaySlots > MAX_TWO_WAY) {
     const msg = `Two-way slots exceeded (${twoWaySlots}/${MAX_TWO_WAY})`;
-    twoWayMode === 'error' ? reject(msg) : warn(msg);
+    if (twoWayMode === 'error') {
+      reject(msg);
+    } else {
+      warn(msg);
+    }
   }
 
   return [];
@@ -166,8 +178,6 @@ export function enforceRosterWindowAdvanced(
 ) {
   const { enforcement, gracePeriod = false, graceMode = false } = context;
   
-  // Use validationFlags.rosterEnforcement as default if enforcement not specified
-  const effectiveEnforcement = enforcement || validationFlags.rosterEnforcement;
   const violations = [];
 
   // Calculate post-trade roster sizes
