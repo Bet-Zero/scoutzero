@@ -1,6 +1,7 @@
 import React from 'react';
 import capProjections from '@/features/architect/utils/capProjections';
 import { getContractYearSlice } from '@/features/architect/utils/contractUtils';
+import { getActiveUnsignedCapHoldsTotalByEndYear } from '@/features/architect/utils/capHolds';
 import {
   isHardCappedAtFirstApron,
   isHardCappedAtSecondApron,
@@ -28,24 +29,24 @@ const CapSummaryTiles = ({ teamCapSheet, selectedYear }) => {
   
   const firstApronReason = isFirstApronHardCapped ? getFirstApronHardCapReason(teamCapSheet) : '';
 
-  const totalCapAllocations = teamCapSheet.players.reduce((sum, player) => {
+  // Calculate salary total from players
+  const salaryTotal = (teamCapSheet?.players || []).reduce((sum, player) => {
     const seasonEntry = getContractYearSlice(player, selectedYear);
     const salary =
       seasonEntry?.capHit ??
       seasonEntry?.salary ??
-      (typeof seasonEntry?.capHit === 'number' ? seasonEntry.capHit : 0) ??
       0;
-    const holdAmount =
-      typeof player.cap_hold === 'number'
-        ? player.cap_hold
-        : player.cap_hold?.amount || 0;
-    const isActive =
-      typeof player.cap_hold === 'object'
-        ? player.cap_hold?.active
-        : holdAmount > 0;
-    const capHold = !salary && isActive ? holdAmount : 0;
-    return sum + salary + capHold;
+    return sum + salary;
   }, 0);
+
+  // Calculate cap holds total using shared utility
+  // selectedYear is the END year (e.g., 2025 for "2024-25")
+  const capHoldsTotal = getActiveUnsignedCapHoldsTotalByEndYear(
+    teamCapSheet?.capHolds,
+    selectedYear
+  );
+
+  const totalCapAllocations = salaryTotal + capHoldsTotal;
 
   const capSpace = salaryCap - totalCapAllocations;
   const firstApronSpace = firstApron - totalCapAllocations;

@@ -9,12 +9,13 @@
  *  - 2025-01-XX: Refactored to extract tab sections into separate components.
  *  - 2025-12-12: Refactored to use authenticated userId instead of hardcoded demoUser
  *  - 2025-12-12: Phase 3 refactor - extracted all handlers into useArchitectActions hook
+ *  - 2025-12-14: Option B refactor - removed shadow cap sheet state, teamCapSheet is now the only source of truth
  *
  * LINKS:
  *  - Plan: plans/gm-dashboard-userid/plan.md
  *  - Latest Chunk: plans/gm-dashboard-userid/chunks/chunk_01.md
  */
-import React, { useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import EditContractModal from '@/shared/components/EditContractModal';
 import SavePlanModal from '@/features/architect/SavePlanModal';
@@ -28,7 +29,6 @@ import { HistorySection } from './sections/HistorySection';
 import { useArchitectState } from './hooks/useArchitectState';
 import { useArchitectActions } from './hooks/useArchitectActions';
 import { useArchitectModals } from './hooks/useArchitectModals';
-import { useCapSheetState } from '@/features/architect/hooks/useCapSheetState';
 import { usePlayerRulesProfiles } from '@/features/architect/hooks/usePlayerRulesProfiles';
 import { useAuth } from '@/shared/hooks/useAuth';
 import capProjections from '@/features/architect/utils/capProjections';
@@ -109,26 +109,20 @@ const GMDashboard = () => {
     setShowOffseasonModal,
   } = modals;
 
-  // === Cap Sheet State Management Hook ===
-  // Provides undo capability and action history tracking
-  const capSheetState = useCapSheetState({
-    initialCapSheet: teamCapSheet,
-    currentYear,
-  });
-
   const simulatedRulesDate = useMemo(
     () => new Date(currentYear - 1, 6, 15),
     [currentYear]
   );
 
+  // Use teamCapSheet directly as the source of truth (Option B refactor)
   const {
     leagueContext: rulesLeagueContext,
     leagueContextByYear,
     getProfile: getRulesProfile,
     getProfileForYear,
   } = usePlayerRulesProfiles({
-    players: capSheetState.modifiedCapSheet?.players || [],
-    teamCapSheet: capSheetState.modifiedCapSheet,
+    players: teamCapSheet?.players || [],
+    teamCapSheet,
     currentYear,
     teamCode: teamId,
     simulationDate: simulatedRulesDate,
@@ -142,21 +136,14 @@ const GMDashboard = () => {
     (selectedRulesYear && leagueContextByYear?.get(selectedRulesYear)) ||
     rulesLeagueContext;
 
-  // Sync hook state when teamCapSheet changes (e.g., from loading plans)
-  useEffect(() => {
-    if (teamCapSheet) {
-      capSheetState.refreshFromSource(teamCapSheet);
-    }
-  }, [teamCapSheet, capSheetState]);
-
   // === Actions Hook ===
   // All handler functions are now centralized in useArchitectActions
+  // Actions now mutate teamCapSheet directly (Option B refactor)
   const actions = useArchitectActions({
     teamId,
     userId,
     authLoading,
     state,
-    capSheetState,
     playersMap,
     modals,
   });
@@ -212,33 +199,6 @@ const GMDashboard = () => {
                 </option>
               ))}
             </select>
-          )}
-
-          {/* Undo Button & Changes Counter */}
-          {capSheetState.hasChanges && (
-            <div className="flex items-center gap-2 ml-2 pl-2 border-l border-white/10">
-              <span className="text-xs text-white/50">
-                {capSheetState.actionHistory.length} change
-                {capSheetState.actionHistory.length !== 1 ? 's' : ''}
-              </span>
-              <button
-                type="button"
-                onClick={capSheetState.undo}
-                disabled={!capSheetState.canUndo}
-                className="px-2 py-1 text-xs font-medium rounded bg-orange-600/20 text-orange-400 hover:bg-orange-600/30 border border-orange-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                title="Undo last action"
-              >
-                ↩ Undo
-              </button>
-              <button
-                type="button"
-                onClick={capSheetState.reset}
-                className="px-2 py-1 text-xs font-medium rounded bg-red-600/20 text-red-400 hover:bg-red-600/30 border border-red-500/30 transition-all"
-                title="Reset all changes"
-              >
-                Reset
-              </button>
-            </div>
           )}
         </div>
       </div>
@@ -321,7 +281,7 @@ const GMDashboard = () => {
       <div className="tab-content space-y-6">
         {activeTab === 'roster' && (
           <RosterSection
-            teamCapSheet={capSheetState.modifiedCapSheet}
+            teamCapSheet={teamCapSheet}
             playersMap={playersMap}
             teamId={teamId}
           />
@@ -329,7 +289,7 @@ const GMDashboard = () => {
 
         {activeTab === 'cap' && (
           <CapSheetSection
-            teamCapSheet={capSheetState.modifiedCapSheet}
+            teamCapSheet={teamCapSheet}
             currentYear={currentYear}
             onSelectPlayer={actions.handleEditContract}
             playersMap={playersMap}
@@ -338,7 +298,7 @@ const GMDashboard = () => {
 
         {activeTab === 'capfull' && (
           <CapTableSection
-            teamCapSheet={capSheetState.modifiedCapSheet}
+            teamCapSheet={teamCapSheet}
             currentYear={currentYear}
             onSelectPlayer={actions.handleEditContract}
             onActionClick={actions.handleCapSheetAction}
@@ -362,7 +322,7 @@ const GMDashboard = () => {
         {activeTab === 'fa' && (
           <FreeAgencySection
             freeAgents={freeAgents}
-            teamCapSheet={capSheetState.modifiedCapSheet}
+            teamCapSheet={teamCapSheet}
             capProjections={capProjections}
             currentYear={currentYear}
             onSign={actions.handleSign}
@@ -372,7 +332,7 @@ const GMDashboard = () => {
 
         {activeTab === 'offseason' && (
           <OffseasonSection
-            teamCapSheet={capSheetState.modifiedCapSheet}
+            teamCapSheet={teamCapSheet}
             setTeamCapSheet={setTeamCapSheet}
             currentYear={currentYear}
             setCurrentYear={setCurrentYear}

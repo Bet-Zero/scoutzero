@@ -2,6 +2,7 @@ import React from 'react';
 import capProjections from '@/features/architect/utils/capProjections';
 import { formatSalary } from '@/shared/utils/formatting';
 import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers';
+import { getActiveUnsignedCapHoldsTotal } from '@/features/architect/utils/capHolds';
 
 const CapImpactTiles = ({
   team,
@@ -11,6 +12,7 @@ const CapImpactTiles = ({
 }) => {
   if (!team) return null;
 
+  // yearKey is the START year (e.g., 2024 for "2024-25" season)
   const key = `${yearKey}-${String((yearKey + 1) % 100).padStart(2, '0')}`;
   const capData = capProjections[key] || {};
   const salaryCap = capData.cap || 0;
@@ -27,20 +29,36 @@ const CapImpactTiles = ({
     ...incomingPlayers,
   ];
 
-  const totalCapAllocations = playersAfterTrade.reduce((sum, player) => {
+  // Calculate salary total from players
+  const salaryTotal = playersAfterTrade.reduce((sum, player) => {
     const salary = getSalaryForYear(player, yearKey);
-    const holdAmount =
-      typeof player.cap_hold === 'number'
-        ? player.cap_hold
-        : player.cap_hold?.amount || 0;
-    const isActive =
-      typeof player.cap_hold === 'object'
-        ? player.cap_hold?.active
-        : holdAmount > 0;
-    const capHold = !salary && isActive ? holdAmount : 0;
-    return sum + salary + capHold;
+    return sum + salary;
   }, 0);
 
+  // Calculate cap holds total using shared utility
+  // yearKey is the START year, which is what getActiveUnsignedCapHoldsTotal expects
+  const capHoldsTotal = (() => {
+    // Prefer team.capHolds (canonical source)
+    if (Array.isArray(team.capHolds) && team.capHolds.length > 0) {
+      return getActiveUnsignedCapHoldsTotal(team.capHolds, yearKey);
+    }
+    // Fallback to player-level cap_hold for backwards compatibility
+    return playersAfterTrade.reduce((sum, player) => {
+      const salary = getSalaryForYear(player, yearKey);
+      if (salary > 0) return sum; // Only count holds for players without salary
+      const holdAmount =
+        typeof player.cap_hold === 'number'
+          ? player.cap_hold
+          : player.cap_hold?.amount || 0;
+      const isActive =
+        typeof player.cap_hold === 'object'
+          ? player.cap_hold?.active
+          : holdAmount > 0;
+      return isActive ? sum + holdAmount : sum;
+    }, 0);
+  })();
+
+  const totalCapAllocations = salaryTotal + capHoldsTotal;
   const projectedTotal = totalCapAllocations;
   const capSpace = salaryCap - projectedTotal;
   const firstApronSpace = firstApron - projectedTotal;

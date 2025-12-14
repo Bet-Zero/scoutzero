@@ -109,15 +109,6 @@ vi.mock('@/features/architect/GMDashboard/hooks/useArchitectModals', () => ({
   }),
 }));
 
-// Mock useCapSheetState - needs to return modifiedCapSheet based on initialCapSheet
-const mockUseCapSheetState = vi.fn();
-vi.mock('@/features/architect/hooks/useCapSheetState', () => ({
-  useCapSheetState: (params: { initialCapSheet: unknown }) =>
-    mockUseCapSheetState(params),
-  default: (params: { initialCapSheet: unknown }) =>
-    mockUseCapSheetState(params),
-}));
-
 vi.mock('@/features/architect/hooks/usePlayerRulesProfiles', () => ({
   usePlayerRulesProfiles: () => ({
     leagueContext: null,
@@ -150,17 +141,6 @@ describe('GMDashboard Smoke Test', () => {
     mockLoadUserTeamPlan.mockResolvedValue(null);
     mockListUserTeamPlans.mockResolvedValue([]);
     mockLoadNamedTeamPlan.mockResolvedValue(null);
-
-    // Mock useCapSheetState to return modifiedCapSheet based on initialCapSheet
-    mockUseCapSheetState.mockImplementation((params) => ({
-      modifiedCapSheet: params?.initialCapSheet || null,
-      hasChanges: false,
-      canUndo: false,
-      actionHistory: [],
-      undo: vi.fn(),
-      reset: vi.fn(),
-      refreshFromSource: vi.fn(),
-    }));
   });
 
   describe('Loading State', () => {

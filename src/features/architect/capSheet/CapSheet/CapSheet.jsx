@@ -5,6 +5,7 @@
  *
  * HISTORY:
  *  - 2025-12-10: Added PlayerRulesProfile-driven annotations (chunk_01).
+ *  - 2025-12-14: Refactored to use shared cap holds utility functions.
  *
  * LINKS:
  *  - Plan: plans/player-rules-architect/plan.md
@@ -15,6 +16,10 @@ import {
   getMinimumCapHit,
   getContractYearSlice,
 } from '@/features/architect/utils/contractUtils';
+import {
+  getActiveUnsignedCapHoldsByEndYear,
+  getActiveUnsignedCapHoldsTotalByEndYear,
+} from '@/features/architect/utils/capHolds';
 import CapSummaryTiles from '@/features/architect/CapSummaryTiles';
 import { POSITION_MAP } from '@/shared/utils/roles';
 import getCapPercentage from '@/features/architect/utils/basicArchitectUtils';
@@ -76,16 +81,6 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer }) => {
   // Helper to aggregate cap hits for a group of players
   const calculateCapHitTotal = (players, yearKey) =>
     players.reduce((sum, p) => sum + getCapHit(p, yearKey), 0);
-
-  // Helper to sum cap hold amounts for a group of players
-  const calculateCapHoldTotal = (players) =>
-    players.reduce((sum, p) => {
-      const amt =
-        typeof p.cap_hold === 'number' ? p.cap_hold : p.cap_hold?.amount || 0;
-      const isActive =
-        typeof p.cap_hold === 'object' ? p.cap_hold?.active : amt > 0;
-      return isActive ? sum + amt : sum;
-    }, 0);
 
   const renderNotes = (player, yearKey, rulesProfile) => {
     const slice = getContractYearSlice(player, yearKey);
@@ -165,26 +160,15 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer }) => {
       return bSalary - aSalary;
     });
 
-  const capHoldPlayers = teamCapSheet.players
-    .filter((p) => {
-      const slice = getContractYearSlice(p, selectedYear);
-      const hasSalary = slice?.salary ?? slice?.capHit;
-      const holdAmount =
-        typeof p.cap_hold === 'number' ? p.cap_hold : p.cap_hold?.amount || 0;
-      const isActive =
-        typeof p.cap_hold === 'object' ? p.cap_hold?.active : holdAmount > 0;
-      return !hasSalary && isActive && holdAmount > 0;
-    })
-    .sort((a, b) => {
-      const aAmt =
-        typeof a.cap_hold === 'number' ? a.cap_hold : a.cap_hold?.amount || 0;
-      const bAmt =
-        typeof b.cap_hold === 'number' ? b.cap_hold : b.cap_hold?.amount || 0;
-      return bAmt - aAmt;
-    });
+  // Get cap holds from teamCapSheet.capHolds (canonical source), filter by selected year
+  // Using shared utility - selectedYear is the END year (e.g., 2025 for "2024-25")
+  const displayedCapHolds = getActiveUnsignedCapHoldsByEndYear(
+    teamCapSheet.capHolds,
+    selectedYear
+  ).sort((a, b) => (b.amount || 0) - (a.amount || 0));
 
   const playersCapTotal = calculateCapHitTotal(filteredPlayers, selectedYear);
-  const capHoldsTotal = calculateCapHoldTotal(capHoldPlayers);
+  const capHoldsTotal = getActiveUnsignedCapHoldsTotalByEndYear(teamCapSheet.capHolds, selectedYear);
   // Cap totals are precomputed to avoid any mutation during render
   const totalCapHit = playersCapTotal + (showCapHolds ? capHoldsTotal : 0);
 
@@ -299,7 +283,7 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer }) => {
         {/* Footer Section (Cap Holds + Total) */}
         <div className="bg-white/[0.02] border-t border-white/5">
           {/* Cap Holds Toggle */}
-          {capHoldPlayers.length > 0 && (
+          {displayedCapHolds.length > 0 && (
             <div className="border-b border-white/5">
               <button
                 onClick={() => setShowCapHolds(!showCapHolds)}
@@ -308,7 +292,7 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer }) => {
                 <div className="flex items-center gap-2">
                   <span>{showCapHolds ? 'Hide' : 'Show'} Cap Holds</span>
                   <span className="bg-white/10 px-1.5 py-0.5 rounded text-white/60">
-                    {capHoldPlayers.length}
+                    {displayedCapHolds.length}
                   </span>
                 </div>
                 <span className="text-xs opacity-50">
@@ -324,33 +308,22 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer }) => {
                     <div>Reason</div>
                   </div>
                   <div className="divide-y divide-white/5">
-                    {capHoldPlayers.map((p, idx) => {
-                      const amt =
-                        typeof p.cap_hold === 'number'
-                          ? p.cap_hold
-                          : p.cap_hold?.amount || 0;
-                      const reason =
-                        typeof p.cap_hold === 'object'
-                          ? p.cap_hold?.reason
-                          : '';
-
-                      return (
-                        <div
-                          key={idx}
-                          className="grid grid-cols-[2fr,1.2fr,3fr] gap-2 px-4 py-2 items-center hover:bg-white/[0.02]"
-                        >
-                          <div className="text-xs text-white/60">
-                            {p.displayName || p.bio?.displayName || p.name}
-                          </div>
-                          <div className="text-xs text-white/40 tabular-nums">
-                            ${amt.toLocaleString()}
-                          </div>
-                          <div className="text-[10px] text-white/30">
-                            {reason}
-                          </div>
+                    {displayedCapHolds.map((h) => (
+                      <div
+                        key={`${h.playerId}-${h.season}-${h.type}`}
+                        className="grid grid-cols-[2fr,1.2fr,3fr] gap-2 px-4 py-2 items-center hover:bg-white/[0.02]"
+                      >
+                        <div className="text-xs text-white/60">
+                          {h.playerName || h.playerId}
                         </div>
-                      );
-                    })}
+                        <div className="text-xs text-white/40 tabular-nums">
+                          ${(h.amount || 0).toLocaleString()}
+                        </div>
+                        <div className="text-[10px] text-white/30">
+                          {h.reason || h.type || ''}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
