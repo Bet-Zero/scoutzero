@@ -9,7 +9,6 @@ import { formatCurrency } from '@/features/architect/utils/tradeHelpers.js';
 const wouldExceedHardCap = () => false;
 const isFirstApronTeam = (team) => team?.hardCapped === true;
 const isSecondApronTeam = (team) => team?.hardCapTriggered === 'SecondApron';
-const getTeamSalary = (team) => team?.totalSalary || 0;
 
 /**
  * Core hard cap validation logic
