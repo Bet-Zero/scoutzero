@@ -922,8 +922,9 @@ export function useArchitectActions({
         let updatedCapHolds = prev.capHolds || [];
         if (newCapHold) {
           // Remove any existing hold for this player and add the new one
+          const holdPlayerId = newCapHold.playerId;
           updatedCapHolds = updatedCapHolds.filter(
-            (h) => h.playerId !== newCapHold!.playerId
+            (h) => h.playerId !== holdPlayerId
           );
           updatedCapHolds = [...updatedCapHolds, newCapHold];
         }
