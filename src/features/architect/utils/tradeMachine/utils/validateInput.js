@@ -114,7 +114,6 @@ export function validateTradeInput({
   teams,
   capProjections,
   currentYear,
-  tradeCtx = {},
 }) {
   const errors = [];
 

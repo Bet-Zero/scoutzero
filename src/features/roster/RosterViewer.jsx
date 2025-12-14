@@ -29,7 +29,6 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
     rosterName,
     setRosterName,
     saveNewRoster,
-    clearRoster,
   } = useRosterManager(allPlayers, isLoading);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -61,11 +60,6 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
   const handleSaveFromModal = async () => {
     await saveNewRoster();
     setSaveModalOpen(false);
-  };
-
-  const handlePreview = () => {
-    setPreviewRoster(JSON.parse(JSON.stringify(roster)));
-    setPreviewOpen(true);
   };
 
   const { primary, secondary } = getTeamColors(selectedTeam?.id);

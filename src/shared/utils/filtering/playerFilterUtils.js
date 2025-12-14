@@ -197,7 +197,9 @@ export function filterPlayers(players = [], filters) {
 
 /**
  * Check if a player has a $0.0M contract indicating training camp invite or non-guaranteed deal
+ * @deprecated Currently unused - reserved for future filtering logic
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function _checkForZeroContract(player) {
   // Check current year salary from contract subcollection
   const currentYear = 2025;
@@ -243,7 +245,9 @@ function _checkForZeroContract(player) {
 /**
  * Determine if a player is likely new (not in last year's 531 established players)
  * by checking for lack of established data that veterans would have
+ * @deprecated Currently unused - reserved for future filtering logic
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function _isLikelyNewPlayer(player) {
   // Players with existing grades/traits are likely established (from previous 531)
   if (player.traits && Object.keys(player.traits).length > 0) {

@@ -277,7 +277,6 @@ export function getMockTeamSnapshot(worldId, teamCode) {
  * Create a valid trade data structure for testing
  */
 export function createMockTradeData({
-  worldId,
   teams = [
     {
       teamCode: 'LAL',

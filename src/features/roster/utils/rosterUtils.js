@@ -1,5 +1,3 @@
-import { POSITION_MAP } from '@/shared/utils/roles';
-
 /**
  * Normalize playerId for headshot path lookup
  * Handles special characters (e.g., kristaps_porzingis -> kristaps_porziņģis)

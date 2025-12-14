@@ -32,7 +32,7 @@ function normalizePlayer(player, yearKey) {
 /**
  * Normalizes a team object with consistent properties
  */
-function normalizeTeam(team, { yearKey, capSettings }) {
+function normalizeTeam(team, { yearKey }) {
   if (!team?.team) return null;
 
   const raw = team.team;

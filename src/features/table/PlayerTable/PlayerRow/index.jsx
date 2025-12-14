@@ -9,15 +9,13 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 import AddToListButton from '@/features/lists/AddToListButton';
 import { getCurrentSeasonYear, getYearsRemaining } from '@/shared/utils/contracts';
 
-const PlayerRow = ({ player, ranking = '—' }) => {
+const PlayerRow = ({ player }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const nameParts = (
     player.bio?.displayName ||
     player.name ||
     'Unknown Player'
   ).split(' ');
-  const firstName = nameParts[0]?.toUpperCase() || '';
-  const lastName = nameParts.slice(1).join(' ').toUpperCase() || '';
 
   return (
     <div className="relative w-full max-w-[1100px] border border-black mx-auto mb-2">

@@ -10,8 +10,6 @@ const ListExportPlayerRowSingle = ({ player, rank }) => {
     player.name ||
     'Unknown Player'
   ).split(' ');
-  const firstName = nameParts[0]?.toUpperCase() || '';
-  const lastName = nameParts.slice(1).join(' ').toUpperCase() || '';
 
   const rawPosition = player.bio?.position || player.formattedPosition || '';
   const position = getPlayerPositionLabel(rawPosition) || '—';

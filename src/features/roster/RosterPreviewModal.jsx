@@ -7,12 +7,12 @@ import { getTeamLogoFilename } from '@/shared/utils/formatting/teamLogos';
 import RosterSection from './RosterSection';
 
 const RosterPreviewModal = ({ open, onClose, roster, team }) => {
-  if (!open || !roster) return null;
-
   const exportRef = useRef(null); // ✅ used for PNG export
   const { primary, secondary } = getTeamColors(team?.id);
 
   const downloadImage = useImageDownload(exportRef);
+  
+  if (!open || !roster) return null;
   const handleDownload = () => {
     downloadImage(`${team?.nickname || 'roster'}.png`, { pixelRatio: 3 });
   };

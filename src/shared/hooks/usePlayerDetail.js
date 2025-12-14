@@ -7,7 +7,6 @@ import {
   evalsCol,
 } from '@/data/firestorePaths.js';
 // Dev-only schema validation
-// eslint-disable-next-line import/no-relative-packages
 import { PlayerMainDocZ, ContractDocZ, SeasonDocZ, EvaluationDocZ } from '@/schemas/players_v2';
 
 /**

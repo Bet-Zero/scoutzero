@@ -38,7 +38,7 @@ const canInfer = (a, b, graph, visited = new Set()) => {
 // ========== 🧱 PHASED COMPARISON SYSTEM ==========
 
 // Track internal pairing state
-const getNextPhasePair = (players, comparisons) => {
+const _getNextPhasePair = (players, comparisons) => {
   const ids = getPlayerIds(players);
   const graph = buildGraph(comparisons);
   const usedInComparison = new Set();

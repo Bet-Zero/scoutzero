@@ -22,7 +22,6 @@ import {
   getMockWorldMetadata,
   createMockWorld,
 } from '../helpers/architectTestHelpers.js';
-import { getMockData } from '../__mocks__/firebase.js';
 
 describe('World Manager', () => {
   const userId = 'user_123';

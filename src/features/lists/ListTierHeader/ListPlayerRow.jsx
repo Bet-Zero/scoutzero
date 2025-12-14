@@ -10,8 +10,6 @@ const ListPlayerRow = ({
   player,
   index, // order index used for reordering
   rank,
-  note,
-  onNoteChange,
   onMoveUp,
   onMoveDown,
   onRemove,
