@@ -2,7 +2,7 @@ import { validationFlags } from '@/config/validationFlags.js';
 
 export function enforceConsent(
   team,
-  context = {},
+  _context,
   { warn = () => {}, reject = () => {} } = {}
 ) {
   const { outgoingPlayers = [], incomingPlayers = [] } = team;

@@ -191,7 +191,7 @@ export const calculateAllowableIncoming = (...args) => {
   const [
     currentTeamSalary,
     salaryOut,
-    _incomingPlayers = [],
+    /* _incomingPlayers = [], */,
     tradeExceptions = [],
     capSettings = {},
     yearKey = 2025,

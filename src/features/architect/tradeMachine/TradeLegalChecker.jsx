@@ -1,7 +1,7 @@
 // src/features/architect/tradeMachine/TradeLegalChecker.jsx
 import React from 'react';
 
-const TradeLegalChecker = ({ teamResults, capSettings }) => {
+const TradeLegalChecker = ({ teamResults /* , capSettings */ }) => {
   const getRuleStatus = (passed) => {
     if (passed === undefined) return 'text-gray-500';
     return passed ? 'text-green-400' : 'text-red-400';

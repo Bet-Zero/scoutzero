@@ -8,11 +8,11 @@ export function requiresConsent(player, destTeamId) {
         player.limitedNTCTeams ||
         player.contract?.limitedNTCList
     ) &&
-      (
+      ((
         player.limitedNTCTeamIds ||
         player.limitedNTCTeams ||
         player.contract?.limitedNTCList
-      ).includes(destTeamId))
+      ) || []).includes(destTeamId))
   );
 }
 

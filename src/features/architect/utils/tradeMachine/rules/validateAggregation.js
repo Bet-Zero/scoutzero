@@ -11,7 +11,7 @@ export function validateAggregation(team, context = {}) {
     outgoingPlayers = [],
     sends = [],
     incomingPlayers = [],
-    hardCapped = false,
+    // hardCapped = false,
     teamTotalSalary = 0,
   } = team;
   const { yearKey, capSettings = {} } = context || team.context || {};

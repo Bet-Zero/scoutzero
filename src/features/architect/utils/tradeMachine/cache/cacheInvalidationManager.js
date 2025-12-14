@@ -55,7 +55,7 @@ export class CacheInvalidationManager {
   /**
    * Handle contract updates
    */
-  onContractUpdate(teamId, playerId) {
+  onContractUpdate(teamId /* , playerId */) {
     this.onTeamUpdate(teamId, 'contract_update');
   }
 

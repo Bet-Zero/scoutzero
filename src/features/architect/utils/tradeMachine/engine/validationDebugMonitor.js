@@ -1,7 +1,7 @@
 import { debug } from './engineUtils.js';
 import { performanceMonitor } from './validationPerformanceMonitor.js';
 import { validationCache } from '../cache/validationCacheService.js';
-import { CACHE_TYPES } from '../cache/validationCacheService.js';
+// import { CACHE_TYPES } from '../cache/validationCacheService.js';
 
 /**
  * Monitors validation performance and caching behavior in production

@@ -248,7 +248,7 @@ export async function getPlayer(worldId, teamCode, playerId) {
         return parentPlayer;
       }
     }
-  } catch (_error) {
+  } catch {
     // Continue to base fallback
   }
 

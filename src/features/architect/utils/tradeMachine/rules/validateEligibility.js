@@ -14,8 +14,8 @@ import { validationFlags } from '@/config/validationFlags.js';
  */
 export function validateEligibility(team, tradeCtx = {}) {
   // Check cache first - include callback presence in cache key to avoid pollution
-  const hasCallback = typeof tradeCtx.wasTradedAwayWithinOneYear === 'function';
-  const cacheKey = `${team.teamId}-${tradeCtx.tradeDate || ''}-${hasCallback ? 'with-callback' : 'no-callback'}`;
+  // const hasCallback = typeof tradeCtx.wasTradedAwayWithinOneYear === 'function';
+  // const cacheKey = `${team.teamId}-${tradeCtx.tradeDate || ''}-${hasCallback ? 'with-callback' : 'no-callback'}`;
 
   const violations = [];
   const { asOfDate = new Date().toISOString(), teams = [] } = tradeCtx;

@@ -23,7 +23,7 @@ import type {
   ApronLevel,
   OperationType,
   ExceptionType,
-  RuleContextErrorCode,
+  // RuleContextErrorCode,
 } from '../types/ruleContext';
 import { RuleContextValidationError } from '../types/ruleContext';
 import {

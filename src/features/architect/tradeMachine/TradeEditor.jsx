@@ -8,7 +8,7 @@ import TradeLegalChecker from './TradeLegalChecker';
 import TradeExceptionDashboard from './TradeExceptionDashboard';
 import FaExceptionTracker from './FaExceptionTracker';
 import TradePreviewModal from './TradePreviewModal';
-import TradeDebugPanel from './TradeDebugPanel';
+// import TradeDebugPanel from './TradeDebugPanel';
 
 const TradeEditor = ({
   primaryTeam,
@@ -23,7 +23,7 @@ const TradeEditor = ({
     teams,
     result,
     forceTrade,
-    setForceTrade,
+    // setForceTrade,
     setPlayerTrade,
     togglePick,
     updatePickField,

@@ -105,7 +105,7 @@ export class ValidationCacheManager {
   // Clean up expired entries
   cleanup() {
     const now = Date.now();
-    for (const [type, cache] of this.caches) {
+    for (const [, cache] of this.caches) {
       for (const [key, entry] of cache) {
         if (now - entry.timestamp > entry.ttl) {
           cache.delete(key);

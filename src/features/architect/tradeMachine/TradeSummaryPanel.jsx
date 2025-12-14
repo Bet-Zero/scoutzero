@@ -5,9 +5,9 @@
 import React from 'react';
 import {
   formatCurrency,
-  getSalaryForYear,
+  // getSalaryForYear,
 } from '@/features/architect/utils/tradeHelpers';
-import { HelpCircle } from 'lucide-react';
+// import { HelpCircle } from 'lucide-react';
 import { getTeamColors } from '@/shared/utils/formatting';
 import TeamLogo from '@/shared/components/TeamLogo';
 

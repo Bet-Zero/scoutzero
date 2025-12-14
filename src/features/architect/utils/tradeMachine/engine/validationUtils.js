@@ -111,14 +111,15 @@ export const validatorDebug = {
 /**
  * Template for standardized validator modules (from templateValidator.js)
  */
-export function validateTemplateRule(team /* , tradeCtx = {} */) {
+export function validateTemplateRule(/* team , tradeCtx = {} */) {
   // Initialize violations array to collect all rule violations
   const violations = [];
 
   // Extract necessary data from team and context
-  const {
-    // Team properties to extract
-  } = team;
+  // const {
+  //   // Team properties to extract
+  // } = team;
+  // Note: team is used implicitly in validation logic below
 
   // Validation logic goes here
 

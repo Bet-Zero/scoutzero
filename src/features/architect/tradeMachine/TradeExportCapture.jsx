@@ -10,11 +10,10 @@ import {
 } from '@/features/architect/utils/tradeHelpers';
 import { format } from 'date-fns';
 
-const TradeExportCapture = React.forwardRef(
-  (
-    { teams = [], result, yearKey, label = 'Trade Summary', date = new Date() },
-    ref
-  ) => {
+const TradeExportCapture = React.forwardRef(function TradeExportCapture(
+  { teams = [], result, yearKey, label = 'Trade Summary', date = new Date() },
+  ref
+) {
     const formattedDate = format(new Date(date), 'MMMM d, yyyy');
 
     // 🧮 Preprocess incoming assets by team

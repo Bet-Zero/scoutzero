@@ -6,7 +6,7 @@ const debug = tradeDebug;
 debug.logs = [];
 
 // Helper function for cleaner salary formatting
-const formatSalary = (amount) => `$${(amount || 0).toLocaleString()}`;
+// const formatSalary = (amount) => `$${(amount || 0).toLocaleString()}`;
 
 // Helper to convert contract data to Architect contract.salariesByYear format
 const makeContract = (year, salary) => ({

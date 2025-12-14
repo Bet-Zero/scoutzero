@@ -153,7 +153,7 @@ const FirestoreDataDiagnostic = () => {
                   break;
                 }
               }
-            } catch (_e) {
+            } catch {
               // Local file not available
             }
           }
