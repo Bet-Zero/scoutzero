@@ -15,7 +15,6 @@ Quick reference for all components in the ScoutZero project.
 - FreeAgentPool.jsx
 - FreeAgentRow.jsx
 - GMDashboard/GMDashboard.jsx
-- GMDashboard/hooks/useArchitectActions.js
 - GMDashboard/index.jsx
 - GMDashboard/sections/CapSheetSection.jsx
 - GMDashboard/sections/CapTableSection.jsx
@@ -297,4 +296,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2025-12-13T12:55:54.801Z*
+*Generated on: 2025-12-14T01:18:57.894Z*

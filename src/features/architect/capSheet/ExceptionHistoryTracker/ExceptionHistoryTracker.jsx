@@ -46,13 +46,13 @@ const ExceptionHistoryTracker = ({
           </tr>
         </thead>
         <tbody>
+          {mleHistory.map((mle, idx) => (
+            <tr key={idx} className="odd:bg-[#171717]">
+              <td className="p-2">{mle.year || '—'}</td>
               <td className="p-2">${mle.total?.toLocaleString() ?? '—'}</td>
               <td className="p-2">${mle.used?.toLocaleString() ?? '—'}</td>
-              <td className="p-2">${((mle.total ?? 0) - (mle.used ?? 0)).toLocaleString()}</td>
-              <td className="p-2">${mle.total.toLocaleString()}</td>
-              <td className="p-2">${mle.used.toLocaleString()}</td>
               <td className="p-2">
-                ${(mle.total - mle.used).toLocaleString()}
+                ${((mle.total ?? 0) - (mle.used ?? 0)).toLocaleString()}
               </td>
               <td className="p-2">{mle.notes || '—'}</td>
             </tr>
