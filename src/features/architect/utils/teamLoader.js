@@ -185,7 +185,7 @@ export async function getLeague(worldId) {
           if (parentTeam) {
             return parentTeam;
           }
-        } catch (error) {
+        } catch {
           // Continue to base fallback
         }
       }
@@ -248,7 +248,7 @@ export async function getPlayer(worldId, teamCode, playerId) {
         return parentPlayer;
       }
     }
-  } catch (error) {
+  } catch (_error) {
     // Continue to base fallback
   }
 

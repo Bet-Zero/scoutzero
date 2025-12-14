@@ -4,7 +4,6 @@ import capProjections from '@/features/architect/utils/capProjections';
 import {
   getSalaryForYear,
   formatPick,
-  calculateAllowableIncoming,
   getIncomingCeiling,
 } from '@/features/architect/utils/tradeHelpers';
 import { formatSalary } from '@/shared/utils/formatting';
@@ -93,7 +92,7 @@ const TradeTeamCard = ({
     [incomingPlayers, yearKey]
   );
 
-  const { primary, secondary } = useMemo(
+  const { primary } = useMemo(
     () => getTeamColors(team?.id) || {},
     [team?.id]
   );
@@ -117,20 +116,6 @@ const TradeTeamCard = ({
   const faBuckets = useMemo(
     () => getTeamFaExceptionBuckets(team || {}),
     [team]
-  );
-
-  const allowableIncoming = useMemo(
-    () =>
-      team
-        ? calculateAllowableIncoming(
-            teamTotalSalary,
-            outgoingSalary,
-            incomingPlayers,
-            team.tradeExceptions || [],
-            { ...capSettings, yearKey }
-          )
-        : 0,
-    [teamTotalSalary, outgoingSalary, incomingPlayers, capSettings, yearKey]
   );
 
   // Allowable Incoming for display (excluding TPEs)

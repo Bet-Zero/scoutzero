@@ -11,7 +11,7 @@
  */
 
 // Re-export RuleContext types for convenience
-export type { RuleContext, PlayerRuleContext } from '@/features/architect/types/ruleContext';
+export type { RuleContext, ArchitectPlayerRuleContext } from '@/features/architect/types/ruleContext';
 export type { SeasonId } from '@/features/architect/utils/seasonHelpers';
 
 /**

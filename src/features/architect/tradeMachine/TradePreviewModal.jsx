@@ -4,12 +4,11 @@ import useImageDownload from '@/shared/hooks/useImageDownload';
 import TradeExportCapture from './TradeExportCapture';
 
 const TradePreviewModal = ({ open, onClose, teams = [], result, yearKey }) => {
-  if (!open) return null;
-
   const exportRef = useRef(null);
   const [scale, setScale] = useState(0.6);
 
   useLayoutEffect(() => {
+    if (!open) return;
     const updateScale = () => {
       if (!exportRef.current) return;
       const height = exportRef.current.offsetHeight;
@@ -27,13 +26,15 @@ const TradePreviewModal = ({ open, onClose, teams = [], result, yearKey }) => {
       window.removeEventListener('resize', updateScale);
       observer.disconnect();
     };
-  }, []);
+  }, [open]);
 
   const downloadImage = useImageDownload(exportRef);
   const handleDownload = (e) => {
     e.stopPropagation();
     downloadImage('trade.png', { backgroundColor: '#111', pixelRatio: 2 });
   };
+
+  if (!open) return null;
 
   return (
     <>

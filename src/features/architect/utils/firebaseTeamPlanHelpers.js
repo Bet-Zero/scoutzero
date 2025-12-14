@@ -10,7 +10,6 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
-import { calculateCapHold } from '@/features/architect/utils/contractUtils';
 import {
   baseTeamRef,
   baseTeamsCol,
@@ -27,7 +26,7 @@ import {
 // In the new model, cap holds are managed in the `capHolds` array in state.
 // We no longer need to calculate them on every save from player attributes.
 // Logic for creating them happens on "Decline Option" or similar events.
-export const prepareCapSheet = (capSheet, capProjections, year = 2025) => {
+export const prepareCapSheet = (capSheet, capProjections /* , year = 2025 */) => {
   // Just pass through, or maybe sort the capHolds if needed?
   return {
     ...capSheet,

@@ -61,7 +61,7 @@ export type BirdType = 'None' | 'Non-Bird' | 'Early Bird' | 'Full Bird';
  * Player-specific inputs for rule calculations.
  * All derived values are computed by the RuleContext builder.
  */
-export interface PlayerContext {
+export interface ArchitectPlayerContext {
   /** Player identifier */
   playerId: string;
   
@@ -283,7 +283,7 @@ export interface RuleContext {
   timing: TimingContext;
   
   /** Player-specific context */
-  player: PlayerContext;
+  player: ArchitectPlayerContext;
   
   /** Team-specific context */
   team: TeamContext;
@@ -334,9 +334,9 @@ export interface TimingOnlyContext {
  * Partial RuleContext for player-focused rules.
  * Used for rules that need player info but not full team context.
  */
-export interface PlayerRuleContext {
+export interface ArchitectPlayerRuleContext {
   timing: TimingContext;
-  player: PlayerContext;
+  player: ArchitectPlayerContext;
   cap: CapContext;
 }
 

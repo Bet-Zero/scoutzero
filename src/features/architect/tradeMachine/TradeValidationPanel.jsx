@@ -1,6 +1,6 @@
 // src/features/architect/tradeMachine/TradeValidationPanel.jsx
-import React, { useState } from 'react';
-import { HelpCircle, BookOpen } from 'lucide-react';
+import React from 'react';
+import { HelpCircle } from 'lucide-react';
 
 const RULE_INFO = [
   {

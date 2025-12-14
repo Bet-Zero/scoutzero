@@ -20,13 +20,11 @@ import {
   addYears,
   parseISO,
   isBefore,
-  startOfDay,
 } from 'date-fns';
 import { DEFAULT_AVERAGE_SALARY } from './cbaConstants.js';
 
 const SUPERMAX_PERCENT = 0.35;
 const STANDARD_EXTENSION_PERCENT = 1.4;
-const TRADE_EXTENSION_PERCENT = 1.2;
 const OLD_TRADE_EXTENSION_PERCENT = 1.05;
 
 // -------------- Primary Exports (DEPRECATED) --------------

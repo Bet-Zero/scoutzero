@@ -29,7 +29,7 @@ interface SubscribeArchitectPlayerDataArgs {
    * Callback invoked when player data is received or updated.
    * Receives the mapped and sorted player array.
    */
-  onData: (players: PlayerData[]) => void;
+  onData: (players: ArchitectPlayerData[]) => void;
 
   /**
    * Callback invoked when a snapshot error occurs.
@@ -42,7 +42,7 @@ interface SubscribeArchitectPlayerDataArgs {
  * Note: Uses Record<string, unknown> to accommodate the ...data spread
  * which can include any additional fields from BasePlayerDoc.
  */
-interface PlayerData {
+interface ArchitectPlayerData {
   id: string;
   player_id: string;
   name: string;
@@ -81,7 +81,7 @@ export function subscribeArchitectPlayerData(
     playersQuery,
     (snapshot: QuerySnapshot) => {
       // Perform the exact same mapping as useArchitectPlayerData
-      const playerData: PlayerData[] = snapshot.docs.map((doc) => {
+      const playerData: ArchitectPlayerData[] = snapshot.docs.map((doc) => {
         const data = doc.data();
 
         // Map architect_basePlayers schema to expected format
@@ -103,7 +103,7 @@ export function subscribeArchitectPlayerData(
             displayName: data.displayName || 'Unknown',
           },
           representation: data.representation || null,
-        } as PlayerData;
+        } as ArchitectPlayerData;
       });
 
       // Sort by name on client side (same as useArchitectPlayerData)

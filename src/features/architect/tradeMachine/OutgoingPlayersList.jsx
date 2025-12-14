@@ -1,14 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import TradePlayerRow from './TradePlayerRow';
-import EditContractModal from '@/shared/components/EditContractModal';
 import TradeExceptionModal from '@/shared/components/TradeExceptionModal';
 import { getSalaryWithFallback } from '@/features/architect/utils/contractSalaryUtils';
-
-const parseYear = (key) => {
-  if (typeof key === 'number') return key;
-  const match = String(key).match(/\d{4}/);
-  return match ? parseInt(match[0], 10) : NaN;
-};
 
 export const OutgoingPlayersList = ({
   team,
@@ -55,18 +48,10 @@ export const OutgoingPlayersList = ({
       if (inA && !inB) return -1;
       if (inB && !inA) return 1;
 
-      const yr = parseYear(yearKey);
       const getSalary = (player) => getSalaryWithFallback(player, yearKey);
       return getSalary(b) - getSalary(a);
     });
   }, [available, incomingSet, yearKey]);
-
-  // Check if player can be traded using TPE
-  const canUseTPE = (player) => {
-    if (!tradeExceptions?.length) return false;
-    const salary = getSalaryWithFallback(player, yearKey);
-    return tradeExceptions.some((tpe) => salary <= tpe.amount && !tpe.isUsed);
-  };
 
   return (
     <div>

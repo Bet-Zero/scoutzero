@@ -278,25 +278,29 @@ function processOptions(teamData, season) {
     const contract = player.contract;
 
     // Check salariesByYear for options
-          if (yearData.optionUsed == null) {
-        if (year === seasonYear && yearData.option) {
-          // Option decision year
-          if (
-            yearData.optionUsed === null ||
-            yearData.optionUsed === undefined
-          ) {
-            // Default: assume option is exercised if not specified
-            // In a full implementation, this would be user input
-            hasChanges = true;
-            yearData.optionUsed = true;
-          }
+    if (contract.salariesByYear && Array.isArray(contract.salariesByYear)) {
+      contract.salariesByYear.forEach((yearData) => {
+        const year = yearData.year;
+        if (yearData.optionUsed == null) {
+          if (year === seasonYear && yearData.option) {
+            // Option decision year
+            if (
+              yearData.optionUsed === null ||
+              yearData.optionUsed === undefined
+            ) {
+              // Default: assume option is exercised if not specified
+              // In a full implementation, this would be user input
+              hasChanges = true;
+              yearData.optionUsed = true;
+            }
 
-          if (!yearData.optionUsed) {
-            // Option declined - contract expires
-            hasChanges = true;
-            const rosterIndex = roster.indexOf(player.player_id || player.id);
-            if (rosterIndex >= 0) {
-              roster.splice(rosterIndex, 1);
+            if (!yearData.optionUsed) {
+              // Option declined - contract expires
+              hasChanges = true;
+              const rosterIndex = roster.indexOf(player.player_id || player.id);
+              if (rosterIndex >= 0) {
+                roster.splice(rosterIndex, 1);
+              }
             }
           }
         }
