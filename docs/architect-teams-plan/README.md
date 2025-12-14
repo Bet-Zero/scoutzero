@@ -68,7 +68,7 @@ See `00-IMPLEMENTATION-STATUS.md` for detailed status.
 
 - **Summaries**: `architect-plan-summary/` - Agent-friendly condensed versions
 - **Schemas**: `src/schemas/architect.ts` - Canonical Zod schemas
-- **Migration**: `docs/migrations/teams-to-architect/` - Teams collection migration
+- **Schema Docs**: `docs/schema/architect.md` - Architect schema documentation
 - **Current State**: `docs/schema/CURRENT_FIRESTORE_SCHEMA.md` - Active collections
 
 ---

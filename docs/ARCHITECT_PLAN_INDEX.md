@@ -219,7 +219,7 @@ See `docs/schema/CURRENT_FIRESTORE_SCHEMA.md` for full migration status.
 - `AGENTS.md` - Project conventions and coding standards
 - `PROJECT_SCHEMA.md` - Repository structure and organization
 - `team-scrape/README.md` - Data scraping documentation
-- `docs/migrations/teams-to-architect/` - Teams migration details
+- `docs/schema/architect.md` - Architect schema documentation
 
 ---
 

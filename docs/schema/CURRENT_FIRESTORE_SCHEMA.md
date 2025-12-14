@@ -93,7 +93,9 @@ const team = await getDoc(baseTeamRef(teamCode));
 
 ## Migration Context
 
-- **Completed**: `players` → `players_v2` (see `docs/migrations/players-v1-to-v2/`)
+All migrations are complete:
+
+- **Completed**: `players` → `players_v2` 
 - **Completed**: `teams` → `/architect_baseTeams` (see `docs/schema/architect.md`)
 - **Completed**: Player contracts → `/architect_basePlayers` (see `docs/schema/architect.md`)
 
