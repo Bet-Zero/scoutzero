@@ -10,16 +10,103 @@ ContractEditorModal.jsx
 DraftPickTracker.jsx
 ExceptionHistoryTracker.jsx
 ExceptionTracker.jsx
+FreeAgentCard.jsx
 FreeAgentPool.jsx
 FreeAgentRow.jsx
-GMDashboard.jsx
+GMDashboard/
+  GMDashboard.jsx
+  hooks/
+    useArchitectActions.ts
+    useArchitectModals.ts
+    useArchitectState.ts
+  index.jsx
+  sections/
+    CapSheetSection.jsx
+    CapTableSection.jsx
+    FreeAgencySection.jsx
+    HistorySection.jsx
+    OffseasonSection.jsx
+    RosterSection.jsx
+    TradeSection.jsx
 LeagueView.jsx
 OffseasonTab.jsx
 OptionManager.jsx
 RosterVisual.jsx
 SavePlanModal.jsx
 TeamHistoryTab.jsx
+ValidationWarnings.jsx
 WaiveStretchTracker.jsx
+capSheet/
+  CapSheet/
+    CapSheet.jsx
+    CapSummaryTiles.jsx
+    index.ts
+  CapSheetFull/
+    CapSheetFull.jsx
+    index.ts
+  ExceptionHistoryTracker/
+    ExceptionHistoryTracker.jsx
+    index.ts
+  ExceptionTracker/
+    ExceptionTracker.jsx
+    index.ts
+  index.ts
+constants/
+  playerNameCorrections.ts
+contract/
+  ContractEditor/
+    ContractEditor.jsx
+    index.ts
+  ContractEditorModal/
+    ContractEditorModal.jsx
+    index.ts
+  index.ts
+data/
+  minimumSalaryScales.ts
+freeAgency/
+  FreeAgentPool/
+    FreeAgentCard.jsx
+    FreeAgentPool.jsx
+    FreeAgentRow.jsx
+    index.ts
+  index.ts
+history/
+  TeamHistoryTab/
+    TeamHistoryTab.jsx
+    index.ts
+  index.ts
+hooks/
+  useArchitectPlayerData.js
+  useCapSheetState.js
+  useCapValidation.js
+  usePlayerRulesProfiles.js
+  useTradeMachine.js
+offseason/
+  DraftPickTracker/
+    DraftPickTracker.jsx
+    index.ts
+  OffseasonTab/
+    OffseasonTab.jsx
+    OptionManager.jsx
+    index.ts
+  WaiveStretchTracker/
+    WaiveStretchTracker.jsx
+    index.ts
+  index.ts
+shared/
+  LeagueView/
+    LeagueView.jsx
+    index.ts
+  RosterVisual/
+    RosterVisual.jsx
+    index.ts
+  SavePlanModal/
+    SavePlanModal.jsx
+    index.ts
+  ValidationWarnings/
+    ValidationWarnings.jsx
+    index.ts
+  index.ts
 tradeMachine/
   CapImpactTiles.jsx
   FaExceptionTracker.jsx
@@ -40,8 +127,129 @@ tradeMachine/
   TradeSummaryPanel.jsx
   TradeTeamCard.jsx
   TradeValidationPanel.jsx
+types/
+  index.ts
+  ruleContext.ts
+utils/
+  ARCHITECT_LAYERING.md
+  architectCore.js
+  architectFirestorePaths.ts
+  basicArchitectUtils.js
+  buildRuleContext.ts
+  capHelpers.ts
+  capProjections.js
+  capUtils.js
+  cashUtils.js
+  cbaConstants.js
+  consentUtils.js
+  contractSalaryUtils.js
+  contractUtils.js
+  draftPickUtils.js
+  extensionRules.js
+  faExceptionUtils.js
+  firebaseTeamPlanHelpers.js
+  freeAgentLogic.js
+  hardCapUtils.js
+  loadArchitectBasePlayer.ts
+  playerRulesProfile/
+    birdRightsRules.js
+    computeProfile.js
+    extensionRules.js
+    index.js
+    maxSalaryRules.js
+    minimumSalaryRules.js
+    rfaRules.js
+    types.js
+  reacqUtils.js
+  rosterUtils.js
+  runOffseason.js
+  salaryEngine/
+    README.md
+    index.ts
+    salaryEngine.ts
+    types.ts
+  salaryUtils.js
+  schemaAdapter.js
+  seasonFormat.js
+  seasonHelpers.ts
+  seasonManager.js
+  seasonUtils.js
+  stepienUtils.js
+  subscribeArchitectPlayerData.ts
+  teamLoader.js
+  timingUtils.js
+  tradeHelpers.js
+  tradeMachine/
+    MIGRATION_NOTES.md
+    cache/
+      cacheInvalidationManager.js
+      index.js
+      validationCache.js
+      validationCacheManager.js
+      validationCacheService.js
+    constants/
+      cbaConstants.js
+      types.ts
+    engine/
+      engineUtils.js
+      index.js
+      performanceMonitor.js
+      tradeDebug.js
+      tradeValidator.debug.js
+      tradeValidator.js
+      validationDebugMonitor.js
+      validationPerformanceMonitor.js
+      validationUtils.js
+      validatorDebug.ts
+      validatorFactory.js
+    index.js
+    rules/
+      aggregationValidator.js
+      basicRules.js
+      draftRules.js
+      eligibilityRules.js
+      enforceConsent.js
+      enforceEligibility.js
+      enforcement.js
+      enforcementValidation.js
+      hardCapValidation.js
+      index.js
+      miscRules.js
+      rosterValidation.js
+      salaryMatching.js
+      timingValidation.js
+      tradeExceptions.js
+      validateAggregation.js
+      validateConsent.js
+      validateEligibility.js
+      validateFaExceptionUsage.js
+      validateHardCap.ts
+      validateRoster.js
+      validateRoster.ts
+      validateSalaryMatching.js
+      validateSalaryMatching.ts
+      validateSecondApronRules.js
+      validateSignAndTrade.js
+      validateStepien.js
+      validateStepien.ts
+      validateTradeExceptions.js
+    utils/
+      capUtils.js
+      computeMatchingValues.js
+      index.js
+      matchingValues.js
+      normalizeTradeInput.js
+      salaryMargin.js
+      salaryUtils.js
+      seasonUtils.js
+      tradeUtilities.js
+      validateInput.js
+    validators/
+      index.js
+  tradeManager.js
+  worldManager.js
 ```
 
 ---
-*Generated on: 2025-10-20T04:25:52.491Z*
+*Generated on: 2025-12-14T10:30:01.802Z*
 *Auto-updated by: npm run docs*

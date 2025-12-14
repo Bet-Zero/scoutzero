@@ -5,7 +5,7 @@ const path = require('path');
 const ROOT = process.cwd();
 const SRC = path.join(ROOT, 'src');
 const DOCS_DIR = path.join(ROOT, 'docs');
-const DEV_DOCS_DIR = path.join(ROOT, 'docs', 'development');
+const DEV_DOCS_DIR = path.join(ROOT, 'docs', 'components');
 
 // Helper function to check if file content has actually changed
 async function writeFileIfChanged(filePath, newContent) {

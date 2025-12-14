@@ -25,8 +25,15 @@ RosterSection/
   index.jsx
 RosterViewer.jsx
 SaveRosterModal.jsx
+hooks/
+  useRosterManager.js
+utils/
+  contractUtils.js
+  enrichPlayerData.js
+  index.js
+  rosterUtils.js
 ```
 
 ---
-*Generated on: 2025-10-20T04:25:52.508Z*
+*Generated on: 2025-12-14T10:30:01.830Z*
 *Auto-updated by: npm run docs*
