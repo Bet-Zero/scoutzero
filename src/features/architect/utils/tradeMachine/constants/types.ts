@@ -27,7 +27,7 @@ export interface NormalizedPlayer {
   tpeId?: string;
   fromTeamId?: string;
   toTeamId?: string;
-  [key: string]: any; // Allow additional properties
+  [key: string]: unknown; // Allow additional properties
 }
 
 // Normalized trade exception
@@ -37,7 +37,7 @@ export interface NormalizedTPE {
   remaining: number;
   expiryDate?: string;
   createdSeason?: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 // Normalized team data
@@ -50,14 +50,14 @@ export interface NormalizedTeam {
     players: NormalizedPlayer[];
     twoWayPlayers: NormalizedPlayer[];
     tradeExceptions: NormalizedTPE[];
-    [key: string]: any;
+    [key: string]: unknown;
   };
   sends: NormalizedPlayer[];
-  picksOut: any[];
+  picksOut: Array<{ year: number | string; round: number | string; [key: string]: unknown }>;
   cashSent: number;
   hardCapped: boolean;
   appliedTPEs: NormalizedTPE[];
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 // Normalized trade input
@@ -67,7 +67,7 @@ export interface NormalizedTradeInput {
   yearKey: number;
   tradeCtx: {
     tradeDate: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -78,7 +78,7 @@ export interface ValidationResult {
   message: string;
   details?: string;
   warningsOnly?: boolean;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface TeamContext {
@@ -103,11 +103,11 @@ export interface TradeTeam {
   hardCapped?: boolean;
   hardCapTrigger?: string | null;
   absorptionMode?: string;
-  incomingPlayers?: any[];
-  outgoingPlayers?: any[];
+  incomingPlayers?: Array<Record<string, unknown>>;
+  outgoingPlayers?: Array<Record<string, unknown>>;
   team?: {
     hardCapTriggered?: boolean | 'FirstApron' | 'SecondApron';
-    twoWayPlayers?: any[];
+    twoWayPlayers?: Array<Record<string, unknown>>;
   };
   context?: {
     yearKey: number | string;
@@ -152,7 +152,7 @@ export interface HardCapResult extends ValidationResult {
 }
 
 export interface StepienResult extends ValidationResult {
-  calendar?: any[];
+  calendar?: Array<Record<string, unknown>>;
   farthestYear: number;
   currentYear: number;
 }

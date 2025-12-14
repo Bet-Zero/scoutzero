@@ -10,7 +10,7 @@
 
 import { db } from '@/firebaseConfig';
 import { writeBatch, serverTimestamp } from 'firebase/firestore';
-import { getLeague, getTeam } from '@/features/architect/utils/teamLoader';
+import { getLeague } from '@/features/architect/utils/teamLoader';
 import { getWorldMetadata } from '@/features/architect/utils/worldManager';
 import {
   toEndYear,
@@ -189,7 +189,6 @@ async function processTeamSeasonTransition(teamData, fromSeason, toSeason) {
  * @returns {Object} Result with updated roster and players
  */
 function processContractExpirations(teamData, fromSeason, toSeason) {
-  const fromYear = toEndYear(fromSeason);
   const toYear = toEndYear(toSeason);
 
   const roster = [...(teamData.roster || [])];
@@ -272,7 +271,7 @@ function processOptions(teamData, season) {
   const players = [...(teamData.players || [])];
   let hasChanges = false;
 
-  players.forEach((player, index) => {
+  players.forEach((player) => {
     if (!player || !player.contract) return;
 
     const contract = player.contract;
@@ -281,27 +280,19 @@ function processOptions(teamData, season) {
     if (contract.salariesByYear && Array.isArray(contract.salariesByYear)) {
       contract.salariesByYear.forEach((yearData) => {
         const year = yearData.year;
-        if (yearData.optionUsed == null) {
-          if (year === seasonYear && yearData.option) {
-            // Option decision year
-            if (
-              yearData.optionUsed === null ||
-              yearData.optionUsed === undefined
-            ) {
-              // Default: assume option is exercised if not specified
-              // In a full implementation, this would be user input
-              hasChanges = true;
-              yearData.optionUsed = true;
-            }
+        if (year === seasonYear && yearData.option && yearData.optionUsed == null) {
+          // Option decision year - default: assume option is exercised if not specified
+          // In a full implementation, this would be user input
+          hasChanges = true;
+          yearData.optionUsed = true;
+        }
 
-            if (!yearData.optionUsed) {
-              // Option declined - contract expires
-              hasChanges = true;
-              const rosterIndex = roster.indexOf(player.player_id || player.id);
-              if (rosterIndex >= 0) {
-                roster.splice(rosterIndex, 1);
-              }
-            }
+        if (year === seasonYear && yearData.option && !yearData.optionUsed) {
+          // Option declined - contract expires
+          hasChanges = true;
+          const rosterIndex = roster.indexOf(player.player_id || player.id);
+          if (rosterIndex >= 0) {
+            roster.splice(rosterIndex, 1);
           }
         }
       });
@@ -391,7 +382,6 @@ function updateCapHolds(teamData, season) {
  * @returns {Object} Result with updated draft picks
  */
 function updateDraftPicks(teamData, fromSeason, toSeason) {
-  const fromYear = toEndYear(fromSeason);
   const toYear = toEndYear(toSeason);
   const draftPicks = [...(teamData.draftPicks || [])];
   let hasChanges = false;

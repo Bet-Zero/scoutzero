@@ -55,10 +55,6 @@
 /home/runner/work/scoutzero/scoutzero/src/features/architect/utils/salaryUtils.js
   2:10  error  'getCapHitForSeason' is defined but never used  @typescript-eslint/no-unused-vars
 
-/home/runner/work/scoutzero/scoutzero/src/features/architect/utils/seasonManager.js
-  274:28  error  'index' is defined but never used              @typescript-eslint/no-unused-vars
-  385:9   error  'fromYear' is assigned a value but never used  @typescript-eslint/no-unused-vars
-
 /home/runner/work/scoutzero/scoutzero/src/features/architect/utils/teamLoader.js
   251:12  error  '_error' is defined but never used  @typescript-eslint/no-unused-vars
 
@@ -106,5 +102,5 @@
   409:6  warning  React Hook useEffect has a missing dependency: 'extension.years'. Either include it or remove the dependency array                                                                                                       react-hooks/exhaustive-deps
   469:6  warning  React Hook useEffect has missing dependencies: 'clampFirstYearToGuardrails', 'extension.raisePct', 'extension.salaries', 'extension.years', and 'selectedException'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
 
-✖ 39 problems (30 errors, 9 warnings)
+✖ 37 problems (28 errors, 9 warnings)
 
