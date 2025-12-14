@@ -439,6 +439,7 @@ export function orderBy(field, direction = 'asc') {
 }
 
 // Mock writeBatch function
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function writeBatch(db) {
   // Parameter accepted for signature parity with Firebase v9+, but not used in mock
   const batch = {
