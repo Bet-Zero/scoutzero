@@ -5,11 +5,6 @@
 
 import { formatCurrency } from '@/features/architect/utils/tradeHelpers.js';
 
-// Fallback implementations for hard cap utilities (import directly if needed)
-const wouldExceedHardCap = () => false;
-const isFirstApronTeam = (team) => team?.hardCapped === true;
-const isSecondApronTeam = (team) => team?.hardCapTriggered === 'SecondApron';
-
 /**
  * Core hard cap validation logic
  * Supports both first apron and second apron hard cap scenarios

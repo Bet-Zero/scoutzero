@@ -32,7 +32,7 @@ function normalizePlayer(player, yearKey) {
 /**
  * Normalizes a team object with consistent properties
  */
-function normalizeTeam(team, { yearKey }) {
+function normalizeTeam(team, { yearKey } = {}) {
   if (!team?.team) return null;
 
   const raw = team.team;
@@ -86,7 +86,7 @@ export function normalizeTradeInput({
 
   // Normalize teams and their components
   const normalizedTeams = (teams || [])
-    .map((team) => normalizeTeam(team, { yearKey, capSettings }))
+    .map((team) => normalizeTeam(team, { yearKey }))
     .filter(Boolean);
 
   return {

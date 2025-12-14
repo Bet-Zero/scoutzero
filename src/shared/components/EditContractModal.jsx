@@ -82,7 +82,7 @@ const EditContractModal = ({
   actionLabelsOverride = {},
 }) => {
   const [selectedAction, setSelectedAction] = useState('');
-  const [showValidationErrors] = useState(false);
+  const [showValidationErrors, setShowValidationErrors] = useState(false);
   const [extension, setExtension] = useState({
     years: 1,
     contractType: 'Standard',
@@ -252,6 +252,15 @@ const EditContractModal = ({
     (selectedAction === 'extend' && (!isValid || !isExtendEligible));
   const showForceState =
     !isValid || (selectedAction === 'extend' && !isExtendEligible);
+
+  // Show validation errors when validation has run and there are warnings/errors
+  useEffect(() => {
+    if (selectedAction && (warnings.length > 0 || errors.length > 0)) {
+      setShowValidationErrors(true);
+    } else {
+      setShowValidationErrors(false);
+    }
+  }, [selectedAction, warnings, errors]);
 
   // Contract Summary Calculations
   const summary = useMemo(() => {

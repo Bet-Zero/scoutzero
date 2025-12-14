@@ -439,7 +439,8 @@ export function orderBy(field, direction = 'asc') {
 }
 
 // Mock writeBatch function
-export function writeBatch() {
+export function writeBatch(db) {
+  // Parameter accepted for signature parity with Firebase v9+, but not used in mock
   const batch = {
     operations: [],
     set: function (docRef, data, options) {

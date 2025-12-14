@@ -66,4 +66,6 @@ const RosterExportCapture = React.forwardRef(function RosterExportCapture({ rost
   );
 });
 
+RosterExportCapture.displayName = 'RosterExportCapture';
+
 export default RosterExportCapture;
