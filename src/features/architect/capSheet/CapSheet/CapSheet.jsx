@@ -28,12 +28,7 @@ const isTwoWayContract = (player) => {
   return contractType.toLowerCase() === 'two-way' || contractType === 'TWO-WAY';
 };
 
-const CapSheet = ({
-  teamCapSheet,
-  currentYear,
-  onSelectPlayer,
-  playersMap = {},
-}) => {
+const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer }) => {
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [showCapHolds, setShowCapHolds] = useState(false);
 

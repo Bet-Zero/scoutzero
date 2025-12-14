@@ -68,7 +68,7 @@ interface SalaryByYear {
 }
 
 /** Player contract structure */
-interface PlayerContract {
+interface ArchitectContract {
   salariesByYear?: SalaryByYear[];
   birdRights?: {
     status?: string;
@@ -89,8 +89,8 @@ interface ArchitectPlayer {
   age?: number | null;
   teamCode?: string;
   teamName?: string;
-  contract?: PlayerContract | null;
-  futureContract?: PlayerContract | null;
+  contract?: ArchitectContract | null;
+  futureContract?: ArchitectContract | null;
   bio?: {
     playerId?: string;
     displayName?: string;
@@ -115,7 +115,7 @@ interface CapSheetPlayer {
   player_id?: string;
   name?: string;
   displayName?: string;
-  contract?: PlayerContract | null;
+  contract?: ArchitectContract | null;
   [key: string]: unknown;
 }
 

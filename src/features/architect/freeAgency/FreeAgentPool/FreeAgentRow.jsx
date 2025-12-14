@@ -1,7 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
-import { formatName } from '@/shared/utils/formatting';
 import { TeamCodeMap } from '@/constants/teamList';
 
 const FreeAgentRow = ({
@@ -34,7 +33,12 @@ const FreeAgentRow = ({
     return undefined;
   }, [openMenu, askInfo.name, setOpenMenu]);
   // Use displayName from player data - the authoritative source
-  const formattedName = player.bio?.displayName || player.displayName || player.name || askInfo.name || '';
+  const formattedName =
+    player.bio?.displayName ||
+    player.displayName ||
+    player.name ||
+    askInfo.name ||
+    '';
   const nameParts = formattedName.split(' ');
   const firstName = nameParts[0] || '';
   const lastName = nameParts.slice(1).join(' ') || '';
@@ -142,7 +146,14 @@ const FreeAgentRow = ({
             {firstName}{' '}
             <span className="text-white/70 font-light">{lastName}</span>
           </span>
-          {age && <span className="text-white/50 font-light ml-2" style={{ fontSize: '12px' }}>({age})</span>}
+          {age && (
+            <span
+              className="text-white/50 font-light ml-2"
+              style={{ fontSize: '12px' }}
+            >
+              ({age})
+            </span>
+          )}
         </div>
         <div className="flex items-center justify-end text-white/50 text-[13px] gap-2 whitespace-nowrap">
           <span>{rights}</span>

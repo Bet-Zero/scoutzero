@@ -64,7 +64,6 @@ const CapSheetFull = ({
   currentYear,
   onSelectPlayer,
   onActionClick,
-  playersMap = {},
   getRulesProfileForYear = null,
 }) => {
   const [showCapHolds, setShowCapHolds] = useState(false);
@@ -85,20 +84,6 @@ const CapSheetFull = ({
       return bSalary - aSalary;
     });
 
-  // Determine active cap holds
-  const activeCapHolds = (teamCapSheet.capHolds || []).filter(
-    (h) =>
-      !h.isSigned &&
-      (h.season === `${currentYear}-${String(currentYear + 1).slice(-2)}` ||
-        h.season === String(currentYear))
-    // Note: Schema says season like "2026-27"
-    // If currentYear is 2025 (season 2025-26), cap holds often apply to the *next* season (2026-27) if they are FAs?
-    // Actually, cap holds apply to the free agency year.
-    // If we look at LAL.json: LeBron 2026-27 UFA. This implies the hold is relevant for the 2026-27 cap sheet.
-    // So if currentYear is 2025 (viewing 2025-26), do we show 2026-27 holds?
-    // Usually the Cap Sheet shows multiple years. The cap hold should contribute to the column of its season.
-  );
-
   // For the separate table below, likely show all active holds or just imminent ones?
   // Let's show all valid holds.
   const displayedCapHolds = (teamCapSheet.capHolds || []).filter(
@@ -115,27 +100,8 @@ const CapSheetFull = ({
       }
       const slice = getContractYearSlice(player, year);
       const salary = slice?.salary ?? slice?.capHit ?? 0;
-      // Add Cap Holds relevant to this year
-      // A hold for "2026-27" contributes to the 2026 (start year) or 2027 (end year) column?
-      // In this codebase, `currentYear` seems to be the end year (e.g. 2026 for 2025-26).
-      // LAL json: LeBron 2026-27 UFA. Access key should be matches.
 
-      const holdsForYear = (teamCapSheet.capHolds || []).filter((h) => {
-        if (h.isSigned) return false;
-        // Parsing h.season: "2026-27"
-        if (!h.season || !String(h.season).includes('-')) return false;
-        const seasonStart = parseInt(String(h.season).split('-')[0], 10);
-        if (!Number.isFinite(seasonStart)) return false;
-        const seasonEnd = seasonStart + 1; // 2026 -> 2027
-        return seasonEnd === year;
-      });
-
-      const holdsSum = holdsForYear.reduce(
-        (acc, h) => acc + (h.amount || 0),
-        0
-      );
-
-      return sum + salary + 0; // Don't add per-player hold here, add global holds sum later
+      return sum + salary;
     }, 0);
 
     // Add external cap holds sum to the year total

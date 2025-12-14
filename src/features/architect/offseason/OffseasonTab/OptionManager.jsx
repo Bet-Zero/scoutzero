@@ -17,12 +17,7 @@ const getContractYearSlice = (player, endYear) => {
   return null;
 };
 
-const OptionManager = ({
-  teamCapSheet,
-  currentYear,
-  onDecisionsReady,
-  playersMap = {},
-}) => {
+const OptionManager = ({ teamCapSheet, currentYear, onDecisionsReady }) => {
   const [optionsList, setOptionsList] = useState([]);
   const [decisions, setDecisions] = useState({});
 

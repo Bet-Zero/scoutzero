@@ -1,6 +1,19 @@
 module.exports = {
   root: true,
   parser: '@typescript-eslint/parser',
+
+  env: {
+    browser: true,
+    node: true,
+    es2021: true,
+  },
+
+  settings: {
+    react: {
+      version: 'detect',
+    },
+  },
+
   plugins: ['@typescript-eslint', 'react', 'react-hooks'],
   extends: [
     'eslint:recommended',
@@ -9,11 +22,22 @@ module.exports = {
     'plugin:@typescript-eslint/recommended',
     'prettier',
   ],
+
+  rules: {
+    // Modern React (new JSX transform) does NOT require "import React" in files using JSX
+    'react/react-in-jsx-scope': 'off',
+    'react/jsx-uses-react': 'off',
+
+    // You’re TS-first. PropTypes are redundant + create tons of noise.
+    'react/prop-types': 'off',
+  },
+
   overrides: [
     {
       files: ['**/*.{ts,tsx,d.ts}'],
       excludedFiles: ['src/schemas/**', 'src/types/**', 'player-scrape/**'],
       rules: {
+        // Forbid declaring interfaces that start with Player or Contract outside canonical schemas
         'no-restricted-syntax': [
           'error',
           {
@@ -28,7 +52,7 @@ module.exports = {
     // ============================================================
     // Architect layering rule: do NOT import playerRulesProfile directly
     // - UI/hooks/etc must use salaryEngine
-    // - This blocks both alias imports AND relative imports
+    // - Blocks alias imports AND relative imports
     // ============================================================
     {
       files: ['src/features/architect/**/*.{js,jsx,ts,tsx}'],
@@ -39,7 +63,7 @@ module.exports = {
             patterns: [
               {
                 group: [
-                  // Alias imports (your standard style)
+                  // Alias imports
                   '@/features/architect/utils/playerRulesProfile',
                   '@/features/architect/utils/playerRulesProfile/*',
                   '@/features/architect/utils/playerRulesProfile/**',
@@ -52,7 +76,7 @@ module.exports = {
                   '../playerRulesProfile/*',
                   '../playerRulesProfile/**',
 
-                  // Catch-all patterns (covers deeper relative paths)
+                  // Catch-all patterns
                   '**/playerRulesProfile',
                   '**/playerRulesProfile/*',
                   '**/playerRulesProfile/**',

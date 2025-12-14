@@ -148,7 +148,7 @@ const calculateTeamCapHit = (players, year) => {
 const getCapSettings = (year) => {
   const key = `${year - 1}-${String(year % 100).padStart(2, '0')}`;
   const settings = capProjections[key];
-  
+
   if (!settings) {
     // Sort seasons numerically by start year to ensure consistent ordering
     const availableSeasons = Object.keys(capProjections).sort((a, b) => {
@@ -157,16 +157,18 @@ const getCapSettings = (year) => {
       return yearA - yearB;
     });
     const latestSeason = availableSeasons[availableSeasons.length - 1];
-    
+
     // Guard against empty capProjections
     if (!latestSeason) {
       return null;
     }
-    
-    console.warn(`Cap data not found for season ${key}, falling back to ${latestSeason}`);
+
+    console.warn(
+      `Cap data not found for season ${key}, falling back to ${latestSeason}`
+    );
     return capProjections[latestSeason] || null;
   }
-  
+
   return settings;
 };
 
@@ -207,8 +209,7 @@ export function useCapValidation({
     const teamPlayers = teamCapSheet?.players || [];
     const yearCapHit = calculateTeamCapHit(teamPlayers, actionYear);
 
-    const { cap, tax, firstApron, secondApron, fullMLE, taxpayerMLE, bae } =
-      capSettings || {};
+    const { tax, firstApron, secondApron } = capSettings || {};
 
     // ===== TIMING VALIDATION FOR OPTIONS =====
     if (action === 'accept' || action === 'decline') {
@@ -230,10 +231,6 @@ export function useCapValidation({
           });
         }
       }
-
-      // Get the salary for the option year
-      const slice = getContractYearSlice(player, actionYear);
-      const optionSalary = slice?.salary || slice?.capHit || 0;
 
       if (action === 'accept' && targetYear === currentYear + 1) {
         // Calculate what the cap hit would be IF this option is exercised

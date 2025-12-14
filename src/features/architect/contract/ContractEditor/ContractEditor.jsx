@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { formatName, formatCurrencyFull } from '@/shared/utils/formatting';
+import { formatCurrencyFull } from '@/shared/utils/formatting';
 import {
   generateContract,
   createMaxContract,
@@ -7,13 +7,7 @@ import {
   getMinimumSalary,
 } from '@/features/architect/utils/contractUtils';
 
-const ContractEditor = ({
-  player,
-  capProjections,
-  teamCapSheet,
-  onSign,
-  playersMap = {},
-}) => {
+const ContractEditor = ({ player, capProjections, onSign }) => {
   console.log('ContractEditor loaded for player:', player);
 
   const [type, setType] = useState('Custom');
@@ -224,9 +218,7 @@ const ContractEditor = ({
             ))}
           </ul>
 
-          <p>
-            Total Value: ${(preview.totalValue || 0).toLocaleString()}
-          </p>
+          <p>Total Value: ${(preview.totalValue || 0).toLocaleString()}</p>
 
           <p>
             Guarantee:{' '}

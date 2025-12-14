@@ -1,0 +1,24 @@
+# Old/archived code and scripts - not part of the product
+archive/
+cursor_work/
+
+# Usual noise
+node_modules/
+dist/
+build/
+coverage/
+
+# Scraping scripts
+player-scrape/
+team-scrape/
+
+# Test fixtures
+__tests__/
+test-fixtures/
+
+# Generated code
+docs/schema/
+docs/schema-v2/
+
+# Utility scripts (node-style, not part of app lint standards)
+scripts/
