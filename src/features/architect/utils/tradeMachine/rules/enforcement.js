@@ -100,6 +100,7 @@ export function enforceEligibility(
 
 export function enforceRosterWindow(
   team,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _ctx = {},
   { reject = () => {} } = {}
 ) {
@@ -116,7 +117,6 @@ export function enforceRosterWindow(
   }
 
   if (projectedTwoWayCount > 3) {
-    warn('Two-way slots exceeded (4/3)');
     violations.push('Two-way slots exceeded (4/3)');
   }
 
