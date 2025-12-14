@@ -39,23 +39,9 @@ These documents are clearly obsolete, superseded, or would cause confusion if ke
 
 **Recommendation:** Delete the entire `docs/development/` directory. All files are duplicates of `docs/components/` files. The `docs/components/` location is more intuitive.
 
-### Cursor Prompts (Cursor-Specific Tooling)
+### ~~Cursor Prompts~~ (RESTORED - User Request)
 
-| File Path | Reason |
-|-----------|--------|
-| `docs/cursor-prompts/ApexAuditPrompt.md` | Cursor-specific prompt for `/audit` command. This is tool-specific configuration, not project documentation. Should live in `.cursor/` if needed. |
-| `docs/cursor-prompts/ApplyCriticalPrompt.md` | Cursor-specific prompt for `/apply-critical` command. Tool configuration, not project docs. |
-| `docs/cursor-prompts/AuditReviewPrompt.md` | Cursor-specific prompt for `/audit-review` command. Tool configuration, not project docs. |
-| `docs/cursor-prompts/CleanupPrompt.md` | Cursor-specific prompt for `/cleanup` command. Tool configuration, not project docs. |
-| `docs/cursor-prompts/DocSyncPrompt.md` | Cursor-specific prompt for `/doc-sync` command. Tool configuration, not project docs. |
-| `docs/cursor-prompts/ExplainPrompt.md` | Cursor-specific prompt for `/explain` command. Tool configuration, not project docs. |
-| `docs/cursor-prompts/FixAllPrompt.md` | Cursor-specific prompt for `/fix-all` command. Tool configuration, not project docs. |
-| `docs/cursor-prompts/GroupByFeatureRefactor.md` | Cursor-specific refactoring prompt. Tool configuration, not project docs. |
-| `docs/cursor-prompts/PlanModePrompt.md` | Cursor-specific planning prompt. Tool configuration, not project docs. |
-| `docs/cursor-prompts/RelevancePrompt.md` | Cursor-specific relevance prompt. Tool configuration, not project docs. |
-| `docs/cursor-prompts/cursor-commands-overview.md` | Overview of Cursor commands. While informative, this is tool-specific documentation that belongs with the tool, not project docs. |
-
-**Recommendation:** Delete entire `docs/cursor-prompts/` directory. These are Cursor IDE tool configurations, not project documentation. If needed, they should live in `.cursor/commands/` or similar tool-specific location.
+**Note:** The `docs/cursor-prompts/` directory was initially marked for deletion but has been **restored** per user request. These files contain detailed prompt instructions for Cursor IDE commands and are required for the project's AI-assisted workflow.
 
 ### Workspace Rules (Process Documentation)
 
@@ -281,6 +267,18 @@ docs/
 │   ├── RosterHierarchy.md
 │   ├── TableHierarchy.md
 │   └── TierMakerHierarchy.md
+├── cursor-prompts/              # RESTORED per user request
+│   ├── ApexAuditPrompt.md
+│   ├── ApplyCriticalPrompt.md
+│   ├── AuditReviewPrompt.md
+│   ├── CleanupPrompt.md
+│   ├── DocSyncPrompt.md
+│   ├── ExplainPrompt.md
+│   ├── FixAllPrompt.md
+│   ├── GroupByFeatureRefactor.md
+│   ├── PlanModePrompt.md
+│   ├── RelevancePrompt.md
+│   └── cursor-commands-overview.md
 ├── guides/
 │   ├── ORDER_OF_OPERATIONS.md
 │   └── contract-normalization-usage.md
@@ -337,7 +335,7 @@ docs/
 3. ✅ Deleted `docs/PLAYER_REFRESH_SUMMARY.md`
 4. ✅ Deleted `docs/new-schema-validator-review.md`
 5. ✅ Deleted `docs/schema/CONTRACT_NORMALIZATION_PHASE0.md`
-6. ✅ Deleted entire `docs/cursor-prompts/` directory (11 files)
+6. ~~✅ Deleted entire `docs/cursor-prompts/` directory (11 files)~~ **RESTORED** per user request
 7. ✅ Deleted entire `docs/workspace-rules/` directory (12 files)
 8. ✅ Deleted entire `docs/development/` directory (8 duplicate files)
 9. ✅ Deleted entire `docs/migrations/` directory (completed migrations)
@@ -345,6 +343,10 @@ docs/
     - `ArchitectHierarchy.md` (duplicate of development version)
     - `COMPONENT_INDEX.md` (duplicate of top-level)
     - `FILE_MAP.md` (duplicate)
+
+### Restorations Applied ✅
+
+1. ✅ **Restored `docs/cursor-prompts/` directory** (11 files) - Per user request, these Cursor IDE prompt files are needed for the project's AI-assisted workflow.
 
 ### Files Remaining for Future Update
 
@@ -359,20 +361,17 @@ These files were identified as potentially outdated but kept for now. Future mai
 
 ### ⚠️ External References to Update
 
-The following files reference the deleted docs directories and need to be updated:
+The following files reference deleted docs directories and need to be updated:
 
 **AGENTS.md** - Multiple references to deleted `docs/workspace-rules/` files:
 - Lines 11, 18, 19, 24, 30, 45-47, 73, 147, 175 reference workspace-rules docs
-- Lines 292-321 reference `docs/cursor-prompts/` files
 
-**Options:**
+**Note:** References to `docs/cursor-prompts/` files in AGENTS.md (lines 292-321) and `.cursor/commands/*.md` are now **valid** since the directory was restored.
+
+**Options for workspace-rules references:**
 1. **Inline the content** - Move workspace rules content into AGENTS.md directly
 2. **Restore selectively** - Move workspace-rules files to a different location (e.g., `.cursor/rules/`)
 3. **Update references** - Point to alternative documentation or remove dead links
-
-**.cursor/commands/\*.md** - Command files reference deleted prompt docs:
-- `audit.md` references `docs/cursor-prompts/ApexAuditPrompt.md`
-- Other command files may have similar references
 
 **PROJECT_SCHEMA.md** and **project.schema.json**:
 - Reference deleted `docs/migrations/teams-to-architect/TARGET_SCHEMA.md`
@@ -383,4 +382,4 @@ The following files reference the deleted docs directories and need to be update
 **docs/schema/CURRENT_FIRESTORE_SCHEMA.md**:
 - Reference deleted `docs/migrations/players-v1-to-v2/`
 
-**Recommendation:** These external references should be cleaned up in a follow-up task focused on AGENTS.md and Cursor tooling, separate from the docs folder cleanup.
+**Recommendation:** The workspace-rules references should be cleaned up in a follow-up task focused on AGENTS.md, separate from the docs folder cleanup.
