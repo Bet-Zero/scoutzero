@@ -142,7 +142,8 @@ const TieramidBoard = ({ onScreenshotChange }) => {
         tierOrder: rowOrder,
       });
       toast.success('Pyramid saved!');
-    } catch {
+    } catch (saveError) {
+      console.error('Failed to save tier list:', saveError);
       toast.error('Failed to save');
     } finally {
       setIsSaving(false);
@@ -165,7 +166,8 @@ const TieramidBoard = ({ onScreenshotChange }) => {
         setSelectedTierList(id);
         toast.success('Pyramid loaded!');
       }
-    } catch {
+    } catch (loadError) {
+      console.error('Failed to load tier list:', loadError);
       toast.error('Failed to load');
     }
   };

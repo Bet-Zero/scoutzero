@@ -5,9 +5,6 @@
 
 import { validationFlags } from '@/config/validationFlags.js';
 
-// Fallback no-op for getApronStatus (import directly if needed)
-const getApronStatus = () => ({ isFirstApron: false, isSecondApron: false });
-
 const defaultContext = {
   asOfDate: new Date().toISOString(),
   daysUntilTrade: 0,

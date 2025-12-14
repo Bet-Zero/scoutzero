@@ -214,6 +214,6 @@ function _computeBYCOutgoing(player) {
   // For BYC players, outgoing value is max of:
   // 1. Previous salary
   // 2. 50% of new salary
-  const halfNewSalary = Math.floor(player.newSalary * 0.5);
+  const halfNewSalary = Math.floor(player.newSalary * BYC_PERCENT);
   return Math.max(player.previousSalary || 0, halfNewSalary);
 }

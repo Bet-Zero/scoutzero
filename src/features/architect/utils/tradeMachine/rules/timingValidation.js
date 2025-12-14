@@ -4,33 +4,12 @@
  */
 
 import { validationFlags } from '@/config/validationFlags.js';
-
-// Fallback implementations for timing utilities (import directly if needed)
-const isWithinMoratorium = (date, period) => {
-  const month = date.getMonth() + 1; // Convert to 1-based
-  const day = date.getDate();
-  return month === period.startMonth && 
-         day >= period.startDay && 
-         day <= period.endDay;
-};
-
-const daysSince = (dateStr, referenceDate) => {
-  if (!dateStr) return 999;
-  const date = new Date(dateStr);
-  const ref = new Date(referenceDate);
-  return (ref - date) / (1000 * 60 * 60 * 24);
-};
-
-const violates30Day = (player, tradeDate) => {
-  if (!player.signedDate) return false;
-  return daysSince(player.signedDate, tradeDate) < 30;
-};
-
-const violates2MonthAggregation = (player, tradeDate) => {
-  if (!player.acquiredDate && !player.lastReceivedDate) return false;
-  const acquiredDate = player.acquiredDate || player.lastReceivedDate;
-  return daysSince(acquiredDate, tradeDate) < 60;
-};
+import {
+  isWithinMoratorium,
+  daysSince,
+  violates30Day,
+  violates2MonthAggregation,
+} from '@/features/architect/utils/timingUtils.js';
 
 /**
  * Core timing validation logic
