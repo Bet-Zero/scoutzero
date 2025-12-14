@@ -11,7 +11,6 @@
  * All functionality preserved, just better organized.
  */
 
-import { getApronStatus } from '@/features/architect/utils/tradeHelpers.js';
 import { isPriorYearTPE } from '@/features/architect/utils/tradeMachine/utils/tradeUtilities.js';
 
 // =======================
@@ -126,7 +125,7 @@ export function validateSecondApronRules(team, context = {}) {
 export function enforceSecondApronHandcuffs(
   team,
   ctx = {},
-  { warn = () => {}, reject = () => {} } = {}
+  { /* warn = () => {}, */ reject = () => {} } = {}
 ) {
   const result = validateSecondApronRules(team, ctx);
 

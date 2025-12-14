@@ -1,10 +1,6 @@
 // tradeValidator.js - Fixed to match test expectations
 import {
-  calculateAllowableIncoming,
   getSalaryForYear,
-  getApronStatus,
-  formatCurrency,
-  wouldExceedHardCap,
 } from '@/features/architect/utils/tradeHelpers.js';
 import { validationCache } from '../cache/validationCacheService.js';
 import { performanceMonitor } from './validationPerformanceMonitor.js';

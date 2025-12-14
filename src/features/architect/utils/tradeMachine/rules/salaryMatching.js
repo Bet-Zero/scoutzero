@@ -1,4 +1,4 @@
-import { isFirstApronTeam, isSecondApronTeam } from '../utils/capUtils.js';
+import { isSecondApronTeam } from '../utils/capUtils.js';
 import { calculateAllowableIncoming } from '@/features/architect/utils/tradeHelpers.js';
 
 /**
@@ -6,7 +6,7 @@ import { calculateAllowableIncoming } from '@/features/architect/utils/tradeHelp
  * (Consolidated from matchingBands.js)
  */
 function getAllowableIncomingMargin({
-  team,
+  /* team, */
   teamTotalSalary = 0,
   secondApron = 0,
   isAtOrAboveSecondApron = false,

@@ -16,10 +16,8 @@ import { isValidSeasonId } from './seasonHelpers';
 import capProjections from './capProjections';
 import { DEFAULT_AVERAGE_SALARY } from './cbaConstants';
 import { 
-  MINIMUM_SALARY_SCALES, 
   getScaleForSeason, 
-  getLatestScale,
-  getAvailableScaleSeasons 
+  getLatestScale
 } from '../data/minimumSalaryScales';
 
 /**

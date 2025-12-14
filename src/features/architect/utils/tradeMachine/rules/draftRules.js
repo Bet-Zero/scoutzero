@@ -4,7 +4,6 @@
  */
 
 import { isMeaningfulProtection } from '../utils/tradeUtilities.js';
-import { CBA_THRESHOLDS } from '../constants/cbaConstants.js';
 
 /**
  * Checks if a set of outgoing picks violates the Stepien Rule
@@ -35,7 +34,7 @@ export function hasStepienViolation(picks = []) {
  * Validates draft pick trading rules
  * (From validateDraftPicks.js)
  */
-export function validateDraftPicks(team, allTeams) {
+export function validateDraftPicks(team /* , allTeams */) {
   const violations = [];
   const currentYear = new Date().getFullYear();
 

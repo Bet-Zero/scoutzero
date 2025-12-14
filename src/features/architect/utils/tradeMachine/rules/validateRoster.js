@@ -1,4 +1,3 @@
-import { passesRosterWindow } from '@/features/architect/utils/rosterUtils.js';
 import { validationFlags } from '@/config/validationFlags.js';
 
 /**
@@ -89,7 +88,6 @@ export function enforceRosterWindow(team, context = {}, { warn, reject } = {}) {
     projectedTwoWayCount = team.postTradeTeam.twoWayPlayers.length;
   }
 
-  const initialRosterCount = team.initialRosterCount || 0;
   const enforcement = validationFlags.rosterEnforcement || 'error';
   const twoWayEnforcement = validationFlags.twoWayRoster || 'error';
   const isGraceMode = context.graceMode;

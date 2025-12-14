@@ -80,7 +80,7 @@ export function enforceEligibility(
  */
 export function enforceConsent(
   team,
-  context = {},
+  /* context = {}, */
   { warn = () => {}, reject = () => {} } = {}
 ) {
   const { outgoingPlayers = [], incomingPlayers = [] } = team;
@@ -179,7 +179,7 @@ export function enforceConsent(
  */
 export function enforceConsentLegacy(
   team,
-  { warn = () => {}, reject = () => {} } = {}
+  { /* warn = () => {}, */ reject = () => {} } = {}
 ) {
   const violations = [];
   const { incomingPlayers = [] } = team;
@@ -212,7 +212,7 @@ export function enforceConsentLegacy(
 export function enforceTimingLegacy(
   team,
   ctx = defaultContext,
-  { warn = () => {}, reject = () => {} } = {}
+  { /* warn = () => {}, */ reject = () => {} } = {}
 ) {
   const violations = [];
   const { incomingPlayers = [] } = team;

@@ -135,7 +135,7 @@ export function computeMaxSalary(playerOrContext, leagueContext) {
  * @returns {Object} Max salary information
  */
 export function computeMaxSalaryFromRuleContext(ctx) {
-  const { timing, player: playerCtx, cap } = ctx;
+  const { player: playerCtx, cap } = ctx;
 
   // Validate required cap data
   if (!cap || typeof cap.salaryCap !== 'number' || !Number.isFinite(cap.salaryCap) || cap.salaryCap <= 0) {
@@ -207,8 +207,7 @@ export function computeMaxSalaryFromRuleContext(ctx) {
  * @returns {Object} Supermax eligibility info
  */
 function checkSupermaxEligibilityFromContext(ctx) {
-  const { timing, player: playerCtx } = ctx;
-  const yearsOfService = playerCtx?.yearsOfServiceAtOperation ?? 0;
+  const { timing } = ctx;
 
   // Parse operation season to get the end year for award comparison
   const parsed = parseSeasonId(timing?.operationSeasonId);

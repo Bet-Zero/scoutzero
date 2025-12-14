@@ -7,8 +7,6 @@ import { performanceMonitor } from './validationPerformanceMonitor.js';
 import { validationCache } from '../cache/validationCacheService.js';
 import { debug } from './engineUtils.js';
 import tradeDebug from './tradeDebug.js';
-import { validationFlags } from '@/config/validationFlags.js';
-import { CBA_THRESHOLDS } from '../constants/cbaConstants.js';
 
 /**
  * Wraps validators with common functionality (from validationDecorator.js)
@@ -113,7 +111,7 @@ export const validatorDebug = {
 /**
  * Template for standardized validator modules (from templateValidator.js)
  */
-export function validateTemplateRule(team, tradeCtx = {}) {
+export function validateTemplateRule(team /* , tradeCtx = {} */) {
   // Initialize violations array to collect all rule violations
   const violations = [];
 

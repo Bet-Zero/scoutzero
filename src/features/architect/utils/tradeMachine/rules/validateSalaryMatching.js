@@ -4,7 +4,6 @@
  */
 
 import {
-  getApronStatus,
   formatCurrency,
 } from '@/features/architect/utils/tradeHelpers.js';
 import { shouldWarnOnly } from '@/config/validationFlags.js';
@@ -35,16 +34,12 @@ export function validateSalaryMatching(team, context = {}) {
   }
 
   // Check cache first
-  const yearKey = context.yearKey || team.context?.yearKey || 2025;
 
   // Extract salary data from both context and team object (team object takes precedence for tests)
   const salaryOut = team.salaryOut ?? context.salaryOut ?? 0;
   const salaryIn = team.salaryIn ?? context.salaryIn ?? 0;
   const totalSalary =
     team.teamTotalSalary ?? context.totalSalary ?? team.team?.totalSalary ?? 0;
-
-  // Use provided context or extract from team with safe navigation
-  const teamName = team.teamName || team.team?.name || 'Unknown Team';
 
   // Extract cap settings from team context or provided context
   const teamCapSettings = team.context?.capSettings || {};
