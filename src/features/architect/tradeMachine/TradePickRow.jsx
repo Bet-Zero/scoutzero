@@ -1,6 +1,6 @@
 // src/features/architect/tradeMachine/TradePickRow.jsx
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { formatPick } from '@/features/architect/utils/tradeHelpers';
 import { getPickOptions } from '@/features/architect/utils/tradeMachine/utils/tradeUtilities';
 import { getTeamColors } from '@/shared/utils/formatting';
@@ -48,7 +48,16 @@ function TradePickRow({
   const isManaged =
     typeof openMenu !== 'undefined' && typeof setOpenMenu === 'function';
   const isOpen = isManaged ? openMenu === autoKey : localOpen === autoKey;
-  const setOpen = (val) => (isManaged ? setOpenMenu(val) : setLocalOpen(val));
+  const setOpen = useCallback(
+    (val) => {
+      if (isManaged) {
+        setOpenMenu(val);
+      } else {
+        setLocalOpen(val);
+      }
+    },
+    [isManaged, setOpenMenu, setLocalOpen]
+  );
 
   // Close menu on outside click
   useEffect(() => {
@@ -65,7 +74,7 @@ function TradePickRow({
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen]);
+  }, [isOpen, setOpen]);
 
   return (
     <div

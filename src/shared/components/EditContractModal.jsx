@@ -12,7 +12,7 @@
  *  - Latest Chunk: plans/_archive/player-rules-architect/chunks/chunk_02.md
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Dialog, DialogContent } from '@/shared/components/ui/Dialog';
 import { formatCurrencyFull, formatCurrency } from '@/shared/utils/formatting';
 import capProjections from '@/features/architect/utils/capProjections';
@@ -22,7 +22,9 @@ import {
   getExtensionEligibilityReason,
   getExtensionMaxDetails,
 } from '@/features/architect/utils/extensionRules';
-import useCapValidation, { buildSigningGuardrails } from '@/features/architect/hooks/useCapValidation';
+import useCapValidation, {
+  buildSigningGuardrails,
+} from '@/features/architect/hooks/useCapValidation';
 import ValidationWarnings from '@/features/architect/ValidationWarnings';
 
 const ACTION_SETS = {
@@ -102,7 +104,7 @@ const EditContractModal = ({
   const CURRENT_YEAR =
     currentYearProp ||
     rulesLeagueContext?.currentYear ||
-    (simDate.getFullYear() + (simDate.getMonth() >= 6 ? 1 : 0));
+    simDate.getFullYear() + (simDate.getMonth() >= 6 ? 1 : 0);
 
   const capSettings = useMemo(
     () => getCapSettings(CURRENT_YEAR),
@@ -196,8 +198,8 @@ const EditContractModal = ({
   // Determine action set:
   // If actionContext is provided (from cell click), use it directly
   // Otherwise, infer from player's contract state (when clicking player name)
-  const actionSet = actionContext 
-    ? actionContext 
+  const actionSet = actionContext
+    ? actionContext
     : hasOption
       ? 'option'
       : isFreeAgent && !isUnderContract
@@ -213,14 +215,16 @@ const EditContractModal = ({
 
   // Determine if option actions are currently actionable (timing check)
   // ONLY applies when this is an option scenario, not for free agents or under contract
-  const isOptionActionable = actionSet !== 'option' || !targetYear || targetYear === CURRENT_YEAR + 1;
-  
+  const isOptionActionable =
+    actionSet !== 'option' || !targetYear || targetYear === CURRENT_YEAR + 1;
+
   // Get the timing error message for display - ONLY for option scenarios
-  const optionTimingError = actionSet === 'option' && !isOptionActionable && targetYear
-    ? targetYear < CURRENT_YEAR + 1
-      ? `This option has already been decided (past season)`
-      : `Cannot act on this option yet. It can be decided during the ${targetYear - 2}-${String((targetYear - 1) % 100).padStart(2, '0')} offseason.`
-    : null;
+  const optionTimingError =
+    actionSet === 'option' && !isOptionActionable && targetYear
+      ? targetYear < CURRENT_YEAR + 1
+        ? `This option has already been decided (past season)`
+        : `Cannot act on this option yet. It can be decided during the ${targetYear - 2}-${String((targetYear - 1) % 100).padStart(2, '0')} offseason.`
+      : null;
 
   const contractDataForValidation = useMemo(
     () => ({
@@ -311,7 +315,9 @@ const EditContractModal = ({
       raisePct: 0.05,
     });
     setSalaryInputs(
-      Array(5).fill(baseSalary).map((s) => (s ? formatCurrencyFull(s) : ''))
+      Array(5)
+        .fill(baseSalary)
+        .map((s) => (s ? formatCurrencyFull(s) : ''))
     );
     // Use initialAction if provided, otherwise reset
     setSelectedAction(initialAction || '');
@@ -321,7 +327,9 @@ const EditContractModal = ({
     const terms = playerRulesProfile?.extensionTerms;
     if (eligibility) {
       setExtReason(
-        eligibility.isEligible ? 'Eligible' : eligibility.reason || 'Not eligible'
+        eligibility.isEligible
+          ? 'Eligible'
+          : eligibility.reason || 'Not eligible'
       );
       setExtMax(
         terms
@@ -394,30 +402,35 @@ const EditContractModal = ({
       const clamped = Math.max(min, Math.min(target, max || target));
       return clamped;
     })();
-    const years = extMax.maxYears || extension.years || 1;
-
-    setExtension({
-      years,
-      contractType: 'Standard',
-      salaries: Array(years).fill(firstYearSalary),
+    setExtension((prev) => {
+      const years = extMax.maxYears || prev.years || 1;
+      const salaries = Array(years).fill(firstYearSalary);
+      setSalaryInputs(
+        Array(years)
+          .fill(firstYearSalary)
+          .map((s) => (s ? formatCurrencyFull(s) : ''))
+      );
+      return {
+        years,
+        contractType: 'Standard',
+        salaries,
+      };
     });
-    setSalaryInputs(
-      Array(years)
-        .fill(firstYearSalary)
-        .map((s) => (s ? formatCurrencyFull(s) : ''))
-    );
   }, [extMax, selectedAction]);
 
-  const clampFirstYearToGuardrails = (value) => {
-    if (!signingGuardrails) return value || 0;
-    const min = signingGuardrails.minFirstYear || 0;
-    const max = signingGuardrails.maxFirstYear;
-    let next = Math.max(min, value || 0);
-    if (max != null) next = Math.min(next, max);
-    return next;
-  };
+  const clampFirstYearToGuardrails = useCallback(
+    (value) => {
+      if (!signingGuardrails) return value || 0;
+      const min = signingGuardrails.minFirstYear || 0;
+      const max = signingGuardrails.maxFirstYear;
+      let next = Math.max(min, value || 0);
+      if (max != null) next = Math.min(next, max);
+      return next;
+    },
+    [signingGuardrails]
+  );
 
-  const buildSalarySeries = (firstYear, years, raisePct) => {
+  const buildSalarySeries = useCallback((firstYear, years, raisePct) => {
     const totalYears = Math.min(Math.max(years, 1), 5);
     const series = [];
     for (let i = 0; i < totalYears; i += 1) {
@@ -428,48 +441,54 @@ const EditContractModal = ({
       }
     }
     return series;
-  };
+  }, []);
 
-  const toSalaryInputs = (series, years) =>
-    Array.from({ length: 5 }, (_, idx) =>
-      idx < years && series[idx]
-        ? formatCurrencyFull(series[idx])
-        : ''
-    );
+  const toSalaryInputs = useCallback(
+    (series, years) =>
+      Array.from({ length: 5 }, (_, idx) =>
+        idx < years && series[idx] ? formatCurrencyFull(series[idx]) : ''
+      ),
+    []
+  );
 
   useEffect(() => {
     if (!signingGuardrails || !isSigningAction) return;
 
-    const maxYears =
-      signingGuardrails.maxYears && signingGuardrails.maxYears > 0
-        ? Math.min(signingGuardrails.maxYears, 5)
-        : Math.min(extension.years || 3, 5);
+    setExtension((prev) => {
+      const maxYears =
+        signingGuardrails.maxYears && signingGuardrails.maxYears > 0
+          ? Math.min(signingGuardrails.maxYears, 5)
+          : Math.min(prev.years || 3, 5);
 
-    const baseFirstYear = clampFirstYearToGuardrails(
-      (selectedException !== 'None' &&
-      signingGuardrails.maxFirstYear != null
-        ? signingGuardrails.maxFirstYear
-        : extension.salaries?.[0]) ??
-        signingGuardrails.maxFirstYear ??
-        lastSalaryForPrefill ??
-        signingGuardrails.minFirstYear ??
-        0
-    );
+      const baseFirstYear = clampFirstYearToGuardrails(
+        (selectedException !== 'None' && signingGuardrails.maxFirstYear != null
+          ? signingGuardrails.maxFirstYear
+          : prev.salaries?.[0]) ??
+          signingGuardrails.maxFirstYear ??
+          lastSalaryForPrefill ??
+          signingGuardrails.minFirstYear ??
+          0
+      );
 
-    const raisePct = signingGuardrails.raisePct ?? extension.raisePct ?? 0.05;
-    const series = buildSalarySeries(baseFirstYear, maxYears, raisePct);
+      const raisePct = signingGuardrails.raisePct ?? prev.raisePct ?? 0.05;
+      const series = buildSalarySeries(baseFirstYear, maxYears, raisePct);
+      setSalaryInputs(toSalaryInputs(series, maxYears));
 
-    setExtension((prev) => ({
-      ...prev,
-      years: maxYears,
-      salaries: series,
-      raisePct,
-    }));
-    setSalaryInputs(toSalaryInputs(series, maxYears));
+      return {
+        ...prev,
+        years: maxYears,
+        salaries: series,
+        raisePct,
+      };
+    });
   }, [
     isSigningAction,
     signingGuardrails,
     lastSalaryForPrefill,
+    selectedException,
+    clampFirstYearToGuardrails,
+    buildSalarySeries,
+    toSalaryInputs,
   ]);
 
   const handleConfirm = () => {
@@ -665,9 +684,12 @@ const EditContractModal = ({
               <p>
                 <span className="text-white font-semibold">{player.name}</span>{' '}
                 has a <span className="text-orange-400">{optionType}</span> for
-                the {optionYear ? `${optionYear - 1}-${String(optionYear % 100).padStart(2, '0')}` : 'upcoming'} season. You may choose to accept it to retain him,
-                decline it to make him a Free Agent, or negotiate a new
-                contract.
+                the{' '}
+                {optionYear
+                  ? `${optionYear - 1}-${String(optionYear % 100).padStart(2, '0')}`
+                  : 'upcoming'}{' '}
+                season. You may choose to accept it to retain him, decline it to
+                make him a Free Agent, or negotiate a new contract.
               </p>
             )}
             {actionSet === 'freeAgent' && (
@@ -702,17 +724,19 @@ const EditContractModal = ({
             {optionTimingError && (
               <div className="flex items-start gap-2 px-3 py-2 rounded border bg-red-500/10 border-red-500/30 mb-3">
                 <span className="shrink-0 text-sm">❌</span>
-                <span className="text-xs text-red-300">{optionTimingError}</span>
+                <span className="text-xs text-red-300">
+                  {optionTimingError}
+                </span>
               </div>
             )}
-            
+
             {actions.map((type) => {
               // Option actions (accept/decline) are disabled when not actionable
               const isOptionAction = type === 'accept' || type === 'decline';
               const extendBlocked = type === 'extend' && !isExtendEligible;
               const isDisabled =
                 (isOptionAction && !isOptionActionable) || extendBlocked;
-              
+
               return (
                 <label
                   key={type}
@@ -760,7 +784,9 @@ const EditContractModal = ({
           </div>
 
           {/* === Contract Details (Cap Table Row Preview) === */}
-          {['signNew', 'resign', 'extend', 'signAndTrade'].includes(selectedAction) && (
+          {['signNew', 'resign', 'extend', 'signAndTrade'].includes(
+            selectedAction
+          ) && (
             <div className="bg-white/5 rounded-lg border border-white/20 p-4">
               <div className="flex items-center justify-between mb-4">
                 <h4 className="font-semibold text-sm text-white flex items-center gap-2">
@@ -780,7 +806,9 @@ const EditContractModal = ({
                   >
                     <option value="Standard">Standard</option>
                     <option value="Rookie Scale">Rookie Scale</option>
-                    <option value="Designated veteran">Designated Veteran</option>
+                    <option value="Designated veteran">
+                      Designated Veteran
+                    </option>
                   </select>
 
                   {['signNew', 'resign'].includes(selectedAction) && (
@@ -808,9 +836,14 @@ const EditContractModal = ({
                         selectedAction === 'extend' && extMax?.maxYears
                           ? extMax.maxYears
                           : guardrailYears || 5;
-                      const yrs = Math.min(Number(e.target.value), maxYearsOption);
+                      const yrs = Math.min(
+                        Number(e.target.value),
+                        maxYearsOption
+                      );
                       const raisePct =
-                        signingGuardrails?.raisePct ?? extension.raisePct ?? 0.05;
+                        signingGuardrails?.raisePct ??
+                        extension.raisePct ??
+                        0.05;
                       const firstYear = isSigningAction
                         ? clampFirstYearToGuardrails(
                             extension.salaries?.[0] ??
@@ -842,7 +875,11 @@ const EditContractModal = ({
                             ? Math.min(signingGuardrails.maxYears, 5)
                             : 5;
                       return (
-                        <option key={yr} value={yr} disabled={yr > maxYearsOption}>
+                        <option
+                          key={yr}
+                          value={yr}
+                          disabled={yr > maxYearsOption}
+                        >
                           {yr}yr
                         </option>
                       );
@@ -867,12 +904,18 @@ const EditContractModal = ({
                       : 'Max'}
                   </span>
                   <span className="px-2 py-1 rounded bg-white/5 border border-white/10">
-                    Raises up to {Math.round((signingGuardrails.raisePct || 0) * 100)}% • Max{' '}
+                    Raises up to{' '}
+                    {Math.round((signingGuardrails.raisePct || 0) * 100)}% • Max{' '}
                     {signingGuardrails.maxYears || '—'} yrs
                   </span>
-                  {playerRulesProfile?.restrictedFreeAgency?.qualifyingOfferAmount ? (
+                  {playerRulesProfile?.restrictedFreeAgency
+                    ?.qualifyingOfferAmount ? (
                     <span className="px-2 py-1 rounded bg-red-500/10 border border-red-500/20 text-red-100">
-                      QO: {formatCurrencyFull(playerRulesProfile.restrictedFreeAgency.qualifyingOfferAmount)}
+                      QO:{' '}
+                      {formatCurrencyFull(
+                        playerRulesProfile.restrictedFreeAgency
+                          .qualifyingOfferAmount
+                      )}
                     </span>
                   ) : null}
                 </div>
@@ -882,15 +925,21 @@ const EditContractModal = ({
               <div className="grid grid-cols-5 gap-2 bg-white/5 rounded-lg p-3">
                 {Array.from({ length: 5 }, (_, idx) => {
                   const isActive = idx < extension.years;
-                  const year = CURRENT_YEAR + idx + (selectedAction === 'extend' ? 1 : 0);
-                  
+                  const year =
+                    CURRENT_YEAR + idx + (selectedAction === 'extend' ? 1 : 0);
+
                   return (
-                    <div key={idx} className={`${isActive ? 'opacity-100' : 'opacity-30'}`}>
+                    <div
+                      key={idx}
+                      className={`${isActive ? 'opacity-100' : 'opacity-30'}`}
+                    >
                       <div className="text-[10px] text-white/50 text-center mb-1 font-medium">
                         {year - 1}-{String(year % 100).padStart(2, '0')}
                       </div>
                       <div className="relative">
-                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-white/40 text-xs">$</span>
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-white/40 text-xs">
+                          $
+                        </span>
                         <input
                           type="text"
                           inputMode="decimal"
@@ -909,7 +958,8 @@ const EditContractModal = ({
                                 } else if (signingGuardrails.raisePct != null) {
                                   const prevSalary = arr[idx - 1] || 0;
                                   const allowed = Math.round(
-                                    prevSalary * (1 + signingGuardrails.raisePct)
+                                    prevSalary *
+                                      (1 + signingGuardrails.raisePct)
                                   );
                                   nextVal = Math.min(parsed || 0, allowed);
                                 }

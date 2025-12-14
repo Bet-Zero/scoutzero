@@ -1,7 +1,10 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 import { loadTeamCapSheet } from '@/features/architect/utils/firebaseTeamPlanHelpers';
-import { getSalaryForYear, areSamePick } from '@/features/architect/utils/tradeHelpers';
+import {
+  getSalaryForYear,
+  areSamePick,
+} from '@/features/architect/utils/tradeHelpers';
 import { TeamMap } from '@/constants/teamList';
 
 /* ============================
@@ -38,7 +41,7 @@ const payrollForYearFromCapSheet = (capSheet, endYear) => {
         return sum + num(yearEntry.capHit || yearEntry.salary || 0);
       }
     }
-    
+
     // Fallback to salaryByYear map (temporary format during trade creation)
     const s = c?.salaryByYear?.[endYear] ?? c?.salaryByYear?.[y] ?? 0;
     return sum + num(s);
@@ -56,7 +59,7 @@ const payrollForYearFromCapSheet = (capSheet, endYear) => {
         return sum + num(yearEntry.capHit || yearEntry.salary || 0);
       }
     }
-    
+
     return sum;
   }, 0);
 
@@ -475,7 +478,7 @@ export const useTradeMachine = (
   // Auto-validation effect - triggers validation whenever trade state changes
   useEffect(() => {
     validateCurrentTrade();
-  }, [teams, forceTrade, yearKey, capProjections]);
+  }, [validateCurrentTrade]);
 
   // Manual validation trigger (for UI components that need explicit validation)
   const handleValidate = useCallback(() => {

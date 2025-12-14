@@ -1,6 +1,6 @@
 // src/features/tierMaker/TierMakerBoard.jsx
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import TierRow from '@/features/tierMaker/TierRow';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
 import useFirebaseQuery from '@/shared/hooks/useFirebaseQuery';
@@ -23,7 +23,8 @@ const TierMakerBoard = ({ players = [], initialTierListId = '' }) => {
   const processedPlayers = useMemo(
     () =>
       allPlayers.map((player) => {
-        const contractData = player.primaryContract ||
+        const contractData =
+          player.primaryContract ||
           (player.contracts ? Object.values(player.contracts)[0] : null);
 
         return {
@@ -61,8 +62,10 @@ const TierMakerBoard = ({ players = [], initialTierListId = '' }) => {
             ''
           ).toLowerCase(),
           contractType: (contractData?.contractType || '').toLowerCase(),
-          extension: (player.contracts ? Object.values(player.contracts) : [])
-            .find((c) => c.isExtension),
+          extension: (player.contracts
+            ? Object.values(player.contracts)
+            : []
+          ).find((c) => c.isExtension),
           options: contractData?.options || [],
           original: player,
         };
@@ -217,28 +220,31 @@ const TierMakerBoard = ({ players = [], initialTierListId = '' }) => {
     setSelectedList('');
   };
 
-  const handleLoadTierList = async (id) => {
-    if (!id) return;
-    try {
-      const data = await fetchTierList(id);
-      if (data?.tiers) {
-        const newTiers = {};
-        Object.entries(data.tiers).forEach(([tier, ids]) => {
-          newTiers[tier] = ids
-            .map((pid) => playersMap[pid])
-            .filter(Boolean)
-            .map((p) => ({ ...p, player_id: p.id }));
-        });
-        setTiers(newTiers);
-        setTierOrder(data.tierOrder || Object.keys(newTiers));
-        setSelectedTierList(id);
-        toast.success('Tier list loaded!');
+  const handleLoadTierList = useCallback(
+    async (id) => {
+      if (!id) return;
+      try {
+        const data = await fetchTierList(id);
+        if (data?.tiers) {
+          const newTiers = {};
+          Object.entries(data.tiers).forEach(([tier, ids]) => {
+            newTiers[tier] = ids
+              .map((pid) => playersMap[pid])
+              .filter(Boolean)
+              .map((p) => ({ ...p, player_id: p.id }));
+          });
+          setTiers(newTiers);
+          setTierOrder(data.tierOrder || Object.keys(newTiers));
+          setSelectedTierList(id);
+          toast.success('Tier list loaded!');
+        }
+      } catch (err) {
+        console.error('Failed to load tier list', err);
+        toast.error('Failed to load tier list');
       }
-    } catch (err) {
-      console.error('Failed to load tier list', err);
-      toast.error('Failed to load tier list');
-    }
-  };
+    },
+    [playersMap]
+  );
 
   const handleSaveTierList = async (idOverride) => {
     const listId = idOverride || selectedTierList;
@@ -282,7 +288,13 @@ const TierMakerBoard = ({ players = [], initialTierListId = '' }) => {
       handleLoadTierList(initialTierListId);
       setInitialLoaded(true);
     }
-  }, [initialLoaded, initialTierListId, tierListsData, allPlayers.length]);
+  }, [
+    initialLoaded,
+    initialTierListId,
+    tierListsData,
+    allPlayers.length,
+    handleLoadTierList,
+  ]);
 
   if (loading) {
     return (
@@ -349,7 +361,11 @@ const TierMakerBoard = ({ players = [], initialTierListId = '' }) => {
               <div className="flex items-center gap-1">
                 <select
                   value={selectedTeam?.id || ''}
-                  onChange={(e) => setSelectedTeam(TeamListFull.find((t) => t.id === e.target.value) || null)}
+                  onChange={(e) =>
+                    setSelectedTeam(
+                      TeamListFull.find((t) => t.id === e.target.value) || null
+                    )
+                  }
                   className="bg-[#1a1a1a] text-white text-sm px-2 py-1 rounded border border-white/10"
                 >
                   <option value="">Add Team...</option>

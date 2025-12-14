@@ -45,6 +45,8 @@ const TradeTeamCard = ({
   const [showOutgoing, setShowOutgoing] = useState(false);
   const [showIncoming, setShowIncoming] = useState(false);
   const selectRef = useRef(null);
+  const hasTeam = Boolean(team);
+  const teamTradeExceptions = team?.tradeExceptions;
 
   useEffect(() => {
     if (editingTeam && selectRef.current) {
@@ -92,10 +94,7 @@ const TradeTeamCard = ({
     [incomingPlayers, yearKey]
   );
 
-  const { primary } = useMemo(
-    () => getTeamColors(team?.id) || {},
-    [team?.id]
-  );
+  const { primary } = useMemo(() => getTeamColors(team?.id) || {}, [team?.id]);
 
   const playersCount = useMemo(
     () => (team?.players?.length || 0) - sends.length + incomingPlayers.length,
@@ -121,7 +120,7 @@ const TradeTeamCard = ({
   // Allowable Incoming for display (excluding TPEs)
   const allowableIncomingNoTPE = useMemo(
     () =>
-      team
+      hasTeam
         ? getIncomingCeiling(
             teamTotalSalary,
             outgoingSalary,
@@ -130,11 +129,11 @@ const TradeTeamCard = ({
             yearKey
           )
         : 0,
-    [teamTotalSalary, outgoingSalary, capSettings, yearKey]
+    [hasTeam, teamTotalSalary, outgoingSalary, capSettings, yearKey]
   );
 
   const tpeEligiblePlayers = useMemo(() => {
-    if (!team) return [];
+    if (!hasTeam) return [];
     const seasonKey =
       typeof yearKey === 'string' && yearKey.includes('-')
         ? yearKey
@@ -142,14 +141,14 @@ const TradeTeamCard = ({
 
     return incomingPlayers.filter((player) => {
       const playerSalary = getCapHitForSeason(player, seasonKey) || 0;
-      return (team.tradeExceptions || []).some(
+      return (teamTradeExceptions || []).some(
         (tpe) =>
           !tpe.isUsed &&
           playerSalary <= tpe.amount &&
           (!tpe.expirationDate || new Date(tpe.expirationDate) > new Date())
       );
     });
-  }, [incomingPlayers, team?.tradeExceptions, yearKey]);
+  }, [hasTeam, incomingPlayers, teamTradeExceptions, yearKey]);
 
   // Modified player trade handler to support multiple selections
   // Replace the existing handleSetPlayerTrade with:

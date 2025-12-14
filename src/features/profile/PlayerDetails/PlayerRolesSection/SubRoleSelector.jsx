@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { NotebookText } from 'lucide-react';
 import { SubRoleMasterList } from '@/constants/SubRoleMasterList';
 import { isPositiveSubRole } from '@/shared/utils/roles';
@@ -152,13 +152,15 @@ const SubRoleSelector = ({ subRoles = {}, setSubRoles, setOpenModal }) => {
   const modalRef = useRef(null);
 
   useEffect(() => {
-    setTempSelection({ ...safeSubRoles });
-  }, [subRoles]);
+    const offense = Array.isArray(subRoles.offense) ? subRoles.offense : [];
+    const defense = Array.isArray(subRoles.defense) ? subRoles.defense : [];
+    setTempSelection({ offense, defense });
+  }, [subRoles.offense, subRoles.defense]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setSubRoles(tempSelection);
     setIsModalOpen(false);
-  };
+  }, [setSubRoles, tempSelection]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -174,7 +176,7 @@ const SubRoleSelector = ({ subRoles = {}, setSubRoles, setOpenModal }) => {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isModalOpen, tempSelection]);
+  }, [isModalOpen, handleClose]);
 
   const handleToggle = (roleName) => {
     const roleData = SubRoleMasterList.find((r) => r.name === roleName);
