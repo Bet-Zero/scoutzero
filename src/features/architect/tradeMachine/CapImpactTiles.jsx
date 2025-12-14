@@ -2,6 +2,7 @@ import React from 'react';
 import capProjections from '@/features/architect/utils/capProjections';
 import { formatSalary } from '@/shared/utils/formatting';
 import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers';
+import { getActiveUnsignedCapHoldsTotal } from '@/features/architect/utils/capHolds';
 
 const CapImpactTiles = ({
   team,
@@ -11,6 +12,7 @@ const CapImpactTiles = ({
 }) => {
   if (!team) return null;
 
+  // yearKey is the START year (e.g., 2024 for "2024-25" season)
   const key = `${yearKey}-${String((yearKey + 1) % 100).padStart(2, '0')}`;
   const capData = capProjections[key] || {};
   const salaryCap = capData.cap || 0;
@@ -33,21 +35,12 @@ const CapImpactTiles = ({
     return sum + salary;
   }, 0);
 
-  // Calculate cap holds total from team.capHolds (canonical source) if present
-  // with defensive fallback to player-level cap_hold for backwards compatibility
+  // Calculate cap holds total using shared utility
+  // yearKey is the START year, which is what getActiveUnsignedCapHoldsTotal expects
   const capHoldsTotal = (() => {
     // Prefer team.capHolds (canonical source)
     if (Array.isArray(team.capHolds) && team.capHolds.length > 0) {
-      return team.capHolds
-        .filter((h) => {
-          if (!h.active || h.isSigned) return false;
-          // Match season to yearKey: "2024-25" matches yearKey 2025
-          if (!h.season || !String(h.season).includes('-')) return false;
-          const seasonStart = parseInt(String(h.season).split('-')[0], 10);
-          if (!Number.isFinite(seasonStart)) return false;
-          return seasonStart + 1 === yearKey;
-        })
-        .reduce((sum, h) => sum + (h.amount || 0), 0);
+      return getActiveUnsignedCapHoldsTotal(team.capHolds, yearKey);
     }
     // Fallback to player-level cap_hold for backwards compatibility
     return playersAfterTrade.reduce((sum, player) => {

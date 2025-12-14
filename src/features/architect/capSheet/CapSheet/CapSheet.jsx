@@ -5,6 +5,7 @@
  *
  * HISTORY:
  *  - 2025-12-10: Added PlayerRulesProfile-driven annotations (chunk_01).
+ *  - 2025-12-14: Refactored to use shared cap holds utility functions.
  *
  * LINKS:
  *  - Plan: plans/player-rules-architect/plan.md
@@ -15,6 +16,10 @@ import {
   getMinimumCapHit,
   getContractYearSlice,
 } from '@/features/architect/utils/contractUtils';
+import {
+  getActiveUnsignedCapHoldsByEndYear,
+  getActiveUnsignedCapHoldsTotalByEndYear,
+} from '@/features/architect/utils/capHolds';
 import CapSummaryTiles from '@/features/architect/CapSummaryTiles';
 import { POSITION_MAP } from '@/shared/utils/roles';
 import getCapPercentage from '@/features/architect/utils/basicArchitectUtils';
@@ -76,20 +81,6 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer }) => {
   // Helper to aggregate cap hits for a group of players
   const calculateCapHitTotal = (players, yearKey) =>
     players.reduce((sum, p) => sum + getCapHit(p, yearKey), 0);
-
-  // Helper to calculate cap holds total from teamCapSheet.capHolds (canonical source)
-  const calculateCapHoldsFromCanonical = (capHolds, year) => {
-    return (capHolds || [])
-      .filter((h) => {
-        if (!h.active || h.isSigned) return false;
-        // Match season to year: "2024-25" matches year 2025
-        if (!h.season || !String(h.season).includes('-')) return false;
-        const seasonStart = parseInt(String(h.season).split('-')[0], 10);
-        if (!Number.isFinite(seasonStart)) return false;
-        return seasonStart + 1 === year;
-      })
-      .reduce((sum, h) => sum + (h.amount || 0), 0);
-  };
 
   const renderNotes = (player, yearKey, rulesProfile) => {
     const slice = getContractYearSlice(player, yearKey);
@@ -170,19 +161,14 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer }) => {
     });
 
   // Get cap holds from teamCapSheet.capHolds (canonical source), filter by selected year
-  const displayedCapHolds = (teamCapSheet.capHolds || [])
-    .filter((h) => {
-      if (!h.active || h.isSigned) return false;
-      // Match season to selectedYear
-      if (!h.season || !String(h.season).includes('-')) return false;
-      const seasonStart = parseInt(String(h.season).split('-')[0], 10);
-      if (!Number.isFinite(seasonStart)) return false;
-      return seasonStart + 1 === selectedYear;
-    })
-    .sort((a, b) => (b.amount || 0) - (a.amount || 0));
+  // Using shared utility - selectedYear is the END year (e.g., 2025 for "2024-25")
+  const displayedCapHolds = getActiveUnsignedCapHoldsByEndYear(
+    teamCapSheet.capHolds,
+    selectedYear
+  ).sort((a, b) => (b.amount || 0) - (a.amount || 0));
 
   const playersCapTotal = calculateCapHitTotal(filteredPlayers, selectedYear);
-  const capHoldsTotal = calculateCapHoldsFromCanonical(teamCapSheet.capHolds, selectedYear);
+  const capHoldsTotal = getActiveUnsignedCapHoldsTotalByEndYear(teamCapSheet.capHolds, selectedYear);
   // Cap totals are precomputed to avoid any mutation during render
   const totalCapHit = playersCapTotal + (showCapHolds ? capHoldsTotal : 0);
 
@@ -322,9 +308,9 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer }) => {
                     <div>Reason</div>
                   </div>
                   <div className="divide-y divide-white/5">
-                    {displayedCapHolds.map((h, idx) => (
+                    {displayedCapHolds.map((h) => (
                       <div
-                        key={idx}
+                        key={`${h.playerId}-${h.season}`}
                         className="grid grid-cols-[2fr,1.2fr,3fr] gap-2 px-4 py-2 items-center hover:bg-white/[0.02]"
                       >
                         <div className="text-xs text-white/60">

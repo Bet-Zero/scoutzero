@@ -1,6 +1,7 @@
 import React from 'react';
 import capProjections from '@/features/architect/utils/capProjections';
 import { getContractYearSlice } from '@/features/architect/utils/contractUtils';
+import { getActiveUnsignedCapHoldsTotalByEndYear } from '@/features/architect/utils/capHolds';
 import {
   isHardCappedAtFirstApron,
   isHardCappedAtSecondApron,
@@ -38,17 +39,12 @@ const CapSummaryTiles = ({ teamCapSheet, selectedYear }) => {
     return sum + salary;
   }, 0);
 
-  // Calculate cap holds total from teamCapSheet.capHolds (canonical source)
-  const capHoldsTotal = (teamCapSheet?.capHolds || [])
-    .filter((h) => {
-      if (!h.active || h.isSigned) return false;
-      // Match season to selectedYear: "2024-25" matches selectedYear 2025
-      if (!h.season || !String(h.season).includes('-')) return false;
-      const seasonStart = parseInt(String(h.season).split('-')[0], 10);
-      if (!Number.isFinite(seasonStart)) return false;
-      return seasonStart + 1 === selectedYear;
-    })
-    .reduce((sum, h) => sum + (h.amount || 0), 0);
+  // Calculate cap holds total using shared utility
+  // selectedYear is the END year (e.g., 2025 for "2024-25")
+  const capHoldsTotal = getActiveUnsignedCapHoldsTotalByEndYear(
+    teamCapSheet?.capHolds,
+    selectedYear
+  );
 
   const totalCapAllocations = salaryTotal + capHoldsTotal;
 
