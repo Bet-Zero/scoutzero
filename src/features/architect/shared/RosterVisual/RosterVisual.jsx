@@ -81,7 +81,6 @@ const RosterVisual = ({
       const twoWayToAdd = twoWayPlayers.slice(0, needed);
       
       // Add two-way players to bench slots
-      const currentBenchCount = roster.bench.filter(Boolean).length;
       const emptyBenchSlots = roster.bench.map((p, i) => p === null ? i : null).filter(i => i !== null);
       
       twoWayToAdd.forEach((player, idx) => {

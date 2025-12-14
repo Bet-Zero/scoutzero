@@ -3,7 +3,7 @@ const CBA_THRESHOLDS = {
   MAX_CASH_OUT: 7_100_000,
 };
 
-export function getSeasonalCashCaps(season) {
+export function getSeasonalCashCaps(/* season */) {
   return {
     maxCashIn: CBA_THRESHOLDS.MAX_CASH_IN,
     maxCashOut: CBA_THRESHOLDS.MAX_CASH_OUT,

@@ -133,8 +133,9 @@ export function validateHardCapLegacy(team, capSettings) {
     (sum, p) => sum + p.newSalary,
     0
   );
+  const teamTotalSalary = team.team?.totalSalary || 0;
   const projectedSalary =
-    getTeamSalary(team.team) - outgoingSalary + incomingSalary;
+    teamTotalSalary - outgoingSalary + incomingSalary;
 
   // Check first apron hard cap
   if (team.team.hardCapFirstApron?.active) {

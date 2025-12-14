@@ -7,8 +7,8 @@ import EditContractModal from '@/shared/components/EditContractModal';
 
 const FreeAgentPool = ({
   freeAgents,
-  teamCapSheet,
-  capProjections,
+  // teamCapSheet,
+  // capProjections,
   currentYear,
   onSign,
   playersMap = {},
