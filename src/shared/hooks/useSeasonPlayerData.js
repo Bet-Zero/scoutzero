@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
 import { enrichPlayerData } from '@/features/roster/utils';
 import { PLAYERS_COLLECTION } from '@/constants/collections';

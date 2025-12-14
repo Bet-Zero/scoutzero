@@ -22,7 +22,7 @@ const ListsHome = () => {
   const [deletingListId, setDeletingListId] = useState(null);
   const navigate = useNavigate();
 
-  const { players, loading: playersLoading } = useSimplePlayerData();
+  const { players } = useSimplePlayerData();
 
   const playersMap = useMemo(() => {
     const map = {};
@@ -94,7 +94,7 @@ const ListsHome = () => {
           <div className="text-white/60">Loading lists...</div>
         ) : lists.length === 0 ? (
           <div className="text-white/40">
-            You haven't created any lists yet.
+            You haven&apos;t created any lists yet.
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { doc, getDoc, getDocs } from 'firebase/firestore';
-import { db } from '@/firebaseConfig';
+import { getDoc, getDocs } from 'firebase/firestore';
 import {
   playerRef,
   contractsCol,
@@ -8,7 +7,6 @@ import {
   evalsCol,
 } from '@/data/firestorePaths.js';
 // Dev-only schema validation
-// eslint-disable-next-line import/no-relative-packages
 import { PlayerMainDocZ, ContractDocZ, SeasonDocZ, EvaluationDocZ } from '@/schemas/players_v2';
 
 /**

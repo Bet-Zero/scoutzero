@@ -5,13 +5,8 @@
 
 import { validationFlags } from '@/config/validationFlags.js';
 
-// Try to import getApronStatus, fall back to no-op
-let getApronStatus;
-try {
-  ({ getApronStatus } = require('../../capUtils.js'));
-} catch {
-  getApronStatus = () => ({ isFirstApron: false, isSecondApron: false });
-}
+// Fallback no-op for getApronStatus (import directly if needed)
+const getApronStatus = () => ({ isFirstApron: false, isSecondApron: false });
 
 const defaultContext = {
   asOfDate: new Date().toISOString(),

@@ -5,18 +5,10 @@
 
 import { formatCurrency } from '@/features/architect/utils/tradeHelpers.js';
 
-// Try to import hard cap utilities, fall back to local implementations
-let wouldExceedHardCap, isFirstApronTeam, isSecondApronTeam, getTeamSalary;
-try {
-  ({ wouldExceedHardCap } = require('@/features/architect/utils/hardCapUtils.js'));
-  ({ isFirstApronTeam, isSecondApronTeam, getTeamSalary } = require('../utils/capUtils.js'));
-} catch {
-  // Fallback implementations
-  wouldExceedHardCap = () => false;
-  isFirstApronTeam = (team) => team?.hardCapped === true;
-  isSecondApronTeam = (team) => team?.hardCapTriggered === 'SecondApron';
-  getTeamSalary = (team) => team?.totalSalary || 0;
-}
+// Fallback implementations for hard cap utilities (import directly if needed)
+const wouldExceedHardCap = () => false;
+const isFirstApronTeam = (team) => team?.hardCapped === true;
+const isSecondApronTeam = (team) => team?.hardCapTriggered === 'SecondApron';
 
 /**
  * Core hard cap validation logic

@@ -7,13 +7,11 @@
  * @file tests/helpers/architectTestHelpers.js
  */
 
+import { expect } from 'vitest';
 import { seedMockData, getMockData } from '../__mocks__/firebase.js';
-import { doc } from '../__mocks__/firebase.js';
 import {
   BASE_TEAMS,
   LAL_BASE_TEAM,
-  GSW_BASE_TEAM,
-  BOS_BASE_TEAM,
 } from '../fixtures/architect/teams.js';
 import { BASE_PLAYERS } from '../fixtures/architect/players.js';
 import { SAMPLE_WORLD_METADATA } from '../fixtures/architect/worlds.js';
@@ -211,7 +209,7 @@ export function seedTeamSnapshot(worldId, teamCode, teamData) {
 /**
  * Assert team snapshot structure
  */
-export function assertTeamSnapshot(teamData) {
+export function _assertTeamSnapshot(teamData) {
   expect(teamData).toBeDefined();
   expect(teamData.teamCode).toBeDefined();
   expect(teamData.season).toBeDefined();
@@ -226,7 +224,7 @@ export function assertTeamSnapshot(teamData) {
 /**
  * Assert world metadata structure
  */
-export function assertWorldMetadata(metadata) {
+export function _assertWorldMetadata(metadata) {
   expect(metadata).toBeDefined();
   expect(metadata.worldId).toBeDefined();
   expect(metadata.worldName).toBeDefined();
@@ -279,7 +277,6 @@ export function getMockTeamSnapshot(worldId, teamCode) {
  * Create a valid trade data structure for testing
  */
 export function createMockTradeData({
-  worldId,
   teams = [
     {
       teamCode: 'LAL',

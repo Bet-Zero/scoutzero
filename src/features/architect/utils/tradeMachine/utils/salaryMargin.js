@@ -3,7 +3,6 @@
  * Handles calculations for allowable incoming salary
  */
 
-import { getApronStatus } from '@/features/architect/utils/tradeHelpers.js';
 import { calculateAllowableIncoming } from '@/features/architect/utils/tradeHelpers.js';
 import { getTeamObject, resolvePayroll, toNum } from './capUtils.js';
 
@@ -87,7 +86,7 @@ export function getAllowableIncomingMargin(teamLike) {
  */
 export function getIncomingCeilingForTeam(team) {
   const { context, salaryOut = 0, teamTotalSalary = 0 } = team;
-  const { capSettings = {}, yearKey } = context || {};
+  const { capSettings = {} } = context || {};
   const { salaryCap = 0, firstApron = 0, secondApron = 0 } = capSettings;
 
   // Teams above second apron can only take back equal salary

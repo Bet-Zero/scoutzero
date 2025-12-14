@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { setDoc, writeBatch } from 'firebase/firestore';
+import { writeBatch } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
 import { evalRef, seasonRef, playerRef } from '@/data/firestorePaths';
 

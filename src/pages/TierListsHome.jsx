@@ -95,7 +95,7 @@ const TierListsHome = () => {
           <div className="text-white/60">Loading lists...</div>
         ) : lists.length === 0 ? (
           <div className="text-white/40">
-            You haven't created any tier lists yet.
+            You haven&apos;t created any tier lists yet.
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -4,7 +4,7 @@ import { getTeamColors } from '@/shared/utils/formatting/teamColors';
 import { getTeamLogoFilename } from '@/shared/utils/formatting/teamLogos';
 import RosterSection from './RosterSection';
 
-const RosterExportCapture = React.forwardRef(({ roster, team }, ref) => {
+const RosterExportCapture = React.forwardRef(function RosterExportCapture({ roster, team }, ref) {
   const { primary, secondary } = getTeamColors(team?.id);
 
   return (

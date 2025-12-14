@@ -20,12 +20,6 @@ const ListExportWrapper = ({
 }) => {
   if (!isExport) return null;
 
-  const flattenTieredPlayers = () => {
-    return tiers.flatMap((tier) =>
-      tier.players.map((p) => playersMap[p.id] || p).filter(Boolean)
-    );
-  };
-
   let Row;
   if (compact) {
     Row = twoColumn

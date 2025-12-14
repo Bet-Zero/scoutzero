@@ -137,7 +137,7 @@ const ListManager = () => {
         updatedAt: new Date(),
       });
       toast.success('List saved!');
-    } catch (err) {
+    } catch {
       toast.error('Failed to save list');
     } finally {
       setIsSaving(false);

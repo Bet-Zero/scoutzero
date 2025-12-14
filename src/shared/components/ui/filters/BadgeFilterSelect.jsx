@@ -18,7 +18,6 @@ const BadgeFilterSelect = ({
   badgeClass = 'px-2 py-1 rounded cursor-pointer',
   selectedBadgeClass = 'bg-yellow-500 text-black font-semibold',
   unselectedBadgeClass = 'bg-[#2a2a2a] text-white/70 hover:bg-[#3a3a3a]',
-  cols = 4,
   iconSize = 'h-4 w-4',
 }) => {
   const [open, setOpen] = useState(false);

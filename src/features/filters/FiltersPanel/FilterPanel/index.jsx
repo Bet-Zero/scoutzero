@@ -11,7 +11,6 @@ import BadgeFilters from './sections/BadgeFilters';
 const FilterPanel = ({
   filters,
   setFilters,
-  getDefaultFilters,
   onClearFilters,
   onClose,
 }) => {

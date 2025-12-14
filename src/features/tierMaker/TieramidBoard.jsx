@@ -142,7 +142,7 @@ const TieramidBoard = ({ onScreenshotChange }) => {
         tierOrder: rowOrder,
       });
       toast.success('Pyramid saved!');
-    } catch (err) {
+    } catch {
       toast.error('Failed to save');
     } finally {
       setIsSaving(false);
@@ -165,7 +165,7 @@ const TieramidBoard = ({ onScreenshotChange }) => {
         setSelectedTierList(id);
         toast.success('Pyramid loaded!');
       }
-    } catch (err) {
+    } catch {
       toast.error('Failed to load');
     }
   };
@@ -617,7 +617,7 @@ const TieramidBoard = ({ onScreenshotChange }) => {
           <button
             onClick={() => {
               setScreenshotMode(true);
-              onScreenshotChange && onScreenshotChange(true);
+              if (onScreenshotChange) onScreenshotChange(true);
             }}
             className="px-4 py-2 rounded bg-black/20 text-white hover:bg-white/20"
           >
@@ -630,7 +630,7 @@ const TieramidBoard = ({ onScreenshotChange }) => {
           <button
             onClick={() => {
               setScreenshotMode(false);
-              onScreenshotChange && onScreenshotChange(false);
+              if (onScreenshotChange) onScreenshotChange(false);
             }}
             className="w-full h-full rounded bg-black/20 text-white opacity-0 group-hover:opacity-90 transition-opacity"
           >

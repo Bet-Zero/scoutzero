@@ -21,11 +21,11 @@ describe('Validation Performance Tests', () => {
     const trade = makeComplexTrade();
 
     // First validation - should populate cache
-    const result1 = validateTrade(trade);
+    validateTrade(trade);
     const metrics1 = performanceMonitor.getReport();
 
     // Second validation - should get some cache benefits
-    const result2 = validateTrade(trade);
+    validateTrade(trade);
     const metrics2 = performanceMonitor.getReport();
 
     // Cache should be populated (either from first or second validation)

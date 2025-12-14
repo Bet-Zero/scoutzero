@@ -86,7 +86,9 @@ const PlayerHeader = ({ player, selectedPlayer }) => {
                     }
                     return age >= 0 ? age : 'N/A';
                   }
-                } catch {}
+                } catch {
+                  // Ignore parse errors
+                }
               }
               return 'N/A';
             })()}

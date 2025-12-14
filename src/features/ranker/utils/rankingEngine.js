@@ -38,7 +38,9 @@ const canInfer = (a, b, graph, visited = new Set()) => {
 // ========== 🧱 PHASED COMPARISON SYSTEM ==========
 
 // Track internal pairing state
-const getNextPhasePair = (players, comparisons) => {
+// @deprecated Currently unused - reserved for future pairing algorithm
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _getNextPhasePair = (players, comparisons) => {
   const ids = getPlayerIds(players);
   const graph = buildGraph(comparisons);
   const usedInComparison = new Set();

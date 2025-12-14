@@ -197,8 +197,10 @@ export function filterPlayers(players = [], filters) {
 
 /**
  * Check if a player has a $0.0M contract indicating training camp invite or non-guaranteed deal
+ * @deprecated Currently unused - reserved for future filtering logic
  */
-function checkForZeroContract(player) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _checkForZeroContract(player) {
   // Check current year salary from contract subcollection
   const currentYear = 2025;
 
@@ -243,8 +245,10 @@ function checkForZeroContract(player) {
 /**
  * Determine if a player is likely new (not in last year's 531 established players)
  * by checking for lack of established data that veterans would have
+ * @deprecated Currently unused - reserved for future filtering logic
  */
-function isLikelyNewPlayer(player) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _isLikelyNewPlayer(player) {
   // Players with existing grades/traits are likely established (from previous 531)
   if (player.traits && Object.keys(player.traits).length > 0) {
     return false;
@@ -287,7 +291,7 @@ export function sortPlayers(
     const getValue = (player, field) => {
       if (traitSort.includes(field)) return player.traits?.[field] ?? -1;
       // Stats are enriched from seasons subcollection and spread to top level
-      if (player.hasOwnProperty(field) && typeof player[field] === 'number')
+      if (Object.prototype.hasOwnProperty.call(player, field) && typeof player[field] === 'number')
         return player[field];
       switch (field) {
         case 'name':
@@ -308,7 +312,7 @@ export function sortPlayers(
               player.freeAgentYear || player.bio?.display?.freeAgentYear
             ) - 2024 || -1
           );
-        case 'totalContract':
+        case 'totalContract': {
           // Contract data is in contracts subcollection
           const contractData =
             player.primaryContract ||
@@ -322,6 +326,7 @@ export function sortPlayers(
                 return isNaN(val) ? sum : sum + val;
               }, 0)
             : -1;
+        }
         case 'overall':
           return parseFloat(player.overallGrade) ?? -1;
         default:

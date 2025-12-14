@@ -29,14 +29,12 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
     rosterName,
     setRosterName,
     saveNewRoster,
-    clearRoster,
   } = useRosterManager(allPlayers, isLoading);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [slotTarget, setSlotTarget] = useState({ section: '', index: -1 });
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewRoster, setPreviewRoster] = useState(null);
   const [screenshotMode, setScreenshotMode] = useState(false);
 
   useEffect(() => {
@@ -61,11 +59,6 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
   const handleSaveFromModal = async () => {
     await saveNewRoster();
     setSaveModalOpen(false);
-  };
-
-  const handlePreview = () => {
-    setPreviewRoster(JSON.parse(JSON.stringify(roster)));
-    setPreviewOpen(true);
   };
 
   const { primary, secondary } = getTeamColors(selectedTeam?.id);
@@ -221,7 +214,7 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
             <RosterPreviewModal
               open={previewOpen}
               onClose={() => setPreviewOpen(false)}
-              roster={previewRoster}
+              roster={roster}
               team={selectedTeam}
             />
           )}

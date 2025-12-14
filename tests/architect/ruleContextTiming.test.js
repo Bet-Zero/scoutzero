@@ -10,7 +10,7 @@
  * @file tests/architect/ruleContextTiming.test.js
  */
 
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   buildRuleContextForPlayerMove,
   buildMinimalRuleContext,
@@ -18,16 +18,10 @@ import {
   RuleContextValidationError,
 } from '@/features/architect/utils/buildRuleContext';
 import {
-  computeMaxSalary,
   computeMaxSalaryFromRuleContext,
   computeMinimumSalary,
 } from '@/features/architect/utils/salaryEngine';
 import { getCapForSeason } from '@/features/architect/utils/capHelpers';
-import {
-  normalizeToSeasonId,
-  parseSeasonId,
-  prevSeason,
-} from '@/features/architect/utils/seasonHelpers';
 
 /**
  * Test Fixtures
@@ -576,9 +570,7 @@ describe('View Season vs Operation Season', () => {
 
   it('should support different seasons for multi-year cap table columns', () => {
     // Scenario: User viewing multi-year cap table, clicks on 2029-30 column
-    const currentViewSeason = '2025-26';
     const clickedColumnSeason = '2029-30';
-
     const ctx = buildRuleContextForPlayerMove({
       player: LEBRON_2026_UFA,
       teamState: SAMPLE_TEAM_STATE,

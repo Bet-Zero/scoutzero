@@ -16,8 +16,6 @@ const ListPreviewModal = ({
   title = '',
   subtitle = '',
 }) => {
-  if (!open) return null;
-
   const previewRef = useRef(null);
   const [scale, setScale] = useState(0.6);
 
@@ -55,6 +53,8 @@ const ListPreviewModal = ({
       pixelRatio: 2,
     });
   };
+
+  if (!open) return null;
 
   return (
     <div

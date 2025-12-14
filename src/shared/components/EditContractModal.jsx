@@ -82,7 +82,7 @@ const EditContractModal = ({
   actionLabelsOverride = {},
 }) => {
   const [selectedAction, setSelectedAction] = useState('');
-  const [showValidationErrors, setShowValidationErrors] = useState(false);
+  const [showValidationErrors] = useState(false);
   const [extension, setExtension] = useState({
     years: 1,
     contractType: 'Standard',

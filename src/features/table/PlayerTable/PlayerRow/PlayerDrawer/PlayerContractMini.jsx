@@ -88,7 +88,7 @@ const PlayerContractMini = ({
         {displaySeasons.map((season, i) => (
           <div key={i} className="flex justify-between text-[11px]">
             <span className="text-white/50 w-[40px] tracking-tight">
-              '{season.year.toString().slice(-2)}-
+              &apos;{season.year.toString().slice(-2)}-
               {(season.year + 1).toString().slice(-2)}
             </span>
             <span className="flex items-center gap-1">

@@ -1,6 +1,5 @@
 import React from 'react';
 import BadgeMini from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer/BadgeMini';
-import OverallBlurbMini from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer/OverallBlurbMini';
 import PlayerTraitsMiniGrid from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer/PlayerTraitsMiniGrid';
 import PlayerSubRolesMini from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer/PlayerSubRolesMini';
 import PlayerStatsMini from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer/PlayerStatsMini';

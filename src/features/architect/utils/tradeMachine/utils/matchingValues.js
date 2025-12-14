@@ -1,7 +1,7 @@
 // Handles Base Year Compensation (BYC), trade kicker, and poison pill calculations
 import { getSalaryForYear } from '../../tradeHelpers.js';
 import { BYC_PERCENT } from '../constants/cbaConstants.js';
-import { getCapHitForSeason, yearToSeason, normalizeYearInput } from './seasonUtils.js';
+import { getCapHitForSeason, normalizeYearInput } from './seasonUtils.js';
 
 export function getMatchingValue(player, yearKey, isOutgoing = false) {
   const salary = getSalaryForYear(player, yearKey);
@@ -206,7 +206,9 @@ export function computeMatchingValues({
   });
 }
 
-function computeBYCOutgoing(player) {
+// @deprecated Currently unused - reserved for future BYC calculations
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _computeBYCOutgoing(player) {
   if (!player.isBYC) return player.newSalary;
 
   // For BYC players, outgoing value is max of:

@@ -119,7 +119,7 @@ export function enrichPlayerData(playerData) {
 
       let raw = s.salary;
       if (typeof raw === 'string') {
-        const cleaned = raw.replace(/[\$,]/g, '').trim();
+        const cleaned = raw.replace(/[$,]/g, '').trim();
         if (cleaned.endsWith('M')) {
           const value = parseFloat(cleaned.slice(0, -1));
           salaryMap[key] = Number.isFinite(value) ? value : null;

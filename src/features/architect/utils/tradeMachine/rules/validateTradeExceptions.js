@@ -17,7 +17,6 @@ export function validateTradeExceptions(team) {
     incomingPlayers = [],
     outgoingPlayers = [],
     sends = [],
-    teamName = 'Unknown Team',
     appliedTPEs = [], // Use appliedTPEs from trade input
     tradeExceptions = [], // Legacy: TPE objects from team
     salaryOut = 0,

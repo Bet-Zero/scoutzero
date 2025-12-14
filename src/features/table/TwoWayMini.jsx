@@ -1,6 +1,6 @@
 import React from 'react';
 
-const TwoWayMini = ({ rating = 0, orientation = 'BALANCED' }) => {
+const TwoWayMini = ({ rating = 0 }) => {
   return (
     <div className="relative flex items-center justify-center mr-4 w-24">
       {/* Meter bar (centered visual focus) */}

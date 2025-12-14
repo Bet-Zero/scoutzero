@@ -11,7 +11,7 @@
  * @file tests/architect/playerRulesProfile.test.js
  */
 
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 // NOTE: This test intentionally imports INTERNAL implementation directly.
 // Most Architect code must import from salaryEngine instead:
@@ -26,7 +26,6 @@ import {
   computeQualifyingOffer,
   computeMaxSalary,
   BIRD_RIGHTS_TYPES,
-  MAX_SALARY_TIERS,
 } from '@/features/architect/utils/playerRulesProfile/index.js';
 
 /**
