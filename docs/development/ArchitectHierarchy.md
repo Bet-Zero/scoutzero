@@ -176,6 +176,7 @@ utils/
   seasonManager.js
   seasonUtils.js
   stepienUtils.js
+  subscribeArchitectPlayerData.ts
   teamLoader.js
   timingUtils.js
   tradeHelpers.js
@@ -251,5 +252,5 @@ utils/
 ```
 
 ---
-*Generated on: 2025-12-13T14:54:17.419Z*
+*Generated on: 2025-12-14T00:17:55.141Z*
 *Auto-updated by: npm run docs*
