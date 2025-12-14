@@ -64,7 +64,8 @@ export function enforceEligibility(
   return violations;
 }
 
-function isWithinOneYear(date1, date2) {
+// Helper function for date comparison
+function _isWithinOneYear(date1, date2) {
   return (
     Math.abs(new Date(date1) - new Date(date2)) < 365 * 24 * 60 * 60 * 1000
   );

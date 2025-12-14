@@ -5,12 +5,6 @@ import TeamLogo from '@/shared/components/TeamLogo';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
 
 const ListExportPlayerRowTwoColumn = ({ player, rank }) => {
-  const nameParts = (
-    player.bio?.displayName ||
-    player.name ||
-    'Unknown Player'
-  ).split(' ');
-
   const rawPosition = player.bio?.position || player.formattedPosition || '';
   const position = getPlayerPositionLabel(rawPosition) || '—';
 

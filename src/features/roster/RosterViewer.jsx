@@ -35,7 +35,6 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
   const [slotTarget, setSlotTarget] = useState({ section: '', index: -1 });
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewRoster, setPreviewRoster] = useState(null);
   const [screenshotMode, setScreenshotMode] = useState(false);
 
   useEffect(() => {
@@ -215,7 +214,7 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
             <RosterPreviewModal
               open={previewOpen}
               onClose={() => setPreviewOpen(false)}
-              roster={previewRoster}
+              roster={roster}
               team={selectedTeam}
             />
           )}

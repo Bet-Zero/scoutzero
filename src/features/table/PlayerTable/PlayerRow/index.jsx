@@ -11,11 +11,6 @@ import { getCurrentSeasonYear, getYearsRemaining } from '@/shared/utils/contract
 
 const PlayerRow = ({ player }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const nameParts = (
-    player.bio?.displayName ||
-    player.name ||
-    'Unknown Player'
-  ).split(' ');
 
   return (
     <div className="relative w-full max-w-[1100px] border border-black mx-auto mb-2">

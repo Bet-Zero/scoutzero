@@ -1,5 +1,3 @@
-import { getApronStatus } from '../../capUtils';
-
 const defaultContext = {
   asOfDate: new Date().toISOString(),
   daysUntilTrade: 0,
@@ -8,7 +6,7 @@ const defaultContext = {
 
 export function enforceConsent(
   team,
-  { warn = () => {}, reject = () => {} } = {}
+  { reject = () => {} } = {}
 ) {
   const violations = [];
   const { incomingPlayers = [] } = team;
@@ -38,7 +36,7 @@ export function enforceConsent(
 export function enforceTiming(
   team,
   ctx = defaultContext,
-  { warn = () => {}, reject = () => {} } = {}
+  { reject = () => {} } = {}
 ) {
   const violations = [];
   const { incomingPlayers = [] } = team;
@@ -76,7 +74,7 @@ export function enforceTiming(
 export function enforceEligibility(
   team,
   ctx = defaultContext,
-  { warn = () => {}, reject = () => {} } = {}
+  { reject = () => {} } = {}
 ) {
   const violations = [];
   const { incomingPlayers = [] } = team;
@@ -102,8 +100,8 @@ export function enforceEligibility(
 
 export function enforceRosterWindow(
   team,
-  ctx = {},
-  { warn = () => {}, reject = () => {} } = {}
+  _ctx = {},
+  { reject = () => {} } = {}
 ) {
   const violations = [];
   const { projectedRosterCount = 0, projectedTwoWayCount = 0 } = team;

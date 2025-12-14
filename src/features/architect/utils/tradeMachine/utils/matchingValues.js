@@ -206,6 +206,8 @@ export function computeMatchingValues({
   });
 }
 
+// @deprecated Currently unused - reserved for future BYC calculations
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function _computeBYCOutgoing(player) {
   if (!player.isBYC) return player.newSalary;
 
