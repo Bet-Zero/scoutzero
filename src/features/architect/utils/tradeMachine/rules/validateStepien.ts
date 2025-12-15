@@ -42,7 +42,7 @@ export function validateStepien(team: TradeTeam): StepienResult {
   // Normalize outgoing picks to have proper typing
   const normalizedOutgoingPicks: NormalizedDraftPick[] = outgoingPicks.map((p) => ({
     year: typeof p.year === 'number' ? p.year : 
-          typeof p.year === 'string' ? parseInt(p.year, 10) : 0,
+          typeof p.year === 'string' ? parseInt(p.year, 10) : yearKey,
     round: typeof p.round === 'number' ? p.round :
            typeof p.round === 'string' ? parseInt(p.round, 10) : 1,
     isSwap: p.isSwap === true,
@@ -53,7 +53,7 @@ export function validateStepien(team: TradeTeam): StepienResult {
   // Build calendar with existing and outgoing picks
   const existingPicks: NormalizedDraftPick[] = (team.team?.picks || []).map((p) => ({
     year: typeof p.year === 'number' ? p.year : 
-          typeof p.year === 'string' ? parseInt(p.year, 10) : 0,
+          typeof p.year === 'string' ? parseInt(p.year, 10) : yearKey,
     round: typeof p.round === 'number' ? p.round :
            typeof p.round === 'string' ? parseInt(p.round, 10) : 1,
     isSwap: p.isSwap === true,
