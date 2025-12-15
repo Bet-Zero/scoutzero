@@ -100,14 +100,21 @@ export interface TradeTeam {
   salaryIn: number;
   teamTotalSalary?: number;
   projectedSalary?: number;
+  projectedRosterCount?: number;
+  initialRosterCount?: number;
   hardCapped?: boolean;
   hardCapTrigger?: string | null;
   absorptionMode?: string;
   incomingPlayers?: Array<Record<string, unknown>>;
   outgoingPlayers?: Array<Record<string, unknown>>;
+  outgoingPicks?: Array<Record<string, unknown>>;
+  postTradeStatus?: {
+    isAtOrAboveSecondApron?: boolean;
+  };
   team?: {
     hardCapTriggered?: boolean | 'FirstApron' | 'SecondApron';
     twoWayPlayers?: Array<Record<string, unknown>>;
+    picks?: Array<Record<string, unknown>>;
   };
   context?: {
     yearKey: number | string;
@@ -142,6 +149,10 @@ export interface RosterResult extends ValidationResult {
   rosterCounts?: {
     standard: number;
     twoWay: number;
+    projected?: number;
+    current?: number;
+    incomingTwoWay?: number;
+    outgoingTwoWay?: number;
   };
 }
 

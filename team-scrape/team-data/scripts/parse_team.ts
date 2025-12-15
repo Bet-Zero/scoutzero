@@ -29,6 +29,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import * as cheerio from 'cheerio';
 import got from 'got';
+import type { Element, AnyNode } from 'domhandler';
 
 type Money = number;
 
@@ -56,13 +57,14 @@ function findHeading(
   }
   return null;
 }
-function forwardUntilNextH3($: cheerio.CheerioAPI, start: cheerio.Cheerio) {
-  const out: cheerio.Element[] = [];
+function forwardUntilNextH3($: cheerio.CheerioAPI, start: cheerio.Cheerio<AnyNode>) {
+  const out: Element[] = [];
   let cur = start.next();
   while (cur.length) {
-    const tag = (cur.get(0) as any)?.name?.toLowerCase?.();
+    const node = cur.get(0);
+    const tag = node && 'name' in node ? (node as Element).name?.toLowerCase?.() : undefined;
     if (tag === 'h3') break;
-    out.push(cur.get(0));
+    if (node) out.push(node as Element);
     cur = cur.next();
   }
   return $(out);
@@ -348,6 +350,7 @@ async function main() {
     notes?: string;
     playerId?: string;
     sourceUrl?: string;
+    season?: string;
   }> = [];
   {
     const h3 = findHeading($, 'h3', 'HOLDS');
@@ -639,12 +642,13 @@ async function main() {
       const h5 = findHeading($, 'h5', 'Season Display');
       if (h5) {
         const block = (() => {
-          const out: cheerio.Element[] = [];
+          const out: Element[] = [];
           let cur = h5.next();
           while (cur.length) {
-            const tag = (cur.get(0) as any)?.name?.toLowerCase?.();
+            const node = cur.get(0);
+            const tag = node && 'name' in node ? (node as Element).name?.toLowerCase?.() : undefined;
             if (tag === 'h3') break;
-            out.push(cur.get(0));
+            if (node) out.push(node as Element);
             cur = cur.next();
           }
           return $(out);

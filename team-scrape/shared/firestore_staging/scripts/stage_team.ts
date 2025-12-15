@@ -639,7 +639,7 @@ function normalizeTotals(
   const mapNumber = (value: unknown): number | undefined =>
     typeof value === 'number' ? value : undefined;
 
-  const assignments: Array<[keyof BaseTeamDoc['totals'], number | undefined]> =
+  const assignments: Array<[keyof BaseTeamDoc['totals'], number | boolean | undefined]> =
     [
       ['totalSalary', mapNumber(rawTotals.totalSalary)],
       ['capHit', mapNumber(rawTotals.capHit)],

@@ -15,8 +15,8 @@ import {
   ContractDocZ,
   SeasonDocZ,
   ContractsViewDocZ,
-} from '../../src/schemas/players_v2';
-import { BasePlayerDocZ } from '../../src/schemas/architect';
+} from '@/schemas/players_v2';
+import { BasePlayerDocZ } from '@/schemas/architect';
 
 const STAGE_DIR = path.resolve('player-scrape/firestore_staging/_artifacts/output');
 

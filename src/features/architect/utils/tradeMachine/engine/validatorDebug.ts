@@ -1,5 +1,5 @@
 import debug from './tradeDebug.js';
-import { ValidationResult } from './types';
+import { ValidationResult } from '../constants/types';
 
 interface ValidationLog {
   validator: string;

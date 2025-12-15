@@ -10,6 +10,8 @@
  *  - Plan: plans/salary-engine-audit/plan.md
  */
 
+import type { SeasonId } from '@/features/architect/utils/seasonHelpers';
+
 // Re-export RuleContext types for convenience
 export type { RuleContext, ArchitectPlayerRuleContext } from '@/features/architect/types/ruleContext';
 export type { SeasonId } from '@/features/architect/utils/seasonHelpers';
