@@ -16,6 +16,11 @@ import type { Element, AnyNode } from 'domhandler';
 
 const norm = (s: string) => (s || '').replace(/\s+/g, ' ').trim();
 
+/** Type guard to check if a node is an Element (has a tag name) */
+function isElement(node: AnyNode | undefined | null): node is Element {
+  return node != null && 'name' in node && typeof (node as Element).name === 'string';
+}
+
 function findHeading(
   $: cheerio.CheerioAPI,
   tag: 'h3' | 'h5',
@@ -36,9 +41,10 @@ function forwardUntilNextH3($: cheerio.CheerioAPI, start: cheerio.Cheerio<AnyNod
   let cur = start.next();
   while (cur.length) {
     const node = cur.get(0);
-    const name = node && 'name' in node ? (node as Element).name?.toLowerCase?.() : undefined;
-    if (name === 'h3') break;
-    if (node) out.push(node as Element);
+    if (isElement(node)) {
+      if (node.name.toLowerCase() === 'h3') break;
+      out.push(node);
+    }
     cur = cur.next();
   }
   return $(out);
@@ -258,9 +264,10 @@ async function main() {
       let cur = h5Season.next();
       while (cur.length) {
         const node = cur.get(0);
-        const tag = node && 'name' in node ? (node as Element).name?.toLowerCase?.() : undefined;
-        if (tag === 'h3') break;
-        if (node) out.push(node as Element);
+        if (isElement(node)) {
+          if (node.name.toLowerCase() === 'h3') break;
+          out.push(node);
+        }
         cur = cur.next();
       }
       return $(out);

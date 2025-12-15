@@ -59,13 +59,16 @@ const ALL_TEAMS = [
   { code: 'WAS', name: 'Washington Wizards', slug: 'Washington-Wizards' },
 ];
 
+/** Type alias for a single team entry */
+type Team = (typeof ALL_TEAMS)[number];
+
 // Filter to just teams we need immediately
 const TEAMS_TO_DISCOVER =
   process.env.TEAMS?.split(',').map((c) => c.trim()) ||
   ALL_TEAMS.map((t) => t.code); // Changed from ['ATL', 'BKN'] to all teams
 
 async function testTeamId(
-  team: (typeof ALL_TEAMS)[0],
+  team: Team,
   id: number
 ): Promise<boolean> {
   const browser = await chromium.launch({
@@ -105,7 +108,7 @@ async function testTeamId(
   }
 }
 
-async function discoverTeamId(team: (typeof ALL_TEAMS)[0]): Promise<number | null> {
+async function discoverTeamId(team: Team): Promise<number | null> {
   console.log(`🔍 Testing ${team.code} (${team.name})...`);
 
   // Test IDs 1-50
