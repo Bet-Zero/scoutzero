@@ -120,7 +120,7 @@ export const CurrentContractViewZ = z
         eligibleFor: z.array(z.string()).optional()
       })
       .optional(),
-    salaryByYear: z.record(YearZ, MoneyZ).optional(),
+    salaryByYear: z.record(z.string(), MoneyZ).optional(),
     currentSalary: MoneyZ.optional(),
     yearsRemaining: z.number().int().optional(),
     averageAnnualValue: MoneyZ.optional(),

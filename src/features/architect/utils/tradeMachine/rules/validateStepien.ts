@@ -3,12 +3,13 @@ import {
   passesStepienRule,
 } from '@/features/architect/utils/stepienUtils.js';
 import { isFrozenPick } from '@/features/architect/utils/draftPickUtils.js';
-import { validatorDebug } from './validatorDebug.js';
-import { TradeTeam, StepienResult, TeamContext } from './types';
+import { validatorDebug } from '../engine/validatorDebug';
+import { TradeTeam, StepienResult, TeamContext } from '../constants/types';
 
-interface DraftPick {
-  year: number | string;
-  round: number | string;
+// Interface for normalized draft picks with number types
+interface NormalizedDraftPick {
+  year: number;
+  round: number;
   isSwap?: boolean;
   protection?: string;
   originalTeam?: string;
@@ -32,14 +33,37 @@ export function validateStepien(team: TradeTeam): StepienResult {
   const violations: string[] = [];
   const outgoingPicks = team.outgoingPicks || [];
   const context = team.context as TeamContext;
-  const yearKey = context.yearKey || new Date().getFullYear();
+  const yearKey = typeof context.yearKey === 'number' 
+    ? context.yearKey 
+    : (typeof context.yearKey === 'string' ? parseInt(context.yearKey, 10) : new Date().getFullYear());
 
   console.log('yearKey:', yearKey);
 
+  // Normalize outgoing picks to have proper typing
+  const normalizedOutgoingPicks: NormalizedDraftPick[] = outgoingPicks.map((p) => ({
+    year: typeof p.year === 'number' ? p.year : 
+          typeof p.year === 'string' ? parseInt(p.year, 10) : 0,
+    round: typeof p.round === 'number' ? p.round :
+           typeof p.round === 'string' ? parseInt(p.round, 10) : 1,
+    isSwap: p.isSwap === true,
+    protection: typeof p.protection === 'string' ? p.protection : undefined,
+    originalTeam: typeof p.originalTeam === 'string' ? p.originalTeam : undefined,
+  }));
+
   // Build calendar with existing and outgoing picks
+  const existingPicks: NormalizedDraftPick[] = (team.team?.picks || []).map((p) => ({
+    year: typeof p.year === 'number' ? p.year : 
+          typeof p.year === 'string' ? parseInt(p.year, 10) : 0,
+    round: typeof p.round === 'number' ? p.round :
+           typeof p.round === 'string' ? parseInt(p.round, 10) : 1,
+    isSwap: p.isSwap === true,
+    protection: typeof p.protection === 'string' ? p.protection : undefined,
+    originalTeam: typeof p.originalTeam === 'string' ? p.originalTeam : undefined,
+  }));
+
   const calendar = buildFirstRoundCalendar({
-    existingPicks: team.team?.picks || [],
-    picksOfferedInTrade: outgoingPicks as DraftPick[],
+    existingPicks,
+    picksOfferedInTrade: normalizedOutgoingPicks,
   });
 
   // Check consecutive unprotected firsts
@@ -49,9 +73,7 @@ export function validateStepien(team: TradeTeam): StepienResult {
 
   // Check 7-year limit
   const farthestYear = Math.max(
-    ...outgoingPicks.map((p) =>
-      typeof p.year === 'string' ? parseInt(p.year) : p.year || 0
-    ),
+    ...normalizedOutgoingPicks.map((p) => p.year || 0),
     yearKey
   );
   if (farthestYear - yearKey > 7) {
@@ -61,7 +83,7 @@ export function validateStepien(team: TradeTeam): StepienResult {
   // Check second apron frozen pick restriction
   if (team.postTradeStatus?.isAtOrAboveSecondApron) {
     console.log('Team is at or above second apron, checking frozen picks...');
-    const hasOwnFrozenPick = (outgoingPicks as DraftPick[]).some((p) => {
+    const hasOwnFrozenPick = normalizedOutgoingPicks.some((p) => {
       const result = isFrozenPick(p, {
         teamId: team.teamId || '',
         teamIsAtOrAboveSecondApron: true,

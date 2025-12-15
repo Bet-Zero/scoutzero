@@ -1,7 +1,7 @@
 import { passesRosterWindow } from '@/features/architect/utils/rosterUtils.js';
 import { validationFlags } from '@/config/validationFlags.js';
-import { validatorDebug } from './validatorDebug.js';
-import { TradeTeam, RosterResult } from './types';
+import { validatorDebug } from '../engine/validatorDebug';
+import { TradeTeam, RosterResult } from '../constants/types';
 
 /**
  * Validates roster requirements including:

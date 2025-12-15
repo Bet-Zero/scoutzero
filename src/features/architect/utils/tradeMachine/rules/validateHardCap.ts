@@ -2,8 +2,8 @@ import {
   wouldExceedHardCap,
   formatCurrency,
 } from '@/features/architect/utils/tradeHelpers';
-import { validatorDebug } from '@/features/architect/utils/tradeMachine/engine/validatorDebug';
-import { TradeTeam, HardCapResult } from './types';
+import { validatorDebug } from '../engine/validatorDebug';
+import { TradeTeam, HardCapResult } from '../constants/types';
 
 type HardCapType = 'FirstApron' | 'SecondApron' | null;
 

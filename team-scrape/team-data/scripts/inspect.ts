@@ -12,12 +12,15 @@
 
 import fs from 'node:fs/promises';
 import * as cheerio from 'cheerio';
+import type { Element, AnyNode } from 'domhandler';
 
 const norm = (s: string) => (s || '').replace(/\s+/g, ' ').trim();
 
 function listHeadings($: cheerio.CheerioAPI, tag: 'h3' | 'h5') {
   const items: string[] = [];
-  $(tag).each((_, el) => items.push(norm($(el).text())));
+  $(tag).each((_, el) => {
+    items.push(norm($(el).text()));
+  });
   return items;
 }
 
@@ -27,7 +30,7 @@ function findHeading(
   includes: string
 ) {
   const needle = includes.toLowerCase();
-  let found: cheerio.Cheerio | null = null;
+  let found: cheerio.Cheerio<AnyNode> | null = null;
   $(tag).each((_, el) => {
     const t = norm($(el).text()).toLowerCase();
     if (!found && t.includes(needle)) found = $(el);
@@ -35,13 +38,14 @@ function findHeading(
   return found;
 }
 
-function forwardUntilNextH3($: cheerio.CheerioAPI, start: cheerio.Cheerio) {
-  const out: cheerio.Element[] = [];
+function forwardUntilNextH3($: cheerio.CheerioAPI, start: cheerio.Cheerio<AnyNode>) {
+  const out: Element[] = [];
   let cur = start.next();
   while (cur.length) {
-    const name = (cur.get(0) as any)?.name?.toLowerCase?.();
+    const node = cur.get(0);
+    const name = node && 'name' in node ? (node as Element).name?.toLowerCase?.() : undefined;
     if (name === 'h3') break;
-    out.push(cur.get(0));
+    if (node) out.push(node as Element);
     cur = cur.next();
   }
   return $(out);
@@ -76,12 +80,13 @@ function forwardUntilNextH3($: cheerio.CheerioAPI, start: cheerio.Cheerio) {
       t.tag === 'h3'
         ? forwardUntilNextH3($, h)
         : (() => {
-            const out: cheerio.Element[] = [];
+            const out: Element[] = [];
             let cur = h.next();
             while (cur.length) {
-              const name = (cur.get(0) as any)?.name?.toLowerCase?.();
+              const node = cur.get(0);
+              const name = node && 'name' in node ? (node as Element).name?.toLowerCase?.() : undefined;
               if (name === 'h3') break;
-              out.push(cur.get(0));
+              if (node) out.push(node as Element);
               cur = cur.next();
             }
             return $(out);
@@ -92,7 +97,7 @@ function forwardUntilNextH3($: cheerio.CheerioAPI, start: cheerio.Cheerio) {
     sib.each((_, el) => {
       if (idx >= 10) return;
       idx++;
-      const tag = (el as any).name || '(node)';
+      const tag = 'name' in el ? el.name : '(node)';
       const $el = $(el);
       const cls = ($el.attr('class') || '').trim();
       const caption = norm($el.find('caption').first().text());

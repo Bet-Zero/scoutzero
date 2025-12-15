@@ -12,6 +12,7 @@
 
 import fs from 'node:fs/promises';
 import * as cheerio from 'cheerio';
+import type { Element, AnyNode } from 'domhandler';
 
 const norm = (s: string) => (s || '').replace(/\s+/g, ' ').trim();
 
@@ -30,13 +31,14 @@ function findHeading(
   return null;
 }
 
-function forwardUntilNextH3($: cheerio.CheerioAPI, start: cheerio.Cheerio) {
-  const out: cheerio.Element[] = [];
+function forwardUntilNextH3($: cheerio.CheerioAPI, start: cheerio.Cheerio<AnyNode>) {
+  const out: Element[] = [];
   let cur = start.next();
   while (cur.length) {
-    const name = (cur.get(0) as any)?.name?.toLowerCase?.();
+    const node = cur.get(0);
+    const name = node && 'name' in node ? (node as Element).name?.toLowerCase?.() : undefined;
     if (name === 'h3') break;
-    out.push(cur.get(0));
+    if (node) out.push(node as Element);
     cur = cur.next();
   }
   return $(out);
@@ -44,7 +46,7 @@ function forwardUntilNextH3($: cheerio.CheerioAPI, start: cheerio.Cheerio) {
 
 function pickRealTableAfterHeading(
   $: cheerio.CheerioAPI,
-  heading: cheerio.Cheerio,
+  heading: cheerio.Cheerio<AnyNode>,
   headerNeedles: string[]
 ) {
   const sib = forwardUntilNextH3($, heading);
@@ -113,7 +115,7 @@ async function main() {
         .first();
       if (wrapper.length) {
         // each row typically has a player anchor, amounts, and dates
-        const rows: cheerio.Cheerio[] = [];
+        const rows: cheerio.Cheerio<AnyNode>[] = [];
         // heuristic: a row is the closest block container around each player link
         wrapper.find('a[href^="/players/"]').each((_, a) => {
           const row = $(a).closest('div, tr, li'); // pick nearest container
@@ -252,12 +254,13 @@ async function main() {
   if (h5Season) {
     // gather siblings until next <h3>
     const block = (() => {
-      const out: cheerio.Element[] = [];
+      const out: Element[] = [];
       let cur = h5Season.next();
       while (cur.length) {
-        const tag = (cur.get(0) as any)?.name?.toLowerCase?.();
+        const node = cur.get(0);
+        const tag = node && 'name' in node ? (node as Element).name?.toLowerCase?.() : undefined;
         if (tag === 'h3') break;
-        out.push(cur.get(0));
+        if (node) out.push(node as Element);
         cur = cur.next();
       }
       return $(out);

@@ -9,7 +9,7 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { BaseTeamDoc } from '../config/team_scrape_schema.ts';
+import { BaseTeamDoc } from '../config/team_scrape_schema';
 
 async function validateOutput() {
   try {
@@ -43,8 +43,8 @@ async function validateOutput() {
     } else {
       console.log('❌ Validation failed!');
       console.log('\n📋 Errors:');
-      if (result.error && result.error.errors) {
-        result.error.errors.forEach((err, i) => {
+      if (result.error && result.error.issues) {
+        result.error.issues.forEach((err, i) => {
           console.log(`  ${i + 1}. ${err.path.join('.')} - ${err.message}`);
         });
       } else {

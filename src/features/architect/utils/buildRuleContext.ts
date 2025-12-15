@@ -65,7 +65,7 @@ export interface BuildRuleContextInput {
     contract?: {
       salariesByYear?: Array<{
         season: string;
-        salary: number;
+        salary?: number;
         capHit?: number;
         guaranteed?: boolean;
       }>;
@@ -515,12 +515,17 @@ function buildTeamContext(
     ceiling: cap.firstApron,
   };
 
-  const exceptionsAvailable = teamState?.exceptions ?? {
+  const defaultExceptions = {
     fullMLE: { available: true, remaining: cap.fullMLE },
     taxpayerMLE: { available: true, remaining: cap.taxpayerMLE },
     roomMLE: { available: true, remaining: cap.roomMLE },
     bae: { available: true, remaining: cap.bae },
-    tradeExceptions: [],
+    tradeExceptions: [] as Array<{ id: string; amount: number; expiresSeasonId?: string }>,
+  };
+
+  const exceptionsAvailable = {
+    ...defaultExceptions,
+    ...(teamState?.exceptions ?? {}),
   };
 
   // Normalize trade exceptions
@@ -545,7 +550,10 @@ function buildTeamContext(
     capSpaceAtOperation: capSpace,
     hardCapStatus,
     exceptionsAvailable: {
-      ...exceptionsAvailable,
+      fullMLE: exceptionsAvailable.fullMLE ?? defaultExceptions.fullMLE,
+      taxpayerMLE: exceptionsAvailable.taxpayerMLE ?? defaultExceptions.taxpayerMLE,
+      roomMLE: exceptionsAvailable.roomMLE ?? defaultExceptions.roomMLE,
+      bae: exceptionsAvailable.bae ?? defaultExceptions.bae,
       tradeExceptions,
     },
   };

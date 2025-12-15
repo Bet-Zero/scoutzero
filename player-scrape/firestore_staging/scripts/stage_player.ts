@@ -16,6 +16,8 @@ interface CliArgs {
 
 type PlayerIndexEntry = {
   fullName?: string;
+  displayName?: string;
+  position?: string;
   nbaId?: number;
   salarySwishSlug?: string;
   teamCode?: string;
@@ -64,7 +66,12 @@ type ContractSource = {
   noTradeClause?: boolean;
   tradeKicker?: number | null;
   tradeRestrictions?: string[];
-  birdRights?: { status?: string } | null;
+  birdRights?: { 
+    status?: string;
+    yearsOfService?: number;
+    yearsWithTeam?: number;
+    eligibleFor?: string[];
+  } | null;
   freeAgency?: {
     type?: string | null;
     year?: number;
@@ -1008,6 +1015,11 @@ async function stagePlayer({ playerId, outDir, validate }: CliArgs) {
           estimatedCapPercentage: undefined, // Optional field
         },
         futureContract: undefined,
+        source: {
+          provider: 'staging_generated',
+          playerPageUrl: '',
+          scrapedAt: new Date().toISOString(),
+        },
         lastUpdated: new Date().toISOString(),
         version: '1.0',
       };

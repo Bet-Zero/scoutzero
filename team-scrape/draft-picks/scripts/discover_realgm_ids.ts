@@ -65,7 +65,7 @@ const TEAMS_TO_DISCOVER =
   ALL_TEAMS.map((t) => t.code); // Changed from ['ATL', 'BKN'] to all teams
 
 async function testTeamId(
-  team: (typeof TEAMS)[0],
+  team: (typeof ALL_TEAMS)[0],
   id: number
 ): Promise<boolean> {
   const browser = await chromium.launch({
@@ -105,7 +105,7 @@ async function testTeamId(
   }
 }
 
-async function discoverTeamId(team: (typeof TEAMS)[0]): Promise<number | null> {
+async function discoverTeamId(team: (typeof ALL_TEAMS)[0]): Promise<number | null> {
   console.log(`🔍 Testing ${team.code} (${team.name})...`);
 
   // Test IDs 1-50
