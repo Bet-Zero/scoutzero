@@ -200,7 +200,9 @@ export async function signFreeAgent(worldId, teamCode, signingData) {
         (updatedTeam.exceptions.mle.remainingAmount || 0) - contractValue;
 
       // Trigger hard cap if using non-taxpayer MLE
-      if (!updatedTeam.exceptions.mle.type?.includes('taxpayer')) {
+      // Note: Must check for 'non-taxpayer' explicitly, not just !includes('taxpayer')
+      // because 'non-taxpayer' includes 'taxpayer' as a substring
+      if (updatedTeam.exceptions.mle.type === 'non-taxpayer') {
         updatedTeam.totals = updatedTeam.totals || {};
         updatedTeam.totals.isHardCapped = true;
         updatedTeam.totals.hardCapLevel = 'firstApron';

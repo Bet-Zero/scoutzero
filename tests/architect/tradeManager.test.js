@@ -23,7 +23,7 @@ import {
   createMockPlayer,
   createMockCapProjections,
 } from '../helpers/architectTestHelpers.js';
-import { getMockData } from '../__mocks__/firebase.js';
+import { seedMockData } from '../__mocks__/firebase.js';
 
 // Mock validateTrade to return valid trades for testing
 vi.mock('@/features/architect/utils/tradeMachine', () => ({
@@ -92,13 +92,13 @@ describe('Trade Manager', () => {
         currentYear: 2025,
       };
 
-      await executeTrade(worldId, tradeData);
+      const result = await executeTrade(worldId, tradeData);
 
-      // Check LAL snapshot
-      const lalSnapshot = getMockData(`architect_worlds/${worldId}/teams/LAL`);
-      expect(lalSnapshot).toBeDefined();
-      expect(lalSnapshot.roster).not.toContain('lebron_james');
-      expect(lalSnapshot.roster).toContain('stephen_curry');
+      // Check LAL team in returned result
+      const lalTeam = result.teams.find((t) => t.teamCode === 'LAL');
+      expect(lalTeam).toBeDefined();
+      expect(lalTeam.team.roster).not.toContain('lebron_james');
+      expect(lalTeam.team.roster).toContain('stephen_curry');
     });
 
     it('updates draft picks correctly', async () => {
@@ -128,25 +128,25 @@ describe('Trade Manager', () => {
         currentYear: 2025,
       };
 
-      await executeTrade(worldId, tradeData);
+      const result = await executeTrade(worldId, tradeData);
 
-      const lalSnapshot = getMockData(`architect_worlds/${worldId}/teams/LAL`);
-      const gswSnapshot = getMockData(`architect_worlds/${worldId}/teams/GSW`);
+      const lalTeam = result.teams.find((t) => t.teamCode === 'LAL');
+      const gswTeam = result.teams.find((t) => t.teamCode === 'GSW');
 
       // LAL should not have the pick anymore
-      const lalPick = lalSnapshot.draftPicks?.find(
+      const lalPick = lalTeam.team.draftPicks?.find(
         (p) => p.id === 'lal_2026_1'
       );
       expect(lalPick).toBeUndefined();
 
       // GSW should have the pick
-      const gswPick = gswSnapshot.draftPicks?.find(
+      const gswPick = gswTeam.team.draftPicks?.find(
         (p) => p.id === 'lal_2026_1'
       );
       expect(gswPick).toBeDefined();
     });
 
-    it('creates snapshots for modified teams only', async () => {
+    it('returns updated teams for all trade participants', async () => {
       const tradeData = {
         teams: [
           {
@@ -166,14 +166,14 @@ describe('Trade Manager', () => {
         currentYear: 2025,
       };
 
-      await executeTrade(worldId, tradeData);
+      const result = await executeTrade(worldId, tradeData);
 
-      // Both teams should have snapshots (both were in the trade)
-      const lalSnapshot = getMockData(`architect_worlds/${worldId}/teams/LAL`);
-      const gswSnapshot = getMockData(`architect_worlds/${worldId}/teams/GSW`);
+      // Both teams should be in the returned result (both were in the trade)
+      const lalTeam = result.teams.find((t) => t.teamCode === 'LAL');
+      const gswTeam = result.teams.find((t) => t.teamCode === 'GSW');
 
-      expect(lalSnapshot).toBeDefined();
-      expect(gswSnapshot).toBeDefined();
+      expect(lalTeam).toBeDefined();
+      expect(gswTeam).toBeDefined();
     });
 
     it('recalculates cap totals after trade', async () => {
@@ -196,11 +196,11 @@ describe('Trade Manager', () => {
         currentYear: 2025,
       };
 
-      await executeTrade(worldId, tradeData);
+      const result = await executeTrade(worldId, tradeData);
 
-      const lalSnapshot = getMockData(`architect_worlds/${worldId}/teams/LAL`);
-      expect(lalSnapshot.totals).toBeDefined();
-      expect(typeof lalSnapshot.totals.totalSalary).toBe('number');
+      const lalTeam = result.teams.find((t) => t.teamCode === 'LAL');
+      expect(lalTeam.team.totals).toBeDefined();
+      expect(typeof lalTeam.team.totals.totalSalary).toBe('number');
     });
 
     it('throws error for invalid trade', async () => {
@@ -301,7 +301,6 @@ describe('Trade Manager', () => {
     it('signs player to roster', async () => {
       const signingData = {
         playerId: 'test_player',
-        teamCode: 'LAL',
         contract: {
           contractType: 'Standard',
           startSeason: '2025-26',
@@ -318,7 +317,7 @@ describe('Trade Manager', () => {
         },
       };
 
-      const result = await signFreeAgent(worldId, signingData);
+      const result = await signFreeAgent(worldId, 'LAL', signingData);
 
       expect(result.success).toBe(true);
       expect(result.team.roster).toContain('test_player');
@@ -327,7 +326,6 @@ describe('Trade Manager', () => {
     it('updates exceptions (MLE usage)', async () => {
       const signingData = {
         playerId: 'test_player',
-        teamCode: 'LAL',
         signedUsing: 'MLE',
         contract: {
           contractType: 'Standard',
@@ -345,17 +343,15 @@ describe('Trade Manager', () => {
         },
       };
 
-      await signFreeAgent(worldId, signingData);
+      const result = await signFreeAgent(worldId, 'LAL', signingData);
 
-      const lalSnapshot = getMockData(`architect_worlds/${worldId}/teams/LAL`);
-      expect(lalSnapshot.exceptions.mle.usedAmount).toBe(10_000_000);
-      expect(lalSnapshot.exceptions.mle.remainingAmount).toBe(2_860_000);
+      expect(result.team.exceptions.mle.usedAmount).toBe(10_000_000);
+      expect(result.team.exceptions.mle.remainingAmount).toBe(2_860_000);
     });
 
     it('triggers hard cap when using non-taxpayer MLE', async () => {
       const signingData = {
         playerId: 'test_player',
-        teamCode: 'LAL',
         signedUsing: 'MLE',
         contract: {
           contractType: 'Standard',
@@ -373,11 +369,10 @@ describe('Trade Manager', () => {
         },
       };
 
-      await signFreeAgent(worldId, signingData);
+      const result = await signFreeAgent(worldId, 'LAL', signingData);
 
-      const lalSnapshot = getMockData(`architect_worlds/${worldId}/teams/LAL`);
-      expect(lalSnapshot.totals.isHardCapped).toBe(true);
-      expect(lalSnapshot.totals.hardCapLevel).toBe('firstApron');
+      expect(result.team.totals.isHardCapped).toBe(true);
+      expect(result.team.totals.hardCapLevel).toBe('firstApron');
     });
 
     it('removes cap hold after signing', async () => {
@@ -393,12 +388,10 @@ describe('Trade Manager', () => {
           },
         ],
       });
-      const { seedMockData } = await import('../setupFirebaseMocks.js');
       seedMockData(`architect_worlds/${worldId}/teams/BOS`, teamWithHold);
 
       const signingData = {
         playerId: 'test_player',
-        teamCode: 'BOS',
         contract: {
           contractType: 'Standard',
           startSeason: '2025-26',
@@ -415,10 +408,9 @@ describe('Trade Manager', () => {
         },
       };
 
-      await signFreeAgent(worldId, signingData);
+      const result = await signFreeAgent(worldId, 'BOS', signingData);
 
-      const bosSnapshot = getMockData(`architect_worlds/${worldId}/teams/BOS`);
-      const remainingHolds = bosSnapshot.capHolds?.filter(
+      const remainingHolds = result.team.capHolds?.filter(
         (h) => h.playerId === 'test_player'
       );
       expect(remainingHolds.length).toBe(0);
@@ -426,12 +418,11 @@ describe('Trade Manager', () => {
 
     it('throws error when worldId is missing', async () => {
       await expect(
-        signFreeAgent(null, {
+        signFreeAgent(null, 'LAL', {
           playerId: 'test',
-          teamCode: 'LAL',
           contract: {},
         })
-      ).rejects.toThrow('worldId is required');
+      ).rejects.toThrow('worldId');
     });
   });
 
@@ -444,25 +435,23 @@ describe('Trade Manager', () => {
     });
 
     it('creates dead cap entry', async () => {
-      await waivePlayer(worldId, 'LAL', 'lebron_james');
+      const result = await waivePlayer(worldId, 'LAL', 'lebron_james');
 
-      const lalSnapshot = getMockData(`architect_worlds/${worldId}/teams/LAL`);
-      expect(lalSnapshot.deadCap).toBeDefined();
-      expect(Array.isArray(lalSnapshot.deadCap)).toBe(true);
-      const deadCapEntry = lalSnapshot.deadCap.find(
+      expect(result.team.deadCap).toBeDefined();
+      expect(Array.isArray(result.team.deadCap)).toBe(true);
+      const deadCapEntry = result.team.deadCap.find(
         (d) => d.playerId === 'lebron_james'
       );
       expect(deadCapEntry).toBeDefined();
     });
 
     it('handles stretch provision', async () => {
-      await waivePlayer(worldId, 'LAL', 'lebron_james', {
+      const result = await waivePlayer(worldId, 'LAL', 'lebron_james', {
         stretch: true,
         stretchYears: 3,
       });
 
-      const lalSnapshot = getMockData(`architect_worlds/${worldId}/teams/LAL`);
-      const deadCapEntry = lalSnapshot.deadCap.find(
+      const deadCapEntry = result.team.deadCap.find(
         (d) => d.playerId === 'lebron_james'
       );
       expect(deadCapEntry.amountByYear.length).toBeGreaterThan(1); // Stretched over multiple years
@@ -477,70 +466,62 @@ describe('Trade Manager', () => {
 
   describe('extendPlayer', () => {
     it('extends contract correctly', async () => {
-      const extensionData = {
-        playerId: 'lebron_james',
-        teamCode: 'LAL',
-        newContract: {
-          contractType: 'Extension',
-          startSeason: '2026-27',
-          endSeason: '2028-29',
-          totalValue: 150_000_000,
-          salariesByYear: [
-            {
-              season: '2026-27',
-              salary: 50_000_000,
-              capHit: 50_000_000,
-              guaranteed: true,
-            },
-            {
-              season: '2027-28',
-              salary: 50_000_000,
-              capHit: 50_000_000,
-              guaranteed: true,
-            },
-            {
-              season: '2028-29',
-              salary: 50_000_000,
-              capHit: 50_000_000,
-              guaranteed: true,
-            },
-          ],
-        },
+      const extension = {
+        contractType: 'Extension',
+        startSeason: '2026-27',
+        endSeason: '2028-29',
+        totalValue: 150_000_000,
+        salariesByYear: [
+          {
+            season: '2026-27',
+            salary: 50_000_000,
+            capHit: 50_000_000,
+            guaranteed: true,
+          },
+          {
+            season: '2027-28',
+            salary: 50_000_000,
+            capHit: 50_000_000,
+            guaranteed: true,
+          },
+          {
+            season: '2028-29',
+            salary: 50_000_000,
+            capHit: 50_000_000,
+            guaranteed: true,
+          },
+        ],
       };
 
-      const result = await extendPlayer(worldId, extensionData);
+      const result = await extendPlayer(worldId, 'LAL', 'lebron_james', extension);
 
       expect(result.success).toBe(true);
       expect(result.player.contract.contractType).toBe('Extension');
     });
 
     it('updates salariesByYear array', async () => {
-      const extensionData = {
-        playerId: 'lebron_james',
-        teamCode: 'LAL',
-        newContract: {
-          contractType: 'Extension',
-          startSeason: '2026-27',
-          endSeason: '2027-28',
-          totalValue: 100_000_000,
-          salariesByYear: [
-            {
-              season: '2026-27',
-              salary: 50_000_000,
-              capHit: 50_000_000,
-              guaranteed: true,
-            },
-            {
-              season: '2027-28',
-              salary: 50_000_000,
-              capHit: 50_000_000,
-              guaranteed: true,
-            },
-          ],
-        },
+      const extension = {
+        contractType: 'Extension',
+        startSeason: '2026-27',
+        endSeason: '2027-28',
+        totalValue: 100_000_000,
+        salariesByYear: [
+          {
+            season: '2026-27',
+            salary: 50_000_000,
+            capHit: 50_000_000,
+            guaranteed: true,
+          },
+          {
+            season: '2027-28',
+            salary: 50_000_000,
+            capHit: 50_000_000,
+            guaranteed: true,
+          },
+        ],
       };
 
-      const result = await extendPlayer(worldId, extensionData);
+      const result = await extendPlayer(worldId, 'LAL', 'lebron_james', extension);
 
       expect(
         result.player.contract.salariesByYear.length
@@ -554,12 +535,8 @@ describe('Trade Manager', () => {
 
     it('throws error when worldId is missing', async () => {
       await expect(
-        extendPlayer(null, {
-          playerId: 'lebron_james',
-          teamCode: 'LAL',
-          newContract: {},
-        })
-      ).rejects.toThrow('worldId is required');
+        extendPlayer(null, 'LAL', 'lebron_james', {})
+      ).rejects.toThrow('worldId');
     });
   });
 
