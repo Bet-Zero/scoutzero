@@ -448,6 +448,7 @@ Phase 4: Polish & Edge Cases (RECOMMENDED)
 ## What Changed (December 17, 2025)
 
 ### Files Created
+
 - `src/features/architect/utils/mutationPipeline.js` - Centralized mutation pipeline with:
   - `applyWorldMutation()` single entrypoint for all world mutations
   - READ → COMPUTE → VALIDATE → PERSIST → POST-UPDATE phases
@@ -456,6 +457,7 @@ Phase 4: Polish & Edge Cases (RECOMMENDED)
   - Designed for future Cloud Functions migration
 
 ### Files Modified
+
 - `src/features/architect/GMDashboard/hooks/useArchitectState.ts`:
   - Added `worldId` state and `setWorldId` setter
   - Updated return type interface
@@ -469,6 +471,7 @@ Phase 4: Polish & Edge Cases (RECOMMENDED)
   - Fallback now uses `getExtensionProfile` and `buildMinimalRuleContext`
 
 ### Summary
+
 Priority 1 items 2 & 3 and Priority 2 items 4 & 5 have been completed. The centralized mutation pipeline is ready for use. The `architect_baseTeams` and `architect_basePlayers` collections are populated in Firestore. The deprecated `extensionRules.js` is no longer imported by production code. Next step is creating the WorldSelector UI component.
 
 ---
