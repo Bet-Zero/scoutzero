@@ -197,7 +197,16 @@ async function loadStateForMutation(worldId, mutationType, payload) {
   switch (mutationType) {
     case 'executeTrade': {
       // Load all teams involved in trade
-      const teamCodes = payload.teams.map((t) => t.teamCode || t.team?.teamCode);
+      const teamCodes = payload.teams.map((t, index) => {
+        const code = t.teamCode || t.team?.teamCode;
+        if (!code) {
+          throw new Error(
+            `Missing teamCode for trade entry at index ${index}. Payload: ${JSON.stringify(t)}`
+          );
+        }
+        return code;
+      });
+
       const teamStates = await Promise.all(
         teamCodes.map((code) => getTeam(worldId, code))
       );
@@ -216,6 +225,14 @@ async function loadStateForMutation(worldId, mutationType, payload) {
       // Load single team and player
       const teamCode = payload.teamCode;
       const playerId = payload.playerId;
+
+      if (!teamCode) {
+        throw new Error(`Missing teamCode in payload for ${mutationType}`);
+      }
+      if (!playerId) {
+        throw new Error(`Missing playerId in payload for ${mutationType}`);
+      }
+
       const team = await getTeam(worldId, teamCode);
       const player = await getPlayer(worldId, teamCode, playerId);
       return { team, player, teamCode };
@@ -279,6 +296,19 @@ function computeTradeResult({ payload, currentState, seasonId, timestamp }) {
 
   const currentYear = toEndYear(seasonId);
 
+  // Warn if multi-team trade without directed routing
+  if (payload.teams.length > 2) {
+    const hasDirectedRouting = payload.teams.some((t) =>
+      (t.sends || []).some((s) => s.receivingTeamIndex !== undefined || s.receivingTeamId !== undefined)
+    );
+    if (!hasDirectedRouting) {
+      console.warn(
+        'Multi-team trade detected without directed routing (receivingTeamIndex/receivingTeamId). ' +
+        'All sends will be distributed to all other teams. For directed trades, specify receivingTeamIndex on each send.'
+      );
+    }
+  }
+
   for (let i = 0; i < payload.teams.length; i++) {
     const teamTrade = payload.teams[i];
     const { teamCode, team } = currentState.teams[i];
@@ -292,11 +322,31 @@ function computeTradeResult({ payload, currentState, seasonId, timestamp }) {
     );
 
     // Collect incoming players from other teams
+    // For directed routing, only include sends targeted at this team
+    // For undirected (default), include all sends from other teams
     const incomingPlayers = [];
     payload.teams.forEach((otherTeamTrade, otherIndex) => {
       if (otherIndex !== i) {
         (otherTeamTrade.sends || []).forEach((player) => {
-          incomingPlayers.push(player);
+          // Check if this send is directed to a specific team
+          const targetIndex = player.receivingTeamIndex;
+          const targetId = player.receivingTeamId;
+
+          if (targetIndex !== undefined) {
+            // Directed by index
+            if (targetIndex === i) {
+              incomingPlayers.push(player);
+            }
+          } else if (targetId !== undefined) {
+            // Directed by team ID/code
+            if (targetId === teamCode || targetId === team?.id) {
+              incomingPlayers.push(player);
+            }
+          } else {
+            // Undirected: for 2-team trades, all sends go to the other team
+            // For 3+ team trades without routing, distribute to all (with warning above)
+            incomingPlayers.push(player);
+          }
         });
       }
     });
@@ -886,9 +936,11 @@ async function persistWorldMutation({
     batch.set(eventRef, event);
 
     // 4. Update world metadata
+    // Use lastModifiedTeams (not modifiedTeams) to clarify this field records
+    // only teams modified by this single mutation, not cumulative history
     const worldPatch = {
       lastModifiedAt: serverTimestamp(),
-      modifiedTeams: computeResult.teamUpdates.map((u) => u.teamCode),
+      lastModifiedTeams: computeResult.teamUpdates.map((u) => u.teamCode),
     };
     const metadataRef = worldMetadataRef(worldId);
     batch.update(metadataRef, worldPatch);
