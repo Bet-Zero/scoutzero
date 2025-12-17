@@ -776,7 +776,8 @@ function validateMutation({ mutationType, payload, currentState, computeResult, 
   // For now, basic validation - can be extended later
   switch (mutationType) {
     case 'signFreeAgent':
-      // Could add cap validation here
+      // TODO: Add cap validation in Phase 2
+      // CALLER MUST pre-validate via useCapValidation hook
       return { valid: true };
 
     case 'waivePlayer':
