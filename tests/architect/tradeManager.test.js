@@ -23,7 +23,7 @@ import {
   createMockPlayer,
   createMockCapProjections,
 } from '../helpers/architectTestHelpers.js';
-import { getMockData, seedMockData } from '../__mocks__/firebase.js';
+import { seedMockData } from '../__mocks__/firebase.js';
 
 // Mock validateTrade to return valid trades for testing
 vi.mock('@/features/architect/utils/tradeMachine', () => ({
