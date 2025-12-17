@@ -11,7 +11,7 @@
 
 The Architect feature is a sophisticated NBA roster scenario planning system with significant functionality already implemented. However, several critical components remain incomplete or disconnected. This analysis identifies all gaps organized by system, provides dependency mapping, and prioritizes next actions.
 
-### Overall Assessment: ~70% Complete (was 55%)
+### Overall Assessment: ~80% Complete (was 55%)
 
 | Category | Status | Notes |
 |----------|--------|-------|
@@ -21,28 +21,21 @@ The Architect feature is a sophisticated NBA roster scenario planning system wit
 | **Firestore Persistence** | ✅ 70% | mutationPipeline provides centralized write layer |
 | **Multi-Season/Branching** | ⚠️ 40% | Logic exists, worldId wired to state, UI pending |
 | **UI Integration** | ⚠️ 65% | GMDashboard has worldId support, needs WorldSelector UI |
-| **Data Population** | ❌ 10% | `architect_baseTeams/basePlayers` collections empty |
+| **Data Population** | ✅ 100% | `architect_baseTeams/basePlayers` collections populated |
 
 ---
 
 ## Phase 1: Core Logic & Data Gaps
 
-### 1.1 Firestore Collections - NOT POPULATED ❌
+### 1.1 Firestore Collections - POPULATED ✅
 
-**Critical Blocker**: The architect collections do not exist in Firestore yet.
+**Status**: The architect collections are populated and ready for use.
 
-| Collection | Expected | Actual |
-|------------|----------|--------|
-| `architect_baseTeams` | 30 team documents | Empty |
-| `architect_basePlayers` | ~530 player documents | Empty |
-| `architect_worlds` | World metadata + snapshots | Empty |
-
-**Evidence**: 
-- `firebaseTeamPlanHelpers.js` loads from `architect_baseTeams` via `baseTeamRef()` 
-- All data scraping infrastructure exists in `/team-scrape/` folder
-- Sample outputs exist for 5 teams but not uploaded
-
-**Required Action**: Run data migration (Phase 2 per docs)
+| Collection | Status |
+|------------|--------|
+| `architect_baseTeams` | ✅ Populated with 30 team documents |
+| `architect_basePlayers` | ✅ Populated with player documents |
+| `architect_worlds` | Ready for world snapshots |
 
 ---
 
@@ -373,10 +366,8 @@ Phase 4: Polish & Edge Cases (RECOMMENDED)
 
 ### Priority 1: Critical Correctness (BLOCKING)
 
-1. **Populate Firestore Collections**
-   - Run `/team-scrape/` scripts for all 30 teams
-   - Validate against schema
-   - Upload to `architect_baseTeams` and `architect_basePlayers`
+1. ✅ **Firestore Collections Populated**
+   - `architect_baseTeams` and `architect_basePlayers` collections are populated
 
 2. ✅ **Wire World System to UI**
    - ✅ Add `worldId` state to `useArchitectState.ts`
@@ -435,12 +426,11 @@ Phase 4: Polish & Edge Cases (RECOMMENDED)
 - ✅ **NEW**: Dynamic minimum salary in season advancement
 
 **What Is Incomplete/Missing**:
-- Firestore data population (architect collections empty) - **BLOCKING**
 - WorldSelector UI component not created yet
 - Test suite at 66% due to mock issues
 
 **What Must Be Done (Priority Order)**:
-1. Populate `architect_baseTeams` and `architect_basePlayers` - **BLOCKING**
+1. ~~Populate `architect_baseTeams` and `architect_basePlayers`~~ ✅ DONE (already populated)
 2. ~~Wire world system to GMDashboard~~ ✅ DONE (state ready, needs UI)
 3. ~~Add persistence layer for all roster mutations~~ ✅ DONE (mutationPipeline)
 4. ~~Fix season advancement to use dynamic values~~ ✅ DONE
@@ -449,10 +439,9 @@ Phase 4: Polish & Edge Cases (RECOMMENDED)
 7. Complete test coverage
 
 **Estimated Remaining Effort**:
-- Data Migration: 3-4 days (blocking)
 - WorldSelector UI: 1-2 days
 - Test fixes: 1-2 days
-- Total: ~1 week for production readiness (was 2-3 weeks)
+- Total: ~3-4 days for production readiness
 
 ---
 
@@ -480,7 +469,7 @@ Phase 4: Polish & Edge Cases (RECOMMENDED)
   - Fallback now uses `getExtensionProfile` and `buildMinimalRuleContext`
 
 ### Summary
-Priority 1 items 2 & 3 and Priority 2 items 4 & 5 have been completed. The centralized mutation pipeline is ready for use once the WorldSelector UI is created and data is populated in Firestore. The deprecated `extensionRules.js` is no longer imported by production code.
+Priority 1 items 2 & 3 and Priority 2 items 4 & 5 have been completed. The centralized mutation pipeline is ready for use. The `architect_baseTeams` and `architect_basePlayers` collections are populated in Firestore. The deprecated `extensionRules.js` is no longer imported by production code. Next step is creating the WorldSelector UI component.
 
 ---
 
