@@ -183,6 +183,7 @@ interface UseArchitectStateReturn {
   playersMap: PlayersMap;
   capTableYears: number[];
   players: ArchitectPlayer[];
+  worldId: string | null;
 
   // Setters (all needed by GMDashboard)
   setBaselineCapSheet: React.Dispatch<React.SetStateAction<CapSheet | null>>;
@@ -200,6 +201,7 @@ interface UseArchitectStateReturn {
   setLastCapSheet: React.Dispatch<React.SetStateAction<CapSheet | null>>;
   setOffseasonRun: React.Dispatch<React.SetStateAction<boolean>>;
   setOffseasonSummary: React.Dispatch<React.SetStateAction<unknown | null>>;
+  setWorldId: React.Dispatch<React.SetStateAction<string | null>>;
 
   // Higher-level state actions (use these instead of raw setters)
   startLoad: () => void;
@@ -289,6 +291,9 @@ export function useArchitectState({
   const [teamCapSheet, setTeamCapSheet] = useState<CapSheet | null>(null);
   const [freeAgents, setFreeAgents] = useState<FreeAgent[]>([]);
   const [plans, setPlans] = useState<PlanRef[]>([]);
+
+  // === World state (for Architect worlds system) ===
+  const [worldId, setWorldId] = useState<string | null>(null);
 
   // === Selection state ===
   const [currentYear, setCurrentYear] = useState<number>(() => {
@@ -732,6 +737,7 @@ export function useArchitectState({
     playersMap,
     capTableYears,
     players,
+    worldId,
 
     // Setters (all needed by GMDashboard)
     setBaselineCapSheet,
@@ -747,6 +753,7 @@ export function useArchitectState({
     setLastCapSheet,
     setOffseasonRun,
     setOffseasonSummary,
+    setWorldId,
 
     // Higher-level state actions (use these instead of raw setters)
     startLoad,

@@ -6,6 +6,7 @@
  * HISTORY:
  *  - 2025-12-10: Integrated PlayerRulesProfile for extension defaults/validation (chunk_01).
  *  - 2025-12-10: Added fallback extension gating and FA/QO validation via rules profile (chunk_02).
+ *  - 2025-12-17: Replaced deprecated extensionRules.js with salaryEngine for fallback.
  *
  * LINKS:
  *  - Plan: plans/_archive/player-rules-architect/plan.md
@@ -17,11 +18,11 @@ import { Dialog, DialogContent } from '@/shared/components/ui/Dialog';
 import { formatCurrencyFull, formatCurrency } from '@/shared/utils/formatting';
 import capProjections from '@/features/architect/utils/capProjections';
 import { generateExtensionContract } from '@/features/architect/utils/contractUtils';
-import { toEndYear } from '@/features/architect/utils/seasonFormat';
+import { toEndYear, toSeasonCode } from '@/features/architect/utils/seasonFormat';
 import {
-  getExtensionEligibilityReason,
-  getExtensionMaxDetails,
-} from '@/features/architect/utils/extensionRules';
+  getExtensionProfile,
+  buildMinimalRuleContext,
+} from '@/features/architect/utils/salaryEngine';
 import useCapValidation, {
   buildSigningGuardrails,
 } from '@/features/architect/hooks/useCapValidation';
@@ -347,34 +348,59 @@ const EditContractModal = ({
       return;
     }
 
-    const fallbackReason = getExtensionEligibilityReason(player, CURRENT_YEAR);
-    setExtReason(fallbackReason);
-
-    if (fallbackReason !== 'Eligible') {
+    // Fallback to salaryEngine for extension eligibility when playerRulesProfile is not available
+    try {
+      // Build a RuleContext for the extension evaluation
+      const seasonId = toSeasonCode(CURRENT_YEAR);
+      const ruleCtx = buildMinimalRuleContext(seasonId, 'VETERAN_EXTENSION');
+      
+      // Override with actual player data
+      const playerCtx = {
+        ...ruleCtx,
+        player: {
+          ...ruleCtx.player,
+          playerId: player.id || player.player_id || 'unknown',
+          displayName: player.displayName || player.name || 'Unknown',
+          yearsOfServiceAtOperation: player.yearsOfService || player.bio?.experience || 0,
+          priorSeasonSalary: lastSalaryForPrefill || null,
+          currentSeasonSalary: lastSalaryForPrefill || null,
+          isRookieScale: player.contract?.isRookieScale || player.contract?.contractType === 'Rookie Scale',
+          draftInfo: player.bio?.draftYear ? {
+            year: player.bio.draftYear,
+            round: player.bio.draftRound || 0,
+            pick: player.bio.draftPick || 0,
+          } : null,
+        },
+      };
+      
+      const extProfile = getExtensionProfile(playerCtx);
+      
+      if (!extProfile?.eligibility?.isEligible) {
+        setExtReason(extProfile?.eligibility?.reason || 'Not eligible');
+        setExtMax(null);
+        return;
+      }
+      
+      setExtReason('Eligible');
+      const terms = extProfile.terms;
+      setExtMax(
+        terms
+          ? {
+              maxYears: terms.maxYears || 4,
+              maxFirstYearSalary: terms.maxFirstYearSalary || 0,
+              minFirstYearSalary: terms.minFirstYearSalary || terms.maxFirstYearSalary || 0,
+              baseRaisePct: terms.raisePercentage || 0.08,
+              type: terms.extensionType || 'Standard',
+              basedOn: terms.basedOn || '',
+              notes: terms.notes || '',
+            }
+          : null
+      );
+    } catch (err) {
+      console.warn('Extension eligibility check failed:', err);
+      setExtReason('Unable to determine eligibility');
       setExtMax(null);
-      return;
     }
-
-    const fallbackTerms = getExtensionMaxDetails(
-      player,
-      getCapSettings(CURRENT_YEAR)
-    );
-    setExtMax(
-      fallbackTerms
-        ? {
-            maxYears: fallbackTerms.maxYears,
-            maxFirstYearSalary: fallbackTerms.maxFirstYearSalary,
-            minFirstYearSalary:
-              fallbackTerms.minFirstYearSalary ??
-              fallbackTerms.maxFirstYearSalary ??
-              null,
-            baseRaisePct: fallbackTerms.baseRaisePct,
-            type: fallbackTerms.type,
-            basedOn: fallbackTerms.basedOn,
-            notes: fallbackTerms.notes,
-          }
-        : null
-    );
   }, [
     CURRENT_YEAR,
     initialAction,
