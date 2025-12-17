@@ -502,8 +502,9 @@ function computeWaiveResult({ payload, currentState, seasonId, timestamp }) {
   const remainingSalary = contract?.guaranteedValue || 0;
 
   if (stretch && remainingSalary > 0) {
-    const stretchedAmount = Math.floor(remainingSalary / stretchYears);
-    const currentSeason = seasonId;
+    // Calculate stretched amounts with remainder distribution to avoid rounding loss
+    const baseStretchedAmount = Math.floor(remainingSalary / stretchYears);
+    const remainder = remainingSalary - (baseStretchedAmount * stretchYears);
 
     updatedTeam.deadCap = updatedTeam.deadCap || [];
     updatedTeam.deadCap.push({
@@ -511,11 +512,14 @@ function computeWaiveResult({ payload, currentState, seasonId, timestamp }) {
       playerName: player.displayName || playerId,
       originalSalary: remainingSalary,
       amountByYear: Array.from({ length: stretchYears }, (_, i) => {
-        const seasonYear = parseInt(currentSeason.split('-')[0]) + i;
-        const nextYear = seasonYear + 1;
+        // Use toSeasonCode for consistent season formatting
+        const startYear = toEndYear(seasonId);
+        const yearEndYear = startYear + i;
+        // Distribute remainder to first years to avoid losing money
+        const yearAmount = baseStretchedAmount + (i < remainder ? 1 : 0);
         return {
-          season: `${seasonYear}-${String(nextYear).slice(-2)}`,
-          amount: stretchedAmount,
+          season: toSeasonCode(yearEndYear),
+          amount: yearAmount,
           isStretched: true,
         };
       }),
@@ -865,7 +869,9 @@ async function persistWorldMutation({
     }
 
     // 3. Write event log entry
-    const eventId = `${mutationType}_${timestamp}`;
+    // Use timestamp + random suffix to avoid collisions if multiple mutations occur at same millisecond
+    const randomSuffix = Math.random().toString(36).substring(2, 8);
+    const eventId = `${mutationType}_${timestamp}_${randomSuffix}`;
     const eventsCol = collection(db, ARCHITECT_WORLDS_COLLECTION, worldId, 'events');
     const eventRef = doc(eventsCol, eventId);
     const event = {
