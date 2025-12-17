@@ -317,12 +317,11 @@ function processOptions(teamData, season) {
 function processEmptyRosterCharges(teamData, season) {
   const rosterCount = teamData.roster?.length || 0;
   const MIN_ROSTER_SIZE = 12; // Minimum roster size for NBA
-
   // Get year-appropriate minimum salary from salary engine
   // The minimum salary scale returns minimum based on YOS (years of service)
   // For empty roster charges, use 0 YOS (rookie minimum)
   const minSalaryScale = getMinimumSalaryScale(season);
-  const EMPTY_ROSTER_CHARGE = minSalaryScale?.rookieMinimum || minSalaryScale?.[0] || 1_119_563;
+  const EMPTY_ROSTER_CHARGE = minSalaryScale?.[0] || 1_119_563;
 
   let emptyRosterCharges = 0;
   if (rosterCount < MIN_ROSTER_SIZE) {
