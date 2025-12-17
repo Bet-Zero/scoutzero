@@ -47,7 +47,7 @@ describe('Architect Integration Tests', () => {
   });
 
   describe('World Creation → Trade Flow', () => {
-    it('creates world → executes trade → verifies snapshots created', async () => {
+    it('creates world → executes trade → returns updated teams', async () => {
       // Create world
       const worldResult = await createWorld({
         name: 'Test World',
@@ -78,18 +78,14 @@ describe('Architect Integration Tests', () => {
 
       expect(tradeResult.success).toBe(true);
 
-      // Verify snapshots created
-      const lalSnapshot = getMockData(
-        `architect_worlds/${worldResult.worldId}/teams/LAL`
-      );
-      const gswSnapshot = getMockData(
-        `architect_worlds/${worldResult.worldId}/teams/GSW`
-      );
+      // Verify updated teams returned (executeTrade is read-only, doesn't persist)
+      const lalTeam = tradeResult.teams.find((t) => t.teamCode === 'LAL');
+      const gswTeam = tradeResult.teams.find((t) => t.teamCode === 'GSW');
 
-      expect(lalSnapshot).toBeDefined();
-      expect(gswSnapshot).toBeDefined();
-      expect(lalSnapshot.source.type).toBe('world-snapshot');
-      expect(lalSnapshot.source.worldId).toBe(worldResult.worldId);
+      expect(lalTeam).toBeDefined();
+      expect(gswTeam).toBeDefined();
+      expect(lalTeam.team.source.type).toBe('world-snapshot');
+      expect(lalTeam.team.source.worldId).toBe(worldResult.worldId);
     });
 
     it('verifies cap totals updated correctly', async () => {
@@ -117,18 +113,16 @@ describe('Architect Integration Tests', () => {
         currentYear: 2025,
       };
 
-      await executeTrade(worldResult.worldId, tradeData);
+      const tradeResult = await executeTrade(worldResult.worldId, tradeData);
 
-      const lalSnapshot = getMockData(
-        `architect_worlds/${worldResult.worldId}/teams/LAL`
-      );
+      const lalTeam = tradeResult.teams.find((t) => t.teamCode === 'LAL');
 
-      expect(lalSnapshot.totals).toBeDefined();
-      expect(typeof lalSnapshot.totals.totalSalary).toBe('number');
-      expect(typeof lalSnapshot.totals.capHit).toBe('number');
+      expect(lalTeam.team.totals).toBeDefined();
+      expect(typeof lalTeam.team.totals.totalSalary).toBe('number');
+      expect(typeof lalTeam.team.totals.capHit).toBe('number');
     });
 
-    it('verifies world stats incremented', async () => {
+    it('verifies executeTrade is read-only (does not modify world metadata)', async () => {
       const worldResult = await createWorld({
         name: 'Test World',
         userId,
@@ -153,13 +147,16 @@ describe('Architect Integration Tests', () => {
         currentYear: 2025,
       };
 
+      // Get metadata before trade
+      const metadataBefore = getMockWorldMetadata(worldResult.worldId);
+      const statsBefore = metadataBefore.stats.totalTrades;
+
       await executeTrade(worldResult.worldId, tradeData);
 
-      const metadata = getMockWorldMetadata(worldResult.worldId);
-      expect(metadata.stats.totalTrades).toBe(1);
-      expect(metadata.actionCount).toBe(1);
-      expect(metadata.modifiedTeams).toContain('LAL');
-      expect(metadata.modifiedTeams).toContain('GSW');
+      // Verify world metadata was not modified (executeTrade is read-only)
+      const metadataAfter = getMockWorldMetadata(worldResult.worldId);
+      expect(metadataAfter.stats.totalTrades).toBe(statsBefore);
+      expect(metadataAfter.actionCount).toBe(metadataBefore.actionCount);
     });
   });
 
@@ -205,13 +202,13 @@ describe('Architect Integration Tests', () => {
       expect(branchResult.metadata.worldName).toBe('Branch World');
     });
 
-    it('verifies branch inherits parent snapshots', async () => {
+    it('verifies branch inherits base data when no parent snapshots exist', async () => {
       const parentResult = await createWorld({
         name: 'Parent World',
         userId,
       });
 
-      // Execute trade in parent
+      // Execute trade in parent (but don't persist - executeTrade is read-only)
       const tradeData = {
         teams: [
           {
@@ -241,10 +238,13 @@ describe('Architect Integration Tests', () => {
         userId
       );
 
-      // Get team from branch - should fall back to parent snapshot
+      // Get team from branch - since executeTrade doesn't persist, branch falls back to base data
       const lalTeam = await getTeam(branchResult.worldId, 'LAL');
-      expect(lalTeam.roster).not.toContain('lebron_james');
-      expect(lalTeam.roster).toContain('stephen_curry');
+      // Base LAL team has lebron_james in roster, trade was not persisted
+      // Note: getTeam hydrates team with players array in roster field
+      const rosterIds = lalTeam.roster.map(p => p.player_id || p.id);
+      expect(rosterIds).toContain('lebron_james');
+      expect(rosterIds).not.toContain('stephen_curry');
     });
 
     it('executes different trade in branch → verifies isolation', async () => {
