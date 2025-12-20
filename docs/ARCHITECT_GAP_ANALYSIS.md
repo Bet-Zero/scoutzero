@@ -130,7 +130,7 @@ The Architect feature is a sophisticated NBA roster scenario planning system wit
 
 ### 1.6 Contract & Signing Logic - MUTATIONPIPELINE PERSISTENCE ✅
 
-**Files**: 
+**Files**:
 - `useArchitectActions.ts` - Handles all contract actions
 - `mutationPipeline.js` - Centralized persistence layer
 - `contractUtils.js` - Cap hold calculations
@@ -146,7 +146,7 @@ The Architect feature is a sophisticated NBA roster scenario planning system wit
 
 **Status Update (Dec 20, 2025)**: Contract actions now persist through the centralized `mutationPipeline.applyWorldMutation()` which writes atomically to `architect_worlds` subcollections (teams, players, metadata). Legacy `teamPlans` persistence is no longer the primary path for Architect mutations.
 
-**Remaining Work**: 
+**Remaining Work**:
 - Verify all contract actions call mutationPipeline (or identify which still use legacy paths)
 - Add "Renounce Rights" support to mutationPipeline if needed
 
@@ -250,6 +250,7 @@ Covers seasons 2024-25 through 2031-32 with:
 - ✅ Free agent derivation from player pool
 
 **Status Update (Dec 20, 2025)**: The state hook now includes worldId management:
+
 ```typescript
 const [worldId, setWorldId] = useState<string | null>(null);
 // ... returned in hook interface
@@ -308,7 +309,7 @@ At 1,063 lines, this modal handles:
 
 ## Dependency Map
 
-```
+```text
 Phase 2A: Data Population ✅ COMPLETE
 ├── ✅ Run team scrapers for 30 teams
 ├── ✅ Run player scraper for ~530 players  
@@ -399,30 +400,30 @@ Phase 4: Polish & Edge Cases (RECOMMENDED)
 
 ### Priority 2: System-Blocking Issues
 
-4. ✅ **Fix Season Advancement**
+1. ✅ **Fix Season Advancement**
    - ✅ Use `capProjections` for year-appropriate minimums (via `getMinimumSalaryScale`)
    - ⚠️ Add UI for option decisions before advancing (future work)
    - ⚠️ Implement proper Stepien recalculation (future work)
 
-5. ✅ **Remove Deprecated Code Paths**
+2. ✅ **Remove Deprecated Code Paths**
    - ✅ Update `EditContractModal.jsx` to use `salaryEngine` exclusively
    - ✅ Remove fallback to `extensionRules.js`
    - ⚠️ Consolidate season format utilities (lower priority)
 
 ### Priority 3: UX Polish
 
-6. ✅ **Add World Management UI**
+1. ✅ **Add World Management UI**
    - ✅ WorldSelector dropdown with create/select
    - ✅ Branch button via modal
    - ✅ Rename/archive worlds via dropdown menu
    - ⚠️ Decision tree visualization (future work)
 
-7. **Improve Validation UX**
+2. **Improve Validation UX**
    - Block illegal actions instead of "Force Action"
    - Show specific rule violations inline
    - Add confirmation dialogs for destructive actions
 
-8. **Complete Test Coverage**
+3. **Complete Test Coverage**
    - Fix Firebase mock issues (see `tests/architect/TEST_STATUS.md`)
    - Target 90%+ coverage
    - Add E2E workflow tests
