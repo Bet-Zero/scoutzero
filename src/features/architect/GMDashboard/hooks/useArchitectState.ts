@@ -21,7 +21,7 @@ import {
   loadNamedTeamPlan,
   loadFreeAgents,
 } from '@/features/architect/utils/firebaseTeamPlanHelpers';
-import { loadWorldTeamData } from './useWorldTeamData';
+import { loadWorldTeamData } from '@/features/architect/utils/worldTeamData';
 import useArchitectPlayerData from '@/features/architect/hooks/useArchitectPlayerData';
 import capProjections from '@/features/architect/utils/capProjections';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
@@ -419,8 +419,13 @@ export function useArchitectState({
         // When worldId is null, falls back to base team (same as before)
         const base = await loadWorldTeamData(worldId, teamId);
 
-        // Only load user plans if userId is available AND no world is selected
-        // (Plans are legacy; worlds are the new source of truth)
+        // Only load user plans if userId is available AND no world is selected.
+        // Business logic: Legacy "plans" (teamPlans collection) are a separate persistence
+        // mechanism from "worlds" (architect_worlds collection). When a world is selected,
+        // it becomes the source of truth and plans are not loaded. This ensures:
+        // 1. World-aware reads take precedence over legacy plan data
+        // 2. Users can still use plans when no world is selected (backward compatibility)
+        // 3. No confusion between world snapshots and saved plans
         let planLoaded = false;
         if (userId && !worldId) {
           const planList = await listUserTeamPlans(userId, teamId);

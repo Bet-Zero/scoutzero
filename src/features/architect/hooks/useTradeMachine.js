@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
-import { loadWorldTeamData } from '@/features/architect/GMDashboard/hooks/useWorldTeamData';
+import { loadWorldTeamData } from '@/features/architect/utils/worldTeamData';
 import {
   getSalaryForYear,
   areSamePick,

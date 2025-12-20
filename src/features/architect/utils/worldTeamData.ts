@@ -1,7 +1,7 @@
 /**
- * FILE: src/features/architect/GMDashboard/hooks/useWorldTeamData.ts
- * PURPOSE: World-aware team data loading hook for GMDashboard
- * OWNERSHIP: Feature: architect/GMDashboard
+ * FILE: src/features/architect/utils/worldTeamData.ts
+ * PURPOSE: World-aware team data loading utilities for Architect feature
+ * OWNERSHIP: Feature: architect
  *
  * HISTORY:
  *  - 2025-12-20: Created for Phase 2B - wire world-aware data loading
@@ -10,7 +10,7 @@
  *  - teamLoader API: src/features/architect/utils/teamLoader.js
  *  - Gap Analysis: docs/ARCHITECT_GAP_ANALYSIS.md
  *
- * This hook provides world-aware team data loading using the teamLoader fallback chain:
+ * This module provides world-aware team data loading using the teamLoader fallback chain:
  * 1. World snapshot (if worldId provided)
  * 2. Parent world snapshot (recursive)
  * 3. Base team (architect_baseTeams)
@@ -103,22 +103,4 @@ export async function loadWorldTeamData(
     console.error('Error loading world team data:', error);
     return null;
   }
-}
-
-/**
- * Load team data for trade machine
- *
- * Similar to loadWorldTeamData but specifically for trade machine use cases.
- * Trade machine may need to load secondary teams that aren't the primary dashboard team.
- *
- * @param worldId - World ID for world-aware reads (null for base-only)
- * @param teamId - Team ID/slug
- * @returns Promise resolving to team cap sheet data
- */
-export async function loadTradeTeamData(
-  worldId: string | null,
-  teamId: string
-): Promise<CapSheet | null> {
-  // Uses the same logic as loadWorldTeamData
-  return loadWorldTeamData(worldId, teamId);
 }

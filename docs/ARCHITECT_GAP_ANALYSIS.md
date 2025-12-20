@@ -524,7 +524,7 @@ The WorldSelector uses Archive instead of Delete because `worldManager.deleteWor
 
 ### Files Created
 
-- `src/features/architect/GMDashboard/hooks/useWorldTeamData.ts` - World-aware team data loading hook:
+- `src/features/architect/utils/worldTeamData.ts` - World-aware team data loading utilities:
   - `loadWorldTeamData(worldId, teamId)` - Main function for world-aware team loading
   - Uses `teamLoader.getTeam(worldId, teamCode)` for fallback chain: world → parent → base
   - Falls back to `loadTeamCapSheet()` when `worldId` is null (base-only mode)
@@ -533,11 +533,12 @@ The WorldSelector uses Archive instead of Delete because `worldManager.deleteWor
 ### Files Modified
 
 - `src/features/architect/GMDashboard/hooks/useArchitectState.ts`:
-  - Replaced `loadTeamCapSheet` import with `loadWorldTeamData` from `useWorldTeamData`
+  - Replaced `loadTeamCapSheet` import with `loadWorldTeamData` from `worldTeamData`
   - Updated Effect 5 to use `loadWorldTeamData(worldId, teamId)` for world-aware reads
   - Added `worldId` as dependency to data loading effect
   - When `worldId` is set, uses world-aware data directly as teamCapSheet
   - Legacy plan loading only triggers when no world is selected
+  - Added detailed comment explaining plan vs world business logic
 
 - `src/features/architect/hooks/useTradeMachine.js`:
   - Added `worldId` parameter to hook signature (default: null)
