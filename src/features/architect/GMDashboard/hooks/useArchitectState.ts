@@ -455,10 +455,10 @@ export function useArchitectState({
         // 3. Otherwise use baseline
         if (worldId && base) {
           // World mode: use the world-aware data directly
-          setTeamCapSheet(JSON.parse(JSON.stringify(base)));
+          setTeamCapSheet(deepClone(base));
         } else if (!planLoaded) {
           // No plan loaded and no world, use baseline
-          if (base) setTeamCapSheet(JSON.parse(JSON.stringify(base)));
+          if (base) setTeamCapSheet(deepClone(base));
           else console.warn('No saved team found, using blank slate.');
         }
         // If planLoaded is true, teamCapSheet was already set above
