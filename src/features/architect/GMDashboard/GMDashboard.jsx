@@ -26,7 +26,7 @@ import { TradeSection } from './sections/TradeSection';
 import { FreeAgencySection } from './sections/FreeAgencySection';
 import { OffseasonSection } from './sections/OffseasonSection';
 import { HistorySection } from './sections/HistorySection';
-import { WorldSelector } from './components/WorldSelector';
+import { WorldSelector } from '@/features/architect/GMDashboard/components/WorldSelector';
 import { useArchitectState } from './hooks/useArchitectState';
 import { useArchitectActions } from './hooks/useArchitectActions';
 import { useArchitectModals } from './hooks/useArchitectModals';
