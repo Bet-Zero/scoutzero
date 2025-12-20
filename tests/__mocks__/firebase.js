@@ -553,9 +553,10 @@ function processServerTimestamps(data, existingData = {}) {
         const toRemove = new Set(value.elements);
         processed[key] = existing.filter((item) => !toRemove.has(item));
       } else if (value.__type === 'increment') {
-        // Handle increment
-        const existing = existingData[key] || 0;
-        processed[key] = existing + value.value;
+        // Handle increment - ensure existing value is a number
+        const existing = existingData[key];
+        const existingNum = typeof existing === 'number' ? existing : 0;
+        processed[key] = existingNum + value.value;
       } else {
         processed[key] = processServerTimestamps(value, existingData[key] || {});
       }

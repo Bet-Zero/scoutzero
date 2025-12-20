@@ -685,8 +685,13 @@ function processOptionsWithDecisions(teamData, fromSeason, toSeason, optionDecis
     const player = players[i];
     if (!player || !player.contract) continue;
 
-    // Support multiple ID formats: player_id, id, playerId, or name
-    const playerId = player.player_id || player.id || player.playerId || player.name;
+    // Support multiple ID formats: player_id, id, playerId
+    // IMPORTANT: We avoid using player.name as ID since names are not unique
+    const playerId = player.player_id || player.id || player.playerId;
+    if (!playerId) {
+      console.warn('Player missing ID fields, skipping option processing:', player.displayName || player.name);
+      continue;
+    }
     const contract = player.contract;
 
     if (!contract.salariesByYear || !Array.isArray(contract.salariesByYear)) {

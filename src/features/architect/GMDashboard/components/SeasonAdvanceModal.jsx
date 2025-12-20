@@ -298,9 +298,13 @@ export function SeasonAdvanceModal({
       const decisions = {};
       for (const [playerId, data] of Object.entries(optionDecisions)) {
         if (data.decision) {
+          // Normalize option type to lowercase 'player' or 'team'
+          const normalizedType = String(data.optionType || '').toLowerCase().includes('player')
+            ? 'player'
+            : 'team';
           decisions[playerId] = {
             decision: data.decision,
-            optionType: data.optionType === 'Player Option' ? 'player' : 'team',
+            optionType: normalizedType,
             season: data.season,
           };
         }
