@@ -1,19 +1,14 @@
 /**
  * FILE: src/features/architect/GMDashboard/components/WorldSelector.jsx
- * PURPOSE: World selection and management UI for Architect GMDashboard.
+ * PURPOSE: WorldSelector dropdown for Architect GMDashboard - select, create, branch, rename, and archive worlds
  * OWNERSHIP: Feature: architect/GMDashboard
  *
  * HISTORY:
- *  - 2025-12-20: Created - implements WorldSelector per ARCHITECT_GAP_ANALYSIS.md Phase 2A
+ *  - 2025-12-20: Created for Phase 2A WorldSelector implementation per ARCHITECT_GAP_ANALYSIS.md
  *
- * FEATURES:
- *  - List user worlds from worldManager
- *  - Select active world (sets worldId in Architect state)
- *  - Create new world
- *  - Branch current world
- *  - Rename/update world metadata
- *  - Archive world (safe alternative to delete due to subcollection handling)
- *  - Persist selected worldId across refresh
+ * LINKS:
+ *  - worldManager API: src/features/architect/utils/worldManager.js
+ *  - GMDashboard integration: src/features/architect/GMDashboard/GMDashboard.jsx
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
@@ -139,6 +134,26 @@ export function WorldSelector({ userId, worldId, setWorldId, onWorldChange }) {
       localStorage.removeItem(storageKey);
     }
   }, [userId, worldId]);
+
+  // ===========================================================================
+  // ESCAPE KEY HANDLER
+  // ===========================================================================
+
+  useEffect(() => {
+    const handleEscapeKey = (e) => {
+      if (e.key === 'Escape') {
+        setShowActionsMenu(false);
+        setShowCreateModal(false);
+        setShowBranchModal(false);
+        setShowRenameModal(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscapeKey);
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, []);
 
   // ===========================================================================
   // HANDLERS
@@ -385,6 +400,7 @@ export function WorldSelector({ userId, worldId, setWorldId, onWorldChange }) {
       <div className="flex items-center gap-1">
         {/* Create World Button */}
         <button
+          type="button"
           onClick={() => {
             setNewWorldName('');
             setNewWorldDescription('');
@@ -401,6 +417,7 @@ export function WorldSelector({ userId, worldId, setWorldId, onWorldChange }) {
         {worldId && (
           <div className="relative">
             <button
+              type="button"
               onClick={() => setShowActionsMenu(!showActionsMenu)}
               className="px-2 py-1 text-xs bg-white/10 hover:bg-white/20 text-white rounded transition-colors"
               disabled={isSubmitting}
@@ -417,18 +434,21 @@ export function WorldSelector({ userId, worldId, setWorldId, onWorldChange }) {
             {showActionsMenu && (
               <div className="absolute right-0 top-full mt-1 bg-[#1a1a1a] border border-white/10 rounded shadow-lg z-50 min-w-[120px]">
                 <button
+                  type="button"
                   onClick={openBranchModal}
                   className="w-full px-3 py-2 text-xs text-left text-white hover:bg-white/10 transition-colors"
                 >
                   Branch
                 </button>
                 <button
+                  type="button"
                   onClick={openRenameModal}
                   className="w-full px-3 py-2 text-xs text-left text-white hover:bg-white/10 transition-colors"
                 >
                   Rename
                 </button>
                 <button
+                  type="button"
                   onClick={handleArchiveWorld}
                   className="w-full px-3 py-2 text-xs text-left text-red-400 hover:bg-white/10 transition-colors"
                 >
@@ -456,23 +476,24 @@ export function WorldSelector({ userId, worldId, setWorldId, onWorldChange }) {
         >
           <div className="space-y-3">
             <div>
-              <label className="block text-xs text-white/70 mb-1">
+              <label htmlFor="create-world-name" className="block text-xs text-white/70 mb-1">
                 World Name
               </label>
               <input
+                id="create-world-name"
                 type="text"
                 value={newWorldName}
                 onChange={(e) => setNewWorldName(e.target.value)}
                 className="w-full bg-[#0d0d0d] border border-white/10 rounded px-2 py-1 text-sm text-white"
                 placeholder="My Offseason Plan"
-                autoFocus
               />
             </div>
             <div>
-              <label className="block text-xs text-white/70 mb-1">
+              <label htmlFor="create-world-description" className="block text-xs text-white/70 mb-1">
                 Description (optional)
               </label>
               <textarea
+                id="create-world-description"
                 value={newWorldDescription}
                 onChange={(e) => setNewWorldDescription(e.target.value)}
                 className="w-full bg-[#0d0d0d] border border-white/10 rounded px-2 py-1 text-sm text-white resize-none"
@@ -499,23 +520,24 @@ export function WorldSelector({ userId, worldId, setWorldId, onWorldChange }) {
               <span className="font-medium">{currentWorld?.worldName || worldId}</span>
             </p>
             <div>
-              <label className="block text-xs text-white/70 mb-1">
+              <label htmlFor="branch-world-name" className="block text-xs text-white/70 mb-1">
                 Branch Name
               </label>
               <input
+                id="branch-world-name"
                 type="text"
                 value={newWorldName}
                 onChange={(e) => setNewWorldName(e.target.value)}
                 className="w-full bg-[#0d0d0d] border border-white/10 rounded px-2 py-1 text-sm text-white"
                 placeholder="Alternative scenario"
-                autoFocus
               />
             </div>
             <div>
-              <label className="block text-xs text-white/70 mb-1">
+              <label htmlFor="branch-world-description" className="block text-xs text-white/70 mb-1">
                 Description (optional)
               </label>
               <textarea
+                id="branch-world-description"
                 value={newWorldDescription}
                 onChange={(e) => setNewWorldDescription(e.target.value)}
                 className="w-full bg-[#0d0d0d] border border-white/10 rounded px-2 py-1 text-sm text-white resize-none"
@@ -538,23 +560,24 @@ export function WorldSelector({ userId, worldId, setWorldId, onWorldChange }) {
         >
           <div className="space-y-3">
             <div>
-              <label className="block text-xs text-white/70 mb-1">
+              <label htmlFor="rename-world-name" className="block text-xs text-white/70 mb-1">
                 World Name
               </label>
               <input
+                id="rename-world-name"
                 type="text"
                 value={newWorldName}
                 onChange={(e) => setNewWorldName(e.target.value)}
                 className="w-full bg-[#0d0d0d] border border-white/10 rounded px-2 py-1 text-sm text-white"
                 placeholder="World name"
-                autoFocus
               />
             </div>
             <div>
-              <label className="block text-xs text-white/70 mb-1">
+              <label htmlFor="rename-world-description" className="block text-xs text-white/70 mb-1">
                 Description (optional)
               </label>
               <textarea
+                id="rename-world-description"
                 value={newWorldDescription}
                 onChange={(e) => setNewWorldDescription(e.target.value)}
                 className="w-full bg-[#0d0d0d] border border-white/10 rounded px-2 py-1 text-sm text-white resize-none"
@@ -608,6 +631,7 @@ function WorldModal({
 
         <div className="flex justify-end gap-2 mt-4">
           <button
+            type="button"
             onClick={onClose}
             className="px-3 py-1 text-xs bg-white/10 hover:bg-white/20 text-white rounded transition-colors"
             disabled={isSubmitting}
@@ -615,6 +639,7 @@ function WorldModal({
             Cancel
           </button>
           <button
+            type="button"
             onClick={onSubmit}
             className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
             disabled={isSubmitting}
@@ -626,5 +651,3 @@ function WorldModal({
     </div>
   );
 }
-
-// (Remove the line entirely - no code remains at this location)

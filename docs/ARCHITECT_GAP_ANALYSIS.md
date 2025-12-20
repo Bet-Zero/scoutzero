@@ -372,7 +372,7 @@ Phase 4: Polish & Edge Cases (RECOMMENDED)
 
 2. ✅ **Wire World System to UI**
    - ✅ Add `worldId` state to `useArchitectState.ts`
-   - Create `WorldSelector` component (UI pending)
+   - ✅ Create `WorldSelector` component
    - Update data loading to use `teamLoader.getTeam(worldId)` (ready, needs UI trigger)
 
 3. ✅ **Add Persistence to Mutations**
