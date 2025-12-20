@@ -176,7 +176,7 @@ The trade validation engine is the most complete subsystem:
 | FA Exception Usage | `validateFaExceptionUsage.js` | ✅ Complete |
 
 **Minor Gaps**:
-- Test coverage at 66% due to mock issues (not logic issues)
+- Test coverage at 87% (239/275 tests passing) - remaining failures are mock issues, not logic issues
 - Some rules duplicated between Trade Machine and Architect core
 
 ---
@@ -193,7 +193,7 @@ Modern, well-typed module providing:
 - `getExtensionProfile()` - Extension eligibility/terms
 - `getRFAProfile()` - RFA/QO calculations
 
-**Gap**: `extensionRules.js` is marked `@deprecated` but still imported by `EditContractModal.jsx` as fallback.
+**Note**: The deprecated `extensionRules.js` at `src/features/architect/utils/extensionRules.js` is no longer imported by production UI code. The active extension rules logic lives in `src/features/architect/utils/playerRulesProfile/extensionRules.js` and is used by the Salary Engine.
 
 ---
 
@@ -262,8 +262,8 @@ const [worldId, setWorldId] = useState<string | null>(null);
 WorldId is set by the WorldSelector component and persists across browser refresh via localStorage (`architect.activeWorldId.{userId}`).
 
 **Remaining Work**:
-- Wire `teamLoader.getTeam(worldId)` for world-aware data loading (replace `loadTeamCapSheet`)
-- Update auto-save destination from `teamPlans` to `architect_worlds` (future phase, after world-aware reads are working)
+- ✅ ~~Wire `teamLoader.getTeam(worldId)` for world-aware data loading~~ (Phase 2B complete)
+- ⚠️ Update auto-save destination from `teamPlans` to `architect_worlds` (future phase)
 
 ---
 
@@ -279,9 +279,9 @@ At 1,063 lines, this modal handles:
 - Validation warnings
 
 **Gaps**:
-- Uses deprecated `extensionRules.js` as fallback (lines 21-24)
-- Cap validation runs but doesn't block illegal actions
-- "Force Action" button bypasses all validation
+- ✅ ~~Uses deprecated `extensionRules.js` as fallback~~ (Now uses `salaryEngine`)
+- ⚠️ Cap validation runs but doesn't block illegal actions
+- ⚠️ "Force Action" button bypasses all validation
 
 ---
 
@@ -394,7 +394,7 @@ Phase 4: Polish & Edge Cases (RECOMMENDED)
 2. ✅ **Wire World System to UI**
    - ✅ Add `worldId` state to `useArchitectState.ts`
    - ✅ Create `WorldSelector` component with create/select/branch/rename/archive
-   - ⚠️ Update data loading to use `teamLoader.getTeam(worldId)` ← **NEXT STEP**
+   - ✅ Update data loading to use `teamLoader.getTeam(worldId)` ✅ DONE (Phase 2B)
 
 3. ✅ **Add Persistence to Mutations**
    - ✅ Created centralized `mutationPipeline.js` with `applyWorldMutation()` entrypoint
@@ -455,7 +455,7 @@ Phase 4: Polish & Edge Cases (RECOMMENDED)
 
 **What Is Incomplete/Missing**:
 - Complete recursive subcollection deletion in `worldManager.deleteWorld()` (currently using archive as workaround)
-- Test suite at 66% due to mock issues
+- Test suite at 87% (239/275) - remaining 36 failures are mock issues in Firebase test infrastructure
 - Season advancement UI (option decisions before advancing, Stepien recalculation)
 
 **What Must Be Done (Priority Order)**:
@@ -466,13 +466,13 @@ Phase 4: Polish & Edge Cases (RECOMMENDED)
 5. ~~Add world management UI (WorldSelector component)~~ ✅ DONE
 6. ~~Remove deprecated code paths~~ ✅ DONE (extensionRules replaced)
 7. ~~Wire data loading to use `teamLoader.getTeam(worldId)`~~ ✅ DONE (Phase 2B complete)
-8. Complete test coverage
+8. Complete test coverage (currently at 87%, up from 66%)
 9. Implement recursive delete or finalize archive-based approach
 
 **Estimated Remaining Effort**:
-- Test fixes: 1-2 days
+- Test fixes: 0.5-1 day (only 36 failures remaining, mostly mock issues)
 - Season advancement UI polish: 1-2 days
-- Total: ~2-4 days for production readiness
+- Total: ~1.5-3 days for production readiness
 
 ---
 
