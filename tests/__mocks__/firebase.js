@@ -490,6 +490,8 @@ export function writeBatch(db) {
         }
       }
       this.operations = [];
+      // CRITICAL: Reset currentBatch so subsequent updateDoc calls work independently
+      currentBatch = null;
     },
   };
 

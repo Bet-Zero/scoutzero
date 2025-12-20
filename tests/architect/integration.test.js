@@ -43,7 +43,8 @@ describe('Architect Integration Tests', () => {
   const userId = 'user_123';
 
   beforeEach(() => {
-    seedBaseData(['LAL', 'GSW', 'BOS']);
+    // advanceSeason calls getLeague which needs all 30 teams
+    seedBaseData('all');
   });
 
   describe('World Creation → Trade Flow', () => {

@@ -165,15 +165,44 @@ export function createMockPlayer({
 }
 
 /**
+ * All 30 NBA team codes
+ */
+const ALL_TEAM_CODES = [
+  'ATL', 'BOS', 'BKN', 'CHA', 'CHI', 'CLE', 'DAL', 'DEN', 'DET', 'GSW',
+  'HOU', 'IND', 'LAC', 'LAL', 'MEM', 'MIA', 'MIL', 'MIN', 'NOP', 'NYK',
+  'OKC', 'ORL', 'PHI', 'PHX', 'POR', 'SAC', 'SAS', 'TOR', 'UTA', 'WAS',
+];
+
+/**
  * Seed base teams and players into mock Firestore
+ * @param {string[]|'all'} teams - Array of team codes or 'all' for all 30 teams
+ * @param {string[]|null} players - Array of player IDs or null for all
  */
 export function seedBaseData(teams = ['LAL', 'GSW', 'BOS'], players = null) {
+  const teamCodesToSeed = teams === 'all' ? ALL_TEAM_CODES : teams;
+  
   // Seed base teams
-  for (const teamCode of teams) {
+  for (const teamCode of teamCodesToSeed) {
     const baseTeam = BASE_TEAMS[teamCode];
     if (baseTeam) {
       const teamPath = `architect_baseTeams/${teamCode}`;
       seedMockData(teamPath, baseTeam);
+    } else {
+      // Create minimal team data for teams not in fixtures
+      const teamPath = `architect_baseTeams/${teamCode}`;
+      seedMockData(teamPath, {
+        teamCode,
+        teamName: `${teamCode} Team`,
+        season: '2025-26',
+        roster: [],
+        players: [],
+        totals: {
+          totalSalary: 100_000_000,
+          capHit: 100_000_000,
+          rosterCount: 0,
+        },
+        source: { type: 'base', provider: 'test' },
+      });
     }
   }
 
@@ -325,3 +354,6 @@ export function createMockCapProjections(season = '2025-26') {
     },
   };
 }
+
+// Re-export seedMockData for direct use in tests
+export { seedMockData, getMockData };

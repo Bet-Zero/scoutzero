@@ -21,6 +21,7 @@ import {
   createMockWorld,
   createMockTeam,
   createMockPlayer,
+  seedMockData,
 } from '../helpers/architectTestHelpers.js';
 
 describe('Team Loader', () => {
@@ -45,17 +46,24 @@ describe('Team Loader', () => {
       const world = createMockWorld({ worldId });
       seedWorldMetadata(worldId, world);
 
+      // Provide players array to avoid hydration (which would load from base)
       const modifiedTeam = createMockTeam({
         teamCode: 'LAL',
         season: '2025-26',
         roster: ['lebron_james', 'anthony_davis'],
+        players: [
+          createMockPlayer({ playerId: 'lebron_james', displayName: 'LeBron James' }),
+          createMockPlayer({ playerId: 'anthony_davis', displayName: 'Anthony Davis' }),
+        ],
       });
       seedTeamSnapshot(worldId, 'LAL', modifiedTeam);
 
       const team = await getTeam(worldId, 'LAL');
 
       expect(team.teamCode).toBe('LAL');
-      expect(team.roster).toEqual(['lebron_james', 'anthony_davis']);
+      // players array is used for roster content, roster array contains IDs
+      expect(team.players.length).toBe(2);
+      expect(team.players.map(p => p.playerId)).toEqual(['lebron_james', 'anthony_davis']);
     });
 
     it('falls back to parent world snapshot', async () => {
@@ -67,6 +75,9 @@ describe('Team Loader', () => {
       const parentTeam = createMockTeam({
         teamCode: 'LAL',
         roster: ['lebron_james'],
+        players: [
+          createMockPlayer({ playerId: 'lebron_james', displayName: 'LeBron James' }),
+        ],
       });
       seedTeamSnapshot(parentWorldId, 'LAL', parentTeam);
 
@@ -82,7 +93,7 @@ describe('Team Loader', () => {
       const team = await getTeam(childWorldId, 'LAL');
 
       expect(team.teamCode).toBe('LAL');
-      expect(team.roster).toEqual(['lebron_james']);
+      expect(team.players.map(p => p.playerId)).toEqual(['lebron_james']);
     });
 
     it('falls back to base when no snapshot', async () => {
@@ -106,6 +117,9 @@ describe('Team Loader', () => {
       const grandparentTeam = createMockTeam({
         teamCode: 'LAL',
         roster: ['lebron_james'],
+        players: [
+          createMockPlayer({ playerId: 'lebron_james', displayName: 'LeBron James' }),
+        ],
       });
       seedTeamSnapshot(grandparentWorldId, 'LAL', grandparentTeam);
 
@@ -129,7 +143,7 @@ describe('Team Loader', () => {
       const team = await getTeam(childWorldId, 'LAL');
 
       expect(team.teamCode).toBe('LAL');
-      expect(team.roster).toEqual(['lebron_james']);
+      expect(team.players.map(p => p.playerId)).toEqual(['lebron_james']);
     });
 
     it('throws error when teamCode is missing', async () => {
@@ -146,6 +160,11 @@ describe('Team Loader', () => {
   });
 
   describe('getLeague', () => {
+    beforeEach(() => {
+      // getLeague needs all 30 teams seeded
+      seedBaseData('all');
+    });
+
     it('returns all 30 teams in base mode', async () => {
       const teams = await getLeague(null);
 
@@ -162,6 +181,9 @@ describe('Team Loader', () => {
       const modifiedTeam = createMockTeam({
         teamCode: 'LAL',
         roster: ['lebron_james'],
+        players: [
+          createMockPlayer({ playerId: 'lebron_james', displayName: 'LeBron James' }),
+        ],
       });
       seedTeamSnapshot(worldId, 'LAL', modifiedTeam);
 
@@ -169,7 +191,7 @@ describe('Team Loader', () => {
 
       expect(teams.length).toBe(30);
       const lalTeam = teams.find((t) => t.teamCode === 'LAL');
-      expect(lalTeam.roster).toEqual(['lebron_james']);
+      expect(lalTeam.players.map(p => p.playerId)).toEqual(['lebron_james']);
       // Other teams should come from base
       const gswTeam = teams.find((t) => t.teamCode === 'GSW');
       expect(gswTeam.teamCode).toBe('GSW');
@@ -184,6 +206,9 @@ describe('Team Loader', () => {
       const parentTeam = createMockTeam({
         teamCode: 'LAL',
         roster: ['lebron_james'],
+        players: [
+          createMockPlayer({ playerId: 'lebron_james', displayName: 'LeBron James' }),
+        ],
       });
       seedTeamSnapshot(parentWorldId, 'LAL', parentTeam);
 
@@ -199,7 +224,7 @@ describe('Team Loader', () => {
 
       expect(teams.length).toBe(30);
       const lalTeam = teams.find((t) => t.teamCode === 'LAL');
-      expect(lalTeam.roster).toEqual(['lebron_james']);
+      expect(lalTeam.players.map(p => p.playerId)).toEqual(['lebron_james']);
     });
   });
 
@@ -234,14 +259,14 @@ describe('Team Loader', () => {
 
       // Path: architect_worlds/{worldId}/teams/{teamCode}/players/{playerId}
       const overridePath = `architect_worlds/${worldId}/teams/LAL/players/lebron_james`;
-      const { seedMockData } = await import('../setupFirebaseMocks.js');
       seedMockData(overridePath, playerOverride);
 
       const player = await getPlayer(worldId, 'LAL', 'lebron_james');
 
       expect(player.playerId).toBe('lebron_james');
-      // Override should merge with base
-      expect(player.contract.salariesByYear[0].salary).toBe(60_000_000);
+      // Override should merge with base - find the 2025-26 season
+      const salary2526 = player.contract.salariesByYear.find(s => s.season === '2025-26');
+      expect(salary2526.salary).toBe(60_000_000);
     });
 
     it('falls back to parent world override', async () => {
@@ -265,7 +290,6 @@ describe('Team Loader', () => {
 
       // Path: architect_worlds/{worldId}/teams/{teamCode}/players/{playerId}
       const overridePath = `architect_worlds/${parentWorldId}/teams/LAL/players/lebron_james`;
-      const { seedMockData } = await import('../setupFirebaseMocks.js');
       seedMockData(overridePath, playerOverride);
 
       // Create child without override
@@ -279,7 +303,9 @@ describe('Team Loader', () => {
       const player = await getPlayer(childWorldId, 'LAL', 'lebron_james');
 
       expect(player.playerId).toBe('lebron_james');
-      expect(player.contract.salariesByYear[0].salary).toBe(55_000_000);
+      // Override should merge with base - find the 2025-26 season
+      const salary2526 = player.contract.salariesByYear.find(s => s.season === '2025-26');
+      expect(salary2526.salary).toBe(55_000_000);
     });
 
     it('throws error when teamCode is missing', async () => {

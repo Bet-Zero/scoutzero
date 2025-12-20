@@ -28,7 +28,8 @@ describe('Season Manager', () => {
   const userId = 'user_123';
 
   beforeEach(() => {
-    seedBaseData(['LAL', 'GSW', 'BOS']);
+    // processSeasonTransition calls getLeague which needs all 30 teams
+    seedBaseData('all');
     const world = createMockWorld({
       worldId,
       userId,
