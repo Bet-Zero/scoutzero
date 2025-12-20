@@ -364,8 +364,9 @@ export function WorldSelector({ userId, worldId, setWorldId, onWorldChange }) {
     <div className="flex items-center gap-2 relative">
       {/* World Dropdown */}
       <div className="flex items-center gap-1">
-        <label className="text-xs text-white/70">World</label>
+        <label htmlFor="world-selector" className="text-xs text-white/70">World</label>
         <select
+          id="world-selector"
           value={worldId || ''}
           onChange={handleWorldSelect}
           className="bg-[#1a1a1a] text-white text-sm px-2 py-1 rounded border border-white/10 min-w-[140px]"
