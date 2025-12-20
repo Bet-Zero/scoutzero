@@ -6,105 +6,79 @@ Comprehensive test suite for Architect Phase 3 core implementation. Tests valida
 
 ## Current Status
 
-**Test Results: 239/275 passing (87%)**
+**Test Results: 275/275 passing (100%) ✅**
 
-- ✅ **9 test files fully passing**: Core functionality validated
-- ⚠️ **6 test files with failures**: Various mock implementation issues
-- ❌ **36 test failures remaining**: Mostly mock implementation details
+- ✅ **15 test files fully passing**: All core functionality validated
+- ✅ **0 test failures**: Firebase mock issues resolved
 
 ## What's Working
+
+### ✅ All Test Suites Passing
+
+| Test File | Tests | Status |
+|-----------|-------|--------|
+| `schemaAdapter.test.js` | 9/9 | ✅ |
+| `worldManager.test.js` | 30/30 | ✅ |
+| `teamLoader.test.js` | 21/21 | ✅ |
+| `tradeManager.test.js` | 25/25 | ✅ |
+| `seasonManager.test.js` | 16/16 | ✅ |
+| `integration.test.js` | 14/14 | ✅ |
+| `playerNameCorrections.test.ts` | 22/22 | ✅ |
+| `seasonHelpers.test.js` | 34/34 | ✅ |
+| `salaryEngine.test.js` | 19/19 | ✅ |
+| `playerRulesProfile.test.js` | 38/38 | ✅ |
+| `ruleContextTiming.test.js` | 25/25 | ✅ |
+| `capHolds.test.ts` | 11/11 | ✅ |
+| `EditContractModal.rules.test.jsx` | 4/4 | ✅ |
+| `CapSheetFull.rules.test.jsx` | 2/2 | ✅ |
+| `GMDashboard.smoke.test.tsx` | 5/5 | ✅ |
 
 ### ✅ Infrastructure
 - Firebase Firestore mocking infrastructure (`tests/__mocks__/firebase.js`)
 - Test fixtures for teams, players, and worlds
 - Test helper utilities (`tests/helpers/architectTestHelpers.js`)
-- Import paths fixed (all tests can now run)
+- All import paths working correctly
 
-### ✅ Passing Tests
-- **Schema Adapter** (9/9 tests) - All passing
-  - `buildTradeTeamInput()` structure validation
-  - `buildTradeInput()` complete structure building
-  - Trade data merging
-  - Cap projections handling
+## Issues Resolved (December 20, 2025)
 
-- **Partial Passes**:
-  - World Manager: 29/30 tests passing
-  - Team Loader: Most tests passing
-  - Trade Manager: Most tests passing
-  - Season Manager: Most tests passing
-  - Integration: Some workflows passing
+### ✅ Fixed: `writeBatch().commit()` Not Resetting `currentBatch`
 
-## Known Issues
+**Problem**: The `commit()` method didn't reset `currentBatch` to null, causing subsequent `updateDoc` calls to silently queue into the already-committed batch.
 
-### 🔴 Critical: `updateWorldStats` Persistence Issue
+**Fix**: Added `currentBatch = null;` at the end of `commit()` in `tests/__mocks__/firebase.js`.
 
-**Problem**: The `updateWorldStats` function updates are not persisting correctly in the mock.
+### ✅ Fixed: Timestamp Format in Fixtures
 
-**Affected Tests**:
-- `worldManager.test.js > updateWorldStats > increments action counters`
-- `worldManager.test.js > updateWorldStats > tracks modified teams`
-- `worldManager.test.js > updateWorldStats > updates lastModifiedAt`
-- Related integration tests that use `updateWorldStats`
+**Problem**: World fixtures used `{ __type: 'serverTimestamp', value: '...' }` objects which weren't parsed by `new Date()`.
 
-**Symptoms**:
-- `metadata.stats.totalTrades` remains 0 instead of incrementing to 1
-- `metadata.actionCount` remains 0 instead of incrementing
-- `metadata.modifiedTeams` remains empty instead of being updated
+**Fix**: Changed timestamp fields to plain ISO strings in `tests/fixtures/architect/worlds.js`.
 
-**Investigation**:
-- Merge logic (`deepMerge`) works correctly in isolation
-- `updateDoc` mock appears to store data correctly
-- Issue likely in mock's interaction with read-then-update flow
-- `getWorldMetadata` → `updateDoc` → `getMockWorldMetadata` sequence may have timing/reference issues
+### ✅ Fixed: Missing 30-Team Seeding for `getLeague`
 
-**Next Steps for Fix**:
-1. Add debug logging to trace exact data flow
-2. Verify `getWorldMetadata` inside `updateWorldStats` is getting fresh data
-3. Check if `updateDoc` is actually being called (not in a batch)
-4. Verify `getMockWorldMetadata` is retrieving from correct path
-5. Consider if async timing is causing issues
+**Problem**: Tests calling `getLeague()` needed all 30 teams seeded but only had 3.
 
-### ⚠️ Other Issues
+**Fix**: Added `'all'` option to `seedBaseData()` in `tests/helpers/architectTestHelpers.js`.
 
-1. **Timestamp Handling**: Some tests expect proper Date objects but get NaN
-   - `listUserWorlds > sorts by lastModifiedAt by default`
-   - Related to `serverTimestamp()` processing in mocks
+### ✅ Fixed: Roster vs Players Array Format
 
-2. **Integration Test Failures**: 
-   - Season advancement flows
-   - Multi-season flows
-   - Trade → Sign FA → Waive flows
-   - Likely cascading from `updateWorldStats` issue
+**Problem**: Tests expected `roster` (string array) but production returns `players` (object array).
 
-3. **Mock Edge Cases**:
-   - Batch operations may need refinement
-   - Collection group queries working but may need more edge case coverage
+**Fix**: Updated test expectations to use `players.map(p => p.playerId)`.
 
-## Test Files
+### ✅ Fixed: `processOptions` Bug in `seasonManager.js`
 
-### ✅ `schemaAdapter.test.js` - 9/9 passing
-- All tests passing
-- No issues
+**Problem**: Used `yearData.year` (undefined) instead of `toEndYear(yearData.season)`, and checked `toSeason` instead of `fromSeason`.
 
-### ⚠️ `worldManager.test.js` - 29/30 passing
-- 1 failure: `updateWorldStats > increments action counters`
-- Related failures likely: `tracks modified teams`, `updates lastModifiedAt`
+**Fix**: Changed to `const year = toEndYear(yearData.season);` and passed `fromSeason` to `processOptions()`.
 
-### ⚠️ `teamLoader.test.js` - Most passing
-- Some failures related to fallback chain logic
-- May be related to mock data setup
+### ✅ Fixed: Test Expectation Mismatches
 
-### ⚠️ `tradeManager.test.js` - Most passing
-- Some failures related to cap calculations
-- May need mock refinement for complex trade scenarios
+**Problems**:
+- Salary array index off-by-one (checking index 0 when 2025-26 was at index 1)
+- Expected `'Lebron James'` but production returns `'LeBron James'` (HYPHENATED_NAMES)
+- Expected extension enabled for FA-year player (should be disabled)
 
-### ⚠️ `seasonManager.test.js` - Most passing
-- Some failures related to season advancement
-- May be related to `updateWorldStats` issue
-
-### ⚠️ `integration.test.js` - Some passing
-- Multiple workflow failures
-- Likely cascading from `updateWorldStats` and other mock issues
+**Fixes**: Updated test expectations to match actual production behavior.
 
 ## Mock Implementation Details
 
@@ -115,100 +89,53 @@ Comprehensive test suite for Architect Phase 3 core implementation. Tests valida
 - In-memory data store: `mockDataStore` (Map)
 - Functions mocked: `getDoc`, `setDoc`, `updateDoc`, `getDocs`, `writeBatch`, `query`, `collectionGroup`, `serverTimestamp`
 - Deep cloning for data isolation
-- Batch operation support
+- Batch operation support with proper lifecycle (commit resets `currentBatch`)
 - Collection group query support
 
 ### Key Functions
 
 - `getDataFromStore(path)`: Returns cloned data from store
 - `setDataInStore(path, data)`: Stores cloned data in store
-- `deepMerge(target, source)`: Deep merges objects (works correctly)
+- `deepMerge(target, source)`: Deep merges objects
 - `processServerTimestamps(data)`: Converts serverTimestamp objects to ISO strings
 - `getMockData(path)`: Public API for test assertions
-
-## Recommendations
-
-### For Fixing Tests (Technical Next Steps)
-
-These are steps to complete the test suite and get to 100% passing:
-
-1. **Fix `updateWorldStats` Issue** (Highest Priority)
-   - This is blocking multiple tests
-   - Add debug logging to trace exact flow
-   - Verify data is being stored and retrieved correctly
-
-2. **Fix Timestamp Handling**
-   - Ensure `serverTimestamp()` values are properly converted
-   - Verify Date objects are created correctly for sorting
-
-3. **Fix Remaining Integration Tests**
-   - Many failures likely cascade from `updateWorldStats`
-   - Fix root cause first, then verify integration tests
-
-### Long-term Test Improvements
-
-1. **Mock Robustness**
-   - Add more edge case handling
-   - Improve batch operation support
-   - Better error messages for debugging
-
-2. **Test Coverage**
-   - Add more edge case tests
-   - Test error scenarios
-   - Test concurrent operations
-
-### For Project Development (General Next Steps)
-
-**You can proceed with Architect development** - the test suite is functional at 66% and validates core functionality. The remaining failures are mock implementation details, not issues with the actual Architect code.
-
-**Recommended Project Flow:**
-1. **Continue with Phase 4: UI & Polish** (if not started)
-   - Build world selector
-   - Add branch button
-   - Create season navigator
-   - Integrate with GMDashboard
-
-2. **Enhancements** (as needed)
-   - Improve `updateTeamCapTotals()` to use full cap calculation utilities
-   - Add more features based on user feedback
-
-3. **Fix Tests Later** (when time permits)
-   - The 66% pass rate is sufficient for development
-   - Remaining failures can be fixed incrementally
-   - Tests are correctly written - just need mock refinement
 
 ## Test Execution
 
 ```bash
 # Run all Architect tests
-npm test tests/architect
+npm test tests/architect -- --run
 
 # Run specific test file
-npm test tests/architect/worldManager.test.js
+npm test tests/architect/worldManager.test.js -- --run
 
 # Run specific test
-npm test tests/architect/worldManager.test.js -- -t "increments action counters"
+npm test tests/architect/worldManager.test.js -- --run -t "increments action counters"
 ```
 
-## Notes
+## Files Modified (December 20, 2025)
 
-- All tests are correctly written - failures are due to mock implementation, not test logic
-- The test suite validates the Architect implementation correctly
-- Mock needs refinement to match real Firestore behavior more closely
-- 66% pass rate is solid for first pass - remaining issues are refinements
+### Test Infrastructure
+- `tests/__mocks__/firebase.js` - Fixed batch commit lifecycle
+- `tests/fixtures/architect/worlds.js` - Fixed timestamp format
+- `tests/helpers/architectTestHelpers.js` - Added 'all' team seeding, re-exported seedMockData
 
-## Files Created
+### Test Files
+- `tests/architect/teamLoader.test.js` - Fixed roster/players expectations
+- `tests/architect/seasonManager.test.js` - Fixed option test fixtures
+- `tests/architect/integration.test.js` - Fixed imports and test_fa seeding
+- `tests/architect/playerNameCorrections.test.ts` - Fixed name expectations
+- `tests/architect/EditContractModal.rules.test.jsx` - Fixed extension eligibility test
 
-- `tests/__mocks__/firebase.js` - Firebase Firestore mock
-- `tests/setupFirebaseMocks.js` - Mock setup/teardown
-- `tests/fixtures/architect/teams.js` - Team test data
-- `tests/fixtures/architect/players.js` - Player test data
-- `tests/fixtures/architect/worlds.js` - World test data
-- `tests/helpers/architectTestHelpers.js` - Test utilities
-- `tests/architect/worldManager.test.js` - World manager tests
-- `tests/architect/teamLoader.test.js` - Team loader tests
-- `tests/architect/tradeManager.test.js` - Trade manager tests
-- `tests/architect/seasonManager.test.js` - Season manager tests
-- `tests/architect/schemaAdapter.test.js` - Schema adapter tests (all passing)
-- `tests/architect/integration.test.js` - Integration tests
+### Production Code (Bug Fix)
+- `src/features/architect/utils/seasonManager.js` - Fixed processOptions() year handling
 
+## Summary
+
+All 275 Architect tests now pass. The test suite fully validates:
+- World creation, branching, and management
+- Team loading with fallback chains (world → parent → base)
+- Trade execution and validation
+- Season advancement and contract processing
+- Schema adaptation and cap calculations
+- UI component integration

@@ -28,7 +28,8 @@ describe('Season Manager', () => {
   const userId = 'user_123';
 
   beforeEach(() => {
-    seedBaseData(['LAL', 'GSW', 'BOS']);
+    // processSeasonTransition calls getLeague which needs all 30 teams
+    seedBaseData('all');
     const world = createMockWorld({
       worldId,
       userId,
@@ -166,6 +167,7 @@ describe('Season Manager', () => {
           createMockPlayer({
             playerId: 'player_with_option',
             contract: {
+              endSeason: '2026-27', // Contract continues if option exercised
               salariesByYear: [
                 {
                   season: '2025-26',
@@ -173,6 +175,14 @@ describe('Season Manager', () => {
                   capHit: 10_000_000,
                   guaranteed: true,
                   option: 'Player Option',
+                  optionUsed: null,
+                },
+                {
+                  season: '2026-27',
+                  salary: 10_500_000,
+                  capHit: 10_500_000,
+                  guaranteed: true,
+                  option: null,
                   optionUsed: null,
                 },
               ],
@@ -188,8 +198,11 @@ describe('Season Manager', () => {
       const player = updatedTeam.players.find(
         (p) => p.playerId === 'player_with_option'
       );
-      // Option should be exercised by default
-      expect(player.contract.salariesByYear[0].optionUsed).toBe(true);
+      // Player should still be on roster since option was exercised (default behavior)
+      expect(updatedTeam.roster).toContain('player_with_option');
+      // Remaining salary should be the 2026-27 entry
+      expect(player.contract.salariesByYear.length).toBe(1);
+      expect(player.contract.salariesByYear[0].season).toBe('2026-27');
     });
 
     it('declines options correctly', async () => {
@@ -201,6 +214,7 @@ describe('Season Manager', () => {
           createMockPlayer({
             playerId: 'player_with_option',
             contract: {
+              endSeason: '2025-26', // Contract ends after this season if option declined
               salariesByYear: [
                 {
                   season: '2025-26',

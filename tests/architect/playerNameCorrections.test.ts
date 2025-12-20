@@ -69,7 +69,8 @@ describe('playerNameCorrections', () => {
 
     describe('falls back to Title Case for unknown names', () => {
       it('converts simple snake_case to Title Case', () => {
-        expect(normalizePlayerName('lebron_james')).toBe('Lebron James');
+        // Note: lebron_james is in HYPHENATED_NAMES with correct casing
+        expect(normalizePlayerName('john_smith')).toBe('John Smith');
       });
 
       it('converts three-part names to Title Case', () => {
@@ -81,7 +82,7 @@ describe('playerNameCorrections', () => {
       });
 
       it('lowercases the rest of each word (normalizes casing)', () => {
-        expect(normalizePlayerName('LEBRON_JAMES')).toBe('Lebron James');
+        expect(normalizePlayerName('JOHN_SMITH')).toBe('John Smith');
       });
     });
 
@@ -108,26 +109,27 @@ describe('playerNameCorrections', () => {
     });
 
     it('derives name from ID when name is "Player Not Found"', () => {
+      // lebron_james is in HYPHENATED_NAMES with correct casing 'LeBron James'
       expect(resolvePlayerDisplayName('Player Not Found', 'lebron_james')).toBe(
-        'Lebron James'
+        'LeBron James'
       );
     });
 
     it('derives name from ID when name is "Unknown"', () => {
       expect(resolvePlayerDisplayName('Unknown', 'lebron_james')).toBe(
-        'Lebron James'
+        'LeBron James'
       );
     });
 
     it('derives name from ID when name is undefined', () => {
       expect(resolvePlayerDisplayName(undefined, 'lebron_james')).toBe(
-        'Lebron James'
+        'LeBron James'
       );
     });
 
     it('derives name from ID when name is null', () => {
       expect(resolvePlayerDisplayName(null, 'lebron_james')).toBe(
-        'Lebron James'
+        'LeBron James'
       );
     });
 

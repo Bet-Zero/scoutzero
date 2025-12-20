@@ -139,8 +139,8 @@ async function processTeamSeasonTransition(teamData, fromSeason, toSeason) {
     updatedTeam.players = contractResult.players;
   }
 
-  // Process options
-  const optionsResult = processOptions(updatedTeam, toSeason);
+  // Process options (check options for the fromSeason being exited)
+  const optionsResult = processOptions(updatedTeam, fromSeason);
   if (optionsResult.hasChanges) {
     hasChanges = true;
     updatedTeam.roster = optionsResult.roster;
@@ -280,7 +280,7 @@ function processOptions(teamData, season) {
     // Check salariesByYear for options
     if (contract.salariesByYear && Array.isArray(contract.salariesByYear)) {
       contract.salariesByYear.forEach((yearData) => {
-        const year = yearData.year;
+        const year = toEndYear(yearData.season);
         if (year === seasonYear && yearData.option && yearData.optionUsed == null) {
           // Option decision year - default: assume option is exercised if not specified
           // In a full implementation, this would be user input

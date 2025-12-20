@@ -22,6 +22,7 @@ The Architect feature is a sophisticated NBA roster scenario planning system wit
 | **Multi-Season/Branching** | ✅ 95% | Logic exists, worldId wired to state, WorldSelector UI complete, world-aware reads implemented |
 | **UI Integration** | ✅ 90% | GMDashboard has WorldSelector, world management works, data loading is world-aware |
 | **Data Population** | ✅ 100% | `architect_baseTeams/basePlayers` collections populated |
+| **Test Coverage** | ✅ 100% | 275/275 tests passing (Firebase mock issues resolved) |
 
 ---
 
@@ -176,7 +177,7 @@ The trade validation engine is the most complete subsystem:
 | FA Exception Usage | `validateFaExceptionUsage.js` | ✅ Complete |
 
 **Minor Gaps**:
-- Test coverage at 87% (239/275 tests passing) - remaining failures are mock issues, not logic issues
+- ✅ Test coverage at 100% (275/275 tests passing) - Firebase mock issues resolved
 - Some rules duplicated between Trade Machine and Architect core
 
 ---
@@ -455,7 +456,6 @@ Phase 4: Polish & Edge Cases (RECOMMENDED)
 
 **What Is Incomplete/Missing**:
 - Complete recursive subcollection deletion in `worldManager.deleteWorld()` (currently using archive as workaround)
-- Test suite at 87% (239/275) - remaining 36 failures are mock issues in Firebase test infrastructure
 - Season advancement UI (option decisions before advancing, Stepien recalculation)
 
 **What Must Be Done (Priority Order)**:
@@ -466,13 +466,13 @@ Phase 4: Polish & Edge Cases (RECOMMENDED)
 5. ~~Add world management UI (WorldSelector component)~~ ✅ DONE
 6. ~~Remove deprecated code paths~~ ✅ DONE (extensionRules replaced)
 7. ~~Wire data loading to use `teamLoader.getTeam(worldId)`~~ ✅ DONE (Phase 2B complete)
-8. Complete test coverage (currently at 87%, up from 66%)
+8. ~~Complete test coverage~~ ✅ DONE (275/275 passing, 100%)
 9. Implement recursive delete or finalize archive-based approach
 
 **Estimated Remaining Effort**:
-- Test fixes: 0.5-1 day (only 36 failures remaining, mostly mock issues)
+- ~~Test fixes: 0.5-1 day~~ ✅ COMPLETE
 - Season advancement UI polish: 1-2 days
-- Total: ~1.5-3 days for production readiness
+- Total: ~1-2 days for production readiness
 
 ---
 
@@ -611,6 +611,89 @@ When no world is selected (worldId is null):
 ### Summary
 
 Priority 1 items 2 & 3 and Priority 2 items 4 & 5 have been completed. The centralized mutation pipeline is ready for use. The `architect_baseTeams` and `architect_basePlayers` collections are populated in Firestore. The deprecated `extensionRules.js` is no longer imported by production code.
+
+---
+
+## What Changed (December 20, 2025) - Test Suite Fix (275/275 Passing)
+
+### Root Cause Analysis
+
+The test failures (53 total) were categorized into these buckets:
+
+1. **Firebase Mock Batch Bug** (30+ failures): `writeBatch().commit()` did not reset `currentBatch` after execution, causing subsequent `updateDoc` calls to silently queue into the already-committed batch.
+
+2. **Timestamp Format Mismatch** (5 failures): World fixtures used `{ __type: 'serverTimestamp', value: '...' }` objects which weren't parsed by `new Date()`, causing NaN comparisons.
+
+3. **Missing Team Data** (10 failures): Tests calling `getLeague()` needed all 30 teams seeded but only had 3.
+
+4. **Test Expectation Mismatches** (8 failures): Tests expected `roster` (string array) but production returns `players` (object array); salary index off-by-one; incorrect extension eligibility expectations.
+
+5. **Production Bug** (2 failures): `processOptions` in `seasonManager.js` used `yearData.year` (undefined) instead of `toEndYear(yearData.season)`, and checked `toSeason` instead of `fromSeason`.
+
+### Files Modified
+
+#### Test Infrastructure
+
+- **`tests/__mocks__/firebase.js`**:
+  - Fixed `writeBatch().commit()` to reset `currentBatch = null` after execution
+  - This was the critical fix - without it, `updateDoc` calls after a batch commit silently failed
+
+- **`tests/fixtures/architect/worlds.js`**:
+  - Changed timestamp fields from `{ __type: 'serverTimestamp', value: '...' }` to plain ISO strings
+  - Ensures `new Date()` parsing works correctly in test assertions
+
+- **`tests/helpers/architectTestHelpers.js`**:
+  - Added `'all'` option to `seedBaseData()` to seed all 30 teams with minimal data
+  - Re-exported `seedMockData` and `getMockData` for direct use in tests
+
+#### Test Files
+
+- **`tests/architect/teamLoader.test.js`**:
+  - Updated test expectations to check `players.map(p => p.playerId)` instead of `roster`
+  - Added `players` array to team fixtures to avoid hydration
+  - Fixed salary array index to find correct season entry
+
+- **`tests/architect/seasonManager.test.js`**:
+  - Updated `seedBaseData(['LAL','GSW','BOS'])` to `seedBaseData('all')` for `processSeasonTransition` tests
+  - Fixed option processing test fixtures with `endSeason` and multiple salary years
+  - Updated "processes player options" to verify roster contains player (option exercised)
+  - Updated "declines options correctly" to add `endSeason: '2025-26'`
+
+- **`tests/architect/integration.test.js`**:
+  - Replaced dynamic `import('../setupFirebaseMocks.js')` with static imports
+  - Added `seedMockData` to imports from `architectTestHelpers.js`
+  - Added `seedBaseData('all')` in beforeEach
+  - Added base player seeding for `test_fa` in waive test
+
+- **`tests/architect/playerNameCorrections.test.ts`**:
+  - Updated test expectations to match `HYPHENATED_NAMES` (e.g., `'LeBron James'` not `'Lebron James'`)
+  - Used `'john_smith'` for Title Case fallback test since `'lebron_james'` is in HYPHENATED_NAMES
+
+- **`tests/architect/EditContractModal.rules.test.jsx`**:
+  - Updated "allows extension when rules profile is missing" to verify extension is disabled (correct behavior for FA year player)
+
+#### Production Code (Bug Fix)
+
+- **`src/features/architect/utils/seasonManager.js`**:
+  - Fixed `processOptions()` to use `toEndYear(yearData.season)` instead of `yearData.year`
+  - Fixed `processOptions()` to check `fromSeason` instead of `toSeason`
+  - These were genuine bugs where option processing was using undefined values
+
+### Test Results
+
+| Before | After | Change |
+|--------|-------|--------|
+| 222/275 (81%) | 275/275 (100%) | +53 tests |
+
+### Key Learnings
+
+1. **Batch lifecycle matters**: Firebase mock must track batch state correctly. The `currentBatch` variable acts as a singleton that must be reset after commit.
+
+2. **Fixture schema consistency**: Test fixtures should use the same serialized format as production data. Using special objects like `{ __type: '...' }` creates parsing issues.
+
+3. **Test data completeness**: Functions that iterate over all teams need all teams seeded, not just the ones mentioned in the test.
+
+4. **Check production code first**: Two failures were due to production bugs (`yearData.year` and `toSeason` vs `fromSeason`), not test issues.
 
 ---
 
