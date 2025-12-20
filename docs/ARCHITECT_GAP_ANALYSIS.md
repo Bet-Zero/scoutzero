@@ -1,9 +1,9 @@
 # Architect Feature Gap Analysis
 
 > **Created**: December 17, 2025  
-> **Updated**: December 17, 2025  
+> **Updated**: December 20, 2025  
 > **Purpose**: Comprehensive review of Architect feature completeness for production readiness  
-> **Status**: Phase 1-2 Implementation In Progress
+> **Status**: Phase 2A Complete - WorldSelector UI Implemented
 
 ---
 
@@ -11,7 +11,7 @@
 
 The Architect feature is a sophisticated NBA roster scenario planning system with significant functionality already implemented. However, several critical components remain incomplete or disconnected. This analysis identifies all gaps organized by system, provides dependency mapping, and prioritizes next actions.
 
-### Overall Assessment: ~80% Complete (was 55%)
+### Overall Assessment: ~85% Complete (was 80%)
 
 | Category | Status | Notes |
 |----------|--------|-------|
@@ -19,8 +19,8 @@ The Architect feature is a sophisticated NBA roster scenario planning system wit
 | **Trade Machine** | ✅ 90% | Comprehensive CBA validation, well-structured rules |
 | **Contract Logic** | ✅ 85% | Extensions/signing now use salaryEngine exclusively |
 | **Firestore Persistence** | ✅ 70% | mutationPipeline provides centralized write layer |
-| **Multi-Season/Branching** | ⚠️ 40% | Logic exists, worldId wired to state, UI pending |
-| **UI Integration** | ⚠️ 65% | GMDashboard has worldId support, needs WorldSelector UI |
+| **Multi-Season/Branching** | ✅ 70% | Logic exists, worldId wired to state, WorldSelector UI complete |
+| **UI Integration** | ✅ 80% | GMDashboard has WorldSelector, world management works |
 | **Data Population** | ✅ 100% | `architect_baseTeams/basePlayers` collections populated |
 
 ---
@@ -202,7 +202,7 @@ Covers seasons 2024-25 through 2031-32 with:
 
 ## Phase 2: UI & Interaction Gaps
 
-### 2.1 GMDashboard - WORKS BUT LEGACY-BOUND ⚠️
+### 2.1 GMDashboard - UPDATED WITH WORLDSELECTOR ✅
 
 **File**: `src/features/architect/GMDashboard/GMDashboard.jsx`
 
@@ -217,18 +217,20 @@ Covers seasons 2024-25 through 2031-32 with:
 | History Tab | ✅ Works | |
 | Season Selector | ✅ Works | From `capProjections` |
 | View Mode Toggle | ✅ Works | Plan/Baseline modes |
-| Plan Picker | ✅ Works | Uses legacy `teamPlans` |
+| Plan Picker | ✅ Works | Uses legacy `teamPlans` (parallel to worlds) |
 | Save Plan | ✅ Works | Uses legacy `teamPlans` |
+| **World Selector** | ✅ Works | Create/Select/Branch/Rename/Archive worlds |
 
-**Missing UI Components**:
-- ❌ World Selector (no UI to create/select worlds)
-- ❌ Branch Button (world branching not exposed)
-- ❌ Season Navigator (advance through seasons)
-- ❌ World Management Panel (delete, rename, archive)
+**UI Components Status (Updated)**:
+- ✅ World Selector (create/select worlds)
+- ✅ Branch Button (branch from current world)
+- ✅ World Management (rename, archive via dropdown menu)
+- ⚠️ Season Navigator (advance through seasons) - future work
+- ✅ WorldId persistence (localStorage with user key)
 
 ---
 
-### 2.2 State Management - REFACTORED BUT INCOMPLETE ⚠️
+### 2.2 State Management - WORLD-AWARE ✅
 
 **File**: `src/features/architect/GMDashboard/hooks/useArchitectState.ts`
 
@@ -237,12 +239,11 @@ Covers seasons 2024-25 through 2031-32 with:
 - Centralized state management
 - Auto-save to `teamPlans` (debounced)
 - Free agent derivation from player pool
+- **worldId and setWorldId available in state**
 
-**What's Missing**:
-- No `worldId` in state
-- Doesn't call `worldManager` functions
-- Doesn't use `teamLoader.getTeam()` with world context
-- Auto-save targets legacy collection
+**Remaining Work**:
+- Wire `teamLoader.getTeam(worldId)` for world-aware data loading
+- Auto-save to `architect_worlds` instead of `teamPlans` (future phase)
 
 ---
 
@@ -371,7 +372,7 @@ Phase 4: Polish & Edge Cases (RECOMMENDED)
 
 2. ✅ **Wire World System to UI**
    - ✅ Add `worldId` state to `useArchitectState.ts`
-   - Create `WorldSelector` component (UI pending)
+   - ✅ Create `WorldSelector` component
    - Update data loading to use `teamLoader.getTeam(worldId)` (ready, needs UI trigger)
 
 3. ✅ **Add Persistence to Mutations**
@@ -421,27 +422,73 @@ Phase 4: Polish & Edge Cases (RECOMMENDED)
 - Offseason simulation (contracts, options, TPEs, dead cap)
 - Team loading with fallback chain (coded but not used)
 - World management (coded but not used)
-- ✅ **NEW**: Centralized mutation pipeline (`applyWorldMutation`)
-- ✅ **NEW**: World-aware state management (`worldId` in `useArchitectState`)
-- ✅ **NEW**: Dynamic minimum salary in season advancement
+- ✅ Centralized mutation pipeline (`applyWorldMutation`)
+- ✅ World-aware state management (`worldId` in `useArchitectState`)
+- ✅ Dynamic minimum salary in season advancement
+- ✅ **NEW**: WorldSelector UI component for world management
 
 **What Is Incomplete/Missing**:
-- WorldSelector UI component not created yet
+- Wire data loading to use `teamLoader.getTeam(worldId)` for world-aware reads
 - Test suite at 66% due to mock issues
 
 **What Must Be Done (Priority Order)**:
 1. ~~Populate `architect_baseTeams` and `architect_basePlayers`~~ ✅ DONE (already populated)
-2. ~~Wire world system to GMDashboard~~ ✅ DONE (state ready, needs UI)
+2. ~~Wire world system to GMDashboard~~ ✅ DONE (state ready)
 3. ~~Add persistence layer for all roster mutations~~ ✅ DONE (mutationPipeline)
 4. ~~Fix season advancement to use dynamic values~~ ✅ DONE
-5. Add world management UI (WorldSelector component)
+5. ~~Add world management UI (WorldSelector component)~~ ✅ DONE
 6. ~~Remove deprecated code paths~~ ✅ DONE (extensionRules replaced)
-7. Complete test coverage
+7. Wire data loading to use `teamLoader.getTeam(worldId)` (future phase)
+8. Complete test coverage
 
 **Estimated Remaining Effort**:
-- WorldSelector UI: 1-2 days
+- Wire world-aware data loading: 1 day
 - Test fixes: 1-2 days
-- Total: ~3-4 days for production readiness
+- Total: ~2-3 days for production readiness
+
+---
+
+## What Changed (December 20, 2025) - WorldSelector Implementation
+
+### Files Created
+
+- `src/features/architect/GMDashboard/components/WorldSelector.jsx` - World selection and management UI:
+  - Lists user worlds from `worldManager.listUserWorlds()`
+  - Dropdown to select active world (sets `worldId` in state)
+  - Create new world via modal
+  - Branch current world via modal
+  - Rename world via modal
+  - Archive world (safe alternative to delete due to subcollection handling)
+  - Persists selected worldId to localStorage (`architect.activeWorldId.{userId}`)
+  - Restores worldId on refresh if world still exists
+
+- `src/features/architect/GMDashboard/components/index.js` - Component exports
+
+### Files Modified
+
+- `src/features/architect/GMDashboard/GMDashboard.jsx`:
+  - Added WorldSelector import
+  - Integrated WorldSelector into dashboard header (before Season/ViewMode controls)
+  - Added `worldId` and `setWorldId` to destructured state
+
+- `docs/ARCHITECT_GAP_ANALYSIS.md`:
+  - Updated overall completion to 85%
+  - Updated Multi-Season/Branching status to 70%
+  - Updated UI Integration status to 80%
+  - Updated Phase 2 sections with WorldSelector completion
+  - Updated conclusion and next steps
+
+### Summary
+
+Phase 2A WorldSelector implementation is complete. Users can now:
+- See their worlds in a dropdown in the GMDashboard header
+- Create new worlds with name and description
+- Branch the current world to explore alternative scenarios
+- Rename worlds and update descriptions
+- Archive worlds (safe soft-delete)
+- Selected world persists across browser refresh
+
+The WorldSelector uses Archive instead of Delete because `worldManager.deleteWorld()` has a TODO for recursive subcollection deletion. Archive is a safe alternative that marks the world as hidden without data loss.
 
 ---
 
@@ -472,7 +519,7 @@ Phase 4: Polish & Edge Cases (RECOMMENDED)
 
 ### Summary
 
-Priority 1 items 2 & 3 and Priority 2 items 4 & 5 have been completed. The centralized mutation pipeline is ready for use. The `architect_baseTeams` and `architect_basePlayers` collections are populated in Firestore. The deprecated `extensionRules.js` is no longer imported by production code. Next step is creating the WorldSelector UI component.
+Priority 1 items 2 & 3 and Priority 2 items 4 & 5 have been completed. The centralized mutation pipeline is ready for use. The `architect_baseTeams` and `architect_basePlayers` collections are populated in Firestore. The deprecated `extensionRules.js` is no longer imported by production code.
 
 ---
 

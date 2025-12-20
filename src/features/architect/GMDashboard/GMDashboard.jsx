@@ -26,6 +26,7 @@ import { TradeSection } from './sections/TradeSection';
 import { FreeAgencySection } from './sections/FreeAgencySection';
 import { OffseasonSection } from './sections/OffseasonSection';
 import { HistorySection } from './sections/HistorySection';
+import { WorldSelector } from '@/features/architect/GMDashboard/components/WorldSelector';
 import { useArchitectState } from './hooks/useArchitectState';
 import { useArchitectActions } from './hooks/useArchitectActions';
 import { useArchitectModals } from './hooks/useArchitectModals';
@@ -81,6 +82,7 @@ const GMDashboard = () => {
     offseasonSummary,
     playersMap,
     capTableYears,
+    worldId,
     // Setters still needed by GMDashboard JSX/children
     setTeamCapSheet,
     setCurrentYear,
@@ -90,6 +92,7 @@ const GMDashboard = () => {
     setLastCapSheet,
     setOffseasonRun,
     setOffseasonSummary,
+    setWorldId,
   } = state;
 
   // Destructure modals for easier access
@@ -157,7 +160,19 @@ const GMDashboard = () => {
         <h1 className="text-3xl font-bold">
           HoopZero Architect – GM Dashboard
         </h1>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
+          {/* World Selector - Primary scenario management */}
+          {userId && (
+            <WorldSelector
+              userId={userId}
+              worldId={worldId}
+              setWorldId={setWorldId}
+            />
+          )}
+
+          {/* Divider between world and other controls */}
+          {userId && <div className="h-6 w-px bg-white/10" />}
+
           {/* Season Selector */}
           <label className="flex items-center gap-2 text-sm font-medium">
             Season
