@@ -6,13 +6,14 @@
  * HISTORY:
  *  - 2025-12-12: Created - extracted all state from GMDashboard.jsx (Phase 2 refactor)
  *  - 2025-12-12: Converted to TypeScript with proper type annotations
+ *  - 2025-12-20: Phase 2B - wired world-aware data loading via loadWorldTeamData
  *
  * LINKS:
  *  - Plan: plans/gmdashboard_state_hook_fea52793.plan.md
+ *  - Gap Analysis: docs/ARCHITECT_GAP_ANALYSIS.md
  */
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
-  loadTeamCapSheet,
   saveUserTeamPlan,
   loadUserTeamPlan,
   listUserTeamPlans,
@@ -20,6 +21,7 @@ import {
   loadNamedTeamPlan,
   loadFreeAgents,
 } from '@/features/architect/utils/firebaseTeamPlanHelpers';
+import { loadWorldTeamData } from '@/features/architect/utils/worldTeamData';
 import useArchitectPlayerData from '@/features/architect/hooks/useArchitectPlayerData';
 import capProjections from '@/features/architect/utils/capProjections';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
@@ -402,20 +404,30 @@ export function useArchitectState({
     setSelectedRulesYear(currentYear);
   }, [currentYear]);
 
-  // === Effect 5: Fetch team data on mount ===
+  // === Effect 5: Fetch team data on mount and when worldId changes ===
+  // Uses world-aware loading via loadWorldTeamData (Phase 2B)
+  // Fallback chain: world snapshot → parent world → base team
   useEffect(() => {
-    // Reset the initial load flag when teamId/userId changes so Effect 8 waits again
+    // Reset the initial load flag when teamId/userId/worldId changes so Effect 8 waits again
     initialLoadCompleteRef.current = false;
 
     const fetchData = async () => {
       setIsLoading(true);
       setError('');
       try {
-        const base = await loadTeamCapSheet(teamId);
+        // World-aware data loading via teamLoader fallback chain
+        // When worldId is null, falls back to base team (same as before)
+        const base = await loadWorldTeamData(worldId, teamId);
 
-        // Only load user plans if userId is available
+        // Only load user plans if userId is available AND no world is selected.
+        // Business logic: Legacy "plans" (teamPlans collection) are a separate persistence
+        // mechanism from "worlds" (architect_worlds collection). When a world is selected,
+        // it becomes the source of truth and plans are not loaded. This ensures:
+        // 1. World-aware reads take precedence over legacy plan data
+        // 2. Users can still use plans when no world is selected (backward compatibility)
+        // 3. No confusion between world snapshots and saved plans
         let planLoaded = false;
-        if (userId) {
+        if (userId && !worldId) {
           const planList = await listUserTeamPlans(userId, teamId);
           setPlans(planList as PlanRef[]);
           const first = (planList as PlanRef[])[0]?.id || '';
@@ -436,11 +448,20 @@ export function useArchitectState({
 
         await loadFreeAgents();
         if (base) setBaselineCapSheet(base as CapSheet);
-        if (!userId || !planLoaded) {
-          // If no userId or no plan loaded, use baseline
-          if (base) setTeamCapSheet(JSON.parse(JSON.stringify(base)));
+        
+        // Set teamCapSheet based on loading priority:
+        // 1. If world is selected, use world-aware data (base already contains world data)
+        // 2. If plan was loaded (legacy mode), keep the plan
+        // 3. Otherwise use baseline
+        if (worldId && base) {
+          // World mode: use the world-aware data directly
+          setTeamCapSheet(deepClone(base));
+        } else if (!planLoaded) {
+          // No plan loaded and no world, use baseline
+          if (base) setTeamCapSheet(deepClone(base));
           else console.warn('No saved team found, using blank slate.');
         }
+        // If planLoaded is true, teamCapSheet was already set above
       } catch (err) {
         console.error(err);
         setError('Error loading team data');
@@ -455,7 +476,7 @@ export function useArchitectState({
     if (!authLoading) {
       fetchData();
     }
-  }, [teamId, userId, authLoading]);
+  }, [teamId, userId, authLoading, worldId]);
 
   // === Effect 6: Auto-save plan when teamCapSheet changes ===
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);

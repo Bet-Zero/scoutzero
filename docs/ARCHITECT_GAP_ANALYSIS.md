@@ -3,24 +3,24 @@
 > **Created**: December 17, 2025  
 > **Updated**: December 20, 2025  
 > **Purpose**: Comprehensive review of Architect feature completeness for production readiness  
-> **Status**: Phase 2A Complete - WorldSelector UI Implemented
+> **Status**: Phase 2B Complete - World-Aware Data Loading Implemented
 
 ---
 
 ## Executive Summary
 
-The Architect feature is a sophisticated NBA roster scenario planning system with significant functionality already implemented. Phase 2A (WorldSelector UI + mutation pipeline + worldId wiring) is now complete. This analysis identifies remaining gaps organized by system and prioritizes next actions.
+The Architect feature is a sophisticated NBA roster scenario planning system with significant functionality already implemented. Phase 2B (world-aware data loading) is now complete. This analysis identifies remaining gaps organized by system and prioritizes next actions.
 
-### Overall Assessment: ~85% Complete
+### Overall Assessment: ~90% Complete
 
 | Category | Status | Notes |
 |----------|--------|-------|
-| **Core Infrastructure** | ✅ 90% | worldManager, teamLoader, seasonManager, mutationPipeline implemented |
-| **Trade Machine** | ✅ 90% | Comprehensive CBA validation, well-structured rules |
+| **Core Infrastructure** | ✅ 95% | worldManager, teamLoader, seasonManager, mutationPipeline implemented |
+| **Trade Machine** | ✅ 95% | Comprehensive CBA validation, world-aware loading, well-structured rules |
 | **Contract Logic** | ✅ 85% | Extensions/signing now use salaryEngine exclusively |
-| **Firestore Persistence** | ✅ 85% | mutationPipeline provides centralized write layer to architect_worlds |
-| **Multi-Season/Branching** | ✅ 85% | Logic exists, worldId wired to state, WorldSelector UI complete, world-aware reads pending |
-| **UI Integration** | ✅ 85% | GMDashboard has WorldSelector, world management works |
+| **Firestore Persistence** | ✅ 90% | mutationPipeline provides centralized write layer to architect_worlds |
+| **Multi-Season/Branching** | ✅ 95% | Logic exists, worldId wired to state, WorldSelector UI complete, world-aware reads implemented |
+| **UI Integration** | ✅ 90% | GMDashboard has WorldSelector, world management works, data loading is world-aware |
 | **Data Population** | ✅ 100% | `architect_baseTeams/basePlayers` collections populated |
 
 ---
@@ -59,7 +59,7 @@ The Architect feature is a sophisticated NBA roster scenario planning system wit
 
 ---
 
-### 1.3 Team Loading - WORLD SELECTION COMPLETE, READS PENDING ⚠️
+### 1.3 Team Loading - WORLD-AWARE READS COMPLETE ✅
 
 **File**: `src/features/architect/utils/teamLoader.js`
 
@@ -73,9 +73,12 @@ The Architect feature is a sophisticated NBA roster scenario planning system wit
 
 **Status Update (Dec 20, 2025)**:
 - ✅ **World selection infrastructure is complete**: worldId exists in `useArchitectState`, WorldSelector UI works, persistence to localStorage operational
-- ⚠️ **World-aware data reads remain pending**: GMDashboard still uses `loadTeamCapSheet()` from `firebaseTeamPlanHelpers.js` which reads from `architect_baseTeams` directly without world context
+- ✅ **World-aware data reads now implemented**: GMDashboard uses `loadWorldTeamData()` which routes through `teamLoader.getTeam()` for world-aware reads with fallback chain
 
-**Remaining Gap**: Wire `useArchitectState.ts` to use `teamLoader.getTeam(worldId)` for world-aware reads. This is the final step to make world selection functionally complete.
+**Implementation**: Created `useWorldTeamData.ts` hook that:
+1. Accepts `worldId` and `teamId` parameters
+2. Uses `teamLoader.getTeam(worldId, teamCode)` for world-aware reads
+3. Falls back to base team when `worldId` is null (base-only mode)
 
 ---
 
@@ -317,12 +320,13 @@ Phase 2A: Data Population ✅ COMPLETE
 ├── ✅ Upload to architect_basePlayers
 └── ✅ Verify in Firebase Console
 
-Phase 2B: Wire World System ✅ MOSTLY COMPLETE
+Phase 2B: Wire World System ✅ COMPLETE
 ├── ✅ Add worldId to useArchitectState
-├── ⚠️ Replace loadTeamCapSheet() with teamLoader.getTeam(worldId) ← NEXT STEP
+├── ✅ Replace loadTeamCapSheet() with teamLoader.getTeam(worldId)
 ├── ✅ Add WorldSelector component
 ├── ✅ Add Create World / Branch World UI
-└── ✅ Update plan picker to show worlds
+├── ✅ Update plan picker to show worlds
+└── ✅ Wire Trade Machine to use world-aware loading
 
 Phase 3A: Add Persistence Layer ✅ COMPLETE
 ├── ✅ Centralized mutationPipeline.applyWorldMutation()
@@ -446,11 +450,13 @@ Phase 4: Polish & Edge Cases (RECOMMENDED)
 - ✅ WorldSelector UI component for world management (create, select, branch, rename, archive)
 - ✅ WorldId persistence across browser refresh via localStorage
 - ✅ tradeManager compute-only design with mutationPipeline handling persistence
+- ✅ World-aware data loading via `loadWorldTeamData()` and `teamLoader.getTeam()`
+- ✅ Trade Machine uses world-aware loading for secondary teams
 
 **What Is Incomplete/Missing**:
-- Wire data loading to use `teamLoader.getTeam(worldId)` for world-aware reads (final world system integration)
 - Complete recursive subcollection deletion in `worldManager.deleteWorld()` (currently using archive as workaround)
 - Test suite at 66% due to mock issues
+- Season advancement UI (option decisions before advancing, Stepien recalculation)
 
 **What Must Be Done (Priority Order)**:
 1. ~~Populate `architect_baseTeams` and `architect_basePlayers`~~ ✅ DONE
@@ -459,14 +465,14 @@ Phase 4: Polish & Edge Cases (RECOMMENDED)
 4. ~~Fix season advancement to use dynamic values~~ ✅ DONE
 5. ~~Add world management UI (WorldSelector component)~~ ✅ DONE
 6. ~~Remove deprecated code paths~~ ✅ DONE (extensionRules replaced)
-7. Wire data loading to use `teamLoader.getTeam(worldId)` ← **NEXT PRIORITY**
+7. ~~Wire data loading to use `teamLoader.getTeam(worldId)`~~ ✅ DONE (Phase 2B complete)
 8. Complete test coverage
 9. Implement recursive delete or finalize archive-based approach
 
 **Estimated Remaining Effort**:
-- Wire world-aware data loading: 1 day
 - Test fixes: 1-2 days
-- Total: ~2-3 days for production readiness
+- Season advancement UI polish: 1-2 days
+- Total: ~2-4 days for production readiness
 
 ---
 
@@ -511,6 +517,69 @@ Phase 2A WorldSelector implementation is complete. Users can now:
 - Selected world persists across browser refresh
 
 The WorldSelector uses Archive instead of Delete because `worldManager.deleteWorld()` has a TODO for recursive subcollection deletion. Archive is a safe alternative that marks the world as hidden without data loss.
+
+---
+
+## What Changed (December 20, 2025) - Phase 2B World-Aware Data Loading
+
+### Files Created
+
+- `src/features/architect/utils/worldTeamData.ts` - World-aware team data loading utilities:
+  - `loadWorldTeamData(worldId, teamId)` - Main function for world-aware team loading
+  - Uses `teamLoader.getTeam(worldId, teamCode)` for fallback chain: world → parent → base
+  - Falls back to `loadTeamCapSheet()` when `worldId` is null (base-only mode)
+  - `resolveTeamCode()` - Helper to resolve team IDs/slugs to team codes
+
+### Files Modified
+
+- `src/features/architect/GMDashboard/hooks/useArchitectState.ts`:
+  - Replaced `loadTeamCapSheet` import with `loadWorldTeamData` from `worldTeamData`
+  - Updated Effect 5 to use `loadWorldTeamData(worldId, teamId)` for world-aware reads
+  - Added `worldId` as dependency to data loading effect
+  - When `worldId` is set, uses world-aware data directly as teamCapSheet
+  - Legacy plan loading only triggers when no world is selected
+  - Added detailed comment explaining plan vs world business logic
+
+- `src/features/architect/hooks/useTradeMachine.js`:
+  - Added `worldId` parameter to hook signature (default: null)
+  - Replaced `loadTeamCapSheet` with `loadWorldTeamData` for secondary team loading
+  - Updated `selectTeam()` callback to use world-aware loading
+  - Added `worldId` to effect and callback dependencies
+
+- `src/features/architect/tradeMachine/TradeEditor.jsx`:
+  - Added `worldId` prop (default: null)
+  - Passes `worldId` to `useTradeMachine` hook
+
+- `src/features/architect/GMDashboard/sections/TradeSection.jsx`:
+  - Added `worldId` prop
+  - Passes `worldId` to `TradeEditor`
+
+- `src/features/architect/GMDashboard/GMDashboard.jsx`:
+  - Passes `worldId` to `TradeSection` component
+
+- `docs/ARCHITECT_GAP_ANALYSIS.md`:
+  - Updated status from "Phase 2A Complete" to "Phase 2B Complete"
+  - Updated overall completion from 85% to 90%
+  - Updated Team Loading section to reflect world-aware reads complete
+  - Updated Dependency Map to mark Phase 2B complete
+  - Updated Conclusion with completed items
+
+### Summary
+
+Phase 2B world-aware data loading is complete. All primary dashboard reads now route through `teamLoader.getTeam(worldId)` for world-aware data:
+
+- **GMDashboard**: Uses `loadWorldTeamData(worldId, teamId)` in Effect 5
+- **Trade Machine**: Uses `loadWorldTeamData(worldId, teamId)` for secondary teams
+- **Primary Team Data**: Passed from GMDashboard (already world-aware)
+
+When a world is selected:
+1. Data loading uses `teamLoader.getTeam()` with world fallback chain
+2. World snapshots take precedence over base team data
+3. Trade machine secondary teams also load from the same world context
+
+When no world is selected (worldId is null):
+1. Falls back to base team loading (same behavior as before)
+2. Legacy plan system remains functional for backward compatibility
 
 ---
 

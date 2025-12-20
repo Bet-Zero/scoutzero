@@ -331,6 +331,7 @@ const GMDashboard = () => {
             onApplyTrade={actions.applyTradeToCapSheet}
             primaryTeamData={teamCapSheet}
             onEditContract={actions.handleEditContract}
+            worldId={worldId}
           />
         )}
 

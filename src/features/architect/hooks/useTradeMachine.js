@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
-import { loadTeamCapSheet } from '@/features/architect/utils/firebaseTeamPlanHelpers';
+import { loadWorldTeamData } from '@/features/architect/utils/worldTeamData';
 import {
   getSalaryForYear,
   areSamePick,
@@ -160,7 +160,8 @@ export const useTradeMachine = (
   primaryTeam,
   capProjections,
   currentYear, // ← season **end-year**, e.g. 2025 for 2024-25
-  primaryTeamData = null
+  primaryTeamData = null,
+  worldId = null // ← optional worldId for world-aware loading
 ) => {
   // Main state
   const [teams, setTeams] = useState([]);
@@ -205,7 +206,9 @@ export const useTradeMachine = (
       if (!primaryTeam) return;
 
       const baseTeam = TeamMap[primaryTeam];
-      const data = primaryTeamData || (await loadTeamCapSheet(primaryTeam));
+      // Use primaryTeamData if provided (already world-aware from GMDashboard)
+      // Otherwise load with world-awareness via loadWorldTeamData
+      const data = primaryTeamData || (await loadWorldTeamData(worldId, primaryTeam));
 
       if (baseTeam && data) {
         // Build team object, augment exceptions/tpes
@@ -248,7 +251,7 @@ export const useTradeMachine = (
       }
     };
     init();
-  }, [primaryTeam, primaryTeamData, capProjections, yearKey]);
+  }, [primaryTeam, primaryTeamData, capProjections, yearKey, worldId]);
 
   // Core trade actions
   const setPlayerTrade = useCallback(
@@ -353,7 +356,8 @@ export const useTradeMachine = (
       }
 
       const baseTeam = TeamMap[teamId];
-      const data = await loadTeamCapSheet(teamId);
+      // World-aware loading for secondary teams in trade machine
+      const data = await loadWorldTeamData(worldId, teamId);
 
       if (baseTeam && data) {
         const teamObj = {
@@ -391,7 +395,7 @@ export const useTradeMachine = (
         });
       }
     },
-    [capProjections, yearKey]
+    [capProjections, yearKey, worldId]
   );
 
   const addTeam = useCallback(() => {
