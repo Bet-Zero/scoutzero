@@ -20,6 +20,7 @@ import {
   worldTeamRef,
   worldMetadataRef,
 } from '@/features/architect/utils/architectFirestorePaths';
+import { getMinimumSalaryScale } from '@/features/architect/utils/salaryEngine';
 
 /**
  * Advance world to next season
@@ -147,7 +148,7 @@ async function processTeamSeasonTransition(teamData, fromSeason, toSeason) {
   }
 
   // Process empty roster charges
-  const emptyRosterResult = processEmptyRosterCharges(updatedTeam);
+  const emptyRosterResult = processEmptyRosterCharges(updatedTeam, toSeason);
   if (emptyRosterResult.hasChanges) {
     hasChanges = true;
     updatedTeam.totals = {
@@ -310,12 +311,17 @@ function processOptions(teamData, season) {
  * Process empty roster charges
  *
  * @param {Object} teamData - Team data
+ * @param {string} season - Target season code (e.g., "2025-26")
  * @returns {Object} Result with updated totals
  */
-function processEmptyRosterCharges(teamData) {
+function processEmptyRosterCharges(teamData, season) {
   const rosterCount = teamData.roster?.length || 0;
   const MIN_ROSTER_SIZE = 12; // Minimum roster size for NBA
-  const EMPTY_ROSTER_CHARGE = 1_119_563; // Minimum salary for 2025-26
+  // Get year-appropriate minimum salary from salary engine
+  // The minimum salary scale returns minimum based on YOS (years of service)
+  // For empty roster charges, use 0 YOS (rookie minimum)
+  const minSalaryScale = getMinimumSalaryScale(season);
+  const EMPTY_ROSTER_CHARGE = minSalaryScale?.[0] || 1_119_563;
 
   let emptyRosterCharges = 0;
   if (rosterCount < MIN_ROSTER_SIZE) {
