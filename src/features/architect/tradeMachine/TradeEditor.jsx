@@ -18,6 +18,7 @@ const TradeEditor = ({
   onApplyTrade,
   primaryTeamData = null,
   onEditContract,
+  worldId = null, // World ID for world-aware team loading
 }) => {
   const {
     teams,
@@ -40,7 +41,8 @@ const TradeEditor = ({
     primaryTeam,
     capProjections,
     currentYear,
-    primaryTeamData
+    primaryTeamData,
+    worldId
   );
 
   const [previewOpen, setPreviewOpen] = useState(false);
