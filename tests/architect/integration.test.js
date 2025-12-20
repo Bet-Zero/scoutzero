@@ -27,6 +27,7 @@ import {
   seedBaseData,
   createMockCapProjections,
   getMockWorldMetadata,
+  seedMockData,
 } from '../helpers/architectTestHelpers.js';
 import { getMockData } from '../__mocks__/firebase.js';
 
@@ -392,7 +393,7 @@ describe('Architect Integration Tests', () => {
         ],
       };
 
-      const { seedMockData } = await import('../setupFirebaseMocks.js');
+      // seedMockData is imported at top of file
       seedMockData(
         `architect_worlds/${worldResult.worldId}/teams/LAL`,
         teamWithExpiring
@@ -428,7 +429,7 @@ describe('Architect Integration Tests', () => {
         ],
       };
 
-      const { seedMockData } = await import('../setupFirebaseMocks.js');
+      // seedMockData is imported at top of file
       seedMockData(
         `architect_worlds/${worldResult.worldId}/teams/BOS`,
         teamWithHolds
@@ -518,7 +519,7 @@ describe('Architect Integration Tests', () => {
         ],
       };
 
-      const { seedMockData } = await import('../setupFirebaseMocks.js');
+      // seedMockData is imported at top of file
       seedMockData(
         `architect_worlds/${worldResult.worldId}/teams/LAL`,
         teamWithMultiYear
@@ -603,6 +604,38 @@ describe('Architect Integration Tests', () => {
     });
 
     it('verifies cap totals accurate throughout', async () => {
+      // Seed a free agent player for this test with a contract
+      seedMockData('architect_basePlayers/test_fa', {
+        playerId: 'test_fa',
+        displayName: 'Test Free Agent',
+        teamCode: null,
+        teamName: null,
+        bio: { position: 'SG', age: 26, experience: 4 },
+        contract: {
+          contractType: 'Standard',
+          startSeason: '2025-26',
+          endSeason: '2026-27',
+          totalValue: 10_000_000,
+          guaranteedValue: 10_000_000,
+          yearsRemaining: 2,
+          salariesByYear: [
+            {
+              season: '2025-26',
+              salary: 5_000_000,
+              capHit: 5_000_000,
+              guaranteed: true,
+            },
+            {
+              season: '2026-27',
+              salary: 5_000_000,
+              capHit: 5_000_000,
+              guaranteed: true,
+            },
+          ],
+        },
+        source: { provider: 'test' },
+      });
+
       const worldResult = await createWorld({
         name: 'Test World',
         userId,
