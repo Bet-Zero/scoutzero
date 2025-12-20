@@ -627,4 +627,4 @@ function WorldModal({
   );
 }
 
-export default WorldSelector;
+// (Remove the line entirely - no code remains at this location)
