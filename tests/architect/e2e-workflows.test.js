@@ -398,9 +398,10 @@ describe('E2E Workflow Tests', () => {
       const worldId = worldResult.worldId;
 
       // Execute 3-team trade using base teams
-      // LAL (lebron_james) → GSW
-      // GSW (stephen_curry) → BOS
-      // BOS (jayson_tatum) → LAL
+      // Each team sends one player and receives players from ALL other teams:
+      // LAL sends lebron_james, gets stephen_curry + jayson_tatum
+      // GSW sends stephen_curry, gets lebron_james + jayson_tatum
+      // BOS sends jayson_tatum, gets lebron_james + stephen_curry
       const tradeData = {
         teams: [
           {
@@ -439,6 +440,7 @@ describe('E2E Workflow Tests', () => {
       }
 
       // Verify each team received incoming players
+      // In executeTrade, each team receives ALL players sent by ALL other teams
       const lalTeamResult = tradeResult.teams.find((t) => t.teamCode === 'LAL');
       const gswTeamResult = tradeResult.teams.find((t) => t.teamCode === 'GSW');
       const bosTeamResult = tradeResult.teams.find((t) => t.teamCode === 'BOS');
@@ -447,15 +449,15 @@ describe('E2E Workflow Tests', () => {
       const gswRosterIds = getRosterIds(gswTeamResult.team.roster);
       const bosRosterIds = getRosterIds(bosTeamResult.team.roster);
 
-      // LAL gets jayson_tatum and stephen_curry (from GSW and BOS)
+      // LAL gets players from GSW (stephen_curry) and BOS (jayson_tatum)
       expect(lalRosterIds).toContain('jayson_tatum');
       expect(lalRosterIds).toContain('stephen_curry');
 
-      // GSW gets lebron_james and jayson_tatum (from LAL and BOS)
+      // GSW gets players from LAL (lebron_james) and BOS (jayson_tatum)
       expect(gswRosterIds).toContain('lebron_james');
       expect(gswRosterIds).toContain('jayson_tatum');
 
-      // BOS gets lebron_james and stephen_curry (from LAL and GSW)
+      // BOS gets players from LAL (lebron_james) and GSW (stephen_curry)
       expect(bosRosterIds).toContain('lebron_james');
       expect(bosRosterIds).toContain('stephen_curry');
     });
