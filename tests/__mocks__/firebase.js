@@ -172,7 +172,7 @@ export async function setDoc(docRef, data, options = {}) {
   const path = typeof docRef === 'string' ? docRef : docRef.path;
 
   // Process serverTimestamp values
-  const processedData = processServerTimestamps(data);
+  const processedData = processServerTimestamps(data, {});
 
   if (currentBatch) {
     currentBatch.operations.push({
@@ -195,8 +195,8 @@ export async function updateDoc(docRef, updates) {
   const existingRaw = mockDataStore.get(path);
   const existing = existingRaw ? JSON.parse(JSON.stringify(existingRaw)) : {};
 
-  // Process serverTimestamp values
-  const processedUpdates = processServerTimestamps(updates);
+  // Process serverTimestamp values, passing existing data for increment support
+  const processedUpdates = processServerTimestamps(updates, existing);
 
   // Deep merge updates
   const updated = deepMerge(existing, processedUpdates);
@@ -448,7 +448,7 @@ export function writeBatch(db) {
       this.operations.push({
         type: 'set',
         path: typeof docRef === 'string' ? docRef : docRef.path,
-        data: processServerTimestamps(data),
+        data: processServerTimestamps(data, {}),
         options,
       });
       return this;
@@ -460,7 +460,7 @@ export function writeBatch(db) {
       const existing = existingRaw
         ? JSON.parse(JSON.stringify(existingRaw))
         : {};
-      const processedUpdates = processServerTimestamps(updates);
+      const processedUpdates = processServerTimestamps(updates, existing);
       const updated = deepMerge(existing, processedUpdates);
 
       this.operations.push({
@@ -515,19 +515,27 @@ export function arrayRemove(...elements) {
   };
 }
 
+// Mock increment function
+export function increment(value) {
+  return {
+    __type: 'increment',
+    value,
+  };
+}
+
 // Mock serverTimestamp function
 export function serverTimestamp() {
   return mockServerTimestamp();
 }
 
 // Process serverTimestamp values in data
-function processServerTimestamps(data) {
+function processServerTimestamps(data, existingData = {}) {
   if (!data || typeof data !== 'object') {
     return data;
   }
 
   if (Array.isArray(data)) {
-    return data.map(processServerTimestamps);
+    return data.map((item) => processServerTimestamps(item, {}));
   }
 
   const processed = {};
@@ -537,15 +545,20 @@ function processServerTimestamps(data) {
         processed[key] = new Date().toISOString();
       } else if (value.__type === 'arrayUnion') {
         // Handle arrayUnion
-        const existing = processed[key] || [];
+        const existing = existingData[key] || [];
         processed[key] = [...new Set([...existing, ...value.elements])];
       } else if (value.__type === 'arrayRemove') {
         // Handle arrayRemove
-        const existing = processed[key] || [];
+        const existing = existingData[key] || [];
         const toRemove = new Set(value.elements);
         processed[key] = existing.filter((item) => !toRemove.has(item));
+      } else if (value.__type === 'increment') {
+        // Handle increment - ensure existing value is a number
+        const existing = existingData[key];
+        const existingNum = typeof existing === 'number' ? existing : 0;
+        processed[key] = existingNum + value.value;
       } else {
-        processed[key] = processServerTimestamps(value);
+        processed[key] = processServerTimestamps(value, existingData[key] || {});
       }
     } else {
       processed[key] = value;

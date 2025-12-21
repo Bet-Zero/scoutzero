@@ -3,26 +3,26 @@
 > **Created**: December 17, 2025  
 > **Updated**: December 20, 2025  
 > **Purpose**: Comprehensive review of Architect feature completeness for production readiness  
-> **Status**: Phase 2B Complete - World-Aware Data Loading Implemented
+> **Status**: Phase 3B Complete - Season Advancement UI + Option Decisions + Stepien Recalculation
 
 ---
 
 ## Executive Summary
 
-The Architect feature is a sophisticated NBA roster scenario planning system with significant functionality already implemented. Phase 2B (world-aware data loading) is now complete. This analysis identifies remaining gaps organized by system and prioritizes next actions.
+The Architect feature is a sophisticated NBA roster scenario planning system with significant functionality already implemented. Phase 3B (season advancement with explicit option decisions and Stepien recalculation) is now complete. This analysis identifies remaining gaps organized by system and prioritizes next actions.
 
-### Overall Assessment: ~90% Complete
+### Overall Assessment: ~95% Complete
 
 | Category | Status | Notes |
 |----------|--------|-------|
-| **Core Infrastructure** | ✅ 95% | worldManager, teamLoader, seasonManager, mutationPipeline implemented |
+| **Core Infrastructure** | ✅ 98% | worldManager, teamLoader, seasonManager, mutationPipeline implemented |
 | **Trade Machine** | ✅ 95% | Comprehensive CBA validation, world-aware loading, well-structured rules |
-| **Contract Logic** | ✅ 85% | Extensions/signing now use salaryEngine exclusively |
-| **Firestore Persistence** | ✅ 90% | mutationPipeline provides centralized write layer to architect_worlds |
-| **Multi-Season/Branching** | ✅ 95% | Logic exists, worldId wired to state, WorldSelector UI complete, world-aware reads implemented |
-| **UI Integration** | ✅ 90% | GMDashboard has WorldSelector, world management works, data loading is world-aware |
+| **Contract Logic** | ✅ 90% | Extensions/signing now use salaryEngine exclusively |
+| **Firestore Persistence** | ✅ 95% | mutationPipeline provides centralized write layer to architect_worlds, season advance integrated |
+| **Multi-Season/Branching** | ✅ 98% | World-aware reads, season advancement UI, option decisions UI, Stepien recalculation |
+| **UI Integration** | ✅ 95% | GMDashboard has WorldSelector, SeasonAdvanceModal, world data reload |
 | **Data Population** | ✅ 100% | `architect_baseTeams/basePlayers` collections populated |
-| **Test Coverage** | ✅ 100% | 275/275 tests passing (Firebase mock issues resolved) |
+| **Test Coverage** | ✅ 95% | Core tests passing, Phase 3B tests added |
 
 ---
 
@@ -111,24 +111,28 @@ The Architect feature is a sophisticated NBA roster scenario planning system wit
 
 ---
 
-### 1.5 Season Manager - IMPLEMENTED BUT UNTESTED ⚠️
+### 1.5 Season Manager - PHASE 3B COMPLETE ✅
 
 **File**: `src/features/architect/utils/seasonManager.js`
 
 | Function | Status | Notes |
 |----------|--------|-------|
-| `advanceSeason()` | ✅ Implemented | Writes to Firestore |
+| `advanceSeason()` | ✅ Implemented | Original function, writes to Firestore |
+| `advanceSeasonInWorld()` | ✅ NEW | Phase 3B: World-scoped with explicit option decisions |
 | `processSeasonTransition()` | ✅ Implemented | Batch writes all teams |
 | `processContractExpirations()` | ✅ Implemented | Removes expired contracts |
-| `processOptions()` | ⚠️ Partial | Defaults option to exercised (line 286) |
-| `processEmptyRosterCharges()` | ✅ Implemented | Uses 2025-26 minimum |
+| `processOptions()` | ✅ Implemented | Legacy function - defaults to exercised |
+| `processOptionsWithDecisions()` | ✅ NEW | Phase 3B: Requires explicit decisions, creates cap holds |
+| `processEmptyRosterCharges()` | ✅ Implemented | Uses year-appropriate minimum |
 | `updateCapHolds()` | ✅ Implemented | Filters expired |
-| `updateDraftPicks()` | ⚠️ Partial | "Would need full Stepien calculation" (line 401) |
+| `updateDraftPicks()` | ✅ Implemented | Basic functionality |
+| `updateDraftPicksWithStepien()` | ✅ NEW | Phase 3B: Stepien recalculation for 7-year window |
 
-**Gap**: Season advancement DOES write to Firestore but:
-1. Uses hard-coded minimum salary ($1,119,563) instead of year-appropriate value
-2. Option processing defaults to "exercised" without user input
-3. Stepien rule updating is incomplete
+**Phase 3B Implementation**:
+1. ✅ `advanceSeasonInWorld()` - New world-scoped function that requires explicit option decisions
+2. ✅ `processOptionsWithDecisions()` - Processes options based on user input, creates cap holds for declined options
+3. ✅ `updateDraftPicksWithStepien()` - Implements Stepien rule: marks picks as `stepienBlocked` if trading would create consecutive years without a first-round pick
+4. ✅ Tests: 10 new tests covering option exercise/decline, cap holds, expired contracts, and Stepien scenarios
 
 ---
 
@@ -336,11 +340,15 @@ Phase 3A: Add Persistence Layer ✅ COMPLETE
 │   └── ✅ Calls updateWorldStats after mutations
 └── ✅ UI components call mutationPipeline for persistence
 
-Phase 3B: Complete Season Advancement (IMPORTANT)
+Phase 3B: Complete Season Advancement ✅ COMPLETE
 ├── ✅ Replace hard-coded minimum with year-appropriate value
-├── ⚠️ Add UI for option decisions before advancing
-├── ⚠️ Implement full Stepien recalculation
-└── ⚠️ Add season advancement UI to GMDashboard
+├── ✅ Add SeasonAdvanceModal with option decisions wizard
+├── ✅ Implement advanceSeasonInWorld() with explicit option decisions
+├── ✅ Implement Stepien recalculation (updateDraftPicksWithStepien)
+├── ✅ Add "Advance Season" button to OffseasonSection
+├── ✅ World-scoped persistence via architect_worlds
+├── ✅ Cap hold creation for declined options
+└── ✅ Tests: 10 new tests covering all scenarios
 
 Phase 4: Polish & Edge Cases (RECOMMENDED)
 ├── ✅ Remove deprecated extensionRules.js imports
@@ -694,6 +702,74 @@ The test failures (53 total) were categorized into these buckets:
 3. **Test data completeness**: Functions that iterate over all teams need all teams seeded, not just the ones mentioned in the test.
 
 4. **Check production code first**: Two failures were due to production bugs (`yearData.year` and `toSeason` vs `fromSeason`), not test issues.
+
+---
+
+## What Changed (December 20, 2025) - Phase 3B Season Advancement
+
+### Files Created
+
+- `src/features/architect/GMDashboard/components/SeasonAdvanceModal.jsx` - Season advance wizard with:
+  - Step 1: Summary of what will happen (expirations, options, cap holds, draft picks)
+  - Step 2: Option decisions UI with radio buttons (Exercise/Decline)
+  - Step 3: Confirmation with summary of decisions
+  - Progress state, error handling, and success feedback
+  - Requires worldId for world-scoped persistence
+  - Blocks advance if option decisions are missing
+
+### Files Modified
+
+- **`src/features/architect/utils/seasonManager.js`**:
+  - Added `advanceSeasonInWorld()` - New world-scoped season advance function
+  - Added `processTeamSeasonTransitionWithOptions()` - Team transition with explicit options
+  - Added `processOptionsWithDecisions()` - Option processing requiring explicit decisions
+  - Added `updateDraftPicksWithStepien()` - Stepien recalculation for 7-year window
+  - Updated `processContractExpirations()` to support multiple player ID formats
+
+- **`src/features/architect/GMDashboard/sections/OffseasonSection.jsx`**:
+  - Added "World Season Advancement" section when worldId is set
+  - Integrated SeasonAdvanceModal
+  - Added world data reload callback
+
+- **`src/features/architect/GMDashboard/components/index.js`**:
+  - Added SeasonAdvanceModal export
+
+- **`src/features/architect/GMDashboard/GMDashboard.jsx`**:
+  - Passes worldId and teamCode to OffseasonSection
+
+- **`tests/__mocks__/firebase.js`**:
+  - Added `increment()` function mock
+  - Updated `processServerTimestamps()` to handle increment operations
+
+- **`tests/architect/seasonManager.test.js`**:
+  - Added 10 new tests for Phase 3B:
+    - `advanceSeasonInWorld` requires worldId
+    - `advanceSeasonInWorld` advances season with no options
+    - `advanceSeasonInWorld` exercises option when decision is exercise
+    - `advanceSeasonInWorld` declines option when decision is decline
+    - `advanceSeasonInWorld` creates cap hold for declined option
+    - `advanceSeasonInWorld` updates world metadata season
+    - `advanceSeasonInWorld` tracks expired contracts in summary
+    - Stepien marks pick as blocked when adjacent years are traded
+    - Stepien does not mark pick when only one adjacent year is traded
+    - Stepien updates pick status from future to available when year passes
+
+### Summary
+
+Phase 3B is complete. Users can now:
+
+1. **Access Season Advancement**: Click "Advance Season" button in the Offseason tab (only when a world is selected)
+2. **Review Summary**: See what will happen (expiring contracts, options requiring decisions, cap holds, etc.)
+3. **Make Option Decisions**: For each player/team option, explicitly choose Exercise or Decline
+4. **Confirm and Execute**: Review decisions and execute the season advance
+5. **See Results**: Success toast and automatic world data reload
+
+The implementation:
+- Requires explicit option decisions - no silent defaults
+- Creates cap holds for declined options
+- Runs Stepien recalculation to mark blocked picks
+- Persists atomically to architect_worlds
+- Updates world metadata (currentSeason, actionCount, modifiedTeams)
 
 ---
 
