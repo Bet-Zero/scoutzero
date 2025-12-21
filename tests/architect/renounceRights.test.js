@@ -380,7 +380,7 @@ describe('Renounce Rights Mutation', () => {
   });
 
   describe('applyWorldMutation - persistence', () => {
-    const userId = 'persistence_test_user';
+    const persistenceUserId = 'persistence_test_user';
 
     beforeEach(() => {
       // Seed base data for the teams we'll use
