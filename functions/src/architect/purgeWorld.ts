@@ -231,10 +231,22 @@ export const purgeArchitectWorld = onCall(
     // 5) Remove from parent's childWorlds array if this is a child world
     const parentWorldId = worldData?.parentWorldId;
     if (parentWorldId) {
-      const parentRef = db.collection('architect_worlds').doc(parentWorldId);
-      await parentRef.update({
-        childWorlds: admin.firestore.FieldValue.arrayRemove(worldId),
-      });
+      try {
+        const parentRef = db.collection('architect_worlds').doc(parentWorldId);
+        const parentDoc = await parentRef.get();
+        if (parentDoc.exists) {
+          await parentRef.update({
+            childWorlds: admin.firestore.FieldValue.arrayRemove(worldId),
+          });
+        }
+        // If parent doesn't exist, that's okay - nothing to update
+      } catch (parentUpdateError) {
+        // Log but don't fail - the child world deletion should still proceed
+        console.warn(
+          `Failed to update parent world ${parentWorldId} childWorlds array:`,
+          parentUpdateError
+        );
+      }
     }
 
     // 6) Perform recursive deletion
