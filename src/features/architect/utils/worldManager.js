@@ -100,6 +100,7 @@ export async function createWorld({
       totalTrades: 0,
       totalSignings: 0,
       totalWaives: 0,
+      totalRenounces: 0,
       teamsInvolved: 0,
     },
   };
@@ -462,6 +463,9 @@ export async function updateWorldStats(worldId, actionType, teamCodes = []) {
       break;
     case 'waive':
       statsUpdate.totalWaives = (currentStats.totalWaives || 0) + 1;
+      break;
+    case 'renounce':
+      statsUpdate.totalRenounces = (currentStats.totalRenounces || 0) + 1;
       break;
   }
 

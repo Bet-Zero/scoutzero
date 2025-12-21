@@ -269,7 +269,7 @@ export interface UseArchitectActionsReturn {
     accepted: boolean,
     overrideMetadata?: OverrideMetadata | null
   ) => void;
-  handleRenounceRights: (player: ArchitectPlayer) => void;
+  handleRenounceRights: (player: ArchitectPlayer, overrideMetadata?: OverrideMetadata | null) => void;
   handleUpdateRoster: (updatedCapSheet: CapSheet) => void;
   handleResetCapSheet: () => void;
 
@@ -617,7 +617,7 @@ export function useArchitectActions({
   // Shared helper for renounce confirmation and execution
   // Now directly updates teamCapSheet instead of using capSheetState
   const confirmAndRenounceRights = useCallback(
-    (playerOrHold: ArchitectPlayer | CapHold): void => {
+    (playerOrHold: ArchitectPlayer | CapHold, overrideMetadata?: OverrideMetadata | null): void => {
       const playerName =
         (playerOrHold as ArchitectPlayer).displayName ||
         (playerOrHold as ArchitectPlayer).name ||
@@ -662,10 +662,22 @@ export function useArchitectActions({
             return p;
           });
 
+          // Record override audit log if override was used
+          const overrideAuditLog = overrideMetadata?.overrideUsed
+            ? recordOverrideAudit(
+                prev,
+                'renounce',
+                overrideMetadata.overrideReasons || [],
+                idToRenounce,
+                playerName
+              )
+            : prev?.overrideAuditLog;
+
           return {
             ...prev,
             players: updatedPlayers,
             capHolds: updatedCapHolds,
+            ...(overrideAuditLog ? { overrideAuditLog } : {}),
           };
         });
       }
@@ -1056,10 +1068,11 @@ export function useArchitectActions({
   );
 
   const handleRenounceRights = useCallback(
-    (player: ArchitectPlayer): void => {
-      confirmAndRenounceRights(player);
+    (player: ArchitectPlayer, overrideMetadata?: OverrideMetadata | null): void => {
+      confirmAndRenounceRights(player, overrideMetadata);
+      closeContractModal();
     },
-    [confirmAndRenounceRights]
+    [confirmAndRenounceRights, closeContractModal]
   );
 
   const handleUpdateRoster = useCallback(

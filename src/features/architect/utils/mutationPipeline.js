@@ -20,6 +20,7 @@
  * - waivePlayer
  * - extendPlayer
  * - optionDecision
+ * - renounceRights
  */
 
 import { db } from '@/firebaseConfig';
@@ -42,7 +43,7 @@ import { ARCHITECT_WORLDS_COLLECTION } from '@/constants/collections';
 // ==============================================================================
 
 /**
- * @typedef {'executeTrade' | 'signFreeAgent' | 'waivePlayer' | 'extendPlayer' | 'optionDecision'} MutationType
+ * @typedef {'executeTrade' | 'signFreeAgent' | 'waivePlayer' | 'extendPlayer' | 'optionDecision' | 'renounceRights'} MutationType
  */
 
 /**
@@ -238,6 +239,67 @@ async function loadStateForMutation(worldId, mutationType, payload) {
       return { team, player, teamCode };
     }
 
+    case 'renounceRights': {
+      // Renounce rights: player may only exist in team's players array or cap holds
+      // (free agents with cap holds might not have a base player record)
+      const teamCode = payload.teamCode;
+      const playerId = payload.playerId;
+
+      if (!teamCode) {
+        throw new Error(`Missing teamCode in payload for renounceRights`);
+      }
+      if (!playerId) {
+        throw new Error(`Missing playerId in payload for renounceRights`);
+      }
+
+      const team = await getTeam(worldId, teamCode);
+
+      // Try to find player in team's players array first (prioritize ID match)
+      const playerInTeam = (team.players || []).find((p) => {
+        const pid = p.player_id || p.id;
+        // Prioritize exact ID match
+        if (pid && pid === playerId) return true;
+        // Fall back to name match only if ID isn't available
+        if (!pid && p.name === playerId) return true;
+        return false;
+      });
+
+      // If found in team, use that data
+      if (playerInTeam) {
+        return { team, player: playerInTeam, teamCode };
+      }
+
+      // Try to find in cap holds
+      const capHold = (team.capHolds || []).find(
+        (h) => h.playerId === playerId || h.playerName === playerId
+      );
+
+      if (capHold) {
+        // Build minimal player object from cap hold
+        // Use 'None' for bird rights since we're renouncing (will be cleared anyway)
+        return {
+          team,
+          player: {
+            player_id: capHold.playerId,
+            name: capHold.playerName,
+            displayName: capHold.playerName,
+            contract: { birdRights: { status: 'None' } },
+          },
+          teamCode,
+        };
+      }
+
+      // Finally, try base player collection
+      try {
+        const player = await getPlayer(worldId, teamCode, playerId);
+        return { team, player, teamCode };
+      } catch (err) {
+        throw new Error(
+          `Player ${playerId} not found in team roster, cap holds, or base collection`
+        );
+      }
+    }
+
     default:
       throw new Error(`Unknown mutation type: ${mutationType}`);
   }
@@ -281,6 +343,9 @@ export function computeWorldMutation({
 
     case 'optionDecision':
       return computeOptionResult({ payload, currentState, seasonId, timestamp });
+
+    case 'renounceRights':
+      return computeRenounceResult({ payload, currentState, seasonId, timestamp });
 
     default:
       return { success: false, error: `Unknown mutation type: ${mutationType}` };
@@ -806,6 +871,84 @@ function computeOptionResult({ payload, currentState, seasonId, timestamp }) {
   };
 }
 
+/**
+ * Compute renounce rights result
+ *
+ * Renouncing rights removes the team's cap hold on a free agent
+ * and clears their Bird rights association with this team.
+ * The player remains in the FA pool but cannot be re-signed using Bird rights.
+ */
+function computeRenounceResult({ payload, currentState, seasonId, timestamp }) {
+  const { team, player, teamCode } = currentState;
+  const playerId = player.player_id || player.id || payload.playerId;
+  const playerName = player.displayName || player.name;
+
+  const updatedTeam = { ...team };
+
+  // 1. Remove the player's cap hold from the team
+  // Match by playerId first (primary), then by playerName (fallback) using OR logic
+  if (updatedTeam.capHolds && Array.isArray(updatedTeam.capHolds)) {
+    updatedTeam.capHolds = updatedTeam.capHolds.filter((hold) => {
+      // Remove if playerId matches
+      if (hold.playerId === playerId) return false;
+      // Also remove if playerName matches (in case IDs don't align)
+      if (hold.playerName === playerName) return false;
+      return true;
+    });
+  }
+
+  // 2. Mark the player's Bird rights as renounced/cleared for this team
+  // Update player entry if present in team's players array
+  // Prioritize ID matching over name matching
+  if (updatedTeam.players && Array.isArray(updatedTeam.players)) {
+    updatedTeam.players = updatedTeam.players.map((p) => {
+      const pid = p.player_id || p.id;
+      // Prioritize exact ID match, then fall back to name match
+      const isMatch = pid === playerId || (pid == null && p.name === playerName);
+      if (isMatch) {
+        return {
+          ...p,
+          rightsRenounced: true,
+          renouncedAt: new Date(timestamp).toISOString(),
+          contract: {
+            ...(p.contract || {}),
+            birdRights: {
+              ...(p.contract?.birdRights || {}),
+              status: 'None',
+              renouncedBy: teamCode,
+              renouncedAt: new Date(timestamp).toISOString(),
+            },
+          },
+        };
+      }
+      return p;
+    });
+  }
+
+  // Update source metadata
+  updatedTeam.source = {
+    ...updatedTeam.source,
+    type: 'world-snapshot',
+    lastModifiedAt: new Date(timestamp).toISOString(),
+  };
+
+  // Recalculate totals (cap holds affect cap space)
+  updatedTeam.totals = calculateTeamTotals(updatedTeam, seasonId);
+
+  return {
+    success: true,
+    teamUpdates: [{ teamCode, team: updatedTeam }],
+    playerUpdates: [],
+    metadata: {
+      type: 'renounce',
+      teamCode,
+      playerId,
+      playerName: player.displayName || player.name,
+      timestamp,
+    },
+  };
+}
+
 // ==============================================================================
 // PHASE 3: VALIDATE - Ensure mutation is legal
 // ==============================================================================
@@ -840,6 +983,10 @@ function validateMutation({ mutationType, payload, currentState, computeResult, 
 
     case 'optionDecision':
       // Basic validation
+      return { valid: true };
+
+    case 'renounceRights':
+      // Renouncing is always valid if player has rights with the team
       return { valid: true };
 
     default:
@@ -981,6 +1128,8 @@ function getMutationActionType(mutationType) {
       return 'signing';
     case 'optionDecision':
       return 'signing';
+    case 'renounceRights':
+      return 'renounce';
     default:
       return 'unknown';
   }
