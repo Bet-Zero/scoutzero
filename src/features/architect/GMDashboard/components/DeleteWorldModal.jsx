@@ -36,22 +36,13 @@ export function DeleteWorldModal({
 }) {
   const isConfirmValid = confirmText === 'DELETE' || confirmText === worldName;
 
-  const handleBackdropKeyDown = (e) => {
-    if (e.key === 'Escape') {
-      onClose();
-    }
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
+      {/* Backdrop - click to close */}
       <div
         className="absolute inset-0 bg-black/80"
         onClick={onClose}
-        onKeyDown={handleBackdropKeyDown}
-        role="button"
-        tabIndex={-1}
-        aria-label="Close modal"
+        aria-hidden="true"
       />
 
       {/* Modal */}
@@ -134,5 +125,3 @@ export function DeleteWorldModal({
     </div>
   );
 }
-
-export default DeleteWorldModal;
