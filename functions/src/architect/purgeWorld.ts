@@ -27,7 +27,8 @@ const WORLD_SUBCOLLECTIONS = ['teams'];
 
 /**
  * Maximum documents to delete in a single batch
- * Firestore limit is 500 operations per batch
+ * Firestore limit is 500 operations per batch, using 400 as a conservative buffer
+ * to account for any additional operations that might be needed during processing
  */
 const BATCH_SIZE = 400;
 
@@ -50,12 +51,12 @@ async function deleteCollection(
 ): Promise<{ deleted: number; timedOut: boolean }> {
   let deleted = 0;
   let timedOut = false;
+  let hasMoreDocuments = true;
 
   // Query documents in batches
   let query = collectionRef.orderBy('__name__').limit(BATCH_SIZE);
 
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
+  while (hasMoreDocuments) {
     // Check timeout
     if (Date.now() - startTime > MAX_EXECUTION_MS) {
       timedOut = true;
@@ -65,6 +66,7 @@ async function deleteCollection(
     const snapshot = await query.get();
 
     if (snapshot.empty) {
+      hasMoreDocuments = false;
       break;
     }
 
@@ -78,15 +80,16 @@ async function deleteCollection(
 
     await batch.commit();
 
-    // Prepare for next batch (using the last document as cursor)
+    // Check if there are more documents to delete
     if (snapshot.docs.length < BATCH_SIZE) {
-      break;
+      hasMoreDocuments = false;
+    } else {
+      // Prepare for next batch (using the last document as cursor)
+      query = collectionRef
+        .orderBy('__name__')
+        .startAfter(snapshot.docs[snapshot.docs.length - 1])
+        .limit(BATCH_SIZE);
     }
-
-    query = collectionRef
-      .orderBy('__name__')
-      .startAfter(snapshot.docs[snapshot.docs.length - 1])
-      .limit(BATCH_SIZE);
   }
 
   return { deleted, timedOut };
