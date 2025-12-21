@@ -539,7 +539,6 @@ describe('Renounce Rights Mutation', () => {
 
       // Verify state is correct after reload
       expect(reloadedTeam.capHolds).toHaveLength(0);
-      
       const reloadedPlayer = reloadedTeam.players.find(
         (p) => p.player_id === playerId
       );

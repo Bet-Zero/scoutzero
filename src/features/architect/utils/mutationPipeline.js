@@ -254,10 +254,15 @@ async function loadStateForMutation(worldId, mutationType, payload) {
 
       const team = await getTeam(worldId, teamCode);
 
-      // Try to find player in team's players array first
-      const playerInTeam = (team.players || []).find(
-        (p) => (p.player_id || p.id) === playerId || p.name === playerId
-      );
+      // Try to find player in team's players array first (prioritize ID match)
+      const playerInTeam = (team.players || []).find((p) => {
+        const pid = p.player_id || p.id;
+        // Prioritize exact ID match
+        if (pid && pid === playerId) return true;
+        // Fall back to name match only if ID isn't available
+        if (!pid && p.name === playerId) return true;
+        return false;
+      });
 
       // If found in team, use that data
       if (playerInTeam) {
@@ -271,13 +276,14 @@ async function loadStateForMutation(worldId, mutationType, payload) {
 
       if (capHold) {
         // Build minimal player object from cap hold
+        // Use 'None' for bird rights since we're renouncing (will be cleared anyway)
         return {
           team,
           player: {
             player_id: capHold.playerId,
             name: capHold.playerName,
             displayName: capHold.playerName,
-            contract: { birdRights: { status: 'Unknown' } },
+            contract: { birdRights: { status: 'None' } },
           },
           teamCode,
         };
@@ -875,22 +881,31 @@ function computeOptionResult({ payload, currentState, seasonId, timestamp }) {
 function computeRenounceResult({ payload, currentState, seasonId, timestamp }) {
   const { team, player, teamCode } = currentState;
   const playerId = player.player_id || player.id || payload.playerId;
+  const playerName = player.displayName || player.name;
 
   const updatedTeam = { ...team };
 
   // 1. Remove the player's cap hold from the team
+  // Match by playerId first (primary), then by playerName (fallback) using OR logic
   if (updatedTeam.capHolds && Array.isArray(updatedTeam.capHolds)) {
-    updatedTeam.capHolds = updatedTeam.capHolds.filter(
-      (hold) => hold.playerId !== playerId && hold.playerName !== player.displayName
-    );
+    updatedTeam.capHolds = updatedTeam.capHolds.filter((hold) => {
+      // Remove if playerId matches
+      if (hold.playerId === playerId) return false;
+      // Also remove if playerName matches (in case IDs don't align)
+      if (hold.playerName === playerName) return false;
+      return true;
+    });
   }
 
   // 2. Mark the player's Bird rights as renounced/cleared for this team
   // Update player entry if present in team's players array
+  // Prioritize ID matching over name matching
   if (updatedTeam.players && Array.isArray(updatedTeam.players)) {
     updatedTeam.players = updatedTeam.players.map((p) => {
       const pid = p.player_id || p.id;
-      if (pid === playerId || p.name === player.name) {
+      // Prioritize exact ID match, then fall back to name match
+      const isMatch = pid === playerId || (pid == null && p.name === playerName);
+      if (isMatch) {
         return {
           ...p,
           rightsRenounced: true,
