@@ -18,12 +18,10 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 
 /**
- * Subcollections under architect_worlds/{worldId}
- * Each world can have:
- * - teams/{teamCode} - Team snapshots
- * - teams/{teamCode}/players/{playerId} - Player overrides
+ * World subcollections structure:
+ * - architect_worlds/{worldId}/teams/{teamCode} - Team snapshots
+ * - architect_worlds/{worldId}/teams/{teamCode}/players/{playerId} - Player overrides
  */
-const WORLD_SUBCOLLECTIONS = ['teams'];
 
 /**
  * Maximum documents to delete in a single batch
