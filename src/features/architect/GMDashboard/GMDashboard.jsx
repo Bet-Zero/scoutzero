@@ -455,6 +455,7 @@ const GMDashboard = () => {
           onExtend={actions.handleExtendContract}
           onWaive={actions.handleWaiveContract}
           onOptionDecision={actions.handleOptionDecision}
+          onRenounce={actions.handleRenounceRights}
           playersMap={playersMap}
           playerRulesProfile={selectedPlayerRulesProfile}
           rulesLeagueContext={selectedRulesLeagueContext}

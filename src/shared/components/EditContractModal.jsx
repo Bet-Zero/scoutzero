@@ -126,6 +126,7 @@ const EditContractModal = ({
   onOptionDecision,
   onExtend,
   onSignAndTrade,
+  onRenounce,
   initialAction = null,
   targetYear = null,
   actionContext = null, // 'option' | 'freeAgent' | null - from clicked cell
@@ -662,7 +663,7 @@ const EditContractModal = ({
         onSignAndTrade?.(player, true, overrideMetadata);
         break;
       case 'renounce':
-        onSignAndTrade?.(player, false, overrideMetadata);
+        onRenounce?.(player, overrideMetadata);
         break;
       case 'extend':
         {

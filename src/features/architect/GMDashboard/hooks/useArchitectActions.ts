@@ -269,7 +269,7 @@ export interface UseArchitectActionsReturn {
     accepted: boolean,
     overrideMetadata?: OverrideMetadata | null
   ) => void;
-  handleRenounceRights: (player: ArchitectPlayer) => void;
+  handleRenounceRights: (player: ArchitectPlayer, overrideMetadata?: OverrideMetadata | null) => void;
   handleUpdateRoster: (updatedCapSheet: CapSheet) => void;
   handleResetCapSheet: () => void;
 
@@ -1056,10 +1056,11 @@ export function useArchitectActions({
   );
 
   const handleRenounceRights = useCallback(
-    (player: ArchitectPlayer): void => {
+    (player: ArchitectPlayer, overrideMetadata?: OverrideMetadata | null): void => {
       confirmAndRenounceRights(player);
+      closeContractModal();
     },
-    [confirmAndRenounceRights]
+    [confirmAndRenounceRights, closeContractModal]
   );
 
   const handleUpdateRoster = useCallback(
