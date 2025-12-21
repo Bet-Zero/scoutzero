@@ -62,5 +62,5 @@ afterEach(() => {
 });
 
 // Export utilities for use in tests
-export { seedMockData, getMockData, getAllMockData, resetMockDataStore };
+export { seedMockData, getMockData, getAllMockData, resetMockDataStore, clearMockCallables };
 

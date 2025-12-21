@@ -10,7 +10,7 @@
  *  - Parent component: WorldSelector.jsx
  *  - worldManager API: src/features/architect/utils/worldManager.js
  */
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 
 /**
  * Confirmation modal for permanent world deletion
@@ -34,7 +34,15 @@ export function DeleteWorldModal({
   isSubmitting,
   error,
 }) {
+  const inputRef = useRef(null);
   const isConfirmValid = confirmText === 'DELETE' || confirmText === worldName;
+
+  // Focus input on mount using ref-based approach for better a11y
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, []);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -78,6 +86,7 @@ export function DeleteWorldModal({
             <strong className="text-red-400">{worldName}</strong> to confirm:
           </label>
           <input
+            ref={inputRef}
             id="delete-confirm"
             type="text"
             value={confirmText}
@@ -85,7 +94,6 @@ export function DeleteWorldModal({
             className="w-full bg-[#0d0d0d] border border-red-900/50 rounded px-2 py-2 text-sm text-white focus:border-red-600 focus:outline-none"
             placeholder="Type confirmation..."
             autoComplete="off"
-            autoFocus
           />
         </div>
 
