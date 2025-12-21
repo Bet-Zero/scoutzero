@@ -1,7 +1,7 @@
 # Architect Feature Gap Analysis
 
 > **Created**: December 17, 2025  
-> **Updated**: December 20, 2025  
+> **Updated**: December 21, 2025  
 > **Purpose**: Comprehensive review of Architect feature completeness for production readiness  
 > **Status**: Phase 3B Complete - Season Advancement UI + Option Decisions + Stepien Recalculation
 
@@ -22,7 +22,7 @@ The Architect feature is a sophisticated NBA roster scenario planning system wit
 | **Multi-Season/Branching** | ✅ 98% | World-aware reads, season advancement UI, option decisions UI, Stepien recalculation |
 | **UI Integration** | ✅ 95% | GMDashboard has WorldSelector, SeasonAdvanceModal, world data reload |
 | **Data Population** | ✅ 100% | `architect_baseTeams/basePlayers` collections populated |
-| **Test Coverage** | ✅ 95% | Core tests passing, Phase 3B tests added |
+| **Test Coverage** | ✅ 100% | 275/275 tests passing, Phase 3B tests added |
 
 ---
 
@@ -240,7 +240,8 @@ Covers seasons 2024-25 through 2031-32 with:
 - ✅ World Selector (create/select worlds)
 - ✅ Branch Button (branch from current world)
 - ✅ World Management (rename, archive via dropdown menu)
-- ⚠️ Season Navigator (advance through seasons) - future work
+- ✅ Season Advance Modal (advance seasons with option decisions)
+- ⚠️ Season Navigator (UI for browsing season history) - future work
 - ✅ WorldId persistence (localStorage with user key)
 
 ---
@@ -415,8 +416,8 @@ Phase 4: Polish & Edge Cases (RECOMMENDED)
 
 1. ✅ **Fix Season Advancement**
    - ✅ Use `capProjections` for year-appropriate minimums (via `getMinimumSalaryScale`)
-   - ⚠️ Add UI for option decisions before advancing (future work)
-   - ⚠️ Implement proper Stepien recalculation (future work)
+   - ✅ Add UI for option decisions before advancing (SeasonAdvanceModal in Phase 3B)
+   - ✅ Implement proper Stepien recalculation (updateDraftPicksWithStepien in Phase 3B)
 
 2. ✅ **Remove Deprecated Code Paths**
    - ✅ Update `EditContractModal.jsx` to use `salaryEngine` exclusively
@@ -457,14 +458,15 @@ Phase 4: Polish & Edge Cases (RECOMMENDED)
 - ✅ World-aware state management (`worldId` in `useArchitectState`)
 - ✅ Dynamic minimum salary in season advancement
 - ✅ WorldSelector UI component for world management (create, select, branch, rename, archive)
+- ✅ SeasonAdvanceModal UI for advancing seasons with explicit option decisions
 - ✅ WorldId persistence across browser refresh via localStorage
 - ✅ tradeManager compute-only design with mutationPipeline handling persistence
 - ✅ World-aware data loading via `loadWorldTeamData()` and `teamLoader.getTeam()`
 - ✅ Trade Machine uses world-aware loading for secondary teams
+- ✅ Stepien rule recalculation for draft picks across 7-year window
 
 **What Is Incomplete/Missing**:
 - Complete recursive subcollection deletion in `worldManager.deleteWorld()` (currently using archive as workaround)
-- Season advancement UI (option decisions before advancing, Stepien recalculation)
 
 **What Must Be Done (Priority Order)**:
 1. ~~Populate `architect_baseTeams` and `architect_basePlayers`~~ ✅ DONE
@@ -479,8 +481,8 @@ Phase 4: Polish & Edge Cases (RECOMMENDED)
 
 **Estimated Remaining Effort**:
 - ~~Test fixes: 0.5-1 day~~ ✅ COMPLETE
-- Season advancement UI polish: 1-2 days
-- Total: ~1-2 days for production readiness
+- ~~Season advancement UI: 1-2 days~~ ✅ COMPLETE (Phase 3B done)
+- Remaining work: Finalize recursive delete or archive approach (~0.5 days)
 
 ---
 
@@ -770,6 +772,27 @@ The implementation:
 - Runs Stepien recalculation to mark blocked picks
 - Persists atomically to architect_worlds
 - Updates world metadata (currentSeason, actionCount, modifiedTeams)
+
+---
+
+## What Changed (December 21, 2025) - Gap Analysis Update
+
+### Documentation Updated
+
+- **`docs/ARCHITECT_GAP_ANALYSIS.md`**:
+  - Updated "Updated" date from December 20 to December 21
+  - Marked Priority 2 section items as complete:
+    - ✅ "Add UI for option decisions before advancing" (SeasonAdvanceModal in Phase 3B)
+    - ✅ "Implement proper Stepien recalculation" (updateDraftPicksWithStepien in Phase 3B)
+  - Updated "What Is Incomplete/Missing" to remove completed Phase 3B items
+  - Updated "Estimated Remaining Effort" to reflect Phase 3B completion
+  - Updated Test Coverage status from 95% to 100% (275/275 tests passing)
+  - Added SeasonAdvanceModal and Stepien recalculation to "What Architect Already Does" list
+  - Clarified "Season Navigator" as separate from "Season Advance Modal" (navigator is for browsing history, modal is for advancing)
+
+### Summary
+
+The gap analysis document has been updated to accurately reflect that Phase 3B (Season Advancement UI with option decisions and Stepien recalculation) is fully complete. All references to this work as "future work" have been corrected to show completion status. The only remaining incomplete item is the recursive subcollection deletion in `worldManager.deleteWorld()`, which currently uses archive as a safe workaround.
 
 ---
 
