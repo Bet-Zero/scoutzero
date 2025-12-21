@@ -28,6 +28,58 @@ import useCapValidation, {
 } from '@/features/architect/hooks/useCapValidation';
 import ValidationWarnings from '@/features/architect/ValidationWarnings';
 
+/**
+ * Build a structured validation result for contract actions.
+ * @param {Object} params
+ * @param {boolean} params.isValid - Whether there are no validation errors
+ * @param {Array} params.errors - List of error objects with { severity, message }
+ * @param {Array} params.warnings - List of warning objects with { severity, message }
+ * @param {boolean} params.isExtendEligible - For extend actions, whether player is eligible
+ * @param {string} params.selectedAction - The currently selected action
+ * @returns {{ isLegal: boolean, reasons: string[], severity: 'error' | 'warning' | 'info' }}
+ */
+const buildValidationResult = ({
+  isValid,
+  errors,
+  warnings,
+  isExtendEligible,
+  selectedAction,
+}) => {
+  const reasons = [];
+  let maxSeverity = 'info';
+
+  // Collect all error messages
+  errors.forEach((e) => {
+    reasons.push(e.message);
+    if (e.severity === 'error') maxSeverity = 'error';
+    else if (e.severity === 'warning' && maxSeverity !== 'error')
+      maxSeverity = 'warning';
+  });
+
+  // Add extension eligibility reason if applicable
+  if (selectedAction === 'extend' && !isExtendEligible) {
+    reasons.push('Player is not extension eligible');
+    maxSeverity = 'error';
+  }
+
+  // Collect warning messages (these don't block but are advisory)
+  warnings.forEach((w) => {
+    if (w.severity === 'warning') {
+      reasons.push(w.message);
+      if (maxSeverity !== 'error') maxSeverity = 'warning';
+    }
+  });
+
+  const isLegal =
+    isValid && (selectedAction !== 'extend' || isExtendEligible);
+
+  return {
+    isLegal,
+    reasons,
+    severity: maxSeverity,
+  };
+};
+
 const ACTION_SETS = {
   option: ['accept', 'decline', 'signNew'],
   freeAgent: ['resign', 'signAndTrade', 'renounce'],
@@ -83,6 +135,7 @@ const EditContractModal = ({
   rulesLeagueContext = null,
   actionsOverride = null,
   actionLabelsOverride = {},
+  onAuditLog = null, // Callback to record override audit entries
 }) => {
   const [selectedAction, setSelectedAction] = useState('');
   const [showValidationErrors, setShowValidationErrors] = useState(false);
@@ -93,6 +146,11 @@ const EditContractModal = ({
   });
   const [salaryInputs, setSalaryInputs] = useState(['']);
   const [selectedException, setSelectedException] = useState('None');
+
+  // Override state management
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [overrideText, setOverrideText] = useState('');
+  const isOverrideConfirmed = overrideText === 'OVERRIDE';
 
   const [extReason, setExtReason] = useState('');
   const [extMax, setExtMax] = useState(null);
@@ -252,11 +310,28 @@ const EditContractModal = ({
     rulesProfile: playerRulesProfile,
   });
 
+  // Build structured validation result
+  const validationResult = useMemo(
+    () =>
+      buildValidationResult({
+        isValid,
+        errors,
+        warnings,
+        isExtendEligible,
+        selectedAction,
+      }),
+    [isValid, errors, warnings, isExtendEligible, selectedAction]
+  );
+
+  // Primary button is disabled if:
+  // 1. No action selected
+  // 2. Action is illegal AND override not confirmed
   const disableConfirm =
     !selectedAction ||
-    (selectedAction === 'extend' && (!isValid || !isExtendEligible));
-  const showForceState =
-    !isValid || (selectedAction === 'extend' && !isExtendEligible);
+    (!validationResult.isLegal && !isOverrideConfirmed);
+
+  // Show override/advanced section when action is illegal
+  const showOverrideOption = selectedAction && !validationResult.isLegal;
 
   // Show validation errors when validation has run and there are warnings/errors
   useEffect(() => {
@@ -266,6 +341,12 @@ const EditContractModal = ({
       setShowValidationErrors(false);
     }
   }, [selectedAction, warnings, errors]);
+
+  // Reset override state when action changes or modal closes
+  useEffect(() => {
+    setShowAdvanced(false);
+    setOverrideText('');
+  }, [selectedAction, isOpen]);
 
   // Contract Summary Calculations
   const summary = useMemo(() => {
@@ -518,12 +599,34 @@ const EditContractModal = ({
   ]);
 
   const handleConfirm = () => {
+    const timestamp = new Date().toISOString();
+    // Record audit log if override was used
+    const overrideUsed = !validationResult.isLegal && isOverrideConfirmed;
+    if (overrideUsed && onAuditLog) {
+      onAuditLog({
+        actionType: selectedAction,
+        timestamp,
+        reasons: validationResult.reasons,
+        overrideUsed: true,
+        playerId: player?.id || player?.player_id || player?.name,
+        playerName: player?.name || player?.displayName,
+      });
+    }
+
+    // Build override metadata to pass to handlers
+    const overrideMetadata = overrideUsed
+      ? {
+          overrideUsed: true,
+          overrideReasons: validationResult.reasons,
+          overrideTimestamp: timestamp,
+        }
+      : null;
     switch (selectedAction) {
       case 'accept':
-        onOptionDecision?.(player, true);
+        onOptionDecision?.(player, true, overrideMetadata);
         break;
       case 'decline':
-        onOptionDecision?.(player, false);
+        onOptionDecision?.(player, false, overrideMetadata);
         break;
       case 'signNew':
         onSave?.(player, {
@@ -537,6 +640,7 @@ const EditContractModal = ({
           exceptionType: selectedException,
           guardrails: signingGuardrails,
           raisePct: extension.raisePct ?? signingGuardrails?.raisePct ?? 0.05,
+          ...(overrideMetadata || {}),
         });
         break;
       case 'resign':
@@ -551,13 +655,14 @@ const EditContractModal = ({
           exceptionType: selectedException,
           guardrails: signingGuardrails,
           raisePct: extension.raisePct ?? signingGuardrails?.raisePct ?? 0.05,
+          ...(overrideMetadata || {}),
         });
         break;
       case 'signAndTrade':
-        onSignAndTrade?.(player, true);
+        onSignAndTrade?.(player, true, overrideMetadata);
         break;
       case 'renounce':
-        onSignAndTrade?.(player, false);
+        onSignAndTrade?.(player, false, overrideMetadata);
         break;
       case 'extend':
         {
@@ -568,17 +673,17 @@ const EditContractModal = ({
             raisePct: extMax?.baseRaisePct || 0.08,
             startYear,
           });
-          onExtend?.(player, contract);
+          onExtend?.(player, { ...contract, ...(overrideMetadata || {}) });
         }
         break;
       case 'waive':
-        onWaive?.(player, { stretch: false, buyout: false });
+        onWaive?.(player, { stretch: false, buyout: false, ...(overrideMetadata || {}) });
         break;
       case 'waiveStretch':
-        onWaive?.(player, { stretch: true, buyout: false });
+        onWaive?.(player, { stretch: true, buyout: false, ...(overrideMetadata || {}) });
         break;
       case 'buyout':
-        onWaive?.(player, { stretch: false, buyout: true });
+        onWaive?.(player, { stretch: false, buyout: true, ...(overrideMetadata || {}) });
         break;
       default:
         break;
@@ -1055,6 +1160,65 @@ const EditContractModal = ({
             />
           )}
 
+          {/* === Advanced Override Section === */}
+          {showOverrideOption && (
+            <div className="mt-4 border border-red-500/30 rounded-lg overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                className="w-full px-4 py-3 flex items-center justify-between bg-red-500/10 hover:bg-red-500/20 transition-colors"
+              >
+                <span className="text-sm font-medium text-red-300">
+                  ⚠️ Advanced: Override Validation
+                </span>
+                <span className="text-red-400 text-sm">
+                  {showAdvanced ? '▲' : '▼'}
+                </span>
+              </button>
+              
+              {showAdvanced && (
+                <div className="p-4 bg-red-900/10 space-y-4">
+                  <div className="text-xs text-red-300/80 space-y-2">
+                    <p className="font-semibold text-red-300">
+                      This action violates CBA rules:
+                    </p>
+                    <ul className="list-disc pl-4 space-y-1">
+                      {validationResult.reasons.map((reason, idx) => (
+                        <li key={idx}>{reason}</li>
+                      ))}
+                    </ul>
+                    <p className="pt-2 border-t border-red-500/20 mt-2">
+                      Proceeding will create an illegal world state. This action
+                      will be logged and marked as an override.
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="override-confirm"
+                      className="block text-xs font-medium text-red-300"
+                    >
+                      Type <span className="font-mono bg-red-500/20 px-1 rounded">OVERRIDE</span> to confirm:
+                    </label>
+                    <input
+                      id="override-confirm"
+                      type="text"
+                      value={overrideText}
+                      onChange={(e) => setOverrideText(e.target.value)}
+                      placeholder="OVERRIDE"
+                      className="w-full px-3 py-2 rounded bg-black/50 border border-red-500/30 text-sm text-white placeholder-red-500/40 focus:border-red-500 focus:outline-none"
+                    />
+                    {isOverrideConfirmed && (
+                      <p className="text-xs text-green-400">
+                        ✓ Override confirmed - you may now proceed
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Footer Buttons */}
           <div className="mt-auto pt-6 flex justify-end gap-3">
             <button
@@ -1064,20 +1228,21 @@ const EditContractModal = ({
               Cancel
             </button>
             <button
-              onClick={() => {
-                // validation override allowed
-                handleConfirm();
-              }}
+              onClick={handleConfirm}
               disabled={disableConfirm}
               className={`px-6 py-2 text-sm font-bold rounded shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                !showForceState
+                validationResult.isLegal
                   ? 'bg-orange-600 hover:bg-orange-500 text-white shadow-orange-900/20'
-                  : 'bg-red-600/80 hover:bg-red-500 text-white shadow-red-900/20'
+                  : isOverrideConfirmed
+                    ? 'bg-red-600 hover:bg-red-500 text-white shadow-red-900/20'
+                    : 'bg-gray-600 text-white/50'
               }`}
             >
-              {!showForceState
+              {validationResult.isLegal
                 ? 'Confirm Action'
-                : 'Force Action (Override Rules)'}
+                : isOverrideConfirmed
+                  ? '⚠️ Force Override'
+                  : 'Action Blocked'}
             </button>
           </div>
         </div>

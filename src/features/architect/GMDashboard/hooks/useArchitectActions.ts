@@ -104,6 +104,10 @@ interface SigningDetails {
   contractType?: string;
   isExtension?: boolean;
   isRookieScale?: boolean;
+  // Override metadata when action bypasses validation
+  overrideUsed?: boolean;
+  overrideReasons?: string[];
+  overrideTimestamp?: string;
   [key: string]: unknown;
 }
 
@@ -112,6 +116,10 @@ interface WaiveOptions {
   stretch?: boolean;
   buyout?: boolean;
   buyoutAmount?: number;
+  // Override metadata when action bypasses validation
+  overrideUsed?: boolean;
+  overrideReasons?: string[];
+  overrideTimestamp?: string;
 }
 
 /** Active contract entry in cap sheet */
@@ -142,6 +150,16 @@ interface CapHold {
   reason?: string;
 }
 
+/** Override audit log entry */
+interface OverrideAuditEntry {
+  actionType: string;
+  timestamp: string;
+  reasons: string[];
+  overrideUsed: true;
+  playerId?: string;
+  playerName?: string;
+}
+
 /** Cap sheet structure */
 interface CapSheet {
   teamCode?: string;
@@ -160,7 +178,15 @@ interface CapSheet {
   draftPicks?: unknown[];
   totals?: unknown;
   amount?: number;
+  overrideAuditLog?: OverrideAuditEntry[];
   [key: string]: unknown;
+}
+
+/** Override metadata passed from EditContractModal when bypassing validation */
+interface OverrideMetadata {
+  overrideUsed: boolean;
+  overrideReasons: string[];
+  overrideTimestamp: string;
 }
 
 /** Plan reference from Firestore */
@@ -238,7 +264,11 @@ export interface UseArchitectActionsReturn {
     extensionContract: SigningDetails
   ) => void;
   handleWaiveContract: (player: ArchitectPlayer, options: WaiveOptions) => void;
-  handleOptionDecision: (player: ArchitectPlayer, accepted: boolean) => void;
+  handleOptionDecision: (
+    player: ArchitectPlayer,
+    accepted: boolean,
+    overrideMetadata?: OverrideMetadata | null
+  ) => void;
   handleRenounceRights: (player: ArchitectPlayer) => void;
   handleUpdateRoster: (updatedCapSheet: CapSheet) => void;
   handleResetCapSheet: () => void;
@@ -271,6 +301,28 @@ const ensureContractStructure = (
 
   // If no contract data, return null
   return null;
+};
+
+/**
+ * Helper to record override audit entry in cap sheet
+ */
+const recordOverrideAudit = (
+  prev: CapSheet | null,
+  actionType: string,
+  reasons: string[],
+  playerId?: string,
+  playerName?: string
+): OverrideAuditEntry[] => {
+  const existingLog = prev?.overrideAuditLog || [];
+  const newEntry: OverrideAuditEntry = {
+    actionType,
+    timestamp: new Date().toISOString(),
+    reasons,
+    overrideUsed: true,
+    playerId,
+    playerName,
+  };
+  return [...existingLog, newEntry];
 };
 
 /**
@@ -517,10 +569,22 @@ export function useArchitectActions({
             }) || base.contract,
         };
 
+        // Record override audit log if override was used
+        const overrideAuditLog = contract.overrideUsed
+          ? recordOverrideAudit(
+              prev,
+              contract.signAndTrade ? 'signAndTrade' : 'signNew',
+              contract.overrideReasons || [],
+              playerObj.id || playerObj.player_id,
+              playerObj.name || playerObj.displayName
+            )
+          : prev?.overrideAuditLog;
+
         return {
           ...prev,
           activeContracts: [...active, newContract],
           players: [...players, newPlayer],
+          ...(overrideAuditLog ? { overrideAuditLog } : {}),
         };
       });
 
@@ -757,9 +821,21 @@ export function useArchitectActions({
           return p;
         });
 
+        // Record override audit log if override was used
+        const overrideAuditLog = extensionContract.overrideUsed
+          ? recordOverrideAudit(
+              prev,
+              'extend',
+              extensionContract.overrideReasons || [],
+              playerId,
+              player.name || player.displayName
+            )
+          : prev.overrideAuditLog;
+
         return {
           ...prev,
           players: updatedPlayers,
+          ...(overrideAuditLog ? { overrideAuditLog } : {}),
         };
       });
 
@@ -770,7 +846,8 @@ export function useArchitectActions({
 
   // handleWaiveContract - directly updates teamCapSheet
   const handleWaiveContract = useCallback(
-    (player: ArchitectPlayer, { stretch, buyout, buyoutAmount }: WaiveOptions): void => {
+    (player: ArchitectPlayer, options: WaiveOptions): void => {
+      const { stretch, buyout, buyoutAmount, overrideUsed, overrideReasons } = options;
       const confirmMsg = stretch
         ? 'Waive and stretch this player?'
         : 'Waive this player?';
@@ -823,9 +900,21 @@ export function useArchitectActions({
           return p;
         });
 
+        // Record override audit log if override was used
+        const overrideAuditLog = overrideUsed
+          ? recordOverrideAudit(
+              prev,
+              stretch ? 'waiveStretch' : buyout ? 'buyout' : 'waive',
+              overrideReasons || [],
+              playerId,
+              player.name || player.displayName
+            )
+          : prev.overrideAuditLog;
+
         return {
           ...prev,
           players: updatedPlayers,
+          ...(overrideAuditLog ? { overrideAuditLog } : {}),
         };
       });
 
@@ -836,7 +925,11 @@ export function useArchitectActions({
 
   // handleOptionDecision - directly updates teamCapSheet and manages cap holds
   const handleOptionDecision = useCallback(
-    (player: ArchitectPlayer, accepted: boolean): void => {
+    (
+      player: ArchitectPlayer,
+      accepted: boolean,
+      overrideMetadata?: OverrideMetadata | null
+    ): void => {
       const playerId = player.id || player.player_id || player.name;
       const targetYear = currentYear + 1;
 
@@ -938,10 +1031,22 @@ export function useArchitectActions({
           updatedCapHolds = [...updatedCapHolds, newCapHold];
         }
 
+        // Record override audit log if override was used
+        const overrideAuditLog = overrideMetadata?.overrideUsed
+          ? recordOverrideAudit(
+              prev,
+              accepted ? 'accept' : 'decline',
+              overrideMetadata.overrideReasons || [],
+              playerId,
+              player.name || player.displayName
+            )
+          : prev.overrideAuditLog;
+
         return {
           ...prev,
           players: updatedPlayers,
           capHolds: updatedCapHolds,
+          ...(overrideAuditLog ? { overrideAuditLog } : {}),
         };
       });
 

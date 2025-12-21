@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import EditContractModal from '@/shared/components/EditContractModal.jsx';
@@ -195,5 +195,246 @@ describe('EditContractModal — PlayerRulesProfile integration', () => {
       );
       expect(parsed).toBeLessThanOrEqual(21_600_000);
     });
+  });
+});
+
+describe('EditContractModal — Override validation enforcement', () => {
+  afterEach(() => cleanup());
+
+  it('shows "Action Blocked" button when validation fails without override', async () => {
+    render(
+      <EditContractModal
+        isOpen
+        onClose={() => {}}
+        player={BASE_PLAYER}
+        teamCapSheet={TEAM_CAP_SHEET}
+        currentYear={2025}
+        initialAction="extend"
+        playerRulesProfile={INELIGIBLE_PROFILE}
+      />
+    );
+
+    // Try to select the extend action (it's disabled but we test the confirm button)
+    const confirmButton = screen.getByRole('button', { name: /blocked/i });
+    
+    await waitFor(() => {
+      expect(confirmButton).toBeDisabled();
+      expect(confirmButton).toHaveTextContent(/blocked/i);
+    });
+  });
+
+  it('shows Advanced Override accordion when action is illegal', async () => {
+    render(
+      <EditContractModal
+        isOpen
+        onClose={() => {}}
+        player={BASE_PLAYER}
+        teamCapSheet={TEAM_CAP_SHEET}
+        currentYear={2025}
+        playerRulesProfile={ELIGIBLE_PROFILE}
+      />
+    );
+
+    // Select extend action
+    const extendOption = screen.getByLabelText(/extend contract/i);
+    fireEvent.click(extendOption);
+
+    // Enter an invalid salary (too high)
+    const salaryInput = screen.getAllByPlaceholderText('0')[0];
+    fireEvent.change(salaryInput, { target: { value: '50000000' } });
+
+    // Should show the Advanced Override section
+    await waitFor(() => {
+      expect(screen.getByText(/Advanced: Override Validation/i)).toBeInTheDocument();
+    });
+  });
+
+  it('requires typing OVERRIDE to enable the override button', async () => {
+    render(
+      <EditContractModal
+        isOpen
+        onClose={() => {}}
+        player={BASE_PLAYER}
+        teamCapSheet={TEAM_CAP_SHEET}
+        currentYear={2025}
+        playerRulesProfile={ELIGIBLE_PROFILE}
+      />
+    );
+
+    // Select extend action
+    const extendOption = screen.getByLabelText(/extend contract/i);
+    fireEvent.click(extendOption);
+
+    // Enter an invalid salary
+    await waitFor(() => {
+      const salaryInput = screen.getAllByPlaceholderText('0')[0];
+      fireEvent.change(salaryInput, { target: { value: '50000000' } });
+    });
+
+    // Open the Advanced section
+    await waitFor(() => {
+      const advancedButton = screen.getByText(/Advanced: Override Validation/i);
+      fireEvent.click(advancedButton);
+    });
+
+    // Find the override input
+    const overrideInput = screen.getByPlaceholderText('OVERRIDE');
+    expect(overrideInput).toBeInTheDocument();
+
+    // Confirm button should be disabled
+    const confirmButton = screen.getByRole('button', { name: /blocked/i });
+    expect(confirmButton).toBeDisabled();
+
+    // Type incorrect text
+    fireEvent.change(overrideInput, { target: { value: 'override' } });
+    await waitFor(() => {
+      expect(confirmButton).toBeDisabled();
+    });
+
+    // Type correct text
+    fireEvent.change(overrideInput, { target: { value: 'OVERRIDE' } });
+    await waitFor(() => {
+      const forceButton = screen.getByRole('button', { name: /force override/i });
+      expect(forceButton).toBeEnabled();
+    });
+  });
+
+  it('calls onAuditLog with override metadata when override is used', async () => {
+    const mockAuditLog = vi.fn();
+    const mockOnExtend = vi.fn();
+    const mockOnClose = vi.fn();
+
+    render(
+      <EditContractModal
+        isOpen
+        onClose={mockOnClose}
+        onExtend={mockOnExtend}
+        onAuditLog={mockAuditLog}
+        player={BASE_PLAYER}
+        teamCapSheet={TEAM_CAP_SHEET}
+        currentYear={2025}
+        playerRulesProfile={ELIGIBLE_PROFILE}
+      />
+    );
+
+    // Select extend action
+    const extendOption = screen.getByLabelText(/extend contract/i);
+    fireEvent.click(extendOption);
+
+    // Enter an invalid salary (too high)
+    await waitFor(() => {
+      const salaryInput = screen.getAllByPlaceholderText('0')[0];
+      fireEvent.change(salaryInput, { target: { value: '50000000' } });
+    });
+
+    // Open the Advanced section
+    await waitFor(() => {
+      const advancedButton = screen.getByText(/Advanced: Override Validation/i);
+      fireEvent.click(advancedButton);
+    });
+
+    // Type OVERRIDE to confirm
+    const overrideInput = screen.getByPlaceholderText('OVERRIDE');
+    fireEvent.change(overrideInput, { target: { value: 'OVERRIDE' } });
+
+    // Click Force Override button
+    await waitFor(() => {
+      const forceButton = screen.getByRole('button', { name: /force override/i });
+      fireEvent.click(forceButton);
+    });
+
+    // Verify audit log was called with override metadata
+    expect(mockAuditLog).toHaveBeenCalledTimes(1);
+    expect(mockAuditLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionType: 'extend',
+        overrideUsed: true,
+        reasons: expect.arrayContaining([expect.any(String)]),
+        timestamp: expect.any(String),
+        playerId: expect.any(String),
+        playerName: expect.any(String),
+      })
+    );
+  });
+
+  it('passes override metadata to handler when override is used', async () => {
+    const mockOnExtend = vi.fn();
+    const mockOnClose = vi.fn();
+
+    render(
+      <EditContractModal
+        isOpen
+        onClose={mockOnClose}
+        onExtend={mockOnExtend}
+        player={BASE_PLAYER}
+        teamCapSheet={TEAM_CAP_SHEET}
+        currentYear={2025}
+        playerRulesProfile={ELIGIBLE_PROFILE}
+      />
+    );
+
+    // Select extend action
+    const extendOption = screen.getByLabelText(/extend contract/i);
+    fireEvent.click(extendOption);
+
+    // Enter an invalid salary (too high)
+    await waitFor(() => {
+      const salaryInput = screen.getAllByPlaceholderText('0')[0];
+      fireEvent.change(salaryInput, { target: { value: '50000000' } });
+    });
+
+    // Open the Advanced section
+    await waitFor(() => {
+      const advancedButton = screen.getByText(/Advanced: Override Validation/i);
+      fireEvent.click(advancedButton);
+    });
+
+    // Type OVERRIDE to confirm
+    const overrideInput = screen.getByPlaceholderText('OVERRIDE');
+    fireEvent.change(overrideInput, { target: { value: 'OVERRIDE' } });
+
+    // Click Force Override button
+    await waitFor(() => {
+      const forceButton = screen.getByRole('button', { name: /force override/i });
+      fireEvent.click(forceButton);
+    });
+
+    // Verify onExtend was called with override metadata
+    expect(mockOnExtend).toHaveBeenCalledTimes(1);
+    expect(mockOnExtend).toHaveBeenCalledWith(
+      BASE_PLAYER,
+      expect.objectContaining({
+        overrideUsed: true,
+        overrideReasons: expect.arrayContaining([expect.any(String)]),
+        overrideTimestamp: expect.any(String),
+      })
+    );
+  });
+
+  it('does not show Advanced Override section when action is legal', async () => {
+    render(
+      <EditContractModal
+        isOpen
+        onClose={() => {}}
+        player={BASE_PLAYER}
+        teamCapSheet={TEAM_CAP_SHEET}
+        currentYear={2025}
+        playerRulesProfile={ELIGIBLE_PROFILE}
+      />
+    );
+
+    // Select extend action
+    const extendOption = screen.getByLabelText(/extend contract/i);
+    fireEvent.click(extendOption);
+
+    // Wait for initial state
+    await waitFor(() => {
+      // With default prefill from rules profile, should be legal
+      const confirmButton = screen.getByRole('button', { name: /confirm action/i });
+      expect(confirmButton).toBeEnabled();
+    });
+
+    // Advanced Override section should NOT be visible
+    expect(screen.queryByText(/Advanced: Override Validation/i)).not.toBeInTheDocument();
   });
 });
