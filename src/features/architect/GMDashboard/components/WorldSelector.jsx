@@ -1,10 +1,12 @@
 /**
  * FILE: src/features/architect/GMDashboard/components/WorldSelector.jsx
- * PURPOSE: WorldSelector dropdown for Architect GMDashboard - select, create, branch, rename, and archive worlds
+ * PURPOSE: WorldSelector dropdown for Architect GMDashboard - select, create, branch, rename, archive, and delete worlds
  * OWNERSHIP: Feature: architect/GMDashboard
  *
  * HISTORY:
  *  - 2025-12-20: Created for Phase 2A WorldSelector implementation per ARCHITECT_GAP_ANALYSIS.md
+ *  - 2025-12-21: Added permanent deletion via Cloud Function (Phase 4A)
+ *  - 2025-12-21: Extracted DeleteWorldModal to separate file
  *
  * LINKS:
  *  - worldManager API: src/features/architect/utils/worldManager.js
@@ -17,7 +19,9 @@ import {
   branchWorld,
   updateWorldMetadata,
   getWorldMetadata,
+  purgeWorld,
 } from '@/features/architect/utils/worldManager';
+import { DeleteWorldModal } from './DeleteWorldModal';
 
 // ==============================================================================
 // CONSTANTS
@@ -49,11 +53,13 @@ export function WorldSelector({ userId, worldId, setWorldId, onWorldChange }) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showBranchModal, setShowBranchModal] = useState(false);
   const [showRenameModal, setShowRenameModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showActionsMenu, setShowActionsMenu] = useState(false);
 
   // Form state
   const [newWorldName, setNewWorldName] = useState('');
   const [newWorldDescription, setNewWorldDescription] = useState('');
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Ref to track if initial load has restored from localStorage
@@ -146,6 +152,7 @@ export function WorldSelector({ userId, worldId, setWorldId, onWorldChange }) {
         setShowCreateModal(false);
         setShowBranchModal(false);
         setShowRenameModal(false);
+        setShowDeleteModal(false);
       }
     };
 
@@ -324,6 +331,57 @@ export function WorldSelector({ userId, worldId, setWorldId, onWorldChange }) {
     }
   }, [worldId, worlds, loadWorlds, setWorldId, onWorldChange]);
 
+  const handleDeleteWorld = useCallback(async () => {
+    if (!worldId) return;
+
+    const currentWorld = worlds.find((w) => w.worldId === worldId);
+    const worldName = currentWorld?.worldName || worldId;
+
+    // Validate confirmation text
+    if (deleteConfirmText !== 'DELETE' && deleteConfirmText !== worldName) {
+      setError('Please type DELETE or the world name to confirm');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError('');
+
+    try {
+      const result = await purgeWorld(worldId);
+
+      if (result.ok) {
+        // Refresh worlds list
+        await loadWorlds();
+
+        // Clear selection
+        setWorldId(null);
+        setShowDeleteModal(false);
+        setDeleteConfirmText('');
+        setShowActionsMenu(false);
+
+        if (onWorldChange) {
+          onWorldChange(null);
+        }
+      } else if (result.queued) {
+        // Deletion started but timed out - show message and suggest retry
+        setError(result.message);
+      } else {
+        setError(result.message || 'Failed to delete world');
+      }
+    } catch (err) {
+      console.error('Failed to delete world:', err);
+      setError(err.message || 'Failed to delete world');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [worldId, worlds, deleteConfirmText, loadWorlds, setWorldId, onWorldChange]);
+
+  const openDeleteModal = useCallback(() => {
+    setDeleteConfirmText('');
+    setShowDeleteModal(true);
+    setShowActionsMenu(false);
+  }, []);
+
   const openRenameModal = useCallback(async () => {
     if (!worldId) return;
 
@@ -432,7 +490,7 @@ export function WorldSelector({ userId, worldId, setWorldId, onWorldChange }) {
             </button>
 
             {showActionsMenu && (
-              <div className="absolute right-0 top-full mt-1 bg-[#1a1a1a] border border-white/10 rounded shadow-lg z-50 min-w-[120px]">
+              <div className="absolute right-0 top-full mt-1 bg-[#1a1a1a] border border-white/10 rounded shadow-lg z-50 min-w-[140px]">
                 <button
                   type="button"
                   onClick={openBranchModal}
@@ -447,12 +505,20 @@ export function WorldSelector({ userId, worldId, setWorldId, onWorldChange }) {
                 >
                   Rename
                 </button>
+                <hr className="border-white/10 my-1" />
                 <button
                   type="button"
                   onClick={handleArchiveWorld}
-                  className="w-full px-3 py-2 text-xs text-left text-red-400 hover:bg-white/10 transition-colors"
+                  className="w-full px-3 py-2 text-xs text-left text-yellow-500 hover:bg-white/10 transition-colors"
                 >
                   Archive
+                </button>
+                <button
+                  type="button"
+                  onClick={openDeleteModal}
+                  className="w-full px-3 py-2 text-xs text-left text-red-500 hover:bg-red-900/20 transition-colors font-medium"
+                >
+                  Delete Permanently
                 </button>
               </div>
             )}
@@ -587,6 +653,23 @@ export function WorldSelector({ userId, worldId, setWorldId, onWorldChange }) {
             </div>
           </div>
         </WorldModal>
+      )}
+
+      {/* Delete World Modal */}
+      {showDeleteModal && (
+        <DeleteWorldModal
+          worldName={worlds.find((w) => w.worldId === worldId)?.worldName || worldId}
+          confirmText={deleteConfirmText}
+          setConfirmText={setDeleteConfirmText}
+          onClose={() => {
+            setShowDeleteModal(false);
+            setDeleteConfirmText('');
+            setError('');
+          }}
+          onDelete={handleDeleteWorld}
+          isSubmitting={isSubmitting}
+          error={error}
+        />
       )}
 
       {/* Click outside handler for actions menu */}

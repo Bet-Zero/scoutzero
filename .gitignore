@@ -13,6 +13,10 @@ DataPipeline.md
 tournamentRanker.js
 dist/
 
+# Cloud Functions build artifacts
+functions/lib/
+functions/node_modules/
+
 # Archive folder with deprecated/old files
 archive/
 data_pipeline/

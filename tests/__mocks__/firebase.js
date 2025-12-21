@@ -609,3 +609,59 @@ export function getMockData(path) {
   // Return deep clone to prevent mutations affecting stored data
   return data ? JSON.parse(JSON.stringify(data)) : data;
 }
+
+// ==============================================================================
+// FIREBASE FUNCTIONS MOCKS
+// ==============================================================================
+
+// Store for mock callable function responses
+const mockCallableFunctions = new Map();
+
+/**
+ * Mock httpsCallable function
+ * Returns a function that can be called with data and returns a result
+ */
+export function httpsCallable(functions, functionName) {
+  return async (data) => {
+    // Check if we have a mock implementation for this function
+    const mockImpl = mockCallableFunctions.get(functionName);
+    if (mockImpl) {
+      const result = await mockImpl(data);
+      return { data: result };
+    }
+    
+    // Default behavior: return success
+    return {
+      data: {
+        ok: true,
+        message: `Mock ${functionName} called successfully`,
+      },
+    };
+  };
+}
+
+/**
+ * Set a mock implementation for a callable function
+ * @param {string} functionName - Name of the function to mock
+ * @param {Function} implementation - Mock implementation that receives data and returns result
+ */
+export function setMockCallable(functionName, implementation) {
+  mockCallableFunctions.set(functionName, implementation);
+}
+
+/**
+ * Clear all mock callable implementations
+ */
+export function clearMockCallables() {
+  mockCallableFunctions.clear();
+}
+
+// Mock getFunctions function
+export function getFunctions(app) {
+  return { app, type: 'functions-mock' };
+}
+
+// Mock connectFunctionsEmulator function
+export function connectFunctionsEmulator(functions, host, port) {
+  // No-op in tests
+}

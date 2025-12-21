@@ -2,7 +2,7 @@
  * World Manager Tests
  * 
  * Comprehensive unit tests for worldManager.js covering all CRUD operations,
- * branching, and world statistics updates.
+ * branching, archiving, purging, and world statistics updates.
  * 
  * @file tests/architect/worldManager.test.js
  */
@@ -16,12 +16,15 @@ import {
   deleteWorld,
   branchWorld,
   updateWorldStats,
+  archiveWorld,
+  purgeWorld,
 } from '@/features/architect/utils/worldManager';
 import {
   seedWorldMetadata,
   getMockWorldMetadata,
   createMockWorld,
 } from '../helpers/architectTestHelpers.js';
+import { setMockCallable, clearMockCallables } from '../__mocks__/firebase.js';
 
 describe('World Manager', () => {
   const userId = 'user_123';
@@ -430,6 +433,126 @@ describe('World Manager', () => {
 
     it('throws error when worldId is missing', async () => {
       await expect(updateWorldStats(null, 'trade', [])).rejects.toThrow('worldId is required');
+    });
+  });
+
+  describe('archiveWorld', () => {
+    it('sets isArchived to true', async () => {
+      const worldResult = await createWorld({
+        name: 'Test World',
+        userId,
+      });
+
+      await archiveWorld(worldResult.worldId, userId);
+
+      const metadata = getMockWorldMetadata(worldResult.worldId);
+      expect(metadata.isArchived).toBe(true);
+    });
+
+    it('hides world from listUserWorlds by default', async () => {
+      const worldResult = await createWorld({
+        name: 'Test World',
+        userId,
+      });
+
+      // Before archive - world should be visible
+      let worlds = await listUserWorlds(userId);
+      expect(worlds.some(w => w.worldId === worldResult.worldId)).toBe(true);
+
+      // Archive the world
+      await archiveWorld(worldResult.worldId, userId);
+
+      // After archive - world should be hidden from default list
+      worlds = await listUserWorlds(userId);
+      expect(worlds.some(w => w.worldId === worldResult.worldId)).toBe(false);
+
+      // But visible with includeArchived option
+      worlds = await listUserWorlds(userId, { includeArchived: true });
+      expect(worlds.some(w => w.worldId === worldResult.worldId)).toBe(true);
+    });
+
+    it('throws error if user doesn\'t own world', async () => {
+      const world = createMockWorld({ userId });
+      seedWorldMetadata(world.worldId, world);
+
+      await expect(archiveWorld(world.worldId, otherUserId)).rejects.toThrow(
+        'User does not have permission to archive this world'
+      );
+    });
+
+    it('throws error when worldId is missing', async () => {
+      await expect(archiveWorld(null, userId)).rejects.toThrow('worldId is required');
+    });
+
+    it('throws error when userId is missing', async () => {
+      await expect(archiveWorld('world_123', null)).rejects.toThrow('userId is required');
+    });
+  });
+
+  describe('purgeWorld', () => {
+    beforeEach(() => {
+      clearMockCallables();
+    });
+
+    it('calls purgeArchitectWorld callable function', async () => {
+      let calledWith = null;
+      setMockCallable('purgeArchitectWorld', (data) => {
+        calledWith = data;
+        return {
+          ok: true,
+          message: 'World deleted successfully',
+          details: { teamsDeleted: 0, playersDeleted: 0, worldDeleted: true },
+        };
+      });
+
+      const result = await purgeWorld('test_world_id');
+
+      expect(calledWith).toEqual({ worldId: 'test_world_id' });
+      expect(result.ok).toBe(true);
+    });
+
+    it('returns result from Cloud Function', async () => {
+      setMockCallable('purgeArchitectWorld', () => ({
+        ok: true,
+        message: 'World "Test" permanently deleted',
+        details: { teamsDeleted: 5, playersDeleted: 12, worldDeleted: true },
+      }));
+
+      const result = await purgeWorld('test_world_id');
+
+      expect(result.ok).toBe(true);
+      expect(result.details.teamsDeleted).toBe(5);
+      expect(result.details.playersDeleted).toBe(12);
+    });
+
+    it('handles queued response for large worlds', async () => {
+      setMockCallable('purgeArchitectWorld', () => ({
+        ok: false,
+        queued: true,
+        message: 'Deletion in progress',
+        details: { teamsDeleted: 10, playersDeleted: 50, worldDeleted: false },
+      }));
+
+      const result = await purgeWorld('large_world_id');
+
+      expect(result.ok).toBe(false);
+      expect(result.queued).toBe(true);
+    });
+
+    it('throws error when worldId is missing', async () => {
+      await expect(purgeWorld(null)).rejects.toThrow('worldId is required');
+    });
+
+    it('throws user-friendly error for permission denied', async () => {
+      setMockCallable('purgeArchitectWorld', () => {
+        const error = new Error('Permission denied');
+        error.code = 'functions/permission-denied';
+        throw error;
+      });
+
+      await expect(purgeWorld('other_user_world')).rejects.toThrow(
+        'You do not have permission to delete this world'
+      );
     });
   });
 });
