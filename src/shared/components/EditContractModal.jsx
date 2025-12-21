@@ -599,12 +599,13 @@ const EditContractModal = ({
   ]);
 
   const handleConfirm = () => {
+    const timestamp = new Date().toISOString();
     // Record audit log if override was used
     const overrideUsed = !validationResult.isLegal && isOverrideConfirmed;
     if (overrideUsed && onAuditLog) {
       onAuditLog({
         actionType: selectedAction,
-        timestamp: new Date().toISOString(),
+        timestamp,
         reasons: validationResult.reasons,
         overrideUsed: true,
         playerId: player?.id || player?.player_id || player?.name,
@@ -617,10 +618,9 @@ const EditContractModal = ({
       ? {
           overrideUsed: true,
           overrideReasons: validationResult.reasons,
-          overrideTimestamp: new Date().toISOString(),
+          overrideTimestamp: timestamp,
         }
       : null;
-
     switch (selectedAction) {
       case 'accept':
         onOptionDecision?.(player, true, overrideMetadata);
