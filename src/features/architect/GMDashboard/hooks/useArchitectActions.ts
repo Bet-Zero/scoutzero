@@ -182,6 +182,13 @@ interface CapSheet {
   [key: string]: unknown;
 }
 
+/** Override metadata passed from EditContractModal when bypassing validation */
+interface OverrideMetadata {
+  overrideUsed: boolean;
+  overrideReasons: string[];
+  overrideTimestamp: string;
+}
+
 /** Plan reference from Firestore */
 interface PlanRef {
   id: string;
@@ -257,7 +264,11 @@ export interface UseArchitectActionsReturn {
     extensionContract: SigningDetails
   ) => void;
   handleWaiveContract: (player: ArchitectPlayer, options: WaiveOptions) => void;
-  handleOptionDecision: (player: ArchitectPlayer, accepted: boolean) => void;
+  handleOptionDecision: (
+    player: ArchitectPlayer,
+    accepted: boolean,
+    overrideMetadata?: OverrideMetadata | null
+  ) => void;
   handleRenounceRights: (player: ArchitectPlayer) => void;
   handleUpdateRoster: (updatedCapSheet: CapSheet) => void;
   handleResetCapSheet: () => void;
@@ -914,7 +925,11 @@ export function useArchitectActions({
 
   // handleOptionDecision - directly updates teamCapSheet and manages cap holds
   const handleOptionDecision = useCallback(
-    (player: ArchitectPlayer, accepted: boolean): void => {
+    (
+      player: ArchitectPlayer,
+      accepted: boolean,
+      overrideMetadata?: OverrideMetadata | null
+    ): void => {
       const playerId = player.id || player.player_id || player.name;
       const targetYear = currentYear + 1;
 
@@ -1016,10 +1031,22 @@ export function useArchitectActions({
           updatedCapHolds = [...updatedCapHolds, newCapHold];
         }
 
+        // Record override audit log if override was used
+        const overrideAuditLog = overrideMetadata?.overrideUsed
+          ? recordOverrideAudit(
+              prev,
+              accepted ? 'accept' : 'decline',
+              overrideMetadata.overrideReasons || [],
+              playerId,
+              player.name || player.displayName
+            )
+          : prev.overrideAuditLog;
+
         return {
           ...prev,
           players: updatedPlayers,
           capHolds: updatedCapHolds,
+          ...(overrideAuditLog ? { overrideAuditLog } : {}),
         };
       });
 
