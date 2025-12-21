@@ -11,14 +11,13 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { computeWorldMutation } from '@/features/architect/utils/mutationPipeline';
+import { computeWorldMutation, applyWorldMutation } from '@/features/architect/utils/mutationPipeline';
+import { createWorld, updateWorldStats } from '@/features/architect/utils/worldManager';
 import {
-  createMockWorld,
-  createMockPlayer,
-  createMockTeam,
-  seedWorldMetadata,
+  seedBaseData,
   seedTeamSnapshot,
   getMockTeamSnapshot,
+  getMockWorldMetadata,
 } from '../helpers/architectTestHelpers.js';
 
 describe('Renounce Rights Mutation', () => {
@@ -377,6 +376,211 @@ describe('Renounce Rights Mutation', () => {
       const updatedTeam = result.teamUpdates[0].team;
       expect(updatedTeam.source.type).toBe('world-snapshot');
       expect(updatedTeam.source.lastModifiedAt).toBeDefined();
+    });
+  });
+
+  describe('applyWorldMutation - persistence', () => {
+    const userId = 'persistence_test_user';
+
+    beforeEach(() => {
+      // Seed base data for the teams we'll use
+      seedBaseData(['LAL', 'BOS']);
+    });
+
+    it('persists renounce action to world and updates world stats', async () => {
+      // Create a test world
+      const worldResult = await createWorld({
+        name: 'Renounce Test World',
+        userId,
+        currentSeason: '2025-26',
+      });
+
+      const worldId = worldResult.worldId;
+      const teamCode = 'LAL';
+      const playerId = 'fa_to_renounce';
+      const playerName = 'Free Agent Player';
+
+      // Seed team snapshot with a cap hold
+      const teamSnapshot = {
+        teamCode,
+        teamName: 'Los Angeles Lakers',
+        season: '2025-26',
+        roster: [],
+        players: [
+          {
+            player_id: playerId,
+            name: playerName,
+            displayName: playerName,
+            contract: {
+              salariesByYear: [],
+              birdRights: { status: 'Full', yearsOfService: 6 },
+            },
+          },
+        ],
+        capHolds: [
+          {
+            playerId,
+            playerName,
+            amount: 25_000_000,
+            type: 'FA Cap Hold',
+            season: '2025-26',
+            active: true,
+            isSigned: false,
+          },
+        ],
+        totals: {
+          totalSalary: 80_000_000,
+          capHit: 105_000_000,
+          capHoldsTotal: 25_000_000,
+        },
+        source: { type: 'base', provider: 'spotrac' },
+      };
+
+      seedTeamSnapshot(worldId, teamCode, teamSnapshot);
+
+      // Apply the renounce mutation
+      const result = await applyWorldMutation({
+        userId,
+        worldId,
+        seasonId: '2025-26',
+        mutationType: 'renounceRights',
+        payload: {
+          teamCode,
+          playerId,
+        },
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.changedTeams).toHaveLength(1);
+      expect(result.event).toBeDefined();
+      expect(result.event.type).toBe('renounceRights');
+
+      // Verify persisted data shows cap hold removed
+      const persistedTeam = getMockTeamSnapshot(worldId, teamCode);
+      expect(persistedTeam.capHolds).toHaveLength(0);
+
+      // Verify the player is marked as renounced
+      const renouncedPlayer = persistedTeam.players.find(
+        (p) => p.player_id === playerId
+      );
+      expect(renouncedPlayer.rightsRenounced).toBe(true);
+      expect(renouncedPlayer.contract.birdRights.status).toBe('None');
+
+      // Verify world stats were updated
+      const worldMetadata = getMockWorldMetadata(worldId);
+      expect(worldMetadata.stats.totalRenounces).toBe(1);
+      expect(worldMetadata.actionCount).toBe(1);
+      expect(worldMetadata.modifiedTeams).toContain(teamCode);
+    });
+
+    it('persisted state can be reloaded correctly', async () => {
+      // Create a test world
+      const worldResult = await createWorld({
+        name: 'Reload Test World',
+        userId,
+        currentSeason: '2025-26',
+      });
+
+      const worldId = worldResult.worldId;
+      const teamCode = 'BOS';
+      const playerId = 'reload_test_player';
+      const playerName = 'Reload Test Player';
+      const capHoldAmount = 18_500_000;
+
+      // Seed initial state
+      const initialSnapshot = {
+        teamCode,
+        teamName: 'Boston Celtics',
+        season: '2025-26',
+        roster: [],
+        players: [
+          {
+            player_id: playerId,
+            name: playerName,
+            displayName: playerName,
+            contract: {
+              salariesByYear: [],
+              birdRights: { status: 'Early Bird', yearsOfService: 2 },
+            },
+          },
+        ],
+        capHolds: [
+          {
+            playerId,
+            playerName,
+            amount: capHoldAmount,
+            type: 'FA Cap Hold',
+            season: '2025-26',
+            active: true,
+            isSigned: false,
+          },
+        ],
+        totals: {
+          totalSalary: 120_000_000,
+          capHit: 138_500_000,
+          capHoldsTotal: capHoldAmount,
+        },
+        source: { type: 'base' },
+      };
+
+      seedTeamSnapshot(worldId, teamCode, initialSnapshot);
+
+      // Apply renounce mutation
+      await applyWorldMutation({
+        userId,
+        worldId,
+        seasonId: '2025-26',
+        mutationType: 'renounceRights',
+        payload: { teamCode, playerId },
+      });
+
+      // Simulate "reload" by reading from persisted data
+      const reloadedTeam = getMockTeamSnapshot(worldId, teamCode);
+
+      // Verify state is correct after reload
+      expect(reloadedTeam.capHolds).toHaveLength(0);
+      
+      const reloadedPlayer = reloadedTeam.players.find(
+        (p) => p.player_id === playerId
+      );
+      expect(reloadedPlayer.rightsRenounced).toBe(true);
+      expect(reloadedPlayer.renouncedAt).toBeDefined();
+      expect(reloadedPlayer.contract.birdRights.status).toBe('None');
+      expect(reloadedPlayer.contract.birdRights.renouncedBy).toBe(teamCode);
+
+      // Source metadata should show world-snapshot type
+      expect(reloadedTeam.source.type).toBe('world-snapshot');
+    });
+
+    it('returns error when worldId is missing', async () => {
+      const result = await applyWorldMutation({
+        userId,
+        worldId: null,
+        seasonId: '2025-26',
+        mutationType: 'renounceRights',
+        payload: { teamCode: 'LAL', playerId: 'test' },
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('worldId is required');
+    });
+
+    it('returns error when payload is missing', async () => {
+      const worldResult = await createWorld({
+        name: 'Error Test World',
+        userId,
+      });
+
+      const result = await applyWorldMutation({
+        userId,
+        worldId: worldResult.worldId,
+        seasonId: '2025-26',
+        mutationType: 'renounceRights',
+        payload: null,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('payload is required');
     });
   });
 });

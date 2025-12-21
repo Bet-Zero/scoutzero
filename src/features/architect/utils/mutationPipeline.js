@@ -222,8 +222,7 @@ async function loadStateForMutation(worldId, mutationType, payload) {
     case 'signFreeAgent':
     case 'waivePlayer':
     case 'extendPlayer':
-    case 'optionDecision':
-    case 'renounceRights': {
+    case 'optionDecision': {
       // Load single team and player
       const teamCode = payload.teamCode;
       const playerId = payload.playerId;
@@ -238,6 +237,61 @@ async function loadStateForMutation(worldId, mutationType, payload) {
       const team = await getTeam(worldId, teamCode);
       const player = await getPlayer(worldId, teamCode, playerId);
       return { team, player, teamCode };
+    }
+
+    case 'renounceRights': {
+      // Renounce rights: player may only exist in team's players array or cap holds
+      // (free agents with cap holds might not have a base player record)
+      const teamCode = payload.teamCode;
+      const playerId = payload.playerId;
+
+      if (!teamCode) {
+        throw new Error(`Missing teamCode in payload for renounceRights`);
+      }
+      if (!playerId) {
+        throw new Error(`Missing playerId in payload for renounceRights`);
+      }
+
+      const team = await getTeam(worldId, teamCode);
+
+      // Try to find player in team's players array first
+      const playerInTeam = (team.players || []).find(
+        (p) => (p.player_id || p.id) === playerId || p.name === playerId
+      );
+
+      // If found in team, use that data
+      if (playerInTeam) {
+        return { team, player: playerInTeam, teamCode };
+      }
+
+      // Try to find in cap holds
+      const capHold = (team.capHolds || []).find(
+        (h) => h.playerId === playerId || h.playerName === playerId
+      );
+
+      if (capHold) {
+        // Build minimal player object from cap hold
+        return {
+          team,
+          player: {
+            player_id: capHold.playerId,
+            name: capHold.playerName,
+            displayName: capHold.playerName,
+            contract: { birdRights: { status: 'Unknown' } },
+          },
+          teamCode,
+        };
+      }
+
+      // Finally, try base player collection
+      try {
+        const player = await getPlayer(worldId, teamCode, playerId);
+        return { team, player, teamCode };
+      } catch (err) {
+        throw new Error(
+          `Player ${playerId} not found in team roster, cap holds, or base collection`
+        );
+      }
     }
 
     default:
