@@ -16,6 +16,7 @@
 import React, { useState, useCallback } from 'react';
 import OffseasonTab from '@/features/architect/OffseasonTab';
 import { SeasonAdvanceModal } from '@/features/architect/GMDashboard/components';
+import { toEndYear } from '@/features/architect/utils/seasonFormat';
 
 const OffseasonSection = ({
   teamCapSheet,
@@ -38,8 +39,8 @@ const OffseasonSection = ({
   const handleAdvanceComplete = useCallback((result) => {
     // Update local state after successful season advance
     if (result.success) {
-      // Update currentYear to the new season
-      const toYear = parseInt(result.toSeason.split('-')[1], 10) + 2000;
+      // Update currentYear to the new season using toEndYear utility
+      const toYear = toEndYear(result.toSeason) ?? currentYear;
       setCurrentYear(toYear);
 
       // Mark offseason as complete

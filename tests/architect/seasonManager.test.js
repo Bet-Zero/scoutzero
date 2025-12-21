@@ -648,19 +648,8 @@ describe('Season Manager', () => {
       expect(result.summary.expiredContracts).toHaveLength(1);
       expect(result.summary.expiredContracts[0].playerName).toBe('Expiring Player');
     });
-  });
 
-  // ===========================================================================
-  // Phase 3B: Stepien Recalculation Tests
-  // ===========================================================================
-  describe('Stepien recalculation', () => {
-    let advanceSeasonInWorld;
-
-    beforeEach(async () => {
-      const module = await import('@/features/architect/utils/seasonManager');
-      advanceSeasonInWorld = module.advanceSeasonInWorld;
-    });
-
+    // Stepien recalculation tests
     it('marks pick as stepienBlocked when adjacent years are traded', async () => {
       // Create team that has traded 2026 and 2028 firsts, keeping 2027
       const teamWithTradedPicks = createMockTeam({

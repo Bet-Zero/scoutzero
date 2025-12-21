@@ -48,6 +48,13 @@ function findPlayersWithOptions(teamCapSheet, targetYear) {
   for (const player of teamCapSheet.players) {
     if (!player?.contract?.salariesByYear) continue;
 
+    // Support multiple ID formats but avoid using name as ID
+    const playerId = player.player_id || player.id || player.playerId;
+    if (!playerId) {
+      console.warn('Player missing ID fields, skipping option:', player.displayName || player.name);
+      continue;
+    }
+
     const yearEntry = player.contract.salariesByYear.find((y) => {
       const yearEnd = toEndYear(y.season);
       return yearEnd === targetYear && y.option;
@@ -55,7 +62,7 @@ function findPlayersWithOptions(teamCapSheet, targetYear) {
 
     if (yearEntry) {
       playersWithOptions.push({
-        playerId: player.player_id || player.id || player.name,
+        playerId,
         playerName: player.displayName || player.name,
         optionType: yearEntry.option,
         salary: yearEntry.salary || yearEntry.capHit || 0,
