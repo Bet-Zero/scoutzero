@@ -240,10 +240,8 @@ describe('EditContractModal — Override validation enforcement', () => {
     fireEvent.click(extendOption);
 
     // Enter an invalid salary (too high)
-    await waitFor(() => {
-      const salaryInput = screen.getAllByPlaceholderText('0')[0];
-      fireEvent.change(salaryInput, { target: { value: '50000000' } });
-    });
+    const salaryInput = screen.getAllByPlaceholderText('0')[0];
+    fireEvent.change(salaryInput, { target: { value: '50000000' } });
 
     // Should show the Advanced Override section
     await waitFor(() => {
