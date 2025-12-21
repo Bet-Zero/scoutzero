@@ -14,6 +14,7 @@ import {
   seedMockData,
   getMockData,
   getAllMockData,
+  clearMockCallables,
 } from './__mocks__/firebase.js';
 
 // Mock Firebase app initialization
@@ -21,6 +22,12 @@ vi.mock('@/firebaseConfig', () => {
   return {
     db: {
       // Mock db object for Firestore operations
+    },
+    functions: {
+      // Mock functions object for Cloud Functions
+    },
+    auth: {
+      // Mock auth object (if needed)
     },
   };
 });
@@ -31,15 +38,27 @@ vi.mock('firebase/firestore', async () => {
   return mockFirebase;
 });
 
+// Mock firebase/functions module
+vi.mock('firebase/functions', async () => {
+  const mockFirebase = await import('./__mocks__/firebase.js');
+  return {
+    httpsCallable: mockFirebase.httpsCallable,
+    getFunctions: mockFirebase.getFunctions,
+    connectFunctionsEmulator: mockFirebase.connectFunctionsEmulator,
+  };
+});
+
 // Reset mock data before each test
 beforeEach(() => {
   resetMockDataStore();
+  clearMockCallables();
 });
 
 // Cleanup after each test (optional, but good practice)
 afterEach(() => {
   // Reset is already done in beforeEach, but this ensures cleanup
   resetMockDataStore();
+  clearMockCallables();
 });
 
 // Export utilities for use in tests

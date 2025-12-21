@@ -1,10 +1,11 @@
 /**
  * FILE: src/features/architect/GMDashboard/components/WorldSelector.jsx
- * PURPOSE: WorldSelector dropdown for Architect GMDashboard - select, create, branch, rename, and archive worlds
+ * PURPOSE: WorldSelector dropdown for Architect GMDashboard - select, create, branch, rename, archive, and delete worlds
  * OWNERSHIP: Feature: architect/GMDashboard
  *
  * HISTORY:
  *  - 2025-12-20: Created for Phase 2A WorldSelector implementation per ARCHITECT_GAP_ANALYSIS.md
+ *  - 2025-12-21: Added permanent deletion via Cloud Function (Phase 4A)
  *
  * LINKS:
  *  - worldManager API: src/features/architect/utils/worldManager.js
@@ -17,6 +18,7 @@ import {
   branchWorld,
   updateWorldMetadata,
   getWorldMetadata,
+  purgeWorld,
 } from '@/features/architect/utils/worldManager';
 
 // ==============================================================================
@@ -49,11 +51,13 @@ export function WorldSelector({ userId, worldId, setWorldId, onWorldChange }) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showBranchModal, setShowBranchModal] = useState(false);
   const [showRenameModal, setShowRenameModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showActionsMenu, setShowActionsMenu] = useState(false);
 
   // Form state
   const [newWorldName, setNewWorldName] = useState('');
   const [newWorldDescription, setNewWorldDescription] = useState('');
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Ref to track if initial load has restored from localStorage
@@ -146,6 +150,7 @@ export function WorldSelector({ userId, worldId, setWorldId, onWorldChange }) {
         setShowCreateModal(false);
         setShowBranchModal(false);
         setShowRenameModal(false);
+        setShowDeleteModal(false);
       }
     };
 
@@ -324,6 +329,57 @@ export function WorldSelector({ userId, worldId, setWorldId, onWorldChange }) {
     }
   }, [worldId, worlds, loadWorlds, setWorldId, onWorldChange]);
 
+  const handleDeleteWorld = useCallback(async () => {
+    if (!worldId) return;
+
+    const currentWorld = worlds.find((w) => w.worldId === worldId);
+    const worldName = currentWorld?.worldName || worldId;
+
+    // Validate confirmation text
+    if (deleteConfirmText !== 'DELETE' && deleteConfirmText !== worldName) {
+      setError('Please type DELETE or the world name to confirm');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError('');
+
+    try {
+      const result = await purgeWorld(worldId);
+
+      if (result.ok) {
+        // Refresh worlds list
+        await loadWorlds();
+
+        // Clear selection
+        setWorldId(null);
+        setShowDeleteModal(false);
+        setDeleteConfirmText('');
+        setShowActionsMenu(false);
+
+        if (onWorldChange) {
+          onWorldChange(null);
+        }
+      } else if (result.queued) {
+        // Deletion started but timed out - show message and suggest retry
+        setError(result.message);
+      } else {
+        setError(result.message || 'Failed to delete world');
+      }
+    } catch (err) {
+      console.error('Failed to delete world:', err);
+      setError(err.message || 'Failed to delete world');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [worldId, worlds, deleteConfirmText, loadWorlds, setWorldId, onWorldChange]);
+
+  const openDeleteModal = useCallback(() => {
+    setDeleteConfirmText('');
+    setShowDeleteModal(true);
+    setShowActionsMenu(false);
+  }, []);
+
   const openRenameModal = useCallback(async () => {
     if (!worldId) return;
 
@@ -432,7 +488,7 @@ export function WorldSelector({ userId, worldId, setWorldId, onWorldChange }) {
             </button>
 
             {showActionsMenu && (
-              <div className="absolute right-0 top-full mt-1 bg-[#1a1a1a] border border-white/10 rounded shadow-lg z-50 min-w-[120px]">
+              <div className="absolute right-0 top-full mt-1 bg-[#1a1a1a] border border-white/10 rounded shadow-lg z-50 min-w-[140px]">
                 <button
                   type="button"
                   onClick={openBranchModal}
@@ -447,12 +503,20 @@ export function WorldSelector({ userId, worldId, setWorldId, onWorldChange }) {
                 >
                   Rename
                 </button>
+                <hr className="border-white/10 my-1" />
                 <button
                   type="button"
                   onClick={handleArchiveWorld}
-                  className="w-full px-3 py-2 text-xs text-left text-red-400 hover:bg-white/10 transition-colors"
+                  className="w-full px-3 py-2 text-xs text-left text-yellow-500 hover:bg-white/10 transition-colors"
                 >
                   Archive
+                </button>
+                <button
+                  type="button"
+                  onClick={openDeleteModal}
+                  className="w-full px-3 py-2 text-xs text-left text-red-500 hover:bg-red-900/20 transition-colors font-medium"
+                >
+                  Delete Permanently
                 </button>
               </div>
             )}
@@ -589,6 +653,23 @@ export function WorldSelector({ userId, worldId, setWorldId, onWorldChange }) {
         </WorldModal>
       )}
 
+      {/* Delete World Modal */}
+      {showDeleteModal && (
+        <DeleteWorldModal
+          worldName={worlds.find((w) => w.worldId === worldId)?.worldName || worldId}
+          confirmText={deleteConfirmText}
+          setConfirmText={setDeleteConfirmText}
+          onClose={() => {
+            setShowDeleteModal(false);
+            setDeleteConfirmText('');
+            setError('');
+          }}
+          onDelete={handleDeleteWorld}
+          isSubmitting={isSubmitting}
+          error={error}
+        />
+      )}
+
       {/* Click outside handler for actions menu */}
       {showActionsMenu && (
         <div
@@ -645,6 +726,114 @@ function WorldModal({
             disabled={isSubmitting}
           >
             {isSubmitting ? 'Working...' : submitLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ==============================================================================
+// DELETE WORLD MODAL COMPONENT
+// ==============================================================================
+
+/**
+ * Confirmation modal for permanent world deletion
+ * Requires user to type "DELETE" or the world name to confirm
+ */
+function DeleteWorldModal({
+  worldName,
+  confirmText,
+  setConfirmText,
+  onClose,
+  onDelete,
+  isSubmitting,
+  error,
+}) {
+  const isConfirmValid = confirmText === 'DELETE' || confirmText === worldName;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/80"
+        onClick={onClose}
+      />
+
+      {/* Modal */}
+      <div className="relative bg-[#1a1a1a] border border-red-900/50 rounded-lg shadow-xl p-4 w-96 max-w-[90vw]">
+        {/* Warning Header */}
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center flex-shrink-0">
+            <span className="text-white text-lg">!</span>
+          </div>
+          <h3 className="text-sm font-semibold text-red-400">Delete World Permanently</h3>
+        </div>
+
+        {/* Warning Message */}
+        <div className="bg-red-900/20 border border-red-900/50 rounded p-3 mb-4">
+          <p className="text-xs text-red-300 mb-2">
+            <strong>⚠️ This action is irreversible!</strong>
+          </p>
+          <p className="text-xs text-white/80">
+            You are about to permanently delete <strong className="text-white">"{worldName}"</strong>{' '}
+            and all its data including:
+          </p>
+          <ul className="text-xs text-white/70 mt-2 ml-3 list-disc">
+            <li>All team snapshots</li>
+            <li>All player overrides</li>
+            <li>World metadata and history</li>
+          </ul>
+        </div>
+
+        {/* Confirmation Input */}
+        <div className="mb-4">
+          <label htmlFor="delete-confirm" className="block text-xs text-white/70 mb-1">
+            Type <strong className="text-red-400">DELETE</strong> or{' '}
+            <strong className="text-red-400">{worldName}</strong> to confirm:
+          </label>
+          <input
+            id="delete-confirm"
+            type="text"
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            className="w-full bg-[#0d0d0d] border border-red-900/50 rounded px-2 py-2 text-sm text-white focus:border-red-600 focus:outline-none"
+            placeholder="Type confirmation..."
+            autoComplete="off"
+            autoFocus
+          />
+        </div>
+
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-900/30 border border-red-900 rounded p-2 mb-4">
+            <p className="text-xs text-red-300">{error}</p>
+          </div>
+        )}
+
+        {/* Buttons */}
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-3 py-2 text-xs bg-white/10 hover:bg-white/20 text-white rounded transition-colors"
+            disabled={isSubmitting}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            className="px-3 py-2 text-xs bg-red-600 hover:bg-red-700 text-white rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+            disabled={isSubmitting || !isConfirmValid}
+          >
+            {isSubmitting ? (
+              <span className="flex items-center gap-1">
+                <span className="animate-spin">⏳</span> Deleting...
+              </span>
+            ) : (
+              'Delete Permanently'
+            )}
           </button>
         </div>
       </div>

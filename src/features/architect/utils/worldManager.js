@@ -8,7 +8,7 @@
  * @module worldManager
  */
 
-import { db } from '@/firebaseConfig';
+import { db, functions } from '@/firebaseConfig';
 import {
   getDoc,
   updateDoc,
@@ -21,6 +21,7 @@ import {
   arrayUnion,
   arrayRemove,
 } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 import { worldMetadataRef, worldsCol } from './architectFirestorePaths';
 
 /**
@@ -266,15 +267,45 @@ export async function updateWorldMetadata(worldId, updates) {
 }
 
 /**
- * Delete world
+ * Archive world (soft delete - sets isArchived: true)
  *
- * Note: This only deletes the metadata document. In a production system,
- * you would want to recursively delete all subcollections (snapshots, etc.)
+ * This is the recommended "safe" deletion method. The world remains in
+ * Firestore but is hidden from listings by default.
  *
  * @param {string} worldId - World ID
  * @param {string} userId - User ID (for permission check)
  * @returns {Promise<void>}
  * @throws {Error} If user doesn't have permission or world not found
+ */
+export async function archiveWorld(worldId, userId) {
+  if (!worldId) {
+    throw new Error('worldId is required');
+  }
+  if (!userId) {
+    throw new Error('userId is required');
+  }
+
+  // Check permissions
+  const metadata = await getWorldMetadata(worldId);
+  if (metadata.createdBy !== userId) {
+    throw new Error('User does not have permission to archive this world');
+  }
+
+  await updateWorldMetadata(worldId, { isArchived: true });
+}
+
+/**
+ * Delete world (metadata only - legacy behavior)
+ *
+ * This deletes only the metadata document, leaving subcollections orphaned.
+ * For complete world deletion, use purgeWorld() which calls a Cloud Function
+ * to recursively delete all data.
+ *
+ * @param {string} worldId - World ID
+ * @param {string} userId - User ID (for permission check)
+ * @returns {Promise<void>}
+ * @throws {Error} If user doesn't have permission or world not found
+ * @deprecated Use purgeWorld() for complete deletion or archiveWorld() for soft delete
  */
 export async function deleteWorld(worldId, userId) {
   if (!worldId) {
@@ -307,8 +338,56 @@ export async function deleteWorld(worldId, userId) {
 
   await batch.commit();
 
-  // TODO: Recursively delete all subcollections (snapshots, players, etc.)
-  // This would require Firestore Admin SDK or a Cloud Function
+  // Note: Subcollections are NOT deleted by this function.
+  // Use purgeWorld() for complete recursive deletion via Cloud Function.
+}
+
+/**
+ * Purge world (complete deletion via Cloud Function)
+ *
+ * Permanently deletes a world and ALL its subcollections including:
+ * - teams/{teamCode} documents
+ * - teams/{teamCode}/players/{playerId} documents
+ * - The world metadata document itself
+ *
+ * This function calls a server-side Cloud Function (purgeArchitectWorld) that:
+ * 1. Validates ownership (auth.uid === createdBy)
+ * 2. Prevents deletion of worlds with child branches
+ * 3. Recursively deletes all nested data
+ * 4. Handles large worlds with pagination and timeout management
+ *
+ * @param {string} worldId - World ID to permanently delete
+ * @returns {Promise<{ok: boolean, queued?: boolean, message: string, details?: Object}>}
+ * @throws {Error} If not authenticated, world not found, or permission denied
+ */
+export async function purgeWorld(worldId) {
+  if (!worldId) {
+    throw new Error('worldId is required');
+  }
+
+  // Call the Cloud Function
+  const purgeFunction = httpsCallable(functions, 'purgeArchitectWorld');
+
+  try {
+    const result = await purgeFunction({ worldId });
+    return result.data;
+  } catch (error) {
+    // Convert Firebase function errors to user-friendly messages
+    if (error.code === 'functions/unauthenticated') {
+      throw new Error('You must be logged in to delete worlds');
+    }
+    if (error.code === 'functions/not-found') {
+      throw new Error(`World ${worldId} not found`);
+    }
+    if (error.code === 'functions/permission-denied') {
+      throw new Error('You do not have permission to delete this world');
+    }
+    if (error.code === 'functions/failed-precondition') {
+      throw new Error(error.message || 'Cannot delete world with child branches');
+    }
+    // Re-throw with original message for other errors
+    throw new Error(error.message || 'Failed to delete world');
+  }
 }
 
 /**

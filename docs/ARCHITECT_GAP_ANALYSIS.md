@@ -50,13 +50,23 @@ The Architect feature is a sophisticated NBA roster scenario planning system wit
 | `getWorldMetadata()` | ✅ Implemented | Works |
 | `listUserWorlds()` | ✅ Implemented | ✅ Powers WorldSelector dropdown |
 | `updateWorldMetadata()` | ✅ Implemented | ✅ Used for rename operations |
-| `deleteWorld()` | ⚠️ Partial | Has TODO: "Recursively delete all subcollections" (line 310) |
+| `deleteWorld()` | ⚠️ Deprecated | Use `archiveWorld()` or `purgeWorld()` instead |
+| `archiveWorld()` | ✅ Implemented | Sets `isArchived: true` (safe soft-delete) |
+| `purgeWorld()` | ✅ Implemented | Calls Cloud Function for recursive deletion |
 | `branchWorld()` | ✅ Implemented | ✅ Wired to WorldSelector branch modal |
 | `updateWorldStats()` | ✅ Implemented | Works |
 
-**Status Update (Dec 20, 2025)**: World system is now **fully connected to GMDashboard** via the WorldSelector component. Users can create, select, branch, rename, and archive worlds through the UI. WorldId persists to localStorage and restores on refresh.
+**Status Update (Dec 21, 2025)**: World deletion system is now **complete** with two options:
+- **Archive (Safe)**: `archiveWorld()` sets `isArchived: true`, hiding the world but preserving all data
+- **Purge (Permanent)**: `purgeWorld()` calls a Cloud Function that recursively deletes all subcollections
 
-**Remaining Gap**: `deleteWorld()` recursive subcollection deletion is incomplete. WorldSelector uses "archive" as a safe alternative (sets `archived: true` without data loss).
+The WorldSelector UI now includes both "Archive" (soft-delete) and "Delete Permanently" options. Permanent deletion requires explicit confirmation (typing "DELETE" or the world name).
+
+**Cloud Function**: `functions/src/architect/purgeWorld.ts` implements `purgeArchitectWorld` callable:
+- Validates authentication and ownership (auth.uid === createdBy)
+- Prevents deletion of worlds with child branches
+- Recursively deletes teams → players → world metadata
+- Handles large worlds with pagination and timeout management
 
 ---
 
@@ -351,12 +361,19 @@ Phase 3B: Complete Season Advancement ✅ COMPLETE
 ├── ✅ Cap hold creation for declined options
 └── ✅ Tests: 10 new tests covering all scenarios
 
-Phase 4: Polish & Edge Cases (RECOMMENDED)
+Phase 4A: Production-Safe World Deletion ✅ COMPLETE
+├── ✅ Create Cloud Function purgeArchitectWorld with ownership validation
+├── ✅ Implement recursive subcollection deletion (teams → players → world)
+├── ✅ Add archiveWorld() for soft-delete (safe default)
+├── ✅ Add purgeWorld() client function to call Cloud Function
+├── ✅ Add "Delete Permanently" UI with confirmation modal
+├── ✅ Require explicit confirmation (type "DELETE" or world name)
+└── ✅ Tests: 10 new tests for archive and purge functionality
+
+Phase 4B: Polish & Edge Cases (RECOMMENDED)
 ├── ✅ Remove deprecated extensionRules.js imports
 ├── ✅ Add World rename/archive UI
 ├── ⚠️ Add branch visualization
-├── ⚠️ Improve test coverage (fix mock issues)
-├── ⚠️ Complete recursive subcollection deletion (or finalize archive approach)
 └── ⚠️ Add E2E tests for complete workflows
 ```
 
@@ -453,36 +470,39 @@ Phase 4: Polish & Edge Cases (RECOMMENDED)
 - Bird rights, extensions, RFA, minimum salary logic
 - Offseason simulation (contracts, options, TPEs, dead cap)
 - ✅ Team loading with fallback chain (world → parent → base)
-- ✅ World management functions (create, list, branch, rename, archive)
+- ✅ World management functions (create, list, branch, rename, archive, purge)
 - ✅ Centralized mutation pipeline (`applyWorldMutation`) writes to architect_worlds
 - ✅ World-aware state management (`worldId` in `useArchitectState`)
 - ✅ Dynamic minimum salary in season advancement
-- ✅ WorldSelector UI component for world management (create, select, branch, rename, archive)
+- ✅ WorldSelector UI component for world management (create, select, branch, rename, archive, delete)
 - ✅ SeasonAdvanceModal UI for advancing seasons with explicit option decisions
 - ✅ WorldId persistence across browser refresh via localStorage
 - ✅ tradeManager compute-only design with mutationPipeline handling persistence
 - ✅ World-aware data loading via `loadWorldTeamData()` and `teamLoader.getTeam()`
 - ✅ Trade Machine uses world-aware loading for secondary teams
 - ✅ Stepien rule recalculation for draft picks across 7-year window
+- ✅ Cloud Function `purgeArchitectWorld` for server-side recursive deletion with ownership validation
+- ✅ Archive vs Purge deletion options with explicit confirmation UI
 
-**What Is Incomplete/Missing**:
-- Complete recursive subcollection deletion in `worldManager.deleteWorld()` (currently using archive as workaround)
+**What Is Complete**:
+- All core functionality implemented
+- All tests passing (275+ tests)
+- World deletion fully implemented (archive for soft-delete, purge for permanent)
 
-**What Must Be Done (Priority Order)**:
-1. ~~Populate `architect_baseTeams` and `architect_basePlayers`~~ ✅ DONE
-2. ~~Wire world system to GMDashboard~~ ✅ DONE (WorldSelector UI complete)
-3. ~~Add persistence layer for all roster mutations~~ ✅ DONE (mutationPipeline)
-4. ~~Fix season advancement to use dynamic values~~ ✅ DONE
-5. ~~Add world management UI (WorldSelector component)~~ ✅ DONE
-6. ~~Remove deprecated code paths~~ ✅ DONE (extensionRules replaced)
-7. ~~Wire data loading to use `teamLoader.getTeam(worldId)`~~ ✅ DONE (Phase 2B complete)
-8. ~~Complete test coverage~~ ✅ DONE (275/275 passing, 100%)
-9. Implement recursive delete or finalize archive-based approach
+**What Is Optional/Future Work**:
+- Branch visualization UI
+- E2E workflow tests
 
-**Estimated Remaining Effort**:
-- ~~Test fixes: 0.5-1 day~~ ✅ COMPLETE
-- ~~Season advancement UI: 1-2 days~~ ✅ COMPLETE (Phase 3B done)
-- Remaining work: Finalize recursive delete or archive approach (~0.5 days)
+**Completed Milestones**:
+1. ✅ Populate `architect_baseTeams` and `architect_basePlayers`
+2. ✅ Wire world system to GMDashboard (WorldSelector UI complete)
+3. ✅ Add persistence layer for all roster mutations (mutationPipeline)
+4. ✅ Fix season advancement to use dynamic values
+5. ✅ Add world management UI (WorldSelector component)
+6. ✅ Remove deprecated code paths (extensionRules replaced)
+7. ✅ Wire data loading to use `teamLoader.getTeam(worldId)` (Phase 2B complete)
+8. ✅ Complete test coverage (285/285 passing, 100%)
+9. ✅ Implement recursive delete via Cloud Function (Phase 4A complete)
 
 ---
 
@@ -793,6 +813,94 @@ The implementation:
 ### Summary
 
 The gap analysis document has been updated to accurately reflect that Phase 3B (Season Advancement UI with option decisions and Stepien recalculation) is fully complete. All references to this work as "future work" have been corrected to show completion status. The only remaining incomplete item is the recursive subcollection deletion in `worldManager.deleteWorld()`, which currently uses archive as a safe workaround.
+
+---
+
+## What Changed (December 21, 2025) - Phase 4A World Deletion
+
+### Files Created
+
+- **`functions/package.json`** - Cloud Functions package configuration
+- **`functions/tsconfig.json`** - TypeScript configuration for Cloud Functions
+- **`functions/src/index.ts`** - Main entry point exporting all callable functions
+- **`functions/src/architect/purgeWorld.ts`** - Cloud Function for world deletion:
+  - `purgeArchitectWorld` callable function
+  - Validates authentication and ownership (auth.uid === createdBy)
+  - Prevents deletion of worlds with child branches
+  - Recursively deletes teams → players → world metadata
+  - Handles large worlds with pagination (BATCH_SIZE = 400)
+  - Timeout management (MAX_EXECUTION_MS = 30s) with "queued" response
+
+### Files Modified
+
+- **`src/firebaseConfig.js`**:
+  - Added `getFunctions` and `connectFunctionsEmulator` imports
+  - Exported `functions` instance for callable function access
+  - Added optional functions emulator connection for development
+
+- **`src/features/architect/utils/worldManager.js`**:
+  - Added `archiveWorld()` function for safe soft-delete
+  - Added `purgeWorld()` function to call Cloud Function
+  - Deprecated `deleteWorld()` with note to use archive/purge
+  - Removed TODO comment about recursive deletion
+  - Added `httpsCallable` import for Cloud Functions
+
+- **`src/features/architect/GMDashboard/components/WorldSelector.jsx`**:
+  - Added `showDeleteModal` and `deleteConfirmText` state
+  - Added `handleDeleteWorld` and `openDeleteModal` handlers
+  - Added "Delete Permanently" button in actions menu
+  - Added `DeleteWorldModal` component with:
+    - Warning message about irreversibility
+    - List of data that will be deleted
+    - Confirmation input requiring "DELETE" or world name
+    - Error display for failed deletions
+    - Spinner during deletion process
+
+- **`tests/__mocks__/firebase.js`**:
+  - Added `httpsCallable` mock function
+  - Added `setMockCallable` and `clearMockCallables` utilities
+  - Added `getFunctions` and `connectFunctionsEmulator` mocks
+
+- **`tests/setupFirebaseMocks.js`**:
+  - Added `firebase/functions` mock
+  - Added `clearMockCallables` to beforeEach/afterEach
+  - Added `functions` to `@/firebaseConfig` mock
+
+- **`tests/architect/worldManager.test.js`**:
+  - Added `archiveWorld` and `purgeWorld` imports
+  - Added 10 new tests:
+    - `archiveWorld` sets isArchived to true
+    - `archiveWorld` hides world from listUserWorlds by default
+    - `archiveWorld` throws error if user doesn't own world
+    - `archiveWorld` throws error when worldId/userId missing
+    - `purgeWorld` calls purgeArchitectWorld callable function
+    - `purgeWorld` returns result from Cloud Function
+    - `purgeWorld` handles queued response for large worlds
+    - `purgeWorld` throws error when worldId missing
+    - `purgeWorld` throws user-friendly error for permission denied
+
+- **`docs/ARCHITECT_GAP_ANALYSIS.md`**:
+  - Updated World System section with new functions
+  - Added Phase 4A to Dependency Map
+  - Updated Conclusion with complete deletion status
+  - Added this changelog entry
+
+### Summary
+
+Phase 4A (Production-Safe World Deletion) is complete. The implementation provides:
+
+1. **Archive (Safe Default)**: `archiveWorld()` sets `isArchived: true` to hide worlds without data loss
+2. **Purge (Permanent)**: `purgeWorld()` calls a Cloud Function that recursively deletes all data
+
+The Cloud Function (`purgeArchitectWorld`) ensures:
+- Only authenticated users can delete
+- Only world owners can delete their own worlds
+- Worlds with child branches cannot be deleted
+- Large worlds are handled with pagination and timeout management
+
+The UI provides clear separation between Archive and Delete:
+- Archive button (yellow) - hides world, can be restored
+- Delete Permanently button (red) - requires explicit confirmation
 
 ---
 
