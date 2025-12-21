@@ -758,6 +758,10 @@ function DeleteWorldModal({
       <div
         className="absolute inset-0 bg-black/80"
         onClick={onClose}
+        onKeyDown={(e) => e.key === 'Escape' && onClose()}
+        role="button"
+        tabIndex={-1}
+        aria-label="Close modal"
       />
 
       {/* Modal */}
