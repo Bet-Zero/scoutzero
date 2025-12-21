@@ -720,7 +720,7 @@ function processOptionsWithDecisions(teamData, fromSeason, toSeason, optionDecis
       // Exercise option - mark as used
       contract.salariesByYear = contract.salariesByYear.map((yearData, idx) => {
         if (idx === optionYearIndex) {
-          return { ...yearData, optionUsed: 'accepted' };
+          return { ...yearData, optionUsed: 'exercised' };
         }
         return yearData;
       });
