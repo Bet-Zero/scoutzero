@@ -1061,9 +1061,15 @@ function validateMutation({ mutationType, payload, currentState, computeResult, 
     }
 
     default:
-      // Unknown mutation type - allow but log warning
-      console.warn(`Unknown mutation type: ${mutationType}, skipping validation`);
-      return { valid: true, violations: [], warnings: [] };
+      // Unknown mutation type - fail closed for security
+      // If you're adding a new mutation type, add validation logic above
+      console.warn(`Unknown mutation type: ${mutationType}, blocking for safety`);
+      return { 
+        valid: false, 
+        error: `Unknown mutation type: ${mutationType}`,
+        violations: [{ rule: 'unknown_type', message: `Unknown mutation type: ${mutationType}`, severity: 'error' }], 
+        warnings: [] 
+      };
   }
 }
 

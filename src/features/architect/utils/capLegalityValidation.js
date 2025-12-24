@@ -30,6 +30,25 @@ const MAX_TWO_WAY = 3;
 // ==============================================================================
 
 /**
+ * Extract player ID from player object with fallback handling
+ * Handles inconsistent player object schemas across the codebase
+ * @param {Object} player - Player object
+ * @returns {string|null} Player ID or null
+ */
+function getPlayerId(player) {
+  return player?.player_id || player?.id || player?.playerId || null;
+}
+
+/**
+ * Extract player display name from player object with fallback handling
+ * @param {Object} player - Player object
+ * @returns {string|null} Player name or null
+ */
+function getPlayerName(player) {
+  return player?.displayName || player?.name || player?.playerName || null;
+}
+
+/**
  * Get cap settings for a season
  * @param {number} year - Season end year (e.g., 2026 for 2025-26)
  * @returns {Object|null} Cap settings or null if not found
@@ -39,9 +58,13 @@ function getCapSettings(year) {
   const settings = capProjections[key];
   
   if (!settings) {
-    // Fallback to latest available
+    // Fallback to latest available with warning
     const keys = Object.keys(capProjections).sort();
     const latest = keys[keys.length - 1];
+    console.warn(
+      `Cap data not found for ${key}, using fallback ${latest}. ` +
+      `This may produce inaccurate validation results.`
+    );
     return capProjections[latest] || null;
   }
   
@@ -284,7 +307,10 @@ export function validateWaive({ team, player, stretch, year, isGracePeriod = fal
     const remainingGuaranteed = contract.salariesByYear
       .filter((y) => {
         const yearNum = toEndYear(y.season);
-        return yearNum >= year && y.guaranteed !== false;
+        // Only count explicitly guaranteed years (not undefined/null)
+        // NBA contracts default to guaranteed for first years, but we require
+        // explicit flag for accurate dead cap calculation
+        return yearNum >= year && y.guaranteed === true;
       })
       .reduce((sum, y) => sum + (y.salary || 0), 0);
     
@@ -459,16 +485,19 @@ export function validateOptionDecision({ team, player, accepted, targetYear, cur
  * @param {Object} params
  * @param {Object} params.team - Current team state
  * @param {Object} params.player - Player whose rights are being renounced
+ * @param {number} [params.year] - Season end year (optional, for consistency with other validators)
  * @returns {{valid: boolean, violations: Array, warnings: Array}}
  */
-export function validateRenounceRights({ team, player }) {
+export function validateRenounceRights({ team, player, year = null }) {
   const violations = [];
   const warnings = [];
   
+  // Use helper functions for consistent player data extraction
+  const playerId = getPlayerId(player);
+  const playerName = getPlayerName(player);
+  
   // Check if player has a cap hold to renounce
   const capHolds = team.capHolds || [];
-  const playerId = player.player_id || player.id;
-  const playerName = player.displayName || player.name;
   
   const hasCapHold = capHolds.some((h) => 
     h.playerId === playerId || h.playerName === playerName
