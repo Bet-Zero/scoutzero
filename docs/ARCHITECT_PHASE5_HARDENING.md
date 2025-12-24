@@ -52,6 +52,7 @@ This document analyzes the Architect feature's production readiness, identifying
 - Data appears to "revert" inconsistently
 
 **Current Mitigation Attempt** (from `useArchitectState.ts` lines 427-447):
+
 ```typescript
 // Only load user plans if userId is available AND no world is selected.
 // Business logic: Legacy "plans" (teamPlans collection) are a separate persistence
@@ -92,6 +93,7 @@ if (userId && !worldId) {
 - Cap calculations may show impossible states (over hard cap, etc.)
 
 **Override Flow in EditContractModal** (lines 1180-1194):
+
 ```jsx
 {showAdvanced && (
   <div className="p-4 bg-red-900/10 space-y-4">
@@ -115,6 +117,7 @@ if (userId && !worldId) {
 ```
 
 **Trade Machine Override** (`useTradeMachine.js` line 465):
+
 ```javascript
 legal: forceTrade ? true : validation.legal,
 ```
@@ -135,7 +138,9 @@ legal: forceTrade ? true : validation.legal,
 - `src/features/architect/utils/mutationPipeline.js` lines 962-994 → `validateMutation()`
 
 **Why it's a risk**:
+
 Current `validateMutation()` only validates trades comprehensively:
+
 ```javascript
 function validateMutation({ mutationType, payload, currentState, computeResult, seasonId }) {
   // Trade validation uses the full Trade Machine
@@ -227,7 +232,9 @@ Implement `validateSigningForPipeline()`, `validateWaiveForPipeline()`, etc. tha
 - `src/features/architect/utils/mutationPipeline.js` → no validation for non-trades
 
 **Why it's a risk**:
+
 Trade Machine validates these restrictions:
+
 | Rule | Trade Machine | Signing | Extension | Waive | Option |
 |------|---------------|---------|-----------|-------|--------|
 | Salary Matching | ✅ Full | N/A | N/A | N/A | N/A |
@@ -238,12 +245,15 @@ Trade Machine validates these restrictions:
 | Exception Usage | ✅ Full | ⚠️ Partial | N/A | N/A | N/A |
 
 **How to detect it**:
+
 - Sign free agent that would put team at 16 players → allowed
 - Waive player that puts team at 13 players → allowed
 - Accept option that triggers second apron violations → allowed
 
 **Proposed Fix**:
+
 Create shared `capLegalitySuite.js` with reusable validators:
+
 ```javascript
 export function checkHardCapCeiling(team, projectedSalary, capSettings) { ... }
 export function checkRosterSize(team, rosterAfterAction) { ... }  
@@ -298,15 +308,18 @@ Then use in all mutation validation paths.
 **Name**: Open Firestore Rules for Development
 
 **Where it lives**:
+
 - Firestore rules (not in repo, configured in Firebase Console)
 - `functions/src/architect/purgeWorld.ts` → ownership check in Cloud Function
 
 **Why it's a risk**:
+
 - During development, Firestore rules are likely open (`allow read, write: if true`)
 - Users could write to other users' world data
 - Base collections (`architect_baseTeams`, `architect_basePlayers`) should be read-only
 
 **Current Ownership Check** (in purgeWorld Cloud Function):
+
 ```typescript
 // Validate ownership
 if (worldData.createdBy !== context.auth.uid) {
@@ -320,6 +333,7 @@ if (worldData.createdBy !== context.auth.uid) {
 **Gap**: This check is in Cloud Function only. Direct Firestore writes bypass it.
 
 **Proposed Firestore Rules**:
+
 ```javascript
 rules_version = '2';
 service cloud.firestore {
@@ -406,10 +420,12 @@ service cloud.firestore {
 3. [ ] Return structured violation payload to UI
 
 **Files Impacted**:
+
 - `src/features/architect/utils/mutationPipeline.js` (update `validateMutation`)
 - `src/features/architect/utils/capLegalityValidation.js` (new file)
 
 **Validation Payload Format**:
+
 ```javascript
 {
   valid: boolean,
@@ -425,12 +441,14 @@ service cloud.firestore {
 ```
 
 **Tests to Add**:
+
 - `tests/architect/capLegalityValidation.test.js`
   - Signing that exceeds hard cap → blocked
   - Waive that drops below roster minimum → blocked
   - Extension that triggers apron → warning but allowed
 
 **Definition of Done**:
+
 - [ ] All 6 mutation types have validation running before persist
 - [ ] `{ success: false, violations: [...] }` returned for illegal actions
 - [ ] UI can display structured violations
@@ -440,6 +458,7 @@ service cloud.firestore {
 ### Step 3: Remove/Gate Bypass Paths ("Force Action")
 
 **Concrete Tasks**:
+
 1. [ ] Add environment flag `VITE_ENABLE_CBA_OVERRIDE` (default: `false`)
 2. [ ] Gate "Force Override" UI section in `EditContractModal.jsx`
 3. [ ] Gate `forceTrade` state in `useTradeMachine.js`
@@ -447,11 +466,13 @@ service cloud.firestore {
 5. [ ] Ensure `validateMutation` always blocks when invalid (no bypass)
 
 **Files Impacted**:
+
 - `src/shared/components/EditContractModal.jsx`
 - `src/features/architect/hooks/useTradeMachine.js`
 - `src/features/architect/utils/mutationPipeline.js`
 
 **Implementation**:
+
 ```javascript
 // In EditContractModal.jsx
 const canOverride = import.meta.env.VITE_ENABLE_CBA_OVERRIDE === 'true';
@@ -490,20 +511,24 @@ if (!validationResult.valid) {
 ### Step 4: Verify Renounce Rights End-to-End
 
 **Concrete Tasks**:
+
 1. [ ] Verify `handleRenounceRights` in `useArchitectActions.ts` calls mutation pipeline
 2. [ ] Add E2E test: renounce → world snapshot → reload → verify state
 
 **Files Impacted**:
+
 - `src/features/architect/GMDashboard/hooks/useArchitectActions.ts` (verify)
 - `tests/architect/e2e-workflows.test.js` (add test)
 
 **Current Implementation Check**:
+
 ```typescript
 // useArchitectActions.ts
 handleRenounceRights: (player: ArchitectPlayer, overrideMetadata?: OverrideMetadata | null) => void;
 ```
 
 Need to verify this calls:
+
 ```javascript
 applyWorldMutation({
   userId,
@@ -515,9 +540,11 @@ applyWorldMutation({
 ```
 
 **Tests to Add**:
+
 - `tests/architect/e2e-workflows.test.js` → "renounce rights persists to world"
 
 **Definition of Done**:
+
 - [ ] Click "Renounce Rights" → cap hold removed in world snapshot
 - [ ] Reload world → cap hold still removed
 - [ ] E2E test passing
@@ -527,6 +554,7 @@ applyWorldMutation({
 ### Step 5: Rule Parity Enforcement Across All Actions
 
 **Concrete Tasks**:
+
 1. [ ] Extract shared validators from Trade Machine to `capLegalitySuite.js`
 2. [ ] Import and use in `capLegalityValidation.js` (from Step 2)
 3. [ ] Map rule sets to mutation types:
@@ -622,34 +650,40 @@ applyWorldMutation({
 Run through this checklist before declaring Phase 5 complete:
 
 ### Persistence Consistency
+
 - [ ] Autosave to `teamPlans` only runs when `worldId === null`
 - [ ] All mutations flow through `applyWorldMutation()`
 - [ ] No direct Firestore writes from UI components
 
 ### Illegal State Prevention
+
 - [ ] `validateMutation()` runs for ALL mutation types
 - [ ] Invalid mutations return `{ success: false, violations }`
 - [ ] UI receives and displays structured violation messages
 - [ ] No "Force Override" in production builds (`VITE_ENABLE_CBA_OVERRIDE !== 'true'`)
 
 ### Rule Parity
+
 - [ ] Hard cap checked for signings, extensions, option accepts
 - [ ] Roster size (15 max) checked for signings, trades
 - [ ] Roster minimum (14) warned for waives
 - [ ] Apron restrictions checked for signings
 
 ### Consolidation
+
 - [ ] Single season format module in use
 - [ ] Single cap holds formula in use
 - [ ] No duplicate CBA constants
 
 ### Security
+
 - [ ] Firestore rules scoped to world owner
 - [ ] Base collections read-only
 - [ ] Cloud Function ownership check aligns with rules
 - [ ] Manual access control verification passes
 
 ### Testing
+
 - [ ] All existing tests pass
 - [ ] New validation tests pass
 - [ ] E2E workflow tests pass

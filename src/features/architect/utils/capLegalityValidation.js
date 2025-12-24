@@ -5,16 +5,24 @@
  *
  * HISTORY:
  *  - 2025-12-24: Created per Phase 5 Production Hardening execution plan
+ *  - 2025-12-24: Refactored to use shared capHelpers.js per Step 6 consolidation
  *
  * DESIGN CONSTRAINTS:
  * 1) All validation logic must be PURE (no Firestore, no React state)
  * 2) Returns structured validation result for UI consumption
  * 3) Uses same patterns as Trade Machine validators for consistency
  * 4) Imported by mutationPipeline.js for preflight validation
+ *
+ * TODO: Track consolidation progress in ARCHITECT_PHASE5_HARDENING.md Step 6
  */
 
-import capProjections from '@/features/architect/utils/capProjections';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
+import {
+  getCapSettings,
+  calculateTeamCapHit,
+  getPlayerId,
+  getPlayerName,
+} from '@/features/architect/utils/capHelpers';
 
 // ==============================================================================
 // CONSTANTS
@@ -24,81 +32,6 @@ const MIN_ROSTER = 14;
 const MAX_ROSTER = 15;
 const GRACE_MIN_ROSTER = 13;
 const MAX_TWO_WAY = 3;
-
-// ==============================================================================
-// HELPERS
-// ==============================================================================
-
-/**
- * Extract player ID from player object with fallback handling
- * Handles inconsistent player object schemas across the codebase
- * @param {Object} player - Player object
- * @returns {string|null} Player ID or null
- */
-function getPlayerId(player) {
-  return player?.player_id || player?.id || player?.playerId || null;
-}
-
-/**
- * Extract player display name from player object with fallback handling
- * @param {Object} player - Player object
- * @returns {string|null} Player name or null
- */
-function getPlayerName(player) {
-  return player?.displayName || player?.name || player?.playerName || null;
-}
-
-/**
- * Get cap settings for a season
- * @param {number} year - Season end year (e.g., 2026 for 2025-26)
- * @returns {Object|null} Cap settings or null if not found
- */
-function getCapSettings(year) {
-  const key = `${year - 1}-${String(year % 100).padStart(2, '0')}`;
-  const settings = capProjections[key];
-  
-  if (!settings) {
-    // Fallback to latest available with warning
-    const keys = Object.keys(capProjections).sort();
-    const latest = keys[keys.length - 1];
-    console.warn(
-      `Cap data not found for ${key}, using fallback ${latest}. ` +
-      `This may produce inaccurate validation results.`
-    );
-    return capProjections[latest] || null;
-  }
-  
-  return settings;
-}
-
-/**
- * Calculate team's current cap hit from players array
- * @param {Array} players - Team players array
- * @param {number} year - Season end year
- * @returns {number} Total cap hit
- */
-function calculateTeamCapHit(players, year) {
-  if (!players || !Array.isArray(players)) return 0;
-  
-  return players.reduce((sum, player) => {
-    const contract = player.contract;
-    if (!contract?.salariesByYear) return sum;
-    
-    // Find salary for the target year
-    const yearEntry = contract.salariesByYear.find((y) => {
-      const entryYear = toEndYear(y.season);
-      return entryYear === year;
-    });
-    
-    if (!yearEntry) return sum;
-    
-    // Two-way contracts don't count against cap
-    const contractType = contract.contractType?.toLowerCase() || '';
-    if (contractType === 'two-way') return sum;
-    
-    return sum + (yearEntry.capHit ?? yearEntry.salary ?? 0);
-  }, 0);
-}
 
 /**
  * Count roster size (excluding two-way contracts)

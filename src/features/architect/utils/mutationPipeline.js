@@ -37,6 +37,14 @@ import {
 } from '@/features/architect/utils/architectFirestorePaths';
 import { collection, doc } from 'firebase/firestore';
 import { ARCHITECT_WORLDS_COLLECTION } from '@/constants/collections';
+// Cap legality validators for non-trade mutations (Phase 5 Production Hardening)
+import {
+  validateSigning,
+  validateWaive,
+  validateExtension,
+  validateOptionDecision,
+  validateRenounceRights,
+} from '@/features/architect/utils/capLegalityValidation';
 
 // ==============================================================================
 // TYPES (JSDoc for IDE support)
@@ -952,15 +960,6 @@ function computeRenounceResult({ payload, currentState, seasonId, timestamp }) {
 // ==============================================================================
 // PHASE 3: VALIDATE - Ensure mutation is legal
 // ==============================================================================
-
-// Import cap legality validators for non-trade mutations
-import {
-  validateSigning,
-  validateWaive,
-  validateExtension,
-  validateOptionDecision,
-  validateRenounceRights,
-} from '@/features/architect/utils/capLegalityValidation';
 
 /**
  * Validate mutation before persistence.
