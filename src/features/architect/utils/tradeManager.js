@@ -93,23 +93,46 @@ export async function executeTrade(worldId, tradeData) {
     const incomingPlayerIds = [];
 
     // Collect incoming players from other teams
+    // For multi-team trades, respect explicit destination (tradeTo/toTeamId field)
+    // For 2-team trades, players go to the other team by default
+    const isMultiTeamTrade = tradeData.teams.length > 2;
+    
     tradeData.teams.forEach((otherTeamTrade, otherIndex) => {
       if (otherIndex !== i) {
         const incoming = otherTeamTrade.sends || [];
         incoming.forEach((player) => {
           const playerId = player.player_id || player.id || player.playerId;
+          const destTeam = player.tradeTo || player.toTeamId;
+          
           if (playerId) {
-            incomingPlayerIds.push(playerId);
+            // If explicit destination is specified, only add if this is the destination team
+            // If no destination specified and it's a 2-team trade, add to the other team
+            // If no destination specified and it's a multi-team trade, skip (ambiguous)
+            if (destTeam) {
+              // Explicit destination - only add if this team matches
+              if (destTeam === teamCode) {
+                incomingPlayerIds.push(playerId);
+              }
+            } else if (!isMultiTeamTrade) {
+              // 2-team trade without explicit destination - add to the other team (backward compatible)
+              incomingPlayerIds.push(playerId);
+            }
+            // For multi-team trades without explicit destination, player is not routed (ambiguous)
           }
         });
       }
     });
 
     // Update roster array
+    // Handle roster items that may be strings (player IDs) or objects (player objects)
     updatedTeam.roster = [
-      ...currentTeamState.roster.filter(
-        (playerId) => !outgoingPlayerIds.includes(playerId)
-      ),
+      ...currentTeamState.roster.filter((rosterItem) => {
+        // Extract player ID from roster item (may be string or object)
+        const rosterId = typeof rosterItem === 'string' 
+          ? rosterItem 
+          : rosterItem.player_id || rosterItem.playerId || rosterItem.id;
+        return !outgoingPlayerIds.includes(rosterId);
+      }),
       ...incomingPlayerIds,
     ];
 
@@ -117,10 +140,26 @@ export async function executeTrade(worldId, tradeData) {
     const outgoingPicks = teamTrade.picksOut || [];
     const incomingPicks = [];
 
+    // Collect incoming picks from other teams
+    // For multi-team trades, respect explicit destination (tradeTo/toTeamId field)
+    // For 2-team trades, picks go to the other team by default
     tradeData.teams.forEach((otherTeamTrade, otherIndex) => {
       if (otherIndex !== i) {
         const incoming = otherTeamTrade.picksOut || [];
-        incomingPicks.push(...incoming);
+        incoming.forEach((pick) => {
+          const destTeam = pick.tradeTo || pick.toTeamId;
+          
+          if (destTeam) {
+            // Explicit destination - only add if this team matches
+            if (destTeam === teamCode) {
+              incomingPicks.push(pick);
+            }
+          } else if (!isMultiTeamTrade) {
+            // 2-team trade without explicit destination - add to the other team (backward compatible)
+            incomingPicks.push(pick);
+          }
+          // For multi-team trades without explicit destination, pick is not routed (ambiguous)
+        });
       }
     });
 

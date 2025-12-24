@@ -388,7 +388,7 @@ describe('E2E Workflow Tests', () => {
       expect(gswRosterIds).toContain('lebron_james');
     });
 
-    it('E2E: multi-team trade structure is accepted by executeTrade', async () => {
+    it('E2E: multi-team trade correctly routes players to specified destinations', async () => {
       // Create world
       const worldResult = await createWorld({
         name: 'Multi-Team Trade Test',
@@ -397,28 +397,27 @@ describe('E2E Workflow Tests', () => {
       });
       const worldId = worldResult.worldId;
 
-      // Execute 3-team trade using base teams
-      // NOTE: executeTrade currently has a limitation where it doesn't support
-      // explicit destination teams (tradeTo field). For proper multi-team trades,
-      // the tradeManager would need to be enhanced to respect destination mappings.
-      // This test verifies the API accepts the structure and returns valid results.
+      // Execute 3-team trade using base teams with explicit destination routing:
+      // LAL sends lebron_james → GSW
+      // GSW sends stephen_curry → BOS
+      // BOS sends jayson_tatum → LAL
       const tradeData = {
         teams: [
           {
             teamCode: 'LAL',
-            sends: [{ player_id: 'lebron_james' }],
+            sends: [{ player_id: 'lebron_james', tradeTo: 'GSW' }],
             picksOut: [],
             cashSent: 0,
           },
           {
             teamCode: 'GSW',
-            sends: [{ player_id: 'stephen_curry' }],
+            sends: [{ player_id: 'stephen_curry', tradeTo: 'BOS' }],
             picksOut: [],
             cashSent: 0,
           },
           {
             teamCode: 'BOS',
-            sends: [{ player_id: 'jayson_tatum' }],
+            sends: [{ player_id: 'jayson_tatum', tradeTo: 'LAL' }],
             picksOut: [],
             cashSent: 0,
           },
@@ -439,7 +438,7 @@ describe('E2E Workflow Tests', () => {
         expect(teamResult.team.source.worldId).toBe(worldId);
       }
 
-      // Verify each team result is present
+      // Verify each team received exactly the player routed to them
       const lalTeamResult = tradeResult.teams.find((t) => t.teamCode === 'LAL');
       const gswTeamResult = tradeResult.teams.find((t) => t.teamCode === 'GSW');
       const bosTeamResult = tradeResult.teams.find((t) => t.teamCode === 'BOS');
@@ -448,17 +447,24 @@ describe('E2E Workflow Tests', () => {
       expect(gswTeamResult).toBeDefined();
       expect(bosTeamResult).toBeDefined();
 
-      // Verify outgoing players were removed from their original teams
       const lalRosterIds = getRosterIds(lalTeamResult.team.roster);
       const gswRosterIds = getRosterIds(gswTeamResult.team.roster);
       const bosRosterIds = getRosterIds(bosTeamResult.team.roster);
 
-      // Each team should have removed their outgoing player
-      // (Note: Due to roster being objects, the filter may not work correctly,
-      // but we verify the structure is valid)
-      expect(Array.isArray(lalRosterIds)).toBe(true);
-      expect(Array.isArray(gswRosterIds)).toBe(true);
-      expect(Array.isArray(bosRosterIds)).toBe(true);
+      // LAL receives jayson_tatum from BOS (not stephen_curry or lebron_james)
+      expect(lalRosterIds).toContain('jayson_tatum');
+      expect(lalRosterIds).not.toContain('stephen_curry');
+      expect(lalRosterIds).not.toContain('lebron_james');
+
+      // GSW receives lebron_james from LAL (not jayson_tatum or stephen_curry)
+      expect(gswRosterIds).toContain('lebron_james');
+      expect(gswRosterIds).not.toContain('jayson_tatum');
+      expect(gswRosterIds).not.toContain('stephen_curry');
+
+      // BOS receives stephen_curry from GSW (not lebron_james or jayson_tatum)
+      expect(bosRosterIds).toContain('stephen_curry');
+      expect(bosRosterIds).not.toContain('lebron_james');
+      expect(bosRosterIds).not.toContain('jayson_tatum');
     });
   });
 });
