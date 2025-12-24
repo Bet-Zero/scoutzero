@@ -178,29 +178,14 @@ export function getMinimumSalaryScale(seasonId: SeasonId): Record<number, number
 // SHARED HELPERS (Phase 5 consolidation)
 // ==============================================================================
 
-interface RawCapSettings {
-  cap: number;
-  floor: number;
-  tax: number;
-  firstApron: number;
-  secondApron: number;
-  bae: number;
-  roomMLE: number;
-  fullMLE: number;
-  taxpayerMLE: number;
-  growthRate?: number;
-  confirmed?: boolean;
-  averageSalary?: number;
-}
-
 /**
  * Get cap settings for a season by end year (e.g., 2026 for 2025-26)
  * @param year - Season end year
  * @returns Cap settings or null if not found
  */
-export function getCapSettings(year: number): RawCapSettings | null {
+export function getCapSettings(year: number): RawCapProjection | null {
   const key = `${year - 1}-${String(year % 100).padStart(2, '0')}`;
-  const settings = capProjections[key] as RawCapSettings | undefined;
+  const settings = capProjections[key] as RawCapProjection | undefined;
 
   if (!settings) {
     // Sort seasons numerically by start year to ensure consistent ordering
@@ -220,7 +205,7 @@ export function getCapSettings(year: number): RawCapSettings | null {
       `Cap data not found for season ${key}, falling back to ${latestSeason}. ` +
         `This may produce inaccurate validation results.`
     );
-    return (capProjections[latestSeason] as RawCapSettings) || null;
+    return (capProjections[latestSeason] as RawCapProjection) || null;
   }
 
   return settings;
