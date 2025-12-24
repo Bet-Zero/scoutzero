@@ -1,9 +1,9 @@
 # Architect Feature Gap Analysis
 
 > **Created**: December 17, 2025  
-> **Updated**: December 21, 2025  
+> **Updated**: December 24, 2025  
 > **Purpose**: Comprehensive review of Architect feature completeness for production readiness  
-> **Status**: Phase 4A Complete - Production-Safe World Deletion via Cloud Function
+> **Status**: Phase 4B Complete - E2E Tests and Multi-Team Trade Fix
 
 ---
 
@@ -111,6 +111,14 @@ The WorldSelector UI now includes both "Archive" (soft-delete) and "Delete Perma
 | `waivePlayer()` | ✅ Computes | ✅ Via mutationPipeline |
 | `extendPlayer()` | ✅ Computes | ✅ Via mutationPipeline |
 | `updateTeamCapTotals()` | ✅ Computes | N/A (helper) |
+
+**Status Update (Dec 24, 2025)**: Fixed critical bug in `executeTrade()` for multi-team trades:
+- **Bug Fixed**: Previously, all players from all other teams were sent to every team in the trade, causing player duplication
+- **Solution**: Added support for `tradeTo`/`toTeamId` field on each sent player to specify explicit destination
+- **Multi-team trades**: Players only route to their specified destination team
+- **2-team trades**: Backward compatible (players automatically go to the other team without needing `tradeTo`)
+- **Draft picks**: Same explicit routing logic applied for consistency
+- **Roster filter**: Fixed to handle player objects (not just string IDs)
 
 **Status Update (Dec 20, 2025)**: tradeManager is **intentionally compute-only** and delegates all persistence to the centralized `mutationPipeline.js`. This separation of concerns allows:
 1. Pure, testable computation logic without Firestore dependencies
@@ -370,11 +378,13 @@ Phase 4A: Production-Safe World Deletion ✅ COMPLETE
 ├── ✅ Require explicit confirmation (type "DELETE" or world name)
 └── ✅ Tests: 10 new tests for archive and purge functionality
 
-Phase 4B: Polish & Edge Cases (RECOMMENDED)
+Phase 4B: Polish & Edge Cases ✅ COMPLETE
 ├── ✅ Remove deprecated extensionRules.js imports
 ├── ✅ Add World rename/archive UI
-├── ⚠️ Add branch visualization
-└── ⚠️ Add E2E tests for complete workflows
+├── ✅ Fix multi-team trade routing bug (explicit destination support)
+├── ✅ Fix roster filter to handle player objects
+├── ✅ Add E2E tests for complete workflows (7 tests)
+└── ⚠️ Add branch visualization (optional)
 ```
 
 ---
@@ -457,8 +467,8 @@ Phase 4B: Polish & Edge Cases (RECOMMENDED)
 
 3. ✅ **Complete Test Coverage**
    - ✅ Fix Firebase mock issues (see `tests/architect/TEST_STATUS.md`)
-   - ✅ Target 90%+ coverage - achieved 100% (295/295 tests)
-   - ⚠️ Add E2E workflow tests (optional)
+   - ✅ Target 90%+ coverage - achieved 100% (317/317 tests)
+   - ✅ Add E2E workflow tests (7 tests covering world lifecycle, offseason loop, trade persistence)
 
 ---
 
@@ -484,15 +494,17 @@ Phase 4B: Polish & Edge Cases (RECOMMENDED)
 - ✅ Stepien rule recalculation for draft picks across 7-year window
 - ✅ Cloud Function `purgeArchitectWorld` for server-side recursive deletion with ownership validation
 - ✅ Archive vs Purge deletion options with explicit confirmation UI
+- ✅ Multi-team trade explicit destination routing (`tradeTo`/`toTeamId` field support)
+- ✅ E2E integration tests for critical workflows (world lifecycle, offseason loop, trade persistence)
 
 **What Is Complete**:
 - All core functionality implemented
-- All tests passing (295 tests)
+- All tests passing (317 tests including 7 new E2E tests)
 - World deletion fully implemented (archive for soft-delete, purge for permanent)
+- Multi-team trade routing fixed (players go to explicit destinations)
 
 **What Is Optional/Future Work**:
 - Branch visualization UI
-- E2E workflow tests
 
 **Completed Milestones**:
 1. ✅ Populate `architect_baseTeams` and `architect_basePlayers`
@@ -902,6 +914,66 @@ The Cloud Function (`purgeArchitectWorld`) ensures:
 The UI provides clear separation between Archive and Delete:
 - Archive button (yellow) - hides world, can be restored
 - Delete Permanently button (red) - requires explicit confirmation
+
+---
+
+## What Changed (December 24, 2025) - Phase 4B E2E Tests & Multi-Team Trade Fix
+
+### Bug Fixed
+
+**Multi-team trade player duplication** (`src/features/architect/utils/tradeManager.js`):
+- **Root Cause**: Lines 95-106 collected ALL players from ALL other teams for each team in the trade
+- **Result**: In a 3-team trade (A→B→C), each player appeared on multiple rosters simultaneously
+- **Fix**: Added support for `tradeTo`/`toTeamId` field to specify explicit destination routing
+
+### Files Modified
+
+- **`src/features/architect/utils/tradeManager.js`**:
+  - Added `isMultiTeamTrade` flag to detect >2 team trades
+  - Modified player collection loop to check `tradeTo`/`toTeamId` field
+  - For multi-team trades: only add player if destination matches current team
+  - For 2-team trades: backward compatible (auto-routes to other team)
+  - Fixed roster filter to extract player ID from objects (not just strings)
+  - Applied same explicit routing logic to draft picks
+
+- **`tests/architect/e2e-workflows.test.js`**:
+  - Added 7 E2E integration tests covering critical workflows:
+    1. World lifecycle: create → rename → archive → verify hidden
+    2. Multiple worlds archived independently
+    3. Sign free agent → roster updates → changes persist
+    4. Season advance → metadata updates correctly
+    5. Execute trade → team data returns with snapshot source
+    6. Save to world snapshot → reload → verify persistence
+    7. Multi-team trade correctly routes players to specified destinations
+
+- **`docs/ARCHITECT_GAP_ANALYSIS.md`**:
+  - Updated Trade Manager section with Dec 24 fix details
+  - Updated test count from 295 to 317
+  - Marked E2E workflow tests as complete
+  - Updated Phase 4B in dependency map
+  - Added this changelog entry
+
+### Summary
+
+Phase 4B is complete. The multi-team trade bug has been fixed:
+
+**Before**: 
+```javascript
+// LAL sends lebron → GSW, BOS
+// GSW sends curry → LAL, BOS  
+// BOS sends tatum → LAL, GSW
+// Result: Players duplicated across multiple rosters
+```
+
+**After**:
+```javascript
+// LAL sends lebron → GSW (only)
+// GSW sends curry → BOS (only)
+// BOS sends tatum → LAL (only)
+// Result: Each player on exactly one roster
+```
+
+The fix maintains backward compatibility for 2-team trades (no `tradeTo` required).
 
 ---
 
