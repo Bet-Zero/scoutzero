@@ -327,12 +327,18 @@ const EditContractModal = ({
   // Primary button is disabled if:
   // 1. No action selected
   // 2. Action is illegal AND override not confirmed
+  // Environment flag to enable CBA override feature
+  // In production, this should be false to prevent illegal state creation
+  // Set VITE_ENABLE_CBA_OVERRIDE=true in .env for development/sandbox mode
+  const canOverride = import.meta.env.VITE_ENABLE_CBA_OVERRIDE === 'true';
+
   const disableConfirm =
     !selectedAction ||
-    (!validationResult.isLegal && !isOverrideConfirmed);
+    (!validationResult.isLegal && (!canOverride || !isOverrideConfirmed));
 
-  // Show override/advanced section when action is illegal
-  const showOverrideOption = selectedAction && !validationResult.isLegal;
+  // Show override/advanced section when action is illegal AND override is enabled
+  // In production (canOverride=false), illegal actions are simply blocked
+  const showOverrideOption = canOverride && selectedAction && !validationResult.isLegal;
 
   // Show validation errors when validation has run and there are warnings/errors
   useEffect(() => {

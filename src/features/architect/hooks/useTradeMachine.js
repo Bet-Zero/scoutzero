@@ -460,9 +460,13 @@ export const useTradeMachine = (
       currentYear: yearKey,
     });
 
+    // Environment flag to enable force trade bypass
+    // In production (canOverride=false), forceTrade has no effect
+    const canOverride = import.meta.env.VITE_ENABLE_CBA_OVERRIDE === 'true';
+
     const result = {
       ...validation,
-      legal: forceTrade ? true : validation.legal,
+      legal: (canOverride && forceTrade) ? true : validation.legal,
     };
 
     setResult(result);
