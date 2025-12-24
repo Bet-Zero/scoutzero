@@ -1,18 +1,21 @@
 /**
  * FILE: src/features/architect/utils/capHelpers.ts
- * PURPOSE: Cap lookup utilities for RuleContext builder.
+ * PURPOSE: Cap lookup utilities for RuleContext builder and validation.
  * OWNERSHIP: Feature: architect/timing
  *
  * HISTORY:
  *  - 2025-12-11: Initial implementation per Architect Timing Plan.
+ *  - 2025-12-24: Added getCapSettings, calculateTeamCapHit per Phase 5 consolidation.
  *
  * LINKS:
  *  - Plan: plans/architect-timing/plan.md
+ *  - TODO: Track consolidation progress in ARCHITECT_PHASE5_HARDENING.md Step 6
  */
 
 import type { SeasonId } from './seasonHelpers';
 import type { CapContext } from '../types/ruleContext';
 import { isValidSeasonId } from './seasonHelpers';
+import { toEndYear } from './seasonFormat';
 import capProjections from './capProjections';
 import { DEFAULT_AVERAGE_SALARY } from './cbaConstants';
 import { 
@@ -169,4 +172,138 @@ export function getMinimumSalaryScale(seasonId: SeasonId): Record<number, number
   
   // Fall back to latest available scale
   return getLatestScale();
+}
+
+// ==============================================================================
+// SHARED HELPERS (Phase 5 consolidation)
+// ==============================================================================
+
+/**
+ * Get cap settings for a season by end year (e.g., 2026 for 2025-26)
+ * @param year - Season end year
+ * @returns Cap settings or null if not found
+ */
+export function getCapSettings(year: number): RawCapProjection | null {
+  const key = `${year - 1}-${String(year % 100).padStart(2, '0')}`;
+  const settings = capProjections[key] as RawCapProjection | undefined;
+
+  if (!settings) {
+    // Sort seasons numerically by start year to ensure consistent ordering
+    const availableSeasons = Object.keys(capProjections).sort((a, b) => {
+      const yearA = parseInt(a.split('-')[0], 10) || 0;
+      const yearB = parseInt(b.split('-')[0], 10) || 0;
+      return yearA - yearB;
+    });
+    const latestSeason = availableSeasons[availableSeasons.length - 1];
+
+    // Guard against empty capProjections
+    if (!latestSeason) {
+      return null;
+    }
+
+    console.warn(
+      `Cap data not found for season ${key}, falling back to ${latestSeason}. ` +
+        `This may produce inaccurate validation results.`
+    );
+    return (capProjections[latestSeason] as RawCapProjection) || null;
+  }
+
+  return settings;
+}
+
+/**
+ * Player contract structure
+ */
+interface PlayerContract {
+  salariesByYear?: Array<{
+    season: string;
+    salary?: number;
+    capHit?: number;
+  }>;
+  contractType?: string;
+}
+
+/**
+ * Player object structure
+ */
+interface Player {
+  player_id?: string;
+  id?: string;
+  playerId?: string;
+  displayName?: string;
+  name?: string;
+  playerName?: string;
+  contract?: PlayerContract;
+  contractType?: string;
+}
+
+interface CalculateCapHitOptions {
+  getContractYearSlice?: (player: Player, year: number) => { capHit?: number; salary?: number } | null;
+}
+
+/**
+ * Calculate team's current cap hit from players array
+ * Used by both validation hooks and mutation pipeline
+ *
+ * @param players - Team players array
+ * @param year - Season end year
+ * @param options - Optional configuration
+ * @returns Total cap hit
+ */
+export function calculateTeamCapHit(
+  players: Player[] | null | undefined,
+  year: number,
+  options: CalculateCapHitOptions = {}
+): number {
+  if (!players || !Array.isArray(players)) return 0;
+
+  const { getContractYearSlice } = options;
+
+  return players.reduce((sum, player) => {
+    const contractType =
+      player?.contractType ||
+      player?.contract?.contractType ||
+      '';
+    // Two-way contracts don't count against cap
+    if (contractType.toLowerCase() === 'two-way') return sum;
+
+    // If custom slice function provided, use it
+    if (getContractYearSlice) {
+      const slice = getContractYearSlice(player, year);
+      return sum + (slice?.capHit ?? slice?.salary ?? 0);
+    }
+
+    // Default implementation using salariesByYear
+    const contract = player.contract;
+    if (!contract?.salariesByYear) return sum;
+
+    // Find salary for the target year
+    const yearEntry = contract.salariesByYear.find((y) => {
+      const entryYear = toEndYear(y.season);
+      return entryYear === year;
+    });
+
+    if (!yearEntry) return sum;
+
+    return sum + (yearEntry.capHit ?? yearEntry.salary ?? 0);
+  }, 0);
+}
+
+/**
+ * Extract player ID from player object with fallback handling
+ * Handles inconsistent player object schemas across the codebase
+ * @param player - Player object
+ * @returns Player ID or null
+ */
+export function getPlayerId(player: Player | null | undefined): string | null {
+  return player?.player_id || player?.id || player?.playerId || null;
+}
+
+/**
+ * Extract player display name from player object with fallback handling
+ * @param player - Player object
+ * @returns Player name or null
+ */
+export function getPlayerName(player: Player | null | undefined): string | null {
+  return player?.displayName || player?.name || player?.playerName || null;
 }

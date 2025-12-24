@@ -7,10 +7,13 @@
  *  - 2025-12-10: Added PlayerRulesProfile-aware extension checks (chunk_01).
  *  - 2025-12-10: Added rules profile gating for FA/QO validation (chunk_02).
  *  - 2025-12-12: Unified on rulesProfile, removed legacy extensionRules fallback.
+ *  - 2025-12-24: Refactored to use shared capHelpers.js per Step 6 consolidation
  *
  * LINKS:
  *  - Plan: plans/_archive/player-rules-architect/plan.md
  *  - Latest Chunk: plans/_archive/player-rules-architect/chunks/chunk_02.md
+ *
+ * TODO: Track consolidation progress in ARCHITECT_PHASE5_HARDENING.md Step 6
  */
 /**
  * useCapValidation Hook
@@ -23,8 +26,11 @@
  * an info warning. This ensures consistent behavior via the Salary Engine.
  */
 import { useMemo } from 'react';
-import capProjections from '@/features/architect/utils/capProjections';
 import { getContractYearSlice } from '@/features/architect/utils/contractUtils';
+import {
+  getCapSettings,
+  calculateTeamCapHit,
+} from '@/features/architect/utils/capHelpers';
 
 export const buildSigningGuardrails = (
   rulesProfile = null,
@@ -129,47 +135,10 @@ export const buildSigningGuardrails = (
 
 /**
  * Calculate team's total cap hit for a given year
+ * Uses shared calculateTeamCapHit with getContractYearSlice adapter
  */
-const calculateTeamCapHit = (players, year) => {
-  return (players || []).reduce((sum, player) => {
-    const contractType =
-      player?.contractType || player?.contract?.contractType || '';
-    // Two-way contracts don't count against cap
-    if (contractType.toLowerCase() === 'two-way') return sum;
-
-    const slice = getContractYearSlice(player, year);
-    return sum + (slice?.capHit ?? slice?.salary ?? 0);
-  }, 0);
-};
-
-/**
- * Get cap settings for a season
- */
-const getCapSettings = (year) => {
-  const key = `${year - 1}-${String(year % 100).padStart(2, '0')}`;
-  const settings = capProjections[key];
-
-  if (!settings) {
-    // Sort seasons numerically by start year to ensure consistent ordering
-    const availableSeasons = Object.keys(capProjections).sort((a, b) => {
-      const yearA = parseInt(a.split('-')[0], 10) || 0;
-      const yearB = parseInt(b.split('-')[0], 10) || 0;
-      return yearA - yearB;
-    });
-    const latestSeason = availableSeasons[availableSeasons.length - 1];
-
-    // Guard against empty capProjections
-    if (!latestSeason) {
-      return null;
-    }
-
-    console.warn(
-      `Cap data not found for season ${key}, falling back to ${latestSeason}`
-    );
-    return capProjections[latestSeason] || null;
-  }
-
-  return settings;
+const calculateTeamCapHitLocal = (players, year) => {
+  return calculateTeamCapHit(players, year, { getContractYearSlice });
 };
 
 /**
@@ -207,7 +176,7 @@ export function useCapValidation({
 
     const capSettings = getCapSettings(actionYear);
     const teamPlayers = teamCapSheet?.players || [];
-    const yearCapHit = calculateTeamCapHit(teamPlayers, actionYear);
+    const yearCapHit = calculateTeamCapHitLocal(teamPlayers, actionYear);
 
     const { tax, firstApron, secondApron } = capSettings || {};
 
@@ -337,7 +306,7 @@ export function useCapValidation({
 
     // ===== RE-SIGNING FREE AGENTS =====
     if (action === 'resign' || action === 'signNew') {
-      const currentYearCapHit = calculateTeamCapHit(teamPlayers, currentYear);
+      const currentYearCapHit = calculateTeamCapHitLocal(teamPlayers, currentYear);
       const currentCapSettings = getCapSettings(currentYear);
       const guardrails =
         contractData.guardrails ||
@@ -488,7 +457,7 @@ export function useCapValidation({
 
     // ===== SIGN AND TRADE =====
     if (action === 'signAndTrade') {
-      const currentYearCapHit = calculateTeamCapHit(teamPlayers, currentYear);
+      const currentYearCapHit = calculateTeamCapHitLocal(teamPlayers, currentYear);
       const currentCapSettings = getCapSettings(currentYear);
 
       warnings.push({

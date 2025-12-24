@@ -1,7 +1,17 @@
-import { describe, it, expect, afterEach, vi } from 'vitest';
+import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import EditContractModal from '@/shared/components/EditContractModal.jsx';
+
+// Mock environment variable to enable override functionality for tests
+// In production, this would be false to prevent illegal state creation
+beforeEach(() => {
+  vi.stubEnv('VITE_ENABLE_CBA_OVERRIDE', 'true');
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 const BASE_PLAYER = {
   name: 'Test Player',

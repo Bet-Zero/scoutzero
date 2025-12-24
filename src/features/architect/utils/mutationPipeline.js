@@ -37,6 +37,14 @@ import {
 } from '@/features/architect/utils/architectFirestorePaths';
 import { collection, doc } from 'firebase/firestore';
 import { ARCHITECT_WORLDS_COLLECTION } from '@/constants/collections';
+// Cap legality validators for non-trade mutations (Phase 5 Production Hardening)
+import {
+  validateSigning,
+  validateWaive,
+  validateExtension,
+  validateOptionDecision,
+  validateRenounceRights,
+} from '@/features/architect/utils/capLegalityValidation';
 
 // ==============================================================================
 // TYPES (JSDoc for IDE support)
@@ -956,8 +964,14 @@ function computeRenounceResult({ payload, currentState, seasonId, timestamp }) {
 /**
  * Validate mutation before persistence.
  *
+ * Phase 5 Enhancement: All mutation types now have real validation.
+ * Previously only trades were validated; signings/waives/etc bypassed validation.
+ * 
+ * IMPORTANT: This function blocks persistence when violations exist.
+ * There is no bypass mechanism - illegal states cannot be persisted.
+ *
  * @param {Object} params
- * @returns {{valid: boolean, error?: string, violations?: string[]}}
+ * @returns {{valid: boolean, error?: string, violations?: Array}}
  */
 function validateMutation({ mutationType, payload, currentState, computeResult, seasonId }) {
   // Trade validation uses the full Trade Machine
@@ -965,32 +979,96 @@ function validateMutation({ mutationType, payload, currentState, computeResult, 
     return validateTradeForPipeline(payload, currentState, seasonId);
   }
 
-  // Other mutations have simpler validation
-  // For now, basic validation - can be extended later
+  const currentYear = toEndYear(seasonId);
+
+  // Non-trade mutations use capLegalityValidation
   switch (mutationType) {
-    case 'signFreeAgent':
-      // TODO: Add cap validation in Phase 2
-      // CALLER MUST pre-validate via useCapValidation hook
-      return { valid: true };
+    case 'signFreeAgent': {
+      const result = validateSigning({
+        team: currentState.team,
+        player: currentState.player,
+        contract: payload.contract,
+        signedUsing: payload.signedUsing,
+        year: currentYear,
+      });
+      return {
+        valid: result.valid,
+        error: result.violations[0]?.message || null,
+        violations: result.violations,
+        warnings: result.warnings,
+      };
+    }
 
-    case 'waivePlayer':
-      // Could add roster minimum validation here
-      return { valid: true };
+    case 'waivePlayer': {
+      const result = validateWaive({
+        team: currentState.team,
+        player: currentState.player,
+        stretch: payload.stretch,
+        year: currentYear,
+        isGracePeriod: payload.isGracePeriod || false,
+      });
+      return {
+        valid: result.valid,
+        error: result.violations[0]?.message || null,
+        violations: result.violations,
+        warnings: result.warnings,
+      };
+    }
 
-    case 'extendPlayer':
-      // Could add extension eligibility validation here
-      return { valid: true };
+    case 'extendPlayer': {
+      const result = validateExtension({
+        team: currentState.team,
+        player: currentState.player,
+        extension: payload.extension,
+        year: currentYear,
+      });
+      return {
+        valid: result.valid,
+        error: result.violations[0]?.message || null,
+        violations: result.violations,
+        warnings: result.warnings,
+      };
+    }
 
-    case 'optionDecision':
-      // Basic validation
-      return { valid: true };
+    case 'optionDecision': {
+      const result = validateOptionDecision({
+        team: currentState.team,
+        player: currentState.player,
+        accepted: payload.accepted,
+        targetYear: payload.targetYear,
+        currentYear,
+      });
+      return {
+        valid: result.valid,
+        error: result.violations[0]?.message || null,
+        violations: result.violations,
+        warnings: result.warnings,
+      };
+    }
 
-    case 'renounceRights':
-      // Renouncing is always valid if player has rights with the team
-      return { valid: true };
+    case 'renounceRights': {
+      const result = validateRenounceRights({
+        team: currentState.team,
+        player: currentState.player,
+      });
+      return {
+        valid: result.valid,
+        error: result.violations[0]?.message || null,
+        violations: result.violations,
+        warnings: result.warnings,
+      };
+    }
 
     default:
-      return { valid: true };
+      // Unknown mutation type - fail closed for security
+      // If you're adding a new mutation type, add validation logic above
+      console.warn(`Unknown mutation type: ${mutationType}, blocking for safety`);
+      return { 
+        valid: false, 
+        error: `Unknown mutation type: ${mutationType}`,
+        violations: [{ rule: 'unknown_type', message: `Unknown mutation type: ${mutationType}`, severity: 'error' }], 
+        warnings: [] 
+      };
   }
 }
 

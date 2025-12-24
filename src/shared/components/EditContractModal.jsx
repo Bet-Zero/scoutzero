@@ -7,16 +7,19 @@
  *  - 2025-12-10: Integrated PlayerRulesProfile for extension defaults/validation (chunk_01).
  *  - 2025-12-10: Added fallback extension gating and FA/QO validation via rules profile (chunk_02).
  *  - 2025-12-17: Replaced deprecated extensionRules.js with salaryEngine for fallback.
+ *  - 2025-12-24: Refactored to use shared capHelpers.js per Step 6 consolidation
  *
  * LINKS:
  *  - Plan: plans/_archive/player-rules-architect/plan.md
  *  - Latest Chunk: plans/_archive/player-rules-architect/chunks/chunk_02.md
+ *
+ * TODO: Track consolidation progress in ARCHITECT_PHASE5_HARDENING.md Step 6
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Dialog, DialogContent } from '@/shared/components/ui/Dialog';
 import { formatCurrencyFull, formatCurrency } from '@/shared/utils/formatting';
-import capProjections from '@/features/architect/utils/capProjections';
+import { getCapSettings } from '@/features/architect/utils/capHelpers';
 import { generateExtensionContract } from '@/features/architect/utils/contractUtils';
 import { toEndYear, toSeasonCode } from '@/features/architect/utils/seasonFormat';
 import {
@@ -110,11 +113,6 @@ const ACTION_DESCRIPTIONS = {
   waive: 'Release player. Salary remains on cap unless claimed.',
   waiveStretch: 'Release player and stretch salary over 2x + 1 years.',
   buyout: 'Negotiate a reduced amount to release player.',
-};
-
-const getCapSettings = (year) => {
-  const key = `${year - 1}-${String(year % 100).padStart(2, '0')}`;
-  return capProjections[key] || capProjections['2025-26'];
 };
 
 const EditContractModal = ({
@@ -327,12 +325,18 @@ const EditContractModal = ({
   // Primary button is disabled if:
   // 1. No action selected
   // 2. Action is illegal AND override not confirmed
+  // Environment flag to enable CBA override feature
+  // In production, this should be false to prevent illegal state creation
+  // Set VITE_ENABLE_CBA_OVERRIDE=true in .env for development/sandbox mode
+  const canOverride = import.meta.env.VITE_ENABLE_CBA_OVERRIDE === 'true';
+
   const disableConfirm =
     !selectedAction ||
-    (!validationResult.isLegal && !isOverrideConfirmed);
+    (!validationResult.isLegal && (!canOverride || !isOverrideConfirmed));
 
-  // Show override/advanced section when action is illegal
-  const showOverrideOption = selectedAction && !validationResult.isLegal;
+  // Show override/advanced section when action is illegal AND override is enabled
+  // In production (canOverride=false), illegal actions are simply blocked
+  const showOverrideOption = canOverride && selectedAction && !validationResult.isLegal;
 
   // Show validation errors when validation has run and there are warnings/errors
   useEffect(() => {

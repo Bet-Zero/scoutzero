@@ -479,10 +479,17 @@ export function useArchitectState({
   }, [teamId, userId, authLoading, worldId]);
 
   // === Effect 6: Auto-save plan when teamCapSheet changes ===
+  // IMPORTANT: This effect ONLY saves to legacy teamPlans collection when NO world is selected.
+  // When a world is selected (worldId !== null), persistence is handled by the centralized
+  // mutationPipeline.js which writes to architect_worlds collection.
+  // This prevents dual-persistence divergence between teamPlans and architect_worlds.
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (!teamCapSheet) return;
+    // Skip autosave to teamPlans when a world is selected - world mutations
+    // are persisted via applyWorldMutation() in mutationPipeline.js
+    if (worldId) return;
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
@@ -523,6 +530,7 @@ export function useArchitectState({
     selectedPlan,
     viewMode,
     currentYear,
+    worldId, // Added dependency to re-evaluate when worldId changes
     // capProjections is a constant import, not a dependency
   ]);
 
