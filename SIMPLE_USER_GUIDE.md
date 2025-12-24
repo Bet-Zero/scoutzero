@@ -15,27 +15,35 @@ This system updates your NBA scouting app with fresh player data. It works with 
 ## Simple Commands
 
 ### 🔄 **Season Transition** (Start of new NBA season)
+
 ```bash
 npm run season:transition
 ```
+
 **What it does:** Uploads `players.json` to Firebase, preserving all your existing grades and scouting data for players who were already there, and adds new players (rookies, trades, etc.)
 
 ### 💰 **Update Contracts** (When trades happen)
+
 ```bash
 npm run contracts:update
 ```
+
 **What it does:** Updates contract information in `players.json` and uploads to Firebase
 
 ### 📊 **Update Stats** (During season)
+
 ```bash
 npm run stats:update  
 ```
+
 **What it does:** Updates player statistics in `players.json` and uploads to Firebase
 
 ### 🧾 **Generate Cap Sheets**
+
 ```bash
 npm run capsheets:generate
 ```
+
 **What it does:** Reads player data FROM Firebase and creates salary cap sheets for all 30 teams
 
 ---
@@ -43,10 +51,12 @@ npm run capsheets:generate
 ## When To Use Each Command
 
 ### Before New Season (August)
+
 - Run: `npm run season:transition`
 - This preserves all your grades and adds new players
 
 ### During Season (October - June)  
+
 - **When trades happen:** `npm run contracts:update`
 - **For fresh stats:** `npm run stats:update`
 - **Need cap info:** `npm run capsheets:generate`
@@ -63,6 +73,7 @@ npm run capsheets:generate
 ## What Gets Preserved
 
 When you run season transition, these are kept for existing players:
+
 - ✅ All your grades and evaluations
 - ✅ Scouting traits and characteristics  
 - ✅ Role assignments
@@ -72,15 +83,17 @@ New players get fresh, empty grade structures ready for scouting.
 
 ---
 
-## That's It!
+## That's It
 
 Your system is designed to be simple:
+
 1. **`players.json`** has everything
-2. **Upload to Firebase** 
+2. **Upload to Firebase**
 3. **Your app reads from Firebase**
 4. **Tools read from Firebase**
 
 ### The Normal Flow
+
 **Step 1:** Your player data starts in `public/players.json` (630 NBA players)  
 **Step 2:** System gets contract info from the internet  
 **Step 3:** System merges everything together  
@@ -92,14 +105,17 @@ Your system is designed to be simple:
 ## Files You Care About
 
 ### Input Files (DON'T delete these!)
+
 - **`public/players.json`** - Your main player database (630 players)
 
 ### Output Files (System creates these)
+
 - **`data/players_merged.json`** - The updated data with contracts (1.4MB)
 - **`data/contracts_parsed.json`** - Just the contract information (1.1MB)  
 - **`data/team_cap_sheets.json`** - Salary cap sheets for all 30 teams (430KB)
 
 ### Optional Files
+
 - **`serviceAccountKey.json`** - Firebase credentials (only needed for cloud uploads)
 
 ---
@@ -107,15 +123,19 @@ Your system is designed to be simple:
 ## What If Something Goes Wrong?
 
 ### "Firebase credentials not found"
+
 **Don't worry!** This just means it won't upload to the cloud database. The system still works and creates all the files locally. Only add Firebase credentials if you specifically need cloud uploads.
 
 ### "No player data file found"
+
 **Fix:** Make sure `public/players.json` exists and has your player data.
 
 ### Command takes a long time
+
 **Normal for first run!** Getting data from the internet can take 5-10 minutes. But the simplified version should complete in under 10 seconds.
 
-### "Contract scraping failed" 
+### "Contract scraping failed"
+
 **Don't worry!** The system uses fallback data and will still work. You'll get contract information, just not the very latest.
 
 ---
@@ -148,12 +168,15 @@ The system is smart about handling missing data and will work even if some websi
 ## Advanced Commands (If You Need Them)
 
 ### For Full Bio Data Update (Slower)
+
 ```bash
 npm run season:transition-full
 ```
+
 **Warning:** This takes 5-10 minutes as it fetches fresh bio data from NBA.com
 
 ### Firebase Management (Requires credentials)
+
 ```bash
 npm run season:list          # View all seasons in Firebase
 npm run season:create 2026   # Create new season

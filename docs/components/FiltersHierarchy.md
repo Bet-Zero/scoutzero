@@ -24,5 +24,5 @@ FiltersPanel/
 ```
 
 ---
-*Generated on: 2025-10-20T04:25:52.498Z*
+*Generated on: 2025-12-24T12:17:19.494Z*
 *Auto-updated by: npm run docs*

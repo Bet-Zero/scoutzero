@@ -115,6 +115,7 @@ Human-readable dates from source data are converted to ISO format:
 ### Requirement
 
 `yearsRemaining` counts ONLY seasons that meet ALL criteria:
+
 1. Still live (after current season start)
 2. NOT marked `voidedByExtension: true`
 
@@ -151,6 +152,7 @@ const activeYears = salariesByYear.filter(y => !y.voidedByExtension);
 Player options are treated differently based on their status:
 
 #### Live Player Option (Pending Decision)
+
 ```javascript
 {
   option: "PO",
@@ -162,6 +164,7 @@ Player options are treated differently based on their status:
 ```
 
 #### Declined/Voided Player Option
+
 ```javascript
 {
   option: "PO",
@@ -194,6 +197,7 @@ Player options are treated differently based on their status:
 When a future contract supersedes a current contract, maintain bidirectional references:
 
 #### Old Contract (Superseded)
+
 ```javascript
 {
   contractType: "DESIGNATED ROOKIE SCALE EXTENSION",
@@ -203,6 +207,7 @@ When a future contract supersedes a current contract, maintain bidirectional ref
 ```
 
 #### New Contract (Superseding)
+
 ```javascript
 {
   contractType: "VETERAN EXTENSION",
@@ -266,11 +271,13 @@ const newContract = {
 Contract money values are handled differently based on their nature:
 
 #### DO NOT CHANGE (Preserve Original)
+
 - `totalValue`: Total contract value as originally signed
 - `averageAnnualValue`: Original AAV calculation
 - `contractLength`: Original number of years
 
 #### DO RECOMPUTE (Based on Active Years)
+
 - `guaranteedValue`: Sum of guaranteedAmount from active years only
 - `guaranteedYears`: Count of years with guaranteedAmount > 0 from active years only
 
@@ -317,6 +324,7 @@ const contract = {
 ## Complete Example: Luka Dončić
 
 ### Scenario
+
 - **Current Team**: LAL (Los Angeles Lakers)
 - **Old Contract**: DESIGNATED ROOKIE SCALE EXTENSION (signed with DAL)
 - **Future Contract**: VETERAN EXTENSION (signed with LAL)
@@ -423,6 +431,7 @@ const contract = {
 ### Test Coverage
 
 Normalization rules are validated by:
+
 - `tests/contractNormalizationValidation.test.js` (16 tests) - Legacy validation tests
 - `tests/contractNormalizationRulesValidation.test.js` (24 tests) - Comprehensive rule validation
 - `tests/contractOptionUsed.test.js` (4 tests) - Option usage validation
@@ -435,6 +444,7 @@ Total: **47 passing tests** covering all rule combinations and edge cases
 Primary implementation: `player-scrape/contracts/scripts/parse_player.ts`
 
 Key functions:
+
 - `parseOptionUsedDate()`: Parses option dates with ISO conversion
 - `toISODate()`: Converts human dates to ISO format
 - `applyPlayerOptionPolicy()`: Applies guarantee policy to PO years
@@ -481,6 +491,7 @@ function toISODate(dateStr: string): string | null {
 ### Adding New Fields
 
 When adding new date or option-related fields:
+
 1. Apply ISO date format requirement (Rule 2)
 2. Consider if pairing rules apply (Rule 1)
 3. Update validation functions

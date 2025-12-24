@@ -13,6 +13,7 @@
 - Canonical source: `src/schemas/players_v2.ts`
 
 ## Notes
+
 - Contract fields reconcile scraper outputs (`player-scrape`) with Firestore subcollection shape.
 - Use types imported from `src/schemas/players_v2.ts` in code; do not redeclare interfaces elsewhere.
 
@@ -21,16 +22,19 @@
 The main document includes three optional denormalized view fields for fast filtering and table views:
 
 ### `currentContractView`
+
 - Contains current contract information: `freeAgentYear`, `freeAgentType`, `contractType`, `options`, `birdRights`, `salaryByYear`, `currentSalary`, `yearsRemaining`, `averageAnnualValue`, `maxType`
 - Built from the contracts subcollection during staging
 - Updated automatically when contracts change
 
 ### `currentEvaluationView`
+
 - Contains current evaluation data: `roles`, `subRoles`, `shootingProfile`, `badges`, `traits`, `overallGrade`
 - Built from the evaluations subcollection
 - Updated automatically when evaluations are saved via `useAutoSavePlayer`
 
 ### `currentSeasonStats`
+
 - Contains latest season stats: `PTS`, `REB`, `AST`, `FG%`, `3PT%`, `FT%`, `eFG%`, `MIN`, `GP`
 - Built from the latest season document in the seasons subcollection
 - Updated automatically when new season data is added

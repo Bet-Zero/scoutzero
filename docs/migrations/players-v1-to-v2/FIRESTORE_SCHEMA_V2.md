@@ -6,7 +6,7 @@ A full schema reference for all Firestore collections used in ScoutZero + Archit
 
 ## 📁 Collection: `/players_v2/{playerId}`
 
-### 📦 Top-Level Fields:
+### 📦 Top-Level Fields
 
 - `bio`: { AGE, HT, WT, Position, Team, Years Pro }
 - `bio.displayName`: Player display name
@@ -81,12 +81,12 @@ These views enable fast single-query loading for table views and filtering witho
 
 ## 📁 Collection: `/teams/{teamId}`
 
-### 📦 Fields:
+### 📦 Fields
 
 - `capSheet.lastUpdated`: timestamp
 - `capSheet.players[]`: array of full player objects
 
-### 🔁 Each `capSheet.players[i]` includes:
+### 🔁 Each `capSheet.players[i]` includes
 
 - `name`, `player_id`, `display_name`, `position`, `age`, `height`, `weight`
 - `contract_clean`: object with:

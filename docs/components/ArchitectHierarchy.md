@@ -15,6 +15,11 @@ FreeAgentPool.jsx
 FreeAgentRow.jsx
 GMDashboard/
   GMDashboard.jsx
+  components/
+    DeleteWorldModal.jsx
+    SeasonAdvanceModal.jsx
+    WorldSelector.jsx
+    index.js
   hooks/
     useArchitectActions.ts
     useArchitectModals.ts
@@ -137,6 +142,8 @@ utils/
   basicArchitectUtils.js
   buildRuleContext.ts
   capHelpers.ts
+  capHolds.ts
+  capLegalityValidation.js
   capProjections.js
   capUtils.js
   cashUtils.js
@@ -151,6 +158,7 @@ utils/
   freeAgentLogic.js
   hardCapUtils.js
   loadArchitectBasePlayer.ts
+  mutationPipeline.js
   playerRulesProfile/
     birdRightsRules.js
     computeProfile.js
@@ -248,8 +256,9 @@ utils/
       index.js
   tradeManager.js
   worldManager.js
+  worldTeamData.ts
 ```
 
 ---
-*Generated on: 2025-12-14T10:30:01.802Z*
+*Generated on: 2025-12-24T12:17:19.490Z*
 *Auto-updated by: npm run docs*

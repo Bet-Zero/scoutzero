@@ -103,14 +103,14 @@ Keep diagrams **simple**, focusing on structure, not implementation details.
 
 (Adjust automatically based on scope size)
 
-#### If TARGET_SCOPE has **5 or fewer files**:
+#### If TARGET_SCOPE has **5 or fewer files**
 
 For each file:
 
 - Name it.
 - Provide 2–5 bullets explaining its purpose.
 
-#### If TARGET_SCOPE has **6 or more files**:
+#### If TARGET_SCOPE has **6 or more files**
 
 - Group files by folder, feature, or responsibility.
 - Explain each group’s role.

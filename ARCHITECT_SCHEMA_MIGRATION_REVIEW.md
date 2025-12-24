@@ -13,6 +13,7 @@
 The Architect feature set has **successfully migrated** to use the `architect_basePlayers` schema as the canonical source of player data. All critical code paths now use the new schema structure, and there are **no remaining dependencies** on the old `contract_clean` or `/teams` schema within Architect code.
 
 **Evidence:**
+
 - ✅ Zero references to `contract_clean` in Architect code
 - ✅ All Firestore paths use `architect_basePlayers` collection
 - ✅ All contract access uses `contract.salariesByYear[]` format
@@ -127,11 +128,13 @@ export const teamsCol = () => collection(db, 'teams');
 ## E. Final Architect Checklist
 
 ### ✅ Schema & Data Source Usage
+
 - [x] All player-related logic in Architect uses `architect_basePlayers` schema
 - [x] No lingering imports, helpers, or types that rely on `team/contract_clean`
 - [x] No hidden or indirect usage of old schema patterns
 
 **Evidence:**
+
 - `useArchitectPlayerData` hook loads exclusively from `basePlayersCol()`
 - `loadTeamCapSheet` hydrates team data from `basePlayerRef()` per player
 - All contract access uses `contract.salariesByYear[]` array format
@@ -139,11 +142,13 @@ export const teamsCol = () => collection(db, 'teams');
 ---
 
 ### ✅ Firestore Paths & Queries
+
 - [x] All Firestore access targets Architect collections
 - [x] Collection paths use `architect_basePlayers` and `architect_baseTeams`
 - [x] No occurrences of old collection names in Architect layer
 
 **Evidence:**
+
 - Firestore paths defined in `src/data/firestorePaths.js`:
   - `basePlayersCol()` → `architect_basePlayers` collection
   - `basePlayerRef()` → `architect_basePlayers/{playerId}` document
@@ -155,10 +160,12 @@ export const teamsCol = () => collection(db, 'teams');
 ---
 
 ### ✅ Types / Interfaces / Schemas
+
 - [x] Architect-related types reflect current base player shape
 - [x] No Architect types reference `contract_clean`-era structures
 
 **Evidence:**
+
 - Canonical schema defined in `src/schemas/architect.ts`:
   - `BasePlayerDocZ` - Zod schema for base player documents
   - `BasePlayerContractZ` - Zod schema for contract structure
@@ -169,10 +176,12 @@ export const teamsCol = () => collection(db, 'teams');
 ---
 
 ### ✅ Transformations & Derived Data
+
 - [x] All transformations read from `architect_basePlayers`-based inputs
 - [x] No dependencies on fields that only existed in `team/contract_clean`
 
 **Evidence:**
+
 - `src/utils/architect/contractSalaryUtils.js` - Uses `contract.salariesByYear[]`
 - `src/utils/architect/contractUtils.js` - Generates contracts with `salariesByYear[]` format
 - `src/utils/architect/tradeHelpers.js` - Reads from `contract.salariesByYear[]`
@@ -182,10 +191,12 @@ export const teamsCol = () => collection(db, 'teams');
 ---
 
 ### ✅ Architect UI Components
+
 - [x] Component props, hooks, and selectors expect `architect_basePlayers`-shaped data
 - [x] Displayed player information aligns with new schema
 
 **Evidence:**
+
 - `GMDashboard.jsx` - Uses `useArchitectPlayerData()` hook
 - `CapSheet.jsx` - Accesses `contract.salariesByYear[]` for salary display
 - `CapSheetFull.jsx` - Uses `contract.salariesByYear[]` format
@@ -196,10 +207,12 @@ export const teamsCol = () => collection(db, 'teams');
 ---
 
 ### ✅ Save / Update / Sync Logic
+
 - [x] Save/update functions consistent with base player + Architect plan structure
 - [x] No attempts to write old `contract_clean`-shaped objects
 
 **Evidence:**
+
 - `firebaseTeamPlanHelpers.js`:
   - `loadTeamCapSheet()` - Loads from `baseTeamRef()` and hydrates from `basePlayerRef()`
   - `saveUserTeamPlan()` - Saves plan data (separate from base data, as expected)
@@ -210,11 +223,13 @@ export const teamsCol = () => collection(db, 'teams');
 ---
 
 ### ✅ Hidden / Shadow Dependencies
+
 - [x] No references to old collection names in Architect code
 - [x] No adapter functions transforming old→new shape still needed
 - [x] No default values or mock data using old field patterns
 
 **Evidence:**
+
 - Comprehensive grep searches found:
   - **0** references to `contract_clean` in Architect code
   - **0** references to `/teams` collection paths in Architect code (excluding unused helper)
@@ -226,19 +241,23 @@ export const teamsCol = () => collection(db, 'teams');
 ## F. Key Files Reviewed
 
 ### Data Loading & Hooks
+
 - ✅ `src/hooks/useArchitectPlayerData.js` - Loads from `architect_basePlayers`
 - ✅ `src/utils/architect/firebaseTeamPlanHelpers.js` - Uses `baseTeamRef()` and `basePlayerRef()`
 - ✅ `src/data/firestorePaths.js` - Defines correct Architect collection paths
 
 ### Schema Definitions
+
 - ✅ `src/schemas/architect.ts` - Canonical Zod schemas for Architect collections
 
 ### Contract Utilities
+
 - ✅ `src/utils/architect/contractSalaryUtils.js` - Uses `contract.salariesByYear[]`
 - ✅ `src/utils/architect/contractUtils.js` - Generates `salariesByYear[]` format
 - ✅ `src/utils/architect/seasonFormat.js` - Handles season code conversions
 
 ### UI Components
+
 - ✅ `src/features/architect/GMDashboard.jsx` - Uses new schema throughout
 - ✅ `src/features/architect/CapSheet.jsx` - Reads from `salariesByYear[]`
 - ✅ `src/features/architect/CapSheetFull.jsx` - Uses new schema format
@@ -291,7 +310,7 @@ The migration is **production-ready** with only minor cleanup opportunities that
 **Status:** ✅ **PASS - Migration Complete & Cleaned Up**
 
 **Cleanup Summary:**
+
 - ✅ Removed unused `teamsCol()` helper from `firestorePaths.js`
 - ✅ Added documentation clarifying season codes as canonical format in `seasonFormat.js`
 - ⏸️ TypeScript type improvements deferred (low priority, non-blocking)
-

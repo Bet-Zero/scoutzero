@@ -40,4 +40,3 @@ The `FirestoreDataDiagnostic` component (`src/components/diagnostic/FirestoreDat
 ## Access
 
 The diagnostic component is typically accessible via a diagnostic page or admin panel in the application.
-

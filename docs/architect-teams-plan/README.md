@@ -5,6 +5,7 @@ This folder contains the complete planning documentation for the Architect Teams
 ## 🎯 What is Architect?
 
 Architect is a **multi-season NBA roster scenario planning system** that enables users to:
+
 - Create and manage multiple "what-if" scenarios with branching decision trees
 - Simulate roster decisions across multiple seasons with full CBA accuracy
 - Track contract changes, cap space evolution, and player moves over time
@@ -13,6 +14,7 @@ Architect is a **multi-season NBA roster scenario planning system** that enables
 ## 📚 Documentation Structure
 
 ### Start Here
+
 1. **`00-IMPLEMENTATION-STATUS.md`** ⭐ - **Current status and what to do next**
 2. **`01-GOALS.md`** - Project goals, requirements, and success criteria
 3. **`02-CURRENT-STATUS.md`** - What exists today vs what we're building
@@ -25,15 +27,18 @@ Architect is a **multi-season NBA roster scenario planning system** that enables
 ### Quick Access
 
 **For Implementation**:
+
 - Read `architect-plan-summary/EXECUTION-PROMPT.md` for implementation tasks
 - Follow Phase 2-4 in `07-IMPLEMENTATION-PLAN.md`
 
 **For Understanding**:
+
 - Read `01-GOALS.md` for the vision
 - Read `04-HOW-IT-WORKS.md` for architecture
 - Read `06-COMPREHENSIVE-SUMMARY.md` for the full picture
 
 **For Schema Reference**:
+
 - Canonical: `src/schemas/architect.ts` (Zod definitions)
 - Generated docs: `docs/schema/architect.md`
 - Detailed examples: `03-TARGET-SCHEMA.md`
@@ -41,7 +46,8 @@ Architect is a **multi-season NBA roster scenario planning system** that enables
 ## 🏗️ Architecture Overview
 
 ### Collections Structure
-```
+
+```text
 /architect/                         # ALL Architect data
   baseTeams/{teamCode}             # 30 teams, immutable baseline
   basePlayers/{playerId}           # 530 players, immutable baseline
@@ -50,6 +56,7 @@ Architect is a **multi-season NBA roster scenario planning system** that enables
 ```
 
 ### Key Principles
+
 - **Immutable base**: Real NBA data never modified
 - **Copy-on-write**: Only snapshot what changes (93% storage savings)
 - **Fallback chain**: World → Parent → Base for reads
@@ -75,4 +82,3 @@ See `00-IMPLEMENTATION-STATUS.md` for detailed status.
 
 **Last Updated**: November 1, 2025  
 **Status**: Planning Complete, Implementation In Progress
-

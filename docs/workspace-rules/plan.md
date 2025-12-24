@@ -64,7 +64,7 @@ blockers: none
 
 ## WORKSPACE_USAGE
 
-**Design Principle: Design for Cleanup**
+### Design Principle: Design for Cleanup
 
 Workspaces (`cursor_work/<slug>/`) are temporary scratch directories used during chunk execution. The system is designed so that cleanup is natural and automatic.
 

@@ -15,6 +15,10 @@ Quick reference for all components in the ScoutZero project.
 - FreeAgentPool.jsx
 - FreeAgentRow.jsx
 - GMDashboard/GMDashboard.jsx
+- GMDashboard/components/DeleteWorldModal.jsx
+- GMDashboard/components/SeasonAdvanceModal.jsx
+- GMDashboard/components/WorldSelector.jsx
+- GMDashboard/components/index.js
 - GMDashboard/index.jsx
 - GMDashboard/sections/CapSheetSection.jsx
 - GMDashboard/sections/CapTableSection.jsx
@@ -76,6 +80,7 @@ Quick reference for all components in the ScoutZero project.
 - tradeMachine/TradeValidationPanel.jsx
 - utils/architectCore.js
 - utils/basicArchitectUtils.js
+- utils/capLegalityValidation.js
 - utils/capProjections.js
 - utils/capUtils.js
 - utils/cashUtils.js
@@ -89,6 +94,7 @@ Quick reference for all components in the ScoutZero project.
 - utils/firebaseTeamPlanHelpers.js
 - utils/freeAgentLogic.js
 - utils/hardCapUtils.js
+- utils/mutationPipeline.js
 - utils/playerRulesProfile/birdRightsRules.js
 - utils/playerRulesProfile/computeProfile.js
 - utils/playerRulesProfile/extensionRules.js
@@ -296,4 +302,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2025-12-14T01:18:57.894Z*
+*Generated on: 2025-12-24T12:17:19.590Z*

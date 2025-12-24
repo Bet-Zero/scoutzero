@@ -38,6 +38,7 @@ const seasonDisplay = process.env.SEASON || seasonToDisplay(currentYear);
 ## Next Steps
 
 Players with 2024-25 stats should be re-scraped for 2025-26:
+
 - Run batch scraper: `npx tsx player-scrape/stats/scripts/run_stats_batch.ts`
 - Or individually: `PLAYER_ID=... SEASON=2025-26 npx tsx player-scrape/stats/scripts/run_stats.ts`
 
@@ -46,4 +47,3 @@ Players with 2024-25 stats should be re-scraped for 2025-26:
 - `player-scrape/stats/scripts/run_stats.ts` - Single player scraper (FIXED)
 - `player-scrape/stats/scripts/run_stats_batch.ts` - Batch scraper (already correct)
 - `player-scrape/firestore_staging/stage_player.ts` - Staging logic (FIXED to prioritize current season)
-

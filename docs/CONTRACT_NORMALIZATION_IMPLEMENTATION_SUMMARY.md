@@ -17,7 +17,9 @@ Lock in the final normalization rules across all players without special-casing,
 ### 1. Documentation Created
 
 #### `docs/CONTRACT_NORMALIZATION_RULES.md` (13.5KB)
+
 Comprehensive documentation covering:
+
 - All 7 normalization rules with detailed explanations
 - Code examples for valid and invalid states
 - Complete Luka Dončić scenario walkthrough
@@ -25,7 +27,9 @@ Comprehensive documentation covering:
 - Maintenance guidelines
 
 #### Inline Code Documentation
+
 Added detailed header to `player-scrape/contracts/scripts/parse_player.ts`:
+
 - Rule summary with enforcement functions
 - Quick reference for developers
 - Links to detailed documentation
@@ -33,7 +37,9 @@ Added detailed header to `player-scrape/contracts/scripts/parse_player.ts`:
 ### 2. Tests Created
 
 #### `tests/contractNormalizationRulesValidation.test.js` (24 tests)
+
 Comprehensive test suite validating:
+
 - Rule 1: Option field pairing (6 tests)
 - Rule 2: ISO date format (3 tests)
 - Rule 3: yearsRemaining calculation (2 tests)
@@ -43,6 +49,7 @@ Comprehensive test suite validating:
 - Rule 7: Money headlines preservation (5 tests)
 
 Total Test Coverage:
+
 - 47 contract normalization tests passing
 - Zero failures, zero regressions
 
@@ -51,6 +58,7 @@ Total Test Coverage:
 **Key Finding:** The existing implementation in `parse_player.ts` already correctly implements all rules.
 
 No code changes were needed because:
+
 - ✅ `validateOptionFieldPairing()` enforces Rule 1
 - ✅ `toISODate()` and `parseOptionUsedDate()` enforce Rule 2
 - ✅ `normalizeContractVoidedOptions()` correctly implements Rules 3, 5, 7
@@ -62,9 +70,11 @@ No code changes were needed because:
 ## The 7 Normalization Rules
 
 ### Rule 1: optionUsed / optionDecisionDate Pairing
+
 **Requirement:** Both fields must be null together OR both must be set together.
 
 **Examples:**
+
 - ✅ Valid: `optionUsed: null, optionDecisionDate: null`
 - ✅ Valid: `optionUsed: true, optionDecisionDate: "2025-06-28"`
 - ✅ Valid: `optionUsed: false, optionDecisionDate: "2025-08-02"`
@@ -75,9 +85,11 @@ No code changes were needed because:
 ---
 
 ### Rule 2: ISO Date Requirement
+
 **Requirement:** All dates in ISO 8601 format (YYYY-MM-DD)
 
 **Conversion:**
+
 - "Aug 2, 2025" → "2025-08-02"
 - "Jun 28, 2025" → "2025-06-28"
 
@@ -88,11 +100,14 @@ No code changes were needed because:
 ---
 
 ### Rule 3: yearsRemaining Logic
+
 **Requirement:** Count ONLY seasons that are:
+
 1. Still live (after current season start)
 2. NOT marked voidedByExtension
 
 **Example:**
+
 ```javascript
 salariesByYear: [
   { season: "2024-25", ... },              // Current
@@ -107,9 +122,11 @@ salariesByYear: [
 ---
 
 ### Rule 4: Player Option Guarantee Policy
+
 **Requirement:** Different treatment based on option status
 
 **Live Player Option:**
+
 ```javascript
 {
   option: "PO",
@@ -120,6 +137,7 @@ salariesByYear: [
 ```
 
 **Voided Player Option:**
+
 ```javascript
 {
   option: "PO",
@@ -135,9 +153,11 @@ salariesByYear: [
 ---
 
 ### Rule 5: Contract Linkage Metadata
+
 **Requirement:** Bidirectional references between contracts
 
 **Old Contract:**
+
 ```javascript
 {
   supersededIn: "2026-27",
@@ -146,6 +166,7 @@ salariesByYear: [
 ```
 
 **New Contract:**
+
 ```javascript
 {
   supersedesContractRef: "DESIGNATED ROOKIE SCALE EXTENSION"
@@ -157,11 +178,13 @@ salariesByYear: [
 ---
 
 ### Rule 6: signedByCurrentTeam Semantics
+
 **Requirement:** Reflects whether contract was signed by CURRENT team
 
 **Logic:** `signedByCurrentTeam = (signingTeam === currentTeamCode)`
 
 **Example:**
+
 - Player signed with DAL, now on LAL
 - Old contract: `signedByCurrentTeam: false`
 - New extension with LAL: `signedByCurrentTeam: true`
@@ -169,14 +192,17 @@ salariesByYear: [
 ---
 
 ### Rule 7: Money Headlines Preservation
+
 **Requirement:** Different treatment for different money fields
 
 **PRESERVE (unchanged):**
+
 - totalValue
 - averageAnnualValue
 - contractLength
 
 **RECOMPUTE (based on active years):**
+
 - guaranteedValue
 - guaranteedYears
 - yearsRemaining
@@ -188,12 +214,14 @@ salariesByYear: [
 ## Validation Results
 
 ### Test Execution
+
 ```bash
 npm run test tests/contractNormalization*.test.js tests/contractOptionUsed.test.js tests/contractYears.test.js -- --run
 ```
 
 **Results:**
-```
+
+```text
 ✓ contractNormalizationValidation.test.js      (16 tests)
 ✓ contractNormalizationRulesValidation.test.js (24 tests)
 ✓ contractOptionUsed.test.js                   (4 tests)
@@ -205,32 +233,38 @@ Duration  1.77s
 ```
 
 ### Build Verification
+
 ```bash
 npm run build
 ```
 
 **Results:**
-```
+
+```text
 ✓ built in 7.77s
 No errors
 ```
 
 ### Security Scan
+
 ```bash
 codeql_checker
 ```
 
 **Results:**
-```
+
+```text
 javascript: No alerts found
 ```
 
 ### Linting
+
 ```bash
 npm run lint
 ```
 
 **Results:**
+
 - No new errors introduced
 - Pre-existing issues (628) unrelated to changes
 
@@ -239,6 +273,7 @@ npm run lint
 ## Luka Dončić Example Validation
 
 ### Scenario
+
 - Current Team: LAL (Los Angeles Lakers)
 - Old Contract: DESIGNATED ROOKIE SCALE EXTENSION (signed with DAL)
 - Future Contract: VETERAN EXTENSION (signed with LAL)
@@ -304,15 +339,19 @@ npm run lint
 ## Key Findings
 
 ### 1. Implementation Already Correct
+
 The TypeScript scraper (`parse_player.ts`) already implements all 7 rules correctly. No code changes were needed.
 
 ### 2. Documentation Gap Closed
+
 Rules were implemented but not explicitly documented. This PR formalizes them as a locked specification.
 
 ### 3. Test Coverage Complete
+
 Comprehensive test suite prevents regression and validates all rule combinations.
 
 ### 4. Universal Application
+
 No player-specific logic exists. Rules apply equally to all players.
 
 ---
@@ -320,13 +359,16 @@ No player-specific logic exists. Rules apply equally to all players.
 ## Files Changed
 
 ### New Files
+
 1. `docs/CONTRACT_NORMALIZATION_RULES.md` - Complete specification
 2. `tests/contractNormalizationRulesValidation.test.js` - 24 comprehensive tests
 
 ### Modified Files
+
 1. `player-scrape/contracts/scripts/parse_player.ts` - Added inline documentation header
 
 ### Total Changes
+
 - 2 files created
 - 1 file modified
 - 0 breaking changes
@@ -337,18 +379,23 @@ No player-specific logic exists. Rules apply equally to all players.
 ## Benefits
 
 ### 1. Consistency
+
 All contracts normalized using identical rules, regardless of player.
 
 ### 2. Documentation
+
 Developers have clear specification for contract data format.
 
 ### 3. Regression Prevention
+
 Comprehensive tests ensure rules cannot be accidentally broken.
 
 ### 4. Maintainability
+
 Clear documentation makes future updates safer and easier.
 
 ### 5. Data Quality
+
 Strict validation ensures high-quality contract data.
 
 ---
@@ -374,6 +421,7 @@ Strict validation ensures high-quality contract data.
 ## Conclusion
 
 ✅ **All requirements met:**
+
 - 7 normalization rules locked in
 - Comprehensive documentation created
 - 47 tests passing

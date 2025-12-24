@@ -3,6 +3,7 @@
 Quick reference for all components in the ScoutZero project.
 
 ## Architect
+
 - CapSheet.jsx
 - CapSheetFull.jsx
 - CapSummaryTiles.jsx
@@ -42,6 +43,7 @@ Quick reference for all components in the ScoutZero project.
 - tradeMachine/TradeValidationPanel.jsx
 
 ## Filters
+
 - ActiveFiltersDisplay/FilterPill/FilterContent.jsx
 - ActiveFiltersDisplay/FilterPill/FilterPill.jsx
 - ActiveFiltersDisplay/index.jsx
@@ -59,6 +61,7 @@ Quick reference for all components in the ScoutZero project.
 - FiltersPanel/index.jsx
 
 ## Lists
+
 - AddToListButton/AddToListModal.jsx
 - AddToListButton/index.jsx
 - CreateListModal.jsx
@@ -84,6 +87,7 @@ Quick reference for all components in the ScoutZero project.
 - TieredListView/index.jsx
 
 ## Profile
+
 - BreakdownModal.jsx
 - PlayerDetails/BadgeSelector.jsx
 - PlayerDetails/OverallBlurbBox.jsx
@@ -103,6 +107,7 @@ Quick reference for all components in the ScoutZero project.
 - TeamPlayerSelector.jsx
 
 ## Ranker
+
 - AnchorComparison.jsx
 - ComparisonMatrix.jsx
 - ComparisonMatrixDrawer.jsx
@@ -114,6 +119,7 @@ Quick reference for all components in the ScoutZero project.
 - tournamentRanker.js
 
 ## Roster
+
 - AddPlayerDrawer/PlayerRowMini.jsx
 - AddPlayerDrawer/addPlayer/BasicFilters.jsx
 - AddPlayerDrawer/addPlayer/ContractFilters.jsx
@@ -137,6 +143,7 @@ Quick reference for all components in the ScoutZero project.
 - SaveRosterModal.jsx
 
 ## Table
+
 - PlayerTable/PlayerRow/PlayerDrawer/BadgeMini.jsx
 - PlayerTable/PlayerRow/PlayerDrawer/OverallBlurbMini.jsx
 - PlayerTable/PlayerRow/PlayerDrawer/PlayerContractMini.jsx
@@ -156,6 +163,7 @@ Quick reference for all components in the ScoutZero project.
 - TwoWayMini.jsx
 
 ## TierMaker
+
 - CreateTierListModal.jsx
 - TierMakerBoard.jsx
 - TierRow.jsx

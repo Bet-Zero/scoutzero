@@ -4,7 +4,7 @@ HoopZero is a React + Firebase application that provides a public-facing view of
 
 ## Folder Structure
 
-```
+```text
 src/
 ├── components/          # Layout wrappers and shared UI pieces
 │   ├── layout/          # Site wide layout components

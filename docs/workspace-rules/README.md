@@ -22,4 +22,3 @@ When working on Cursor-related tasks:
 - `AGENTS.md` — Project-level AI instructions
 - `DEVELOPER_GUIDE.md` — Development conventions
 - `PROJECT_SCHEMA.md` — Repository structure validation
-

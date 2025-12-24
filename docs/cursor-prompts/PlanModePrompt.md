@@ -280,7 +280,7 @@ Workspaces are for temporary scratch space during execution. Only create if you 
 
 **Decision Tree:**
 
-```
+```text
 Is this file meant to be permanent?
 ├─ YES → Is it production-ready?
 │   ├─ YES → Save to permanent location (src/, data/, docs/, tools/, tests/)

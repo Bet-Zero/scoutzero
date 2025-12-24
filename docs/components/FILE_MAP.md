@@ -1,3 +1,6 @@
+# Project Structure
+
+```text
 / Project root
 ├── AGENTS.md
 ├── README.md
@@ -11,7 +14,7 @@
 ├── data/
 ├── public/
 ├── src/
-
+```
 
 ---
 *Generated on: 2025-10-20T04:25:52.483Z*

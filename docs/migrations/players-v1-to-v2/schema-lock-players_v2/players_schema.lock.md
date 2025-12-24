@@ -194,4 +194,3 @@ Root: `players_v2`
 - `age` — **number**
 
 **Subcollections**: _none_
-

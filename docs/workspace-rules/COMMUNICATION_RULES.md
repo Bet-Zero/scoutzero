@@ -2,7 +2,7 @@
 
 ## Core Principle
 
-**Ask Questions About Project Direction, Make Technical Decisions Independently**
+### Ask Questions About Project Direction, Make Technical Decisions Independently
 
 ## The User's Perspective
 
@@ -16,6 +16,7 @@
 ### 1. Ask Questions (Project Direction & Requirements)
 
 **When to ask:**
+
 - What the user wants to accomplish
 - How something should work from a user perspective
 - What the end result should look like
@@ -23,12 +24,14 @@
 - Edge cases or "what if" scenarios
 
 **How to ask:**
+
 - Be specific and clear
 - Provide options when helpful
 - Ask follow-up questions if initial answer is unclear
 - Don't assume intent - ask rather than guess
 
 **Example questions:**
+
 - "Should this feature work for all teams or just specific ones?"
 - "When a user clicks X, what should happen?"
 - "Do you want this to be visible to all users or just admins?"
@@ -37,6 +40,7 @@
 ### 2. Make Technical Decisions (Code & Implementation)
 
 **What to decide independently:**
+
 - Code patterns and architecture
 - Data structures and types
 - Framework choices and libraries
@@ -47,12 +51,14 @@
 - Testing strategies
 
 **How to decide:**
+
 - Use best practices for the tech stack
 - Follow project conventions (see `AGENTS.md`)
 - Consider maintainability and scalability
 - Document significant decisions in plan notes
 
 **Example decisions (don't ask, just do):**
+
 - "I'll use React hooks for state management"
 - "I'll store this in a Zod schema"
 - "I'll create a utility function for this logic"
@@ -90,6 +96,7 @@
 **User**: "I want to add a filter to the player list"
 
 **Agent**: "A few questions to clarify:
+
 - Should the filter work on all player attributes (position, team, age) or specific ones?
 - Should filtered results persist when navigating away and coming back?
 - Do you want saved filter presets or just temporary filtering?"
@@ -115,4 +122,3 @@
 ---
 
 **Remember**: User facilitates project direction, agent executes with technical expertise. Ask about WHAT and WHY, decide HOW.
-

@@ -4,7 +4,7 @@
 
 ## When to Create Permanent Documentation
 
-### Always Create Documentation For:
+### Always Create Documentation For
 
 1. **New Major Features** → `src/features/<feature>/README.md`
 2. **New Scripts/Tools** → `<scriptDir>/README.md`
@@ -16,16 +16,19 @@
 ## 1. Feature README (`src/features/<feature>/README.md`)
 
 **When to create:**
+
 - **ALL** new feature directories (mandatory)
 - New major feature directory
 - Significant feature refactor that changes architecture
 - Feature with complex logic or multiple components
 
 **Path rules:**
+
 - For features: `src/features/<featureSlug>/README.md`
 - For Architect-specific features: `src/architect/<featureSlug>/README.md` (if using separate architect folder)
 
 **What to include:**
+
 ```markdown
 # Feature Name
 
@@ -68,14 +71,17 @@ If the feature exports hooks, utilities, or functions:
 ## 2. Script/Tool README (`<scriptDir>/README.md`)
 
 **When to create:**
+
 - **ALL** new scripts or tools (mandatory)
 - Even simple scripts should have basic README
 
 **Path rules:**
+
 - For tools: `tools/<toolSlug>/README.md`
 - For scripts: `<scriptDir>/README.md` (e.g., `player-scrape/contracts/README.md`)
 
 **What to include:**
+
 ```markdown
 # Script/Tool Name
 
@@ -101,13 +107,16 @@ npx tsx scripts/main.ts [options]
 ```
 
 ## Parameters
+
 - `--param` - Description
 - `--flag` - Description
 
 ## Output
+
 Where output goes and what format it's in.
 
 ## Examples
+
 ```bash
 # Example 1
 npm run script-name --param value
@@ -117,18 +126,20 @@ npm run script-name --flag
 ```
 
 ## Related Documentation
+
 - Links to relevant plan and chunk files: `plans/<planSlug>/plan.md`
 - Links to docs under `docs/`
-```
 
 ## 3. API Documentation (`docs/api/<feature>.md` or in feature README)
 
 **When to create:**
+
 - Feature exports hooks, utilities, or functions used by other features
 - Complex APIs that need detailed documentation
 - Public APIs that other developers will use
 
 **What to include:**
+
 - Function signatures
 - Parameter descriptions
 - Return value descriptions
@@ -138,11 +149,13 @@ npm run script-name --flag
 ## 4. User Guides (`docs/guides/<feature>.md`)
 
 **When to create:**
+
 - Features with complex user workflows
 - Features with non-obvious functionality
 - Features that need step-by-step instructions
 
 **What to include:**
+
 - Step-by-step usage instructions
 - Common workflows
 - Examples and use cases
@@ -151,14 +164,17 @@ npm run script-name --flag
 ## 3. Data Module README (`data/<area>/README.md`)
 
 **When to create:**
+
 - **ALL** new data modules (mandatory)
 - New data processing areas
 - Data modules with complex structure
 
 **Path rules:**
+
 - For data modules: `data/<area>/README.md`
 
 **What to include:**
+
 ```markdown
 # Data Module Name
 
@@ -184,7 +200,7 @@ Description of data structure and format.
 - Links to schemas under `src/schemas/`
 ```
 
-## 4. Index-Based Structure for Composed Components
+## 6. Index-Based Structure for Composed Components
 
 **CRITICAL**: When creating a folder that owns subcomponents (feature root or complex component), you MUST:
 
@@ -193,7 +209,8 @@ Description of data structure and format.
 3. **Keep hierarchy consistent** with visual/logic composition (parent components live above their children in folder depth)
 
 **Example structure:**
-```
+
+```text
 src/architect/tradeMachine/autoSuggest/
 ├── index.tsx                    # Exports main AutoSuggest entry
 ├── AutoSuggestModal/
@@ -207,28 +224,31 @@ src/architect/tradeMachine/autoSuggest/
 ```
 
 **Rules:**
+
 - Parent components export from `index.tsx` at their level
 - Child components live in subfolders with their own `index.tsx`
 - Keep folder depth aligned with component hierarchy
 
-## 5. File Headers for New/Modified Files
+## 7. File Headers for New/Modified Files
 
 **CRITICAL**: For all new or significantly modified files in `src/`, `data/`, and `tools/`, you MUST:
 
 1. **Insert the standard file header** using `docs/templates/file_header.template.txt`
 2. **Fill in all required fields:**
-   - `FILE`: Relative path from repo root (e.g., `src/features/tradeMachine/AutoSuggest.tsx`)
-   - `PURPOSE`: Short description of what this file does
-   - `OWNERSHIP`: Feature or domain (e.g., `Feature: architect/tradeMachine` or `Tool: player-scrape/contracts`)
-   - `HISTORY`: At least one entry referencing the plan and chunk
-   - `LINKS`: Paths to the plan and latest chunk
+    - `FILE`: Relative path from repo root (e.g., `src/features/tradeMachine/AutoSuggest.tsx`)
+    - `PURPOSE`: Short description of what this file does
+    - `OWNERSHIP`: Feature or domain (e.g., `Feature: architect/tradeMachine` or `Tool: player-scrape/contracts`)
+    - `HISTORY`: At least one entry referencing the plan and chunk
+    - `LINKS`: Paths to the plan and latest chunk
 
 **When to add headers:**
+
 - ✅ **All new files** in `src/`, `data/`, `tools/`
 - ✅ **Significantly modified files** (architecture changes, major refactors)
 - ❌ **Minor changes** (bug fixes, small tweaks) - update HISTORY only if header exists
 
 **If unsure about PURPOSE or OWNERSHIP:**
+
 - **ASK the user** instead of guessing
 - See `docs/workspace-rules/COMMUNICATION_RULES.md` for when to ask vs. decide
 
@@ -236,7 +256,7 @@ src/architect/tradeMachine/autoSuggest/
 
 ## File Placement Rules
 
-### Permanent Documentation Locations:
+### Permanent Documentation Locations
 
 - **Feature docs**: `src/features/<feature>/README.md` or `src/architect/<feature>/README.md`
 - **Script docs**: `<scriptDir>/README.md` (e.g., `tools/<toolSlug>/README.md`)
@@ -246,7 +266,7 @@ src/architect/tradeMachine/autoSuggest/
 - **Schema docs**: Auto-generated via `npm run schema:generate` → `docs/schema/`
 - **Component docs**: Auto-generated via `npm run docs` → `docs/components/`
 
-### Temporary Documentation (Workspace):
+### Temporary Documentation (Workspace)
 
 - **Interim notes**: `cursor_work/<slug>/temp/docs/`
 - **Process notes**: `cursor_work/<slug>/temp/docs/`
@@ -306,19 +326,21 @@ When creating a new script or tool:
 - [ ] **Update `PROJECT_SCHEMA.md`**
   - Add script to "Script Interfaces" section
 
-## Examples
+## Feature and Script Examples
 
 ### Example 1: New Feature
 
 **What**: Created `src/features/tradeMachine/` with multiple components
 
 **Documentation created:**
+
 - ✅ `src/features/tradeMachine/README.md` (feature overview, components, APIs)
 - ✅ Updated `DEVELOPER_GUIDE.md` (added to folder structure)
 - ✅ `docs/guides/tradeMachine.md` (user guide for complex workflows)
 - ✅ Ran `npm run docs` (component hierarchies)
 
 **Temporary docs** (in workspace):
+
 - ❌ `cursor_work/trade-machine/temp/docs/implementation_notes.md` (deleted when done)
 
 ### Example 2: New Script
@@ -326,10 +348,12 @@ When creating a new script or tool:
 **What**: Created `scripts/data-processor/process_players.ts`
 
 **Documentation created:**
+
 - ✅ `scripts/data-processor/README.md` (usage, parameters, examples)
 - ✅ Updated `PROJECT_SCHEMA.md` (added to script interfaces)
 
 **Temporary docs** (in workspace):
+
 - ❌ `cursor_work/data-processor/temp/docs/test_results.md` (deleted when done)
 
 ## Checklist for New Data Modules
@@ -354,6 +378,7 @@ When creating a new data module:
 ## Summary
 
 **Permanent documentation** = Files that users/developers will reference long-term
+
 - Feature READMEs (with PURPOSE, ENTRY POINTS, STRUCTURE)
 - Script/Tool READMEs (with PURPOSE, ENTRY POINTS, STRUCTURE)
 - Data module READMEs (with PURPOSE, ENTRY POINTS, STRUCTURE)
@@ -362,14 +387,27 @@ When creating a new data module:
 - File headers (for all new/significantly modified files)
 
 **Temporary documentation** = Files for your own notes during development
+
 - Implementation notes
 - Process notes
 - Test results
 
 **Structure requirements:**
+
 - Index-based structure for composed components
 - Folder-level READMEs for all features, tools, and data modules
 - File headers for all new files in `src/`, `data/`, `tools/`
 
 **Rule**: If someone else (or future you) will need to reference it, it's permanent. If it's just notes for yourself during development, it's temporary.
 
+### Before creating any file, ask: "Is this permanent or temporary?"
+
+```text
+Is this file meant to be permanent?
+├─ YES → Is it production-ready?
+│   ├─ YES → Save to permanent location (src/, data/, docs/, tools/, tests/)
+│   └─ NO → Save to workspace drafts/ (will be moved or deleted)
+└─ NO → Save to workspace temp/ (will be deleted)
+```
+
+### Design Principle: Design for Cleanup

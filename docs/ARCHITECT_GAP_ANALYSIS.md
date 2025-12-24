@@ -57,12 +57,14 @@ The Architect feature is a sophisticated NBA roster scenario planning system wit
 | `updateWorldStats()` | ✅ Implemented | Works |
 
 **Status Update (Dec 21, 2025)**: World deletion system is now **complete** with two options:
+
 - **Archive (Safe)**: `archiveWorld()` sets `isArchived: true`, hiding the world but preserving all data
 - **Purge (Permanent)**: `purgeWorld()` calls a Cloud Function that recursively deletes all subcollections
 
 The WorldSelector UI now includes both "Archive" (soft-delete) and "Delete Permanently" options. Permanent deletion requires explicit confirmation (typing "DELETE" or the world name).
 
 **Cloud Function**: `functions/src/architect/purgeWorld.ts` implements `purgeArchitectWorld` callable:
+
 - Validates authentication and ownership (auth.uid === createdBy)
 - Prevents deletion of worlds with child branches
 - Recursively deletes teams → players → world metadata
@@ -83,10 +85,12 @@ The WorldSelector UI now includes both "Archive" (soft-delete) and "Delete Perma
 | `mergeSalariesByYear()` | ✅ Implemented | Season-based merge |
 
 **Status Update (Dec 20, 2025)**:
+
 - ✅ **World selection infrastructure is complete**: worldId exists in `useArchitectState`, WorldSelector UI works, persistence to localStorage operational
 - ✅ **World-aware data reads now implemented**: GMDashboard uses `loadWorldTeamData()` which routes through `teamLoader.getTeam()` for world-aware reads with fallback chain
 
 **Implementation**: Created `useWorldTeamData.ts` hook that:
+
 1. Accepts `worldId` and `teamId` parameters
 2. Uses `teamLoader.getTeam(worldId, teamCode)` for world-aware reads
 3. Falls back to base team when `worldId` is null (base-only mode)
@@ -98,6 +102,7 @@ The WorldSelector UI now includes both "Archive" (soft-delete) and "Delete Perma
 **File**: `src/features/architect/utils/tradeManager.js`
 
 **Architecture Decision**: Module header explicitly states:
+
 ```javascript
 // This module is intentionally READ-ONLY with respect to Firestore.
 // It computes updated team/player snapshots and returns them to callers,
@@ -113,6 +118,7 @@ The WorldSelector UI now includes both "Archive" (soft-delete) and "Delete Perma
 | `updateTeamCapTotals()` | ✅ Computes | N/A (helper) |
 
 **Status Update (Dec 24, 2025)**: Fixed critical bug in `executeTrade()` for multi-team trades:
+
 - **Bug Fixed**: Previously, all players from all other teams were sent to every team in the trade, causing player duplication
 - **Solution**: Added support for `tradeTo`/`toTeamId` field on each sent player to specify explicit destination
 - **Multi-team trades**: Players only route to their specified destination team
@@ -121,6 +127,7 @@ The WorldSelector UI now includes both "Archive" (soft-delete) and "Delete Perma
 - **Roster filter**: Fixed to handle player objects (not just string IDs)
 
 **Status Update (Dec 20, 2025)**: tradeManager is **intentionally compute-only** and delegates all persistence to the centralized `mutationPipeline.js`. This separation of concerns allows:
+
 1. Pure, testable computation logic without Firestore dependencies
 2. Centralized write layer for audit trails and Cloud Functions migration
 3. Consistent world snapshot creation across all mutation types
@@ -147,6 +154,7 @@ The WorldSelector UI now includes both "Archive" (soft-delete) and "Delete Perma
 | `updateDraftPicksWithStepien()` | ✅ NEW | Phase 3B: Stepien recalculation for 7-year window |
 
 **Phase 3B Implementation**:
+
 1. ✅ `advanceSeasonInWorld()` - New world-scoped function that requires explicit option decisions
 2. ✅ `processOptionsWithDecisions()` - Processes options based on user input, creates cap holds for declined options
 3. ✅ `updateDraftPicksWithStepien()` - Implements Stepien rule: marks picks as `stepienBlocked` if trading would create consecutive years without a first-round pick
@@ -157,6 +165,7 @@ The WorldSelector UI now includes both "Archive" (soft-delete) and "Delete Perma
 ### 1.6 Contract & Signing Logic - MUTATIONPIPELINE PERSISTENCE ✅
 
 **Files**:
+
 - `useArchitectActions.ts` - Handles all contract actions
 - `mutationPipeline.js` - Centralized persistence layer
 - `contractUtils.js` - Cap hold calculations
@@ -173,6 +182,7 @@ The WorldSelector UI now includes both "Archive" (soft-delete) and "Delete Perma
 **Status Update (Dec 20, 2025)**: Contract actions now persist through the centralized `mutationPipeline.applyWorldMutation()` which writes atomically to `architect_worlds` subcollections (teams, players, metadata). Legacy `teamPlans` persistence is no longer the primary path for Architect mutations.
 
 **Remaining Work**:
+
 - Verify all contract actions call mutationPipeline (or identify which still use legacy paths)
 - Add "Renounce Rights" support to mutationPipeline if needed
 
@@ -199,6 +209,7 @@ The trade validation engine is the most complete subsystem:
 | FA Exception Usage | `validateFaExceptionUsage.js` | ✅ Complete |
 
 **Minor Gaps**:
+
 - ✅ Test coverage at 100% (295/295 tests passing) - Firebase mock issues resolved, Phase 3B & 4A tests added
 - Some rules duplicated between Trade Machine and Architect core
 
@@ -209,6 +220,7 @@ The trade validation engine is the most complete subsystem:
 **File**: `src/features/architect/utils/salaryEngine/`
 
 Modern, well-typed module providing:
+
 - `getSalaryProfile()` - Unified salary calculations
 - `getMaxSalaryProfile()` - Max contract calculations
 - `getMinSalaryProfile()` - Minimum salary by YOS
@@ -225,6 +237,7 @@ Modern, well-typed module providing:
 **File**: `src/features/architect/utils/capProjections.js`
 
 Covers seasons 2024-25 through 2031-32 with:
+
 - Salary cap, floor, tax line
 - First/second apron thresholds
 - MLE variants (full, taxpayer, room)
@@ -255,6 +268,7 @@ Covers seasons 2024-25 through 2031-32 with:
 | **World Selector** | ✅ Works | Create/Select/Branch/Rename/Archive worlds |
 
 **UI Components Status (Updated)**:
+
 - ✅ World Selector (create/select worlds)
 - ✅ Branch Button (branch from current world)
 - ✅ World Management (rename, archive via dropdown menu)
@@ -269,6 +283,7 @@ Covers seasons 2024-25 through 2031-32 with:
 **File**: `src/features/architect/GMDashboard/hooks/useArchitectState.ts`
 
 **What's Complete**:
+
 - ✅ Clean TypeScript with proper types
 - ✅ Centralized state management
 - ✅ **worldId state and setWorldId setter available**
@@ -286,6 +301,7 @@ const [worldId, setWorldId] = useState<string | null>(null);
 WorldId is set by the WorldSelector component and persists across browser refresh via localStorage (`architect.activeWorldId.{userId}`).
 
 **Remaining Work**:
+
 - ✅ ~~Wire `teamLoader.getTeam(worldId)` for world-aware data loading~~ (Phase 2B complete)
 - ⚠️ Update auto-save destination from `teamPlans` to `architect_worlds` (future phase)
 
@@ -296,6 +312,7 @@ WorldId is set by the WorldSelector component and persists across browser refres
 **File**: `src/shared/components/EditContractModal.jsx`
 
 At 1,063 lines, this modal handles:
+
 - Option accept/decline
 - Free agent signing
 - Extensions
@@ -303,6 +320,7 @@ At 1,063 lines, this modal handles:
 - Validation warnings
 
 **Gaps**:
+
 - ✅ ~~Uses deprecated `extensionRules.js` as fallback~~ (Now uses `salaryEngine`)
 - ⚠️ Cap validation runs but doesn't block illegal actions
 - ⚠️ "Force Action" button bypasses all validation
@@ -325,6 +343,7 @@ At 1,063 lines, this modal handles:
 | TradeDebugPanel | ✅ Developer debugging |
 
 **Status Update (Dec 20, 2025)**: Trade execution flow:
+
 1. `onApplyTrade()` updates local `teamCapSheet` state for immediate UI feedback
 2. Persistence flows through `mutationPipeline.applyWorldMutation('executeTrade', ...)`
 3. mutationPipeline calls `tradeManager.executeTrade()` to compute world snapshot
@@ -475,6 +494,7 @@ Phase 4B: Polish & Edge Cases ✅ COMPLETE
 ## Conclusion
 
 **What Architect Already Does**:
+
 - Comprehensive CBA trade validation (90%+ of rules)
 - Full contract editing UI with validation warnings
 - Multi-year cap projections and salary calculations
@@ -498,15 +518,18 @@ Phase 4B: Polish & Edge Cases ✅ COMPLETE
 - ✅ E2E integration tests for critical workflows (world lifecycle, offseason loop, trade persistence)
 
 **What Is Complete**:
+
 - All core functionality implemented
 - All tests passing (317 tests including 7 new E2E tests)
 - World deletion fully implemented (archive for soft-delete, purge for permanent)
 - Multi-team trade routing fixed (players go to explicit destinations)
 
 **What Is Optional/Future Work**:
+
 - Branch visualization UI
 
 **Completed Milestones**:
+
 1. ✅ Populate `architect_baseTeams` and `architect_basePlayers`
 2. ✅ Wire world system to GMDashboard (WorldSelector UI complete)
 3. ✅ Add persistence layer for all roster mutations (mutationPipeline)
@@ -552,6 +575,7 @@ Phase 4B: Polish & Edge Cases ✅ COMPLETE
 ### Summary
 
 Phase 2A WorldSelector implementation is complete. Users can now:
+
 - See their worlds in a dropdown in the GMDashboard header
 - Create new worlds with name and description
 - Branch the current world to explore alternative scenarios
@@ -616,11 +640,13 @@ Phase 2B world-aware data loading is complete. All primary dashboard reads now r
 - **Primary Team Data**: Passed from GMDashboard (already world-aware)
 
 When a world is selected:
+
 1. Data loading uses `teamLoader.getTeam()` with world fallback chain
 2. World snapshots take precedence over base team data
 3. Trade machine secondary teams also load from the same world context
 
 When no world is selected (worldId is null):
+
 1. Falls back to base team loading (same behavior as before)
 2. Legacy plan system remains functional for backward compatibility
 
@@ -800,6 +826,7 @@ Phase 3B is complete. Users can now:
 5. **See Results**: Success toast and automatic world data reload
 
 The implementation:
+
 - Requires explicit option decisions - no silent defaults
 - Creates cap holds for declined options
 - Runs Stepien recalculation to mark blocked picks
@@ -906,12 +933,14 @@ Phase 4A (Production-Safe World Deletion) is complete. The implementation provid
 2. **Purge (Permanent)**: `purgeWorld()` calls a Cloud Function that recursively deletes all data
 
 The Cloud Function (`purgeArchitectWorld`) ensures:
+
 - Only authenticated users can delete
 - Only world owners can delete their own worlds
 - Worlds with child branches cannot be deleted
 - Large worlds are handled with pagination and timeout management
 
 The UI provides clear separation between Archive and Delete:
+
 - Archive button (yellow) - hides world, can be restored
 - Delete Permanently button (red) - requires explicit confirmation
 
@@ -922,6 +951,7 @@ The UI provides clear separation between Archive and Delete:
 ### Bug Fixed
 
 **Multi-team trade player duplication** (`src/features/architect/utils/tradeManager.js`):
+
 - **Root Cause**: Lines 95-106 collected ALL players from ALL other teams for each team in the trade
 - **Result**: In a 3-team trade (A→B→C), each player appeared on multiple rosters simultaneously
 - **Fix**: Added support for `tradeTo`/`toTeamId` field to specify explicit destination routing
@@ -957,7 +987,8 @@ The UI provides clear separation between Archive and Delete:
 
 Phase 4B is complete. The multi-team trade bug has been fixed:
 
-**Before**: 
+**Before**:
+
 ```javascript
 // LAL sends lebron → GSW, BOS
 // GSW sends curry → LAL, BOS  
@@ -966,6 +997,7 @@ Phase 4B is complete. The multi-team trade bug has been fixed:
 ```
 
 **After**:
+
 ```javascript
 // LAL sends lebron → GSW (only)
 // GSW sends curry → BOS (only)

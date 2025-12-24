@@ -17,7 +17,7 @@ This runbook captures the operational steps and parameters for the 2025-11-10 da
 
 Command template (per-team batching, exponential backoff, logs auto-generated under `player-scrape/logs/<timestamp>/`):
 
-```
+```bash
 npx tsx player-scrape/firestore_staging/scripts/run_full_scrape.ts \
   --batchSize=4 \
   --concurrency=6 \
@@ -42,7 +42,7 @@ Within the Cursor sandbox, `npx` fails to launch (`EPERM` on global npm `sigstor
 
 Command template (Playwright fetch + parse + stage). Logs stream to `team-scrape/logs/<timestamp>/` grouped by phase (`fetch`, `parse`, `stage`):
 
-```
+```bash
 npx tsx team-scrape/shared/firestore_staging/scripts/run_full_team_scrape.ts \
   --batchSize=3 \
   --delayMs=1500 \
@@ -57,7 +57,7 @@ npx tsx team-scrape/shared/firestore_staging/scripts/run_full_team_scrape.ts \
 
 ### Draft Pick Merge
 
-```
+```bash
 npx tsx team-scrape/shared/review_and_merge/scripts/merge_team_outputs.ts \
   --logDir=team-scrape/logs \
   --pretty=true
@@ -82,6 +82,7 @@ npx tsx team-scrape/shared/review_and_merge/scripts/merge_team_outputs.ts \
 - Regenerated schema docs (`npm run schema:generate`) and ran project validator (`npm run validate:project`); both succeeded.
 
 ### QA Notes
+
 - Player sample (Austin Reaves) validates end-to-end with up-to-date timestamps.
 - Team sample surfaces expected unresolved veteran cap holds; follow-up: map those names to archival playerIds or exclude if not needed.
 - No structural issues detected in schema regeneration/validator runs.
@@ -92,11 +93,13 @@ npx tsx team-scrape/shared/review_and_merge/scripts/merge_team_outputs.ts \
 ### Push Results
 
 **Players Pushed:** 20 players (subset from test runs)
+
 - Includes: `shai_gilgeous_alexander`, `joel_embiid`, `lauri_markkanen`, `austin_reaves`, `lebron_james`, `luka_doncic`, and 14 others
 - Collections: `players_v2` (with subcollections) + `/architect/basePlayers`
 - Status: ✅ All 20 players pushed successfully
 
 **Teams Pushed:** 23 teams (most of league)
+
 - Includes: ATL, BKN, BOS, CHI, CLE, DAL, DEN, DET, GSW, HOU, IND, LAC, LAL, MIA, MIN, NOP, NYK, OKC, PHI, PHX, SAC, UTA, WAS
 - Collection: `/architect/baseTeams`
 - Status: ✅ All 23 teams pushed successfully
@@ -121,4 +124,3 @@ npx tsx team-scrape/shared/review_and_merge/scripts/merge_team_outputs.ts \
 - Run `merge_team_outputs.ts` after staging draft pick outputs for all franchises.
 - Perform `npm run validate:project` and `npm run schema:generate` post-run to keep docs in sync.
 - Record QA notes (pass/fail sampling) once fresh payloads validated.
-

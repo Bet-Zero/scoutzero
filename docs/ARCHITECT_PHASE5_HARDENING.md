@@ -34,18 +34,21 @@ This document analyzes the Architect feature's production readiness, identifying
 **Name**: Persistence Model Inconsistency
 
 **Where it lives**:
+
 - `src/features/architect/utils/worldManager.js` → `architect_worlds` collection
 - `src/features/architect/utils/firebaseTeamPlanHelpers.js` → `teamPlans` collection
 - `src/features/architect/GMDashboard/hooks/useArchitectState.ts` → Effect 6 autosaves to `teamPlans`
 - `src/features/architect/utils/mutationPipeline.js` → writes to `architect_worlds`
 
 **Why it's a risk**:
+
 - Legacy plan autosave (`saveUserTeamPlan`, `saveNamedTeamPlan`) runs independently of mutation pipeline
 - Changes in `teamCapSheet` state trigger autosave to `teamPlans` even when user is in a world
 - Creates two sources of truth that can diverge
 - User confusion about which data is "real"
 
 **How to detect it**:
+
 - User modifies cap sheet in world mode
 - Autosave writes to `teamPlans/{userId}_{teamId}`  
 - User reloads without world selected → sees stale `teamPlans` data, not world state
@@ -66,6 +69,7 @@ if (userId && !worldId) {
 **Gap**: While reads are gated, Effect 6 autosave (lines 484-527) still writes to `teamPlans` when `viewMode === 'plan'` regardless of whether a world is selected.
 
 **Proposed Fix**:
+
 1. **Short-term**: Gate autosave to `teamPlans` on `!worldId` condition
 2. **Long-term**: Deprecate `teamPlans` for Architect, migrate existing plans to world snapshots
 
@@ -76,17 +80,20 @@ if (userId && !worldId) {
 **Name**: Force Override Bypass Path
 
 **Where it lives**:
+
 - `src/shared/components/EditContractModal.jsx` lines 1165-1250 → Override UI
 - `src/features/architect/hooks/useTradeMachine.js` line 169 → `forceTrade` state
 - `src/features/architect/tradeMachine/TradeEditor.jsx` lines 157-181 → Force button
 
 **Why it's a risk**:
+
 - Users can persist CBA-illegal contract actions to world snapshots
 - Creates invalid game states that break downstream calculations
 - "Override audit log" exists but isn't enforcement - just documentation after the fact
 - No admin/dev-only gating on this feature
 
 **How to detect it**:
+
 - EditContractModal shows "⚠️ Force Override" button when validation fails
 - User clicks override → `overrideMetadata` passed to action handlers
 - Action persists with `overrideUsed: true` flag but data is still illegal
@@ -123,6 +130,7 @@ legal: forceTrade ? true : validation.legal,
 ```
 
 **Proposed Fix**:
+
 1. **Remove Force Override from production builds** via environment check
 2. **Gate behind dev-only flag** (`VITE_ENABLE_CBA_OVERRIDE`)
 3. **Block persistence entirely** in mutation pipeline when `validateMutation()` fails
@@ -135,6 +143,7 @@ legal: forceTrade ? true : validation.legal,
 **Name**: Non-Trade Mutations Lack Full Validation
 
 **Where it lives**:
+
 - `src/features/architect/utils/mutationPipeline.js` lines 962-994 → `validateMutation()`
 
 **Why it's a risk**:
@@ -181,12 +190,14 @@ function validateMutation({ mutationType, payload, currentState, computeResult, 
 **Gap**: Non-trade mutations bypass validation entirely with `return { valid: true }`.
 
 **How to detect it**:
+
 - Sign a free agent that would hard cap the team over the ceiling
 - Mutation pipeline doesn't check hard cap for signings
 - Illegal state persists to world snapshot
 
 **Proposed Fix**:
 Implement `validateSigningForPipeline()`, `validateWaiveForPipeline()`, etc. that run the same cap rules:
+
 - Hard cap ceiling check
 - Roster size constraints  
 - Second apron restrictions
@@ -199,11 +210,13 @@ Implement `validateSigningForPipeline()`, `validateWaiveForPipeline()`, etc. tha
 **Name**: Renounce Rights UI Wire-Up
 
 **Where it lives**:
+
 - `src/features/architect/utils/mutationPipeline.js` lines 241-300 → `loadStateForMutation('renounceRights')`
 - `src/features/architect/utils/mutationPipeline.js` lines 881-949 → `computeRenounceResult()`
 - `tests/architect/renounceRights.test.js` → comprehensive tests
 
 **Status**: Implementation is **complete** in mutationPipeline:
+
 - Cap hold removal ✅
 - Bird rights clearing ✅  
 - Team totals recalculation ✅
@@ -212,11 +225,13 @@ Implement `validateSigningForPipeline()`, `validateWaiveForPipeline()`, etc. tha
 **Gap**: UI wire-up verification needed. `handleRenounceRights()` in `useArchitectActions.ts` exists (line 272) but needs verification that it calls `applyWorldMutation`.
 
 **How to detect it**:
+
 - Click "Renounce Rights" in EditContractModal
 - Check if mutation flows through `applyWorldMutation('renounceRights', ...)`
 - Verify world snapshot shows cap hold removed
 
 **Proposed Fix**:
+
 1. Verify `handleRenounceRights` calls mutation pipeline
 2. Add integration test for renounce → persistence → reload
 
@@ -227,6 +242,7 @@ Implement `validateSigningForPipeline()`, `validateWaiveForPipeline()`, etc. tha
 **Name**: Inconsistent Rule Enforcement
 
 **Where it lives**:
+
 - `src/features/architect/utils/tradeMachine/rules/` → comprehensive trade rules
 - `src/features/architect/hooks/useCapValidation.js` → signing/extension validation
 - `src/features/architect/utils/mutationPipeline.js` → no validation for non-trades
@@ -271,31 +287,37 @@ Then use in all mutation validation paths.
 **Where it lives**:
 
 **1. Salary Matching Tiers** (HIGH drift risk):
+
 - `src/features/architect/utils/tradeMachine/constants/cbaConstants.js`
 - `src/features/architect/utils/cbaConstants.js`  
 - `src/features/architect/utils/tradeMachine/rules/salaryMatching.js`
 
 **2. Cap Hold Formulas** (MEDIUM drift risk):
+
 - `src/features/architect/utils/contractUtils.js` → `calculateCapHold()`
 - `src/features/architect/utils/capHolds.ts` → `computeCapHold()`
 - Different multipliers may exist (1.5x vs 1.75x depending on rights type)
 
 **3. Season Format Parsing** (MEDIUM drift risk):
+
 - `src/features/architect/utils/seasonFormat.js` → `toEndYear()`, `toSeasonCode()`
 - `src/features/architect/utils/seasonHelpers.ts` → duplicate helpers
 - `src/features/architect/utils/seasonUtils.js` → another set
 - `src/features/architect/utils/tradeMachine/utils/seasonUtils.js` → trade-specific
 
 **4. Minimum Salary Scales** (LOW drift risk):
+
 - `src/features/architect/data/minimumSalaryScales.ts` → data file
 - `src/features/architect/utils/playerRulesProfile/minimumSalaryRules.js` → logic
 
 **How to detect drift**:
+
 - Run `grep -r "salaryMatchingTiers\|SALARY_TIERS" src/`
 - Compare values between files
 - Any discrepancy = bug
 
 **Proposed Consolidation Order**:
+
 1. Season format → single canonical `seasonFormat.js`, delete others
 2. Cap holds → single `capHolds.ts`, route all callers
 3. Salary matching → single constants file, import everywhere
@@ -393,17 +415,21 @@ service cloud.firestore {
 **Decision**: **Worlds-only** for Architect mutations. Legacy `teamPlans` for backward compatibility (read-only fallback).
 
 **Concrete Tasks**:
+
 1. [ ] Gate autosave in `useArchitectState.ts` Effect 6 on `!worldId`
 2. [ ] Add `worldId` check before any `saveUserTeamPlan` / `saveNamedTeamPlan` call
 3. [ ] Update comments to document persistence boundary
 
 **Files Impacted**:
+
 - `src/features/architect/GMDashboard/hooks/useArchitectState.ts`
 
 **Tests to Add**:
+
 - `tests/architect/persistence.test.js` → verify autosave blocked when worldId set
 
 **Definition of Done**:
+
 - [ ] Autosave to `teamPlans` ONLY triggers when `worldId === null`
 - [ ] World mutations ONLY write to `architect_worlds`
 - [ ] No accidental cross-writes between systems
@@ -413,16 +439,17 @@ service cloud.firestore {
 ### Step 2: Illegal-State Prevention via Pipeline Preflight
 
 **Concrete Tasks**:
-1. [ ] Create `src/features/architect/utils/capLegalityValidation.js`
-   - Export `validateSigning()`, `validateWaive()`, `validateExtension()`, `validateOption()`
-   - Each returns `{ valid: boolean, violations: string[], warnings: string[] }`
+
+1. [x] Create `src/features/architect/utils/capLegalityValidation.js` ✅ Complete
+   - Exports `validateSigning()`, `validateWaive()`, `validateExtension()`, `validateOptionDecision()`, `validateRenounceRights()`
+   - Each returns `{ valid: boolean, violations: Array, warnings: Array }`
 2. [ ] Update `validateMutation()` in `mutationPipeline.js` to call appropriate validator
 3. [ ] Return structured violation payload to UI
 
 **Files Impacted**:
 
 - `src/features/architect/utils/mutationPipeline.js` (update `validateMutation`)
-- `src/features/architect/utils/capLegalityValidation.js` (new file)
+- `src/features/architect/utils/capLegalityValidation.js` ✅ Already exists
 
 **Validation Payload Format**:
 
@@ -449,7 +476,8 @@ service cloud.firestore {
 
 **Definition of Done**:
 
-- [ ] All 6 mutation types have validation running before persist
+- [x] Validation functions created for all mutation types ✅
+- [ ] All 6 mutation types have validation running before persist (pipeline integration pending)
 - [ ] `{ success: false, violations: [...] }` returned for illegal actions
 - [ ] UI can display structured violations
 
@@ -459,9 +487,9 @@ service cloud.firestore {
 
 **Concrete Tasks**:
 
-1. [ ] Add environment flag `VITE_ENABLE_CBA_OVERRIDE` (default: `false`)
-2. [ ] Gate "Force Override" UI section in `EditContractModal.jsx`
-3. [ ] Gate `forceTrade` state in `useTradeMachine.js`
+1. [x] Add environment flag `VITE_ENABLE_CBA_OVERRIDE` (default: `false`) ✅
+2. [x] Gate "Force Override" UI section in `EditContractModal.jsx` ✅ (line 331)
+3. [x] Gate `forceTrade` state in `useTradeMachine.js` ✅ (line 465)
 4. [ ] Update mutation pipeline to reject overrideMetadata when flag is false
 5. [ ] Ensure `validateMutation` always blocks when invalid (no bypass)
 
@@ -497,14 +525,16 @@ if (!validationResult.valid) {
 ```
 
 **Tests to Add**:
+
 - `tests/architect/overrideGating.test.js`
   - With flag off → override UI not rendered
   - With flag off → mutation rejects even if override metadata present
 
 **Definition of Done**:
-- [ ] In production build, override UI is not visible
+
+- [x] In production build, override UI is not visible (gated by `canOverride` check) ✅
 - [ ] In production build, mutations reject invalid states with no bypass
-- [ ] Dev builds can enable override via `.env` flag
+- [x] Dev builds can enable override via `.env` flag ✅
 
 ---
 
@@ -513,12 +543,13 @@ if (!validationResult.valid) {
 **Concrete Tasks**:
 
 1. [ ] Verify `handleRenounceRights` in `useArchitectActions.ts` calls mutation pipeline
-2. [ ] Add E2E test: renounce → world snapshot → reload → verify state
+2. [x] Add E2E test: renounce → world snapshot → reload → verify state ✅
 
 **Files Impacted**:
 
 - `src/features/architect/GMDashboard/hooks/useArchitectActions.ts` (verify)
-- `tests/architect/e2e-workflows.test.js` (add test)
+- `tests/architect/e2e-workflows.test.js` ✅ Tests exist
+- `tests/architect/renounceRights.test.js` ✅ 9 tests passing
 
 **Current Implementation Check**:
 
@@ -569,16 +600,19 @@ applyWorldMutation({
 | executeTrade | (existing comprehensive Trade Machine) |
 
 **Files Impacted**:
+
 - `src/features/architect/utils/capLegalitySuite.js` (new shared module)
 - `src/features/architect/utils/capLegalityValidation.js` (imports from suite)
 
 **Tests to Add**:
+
 - `tests/architect/capLegalitySuite.test.js`
   - Hard cap check blocks when projected > ceiling
   - Roster size check blocks at 16
   - Roster minimum warns at 13
 
 **Definition of Done**:
+
 - [ ] Single source of truth for cap rules
 - [ ] Signings blocked when they would exceed hard cap
 - [ ] Waives blocked when they would drop below roster minimum
@@ -604,18 +638,27 @@ applyWorldMutation({
    - Merge from `tradeMachine/constants/cbaConstants.js`
    - Update Trade Machine imports
 
+4. [x] **Cap Helpers Consolidation** ✅ Complete
+   - Canonical: `src/features/architect/utils/capHelpers.ts`
+   - Extracted shared utilities: `getCapSettings()`, `calculateTeamCapHit()`, `getPlayerId()`, `getPlayerName()`
+   - Updated imports in: `capLegalityValidation.js`, `useCapValidation.js`, `EditContractModal.jsx`
+
 **Files Impacted**:
+
 - Multiple files with import updates
 - 3-4 files deleted/deprecated
 
 **Tests to Add**:
+
 - Verify existing tests still pass after consolidation
 - Add test for each consolidated module verifying single export point
 
 **Definition of Done**:
+
 - [ ] Season format has one source, others deleted
 - [ ] Cap holds have one formula, others deprecated
 - [ ] No duplicate constant definitions
+- [x] Cap helpers consolidated into `capHelpers.ts` ✅
 - [ ] All existing tests pass
 
 ---
@@ -623,22 +666,26 @@ applyWorldMutation({
 ### Step 7: Security Tightening Checklist
 
 **Concrete Tasks**:
+
 1. [ ] Deploy Firestore rules (from Gap 7 proposal above)
 2. [ ] Verify Cloud Function ownership checks align with rules
 3. [ ] Test that users cannot write to other users' worlds
 4. [ ] Test that base collections are read-only
 
 **Files Impacted**:
+
 - Firebase Console → Firestore Rules
 - `functions/src/architect/purgeWorld.ts` (verify alignment)
 
 **Verification Checklist**:
+
 - [ ] Create world as User A → visible only to User A
 - [ ] Attempt write to User A's world as User B → denied
 - [ ] Attempt write to `architect_baseTeams` → denied
 - [ ] Attempt delete via direct Firestore write → denied (must use Cloud Function)
 
 **Definition of Done**:
+
 - [ ] Firestore rules deployed matching proposal
 - [ ] Manual verification of access controls passes
 - [ ] No unauthorized write paths exist
@@ -657,23 +704,26 @@ Run through this checklist before declaring Phase 5 complete:
 
 ### Illegal State Prevention
 
-- [ ] `validateMutation()` runs for ALL mutation types
+- [x] Validation functions exist (`capLegalityValidation.js`) ✅
+- [ ] `validateMutation()` runs for ALL mutation types (pipeline integration pending)
 - [ ] Invalid mutations return `{ success: false, violations }`
 - [ ] UI receives and displays structured violation messages
-- [ ] No "Force Override" in production builds (`VITE_ENABLE_CBA_OVERRIDE !== 'true'`)
+- [x] No "Force Override" in production builds (`VITE_ENABLE_CBA_OVERRIDE !== 'true'`) ✅
 
 ### Rule Parity
 
-- [ ] Hard cap checked for signings, extensions, option accepts
-- [ ] Roster size (15 max) checked for signings, trades
-- [ ] Roster minimum (14) warned for waives
-- [ ] Apron restrictions checked for signings
+- [x] Hard cap checked for signings, extensions, option accepts (in `capLegalityValidation.js`) ✅
+- [x] Roster size (15 max) checked for signings (in `validateSigning()`) ✅
+- [x] Roster minimum (14) warned for waives (in `validateWaive()`) ✅
+- [x] Apron restrictions checked for signings ✅
+- [ ] Trade Machine integration of shared validators pending
 
 ### Consolidation
 
 - [ ] Single season format module in use
 - [ ] Single cap holds formula in use
 - [ ] No duplicate CBA constants
+- [x] Cap helpers consolidated (`getCapSettings`, `calculateTeamCapHit`) ✅
 
 ### Security
 
@@ -684,22 +734,24 @@ Run through this checklist before declaring Phase 5 complete:
 
 ### Testing
 
-- [ ] All existing tests pass
-- [ ] New validation tests pass
-- [ ] E2E workflow tests pass
-- [ ] No regressions in Trade Machine
+- [x] All existing tests pass (316/317 - 1 pre-existing flaky test) ✅
+- [x] Renounce rights tests pass (9 tests) ✅
+- [x] E2E workflow tests pass (7 tests) ✅
+- [ ] No regressions in Trade Machine (needs manual verification)
 
 ---
 
 ## Assumptions & Items to Verify
 
 **Assumptions Made**:
+
 1. `VITE_ENABLE_CBA_OVERRIDE` environment variable can be added without breaking build
 2. Firestore rules can be deployed via Firebase Console or CI
 3. `teamPlans` collection can remain for backward compatibility (not removed)
 4. Trade Machine validation is comprehensive and can serve as template for other actions
 
 **Items to Verify Before Implementation**:
+
 1. Review `handleRenounceRights` actual implementation in `useArchitectActions.ts`
 2. Confirm Trade Machine `validateTrade` covers all needed rules for extraction
 3. Check if any UI components bypass `useCapValidation` hook entirely

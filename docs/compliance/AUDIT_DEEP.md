@@ -1,12 +1,14 @@
 # NBA Trade Machine — Final Deep Audit (ANALYZE ONLY)
 
 ## 1. SUMMARY
+
 - **Good / Pass** – 123/123 tests at commit 5181779 on 2025-08-08T04:13Z
 - Moratorium and roster windows enforced as soft warnings via `validationFlags`
 - Second‑apron handcuffs: cash, aggregation, TPE/FA exceptions and salary take‑back
 - Soft paths remain for roster, timing and seasonal cash when flags set to `warn`
 
 ## 2. COMPLIANCE MATRIX
+
 | Rule # | Rule Name | Implemented? | Files & Functions | Notes | Severity |
 | --- | --- | --- | --- | --- | --- |
 | 0 | Calendar & eligibility | Partial | `timingUtils.isWithinMoratorium`, `consentUtils.collectConsentViolations`, `reacqUtils.getReacqBlock` | Moratorium & roster gates configurable | Medium |
@@ -22,6 +24,7 @@
 |10| Admin wrap-up | Partial | `tpeUtils.createTPE`, `tpeUtils.isExpiredTPE` | No explicit physicals/bonus waiver hooks | Low |
 
 ## 3. ORDER-OF-OPERATIONS AUDIT
+
 1. `computeMatchingValues` applies BYC, poison pill and kicker conversions
 2. For each team: `enforceSecondApronHandcuffs`
 3. `validateSignAndTrade`
@@ -36,6 +39,7 @@
 12. Cash ledger / summary packaging
 
 ## 4. FORMULA & THRESHOLD CHECKS
+
 - **Matching bands:** `2.0 * out + 250_000`, `out + 7_500_000`, `1.25 * out + 250_000`【F:src/utils/architect/cbaConstants.js†L39-L46】
 - **1st/2nd apron 100% take-back:** salary ceiling clamps to `salaryOut` when above aprons【F:src/utils/architect/tradeHelpers.js†L63-L70】
 - **Second-apron prohibitions:** `Second apron: prior-year TPEs cannot be used`, cash/aggregation/≥100% checks【F:src/utils/architect/tradeMachine/tradeValidator.js†L226-L270】
@@ -45,6 +49,7 @@
 - **TPE lifecycle & second-apron ban:** `createTPE` + prior-year block【F:src/utils/architect/tradeMachine/tpeUtils.js†L21-L33】【F:src/utils/architect/tradeMachine/tpeUtils.js†L1-L4】
 
 ## 5. EDGE-CASE & SWITCH CHECKLIST
+
 - Team modes: cap/tax/apron via `getApronStatus`【F:src/utils/architect/tradeHelpers.js†L131-L133】
 - S&T constraints: offseason only, origin team, 3–4 yrs, Y1 guaranteed【F:src/utils/architect/tradeMachine/tradeValidator.js†L1240-L1287】
 - Timing gates: moratorium, 30-day, 2-month aggregation in `enforceTiming`【F:src/utils/architect/tradeMachine/tradeValidator.js†L357-L379】
@@ -56,6 +61,7 @@
 - UI surfaces `tradeValidator` state via summary panel components (read-only)
 
 ## 6. TEST COVERAGE MAP
+
 - Matching bands & apron: `tests/trade/matchingBands_2023.test.js`, `tests/trade/firstApron_100pct.test.js`
 - Second-apron handcuffs: `tests/trade/secondApron_handcuffs.test.js`, `tests/trade/secondApron_tpeBan.test.js`
 - FA exceptions & TPE: `tests/trade/faExceptions_as_trade_buckets.test.js`, `tests/trade/tpe_creation_expiry_usage.test.js`
@@ -65,10 +71,12 @@
 - Order-of-operations conversions: `tests/trade/orderOfOps_conversionsBeforeMatching.test.js`
 
 ## 7. GAPS & RISK NOTES
+
 - Roster, timing, seasonal cash and two-way limits default to warnings; relying on callers to escalate
 - Input parsing assumes well-formed pick protection text; malformed strings may slip
 
 ## 8. APPENDIX: VIOLATION MESSAGES & INVARIANTS
+
 - "Second apron team cannot include cash in trades"【F:src/utils/architect/tradeMachine/tradeValidator.js†L264-L266】
 - "S&T contract must be 3-4 years"【F:src/utils/architect/tradeMachine/tradeValidator.js†L1275-L1286】
 - "Re-acquisition bar: {Team} cannot reacquire {Player} until {date}"【F:src/utils/architect/tradeMachine/tradeValidator.js†L346-L349】

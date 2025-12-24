@@ -11,11 +11,13 @@ The timing model introduces a standardized `RuleContext` object that carries exp
 All seasons use the canonical `SeasonId` format: `"YYYY-YY"`
 
 **Convention:**
+
 - First four digits = **START year** of the NBA season
 - Last two digits = **END year** of the NBA season
 - Example: `"2024-25"` = Season starting October 2024, ending June 2025
 
 **Examples:**
+
 - `"2024-25"` → 2024-25 NBA season
 - `"2025-26"` → 2025-26 NBA season
 - `"1999-00"` → 1999-00 NBA season (century boundary)

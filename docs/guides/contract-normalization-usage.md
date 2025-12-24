@@ -11,6 +11,7 @@ The contract normalization utilities provide a pure transformation function to n
 Parses and normalizes contract data from canonical format.
 
 **Parameters:**
+
 - `canonical` (Object): Raw contract data with `playerId` and either:
   - `contract` (Object): Single contract
   - `futureContract` (Object): Extension contract (optional)
@@ -20,6 +21,7 @@ Parses and normalizes contract data from canonical format.
   - `leagueCaps` (Object): League salary cap by season (e.g., `{ "2025-26": 140000000 }`)
 
 **Returns:**
+
 ```javascript
 {
   playerId: string,

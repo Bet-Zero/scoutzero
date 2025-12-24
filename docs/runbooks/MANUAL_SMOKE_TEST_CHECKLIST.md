@@ -8,6 +8,7 @@
 ## ✅ Quick Pre-Check
 
 Before starting, verify data is in Firestore:
+
 - [ ] Open browser console → Network tab
 - [ ] Navigate to any page
 - [ ] Check for Firestore read errors (should see successful reads)
@@ -17,11 +18,13 @@ Before starting, verify data is in Firestore:
 ## 1. Player Profile Page (`/player/:id`)
 
 **Test Players:**
+
 - `austin_reaves` (LAL - has contract + stats)
 - `shai_gilgeous_alexander` (OKC - previously had URL issues)
 - `mac_mcclung` (IND - had season code issues)
 
 **What to Check:**
+
 - [ ] Page loads without errors (check browser console)
 - [ ] **Bio section** displays:
   - [ ] Player name
@@ -45,6 +48,7 @@ Before starting, verify data is in Firestore:
 ## 2. League View (`/gm/league`)
 
 **What to Check:**
+
 - [ ] Page loads without errors
 - [ ] **All 30 teams** are listed:
   - [ ] Count teams (should be 30)
@@ -64,11 +68,13 @@ Before starting, verify data is in Firestore:
 ## 3. GM Dashboard (`/gm/:teamSlug`)
 
 **Test Teams:**
+
 - `lakers` (LAL - large roster)
 - `celtics` (BOS - deep roster)
 - `nuggets` (DEN - championship team)
 
 **What to Check:**
+
 - [ ] **Baseline plan loads:**
   - [ ] Roster players display
   - [ ] Player names, positions, salaries show
@@ -96,6 +102,7 @@ Before starting, verify data is in Firestore:
 ## 4. Roster Visual / Planner
 
 **What to Check:**
+
 - [ ] **Roster sections populate:**
   - [ ] Players grouped by position
   - [ ] Player cards show name, position, salary
@@ -115,6 +122,7 @@ Before starting, verify data is in Firestore:
 **Test Player:** Any free agent (check `player_index.json` for `teamCode: null`)
 
 **What to Check:**
+
 - [ ] Free agent profile loads
 - [ ] Bio displays correctly
 - [ ] Contract section shows "Free Agent" status
@@ -128,6 +136,7 @@ Before starting, verify data is in Firestore:
 ## 6. Edge Cases
 
 **What to Check:**
+
 - [ ] **Player with no stats:**
   - [ ] Profile still loads
   - [ ] Contract displays
@@ -165,11 +174,11 @@ Before starting, verify data is in Firestore:
 ## 📝 Notes Section
 
 **Issues Found:**
-```
+
 [Write any issues here]
-```
 
 **Screenshots:**
+
 - [ ] Player profile working
 - [ ] League view working
 - [ ] GM dashboard working
@@ -184,5 +193,3 @@ Before starting, verify data is in Firestore:
 - ✅ **If all checks pass:** Proceed to archive legacy collections
 - ❌ **If issues found:** Document issues, fix, then re-test
 - 📝 **Update runbooks:** Document any findings or edge cases discovered
-
-

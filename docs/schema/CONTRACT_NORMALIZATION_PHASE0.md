@@ -9,14 +9,18 @@ Successfully implemented a pure transformation function for normalizing contract
 ### 1. Core Implementation Files
 
 #### `src/utils/contracts/seasonNormalizer.js`
+
 Season normalization utilities:
+
 - `normalizeSeason()` - Converts any season format to "YYYY-YY"
 - `seasonStartYear()` - Extracts start year from normalized season
 - `compareSeason()` - Compares two seasons by start year
 - `isSeasonActive()`, `isSeasonFuture()`, `isSeasonExpired()` - Status helpers
 
 #### `src/utils/contracts/contractParser.js`
+
 Main contract parser:
+
 - `parseContractSituation()` - Pure transformation function
 - Normalizes contract data from canonical format
 - Links extensions to standard contracts
@@ -25,19 +29,24 @@ Main contract parser:
 - Handles both single and multiple contracts
 
 #### `src/utils/contracts/index.js`
+
 Export file for easy imports
 
 ### 2. Test Coverage
 
 #### `tests/seasonNormalizer.test.js`
+
 13 tests covering:
+
 - Season format normalization
 - Start year extraction
 - Season comparison
 - Status flag derivation
 
 #### `tests/contractParser.test.js`
+
 10 comprehensive tests covering:
+
 - Active standard contracts with source cap %
 - Active + future extension linking
 - Computed cap % from leagueCaps
@@ -48,12 +57,14 @@ Export file for easy imports
 - Max contract tier detection (25%, 30%, 35%)
 - Edge cases (outside tolerance)
 
-**Total: 23 tests, all passing ✅**
+### Total: 23 tests, all passing ✅
 
 ### 3. UI Enhancement
 
 #### `src/features/profile/PlayerDetails/PlayerHeader/index.jsx`
+
 Added draft pick display in player bio section:
+
 - Shows: "DRAFTED: {year} Rd {round} Pick {pick}"
 - Conditionally rendered when draft data exists
 - Example: "DRAFTED: 2020 Rd 1 Pick 3"
@@ -61,7 +72,9 @@ Added draft pick display in player bio section:
 ### 4. Documentation
 
 #### `docs/guides/contract-normalization-usage.md`
+
 Comprehensive usage guide including:
+
 - Function signatures and parameters
 - Multiple usage examples
 - Output structure details
@@ -72,17 +85,20 @@ Comprehensive usage guide including:
 ## Key Features
 
 ### Season Normalization
+
 - Handles multiple input formats: "YYYY-YY", "YYYY", "YYYY-YYYY", number
 - Always outputs: "YYYY-YY" format (e.g., "2025-26")
 - Used consistently throughout salary rows
 
 ### Extension Linking
+
 - Automatically detects extension contracts
 - Links standard → extension via `extendedBy`/`extensionOf`
 - Creates `contractGroupId` for lineage tracking
 - Sorts contracts by `startSeason` ascending
 
 ### Max Contract Detection
+
 - Detects based on first-year salary as % of salary cap
 - Three tiers: 25%, 30%, 35%
 - Tolerance: ±0.75% around tier values
@@ -94,13 +110,17 @@ Comprehensive usage guide including:
   - 35.5% → snaps to 35% tier ✅
 
 ### Status Flags
+
 Based on current season:
+
 - `isActive`: contract is currently active
 - `isFuture`: contract starts in the future
 - `isExpired`: contract has expired
 
 ### Type Safety
+
 All fields coerced to correct types:
+
 - Seasons → "YYYY-YY" strings
 - Numbers → proper numeric types
 - Booleans → true/false
@@ -235,19 +255,24 @@ const result = parseContractSituation(canonical, '2025-26', { leagueCaps });
 ## Validation
 
 ### Build Status
+
 ✅ All builds passing
-```
+
+```text
 ✓ built in 7.24s
 ```
 
 ### Test Status
+
 ✅ 23/23 tests passing
-```
+
+```text
 Test Files  2 passed (2)
 Tests       23 passed (23)
 ```
 
 ### Lint Status
+
 ✅ No new linting errors introduced
 
 ## Important Notes
@@ -261,6 +286,7 @@ Tests       23 passed (23)
 ## Next Steps (Not in this PR)
 
 Future phases could include:
+
 1. Integration with data pipeline for Firestore writes
 2. Batch processing of multiple players
 3. Migration scripts for existing data
@@ -270,6 +296,7 @@ Future phases could include:
 ## Files Changed
 
 ### New Files
+
 - `src/utils/contracts/seasonNormalizer.js` (105 lines)
 - `src/utils/contracts/contractParser.js` (316 lines)
 - `tests/seasonNormalizer.test.js` (108 lines)
@@ -277,10 +304,12 @@ Future phases could include:
 - `docs/guides/contract-normalization-usage.md` (309 lines)
 
 ### Modified Files
+
 - `src/utils/contracts/index.js` (added exports)
 - `src/features/profile/PlayerDetails/PlayerHeader/index.jsx` (added draft pick display)
 
 ### Total
+
 - **1340 lines of code and documentation added**
 - **0 lines deleted** (surgical, minimal changes)
 - **6 files created, 2 files modified**

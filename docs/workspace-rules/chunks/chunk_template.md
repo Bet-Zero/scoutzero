@@ -36,4 +36,3 @@
 ## WORKSPACE
 
 If needed, use workspace: `cursor_work/<chunk-slug>/`
-

@@ -10,16 +10,19 @@ Successfully refreshed the `players_v2` and `architect_basePlayers` collections 
 ## Completed Tasks
 
 ### 1. Player Index & Data Refresh ✅
+
 - Regenerated `player_index.json` with all 674 players
 - Added 74 new players to `all_player_ids.json` via `manual_overrides.json`
 - All players now have proper slug→nbaId mappings
 
 ### 2. Firestore Cleanup ✅
+
 - Deleted 35 accent-duplicate documents initially
 - Deleted 10 remaining duplicates (different normalization issues)
 - Final count: 674 players in both `players_v2` and `architect_basePlayers`
 
 ### 3. Pipeline Execution ✅
+
 - Scraped contracts and stats for ~74 missing players
 - Staged all 674 players successfully
 - Fixed schema validation issues:
@@ -28,21 +31,25 @@ Successfully refreshed the `players_v2` and `architect_basePlayers` collections 
   - Updated `YearZ` schema to coerce string keys to numbers for `salaryByYear` records
 
 ### 4. Contract View Integration ✅
+
 - Updated `enrichPlayerData` to build `primaryContract` from `currentContractView`
 - Updated `PlayerRow` to prioritize `currentContractView` for contract display
 - Updated `PlayerDrawer/PlayerContractMini` to use `currentContractView.salaryByYear`
 - Contract views now properly display salary, free agent year/type, and years remaining
 
 ### 5. Stats Display Fix ✅
+
 - Updated `PlayerStatsTable` to show correct season label from `latestSeasonMeta.statsSeasonTag`
 - Stats now display the actual season (e.g., "2025-26") instead of hardcoded "2024-25"
 
 ### 6. Documentation ✅
+
 - Created `docs/FIRESTORE_DIAGNOSTIC.md` explaining the diagnostic component
 - Updated player counts in runbooks (600 → 674)
 - Updated schema documentation
 
 ### 7. Cleanup ✅
+
 - Removed all temporary files from `cursor_work/player-refresh/`
 
 ## Current Status
@@ -68,6 +75,7 @@ Successfully refreshed the `players_v2` and `architect_basePlayers` collections 
 ## Files Modified
 
 ### Core Application
+
 - `src/utils/roster/enrichPlayerData.js` - Added `primaryContract` from `currentContractView`, exposed denormalized views
 - `src/features/table/PlayerTable/PlayerRow/index.jsx` - Updated contract display to use `currentContractView`
 - `src/features/table/PlayerTable/PlayerRow/PlayerDrawer/PlayerContractMini.jsx` - Updated to use `currentContractView.salaryByYear`
@@ -76,10 +84,12 @@ Successfully refreshed the `players_v2` and `architect_basePlayers` collections 
 - `src/features/profile/PlayerDetails/PlayerStatsTable.jsx` - Fixed season label to use meta data
 
 ### Staging Scripts
+
 - `player-scrape/firestore_staging/stage_player.ts` - Fixed `currentSalary` and `freeAgentType` null handling
 - `src/schemas/common.ts` - Updated `YearZ` to use `z.coerce.number()` for record keys
 
 ### Documentation
+
 - `docs/FIRESTORE_DIAGNOSTIC.md` - New file explaining diagnostic component
 - `docs/runbooks/MANUAL_SMOKE_TEST_CHECKLIST.md` - Updated player count
 - `docs/runbooks/cutover-cleanup.md` - Updated player count
@@ -90,4 +100,3 @@ Successfully refreshed the `players_v2` and `architect_basePlayers` collections 
 2. **Verify Filter Logic**: Ensure zero-contract filter is working as intended
 3. **Test Contract Views**: Verify contract displays are working correctly in UI
 4. **Monitor Stats**: Ensure all players have current season stats properly displayed
-

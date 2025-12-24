@@ -31,6 +31,7 @@ This guide explains the differences between the **old schema** (`contract_clean`
 ```
 
 **Key Characteristics:**
+
 - Lives at `player.contract_clean.salaries_by_year`
 - Keyed by **end-year** (numeric): `2025` represents the `2024-25` season
 - Each year object contains: `salary`, `guaranteed`, `option`, bonuses
@@ -71,6 +72,7 @@ This guide explains the differences between the **old schema** (`contract_clean`
 ```
 
 **Key Characteristics:**
+
 - Lives at `player.contract.salariesByYear` (array)
 - Keyed by **season string**: `"2024-25"` (start-year format)
 - Each entry includes explicit `capHit` field (salary + likely incentives)
@@ -101,6 +103,7 @@ yearToSeason(2026); // Returns: "2025-26"
 ```
 
 **Logic**: End-year → Season string
+
 - Input: `2025` (represents season ending in 2025)
 - Output: `"2024-25"` (season string format)
 - Formula: `${year - 1}-${String(year).slice(-2)}`
@@ -116,6 +119,7 @@ seasonToYear("2025-26"); // Returns: 2025
 ```
 
 **Logic**: Season string → Start year
+
 - Input: `"2024-25"`
 - Output: `2024` (start year)
 - Formula: `parseInt(season.split('-')[0])`
@@ -184,11 +188,13 @@ const capHit = getCapHitForSeason(player, season);
 ### Task 1: Update Direct Salary Access
 
 **Before:**
+
 ```javascript
 const current = player.contract_clean?.salaries_by_year?.[yearKey]?.salary || 0;
 ```
 
 **After:**
+
 ```javascript
 import { getCapHitForSeason, yearToSeason } from './seasonUtils';
 
@@ -202,6 +208,7 @@ const current = season ? getCapHitForSeason(player, season) : 0;
 ### Task 2: Iterate Over Contract Years
 
 **Before (Old Schema):**
+
 ```javascript
 Object.entries(player.contract_clean.salaries_by_year).forEach(([year, data]) => {
   console.log(`Year ${year}: $${data.salary}`);
@@ -209,6 +216,7 @@ Object.entries(player.contract_clean.salaries_by_year).forEach(([year, data]) =>
 ```
 
 **After (New Schema with Fallback):**
+
 ```javascript
 // Try new schema first
 if (player.contract?.salariesByYear) {
@@ -227,12 +235,14 @@ if (player.contract?.salariesByYear) {
 ### Task 3: Check for Rookie Scale Contracts
 
 **Before (Inferred):**
+
 ```javascript
 // Had to check contract values or player properties
 const isRookie = player.isRookieScale || checkSalaryPattern(player);
 ```
 
 **After (Explicit):**
+
 ```javascript
 const contract = player.contract || player.primaryContract;
 const isRookieScale = contract?.isRookieScale || player.isRookieScale || false;
@@ -301,14 +311,16 @@ See `tests/fixtures/newSchemaPlayer.js` for complete fixture examples.
 ## Firestore Collection Paths
 
 ### Old Collections
+
 - `/teams` - Team rosters with `contract_clean` data
 - May still be used for backward compatibility
 
 ### New Architect Collections
+
 - `/architect_baseTeams/{teamCode}` - Team data with new schema
 - `/architect_basePlayers/{playerId}` - Player data with new schema
 
-### Helper Functions
+### Helper Functions (Phase 0)
 
 ```javascript
 import { baseTeamRef, basePlayerRef } from '@/data/firestorePaths';
@@ -326,6 +338,7 @@ All helper functions maintain backward compatibility:
 3. **Return 0 if neither exists**
 
 This ensures:
+
 - ✅ Existing code continues to work
 - ✅ New architect data works immediately
 - ✅ Mixed data sources handled gracefully
@@ -343,6 +356,7 @@ This ensures:
 **Cause**: Old schema expects numeric end-year, not season string
 
 **Fix**: Convert season string to end-year for legacy lookups:
+
 ```javascript
 const endYear = seasonToYear(season) + 1; // "2024-25" → 2024 + 1 = 2025
 const oldData = player.contract_clean?.salaries_by_year?.[endYear];
@@ -353,6 +367,7 @@ const oldData = player.contract_clean?.salaries_by_year?.[endYear];
 **Cause**: Not all new schema entries have `capHit` populated
 
 **Fix**: Fall back to `salary` field:
+
 ```javascript
 const capHit = yearEntry.capHit || yearEntry.salary || 0;
 ```

@@ -22,7 +22,7 @@ Top-level directory structure and purposes:
 
 ### Key Subdirectories
 
-**player-scrape/**
+#### player-scrape/
 
 - `contracts/` - Contract data scraping and normalization
   - `scripts/` - CLI tools for fetching, parsing, and validating player contracts
@@ -40,7 +40,7 @@ Top-level directory structure and purposes:
 - `docs/` - Player scraping documentation
 - `firestore_staging/` - Preparation utilities for staging Firestore payloads (no writes)
 
-**team-scrape/**
+#### team-scrape/
 
 - `scripts/` - Team roster and draft pick scraping tools
 - `output/` - Team data outputs
@@ -50,7 +50,7 @@ Top-level directory structure and purposes:
 - `config/` - Configuration files
 - `review_and_merge/` - Review and merge utilities
 
-**src/** (React application)
+#### src/ (React application)
 
 - `components/` - Layout wrappers and shared UI
 - `schemas/` - Canonical Zod schemas for players_v2 and architect
@@ -62,13 +62,13 @@ Top-level directory structure and purposes:
 - `firebase/` - Firestore helpers and configuration
 - `data/` - Firestore path utilities
 
-**scripts/**
+#### scripts/
 
 - `firebase-utils/` - Firebase Admin utilities
 - `schema-tools/` - Schema validation and migration tools
 - `firebaseConfig.node.js` - Node.js Firebase configuration
 
-**docs/**
+#### docs/
 
 - `schema/` - Firestore schema documentation
 - `guides/` - User and developer guides
@@ -611,7 +611,7 @@ const players = team.data().capSheet.players;
 
 **Data Flow:**
 
-```
+```text
 SalarySwish URL
   → working/page.html
   → output/{TEAM}/{playerId}.json

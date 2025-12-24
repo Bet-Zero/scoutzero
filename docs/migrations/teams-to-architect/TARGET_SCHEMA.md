@@ -1,14 +1,16 @@
 # Teams Collection Migration (Current → Target)
 
 ## Migration Status
+
 - **Status**: 🚧 IN PROGRESS
-- **Current Schema**: Flattened structure with `capSheet.players[]` 
+- **Current Schema**: Flattened structure with `capSheet.players[]`
 - **Target Schema**: Normalized structure referencing `players_v2`
 - **Migration Date**: [TBD]
 
 ## Current Schema (What Exists Now)
 
 ### `/teams/{teamId}`
+
 ```javascript
 {
   capSheet: {
@@ -34,6 +36,7 @@
 ## Target Schema (Migration Goal)
 
 ### `/teams/{teamId}` - Normalized Structure
+
 ```javascript
 {
   roster: {
@@ -61,6 +64,7 @@
 ```
 
 ## Migration Benefits
+
 - **Eliminates duplication**: Player data lives only in `players_v2`
 - **Maintains data consistency**: Single source of truth for player info
 - **Improves performance**: Smaller team documents
@@ -68,7 +72,8 @@
 
 ## Code Migration Patterns
 
-### BEFORE (Current Code):
+### BEFORE (Current Code)
+
 ```javascript
 // Getting team roster - current pattern
 const team = await getDoc(doc(db, 'teams', teamId));
@@ -77,7 +82,8 @@ const playerName = players[0].name;
 const playerSalary = players[0].contract_clean.salary;
 ```
 
-### AFTER (Target Code):
+### AFTER (Target Code)
+
 ```javascript
 // Getting team roster - target pattern
 const team = await getDoc(doc(db, 'teams', teamId));
@@ -90,6 +96,7 @@ const playerSalary = roster[0].salary; // or get from contract subcollection
 ```
 
 ## Important Notes for AI
+
 - **Use CURRENT schema** for all code generation until migration complete
 - **Don't implement TARGET patterns** until migration is executed
 - **Reference this doc** to understand the migration direction

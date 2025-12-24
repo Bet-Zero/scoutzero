@@ -1,6 +1,6 @@
 # AGENTS.md – HoopZero/ScoutZero AI Instructions
 
-# CRITICAL NON-NEGOTIABLE RULES (READ FIRST)
+## CRITICAL NON-NEGOTIABLE RULES (READ FIRST)
 
 For EVERY non-trivial task, you MUST follow these rules:
 
@@ -107,7 +107,7 @@ Agents should **never write to Firestore** or attempt to save data — only read
 
 Project follows a **feature-first structure** with scoped utility and component folders:
 
-```
+```text
 src/
 components/     Shared UI + wrappers
 features/      Domain features (table, profile, roster, lists, filters, tierMaker)

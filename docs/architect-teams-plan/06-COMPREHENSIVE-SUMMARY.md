@@ -558,10 +558,10 @@ This document consolidates all critical information from this PR conversation in
 
 ### External Resources
 
-- NBA CBA Rules: https://cbabreakdown.com/
-- SalarySwish (data source): https://salaryswish.com/
-- Firestore Docs: https://firebase.google.com/docs/firestore
-- React Hooks: https://react.dev/reference/react
+- NBA CBA Rules: <https://cbabreakdown.com/>
+- SalarySwish (data source): <https://salaryswish.com/>
+- Firestore Docs: <https://firebase.google.com/docs/firestore>
+- React Hooks: <https://react.dev/reference/react>
 
 ---
 

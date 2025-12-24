@@ -31,7 +31,7 @@ HoopZero is a public-facing NBA scouting platform focused on clear data presenta
 
 2. Configure Firebase by creating a `.env` file in the project root with the following keys:
 
-   ```
+   ```text
    VITE_FIREBASE_API_KEY=<your key>
    VITE_FIREBASE_AUTH_DOMAIN=<your domain>
    VITE_FIREBASE_PROJECT_ID=<project id>
@@ -52,7 +52,7 @@ The app will be available at `http://localhost:5173` by default.
 
 ## Folder Structure
 
-```
+```text
 public/             Static assets and exported player JSON
   assets/           Team logos & headshots
   fonts/            Web fonts

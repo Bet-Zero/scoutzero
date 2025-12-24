@@ -1,6 +1,6 @@
 # Cutover & Cleanup Checklist
 
-_Updated: 2025-11-12_
+Updated: 2025-11-12
 
 ## Completed Steps
 

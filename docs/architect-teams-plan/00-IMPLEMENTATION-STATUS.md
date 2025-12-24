@@ -123,7 +123,7 @@ Populate `architect_baseTeams` and `architect_basePlayers` with current NBA data
 
 ### Collections Structure
 
-```
+```text
 # Architect collections (top-level Firestore collection IDs)
 architect_baseTeams/{teamCode}                  # 30 teams, ~1.5 MB (immutable)
 architect_basePlayers/{playerId}                # 530 players, ~2.65 MB (immutable)

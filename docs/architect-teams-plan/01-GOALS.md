@@ -1,6 +1,6 @@
-> **Architect lives entirely under `/architect`.** `/players_v2` and `/teams` are immutable and **not** part of Architect. The legacy top-level `Teams` (Architect v1) is deprecated and will be removed after cutover.
-
 # Architect Teams Plan - Goals & Objectives
+
+> **Architect lives entirely under `/architect`.** `/players_v2` and `/teams` are immutable and **not** part of Architect. The legacy top-level `Teams` (Architect v1) is deprecated and will be removed after cutover.
 
 ## Primary Goals
 

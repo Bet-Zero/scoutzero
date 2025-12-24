@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
+    "prepare": "husky",
     "typecheck": "tsc --noEmit",
     "validate:project": "tsx scripts/validate-project-schema.ts",
     "scrape:one": "tsx player-scrape/contracts/scripts/run_contracts.ts",
@@ -12,6 +13,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "lint:md": "markdownlint 'docs/**/*.md' '*.md' --ignore node_modules --ignore copilot-instructions.md",
     "schema:generate": "tsx scripts/generate-schemas.ts",
     "schema:check": "npm run schema:generate && git diff --quiet -- docs/schema || (echo 'Schema outputs are out of date. Run npm run schema:generate' && exit 1)",
     "docs": "node generateDocs.cjs",
@@ -95,6 +97,7 @@
     "jsdoc-to-markdown": "^9.1.2",
     "jsdom": "^26.1.0",
     "madge": "^8.0.0",
+    "markdownlint-cli": "^0.47.0",
     "playwright": "^1.56.0",
     "postcss": "^8.5.3",
     "prettier": "^3.5.3",

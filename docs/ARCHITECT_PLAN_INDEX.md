@@ -89,7 +89,7 @@ Architect is a **multi-season NBA roster scenario planning system** that enables
 
 ### Collections Structure
 
-```
+```text
 /architect/                         # ALL Architect data lives here
   baseTeams/{teamCode}             # 30 teams, ~1.5 MB (immutable baseline)
   basePlayers/{playerId}           # 530 players, ~2.65 MB (immutable baseline)
@@ -101,7 +101,7 @@ Architect is a **multi-season NBA roster scenario planning system** that enables
 
 **Core Concept**:
 
-```
+```text
 Immutable Base (Real NBA Data)
       ↓
 User Worlds (Scenarios)

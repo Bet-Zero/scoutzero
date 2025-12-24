@@ -193,4 +193,3 @@ Respond with something like:
 
 Always assume the user will NOT apply fixes manually.
 You must edit the files yourself and leave the project in a **safer, cleaner, more correct** state than before, strictly following the Fix Plan.
-
