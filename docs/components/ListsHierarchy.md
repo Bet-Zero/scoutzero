@@ -1,6 +1,6 @@
 # Lists Component Hierarchy
-
-```
+  
+```text
 AddToListButton/
   AddToListModal.jsx
   index.jsx
@@ -33,5 +33,5 @@ TieredListView/
 ```
 
 ---
-*Generated on: 2025-12-25T01:07:04.487Z*
+*Generated on: 2025-12-25T02:18:53.808Z*
 *Auto-updated by: npm run docs*

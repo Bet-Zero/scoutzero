@@ -44,6 +44,8 @@ import {
   validateExtension,
   validateOptionDecision,
   validateRenounceRights,
+  isOverrideEnabled,
+  isOverrideEnabled,
 } from '@/features/architect/utils/capLegalityValidation';
 
 // ==============================================================================
@@ -84,6 +86,51 @@ import {
  */
 
 // ==============================================================================
+// OVERRIDE SANITIZATION
+// ==============================================================================
+
+/**
+ * Strip override metadata from payload if override is not enabled.
+ * 
+ * SECURITY: This is a defense-in-depth mechanism. Even if the client UI
+ * allows override actions to pass through, the pipeline will strip the
+ * override metadata unless VITE_ENABLE_CBA_OVERRIDE=true.
+ * 
+ * @param {Object} payload - Mutation payload
+ * @returns {Object} Sanitized payload with override metadata removed if disabled
+ */
+function sanitizePayloadForOverride(payload) {
+  if (!payload) return payload;
+  
+  const overrideEnabled = isOverrideEnabled();
+  
+  // If override is enabled (dev mode), allow override metadata through
+  if (overrideEnabled) {
+    return payload;
+  }
+  
+  // In production (override disabled), strip override-related fields
+  const {
+    overrideUsed,
+    overrideReasons,
+    overrideTimestamp,
+    overrideMetadata,
+    forceTrade,
+    ...sanitized
+  } = payload;
+  
+  // Log if we stripped override data (helps detect bypass attempts in monitoring)
+  if (overrideUsed || overrideMetadata || forceTrade) {
+    console.warn(
+      '[mutationPipeline] Stripped override metadata from payload. ' +
+      'Override is disabled in production. Set VITE_ENABLE_CBA_OVERRIDE=true for dev mode.'
+    );
+  }
+  
+  return sanitized;
+}
+
+// ==============================================================================
 // MAIN ENTRY POINT
 // ==============================================================================
 
@@ -121,14 +168,18 @@ export async function applyWorldMutation({
     return { success: false, error: 'payload is required' };
   }
 
+  // SECURITY: Strip override metadata if override is disabled
+  // This prevents clients from bypassing validation by sending overrideMetadata
+  const sanitizedPayload = sanitizePayloadForOverride(payload);
+
   try {
     // PHASE 1: READ - Load required current state
-    const currentState = await loadStateForMutation(worldId, mutationType, payload);
+    const currentState = await loadStateForMutation(worldId, mutationType, sanitizedPayload);
 
     // PHASE 2: COMPUTE (PURE) - Calculate mutation result
     const computeResult = computeWorldMutation({
       mutationType,
-      payload,
+      payload: sanitizedPayload,
       currentState,
       seasonId,
       timestamp,
@@ -141,7 +192,7 @@ export async function applyWorldMutation({
     // PHASE 3: VALIDATE - Ensure mutation is legal
     const validationResult = validateMutation({
       mutationType,
-      payload,
+      payload: sanitizedPayload,
       currentState,
       computeResult,
       seasonId,

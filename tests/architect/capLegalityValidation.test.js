@@ -18,6 +18,8 @@ import {
   validateSigning,
   validateWaive,
   validateRenounceRights,
+  getOverridePolicy,
+  HARD_BLOCK_RULES,
 } from '@/features/architect/utils/capLegalityValidation';
 import {
   seedBaseData,
@@ -430,6 +432,75 @@ describe('Cap Legality Validation', () => {
 
       expect(result.valid).toBe(false);
       expect(result.violations.some((v) => v.rule === 'two_way_limit')).toBe(true);
+    });
+  });
+
+  // ==========================================================================
+  // DEFENSIVE CHECKS (getOverridePolicy)
+  // ==========================================================================
+
+  describe('getOverridePolicy Defensive Checks', () => {
+
+    it('handles normal valid violations and warnings', () => {
+      const violations = [{ rule: HARD_BLOCK_RULES[0], message: 'Hard block' }];
+      const warnings = [{ rule: 'some_warning', message: 'Just a warning' }];
+      
+      const result = getOverridePolicy(violations, warnings);
+      
+      expect(result.canOverride).toBe(false);
+      expect(result.hasHardBlock).toBe(true);
+      expect(result.hardBlockReasons).toContain('Hard block');
+      expect(result.softWarningReasons).toContain('Just a warning');
+    });
+
+    it('handles malformed violations (missing rule)', () => {
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const violations = [{ message: 'Missing rule' }];
+      
+      const result = getOverridePolicy(violations, []);
+      
+      expect(result.softWarningReasons[0]).toMatch(/Malformed violation: Missing rule/);
+      expect(consoleSpy).toHaveBeenCalled();
+      consoleSpy.mockRestore();
+    });
+
+    it('handles malformed violations (missing message)', () => {
+        const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const violations = [{ rule: 'roster_size' }];
+        
+        const result = getOverridePolicy(violations, []);
+        
+        expect(result.softWarningReasons[0]).toMatch(/Malformed violation detected/);
+        expect(consoleSpy).toHaveBeenCalled();
+        consoleSpy.mockRestore();
+      });
+
+    it('handles malformed warnings', () => {
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const warnings = [{ rule: 'something', message: '' }]; // Empty message
+      
+      const result = getOverridePolicy([], warnings);
+      
+      expect(result.softWarningReasons[0]).toMatch(/Malformed warning detected/);
+      expect(consoleSpy).toHaveBeenCalled();
+      consoleSpy.mockRestore();
+    });
+
+    it('promotes warnings to hard blocks if rule is in HARD_BLOCK_RULES', () => {
+      // Simulate a scenario where a hard block rule ended up in the warnings array
+      const warnings = [{ rule: HARD_BLOCK_RULES[0], message: 'Should be hard block' }];
+      
+      const result = getOverridePolicy([], warnings);
+      
+      expect(result.hasHardBlock).toBe(true);
+      expect(result.hardBlockReasons).toContain('Should be hard block');
+      expect(result.softWarningReasons).not.toContain('Should be hard block');
+    });
+
+    it('handles null/undefined inputs gracefully', () => {
+        const result = getOverridePolicy(undefined, undefined);
+        expect(result.canOverride).toBe(true);
+        expect(result.hardBlockReasons).toHaveLength(0);
     });
   });
 });

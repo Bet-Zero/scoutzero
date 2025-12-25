@@ -1,6 +1,6 @@
 # Roster Component Hierarchy
-
-```
+  
+```text
 AddPlayerDrawer/
   PlayerRowMini.jsx
   addPlayer/
@@ -35,5 +35,5 @@ utils/
 ```
 
 ---
-*Generated on: 2025-12-25T01:07:04.496Z*
+*Generated on: 2025-12-25T02:18:53.818Z*
 *Auto-updated by: npm run docs*

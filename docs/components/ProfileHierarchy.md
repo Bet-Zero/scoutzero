@@ -1,6 +1,6 @@
 # Profile Component Hierarchy
-
-```
+  
+```text
 BreakdownModal.jsx
 PlayerDetails/
   BadgeSelector.jsx
@@ -28,5 +28,5 @@ utils/
 ```
 
 ---
-*Generated on: 2025-12-25T01:07:04.491Z*
+*Generated on: 2025-12-25T02:18:53.811Z*
 *Auto-updated by: npm run docs*

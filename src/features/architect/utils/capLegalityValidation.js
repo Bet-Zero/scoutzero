@@ -34,6 +34,104 @@ const GRACE_MIN_ROSTER = 13;
 const MAX_TWO_WAY = 3;
 
 /**
+ * Hard block rules - these violations can NEVER be overridden, even in dev mode.
+ * These represent illegal states that cannot exist in the NBA.
+ */
+export const HARD_BLOCK_RULES = [
+  'roster_size',      // >15 players on standard roster
+  'hard_cap',         // Over hard cap ceiling
+  'two_way_limit',    // >3 two-way contracts
+  'option_timing',    // Acting on options outside allowed window
+  'no_contract',      // Extending a player with no contract
+  'unknown_type',     // Unknown mutation type
+];
+
+/**
+ * Soft warning rules - these can be overridden in dev mode.
+ */
+export const SOFT_WARNING_RULES = [
+  'roster_minimum',   // Below 14 players (temporary state is allowed)
+  'dead_cap',         // Dead cap created (informational)
+  'cap_space_gain',   // Info about cap space freed
+  'mle_taxpayer',     // MLE triggers hard cap warning
+  'first_apron',      // Over first apron warning
+  'second_apron',     // Over second apron warning
+  'extension_hard_cap', // Extension may cause future hard cap
+  'option_hard_cap',  // Option may cause hard cap
+  'cap_hold_creation', // Cap hold created
+  'no_rights',        // No rights to renounce (info)
+  'cap_data',         // Cap data not available
+];
+
+/**
+ * Get override policy for a validation result.
+ * 
+ * @param {Array} violations - Array of violation objects
+ * @param {Array} warnings - Array of warning objects
+ * @returns {{canOverride: boolean, hasHardBlock: boolean, hardBlockReasons: string[], softWarningReasons: string[]}}
+ */
+export function getOverridePolicy(violations = [], warnings = []) {
+  const hardBlockReasons = [];
+  const softWarningReasons = [];
+  
+  for (const v of violations) {
+    // Defensive check for malformed objects
+    if (!v || typeof v.rule !== 'string' || !v.message) {
+      console.warn('Malformed violation object encountered:', v);
+      const fallbackMsg = v && v.message ? `Malformed violation: ${v.message}` : 'Malformed violation detected';
+      softWarningReasons.push(fallbackMsg);
+      continue;
+    }
+
+    if (HARD_BLOCK_RULES.includes(v.rule)) {
+      hardBlockReasons.push(v.message);
+    } else {
+      softWarningReasons.push(v.message);
+    }
+  }
+  
+  for (const w of warnings) {
+    // Defensive check for malformed objects
+    if (!w || typeof w.rule !== 'string' || !w.message) {
+      console.warn('Malformed warning object encountered:', w);
+      const fallbackMsg = w && w.message ? `Malformed warning: ${w.message}` : 'Malformed warning detected';
+      softWarningReasons.push(fallbackMsg);
+      continue;
+    }
+
+    // Feature: If a specialized logic marked something as a warning, 
+    // but the rule code is actually a HARD_BLOCK_RULE, we treat it as a hard block.
+    if (HARD_BLOCK_RULES.includes(w.rule)) {
+      hardBlockReasons.push(w.message);
+    } else {
+      softWarningReasons.push(w.message);
+    }
+  }
+  
+  return {
+    canOverride: hardBlockReasons.length === 0,
+    hasHardBlock: hardBlockReasons.length > 0,
+    hardBlockReasons,
+    softWarningReasons,
+  };
+}
+
+/**
+ * Check if CBA override is enabled via environment variable.
+ * @returns {boolean}
+ */
+export function isOverrideEnabled() {
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+    return import.meta.env.VITE_ENABLE_CBA_OVERRIDE === 'true';
+  }
+  if (typeof process !== 'undefined' && process.env) {
+    return process.env.VITE_ENABLE_CBA_OVERRIDE === 'true';
+  }
+  return false;
+}
+
+
+/**
  * Count roster size (excluding two-way contracts)
  * @param {Array} players - Team players array
  * @returns {number} Standard roster count
@@ -480,4 +578,8 @@ export default {
   validateExtension,
   validateOptionDecision,
   validateRenounceRights,
+  getOverridePolicy,
+  isOverrideEnabled,
+  HARD_BLOCK_RULES,
+  SOFT_WARNING_RULES,
 };
