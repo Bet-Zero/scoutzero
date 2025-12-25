@@ -12,10 +12,6 @@
  *  - Plan: plans/extract_gmdashboard_actions_b9466109.plan.md
  */
 import { useCallback } from 'react';
-import {
-  saveNamedTeamPlan,
-  listUserTeamPlans,
-} from '@/features/architect/utils/firebaseTeamPlanHelpers';
 import { loadArchitectBasePlayer } from '@/features/architect/utils/loadArchitectBasePlayer';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
 import { calculateCapHold } from '@/features/architect/utils/contractUtils';
@@ -189,12 +185,7 @@ interface OverrideMetadata {
   overrideTimestamp: string;
 }
 
-/** Plan reference from Firestore */
-interface PlanRef {
-  id: string;
-  name?: string;
-  [key: string]: unknown;
-}
+
 
 /** Free agent type extending ArchitectPlayer */
 interface FreeAgent extends ArchitectPlayer {
@@ -222,17 +213,12 @@ interface ArchitectStateForActions {
   finishSave: (errorMsg?: string) => void;
   setOffseasonRun: React.Dispatch<React.SetStateAction<boolean>>;
   setOffseasonSummary: React.Dispatch<React.SetStateAction<unknown | null>>;
-  setPlans: React.Dispatch<React.SetStateAction<PlanRef[]>>;
-  setSelectedPlan: React.Dispatch<React.SetStateAction<string>>;
 }
 
 /** Modal helpers from useArchitectModals (subset needed by actions) */
 interface ArchitectModalsForActions {
-  newPlanName: string;
   openContractModal: (context?: EditModalContext) => void;
   closeContractModal: () => void;
-  closeSaveModal: () => void;
-  setNewPlanName: React.Dispatch<React.SetStateAction<string>>;
 }
 
 /** Hook input parameters */
@@ -275,9 +261,6 @@ export interface UseArchitectActionsReturn {
 
   // Trade actions
   applyTradeToCapSheet: (tradeData: TradeDataItem[]) => Promise<void>;
-
-  // Plan actions
-  handleSavePlan: () => Promise<void>;
 }
 
 // ==== Season helpers ====
@@ -347,22 +330,12 @@ export function useArchitectActions({
     setSelectedRulesYear,
     setSelectedPlayer,
     setFreeAgents,
-    startSave,
-    finishSave,
     setOffseasonRun,
     setOffseasonSummary,
-    setPlans,
-    setSelectedPlan,
   } = state;
 
   // Destructure modals for easier access
-  const {
-    newPlanName,
-    openContractModal,
-    closeContractModal,
-    closeSaveModal,
-    setNewPlanName,
-  } = modals;
+  const { openContractModal, closeContractModal } = modals;
 
   // === Trade Actions ===
 
@@ -1117,43 +1090,6 @@ export function useArchitectActions({
     setOffseasonSummary,
   ]);
 
-  // === Save Plan Action ===
-
-  const handleSavePlan = useCallback(async (): Promise<void> => {
-    // Guard: saving requires userId
-    if (!userId) {
-      console.warn('Cannot save plan: userId is missing');
-      return;
-    }
-
-    if (!newPlanName.trim()) return;
-
-    startSave();
-    try {
-      await saveNamedTeamPlan(userId, teamId, newPlanName.trim(), teamCapSheet);
-      const updated = (await listUserTeamPlans(userId, teamId)) as PlanRef[];
-      setPlans(updated);
-      setSelectedPlan(newPlanName.trim());
-      setNewPlanName('');
-      closeSaveModal();
-      finishSave();
-    } catch (err) {
-      console.error('Failed to save plan', err);
-      finishSave('Failed to save plan');
-    }
-  }, [
-    userId,
-    teamId,
-    newPlanName,
-    teamCapSheet,
-    startSave,
-    finishSave,
-    setPlans,
-    setSelectedPlan,
-    setNewPlanName,
-    closeSaveModal,
-  ]);
-
   return {
     // Contract/Player actions
     handleSign,
@@ -1169,8 +1105,5 @@ export function useArchitectActions({
 
     // Trade actions
     applyTradeToCapSheet,
-
-    // Plan actions
-    handleSavePlan,
   };
 }

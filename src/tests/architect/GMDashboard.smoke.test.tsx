@@ -24,18 +24,13 @@ vi.mock('@/shared/hooks/useAuth', () => ({
 }));
 
 // Mock Firebase helpers
+// Note: loadTeamCapSheet is used for base team loading (not teamPlans)
 const mockLoadTeamCapSheet = vi.fn();
 const mockLoadFreeAgents = vi.fn();
-const mockLoadUserTeamPlan = vi.fn();
-const mockListUserTeamPlans = vi.fn();
-const mockLoadNamedTeamPlan = vi.fn();
 
 vi.mock('@/features/architect/utils/firebaseTeamPlanHelpers', () => ({
   loadTeamCapSheet: (...args: unknown[]) => mockLoadTeamCapSheet(...args),
   loadFreeAgents: (...args: unknown[]) => mockLoadFreeAgents(...args),
-  loadUserTeamPlan: (...args: unknown[]) => mockLoadUserTeamPlan(...args),
-  listUserTeamPlans: (...args: unknown[]) => mockListUserTeamPlans(...args),
-  loadNamedTeamPlan: (...args: unknown[]) => mockLoadNamedTeamPlan(...args),
 }));
 
 // Mock useArchitectPlayerData
@@ -138,9 +133,6 @@ describe('GMDashboard Smoke Test', () => {
     const mockCapSheet = createMockTeamCapSheet();
     mockLoadTeamCapSheet.mockResolvedValue(mockCapSheet);
     mockLoadFreeAgents.mockResolvedValue(undefined);
-    mockLoadUserTeamPlan.mockResolvedValue(null);
-    mockListUserTeamPlans.mockResolvedValue([]);
-    mockLoadNamedTeamPlan.mockResolvedValue(null);
   });
 
   describe('Loading State', () => {

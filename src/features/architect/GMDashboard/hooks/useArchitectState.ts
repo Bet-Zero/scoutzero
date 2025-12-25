@@ -13,14 +13,7 @@
  *  - Gap Analysis: docs/ARCHITECT_GAP_ANALYSIS.md
  */
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import {
-  saveUserTeamPlan,
-  loadUserTeamPlan,
-  listUserTeamPlans,
-  saveNamedTeamPlan,
-  loadNamedTeamPlan,
-  loadFreeAgents,
-} from '@/features/architect/utils/firebaseTeamPlanHelpers';
+import { loadFreeAgents } from '@/features/architect/utils/firebaseTeamPlanHelpers';
 import { loadWorldTeamData } from '@/features/architect/utils/worldTeamData';
 import useArchitectPlayerData from '@/features/architect/hooks/useArchitectPlayerData';
 import capProjections from '@/features/architect/utils/capProjections';
@@ -134,12 +127,7 @@ interface CapSheet {
   [key: string]: unknown;
 }
 
-/** Plan reference from Firestore */
-interface PlanRef {
-  id: string;
-  name?: string;
-  [key: string]: unknown;
-}
+
 
 /** Hook input parameters */
 interface UseArchitectStateParams {
@@ -148,8 +136,7 @@ interface UseArchitectStateParams {
   authLoading: boolean;
 }
 
-/** View mode for the dashboard */
-type ViewMode = 'plan' | 'baseline';
+
 
 /** Active tab in the dashboard */
 type ActiveTab =
@@ -171,11 +158,8 @@ interface UseArchitectStateReturn {
   currentYear: number;
   selectedRulesYear: number;
   activeTab: ActiveTab;
-  viewMode: ViewMode;
   selectedPlayer: ArchitectPlayer | null;
-  selectedPlan: string;
   freeAgents: FreeAgent[];
-  plans: PlanRef[];
   isLoading: boolean;
   isSaving: boolean;
   error: string;
@@ -193,13 +177,10 @@ interface UseArchitectStateReturn {
   setCurrentYear: React.Dispatch<React.SetStateAction<number>>;
   setSelectedRulesYear: React.Dispatch<React.SetStateAction<number>>;
   setActiveTab: React.Dispatch<React.SetStateAction<ActiveTab>>;
-  setViewMode: React.Dispatch<React.SetStateAction<ViewMode>>;
   setSelectedPlayer: React.Dispatch<
     React.SetStateAction<ArchitectPlayer | null>
   >;
-  setSelectedPlan: React.Dispatch<React.SetStateAction<string>>;
   setFreeAgents: React.Dispatch<React.SetStateAction<FreeAgent[]>>;
-  setPlans: React.Dispatch<React.SetStateAction<PlanRef[]>>;
   setLastCapSheet: React.Dispatch<React.SetStateAction<CapSheet | null>>;
   setOffseasonRun: React.Dispatch<React.SetStateAction<boolean>>;
   setOffseasonSummary: React.Dispatch<React.SetStateAction<unknown | null>>;
@@ -292,7 +273,6 @@ export function useArchitectState({
   );
   const [teamCapSheet, setTeamCapSheet] = useState<CapSheet | null>(null);
   const [freeAgents, setFreeAgents] = useState<FreeAgent[]>([]);
-  const [plans, setPlans] = useState<PlanRef[]>([]);
 
   // === World state (for Architect worlds system) ===
   const [worldId, setWorldId] = useState<string | null>(null);
@@ -331,13 +311,7 @@ export function useArchitectState({
   const [selectedPlayer, setSelectedPlayer] = useState<ArchitectPlayer | null>(
     null
   );
-  const [selectedPlan, setSelectedPlan] = useState<string>('');
   const [activeTab, setActiveTab] = useState<ActiveTab>('roster');
-  const [viewMode, setViewMode] = useState<ViewMode>(() => {
-    const stored = localStorage.getItem('architect.viewMode');
-    // Only accept valid ViewMode values; fall back to 'baseline' for invalid/missing
-    return stored === 'plan' || stored === 'baseline' ? stored : 'baseline';
-  });
 
   // === Offseason state ===
   const [lastCapSheet, setLastCapSheet] = useState<CapSheet | null>(null);
@@ -351,8 +325,7 @@ export function useArchitectState({
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
 
-  // === Ref to prevent Effect 8 from racing with Effect 5 during initial load ===
-  const initialLoadCompleteRef = useRef<boolean>(false);
+
 
   // === Internal hook call ===
   const { players } = useArchitectPlayerData() as {
@@ -387,30 +360,15 @@ export function useArchitectState({
     window.history.replaceState({}, '', url);
   }, [currentYear]);
 
-  // === Effect 2: Persist viewMode to localStorage ===
-  useEffect(() => {
-    localStorage.setItem('architect.viewMode', viewMode);
-  }, [viewMode]);
-
-  // === Effect 3: Force baseline mode when userId is missing ===
-  useEffect(() => {
-    if (!authLoading && !userId && viewMode === 'plan') {
-      setViewMode('baseline');
-    }
-  }, [userId, authLoading, viewMode]);
-
-  // === Effect 4: Sync selectedRulesYear with currentYear ===
+  // === Effect 2: Sync selectedRulesYear with currentYear ===
   useEffect(() => {
     setSelectedRulesYear(currentYear);
   }, [currentYear]);
 
-  // === Effect 5: Fetch team data on mount and when worldId changes ===
+  // === Effect 3: Fetch team data on mount and when worldId changes ===
   // Uses world-aware loading via loadWorldTeamData (Phase 2B)
   // Fallback chain: world snapshot → parent world → base team
   useEffect(() => {
-    // Reset the initial load flag when teamId/userId/worldId changes so Effect 8 waits again
-    initialLoadCompleteRef.current = false;
-
     const fetchData = async () => {
       setIsLoading(true);
       setError('');
@@ -419,56 +377,19 @@ export function useArchitectState({
         // When worldId is null, falls back to base team (same as before)
         const base = await loadWorldTeamData(worldId, teamId);
 
-        // Only load user plans if userId is available AND no world is selected.
-        // Business logic: Legacy "plans" (teamPlans collection) are a separate persistence
-        // mechanism from "worlds" (architect_worlds collection). When a world is selected,
-        // it becomes the source of truth and plans are not loaded. This ensures:
-        // 1. World-aware reads take precedence over legacy plan data
-        // 2. Users can still use plans when no world is selected (backward compatibility)
-        // 3. No confusion between world snapshots and saved plans
-        let planLoaded = false;
-        if (userId && !worldId) {
-          const planList = await listUserTeamPlans(userId, teamId);
-          setPlans(planList as PlanRef[]);
-          const first = (planList as PlanRef[])[0]?.id || '';
-          let plan: CapSheet | null = null;
-          if (first) {
-            const data = await loadNamedTeamPlan(userId, teamId, first);
-            plan =
-              (data as { capSheet?: CapSheet })?.capSheet || (data as CapSheet);
-            setSelectedPlan(first);
-          } else {
-            plan = (await loadUserTeamPlan(userId, teamId)) as CapSheet | null;
-          }
-          if (plan) {
-            setTeamCapSheet(plan);
-            planLoaded = true;
-          }
-        }
-
         await loadFreeAgents();
-        if (base) setBaselineCapSheet(base as CapSheet);
-        
-        // Set teamCapSheet based on loading priority:
-        // 1. If world is selected, use world-aware data (base already contains world data)
-        // 2. If plan was loaded (legacy mode), keep the plan
-        // 3. Otherwise use baseline
-        if (worldId && base) {
-          // World mode: use the world-aware data directly
+        if (base) {
+          setBaselineCapSheet(base as CapSheet);
+          // Always use baseline (or world-aware) data as team cap sheet
           setTeamCapSheet(deepClone(base));
-        } else if (!planLoaded) {
-          // No plan loaded and no world, use baseline
-          if (base) setTeamCapSheet(deepClone(base));
-          else console.warn('No saved team found, using blank slate.');
+        } else {
+          console.warn('No saved team found, using blank slate.');
         }
-        // If planLoaded is true, teamCapSheet was already set above
       } catch (err) {
         console.error(err);
         setError('Error loading team data');
       } finally {
         setIsLoading(false);
-        // Mark initial load as complete so Effect 8 can run on subsequent changes
-        initialLoadCompleteRef.current = true;
       }
     };
 
@@ -476,63 +397,9 @@ export function useArchitectState({
     if (!authLoading) {
       fetchData();
     }
-  }, [teamId, userId, authLoading, worldId]);
+  }, [teamId, authLoading, worldId]);
 
-  // === Effect 6: Auto-save plan when teamCapSheet changes ===
-  // IMPORTANT: This effect ONLY saves to legacy teamPlans collection when NO world is selected.
-  // When a world is selected (worldId !== null), persistence is handled by the centralized
-  // mutationPipeline.js which writes to architect_worlds collection.
-  // This prevents dual-persistence divergence between teamPlans and architect_worlds.
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    if (!teamCapSheet) return;
-    // Skip autosave to teamPlans when a world is selected - world mutations
-    // are persisted via applyWorldMutation() in mutationPipeline.js
-    if (worldId) return;
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-    const savePlan = async () => {
-      try {
-        if (viewMode === 'plan') {
-          if (selectedPlan) {
-            await saveNamedTeamPlan(
-              userId as string,
-              teamId,
-              selectedPlan,
-              teamCapSheet,
-              capProjections,
-              currentYear
-            );
-          } else {
-            await saveUserTeamPlan(
-              userId as string,
-              teamId,
-              teamCapSheet,
-              capProjections,
-              currentYear
-            );
-          }
-        }
-      } catch (err) {
-        console.error('Failed to save plan', err);
-      }
-    };
-    saveTimeoutRef.current = setTimeout(savePlan, 1000); // Debounce 1 second
-    return () => {
-      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    };
-  }, [
-    teamCapSheet,
-    teamId,
-    userId,
-    selectedPlan,
-    viewMode,
-    currentYear,
-    worldId, // Added dependency to re-evaluate when worldId changes
-    // capProjections is a constant import, not a dependency
-  ]);
 
   // === Effect 7: Derive free agents dynamically from the player pool ===
   useEffect(() => {
@@ -649,45 +516,7 @@ export function useArchitectState({
     setFreeAgents(upcomingFreeAgents);
   }, [players, currentYear]);
 
-  // === Effect 8: Load plan based on viewMode/selectedPlan changes ===
-  // This effect is guarded by initialLoadCompleteRef to prevent racing with Effect 5.
-  // Effect 5 handles the initial auth/baseline load; this effect only handles
-  // subsequent changes to viewMode or selectedPlan after the initial load completes.
-  useEffect(() => {
-    // Skip during initial load - Effect 5 handles setting teamCapSheet initially
-    if (!initialLoadCompleteRef.current) {
-      return;
-    }
 
-    const loadPlan = async () => {
-      setIsLoading(true);
-      setError('');
-      try {
-        if (viewMode === 'baseline') {
-          if (baselineCapSheet) setTeamCapSheet(deepClone(baselineCapSheet));
-          return;
-        }
-        // Only load named plans if userId is available
-        if (userId && selectedPlan) {
-          const data = await loadNamedTeamPlan(userId, teamId, selectedPlan);
-          if ((data as { capSheet?: CapSheet })?.capSheet) {
-            setTeamCapSheet((data as { capSheet: CapSheet }).capSheet);
-          }
-        } else if (baselineCapSheet) {
-          setTeamCapSheet(deepClone(baselineCapSheet));
-        }
-      } catch (err) {
-        console.error(err);
-        setError('Error loading plan');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    // Wait for auth to finish loading before loading plan
-    if (!authLoading) {
-      loadPlan();
-    }
-  }, [viewMode, selectedPlan, baselineCapSheet, teamId, userId, authLoading]);
 
   // === Higher-level action functions ===
   // These encapsulate proper state transitions and should be used instead of raw setters
@@ -752,11 +581,8 @@ export function useArchitectState({
     currentYear,
     selectedRulesYear,
     activeTab,
-    viewMode,
     selectedPlayer,
-    selectedPlan,
     freeAgents,
-    plans,
     isLoading,
     isSaving,
     error,
@@ -774,11 +600,8 @@ export function useArchitectState({
     setCurrentYear,
     setSelectedRulesYear,
     setActiveTab,
-    setViewMode,
     setSelectedPlayer,
-    setSelectedPlan,
     setFreeAgents,
-    setPlans,
     setLastCapSheet,
     setOffseasonRun,
     setOffseasonSummary,

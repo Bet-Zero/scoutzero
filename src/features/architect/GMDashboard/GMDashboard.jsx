@@ -18,7 +18,6 @@
 import React, { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import EditContractModal from '@/shared/components/EditContractModal';
-import SavePlanModal from '@/features/architect/SavePlanModal';
 import { RosterSection } from './sections/RosterSection';
 import { CapSheetSection } from './sections/CapSheetSection';
 import { CapTableSection } from './sections/CapTableSection';
@@ -70,11 +69,8 @@ const GMDashboard = () => {
     currentYear,
     selectedRulesYear,
     activeTab,
-    viewMode,
     selectedPlayer,
-    selectedPlan,
     freeAgents,
-    plans,
     isLoading,
     isSaving,
     error,
@@ -87,8 +83,6 @@ const GMDashboard = () => {
     setTeamCapSheet,
     setCurrentYear,
     setActiveTab,
-    setViewMode,
-    setSelectedPlan,
     setLastCapSheet,
     setOffseasonRun,
     setOffseasonSummary,
@@ -98,15 +92,10 @@ const GMDashboard = () => {
   // Destructure modals for easier access
   const {
     showOffseasonModal,
-    showSaveModal,
     showContractModal,
-    newPlanName,
     initialAction,
     targetYear,
     actionContext,
-    setNewPlanName,
-    openSaveModal,
-    closeSaveModal,
     closeContractModal,
     closeOffseasonModal,
     setShowOffseasonModal,
@@ -189,32 +178,7 @@ const GMDashboard = () => {
             </select>
           </label>
 
-          {/* View mode - only show plan option if userId is available */}
-          {userId && (
-            <select
-              value={viewMode}
-              onChange={(e) => setViewMode(e.target.value)}
-              className="bg-[#1a1a1a] text-white text-sm px-2 py-1 rounded border border-white/10"
-            >
-              <option value="plan">Plan</option>
-              <option value="baseline">Baseline</option>
-            </select>
-          )}
 
-          {/* Plan picker - only show if userId is available and in plan mode */}
-          {userId && viewMode === 'plan' && (
-            <select
-              value={selectedPlan}
-              onChange={(e) => setSelectedPlan(e.target.value)}
-              className="bg-[#1a1a1a] text-white text-sm px-2 py-1 rounded border border-white/10"
-            >
-              {plans.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name || p.id}
-                </option>
-              ))}
-            </select>
-          )}
         </div>
       </div>
       {error && <p className="text-red-500 mb-2">{error}</p>}
@@ -429,16 +393,6 @@ const GMDashboard = () => {
         </div>
       )}
 
-      {showSaveModal && (
-        <SavePlanModal
-          isOpen={showSaveModal}
-          name={newPlanName}
-          onNameChange={setNewPlanName}
-          onCancel={closeSaveModal}
-          onSave={actions.handleSavePlan}
-        />
-      )}
-
       {showContractModal && (
         <EditContractModal
           isOpen={showContractModal}
@@ -462,16 +416,6 @@ const GMDashboard = () => {
         />
       )}
 
-      {userId && viewMode === 'plan' && (
-        <div className="fixed bottom-6 right-6 z-50">
-          <button
-            onClick={openSaveModal}
-            className="bg-black/20 text-white px-4 py-2 rounded hover:bg-white/20"
-          >
-            Save Plan
-          </button>
-        </div>
-      )}
     </div>
   );
 };

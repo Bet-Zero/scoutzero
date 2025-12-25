@@ -19,7 +19,7 @@ This document analyzes the Architect feature's production readiness, identifying
 
 | Area | Risk Level | Summary |
 |------|------------|---------|
-| Persistence Model | 🟡 Medium | Dual persistence (worlds + teamPlans) can diverge |
+| Persistence Model | 🟢 Resolved | Worlds-only persistence for Architect (teamPlans removed) |
 | Illegal State Prevention | 🔴 High | "Force Action" bypass persists invalid states |
 | Rule Parity | 🟡 Medium | Trade Machine validates more than other actions |
 | Code Duplication | 🟡 Medium | Cap holds, season format, salary matching in multiple locations |
@@ -27,51 +27,70 @@ This document analyzes the Architect feature's production readiness, identifying
 
 ---
 
+## Phase 5 Operating Rules
+
+> [!IMPORTANT]
+> These rules govern all Architect operations and must be maintained throughout the codebase.
+
+### 1. Worlds Are Canonical
+
+- **`architect_worlds`** is the single source of truth for all Architect state
+- No `teamPlans` reads, writes, autosave, Plan Picker, or Plan Mode in Architect
+- User state is always loaded from and persisted to world snapshots
+
+### 2. MutationPipeline Enforces Legality
+
+- **All** mutations flow through `applyWorldMutation()` → `mutationPipeline.js`
+- Pipeline validates before persisting — illegal states are **rejected**, not fixed after-the-fact
+- Validation returns structured `{ valid, violations[], warnings[] }` for UI display
+
+### 3. Roster Size Policy
+
+| Condition | Severity | Behavior |
+|-----------|----------|----------|
+| Roster > 15 players | **Error** | **Block** — action cannot proceed |
+| Roster < 14 players | **Warning** | **Warn** — action proceeds, user notified |
+
+This allows users to waive/trade players during roster construction while still preventing illegal >15 states.
+
+### 4. Overrides Are Dev-Only
+
+- Force Override UI gated by `VITE_ENABLE_CBA_OVERRIDE` env flag (default: `false`)
+- In production, overrides are **never visible** and **never persist** illegal states
+- Dev overrides are logged but do not create production-viable world states
+
+---
+
 ## Phase 5 Gap Analysis (Structured)
 
-### Gap 1: Dual Persistence Model (Worlds vs TeamPlans)
+### Gap 1: Persistence Model (Resolved: Worlds-Only)
 
-**Name**: Persistence Model Inconsistency
+**Name**: Persistence Model Consistency
+
+**Status**: ✅ **RESOLVED** — Architect is worlds-only.
+
+**Decision**:
+
+- **Architect uses `architect_worlds` exclusively** for persistence
+- **No `teamPlans` reads, writes, autosave, Plan Picker, or Plan Mode** for Architect
+- Legacy `teamPlans` collection may remain for other features but is **not used by Architect**
 
 **Where it lives**:
 
-- `src/features/architect/utils/worldManager.js` → `architect_worlds` collection
-- `src/features/architect/utils/firebaseTeamPlanHelpers.js` → `teamPlans` collection
-- `src/features/architect/GMDashboard/hooks/useArchitectState.ts` → Effect 6 autosaves to `teamPlans`
+- `src/features/architect/utils/worldManager.js` → `architect_worlds` collection (canonical)
 - `src/features/architect/utils/mutationPipeline.js` → writes to `architect_worlds`
 
-**Why it's a risk**:
+**Why this matters**:
 
-- Legacy plan autosave (`saveUserTeamPlan`, `saveNamedTeamPlan`) runs independently of mutation pipeline
-- Changes in `teamCapSheet` state trigger autosave to `teamPlans` even when user is in a world
-- Creates two sources of truth that can diverge
-- User confusion about which data is "real"
+- Single source of truth eliminates divergence risk
+- User always sees world state, no confusion about "which data is real"
+- Simplifies codebase by removing dual-persistence complexity
 
-**How to detect it**:
+**Implementation Notes**:
 
-- User modifies cap sheet in world mode
-- Autosave writes to `teamPlans/{userId}_{teamId}`  
-- User reloads without world selected → sees stale `teamPlans` data, not world state
-- Data appears to "revert" inconsistently
-
-**Current Mitigation Attempt** (from `useArchitectState.ts` lines 427-447):
-
-```typescript
-// Only load user plans if userId is available AND no world is selected.
-// Business logic: Legacy "plans" (teamPlans collection) are a separate persistence
-// mechanism from "worlds" (architect_worlds collection). When a world is selected,
-// it becomes the source of truth and plans are not loaded.
-if (userId && !worldId) {
-  // ... loads from teamPlans
-}
-```
-
-**Gap**: While reads are gated, Effect 6 autosave (lines 484-527) still writes to `teamPlans` when `viewMode === 'plan'` regardless of whether a world is selected.
-
-**Proposed Fix**:
-
-1. **Short-term**: Gate autosave to `teamPlans` on `!worldId` condition
-2. **Long-term**: Deprecate `teamPlans` for Architect, migrate existing plans to world snapshots
+- Remove/gate any `saveUserTeamPlan` / `saveNamedTeamPlan` calls from Architect code paths
+- Remove Plan Picker UI from Architect (worlds picker is the canonical selector)
+- Consider deprecating `firebaseTeamPlanHelpers.js` if no other features use it
 
 ---
 
@@ -254,10 +273,10 @@ Trade Machine validates these restrictions:
 | Rule | Trade Machine | Signing | Extension | Waive | Option |
 |------|---------------|---------|-----------|-------|--------|
 | Salary Matching | ✅ Full | N/A | N/A | N/A | N/A |
-| Hard Cap Ceiling | ✅ Full | ⚠️ Warning only | ⚠️ Warning only | ❌ None | ❌ None |
+| Hard Cap Ceiling | ✅ Full | ✅ Error/Block | ⚠️ Warning only | ❌ None | ❌ None |
 | Second Apron Restrictions | ✅ Full | ⚠️ Warning only | ❌ None | ❌ None | ❌ None |
-| Roster Size (15 max) | ✅ Full | ❌ None | N/A | ❌ None | N/A |
-| Roster Minimum (14) | ✅ Full | N/A | N/A | ⚠️ Should warn | N/A |
+| Roster Size (>15) | ✅ Full | ✅ Error/Block | N/A | ❌ None | N/A |
+| Roster Minimum (<14) | ✅ Full | N/A | N/A | ⚠️ Warning only | N/A |
 | Exception Usage | ✅ Full | ⚠️ Partial | N/A | N/A | N/A |
 
 **How to detect it**:
@@ -396,43 +415,87 @@ service cloud.firestore {
           get(/databases/$(database)/documents/architect_worlds/$(worldId)).data.createdBy == request.auth.uid;
       }
     }
-    
-    // Legacy teamPlans - owner-scoped (if keeping)
-    match /teamPlans/{planId} {
-      allow read, write: if request.auth != null && 
-        planId.split('_')[0] == request.auth.uid;
-    }
   }
 }
 ```
+
+> [!NOTE]
+> **teamPlans rules removed**: Architect no longer uses `teamPlans`. If other features use this collection, rules should scope by a stored `ownerId` field (not doc ID parsing with `split()`).
 
 ---
 
 ## Ordered Execution Plan
 
-### Step 1: Single Source of Truth & Persistence Model Decision
+### Step 1: Single Source of Truth — Worlds-Only Persistence
 
-**Decision**: **Worlds-only** for Architect mutations. Legacy `teamPlans` for backward compatibility (read-only fallback).
+**Decision**: **Worlds-only** for Architect. No `teamPlans` usage (no reads, writes, autosave, Plan Picker, or Plan Mode).
+
+#### Scope Analysis (Baseline Search)
+
+| Pattern | Files | Occurrences | Location |
+|---------|-------|-------------|----------|
+| `saveUserTeamPlan` | 1 | 1 (definition only) | `firebaseTeamPlanHelpers.js:219` |
+| `saveNamedTeamPlan` | 1 | 1 (definition only) | `firebaseTeamPlanHelpers.js:271` |
+| `teamPlans` collection | 2 | 7 total | `firebaseTeamPlanHelpers.js` (6), `ARCHITECT_FEATURE_README.md` (1) |
+| `PlanPicker` / `planMode` | 0 | 0 | No UI component exists |
+
+**Key Finding**: No Plan Picker UI exists. The save functions are defined but **not imported or called** from any Architect code paths. The only imports from `firebaseTeamPlanHelpers.js` are:
+
+- `loadFreeAgents` → `useArchitectState.ts:16`
+- `hydrateBaseTeam` → `teamLoader.js:13`
+- `loadTeamCapSheet` → `worldTeamData.ts:20`, `LeagueView.jsx:2`
 
 **Concrete Tasks**:
 
-1. [ ] Gate autosave in `useArchitectState.ts` Effect 6 on `!worldId`
-2. [ ] Add `worldId` check before any `saveUserTeamPlan` / `saveNamedTeamPlan` call
-3. [ ] Update comments to document persistence boundary
+1. [x] Remove/gate `saveUserTeamPlan` / `saveNamedTeamPlan` calls — **N/A**: No calls exist in Architect code paths
+2. [x] Remove Plan Picker UI — **N/A**: No `PlanPicker` or `planMode` components exist
+3. [ ] Verify `useArchitectState.ts` has no `teamPlans` fetch logic (confirmed: imports only `loadFreeAgents`)
+4. [ ] Update `ARCHITECT_FEATURE_README.md` to remove teamPlans reference (line 10)
+5. [ ] Add inline comment in `firebaseTeamPlanHelpers.js` marking teamPlans functions as deprecated/unused by Architect
 
-**Files Impacted**:
+**Files to Update**:
 
-- `src/features/architect/GMDashboard/hooks/useArchitectState.ts`
+| File | Change | Lines |
+|------|--------|-------|
+| [ARCHITECT_FEATURE_README.md](file:///Users/brenthibbitts/Desktop/ScoutZero/src/features/architect/ARCHITECT_FEATURE_README.md) | Remove teamPlans reference | Line 10 |
+| [firebaseTeamPlanHelpers.js](file:///Users/brenthibbitts/Desktop/ScoutZero/src/features/architect/utils/firebaseTeamPlanHelpers.js) | Add deprecation comment | Lines 219-300 |
+
+**Verification Strategy**:
+
+```bash
+# 1. Confirm no teamPlans writes from Architect
+grep -r "saveUserTeamPlan\|saveNamedTeamPlan" src/features/architect/ --include="*.ts" --include="*.tsx" --include="*.jsx"
+# Expected: 0 matches (only definition in .js file)
+
+# 2. Confirm no teamPlans collection reads from Architect hooks/components
+grep -r "collection(db, 'teamPlans')" src/features/architect/ --include="*.ts" --include="*.tsx"
+# Expected: 0 matches
+
+# 3. Run Architect workflow end-to-end; grep Firestore writes for teamPlans collection; confirm zero matches
+# (Manual verification during testing)
+```
 
 **Tests to Add**:
 
-- `tests/architect/persistence.test.js` → verify autosave blocked when worldId set
+- `tests/architect/persistence.test.js` — new file with assertions:
+  - Mock Firestore and verify no writes to `teamPlans` collection during:
+    - World creation
+    - Mutation execution (signFreeAgent, waivePlayer, etc.)
+    - World save/reload cycle
+  - Assert all writes target `architect_worlds` collection only
+
+**Regression Check**:
+
+- [ ] All existing tests pass after changes (`npm test -- --testPathPattern=architect`)
+- [ ] No runtime errors when loading/saving worlds
 
 **Definition of Done**:
 
-- [ ] Autosave to `teamPlans` ONLY triggers when `worldId === null`
-- [ ] World mutations ONLY write to `architect_worlds`
-- [ ] No accidental cross-writes between systems
+- [x] No Architect code path reads from or writes to `teamPlans` — **Verified**: no calls exist
+- [x] All mutations flow through `architect_worlds` only — **Already true**
+- [x] Plan Picker / Plan Mode removed from Architect UI — **N/A**: never existed
+- [ ] Documentation updated to reflect worlds-only persistence
+- [ ] Deprecation comments added to unused teamPlans functions
 
 ---
 
@@ -470,8 +533,9 @@ service cloud.firestore {
 **Tests to Add**:
 
 - `tests/architect/capLegalityValidation.test.js`
-  - Signing that exceeds hard cap → blocked
-  - Waive that drops below roster minimum → blocked
+  - Signing that exceeds hard cap → blocked (error)
+  - Signing that exceeds 15 players → blocked (error)
+  - Waive that drops below roster minimum (<14) → warning (allowed to proceed)
   - Extension that triggers apron → warning but allowed
 
 **Definition of Done**:
@@ -607,15 +671,15 @@ applyWorldMutation({
 **Tests to Add**:
 
 - `tests/architect/capLegalitySuite.test.js`
-  - Hard cap check blocks when projected > ceiling
-  - Roster size check blocks at 16
-  - Roster minimum warns at 13
+  - Hard cap check blocks when projected > ceiling (error)
+  - Roster size check blocks when >15 (error)
+  - Roster minimum check warns when <14 (warning, not blocking)
 
 **Definition of Done**:
 
 - [ ] Single source of truth for cap rules
-- [ ] Signings blocked when they would exceed hard cap
-- [ ] Waives blocked when they would drop below roster minimum
+- [ ] Signings blocked when they would exceed hard cap or roster >15
+- [ ] Waives **warn** (not block) when they would drop below roster minimum
 
 ---
 
@@ -698,8 +762,8 @@ Run through this checklist before declaring Phase 5 complete:
 
 ### Persistence Consistency
 
-- [ ] Autosave to `teamPlans` only runs when `worldId === null`
-- [ ] All mutations flow through `applyWorldMutation()`
+- [ ] No `teamPlans` usage in Architect (no reads, writes, autosave, Plan Picker)
+- [ ] All mutations flow through `applyWorldMutation()` → `architect_worlds`
 - [ ] No direct Firestore writes from UI components
 
 ### Illegal State Prevention
@@ -713,8 +777,8 @@ Run through this checklist before declaring Phase 5 complete:
 ### Rule Parity
 
 - [x] Hard cap checked for signings, extensions, option accepts (in `capLegalityValidation.js`) ✅
-- [x] Roster size (15 max) checked for signings (in `validateSigning()`) ✅
-- [x] Roster minimum (14) warned for waives (in `validateWaive()`) ✅
+- [x] Roster maximum (>15) → **error/block** for signings (in `validateSigning()`) ✅
+- [x] Roster minimum (<14) → **warning only** for waives (in `validateWaive()`) ✅
 - [x] Apron restrictions checked for signings ✅
 - [ ] Trade Machine integration of shared validators pending
 
@@ -747,7 +811,7 @@ Run through this checklist before declaring Phase 5 complete:
 
 1. `VITE_ENABLE_CBA_OVERRIDE` environment variable can be added without breaking build
 2. Firestore rules can be deployed via Firebase Console or CI
-3. `teamPlans` collection can remain for backward compatibility (not removed)
+3. `teamPlans` collection is **not used by Architect** (may remain for other features)
 4. Trade Machine validation is comprehensive and can serve as template for other actions
 
 **Items to Verify Before Implementation**:
