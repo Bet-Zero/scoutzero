@@ -5,6 +5,7 @@
  *
  * HISTORY:
  *  - 2025-12-12: Created - extracted modal state from useArchitectState.ts (Phase 4 refactor)
+ *  - 2025-12-25: Removed legacy plan save modal state (worlds-only cleanup)
  *
  * LINKS:
  *  - Plan: plans/extract_modal_state_hook_a4e2c416.plan.md
@@ -27,21 +28,14 @@ export interface EditModalContext {
 export interface UseArchitectModalsReturn {
   // Modal visibility booleans
   showOffseasonModal: boolean;
-  showSaveModal: boolean;
   showContractModal: boolean;
 
   // Modal state values
-  newPlanName: string;
   initialAction: string | null;
   targetYear: number | null;
   actionContext: ActionContext;
 
-  // Setters for UI bindings (e.g., input onChange)
-  setNewPlanName: React.Dispatch<React.SetStateAction<string>>;
-
   // Open/close helpers (useCallback-wrapped)
-  openSaveModal: () => void;
-  closeSaveModal: () => void;
   openContractModal: (context?: EditModalContext) => void;
   closeContractModal: () => void;
   openOffseasonModal: () => void;
@@ -56,7 +50,6 @@ export interface UseArchitectModalsReturn {
  *
  * Manages visibility and context for:
  * - Offseason summary modal (showOffseasonModal)
- * - Save plan modal (showSaveModal)
  * - Contract/player modal (showContractModal)
  *
  * @returns All modal state values, setters, and open/close helpers
@@ -64,11 +57,7 @@ export interface UseArchitectModalsReturn {
 export function useArchitectModals(): UseArchitectModalsReturn {
   // === Modal visibility state ===
   const [showOffseasonModal, setShowOffseasonModal] = useState<boolean>(false);
-  const [showSaveModal, setShowSaveModal] = useState<boolean>(false);
   const [showContractModal, setShowContractModal] = useState<boolean>(false);
-
-  // === Save modal state ===
-  const [newPlanName, setNewPlanName] = useState<string>('');
 
   // === Contract modal context state ===
   const [initialAction, setInitialAction] = useState<string | null>(null);
@@ -89,22 +78,6 @@ export function useArchitectModals(): UseArchitectModalsReturn {
    */
   const closeOffseasonModal = useCallback((): void => {
     setShowOffseasonModal(false);
-  }, []);
-
-  // === Save Modal Helpers ===
-
-  /**
-   * Open the save plan modal
-   */
-  const openSaveModal = useCallback((): void => {
-    setShowSaveModal(true);
-  }, []);
-
-  /**
-   * Close the save plan modal
-   */
-  const closeSaveModal = useCallback((): void => {
-    setShowSaveModal(false);
   }, []);
 
   // === Contract Modal Helpers ===
@@ -135,21 +108,14 @@ export function useArchitectModals(): UseArchitectModalsReturn {
   return {
     // Modal visibility booleans
     showOffseasonModal,
-    showSaveModal,
     showContractModal,
 
     // Modal state values
-    newPlanName,
     initialAction,
     targetYear,
     actionContext,
 
-    // Setters for UI bindings
-    setNewPlanName,
-
     // Open/close helpers
-    openSaveModal,
-    closeSaveModal,
     openContractModal,
     closeContractModal,
     openOffseasonModal,

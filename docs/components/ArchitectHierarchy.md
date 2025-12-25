@@ -1,6 +1,6 @@
 # Architect Component Hierarchy
-  
-```text
+
+```
 ARCHITECT_FEATURE_README.md
 CapSheet.jsx
 CapSheetFull.jsx
@@ -260,5 +260,5 @@ utils/
 ```
 
 ---
-*Generated on: 2025-12-25T02:18:53.796Z*
+*Generated on: 2025-12-25T02:33:00.718Z*
 *Auto-updated by: npm run docs*

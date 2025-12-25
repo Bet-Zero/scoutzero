@@ -5,14 +5,14 @@
  *
  * HISTORY:
  *  - 2025-12-17: Created per ARCHITECT_GAP_ANALYSIS.md Phase 1 implementation
+ *  - 2025-12-25: Removed legacy teamPlans reference (worlds-only cleanup)
  *
  * DESIGN CONSTRAINTS (NON-NEGOTIABLE):
  * 1) All Firestore writes MUST occur in one place (persistWorldMutation)
  * 2) All mutation computation MUST be pure (no Firestore, no React state)
  * 3) UI components and hooks MUST NOT write to Firestore directly
- * 4) Legacy teamPlans MUST NOT be used for Architect mutations after this work
- * 5) World context (worldId) MUST be respected for all reads and writes
- * 6) The pipeline must be movable into Cloud Functions later with minimal rewrite
+ * 4) World context (worldId) MUST be respected for all reads and writes
+ * 5) The pipeline must be movable into Cloud Functions later with minimal rewrite
  *
  * MUTATION TYPES SUPPORTED:
  * - executeTrade

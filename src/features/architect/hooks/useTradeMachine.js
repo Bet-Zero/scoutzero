@@ -512,26 +512,8 @@ export const useTradeMachine = (
           .map((p) => p.tpeId),
       }));
 
-export const useTradeMachine = (
-  primaryTeam,
-  capProjections,
-  currentYear,
-  primaryTeamData = null,
-  worldId = null
-) => {
-  // Main state
-  const [teams, setTeams] = useState([]);
-  const [result, setResult] = useState(null);
-  const [forceTrade, setForceTrade] = useState(false);
-  const [previewOpen, setPreviewOpen] = useState(false);
-
-  // Environment flag to enable force trade bypass
-  const canOverride = import.meta.env.VITE_ENABLE_CBA_OVERRIDE === 'true';
-
-  // ... rest of hook continues
-
     return tradeData;
-  }, [teams, incomingAssets, forceTrade, canOverride]);
+  }, [teams, incomingAssets]);
 
   const resetTrade = useCallback(() => {
     setTeams((prev) => prev.map((t) => ({ ...t, sends: [], picksOut: [] })));
