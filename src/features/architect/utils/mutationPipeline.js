@@ -152,6 +152,7 @@ export async function applyWorldMutation({
         success: false,
         error: validationResult.error || 'Validation failed',
         violations: validationResult.violations,
+        warnings: validationResult.warnings || [],
       };
     }
 
@@ -179,6 +180,7 @@ export async function applyWorldMutation({
       changedPlayers: computeResult.playerUpdates,
       worldPatch: persistResult.worldPatch,
       event: persistResult.event,
+      warnings: validationResult.warnings || [],
     };
   } catch (error) {
     console.error(`applyWorldMutation failed for ${mutationType}:`, error);

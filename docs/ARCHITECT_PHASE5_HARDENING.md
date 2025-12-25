@@ -506,12 +506,12 @@ grep -r "collection(db, 'teamPlans')" src/features/architect/ --include="*.ts" -
 1. [x] Create `src/features/architect/utils/capLegalityValidation.js` ✅ Complete
    - Exports `validateSigning()`, `validateWaive()`, `validateExtension()`, `validateOptionDecision()`, `validateRenounceRights()`
    - Each returns `{ valid: boolean, violations: Array, warnings: Array }`
-2. [ ] Update `validateMutation()` in `mutationPipeline.js` to call appropriate validator
-3. [ ] Return structured violation payload to UI
+2. [x] Update `validateMutation()` in `mutationPipeline.js` to call appropriate validator ✅ Complete
+3. [x] Return structured violation payload to UI ✅ Complete (includes `warnings` in success response)
 
 **Files Impacted**:
 
-- `src/features/architect/utils/mutationPipeline.js` (update `validateMutation`)
+- `src/features/architect/utils/mutationPipeline.js` ✅ Updated with warnings in response
 - `src/features/architect/utils/capLegalityValidation.js` ✅ Already exists
 
 **Validation Payload Format**:
@@ -532,18 +532,18 @@ grep -r "collection(db, 'teamPlans')" src/features/architect/ --include="*.ts" -
 
 **Tests to Add**:
 
-- `tests/architect/capLegalityValidation.test.js`
-  - Signing that exceeds hard cap → blocked (error)
-  - Signing that exceeds 15 players → blocked (error)
-  - Waive that drops below roster minimum (<14) → warning (allowed to proceed)
+- `tests/architect/capLegalityValidation.test.js` ✅ Created with 8 tests
+  - Signing that exceeds hard cap → blocked (error) ✅
+  - Signing that exceeds 15 players → blocked (error) ✅
+  - Waive that drops below roster minimum (<14) → warning (allowed to proceed) ✅
   - Extension that triggers apron → warning but allowed
 
 **Definition of Done**:
 
 - [x] Validation functions created for all mutation types ✅
-- [ ] All 6 mutation types have validation running before persist (pipeline integration pending)
-- [ ] `{ success: false, violations: [...] }` returned for illegal actions
-- [ ] UI can display structured violations
+- [x] All 6 mutation types have validation running before persist ✅
+- [x] `{ success: false, violations: [...] }` returned for illegal actions ✅
+- [x] UI can display structured violations (warnings included in response) ✅
 
 ---
 
@@ -769,9 +769,9 @@ Run through this checklist before declaring Phase 5 complete:
 ### Illegal State Prevention
 
 - [x] Validation functions exist (`capLegalityValidation.js`) ✅
-- [ ] `validateMutation()` runs for ALL mutation types (pipeline integration pending)
-- [ ] Invalid mutations return `{ success: false, violations }`
-- [ ] UI receives and displays structured violation messages
+- [x] `validateMutation()` runs for ALL mutation types ✅
+- [x] Invalid mutations return `{ success: false, violations }` ✅
+- [x] UI receives and displays structured violation messages ✅
 - [x] No "Force Override" in production builds (`VITE_ENABLE_CBA_OVERRIDE !== 'true'`) ✅
 
 ### Rule Parity
