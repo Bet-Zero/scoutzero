@@ -31,7 +31,6 @@ Quick reference for all components in the ScoutZero project.
 - OffseasonTab.jsx
 - OptionManager.jsx
 - RosterVisual.jsx
-- SavePlanModal.jsx
 - TeamHistoryTab.jsx
 - ValidationWarnings.jsx
 - WaiveStretchTracker.jsx
@@ -57,7 +56,6 @@ Quick reference for all components in the ScoutZero project.
 - offseason/WaiveStretchTracker/WaiveStretchTracker.jsx
 - shared/LeagueView/LeagueView.jsx
 - shared/RosterVisual/RosterVisual.jsx
-- shared/SavePlanModal/SavePlanModal.jsx
 - shared/ValidationWarnings/ValidationWarnings.jsx
 - tradeMachine/CapImpactTiles.jsx
 - tradeMachine/FaExceptionTracker.jsx
@@ -301,4 +299,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2025-12-25T02:33:00.731Z*
+*Generated on: 2025-12-25T02:38:58.320Z*
