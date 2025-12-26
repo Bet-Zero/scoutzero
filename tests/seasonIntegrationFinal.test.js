@@ -7,7 +7,7 @@ import { getCurrentSeasonYear } from '@/shared/utils/contracts';
 
 describe('Season Year Integration - End to End', () => {
   it('demonstrates the complete fix works with consistent year handling', () => {
-    const testDate = new Date('2025-09-01'); // Current date from issue
+    const testDate = new Date(2025, 8, 1, 12, 0, 0); // Current date from issue (Sept 1, 2025)
 
     // GMDashboard uses getDefaultSeasonEndYear (correct)
     const gmDashboardYear = getDefaultSeasonEndYear(testDate);
@@ -41,8 +41,8 @@ describe('Season Year Integration - End to End', () => {
 
   it('validates season boundaries work correctly', () => {
     // July 1st is the NBA season boundary
-    const beforeSeason = new Date('2025-06-30'); // Still 2024-25 season
-    const afterSeason = new Date('2025-07-01'); // Now 2025-26 season
+    const beforeSeason = new Date(2025, 5, 30, 12, 0, 0); // Still 2024-25 season (June 30)
+    const afterSeason = new Date(2025, 6, 1, 12, 0, 0); // Now 2025-26 season (July 1)
 
     expect(getDefaultSeasonEndYear(beforeSeason)).toBe(2025); // 2024-25 season
     expect(getDefaultSeasonEndYear(afterSeason)).toBe(2026); // 2025-26 season

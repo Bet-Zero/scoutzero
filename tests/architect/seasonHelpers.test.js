@@ -144,33 +144,33 @@ describe('SeasonId Helpers', () => {
   describe('getCurrentSeasonId', () => {
     it('returns correct season for dates after July 1', () => {
       // August 2024 -> 2024-25 season
-      expect(getCurrentSeasonId(new Date('2024-08-15'))).toBe('2024-25');
+      expect(getCurrentSeasonId(new Date(2024, 7, 15, 12, 0, 0))).toBe('2024-25');
       // October 2024 -> 2024-25 season
-      expect(getCurrentSeasonId(new Date('2024-10-15'))).toBe('2024-25');
+      expect(getCurrentSeasonId(new Date(2024, 9, 15, 12, 0, 0))).toBe('2024-25');
     });
 
     it('returns correct season for dates before July 1', () => {
       // March 2025 -> still 2024-25 season
-      expect(getCurrentSeasonId(new Date('2025-03-15'))).toBe('2024-25');
+      expect(getCurrentSeasonId(new Date(2025, 2, 15, 12, 0, 0))).toBe('2024-25');
       // June 2025 -> still 2024-25 season
-      expect(getCurrentSeasonId(new Date('2025-06-15'))).toBe('2024-25');
+      expect(getCurrentSeasonId(new Date(2025, 5, 15, 12, 0, 0))).toBe('2024-25');
     });
 
     it('returns correct season on July 1', () => {
       // July 1, 2025 -> 2025-26 season begins
-      expect(getCurrentSeasonId(new Date('2025-07-01'))).toBe('2025-26');
+      expect(getCurrentSeasonId(new Date(2025, 6, 1, 12, 0, 0))).toBe('2025-26');
     });
   });
 
   describe('getCurrentSeasonEndYear', () => {
     it('returns correct end year for dates after July 1', () => {
-      expect(getCurrentSeasonEndYear(new Date('2024-08-15'))).toBe(2025);
-      expect(getCurrentSeasonEndYear(new Date('2024-10-15'))).toBe(2025);
+      expect(getCurrentSeasonEndYear(new Date(2024, 7, 15, 12, 0, 0))).toBe(2025);
+      expect(getCurrentSeasonEndYear(new Date(2024, 9, 15, 12, 0, 0))).toBe(2025);
     });
 
     it('returns correct end year for dates before July 1', () => {
-      expect(getCurrentSeasonEndYear(new Date('2025-03-15'))).toBe(2025);
-      expect(getCurrentSeasonEndYear(new Date('2025-06-15'))).toBe(2025);
+      expect(getCurrentSeasonEndYear(new Date(2025, 2, 15, 12, 0, 0))).toBe(2025);
+      expect(getCurrentSeasonEndYear(new Date(2025, 5, 15, 12, 0, 0))).toBe(2025);
     });
   });
 
