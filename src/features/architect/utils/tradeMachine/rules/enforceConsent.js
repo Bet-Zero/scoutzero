@@ -1,12 +1,5 @@
 import { validationFlags } from '@/config/validationFlags.js';
-
-// Helper to check if player has consent granted (multiple property formats)
-function hasConsent(player) {
-  return player?.consentGranted === true || 
-         player?.hasConsented === true || 
-         player?.consent === true ||
-         player?.hasTradeConsent === true;
-}
+import { hasConsent } from '@/features/architect/utils/consentUtils.js';
 
 export function enforceConsent(
   team,

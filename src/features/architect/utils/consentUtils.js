@@ -16,13 +16,27 @@ export function requiresConsent(player, destTeamId) {
   );
 }
 
+/**
+ * Canonical consent check - checks all known consent property formats.
+ * This is the single source of truth for consent status.
+ * Checked properties:
+ * - consentGranted: boolean flag for explicit consent
+ * - consent: simple boolean consent flag
+ * - consents.full: structured consent for full NTC
+ * - consents.limited: structured consent for limited NTC
+ * - consents.birdOneYear: structured consent for Bird rights veto
+ * - hasConsented: alternative boolean consent flag
+ * - hasTradeConsent: trade-specific consent flag
+ */
 export function hasConsent(player) {
   return (
     player?.consentGranted === true ||
     player?.consent === true ||
     player?.consents?.full === true ||
     player?.consents?.limited === true ||
-    player?.consents?.birdOneYear === true
+    player?.consents?.birdOneYear === true ||
+    player?.hasConsented === true ||
+    player?.hasTradeConsent === true
   );
 }
 

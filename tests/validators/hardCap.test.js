@@ -72,8 +72,8 @@ describe('validateHardCap', () => {
         })
       );
       expect(result.passed).toBe(true);
-      // hardCapType should be falsy (null or undefined) when no hard cap is triggered
-      expect(result.hardCapType).toBeFalsy();
+      // hardCapType should be null when no hard cap is triggered
+      expect(result.hardCapType).toBeNull();
     });
   });
 });

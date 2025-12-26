@@ -27,7 +27,8 @@ export function validateHardCap(team: TradeTeam): HardCapResult {
     capSettings
   );
 
-  const hardCapType = capSheet.hardCapTriggered as HardCapType;
+  // Normalize hardCapType to null when no hard cap is triggered (avoid undefined)
+  const hardCapType = (capSheet.hardCapTriggered as HardCapType) || null;
   const hardCapMsg =
     hardCapType === 'SecondApron'
       ? 'Hard cap exceeded (2nd Apron)'
