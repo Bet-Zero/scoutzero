@@ -104,7 +104,6 @@ export function seasonEndYearsFromCaps(capProjections) {
         const century = tail < (startYearNum % 100) ? Math.floor(startYearNum / 100) + 1 : Math.floor(startYearNum / 100);
         return century * 100 + tail;
       }
-      }
       const num = parseInt(k, 10);
       return Number.isFinite(num) ? num : null; // allow "2025"
     })
