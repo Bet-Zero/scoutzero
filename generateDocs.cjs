@@ -55,13 +55,13 @@ async function generateFileMap() {
     'public/',
     'src/',
   ];
-  let out = '/ Project root\n';
+  let out = '# Project File Map\n\n/ Project root\n';
   for (const entry of entries) {
     out += `├── ${entry}\n`;
   }
 
   // Add timestamp and generation info
-  out += `\n\n---\n*Generated on: ${new Date().toISOString()}*\n`;
+  out += `\n---\n*Generated on: ${new Date().toISOString()}*\n`;
   out += `*Auto-updated by: npm run docs*\n`;
 
   await writeFileIfChanged(path.join(DOCS_DIR, 'FILE_MAP.md'), out);
@@ -102,7 +102,7 @@ async function generateHierarchies() {
     const tree = await buildTree(path.join(featuresDir, feature.name));
     const md = `# ${capitalize(feature.name)} Component Hierarchy
 
-\`\`\`
+\`\`\`text
 ${tree}
 \`\`\`
 
@@ -132,7 +132,7 @@ async function generateComponentIndex() {
     const components = await getJsxFiles(featurePath);
 
     if (components.length > 0) {
-      index += `## ${capitalize(feature.name)}\n`;
+      index += `## ${capitalize(feature.name)}\n\n`;
       for (const comp of components) {
         index += `- ${comp}\n`;
       }

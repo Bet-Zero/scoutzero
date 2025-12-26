@@ -229,64 +229,17 @@ export function getMinimumCapHit(yearsOfService) {
 }
 
 // 8. Cap hold logic
-export function calculateCapHold(player /* , capProjections , _year = 2025 */) {
-  if (player.renounced) return null;
+/**
+ * @deprecated Use calculateCapHold from capHolds.ts instead.
+ * This re-export exists for backwards compatibility.
+ * 
+ * Note: The canonical implementation in capHolds.ts uses the correct CBA multipliers:
+ * - Full Bird: 1.9× (190%)
+ * - Early Bird: 1.75× (175%)
+ * - Non-Bird: 1.2× (120%)
+ */
+export { calculateCapHold } from './capHolds';
 
-  const experience = player.bio?.yearsExperience || 0;
-  const rights = player.contract?.birdRights?.status || 'None';
-
-  let lastSalary = 0;
-  if (player.contract?.salariesByYear?.length) {
-    const sorted = [...player.contract.salariesByYear].sort((a, b) => {
-      const sa = String(a.season);
-      const sb = String(b.season);
-      const ya = /^\d{4}-\d{2}$/.test(sa)
-        ? 2000 + parseInt(sa.split('-')[1], 10)
-        : parseInt(sa, 10);
-      const yb = /^\d{4}-\d{2}$/.test(sb)
-        ? 2000 + parseInt(sb.split('-')[1], 10)
-        : parseInt(sb, 10);
-      return (ya || 0) - (yb || 0);
-    });
-    const last = sorted[sorted.length - 1];
-    lastSalary = last?.salary || last?.capHit || 0;
-  }
-  const pickNumber = player.draft?.pick || null;
-  const draftRound = player.draft?.round || null;
-
-  if (draftRound === 1 && pickNumber) {
-    const rookieAmount = rookieScale[pickNumber] || 2500000;
-    return {
-      amount: Math.round(rookieAmount * 1.2),
-      reason: 'Rookie Scale',
-      active: true,
-    };
-  }
-
-  if (!rights || rights === 'None') {
-    const minSalary = getMinimumSalary(experience);
-    return {
-      amount: Math.round(minSalary * 1.2),
-      reason: 'Minimum Hold',
-      active: true,
-    };
-  }
-
-  const multiplier =
-    rights === 'Non-Bird'
-      ? 1.2
-      : rights === 'Early Bird'
-        ? 1.3
-        : rights === 'Full Bird'
-          ? 1.5
-          : 1.2;
-
-  return {
-    amount: Math.round(lastSalary * multiplier),
-    reason: `${rights} Rights`,
-    active: true,
-  };
-}
 
 // 9. Summary-level free agent contract for UI previews
 export function generateDefaultFreeAgentContract(

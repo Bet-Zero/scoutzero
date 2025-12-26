@@ -1,6 +1,6 @@
 # Table Component Hierarchy
 
-```
+```text
 PlayerTable/
   PlayerRow/
     PlayerDrawer/
@@ -27,5 +27,5 @@ hooks/
 ```
 
 ---
-*Generated on: 2025-12-25T02:33:00.724Z*
+*Generated on: 2025-12-26T08:03:41.977Z*
 *Auto-updated by: npm run docs*

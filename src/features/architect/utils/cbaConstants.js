@@ -1,9 +1,35 @@
-/**************************  SCSP™ BLOCK: cbaConstants.js  **************************
- * FUTURE-PROOF CBA CONSTANTS
- * - Exports CBA_BY_YEAR → { 2025: { matchingTiers, cashLimit, … }, … }
- * - Adds getMatchingTiers(year) helper for tradeHelpers.js (defaults to 2025)
- * - Keeps BYC_PERCENT / PPP_MULTIPLIER / roster limits untouched
- * -------------------------------------------------------------------------------*/
+/**
+ * FILE: src/features/architect/utils/cbaConstants.js
+ * PURPOSE: Feature-level CBA constants for the Architect feature. Provides CBA constants
+ *          used throughout the Architect system, re-exporting shared constants from the
+ *          canonical trade machine module to avoid duplication and drift.
+ * OWNERSHIP: Feature: architect (CBA Constants)
+ *
+ * HISTORY:
+ *  - 2025-12-26: Refactored header to standard template; consolidated re-exports
+ *
+ * LINKS:
+ *  - Canonical Source: tradeMachine/constants/cbaConstants.js (for trade-specific constants)
+ */
+
+// ============================================================================
+// Re-exports from canonical trade machine module
+// These constants are shared across the Architect system
+// ============================================================================
+
+export {
+  CBA_THRESHOLDS,
+  SALARY_MATCHING_BANDS,
+  ROSTER_REQUIREMENTS,
+  CASH_LIMITS,
+  TRADE_TIMING,
+  TRADE_RESTRICTIONS,
+  getThresholdForSeason,
+} from '@/features/architect/utils/tradeMachine/constants/cbaConstants.js';
+
+// ============================================================================
+// Feature-specific constants (not duplicated in trade machine)
+// ============================================================================
 
 /**
  * Default average player salary fallback (2024-25 value).
@@ -13,6 +39,10 @@
  */
 export const DEFAULT_AVERAGE_SALARY = 11_100_000;
 
+/**
+ * CBA constants by year with matching tier formulas
+ * These provide a function-based approach for salary matching calculations
+ */
 export const CBA_BY_YEAR = {
   2025: {
     salaryCap: 141_000_000,
@@ -62,10 +92,27 @@ export const FA_EXCEPTION_TRADE_USAGE = {
 };
 
 /* --------------------------------------------------------------------------
-     Misc “structural” constants (unchanged)
-  -------------------------------------------------------------------------- */
-export const BYC_PERCENT = 0.5; // 50 % of outgoing for BYC players
+     Misc "structural" constants
+     Note: BYC_PERCENT is re-exported from the trade machine module for consistency.
+     The roster limits are also available via ROSTER_REQUIREMENTS re-export.
+   -------------------------------------------------------------------------- */
+
+/**
+ * @deprecated Use the re-exported BYC_PERCENT from tradeMachine/constants/cbaConstants.js
+ * This is kept for backwards compatibility but the value should match.
+ */
+import { BYC_PERCENT as TM_BYC_PERCENT } from '@/features/architect/utils/tradeMachine/constants/cbaConstants.js';
+export const BYC_PERCENT = TM_BYC_PERCENT;
+
 export const PPP_MULTIPLIER = 1.2; // poison-pill default (rookie max ext.)
+
+/**
+ * @deprecated Use ROSTER_REQUIREMENTS.MAX_STANDARD_ROSTER from re-exported trade machine constants
+ */
 export const MAX_STANDARD_PLAYERS = 15; // roster size (two-ways excluded)
+
+/**
+ * @deprecated Use ROSTER_REQUIREMENTS.MAX_TWO_WAY_CONTRACTS from re-exported trade machine constants
+ */
 export const MAX_TWO_WAY_PLAYERS = 3;
 /***********************  END SCSP™ BLOCK: cbaConstants.js  ***********************/

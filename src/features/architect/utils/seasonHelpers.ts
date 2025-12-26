@@ -322,3 +322,15 @@ export function getSeasonRange(start: SeasonId, end: SeasonId): SeasonId[] {
   }
   return result;
 }
+
+// ============================================================================
+// Re-exports from canonical JS module for interoperability
+// These functions are also available from seasonFormat.js but are re-exported
+// here for TypeScript consumers who want type-safe access.
+// ============================================================================
+
+/**
+ * Re-export toSeasonCode for interoperability with JS code using seasonFormat.js
+ * Equivalent to makeSeasonIdFromEndYear but returns string instead of SeasonId type
+ */
+export { toSeasonCode, toEndYear, getDefaultSeasonEndYear, toSeasonKey, seasonEndYearsFromCaps } from './seasonFormat.js';

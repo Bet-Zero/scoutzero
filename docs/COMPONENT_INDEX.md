@@ -3,6 +3,7 @@
 Quick reference for all components in the ScoutZero project.
 
 ## Architect
+
 - CapSheet.jsx
 - CapSheetFull.jsx
 - CapSummaryTiles.jsx
@@ -170,6 +171,7 @@ Quick reference for all components in the ScoutZero project.
 - utils/worldManager.js
 
 ## Filters
+
 - ActiveFiltersDisplay/FilterPill/FilterContent.jsx
 - ActiveFiltersDisplay/FilterPill/FilterPill.jsx
 - ActiveFiltersDisplay/index.jsx
@@ -187,6 +189,7 @@ Quick reference for all components in the ScoutZero project.
 - FiltersPanel/index.jsx
 
 ## Lists
+
 - AddToListButton/AddToListModal.jsx
 - AddToListButton/index.jsx
 - CreateListModal.jsx
@@ -212,6 +215,7 @@ Quick reference for all components in the ScoutZero project.
 - TieredListView/index.jsx
 
 ## Profile
+
 - BreakdownModal.jsx
 - PlayerDetails/BadgeSelector.jsx
 - PlayerDetails/OverallBlurbBox.jsx
@@ -233,6 +237,7 @@ Quick reference for all components in the ScoutZero project.
 - utils/profileHelpers.js
 
 ## Ranker
+
 - AnchorComparison.jsx
 - ComparisonMatrix.jsx
 - ComparisonMatrixDrawer.jsx
@@ -241,9 +246,11 @@ Quick reference for all components in the ScoutZero project.
 - RankingResults.jsx
 - RankingSession.jsx
 - RankingSetup.jsx
+- tournamentRanker.js
 - utils/rankingEngine.js
 
 ## Roster
+
 - AddPlayerDrawer/PlayerRowMini.jsx
 - AddPlayerDrawer/addPlayer/BasicFilters.jsx
 - AddPlayerDrawer/addPlayer/ContractFilters.jsx
@@ -272,6 +279,7 @@ Quick reference for all components in the ScoutZero project.
 - utils/rosterUtils.js
 
 ## Table
+
 - PlayerTable/PlayerRow/PlayerDrawer/BadgeMini.jsx
 - PlayerTable/PlayerRow/PlayerDrawer/OverallBlurbMini.jsx
 - PlayerTable/PlayerRow/PlayerDrawer/PlayerContractMini.jsx
@@ -292,6 +300,7 @@ Quick reference for all components in the ScoutZero project.
 - hooks/useFilteredPlayers.js
 
 ## TierMaker
+
 - CreateTierListModal.jsx
 - TierMakerBoard.jsx
 - TierRow.jsx
@@ -299,4 +308,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2025-12-25T02:38:58.320Z*
+*Generated on: 2025-12-26T08:03:41.994Z*
