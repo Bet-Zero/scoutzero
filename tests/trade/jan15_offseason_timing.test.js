@@ -23,8 +23,8 @@ describe('Jan 15 gate for offseason sign-and-trades', () => {
   });
 
   it('should allow offseason sign-and-trade after next season Jan 15', () => {
-    // Sign-and-trade happens in July 2024 (offseason)
-    // Player should be tradeable after Jan 15, 2025 (next season)
+    // Player with sign-and-trade flag
+    // Trading in-season (January 2025), after Jan 15 cutoff
     const team = {
       outgoingPlayers: [
         {
