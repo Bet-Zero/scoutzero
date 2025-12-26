@@ -1,0 +1,108 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // BASE COLLECTIONS: Read-only (Admin SDK only for writes)
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    // architect_baseTeams: Immutable base team data
+    match /architect_baseTeams/{teamCode} {
+      allow read: if request.auth != null;
+      allow write: if false;  // Admin SDK only
+    }
+    
+    // architect_basePlayers: Immutable base player data
+    match /architect_basePlayers/{playerId} {
+      allow read: if request.auth != null;
+      allow write: if false;  // Admin SDK only
+    }
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // ARCHITECT WORLDS: Owner-scoped access
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    match /architect_worlds/{worldId} {
+      // Helper: Check if user is the owner (for existing documents)
+      function isOwner() {
+        return request.auth != null && resource.data.createdBy == request.auth.uid;
+      }
+      
+      // Helper: Check if user will be the owner (for creates)
+      function willBeOwner() {
+        return request.auth != null && request.resource.data.createdBy == request.auth.uid;
+      }
+      
+      // Helper: Validate world document schema on create
+      // Ensures required fields exist with correct types
+      function validWorld() {
+        let data = request.resource.data;
+        return data.keys().hasAll(['createdBy', 'title', 'createdAt'])
+          && data.createdBy is string
+          && data.createdBy == request.auth.uid
+          && data.title is string
+          && data.title.size() > 0
+          && data.title.size() <= 100
+          && data.createdAt == request.time;
+      }
+      
+      // Helper: Validate world document schema on update
+      // Prevents changing ownership, allows updating other fields
+      function validWorldUpdate() {
+        let data = request.resource.data;
+        return data.createdBy == resource.data.createdBy  // Cannot change owner
+          && (!('title' in data) || (data.title is string && data.title.size() > 0 && data.title.size() <= 100));
+      }
+      
+      // World metadata: owner read/write, no direct delete
+      allow read: if isOwner();
+      allow create: if willBeOwner() && validWorld();
+      allow update: if isOwner() && validWorldUpdate();
+      allow delete: if false;  // Cloud Function only (purgeArchitectWorld)
+      
+      // Teams subcollection
+      match /teams/{teamCode} {
+        // Helper: Check if user owns the parent world document (single get() call)
+        // Reused across read/write operations to avoid duplicate billable reads
+        function isWorldOwner() {
+          return request.auth != null 
+            && get(/databases/$(database)/documents/architect_worlds/$(worldId)).data.createdBy == request.auth.uid;
+        }
+        
+        allow read: if isWorldOwner();
+        allow create, update: if isWorldOwner();
+        allow delete: if false;  // Cloud Function only
+        
+        // Players subcollection (under teams)
+        match /players/{playerId} {
+          // Helper: Check if user owns the parent world document (single get() call)
+          // Note: Each match block requires its own function definition
+          function isWorldOwnerForPlayer() {
+            return request.auth != null 
+              && get(/databases/$(database)/documents/architect_worlds/$(worldId)).data.createdBy == request.auth.uid;
+          }
+          
+          allow read: if isWorldOwnerForPlayer();
+          allow create, update: if isWorldOwnerForPlayer();
+          allow delete: if false;  // Cloud Function only
+        }
+      }
+    }
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // LEGACY COLLECTIONS (if any exist)
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    // players_v2: Read-only for authenticated users
+    match /players_v2/{playerId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+      
+      match /{subcollection}/{docId} {
+        allow read: if request.auth != null;
+        allow write: if false;
+      }
+    }
+  }
+}
