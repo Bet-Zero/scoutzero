@@ -23,8 +23,7 @@ vi.mock('@/shared/hooks/useAuth', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
-// Mock Firebase helpers
-// Note: loadTeamCapSheet is used for base team loading (not teamPlans)
+// Mock Firebase helpers for base team and free agent loading
 const mockLoadTeamCapSheet = vi.fn();
 const mockLoadFreeAgents = vi.fn();
 
@@ -82,25 +81,21 @@ vi.mock('@/features/architect/GMDashboard/hooks/useArchitectActions', () => ({
     handleOptionDecision: vi.fn(),
     applyTradeToCapSheet: vi.fn(),
     handleCapSheetAction: vi.fn(),
-    handleSavePlan: vi.fn(),
   }),
 }));
 
 vi.mock('@/features/architect/GMDashboard/hooks/useArchitectModals', () => ({
   useArchitectModals: () => ({
     showOffseasonModal: false,
-    showSaveModal: false,
     showContractModal: false,
-    newPlanName: '',
     initialAction: null,
     targetYear: null,
     actionContext: null,
-    setNewPlanName: vi.fn(),
-    openSaveModal: vi.fn(),
-    closeSaveModal: vi.fn(),
     closeContractModal: vi.fn(),
     closeOffseasonModal: vi.fn(),
     setShowOffseasonModal: vi.fn(),
+    openContractModal: vi.fn(),
+    openOffseasonModal: vi.fn(),
   }),
 }));
 

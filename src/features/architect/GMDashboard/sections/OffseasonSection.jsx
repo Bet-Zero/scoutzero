@@ -96,12 +96,12 @@ const OffseasonSection = ({
             <div className="w-full border-t border-white/10" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-[#0d0d0d] text-white/40">or use legacy team-only flow</span>
+            <span className="px-2 bg-[#0d0d0d] text-white/40">or use single-team offseason tools</span>
           </div>
         </div>
       )}
 
-      {/* Legacy OffseasonTab (team-only, non-world flow) */}
+      {/* OffseasonTab (single-team offseason tools) */}
       <OffseasonTab
         teamCapSheet={teamCapSheet}
         setTeamCapSheet={setTeamCapSheet}

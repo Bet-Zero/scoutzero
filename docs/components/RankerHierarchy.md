@@ -1,6 +1,6 @@
 # Ranker Component Hierarchy
-  
-```text
+
+```
 AnchorComparison.jsx
 ComparisonMatrix.jsx
 ComparisonMatrixDrawer.jsx
@@ -10,11 +10,10 @@ RankingResults.jsx
 RankingSession.jsx
 RankingSetup.jsx
 ranker.css
-tournamentRanker.js
 utils/
   rankingEngine.js
 ```
 
 ---
-*Generated on: 2025-12-25T02:18:53.814Z*
+*Generated on: 2025-12-25T02:33:00.722Z*
 *Auto-updated by: npm run docs*

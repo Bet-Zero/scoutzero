@@ -1,6 +1,6 @@
 # Filters Component Hierarchy
-  
-```text
+
+```
 ActiveFiltersDisplay/
   FilterPill/
     FilterContent.jsx
@@ -24,5 +24,5 @@ FiltersPanel/
 ```
 
 ---
-*Generated on: 2025-12-25T02:18:53.802Z*
+*Generated on: 2025-12-25T02:33:00.719Z*
 *Auto-updated by: npm run docs*

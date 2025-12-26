@@ -1,6 +1,6 @@
 # Architect Component Hierarchy
-  
-```text
+
+```
 ARCHITECT_FEATURE_README.md
 CapSheet.jsx
 CapSheetFull.jsx
@@ -37,7 +37,6 @@ LeagueView.jsx
 OffseasonTab.jsx
 OptionManager.jsx
 RosterVisual.jsx
-SavePlanModal.jsx
 TeamHistoryTab.jsx
 ValidationWarnings.jsx
 WaiveStretchTracker.jsx
@@ -104,9 +103,6 @@ shared/
     index.ts
   RosterVisual/
     RosterVisual.jsx
-    index.ts
-  SavePlanModal/
-    SavePlanModal.jsx
     index.ts
   ValidationWarnings/
     ValidationWarnings.jsx
@@ -260,5 +256,5 @@ utils/
 ```
 
 ---
-*Generated on: 2025-12-25T02:18:53.796Z*
+*Generated on: 2025-12-25T02:38:58.309Z*
 *Auto-updated by: npm run docs*
