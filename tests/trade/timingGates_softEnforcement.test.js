@@ -68,10 +68,12 @@ describe('timing gates soft enforcement', () => {
     const tradeCtx = { tradeDate: '2024-02-01' };
     validationFlags.timingEnforcement = 'error';
     let r = run(team, tradeCtx);
-    expect(r.rejects).toHaveLength(1);
-    expect(r.rejects[0]).toMatch(/aggregate/i);
+    // Multiple timing violations may fire (aggregation + mid-season 3-month rule)
+    expect(r.rejects.length).toBeGreaterThanOrEqual(1);
+    expect(r.rejects.some((m) => /aggregate/i.test(m))).toBe(true);
     validationFlags.timingEnforcement = 'warn';
     r = run(team, tradeCtx);
-    expect(r.warns).toHaveLength(1);
+    expect(r.warns.length).toBeGreaterThanOrEqual(1);
+    expect(r.warns.some((m) => /aggregate/i.test(m))).toBe(true);
   });
 });

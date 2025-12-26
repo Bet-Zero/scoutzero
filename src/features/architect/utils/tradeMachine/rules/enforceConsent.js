@@ -1,5 +1,13 @@
 import { validationFlags } from '@/config/validationFlags.js';
 
+// Helper to check if player has consent granted (multiple property formats)
+function hasConsent(player) {
+  return player?.consentGranted === true || 
+         player?.hasConsented === true || 
+         player?.consent === true ||
+         player?.hasTradeConsent === true;
+}
+
 export function enforceConsent(
   team,
   _context,
@@ -17,8 +25,7 @@ export function enforceConsent(
     // Full no-trade clause
     if (
       (player.hasFullNTC || player.noTradeClause) &&
-      !player.consentGranted &&
-      !player.hasConsented
+      !hasConsent(player)
     ) {
       violationMsg = 'Player NTC — consent required';
     }
@@ -29,14 +36,14 @@ export function enforceConsent(
       if (
         player.tradeTo &&
         !player.limitedNTCTeamIds.includes(player.tradeTo) &&
-        !player.consentGranted
+        !hasConsent(player)
       ) {
         violationMsg = 'Player NTC — consent required';
       }
     }
 
     // Bird rights veto (1-year Bird deals)
-    if (player.onOneYearBirdDeal && !player.consentGranted) {
+    if (player.onOneYearBirdDeal && !hasConsent(player)) {
       violationMsg = '1-yr Bird veto — consent required';
     }
 
@@ -57,8 +64,7 @@ export function enforceConsent(
     // Full no-trade clause
     if (
       (player.hasFullNTC || player.hasFullNoTrade) &&
-      !player.hasTradeConsent &&
-      !player.consentGranted
+      !hasConsent(player)
     ) {
       violationMsg = `${player.name} has not waived their no-trade clause`;
     }
@@ -67,8 +73,7 @@ export function enforceConsent(
     if (player.limitedNTCTeamIds && Array.isArray(player.limitedNTCTeamIds)) {
       if (
         !player.limitedNTCTeamIds.includes(team.teamId) &&
-        !player.hasTradeConsent &&
-        !player.consentGranted
+        !hasConsent(player)
       ) {
         violationMsg = `${player.name} has not approved a trade to ${team.teamName}`;
       }
@@ -77,8 +82,7 @@ export function enforceConsent(
     // Bird rights veto
     if (
       (player.hasBirdRightsVeto || player.onOneYearBirdDeal) &&
-      !player.hasTradeConsent &&
-      !player.consentGranted
+      !hasConsent(player)
     ) {
       violationMsg = `${player.name} has not waived their Bird rights veto`;
     }
