@@ -26,7 +26,7 @@ function findSourceFiles(dir, files = []) {
     const fullPath = path.join(dir, entry.name);
     
     if (entry.isDirectory()) {
-      // Skip node_modules and test directories
+      // Skip node_modules, __mocks__, and fixtures directories
       if (!['node_modules', '__mocks__', 'fixtures'].includes(entry.name)) {
         findSourceFiles(fullPath, files);
       }
