@@ -68,9 +68,12 @@ export function validateTiming(team, ctx = {}) {
 
     // Check Jan 15 restriction for recently extended players or sign-and-trade
     if (player.isRecentlyExtended || player.signAndTrade) {
-      // Jan 15 restriction applies to the current season year
-      // For S&T in a 2024-25 season, they can trade after Jan 15, 2025
-      const jan15 = new Date(tradeDateObj.getFullYear(), 0, 15);
+      // Jan 15 restriction applies to the upcoming season's Jan 15 for offseason trades
+      // For offseason trades (July-Dec), use next year's Jan 15
+      // For in-season trades (Jan-June), use current year's Jan 15
+      const tradeMonth = tradeDateObj.getMonth();
+      const yearOffset = tradeMonth >= 6 ? 1 : 0; // July (6) through December (11) -> next year
+      const jan15 = new Date(tradeDateObj.getFullYear() + yearOffset, 0, 15);
       if (tradeDateObj < jan15) {
         violations.push(
           `${player.name || 'Player'} cannot be traded until January 15 (sign-and-trade/extension)`
