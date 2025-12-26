@@ -3,10 +3,10 @@ import { describe, it, expect, vi } from 'vitest';
 import { AnchorComparison } from '@/features/ranker/AnchorComparison.jsx';
 
 const players = [
-  { id: '1', display_name: 'Alpha' },
-  { id: '2', display_name: 'Beta' },
+  { id: '1', name: 'Alpha' },
+  { id: '2', name: 'Beta' },
 ];
-const anchor = { id: '3', display_name: 'Gamma' };
+const anchor = { id: '3', name: 'Gamma' };
 
 describe('AnchorComparison', () => {
   it('submits better player selections', () => {

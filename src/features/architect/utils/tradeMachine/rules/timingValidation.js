@@ -48,7 +48,8 @@ export function validateTiming(team, ctx = {}) {
     }
 
     // 30-day restriction after signing
-    if (violates30Day(player, tradeDateObj)) {
+    const is30DayViolation = violates30Day(player, tradeDateObj);
+    if (is30DayViolation) {
       const daysRemaining = 30 - daysSince(player.signedDate, tradeDateObj);
       violations.push(
         `${player.name || 'Player'} cannot be traded within 30 days of signing (${Math.ceil(daysRemaining)} days remaining)`
@@ -67,7 +68,9 @@ export function validateTiming(team, ctx = {}) {
 
     // Check Jan 15 restriction for recently extended players or sign-and-trade
     if (player.isRecentlyExtended || player.signAndTrade) {
-      const jan15 = new Date(tradeDateObj.getFullYear() + 1, 0, 15);
+      // Jan 15 restriction applies to the current season year
+      // For S&T in a 2024-25 season, they can trade after Jan 15, 2025
+      const jan15 = new Date(tradeDateObj.getFullYear(), 0, 15);
       if (tradeDateObj < jan15) {
         violations.push(
           `${player.name || 'Player'} cannot be traded until January 15 (sign-and-trade/extension)`
@@ -76,7 +79,8 @@ export function validateTiming(team, ctx = {}) {
     }
 
     // General 3-month rule for mid-season signings
-    if (player.signedDate && !isSignedInOffseason(player.signedDate)) {
+    // Only check if we haven't already added a 30-day violation (which is more immediate)
+    if (!is30DayViolation && player.signedDate && !isSignedInOffseason(player.signedDate)) {
       const daysSinceSigned = daysSince(player.signedDate, tradeDateObj);
       if (daysSinceSigned < 90) {
         violations.push(

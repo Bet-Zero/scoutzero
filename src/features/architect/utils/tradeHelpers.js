@@ -47,15 +47,22 @@ export const getSalaryForYear = (input, year) => {
       }
     }
 
-    // If no contract data found, return 0 (player has no salary for this year)
-    if (!base) {
-      base = 0;
+    // Fall back to player's .salary property if no contract data found
+    if (!base && typeof p.salary === 'number') {
+      base = p.salary;
     }
 
-    // tests look specifically for `likely_bonus`
+    // Handle likely incentives from multiple possible locations:
+    // - yData.likely_bonus (legacy format)
+    // - yData.bonuses?.likely (nested object format)
+    // - yData.incentives?.likely (test format)
+    // - yData.likelyIncentives (alternative naming)
+    // - p.bonusesByYear[year].likely (player-level bonuses)
     const likely =
       (typeof yData.likely_bonus === 'number' ? yData.likely_bonus : 0) ||
-      (yData.bonuses?.likely ?? yData.likelyIncentives ?? 0) ||
+      (yData.bonuses?.likely ?? 0) ||
+      (yData.incentives?.likely ?? 0) ||
+      (yData.likelyIncentives ?? 0) ||
       (p.bonusesByYear?.[year]?.likely ??
         p.bonusesByYear?.[String(year)]?.likely ??
         0);

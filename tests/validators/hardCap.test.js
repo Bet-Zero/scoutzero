@@ -7,9 +7,11 @@ describe('validateHardCap', () => {
       totalSalary: 100_000_000,
     },
     projectedSalary: 100_000_000,
-    capSettings: {
-      firstApron: 172_346_000,
-      secondApron: 182_794_000,
+    context: {
+      capSettings: {
+        firstApron: 172_346_000,
+        secondApron: 182_794_000,
+      },
     },
     ...params,
   });
@@ -70,6 +72,7 @@ describe('validateHardCap', () => {
         })
       );
       expect(result.passed).toBe(true);
+      // hardCapType should be null when no hard cap is triggered
       expect(result.hardCapType).toBeNull();
     });
   });

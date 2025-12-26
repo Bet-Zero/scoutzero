@@ -114,6 +114,7 @@ describe('tradeValidator', () => {
       ],
       capProjections,
       currentYear,
+      tradeCtx: { tradeDate: '2025-01-20' }, // After Jan 15 to satisfy S&T timing restriction
     });
 
     expect(result.legal).toBe(true);
@@ -134,6 +135,7 @@ describe('tradeValidator', () => {
       ],
       capProjections,
       currentYear,
+      tradeCtx: { tradeDate: '2025-01-20' }, // After Jan 15 to satisfy S&T timing restriction
     });
 
     expect(result.legal).toBe(false);

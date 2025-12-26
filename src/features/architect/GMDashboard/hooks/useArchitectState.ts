@@ -381,7 +381,7 @@ export function useArchitectState({
         if (base) {
           setBaselineCapSheet(base as CapSheet);
           // Always use baseline (or world-aware) data as team cap sheet
-          setTeamCapSheet(deepClone(base));
+          setTeamCapSheet(deepClone(base) as CapSheet);
         } else {
           console.warn('No saved team found, using blank slate.');
         }

@@ -3,8 +3,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { RankingSetup } from '@/features/ranker/RankingSetup.jsx';
 
 const samplePlayers = [
-  { id: '1', display_name: 'Alpha' },
-  { id: '2', display_name: 'Beta' },
+  { id: '1', name: 'Alpha' },
+  { id: '2', name: 'Beta' },
 ];
 
 describe('RankingSetup', () => {
