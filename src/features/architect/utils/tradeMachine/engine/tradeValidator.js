@@ -110,34 +110,67 @@ function generateTradeReceipt({
     const preTradeTeamSalarySource = salaryMatchingDetails.totalSalarySource || 'team.teamTotalSalary';
     
     // Build outgoing players list with detailed info
-    const outgoingPlayers = (team.outgoingPlayers || team.sends || []).map(player => ({
-      id: player.id || player.player_id,
-      name: player.name || player.playerName || 'Unknown',
-      baseSalary: getSalaryForYear(player, context.currentYear) || 0,
-      matchingValue: player.matchOutgoing || getSalaryForYear(player, context.currentYear) || 0,
-      flags: {
-        isBYC: !!player.isBYC,
-        isPoisonPill: !!player.isPoisonPill,
-        hasTradeKicker: !!(player.tradeKicker?.percentage || player.tradeKickerPct),
-        tradeKickerPct: player.tradeKicker?.percentage || player.tradeKickerPct || 0,
-        isSignAndTrade: !!player.signAndTrade,
-      },
-    }));
+    const outgoingPlayers = (team.outgoingPlayers || team.sends || []).map(player => {
+      const baseSalary = getSalaryForYear(player, context.currentYear) || 0;
+      const matchingValue = player.matchOutgoing || baseSalary;
+      const isBYC = !!player.isBYC || !!player.baseYearCompensation;
+      
+      return {
+        id: player.id || player.player_id,
+        name: player.name || player.playerName || 'Unknown',
+        baseSalary,
+        matchingValue,
+        flags: {
+          isBYC,
+          isPoisonPill: !!player.isPoisonPill,
+          hasTradeKicker: !!(player.tradeKicker?.percentage || player.tradeKickerPct),
+          tradeKickerPct: player.tradeKicker?.percentage || player.tradeKickerPct || 0,
+          isSignAndTrade: !!player.signAndTrade,
+        },
+        // BYC breakdown: include previous salary and calculation details
+        bycDetails: isBYC ? {
+          previousSalary: player.previousSalary || 0,
+          fiftyPercentNew: Math.floor(baseSalary * 0.5),
+          method: (player.previousSalary || 0) >= Math.floor(baseSalary * 0.5) ? 'previousSalary' : '50%_of_new',
+        } : null,
+      };
+    });
     
     // Build incoming players list with detailed info
-    const incomingPlayers = (team.incomingPlayers || []).map(player => ({
-      id: player.id || player.player_id,
-      name: player.name || player.playerName || 'Unknown',
-      baseSalary: getSalaryForYear(player, context.currentYear) || 0,
-      matchingValue: player.matchIncoming || getSalaryForYear(player, context.currentYear) || 0,
-      flags: {
-        isBYC: !!player.isBYC,
-        isPoisonPill: !!player.isPoisonPill,
-        hasTradeKicker: !!(player.tradeKicker?.percentage || player.tradeKickerPct),
-        tradeKickerPct: player.tradeKicker?.percentage || player.tradeKickerPct || 0,
-        isSignAndTrade: !!player.signAndTrade,
-      },
-    }));
+    const incomingPlayers = (team.incomingPlayers || []).map(player => {
+      const baseSalary = getSalaryForYear(player, context.currentYear) || 0;
+      const matchingValue = player.matchIncoming || baseSalary;
+      const isPoisonPill = !!player.isPoisonPill;
+      const hasTradeKicker = !!(player.tradeKicker?.percentage || player.tradeKickerPct);
+      
+      return {
+        id: player.id || player.player_id,
+        name: player.name || player.playerName || 'Unknown',
+        baseSalary,
+        matchingValue,
+        flags: {
+          isBYC: !!player.isBYC,
+          isPoisonPill,
+          hasTradeKicker,
+          tradeKickerPct: player.tradeKicker?.percentage || player.tradeKickerPct || 0,
+          isSignAndTrade: !!player.signAndTrade,
+        },
+        // Poison pill breakdown: include extension years and averaging calculation
+        poisonPillDetails: isPoisonPill && player.extensionYears?.length > 0 ? {
+          currentSalary: player.currentSalary || baseSalary,
+          extensionYears: player.extensionYears,
+          averagedSalary: matchingValue,
+          method: 'averaging_current_plus_extensions',
+        } : null,
+        // Trade kicker breakdown: include kicker calculation
+        tradeKickerDetails: hasTradeKicker ? {
+          percentage: player.tradeKicker?.percentage || player.tradeKickerPct || 0,
+          kickerAmount: matchingValue - baseSalary,
+          waivedPct: player.tradeKicker?.waived || player.tradeKickerWaivedPct || 0,
+          maximum: player.tradeKicker?.maximum,
+        } : null,
+      };
+    });
     
     // Calculate totals
     const outgoingBaseTotal = outgoingPlayers.reduce((sum, p) => sum + p.baseSalary, 0);
@@ -252,51 +285,10 @@ export function validateTrade({
     ...tradeCtx,
   };
 
-  // Helper function to get salary for matching purposes (with BYC and poison pill conversions)
-  const getSalaryForMatching = (player, currentYear, direction) => {
-    const baseSalary = getSalaryForYear(player, currentYear);
-    
-    // BYC (Base Year Compensation) conversion for outgoing players
-    if (direction === 'outgoing' && player.isBYC && player.previousSalary) {
-      return player.previousSalary;
-    }
-    
-    // Poison pill averaging for incoming players (only for rookie scale contracts)
-    // Check isRookieScale flag from new schema
-    const contract = player.contract || player.primaryContract;
-    const isRookieScale = contract?.isRookieScale || player.isRookieScale || false;
-    const isPoisonPill = player.isPoisonPill || isRookieScale;
-    
-    if (direction === 'incoming' && isPoisonPill) {
-      const currentSalary = player.currentSalary || 0;
-      const extensionTotal = (player.extensionYears || []).reduce((sum, year) => sum + (year.salary || 0), 0);
-      const totalYears = 1 + (player.extensionYears || []).length; // current year + extension years
-      
-      if (totalYears > 0) {
-        return (currentSalary + extensionTotal) / totalYears;
-      }
-    }
-    
-    return baseSalary;
-  };
-
   // Calculate incoming/outgoing assets for each team
+  // First pass: populate team data structure without salary calculations
   const teamsWithAssets = validTeams.map((team, index) => {
     const otherTeams = validTeams.filter((_, i) => i !== index);
-    
-    // Calculate outgoing salary with BYC conversion
-    const salaryOut = (team.sends || []).reduce((sum, player) => {
-      const salary = getSalaryForMatching(player, currentYear || 2025, 'outgoing');
-      return sum + (salary || 0);
-    }, 0);
-
-    // Calculate incoming salary from other teams with poison pill conversion
-    const salaryIn = otherTeams.reduce((sum, otherTeam) => {
-      return sum + (otherTeam.sends || []).reduce((playerSum, player) => {
-        const salary = getSalaryForMatching(player, currentYear || 2025, 'incoming');
-        return playerSum + (salary || 0);
-      }, 0);
-    }, 0);
 
     // Populate incoming players (what this team is receiving from other teams)
     const incomingPlayers = otherTeams.reduce((players, otherTeam) => {
@@ -306,15 +298,14 @@ export function validateTrade({
     // Populate outgoing players (what this team is sending out)
     const outgoingPlayers = team.sends || [];
 
-    // Calculate projected salary after trade
+    // Calculate projected salary after trade (will be updated after matching values computed)
     const currentSalary = team.team.teamTotalSalary || team.team.totalSalary || 0;
-    const projectedSalary = currentSalary - salaryOut + salaryIn;
 
     return {
       ...team,
-      salaryOut,
-      salaryIn,
-      projectedSalary,
+      salaryOut: 0, // Will be computed from matchOutgoing values
+      salaryIn: 0,  // Will be computed from matchIncoming values
+      projectedSalary: currentSalary, // Will be updated after salary calculations
       teamTotalSalary: currentSalary,
       incomingPlayers,
       outgoingPlayers,
@@ -328,13 +319,40 @@ export function validateTrade({
     };
   });
 
-  // Compute matching values for all teams before validation
-  // This ensures matchIncoming/matchOutgoing are set for TPE and other validators
+  // Compute matching values for all teams FIRST
+  // This ensures matchIncoming/matchOutgoing are set correctly using the canonical
+  // implementation (BYC, poison pill, trade kicker) before any salary calculations
   computeMatchingValues({
     teams: teamsWithAssets,
     yearKey: currentYear,
     daysRemainingInSeason: context.daysRemainingInSeason,
     daysInSeason: context.daysInSeason,
+  });
+
+  // Second pass: calculate salaryOut and salaryIn using the canonical matching values
+  teamsWithAssets.forEach((team, index) => {
+    const otherTeams = teamsWithAssets.filter((_, i) => i !== index);
+    
+    // Calculate outgoing salary using canonical matchOutgoing values
+    const salaryOut = (team.sends || []).reduce((sum, player) => {
+      // Use matchOutgoing (set by computeMatchingValues) or fallback to base salary
+      const matchingValue = player.matchOutgoing ?? getSalaryForYear(player, currentYear || 2025) ?? 0;
+      return sum + matchingValue;
+    }, 0);
+
+    // Calculate incoming salary from other teams using canonical matchIncoming values
+    const salaryIn = otherTeams.reduce((sum, otherTeam) => {
+      return sum + (otherTeam.sends || []).reduce((playerSum, player) => {
+        // Use matchIncoming (set by computeMatchingValues) or fallback to base salary
+        const matchingValue = player.matchIncoming ?? getSalaryForYear(player, currentYear || 2025) ?? 0;
+        return playerSum + matchingValue;
+      }, 0);
+    }, 0);
+
+    // Update team with computed salaries
+    team.salaryOut = salaryOut;
+    team.salaryIn = salaryIn;
+    team.projectedSalary = team.teamTotalSalary - salaryOut + salaryIn;
   });
 
   // Run validation rules for each team
