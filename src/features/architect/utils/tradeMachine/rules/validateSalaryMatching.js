@@ -5,6 +5,8 @@
  * NOTE: This validator delegates to the unified salary matching rules module
  * (salaryMatchingRules.js) for all allowable incoming calculations to ensure
  * consistency between validation and UI display.
+ * 
+ * Phase 4: Cap settings must be explicitly provided - no silent defaults
  */
 
 import {
@@ -16,8 +18,8 @@ import {
   SALARY_MATCHING_RULE_KEYS,
 } from '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules.js';
 
-// Validator version for trade receipt tracking
-export const SALARY_MATCHING_VERSION = '2.0.0'; // Unified rules module integration, Band 2 formula correction (+$7.5M)
+// Validator version for trade receipt tracking - bumped for Phase 4
+export const SALARY_MATCHING_VERSION = '2.1.0'; // Phase 4: Explicit cap settings, no silent defaults
 
 /**
  * Validates if a trade satisfies salary matching rules
@@ -90,16 +92,41 @@ export function validateSalaryMatching(team, context = {}) {
   const capSettings = { ...contextCapSettings, ...teamCapSettings };
 
   // Track the source of cap settings for debugging
-  const capSettingsSource = Object.keys(teamCapSettings).length > 0 
-    ? 'team.context.capSettings'
-    : 'context.capSettings';
+  let capSettingsSource = 'context.capSettings';
+  if (Object.keys(teamCapSettings).length > 0) {
+    capSettingsSource = 'team.context.capSettings';
+  } else if (context.capSettingsSource) {
+    capSettingsSource = context.capSettingsSource;
+  }
 
+  // Phase 4: Validate cap settings are present - emit warning if using fallback
+  const capSettingsWarnings = [];
   const {
-    salaryCap = 141000000,
-    firstApron = 178132000,
-    apron = 178132000, // alias for firstApron
-    secondApron = 188931000,
+    salaryCap = 0,
+    firstApron = 0,
+    apron = 0, // alias for firstApron
+    secondApron = 0,
   } = capSettings;
+
+  // Check if cap settings are missing or invalid
+  const hasSalaryCap = salaryCap > 0;
+  const hasFirstApron = (firstApron > 0 || apron > 0);
+  const hasSecondApron = secondApron > 0;
+
+  if (!hasSalaryCap || !hasFirstApron || !hasSecondApron) {
+    // Log warning in development mode
+    if (process.env.NODE_ENV === 'development' || import.meta?.env?.DEV) {
+      console.warn(
+        '[validateSalaryMatching] Missing cap settings:',
+        { salaryCap, firstApron, apron, secondApron },
+        'source:', capSettingsSource
+      );
+    }
+    capSettingsWarnings.push(
+      `Cap settings incomplete (salaryCap: ${hasSalaryCap}, firstApron: ${hasFirstApron}, secondApron: ${hasSecondApron}). ` +
+      `Validation may be inaccurate.`
+    );
+  }
 
   // Use firstApron if apron is not set
   const actualFirstApron = firstApron || apron;
@@ -251,12 +278,15 @@ export function validateSalaryMatching(team, context = {}) {
     difference: salaryIn - salaryOut,
     message: violations.length ? violations[0] : 'Salary matching validated',
     warningsOnly: shouldWarnOnly('salaryMatching') && violations.length > 0,
+    // Phase 4: Include cap settings warnings in result
+    warnings: capSettingsWarnings,
     // Structured details for trade receipt
     details: {
       ruleApplied: ruleApplied || 'UNKNOWN',
       formulaUsed: formulaUsed || 'Unknown formula',
       capSettings: { salaryCap, firstApron: actualFirstApron, secondApron },
       capSettingsSource,
+      capSettingsWarnings,
       totalSalary,
       totalSalarySource,
       margin: allowableIncoming - salaryIn,

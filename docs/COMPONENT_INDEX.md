@@ -157,6 +157,7 @@ Quick reference for all components in the ScoutZero project.
 - utils/tradeMachine/rules/validateSignAndTrade.js
 - utils/tradeMachine/rules/validateStepien.js
 - utils/tradeMachine/rules/validateTradeExceptions.js
+- utils/tradeMachine/utils/capSettingsProvider.js
 - utils/tradeMachine/utils/capUtils.js
 - utils/tradeMachine/utils/computeMatchingValues.js
 - utils/tradeMachine/utils/index.js
@@ -309,4 +310,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2025-12-27T08:01:28.821Z*
+*Generated on: 2025-12-27T08:55:14.753Z*

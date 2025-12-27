@@ -24,9 +24,14 @@ import { enforceRosterWindow } from '../rules/rosterValidation.js';
 import { validateFaExceptionUsage } from '../rules/validateFaExceptionUsage.js';
 import { validateAggregation } from '../rules/validateAggregation.js';
 import { normalizeYearInput, yearToSeason } from '../utils/seasonUtils.js';
+// Phase 4: Centralized cap settings provider for explicit sourcing
+import {
+  getCapSettings,
+  CAP_SETTINGS_VERSION,
+} from '../utils/capSettingsProvider.js';
 
-// Trade Receipt Validator Version
-export const TRADE_VALIDATOR_VERSION = '1.0.0';
+// Trade Receipt Validator Version - bumped for Phase 4 cap settings integration
+export const TRADE_VALIDATOR_VERSION = '1.1.0';
 
 // Create wrapped versions with performance monitoring and caching
 const baseValidators = {
@@ -45,32 +50,6 @@ const baseValidators = {
   enforceSecondApronHandcuffs,
 };
 const validators = wrapCommonValidators(baseValidators);
-
-// Helper function to extract cap settings for a specific year
-function getCapSettingsForYear(capProjections, year) {
-  if (!capProjections || typeof capProjections !== 'object') {
-    return null;
-  }
-  
-  // Try different year formats
-  const yearKey = String(year);
-  const seasonKey = `${year}-${String(year + 1).slice(-2)}`;
-  
-  const settings = capProjections[seasonKey] || capProjections[yearKey];
-  
-  if (!settings) {
-    // Return null if no cap data available for the requested year
-    // Let callers handle the missing data case explicitly
-    return null;
-  }
-  
-  return {
-    salaryCap: settings.cap,
-    firstApron: settings.firstApron,
-    secondApron: settings.secondApron,
-    luxuryTax: settings.tax,
-  };
-}
 
 // Export functions for external use
 export { enforceRosterWindow, validateFaExceptionUsage };
@@ -210,6 +189,15 @@ function generateTradeReceipt({
   });
   
   // Build overall receipt
+  // Phase 4: Include cap settings used and source for transparency
+  // Use the source and warnings that were resolved at the start of validation
+  const capSettingsUsed = {
+    salaryCap: context.capSettings?.salaryCap || 0,
+    firstApron: context.capSettings?.firstApron || 0,
+    secondApron: context.capSettings?.secondApron || 0,
+    luxuryTax: context.capSettings?.luxuryTax || 0,
+  };
+
   return {
     isLegal: isOverallLegal,
     primaryViolation: !isOverallLegal ? reason : null,
@@ -217,7 +205,13 @@ function generateTradeReceipt({
     timestamp: new Date().toISOString(),
     validatorVersion: TRADE_VALIDATOR_VERSION,
     salaryMatchingVersion: SALARY_MATCHING_VERSION,
+    capSettingsVersion: CAP_SETTINGS_VERSION,
     yearKey: context.currentYear,
+    seasonKey: context.normalizedYear?.seasonString || `${context.currentYear - 1}-${String(context.currentYear).slice(-2)}`,
+    // Phase 4: Cap settings transparency - use source from initial resolution
+    capSettingsUsed,
+    capSettingsSource: context.capSettingsSource || 'unknown',
+    capSettingsWarnings: context.capSettingsWarnings || [],
     teams: teamReceipts,
     performance: {
       validationTimeMs: validationTime,
@@ -267,7 +261,18 @@ export function validateTrade({
   }
 
   // Initialize context for validation
-  const capSettings = getCapSettingsForYear(capProjections, currentYear);
+  // Phase 4: Use centralized cap settings provider for explicit sourcing
+  const capSettingsResult = getCapSettings({
+    year: currentYear,
+    capProjections,
+  });
+  const capSettings = capSettingsResult.settings;
+  
+  // Log warning to console if fallback was used (in development mode)
+  if (capSettingsResult.warnings.length > 0 && 
+      (process.env.NODE_ENV === 'development' || import.meta?.env?.DEV)) {
+    console.warn('[validateTrade] Cap settings warnings:', capSettingsResult.warnings);
+  }
   
   // Normalize year input to provide both formats consistently to all validators
   // This eliminates format conversion duplication across validator files
@@ -278,6 +283,8 @@ export function validateTrade({
     currentYear: currentYear || 2025,
     offseason: true, // Default to offseason for sign-and-trade validation
     capSettings,
+    capSettingsSource: capSettingsResult.source, // Track source for debugging
+    capSettingsWarnings: capSettingsResult.warnings, // Track any warnings
     yearKey: currentYear,
     // Provide both normalized formats for validators
     normalizedYear: normalizedYear || { endYear: currentYear || 2025, seasonString: yearToSeason(currentYear || 2025) },
@@ -313,7 +320,10 @@ export function validateTrade({
       cashReceived: team.cashReceived || 0,
       context: {
         ...context,
-        capSettings: getCapSettingsForYear(context.capProjections, currentYear),
+        // Phase 4: Use the already-resolved capSettings from context
+        // This ensures all teams use the same cap settings
+        capSettings: context.capSettings,
+        capSettingsSource: context.capSettingsSource,
         yearKey: currentYear,
       },
     };

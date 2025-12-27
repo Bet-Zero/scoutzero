@@ -80,12 +80,51 @@ const TradeReceiptPanel = ({ receipt }) => {
       {/* Quick Summary */}
       <div className="flex gap-4 text-white/60 mb-3">
         <span>Year: {receipt.yearKey}</span>
+        <span>Season: {receipt.seasonKey}</span>
         <span>Teams: {receipt.teams?.length || 0}</span>
         <span>Violations: {receipt.allViolations?.length || 0}</span>
         <span className="text-white/40">
           ({receipt.performance?.validationTimeMs?.toFixed(2)}ms)
         </span>
       </div>
+
+      {/* Phase 4: Cap Settings Used */}
+      {receipt.capSettingsUsed && (
+        <div className="p-2 mb-3 bg-blue-900/20 border border-blue-500/30 rounded">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-blue-400 font-medium text-xs">Cap Settings ({receipt.seasonKey})</span>
+            <span className="text-white/40 text-xs">Source: {receipt.capSettingsSource}</span>
+          </div>
+          <div className="grid grid-cols-4 gap-2 text-xs">
+            <div>
+              <span className="text-white/50">Salary Cap:</span>
+              <span className="font-mono ml-1">{formatCurrency(receipt.capSettingsUsed.salaryCap)}</span>
+            </div>
+            <div>
+              <span className="text-white/50">1st Apron:</span>
+              <span className="font-mono ml-1">{formatCurrency(receipt.capSettingsUsed.firstApron)}</span>
+            </div>
+            <div>
+              <span className="text-white/50">2nd Apron:</span>
+              <span className="font-mono ml-1">{formatCurrency(receipt.capSettingsUsed.secondApron)}</span>
+            </div>
+            <div>
+              <span className="text-white/50">Lux Tax:</span>
+              <span className="font-mono ml-1">{formatCurrency(receipt.capSettingsUsed.luxuryTax)}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Phase 4: Cap Settings Warnings */}
+      {receipt.capSettingsWarnings?.length > 0 && (
+        <div className="p-2 mb-3 bg-yellow-900/20 border border-yellow-500/30 rounded">
+          <div className="text-yellow-400 text-xs font-medium mb-1">Cap Settings Warnings:</div>
+          {receipt.capSettingsWarnings.map((warning, idx) => (
+            <div key={idx} className="text-xs text-yellow-300 pl-2">• {warning}</div>
+          ))}
+        </div>
+      )}
 
       {/* Primary Violation Alert */}
       {receipt.primaryViolation && (
