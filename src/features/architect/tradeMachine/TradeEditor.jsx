@@ -8,6 +8,7 @@ import TradeLegalChecker from './TradeLegalChecker';
 import TradeExceptionDashboard from './TradeExceptionDashboard';
 import FaExceptionTracker from './FaExceptionTracker';
 import TradePreviewModal from './TradePreviewModal';
+import TradeReceiptPanel from './TradeReceiptPanel';
 // import TradeDebugPanel from './TradeDebugPanel';
 
 const TradeEditor = ({
@@ -208,6 +209,9 @@ const TradeEditor = ({
 
       {/* Detailed Validation Results */}
       <TradeValidationPanel result={result} />
+
+      {/* Trade Receipt Debug Panel (gated behind VITE_SHOW_TRADE_RECEIPT env var) */}
+      <TradeReceiptPanel receipt={result?.tradeReceipt} />
 
       <TradePreviewModal
         open={previewOpen && !!result}

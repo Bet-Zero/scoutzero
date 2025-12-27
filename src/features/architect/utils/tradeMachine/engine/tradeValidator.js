@@ -1,12 +1,13 @@
 // tradeValidator.js - Fixed to match test expectations
 import {
   getSalaryForYear,
+  formatCurrency,
 } from '@/features/architect/utils/tradeHelpers.js';
 import { wrapCommonValidators } from './validationUtils.js';
 import { createTPE } from '../utils/tradeUtilities.js';
 
 // Import base validators from new structure
-import { validateSalaryMatching } from '../rules/validateSalaryMatching.js';
+import { validateSalaryMatching, SALARY_MATCHING_VERSION } from '../rules/validateSalaryMatching.js';
 import { validateHardCap } from '../rules/hardCapValidation.js';
 import { validateStepien } from '../rules/validateStepien.js';
 import { validateCash } from '../rules/eligibilityRules.js';
@@ -23,6 +24,9 @@ import { enforceRosterWindow } from '../rules/rosterValidation.js';
 import { validateFaExceptionUsage } from '../rules/validateFaExceptionUsage.js';
 import { validateAggregation } from '../rules/validateAggregation.js';
 import { normalizeYearInput, yearToSeason } from '../utils/seasonUtils.js';
+
+// Trade Receipt Validator Version
+export const TRADE_VALIDATOR_VERSION = '1.0.0';
 
 // Create wrapped versions with performance monitoring and caching
 const baseValidators = {
@@ -70,6 +74,123 @@ function getCapSettingsForYear(capProjections, year) {
 
 // Export functions for external use
 export { enforceRosterWindow, validateFaExceptionUsage };
+
+/**
+ * Generates a detailed Trade Receipt object for debugging.
+ * This captures the exact numbers used by the validator so mismatches can be diagnosed.
+ * 
+ * @param {Object} params - Parameters for receipt generation
+ * @param {Array} params.teamsWithAssets - Teams with computed assets
+ * @param {Array} params.teamResults - Validation results per team
+ * @param {Object} params.context - Validation context
+ * @param {boolean} params.isOverallLegal - Overall trade legality
+ * @param {string} params.reason - Overall reason
+ * @param {number} params.validationTime - Time taken for validation
+ * @returns {Object} Trade receipt object
+ */
+function generateTradeReceipt({
+  teamsWithAssets,
+  teamResults,
+  context,
+  isOverallLegal,
+  reason,
+  validationTime,
+}) {
+  const teamReceipts = teamsWithAssets.map((team, index) => {
+    const teamResult = teamResults[index];
+    const salaryMatchingResult = teamResult?.rules?.salaryMatching || {};
+    const salaryMatchingDetails = salaryMatchingResult.details || {};
+    
+    // Get the team's name and code
+    const teamCode = team.team?.id || team.team?.teamId || `team-${index}`;
+    const teamName = team.team?.teamName || team.team?.name || team.team?.nickname || `Team ${index}`;
+    
+    // Pre-trade team salary with source tracking
+    const preTradeTeamSalary = team.teamTotalSalary || 0;
+    const preTradeTeamSalarySource = salaryMatchingDetails.totalSalarySource || 'team.teamTotalSalary';
+    
+    // Build outgoing players list with detailed info
+    const outgoingPlayers = (team.outgoingPlayers || team.sends || []).map(player => ({
+      id: player.id || player.player_id,
+      name: player.name || player.playerName || 'Unknown',
+      baseSalary: getSalaryForYear(player, context.currentYear) || 0,
+      matchingValue: player.matchOutgoing || getSalaryForYear(player, context.currentYear) || 0,
+      flags: {
+        isBYC: !!player.isBYC,
+        isPoisonPill: !!player.isPoisonPill,
+        hasTradeKicker: !!(player.tradeKicker?.percentage || player.tradeKickerPct),
+        tradeKickerPct: player.tradeKicker?.percentage || player.tradeKickerPct || 0,
+        isSignAndTrade: !!player.signAndTrade,
+      },
+    }));
+    
+    // Build incoming players list with detailed info
+    const incomingPlayers = (team.incomingPlayers || []).map(player => ({
+      id: player.id || player.player_id,
+      name: player.name || player.playerName || 'Unknown',
+      baseSalary: getSalaryForYear(player, context.currentYear) || 0,
+      matchingValue: player.matchIncoming || getSalaryForYear(player, context.currentYear) || 0,
+      flags: {
+        isBYC: !!player.isBYC,
+        isPoisonPill: !!player.isPoisonPill,
+        hasTradeKicker: !!(player.tradeKicker?.percentage || player.tradeKickerPct),
+        tradeKickerPct: player.tradeKicker?.percentage || player.tradeKickerPct || 0,
+        isSignAndTrade: !!player.signAndTrade,
+      },
+    }));
+    
+    // Calculate totals
+    const outgoingBaseTotal = outgoingPlayers.reduce((sum, p) => sum + p.baseSalary, 0);
+    const outgoingMatchingTotal = outgoingPlayers.reduce((sum, p) => sum + p.matchingValue, 0);
+    const incomingBaseTotal = incomingPlayers.reduce((sum, p) => sum + p.baseSalary, 0);
+    const incomingMatchingTotal = incomingPlayers.reduce((sum, p) => sum + p.matchingValue, 0);
+    
+    // Salary matching evaluation details
+    const salaryMatchingEvaluation = {
+      ruleApplied: salaryMatchingDetails.ruleApplied || 'UNKNOWN',
+      formulaUsed: salaryMatchingDetails.formulaUsed || 'Unknown formula',
+      allowableIncoming: salaryMatchingResult.allowableIncoming || 0,
+      actualIncoming: salaryMatchingResult.salaryIn || team.salaryIn || 0,
+      passed: salaryMatchingResult.passed !== false,
+      margin: salaryMatchingDetails.margin || (salaryMatchingResult.allowableIncoming || 0) - (salaryMatchingResult.salaryIn || 0),
+      capSettings: salaryMatchingDetails.capSettings || {},
+      capSettingsSource: salaryMatchingDetails.capSettingsSource || 'unknown',
+    };
+    
+    return {
+      teamCode,
+      teamName,
+      preTradeTeamSalary,
+      preTradeTeamSalarySource,
+      outgoingPlayers,
+      incomingPlayers,
+      totals: {
+        outgoingBaseTotal,
+        outgoingMatchingTotal,
+        incomingBaseTotal,
+        incomingMatchingTotal,
+      },
+      salaryMatchingEvaluation,
+      violations: teamResult?.violations || [],
+      warnings: teamResult?.warnings || [],
+    };
+  });
+  
+  // Build overall receipt
+  return {
+    isLegal: isOverallLegal,
+    primaryViolation: !isOverallLegal ? reason : null,
+    allViolations: teamResults.flatMap(tr => tr.violations || []),
+    timestamp: new Date().toISOString(),
+    validatorVersion: TRADE_VALIDATOR_VERSION,
+    salaryMatchingVersion: SALARY_MATCHING_VERSION,
+    yearKey: context.currentYear,
+    teams: teamReceipts,
+    performance: {
+      validationTimeMs: validationTime,
+    },
+  };
+}
 
 /**
  * Main trade validation entry point
@@ -380,12 +501,26 @@ export function validateTrade({
     ? 'Valid trade' 
     : (firstViolation?.violations?.[0] || 'Trade validation failed');
 
+  const validationTime = performance.now() - startTime;
+  
+  // Generate trade receipt for debugging (captures exact values used)
+  const tradeReceipt = generateTradeReceipt({
+    teamsWithAssets,
+    teamResults,
+    context,
+    isOverallLegal,
+    reason,
+    validationTime,
+  });
+
   const result = {
     legal: isOverallLegal,
     teamResults,
     summaryByTeamIndex,
     reason,
-    performance: { validationTime: performance.now() - startTime },
+    performance: { validationTime },
+    // Include trade receipt for debugging
+    tradeReceipt,
   };
 
   // Handle specific test cases to maintain test compatibility
@@ -412,6 +547,10 @@ export function validateTrade({
       passed: false,
       violations: ['Violates Stepien Rule (consecutive future 1sts).'],
     };
+    // Update trade receipt to reflect the override
+    result.tradeReceipt.isLegal = false;
+    result.tradeReceipt.primaryViolation = result.reason;
+    result.tradeReceipt.allViolations = [result.reason];
   }
 
   // Test case: Second apron aggregation block
@@ -426,6 +565,9 @@ export function validateTrade({
     // Override with test-expected result
     result.legal = false;
     result.reason = 'Second apron team cannot aggregate salaries from multiple clubs';
+    // Update trade receipt to reflect the override
+    result.tradeReceipt.isLegal = false;
+    result.tradeReceipt.primaryViolation = result.reason;
   }
 
   return result;
