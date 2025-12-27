@@ -118,6 +118,7 @@ TradeEditor.jsx
 **Function**: `validateTrade({ teams, capProjections, currentYear, tradeCtx })`
 
 **Flow**:
+
 1. Input validation (lines 89-113)
 2. Get cap settings for year (lines 116-129)
 3. Calculate incoming/outgoing for each team (lines 163-208)
@@ -155,6 +156,7 @@ TradeEditor.jsx
 | `computeMatchingValues.js:16-122` | `computeMatchingValues()` | Sets `player.matchOutgoing` |
 
 **⚠️ ISSUE**: `tradeValidator.js` calculates outgoing twice:
+
 1. First at line 167-170 using `getSalaryForMatching()`
 2. Then calls `computeMatchingValues()` at line 212-217 which sets `player.matchOutgoing`
 
@@ -179,8 +181,9 @@ While `validateSalaryMatching.js` uses `team.salaryOut` (set by the first calcul
 | `constants/cbaConstants.js` (tradeMachine) | `SALARY_MATCHING_BANDS` |
 
 **⚠️ ISSUE**: Four different sources for matching bands:
+
 1. `validateSalaryMatching.js` uses hard-coded tiers ($6.5M, $19.6M)
-2. `tradeHelpers.js` uses `MATCHING_BANDS_2023` 
+2. `tradeHelpers.js` uses `MATCHING_BANDS_2023`
 3. `cbaConstants.js` has `CBA_BY_YEAR[2025].matchingTiers` with different formulas
 4. `constants/cbaConstants.js` has `SALARY_MATCHING_BANDS`
 
@@ -195,6 +198,7 @@ While `validateSalaryMatching.js` uses `team.salaryOut` (set by the first calcul
 | `validateSalaryMatching.js:53` | Hard-coded `firstApron = 178132000` |
 
 **⚠️ ISSUE**: Hard-coded values in validators don't match `capProjections.js` values:
+
 - `capProjections['2024-25'].firstApron = 179000000`
 - `constants/cbaConstants.js.FIRST_APRON = 178_132_000`
 
@@ -218,6 +222,7 @@ While `validateSalaryMatching.js` uses `team.salaryOut` (set by the first calcul
 **Evidence of Wrong Formulas**:
 
 `validateSalaryMatching.js:135-141`:
+
 ```javascript
 if (salaryOut <= 6_500_000) {
   allowableIncoming = salaryOut * 2 + 250_000;  // 200% + $250k
@@ -229,6 +234,7 @@ if (salaryOut <= 6_500_000) {
 ```
 
 vs `tradeHelpers.js:82-86` (`MATCHING_BANDS_2023`):
+
 ```javascript
 { upTo: OUTGOING_BAND1_MAX, allowed: (out) => 2.0 * out + 250_000 },  // 200% + $250k
 { upTo: OUTGOING_BAND2_MAX, allowed: (out) => out + 7_500_000 },      // + $7.5M
@@ -236,10 +242,12 @@ vs `tradeHelpers.js:82-86` (`MATCHING_BANDS_2023`):
 ```
 
 **Differences**:
+
 - Band 2: Validator uses `+ $5M`, tradeHelpers uses `+ $7.5M`
 - Band 3: Validator uses `125%`, tradeHelpers uses `125% + $250k`
 
 **TradeSalaryCalculator.jsx UI** (lines 56-68) uses a THIRD set of formulas:
+
 ```javascript
 } else if (outgoingSalary <= 6_500_000) {
   rule = 'Normal: 175% + $100k (≤$6.5M outgoing)';  // DIFFERENT!
@@ -314,6 +322,7 @@ export function createTPE({ teamCtx, outgoing, incoming, tradeDate }) {
 **Status**: ✅ IMPLEMENTED
 
 **Files**:
+
 - `rules/validateAggregation.js` - Aggregation prohibition
 - `rules/validateSecondApronRules.js` - Comprehensive second apron rules
 - `rules/basicRules.js:enforceSecondApronHandcuffs()` - Additional restrictions
@@ -323,6 +332,7 @@ export function createTPE({ teamCtx, outgoing, incoming, tradeDate }) {
 **Status**: ⚠️ PARTIALLY IMPLEMENTED / INCONSISTENT
 
 **Files**:
+
 - `engine/tradeValidator.js:139-142` - BYC for outgoing
 - `utils/computeMatchingValues.js:56-62` - Alternative BYC calculation
 - `utils/matchingValues.js:10-14` - Third BYC implementation
@@ -330,6 +340,7 @@ export function createTPE({ teamCtx, outgoing, incoming, tradeDate }) {
 **Issue**: Three implementations with different logic:
 
 `tradeValidator.js:139-142`:
+
 ```javascript
 if (direction === 'outgoing' && player.isBYC && player.previousSalary) {
   return player.previousSalary;  // Uses previous salary DIRECTLY
@@ -337,6 +348,7 @@ if (direction === 'outgoing' && player.isBYC && player.previousSalary) {
 ```
 
 `computeMatchingValues.js:58-61`:
+
 ```javascript
 if (player.isBYC && player.previousSalary) {
   const fiftyPercentNew = Math.floor(newSalary * BYC_PERCENT);
@@ -345,6 +357,7 @@ if (player.isBYC && player.previousSalary) {
 ```
 
 `matchingValues.js:10-14`:
+
 ```javascript
 if (isOutgoing && (player.isBYC || player.baseYearCompensation)) {
   return Math.max(prevSalary, Math.floor(newSalary * BYC_PERCENT));  // Same as computeMatchingValues
@@ -356,6 +369,7 @@ if (isOutgoing && (player.isBYC || player.baseYearCompensation)) {
 **Status**: ⚠️ PARTIALLY IMPLEMENTED
 
 **Files**:
+
 - `rules/eligibilityRules.js:12-43` - Reacquisition bar (1 year for traded, season end for waived)
 - `rules/timingValidation.js` - Jan 15 timing gate
 
@@ -366,6 +380,7 @@ if (isOutgoing && (player.isBYC || player.baseYearCompensation)) {
 **Status**: ⚠️ IMPLEMENTED BUT INCONSISTENT
 
 **Files**:
+
 - `engine/tradeValidator.js:147-158` - Poison pill averaging
 - `utils/computeMatchingValues.js:97-131` - Alternative implementation
 - `utils/matchingValues.js:37-53` - Third implementation
@@ -387,6 +402,7 @@ if (isOutgoing && (player.isBYC || player.baseYearCompensation)) {
 **Status**: ❌ NOT IMPLEMENTED
 
 **Evidence**: No code found that handles:
+
 - Player options in trade calculations
 - Team options in trade calculations  
 - Non-guaranteed salary portions
@@ -409,11 +425,13 @@ Handles routing for 2, 3, and 4+ team trades with explicit `tradeTo` field suppo
 **Issue**: Multiple year format conversions with potential mismatches
 
 **Locations**:
+
 - `useTradeMachine.js:174` - Uses `yearKey` (end-year, e.g., 2025)
 - `seasonUtils.js:25-29` - `yearToSeason()` converts 2025 → "2024-25"
 - `getSalaryForYear()` in `tradeHelpers.js:27-72` - Accepts year, converts to season
 
 **Potential Bug**: When `yearKey=2025`:
+
 - `yearToSeason(2025)` → "2024-25" (correct for 2024-25 season)
 - Some places use `year` as start year, others as end year
 - `normalizeYearInput()` in `seasonUtils.js:107-147` provides both formats but not always used
@@ -425,6 +443,7 @@ Handles routing for 2, 3, and 4+ team trades with explicit `tradeTo` field suppo
 **Evidence**:
 
 `useTradeMachine.js:69-91` includes dead money:
+
 ```javascript
 const deadMoneyForYear = (capSheet, endYear) => {
   // ... scans waivedContracts, stretchHistory
@@ -433,6 +452,7 @@ teamObj.teamTotalSalary = baseline + dead;
 ```
 
 But `validateSalaryMatching.js:42` uses:
+
 ```javascript
 const totalSalary = team.teamTotalSalary ?? context.totalSalary ?? team.team?.totalSalary ?? 0;
 ```
@@ -453,6 +473,7 @@ If the validator falls back to `team.team?.totalSalary`, it may *not* include de
 **Issue**: ✅ CONFIRMED - This is the biggest source of divergence.
 
 **UI Calculation Path** (`TradeSalaryCalculator.jsx`):
+
 ```javascript
 const base = calculateAllowableIncoming(  // from tradeHelpers.js
   teamSalary,
@@ -465,6 +486,7 @@ const base = calculateAllowableIncoming(  // from tradeHelpers.js
 ```
 
 **Engine Calculation Path** (`validateSalaryMatching.js`):
+
 - Uses inline tier calculations (lines 135-148)
 - Different formulas than `calculateAllowableIncoming()`
 

@@ -1,5 +1,4 @@
 import React from 'react';
-import capProjections from '@/features/architect/utils/capProjections';
 import { getContractYearSlice } from '@/features/architect/utils/contractUtils';
 import { getActiveUnsignedCapHoldsTotalByEndYear } from '@/features/architect/utils/capHolds';
 import {
@@ -8,17 +7,16 @@ import {
   getFirstApronHardCapReason,
 } from '@/features/architect/utils/hardCapUtils';
 import { Lock } from 'lucide-react';
+import { getCapSettingsForYear } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
 
 const CapSummaryTiles = ({ teamCapSheet, selectedYear }) => {
-  const yearKey = `${selectedYear - 1}-${String(selectedYear % 100).padStart(
-    2,
-    '0'
-  )}`;
-  const capData = capProjections[yearKey] || {};
+  // Use centralized cap settings provider for consistent cap/apron values
+  // selectedYear is the END year (e.g., 2025 for "2024-25" season)
+  const capSettings = getCapSettingsForYear(selectedYear);
 
-  const salaryCap = capData.cap || 0;
-  const firstApron = capData.firstApron || 0;
-  const secondApron = capData.secondApron || 0;
+  const salaryCap = capSettings.salaryCap || 0;
+  const firstApron = capSettings.firstApron || 0;
+  const secondApron = capSettings.secondApron || 0;
 
   // Determine if hard capped
   const isFirstApronHardCapped = isHardCappedAtFirstApron(

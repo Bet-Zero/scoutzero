@@ -79,7 +79,9 @@ This section documents what the Trade Machine **aims to do** based on UI labels,
 #### GAP-MATH-001: Salary Matching Band Formulas Differ Between Validator and tradeHelpers
 
 **Evidence**:
+
 - `validateSalaryMatching.js:135-141`:
+
   ```javascript
   if (salaryOut <= 6_500_000) {
     allowableIncoming = salaryOut * 2 + 250_000;  // 200% + $250k
@@ -89,7 +91,9 @@ This section documents what the Trade Machine **aims to do** based on UI labels,
     allowableIncoming = salaryOut * 1.25;         // 125%
   }
   ```
+
 - `tradeHelpers.js:82-86` (`MATCHING_BANDS_2023`):
+
   ```javascript
   { upTo: OUTGOING_BAND1_MAX, allowed: (out) => 2.0 * out + 250_000 },  // 200% + $250k
   { upTo: OUTGOING_BAND2_MAX, allowed: (out) => out + 7_500_000 },      // + $7.5M (NOT $5M!)
@@ -105,7 +109,9 @@ This section documents what the Trade Machine **aims to do** based on UI labels,
 #### GAP-MATH-002: cbaConstants.js Has a Third Set of Formulas
 
 **Evidence**:
+
 - `cbaConstants.js:51-63` (`matchingTiers` in `CBA_BY_YEAR[2025]`):
+
   ```javascript
   matchingTiers: [
     { maxOutgoing: 0, incoming: () => 7_500_000 },           // Cap-room: flat $7.5M
@@ -124,7 +130,9 @@ This section documents what the Trade Machine **aims to do** based on UI labels,
 #### GAP-MATH-003: Hard-Coded Cap Thresholds May Not Match capProjections
 
 **Evidence**:
+
 - `validateSalaryMatching.js:49-54`:
+
   ```javascript
   const {
     salaryCap = 141000000,
@@ -132,7 +140,9 @@ This section documents what the Trade Machine **aims to do** based on UI labels,
     ...
   } = capSettings;
   ```
+
 - `constants/cbaConstants.js:11-15`:
+
   ```javascript
   '2024-25': {
     SALARY_CAP: 140_588_000,    // Different from 141000000
@@ -162,6 +172,7 @@ This section documents what the Trade Machine **aims to do** based on UI labels,
 #### GAP-MISS-002: No Options/Non-Guaranteed Salary Handling
 
 **Evidence**: No code found in `tradeValidator.js`, `validateSalaryMatching.js`, or `computeMatchingValues.js` that handles:
+
 - Player options
 - Team options
 - Non-guaranteed portions
@@ -188,20 +199,26 @@ This section documents what the Trade Machine **aims to do** based on UI labels,
 #### GAP-INCOR-001: BYC Has Three Different Implementations
 
 **Evidence**:
+
 1. `tradeValidator.js:139-142`:
+
    ```javascript
    if (direction === 'outgoing' && player.isBYC && player.previousSalary) {
      return player.previousSalary;  // Uses previous salary DIRECTLY
    }
    ```
+
 2. `computeMatchingValues.js:57-61`:
+
    ```javascript
    if (player.isBYC && player.previousSalary) {
      const fiftyPercentOfNew = (contractSalary || newSalary) * 0.5;
      outgoingValue = Math.max(player.previousSalary, fiftyPercentOfNew);  // MAX of both
    }
    ```
+
 3. `matchingValues.js:10-14`:
+
    ```javascript
    if (isOutgoing && (player.isBYC || player.baseYearCompensation)) {
      const prevSalary = player.previousSalary || 0;
@@ -218,6 +235,7 @@ This section documents what the Trade Machine **aims to do** based on UI labels,
 #### GAP-INCOR-002: Poison Pill Has Three Different Implementations
 
 **Evidence**:
+
 1. `tradeValidator.js:149-157`: Uses `(currentSalary + extensionTotal) / totalYears`
 2. `computeMatchingValues.js:107-116`: Same formula
 3. `matchingValues.js:46-51`: Uses `(salary + extensionAvg) / 2` - **different formula**
@@ -233,7 +251,9 @@ This section documents what the Trade Machine **aims to do** based on UI labels,
 #### GAP-UI-001: TradeSalaryCalculator Shows Different Rules Than Validator Uses
 
 **Evidence**:
+
 - `TradeSalaryCalculator.jsx:62-67`:
+
   ```javascript
   } else if (outgoingSalary <= 6_500_000) {
     rule = 'Normal: 175% + $100k (≤$6.5M outgoing)';  // Says 175% + $100k
@@ -243,6 +263,7 @@ This section documents what the Trade Machine **aims to do** based on UI labels,
     rule = 'Normal: 125% (>$19.6M outgoing)';  // Says 125%
   }
   ```
+
 - Validator uses 200%+$250k, +$5M, 125% respectively
 
 **Plain-English Explanation**: The UI tells users one formula (175%+$100k), but the validator applies a completely different formula (200%+$250k). Users see validation results that don't match the displayed rules.
@@ -254,6 +275,7 @@ This section documents what the Trade Machine **aims to do** based on UI labels,
 #### GAP-UI-002: allowableIncoming Calculation Path Differs
 
 **Evidence**:
+
 - `TradeSalaryCalculator.jsx:30-37` calls `calculateAllowableIncoming()` from `tradeHelpers.js`
 - `validateSalaryMatching.js:135-148` uses inline calculation
 - These use **different formulas** (see GAP-MATH-001)
@@ -269,6 +291,7 @@ This section documents what the Trade Machine **aims to do** based on UI labels,
 #### GAP-DATA-001: Missing previousSalary for BYC Players
 
 **Evidence**: `computeMatchingValues.js:57-58`:
+
 ```javascript
 if (player.isBYC && player.previousSalary) {
 ```
@@ -284,6 +307,7 @@ If `previousSalary` is not populated on the player object, BYC calculation falls
 #### GAP-DATA-002: Inconsistent Player Salary Field Names
 
 **Evidence**: `computeMatchingValues.js:43-48`:
+
 ```javascript
 const newSalary =
   player.newSalary ||
@@ -335,6 +359,7 @@ const newSalary =
 ## 4. Trade Receipt Plan
 
 ### 4.1 Purpose
+
 Create a debug receipt that makes disputes impossible by showing exactly what values were used in validation.
 
 ### 4.2 Proposed Structure
@@ -461,6 +486,7 @@ export function generateTradeReceipt({ teams, capProjections, currentYear, trade
 2. **UI Panel**: Create `TradeReceiptPanel.jsx` component that displays receipt in a collapsible debug panel.
 
 3. **Debug Toggle**: Gate display behind environment variable:
+
    ```javascript
    const showReceipt = import.meta.env.VITE_SHOW_TRADE_RECEIPT === 'true';
    ```
@@ -484,6 +510,7 @@ export function generateTradeReceipt({ teams, capProjections, currentYear, trade
 ### 5.1 Golden Trade Scenarios
 
 #### Test 1: Equal Salary 1-for-1 (Baseline)
+
 ```javascript
 {
   name: 'equal-1for1-overcap',
@@ -506,6 +533,7 @@ export function generateTradeReceipt({ teams, capProjections, currentYear, trade
 ```
 
 #### Test 2: Band 1 Boundary (200% + $250k)
+
 ```javascript
 {
   name: 'band1-max-incoming',
@@ -526,6 +554,7 @@ export function generateTradeReceipt({ teams, capProjections, currentYear, trade
 ```
 
 #### Test 3: Band 1 Exceeded
+
 ```javascript
 {
   name: 'band1-exceeded',
@@ -542,6 +571,7 @@ export function generateTradeReceipt({ teams, capProjections, currentYear, trade
 ```
 
 #### Test 4: First Apron 100% Matching
+
 ```javascript
 {
   name: 'first-apron-100pct',
@@ -559,6 +589,7 @@ export function generateTradeReceipt({ teams, capProjections, currentYear, trade
 ```
 
 #### Test 5: Second Apron Aggregation Block
+
 ```javascript
 {
   name: 'second-apron-no-aggregate',
@@ -576,6 +607,7 @@ export function generateTradeReceipt({ teams, capProjections, currentYear, trade
 ```
 
 #### Test 6: TPE Creation (Over-Cap Team Sends More)
+
 ```javascript
 {
   name: 'tpe-creation',
@@ -598,6 +630,7 @@ export function generateTradeReceipt({ teams, capProjections, currentYear, trade
 ```
 
 #### Test 7: BYC Player Outgoing Value
+
 ```javascript
 {
   name: 'byc-outgoing-max',
@@ -620,6 +653,7 @@ export function generateTradeReceipt({ teams, capProjections, currentYear, trade
 ```
 
 #### Test 8: Sign-and-Trade Hard Cap
+
 ```javascript
 {
   name: 'sign-and-trade-hardcap',
@@ -638,6 +672,7 @@ export function generateTradeReceipt({ teams, capProjections, currentYear, trade
 ```
 
 #### Test 9: Under-Cap Team Cap Space Absorption
+
 ```javascript
 {
   name: 'under-cap-absorption',
@@ -658,6 +693,7 @@ export function generateTradeReceipt({ teams, capProjections, currentYear, trade
 ```
 
 #### Test 10: Trade Kicker Proration
+
 ```javascript
 {
   name: 'trade-kicker-prorated',

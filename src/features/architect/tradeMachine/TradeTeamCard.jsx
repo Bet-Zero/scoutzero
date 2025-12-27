@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { getTeamColors } from '@/shared/utils/formatting';
-import capProjections from '@/features/architect/utils/capProjections';
 import {
   getSalaryForYear,
   formatPick,
@@ -21,6 +20,7 @@ import { validationFlags } from '@/config/validationFlags.js';
 import { getCapHitForSeason } from '@/features/architect/utils/tradeMachine/utils/seasonUtils.js';
 import { toSeasonKey } from '@/features/architect/utils/seasonUtils';
 import { getSalaryMatchingResult } from '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules.js';
+import { getCapSettingsForYear } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
 
 const TradeTeamCard = ({
   team,
@@ -106,10 +106,9 @@ const TradeTeamCard = ({
     [team, picks, incomingPicks]
   );
 
+  // Use centralized cap settings provider for consistent cap/apron values
   const capSettings = useMemo(() => {
-    // yearKey is already the end-year (e.g., 2025), convert to season format: "2024-25"
-    const key = toSeasonKey(yearKey);
-    return capProjections[key] || {};
+    return getCapSettingsForYear(yearKey);
   }, [yearKey]);
 
   const faBuckets = useMemo(

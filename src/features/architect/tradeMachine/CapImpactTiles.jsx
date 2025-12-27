@@ -1,8 +1,8 @@
 import React from 'react';
-import capProjections from '@/features/architect/utils/capProjections';
 import { formatSalary } from '@/shared/utils/formatting';
 import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers';
 import { getActiveUnsignedCapHoldsTotal } from '@/features/architect/utils/capHolds';
+import { getCapSettingsForYear } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
 
 const CapImpactTiles = ({
   team,
@@ -12,12 +12,12 @@ const CapImpactTiles = ({
 }) => {
   if (!team) return null;
 
-  // yearKey is the START year (e.g., 2024 for "2024-25" season)
-  const key = `${yearKey}-${String((yearKey + 1) % 100).padStart(2, '0')}`;
-  const capData = capProjections[key] || {};
-  const salaryCap = capData.cap || 0;
-  const firstApron = capData.firstApron || 0;
-  const secondApron = capData.secondApron || 0;
+  // yearKey is the END year (e.g., 2025 for "2024-25" season)
+  // Use centralized cap settings provider for consistent cap/apron values
+  const capSettings = getCapSettingsForYear(yearKey);
+  const salaryCap = capSettings.salaryCap || 0;
+  const firstApron = capSettings.firstApron || 0;
+  const secondApron = capSettings.secondApron || 0;
 
   // 💥 Defensive fallback if team.players is undefined
   const existingPlayers = Array.isArray(team.players) ? team.players : [];
@@ -36,7 +36,7 @@ const CapImpactTiles = ({
   }, 0);
 
   // Calculate cap holds total using shared utility
-  // yearKey is the START year, which is what getActiveUnsignedCapHoldsTotal expects
+  // yearKey is the END year (e.g., 2025 for "2024-25" season)
   const capHoldsTotal = (() => {
     // Prefer team.capHolds (canonical source)
     if (Array.isArray(team.capHolds) && team.capHolds.length > 0) {

@@ -1,7 +1,6 @@
 import React from 'react';
-import capProjections from '@/features/architect/utils/capProjections';
-import { toSeasonKey } from '@/features/architect/utils/seasonUtils';
 import { BadgeAlert, ShieldAlert } from 'lucide-react';
+import { getCapSettingsForYear } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
 
 const ExceptionCard = ({
   label,
@@ -127,8 +126,9 @@ const ExceptionTracker = ({ teamCapSheet, currentYear }) => {
     hardCapped,
   } = teamCapSheet;
 
-  const yearKey = toSeasonKey(currentYear);
-  const capData = capProjections[yearKey] || {};
+  // Use centralized cap settings provider for consistent cap/apron values
+  // currentYear is the END year (e.g., 2025 for "2024-25" season)
+  const capData = getCapSettingsForYear(currentYear);
   // No longer using daysUntil for display
   const getRemaining = (exception, defaultAmount = 0) => {
     const amount = exception?.amount ?? defaultAmount;
