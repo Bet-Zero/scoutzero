@@ -11,12 +11,14 @@
  * LINKS:
  *  - Plan: plans/extract_gmdashboard_actions_b9466109.plan.md
  */
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { loadArchitectBasePlayer } from '@/features/architect/utils/loadArchitectBasePlayer';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
 import { calculateCapHold } from '@/features/architect/utils/contractUtils';
 import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
 import capProjections from '@/features/architect/utils/capProjections';
+import { applyWorldMutation } from '@/features/architect/utils/mutationPipeline';
+import { resolveTeamCode } from '@/features/architect/utils/worldTeamData';
 
 // ==== Type Definitions ====
 
@@ -229,6 +231,8 @@ export interface UseArchitectActionsParams {
   state: ArchitectStateForActions;
   playersMap: PlayersMap;
   modals: ArchitectModalsForActions;
+  worldId: string | null;
+  seasonId: string;
 }
 
 /** Return type of the useArchitectActions hook */
@@ -321,7 +325,13 @@ export function useArchitectActions({
   state,
   playersMap,
   modals,
+  worldId,
+  seasonId,
 }: UseArchitectActionsParams): UseArchitectActionsReturn {
+  // Normalize teamId (route slug like "lakers") to canonical teamCode (like "LAL")
+  // This ensures all mutation payloads use the same team code format as Firestore base teams
+  const teamCode = useMemo(() => resolveTeamCode(teamId) || teamId, [teamId]);
+
   // Destructure state for easier access
   const {
     teamCapSheet,
@@ -336,6 +346,40 @@ export function useArchitectActions({
 
   // Destructure modals for easier access
   const { openContractModal, closeContractModal } = modals;
+
+  // === Persistence Helper ===
+  /**
+   * Persist mutation to Firestore if in world mode.
+   * Skips persistence when worldId is null (base mode) or userId is missing.
+   */
+  const persistMutation = useCallback(
+    async (
+      mutationType: string,
+      payload: Record<string, unknown>
+    ): Promise<void> => {
+      // Base mode: no persistence
+      if (!worldId) return;
+      // Cannot persist without userId
+      if (!userId) return;
+
+      try {
+        await applyWorldMutation({
+          userId,
+          worldId,
+          seasonId,
+          mutationType,
+          payload,
+        });
+      } catch (err) {
+        console.error('[Architect][PersistMutation] failed', {
+          mutationType,
+          payload,
+          err,
+        });
+      }
+    },
+    [worldId, userId, seasonId]
+  );
 
   // === Trade Actions ===
 
@@ -394,7 +438,7 @@ export function useArchitectActions({
           contractType: p.contractType || 'Trade',
           isExtension: !!p.isExtension,
           isRookieScale: !!p.isRookieScale,
-          signingTeam: teamId,
+          signingTeam: teamCode,
         });
 
         return {
@@ -442,7 +486,7 @@ export function useArchitectActions({
               contractType: p.contractType || 'Trade',
               isExtension: !!p.isExtension,
               isRookieScale: !!p.isRookieScale,
-              signingTeam: teamId,
+              signingTeam: teamCode,
             }
           );
 
@@ -475,8 +519,18 @@ export function useArchitectActions({
       }
 
       setTeamCapSheet(updated);
+
+      // Persist to world if in world mode
+      // Transform tradeData to mutation pipeline format
+      // Note: Each team's teamId needs to be resolved to canonical teamCode
+      const teams = tradeData.map((t) => ({
+        teamCode: resolveTeamCode(t.teamId) || t.teamId,
+        sends: t.outgoing || [],
+        picksOut: [], // Pick handling can be added when UI supports it
+      }));
+      persistMutation('executeTrade', { teams });
     },
-    [teamCapSheet, teamId, playersMap, setTeamCapSheet]
+    [teamCapSheet, teamCode, playersMap, setTeamCapSheet, persistMutation]
   );
 
   // === Contract/Player Actions ===
@@ -490,7 +544,7 @@ export function useArchitectActions({
           contractType: contract.contractType || 'Signed FA',
           isExtension: !!contract.isExtension,
           isRookieScale: !!contract.isRookieScale,
-          signingTeam: teamId,
+          signingTeam: teamCode,
         }
       );
 
@@ -538,7 +592,7 @@ export function useArchitectActions({
               contractType: contract.contractType || 'Signed FA',
               isExtension: !!contract.isExtension,
               isRookieScale: !!contract.isRookieScale,
-              signingTeam: teamId,
+              signingTeam: teamCode,
             }) || base.contract,
         };
 
@@ -569,8 +623,16 @@ export function useArchitectActions({
             p.player_id !== playerObj.player_id
         )
       );
+
+      // Persist to world if in world mode
+      persistMutation('signFreeAgent', {
+        teamCode,
+        playerId: playerObj.id || playerObj.player_id,
+        contract: architectContract,
+        signedUsing: contract.signedUsing || null,
+      });
     },
-    [teamId, playersMap, setTeamCapSheet, setFreeAgents]
+    [teamCode, playersMap, setTeamCapSheet, setFreeAgents, persistMutation]
   );
 
   const handleEditContract = useCallback(
@@ -653,9 +715,15 @@ export function useArchitectActions({
             ...(overrideAuditLog ? { overrideAuditLog } : {}),
           };
         });
+
+        // Persist to world if in world mode
+        persistMutation('renounceRights', {
+          teamCode,
+          playerId: idToRenounce,
+        });
       }
     },
-    [setTeamCapSheet]
+    [setTeamCapSheet, teamCode, persistMutation]
   );
 
   // Handler for clicking action cells (PO/TO/UFA/RFA) in CapSheetFull or Renounce
@@ -694,6 +762,9 @@ export function useArchitectActions({
   );
 
   // handleSaveContract - directly updates teamCapSheet
+  // NOTE: This handler is for editing existing contracts in the UI. It updates local state only.
+  // Actual persistence occurs when a specific action (sign, extend, etc.) is performed via the
+  // EditContractModal actions. This keeps the editor as a preview until the user commits an action.
   const handleSaveContract = useCallback(
     (player: ArchitectPlayer, contractData: SigningDetails): void => {
       const playerId = player.id || player.player_id || player.name;
@@ -738,7 +809,7 @@ export function useArchitectActions({
                 contractType: contractData.contractType || 'Signed FA',
                 isExtension: !!contractData.isExtension,
                 isRookieScale: !!contractData.isRookieScale,
-                signingTeam: teamId,
+                signingTeam: teamCode,
               },
               freeAgentYear: null,
               futureContract: null,
@@ -761,7 +832,7 @@ export function useArchitectActions({
 
       closeContractModal();
     },
-    [currentYear, teamId, setTeamCapSheet, closeContractModal]
+    [currentYear, teamCode, setTeamCapSheet, closeContractModal]
   );
 
   // handleExtendContract - directly updates teamCapSheet
@@ -825,8 +896,17 @@ export function useArchitectActions({
       });
 
       closeContractModal();
+
+      // Persist to world if in world mode
+      persistMutation('extendPlayer', {
+        teamCode,
+        playerId,
+        extension: {
+          salariesByYear: extensionContract.salariesByYear || [],
+        },
+      });
     },
-    [setTeamCapSheet, closeContractModal]
+    [setTeamCapSheet, closeContractModal, teamCode, persistMutation]
   );
 
   // handleWaiveContract - directly updates teamCapSheet
@@ -904,8 +984,17 @@ export function useArchitectActions({
       });
 
       closeContractModal();
+
+      // Persist to world if in world mode
+      persistMutation('waivePlayer', {
+        teamCode,
+        playerId,
+        stretch: !!stretch,
+        stretchYears: stretch ? 3 : 0, // Default stretch years
+        isGracePeriod: false, // Default, UI doesn't currently expose this
+      });
     },
-    [currentYear, setTeamCapSheet, closeContractModal]
+    [currentYear, setTeamCapSheet, closeContractModal, teamCode, persistMutation]
   );
 
   // handleOptionDecision - directly updates teamCapSheet and manages cap holds
@@ -1036,8 +1125,16 @@ export function useArchitectActions({
       });
 
       closeContractModal();
+
+      // Persist to world if in world mode
+      persistMutation('optionDecision', {
+        teamCode,
+        playerId,
+        accepted,
+        targetYear,
+      });
     },
-    [currentYear, setTeamCapSheet, closeContractModal]
+    [currentYear, setTeamCapSheet, closeContractModal, teamCode, persistMutation]
   );
 
   const handleRenounceRights = useCallback(

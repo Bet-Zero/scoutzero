@@ -32,6 +32,7 @@ import { useArchitectModals } from './hooks/useArchitectModals';
 import { usePlayerRulesProfiles } from '@/features/architect/hooks/usePlayerRulesProfiles';
 import { useAuth } from '@/shared/hooks/useAuth';
 import capProjections from '@/features/architect/utils/capProjections';
+import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
 
 // ==== Season helpers ====
 const toSeasonKey = (endYear) => `${endYear - 1}-${String(endYear).slice(-2)}`;
@@ -138,6 +139,8 @@ const GMDashboard = () => {
     state,
     playersMap,
     modals,
+    worldId,
+    seasonId: toSeasonCode(currentYear),
   });
 
   if (authLoading || isLoading) return <p>Loading GM Dashboard...</p>;

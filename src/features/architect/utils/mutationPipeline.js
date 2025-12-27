@@ -45,8 +45,111 @@ import {
   validateOptionDecision,
   validateRenounceRights,
   isOverrideEnabled,
-  isOverrideEnabled,
+
 } from '@/features/architect/utils/capLegalityValidation';
+
+// ==============================================================================
+// UNDEFINED VALUE SANITIZATION
+// ==============================================================================
+
+/**
+ * Recursively find all paths in an object where the value is undefined.
+ * Returns an array of dot-notation paths (e.g., ["contract.totalValue", "player.name"]).
+ * @param {any} obj - Object to inspect
+ * @param {string} [parentPath] - Current path (used in recursion)
+ * @returns {string[]} Array of paths with undefined values
+ */
+function findUndefinedPaths(obj, parentPath = '') {
+  const undefinedPaths = [];
+
+  if (obj === null || typeof obj !== 'object') {
+    return undefinedPaths;
+  }
+
+  const entries = Array.isArray(obj)
+    ? obj.map((v, i) => [i, v])
+    : Object.entries(obj);
+
+  for (const [key, value] of entries) {
+    const currentPath = parentPath ? `${parentPath}.${key}` : String(key);
+
+    if (value === undefined) {
+      undefinedPaths.push(currentPath);
+    } else if (value !== null && typeof value === 'object') {
+      undefinedPaths.push(...findUndefinedPaths(value, currentPath));
+    }
+  }
+
+  return undefinedPaths;
+}
+
+/**
+ * Recursively remove all undefined values from an object or array.
+ * Returns a new object/array with undefined values stripped.
+ * - For objects: keys with undefined values are omitted
+ * - For arrays: undefined elements are filtered out
+ * @param {any} obj - Object or array to sanitize
+ * @returns {any} Sanitized copy with no undefined values
+ */
+function removeUndefinedDeep(obj) {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+
+  if (Array.isArray(obj)) {
+    return obj
+      .filter((item) => item !== undefined)
+      .map((item) => removeUndefinedDeep(item));
+  }
+
+  if (typeof obj === 'object') {
+    const result = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (value !== undefined) {
+        result[key] = removeUndefinedDeep(value);
+      }
+    }
+    return result;
+  }
+
+  // Primitive values pass through unchanged
+  return obj;
+}
+
+/**
+ * Dev-only guard that validates an object has no undefined values before Firestore write.
+ * In DEV: logs error details and throws.
+ * In PROD: silently returns (caller should sanitize).
+ * @param {any} obj - Object to validate
+ * @param {string} label - Description of the object (for error messages)
+ */
+function guardAgainstUndefined(obj, label) {
+  const undefinedPaths = findUndefinedPaths(obj);
+
+  if (undefinedPaths.length === 0) {
+    return; // All good
+  }
+
+  const isDev = import.meta.env?.DEV || process.env.NODE_ENV === 'development';
+
+  if (isDev) {
+    // Log detailed error for debugging
+    console.error(
+      `[mutationPipeline] Undefined values detected in ${label}:`,
+      {
+        undefinedPaths,
+        objectKeys: Object.keys(obj || {}),
+        shallowPreview: JSON.stringify(obj, (k, v) => (v === undefined ? '__UNDEFINED__' : v), 2)?.slice(0, 500),
+      }
+    );
+    throw new Error(
+      `Firestore write blocked: ${label} contains undefined values at paths: ${undefinedPaths.join(', ')}. ` +
+      `Fix the data source or add defaults. Object keys: [${Object.keys(obj || {}).join(', ')}]`
+    );
+  }
+  // In production, we silently allow (caller will sanitize before writing)
+}
+
 
 // ==============================================================================
 // TYPES (JSDoc for IDE support)
@@ -662,7 +765,21 @@ function computeWaiveResult({ payload, currentState, seasonId, timestamp }) {
   const { team, player, teamCode } = currentState;
   const { stretch = false, stretchYears = 3 } = payload;
 
-  const playerId = player.player_id || player.id;
+  // Prioritize payload ID, then fall back to player object properties
+  const playerId = payload.playerId || player.player_id || player.id;
+
+  // Invariant check (Dev only)
+  if (!playerId) {
+    console.error('[computeWaiveResult] CRITICAL: deadCap entry missing playerId', {
+       payloadId: payload.playerId,
+       playerObj: player
+    });
+    // In dev, we want to explode so we catch this
+    if (process.env.NODE_ENV !== 'production') {
+      throw new Error("deadCap entry missing playerId");
+    }
+  }
+
   const updatedTeam = { ...team };
 
   // Remove player from roster
@@ -1183,8 +1300,12 @@ async function persistWorldMutation({
   try {
     // 1. Write team snapshots
     for (const { teamCode, team } of computeResult.teamUpdates) {
+      // Guard against undefined values (dev throws, prod allows)
+      guardAgainstUndefined(team, `architect_worlds/${worldId}/teams/${teamCode}`);
+      // Sanitize: remove undefined values to prevent Firestore errors
+      const sanitizedTeam = removeUndefinedDeep(team);
       const teamRef = worldTeamRef(worldId, teamCode);
-      batch.set(teamRef, team);
+      batch.set(teamRef, sanitizedTeam);
     }
 
     // 2. Write player overrides (if any)
@@ -1192,8 +1313,12 @@ async function persistWorldMutation({
       // Player overrides go in the team's players subcollection
       const teamCode = player.teamCode;
       if (teamCode) {
+        // Guard against undefined values (dev throws, prod allows)
+        guardAgainstUndefined(player, `architect_worlds/${worldId}/teams/${teamCode}/players/${playerId}`);
+        // Sanitize: remove undefined values to prevent Firestore errors
+        const sanitizedPlayer = removeUndefinedDeep(player);
         const playerRef = worldPlayerRef(worldId, teamCode, playerId);
-        batch.set(playerRef, player);
+        batch.set(playerRef, sanitizedPlayer);
       }
     }
 
@@ -1208,10 +1333,12 @@ async function persistWorldMutation({
       type: mutationType,
       timestamp: new Date(timestamp).toISOString(),
       seasonId,
-      metadata: computeResult.metadata,
+      metadata: removeUndefinedDeep(computeResult.metadata),
       teamsAffected: computeResult.teamUpdates.map((u) => u.teamCode),
     };
-    batch.set(eventRef, event);
+    // Sanitize event to ensure no undefined values
+    const sanitizedEvent = removeUndefinedDeep(event);
+    batch.set(eventRef, sanitizedEvent);
 
     // 4. Update world metadata
     // Use lastModifiedTeams (not modifiedTeams) to clarify this field records

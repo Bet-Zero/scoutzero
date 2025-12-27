@@ -190,35 +190,54 @@ export async function listUserWorlds(userId, options = {}) {
       error.message
     );
 
-    // Fallback: Get all worlds and filter in memory
+    // 1) Run a fallback query that is still scoped
     const worldsRef = worldsCol();
-    const snapshot = await getDocs(worldsRef);
+    const fallbackQuery = query(worldsRef, where('createdBy', '==', userId));
+    const snapshot = await getDocs(fallbackQuery);
+
     const worlds = [];
 
-    for (const worldDoc of snapshot.docs) {
-      const metadata = worldDoc.data();
-
+    // 2) Build worlds from snapshot docs, filtering archived in memory
+    for (const docSnap of snapshot.docs) {
+      const metadata = docSnap.data();
       if (!metadata) continue;
 
-      // Filter by user
-      if (metadata.createdBy !== userId) continue;
-
-      // Filter by archived status
       if (!includeArchived && metadata.isArchived) continue;
 
       worlds.push(metadata);
     }
 
-    // Sort in memory
+    // 3) Sort in memory to mimic Firestore orderBy
+    const toSortable = (val) => {
+      if (val === null || val === undefined) return null;
+      if (typeof val === 'number') return val;
+      if (typeof val === 'string') return val;
+      if (typeof val?.toMillis === 'function') return val.toMillis();
+      if (val instanceof Date) return val.getTime();
+      return val;
+    };
+
     worlds.sort((a, b) => {
-      const aVal = a[orderByField];
-      const bVal = b[orderByField];
-      if (orderDirection === 'desc') {
-        return bVal > aVal ? 1 : bVal < aVal ? -1 : 0;
+      const valA = toSortable(a[orderByField]);
+      const valB = toSortable(b[orderByField]);
+
+      let comparison = 0;
+      if (valA === valB) {
+        comparison = 0;
+      } else if (valA === null) {
+        comparison = -1;
+      } else if (valB === null) {
+        comparison = 1;
+      } else if (typeof valA === 'string' && typeof valB === 'string') {
+        comparison = valA.localeCompare(valB);
+      } else {
+        comparison = valA < valB ? -1 : 1;
       }
-      return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+
+      return orderDirection === 'desc' ? -comparison : comparison;
     });
 
+    // 4) Return worlds at the end of catch
     return worlds;
   }
 }
@@ -384,7 +403,9 @@ export async function purgeWorld(worldId) {
       throw new Error('You do not have permission to delete this world');
     }
     if (error.code === 'functions/failed-precondition') {
-      throw new Error(error.message || 'Cannot delete world with child branches');
+      throw new Error(
+        error.message || 'Cannot delete world with child branches'
+      );
     }
     // Re-throw with original message for other errors
     throw new Error(error.message || 'Failed to delete world');
