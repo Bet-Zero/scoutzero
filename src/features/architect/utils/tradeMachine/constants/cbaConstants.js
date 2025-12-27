@@ -37,15 +37,27 @@ export const CBA_THRESHOLDS = {
 /**
  * Salary matching bands per CBA rules
  * These determine how much salary teams can take back in trades
+ * 
+ * @deprecated Use SALARY_MATCHING_TIERS from salaryMatchingRules.js instead.
+ * This constant is kept for backwards compatibility but the authoritative
+ * source is in src/features/architect/utils/tradeMachine/utils/salaryMatchingRules.js
+ * 
+ * 2023 CBA tiered matching rules for over-cap teams below first apron:
+ *  - Band 1: outgoing ≤ $6.5M → 200% + $250k
+ *  - Band 2: $6.5M < outgoing ≤ $19.6M → outgoing + $7.5M
+ *  - Band 3: outgoing > $19.6M → 125% + $250k
  */
 export const SALARY_MATCHING_BANDS = {
-  FIRST_TIER_THRESHOLD: 7_100_000, // For 125% + $100k matching
-  SECOND_TIER_THRESHOLD: 13_800_000, // For 177.8% matching
-  FIRST_TIER_MULTIPLIER: 1.25, // 125%
-  SECOND_TIER_MULTIPLIER: 1.778, // 177.8%
-  THIRD_TIER_MULTIPLIER: 1.25, // 125%
-  FIRST_TIER_ADDITION: 100_000, // $100k
-  THIRD_TIER_ADDITION: 5_000_000, // $5M
+  // These values are DEPRECATED and may be incorrect
+  // Use SALARY_MATCHING_TIERS from salaryMatchingRules.js instead
+  FIRST_TIER_THRESHOLD: 6_500_000,   // Band 1 → Band 2 boundary
+  SECOND_TIER_THRESHOLD: 19_600_000, // Band 2 → Band 3 boundary
+  FIRST_TIER_MULTIPLIER: 2.0,        // Band 1: 200%
+  SECOND_TIER_MULTIPLIER: 1.0,       // Band 2: 100% + $7.5M bonus
+  THIRD_TIER_MULTIPLIER: 1.25,       // Band 3: 125%
+  FIRST_TIER_ADDITION: 250_000,      // Band 1: +$250k
+  SECOND_TIER_ADDITION: 7_500_000,   // Band 2: +$7.5M
+  THIRD_TIER_ADDITION: 250_000,      // Band 3: +$250k
 };
 
 /**
