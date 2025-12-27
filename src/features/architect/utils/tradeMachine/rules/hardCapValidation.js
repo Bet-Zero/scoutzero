@@ -1,6 +1,7 @@
 /**
  * Comprehensive hard cap validation
  * Consolidated from: hardCap.js + validateHardCap.js
+ * Phase 4: Explicit cap settings - no silent defaults
  */
 
 import { formatCurrency } from '@/features/architect/utils/tradeHelpers.js';
@@ -8,15 +9,18 @@ import { formatCurrency } from '@/features/architect/utils/tradeHelpers.js';
 /**
  * Core hard cap validation logic
  * Supports both first apron and second apron hard cap scenarios
+ * Phase 4: Cap settings must be explicitly provided via context
  */
 export function validateHardCap(team, context = {}) {
   const violations = [];
+  const warnings = [];
   
   // Handle missing team data
   if (!team) {
     return {
       passed: false,
       violations: ['Missing team data'],
+      warnings: [],
       hardCapType: null,
     };
   }
@@ -48,11 +52,30 @@ export function validateHardCap(team, context = {}) {
   const contextCapSettings = context.capSettings || {};
   const capSettings = { ...contextCapSettings, ...teamCapSettings };
 
+  // Phase 4: Use explicit cap settings, warn if missing
   const {
-    firstApron = 178132000,
-    apron = 178132000,
-    secondApron = 188931000,
+    firstApron = 0,
+    apron = 0,
+    secondApron = 0,
   } = capSettings;
+
+  // Check if cap settings are missing
+  const hasFirstApron = (firstApron > 0 || apron > 0);
+  const hasSecondApron = secondApron > 0;
+
+  if (!hasFirstApron || !hasSecondApron) {
+    // Log warning in development mode
+    if (process.env.NODE_ENV === 'development' || import.meta?.env?.DEV) {
+      console.warn(
+        '[validateHardCap] Missing cap settings:',
+        { firstApron, apron, secondApron },
+        'source:', context.capSettingsSource || 'unknown'
+      );
+    }
+    warnings.push(
+      `Hard cap validation may be inaccurate - cap settings incomplete (firstApron: ${hasFirstApron}, secondApron: ${hasSecondApron})`
+    );
+  }
 
   // Use firstApron if available, otherwise fall back to apron
   const actualFirstApron = firstApron || apron;
@@ -60,7 +83,7 @@ export function validateHardCap(team, context = {}) {
   // Determine hard cap status
   const isHardCappedFirstApron = team.hardCapped === true || teamData?.hardCapFirstApron?.active;
   const isHardCappedSecondApron = teamData?.hardCapTriggered === 'SecondApron' || teamData?.hardCapSecondApron?.active;
-  const isAboveSecondApron = teamTotalSalary >= secondApron;
+  const isAboveSecondApron = secondApron > 0 && teamTotalSalary >= secondApron;
 
   let hardCapType = null;
 
@@ -99,6 +122,7 @@ export function validateHardCap(team, context = {}) {
   return {
     passed: violations.length === 0,
     violations,
+    warnings, // Phase 4: Include cap settings warnings
     hardCapType,
     projectedSalary,
     capLimits: {
@@ -182,14 +206,16 @@ export function wouldExceedHardCapAfterTrade(team, incomingSalary, outgoingSalar
 /**
  * Get the active hard cap limit for a team
  * Returns the applicable hard cap amount or null if no hard cap
+ * Phase 4: Requires explicit cap settings - no hardcoded fallbacks
  */
 export function getActiveHardCapLimit(team, capSettings = {}) {
   const result = validateHardCap(team, { capSettings });
   
   if (result.hardCapType === 'SecondApron') {
-    return capSettings.secondApron || 188931000;
+    // Phase 4: Use provided cap settings only, no fallback
+    return capSettings.secondApron || null;
   } else if (result.hardCapType === 'FirstApron') {
-    return capSettings.firstApron || capSettings.apron || 178132000;
+    return capSettings.firstApron || capSettings.apron || null;
   }
   
   return null;

@@ -3,20 +3,31 @@
  * ▸ Fixes: getSalaryForYear, getIncomingCeiling, calculateAllowableIncoming,
  * areSamePick  (numeric leniency)
  * ▸ Keeps: MIN_SALARY, getApronStatus, pick utils, TPE utils, format helpers
+ * ▸ Phase 2 update: Delegates to unified salaryMatchingRules for tier calculations
  * -------------------------------------------------------------------------------*/
 import {
   CBA_BY_YEAR,
   MATCHING_BANDS_2023,
 } from '@/features/architect/utils/cbaConstants.js';
+import {
+  getSalaryMatchingResult,
+  SALARY_MATCHING_TIERS,
+} from '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules.js';
 export { wouldExceedHardCap } from '@/features/architect/utils/hardCapUtils.js';
 import { isPriorYearTPE } from '@/features/architect/utils/tradeMachine/utils/tradeUtilities.js';
 import { getTeamFaExceptionBuckets } from '@/features/architect/utils/faExceptionUtils.js';
 
+/**
+ * Returns tier thresholds for salary matching
+ * @deprecated Use SALARY_MATCHING_TIERS from salaryMatchingRules.js directly
+ */
 export const getTierThresholds = (yearKey) => {
-  const key = String(yearKey); // normalise
-  const bucket =
-    CBA_BY_YEAR[key] ?? CBA_BY_YEAR[Object.keys(CBA_BY_YEAR).pop()];
-  return bucket.salaryTiers; // [tier1, tier2]
+  // Return unified tier thresholds instead of CBA_BY_YEAR-based ones
+  // This ensures consistency with the unified salary matching rules
+  return [
+    SALARY_MATCHING_TIERS.TIER_1_THRESHOLD,
+    SALARY_MATCHING_TIERS.TIER_2_THRESHOLD,
+  ];
 };
 export const MIN_SALARY = 1_119_563;
 
@@ -74,17 +85,31 @@ export const getSalaryForYear = (input, year) => {
 
 /*─────────────────────  Incoming-Salary (CBA rules)  ─────────────────────*/
 
+// Default cap settings fallback (2024-25 values)
+const DEFAULT_CAP_SETTINGS = {
+  salaryCap: 141_000_000,
+  firstApron: 178_132_000,
+  secondApron: 188_931_000,
+};
+
 // ────────────────── Incoming-Salary Ceiling (CBA tiers) ──────────────────
-const allowedIncomingBelowFirstApron = (out, yearKey) => {
-  const [band1, band2] = getTierThresholds(yearKey);
-  const limits = [band1, band2, Infinity];
-  for (let i = 0; i < MATCHING_BANDS_2023.length; i++) {
-    const limit = limits[i];
-    if (out <= limit || limit === Infinity) {
-      return MATCHING_BANDS_2023[i].allowed(out);
-    }
-  }
-  return out;
+/**
+ * Calculates allowed incoming salary for over-cap teams below first apron
+ * @deprecated Internal helper - use getSalaryMatchingResult from salaryMatchingRules.js
+ * @param {number} out - Outgoing salary
+ * @param {number} yearKey - Season year (unused, kept for backwards compatibility)
+ * @param {Object} capSettings - Optional cap settings to use
+ */
+const allowedIncomingBelowFirstApron = (out, yearKey, capSettings = DEFAULT_CAP_SETTINGS) => {
+  // Use unified salary matching rules directly
+  const result = getSalaryMatchingResult({
+    // Placeholder salary - actual value irrelevant because apronStatus is forced to OVER_CAP
+    teamTotalSalary: 150_000_000,
+    outgoingSalary: out,
+    capSettings,
+    apronStatus: 'OVER_CAP', // Force over-cap band calculation
+  });
+  return result.allowableIncoming;
 };
 export const getIncomingCeiling = (
   teamTotalSalary,
@@ -93,18 +118,21 @@ export const getIncomingCeiling = (
   capSettings,
   yearKey = 2025
 ) => {
+  // Use provided capSettings or fall back to defaults
+  const effectiveCapSettings = capSettings || DEFAULT_CAP_SETTINGS;
+  
   // 1️⃣ Cap-space clubs can climb to the cap.
-  if (teamTotalSalary < capSettings.salaryCap) {
-    return capSettings.salaryCap;
+  if (teamTotalSalary < effectiveCapSettings.salaryCap) {
+    return effectiveCapSettings.salaryCap;
   }
 
-  // 2️⃣ Over-cap matching bands (below first apron)
-  let ceiling = allowedIncomingBelowFirstApron(salaryOut, yearKey);
+  // 2️⃣ Over-cap matching bands (below first apron) - pass capSettings through
+  let ceiling = allowedIncomingBelowFirstApron(salaryOut, yearKey, effectiveCapSettings);
 
   // 3️⃣ Apron limiters – 100 % of outgoing
-  if (teamTotalSalary >= capSettings.secondApron) {
+  if (teamTotalSalary >= effectiveCapSettings.secondApron) {
     ceiling = salaryOut;
-  } else if (teamTotalSalary >= capSettings.firstApron) {
+  } else if (teamTotalSalary >= effectiveCapSettings.firstApron) {
     ceiling = salaryOut;
   }
 
@@ -115,7 +143,7 @@ export const getIncomingCeiling = (
         !t.expired && // legacy tests
         (!t.expirationDate || Date.parse(t.expirationDate) > Date.now()) &&
         !(
-          teamTotalSalary >= capSettings.secondApron &&
+          teamTotalSalary >= effectiveCapSettings.secondApron &&
           isPriorYearTPE(t, yearKey)
         )
     )

@@ -124,6 +124,7 @@ tradeMachine/
   TradePickRow.jsx
   TradePlayerRow.jsx
   TradePreviewModal.jsx
+  TradeReceiptPanel.jsx
   TradeSalaryCalculator.jsx
   TradeSummaryPanel.jsx
   TradeTeamCard.jsx
@@ -238,12 +239,14 @@ utils/
       validateStepien.ts
       validateTradeExceptions.js
     utils/
+      capSettingsProvider.js
       capUtils.js
       computeMatchingValues.js
       index.js
       matchingValues.js
       normalizeTradeInput.js
       salaryMargin.js
+      salaryMatchingRules.js
       salaryUtils.js
       seasonUtils.js
       tradeUtilities.js
@@ -256,5 +259,5 @@ utils/
 ```
 
 ---
-*Generated on: 2025-12-26T08:03:41.960Z*
+*Generated on: 2025-12-27T08:55:14.740Z*
 *Auto-updated by: npm run docs*

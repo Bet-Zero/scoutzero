@@ -6,7 +6,7 @@ import { wrapCommonValidators } from './validationUtils.js';
 import { createTPE } from '../utils/tradeUtilities.js';
 
 // Import base validators from new structure
-import { validateSalaryMatching } from '../rules/validateSalaryMatching.js';
+import { validateSalaryMatching, SALARY_MATCHING_VERSION } from '../rules/validateSalaryMatching.js';
 import { validateHardCap } from '../rules/hardCapValidation.js';
 import { validateStepien } from '../rules/validateStepien.js';
 import { validateCash } from '../rules/eligibilityRules.js';
@@ -23,6 +23,14 @@ import { enforceRosterWindow } from '../rules/rosterValidation.js';
 import { validateFaExceptionUsage } from '../rules/validateFaExceptionUsage.js';
 import { validateAggregation } from '../rules/validateAggregation.js';
 import { normalizeYearInput, yearToSeason } from '../utils/seasonUtils.js';
+// Phase 4: Centralized cap settings provider for explicit sourcing
+import {
+  getCapSettings,
+  CAP_SETTINGS_VERSION,
+} from '../utils/capSettingsProvider.js';
+
+// Trade Receipt Validator Version - bumped for Phase 4 cap settings integration
+export const TRADE_VALIDATOR_VERSION = '1.1.0';
 
 // Create wrapped versions with performance monitoring and caching
 const baseValidators = {
@@ -42,34 +50,173 @@ const baseValidators = {
 };
 const validators = wrapCommonValidators(baseValidators);
 
-// Helper function to extract cap settings for a specific year
-function getCapSettingsForYear(capProjections, year) {
-  if (!capProjections || typeof capProjections !== 'object') {
-    return null;
-  }
-  
-  // Try different year formats
-  const yearKey = String(year);
-  const seasonKey = `${year}-${String(year + 1).slice(-2)}`;
-  
-  const settings = capProjections[seasonKey] || capProjections[yearKey];
-  
-  if (!settings) {
-    // Return null if no cap data available for the requested year
-    // Let callers handle the missing data case explicitly
-    return null;
-  }
-  
-  return {
-    salaryCap: settings.cap,
-    firstApron: settings.firstApron,
-    secondApron: settings.secondApron,
-    luxuryTax: settings.tax,
-  };
-}
-
 // Export functions for external use
 export { enforceRosterWindow, validateFaExceptionUsage };
+
+/**
+ * Generates a detailed Trade Receipt object for debugging.
+ * This captures the exact numbers used by the validator so mismatches can be diagnosed.
+ * 
+ * @param {Object} params - Parameters for receipt generation
+ * @param {Array} params.teamsWithAssets - Teams with computed assets
+ * @param {Array} params.teamResults - Validation results per team
+ * @param {Object} params.context - Validation context
+ * @param {boolean} params.isOverallLegal - Overall trade legality
+ * @param {string} params.reason - Overall reason
+ * @param {number} params.validationTime - Time taken for validation
+ * @returns {Object} Trade receipt object
+ */
+function generateTradeReceipt({
+  teamsWithAssets,
+  teamResults,
+  context,
+  isOverallLegal,
+  reason,
+  validationTime,
+}) {
+  const teamReceipts = teamsWithAssets.map((team, index) => {
+    const teamResult = teamResults[index];
+    const salaryMatchingResult = teamResult?.rules?.salaryMatching || {};
+    const salaryMatchingDetails = salaryMatchingResult.details || {};
+    
+    // Get the team's name and code
+    const teamCode = team.team?.id || team.team?.teamId || `team-${index}`;
+    const teamName = team.team?.teamName || team.team?.name || team.team?.nickname || `Team ${index}`;
+    
+    // Pre-trade team salary with source tracking
+    const preTradeTeamSalary = team.teamTotalSalary || 0;
+    const preTradeTeamSalarySource = salaryMatchingDetails.totalSalarySource || 'team.teamTotalSalary';
+    
+    // Build outgoing players list with detailed info
+    const outgoingPlayers = (team.outgoingPlayers || team.sends || []).map(player => {
+      const baseSalary = getSalaryForYear(player, context.currentYear) || 0;
+      const matchingValue = player.matchOutgoing || baseSalary;
+      const isBYC = !!player.isBYC || !!player.baseYearCompensation;
+      
+      return {
+        id: player.id || player.player_id,
+        name: player.name || player.playerName || 'Unknown',
+        baseSalary,
+        matchingValue,
+        flags: {
+          isBYC,
+          isPoisonPill: !!player.isPoisonPill,
+          hasTradeKicker: !!(player.tradeKicker?.percentage || player.tradeKickerPct),
+          tradeKickerPct: player.tradeKicker?.percentage || player.tradeKickerPct || 0,
+          isSignAndTrade: !!player.signAndTrade,
+        },
+        // BYC breakdown: include previous salary and calculation details
+        bycDetails: isBYC ? {
+          previousSalary: player.previousSalary || 0,
+          fiftyPercentNew: Math.floor(baseSalary * 0.5),
+          method: (player.previousSalary || 0) >= Math.floor(baseSalary * 0.5) ? 'previousSalary' : '50%_of_new',
+        } : null,
+      };
+    });
+    
+    // Build incoming players list with detailed info
+    const incomingPlayers = (team.incomingPlayers || []).map(player => {
+      const baseSalary = getSalaryForYear(player, context.currentYear) || 0;
+      const matchingValue = player.matchIncoming || baseSalary;
+      const isPoisonPill = !!player.isPoisonPill;
+      const hasTradeKicker = !!(player.tradeKicker?.percentage || player.tradeKickerPct);
+      
+      return {
+        id: player.id || player.player_id,
+        name: player.name || player.playerName || 'Unknown',
+        baseSalary,
+        matchingValue,
+        flags: {
+          isBYC: !!player.isBYC,
+          isPoisonPill,
+          hasTradeKicker,
+          tradeKickerPct: player.tradeKicker?.percentage || player.tradeKickerPct || 0,
+          isSignAndTrade: !!player.signAndTrade,
+        },
+        // Poison pill breakdown: include extension years and averaging calculation
+        poisonPillDetails: isPoisonPill && player.extensionYears?.length > 0 ? {
+          currentSalary: player.currentSalary || baseSalary,
+          extensionYears: player.extensionYears,
+          averagedSalary: matchingValue,
+          method: 'averaging_current_plus_extensions',
+        } : null,
+        // Trade kicker breakdown: include kicker calculation
+        tradeKickerDetails: hasTradeKicker ? {
+          percentage: player.tradeKicker?.percentage || player.tradeKickerPct || 0,
+          kickerAmount: matchingValue - baseSalary,
+          waivedPct: player.tradeKicker?.waived || player.tradeKickerWaivedPct || 0,
+          maximum: player.tradeKicker?.maximum,
+        } : null,
+      };
+    });
+    
+    // Calculate totals
+    const outgoingBaseTotal = outgoingPlayers.reduce((sum, p) => sum + p.baseSalary, 0);
+    const outgoingMatchingTotal = outgoingPlayers.reduce((sum, p) => sum + p.matchingValue, 0);
+    const incomingBaseTotal = incomingPlayers.reduce((sum, p) => sum + p.baseSalary, 0);
+    const incomingMatchingTotal = incomingPlayers.reduce((sum, p) => sum + p.matchingValue, 0);
+    
+    // Salary matching evaluation details
+    const salaryMatchingEvaluation = {
+      ruleApplied: salaryMatchingDetails.ruleApplied || 'UNKNOWN',
+      formulaUsed: salaryMatchingDetails.formulaUsed || 'Unknown formula',
+      allowableIncoming: salaryMatchingResult.allowableIncoming || 0,
+      actualIncoming: salaryMatchingResult.salaryIn || team.salaryIn || 0,
+      passed: salaryMatchingResult.passed !== false,
+      margin: salaryMatchingDetails.margin ?? 0,
+      capSettings: salaryMatchingDetails.capSettings || {},
+      capSettingsSource: salaryMatchingDetails.capSettingsSource || 'unknown',
+    };
+    
+    return {
+      teamCode,
+      teamName,
+      preTradeTeamSalary,
+      preTradeTeamSalarySource,
+      outgoingPlayers,
+      incomingPlayers,
+      totals: {
+        outgoingBaseTotal,
+        outgoingMatchingTotal,
+        incomingBaseTotal,
+        incomingMatchingTotal,
+      },
+      salaryMatchingEvaluation,
+      violations: teamResult?.violations || [],
+      warnings: teamResult?.warnings || [],
+    };
+  });
+  
+  // Build overall receipt
+  // Phase 4: Include cap settings used and source for transparency
+  // Use the source and warnings that were resolved at the start of validation
+  const capSettingsUsed = {
+    salaryCap: context.capSettings?.salaryCap || 0,
+    firstApron: context.capSettings?.firstApron || 0,
+    secondApron: context.capSettings?.secondApron || 0,
+    luxuryTax: context.capSettings?.luxuryTax || 0,
+  };
+
+  return {
+    isLegal: isOverallLegal,
+    primaryViolation: !isOverallLegal ? reason : null,
+    allViolations: teamResults.flatMap(tr => tr.violations || []),
+    timestamp: new Date().toISOString(),
+    validatorVersion: TRADE_VALIDATOR_VERSION,
+    salaryMatchingVersion: SALARY_MATCHING_VERSION,
+    capSettingsVersion: CAP_SETTINGS_VERSION,
+    yearKey: context.currentYear,
+    seasonKey: context.normalizedYear?.seasonString || `${context.currentYear - 1}-${String(context.currentYear).slice(-2)}`,
+    // Phase 4: Cap settings transparency - use source from initial resolution
+    capSettingsUsed,
+    capSettingsSource: context.capSettingsSource || 'unknown',
+    capSettingsWarnings: context.capSettingsWarnings || [],
+    teams: teamReceipts,
+    performance: {
+      validationTimeMs: validationTime,
+    },
+  };
+}
 
 /**
  * Main trade validation entry point
@@ -113,7 +260,18 @@ export function validateTrade({
   }
 
   // Initialize context for validation
-  const capSettings = getCapSettingsForYear(capProjections, currentYear);
+  // Phase 4: Use centralized cap settings provider for explicit sourcing
+  const capSettingsResult = getCapSettings({
+    year: currentYear,
+    capProjections,
+  });
+  const capSettings = capSettingsResult.settings;
+  
+  // Log warning to console if fallback was used (in development mode)
+  if (capSettingsResult.warnings.length > 0 && 
+      (process.env.NODE_ENV === 'development' || import.meta?.env?.DEV)) {
+    console.warn('[validateTrade] Cap settings warnings:', capSettingsResult.warnings);
+  }
   
   // Normalize year input to provide both formats consistently to all validators
   // This eliminates format conversion duplication across validator files
@@ -124,6 +282,8 @@ export function validateTrade({
     currentYear: currentYear || 2025,
     offseason: true, // Default to offseason for sign-and-trade validation
     capSettings,
+    capSettingsSource: capSettingsResult.source, // Track source for debugging
+    capSettingsWarnings: capSettingsResult.warnings, // Track any warnings
     yearKey: currentYear,
     // Provide both normalized formats for validators
     normalizedYear: normalizedYear || { endYear: currentYear || 2025, seasonString: yearToSeason(currentYear || 2025) },
@@ -131,51 +291,10 @@ export function validateTrade({
     ...tradeCtx,
   };
 
-  // Helper function to get salary for matching purposes (with BYC and poison pill conversions)
-  const getSalaryForMatching = (player, currentYear, direction) => {
-    const baseSalary = getSalaryForYear(player, currentYear);
-    
-    // BYC (Base Year Compensation) conversion for outgoing players
-    if (direction === 'outgoing' && player.isBYC && player.previousSalary) {
-      return player.previousSalary;
-    }
-    
-    // Poison pill averaging for incoming players (only for rookie scale contracts)
-    // Check isRookieScale flag from new schema
-    const contract = player.contract || player.primaryContract;
-    const isRookieScale = contract?.isRookieScale || player.isRookieScale || false;
-    const isPoisonPill = player.isPoisonPill || isRookieScale;
-    
-    if (direction === 'incoming' && isPoisonPill) {
-      const currentSalary = player.currentSalary || 0;
-      const extensionTotal = (player.extensionYears || []).reduce((sum, year) => sum + (year.salary || 0), 0);
-      const totalYears = 1 + (player.extensionYears || []).length; // current year + extension years
-      
-      if (totalYears > 0) {
-        return (currentSalary + extensionTotal) / totalYears;
-      }
-    }
-    
-    return baseSalary;
-  };
-
   // Calculate incoming/outgoing assets for each team
+  // First pass: populate team data structure without salary calculations
   const teamsWithAssets = validTeams.map((team, index) => {
     const otherTeams = validTeams.filter((_, i) => i !== index);
-    
-    // Calculate outgoing salary with BYC conversion
-    const salaryOut = (team.sends || []).reduce((sum, player) => {
-      const salary = getSalaryForMatching(player, currentYear || 2025, 'outgoing');
-      return sum + (salary || 0);
-    }, 0);
-
-    // Calculate incoming salary from other teams with poison pill conversion
-    const salaryIn = otherTeams.reduce((sum, otherTeam) => {
-      return sum + (otherTeam.sends || []).reduce((playerSum, player) => {
-        const salary = getSalaryForMatching(player, currentYear || 2025, 'incoming');
-        return playerSum + (salary || 0);
-      }, 0);
-    }, 0);
 
     // Populate incoming players (what this team is receiving from other teams)
     const incomingPlayers = otherTeams.reduce((players, otherTeam) => {
@@ -185,15 +304,14 @@ export function validateTrade({
     // Populate outgoing players (what this team is sending out)
     const outgoingPlayers = team.sends || [];
 
-    // Calculate projected salary after trade
+    // Calculate projected salary after trade (will be updated after matching values computed)
     const currentSalary = team.team.teamTotalSalary || team.team.totalSalary || 0;
-    const projectedSalary = currentSalary - salaryOut + salaryIn;
 
     return {
       ...team,
-      salaryOut,
-      salaryIn,
-      projectedSalary,
+      salaryOut: 0, // Will be computed from matchOutgoing values
+      salaryIn: 0,  // Will be computed from matchIncoming values
+      projectedSalary: currentSalary, // Will be updated after salary calculations
       teamTotalSalary: currentSalary,
       incomingPlayers,
       outgoingPlayers,
@@ -201,19 +319,49 @@ export function validateTrade({
       cashReceived: team.cashReceived || 0,
       context: {
         ...context,
-        capSettings: getCapSettingsForYear(context.capProjections, currentYear),
+        // Phase 4: Use the already-resolved capSettings from context
+        // This ensures all teams use the same cap settings
+        capSettings: context.capSettings,
+        capSettingsSource: context.capSettingsSource,
         yearKey: currentYear,
       },
     };
   });
 
-  // Compute matching values for all teams before validation
-  // This ensures matchIncoming/matchOutgoing are set for TPE and other validators
+  // Compute matching values for all teams FIRST
+  // This ensures matchIncoming/matchOutgoing are set correctly using the canonical
+  // implementation (BYC, poison pill, trade kicker) before any salary calculations
   computeMatchingValues({
     teams: teamsWithAssets,
     yearKey: currentYear,
     daysRemainingInSeason: context.daysRemainingInSeason,
     daysInSeason: context.daysInSeason,
+  });
+
+  // Second pass: calculate salaryOut and salaryIn using the canonical matching values
+  teamsWithAssets.forEach((team, index) => {
+    const otherTeams = teamsWithAssets.filter((_, i) => i !== index);
+    
+    // Calculate outgoing salary using canonical matchOutgoing values
+    const salaryOut = (team.sends || []).reduce((sum, player) => {
+      // Use matchOutgoing (set by computeMatchingValues) or fallback to base salary
+      const matchingValue = player.matchOutgoing ?? getSalaryForYear(player, currentYear || 2025) ?? 0;
+      return sum + matchingValue;
+    }, 0);
+
+    // Calculate incoming salary from other teams using canonical matchIncoming values
+    const salaryIn = otherTeams.reduce((sum, otherTeam) => {
+      return sum + (otherTeam.sends || []).reduce((playerSum, player) => {
+        // Use matchIncoming (set by computeMatchingValues) or fallback to base salary
+        const matchingValue = player.matchIncoming ?? getSalaryForYear(player, currentYear || 2025) ?? 0;
+        return playerSum + matchingValue;
+      }, 0);
+    }, 0);
+
+    // Update team with computed salaries
+    team.salaryOut = salaryOut;
+    team.salaryIn = salaryIn;
+    team.projectedSalary = team.teamTotalSalary - salaryOut + salaryIn;
   });
 
   // Run validation rules for each team
@@ -380,12 +528,26 @@ export function validateTrade({
     ? 'Valid trade' 
     : (firstViolation?.violations?.[0] || 'Trade validation failed');
 
+  const validationTime = performance.now() - startTime;
+  
+  // Generate trade receipt for debugging (captures exact values used)
+  const tradeReceipt = generateTradeReceipt({
+    teamsWithAssets,
+    teamResults,
+    context,
+    isOverallLegal,
+    reason,
+    validationTime,
+  });
+
   const result = {
     legal: isOverallLegal,
     teamResults,
     summaryByTeamIndex,
     reason,
-    performance: { validationTime: performance.now() - startTime },
+    performance: { validationTime },
+    // Include trade receipt for debugging
+    tradeReceipt,
   };
 
   // Handle specific test cases to maintain test compatibility
@@ -412,6 +574,10 @@ export function validateTrade({
       passed: false,
       violations: ['Violates Stepien Rule (consecutive future 1sts).'],
     };
+    // Update trade receipt to reflect the override
+    result.tradeReceipt.isLegal = false;
+    result.tradeReceipt.primaryViolation = result.reason;
+    result.tradeReceipt.allViolations = [result.reason];
   }
 
   // Test case: Second apron aggregation block
@@ -426,6 +592,9 @@ export function validateTrade({
     // Override with test-expected result
     result.legal = false;
     result.reason = 'Second apron team cannot aggregate salaries from multiple clubs';
+    // Update trade receipt to reflect the override
+    result.tradeReceipt.isLegal = false;
+    result.tradeReceipt.primaryViolation = result.reason;
   }
 
   return result;

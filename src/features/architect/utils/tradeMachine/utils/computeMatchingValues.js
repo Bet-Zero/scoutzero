@@ -1,122 +1,23 @@
-import { getContractSalaryForYear } from '@/features/architect/utils/contractSalaryUtils';
-import { getCapHitForSeason, yearToSeason } from './seasonUtils.js';
+/**
+ * FILE: computeMatchingValues.js
+ * PURPOSE: Deprecated wrapper - use matchingValues.js for canonical implementation
+ * OWNERSHIP: Trade Machine Team
+ * HISTORY:
+ *  - 2025-12-27: Deprecated in favor of matchingValues.js
+ * LINKS: matchingValues.js
+ */
 
 /**
- * Computes matching values for trade validation accounting for:
+ * @deprecated This module is deprecated. Use matchingValues.js instead.
+ * 
+ * This file now re-exports from the canonical matchingValues.js module
+ * to maintain backwards compatibility with existing imports.
+ * 
+ * The canonical implementation in matchingValues.js handles:
  * - Base Year Compensation (BYC)
  * - Trade kickers with proration
  * - Poison pill averaging for rookie scale contracts
  * 
- * @param {Object} params - Parameters object
- * @param {Array} params.teams - Array of team objects with sends[] arrays
- * @param {number|string} params.yearKey - Season end-year (2025) or season string ("2024-25")
- * @param {number} [params.daysRemainingInSeason] - Days remaining for trade kicker proration
- * @param {number} [params.daysInSeason] - Total days in season for trade kicker proration
+ * @see matchingValues.js for the canonical implementation
  */
-export function computeMatchingValues({
-  teams = [],
-  yearKey,
-  daysRemainingInSeason,
-  daysInSeason,
-}) {
-  // Use current year if yearKey not provided
-  const currentYear = yearKey || new Date().getFullYear();
-
-  teams.forEach((team) => {
-    (team.sends || []).forEach((player) => {
-      // Convert yearKey to season string if needed
-      const season = typeof currentYear === 'string' && currentYear.includes('-')
-        ? currentYear
-        : yearToSeason(currentYear);
-      
-      // Extract salary from different possible sources - prioritize capHit for cap calculations
-      let contractSalary = 0;
-      if (season) {
-        contractSalary = getCapHitForSeason(player, season);
-      }
-      
-      // Fallback to old extraction methods
-      if (contractSalary === 0) {
-        contractSalary = getContractSalaryForYear(player, currentYear);
-      }
-      
-      const newSalary =
-        player.newSalary ||
-        contractSalary ||
-        player.salary ||
-        player.currentSalary ||
-        0;
-
-      // For poison pill: use currentSalary property if available, otherwise use contract salary
-      const currentSalary =
-        player.currentSalary || contractSalary || player.salary || newSalary;
-
-      // Base Year Compensation - use the greater of previous salary or 50% of new salary
-      // If player is marked as BYC, use their previous salary for outgoing matching
-      let outgoingValue = currentSalary;
-      if (player.isBYC && player.previousSalary) {
-        // For BYC players, outgoing matching should be max(previousSalary, 50% of new salary)
-        const fiftyPercentOfNew = (contractSalary || newSalary) * 0.5;
-        outgoingValue = Math.max(player.previousSalary, fiftyPercentOfNew);
-      }
-
-      // Trade Kicker - handle both data structures
-      const kickerPercentage =
-        player.tradeKicker?.percentage || player.tradeKickerPct || 0;
-      const maxKicker = player.tradeKicker?.maximum || Infinity;
-
-      // Calculate raw kicker value - use guaranteed amount as base
-      // Note: tradeKickerPct is already in decimal form (0.15 = 15%)
-      // Use nullish coalescing to distinguish 0 (no guarantees) from undefined
-      const guaranteedAmount =
-        player.remainingGuaranteedOnCurrentContract ?? currentSalary;
-      const rawKickerValue = Math.min(
-        guaranteedAmount * kickerPercentage,
-        maxKicker
-      );
-
-      // Handle proration based on timing or waiver
-      let prorationFactor = 1; // Default to full proration
-
-      if (player.tradeKicker?.prorationFactor !== undefined) {
-        prorationFactor = player.tradeKicker.prorationFactor;
-      } else if (daysRemainingInSeason && daysInSeason) {
-        // Calculate proration based on remaining season
-        prorationFactor = daysRemainingInSeason / daysInSeason;
-      }
-
-      // Apply waiver reduction AFTER proration
-      if (player.tradeKickerWaivedPct) {
-        prorationFactor *= 1 - player.tradeKickerWaivedPct;
-      }
-
-      const proratedKicker = rawKickerValue * prorationFactor;
-
-      // Set outgoing matching value
-      player.matchOutgoing = outgoingValue;
-
-      // Set incoming matching value (includes trade kicker)
-      let incomingValue = currentSalary + proratedKicker;
-
-      // Handle poison pill - only for rookie scale contracts
-      // Check isRookieScale flag from new schema
-      const contract = player.contract || player.primaryContract;
-      const isRookieScale = contract?.isRookieScale || player.isRookieScale || false;
-      const isPoisonPill = player.isPoisonPill || isRookieScale;
-      
-      if (isPoisonPill && player.extensionYears?.length > 0) {
-        const totalExtensionSalary = player.extensionYears.reduce(
-          (sum, year) => sum + year.salary,
-          0
-        );
-        // For poison pill, calculate average of current salary and all extension years
-        const avgSalary =
-          (currentSalary + totalExtensionSalary) /
-          (1 + player.extensionYears.length);
-        incomingValue = avgSalary;
-      }
-
-      player.matchIncoming = incomingValue;
-    });
-  });
-}
+export { computeMatchingValues, getMatchingValue } from './matchingValues.js';
