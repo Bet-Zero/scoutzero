@@ -44,6 +44,7 @@ export function getIncomingCeilingForTeam(team) {
 
   // Get cap settings from team context
   const capSettings = team.context?.capSettings || {};
+  // Total salary fallback chain: direct property → nested team object → zero
   const teamTotalSalary = team.teamTotalSalary || team.team?.totalSalary || 0;
 
   // Use unified salary matching rules for ceiling calculation

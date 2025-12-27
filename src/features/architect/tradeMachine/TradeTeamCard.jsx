@@ -305,7 +305,11 @@ const TradeTeamCard = ({
                 {formatSalary(allowableIncomingNoTPE)}
               </span>
               {salaryMatchingResult?.ruleLabel && (
-                <span className="ml-1 text-white/40" title={salaryMatchingResult.formulaUsed}>
+                <span 
+                  className="ml-1 text-white/40" 
+                  title={salaryMatchingResult.formulaUsed}
+                  aria-label={`Rule: ${salaryMatchingResult.ruleLabel}. Formula: ${salaryMatchingResult.formulaUsed}`}
+                >
                   ({salaryMatchingResult.ruleLabel})
                 </span>
               )}
