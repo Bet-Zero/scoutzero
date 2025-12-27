@@ -201,7 +201,7 @@ const TradeReceiptPanel = ({ receipt }) => {
                           <span>
                             {p.name}
                             {p.flags?.isPoisonPill && <span className="text-purple-400 ml-1" title="Poison Pill - uses averaged salary">PP</span>}
-                            {p.flags?.hasTradeKicker && <span className="text-orange-400 ml-1" title={`Trade Kicker (${(p.flags?.tradeKickerPct * 100).toFixed(0)}%)`}>TK</span>}
+                            {p.flags?.hasTradeKicker && <span className="text-orange-400 ml-1" title={`Trade Kicker (${((p.flags?.tradeKickerPct || 0) * 100).toFixed(0)}%)`}>TK</span>}
                           </span>
                           <span className="font-mono text-white/60">{formatCurrency(p.matchingValue)}</span>
                         </div>
@@ -210,7 +210,7 @@ const TradeReceiptPanel = ({ receipt }) => {
                           <div className="text-white/40 text-xs mt-0.5 pl-2">
                             Base: {formatCurrency(p.baseSalary)} → Match: {formatCurrency(p.matchingValue)}
                             {p.flags?.isPoisonPill && ' (Poison Pill avg)'}
-                            {p.flags?.hasTradeKicker && ` (+${(p.flags?.tradeKickerPct * 100).toFixed(0)}% kicker)`}
+                            {p.flags?.hasTradeKicker && ` (+${((p.flags?.tradeKickerPct || 0) * 100).toFixed(0)}% kicker)`}
                           </div>
                         )}
                       </div>

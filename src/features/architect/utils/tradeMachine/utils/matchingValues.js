@@ -167,6 +167,7 @@ export function computeMatchingValues({
             player.baseYearCompensation
           ) {
             const enhancedKicker = effectiveKicker * 2; // Double for these cases
+            // Note: maxKicker must be applied here because enhancedKicker could exceed it
             finalKicker = Math.min(maxAvailableKicker, enhancedKicker, maxKicker);
           } else {
             // For timing cases, don't apply proration if guaranteed amount allows full kicker
