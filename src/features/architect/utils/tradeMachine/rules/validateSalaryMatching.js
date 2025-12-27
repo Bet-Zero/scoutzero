@@ -17,7 +17,7 @@ import {
 } from '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules.js';
 
 // Validator version for trade receipt tracking
-export const SALARY_MATCHING_VERSION = '2.0.0'; // Bumped for unified rules
+export const SALARY_MATCHING_VERSION = '2.0.0'; // Unified rules module integration, Band 2 formula correction (+$7.5M)
 
 /**
  * Validates if a trade satisfies salary matching rules
