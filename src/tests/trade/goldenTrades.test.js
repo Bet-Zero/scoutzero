@@ -53,10 +53,10 @@ const makeTeam = (name, totalSalary, rosterSize = 14, extras = {}) => ({
 
 describe('Golden Trade Regression Tests', () => {
   describe('Salary Matching Tier Boundaries', () => {
-    it('GOLDEN-01: Band 1 boundary at $6.5M yields 200% + $250k', () => {
+    it('GOLDEN-01: Band 1 boundary at TIER_1_THRESHOLD yields 200% + $250k', () => {
       const result = getSalaryMatchingResult({
         teamTotalSalary: 150_000_000, // over cap, below apron
-        outgoingSalary: SALARY_MATCHING_TIERS.TIER_1_THRESHOLD, // exactly $6.5M
+        outgoingSalary: SALARY_MATCHING_TIERS.TIER_1_THRESHOLD, // exactly tier 1 threshold ($6.5M)
         capSettings: DEFAULT_CAP_SETTINGS,
       });
 
@@ -65,10 +65,10 @@ describe('Golden Trade Regression Tests', () => {
       expect(result.allowableIncoming).toBe(13_250_000);
     });
 
-    it('GOLDEN-02: Band 2 boundary at $19.6M yields outgoing + $7.5M', () => {
+    it('GOLDEN-02: Band 2 boundary at TIER_2_THRESHOLD yields outgoing + $7.5M', () => {
       const result = getSalaryMatchingResult({
         teamTotalSalary: 150_000_000,
-        outgoingSalary: SALARY_MATCHING_TIERS.TIER_2_THRESHOLD, // exactly $19.6M
+        outgoingSalary: SALARY_MATCHING_TIERS.TIER_2_THRESHOLD, // exactly tier 2 threshold ($19.6M)
         capSettings: DEFAULT_CAP_SETTINGS,
       });
 
