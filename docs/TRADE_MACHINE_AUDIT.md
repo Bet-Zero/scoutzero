@@ -1,7 +1,7 @@
 # Trade Machine Audit & Gap Analysis
 
-> **Created**: December 27, 2025  
-> **Purpose**: Comprehensive audit of Trade Machine correctness, completeness, and consistency  
+> **Created**: December 27, 2025,
+> **Purpose**: Comprehensive audit of Trade Machine correctness, completeness, and consistency
 > **Status**: Audit Complete - Actionable Findings
 
 ---
@@ -27,41 +27,79 @@ The Trade Machine is a well-structured system with a layered architecture (engin
 
 ### 1.1 Directory Structure
 
-```
+```plaintext
 src/features/architect/utils/tradeMachine/
-├── engine/                    # Orchestration layer
-│   ├── tradeValidator.js      # Main validateTrade() function - PRIMARY ENTRY POINT
-│   ├── tradeDebug.js          # Debug logging utilities
-│   ├── validationUtils.js     # Caching decorators
-│   └── index.js               # Engine barrel exports
-├── rules/                     # Pure validation functions
-│   ├── validateSalaryMatching.js   # Core salary matching rules
-│   ├── hardCapValidation.js        # Hard cap validation
-│   ├── validateStepien.js          # Stepien rule
-│   ├── validateAggregation.js      # Second apron aggregation
-│   ├── validateSignAndTrade.js     # Sign-and-trade rules
-│   ├── validateConsent.js          # Player consent
-│   ├── validateTradeExceptions.js  # TPE validation
-│   ├── validateRoster.js           # Roster size rules
-│   ├── eligibilityRules.js         # Cash/reacquisition
-│   └── ...
-├── utils/                     # Helper functions
-│   ├── salaryUtils.js         # computeMatchingValues wrapper
-│   ├── computeMatchingValues.js    # BYC/kicker/poison pill calculations
-│   ├── matchingValues.js      # Alternative matching value calculator
-│   ├── salaryMargin.js        # Allowable incoming calculations
-│   ├── capUtils.js            # Cap-related utilities
-│   └── seasonUtils.js         # Season/year format conversions
-├── constants/                 # CBA constants
-│   └── cbaConstants.js        # Thresholds, bands, limits
-└── index.js                   # Public API
+├── engine/                              # Orchestration layer
+│   ├── tradeValidator.js                # Main validateTrade() function - PRIMARY ENTRY POINT
+│   ├── tradeValidator.debug.js          # Debug version of trade validator
+│   ├── tradeDebug.js                    # Debug logging utilities
+│   ├── validationUtils.js               # Caching decorators
+│   ├── engineUtils.js                   # Engine utility functions
+│   ├── performanceMonitor.js            # Performance tracking
+│   ├── validationPerformanceMonitor.js  # Validation-specific performance
+│   ├── validationDebugMonitor.js        # Debug monitoring
+│   ├── validatorDebug.ts                # TypeScript debug utilities
+│   ├── validatorFactory.js              # Validator factory patterns
+│   └── index.js                         # Engine barrel exports
+├── rules/                               # Pure validation functions
+│   ├── validateSalaryMatching.js        # Core salary matching rules
+│   ├── validateSalaryMatching.ts        # TypeScript version
+│   ├── hardCapValidation.js             # Hard cap validation
+│   ├── validateHardCap.ts               # TypeScript version
+│   ├── validateStepien.js               # Stepien rule
+│   ├── validateStepien.ts               # TypeScript version
+│   ├── validateAggregation.js           # Second apron aggregation
+│   ├── aggregationValidator.js          # Alternative aggregation validator
+│   ├── validateSignAndTrade.js          # Sign-and-trade rules
+│   ├── validateConsent.js               # Player consent
+│   ├── validateTradeExceptions.js       # TPE validation
+│   ├── validateRoster.js                # Roster size rules
+│   ├── validateRoster.ts                # TypeScript version
+│   ├── validateEligibility.js           # Player eligibility
+│   ├── validateFaExceptionUsage.js      # FA exception usage
+│   ├── validateSecondApronRules.js      # Second apron rules
+│   ├── eligibilityRules.js              # Cash/reacquisition
+│   ├── basicRules.js                    # Basic validation rules
+│   ├── draftRules.js                    # Draft pick rules
+│   ├── miscRules.js                     # Miscellaneous rules
+│   ├── salaryMatching.js                # Salary matching helpers
+│   ├── tradeExceptions.js               # Trade exception helpers
+│   ├── timingValidation.js              # Timing rules
+│   ├── rosterValidation.js              # Roster validation helpers
+│   ├── enforceConsent.js                # Consent enforcement
+│   ├── enforceEligibility.js            # Eligibility enforcement
+│   ├── enforcement.js                   # General enforcement
+│   ├── enforcementValidation.js         # Enforcement validation
+│   └── index.js                         # Rules barrel exports
+├── utils/                               # Helper functions
+│   ├── salaryUtils.js                   # computeMatchingValues wrapper
+│   ├── computeMatchingValues.js         # BYC/kicker/poison pill calculations
+│   ├── matchingValues.js                # Alternative matching value calculator
+│   ├── salaryMargin.js                  # Allowable incoming calculations
+│   ├── capUtils.js                      # Cap-related utilities
+│   ├── seasonUtils.js                   # Season/year format conversions
+│   ├── tradeUtilities.js                # Trade utilities (includes createTPE)
+│   ├── normalizeTradeInput.js           # Input normalization
+│   ├── validateInput.js                 # Input validation
+│   └── index.js                         # Utils barrel exports
+├── cache/                               # Caching functionality
+│   ├── validationCache.js               # Main cache implementation
+│   ├── validationCacheService.js        # Cache service
+│   ├── validationCacheManager.js        # Cache manager
+│   ├── cacheInvalidationManager.js      # Cache invalidation
+│   └── index.js                         # Cache barrel exports
+├── validators/                          # Compatibility layer (DEPRECATED)
+│   └── index.js                         # Re-exports for backwards compatibility
+├── constants/                           # CBA constants
+│   └── cbaConstants.js                  # Thresholds, bands, limits
+└── index.js                             # Public API
 ```
 
 ### 1.2 Entry Points & Data Flow
 
 #### A. UI Entry Point → Validation
 
-```
+```plaintext
 TradeEditor.jsx
   └── useTradeMachine.js (hook)
        ├── validateCurrentTrade() [line 411-484]
@@ -120,7 +158,7 @@ TradeEditor.jsx
 1. First at line 167-170 using `getSalaryForMatching()`
 2. Then calls `computeMatchingValues()` at line 212-217 which sets `player.matchOutgoing`
 
-But `validateSalaryMatching.js` uses `team.salaryOut` (set by the first calculation), NOT `player.matchOutgoing`.
+While `validateSalaryMatching.js` uses `team.salaryOut` (set by the first calculation), other validators like `validateTradeExceptions.js:95` use `player.matchIncoming` as a fallback. This inconsistent usage can cause mismatches for players with trade kickers.
 
 ### 2.3 Incoming Salary
 
@@ -129,7 +167,7 @@ But `validateSalaryMatching.js` uses `team.salaryOut` (set by the first calculat
 | `tradeValidator.js:173-178` | `getSalaryForMatching()` | With poison pill conversion |
 | `computeMatchingValues.js` | Sets `player.matchIncoming` | With trade kicker |
 
-**⚠️ ISSUE**: Similar dual-calculation problem. The poison pill logic in `tradeValidator.js:148-158` differs from `computeMatchingValues.js:103-117`.
+**⚠️ ISSUE**: Dual-calculation exists but results ARE used. `validateTradeExceptions.js:95` uses `player.matchIncoming` for TPE capacity checks. However, the poison pill logic in `tradeValidator.js:148-158` differs from `computeMatchingValues.js:103-117`.
 
 ### 2.4 Matching Rule Thresholds
 
@@ -223,11 +261,14 @@ vs `tradeHelpers.js:82-86` (`MATCHING_BANDS_2023`):
 
 **Status**: ✅ IMPLEMENTED
 
-**Files**: 
+**Files**:
+
 - `rules/validateTradeExceptions.js` - Usage validation
 - `engine/tradeValidator.js:314-320` - TPE creation logic
+- `utils/tradeUtilities.js:28-39` - `createTPE()` implementation
 
 **TPE Creation** (lines 308-320):
+
 ```javascript
 createdTPE: (() => {
   const isOverCap = teamTotalSalary > salaryCap;
@@ -240,7 +281,23 @@ createdTPE: (() => {
 })(),
 ```
 
-**Note**: `createTPE()` is imported from `utils/tradeUtilities.js` but the function implementation was not found in the audit. Needs verification.
+**`createTPE()` Implementation** (`utils/tradeUtilities.js:28-39`):
+
+```javascript
+export function createTPE({ teamCtx, outgoing, incoming, tradeDate }) {
+  if (!teamCtx.isOverCap) return null;
+  const amt = Math.max(0, outgoing - incoming);
+  if (amt <= 0) return null;
+  const baseDate = tradeDate ? new Date(tradeDate) : new Date();
+  const expiry = new Date(baseDate);
+  expiry.setUTCFullYear(expiry.getUTCFullYear() + 1);
+  return {
+    amount: Math.round(amt),
+    createdSeason: baseDate.getUTCFullYear(),
+    expiryISO: expiry.toISOString(),
+  };
+}
+```
 
 ### 3.4 Hard Cap Triggers & Enforcement
 
@@ -764,18 +821,17 @@ describe('Golden Trade Regression Tests', () => {
 
 | # | Issue | File(s) | Impact |
 |---|-------|---------|--------|
-| 4 | Hard-coded cap thresholds don't match capProjections | `validateSalaryMatching.js:49-57`, `constants/cbaConstants.js` | Wrong validation for some seasons |
-| 5 | `computeMatchingValues()` called but results not used | `tradeValidator.js:212-217` vs `:167-170` | Wasted computation, confusion |
-| 6 | Poison pill has 3 implementations | Multiple files | Inconsistent incoming value for rookie extensions |
+| 1 | Hard-coded cap thresholds don't match capProjections | `validateSalaryMatching.js:49-57`, `constants/cbaConstants.js` | Wrong validation for some seasons |
+| 2 | `computeMatchingValues()` results used inconsistently | `validateTradeExceptions.js:95` uses `matchIncoming`, but `validateSalaryMatching.js` uses `team.salaryIn` | Potential mismatch for players with trade kickers |
+| 3 | Poison pill has 3 implementations | Multiple files | Inconsistent incoming value for rookie extensions |
 
 ### P2 - Medium Priority (Technical Debt)
 
 | # | Issue | File(s) | Impact |
 |---|-------|---------|--------|
-| 7 | Dead money included inconsistently | `useTradeMachine.js:69-91` vs fallback paths | Edge case errors |
-| 8 | No handling for options/non-guaranteed contracts | Not found | Missing feature |
-| 9 | `createTPE()` function not verified | Imported but source unclear | TPE creation may be wrong |
-| 10 | Duplicate `salaryUtils.js` and `matchingValues.js` | Two files doing similar work | Maintenance burden |
+| 1 | Dead money included inconsistently | `useTradeMachine.js:69-91` vs fallback paths | Edge case errors |
+| 2 | No handling for options/non-guaranteed contracts | Not found | Missing feature |
+| 3 | Duplicate `salaryUtils.js` and `matchingValues.js` | Two files doing similar work | Maintenance burden |
 
 ---
 
@@ -789,6 +845,7 @@ describe('Golden Trade Regression Tests', () => {
    - Use in BOTH `validateSalaryMatching.js` AND `TradeSalaryCalculator.jsx`
 
 2. **Create canonical BYC calculator**:
+
    ```javascript
    // utils/byc.js
    export function getBYCMatchingValue(player, yearKey) {
@@ -803,19 +860,19 @@ describe('Golden Trade Regression Tests', () => {
 
 ### Short-Term (P1 Fixes)
 
-4. **Remove hard-coded cap values from validators**:
+1. **Remove hard-coded cap values from validators**:
    - Always get from `context.capSettings` or `capProjections`
    - Add validation that cap settings exist before proceeding
 
-5. **Clean up `computeMatchingValues()` usage**:
-   - Either use `player.matchOutgoing/matchIncoming` in validator
-   - Or remove the call to `computeMatchingValues()`
+2. **Ensure consistent use of `computeMatchingValues()` results**:
+   - `validateTradeExceptions.js` uses `player.matchIncoming` as fallback
+   - Ensure `validateSalaryMatching.js` also considers these values for players with trade kickers
 
 ### Medium-Term (P2 Fixes)
 
-6. **Consolidate to single matching value calculator**
-7. **Add option/non-guarantee handling**
-8. **Create comprehensive test suite with golden trades**
+1. **Consolidate to single matching value calculator**
+2. **Add option/non-guarantee handling**
+3. **Create comprehensive test suite with golden trades**
 
 ---
 
