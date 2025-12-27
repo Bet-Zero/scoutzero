@@ -24,8 +24,16 @@
 
 import capProjectionsData from '@/features/architect/utils/capProjections.js';
 
+// ============================================================================
+// Constants
+// ============================================================================
+
 // Version for trade receipt tracking
 export const CAP_SETTINGS_VERSION = '1.0.0';
+
+// Valid year range for cap projections
+const MIN_VALID_YEAR = 2020;
+const MAX_VALID_YEAR = 2040;
 
 /**
  * Keys used to identify cap settings source in trade receipts
@@ -41,8 +49,9 @@ export const CAP_SETTINGS_SOURCE_KEYS = {
 /**
  * Emergency fallback values - ONLY used when no other source available
  * These are 2024-25 values and should trigger a warning when used
+ * Object.freeze prevents mutations
  */
-const EMERGENCY_FALLBACK_2024_25 = {
+const EMERGENCY_FALLBACK_2024_25 = Object.freeze({
   salaryCap: 141_000_000,
   firstApron: 179_000_000,
   secondApron: 190_000_000,
@@ -51,19 +60,19 @@ const EMERGENCY_FALLBACK_2024_25 = {
   roomMLE: 8_000_000,
   fullMLE: 12_900_000,
   taxpayerMLE: 5_000_000,
-};
+});
 
 /**
  * Converts year to season string format
  * @param {number} year - End year (e.g., 2025)
  * @returns {string} Season string (e.g., "2024-25")
  */
-function yearToSeasonKey(year) {
+export function yearToSeasonKey(year) {
   if (typeof year === 'string' && year.includes('-')) {
     return year; // Already in season format
   }
   const endYear = Number(year);
-  if (!Number.isFinite(endYear) || endYear < 2020 || endYear > 2040) {
+  if (!Number.isFinite(endYear) || endYear < MIN_VALID_YEAR || endYear > MAX_VALID_YEAR) {
     return null;
   }
   return `${endYear - 1}-${String(endYear).slice(-2)}`;

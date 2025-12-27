@@ -239,6 +239,7 @@ utils/
       validateStepien.ts
       validateTradeExceptions.js
     utils/
+      capSettingsProvider.js
       capUtils.js
       computeMatchingValues.js
       index.js
@@ -258,5 +259,5 @@ utils/
 ```
 
 ---
-*Generated on: 2025-12-27T08:01:28.813Z*
+*Generated on: 2025-12-27T08:55:14.740Z*
 *Auto-updated by: npm run docs*

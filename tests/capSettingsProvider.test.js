@@ -8,6 +8,7 @@ import {
   getCapSettingsForYear,
   getCapSettingsForReceipt,
   validateCapSettings,
+  yearToSeasonKey,
   CAP_SETTINGS_SOURCE_KEYS,
 } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider.js';
 import capProjections from '@/features/architect/utils/capProjections.js';
@@ -174,7 +175,8 @@ describe('Phase 4: Cap Settings Provider', () => {
 
 describe('Phase 4: Trade Receipt Integration', () => {
   const currentYear = 2025;
-  const season = `${currentYear - 1}-${String(currentYear).slice(-2)}`;
+  // Use the exported yearToSeasonKey helper for consistency
+  const season = yearToSeasonKey(currentYear);
 
   const makePlayer = (name, salary) => ({
     name,
