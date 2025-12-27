@@ -73,6 +73,7 @@ Quick reference for all components in the ScoutZero project.
 - tradeMachine/TradePickRow.jsx
 - tradeMachine/TradePlayerRow.jsx
 - tradeMachine/TradePreviewModal.jsx
+- tradeMachine/TradeReceiptPanel.jsx
 - tradeMachine/TradeSalaryCalculator.jsx
 - tradeMachine/TradeSummaryPanel.jsx
 - tradeMachine/TradeTeamCard.jsx
@@ -246,7 +247,6 @@ Quick reference for all components in the ScoutZero project.
 - RankingResults.jsx
 - RankingSession.jsx
 - RankingSetup.jsx
-- tournamentRanker.js
 - utils/rankingEngine.js
 
 ## Roster
@@ -308,4 +308,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2025-12-26T10:27:27.141Z*
+*Generated on: 2025-12-27T07:34:54.302Z*

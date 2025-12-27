@@ -124,6 +124,7 @@ tradeMachine/
   TradePickRow.jsx
   TradePlayerRow.jsx
   TradePreviewModal.jsx
+  TradeReceiptPanel.jsx
   TradeSalaryCalculator.jsx
   TradeSummaryPanel.jsx
   TradeTeamCard.jsx
@@ -256,5 +257,5 @@ utils/
 ```
 
 ---
-*Generated on: 2025-12-26T08:03:41.960Z*
+*Generated on: 2025-12-27T07:34:54.289Z*
 *Auto-updated by: npm run docs*
