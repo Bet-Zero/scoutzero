@@ -131,7 +131,7 @@ function calculateOverCapBands(outgoingSalary) {
       formulaUsed: `(outgoing × ${BAND_3_MULTIPLIER * 100}%) + $${(BAND_3_BONUS / 1000).toFixed(0)}k = (${formatCurrency(outgoingSalary)} × ${BAND_3_MULTIPLIER}) + ${formatCurrency(BAND_3_BONUS)} = ${formatCurrency(allowableIncoming)}`,
       bandMeta: {
         band: 3,
-        threshold: Infinity,
+        threshold: null, // No upper threshold for Band 3
         multiplier: BAND_3_MULTIPLIER,
         bonus: BAND_3_BONUS,
       },
