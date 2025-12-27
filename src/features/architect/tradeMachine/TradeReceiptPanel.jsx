@@ -172,13 +172,21 @@ const TradeReceiptPanel = ({ receipt }) => {
                   <div className="mb-2">
                     <div className="text-white/40 text-xs mb-1">Outgoing Players:</div>
                     {team.outgoingPlayers.map((p, pIdx) => (
-                      <div key={pIdx} className="text-xs pl-2 py-0.5 flex justify-between">
-                        <span>
-                          {p.name}
-                          {p.flags?.isBYC && <span className="text-yellow-400 ml-1" title="Base Year Compensation">BYC</span>}
-                          {p.flags?.hasTradeKicker && <span className="text-orange-400 ml-1" title="Trade Kicker">TK</span>}
-                        </span>
-                        <span className="font-mono text-white/60">{formatCurrency(p.matchingValue)}</span>
+                      <div key={pIdx} className="text-xs pl-2 py-1 border-l border-white/10">
+                        <div className="flex justify-between items-center">
+                          <span>
+                            {p.name}
+                            {p.flags?.isBYC && <span className="text-yellow-400 ml-1" title="Base Year Compensation - uses max(prior, 50% new)">BYC</span>}
+                            {p.flags?.hasTradeKicker && <span className="text-orange-400 ml-1" title="Trade Kicker">TK</span>}
+                          </span>
+                          <span className="font-mono text-white/60">{formatCurrency(p.matchingValue)}</span>
+                        </div>
+                        {/* Show breakdown when BYC applies and values differ */}
+                        {p.flags?.isBYC && p.baseSalary !== p.matchingValue && (
+                          <div className="text-white/40 text-xs mt-0.5 pl-2">
+                            Base: {formatCurrency(p.baseSalary)} → Match: {formatCurrency(p.matchingValue)} (BYC: max(prior, 50% new))
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -188,13 +196,23 @@ const TradeReceiptPanel = ({ receipt }) => {
                   <div className="mb-2">
                     <div className="text-white/40 text-xs mb-1">Incoming Players:</div>
                     {team.incomingPlayers.map((p, pIdx) => (
-                      <div key={pIdx} className="text-xs pl-2 py-0.5 flex justify-between">
-                        <span>
-                          {p.name}
-                          {p.flags?.isPoisonPill && <span className="text-purple-400 ml-1" title="Poison Pill">PP</span>}
-                          {p.flags?.hasTradeKicker && <span className="text-orange-400 ml-1" title="Trade Kicker">TK</span>}
-                        </span>
-                        <span className="font-mono text-white/60">{formatCurrency(p.matchingValue)}</span>
+                      <div key={pIdx} className="text-xs pl-2 py-1 border-l border-white/10">
+                        <div className="flex justify-between items-center">
+                          <span>
+                            {p.name}
+                            {p.flags?.isPoisonPill && <span className="text-purple-400 ml-1" title="Poison Pill - uses averaged salary">PP</span>}
+                            {p.flags?.hasTradeKicker && <span className="text-orange-400 ml-1" title={`Trade Kicker (${(p.flags?.tradeKickerPct * 100).toFixed(0)}%)`}>TK</span>}
+                          </span>
+                          <span className="font-mono text-white/60">{formatCurrency(p.matchingValue)}</span>
+                        </div>
+                        {/* Show breakdown when poison pill or trade kicker applies */}
+                        {(p.flags?.isPoisonPill || p.flags?.hasTradeKicker) && p.baseSalary !== p.matchingValue && (
+                          <div className="text-white/40 text-xs mt-0.5 pl-2">
+                            Base: {formatCurrency(p.baseSalary)} → Match: {formatCurrency(p.matchingValue)}
+                            {p.flags?.isPoisonPill && ' (Poison Pill avg)'}
+                            {p.flags?.hasTradeKicker && ` (+${(p.flags?.tradeKickerPct * 100).toFixed(0)}% kicker)`}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

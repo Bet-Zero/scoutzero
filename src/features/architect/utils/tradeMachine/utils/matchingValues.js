@@ -137,15 +137,26 @@ export function computeMatchingValues({
           player.tradeKicker?.percentage || player.tradeKickerPct || 0;
         const waivedPct =
           player.tradeKicker?.waived || player.tradeKickerWaivedPct || 0;
+        const maxKicker = player.tradeKicker?.maximum ?? Infinity;
 
+        // Calculate raw kicker based on baseSalary (NOT guaranteed amount)
         const kickerAmount = Math.floor(baseSalary * percentage);
-        let effectiveKicker = kickerAmount;
+        
+        // Apply maximum cap from tradeKicker.maximum
+        let effectiveKicker = Math.min(kickerAmount, maxKicker);
 
         let finalKicker = effectiveKicker;
 
-        // Handle guaranteed money constraints
+        // Check if remainingGuaranteedOnCurrentContract is explicitly set
+        // Use nullish coalescing to distinguish between explicit 0 and undefined
+        const hasExplicitGuaranteed = player.remainingGuaranteedOnCurrentContract !== undefined;
         const remainingGuaranteed = player.remainingGuaranteedOnCurrentContract;
-        if (remainingGuaranteed && remainingGuaranteed > baseSalary) {
+        
+        // Handle explicit zero guaranteed money - no kicker should apply
+        if (hasExplicitGuaranteed && remainingGuaranteed === 0) {
+          finalKicker = 0;
+        } else if (remainingGuaranteed && remainingGuaranteed > baseSalary) {
+          // Handle guaranteed money constraints
           const maxAvailableKicker = remainingGuaranteed - baseSalary;
 
           // For BYC players or when no timing specified, use enhanced kicker
@@ -156,7 +167,7 @@ export function computeMatchingValues({
             player.baseYearCompensation
           ) {
             const enhancedKicker = effectiveKicker * 2; // Double for these cases
-            finalKicker = Math.min(maxAvailableKicker, enhancedKicker);
+            finalKicker = Math.min(maxAvailableKicker, enhancedKicker, maxKicker);
           } else {
             // For timing cases, don't apply proration if guaranteed amount allows full kicker
             const proratedKicker = Math.floor(

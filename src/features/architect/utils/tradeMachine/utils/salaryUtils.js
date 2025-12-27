@@ -1,12 +1,13 @@
-import { computeMatchingValues as computeMatchingValuesNew } from './computeMatchingValues.js';
+import { computeMatchingValues as computeMatchingValuesCanonical } from './matchingValues.js';
 import { getCapHitForSeason as getCapHitForSeasonUtil } from './seasonUtils.js';
 
 /**
- * Legacy wrapper preserved for back-compat. Delegates to the new-schema
- * matching implementation that reads contract.salariesByYear exclusively.
+ * Delegates to the canonical matching value implementation in matchingValues.js.
+ * This is the SINGLE SOURCE OF TRUTH for BYC, poison pill, and trade kicker calculations.
+ * All modules should ultimately use this canonical implementation.
  */
 export function computeMatchingValues(params) {
-  return computeMatchingValuesNew(params);
+  return computeMatchingValuesCanonical(params);
 }
 
 /**
