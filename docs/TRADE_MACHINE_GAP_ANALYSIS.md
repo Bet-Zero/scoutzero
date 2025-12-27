@@ -309,6 +309,8 @@ const newSalary =
 | P0-2 | **Fix BYC to use max formula** | `tradeValidator.js:139-142` | Change `return player.previousSalary` to `return Math.max(player.previousSalary, baseSalary * 0.5)` to match the correct CBA rule |
 | P0-3 | **Remove hard-coded cap defaults** | `validateSalaryMatching.js:49-54` | Remove default values. Add validation to fail fast if `capSettings` is missing instead of silently using wrong values. |
 | P0-4 | **UI rule text must match actual formulas** | `TradeSalaryCalculator.jsx:55-68` | Update rule strings to match actual validator formulas (200%+$250k, +$5M/+$7.5M, 125%+$250k) |
+| P0-5 | **Resolve formula discrepancy (PREREQUISITE)** | All locations with matching formulas | Determine the correct CBA interpretation (200%+$250k or 175%+$100k, $5M or $7.5M addition) by consulting CBA Article 17 Section 6(f). Then update all locations to use the correct formula. |
+| P0-6 | **Implement Trade Receipt** | New file `engine/tradeReceipt.js` | Create debug receipt showing exact calculations used (see Section 4). Essential for diagnosing discrepancies. |
 
 ### P1: Important Correctness Rules
 
@@ -325,9 +327,8 @@ const newSalary =
 |---|-------|-----------------|----------------|
 | P2-1 | **Add recently signed FA restriction** | `rules/eligibilityRules.js` | Add `validateRecentlySigned()` checking if player was signed within 3 months |
 | P2-2 | **Add option/non-guarantee handling** | `utils/computeMatchingValues.js` | Add logic to handle `player.hasOption`, `player.guaranteed` fields |
-| P2-3 | **Implement Trade Receipt** | New file `engine/tradeReceipt.js` | See Section 4 |
-| P2-4 | **Add golden trade regression tests** | `tests/trade/goldenTrades.test.js` | See Section 5 |
-| P2-5 | **Document which CBA article each rule implements** | All `rules/*.js` files | Add JSDoc comments citing CBA Article/Section |
+| P2-3 | **Add golden trade regression tests** | `tests/trade/goldenTrades.test.js` | See Section 5 |
+| P2-4 | **Document which CBA article each rule implements** | All `rules/*.js` files | Add JSDoc comments citing CBA Article/Section |
 
 ---
 
@@ -715,11 +716,13 @@ function buildTradeFromScenario(scenario) {
 
 ## 6. Summary: P0 Fix List
 
+> **Note**: Items P0-5 and P0-6 are essential prerequisites/blockers that emerged from the gap analysis. P0-5 must be resolved before P0-1 can be implemented correctly.
+
 1. **P0-1**: Create single `getSalaryMatchingBand()` function used by validator AND UI
 2. **P0-2**: Fix BYC in `tradeValidator.js` to use `max(previous, 50% new)` not just `previous`
 3. **P0-3**: Remove hard-coded cap defaults; fail if `capSettings` missing
 4. **P0-4**: Update UI rule text in `TradeSalaryCalculator.jsx` to match actual formulas
-5. **P0-5**: Decide which matching band formula is correct (200%+$250k vs 175%+$100k, $5M vs $7.5M) and update ALL locations
+5. **P0-5 (Prerequisite)**: Decide which matching band formula is correct (200%+$250k vs 175%+$100k, $5M vs $7.5M) and update ALL locations
 6. **P0-6**: Implement Trade Receipt to expose calculations for debugging
 
 ---
