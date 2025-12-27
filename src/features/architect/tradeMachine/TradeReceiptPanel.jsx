@@ -1,5 +1,10 @@
-// src/features/architect/tradeMachine/TradeReceiptPanel.jsx
-// Trade Receipt debug panel - gated behind VITE_SHOW_TRADE_RECEIPT env var
+// FILE: TradeReceiptPanel.jsx
+// PURPOSE: Developer-only debug panel displaying Trade Receipt data
+// OWNERSHIP: Trade Machine Team
+// HISTORY:
+//  - 2025-12-27: Created TradeReceiptPanel for Phase 1 debugging
+// LINKS: TradeEditor.jsx, tradeValidator.js
+
 import React, { useState } from 'react';
 import { formatCurrency } from '@/features/architect/utils/tradeHelpers';
 
@@ -63,12 +68,14 @@ const TradeReceiptPanel = ({ receipt }) => {
         </div>
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={handleCopyReceipt}
             className="px-2 py-1 bg-[#222] text-white/70 hover:text-white rounded border border-white/20 hover:bg-[#333] text-xs"
           >
             {copyFeedback || 'Copy JSON'}
           </button>
           <button
+            type="button"
             className="px-3 py-1 bg-[#222] text-white rounded border border-white/20 hover:bg-[#333]"
             onClick={() => setExpanded((v) => !v)}
           >
@@ -298,4 +305,4 @@ const TradeReceiptPanel = ({ receipt }) => {
   );
 };
 
-export default TradeReceiptPanel;
+export { TradeReceiptPanel };

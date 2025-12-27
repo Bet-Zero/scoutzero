@@ -1,7 +1,6 @@
 // tradeValidator.js - Fixed to match test expectations
 import {
   getSalaryForYear,
-  formatCurrency,
 } from '@/features/architect/utils/tradeHelpers.js';
 import { wrapCommonValidators } from './validationUtils.js';
 import { createTPE } from '../utils/tradeUtilities.js';
@@ -164,7 +163,7 @@ function generateTradeReceipt({
       allowableIncoming: salaryMatchingResult.allowableIncoming || 0,
       actualIncoming: salaryMatchingResult.salaryIn || team.salaryIn || 0,
       passed: salaryMatchingResult.passed !== false,
-      margin: salaryMatchingDetails.margin || (salaryMatchingResult.allowableIncoming || 0) - (salaryMatchingResult.salaryIn || 0),
+      margin: salaryMatchingDetails.margin ?? 0,
       capSettings: salaryMatchingDetails.capSettings || {},
       capSettingsSource: salaryMatchingDetails.capSettingsSource || 'unknown',
     };

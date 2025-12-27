@@ -8,7 +8,7 @@ import TradeLegalChecker from './TradeLegalChecker';
 import TradeExceptionDashboard from './TradeExceptionDashboard';
 import FaExceptionTracker from './FaExceptionTracker';
 import TradePreviewModal from './TradePreviewModal';
-import TradeReceiptPanel from './TradeReceiptPanel';
+import { TradeReceiptPanel } from './TradeReceiptPanel';
 // import TradeDebugPanel from './TradeDebugPanel';
 
 const TradeEditor = ({

@@ -5,7 +5,7 @@
  * OWNERSHIP: Feature: architect (Trade Machine - Salary Matching)
  *
  * HISTORY:
- *  - 2024-12-27: Created as unified source of truth for Phase 2 consolidation
+ *  - 2025-12-27: Created as unified source of truth for Phase 2 consolidation
  *
  * RULES:
  *  The 2023 CBA salary matching tiers for over-cap teams below first apron:
@@ -146,7 +146,7 @@ function calculateOverCapBands(outgoingSalary) {
  */
 function formatCurrency(val) {
   if (typeof val !== 'number' || isNaN(val)) return '-';
-  return `$${val.toLocaleString()}`;
+  return `$${val.toLocaleString('en-US')}`;
 }
 
 /**

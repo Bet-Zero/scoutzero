@@ -1,4 +1,13 @@
 /**
+ * FILE: goldenTrades.test.js
+ * PURPOSE: Golden regression tests for trade validation logic
+ * OWNERSHIP: Trade Machine Team
+ * HISTORY:
+ *  - 2025-12-27: Created golden test suite for Phase 1
+ * LINKS: tradeValidator.js, salaryMatchingRules.js
+ */
+
+/**
  * Golden Regression Tests for Trade Validation
  * 
  * Purpose: Lock down critical trade math behaviors so that future changes
@@ -23,7 +32,7 @@ import { computeMatchingValues } from '@/features/architect/utils/tradeMachine/u
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
 import capProjections from '@/features/architect/utils/capProjections.js';
 
-// Standard cap settings for 2024-25 season
+// Custom cap values for test isolation (differ from capProjections 2024-25)
 const DEFAULT_CAP_SETTINGS = {
   salaryCap: 141_000_000,
   firstApron: 178_132_000,

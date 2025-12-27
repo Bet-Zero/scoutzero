@@ -51,7 +51,7 @@ export function validateSalaryMatching(team, context = {}) {
       details: {
         ruleApplied: 'INVALID_INPUT',
         formulaUsed: 'N/A',
-        capStatusSource: 'N/A',
+        capSettingsSource: 'N/A',
       },
     };
   }
@@ -66,7 +66,7 @@ export function validateSalaryMatching(team, context = {}) {
       details: {
         ruleApplied: 'HARD_CAP_SKIP',
         formulaUsed: 'Hard cap validation handles this team',
-        capStatusSource: 'team.hardCapped || team.team.hardCapTriggered',
+        capSettingsSource: 'team.hardCapped || team.team.hardCapTriggered',
       },
     };
   }
@@ -174,9 +174,8 @@ export function validateSalaryMatching(team, context = {}) {
         ruleApplied: 'TPE_ABSORPTION',
         formulaUsed: `totalTPEAmount = sum(appliedTPEs.amount) = ${formatCurrency(totalTPEAmount)}`,
         tpeCount: appliedTPEs.length,
-        capStatusSource: 'N/A (TPE bypass)',
+        capSettingsSource: 'N/A (TPE bypass)',
         capSettings: { salaryCap, firstApron: actualFirstApron, secondApron },
-        capSettingsSource,
         totalSalary,
         totalSalarySource,
       },

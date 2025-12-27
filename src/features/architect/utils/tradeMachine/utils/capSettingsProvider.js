@@ -6,7 +6,7 @@
  * OWNERSHIP: Feature: architect (Trade Machine - Cap Settings)
  *
  * HISTORY:
- *  - 2024-12-27: Phase 4 - Created as single source for cap settings resolution
+ *  - 2025-12-27: Phase 4 - Created as single source for cap settings resolution
  *                Eliminates silent defaults throughout the codebase
  *
  * USAGE:

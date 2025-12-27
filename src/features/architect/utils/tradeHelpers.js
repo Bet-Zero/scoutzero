@@ -103,7 +103,8 @@ const DEFAULT_CAP_SETTINGS = {
 const allowedIncomingBelowFirstApron = (out, yearKey, capSettings = DEFAULT_CAP_SETTINGS) => {
   // Use unified salary matching rules directly
   const result = getSalaryMatchingResult({
-    teamTotalSalary: 150_000_000, // Placeholder for over-cap (cap status determined separately)
+    // Placeholder salary - actual value irrelevant because apronStatus is forced to OVER_CAP
+    teamTotalSalary: 150_000_000,
     outgoingSalary: out,
     capSettings,
     apronStatus: 'OVER_CAP', // Force over-cap band calculation

@@ -1,4 +1,13 @@
 /**
+ * FILE: computeMatchingValues.js
+ * PURPOSE: Deprecated wrapper - use matchingValues.js for canonical implementation
+ * OWNERSHIP: Trade Machine Team
+ * HISTORY:
+ *  - 2025-12-27: Deprecated in favor of matchingValues.js
+ * LINKS: matchingValues.js
+ */
+
+/**
  * @deprecated This module is deprecated. Use matchingValues.js instead.
  * 
  * This file now re-exports from the canonical matchingValues.js module
