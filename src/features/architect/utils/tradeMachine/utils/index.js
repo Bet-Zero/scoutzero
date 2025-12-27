@@ -3,6 +3,9 @@
  * Exports all utility functions for trade validation
  */
 
+// Salary matching rules - SINGLE SOURCE OF TRUTH for salary matching calculations
+export * from './salaryMatchingRules.js';
+
 // Salary and cap utilities
 export * from './capUtils.js';
 export * from './salaryMargin.js';

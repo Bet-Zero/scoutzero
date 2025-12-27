@@ -3,20 +3,31 @@
  * ▸ Fixes: getSalaryForYear, getIncomingCeiling, calculateAllowableIncoming,
  * areSamePick  (numeric leniency)
  * ▸ Keeps: MIN_SALARY, getApronStatus, pick utils, TPE utils, format helpers
+ * ▸ Phase 2 update: Delegates to unified salaryMatchingRules for tier calculations
  * -------------------------------------------------------------------------------*/
 import {
   CBA_BY_YEAR,
   MATCHING_BANDS_2023,
 } from '@/features/architect/utils/cbaConstants.js';
+import {
+  getSalaryMatchingResult,
+  SALARY_MATCHING_TIERS,
+} from '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules.js';
 export { wouldExceedHardCap } from '@/features/architect/utils/hardCapUtils.js';
 import { isPriorYearTPE } from '@/features/architect/utils/tradeMachine/utils/tradeUtilities.js';
 import { getTeamFaExceptionBuckets } from '@/features/architect/utils/faExceptionUtils.js';
 
+/**
+ * Returns tier thresholds for salary matching
+ * @deprecated Use SALARY_MATCHING_TIERS from salaryMatchingRules.js directly
+ */
 export const getTierThresholds = (yearKey) => {
-  const key = String(yearKey); // normalise
-  const bucket =
-    CBA_BY_YEAR[key] ?? CBA_BY_YEAR[Object.keys(CBA_BY_YEAR).pop()];
-  return bucket.salaryTiers; // [tier1, tier2]
+  // Return unified tier thresholds instead of CBA_BY_YEAR-based ones
+  // This ensures consistency with the unified salary matching rules
+  return [
+    SALARY_MATCHING_TIERS.TIER_1_THRESHOLD,
+    SALARY_MATCHING_TIERS.TIER_2_THRESHOLD,
+  ];
 };
 export const MIN_SALARY = 1_119_563;
 
@@ -75,16 +86,23 @@ export const getSalaryForYear = (input, year) => {
 /*─────────────────────  Incoming-Salary (CBA rules)  ─────────────────────*/
 
 // ────────────────── Incoming-Salary Ceiling (CBA tiers) ──────────────────
+/**
+ * Calculates allowed incoming salary for over-cap teams below first apron
+ * @deprecated Internal helper - use getSalaryMatchingResult from salaryMatchingRules.js
+ */
 const allowedIncomingBelowFirstApron = (out, yearKey) => {
-  const [band1, band2] = getTierThresholds(yearKey);
-  const limits = [band1, band2, Infinity];
-  for (let i = 0; i < MATCHING_BANDS_2023.length; i++) {
-    const limit = limits[i];
-    if (out <= limit || limit === Infinity) {
-      return MATCHING_BANDS_2023[i].allowed(out);
-    }
-  }
-  return out;
+  // Use unified salary matching rules directly
+  const result = getSalaryMatchingResult({
+    teamTotalSalary: 150_000_000, // Placeholder for over-cap (cap status determined separately)
+    outgoingSalary: out,
+    capSettings: {
+      salaryCap: 141_000_000,
+      firstApron: 178_132_000,
+      secondApron: 188_931_000,
+    },
+    apronStatus: 'OVER_CAP', // Force over-cap band calculation
+  });
+  return result.allowableIncoming;
 };
 export const getIncomingCeiling = (
   teamTotalSalary,

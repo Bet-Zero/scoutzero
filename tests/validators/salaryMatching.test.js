@@ -29,11 +29,13 @@ describe('validateSalaryMatching', () => {
     });
 
     it('enforces outgoing matching rules when over cap', () => {
+      // Band 2 (10M outgoing): allowable = 10M + $7.5M = $17.5M
+      // Testing with 18M incoming which exceeds the $17.5M allowable
       const result = validateSalaryMatching(
         makeTeam({
           teamTotalSalary: 150_000_000,
           salaryOut: 10_000_000,
-          salaryIn: 16_000_000, // This exceeds allowable (10M + 5M = 15M)
+          salaryIn: 18_000_000, // This exceeds allowable (10M + $7.5M = $17.5M)
         })
       );
       expect(result.passed).toBe(false);
