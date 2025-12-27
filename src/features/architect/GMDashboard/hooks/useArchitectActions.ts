@@ -19,6 +19,7 @@ import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
 import capProjections from '@/features/architect/utils/capProjections';
 import { applyWorldMutation } from '@/features/architect/utils/mutationPipeline';
 import { resolveTeamCode } from '@/features/architect/utils/worldTeamData';
+import toast from 'react-hot-toast';
 
 // ==== Type Definitions ====
 
@@ -360,22 +361,35 @@ export function useArchitectActions({
       // Base mode: no persistence
       if (!worldId) return;
       // Cannot persist without userId
-      if (!userId) return;
+      if (!userId) {
+        console.warn('[Architect] Cannot save: missing userId');
+        return;
+      }
 
       try {
-        await applyWorldMutation({
+        console.log(`💾 Saving ${mutationType}...`);
+        const result = await applyWorldMutation({
           userId,
           worldId,
           seasonId,
           mutationType,
           payload,
         });
+        
+        if (result.success) {
+          console.log(`✅ Saved ${mutationType}!`, result);
+          toast.success('Saved changes');
+        } else {
+          console.error(`❌ Save failed:`, result.error);
+          toast.error(`Save failed: ${result.error}`);
+        }
       } catch (err) {
         console.error('[Architect][PersistMutation] failed', {
           mutationType,
           payload,
           err,
         });
+        toast.error('Failed to save changes');
       }
     },
     [worldId, userId, seasonId]
@@ -525,9 +539,25 @@ export function useArchitectActions({
       // Note: Each team's teamId needs to be resolved to canonical teamCode
       const teams = tradeData.map((t) => ({
         teamCode: resolveTeamCode(t.teamId) || t.teamId,
-        sends: t.outgoing || [],
+        sends: (t.outgoing || []).map((p) => ({
+          ...p,
+          // Explicitly map ID for pipeline consumption
+          playerId: p.id || p.player_id,
+        })),
         picksOut: [], // Pick handling can be added when UI supports it
       }));
+
+      // Validation guard
+      for (const team of teams) {
+        for (const player of team.sends) {
+          if (!player.playerId) {
+            console.error('Trade missing playerId', { player, team });
+            toast.error('Cannot save trade: Player ID missing');
+            throw new Error(`Trade missing playerId for ${player.name || 'unknown'}`);
+          }
+        }
+      }
+
       persistMutation('executeTrade', { teams });
     },
     [teamCapSheet, teamCode, playersMap, setTeamCapSheet, persistMutation]
@@ -625,6 +655,13 @@ export function useArchitectActions({
       );
 
       // Persist to world if in world mode
+      const idToSign = playerObj.id || playerObj.player_id;
+      if (!idToSign) {
+        console.error('Sign missing playerId', { player: playerObj });
+        toast.error('Cannot save: Player ID missing');
+        throw new Error("Sign missing playerId");
+      }
+
       persistMutation('signFreeAgent', {
         teamCode,
         playerId: playerObj.id || playerObj.player_id,
@@ -717,6 +754,12 @@ export function useArchitectActions({
         });
 
         // Persist to world if in world mode
+        if (!idToRenounce) {
+          console.error('Renounce missing playerId');
+          toast.error('Cannot save: Player ID missing');
+          throw new Error("Renounce missing playerId");
+        }
+
         persistMutation('renounceRights', {
           teamCode,
           playerId: idToRenounce,
@@ -898,6 +941,12 @@ export function useArchitectActions({
       closeContractModal();
 
       // Persist to world if in world mode
+      if (!playerId) {
+        console.error('Extend player missing playerId', { player });
+        toast.error('Cannot save: Player ID missing');
+        throw new Error("Extend player missing playerId");
+      }
+
       persistMutation('extendPlayer', {
         teamCode,
         playerId,
@@ -986,6 +1035,12 @@ export function useArchitectActions({
       closeContractModal();
 
       // Persist to world if in world mode
+      if (!playerId) {
+        console.error('Waive missing playerId', { player });
+        toast.error('Cannot save: Player ID missing');
+        throw new Error("Waive missing playerId");
+      }
+
       persistMutation('waivePlayer', {
         teamCode,
         playerId,
@@ -1127,6 +1182,12 @@ export function useArchitectActions({
       closeContractModal();
 
       // Persist to world if in world mode
+      if (!playerId) {
+        console.error('Option decision missing playerId', { player });
+        toast.error('Cannot save: Player ID missing');
+        throw new Error("Option decision missing playerId");
+      }
+
       persistMutation('optionDecision', {
         teamCode,
         playerId,

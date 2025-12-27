@@ -74,16 +74,15 @@ service cloud.firestore {
       allow delete: if false;
 
       // ───────────────────────────────────────────────────────────────────────
+      // ───────────────────────────────────────────────────────────────────────
       // World subcollections
-      // TEMP DEBUG: Completely open - testing if rules are the issue
       // ───────────────────────────────────────────────────────────────────────
       match /teams/{teamCode} {
-        // TEMP: Allow all for debugging
-        allow read, create, update: if true;
+        allow read, create, update: if isWorldOwner(worldId);
         allow delete: if false;
 
         match /players/{playerId} {
-          allow read, create, update: if true;
+          allow read, create, update: if isWorldOwner(worldId);
           allow delete: if false;
         }
       }

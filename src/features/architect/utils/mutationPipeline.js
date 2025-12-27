@@ -684,7 +684,7 @@ function computeSigningResult({ payload, currentState, seasonId, timestamp }) {
   const updatedTeam = { ...team };
 
   // Add player to roster if not already present
-  const playerId = player.player_id || player.id;
+  const playerId = payload.playerId || player.player_id || player.id;
   if (!updatedTeam.roster?.includes(playerId)) {
     updatedTeam.roster = [...(updatedTeam.roster || []), playerId];
   }
@@ -890,7 +890,7 @@ function computeExtensionResult({ payload, currentState, seasonId, timestamp }) 
   const { team, player, teamCode } = currentState;
   const { extension } = payload;
 
-  const playerId = player.player_id || player.id;
+  const playerId = payload.playerId || player.player_id || player.id;
   const updatedTeam = { ...team };
 
   // Update player's contract in players array
@@ -950,7 +950,7 @@ function computeOptionResult({ payload, currentState, seasonId, timestamp }) {
   const { team, player, teamCode } = currentState;
   const { accepted, targetYear } = payload;
 
-  const playerId = player.player_id || player.id;
+  const playerId = payload.playerId || player.player_id || player.id;
   const updatedTeam = { ...team };
 
   // Find player in team
@@ -1079,7 +1079,7 @@ function computeOptionResult({ payload, currentState, seasonId, timestamp }) {
  */
 function computeRenounceResult({ payload, currentState, seasonId, timestamp }) {
   const { team, player, teamCode } = currentState;
-  const playerId = player.player_id || player.id || payload.playerId;
+  const playerId = payload.playerId || player.player_id || player.id;
   const playerName = player.displayName || player.name;
 
   const updatedTeam = { ...team };
