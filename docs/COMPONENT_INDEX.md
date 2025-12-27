@@ -163,6 +163,7 @@ Quick reference for all components in the ScoutZero project.
 - utils/tradeMachine/utils/matchingValues.js
 - utils/tradeMachine/utils/normalizeTradeInput.js
 - utils/tradeMachine/utils/salaryMargin.js
+- utils/tradeMachine/utils/salaryMatchingRules.js
 - utils/tradeMachine/utils/salaryUtils.js
 - utils/tradeMachine/utils/seasonUtils.js
 - utils/tradeMachine/utils/tradeUtilities.js
@@ -308,4 +309,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2025-12-27T07:34:54.302Z*
+*Generated on: 2025-12-27T08:01:28.821Z*

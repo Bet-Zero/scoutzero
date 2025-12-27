@@ -245,6 +245,7 @@ utils/
       matchingValues.js
       normalizeTradeInput.js
       salaryMargin.js
+      salaryMatchingRules.js
       salaryUtils.js
       seasonUtils.js
       tradeUtilities.js
@@ -257,5 +258,5 @@ utils/
 ```
 
 ---
-*Generated on: 2025-12-27T07:34:54.289Z*
+*Generated on: 2025-12-27T08:01:28.813Z*
 *Auto-updated by: npm run docs*

@@ -1,11 +1,18 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   formatCurrency,
-  calculateAllowableIncoming,
   getSalaryForYear,
   MIN_SALARY,
 } from '@/features/architect/utils/tradeHelpers';
+import {
+  getSalaryMatchingResult,
+  SALARY_MATCHING_RULE_LABELS,
+} from '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules';
 
+/**
+ * TradeSalaryCalculator - displays salary matching rules using the unified rules module
+ * This component MUST use getSalaryMatchingResult to ensure consistency with the validator
+ */
 const TradeSalaryCalculator = ({
   teamSalary,
   outgoingSalary,
@@ -15,30 +22,33 @@ const TradeSalaryCalculator = ({
   yearKey,
 }) => {
   const [incomingSalary, setIncomingSalary] = useState(0);
-  const [allowableIncoming, setAllowableIncoming] = useState(0);
-  const [breakdown, setBreakdown] = useState({
-    base: 0,
-    min: 0,
-    tpe: 0,
-    rule: '',
-  });
 
-  useEffect(() => {
-    if (!teamSalary || !capSettings) return;
+  // Use unified salary matching rules for calculation
+  const matchingResult = useMemo(() => {
+    if (!teamSalary || !capSettings) return null;
 
-    // Calculate base allowable
-    const base = calculateAllowableIncoming(
-      teamSalary,
-      outgoingSalary,
-      [],
-      [],
-      capSettings,
-      yearKey
-    );
+    return getSalaryMatchingResult({
+      teamTotalSalary: teamSalary,
+      outgoingSalary: outgoingSalary || 0,
+      capSettings: {
+        salaryCap: capSettings.salaryCap || capSettings.cap,
+        firstApron: capSettings.firstApron,
+        secondApron: capSettings.secondApron,
+      },
+    });
+  }, [teamSalary, outgoingSalary, capSettings]);
+
+  // Calculate additional allowances (TPE, min salary exceptions)
+  const breakdown = useMemo(() => {
+    if (!matchingResult || !teamSalary || !capSettings) {
+      return { base: 0, min: 0, tpe: 0, rule: '', formula: '' };
+    }
+
+    const base = matchingResult.allowableIncoming;
 
     // Calculate minimum salary exception
     const min =
-      teamSalary > capSettings.cap
+      teamSalary > (capSettings.salaryCap || capSettings.cap)
         ? incomingPlayers.reduce((sum, p) => {
             const s = getSalaryForYear([p], yearKey);
             return s <= MIN_SALARY ? sum + s : sum;
@@ -51,27 +61,27 @@ const TradeSalaryCalculator = ({
       0
     );
 
-    // Determine which rule applies
-    let rule;
-    if (teamSalary > capSettings.secondApron) {
-      rule = 'Second Apron: Dollar-for-dollar matching';
-    } else if (teamSalary > capSettings.firstApron) {
-      rule = 'First Apron: 100% of outgoing salary';
-    } else if (teamSalary <= capSettings.cap) {
-      rule = 'Under Cap: Outgoing + $100k + cap space';
-    } else if (outgoingSalary <= 6_500_000) {
-      rule = 'Normal: 175% + $100k (≤$6.5M outgoing)';
-    } else if (outgoingSalary <= 19_600_000) {
-      rule = 'Normal: 125% + $100k ($6.5M-$19.6M outgoing)';
-    } else {
-      rule = 'Normal: 125% (>$19.6M outgoing)';
-    }
+    return {
+      base,
+      min,
+      tpe,
+      rule: matchingResult.ruleLabel,
+      formula: matchingResult.formulaUsed,
+    };
+  }, [matchingResult, teamSalary, capSettings, incomingPlayers, tpes, yearKey]);
 
-    setBreakdown({ base, min, tpe, rule });
-    setAllowableIncoming(base + min + tpe);
-  }, [teamSalary, outgoingSalary, incomingPlayers, tpes, capSettings, yearKey]);
-
+  const allowableIncoming = breakdown.base + breakdown.min + breakdown.tpe;
   const isValid = incomingSalary <= allowableIncoming;
+
+  // Don't render until we have required data
+  if (!matchingResult) {
+    return (
+      <div className="border border-white/10 rounded-lg p-4 mt-4 bg-[#111]">
+        <h3 className="font-medium mb-3">Salary Matching Calculator</h3>
+        <p className="text-white/60 text-sm">Missing cap settings or team salary data</p>
+      </div>
+    );
+  }
 
   return (
     <div className="border border-white/10 rounded-lg p-4 mt-4 bg-[#111]">
@@ -108,6 +118,11 @@ const TradeSalaryCalculator = ({
             <span className="font-semibold">Rule Applied:</span>{' '}
             {breakdown.rule}
           </div>
+          {breakdown.formula && (
+            <div className="text-xs text-white/50 mb-2 font-mono">
+              {breakdown.formula}
+            </div>
+          )}
           <div className="grid grid-cols-3 gap-2 text-xs">
             <div className="text-center">
               <div className="text-white/60">Base</div>

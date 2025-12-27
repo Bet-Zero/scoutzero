@@ -7,6 +7,17 @@
 // Core validation engine - main entry point
 export { validateTrade } from './engine/tradeValidator.js';
 
+// Unified salary matching rules - SINGLE SOURCE OF TRUTH
+export {
+  getSalaryMatchingResult,
+  getSalaryMatchingMargin,
+  getSalaryMatchingCeiling,
+  validateIncomingSalary,
+  SALARY_MATCHING_TIERS,
+  SALARY_MATCHING_RULE_KEYS,
+  SALARY_MATCHING_RULE_LABELS,
+} from './utils/salaryMatchingRules.js';
+
 // Core validators - from rules
 export { validateCash } from './rules/eligibilityRules.js';
 export { validateStepien } from './rules/validateStepien.js';

@@ -1,15 +1,23 @@
 /**
  * Salary matching validation for trades
  * Enforces CBA rules for salary exchanges between teams
+ * 
+ * NOTE: This validator delegates to the unified salary matching rules module
+ * (salaryMatchingRules.js) for all allowable incoming calculations to ensure
+ * consistency between validation and UI display.
  */
 
 import {
   formatCurrency,
 } from '@/features/architect/utils/tradeHelpers.js';
 import { shouldWarnOnly } from '@/config/validationFlags.js';
+import {
+  getSalaryMatchingResult,
+  SALARY_MATCHING_RULE_KEYS,
+} from '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules.js';
 
 // Validator version for trade receipt tracking
-export const SALARY_MATCHING_VERSION = '1.0.0';
+export const SALARY_MATCHING_VERSION = '2.0.0'; // Unified rules module integration, Band 2 formula correction (+$7.5M)
 
 /**
  * Validates if a trade satisfies salary matching rules
@@ -152,12 +160,19 @@ export function validateSalaryMatching(team, context = {}) {
 
   // Under-cap teams can absorb salary up to the cap
   if (totalSalary < salaryCap) {
-    const remainingSpace = salaryCap - totalSalary;
-    const netAddition = salaryIn - salaryOut;
-    allowableIncoming = salaryOut + remainingSpace; // Can absorb outgoing + remaining cap space
-    ruleApplied = 'UNDER_CAP';
-    formulaUsed = `salaryOut + remainingSpace = ${formatCurrency(salaryOut)} + ${formatCurrency(remainingSpace)} = ${formatCurrency(allowableIncoming)}`;
+    // Use unified salary matching rules for calculation
+    const matchingResult = getSalaryMatchingResult({
+      teamTotalSalary: totalSalary,
+      outgoingSalary: salaryOut,
+      capSettings: { salaryCap, firstApron: actualFirstApron, secondApron },
+    });
     
+    allowableIncoming = matchingResult.allowableIncoming;
+    ruleApplied = matchingResult.ruleKey;
+    formulaUsed = matchingResult.formulaUsed;
+    
+    const netAddition = salaryIn - salaryOut;
+    const remainingSpace = salaryCap - totalSalary;
     if (netAddition > remainingSpace) {
       violations.push(
         `Team has ${formatCurrency(remainingSpace)} in cap space but is adding ${formatCurrency(netAddition)} in net salary.`
@@ -166,9 +181,17 @@ export function validateSalaryMatching(team, context = {}) {
   }
   // Teams above second apron: strict 100% matching (cannot take back more than sent out)
   else if (totalSalary >= secondApron) {
-    allowableIncoming = salaryOut; // 100% matching for second apron teams
-    ruleApplied = 'SECOND_APRON';
-    formulaUsed = `100% matching: allowableIncoming = salaryOut = ${formatCurrency(salaryOut)}`;
+    // Use unified salary matching rules for calculation
+    const matchingResult = getSalaryMatchingResult({
+      teamTotalSalary: totalSalary,
+      outgoingSalary: salaryOut,
+      capSettings: { salaryCap, firstApron: actualFirstApron, secondApron },
+      apronStatus: 'SECOND_APRON',
+    });
+    
+    allowableIncoming = matchingResult.allowableIncoming;
+    ruleApplied = matchingResult.ruleKey;
+    formulaUsed = matchingResult.formulaUsed;
     
     if (salaryIn > salaryOut) {
       violations.push(
@@ -178,9 +201,17 @@ export function validateSalaryMatching(team, context = {}) {
   }
   // Teams above first apron: 100% matching (cannot take back more than sent out)
   else if (totalSalary >= actualFirstApron) {
-    allowableIncoming = salaryOut; // 100% matching for first apron teams
-    ruleApplied = 'FIRST_APRON';
-    formulaUsed = `100% matching: allowableIncoming = salaryOut = ${formatCurrency(salaryOut)}`;
+    // Use unified salary matching rules for calculation
+    const matchingResult = getSalaryMatchingResult({
+      teamTotalSalary: totalSalary,
+      outgoingSalary: salaryOut,
+      capSettings: { salaryCap, firstApron: actualFirstApron, secondApron },
+      apronStatus: 'FIRST_APRON',
+    });
+    
+    allowableIncoming = matchingResult.allowableIncoming;
+    ruleApplied = matchingResult.ruleKey;
+    formulaUsed = matchingResult.formulaUsed;
     
     if (salaryIn > salaryOut) {
       violations.push(
@@ -191,20 +222,16 @@ export function validateSalaryMatching(team, context = {}) {
   }
   // Over-cap teams below first apron: use standard tiered matching rules
   else if (totalSalary > salaryCap) {
-    // Calculate allowable incoming based on outgoing salary tiers
-    if (salaryOut <= 6_500_000) {
-      allowableIncoming = salaryOut * 2 + 250_000;
-      ruleApplied = 'OVER_CAP_TIER_1';
-      formulaUsed = `200% + $250k: (${formatCurrency(salaryOut)} × 2) + $250,000 = ${formatCurrency(allowableIncoming)}`;
-    } else if (salaryOut <= 19_600_000) {
-      allowableIncoming = salaryOut + 5_000_000;
-      ruleApplied = 'OVER_CAP_TIER_2';
-      formulaUsed = `100% + $5M: ${formatCurrency(salaryOut)} + $5,000,000 = ${formatCurrency(allowableIncoming)}`;
-    } else {
-      allowableIncoming = salaryOut * 1.25;
-      ruleApplied = 'OVER_CAP_TIER_3';
-      formulaUsed = `125%: ${formatCurrency(salaryOut)} × 1.25 = ${formatCurrency(allowableIncoming)}`;
-    }
+    // Use unified salary matching rules for calculation
+    const matchingResult = getSalaryMatchingResult({
+      teamTotalSalary: totalSalary,
+      outgoingSalary: salaryOut,
+      capSettings: { salaryCap, firstApron: actualFirstApron, secondApron },
+    });
+    
+    allowableIncoming = matchingResult.allowableIncoming;
+    ruleApplied = matchingResult.ruleKey;
+    formulaUsed = matchingResult.formulaUsed;
 
     // Check if team exceeds the allowed incoming salary
     if (salaryIn > allowableIncoming) {
