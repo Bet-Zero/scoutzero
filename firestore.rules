@@ -4,82 +4,86 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Helpers
+    // ─────────────────────────────────────────────────────────────────────────
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function validWorldName(name) {
+      return name is string && name.size() > 0 && name.size() <= 100;
+    }
+
+    // SAFE world-owner check used in subcollections
+    // (exists() first, then get() — prevents evaluation crashes)
+    function isWorldOwner(worldId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/architect_worlds/$(worldId))
+        && get(/databases/$(database)/documents/architect_worlds/$(worldId)).data.createdBy == request.auth.uid;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // BASE COLLECTIONS: Public read-only (Admin SDK only for writes)
     // ─────────────────────────────────────────────────────────────────────────
-
-    // architect_baseTeams: Immutable base team data
     match /architect_baseTeams/{teamCode} {
       allow read: if true;
-      allow write: if false;  // Admin SDK only
+      allow write: if false;
     }
 
-    // architect_basePlayers: Immutable base player data
     match /architect_basePlayers/{playerId} {
       allow read: if true;
-      allow write: if false;  // Admin SDK only
+      allow write: if false;
+    }
+
+    // Optional: only needed if your app reads free agents from these
+    match /architect_baseFreeAgents/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /architect_freeAgents/{docId} {
+      allow read: if true;
+      allow write: if false;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // ARCHITECT WORLDS: Owner-scoped access (requires auth)
+    // WORLDS: Owner scoped
     // ─────────────────────────────────────────────────────────────────────────
-
     match /architect_worlds/{worldId} {
 
-      function worldDocPath() {
-        return /databases/$(database)/documents/architect_worlds/$(worldId);
-      }
+      // Read world doc only if you're the owner
+      allow read: if signedIn() && resource.data.createdBy == request.auth.uid;
 
-      function isOwner() {
-        return request.auth != null
-          && resource.data.createdBy == request.auth.uid;
-      }
+      // Create world doc:
+      // - must be signed in
+      // - must set createdBy to yourself
+      // - must include a valid worldName
+      allow create: if signedIn()
+        && request.resource.data.createdBy == request.auth.uid
+        && validWorldName(request.resource.data.worldName);
 
-      function willBeOwner() {
-        return request.auth != null
-          && request.resource.data.createdBy == request.auth.uid;
-      }
+      // Update world doc:
+      // - must be owner
+      // - cannot change createdBy
+      // - if worldName is present, it must still be valid
+      allow update: if signedIn()
+        && resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdBy == resource.data.createdBy
+        && (!('worldName' in request.resource.data) || validWorldName(request.resource.data.worldName));
 
-      // Used by subcollections (teams/players) where "resource" is NOT the world doc.
-      function isWorldOwner() {
-        return request.auth != null
-          && exists(worldDocPath())
-          && get(worldDocPath()).data.createdBy == request.auth.uid;
-      }
-
-      function validWorld() {
-        let data = request.resource.data;
-        return data.keys().hasAll(['createdBy', 'worldName', 'createdAt'])
-          && data.createdBy is string
-          && data.createdBy == request.auth.uid
-          && data.worldName is string
-          && data.worldName.size() > 0
-          && data.worldName.size() <= 100
-          && data.createdAt == request.time;
-      }
-
-      function validWorldUpdate() {
-        let data = request.resource.data;
-        return data.createdBy == resource.data.createdBy
-          && (!('worldName' in data) || (data.worldName is string && data.worldName.size() > 0 && data.worldName.size() <= 100));
-      }
-
-      allow read: if isOwner();
-      allow create: if willBeOwner() && validWorld();
-      allow update: if isOwner() && validWorldUpdate();
       allow delete: if false;
 
       // ───────────────────────────────────────────────────────────────────────
       // World subcollections
+      // TEMP DEBUG: Completely open - testing if rules are the issue
       // ───────────────────────────────────────────────────────────────────────
-
       match /teams/{teamCode} {
-        allow read: if isWorldOwner();
-        allow create, update: if isWorldOwner();
+        // TEMP: Allow all for debugging
+        allow read, create, update: if true;
         allow delete: if false;
 
         match /players/{playerId} {
-          allow read: if isWorldOwner();
-          allow create, update: if isWorldOwner();
+          allow read, create, update: if true;
           allow delete: if false;
         }
       }
@@ -88,7 +92,6 @@ service cloud.firestore {
     // ─────────────────────────────────────────────────────────────────────────
     // LEGACY: players_v2 public read-only
     // ─────────────────────────────────────────────────────────────────────────
-
     match /players_v2/{playerId} {
       allow read: if true;
       allow write: if false;

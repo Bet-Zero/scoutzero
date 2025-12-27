@@ -502,3 +502,33 @@ export async function updateWorldStats(worldId, actionType, teamCodes = []) {
 
   await updateDoc(metadataRef, updates);
 }
+
+/**
+ * DEV ONLY: Fix world ownership by updating createdBy to current user
+ *
+ * This is a workaround for when anonymous auth UIDs change between sessions,
+ * causing PERMISSION_DENIED errors on subcollection writes.
+ *
+ * Usage (in browser console):
+ *   import { fixWorldOwnership } from './worldManager';
+ *   await fixWorldOwnership('world_xxxxx', 'your-current-uid');
+ *
+ * @param {string} worldId - World ID to fix
+ * @param {string} newUserId - New user ID to set as owner
+ * @returns {Promise<void>}
+ */
+export async function fixWorldOwnership(worldId, newUserId) {
+  if (import.meta.env.PROD) {
+    throw new Error('fixWorldOwnership is only available in development');
+  }
+  if (!worldId || !newUserId) {
+    throw new Error('worldId and newUserId are required');
+  }
+
+  console.log(`🔧 Fixing world ${worldId} ownership to ${newUserId}...`);
+
+  const metadataRef = worldMetadataRef(worldId);
+  await updateDoc(metadataRef, { createdBy: newUserId });
+
+  console.log(`✅ World ${worldId} ownership updated to ${newUserId}`);
+}

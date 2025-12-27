@@ -311,6 +311,27 @@ export async function applyWorldMutation({
     }
 
     // PHASE 4: PERSIST - Write to Firestore (ONLY place that writes)
+    // DEV DEBUG: Check for UID mismatch which causes PERMISSION_DENIED
+    if (import.meta.env.DEV) {
+      try {
+        const worldRef = worldMetadataRef(worldId);
+        const { getDoc } = await import('firebase/firestore');
+        const worldSnap = await getDoc(worldRef);
+        if (worldSnap.exists()) {
+          const worldData = worldSnap.data();
+          const worldOwner = worldData.createdBy;
+          if (worldOwner !== userId) {
+            console.error(
+              `🚨 UID MISMATCH: World createdBy=${worldOwner} but current userId=${userId}\n` +
+              `This causes PERMISSION_DENIED. Fix: In Emulator UI, update createdBy to ${userId}`
+            );
+          }
+        }
+      } catch (e) {
+        console.warn('DEV DEBUG: Could not check world ownership:', e.message);
+      }
+    }
+
     const persistResult = await persistWorldMutation({
       worldId,
       seasonId,
