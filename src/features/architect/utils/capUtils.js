@@ -16,6 +16,11 @@ export function getApronStatus(teamSalary, capSettings) {
   return 'UNDER_CAP';
 }
 
+/**
+ * Calculates the allowable incoming salary margin for a team.
+ * @deprecated Use getSalaryMatchingMargin from salaryMatchingRules.js for accurate results.
+ * This function is kept for backwards compatibility but should be avoided.
+ */
 export function getAllowableIncomingMargin(team, capSettings) {
   const { teamTotalSalary = 0 } = team;
   const { secondApron = 0, salaryCap = 0 } = capSettings;
@@ -32,10 +37,8 @@ export function getAllowableIncomingMargin(team, capSettings) {
     return Infinity;
   }
 
-  // Standard salary matching rules: 125% + $100k for teams under tax
-  // 110% + $100k for tax teams
-  const marginPercent = team.isTaxTeam ? 1.1 : 1.25;
-  const baseMargin = 100000;
-
-  return baseMargin + teamTotalSalary * (marginPercent - 1);
+  // For over-cap teams, return 0 as margin
+  // Full allowable calculation should use getSalaryMatchingResult instead
+  // This is a simplified backwards-compat fallback
+  return 0;
 }

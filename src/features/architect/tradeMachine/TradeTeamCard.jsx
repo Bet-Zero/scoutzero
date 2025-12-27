@@ -4,7 +4,6 @@ import capProjections from '@/features/architect/utils/capProjections';
 import {
   getSalaryForYear,
   formatPick,
-  getIncomingCeiling,
 } from '@/features/architect/utils/tradeHelpers';
 import { formatSalary } from '@/shared/utils/formatting';
 import CapImpactTiles from './CapImpactTiles';
@@ -21,6 +20,7 @@ import {
 import { validationFlags } from '@/config/validationFlags.js';
 import { getCapHitForSeason } from '@/features/architect/utils/tradeMachine/utils/seasonUtils.js';
 import { toSeasonKey } from '@/features/architect/utils/seasonUtils';
+import { getSalaryMatchingResult } from '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules.js';
 
 const TradeTeamCard = ({
   team,
@@ -117,20 +117,24 @@ const TradeTeamCard = ({
     [team]
   );
 
-  // Allowable Incoming for display (excluding TPEs)
-  const allowableIncomingNoTPE = useMemo(
-    () =>
-      hasTeam
-        ? getIncomingCeiling(
-            teamTotalSalary,
-            outgoingSalary,
-            [], // Exclude TPEs from calculation
-            capSettings,
-            yearKey
-          )
-        : 0,
-    [hasTeam, teamTotalSalary, outgoingSalary, capSettings, yearKey]
-  );
+  // Use unified salary matching rules for allowable incoming calculation
+  // This ensures UI displays exactly what the validator uses
+  const salaryMatchingResult = useMemo(() => {
+    if (!hasTeam || !capSettings) return null;
+
+    return getSalaryMatchingResult({
+      teamTotalSalary,
+      outgoingSalary,
+      capSettings: {
+        salaryCap: capSettings.salaryCap || capSettings.cap || 0,
+        firstApron: capSettings.firstApron || 0,
+        secondApron: capSettings.secondApron || 0,
+      },
+    });
+  }, [hasTeam, teamTotalSalary, outgoingSalary, capSettings]);
+
+  // Get allowable incoming from unified rules (excluding TPEs)
+  const allowableIncomingNoTPE = salaryMatchingResult?.allowableIncoming || 0;
 
   const tpeEligiblePlayers = useMemo(() => {
     if (!hasTeam) return [];
@@ -300,6 +304,11 @@ const TradeTeamCard = ({
               <span className="font-semibold text-white/80">
                 {formatSalary(allowableIncomingNoTPE)}
               </span>
+              {salaryMatchingResult?.ruleLabel && (
+                <span className="ml-1 text-white/40" title={salaryMatchingResult.formulaUsed}>
+                  ({salaryMatchingResult.ruleLabel})
+                </span>
+              )}
             </div>
             {team?.tradeExceptions?.length > 0 && (
               <div className="flex gap-2 items-center">

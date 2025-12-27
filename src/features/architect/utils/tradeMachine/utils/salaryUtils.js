@@ -1,5 +1,6 @@
 import { computeMatchingValues as computeMatchingValuesCanonical } from './matchingValues.js';
 import { getCapHitForSeason as getCapHitForSeasonUtil } from './seasonUtils.js';
+import { getSalaryMatchingResult } from './salaryMatchingRules.js';
 
 /**
  * Delegates to the canonical matching value implementation in matchingValues.js.
@@ -21,6 +22,13 @@ export function getCapHitForSeason(player, seasonOrYear) {
   return getCapHitForSeasonUtil(player, seasonOrYear);
 }
 
+/**
+ * Calculates the maximum incoming salary a team can receive in a trade.
+ * Uses the unified salary matching rules from salaryMatchingRules.js as single source of truth.
+ * 
+ * @param {Object} team - Team object with context, sends, and team data
+ * @returns {number} Maximum allowable incoming salary
+ */
 export function getIncomingCeilingForTeam(team) {
   if (!team || !team.sends) return 0;
 
@@ -34,16 +42,20 @@ export function getIncomingCeilingForTeam(team) {
     return Number.MAX_SAFE_INTEGER;
   }
 
-  // Second apron teams limited to 100%
-  if (team.team?.isOverSecondApron) {
-    return outgoingTotal;
-  }
+  // Get cap settings from team context
+  const capSettings = team.context?.capSettings || {};
+  const teamTotalSalary = team.teamTotalSalary || team.team?.totalSalary || 0;
 
-  // First apron teams limited to 110%
-  if (team.team?.isOverFirstApron) {
-    return outgoingTotal * 1.1;
-  }
+  // Use unified salary matching rules for ceiling calculation
+  const matchingResult = getSalaryMatchingResult({
+    teamTotalSalary,
+    outgoingSalary: outgoingTotal,
+    capSettings: {
+      salaryCap: capSettings.salaryCap || capSettings.cap || 0,
+      firstApron: capSettings.firstApron || 0,
+      secondApron: capSettings.secondApron || 0,
+    },
+  });
 
-  // Standard over-cap rules: 125% + 100k
-  return outgoingTotal * 1.25 + 100000;
+  return matchingResult.allowableIncoming;
 }
