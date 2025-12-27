@@ -308,6 +308,7 @@ const TradeTeamCard = ({
                 <span 
                   className="ml-1 text-white/40" 
                   title={salaryMatchingResult.formulaUsed}
+                  role="note"
                   aria-label={`Rule: ${salaryMatchingResult.ruleLabel}. Formula: ${salaryMatchingResult.formulaUsed}`}
                 >
                   ({salaryMatchingResult.ruleLabel})
