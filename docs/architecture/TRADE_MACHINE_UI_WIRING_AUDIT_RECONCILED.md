@@ -3,7 +3,7 @@
 **Date:** 2025-12-28  
 **Status:** Reconciled Expert Review — Final Plan  
 **Scope:** All numeric values displayed in the Trade Machine UI  
-**Version:** 2.0.0 (incorporates second expert review)
+**Version:** 2.1.0 (incorporates second expert review + stakeholder feedback)
 
 ---
 
@@ -15,6 +15,29 @@ This document reconciles the original Trade Machine UI Wiring Audit with a secon
 2. **UX Accuracy**: Clear distinction between matching values and base salaries
 3. **Snapshot Discipline**: Thin snapshot derived from existing validator outputs
 4. **Phased Implementation**: Legality correctness first, then UX clarity, then cleanup
+
+---
+
+## Core Rules (Non-Negotiable)
+
+These rules apply throughout all phases:
+
+### Rule 1: Accessor Layer Canonical Source
+
+For Phase 1 legality numbers, the accessor **MUST read from `result.teamResults` only**.
+
+- **Do NOT** prefer `result.receipt` fields — receipt is for debug/inspection only
+- **Do NOT** fallback to receipt when teamResults has the data
+- Receipt may be used for extended debugging details but never as primary source
+
+### Rule 2: Pre-Validation UI Behavior
+
+If any component falls back to local calculation before validator results exist, it **MUST display a visible indicator**:
+
+- Acceptable: "Estimate" badge, "Pending validation..." text, dimmed/italic styling
+- Not acceptable: Silent fallback that looks identical to validated values
+
+Local calculations before validation **cannot masquerade as validated truth**.
 
 ---
 
@@ -154,19 +177,19 @@ Instead of creating a new `tradeSnapshot` object with duplicated fields, create 
 
 ```javascript
 // useTradeMachineSnapshot.js
+// RULE: Read from result.teamResults ONLY — receipt is debug/inspection only
 export function useTeamSnapshot(teamId, result) {
   const teamResult = result?.teamResults?.find(t => t.teamId === teamId);
-  const receipt = result?.receipt?.teams?.find(t => t.teamCode === teamId);
   
   if (!teamResult) return null;
   
   return {
-    // Derived from existing teamResult — no new computation
+    // Derived from teamResult — no receipt fallback
     get preTradeTeamSalary() { return teamResult.preTradeTeamSalary; },
-    get outgoingBaseSalary() { return receipt?.totals?.outgoingBase ?? teamResult.totals?.outgoingBase; },
-    get outgoingMatchingSalary() { return receipt?.totals?.outgoingMatch ?? teamResult.salaryOut; },
-    get incomingBaseSalary() { return receipt?.totals?.incomingBase; },
-    get incomingMatchingSalary() { return receipt?.totals?.incomingMatch ?? teamResult.salaryIn; },
+    get outgoingBaseSalary() { return teamResult.totals?.outgoingBase ?? 0; },
+    get outgoingMatchingSalary() { return teamResult.salaryOut ?? 0; },
+    get incomingBaseSalary() { return teamResult.totals?.incomingBase ?? 0; },
+    get incomingMatchingSalary() { return teamResult.salaryIn ?? 0; },
     get allowableIncoming() { return teamResult.rules?.salaryMatching?.allowableIncoming; },
     get salaryMatchingRule() { return teamResult.rules?.salaryMatching?.details?.ruleApplied; },
     get margin() { return teamResult.rules?.salaryMatching?.margin; },
@@ -178,18 +201,23 @@ export function useTeamSnapshot(teamId, result) {
 
 **Benefit:** No new object shape to maintain; getters derive from existing structures.
 
-**Deferred Fields (Not in Phase 1/2):**
+**Deferred Fields (Not in Phase 1):**
 
-The following fields from the original snapshot proposal should be deferred or removed as they require new computation:
+The following fields from the original snapshot proposal should be deferred or removed:
 
-| Field | Issue | Recommendation |
-|-------|-------|----------------|
-| `capSpace` | Derived from `salaryCap - projectedSalary` | Keep as computed in accessor, but document definition |
-| `firstApronSpace` | Derived | Same |
-| `secondApronSpace` | Derived | Same |
-| `isHardCapped` | Already in `teamResult.rules.hardCap.triggered` | Use existing |
-| `violations[]` | Already in `result.allViolations` | Use existing |
-| `warnings[]` | Not currently computed by validator | Defer to Phase 3 |
+| Field | Issue | Recommendation | Phase |
+|-------|-------|----------------|-------|
+| `capSpace` | Derived from `salaryCap - projectedSalary` | Keep as computed in accessor, but document definition first | Phase 2 |
+| `firstApronSpace` | Derived | Same | Phase 2 |
+| `secondApronSpace` | Derived | Same | Phase 2 |
+| `isOverCap` | Ambiguous flag — unclear semantics | Defer until clear definition exists | Phase 2/3 |
+| `isFirstApron` / `isAboveFirstApron` | Ambiguous flag — unclear semantics | Defer until clear definition exists | Phase 2/3 |
+| `isSecondApron` / `isAboveSecondApron` | Ambiguous flag — unclear semantics | Defer until clear definition exists | Phase 2/3 |
+| `isHardCapped` | Already in `teamResult.rules.hardCap.triggered` — explicit, safe | ✅ Use existing in Phase 1 | Phase 1 |
+| `violations[]` | Already in `result.allViolations` | Use existing | Phase 1 |
+| `warnings[]` | Not currently computed by validator | Defer to Phase 3 | Phase 3 |
+
+**Note on Ambiguous Flags:** Do not expose `isFirstApron`, `isSecondApron`, or `isOverCap` unless they are confirmed correct fields with clear meaning. Prefer explicit validator rule evaluations (e.g., `rules.hardCap.triggered`) over derived status flags.
 
 ---
 
@@ -201,7 +229,7 @@ The following fields from the original snapshot proposal should be deferred or r
 
 **Second Expert Position:** This ambiguity is a risk. Must document what's included.
 
-**AGREED — Definition Required**
+**AGREED — Definition Required + Definition Gate**
 
 **Proposed Definitions:**
 
@@ -221,7 +249,19 @@ Looking at `tradeValidator.js` and `CapImpactTiles.jsx`:
 
 **Gap Identified:** CapImpactTiles includes cap holds, but the validator's `teamTotalSalary` may not consistently include them depending on data source.
 
-**Action Item (Phase 1):** Verify that `teamTotalSalary` fed to validator includes the same components (players + dead money + cap holds) as `projectedTotal` in CapImpactTiles. Add explicit documentation to both.
+### ⚠️ DEFINITION GATE: Required Before CapImpactTiles Wiring
+
+**Before wiring CapImpactTiles to validator fields (Phase 1.6), the following MUST be completed:**
+
+| # | Acceptance Criteria | Status |
+|---|---------------------|--------|
+| **DG-1** | Confirm validator's `preTradeTeamSalary` definition includes: Players ☐ Dead Money ☐ Cap Holds ☐ | ☐ Pending |
+| **DG-2** | Confirm validator's `postTradeSalary` definition includes: Players ☐ Dead Money ☐ Cap Holds ☐ | ☐ Pending |
+| **DG-3** | Document definitions in `tradeValidator.js` header or JSDoc | ☐ Pending |
+| **DG-4** | If CapImpactTiles needs a different definition than validator provides, specify that validator must expose a **second explicit field** rather than UI recomputing | ☐ Pending |
+| **DG-5** | Document whether "likely incentives" are included or excluded | ☐ Pending |
+
+**Blocking Condition:** Phase 1.6 cannot proceed until DG-1 through DG-3 are marked complete.
 
 ---
 
@@ -367,7 +407,11 @@ Rather than generating a new `tradeSnapshot` object, create an accessor hook:
 
 /**
  * Thin accessor layer over validator result for UI consumption.
- * Does NOT recompute values — only provides structured access to existing data.
+ * 
+ * RULES:
+ * 1. Read from result.teamResults ONLY — receipt is debug/inspection only
+ * 2. Do NOT expose ambiguous flags (isFirstApron/isSecondApron) — defer to Phase 2/3
+ * 3. Prefer explicit rule evaluations over derived status flags
  */
 export function useTeamSnapshot(teamId, result) {
   if (!result || !teamId) return null;
@@ -378,45 +422,42 @@ export function useTeamSnapshot(teamId, result) {
   
   if (!teamResult) return null;
   
-  // Receipt may have additional detail if available
-  const receiptTeam = result.receipt?.teams?.find(
-    (t) => t.teamCode === teamId
-  );
+  // NOTE: Do NOT use result.receipt for Phase 1 values — receipt is debug only
   
   return {
     // Identity
     teamId: teamResult.teamId,
     teamName: teamResult.teamName,
     
-    // Pre-trade (from validator)
-    preTradeTeamSalary: teamResult.preTradeTeamSalary,
+    // Pre-trade (from validator — see Definition Gate for what this includes)
+    preTradeTeamSalary: teamResult.preTradeTeamSalary ?? 0,
     
-    // Outgoing — prefer receipt totals if available
-    outgoingBaseSalary: receiptTeam?.totals?.outgoingBase ?? teamResult.totals?.outgoingBase ?? 0,
-    outgoingMatchingSalary: receiptTeam?.totals?.outgoingMatch ?? teamResult.salaryOut ?? 0,
+    // Outgoing — from teamResults only, no receipt fallback
+    outgoingBaseSalary: teamResult.totals?.outgoingBase ?? 0,
+    outgoingMatchingSalary: teamResult.salaryOut ?? 0,
     
-    // Incoming
-    incomingBaseSalary: receiptTeam?.totals?.incomingBase ?? teamResult.totals?.incomingBase ?? 0,
-    incomingMatchingSalary: receiptTeam?.totals?.incomingMatch ?? teamResult.salaryIn ?? 0,
+    // Incoming — from teamResults only, no receipt fallback
+    incomingBaseSalary: teamResult.totals?.incomingBase ?? 0,
+    incomingMatchingSalary: teamResult.salaryIn ?? 0,
     
-    // Salary matching evaluation
+    // Salary matching evaluation (explicit rule results)
     allowableIncoming: teamResult.rules?.salaryMatching?.allowableIncoming ?? 0,
     salaryMatchingRule: teamResult.rules?.salaryMatching?.details?.ruleApplied ?? 'unknown',
     salaryMatchingFormula: teamResult.rules?.salaryMatching?.details?.formula ?? '',
     margin: teamResult.rules?.salaryMatching?.margin ?? 0,
     salaryMatchingPassed: teamResult.rules?.salaryMatching?.passed ?? false,
     
-    // Post-trade projections
+    // Post-trade projections (see Definition Gate for what this includes)
     projectedSalary: teamResult.postTradeSalary ?? 0,
     
-    // Status flags (from existing rule evaluations)
-    isOverCap: teamResult.isOverCap ?? false,
-    isAboveFirstApron: teamResult.isFirstApron ?? false,
-    isAboveSecondApron: teamResult.isSecondApron ?? false,
-    isHardCapped: teamResult.rules?.hardCap?.triggered ?? false,
+    // Hard cap rule (explicit validator fact — safe to expose)
+    hardCapTriggered: teamResult.rules?.hardCap?.triggered ?? false,
     
     // Violations (from existing)
     violations: teamResult.violations ?? [],
+    
+    // NOTE: isOverCap, isFirstApron, isSecondApron are DEFERRED to Phase 2/3
+    // These flags have unclear semantics; prefer explicit rule checks instead
   };
 }
 
@@ -431,7 +472,8 @@ export function useTradeSnapshot(result) {
     primaryViolation: result.reason ?? null,
     yearKey: result.yearKey,
     seasonKey: result.seasonKey,
-    capSettings: result.receipt?.capSettingsUsed ?? null,
+    // NOTE: capSettings from teamResults if available, receipt is fallback for debug only
+    capSettings: result.capSettings ?? result.receipt?.capSettingsUsed ?? null,
   };
 }
 ```
@@ -492,11 +534,24 @@ if (import.meta.env.DEV && snapshot) {
 3. **Phase 1.6-1.7** — Wire CapImpactTiles
 4. **Phase 1.8** — Add divergence warnings throughout
 
-### 6.2 Fallback Strategy
+### 6.2 Fallback Strategy (Pre-Validation UI)
 
-If snapshot accessor returns `null` (no result yet), components should:
-1. Show loading state OR
-2. Use local calculation with visual indicator "Pending validation..."
+If snapshot accessor returns `null` (no result yet), components **MUST**:
+
+1. **Option A:** Show explicit loading state (e.g., skeleton, spinner, "—")
+2. **Option B:** Use local calculation with **visible indicator** that value is unvalidated
+
+**Required Indicators for Option B:**
+
+| Indicator Type | Example | Acceptable |
+|----------------|---------|------------|
+| Badge | "Estimate" pill next to value | ✅ Yes |
+| Text suffix | "$12.5M (pending)" | ✅ Yes |
+| Visual styling | Dimmed, italic, or outlined | ✅ Yes |
+| Tooltip only | Hover reveals "not validated" | ❌ No — too hidden |
+| No indicator | Silent fallback | ❌ **Not Acceptable** |
+
+**Rationale:** Local calculations before validation **cannot masquerade as validated truth**. Users must be able to distinguish at a glance whether a number has been validated.
 
 ### 6.3 Testing Strategy
 
@@ -608,6 +663,8 @@ interface TradeValidatorResult {
 | **Base Salary** | The actual salary cap hit for a player — roster reality |
 | **Matching Value** | The adjusted salary used for trade matching calculations (may include BYC, poison pill, kicker adjustments) |
 | **Divergence Warning** | A DEV-only console log that fires when UI would have calculated a different value than the validator |
+| **Definition Gate** | A blocking checklist that must be completed before a field can be wired from validator to UI |
+| **Pre-Validation Indicator** | A visible UI element (badge, text, styling) that marks a value as unvalidated/estimate |
 
 ---
 
@@ -617,3 +674,4 @@ interface TradeValidatorResult {
 |---------|------|---------|
 | 1.0.0 | 2025-12-28 | Original audit |
 | 2.0.0 | 2025-12-28 | Reconciled with second expert review; reclassified items; reorganized phases; added accessor layer approach |
+| 2.1.0 | 2025-12-28 | Added Core Rules (accessor canonical source, pre-validation UI); added Definition Gate for projectedSalary; deferred ambiguous flags (isFirstApron, isSecondApron, isOverCap) |
