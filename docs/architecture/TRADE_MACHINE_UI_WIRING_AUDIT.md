@@ -424,3 +424,30 @@ All numeric values should flow from a single `tradeSnapshot` object attached to 
 | **Matching Value** | Adjusted salary used for trade matching calculations |
 | **Base Salary** | Raw salary before adjustments |
 | **Projected Salary** | Team salary after trade (pre-trade - outgoing + incoming) |
+
+---
+
+## Appendix C: Reviewer Notes (2025-12-28)
+
+**Status:** ✅ REVIEWED AND APPROVED FOR IMPLEMENTATION
+
+### Findings Verification Summary
+
+All violations (V1-V11) were verified against the current codebase:
+- **V1-V6**: Confirmed - local recomputations exist as documented
+- **V7**: Confirmed - formatting inconsistencies present
+- **V8-V11**: Confirmed - year/season key inconsistencies exist
+
+### Additional Recommendations
+
+1. **Migration/Deprecation Timeline**: Consider documenting when local recomputation paths should be removed after wiring is complete, or whether they should remain as fallbacks behind feature flags.
+
+2. **Performance Consideration**: Snapshot generation could be made opt-in (e.g., `{ includeSnapshot: true }`) for performance-sensitive validation calls that don't need UI data.
+
+3. **Cap Holds in Snapshot**: CapImpactTiles.jsx currently has complex cap holds logic (lines 40-60). The snapshot should pre-compute this to eliminate the component-level fallback logic related to V11's year/season key concerns.
+
+4. **Graceful Degradation During Migration**: During the transition period (before all components are wired), components may encounter null/undefined snapshots. The existing DEV-only divergence warning pattern (Step 6) handles this well - components should default to showing nothing or a loading state rather than falling back to local recomputation, which would defeat the purpose.
+
+### No Blocking Concerns
+
+The audit is thorough, accurate, and provides a sound implementation path. All violations are correctly identified and the prioritization is appropriate.
