@@ -77,11 +77,38 @@ const TradeTeamCard = ({
     [incomingPlayers, team?.players]
   );
 
-  // Calculate team total salary for the current year
-  const teamTotalSalary = useMemo(
-    () => getSalaryForYear(team?.players || [], yearKey),
-    [team?.players, yearKey]
-  );
+  // Use STORED teamTotalSalary from the team object (computed by useTradeMachine via capSheet payroll + dead money)
+  // This ensures TradeTeamCard uses the SAME value as the validator for salary matching calculations
+  // Fallback to getSalaryForYear ONLY if stored value is missing/0 (temporary data issue)
+  const teamTotalSalary = useMemo(() => {
+    const stored = team?.teamTotalSalary ?? team?.totalSalary ?? 0;
+    if (stored > 0) {
+      return stored;
+    }
+    // Fallback: recompute if stored is missing (should not happen in normal flow)
+    return getSalaryForYear(team?.players || [], yearKey);
+  }, [team?.teamTotalSalary, team?.totalSalary, team?.players, yearKey]);
+
+  // DEV-ONLY: Invariant check to detect teamTotalSalary divergence between stored and computed values
+  // This helps catch data issues or regressions without affecting runtime behavior
+  if (import.meta.env.DEV && team) {
+    const computed = getSalaryForYear(team?.players || [], yearKey);
+    const stored = team?.teamTotalSalary ?? team?.totalSalary ?? 0;
+    const diff = Math.abs(computed - stored);
+    if (diff >= 1) {
+      console.warn('[TradeTeamCard] teamTotalSalary DIVERGENCE DETECTED', {
+        teamId: team?.id || team?.teamId,
+        yearKey,
+        stored,
+        computed,
+        diff,
+        source:
+          stored > 0
+            ? 'stored (team.teamTotalSalary)'
+            : 'computed (getSalaryForYear)',
+      });
+    }
+  }
 
   // Memoized calculations
   const outgoingSalary = useMemo(
@@ -304,8 +331,8 @@ const TradeTeamCard = ({
                 {formatSalary(allowableIncomingNoTPE)}
               </span>
               {salaryMatchingResult?.ruleLabel && (
-                <span 
-                  className="ml-1 text-white/40" 
+                <span
+                  className="ml-1 text-white/40"
                   title={salaryMatchingResult.formulaUsed}
                   role="note"
                   aria-label={`Rule: ${salaryMatchingResult.ruleLabel}. Formula: ${salaryMatchingResult.formulaUsed}`}
