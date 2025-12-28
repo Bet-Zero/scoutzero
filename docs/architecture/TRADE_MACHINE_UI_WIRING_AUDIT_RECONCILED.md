@@ -120,14 +120,31 @@ After reviewing the existing validator output structure, the snapshot should be 
 
 **Existing Validator Outputs (from `generateTradeReceipt`):**
 
-```
-result.teamResults[i].{
-  teamId, teamName,
-  preTradeTeamSalary,
-  totals: { outgoingBase, outgoingMatch, incomingBase, incomingMatch },
-  salaryMatchingEvaluation: { allowable, actual, margin, rule, passed },
-  postTradeSalary,
-  rules: { salaryMatching, hardCap, ... }
+```typescript
+// result.teamResults[i] shape:
+interface TeamResult {
+  teamId: string;
+  teamName: string;
+  preTradeTeamSalary: number;
+  postTradeSalary: number;
+  totals: {
+    outgoingBase: number;
+    outgoingMatch: number;
+    incomingBase: number;
+    incomingMatch: number;
+  };
+  salaryMatchingEvaluation: {
+    allowable: number;
+    actual: number;
+    margin: number;
+    rule: string;
+    passed: boolean;
+  };
+  rules: {
+    salaryMatching: SalaryMatchingRule;
+    hardCap: HardCapRule;
+    // ... other rules
+  };
 }
 ```
 
@@ -523,46 +540,59 @@ If snapshot accessor returns `null` (no result yet), components should:
 
 Key paths in `result` object for UI consumption:
 
-```
-result.{
-  isLegal: boolean,
-  reason: string | null,
-  yearKey: number,
-  seasonKey: string,
+```typescript
+// Validator result shape
+interface TradeValidatorResult {
+  isLegal: boolean;
+  reason: string | null;
+  yearKey: number;
+  seasonKey: string;
   
-  teamResults[]: {
-    teamId: string,
-    teamName: string,
-    preTradeTeamSalary: number,
-    postTradeSalary: number,
-    salaryIn: number,      // Incoming with matching adjustments
-    salaryOut: number,     // Outgoing with matching adjustments
+  teamResults: Array<{
+    teamId: string;
+    teamName: string;
+    preTradeTeamSalary: number;
+    postTradeSalary: number;
+    salaryIn: number;      // Incoming with matching adjustments
+    salaryOut: number;     // Outgoing with matching adjustments
     totals: {
-      outgoingBase: number,
-      outgoingMatch: number,
-      incomingBase: number,
-      incomingMatch: number,
-    },
+      outgoingBase: number;
+      outgoingMatch: number;
+      incomingBase: number;
+      incomingMatch: number;
+    };
     rules: {
       salaryMatching: {
-        passed: boolean,
-        allowableIncoming: number,
-        margin: number,
+        passed: boolean;
+        allowableIncoming: number;
+        margin: number;
         details: {
-          ruleApplied: string,
-          formula: string,
-        }
-      },
-      hardCap: { passed, triggered, ... },
-      ...
-    },
-    violations: string[],
-  },
+          ruleApplied: string;
+          formula: string;
+        };
+      };
+      hardCap: {
+        passed: boolean;
+        triggered: boolean;
+        // ... other fields
+      };
+      // ... other rules
+    };
+    violations: string[];
+  }>;
   
   receipt: {
-    capSettingsUsed: { salaryCap, firstApron, secondApron, ... },
-    teams[]: { ... detailed receipt data ... },
-  }
+    capSettingsUsed: {
+      salaryCap: number;
+      firstApron: number;
+      secondApron: number;
+      // ... other settings
+    };
+    teams: Array<{
+      // ... detailed receipt data
+    }>;
+  };
+}
 }
 ```
 
