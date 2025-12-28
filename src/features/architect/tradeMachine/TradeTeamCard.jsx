@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { getTeamColors } from '@/shared/utils/formatting';
+import { getTeamColors, formatMillions } from '@/shared/utils/formatting';
 import {
   getSalaryForYear,
   formatPick,
@@ -353,8 +353,7 @@ const TradeTeamCard = ({
                   )
                   .map((tpe, idx) => {
                     // Format amount as $11.1M style
-                    const millions = tpe.amount / 1000000;
-                    const formattedAmount = `$${millions.toFixed(1)}M`;
+                    const formattedAmount = formatMillions(tpe.amount, 1);
                     return (
                       <span
                         key={idx}

@@ -26,6 +26,25 @@ export function formatSalary(salary) {
   return `${sign}$${absValue.toLocaleString()}`;
 }
 
+// Format numbers in millions with standard rounding to the given decimal places (default 1)
+export function formatMillions(value, decimals = 1) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) {
+    return '—';
+  }
+
+  const numeric =
+    typeof value === 'string'
+      ? Number(value.replace(/[^0-9.-]/g, ''))
+      : Number(value);
+
+  const sign = numeric < 0 ? '-' : '';
+  const absValue = Math.abs(numeric);
+  const factor = 10 ** decimals;
+  const roundedMillions = Math.round((absValue / 1_000_000) * factor) / factor;
+
+  return `${sign}$${roundedMillions.toFixed(decimals)}M`;
+}
+
 // Format currency with full dollar amounts and commas
 export function formatCurrencyFull(value) {
   if (value === null || value === undefined || value === '') return '';

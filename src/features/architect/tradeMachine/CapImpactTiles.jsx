@@ -1,7 +1,7 @@
 import React from 'react';
-import { formatSalary } from '@/shared/utils/formatting';
+import { formatMillions } from '@/shared/utils/formatting';
 import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers';
-import { getActiveUnsignedCapHoldsTotal } from '@/features/architect/utils/capHolds';
+import { getActiveUnsignedCapHoldsTotalByEndYear } from '@/features/architect/utils/capHolds';
 import { getCapSettingsForYear } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
 
 const CapImpactTiles = ({
@@ -40,7 +40,8 @@ const CapImpactTiles = ({
   const capHoldsTotal = (() => {
     // Prefer team.capHolds (canonical source)
     if (Array.isArray(team.capHolds) && team.capHolds.length > 0) {
-      return getActiveUnsignedCapHoldsTotal(team.capHolds, yearKey);
+      // yearKey is END year; use end-year-aware helper for accuracy
+      return getActiveUnsignedCapHoldsTotalByEndYear(team.capHolds, yearKey);
     }
     // Fallback to player-level cap_hold for backwards compatibility
     return playersAfterTrade.reduce((sum, player) => {
@@ -64,14 +65,12 @@ const CapImpactTiles = ({
   const firstApronSpace = firstApron - projectedTotal;
   const secondApronSpace = secondApron - projectedTotal;
 
-  const formatMoney = (amount) => formatSalary(amount);
-
   return (
     <div className="grid grid-cols-4 gap-2 text-[11px]">
       <div className="bg-[#1c1c1c] rounded p-2 text-center border border-white/10">
         <div className="text-white/70">Total Cap</div>
         <div className="text-white font-bold text-sm">
-          {formatMoney(projectedTotal)}
+          {formatMillions(projectedTotal, 1)}
         </div>
       </div>
       <div className="bg-[#1c1c1c] rounded p-2 text-center border border-white/10">
@@ -79,7 +78,7 @@ const CapImpactTiles = ({
         <div
           className={`font-bold text-sm ${capSpace < 0 ? 'text-red-400' : 'text-green-400'}`}
         >
-          {formatMoney(capSpace)}
+          {formatMillions(capSpace, 1)}
         </div>
       </div>
       <div className="bg-[#1c1c1c] rounded p-2 text-center border border-white/10">
@@ -87,7 +86,7 @@ const CapImpactTiles = ({
         <div
           className={`font-bold text-sm ${firstApronSpace < 0 ? 'text-red-400' : 'text-green-400'}`}
         >
-          {formatMoney(firstApronSpace)}
+          {formatMillions(firstApronSpace, 1)}
         </div>
       </div>
       <div className="bg-[#1c1c1c] rounded p-2 text-center border border-white/10">
@@ -95,7 +94,7 @@ const CapImpactTiles = ({
         <div
           className={`font-bold text-sm ${secondApronSpace < 0 ? 'text-red-400' : 'text-green-400'}`}
         >
-          {formatMoney(secondApronSpace)}
+          {formatMillions(secondApronSpace, 1)}
         </div>
       </div>
     </div>

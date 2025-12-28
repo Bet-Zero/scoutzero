@@ -31,6 +31,7 @@ import {
   getCapSettings,
   calculateTeamCapHit,
 } from '@/features/architect/utils/capHelpers';
+import { formatMillions } from '@/shared/utils/formatting/basicFormatting.js';
 
 export const buildSigningGuardrails = (
   rulesProfile = null,
@@ -211,22 +212,22 @@ export function useCapValidation({
         if (projectedCap > secondApron) {
           warnings.push({
             severity: 'warning',
-            message: `Team is over Second Apron in ${actionYear - 1}-${String(actionYear % 100).padStart(2, '0')} ($${(projectedCap / 1000000).toFixed(1)}M / $${(secondApron / 1000000).toFixed(1)}M)`,
+            message: `Team is over Second Apron in ${actionYear - 1}-${String(actionYear % 100).padStart(2, '0')} (${formatMillions(projectedCap, 1)} / ${formatMillions(secondApron, 1)})`,
           });
         } else if (projectedCap > firstApron) {
           warnings.push({
             severity: 'warning',
-            message: `Team is over First Apron in ${actionYear - 1}-${String(actionYear % 100).padStart(2, '0')} ($${(projectedCap / 1000000).toFixed(1)}M)`,
+            message: `Team is over First Apron in ${actionYear - 1}-${String(actionYear % 100).padStart(2, '0')} (${formatMillions(projectedCap, 1)})`,
           });
         } else if (projectedCap > tax) {
           warnings.push({
             severity: 'info',
-            message: `Team is in luxury tax in ${actionYear - 1}-${String(actionYear % 100).padStart(2, '0')} ($${(projectedCap / 1000000).toFixed(1)}M)`,
+            message: `Team is in luxury tax in ${actionYear - 1}-${String(actionYear % 100).padStart(2, '0')} (${formatMillions(projectedCap, 1)})`,
           });
         } else {
           warnings.push({
             severity: 'info',
-            message: `${actionYear - 1}-${String(actionYear % 100).padStart(2, '0')} cap: $${(projectedCap / 1000000).toFixed(1)}M committed`,
+            message: `${actionYear - 1}-${String(actionYear % 100).padStart(2, '0')} cap: ${formatMillions(projectedCap, 1)} committed`,
           });
         }
       }
@@ -306,7 +307,10 @@ export function useCapValidation({
 
     // ===== RE-SIGNING FREE AGENTS =====
     if (action === 'resign' || action === 'signNew') {
-      const currentYearCapHit = calculateTeamCapHitLocal(teamPlayers, currentYear);
+      const currentYearCapHit = calculateTeamCapHitLocal(
+        teamPlayers,
+        currentYear
+      );
       const currentCapSettings = getCapSettings(currentYear);
       const guardrails =
         contractData.guardrails ||
@@ -457,7 +461,10 @@ export function useCapValidation({
 
     // ===== SIGN AND TRADE =====
     if (action === 'signAndTrade') {
-      const currentYearCapHit = calculateTeamCapHitLocal(teamPlayers, currentYear);
+      const currentYearCapHit = calculateTeamCapHitLocal(
+        teamPlayers,
+        currentYear
+      );
       const currentCapSettings = getCapSettings(currentYear);
 
       warnings.push({
