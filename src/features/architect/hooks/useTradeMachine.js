@@ -6,9 +6,10 @@ import {
   areSamePick,
 } from '@/features/architect/utils/tradeHelpers';
 import { TeamMap } from '@/constants/teamList';
+import { toSeasonKey } from '@/features/architect/utils/seasonFormat';
 
 /* ============================
-   Helpers: numeric + payroll + season keys
+   Helpers: numeric + payroll
    ============================ */
 
 const num = (v) => {
@@ -17,9 +18,6 @@ const num = (v) => {
   const n = Number(String(v).replace(/[^0-9.-]/g, ''));
   return Number.isFinite(n) ? n : 0;
 };
-
-// Map season end-year (e.g., 2025) -> "2024-25"
-const toSeasonKey = (endYear) => `${endYear - 1}-${String(endYear).slice(-2)}`;
 
 // Baseline payroll from your cap sheet: prefer activeContracts, fallback to players.contract
 // Uses Architect contract.salariesByYear schema
@@ -208,7 +206,8 @@ export const useTradeMachine = (
       const baseTeam = TeamMap[primaryTeam];
       // Use primaryTeamData if provided (already world-aware from GMDashboard)
       // Otherwise load with world-awareness via loadWorldTeamData
-      const data = primaryTeamData || (await loadWorldTeamData(worldId, primaryTeam));
+      const data =
+        primaryTeamData || (await loadWorldTeamData(worldId, primaryTeam));
 
       if (baseTeam && data) {
         // Build team object, augment exceptions/tpes
@@ -466,7 +465,7 @@ export const useTradeMachine = (
 
     const result = {
       ...validation,
-      legal: (canOverride && forceTrade) ? true : validation.legal,
+      legal: canOverride && forceTrade ? true : validation.legal,
     };
 
     setResult(result);

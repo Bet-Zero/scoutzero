@@ -32,10 +32,10 @@ import { useArchitectModals } from './hooks/useArchitectModals';
 import { usePlayerRulesProfiles } from '@/features/architect/hooks/usePlayerRulesProfiles';
 import { useAuth } from '@/shared/hooks/useAuth';
 import capProjections from '@/features/architect/utils/capProjections';
-import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
-
-// ==== Season helpers ====
-const toSeasonKey = (endYear) => `${endYear - 1}-${String(endYear).slice(-2)}`;
+import {
+  toSeasonCode,
+  toSeasonKey,
+} from '@/features/architect/utils/seasonFormat';
 
 const seasonEndYearsFromCaps = (caps) => {
   const keys = Object.keys(caps || {});
@@ -180,8 +180,6 @@ const GMDashboard = () => {
               ))}
             </select>
           </label>
-
-
         </div>
       </div>
       {error && <p className="text-red-500 mb-2">{error}</p>}
@@ -418,7 +416,6 @@ const GMDashboard = () => {
           rulesLeagueContext={selectedRulesLeagueContext}
         />
       )}
-
     </div>
   );
 };

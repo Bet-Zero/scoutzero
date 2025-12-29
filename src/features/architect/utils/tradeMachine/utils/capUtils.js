@@ -4,16 +4,20 @@
  * Consolidated from: capHelpers.js
  */
 
+// Phase 3.1: Re-export toSeasonKey from canonical module for backwards compatibility
+// All new code should import directly from '@/features/architect/utils/seasonFormat'
+export { toSeasonKey } from '@/features/architect/utils/seasonFormat.js';
+
 /**
  * Determines if a team is at or above the first apron threshold
  * (From capHelpers.js)
  */
 export function isFirstApronTeam(team, capSettings) {
   if (!team || !capSettings) return false;
-  
+
   const teamSalary = team.totalSalary || team.teamTotalSalary || 0;
   const firstApron = capSettings.firstApron || capSettings.apron || 0;
-  
+
   return teamSalary >= firstApron;
 }
 
@@ -23,10 +27,10 @@ export function isFirstApronTeam(team, capSettings) {
  */
 export function isSecondApronTeam(team, capSettings) {
   if (!team || !capSettings) return false;
-  
+
   const teamSalary = team.totalSalary || team.teamTotalSalary || 0;
   const secondApron = capSettings.secondApron || 0;
-  
+
   return teamSalary >= secondApron;
 }
 
@@ -36,10 +40,10 @@ export function isSecondApronTeam(team, capSettings) {
  */
 export function getTeamApronStatus(team, capSettings) {
   if (!team || !capSettings) return 'UNDER_CAP';
-  
+
   const teamSalary = team.totalSalary || team.teamTotalSalary || 0;
   const { salaryCap = 0, firstApron = 0, secondApron = 0 } = capSettings;
-  
+
   if (teamSalary >= secondApron) return 'SECOND_APRON';
   if (teamSalary >= firstApron) return 'FIRST_APRON';
   if (teamSalary >= salaryCap) return 'OVER_CAP';
@@ -53,13 +57,8 @@ export function getTeamApronStatus(team, capSettings) {
  */
 export const toNum = (v) => (Number.isFinite(v) ? v : Number(v)) || 0;
 
-/**
- * Converts a year to a season key (e.g. 2025 -> "2024-25")
- * @param {number} endYear - The end year of the season
- * @returns {string} The season key
- */
-export const toSeasonKey = (endYear) =>
-  `${endYear - 1}-${String(endYear).slice(-2)}`;
+// NOTE: toSeasonKey is now re-exported from seasonFormat.js at the top of this file
+// The local definition below is REMOVED to prevent duplication
 
 /**
  * Normalizes cap settings from various input formats

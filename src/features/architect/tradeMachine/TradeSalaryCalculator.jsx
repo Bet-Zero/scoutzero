@@ -78,7 +78,9 @@ const TradeSalaryCalculator = ({
     return (
       <div className="border border-white/10 rounded-lg p-4 mt-4 bg-[#111]">
         <h3 className="font-medium mb-3">Salary Matching Calculator</h3>
-        <p className="text-white/60 text-sm">Missing cap settings or team salary data</p>
+        <p className="text-white/60 text-sm">
+          Missing cap settings or team salary data
+        </p>
       </div>
     );
   }
@@ -188,6 +190,11 @@ const TradeSalaryCalculator = ({
               </>
             )}
           </div>
+        </div>
+
+        {/* Phase 2.6: Disclaimer — validator is authoritative */}
+        <div className="mt-3 pt-3 border-t border-white/10 text-xs text-white/40 italic">
+          Exploratory tool — validator is authoritative for final trade.
         </div>
       </div>
     </div>

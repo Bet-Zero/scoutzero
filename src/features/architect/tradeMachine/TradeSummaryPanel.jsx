@@ -139,7 +139,8 @@ function TradeSummaryPanel({
 
                     return (
                       <p className="text-xs text-white/70">
-                        Incoming / Allowed: {formatCurrency(salaryIn)} /{' '}
+                        {/* Phase 2.3: These are MATCHING values for trade legality */}
+                        Matching In / Allowed: {formatCurrency(salaryIn)} /{' '}
                         {formattedAllowed}
                         {skipReason && (
                           <span className="text-white/40 ml-1">
@@ -161,19 +162,38 @@ function TradeSummaryPanel({
                     </div>
                     {incomingPlayers.length ? (
                       <div className="space-y-1">
-                        {incomingPlayers.map((p) => (
-                          <div
-                            key={p.player_id || p.id}
-                            className="flex items-center justify-between bg-white/5 px-2 py-1 rounded"
-                          >
-                            <div className="truncate">
-                              {p.name || p.fullName}
+                        {incomingPlayers.map((p) => {
+                          // Phase 2.4: Check if matching differs from base
+                          const baseSalary = p.baseSalary ?? p.salary ?? 0;
+                          const matchingValue =
+                            p.matchIncoming ?? p.matchingValue ?? baseSalary;
+                          const hasAdjustment =
+                            Math.abs(matchingValue - baseSalary) > 1;
+
+                          return (
+                            <div
+                              key={p.player_id || p.id}
+                              className="flex items-center justify-between bg-white/5 px-2 py-1 rounded"
+                            >
+                              <div className="flex items-center gap-1 truncate">
+                                {p.name || p.fullName}
+                                {/* Phase 2.4: Adjusted indicator when matching != base */}
+                                {hasAdjustment && (
+                                  <span
+                                    className="px-1 py-0.5 text-[9px] bg-purple-600/30 text-purple-300 rounded leading-none"
+                                    title={`Trade matching value differs from base salary (Base: ${formatCurrency(baseSalary)} → Match: ${formatCurrency(matchingValue)})`}
+                                  >
+                                    Adj
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-white/50 text-xs">
+                                {/* Phase 2.3: Show base salary; matching values labeled elsewhere */}
+                                {baseSalary ? formatCurrency(baseSalary) : '—'}
+                              </div>
                             </div>
-                            <div className="text-white/50">
-                              {p.salary ? formatCurrency(p.salary) : ''}
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     ) : (
                       <div className="text-xs text-white/40 italic">None</div>

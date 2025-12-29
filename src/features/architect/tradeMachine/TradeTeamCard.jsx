@@ -140,9 +140,25 @@ const TradeTeamCard = ({
     : localIncomingSalary;
   const isEstimate = !hasValidatorResult;
 
+  // Phase 2.1/2.3: Base salaries from snapshot (for UX clarity - showing both matching + base)
+  const outgoingBaseSalary = hasValidatorResult
+    ? snapshot.outgoingBaseSalary
+    : localOutgoingSalary;
+  const incomingBaseSalary = hasValidatorResult
+    ? snapshot.incomingBaseSalary
+    : localIncomingSalary;
+
+  // Phase 2.4: Determine if there's a matching adjustment (base differs from matching)
+  const hasOutgoingAdjustment =
+    hasValidatorResult && Math.abs(outgoingSalary - outgoingBaseSalary) > 1;
+  const hasIncomingAdjustment =
+    hasValidatorResult && Math.abs(incomingSalary - incomingBaseSalary) > 1;
+
   // DEV-ONLY: Outgoing salary divergence check (Phase 1.8)
   if (import.meta.env.DEV && hasValidatorResult) {
-    const diff = Math.abs(localOutgoingSalary - snapshot.outgoingMatchingSalary);
+    const diff = Math.abs(
+      localOutgoingSalary - snapshot.outgoingMatchingSalary
+    );
     if (diff > 1) {
       console.warn('[TradeTeamCard] outgoingSalary DIVERGENCE', {
         local: localOutgoingSalary,
@@ -155,7 +171,9 @@ const TradeTeamCard = ({
 
   // DEV-ONLY: Incoming salary divergence check (Phase 1.8)
   if (import.meta.env.DEV && hasValidatorResult) {
-    const diff = Math.abs(localIncomingSalary - snapshot.incomingMatchingSalary);
+    const diff = Math.abs(
+      localIncomingSalary - snapshot.incomingMatchingSalary
+    );
     if (diff > 1) {
       console.warn('[TradeTeamCard] incomingSalary DIVERGENCE', {
         local: localIncomingSalary,
@@ -207,9 +225,8 @@ const TradeTeamCard = ({
   // Phase 1: Use snapshot.allowableIncoming as source of truth (may be null when not applicable)
   // Fallback to local ONLY when no validator result (with Estimate indicator)
   const allowableIncomingNoTPE = hasValidatorResult
-    ? snapshot.allowableIncoming   // May be null when salary matching not applicable
+    ? snapshot.allowableIncoming // May be null when salary matching not applicable
     : (localSalaryMatchingResult?.allowableIncoming ?? 0);
-
 
   // Phase: Allowable Incoming N/A Consistency - use explicit applicability from snapshot
   const salaryMatchingApplicable = hasValidatorResult
@@ -222,15 +239,20 @@ const TradeTeamCard = ({
   // Phase 1: Rule label from snapshot (not local recomputation)
   const salaryMatchingRuleLabel = hasValidatorResult
     ? snapshot.salaryMatchingRule
-    : (localSalaryMatchingResult?.ruleLabel || '');
+    : localSalaryMatchingResult?.ruleLabel || '';
   const salaryMatchingFormula = hasValidatorResult
     ? snapshot.salaryMatchingFormula
-    : (localSalaryMatchingResult?.formulaUsed || '');
+    : localSalaryMatchingResult?.formulaUsed || '';
 
   // DEV-ONLY: Allowable incoming divergence check (Phase 1.8)
   // Only check when both values are numbers (skip when not applicable)
-  if (import.meta.env.DEV && hasValidatorResult && localSalaryMatchingResult && 
-      snapshot.allowableIncoming != null && localSalaryMatchingResult.allowableIncoming != null) {
+  if (
+    import.meta.env.DEV &&
+    hasValidatorResult &&
+    localSalaryMatchingResult &&
+    snapshot.allowableIncoming != null &&
+    localSalaryMatchingResult.allowableIncoming != null
+  ) {
     const diff = Math.abs(
       localSalaryMatchingResult.allowableIncoming - snapshot.allowableIncoming
     );
@@ -324,42 +346,81 @@ const TradeTeamCard = ({
         <div>
           <button
             onClick={() => setShowOutgoing((prev) => !prev)}
-            className="w-full text-left bg-[#1c1c1c] px-3 py-1.5 rounded border border-white/10 hover:border-neutral-500 text-sm flex justify-between items-center text-white/80"
+            className="w-full text-left bg-[#1c1c1c] px-3 py-1.5 rounded border border-white/10 hover:border-neutral-500 text-sm flex flex-col gap-0.5 text-white/80"
           >
-            <span>
-              Outgoing Salary: {formatSalary(outgoingSalary)}
-              {/* Phase 1: Visible indicator when using local estimate (Rule 2) */}
-              {isEstimate && sends.length > 0 && (
-                <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-amber-600/20 text-amber-400 rounded" title="Value is an estimate until trade is validated">
-                  Estimate
-                </span>
+            <div className="flex justify-between items-center w-full">
+              <span className="flex items-center gap-1">
+                {/* Phase 2.3: Explicit "Matching Value" label when showing matching-adjusted salary */}
+                Outgoing {hasOutgoingAdjustment ? 'Matching Value' : 'Salary'}:{' '}
+                {formatSalary(outgoingSalary)}
+                {/* Phase 1: Visible indicator when using local estimate (Rule 2) */}
+                {isEstimate && sends.length > 0 && (
+                  <span
+                    className="ml-1 px-1.5 py-0.5 text-[10px] bg-amber-600/20 text-amber-400 rounded"
+                    title="Value is an estimate until trade is validated"
+                  >
+                    Estimate
+                  </span>
+                )}
+                {/* Phase 2.4: Adjustment indicator */}
+                {hasOutgoingAdjustment && (
+                  <span
+                    className="px-1.5 py-0.5 text-[10px] bg-purple-600/20 text-purple-300 rounded"
+                    title="Includes BYC, poison pill, or trade kicker adjustments"
+                  >
+                    Adjusted
+                  </span>
+                )}
+              </span>
+              {showOutgoing ? (
+                <ChevronUp size={14} className="opacity-60" />
+              ) : (
+                <ChevronDown size={14} className="opacity-60" />
               )}
-            </span>
-            {showOutgoing ? (
-              <ChevronUp size={14} className="opacity-60" />
-            ) : (
-              <ChevronDown size={14} className="opacity-60" />
+            </div>
+            {/* Phase 2.3: Show base salary as secondary line when there's an adjustment */}
+            {hasOutgoingAdjustment && (
+              <span className="text-[11px] text-white/50">
+                Base Salary: {formatSalary(outgoingBaseSalary)}
+              </span>
             )}
           </button>
 
           {showOutgoing && (
             <div className="flex flex-wrap gap-2 mt-1 px-1">
-              {sends.map((p) => (
-                <span
-                  key={p.player_id || p.id}
-                  className="bg-[#2a2a2a] text-white/90 text-[11px] px-2 py-0.5 rounded-full border border-white/10 flex items-center gap-1"
-                >
-                  {p.name}
-                  {onUndoPlayerTrade && (
-                    <button
-                      onClick={() => handleUndoPlayerTrade(p)}
-                      className="ml-1 text-white/50 hover:text-white"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </span>
-              ))}
+              {sends.map((p) => {
+                // Phase 2.4: Check if this player has matching adjustment (BYC, poison pill, kicker)
+                const baseSalary = getSalaryForYear([p], yearKey);
+                const matchingValue = p.matchOutgoing ?? baseSalary;
+                const hasPlayerAdjustment =
+                  Math.abs(matchingValue - baseSalary) > 1;
+
+                return (
+                  <span
+                    key={p.player_id || p.id}
+                    className="bg-[#2a2a2a] text-white/90 text-[11px] px-2 py-0.5 rounded-full border border-white/10 flex items-center gap-1"
+                  >
+                    {p.name}
+                    {/* Phase 2.4: Player-level adjustment indicator */}
+                    {hasPlayerAdjustment && (
+                      <span
+                        className="px-1 py-0.5 text-[9px] bg-purple-600/30 text-purple-300 rounded leading-none"
+                        title={`Base: ${formatSalary(baseSalary)} → Match: ${formatSalary(matchingValue)}`}
+                      >
+                        Adj
+                      </span>
+                    )}
+                    {onUndoPlayerTrade && (
+                      <button
+                        onClick={() => handleUndoPlayerTrade(p)}
+                        className="ml-1 text-white/50 hover:text-white"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </span>
+                );
+              })}
               {picks
                 .filter((p) => p.fromTeamId === team.id)
                 .map((p) => (
@@ -378,42 +439,81 @@ const TradeTeamCard = ({
         <div>
           <button
             onClick={() => setShowIncoming((prev) => !prev)}
-            className="w-full text-left bg-[#1c1c1c] px-3 py-1.5 rounded border border-white/10 hover:border-neutral-500 text-sm flex justify-between items-center text-white/80"
+            className="w-full text-left bg-[#1c1c1c] px-3 py-1.5 rounded border border-white/10 hover:border-neutral-500 text-sm flex flex-col gap-0.5 text-white/80"
           >
-            <span>
-              Incoming Salary: {formatSalary(incomingSalary)}
-              {/* Phase 1: Visible indicator when using local estimate (Rule 2) */}
-              {isEstimate && incomingPlayers.length > 0 && (
-                <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-amber-600/20 text-amber-400 rounded" title="Value is an estimate until trade is validated">
-                  Estimate
-                </span>
+            <div className="flex justify-between items-center w-full">
+              <span className="flex items-center gap-1">
+                {/* Phase 2.3: Explicit "Matching Value" label when showing matching-adjusted salary */}
+                Incoming {hasIncomingAdjustment ? 'Matching Value' : 'Salary'}:{' '}
+                {formatSalary(incomingSalary)}
+                {/* Phase 1: Visible indicator when using local estimate (Rule 2) */}
+                {isEstimate && incomingPlayers.length > 0 && (
+                  <span
+                    className="ml-1 px-1.5 py-0.5 text-[10px] bg-amber-600/20 text-amber-400 rounded"
+                    title="Value is an estimate until trade is validated"
+                  >
+                    Estimate
+                  </span>
+                )}
+                {/* Phase 2.4: Adjustment indicator */}
+                {hasIncomingAdjustment && (
+                  <span
+                    className="px-1.5 py-0.5 text-[10px] bg-purple-600/20 text-purple-300 rounded"
+                    title="Includes BYC, poison pill, or trade kicker adjustments"
+                  >
+                    Adjusted
+                  </span>
+                )}
+              </span>
+              {showIncoming ? (
+                <ChevronUp size={14} className="opacity-60" />
+              ) : (
+                <ChevronDown size={14} className="opacity-60" />
               )}
-            </span>
-            {showIncoming ? (
-              <ChevronUp size={14} className="opacity-60" />
-            ) : (
-              <ChevronDown size={14} className="opacity-60" />
+            </div>
+            {/* Phase 2.3: Show base salary as secondary line when there's an adjustment */}
+            {hasIncomingAdjustment && (
+              <span className="text-[11px] text-white/50">
+                Base Salary: {formatSalary(incomingBaseSalary)}
+              </span>
             )}
           </button>
 
           {showIncoming && (
             <div className="flex flex-wrap gap-2 mt-1 px-1">
-              {incomingPlayers.map((p) => (
-                <span
-                  key={p.player_id || p.id}
-                  className="bg-[#2a2a2a] text-white/90 text-[11px] px-2 py-0.5 rounded-full border border-white/10 flex items-center gap-1"
-                >
-                  {p.name}
-                  {onUndoPlayerTrade && (
-                    <button
-                      onClick={() => handleUndoPlayerTrade(p)}
-                      className="ml-1 text-white/50 hover:text-white"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </span>
-              ))}
+              {incomingPlayers.map((p) => {
+                // Phase 2.4: Check if this player has matching adjustment (BYC, poison pill, kicker)
+                const baseSalary = getSalaryForYear([p], yearKey);
+                const matchingValue = p.matchIncoming ?? baseSalary;
+                const hasPlayerAdjustment =
+                  Math.abs(matchingValue - baseSalary) > 1;
+
+                return (
+                  <span
+                    key={p.player_id || p.id}
+                    className="bg-[#2a2a2a] text-white/90 text-[11px] px-2 py-0.5 rounded-full border border-white/10 flex items-center gap-1"
+                  >
+                    {p.name}
+                    {/* Phase 2.4: Player-level adjustment indicator */}
+                    {hasPlayerAdjustment && (
+                      <span
+                        className="px-1 py-0.5 text-[9px] bg-purple-600/30 text-purple-300 rounded leading-none"
+                        title={`Base: ${formatSalary(baseSalary)} → Match: ${formatSalary(matchingValue)}`}
+                      >
+                        Adj
+                      </span>
+                    )}
+                    {onUndoPlayerTrade && (
+                      <button
+                        onClick={() => handleUndoPlayerTrade(p)}
+                        className="ml-1 text-white/50 hover:text-white"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </span>
+                );
+              })}
               {incomingPicks.map((p) => (
                 <span
                   key={`${p.year}-${p.round}-${p.via || ''}`}
@@ -429,13 +529,16 @@ const TradeTeamCard = ({
             <div>
               Allowable Incoming:{' '}
               <span className="font-semibold text-white/80">
-                {allowableIncomingNoTPE != null 
-                  ? formatSalary(allowableIncomingNoTPE) 
+                {allowableIncomingNoTPE != null
+                  ? formatSalary(allowableIncomingNoTPE)
                   : '—'}
               </span>
               {/* Phase 1: Visible indicator when using local estimate (Rule 2) */}
               {isEstimate && (
-                <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-amber-600/20 text-amber-400 rounded" title="Value is an estimate until trade is validated">
+                <span
+                  className="ml-1 px-1.5 py-0.5 text-[10px] bg-amber-600/20 text-amber-400 rounded"
+                  title="Value is an estimate until trade is validated"
+                >
                   Estimate
                 </span>
               )}
@@ -443,16 +546,18 @@ const TradeTeamCard = ({
                   NOT displayed in UI per Phase 1 requirements. The "—" dash display is sufficient
                   to indicate that salary matching is not applicable. */}
               {/* Show rule label only when applicable (no skipReason) and rule is meaningful */}
-              {!salaryMatchingSkipReason && salaryMatchingRuleLabel && salaryMatchingRuleLabel !== 'unknown' && (
-                <span
-                  className="ml-1 text-white/40"
-                  title={salaryMatchingFormula}
-                  role="note"
-                  aria-label={`Rule: ${salaryMatchingRuleLabel}. Formula: ${salaryMatchingFormula}`}
-                >
-                  ({salaryMatchingRuleLabel})
-                </span>
-              )}
+              {!salaryMatchingSkipReason &&
+                salaryMatchingRuleLabel &&
+                salaryMatchingRuleLabel !== 'unknown' && (
+                  <span
+                    className="ml-1 text-white/40"
+                    title={salaryMatchingFormula}
+                    role="note"
+                    aria-label={`Rule: ${salaryMatchingRuleLabel}. Formula: ${salaryMatchingFormula}`}
+                  >
+                    ({salaryMatchingRuleLabel})
+                  </span>
+                )}
             </div>
             {team?.tradeExceptions?.length > 0 && (
               <div className="flex gap-2 items-center">

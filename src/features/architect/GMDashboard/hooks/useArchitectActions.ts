@@ -188,8 +188,6 @@ interface OverrideMetadata {
   overrideTimestamp: string;
 }
 
-
-
 /** Free agent type extending ArchitectPlayer */
 interface FreeAgent extends ArchitectPlayer {
   previousSalary: number;
@@ -260,7 +258,10 @@ export interface UseArchitectActionsReturn {
     accepted: boolean,
     overrideMetadata?: OverrideMetadata | null
   ) => void;
-  handleRenounceRights: (player: ArchitectPlayer, overrideMetadata?: OverrideMetadata | null) => void;
+  handleRenounceRights: (
+    player: ArchitectPlayer,
+    overrideMetadata?: OverrideMetadata | null
+  ) => void;
   handleUpdateRoster: (updatedCapSheet: CapSheet) => void;
   handleResetCapSheet: () => void;
 
@@ -269,8 +270,8 @@ export interface UseArchitectActionsReturn {
 }
 
 // ==== Season helpers ====
-const toSeasonKey = (endYear: number): string =>
-  `${endYear - 1}-${String(endYear).slice(-2)}`;
+// Phase 3.1: Use canonical toSeasonKey from seasonFormat
+import { toSeasonKey } from '@/features/architect/utils/seasonFormat';
 
 // Helper to ensure contract has proper structure
 const ensureContractStructure = (
@@ -375,7 +376,7 @@ export function useArchitectActions({
           mutationType,
           payload,
         });
-        
+
         if (result.success) {
           console.log(`✅ Saved ${mutationType}!`, result);
           toast.success('Saved changes');
@@ -553,7 +554,9 @@ export function useArchitectActions({
           if (!player.playerId) {
             console.error('Trade missing playerId', { player, team });
             toast.error('Cannot save trade: Player ID missing');
-            throw new Error(`Trade missing playerId for ${player.name || 'unknown'}`);
+            throw new Error(
+              `Trade missing playerId for ${player.name || 'unknown'}`
+            );
           }
         }
       }
@@ -659,7 +662,7 @@ export function useArchitectActions({
       if (!idToSign) {
         console.error('Sign missing playerId', { player: playerObj });
         toast.error('Cannot save: Player ID missing');
-        throw new Error("Sign missing playerId");
+        throw new Error('Sign missing playerId');
       }
 
       persistMutation('signFreeAgent', {
@@ -689,7 +692,10 @@ export function useArchitectActions({
   // Shared helper for renounce confirmation and execution
   // Now directly updates teamCapSheet instead of using capSheetState
   const confirmAndRenounceRights = useCallback(
-    (playerOrHold: ArchitectPlayer | CapHold, overrideMetadata?: OverrideMetadata | null): void => {
+    (
+      playerOrHold: ArchitectPlayer | CapHold,
+      overrideMetadata?: OverrideMetadata | null
+    ): void => {
       const playerName =
         (playerOrHold as ArchitectPlayer).displayName ||
         (playerOrHold as ArchitectPlayer).name ||
@@ -726,7 +732,10 @@ export function useArchitectActions({
               if (updated.contract?.birdRights) {
                 updated.contract = {
                   ...updated.contract,
-                  birdRights: { ...updated.contract.birdRights, status: 'None' },
+                  birdRights: {
+                    ...updated.contract.birdRights,
+                    status: 'None',
+                  },
                 };
               }
               return updated;
@@ -757,7 +766,7 @@ export function useArchitectActions({
         if (!idToRenounce) {
           console.error('Renounce missing playerId');
           toast.error('Cannot save: Player ID missing');
-          throw new Error("Renounce missing playerId");
+          throw new Error('Renounce missing playerId');
         }
 
         persistMutation('renounceRights', {
@@ -944,7 +953,7 @@ export function useArchitectActions({
       if (!playerId) {
         console.error('Extend player missing playerId', { player });
         toast.error('Cannot save: Player ID missing');
-        throw new Error("Extend player missing playerId");
+        throw new Error('Extend player missing playerId');
       }
 
       persistMutation('extendPlayer', {
@@ -961,7 +970,8 @@ export function useArchitectActions({
   // handleWaiveContract - directly updates teamCapSheet
   const handleWaiveContract = useCallback(
     (player: ArchitectPlayer, options: WaiveOptions): void => {
-      const { stretch, buyout, buyoutAmount, overrideUsed, overrideReasons } = options;
+      const { stretch, buyout, buyoutAmount, overrideUsed, overrideReasons } =
+        options;
       const confirmMsg = stretch
         ? 'Waive and stretch this player?'
         : 'Waive this player?';
@@ -1038,7 +1048,7 @@ export function useArchitectActions({
       if (!playerId) {
         console.error('Waive missing playerId', { player });
         toast.error('Cannot save: Player ID missing');
-        throw new Error("Waive missing playerId");
+        throw new Error('Waive missing playerId');
       }
 
       persistMutation('waivePlayer', {
@@ -1049,7 +1059,13 @@ export function useArchitectActions({
         isGracePeriod: false, // Default, UI doesn't currently expose this
       });
     },
-    [currentYear, setTeamCapSheet, closeContractModal, teamCode, persistMutation]
+    [
+      currentYear,
+      setTeamCapSheet,
+      closeContractModal,
+      teamCode,
+      persistMutation,
+    ]
   );
 
   // handleOptionDecision - directly updates teamCapSheet and manages cap holds
@@ -1185,7 +1201,7 @@ export function useArchitectActions({
       if (!playerId) {
         console.error('Option decision missing playerId', { player });
         toast.error('Cannot save: Player ID missing');
-        throw new Error("Option decision missing playerId");
+        throw new Error('Option decision missing playerId');
       }
 
       persistMutation('optionDecision', {
@@ -1195,11 +1211,20 @@ export function useArchitectActions({
         targetYear,
       });
     },
-    [currentYear, setTeamCapSheet, closeContractModal, teamCode, persistMutation]
+    [
+      currentYear,
+      setTeamCapSheet,
+      closeContractModal,
+      teamCode,
+      persistMutation,
+    ]
   );
 
   const handleRenounceRights = useCallback(
-    (player: ArchitectPlayer, overrideMetadata?: OverrideMetadata | null): void => {
+    (
+      player: ArchitectPlayer,
+      overrideMetadata?: OverrideMetadata | null
+    ): void => {
       confirmAndRenounceRights(player, overrideMetadata);
       closeContractModal();
     },
