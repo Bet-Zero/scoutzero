@@ -34,8 +34,12 @@ import {
  * ================
  * Version bumped for Phase 1: Legality Correctness (TRADE_MACHINE_UI_WIRING_AUDIT v2.1.0)
  * 
- * DEFINITION GATE (Phase 1.6-1.7 preparation)
+ * DEFINITION GATE COMPLETION (Phase 1.6-1.7)
  * -------------------------------------------
+ * DG-1: preTradeTeamSalary includes: Players [x] Dead Money [x] Cap Holds [ ] Likely Incentives [ ]
+ * DG-2: postTradeSalary includes: Players [x] Dead Money [x] Cap Holds [ ] Likely Incentives [ ]
+ * DG-3: Definitions documented in this header block [x]
+ * 
  * The following fields are used by the UI for cap impact calculations.
  * Before wiring CapImpactTiles to these values, confirm these definitions are correct.
  * 

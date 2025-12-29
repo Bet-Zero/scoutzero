@@ -316,6 +316,7 @@ const TradeTeamCard = ({
         sends={sends}
         incomingPlayers={incomingPlayers}
         yearKey={yearKey}
+        snapshot={snapshot}
       />
 
       <div className="space-y-1">
