@@ -21,6 +21,8 @@ import { getCapHitForSeason } from '@/features/architect/utils/tradeMachine/util
 import { toSeasonKey } from '@/features/architect/utils/seasonUtils';
 import { getSalaryMatchingResult } from '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules.js';
 import { getCapSettingsForYear } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
+// Phase 1: Accessor hook for validator result consumption (TRADE_MACHINE_UI_WIRING_AUDIT v2.1.0)
+import { useTeamSnapshot } from '@/features/architect/hooks/useTradeMachineSnapshot';
 
 const TradeTeamCard = ({
   team,
@@ -39,6 +41,9 @@ const TradeTeamCard = ({
   onRemove,
   onApplyTradeException,
   onEditContract,
+  // Phase 1: Accept validator result for accessor hook wiring
+  validationResult = null,
+  teamIndex = null,
 }) => {
   const [activeTab, setActiveTab] = useState('players');
   const [editingTeam, setEditingTeam] = useState(false);
@@ -110,16 +115,56 @@ const TradeTeamCard = ({
     }
   }
 
-  // Memoized calculations
-  const outgoingSalary = useMemo(
+  // Phase 1: Get snapshot from validator result (golden source of truth)
+  // RULE: For legality-affecting numbers, use snapshot values; do NOT recompute locally
+  const snapshot = useTeamSnapshot(team?.id, validationResult);
+  const hasValidatorResult = snapshot !== null;
+
+  // Phase 1: Outgoing/Incoming salaries come from validator snapshot
+  // Fallback to local calculation ONLY when validator hasn't run yet (with visible indicator)
+  const localOutgoingSalary = useMemo(
     () => getSalaryForYear(sends, yearKey),
     [sends, yearKey]
   );
-
-  const incomingSalary = useMemo(
+  const localIncomingSalary = useMemo(
     () => getSalaryForYear(incomingPlayers, yearKey),
     [incomingPlayers, yearKey]
   );
+
+  // Use snapshot values when available, fallback to local with Estimate indicator
+  const outgoingSalary = hasValidatorResult
+    ? snapshot.outgoingMatchingSalary
+    : localOutgoingSalary;
+  const incomingSalary = hasValidatorResult
+    ? snapshot.incomingMatchingSalary
+    : localIncomingSalary;
+  const isEstimate = !hasValidatorResult;
+
+  // DEV-ONLY: Outgoing salary divergence check (Phase 1.8)
+  if (import.meta.env.DEV && hasValidatorResult) {
+    const diff = Math.abs(localOutgoingSalary - snapshot.outgoingMatchingSalary);
+    if (diff > 1) {
+      console.warn('[TradeTeamCard] outgoingSalary DIVERGENCE', {
+        local: localOutgoingSalary,
+        snapshot: snapshot.outgoingMatchingSalary,
+        diff,
+        teamId: team?.id,
+      });
+    }
+  }
+
+  // DEV-ONLY: Incoming salary divergence check (Phase 1.8)
+  if (import.meta.env.DEV && hasValidatorResult) {
+    const diff = Math.abs(localIncomingSalary - snapshot.incomingMatchingSalary);
+    if (diff > 1) {
+      console.warn('[TradeTeamCard] incomingSalary DIVERGENCE', {
+        local: localIncomingSalary,
+        snapshot: snapshot.incomingMatchingSalary,
+        diff,
+        teamId: team?.id,
+      });
+    }
+  }
 
   const { primary } = useMemo(() => getTeamColors(team?.id) || {}, [team?.id]);
 
@@ -143,24 +188,63 @@ const TradeTeamCard = ({
     [team]
   );
 
-  // Use unified salary matching rules for allowable incoming calculation
-  // This ensures UI displays exactly what the validator uses
-  const salaryMatchingResult = useMemo(() => {
+  // Phase 1: Allowable incoming from validator snapshot (golden number)
+  // Local calculation retained ONLY for DEV divergence warning, not for display
+  const localSalaryMatchingResult = useMemo(() => {
     if (!hasTeam || !capSettings) return null;
 
     return getSalaryMatchingResult({
       teamTotalSalary,
-      outgoingSalary,
+      outgoingSalary: localOutgoingSalary,
       capSettings: {
         salaryCap: capSettings.salaryCap || capSettings.cap || 0,
         firstApron: capSettings.firstApron || 0,
         secondApron: capSettings.secondApron || 0,
       },
     });
-  }, [hasTeam, teamTotalSalary, outgoingSalary, capSettings]);
+  }, [hasTeam, teamTotalSalary, localOutgoingSalary, capSettings]);
 
-  // Get allowable incoming from unified rules (excluding TPEs)
-  const allowableIncomingNoTPE = salaryMatchingResult?.allowableIncoming || 0;
+  // Phase 1: Use snapshot.allowableIncoming as source of truth (may be null when not applicable)
+  // Fallback to local ONLY when no validator result (with Estimate indicator)
+  const allowableIncomingNoTPE = hasValidatorResult
+    ? snapshot.allowableIncoming   // May be null when salary matching not applicable
+    : (localSalaryMatchingResult?.allowableIncoming ?? 0);
+
+
+  // Phase: Allowable Incoming N/A Consistency - use explicit applicability from snapshot
+  const salaryMatchingApplicable = hasValidatorResult
+    ? snapshot.salaryMatchingApplicable
+    : true;
+  const salaryMatchingSkipReason = hasValidatorResult
+    ? snapshot.salaryMatchingSkipReason
+    : null;
+
+  // Phase 1: Rule label from snapshot (not local recomputation)
+  const salaryMatchingRuleLabel = hasValidatorResult
+    ? snapshot.salaryMatchingRule
+    : (localSalaryMatchingResult?.ruleLabel || '');
+  const salaryMatchingFormula = hasValidatorResult
+    ? snapshot.salaryMatchingFormula
+    : (localSalaryMatchingResult?.formulaUsed || '');
+
+  // DEV-ONLY: Allowable incoming divergence check (Phase 1.8)
+  // Only check when both values are numbers (skip when not applicable)
+  if (import.meta.env.DEV && hasValidatorResult && localSalaryMatchingResult && 
+      snapshot.allowableIncoming != null && localSalaryMatchingResult.allowableIncoming != null) {
+    const diff = Math.abs(
+      localSalaryMatchingResult.allowableIncoming - snapshot.allowableIncoming
+    );
+    if (diff > 1) {
+      console.warn('[TradeTeamCard] allowableIncoming DIVERGENCE', {
+        local: localSalaryMatchingResult.allowableIncoming,
+        snapshot: snapshot.allowableIncoming,
+        diff,
+        teamId: team?.id,
+        localRule: localSalaryMatchingResult.ruleLabel,
+        snapshotRule: snapshot.salaryMatchingRule,
+      });
+    }
+  }
 
   const tpeEligiblePlayers = useMemo(() => {
     if (!hasTeam) return [];
@@ -241,7 +325,15 @@ const TradeTeamCard = ({
             onClick={() => setShowOutgoing((prev) => !prev)}
             className="w-full text-left bg-[#1c1c1c] px-3 py-1.5 rounded border border-white/10 hover:border-neutral-500 text-sm flex justify-between items-center text-white/80"
           >
-            <span>Outgoing Salary: {formatSalary(outgoingSalary)}</span>
+            <span>
+              Outgoing Salary: {formatSalary(outgoingSalary)}
+              {/* Phase 1: Visible indicator when using local estimate (Rule 2) */}
+              {isEstimate && sends.length > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-amber-600/20 text-amber-400 rounded" title="Value is an estimate until trade is validated">
+                  Estimate
+                </span>
+              )}
+            </span>
             {showOutgoing ? (
               <ChevronUp size={14} className="opacity-60" />
             ) : (
@@ -287,7 +379,15 @@ const TradeTeamCard = ({
             onClick={() => setShowIncoming((prev) => !prev)}
             className="w-full text-left bg-[#1c1c1c] px-3 py-1.5 rounded border border-white/10 hover:border-neutral-500 text-sm flex justify-between items-center text-white/80"
           >
-            <span>Incoming Salary: {formatSalary(incomingSalary)}</span>
+            <span>
+              Incoming Salary: {formatSalary(incomingSalary)}
+              {/* Phase 1: Visible indicator when using local estimate (Rule 2) */}
+              {isEstimate && incomingPlayers.length > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-amber-600/20 text-amber-400 rounded" title="Value is an estimate until trade is validated">
+                  Estimate
+                </span>
+              )}
+            </span>
             {showIncoming ? (
               <ChevronUp size={14} className="opacity-60" />
             ) : (
@@ -328,16 +428,28 @@ const TradeTeamCard = ({
             <div>
               Allowable Incoming:{' '}
               <span className="font-semibold text-white/80">
-                {formatSalary(allowableIncomingNoTPE)}
+                {allowableIncomingNoTPE != null 
+                  ? formatSalary(allowableIncomingNoTPE) 
+                  : '—'}
               </span>
-              {salaryMatchingResult?.ruleLabel && (
+              {/* Phase 1: Visible indicator when using local estimate (Rule 2) */}
+              {isEstimate && (
+                <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-amber-600/20 text-amber-400 rounded" title="Value is an estimate until trade is validated">
+                  Estimate
+                </span>
+              )}
+              {/* NOTE: Skip reason labels (e.g., HARD_CAP_SKIP, TPE_ABSORPTION) are intentionally
+                  NOT displayed in UI per Phase 1 requirements. The "—" dash display is sufficient
+                  to indicate that salary matching is not applicable. */}
+              {/* Show rule label only when applicable (no skipReason) and rule is meaningful */}
+              {!salaryMatchingSkipReason && salaryMatchingRuleLabel && salaryMatchingRuleLabel !== 'unknown' && (
                 <span
                   className="ml-1 text-white/40"
-                  title={salaryMatchingResult.formulaUsed}
+                  title={salaryMatchingFormula}
                   role="note"
-                  aria-label={`Rule: ${salaryMatchingResult.ruleLabel}. Formula: ${salaryMatchingResult.formulaUsed}`}
+                  aria-label={`Rule: ${salaryMatchingRuleLabel}. Formula: ${salaryMatchingFormula}`}
                 >
-                  ({salaryMatchingResult.ruleLabel})
+                  ({salaryMatchingRuleLabel})
                 </span>
               )}
             </div>

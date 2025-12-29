@@ -85,6 +85,7 @@ hooks/
   useCapValidation.js
   usePlayerRulesProfiles.js
   useTradeMachine.js
+  useTradeMachineSnapshot.js
 offseason/
   DraftPickTracker/
     DraftPickTracker.jsx
@@ -259,5 +260,5 @@ utils/
 ```
 
 ---
-*Generated on: 2025-12-27T08:55:14.740Z*
+*Generated on: 2025-12-29T06:29:40.481Z*
 *Auto-updated by: npm run docs*

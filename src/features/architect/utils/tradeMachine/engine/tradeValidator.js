@@ -29,8 +29,42 @@ import {
   CAP_SETTINGS_VERSION,
 } from '../utils/capSettingsProvider.js';
 
-// Trade Receipt Validator Version - bumped for Phase 4 cap settings integration
-export const TRADE_VALIDATOR_VERSION = '1.1.0';
+/**
+ * TRADE VALIDATOR
+ * ================
+ * Version bumped for Phase 1: Legality Correctness (TRADE_MACHINE_UI_WIRING_AUDIT v2.1.0)
+ * 
+ * DEFINITION GATE (Phase 1.6-1.7 preparation)
+ * -------------------------------------------
+ * The following fields are used by the UI for cap impact calculations.
+ * Before wiring CapImpactTiles to these values, confirm these definitions are correct.
+ * 
+ * preTradeTeamSalary (aka teamTotalSalary):
+ * - Source: team.team.teamTotalSalary (passed in from useTradeMachine hook)
+ * - Computed in: useTradeMachine.js via payrollForYearFromCapSheet() + deadMoneyForYear()
+ * - INCLUDES:
+ *   ☑ Active player contracts (capHit from contract.salariesByYear)
+ *   ☑ Dead money (from waivedContracts, stretchHistory, or flat deadMoney map)
+ *   ☐ Cap holds (NOT included by default — may cause divergence with CapImpactTiles)
+ *   ☐ Likely incentives (NOT explicitly handled)
+ * 
+ * postTradeSalary (aka projectedSalary):
+ * - Source: computed in validateTrade() as teamTotalSalary - salaryOut + salaryIn
+ * - FORMULA: preTradeTeamSalary - outgoingMatchingSalary + incomingMatchingSalary
+ * - INCLUDES: Same components as preTradeTeamSalary, adjusted for trade
+ * 
+ * salaryOut / salaryIn:
+ * - Source: computed from player.matchOutgoing / player.matchIncoming
+ * - These are MATCHING values (with BYC, poison pill, trade kicker adjustments)
+ * - NOT the same as base salary
+ * 
+ * ⚠️ KNOWN GAP: CapImpactTiles.jsx computes capHoldsTotal separately.
+ *    If cap holds are significant, CapImpactTiles may show different numbers
+ *    than validator's projectedSalary. This must be resolved before Phase 1.6.
+ */
+
+// Trade Receipt Validator Version - bumped for Phase 1 UI wiring / Phase 4 cap settings
+export const TRADE_VALIDATOR_VERSION = '1.2.0';
 
 // Create wrapped versions with performance monitoring and caching
 const baseValidators = {
@@ -368,6 +402,22 @@ export function validateTrade({
   const teamResults = teamsWithAssets.map((team, index) => {
     const teamId = team.teamId || team.team?.teamId || team.team?.id || `team-${index}`;
     const teamName = team.team?.teamName || team.team?.name || team.team?.nickname || `Team ${index}`;
+
+    // DEV: Definition Gate salary breakdown verification (Phase 1.6-1.7 prep)
+    // This log helps verify what preTradeTeamSalary and postTradeSalary actually include
+    // ONLY log first team to avoid console spam
+    if (import.meta.env.DEV && index === 0) {
+      console.log('[Definition Gate] Team salary breakdown', {
+        team: teamName,
+        preTradeTeamSalary: team.teamTotalSalary,
+        salaryOut: team.salaryOut,
+        salaryIn: team.salaryIn,
+        postTradeSalary: team.projectedSalary,
+        // Note: capHolds are NOT included in teamTotalSalary by default
+        // CapImpactTiles may show different numbers if it adds cap holds separately
+        formula: `${team.teamTotalSalary} - ${team.salaryOut} + ${team.salaryIn} = ${team.projectedSalary}`,
+      });
+    }
 
     // Run individual validation rules
     const salaryMatchingResult = validators.validateSalaryMatching(team, context);

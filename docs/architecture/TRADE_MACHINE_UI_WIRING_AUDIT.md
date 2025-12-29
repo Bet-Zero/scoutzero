@@ -40,8 +40,8 @@ This audit identifies every numeric value shown in the Trade Machine UI, documen
 | **Incoming Salary** | 119-122 | `useMemo → getSalaryForYear(incomingPlayers, yearKey)` | Local recomputation | `teamResult.salaryIn` | ❌ **SHOULD USE VALIDATOR** |
 | **Allowable Incoming** | 148-163 | `getSalaryMatchingResult({...})` | Uses unified rules | `teamResult.rules.salaryMatching.allowableIncoming` | ✅ **USES UNIFIED RULES** |
 | **Rule Label** | 334-341 | `salaryMatchingResult?.ruleLabel` | From unified rules | `teamResult.rules.salaryMatching.details.ruleApplied` | ✅ CORRECT |
-| **Players Count** | 126-128 | `(team?.players?.length || 0) - sends.length + incomingPlayers.length` | Local calculation | N/A (display only) | ℹ️ Pure display |
-| **Picks Count** | 132-134 | `(team?.picks?.length || 0) - picks.length + incomingPicks.length` | Local calculation | N/A (display only) | ℹ️ Pure display |
+| **Players Count** | 126-128 | `(team?.players?.length ?? 0) - sends.length + incomingPlayers.length` | Local calculation | N/A (display only) | ℹ️ Pure display |
+| **Picks Count** | 132-134 | `(team?.picks?.length ?? 0) - picks.length + incomingPicks.length` | Local calculation | N/A (display only) | ℹ️ Pure display |
 | **TPE Amounts** | 356-357 | `formatMillions(tpe.amount, 1)` | Direct from team data | `team.tradeExceptions[].amount` | ✅ CORRECT |
 
 ### 2.2 CapImpactTiles.jsx
@@ -384,6 +384,7 @@ describe('Trade Snapshot Wiring', () => {
 ## 7. Summary
 
 ### Current State
+
 - **TradeReceiptPanel**: ✅ Already wired to validator output (debug panel)
 - **TradeSummaryPanel**: ✅ Uses `result.teamResults.calculations`
 - **TradeTeamCard**: ❌ Recomputes outgoing/incoming locally
@@ -391,9 +392,11 @@ describe('Trade Snapshot Wiring', () => {
 - **useTradeMachine**: ❌ Recomputes salaryOut in useMemo
 
 ### Target State
+
 All numeric values should flow from a single `tradeSnapshot` object attached to the validation result. UI components should only format and display, never recompute.
 
 ### Risk Mitigation
+
 - Keep existing calculations as DEV-only divergence warnings
 - Gradual rollout: wire one component at a time
 - Add integration tests to catch regressions

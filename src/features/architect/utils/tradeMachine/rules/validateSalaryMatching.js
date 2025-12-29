@@ -47,6 +47,9 @@ export function validateSalaryMatching(team, context = {}) {
   if (!team || typeof team !== 'object' || Object.keys(team).length === 0) {
     return {
       passed: false,
+      applicable: false,
+      skipReason: 'INVALID_INPUT',
+      allowableIncoming: null,
       violations: ['Invalid team data provided for salary matching validation'],
       details: {
         ruleApplied: 'INVALID_INPUT',
@@ -60,6 +63,9 @@ export function validateSalaryMatching(team, context = {}) {
   if (team.hardCapped === true || team.team?.hardCapTriggered) {
     return {
       passed: true,
+      applicable: false,
+      skipReason: 'HARD_CAP_SKIP',
+      allowableIncoming: null,
       violations: [],
       message: 'Skipped for hard-capped team',
       skipped: true,
@@ -146,10 +152,24 @@ export function validateSalaryMatching(team, context = {}) {
         `FA Exception bucket insufficient (${bucketSize} remaining)`
       );
     }
-    // FA exception case
-    allowableIncoming = bucket ? bucket.remaining || 0 : 0;
-    ruleApplied = 'FA_EXCEPTION';
-    formulaUsed = `bucket.remaining (${team.bucketType})`;
+    // FA exception bypasses regular salary matching - return early with explicit non-applicable state
+    return {
+      passed: violations.length === 0,
+      applicable: false,
+      skipReason: 'FA_EXCEPTION',
+      allowableIncoming: null,
+      salaryIn,
+      salaryOut,
+      difference: salaryIn - salaryOut,
+      message: violations.length ? violations[0] : 'FA exception absorption validated',
+      violations,
+      details: {
+        ruleApplied: 'FA_EXCEPTION',
+        formulaUsed: `bucket.remaining (${team.bucketType})`,
+        bucketRemaining: bucket ? bucket.remaining || 0 : 0,
+        capSettingsSource: 'N/A (FA exception bypass)',
+      },
+    };
   }
 
   // Check if team is using TPEs to cover incoming salary
@@ -163,10 +183,13 @@ export function validateSalaryMatching(team, context = {}) {
   if (appliedTPEs.length > 0 && totalTPEAmount >= salaryIn) {
     const result = {
       passed: true,
+      applicable: false,
+      skipReason: 'TPE_ABSORPTION',
+      allowableIncoming: null,
       violations: [],
       salaryIn,
       salaryOut,
-      allowableIncoming: totalTPEAmount,
+      tpeAllowableAmount: totalTPEAmount, // Track TPE amount separately for debugging
       difference: salaryIn - salaryOut,
       message: 'Trade exception covers incoming salary',
       usingTPE: true,
@@ -270,6 +293,8 @@ export function validateSalaryMatching(team, context = {}) {
 
   const result = {
     passed: violations.length === 0,
+    applicable: true,
+    skipReason: null,
     violations,
     salaryIn,
     salaryOut,

@@ -26,6 +26,8 @@ These rules apply throughout all phases:
 
 For Phase 1 legality numbers, the accessor **MUST read from `result.teamResults` only**.
 
+This includes legality-critical labels and metadata displayed in the UI (e.g., `ruleApplied`, `formula`, `margin`, `passed` flags), not just raw numeric values.
+
 - **Do NOT** prefer `result.receipt` fields — receipt is for debug/inspection only
 - **Do NOT** fallback to receipt when teamResults has the data
 - Receipt may be used for extended debugging details but never as primary source
@@ -54,6 +56,7 @@ Local calculations before validation **cannot masquerade as validated truth**.
 **AGREED — Reclassification Required**
 
 The second expert is correct. While `getSalaryMatchingResult()` uses unified rules, calling it from UI:
+
 - Creates a second code path that could diverge if parameters differ slightly
 - Requires UI to have all the same inputs as the validator (which could drift)
 - Defeats the purpose of single-source-of-truth architecture
@@ -81,6 +84,7 @@ The second expert is correct. While `getSalaryMatchingResult()` uses unified rul
 **AGREED — No Parallel Computation**
 
 The original audit's Step 4 (§6) proposed:
+
 ```javascript
 const allowableIncomingNoTPE = teamSnapshot?.allowableIncoming ?? 0;
 ```
@@ -102,6 +106,7 @@ This is correct, but the audit should also explicitly state: **Remove the `getSa
 **AGREED — With Clarification**
 
 The original audit's snapshot schema (§6.1) correctly includes both:
+
 - `outgoingBaseSalary` / `incomingBaseSalary` — roster reality
 - `outgoingMatchingSalary` / `incomingMatchingSalary` — legality values
 
@@ -117,11 +122,13 @@ The original audit's snapshot schema (§6.1) correctly includes both:
 **TradeExportCapture.jsx Correction:**
 
 The original audit (Step 7) proposed:
+
 ```javascript
 const salary = p.matchIncoming ?? p.matchOutgoing ?? getSalaryForYear([p], yearKey);
 ```
 
 **This is incorrect.** For exports, we should default to base salary:
+
 ```javascript
 const salary = p.baseSalary ?? getSalaryForYear([p], yearKey);
 // If user requests "show matching values," then use p.matchingValue
@@ -352,6 +359,7 @@ Based on Principle 1.1, the following items are reclassified:
 | **1.8** | Add DEV-only divergence warnings | `TradeTeamCard.jsx`, `CapImpactTiles.jsx` | Console warnings when local calc would differ from validator |
 
 **Phase 1 Definition of Done:**
+
 - [ ] All legality-affecting numbers in UI come from validator `result` object
 - [ ] No `getSalaryMatchingResult()` call in UI for display values
 - [ ] No `getSalaryForYear()` call in UI for totals used in trade matching
@@ -371,6 +379,7 @@ Based on Principle 1.1, the following items are reclassified:
 | **2.6** | Add disclaimer to TradeSalaryCalculator | `TradeSalaryCalculator.jsx` | Text: "This is an exploratory tool. Final trade uses validator calculations." |
 
 **Phase 2 Definition of Done:**
+
 - [ ] User can distinguish base salary from matching value in all displays
 - [ ] Exports show base salary by default
 - [ ] Cap hold component of "Total Salary" is visible when non-zero
@@ -389,6 +398,7 @@ Based on Principle 1.1, the following items are reclassified:
 | **3.5** | Archive/remove `getSalaryMatchingResult` UI calls | `TradeTeamCard.jsx` | Once Phase 1 complete, remove dead code |
 
 **Phase 3 Definition of Done:**
+
 - [ ] No duplicate utility definitions
 - [ ] Consistent formatting throughout
 - [ ] Test coverage for snapshot wiring
@@ -472,7 +482,9 @@ export function useTradeSnapshot(result) {
     primaryViolation: result.reason ?? null,
     yearKey: result.yearKey,
     seasonKey: result.seasonKey,
-    // NOTE: capSettings from teamResults if available, receipt is fallback for debug only
+    // NOTE: capSettings is global metadata (not a per-team legality value).
+    // Receipt fallback is temporarily allowed until validator exposes result.capSettings.
+    // Team legality-critical values remain teamResults-only.
     capSettings: result.capSettings ?? result.receipt?.capSettingsUsed ?? null,
   };
 }

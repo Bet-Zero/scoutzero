@@ -112,19 +112,31 @@ function TradeSummaryPanel({
                 {/* Salary snapshot */}
                 {teamResult &&
                   (() => {
-                    // Use the calculations from the validator
+                    // Read from rules.salaryMatching for explicit applicability
+                    const salaryMatchingRule = teamResult.rules?.salaryMatching || {};
                     const calculations = teamResult.calculations || {};
-                    const salaryMatching = calculations.salaryMatching || {};
                     
                     const salaryIn = calculations.salaryIn || 0;
-                    const allowedIncoming = salaryMatching.allowedIncoming || 0;
-                    const overBy = Math.max(0, salaryIn - allowedIncoming);
+                    // Check applicability before reading allowableIncoming
+                    const isApplicable = salaryMatchingRule.applicable !== false;
+                    const allowedIncoming = salaryMatchingRule.allowableIncoming;
+                    const skipReason = salaryMatchingRule.skipReason;
+                    
+                    // Tri-state display: only show allowed as number when applicable AND present
+                    const showAllowed = isApplicable && allowedIncoming != null;
+                    const formattedAllowed = showAllowed ? formatCurrency(allowedIncoming) : '—';
+                    
+                    // Only compute overBy when salary matching is applicable
+                    const overBy = showAllowed ? Math.max(0, salaryIn - allowedIncoming) : null;
 
                     return (
                       <p className="text-xs text-white/70">
                         Incoming / Allowed: {formatCurrency(salaryIn)} /{' '}
-                        {formatCurrency(allowedIncoming)}
-                        {overBy > 0 && <> — Over by {formatCurrency(overBy)}</>}
+                        {formattedAllowed}
+                        {skipReason && (
+                          <span className="text-white/40 ml-1">({skipReason})</span>
+                        )}
+                        {overBy != null && overBy > 0 && <> — Over by {formatCurrency(overBy)}</>}
                       </p>
                     );
                   })()}

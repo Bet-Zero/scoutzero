@@ -126,6 +126,8 @@ const TradeEditor = ({
           return (
             <TradeTeamCard
               key={idx}
+              validationResult={result}
+              teamIndex={idx}
               team={t.team}
               sends={t.sends}
               picks={t.picksOut}

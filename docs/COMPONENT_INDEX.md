@@ -51,6 +51,7 @@ Quick reference for all components in the ScoutZero project.
 - hooks/useCapValidation.js
 - hooks/usePlayerRulesProfiles.js
 - hooks/useTradeMachine.js
+- hooks/useTradeMachineSnapshot.js
 - offseason/DraftPickTracker/DraftPickTracker.jsx
 - offseason/OffseasonTab/OffseasonTab.jsx
 - offseason/OffseasonTab/OptionManager.jsx
@@ -311,4 +312,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2025-12-27T11:29:59.547Z*
+*Generated on: 2025-12-29T06:29:40.512Z*
