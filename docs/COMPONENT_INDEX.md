@@ -83,6 +83,8 @@ Quick reference for all components in the ScoutZero project.
 - utils/basicArchitectUtils.js
 - utils/capLegalityValidation.js
 - utils/capProjections.js
+- utils/capTotals/computeTeamCapTotals.js
+- utils/capTotals/index.js
 - utils/capUtils.js
 - utils/cashUtils.js
 - utils/cbaConstants.js
@@ -250,7 +252,6 @@ Quick reference for all components in the ScoutZero project.
 - RankingResults.jsx
 - RankingSession.jsx
 - RankingSetup.jsx
-- tournamentRanker.js
 - utils/rankingEngine.js
 
 ## Roster
@@ -312,4 +313,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2025-12-29T06:29:40.512Z*
+*Generated on: 2025-12-29T11:20:00.314Z*

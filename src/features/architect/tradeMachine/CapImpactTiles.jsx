@@ -1,8 +1,7 @@
 import React from 'react';
 import { formatMillions } from '@/shared/utils/formatting';
 import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers';
-import { getActiveUnsignedCapHoldsTotalByEndYear } from '@/features/architect/utils/capHolds';
-import { getCapSettingsForYear } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
+import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
 
 const CapImpactTiles = ({
   team,
@@ -13,65 +12,46 @@ const CapImpactTiles = ({
 }) => {
   if (!team) return null;
 
-  // yearKey is the END year (e.g., 2025 for "2024-25" season)
-  // Use centralized cap settings provider for consistent cap/apron values
-  const capSettings = getCapSettingsForYear(yearKey);
-  const salaryCap = capSettings.salaryCap || 0;
-  const firstApron = capSettings.firstApron || 0;
-  const secondApron = capSettings.secondApron || 0;
+  // =========================================================================
+  // SINGLE SOURCE OF TRUTH: Use computeTeamCapTotals for baseline
+  // See docs/ARCHITECT_CAP_TOTAL_SINGLE_SOURCE.md for details
+  // =========================================================================
+  const baselineTotals = computeTeamCapTotals(team, yearKey);
 
-  // Phase 1.6: Use validator projectedSalary as sole source of truth
+  const {
+    salaryCap,
+    firstApron,
+    secondApron,
+    capHoldsTotal: baselineCapHolds,
+    totalCapAllocations: baselineTotalAllocations,
+  } = baselineTotals;
+
+  // Phase 1.6: Use validator projectedSalary for POST-TRADE totals
   // Definition: players + dead money (NO cap holds, NO likely incentives)
   const hasValidatorResult = snapshot !== null;
   const validatorProjectedSalary = snapshot?.projectedSalary ?? null;
 
-  // Calculate cap holds total using shared utility (separate from projected salary)
-  // yearKey is the END year (e.g., 2025 for "2024-25" season)
-  const capHoldsTotal = (() => {
-    // 💥 Defensive fallback if team.players is undefined
-    const existingPlayers = Array.isArray(team.players) ? team.players : [];
-    const playersAfterTrade = [
-      ...existingPlayers.filter(
-        (p) =>
-          !sends.some((s) => (s.id || s.player_id) === (p.id || p.player_id))
-      ),
-      ...incomingPlayers,
-    ];
+  // For display, use validator's post-trade projectedSalary when available
+  // Otherwise, fall back to baseline totalCapAllocations
+  // Note: projectedSalary from validator = players + dead money (NO cap holds)
+  //       baselineTotalAllocations = players + dead money + cap holds
+  const projectedSalary = hasValidatorResult
+    ? validatorProjectedSalary
+    : baselineTotalAllocations;
 
-    // Prefer team.capHolds (canonical source)
-    if (Array.isArray(team.capHolds) && team.capHolds.length > 0) {
-      // yearKey is END year; use end-year-aware helper for accuracy
-      return getActiveUnsignedCapHoldsTotalByEndYear(team.capHolds, yearKey);
-    }
-    // Fallback to player-level cap_hold for backwards compatibility
-    return playersAfterTrade.reduce((sum, player) => {
-      const salary = getSalaryForYear(player, yearKey);
-      if (salary > 0) return sum; // Only count holds for players without salary
-      const holdAmount =
-        typeof player.cap_hold === 'number'
-          ? player.cap_hold
-          : player.cap_hold?.amount || 0;
-      const isActive =
-        typeof player.cap_hold === 'object'
-          ? player.cap_hold?.active
-          : holdAmount > 0;
-      return isActive ? sum + holdAmount : sum;
-    }, 0);
-  })();
-
-  // Phase 1.6: Use validator projectedSalary when available, otherwise show "—"
-  const projectedSalary = validatorProjectedSalary ?? null;
-
-  // Derive cap/apron space from validator value when available
-  const capSpace =
-    projectedSalary !== null ? salaryCap - projectedSalary : null;
+  // Derive cap/apron space from the appropriate total
+  const capSpace = projectedSalary !== null ? salaryCap - projectedSalary : null;
   const firstApronSpace =
     projectedSalary !== null ? firstApron - projectedSalary : null;
   const secondApronSpace =
     projectedSalary !== null ? secondApron - projectedSalary : null;
 
-  // DEV-ONLY: Divergence check for projectedSalary (Phase 1.8)
-  // Local calc uses SAME definition as validator: players + dead money (NO cap holds)
+  // Cap holds are included in baseline but NOT in validator's projectedSalary
+  // Show them separately for clarity when there's a trade in progress
+  const capHoldsTotal = baselineCapHolds;
+
+  // DEV-ONLY: Divergence check for validator projectedSalary (Phase 1.8)
+  // Note: Validator uses players + dead money (NO cap holds)
   if (import.meta.env.DEV && snapshot) {
     const teamTotalSalary = team?.teamTotalSalary ?? team?.totalSalary ?? 0;
     const salaryOut = getSalaryForYear(sends, yearKey);
