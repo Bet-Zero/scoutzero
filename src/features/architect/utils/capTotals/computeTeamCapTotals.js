@@ -199,7 +199,7 @@ export function warnOnTotalsDivergence(
   canonicalValue,
   tolerance = 1
 ) {
-  if (import.meta.env.DEV || process.env.NODE_ENV === 'development') {
+  if (import.meta.env.DEV) {
     const diff = Math.abs(displayedValue - canonicalValue);
     if (diff > tolerance) {
       console.warn(
