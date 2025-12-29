@@ -465,7 +465,7 @@ export const useTradeMachine = (
 
     const result = {
       ...validation,
-      legal: canOverride && forceTrade ? true : validation.legal,
+      legal: (canOverride && forceTrade) || validation.legal,
     };
 
     setResult(result);

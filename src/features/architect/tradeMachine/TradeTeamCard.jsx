@@ -21,8 +21,8 @@ import { getCapHitForSeason } from '@/features/architect/utils/tradeMachine/util
 import { toSeasonKey } from '@/features/architect/utils/seasonUtils';
 import { getSalaryMatchingResult } from '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules.js';
 import { getCapSettingsForYear } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
-// Phase 1: Accessor hook for validator result consumption (TRADE_MACHINE_UI_WIRING_AUDIT v2.1.0)
-import { useTeamSnapshot } from '@/features/architect/hooks/useTradeMachineSnapshot';
+// Phase 1: Accessor function for validator result consumption (TRADE_MACHINE_UI_WIRING_AUDIT v2.1.0)
+import { getTeamSnapshot } from '@/features/architect/hooks/useTradeMachineSnapshot';
 
 const TradeTeamCard = ({
   team,
@@ -117,7 +117,7 @@ const TradeTeamCard = ({
 
   // Phase 1: Get snapshot from validator result (golden source of truth)
   // RULE: For legality-affecting numbers, use snapshot values; do NOT recompute locally
-  const snapshot = useTeamSnapshot(team?.id, validationResult);
+  const snapshot = getTeamSnapshot(team?.id, validationResult);
   const hasValidatorResult = snapshot !== null;
 
   // Phase 1: Outgoing/Incoming salaries come from validator snapshot

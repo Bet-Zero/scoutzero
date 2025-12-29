@@ -22,8 +22,8 @@
  */
 import { describe, it, expect } from 'vitest';
 import {
-  useTeamSnapshot,
-  useTradeSnapshot,
+  getTeamSnapshot,
+  getTradeSnapshot,
 } from '@/features/architect/hooks/useTradeMachineSnapshot';
 import { formatSalary } from '@/shared/utils/formatting';
 
@@ -121,7 +121,7 @@ describe('Trade Snapshot Wiring Tests', () => {
   describe('Core Wiring: teamResults is source of truth', () => {
     it('WIRING-01: snapshot.salaryOut reads from teamResult.salaryOut, not receipt', () => {
       const result = createMockValidatorResult();
-      const snapshot = useTeamSnapshot('BOS', result);
+      const snapshot = getTeamSnapshot('BOS', result);
 
       // Must match teamResults value, NOT receipt's "differentSalaryOut"
       expect(snapshot.outgoingMatchingSalary).toBe(25_000_000);
@@ -130,7 +130,7 @@ describe('Trade Snapshot Wiring Tests', () => {
 
     it('WIRING-02: snapshot.salaryIn reads from teamResult.salaryIn, not receipt', () => {
       const result = createMockValidatorResult();
-      const snapshot = useTeamSnapshot('LAL', result);
+      const snapshot = getTeamSnapshot('LAL', result);
 
       // Must match teamResults value, NOT receipt's "differentSalaryIn"
       expect(snapshot.incomingMatchingSalary).toBe(25_000_000);
@@ -139,7 +139,7 @@ describe('Trade Snapshot Wiring Tests', () => {
 
     it('WIRING-03: snapshot.allowableIncoming reads from teamResult.rules.salaryMatching', () => {
       const result = createMockValidatorResult();
-      const snapshot = useTeamSnapshot('BOS', result);
+      const snapshot = getTeamSnapshot('BOS', result);
 
       // Must read from rules.salaryMatching.allowableIncoming
       expect(snapshot.allowableIncoming).toBe(31_500_000);
@@ -149,14 +149,14 @@ describe('Trade Snapshot Wiring Tests', () => {
 
     it('WIRING-04: snapshot.projectedSalary reads from teamResult.projectedSalary', () => {
       const result = createMockValidatorResult();
-      const snapshot = useTeamSnapshot('BOS', result);
+      const snapshot = getTeamSnapshot('BOS', result);
 
       expect(snapshot.projectedSalary).toBe(170_000_000);
     });
 
     it('WIRING-05: snapshot.margin reads from teamResult.rules.salaryMatching.margin', () => {
       const result = createMockValidatorResult();
-      const snapshot = useTeamSnapshot('BOS', result);
+      const snapshot = getTeamSnapshot('BOS', result);
 
       expect(snapshot.margin).toBe(16_500_000);
     });
@@ -165,7 +165,7 @@ describe('Trade Snapshot Wiring Tests', () => {
   describe('Base vs Matching Salary Distinction', () => {
     it('WIRING-06: snapshot provides both base and matching salaries', () => {
       const result = createMockValidatorResult();
-      const snapshot = useTeamSnapshot('BOS', result);
+      const snapshot = getTeamSnapshot('BOS', result);
 
       // Matching salary (for trade legality)
       expect(snapshot.outgoingMatchingSalary).toBe(25_000_000);
@@ -199,7 +199,7 @@ describe('Trade Snapshot Wiring Tests', () => {
           },
         ],
       });
-      const snapshot = useTeamSnapshot('MIN', result);
+      const snapshot = getTeamSnapshot('MIN', result);
 
       // Must be null, NOT 0 - null indicates "not applicable"
       expect(snapshot.allowableIncoming).toBeNull();
@@ -232,9 +232,9 @@ describe('Trade Snapshot Wiring Tests', () => {
   });
 
   describe('Global Trade Snapshot', () => {
-    it('WIRING-10: useTradeSnapshot returns global trade-level values', () => {
+    it('WIRING-10: getTradeSnapshot returns global trade-level values', () => {
       const result = createMockValidatorResult();
-      const tradeSnapshot = useTradeSnapshot(result);
+      const tradeSnapshot = getTradeSnapshot(result);
 
       expect(tradeSnapshot.isLegal).toBe(true);
       expect(tradeSnapshot.yearKey).toBe(2025);
@@ -242,7 +242,7 @@ describe('Trade Snapshot Wiring Tests', () => {
       expect(tradeSnapshot.primaryViolation).toBeNull();
     });
 
-    it('WIRING-11: useTradeSnapshot aggregates violations from all teams', () => {
+    it('WIRING-11: getTradeSnapshot aggregates violations from all teams', () => {
       const result = createMockValidatorResult({
         legal: false,
         reason: 'Salary matching violation',
@@ -254,7 +254,7 @@ describe('Trade Snapshot Wiring Tests', () => {
           },
         ],
       });
-      const tradeSnapshot = useTradeSnapshot(result);
+      const tradeSnapshot = getTradeSnapshot(result);
 
       expect(tradeSnapshot.isLegal).toBe(false);
       expect(tradeSnapshot.allViolations).toContain(
@@ -266,13 +266,13 @@ describe('Trade Snapshot Wiring Tests', () => {
   describe('Edge Cases', () => {
     it('WIRING-12: returns null for missing teamId', () => {
       const result = createMockValidatorResult();
-      const snapshot = useTeamSnapshot('INVALID', result);
+      const snapshot = getTeamSnapshot('INVALID', result);
 
       expect(snapshot).toBeNull();
     });
 
     it('WIRING-13: returns null for null result', () => {
-      const snapshot = useTeamSnapshot('BOS', null);
+      const snapshot = getTeamSnapshot('BOS', null);
 
       expect(snapshot).toBeNull();
     });
@@ -295,7 +295,7 @@ describe('Trade Snapshot Wiring Tests', () => {
           },
         ],
       });
-      const snapshot = useTeamSnapshot('BOS', result);
+      const snapshot = getTeamSnapshot('BOS', result);
 
       expect(snapshot).not.toBeNull();
       expect(snapshot.outgoingMatchingSalary).toBe(25_000_000);

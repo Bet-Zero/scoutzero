@@ -58,7 +58,7 @@ const TradeExportCapture = React.forwardRef(function TradeExportCapture(
     const heights = playerRefs.current.map((ref) => ref?.offsetHeight || 0);
     const tallest = Math.max(...heights);
     setMaxHeight(tallest);
-  }, [teams]);
+  }, [teams, incomingAssets]);
 
   return (
     <div
@@ -66,7 +66,7 @@ const TradeExportCapture = React.forwardRef(function TradeExportCapture(
       className="w-[1200px] bg-[#0b0b0b] text-white rounded-xl overflow-hidden shadow-2xl border border-white/10"
       style={{ fontFamily: 'AntonLocal, AntonBase64, sans-serif' }}
     >
-      {/* 🧾 Header */}
+      {/* 🧾 Font Preload - forces AntonLocal to render before html2canvas capture */}
       <div
         style={{
           opacity: 0,
@@ -264,8 +264,7 @@ const TradeExportCapture = React.forwardRef(function TradeExportCapture(
           <div className="absolute inset-x-0 bottom-0 h-4 bg-black/30 blur-md"></div>
           {/* Main footer - full width, proper depth */}
           <div
-            className={`w-full text-center py-4 text-xl font-bold uppercase tracking-wider text-white 
-        ${result.legal ? 'bg-green-900' : 'bg-red-900'}`}
+            className="w-full text-center py-4 text-xl font-bold uppercase tracking-wider text-white"
             style={{
               background: result.legal
                 ? 'linear-gradient(to bottom, #14532d, #15803d)'
