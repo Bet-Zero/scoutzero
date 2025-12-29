@@ -12,14 +12,14 @@ The Trade Machine is a well-structured system with a layered architecture (engin
 
 ### High-Level Assessment
 
-| Area | Status | Risk Level |
-|------|--------|------------|
-| Architecture | ✅ Good | Low |
-| Salary Matching Logic | ⚠️ Inconsistent | **HIGH** |
-| Single Source of Truth | ❌ Multiple Sources | **HIGH** |
-| CBA Rule Coverage | ✅ 80% | Medium |
-| UI-Validator Alignment | ❌ Divergent | **HIGH** |
-| Test Coverage | ✅ Good | Low |
+| Area                   | Status              | Risk Level |
+| ---------------------- | ------------------- | ---------- |
+| Architecture           | ✅ Good             | Low        |
+| Salary Matching Logic  | ⚠️ Inconsistent     | **HIGH**   |
+| Single Source of Truth | ❌ Multiple Sources | **HIGH**   |
+| CBA Rule Coverage      | ✅ 80%              | Medium     |
+| UI-Validator Alignment | ❌ Divergent        | **HIGH**   |
+| Test Coverage          | ✅ Good             | Low        |
 
 ---
 
@@ -139,21 +139,21 @@ TradeEditor.jsx
 
 ### 2.1 Team Salary Before Trade
 
-| Location | Function | Calculation |
-|----------|----------|-------------|
+| Location                     | Function                       | Calculation                                                     |
+| ---------------------------- | ------------------------------ | --------------------------------------------------------------- |
 | `useTradeMachine.js:226-227` | `payrollForYearFromCapSheet()` | Sum of `capHit` or `salary` from `activeContracts` or `players` |
-| `tradeValidator.js:189` | Direct access | `team.team.teamTotalSalary \|\| team.team.totalSalary` |
-| `salaryMargin.js:52` | `resolvePayroll()` | Uses `getTeamObject()` then various fallbacks |
+| `tradeValidator.js:189`      | Direct access                  | `team.team.teamTotalSalary \|\| team.team.totalSalary`          |
+| `salaryMargin.js:52`         | `resolvePayroll()`             | Uses `getTeamObject()` then various fallbacks                   |
 
 **⚠️ ISSUE**: Three different calculation paths. The hook sets `teamTotalSalary` on the team object before validation, but validator also has its own fallbacks.
 
 ### 2.2 Outgoing Salary
 
-| Location | Function | Calculation |
-|----------|----------|-------------|
-| `useTradeMachine.js:198-200` | `getSalaryForYear()` | From `tradeHelpers.js` |
-| `tradeValidator.js:167-170` | `getSalaryForMatching()` | Inline function with BYC conversion |
-| `computeMatchingValues.js:16-122` | `computeMatchingValues()` | Sets `player.matchOutgoing` |
+| Location                          | Function                  | Calculation                         |
+| --------------------------------- | ------------------------- | ----------------------------------- |
+| `useTradeMachine.js:198-200`      | `getSalaryForYear()`      | From `tradeHelpers.js`              |
+| `tradeValidator.js:167-170`       | `getSalaryForMatching()`  | Inline function with BYC conversion |
+| `computeMatchingValues.js:16-122` | `computeMatchingValues()` | Sets `player.matchOutgoing`         |
 
 **⚠️ ISSUE**: `tradeValidator.js` calculates outgoing twice:
 
@@ -164,21 +164,21 @@ While `validateSalaryMatching.js` uses `team.salaryOut` (set by the first calcul
 
 ### 2.3 Incoming Salary
 
-| Location | Function | Calculation |
-|----------|----------|-------------|
-| `tradeValidator.js:173-178` | `getSalaryForMatching()` | With poison pill conversion |
-| `computeMatchingValues.js` | Sets `player.matchIncoming` | With trade kicker |
+| Location                    | Function                    | Calculation                 |
+| --------------------------- | --------------------------- | --------------------------- |
+| `tradeValidator.js:173-178` | `getSalaryForMatching()`    | With poison pill conversion |
+| `computeMatchingValues.js`  | Sets `player.matchIncoming` | With trade kicker           |
 
 **⚠️ ISSUE**: Dual-calculation exists but results ARE used. `validateTradeExceptions.js:95` uses `player.matchIncoming` for TPE capacity checks. However, the poison pill logic in `tradeValidator.js:148-158` differs from `computeMatchingValues.js:103-117`.
 
 ### 2.4 Matching Rule Thresholds
 
-| Location | Source |
-|----------|--------|
-| `validateSalaryMatching.js:49-57` | Hard-coded defaults + `capSettings` from context |
-| `tradeHelpers.js:78-88` | `allowedIncomingBelowFirstApron()` using `CBA_BY_YEAR` |
-| `cbaConstants.js` (feature-level) | Re-exports + `CBA_BY_YEAR` with `matchingTiers` |
-| `constants/cbaConstants.js` (tradeMachine) | `SALARY_MATCHING_BANDS` |
+| Location                                   | Source                                                 |
+| ------------------------------------------ | ------------------------------------------------------ |
+| `validateSalaryMatching.js:49-57`          | Hard-coded defaults + `capSettings` from context       |
+| `tradeHelpers.js:78-88`                    | `allowedIncomingBelowFirstApron()` using `CBA_BY_YEAR` |
+| `cbaConstants.js` (feature-level)          | Re-exports + `CBA_BY_YEAR` with `matchingTiers`        |
+| `constants/cbaConstants.js` (tradeMachine) | `SALARY_MATCHING_BANDS`                                |
 
 **⚠️ ISSUE**: Four different sources for matching bands:
 
@@ -191,11 +191,11 @@ While `validateSalaryMatching.js` uses `team.salaryOut` (set by the first calcul
 
 ### 2.5 Apron / Hard Cap Thresholds
 
-| Location | Source |
-|----------|--------|
-| `capProjections.js` | Canonical cap data by season |
-| `constants/cbaConstants.js` | `CBA_THRESHOLDS` with hard-coded values |
-| `validateSalaryMatching.js:53` | Hard-coded `firstApron = 178132000` |
+| Location                       | Source                                  |
+| ------------------------------ | --------------------------------------- |
+| `capProjections.js`            | Canonical cap data by season            |
+| `constants/cbaConstants.js`    | `CBA_THRESHOLDS` with hard-coded values |
+| `validateSalaryMatching.js:53` | Hard-coded `firstApron = 178132000`     |
 
 **⚠️ ISSUE**: Hard-coded values in validators don't match `capProjections.js` values:
 
@@ -212,12 +212,12 @@ While `validateSalaryMatching.js` uses `team.salaryOut` (set by the first calcul
 
 **Implementation**: `rules/validateSalaryMatching.js:99-150`
 
-| Scenario | Code Location | Status |
-|----------|---------------|--------|
-| Under-cap absorption | Lines 100-110 | ✅ Correct |
-| Above second apron (100%) | Lines 112-119 | ✅ Correct |
-| Above first apron (100%) | Lines 121-130 | ⚠️ Correct but duplicated |
-| Over-cap tiered bands | Lines 133-149 | ❌ WRONG FORMULAS |
+| Scenario                  | Code Location | Status                    |
+| ------------------------- | ------------- | ------------------------- |
+| Under-cap absorption      | Lines 100-110 | ✅ Correct                |
+| Above second apron (100%) | Lines 112-119 | ✅ Correct                |
+| Above first apron (100%)  | Lines 121-130 | ⚠️ Correct but duplicated |
+| Over-cap tiered bands     | Lines 133-149 | ❌ WRONG FORMULAS         |
 
 **Evidence of Wrong Formulas**:
 
@@ -225,11 +225,11 @@ While `validateSalaryMatching.js` uses `team.salaryOut` (set by the first calcul
 
 ```javascript
 if (salaryOut <= 6_500_000) {
-  allowableIncoming = salaryOut * 2 + 250_000;  // 200% + $250k
+  allowableIncoming = salaryOut * 2 + 250_000; // 200% + $250k
 } else if (salaryOut <= 19_600_000) {
-  allowableIncoming = salaryOut + 5_000_000;    // + $5M
+  allowableIncoming = salaryOut + 5_000_000; // + $5M
 } else {
-  allowableIncoming = salaryOut * 1.25;         // 125%
+  allowableIncoming = salaryOut * 1.25; // 125%
 }
 ```
 
@@ -343,7 +343,7 @@ export function createTPE({ teamCtx, outgoing, incoming, tradeDate }) {
 
 ```javascript
 if (direction === 'outgoing' && player.isBYC && player.previousSalary) {
-  return player.previousSalary;  // Uses previous salary DIRECTLY
+  return player.previousSalary; // Uses previous salary DIRECTLY
 }
 ```
 
@@ -352,7 +352,7 @@ if (direction === 'outgoing' && player.isBYC && player.previousSalary) {
 ```javascript
 if (player.isBYC && player.previousSalary) {
   const fiftyPercentNew = Math.floor(newSalary * BYC_PERCENT);
-  player.matchOutgoing = Math.max(prevSalary, fiftyPercentNew);  // MAX of both
+  player.matchOutgoing = Math.max(prevSalary, fiftyPercentNew); // MAX of both
 }
 ```
 
@@ -360,7 +360,7 @@ if (player.isBYC && player.previousSalary) {
 
 ```javascript
 if (isOutgoing && (player.isBYC || player.baseYearCompensation)) {
-  return Math.max(prevSalary, Math.floor(newSalary * BYC_PERCENT));  // Same as computeMatchingValues
+  return Math.max(prevSalary, Math.floor(newSalary * BYC_PERCENT)); // Same as computeMatchingValues
 }
 ```
 
@@ -404,7 +404,7 @@ if (isOutgoing && (player.isBYC || player.baseYearCompensation)) {
 **Evidence**: No code found that handles:
 
 - Player options in trade calculations
-- Team options in trade calculations  
+- Team options in trade calculations
 - Non-guaranteed salary portions
 - Partially guaranteed contracts
 
@@ -454,11 +454,12 @@ teamObj.teamTotalSalary = baseline + dead;
 But `validateSalaryMatching.js:42` uses:
 
 ```javascript
-const totalSalary = team.teamTotalSalary ?? context.totalSalary ?? team.team?.totalSalary ?? 0;
+const totalSalary =
+  team.teamTotalSalary ?? context.totalSalary ?? team.team?.totalSalary ?? 0;
 ```
 
 If `team.teamTotalSalary` is set by the hook, it includes dead money.
-If the validator falls back to `team.team?.totalSalary`, it may *not* include dead money.
+If the validator falls back to `team.team?.totalSalary`, it may _not_ include dead money.
 
 **Incomplete roster charges**: Not found in any calculation path.
 
@@ -475,7 +476,8 @@ If the validator falls back to `team.team?.totalSalary`, it may *not* include de
 **UI Calculation Path** (`TradeSalaryCalculator.jsx`):
 
 ```javascript
-const base = calculateAllowableIncoming(  // from tradeHelpers.js
+const base = calculateAllowableIncoming(
+  // from tradeHelpers.js
   teamSalary,
   outgoingSalary,
   [],
@@ -502,12 +504,12 @@ const base = calculateAllowableIncoming(  // from tradeHelpers.js
 {
   tradeId: string,
   timestamp: Date,
-  
+
   // Per-team breakdown
   teams: [{
     teamId: string,
     teamName: string,
-    
+
     // PRE-TRADE STATUS
     preTradeStatus: {
       teamTotalSalary: number,        // Must include dead money + cap holds
@@ -516,7 +518,7 @@ const base = calculateAllowableIncoming(  // from tradeHelpers.js
       hardCapped: boolean,
       hardCapLevel: number | null,
     },
-    
+
     // OUTGOING
     outgoing: {
       players: [{
@@ -530,8 +532,8 @@ const base = calculateAllowableIncoming(  // from tradeHelpers.js
       totalBaseSalary: number,
       totalMatchingValue: number,      // This is what's used for matching
     },
-    
-    // INCOMING  
+
+    // INCOMING
     incoming: {
       players: [{
         id: string,
@@ -544,7 +546,7 @@ const base = calculateAllowableIncoming(  // from tradeHelpers.js
       totalBaseSalary: number,
       totalMatchingValue: number,      // This is what's used for matching
     },
-    
+
     // MATCHING CALCULATION
     matching: {
       ruleApplied: string,            // e.g., "OVER_CAP_BAND_2"
@@ -554,19 +556,19 @@ const base = calculateAllowableIncoming(  // from tradeHelpers.js
       margin: number,                  // allowable - actual (positive = room)
       passed: boolean,
     },
-    
+
     // POST-TRADE STATUS
     postTradeStatus: {
       projectedSalary: number,
       apronStatus: string,
       hardCapTriggered: boolean,
     },
-    
+
     // VIOLATIONS
     violations: string[],
     warnings: string[],
   }],
-  
+
   // OVERALL
   isLegal: boolean,
   primaryViolation: string | null,
@@ -580,11 +582,16 @@ const base = calculateAllowableIncoming(  // from tradeHelpers.js
 ```javascript
 /**
  * Generates a detailed trade receipt for debugging and display
- * 
+ *
  * @param {Object} params - Same parameters as validateTrade
  * @returns {TradeReceipt} Detailed breakdown of trade calculations
  */
-export function generateTradeReceipt({ teams, capProjections, currentYear, tradeCtx }) {
+export function generateTradeReceipt({
+  teams,
+  capProjections,
+  currentYear,
+  tradeCtx,
+}) {
   // Use SAME calculations as validateTrade - share the helper functions
   // ...
 }
@@ -798,13 +805,15 @@ const receipt = {
 import { describe, it, expect } from 'vitest';
 import { validateTrade } from '@/features/architect/utils/tradeMachine';
 
-const GOLDEN_TRADES = [/* scenarios above */];
+const GOLDEN_TRADES = [
+  /* scenarios above */
+];
 
 describe('Golden Trade Regression Tests', () => {
-  GOLDEN_TRADES.forEach(scenario => {
+  GOLDEN_TRADES.forEach((scenario) => {
     it(scenario.name, () => {
       const result = validateTrade(buildTradeFromScenario(scenario.setup));
-      
+
       // Use structured assertions instead of eval for safety
       if (scenario.expected.legal !== undefined) {
         expect(result.legal).toBe(scenario.expected.legal);
@@ -819,7 +828,9 @@ describe('Golden Trade Regression Tests', () => {
           expect(teamResult.salaryOut).toBe(check.salaryOut);
         }
         if (check.matchingPassed !== undefined) {
-          expect(teamResult.rules.salaryMatching.passed).toBe(check.matchingPassed);
+          expect(teamResult.rules.salaryMatching.passed).toBe(
+            check.matchingPassed
+          );
         }
       });
     });
@@ -833,27 +844,27 @@ describe('Golden Trade Regression Tests', () => {
 
 ### P0 - Critical (Must Fix Before Use)
 
-| # | Issue | File(s) | Impact |
-|---|-------|---------|--------|
-| 1 | **Salary matching band formulas differ** | `validateSalaryMatching.js:135-148` vs `tradeHelpers.js:82-86` | Validator rejects valid trades / approves invalid trades |
-| 2 | **UI shows different allowable than validator** | `TradeSalaryCalculator.jsx` vs `validateSalaryMatching.js` | User confusion, bad UX |
-| 3 | **BYC has 3 different implementations** | `tradeValidator.js:139`, `computeMatchingValues.js:56`, `matchingValues.js:10` | Incorrect trade outcomes for BYC players |
+| #   | Issue                                           | File(s)                                                                        | Impact                                                   |
+| --- | ----------------------------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------- |
+| 1   | **Salary matching band formulas differ**        | `validateSalaryMatching.js:135-148` vs `tradeHelpers.js:82-86`                 | Validator rejects valid trades / approves invalid trades |
+| 2   | **UI shows different allowable than validator** | `TradeSalaryCalculator.jsx` vs `validateSalaryMatching.js`                     | User confusion, bad UX                                   |
+| 3   | **BYC has 3 different implementations**         | `tradeValidator.js:139`, `computeMatchingValues.js:56`, `matchingValues.js:10` | Incorrect trade outcomes for BYC players                 |
 
 ### P1 - High Priority (Fix Soon)
 
-| # | Issue | File(s) | Impact |
-|---|-------|---------|--------|
-| 1 | Hard-coded cap thresholds don't match capProjections | `validateSalaryMatching.js:49-57`, `constants/cbaConstants.js` | Wrong validation for some seasons |
-| 2 | `computeMatchingValues()` results used inconsistently | `validateTradeExceptions.js:95` uses `matchIncoming`, but `validateSalaryMatching.js` uses `team.salaryIn` | Potential mismatch for players with trade kickers |
-| 3 | Poison pill has 3 implementations | Multiple files | Inconsistent incoming value for rookie extensions |
+| #   | Issue                                                 | File(s)                                                                                                    | Impact                                            |
+| --- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| 1   | Hard-coded cap thresholds don't match capProjections  | `validateSalaryMatching.js:49-57`, `constants/cbaConstants.js`                                             | Wrong validation for some seasons                 |
+| 2   | `computeMatchingValues()` results used inconsistently | `validateTradeExceptions.js:95` uses `matchIncoming`, but `validateSalaryMatching.js` uses `team.salaryIn` | Potential mismatch for players with trade kickers |
+| 3   | Poison pill has 3 implementations                     | Multiple files                                                                                             | Inconsistent incoming value for rookie extensions |
 
 ### P2 - Medium Priority (Technical Debt)
 
-| # | Issue | File(s) | Impact |
-|---|-------|---------|--------|
-| 1 | Dead money included inconsistently | `useTradeMachine.js:69-91` vs fallback paths | Edge case errors |
-| 2 | No handling for options/non-guaranteed contracts | Not found | Missing feature |
-| 3 | Duplicate `salaryUtils.js` and `matchingValues.js` | Two files doing similar work | Maintenance burden |
+| #   | Issue                                              | File(s)                                      | Impact             |
+| --- | -------------------------------------------------- | -------------------------------------------- | ------------------ |
+| 1   | Dead money included inconsistently                 | `useTradeMachine.js:69-91` vs fallback paths | Edge case errors   |
+| 2   | No handling for options/non-guaranteed contracts   | Not found                                    | Missing feature    |
+| 3   | Duplicate `salaryUtils.js` and `matchingValues.js` | Two files doing similar work                 | Maintenance burden |
 
 ---
 
@@ -902,54 +913,136 @@ describe('Golden Trade Regression Tests', () => {
 
 ### Core Validation
 
-| File | Key Functions |
-|------|---------------|
-| `engine/tradeValidator.js` | `validateTrade()`, `getSalaryForMatching()`, `getCapSettingsForYear()` |
-| `rules/validateSalaryMatching.js` | `validateSalaryMatching()` |
-| `rules/hardCapValidation.js` | `validateHardCap()`, `wouldExceedHardCapAfterTrade()` |
-| `rules/validateAggregation.js` | `validateAggregation()` |
-| `rules/validateStepien.js` | `validateStepien()` |
+| File                              | Key Functions                                                          |
+| --------------------------------- | ---------------------------------------------------------------------- |
+| `engine/tradeValidator.js`        | `validateTrade()`, `getSalaryForMatching()`, `getCapSettingsForYear()` |
+| `rules/validateSalaryMatching.js` | `validateSalaryMatching()`                                             |
+| `rules/hardCapValidation.js`      | `validateHardCap()`, `wouldExceedHardCapAfterTrade()`                  |
+| `rules/validateAggregation.js`    | `validateAggregation()`                                                |
+| `rules/validateStepien.js`        | `validateStepien()`                                                    |
 
 ### Salary Calculations
 
-| File | Key Functions |
-|------|---------------|
-| `tradeHelpers.js` | `getSalaryForYear()`, `calculateAllowableIncoming()`, `getIncomingCeiling()` |
-| `utils/computeMatchingValues.js` | `computeMatchingValues()` |
-| `utils/matchingValues.js` | `getMatchingValue()`, `computeMatchingValues()` (duplicate!) |
-| `utils/salaryMargin.js` | `getAllowableIncomingMargin()`, `getIncomingCeilingForTeam()` |
+| File                             | Key Functions                                                                |
+| -------------------------------- | ---------------------------------------------------------------------------- |
+| `tradeHelpers.js`                | `getSalaryForYear()`, `calculateAllowableIncoming()`, `getIncomingCeiling()` |
+| `utils/computeMatchingValues.js` | `computeMatchingValues()`                                                    |
+| `utils/matchingValues.js`        | `getMatchingValue()`, `computeMatchingValues()` (duplicate!)                 |
+| `utils/salaryMargin.js`          | `getAllowableIncomingMargin()`, `getIncomingCeilingForTeam()`                |
 
 ### Constants
 
-| File | Key Exports |
-|------|-------------|
-| `constants/cbaConstants.js` | `CBA_THRESHOLDS`, `SALARY_MATCHING_BANDS`, `BYC_PERCENT` |
-| `../cbaConstants.js` (feature-level) | `CBA_BY_YEAR`, `MATCHING_BANDS_2023` |
-| `capProjections.js` | Default export with all seasons |
+| File                                 | Key Exports                                              |
+| ------------------------------------ | -------------------------------------------------------- |
+| `constants/cbaConstants.js`          | `CBA_THRESHOLDS`, `SALARY_MATCHING_BANDS`, `BYC_PERCENT` |
+| `../cbaConstants.js` (feature-level) | `CBA_BY_YEAR`, `MATCHING_BANDS_2023`                     |
+| `capProjections.js`                  | Default export with all seasons                          |
 
 ### UI Components
 
-| File | Purpose |
-|------|---------|
+| File                        | Purpose                              |
+| --------------------------- | ------------------------------------ |
 | `TradeSalaryCalculator.jsx` | Shows allowable incoming calculation |
-| `TradeLegalChecker.jsx` | Rule compliance overview |
-| `TradeValidationPanel.jsx` | Detailed violations display |
-| `TradeDebugPanel.jsx` | Developer debug output |
+| `TradeLegalChecker.jsx`     | Rule compliance overview             |
+| `TradeValidationPanel.jsx`  | Detailed violations display          |
+| `TradeDebugPanel.jsx`       | Developer debug output               |
 
 ---
 
 ## Appendix B: Test File Locations
 
-| Test File | Coverage |
-|-----------|----------|
-| `tests/tradeValidator.test.js` | Main validator integration |
-| `tests/tradeSalaryMatching.test.js` | Salary matching tiers |
-| `tests/salaryMargin.test.js` | Margin utilities |
-| `tests/trade/salaryMatching.test.js` | Detailed matching scenarios |
-| `tests/trade/secondApron_handcuffs.test.js` | Second apron rules |
-| `tests/trade/matchingBands_2023.test.js` | Band boundary tests |
-| `tests/trade/byc_outgoing_max.test.js` | BYC calculations |
-| `tests/trade/poisonPill_average.test.js` | Poison pill averaging |
+| Test File                                   | Coverage                    |
+| ------------------------------------------- | --------------------------- |
+| `tests/tradeValidator.test.js`              | Main validator integration  |
+| `tests/tradeSalaryMatching.test.js`         | Salary matching tiers       |
+| `tests/salaryMargin.test.js`                | Margin utilities            |
+| `tests/trade/salaryMatching.test.js`        | Detailed matching scenarios |
+| `tests/trade/secondApron_handcuffs.test.js` | Second apron rules          |
+| `tests/trade/matchingBands_2023.test.js`    | Band boundary tests         |
+| `tests/trade/byc_outgoing_max.test.js`      | BYC calculations            |
+| `tests/trade/poisonPill_average.test.js`    | Poison pill averaging       |
+
+---
+
+## Appendix C: Baseline Reconciliation Report (Preflight)
+
+> **Date**: December 29, 2025  
+> **Purpose**: Explain why CapImpactTiles baseline shows teams above 1st apron while Cap Sheet shows them below  
+> **Scope**: Fact-gathering only — NO fixes implemented
+
+### C.1 Cap Sheet vs Cap Tiles Baseline Formulas
+
+| Component             | Cap Sheet (CapSummaryTiles)                    | Cap Tiles (CapImpactTiles)                 |
+| --------------------- | ---------------------------------------------- | ------------------------------------------ |
+| **Player Salaries**   | ☑ `salaryTotal` via `getContractYearSlice()`  | ☑ Included in `teamTotalSalary`           |
+| **Dead Money**        | ☐ **NOT INCLUDED**                             | ☑ `deadMoneyForYear()` in useTradeMachine |
+| **Cap Holds**         | ☑ `getActiveUnsignedCapHoldsTotalByEndYear()` | ☐ **NOT INCLUDED** (shown separately)      |
+| **Incomplete Roster** | ☐ NOT COMPUTED                                 | ☐ NOT COMPUTED                             |
+
+**Cap Sheet Formula** ([CapSummaryTiles.jsx#L30-L47](src/features/architect/capSheet/CapSheet/CapSummaryTiles.jsx#L30-L47)):
+
+```javascript
+salaryTotal = players.reduce(
+  (sum, p) => sum + getContractYearSlice(p, year).capHit,
+  0
+);
+capHoldsTotal = getActiveUnsignedCapHoldsTotalByEndYear(capHolds, year);
+totalCapAllocations = salaryTotal + capHoldsTotal;
+```
+
+**Cap Tiles Formula** ([useTradeMachine.js#L22-L88](src/features/architect/hooks/useTradeMachine.js#L22-L88)):
+
+```javascript
+baseline = payrollForYearFromCapSheet(teamObj, yearKey);
+dead = deadMoneyForYear(teamObj, yearKey);
+teamTotalSalary = baseline + dead; // NO cap holds
+```
+
+### C.2 Reconciliation Table (Generic Team Baseline)
+
+| Field                   | Cap Sheet                               | Cap Tiles                   | Match?           |
+| ----------------------- | --------------------------------------- | --------------------------- | ---------------- |
+| yearKey                 | END year (2025)                         | END year (2025)             | ✅               |
+| salaryCap               | $141M (`capProjections`)                | $141M (`capProjections`)    | ✅               |
+| firstApron              | $179M                                   | $179M                       | ✅               |
+| secondApron             | $190M                                   | $190M                       | ✅               |
+| playersTotal            | ✅ Included                             | ✅ Included                 | ✅               |
+| deadMoneyTotal          | ❌ **MISSING**                          | ✅ Included                 | ❌               |
+| capHoldsTotal           | ✅ Included                             | ❌ **MISSING**              | ❌               |
+| **baselineTotal**       | `players + capHolds`                    | `players + dead`            | ❌ **DIVERGENT** |
+| hardCapTriggered source | `teamCapSheet.hardCapFirstApron.active` | `snapshot.hardCapTriggered` | ⚠️               |
+
+### C.3 Hard Cap Status Sources
+
+**Cap Sheet** uses `isHardCappedAtFirstApron(teamCapSheet, selectedYear)` which checks:
+
+1. `hardCapFirstApron.active` with season matching
+2. `faExceptionBuckets` for NTMLE/BAE usage
+3. `mle.used > 0` or `bae.used > 0`
+4. `hardCapped === 1`
+5. `hardCapTriggered === 'FirstApron'`
+
+**Cap Tiles** uses `snapshot.hardCapTriggered` from validator, which reads:
+
+- `team.team?.hardCapped || signAndTradeResult?.hardCapped`
+
+**Finding**: Hard cap shown is **baseline team state**, not "would be triggered by this plan."
+
+### C.4 Root Cause Summary
+
+1. **Dead Money Gap**: Cap Sheet does not include `deadMoneyForYear()` in its total
+2. **Cap Holds Gap**: Trade Machine does not include cap holds in `teamTotalSalary`
+3. **Known Gap**: Documented in tradeValidator.js header:
+   > "☐ Cap holds (NOT included by default — may cause divergence with CapImpactTiles)"
+
+### C.5 Recommended Fix Options (NOT IMPLEMENTED)
+
+| Option | Description                                               | Effort |
+| ------ | --------------------------------------------------------- | ------ |
+| A      | Add `deadMoneyForYear()` to CapSummaryTiles               | Low    |
+| B      | Add cap holds to useTradeMachine's `teamTotalSalary`      | Medium |
+| C      | Create unified `computeTeamCapTotal()` used by both       | Medium |
+| D      | Document as intentional (cap view vs trade matching view) | None   |
 
 ---
 
