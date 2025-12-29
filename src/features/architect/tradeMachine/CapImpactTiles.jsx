@@ -32,7 +32,8 @@ const CapImpactTiles = ({
     const existingPlayers = Array.isArray(team.players) ? team.players : [];
     const playersAfterTrade = [
       ...existingPlayers.filter(
-        (p) => !sends.some((s) => (s.id || s.player_id) === (p.id || p.player_id))
+        (p) =>
+          !sends.some((s) => (s.id || s.player_id) === (p.id || p.player_id))
       ),
       ...incomingPlayers,
     ];
@@ -60,11 +61,14 @@ const CapImpactTiles = ({
 
   // Phase 1.6: Use validator projectedSalary when available, otherwise show "—"
   const projectedSalary = validatorProjectedSalary ?? null;
-  
+
   // Derive cap/apron space from validator value when available
-  const capSpace = projectedSalary !== null ? salaryCap - projectedSalary : null;
-  const firstApronSpace = projectedSalary !== null ? firstApron - projectedSalary : null;
-  const secondApronSpace = projectedSalary !== null ? secondApron - projectedSalary : null;
+  const capSpace =
+    projectedSalary !== null ? salaryCap - projectedSalary : null;
+  const firstApronSpace =
+    projectedSalary !== null ? firstApron - projectedSalary : null;
+  const secondApronSpace =
+    projectedSalary !== null ? secondApron - projectedSalary : null;
 
   // DEV-ONLY: Divergence check for projectedSalary (Phase 1.8)
   // Local calc uses SAME definition as validator: players + dead money (NO cap holds)
@@ -89,10 +93,11 @@ const CapImpactTiles = ({
     <div>
       <div className="grid grid-cols-4 gap-2 text-[11px]">
         <div className="bg-[#1c1c1c] rounded p-2 text-center border border-white/10">
-          <div className="text-white/70">Projected Salary</div>
-          <div className="text-white/50 text-[9px] mb-0.5">(players + dead money)</div>
+          <div className="text-white/70">TOTAL CAP</div>
           <div className="text-white font-bold text-sm">
-            {projectedSalary !== null ? formatMillions(projectedSalary, 1) : '—'}
+            {projectedSalary !== null
+              ? formatMillions(projectedSalary, 1)
+              : '—'}
           </div>
         </div>
         <div className="bg-[#1c1c1c] rounded p-2 text-center border border-white/10">
@@ -120,7 +125,9 @@ const CapImpactTiles = ({
                 : 'text-white/40'
             }`}
           >
-            {firstApronSpace !== null ? formatMillions(firstApronSpace, 1) : '—'}
+            {firstApronSpace !== null
+              ? formatMillions(firstApronSpace, 1)
+              : '—'}
           </div>
         </div>
         <div className="bg-[#1c1c1c] rounded p-2 text-center border border-white/10">
@@ -134,7 +141,9 @@ const CapImpactTiles = ({
                 : 'text-white/40'
             }`}
           >
-            {secondApronSpace !== null ? formatMillions(secondApronSpace, 1) : '—'}
+            {secondApronSpace !== null
+              ? formatMillions(secondApronSpace, 1)
+              : '—'}
           </div>
         </div>
       </div>
