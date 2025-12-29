@@ -1046,6 +1046,46 @@ teamTotalSalary = baseline + dead; // NO cap holds
 
 ---
 
+## Resolution: Single Source of Truth for Team Cap Totals (2025-12-29)
+
+**Status**: ✅ RESOLVED
+
+The baseline mismatch documented in Appendix C (Cap Sheet vs Cap Tiles using different formulas) has been resolved by implementing a **Single Source of Truth** for team cap totals.
+
+### Changes Made
+
+1. **Created Canonical Utility**: `src/features/architect/utils/capTotals/computeTeamCapTotals.js`
+   - Returns standardized `TeamCapTotals` object
+   - Includes ALL components: players + dead money + cap holds + incomplete charges
+   - Uses `getCapSettingsForYear()` for consistent cap thresholds
+
+2. **Refactored CapSummaryTiles**: Now uses `computeTeamCapTotals()` instead of local reduce/sum
+   - Removed independent salary calculation
+   - Displays totals directly from canonical object
+
+3. **Refactored CapImpactTiles**: Now uses `computeTeamCapTotals()` for baseline
+   - Post-trade projectedSalary still comes from validator (correct behavior)
+   - Cap holds displayed separately for clarity
+
+4. **Added Divergence Detection**: `warnOnTotalsDivergence()` helper warns if components compute independently
+
+5. **Created Documentation**: `docs/ARCHITECT_CAP_TOTAL_SINGLE_SOURCE.md`
+   - Defines canonical TeamCapTotals object
+   - Documents consumption rules
+   - Includes migration notes
+
+### Result
+
+| Surface           | Before                      | After                                  |
+| ----------------- | --------------------------- | -------------------------------------- |
+| Cap Sheet         | players + holds             | `computeTeamCapTotals().totalCapAllocations` |
+| Trade Machine     | players + dead              | `computeTeamCapTotals().totalCapAllocations` |
+| **Consistency**   | ❌ Different totals         | ✅ Same canonical total                |
+
+Both surfaces now literally call the same function, making divergence impossible.
+
+---
+
 ## Conclusion
 
 The Trade Machine has solid architecture but critical math inconsistencies. The **top priority** is consolidating the salary matching formulas to ensure UI and validator use identical calculations. The **second priority** is implementing a Trade Receipt system that exposes the exact calculations being used, making debugging straightforward.

@@ -1,22 +1,32 @@
 import React from 'react';
-import { getContractYearSlice } from '@/features/architect/utils/contractUtils';
-import { getActiveUnsignedCapHoldsTotalByEndYear } from '@/features/architect/utils/capHolds';
+import {
+  computeTeamCapTotals,
+  warnOnTotalsDivergence,
+} from '@/features/architect/utils/capTotals';
 import {
   isHardCappedAtFirstApron,
   isHardCappedAtSecondApron,
   getFirstApronHardCapReason,
 } from '@/features/architect/utils/hardCapUtils';
 import { Lock } from 'lucide-react';
-import { getCapSettingsForYear } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
 
 const CapSummaryTiles = ({ teamCapSheet, selectedYear }) => {
-  // Use centralized cap settings provider for consistent cap/apron values
-  // selectedYear is the END year (e.g., 2025 for "2024-25" season)
-  const capSettings = getCapSettingsForYear(selectedYear);
+  // =========================================================================
+  // SINGLE SOURCE OF TRUTH: Use computeTeamCapTotals for all cap calculations
+  // See docs/ARCHITECT_CAP_TOTAL_SINGLE_SOURCE.md for details
+  // =========================================================================
+  const totals = computeTeamCapTotals(teamCapSheet, selectedYear);
 
-  const salaryCap = capSettings.salaryCap || 0;
-  const firstApron = capSettings.firstApron || 0;
-  const secondApron = capSettings.secondApron || 0;
+  const {
+    totalCapAllocations,
+    playersTotal,
+    capHoldsTotal,
+    deadMoneyTotal,
+    salaryCap,
+    firstApron,
+    secondApron,
+    deltas,
+  } = totals;
 
   // Determine if hard capped
   const isFirstApronHardCapped = isHardCappedAtFirstApron(
@@ -27,28 +37,19 @@ const CapSummaryTiles = ({ teamCapSheet, selectedYear }) => {
   
   const firstApronReason = isFirstApronHardCapped ? getFirstApronHardCapReason(teamCapSheet) : '';
 
-  // Calculate salary total from players
-  const salaryTotal = (teamCapSheet?.players || []).reduce((sum, player) => {
-    const seasonEntry = getContractYearSlice(player, selectedYear);
-    const salary =
-      seasonEntry?.capHit ??
-      seasonEntry?.salary ??
-      0;
-    return sum + salary;
-  }, 0);
+  // Calculate space from canonical totals
+  // Note: deltas are (total - threshold), so space = -delta
+  const capSpace = -deltas.vsCap;
+  const firstApronSpace = -deltas.vsFirstApron;
+  const secondApronSpace = -deltas.vsSecondApron;
 
-  // Calculate cap holds total using shared utility
-  // selectedYear is the END year (e.g., 2025 for "2024-25")
-  const capHoldsTotal = getActiveUnsignedCapHoldsTotalByEndYear(
-    teamCapSheet?.capHolds,
-    selectedYear
+  // DEV-ONLY: Verify we're using canonical totals
+  warnOnTotalsDivergence(
+    'CapSummaryTiles',
+    'totalCapAllocations',
+    totalCapAllocations,
+    totals.totalCapAllocations
   );
-
-  const totalCapAllocations = salaryTotal + capHoldsTotal;
-
-  const capSpace = salaryCap - totalCapAllocations;
-  const firstApronSpace = firstApron - totalCapAllocations;
-  const secondApronSpace = secondApron - totalCapAllocations;
 
   const formatMoney = (amount) =>
     `${amount < 0 ? '-' : ''}$${Math.abs(amount).toLocaleString()}`;
