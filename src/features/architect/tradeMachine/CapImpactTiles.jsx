@@ -1,10 +1,7 @@
 import React from 'react';
 import { formatMillions } from '@/shared/utils/formatting';
 import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers';
-import {
-  computeTeamCapTotals,
-  warnOnTotalsDivergence,
-} from '@/features/architect/utils/capTotals';
+import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
 
 const CapImpactTiles = ({
   team,
@@ -52,17 +49,6 @@ const CapImpactTiles = ({
   // Cap holds are included in baseline but NOT in validator's projectedSalary
   // Show them separately for clarity when there's a trade in progress
   const capHoldsTotal = baselineCapHolds;
-
-  // DEV-ONLY: Divergence check for baseline totals (Phase 1.8)
-  // Verify that local computation matches canonical totals
-  if (import.meta.env.DEV && !hasValidatorResult) {
-    warnOnTotalsDivergence(
-      'CapImpactTiles',
-      'baselineTotalAllocations',
-      baselineTotalAllocations,
-      baselineTotals.totalCapAllocations
-    );
-  }
 
   // DEV-ONLY: Divergence check for validator projectedSalary (Phase 1.8)
   // Note: Validator uses players + dead money (NO cap holds)

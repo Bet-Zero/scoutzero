@@ -1,8 +1,5 @@
 import React from 'react';
-import {
-  computeTeamCapTotals,
-  warnOnTotalsDivergence,
-} from '@/features/architect/utils/capTotals';
+import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
 import {
   isHardCappedAtFirstApron,
   isHardCappedAtSecondApron,
@@ -42,14 +39,6 @@ const CapSummaryTiles = ({ teamCapSheet, selectedYear }) => {
   const capSpace = -deltas.vsCap;
   const firstApronSpace = -deltas.vsFirstApron;
   const secondApronSpace = -deltas.vsSecondApron;
-
-  // DEV-ONLY: Verify we're using canonical totals
-  warnOnTotalsDivergence(
-    'CapSummaryTiles',
-    'totalCapAllocations',
-    totalCapAllocations,
-    totals.totalCapAllocations
-  );
 
   const formatMoney = (amount) =>
     `${amount < 0 ? '-' : ''}$${Math.abs(amount).toLocaleString()}`;
