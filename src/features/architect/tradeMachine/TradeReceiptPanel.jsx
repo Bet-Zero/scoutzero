@@ -107,10 +107,6 @@ const TradeReceiptPanel = ({ receipt }) => {
 
   // Gate behind env var - only show when VITE_SHOW_TRADE_RECEIPT=true
   const showReceipt = import.meta.env.VITE_SHOW_TRADE_RECEIPT === 'true';
-  console.log(
-    'VITE_SHOW_TRADE_RECEIPT =',
-    import.meta.env.VITE_SHOW_TRADE_RECEIPT
-  );
 
   if (!showReceipt) {
     return null;
