@@ -44,6 +44,8 @@ const TradeTeamCard = ({
   // Phase 1: Accept validator result for accessor hook wiring
   validationResult = null,
   teamIndex = null,
+  // P0-3: Validation in-flight state for loading indicators
+  isValidating = false,
 }) => {
   const [activeTab, setActiveTab] = useState('players');
   const [editingTeam, setEditingTeam] = useState(false);
@@ -352,9 +354,17 @@ const TradeTeamCard = ({
               <span className="flex items-center gap-1">
                 {/* Phase 2.3: Explicit "Matching Value" label when showing matching-adjusted salary */}
                 Outgoing {hasOutgoingAdjustment ? 'Matching Value' : 'Salary'}:{' '}
-                {formatSalary(outgoingSalary)}
+                {/* P0-3: Show loading state during validation in-flight */}
+                {isValidating && sends.length > 0 ? (
+                  <span className="text-blue-400 animate-pulse">
+                    {hasValidatorResult ? 'Updating…' : 'Calculating…'}
+                  </span>
+                ) : (
+                  formatSalary(outgoingSalary)
+                )}
                 {/* Phase 1: Visible indicator when using local estimate (Rule 2) */}
-                {isEstimate && sends.length > 0 && (
+                {/* P0-3: Hide estimate badge during validation - show loading instead */}
+                {!isValidating && isEstimate && sends.length > 0 && (
                   <span
                     className="ml-1 px-1.5 py-0.5 text-[10px] bg-amber-600/20 text-amber-400 rounded"
                     title="Value is an estimate until trade is validated"
@@ -363,7 +373,8 @@ const TradeTeamCard = ({
                   </span>
                 )}
                 {/* Phase 2.4: Adjustment indicator */}
-                {hasOutgoingAdjustment && (
+                {/* P0-3: Hide adjustment badge during validation */}
+                {!isValidating && hasOutgoingAdjustment && (
                   <span
                     className="px-1.5 py-0.5 text-[10px] bg-purple-600/20 text-purple-300 rounded"
                     title="Includes BYC, poison pill, or trade kicker adjustments"
@@ -379,7 +390,8 @@ const TradeTeamCard = ({
               )}
             </div>
             {/* Phase 2.3: Show base salary as secondary line when there's an adjustment */}
-            {hasOutgoingAdjustment && (
+            {/* P0-3: Hide base salary line during validation */}
+            {!isValidating && hasOutgoingAdjustment && (
               <span className="text-[11px] text-white/50">
                 Base Salary: {formatSalary(outgoingBaseSalary)}
               </span>
@@ -445,9 +457,17 @@ const TradeTeamCard = ({
               <span className="flex items-center gap-1">
                 {/* Phase 2.3: Explicit "Matching Value" label when showing matching-adjusted salary */}
                 Incoming {hasIncomingAdjustment ? 'Matching Value' : 'Salary'}:{' '}
-                {formatSalary(incomingSalary)}
+                {/* P0-3: Show loading state during validation in-flight */}
+                {isValidating && incomingPlayers.length > 0 ? (
+                  <span className="text-blue-400 animate-pulse">
+                    {hasValidatorResult ? 'Updating…' : 'Calculating…'}
+                  </span>
+                ) : (
+                  formatSalary(incomingSalary)
+                )}
                 {/* Phase 1: Visible indicator when using local estimate (Rule 2) */}
-                {isEstimate && incomingPlayers.length > 0 && (
+                {/* P0-3: Hide estimate badge during validation - show loading instead */}
+                {!isValidating && isEstimate && incomingPlayers.length > 0 && (
                   <span
                     className="ml-1 px-1.5 py-0.5 text-[10px] bg-amber-600/20 text-amber-400 rounded"
                     title="Value is an estimate until trade is validated"
@@ -456,7 +476,8 @@ const TradeTeamCard = ({
                   </span>
                 )}
                 {/* Phase 2.4: Adjustment indicator */}
-                {hasIncomingAdjustment && (
+                {/* P0-3: Hide adjustment badge during validation */}
+                {!isValidating && hasIncomingAdjustment && (
                   <span
                     className="px-1.5 py-0.5 text-[10px] bg-purple-600/20 text-purple-300 rounded"
                     title="Includes BYC, poison pill, or trade kicker adjustments"
@@ -472,7 +493,8 @@ const TradeTeamCard = ({
               )}
             </div>
             {/* Phase 2.3: Show base salary as secondary line when there's an adjustment */}
-            {hasIncomingAdjustment && (
+            {/* P0-3: Hide base salary line during validation */}
+            {!isValidating && hasIncomingAdjustment && (
               <span className="text-[11px] text-white/50">
                 Base Salary: {formatSalary(incomingBaseSalary)}
               </span>
@@ -529,12 +551,20 @@ const TradeTeamCard = ({
             <div>
               Allowable Incoming:{' '}
               <span className="font-semibold text-white/80">
-                {allowableIncomingNoTPE != null
-                  ? formatSalary(allowableIncomingNoTPE)
-                  : '—'}
+                {/* P0-3: Show loading state during validation in-flight */}
+                {isValidating ? (
+                  <span className="text-blue-400 animate-pulse">
+                    {hasValidatorResult ? 'Updating…' : 'Calculating…'}
+                  </span>
+                ) : (
+                  allowableIncomingNoTPE != null
+                    ? formatSalary(allowableIncomingNoTPE)
+                    : '—'
+                )}
               </span>
               {/* Phase 1: Visible indicator when using local estimate (Rule 2) */}
-              {isEstimate && (
+              {/* P0-3: Hide estimate badge during validation - show loading instead */}
+              {!isValidating && isEstimate && (
                 <span
                   className="ml-1 px-1.5 py-0.5 text-[10px] bg-amber-600/20 text-amber-400 rounded"
                   title="Value is an estimate until trade is validated"
@@ -546,7 +576,8 @@ const TradeTeamCard = ({
                   NOT displayed in UI per Phase 1 requirements. The "—" dash display is sufficient
                   to indicate that salary matching is not applicable. */}
               {/* Show rule label only when applicable (no skipReason) and rule is meaningful */}
-              {!salaryMatchingSkipReason &&
+              {/* P0-3: Hide rule label during validation */}
+              {!isValidating && !salaryMatchingSkipReason &&
                 salaryMatchingRuleLabel &&
                 salaryMatchingRuleLabel !== 'unknown' && (
                   <span

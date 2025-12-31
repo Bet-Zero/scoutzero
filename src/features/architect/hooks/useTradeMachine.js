@@ -166,6 +166,8 @@ export const useTradeMachine = (
   const [result, setResult] = useState(null);
   const [forceTrade, setForceTrade] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  // P0-3: Track validation in-flight state for UI loading indicators
+  const [isValidating, setIsValidating] = useState(false);
 
   // Use the selected season end-year everywhere (no hardcoding)
   const yearKey = currentYear;
@@ -407,11 +409,16 @@ export const useTradeMachine = (
   }, []);
 
   // Core validation function - extracted for reuse
+  // P0-3: Wraps validation with isValidating state for UI loading indicators
   const validateCurrentTrade = useCallback(() => {
     if (teams.filter((t) => t.team).length < 2) {
       setResult(null);
+      setIsValidating(false);
       return null;
     }
+
+    // P0-3: Set validating state before validation runs
+    setIsValidating(true);
 
     // (Optional) last-second safety net: if any team is missing payroll, patch it
     const patchedTeams = teams.map((t) => {
@@ -469,6 +476,9 @@ export const useTradeMachine = (
     };
 
     setResult(result);
+    // P0-3: Clear validating state after validation completes
+    setIsValidating(false);
+    
     console.log(
       '[after validate]',
       validation.teamResults.map((tr) => ({
@@ -580,5 +590,7 @@ export const useTradeMachine = (
     yearKey,
     incomingAssets,
     salaryOut,
+    // P0-3: Expose validation in-flight state for UI loading indicators
+    isValidating,
   };
 };

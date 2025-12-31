@@ -38,6 +38,8 @@ const TradeEditor = ({
     resetTrade,
     yearKey,
     applyTradeException,
+    // P0-3: Track validation in-flight state
+    isValidating,
   } = useTradeMachine(
     primaryTeam,
     capProjections,
@@ -148,6 +150,8 @@ const TradeEditor = ({
               onRemove={() => removeTeam(idx)}
               onApplyTradeException={handleApplyTradeException}
               onEditContract={onEditContract}
+              // P0-3: Pass validation in-flight state
+              isValidating={isValidating}
             />
           );
         })}
@@ -193,6 +197,8 @@ const TradeEditor = ({
         result={result}
         teams={teams}
         forceTrade={forceTrade}
+        // P0-3: Pass validation in-flight state
+        isValidating={isValidating}
       />
 
       {/* Quick Rule Compliance Overview */}
