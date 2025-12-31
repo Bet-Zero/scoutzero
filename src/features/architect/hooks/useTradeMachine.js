@@ -413,6 +413,8 @@ export const useTradeMachine = (
   const validateCurrentTrade = useCallback(() => {
     if (teams.filter((t) => t.team).length < 2) {
       setResult(null);
+      // P0-3: Clear isValidating since no validation will run (not enough teams)
+      // This is intentional - if we don't have enough teams, there's nothing to validate
       setIsValidating(false);
       return null;
     }

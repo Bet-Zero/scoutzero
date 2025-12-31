@@ -114,13 +114,13 @@ function TradeSummaryPanel({
                 {/* Salary snapshot */}
                 {teamResult &&
                   (() => {
-                    // P0-2: Read ALL values from rules.salaryMatching (canonical source)
-                    // Do NOT use calculations.salaryIn - use teamResult.salaryIn which equals
-                    // rules.salaryMatching.salaryIn (both set by validator from same source)
+                    // P0-2: Read from canonical sources per MASTER_TRADE_MACHINE_ALIGNMENT.md
+                    // - allowableIncoming from teamResult.rules.salaryMatching.allowableIncoming
+                    // - incoming salary from teamResult.salaryIn (validator-computed matching value)
                     const salaryMatchingRule =
                       teamResult.rules?.salaryMatching || {};
 
-                    // Canonical source: teamResult.salaryIn (matching-adjusted incoming)
+                    // Canonical source: teamResult.salaryIn (matching-adjusted incoming from validator)
                     const salaryIn = teamResult.salaryIn ?? 0;
                     // Check applicability before reading allowableIncoming
                     const isApplicable =
