@@ -1,6 +1,6 @@
 # Master Trade Machine Alignment Document
 
-> **Version**: 1.0.0 (December 2024)  
+> **Version**: 1.1.0 (December 2024)  
 > **Purpose**: Define non-negotiable product invariants, terminology definitions, and UI policies for Trade Machine salary display consistency  
 > **Companion Documents**:  
 > - [`TRADE_MACHINE_AUDIT.md`](../../TRADE_MACHINE_AUDIT.md) — Detailed audit of UI vs validator mismatches  
@@ -30,10 +30,12 @@ This section establishes canonical terminology. All code, UI labels, and documen
 | Term | Definition | Formula |
 |------|------------|---------|
 | **Allowable Incoming** | The maximum total **matching salary** a team can receive in a trade, based on what they are sending out and their cap status. This is a **LIMIT**. | Depends on tier (see Section 3) |
-| **Incoming Selected** | The sum of **matching salaries** of players currently selected to be received by a team. This is the **CURRENT** value. | Σ(matchingSalary of all incoming players) |
+| **Incoming Selected** | The team-level total of **matching salaries** of players currently selected to be received by a team. This is the **CURRENT** value and represents the sum of adjusted incoming matching salaries for trade validation purposes (not base contract salaries). | Σ(matchingSalary of all incoming players for that team) |
 | **Remaining Room** | How much more matching salary a team can receive before hitting their Allowable Incoming limit. | **LIMIT - CURRENT** = Allowable Incoming - Incoming Selected |
 
 **Important**: Remaining Room is NOT the same as "cap room." Cap room refers to space under the salary cap. Remaining Room refers to space under the salary matching ceiling for a specific trade.
+
+**Snapshot Field for Incoming Selected**: The validator snapshot provides `teamResult.rules.salaryMatching.incomingMatchingSalary` as the canonical team-level incoming matching total. If this field is unavailable, compute by summing `player.matchingSalaryIn` for all incoming players on that team within the trade. Do NOT use base salary helpers (e.g., `getSalaryForYear()`) for this calculation — only matching-adjusted values count for trade validation.
 
 ### 1.3 Apron Status
 
@@ -93,6 +95,8 @@ These four invariants MUST be enforced in all Trade Machine code. Violations are
 - Difference → Label as "Remaining Room" or "Available" with calculation shown
 - Remaining Room MUST use `snapshot.allowableIncoming - snapshot.incomingMatchingSalary` (not local recalculation)
 
+**Incoming Selected Clarification**: "Incoming Selected" refers specifically to the team-level total of incoming **matching** salary for that team (i.e., the sum of adjusted trade values, not base contract salaries). This value should be sourced from `teamResult.rules.salaryMatching.incomingMatchingSalary` when available. If the snapshot does not provide a pre-computed team-level incoming total, sum the individual player matching values from the snapshot's player breakdown (e.g., `player.matchingSalaryIn`). Never use local base salary helpers for this calculation.
+
 ---
 
 ## 3. UI Policy
@@ -113,14 +117,16 @@ These values MAY be displayed with an "Estimate" badge before validation runs:
 
 These values MUST come from the validator snapshot once validation has run:
 
-| Value | Snapshot Field | UI Must Show |
-|-------|----------------|--------------|
-| Outgoing Matching Salary | `snapshot.outgoingMatchingSalary` | Exact validator value |
-| Incoming Matching Salary | `snapshot.incomingMatchingSalary` | Exact validator value |
-| Allowable Incoming | `snapshot.allowableIncoming` OR `teamResult.rules.salaryMatching.allowableIncoming` | Exact validator value |
-| Matching Rule Applied | `snapshot.matchingRule` or `teamResult.rules.salaryMatching.ruleLabel` | Exact rule label |
+| Value | Canonical Source | UI Must Show |
+|-------|------------------|--------------|
+| Outgoing Matching Salary | `teamResult.rules.salaryMatching.outgoingMatchingSalary` | Exact validator value |
+| Incoming Matching Salary | `teamResult.rules.salaryMatching.incomingMatchingSalary` | Exact validator value |
+| Allowable Incoming | `teamResult.rules.salaryMatching.allowableIncoming` | Exact validator value |
+| Matching Rule Applied | `teamResult.rules.salaryMatching.ruleLabel` | Exact rule label |
 | Passed/Failed | `teamResult.rules.salaryMatching.passed` | Boolean status |
 | Remaining Room (if shown) | `allowableIncoming - incomingMatchingSalary` (from snapshot) | Calculated from snapshot |
+
+**Canonical Source Clarification**: The canonical source for all salary matching values is `teamResult.rules.salaryMatching.*` as returned by the validator. The table above shows these canonical paths. When code uses snapshot accessor hooks like `useTradeMachineSnapshot.js`, these accessors internally read from the canonical `teamResult.rules.salaryMatching` object. Both approaches are valid — direct access via `teamResult` or via snapshot accessor — as long as the underlying source is the validator's output, not a local recalculation.
 
 ### 3.3 What to Show During Validation In-Flight
 
@@ -136,11 +142,20 @@ When validation is running (user has made a change, validation triggered, result
 
 ### 3.4 Exploratory Tools Exception
 
-`TradeSalaryCalculator.jsx` is designated as an **exploratory tool**. It:
+`TradeSalaryCalculator.jsx` is designated as an **exploratory tool** and is the **ONLY** allowed exception to Invariant 2 (Snapshot-Only for Official Values). No other component may locally compute salary matching values for display once validation exists.
+
+**Requirements for TradeSalaryCalculator**:
 - Re-derives matching values locally for user experimentation
 - MUST include disclaimer: "Exploratory tool — validator is authoritative"
 - SHOULD show validator comparison when available: "Validator will use: $X" if differs from local calculation
 - MAY show different numbers than the snapshot for educational/exploration purposes
+
+**Visual Separation Requirement**: When TradeSalaryCalculator displays values, it MUST visually separate "Sandbox Estimate" values (locally computed for exploration) from "Official Validator" values (snapshot-derived). This can be achieved through:
+- Distinct visual sections or cards (e.g., "Sandbox Estimate" header vs "Official Result" header)
+- Color coding (e.g., gray/muted for sandbox, primary color for official)
+- Clear labels on every value indicating source (estimate vs validated)
+
+This separation ensures users understand which values are exploratory guesses and which are authoritative validator results.
 
 ---
 
@@ -218,6 +233,7 @@ Use this checklist when implementing or reviewing Trade Machine changes:
 | Date | Version | Change | Author |
 |------|---------|--------|--------|
 | Dec 2024 | 1.0.0 | Initial document created | Trade Machine Team |
+| Dec 2024 | 1.1.0 | Section 3.4: Added TradeSalaryCalculator as ONLY exception to Invariant 2 with visual separation requirements; Section 3.2: Removed OR wording, declared canonical source as teamResult.rules.salaryMatching; Section 1.2/2.4: Clarified Incoming Selected is team-level matching total with snapshot field guidance | Trade Machine Team |
 
 ---
 
