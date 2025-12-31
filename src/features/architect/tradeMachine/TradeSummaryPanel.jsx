@@ -70,7 +70,6 @@ function TradeSummaryPanel({
 
           const teamResult = result.teamResults?.[i];
           const isIllegal = teamResult ? !teamResult.legal : false;
-          console.log('TEAMRESULT', teamResult);
 
           const teamMeta =
             teams.find((te) => te.teamName === t.teamName) ||
