@@ -4,7 +4,7 @@
 > **Purpose**: Define non-negotiable product invariants, terminology definitions, and UI policies for Trade Machine salary display consistency  
 > **Companion Documents**:  
 > - [`TRADE_MACHINE_AUDIT.md`](../../TRADE_MACHINE_AUDIT.md) — Detailed audit of UI vs validator mismatches  
-> - [`TRADE_MACHINE_FIX_PLAN.md`](../../TRADE_MACHINE_FIX_PLAN.md) — Prioritized implementation plan  
+> - [`TRADE_MACHINE_FIX_PLAN.md`](../../TRADE_MACHINE_FIX_PLAN.md) — Prioritized implementation plan
 
 ---
 
@@ -217,7 +217,7 @@ Use this checklist when implementing or reviewing Trade Machine changes:
 
 | Date | Version | Change | Author |
 |------|---------|--------|--------|
-| Dec 2024 | 1.0.0 | Initial document created | Copilot |
+| Dec 2024 | 1.0.0 | Initial document created | Trade Machine Team |
 
 ---
 
