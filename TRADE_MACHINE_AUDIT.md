@@ -3,7 +3,8 @@
 > **Version**: 2.0.0 (December 2024)  
 > **Purpose**: End-to-end audit to identify UI vs logic mismatches, duplicated calculations, inconsistent values, and missing wiring in the Trade Machine feature  
 > **Audience**: Non-technical readers and development team  
-> **Companion Document**: `TRADE_MACHINE_FIX_PLAN.md`
+> **Authoritative Reference**: [`docs/tradeMachine/MASTER_TRADE_MACHINE_ALIGNMENT.md`](docs/tradeMachine/MASTER_TRADE_MACHINE_ALIGNMENT.md)  
+> **Companion Document**: [`TRADE_MACHINE_FIX_PLAN.md`](TRADE_MACHINE_FIX_PLAN.md)
 
 ---
 
