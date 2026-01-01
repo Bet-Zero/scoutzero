@@ -4,7 +4,7 @@
 // History:
 //   - Jan 2026: Created for UX clarity (Tasks B, C, D from UX/Mode Legend requirement)
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { ModeTag } from './ValidationStateHeader';
 import TradeSummaryPanel from './TradeSummaryPanel';
@@ -74,6 +74,22 @@ const ValidationDetailsPanel = ({
   onCalculatorTeamChange = null,
 }) => {
   const [expanded, setExpanded] = useState(false);
+
+  // Memoize team options for calculator selector
+  const teamOptions = useMemo(() => 
+    teams.reduce((acc, t, idx) => {
+      if (t.team) {
+        acc.push({
+          idx,
+          label: t.team.nickname || t.team.teamName || `Team ${idx + 1}`,
+        });
+      }
+      return acc;
+    }, []),
+    [teams]
+  );
+  
+  const hasMultipleTeams = teamOptions.length > 1;
 
   // Get calculator team data
   const selectedTeam = teams[calculatorTeamIndex];
@@ -155,22 +171,19 @@ const ValidationDetailsPanel = ({
                     Sandbox for testing salary matching scenarios (validator is authoritative)
                   </SectionHeader>
                   
-                  {/* Team selector for calculator */}
-                  {teams.filter(t => t.team).length > 1 && (
+                  {/* Team selector for calculator - uses memoized teamOptions */}
+                  {hasMultipleTeams && (
                     <div className="mb-3">
                       <select
                         value={calculatorTeamIndex}
                         onChange={(e) => onCalculatorTeamChange?.(Number(e.target.value))}
                         className="bg-[#222] border border-white/20 rounded px-2 py-1 text-xs"
                       >
-                        {teams
-                          .map((t, idx) => ({ team: t.team, idx }))
-                          .filter(item => item.team)
-                          .map(item => (
-                            <option key={item.idx} value={item.idx}>
-                              {item.team.nickname || item.team.teamName || `Team ${item.idx + 1}`}
-                            </option>
-                          ))}
+                        {teamOptions.map(item => (
+                          <option key={item.idx} value={item.idx}>
+                            {item.label}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   )}

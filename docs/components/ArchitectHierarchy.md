@@ -130,6 +130,8 @@ tradeMachine/
   TradeSummaryPanel.jsx
   TradeTeamCard.jsx
   TradeValidationPanel.jsx
+  ValidationDetailsPanel.jsx
+  ValidationStateHeader.jsx
   utils/
     getOfficialSalaryMatchingSnapshot.js
 types/
@@ -265,5 +267,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-01-01T11:54:15.364Z*
+*Generated on: 2026-01-01T12:59:12.810Z*
 *Auto-updated by: npm run docs*
