@@ -85,6 +85,7 @@ This table shows **each key displayed value**, where it appears in the UI, and w
 **Severity**: **Medium** - Component is labeled "Exploratory tool — validator is authoritative" (line 196-198), but users may still be confused if numbers differ.
 
 **Repro steps**:
+
 1. Build a trade with a BYC player
 2. Compare "Allowable Incoming" in TradeSalaryCalculator vs the value in TradeReceiptPanel
 3. The BYC adjustment affects the validator's outgoing calculation but TradeSalaryCalculator uses raw outgoing
@@ -97,12 +98,14 @@ This table shows **each key displayed value**, where it appears in the UI, and w
 
 **Expected behavior**: Every salary display should clearly indicate whether it's the base salary or the matching value.
 
-**Actual behavior**: 
+**Actual behavior**:
+
 - TradeExportCapture (line 139-140) uses `baseSalary ?? getSalaryForYear()` and labels it just as the salary
 - TradeSummaryPanel (line 167-168) shows `baseSalary` with separate check for adjustment
 - TradeTeamCard has the adjustment indicators (lines 152-155) but only when there's a difference
 
-**File/Component**: 
+**File/Component**:
+
 - `TradeExportCapture.jsx` (line 139)
 - `TradeSummaryPanel.jsx` (lines 167-194)
 - `TradeTeamCard.jsx` (lines 352-386, 446-480)
@@ -121,7 +124,8 @@ This table shows **each key displayed value**, where it appears in the UI, and w
 
 **Actual behavior**: The component shows estimates, but validation only runs when the trade state changes (via `useEffect` in `useTradeMachine.js` line 486-488). There may be a brief delay.
 
-**File/Component**: 
+**File/Component**:
+
 - `TradeTeamCard.jsx` (lines 135-142, 357-364)
 - `useTradeMachine.js` (lines 486-488)
 
@@ -169,12 +173,14 @@ This table shows **each key displayed value**, where it appears in the UI, and w
 
 **Expected behavior**: Single import path for matching value computation.
 
-**Actual behavior**: 
+**Actual behavior**:
+
 - `salaryUtils.js` re-exports from `matchingValues.js`
 - `computeMatchingValues.js` re-exports from `matchingValues.js`
 - Some files import from `salaryUtils.js`, others from `computeMatchingValues.js`
 
-**File/Component**: 
+**File/Component**:
+
 - `src/features/architect/utils/tradeMachine/utils/salaryUtils.js` (line 1, 10)
 - `src/features/architect/utils/tradeMachine/utils/computeMatchingValues.js` (line 23)
 - `src/features/architect/utils/tradeMachine/engine/tradeValidator.js` (line 21)
@@ -191,12 +197,14 @@ This table shows **each key displayed value**, where it appears in the UI, and w
 
 **Expected behavior**: Same team should show same baseline total everywhere.
 
-**Actual behavior**: 
+**Actual behavior**:
+
 - CapImpactTiles now uses `computeTeamCapTotals()` (line 19) ✅
 - But for POST-TRADE values, it uses validator's `projectedSalary` which is defined differently (see DG-1/DG-2 in tradeValidator.js header)
 - Definition: `projectedSalary = teamTotalSalary - salaryOut + salaryIn` (players + dead money, NO cap holds)
 
-**File/Component**: 
+**File/Component**:
+
 - `CapImpactTiles.jsx` (lines 19, 30-40)
 - `tradeValidator.js` (lines 35-67, definition gate documentation)
 
@@ -274,25 +282,30 @@ This table shows **each key displayed value**, where it appears in the UI, and w
 Use this checklist after implementing fixes to verify alignment:
 
 ### Salary Matching Values
+
 - [ ] TradeTeamCard "Allowable Incoming" matches validator's `teamResult.rules.salaryMatching.allowableIncoming`
 - [ ] TradeSalaryCalculator (when showing validated trade) matches validator output
 - [ ] TradeReceiptPanel shows same values as TradeTeamCard
 
 ### Trade Legality
+
 - [ ] TradeSummaryPanel status matches `result.legal`
 - [ ] All violations in TradeValidationPanel match `teamResult.violations`
 - [ ] TradeLegalChecker rules match `teamResult.rules.*`
 
 ### Cap/Apron Values
+
 - [ ] CapImpactTiles cap thresholds match `capSettings` from validator
 - [ ] All components using cap settings get them from `getCapSettingsForYear()`
 
 ### Matching Value Consistency
+
 - [ ] BYC players show adjusted outgoing values with "Adj" badge
 - [ ] Trade kicker players show adjusted incoming values with "Adj" badge
 - [ ] Poison pill players show adjusted incoming values with "Adj" badge
 
 ### No Regressions
+
 - [ ] All existing tests pass (`npm run test`)
 - [ ] Trade receipt shows correct values for known test scenarios
 - [ ] DEV divergence warnings do not fire for normal operations
@@ -302,6 +315,7 @@ Use this checklist after implementing fixes to verify alignment:
 ## Appendix A: File Reference
 
 ### Core Validation
+
 | File | Purpose |
 |------|---------|
 | `engine/tradeValidator.js` | Main `validateTrade()` entry point |
@@ -311,6 +325,7 @@ Use this checklist after implementing fixes to verify alignment:
 | `utils/matchingValues.js` | BYC, trade kicker, poison pill calculations |
 
 ### UI Components
+
 | File | Purpose |
 |------|---------|
 | `TradeTeamCard.jsx` | Per-team card with salary display |
@@ -321,6 +336,7 @@ Use this checklist after implementing fixes to verify alignment:
 | `TradeReceiptPanel.jsx` | Debug panel with exact values |
 
 ### Hooks & Accessors
+
 | File | Purpose |
 |------|---------|
 | `useTradeMachine.js` | Main trade machine state hook |
@@ -333,21 +349,25 @@ Use this checklist after implementing fixes to verify alignment:
 To re-run this audit after fixes:
 
 1. **Search for divergence patterns**:
+
    ```bash
    grep -r "getSalaryMatchingResult\|getAllowableIncoming\|calculateAllowableIncoming" src/features/architect --include="*.jsx" --include="*.js"
    ```
 
 2. **Check for local salary calculations in UI**:
+
    ```bash
    grep -r "getSalaryForYear" src/features/architect/tradeMachine --include="*.jsx"
    ```
 
 3. **Verify snapshot usage**:
+
    ```bash
    grep -r "getTeamSnapshot\|snapshot\." src/features/architect/tradeMachine --include="*.jsx"
    ```
 
 4. **Run trade tests**:
+
    ```bash
    npm run test -- tests/trade/ --run
    npm run test -- tests/salaryMatchingRules.test.js --run
@@ -355,6 +375,7 @@ To re-run this audit after fixes:
    ```
 
 5. **Check for console.log statements**:
+
    ```bash
    grep -rn "console.log" src/features/architect/tradeMachine --include="*.jsx"
    ```

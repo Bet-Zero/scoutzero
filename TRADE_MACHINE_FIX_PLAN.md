@@ -45,6 +45,7 @@ These fixes enforce the core invariants. All P0 acceptance criteria MUST pass fo
 **Canonical Source**: `teamResult.rules.salaryMatching.allowableIncoming`
 
 **Current State Assessment**:
+
 | Surface | Source | Aligned? |
 |---------|--------|----------|
 | TradeTeamCard | `snapshot.allowableIncomingNoTPE` | ✅ Yes (accessor to canonical) |
@@ -54,11 +55,13 @@ These fixes enforce the core invariants. All P0 acceptance criteria MUST pass fo
 | TradeSalaryCalculator | Local `getSalaryMatchingResult()` | ⚠️ Exception — see P2 |
 
 **Implementation**:
+
 1. Verify all non-exploratory surfaces read from `teamResult.rules.salaryMatching.allowableIncoming` (or accessor alias)
 2. Add automated test: given same trade state, all snapshot-based surfaces return identical `allowableIncoming`
 3. Document that snapshot accessor fields are aliases, not alternative sources
 
 **Files to Touch**:
+
 | File | Action |
 |------|--------|
 | `TradeTeamCard.jsx` | Verify reads from canonical source via accessor |
@@ -77,11 +80,13 @@ These fixes enforce the core invariants. All P0 acceptance criteria MUST pass fo
 **Canonical Source**: `teamResult.rules.salaryMatching.*`
 
 **Implementation**:
+
 1. Audit all code paths that display official values
 2. Ensure no local calculation replaces snapshot values after validation exists
 3. Only exception: TradeSalaryCalculator (see P2)
 
 **Files to Touch**:
+
 | File | Action |
 |------|--------|
 | `TradeTeamCard.jsx` | Confirm snapshot-only for outgoing/incoming/allowable |
@@ -97,6 +102,7 @@ These fixes enforce the core invariants. All P0 acceptance criteria MUST pass fo
 **Requirement**: When validation is triggered but not yet returned, UI MUST show loading state — never display locally-computed value as official result.
 
 **Policy**:
+
 | Scenario | Display |
 |----------|---------|
 | First validation ever | "Calculating…" or loading skeleton |
@@ -104,6 +110,7 @@ These fixes enforce the core invariants. All P0 acceptance criteria MUST pass fo
 | Validation error | Previous value (if any) + error banner |
 
 **Implementation**:
+
 1. Verify loading state logic in all panels displaying official values
 2. Ensure "Estimate" badge appears when using local fallback (pre-validation only)
 3. Never show locally-computed value as official result during or after validation
@@ -111,6 +118,7 @@ These fixes enforce the core invariants. All P0 acceptance criteria MUST pass fo
 **Current State**: TradeTeamCard shows "Estimate" badge when using local fallback — verify this is correct.
 
 **Files to Touch**:
+
 | File | Action |
 |------|--------|
 | `TradeTeamCard.jsx` | Verify loading state during in-flight |
@@ -123,7 +131,8 @@ These fixes enforce the core invariants. All P0 acceptance criteria MUST pass fo
 **Invariant Reference**: Invariant 4 (LIMIT - CURRENT = Remaining Room)
 
 **Requirement**: If "Remaining Room" (or equivalent) is displayed, it MUST equal:
-```
+
+```text
 Remaining Room = Allowable Incoming (snapshot) - Incoming Selected (snapshot-derived matching total)
 ```
 
@@ -132,11 +141,13 @@ Remaining Room = Allowable Incoming (snapshot) - Incoming Selected (snapshot-der
 **Current State**: Remaining Room is not prominently displayed in current UI. Requirement documented for future implementation.
 
 **Implementation**: If Remaining Room display exists or is added:
+
 1. Source both values from snapshot
 2. Show calculation breakdown: "Remaining = $X (Allowable) - $Y (Selected)"
 3. Update after each validation run
 
 **Files to Touch**:
+
 | File | Action |
 |------|--------|
 | `docs/tradeMachine/MASTER_TRADE_MACHINE_ALIGNMENT.md` | Already documents this (Section 1.2, 2.4) ✅ |
@@ -149,26 +160,31 @@ Remaining Room = Allowable Incoming (snapshot) - Incoming Selected (snapshot-der
 For a Trade Machine implementation to be considered "aligned," ALL of the following MUST be true:
 
 ### AC-1: Identical Allowable Incoming
+>
 > **For the same team + trade state + year: Allowable Incoming is identical in TradeTeamCard, TradeSummaryPanel, TradeReceiptPanel, and TradeValidationPanel.**
 
 Test: Build a trade, verify `allowableIncoming` value matches across all four surfaces.
 
 ### AC-2: Canonical Source Only
+>
 > **All non-exploratory surfaces read Allowable Incoming from `teamResult.rules.salaryMatching.allowableIncoming` (or snapshot accessor alias).**
 
 Test: Grep codebase for `allowableIncoming` displays, verify each non-exploratory surface uses canonical source.
 
 ### AC-3: No Local Recalculation Post-Validation
+>
 > **After validation exists, no UI surface (except TradeSalaryCalculator) computes matching values locally.**
 
 Test: Review code paths, verify no `getSalaryMatchingResult()` calls in official display paths.
 
 ### AC-4: In-Flight Loading State
+>
 > **During validation-in-flight, official panels show "Calculating…", "Updating…", or loading indicator — never locally-computed values presented as official.**
 
 Test: Trigger validation, observe loading state in TradeTeamCard/TradeSummaryPanel before result returns.
 
 ### AC-5: Remaining Room Formula
+>
 > **If Remaining Room is implemented: Remaining Room = Allowable Incoming (snapshot) - Incoming Selected (snapshot-derived matching total).**
 
 Test: If displayed, verify formula uses snapshot values only.
@@ -184,6 +200,7 @@ Test: If displayed, verify formula uses snapshot values only.
 **Requirement**: All salary displays clearly indicate Base (contract) vs Matching (trade) where they differ.
 
 **Policy**:
+
 | Context | Display |
 |---------|---------|
 | Base salary | Label as "Contract Salary", "Base", or no badge |
@@ -191,6 +208,7 @@ Test: If displayed, verify formula uses snapshot values only.
 | Export/download views | Show base salary with note "Matching values may differ" |
 
 **Acceptance Criteria**:
+
 - [ ] All salary displays in trade panels show base OR matching with clear indication
 - [ ] BYC players show "Adj" badge on outgoing with tooltip: "BYC: uses max(previous, 50% of new)"
 - [ ] Trade kicker players show "Adj" badge on incoming with tooltip explaining kicker
@@ -198,6 +216,7 @@ Test: If displayed, verify formula uses snapshot values only.
 - [ ] TradeExportCapture shows base salary with note about matching
 
 **Files to Touch**:
+
 | File | Action |
 |------|--------|
 | `TradeTeamCard.jsx` | Verify "Adj" badge logic covers BYC, kicker, poison pill |
@@ -215,22 +234,26 @@ Test: If displayed, verify formula uses snapshot values only.
 **Requirement**: TradeSalaryCalculator is the **ONLY** allowed exception to Invariant 2. It MUST visually separate "Sandbox Estimate" values from "Official Validator" values.
 
 **Policy Options**:
+
 1. **Snapshot-Driven When Available**: Show validator values as primary, local estimates as secondary comparison
 2. **Strict Sandbox/Official Separation**: Distinct visual sections with clear headers
 
 **Visual Separation Requirements**:
+
 - Distinct visual sections or cards (e.g., "Sandbox Estimate" header vs "Official Result" header)
 - Color coding (e.g., gray/muted for sandbox, primary color for official)
 - Clear labels on every value indicating source (estimate vs validated)
 - Prominent disclaimer: "Exploratory tool — validator is authoritative"
 
 **Acceptance Criteria**:
+
 - [ ] TradeSalaryCalculator has prominent disclaimer
 - [ ] Sandbox values visually separated from official values
 - [ ] When validator result is available AND differs from local by >$1, show comparison: "Validator will use: $X"
 - [ ] Tooltip explains why values may differ (BYC, trade kicker, poison pill)
 
 **Files to Touch**:
+
 | File | Action |
 |------|--------|
 | `TradeSalaryCalculator.jsx` | Add visual separation, disclaimer, validator comparison |
@@ -244,11 +267,13 @@ Test: If displayed, verify formula uses snapshot values only.
 **Issue Reference**: ISSUE-008
 
 **Files to Touch**:
+
 | File | Change |
 |------|--------|
 | `TradeSummaryPanel.jsx` | Remove `console.log('TEAMRESULT', teamResult);` |
 
 **How to Validate**:
+
 ```bash
 grep -rn "console.log" src/features/architect/tradeMachine --include="*.jsx"
 ```
@@ -260,6 +285,7 @@ grep -rn "console.log" src/features/architect/tradeMachine --include="*.jsx"
 **Issue Reference**: ISSUE-006
 
 **Files to Touch**:
+
 | File | Change |
 |------|--------|
 | `utils/salaryUtils.js` | Add `@deprecated` JSDoc pointing to canonical sources |
@@ -272,6 +298,7 @@ grep -rn "console.log" src/features/architect/tradeMachine --include="*.jsx"
 **Issue Reference**: ISSUE-004
 
 **Files to Touch**:
+
 | File | Change |
 |------|--------|
 | `TradeTeamCard.jsx` | Add tooltip to "—" display showing `salaryMatchingSkipReason` |
@@ -283,6 +310,7 @@ grep -rn "console.log" src/features/architect/tradeMachine --include="*.jsx"
 **Issue Reference**: ISSUE-002, ISSUE-005
 
 **Files to Touch**:
+
 | File | Change |
 |------|--------|
 | `docs/tradeMachine/SALARY_DISPLAY_GUIDE.md` | Create new file explaining Base vs Matching display rules |
@@ -323,12 +351,14 @@ These are **intentional design choices** documented in the Master Alignment docu
 ## Verification Checklist (Post-Implementation)
 
 ### Automated Tests
+
 - [ ] `npm run build` succeeds
 - [ ] `npm run test tests/trade/tradeSnapshotWiring.test.js -- --run` passes
 - [ ] `npm run test tests/salaryMatchingRules.test.js -- --run` passes
 - [ ] `npm run test tests/trade/ -- --run` passes (all trade tests)
 
 ### Manual Verification
+
 - [ ] Build a 2-team trade with equal salaries — validation passes, all surfaces show same `allowableIncoming`
 - [ ] Build a trade with BYC player — see "Adj" badge on outgoing, tooltip explains BYC
 - [ ] Build a trade with trade kicker player — see "Adj" badge on incoming, tooltip explains kicker
@@ -337,6 +367,7 @@ These are **intentional design choices** documented in the Master Alignment docu
 - [ ] Export trade image — shows base salaries with note about matching
 
 ### Code Quality
+
 - [ ] `grep -rn "console.log" src/features/architect/tradeMachine --include="*.jsx"` returns only gated debug logs
 - [ ] All snapshot reads use `useTradeMachineSnapshot.js` accessor
 
