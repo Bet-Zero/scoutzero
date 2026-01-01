@@ -1,6 +1,6 @@
 # Trade Machine Fix Plan
 
-> **Version**: 4.0.0 (December 2024)  
+> **Version**: 4.1.0 (January 2026)  
 > **Purpose**: Prioritized, step-by-step plan to align Trade Machine UI with validation logic and enforce product invariants  
 > **Authoritative Reference**: [`docs/tradeMachine/MASTER_TRADE_MACHINE_ALIGNMENT.md`](docs/tradeMachine/MASTER_TRADE_MACHINE_ALIGNMENT.md)  
 > **Companion Document**: [`TRADE_MACHINE_AUDIT.md`](TRADE_MACHINE_AUDIT.md)  
@@ -72,7 +72,7 @@ These fixes enforce the core invariants. All P0 acceptance criteria MUST pass fo
 
 **Invariant Reference**: Invariant 2 (Snapshot-Only for Official Values)
 
-**Requirement**: After validation runs, ALL official salary matching values (outgoingMatchingSalary, incomingMatchingSalary, allowableIncoming, passed/failed) MUST come from the validator snapshot. No local recalculation.
+**Requirement**: After validation runs, ALL official salary matching values (`salaryOut`, `salaryIn`, `allowableIncoming`, `passed/failed`) MUST come from the validator snapshot. No local recalculation.
 
 **Canonical Source**: `teamResult.rules.salaryMatching.*`
 
@@ -127,7 +127,7 @@ These fixes enforce the core invariants. All P0 acceptance criteria MUST pass fo
 Remaining Room = Allowable Incoming (snapshot) - Incoming Selected (snapshot-derived matching total)
 ```
 
-**Incoming Selected Source**: `teamResult.rules.salaryMatching.incomingMatchingSalary` (canonical team-level incoming matching total). If unavailable, sum `player.matchingSalaryIn` for all incoming players on that team. Never use base salary helpers.
+**Incoming Selected Source**: `teamResult.salaryIn` (canonical team-level incoming matching total). If unavailable, sum `player.matchingSalaryIn` for all incoming players on that team. Never use base salary helpers.
 
 **Current State**: Remaining Room is not prominently displayed in current UI. Requirement documented for future implementation.
 
@@ -385,4 +385,15 @@ Per audit and gap analysis, these items are deferred:
 
 ---
 
-*End of Fix Plan v4.0*
+---
+
+## Amendment Log
+
+| Date | Version | Change | Author |
+|------|---------|--------|--------|
+| Dec 2024 | 4.0.0 | Initial rewrite to enforce Master Alignment invariants | Trade Machine Team |
+| Jan 2026 | 4.1.0 | Canonical field alignment: Updated P0-2 to use `teamResult.salaryOut/salaryIn` as canonical OUT/IN sources per repo audit; Retained `teamResult.rules.salaryMatching.*` for allowableIncoming, passed, and ruleApplied | Trade Machine Team |
+
+---
+
+*End of Fix Plan v4.1*

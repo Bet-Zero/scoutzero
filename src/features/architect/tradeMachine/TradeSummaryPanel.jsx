@@ -5,6 +5,7 @@
 import React from 'react';
 import {
   formatCurrency,
+  getAdjustmentTooltipLabel,
   // getSalaryForYear,
 } from '@/features/architect/utils/tradeHelpers';
 // import { HelpCircle } from 'lucide-react';
@@ -180,6 +181,10 @@ function TradeSummaryPanel({
                           const hasAdjustment =
                             Math.abs(matchingValue - baseSalary) > 1;
 
+                          // P1: Use shared utility for adjustment type detection
+                          const adjustmentLabel = getAdjustmentTooltipLabel(p);
+                          const tooltipText = `${adjustmentLabel}: Base ${formatCurrency(baseSalary)} → Match ${formatCurrency(matchingValue)}`;
+
                           return (
                             <div
                               key={p.player_id || p.id}
@@ -187,11 +192,11 @@ function TradeSummaryPanel({
                             >
                               <div className="flex items-center gap-1 truncate">
                                 {p.name || p.fullName}
-                                {/* Phase 2.4: Adjusted indicator when matching != base */}
+                                {/* P1: Adjusted indicator with specific tooltip when matching != base */}
                                 {hasAdjustment && (
                                   <span
                                     className="px-1 py-0.5 text-[9px] bg-purple-600/30 text-purple-300 rounded leading-none"
-                                    title={`Trade matching value differs from base salary (Base: ${formatCurrency(baseSalary)} → Match: ${formatCurrency(matchingValue)})`}
+                                    title={tooltipText}
                                   >
                                     Adj
                                   </span>

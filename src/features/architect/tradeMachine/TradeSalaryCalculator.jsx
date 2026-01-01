@@ -12,6 +12,9 @@ import {
 /**
  * TradeSalaryCalculator - displays salary matching rules using the unified rules module
  * This component MUST use getSalaryMatchingResult to ensure consistency with the validator
+ * 
+ * P2 Policy: This is an exploratory tool and the ONLY exception to Invariant 2.
+ * It MUST visually separate "Sandbox Estimate" from "Official Validator" values.
  */
 const TradeSalaryCalculator = ({
   teamSalary,
@@ -20,6 +23,10 @@ const TradeSalaryCalculator = ({
   tpes = [],
   capSettings,
   yearKey,
+  // P2: Accept official validator result for comparison
+  validatorAllowableIncoming = null,
+  validatorRule = null,
+  hasValidatorResult = false,
 }) => {
   const [incomingSalary, setIncomingSalary] = useState(0);
 
@@ -73,6 +80,11 @@ const TradeSalaryCalculator = ({
   const allowableIncoming = breakdown.base + breakdown.min + breakdown.tpe;
   const isValid = incomingSalary <= allowableIncoming;
 
+  // P2: Detect if sandbox differs from official by more than $1
+  const officialDiffers = hasValidatorResult && 
+    validatorAllowableIncoming != null && 
+    Math.abs(allowableIncoming - validatorAllowableIncoming) > 1;
+
   // Don't render until we have required data
   if (!matchingResult) {
     return (
@@ -87,59 +99,108 @@ const TradeSalaryCalculator = ({
 
   return (
     <div className="border border-white/10 rounded-lg p-4 mt-4 bg-[#111]">
+      {/* P2: Prominent disclaimer at top */}
+      <div className="mb-4 px-3 py-2 bg-amber-900/20 border border-amber-600/30 rounded text-xs text-amber-300">
+        ⚠️ <strong>Exploratory tool</strong> — validator is authoritative for final trade legality.
+      </div>
+
       <h3 className="font-medium mb-3">Salary Matching Calculator</h3>
 
       <div className="space-y-4">
-        {/* Salary Summary */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs text-white/60 mb-1">
-              Outgoing Salary
-            </label>
-            <div className="font-mono bg-[#222] p-2 rounded">
-              {formatCurrency(outgoingSalary)}
+        {/* P2: Official Validator Section (when available) */}
+        {hasValidatorResult && validatorAllowableIncoming != null && (
+          <div className="bg-blue-900/20 border border-blue-500/30 rounded p-3">
+            <div className="text-xs font-semibold text-blue-300 mb-2 flex items-center gap-1">
+              <span>✓</span> Official Validator Result
+            </div>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <div className="text-xs text-blue-200/60 mb-1">Allowable Incoming</div>
+                <div className="font-mono text-blue-100">{formatCurrency(validatorAllowableIncoming)}</div>
+              </div>
+              {validatorRule && (
+                <div>
+                  <div className="text-xs text-blue-200/60 mb-1">Rule Applied</div>
+                  <div className="text-blue-100">{validatorRule}</div>
+                </div>
+              )}
             </div>
           </div>
-          <div>
-            <label className="block text-xs text-white/60 mb-1">
-              Allowable Incoming
-            </label>
-            <div
-              className={`font-mono p-2 rounded ${
-                isValid ? 'bg-green-900/30' : 'bg-red-900/30'
-              }`}
-            >
-              {formatCurrency(allowableIncoming)}
-            </div>
-          </div>
-        </div>
+        )}
 
-        {/* Rule Breakdown */}
-        <div className="bg-[#222] p-3 rounded border border-white/10">
-          <div className="text-xs text-white/70 mb-2">
-            <span className="font-semibold">Rule Applied:</span>{' '}
-            {breakdown.rule}
+        {/* P2: Sandbox Estimate Section */}
+        <div className={`rounded p-3 ${hasValidatorResult ? 'bg-white/5 border border-white/10' : ''}`}>
+          <div className="text-xs font-semibold text-white/60 mb-3 flex items-center gap-1">
+            {hasValidatorResult ? (
+              <>
+                <span className="text-yellow-400">⚡</span> Sandbox Estimate (local calculation)
+              </>
+            ) : (
+              'Sandbox Estimate'
+            )}
           </div>
-          {breakdown.formula && (
-            <div className="text-xs text-white/50 mb-2 font-mono">
-              {breakdown.formula}
-            </div>
-          )}
-          <div className="grid grid-cols-3 gap-2 text-xs">
-            <div className="text-center">
-              <div className="text-white/60">Base</div>
-              <div>{formatCurrency(breakdown.base)}</div>
-            </div>
-            <div className="text-center">
-              <div className="text-white/60">TPEs</div>
-              <div className={breakdown.tpe > 0 ? 'text-blue-300' : ''}>
-                +{formatCurrency(breakdown.tpe)}
+
+          {/* Salary Summary */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-white/60 mb-1">
+                Outgoing Salary
+              </label>
+              <div className="font-mono bg-[#222] p-2 rounded">
+                {formatCurrency(outgoingSalary)}
               </div>
             </div>
-            <div className="text-center">
-              <div className="text-white/60">Min Ex</div>
-              <div className={breakdown.min > 0 ? 'text-green-300' : ''}>
-                +{formatCurrency(breakdown.min)}
+            <div>
+              <label className="block text-xs text-white/60 mb-1">
+                Allowable Incoming
+              </label>
+              <div
+                className={`font-mono p-2 rounded ${
+                  isValid ? 'bg-green-900/30' : 'bg-red-900/30'
+                }`}
+              >
+                {formatCurrency(allowableIncoming)}
+              </div>
+              {/* P2: Show official value if it differs */}
+              {officialDiffers && (
+                <div className="text-xs text-blue-300 mt-1">
+                  Validator will use: {formatCurrency(validatorAllowableIncoming)}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Rule Breakdown */}
+          <div className="bg-[#222] p-3 rounded border border-white/10 mt-4">
+            <div className="text-xs text-white/70 mb-2">
+              <span className="font-semibold">Rule Applied:</span>{' '}
+              {breakdown.rule}
+              {/* P2: Note if validator uses different rule */}
+              {hasValidatorResult && validatorRule && validatorRule !== breakdown.rule && (
+                <span className="text-blue-300 ml-2">(Validator: {validatorRule})</span>
+              )}
+            </div>
+            {breakdown.formula && (
+              <div className="text-xs text-white/50 mb-2 font-mono">
+                {breakdown.formula}
+              </div>
+            )}
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              <div className="text-center">
+                <div className="text-white/60">Base</div>
+                <div>{formatCurrency(breakdown.base)}</div>
+              </div>
+              <div className="text-center">
+                <div className="text-white/60">TPEs</div>
+                <div className={breakdown.tpe > 0 ? 'text-blue-300' : ''}>
+                  +{formatCurrency(breakdown.tpe)}
+                </div>
+              </div>
+              <div className="text-center">
+                <div className="text-white/60">Min Ex</div>
+                <div className={breakdown.min > 0 ? 'text-green-300' : ''}>
+                  +{formatCurrency(breakdown.min)}
+                </div>
               </div>
             </div>
           </div>
@@ -169,12 +230,12 @@ const TradeSalaryCalculator = ({
             {isValid ? (
               <>
                 <span className="text-green-400 mr-2">✓</span>
-                <span>Valid Trade</span>
+                <span>Valid Trade (Sandbox)</span>
               </>
             ) : (
               <>
                 <span className="text-red-400 mr-2">✗</span>
-                <span>Invalid Trade</span>
+                <span>Invalid Trade (Sandbox)</span>
               </>
             )}
           </div>
@@ -190,11 +251,6 @@ const TradeSalaryCalculator = ({
               </>
             )}
           </div>
-        </div>
-
-        {/* Phase 2.6: Disclaimer — validator is authoritative */}
-        <div className="mt-3 pt-3 border-t border-white/10 text-xs text-white/40 italic">
-          Exploratory tool — validator is authoritative for final trade.
         </div>
       </div>
     </div>
