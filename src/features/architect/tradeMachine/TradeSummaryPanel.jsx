@@ -26,6 +26,8 @@ function TradeSummaryPanel({
   teams = [],
   forceTrade = false,
   showRuleExplanations = true,
+  // P0-3: Validation in-flight state for loading indicators
+  isValidating = false,
 }) {
   if (!result) return null;
 
@@ -112,12 +114,14 @@ function TradeSummaryPanel({
                 {/* Salary snapshot */}
                 {teamResult &&
                   (() => {
-                    // Read from rules.salaryMatching for explicit applicability
+                    // P0-2: Read from canonical sources per MASTER_TRADE_MACHINE_ALIGNMENT.md
+                    // - allowableIncoming from teamResult.rules.salaryMatching.allowableIncoming
+                    // - incoming salary from teamResult.salaryIn (validator-computed matching value)
                     const salaryMatchingRule =
                       teamResult.rules?.salaryMatching || {};
-                    const calculations = teamResult.calculations || {};
 
-                    const salaryIn = calculations.salaryIn || 0;
+                    // Canonical source: teamResult.salaryIn (matching-adjusted incoming from validator)
+                    const salaryIn = teamResult.salaryIn ?? 0;
                     // Check applicability before reading allowableIncoming
                     const isApplicable =
                       salaryMatchingRule.applicable !== false;
@@ -139,15 +143,22 @@ function TradeSummaryPanel({
                     return (
                       <p className="text-xs text-white/70">
                         {/* Phase 2.3: These are MATCHING values for trade legality */}
-                        Matching In / Allowed: {formatCurrency(salaryIn)} /{' '}
-                        {formattedAllowed}
-                        {skipReason && (
-                          <span className="text-white/40 ml-1">
-                            ({skipReason})
-                          </span>
-                        )}
-                        {overBy != null && overBy > 0 && (
-                          <> — Over by {formatCurrency(overBy)}</>
+                        {/* P0-3: Show loading state during validation in-flight */}
+                        Matching In / Allowed:{' '}
+                        {isValidating ? (
+                          <span className="text-blue-400 animate-pulse">Updating…</span>
+                        ) : (
+                          <>
+                            {formatCurrency(salaryIn)} / {formattedAllowed}
+                            {skipReason && (
+                              <span className="text-white/40 ml-1">
+                                ({skipReason})
+                              </span>
+                            )}
+                            {overBy != null && overBy > 0 && (
+                              <> — Over by {formatCurrency(overBy)}</>
+                            )}
+                          </>
                         )}
                       </p>
                     );
