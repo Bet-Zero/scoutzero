@@ -11,6 +11,8 @@ import {
 // import { HelpCircle } from 'lucide-react';
 import { getTeamColors } from '@/shared/utils/formatting';
 import TeamLogo from '@/shared/components/TeamLogo';
+// CANONICAL SELECTOR: Single source of truth for salary matching values
+import { getOfficialSalaryMatchingSnapshot } from '@/features/architect/tradeMachine/utils/getOfficialSalaryMatchingSnapshot';
 
 // Helper used for pick chip text
 const getPickLabel = (p) => {
@@ -115,23 +117,18 @@ function TradeSummaryPanel({
                 {/* Salary snapshot */}
                 {teamResult &&
                   (() => {
-                    // P0-2: Read from canonical sources per MASTER_TRADE_MACHINE_ALIGNMENT.md
-                    // - allowableIncoming from teamResult.rules.salaryMatching.allowableIncoming
-                    // - incoming salary from teamResult.salaryIn (validator-computed matching value)
-                    const salaryMatchingRule =
-                      teamResult.rules?.salaryMatching || {};
+                    // CANONICAL SOURCE: Use getOfficialSalaryMatchingSnapshot for all salary matching values
+                    // Per MASTER_TRADE_MACHINE_ALIGNMENT.md Invariant 1: Single Source per Concept
+                    const officialSnapshot = getOfficialSalaryMatchingSnapshot(teamResult);
+                    
+                    // Incoming salary from official selector
+                    const salaryIn = officialSnapshot.salaryIn ?? 0;
+                    // Allowable incoming from official selector (null means N/A)
+                    const allowedIncoming = officialSnapshot.allowableIncoming;
+                    const skipReason = officialSnapshot.skipReason;
 
-                    // Canonical source: teamResult.salaryIn (matching-adjusted incoming from validator)
-                    const salaryIn = teamResult.salaryIn ?? 0;
-                    // Check applicability before reading allowableIncoming
-                    const isApplicable =
-                      salaryMatchingRule.applicable !== false;
-                    const allowedIncoming =
-                      salaryMatchingRule.allowableIncoming;
-                    const skipReason = salaryMatchingRule.skipReason;
-
-                    // Tri-state display: only show allowed as number when applicable AND present
-                    const showAllowed = isApplicable && allowedIncoming != null;
+                    // Tri-state display: only show allowed as number when present (not null)
+                    const showAllowed = allowedIncoming != null;
                     const formattedAllowed = showAllowed
                       ? formatCurrency(allowedIncoming)
                       : '—';

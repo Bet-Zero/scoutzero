@@ -10,6 +10,8 @@ import FaExceptionTracker from './FaExceptionTracker';
 import TradePreviewModal from './TradePreviewModal';
 import { TradeReceiptPanel } from './TradeReceiptPanel';
 import TradeSalaryCalculator from './TradeSalaryCalculator';
+// CANONICAL SELECTOR: Single source of truth for salary matching values
+import { getOfficialSalaryMatchingSnapshot } from './utils/getOfficialSalaryMatchingSnapshot';
 // import TradeDebugPanel from './TradeDebugPanel';
 
 const TradeEditor = ({
@@ -261,11 +263,13 @@ const TradeEditor = ({
           {showCalculator && (() => {
             const selectedTeam = teams[calculatorTeamIndex];
             const teamResult = result?.teamResults?.[calculatorTeamIndex];
-            const hasValidatorResult = teamResult != null;
-            const validatorAllowableIncoming = teamResult?.rules?.salaryMatching?.allowableIncoming ?? null;
-            const validatorRule = teamResult?.rules?.salaryMatching?.details?.ruleApplied ?? null;
-            // P2 Lock-in: Wire skip reason for non-misleading guardrails
-            const validatorSkipReason = teamResult?.rules?.salaryMatching?.skipReason ?? null;
+            // CANONICAL SOURCE: Use getOfficialSalaryMatchingSnapshot for all official values
+            // Per MASTER_TRADE_MACHINE_ALIGNMENT.md Invariant 1: Single Source per Concept
+            const officialSnapshot = getOfficialSalaryMatchingSnapshot(teamResult);
+            const hasValidatorResult = officialSnapshot.hasValidator;
+            const validatorAllowableIncoming = officialSnapshot.allowableIncoming;
+            const validatorRule = officialSnapshot.ruleApplied;
+            const validatorSkipReason = officialSnapshot.skipReason;
             
             return (
               <TradeSalaryCalculator
