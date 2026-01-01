@@ -1,6 +1,6 @@
 # Master Trade Machine Alignment Document
 
-> **Version**: 1.2.0 (January 2026)  
+> **Version**: 1.2.1 (January 2026)  
 > **Purpose**: Define non-negotiable product invariants, terminology definitions, and UI policies for Trade Machine salary display consistency  
 > **Companion Documents**:  
 > - [`TRADE_MACHINE_AUDIT.md`](../../TRADE_MACHINE_AUDIT.md) — Detailed audit of UI vs validator mismatches  
@@ -93,7 +93,8 @@ These four invariants MUST be enforced in all Trade Machine code. Violations are
 - `allowableIncoming` → Label as "Allowable" or "Max Incoming" (the limit)
 - Sum of incoming matching salaries → Label as "Selected" or "Incoming Total" (the current)
 - Difference → Label as "Remaining Room" or "Available" with calculation shown
-- Remaining Room MUST use `snapshot.allowableIncoming - snapshot.salaryIn` (not local recalculation)
+- Remaining Room MUST use `snapshot.allowableIncoming - snapshot.incomingMatchingSalary` (not local recalculation)
+  - Note: `snapshot.incomingMatchingSalary` maps to the canonical `teamResult.salaryIn` field from the validator
 
 **Incoming Selected Clarification**: "Incoming Selected" refers specifically to the team-level total of incoming **matching** salary for that team (i.e., the sum of adjusted trade values, not base contract salaries). This value should be sourced from `teamResult.salaryIn` when available. If the snapshot does not provide a pre-computed team-level incoming total, sum the individual player matching values from the snapshot's player breakdown (e.g., `player.matchingSalaryIn`). Never use local base salary helpers for this calculation.
 
@@ -124,7 +125,7 @@ These values MUST come from the validator snapshot once validation has run:
 | Allowable Incoming | `teamResult.rules.salaryMatching.allowableIncoming` | Exact validator value |
 | Matching Rule Applied | `teamResult.rules.salaryMatching.ruleLabel` | Exact rule label |
 | Passed/Failed | `teamResult.rules.salaryMatching.passed` | Boolean status |
-| Remaining Room (if shown) | `allowableIncoming - salaryIn` (from snapshot) | Calculated from snapshot |
+| Remaining Room (if shown) | `allowableIncoming - incomingMatchingSalary` (from snapshot) | Calculated from snapshot |
 
 **Canonical Source Clarification**: The canonical source for all salary matching values is `teamResult.rules.salaryMatching.*` as returned by the validator. The table above shows these canonical paths. When code uses snapshot accessor hooks like `useTradeMachineSnapshot.js`, these accessors internally read from the canonical `teamResult.rules.salaryMatching` object. Both approaches are valid — direct access via `teamResult` or via snapshot accessor — as long as the underlying source is the validator's output, not a local recalculation.
 
@@ -235,6 +236,7 @@ Use this checklist when implementing or reviewing Trade Machine changes:
 | Dec 2024 | 1.0.0 | Initial document created | Trade Machine Team |
 | Dec 2024 | 1.1.0 | Section 3.4: Added TradeSalaryCalculator as ONLY exception to Invariant 2 with visual separation requirements; Section 3.2: Removed OR wording, declared canonical source as teamResult.rules.salaryMatching; Section 1.2/2.4: Clarified Incoming Selected is team-level matching total with snapshot field guidance | Trade Machine Team |
 | Jan 2026 | 1.2.0 | Canonical field alignment: Replaced `teamResult.rules.salaryMatching.outgoingMatchingSalary` → `teamResult.salaryOut`; Replaced `teamResult.rules.salaryMatching.incomingMatchingSalary` → `teamResult.salaryIn`; Retained allowableIncoming/passed/ruleApplied under rules.salaryMatching as confirmed in repo | Trade Machine Team |
+| Jan 2026 | 1.2.1 | Remaining Room formula fix: Updated Section 2.4 and 3.2 to use `snapshot.incomingMatchingSalary` (the actual accessor name) instead of `snapshot.salaryIn` (which does not exist); added clarification that `snapshot.incomingMatchingSalary` maps to canonical `teamResult.salaryIn` | Trade Machine Team |
 
 ---
 

@@ -338,6 +338,13 @@ export const generateTradeId = (teams) =>
  * Returns an array of adjustment types (e.g., ['BYC', 'Trade Kicker']).
  * Used for display purposes in trade UI tooltips.
  * 
+ * RULES (P1 cleanup - January 2026):
+ * - Only label specific adjustment types when EXPLICITLY flagged in player data
+ * - BYC: only if player.isBYC === true OR player.baseYearCompensation === true
+ * - Trade Kicker: only if player.tradeKicker exists OR player.tradeKickerPct > 0
+ * - Poison Pill: ONLY if player.isPoisonPill === true (explicit flag)
+ * - Do NOT infer Poison Pill from isRookieScale (rookie-scale ≠ poison pill)
+ * 
  * @param {Object} player - Player object with contract/adjustment flags
  * @returns {string[]} Array of adjustment type names
  */
@@ -346,20 +353,20 @@ export const getPlayerAdjustmentTypes = (player) => {
   
   const adjustmentTypes = [];
   
-  // BYC detection
-  if (player.isBYC || player.baseYearCompensation) {
+  // BYC detection - explicit flag only
+  if (player.isBYC === true || player.baseYearCompensation === true) {
     adjustmentTypes.push('BYC');
   }
   
-  // Trade Kicker detection
-  if (player.tradeKicker || player.tradeKickerPct) {
+  // Trade Kicker detection - explicit flag only
+  if (player.tradeKicker || player.tradeKickerPct > 0) {
     adjustmentTypes.push('Trade Kicker');
   }
   
-  // Poison Pill detection (rookie scale contracts)
-  const contract = player.contract || player.primaryContract;
-  const isRookieScale = contract?.isRookieScale || player.isRookieScale;
-  if (player.isPoisonPill || isRookieScale) {
+  // Poison Pill detection - EXPLICIT FLAG ONLY
+  // NOTE: Do NOT infer from isRookieScale. Rookie-scale contracts are not automatically poison pills.
+  // A poison pill only exists when a rookie extension's averaged salary differs materially from the current year.
+  if (player.isPoisonPill === true) {
     adjustmentTypes.push('Poison Pill');
   }
   
