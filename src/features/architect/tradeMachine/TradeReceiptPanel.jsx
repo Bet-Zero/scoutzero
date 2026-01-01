@@ -30,6 +30,9 @@ const PlayerListItem = ({ player, direction }) => {
         player.baseSalary !== player.matchingValue;
 
   const kickerPct = ((flags.tradeKickerPct || 0) * 100).toFixed(0);
+  
+  // P1: Tooltip format "Base $X → Match $Y" for consistency
+  const adjTooltipText = `Adjusted: Base ${formatCurrency(player.baseSalary)} → Match ${formatCurrency(player.matchingValue)}`;
 
   return (
     <div className="text-xs pl-2 py-1 border-l border-white/10">
@@ -39,7 +42,7 @@ const PlayerListItem = ({ player, direction }) => {
           {showAdjBadge && (
             <span
               className="px-1 py-0.5 text-[9px] bg-purple-600/30 text-purple-300 rounded leading-none"
-              title="Trade matching value differs from base salary"
+              title={adjTooltipText}
             >
               Adj
             </span>
@@ -47,7 +50,7 @@ const PlayerListItem = ({ player, direction }) => {
           {direction === 'outgoing' && flags.isBYC && (
             <span
               className="text-yellow-400 ml-1"
-              title="Base Year Compensation - uses max(prior, 50% new)"
+              title={`BYC: Base ${formatCurrency(player.baseSalary)} → Match ${formatCurrency(player.matchingValue)} (max of prior, 50% new)`}
             >
               BYC
             </span>
@@ -55,7 +58,7 @@ const PlayerListItem = ({ player, direction }) => {
           {direction === 'incoming' && flags.isPoisonPill && (
             <span
               className="text-purple-400 ml-1"
-              title="Poison Pill - uses averaged salary"
+              title={`Poison Pill: Base ${formatCurrency(player.baseSalary)} → Match ${formatCurrency(player.matchingValue)} (averaged salary)`}
             >
               PP
             </span>
@@ -65,8 +68,8 @@ const PlayerListItem = ({ player, direction }) => {
               className="text-orange-400 ml-1"
               title={
                 direction === 'incoming'
-                  ? `Trade Kicker (${kickerPct}%)`
-                  : 'Trade Kicker'
+                  ? `Trade Kicker (${kickerPct}%): Base ${formatCurrency(player.baseSalary)} → Match ${formatCurrency(player.matchingValue)}`
+                  : `Trade Kicker: Base ${formatCurrency(player.baseSalary)} → Match ${formatCurrency(player.matchingValue)}`
               }
             >
               TK
