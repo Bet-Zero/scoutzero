@@ -26,11 +26,13 @@ This return package documents the completion of two tasks:
 ### 2.2 Before/After: Invariant 4 (Section 2.4)
 
 **BEFORE:**
+
 ```markdown
 - Remaining Room MUST use `snapshot.allowableIncoming - snapshot.salaryIn` (not local recalculation)
 ```
 
 **AFTER:**
+
 ```markdown
 - Remaining Room MUST use `snapshot.allowableIncoming - snapshot.incomingMatchingSalary` (not local recalculation)
   - Note: `snapshot.incomingMatchingSalary` maps to the canonical `teamResult.salaryIn` field from the validator
@@ -39,11 +41,13 @@ This return package documents the completion of two tasks:
 ### 2.3 Before/After: Section 3.2 Table
 
 **BEFORE:**
+
 ```markdown
 | Remaining Room (if shown) | `allowableIncoming - salaryIn` (from snapshot) | Calculated from snapshot |
 ```
 
 **AFTER:**
+
 ```markdown
 | Remaining Room (if shown) | `allowableIncoming - incomingMatchingSalary` (from snapshot) | Calculated from snapshot |
 ```
@@ -51,11 +55,13 @@ This return package documents the completion of two tasks:
 ### 2.4 Version Bump
 
 **Updated Master Doc Version Header:**
+
 ```markdown
 > **Version**: 1.2.1 (January 2026)
 ```
 
 **Amendment Log Entry Added:**
+
 ```markdown
 | Jan 2026 | 1.2.1 | Remaining Room formula fix: Updated Section 2.4 and 3.2 to use `snapshot.incomingMatchingSalary` (the actual accessor name) instead of `snapshot.salaryIn` (which does not exist); added clarification that `snapshot.incomingMatchingSalary` maps to canonical `teamResult.salaryIn` | Trade Machine Team |
 ```
@@ -77,6 +83,7 @@ The following rules are now enforced in `getPlayerAdjustmentTypes()`:
 ### 3.2 Before/After: Poison Pill Detection
 
 **BEFORE (incorrect — inferred from rookie-scale):**
+
 ```javascript
 // Poison Pill detection (rookie scale contracts)
 const contract = player.contract || player.primaryContract;
@@ -87,6 +94,7 @@ if (player.isPoisonPill || isRookieScale) {
 ```
 
 **AFTER (correct — explicit flag only):**
+
 ```javascript
 // Poison Pill detection - EXPLICIT FLAG ONLY
 // NOTE: Do NOT infer from isRookieScale. Rookie-scale contracts are not automatically poison pills.
@@ -175,7 +183,7 @@ export const getPlayerAdjustmentTypes = (player) => {
 
 ### 6.1 Test: tradeSnapshotWiring.test.js
 
-```
+```text
 > scoutzero-final2@0.0.1 test
 > vitest src/tests/trade/tradeSnapshotWiring.test.js --run
 
@@ -191,7 +199,7 @@ export const getPlayerAdjustmentTypes = (player) => {
 
 ### 6.2 Test: tests/trade/ (all trade tests)
 
-```
+```text
 > scoutzero-final2@0.0.1 test
 > vitest tests/trade/ --run
 
@@ -229,7 +237,7 @@ export const getPlayerAdjustmentTypes = (player) => {
 
 ### 6.3 Build
 
-```
+```text
 > scoutzero-final2@0.0.1 build
 > vite build
 
@@ -247,16 +255,20 @@ dist/assets/index-494a49c9.js          1,811.70 kB │ gzip: 531.82 kB
 ### 6.4 Grep Sanity Checks
 
 **Poison Pill in tradeMachine JSX:**
-```
+
+```text
 src/features/architect/tradeMachine/TradeReceiptPanel.jsx:58:              title="Poison Pill - uses averaged salary"
 src/features/architect/tradeMachine/TradeReceiptPanel.jsx:90:          {flags.isPoisonPill && ' (Poison Pill avg)'}
 ```
+
 ✅ Both occurrences check explicit `flags.isPoisonPill` — not inferred from rookie-scale.
 
 **isRookieScale in tradeMachine JSX:**
-```
+
+```text
 (no matches)
 ```
+
 ✅ No `isRookieScale` checks in tradeMachine JSX files — confirms UI doesn't infer Poison Pill from rookie-scale.
 
 ---

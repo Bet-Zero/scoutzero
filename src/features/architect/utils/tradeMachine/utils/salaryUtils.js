@@ -1,3 +1,20 @@
+/**
+ * FILE: salaryUtils.js
+ * PURPOSE: Deprecated re-export wrapper - use canonical modules directly
+ * OWNERSHIP: Trade Machine Team
+ * 
+ * @deprecated This module is deprecated. Import from canonical modules instead:
+ * - computeMatchingValues → import from './matchingValues.js'
+ * - getCapHitForSeason → import from './seasonUtils.js'
+ * - getSalaryMatchingResult → import from './salaryMatchingRules.js'
+ * 
+ * This file exists for backwards compatibility only. New code should import
+ * from the canonical sources listed above.
+ * 
+ * @see matchingValues.js - BYC, poison pill, trade kicker calculations
+ * @see seasonUtils.js - Cap hit lookups by season
+ * @see salaryMatchingRules.js - Salary matching thresholds and rules
+ */
 import { computeMatchingValues as computeMatchingValuesCanonical } from './matchingValues.js';
 import { getCapHitForSeason as getCapHitForSeasonUtil } from './seasonUtils.js';
 import { getSalaryMatchingResult } from './salaryMatchingRules.js';

@@ -3,6 +3,7 @@
 > **Version**: 1.2.1 (January 2026)  
 > **Purpose**: Define non-negotiable product invariants, terminology definitions, and UI policies for Trade Machine salary display consistency  
 > **Companion Documents**:  
+>
 > - [`TRADE_MACHINE_AUDIT.md`](../../TRADE_MACHINE_AUDIT.md) — Detailed audit of UI vs validator mismatches  
 > - [`TRADE_MACHINE_FIX_PLAN.md`](../../TRADE_MACHINE_FIX_PLAN.md) — Prioritized implementation plan
 
@@ -67,6 +68,7 @@ These four invariants MUST be enforced in all Trade Machine code. Violations are
 **Rationale**: Prevents race conditions where UI shows stale data while validator recomputes.
 
 **Implementation**:
+
 - Official values: `salaryOut`, `salaryIn`, `allowableIncoming`, `salaryMatching.passed`
 - Source: `useTradeMachineSnapshot.js` accessor
 - During validation: Show loading indicator (e.g., "Calculating…", spinner, or skeleton)
@@ -79,6 +81,7 @@ These four invariants MUST be enforced in all Trade Machine code. Violations are
 **Rationale**: A $20M player might have an $8M matching value (BYC) or $23M matching value (trade kicker). Users need to know which they're looking at.
 
 **Implementation**:
+
 - When showing base salary: Label as "Contract Salary", "Base", or show no badge
 - When showing matching salary (different from base): Show purple "Adj" badge with tooltip explaining adjustment
 - In export/download views: Show base salary (roster reality) with note "Matching values may differ"
@@ -90,6 +93,7 @@ These four invariants MUST be enforced in all Trade Machine code. Violations are
 **Rationale**: Users often confuse "how much can I receive?" with "how much have I selected to receive?" and "how much more can I add?"
 
 **Implementation**:
+
 - `allowableIncoming` → Label as "Allowable" or "Max Incoming" (the limit)
 - Sum of incoming matching salaries → Label as "Selected" or "Incoming Total" (the current)
 - Difference → Label as "Remaining Room" or "Available" with calculation shown
@@ -146,12 +150,14 @@ When validation is running (user has made a change, validation triggered, result
 `TradeSalaryCalculator.jsx` is designated as an **exploratory tool** and is the **ONLY** allowed exception to Invariant 2 (Snapshot-Only for Official Values). No other component may locally compute salary matching values for display once validation exists.
 
 **Requirements for TradeSalaryCalculator**:
+
 - Re-derives matching values locally for user experimentation
 - MUST include disclaimer: "Exploratory tool — validator is authoritative"
 - SHOULD show validator comparison when available: "Validator will use: $X" if differs from local calculation
 - MAY show different numbers than the snapshot for educational/exploration purposes
 
 **Visual Separation Requirement**: When TradeSalaryCalculator displays values, it MUST visually separate "Sandbox Estimate" values (locally computed for exploration) from "Official Validator" values (snapshot-derived). This can be achieved through:
+
 - Distinct visual sections or cards (e.g., "Sandbox Estimate" header vs "Official Result" header)
 - Color coding (e.g., gray/muted for sandbox, primary color for official)
 - Clear labels on every value indicating source (estimate vs validated)
@@ -209,11 +215,13 @@ Additional files that reference `allowableIncoming` and may need alignment:
 Use this checklist when implementing or reviewing Trade Machine changes:
 
 ### Pre-Implementation
+
 - [ ] I have read this Master Alignment document
 - [ ] I understand which values must come from snapshot vs may be estimated
 - [ ] I know which UI surfaces must match
 
 ### Implementation
+
 - [ ] New/modified code reads from snapshot accessor (`useTradeMachineSnapshot.js`) for official values
 - [ ] Base vs Matching salary is clearly labeled where they differ
 - [ ] Allowable Incoming uses `teamResult.rules.salaryMatching.allowableIncoming` from validator
@@ -221,6 +229,7 @@ Use this checklist when implementing or reviewing Trade Machine changes:
 - [ ] Loading states shown during validation in-flight
 
 ### Post-Implementation
+
 - [ ] All `allowableIncoming` displays show same value for same trade state
 - [ ] BYC/kicker/poison pill players show "Adj" badge when matching differs from base
 - [ ] TradeReceiptPanel (if visible) shows same values as TradeTeamCard

@@ -25,6 +25,36 @@ import { getCapSettingsForYear } from '@/features/architect/utils/tradeMachine/u
 // Phase 1: Accessor function for validator result consumption (TRADE_MACHINE_UI_WIRING_AUDIT v2.1.0)
 import { getTeamSnapshot } from '@/features/architect/hooks/useTradeMachineSnapshot';
 
+/**
+ * P3-3: Convert internal skip reason codes to human-readable labels.
+ * Example: "HARD_CAP_SKIP" → "Hard cap skip", "TPE_ABSORPTION" → "TPE absorption"
+ * If already readable (no underscores, already has spaces), returns as-is.
+ */
+function formatSkipReasonLabel(skipReason) {
+  if (!skipReason || typeof skipReason !== 'string') return null;
+  
+  // If already looks human-readable (contains spaces, no underscores), return as-is
+  if (skipReason.includes(' ') && !skipReason.includes('_')) {
+    return skipReason;
+  }
+  
+  const ACRONYMS = ['TPE', 'BYC', 'MLE', 'BAE'];
+  const words = skipReason.split('_');
+  
+  const processed = words.map((word, index) => {
+    const upper = word.toUpperCase();
+    if (ACRONYMS.includes(upper)) return upper;
+    
+    // Title-case first word, lowercase others
+    if (index === 0) {
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    }
+    return word.toLowerCase();
+  });
+  
+  return processed.join(' ');
+}
+
 const TradeTeamCard = ({
   team,
   sends,
@@ -568,9 +598,25 @@ const TradeTeamCard = ({
                 ) : (
                   allowableIncomingNoTPE != null
                     ? formatSalary(allowableIncomingNoTPE)
-                    : '—'
+                    : (
+                      /* P3-3: Add tooltip explaining why salary matching is not applicable */
+                      <span
+                        title={salaryMatchingSkipReason ? `Not applicable: ${formatSkipReasonLabel(salaryMatchingSkipReason)}` : undefined}
+                      >
+                        —
+                      </span>
+                    )
                 )}
               </span>
+              {/* P3-3: Show (N/A) tag when salary matching not applicable and skip reason exists */}
+              {!isValidating && allowableIncomingNoTPE == null && salaryMatchingSkipReason && (
+                <span
+                  className="ml-1 text-white/40 text-[10px]"
+                  title={`Not applicable: ${formatSkipReasonLabel(salaryMatchingSkipReason)}`}
+                >
+                  (N/A)
+                </span>
+              )}
               {/* Phase 1: Visible indicator when using local estimate (Rule 2) */}
               {/* P0-3: Hide estimate badge during validation - show loading instead */}
               {!isValidating && isEstimate && (
@@ -581,9 +627,8 @@ const TradeTeamCard = ({
                   Estimate
                 </span>
               )}
-              {/* NOTE: Skip reason labels (e.g., HARD_CAP_SKIP, TPE_ABSORPTION) are intentionally
-                  NOT displayed in UI per Phase 1 requirements. The "—" dash display is sufficient
-                  to indicate that salary matching is not applicable. */}
+              {/* P3-3: Skip reason is now shown via tooltip on "—" and "(N/A)" tag.
+                  The formatSkipReasonLabel helper converts internal codes to readable labels. */}
               {/* Show rule label only when applicable (no skipReason) and rule is meaningful */}
               {/* P0-3: Hide rule label during validation */}
               {!isValidating && !salaryMatchingSkipReason &&

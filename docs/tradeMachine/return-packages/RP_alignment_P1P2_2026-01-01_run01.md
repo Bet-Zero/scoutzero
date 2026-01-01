@@ -12,14 +12,17 @@
 ### A) DOC ALIGNMENT (Canonical Field Map)
 
 **Problem**: The Master Alignment document and Fix Plan referenced incorrect canonical paths for incoming/outgoing matching salaries. The documents stated:
+
 - `teamResult.rules.salaryMatching.outgoingMatchingSalary`
 - `teamResult.rules.salaryMatching.incomingMatchingSalary`
 
 **Actual Canonical Paths** (confirmed in repo via test files and snapshot accessor):
+
 - `teamResult.salaryOut` — outgoing matching total
 - `teamResult.salaryIn` — incoming matching total
 
 **Changes Made**:
+
 1. Updated MASTER_TRADE_MACHINE_ALIGNMENT.md Section 1.2 to reference `teamResult.salaryIn`
 2. Updated MASTER_TRADE_MACHINE_ALIGNMENT.md Section 2.2 to reference `salaryOut`, `salaryIn`
 3. Updated MASTER_TRADE_MACHINE_ALIGNMENT.md Section 2.4 to use `snapshot.salaryIn`
@@ -33,11 +36,13 @@
 **Problem**: When a player has a matching adjustment (BYC, Trade Kicker, Poison Pill), the tooltip was generic: "Includes BYC, poison pill, or trade kicker adjustments"
 
 **Changes Made**:
+
 1. TradeTeamCard: Added specific adjustment type detection for both outgoing and incoming players
 2. TradeTeamCard: Tooltips now show specific adjustment type when detectable (e.g., "BYC: Base $X → Match $Y")
 3. TradeSummaryPanel: Added same specific adjustment type detection for incoming players
 
 **Detection Logic**:
+
 - BYC: `player.isBYC || player.baseYearCompensation`
 - Trade Kicker: `player.tradeKicker || player.tradeKickerPct`
 - Poison Pill: `player.isPoisonPill || contract.isRookieScale`
@@ -49,6 +54,7 @@
 **Problem**: TradeSalaryCalculator showed local calculations without clear separation from official validator values.
 
 **Changes Made**:
+
 1. Added prominent disclaimer at top: "⚠️ Exploratory tool — validator is authoritative"
 2. Added new props: `validatorAllowableIncoming`, `validatorRule`, `hasValidatorResult`
 3. Added "Official Validator Result" section (blue styling) when validator result available
@@ -206,6 +212,7 @@ const tooltipText = `${adjustmentLabel}: Base ${formatCurrency(baseSalary)} → 
 ### 4.5 TradeSalaryCalculator.jsx (P2 Changes)
 
 **New Props**:
+
 ```jsx
 const TradeSalaryCalculator = ({
   teamSalary,
@@ -222,6 +229,7 @@ const TradeSalaryCalculator = ({
 ```
 
 **Disclaimer at top**:
+
 ```jsx
 {/* P2: Prominent disclaimer at top */}
 <div className="mb-4 px-3 py-2 bg-amber-900/20 border border-amber-600/30 rounded text-xs text-amber-300">
@@ -230,6 +238,7 @@ const TradeSalaryCalculator = ({
 ```
 
 **Official Validator Section**:
+
 ```jsx
 {/* P2: Official Validator Section (when available) */}
 {hasValidatorResult && validatorAllowableIncoming != null && (
@@ -254,6 +263,7 @@ const TradeSalaryCalculator = ({
 ```
 
 **Sandbox Section with comparison**:
+
 ```jsx
 {/* P2: Show official value if it differs */}
 {officialDiffers && (
@@ -298,6 +308,7 @@ const TradeSalaryCalculator = ({
 | **Poison Pill** | `player.isPoisonPill === true` OR `player.contract?.isRookieScale === true` OR `player.isRookieScale === true` |
 
 **What is missing for more specific detection**:
+
 - The validator does not currently expose a per-player `adjustmentType` field in the snapshot
 - The `computeMatchingValues.js` function sets `matchOutgoing` and `matchIncoming` but does not track which rule caused the adjustment
 - **Recommendation**: Future enhancement could add `player.matchingAdjustments: ['BYC', 'TRADE_KICKER']` array to each player in the validator output
@@ -310,7 +321,7 @@ const TradeSalaryCalculator = ({
 
 ### Test 1: tradeSnapshotWiring.test.js
 
-```
+```text
 $ npm run test src/tests/trade/tradeSnapshotWiring.test.js -- --run
 
  RUN  v1.6.1 /home/runner/work/scoutzero/scoutzero
@@ -327,7 +338,7 @@ $ npm run test src/tests/trade/tradeSnapshotWiring.test.js -- --run
 
 ### Test 2: salaryMatchingRules.test.js
 
-```
+```text
 $ npm run test tests/salaryMatchingRules.test.js -- --run
 
  RUN  v1.6.1 /home/runner/work/scoutzero/scoutzero
@@ -344,7 +355,7 @@ $ npm run test tests/salaryMatchingRules.test.js -- --run
 
 ### Test 3: tests/trade/ (all trade tests)
 
-```
+```text
 $ npm run test tests/trade/ -- --run
 
  ✓ tests/trade/tpe_creation_expiry_usage.test.js  (4 tests) 35ms
@@ -381,7 +392,7 @@ $ npm run test tests/trade/ -- --run
 
 ### Test 4: npm run build
 
-```
+```text
 $ npm run build
 
 vite v4.5.14 building for production...

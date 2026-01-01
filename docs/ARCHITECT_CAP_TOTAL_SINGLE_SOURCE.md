@@ -25,6 +25,7 @@ This caused confusion where the same team showed different totals depending on w
 ### Solution
 
 A single utility function `computeTeamCapTotals()` that:
+
 1. Computes ALL cap allocation components consistently
 2. Is used by ALL surfaces that display team totals
 3. Returns a standardized `TeamCapTotals` object
@@ -201,6 +202,7 @@ it('includes ALL components: players + capHolds + deadMoney', () => {
 ### Baseline vs Post-Trade
 
 The Trade Machine has two states:
+
 1. **Baseline**: Team's current state before any trade
 2. **Post-Trade**: Team's projected state after trade validation
 
@@ -218,6 +220,7 @@ const postTradeProjected = snapshot?.projectedSalary;
 ### Why Cap Holds Differ
 
 The validator's `projectedSalary` intentionally excludes cap holds because:
+
 - Cap holds disappear when players are signed
 - During trade validation, we need to know salary after signing incoming players
 - Cap holds are displayed separately for clarity
@@ -229,6 +232,7 @@ The validator's `projectedSalary` intentionally excludes cap holds because:
 ### Before (Inconsistent)
 
 **CapSummaryTiles.jsx**:
+
 ```javascript
 const salaryTotal = players.reduce((sum, p) => sum + getContractYearSlice(p, year).capHit, 0);
 const capHoldsTotal = getActiveUnsignedCapHoldsTotalByEndYear(capHolds, year);
@@ -236,6 +240,7 @@ const total = salaryTotal + capHoldsTotal; // Missing dead money!
 ```
 
 **useTradeMachine.js**:
+
 ```javascript
 const baseline = payrollForYearFromCapSheet(teamObj, yearKey);
 const dead = deadMoneyForYear(teamObj, yearKey);
@@ -245,6 +250,7 @@ teamObj.teamTotalSalary = baseline + dead; // Missing cap holds!
 ### After (Single Source)
 
 **Both components**:
+
 ```javascript
 const totals = computeTeamCapTotals(teamCapSheet, yearKey);
 const total = totals.totalCapAllocations; // Includes ALL components
@@ -257,6 +263,7 @@ const total = totals.totalCapAllocations; // Includes ALL components
 ### Incomplete Roster Charges
 
 Currently `incompleteChargesTotal` is 0. Future implementation should:
+
 1. Count roster slots below 14 players
 2. Multiply by minimum salary for empty slots
 3. Add to total cap allocations
@@ -264,6 +271,7 @@ Currently `incompleteChargesTotal` is 0. Future implementation should:
 ### Trade Exception Integration
 
 TPE values could be added to the totals object:
+
 ```javascript
 TeamCapTotals = {
   ...existing,
