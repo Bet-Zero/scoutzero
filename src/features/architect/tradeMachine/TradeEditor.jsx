@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTradeMachine } from '@/features/architect/hooks/useTradeMachine';
 import TradeTeamCard from './TradeTeamCard';
 import TradeSummaryPanel from './TradeSummaryPanel';
@@ -9,6 +9,7 @@ import TradeExceptionDashboard from './TradeExceptionDashboard';
 import FaExceptionTracker from './FaExceptionTracker';
 import TradePreviewModal from './TradePreviewModal';
 import { TradeReceiptPanel } from './TradeReceiptPanel';
+import TradeSalaryCalculator from './TradeSalaryCalculator';
 // import TradeDebugPanel from './TradeDebugPanel';
 
 const TradeEditor = ({
@@ -40,6 +41,8 @@ const TradeEditor = ({
     applyTradeException,
     // P0-3: Track validation in-flight state
     isValidating,
+    // P2: Expose salaryOut for TradeSalaryCalculator
+    salaryOut,
   } = useTradeMachine(
     primaryTeam,
     capProjections,
@@ -49,6 +52,10 @@ const TradeEditor = ({
   );
 
   const [previewOpen, setPreviewOpen] = useState(false);
+  // P2: Track collapsible state for Salary Calculator panel
+  const [showCalculator, setShowCalculator] = useState(false);
+  // P2: Track which team's calculator to show (0 = primary team by default)
+  const [calculatorTeamIndex, setCalculatorTeamIndex] = useState(0);
 
   const incomingAssets = teams.map((tm, idx) => {
     const players = [];
@@ -217,6 +224,64 @@ const TradeEditor = ({
 
       {/* Detailed Validation Results */}
       <TradeValidationPanel result={result} />
+
+      {/* P2: Collapsible Salary Calculator Panel */}
+      {teams[calculatorTeamIndex]?.team && (
+        <div className="border border-white/10 rounded-lg overflow-hidden">
+          <button
+            onClick={() => setShowCalculator(!showCalculator)}
+            className="w-full flex items-center justify-between px-4 py-3 bg-[#111] hover:bg-[#1a1a1a] text-sm font-medium text-white/80"
+          >
+            <span className="flex items-center gap-2">
+              <span>🧮</span>
+              <span>Salary Calculator (Exploratory)</span>
+              {teams.filter(t => t.team).length > 1 && (
+                <select
+                  value={calculatorTeamIndex}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    setCalculatorTeamIndex(Number(e.target.value));
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="ml-2 bg-[#222] border border-white/20 rounded px-2 py-0.5 text-xs"
+                >
+                  {teams
+                    .map((t, idx) => ({ team: t.team, idx }))
+                    .filter(item => item.team)
+                    .map(item => (
+                      <option key={item.idx} value={item.idx}>
+                        {item.team.nickname || item.team.teamName || `Team ${item.idx + 1}`}
+                      </option>
+                    ))}
+                </select>
+              )}
+            </span>
+            {showCalculator ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+          {showCalculator && (() => {
+            const selectedTeam = teams[calculatorTeamIndex];
+            const teamResult = result?.teamResults?.[calculatorTeamIndex];
+            const hasValidatorResult = teamResult != null;
+            const validatorAllowableIncoming = teamResult?.rules?.salaryMatching?.allowableIncoming ?? null;
+            const validatorRule = teamResult?.rules?.salaryMatching?.details?.ruleApplied ?? null;
+            
+            return (
+              <TradeSalaryCalculator
+                teamSalary={selectedTeam.team?.teamTotalSalary || selectedTeam.team?.totalSalary || 0}
+                outgoingSalary={salaryOut[calculatorTeamIndex] || 0}
+                incomingPlayers={incomingAssets[calculatorTeamIndex]?.players || []}
+                tpes={selectedTeam.team?.tradeExceptions || []}
+                capSettings={result?.capSettings || capProjections}
+                yearKey={yearKey}
+                // P2: Wire official validator results for comparison
+                validatorAllowableIncoming={validatorAllowableIncoming}
+                validatorRule={validatorRule}
+                hasValidatorResult={hasValidatorResult}
+              />
+            );
+          })()}
+        </div>
+      )}
 
       {/* Trade Receipt Debug Panel (gated behind VITE_SHOW_TRADE_RECEIPT env var) */}
       <TradeReceiptPanel receipt={result?.tradeReceipt} />

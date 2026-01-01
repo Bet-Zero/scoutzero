@@ -255,6 +255,11 @@ const TradeExportCapture = React.forwardRef(function TradeExportCapture(
         })}
       </div>
 
+      {/* P1: Base vs Matching disclaimer note */}
+      <div className="text-center text-xs text-neutral-500 py-2 border-t border-neutral-700/30">
+        Salaries shown are base contract values. Matching values for trade legality may differ (BYC, trade kicker, poison pill adjustments).
+      </div>
+
       {/* ✅ Trade Result Footer */}
       {result && (
         <div className="border-t border-black/20 relative -mt-1">

@@ -1,6 +1,6 @@
 # Master Trade Machine Alignment Document
 
-> **Version**: 1.2.1 (January 2026)  
+> **Version**: 1.2.2 (January 2026)  
 > **Purpose**: Define non-negotiable product invariants, terminology definitions, and UI policies for Trade Machine salary display consistency  
 > **Companion Documents**:  
 >
@@ -176,7 +176,7 @@ The following UI surfaces display salary matching values and MUST use the same s
 |-----------|------|--------|-------|
 | **TradeTeamCard** | `src/features/architect/tradeMachine/TradeTeamCard.jsx` | ✅ Uses snapshot | Primary display — shows `allowableIncomingNoTPE` from snapshot |
 | **TradeSummaryPanel** | `src/features/architect/tradeMachine/TradeSummaryPanel.jsx` | ✅ Uses snapshot | Summary view — reads from `teamResult` |
-| **TradeSalaryCalculator** | `src/features/architect/tradeMachine/TradeSalaryCalculator.jsx` | ⚠️ Local calculation | Exploratory tool — by design uses local `getSalaryMatchingResult()`. MUST show disclaimer. |
+| **TradeSalaryCalculator** | `src/features/architect/tradeMachine/TradeSalaryCalculator.jsx` | ⚠️ Exploratory (User-reachable) | Collapsible panel in TradeEditor. By design uses local `getSalaryMatchingResult()` for sandbox, but shows official validator values for comparison when available. MUST show disclaimer. |
 | **TradeReceiptPanel** | `src/features/architect/tradeMachine/TradeReceiptPanel.jsx` | ✅ Uses snapshot | Debug panel — shows exact validator values |
 | **TradeValidationPanel** | `src/features/architect/tradeMachine/TradeValidationPanel.jsx` | ✅ Uses snapshot | Rule-by-rule breakdown from validator |
 
@@ -186,14 +186,14 @@ The following UI surfaces display salary matching values and MUST use the same s
 |-----------|------|--------|-------|
 | **TradeTeamCard** | `TradeTeamCard.jsx` (lines 135-142) | ✅ Uses snapshot with fallback | Shows "Estimate" badge when using local fallback |
 | **TradeSummaryPanel** | `TradeSummaryPanel.jsx` (line 121) | ✅ Uses snapshot | Reads from `teamResult.salaryOut/In` |
-| **TradeExportCapture** | `TradeExportCapture.jsx` (line 139) | ⚠️ Uses base salary | Intentional — export shows "roster reality" not matching values |
+| **TradeExportCapture** | `TradeExportCapture.jsx` (line 139) | ⚠️ Uses base salary | Intentional — export shows "roster reality" not matching values. Includes note about matching values. |
 
 ### 4.3 Matching Rule Label Surfaces
 
 | Component | File | Status | Notes |
 |-----------|------|--------|-------|
 | **TradeTeamCard** | `TradeTeamCard.jsx` (lines 240-245) | ✅ Uses snapshot | Shows rule from `snapshot.matchingRule` |
-| **TradeSalaryCalculator** | `TradeSalaryCalculator.jsx` (line 68) | ⚠️ Local calculation | Exploratory — may show different rule than validator |
+| **TradeSalaryCalculator** | `TradeSalaryCalculator.jsx` (line 68) | ⚠️ Exploratory | Shows local rule label, with validator rule shown for comparison when available |
 
 ### 4.4 Discovered Surfaces (From Code Scan)
 
@@ -246,6 +246,7 @@ Use this checklist when implementing or reviewing Trade Machine changes:
 | Dec 2024 | 1.1.0 | Section 3.4: Added TradeSalaryCalculator as ONLY exception to Invariant 2 with visual separation requirements; Section 3.2: Removed OR wording, declared canonical source as teamResult.rules.salaryMatching; Section 1.2/2.4: Clarified Incoming Selected is team-level matching total with snapshot field guidance | Trade Machine Team |
 | Jan 2026 | 1.2.0 | Canonical field alignment: Replaced `teamResult.rules.salaryMatching.outgoingMatchingSalary` → `teamResult.salaryOut`; Replaced `teamResult.rules.salaryMatching.incomingMatchingSalary` → `teamResult.salaryIn`; Retained allowableIncoming/passed/ruleApplied under rules.salaryMatching as confirmed in repo | Trade Machine Team |
 | Jan 2026 | 1.2.1 | Remaining Room formula fix: Updated Section 2.4 and 3.2 to use `snapshot.incomingMatchingSalary` (the actual accessor name) instead of `snapshot.salaryIn` (which does not exist); added clarification that `snapshot.incomingMatchingSalary` maps to canonical `teamResult.salaryIn` | Trade Machine Team |
+| Jan 2026 | 1.2.2 | P1/P2 completion: Updated Section 4.1-4.3 to reflect TradeSalaryCalculator is now user-reachable via collapsible panel in TradeEditor; updated TradeExportCapture entry to note inclusion of base/matching disclaimer | Trade Machine Team |
 
 ---
 
