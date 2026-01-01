@@ -1,6 +1,6 @@
 # Master Trade Machine Alignment Document
 
-> **Version**: 1.2.2 (January 2026)  
+> **Version**: 1.2.3 (January 2026)  
 > **Purpose**: Define non-negotiable product invariants, terminology definitions, and UI policies for Trade Machine salary display consistency  
 > **Companion Documents**:  
 >
@@ -164,6 +164,13 @@ When validation is running (user has made a change, validation triggered, result
 
 This separation ensures users understand which values are exploratory guesses and which are authoritative validator results.
 
+**Non-Misleading Guardrails (P2 Lock-in - January 2026)**: The calculator MUST NOT display misleading validation states:
+
+- Calculator MUST NOT display green "Valid Trade (Sandbox)" success when cap settings are missing or have zero values
+- Calculator MUST NOT display green "Valid Trade (Sandbox)" success when validator indicates salary matching is N/A (skipReason present, e.g., HARD_CAP_SKIP, TPE_ABSORPTION, FA_EXCEPTION)
+- Official section MUST render whenever `hasValidatorResult` is true, regardless of whether `allowableIncoming` is available
+- When sandbox and validator results contradict, calculator MUST show a prominent "Validator wins" line with the authoritative result
+
 ---
 
 ## 4. Must-Match UI Surfaces
@@ -247,6 +254,7 @@ Use this checklist when implementing or reviewing Trade Machine changes:
 | Jan 2026 | 1.2.0 | Canonical field alignment: Replaced `teamResult.rules.salaryMatching.outgoingMatchingSalary` → `teamResult.salaryOut`; Replaced `teamResult.rules.salaryMatching.incomingMatchingSalary` → `teamResult.salaryIn`; Retained allowableIncoming/passed/ruleApplied under rules.salaryMatching as confirmed in repo | Trade Machine Team |
 | Jan 2026 | 1.2.1 | Remaining Room formula fix: Updated Section 2.4 and 3.2 to use `snapshot.incomingMatchingSalary` (the actual accessor name) instead of `snapshot.salaryIn` (which does not exist); added clarification that `snapshot.incomingMatchingSalary` maps to canonical `teamResult.salaryIn` | Trade Machine Team |
 | Jan 2026 | 1.2.2 | P1/P2 completion: Updated Section 4.1-4.3 to reflect TradeSalaryCalculator is now user-reachable via collapsible panel in TradeEditor; updated TradeExportCapture entry to note inclusion of base/matching disclaimer | Trade Machine Team |
+| Jan 2026 | 1.2.3 | P2 Lock-in: Added "Non-Misleading Guardrails" subsection to Section 3.4 requiring: no green success when cap settings missing/zero, no green success when validator skipReason present, official section renders when hasValidatorResult=true, "Validator wins" display when results contradict | Trade Machine Team |
 
 ---
 

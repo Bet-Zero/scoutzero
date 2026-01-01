@@ -264,6 +264,8 @@ const TradeEditor = ({
             const hasValidatorResult = teamResult != null;
             const validatorAllowableIncoming = teamResult?.rules?.salaryMatching?.allowableIncoming ?? null;
             const validatorRule = teamResult?.rules?.salaryMatching?.details?.ruleApplied ?? null;
+            // P2 Lock-in: Wire skip reason for non-misleading guardrails
+            const validatorSkipReason = teamResult?.rules?.salaryMatching?.skipReason ?? null;
             
             return (
               <TradeSalaryCalculator
@@ -277,6 +279,8 @@ const TradeEditor = ({
                 validatorAllowableIncoming={validatorAllowableIncoming}
                 validatorRule={validatorRule}
                 hasValidatorResult={hasValidatorResult}
+                // P2 Lock-in: Wire skip reason for non-misleading guardrails
+                validatorSkipReason={validatorSkipReason}
               />
             );
           })()}
