@@ -315,5 +315,93 @@ describe('TradeSalaryCalculator Guardrail Tests (P2)', () => {
       // Official section MUST render when hasValidatorResult=true (Rule A from Master Doc)
       expect(screen.getByText('Official Validator Result')).toBeTruthy();
     });
+
+    it('P2-GR-15: shows "Sandbox Disabled" when capSettings are null', () => {
+      render(
+        <TradeSalaryCalculator
+          teamSalary={160_000_000}
+          outgoingSalary={15_000_000}
+          capSettings={null}
+          yearKey={2025}
+          hasValidatorResult={false}
+        />
+      );
+
+      // Should NOT render green sandbox result
+      expect(screen.queryByText('Sandbox Result (salary matching only)')).toBeNull();
+      expect(screen.queryByText('Valid Trade (Sandbox)')).toBeNull();
+      // Should show missing data message (component renders fallback for missing cap settings)
+      expect(screen.getByText(/Missing cap settings/)).toBeTruthy();
+    });
+
+    it('P2-GR-16: shows "Sandbox Disabled" when capSettings have zero salaryCap', () => {
+      render(
+        <TradeSalaryCalculator
+          teamSalary={160_000_000}
+          outgoingSalary={15_000_000}
+          capSettings={{ salaryCap: 0, firstApron: 0, secondApron: 0 }}
+          yearKey={2025}
+          hasValidatorResult={false}
+        />
+      );
+
+      // Should NOT render green sandbox result
+      expect(screen.queryByText('Sandbox Result (salary matching only)')).toBeNull();
+      expect(screen.queryByText('Valid Trade (Sandbox)')).toBeNull();
+    });
+
+    it('P2-GR-17: shows non-misleading "Sandbox Result (salary matching only)" label when valid', () => {
+      render(
+        <TradeSalaryCalculator
+          teamSalary={160_000_000}
+          outgoingSalary={15_000_000}
+          capSettings={mockCapSettings}
+          yearKey={2025}
+          hasValidatorResult={false}
+        />
+      );
+
+      // Should show the new non-misleading label instead of "Valid Trade (Sandbox)"
+      expect(screen.getByText('Sandbox Result (salary matching only)')).toBeTruthy();
+      // Old misleading label MUST NOT exist
+      expect(screen.queryByText('Valid Trade (Sandbox)')).toBeNull();
+      expect(screen.queryByText('Invalid Trade (Sandbox)')).toBeNull();
+    });
+
+    it('P2-GR-18: normalizes cap settings with alternative field names', () => {
+      // Test with "cap" field instead of "salaryCap"
+      render(
+        <TradeSalaryCalculator
+          teamSalary={160_000_000}
+          outgoingSalary={15_000_000}
+          capSettings={{ cap: 141_000_000, firstApron: 179_000_000, secondApron: 190_000_000 }}
+          yearKey={2025}
+          hasValidatorResult={false}
+        />
+      );
+
+      // Should render correctly (sandbox result should appear)
+      expect(screen.getByText('Sandbox Result (salary matching only)')).toBeTruthy();
+      // Disclaimer must always be present
+      expect(screen.getByText('Exploratory tool')).toBeTruthy();
+    });
+
+    it('P2-GR-19: normalizes cap settings with apronLine field names', () => {
+      // Test with firstApronLine/secondApronLine field names
+      render(
+        <TradeSalaryCalculator
+          teamSalary={160_000_000}
+          outgoingSalary={15_000_000}
+          capSettings={{ salaryCap: 141_000_000, firstApronLine: 179_000_000, secondApronLine: 190_000_000 }}
+          yearKey={2025}
+          hasValidatorResult={false}
+        />
+      );
+
+      // Should render correctly (sandbox result should appear)
+      expect(screen.getByText('Sandbox Result (salary matching only)')).toBeTruthy();
+      // Disclaimer must always be present
+      expect(screen.getByText('Exploratory tool')).toBeTruthy();
+    });
   });
 });
