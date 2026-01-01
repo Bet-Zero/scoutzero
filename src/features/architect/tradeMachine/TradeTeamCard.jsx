@@ -3,6 +3,7 @@ import { getTeamColors, formatMillions } from '@/shared/utils/formatting';
 import {
   getSalaryForYear,
   formatPick,
+  getAdjustmentTooltipLabel,
 } from '@/features/architect/utils/tradeHelpers';
 import { formatSalary } from '@/shared/utils/formatting';
 import CapImpactTiles from './CapImpactTiles';
@@ -407,17 +408,21 @@ const TradeTeamCard = ({
                 const hasPlayerAdjustment =
                   Math.abs(matchingValue - baseSalary) > 1;
 
+                // P1: Use shared utility for adjustment type detection
+                const adjustmentLabel = getAdjustmentTooltipLabel(p);
+                const tooltipText = `${adjustmentLabel}: Base ${formatSalary(baseSalary)} → Match ${formatSalary(matchingValue)}`;
+
                 return (
                   <span
                     key={p.player_id || p.id}
                     className="bg-[#2a2a2a] text-white/90 text-[11px] px-2 py-0.5 rounded-full border border-white/10 flex items-center gap-1"
                   >
                     {p.name}
-                    {/* Phase 2.4: Player-level adjustment indicator */}
+                    {/* P1: Player-level adjustment indicator with specific tooltip */}
                     {hasPlayerAdjustment && (
                       <span
                         className="px-1 py-0.5 text-[9px] bg-purple-600/30 text-purple-300 rounded leading-none"
-                        title={`Base: ${formatSalary(baseSalary)} → Match: ${formatSalary(matchingValue)}`}
+                        title={tooltipText}
                       >
                         Adj
                       </span>
@@ -510,17 +515,21 @@ const TradeTeamCard = ({
                 const hasPlayerAdjustment =
                   Math.abs(matchingValue - baseSalary) > 1;
 
+                // P1: Use shared utility for adjustment type detection
+                const adjustmentLabel = getAdjustmentTooltipLabel(p);
+                const tooltipText = `${adjustmentLabel}: Base ${formatSalary(baseSalary)} → Match ${formatSalary(matchingValue)}`;
+
                 return (
                   <span
                     key={p.player_id || p.id}
                     className="bg-[#2a2a2a] text-white/90 text-[11px] px-2 py-0.5 rounded-full border border-white/10 flex items-center gap-1"
                   >
                     {p.name}
-                    {/* Phase 2.4: Player-level adjustment indicator */}
+                    {/* P1: Player-level adjustment indicator with specific tooltip */}
                     {hasPlayerAdjustment && (
                       <span
                         className="px-1 py-0.5 text-[9px] bg-purple-600/30 text-purple-300 rounded leading-none"
-                        title={`Base: ${formatSalary(baseSalary)} → Match: ${formatSalary(matchingValue)}`}
+                        title={tooltipText}
                       >
                         Adj
                       </span>

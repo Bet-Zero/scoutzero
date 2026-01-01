@@ -332,4 +332,52 @@ export const generateTradeId = (teams) =>
     )
     .join('|');
 
+/*───────────────────────  P1: Adjustment Type Detection  ───────────────────*/
+/**
+ * Detects specific matching adjustment types for a player.
+ * Returns an array of adjustment types (e.g., ['BYC', 'Trade Kicker']).
+ * Used for display purposes in trade UI tooltips.
+ * 
+ * @param {Object} player - Player object with contract/adjustment flags
+ * @returns {string[]} Array of adjustment type names
+ */
+export const getPlayerAdjustmentTypes = (player) => {
+  if (!player) return [];
+  
+  const adjustmentTypes = [];
+  
+  // BYC detection
+  if (player.isBYC || player.baseYearCompensation) {
+    adjustmentTypes.push('BYC');
+  }
+  
+  // Trade Kicker detection
+  if (player.tradeKicker || player.tradeKickerPct) {
+    adjustmentTypes.push('Trade Kicker');
+  }
+  
+  // Poison Pill detection (rookie scale contracts)
+  const contract = player.contract || player.primaryContract;
+  const isRookieScale = contract?.isRookieScale || player.isRookieScale;
+  if (player.isPoisonPill || isRookieScale) {
+    adjustmentTypes.push('Poison Pill');
+  }
+  
+  return adjustmentTypes;
+};
+
+/**
+ * Returns a tooltip label for matching adjustments.
+ * Returns specific types if detected, otherwise a generic message.
+ * 
+ * @param {Object} player - Player object
+ * @returns {string} Human-readable adjustment label
+ */
+export const getAdjustmentTooltipLabel = (player) => {
+  const types = getPlayerAdjustmentTypes(player);
+  return types.length > 0
+    ? types.join(', ')
+    : 'Adjusted trade matching value (BYC/kicker/poison pill may apply)';
+};
+
 /*───────────────────────────────  EOF  ───────────────────────────────*/
