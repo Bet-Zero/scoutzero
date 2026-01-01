@@ -9,7 +9,14 @@
  * 2. Do NOT expose ambiguous flags (isFirstApron/isSecondApron) — defer to Phase 2/3
  * 3. Prefer explicit validator rule evaluations over derived status flags
  * 4. If fields are missing, return 0/empty defaults — do NOT compute locally
+ *
+ * SALARY MATCHING VALUES:
+ * For official salary matching values (OUT/IN/LIMIT/PASSED/RULE/FORMULA/SKIP),
+ * this module delegates to getOfficialSalaryMatchingSnapshot which is the
+ * SINGLE SOURCE OF TRUTH per MASTER_TRADE_MACHINE_ALIGNMENT.md Invariant 1.
  */
+
+import { getOfficialSalaryMatchingSnapshot } from '@/features/architect/tradeMachine/utils/getOfficialSalaryMatchingSnapshot';
 
 /**
  * Get a team-specific snapshot from the validator result.
@@ -31,6 +38,10 @@ export function getTeamSnapshot(teamId, result) {
   // NOTE: Do NOT use result.receipt for Phase 1 values — receipt is debug only
   // All values come from teamResult (validator output)
 
+  // Get official salary matching values from canonical selector
+  // This is the SINGLE SOURCE OF TRUTH for salary matching concepts
+  const officialSnapshot = getOfficialSalaryMatchingSnapshot(teamResult);
+
   return {
     // Identity
     teamId: teamResult.teamId,
@@ -43,37 +54,35 @@ export function getTeamSnapshot(teamId, result) {
     // totals.outgoingBase is base salary, salaryOut is matching-adjusted
     outgoingBaseSalary:
       teamResult.calculations?.salaryOut ?? teamResult.salaryOut ?? 0,
-    outgoingMatchingSalary: teamResult.salaryOut ?? 0,
+    // CANONICAL: Use official selector for matching salary
+    outgoingMatchingSalary: officialSnapshot.salaryOut ?? 0,
 
     // Incoming — from teamResults only, no receipt fallback
     // totals.incomingBase is base salary, salaryIn is matching-adjusted
     incomingBaseSalary:
       teamResult.calculations?.salaryIn ?? teamResult.salaryIn ?? 0,
-    incomingMatchingSalary: teamResult.salaryIn ?? 0,
+    // CANONICAL: Use official selector for matching salary
+    incomingMatchingSalary: officialSnapshot.salaryIn ?? 0,
 
     // Salary matching evaluation (explicit rule results)
     // These are the "golden numbers" that affect trade legality
-    // NOTE: allowableIncoming is NULL when salary matching is not applicable (e.g., hard-capped, TPE)
-    allowableIncoming:
-      teamResult.rules?.salaryMatching?.allowableIncoming ??
-      teamResult.calculations?.salaryMatching?.allowedIncoming ??
-      null, // DO NOT default to 0 — null means "not applicable"
+    // CANONICAL: All salary matching values from official selector
+    allowableIncoming: officialSnapshot.allowableIncoming, // null means "not applicable"
 
     // Explicit applicability tracking (Phase: Allowable Incoming N/A Consistency)
     salaryMatchingApplicable:
       teamResult.rules?.salaryMatching?.applicable ?? true,
-    salaryMatchingSkipReason:
-      teamResult.rules?.salaryMatching?.skipReason ?? null,
+    salaryMatchingSkipReason: officialSnapshot.skipReason,
 
-    salaryMatchingRule:
-      teamResult.rules?.salaryMatching?.details?.ruleApplied ?? 'unknown',
-    salaryMatchingFormula:
-      teamResult.rules?.salaryMatching?.details?.formulaUsed ?? '',
+    // CANONICAL: Rule and formula from official selector
+    salaryMatchingRule: officialSnapshot.ruleApplied ?? 'unknown',
+    salaryMatchingFormula: officialSnapshot.formulaUsed ?? '',
     margin:
       teamResult.rules?.salaryMatching?.margin ??
       teamResult.calculations?.salaryMatching?.margin ??
       null, // DO NOT default to 0 — null means "not applicable"
-    salaryMatchingPassed: teamResult.rules?.salaryMatching?.passed ?? false,
+    // CANONICAL: Passed status from official selector
+    salaryMatchingPassed: officialSnapshot.passed ?? false,
 
     // Post-trade projections (see Definition Gate for what this includes)
     projectedSalary: teamResult.projectedSalary ?? 0,

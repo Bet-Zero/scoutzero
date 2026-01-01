@@ -1,0 +1,156 @@
+/**
+ * getOfficialSalaryMatchingSnapshot.js
+ *
+ * CANONICAL SELECTOR for official salary matching values from validator output.
+ * This is the SINGLE SOURCE OF TRUTH for all UI surfaces displaying salary matching data.
+ *
+ * PURPOSE: Per MASTER_TRADE_MACHINE_ALIGNMENT.md (Invariant 1), if the same concept
+ * is displayed in multiple UI locations, it MUST use the SAME SOURCE/PIPELINE once
+ * validation exists. This selector is that single source.
+ *
+ * RULES:
+ * 1. This is the ONLY place allowed to know the raw validator field paths
+ * 2. All UI surfaces MUST use this selector for official values after validation
+ * 3. If teamResult is null/undefined: hasValidator=false, all fields null
+ * 4. If a field is missing in teamResult: keep null (do NOT infer/compute)
+ * 5. Numbers stay raw (no formatting) - formatting happens at UI layer
+ *
+ * CANONICAL FIELD MAPPING (from MASTER_TRADE_MACHINE_ALIGNMENT.md):
+ * - OUT: teamResult.salaryOut
+ * - IN: teamResult.salaryIn
+ * - LIMIT: teamResult.rules.salaryMatching.allowableIncoming
+ * - PASSED: teamResult.rules.salaryMatching.passed
+ * - RULE: teamResult.rules.salaryMatching.details.ruleApplied
+ * - FORMULA: teamResult.rules.salaryMatching.details.formulaUsed
+ * - SKIP: teamResult.rules.salaryMatching.skipReason
+ *
+ * @see docs/tradeMachine/MASTER_TRADE_MACHINE_ALIGNMENT.md
+ */
+
+/**
+ * Get official salary matching snapshot from a validator team result.
+ *
+ * @param {Object|null} teamResult - The per-team validator result object
+ *   from validateTrade().teamResults[i]
+ * @returns {Object} Official salary matching snapshot with the following shape:
+ *   {
+ *     hasValidator: boolean,       // true if teamResult exists and has data
+ *     allowableIncoming: number | null,  // LIMIT - max incoming allowed
+ *     salaryIn: number | null,           // IN - incoming matching total
+ *     salaryOut: number | null,          // OUT - outgoing matching total
+ *     passed: boolean | null,            // salary matching pass/fail
+ *     ruleApplied: string | null,        // rule label (e.g., "OVER_CAP_BAND_2")
+ *     formulaUsed: string | null,        // formula text (e.g., "125% + $250K")
+ *     skipReason: string | null          // skip reason if N/A (e.g., "HARD_CAP_SKIP")
+ *   }
+ */
+export function getOfficialSalaryMatchingSnapshot(teamResult) {
+  // Rule 3: If no teamResult, return hasValidator=false with all nulls
+  if (!teamResult) {
+    return {
+      hasValidator: false,
+      allowableIncoming: null,
+      salaryIn: null,
+      salaryOut: null,
+      passed: null,
+      ruleApplied: null,
+      formulaUsed: null,
+      skipReason: null,
+    };
+  }
+
+  // Extract salary matching rule evaluation from canonical path
+  const salaryMatching = teamResult.rules?.salaryMatching;
+
+  return {
+    hasValidator: true,
+
+    // LIMIT: teamResult.rules.salaryMatching.allowableIncoming
+    // Rule 4: Keep null if not present (indicates N/A, not 0)
+    allowableIncoming: salaryMatching?.allowableIncoming ?? null,
+
+    // IN: teamResult.salaryIn (validator-computed matching value)
+    salaryIn: teamResult.salaryIn ?? null,
+
+    // OUT: teamResult.salaryOut (validator-computed matching value)
+    salaryOut: teamResult.salaryOut ?? null,
+
+    // PASSED: teamResult.rules.salaryMatching.passed
+    passed: salaryMatching?.passed ?? null,
+
+    // RULE: teamResult.rules.salaryMatching.details.ruleApplied
+    ruleApplied: salaryMatching?.details?.ruleApplied ?? null,
+
+    // FORMULA: teamResult.rules.salaryMatching.details.formulaUsed
+    formulaUsed: salaryMatching?.details?.formulaUsed ?? null,
+
+    // SKIP: teamResult.rules.salaryMatching.skipReason
+    skipReason: salaryMatching?.skipReason ?? null,
+  };
+}
+
+/**
+ * Compute remaining room from official snapshot values.
+ *
+ * Per MASTER_TRADE_MACHINE_ALIGNMENT.md Section 2.4:
+ * "Remaining Room MUST be computed from snapshot-derived values"
+ *
+ * Formula: Remaining Room = allowableIncoming - salaryIn
+ *
+ * @param {Object} snapshot - Result from getOfficialSalaryMatchingSnapshot()
+ * @returns {number | null} Remaining room, or null if values unavailable
+ */
+export function computeRemainingRoom(snapshot) {
+  if (!snapshot || !snapshot.hasValidator) {
+    return null;
+  }
+
+  const { allowableIncoming, salaryIn } = snapshot;
+
+  // If either value is null/undefined, remaining room cannot be computed
+  if (allowableIncoming === null || allowableIncoming === undefined ||
+      salaryIn === null || salaryIn === undefined) {
+    return null;
+  }
+
+  return allowableIncoming - salaryIn;
+}
+
+/**
+ * Get official salary matching snapshot for a team by ID from a full validation result.
+ *
+ * Convenience wrapper that finds the team in teamResults and calls
+ * getOfficialSalaryMatchingSnapshot.
+ *
+ * @param {string} teamId - The team ID to look up
+ * @param {Object} validationResult - The full validator result with teamResults array
+ * @returns {Object} Official salary matching snapshot
+ */
+export function getOfficialSnapshotByTeamId(teamId, validationResult) {
+  if (!validationResult || !teamId) {
+    return getOfficialSalaryMatchingSnapshot(null);
+  }
+
+  const teamResult = validationResult.teamResults?.find(
+    (t) => t.teamId === teamId || t.teamCode === teamId
+  );
+
+  return getOfficialSalaryMatchingSnapshot(teamResult);
+}
+
+/**
+ * Get official salary matching snapshot for a team by index from a full validation result.
+ *
+ * @param {number} teamIndex - The index in the teamResults array
+ * @param {Object} validationResult - The full validator result with teamResults array
+ * @returns {Object} Official salary matching snapshot
+ */
+export function getOfficialSnapshotByIndex(teamIndex, validationResult) {
+  if (!validationResult || teamIndex === null || teamIndex === undefined || teamIndex < 0) {
+    return getOfficialSalaryMatchingSnapshot(null);
+  }
+
+  const teamResult = validationResult.teamResults?.[teamIndex];
+
+  return getOfficialSalaryMatchingSnapshot(teamResult);
+}
