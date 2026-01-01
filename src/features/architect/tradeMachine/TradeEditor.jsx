@@ -226,7 +226,7 @@ const TradeEditor = ({
       <TradeValidationPanel result={result} />
 
       {/* P2: Collapsible Salary Calculator Panel */}
-      {teams.length > 0 && teams[calculatorTeamIndex]?.team && (
+      {teams[calculatorTeamIndex]?.team && (
         <div className="border border-white/10 rounded-lg overflow-hidden">
           <button
             onClick={() => setShowCalculator(!showCalculator)}
@@ -235,7 +235,7 @@ const TradeEditor = ({
             <span className="flex items-center gap-2">
               <span>🧮</span>
               <span>Salary Calculator (Exploratory)</span>
-              {teams.length > 1 && (
+              {teams.filter(t => t.team).length > 1 && (
                 <select
                   value={calculatorTeamIndex}
                   onChange={(e) => {
@@ -245,13 +245,14 @@ const TradeEditor = ({
                   onClick={(e) => e.stopPropagation()}
                   className="ml-2 bg-[#222] border border-white/20 rounded px-2 py-0.5 text-xs"
                 >
-                  {teams.map((t, idx) => (
-                    t.team && (
-                      <option key={idx} value={idx}>
-                        {t.team.nickname || t.team.teamName || `Team ${idx + 1}`}
+                  {teams
+                    .map((t, idx) => ({ team: t.team, idx }))
+                    .filter(item => item.team)
+                    .map(item => (
+                      <option key={item.idx} value={item.idx}>
+                        {item.team.nickname || item.team.teamName || `Team ${item.idx + 1}`}
                       </option>
-                    )
-                  ))}
+                    ))}
                 </select>
               )}
             </span>
