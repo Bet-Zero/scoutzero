@@ -251,7 +251,84 @@ Use this checklist when implementing or reviewing Trade Machine changes:
 
 ---
 
-## 6. Amendment Log
+## 6. Single Source of Truth Implementation
+
+### 6.1 Canonical Selector
+
+The canonical selector `getOfficialSalaryMatchingSnapshot` is the SINGLE SOURCE OF TRUTH for official salary matching values. It is located at:
+
+```
+src/features/architect/tradeMachine/utils/getOfficialSalaryMatchingSnapshot.js
+```
+
+**API:**
+```javascript
+getOfficialSalaryMatchingSnapshot(teamResult) → {
+  hasValidator: boolean,       // true if teamResult exists
+  allowableIncoming: number | null,  // LIMIT - max incoming allowed
+  salaryIn: number | null,           // IN - incoming matching total
+  salaryOut: number | null,          // OUT - outgoing matching total
+  passed: boolean | null,            // salary matching pass/fail
+  ruleApplied: string | null,        // rule label
+  formulaUsed: string | null,        // formula text
+  skipReason: string | null          // skip reason if N/A
+}
+```
+
+**Rules:**
+1. This is the ONLY place allowed to know raw validator field paths
+2. If teamResult is null: `hasValidator=false`, all fields `null`
+3. If a field is missing: keep `null` (do NOT infer/compute)
+4. Numbers stay raw (no formatting)
+
+### 6.2 UI Surface Mapping
+
+| Component | Official Fields Used | Source |
+|-----------|---------------------|--------|
+| **TradeTeamCard** | salaryOut, salaryIn, allowableIncoming, ruleApplied, formulaUsed, skipReason | via `getTeamSnapshot()` → canonical selector |
+| **TradeSummaryPanel** | salaryIn, allowableIncoming, skipReason | Direct canonical selector call |
+| **TradeEditor** | allowableIncoming, ruleApplied, skipReason | Direct canonical selector call (for TradeSalaryCalculator props) |
+| **TradeSalaryCalculator** | allowableIncoming, ruleApplied, skipReason | Props from TradeEditor (official section) |
+| **TradeReceiptPanel** | N/A | Uses receipt data (debug only) - intentionally separate |
+| **TradeValidationPanel** | N/A | Shows rule pass/fail messages, not raw values |
+| **TradeExportCapture** | N/A | Uses base salary (intentional for roster reality) |
+
+### 6.3 Remaining Room Computation
+
+Per Invariant 4, Remaining Room MUST be computed from official values:
+
+```javascript
+computeRemainingRoom(snapshot) → allowableIncoming - salaryIn
+```
+
+Returns `null` if either value is unavailable.
+
+### 6.4 UI Smoke Proof Scenarios
+
+The following scenarios verify that all surfaces display identical official values:
+
+#### Scenario 1: Normal Matching Rule (No Skip Reason)
+- **Setup**: Team A (over cap, ~150M) trades $10M player to Team B
+- **Expected**: All surfaces show same allowableIncoming, salaryIn, salaryOut, ruleApplied
+- **Verification**: TradeTeamCard, TradeSummaryPanel, TradeSalaryCalculator (official section) display identical values
+
+#### Scenario 2: Skip Reason Case (Hard Cap / TPE Absorption)
+- **Setup**: Team A hard-capped receives player via TPE absorption
+- **Expected**: allowableIncoming = null, skipReason = "HARD_CAP_SKIP" or "TPE_ABSORPTION"
+- **Verification**: All surfaces show "—" for allowableIncoming with skipReason tooltip
+
+#### Scenario 3: Illegal Case (Incoming Exceeds Allowable)
+- **Setup**: Team A (over cap) attempts to receive more salary than allowed
+- **Expected**: salaryIn > allowableIncoming, passed = false
+- **Verification**: All surfaces show same values; TradeSummaryPanel shows "Over by" amount
+
+**Test Coverage:** These scenarios are programmatically tested in:
+- `src/tests/trade/tradeMultiSurfaceOfficialValues.test.js` (28 tests)
+- `src/tests/trade/tradeSnapshotWiring.test.js` (25 tests)
+
+---
+
+## 7. Amendment Log
 
 | Date | Version | Change | Author |
 |------|---------|--------|--------|
@@ -262,6 +339,7 @@ Use this checklist when implementing or reviewing Trade Machine changes:
 | Jan 2026 | 1.2.2 | P1/P2 completion: Updated Section 4.1-4.3 to reflect TradeSalaryCalculator is now user-reachable via collapsible panel in TradeEditor; updated TradeExportCapture entry to note inclusion of base/matching disclaimer | Trade Machine Team |
 | Jan 2026 | 1.2.3 | P2 Lock-in: Added "Non-Misleading Guardrails" subsection to Section 3.4 requiring: no green success when cap settings missing/zero, no green success when validator skipReason present, official section renders when hasValidatorResult=true, "Validator wins" display when results contradict | Trade Machine Team |
 | Jan 2026 | 1.2.4 | P2 Non-Misleading Sandbox: Added normalizeCapSettings function to handle various upstream cap setting shapes; changed "Valid Trade (Sandbox)" → "Sandbox Result (salary matching only)"; added "Sandbox Disabled State" subsection to Section 3.4; updated guardrails to clarify sandbox disabled behavior | Trade Machine Team |
+| Jan 2026 | 1.3.0 | Single Source of Truth Implementation: Created canonical selector `getOfficialSalaryMatchingSnapshot.js` as the ONLY place allowed to know raw field paths; wired useTradeMachineSnapshot.js, TradeSummaryPanel, and TradeEditor to use canonical selector; added Section 6 documenting implementation, UI surface mapping, and UI smoke proof scenarios; added 28 new regression tests in tradeMultiSurfaceOfficialValues.test.js | Trade Machine Team |
 
 ---
 

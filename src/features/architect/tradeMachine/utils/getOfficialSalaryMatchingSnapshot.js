@@ -107,8 +107,9 @@ export function computeRemainingRoom(snapshot) {
 
   const { allowableIncoming, salaryIn } = snapshot;
 
-  // If either value is null, remaining room cannot be computed
-  if (allowableIncoming == null || salaryIn == null) {
+  // If either value is null/undefined, remaining room cannot be computed
+  if (allowableIncoming === null || allowableIncoming === undefined ||
+      salaryIn === null || salaryIn === undefined) {
     return null;
   }
 
@@ -145,7 +146,7 @@ export function getOfficialSnapshotByTeamId(teamId, validationResult) {
  * @returns {Object} Official salary matching snapshot
  */
 export function getOfficialSnapshotByIndex(teamIndex, validationResult) {
-  if (!validationResult || teamIndex == null || teamIndex < 0) {
+  if (!validationResult || teamIndex === null || teamIndex === undefined || teamIndex < 0) {
     return getOfficialSalaryMatchingSnapshot(null);
   }
 
