@@ -1,6 +1,6 @@
 # Master Trade Machine Alignment Document
 
-> **Version**: 1.2.3 (January 2026)  
+> **Version**: 1.2.4 (January 2026)  
 > **Purpose**: Define non-negotiable product invariants, terminology definitions, and UI policies for Trade Machine salary display consistency  
 > **Companion Documents**:  
 >
@@ -166,10 +166,16 @@ This separation ensures users understand which values are exploratory guesses an
 
 **Non-Misleading Guardrails (P2 Lock-in - January 2026)**: The calculator MUST NOT display misleading validation states:
 
-- Calculator MUST NOT display green "Valid Trade (Sandbox)" success when cap settings are missing or have zero values
-- Calculator MUST NOT display green "Valid Trade (Sandbox)" success when validator indicates salary matching is N/A (skipReason present, e.g., HARD_CAP_SKIP, TPE_ABSORPTION, FA_EXCEPTION)
+- Calculator MUST NOT display green "Sandbox Result" when cap settings are missing or have zero values — shows "Sandbox Disabled" instead
+- Calculator MUST NOT display green "Sandbox Result" when validator indicates salary matching is N/A (skipReason present, e.g., HARD_CAP_SKIP, TPE_ABSORPTION, FA_EXCEPTION) — shows "Sandbox Disabled" instead
 - Official section MUST render whenever `hasValidatorResult` is true, regardless of whether `allowableIncoming` is available
 - When sandbox and validator results contradict, calculator MUST show a prominent "Validator wins" line with the authoritative result
+- Calculator MUST use non-misleading labels: "Sandbox Result (salary matching only)" instead of "Valid Trade (Sandbox)" — the calculator validates only salary matching for a test input, not the entire trade
+- Cap settings MUST be normalized using the `normalizeCapSettings` helper to handle various upstream shapes (e.g., `salaryCap` vs `cap`, `firstApronLine` vs `firstApron`)
+
+**Sandbox Disabled State**: When sandbox cannot produce meaningful results (invalid cap settings or validator skip reason):
+- Render a neutral "Sandbox Disabled" panel with the reason displayed
+- DO NOT render any green/red validation result that could be misinterpreted as authoritative
 
 ---
 
@@ -255,6 +261,7 @@ Use this checklist when implementing or reviewing Trade Machine changes:
 | Jan 2026 | 1.2.1 | Remaining Room formula fix: Updated Section 2.4 and 3.2 to use `snapshot.incomingMatchingSalary` (the actual accessor name) instead of `snapshot.salaryIn` (which does not exist); added clarification that `snapshot.incomingMatchingSalary` maps to canonical `teamResult.salaryIn` | Trade Machine Team |
 | Jan 2026 | 1.2.2 | P1/P2 completion: Updated Section 4.1-4.3 to reflect TradeSalaryCalculator is now user-reachable via collapsible panel in TradeEditor; updated TradeExportCapture entry to note inclusion of base/matching disclaimer | Trade Machine Team |
 | Jan 2026 | 1.2.3 | P2 Lock-in: Added "Non-Misleading Guardrails" subsection to Section 3.4 requiring: no green success when cap settings missing/zero, no green success when validator skipReason present, official section renders when hasValidatorResult=true, "Validator wins" display when results contradict | Trade Machine Team |
+| Jan 2026 | 1.2.4 | P2 Non-Misleading Sandbox: Added normalizeCapSettings function to handle various upstream cap setting shapes; changed "Valid Trade (Sandbox)" → "Sandbox Result (salary matching only)"; added "Sandbox Disabled State" subsection to Section 3.4; updated guardrails to clarify sandbox disabled behavior | Trade Machine Team |
 
 ---
 

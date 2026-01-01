@@ -17,10 +17,54 @@ import {
  * It MUST visually separate "Sandbox Estimate" from "Official Validator" values.
  * 
  * P2 Lock-in: Non-misleading guardrails (January 2026)
- * - MUST NOT show green "Valid Trade (Sandbox)" when cap settings are missing/zero
- * - MUST NOT show green "Valid Trade (Sandbox)" when validator indicates salary matching is N/A (skip reason)
+ * - MUST NOT show green "Sandbox Result" when cap settings are missing/zero
+ * - MUST NOT show green "Sandbox Result" when validator indicates salary matching is N/A (skip reason)
  * - MUST show "Validator wins" context when sandbox contradicts official result
  */
+
+/**
+ * Normalize cap settings into the canonical shape used by the calculator.
+ * Handles various upstream shapes:
+ *   - { salaryCap, firstApron, secondApron }
+ *   - { cap, firstApron, secondApron }
+ *   - { salaryCap, firstApronLine, secondApronLine }
+ *   - Nested year-keyed forms (picks current yearKey if present)
+ * 
+ * Returns: { salaryCap, firstApron, secondApron } as numbers, plus hasValidCapSettings boolean.
+ * 
+ * @param {Object|null|undefined} rawCapSettings - The raw cap settings from props
+ * @param {string|number} [yearKey] - Optional year key for resolving nested year-keyed forms
+ * @returns {{ salaryCap: number, firstApron: number, secondApron: number, hasValidCapSettings: boolean }}
+ */
+function normalizeCapSettings(rawCapSettings, yearKey = null) {
+  // Handle null/undefined
+  if (!rawCapSettings || typeof rawCapSettings !== 'object') {
+    return { salaryCap: 0, firstApron: 0, secondApron: 0, hasValidCapSettings: false };
+  }
+
+  let settings = rawCapSettings;
+
+  // Handle nested year-keyed forms (e.g., { '2024-25': { cap: ... } })
+  if (yearKey && typeof settings[yearKey] === 'object' && settings[yearKey] !== null) {
+    settings = settings[yearKey];
+  } else if (yearKey) {
+    // Try season string format (e.g., yearKey=2025 -> check '2024-25')
+    const seasonKey = typeof yearKey === 'number' ? `${yearKey - 1}-${String(yearKey).slice(-2)}` : yearKey;
+    if (typeof settings[seasonKey] === 'object' && settings[seasonKey] !== null) {
+      settings = settings[seasonKey];
+    }
+  }
+
+  // Normalize field names to canonical shape
+  const salaryCap = Number(settings.salaryCap) || Number(settings.cap) || 0;
+  const firstApron = Number(settings.firstApron) || Number(settings.firstApronLine) || 0;
+  const secondApron = Number(settings.secondApron) || Number(settings.secondApronLine) || 0;
+
+  // Cap settings are valid if salaryCap is positive (firstApron/secondApron optional but should be > 0 if present)
+  const hasValidCapSettings = salaryCap > 0;
+
+  return { salaryCap, firstApron, secondApron, hasValidCapSettings };
+}
 const TradeSalaryCalculator = ({
   teamSalary,
   outgoingSalary,
@@ -37,24 +81,31 @@ const TradeSalaryCalculator = ({
 }) => {
   const [incomingSalary, setIncomingSalary] = useState(0);
 
+  // P2 Lock-in: Normalize cap settings using the dedicated helper
+  const normalizedCap = useMemo(
+    () => normalizeCapSettings(capSettings, yearKey),
+    [capSettings, yearKey]
+  );
+  const { hasValidCapSettings } = normalizedCap;
+
   // Use unified salary matching rules for calculation
   const matchingResult = useMemo(() => {
-    if (!teamSalary || !capSettings) return null;
+    if (!teamSalary || !hasValidCapSettings) return null;
 
     return getSalaryMatchingResult({
       teamTotalSalary: teamSalary,
       outgoingSalary: outgoingSalary || 0,
       capSettings: {
-        salaryCap: capSettings.salaryCap || capSettings.cap,
-        firstApron: capSettings.firstApron,
-        secondApron: capSettings.secondApron,
+        salaryCap: normalizedCap.salaryCap,
+        firstApron: normalizedCap.firstApron,
+        secondApron: normalizedCap.secondApron,
       },
     });
-  }, [teamSalary, outgoingSalary, capSettings]);
+  }, [teamSalary, outgoingSalary, normalizedCap, hasValidCapSettings]);
 
   // Calculate additional allowances (TPE, min salary exceptions)
   const breakdown = useMemo(() => {
-    if (!matchingResult || !teamSalary || !capSettings) {
+    if (!matchingResult || !teamSalary || !hasValidCapSettings) {
       return { base: 0, min: 0, tpe: 0, rule: '', formula: '' };
     }
 
@@ -62,7 +113,7 @@ const TradeSalaryCalculator = ({
 
     // Calculate minimum salary exception
     const min =
-      teamSalary > (capSettings.salaryCap || capSettings.cap)
+      teamSalary > normalizedCap.salaryCap
         ? incomingPlayers.reduce((sum, p) => {
             const s = getSalaryForYear([p], yearKey);
             return s <= MIN_SALARY ? sum + s : sum;
@@ -82,31 +133,23 @@ const TradeSalaryCalculator = ({
       rule: matchingResult.ruleLabel,
       formula: matchingResult.formulaUsed,
     };
-  }, [matchingResult, teamSalary, capSettings, incomingPlayers, tpes, yearKey]);
+  }, [matchingResult, teamSalary, normalizedCap, hasValidCapSettings, incomingPlayers, tpes, yearKey]);
 
   const allowableIncoming = breakdown.base + breakdown.min + breakdown.tpe;
   
-  // P2 Lock-in: Check if cap settings are missing or have zero critical values
-  const capSettingsMissing = !capSettings;
-  const capSettingsZero = capSettings && (
-    (!capSettings.salaryCap && !capSettings.cap) ||
-    (capSettings.salaryCap === 0 && capSettings.cap === 0)
-  );
-  const hasInvalidCapSettings = capSettingsMissing || capSettingsZero;
-  
   // P2 Lock-in: Sandbox success should be disabled when:
-  // 1. Cap settings are missing/zero
+  // 1. Cap settings are missing/zero (determined by normalizeCapSettings)
   // 2. Validator indicates salary matching is N/A (skip reason present)
   // 3. Validator result exists and sandbox isValid contradicts it
   const sandboxDisabledReason = useMemo(() => {
-    if (hasInvalidCapSettings) {
-      return 'Missing cap settings';
+    if (!hasValidCapSettings) {
+      return 'Missing or invalid cap settings';
     }
     if (validatorSkipReason) {
       return `Salary matching not applicable (${validatorSkipReason})`;
     }
     return null;
-  }, [hasInvalidCapSettings, validatorSkipReason]);
+  }, [hasValidCapSettings, validatorSkipReason]);
 
   const isSandboxDisabled = !!sandboxDisabledReason;
   const isValid = !isSandboxDisabled && incomingSalary <= allowableIncoming;
@@ -301,7 +344,7 @@ const TradeSalaryCalculator = ({
             </div>
           </div>
         ) : (
-          // Normal sandbox validation result
+          // Normal sandbox validation result - P2 Lock-in: Use non-misleading labels
           <div
             className={`p-3 rounded ${
               isValid ? 'bg-green-900/20' : 'bg-red-900/20'
@@ -311,18 +354,18 @@ const TradeSalaryCalculator = ({
               {isValid ? (
                 <>
                   <span className="text-green-400 mr-2">✓</span>
-                  <span>Valid Trade (Sandbox)</span>
+                  <span>Sandbox Result (salary matching only)</span>
                 </>
               ) : (
                 <>
                   <span className="text-red-400 mr-2">✗</span>
-                  <span>Invalid Trade (Sandbox)</span>
+                  <span>Sandbox Result (salary matching only)</span>
                 </>
               )}
             </div>
             <div className="text-sm mt-1">
               {isValid ? (
-                'This salary combination complies with CBA rules'
+                'Test incoming salary passes salary matching check'
               ) : (
                 <>
                   Exceeds allowable incoming by{' '}
