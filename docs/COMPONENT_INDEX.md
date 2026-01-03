@@ -167,6 +167,7 @@ Quick reference for all components in the ScoutZero project.
 - utils/tradeMachine/utils/capSettingsProvider.js
 - utils/tradeMachine/utils/capUtils.js
 - utils/tradeMachine/utils/computeMatchingValues.js
+- utils/tradeMachine/utils/hardCapStatus.js
 - utils/tradeMachine/utils/index.js
 - utils/tradeMachine/utils/matchingValues.js
 - utils/tradeMachine/utils/normalizeTradeInput.js
@@ -318,4 +319,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2026-01-03T09:36:11.696Z*
+*Generated on: 2026-01-03T09:42:15.643Z*
