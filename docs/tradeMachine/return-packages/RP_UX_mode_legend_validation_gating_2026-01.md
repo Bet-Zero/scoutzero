@@ -75,7 +75,7 @@ This implementation addresses the "I don't know what I'm looking at" confusion i
 
 ## 5. Test Output
 
-```
+```text
  ✓ src/tests/trade/TradeValidationGating.guardrail.test.jsx  (27 tests) 201ms
 
  Test Files  1 passed (1)
@@ -85,6 +85,7 @@ This implementation addresses the "I don't know what I'm looking at" confusion i
 ```
 
 All 27 new guardrail tests pass, covering:
+
 - Validation state pill states (A-GR-01 through A-GR-04)
 - Mode legend rendering (A-GR-05 through A-GR-06)
 - ModeTag component (A-GR-07 through A-GR-10)
@@ -100,7 +101,7 @@ All existing trade tests continue to pass (204 total tests).
 
 ## 6. Build Output
 
-```
+```bash
 > scoutzero-final2@0.0.1 build
 > vite build
 
@@ -116,6 +117,7 @@ Build successful with no errors.
 ## 7. No-Scope Confirmation
 
 **EXPLICIT CONFIRMATION**: This PR makes NO changes to:
+
 - ❌ Validator math or logic
 - ❌ Salary matching rules or formulas
 - ❌ `validateTrade()` function
@@ -131,7 +133,8 @@ All changes are **UI/UX only** — adding visual clarity and gating, not modifyi
 ## 8. Return Package Location
 
 This document is located at:
-```
+
+```text
 docs/tradeMachine/return-packages/RP_UX_mode_legend_validation_gating_2026-01.md
 ```
 

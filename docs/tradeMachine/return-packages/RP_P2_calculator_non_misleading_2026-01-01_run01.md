@@ -16,6 +16,7 @@ The `TradeSalaryCalculator.jsx` component is the ONLY exception to Invariant 2 (
 ### Problem Identified
 
 Before this change, the calculator could show a green "Valid Trade (Sandbox)" success state even when:
+
 - Cap settings were missing or had zero values (making calculations invalid)
 - The validator indicated salary matching was N/A (e.g., HARD_CAP_SKIP, TPE_ABSORPTION)
 - The validator result contradicted the sandbox estimate
@@ -208,7 +209,7 @@ const validatorContradictsSandbox = hasValidatorResult &&
 
 ### Test 1: TradeSalaryCalculator Guardrail Tests
 
-```
+```bash
 $ npm run test src/tests/trade/TradeSalaryCalculator.guardrail.test.jsx -- --run
 
  RUN  v1.6.1 /home/runner/work/scoutzero/scoutzero
@@ -225,7 +226,7 @@ $ npm run test src/tests/trade/TradeSalaryCalculator.guardrail.test.jsx -- --run
 
 ### Test 2: tests/trade/ (All Trade Tests)
 
-```
+```bash
 $ npm run test tests/trade/ -- --run
 
  Test Files  28 passed (28)
@@ -238,7 +239,7 @@ $ npm run test tests/trade/ -- --run
 
 ### Test 3: src/tests/trade/ (Including New Guardrails)
 
-```
+```bash
 $ npm run test src/tests/trade/ -- --run
 
  ✓ src/tests/trade/tradeSnapshotWiring.test.js  (25 tests)
@@ -255,7 +256,7 @@ $ npm run test src/tests/trade/ -- --run
 
 ### Test 4: Build
 
-```
+```bash
 $ npm run build
 
 vite v4.5.14 building for production...
@@ -278,6 +279,7 @@ dist/assets/index-11ee9632.js          1,821.07 kB │ gzip: 534.09 kB
 **Explicit statement: No validator math changed.**
 
 This P2 lock-in:
+
 - ✅ Did NOT modify any validator logic files
 - ✅ Did NOT change salary matching calculations
 - ✅ Did NOT alter `validateSalaryMatching.js` or related validator rules

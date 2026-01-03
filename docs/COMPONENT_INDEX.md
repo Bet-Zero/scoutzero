@@ -81,6 +81,7 @@ Quick reference for all components in the ScoutZero project.
 - tradeMachine/TradeValidationPanel.jsx
 - tradeMachine/ValidationDetailsPanel.jsx
 - tradeMachine/ValidationStateHeader.jsx
+- tradeMachine/utils/computeTradeDraftKey.js
 - tradeMachine/utils/getOfficialSalaryMatchingSnapshot.js
 - utils/architectCore.js
 - utils/basicArchitectUtils.js
@@ -178,6 +179,7 @@ Quick reference for all components in the ScoutZero project.
 - utils/tradeMachine/validators/index.js
 - utils/tradeManager.js
 - utils/worldManager.js
+- utils/worldlessBaselineSalary.js
 
 ## Filters
 
@@ -255,6 +257,7 @@ Quick reference for all components in the ScoutZero project.
 - RankingResults.jsx
 - RankingSession.jsx
 - RankingSetup.jsx
+- tournamentRanker.js
 - utils/rankingEngine.js
 
 ## Roster
@@ -316,4 +319,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2026-01-01T12:59:12.820Z*
+*Generated on: 2026-01-03T09:25:32.827Z*

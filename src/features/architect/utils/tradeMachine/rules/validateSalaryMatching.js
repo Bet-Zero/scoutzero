@@ -60,19 +60,30 @@ export function validateSalaryMatching(team, context = {}) {
   }
 
   // Skip salary matching validation for hard-capped teams - let hard cap validation handle it
-  if (team.hardCapped === true || team.team?.hardCapTriggered) {
+  // STRICT BOOLEAN CHECK: String "false" should NOT trigger skip (fixes worldless trade bug)
+  const hardCappedRaw = team.hardCapped;
+  const hardCapTriggeredRaw = team.team?.hardCapTriggered;
+  const isHardCapped = hardCappedRaw === true;
+  const isHardCapTriggered = hardCapTriggeredRaw === true;
+  
+  if (isHardCapped || isHardCapTriggered) {
     return {
       passed: true,
       applicable: false,
       skipReason: 'HARD_CAP_SKIP',
-      allowableIncoming: null,
+      allowableIncoming: null, // Explicitly null when skipped (not 0)
       violations: [],
       message: 'Skipped for hard-capped team',
       skipped: true,
       details: {
         ruleApplied: 'HARD_CAP_SKIP',
         formulaUsed: 'Hard cap validation handles this team',
-        capSettingsSource: 'team.hardCapped || team.team.hardCapTriggered',
+        capSettingsSource: 'team.hardCapped === true || team.team?.hardCapTriggered === true',
+        // Debug fields for diagnosing false HARD_CAP_SKIP issues
+        debug_hardCapped_raw: hardCappedRaw,
+        debug_hardCapTriggered_raw: hardCapTriggeredRaw,
+        debug_hardCapped_type: typeof hardCappedRaw,
+        debug_hardCapTriggered_type: typeof hardCapTriggeredRaw,
       },
     };
   }

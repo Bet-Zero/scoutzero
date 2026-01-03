@@ -256,7 +256,7 @@ These values are designed to be immediately recognizable and detect any source d
 
 ### Test Results
 
-```
+```text
 ✓ src/tests/trade/tradeMultiSurfaceOfficialValues.test.js (28 tests)
 ✓ src/tests/trade/tradeSnapshotWiring.test.js (25 tests)
 ✓ src/tests/trade/TradeSalaryCalculator.guardrail.test.jsx (19 tests)
@@ -268,14 +268,14 @@ Tests  83 passed (83)
 
 ### Full Trade Folder Tests
 
-```
+```text
 Test Files  29 passed (29)
 Tests  177 passed (177)
 ```
 
 ### Build Output
 
-```
+```text
 ✓ 2915 modules transformed.
 ✓ built in 9.35s
 
@@ -289,7 +289,7 @@ dist/assets/index-89d5e17a.js          1,821.39 kB │ gzip: 534.14 kB
 
 ### CodeQL Security Check
 
-```
+```text
 Analysis Result for 'javascript'. Found 0 alerts:
 - **javascript**: No alerts found.
 ```
@@ -345,6 +345,7 @@ Analysis Result for 'javascript'. Found 0 alerts:
 ### Programmatic Test Coverage
 
 These scenarios are programmatically verified in:
+
 - `src/tests/trade/tradeMultiSurfaceOfficialValues.test.js` (28 tests)
 - `src/tests/trade/tradeSnapshotWiring.test.js` (25 tests)
 

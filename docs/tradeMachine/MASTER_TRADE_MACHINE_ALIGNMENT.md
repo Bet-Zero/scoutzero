@@ -174,6 +174,7 @@ This separation ensures users understand which values are exploratory guesses an
 - Cap settings MUST be normalized using the `normalizeCapSettings` helper to handle various upstream shapes (e.g., `salaryCap` vs `cap`, `firstApronLine` vs `firstApron`)
 
 **Sandbox Disabled State**: When sandbox cannot produce meaningful results (invalid cap settings or validator skip reason):
+
 - Render a neutral "Sandbox Disabled" panel with the reason displayed
 - DO NOT render any green/red validation result that could be misinterpreted as authoritative
 
@@ -257,11 +258,12 @@ Use this checklist when implementing or reviewing Trade Machine changes:
 
 The canonical selector `getOfficialSalaryMatchingSnapshot` is the SINGLE SOURCE OF TRUTH for official salary matching values. It is located at:
 
-```
+```text
 src/features/architect/tradeMachine/utils/getOfficialSalaryMatchingSnapshot.js
 ```
 
 **API:**
+
 ```javascript
 getOfficialSalaryMatchingSnapshot(teamResult) → {
   hasValidator: boolean,       // true if teamResult exists
@@ -276,6 +278,7 @@ getOfficialSalaryMatchingSnapshot(teamResult) → {
 ```
 
 **Rules:**
+
 1. This is the ONLY place allowed to know raw validator field paths
 2. If teamResult is null: `hasValidator=false`, all fields `null`
 3. If a field is missing: keep `null` (do NOT infer/compute)
@@ -308,21 +311,25 @@ Returns `null` if either value is unavailable.
 The following scenarios verify that all surfaces display identical official values:
 
 #### Scenario 1: Normal Matching Rule (No Skip Reason)
+
 - **Setup**: Team A (over cap, ~150M) trades $10M player to Team B
 - **Expected**: All surfaces show same allowableIncoming, salaryIn, salaryOut, ruleApplied
 - **Verification**: TradeTeamCard, TradeSummaryPanel, TradeSalaryCalculator (official section) display identical values
 
 #### Scenario 2: Skip Reason Case (Hard Cap / TPE Absorption)
+
 - **Setup**: Team A hard-capped receives player via TPE absorption
 - **Expected**: allowableIncoming = null, skipReason = "HARD_CAP_SKIP" or "TPE_ABSORPTION"
 - **Verification**: All surfaces show "—" for allowableIncoming with skipReason tooltip
 
 #### Scenario 3: Illegal Case (Incoming Exceeds Allowable)
+
 - **Setup**: Team A (over cap) attempts to receive more salary than allowed
 - **Expected**: salaryIn > allowableIncoming, passed = false
 - **Verification**: All surfaces show same values; TradeSummaryPanel shows "Over by" amount
 
 **Test Coverage:** These scenarios are programmatically tested in:
+
 - `src/tests/trade/tradeMultiSurfaceOfficialValues.test.js` (28 tests)
 - `src/tests/trade/tradeSnapshotWiring.test.js` (25 tests)
 
@@ -341,6 +348,7 @@ The following scenarios verify that all surfaces display identical official valu
 | Jan 2026 | 1.2.4 | P2 Non-Misleading Sandbox: Added normalizeCapSettings function to handle various upstream cap setting shapes; changed "Valid Trade (Sandbox)" → "Sandbox Result (salary matching only)"; added "Sandbox Disabled State" subsection to Section 3.4; updated guardrails to clarify sandbox disabled behavior | Trade Machine Team |
 | Jan 2026 | 1.3.0 | Single Source of Truth Implementation: Created canonical selector `getOfficialSalaryMatchingSnapshot.js` as the ONLY place allowed to know raw field paths; wired useTradeMachineSnapshot.js, TradeSummaryPanel, and TradeEditor to use canonical selector; added Section 6 documenting implementation, UI surface mapping, and UI smoke proof scenarios; added 28 new regression tests in tradeMultiSurfaceOfficialValues.test.js | Trade Machine Team |
 | Jan 2026 | 1.4.0 | UX / Mode Legend Implementation: Added ValidationStateHeader for validation state pill and mode legend; added ValidationDetailsPanel with hard-gating and section mode tags; renamed "Show Validation Results" to "Show Validation Details"; added 27 new guardrail tests in TradeValidationGating.guardrail.test.jsx; added Section 7 UX / Mode Legend documentation | Trade Machine Team |
+| Jan 2026 | 1.5.0 | Worldless Baseline Salary: Created canonical `getWorldlessTeamBaselineTotal()` function for baseline salary computation without world state; added Section 8 documenting worldless mode requirements; added 37 new guardrail tests for season mapping, baseline calculation, and worldless mode assertions | Trade Machine Team |
 
 ---
 
@@ -384,6 +392,7 @@ The "Show Validation Details" collapsible panel contains the following sections 
 ### 7.4 Hard-Gating Requirement
 
 When validation has NOT been run (`hasValidatorResult=false`), the Validation Details panel:
+
 - Shows a callout: "Run **Validate Trade** to generate official results"
 - Does NOT display any Official mode tags (to prevent confusion)
 - Does NOT render the details stack
@@ -397,6 +406,107 @@ This ensures users cannot mistake setup/exploratory values for validated results
 | **ValidationStateHeader** | `ValidationStateHeader.jsx` | Top banner with validation pill and mode legend |
 | **ValidationDetailsPanel** | `ValidationDetailsPanel.jsx` | Hard-gated collapsible panel for all validation details |
 | **ModeTag** | Exported from `ValidationStateHeader.jsx` | Reusable tag component for section headers |
+
+---
+
+## 8. Worldless Baseline Salary
+
+This section documents the requirements and implementation for baseline salary display in **worldless mode** (no selected world).
+
+### 8.1 Definition: Worldless Mode
+
+**Worldless mode** occurs when:
+
+- `worldId` is `null` or `undefined`
+- Trade Machine is usable but no world snapshot is selected
+- Team data comes from base team (architect_baseTeams) only
+
+### 8.2 Canonical Mapping Rules
+
+The following mappings MUST be used consistently across all worldless code paths:
+
+| UI Element | Value Format | Example | Used For |
+|------------|--------------|---------|----------|
+| Season Dropdown | endYear (integer) | `2026` | yearKey in all calculations |
+| Season Display | season string | `"2025-26"` | UI labels, cap settings lookup |
+| Contract Salary Lookup | getContractYearSlice(player, yearKey) | — | Extracting salary for year |
+| Cap Settings Lookup | getCapSettingsForYear(yearKey) | — | Cap/apron thresholds |
+
+**Conversion Functions:**
+
+- `toSeasonKey(yearKey)` — endYear → season string (e.g., `2026` → `"2025-26"`)
+- `toEndYear(seasonKey)` — season string → endYear (e.g., `"2025-26"` → `2026`)
+- `yearToSeasonKey(yearKey)` — alias in capSettingsProvider
+
+### 8.3 Canonical Baseline Salary Function
+
+The canonical function for computing baseline team salary in worldless mode:
+
+```text
+src/features/architect/utils/worldlessBaselineSalary.js
+```
+
+**API:**
+
+```javascript
+getWorldlessTeamBaselineTotal(team, yearKey) → {
+  playersTotal: number,    // Sum of player cap hits for yearKey
+  deadMoneyTotal: number,  // Sum of dead money for yearKey
+  baselineTotal: number,   // playersTotal + deadMoneyTotal (this is teamTotalSalary)
+  meta: {
+    source: string,        // 'getWorldlessTeamBaselineTotal'
+    status: string,        // 'OK' | 'NO_TEAM'
+    yearKey: number,       // The yearKey used
+    seasonKey: string,     // The season string (e.g., "2025-26")
+    playerCount: number,   // Number of players on team
+  }
+}
+```
+
+**Rules:**
+
+1. This is the ONLY allowed computation for worldless baseline salary
+2. Uses `getContractYearSlice()` for player salary extraction
+3. Prefers `capHit` over `salary` when both present
+4. Includes dead money from: `waivedContracts`, `stretchHistory`, `deadMoney` fields
+
+### 8.4 Prohibition on World/TeamPlan Leakage
+
+In worldless mode, the following are **PROHIBITED**:
+
+| Prohibited | What | Why |
+|------------|------|-----|
+| ❌ No `/teamPlans/` reads | Firebase path for team plans | Worldless = base data only |
+| ❌ No world modifiers | World snapshots, overrides | World is null |
+| ❌ No cached `teamTotalSalary` fallback | Pre-computed field on team object | May be stale or from wrong source |
+
+**Guard Functions:**
+
+- `isValidWorldlessMode(worldId)` — Returns `true` if `worldId` is `null/undefined`
+- `assertWorldlessMode(worldId, caller)` — Logs warning if called with non-null worldId
+
+### 8.5 UI Surface Integration
+
+For **consistent baseline display** in worldless mode:
+
+| Surface | Use | Source |
+|---------|-----|--------|
+| TradeTeamCard | ✅ teamTotalSalary | useTradeMachine sets via `payrollForYearFromCapSheet() + deadMoneyForYear()` |
+| CapImpactTiles | ✅ baselineTotals | `computeTeamCapTotals()` |
+| TradeSalaryCalculator | ✅ teamTotal prop | Passed from TradeTeamCard snapshot |
+
+**Consistency Invariant:**
+`getWorldlessTeamBaselineTotal(team, yearKey).baselineTotal` MUST equal the value displayed as "Total Cap" or used as `preTradeTeamSalary` in validation.
+
+### 8.6 Guardrail Tests
+
+The following test files verify worldless mode correctness:
+
+| Test File | What It Asserts |
+|-----------|-----------------|
+| `worldless_season_mapping.guardrail.test.js` | Season dropdown → yearKey → seasonKey mapping is consistent |
+| `worldless_baseline_salary.guardrail.test.js` | Baseline total = sum of `getContractYearSlice()` calls + dead money |
+| `worldless_no_teamplan_leak.guardrail.test.js` | No teamPlans imports, worldless detection works correctly |
 
 ---
 

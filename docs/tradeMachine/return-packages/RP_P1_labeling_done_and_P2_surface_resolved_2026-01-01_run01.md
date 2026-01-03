@@ -43,6 +43,7 @@
 **Resolution**: TradeSalaryCalculator is now **user-reachable** via a collapsible panel in TradeEditor.
 
 **Implementation**:
+
 - Added collapsible "Salary Calculator (Exploratory)" panel to TradeEditor
 - Wired props: `teamSalary`, `outgoingSalary`, `incomingPlayers`, `tpes`, `capSettings`, `yearKey`
 - Wired official validator results: `validatorAllowableIncoming`, `validatorRule`, `hasValidatorResult`
@@ -87,10 +88,12 @@ const hasOutgoingAdjustment = hasValidatorResult && Math.abs(outgoingSalary - ou
 **Tooltip format**: `${adjustmentLabel}: Base ${formatSalary(baseSalary)} → Match ${formatSalary(matchingValue)}`
 
 Where `adjustmentLabel` comes from `getAdjustmentTooltipLabel(player)`:
+
 - Returns specific type(s) if detected: "BYC", "Trade Kicker", "Poison Pill"
 - Falls back to: "Adjusted trade matching value (BYC/kicker/poison pill may apply)"
 
 **Detection logic** (from `tradeHelpers.js`):
+
 - BYC: `player.isBYC === true` OR `player.baseYearCompensation === true`
 - Trade Kicker: `player.tradeKicker` exists OR `player.tradeKickerPct > 0`
 - Poison Pill: `player.isPoisonPill === true` (explicit flag only, NOT inferred from isRookieScale)
@@ -126,6 +129,7 @@ Where `adjustmentLabel` comes from `getAdjustmentTooltipLabel(player)`:
 ### Official vs Sandbox Separation
 
 TradeSalaryCalculator displays:
+
 1. **Official Validator Result** (blue section) — when validator result is available
    - Allowable Incoming from snapshot
    - Rule Applied from snapshot
@@ -152,7 +156,7 @@ TradeSalaryCalculator displays:
 
 ### Test: tests/trade/
 
-```
+```bash
 $ npm run test tests/trade/ -- --run
 
  Test Files  28 passed (28)
@@ -162,7 +166,7 @@ $ npm run test tests/trade/ -- --run
 
 ### Test: src/tests/trade/
 
-```
+```bash
 $ npm run test src/tests/trade/ -- --run
 
  Test Files  3 passed (3)
@@ -172,7 +176,7 @@ $ npm run test src/tests/trade/ -- --run
 
 ### Build
 
-```
+```bash
 $ npm run build
 
 vite v4.5.14 building for production...
@@ -191,11 +195,13 @@ dist/assets/index-57c797cc.js          1,819.35 kB │ gzip: 533.63 kB
 ## 7. No-Scope Confirmation
 
 **Validator logic**: ✅ NOT CHANGED
+
 - No changes to `salaryMatchingRules.js`
 - No changes to `validateSalaryMatching.js`
 - No changes to any rule calculation math
 
 **Snapshot accessor semantics**: ✅ NOT CHANGED
+
 - No changes to `useTradeMachineSnapshot.js`
 - Existing accessor patterns preserved
 

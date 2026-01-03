@@ -133,6 +133,7 @@ tradeMachine/
   ValidationDetailsPanel.jsx
   ValidationStateHeader.jsx
   utils/
+    computeTradeDraftKey.js
     getOfficialSalaryMatchingSnapshot.js
 types/
   index.ts
@@ -264,8 +265,9 @@ utils/
   tradeManager.js
   worldManager.js
   worldTeamData.ts
+  worldlessBaselineSalary.js
 ```
 
 ---
-*Generated on: 2026-01-01T12:59:12.810Z*
+*Generated on: 2026-01-03T09:25:32.774Z*
 *Auto-updated by: npm run docs*

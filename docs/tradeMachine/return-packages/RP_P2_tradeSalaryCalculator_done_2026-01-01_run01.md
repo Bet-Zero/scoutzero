@@ -49,7 +49,7 @@ Per Master Doc Section 3.4, TradeSalaryCalculator is the **ONLY** allowed except
 
 When `hasValidatorResult=true` and `validatorAllowableIncoming` is provided:
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────────┐
 │ ⚠️ Exploratory tool — validator is authoritative for final trade legality │
 ├─────────────────────────────────────────────────────────────────────────┤
@@ -74,7 +74,7 @@ When `hasValidatorResult=true` and `validatorAllowableIncoming` is provided:
 
 When `hasValidatorResult=false`:
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────────┐
 │ ⚠️ Exploratory tool — validator is authoritative for final trade legality │
 ├─────────────────────────────────────────────────────────────────────────┤
@@ -143,20 +143,24 @@ When `hasValidatorResult=false`:
 ### What It Asserts (Bullets)
 
 **Visual Separation Requirement (Master Doc 3.4)**:
+
 - P2-GR-01: Renders "Official Validator Result" section when validator result exists
 - P2-GR-02: Renders "Sandbox Estimate (local calculation)" when validator result exists
 - P2-GR-03: Renders "Sandbox Estimate" when NO validator result exists
 - P2-GR-04: Does NOT render "Official Validator Result" when NO validator result exists
 
 **Official Values Source (Master Doc Invariant 2)**:
+
 - P2-GR-05: Official `allowableIncoming` displayed is from `validatorAllowableIncoming` prop (not local calc)
 - P2-GR-06: Official rule displayed is from `validatorRule` prop
 
 **Disclaimer Requirement (Master Doc 3.4)**:
+
 - P2-GR-07: Always renders "Exploratory tool" disclaimer with "validator is authoritative" text
 - P2-GR-08: Disclaimer present even when no validator result
 
 **Validator Differs Message (Master Doc 3.4)**:
+
 - P2-GR-09: Shows "Validator will use: $X" when sandbox differs from official by >$1
 
 ---
@@ -257,6 +261,7 @@ dist/assets/index-16d0721e.js          1,812.16 kB │ gzip: 531.96 kB
 **Explicit statement: No validator math changed.**
 
 This DONE pass:
+
 - ✅ Did NOT modify any validator logic files
 - ✅ Did NOT change salary matching calculations
 - ✅ Did NOT alter `validateSalaryMatching.js` or related validator rules

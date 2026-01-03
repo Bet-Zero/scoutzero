@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { RotateCcw } from 'lucide-react';
 import { useTradeMachine } from '@/features/architect/hooks/useTradeMachine';
 import TradeTeamCard from './TradeTeamCard';
@@ -39,6 +39,9 @@ const TradeEditor = ({
     isValidating,
     // P2: Expose salaryOut for TradeSalaryCalculator
     salaryOut,
+    // Stale validation fix: Use hasCurrentValidation instead of result check
+    hasCurrentValidation,
+    getValidatedAt,
   } = useTradeMachine(
     primaryTeam,
     capProjections,
@@ -50,18 +53,9 @@ const TradeEditor = ({
   const [previewOpen, setPreviewOpen] = useState(false);
   // P2: Track which team's calculator to show (0 = primary team by default)
   const [calculatorTeamIndex, setCalculatorTeamIndex] = useState(0);
-  // Task A: Track validation timestamp for "Validated at" display
-  const validatedAtRef = useRef(null);
   
-  // Determine validation state for header
-  const hasValidatorResult = Boolean(result?.teamResults?.length);
-  
-  // Update timestamp when validation completes
-  React.useEffect(() => {
-    if (hasValidatorResult && !isValidating) {
-      validatedAtRef.current = Date.now();
-    }
-  }, [hasValidatorResult, isValidating]);
+  // Stale validation fix: hasCurrentValidation now comes from hook
+  // It properly checks if validation result matches current draft configuration
 
   const incomingAssets = teams.map((tm, idx) => {
     const players = [];
@@ -130,10 +124,12 @@ const TradeEditor = ({
       </div>
 
       {/* Task A: Mode + Validation State Header */}
+      {/* Stale validation fix: Uses hasCurrentValidation to only show "Validated" 
+          when result matches current draft configuration */}
       <ValidationStateHeader
-        hasValidatorResult={hasValidatorResult}
+        hasValidatorResult={hasCurrentValidation}
         isValidating={isValidating}
-        validatedAt={validatedAtRef.current}
+        validatedAt={getValidatedAt()}
       />
 
       {/* Team Cards */}
@@ -213,8 +209,9 @@ const TradeEditor = ({
       </div>
 
       {/* Tasks B, C, D, E: Validation Details Panel with hard-gating and mode tags */}
+      {/* Stale validation fix: Uses hasCurrentValidation for proper gating */}
       <ValidationDetailsPanel
-        hasValidatorResult={hasValidatorResult}
+        hasValidatorResult={hasCurrentValidation}
         isValidating={isValidating}
         result={result}
         teams={teams}

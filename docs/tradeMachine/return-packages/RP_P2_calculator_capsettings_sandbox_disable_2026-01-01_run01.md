@@ -9,7 +9,9 @@
 ## 1. Summary of Changes
 
 ### Cap Settings Normalization
+
 Added a `normalizeCapSettings` helper function to `TradeSalaryCalculator.jsx` that handles various upstream cap setting shapes:
+
 - `{ salaryCap, firstApron, secondApron }` (canonical)
 - `{ cap, firstApron, secondApron }` (alternative field name)
 - `{ salaryCap, firstApronLine, secondApronLine }` (internal naming)
@@ -18,12 +20,15 @@ Added a `normalizeCapSettings` helper function to `TradeSalaryCalculator.jsx` th
 Returns canonical shape with `hasValidCapSettings` boolean indicating if salaryCap > 0.
 
 ### Sandbox Disabled Behavior
+
 Implemented `sandboxDisabledReason` logic:
+
 - If `!hasValidCapSettings` → "Missing or invalid cap settings"
 - If `validatorSkipReason` truthy → "Salary matching not applicable (${validatorSkipReason})"
 - When sandboxDisabledReason is non-null: renders neutral "Sandbox Disabled" panel, no green result
 
 ### Non-Misleading Label Change
+
 - **Before**: "Valid Trade (Sandbox)" / "Invalid Trade (Sandbox)"
 - **After**: "Sandbox Result (salary matching only)" (for both valid/invalid states)
 - Updated success message: "Test incoming salary passes salary matching check"
@@ -89,6 +94,7 @@ function normalizeCapSettings(rawCapSettings, yearKey = null) {
 ## 4. Before/After Strings
 
 ### Labels Changed
+
 | Location | Before | After |
 |----------|--------|-------|
 | Valid sandbox result | "Valid Trade (Sandbox)" | "Sandbox Result (salary matching only)" |
@@ -96,6 +102,7 @@ function normalizeCapSettings(rawCapSettings, yearKey = null) {
 | Valid result message | "This salary combination complies with CBA rules" | "Test incoming salary passes salary matching check" |
 
 ### Sandbox Disabled State
+
 - Now shows neutral "Sandbox Disabled" panel when:
   - Cap settings missing or invalid (salaryCap = 0)
   - Validator skip reason exists
@@ -105,7 +112,8 @@ function normalizeCapSettings(rawCapSettings, yearKey = null) {
 ## 5. Test Outputs
 
 ### Guardrail Tests
-```
+
+```bash
 npm run test src/tests/trade/TradeSalaryCalculator.guardrail.test.jsx -- --run
 
  ✓ src/tests/trade/TradeSalaryCalculator.guardrail.test.jsx  (19 tests) 162ms
@@ -115,7 +123,8 @@ npm run test src/tests/trade/TradeSalaryCalculator.guardrail.test.jsx -- --run
 ```
 
 ### All Trade Tests
-```
+
+```bash
 npm run test tests/trade/ -- --run
 
  Test Files  28 passed (28)
@@ -123,7 +132,8 @@ npm run test tests/trade/ -- --run
 ```
 
 ### Build Output
-```
+
+```bash
 npm run build
 
 ✓ 2914 modules transformed.
@@ -135,6 +145,7 @@ npm run build
 ## 6. Screenshots Note
 
 Not captured in agent environment. UI changes should be visually verified:
+
 - Sandbox shows "Sandbox Result (salary matching only)" instead of "Valid Trade (Sandbox)"
 - Missing/invalid cap settings shows "Sandbox Disabled" panel
 - Validator skip reason shows "Sandbox Disabled" with reason explanation
@@ -144,6 +155,7 @@ Not captured in agent environment. UI changes should be visually verified:
 ## 7. No-Scope Confirmation
 
 **Validator math untouched** ✅
+
 - No changes to `salaryMatchingRules.js`
 - No changes to `validateSalaryMatching.js`
 - No changes to `useTradeMachineSnapshot.js`

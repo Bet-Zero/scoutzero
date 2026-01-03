@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 import { loadWorldTeamData } from '@/features/architect/utils/worldTeamData';
 import {
@@ -7,6 +7,7 @@ import {
 } from '@/features/architect/utils/tradeHelpers';
 import { TeamMap } from '@/constants/teamList';
 import { toSeasonKey } from '@/features/architect/utils/seasonFormat';
+import { computeTradeDraftKey, isValidationCurrent } from '@/features/architect/tradeMachine/utils/computeTradeDraftKey';
 
 /* ============================
    Helpers: numeric + payroll
@@ -168,6 +169,10 @@ export const useTradeMachine = (
   const [previewOpen, setPreviewOpen] = useState(false);
   // P0-3: Track validation in-flight state for UI loading indicators
   const [isValidating, setIsValidating] = useState(false);
+  
+  // Stale validation fix: Track which draft configuration was validated
+  const lastValidatedDraftKeyRef = useRef(null);
+  const validatedAtRef = useRef(null);
 
   // Use the selected season end-year everywhere (no hardcoding)
   const yearKey = currentYear;
@@ -199,6 +204,19 @@ export const useTradeMachine = (
     () => teams.map((t) => getSalaryForYear(t.sends, yearKey)),
     [teams, yearKey]
   );
+  
+  // Stale validation fix: Compute current draft key whenever trade config changes
+  const currentDraftKey = useMemo(() => {
+    return computeTradeDraftKey({ yearKey, teams });
+  }, [yearKey, teams]);
+  
+  // Stale validation fix: Check if validation result is current for this draft
+  const hasCurrentValidation = useMemo(() => {
+    return (
+      result?.teamResults?.length > 0 &&
+      isValidationCurrent(currentDraftKey, lastValidatedDraftKeyRef.current)
+    );
+  }, [result, currentDraftKey]);
 
   // Initialize teams (slot 0 = primary team, slot 1 = empty)
   useEffect(() => {
@@ -481,6 +499,10 @@ export const useTradeMachine = (
     // P0-3: Clear validating state after validation completes
     setIsValidating(false);
     
+    // Stale validation fix: Record the draft key that was validated
+    // This is only set on explicit validation, not auto-validation
+    // (Note: Auto-validation has been removed to fix the stale state bug)
+    
     console.log(
       '[after validate]',
       validation.teamResults.map((tr) => ({
@@ -494,18 +516,20 @@ export const useTradeMachine = (
     return result;
   }, [teams, capProjections, yearKey, forceTrade]);
 
-  // Auto-validation effect - triggers validation whenever trade state changes
-  useEffect(() => {
-    validateCurrentTrade();
-  }, [validateCurrentTrade]);
+  // REMOVED: Auto-validation effect was causing stale "Validated" state
+  // Validation now ONLY happens when user clicks "Validate Trade" (explicit action)
+  // See: docs/tradeMachine/return-packages/RP_validation_state_stale_fix_*.md
 
-  // Manual validation trigger (for UI components that need explicit validation)
+  // Manual validation trigger - the ONLY way validation should happen
   const handleValidate = useCallback(() => {
     const result = validateCurrentTrade();
     if (result) {
+      // Stale validation fix: Record the draft key that was validated
+      lastValidatedDraftKeyRef.current = currentDraftKey;
+      validatedAtRef.current = Date.now();
       setPreviewOpen(true);
     }
-  }, [validateCurrentTrade]);
+  }, [validateCurrentTrade, currentDraftKey]);
 
   const exportCurrentTrade = useCallback(() => {
     const tradeData = teams
@@ -594,5 +618,11 @@ export const useTradeMachine = (
     salaryOut,
     // P0-3: Expose validation in-flight state for UI loading indicators
     isValidating,
+    // Stale validation fix: Expose current draft key state
+    currentDraftKey,
+    hasCurrentValidation,
+    validatedAt: validatedAtRef.current,
+    // Expose ref getter for validatedAt (needed since ref doesn't trigger re-render)
+    getValidatedAt: () => validatedAtRef.current,
   };
 };
