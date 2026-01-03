@@ -195,15 +195,26 @@ function generateTradeReceipt({
     const incomingMatchingTotal = incomingPlayers.reduce((sum, p) => sum + p.matchingValue, 0);
     
     // Salary matching evaluation details
+    // IMPORTANT: When salary matching is skipped (e.g., HARD_CAP_SKIP, TPE_ABSORPTION, FA_EXCEPTION),
+    // preserve null semantics so UI shows "—" instead of misleading 0 values
+    const isSkipped = salaryMatchingResult.skipReason != null;
     const salaryMatchingEvaluation = {
-      ruleApplied: salaryMatchingDetails.ruleApplied || 'UNKNOWN',
-      formulaUsed: salaryMatchingDetails.formulaUsed || 'Unknown formula',
-      allowableIncoming: salaryMatchingResult.allowableIncoming || 0,
-      actualIncoming: salaryMatchingResult.salaryIn || team.salaryIn || 0,
-      passed: salaryMatchingResult.passed !== false,
-      margin: salaryMatchingDetails.margin ?? 0,
-      capSettings: salaryMatchingDetails.capSettings || {},
-      capSettingsSource: salaryMatchingDetails.capSettingsSource || 'unknown',
+      // When skipped, ruleApplied should be null (not "HARD_CAP_SKIP" - that's the skipReason)
+      ruleApplied: isSkipped ? null : (salaryMatchingDetails.ruleApplied || null),
+      skipReason: salaryMatchingResult.skipReason ?? null,
+      formulaUsed: salaryMatchingDetails.formulaUsed ?? null,
+      // When skipped, allowableIncoming should be null (not 0)
+      allowableIncoming: isSkipped ? null : (salaryMatchingResult.allowableIncoming ?? null),
+      actualIncoming: salaryMatchingResult.salaryIn ?? team.salaryIn ?? null,
+      // When skipped, passed should be null (validation didn't run)
+      passed: isSkipped ? null : (salaryMatchingResult.passed ?? null),
+      // When skipped, margin should be null
+      margin: isSkipped ? null : (salaryMatchingDetails.margin ?? null),
+      // Reference global cap settings even on skip (for transparency)
+      capSettings: context.capSettings,
+      capSettingsSource: isSkipped 
+        ? (salaryMatchingDetails.capSettingsSource || 'N/A (skipped)')
+        : (salaryMatchingDetails.capSettingsSource || context.capSettingsSource || 'unknown'),
     };
     
     return {

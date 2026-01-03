@@ -251,6 +251,7 @@ utils/
       capSettingsProvider.js
       capUtils.js
       computeMatchingValues.js
+      hardCapStatus.js
       index.js
       matchingValues.js
       normalizeTradeInput.js
@@ -269,5 +270,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-01-03T09:25:32.774Z*
+*Generated on: 2026-01-03T09:42:15.630Z*
 *Auto-updated by: npm run docs*

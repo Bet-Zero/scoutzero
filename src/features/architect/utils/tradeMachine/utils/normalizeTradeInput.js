@@ -59,7 +59,8 @@ function normalizeTeam(team, { yearKey } = {}) {
     sends: (team.sends || []).map((p) => normalizePlayer(p, yearKey)),
     picksOut: team.picksOut || [],
     cashSent: toNum(team.cashSent),
-    hardCapped: !!team.hardCapped,
+    // STRICT BOOLEAN: Only true if explicitly boolean true (not truthy strings)
+    hardCapped: team.hardCapped === true,
     appliedTPEs: (team.appliedTPEs || []).map((tpe) => ({
       ...tpe,
       amount: toNum(tpe.amount),
