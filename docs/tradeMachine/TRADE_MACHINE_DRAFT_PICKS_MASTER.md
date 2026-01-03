@@ -200,7 +200,7 @@ This document provides a **brutally honest audit** of draft pick implementation 
 |-------|-------|
 | **Claim** | `validateStepien.js` enforces 7-year maximum pick trading limit |
 | **Evidence** | `src/features/architect/utils/tradeMachine/rules/validateStepien.js:61-67` |
-| **Snippet** | `const farthestYear = Math.max(...picks.map((p) => p.year || currentYear)); if (farthestYear - currentYear > 7) { violations.push(...) }` |
+| **Snippet** | `const farthestYear = Math.max(...picks.map((p) => p.year || currentYear)); if (farthestYear - currentYear > 7) { violations.push("Cannot trade picks beyond 7 years out...") }` |
 | **Call Chain** | `validateStepien()` → check farthest pick year against currentYear |
 | **Input Shape** | `picks[]` array with `year` field; `currentYear` from context |
 | **Output Effect** | Adds violation message if any pick is more than 7 years out |
@@ -211,7 +211,7 @@ This document provides a **brutally honest audit** of draft pick implementation 
 |-------|-------|
 | **Claim** | `validateStepien.js` blocks second apron teams from trading own 7-year-out picks |
 | **Evidence** | `src/features/architect/utils/tradeMachine/rules/validateStepien.js:69-96` |
-| **Snippet** | `if (isAtOrAboveSecondApron) { ... const isFrozenPick = yearsOut >= 7; ... if (hasOwnFrozenPick) { violations.push(...) } }` |
+| **Snippet** | `if (isAtOrAboveSecondApron) { const isFrozenPick = yearsOut >= 7; if (hasOwnFrozenPick) { violations.push("Second apron team cannot trade...") } }` |
 | **Call Chain** | `validateStepien()` → check `isAtOrAboveSecondApron` → check picks for own frozen picks |
 | **Input Shape** | `team.postTradeStatus?.isAtOrAboveSecondApron`, `pick.originalTeam`, `pick.year` |
 | **Output Effect** | Adds violation if second apron team tries to trade own pick 7+ years out |
@@ -563,7 +563,7 @@ interface SwapRights {
 
 | Step | File(s) | Description |
 |------|---------|-------------|
-| **1. Firestore Base Data** | `architect_baseTeams/{teamCode}` | `draftPicks[]` array - **UNVERIFIED: actual field presence, format, and schema compliance must be confirmed via data audit before schema enforcement** |
+| **1. Firestore Base Data** | `architect_baseTeams/{teamCode}` | `draftPicks[]` array containing draft pick objects. **Status: UNVERIFIED** - field presence, format, and schema compliance require data audit confirmation before schema enforcement |
 | **2. Team Loader** | `src/features/architect/utils/teamLoader.js` | Loads team via `getTeam(worldId, teamCode)` |
 | **3. Firebase Helper** | `src/features/architect/utils/firebaseTeamPlanHelpers.js` | Extracts `draftPicks` from baseDoc |
 | **4. useTradeMachine Init** | `src/features/architect/hooks/useTradeMachine.js:239` | Maps `data.draftPicks` to `teamObj.picks` |
@@ -602,8 +602,8 @@ interface SwapRights {
 | Implementation | File | Called by tradeValidator? |
 |----------------|------|--------------------------|
 | `validateStepien()` | `rules/validateStepien.js` | ✅ **YES** (canonical) |
-| `hasStepienViolation()` | `rules/draftRules.js:15` | ❌ NO - LIKELY DEAD CODE (no call site found in validation path; needs repo-wide confirm) |
-| `hasStepienViolation()` | `stepienUtils.js:50` | ❌ NO - LIKELY DEAD CODE (no call site found in validation path; needs repo-wide confirm) |
+| `hasStepienViolation()` | `rules/draftRules.js:15` | ❌ NO - LIKELY DEAD CODE (requires repo-wide verification) |
+| `hasStepienViolation()` | `stepienUtils.js:50` | ❌ NO - LIKELY DEAD CODE (requires repo-wide verification) |
 
 **Required Action:** Delete `draftRules.js:hasStepienViolation` and `stepienUtils.js:hasStepienViolation`, or make them delegates to the canonical `validateStepien.js`.
 
@@ -615,8 +615,8 @@ interface SwapRights {
 | Implementation | File | Input Format | Called? |
 |----------------|------|--------------|---------|
 | `isMeaningfulProtection(str)` | `src/features/architect/utils/tradeMachine/utils/tradeUtilities.js:74` | String | ✅ **YES** (canonical, imported by validateStepien.js and draftRules.js) |
-| `isMeaningfulProtection(arr)` | `src/features/architect/utils/tradeMachine/rules/basicRules.js:25` | Array | ❌ NO - LIKELY DEAD CODE (no imports found; needs repo-wide confirm) |
-| `isMeaningfulProtection(str)` | `src/features/architect/utils/tradeHelpers.js:302` | String | ❌ NO - LIKELY DEAD CODE (no imports found; duplicate of tradeUtilities version; needs repo-wide confirm) |
+| `isMeaningfulProtection(arr)` | `src/features/architect/utils/tradeMachine/rules/basicRules.js:25` | Array | ❌ NO - LIKELY DEAD CODE (requires repo-wide verification) |
+| `isMeaningfulProtection(str)` | `src/features/architect/utils/tradeHelpers.js:302` | String | ❌ NO - LIKELY DEAD CODE (requires repo-wide verification) |
 
 **Required Action:** 
 1. Delete `basicRules.js:isMeaningfulProtection` (array format never used)
@@ -1129,9 +1129,9 @@ describe('pick trade lifecycle', () => {
 **Why:** LIKELY DEAD CODE creates confusion; two formats (array vs string) exist.
 
 **Tasks:**
-1. Delete `basicRules.js:isMeaningfulProtection()` (array format, LIKELY DEAD CODE [E3])
+1. Delete `basicRules.js:isMeaningfulProtection()` (array format, LIKELY DEAD CODE - requires repo-wide verification [E3])
 2. Keep `tradeUtilities.js:isMeaningfulProtection()` as canonical (string format [E2])
-3. Delete or update `tradeHelpers.js:302` duplicate (LIKELY DEAD CODE) to import from canonical
+3. Delete or update `tradeHelpers.js:302` duplicate (LIKELY DEAD CODE - requires repo-wide verification)
 
 ### 3. De-Duplicate Stepien Implementations (G8, SSOT-1) - ~4 hours
 
@@ -1139,14 +1139,14 @@ describe('pick trade lifecycle', () => {
 
 **Tasks:**
 1. Confirm `validateStepien.js` is canonical (already called by tradeValidator [E1])
-2. Delete `draftRules.js:hasStepienViolation()` (LIKELY DEAD CODE [E10])
-3. Delete `stepienUtils.js:hasStepienViolation()` (LIKELY DEAD CODE [E10])
+2. Delete `draftRules.js:hasStepienViolation()` (LIKELY DEAD CODE - requires repo-wide verification [E10])
+3. Delete `stepienUtils.js:hasStepienViolation()` (LIKELY DEAD CODE - requires repo-wide verification [E10])
 4. Remove re-exports from barrel files (`validators/index.js`, `tradeMachine/index.js`)
 
 **Which One is Actually Called (Evidence):**
 - `tradeValidator.js:11` imports from `'../rules/validateStepien.js'`
-- `validators/index.js:45` re-exports from `stepienUtils.js` but has NO CALLERS in validation path
-- `draftRules.js` exports but has NO CALLERS in validation path
+- `validators/index.js:45` re-exports from `stepienUtils.js` - LIKELY DEAD CODE (requires repo-wide verification)
+- `draftRules.js` exports - LIKELY DEAD CODE (requires repo-wide verification)
 
 ---
 
