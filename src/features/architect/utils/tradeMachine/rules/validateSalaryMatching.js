@@ -17,9 +17,10 @@ import {
   getSalaryMatchingResult,
   SALARY_MATCHING_RULE_KEYS,
 } from '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules.js';
+import { getHardCapStatus } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus.js';
 
-// Validator version for trade receipt tracking - bumped for Phase 4
-export const SALARY_MATCHING_VERSION = '2.1.0'; // Phase 4: Explicit cap settings, no silent defaults
+// Validator version for trade receipt tracking - bumped for P0 HARD_CAP_SKIP fix
+export const SALARY_MATCHING_VERSION = '2.2.0'; // P0 fix: Correct hard cap detection + skip semantics
 
 /**
  * Validates if a trade satisfies salary matching rules
@@ -60,15 +61,14 @@ export function validateSalaryMatching(team, context = {}) {
   }
 
   // Skip salary matching validation for hard-capped teams - let hard cap validation handle it
-  // STRICT BOOLEAN CHECK: String "false" should NOT trigger skip (fixes worldless trade bug)
-  const hardCappedRaw = team.hardCapped;
-  const hardCapTriggeredRaw = team.team?.hardCapTriggered;
-  const isHardCapped = hardCappedRaw === true;
-  const isHardCapTriggered = hardCapTriggeredRaw === true;
+  // Use canonical getHardCapStatus for consistent hard cap detection across codebase
+  // WORLDLESS MODE: Teams are NOT hard-capped unless explicit triggers exist
+  const isWorldless = !context.worldId;
+  const hardCapStatus = getHardCapStatus(team, { isWorldless });
   
-  if (isHardCapped || isHardCapTriggered) {
+  if (hardCapStatus.isHardCapped) {
     return {
-      passed: true,
+      passed: null, // Null when skipped - salary matching validation didn't run
       applicable: false,
       skipReason: 'HARD_CAP_SKIP',
       allowableIncoming: null, // Explicitly null when skipped (not 0)
@@ -76,14 +76,13 @@ export function validateSalaryMatching(team, context = {}) {
       message: 'Skipped for hard-capped team',
       skipped: true,
       details: {
-        ruleApplied: 'HARD_CAP_SKIP',
+        ruleApplied: null, // Null when skipped - no salary matching rule was applied
         formulaUsed: 'Hard cap validation handles this team',
-        capSettingsSource: 'team.hardCapped === true || team.team?.hardCapTriggered === true',
-        // Debug fields for diagnosing false HARD_CAP_SKIP issues
-        debug_hardCapped_raw: hardCappedRaw,
-        debug_hardCapTriggered_raw: hardCapTriggeredRaw,
-        debug_hardCapped_type: typeof hardCappedRaw,
-        debug_hardCapTriggered_type: typeof hardCapTriggeredRaw,
+        capSettingsSource: 'N/A (skipped for hard cap)',
+        margin: null, // Null when skipped
+        capSettings: null, // Null when skipped - validator capSettings still available at top level
+        // Debug fields for diagnosing HARD_CAP_SKIP status
+        hardCapStatus,
       },
     };
   }

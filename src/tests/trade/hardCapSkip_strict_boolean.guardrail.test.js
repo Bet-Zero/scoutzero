@@ -124,7 +124,7 @@ describe('HARD_CAP_SKIP Strict Boolean Checks', () => {
   // ==========================================================================
   
   describe('Boolean true values MUST trigger skip', () => {
-    test('hardCapped=true (boolean) MUST skip with allowableIncoming=null', () => {
+    test('hardCapped=true (boolean) MUST skip with allowableIncoming=null and passed=null', () => {
       const team = {
         hardCapped: true, // Boolean true
         salaryIn: 10_000_000,
@@ -137,10 +137,11 @@ describe('HARD_CAP_SKIP Strict Boolean Checks', () => {
       expect(result.skipReason).toBe('HARD_CAP_SKIP');
       expect(result.applicable).toBe(false);
       expect(result.allowableIncoming).toBeNull();
-      expect(result.passed).toBe(true);
+      // P0 Fix: When skipped, passed should be null (validation didn't run), not true
+      expect(result.passed).toBeNull();
     });
 
-    test('hardCapTriggered=true (boolean) MUST skip with allowableIncoming=null', () => {
+    test('hardCapTriggered=true (boolean) MUST skip with allowableIncoming=null and passed=null', () => {
       const team = {
         hardCapped: false,
         team: {
@@ -156,16 +157,17 @@ describe('HARD_CAP_SKIP Strict Boolean Checks', () => {
       expect(result.skipReason).toBe('HARD_CAP_SKIP');
       expect(result.applicable).toBe(false);
       expect(result.allowableIncoming).toBeNull();
-      expect(result.passed).toBe(true);
+      // P0 Fix: When skipped, passed should be null (validation didn't run), not true
+      expect(result.passed).toBeNull();
     });
   });
 
   // ==========================================================================
-  // Test: Debug fields are present in HARD_CAP_SKIP output
+  // Test: Debug fields are present in HARD_CAP_SKIP output (using hardCapStatus object)
   // ==========================================================================
   
   describe('Debug fields in HARD_CAP_SKIP output', () => {
-    test('debug fields show raw values and types for hardCapped=true', () => {
+    test('hardCapStatus shows status for hardCapped=true', () => {
       const team = {
         hardCapped: true,
         team: {
@@ -177,13 +179,13 @@ describe('HARD_CAP_SKIP Strict Boolean Checks', () => {
 
       const result = validateSalaryMatching(team, {});
 
-      expect(result.details.debug_hardCapped_raw).toBe(true);
-      expect(result.details.debug_hardCapTriggered_raw).toBe(false);
-      expect(result.details.debug_hardCapped_type).toBe('boolean');
-      expect(result.details.debug_hardCapTriggered_type).toBe('boolean');
+      // P0 Fix: Now uses hardCapStatus object instead of raw debug fields
+      expect(result.details.hardCapStatus).toBeDefined();
+      expect(result.details.hardCapStatus.isHardCapped).toBe(true);
+      expect(result.details.hardCapStatus.source).toBe('team.hardCapped === true');
     });
 
-    test('debug fields show raw values and types for hardCapTriggered=true', () => {
+    test('hardCapStatus shows status for hardCapTriggered=true', () => {
       const team = {
         hardCapped: false,
         team: {
@@ -195,10 +197,10 @@ describe('HARD_CAP_SKIP Strict Boolean Checks', () => {
 
       const result = validateSalaryMatching(team, {});
 
-      expect(result.details.debug_hardCapped_raw).toBe(false);
-      expect(result.details.debug_hardCapTriggered_raw).toBe(true);
-      expect(result.details.debug_hardCapped_type).toBe('boolean');
-      expect(result.details.debug_hardCapTriggered_type).toBe('boolean');
+      // P0 Fix: Now uses hardCapStatus object instead of raw debug fields
+      expect(result.details.hardCapStatus).toBeDefined();
+      expect(result.details.hardCapStatus.isHardCapped).toBe(true);
+      expect(result.details.hardCapStatus.source).toBe('team.team.hardCapTriggered === true');
     });
   });
 
