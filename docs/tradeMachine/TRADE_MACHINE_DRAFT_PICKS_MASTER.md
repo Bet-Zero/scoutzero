@@ -1,6 +1,6 @@
 # Trade Machine Draft Picks Master Document
 
-> **Version**: 2.0.0 (January 2026)  
+> **Version**: 2.0.1 (January 2026)  
 > **Status**: PREFLIGHT AUDIT - Analysis Only  
 > **Purpose**: Comprehensive audit of draft pick implementation in Trade Machine  
 > **Author**: Automated Code Audit  
@@ -194,6 +194,28 @@ This document provides a **brutally honest audit** of draft pick implementation 
 | **Input Shape** | `protection` is string: `""`, `"Top 3"`, `"Top 5"`, `"Lottery"`, etc. |
 | **Output Effect** | String stored in `picksOut[].protection`; passed to `isMeaningfulProtection()` in validation |
 
+### E13: 7-Year Limit Check in validateStepien
+
+| Field | Value |
+|-------|-------|
+| **Claim** | `validateStepien.js` enforces 7-year maximum pick trading limit |
+| **Evidence** | `src/features/architect/utils/tradeMachine/rules/validateStepien.js:61-67` |
+| **Snippet** | `const farthestYear = Math.max(...picks.map((p) => p.year || currentYear)); if (farthestYear - currentYear > 7) { violations.push(...) }` |
+| **Call Chain** | `validateStepien()` → check farthest pick year against currentYear |
+| **Input Shape** | `picks[]` array with `year` field; `currentYear` from context |
+| **Output Effect** | Adds violation message if any pick is more than 7 years out |
+
+### E14: Second Apron Frozen Pick Restriction
+
+| Field | Value |
+|-------|-------|
+| **Claim** | `validateStepien.js` blocks second apron teams from trading own 7-year-out picks |
+| **Evidence** | `src/features/architect/utils/tradeMachine/rules/validateStepien.js:69-96` |
+| **Snippet** | `if (isAtOrAboveSecondApron) { ... const isFrozenPick = yearsOut >= 7; ... if (hasOwnFrozenPick) { violations.push(...) } }` |
+| **Call Chain** | `validateStepien()` → check `isAtOrAboveSecondApron` → check picks for own frozen picks |
+| **Input Shape** | `team.postTradeStatus?.isAtOrAboveSecondApron`, `pick.originalTeam`, `pick.year` |
+| **Output Effect** | Adds violation if second apron team tries to trade own pick 7+ years out |
+
 ---
 
 ## File Map
@@ -296,11 +318,11 @@ This document provides a **brutally honest audit** of draft pick implementation 
    - Displayed with 🔁 icon in `formatPick()`
    - **CRITICAL GAP**: Swaps bypass Stepien validation entirely
 
-5. **Stepien Rule Validation** [Evidence: E1, E2]
-   - Consecutive unprotected 1st round picks blocked
-   - 7-year maximum future trading limit
-   - Second apron teams blocked from trading 7-year-out own picks
-   - Uses `isMeaningfulProtection()` (string regex) to allow protected consecutive picks
+5. **Stepien Rule Validation** [Evidence: E1, E2, E13, E14]
+   - Consecutive unprotected 1st round picks blocked [Evidence: E1, E2]
+   - 7-year maximum future trading limit [Evidence: E13]
+   - Second apron teams blocked from trading 7-year-out own picks [Evidence: E14]
+   - Uses `isMeaningfulProtection()` (string regex) to allow protected consecutive picks [Evidence: E2]
 
 6. **Pick Comparison** [Evidence: E6]
    - `areSamePick()` compares year, round, and via (string-based)
@@ -464,6 +486,8 @@ export const isMeaningfulProtection = (protection) => {
 
 ### C) Proposed Stepien Strategy: Worst-Case Obligation Calendar
 
+> **⚠️ DESIGN DECISION REQUIRED:** The rules below are **proposed product behavior**, not verified NBA rules or existing code. The actual reservation logic must be chosen during implementation.
+
 **Worst-Case Calendar (for Legality):**
 - For each year, compute the **worst case** - what if protections don't trigger?
 - Swaps count as obligations because the team might get the worse pick
@@ -476,14 +500,21 @@ export const isMeaningfulProtection = (protection) => {
 - Show what the roster could look like if all protections trigger
 - Not used for validation, only for user planning
 
-**Year Reservation Rules:**
-| Scenario | Reserves Year for Stepien? |
-|----------|---------------------------|
-| Unprotected outgoing pick | ✅ Yes |
-| Protected pick (could convey) | ✅ Yes (worst case) |
-| Protected pick (will NOT convey, e.g., top 1-14 on lottery team) | ❌ No |
-| Swap right (best_of) | ✅ Yes (might get worse) |
-| Swap right (worst_of) | ❌ No (always get worse, opponent blocked) |
+**Year Reservation Rules - DESIGN OPTIONS:**
+
+> The following table represents **design options to be decided**, not factual NBA requirements. Choose one approach:
+
+| Scenario | Option A: Reserve All | Option B: Reserve Most | Option C: Reserve Minimum |
+|----------|----------------------|------------------------|--------------------------|
+| Unprotected outgoing pick | ✅ Yes | ✅ Yes | ✅ Yes |
+| Protected pick (could convey) | ✅ Yes (worst case) | ✅ Yes (worst case) | ❌ No (assume protection holds) |
+| Swap right (best_of) | ✅ Yes (might get worse) | ✅ Yes (might get worse) | ❌ No |
+| Swap right (worst_of) | ✅ Yes (still an obligation) | ❌ No (always get worse) | ❌ No |
+
+**Tradeoffs:**
+- **Option A (Reserve All):** Most restrictive; safest for CBA compliance but may be overly conservative
+- **Option B (Reserve Most):** Balanced; matches common NBA interpretation for swaps
+- **Option C (Reserve Minimum):** Least restrictive; may allow trades that could violate Stepien in edge cases
 
 ---
 
@@ -532,7 +563,7 @@ interface SwapRights {
 
 | Step | File(s) | Description |
 |------|---------|-------------|
-| **1. Firestore Base Data** | `architect_baseTeams/{teamCode}` | `draftPicks[]` array with schema-compliant pick objects |
+| **1. Firestore Base Data** | `architect_baseTeams/{teamCode}` | `draftPicks[]` array - **UNVERIFIED: actual field presence, format, and schema compliance must be confirmed via data audit before schema enforcement** |
 | **2. Team Loader** | `src/features/architect/utils/teamLoader.js` | Loads team via `getTeam(worldId, teamCode)` |
 | **3. Firebase Helper** | `src/features/architect/utils/firebaseTeamPlanHelpers.js` | Extracts `draftPicks` from baseDoc |
 | **4. useTradeMachine Init** | `src/features/architect/hooks/useTradeMachine.js:239` | Maps `data.draftPicks` to `teamObj.picks` |
@@ -571,8 +602,8 @@ interface SwapRights {
 | Implementation | File | Called by tradeValidator? |
 |----------------|------|--------------------------|
 | `validateStepien()` | `rules/validateStepien.js` | ✅ **YES** (canonical) |
-| `hasStepienViolation()` | `rules/draftRules.js:15` | ❌ NO (dead code) |
-| `hasStepienViolation()` | `stepienUtils.js:50` | ❌ NO (dead code) |
+| `hasStepienViolation()` | `rules/draftRules.js:15` | ❌ NO - LIKELY DEAD CODE (no call site found in validation path; needs repo-wide confirm) |
+| `hasStepienViolation()` | `stepienUtils.js:50` | ❌ NO - LIKELY DEAD CODE (no call site found in validation path; needs repo-wide confirm) |
 
 **Required Action:** Delete `draftRules.js:hasStepienViolation` and `stepienUtils.js:hasStepienViolation`, or make them delegates to the canonical `validateStepien.js`.
 
@@ -584,8 +615,8 @@ interface SwapRights {
 | Implementation | File | Input Format | Called? |
 |----------------|------|--------------|---------|
 | `isMeaningfulProtection(str)` | `src/features/architect/utils/tradeMachine/utils/tradeUtilities.js:74` | String | ✅ **YES** (canonical, imported by validateStepien.js and draftRules.js) |
-| `isMeaningfulProtection(arr)` | `src/features/architect/utils/tradeMachine/rules/basicRules.js:25` | Array | ❌ NO (dead code - no imports found) |
-| `isMeaningfulProtection(str)` | `src/features/architect/utils/tradeHelpers.js:302` | String | ❌ NO (dead code - no imports found, duplicate of tradeUtilities version) |
+| `isMeaningfulProtection(arr)` | `src/features/architect/utils/tradeMachine/rules/basicRules.js:25` | Array | ❌ NO - LIKELY DEAD CODE (no imports found; needs repo-wide confirm) |
+| `isMeaningfulProtection(str)` | `src/features/architect/utils/tradeHelpers.js:302` | String | ❌ NO - LIKELY DEAD CODE (no imports found; duplicate of tradeUtilities version; needs repo-wide confirm) |
 
 **Required Action:** 
 1. Delete `basicRules.js:isMeaningfulProtection` (array format never used)
@@ -747,7 +778,19 @@ function resolvePickOwnership(
 - [ ] Update `areSamePick()` to use `generatePickId()` for comparison
 - [ ] Update `computeTradeDraftKey()` to use `generatePickId()`
 
-**1.2 ID Adapter Strategy (Recommended over Migration)**
+**1.2 Round Normalization (Required for Stable IDs)**
+- [ ] Create `normalizeRound(round)` utility that:
+  - Accepts inputs: `1`, `2`, `"1st"`, `"2nd"`, `"first"`, `"second"`, `"First"`, `"Second"`
+  - Returns canonical output: `1` or `2` (number)
+- [ ] Use `normalizeRound()` inside:
+  - `generatePickId()` - ensure ID uses normalized round
+  - `ensurePickId()` - normalize before ID generation
+- [ ] **Acceptance Criterion:** IDs must be identical regardless of round input format
+  - `generatePickId({ year: 2026, round: "1st", originalTeam: "PHI" })` === `"PHI_2026_1"`
+  - `generatePickId({ year: 2026, round: 1, originalTeam: "PHI" })` === `"PHI_2026_1"`
+  - `generatePickId({ year: 2026, round: "first", originalTeam: "PHI" })` === `"PHI_2026_1"`
+
+**1.3 ID Adapter Strategy (Recommended over Migration)**
 - [ ] Create `ensurePickId(pick)` adapter that:
   - If `pick.id` exists and matches format → use it
   - Otherwise → derive ID via `generatePickId()` and attach to pick object
@@ -757,12 +800,12 @@ function resolvePickOwnership(
   - `schemaAdapter.buildTradeTeamInput()` when building validator input
 - [ ] On save: persist canonical ID to Firestore
 
-**1.3 De-Duplicate Stepien Implementations (SSOT-1)**
+**1.4 De-Duplicate Stepien Implementations (SSOT-1)**
 - [ ] Delete `draftRules.js:hasStepienViolation()` or make it delegate
 - [ ] Delete `stepienUtils.js:hasStepienViolation()` or make it delegate
 - [ ] Remove re-exports from `validators/index.js` and `tradeMachine/index.js`
 
-**1.4 De-Duplicate Protection Parser (SSOT-2)**
+**1.5 De-Duplicate Protection Parser (SSOT-2)**
 - [ ] Delete `basicRules.js:isMeaningfulProtection()` (unused array format)
 - [ ] Consolidate `tradeHelpers.js:302` and `tradeUtilities.js:74` into single export
 - [ ] Update all imports to use single source
@@ -775,6 +818,7 @@ function resolvePickOwnership(
 
 **Acceptance Criteria:**
 - All picks have `{originalTeam}_{year}_{round}` format IDs
+- IDs are identical regardless of round input format (via `normalizeRound()`)
 - `areSamePick()` uses ID comparison
 - Only `validateStepien.js` contains Stepien logic (no duplicates)
 - Only `tradeUtilities.js` contains `isMeaningfulProtection()` (no duplicates)
@@ -1065,11 +1109,12 @@ describe('pick trade lifecycle', () => {
 **Why first:** Prevents data loss, enables reliable pick comparison.
 
 **Tasks:**
-1. Create `generatePickId(pick)` → returns `{originalTeam}_{year}_{round}`
-2. Create `ensurePickId(pick)` adapter → derives ID if missing, attaches to object
-3. Update `areSamePick()` → use `generatePickId()` for comparison
-4. Update `computeTradeDraftKey()` → use `generatePickId()`
-5. Call adapter on:
+1. Create `normalizeRound(round)` → returns canonical `1` or `2` from any input format
+2. Create `generatePickId(pick)` → returns `{originalTeam}_{year}_{normalizedRound}`
+3. Create `ensurePickId(pick)` adapter → derives ID if missing, attaches to object
+4. Update `areSamePick()` → use `generatePickId()` for comparison
+5. Update `computeTradeDraftKey()` → use `generatePickId()`
+6. Call adapter on:
    - Load: `useTradeMachine` when populating team picks
    - Add: `togglePick()` when selecting pick for trade
    - Save: `mutationPipeline` before Firestore write
@@ -1081,12 +1126,12 @@ describe('pick trade lifecycle', () => {
 
 ### 2. De-Duplicate `isMeaningfulProtection()` (G4, SSOT-2) - ~2 hours
 
-**Why:** Dead code creates confusion; two formats (array vs string) exist.
+**Why:** LIKELY DEAD CODE creates confusion; two formats (array vs string) exist.
 
 **Tasks:**
-1. Delete `basicRules.js:isMeaningfulProtection()` (array format, DEAD CODE [E3])
+1. Delete `basicRules.js:isMeaningfulProtection()` (array format, LIKELY DEAD CODE [E3])
 2. Keep `tradeUtilities.js:isMeaningfulProtection()` as canonical (string format [E2])
-3. Delete or update `tradeHelpers.js:302` duplicate to import from canonical
+3. Delete or update `tradeHelpers.js:302` duplicate (LIKELY DEAD CODE) to import from canonical
 
 ### 3. De-Duplicate Stepien Implementations (G8, SSOT-1) - ~4 hours
 
@@ -1094,14 +1139,14 @@ describe('pick trade lifecycle', () => {
 
 **Tasks:**
 1. Confirm `validateStepien.js` is canonical (already called by tradeValidator [E1])
-2. Delete `draftRules.js:hasStepienViolation()` (DEAD CODE [E10])
-3. Delete `stepienUtils.js:hasStepienViolation()` (DEAD CODE [E10])
+2. Delete `draftRules.js:hasStepienViolation()` (LIKELY DEAD CODE [E10])
+3. Delete `stepienUtils.js:hasStepienViolation()` (LIKELY DEAD CODE [E10])
 4. Remove re-exports from barrel files (`validators/index.js`, `tradeMachine/index.js`)
 
 **Which One is Actually Called (Evidence):**
 - `tradeValidator.js:11` imports from `'../rules/validateStepien.js'`
-- `validators/index.js:45` re-exports from `stepienUtils.js` but has NO CALLERS
-- `draftRules.js` exports but has NO CALLERS
+- `validators/index.js:45` re-exports from `stepienUtils.js` but has NO CALLERS in validation path
+- `draftRules.js` exports but has NO CALLERS in validation path
 
 ---
 
@@ -1135,5 +1180,10 @@ describe('pick trade lifecycle', () => {
 
 ---
 
-*Document Version 2.0.0 - Updated with Evidence Index, SSOT rules, Stepien calendar strategy, Swap modeling decision, ID migration/adapter requirements.*
+*Document Version 2.0.1 - Patches applied per PREFLIGHT DOC PATCH request:*
+- *Added Evidence Index entries E13 (7-year limit) and E14 (second apron frozen picks)*
+- *Year Reservation Rules table marked as DESIGN DECISION REQUIRED with options*
+- *Firestore data format marked as UNVERIFIED*
+- *Round normalization requirement added to Phase 1*
+- *SSOT dead code labels changed to "LIKELY DEAD CODE (needs repo-wide confirm)"*
 *This is analysis only - no code changes made.*
