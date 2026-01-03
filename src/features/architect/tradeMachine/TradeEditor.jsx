@@ -1,17 +1,10 @@
-import React, { useState } from 'react';
-import { RotateCcw, ChevronDown, ChevronUp } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { RotateCcw } from 'lucide-react';
 import { useTradeMachine } from '@/features/architect/hooks/useTradeMachine';
 import TradeTeamCard from './TradeTeamCard';
-import TradeSummaryPanel from './TradeSummaryPanel';
-import TradeValidationPanel from './TradeValidationPanel';
-import TradeLegalChecker from './TradeLegalChecker';
-import TradeExceptionDashboard from './TradeExceptionDashboard';
-import FaExceptionTracker from './FaExceptionTracker';
 import TradePreviewModal from './TradePreviewModal';
-import { TradeReceiptPanel } from './TradeReceiptPanel';
-import TradeSalaryCalculator from './TradeSalaryCalculator';
-// CANONICAL SELECTOR: Single source of truth for salary matching values
-import { getOfficialSalaryMatchingSnapshot } from './utils/getOfficialSalaryMatchingSnapshot';
+import ValidationStateHeader from './ValidationStateHeader';
+import ValidationDetailsPanel from './ValidationDetailsPanel';
 // import TradeDebugPanel from './TradeDebugPanel';
 
 const TradeEditor = ({
@@ -41,6 +34,7 @@ const TradeEditor = ({
     resetTrade,
     yearKey,
     applyTradeException,
+    incomingAssets: hookIncomingAssets,
     // P0-3: Track validation in-flight state
     isValidating,
     // P2: Expose salaryOut for TradeSalaryCalculator
@@ -54,10 +48,20 @@ const TradeEditor = ({
   );
 
   const [previewOpen, setPreviewOpen] = useState(false);
-  // P2: Track collapsible state for Salary Calculator panel
-  const [showCalculator, setShowCalculator] = useState(false);
   // P2: Track which team's calculator to show (0 = primary team by default)
   const [calculatorTeamIndex, setCalculatorTeamIndex] = useState(0);
+  // Task A: Track validation timestamp for "Validated at" display
+  const validatedAtRef = useRef(null);
+  
+  // Determine validation state for header
+  const hasValidatorResult = Boolean(result?.teamResults?.length);
+  
+  // Update timestamp when validation completes
+  React.useEffect(() => {
+    if (hasValidatorResult && !isValidating) {
+      validatedAtRef.current = Date.now();
+    }
+  }, [hasValidatorResult, isValidating]);
 
   const incomingAssets = teams.map((tm, idx) => {
     const players = [];
@@ -124,6 +128,13 @@ const TradeEditor = ({
           )}
         </div>
       </div>
+
+      {/* Task A: Mode + Validation State Header */}
+      <ValidationStateHeader
+        hasValidatorResult={hasValidatorResult}
+        isValidating={isValidating}
+        validatedAt={validatedAtRef.current}
+      />
 
       {/* Team Cards */}
       <div
@@ -201,98 +212,20 @@ const TradeEditor = ({
         )}
       </div>
 
-      {/* Summary */}
-      <TradeSummaryPanel
+      {/* Tasks B, C, D, E: Validation Details Panel with hard-gating and mode tags */}
+      <ValidationDetailsPanel
+        hasValidatorResult={hasValidatorResult}
+        isValidating={isValidating}
         result={result}
         teams={teams}
         forceTrade={forceTrade}
-        // P0-3: Pass validation in-flight state
-        isValidating={isValidating}
+        calculatorTeamIndex={calculatorTeamIndex}
+        incomingAssets={incomingAssets}
+        salaryOut={salaryOut}
+        capProjections={capProjections}
+        yearKey={yearKey}
+        onCalculatorTeamChange={setCalculatorTeamIndex}
       />
-
-      {/* Quick Rule Compliance Overview */}
-      {result && result.teamResults && (
-        <TradeLegalChecker
-          teamResults={result.teamResults}
-          capSettings={result.capSettings}
-        />
-      )}
-
-      {/* Trade Exception Analysis */}
-      <TradeExceptionDashboard result={result} teams={teams} />
-
-      {/* FA Exception Tracker */}
-      <FaExceptionTracker result={result} teams={teams} />
-
-      {/* Detailed Validation Results */}
-      <TradeValidationPanel result={result} />
-
-      {/* P2: Collapsible Salary Calculator Panel */}
-      {teams[calculatorTeamIndex]?.team && (
-        <div className="border border-white/10 rounded-lg overflow-hidden">
-          <button
-            onClick={() => setShowCalculator(!showCalculator)}
-            className="w-full flex items-center justify-between px-4 py-3 bg-[#111] hover:bg-[#1a1a1a] text-sm font-medium text-white/80"
-          >
-            <span className="flex items-center gap-2">
-              <span>🧮</span>
-              <span>Salary Calculator (Exploratory)</span>
-              {teams.filter(t => t.team).length > 1 && (
-                <select
-                  value={calculatorTeamIndex}
-                  onChange={(e) => {
-                    e.stopPropagation();
-                    setCalculatorTeamIndex(Number(e.target.value));
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                  className="ml-2 bg-[#222] border border-white/20 rounded px-2 py-0.5 text-xs"
-                >
-                  {teams
-                    .map((t, idx) => ({ team: t.team, idx }))
-                    .filter(item => item.team)
-                    .map(item => (
-                      <option key={item.idx} value={item.idx}>
-                        {item.team.nickname || item.team.teamName || `Team ${item.idx + 1}`}
-                      </option>
-                    ))}
-                </select>
-              )}
-            </span>
-            {showCalculator ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          </button>
-          {showCalculator && (() => {
-            const selectedTeam = teams[calculatorTeamIndex];
-            const teamResult = result?.teamResults?.[calculatorTeamIndex];
-            // CANONICAL SOURCE: Use getOfficialSalaryMatchingSnapshot for all official values
-            // Per MASTER_TRADE_MACHINE_ALIGNMENT.md Invariant 1: Single Source per Concept
-            const officialSnapshot = getOfficialSalaryMatchingSnapshot(teamResult);
-            const hasValidatorResult = officialSnapshot.hasValidator;
-            const validatorAllowableIncoming = officialSnapshot.allowableIncoming;
-            const validatorRule = officialSnapshot.ruleApplied;
-            const validatorSkipReason = officialSnapshot.skipReason;
-            
-            return (
-              <TradeSalaryCalculator
-                teamSalary={selectedTeam.team?.teamTotalSalary || selectedTeam.team?.totalSalary || 0}
-                outgoingSalary={salaryOut[calculatorTeamIndex] || 0}
-                incomingPlayers={incomingAssets[calculatorTeamIndex]?.players || []}
-                tpes={selectedTeam.team?.tradeExceptions || []}
-                capSettings={result?.capSettings || capProjections}
-                yearKey={yearKey}
-                // P2: Wire official validator results for comparison
-                validatorAllowableIncoming={validatorAllowableIncoming}
-                validatorRule={validatorRule}
-                hasValidatorResult={hasValidatorResult}
-                // P2 Lock-in: Wire skip reason for non-misleading guardrails
-                validatorSkipReason={validatorSkipReason}
-              />
-            );
-          })()}
-        </div>
-      )}
-
-      {/* Trade Receipt Debug Panel (gated behind VITE_SHOW_TRADE_RECEIPT env var) */}
-      <TradeReceiptPanel receipt={result?.tradeReceipt} />
 
       <TradePreviewModal
         open={previewOpen && !!result}

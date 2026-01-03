@@ -340,6 +340,63 @@ The following scenarios verify that all surfaces display identical official valu
 | Jan 2026 | 1.2.3 | P2 Lock-in: Added "Non-Misleading Guardrails" subsection to Section 3.4 requiring: no green success when cap settings missing/zero, no green success when validator skipReason present, official section renders when hasValidatorResult=true, "Validator wins" display when results contradict | Trade Machine Team |
 | Jan 2026 | 1.2.4 | P2 Non-Misleading Sandbox: Added normalizeCapSettings function to handle various upstream cap setting shapes; changed "Valid Trade (Sandbox)" → "Sandbox Result (salary matching only)"; added "Sandbox Disabled State" subsection to Section 3.4; updated guardrails to clarify sandbox disabled behavior | Trade Machine Team |
 | Jan 2026 | 1.3.0 | Single Source of Truth Implementation: Created canonical selector `getOfficialSalaryMatchingSnapshot.js` as the ONLY place allowed to know raw field paths; wired useTradeMachineSnapshot.js, TradeSummaryPanel, and TradeEditor to use canonical selector; added Section 6 documenting implementation, UI surface mapping, and UI smoke proof scenarios; added 28 new regression tests in tradeMultiSurfaceOfficialValues.test.js | Trade Machine Team |
+| Jan 2026 | 1.4.0 | UX / Mode Legend Implementation: Added ValidationStateHeader for validation state pill and mode legend; added ValidationDetailsPanel with hard-gating and section mode tags; renamed "Show Validation Results" to "Show Validation Details"; added 27 new guardrail tests in TradeValidationGating.guardrail.test.jsx; added Section 7 UX / Mode Legend documentation | Trade Machine Team |
+
+---
+
+## 7. UX / Mode Legend
+
+This section documents the Trade Machine's validation state display and mode classification system for clear user communication.
+
+### 7.1 Validation State Display
+
+The Trade Machine shows a **Validation State Pill** at the top of the page that indicates:
+
+| State | Pill Display | Meaning |
+|-------|--------------|---------|
+| **Not validated** | Gray pill with "Not validated" | No validation has been run; values are setup/configuration only |
+| **Validating…** | Blue animated pill with "Validating…" | Validation is in progress |
+| **Validated** | Green pill with "Validated at [time]" | Validation complete; official results available |
+
+Users should always check this pill before interpreting any values on the page.
+
+### 7.2 Mode Classifications
+
+All Trade Machine sections are classified into one of four modes:
+
+| Mode | Color | Tag Label | Purpose |
+|------|-------|-----------|---------|
+| **Official (Validator)** | Blue | `Official (Validator)` | Authoritative validator results — these values are the source of truth for trade legality |
+| **Setup** | Neutral/Gray | `Setup` | Configuration and team selection — does not represent validated results |
+| **Exploratory** | Amber | `Exploratory` | Sandbox/what-if calculations — validator is authoritative, these are estimates only |
+| **Debug** | Purple | `Debug` | Developer diagnostic data — not required reading for normal users |
+
+### 7.3 Validation Details Sections
+
+The "Show Validation Details" collapsible panel contains the following sections in order:
+
+1. **Validation Summary** `[Official (Validator)]` — Per-team matching status and trade legality
+2. **Rule Compliance Overview** `[Official (Validator)]` — CBA rule pass/fail status per team
+3. **Trade Exception Analysis** `[Official (Validator)]` — TPE creation, usage, FA exceptions
+4. **Salary Calculator** `[Exploratory]` — Sandbox for testing salary matching scenarios
+5. **Trade Receipt** `[Debug]` — Developer diagnostic data
+
+### 7.4 Hard-Gating Requirement
+
+When validation has NOT been run (`hasValidatorResult=false`), the Validation Details panel:
+- Shows a callout: "Run **Validate Trade** to generate official results"
+- Does NOT display any Official mode tags (to prevent confusion)
+- Does NOT render the details stack
+
+This ensures users cannot mistake setup/exploratory values for validated results.
+
+### 7.5 Implementation Components
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| **ValidationStateHeader** | `ValidationStateHeader.jsx` | Top banner with validation pill and mode legend |
+| **ValidationDetailsPanel** | `ValidationDetailsPanel.jsx` | Hard-gated collapsible panel for all validation details |
+| **ModeTag** | Exported from `ValidationStateHeader.jsx` | Reusable tag component for section headers |
 
 ---
 
