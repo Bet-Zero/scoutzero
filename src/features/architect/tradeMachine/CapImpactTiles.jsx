@@ -1,7 +1,14 @@
+
 import React from 'react';
 import { formatMillions } from '@/shared/utils/formatting';
 import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
+import { Lock } from 'lucide-react';
+import {
+  isHardCappedAtFirstApron,
+  isHardCappedAtSecondApron,
+  getFirstApronHardCapReason,
+} from '@/features/architect/utils/hardCapUtils';
 
 const CapImpactTiles = ({
   team,
@@ -26,20 +33,30 @@ const CapImpactTiles = ({
     totalCapAllocations: baselineTotalAllocations,
   } = baselineTotals;
 
+  // Determine if hard capped (current status)
+  // Use the team object directly as it should match teamCapSheet shape used by computeTeamCapTotals
+  const isFirstApronHardCapped = isHardCappedAtFirstApron(team, yearKey);
+  const isSecondApronHardCapped = isHardCappedAtSecondApron(team);
+  const firstApronReason = isFirstApronHardCapped ? getFirstApronHardCapReason(team) : '';
+
   // Phase 1.6: Use validator projectedSalary for POST-TRADE totals
   // Definition: players + dead money (NO cap holds, NO likely incentives)
   const hasValidatorResult = snapshot !== null;
   const validatorProjectedSalary = snapshot?.projectedSalary ?? null;
 
   // For display, use validator's post-trade projectedSalary when available
-  // Otherwise, fall back to baseline totalCapAllocations
+  // Otherwise, fall back to baseline totalCapAllocations + trade net impact
   // Note: projectedSalary from validator = players + dead money (NO cap holds)
   //       baselineTotalAllocations = players + dead money + cap holds
+  const salaryOut = getSalaryForYear(sends, yearKey);
+  const salaryIn = getSalaryForYear(incomingPlayers, yearKey);
+
   const projectedSalary = hasValidatorResult
     ? validatorProjectedSalary
-    : baselineTotalAllocations;
+    : baselineTotalAllocations - salaryOut + salaryIn;
 
   // Derive cap/apron space from the appropriate total
+  // Note: deltas are (total - threshold), so space = -delta
   const capSpace = projectedSalary !== null ? salaryCap - projectedSalary : null;
   const firstApronSpace =
     projectedSalary !== null ? firstApron - projectedSalary : null;
@@ -94,7 +111,7 @@ const CapImpactTiles = ({
             {capSpace !== null ? formatMillions(capSpace, 1) : '—'}
           </div>
         </div>
-        <div className="bg-[#1c1c1c] rounded p-2 text-center border border-white/10">
+        <div className="bg-[#1c1c1c] rounded p-2 text-center border border-white/10 relative">
           <div className="text-white/70">1ST APRON</div>
           <div
             className={`font-bold text-sm ${
@@ -109,8 +126,24 @@ const CapImpactTiles = ({
               ? formatMillions(firstApronSpace, 1)
               : '—'}
           </div>
+          {isFirstApronHardCapped && (
+            <div className="absolute bottom-1 left-1 group">
+              <div className="bg-white/10 border border-white/20 rounded p-0.5 shadow-md backdrop-blur-md">
+                <Lock size={10} className="text-white/90" />
+              </div>
+              {/* Tooltip */}
+              <div className="hidden group-hover:block absolute bottom-full left-0 mb-2 w-48 p-2 bg-[#151515] border border-white/10 shadow-xl rounded-md z-50 pointer-events-none text-center">
+                <div className="text-[10px] font-bold text-white mb-0.5">
+                  Hard Capped at 1st Apron
+                </div>
+                <div className="text-[9px] text-white/50 leading-tight">
+                  {firstApronReason}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-        <div className="bg-[#1c1c1c] rounded p-2 text-center border border-white/10">
+        <div className="bg-[#1c1c1c] rounded p-2 text-center border border-white/10 relative">
           <div className="text-white/70">2ND APRON</div>
           <div
             className={`font-bold text-sm ${
@@ -125,6 +158,11 @@ const CapImpactTiles = ({
               ? formatMillions(secondApronSpace, 1)
               : '—'}
           </div>
+          {isSecondApronHardCapped && (
+            <div className="absolute bottom-1 left-1 bg-white/10 border border-white/20 rounded p-0.5 shadow-md backdrop-blur-md">
+              <Lock size={10} className="text-white/90" />
+            </div>
+          )}
         </div>
       </div>
       {/* Phase 1.6: Pre-validation indicator */}

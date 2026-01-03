@@ -19,8 +19,8 @@ import {
 } from '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules.js';
 import { getHardCapStatus } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus.js';
 
-// Validator version for trade receipt tracking - bumped for P0 HARD_CAP_SKIP fix
-export const SALARY_MATCHING_VERSION = '2.2.0'; // P0 fix: Correct hard cap detection + skip semantics
+// Validator version for trade receipt tracking - bumped for TPE fix
+export const SALARY_MATCHING_VERSION = '2.4.0'; // Fix: TPE per-player matching instead of pool
 
 /**
  * Validates if a trade satisfies salary matching rules
@@ -60,32 +60,13 @@ export function validateSalaryMatching(team, context = {}) {
     };
   }
 
-  // Skip salary matching validation for hard-capped teams - let hard cap validation handle it
-  // Use canonical getHardCapStatus for consistent hard cap detection across codebase
-  // WORLDLESS MODE: Teams are NOT hard-capped unless explicit triggers exist
+  // Check hard cap status but DO NOT skip salary matching
+  // Hard cap ceiling is enforced by validateHardCap separately
+  // Salary matching rules are determined by team's SALARY POSITION, not hard cap status
   const isWorldless = !context.worldId;
   const hardCapStatus = getHardCapStatus(team, { isWorldless });
-  
-  if (hardCapStatus.isHardCapped) {
-    return {
-      passed: null, // Null when skipped - salary matching validation didn't run
-      applicable: false,
-      skipReason: 'HARD_CAP_SKIP',
-      allowableIncoming: null, // Explicitly null when skipped (not 0)
-      violations: [],
-      message: 'Skipped for hard-capped team',
-      skipped: true,
-      details: {
-        ruleApplied: null, // Null when skipped - no salary matching rule was applied
-        formulaUsed: 'Hard cap validation handles this team',
-        capSettingsSource: 'N/A (skipped for hard cap)',
-        margin: null, // Null when skipped
-        capSettings: null, // Null when skipped - validator capSettings still available at top level
-        // Debug fields for diagnosing HARD_CAP_SKIP status
-        hardCapStatus,
-      },
-    };
-  }
+  // Store for informational purposes - passed through in result
+
 
   // Check cache first
 
@@ -182,40 +163,145 @@ export function validateSalaryMatching(team, context = {}) {
     };
   }
 
-  // Check if team is using TPEs to cover incoming salary
-  const appliedTPEs = team.appliedTPEs || [];
-  const totalTPEAmount = appliedTPEs.reduce(
-    (sum, tpe) => sum + (tpe.amount || 0),
-    0
+  // ============================================================================
+  // TPE PER-PLAYER MATCHING (CBA FIX)
+  // Each TPE must cover 100% of its assigned player(s). Leftover TPE capacity
+  // does NOT contribute to matching other players.
+  // TPE-absorbed salary is EXCLUDED from salary matching (effectiveSalaryIn).
+  // ============================================================================
+  const incomingPlayers = team.incomingPlayers || team.receives || [];
+  
+  // Check if any incoming player has absorptionMode='TPE' - if so, need TPE processing
+  const hasTPEPlayers = incomingPlayers.some(
+    p => p.absorptionMode === 'TPE' || p.tpeId
   );
-
-  // If using TPEs, skip salary matching validation since TPEs cover the incoming salary
-  if (appliedTPEs.length > 0 && totalTPEAmount >= salaryIn) {
-    const result = {
-      passed: true,
-      applicable: false,
-      skipReason: 'TPE_ABSORPTION',
-      allowableIncoming: null,
-      violations: [],
-      salaryIn,
-      salaryOut,
-      tpeAllowableAmount: totalTPEAmount, // Track TPE amount separately for debugging
-      difference: salaryIn - salaryOut,
-      message: 'Trade exception covers incoming salary',
-      usingTPE: true,
-      details: {
-        ruleApplied: 'TPE_ABSORPTION',
-        formulaUsed: `totalTPEAmount = sum(appliedTPEs.amount) = ${formatCurrency(totalTPEAmount)}`,
-        tpeCount: appliedTPEs.length,
-        capSettingsSource: 'N/A (TPE bypass)',
-        capSettings: { salaryCap, firstApron: actualFirstApron, secondApron },
-        totalSalary,
-        totalSalarySource,
-      },
-    };
-
-    return result;
+  
+  // Get available TPEs from appliedTPEs or team's tradeExceptions
+  const appliedTPEs = team.appliedTPEs || [];
+  const availableTPEs = appliedTPEs.length > 0 
+    ? appliedTPEs 
+    : (team.team?.tradeExceptions || []).filter(tpe => !tpe.isUsed);
+  
+  // Track TPE-absorbed salary at outer scope for use in matching
+  let tpeAbsorbedSalary = 0;
+  
+  if (hasTPEPlayers && availableTPEs.length > 0) {
+    // Build TPE usage map: tpeId -> { tpe, assignedPlayers, totalAssigned }
+    const tpeUsageMap = new Map();
+    availableTPEs.forEach(tpe => {
+      tpeUsageMap.set(tpe.id, {
+        tpe,
+        amount: tpe.amount || 0,
+        assignedPlayers: [],
+        totalAssigned: 0,
+      });
+    });
+    
+    // Match incoming players to their assigned TPEs
+    // Also handle absorptionMode='TPE' when tpeId is not explicitly set
+    const tpeViolations = [];
+    
+    incomingPlayers.forEach(player => {
+      const playerSalary = player.salary || player.matchIncoming || 0;
+      const isTPEAbsorbed = player.absorptionMode === 'TPE' || player.tpeId;
+      
+      if (!isTPEAbsorbed) return; // Skip players not using TPE
+      
+      // If player has explicit tpeId, use that
+      if (player.tpeId && tpeUsageMap.has(player.tpeId)) {
+        const usage = tpeUsageMap.get(player.tpeId);
+        usage.assignedPlayers.push(player);
+        usage.totalAssigned += playerSalary;
+        tpeAbsorbedSalary += playerSalary;
+        return;
+      }
+      
+      // If player has absorptionMode='TPE' but no tpeId, auto-match to best available TPE
+      if (player.absorptionMode === 'TPE') {
+        // Find first TPE with enough remaining capacity
+        let matched = false;
+        for (const [tpeId, usage] of tpeUsageMap) {
+          const remaining = usage.amount - usage.totalAssigned;
+          if (remaining >= playerSalary) {
+            usage.assignedPlayers.push(player);
+            usage.totalAssigned += playerSalary;
+            tpeAbsorbedSalary += playerSalary;
+            matched = true;
+            break;
+          }
+        }
+        
+        if (!matched) {
+          // No TPE large enough - still count as TPE absorbed but will flag violation
+          tpeAbsorbedSalary += playerSalary;
+          tpeViolations.push(
+            `No TPE has sufficient capacity for ${player.name || 'player'} (${formatCurrency(playerSalary)})`
+          );
+        }
+      }
+    });
+    
+    // Validate each TPE covers 100% of its assigned players
+    tpeUsageMap.forEach((usage, tpeId) => {
+      if (usage.totalAssigned > usage.amount) {
+        tpeViolations.push(
+          `TPE ${tpeId} (${formatCurrency(usage.amount)}) insufficient for assigned players (${formatCurrency(usage.totalAssigned)})`
+        );
+      }
+    });
+    
+    // If TPE violations exist, fail immediately
+    if (tpeViolations.length > 0) {
+      return {
+        passed: false,
+        applicable: true,
+        violations: tpeViolations,
+        salaryIn,
+        salaryOut,
+        allowableIncoming: null,
+        message: tpeViolations[0],
+        details: {
+          ruleApplied: 'TPE_VALIDATION_FAILED',
+          formulaUsed: 'Per-player TPE matching',
+          tpeAbsorbedSalary,
+          salaryNeedingMatch: salaryIn - tpeAbsorbedSalary,
+          capSettingsSource,
+        },
+      };
+    }
+    
+    // If all incoming salary is absorbed by TPEs, skip matching
+    if (salaryIn - tpeAbsorbedSalary <= 0) {
+      return {
+        passed: true,
+        applicable: false,
+        skipReason: 'TPE_ABSORPTION',
+        allowableIncoming: null,
+        violations: [],
+        salaryIn,
+        salaryOut,
+        tpeAbsorbedSalary,
+        difference: salaryIn - salaryOut,
+        message: 'Trade exceptions cover incoming salary',
+        usingTPE: true,
+        details: {
+          ruleApplied: 'TPE_ABSORPTION',
+          formulaUsed: 'Per-player TPE matching: all incoming covered',
+          tpeCount: appliedTPEs.length,
+          tpeAbsorbedSalary,
+          capSettingsSource: 'N/A (TPE bypass)',
+          capSettings: { salaryCap, firstApron: actualFirstApron, secondApron },
+          totalSalary,
+          totalSalarySource,
+        },
+      };
+    }
+    
+    // Partial TPE coverage: continue to matching with reduced salaryIn
   }
+
+  // Calculate effective salary for matching (excludes TPE-absorbed players)
+  const effectiveSalaryIn = salaryIn - tpeAbsorbedSalary;
 
   // Under-cap teams can absorb salary up to the cap
   if (totalSalary < salaryCap) {
@@ -230,7 +316,7 @@ export function validateSalaryMatching(team, context = {}) {
     ruleApplied = matchingResult.ruleKey;
     formulaUsed = matchingResult.formulaUsed;
     
-    const netAddition = salaryIn - salaryOut;
+    const netAddition = effectiveSalaryIn - salaryOut;
     const remainingSpace = salaryCap - totalSalary;
     if (netAddition > remainingSpace) {
       violations.push(
@@ -252,7 +338,7 @@ export function validateSalaryMatching(team, context = {}) {
     ruleApplied = matchingResult.ruleKey;
     formulaUsed = matchingResult.formulaUsed;
     
-    if (salaryIn > salaryOut) {
+    if (effectiveSalaryIn > salaryOut) {
       violations.push(
         `Second apron team cannot receive more salary than sent`
       );
@@ -272,9 +358,9 @@ export function validateSalaryMatching(team, context = {}) {
     ruleApplied = matchingResult.ruleKey;
     formulaUsed = matchingResult.formulaUsed;
     
-    if (salaryIn > salaryOut) {
+    if (effectiveSalaryIn > salaryOut) {
       violations.push(
-        `Incoming salary exceeds allowable amount by ${formatCurrency(salaryIn - salaryOut)}. ` +
+        `Incoming salary exceeds allowable amount by ${formatCurrency(effectiveSalaryIn - salaryOut)}. ` +
           `First apron teams cannot receive more salary than sent out.`
       );
     }
@@ -293,9 +379,9 @@ export function validateSalaryMatching(team, context = {}) {
     formulaUsed = matchingResult.formulaUsed;
 
     // Check if team exceeds the allowed incoming salary
-    if (salaryIn > allowableIncoming) {
+    if (effectiveSalaryIn > allowableIncoming) {
       violations.push(
-        `Incoming salary exceeds allowable amount by ${formatCurrency(salaryIn - allowableIncoming)}`
+        `Incoming salary exceeds allowable amount by ${formatCurrency(effectiveSalaryIn - allowableIncoming)}`
       );
     }
   }
@@ -323,7 +409,12 @@ export function validateSalaryMatching(team, context = {}) {
       capSettingsWarnings,
       totalSalary,
       totalSalarySource,
-      margin: allowableIncoming - salaryIn,
+      // TPE info: tpeAbsorbedSalary excluded from effectiveSalaryIn
+      tpeAbsorbedSalary: tpeAbsorbedSalary > 0 ? tpeAbsorbedSalary : null,
+      effectiveSalaryIn: tpeAbsorbedSalary > 0 ? effectiveSalaryIn : null,
+      margin: allowableIncoming - effectiveSalaryIn,
+      // Include hard cap status for informational purposes (ceiling enforced by validateHardCap)
+      hardCapStatus: hardCapStatus.isHardCapped ? hardCapStatus : null,
     },
   };
 

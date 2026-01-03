@@ -144,7 +144,7 @@ const TradeEditor = ({
           return (
             <TradeTeamCard
               key={idx}
-              validationResult={result}
+              validationResult={hasCurrentValidation ? result : null}
               teamIndex={idx}
               team={t.team}
               sends={t.sends}

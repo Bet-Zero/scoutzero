@@ -97,38 +97,54 @@ describe('P0 HARD_CAP_SKIP Worldless Regression Tests', () => {
   });
 
   // ==========================================================================
-  // Test 2: Skip state has null semantics (not 0/true)
+  // Test 2: Hard-capped teams now RUN salary matching (FIX applied)
   // ==========================================================================
   
-  describe('Skip state null semantics', () => {
-    test('HARD_CAP_SKIP has allowableIncoming=null (not 0)', () => {
+  describe('Hard-capped teams run salary matching', () => {
+    test('hard-capped team gets proper allowableIncoming (not null)', () => {
       const team = {
-        hardCapped: true, // Boolean true triggers skip
+        hardCapped: true, // Boolean true - now runs matching
         salaryIn: 10_000_000,
         salaryOut: 10_000_000,
         teamTotalSalary: 100_000_000,
+        context: {
+          capSettings: {
+            salaryCap: 141_000_000,
+            firstApron: 178_000_000,
+            secondApron: 188_000_000,
+          },
+        },
       };
 
       const result = validateSalaryMatching(team, {});
 
-      expect(result.skipReason).toBe('HARD_CAP_SKIP');
-      expect(result.allowableIncoming).toBeNull();
-      expect(result.allowableIncoming).not.toBe(0);
+      // FIXED: No longer skips - runs matching based on salary position
+      expect(result.skipReason).not.toBe('HARD_CAP_SKIP');
+      expect(result.allowableIncoming).not.toBeNull();
+      expect(result.applicable).toBe(true);
     });
 
-    test('HARD_CAP_SKIP has passed=null (not true)', () => {
+    test('hard-capped team gets proper passed boolean (not null)', () => {
       const team = {
         hardCapped: true,
         salaryIn: 10_000_000,
         salaryOut: 10_000_000,
         teamTotalSalary: 100_000_000,
+        context: {
+          capSettings: {
+            salaryCap: 141_000_000,
+            firstApron: 178_000_000,
+            secondApron: 188_000_000,
+          },
+        },
       };
 
       const result = validateSalaryMatching(team, {});
 
-      expect(result.skipReason).toBe('HARD_CAP_SKIP');
-      expect(result.passed).toBeNull();
-      expect(result.passed).not.toBe(true);
+      // FIXED: Actually runs validation
+      expect(result.skipReason).not.toBe('HARD_CAP_SKIP');
+      expect(result.passed).not.toBeNull();
+      expect(typeof result.passed).toBe('boolean');
     });
 
     test('TPE_ABSORPTION skip has allowableIncoming=null (not 0)', () => {
@@ -149,53 +165,68 @@ describe('P0 HARD_CAP_SKIP Worldless Regression Tests', () => {
   });
 
   // ==========================================================================
-  // Test 3: ruleApplied is null in skip state; skipReason is populated
+  // Test 3: Hard-capped teams get proper rule/margin (not null)
   // ==========================================================================
   
-  describe('ruleApplied null in skip state', () => {
-    test('HARD_CAP_SKIP has ruleApplied=null (not "HARD_CAP_SKIP")', () => {
+  describe('Hard-capped teams get proper matching results', () => {
+    test('hard-capped team gets proper ruleApplied based on salary position', () => {
       const team = {
         hardCapped: true,
         salaryIn: 10_000_000,
         salaryOut: 10_000_000,
-        teamTotalSalary: 100_000_000,
+        teamTotalSalary: 100_000_000, // Under cap
+        context: {
+          capSettings: {
+            salaryCap: 141_000_000,
+            firstApron: 178_000_000,
+            secondApron: 188_000_000,
+          },
+        },
       };
 
       const result = validateSalaryMatching(team, {});
 
-      expect(result.skipReason).toBe('HARD_CAP_SKIP');
-      expect(result.details.ruleApplied).toBeNull();
-      expect(result.details.ruleApplied).not.toBe('HARD_CAP_SKIP');
+      // FIXED: Gets actual rule based on salary position
+      expect(result.skipReason).not.toBe('HARD_CAP_SKIP');
+      expect(result.details.ruleApplied).toBe('UNDER_CAP'); // Under 141M
     });
 
-    test('skip state has margin=null (not 0)', () => {
+    test('hard-capped team gets proper margin calculation', () => {
       const team = {
         hardCapped: true,
         salaryIn: 10_000_000,
         salaryOut: 10_000_000,
-        teamTotalSalary: 100_000_000,
+        teamTotalSalary: 100_000_000, // Under cap
+        context: {
+          capSettings: {
+            salaryCap: 141_000_000,
+            firstApron: 178_000_000,
+            secondApron: 188_000_000,
+          },
+        },
       };
 
       const result = validateSalaryMatching(team, {});
 
-      expect(result.details.margin).toBeNull();
-      expect(result.details.margin).not.toBe(0);
+      // FIXED: Gets actual margin calculation
+      expect(result.details.margin).not.toBeNull();
+      expect(typeof result.details.margin).toBe('number');
     });
   });
 
   // ==========================================================================
-  // Test 4: Trade receipt respects null semantics
+  // Test 4: Trade receipt respects new matching semantics
   // ==========================================================================
   
-  describe('Trade receipt skip semantics', () => {
-    test('trade receipt salaryMatchingEvaluation has null values when skipped', () => {
+  describe('Trade receipt matching semantics', () => {
+    test('trade receipt salaryMatchingEvaluation runs for hard-capped teams', () => {
       const teams = [
         {
           team: {
             id: 'A',
             teamName: 'Team A',
-            teamTotalSalary: 100_000_000,
-            hardCapTriggered: true, // Triggers hard cap skip
+            teamTotalSalary: 100_000_000, // Under cap - uses UNDER_CAP rule
+            hardCapTriggered: true, // Hard capped, but matching still runs
           },
           sends: [{ name: 'Player A', id: 'p1' }],
           picksOut: [],
@@ -225,18 +256,15 @@ describe('P0 HARD_CAP_SKIP Worldless Regression Tests', () => {
         currentYear: 2026,
       });
 
-      // Team A is hard-capped, should have skip semantics in receipt
+      // Team A is hard-capped but salary matching RUNS (not skipped)
       const teamAReceipt = result.tradeReceipt?.teams?.find(t => t.teamCode === 'A');
       expect(teamAReceipt).toBeDefined();
       
       if (teamAReceipt) {
         const salaryMatchingEval = teamAReceipt.salaryMatchingEvaluation;
-        // Skip state should have null values
-        expect(salaryMatchingEval.skipReason).toBe('HARD_CAP_SKIP');
-        expect(salaryMatchingEval.ruleApplied).toBeNull();
-        expect(salaryMatchingEval.allowableIncoming).toBeNull();
-        expect(salaryMatchingEval.passed).toBeNull();
-        expect(salaryMatchingEval.margin).toBeNull();
+        // FIXED: No longer skips - runs matching based on salary position
+        expect(salaryMatchingEval.skipReason).not.toBe('HARD_CAP_SKIP');
+        expect(salaryMatchingEval.ruleApplied).not.toBeNull();
       }
     });
 

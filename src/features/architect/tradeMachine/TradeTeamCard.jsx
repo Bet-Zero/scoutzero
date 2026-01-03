@@ -784,6 +784,38 @@ const TradeTeamCard = ({
                       <option value="TPE">TPE</option>
                       <option value="FA_EXCEPTION">FA Exception</option>
                     </select>
+                    {/* TPE selector - show when TPE mode selected */}
+                    {p.absorptionMode === 'TPE' && (
+                      <select
+                        className="bg-[#333] text-xs rounded px-1"
+                        value={p.tpeId || ''}
+                        onChange={(e) =>
+                          onSetPlayerTrade &&
+                          onSetPlayerTrade(p, 'setTpeId', e.target.value)
+                        }
+                      >
+                        <option value="">Select TPE...</option>
+                        {(teamTradeExceptions || [])
+                          .filter(tpe => 
+                            !tpe.isUsed && 
+                            (!tpe.expirationDate || new Date(tpe.expirationDate) > new Date())
+                          )
+                          .map((tpe) => {
+                            const amount = formatMillions(tpe.amount, 1);
+                            const playerSalary = getSalaryForYear([p], yearKey);
+                            const fits = tpe.amount >= playerSalary;
+                            return (
+                              <option 
+                                key={tpe.id} 
+                                value={tpe.id}
+                                disabled={!fits}
+                              >
+                                {amount} {!fits ? '(too small)' : ''}
+                              </option>
+                            );
+                          })}
+                      </select>
+                    )}
                     {p.absorptionMode === 'FA_EXCEPTION' && (
                       <select
                         className="bg-[#333] text-xs rounded px-1"

@@ -47,12 +47,28 @@ export function validateSecondApronRules(team, context = {}) {
     violations.push('Second apron team cannot receive more salary than sent');
   }
 
-  // 3. Cannot aggregate multiple players into a higher-paid player
+  // 3. Cannot aggregate multiple smaller salaries to acquire a HIGHER-paid player
+  // CBA FIX: Multi-player trades are allowed if not "aggregating up"
   const outgoingPlayers = team.sends || team.outgoingPlayers || [];
-  if (outgoingPlayers.length > 1) {
-    violations.push(
-      'Second apron team cannot aggregate salaries from multiple players'
-    );
+  const incomingPlayers = team.incomingPlayers || team.receives || [];
+  
+  if (outgoingPlayers.length > 1 && incomingPlayers.length > 0) {
+    // Get salaries
+    const outgoingSalaries = outgoingPlayers.map(p => p.salary || p.matchOutgoing || 0);
+    const incomingSalaries = incomingPlayers.map(p => p.salary || p.matchIncoming || 0);
+    
+    // Find max outgoing salary (the largest player being traded away)
+    const maxOutgoing = Math.max(...outgoingSalaries, 0);
+    
+    // Check if ANY incoming player is higher than the max outgoing
+    // This is "aggregating up" - combining smaller salaries to get a bigger one
+    const aggregatingUp = incomingSalaries.some(s => s > maxOutgoing);
+    
+    if (aggregatingUp) {
+      violations.push(
+        'Second apron team cannot aggregate smaller salaries to acquire higher-paid player'
+      );
+    }
   }
 
   // 4. Cannot include cash considerations

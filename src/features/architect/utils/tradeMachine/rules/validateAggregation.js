@@ -48,11 +48,20 @@ export function validateAggregation(team, context = {}) {
 
   const violations = [];
 
-  // Check for salary aggregation: multiple outgoing players
-  if (outgoingSalaries.length > 1) {
-    violations.push(
-      `Second apron team cannot aggregate salaries`
-    );
+  // CBA FIX: Aggregation violation only when combining smaller salaries to get HIGHER-paid player
+  // Multi-player trades for similar-value returns are allowed
+  if (outgoingSalaries.length > 1 && incomingSalaries.length > 0) {
+    // Find max outgoing salary (the largest player being traded away)
+    const maxOutgoing = outgoingSalaries.length > 0 ? Math.max(...outgoingSalaries) : 0;
+    
+    // Check if ANY incoming player is higher than the max outgoing
+    const aggregatingUp = incomingSalaries.some(s => s > maxOutgoing);
+    
+    if (aggregatingUp) {
+      violations.push(
+        `Second apron team cannot aggregate salaries to acquire higher-paid player`
+      );
+    }
   }
 
   // Check for receiving from multiple teams (incoming aggregation)

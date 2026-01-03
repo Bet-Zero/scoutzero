@@ -13,6 +13,7 @@
 The bug occurred because of three interrelated issues:
 
 #### Issue 1: Loose Boolean Check in `normalizeTradeInput.js`
+
 ```javascript
 // BEFORE (buggy)
 hardCapped: !!team.hardCapped,  // Would return true for truthy strings like "FirstApron"
@@ -22,7 +23,9 @@ hardCapped: team.hardCapped === true,  // Only true for boolean true
 ```
 
 #### Issue 2: Hard Cap Detection Using Truthy Checks
+
 In `validateSalaryMatching.js`, the hard cap detection used simple truthy checks:
+
 ```javascript
 // BEFORE (buggy)
 const isHardCapped = hardCappedRaw === true;  // This was correct
@@ -32,12 +35,15 @@ const isHardCapTriggered = hardCapTriggeredRaw === true;  // This was correct
 ```
 
 The fix was to create a canonical `getHardCapStatus()` function that:
+
 - Only accepts `boolean true` values as hard cap triggers
 - Ignores string values like "FirstApron" in worldless mode
 - Provides a single source of truth for hard cap detection
 
 #### Issue 3: Skip Output Shape Was Misleading
+
 When salary matching was skipped, the output was:
+
 ```javascript
 // BEFORE (misleading)
 {
@@ -54,9 +60,11 @@ This caused the trade receipt to show `ruleApplied: "HARD_CAP_SKIP"` and `passed
 ## 2. Exact Fixes Applied
 
 ### A. New `getHardCapStatus()` Function
+
 **File**: `src/features/architect/utils/tradeMachine/utils/hardCapStatus.js`
 
 Provides canonical hard cap detection with strict boolean checks:
+
 ```javascript
 function getHardCapStatus(team, options = {}) {
   // Only boolean true triggers hard cap
@@ -72,6 +80,7 @@ function getHardCapStatus(team, options = {}) {
 ```
 
 ### B. Fixed Skip Semantics in `validateSalaryMatching.js`
+
 **File**: `src/features/architect/utils/tradeMachine/rules/validateSalaryMatching.js`
 
 ```javascript
@@ -89,6 +98,7 @@ if (hardCapStatus.isHardCapped) {
 ```
 
 ### C. Fixed Trade Receipt Null Semantics
+
 **File**: `src/features/architect/utils/tradeMachine/engine/tradeValidator.js`
 
 ```javascript
@@ -105,6 +115,7 @@ const salaryMatchingEvaluation = {
 ```
 
 ### D. Fixed `normalizeTradeInput.js`
+
 **File**: `src/features/architect/utils/tradeMachine/utils/normalizeTradeInput.js`
 
 ```javascript
@@ -278,6 +289,7 @@ Tests: 181 passed, 10 failed (pre-existing)
 The P0 HARD_CAP_SKIP bug was caused by loose boolean checks allowing truthy strings to trigger hard cap skipping, combined with incorrect skip output shape that showed `ruleApplied: "HARD_CAP_SKIP"` and `passed: true` instead of proper null semantics.
 
 The fix ensures:
+
 1. **Worldless mode works correctly** - Teams are NOT hard-capped unless explicit boolean `true` triggers exist
 2. **Skip semantics are correct** - When skipped, `ruleApplied`, `passed`, `allowableIncoming`, and `margin` are all `null`
 3. **UI can distinguish skip from normal** - `skipReason` is populated, `ruleApplied` is `null`
