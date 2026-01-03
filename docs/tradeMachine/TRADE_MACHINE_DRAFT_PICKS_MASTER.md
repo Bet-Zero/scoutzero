@@ -52,7 +52,7 @@ This document provides a **brutally honest audit** of draft pick implementation 
 
 | Path | Responsibility | Key Functions/Types |
 |------|----------------|---------------------|
-| `src/schemas/architect.ts` | **Canonical pick schema definition** | `DraftPickZ` - Zod schema with fields: id, year, round, pick, owner, originalTeam, status, isSwap, protection, stepienEligible, tradeable, via, recipient, route, notes, conveyance, metadata |
+| `src/schemas/architect.ts` | **Canonical pick schema definition** | `DraftPickZ` - Zod schema with fields: id, year, round, pick (nullable - draft position when known), owner, originalTeam, status, isSwap, protection, stepienEligible, tradeable, via, recipient, route, notes, conveyance, metadata |
 | `src/schemas/architect.ts` | **Conveyance sub-schema** | `DraftPickConveyanceZ` - id, description, originalYear, currentYear, finalYear, stepienImpact, conditions (protection, ifConveys, ifRolls), affects |
 | `src/features/architect/utils/tradeMachine/constants/types.ts` | **TypeScript interfaces** | `NormalizedTeam.picksOut` - Array of picks with year, round; limited pick typing |
 
@@ -268,6 +268,8 @@ interface DraftPick {
   // === IDENTITY (Stable, Never Changes) ===
   id: string;                    // Format: "{originalTeam}_{year}_{round}"
                                   // e.g., "PHI_2026_1", "LAL_2028_2"
+                                  // Note: For edge cases with multiple trades, the ID
+                                  // remains stable based on ORIGINAL team, not current owner
   
   // === CORE PROPERTIES ===
   year: number;                  // Draft year (e.g., 2026)
@@ -312,8 +314,8 @@ interface ProtectionTier {
 
 interface ProtectionCondition {
   type: 'position' | 'lottery' | 'playoff' | 'always' | 'never';
-  positions?: [number, number];  // Range [1, 3] = "Top 3 protected"
-                                  // [1, 14] = "Lottery protected"
+  maxPosition?: number;          // e.g., maxPosition: 3 = "Top 3 protected" (positions 1-3)
+                                  // maxPosition: 14 = "Lottery protected" (positions 1-14)
 }
 
 interface ConveyanceAction {
@@ -370,11 +372,13 @@ function resolvePickOwnership(
 - [ ] Create debug panel showing pick states during trade
 - [ ] Add assertions for pick ID format consistency
 - [ ] Create pick state dump for debugging
+- [ ] **DATA AUDIT**: Query Firestore to document actual `draftPicks` data format in production (protection format, field usage)
 
 **Acceptance Criteria:**
 - Console logs show which Stepien function is called
 - Pick IDs logged on every trade operation
-- Debug panel shows raw pick data in Trade Machine
+- Debug panel renders pick state in Trade Machine
+- **DATA AUDIT REPORT**: Document shows actual protection formats in production data
 
 **Validation Steps:**
 - Open Trade Machine, add picks to trade
@@ -521,7 +525,7 @@ describe('pick ID generation', () => {
 describe('protection evaluation', () => {
   it('triggers Top 3 protection at pick 2', () => {
     const result = evaluateProtection(
-      { type: 'position', positions: [1, 3] },
+      { type: 'position', maxPosition: 3 },
       { pickPosition: 2 }
     );
     expect(result.triggered).toBe(true);
@@ -529,7 +533,7 @@ describe('protection evaluation', () => {
   
   it('does not trigger Top 3 protection at pick 5', () => {
     const result = evaluateProtection(
-      { type: 'position', positions: [1, 3] },
+      { type: 'position', maxPosition: 3 },
       { pickPosition: 5 }
     );
     expect(result.triggered).toBe(false);
@@ -537,7 +541,7 @@ describe('protection evaluation', () => {
   
   it('executes roll action on trigger', () => {
     const tier = {
-      condition: { type: 'position', positions: [1, 3] },
+      condition: { type: 'position', maxPosition: 3 },
       ifTriggered: { action: 'roll', toYear: 2027 }
     };
     const result = executeConveyance(tier, { pickPosition: 2 });
@@ -675,8 +679,8 @@ describe('pick trade lifecycle', () => {
 **Build first (highest ROI, lowest risk):**
 
 1. **Unify `isMeaningfulProtection()`** (G4)
-   - Single implementation in `tradeUtilities.js`
-   - Update all callers
+   - Single implementation in `src/features/architect/utils/tradeMachine/rules/` (near validation logic)
+   - Update all callers in `validateStepien.js`, `draftRules.js`, `tradeHelpers.js`
    - ~2 hours work, high safety improvement
 
 2. **Consolidate Stepien implementations** (G8)
