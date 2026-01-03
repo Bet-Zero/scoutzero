@@ -583,13 +583,13 @@ interface SwapRights {
 **Current State (Violation):**
 | Implementation | File | Input Format | Called? |
 |----------------|------|--------------|---------|
-| `isMeaningfulProtection(str)` | `tradeUtilities.js:74` | String | ✅ **YES** (canonical) |
-| `isMeaningfulProtection(arr)` | `basicRules.js:25` | Array | ❌ NO (dead code) |
-| `isMeaningfulProtection(str)` | `tradeHelpers.js:302` | String | ⚠️ Unknown (duplicate) |
+| `isMeaningfulProtection(str)` | `src/features/architect/utils/tradeMachine/utils/tradeUtilities.js:74` | String | ✅ **YES** (canonical, imported by validateStepien.js and draftRules.js) |
+| `isMeaningfulProtection(arr)` | `src/features/architect/utils/tradeMachine/rules/basicRules.js:25` | Array | ❌ NO (dead code - no imports found) |
+| `isMeaningfulProtection(str)` | `src/features/architect/utils/tradeHelpers.js:302` | String | ❌ NO (dead code - no imports found, duplicate of tradeUtilities version) |
 
 **Required Action:** 
 1. Delete `basicRules.js:isMeaningfulProtection` (array format never used)
-2. Consolidate `tradeHelpers.js` and `tradeUtilities.js` versions (same logic, duplicated)
+2. Delete `tradeHelpers.js:302` duplicate (same logic as tradeUtilities, no callers)
 
 ### SSOT-3: Pick Comparison
 
@@ -738,7 +738,7 @@ function resolvePickOwnership(
 
 ### Phase 1: Data Model Stabilization + ID Migration (3-5 days)
 
-> **CRITICAL:** This phase requires either a migration script OR a deterministic adapter. "No schema migration required" was incorrect in v1.0.
+> **CRITICAL:** This phase requires either a migration script OR a deterministic adapter. The original v1.0 document incorrectly stated "no schema migration required" in the Phase 1 "Why these first" section.
 
 **Tasks:**
 
@@ -1054,7 +1054,9 @@ describe('pick trade lifecycle', () => {
 
 ## Recommended Phase 1 Scope (Revised)
 
-> **Note:** Phase 1 now explicitly includes ID adapter strategy. "No schema migration required" is incorrect - either migration OR adapter is needed.
+> **Note:** Phase 1 now explicitly includes ID adapter strategy. The original v1.0 incorrectly stated "no schema migration required" - either migration OR adapter IS needed.
+
+> **Gap ID Clarification:** G-numbers (G4, G5, G8) refer to Gap List IDs, not priority order. Phase 1 reorders them by implementation dependency.
 
 **Build first (highest ROI, addresses SSOT violations):**
 
