@@ -1782,3 +1782,129 @@ npm run build
 4. **Display format**: Picks show "🔁 Swap (Best of) vs OKC" when swap info is present
 
 ---
+
+## Phase 3 PREFLIGHT Findings (January 2026)
+
+> **Status**: PREFLIGHT COMPLETE  
+> **Mode**: DOCS + tests-only (no runtime behavior changes)  
+> **Purpose**: Produce no-surprises implementation plan for swap resolution and conveyance
+
+### Key Findings Summary
+
+1. **Pick Consumers Identified (8 total)**:
+   - `updateDraftPicks()` - Season advance status update
+   - `updateDraftPicksWithStepien()` - Stepien recalculation
+   - `tradeManager.executeTrade()` - Trade execution pick routing
+   - `mutationPipeline.computeTradeResult()` - Alternate trade pipeline
+   - `validateStepien()` - Stepien validation
+   - `validateDraftPicks()` - 7-year limit check
+   - `buildFirstRoundCalendar()` - Calendar visualization
+   - `computeTradeDraftKey()` - Cache key generation
+
+2. **Resolution Timing Decision**:
+   - **Current State**: NO resolution logic exists anywhere
+   - **Recommended**: Resolution should occur during `advanceSeasonInWorld()` when advancing past a draft year
+   - **Required Inputs**: Draft lottery results (`Map<TeamCode, number>`)
+
+3. **Resolved-Pick Schema (Recommended: Minimal Extension)**:
+   ```typescript
+   interface DraftPick {
+     // ... existing fields unchanged ...
+     
+     // NEW resolution fields
+     resolved: boolean;              // False until resolution event
+     resolvedOwner?: TeamCode;       // Who got pick after swap resolution
+     resolvedPosition?: number;      // Draft position 1-60
+     resolutionMeta?: {
+       resolvedAt: string;
+       method: 'lottery' | 'manual';
+       positions?: Record<TeamCode, number>;
+     };
+   }
+   ```
+
+4. **Conveyance/Rollover Current State**:
+   - Protection stored as **string only** ("Top 3", "Lottery", etc.)
+   - `DraftPickConveyanceZ` schema exists but **NEVER USED** by any runtime code
+   - No rollover logic implemented in `seasonManager.js`
+   - **Phase 3 Scope**: Document gap only; full conveyance is separate effort
+
+5. **Label Formatting Duplication**:
+   - `formatPick()` in `tradeHelpers.js` - Shared utility
+   - `getPickLabel()` in `TradeSummaryPanel.jsx` - Local duplicate
+   - **Difference**: Swap emoji (🔁 vs 🔄)
+   - **Recommendation**: Unify to single configurable formatter
+
+6. **CRITICAL: No Execution Target**:
+   - No draft lottery simulation exists
+   - No world-advancing sim needs resolved picks
+   - **Phase 3 is infrastructure** for future features
+
+### Evidence Index Additions (E21+)
+
+#### E21: Pick Consumers Beyond Display
+
+| Field | Value |
+|-------|-------|
+| **Claim** | 8 code locations consume picks beyond display |
+| **Evidence** | See Pick Consumers Table in Return Package |
+| **Key Finding** | ALL consumers work with unresolved picks; none require swap resolution |
+
+#### E22: No Resolution Logic Exists
+
+| Field | Value |
+|-------|-------|
+| **Claim** | There is no swap resolution implementation in the repo |
+| **Search** | `grep -r "resolveSwap\|resolutionMeta\|resolvedOwner" src/` returns no results |
+| **Impact** | Phase 3 must build resolution from scratch |
+
+#### E23: Conveyance Schema vs Implementation Gap
+
+| Field | Value |
+|-------|-------|
+| **Claim** | `DraftPickConveyanceZ` schema is defined but unused |
+| **Evidence** | `src/schemas/architect.ts:91-123` |
+| **Search** | `grep -r "conveyance\|ifConveys\|ifRolls" src/features/` only finds schema |
+| **Impact** | Conveyance is documentation-only; no runtime support |
+
+#### E24: Duplicate Label Formatters
+
+| Field | Value |
+|-------|-------|
+| **Claim** | Two pick label formatters exist with minor differences |
+| **Locations** | `tradeHelpers.js:338` (`formatPick`), `TradeSummaryPanel.jsx:22` (`getPickLabel`) |
+| **Difference** | Swap emoji: 🔁 vs 🔄; note field inclusion |
+| **Recommendation** | Unify into single configurable `formatPick()` |
+
+### Swap Resolution Definition
+
+**What "resolution" means in this repo:**
+
+For a swap pick (e.g., "best of PHI/OKC 2026 1st"):
+- **Unresolved state**: Pick has `isSwap: true`, `swapType: 'best_of'`, `swapWithTeamId: 'OKC'`, `resolved: false`
+- **Resolution event**: When 2026 draft lottery results are known (or simulated)
+- **Resolved state**: Pick has `resolved: true`, `resolvedOwner: 'OKC'` (the team whose pick was selected)
+
+**"Higher pick" definition:**
+- Lower number = better/higher pick (pick #1 is best, #60 is worst)
+- `best_of` → Controller gets pick with **lower** position number
+- `worst_of` → Controller gets pick with **higher** position number
+
+### Files Changed in Phase 3 PREFLIGHT
+
+| File | Action | Description |
+|------|--------|-------------|
+| `docs/return-packages/trade-machine-draft-picks__phase-3-preflight__2026-01-04.md` | Created | Full Return Package with findings |
+| `docs/tradeMachine/TRADE_MACHINE_DRAFT_PICKS_MASTER.md` | Updated | Added Phase 3 PREFLIGHT Findings section |
+
+### Phase 3 EXECUTION Scope
+
+Based on PREFLIGHT findings, Phase 3 EXECUTION should:
+
+1. **Create `resolveSwap()` utility function** with tests
+2. **Add resolution fields** to pick object (non-breaking extension)
+3. **Optionally unify label formatters** (low priority)
+4. **NOT implement full conveyance/rollover** (separate future phase)
+5. **NOT wire into production flow** until draft sim exists
+
+---
