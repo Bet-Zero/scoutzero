@@ -2012,10 +2012,11 @@ npm run build                                                             # ✓ 
 
 ## Phase 4 PREFLIGHT Findings (January 2026)
 
-> **Status**: PREFLIGHT COMPLETE  
+> **Status**: PREFLIGHT COMPLETE (DOC PATCH APPLIED 2026-01-04)  
 > **Mode**: Discovery + docs + tests/fixtures only (NO runtime behavior changes)  
 > **Purpose**: Produce no-surprises implementation plan for conveyance and protection normalization  
-> **Return Package**: `docs/return-packages/trade-machine-draft-picks__phase-4-preflight__2026-01-04.md`
+> **Return Package**: `docs/return-packages/trade-machine-draft-picks__phase-4-preflight__2026-01-04.md`  
+> **Doc Patch**: `docs/return-packages/trade-machine-draft-picks__phase-4-preflight-doc-patch__2026-01-04.md`
 >
 > **Terminology Note**: "Conveyance" refers to the NBA draft pick mechanism where a protected pick either:
 > - **Conveys** (transfers to the receiving team) when protection doesn't trigger, OR
@@ -2053,16 +2054,16 @@ npm run build                                                             # ✓ 
 { label: 'Swap (-)', value: 'Swap (-)' },
 ```
 
-**Risk Analysis**:
+**Risk Analysis** (verified via grep):
 - `isMeaningfulProtection('Swap (+)')` returns `false` - NOT treated as protection
 - Users may think selecting "Swap (+)" makes pick a swap - IT DOESN'T
-- No persisted data uses these values
+- grep found values ONLY in `getPickOptions()` dropdown and test fixtures; no team data contains these values
 
 **Recommendation**: **REMOVE** in Phase 4 execution. Swap is properly modeled with `isSwap`, `swapType`, `swapWithTeamId`.
 
 #### F4: Conveyance Execution Target
 
-**Primary Target**: Season advance (`updateDraftPicksWithStepien()` in `seasonManager.js`)
+**Primary Target**: Season advance (`updateDraftPicksWithStepien()` at `seasonManager.js:819`)
 
 **Required Inputs**:
 - Pick with `conveyance.conditions`
@@ -2093,28 +2094,32 @@ interface DraftPick {
 
 ### Deliverables Created
 
+> **⚠️ Fixture Model Clarification**: Fixtures contain two different structures:
+> - `conveyance.*` fields match existing `DraftPickConveyanceZ` schema (unused at runtime)
+> - `protectionLadder[]` is a **PROPOSED** Phase 4 model — does NOT exist in runtime schema
+
 | File | Description |
 |------|-------------|
 | `docs/return-packages/trade-machine-draft-picks__phase-4-preflight__2026-01-04.md` | Full return package with truth map, inventory, proposals |
 | `src/tests/tradeMachine/conveyancePreflight.test.js` | Phase 4 preflight tests (22 pass, 7 skipped) |
-| `src/tests/fixtures/tradeMachinePicks/conveyance_rolls_forward.json` | Roll-forward protection fixture |
-| `src/tests/fixtures/tradeMachinePicks/conveyance_converts_to_2nd.json` | Conversion to 2nd round fixture |
-| `src/tests/fixtures/tradeMachinePicks/conveyance_multi_year_ladder.json` | Multi-tier ladder fixture |
+| `src/tests/fixtures/tradeMachinePicks/conveyance_rolls_forward.json` | Roll-forward protection fixture (uses existing schema) |
+| `src/tests/fixtures/tradeMachinePicks/conveyance_converts_to_2nd.json` | Conversion to 2nd round fixture (uses existing schema) |
+| `src/tests/fixtures/tradeMachinePicks/conveyance_multi_year_ladder.json` | Multi-tier ladder fixture (**PROPOSED** `protectionLadder[]` model) |
 | `src/tests/fixtures/tradeMachinePicks/protection_swap_plus_minus_strings.json` | Swap (+/-) documentation |
 
 ### Phase 4 EXECUTION Implied Plan
 
-1. **Priority 1**: Remove "Swap (+/-)" from `getPickOptions()` (~15 min, no risk)
+1. **Priority 1**: Remove "Swap (+/-)" from `getPickOptions()` (~15 min, low risk)
 2. **Priority 2**: Add `protectionMeta` schema (Option A) (~2-4 hours, low risk)
 3. **Priority 3**: Implement `resolveConveyance()` function (~4-8 hours, medium risk)
 4. **Priority 4**: Wire conveyance into season advance (~2-4 hours, medium risk)
 
 ### Stop Conditions - All CLEAR
 
-| Condition | Status |
-|-----------|--------|
-| Protection strings persisted widely | ❌ Format consistent |
-| Stepien treats "Swap (+/-)" as meaningful | ❌ Returns `false` |
-| Existing conveyance implementation | ❌ Schema only, no runtime |
+| Condition | Status | Verification |
+|-----------|--------|--------------|
+| Protection strings persisted widely | ❌ NOT FOUND | Format consistent across fixtures |
+| Stepien treats "Swap (+/-)" as meaningful | ❌ NOT FOUND | `isMeaningfulProtection('Swap (+)')` returns `false` — verified in tests |
+| Existing conveyance implementation | ❌ NOT FOUND | Schema only; grep found zero runtime reads |
 
 ---
