@@ -43,10 +43,10 @@ Phase 4 PREFLIGHT is complete. This document provides a "no-surprises" implement
 | **P3** | `src/features/architect/tradeMachine/TradePickRow.jsx:122-131` | Protection dropdown | `pickObj.protection` (string) | Dropdown renders `getPickOptions()` | No change needed after `getPickOptions()` fixed |
 | **P4** | `src/features/architect/utils/tradeMachine/rules/validateStepien.js:86-87` | Stepien consecutive check | `current.protection`, `next.protection` | Calls `isMeaningfulProtection(string)` | Support structured protection object |
 | **P5** | `src/features/architect/utils/tradeMachine/rules/draftRules.js:41` | `validateDraftPicks()` | `p.protection` | Calls `isMeaningfulProtection(string)` | Support structured protection object |
-| **P6** | `src/features/architect/utils/stepienUtils.js:27-29` | `buildFirstRoundCalendar()` | `p.protection`, `p.protectionText` | Uses protection for calendar status | Support structured protection |
+| **P6** | `src/features/architect/utils/stepienUtils.js` | `buildFirstRoundCalendar()` | `p.protectionText` (line 25), `p.protection` (lines 32-33) | Uses protection for calendar status | Support structured protection |
 | **P7** | `src/features/architect/utils/tradeHelpers.js:360` | `formatPick()` | `p.protection` (string) | Displays `🛡 ${p.protection}` | Display structured protection label |
 | **P8** | `src/features/architect/utils/seasonManager.js:400-426` | `updateDraftPicks()` | `pick.status` only | Does NOT read protection | No change needed |
-| **P9** | `src/features/architect/utils/seasonManager.js:817-912` | `updateDraftPicksWithStepien()` | `pick.year`, `pick.round`, ownership | Does NOT process conveyance | Phase 4: Add conveyance resolution hook |
+| **P9** | `src/features/architect/utils/seasonManager.js` | `updateDraftPicksWithStepien()` (line 819) | `pick.year`, `pick.round`, ownership | Does NOT process conveyance | Phase 4: Add conveyance resolution hook |
 
 ### Conveyance Touchpoints
 
@@ -54,7 +54,7 @@ Phase 4 PREFLIGHT is complete. This document provides a "no-surprises" implement
 |---|-----------|-------------------|---------------------|------------------|----------------------------|
 | **C1** | `src/schemas/architect.ts:91-123` | `DraftPickConveyanceZ` schema | `conveyance.*` | **SCHEMA ONLY** - never read at runtime | Runtime should use for rollover logic |
 | **C2** | `src/schemas/architect.ts:141` | `DraftPickZ.conveyance` | `conveyance` field | Field exists on schema | Runtime should process conveyance conditions |
-| **C3** | `src/features/architect/utils/seasonManager.js:950-1014` | `resolveDraftPickSwapsForYear()` | Swap fields only | Resolves swaps, NOT conveyance | Phase 4: Add parallel `resolveConveyance()` function |
+| **C3** | `src/features/architect/utils/seasonManager.js` | `resolveDraftPickSwapsForYear()` (line 950) | Swap fields only | Resolves swaps, NOT conveyance (Phase 3 feature) | Phase 4: Add parallel `resolveConveyance()` function |
 
 ### Schema Conveyance Fields (Unused)
 
@@ -149,6 +149,21 @@ $ grep -rn "getPickOptions" src/
 src/features/architect/tradeMachine/TradePickRow.jsx:5,127
 src/features/architect/utils/tradeMachine/utils/tradeUtilities.js:84
 ```
+
+### Search Coverage Summary
+
+**Directories Searched**: `src/`, `src/tests/`, `docs/`
+
+**Directories NOT Searched** (out of scope):
+- `node_modules/` — Third-party dependencies
+- `team-scrape/`, `player-scrape/` — External scrapers, not Trade Machine runtime
+- `archive/` — Deprecated code
+- `firebase-export-*` — Database exports
+
+**Verified Claims**:
+- "Swap (+)/(-)" values found ONLY in `getPickOptions()` dropdown and test fixtures
+- NO persisted team data contains "Swap (+)" or "Swap (-)" protection values
+- `DraftPickConveyanceZ` has ZERO runtime reads in `src/features/`
 
 ---
 
@@ -358,8 +373,8 @@ interface ConveyanceResolutionInputs {
 | Risk | Severity | Evidence | Impact |
 |------|----------|----------|--------|
 | User confusion | HIGH | Users may think "Swap (+)" makes pick a swap | Picks not actually swaps |
-| Stepien bypass | ❌ NONE | "Swap (+/-)" NOT treated as meaningful protection | No bypass risk |
-| Persisted data | ❌ NONE | Search found zero fixtures with these values in real use | Safe to remove |
+| Stepien bypass | ❌ NOT FOUND | `isMeaningfulProtection('Swap (+)')` returns `false` — verified in tests | No bypass risk |
+| Persisted data | ❌ NOT FOUND | grep of `src/` found values ONLY in `getPickOptions()` UI dropdown and test fixtures; no team data files contain these values | Safe to remove |
 
 ### Recommendation: REMOVE in Phase 4 Execution
 
@@ -371,22 +386,29 @@ interface ConveyanceResolutionInputs {
 3. These values are NOT treated as meaningful protection
 4. No evidence of persisted data using these values
 
-**Migration Risk**: NONE - search found zero real usage
+**Migration Risk**: LOW — grep search found usage ONLY in:
+- `tradeUtilities.js:92-93` (dropdown options)
+- Test fixtures (documentation purposes)
+- No Firestore team documents contain these values
 
 ---
 
 ## 8. Fixtures Created (D5)
 
-| Fixture File | Purpose | Key Fields |
-|--------------|---------|------------|
-| `conveyance_rolls_forward.json` | Protected pick that rolls to next year | `conveyance.conditions.ifRolls`, `conveyance.finalYear` |
-| `conveyance_converts_to_2nd.json` | Protected pick that converts to 2nd round | `conversionTarget.action`, `conversionTarget.toRound` |
-| `conveyance_multi_year_ladder.json` | Multi-tier protection: Top 3 → Top 5 → Unprotected | `protectionLadder[]` array with year/condition/ifTriggered |
-| `protection_swap_plus_minus_strings.json` | Documents "Swap (+/-)" confusion | `blastRadiusAnalysis`, `phase4Recommendation` |
+> **⚠️ IMPORTANT**: Fixtures below contain TWO different structures:
+> 1. **Existing Schema (`conveyance.*`)**: Matches `DraftPickConveyanceZ` in `architect.ts` — schema exists but is NEVER USED at runtime
+> 2. **Proposed Model (`protectionLadder[]`)**: Phase 4 design proposal — does NOT exist in any runtime schema or code
+
+| Fixture File | Purpose | Key Fields | Structure Status |
+|--------------|---------|------------|------------------|
+| `conveyance_rolls_forward.json` | Protected pick that rolls to next year | `conveyance.conditions.ifRolls`, `conveyance.finalYear` | **EXISTING SCHEMA** (unused at runtime) |
+| `conveyance_converts_to_2nd.json` | Protected pick that converts to 2nd round | `conversionTarget.action`, `conversionTarget.toRound` | **EXISTING SCHEMA** (unused at runtime) |
+| `conveyance_multi_year_ladder.json` | Multi-tier protection: Top 3 → Top 5 → Unprotected | `protectionLadder[]` array with year/condition/ifTriggered | **PROPOSED MODEL** (not yet implemented) |
+| `protection_swap_plus_minus_strings.json` | Documents "Swap (+/-)" confusion | `blastRadiusAnalysis`, `phase4Recommendation` | Documentation only |
 
 ### Fixture Shapes
 
-**conveyance_rolls_forward.json**:
+**conveyance_rolls_forward.json** (uses existing `DraftPickConveyanceZ` schema):
 ```json
 {
   "conveyance": {
@@ -401,9 +423,10 @@ interface ConveyanceResolutionInputs {
 }
 ```
 
-**conveyance_multi_year_ladder.json**:
+**conveyance_multi_year_ladder.json** (PROPOSED MODEL - not runtime-backed):
 ```json
 {
+  "_modelStatus": "PHASE_4_PROPOSED - protectionLadder[] does NOT exist in runtime schema",
   "protectionLadder": [
     { "year": 2026, "condition": "Top 3", "ifTriggered": "roll", "rollToYear": 2027 },
     { "year": 2027, "condition": "Top 5", "ifTriggered": "roll", "rollToYear": 2028 },

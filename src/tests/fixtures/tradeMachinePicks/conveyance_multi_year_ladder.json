@@ -2,6 +2,10 @@
   "description": "Multi-year protection ladder: Top 3 → Top 5 → Unprotected",
   "scenario": "Pick has declining protection across multiple years before becoming unprotected",
   "phase4Behavior": "NOT YET IMPLEMENTED - multi-tier protection logic does not exist",
+  "_modelStatus": {
+    "conveyance": "EXISTING_SCHEMA_BUT_UNUSED - matches DraftPickConveyanceZ in architect.ts:91-123",
+    "protectionLadder": "PHASE_4_PROPOSED_MODEL - does NOT exist in any runtime schema or code"
+  },
   "teams": [
     {
       "teamId": "CHI",

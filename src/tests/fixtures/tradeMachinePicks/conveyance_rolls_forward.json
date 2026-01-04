@@ -2,6 +2,9 @@
   "description": "Protected pick that should roll forward when protection triggers",
   "scenario": "2026 1st round pick is Top 3 protected. If team finishes with pick #2, protection triggers and pick rolls to 2027.",
   "phase4Behavior": "NOT YET IMPLEMENTED - conveyance/rollover logic does not exist",
+  "_modelStatus": {
+    "conveyance": "EXISTING_SCHEMA_BUT_UNUSED - matches DraftPickConveyanceZ in architect.ts:91-123"
+  },
   "teams": [
     {
       "teamId": "LAL",

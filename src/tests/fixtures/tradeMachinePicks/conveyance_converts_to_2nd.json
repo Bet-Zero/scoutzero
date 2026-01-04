@@ -2,6 +2,10 @@
   "description": "Protected pick that converts to a 2nd round pick if protection triggers",
   "scenario": "2026 1st round pick is Lottery protected. If protection triggers, converts to 2nd round pick instead of rolling forward.",
   "phase4Behavior": "NOT YET IMPLEMENTED - conversion logic does not exist",
+  "_modelStatus": {
+    "conveyance": "EXISTING_SCHEMA_BUT_UNUSED - matches DraftPickConveyanceZ in architect.ts:91-123",
+    "conversionTarget": "PHASE_4_PROPOSED_MODEL - does NOT exist in any runtime schema or code"
+  },
   "teams": [
     {
       "teamId": "NYK",
