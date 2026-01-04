@@ -76,26 +76,24 @@ describe('Phase 4 PREFLIGHT - Protection String Current Behavior', () => {
 });
 
 // ==============================================================================
-// SECTION 2: getPickOptions() Contains Confusing Swap Entries
+// SECTION 2: getPickOptions() Protection Options (Phase 4 Updated)
 // ==============================================================================
 
-describe('Phase 4 PREFLIGHT - getPickOptions() Audit', () => {
-  it('getPickOptions includes "Swap (+)" entry (SHOULD BE REMOVED)', () => {
+describe('Phase 4 - getPickOptions() Protection Options', () => {
+  it('getPickOptions does NOT include "Swap (+)" (Phase 4 removed)', () => {
     const options = getPickOptions();
     const swapPlusOption = options.find((opt) => opt.value === 'Swap (+)');
     
-    // Currently includes it - this test documents the problem
-    expect(swapPlusOption).toBeDefined();
-    expect(swapPlusOption.label).toBe('Swap (+)');
+    // Phase 4: Removed - swap is properly modeled with isSwap, swapType, swapWithTeamId
+    expect(swapPlusOption).toBeUndefined();
   });
 
-  it('getPickOptions includes "Swap (-)" entry (SHOULD BE REMOVED)', () => {
+  it('getPickOptions does NOT include "Swap (-)" (Phase 4 removed)', () => {
     const options = getPickOptions();
     const swapMinusOption = options.find((opt) => opt.value === 'Swap (-)');
     
-    // Currently includes it - this test documents the problem
-    expect(swapMinusOption).toBeDefined();
-    expect(swapMinusOption.label).toBe('Swap (-)');
+    // Phase 4: Removed - swap is properly modeled with isSwap, swapType, swapWithTeamId
+    expect(swapMinusOption).toBeUndefined();
   });
 
   it('getPickOptions includes standard protection options', () => {
@@ -109,6 +107,11 @@ describe('Phase 4 PREFLIGHT - getPickOptions() Audit', () => {
     expect(values).toContain('Top 10');
     expect(values).toContain('Lottery');
     expect(values).toContain('Top 20');
+  });
+
+  it('getPickOptions returns exactly 7 options (no swap entries)', () => {
+    const options = getPickOptions();
+    expect(options.length).toBe(7);
   });
 });
 
@@ -161,117 +164,182 @@ describe('Phase 4 PREFLIGHT - DraftPickConveyanceZ Schema Audit', () => {
 });
 
 // ==============================================================================
-// SECTION 4: SKIPPED Tests - Phase 4 EXECUTION Will Implement
+// SECTION 4: Phase 4 EXECUTION Tests - Conveyance Resolution
 // ==============================================================================
 
-describe.skip('Phase 4 EXECUTION - Conveyance Resolution (NOT YET IMPLEMENTED)', () => {
+describe('Phase 4 EXECUTION - Conveyance Resolution', () => {
   /**
-   * These tests define EXPECTED BEHAVIOR for Phase 4 execution.
-   * They are SKIPPED because the logic does not exist yet.
+   * These tests verify Phase 4 conveyance resolution implementation.
    */
 
-  it('resolveConveyance() rolls pick forward when protection triggers', () => {
-    // PLACEHOLDER: Phase 4 execution will implement resolveConveyance()
+  it('resolveConveyanceForPick() rolls pick forward when protection triggers', async () => {
+    const { resolveConveyanceForPick } = await import('@/features/architect/utils/tradeMachine/utils/conveyanceResolution.js');
+    
     const pick = conveyanceRollsForward.teams[0].picksOut[0];
-    const lotteryResults = { LAL: 2 }; // Position 2 triggers Top 3 protection
+    const positionsMap = { LAL: 2 }; // Position 2 triggers Top 3 protection
     
-    // Expected: resolveConveyance(pick, lotteryResults) returns pick with updated year
-    // const resolved = resolveConveyance(pick, lotteryResults);
-    // expect(resolved.year).toBe(2027);
-    // expect(resolved.protection).toBe('Unprotected');
-    // expect(resolved.conveyanceHistory).toContain({ from: 2026, reason: 'Top 3 triggered' });
+    const resolved = resolveConveyanceForPick(pick, positionsMap);
+    
+    expect(resolved.year).toBe(2027);
+    expect(resolved.status).toBe('rolled');
+    expect(resolved.conveyanceResult).toBeDefined();
+    expect(resolved.conveyanceResult.outcome).toBe('rolled');
+    expect(resolved.conveyanceResult.position).toBe(2);
   });
 
-  it('resolveConveyance() converts 1st to 2nd when conversion triggers', () => {
-    // PLACEHOLDER: Phase 4 execution will implement conversion logic
+  it('resolveConveyanceForPick() conveys pick when protection does NOT trigger', async () => {
+    const { resolveConveyanceForPick } = await import('@/features/architect/utils/tradeMachine/utils/conveyanceResolution.js');
+    
+    const pick = conveyanceRollsForward.teams[0].picksOut[0];
+    const positionsMap = { LAL: 7 }; // Position 7 does NOT trigger Top 3 protection
+    
+    const resolved = resolveConveyanceForPick(pick, positionsMap);
+    
+    expect(resolved.year).toBe(2026); // Year unchanged
+    expect(resolved.status).toBe('conveyed');
+    expect(resolved.conveyanceResult).toBeDefined();
+    expect(resolved.conveyanceResult.outcome).toBe('conveyed');
+  });
+
+  it('resolveConveyanceForPick() converts 1st to 2nd when conversion target exists', async () => {
+    const { resolveConveyanceForPick } = await import('@/features/architect/utils/tradeMachine/utils/conveyanceResolution.js');
+    
     const pick = conveyanceConvertsTo2nd.teams[0].picksOut[0];
-    const lotteryResults = { NYK: 10 }; // Position 10 triggers Lottery protection
+    const positionsMap = { NYK: 10 }; // Position 10 triggers Lottery protection
     
-    // Expected: resolveConveyance(pick, lotteryResults) returns 2nd round pick
-    // const resolved = resolveConveyance(pick, lotteryResults);
-    // expect(resolved.round).toBe(2);
-    // expect(resolved.protection).toBe(null);
+    const resolved = resolveConveyanceForPick(pick, positionsMap);
+    
+    expect(resolved.round).toBe(2);
+    expect(resolved.status).toBe('converted');
+    expect(resolved.conveyanceResult).toBeDefined();
+    expect(resolved.conveyanceResult.outcome).toBe('converted');
   });
 
-  it('multi-year ladder tracks conveyance through all tiers', () => {
-    // PLACEHOLDER: Phase 4 execution will handle multi-year ladders
+  it('resolveConveyanceForPick() is NO-OP when positionsMap is empty', async () => {
+    const { resolveConveyanceForPick } = await import('@/features/architect/utils/tradeMachine/utils/conveyanceResolution.js');
+    
+    const pick = conveyanceRollsForward.teams[0].picksOut[0];
+    
+    const resolved = resolveConveyanceForPick(pick, {});
+    
+    // Should return pick unchanged
+    expect(resolved).toEqual(pick);
+  });
+
+  it('resolveConveyanceForPick() is NO-OP when positionsMap is null', async () => {
+    const { resolveConveyanceForPick } = await import('@/features/architect/utils/tradeMachine/utils/conveyanceResolution.js');
+    
+    const pick = conveyanceRollsForward.teams[0].picksOut[0];
+    
+    const resolved = resolveConveyanceForPick(pick, null);
+    
+    // Should return pick unchanged
+    expect(resolved).toEqual(pick);
+  });
+
+  it('resolveConveyanceForPick() is NO-OP when position key is missing', async () => {
+    const { resolveConveyanceForPick } = await import('@/features/architect/utils/tradeMachine/utils/conveyanceResolution.js');
+    
+    const pick = conveyanceRollsForward.teams[0].picksOut[0];
+    const positionsMap = { BOS: 5, MIA: 10 }; // LAL not present
+    
+    const resolved = resolveConveyanceForPick(pick, positionsMap);
+    
+    // Should return pick unchanged (no LAL position)
+    expect(resolved).toEqual(pick);
+  });
+
+  it('multi-year ladder tracks conveyance through protection tiers', async () => {
+    const { resolveConveyanceForPick } = await import('@/features/architect/utils/tradeMachine/utils/conveyanceResolution.js');
+    
     const pick = conveyanceMultiYearLadder.teams[0].picksOut[0];
     
     // Year 1: Top 3 protection triggers at position 2
-    // const after2026 = resolveConveyance(pick, { CHI: 2 });
-    // expect(after2026.year).toBe(2027);
-    // expect(after2026.protection).toBe('Top 5');
+    const after2026 = resolveConveyanceForPick(pick, { CHI: 2 });
+    expect(after2026.year).toBe(2027);
+    expect(after2026.status).toBe('rolled');
     
     // Year 2: Top 5 protection triggers at position 4
-    // const after2027 = resolveConveyance(after2026, { CHI: 4 });
-    // expect(after2027.year).toBe(2028);
-    // expect(after2027.protection).toBe('Unprotected');
-    
-    // Year 3: Unprotected - must convey
-    // const after2028 = resolveConveyance(after2027, { CHI: 15 });
-    // expect(after2028.status).toBe('conveyed');
+    const after2027 = resolveConveyanceForPick(after2026, { CHI: 4 });
+    expect(after2027.year).toBe(2028);
+    expect(after2027.status).toBe('rolled');
   });
 });
 
-describe.skip('Phase 4 EXECUTION - Structured Protection Model (NOT YET IMPLEMENTED)', () => {
+describe('Phase 4 EXECUTION - Structured Protection Model (Option A)', () => {
   /**
-   * These tests illustrate POSSIBLE implementation options being evaluated during PREFLIGHT.
-   * Phase 4 EXECUTION will choose between Option A (protectionMeta) or Option B (replace string).
-   * These are NOT definitive requirements - they are candidates for evaluation.
+   * Tests for protectionMeta (Option A - additive alongside string protection).
    */
 
-  it('Option A: protectionMeta alongside string protection', () => {
-    // Expected: Pick has both protection (string) and protectionMeta (structured)
+  it('isMeaningfulProtection accepts pick object with protectionMeta', () => {
     const pickWithMeta = {
       protection: 'Top 3',
       protectionMeta: {
         type: 'position',
         maxPosition: 3,
-        triggerIf: 'position <= 3',
       },
     };
     
-    // Legacy code uses protection string
-    // expect(isMeaningfulProtection(pickWithMeta.protection)).toBe(true);
-    
-    // New code uses protectionMeta for structured logic
-    // expect(pickWithMeta.protectionMeta.maxPosition).toBe(3);
+    // Should recognize as meaningful via protectionMeta
+    expect(isMeaningfulProtection(pickWithMeta)).toBe(true);
   });
 
-  it('Option B: Replace string with structured protection object', () => {
-    // Expected: Pick has structured protection object instead of string
-    const pickWithStructured = {
-      protection: {
-        type: 'position',
-        maxPosition: 3,
-        displayLabel: 'Top 3 Protected',
+  it('isMeaningfulProtection returns false for type: always (unprotected)', () => {
+    const unprotectedPick = {
+      protection: '',
+      protectionMeta: {
+        type: 'always',
       },
     };
     
-    // New isMeaningfulProtection handles object OR string
-    // expect(isMeaningfulProtection(pickWithStructured.protection)).toBe(true);
+    expect(isMeaningfulProtection(unprotectedPick)).toBe(false);
+  });
+
+  it('isMeaningfulProtection handles lottery type in protectionMeta', () => {
+    const lotteryPick = {
+      protectionMeta: {
+        type: 'lottery',
+      },
+    };
+    
+    expect(isMeaningfulProtection(lotteryPick)).toBe(true);
+  });
+
+  it('isMeaningfulProtection falls back to string when protectionMeta absent', () => {
+    // Should still work with legacy string-only protection
+    expect(isMeaningfulProtection('Top 5')).toBe(true);
+    expect(isMeaningfulProtection('Lottery')).toBe(true);
+    expect(isMeaningfulProtection('')).toBe(false);
   });
 });
 
-describe.skip('Phase 4 EXECUTION - Remove Swap (+/-) from Protection Options', () => {
+describe('Phase 4 EXECUTION - Remove Swap (+/-) from Protection Options', () => {
   /**
-   * These tests will PASS after Phase 4 execution removes swap options.
+   * Tests verify Swap (+/-) removal from protection dropdown.
    */
 
   it('getPickOptions does NOT include "Swap (+)"', () => {
     const options = getPickOptions();
     const swapPlusOption = options.find((opt) => opt.value === 'Swap (+)');
     
-    // After Phase 4 execution, this should be undefined
-    // expect(swapPlusOption).toBeUndefined();
+    expect(swapPlusOption).toBeUndefined();
   });
 
   it('getPickOptions does NOT include "Swap (-)"', () => {
     const options = getPickOptions();
     const swapMinusOption = options.find((opt) => opt.value === 'Swap (-)');
     
-    // After Phase 4 execution, this should be undefined
-    // expect(swapMinusOption).toBeUndefined();
+    expect(swapMinusOption).toBeUndefined();
+  });
+
+  it('legacy "Swap (+)" protection is treated as unprotected', () => {
+    // Defensive normalization
+    expect(isMeaningfulProtection('Swap (+)')).toBe(false);
+  });
+
+  it('legacy "Swap (-)" protection is treated as unprotected', () => {
+    // Defensive normalization
+    expect(isMeaningfulProtection('Swap (-)')).toBe(false);
   });
 });
 
@@ -302,7 +370,7 @@ describe('Phase 4 PREFLIGHT - Stepien Impact Documentation', () => {
 // SECTION 6: Protection Strings Inventory Validation
 // ==============================================================================
 
-describe('Phase 4 PREFLIGHT - Protection Strings Inventory', () => {
+describe('Phase 4 - Protection Strings Inventory', () => {
   it('all fixture protection values are documented', () => {
     // Gather all protection values from fixtures
     const allProtectionValues = [
@@ -312,20 +380,26 @@ describe('Phase 4 PREFLIGHT - Protection Strings Inventory', () => {
       ...protectionSwapPlusMinusStrings.teams[0].picksOut.map((p) => p.protection),
     ];
     
-    // Expected values
+    // Expected values in fixtures (note: fixtures still contain Swap for documentation)
     expect(allProtectionValues).toContain('Top 3');
     expect(allProtectionValues).toContain('Lottery');
+    // Fixtures document legacy Swap values (even though they're removed from dropdown)
     expect(allProtectionValues).toContain('Swap (+)');
     expect(allProtectionValues).toContain('Swap (-)');
   });
 
-  it('protection dropdown values match documented options', () => {
+  it('protection dropdown values match Phase 4 expected options (no Swap +/-)', () => {
     const options = getPickOptions();
-    const expectedValues = ['', 'Top 3', 'Top 5', 'Top 8', 'Top 10', 'Lottery', 'Top 20', 'Swap (+)', 'Swap (-)'];
+    // Phase 4: Only standard protection options (no Swap +/-)
+    const expectedValues = ['', 'Top 3', 'Top 5', 'Top 8', 'Top 10', 'Lottery', 'Top 20'];
     
     const actualValues = options.map((opt) => opt.value);
     expectedValues.forEach((expected) => {
       expect(actualValues).toContain(expected);
     });
+    
+    // Verify Swap options are NOT present
+    expect(actualValues).not.toContain('Swap (+)');
+    expect(actualValues).not.toContain('Swap (-)');
   });
 });

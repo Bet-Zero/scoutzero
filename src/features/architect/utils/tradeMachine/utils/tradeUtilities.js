@@ -71,8 +71,56 @@ export const formatDate = (dateStr) => {
 
 export const formatSalary = (amount) => `$${(amount || 0).toLocaleString()}`;
 
-export const isMeaningfulProtection = (protection) => {
-  if (!protection) return false;
+/**
+ * Phase 4: Determines if a protection value is "meaningful" for Stepien purposes.
+ * 
+ * Supports:
+ * - Legacy string protection: "Top 3", "Lottery", etc.
+ * - Pick object with protectionMeta (Option A)
+ * 
+ * Phase 4 Updates:
+ * - Normalizes legacy "Swap (+/-)" values to unprotected (defensive)
+ * - Supports protectionMeta.type for structured protection
+ * 
+ * @param {string|Object|null|undefined} protectionOrPick - Protection string or pick object
+ * @returns {boolean} - True if protection is meaningful
+ */
+export const isMeaningfulProtection = (protectionOrPick) => {
+  // Handle null/undefined
+  if (!protectionOrPick) return false;
+  
+  // If it's a pick object with protectionMeta, use structured logic
+  if (typeof protectionOrPick === 'object' && protectionOrPick.protectionMeta) {
+    const { type, maxPosition } = protectionOrPick.protectionMeta;
+    // Meaningful types: position, lottery, playoff
+    // Non-meaningful types: always (unprotected), never (unconditional)
+    if (type === 'always' || type === 'never') {
+      return false;
+    }
+    if (type === 'position' && typeof maxPosition === 'number') {
+      return maxPosition > 0;
+    }
+    if (type === 'lottery' || type === 'playoff') {
+      return true;
+    }
+    return false;
+  }
+  
+  // Legacy: string protection
+  // First normalize to handle legacy "Swap (+/-)" values
+  let protection = protectionOrPick;
+  if (typeof protectionOrPick === 'object' && protectionOrPick.protection) {
+    protection = protectionOrPick.protection;
+  }
+  
+  if (typeof protection !== 'string') return false;
+  
+  // Defensive: treat "Swap (+/-)" as unprotected
+  if (protection === 'Swap (+)' || protection === 'Swap (-)') {
+    return false;
+  }
+  
+  // Original regex logic for string protection
   return (
     /top\s*[1-9]\d*/i.test(protection) ||
     /lottery/i.test(protection) ||
@@ -81,6 +129,8 @@ export const isMeaningfulProtection = (protection) => {
 };
 
 // Pick options and configurations (from pickOptions.js)
+// Phase 4: Removed "Swap (+)" and "Swap (-)" entries
+// Swap is properly modeled with isSwap, swapType, swapWithTeamId (Phase 2)
 export const getPickOptions = () => [
   { label: 'Unprotected', value: '' },
   { label: 'Protected Top 3', value: 'Top 3' },
@@ -89,6 +139,24 @@ export const getPickOptions = () => [
   { label: 'Protected Top 10', value: 'Top 10' },
   { label: 'Lottery Protected', value: 'Lottery' },
   { label: 'Protected Top 20', value: 'Top 20' },
-  { label: 'Swap (+)', value: 'Swap (+)' },
-  { label: 'Swap (-)', value: 'Swap (-)' },
 ];
+
+/**
+ * Phase 4: Normalizes legacy protection values.
+ * Converts "Swap (+)" and "Swap (-)" protection strings to unprotected (null).
+ * These values were erroneously available in the UI dropdown but never meant
+ * anything for protection logic.
+ *
+ * @param {string|null|undefined} protection - Raw protection value
+ * @returns {string|null} - Normalized protection value
+ */
+export function normalizeProtectionValue(protection) {
+  if (!protection) return null;
+  
+  // Defensive normalization: treat legacy "Swap (+/-)" as unprotected
+  if (protection === 'Swap (+)' || protection === 'Swap (-)') {
+    return null;
+  }
+  
+  return protection;
+}
