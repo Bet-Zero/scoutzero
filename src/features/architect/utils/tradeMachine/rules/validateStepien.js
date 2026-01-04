@@ -32,8 +32,9 @@ export function validateStepien(team, tradeCtx = {}) {
   }
 
   // Check for consecutive unprotected first round picks
+  // Note: isSwap picks are excluded - swap validation is Phase 2 (Gap G1)
   const firstRoundPicks = picks.filter(
-    (pick) => pick.round === '1st' || pick.round === 1 || pick.round === 'first'
+    (pick) => (pick.round === '1st' || pick.round === 1 || pick.round === 'first') && !pick.isSwap
   );
 
   if (firstRoundPicks.length >= 2) {

@@ -5,7 +5,10 @@
  * OWNERSHIP: Trade Machine Team
  * HISTORY:
  *   - Jan 2026: Created for stale validation state fix
+ *   - Jan 2026: Updated to use canonical pick IDs (Phase 1 - SSOT)
  */
+
+import { generatePickId } from '@/features/architect/utils/tradeMachine/utils/pickIdUtils.js';
 
 /**
  * Computes a deterministic "draft key" that represents the current trade configuration.
@@ -35,9 +38,9 @@ export function computeTradeDraftKey({ yearKey, teams = [] }) {
         .join(',');
       
       // Sort picks for deterministic ordering
-      // Use year+round+team as unique identifier
+      // Use canonical pick ID for unique identification (Phase 1 SSOT)
       const pickKeys = (t.picksOut || [])
-        .map(p => `${p.year || '?'}-${p.round || '?'}-${p.originalTeam || p.team || '?'}`)
+        .map(p => generatePickId(p))
         .sort()
         .join(',');
       

@@ -14,20 +14,13 @@
 import { isPriorYearTPE } from '@/features/architect/utils/tradeMachine/utils/tradeUtilities.js';
 
 // =======================
-// PICK UTILITIES
+// PICK UTILITIES (SSOT-2)
 // =======================
 
-/**
- * Determines if a draft pick has meaningful protection
- * @param {Array} protection - Array of protection conditions
- * @returns {boolean} True if protection is meaningful
- */
-export function isMeaningfulProtection(protection) {
-  if (!protection) return false;
-  // Consider a pick meaningfully protected if it has conditions that could
-  // reasonably prevent conveyance in the intended year
-  return protection.some((p) => p.comparison === '<' && p.value >= 8);
-}
+// NOTE: isMeaningfulProtection() removed as part of Phase 1 SSOT cleanup.
+// The array-based version here was DEAD CODE (never called - Evidence E3).
+// Canonical string-based implementation is in tradeUtilities.js.
+// Import from there: import { isMeaningfulProtection } from '../utils/tradeUtilities.js';
 
 // =======================
 // SECOND APRON RULES

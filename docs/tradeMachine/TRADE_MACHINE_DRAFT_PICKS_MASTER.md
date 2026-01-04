@@ -1187,3 +1187,92 @@ describe('pick trade lifecycle', () => {
 - *Round normalization requirement added to Phase 1*
 - *SSOT dead code labels changed to "LIKELY DEAD CODE (needs repo-wide confirm)"*
 *This is analysis only - no code changes made.*
+
+---
+
+## Phase 1 Completion Log (January 2026)
+
+### What Changed
+
+**O1) Canonical Pick ID + Round Normalization (Phase 1.1 + 1.2) ✅**
+- Created `src/features/architect/utils/tradeMachine/utils/pickIdUtils.js` with:
+  - `normalizeRound(input)` - Accepts 1, 2, "1st", "2nd", "first", "second" (case-insensitive) → returns canonical `1` or `2`
+  - `generatePickId(pick)` - Returns `{originalTeam}_{year}_{round}` format (e.g., "PHI_2026_1")
+  - `ensurePickId(pick)` - If valid ID exists, preserves it; otherwise generates ID and adds `pickIdWarning` for missing fields
+  - `areSamePickById(a, b)` - Compares two picks by their canonical IDs
+
+**O2) Wire ID adapter into ALL relevant paths (Phase 1.2) ✅**
+- Updated `useTradeMachine.js`:
+  - Team initialization now maps picks through `ensurePickId()` on load
+  - `selectTeam()` now ensures all picks have IDs
+  - `togglePick()` now ensures picks have IDs before adding to `picksOut`
+- Updated `areSamePick()` in `tradeHelpers.js` to delegate to `areSamePickById()` (ID-based comparison)
+- Updated `computeTradeDraftKey.js` to use `generatePickId()` for pick tokens
+
+**O3) SSOT-2: De-duplicate `isMeaningfulProtection()` ✅**
+- Removed duplicate array-based implementation from `basicRules.js` (confirmed DEAD CODE - no imports)
+- Updated `tradeHelpers.js` to re-export canonical `isMeaningfulProtection` from `tradeUtilities.js`
+- Canonical implementation remains in `tradeUtilities.js` (string/regex based)
+
+**O4) SSOT-1: De-duplicate Stepien implementations ✅**
+- Canonical implementation: `rules/validateStepien.js` (unchanged, called by tradeValidator)
+- Converted `draftRules.js:hasStepienViolation()` to delegate to canonical `validateStepien()`
+- Converted `stepienUtils.js:hasStepienViolation()` to delegate to canonical `validateStepien()`
+- Updated `validateStepien.js` to skip `isSwap` picks (backward compatibility - swap validation is Phase 2)
+
+**O5) Tests ✅**
+- Created `tests/tradeMachine/pickIdUtils.test.js` with 34 tests covering:
+  - `normalizeRound()` - all input formats, edge cases
+  - `generatePickId()` - canonical ID generation, missing fields
+  - `ensurePickId()` - ID preservation, fallback generation, warnings
+  - `areSamePickById()` - ID-based comparison
+  - Integration test: same year/round, different originalTeam
+
+### Files Changed/Added
+
+| File | Action | Description |
+|------|--------|-------------|
+| `src/features/architect/utils/tradeMachine/utils/pickIdUtils.js` | **Created** | Canonical pick ID utilities |
+| `tests/tradeMachine/pickIdUtils.test.js` | **Created** | Unit tests for pickIdUtils |
+| `src/features/architect/hooks/useTradeMachine.js` | Modified | Wire ensurePickId into load + toggle |
+| `src/features/architect/utils/tradeHelpers.js` | Modified | areSamePick → ID-based; re-export isMeaningfulProtection |
+| `src/features/architect/tradeMachine/utils/computeTradeDraftKey.js` | Modified | Use generatePickId for pick tokens |
+| `src/features/architect/utils/tradeMachine/rules/basicRules.js` | Modified | Removed duplicate isMeaningfulProtection |
+| `src/features/architect/utils/tradeMachine/rules/draftRules.js` | Modified | Delegate hasStepienViolation to canonical |
+| `src/features/architect/utils/stepienUtils.js` | Modified | Delegate hasStepienViolation to canonical |
+| `src/features/architect/utils/tradeMachine/rules/validateStepien.js` | Modified | Skip isSwap picks for backward compat |
+| `src/features/architect/utils/tradeMachine/index.js` | Modified | Export pickIdUtils functions |
+
+### Validation Steps Run
+
+1. **Unit Tests**: `npm run test -- tests/tradeMachine/pickIdUtils.test.js --run` ✅ 34/34 passed
+2. **Stepien Tests**: `npm run test -- tests/hasStepienViolation.test.js --run` ✅ 4/4 passed
+3. **Trade Helpers Tests**: `npm run test -- tests/tradeHelpers.test.js --run` ✅ 5/5 passed
+4. **Cap Utils Tests**: `npm run test -- tests/capUtils.test.js --run` ✅ 12/12 passed
+5. **Build**: `npm run build` ✅ Completed successfully
+
+### Acceptance Criteria Status
+
+| # | Criterion | Status |
+|---|-----------|--------|
+| 1 | Two picks with same year/round but different originalTeam never collide | ✅ `areSamePickById` compares by full canonical ID |
+| 2 | `areSamePick()` is ID-based | ✅ Delegates to `areSamePickById()` |
+| 3 | `computeTradeDraftKey()` is ID-based | ✅ Uses `generatePickId()` for pick tokens |
+| 4 | `togglePick()` always inserts picks into `picksOut` with `id` | ✅ Calls `ensurePickId()` before insert |
+| 5 | Only one canonical `isMeaningfulProtection()` exists | ✅ `tradeUtilities.js`; others removed/re-export |
+| 6 | Only one canonical Stepien logic implementation exists | ✅ `validateStepien.js`; others delegate |
+| 7 | Tests added and passing | ✅ 34 new tests, all pass |
+| 8 | App builds without runtime errors | ✅ Build successful |
+
+### Known Risks / Edge Cases
+
+1. **Missing `originalTeam` in base data**: Picks without `originalTeam` produce IDs like `UNK_2026_1`. These will:
+   - Work correctly (picks can still be selected/removed)
+   - Show `pickIdWarning` in console during development
+   - Require data migration/audit to populate `originalTeam` in Firestore for full stability
+
+2. **Swap validation still bypassed**: `isSwap` picks are excluded from Stepien checks (maintained for backward compatibility). This is a known Phase 2 item (Gap G1).
+
+3. **Pre-existing test failure**: `tradeValidator.test.js` has 1 failing test about hard cap violation message wording - this is unrelated to Phase 1 changes (confirmed by running tests on base branch).
+
+---

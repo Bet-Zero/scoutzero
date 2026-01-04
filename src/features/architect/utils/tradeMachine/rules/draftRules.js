@@ -1,9 +1,12 @@
 /**
  * Draft pick and related rule utilities
  * Consolidated from: stepienRule.js, validateDraftPicks.js
+ * 
+ * Phase 1 SSOT-1: hasStepienViolation now delegates to canonical validateStepien
  */
 
 import { isMeaningfulProtection } from '../utils/tradeUtilities.js';
+import { validateStepien } from './validateStepien.js';
 
 /**
  * Checks if a set of outgoing picks violates the Stepien Rule
@@ -11,23 +14,15 @@ import { isMeaningfulProtection } from '../utils/tradeUtilities.js';
  *
  * @param {Array} picks - Array of draft picks being traded
  * @returns {boolean} True if a violation exists
+ * 
+ * @note Phase 1 SSOT-1: This now delegates to canonical validateStepien()
  */
 export function hasStepienViolation(picks = []) {
-  const years = picks
-    .filter(
-      (p) =>
-        (p.round === 1 || p.round === '1st') &&
-        !p.isSwap &&
-        !isMeaningfulProtection(p.protection) &&
-        !p.via
-    )
-    .map((p) => parseInt(p.year, 10))
-    .sort((a, b) => a - b);
-
-  for (let i = 1; i < years.length; i++) {
-    if (years[i] === years[i - 1] + 1) return true;
-  }
-  return false;
+  if (!picks || picks.length === 0) return false;
+  
+  // Delegate to canonical validateStepien with minimal team wrapper
+  const result = validateStepien({ outgoingPicks: picks }, {});
+  return !result.passed;
 }
 
 /**
