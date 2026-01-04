@@ -8,7 +8,7 @@
  *   - Jan 2026: Updated to use canonical pick IDs (Phase 1 - SSOT)
  */
 
-import { generatePickId } from '@/features/architect/utils/tradeMachine/utils/pickIdUtils.js';
+import { ensurePickId } from '@/features/architect/utils/tradeMachine/utils/pickIdUtils.js';
 
 /**
  * Computes a deterministic "draft key" that represents the current trade configuration.
@@ -38,9 +38,10 @@ export function computeTradeDraftKey({ yearKey, teams = [] }) {
         .join(',');
       
       // Sort picks for deterministic ordering
-      // Use canonical pick ID for unique identification (Phase 1 SSOT)
+      // Use ensurePickId to get stable pick.id (Phase 1 T4 fix)
+      // This preserves existing valid IDs and only generates fallbacks for missing fields
       const pickKeys = (t.picksOut || [])
-        .map(p => generatePickId(p))
+        .map(p => ensurePickId(p).id)
         .sort()
         .join(',');
       

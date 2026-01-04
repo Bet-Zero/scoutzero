@@ -18,12 +18,14 @@ describe('hasStepienViolation', () => {
     expect(hasStepienViolation(picks)).toBe(false);
   });
 
-  it('ignores swap years', () => {
+  it('treats swap years the same as outright picks for Stepien', () => {
+    // Swap picks are NOT excluded from Stepien checks (Phase 1 fix - T3)
+    // Proper swap modeling is Phase 2, but swaps should not bypass Stepien validation
     const picks = [
       { year: 2026, round: '1st', isSwap: true },
       { year: 2027, round: '1st', isSwap: true },
     ];
-    expect(hasStepienViolation(picks)).toBe(false);
+    expect(hasStepienViolation(picks)).toBe(true);
   });
 
   it('handles mixed protected and unprotected picks', () => {

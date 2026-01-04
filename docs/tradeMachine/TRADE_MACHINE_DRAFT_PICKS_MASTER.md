@@ -1,7 +1,7 @@
 # Trade Machine Draft Picks Master Document
 
-> **Version**: 2.0.1 (January 2026)  
-> **Status**: PREFLIGHT AUDIT - Analysis Only  
+> **Version**: 2.0.2 (January 2026)  
+> **Status**: PHASE 1 COMPLETE - Tightening Fixes Applied  
 > **Purpose**: Comprehensive audit of draft pick implementation in Trade Machine  
 > **Author**: Automated Code Audit  
 
@@ -1274,5 +1274,78 @@ describe('pick trade lifecycle', () => {
 2. **Swap validation still bypassed**: `isSwap` picks are excluded from Stepien checks (maintained for backward compatibility). This is a known Phase 2 item (Gap G1).
 
 3. **Pre-existing test failure**: `tradeValidator.test.js` has 1 failing test about hard cap violation message wording - this is unrelated to Phase 1 changes (confirmed by running tests on base branch).
+
+---
+
+### v2.0.2 - Phase 1 Tightening Fixes (January 2026)
+
+**Summary**: Correctness fixes and repo convention alignment per Phase 1 review notes.
+
+#### T1) Test Location Convention Fix ✅
+- **Problem**: Test file was in root `tests/tradeMachine/` instead of repo convention `src/tests/`
+- **Solution**: Moved `tests/tradeMachine/pickIdUtils.test.js` → `src/tests/tradeMachine/pickIdUtils.test.js`
+- **Files Changed**:
+  - `src/tests/tradeMachine/pickIdUtils.test.js` (moved from `tests/tradeMachine/`)
+- **Verification**: `npm test -- src/tests/tradeMachine/pickIdUtils.test.js --run` ✅ 34/34 passed
+
+#### T2) Stepien Delegate Wrappers Already Correct ✅
+- **Assessment**: Both `hasStepienViolation()` wrappers in `draftRules.js` and `stepienUtils.js` were already returning boolean correctly via `return !result.passed`
+- **No Changes Needed**: Wrappers preserve original signature and return boolean as expected
+
+#### T3) Removed isSwap Skip Behavior in validateStepien ✅
+- **Problem**: `validateStepien.js` line 37 had `&& !pick.isSwap` that skipped swap picks from Stepien checks
+- **Solution**: Removed the `!pick.isSwap` exclusion so swaps are treated the same as outright picks
+- **Rationale**: Phase 1 should not introduce permanent swap bypass behavior; proper swap modeling is Phase 2
+- **Files Changed**:
+  - `src/features/architect/utils/tradeMachine/rules/validateStepien.js` - Removed `&& !pick.isSwap` filter
+  - `tests/hasStepienViolation.test.js` - Updated test expectation from "ignores swap years" → "treats swap years the same as outright picks for Stepien"
+- **Verification**: 
+  - `npm test -- tests/hasStepienViolation.test.js --run` ✅ 4/4 passed
+  - `npm test -- tests/validators/stepien.test.js --run` ✅ 7/7 passed
+
+#### T4) Stabilized computeTradeDraftKey with ensurePickId ✅
+- **Problem**: `computeTradeDraftKey` used `generatePickId(p)` directly, which could produce unstable tokens for picks with missing fields
+- **Solution**: Changed to use `ensurePickId(p).id` which:
+  - Preserves existing valid IDs
+  - Generates stable fallback IDs with warnings for missing fields
+- **Files Changed**:
+  - `src/features/architect/tradeMachine/utils/computeTradeDraftKey.js` - Import `ensurePickId` instead of `generatePickId`; use `ensurePickId(p).id` for pick tokens
+- **Verification**: Build successful, no test failures
+
+#### Commands Run
+```bash
+# T1 - Test location
+npm test -- src/tests/tradeMachine/pickIdUtils.test.js --run  # 34/34 ✅
+
+# T3 - Stepien tests
+npm test -- tests/hasStepienViolation.test.js --run           # 4/4 ✅
+npm test -- tests/validators/stepien.test.js --run            # 7/7 ✅
+
+# Related tests
+npm test -- tests/tradeHelpers.test.js --run                   # 5/5 ✅
+npm test -- tests/capUtils.test.js --run                       # 12/12 ✅
+
+# Build
+npm run build                                                  # ✅ Success
+```
+
+#### Key Behavioral Change
+**`validateStepien` no longer explicitly skips `isSwap` picks.**
+
+Before (v2.0.1):
+```javascript
+const firstRoundPicks = picks.filter(
+  (pick) => (pick.round === '1st' || pick.round === 1 || pick.round === 'first') && !pick.isSwap
+);
+```
+
+After (v2.0.2):
+```javascript
+const firstRoundPicks = picks.filter(
+  (pick) => pick.round === '1st' || pick.round === 1 || pick.round === 'first'
+);
+```
+
+Swap picks are now included in Stepien consecutive-year checks. Proper swap modeling (swap resolution, best-of logic) remains Phase 2 work.
 
 ---
