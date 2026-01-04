@@ -1,10 +1,38 @@
 import { isMeaningfulProtection } from '@/features/architect/utils/tradeMachine/utils/tradeUtilities.js';
 
 /**
+ * Phase 2 Helper: Determines if a pick reserves a year for Stepien purposes.
+ * 
+ * Year Reservation Rules (Option B: "Reserve Most"):
+ * - Outright picks ALWAYS reserve the year
+ * - Swap picks (`isSwap === true`) reserve the year UNLESS `swapType === 'worst_of'`
+ * - Missing `swapType` is treated as `'best_of'` (backward compatibility)
+ * 
+ * @param {Object} pick - Pick object with isSwap and swapType fields
+ * @returns {boolean} - True if this pick reserves the year for Stepien
+ */
+function reservesYearForStepien(pick) {
+  // If not a swap, it's an outright pick - always reserves the year
+  if (!pick.isSwap) {
+    return true;
+  }
+  
+  // Swap pick: reserves year unless swapType is 'worst_of'
+  // Treat missing swapType as 'best_of' (backward compatibility)
+  const swapType = pick.swapType || 'best_of';
+  return swapType !== 'worst_of';
+}
+
+/**
  * Validates Stepien Rule compliance:
  * - No consecutive future unprotected first round picks
  * - Cannot trade picks more than 7 years out
  * - Second apron teams cannot trade their own 7-year-out first
+ * 
+ * Phase 2 Updates:
+ * - Swap picks (isSwap === true) reserve years for Stepien (Option B)
+ * - Exception: swapType === 'worst_of' does NOT reserve year
+ * - Second apron frozen restriction applies to swap assets too
  */
 export function validateStepien(team, tradeCtx = {}) {
   // TEMPORARILY DISABLE INTERNAL CACHING - cache mismatch issue
@@ -32,15 +60,19 @@ export function validateStepien(team, tradeCtx = {}) {
   }
 
   // Check for consecutive unprotected first round picks
-  // Note: Swap picks are included in Stepien checks - proper swap modeling is Phase 2 (Gap G1)
-  // but swaps should NOT bypass Stepien validation in the meantime
+  // Phase 2: Filter to picks that reserve years for Stepien purposes
+  // - Includes outright picks
+  // - Includes swap picks (isSwap === true) unless swapType === 'worst_of'
   const firstRoundPicks = picks.filter(
     (pick) => pick.round === '1st' || pick.round === 1 || pick.round === 'first'
   );
 
-  if (firstRoundPicks.length >= 2) {
+  // Build Stepien-relevant calendar (only picks that reserve years)
+  const stepienRelevantPicks = firstRoundPicks.filter(pick => reservesYearForStepien(pick));
+
+  if (stepienRelevantPicks.length >= 2) {
     // Sort picks by year
-    const sortedPicks = firstRoundPicks.sort((a, b) => a.year - b.year);
+    const sortedPicks = stepienRelevantPicks.sort((a, b) => a.year - b.year);
 
     // Check for consecutive years
     for (let i = 0; i < sortedPicks.length - 1; i++) {
@@ -78,6 +110,8 @@ export function validateStepien(team, tradeCtx = {}) {
   if (isAtOrAboveSecondApron) {
     const teamId = team.teamId || team.team?.id;
 
+    // Phase 2: Frozen pick restriction applies to BOTH outright picks AND swap assets
+    // This applies regardless of swapType (even worst_of swaps are blocked)
     const hasOwnFrozenPick = picks.some((pick) => {
       const isFirstRound = pick.round === '1st' || pick.round === 1;
       const yearsOut = pick.year - currentYear;

@@ -1,10 +1,10 @@
 /**
- * Trade Machine Draft Picks - Phase 2 Preflight Test Skeleton
+ * Trade Machine Draft Picks - Phase 2 Tests
  *
  * Tests for swap handling, pick shape validation, and Stepien rule compliance.
  * These tests use the fixtures from src/tests/fixtures/tradeMachinePicks/
  *
- * Phase 2 PREFLIGHT - January 2026
+ * Phase 2 EXECUTION - January 2026
  *
  * @file src/tests/tradeMachine/draftPicksPreflight.test.js
  */
@@ -22,10 +22,12 @@ import multiTeamTrade from '../fixtures/tradeMachinePicks/multiTeamTrade.json';
 import secondApronFrozenSwap from '../fixtures/tradeMachinePicks/secondApronFrozenSwap.json';
 
 /**
- * Phase 2 Gap G1: Swap Rights Validation
+ * Phase 2: Swap Rights Validation (Option B: "Reserve Most")
  *
- * Current behavior: isSwap picks are included in Stepien checks but swap logic is not fully modeled.
- * Phase 2 target: Swaps should reserve years for Stepien purposes.
+ * Rules:
+ * - Outright picks always reserve year for Stepien
+ * - Swap picks (isSwap === true) reserve year UNLESS swapType === 'worst_of'
+ * - Missing swapType treated as 'best_of'
  */
 describe('Phase 2 Swap Validation', () => {
   describe('swapOnly fixture', () => {
@@ -33,22 +35,100 @@ describe('Phase 2 Swap Validation', () => {
       const team = swapOnly.teams[0];
       const result = validateStepien({ outgoingPicks: team.picksOut }, {});
 
-      // Current expected behavior: passes because single pick
+      // Passes because single pick - no consecutive year issue
       expect(result.passed).toBe(true);
     });
   });
 
-  describe.skip('swapPlusAdjacentPick fixture (Phase 2 Gap G1)', () => {
-    // NOTE: This test is SKIPPED because it requires Phase 2 implementation
-    // Current behavior: Both picks are checked, but swap year reservation logic is incomplete
-    it('swap + adjacent unprotected 1st should FAIL Stepien', () => {
+  describe('swapPlusAdjacentPick fixture', () => {
+    it('swap (best_of) + adjacent unprotected 1st should FAIL Stepien', () => {
       const team = swapPlusAdjacentPick.teams[0];
       const result = validateStepien({ outgoingPicks: team.picksOut }, {});
 
-      // Phase 2 expectation: should fail due to consecutive year obligation
-      // (2026 swap reserves year, 2027 unprotected = consecutive)
+      // Phase 2: should fail due to consecutive year obligation
+      // 2026 swap (best_of by default) reserves year, 2027 unprotected = consecutive
       expect(result.passed).toBe(false);
-      expect(result.violations).toContain(expect.stringMatching(/consecutive/i));
+      expect(result.violations).toContainEqual(expect.stringMatching(/consecutive/i));
+    });
+
+    it('swap (worst_of) + adjacent unprotected 1st should PASS Stepien', () => {
+      // Create a modified fixture with worst_of swap type
+      const picks = [
+        {
+          id: 'PHI_2026_1',
+          year: 2026,
+          round: 1,
+          originalTeam: 'PHI',
+          protection: null,
+          isSwap: true,
+          swapType: 'worst_of', // Does NOT reserve year
+          swapWithTeamId: 'OKC',
+        },
+        {
+          id: 'PHI_2027_1',
+          year: 2027,
+          round: 1,
+          originalTeam: 'PHI',
+          protection: null,
+          isSwap: false,
+        },
+      ];
+      const result = validateStepien({ outgoingPicks: picks }, {});
+
+      // Phase 2: should PASS because worst_of swap doesn't reserve year
+      // Only 2027 is Stepien-relevant (single year, no consecutive issue)
+      expect(result.passed).toBe(true);
+    });
+  });
+
+  describe('swapType backwards compatibility', () => {
+    it('isSwap:true with missing swapType behaves as best_of', () => {
+      // Pick with isSwap but NO swapType (legacy format)
+      const picks = [
+        {
+          id: 'PHI_2026_1',
+          year: 2026,
+          round: 1,
+          originalTeam: 'PHI',
+          protection: null,
+          isSwap: true, // No swapType - should default to best_of
+          swapWithTeamId: 'OKC',
+        },
+        {
+          id: 'PHI_2027_1',
+          year: 2027,
+          round: 1,
+          originalTeam: 'PHI',
+          protection: null,
+          isSwap: false,
+        },
+      ];
+      const result = validateStepien({ outgoingPicks: picks }, {});
+
+      // Should fail - missing swapType treated as best_of, which reserves year
+      expect(result.passed).toBe(false);
+      expect(result.violations).toContainEqual(expect.stringMatching(/consecutive/i));
+    });
+  });
+
+  describe('swap-only does NOT automatically fail Stepien', () => {
+    it('single swap alone passes Stepien', () => {
+      const picks = [
+        {
+          id: 'PHI_2026_1',
+          year: 2026,
+          round: 1,
+          originalTeam: 'PHI',
+          protection: null,
+          isSwap: true,
+          swapType: 'best_of',
+          swapWithTeamId: 'OKC',
+        },
+      ];
+      const result = validateStepien({ outgoingPicks: picks }, {});
+
+      // Single pick (swap or not) should pass - no consecutive year issue
+      expect(result.passed).toBe(true);
     });
   });
 });
@@ -98,9 +178,11 @@ describe('Multi-Team Trade Picks', () => {
 
 /**
  * Second Apron Frozen Pick Restrictions
+ *
+ * Phase 2: Second apron teams cannot trade their own 7-year-out first-round pick assets,
+ * whether outright OR swap rights.
  */
-describe.skip('Second Apron Frozen Pick Restriction (Phase 2)', () => {
-  // NOTE: This test is SKIPPED because it requires Phase 2 swap handling
+describe('Second Apron Frozen Pick Restriction', () => {
   it('second apron team cannot trade own 7-year-out swap', () => {
     const team = secondApronFrozenSwap.teams[0];
     const result = validateStepien(
@@ -115,11 +197,70 @@ describe.skip('Second Apron Frozen Pick Restriction (Phase 2)', () => {
       }
     );
 
-    // Phase 2 expectation: should fail due to second apron frozen pick restriction
+    // Phase 2: should fail due to second apron frozen pick restriction
+    // Swaps are subject to the same restriction as outright picks
     expect(result.passed).toBe(false);
-    expect(result.violations).toContain(
+    expect(result.violations).toContainEqual(
       expect.stringMatching(/second apron.*cannot trade/i)
     );
+  });
+
+  it('second apron team cannot trade own 7-year-out outright pick', () => {
+    // Outright pick version of the same test
+    const picks = [
+      {
+        id: 'MIA_2032_1',
+        year: 2032,
+        round: 1,
+        originalTeam: 'MIA',
+        protection: null,
+        isSwap: false, // Outright pick
+      },
+    ];
+    const result = validateStepien(
+      {
+        teamId: 'MIA',
+        outgoingPicks: picks,
+        postTradeStatus: { isAtOrAboveSecondApron: true },
+      },
+      {
+        year: 2025,
+        capSettings: { secondApron: 190000000 },
+      }
+    );
+
+    expect(result.passed).toBe(false);
+    expect(result.violations).toContainEqual(
+      expect.stringMatching(/second apron.*cannot trade/i)
+    );
+  });
+
+  it('second apron team CAN trade other team 7-year-out pick', () => {
+    // Second apron team trading acquired pick from another team
+    const picks = [
+      {
+        id: 'OKC_2032_1',
+        year: 2032,
+        round: 1,
+        originalTeam: 'OKC', // Not MIA's own pick
+        protection: null,
+        isSwap: false,
+      },
+    ];
+    const result = validateStepien(
+      {
+        teamId: 'MIA',
+        outgoingPicks: picks,
+        postTradeStatus: { isAtOrAboveSecondApron: true },
+      },
+      {
+        year: 2025,
+        capSettings: { secondApron: 190000000 },
+      }
+    );
+
+    // Should pass - it's not MIA's own pick
+    expect(result.passed).toBe(true);
   });
 });
 
