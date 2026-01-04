@@ -1,0 +1,91 @@
+{
+  "description": "Multi-year protection ladder: Top 3 → Top 5 → Unprotected",
+  "scenario": "Pick has declining protection across multiple years before becoming unprotected",
+  "phase4Behavior": "NOT YET IMPLEMENTED - multi-tier protection logic does not exist",
+  "teams": [
+    {
+      "teamId": "CHI",
+      "teamName": "Chicago Bulls",
+      "picksOut": [
+        {
+          "id": "CHI_2026_1",
+          "year": 2026,
+          "round": 1,
+          "originalTeam": "CHI",
+          "protection": "Top 3",
+          "isSwap": false,
+          "protectionLadder": [
+            {
+              "year": 2026,
+              "condition": "Top 3",
+              "ifTriggered": "roll",
+              "rollToYear": 2027
+            },
+            {
+              "year": 2027,
+              "condition": "Top 5",
+              "ifTriggered": "roll",
+              "rollToYear": 2028
+            },
+            {
+              "year": 2028,
+              "condition": "Unprotected",
+              "ifTriggered": "cancel",
+              "notes": "Must convey - no protection"
+            }
+          ],
+          "conveyance": {
+            "originalYear": 2026,
+            "currentYear": 2026,
+            "finalYear": 2028,
+            "conditions": {
+              "protection": "Top 3 → Top 5 → Unprotected",
+              "ifConveys": "Sends pick for draft year",
+              "ifRolls": "Moves to next year's protection tier"
+            },
+            "stepienImpact": {
+              "affectedYears": [2026, 2027, 2028],
+              "conveyanceDeadline": 2028,
+              "notes": "Pick MUST convey by 2028 - blocks Stepien for all 3 years"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "teamId": "MIA",
+      "teamName": "Miami Heat",
+      "picksOut": []
+    }
+  ],
+  "expectedBehavior": {
+    "scenario2026Top2": {
+      "year": 2026,
+      "pickPosition": 2,
+      "protectionTriggers": true,
+      "result": "Pick rolls to 2027 with Top 5 protection"
+    },
+    "scenario2027Top4": {
+      "year": 2027,
+      "pickPosition": 4,
+      "protectionTriggers": true,
+      "result": "Pick rolls to 2028 as unprotected"
+    },
+    "scenario2028AnyPosition": {
+      "year": 2028,
+      "pickPosition": "any",
+      "protectionTriggers": false,
+      "result": "Pick conveys regardless of position"
+    }
+  },
+  "currentImplementation": {
+    "multiTierSupported": false,
+    "protectionStoredAs": "string",
+    "notes": "Current implementation stores protection as single string ('Top 3'). Multi-year ladder cannot be represented. Each tier would need separate UI and storage."
+  },
+  "targetModelRecommendation": {
+    "option": "protectionTiers array",
+    "shape": "{ year: number, condition: string, ifTriggered: 'roll'|'convert'|'cancel', rollToYear?: number }[]",
+    "benefits": "Explicit machine-readable ladder, Stepien impact calculation, conveyance simulation"
+  }
+}
