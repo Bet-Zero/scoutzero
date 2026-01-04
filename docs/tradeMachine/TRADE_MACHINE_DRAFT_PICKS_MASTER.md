@@ -2142,9 +2142,15 @@ interface DraftPick {
 
 - Added `ProtectionMetaZ` to `src/schemas/architect.ts` with types: `position`, `lottery`, `playoff`, `always`, `never`
 - Added `protectionMeta` field to `DraftPickZ` schema
+- **Type definitions**:
+  - `always` = "always conveys" (no protection; pick transfers regardless of position)
+  - `never` = "never conveys" (unconditional obligation; pick is owed but may have other resolution rules)
+  - `position` = position-based protection (e.g., Top 3, Top 5)
+  - `lottery` = lottery-range protection (positions 1-14)
+  - `playoff` = playoff-team protection (non-lottery; positions 15-30)
 - Enhanced `isMeaningfulProtection()` to support protectionMeta:
   - Returns `true` for types: `position` (with maxPosition > 0), `lottery`, `playoff`
-  - Returns `false` for types: `always`, `never`
+  - Returns `false` for types: `always`, `never` (neither provides "meaningful protection" for Stepien; `always` = unprotected, `never` = unconditional)
   - Falls back to string regex for legacy picks
 
 #### T3) Implemented Conveyance Resolution Utilities ✅
@@ -2156,6 +2162,7 @@ interface DraftPick {
   - `resolveTeamConveyanceForYear(draftPicks, draftYear, positionsMap, opts)` - Batch resolution
   - `getProtectionLabel(protectionMeta)` - Generates display label from structured protection
   - `normalizeProtection(protectionOrPick)` - Returns canonical protection descriptor
+- **Multi-year ladder support implemented**: Runtime reads `protectionLadder[]` array on pick objects to determine per-year protection. When a pick rolls, `conveyance.currentYear` and `conveyance.conditions.protection` are updated so resolution can be chained across years. (Previously "proposed-only" in Phase 4 PREFLIGHT; now runtime-supported.)
 
 #### T4) Added Season Manager Conveyance Hook ✅
 
@@ -2176,9 +2183,14 @@ interface DraftPick {
 - Tests cover:
   - Conveyance resolution (roll, convey, convert outcomes)
   - NO-OP guarantees (empty/missing positionsMap)
-  - Multi-year ladder resolution
+  - Multi-year ladder resolution (runtime chaining via `protectionLadder[]`; test verifies 2026 → 2027 → 2028 roll chain)
   - protectionMeta support
   - "Swap (+/-)" removal verification
+
+### Doc Clarifications
+
+- **`always`/`never` semantics**: `always` = "always conveys" (unprotected); `never` = "never conveys" (unconditional obligation). Both return `false` from `isMeaningfulProtection()` because neither provides "meaningful protection" for Stepien purposes.
+- **Multi-year ladder status**: Implemented in Phase 4 runtime. The conveyance resolver reads `protectionLadder[]` from pick objects and chains resolution across years. This was "proposed-only" in Phase 4 PREFLIGHT but is now runtime-supported (no UI for editing ladders yet—see Phase 5+).
 
 ### Files Changed/Added
 
