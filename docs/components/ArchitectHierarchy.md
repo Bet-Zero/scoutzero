@@ -260,6 +260,7 @@ utils/
       salaryMatchingRules.js
       salaryUtils.js
       seasonUtils.js
+      swapResolution.js
       tradeUtilities.js
       validateInput.js
     validators/
@@ -271,5 +272,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-01-04T00:00:06.220Z*
+*Generated on: 2026-01-04T08:31:13.649Z*
 *Auto-updated by: npm run docs*
