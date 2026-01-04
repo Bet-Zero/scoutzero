@@ -145,8 +145,8 @@ export function resolveConveyanceForPick(pick, positionsMap, opts = {}) {
   
   // Check protectionLadder for current year's protection
   if (Array.isArray(pick.protectionLadder)) {
-    const currentTier = pick.protectionLadder.find(tier => tier.year === currentYear);
-    if (currentTier) {
+    const currentTier = pick.protectionLadder.find(tier => tier?.year === currentYear);
+    if (currentTier?.condition) {
       protection = currentTier.condition;
     }
   }
@@ -192,9 +192,11 @@ export function resolveConveyanceForPick(pick, positionsMap, opts = {}) {
  */
 function resolveProtectionTrigger(pick, position, opts) {
   const { nowIso, method } = opts;
-  const conditions = pick.conveyance.conditions;
-  const finalYear = pick.conveyance.finalYear;
-  const currentYear = pick.conveyance.currentYear || pick.year;
+  
+  // Defensive null checks for pick.conveyance (caller should have verified, but be safe)
+  const conditions = pick.conveyance?.conditions || {};
+  const finalYear = pick.conveyance?.finalYear;
+  const currentYear = pick.conveyance?.currentYear || pick.year;
 
   // Check for conversion target FIRST (e.g., convert 1st to 2nd)
   // Conversion can happen even at final year - it's a different outcome than rolling
@@ -237,8 +239,8 @@ function resolveProtectionTrigger(pick, position, opts) {
   // Determine next protection level from protectionLadder if available
   let nextProtection = null;
   if (Array.isArray(pick.protectionLadder)) {
-    const nextTier = pick.protectionLadder.find(tier => tier.year === nextYear);
-    if (nextTier) {
+    const nextTier = pick.protectionLadder.find(tier => tier?.year === nextYear);
+    if (nextTier?.condition) {
       nextProtection = nextTier.condition;
     }
   }
@@ -246,7 +248,9 @@ function resolveProtectionTrigger(pick, position, opts) {
   // Fall back to ifRolls description or unprotected
   if (!nextProtection && conditions.ifRolls) {
     // Try to parse protection from ifRolls text
-    const ifRollsMatch = conditions.ifRolls.match(/(top\s*\d+|lottery|unprotected)/i);
+    // Pattern matches common protection descriptions like "Top 5", "Lottery", "Unprotected"
+    const PROTECTION_PATTERN = /(top\s*\d+|lottery|unprotected)/i;
+    const ifRollsMatch = conditions.ifRolls.match(PROTECTION_PATTERN);
     nextProtection = ifRollsMatch ? ifRollsMatch[0] : 'Unprotected';
   }
 
