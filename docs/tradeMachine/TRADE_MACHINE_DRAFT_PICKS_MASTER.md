@@ -1363,15 +1363,15 @@ Swap picks are now included in Stepien consecutive-year checks. Proper swap mode
 | Pipeline Stage | Source Location | Example Keys Present | Format Variants | Notes |
 |---------------|-----------------|---------------------|-----------------|-------|
 | **1. Firestore Base** | `architect_baseTeams/{teamCode}.draftPicks[]` | `year`, `round`, `originalTeam`, `currentOwner`, `protection`, `status` | `round: 1` or `"1st"`; `protection: string \| null` | UNVERIFIED in production - needs data audit |
-| **2. Team Loader** | `firebaseTeamPlanHelpers.hydrateBaseTeam()` → `draftPicks` | Same as Firestore | Passed through unchanged | E-F1 |
-| **3. useTradeMachine Init** | `useTradeMachine.js:237-245` | `id` (generated), `year`, `round`, `originalTeam`, `protection`, `pickIdWarning` (if missing fields) | `ensurePickId()` normalizes and adds `id` | E-F2 |
-| **4. UI State (picksOut)** | `teams[idx].picksOut[]` | `id`, `year`, `round`, `originalTeam`, `protection`, `isSwap`, `swapWithTeamId`, `fromTeamId`, `toTeamId` | `isSwap: boolean`; `swapWithTeamId: string \| null` | E-F3 |
-| **5. Validator Input** | `tradeValidator.js` → `validateStepien(team, ctx)` | `team.outgoingPicks[]` or `team.picksOut[]` | Uses `outgoingPicks` if present, else `picksOut` | E-F4 |
-| **6. Stepien Evaluation** | `validateStepien.js:37-61` | `year`, `round`, `protection` | Reads `isSwap` but treats same as outright (Phase 1 behavior) | E-F5 |
+| **2. Team Loader** | `firebaseTeamPlanHelpers.hydrateBaseTeam()` → `draftPicks` | Same as Firestore | Passed through unchanged | E15 |
+| **3. useTradeMachine Init** | `useTradeMachine.js:237-245` | `id` (generated), `year`, `round`, `originalTeam`, `protection`, `pickIdWarning` (if missing fields) | `ensurePickId()` normalizes and adds `id` | E16 |
+| **4. UI State (picksOut)** | `teams[idx].picksOut[]` | `id`, `year`, `round`, `originalTeam`, `protection`, `isSwap`, `swapWithTeamId`, `fromTeamId`, `toTeamId` | `isSwap: boolean`; `swapWithTeamId: string \| null` | E17 |
+| **5. Validator Input** | `tradeValidator.js` → `validateStepien(team, ctx)` | `team.outgoingPicks[]` or `team.picksOut[]` | Uses `outgoingPicks` if present, else `picksOut` | E18 |
+| **6. Stepien Evaluation** | `validateStepien.js:37-61` | `year`, `round`, `protection` | Reads `isSwap` but treats same as outright (Phase 1 behavior) | E19 |
 
 #### Evidence Index Additions (E15+)
 
-##### E-F1: Firestore → Team Loader Pass-Through
+##### E15: Firestore → Team Loader Pass-Through
 
 | Field | Value |
 |-------|-------|
@@ -1379,7 +1379,7 @@ Swap picks are now included in Stepien consecutive-year checks. Proper swap mode
 | **Evidence** | `src/features/architect/utils/firebaseTeamPlanHelpers.js:163` |
 | **Snippet** | `draftPicks: baseDoc.draftPicks || [],` |
 
-##### E-F2: useTradeMachine ID Normalization
+##### E16: useTradeMachine ID Normalization
 
 | Field | Value |
 |-------|-------|
@@ -1388,7 +1388,7 @@ Swap picks are now included in Stepien consecutive-year checks. Proper swap mode
 | **Snippet** | `const rawPicks = data.draftPicks || data.picks || []; const picksWithIds = rawPicks.map(p => ensurePickId(p));` |
 | **Call Chain** | `init()` / `selectTeam()` → `ensurePickId()` for each pick |
 
-##### E-F3: picksOut UI State Shape
+##### E17: picksOut UI State Shape
 
 | Field | Value |
 |-------|-------|
@@ -1397,7 +1397,7 @@ Swap picks are now included in Stepien consecutive-year checks. Proper swap mode
 | **Snippet** | `newTeams[index].picksOut = [...newTeams[index].picksOut, { ...pickWithId, fromTeamId: newTeams[index].team?.id }];` |
 | **Fields Added** | `fromTeamId`, `toTeamId`, `isSwap`, `swapWithTeamId` (via UI editing) |
 
-##### E-F4: Validator Uses outgoingPicks or picksOut
+##### E18: Validator Uses outgoingPicks or picksOut
 
 | Field | Value |
 |-------|-------|
@@ -1405,7 +1405,7 @@ Swap picks are now included in Stepien consecutive-year checks. Proper swap mode
 | **Evidence** | `src/features/architect/utils/tradeMachine/rules/validateStepien.js:15, 22` |
 | **Snippet** | `const { picksOut = [], outgoingPicks = [] } = team;` and `const picks = outgoingPicks.length > 0 ? outgoingPicks : picksOut;` |
 
-##### E-F5: Stepien Reads isSwap But Treats As Outright
+##### E19: Stepien Reads isSwap But Treats As Outright
 
 | Field | Value |
 |-------|-------|
@@ -1413,6 +1413,20 @@ Swap picks are now included in Stepien consecutive-year checks. Proper swap mode
 | **Evidence** | `src/features/architect/utils/tradeMachine/rules/validateStepien.js:37-39` |
 | **Snippet** | `const firstRoundPicks = picks.filter((pick) => pick.round === '1st' || pick.round === 1 || pick.round === 'first');` |
 | **Note** | Phase 1 v2.0.2 removed `!pick.isSwap` exclusion - swaps now included |
+
+##### E20: swapWithTeamId Has Zero Validator Call Sites
+
+| Field | Value |
+|-------|-------|
+| **Claim** | `swapWithTeamId` field is stored in UI but never read by any validator, rule, or engine file |
+| **Evidence** | Repository-wide search confirms no reads in validation layer |
+| **Search Command** | `grep -r "swapWithTeamId" src/features/architect/utils/tradeMachine/` |
+| **Search Result** | No matches found in validator/rules/engine directories |
+| **Write Locations** | `TradePickRow.jsx:131` - UI dropdown writes value via `updatePickField()` |
+| **Read Locations** | `TradePickRow.jsx:130` - UI display only (reads own stored value for form control) |
+| **Summary** | Field is UI-only; swap partner selection is stored but meaningless for validation |
+| **Files Where Field Appears** | (1) `TradePickRow.jsx` - UI write/read for display<br/>(2) Test fixtures - `swapOnly.json`, `swapPlusAdjacentPick.json`, `secondApronFrozenSwap.json` |
+| **Validator/Rules/Engine Reads** | **ZERO** - No validator, rule, or engine file reads this field |
 
 ---
 
