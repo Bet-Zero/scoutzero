@@ -1,0 +1,33 @@
+{
+  "description": "Pick missing originalTeam field - tests UNK fallback",
+  "scenario": "Pick data arrives without originalTeam - ID generation must handle gracefully",
+  "expectedStepienBehavior": "Should still work but with warning",
+  "teams": [
+    {
+      "teamId": "BOS",
+      "teamName": "Boston Celtics",
+      "picksOut": [
+        {
+          "year": 2026,
+          "round": 1,
+          "protection": null,
+          "isSwap": false
+        }
+      ],
+      "notes": "Missing originalTeam - ensurePickId should generate UNK_2026_1"
+    },
+    {
+      "teamId": "DEN",
+      "teamName": "Denver Nuggets",
+      "picksOut": []
+    }
+  ],
+  "expectedIdGeneration": {
+    "generatedId": "UNK_2026_1",
+    "pickIdWarning": "Missing originalTeam"
+  },
+  "expectedValidation": {
+    "stepienPass": true,
+    "notes": "Single pick, no consecutive year issue"
+  }
+}

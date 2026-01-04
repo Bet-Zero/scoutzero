@@ -1,0 +1,40 @@
+{
+  "description": "Swap + adjacent year outright pick",
+  "scenario": "Team trades 2026 swap + 2027 unprotected 1st - should violate Stepien",
+  "expectedStepienBehavior": "Should FAIL Stepien due to consecutive year obligation",
+  "teams": [
+    {
+      "teamId": "PHI",
+      "teamName": "Philadelphia 76ers",
+      "picksOut": [
+        {
+          "id": "PHI_2026_1",
+          "year": 2026,
+          "round": 1,
+          "originalTeam": "PHI",
+          "protection": null,
+          "isSwap": true,
+          "swapWithTeamId": "OKC"
+        },
+        {
+          "id": "PHI_2027_1",
+          "year": 2027,
+          "round": 1,
+          "originalTeam": "PHI",
+          "protection": null,
+          "isSwap": false
+        }
+      ]
+    },
+    {
+      "teamId": "LAL",
+      "teamName": "Los Angeles Lakers",
+      "picksOut": []
+    }
+  ],
+  "expectedValidation": {
+    "stepienPass": false,
+    "violation": "Consecutive future 1sts - swap year should reserve",
+    "notes": "This is the key Phase 2 Gap G1 - swaps must count for Stepien"
+  }
+}

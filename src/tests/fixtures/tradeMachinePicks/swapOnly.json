@@ -1,0 +1,31 @@
+{
+  "description": "Swap rights only - no outright pick",
+  "scenario": "Team trades a swap right for a future year",
+  "expectedStepienBehavior": "Should reserve year for Stepien purposes (Phase 2)",
+  "teams": [
+    {
+      "teamId": "PHI",
+      "teamName": "Philadelphia 76ers",
+      "picksOut": [
+        {
+          "id": "PHI_2026_1",
+          "year": 2026,
+          "round": 1,
+          "originalTeam": "PHI",
+          "protection": null,
+          "isSwap": true,
+          "swapWithTeamId": "OKC"
+        }
+      ]
+    },
+    {
+      "teamId": "OKC",
+      "teamName": "Oklahoma City Thunder",
+      "picksOut": []
+    }
+  ],
+  "expectedValidation": {
+    "stepienPass": true,
+    "notes": "Single swap does not create consecutive year violation"
+  }
+}
