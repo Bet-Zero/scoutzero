@@ -75,7 +75,13 @@ export function generatePickId(pick) {
 /**
  * Regex pattern for valid pick IDs.
  * Format: {2-4 char team code}_{4 digit year}_{1 or 2}
- * Examples: "PHI_2026_1", "LAL_2028_2", "GSW_2025_1"
+ * 
+ * Team codes can be 2-4 characters:
+ * - 3 chars: Most NBA teams (PHI, LAL, GSW, MIA, etc.)
+ * - 4 chars: Utah Jazz (UTAH), Oklahoma City (OKC is 3 but OKLA could be used)
+ * - 2 chars: Reserved for edge cases
+ * 
+ * Examples: "PHI_2026_1", "LAL_2028_2", "GSW_2025_1", "UTAH_2027_2"
  */
 const VALID_PICK_ID_PATTERN = /^[A-Z]{2,4}_\d{4}_[12]$/;
 
@@ -128,7 +134,8 @@ export function ensurePickId(pick) {
   if (missingFields.length > 0) {
     result.pickIdWarning = `Missing ${missingFields.join(', ')}`;
     // Also log a warning in dev mode for visibility
-    if (typeof console !== 'undefined' && process?.env?.NODE_ENV !== 'production') {
+    // Using import.meta.env for Vite compatibility (modern build tools)
+    if (typeof console !== 'undefined' && import.meta?.env?.MODE !== 'production') {
       console.warn(`[pickIdUtils] Pick ID generated with missing fields: ${missingFields.join(', ')}`, pick);
     }
   }
