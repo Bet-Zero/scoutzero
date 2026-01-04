@@ -1,7 +1,7 @@
 # Trade Machine Draft Picks Master Document
 
-> **Version**: 2.0.2 (January 2026)  
-> **Status**: PHASE 1 COMPLETE - Tightening Fixes Applied  
+> **Version**: 2.1.0 (January 2026)  
+> **Status**: PHASE 2 COMPLETE - Swap Year Reservation Implemented  
 > **Purpose**: Comprehensive audit of draft pick implementation in Trade Machine  
 > **Author**: Automated Code Audit  
 
@@ -1667,5 +1667,118 @@ npm run build
 | `src/tests/fixtures/tradeMachinePicks/multiTeamTrade.json` | Created | Multi-team trade fixture |
 | `src/tests/fixtures/tradeMachinePicks/secondApronFrozenSwap.json` | Created | Second apron frozen swap fixture |
 | `src/tests/tradeMachine/draftPicksPreflight.test.js` | Created | Phase 2 preflight test skeleton |
+
+---
+
+## Phase 2 EXECUTION Completion Log (January 2026)
+
+> **Status**: PHASE 2 COMPLETE  
+> **Date**: 2026-01-04  
+> **Version**: 2.1.0
+
+### What Changed
+
+#### O1) Stepien Year Reservation Logic (Option B: "Reserve Most") ✅
+
+- Implemented `reservesYearForStepien()` helper function in `validateStepien.js`
+- **Rule**: Outright picks always reserve year for Stepien
+- **Rule**: Swap picks (`isSwap === true`) reserve year unless `swapType === 'worst_of'`
+- **Rule**: Missing `swapType` is treated as `'best_of'` for backward compatibility
+- Built Stepien-relevant calendar from picks that reserve years only
+
+#### O2) Second Apron Frozen Pick Restriction Includes Swaps ✅
+
+- Updated second apron frozen pick check to apply to all first-round assets
+- Restriction applies to both outright picks AND swap assets
+- No exceptions for `swapType` - even `worst_of` swaps are blocked at 7+ years out
+
+#### O3) Added `swapType` to UI State + Editing ✅
+
+- Updated `TradePickRow.jsx` with new swap type control:
+  - Added `swapType` dropdown (`best_of` / `worst_of`) when `isSwap` is enabled
+  - Automatically set `swapType` to `'best_of'` when `isSwap` is turned on
+  - Clear both `swapWithTeamId` and `swapType` when `isSwap` is turned off
+
+#### O4) Wired swapWithTeamId + swapType into Display Strings ✅
+
+- Updated `formatPick()` in `tradeHelpers.js`:
+  - Shows swap type: "Swap (Best of)" or "Swap (Worst of)"
+  - Shows swap partner if present: "vs OKC"
+  - Missing swapType defaults to "Best of"
+
+- Updated `getPickLabel()` in `TradeSummaryPanel.jsx`:
+  - Same display logic as `formatPick()`
+  - Consistent swap rendering across summary and export views
+
+#### O5) Tests Added/Updated ✅
+
+- **`tests/validators/stepien.test.js`**: Added 7 new swap-specific tests
+  - `best_of swap + adjacent unprotected 1st fails Stepien`
+  - `worst_of swap + adjacent unprotected 1st passes Stepien`
+  - `missing swapType defaults to best_of (backward compat)`
+  - `swap-only trade does NOT automatically fail Stepien`
+  - `two non-consecutive swaps pass Stepien`
+  - `blocks second apron teams trading own 7-year-out swap`
+  - `blocks second apron teams trading own 7-year-out worst_of swap`
+
+- **`src/tests/tradeMachine/draftPicksPreflight.test.js`**: Unskipped and updated Phase 2 tests
+  - All previously skipped tests now run and pass
+  - Added additional test cases for backward compatibility
+
+### Files Changed/Added
+
+| File | Action | Description |
+|------|--------|-------------|
+| `src/features/architect/utils/tradeMachine/rules/validateStepien.js` | Modified | Added `reservesYearForStepien()` helper; updated Stepien calendar to use year reservation |
+| `src/features/architect/tradeMachine/TradePickRow.jsx` | Modified | Added `swapType` dropdown control; updated swap toggle behavior |
+| `src/features/architect/utils/tradeHelpers.js` | Modified | Updated `formatPick()` to show swap type and partner |
+| `src/features/architect/tradeMachine/TradeSummaryPanel.jsx` | Modified | Updated `getPickLabel()` to show swap type and partner |
+| `tests/validators/stepien.test.js` | Modified | Added 7 new swap-specific test cases |
+| `src/tests/tradeMachine/draftPicksPreflight.test.js` | Modified | Unskipped Phase 2 tests; added new test cases |
+| `docs/tradeMachine/TRADE_MACHINE_DRAFT_PICKS_MASTER.md` | Modified | Added Phase 2 Completion Log |
+| `docs/return-packages/trade-machine-draft-picks__phase-2-execution__2026-01-04.md` | Created | Phase 2 Return Package |
+
+### Validation Commands Run
+
+```bash
+# Tests - Stepien
+npm run test -- tests/validators/stepien.test.js --run
+# Result: 14 passed (14)
+
+# Tests - Draft Picks Preflight
+npm run test -- src/tests/tradeMachine/draftPicksPreflight.test.js --run
+# Result: 23 passed (23)
+
+# Build
+npm run build
+# Result: ✓ built in 9.56s (no errors, only expected chunk size warnings)
+```
+
+### Acceptance Criteria Status
+
+| # | Criterion | Status |
+|---|-----------|--------|
+| 1 | validateStepien enforces swap year reservation per Option B | ✅ `reservesYearForStepien()` implemented |
+| 2 | best_of swap counts toward Stepien, worst_of doesn't | ✅ Tested with 4 swap-specific tests |
+| 3 | missing swapType treated as best_of | ✅ Backward compatibility test passes |
+| 4 | second apron frozen restriction blocks own 7-year-out swap assets | ✅ Applies to all swap types |
+| 5 | UI supports editing swapType when isSwap enabled | ✅ `TradePickRow.jsx` updated |
+| 6 | swap partner/type appears in summary/export labels | ✅ `formatPick()` and `getPickLabel()` updated |
+| 7 | All relevant tests pass | ✅ 37 tests total (14 + 23) |
+| 8 | App builds without errors | ✅ Build successful |
+
+### What Remains (Phase 3+)
+
+1. **Swap Resolution Logic**: Actual best-of/worst-of pick assignment based on lottery results (not implemented)
+2. **Conveyance/Rollover**: Multi-tier protection and pick rolling (not implemented)
+3. **Schema Migration**: No Firestore schema changes made; adapter-only approach used
+4. **Stepien Calendar Visualization**: UI indicator of blocked years (future enhancement)
+
+### Behavioral Notes
+
+1. **`swapType` defaults**: When `isSwap` is enabled in UI, `swapType` automatically defaults to `'best_of'`
+2. **Backward compatibility**: Legacy picks with `isSwap: true` but no `swapType` are treated as `'best_of'`
+3. **worst_of exception**: Only affects Stepien year reservation, NOT second apron frozen restriction
+4. **Display format**: Picks show "🔁 Swap (Best of) vs OKC" when swap info is present
 
 ---

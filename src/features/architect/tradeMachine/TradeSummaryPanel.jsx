@@ -6,6 +6,7 @@ import React from 'react';
 import {
   formatCurrency,
   getAdjustmentTooltipLabel,
+  formatSwapInfo,
   // getSalaryForYear,
 } from '@/features/architect/utils/tradeHelpers';
 // import { HelpCircle } from 'lucide-react';
@@ -14,13 +15,18 @@ import TeamLogo from '@/shared/components/TeamLogo';
 // CANONICAL SELECTOR: Single source of truth for salary matching values
 import { getOfficialSalaryMatchingSnapshot } from '@/features/architect/tradeMachine/utils/getOfficialSalaryMatchingSnapshot';
 
-// Helper used for pick chip text
+/**
+ * Helper used for pick chip text
+ * Uses shared formatSwapInfo utility for swap display consistency.
+ */
 const getPickLabel = (p) => {
   if (!p) return '';
   let label = `${p.year} ${p.round} Round`;
   if (p.via) label += ` (via ${p.via})`;
   if (p.protection) label += ` 🛡 ${p.protection}`;
-  if (p.isSwap) label += ` 🔄 Swap`;
+  if (p.isSwap) {
+    label += ` 🔄 ${formatSwapInfo(p)}`;
+  }
   return label;
 };
 

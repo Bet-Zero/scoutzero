@@ -19,6 +19,25 @@ const hexToRGBA = (hex, alpha) => {
   return `rgba(${r}, ${g}, ${b}, ${alpha ?? 0.08})`;
 };
 
+/**
+ * Handles swap toggle state changes.
+ * - When enabled: sets swapType to 'best_of' if not already set
+ * - When disabled: clears swapWithTeamId and swapType
+ */
+const handleSwapToggle = (checked, pick, pickObj, onEdit) => {
+  onEdit(pick, 'isSwap', checked);
+  if (checked) {
+    // Default to best_of when enabling swap
+    if (!pickObj.swapType) {
+      onEdit(pick, 'swapType', 'best_of');
+    }
+  } else {
+    // Clear swap-related fields when disabling
+    onEdit(pick, 'swapWithTeamId', null);
+    onEdit(pick, 'swapType', null);
+  }
+};
+
 function TradePickRow({
   pick,
   pickObj,
@@ -117,10 +136,22 @@ function TradePickRow({
                 <input
                   type="checkbox"
                   checked={!!pickObj.isSwap}
-                  onChange={(e) => onEdit(pick, 'isSwap', e.target.checked)}
+                  onChange={(e) => handleSwapToggle(e.target.checked, pick, pickObj, onEdit)}
                 />
                 Swap rights
               </label>
+
+              {/* Swap type select - shown only when isSwap is true */}
+              {pickObj.isSwap && (
+                <select
+                  className="w-full bg-black/30 p-1 rounded"
+                  value={pickObj.swapType || 'best_of'}
+                  onChange={(e) => onEdit(pick, 'swapType', e.target.value)}
+                >
+                  <option value="best_of">Best of (default)</option>
+                  <option value="worst_of">Worst of</option>
+                </select>
+              )}
 
               {/* Swap partner select */}
               {pickObj.isSwap && (

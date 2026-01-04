@@ -297,11 +297,52 @@ export const getApronStatus = (salary, { firstApron, secondApron } = {}) => {
  */
 export const areSamePick = (a, b) => areSamePickById(a, b);
 
+/**
+ * Returns human-readable swap type display text.
+ * 
+ * @param {string|undefined} swapType - The swap type ('best_of', 'worst_of', or undefined)
+ * @returns {string} - Display text: "Best of" or "Worst of"
+ */
+export const getSwapTypeDisplay = (swapType) => {
+  return swapType === 'worst_of' ? 'Worst of' : 'Best of';
+};
+
+/**
+ * Formats swap information for display.
+ * 
+ * @param {Object} pick - Pick object with isSwap, swapType, swapWithTeamId
+ * @returns {string} - Formatted swap string (e.g., "Swap (Best of) vs OKC")
+ */
+export const formatSwapInfo = (pick) => {
+  if (!pick?.isSwap) return '';
+  
+  const swapTypeDisplay = getSwapTypeDisplay(pick.swapType);
+  let result = `Swap (${swapTypeDisplay})`;
+  if (pick.swapWithTeamId) {
+    result += ` vs ${pick.swapWithTeamId}`;
+  }
+  return result;
+};
+
+/**
+ * Formats a pick object for display, including swap type and partner.
+ * 
+ * Phase 2 Updates:
+ * - Shows swap type: "Swap (Best of)" or "Swap (Worst of)"
+ * - Shows swap partner if present: "vs OKC"
+ * - Missing swapType defaults to "Best of"
+ * 
+ * @param {Object} p - Pick object
+ * @returns {string} - Formatted pick string
+ */
 export const formatPick = (p) => {
+  if (!p) return '';
   let str = `${p.year} ${p.round} Round`;
   if (p.via) str += ` (via ${p.via})`;
   if (p.protection) str += ` 🛡 ${p.protection}`;
-  if (p.isSwap) str += ' 🔁 Swap';
+  if (p.isSwap) {
+    str += ` 🔁 ${formatSwapInfo(p)}`;
+  }
   if (p.note) str += ` 📝 ${p.note}`;
   return str;
 };
