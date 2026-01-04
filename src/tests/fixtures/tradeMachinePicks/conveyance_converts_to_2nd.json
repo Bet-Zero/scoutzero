@@ -1,0 +1,58 @@
+{
+  "description": "Protected pick that converts to a 2nd round pick if protection triggers",
+  "scenario": "2026 1st round pick is Lottery protected. If protection triggers, converts to 2nd round pick instead of rolling forward.",
+  "phase4Behavior": "NOT YET IMPLEMENTED - conversion logic does not exist",
+  "teams": [
+    {
+      "teamId": "NYK",
+      "teamName": "New York Knicks",
+      "picksOut": [
+        {
+          "id": "NYK_2026_1",
+          "year": 2026,
+          "round": 1,
+          "originalTeam": "NYK",
+          "protection": "Lottery",
+          "isSwap": false,
+          "conveyance": {
+            "originalYear": 2026,
+            "currentYear": 2026,
+            "finalYear": 2026,
+            "conditions": {
+              "protection": "Lottery (1-14)",
+              "ifConveys": "Sends 2026 1st",
+              "ifRolls": "Converts to 2026 2nd"
+            }
+          },
+          "conversionTarget": {
+            "action": "convert",
+            "toRound": 2,
+            "toYear": 2026,
+            "notes": "Protection triggers → pick becomes 2nd round instead of rolling"
+          }
+        }
+      ]
+    },
+    {
+      "teamId": "CLE",
+      "teamName": "Cleveland Cavaliers",
+      "picksOut": []
+    }
+  ],
+  "expectedBehavior": {
+    "conversionScenario": {
+      "pickPosition": 10,
+      "protectionTriggers": true,
+      "result": "Pick converts to 2026 2nd round pick"
+    },
+    "conveyanceScenario": {
+      "pickPosition": 20,
+      "protectionTriggers": false,
+      "result": "Pick conveys as 2026 1st round pick"
+    }
+  },
+  "currentImplementation": {
+    "conversionSupported": false,
+    "notes": "No logic exists to convert a 1st to a 2nd when protection triggers. conveyance.conditions.ifRolls is schema-only."
+  }
+}

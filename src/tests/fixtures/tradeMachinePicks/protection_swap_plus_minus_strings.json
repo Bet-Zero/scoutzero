@@ -1,0 +1,83 @@
+{
+  "description": "Test fixture demonstrating confusing 'Swap (+)' and 'Swap (-)' protection string values",
+  "scenario": "getPickOptions() includes 'Swap (+)' and 'Swap (-)' as protection dropdown options, but swap is NOT protection",
+  "phase4Finding": "These options should be REMOVED from protection dropdown - swap is a separate pick property",
+  "blastRadiusAnalysis": {
+    "whereSwapPlusMinusDefined": {
+      "file": "src/features/architect/utils/tradeMachine/utils/tradeUtilities.js",
+      "lines": [92, 93],
+      "code": "{ label: 'Swap (+)', value: 'Swap (+)' }, { label: 'Swap (-)', value: 'Swap (-)' }"
+    },
+    "whereUsed": {
+      "uiDropdown": "TradePickRow.jsx:127 - renders all getPickOptions() values in protection dropdown",
+      "validatorReads": false,
+      "stepienTreatsAsMeaningful": false
+    },
+    "riskAssessment": {
+      "treatedAsMeaningfulProtection": false,
+      "evidence": "isMeaningfulProtection() regex does not match 'Swap (+)' or 'Swap (-)'",
+      "stepienBehavior": "Picks with protection='Swap (+)' are treated as UNPROTECTED by Stepien",
+      "userConfusion": "HIGH - users may think selecting 'Swap (+)' makes it a swap, but it doesn't"
+    }
+  },
+  "teams": [
+    {
+      "teamId": "PHX",
+      "teamName": "Phoenix Suns",
+      "picksOut": [
+        {
+          "id": "PHX_2026_1",
+          "year": 2026,
+          "round": 1,
+          "originalTeam": "PHX",
+          "protection": "Swap (+)",
+          "isSwap": false,
+          "_comment": "protection='Swap (+)' does NOT make this a swap pick. isSwap is false."
+        },
+        {
+          "id": "PHX_2027_1",
+          "year": 2027,
+          "round": 1,
+          "originalTeam": "PHX",
+          "protection": "Swap (-)",
+          "isSwap": false,
+          "_comment": "protection='Swap (-)' is also NOT a swap. Both are just confusing string values."
+        }
+      ]
+    },
+    {
+      "teamId": "DEN",
+      "teamName": "Denver Nuggets",
+      "picksOut": []
+    }
+  ],
+  "expectedValidation": {
+    "isMeaningfulProtectionResult": {
+      "swapPlus": false,
+      "swapMinus": false,
+      "evidence": "JavaScript regex patterns: /top\\s*[1-9]\\d*/i (Top N), /lottery/i, /1-14/i - none match 'Swap (+)' or 'Swap (-)'"
+    },
+    "stepienBehavior": {
+      "treatedAsUnprotected": true,
+      "consecutiveYearViolation": "WOULD TRIGGER if both picks are in consecutive years",
+      "notes": "This is a UX bug - users selecting 'Swap (+)' expect it to create swap behavior, but it doesn't"
+    }
+  },
+  "currentStateProof": {
+    "protectionOptionsSource": "getPickOptions() in tradeUtilities.js:84-94",
+    "swapOptionsIncluded": true,
+    "reasonForInclusion": "UNKNOWN - likely legacy or misunderstanding. Swap should be isSwap checkbox, not protection dropdown."
+  },
+  "phase4Recommendation": {
+    "action": "REMOVE",
+    "rationale": [
+      "1. Swap is already modeled with isSwap boolean + swapType + swapWithTeamId (Phase 2)",
+      "2. 'Swap (+)' / 'Swap (-)' as protection is confusing and misleading",
+      "3. These values are NOT treated as meaningful protection by validators",
+      "4. No evidence of persisted data using these values (search found only in getPickOptions)"
+    ],
+    "migrationRisk": "LOW - no persisted data uses these values",
+    "breakingChange": false,
+    "userImpact": "Cleaner UI - swap is clearly separate from protection"
+  }
+}

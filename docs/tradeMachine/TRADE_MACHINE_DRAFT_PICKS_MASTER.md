@@ -2009,3 +2009,112 @@ npm run build                                                             # ✓ 
 5. **Second-Round Swap Resolution** - Only first-round implemented
 
 ---
+
+## Phase 4 PREFLIGHT Findings (January 2026)
+
+> **Status**: PREFLIGHT COMPLETE  
+> **Mode**: Discovery + docs + tests/fixtures only (NO runtime behavior changes)  
+> **Purpose**: Produce no-surprises implementation plan for conveyance and protection normalization  
+> **Return Package**: `docs/return-packages/trade-machine-draft-picks__phase-4-preflight__2026-01-04.md`
+>
+> **Terminology Note**: "Conveyance" refers to the NBA draft pick mechanism where a protected pick either:
+> - **Conveys** (transfers to the receiving team) when protection doesn't trigger, OR
+> - **Rolls forward** to the next year's draft when protection triggers (e.g., pick lands in Top 3 protected range)
+> - May eventually **convert** to a different asset (e.g., 1st becomes 2nd round pick) after multiple rolls
+
+### Key Findings
+
+#### F1: Protection Storage is String-Only
+
+**Current State**: Protection is stored as a string everywhere (`"Top 3"`, `"Lottery"`, etc.)
+
+| Location | Field | Format |
+|----------|-------|--------|
+| UI Dropdown | `pickObj.protection` | String from `getPickOptions()` |
+| Validators | `pick.protection` | String passed to `isMeaningfulProtection()` |
+| Firestore | `draftPicks[].protection` | String |
+
+**Implication**: Structured protection (multi-tier ladders, conversion rules) cannot be represented.
+
+#### F2: DraftPickConveyanceZ Schema is NEVER USED
+
+**Evidence**: 
+- Schema defined at `src/schemas/architect.ts:91-123`
+- **ZERO** runtime code reads `conveyance`, `ifConveys`, `ifRolls`, or `finalYear`
+- Search: `grep -r "ifConveys\|ifRolls\|finalYear" src/features/` returns no matches
+
+**Implication**: Phase 4 execution can start using the existing schema without migration concerns.
+
+#### F3: "Swap (+)/Swap (-)" in Protection Dropdown is CONFUSING
+
+**Where Defined**: `tradeUtilities.js:92-93`
+```javascript
+{ label: 'Swap (+)', value: 'Swap (+)' },
+{ label: 'Swap (-)', value: 'Swap (-)' },
+```
+
+**Risk Analysis**:
+- `isMeaningfulProtection('Swap (+)')` returns `false` - NOT treated as protection
+- Users may think selecting "Swap (+)" makes pick a swap - IT DOESN'T
+- No persisted data uses these values
+
+**Recommendation**: **REMOVE** in Phase 4 execution. Swap is properly modeled with `isSwap`, `swapType`, `swapWithTeamId`.
+
+#### F4: Conveyance Execution Target
+
+**Primary Target**: Season advance (`updateDraftPicksWithStepien()` in `seasonManager.js`)
+
+**Required Inputs**:
+- Pick with `conveyance.conditions`
+- Lottery results: `Map<TeamCode, number>`
+- Current season for determining which year to evaluate
+
+**What Repo Lacks**:
+- Draft lottery simulation
+- Lottery results ingestion
+- Manual entry UI for lottery positions
+
+### Structured Model Proposal
+
+**Option A (Recommended for Phase 4)**: Keep `protection` as string, add `protectionMeta` alongside
+
+```typescript
+interface DraftPick {
+  protection: string | null;       // "Top 3" - unchanged
+  protectionMeta?: {               // NEW - structured metadata
+    type: 'position' | 'lottery' | 'playoff' | 'always' | 'never';
+    maxPosition?: number;
+    conversionTarget?: { action: 'roll' | 'convert' | 'cancel'; toYear?: number; toRound?: 1 | 2; };
+  };
+}
+```
+
+**Option B (Future)**: Replace string with structured object (higher migration effort)
+
+### Deliverables Created
+
+| File | Description |
+|------|-------------|
+| `docs/return-packages/trade-machine-draft-picks__phase-4-preflight__2026-01-04.md` | Full return package with truth map, inventory, proposals |
+| `src/tests/tradeMachine/conveyancePreflight.test.js` | Phase 4 preflight tests (22 pass, 7 skipped) |
+| `src/tests/fixtures/tradeMachinePicks/conveyance_rolls_forward.json` | Roll-forward protection fixture |
+| `src/tests/fixtures/tradeMachinePicks/conveyance_converts_to_2nd.json` | Conversion to 2nd round fixture |
+| `src/tests/fixtures/tradeMachinePicks/conveyance_multi_year_ladder.json` | Multi-tier ladder fixture |
+| `src/tests/fixtures/tradeMachinePicks/protection_swap_plus_minus_strings.json` | Swap (+/-) documentation |
+
+### Phase 4 EXECUTION Implied Plan
+
+1. **Priority 1**: Remove "Swap (+/-)" from `getPickOptions()` (~15 min, no risk)
+2. **Priority 2**: Add `protectionMeta` schema (Option A) (~2-4 hours, low risk)
+3. **Priority 3**: Implement `resolveConveyance()` function (~4-8 hours, medium risk)
+4. **Priority 4**: Wire conveyance into season advance (~2-4 hours, medium risk)
+
+### Stop Conditions - All CLEAR
+
+| Condition | Status |
+|-----------|--------|
+| Protection strings persisted widely | ❌ Format consistent |
+| Stepien treats "Swap (+/-)" as meaningful | ❌ Returns `false` |
+| Existing conveyance implementation | ❌ Schema only, no runtime |
+
+---
