@@ -1,0 +1,57 @@
+{
+  "description": "Multi-team trade with picks flowing multiple directions",
+  "scenario": "3-team trade: A sends pick to B, B sends pick to C, C sends pick to A",
+  "expectedStepienBehavior": "Each team evaluated independently for Stepien",
+  "teams": [
+    {
+      "teamId": "PHI",
+      "teamName": "Team A (Philadelphia)",
+      "picksOut": [
+        {
+          "id": "PHI_2026_1",
+          "year": 2026,
+          "round": 1,
+          "originalTeam": "PHI",
+          "protection": null,
+          "isSwap": false,
+          "toTeamId": "OKC"
+        }
+      ]
+    },
+    {
+      "teamId": "OKC",
+      "teamName": "Team B (Oklahoma City)",
+      "picksOut": [
+        {
+          "id": "OKC_2027_1",
+          "year": 2027,
+          "round": 1,
+          "originalTeam": "OKC",
+          "protection": "Lottery",
+          "isSwap": false,
+          "toTeamId": "LAL"
+        }
+      ]
+    },
+    {
+      "teamId": "LAL",
+      "teamName": "Team C (Los Angeles)",
+      "picksOut": [
+        {
+          "id": "LAL_2028_1",
+          "year": 2028,
+          "round": 1,
+          "originalTeam": "LAL",
+          "protection": null,
+          "isSwap": false,
+          "toTeamId": "PHI"
+        }
+      ]
+    }
+  ],
+  "expectedValidation": {
+    "allTeamsPass": true,
+    "notes": "Each team sending single non-consecutive pick"
+  },
+  "phaseStatus": "Phase 2 - multi-team routing needs proper destination tracking"
+}

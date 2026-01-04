@@ -1,0 +1,45 @@
+{
+  "description": "Second apron team attempting to trade frozen pick year with swap",
+  "scenario": "Second apron team tries to trade 7-year-out swap - tests frozen pick restriction",
+  "expectedStepienBehavior": "Should FAIL - second apron cannot trade own 7-year-out picks",
+  "teams": [
+    {
+      "teamId": "MIA",
+      "teamName": "Miami Heat",
+      "totalSalary": 210000000,
+      "postTradeStatus": {
+        "isAtOrAboveSecondApron": true,
+        "projectedSalary": 210000000
+      },
+      "picksOut": [
+        {
+          "id": "MIA_2032_1",
+          "year": 2032,
+          "round": 1,
+          "originalTeam": "MIA",
+          "protection": null,
+          "isSwap": true,
+          "swapWithTeamId": "CLE"
+        }
+      ]
+    },
+    {
+      "teamId": "CLE",
+      "teamName": "Cleveland Cavaliers",
+      "picksOut": []
+    }
+  ],
+  "context": {
+    "currentYear": 2025,
+    "yearsOut": 7,
+    "capSettings": {
+      "secondApron": 190000000
+    }
+  },
+  "expectedValidation": {
+    "stepienPass": false,
+    "violation": "Second apron team cannot trade its own 7-year-out first-round pick",
+    "notes": "Phase 2 Gap G9 - swaps should be subject to second apron frozen pick restriction"
+  },
+  "phaseStatus": "Phase 2 future - second apron swap restrictions"
+}

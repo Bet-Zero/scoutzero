@@ -1,0 +1,46 @@
+{
+  "description": "Protected pick with string protection format",
+  "scenario": "Team trades consecutive 1sts but one is protected (Top 3)",
+  "expectedStepienBehavior": "Should PASS Stepien due to meaningful protection",
+  "teams": [
+    {
+      "teamId": "GSW",
+      "teamName": "Golden State Warriors",
+      "picksOut": [
+        {
+          "id": "GSW_2026_1",
+          "year": 2026,
+          "round": 1,
+          "originalTeam": "GSW",
+          "protection": "Top 3",
+          "isSwap": false
+        },
+        {
+          "id": "GSW_2027_1",
+          "year": 2027,
+          "round": 1,
+          "originalTeam": "GSW",
+          "protection": null,
+          "isSwap": false
+        }
+      ]
+    },
+    {
+      "teamId": "MIA",
+      "teamName": "Miami Heat",
+      "picksOut": []
+    }
+  ],
+  "expectedValidation": {
+    "stepienPass": true,
+    "notes": "Top 3 protection is meaningful, bypasses consecutive year violation"
+  },
+  "protectionFormats": [
+    { "value": "Top 3", "meaningfulResult": true },
+    { "value": "Top 5", "meaningfulResult": true },
+    { "value": "Lottery", "meaningfulResult": true },
+    { "value": "1-14", "meaningfulResult": true },
+    { "value": "", "meaningfulResult": false },
+    { "value": null, "meaningfulResult": false }
+  ]
+}
