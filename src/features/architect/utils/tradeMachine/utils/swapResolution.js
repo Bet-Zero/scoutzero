@@ -55,7 +55,7 @@ export function resolveSwapWinner({ teamA, teamB, swapType = 'best_of' }, positi
 
   // Validate swap type
   if (normalizedSwapType !== 'best_of' && normalizedSwapType !== 'worst_of') {
-    throw new Error(`Invalid swapType: ${swapType}. Must be 'best_of' or 'worst_of'`);
+    throw new Error(`Invalid swapType: '${normalizedSwapType}'. Must be 'best_of' or 'worst_of'`);
   }
 
   // Determine winner based on swap type
@@ -137,7 +137,7 @@ export function resolvePickSwap(pick, positionsMap, options = {}) {
   // teamB = swap partner
   const teamA = pick.originalTeam || 'UNK';
   const teamB = pick.swapWithTeamId;
-  const swapType = pick.swapType ?? 'best_of'; // Default to best_of for backward compat
+  const swapType = pick.swapType || 'best_of'; // Default to best_of for backward compat
 
   // Validate positions exist for both teams
   if (!positionsMap || typeof positionsMap !== 'object') {

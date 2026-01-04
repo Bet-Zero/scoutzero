@@ -11,6 +11,7 @@
  *  - 2025-12-20: Phase 3B - Added advanceSeasonInWorld with explicit option decisions
  *                         - Added Stepien recalculation for draft picks
  *                         - Refactored processOptions to accept optionDecisions
+ *  - 2026-01-04: Phase 3 - Added resolveDraftPickSwapsForYear for swap resolution
  */
 
 import { db } from '@/firebaseConfig';
@@ -27,6 +28,7 @@ import {
 } from '@/features/architect/utils/architectFirestorePaths';
 import { getMinimumSalaryScale } from '@/features/architect/utils/salaryEngine';
 import { calculateCapHold } from '@/features/architect/utils/contractUtils';
+import { resolvePickSwap } from '@/features/architect/utils/tradeMachine/utils/swapResolution.js';
 
 /**
  * Advance world to next season
@@ -955,10 +957,6 @@ export function resolveDraftPickSwapsForYear(team, draftYear, positionsMap, opts
   if (!team?.draftPicks || !Array.isArray(team.draftPicks)) {
     return team;
   }
-
-  // Import the resolution utility inline to avoid circular dependencies
-  // This is a dynamic import pattern that works in ES modules
-  const { resolvePickSwap } = require('./tradeMachine/utils/swapResolution.js');
 
   const { nowIso, method = 'lottery' } = opts;
 
