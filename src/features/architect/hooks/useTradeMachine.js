@@ -5,6 +5,7 @@ import {
   getSalaryForYear,
   areSamePick,
 } from '@/features/architect/utils/tradeHelpers';
+import { ensurePickId } from '@/features/architect/utils/tradeMachine/utils/pickIdUtils';
 import { TeamMap } from '@/constants/teamList';
 import { toSeasonKey } from '@/features/architect/utils/seasonFormat';
 import { computeTradeDraftKey, isValidationCurrent } from '@/features/architect/tradeMachine/utils/computeTradeDraftKey';
@@ -231,12 +232,16 @@ export const useTradeMachine = (
 
       if (baseTeam && data) {
         // Build team object, augment exceptions/tpes
+        // Map draftPicks to picks for trade machine compatibility
+        // Ensure all picks have canonical IDs (Phase 1 - SSOT)
+        const rawPicks = data.draftPicks || data.picks || [];
+        const picksWithIds = rawPicks.map(p => ensurePickId(p));
+        
         const teamObj = {
           ...baseTeam,
           ...data,
           tradeExceptions: data.tradeExceptions || [],
-          // Map draftPicks to picks for trade machine compatibility
-          picks: data.draftPicks || data.picks || [],
+          picks: picksWithIds,
         };
         augmentTeamWithExceptions(teamObj, yearKey, capProjections);
 
@@ -420,16 +425,19 @@ export const useTradeMachine = (
   const togglePick = useCallback((index, pick) => {
     setTeams((prev) => {
       const newTeams = [...prev];
+      // Ensure pick has ID before comparison (Phase 1 - SSOT)
+      const pickWithId = ensurePickId(pick);
       const existingIndex = newTeams[index].picksOut.findIndex((p) =>
-        areSamePick(p, pick)
+        areSamePick(p, pickWithId)
       );
 
       if (existingIndex >= 0) {
         newTeams[index].picksOut.splice(existingIndex, 1);
       } else {
+        // Ensure pick added to picksOut has canonical ID (Phase 1 - SSOT)
         newTeams[index].picksOut = [
           ...newTeams[index].picksOut,
-          { ...pick, fromTeamId: newTeams[index].team?.id },
+          { ...pickWithId, fromTeamId: newTeams[index].team?.id },
         ];
       }
 
@@ -469,12 +477,16 @@ export const useTradeMachine = (
       const data = await loadWorldTeamData(worldId, teamId);
 
       if (baseTeam && data) {
+        // Map draftPicks to picks for trade machine compatibility
+        // Ensure all picks have canonical IDs (Phase 1 - SSOT)
+        const rawPicks = data.draftPicks || data.picks || [];
+        const picksWithIds = rawPicks.map(p => ensurePickId(p));
+        
         const teamObj = {
           ...baseTeam,
           ...data,
           tradeExceptions: data.tradeExceptions || [],
-          // Map draftPicks to picks for trade machine compatibility
-          picks: data.draftPicks || data.picks || [],
+          picks: picksWithIds,
         };
         augmentTeamWithExceptions(teamObj, yearKey, capProjections);
 

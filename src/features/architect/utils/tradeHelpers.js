@@ -1,7 +1,7 @@
 /************************** SCSP™ BLOCK: tradeHelpers.js  **************************
  * FULL FILE REPLACEMENT — drop-in ready
  * ▸ Fixes: getSalaryForYear, getIncomingCeiling, calculateAllowableIncoming,
- * areSamePick  (numeric leniency)
+ * areSamePick  (ID-based comparison via pickIdUtils)
  * ▸ Keeps: MIN_SALARY, getApronStatus, pick utils, TPE utils, format helpers
  * ▸ Phase 2 update: Delegates to unified salaryMatchingRules for tier calculations
  * -------------------------------------------------------------------------------*/
@@ -16,6 +16,7 @@ import {
 export { wouldExceedHardCap } from '@/features/architect/utils/hardCapUtils.js';
 import { isPriorYearTPE } from '@/features/architect/utils/tradeMachine/utils/tradeUtilities.js';
 import { getTeamFaExceptionBuckets } from '@/features/architect/utils/faExceptionUtils.js';
+import { areSamePickById } from '@/features/architect/utils/tradeMachine/utils/pickIdUtils.js';
 
 /**
  * Returns tier thresholds for salary matching
@@ -285,10 +286,16 @@ export const getApronStatus = (salary, { firstApron, secondApron } = {}) => {
 };
 
 /*───────────────────────────  Pick Helpers  ───────────────────────────*/
-export const areSamePick = (a, b) =>
-  +a.year === +b.year &&
-  +a.round === +b.round &&
-  (a.via || '') === (b.via || '');
+/**
+ * Compares two picks by their canonical IDs.
+ * Uses ID-based comparison via pickIdUtils to ensure picks with same year/round
+ * but different originalTeam are correctly distinguished.
+ * 
+ * @param {Object} a - First pick
+ * @param {Object} b - Second pick
+ * @returns {boolean} - True if picks have the same canonical ID
+ */
+export const areSamePick = (a, b) => areSamePickById(a, b);
 
 export const formatPick = (p) => {
   let str = `${p.year} ${p.round} Round`;
@@ -299,9 +306,8 @@ export const formatPick = (p) => {
   return str;
 };
 
-export const isMeaningfulProtection = (prot) =>
-  !!prot &&
-  (/top\s*\d+/i.test(prot) || /lottery/i.test(prot) || /1-14/i.test(prot));
+// Re-export canonical isMeaningfulProtection from tradeUtilities (SSOT-2)
+export { isMeaningfulProtection } from '@/features/architect/utils/tradeMachine/utils/tradeUtilities.js';
 
 /*────────────────────────  Trade-Exception Helpers  ───────────────────────*/
 export const calculateTPERemaining = (tpe, used = 0) => tpe.amount - used;

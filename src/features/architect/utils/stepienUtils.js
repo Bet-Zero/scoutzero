@@ -1,6 +1,11 @@
 // src/utils/architect/stepienUtils.js
 
-/* Stepien-rule helpers */
+/* Stepien-rule helpers
+ * 
+ * Phase 1 SSOT-1: hasStepienViolation now delegates to canonical validateStepien
+ */
+
+import { validateStepien } from '@/features/architect/utils/tradeMachine/rules/validateStepien.js';
 
 export function buildFirstRoundCalendar({
   existingPicks = [],
@@ -47,30 +52,18 @@ export function passesStepienRule(cal) {
   return true;
 }
 
+/**
+ * Checks if a set of picks violates the Stepien Rule.
+ * 
+ * @param {Array} picks - Array of draft picks being traded
+ * @returns {boolean} True if a violation exists
+ * 
+ * @note Phase 1 SSOT-1: This now delegates to canonical validateStepien()
+ */
 export function hasStepienViolation(picks) {
   if (!picks || picks.length === 0) return false;
 
-  // Filter to first round picks only and sort by year
-  const firstRoundPicks = picks
-    .filter((pick) => pick.round === '1st' || pick.round === 1)
-    .sort((a, b) => a.year - b.year);
-
-  // Check for consecutive unprotected picks
-  for (let i = 0; i < firstRoundPicks.length - 1; i++) {
-    const currentPick = firstRoundPicks[i];
-    const nextPick = firstRoundPicks[i + 1];
-
-    // Skip if this is a swap pick
-    if (currentPick.isSwap || nextPick.isSwap) continue;
-
-    // Skip if either pick is protected
-    if (currentPick.protection || nextPick.protection) continue;
-
-    // Check if consecutive years
-    if (nextPick.year === currentPick.year + 1) {
-      return true; // Stepien violation found
-    }
-  }
-
-  return false;
+  // Delegate to canonical validateStepien with minimal team wrapper
+  const result = validateStepien({ outgoingPicks: picks }, {});
+  return !result.passed;
 }
