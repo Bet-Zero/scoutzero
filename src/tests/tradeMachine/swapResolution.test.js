@@ -4,18 +4,17 @@
  * Tests for swap resolution logic, resolved pick representation, and integration
  * with season advance. These tests define expected behavior for Phase 3 EXECUTION.
  *
- * Phase 3 PREFLIGHT - January 2026
+ * Phase 3 EXECUTION - January 2026
  *
  * @file src/tests/tradeMachine/swapResolution.test.js
  */
 
 import { describe, it, expect } from 'vitest';
-
-/**
- * NOTE: These tests are SCAFFOLDING for Phase 3 EXECUTION.
- * The functions being tested do not yet exist.
- * Tests are marked as `.skip` or `.todo` until implementation.
- */
+import {
+  resolveSwapWinner,
+  resolvePickSwap,
+  resolveTeamSwaps,
+} from '@/features/architect/utils/tradeMachine/utils/swapResolution.js';
 
 /**
  * Swap Resolution Core Logic
@@ -27,22 +26,55 @@ import { describe, it, expect } from 'vitest';
  * - worst_of → controller gets pick with HIGHER position number
  */
 describe('Swap Resolution Core Logic', () => {
-  describe.todo('resolveSwap() function');
+  describe('resolveSwapWinner()', () => {
+    // A1: best_of swap resolves to higher pick (lower position number)
+    it('best_of swap resolves to team with better (lower) pick position', () => {
+      const positions = { PHI: 12, OKC: 5 };
+      const result = resolveSwapWinner({ teamA: 'PHI', teamB: 'OKC', swapType: 'best_of' }, positions);
+      // OKC has position 5, which is better (lower) than PHI's 12
+      expect(result).toBe('OKC');
+    });
 
-  // A1: best_of swap resolves to higher pick (lower position number)
-  it.todo('best_of swap resolves to team with better (lower) pick position');
+    // A2: worst_of swap resolves to lower pick (higher position number)
+    it('worst_of swap resolves to team with worse (higher) pick position', () => {
+      const positions = { PHI: 12, OKC: 5 };
+      const result = resolveSwapWinner({ teamA: 'PHI', teamB: 'OKC', swapType: 'worst_of' }, positions);
+      // PHI has position 12, which is worse (higher) than OKC's 5
+      expect(result).toBe('PHI');
+    });
 
-  // A2: worst_of swap resolves to lower pick (higher position number)
-  it.todo('worst_of swap resolves to team with worse (higher) pick position');
+    // A3: Tie handling - teamA wins tie (deterministic)
+    it('handles tie in pick positions (defaults to first team in teams array)', () => {
+      const positions = { PHI: 8, OKC: 8 };
+      const result = resolveSwapWinner({ teamA: 'PHI', teamB: 'OKC', swapType: 'best_of' }, positions);
+      // Tie: teamA (PHI) wins
+      expect(result).toBe('PHI');
+    });
 
-  // A3: Tie handling
-  it.todo('handles tie in pick positions (defaults to first team in teams array)');
+    // A4: Missing position data throws
+    it('throws if position data is incomplete for any team in swap', () => {
+      const positions = { PHI: 12 }; // Missing OKC
+      expect(() => {
+        resolveSwapWinner({ teamA: 'PHI', teamB: 'OKC', swapType: 'best_of' }, positions);
+      }).toThrow(/Missing position data for team OKC/);
+    });
 
-  // A4: Missing position data
-  it.todo('throws if position data is incomplete for any team in swap');
+    // A5: Invalid swap type throws
+    it('throws if swapType is not best_of or worst_of', () => {
+      const positions = { PHI: 12, OKC: 5 };
+      expect(() => {
+        resolveSwapWinner({ teamA: 'PHI', teamB: 'OKC', swapType: 'invalid_type' }, positions);
+      }).toThrow(/Invalid swapType/);
+    });
 
-  // A5: Invalid swap type
-  it.todo('throws if swapType is not best_of or worst_of');
+    // A6: Missing swapType defaults to best_of
+    it('defaults to best_of when swapType is missing', () => {
+      const positions = { PHI: 12, OKC: 5 };
+      const result = resolveSwapWinner({ teamA: 'PHI', teamB: 'OKC' }, positions);
+      // Default best_of: OKC has position 5, which is better
+      expect(result).toBe('OKC');
+    });
+  });
 });
 
 /**
@@ -209,8 +241,9 @@ describe('Season Advance + Resolution (structure tests)', () => {
  *
  * Tests for how resolved vs unresolved swaps should display.
  */
+import { formatPick, formatSwapInfo } from '@/features/architect/utils/tradeHelpers.js';
+
 describe('Display Labels for Resolved Swaps', () => {
-  // E1: Unresolved swap shows swap info
   it('unresolved swap label includes swap partner and type', () => {
     const unresolvedPick = {
       year: 2027,
@@ -222,13 +255,44 @@ describe('Display Labels for Resolved Swaps', () => {
     };
 
     // Expected format: "2027 1st Round 🔁 Swap (Best of) vs OKC"
-    // Label should include:
-    expect(unresolvedPick.swapType).toBe('best_of');
-    expect(unresolvedPick.swapWithTeamId).toBe('OKC');
+    const label = formatPick(unresolvedPick);
+    expect(label).toContain('2027 1st Round');
+    expect(label).toContain('🔁');
+    expect(label).toContain('Swap (Best of) vs OKC');
+    expect(label).not.toContain('Won by');
   });
 
-  // E2: Resolved swap could show resolution result
-  it.todo('resolved swap label shows who won the swap');
+  it('resolved swap label shows who won the swap', () => {
+    const resolvedPick = {
+      year: 2026,
+      round: '1st',
+      isSwap: true,
+      swapType: 'best_of',
+      swapWithTeamId: 'OKC',
+      resolved: true,
+      resolvedOwner: 'OKC',
+      resolvedPosition: 5,
+    };
+
+    const label = formatPick(resolvedPick);
+    expect(label).toContain('2026 1st Round');
+    expect(label).toContain('🔁');
+    expect(label).toContain('Swap (Best of) vs OKC');
+    expect(label).toContain('→ Won by OKC');
+  });
+
+  it('formatSwapInfo shows resolved outcome', () => {
+    const resolvedPick = {
+      isSwap: true,
+      swapType: 'worst_of',
+      swapWithTeamId: 'PHI',
+      resolved: true,
+      resolvedOwner: 'PHI',
+    };
+
+    const info = formatSwapInfo(resolvedPick);
+    expect(info).toBe('Swap (Worst of) vs PHI → Won by PHI');
+  });
 });
 
 /**
@@ -236,32 +300,280 @@ describe('Display Labels for Resolved Swaps', () => {
  */
 describe('Swap Resolution Edge Cases', () => {
   // Both teams have same position (tie)
-  it.todo('tie in positions resolved deterministically');
+  it('tie in positions resolved deterministically (teamA wins)', () => {
+    const positions = { PHI: 8, OKC: 8 };
+    // For best_of with tie, teamA wins
+    const result = resolveSwapWinner({ teamA: 'PHI', teamB: 'OKC', swapType: 'best_of' }, positions);
+    expect(result).toBe('PHI');
 
-  // Swap partner team not in lottery (traded pick scenario)
-  it.todo('handles swap where partner pick was previously traded');
+    // For worst_of with tie, teamA also wins
+    const worstResult = resolveSwapWinner({ teamA: 'PHI', teamB: 'OKC', swapType: 'worst_of' }, positions);
+    expect(worstResult).toBe('PHI');
+  });
 
-  // Swap with missing swapWithTeamId
-  it('swap without partner team cannot resolve', () => {
+  // Swap with missing swapWithTeamId returns unchanged
+  it('swap without partner team returns pick unchanged via resolvePickSwap', () => {
     const invalidSwap = {
+      id: 'PHI_2026_1',
       isSwap: true,
       swapType: 'best_of',
       swapWithTeamId: null, // Missing partner
+      originalTeam: 'PHI',
     };
+    const positions = { PHI: 12, OKC: 5 };
+    const result = resolvePickSwap(invalidSwap, positions);
 
-    // Resolution should fail or be skipped for incomplete swaps
-    expect(invalidSwap.swapWithTeamId).toBeFalsy();
+    // Should return unchanged - no resolution possible
+    expect(result).toEqual(invalidSwap);
+    expect(result.resolved).toBeUndefined();
   });
 
   // Swap with missing swapType (backward compatibility)
-  it('missing swapType treated as best_of for backward compatibility', () => {
+  it('missing swapType treated as best_of for backward compatibility in resolvePickSwap', () => {
     const legacySwap = {
+      id: 'PHI_2026_1',
       isSwap: true,
-      // No swapType field
+      // No swapType field - should default to best_of
+      swapWithTeamId: 'OKC',
+      originalTeam: 'PHI',
     };
+    const positions = { PHI: 12, OKC: 5 };
+    const result = resolvePickSwap(legacySwap, positions);
 
-    const defaultSwapType = legacySwap.swapType || 'best_of';
-    expect(defaultSwapType).toBe('best_of');
+    // Should resolve as best_of - OKC wins with position 5
+    expect(result.resolved).toBe(true);
+    expect(result.resolvedOwner).toBe('OKC');
+  });
+
+  // Already resolved pick is returned unchanged (idempotent)
+  it('already resolved pick is returned unchanged (idempotent)', () => {
+    const alreadyResolved = {
+      id: 'PHI_2026_1',
+      isSwap: true,
+      swapType: 'best_of',
+      swapWithTeamId: 'OKC',
+      originalTeam: 'PHI',
+      resolved: true,
+      resolvedOwner: 'PHI', // Already resolved differently
+      resolvedPosition: 12,
+    };
+    const positions = { PHI: 5, OKC: 12 }; // Different positions that would change result
+
+    const result = resolvePickSwap(alreadyResolved, positions);
+
+    // Should return unchanged - already resolved
+    expect(result).toEqual(alreadyResolved);
+    expect(result.resolvedOwner).toBe('PHI'); // Original resolution preserved
+  });
+
+  // Non-swap pick returns unchanged
+  it('non-swap pick returns unchanged via resolvePickSwap', () => {
+    const outrightPick = {
+      id: 'PHI_2026_1',
+      isSwap: false,
+      originalTeam: 'PHI',
+    };
+    const positions = { PHI: 12, OKC: 5 };
+
+    const result = resolvePickSwap(outrightPick, positions);
+
+    expect(result).toEqual(outrightPick);
+    expect(result.resolved).toBeUndefined();
+  });
+});
+
+/**
+ * resolvePickSwap Function Tests
+ */
+describe('resolvePickSwap()', () => {
+  it('resolves best_of swap and adds all Schema A fields', () => {
+    const pick = {
+      id: 'PHI_2026_1',
+      year: 2026,
+      round: 1,
+      originalTeam: 'PHI',
+      isSwap: true,
+      swapType: 'best_of',
+      swapWithTeamId: 'OKC',
+    };
+    const positions = { PHI: 12, OKC: 5 };
+    const result = resolvePickSwap(pick, positions, { nowIso: '2026-06-25T20:00:00Z', method: 'lottery' });
+
+    // Schema A fields
+    expect(result.resolved).toBe(true);
+    expect(result.resolvedOwner).toBe('OKC'); // OKC has position 5 (better)
+    expect(result.resolvedPosition).toBe(5);
+    expect(result.resolutionMeta).toBeDefined();
+    expect(result.resolutionMeta.resolvedAt).toBe('2026-06-25T20:00:00Z');
+    expect(result.resolutionMeta.method).toBe('lottery');
+    expect(result.resolutionMeta.positions).toEqual({ PHI: 12, OKC: 5 });
+
+    // Original fields preserved
+    expect(result.year).toBe(2026);
+    expect(result.round).toBe(1);
+    expect(result.isSwap).toBe(true);
+    expect(result.swapWithTeamId).toBe('OKC');
+  });
+
+  it('resolves worst_of swap correctly', () => {
+    const pick = {
+      id: 'PHI_2026_1',
+      originalTeam: 'PHI',
+      isSwap: true,
+      swapType: 'worst_of',
+      swapWithTeamId: 'OKC',
+    };
+    const positions = { PHI: 12, OKC: 5 };
+    const result = resolvePickSwap(pick, positions);
+
+    // PHI has position 12 (worse) - wins worst_of
+    expect(result.resolved).toBe(true);
+    expect(result.resolvedOwner).toBe('PHI');
+    expect(result.resolvedPosition).toBe(12);
+  });
+
+  it('throws when position data is missing', () => {
+    const pick = {
+      id: 'PHI_2026_1',
+      originalTeam: 'PHI',
+      isSwap: true,
+      swapType: 'best_of',
+      swapWithTeamId: 'OKC',
+    };
+    const positions = { PHI: 12 }; // Missing OKC
+
+    expect(() => resolvePickSwap(pick, positions)).toThrow(/Missing position data for team OKC/);
+  });
+});
+
+/**
+ * resolveTeamSwaps Batch Resolution Tests
+ */
+describe('resolveTeamSwaps()', () => {
+  it('resolves multiple swaps in one call', () => {
+    const picks = [
+      {
+        id: 'PHI_2026_1',
+        year: 2026,
+        originalTeam: 'PHI',
+        isSwap: true,
+        swapType: 'best_of',
+        swapWithTeamId: 'OKC',
+      },
+      {
+        id: 'LAL_2026_1',
+        year: 2026,
+        originalTeam: 'LAL',
+        isSwap: true,
+        swapType: 'worst_of',
+        swapWithTeamId: 'BOS',
+      },
+      {
+        id: 'MIA_2026_1',
+        year: 2026,
+        originalTeam: 'MIA',
+        isSwap: false, // Not a swap
+      },
+    ];
+    const positions = { PHI: 12, OKC: 5, LAL: 3, BOS: 20, MIA: 15 };
+
+    const result = resolveTeamSwaps(picks, positions);
+
+    expect(result.resolvedCount).toBe(2);
+    expect(result.warnings).toHaveLength(0);
+
+    // First swap: best_of PHI vs OKC -> OKC wins
+    expect(result.draftPicks[0].resolved).toBe(true);
+    expect(result.draftPicks[0].resolvedOwner).toBe('OKC');
+
+    // Second swap: worst_of LAL vs BOS -> BOS wins (20 > 3)
+    expect(result.draftPicks[1].resolved).toBe(true);
+    expect(result.draftPicks[1].resolvedOwner).toBe('BOS');
+
+    // Third pick: unchanged (not a swap)
+    expect(result.draftPicks[2].resolved).toBeUndefined();
+  });
+
+  it('skips picks that are not the specified draft year', () => {
+    const picks = [
+      {
+        id: 'PHI_2026_1',
+        year: 2026,
+        originalTeam: 'PHI',
+        isSwap: true,
+        swapType: 'best_of',
+        swapWithTeamId: 'OKC',
+      },
+      {
+        id: 'PHI_2027_1',
+        year: 2027,
+        originalTeam: 'PHI',
+        isSwap: true,
+        swapType: 'best_of',
+        swapWithTeamId: 'OKC',
+      },
+    ];
+    const positions = { PHI: 12, OKC: 5 };
+
+    const result = resolveTeamSwaps(picks, positions, { draftYear: 2026 });
+
+    expect(result.resolvedCount).toBe(1);
+    expect(result.draftPicks[0].resolved).toBe(true); // 2026 resolved
+    expect(result.draftPicks[1].resolved).toBeUndefined(); // 2027 skipped
+  });
+
+  it('returns unchanged when positionsMap is missing', () => {
+    const picks = [
+      {
+        id: 'PHI_2026_1',
+        isSwap: true,
+        swapType: 'best_of',
+        swapWithTeamId: 'OKC',
+      },
+    ];
+
+    const result = resolveTeamSwaps(picks, null);
+
+    expect(result.resolvedCount).toBe(0);
+    expect(result.warnings).toContainEqual(expect.stringMatching(/No positionsMap provided/));
+    expect(result.draftPicks[0].resolved).toBeUndefined();
+  });
+
+  it('adds warning when swap partner position is missing', () => {
+    const picks = [
+      {
+        id: 'PHI_2026_1',
+        originalTeam: 'PHI',
+        isSwap: true,
+        swapType: 'best_of',
+        swapWithTeamId: 'OKC', // OKC not in positions
+      },
+    ];
+    const positions = { PHI: 12 }; // Missing OKC
+
+    const result = resolveTeamSwaps(picks, positions);
+
+    expect(result.resolvedCount).toBe(0);
+    expect(result.warnings).toContainEqual(expect.stringMatching(/Missing position data for team OKC/));
+    expect(result.draftPicks[0].resolved).toBeUndefined();
+  });
+
+  it('adds warning when swap is missing partner team', () => {
+    const picks = [
+      {
+        id: 'PHI_2026_1',
+        originalTeam: 'PHI',
+        isSwap: true,
+        swapType: 'best_of',
+        swapWithTeamId: null, // Missing partner
+      },
+    ];
+    const positions = { PHI: 12 };
+
+    const result = resolveTeamSwaps(picks, positions);
+
+    expect(result.resolvedCount).toBe(0);
+    expect(result.warnings).toContainEqual(expect.stringMatching(/missing swapWithTeamId/));
   });
 });
 

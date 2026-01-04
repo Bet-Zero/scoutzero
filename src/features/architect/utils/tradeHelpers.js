@@ -310,8 +310,12 @@ export const getSwapTypeDisplay = (swapType) => {
 /**
  * Formats swap information for display.
  * 
+ * Phase 3 Updates:
+ * - Shows resolved outcome when `pick.resolved === true`
+ * - Example: "Swap (Best of) vs OKC → Won by OKC"
+ * 
  * @param {Object} pick - Pick object with isSwap, swapType, swapWithTeamId
- * @returns {string} - Formatted swap string (e.g., "Swap (Best of) vs OKC")
+ * @returns {string} - Formatted swap string (e.g., "Swap (Best of) vs OKC → Won by OKC")
  */
 export const formatSwapInfo = (pick) => {
   if (!pick?.isSwap) return '';
@@ -321,6 +325,12 @@ export const formatSwapInfo = (pick) => {
   if (pick.swapWithTeamId) {
     result += ` vs ${pick.swapWithTeamId}`;
   }
+  
+  // Show resolved outcome if available
+  if (pick.resolved === true && pick.resolvedOwner) {
+    result += ` → Won by ${pick.resolvedOwner}`;
+  }
+  
   return result;
 };
 
@@ -332,10 +342,18 @@ export const formatSwapInfo = (pick) => {
  * - Shows swap partner if present: "vs OKC"
  * - Missing swapType defaults to "Best of"
  * 
+ * Phase 3 Updates:
+ * - Shows resolved outcome for resolved swaps
+ * - Supports `includeNote` option (default: true)
+ * 
  * @param {Object} p - Pick object
+ * @param {Object} [options={}] - Formatting options
+ * @param {boolean} [options.includeNote=true] - Whether to include note field
  * @returns {string} - Formatted pick string
  */
-export const formatPick = (p) => {
+export const formatPick = (p, options = {}) => {
+  const { includeNote = true } = options;
+  
   if (!p) return '';
   let str = `${p.year} ${p.round} Round`;
   if (p.via) str += ` (via ${p.via})`;
@@ -343,7 +361,7 @@ export const formatPick = (p) => {
   if (p.isSwap) {
     str += ` 🔁 ${formatSwapInfo(p)}`;
   }
-  if (p.note) str += ` 📝 ${p.note}`;
+  if (includeNote && p.note) str += ` 📝 ${p.note}`;
   return str;
 };
 

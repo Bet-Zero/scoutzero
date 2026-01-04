@@ -1,7 +1,7 @@
 # Trade Machine Draft Picks Master Document
 
-> **Version**: 2.1.0 (January 2026)  
-> **Status**: PHASE 2 COMPLETE - Swap Year Reservation Implemented  
+> **Version**: 2.2.0 (January 2026)  
+> **Status**: PHASE 3 COMPLETE - Swap Resolution Infrastructure Implemented  
 > **Purpose**: Comprehensive audit of draft pick implementation in Trade Machine  
 > **Author**: Automated Code Audit  
 
@@ -1906,5 +1906,106 @@ Based on PREFLIGHT findings, Phase 3 EXECUTION should:
 3. **Optionally unify label formatters** (low priority)
 4. **NOT implement full conveyance/rollover** (separate future phase)
 5. **NOT wire into production flow** until draft sim exists
+
+---
+
+## Phase 3 EXECUTION Completion Log (January 2026)
+
+> **Status**: PHASE 3 COMPLETE  
+> **Date**: 2026-01-04  
+> **Version**: 2.2.0
+
+### What Changed
+
+#### T1) Swap Resolution Utility (Pure) ✅
+
+Created `src/features/architect/utils/tradeMachine/utils/swapResolution.js` with:
+
+- **`resolveSwapWinner({ teamA, teamB, swapType }, positionsMap)`** - Returns winning team code
+  - `best_of` = lower pick number wins (5 beats 12)
+  - `worst_of` = higher pick number wins
+  - Tie behavior: teamA wins (deterministic)
+  - Throws on missing position data
+
+- **`resolvePickSwap(pick, positionsMap, { nowIso, method })`** - Resolves a single pick swap
+  - If `pick.isSwap !== true` → returns unchanged
+  - If missing `swapWithTeamId` → returns unchanged
+  - If `pick.resolved === true` → returns unchanged (idempotent)
+  - Returns new pick object with Schema A fields
+
+- **`resolveTeamSwaps(draftPicks, positionsMap, options)`** - Batch resolution
+
+#### T2) Season-Advance Resolution Hook ✅
+
+Added `resolveDraftPickSwapsForYear(team, draftYear, positionsMap, opts)` to `seasonManager.js`:
+
+- **NO-OP without lottery results**: Returns team unchanged when `positionsMap` is null/undefined/empty
+- Only resolves first-round swaps (`round === 1`)
+- Only resolves matching year (`pick.year === draftYear`)
+- Leaves picks unresolved when partner or positions missing (no throw)
+
+**Integration Pattern**: Available as exported utility, not wired into existing flow.
+
+#### T3) Schema A Fields (Additive Only) ✅
+
+Picks can now carry resolution fields:
+- `resolved: boolean`
+- `resolvedOwner: TeamCode`
+- `resolvedPosition: number`
+- `resolutionMeta: { resolvedAt, method, positions }`
+
+Verified: `ensurePickId()` preserves all fields via spread operator.
+
+#### T4) Unified Label Formatting ✅
+
+- Replaced local `getPickLabel()` in `TradeSummaryPanel.jsx` with shared `formatPick()` from `tradeHelpers.js`
+- Standardized swap emoji to 🔁 everywhere
+
+#### T5) Resolved Swap Display ✅
+
+Extended `formatSwapInfo(pick)` to show resolved outcome:
+- Unresolved: `"Swap (Best of) vs OKC"`
+- Resolved: `"Swap (Best of) vs OKC → Won by OKC"`
+
+### Files Changed/Added
+
+| File | Action | Description |
+|------|--------|-------------|
+| `src/features/architect/utils/tradeMachine/utils/swapResolution.js` | **Created** | Swap resolution utilities |
+| `src/features/architect/utils/seasonManager.js` | Modified | Added `resolveDraftPickSwapsForYear()` |
+| `src/features/architect/utils/tradeHelpers.js` | Modified | Extended `formatSwapInfo()` and `formatPick()` |
+| `src/features/architect/tradeMachine/TradeSummaryPanel.jsx` | Modified | Unified label formatting |
+| `src/features/architect/utils/tradeMachine/index.js` | Modified | Export swap resolution utilities |
+| `src/tests/tradeMachine/swapResolution.test.js` | Modified | Real tests for resolution logic |
+| `src/tests/tradeMachine/seasonSwapResolution.test.js` | **Created** | Season-advance integration tests |
+| `docs/return-packages/trade-machine-draft-picks__phase-3-execution__2026-01-04.md` | **Created** | Phase 3 Return Package |
+
+### Validation Commands Run
+
+```bash
+npm run test -- src/tests/tradeMachine/swapResolution.test.js --run      # 30 passed
+npm run test -- src/tests/tradeMachine/seasonSwapResolution.test.js --run # 13 passed
+npm run test -- src/tests/tradeMachine/draftPicksPreflight.test.js --run  # 23 passed
+npm run build                                                             # ✓ Success
+```
+
+### Acceptance Criteria Status
+
+| # | Criterion | Status |
+|---|-----------|--------|
+| 1 | Pure swap resolution utilities exist and are fully tested | ✅ |
+| 2 | Season advance integration is NO-OP without lottery results | ✅ |
+| 3 | Picks can carry Schema A fields without breaking flows | ✅ |
+| 4 | SummaryPanel uses shared formatter | ✅ |
+| 5 | Resolved swaps display outcome consistently | ✅ |
+| 6 | All tests pass; build passes | ✅ |
+
+### What Remains (Phase 4+)
+
+1. **Draft Lottery Simulator** - No simulation exists
+2. **Lottery Results Ingestion** - No data pipeline
+3. **Conveyance/Rollover Logic** - Protection rollover not implemented
+4. **Multi-Team Swaps** - 3+ team swaps not supported
+5. **Second-Round Swap Resolution** - Only first-round implemented
 
 ---

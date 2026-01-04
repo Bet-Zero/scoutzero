@@ -65,3 +65,10 @@ export {
   ensurePickId,
   areSamePickById,
 } from './utils/pickIdUtils.js';
+
+// Swap resolution utilities (Phase 3) - swap resolution infrastructure
+export {
+  resolveSwapWinner,
+  resolvePickSwap,
+  resolveTeamSwaps,
+} from './utils/swapResolution.js';

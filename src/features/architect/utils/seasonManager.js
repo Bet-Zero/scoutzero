@@ -913,3 +913,104 @@ function updateDraftPicksWithStepien(teamData, fromSeason, toSeason) {
     stepienUpdates,
   };
 }
+
+// ==============================================================================
+// PHASE 3: SWAP RESOLUTION HELPER
+// ==============================================================================
+
+/**
+ * Resolve draft pick swaps for a specific year
+ *
+ * This is a pure function that processes a team's draft picks and resolves
+ * any swap rights for the specified draft year, using the provided lottery
+ * results (positionsMap).
+ *
+ * CRITICAL: This function is a NO-OP unless positionsMap is provided with
+ * actual position data. Default behavior returns the team unchanged.
+ *
+ * Only processes picks that:
+ * - Are first-round picks (round === 1)
+ * - Are swap picks (isSwap === true)
+ * - Match the specified draft year
+ * - Are not already resolved (resolved !== true)
+ *
+ * Picks that cannot be resolved (missing partner or missing positions) are
+ * left unresolved (no throw during season advance).
+ *
+ * @param {Object} team - Team data with draftPicks array
+ * @param {number} draftYear - Year to resolve swaps for
+ * @param {Object<string, number>} [positionsMap] - Map of team codes to draft positions
+ * @param {Object} [opts={}] - Options
+ * @param {string} [opts.nowIso] - ISO timestamp for resolution
+ * @param {string} [opts.method='lottery'] - Resolution method for audit trail
+ * @returns {Object} - Team with updated draftPicks array
+ */
+export function resolveDraftPickSwapsForYear(team, draftYear, positionsMap, opts = {}) {
+  // Return team unchanged if no positions provided (NO-OP)
+  if (!positionsMap || typeof positionsMap !== 'object' || Object.keys(positionsMap).length === 0) {
+    return team;
+  }
+
+  // Return team unchanged if no draft picks
+  if (!team?.draftPicks || !Array.isArray(team.draftPicks)) {
+    return team;
+  }
+
+  // Import the resolution utility inline to avoid circular dependencies
+  // This is a dynamic import pattern that works in ES modules
+  const { resolvePickSwap } = require('./tradeMachine/utils/swapResolution.js');
+
+  const { nowIso, method = 'lottery' } = opts;
+
+  const updatedPicks = team.draftPicks.map((pick) => {
+    // Skip non-swap picks
+    if (!pick || pick.isSwap !== true) {
+      return pick;
+    }
+
+    // Skip non-first-round picks (Phase 3 only resolves first round)
+    const round = typeof pick.round === 'string'
+      ? parseInt(pick.round.replace(/\D/g, ''), 10)
+      : pick.round;
+    if (round !== 1) {
+      return pick;
+    }
+
+    // Skip picks not in the specified year
+    if (pick.year !== draftYear) {
+      return pick;
+    }
+
+    // Skip already resolved
+    if (pick.resolved === true) {
+      return pick;
+    }
+
+    // Skip if missing swap partner
+    if (!pick.swapWithTeamId) {
+      return pick;
+    }
+
+    // Check if we have positions for both teams
+    const teamA = pick.originalTeam || 'UNK';
+    const teamB = pick.swapWithTeamId;
+
+    if (!(teamA in positionsMap) || !(teamB in positionsMap)) {
+      // Missing position data - leave unresolved (no throw)
+      return pick;
+    }
+
+    // Attempt resolution - catch any errors and leave unresolved
+    try {
+      return resolvePickSwap(pick, positionsMap, { nowIso, method });
+    } catch {
+      // Resolution failed - leave pick unresolved
+      return pick;
+    }
+  });
+
+  return {
+    ...team,
+    draftPicks: updatedPicks,
+  };
+}
