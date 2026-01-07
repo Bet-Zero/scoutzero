@@ -17,6 +17,7 @@ Quick reference for all components in the ScoutZero project.
 - FreeAgentRow.jsx
 - GMDashboard/GMDashboard.jsx
 - GMDashboard/components/DeleteWorldModal.jsx
+- GMDashboard/components/DraftPositionsInput.jsx
 - GMDashboard/components/SeasonAdvanceModal.jsx
 - GMDashboard/components/WorldSelector.jsx
 - GMDashboard/components/index.js
@@ -322,4 +323,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2026-01-04T09:56:49.893Z*
+*Generated on: 2026-01-07T07:39:17.997Z*
