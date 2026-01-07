@@ -2235,13 +2235,4 @@ npm run build                                                               # �
 | 7 | No Stepien regression for legacy protection | ✅ |
 | 8 | Master Doc updated + Execution Return Package created | ✅ |
 
-### What Remains (Phase 5+)
-
-1. **Draft Lottery Simulator** - No simulation to generate positionsMap
-2. **Lottery Results Ingestion** - No data pipeline for real results
-3. **Multi-Team Swaps** - 3+ team swaps not supported
-4. **Second-Round Conveyance** - Only first-round implemented
-5. **Stepien Calendar Visualization** - UI indicator of blocked years
-6. **Full protectionLadder UI** - UI for editing multi-tier protection
-
 ---
