@@ -1,7 +1,7 @@
 # Trade Machine Draft Picks Master Document
 
-> **Version**: 2.4.0 (January 2026)  
-> **Status**: PHASE 5 COMPLETE - Draft Positions Input + Auto-Resolution Wiring  
+> **Version**: 2.4.1 (January 2026)  
+> **Status**: PHASE 5 COMPLETE + DESYNC PATCH - Season Advance uses worldMeta as single source of truth  
 > **Purpose**: Comprehensive audit of draft pick implementation in Trade Machine  
 > **Author**: Automated Code Audit  
 
@@ -2410,5 +2410,20 @@ npm run build                                                              # ✓
    - If draft positions exist for the current year, swaps and protected picks auto-resolve
    - Summary shows which picks were resolved
    - If no positions saved, picks remain unchanged (NO-OP)
+
+### Phase 5 PATCH: Season Advance Desync Fix (January 2026)
+
+> **Date**: 2026-01-07  
+> **Version**: 2.4.1
+
+**Issue**: UI could show 2025-26 while Firestore `worldMeta.currentSeason` was already 2026-27 (or vice versa), causing "skips a year" perception and draft position year misalignment.
+
+**Fix Summary**:
+1. `SeasonAdvanceModal` no longer passes `fromSeason`/`toSeason` — `advanceSeasonInWorld()` uses `worldMeta.currentSeason` as single source of truth
+2. `OffseasonSection` displays "World Season: X" label (fetched from worldMeta)
+3. `DraftPositionsInput` defaults to `worldDraftYear` (derived from world season), not UI view year
+4. `seasonManager.js` rejects calls with conflicting `fromSeason`/`toSeason` to prevent future regressions
+
+**Return Package**: `docs/return-packages/trade-machine-draft-picks__phase-5-season-advance-desync-fix__2026-01-07.md`
 
 ---
