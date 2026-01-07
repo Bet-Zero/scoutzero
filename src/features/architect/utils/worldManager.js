@@ -503,6 +503,188 @@ export async function updateWorldStats(worldId, actionType, teamCodes = []) {
   await updateDoc(metadataRef, updates);
 }
 
+// ==============================================================================
+// PHASE 5: DRAFT POSITIONS STORAGE
+// ==============================================================================
+
+/** Team code validation pattern - 3 uppercase letters (ATL, BOS, etc.) */
+const TEAM_CODE_PATTERN = /^[A-Z]{3}$/;
+
+/**
+ * Get draft positions for a specific year from world metadata.
+ *
+ * Draft positions are stored in world metadata as:
+ * `draftPositionsByYear: { [year: number]: { positionsMap: { [teamCode: string]: number }, method: 'manual', updatedAtIso: string } }`
+ *
+ * @param {string} worldId - World ID
+ * @param {number} draftYear - Draft year (e.g., 2026)
+ * @returns {Promise<Object|null>} - Position data or null if not set
+ * @returns {Object|null} return.positionsMap - Map of team codes to draft positions (1-60)
+ * @returns {string} return.method - How positions were entered ('manual')
+ * @returns {string} return.updatedAtIso - ISO timestamp of last update
+ */
+export async function getDraftPositions(worldId, draftYear) {
+  if (!worldId || !draftYear) {
+    return null;
+  }
+
+  const metadata = await getWorldMetadata(worldId);
+  const yearData = metadata?.draftPositionsByYear?.[draftYear];
+
+  if (!yearData || !yearData.positionsMap) {
+    return null;
+  }
+
+  return yearData;
+}
+
+/**
+ * Get just the positionsMap for a draft year (convenience helper for resolution).
+ *
+ * @param {string} worldId - World ID
+ * @param {number} draftYear - Draft year
+ * @returns {Promise<Object<string, number>|null>} - Map of team codes to positions, or null
+ */
+export async function getDraftPositionsMap(worldId, draftYear) {
+  const data = await getDraftPositions(worldId, draftYear);
+  return data?.positionsMap || null;
+}
+
+/**
+ * Validates draft positions map structure.
+ *
+ * @param {Object} positionsMap - Map of team codes to positions
+ * @returns {{ valid: boolean, errors: string[] }}
+ */
+export function validateDraftPositionsMap(positionsMap) {
+  const errors = [];
+
+  if (!positionsMap || typeof positionsMap !== 'object') {
+    return { valid: false, errors: ['positionsMap must be an object'] };
+  }
+
+  const entries = Object.entries(positionsMap);
+
+  if (entries.length === 0) {
+    return { valid: false, errors: ['positionsMap cannot be empty'] };
+  }
+
+  // Track used positions to detect duplicates
+  const usedPositions = new Set();
+
+  for (const [teamCode, position] of entries) {
+    // Validate team code format (3-letter uppercase)
+    if (!TEAM_CODE_PATTERN.test(teamCode)) {
+      errors.push(`Invalid team code: "${teamCode}" (must be 3 uppercase letters)`);
+    }
+
+    // Validate position is a number
+    if (typeof position !== 'number') {
+      errors.push(`Position for ${teamCode} must be a number, got ${typeof position}`);
+      continue;
+    }
+
+    // Validate position range (1-60 for two rounds)
+    if (!Number.isInteger(position) || position < 1 || position > 60) {
+      errors.push(`Position for ${teamCode} must be an integer 1-60, got ${position}`);
+    }
+
+    // Check for duplicate positions
+    if (usedPositions.has(position)) {
+      errors.push(`Duplicate position ${position} (each position must be unique)`);
+    }
+    usedPositions.add(position);
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
+}
+
+/**
+ * Save draft positions for a specific year.
+ *
+ * Stores the positions map in world metadata under:
+ * `draftPositionsByYear.{year}.positionsMap`
+ *
+ * @param {string} worldId - World ID
+ * @param {number} draftYear - Draft year (e.g., 2026)
+ * @param {Object<string, number>} positionsMap - Map of team codes to draft positions
+ * @param {Object} [options={}] - Options
+ * @param {string} [options.method='manual'] - How positions were entered
+ * @returns {Promise<{ success: boolean, errors?: string[] }>}
+ */
+export async function saveDraftPositions(worldId, draftYear, positionsMap, options = {}) {
+  if (!worldId) {
+    return { success: false, errors: ['worldId is required'] };
+  }
+
+  if (!draftYear || typeof draftYear !== 'number') {
+    return { success: false, errors: ['draftYear must be a number'] };
+  }
+
+  // Validate positions map
+  const validation = validateDraftPositionsMap(positionsMap);
+  if (!validation.valid) {
+    return { success: false, errors: validation.errors };
+  }
+
+  const { method = 'manual' } = options;
+
+  try {
+    const metadataRef = worldMetadataRef(worldId);
+
+    // Use dot notation to update nested field without overwriting siblings
+    await updateDoc(metadataRef, {
+      [`draftPositionsByYear.${draftYear}`]: {
+        positionsMap,
+        method,
+        updatedAtIso: new Date().toISOString(),
+      },
+      lastModifiedAt: serverTimestamp(),
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('saveDraftPositions failed:', error);
+    return { success: false, errors: [error.message || 'Failed to save draft positions'] };
+  }
+}
+
+/**
+ * Clear draft positions for a specific year.
+ *
+ * @param {string} worldId - World ID
+ * @param {number} draftYear - Draft year to clear
+ * @returns {Promise<{ success: boolean, errors?: string[] }>}
+ */
+export async function clearDraftPositions(worldId, draftYear) {
+  if (!worldId) {
+    return { success: false, errors: ['worldId is required'] };
+  }
+
+  if (!draftYear || typeof draftYear !== 'number') {
+    return { success: false, errors: ['draftYear must be a number'] };
+  }
+
+  try {
+    const metadataRef = worldMetadataRef(worldId);
+
+    // Firestore doesn't support deleting nested fields easily;
+    // set to null to "clear" the value
+    await updateDoc(metadataRef, {
+      [`draftPositionsByYear.${draftYear}`]: null,
+      lastModifiedAt: serverTimestamp(),
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('clearDraftPositions failed:', error);
+    return { success: false, errors: [error.message || 'Failed to clear draft positions'] };
+  }
+}
+
 /**
  * DEV ONLY: Fix world ownership by updating createdBy to current user
  *
