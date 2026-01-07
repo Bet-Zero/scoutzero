@@ -17,6 +17,7 @@ GMDashboard/
   GMDashboard.jsx
   components/
     DeleteWorldModal.jsx
+    DraftPositionsInput.jsx
     SeasonAdvanceModal.jsx
     WorldSelector.jsx
     index.js
@@ -273,5 +274,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-01-04T09:56:49.880Z*
+*Generated on: 2026-01-07T07:39:17.986Z*
 *Auto-updated by: npm run docs*

@@ -7,13 +7,16 @@
  *  - 2025-12-20: Created - exports WorldSelector for Phase 2A
  *  - 2025-12-20: Added SeasonAdvanceModal for Phase 3B
  *  - 2025-12-21: Added DeleteWorldModal for Phase 4A
+ *  - 2026-01-07: Added DraftPositionsInput for Phase 5
  *
  * LINKS:
  *  - WorldSelector: ./WorldSelector.jsx
  *  - SeasonAdvanceModal: ./SeasonAdvanceModal.jsx
  *  - DeleteWorldModal: ./DeleteWorldModal.jsx
+ *  - DraftPositionsInput: ./DraftPositionsInput.jsx
  */
 
 export { WorldSelector } from './WorldSelector';
 export { SeasonAdvanceModal } from './SeasonAdvanceModal';
 export { DeleteWorldModal } from './DeleteWorldModal';
+export { DraftPositionsInput } from './DraftPositionsInput';

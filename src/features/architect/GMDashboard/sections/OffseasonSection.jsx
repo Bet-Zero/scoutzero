@@ -2,11 +2,13 @@
  * FILE: src/features/architect/GMDashboard/sections/OffseasonSection.jsx
  * PURPOSE: Wraps the OffseasonTab component for the GM dashboard Offseason view.
  *          Phase 3B: Added world-aware season advancement with SeasonAdvanceModal.
+ *          Phase 5: Added DraftPositionsInput for real draft results input.
  * OWNERSHIP: Feature: architect/GMDashboard
  *
  * HISTORY:
  *  - 2025-12-12: Created outside plan mode (no chunks); header added per request.
  *  - 2025-12-20: Phase 3B - Added SeasonAdvanceModal integration for world-scoped season advancement.
+ *  - 2026-01-07: Phase 5 - Added DraftPositionsInput for entering draft positions.
  *
  * LINKS:
  *  - Plan: N/A (not created via plan)
@@ -15,7 +17,7 @@
 
 import React, { useState, useCallback } from 'react';
 import OffseasonTab from '@/features/architect/OffseasonTab';
-import { SeasonAdvanceModal } from '@/features/architect/GMDashboard/components';
+import { SeasonAdvanceModal, DraftPositionsInput } from '@/features/architect/GMDashboard/components';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
 
 const OffseasonSection = ({
@@ -86,6 +88,13 @@ const OffseasonSection = ({
               Advance Season
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Phase 5: Draft Positions Input */}
+      {worldId && (
+        <div className="mb-6">
+          <DraftPositionsInput worldId={worldId} currentYear={currentYear} />
         </div>
       )}
 

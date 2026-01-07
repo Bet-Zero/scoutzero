@@ -12,12 +12,14 @@
  *                         - Added Stepien recalculation for draft picks
  *                         - Refactored processOptions to accept optionDecisions
  *  - 2026-01-04: Phase 3 - Added resolveDraftPickSwapsForYear for swap resolution
+ *  - 2026-01-07: Phase 5 - Added auto-resolution of conveyance + swaps during season advance
+ *                         - Reads positionsMap from world.draftPositionsByYear
  */
 
 import { db } from '@/firebaseConfig';
 import { writeBatch, serverTimestamp, increment } from 'firebase/firestore';
 import { getLeague } from '@/features/architect/utils/teamLoader';
-import { getWorldMetadata } from '@/features/architect/utils/worldManager';
+import { getWorldMetadata, getDraftPositionsMap } from '@/features/architect/utils/worldManager';
 import {
   toEndYear,
   toSeasonCode,
@@ -469,6 +471,14 @@ export async function advanceSeasonInWorld(worldId, options = {}) {
     const toYear = fromYear + 1;
     const toSeason = options.toSeason || toSeasonCode(toYear);
 
+    // ===========================================================================
+    // PHASE 5: Load draft positions for the draft year being advanced past
+    // ===========================================================================
+    // When advancing from 2025-26 to 2026-27, we're passing the 2026 draft.
+    // Load positions for fromYear (the draft that just happened).
+    const draftYear = fromYear;
+    const positionsMap = await getDraftPositionsMap(worldId, draftYear);
+    
     // Load all teams in the world
     const teams = await getLeague(worldId);
 
@@ -479,6 +489,9 @@ export async function advanceSeasonInWorld(worldId, options = {}) {
       declinedOptions: [],
       expiredContracts: [],
       stepienUpdates: [],
+      // Phase 5: Track draft pick resolutions
+      conveyanceResolutions: [],
+      swapResolutions: [],
     };
 
     // Process each team
@@ -486,11 +499,13 @@ export async function advanceSeasonInWorld(worldId, options = {}) {
       const teamCode = team.teamCode;
 
       // Process team for season transition with explicit option decisions
+      // Phase 5: Also pass positionsMap + draftYear for auto-resolution
       const { updatedTeam, teamSummary } = await processTeamSeasonTransitionWithOptions(
         team,
         fromSeason,
         toSeason,
-        optionDecisions
+        optionDecisions,
+        { positionsMap, draftYear }
       );
 
       // Merge summaries
@@ -505,6 +520,13 @@ export async function advanceSeasonInWorld(worldId, options = {}) {
       }
       if (teamSummary.stepienUpdates.length > 0) {
         summary.stepienUpdates.push(...teamSummary.stepienUpdates);
+      }
+      // Phase 5: Merge resolution summaries
+      if (teamSummary.conveyanceResolutions?.length > 0) {
+        summary.conveyanceResolutions.push(...teamSummary.conveyanceResolutions);
+      }
+      if (teamSummary.swapResolutions?.length > 0) {
+        summary.swapResolutions.push(...teamSummary.swapResolutions);
       }
 
       // Save snapshot if team was modified
@@ -532,6 +554,10 @@ export async function advanceSeasonInWorld(worldId, options = {}) {
       toSeason,
       updatedTeams,
       summary,
+      // Phase 5: Include resolution info in result
+      draftResolutionInfo: positionsMap
+        ? { draftYear, hadPositions: true, resolvedConveyances: summary.conveyanceResolutions.length, resolvedSwaps: summary.swapResolutions.length }
+        : { draftYear, hadPositions: false },
     };
   } catch (error) {
     console.error('advanceSeasonInWorld failed:', error);
@@ -549,13 +575,17 @@ export async function advanceSeasonInWorld(worldId, options = {}) {
  * @param {string} fromSeason - Current season
  * @param {string} toSeason - Target season
  * @param {Object} optionDecisions - Map of playerId to option decision
+ * @param {Object} [resolutionContext={}] - Phase 5: Draft resolution context
+ * @param {Object<string, number>} [resolutionContext.positionsMap] - Positions map for resolution
+ * @param {number} [resolutionContext.draftYear] - Draft year to resolve
  * @returns {Promise<Object>} Updated team data and summary
  */
 async function processTeamSeasonTransitionWithOptions(
   teamData,
   fromSeason,
   toSeason,
-  optionDecisions
+  optionDecisions,
+  resolutionContext = {}
 ) {
   const updatedTeam = { ...teamData };
   let hasChanges = false;
@@ -564,10 +594,91 @@ async function processTeamSeasonTransitionWithOptions(
     declinedOptions: [],
     expiredContracts: [],
     stepienUpdates: [],
+    // Phase 5: Track draft pick resolutions
+    conveyanceResolutions: [],
+    swapResolutions: [],
   };
 
   // Update team season
   updatedTeam.season = toSeason;
+
+  // ===========================================================================
+  // PHASE 5: Auto-resolve draft picks BEFORE other processing
+  // ===========================================================================
+  // Resolution order: conveyance first, then swaps
+  // This ensures that rolled picks are properly tracked before swap resolution
+  const { positionsMap, draftYear } = resolutionContext;
+
+  if (positionsMap && draftYear && Object.keys(positionsMap).length > 0) {
+    const resolutionOpts = {
+      nowIso: new Date().toISOString(),
+      method: 'season_advance',
+    };
+
+    // 1) Resolve conveyance (protections rolling forward / converting)
+    const afterConveyance = resolveDraftPickConveyanceForYear(
+      updatedTeam,
+      draftYear,
+      positionsMap,
+      resolutionOpts
+    );
+    
+    // Track conveyance resolutions
+    // Build a Set of original pick IDs that already had conveyanceResult for O(1) lookup
+    const originalConveyedIds = new Set(
+      (teamData.draftPicks || [])
+        .filter((p) => p?.conveyanceResult)
+        .map((p) => p.id)
+    );
+    
+    if (afterConveyance.draftPicks) {
+      const conveyedPicks = afterConveyance.draftPicks.filter(
+        (p) => p?.conveyanceResult && !originalConveyedIds.has(p.id)
+      );
+      for (const pick of conveyedPicks) {
+        teamSummary.conveyanceResolutions.push({
+          pickId: pick.id,
+          year: pick.year,
+          outcome: pick.conveyanceResult?.outcome,
+          position: pick.conveyanceResult?.position,
+        });
+        hasChanges = true;
+      }
+      updatedTeam.draftPicks = afterConveyance.draftPicks;
+    }
+
+    // 2) Resolve swaps (best_of / worst_of resolution)
+    const afterSwaps = resolveDraftPickSwapsForYear(
+      updatedTeam,
+      draftYear,
+      positionsMap,
+      resolutionOpts
+    );
+
+    // Track swap resolutions
+    // Build a Set of original pick IDs that were already resolved for O(1) lookup
+    const originalResolvedIds = new Set(
+      (teamData.draftPicks || [])
+        .filter((p) => p?.resolved === true)
+        .map((p) => p.id)
+    );
+    
+    if (afterSwaps.draftPicks) {
+      const resolvedSwaps = afterSwaps.draftPicks.filter(
+        (p) => p?.resolved === true && !originalResolvedIds.has(p.id)
+      );
+      for (const pick of resolvedSwaps) {
+        teamSummary.swapResolutions.push({
+          pickId: pick.id,
+          year: pick.year,
+          resolvedOwner: pick.resolvedOwner,
+          resolvedPosition: pick.resolvedPosition,
+        });
+        hasChanges = true;
+      }
+      updatedTeam.draftPicks = afterSwaps.draftPicks;
+    }
+  }
 
   // Process options FIRST with explicit decisions
   const optionsResult = processOptionsWithDecisions(

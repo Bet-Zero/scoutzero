@@ -1,7 +1,7 @@
 # Trade Machine Draft Picks Master Document
 
-> **Version**: 2.3.0 (January 2026)  
-> **Status**: PHASE 4 COMPLETE - Conveyance + Protection Normalization Implemented  
+> **Version**: 2.4.0 (January 2026)  
+> **Status**: PHASE 5 COMPLETE - Draft Positions Input + Auto-Resolution Wiring  
 > **Purpose**: Comprehensive audit of draft pick implementation in Trade Machine  
 > **Author**: Automated Code Audit  
 
@@ -2239,13 +2239,167 @@ npm run build                                                               # �
 
 ## Roadmap / What Remains (Next Phases)
 
-### Phase 5+ (Not Yet Implemented)
+### Phase 6+ (Not Yet Implemented)
 
-1. **Draft Lottery Simulator** — No simulation exists to generate `positionsMap`.
-2. **Lottery Results Ingestion** — No data pipeline/UI exists to import or enter real results.
-3. **Multi-Team Swaps** — 3+ team swaps not supported.
-4. **Second-Round Conveyance** — Only first-round conveyance implemented.
-5. **Stepien Calendar Visualization** — UI indicator of blocked years not implemented.
-6. **Full protectionLadder UI** — No UI for editing multi-tier ladders.
+1. **Draft Lottery Simulator** — No simulation exists to auto-generate `positionsMap`. Manual entry only.
+2. **Multi-Team Swaps** — 3+ team swaps not supported.
+3. **Second-Round Conveyance** — Only first-round conveyance implemented.
+4. **Stepien Calendar Visualization** — UI indicator of blocked years not implemented.
+5. **Full protectionLadder UI** — No UI for editing multi-tier ladders (paste-only JSON).
+6. **Scraping/API Integration** — No automatic import from external draft results sources.
+
+---
+
+## Phase 5 EXECUTION Completion Log (January 2026)
+
+> **Status**: PHASE 5 COMPLETE  
+> **Date**: 2026-01-07  
+> **Version**: 2.4.0
+
+### What Changed
+
+#### T0) PREFLIGHT DISCOVERY ✅
+
+**Findings:**
+- World state stored in Firestore at `architect_worlds/{worldId}` with metadata
+- Season advance triggered via `advanceSeasonInWorld()` in `seasonManager.js`
+- `resolveDraftPickSwapsForYear()` and `resolveDraftPickConveyanceForYear()` exist (Phase 3-4)
+- Both functions are NO-OP when positionsMap is null/empty
+- **No existing draft-results storage** — new field needed
+
+#### T1) DATA MODEL: Store Draft Positions By Year ✅
+
+Added `draftPositionsByYear` storage to world metadata in `worldManager.js`:
+
+**Schema:**
+```javascript
+world.draftPositionsByYear: {
+  [year: number]: {
+    positionsMap: { [teamCode: string]: number },  // e.g., { PHI: 5, OKC: 12 }
+    method: 'manual',                                // How positions were entered
+    updatedAtIso: string                             // ISO timestamp
+  }
+}
+```
+
+**New Functions:**
+- `getDraftPositions(worldId, draftYear)` - Get full position data for a year
+- `getDraftPositionsMap(worldId, draftYear)` - Convenience helper returning just positionsMap
+- `validateDraftPositionsMap(positionsMap)` - Validate structure before save
+- `saveDraftPositions(worldId, draftYear, positionsMap, opts)` - Persist positions
+- `clearDraftPositions(worldId, draftYear)` - Clear positions for a year
+
+**Validation Rules:**
+- Team codes must be 3 uppercase letters (ATL, BOS, etc.)
+- Positions must be integers 1-60 (two rounds)
+- No duplicate positions allowed
+- Empty maps rejected
+
+#### T2) UI: Minimal "Enter Draft Positions" Tool ✅
+
+Created `DraftPositionsInput` component at `src/features/architect/GMDashboard/components/DraftPositionsInput.jsx`:
+
+**Features:**
+- Year selector (current year to +7 years)
+- Textarea for JSON input with template
+- "Validate" action with detailed error messages
+- "Save" action with success/error feedback
+- "Reset to Template" button
+- Shows last-saved timestamp and method
+- Loads existing positions when year changes
+
+**Placement:** Added to `OffseasonSection.jsx` in the GM Dashboard, alongside the Season Advance button.
+
+#### T3) RUNTIME WIRING: Auto-resolve during Season Advance ✅
+
+Modified `advanceSeasonInWorld()` and `processTeamSeasonTransitionWithOptions()` in `seasonManager.js`:
+
+**Flow:**
+1. When advancing from season X to X+1, loads `positionsMap` for draft year X
+2. For each team, applies in order:
+   - `resolveDraftPickConveyanceForYear()` — rolls/conveys protected picks
+   - `resolveDraftPickSwapsForYear()` — resolves swap winners
+3. Tracks resolutions in summary:
+   - `summary.conveyanceResolutions[]` — picks that rolled/conveyed
+   - `summary.swapResolutions[]` — swaps that were resolved
+4. Returns `draftResolutionInfo` with resolution counts
+
+**NO-OP Guarantee Preserved:**
+- If `positionsMap` is null/undefined/empty → no resolution occurs
+- Individual picks without position data left unchanged
+- Error catching prevents single pick failures from breaking entire advance
+
+#### T4) TESTS ✅
+
+Created `src/tests/tradeMachine/phase5DraftPositions.test.js` with 32 tests:
+
+**Test Categories:**
+- `validateDraftPositionsMap()` validation (valid/invalid inputs)
+- NO-OP guarantees (null/undefined/empty positionsMap)
+- Resolution WITH positionsMap (swaps and conveyance)
+- Mixed resolution (multiple picks of different types)
+- Edge cases (empty picks, missing partners, idempotency)
+
+**Commands:**
+```bash
+npm run test -- src/tests/tradeMachine/phase5DraftPositions.test.js --run  # 32 passed
+npm run test -- src/tests/tradeMachine/ --run                              # 170 passed
+npm run build                                                              # ✓ Success
+```
+
+#### T5) DOCS ✅
+
+- Updated Master Doc with Phase 5 completion log
+- Updated Roadmap section (Phase 5 complete, Phase 6+ remaining)
+- Created Return Package at `docs/return-packages/trade-machine-draft-picks__phase-5-execution__2026-01-07.md`
+
+### Files Changed/Added
+
+| File | Action | Description |
+|------|--------|-------------|
+| `src/features/architect/utils/worldManager.js` | Modified | Added draftPositionsByYear storage functions |
+| `src/features/architect/utils/seasonManager.js` | Modified | Added auto-resolution wiring during season advance |
+| `src/features/architect/GMDashboard/components/DraftPositionsInput.jsx` | **Created** | Draft positions input UI |
+| `src/features/architect/GMDashboard/components/index.js` | Modified | Export DraftPositionsInput |
+| `src/features/architect/GMDashboard/sections/OffseasonSection.jsx` | Modified | Added DraftPositionsInput to UI |
+| `src/tests/tradeMachine/phase5DraftPositions.test.js` | **Created** | Phase 5 unit tests |
+| `docs/tradeMachine/TRADE_MACHINE_DRAFT_PICKS_MASTER.md` | Modified | Phase 5 completion log |
+| `docs/return-packages/trade-machine-draft-picks__phase-5-execution__2026-01-07.md` | **Created** | Return Package |
+
+### Validation Summary
+
+| Check | Result | Details |
+|-------|--------|---------|
+| Phase 5 Tests | ✅ 32/32 passed | `npm run test -- src/tests/tradeMachine/phase5DraftPositions.test.js --run` |
+| All TM Tests | ✅ 170/174 passed | 170 passed, 1 skipped, 3 todo |
+| Build | ✅ Success | `npm run build` |
+| NO-OP guarantee | ✅ Verified | Tests confirm no changes when positionsMap missing |
+| Storage schema | ✅ Validated | `validateDraftPositionsMap()` tested with 15 cases |
+| Swap resolution | ✅ Tested | best_of and worst_of both work |
+| Conveyance resolution | ✅ Tested | Roll and convey outcomes work |
+
+### Acceptance Criteria Status
+
+| # | Criterion | Status |
+|---|-----------|--------|
+| 1 | Place to store draft positions by year | ✅ `draftPositionsByYear` in world metadata |
+| 2 | Minimal UI to enter/import draft positions | ✅ `DraftPositionsInput` component |
+| 3 | Season-advance auto-resolves when positionsMap exists | ✅ Wired in `advanceSeasonInWorld()` |
+| 4 | NO-OP without positionsMap | ✅ Tested and verified |
+| 5 | Tests prove NO-OP and resolution behavior | ✅ 32 tests covering all cases |
+| 6 | Does NOT break existing Stepien behavior | ✅ All existing tests pass |
+
+### How to Use
+
+1. **Navigate to GM Dashboard → Offseason tab**
+2. **In the "Draft Positions Input" panel:**
+   - Select the draft year (e.g., 2026)
+   - Paste or edit JSON with team positions: `{ "PHI": 5, "OKC": 12, ... }`
+   - Click "Validate" to check for errors
+   - Click "Save" to store positions
+3. **When you click "Advance Season":**
+   - If draft positions exist for the current year, swaps and protected picks auto-resolve
+   - Summary shows which picks were resolved
+   - If no positions saved, picks remain unchanged (NO-OP)
 
 ---
