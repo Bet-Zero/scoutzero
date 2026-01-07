@@ -3,22 +3,25 @@
  * PURPOSE: Wraps the OffseasonTab component for the GM dashboard Offseason view.
  *          Phase 3B: Added world-aware season advancement with SeasonAdvanceModal.
  *          Phase 5: Added DraftPositionsInput for real draft results input.
+ *          Phase 5 PATCH: Added worldSeason display + DraftPositionsInput alignment.
  * OWNERSHIP: Feature: architect/GMDashboard
  *
  * HISTORY:
  *  - 2025-12-12: Created outside plan mode (no chunks); header added per request.
  *  - 2025-12-20: Phase 3B - Added SeasonAdvanceModal integration for world-scoped season advancement.
  *  - 2026-01-07: Phase 5 - Added DraftPositionsInput for entering draft positions.
+ *  - 2026-01-07: Phase 5 PATCH - Added worldSeason label + aligned DraftPositionsInput to world season.
  *
  * LINKS:
  *  - Plan: N/A (not created via plan)
  *  - Latest Chunk: N/A
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import OffseasonTab from '@/features/architect/OffseasonTab';
 import { SeasonAdvanceModal, DraftPositionsInput } from '@/features/architect/GMDashboard/components';
-import { toEndYear } from '@/features/architect/utils/seasonFormat';
+import { toEndYear, toSeasonCode } from '@/features/architect/utils/seasonFormat';
+import { getWorldMetadata } from '@/features/architect/utils/worldManager';
 
 const OffseasonSection = ({
   teamCapSheet,
@@ -37,6 +40,33 @@ const OffseasonSection = ({
   onReloadWorldData,
 }) => {
   const [showAdvanceModal, setShowAdvanceModal] = useState(false);
+  
+  // Phase 5 PATCH: Track world's actual current season (single source of truth)
+  const [worldSeason, setWorldSeason] = useState(null);
+  const [worldSeasonLoading, setWorldSeasonLoading] = useState(false);
+
+  // Fetch world metadata when worldId changes to get the actual current season
+  useEffect(() => {
+    async function loadWorldSeason() {
+      if (!worldId) {
+        setWorldSeason(null);
+        return;
+      }
+      
+      setWorldSeasonLoading(true);
+      try {
+        const worldMeta = await getWorldMetadata(worldId);
+        setWorldSeason(worldMeta?.currentSeason || null);
+      } catch (error) {
+        console.error('Failed to load world metadata:', error);
+        setWorldSeason(null);
+      } finally {
+        setWorldSeasonLoading(false);
+      }
+    }
+    
+    loadWorldSeason();
+  }, [worldId]);
 
   const handleAdvanceComplete = useCallback((result) => {
     // Update local state after successful season advance
@@ -44,6 +74,9 @@ const OffseasonSection = ({
       // Update currentYear to the new season using toEndYear utility
       const toYear = toEndYear(result.toSeason) ?? currentYear;
       setCurrentYear(toYear);
+      
+      // Phase 5 PATCH: Also update worldSeason to reflect the new season
+      setWorldSeason(result.toSeason);
 
       // Mark offseason as complete
       setOffseasonRun(true);
@@ -65,7 +98,17 @@ const OffseasonSection = ({
         onReloadWorldData();
       }
     }
-  }, [setCurrentYear, setOffseasonRun, setOffseasonSummary, setShowOffseasonModal, onReloadWorldData]);
+  }, [currentYear, setCurrentYear, setOffseasonRun, setOffseasonSummary, setShowOffseasonModal, onReloadWorldData]);
+
+  // Compute world draft year from world season (used for DraftPositionsInput default)
+  // worldSeason "2025-26" → worldDraftYear 2026
+  const worldDraftYear = worldSeason ? toEndYear(worldSeason) : currentYear;
+  
+  // Format the UI's "viewing year" as a season code for comparison
+  const viewingSeason = toSeasonCode(currentYear);
+  
+  // Detect mismatch between UI view and world state
+  const hasSeasonMismatch = worldSeason && worldSeason !== viewingSeason;
 
   return (
     <div>
@@ -79,6 +122,22 @@ const OffseasonSection = ({
                 Advance the entire world to the next season. This will process all 30 teams,
                 expiring contracts, and option decisions.
               </p>
+              {/* Phase 5 PATCH: Display world's actual current season */}
+              {worldSeason && (
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="text-sm font-medium text-purple-400">
+                    World Season: {worldSeason}
+                  </span>
+                  {hasSeasonMismatch && (
+                    <span className="text-xs text-yellow-400">
+                      (Viewing: {viewingSeason})
+                    </span>
+                  )}
+                </div>
+              )}
+              {worldSeasonLoading && (
+                <div className="mt-2 text-xs text-white/40">Loading world season...</div>
+              )}
             </div>
             <button
               type="button"
@@ -91,10 +150,14 @@ const OffseasonSection = ({
         </div>
       )}
 
-      {/* Phase 5: Draft Positions Input */}
+      {/* Phase 5: Draft Positions Input - uses worldDraftYear for default year */}
       {worldId && (
         <div className="mb-6">
-          <DraftPositionsInput worldId={worldId} currentYear={currentYear} />
+          <DraftPositionsInput 
+            worldId={worldId} 
+            currentYear={worldDraftYear}
+            worldSeason={worldSeason}
+          />
         </div>
       )}
 

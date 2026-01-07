@@ -43,10 +43,11 @@ const SAMPLE_POSITIONS_TEMPLATE = {
  *
  * @param {Object} props
  * @param {string|null} props.worldId - Current world ID (required)
- * @param {number} props.currentYear - Current season end year (for default year)
+ * @param {number} props.currentYear - Current season end year (for default year - should be worldDraftYear)
+ * @param {string|null} [props.worldSeason] - World's actual current season (for display)
  */
-export function DraftPositionsInput({ worldId, currentYear }) {
-  // State
+export function DraftPositionsInput({ worldId, currentYear, worldSeason }) {
+  // State - initialize selectedYear from currentYear (which should be worldDraftYear from parent)
   const [selectedYear, setSelectedYear] = useState(currentYear || new Date().getFullYear());
   const [jsonText, setJsonText] = useState('');
   const [validationErrors, setValidationErrors] = useState([]);
@@ -54,6 +55,13 @@ export function DraftPositionsInput({ worldId, currentYear }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
+
+  // Phase 5 PATCH: Update selectedYear when currentYear prop changes (e.g., after season advance)
+  useEffect(() => {
+    if (currentYear) {
+      setSelectedYear(currentYear);
+    }
+  }, [currentYear]);
 
   // Available years for dropdown (current year to +7 years out)
   const availableYears = useMemo(() => {
@@ -196,6 +204,12 @@ export function DraftPositionsInput({ worldId, currentYear }) {
           <p className="text-sm text-white/60 mt-1">
             Enter real draft positions to auto-resolve pick swaps and conveyance during season advance.
           </p>
+          {/* Phase 5 PATCH: Show world season context */}
+          {worldSeason && (
+            <p className="text-xs text-purple-400 mt-1">
+              World Season: {worldSeason} — Default draft year: {currentYear}
+            </p>
+          )}
         </div>
       </div>
 
@@ -305,10 +319,12 @@ export function DraftPositionsInput({ worldId, currentYear }) {
 DraftPositionsInput.propTypes = {
   worldId: PropTypes.string,
   currentYear: PropTypes.number.isRequired,
+  worldSeason: PropTypes.string,
 };
 
 DraftPositionsInput.defaultProps = {
   worldId: null,
+  worldSeason: null,
 };
 
 export default DraftPositionsInput;
