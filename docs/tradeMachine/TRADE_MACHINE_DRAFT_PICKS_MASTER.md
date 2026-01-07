@@ -2317,12 +2317,21 @@ Modified `advanceSeasonInWorld()` and `processTeamSeasonTransitionWithOptions()`
 **Flow:**
 1. When advancing from season X to X+1, loads `positionsMap` for draft year X
 2. For each team, applies in order:
-   - `resolveDraftPickConveyanceForYear()` — rolls/conveys protected picks
-   - `resolveDraftPickSwapsForYear()` — resolves swap winners
+   - `afterConveyance = resolveDraftPickConveyanceForYear(updatedTeam, ...)` — rolls/conveys protected picks
+   - `afterSwaps = resolveDraftPickSwapsForYear(afterConveyance, ...)` — resolves swap winners using post-conveyance state
 3. Tracks resolutions in summary:
    - `summary.conveyanceResolutions[]` — picks that rolled/conveyed
    - `summary.swapResolutions[]` — swaps that were resolved
 4. Returns `draftResolutionInfo` with resolution counts
+
+**Variable Chain (Critical):**
+```javascript
+// 1) Conveyance first — input is updatedTeam
+const afterConveyance = resolveDraftPickConveyanceForYear(updatedTeam, draftYear, positionsMap, opts);
+// 2) Swaps second — input is afterConveyance (NOT updatedTeam)
+const afterSwaps = resolveDraftPickSwapsForYear(afterConveyance, draftYear, positionsMap, opts);
+```
+This ensures swaps see rolled/conveyed picks from the conveyance step.
 
 **NO-OP Guarantee Preserved:**
 - If `positionsMap` is null/undefined/empty → no resolution occurs

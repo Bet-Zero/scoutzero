@@ -648,8 +648,9 @@ async function processTeamSeasonTransitionWithOptions(
     }
 
     // 2) Resolve swaps (best_of / worst_of resolution)
+    // IMPORTANT: Pass afterConveyance (not updatedTeam) so swaps see post-conveyance state
     const afterSwaps = resolveDraftPickSwapsForYear(
-      updatedTeam,
+      afterConveyance,
       draftYear,
       positionsMap,
       resolutionOpts
