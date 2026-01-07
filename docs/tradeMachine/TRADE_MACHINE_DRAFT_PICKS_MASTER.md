@@ -2236,3 +2236,16 @@ npm run build                                                               # �
 | 8 | Master Doc updated + Execution Return Package created | ✅ |
 
 ---
+
+## Roadmap / What Remains (Next Phases)
+
+### Phase 5+ (Not Yet Implemented)
+
+1. **Draft Lottery Simulator** — No simulation exists to generate `positionsMap`.
+2. **Lottery Results Ingestion** — No data pipeline/UI exists to import or enter real results.
+3. **Multi-Team Swaps** — 3+ team swaps not supported.
+4. **Second-Round Conveyance** — Only first-round conveyance implemented.
+5. **Stepien Calendar Visualization** — UI indicator of blocked years not implemented.
+6. **Full protectionLadder UI** — No UI for editing multi-tier ladders.
+
+---
