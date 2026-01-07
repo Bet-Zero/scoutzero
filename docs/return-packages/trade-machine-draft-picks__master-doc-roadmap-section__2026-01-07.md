@@ -11,6 +11,7 @@
 Added a new top-level section **"## Roadmap / What Remains (Next Phases)"** to the Trade Machine Draft Picks Master Doc (`docs/tradeMachine/TRADE_MACHINE_DRAFT_PICKS_MASTER.md`) immediately after the Phase 4 EXECUTION Completion Log section.
 
 **Key Points**:
+
 - The Phase 4 EXECUTION Completion Log section remains **unchanged and exact** — still ends immediately after the Acceptance Criteria table followed by `---`
 - New Roadmap section is a **top-level section** (not nested inside Phase 4 EXECUTION)
 - Consolidates "What Remains" information in a clean, separate place for future phases (Phase 5+)
@@ -28,6 +29,7 @@ Added a new top-level section **"## Roadmap / What Remains (Next Phases)"** to t
 
 ---
 ```
+
 *(Document ended at line 2238)*
 
 ### After (End of Phase 4 Section + New Roadmap Section)
@@ -110,6 +112,7 @@ $ grep -n "## Roadmap / What Remains (Next Phases)" docs/tradeMachine/TRADE_MACH
 ## Confirmation: Docs-Only Changes
 
 ✅ **CONFIRMED**: This change is **docs-only**
+
 - No runtime code files were modified
 - No test files were modified
 - No configuration files were modified
@@ -146,6 +149,7 @@ $ grep -n "## Roadmap / What Remains (Next Phases)" docs/tradeMachine/TRADE_MACH
 ```
 
 **Verification**:
+
 - ✅ Phase 4 EXECUTION ends at line 2238 with `---`
 - ✅ New Roadmap section starts at line 2240 (after blank line)
 - ✅ Roadmap section is top-level (##), not nested (###)
@@ -156,6 +160,7 @@ $ grep -n "## Roadmap / What Remains (Next Phases)" docs/tradeMachine/TRADE_MACH
 ## Next Steps / Usage
 
 This Roadmap section serves as:
+
 1. **Planning Reference** — Clear list of features not yet implemented
 2. **Scope Boundary** — Documents what Phase 4 intentionally did NOT include
 3. **Future Roadmap** — Starting point for Phase 5+ planning and execution

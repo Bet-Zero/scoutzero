@@ -12,6 +12,7 @@
 ### Summary
 
 Phase 4 PREFLIGHT is complete. This document provides a "no-surprises" implementation plan for:
+
 1. **Conveyance / rollover** (protected pick chains, finalYear, convert-to-2nd, etc.)
 2. **Protection normalization** (structured protection vs. loose string)
 3. **Remove "Swap (+) / Swap (-)" entries** from protection dropdown
@@ -19,6 +20,7 @@ Phase 4 PREFLIGHT is complete. This document provides a "no-surprises" implement
 ### Scope Boundary
 
 **IN SCOPE (Completed)**:
+
 - Map every place protection is stored, authored, parsed, displayed, used
 - Audit `DraftPickConveyanceZ` schema and recommend runtime usage
 - Identify minimal viable data model for conveyance chains
@@ -26,6 +28,7 @@ Phase 4 PREFLIGHT is complete. This document provides a "no-surprises" implement
 - Create fixtures and tests defining expected behaviors (skipped tests for Phase 4 execution)
 
 **OUT OF SCOPE (Deferred)**:
+
 - No implementation of rollover / draft outcomes
 - No changes to `validateStepien` behavior
 - No changes to UI behavior
@@ -85,6 +88,7 @@ DraftPickConveyanceZ = {
 ```
 
 **Evidence of Non-Use**:
+
 ```bash
 $ grep -r "ifConveys\|ifRolls\|finalYear" src/features/
 # Returns ZERO matches in feature code - only in schema
@@ -155,12 +159,14 @@ src/features/architect/utils/tradeMachine/utils/tradeUtilities.js:84
 **Directories Searched**: `src/`, `src/tests/`, `docs/`
 
 **Directories NOT Searched** (out of scope):
+
 - `node_modules/` — Third-party dependencies
 - `team-scrape/`, `player-scrape/` — External scrapers, not Trade Machine runtime
 - `archive/` — Deprecated code
 - `firebase-export-*` — Database exports
 
 **Verified Claims**:
+
 - "Swap (+)/(-)" values found ONLY in `getPickOptions()` dropdown and test fixtures
 - NO persisted team data contains "Swap (+)" or "Swap (-)" protection values
 - `DraftPickConveyanceZ` has ZERO runtime reads in `src/features/`
@@ -172,11 +178,13 @@ src/features/architect/utils/tradeMachine/utils/tradeUtilities.js:84
 ### Current State: `DraftPickConveyanceZ` is UNUSED
 
 **Evidence**:
+
 - Schema defined at `src/schemas/architect.ts:91-123`
 - Field attached to `DraftPickZ` at line 141
 - **ZERO** runtime code reads `conveyance`, `ifConveys`, `ifRolls`, or `finalYear`
 
 **Why It Exists**:
+
 - Schema was likely added during initial design for future conveyance support
 - Scraper may populate these fields from source data (RealGM, etc.)
 - Trade Machine never implemented the logic to process them
@@ -186,6 +194,7 @@ src/features/architect/utils/tradeMachine/utils/tradeUtilities.js:84
 **Option 1: Use Existing Schema (Recommended)**
 
 The `DraftPickConveyanceZ` schema is well-designed. Phase 4 should:
+
 1. Keep schema as-is
 2. Implement `resolveConveyance()` function that reads `conveyance.conditions`
 3. Wire into season advance via `updateDraftPicksWithConveyance()`
@@ -193,6 +202,7 @@ The `DraftPickConveyanceZ` schema is well-designed. Phase 4 should:
 **Option 2: Replace Schema (Not Recommended)**
 
 Replacing the schema would require:
+
 - Migration of any scraped data that uses the existing format
 - More effort for no clear benefit
 
@@ -243,6 +253,7 @@ interface DraftPick {
 ```
 
 **Schema Shape**:
+
 ```typescript
 const ProtectionMetaZ = z.object({
   type: z.enum(['position', 'lottery', 'playoff', 'always', 'never']),
@@ -256,11 +267,13 @@ const ProtectionMetaZ = z.object({
 ```
 
 **Code Changes in Phase 4 Execution**:
+
 1. `isMeaningfulProtection()` - Check `protectionMeta?.type` first, fall back to string regex
 2. `getPickOptions()` - No change (dropdown still sets string value)
 3. UI - Optionally add structured editor that populates both `protection` and `protectionMeta`
 
 **Compatibility Plan**:
+
 - Legacy picks with only `protection` string continue to work
 - New picks can have both `protection` (for display) and `protectionMeta` (for logic)
 - Migration: Optional batch job to populate `protectionMeta` from existing `protection` strings
@@ -288,6 +301,7 @@ interface ProtectionObject {
 ```
 
 **Code Changes in Phase 4 Execution**:
+
 1. `isMeaningfulProtection()` - Handle object OR string (backward compat)
 2. `getPickOptions()` - Return objects instead of strings
 3. `TradePickRow.jsx` - Update dropdown to handle objects
@@ -295,12 +309,14 @@ interface ProtectionObject {
 5. All validators - Update to read structured object
 
 **Compatibility Plan**:
+
 - Migration required: Convert all existing `protection: string` to objects
 - Adapter layer during migration: `normalizeProtection(p)` handles both formats
 
 ### Recommendation: **Start with Option A**
 
 Option A is lower risk and can be done incrementally:
+
 1. Add `protectionMeta` without changing existing `protection` behavior
 2. Update validators to prefer `protectionMeta` when present
 3. After validation, consider migrating to Option B
@@ -381,12 +397,14 @@ interface ConveyanceResolutionInputs {
 **Action**: Delete lines 92-93 from `getPickOptions()` in `tradeUtilities.js`
 
 **Rationale**:
+
 1. Swap is already properly modeled with `isSwap`, `swapType`, `swapWithTeamId` (Phase 2)
 2. "Swap (+/-)" as protection is confusing and serves no purpose
 3. These values are NOT treated as meaningful protection
 4. No evidence of persisted data using these values
 
 **Migration Risk**: LOW — grep search found usage ONLY in:
+
 - `tradeUtilities.js:92-93` (dropdown options)
 - Test fixtures (documentation purposes)
 - No Firestore team documents contain these values
@@ -396,6 +414,7 @@ interface ConveyanceResolutionInputs {
 ## 8. Fixtures Created (D5)
 
 > **⚠️ IMPORTANT**: Fixtures below contain TWO different structures:
+>
 > 1. **Existing Schema (`conveyance.*`)**: Matches `DraftPickConveyanceZ` in `architect.ts` — schema exists but is NEVER USED at runtime
 > 2. **Proposed Model (`protectionLadder[]`)**: Phase 4 design proposal — does NOT exist in any runtime schema or code
 
@@ -409,6 +428,7 @@ interface ConveyanceResolutionInputs {
 ### Fixture Shapes
 
 **conveyance_rolls_forward.json** (uses existing `DraftPickConveyanceZ` schema):
+
 ```json
 {
   "conveyance": {
@@ -424,6 +444,7 @@ interface ConveyanceResolutionInputs {
 ```
 
 **conveyance_multi_year_ladder.json** (PROPOSED MODEL - not runtime-backed):
+
 ```json
 {
   "_modelStatus": "PHASE_4_PROPOSED - protectionLadder[] does NOT exist in runtime schema",
@@ -545,7 +566,8 @@ Based on PREFLIGHT findings, Phase 4 EXECUTION should:
 
 **Effort**: ~2-4 hours  
 **Risk**: Low (additive change)  
-**Files**: 
+**Files**:
+
 - Schema: `architect.ts`
 - Validator: `isMeaningfulProtection()` in `tradeUtilities.js`
 - Optional: UI editor for structured protection
@@ -555,6 +577,7 @@ Based on PREFLIGHT findings, Phase 4 EXECUTION should:
 **Effort**: ~4-8 hours  
 **Risk**: Medium (new logic)  
 **Files**:
+
 - New: `conveyanceResolution.js` (mirror swapResolution.js pattern)
 - Modified: `seasonManager.js` (hook into season advance)
 

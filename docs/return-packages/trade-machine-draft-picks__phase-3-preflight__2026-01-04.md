@@ -10,6 +10,7 @@
 ## Summary
 
 Phase 3 PREFLIGHT is complete. This document addresses all questions from the Phase 3 PREFLIGHT scope:
+
 1. Where pick ownership is ultimately *consumed* (trade output, offseason sim, cap engine, etc.)
 2. What "resolution" means in this repo (when and where best/worst-of is decided)
 3. What minimum data model is required for unresolved vs resolved picks
@@ -36,24 +37,28 @@ Phase 3 PREFLIGHT is complete. This document addresses all questions from the Ph
 ### Pick Consumer Categories
 
 #### A. Season Advance / Offseason Simulation
+
 - **`updateDraftPicks()`** (C1): Simple year-based status update
 - **`updateDraftPicksWithStepien()`** (C2): Full Stepien recalculation
 
 **Key Finding**: These functions process picks but do NOT perform swap resolution. They simply advance status and recalculate Stepien blocked status based on ownership.
 
 #### B. Trade Execution
+
 - **`tradeManager.executeTrade()`** (C3): Updates `draftPicks[]` array when trade applied
 - **`mutationPipeline.computeTradeResult()`** (C4): Same logic, different pipeline
 
 **Key Finding**: Pick comparison uses `year + round + owner` for filtering. Does NOT resolve swaps.
 
 #### C. Validation
+
 - **`validateStepien()`** (C5): Main Stepien validator - reads `isSwap` and `swapType`
 - **`validateDraftPicks()`** (C6): 7-year limit check only
 
 **Key Finding**: Validation does NOT assume picks are resolved. It uses swap type to determine year reservation.
 
 #### D. Display/Utility
+
 - **`buildFirstRoundCalendar()`** (C7): Calendar visualization
 - **`computeTradeDraftKey()`** (C8): Cache key generation
 
@@ -62,6 +67,7 @@ Phase 3 PREFLIGHT is complete. This document addresses all questions from the Ph
 **Finding**: NO consumer in the repo currently expects "resolved" picks where swap ownership has been determined based on lottery results. All consumers work with the unresolved swap representation (`isSwap`, `swapType`, `swapWithTeamId`).
 
 **Implication**: Phase 3 swap resolution has **NO IMMEDIATE EXECUTION TARGET** in the current codebase. Resolution would be needed for:
+
 1. A draft lottery simulation (does not exist)
 2. An offseason/world sim that advances through drafts (does not exist)
 3. A pick value evaluation that needs concrete ownership (does not exist)
@@ -92,11 +98,13 @@ Based on repo patterns, resolution would logically occur at one of these points:
 **Recommendation**: Resolution should occur during **season advance** (`advanceSeasonInWorld`) when moving past a draft year.
 
 **Justification**:
+
 1. `seasonManager.js` already processes picks during season transition
 2. `updateDraftPicksWithStepien()` already updates pick status based on year
 3. Adding resolution logic here is natural extension of existing flow
 
 **Required Inputs for Resolution**:
+
 - Draft lottery results: `Map<TeamCode, number>` (team → pick position 1-60)
 - The pick's `swapType`: `'best_of' | 'worst_of'`
 - The pick's `swapWithTeamId`: Partner team code
@@ -135,11 +143,13 @@ interface DraftPick {
 ```
 
 **Pros**:
+
 - Additive - no breaking changes to existing consumers
 - Clear distinction: `resolved: false` = swap pending, `resolved: true` = ownership determined
 - Preserves original swap data for audit trail
 
 **Cons**:
+
 - Dual ownership fields (`currentOwner` vs `resolvedOwner`)
 - Consumers must check `resolved` before using ownership
 
@@ -165,10 +175,12 @@ interface DraftPick {
 ```
 
 **Pros**:
+
 - Single status field to check
 - Cleaner separation of swap data
 
 **Cons**:
+
 - More invasive change to existing status handling
 - Status enum grows complex
 
@@ -191,16 +203,19 @@ interface SwapResolutionEvent {
 ```
 
 **Pros**:
+
 - Immutable event log
 - Pick objects stay simple
 
 **Cons**:
+
 - Requires join to determine current ownership
 - More complex query patterns
 
 ### **Recommendation: Schema A (Minimal Extension)**
 
 Schema A is recommended because:
+
 1. Additive change with no breaking changes
 2. All existing consumers continue to work
 3. New consumers can check `resolved` flag
@@ -223,6 +238,7 @@ Schema A is recommended because:
 | Validator input | String | Same |
 
 **Parser**: `isMeaningfulProtection()` in `tradeUtilities.js:74-80`
+
 ```javascript
 export const isMeaningfulProtection = (protection) => {
   if (!protection) return false;
@@ -235,6 +251,7 @@ export const isMeaningfulProtection = (protection) => {
 ```
 
 **Available Options** (`getPickOptions()` in `tradeUtilities.js:84-94`):
+
 - Unprotected (value: `""`)
 - Protected Top 3 (value: `"Top 3"`)
 - Protected Top 5 (value: `"Top 5"`)
@@ -277,6 +294,7 @@ const DraftPickConveyanceZ = z.object({
 ```
 
 **Evidence of Non-Use**:
+
 ```bash
 $ grep -r "conveyance\|ifConveys\|ifRolls\|finalYear" src/features/architect/
 # Only returns schema definition - NO runtime usage
@@ -292,9 +310,10 @@ $ grep -r "conveyance\|ifConveys\|ifRolls\|finalYear" src/features/architect/
 
 #### Rollover Behavior in Season Manager
 
-**Finding**: `seasonManager.js` does NOT implement any rollover logic. 
+**Finding**: `seasonManager.js` does NOT implement any rollover logic.
 
 `updateDraftPicks()` (line 398-425) only updates `status` from 'future' to 'available'. It does NOT:
+
 - Check if protection was triggered
 - Roll pick to next year
 - Convert to second round
@@ -307,11 +326,13 @@ $ grep -r "conveyance\|ifConveys\|ifRolls\|finalYear" src/features/architect/
 However, if conveyance must be addressed minimally:
 
 #### Level 1: Document-Only (This Phase)
+
 - Document the gap between schema and implementation
 - Add test fixtures for expected conveyance behavior
 - Update Master Doc with conveyance requirements
 
 #### Level 2: Basic Conveyance Structure (Future Phase)
+
 ```typescript
 interface ProtectionTier {
   year: number;
@@ -348,11 +369,13 @@ const protection: ProtectionTier[] = [
 #### `formatPick()` (F1) - tradeHelpers.js
 
 **Call Sites**:
+
 1. `TradeExportCapture.jsx:210` - Export/image capture
 2. `TradeTeamCard.jsx:6` - Import (but uses via TradePickRow)
 3. `TradePickRow.jsx:113` - Pick row display
 
 **Format**:
+
 ```javascript
 export const formatPick = (p) => {
   if (!p) return '';
@@ -370,9 +393,11 @@ export const formatPick = (p) => {
 #### `getPickLabel()` (F2) - TradeSummaryPanel.jsx
 
 **Call Sites**:
+
 1. `TradeSummaryPanel.jsx:232` - Summary panel pick chips
 
 **Format** (local function):
+
 ```javascript
 const getPickLabel = (p) => {
   if (!p) return '';
@@ -430,6 +455,7 @@ const label = formatPick(pk, { includeNote: false, swapEmoji: '🔄' });
 ```
 
 **Follow-Up Patch (Optional for Phase 3)**:
+
 1. Add options parameter to `formatPick()`
 2. Replace `getPickLabel()` in TradeSummaryPanel with `formatPick(p, { includeNote: false })`
 3. Standardize swap emoji (recommend 🔁 as it's more commonly associated with swap/exchange)
@@ -477,6 +503,7 @@ describe('swap resolution', () => {
 ```
 
 **Definition of "Higher" Pick**:
+
 - In NBA draft, pick #1 is the "best" pick, #60 is the "worst"
 - "Higher pick" = lower number = better position
 - `best_of` → team gets the pick with the LOWER position number
@@ -644,6 +671,7 @@ describe('pick label formatting', () => {
 **"If multiple sims exist and disagree on timing"** → NOT triggered. Only one sim path.
 
 **HOWEVER**: Phase 3 "resolution" has **no execution target yet**. Resolution logic can be built, but there's currently:
+
 - No draft lottery simulation
 - No lottery results data ingestion
 - No world advancement that needs resolved picks
@@ -681,9 +709,11 @@ The following section should be added to `docs/tradeMachine/TRADE_MACHINE_DRAFT_
 ## 9. Files Changed/Added
 
 ### Return Package Created
+
 - `docs/return-packages/trade-machine-draft-picks__phase-3-preflight__2026-01-04.md` — This file
 
 ### Master Doc To Be Updated
+
 - `docs/tradeMachine/TRADE_MACHINE_DRAFT_PICKS_MASTER.md` — Add Phase 3 PREFLIGHT Findings section
 
 ---

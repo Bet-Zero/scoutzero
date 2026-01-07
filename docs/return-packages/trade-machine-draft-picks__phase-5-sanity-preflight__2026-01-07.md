@@ -1,4 +1,5 @@
 # Trade Machine Draft Picks — Phase 5 Sanity Preflight
+
 **Date:** 2026-01-07  
 **Mode:** PREFLIGHT (repo inspection + grep + small readouts ONLY; NO code changes)  
 **Goal:** Verify Phase 5 auto-resolution wiring uses the correct draftYear and positionsMap during season advance.
@@ -127,6 +128,7 @@ const afterSwaps = resolveDraftPickSwapsForYear(
 > "This ensures that rolled picks are properly tracked before swap resolution"
 
 The flow is:
+
 1. Conveyance resolution (determines if pick conveyed, rolled forward, or converted)
 2. Swap resolution (determines best_of/worst_of outcomes based on final positions)
 
@@ -184,6 +186,7 @@ await updateDoc(metadataRef, {
 **`validateDraftPositionsMap(positionsMap)`** (line 559-602)
 
 Validation rules:
+
 - Must be non-null object
 - Cannot be empty
 - Team codes must match `/^[A-Z]{3}$/` (3 uppercase letters)
@@ -219,6 +222,7 @@ Validation rules:
 ### Save Path
 
 `DraftPositionsInput.jsx` line 151:
+
 ```javascript
 const result = await saveDraftPositions(worldId, selectedYear, positionsMap, {
   method: 'manual',
@@ -226,6 +230,7 @@ const result = await saveDraftPositions(worldId, selectedYear, positionsMap, {
 ```
 
 **Flow:**
+
 1. User enters JSON in component
 2. Component calls `validateDraftPositionsMap()` from worldManager
 3. Component calls `saveDraftPositions()` from worldManager
@@ -360,6 +365,7 @@ No code changes required. The Phase 5 implementation correctly:
 5. Exposes UI in correct location with proper props
 
 **Optional Enhancements (not required):**
+
 - Add unit test specifically verifying `draftYear = fromYear` mapping in advanceSeasonInWorld
 - Add integration test with mock world advancing from "2025-26" → "2026-27" verifying 2026 positions are used
 

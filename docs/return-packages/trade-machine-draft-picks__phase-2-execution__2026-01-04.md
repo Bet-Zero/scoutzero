@@ -47,12 +47,14 @@ Added `swapType` field to pick editing in `TradePickRow.jsx`:
 Updated pick display formatting in two locations:
 
 **`tradeHelpers.js:formatPick()`**:
+
 ```
 2026 1st Round 🔁 Swap (Best of) vs OKC
 2026 1st Round 🔁 Swap (Worst of) vs LAL
 ```
 
 **`TradeSummaryPanel.jsx:getPickLabel()`**:
+
 ```
 2026 1st Round 🔄 Swap (Best of) vs OKC
 ```
@@ -85,6 +87,7 @@ npm run test -- tests/validators/stepien.test.js --run
 **Result**: 14 passed (14)
 
 New tests added:
+
 - `best_of swap + adjacent unprotected 1st fails Stepien`
 - `worst_of swap + adjacent unprotected 1st passes Stepien`
 - `missing swapType defaults to best_of (backward compat)`
@@ -102,6 +105,7 @@ npm run test -- src/tests/tradeMachine/draftPicksPreflight.test.js --run
 **Result**: 23 passed (23)
 
 Previously skipped tests now enabled:
+
 - `swapPlusAdjacentPick fixture` - swap + adjacent unprotected 1st fails Stepien
 - `Second Apron Frozen Pick Restriction` - swap assets blocked at 7+ years
 
@@ -145,6 +149,7 @@ Pick labels follow this pattern when swap info is present:
 ```
 
 Examples:
+
 - `2026 1st Round 🔁 Swap (Best of) vs OKC`
 - `2026 1st Round (via LAL) 🛡 Top 3 🔁 Swap (Worst of) vs PHI`
 - `2026 1st Round 🔁 Swap (Best of)` (no partner selected)

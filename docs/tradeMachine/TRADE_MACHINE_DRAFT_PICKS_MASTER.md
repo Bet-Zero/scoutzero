@@ -35,6 +35,7 @@
 ## Executive Summary
 
 This document provides a **brutally honest audit** of draft pick implementation in the Trade Machine. The audit covers:
+
 - Pick asset data model and schema
 - Editing/authoring functionality
 - Trade construction and validation
@@ -134,7 +135,7 @@ This document provides a **brutally honest audit** of draft pick implementation 
 |-------|-------|
 | **Claim** | Pick cache keys use `originalTeam` but not a stable ID |
 | **Evidence** | `src/features/architect/tradeMachine/utils/computeTradeDraftKey.js:39-41` |
-| **Snippet** | `.map(p => \`${p.year || '?'}-${p.round || '?'}-${p.originalTeam || p.team || '?'}\`)` |
+| **Snippet** | `.map(p => \`${p.year \|\| '?'}-${p.round \|\| '?'}-${p.originalTeam \|\| p.team \|\| '?'}\`)` |
 | **Call Chain** | `useTradeMachine` → `computeTradeDraftKey({ yearKey, teams })` |
 | **Input Shape** | `picksOut[]` array with `year`, `round`, `originalTeam` or `team` |
 | **Output Effect** | Deterministic key but NOT a pick ID; picks without `originalTeam` fall back to `team` or `'?'` |
@@ -156,7 +157,7 @@ This document provides a **brutally honest audit** of draft pick implementation 
 |-------|-------|
 | **Claim** | `schemaAdapter` creates both `draftPicks` and `picks` properties |
 | **Evidence** | `src/features/architect/utils/schemaAdapter.js:94-95` |
-| **Snippet** | `draftPicks: teamState.draftPicks || [], picks: teamState.draftPicks || [], // Some validators use 'picks'` |
+| **Snippet** | `draftPicks: teamState.draftPicks \|\| [], picks: teamState.draftPicks \|\| [], // Some validators use 'picks'` |
 | **Call Chain** | `tradeManager.executeTrade()` → `buildTradeTeamInput(teamState, teamTrade)` |
 | **Input Shape** | `teamState.draftPicks[]` array |
 | **Output Effect** | Creates **two aliases** for same array; potential for desync if one is mutated |
@@ -189,7 +190,7 @@ This document provides a **brutally honest audit** of draft pick implementation 
 |-------|-------|
 | **Claim** | Protection is stored and displayed as a string |
 | **Evidence** | `src/features/architect/tradeMachine/TradePickRow.jsx:103-112` |
-| **Snippet** | `<select ... value={pickObj.protection || ''} onChange={(e) => onEdit(pick, 'protection', e.target.value)}>` with options from `getPickOptions()` |
+| **Snippet** | `<select ... value={pickObj.protection \|\| ''} onChange={(e) => onEdit(pick, 'protection', e.target.value)}>` with options from `getPickOptions()` |
 | **Call Chain** | `TradePickRow` → `onEdit(pick, 'protection', value)` → `updatePickField()` |
 | **Input Shape** | `protection` is string: `""`, `"Top 3"`, `"Top 5"`, `"Lottery"`, etc. |
 | **Output Effect** | String stored in `picksOut[].protection`; passed to `isMeaningfulProtection()` in validation |
@@ -200,7 +201,7 @@ This document provides a **brutally honest audit** of draft pick implementation 
 |-------|-------|
 | **Claim** | `validateStepien.js` enforces 7-year maximum pick trading limit |
 | **Evidence** | `src/features/architect/utils/tradeMachine/rules/validateStepien.js:61-67` |
-| **Snippet** | `const farthestYear = Math.max(...picks.map((p) => p.year || currentYear)); if (farthestYear - currentYear > 7) { violations.push("Cannot trade picks beyond 7 years out...") }` |
+| **Snippet** | `const farthestYear = Math.max(...picks.map((p) => p.year \|\| currentYear)); if (farthestYear - currentYear > 7) { violations.push("Cannot trade picks beyond 7 years out...") }` |
 | **Call Chain** | `validateStepien()` → check farthest pick year against currentYear |
 | **Input Shape** | `picks[]` array with `year` field; `currentYear` from context |
 | **Output Effect** | Adds violation message if any pick is more than 7 years out |
@@ -302,7 +303,7 @@ This document provides a **brutally honest audit** of draft pick implementation 
    - `protection` (string) - Protection level like "Top 3", "Lottery"
 
 2. **Trading Picks** [Evidence: E8]
-   - Add/remove picks from trade via `togglePick()` 
+   - Add/remove picks from trade via `togglePick()`
    - Edit pick properties via `updatePickField()`
    - Adds `fromTeamId` to track origin team
    - Display picks in team cards and summary panels
@@ -434,7 +435,8 @@ This document provides a **brutally honest audit** of draft pick implementation 
 ### A) How Current Code Evaluates Stepien [Evidence: E1, E2, E10]
 
 **Call Chain (Validated):**
-```
+
+```text
 useTradeMachine.validateCurrentTrade() 
   → validateTrade() [tradeValidator.js:77]
     → validators.validateStepien(team, tradeCtx)
@@ -443,6 +445,7 @@ useTradeMachine.validateCurrentTrade()
 ```
 
 **Current Logic (`validateStepien.js:35-58`):**
+
 1. Filter `outgoingPicks` to first round picks (`round === '1st' || round === 1`)
 2. Sort by year
 3. For each consecutive pair, check:
@@ -452,6 +455,7 @@ useTradeMachine.validateCurrentTrade()
 4. If all conditions met → violation
 
 **How `isMeaningfulProtection()` Works (String Regex):**
+
 ```javascript
 // tradeUtilities.js:74-80
 export const isMeaningfulProtection = (protection) => {
@@ -489,6 +493,7 @@ export const isMeaningfulProtection = (protection) => {
 > **⚠️ DESIGN DECISION REQUIRED:** The rules below are **proposed product behavior**, not verified NBA rules or existing code. The actual reservation logic must be chosen during implementation.
 
 **Worst-Case Calendar (for Legality):**
+
 - For each year, compute the **worst case** - what if protections don't trigger?
 - Swaps count as obligations because the team might get the worse pick
 - A year is "blocked" if:
@@ -497,6 +502,7 @@ export const isMeaningfulProtection = (protection) => {
   - Team has a swap right where they might lose the better pick
 
 **Best-Case Calendar (for Visibility Only):**
+
 - Show what the roster could look like if all protections trigger
 - Not used for validation, only for user planning
 
@@ -512,6 +518,7 @@ export const isMeaningfulProtection = (protection) => {
 | Swap right (worst_of) | ✅ Yes (still an obligation) | ❌ No (always get worse) | ❌ No |
 
 **Tradeoffs:**
+
 - **Option A (Reserve All):** Most restrictive; safest for CBA compliance but may be overly conservative
 - **Option B (Reserve Most):** Balanced; matches common NBA interpretation for swaps
 - **Option C (Reserve Minimum):** Least restrictive; may allow trades that could violate Stepien in edge cases
@@ -523,12 +530,14 @@ export const isMeaningfulProtection = (protection) => {
 ### Decision: **B) Swaps are a property on a DraftPick**
 
 **Rationale:**
+
 1. A swap right is inherently tied to a specific year/round - the 2026 1st round swap right
 2. Swaps don't exist independently - they're modifications of an underlying pick
 3. UI already stores `isSwap` and `swapWithTeamId` on pick objects [Evidence: E4]
 4. Simpler state management - don't need to track separate asset collections
 
 **Schema (Target Model):**
+
 ```typescript
 interface DraftPick {
   // ... other fields ...
@@ -552,6 +561,7 @@ interface SwapRights {
 | **Export/Receipt** | Shows 🔁 icon | Shows "Swap: Best of PHI/OKC" |
 
 **Evidence of Current Swap Storage:**
+
 - UI stores: `pickObj.isSwap` (boolean), `pickObj.swapWithTeamId` (string) [E4]
 - Validator ignores: No code in `validateStepien.js` reads these fields [E5]
 
@@ -599,6 +609,7 @@ interface SwapRights {
 **Rule:** There must be exactly ONE canonical Stepien validator.
 
 **Current State (Violation):**
+
 | Implementation | File | Called by tradeValidator? |
 |----------------|------|--------------------------|
 | `validateStepien()` | `rules/validateStepien.js` | ✅ **YES** (canonical) |
@@ -612,13 +623,15 @@ interface SwapRights {
 **Rule:** There must be exactly ONE canonical protection parser.
 
 **Current State (Violation):**
+
 | Implementation | File | Input Format | Called? |
 |----------------|------|--------------|---------|
 | `isMeaningfulProtection(str)` | `src/features/architect/utils/tradeMachine/utils/tradeUtilities.js:74` | String | ✅ **YES** (canonical, imported by validateStepien.js and draftRules.js) |
 | `isMeaningfulProtection(arr)` | `src/features/architect/utils/tradeMachine/rules/basicRules.js:25` | Array | ❌ NO - LIKELY DEAD CODE (requires repo-wide verification) |
 | `isMeaningfulProtection(str)` | `src/features/architect/utils/tradeHelpers.js:302` | String | ❌ NO - LIKELY DEAD CODE (requires repo-wide verification) |
 
-**Required Action:** 
+**Required Action:**
+
 1. Delete `basicRules.js:isMeaningfulProtection` (array format never used)
 2. Delete `tradeHelpers.js:302` duplicate (same logic as tradeUtilities, no callers)
 
@@ -627,6 +640,7 @@ interface SwapRights {
 **Rule:** Pick identity must be determined consistently.
 
 **Current State (Inconsistent):**
+
 | Location | Comparison Method |
 |----------|-------------------|
 | `areSamePick()` | `year + round + via` |
@@ -748,6 +762,7 @@ function resolvePickOwnership(
 ### Phase 0: Safety & Instrumentation (1-2 days)
 
 **Tasks:**
+
 - [ ] Add logging to all Stepien validation paths
 - [ ] Create debug panel showing pick states during trade
 - [ ] Add assertions for pick ID format consistency
@@ -755,12 +770,14 @@ function resolvePickOwnership(
 - [ ] **DATA AUDIT**: Query Firestore to document actual `draftPicks` data format in production (protection format, field usage)
 
 **Acceptance Criteria:**
+
 - Console logs show which Stepien function is called
 - Pick IDs logged on every trade operation
 - Debug panel renders pick state in Trade Machine
 - **DATA AUDIT REPORT**: Document shows actual protection formats in production data
 
 **Validation Steps:**
+
 - Open Trade Machine, add picks to trade
 - Verify console shows pick operations
 - Verify debug panel renders pick state
@@ -774,11 +791,13 @@ function resolvePickOwnership(
 **Tasks:**
 
 **1.1 Canonical Pick ID Implementation**
+
 - [ ] Create `generatePickId(pick)` utility: returns `{originalTeam}_{year}_{round}`
 - [ ] Update `areSamePick()` to use `generatePickId()` for comparison
 - [ ] Update `computeTradeDraftKey()` to use `generatePickId()`
 
 **1.2 Round Normalization (Required for Stable IDs)**
+
 - [ ] Create `normalizeRound(round)` utility that:
   - Accepts inputs: `1`, `2`, `"1st"`, `"2nd"`, `"first"`, `"second"`, `"First"`, `"Second"`
   - Returns canonical output: `1` or `2` (number)
@@ -791,6 +810,7 @@ function resolvePickOwnership(
   - `generatePickId({ year: 2026, round: "first", originalTeam: "PHI" })` === `"PHI_2026_1"`
 
 **1.3 ID Adapter Strategy (Recommended over Migration)**
+
 - [ ] Create `ensurePickId(pick)` adapter that:
   - If `pick.id` exists and matches format → use it
   - Otherwise → derive ID via `generatePickId()` and attach to pick object
@@ -801,22 +821,26 @@ function resolvePickOwnership(
 - [ ] On save: persist canonical ID to Firestore
 
 **1.4 De-Duplicate Stepien Implementations (SSOT-1)**
+
 - [ ] Delete `draftRules.js:hasStepienViolation()` or make it delegate
 - [ ] Delete `stepienUtils.js:hasStepienViolation()` or make it delegate
 - [ ] Remove re-exports from `validators/index.js` and `tradeMachine/index.js`
 
 **1.5 De-Duplicate Protection Parser (SSOT-2)**
+
 - [ ] Delete `basicRules.js:isMeaningfulProtection()` (unused array format)
 - [ ] Consolidate `tradeHelpers.js:302` and `tradeUtilities.js:74` into single export
 - [ ] Update all imports to use single source
 
 **Evidence of Current ID Generation Issues:**
+
 - `areSamePick()` at `tradeHelpers.js:288-291` uses `year + round + via` (NOT originalTeam)
 - `computeTradeDraftKey()` at `computeTradeDraftKey.js:39-41` uses `originalTeam` but falls back to `team` or `'?'`
 - `togglePick()` at `useTradeMachine.js:430` does NOT generate ID on add
 - **Failure Mode:** Two picks with same year/round but different originalTeam will collide in `areSamePick()`
 
 **Acceptance Criteria:**
+
 - All picks have `{originalTeam}_{year}_{round}` format IDs
 - IDs are identical regardless of round input format (via `normalizeRound()`)
 - `areSamePick()` uses ID comparison
@@ -825,6 +849,7 @@ function resolvePickOwnership(
 - ID adapter runs on load and save - no data loss
 
 **Validation Steps:**
+
 - Test: Two picks with same year/round but different originalTeam are NOT treated as same
 - Test: Existing Stepien tests pass after de-dupe
 - Test: Trade → Save → Reload preserves pick IDs
@@ -834,6 +859,7 @@ function resolvePickOwnership(
 ### Phase 2: Trade Engine Correctness (5-7 days)
 
 **Tasks:**
+
 - [ ] G1: Implement swap rights validation in Stepien
 - [ ] G9: Add second apron swap year blocking
 - [ ] Properly track pick movement during multi-team trades
@@ -841,12 +867,14 @@ function resolvePickOwnership(
 - [ ] Implement pick-to-team assignment for N-way trades
 
 **Acceptance Criteria:**
+
 - Swaps count toward Stepien calculations
 - Second apron teams blocked from swaps in restricted years
 - 3+ team trades correctly assign picks
 - Route array shows full provenance
 
 **Validation Steps:**
+
 - Test: Swap rights block consecutive Stepien years
 - Test: Second apron team cannot trade swap in restricted year
 - Test: 3-team trade moves pick A→B→C, route updated
@@ -856,6 +884,7 @@ function resolvePickOwnership(
 ### Phase 3: Validator Correctness (5-7 days)
 
 **Tasks:**
+
 - [ ] G2: Implement multi-tier protection schema
 - [ ] G3: Implement conveyance/rollover logic
 - [ ] G6: Implement best-of / worst-of swap resolution
@@ -863,12 +892,14 @@ function resolvePickOwnership(
 - [ ] Add conveyance simulation for season advance
 
 **Acceptance Criteria:**
+
 - Protection tiers can be defined with year/condition/action
 - Season advance evaluates protections and rolls picks
 - Swap resolution compares positions and assigns correctly
 - Validation prevents invalid protection configurations
 
 **Validation Steps:**
+
 - Test: Define "Top 3 → Top 5 → Unprotected" protection
 - Test: Season advance with triggered protection rolls pick
 - Test: Best-of swap assigns to team with better pick
@@ -878,6 +909,7 @@ function resolvePickOwnership(
 ### Phase 4: UI Parity & Editing Tools (5-7 days)
 
 **Tasks:**
+
 - [ ] G7: Add Stepien calendar visualization
 - [ ] G14: Remove swap options from protection dropdown
 - [ ] Build multi-tier protection editor
@@ -886,6 +918,7 @@ function resolvePickOwnership(
 - [ ] Add conveyance preview ("becomes X if Y")
 
 **Acceptance Criteria:**
+
 - Stepien calendar shows blocked/available years
 - Protection editor allows tier definition
 - Swap configurator allows team selection
@@ -893,6 +926,7 @@ function resolvePickOwnership(
 - Conveyance outcome previewed before trade
 
 **Validation Steps:**
+
 - UI shows which years are Stepien-blocked
 - Create pick with 3 protection tiers via UI
 - Configure swap with 2 teams via UI
@@ -903,6 +937,7 @@ function resolvePickOwnership(
 ### Phase 5: Tests & Regression Harness (3-5 days)
 
 **Tasks:**
+
 - [ ] Unit tests for pick ID generation
 - [ ] Unit tests for protection tier logic
 - [ ] Unit tests for swap resolution
@@ -911,12 +946,14 @@ function resolvePickOwnership(
 - [ ] Add regression test suite
 
 **Acceptance Criteria:**
+
 - 100% coverage of new pick logic
 - Fixture set covers: simple trade, multi-tier protection, swaps, conveyance
 - All existing tests continue passing
 - New regression suite catches future breakage
 
 **Validation Steps:**
+
 - Run `npm run test tests/trade/` - all pass
 - Run `npm run test tests/validators/stepien.test.js` - all pass
 - New pick tests pass
@@ -928,6 +965,7 @@ function resolvePickOwnership(
 ### 7.1 Unit Tests
 
 **Pick ID Generation**
+
 ```javascript
 describe('pick ID generation', () => {
   it('generates canonical ID from year/round/team', () => {
@@ -943,6 +981,7 @@ describe('pick ID generation', () => {
 ```
 
 **Protection Tier Logic**
+
 ```javascript
 describe('protection evaluation', () => {
   it('triggers Top 3 protection at pick 2', () => {
@@ -973,6 +1012,7 @@ describe('protection evaluation', () => {
 ```
 
 **Swap Resolution**
+
 ```javascript
 describe('swap resolution', () => {
   it('best_of assigns better pick to swap holder', () => {
@@ -992,6 +1032,7 @@ describe('swap resolution', () => {
 ### 7.2 Validator Tests
 
 **Stepien with Swaps**
+
 ```javascript
 describe('Stepien with swaps', () => {
   it('blocks consecutive years when swap counts', () => {
@@ -1011,6 +1052,7 @@ describe('Stepien with swaps', () => {
 ```
 
 **Multi-Tier Protection**
+
 ```javascript
 describe('multi-tier protection', () => {
   it('validates consistent tier years', () => {
@@ -1035,6 +1077,7 @@ describe('multi-tier protection', () => {
 ### 7.3 Integration Tests
 
 **Trade Creation → Receipt → Reload**
+
 ```javascript
 describe('pick trade lifecycle', () => {
   it('creates trade with picks, persists, reloads correctly', async () => {
@@ -1099,7 +1142,7 @@ describe('pick trade lifecycle', () => {
 ## Recommended Phase 1 Scope (Revised)
 
 > **Note:** Phase 1 now explicitly includes ID adapter strategy. The original v1.0 incorrectly stated "no schema migration required" - either migration OR adapter IS needed.
-
+>
 > **Gap ID Clarification:** G-numbers (G4, G5, G8) refer to Gap List IDs, not priority order. Phase 1 reorders them by implementation dependency.
 
 **Build first (highest ROI, addresses SSOT violations):**
@@ -1109,6 +1152,7 @@ describe('pick trade lifecycle', () => {
 **Why first:** Prevents data loss, enables reliable pick comparison.
 
 **Tasks:**
+
 1. Create `normalizeRound(round)` → returns canonical `1` or `2` from any input format
 2. Create `generatePickId(pick)` → returns `{originalTeam}_{year}_{normalizedRound}`
 3. Create `ensurePickId(pick)` adapter → derives ID if missing, attaches to object
@@ -1120,6 +1164,7 @@ describe('pick trade lifecycle', () => {
    - Save: `mutationPipeline` before Firestore write
 
 **Evidence of Failure Mode:**
+
 - `areSamePick()` compares `year + round + via` [E6]
 - Two picks with same year/round from different teams would be treated as identical
 - `togglePick()` does not generate ID on add [E8]
@@ -1129,6 +1174,7 @@ describe('pick trade lifecycle', () => {
 **Why:** LIKELY DEAD CODE creates confusion; two formats (array vs string) exist.
 
 **Tasks:**
+
 1. Delete `basicRules.js:isMeaningfulProtection()` (array format, LIKELY DEAD CODE - requires repo-wide verification [E3])
 2. Keep `tradeUtilities.js:isMeaningfulProtection()` as canonical (string format [E2])
 3. Delete or update `tradeHelpers.js:302` duplicate (LIKELY DEAD CODE - requires repo-wide verification)
@@ -1138,12 +1184,14 @@ describe('pick trade lifecycle', () => {
 **Why:** Three implementations create maintenance risk; only one is actually called.
 
 **Tasks:**
+
 1. Confirm `validateStepien.js` is canonical (already called by tradeValidator [E1])
 2. Delete `draftRules.js:hasStepienViolation()` (LIKELY DEAD CODE - requires repo-wide verification [E10])
 3. Delete `stepienUtils.js:hasStepienViolation()` (LIKELY DEAD CODE - requires repo-wide verification [E10])
 4. Remove re-exports from barrel files (`validators/index.js`, `tradeMachine/index.js`)
 
 **Which One is Actually Called (Evidence):**
+
 - `tradeValidator.js:11` imports from `'../rules/validateStepien.js'`
 - `validators/index.js:45` re-exports from `stepienUtils.js` - LIKELY DEAD CODE (requires repo-wide verification)
 - `draftRules.js` exports - LIKELY DEAD CODE (requires repo-wide verification)
@@ -1181,6 +1229,7 @@ describe('pick trade lifecycle', () => {
 ---
 
 *Document Version 2.0.1 - Patches applied per PREFLIGHT DOC PATCH request:*
+
 - *Added Evidence Index entries E13 (7-year limit) and E14 (second apron frozen picks)*
 - *Year Reservation Rules table marked as DESIGN DECISION REQUIRED with options*
 - *Firestore data format marked as UNVERIFIED*
@@ -1195,6 +1244,7 @@ describe('pick trade lifecycle', () => {
 ### What Changed
 
 **O1) Canonical Pick ID + Round Normalization (Phase 1.1 + 1.2) ✅**
+
 - Created `src/features/architect/utils/tradeMachine/utils/pickIdUtils.js` with:
   - `normalizeRound(input)` - Accepts 1, 2, "1st", "2nd", "first", "second" (case-insensitive) → returns canonical `1` or `2`
   - `generatePickId(pick)` - Returns `{originalTeam}_{year}_{round}` format (e.g., "PHI_2026_1")
@@ -1202,6 +1252,7 @@ describe('pick trade lifecycle', () => {
   - `areSamePickById(a, b)` - Compares two picks by their canonical IDs
 
 **O2) Wire ID adapter into ALL relevant paths (Phase 1.2) ✅**
+
 - Updated `useTradeMachine.js`:
   - Team initialization now maps picks through `ensurePickId()` on load
   - `selectTeam()` now ensures all picks have IDs
@@ -1210,17 +1261,20 @@ describe('pick trade lifecycle', () => {
 - Updated `computeTradeDraftKey.js` to use `generatePickId()` for pick tokens
 
 **O3) SSOT-2: De-duplicate `isMeaningfulProtection()` ✅**
+
 - Removed duplicate array-based implementation from `basicRules.js` (confirmed DEAD CODE - no imports)
 - Updated `tradeHelpers.js` to re-export canonical `isMeaningfulProtection` from `tradeUtilities.js`
 - Canonical implementation remains in `tradeUtilities.js` (string/regex based)
 
 **O4) SSOT-1: De-duplicate Stepien implementations ✅**
+
 - Canonical implementation: `rules/validateStepien.js` (unchanged, called by tradeValidator)
 - Converted `draftRules.js:hasStepienViolation()` to delegate to canonical `validateStepien()`
 - Converted `stepienUtils.js:hasStepienViolation()` to delegate to canonical `validateStepien()`
 - Updated `validateStepien.js` to skip `isSwap` picks (backward compatibility - swap validation is Phase 2)
 
 **O5) Tests ✅**
+
 - Created `tests/tradeMachine/pickIdUtils.test.js` with 34 tests covering:
   - `normalizeRound()` - all input formats, edge cases
   - `generatePickId()` - canonical ID generation, missing fields
@@ -1282,6 +1336,7 @@ describe('pick trade lifecycle', () => {
 **Summary**: Correctness fixes and repo convention alignment per Phase 1 review notes.
 
 #### T1) Test Location Convention Fix ✅
+
 - **Problem**: Test file was in root `tests/tradeMachine/` instead of repo convention `src/tests/`
 - **Solution**: Moved `tests/tradeMachine/pickIdUtils.test.js` → `src/tests/tradeMachine/pickIdUtils.test.js`
 - **Files Changed**:
@@ -1289,21 +1344,24 @@ describe('pick trade lifecycle', () => {
 - **Verification**: `npm test -- src/tests/tradeMachine/pickIdUtils.test.js --run` ✅ 34/34 passed
 
 #### T2) Stepien Delegate Wrappers Already Correct ✅
+
 - **Assessment**: Both `hasStepienViolation()` wrappers in `draftRules.js` and `stepienUtils.js` were already returning boolean correctly via `return !result.passed`
 - **No Changes Needed**: Wrappers preserve original signature and return boolean as expected
 
 #### T3) Removed isSwap Skip Behavior in validateStepien ✅
+
 - **Problem**: `validateStepien.js` line 37 had `&& !pick.isSwap` that skipped swap picks from Stepien checks
 - **Solution**: Removed the `!pick.isSwap` exclusion so swaps are treated the same as outright picks
 - **Rationale**: Phase 1 should not introduce permanent swap bypass behavior; proper swap modeling is Phase 2
 - **Files Changed**:
   - `src/features/architect/utils/tradeMachine/rules/validateStepien.js` - Removed `&& !pick.isSwap` filter
   - `tests/hasStepienViolation.test.js` - Updated test expectation from "ignores swap years" → "treats swap years the same as outright picks for Stepien"
-- **Verification**: 
+- **Verification**:
   - `npm test -- tests/hasStepienViolation.test.js --run` ✅ 4/4 passed
   - `npm test -- tests/validators/stepien.test.js --run` ✅ 7/7 passed
 
 #### T4) Stabilized computeTradeDraftKey with ensurePickId ✅
+
 - **Problem**: `computeTradeDraftKey` used `generatePickId(p)` directly, which could produce unstable tokens for picks with missing fields
 - **Solution**: Changed to use `ensurePickId(p).id` which:
   - Preserves existing valid IDs
@@ -1313,6 +1371,7 @@ describe('pick trade lifecycle', () => {
 - **Verification**: Build successful, no test failures
 
 #### Commands Run
+
 ```bash
 # T1 - Test location
 npm test -- src/tests/tradeMachine/pickIdUtils.test.js --run  # 34/34 ✅
@@ -1330,9 +1389,11 @@ npm run build                                                  # ✅ Success
 ```
 
 #### Key Behavioral Change
+
 **`validateStepien` no longer explicitly skips `isSwap` picks.**
 
 Before (v2.0.1):
+
 ```javascript
 const firstRoundPicks = picks.filter(
   (pick) => (pick.round === '1st' || pick.round === 1 || pick.round === 'first') && !pick.isSwap
@@ -1340,6 +1401,7 @@ const firstRoundPicks = picks.filter(
 ```
 
 After (v2.0.2):
+
 ```javascript
 const firstRoundPicks = picks.filter(
   (pick) => pick.round === '1st' || pick.round === 1 || pick.round === 'first'
@@ -1377,7 +1439,7 @@ Swap picks are now included in Stepien consecutive-year checks. Proper swap mode
 |-------|-------|
 | **Claim** | `draftPicks` array passes unchanged from Firestore through `hydrateBaseTeam()` |
 | **Evidence** | `src/features/architect/utils/firebaseTeamPlanHelpers.js:163` |
-| **Snippet** | `draftPicks: baseDoc.draftPicks || [],` |
+| **Snippet** | `draftPicks: baseDoc.draftPicks \|\| [],` |
 
 ##### E16: useTradeMachine ID Normalization
 
@@ -1385,7 +1447,7 @@ Swap picks are now included in Stepien consecutive-year checks. Proper swap mode
 |-------|-------|
 | **Claim** | All picks are normalized via `ensurePickId()` on load |
 | **Evidence** | `src/features/architect/hooks/useTradeMachine.js:237-239` |
-| **Snippet** | `const rawPicks = data.draftPicks || data.picks || []; const picksWithIds = rawPicks.map(p => ensurePickId(p));` |
+| **Snippet** | `const rawPicks = data.draftPicks \|\| data.picks \|\| []; const picksWithIds = rawPicks.map(p => ensurePickId(p));` |
 | **Call Chain** | `init()` / `selectTeam()` → `ensurePickId()` for each pick |
 
 ##### E17: picksOut UI State Shape
@@ -1411,7 +1473,7 @@ Swap picks are now included in Stepien consecutive-year checks. Proper swap mode
 |-------|-------|
 | **Claim** | `isSwap` picks are included in Stepien checks but not specially handled |
 | **Evidence** | `src/features/architect/utils/tradeMachine/rules/validateStepien.js:37-39` |
-| **Snippet** | `const firstRoundPicks = picks.filter((pick) => pick.round === '1st' || pick.round === 1 || pick.round === 'first');` |
+| **Snippet** | `const firstRoundPicks = picks.filter((pick) => pick.round === '1st' \|\| pick.round === 1 \|\| pick.round === 'first');` |
 | **Note** | Phase 1 v2.0.2 removed `!pick.isSwap` exclusion - swaps now included |
 
 ##### E20: swapWithTeamId Has Zero Validator Call Sites
@@ -1432,7 +1494,7 @@ Swap picks are now included in Stepien consecutive-year checks. Proper swap mode
 
 ### Task B: Validator Input Pipeline (Call Graph)
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │                           PICK DATA FLOW (Validated)                            │
 └─────────────────────────────────────────────────────────────────────────────────┘
@@ -1488,16 +1550,19 @@ Swap picks are now included in Stepien consecutive-year checks. Proper swap mode
 #### Definitive "Truth Object" for Stepien
 
 The validator uses:
+
 - **`team.outgoingPicks[]`** (if present and length > 0) OR
 - **`team.picksOut[]`** (fallback)
 
 Fields actually read by Stepien:
+
 - `pick.year` - Draft year (number)
 - `pick.round` - Draft round (1, "1st", or "first" for first round)
 - `pick.protection` - Protection string (passed to `isMeaningfulProtection()`)
 - `pick.originalTeam` - For second apron frozen pick check
 
 Fields **NOT currently used** by Stepien:
+
 - `pick.isSwap` - Present but not read (Phase 2 Gap G1)
 - `pick.swapWithTeamId` - Present but not read (Phase 2 Gap G1)
 - `pick.id` - Not used in validation logic
@@ -1524,12 +1589,14 @@ Fields **NOT currently used** by Stepien:
 #### Swap Field Write Locations (Exhaustive)
 
 1. **TradePickRow.jsx:119-121** - UI checkbox toggle
+
    ```jsx
    <input type="checkbox" checked={!!pickObj.isSwap}
      onChange={(e) => onEdit(pick, 'isSwap', e.target.checked)} />
    ```
 
 2. **TradePickRow.jsx:129-131** - UI dropdown select
+
    ```jsx
    value={pickObj.swapWithTeamId || ''}
    onChange={(e) => onEdit(pick, 'swapWithTeamId', e.target.value)}
@@ -1538,21 +1605,25 @@ Fields **NOT currently used** by Stepien:
 #### Swap Field Read Locations (Exhaustive)
 
 1. **formatPick()** - `tradeHelpers.js:304`
+
    ```js
    if (p.isSwap) str += ' 🔁 Swap';
    ```
 
 2. **TradeSummaryPanel.jsx:23**
+
    ```jsx
    if (p.isSwap) label += ` 🔄 Swap`;
    ```
 
 3. **validateStepien.ts:48, 59** (TypeScript version, not JS)
+
    ```ts
    isSwap: p.isSwap === true,
    ```
 
 4. **draftRules.js:40** (in `validateDraftPicks`, NOT called by tradeValidator)
+
    ```js
    !p.isSwap && // excludes swaps from Stepien check
    ```
@@ -1589,7 +1660,7 @@ Fields **NOT currently used** by Stepien:
 
 1. **CBA Intent**: Stepien rule exists to ensure teams always have a first-round pick available. Swaps represent a real obligation that could result in the team losing their pick.
 
-2. **Repo Reality**: 
+2. **Repo Reality**:
    - `isSwap` is already stored in pick objects (E4, E-F3)
    - Phase 1 v2.0.2 removed swap exclusion, so swaps are now evaluated
    - Adding year reservation is additive, not disruptive
@@ -1599,6 +1670,7 @@ Fields **NOT currently used** by Stepien:
 4. **Exception for worst_of**: A "worst of" swap doesn't reserve the year because the team is guaranteed to keep the better pick.
 
 **Implementation Impact:**
+
 - Modify `validateStepien.js` to check `isSwap` field
 - For `isSwap === true`: Reserve the year (treat as obligation)
 - For `isSwap === false`: Normal outright pick handling
@@ -1626,6 +1698,7 @@ Fields **NOT currently used** by Stepien:
 | `draftPicksPreflight.test.js` | `src/tests/tradeMachine/` | 16 passing, 2 skipped (Phase 2) |
 
 **Skipped Tests:**
+
 - `swapPlusAdjacentPick fixture (Phase 2 Gap G1)` - Requires swap year reservation
 - `Second Apron Frozen Pick Restriction (Phase 2)` - Requires swap + frozen pick logic
 
@@ -1807,6 +1880,7 @@ npm run build
    - **Required Inputs**: Draft lottery results (`Map<TeamCode, number>`)
 
 3. **Resolved-Pick Schema (Recommended: Minimal Extension)**:
+
    ```typescript
    interface DraftPick {
      // ... existing fields unchanged ...
@@ -1881,11 +1955,13 @@ npm run build
 **What "resolution" means in this repo:**
 
 For a swap pick (e.g., "best of PHI/OKC 2026 1st"):
+
 - **Unresolved state**: Pick has `isSwap: true`, `swapType: 'best_of'`, `swapWithTeamId: 'OKC'`, `resolved: false`
 - **Resolution event**: When 2026 draft lottery results are known (or simulated)
 - **Resolved state**: Pick has `resolved: true`, `resolvedOwner: 'OKC'` (the team whose pick was selected)
 
 **"Higher pick" definition:**
+
 - Lower number = better/higher pick (pick #1 is best, #60 is worst)
 - `best_of` → Controller gets pick with **lower** position number
 - `worst_of` → Controller gets pick with **higher** position number
@@ -1949,6 +2025,7 @@ Added `resolveDraftPickSwapsForYear(team, draftYear, positionsMap, opts)` to `se
 #### T3) Schema A Fields (Additive Only) ✅
 
 Picks can now carry resolution fields:
+
 - `resolved: boolean`
 - `resolvedOwner: TeamCode`
 - `resolvedPosition: number`
@@ -1964,6 +2041,7 @@ Verified: `ensurePickId()` preserves all fields via spread operator.
 #### T5) Resolved Swap Display ✅
 
 Extended `formatSwapInfo(pick)` to show resolved outcome:
+
 - Unresolved: `"Swap (Best of) vs OKC"`
 - Resolved: `"Swap (Best of) vs OKC → Won by OKC"`
 
@@ -2019,6 +2097,7 @@ npm run build                                                             # ✓ 
 > **Doc Patch**: `docs/return-packages/trade-machine-draft-picks__phase-4-preflight-doc-patch__2026-01-04.md`
 >
 > **Terminology Note**: "Conveyance" refers to the NBA draft pick mechanism where a protected pick either:
+>
 > - **Conveys** (transfers to the receiving team) when protection doesn't trigger, OR
 > - **Rolls forward** to the next year's draft when protection triggers (e.g., pick lands in Top 3 protected range)
 > - May eventually **convert** to a different asset (e.g., 1st becomes 2nd round pick) after multiple rolls
@@ -2039,7 +2118,8 @@ npm run build                                                             # ✓ 
 
 #### F2: DraftPickConveyanceZ Schema is NEVER USED
 
-**Evidence**: 
+**Evidence**:
+
 - Schema defined at `src/schemas/architect.ts:91-123`
 - **ZERO** runtime code reads `conveyance`, `ifConveys`, `ifRolls`, or `finalYear`
 - Search: `grep -r "ifConveys\|ifRolls\|finalYear" src/features/` returns no matches
@@ -2049,12 +2129,14 @@ npm run build                                                             # ✓ 
 #### F3: "Swap (+)/Swap (-)" in Protection Dropdown is CONFUSING
 
 **Where Defined**: `tradeUtilities.js:92-93`
+
 ```javascript
 { label: 'Swap (+)', value: 'Swap (+)' },
 { label: 'Swap (-)', value: 'Swap (-)' },
 ```
 
 **Risk Analysis** (verified via grep):
+
 - `isMeaningfulProtection('Swap (+)')` returns `false` - NOT treated as protection
 - Users may think selecting "Swap (+)" makes pick a swap - IT DOESN'T
 - grep found values ONLY in `getPickOptions()` dropdown and test fixtures; no team data contains these values
@@ -2066,11 +2148,13 @@ npm run build                                                             # ✓ 
 **Primary Target**: Season advance (`updateDraftPicksWithStepien()` at `seasonManager.js:819`)
 
 **Required Inputs**:
+
 - Pick with `conveyance.conditions`
 - Lottery results: `Map<TeamCode, number>`
 - Current season for determining which year to evaluate
 
 **What Repo Lacks**:
+
 - Draft lottery simulation
 - Lottery results ingestion
 - Manual entry UI for lottery positions
@@ -2095,6 +2179,7 @@ interface DraftPick {
 ### Deliverables Created
 
 > **⚠️ Fixture Model Clarification**: Fixtures contain two different structures:
+>
 > - `conveyance.*` fields match existing `DraftPickConveyanceZ` schema (unused at runtime)
 > - `protectionLadder[]` is a **PROPOSED** Phase 4 model — does NOT exist in runtime schema
 
@@ -2261,6 +2346,7 @@ npm run build                                                               # �
 #### T0) PREFLIGHT DISCOVERY ✅
 
 **Findings:**
+
 - World state stored in Firestore at `architect_worlds/{worldId}` with metadata
 - Season advance triggered via `advanceSeasonInWorld()` in `seasonManager.js`
 - `resolveDraftPickSwapsForYear()` and `resolveDraftPickConveyanceForYear()` exist (Phase 3-4)
@@ -2272,6 +2358,7 @@ npm run build                                                               # �
 Added `draftPositionsByYear` storage to world metadata in `worldManager.js`:
 
 **Schema:**
+
 ```javascript
 world.draftPositionsByYear: {
   [year: number]: {
@@ -2283,6 +2370,7 @@ world.draftPositionsByYear: {
 ```
 
 **New Functions:**
+
 - `getDraftPositions(worldId, draftYear)` - Get full position data for a year
 - `getDraftPositionsMap(worldId, draftYear)` - Convenience helper returning just positionsMap
 - `validateDraftPositionsMap(positionsMap)` - Validate structure before save
@@ -2290,6 +2378,7 @@ world.draftPositionsByYear: {
 - `clearDraftPositions(worldId, draftYear)` - Clear positions for a year
 
 **Validation Rules:**
+
 - Team codes must be 3 uppercase letters (ATL, BOS, etc.)
 - Positions must be integers 1-60 (two rounds)
 - No duplicate positions allowed
@@ -2300,6 +2389,7 @@ world.draftPositionsByYear: {
 Created `DraftPositionsInput` component at `src/features/architect/GMDashboard/components/DraftPositionsInput.jsx`:
 
 **Features:**
+
 - Year selector (current year to +7 years)
 - Textarea for JSON input with template
 - "Validate" action with detailed error messages
@@ -2315,6 +2405,7 @@ Created `DraftPositionsInput` component at `src/features/architect/GMDashboard/c
 Modified `advanceSeasonInWorld()` and `processTeamSeasonTransitionWithOptions()` in `seasonManager.js`:
 
 **Flow:**
+
 1. When advancing from season X to X+1, loads `positionsMap` for draft year X
 2. For each team, applies in order:
    - `afterConveyance = resolveDraftPickConveyanceForYear(updatedTeam, ...)` — rolls/conveys protected picks
@@ -2325,15 +2416,18 @@ Modified `advanceSeasonInWorld()` and `processTeamSeasonTransitionWithOptions()`
 4. Returns `draftResolutionInfo` with resolution counts
 
 **Variable Chain (Critical):**
+
 ```javascript
 // 1) Conveyance first — input is updatedTeam
 const afterConveyance = resolveDraftPickConveyanceForYear(updatedTeam, draftYear, positionsMap, opts);
 // 2) Swaps second — input is afterConveyance (NOT updatedTeam)
 const afterSwaps = resolveDraftPickSwapsForYear(afterConveyance, draftYear, positionsMap, opts);
 ```
+
 This ensures swaps see rolled/conveyed picks from the conveyance step.
 
 **NO-OP Guarantee Preserved:**
+
 - If `positionsMap` is null/undefined/empty → no resolution occurs
 - Individual picks without position data left unchanged
 - Error catching prevents single pick failures from breaking entire advance
@@ -2343,6 +2437,7 @@ This ensures swaps see rolled/conveyed picks from the conveyance step.
 Created `src/tests/tradeMachine/phase5DraftPositions.test.js` with 32 tests:
 
 **Test Categories:**
+
 - `validateDraftPositionsMap()` validation (valid/invalid inputs)
 - NO-OP guarantees (null/undefined/empty positionsMap)
 - Resolution WITH positionsMap (swaps and conveyance)
@@ -2350,6 +2445,7 @@ Created `src/tests/tradeMachine/phase5DraftPositions.test.js` with 32 tests:
 - Edge cases (empty picks, missing partners, idempotency)
 
 **Commands:**
+
 ```bash
 npm run test -- src/tests/tradeMachine/phase5DraftPositions.test.js --run  # 32 passed
 npm run test -- src/tests/tradeMachine/ --run                              # 170 passed

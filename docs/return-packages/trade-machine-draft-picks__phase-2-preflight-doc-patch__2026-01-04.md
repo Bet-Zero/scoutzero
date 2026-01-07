@@ -23,14 +23,17 @@ This doc-first patch updates the Phase 2 PREFLIGHT Return Package to conform to 
 ## T1: Evidence Index Numbering Consistency
 
 ### Problem
+
 The Return Package header stated "Evidence Index Additions (E15+)" but used E-F1 through E-F5 format, creating inconsistency.
 
 ### Solution
+
 Renamed all evidence entries to use consistent E15-E19 numbering.
 
 ### Before → After
 
 **Return Package (Section 2):**
+
 ```diff
 - ### E-F1: Firestore → Team Loader Pass-Through
 + ### E15: Firestore → Team Loader Pass-Through
@@ -49,6 +52,7 @@ Renamed all evidence entries to use consistent E15-E19 numbering.
 ```
 
 **Master Doc (Phase 2 PREFLIGHT Findings section):**
+
 ```diff
 Pick Shape Matrix table notes column:
 - | **2. Team Loader** | ... | E-F1 |
@@ -74,9 +78,11 @@ Same renaming applied to all evidence entry headings in both files.
 ## T2: swapWithTeamId Call Site Evidence (New E20)
 
 ### Problem
+
 The Return Package claimed "swapWithTeamId NEVER read" but lacked a dedicated Evidence entry with repo search proof.
 
 ### Solution
+
 Added E20 with explicit search commands and results summary.
 
 ### New Evidence Entry Added
@@ -102,6 +108,7 @@ Added E20 with explicit search commands and results summary.
 ### Search Proof Details
 
 **Command executed:**
+
 ```bash
 grep -r "swapWithTeamId" src/features/architect/utils/tradeMachine/
 ```
@@ -109,6 +116,7 @@ grep -r "swapWithTeamId" src/features/architect/utils/tradeMachine/
 **Result:** No matches found in any validator, rule, or engine file.
 
 **Files containing the field (full repo search):**
+
 1. `src/features/architect/tradeMachine/TradePickRow.jsx` — UI component only
 2. `src/tests/fixtures/tradeMachinePicks/swapOnly.json` — Test fixture
 3. `src/tests/fixtures/tradeMachinePicks/swapPlusAdjacentPick.json` — Test fixture
@@ -119,6 +127,7 @@ grep -r "swapWithTeamId" src/features/architect/utils/tradeMachine/
 ### References Updated
 
 **Return Package — Swap Reality Check Summary table:**
+
 ```diff
 | Field | Written | Read | Validated |
 |-------|---------|------|-----------|
@@ -128,6 +137,7 @@ grep -r "swapWithTeamId" src/features/architect/utils/tradeMachine/
 ```
 
 **Return Package — Call Graph section:**
+
 ```diff
 Fields NOT read:
 - `pick.isSwap` (present but not read)
@@ -141,10 +151,13 @@ Fields NOT read:
 ## T3: Fixture Shapes Made Self-Contained
 
 ### Problem
+
 The Return Package listed fixtures created but did not show their shapes, requiring users to open fixture files to understand data structures.
 
 ### Solution
+
 Added "Fixture Shapes (Authoritative)" subsection with:
+
 - Standard pick object shape template
 - Fixture-specific shape descriptions
 - Field variants observed
@@ -204,10 +217,12 @@ All fixtures follow a common structure with `teams[]` array containing `picksOut
    - Tests: Second apron frozen pick restriction (Phase 2 gap)
 
 **Field Variants Observed:**
+
 - `round`: Always number (1 or 2) in fixtures; code also handles "1st", "2nd", "first", "second"
 - `protection`: String format ("Top 3", "Lottery", etc.) or null
 - `swapWithTeamId`: Present when `isSwap: true`, null or omitted otherwise
 - `toTeamId`: Optional field for multi-team trade destination tracking
+
 ```
 
 ### Key Fields Documented
@@ -281,6 +296,7 @@ git status
 ### Evidence Numbering Consistency
 
 **Check:** Are evidence IDs consistent across both docs?
+
 - ✅ Return Package uses E15-E20
 - ✅ Master Doc uses E15-E20
 - ✅ No mixed formats (all E-F* removed)
@@ -288,6 +304,7 @@ git status
 ### swapWithTeamId Claim Backed
 
 **Check:** Is the "never read" claim proven?
+
 - ✅ E20 entry added with search command
 - ✅ Search result documented (no matches in validator/rules/engine)
 - ✅ File list shows only UI and fixtures contain the field
@@ -295,6 +312,7 @@ git status
 ### Fixtures Self-Contained
 
 **Check:** Can the Return Package be read standalone?
+
 - ✅ Standard pick shape documented with field types
 - ✅ Each fixture's specific shape described
 - ✅ Field variants documented (round format, protection format)
@@ -303,6 +321,7 @@ git status
 ### Master Doc Links Match
 
 **Check:** Do Master Doc references point to correct Return Package?
+
 - ✅ Path verified: `docs/return-packages/trade-machine-draft-picks__phase-2-preflight__2026-01-04.md`
 - ✅ Evidence IDs match (E15-E20 in both)
 
@@ -319,6 +338,7 @@ git status
 **Result:** ✅ No reads found. Safe to proceed.
 
 **Search performed:**
+
 ```bash
 grep -r "swapWithTeamId" src/features/architect/utils/tradeMachine/
 # Result: (no output - no matches)
@@ -438,6 +458,7 @@ This patch completes the docs-only conformance updates for Phase 2 PREFLIGHT. Th
 **No further action required for this patch.**
 
 **For Phase 2 Implementation:**
+
 - Evidence E15-E20 can be cited in code comments
 - Fixture shapes are documented for test writing
 - E20 confirms `swapWithTeamId` is a Phase 2 implementation target (Gap G1)

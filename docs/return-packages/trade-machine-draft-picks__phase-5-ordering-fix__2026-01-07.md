@@ -108,11 +108,13 @@ if (positionsMap && draftYear && Object.keys(positionsMap).length > 0) {
 ```
 
 When `positionsMap` is null, undefined, or empty:
+
 - The entire Phase 5 resolution block is skipped
 - Neither conveyance nor swap resolution runs
 - Team state is unchanged
 
 Tests confirming NO-OP behavior:
+
 - `resolveDraftPickSwapsForYear NO-OP` (3 tests)
 - `resolveDraftPickConveyanceForYear NO-OP` (3 tests)
 
@@ -132,7 +134,9 @@ const afterConveyance = resolveDraftPickConveyanceForYear(updatedTeam, draftYear
 // 2) Swaps second — input is afterConveyance (NOT updatedTeam)
 const afterSwaps = resolveDraftPickSwapsForYear(afterConveyance, draftYear, positionsMap, opts);
 ```
+
 This ensures swaps see rolled/conveyed picks from the conveyance step.
+
 ```
 
 ---

@@ -51,6 +51,7 @@ Phase 4 EXECUTION implemented conveyance resolution and protection normalization
 **File**: `src/features/architect/utils/tradeMachine/utils/tradeUtilities.js`
 
 **Changes**:
+
 - Removed `{ label: 'Swap (+)', value: 'Swap (+)' }` and `{ label: 'Swap (-)', value: 'Swap (-)' }` from `getPickOptions()` return array
 - Added `normalizeProtectionValue(protection)` for defensive normalization of legacy values
 
@@ -72,6 +73,7 @@ export const getPickOptions = () => [
 **File**: `src/schemas/architect.ts`
 
 **New Schema**:
+
 ```typescript
 export const ProtectionMetaZ = z.object({
   type: z.enum(['position', 'lottery', 'playoff', 'always', 'never']),
@@ -85,6 +87,7 @@ export const ProtectionMetaZ = z.object({
 ```
 
 **Updated `isMeaningfulProtection()`**:
+
 - Accepts pick objects with `protectionMeta` field
 - Returns `true` for types: `position` (with maxPosition > 0), `lottery`, `playoff`
 - Returns `false` for types: `always`, `never`
@@ -95,6 +98,7 @@ export const ProtectionMetaZ = z.object({
 **File**: `src/features/architect/utils/tradeMachine/utils/conveyanceResolution.js`
 
 **Functions**:
+
 1. `parseProtectionThreshold(protectionString)` - Parses "Top 3" → 3, "Lottery" → 14
 2. `protectionTriggers(protection, position)` - Returns true if position is within protected range
 3. `resolveConveyanceForPick(pick, positionsMap, opts)` - Resolves single pick conveyance
@@ -103,6 +107,7 @@ export const ProtectionMetaZ = z.object({
 6. `normalizeProtection(protectionOrPick)` - Returns canonical protection descriptor
 
 **NO-OP Guarantees**:
+
 - Returns pick unchanged if `positionsMap` is null/undefined/empty
 - Returns pick unchanged if position key is missing
 - Returns pick unchanged if pick lacks conveyance data
@@ -122,11 +127,13 @@ export const ProtectionMetaZ = z.object({
 ### T5: Label Formatters
 
 **Updated `formatPick()` in `tradeHelpers.js`**:
+
 - Checks `pick.protectionMeta` first for protection display
 - Falls back to `pick.protection` string
 - Skips legacy "Swap (+/-)" values
 
 **Updated `buildFirstRoundCalendar()` in `stepienUtils.js`**:
+
 - Uses `isMeaningfulProtection()` for consistent protection checking
 - Supports protectionMeta in addition to string protection
 
@@ -135,24 +142,28 @@ export const ProtectionMetaZ = z.object({
 ## 4. Test Results
 
 ### Conveyance Preflight Tests
+
 ```
 npm run test -- src/tests/tradeMachine/conveyancePreflight.test.js --run
 ✓ 38 tests passed (0 skipped)
 ```
 
 ### All Trade Machine Tests
+
 ```
 npm run test -- src/tests/tradeMachine/ --run
 ✓ 142 tests passed (1 skipped, 3 todo)
 ```
 
 ### Stepien and Trade Helper Tests
+
 ```
 npm run test -- tests/validators/stepien.test.js tests/hasStepienViolation.test.js tests/tradeHelpers.test.js --run
 ✓ 23 tests passed
 ```
 
 ### Build
+
 ```
 npm run build
 ✓ built in 9.29s (no errors)
@@ -163,21 +174,26 @@ npm run build
 ## 5. Validation Greps
 
 ### A) "Swap (+/-)" in src/
+
 Found only in:
+
 - Test fixtures (documentation)
 - Defensive normalization code in `tradeUtilities.js`, `stepienUtils.js`, `tradeHelpers.js`
 - **NOT in `getPickOptions()`** ✅
 
 ### B) getPickOptions
+
 - Defined: `tradeUtilities.js:134`
 - Used: `TradePickRow.jsx:127`
 
 ### C) isMeaningfulProtection
+
 - Canonical: `tradeUtilities.js:74-131`
 - Re-exported: `tradeHelpers.js:432`
 - Used in: `validateStepien.js`, `draftRules.js`, `stepienUtils.js`
 
 ### D) conveyance/DraftPickConveyanceZ
+
 - Schema: `architect.ts:91-123, 158`
 - **Runtime usage**: `conveyanceResolution.js`, `seasonManager.js` (Phase 4 implementation)
 
@@ -219,6 +235,7 @@ Found only in:
 ### NO-OP Safety Guarantees
 
 The conveyance resolution functions are designed to be safe for integration:
+
 - Never throw errors (catch and return unchanged)
 - No mutations to input objects
 - Returns team/picks unchanged when inputs are missing

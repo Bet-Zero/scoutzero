@@ -89,6 +89,19 @@ service cloud.firestore {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // LISTS & TIER LISTS: Public read-only for development
+    // ─────────────────────────────────────────────────────────────────────────
+    match /lists/{listId} {
+      allow read: if true;
+      allow write: if true; // Allow write for dev convenience
+    }
+
+    match /tierLists/{listId} {
+      allow read: if true;
+      allow write: if true; // Allow write for dev convenience
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // LEGACY: players_v2 public read-only
     // ─────────────────────────────────────────────────────────────────────────
     match /players_v2/{playerId} {

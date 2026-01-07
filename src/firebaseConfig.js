@@ -20,8 +20,16 @@ export const functions = getFunctions(app);
 
 // Connect to emulators in development (DEV mode only)
 if (import.meta.env.DEV) {
-  connectFirestoreEmulator(db, '127.0.0.1', 8082);
-  connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
-  connectFunctionsEmulator(functions, 'localhost', 5001);
-  console.log('🔥 Firebase emulators connected (Firestore, Auth, Functions)');
+  const host = 'localhost'; // Consistent host for all emulators
+  connectFirestoreEmulator(db, host, 8082);
+  connectAuthEmulator(auth, `http://${host}:9099`, { disableWarnings: true });
+  connectFunctionsEmulator(functions, host, 5001);
+  
+  console.log('──────────────────────────────────────────────────');
+  console.log('🔥 Firebase Emulators Connected');
+  console.log(`   Project: ${import.meta.env.VITE_FIREBASE_PROJECT_ID}`);
+  console.log(`   Firestore: ${host}:8082`);
+  console.log(`   Auth: ${host}:9099`);
+  console.log(`   Functions: ${host}:5001`);
+  console.log('──────────────────────────────────────────────────');
 }

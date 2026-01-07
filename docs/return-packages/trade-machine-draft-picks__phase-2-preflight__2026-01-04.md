@@ -123,13 +123,16 @@ VALIDATION TRIGGERED
 ### Definitive "Truth Object" for Stepien
 
 The validator uses:
+
 - **`team.outgoingPicks[]`** (if present and length > 0) OR
 - **`team.picksOut[]`** (fallback)
 
 Fields actually read:
+
 - `pick.year`, `pick.round`, `pick.protection`, `pick.originalTeam`
 
 Fields NOT read:
+
 - `pick.isSwap` (present but not read)
 - `pick.swapWithTeamId` (NEVER read - zero call sites) [E20]
 
@@ -149,7 +152,7 @@ Fields NOT read:
 
 1. **CBA Intent**: Stepien rule ensures teams always have a first-round pick. Swaps represent real obligations.
 
-2. **Repo Reality**: 
+2. **Repo Reality**:
    - `isSwap` already stored in pick objects
    - Phase 1 v2.0.2 includes swaps in Stepien filter
    - Adding year reservation is additive, not disruptive
@@ -169,12 +172,15 @@ Fields NOT read:
 ## 6. Files Changed/Added
 
 ### Master Doc Updated
+
 - `docs/tradeMachine/TRADE_MACHINE_DRAFT_PICKS_MASTER.md` — Added "Phase 2 PREFLIGHT Findings" section
 
 ### Return Package Created
+
 - `docs/return-packages/trade-machine-draft-picks__phase-2-preflight__2026-01-04.md` — This file
 
 ### Fixtures Created
+
 - `src/tests/fixtures/tradeMachinePicks/swapOnly.json`
 - `src/tests/fixtures/tradeMachinePicks/swapPlusAdjacentPick.json`
 - `src/tests/fixtures/tradeMachinePicks/protectionStringPresent.json`
@@ -187,6 +193,7 @@ Fields NOT read:
 All fixtures follow a common structure with `teams[]` array containing `picksOut[]` arrays. Each pick object contains the following fields:
 
 **Standard Pick Object Shape:**
+
 ```json
 {
   "id": "PHI_2026_1",           // Canonical ID: {originalTeam}_{year}_{round}
@@ -232,12 +239,14 @@ All fixtures follow a common structure with `teams[]` array containing `picksOut
    - Tests: Second apron frozen pick restriction (Phase 2 gap)
 
 **Field Variants Observed:**
+
 - `round`: Always number (1 or 2) in fixtures; code also handles "1st", "2nd", "first", "second"
 - `protection`: String format ("Top 3", "Lottery", etc.) or null
 - `swapWithTeamId`: Present when `isSwap: true`, null or omitted otherwise
 - `toTeamId`: Optional field for multi-team trade destination tracking
 
 ### Test File Created
+
 - `src/tests/tradeMachine/draftPicksPreflight.test.js` — 16 passing, 2 skipped (Phase 2)
 
 ---

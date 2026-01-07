@@ -11,6 +11,7 @@
 Phase 5 implements the "real-life results input" path so the app can resolve draft pick swaps/protections/conveyance when the real pick order is known.
 
 **Deliverables:**
+
 1. ✅ Data model: `draftPositionsByYear` storage in world metadata
 2. ✅ UI: `DraftPositionsInput` component for entering draft positions JSON
 3. ✅ Runtime wiring: Auto-resolve picks during season advance when positionsMap exists
@@ -70,6 +71,7 @@ Phase 5 implements the "real-life results input" path so the app can resolve dra
 ```
 
 **Validation Rules (enforced by `validateDraftPositionsMap()`):**
+
 - Team codes: 3 uppercase letters (e.g., "PHI", "OKC")
 - Positions: integers 1-60 (supports two-round draft)
 - No duplicate positions allowed
@@ -82,6 +84,7 @@ Phase 5 implements the "real-life results input" path so the app can resolve dra
 **Location:** GM Dashboard → Offseason Tab → "Draft Positions Input" panel
 
 **How to Use:**
+
 1. Select a draft year from the dropdown (current year to +7)
 2. Edit the JSON in the textarea (template provided)
 3. Click "Validate" to check for errors
@@ -95,6 +98,7 @@ Phase 5 implements the "real-life results input" path so the app can resolve dra
 ## 5) Runtime Wiring: Exact Function Call Sites
 
 ### Primary Entry Point
+
 **File:** `src/features/architect/utils/seasonManager.js`  
 **Function:** `advanceSeasonInWorld(worldId, options)`
 
@@ -138,11 +142,13 @@ export function resolveDraftPickConveyanceForYear(team, draftYear, positionsMap,
 ## 6) Tests Run + Results
 
 ### Command
+
 ```bash
 npm run test -- src/tests/tradeMachine/phase5DraftPositions.test.js --run
 ```
 
 ### Output
+
 ```
  ✓ src/tests/tradeMachine/phase5DraftPositions.test.js  (32 tests) 12ms
 
@@ -151,6 +157,7 @@ npm run test -- src/tests/tradeMachine/phase5DraftPositions.test.js --run
 ```
 
 ### Test Categories
+
 - `validateDraftPositionsMap()` - 15 tests (valid/invalid inputs)
 - NO-OP Guarantees - 6 tests (null/undefined/empty)
 - Resolution WITH positionsMap - 6 tests (swap + conveyance)
@@ -158,6 +165,7 @@ npm run test -- src/tests/tradeMachine/phase5DraftPositions.test.js --run
 - Edge Cases - 5 tests (empty, missing, idempotent)
 
 ### All Trade Machine Tests
+
 ```bash
 npm run test -- src/tests/tradeMachine/ --run
 # 170 passed | 1 skipped | 3 todo (174 total)
@@ -168,6 +176,7 @@ npm run test -- src/tests/tradeMachine/ --run
 ## 7) Validation Greps
 
 ### Storage field used in season advance
+
 ```bash
 grep -r "getDraftPositionsMap" src/features/architect/utils/
 # src/features/architect/utils/seasonManager.js:import { getWorldMetadata, getDraftPositionsMap } from ...
@@ -175,6 +184,7 @@ grep -r "getDraftPositionsMap" src/features/architect/utils/
 ```
 
 ### Conveyance resolver called from season advance
+
 ```bash
 grep -r "resolveDraftPickConveyanceForYear" src/features/architect/utils/seasonManager.js
 # export function resolveDraftPickConveyanceForYear(team, draftYear, positionsMap, opts = {})
@@ -182,6 +192,7 @@ grep -r "resolveDraftPickConveyanceForYear" src/features/architect/utils/seasonM
 ```
 
 ### Swap resolver called from season advance
+
 ```bash
 grep -r "resolveDraftPickSwapsForYear" src/features/architect/utils/seasonManager.js
 # export function resolveDraftPickSwapsForYear(team, draftYear, positionsMap, opts = {})
@@ -189,6 +200,7 @@ grep -r "resolveDraftPickSwapsForYear" src/features/architect/utils/seasonManage
 ```
 
 ### Build verification
+
 ```bash
 npm run build
 # ✓ built in 9.72s (no errors)
@@ -211,7 +223,9 @@ npm run build
 ## 9) Confirmation: Intended Behavior + NO-OP Guarantee
 
 ### Intended Behavior
+
 When advancing season with `advanceSeasonInWorld()`:
+
 1. Loads `positionsMap` from `world.draftPositionsByYear[fromYear]`
 2. If positions exist: resolves conveyance and swaps for that draft year
 3. If no positions: leaves all picks unchanged (NO-OP)
@@ -219,6 +233,7 @@ When advancing season with `advanceSeasonInWorld()`:
 ### NO-OP Guarantee Preserved
 
 **Test Evidence:**
+
 ```javascript
 // From phase5DraftPositions.test.js
 it('returns team unchanged when positionsMap is null', () => {
@@ -233,12 +248,14 @@ it('returns team unchanged when positionsMap is empty', () => {
 ```
 
 **Runtime Evidence:**
+
 - `getDraftPositionsMap()` returns `null` when no positions stored
 - `advanceSeasonInWorld()` passes `positionsMap` to team processor
 - `processTeamSeasonTransitionWithOptions()` checks `positionsMap && Object.keys(positionsMap).length > 0`
 - Both resolution functions check for empty/null and return team unchanged
 
 ### Summary
+
 - ✅ Phase 5 implementation complete
 - ✅ NO-OP guarantee verified by 6+ tests
 - ✅ All existing tests pass (170/174)

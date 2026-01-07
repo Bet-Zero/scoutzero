@@ -10,12 +10,14 @@
 ## 1. Summary of What Was Corrected
 
 This doc patch audits and corrects the Phase 4 PREFLIGHT Return Package (`trade-machine-draft-picks__phase-4-preflight__2026-01-04.md`) to ensure:
+
 1. **All file paths are accurate** to actual repo structure
 2. **Line numbers are verified** or replaced with function names
 3. **Overclaims are corrected** with verifiable evidence
 4. **Proposed structures are clearly labeled** as proposals, not existing implementations
 
 ### Changes Made
+
 - Updated Protection Touchpoints table (P1-P9) with verified line numbers
 - Updated Conveyance Touchpoints table (C1-C3) with verified line numbers
 - Added Path Accuracy Table (T1)
@@ -35,7 +37,7 @@ This doc patch audits and corrects the Phase 4 PREFLIGHT Return Package (`trade-
 | P4 | `src/features/architect/utils/tradeMachine/rules/validateStepien.js:86-87` | Same | 86-87 | 86-87 | ✅ Correct | `isMeaningfulProtection(current.protection)` calls |
 | P5 | `src/features/architect/utils/tradeMachine/rules/draftRules.js:41` | Same | 41 | 41 | ✅ Correct | `isMeaningfulProtection(p.protection)` call |
 | P6 | `src/features/architect/utils/stepienUtils.js:27-29` | Same | 27-29 | 25, 32-33 | ⚠️ Adjusted | `p.protectionText` at line 25; `p.protection` at lines 32-33 |
-| P7 | `src/features/architect/utils/tradeHelpers.js:360` | Same | 360 | 360 | ✅ Correct | `if (p.protection) str += ` in `formatPick()` |
+| P7 | `src/features/architect/utils/tradeHelpers.js:360` | Same | 360 | 360 | ✅ Correct | `if (p.protection) str +=` in `formatPick()` |
 | P8 | `src/features/architect/utils/seasonManager.js:400-426` | Same | 400-426 | 400-426 | ✅ Correct | `updateDraftPicks()` function |
 | P9 | `src/features/architect/utils/seasonManager.js:817-912` | Same | 817-912 | 819-... | ⚠️ Minor | `updateDraftPicksWithStepien()` starts at line 819 |
 | C1 | `src/schemas/architect.ts:91-123` | Same | 91-123 | 91-123 | ✅ Correct | `DraftPickConveyanceZ` schema definition |
@@ -87,10 +89,12 @@ grep -rn "Swap (\+)\|Swap (-)" src/
 ```
 
 **Results** (runtime code only):
+
 - `src/features/architect/utils/tradeMachine/utils/tradeUtilities.js:92` — `{ label: 'Swap (+)', value: 'Swap (+)' }`
 - `src/features/architect/utils/tradeMachine/utils/tradeUtilities.js:93` — `{ label: 'Swap (-)', value: 'Swap (-)' }`
 
 **Results** (test code):
+
 - `src/tests/tradeMachine/conveyancePreflight.test.js` — Multiple test assertions
 - `src/tests/fixtures/tradeMachinePicks/protection_swap_plus_minus_strings.json` — Documentation fixture
 
@@ -103,6 +107,7 @@ grep -rn "isMeaningfulProtection" src/
 ```
 
 **Results**:
+
 | Location | Line | Usage |
 |----------|------|-------|
 | `src/features/architect/utils/tradeMachine/utils/tradeUtilities.js` | 74 | Function definition (CANONICAL) |
@@ -119,6 +124,7 @@ grep -rn "getPickOptions" src/
 ```
 
 **Results**:
+
 | Location | Line | Usage |
 |----------|------|-------|
 | `src/features/architect/utils/tradeMachine/utils/tradeUtilities.js` | 84 | Function definition |
@@ -131,6 +137,7 @@ grep -rn "DraftPickConveyanceZ\|conveyance\." src/
 ```
 
 **Results** (schema/type definitions only):
+
 | Location | Line | Usage |
 |----------|------|-------|
 | `src/schemas/architect.ts` | 91, 141 | Schema definition and field attachment |
@@ -144,6 +151,7 @@ grep -rn "resolveDraftPickSwapsForYear" src/
 ```
 
 **Results**:
+
 | Location | Line | Usage |
 |----------|------|-------|
 | `src/features/architect/utils/seasonManager.js` | 14, 950 | JSDoc and function definition |
@@ -189,6 +197,7 @@ DraftPickConveyanceZ = z.object({
 ```
 
 Fixtures using this structure:
+
 - `conveyance_rolls_forward.json` — Uses `conveyance.conditions` (matches schema)
 - `conveyance_converts_to_2nd.json` — Uses `conveyance.conditions` (matches schema)
 - `conveyance_multi_year_ladder.json` — Uses `conveyance.*` fields (matches schema)
@@ -209,6 +218,7 @@ interface ProtectionLadder {
 ```
 
 Fixtures using this structure:
+
 - `conveyance_multi_year_ladder.json` — Contains `protectionLadder[]` array
 
 ### Fixture File Updates Required
@@ -216,6 +226,7 @@ Fixtures using this structure:
 **`conveyance_multi_year_ladder.json`** should be updated to clearly mark `protectionLadder[]` as a proposed model:
 
 The fixture already contains:
+
 ```json
 "currentImplementation": {
   "multiTierSupported": false,
@@ -225,6 +236,7 @@ The fixture already contains:
 ```
 
 **Recommendation**: Add explicit marker in fixture:
+
 ```json
 "_modelStatus": {
   "conveyance": "EXISTING_SCHEMA_BUT_UNUSED",
@@ -278,6 +290,7 @@ The fixture already contains:
 4. ✅ **No UI changes** — "Swap (+/-)" entries remain in `getPickOptions()` for Phase 4 EXECUTION to remove
 
 **Files Modified**:
+
 - `docs/return-packages/trade-machine-draft-picks__phase-4-preflight__2026-01-04.md` — Path corrections
 - `docs/tradeMachine/TRADE_MACHINE_DRAFT_PICKS_MASTER.md` — Phase 4 section updates
 - `docs/return-packages/trade-machine-draft-picks__phase-4-preflight-doc-patch__2026-01-04.md` — This file (new)

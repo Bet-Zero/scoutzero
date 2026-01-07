@@ -90,6 +90,7 @@ Extended `formatSwapInfo(pick)` in `tradeHelpers.js` to show resolved outcome:
 - **Resolved**: `"Swap (Best of) vs OKC → Won by OKC"`
 
 Added `options` parameter to `formatPick(p, options)`:
+
 - `includeNote`: boolean (default: true) - whether to include note field
 
 ---
@@ -145,6 +146,7 @@ npm run build
 ## 4. Behavioral Notes
 
 ### No-Op Guarantee
+
 The `resolveDraftPickSwapsForYear()` function produces **zero behavior change** unless lottery results are explicitly supplied:
 
 ```javascript
@@ -155,22 +157,29 @@ resolveDraftPickSwapsForYear(team, 2026, {});        // No-op (empty object)
 ```
 
 ### Resolved Display Format
+
 When a swap has been resolved:
+
 - `formatSwapInfo(pick)` returns: `"Swap (Best of) vs OKC → Won by OKC"`
 - `formatPick(pick)` includes the full resolution info
 
 ### Idempotency
+
 Calling resolution functions on already-resolved picks returns them unchanged:
+
 ```javascript
 const alreadyResolved = { resolved: true, resolvedOwner: 'PHI', ... };
 resolvePickSwap(alreadyResolved, positions) === alreadyResolved // Same object
 ```
 
 ### First-Round Only
+
 Phase 3 only resolves first-round swaps (`round === 1`). Second-round swaps are left unchanged.
 
 ### Missing Data Handling
+
 During season advance, picks with missing partner or missing positions are left unresolved (no throw):
+
 - Missing `swapWithTeamId` → pick unchanged
 - Missing position for either team → pick unchanged
 
@@ -179,11 +188,13 @@ During season advance, picks with missing partner or missing positions are left 
 ## 5. Deviations from Plan
 
 ### No Integration Wiring
+
 Per the STOP CONDITIONS, `resolveDraftPickSwapsForYear()` was implemented as an **exported utility** without wiring into `updateDraftPicksWithStepien()`. This avoids changing function signatures across many call sites.
 
 **Reason**: The function can be called explicitly when lottery results are available, without modifying the existing season advance flow.
 
 ### Unused `require()` Pattern
+
 Initial implementation used `require()` for dynamic import in `resolveDraftPickSwapsForYear()`. This works in Node.js/CommonJS environments but was chosen to avoid circular dependency issues.
 
 ---
