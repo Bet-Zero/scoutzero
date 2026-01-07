@@ -29,6 +29,7 @@ import {
 import { getMinimumSalaryScale } from '@/features/architect/utils/salaryEngine';
 import { calculateCapHold } from '@/features/architect/utils/contractUtils';
 import { resolvePickSwap } from '@/features/architect/utils/tradeMachine/utils/swapResolution.js';
+import { resolveConveyanceForPick } from '@/features/architect/utils/tradeMachine/utils/conveyanceResolution.js';
 
 /**
  * Advance world to next season
@@ -1003,6 +1004,85 @@ export function resolveDraftPickSwapsForYear(team, draftYear, positionsMap, opts
       return resolvePickSwap(pick, positionsMap, { nowIso, method });
     } catch {
       // Resolution failed - leave pick unresolved
+      return pick;
+    }
+  });
+
+  return {
+    ...team,
+    draftPicks: updatedPicks,
+  };
+}
+
+/**
+ * Phase 4: Resolves draft pick conveyance for a specific year.
+ *
+ * This function processes picks with conveyance conditions and lottery results
+ * to determine whether picks convey, roll forward, or convert.
+ *
+ * NO-OP conditions (returns team unchanged):
+ * - positionsMap is null, undefined, or empty
+ * - team has no draftPicks array
+ * - no picks match the specified draftYear with conveyance conditions
+ *
+ * This function mirrors the pattern of resolveDraftPickSwapsForYear()
+ * and is intended to be called during season advance when draft results exist.
+ *
+ * @param {Object} team - Team data with draftPicks array
+ * @param {number} draftYear - Year to resolve conveyance for
+ * @param {Object<string, number>} [positionsMap] - Map of team codes to draft positions
+ * @param {Object} [opts={}] - Options
+ * @param {string} [opts.nowIso] - ISO timestamp for resolution
+ * @param {string} [opts.method='lottery'] - Resolution method for audit trail
+ * @returns {Object} - Team with updated draftPicks array
+ */
+export function resolveDraftPickConveyanceForYear(team, draftYear, positionsMap, opts = {}) {
+  // Return team unchanged if no positions provided (NO-OP)
+  if (!positionsMap || typeof positionsMap !== 'object' || Object.keys(positionsMap).length === 0) {
+    return team;
+  }
+
+  // Return team unchanged if no draft picks
+  if (!team?.draftPicks || !Array.isArray(team.draftPicks)) {
+    return team;
+  }
+
+  const { nowIso, method = 'lottery' } = opts;
+
+  const updatedPicks = team.draftPicks.map((pick) => {
+    // Skip invalid picks
+    if (!pick || typeof pick !== 'object') {
+      return pick;
+    }
+
+    // Skip non-first-round picks (Phase 4 only resolves first round conveyance)
+    const round = typeof pick.round === 'string'
+      ? parseInt(pick.round.replace(/\D/g, ''), 10)
+      : pick.round;
+    if (round !== 1) {
+      return pick;
+    }
+
+    // Skip picks not in the specified year
+    if (pick.year !== draftYear) {
+      return pick;
+    }
+
+    // Skip picks without conveyance data
+    if (!pick.conveyance || !pick.conveyance.conditions) {
+      return pick;
+    }
+
+    // Skip already resolved
+    if (pick.conveyanceResult) {
+      return pick;
+    }
+
+    // Attempt resolution - catch any errors and leave unresolved
+    try {
+      return resolveConveyanceForPick(pick, positionsMap, { draftYear, nowIso, method });
+    } catch {
+      // Resolution failed - leave pick unchanged
       return pick;
     }
   });

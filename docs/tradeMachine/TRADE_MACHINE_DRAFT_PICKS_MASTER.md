@@ -1,7 +1,7 @@
 # Trade Machine Draft Picks Master Document
 
-> **Version**: 2.2.0 (January 2026)  
-> **Status**: PHASE 3 COMPLETE - Swap Resolution Infrastructure Implemented  
+> **Version**: 2.3.0 (January 2026)  
+> **Status**: PHASE 4 COMPLETE - Conveyance + Protection Normalization Implemented  
 > **Purpose**: Comprehensive audit of draft pick implementation in Trade Machine  
 > **Author**: Automated Code Audit  
 
@@ -2121,5 +2121,127 @@ interface DraftPick {
 | Protection strings persisted widely | ❌ NOT FOUND | Format consistent across fixtures |
 | Stepien treats "Swap (+/-)" as meaningful | ❌ NOT FOUND | `isMeaningfulProtection('Swap (+)')` returns `false` — verified in tests |
 | Existing conveyance implementation | ❌ NOT FOUND | Schema only; grep found zero runtime reads |
+
+---
+
+## Phase 4 EXECUTION Completion Log (January 2026)
+
+> **Status**: PHASE 4 COMPLETE  
+> **Date**: 2026-01-04  
+> **Version**: 2.3.0
+
+### What Changed
+
+#### T1) Removed "Swap (+/-)" from getPickOptions() ✅
+
+- Removed misleading `{ label: 'Swap (+)', value: 'Swap (+)' }` and `{ label: 'Swap (-)', value: 'Swap (-)' }` entries
+- Added `normalizeProtectionValue()` for defensive normalization of legacy values
+- `getPickOptions()` now returns 7 options (down from 9)
+
+#### T2) Added ProtectionMetaZ Schema (Option A) ✅
+
+- Added `ProtectionMetaZ` to `src/schemas/architect.ts` with types: `position`, `lottery`, `playoff`, `always`, `never`
+- Added `protectionMeta` field to `DraftPickZ` schema
+- **Type definitions**:
+  - `always` = "always conveys" (no protection; pick transfers regardless of position)
+  - `never` = "never conveys" (unconditional obligation; pick is owed but may have other resolution rules)
+  - `position` = position-based protection (e.g., Top 3, Top 5)
+  - `lottery` = lottery-range protection (positions 1-14)
+  - `playoff` = playoff-team protection (non-lottery; positions 15-30)
+- Enhanced `isMeaningfulProtection()` to support protectionMeta:
+  - Returns `true` for types: `position` (with maxPosition > 0), `lottery`, `playoff`
+  - Returns `false` for types: `always`, `never` (neither provides "meaningful protection" for Stepien; `always` = unprotected, `never` = unconditional)
+  - Falls back to string regex for legacy picks
+
+#### T3) Implemented Conveyance Resolution Utilities ✅
+
+- Created `src/features/architect/utils/tradeMachine/utils/conveyanceResolution.js` with:
+  - `parseProtectionThreshold(protectionString)` - Parses protection strings to numeric thresholds
+  - `protectionTriggers(protection, position)` - Checks if protection triggers at given position
+  - `resolveConveyanceForPick(pick, positionsMap, opts)` - Resolves single pick conveyance
+  - `resolveTeamConveyanceForYear(draftPicks, draftYear, positionsMap, opts)` - Batch resolution
+  - `getProtectionLabel(protectionMeta)` - Generates display label from structured protection
+  - `normalizeProtection(protectionOrPick)` - Returns canonical protection descriptor
+- **Multi-year ladder support implemented**: Runtime reads `protectionLadder[]` array on pick objects to determine per-year protection. When a pick rolls, `conveyance.currentYear` and `conveyance.conditions.protection` are updated so resolution can be chained across years. (Previously "proposed-only" in Phase 4 PREFLIGHT; now runtime-supported.)
+
+#### T4) Added Season Manager Conveyance Hook ✅
+
+- Added `resolveDraftPickConveyanceForYear(team, draftYear, positionsMap, opts)` to `seasonManager.js`
+- Mirrors Phase 3's `resolveDraftPickSwapsForYear()` pattern
+- NO-OP guarantees when positionsMap is missing or empty
+- Safe for integration (catches errors, no mutations)
+
+#### T5) Updated Label/Formatters for protectionMeta ✅
+
+- Updated `formatPick()` in `tradeHelpers.js` to prefer protectionMeta for display
+- Updated `buildFirstRoundCalendar()` in `stepienUtils.js` to use `isMeaningfulProtection()`
+- Added `getProtectionDisplayLabel()` helper for consistent display logic
+
+#### T6) Unskipped Phase 4 Tests ✅
+
+- All 38 tests in `src/tests/tradeMachine/conveyancePreflight.test.js` now passing
+- Tests cover:
+  - Conveyance resolution (roll, convey, convert outcomes)
+  - NO-OP guarantees (empty/missing positionsMap)
+  - Multi-year ladder resolution (runtime chaining via `protectionLadder[]`; test verifies 2026 → 2027 → 2028 roll chain)
+  - protectionMeta support
+  - "Swap (+/-)" removal verification
+
+### Doc Clarifications
+
+- **`always`/`never` semantics**: `always` = "always conveys" (unprotected); `never` = "never conveys" (unconditional obligation). Both return `false` from `isMeaningfulProtection()` because neither provides "meaningful protection" for Stepien purposes.
+- **Multi-year ladder status**: Implemented in Phase 4 runtime. The conveyance resolver reads `protectionLadder[]` from pick objects and chains resolution across years. This was "proposed-only" in Phase 4 PREFLIGHT but is now runtime-supported (no UI for editing ladders yet—see Phase 5+).
+
+### Files Changed/Added
+
+| File | Action | Description |
+|------|--------|-------------|
+| `src/features/architect/utils/tradeMachine/utils/tradeUtilities.js` | Modified | Removed Swap +/-, added normalizers |
+| `src/schemas/architect.ts` | Modified | Added ProtectionMetaZ schema |
+| `src/features/architect/utils/tradeMachine/utils/conveyanceResolution.js` | **Created** | Conveyance resolution utilities |
+| `src/features/architect/utils/seasonManager.js` | Modified | Added conveyance hook |
+| `src/features/architect/utils/tradeHelpers.js` | Modified | Updated formatPick() |
+| `src/features/architect/utils/stepienUtils.js` | Modified | Updated calendar builder |
+| `src/features/architect/utils/tradeMachine/index.js` | Modified | Exported new utilities |
+| `src/tests/tradeMachine/conveyancePreflight.test.js` | Modified | Unskipped tests |
+| `docs/return-packages/trade-machine-draft-picks__phase-4-execution__2026-01-04.md` | **Created** | Return Package |
+
+### Validation Commands Run
+
+```bash
+# Phase 4 Tests
+npm run test -- src/tests/tradeMachine/conveyancePreflight.test.js --run  # 38 passed
+
+# All Trade Machine Tests
+npm run test -- src/tests/tradeMachine/ --run                              # 142 passed
+
+# Stepien Tests
+npm run test -- tests/validators/stepien.test.js tests/hasStepienViolation.test.js --run  # 18 passed
+
+# Build
+npm run build                                                               # ✓ Success
+```
+
+### Acceptance Criteria Status
+
+| # | Criterion | Status |
+|---|-----------|--------|
+| 1 | "Swap (+/-)" removed from getPickOptions | ✅ |
+| 2 | Legacy saved "Swap (+/-)" protections normalize to unprotected | ✅ |
+| 3 | protectionMeta Option A exists in schema + supported | ✅ |
+| 4 | Conveyance resolution utilities exist + tested | ✅ |
+| 5 | Season manager hook exists and is NO-OP without positions | ✅ |
+| 6 | All Phase 4 tests unskipped and passing | ✅ |
+| 7 | No Stepien regression for legacy protection | ✅ |
+| 8 | Master Doc updated + Execution Return Package created | ✅ |
+
+### What Remains (Phase 5+)
+
+1. **Draft Lottery Simulator** - No simulation to generate positionsMap
+2. **Lottery Results Ingestion** - No data pipeline for real results
+3. **Multi-Team Swaps** - 3+ team swaps not supported
+4. **Second-Round Conveyance** - Only first-round implemented
+5. **Stepien Calendar Visualization** - UI indicator of blocked years
+6. **Full protectionLadder UI** - UI for editing multi-tier protection
 
 ---

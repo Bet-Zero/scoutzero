@@ -3,9 +3,45 @@
 /* Stepien-rule helpers
  * 
  * Phase 1 SSOT-1: hasStepienViolation now delegates to canonical validateStepien
+ * Phase 4: Added protectionMeta support to buildFirstRoundCalendar
  */
 
 import { validateStepien } from '@/features/architect/utils/tradeMachine/rules/validateStepien.js';
+import { isMeaningfulProtection } from '@/features/architect/utils/tradeMachine/utils/tradeUtilities.js';
+
+/**
+ * Phase 4: Gets protection text from pick (supports both string and protectionMeta)
+ */
+function getProtectionText(pick) {
+  if (!pick) return null;
+  
+  // Prefer protectionMeta if present
+  if (pick.protectionMeta) {
+    const { type, maxPosition } = pick.protectionMeta;
+    switch (type) {
+      case 'position':
+        return maxPosition ? `Top ${maxPosition}` : null;
+      case 'lottery':
+        return 'Lottery';
+      case 'playoff':
+        return 'Playoff Protected';
+      case 'always':
+        return null; // Unprotected
+      case 'never':
+        return 'Unconditional';
+      default:
+        return null;
+    }
+  }
+  
+  // Fall back to protection string (skip "Swap (+/-)" legacy values)
+  if (pick.protection && pick.protection !== 'Swap (+)' && pick.protection !== 'Swap (-)') {
+    return pick.protection;
+  }
+  
+  // Fall back to protectionText field if available
+  return pick.protectionText ?? null;
+}
 
 export function buildFirstRoundCalendar({
   existingPicks = [],
@@ -20,17 +56,21 @@ export function buildFirstRoundCalendar({
 
   existingPicks.forEach((p) => {
     if (!cal[p.year]) return;
+    const protectionText = getProtectionText(p);
     cal[p.year] = {
-      status: p.protected ? 'protected' : 'owed',
-      protection: p.protectionText ?? null,
+      status: protectionText ? 'protected' : 'owed',
+      protection: protectionText,
     };
   });
 
   picksOfferedInTrade.forEach((p) => {
     if (!cal[p.year]) return;
+    const protectionText = getProtectionText(p);
+    // Phase 4: Use isMeaningfulProtection to determine if protected
+    const hasMeaningfulProtection = isMeaningfulProtection(p);
     cal[p.year] = {
-      status: p.protection ? 'protected' : 'outgoing',
-      protection: p.protection ?? null,
+      status: hasMeaningfulProtection ? 'protected' : 'outgoing',
+      protection: protectionText,
     };
   });
 

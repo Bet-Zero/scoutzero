@@ -122,6 +122,22 @@ const DraftPickConveyanceZ = z
   .passthrough()
   .optional();
 
+/**
+ * Phase 4: Structured protection metadata (Option A - additive, alongside string)
+ * 
+ * protectionMeta provides structured logic for protection evaluation while
+ * keeping the legacy `protection` string for backward compatibility and display.
+ */
+export const ProtectionMetaZ = z.object({
+  type: z.enum(['position', 'lottery', 'playoff', 'always', 'never']),
+  maxPosition: z.number().int().optional(),
+  conversionTarget: z.object({
+    action: z.enum(['roll', 'convert', 'cancel']),
+    toYear: z.number().int().optional(),
+    toRound: z.number().int().optional(),
+  }).optional(),
+}).optional();
+
 export const DraftPickZ = z.object({
   id: z.string().optional(),
   year: z.number().int(),
@@ -132,6 +148,7 @@ export const DraftPickZ = z.object({
   status: z.string().optional(),
   isSwap: z.boolean().optional(),
   protection: z.string().nullable().optional(),
+  protectionMeta: ProtectionMetaZ, // Phase 4: Structured protection (Option A)
   stepienEligible: z.boolean().optional(),
   tradeable: z.boolean().optional(),
   via: TeamCodeZ.optional(),

@@ -346,6 +346,10 @@ export const formatSwapInfo = (pick) => {
  * - Shows resolved outcome for resolved swaps
  * - Supports `includeNote` option (default: true)
  * 
+ * Phase 4 Updates:
+ * - Supports protectionMeta for structured protection display
+ * - Falls back to protection string if protectionMeta not present
+ * 
  * @param {Object} p - Pick object
  * @param {Object} [options={}] - Formatting options
  * @param {boolean} [options.includeNote=true] - Whether to include note field
@@ -357,13 +361,56 @@ export const formatPick = (p, options = {}) => {
   if (!p) return '';
   let str = `${p.year} ${p.round} Round`;
   if (p.via) str += ` (via ${p.via})`;
-  if (p.protection) str += ` 🛡 ${p.protection}`;
+  
+  // Phase 4: Display protection from protectionMeta or legacy string
+  const protectionLabel = getProtectionDisplayLabel(p);
+  if (protectionLabel) {
+    str += ` 🛡 ${protectionLabel}`;
+  }
+  
   if (p.isSwap) {
     str += ` 🔁 ${formatSwapInfo(p)}`;
   }
   if (includeNote && p.note) str += ` 📝 ${p.note}`;
   return str;
 };
+
+/**
+ * Phase 4: Gets protection display label from pick object.
+ * Prefers protectionMeta if present, falls back to protection string.
+ * 
+ * @param {Object} pick - Pick object
+ * @returns {string} - Protection label or empty string
+ */
+function getProtectionDisplayLabel(pick) {
+  if (!pick) return '';
+  
+  // Prefer protectionMeta if present
+  if (pick.protectionMeta) {
+    const { type, maxPosition } = pick.protectionMeta;
+    switch (type) {
+      case 'position':
+        return maxPosition ? `Top ${maxPosition}` : '';
+      case 'lottery':
+        return 'Lottery';
+      case 'playoff':
+        return 'Playoff Protected';
+      case 'always':
+        return ''; // Unprotected - no label
+      case 'never':
+        return 'Unconditional';
+      default:
+        return '';
+    }
+  }
+  
+  // Fall back to protection string (skip "Swap (+/-)" legacy values)
+  if (pick.protection && pick.protection !== 'Swap (+)' && pick.protection !== 'Swap (-)') {
+    return pick.protection;
+  }
+  
+  return '';
+}
 
 // Re-export canonical isMeaningfulProtection from tradeUtilities (SSOT-2)
 export { isMeaningfulProtection } from '@/features/architect/utils/tradeMachine/utils/tradeUtilities.js';

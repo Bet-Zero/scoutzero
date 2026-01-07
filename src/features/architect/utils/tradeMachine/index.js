@@ -72,3 +72,16 @@ export {
   resolvePickSwap,
   resolveTeamSwaps,
 } from './utils/swapResolution.js';
+
+// Conveyance resolution utilities (Phase 4) - conveyance infrastructure
+export {
+  parseProtectionThreshold,
+  protectionTriggers,
+  resolveConveyanceForPick,
+  resolveTeamConveyanceForYear,
+  getProtectionLabel,
+  normalizeProtection,
+} from './utils/conveyanceResolution.js';
+
+// Protection normalization utilities (Phase 4)
+export { normalizeProtectionValue } from './utils/tradeUtilities.js';

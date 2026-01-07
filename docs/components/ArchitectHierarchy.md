@@ -251,6 +251,7 @@ utils/
       capSettingsProvider.js
       capUtils.js
       computeMatchingValues.js
+      conveyanceResolution.js
       hardCapStatus.js
       index.js
       matchingValues.js
@@ -272,5 +273,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-01-04T08:31:13.649Z*
+*Generated on: 2026-01-04T09:56:49.880Z*
 *Auto-updated by: npm run docs*
