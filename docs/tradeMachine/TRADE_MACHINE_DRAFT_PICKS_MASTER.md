@@ -2515,6 +2515,7 @@ npm run build                                                              # ✓
 **Issue**: UI could show 2025-26 while Firestore `worldMeta.currentSeason` was already 2026-27 (or vice versa), causing "skips a year" perception and draft position year misalignment.
 
 **Fix Summary**:
+
 1. `SeasonAdvanceModal` no longer passes `fromSeason`/`toSeason` — `advanceSeasonInWorld()` uses `worldMeta.currentSeason` as single source of truth
 2. `OffseasonSection` displays "World Season: X" label (fetched from worldMeta)
 3. `DraftPositionsInput` defaults to `worldDraftYear` (derived from world season), not UI view year

@@ -1,3 +1,13 @@
 #!/usr/bin/env sh
 
-npm run docs && git add docs/
+# Generate docs and check if anything changed
+npm run docs
+
+# Only add and amend if there are changes
+if git diff --quiet docs/; then
+  # No changes - exit successfully
+  exit 0
+else
+  echo "Error: Documentation is out of sync. Run 'npm run docs' and commit the changes before pushing."
+  exit 1
+fi

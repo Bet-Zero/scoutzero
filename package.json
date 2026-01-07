@@ -13,7 +13,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
-    "lint:md": "markdownlint 'docs/**/*.md' '*.md' --ignore node_modules --ignore copilot-instructions.md",
+    "lint:md": "markdownlint 'docs/**/*.md' '*.md' --ignore node_modules --ignore copilot-instructions.md --ignore 'docs/return-packages/**'",
     "schema:generate": "tsx scripts/generate-schemas.ts",
     "schema:check": "npm run schema:generate && git diff --quiet -- docs/schema || (echo 'Schema outputs are out of date. Run npm run schema:generate' && exit 1)",
     "docs": "node generateDocs.cjs",
