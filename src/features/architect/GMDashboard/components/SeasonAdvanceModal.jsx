@@ -318,9 +318,9 @@ export function SeasonAdvanceModal({
       }
 
       // Call the season advancement
+      // PHASE 5 PATCH: Only pass optionDecisions - let advanceSeasonInWorld use
+      // worldMeta.currentSeason as the single source of truth for season advancement
       const advanceResult = await advanceSeasonInWorld(worldId, {
-        fromSeason,
-        toSeason,
         optionDecisions: decisions,
       });
 
@@ -342,7 +342,7 @@ export function SeasonAdvanceModal({
     } finally {
       setIsProcessing(false);
     }
-  }, [worldId, optionDecisions, fromSeason, toSeason, onAdvanceComplete]);
+  }, [worldId, optionDecisions, onAdvanceComplete]);
 
   // ===========================================================================
   // RENDER HELPERS

@@ -461,15 +461,42 @@ export async function advanceSeasonInWorld(worldId, options = {}) {
     // Get current world metadata
     const worldMeta = await getWorldMetadata(worldId);
 
-    // Determine from/to seasons
-    const fromSeason = options.fromSeason || worldMeta.currentSeason;
-    if (!fromSeason) {
+    // Get world's actual current season - this is the single source of truth
+    const worldCurrentSeason = worldMeta.currentSeason;
+    if (!worldCurrentSeason) {
       return { success: false, error: 'World metadata missing currentSeason' };
     }
 
+    // ===========================================================================
+    // PHASE 5 PATCH: Mismatch safety check
+    // ===========================================================================
+    // If caller passes fromSeason or toSeason that conflict with worldMeta, return error.
+    // This prevents desync bugs where UI shows a different year than the world.
+    if (options.fromSeason && options.fromSeason !== worldCurrentSeason) {
+      return {
+        success: false,
+        error: `Season mismatch: caller passed fromSeason="${options.fromSeason}" but world is at "${worldCurrentSeason}". Use worldMeta.currentSeason as source of truth.`,
+        worldSeason: worldCurrentSeason,
+        attemptedFromSeason: options.fromSeason,
+      };
+    }
+
+    const expectedToYear = toEndYear(worldCurrentSeason) + 1;
+    const expectedToSeason = toSeasonCode(expectedToYear);
+    if (options.toSeason && options.toSeason !== expectedToSeason) {
+      return {
+        success: false,
+        error: `Season mismatch: caller passed toSeason="${options.toSeason}" but expected "${expectedToSeason}" (advancing from "${worldCurrentSeason}"). Use worldMeta.currentSeason as source of truth.`,
+        worldSeason: worldCurrentSeason,
+        attemptedToSeason: options.toSeason,
+      };
+    }
+
+    // Always use world's current season as the source of truth
+    const fromSeason = worldCurrentSeason;
     const fromYear = toEndYear(fromSeason);
     const toYear = fromYear + 1;
-    const toSeason = options.toSeason || toSeasonCode(toYear);
+    const toSeason = toSeasonCode(toYear);
 
     // ===========================================================================
     // PHASE 5: Load draft positions for the draft year being advanced past
