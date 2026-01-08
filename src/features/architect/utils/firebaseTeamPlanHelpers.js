@@ -161,6 +161,13 @@ export const hydrateBaseTeam = async (teamCode, baseDoc) => {
     activeContracts,
     capHolds: baseDoc.capHolds || [],
     draftPicks: baseDoc.draftPicks || [],
+    // Draft pick ledger views (from pipeline - see PIPELINE_DRAFT_PICKS_LEDGER__EXECUTION__2026-01-08.md)
+    // draftPicksInventory: Picks the team currently owns
+    draftPicksInventory: baseDoc.draftPicksInventory || baseDoc.draftPicks || [],
+    // draftPicksObligations: Picks the team owes / has traded away (used for Stepien validation)
+    draftPicksObligations: baseDoc.draftPicksObligations || [],
+    // draftPicksContested: Swaps and conditional picks involving the team
+    draftPicksContested: baseDoc.draftPicksContested || [],
     exceptions: exceptionData,
     mle: toSimpleException(exceptionData.mle),
     tpMle: toSimpleException(exceptionData.taxpayerMle || exceptionData.tpMle),
