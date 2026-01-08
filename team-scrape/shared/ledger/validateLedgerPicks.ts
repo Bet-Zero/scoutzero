@@ -76,7 +76,7 @@ async function loadJson<T>(filePath: string): Promise<T | null> {
 
 async function validateLedgerOutput() {
   console.log('\n🔍 Validating Ledger Draft Picks Output\n');
-  console.log('=' .repeat(60));
+  console.log('='.repeat(60));
 
   // Check if ledger output exists
   const ledgerPath = path.join(LEDGER_DIR, 'pick_ledger.json');
@@ -103,7 +103,7 @@ async function validateLedgerOutput() {
   console.log(`✅ Per-team view files: ${teamFiles.length}`);
 
   // Validate specific examples
-  console.log('\n' + '=' .repeat(60));
+  console.log('\n' + '='.repeat(60));
   console.log('📊 Team-by-Team Validation\n');
 
   const teamsToValidate = ['ATL', 'LAL', 'UTA', 'OKC', 'NOP', 'DAL'];
@@ -159,7 +159,7 @@ async function validateLedgerOutput() {
   }
 
   // Check staged team docs
-  console.log('=' .repeat(60));
+  console.log('='.repeat(60));
   console.log('📦 Staged Team Docs Validation\n');
 
   for (const teamCode of teamsToValidate.slice(0, 3)) {
@@ -194,7 +194,7 @@ async function validateLedgerOutput() {
   }
 
   // Summary table
-  console.log('=' .repeat(60));
+  console.log('='.repeat(60));
   console.log('📋 Summary Table\n');
   console.log('Team | Inventory | Obligations | Contested | Incoming');
   console.log('-----|-----------|-------------|-----------|----------');
@@ -205,7 +205,7 @@ async function validateLedgerOutput() {
   }
 
   // Specific validation examples
-  console.log('\n' + '=' .repeat(60));
+  console.log('\n' + '='.repeat(60));
   console.log('🎯 Specific Validation Examples\n');
 
   // Example 1: Utah receiving Lakers pick
@@ -253,7 +253,7 @@ async function validateLedgerOutput() {
 // Run validation
 validateLedgerOutput()
   .then((result) => {
-    console.log('\n' + '=' .repeat(60));
+    console.log('\n' + '='.repeat(60));
     if (result.success) {
       console.log('✅ Validation complete.');
     } else {

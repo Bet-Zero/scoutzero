@@ -982,6 +982,11 @@ async function stageTeam({ team, season, validate, outDir, ledgerDir }: CliArgs)
         : [];
 
   if (structuredPicks.length === 0 && !ledgerViews) {
+    // Only warn if BOTH conditions are true:
+    // 1. No RealGM structured picks found for this team
+    // 2. No ledger views available (ledger wasn't built yet or team not in ledger)
+    // When ledgerViews exist, we'll use them for inventory/obligations/contested,
+    // even if structuredPicks is empty.
     if (process.env.ALLOW_SALARYSWISH_DRAFT_BACKFILL === '1') {
       console.warn(
         `⚠️  No RealGM draft picks found for ${teamCode}. Falling back to SalarySwish draftPicks from team_data.`
@@ -1007,10 +1012,13 @@ async function stageTeam({ team, season, validate, outDir, ledgerDir }: CliArgs)
   });
 
   if (validate) {
-    // Validate the base schema (may not include new ledger fields yet)
+    // Validate the base schema. The BaseTeamDocZ schema does not yet include
+    // the new ledger-derived fields (draftPicksInventory, draftPicksObligations,
+    // draftPicksContested). We strip them for validation purposes.
+    // TODO: Update BaseTeamDocZ in src/schemas/architect.ts to include these
+    // new fields once they are stable and the Trade Machine is wired to use them.
     BaseTeamDocZ.parse({
       ...baseTeamDoc,
-      // Strip out new fields that aren't in the schema yet
       draftPicksInventory: undefined,
       draftPicksObligations: undefined,
       draftPicksContested: undefined,
