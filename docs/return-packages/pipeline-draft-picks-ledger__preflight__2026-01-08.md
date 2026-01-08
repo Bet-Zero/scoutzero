@@ -66,6 +66,8 @@ admin.initializeApp({
 const db = admin.firestore();
 ```
 
+> **Note:** The hard-coded `serviceAccountKey.json` path is existing code. Consider moving to environment variable configuration for better security practices in a future update.
+
 ---
 
 ## T2) Draft Picks Scrape/Parse Pipeline
@@ -334,6 +336,16 @@ await writePerTeamStructured(entry.code, canonical);
    - Redistributes them based on `recipient` / `currentOwner`
    - Creates a unified ledger where each team sees both owned AND incoming picks
 
+### Business Impact
+
+**Utah Jazz Example:**
+- Lakers scraped → Shows "2027 1st to Utah" with `currentOwner: 'UTA'`
+- BUT the pick is filtered out because `'UTA' !== 'LAL'`
+- Utah's file only shows what RealGM lists on Utah's page
+- If RealGM doesn't explicitly list "2027 LAL 1st" on Utah's page, Utah never sees this pick!
+
+**Result:** Teams cannot see all incoming picks in their inventory. Trade validation may reject valid trades because the pick appears to not exist in the recipient team's asset pool.
+
 ### Searches Performed
 
 ```bash
@@ -387,26 +399,42 @@ rg -n "recipient.*owner|owner.*recipient|incoming.*filter" team-scrape
 
 ```typescript
 // team-scrape/shared/ledger/buildPickLedger.ts
+// Note: Uses existing StructuredPick type from realgm_draft_picks.ts
+
+type LedgerRecord = StructuredPick & {
+  ledgerId: string;         // Unique ID: `{year}_{round}_{originalTeam}`
+  sourceTeamFile: string;   // Which team's scrape this came from
+  confidence: 'high' | 'medium' | 'low';  // Based on source agreement
+};
 
 /**
  * Aggregates all raw picks from all 30 team files into a single ledger.
  * Each pick appears ONCE with canonical ownership info.
+ * 
+ * @param rawPicksByTeam - Map of team code → array of StructuredPick from that team's scrape
+ * @returns Array of LedgerRecord with deduplicated, canonical picks
  */
-function buildPickLedger(rawPicksByTeam: Map<string, RawDraftPick[]>): LedgerRecord[] {
+function buildPickLedger(rawPicksByTeam: Map<string, StructuredPick[]>): LedgerRecord[] {
   // 1. Deduplicate picks by (year, round, originalTeam)
   // 2. Assign canonical currentOwner based on trade chains
   // 3. Track contested/conditional picks separately
 }
 
+type TeamPickViews = {
+  inventoryByTeam: Map<string, CanonicalPick[]>;    // Picks this team OWNS
+  obligationsByTeam: Map<string, CanonicalPick[]>;  // Picks this team OWES
+  contestedByTeam: Map<string, CanonicalPick[]>;    // Swaps/conditional involving this team
+};
+
 /**
  * Derives per-team views from the ledger.
  * Each team gets three views: inventory, obligations, contested.
+ * Uses existing CanonicalPick type for output.
+ * 
+ * @param ledgerRecords - Master ledger from buildPickLedger()
+ * @returns Views organized by team code
  */
-function deriveTeamPickViews(ledgerRecords: LedgerRecord[]): {
-  inventoryByTeam: Map<string, DraftPick[]>;    // Picks this team OWNS
-  obligationsByTeam: Map<string, DraftPick[]>;  // Picks this team OWES
-  contestedByTeam: Map<string, DraftPick[]>;    // Swaps/conditional involving this team
-}
+function deriveTeamPickViews(ledgerRecords: LedgerRecord[]): TeamPickViews;
 ```
 
 ### Integration Steps (Planning Only)
