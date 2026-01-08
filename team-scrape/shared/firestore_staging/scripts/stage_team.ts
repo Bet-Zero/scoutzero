@@ -25,6 +25,7 @@ type CliArgs = {
   season?: string;
   validate: boolean;
   outDir: string;
+  ledgerDir?: string;
 };
 
 type RawTeamRosterEntry = {
@@ -115,6 +116,16 @@ type StructuredDraftPickGroup = {
 
 type NormalizedDraftPick = BaseTeamDoc['draftPicks'][number];
 
+/**
+ * Ledger-derived team pick views from buildPickLedger.ts
+ */
+type LedgerTeamViews = {
+  teamCode: string;
+  inventory: RawDraftPick[];
+  obligations: RawDraftPick[];
+  contested: RawDraftPick[];
+};
+
 type PlayerIndexEntry = {
   fullName: string;
   nbaId?: number;
@@ -153,6 +164,15 @@ const MERGED_DIR = path.join(
   'output',
   'merged'
 );
+const DEFAULT_LEDGER_DIR = path.join(
+  PROJECT_ROOT,
+  'team-scrape',
+  'shared',
+  'firestore_staging',
+  '_artifacts',
+  'output',
+  'ledger'
+);
 
 function parseArgs(): CliArgs {
   const args = process.argv.slice(2);
@@ -167,6 +187,7 @@ function parseArgs(): CliArgs {
       '_artifacts',
       'output'
     ),
+    ledgerDir: DEFAULT_LEDGER_DIR,
   };
 
   for (let i = 0; i < args.length; i += 1) {
@@ -188,6 +209,11 @@ function parseArgs(): CliArgs {
       i += 1;
     } else if (arg.startsWith('--outDir=')) {
       cli.outDir = path.resolve(PROJECT_ROOT, arg.split('=')[1] ?? cli.outDir);
+    } else if (arg === '--ledgerDir') {
+      cli.ledgerDir = path.resolve(PROJECT_ROOT, args[i + 1] || cli.ledgerDir);
+      i += 1;
+    } else if (arg.startsWith('--ledgerDir=')) {
+      cli.ledgerDir = path.resolve(PROJECT_ROOT, arg.split('=')[1] ?? cli.ledgerDir);
     }
   }
 
@@ -798,19 +824,51 @@ async function loadDraftPicks(teamCode: string): Promise<{
   return { picks: [], source: undefined };
 }
 
+/**
+ * Loads ledger-derived team pick views (inventory/obligations/contested)
+ * from the ledger builder output.
+ */
+async function loadLedgerViews(
+  teamCode: string,
+  ledgerDir: string
+): Promise<LedgerTeamViews | null> {
+  const viewsPath = path.join(ledgerDir, 'by_team', `${teamCode}.json`);
+  try {
+    const views = await readJson<LedgerTeamViews>(viewsPath);
+    if (views && views.teamCode === teamCode) {
+      console.log(
+        `  ✓ Loaded ledger views for ${teamCode}: inventory=${views.inventory?.length || 0}, obligations=${views.obligations?.length || 0}, contested=${views.contested?.length || 0}`
+      );
+      return views;
+    }
+    return null;
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+      console.warn(`⚠️  Error reading ledger views for ${teamCode}:`, err);
+    }
+    return null;
+  }
+}
+
 function buildBaseTeamDoc({
   rawTeam,
   draftPicks,
+  ledgerViews,
   pickSource,
   resolver,
   seasonOverride,
 }: {
   rawTeam: RawTeamData;
   draftPicks: NormalizedDraftPick[];
+  ledgerViews?: LedgerTeamViews | null;
   pickSource?: { provider?: string; url?: string; scrapedAt?: string };
   resolver: PlayerIdResolver;
   seasonOverride?: string;
-}): BaseTeamDoc {
+}): BaseTeamDoc & {
+  draftPicksInventory?: NormalizedDraftPick[];
+  draftPicksObligations?: NormalizedDraftPick[];
+  draftPicksContested?: NormalizedDraftPick[];
+} {
   const rosterIds = (rawTeam.roster ?? []).map(
     (entry) => resolver.resolve(entry, `roster`).playerId
   );
@@ -830,7 +888,34 @@ function buildBaseTeamDoc({
 
   const totals = normalizeTotals(rawTeam.totals);
 
-  return {
+  // Build ledger-derived views if available
+  let draftPicksInventory: NormalizedDraftPick[] | undefined;
+  let draftPicksObligations: NormalizedDraftPick[] | undefined;
+  let draftPicksContested: NormalizedDraftPick[] | undefined;
+  let finalDraftPicks = draftPicks;
+
+  if (ledgerViews) {
+    // Normalize ledger picks to match the expected format
+    draftPicksInventory = (ledgerViews.inventory || []).map((pick) =>
+      normalizeDraftPick(rawTeam.teamCode, pick)
+    );
+    draftPicksObligations = (ledgerViews.obligations || []).map((pick) =>
+      normalizeDraftPick(rawTeam.teamCode, pick)
+    );
+    draftPicksContested = (ledgerViews.contested || []).map((pick) =>
+      normalizeDraftPick(rawTeam.teamCode, pick)
+    );
+
+    // Use inventory as the primary draftPicks (for backward compatibility)
+    // This ensures existing consumers still see picks the team owns
+    finalDraftPicks = draftPicksInventory;
+  }
+
+  const baseDoc: BaseTeamDoc & {
+    draftPicksInventory?: NormalizedDraftPick[];
+    draftPicksObligations?: NormalizedDraftPick[];
+    draftPicksContested?: NormalizedDraftPick[];
+  } = {
     teamCode: rawTeam.teamCode,
     teamName: rawTeam.teamName,
     season: seasonOverride ?? rawTeam.season,
@@ -839,7 +924,7 @@ function buildBaseTeamDoc({
     deadCap: [],
     capHolds,
     exceptions: buildExceptions(rawTeam.exceptions),
-    draftPicks,
+    draftPicks: finalDraftPicks,
     totals,
     source: {
       provider: rawTeam.source?.provider,
@@ -854,9 +939,22 @@ function buildBaseTeamDoc({
     lastUpdated: rawTeam.lastUpdated ?? new Date().toISOString(),
     version: rawTeam.version ?? '1.0',
   };
+
+  // Add ledger-derived views if available
+  if (draftPicksInventory) {
+    baseDoc.draftPicksInventory = draftPicksInventory;
+  }
+  if (draftPicksObligations) {
+    baseDoc.draftPicksObligations = draftPicksObligations;
+  }
+  if (draftPicksContested) {
+    baseDoc.draftPicksContested = draftPicksContested;
+  }
+
+  return baseDoc;
 }
 
-async function stageTeam({ team, season, validate, outDir }: CliArgs) {
+async function stageTeam({ team, season, validate, outDir, ledgerDir }: CliArgs) {
   const teamCode = team.toUpperCase();
 
   console.log(`📦 Staging baseTeam document for ${teamCode}`);
@@ -869,6 +967,13 @@ async function stageTeam({ team, season, validate, outDir }: CliArgs) {
   const resolver = buildResolver(playerIndex);
   const { picks: structuredPicks, source: pickSource } =
     await loadDraftPicks(teamCode);
+
+  // Load ledger views if available
+  let ledgerViews: LedgerTeamViews | null = null;
+  if (ledgerDir) {
+    ledgerViews = await loadLedgerViews(teamCode, ledgerDir);
+  }
+
   const fallbackPicks =
     structuredPicks.length > 0
       ? structuredPicks
@@ -876,7 +981,7 @@ async function stageTeam({ team, season, validate, outDir }: CliArgs) {
         ? (rawTeam.draftPicks ?? [])
         : [];
 
-  if (structuredPicks.length === 0) {
+  if (structuredPicks.length === 0 && !ledgerViews) {
     if (process.env.ALLOW_SALARYSWISH_DRAFT_BACKFILL === '1') {
       console.warn(
         `⚠️  No RealGM draft picks found for ${teamCode}. Falling back to SalarySwish draftPicks from team_data.`
@@ -895,13 +1000,21 @@ async function stageTeam({ team, season, validate, outDir }: CliArgs) {
   const baseTeamDoc = buildBaseTeamDoc({
     rawTeam,
     draftPicks: normalizedPicks,
+    ledgerViews,
     pickSource,
     resolver,
     seasonOverride: season,
   });
 
   if (validate) {
-    BaseTeamDocZ.parse(baseTeamDoc);
+    // Validate the base schema (may not include new ledger fields yet)
+    BaseTeamDocZ.parse({
+      ...baseTeamDoc,
+      // Strip out new fields that aren't in the schema yet
+      draftPicksInventory: undefined,
+      draftPicksObligations: undefined,
+      draftPicksContested: undefined,
+    });
   }
 
   const baseTeamsDir = path.join(outDir, 'baseTeams');
@@ -938,6 +1051,15 @@ async function stageTeam({ team, season, validate, outDir }: CliArgs) {
     );
   }
 
+  // Write ledger views snapshot if available
+  if (ledgerViews) {
+    await writeFile(
+      path.join(teamSnapshotDir, 'ledger_views.json'),
+      JSON.stringify(ledgerViews, null, 2),
+      'utf8'
+    );
+  }
+
   if (resolver.unresolved.size > 0) {
     console.warn(`⚠️  Unresolved player names (${resolver.unresolved.size}):`);
     for (const entry of resolver.unresolved) {
@@ -949,6 +1071,14 @@ async function stageTeam({ team, season, validate, outDir }: CliArgs) {
   console.log(
     `   → ${path.relative(PROJECT_ROOT, path.join(baseTeamsDir, `${teamCode}.json`))}`
   );
+
+  // Log ledger stats if available
+  if (baseTeamDoc.draftPicksInventory) {
+    console.log(`   📊 Ledger views:`);
+    console.log(`      - draftPicksInventory: ${baseTeamDoc.draftPicksInventory.length} picks`);
+    console.log(`      - draftPicksObligations: ${baseTeamDoc.draftPicksObligations?.length ?? 0} picks`);
+    console.log(`      - draftPicksContested: ${baseTeamDoc.draftPicksContested?.length ?? 0} picks`);
+  }
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
