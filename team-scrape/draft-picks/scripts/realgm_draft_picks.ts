@@ -727,9 +727,13 @@ function generateDerivedIds(
   const result: { swapId?: string; obligationId?: string } = {};
 
   // Swap ID: ${baseId}_swap_${counterparty}
+  // Only generate if we have a valid counterparty
   if (pick.isSwap) {
-    const counterparty = pick.swapDetails?.swapWith?.[0] || pick.recipient || 'unknown';
-    result.swapId = `${baseId}_swap_${counterparty}`;
+    const counterparty = pick.swapDetails?.swapWith?.[0] || pick.recipient;
+    if (counterparty) {
+      result.swapId = `${baseId}_swap_${counterparty}`;
+    }
+    // If no counterparty known, omit swapId rather than use 'unknown'
   }
 
   // Obligation ID: ${baseId}_obligation_${recipient}

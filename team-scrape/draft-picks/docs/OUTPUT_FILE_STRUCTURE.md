@@ -28,7 +28,7 @@ team-scrape/draft-picks/_artifacts/output/
 
 The scraper uses a **stable base ID** that does not change when protection details change:
 
-### Base Asset ID (Stable, Dedupable)
+### Base Asset ID (Stable, Deduplicatable)
 
 ```
 {ORIGINAL_TEAM}_{YEAR}_{1st|2nd}

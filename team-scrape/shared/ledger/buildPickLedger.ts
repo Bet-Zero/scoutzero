@@ -595,15 +595,15 @@ export async function runLedgerBuilder(options?: {
 // CLI entry point
 if (import.meta.url === `file://${process.argv[1]}`) {
   // Parse --input=mentions|structured flag (default: mentions)
-  const inputArg = parseArg('input', DEFAULT_INPUT_TYPE);
+  const inputArg = parseArg('input', 'mentions');
   const inputType: InputType = inputArg === 'structured' ? 'structured' : 'mentions';
 
-  // Allow custom inputDir override (optional)
-  const customInputDir = parseArg('inputDir');
+  // Allow inputDir override (optional)
+  const inputDirOverride = parseArg('inputDir');
   const outputDir = parseArg('outputDir', DEFAULT_OUTPUT_DIR);
 
   runLedgerBuilder({
-    inputDir: customInputDir,
+    inputDir: inputDirOverride,
     inputType,
     outputDir,
   })
