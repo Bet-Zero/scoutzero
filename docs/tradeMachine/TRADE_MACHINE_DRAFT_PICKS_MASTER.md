@@ -2524,3 +2524,143 @@ npm run build                                                              # ✓
 **Return Package**: `docs/return-packages/trade-machine-draft-picks__phase-5-season-advance-desync-fix__2026-01-07.md`
 
 ---
+
+## Present-Day Stepien Obligations Wiring (January 2026)
+
+> **Status**: COMPLETE  
+> **Date**: 2026-01-08  
+> **Version**: 2.5.0  
+> **Scope**: Present-day Trade Machine validation ONLY (NOT worlds/seasons/season advance)
+
+### What Changed
+
+#### T1) Schema Updated (architect.ts)
+
+Added three new optional fields to `BaseTeamDocZ`:
+
+- `draftPicksInventory`: Picks the team currently owns (same as `draftPicks` for backward compat)
+- `draftPicksObligations`: Picks the team owes / has traded away (used for Stepien validation)
+- `draftPicksContested`: Swaps and conditional picks involving the team
+
+All fields are `z.array(DraftPickZ).optional().default([])` for safe backward compatibility.
+
+#### T2) Loader Updated (firebaseTeamPlanHelpers.js)
+
+`hydrateBaseTeam()` now returns the new ledger fields:
+
+```javascript
+draftPicksInventory: baseDoc.draftPicksInventory || baseDoc.draftPicks || [],
+draftPicksObligations: baseDoc.draftPicksObligations || [],
+draftPicksContested: baseDoc.draftPicksContested || [],
+```
+
+Safe fallbacks ensure no breakage when fields are absent.
+
+#### T3) Stepien Validation Updated (validateStepien.js)
+
+**Core Fix**: `validateStepien()` now considers existing obligations from `team.draftPicksObligations`.
+
+**Data Contract** (fields read by Stepien):
+
+| Field | Source | Purpose |
+|-------|--------|---------|
+| `picksOut` / `outgoingPicks` | Current trade | Picks being traded in this transaction |
+| `draftPicksObligations` | Team ledger | Existing obligations (previously traded picks) |
+
+**Stepien Algorithm**:
+
+1. Extract first-round picks from current trade (`picksOut`/`outgoingPicks`)
+2. Extract first-round obligations from `draftPicksObligations` that reserve years
+3. Merge both sets into `allStepienRelevant`
+4. Sort by year, check for consecutive unprotected years
+5. If consecutive unprotected years found → violation
+
+**Obligation Year Reservation Rules**:
+
+An obligation reserves a year for Stepien if:
+- `round === 1` (first round), AND one of:
+  - `status` in `['outgoing', 'conditional']`
+  - `currentOwner !== originalTeam`
+  - `tradeable === false`
+  - `stepienEligible === false`
+
+**Swap Handling** (same as Phase 2):
+- `swapType === 'worst_of'` does NOT reserve year
+- `swapType === 'best_of'` (or missing) DOES reserve year
+
+**Meaningful Protection Bypass**:
+- If either pick in a consecutive pair has meaningful protection (Top 3, Lottery, etc.), the consecutive violation is bypassed
+
+#### T4) Tests Added
+
+Created `src/tests/tradeMachine/stepienObligations.test.js` with 15 tests covering:
+
+1. **Obligation causes Stepien failure**: Team with 2027 obligation trading 2028 1st → violation
+2. **Conditional/protected obligation reserves year**: `tradeable: false` or `stepienEligible: false` → reserves year
+3. **Swap worst_of does not reserve**: Obligation with `swapType: 'worst_of'` → does NOT reserve year
+4. **Edge cases**: Empty obligations, missing field, second-round ignored, fallback path
+
+### Stepien Rule Summary (Plain English)
+
+> **Present-day Stepien validation now prevents illegal consecutive first-round pick trades by considering BOTH:**
+> 1. Picks being traded in the current transaction
+> 2. Existing obligations (picks already owed from prior trades)
+
+**Example**: Team owes 2027 1st (in obligations); trading 2028 1st → **FAILS** Stepien (consecutive years blocked)
+
+**Example**: Team owes 2027 1st with `swapType: 'worst_of'`; trading 2028 1st → **PASSES** (worst_of doesn't reserve)
+
+**Example**: Team owes 2027 1st; trading 2029 1st → **PASSES** (not consecutive)
+
+### Files Changed/Added
+
+| File | Action | Description |
+|------|--------|-------------|
+| `src/schemas/architect.ts` | Modified | Added `draftPicksInventory`, `draftPicksObligations`, `draftPicksContested` fields |
+| `src/features/architect/utils/firebaseTeamPlanHelpers.js` | Modified | `hydrateBaseTeam()` returns new ledger fields |
+| `src/features/architect/utils/tradeMachine/rules/validateStepien.js` | Modified | Added obligations awareness + `obligationReservesYear()` helper |
+| `src/tests/tradeMachine/stepienObligations.test.js` | **Created** | 15 tests for obligations wiring |
+| `docs/tradeMachine/TRADE_MACHINE_DRAFT_PICKS_MASTER.md` | Modified | This section |
+| `docs/return-packages/TRADE_MACHINE_STEPIEN_OBLIGATIONS_WIRING__EXECUTION__2026-01-08.md` | **Created** | Return Package |
+
+### Validation Commands Run
+
+```bash
+# Stepien obligations tests
+npm run test -- src/tests/tradeMachine/stepienObligations.test.js --run
+# Result: 15 passed (15)
+
+# All trade machine tests
+npm run test -- src/tests/tradeMachine/ --run
+# Result: 185 passed | 1 skipped | 3 todo (189)
+
+# All Stepien tests
+npm run test -- tests/validators/stepien.test.js tests/hasStepienViolation.test.js --run
+# Result: 18 passed (18)
+
+# Build
+npm run build
+# Result: ✓ built in 9.95s (success)
+```
+
+### Acceptance Criteria Status
+
+| # | Criterion | Status |
+|---|-----------|--------|
+| 1 | Present-day Stepien considers existing obligations | ✅ |
+| 2 | Schema accepts new ledger fields | ✅ |
+| 3 | Loader returns new ledger fields with safe defaults | ✅ |
+| 4 | Test 1: Obligation-based consecutive failure | ✅ |
+| 5 | Test 2: Conditional/protected obligation reserves year | ✅ |
+| 6 | Test 3: worst_of swap does not reserve year | ✅ |
+| 7 | Master Doc updated | ✅ |
+| 8 | No changes to worlds/seasons/season advance | ✅ |
+
+### What Remains
+
+1. **Data Population**: Firestore `architect_baseTeams` documents need to be populated with `draftPicksObligations` arrays by the pipeline (see `PIPELINE_DRAFT_PICKS_LEDGER__EXECUTION__2026-01-08.md`)
+2. **World Snapshots**: When worlds are created/advanced, obligations need to be carried forward
+
+**Return Package**: `docs/return-packages/TRADE_MACHINE_STEPIEN_OBLIGATIONS_WIRING__EXECUTION__2026-01-08.md`
+
+---

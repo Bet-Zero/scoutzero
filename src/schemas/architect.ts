@@ -216,6 +216,13 @@ export const BaseTeamDocZ = z.object({
   capHolds: z.array(CapHoldItemZ).optional().default([]),
   exceptions: ExceptionsZ,
   draftPicks: z.array(DraftPickZ).optional().default([]),
+  // Draft pick ledger views (from pipeline - see PIPELINE_DRAFT_PICKS_LEDGER__EXECUTION__2026-01-08.md)
+  // draftPicksInventory: Picks the team currently owns (same as draftPicks for backward compat)
+  draftPicksInventory: z.array(DraftPickZ).optional().default([]),
+  // draftPicksObligations: Picks the team owes / has traded away (used for Stepien validation)
+  draftPicksObligations: z.array(DraftPickZ).optional().default([]),
+  // draftPicksContested: Swaps and conditional picks involving the team
+  draftPicksContested: z.array(DraftPickZ).optional().default([]),
   totals: TeamTotalsZ.optional(),
   source: ArchitectSourceZ.optional(),
   lastUpdated: z.string().optional(),
