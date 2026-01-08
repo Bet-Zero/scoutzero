@@ -1,7 +1,12 @@
 #!/usr/bin/env tsx
 /**
- * Combined team pipeline: RealGM draft picks → SalarySwish fetch/parse/stage.
- * Pass teams/season once and it will run both sequentially.
+ * Combined team pipeline: RealGM draft picks → Ledger Build → SalarySwish fetch/parse/stage.
+ * Pass teams/season once and it will run all steps sequentially.
+ *
+ * Pipeline steps:
+ *   1. RealGM draft picks scrape (per-team outputs)
+ *   2. League-wide ledger build (aggregates all teams, derives per-team views)
+ *   3. SalarySwish fetch/parse/stage (with ledger-derived pick views)
  *
  * Examples:
  *   npm run team:full
@@ -16,6 +21,7 @@ type PipelineConfig = {
   teams?: string;
   season?: string;
   realgmOutDir: string;
+  ledgerOutDir: string;
   pretty: boolean;
   delayMs?: number;
   batchSize?: number;
@@ -45,12 +51,28 @@ const TEAM_PIPELINE_SCRIPT = path.join(
   'scripts',
   'run_full_team_scrape.ts'
 );
+const LEDGER_SCRIPT = path.join(
+  PROJECT_ROOT,
+  'team-scrape',
+  'shared',
+  'ledger',
+  'buildPickLedger.ts'
+);
 const DEFAULT_REALGM_OUT = path.join(
   PROJECT_ROOT,
   'team-scrape',
   'draft-picks',
   '_artifacts',
   'output'
+);
+const DEFAULT_LEDGER_OUT = path.join(
+  PROJECT_ROOT,
+  'team-scrape',
+  'shared',
+  'firestore_staging',
+  '_artifacts',
+  'output',
+  'ledger'
 );
 
 function parseArg(label: string, def?: string): string | undefined {
@@ -166,6 +188,17 @@ function buildTeamArgs(config: PipelineConfig): string[] {
   } else {
     args.push('--validate=false');
   }
+  // Pass ledger output directory for stage_team to read from
+  args.push(`--ledgerDir=${config.ledgerOutDir}`);
+  return args;
+}
+
+function buildLedgerArgs(config: PipelineConfig): string[] {
+  const args = ['tsx', LEDGER_SCRIPT];
+  // Input from RealGM structured output
+  args.push(`--inputDir=${path.join(config.realgmOutDir, 'structured')}`);
+  // Output to ledger directory
+  args.push(`--outputDir=${config.ledgerOutDir}`);
   return args;
 }
 
@@ -174,6 +207,7 @@ async function main() {
     teams: parseTeams(),
     season: parseArg('season'),
     realgmOutDir: parseArg('outDir', DEFAULT_REALGM_OUT)!,
+    ledgerOutDir: parseArg('ledgerDir', DEFAULT_LEDGER_OUT)!,
     pretty: parseBoolArg('pretty') === true,
     delayMs: parseNumberArg('delayMs'),
     batchSize: parseNumberArg('batchSize'),
@@ -189,6 +223,7 @@ async function main() {
       `  Teams: ${config.teams ?? 'all'}\n` +
       `  Season: ${config.season ?? 'auto (run_full default)'}\n` +
       `  RealGM outDir: ${config.realgmOutDir}\n` +
+      `  Ledger outDir: ${config.ledgerOutDir}\n` +
       `  Pretty RealGM output: ${config.pretty ? 'yes' : 'no'}\n` +
       `  DelayMs: ${config.delayMs ?? 'default'} | BatchSize: ${config.batchSize ?? 'default'}\n` +
       `  Retries: ${config.maxRetries ?? 'default'} | BackoffMs: ${config.backoffMs ?? 'default'} | x${config.backoffMultiplier ?? 'default'}\n` +
@@ -197,7 +232,7 @@ async function main() {
   );
 
   await runStep({
-    label: 'Step 1/2: RealGM draft picks',
+    label: 'Step 1/3: RealGM draft picks',
     cmd: 'npx',
     args: buildRealgmArgs(config),
     env: {
@@ -206,7 +241,13 @@ async function main() {
   });
 
   await runStep({
-    label: 'Step 2/2: SalarySwish fetch/parse/stage',
+    label: 'Step 2/3: Build league-wide pick ledger',
+    cmd: 'npx',
+    args: buildLedgerArgs(config),
+  });
+
+  await runStep({
+    label: 'Step 3/3: SalarySwish fetch/parse/stage',
     cmd: 'npx',
     args: buildTeamArgs(config),
   });
