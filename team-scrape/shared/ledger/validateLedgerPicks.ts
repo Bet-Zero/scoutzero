@@ -43,11 +43,12 @@ type CanonicalPick = {
   round: 1 | 2;
   status: string;
   originalTeam: string;
-  currentOwner: string;
+  owner: string; // Canonical owner field
   via?: string;
   recipient?: string;
   isSwap?: boolean;
   protection?: string | null;
+  relation?: 'inventory' | 'obligation' | 'contested';
 };
 
 type TeamViews = {
@@ -228,13 +229,13 @@ async function validateLedgerOutput() {
   const lalViews = await loadJson<TeamViews>(path.join(byTeamDir, 'LAL.json'));
   if (lalViews) {
     const lalObligations = lalViews.obligations.filter(
-      (p) => p.status === 'outgoing' || p.currentOwner !== 'LAL'
+      (p) => p.status === 'outgoing' || p.owner !== 'LAL'
     );
     if (lalObligations.length > 0) {
       console.log('\n✅ Example 2: Lakers outgoing obligations found');
       for (const p of lalObligations.slice(0, 3)) {
         console.log(
-          `   - ${p.year} R${p.round} → ${p.recipient || p.currentOwner} (${p.protection || 'unprotected'})`
+          `   - ${p.year} R${p.round} → ${p.recipient || p.owner} (${p.protection || 'unprotected'})`
         );
       }
     } else {

@@ -91,7 +91,7 @@ type RawDraftPick = {
   round: number;
   status: string;
   originalTeam?: string;
-  currentOwner?: string;
+  owner?: string; // Canonical owner field
   via?: string;
   recipient?: string;
   stepienEligible?: boolean;
@@ -105,6 +105,7 @@ type RawDraftPick = {
   notes?: string;
   contendingTeams?: string[];
   route?: string[];
+  relation?: 'inventory' | 'obligation' | 'contested'; // Ledger-derived relation tag
 };
 
 type StructuredDraftPickGroup = {
@@ -496,7 +497,7 @@ function buildDraftPickNotes(
   };
 
   if (pick.status && pick.status.toLowerCase() !== 'own') {
-    const recipient = pick.recipient ?? pick.currentOwner;
+    const recipient = pick.recipient ?? pick.owner;
     const targetSuffix =
       recipient && recipient !== teamCode ? ` → ${recipient}` : '';
     add(`Status: ${capitalize(pick.status)}${targetSuffix}`);
@@ -581,7 +582,7 @@ function normalizeDraftPick(
   teamCode: string,
   pick: RawDraftPick
 ): NormalizedDraftPick {
-  const owner = pick.currentOwner ?? teamCode;
+  const owner = pick.owner ?? teamCode;
   const notes = buildDraftPickNotes(teamCode, pick);
 
   const normalized: NormalizedDraftPick = {

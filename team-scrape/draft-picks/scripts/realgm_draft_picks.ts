@@ -330,12 +330,11 @@ type ConveyanceObligation = {
 
 type StructuredPick = {
   id: string;
-  legacyId?: string; // Preserves old descriptive ID for backward compatibility
   year: number;
   round: 1 | 2;
   status: 'own' | 'outgoing' | 'incoming' | 'conditional' | 'contested';
   originalTeam: string;
-  currentOwner: string;
+  owner: string; // Canonical owner field (replaces currentOwner)
 
   // CORE: Stepien & Trading Info
   stepienEligible: boolean; // Quick lookup for validation
@@ -376,12 +375,11 @@ type StructuredPick = {
 
 type CanonicalPick = {
   id: string;
-  legacyId?: string; // Preserves old descriptive ID for backward compatibility
   year: number;
   round: 1 | 2;
   status: 'own' | 'outgoing' | 'incoming' | 'contested' | 'conditional';
   originalTeam: string;
-  currentOwner: string;
+  owner: string; // Canonical owner field (replaces currentOwner)
   stepienEligible: boolean;
   tradeable: boolean;
   protection?: string | null;
@@ -1005,16 +1003,14 @@ function toStructured(row: RawRow, round: 1 | 2): StructuredPick[] {
 
       // Generate stable base ID and legacy ID
       const baseId = generateBasePickId(row.teamCode, row.seasonYear, round);
-      const legacyId = generateLegacyPickId(row.teamCode, row.seasonYear, round, 'conditional');
 
       const pick: StructuredPick = {
         id: baseId, // Use stable base ID
-        legacyId: legacyId !== baseId ? legacyId : undefined,
         year: row.seasonYear,
         round,
         status: 'conditional',
         originalTeam: row.teamCode,
-        currentOwner: row.teamCode,
+        owner: row.teamCode,
         stepienEligible: false, // Conditional picks never count for Stepien
         tradeable: false, // Cannot trade other picks while this is unresolved
         protection: protection
@@ -1040,18 +1036,16 @@ function toStructured(row: RawRow, round: 1 | 2): StructuredPick[] {
     )?.range;
     const dependencies = extractPickDependencies(cell);
 
-    // Generate stable base ID and legacy ID
+    // Generate stable base ID
     const baseId = generateBasePickId(row.teamCode, row.seasonYear, round);
-    const legacyId = generateLegacyPickId(row.teamCode, row.seasonYear, round, 'conditional');
 
     const pick: StructuredPick = {
       id: baseId, // Use stable base ID
-      legacyId: legacyId !== baseId ? legacyId : undefined,
       year: row.seasonYear,
       round,
       status: 'conditional',
       originalTeam: row.teamCode,
-      currentOwner: row.teamCode,
+      owner: row.teamCode,
       stepienEligible: false,
       tradeable: false,
       protection: protection
@@ -1088,7 +1082,7 @@ function toStructured(row: RawRow, round: 1 | 2): StructuredPick[] {
     const route = parseRoute(part);
 
     let originalTeam = row.teamCode;
-    let currentOwner = row.teamCode;
+    let owner = row.teamCode;
 
     // Handle different pick types
     if (via) {
@@ -1098,23 +1092,8 @@ function toStructured(row: RawRow, round: 1 | 2): StructuredPick[] {
       originalTeam = teamCodePrefix;
     }
 
-    if (status === 'outgoing' && toTeam) currentOwner = toTeam;
-    if (status === 'incoming') currentOwner = row.teamCode;
-
-    // Generate specific ID based on pick type
-    let idSuffix = '';
-    if (status === 'outgoing' && toTeam) {
-      idSuffix = `to_${toTeam}`;
-    } else if (status === 'incoming' && (via || teamCodePrefix)) {
-      const sourceTeam = via || teamCodePrefix;
-      idSuffix = `from_${sourceTeam}`;
-    } else if (status === 'contested') {
-      idSuffix = 'contested';
-    } else if (swap.isSwap) {
-      idSuffix = 'swap';
-    } else if (protection) {
-      idSuffix = 'protected';
-    }
+    if (status === 'outgoing' && toTeam) owner = toTeam;
+    if (status === 'incoming') owner = row.teamCode;
 
     // Parse conveyance obligations for trading restrictions
     const conveyanceObligation = parseConveyanceObligation(
@@ -1125,24 +1104,16 @@ function toStructured(row: RawRow, round: 1 | 2): StructuredPick[] {
     );
     const dependencies = extractPickDependencies(part);
 
-    // Use originalTeam for ID generation to ensure unique IDs for incoming picks
-    const idBaseTeam =
-      status === 'incoming' && originalTeam !== row.teamCode
-        ? originalTeam
-        : row.teamCode;
-
-    // Generate stable base ID and legacy descriptive ID
+    // Generate stable base ID
     const baseId = generateBasePickId(originalTeam, row.seasonYear, round);
-    const legacyId = generateLegacyPickId(idBaseTeam, row.seasonYear, round, idSuffix);
 
     const pick: StructuredPick = {
       id: baseId, // Use stable base ID
-      legacyId: legacyId !== baseId ? legacyId : undefined, // Only include if different
       year: row.seasonYear,
       round,
       status,
       originalTeam,
-      currentOwner,
+      owner,
       stepienEligible: determineStepienEligibility(
         status,
         protection,
@@ -1175,9 +1146,9 @@ function toStructured(row: RawRow, round: 1 | 2): StructuredPick[] {
     // Adjust status and ownership based on additional context
     if (toTeam && status !== 'incoming') {
       pick.status = 'outgoing';
-      // FIX: For outgoing picks, the current owner should be the recipient team
+      // FIX: For outgoing picks, the owner should be the recipient team
       if (!swap.isSwap && !protection) {
-        pick.currentOwner = toTeam; // Unprotected outgoing picks belong to recipient
+        pick.owner = toTeam; // Unprotected outgoing picks belong to recipient
       }
     }
     if (
@@ -1545,12 +1516,11 @@ async function writeMentionsFile(code: string, picks: CanonicalPick[]) {
 function toCanonicalPick(pick: StructuredPick): CanonicalPick {
   return {
     id: pick.id,
-    legacyId: pick.legacyId,
     year: pick.year,
     round: pick.round,
     status: pick.status,
     originalTeam: pick.originalTeam,
-    currentOwner: pick.currentOwner,
+    owner: pick.owner,
     stepienEligible: Boolean(pick.stepienEligible),
     tradeable: Boolean(pick.tradeable),
     protection: pick.protection ?? null,
@@ -1615,7 +1585,7 @@ function toCanonicalPick(pick: StructuredPick): CanonicalPick {
 
       // Write INVENTORY file (owned-only, for backward compatibility)
       const canonical = teamStructured
-        .filter((pick) => pick.currentOwner === entry.code)
+        .filter((pick) => pick.owner === entry.code)
         .map(toCanonicalPick)
         .sort((a, b) => {
           if (a.year !== b.year) return a.year - b.year;
