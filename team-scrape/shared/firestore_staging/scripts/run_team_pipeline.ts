@@ -17,11 +17,14 @@ import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+type InputType = 'mentions' | 'structured';
+
 type PipelineConfig = {
   teams?: string;
   season?: string;
   realgmOutDir: string;
   ledgerOutDir: string;
+  inputType: InputType;
   pretty: boolean;
   delayMs?: number;
   batchSize?: number;
@@ -195,19 +198,26 @@ function buildTeamArgs(config: PipelineConfig): string[] {
 
 function buildLedgerArgs(config: PipelineConfig): string[] {
   const args = ['tsx', LEDGER_SCRIPT];
-  // Input from RealGM structured output
-  args.push(`--inputDir=${path.join(config.realgmOutDir, 'structured')}`);
+  // Input directory based on inputType (mentions or structured)
+  const inputDir = path.join(config.realgmOutDir, config.inputType);
+  args.push(`--input=${config.inputType}`);
+  args.push(`--inputDir=${inputDir}`);
   // Output to ledger directory
   args.push(`--outputDir=${config.ledgerOutDir}`);
   return args;
 }
 
 async function main() {
+  // Parse inputType with default 'mentions'
+  const inputTypeArg = parseArg('inputType', 'mentions');
+  const inputType: InputType = inputTypeArg === 'structured' ? 'structured' : 'mentions';
+
   const config: PipelineConfig = {
     teams: parseTeams(),
     season: parseArg('season'),
     realgmOutDir: parseArg('outDir', DEFAULT_REALGM_OUT)!,
     ledgerOutDir: parseArg('ledgerDir', DEFAULT_LEDGER_OUT)!,
+    inputType,
     pretty: parseBoolArg('pretty') === true,
     delayMs: parseNumberArg('delayMs'),
     batchSize: parseNumberArg('batchSize'),
@@ -224,6 +234,7 @@ async function main() {
       `  Season: ${config.season ?? 'auto (run_full default)'}\n` +
       `  RealGM outDir: ${config.realgmOutDir}\n` +
       `  Ledger outDir: ${config.ledgerOutDir}\n` +
+      `  Ledger inputType: ${config.inputType}\n` +
       `  Pretty RealGM output: ${config.pretty ? 'yes' : 'no'}\n` +
       `  DelayMs: ${config.delayMs ?? 'default'} | BatchSize: ${config.batchSize ?? 'default'}\n` +
       `  Retries: ${config.maxRetries ?? 'default'} | BackoffMs: ${config.backoffMs ?? 'default'} | x${config.backoffMultiplier ?? 'default'}\n` +
