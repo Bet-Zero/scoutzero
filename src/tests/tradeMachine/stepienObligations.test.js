@@ -39,7 +39,7 @@ describe('validateStepien - Obligations Wiring', () => {
               year: 2027,
               round: 1,
               originalTeam: 'TEST',
-              currentOwner: 'OTHER', // Owed to another team
+              owner: 'OTHER', // Owed to another team
               status: 'outgoing',
             },
           ],

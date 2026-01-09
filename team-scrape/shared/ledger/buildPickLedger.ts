@@ -26,15 +26,15 @@ import { fileURLToPath } from 'node:url';
 
 /**
  * Matches the CanonicalPick type from realgm_draft_picks.ts
+ * Canonical owner field: `owner` (not `currentOwner`)
  */
 export type CanonicalPick = {
   id: string;
-  legacyId?: string; // Preserves old descriptive ID for backward compatibility
   year: number;
   round: 1 | 2;
   status: 'own' | 'outgoing' | 'incoming' | 'contested' | 'conditional';
   originalTeam: string;
-  currentOwner: string;
+  owner: string; // Canonical owner field
   stepienEligible: boolean;
   tradeable: boolean;
   protection?: string | null;
@@ -57,6 +57,8 @@ export type CanonicalPick = {
   dependsOn?: string[];
   swapId?: string; // For swap rights: ${baseId}_swap_${counterparty}
   obligationId?: string; // For outgoing/conditional: ${baseId}_obligation_${recipient}
+  // Relation tag for by_team views (derived at view generation time)
+  relation?: 'inventory' | 'obligation' | 'contested';
 };
 
 /**
@@ -385,16 +387,16 @@ function toCanonicalPick(record: LedgerRecord): CanonicalPick {
 
 /**
  * Checks if a pick should be in a team's inventory.
- * Inventory = picks where currentOwner === TEAM
+ * Inventory = picks where owner === TEAM
  */
 function isInventory(pick: CanonicalPick, teamCode: string): boolean {
-  return pick.currentOwner === teamCode;
+  return pick.owner === teamCode;
 }
 
 /**
  * Checks if a pick should be in a team's obligations.
  * Obligations = picks where originalTeam === TEAM AND
- *   (status in {outgoing, conditional} OR currentOwner !== TEAM)
+ *   (status in {outgoing, conditional} OR owner !== TEAM)
  */
 function isObligation(pick: CanonicalPick, teamCode: string): boolean {
   if (pick.originalTeam !== teamCode) return false;
@@ -402,7 +404,7 @@ function isObligation(pick: CanonicalPick, teamCode: string): boolean {
   return (
     pick.status === 'outgoing' ||
     pick.status === 'conditional' ||
-    pick.currentOwner !== teamCode
+    pick.owner !== teamCode
   );
 }
 
@@ -423,7 +425,7 @@ function isContested(pick: CanonicalPick, teamCode: string): boolean {
   // Swap involving this team
   if (pick.isSwap) {
     if (pick.originalTeam === teamCode) return true;
-    if (pick.currentOwner === teamCode) return true;
+    if (pick.owner === teamCode) return true;
     if (pick.swapDetails?.swapWith?.includes(teamCode)) return true;
   }
 
@@ -447,6 +449,7 @@ function isContested(pick: CanonicalPick, teamCode: string): boolean {
 
 /**
  * Derives per-team views from the master ledger.
+ * Each pick is tagged with its `relation` for that team's view.
  */
 export function deriveTeamPickViews(
   ledgerRecords: LedgerRecord[]
@@ -473,17 +476,17 @@ export function deriveTeamPickViews(
 
       // Add to inventory if team owns the pick
       if (isInventory(pick, teamCode)) {
-        views.inventory.push(pick);
+        views.inventory.push({ ...pick, relation: 'inventory' });
       }
 
       // Add to obligations if team owes the pick
       if (isObligation(pick, teamCode)) {
-        views.obligations.push(pick);
+        views.obligations.push({ ...pick, relation: 'obligation' });
       }
 
       // Add to contested if team is involved in swap/conditional
       if (isContested(pick, teamCode)) {
-        views.contested.push(pick);
+        views.contested.push({ ...pick, relation: 'contested' });
       }
     }
   }

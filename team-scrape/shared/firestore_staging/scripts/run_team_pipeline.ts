@@ -200,6 +200,8 @@ function buildLedgerArgs(config: PipelineConfig): string[] {
   const args = ['tsx', LEDGER_SCRIPT];
   // Input directory based on inputType (mentions or structured)
   const inputDir = path.join(config.realgmOutDir, config.inputType);
+  console.log(`\n📍 Ledger step resolved inputDir: ${inputDir}`);
+  console.log(`   Input type: ${config.inputType}`);
   args.push(`--input=${config.inputType}`);
   args.push(`--inputDir=${inputDir}`);
   // Output to ledger directory

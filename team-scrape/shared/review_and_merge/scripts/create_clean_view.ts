@@ -89,7 +89,7 @@ function formatDraftPick(pick: any): string {
   const round = pick.round || '?';
   const protection = pick.protection ? ` (${pick.protection})` : '';
   const swap = pick.isSwap ? ' [SWAP]' : '';
-  const via = pick.originalTeam !== pick.currentOwner ? ` via ${pick.originalTeam}` : '';
+  const via = pick.originalTeam !== pick.owner ? ` via ${pick.originalTeam}` : '';
   return `${year} Round ${round}${via}${protection}${swap}`;
 }
 

@@ -181,7 +181,7 @@ interface DraftPick {
   round: number;
   status: string;
   originalTeam: string;
-  currentOwner: string;
+  owner: string; // Canonical owner field
   stepienEligible: boolean;
   tradeable: boolean;
   protection: string | null;
@@ -193,8 +193,6 @@ interface DraftPick {
   metadata?: any;
   recipient?: string;
   contendingTeams?: string[];
-  // Optional minimal fields for upload
-  owner?: string; // mirrors currentOwner for minimal drafts schema
 }
 
 interface MergedTeamData {
@@ -293,9 +291,9 @@ function serializeJSON(obj: any, pretty: boolean): string {
 // MERGE LOGIC
 // ============================================================================
 
-// Normalize draft pick fields for architect compatibility (year-based)
+// Normalize draft pick fields for architect compatibility (no changes needed with canonical owner field)
 function normalizeDraftPickForTeam(pick: DraftPick): DraftPick {
-  return { ...pick, owner: pick.currentOwner };
+  return { ...pick };
 }
 
 /**
@@ -355,9 +353,9 @@ function mergeTeamData(
 ): MergedTeamData {
   const now = new Date().toISOString();
 
-  // 1) Filter to picks that this team currently owns (assignment by currentOwner)
+  // 1) Filter to picks that this team currently owns (using canonical owner field)
   const ownedByTeam = (draftPicks || []).filter(
-    (p) => p.currentOwner === teamCode
+    (p) => p.owner === teamCode
   );
 
   // 2) Add season/owner fields for schema alignment

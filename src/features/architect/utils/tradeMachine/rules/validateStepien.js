@@ -30,7 +30,7 @@ function reservesYearForStepien(pick) {
  * 
  * An obligation reserves the year if:
  * - round === 1 (first round), AND
- * - status in ['outgoing', 'conditional'] OR currentOwner !== originalTeam OR tradeable === false OR stepienEligible === false
+ * - status in ['outgoing', 'conditional'] OR owner !== originalTeam OR tradeable === false OR stepienEligible === false
  * 
  * Also applies existing swap logic:
  * - Swap worst_of does NOT reserve year
@@ -61,15 +61,15 @@ function obligationReservesYear(obligation, teamCode) {
   // For non-swap obligations, check if team doesn't freely control this pick
   // Obligation should reserve year if:
   // - status indicates pick is owed (outgoing, conditional)
-  // - currentOwner !== originalTeam (team no longer owns it)
+  // - owner !== originalTeam (team no longer owns it)
   // - tradeable === false (explicitly marked as not tradeable)
   // - stepienEligible === false (explicitly marked as blocking Stepien)
   const status = obligation.status || '';
   const isOutgoingStatus = ['outgoing', 'conditional'].includes(status.toLowerCase());
-  // Only check currentOwner !== originalTeam if BOTH fields are present
+  // Only check owner !== originalTeam if BOTH fields are present
   // If either is missing, we can't determine ownership change, so fall back to other signals
-  const notCurrentOwner = obligation.currentOwner && obligation.originalTeam && 
-                          obligation.currentOwner !== obligation.originalTeam;
+  const notCurrentOwner = obligation.owner && obligation.originalTeam && 
+                          obligation.owner !== obligation.originalTeam;
   const notTradeable = obligation.tradeable === false;
   const notStepienEligible = obligation.stepienEligible === false;
   
