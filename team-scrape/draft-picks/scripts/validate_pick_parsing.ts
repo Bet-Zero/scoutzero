@@ -20,7 +20,7 @@ interface Pick {
   round: number;
   status: string;
   originalTeam: string;
-  currentOwner: string;
+  owner: string; // Canonical owner field
   via?: string;
 }
 
@@ -80,26 +80,26 @@ function validatePickData(filePath: string): ValidationIssue[] {
     }
   }
   
-  // 3. Check for mismatched originalTeam and currentOwner on "own" picks
+  // 3. Check for mismatched originalTeam and owner on "own" picks
   for (const pick of ownPicks) {
-    if (pick.originalTeam !== pick.currentOwner) {
+    if (pick.originalTeam !== pick.owner) {
       issues.push({
         severity: 'error',
         category: 'Own Pick Mismatch',
-        description: `Pick ${pick.id} marked as "own" but originalTeam (${pick.originalTeam}) != currentOwner (${pick.currentOwner})`,
+        description: `Pick ${pick.id} marked as "own" but originalTeam (${pick.originalTeam}) != owner (${pick.owner})`,
         picks: [pick],
       });
     }
   }
   
-  // 4. Check for incoming picks where originalTeam == currentOwner
+  // 4. Check for incoming picks where originalTeam == owner
   const incomingPicks = picks.filter(p => p.status === 'incoming');
   for (const pick of incomingPicks) {
-    if (pick.originalTeam === pick.currentOwner && !pick.via) {
+    if (pick.originalTeam === pick.owner && !pick.via) {
       issues.push({
         severity: 'warning',
         category: 'Incoming Pick Issue',
-        description: `Pick ${pick.id} marked as "incoming" but originalTeam == currentOwner (${pick.currentOwner})`,
+        description: `Pick ${pick.id} marked as "incoming" but originalTeam == owner (${pick.owner})`,
         picks: [pick],
       });
     }
@@ -120,13 +120,13 @@ function validateByCurrentOwner(dirPath: string): ValidationIssue[] {
     const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
     const picks: Pick[] = data;
     
-    // Check that all picks have currentOwner matching the team
+    // Check that all picks have owner matching the team
     for (const pick of picks) {
-      if (pick.currentOwner !== teamCode) {
+      if (pick.owner !== teamCode) {
         allIssues.push({
           severity: 'error',
           category: 'Wrong Current Owner',
-          description: `Pick ${pick.id} in ${teamCode} file but currentOwner is ${pick.currentOwner}`,
+          description: `Pick ${pick.id} in ${teamCode} file but owner is ${pick.owner}`,
           picks: [pick],
         });
       }
@@ -181,7 +181,7 @@ if (fs.existsSync(structuredPath)) {
       console.log(`  ${issue.description}`);
       if (issue.picks && issue.picks.length <= 3) {
         issue.picks.forEach(p => {
-          console.log(`    - ${p.id} (status: ${p.status}, orig: ${p.originalTeam}, owner: ${p.currentOwner})`);
+          console.log(`    - ${p.id} (status: ${p.status}, orig: ${p.originalTeam}, owner: ${p.owner})`);
         });
       }
       console.log();
@@ -239,7 +239,7 @@ if (fs.existsSync(okcPath)) {
     console.log(`${i + 1}. ${pick.id}`);
     console.log(`   Status: ${pick.status}`);
     console.log(`   Original Team: ${pick.originalTeam}`);
-    console.log(`   Current Owner: ${pick.currentOwner}`);
+    console.log(`   Owner: ${pick.owner}`);
     console.log(`   Via: ${pick.via || 'none'}`);
     console.log();
   });
