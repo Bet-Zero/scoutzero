@@ -330,6 +330,7 @@ type ConveyanceObligation = {
 
 type StructuredPick = {
   id: string;
+  legacyId?: string; // Preserves old descriptive ID for backward compatibility
   year: number;
   round: 1 | 2;
   status: 'own' | 'outgoing' | 'incoming' | 'conditional' | 'contested';
@@ -367,10 +368,15 @@ type StructuredPick = {
   title?: string;
   contendingTeams?: string[];
   tradedOn?: string;
+
+  // Derived IDs for specific pick types
+  swapId?: string; // For swap rights: ${baseId}_swap_${counterparty}
+  obligationId?: string; // For outgoing/conditional: ${baseId}_obligation_${recipient}
 };
 
 type CanonicalPick = {
   id: string;
+  legacyId?: string; // Preserves old descriptive ID for backward compatibility
   year: number;
   round: 1 | 2;
   status: 'own' | 'outgoing' | 'incoming' | 'contested' | 'conditional';
@@ -392,6 +398,8 @@ type CanonicalPick = {
   conveyanceObligation?: ConveyanceObligation;
   swapDetails?: StructuredPick['swapDetails'];
   dependsOn?: string[];
+  swapId?: string; // For swap rights: ${baseId}_swap_${counterparty}
+  obligationId?: string; // For outgoing/conditional: ${baseId}_obligation_${recipient}
 };
 
 // ---------- Parse helpers (same logic as before) ----------
@@ -677,6 +685,66 @@ function parseConditionalPick(
   ];
 }
 
+/**
+ * Generates a STABLE base asset ID for a pick.
+ * Base ID: ${originalTeam}_${year}_${1st|2nd}
+ * This ID does NOT include protection, direction (to/from), or swap suffixes.
+ */
+function generateBasePickId(
+  originalTeam: string,
+  year: number,
+  round: number
+): string {
+  return `${originalTeam}_${year}_${round === 1 ? '1st' : '2nd'}`;
+}
+
+/**
+ * Generates the legacy descriptive ID (for backward compatibility).
+ * This includes suffixes like to_DAL, from_PHI, swap, protected, etc.
+ */
+function generateLegacyPickId(
+  teamCode: string,
+  year: number,
+  round: number,
+  suffix?: string
+): string {
+  const base = `${teamCode}_${year}_${round === 1 ? '1st' : '2nd'}`;
+  return suffix ? `${base}_${suffix}` : base;
+}
+
+/**
+ * Generates derived IDs for swap rights and obligations.
+ */
+function generateDerivedIds(
+  baseId: string,
+  pick: {
+    isSwap: boolean;
+    status: string;
+    recipient?: string;
+    swapDetails?: { swapWith?: string[] };
+  }
+): { swapId?: string; obligationId?: string } {
+  const result: { swapId?: string; obligationId?: string } = {};
+
+  // Swap ID: ${baseId}_swap_${counterparty}
+  // Only generate if we have a valid counterparty
+  if (pick.isSwap) {
+    const counterparty = pick.swapDetails?.swapWith?.[0] || pick.recipient;
+    if (counterparty) {
+      result.swapId = `${baseId}_swap_${counterparty}`;
+    }
+    // If no counterparty known, omit swapId rather than use 'unknown'
+  }
+
+  // Obligation ID: ${baseId}_obligation_${recipient}
+  if ((pick.status === 'outgoing' || pick.status === 'conditional') && pick.recipient) {
+    result.obligationId = `${baseId}_obligation_${pick.recipient}`;
+  }
+
+  return result;
+}
+
+// Keep the old function signature for backward compatibility in internal code
 function generatePickId(
   teamCode: string,
   year: number,
@@ -935,8 +1003,13 @@ function toStructured(row: RawRow, round: 1 | 2): StructuredPick[] {
         (c) => c.outcome === 'keep'
       )?.range;
 
+      // Generate stable base ID and legacy ID
+      const baseId = generateBasePickId(row.teamCode, row.seasonYear, round);
+      const legacyId = generateLegacyPickId(row.teamCode, row.seasonYear, round, 'conditional');
+
       const pick: StructuredPick = {
-        id: generatePickId(row.teamCode, row.seasonYear, round, 'conditional'),
+        id: baseId, // Use stable base ID
+        legacyId: legacyId !== baseId ? legacyId : undefined,
         year: row.seasonYear,
         round,
         status: 'conditional',
@@ -952,6 +1025,7 @@ function toStructured(row: RawRow, round: 1 | 2): StructuredPick[] {
         conditionalRecipient: recipientTeam,
         conveyanceObligation, // Simplified obligation focused on Stepien impact
         detailUrl: row.detailUrl,
+        obligationId: `${baseId}_obligation_${recipientTeam}`, // Derived obligation ID
       };
 
       return [pick];
@@ -966,8 +1040,13 @@ function toStructured(row: RawRow, round: 1 | 2): StructuredPick[] {
     )?.range;
     const dependencies = extractPickDependencies(cell);
 
+    // Generate stable base ID and legacy ID
+    const baseId = generateBasePickId(row.teamCode, row.seasonYear, round);
+    const legacyId = generateLegacyPickId(row.teamCode, row.seasonYear, round, 'conditional');
+
     const pick: StructuredPick = {
-      id: generatePickId(row.teamCode, row.seasonYear, round, 'conditional'),
+      id: baseId, // Use stable base ID
+      legacyId: legacyId !== baseId ? legacyId : undefined,
       year: row.seasonYear,
       round,
       status: 'conditional',
@@ -983,6 +1062,7 @@ function toStructured(row: RawRow, round: 1 | 2): StructuredPick[] {
       conditionalRecipient: recipientTeam,
       dependsOn: dependencies.length > 0 ? dependencies : undefined,
       detailUrl: row.detailUrl,
+      obligationId: recipientTeam !== 'Unknown' ? `${baseId}_obligation_${recipientTeam}` : undefined,
     };
 
     return [pick];
@@ -1051,8 +1131,13 @@ function toStructured(row: RawRow, round: 1 | 2): StructuredPick[] {
         ? originalTeam
         : row.teamCode;
 
+    // Generate stable base ID and legacy descriptive ID
+    const baseId = generateBasePickId(originalTeam, row.seasonYear, round);
+    const legacyId = generateLegacyPickId(idBaseTeam, row.seasonYear, round, idSuffix);
+
     const pick: StructuredPick = {
-      id: generatePickId(idBaseTeam, row.seasonYear, round, idSuffix),
+      id: baseId, // Use stable base ID
+      legacyId: legacyId !== baseId ? legacyId : undefined, // Only include if different
       year: row.seasonYear,
       round,
       status,
@@ -1081,6 +1166,11 @@ function toStructured(row: RawRow, round: 1 | 2): StructuredPick[] {
       dependsOn: dependencies.length > 0 ? dependencies : undefined,
       detailUrl: row.detailUrl,
     };
+
+    // Generate derived IDs for swaps and obligations
+    const derivedIds = generateDerivedIds(baseId, pick);
+    if (derivedIds.swapId) pick.swapId = derivedIds.swapId;
+    if (derivedIds.obligationId) pick.obligationId = derivedIds.obligationId;
 
     // Adjust status and ownership based on additional context
     if (toTeam && status !== 'incoming') {
@@ -1440,9 +1530,22 @@ async function writePerTeamStructured(code: string, picks: CanonicalPick[]) {
   return p;
 }
 
+/**
+ * Writes ALL picks mentioned on a team's page (including outgoing picks).
+ * This is used by the ledger builder to ensure no picks are dropped.
+ */
+async function writeMentionsFile(code: string, picks: CanonicalPick[]) {
+  const dir = path.join(OUT_DIR, 'mentions');
+  await ensureDir(dir);
+  const p = path.join(dir, `draft_picks_mentions_${code}.json`);
+  await fs.writeFile(p, serialize(picks), 'utf8');
+  return p;
+}
+
 function toCanonicalPick(pick: StructuredPick): CanonicalPick {
   return {
     id: pick.id,
+    legacyId: pick.legacyId,
     year: pick.year,
     round: pick.round,
     status: pick.status,
@@ -1469,6 +1572,8 @@ function toCanonicalPick(pick: StructuredPick): CanonicalPick {
     conveyanceObligation: pick.conveyanceObligation,
     swapDetails: pick.swapDetails,
     dependsOn: pick.dependsOn,
+    swapId: pick.swapId,
+    obligationId: pick.obligationId,
   };
 }
 
@@ -1496,6 +1601,19 @@ function toCanonicalPick(pick: StructuredPick): CanonicalPick {
         teamStructured.push(...toStructured(r, 1));
         teamStructured.push(...toStructured(r, 2));
       }
+
+      // Write MENTIONS file FIRST (all picks from this team's page, before filtering)
+      // This includes outgoing picks that the ledger needs to see
+      const allMentions = teamStructured
+        .map(toCanonicalPick)
+        .sort((a, b) => {
+          if (a.year !== b.year) return a.year - b.year;
+          return a.round - b.round;
+        });
+      await writeMentionsFile(entry.code, allMentions);
+      console.log(`   • Wrote ${allMentions.length} picks to mentions file`);
+
+      // Write INVENTORY file (owned-only, for backward compatibility)
       const canonical = teamStructured
         .filter((pick) => pick.currentOwner === entry.code)
         .map(toCanonicalPick)
@@ -1504,9 +1622,11 @@ function toCanonicalPick(pick: StructuredPick): CanonicalPick {
           return a.round - b.round;
         });
       await writePerTeamStructured(entry.code, canonical);
+      console.log(`   • Wrote ${canonical.length} picks to inventory file`);
     }
     console.log(`📦 Per-team files saved under:`);
-    console.log(`    ${path.resolve(path.join(OUT_DIR, 'structured'))}`);
+    console.log(`    ${path.resolve(path.join(OUT_DIR, 'structured'))} (inventory)`);
+    console.log(`    ${path.resolve(path.join(OUT_DIR, 'mentions'))} (all mentions)`);
     console.log('🎯 Done');
   } catch (err: any) {
     console.error('❌ Error:', err?.message || err);

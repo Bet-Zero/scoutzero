@@ -29,6 +29,7 @@ import { fileURLToPath } from 'node:url';
  */
 export type CanonicalPick = {
   id: string;
+  legacyId?: string; // Preserves old descriptive ID for backward compatibility
   year: number;
   round: 1 | 2;
   status: 'own' | 'outgoing' | 'incoming' | 'contested' | 'conditional';
@@ -54,6 +55,8 @@ export type CanonicalPick = {
     favorable?: 'most' | 'least' | null;
   };
   dependsOn?: string[];
+  swapId?: string; // For swap rights: ${baseId}_swap_${counterparty}
+  obligationId?: string; // For outgoing/conditional: ${baseId}_obligation_${recipient}
 };
 
 /**
@@ -83,14 +86,23 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PROJECT_ROOT = path.join(__dirname, '..', '..', '..');
 
-const DEFAULT_INPUT_DIR = path.join(
+// Input directory types: 'mentions' (default, all picks from each team page) or 'structured' (owned-only)
+type InputType = 'mentions' | 'structured';
+
+const DRAFT_PICKS_BASE_DIR = path.join(
   PROJECT_ROOT,
   'team-scrape',
   'draft-picks',
   '_artifacts',
-  'output',
-  'structured'
+  'output'
 );
+
+// Default to 'mentions' to include all picks (including outgoing)
+const DEFAULT_INPUT_TYPE: InputType = 'mentions';
+
+function getInputDir(inputType: InputType): string {
+  return path.join(DRAFT_PICKS_BASE_DIR, inputType);
+}
 
 const DEFAULT_OUTPUT_DIR = path.join(
   PROJECT_ROOT,
@@ -193,10 +205,16 @@ export function generateLedgerId(pick: CanonicalPick): string {
 // ============================================================================
 
 /**
- * Loads all per-team draft pick files from the structured output directory.
+ * Loads all per-team draft pick files from the output directory.
+ * Supports both 'mentions' (all picks) and 'structured' (owned-only) file patterns.
+ *
+ * File patterns:
+ * - mentions: draft_picks_mentions_{TEAM}.json
+ * - structured: draft_picks_{TEAM}.json
  */
 export async function loadAllTeamPicks(
-  inputDir: string = DEFAULT_INPUT_DIR
+  inputDir: string,
+  inputType: InputType = 'mentions'
 ): Promise<Map<string, CanonicalPick[]>> {
   const picksByTeam = new Map<string, CanonicalPick[]>();
 
@@ -205,17 +223,26 @@ export async function loadAllTeamPicks(
   try {
     files = await readdir(inputDir);
   } catch (err) {
-    console.warn(`⚠️  Input directory not found: ${inputDir}`);
-    return picksByTeam;
+    console.error(`❌ Input directory not found: ${inputDir}`);
+    console.error(`   Please run the draft picks scraper first:`);
+    console.error(`   npm run team:draft-picks -- --teams LAL,DAL,ATL,NOP`);
+    throw new Error(`Input directory not found: ${inputDir}`);
   }
 
-  // Filter to draft_picks_*.json files
+  // File pattern depends on input type
+  const filePrefix = inputType === 'mentions' ? 'draft_picks_mentions_' : 'draft_picks_';
   const pickFiles = files.filter(
-    (f) => f.startsWith('draft_picks_') && f.endsWith('.json')
+    (f) => f.startsWith(filePrefix) && f.endsWith('.json')
   );
 
+  if (pickFiles.length === 0) {
+    console.error(`❌ No ${inputType} files found in: ${inputDir}`);
+    console.error(`   Expected files matching pattern: ${filePrefix}*.json`);
+    throw new Error(`No ${inputType} files found in ${inputDir}`);
+  }
+
   for (const file of pickFiles) {
-    const teamCode = file.replace('draft_picks_', '').replace('.json', '');
+    const teamCode = file.replace(filePrefix, '').replace('.json', '');
     const filePath = path.join(inputDir, file);
     const picks = await loadJson<CanonicalPick[]>(filePath);
 
@@ -524,21 +551,24 @@ export async function writeLedgerOutputs(
 
 export async function runLedgerBuilder(options?: {
   inputDir?: string;
+  inputType?: InputType;
   outputDir?: string;
 }): Promise<{
   ledger: LedgerRecord[];
   viewsByTeam: Map<string, TeamPickViews>;
 }> {
-  const inputDir = options?.inputDir ?? DEFAULT_INPUT_DIR;
+  const inputType = options?.inputType ?? DEFAULT_INPUT_TYPE;
+  const inputDir = options?.inputDir ?? getInputDir(inputType);
   const outputDir = options?.outputDir ?? DEFAULT_OUTPUT_DIR;
 
   console.log('\n🔨 Building league-wide draft picks ledger...');
+  console.log(`   Input type: ${inputType}`);
   console.log(`   Input: ${inputDir}`);
   console.log(`   Output: ${outputDir}`);
 
   // Load all team picks
   console.log('\n📂 Loading per-team draft pick files...');
-  const picksByTeam = await loadAllTeamPicks(inputDir);
+  const picksByTeam = await loadAllTeamPicks(inputDir, inputType);
 
   if (picksByTeam.size === 0) {
     console.warn('\n⚠️  No team pick files found. Run RealGM scrape first.');
@@ -564,15 +594,24 @@ export async function runLedgerBuilder(options?: {
 
 // CLI entry point
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const inputDir = parseArg('inputDir', DEFAULT_INPUT_DIR);
+  // Parse --input=mentions|structured flag (default: mentions)
+  const inputArg = parseArg('input', 'mentions');
+  const inputType: InputType = inputArg === 'structured' ? 'structured' : 'mentions';
+
+  // Allow inputDir override (optional)
+  const inputDirOverride = parseArg('inputDir');
   const outputDir = parseArg('outputDir', DEFAULT_OUTPUT_DIR);
 
-  runLedgerBuilder({ inputDir, outputDir })
+  runLedgerBuilder({
+    inputDir: inputDirOverride,
+    inputType,
+    outputDir,
+  })
     .then(({ ledger, viewsByTeam }) => {
       console.log('\n✅ Ledger build complete.');
 
       // Print summary for a few teams
-      const sampleTeams = ['ATL', 'LAL', 'OKC'];
+      const sampleTeams = ['ATL', 'LAL', 'DAL', 'OKC'];
       console.log('\n📋 Sample team summaries:');
       for (const code of sampleTeams) {
         const views = viewsByTeam.get(code);
