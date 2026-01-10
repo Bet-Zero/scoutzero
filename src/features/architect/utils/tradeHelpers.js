@@ -320,10 +320,15 @@ export const getSwapTypeDisplay = (swapType) => {
 export const formatSwapInfo = (pick) => {
   if (!pick?.isSwap) return '';
   
-  const swapTypeDisplay = getSwapTypeDisplay(pick.swapType);
+  // Determine swap type: prefer UI props, fall back to scraper details
+  const type = pick.swapType || (pick.swapDetails?.favorable === 'least' ? 'worst_of' : 'best_of');
+  const swapTypeDisplay = getSwapTypeDisplay(type);
   let result = `Swap (${swapTypeDisplay})`;
-  if (pick.swapWithTeamId) {
-    result += ` vs ${pick.swapWithTeamId}`;
+  // SCSP™: Look for swap partner in swapWithTeamId (UI) OR swapDetails.swapWith (scraper)
+  const partner = pick.swapWithTeamId || pick.swapDetails?.swapWith?.[0];
+
+  if (partner) {
+    result += ` vs ${partner}`;
   }
   
   // Show resolved outcome if available

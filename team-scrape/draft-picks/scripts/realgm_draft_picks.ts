@@ -41,7 +41,7 @@ const TEAM_FILTER = TEAMS_ARG.split(',')
   .filter(Boolean);
 
 // ---------- Team Maps & URLs ----------
-const INTERNAL_TEAM_CODE_MAP: Record<string, string> = {
+export const INTERNAL_TEAM_CODE_MAP: Record<string, string> = {
   'Atlanta Hawks': 'ATL',
   'Boston Celtics': 'BOS',
   'Brooklyn Nets': 'BRK',
@@ -251,15 +251,19 @@ const toInt = (s?: string) => {
 };
 const ensureDir = async (dir: string) => fs.mkdir(dir, { recursive: true });
 
-function canonicalTeamName(name: string) {
+export function canonicalTeamName(name: string) {
   const t = name.trim();
   if (TEAM_ALIASES[t]) return TEAM_ALIASES[t];
   return t.replace(/\s{2,}/g, ' ');
 }
-function teamCodeFromName(
+export function teamCodeFromName(
   name: string,
   MAP: Record<string, string>
 ): string | undefined {
+  // Check if it matches a known code directly
+  const upper = name.trim().toUpperCase();
+  if (Object.values(MAP).includes(upper)) return upper;
+
   const cand = canonicalTeamName(name);
   if (MAP[cand]) return MAP[cand];
   const simple = cand.toLowerCase().replace(/[^a-z ]/g, '');
@@ -401,7 +405,7 @@ type CanonicalPick = {
 };
 
 // ---------- Parse helpers (same logic as before) ----------
-function cleanCell(cell: string) {
+export function cleanCell(cell: string) {
   let s = cell;
   s = s.replace(/([A-Za-z)])\d\b/g, '$1'); // "...Own1" -> "...Own"
   s = s.replace(/\b(\)|[A-Za-z])\s*0\b/g, '$1'); // "... to DAL0" -> "... to DAL"
@@ -471,7 +475,7 @@ function extractProtection(round: 1 | 2, text: string) {
     };
   return extractRangeProtection(round, text);
 }
-function collectTeamsAfter(
+export function collectTeamsAfter(
   regex: RegExp,
   s: string,
   MAP: Record<string, string>
@@ -491,12 +495,13 @@ function collectTeamsAfter(
   }
   return out;
 }
-function parseSwap(text: string, MAP: Record<string, string>) {
+export function parseSwap(text: string, MAP: Record<string, string>) {
   const t = text.toLowerCase();
   const isSwap =
     /\bswap\b/.test(t) ||
     /swap rights/.test(t) ||
     /right to swap/.test(t) ||
+    /Own\s+or\s+[A-Z]{2,3}/i.test(text) || // NEW: Own or {TEAM} implication
     /(most|least)\s+favorable/i.test(text) ||
     /more|less favorable/i.test(text);
   if (!isSwap)
@@ -514,10 +519,25 @@ function parseSwap(text: string, MAP: Record<string, string>) {
     MAP
   );
 
+  // NEW: Detect "Own or {TEAM}" (e.g. "Own or OKC")
+  const ownOrMatch = text.match(/Own\s+or\s+([A-Z]{2,3})/i);
+  if (ownOrMatch) {
+    const code = teamCodeFromName(ownOrMatch[1], MAP);
+    if (code && !counterparts.includes(code)) counterparts.push(code);
+  }
+
+  // NEW: Detect "via {TEAM} swap" (e.g. "via OKC swap")
+  const viaSwapMatch = text.match(/via\s+([A-Z]{2,3})\s+swap/i);
+  if (viaSwapMatch) {
+    const code = teamCodeFromName(viaSwapMatch[1], MAP);
+    if (code && !counterparts.includes(code)) counterparts.push(code);
+  }
+
   let swapType: 'bilateral' | 'multiway' | 'favorable' | 'unknown' = 'unknown';
   if (favorableTag) swapType = 'favorable';
   else if (counterparts.length > 1) swapType = 'multiway';
-  else swapType = 'bilateral';
+  else if (counterparts.length === 1) swapType = 'bilateral'; // If we have a counterpart, it's bilateral
+  else swapType = 'bilateral'; 
 
   return {
     isSwap: true as const,
@@ -528,7 +548,7 @@ function parseSwap(text: string, MAP: Record<string, string>) {
     },
   };
 }
-function detectStatus(text: string): StructuredPick['status'] {
+export function detectStatus(text: string): StructuredPick['status'] {
   const t = text.toLowerCase();
 
   // Check for contested/swap picks FIRST (before checking "to")
@@ -548,14 +568,14 @@ function detectStatus(text: string): StructuredPick['status'] {
   if (/\bown\b/.test(t)) return 'own';
   return 'own';
 }
-function parseVia(text: string): string | undefined {
+export function parseVia(text: string): string | undefined {
   const m = text.match(/\bvia\s+([A-Z][A-Za-z .'\-]+?)(?:\s|[.;,)|]|$)/);
   return m ? teamCodeFromName(m[1], INTERNAL_TEAM_CODE_MAP) : undefined;
 }
 
 // NEW: Detect team code shorthand (e.g., "PHL 5-30" or "UTH 9-30")
 // This pattern means the pick is coming FROM that team
-function parseTeamCodePrefix(text: string): string | undefined {
+export function parseTeamCodePrefix(text: string): string | undefined {
   // Match pattern: Team code at start, optionally followed by pick range or other text
   // Must be followed by space and then digits (pick range) or end of string
   const m = text.match(/^([A-Z]{2,3})(?:\s+[\d\-+\s;]*)?$/);
@@ -581,7 +601,7 @@ function parseTeamCodePrefix(text: string): string | undefined {
 
   return isValidCode ? normalizedCode : undefined;
 }
-function parseTo(text: string): string | undefined {
+export function parseTo(text: string): string | undefined {
   // First try to match team codes (2-3 uppercase letters)
   const codeMatch = text.match(/\bto\s+([A-Z]{2,3})(?:\b|$)/i);
 
@@ -618,7 +638,7 @@ function parseTo(text: string): string | undefined {
 
   return undefined;
 }
-function parseRoute(text: string): string[] | undefined {
+export function parseRoute(text: string): string[] | undefined {
   const paren = text.match(/\(([^)]+)\)/);
   if (!paren) return undefined;
   const segment = paren[1];
@@ -1124,7 +1144,7 @@ function toStructured(row: RawRow, round: 1 | 2): StructuredPick[] {
       protection,
       isSwap: swap.isSwap,
       via:
-        via ||
+        (via && via !== originalTeam ? via : undefined) || // Prevent meaningless via
         (teamCodePrefix && status === 'incoming' ? teamCodePrefix : undefined),
       recipient: toTeam,
       pickNumber: null,
@@ -1548,58 +1568,62 @@ function toCanonicalPick(pick: StructuredPick): CanonicalPick {
 }
 
 // ---------- Main ----------
-(async () => {
-  try {
-    console.log(
-      `🔍 Scraping RealGM future drafts — Teams: ${TEAM_FILTER.join(', ')}`
-    );
+import { fileURLToPath } from 'url';
 
-    for (const code of TEAM_FILTER) {
-      const entry = REALGM_TEAM_URLS[code];
-      if (!entry) {
-        console.warn(`⚠️  No RealGM URL configured for ${code}. Skipping.`);
-        continue;
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  (async () => {
+    try {
+      console.log(
+        `🔍 Scraping RealGM future drafts — Teams: ${TEAM_FILTER.join(', ')}`
+      );
+
+      for (const code of TEAM_FILTER) {
+        const entry = REALGM_TEAM_URLS[code];
+        if (!entry) {
+          console.warn(`⚠️  No RealGM URL configured for ${code}. Skipping.`);
+          continue;
+        }
+        console.log(`🌐 Fetching ${entry.name} (${code}) → ${entry.url}`);
+
+        const rows = await scrapeTeamPage(entry.code, entry.name, entry.url);
+        console.log(`   • Parsed ${rows.length} season rows`);
+
+        // Per-team STRUCTURED
+        const teamStructured: StructuredPick[] = [];
+        for (const r of rows) {
+          teamStructured.push(...toStructured(r, 1));
+          teamStructured.push(...toStructured(r, 2));
+        }
+
+        // Write MENTIONS file FIRST (all picks from this team's page, before filtering)
+        // This includes outgoing picks that the ledger needs to see
+        const allMentions = teamStructured
+          .map(toCanonicalPick)
+          .sort((a, b) => {
+            if (a.year !== b.year) return a.year - b.year;
+            return a.round - b.round;
+          });
+        await writeMentionsFile(entry.code, allMentions);
+        console.log(`   • Wrote ${allMentions.length} picks to mentions file`);
+
+        // Write INVENTORY file (owned-only, for backward compatibility)
+        const canonical = teamStructured
+          .filter((pick) => pick.owner === entry.code)
+          .map(toCanonicalPick)
+          .sort((a, b) => {
+            if (a.year !== b.year) return a.year - b.year;
+            return a.round - b.round;
+          });
+        await writePerTeamStructured(entry.code, canonical);
+        console.log(`   • Wrote ${canonical.length} picks to inventory file`);
       }
-      console.log(`🌐 Fetching ${entry.name} (${code}) → ${entry.url}`);
-
-      const rows = await scrapeTeamPage(entry.code, entry.name, entry.url);
-      console.log(`   • Parsed ${rows.length} season rows`);
-
-      // Per-team STRUCTURED
-      const teamStructured: StructuredPick[] = [];
-      for (const r of rows) {
-        teamStructured.push(...toStructured(r, 1));
-        teamStructured.push(...toStructured(r, 2));
-      }
-
-      // Write MENTIONS file FIRST (all picks from this team's page, before filtering)
-      // This includes outgoing picks that the ledger needs to see
-      const allMentions = teamStructured
-        .map(toCanonicalPick)
-        .sort((a, b) => {
-          if (a.year !== b.year) return a.year - b.year;
-          return a.round - b.round;
-        });
-      await writeMentionsFile(entry.code, allMentions);
-      console.log(`   • Wrote ${allMentions.length} picks to mentions file`);
-
-      // Write INVENTORY file (owned-only, for backward compatibility)
-      const canonical = teamStructured
-        .filter((pick) => pick.owner === entry.code)
-        .map(toCanonicalPick)
-        .sort((a, b) => {
-          if (a.year !== b.year) return a.year - b.year;
-          return a.round - b.round;
-        });
-      await writePerTeamStructured(entry.code, canonical);
-      console.log(`   • Wrote ${canonical.length} picks to inventory file`);
+      console.log(`📦 Per-team files saved under:`);
+      console.log(`    ${path.resolve(path.join(OUT_DIR, 'structured'))} (inventory)`);
+      console.log(`    ${path.resolve(path.join(OUT_DIR, 'mentions'))} (all mentions)`);
+      console.log('🎯 Done');
+    } catch (err) {
+      console.error('🔥 Fatal error:', err);
+      process.exit(1);
     }
-    console.log(`📦 Per-team files saved under:`);
-    console.log(`    ${path.resolve(path.join(OUT_DIR, 'structured'))} (inventory)`);
-    console.log(`    ${path.resolve(path.join(OUT_DIR, 'mentions'))} (all mentions)`);
-    console.log('🎯 Done');
-  } catch (err: any) {
-    console.error('❌ Error:', err?.message || err);
-    process.exit(1);
-  }
-})();
+  })();
+}
