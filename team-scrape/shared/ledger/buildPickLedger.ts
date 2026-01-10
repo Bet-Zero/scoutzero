@@ -203,12 +203,36 @@ export function generateLedgerId(pick: CanonicalPick): string {
 }
 
 // ============================================================================
-// PICK LOADING
+// PICK LOADING & NORMALIZATION
 // ============================================================================
+
+/**
+ * Raw pick shape from mentions JSON (may have currentOwner instead of owner)
+ */
+type RawPick = Omit<CanonicalPick, 'owner'> & {
+  owner?: string;
+  currentOwner?: string;
+};
+
+/**
+ * Normalizes incoming picks from mentions JSON to canonical format.
+ * - Maps `currentOwner` → `owner` if owner is missing
+ * - Removes non-canonical `currentOwner` field from output
+ */
+function normalizeIncomingPick(raw: RawPick): CanonicalPick {
+  // Use owner if present, else fall back to currentOwner
+  const owner = raw.owner ?? raw.currentOwner ?? '';
+  
+  // Destructure to remove currentOwner from output
+  const { currentOwner: _drop, ...rest } = raw;
+  
+  return { ...rest, owner } as CanonicalPick;
+}
 
 /**
  * Loads all per-team draft pick files from the output directory.
  * Supports both 'mentions' (all picks) and 'structured' (owned-only) file patterns.
+ * Normalizes currentOwner → owner at load time.
  *
  * File patterns:
  * - mentions: draft_picks_mentions_{TEAM}.json
@@ -246,11 +270,13 @@ export async function loadAllTeamPicks(
   for (const file of pickFiles) {
     const teamCode = file.replace(filePrefix, '').replace('.json', '');
     const filePath = path.join(inputDir, file);
-    const picks = await loadJson<CanonicalPick[]>(filePath);
+    const rawPicks = await loadJson<RawPick[]>(filePath);
 
-    if (picks && Array.isArray(picks)) {
-      picksByTeam.set(teamCode, picks);
-      console.log(`  ✓ Loaded ${picks.length} picks from ${teamCode}`);
+    if (rawPicks && Array.isArray(rawPicks)) {
+      // Normalize each pick (currentOwner → owner)
+      const normalizedPicks = rawPicks.map(normalizeIncomingPick);
+      picksByTeam.set(teamCode, normalizedPicks);
+      console.log(`  ✓ Loaded ${normalizedPicks.length} picks from ${teamCode}`);
     }
   }
 

@@ -147,6 +147,8 @@ export const DraftPickZ = z.object({
   originalTeam: TeamCodeZ.optional(),
   status: z.string().optional(),
   isSwap: z.boolean().optional(),
+  swapType: z.enum(['best_of', 'worst_of']).optional(),
+  swapWithTeamId: TeamCodeZ.optional(),
   protection: z.string().nullable().optional(),
   protectionMeta: ProtectionMetaZ, // Phase 4: Structured protection (Option A)
   stepienEligible: z.boolean().optional(),

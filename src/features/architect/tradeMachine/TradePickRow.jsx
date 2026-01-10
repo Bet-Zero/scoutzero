@@ -105,7 +105,7 @@ function TradePickRow({
       {/* Left: logo + label + controls */}
       <div className="flex items-center gap-2">
         <TeamLogo
-          teamId={pick?.originalTeamId || pick?.teamId || teamId}
+          teamId={pick?.originalTeam || pick?.originalTeamId || pick?.teamId || pick?.owner || teamId}
           className="w-4 h-4"
         />
         <div className="flex flex-col">

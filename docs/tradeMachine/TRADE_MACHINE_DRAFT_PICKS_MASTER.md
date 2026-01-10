@@ -2578,6 +2578,7 @@ Safe fallbacks ensure no breakage when fields are absent.
 **Obligation Year Reservation Rules**:
 
 An obligation reserves a year for Stepien if:
+
 - `round === 1` (first round), AND one of:
   - `status` in `['outgoing', 'conditional']`
   - `currentOwner !== originalTeam`
@@ -2585,10 +2586,12 @@ An obligation reserves a year for Stepien if:
   - `stepienEligible === false`
 
 **Swap Handling** (same as Phase 2):
+
 - `swapType === 'worst_of'` does NOT reserve year
 - `swapType === 'best_of'` (or missing) DOES reserve year
 
 **Meaningful Protection Bypass**:
+
 - If either pick in a consecutive pair has meaningful protection (Top 3, Lottery, etc.), the consecutive violation is bypassed
 
 #### T4) Tests Added
@@ -2603,6 +2606,7 @@ Created `src/tests/tradeMachine/stepienObligations.test.js` with 15 tests coveri
 ### Stepien Rule Summary (Plain English)
 
 > **Present-day Stepien validation now prevents illegal consecutive first-round pick trades by considering BOTH:**
+>
 > 1. Picks being traded in the current transaction
 > 2. Existing obligations (picks already owed from prior trades)
 

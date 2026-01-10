@@ -254,10 +254,9 @@ describe('Display Labels for Resolved Swaps', () => {
       resolved: false,
     };
 
-    // Expected format: "2027 1st Round 🔁 Swap (Best of) vs OKC"
+    // Expected format: "2027 1st Round | Swap (Best of) vs OKC"
     const label = formatPick(unresolvedPick);
     expect(label).toContain('2027 1st Round');
-    expect(label).toContain('🔁');
     expect(label).toContain('Swap (Best of) vs OKC');
     expect(label).not.toContain('Won by');
   });
@@ -276,7 +275,6 @@ describe('Display Labels for Resolved Swaps', () => {
 
     const label = formatPick(resolvedPick);
     expect(label).toContain('2026 1st Round');
-    expect(label).toContain('🔁');
     expect(label).toContain('Swap (Best of) vs OKC');
     expect(label).toContain('→ Won by OKC');
   });

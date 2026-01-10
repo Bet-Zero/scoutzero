@@ -210,8 +210,9 @@ const TradeExportCapture = React.forwardRef(function TradeExportCapture(
                               <span>{formatPick(p)}</span>
                               <TeamLogo
                                 teamId={
-                                  p.fromTeamId ||
+                                  p.originalTeam ||
                                   p.originTeamId ||
+                                  p.fromTeamId ||
                                   p.teamId ||
                                   p.teamAbbr ||
                                   p.team

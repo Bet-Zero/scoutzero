@@ -360,18 +360,26 @@ export const formatPick = (p, options = {}) => {
   
   if (!p) return '';
   let str = `${p.year} ${p.round} Round`;
-  if (p.via) str += ` (via ${p.via})`;
+  
+  // Canonical via display:
+  // - Respect explicit p.via if present
+  // - Otherwise, if owner differs from originalTeam, show (via originalTeam)
+  const viaTeam =
+    p.via ||
+    (p.originalTeam && p.owner && p.owner !== p.originalTeam ? p.originalTeam : null);
+
+  if (viaTeam && viaTeam !== p.owner) str += ` (via ${viaTeam})`;
   
   // Phase 4: Display protection from protectionMeta or legacy string
   const protectionLabel = getProtectionDisplayLabel(p);
   if (protectionLabel) {
-    str += ` 🛡 ${protectionLabel}`;
+    str += ` | Protected: ${protectionLabel}`;
   }
   
   if (p.isSwap) {
-    str += ` 🔁 ${formatSwapInfo(p)}`;
+    str += ` | ${formatSwapInfo(p)}`;
   }
-  if (includeNote && p.note) str += ` 📝 ${p.note}`;
+  if (includeNote && p.note) str += ` | Note: ${p.note}`;
   return str;
 };
 
