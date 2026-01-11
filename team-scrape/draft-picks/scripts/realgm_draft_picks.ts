@@ -65,7 +65,7 @@ export const INTERNAL_TEAM_CODE_MAP: Record<string, string> = {
   'Oklahoma City Thunder': 'OKC',
   'Orlando Magic': 'ORL',
   'Philadelphia Sixers': 'PHI',
-  'Phoenix Suns': 'PHO',
+  'Phoenix Suns': 'PHX',
   'Portland Trail Blazers': 'POR',
   'Sacramento Kings': 'SAC',
   'San Antonio Spurs': 'SAS',
@@ -256,12 +256,33 @@ export function canonicalTeamName(name: string) {
   if (TEAM_ALIASES[t]) return TEAM_ALIASES[t];
   return t.replace(/\s{2,}/g, ' ');
 }
+
+// RealGM sometimes uses different team code abbreviations than our canonical codes
+// Map common variants to canonical codes
+const CODE_VARIANTS: Record<string, string> = {
+  PHO: 'PHX', // Phoenix: RealGM uses PHX, we use PHX (canonical) - normalize old/variant PHO to PHX
+  NOR: 'NOP', // New Orleans
+  BRO: 'BKN', // Brooklyn
+  SAN: 'SAS', // San Antonio
+  GS: 'GSW',  // Golden State
+  NY: 'NYK',  // New York
+  NO: 'NOP',  // New Orleans
+  SA: 'SAS',  // San Antonio
+  PHL: 'PHI', // Philadelphia
+};
+
 export function teamCodeFromName(
   name: string,
   MAP: Record<string, string>
 ): string | undefined {
   // Check if it matches a known code directly
   const upper = name.trim().toUpperCase();
+  
+  // First normalize any variant codes to canonical codes
+  const normalizedCode = CODE_VARIANTS[upper] || upper;
+  if (Object.values(MAP).includes(normalizedCode)) return normalizedCode;
+  
+  // Also check if the input (before normalization) matches a known code
   if (Object.values(MAP).includes(upper)) return upper;
 
   const cand = canonicalTeamName(name);
@@ -274,6 +295,7 @@ export function teamCodeFromName(
   }
   return undefined;
 }
+
 
 // ---------- Types ----------
 type RawRow = {
@@ -363,6 +385,13 @@ type StructuredPick = {
     swapWith?: string[];
     favorable?: 'most' | 'least' | null;
     controller?: string; // Team that controls the swap (gets favorable choice)
+    // Multiway pool fields
+    poolTeams?: string[]; // Teams in the pool (e.g., ["DAL", "HOU", "PHX"])
+    allocation?: {
+      topN?: number; // How many picks go to topNTo
+      topNTo?: string; // Team receiving topN picks
+      remainderTo?: string; // Team receiving remaining picks
+    };
   };
   conveysIf?: string[];
   otherwise?: string[];
@@ -585,6 +614,7 @@ export function parseSwap(text: string, MAP: Record<string, string>) {
 
   // NEW: Extract swap controller from "{TEAM} swap for {TEAM}" pattern
   // Handle both "TEAM swap for TEAM" and "via TEAM swap for TEAM"
+  // Also try matching inside parentheses: "(via X swap for Y)"
   let controller: string | undefined;
   const swapForControllerMatch = text.match(
     /(?:via\s+)?([A-Za-z0-9 .']+?)\s+swap\s+for\s+[A-Za-z0-9 .']+/i
@@ -592,11 +622,39 @@ export function parseSwap(text: string, MAP: Record<string, string>) {
   if (swapForControllerMatch) {
     controller = teamCodeFromName(swapForControllerMatch[1].trim(), MAP);
   }
+  
+  // Fallback: Try matching "(via X swap for Y)" inside parentheses
+  if (!controller) {
+    const parenSwapMatch = text.match(
+      /\(via\s+([A-Za-z0-9 .']+?)\s+swap\s+for\s+[A-Za-z0-9 .']+\)/i
+    );
+    if (parenSwapMatch) {
+      controller = teamCodeFromName(parenSwapMatch[1].trim(), MAP);
+    }
+  }
+  
+  // Final fallback: If "Own or X" pattern exists and "via X swap for Y" found,
+  // infer controller = X (the team in "Own or X")
+  if (!controller && ownOrMatch) {
+    const ownOrTeam = teamCodeFromName(ownOrMatch[1].trim(), MAP);
+    // Check if "via X swap for" pattern exists where X matches ownOrTeam
+    const viaSwapForMatch = text.match(
+      /\(via\s+([A-Za-z0-9 .']+?)\s+swap\s+for/i
+    );
+    if (viaSwapForMatch && ownOrTeam) {
+      const viaTeam = teamCodeFromName(viaSwapForMatch[1].trim(), MAP);
+      if (viaTeam === ownOrTeam) {
+        controller = viaTeam; // Controller is the team that controls the swap
+      }
+    }
+  }
 
   // NEW: Detect multiway pool allocation pattern
   // "Two most favorable of DAL, HOU and PHX to HOU then other to BRK"
+  // Fixed regex: Use non-greedy capture (.+?) that stops at " to " boundary.
+  // Team list pattern: captures "A, B and C" or "A and B" or "A, B, C"
   const poolAllocationMatch = text.match(
-    /(\w+)\s+most\s+favorable\s+of\s+([A-Za-z0-9, .']+?)\s+to\s+([A-Za-z0-9 .']+?)\s+then\s+(?:other|remaining)\s+to\s+([A-Za-z0-9 .']+)/i
+    /(\w+)\s+most\s+favorable\s+of\s+(.+?)\s+to\s+([A-Za-z0-9 .']+?)\s+then\s+(?:other|remaining)\s+to\s+([A-Za-z0-9 .']+)/i
   );
 
   let poolTeams: string[] | undefined;
@@ -610,9 +668,13 @@ export function parseSwap(text: string, MAP: Record<string, string>) {
     const countMap: Record<string, number> = { one: 1, two: 2, three: 3 };
     const topN = countMap[countWord.toLowerCase()] || parseInt(countWord, 10);
 
+    // Split on comma or "and" to extract individual team names
+    // This handles: "A, B and C", "A, B, and C", "A and B", "A, B, C"
     poolTeams = teamsStr
-      .split(/,|\band\b/gi)
-      .map((t) => teamCodeFromName(t.trim(), MAP))
+      .split(/,\s*|\s+and\s+/gi)
+      .map((t) => t.trim())
+      .filter(Boolean)
+      .map((t) => teamCodeFromName(t, MAP))
       .filter(Boolean) as string[];
 
     allocation = {
@@ -621,6 +683,7 @@ export function parseSwap(text: string, MAP: Record<string, string>) {
       remainderTo: teamCodeFromName(remainderRecipient.trim(), MAP),
     };
   }
+
 
   let swapType: 'bilateral' | 'multiway' | 'favorable' | 'unknown' = 'unknown';
   if (favorableTag) swapType = 'favorable';
@@ -679,7 +742,7 @@ export function parseTeamCodePrefix(text: string): string | undefined {
   // Map common variations (RealGM sometimes uses different codes)
   const codeVariations: Record<string, string> = {
     PHL: 'PHI', // Philadelphia
-    PHX: 'PHO', // Phoenix (sometimes)
+    PHO: 'PHX', // Phoenix (input hygiene)
     SA: 'SAS', // San Antonio
     GS: 'GSW', // Golden State
     NO: 'NOP', // New Orleans
@@ -704,7 +767,7 @@ export function parseTo(text: string): string | undefined {
     // Map common variations (same as parseTeamCodePrefix)
     const codeVariations: Record<string, string> = {
       PHL: 'PHI',
-      PHX: 'PHO',
+      PHO: 'PHX',
       SA: 'SAS',
       GS: 'GSW',
       NO: 'NOP',
@@ -1291,10 +1354,26 @@ function toStructured(row: RawRow, round: 1 | 2): StructuredPick[] {
               startsWithOwn && filteredSwapWith?.length === 1
                 ? 'bilateral'
                 : swap.details.swapType;
+            
+            // Validate controller after filtering:
+            // Controller must be in swapWith OR be valid for bilateral "Own or X" swaps
+            let finalController = swap.details.controller;
+            if (finalController && filteredSwapWith?.length) {
+              // For bilateral swaps, controller should be the swap partner
+              if (finalSwapType === 'bilateral' && !filteredSwapWith.includes(finalController)) {
+                // If controller isn't in swapWith, use first swap partner for bilateral
+                finalController = filteredSwapWith[0];
+              }
+            }
+            
             return {
               ...swap.details,
               swapWith: filteredSwapWith?.length ? filteredSwapWith : undefined,
               swapType: finalSwapType,
+              controller: finalController, // Explicitly preserve validated controller
+              // Preserve multiway pool fields
+              poolTeams: swap.details.poolTeams,
+              allocation: swap.details.allocation,
             };
           })()
         : undefined,

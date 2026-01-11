@@ -53,6 +53,13 @@ export type CanonicalPick = {
     swapType?: 'bilateral' | 'multiway' | 'favorable' | 'unknown';
     swapWith?: string[];
     favorable?: 'most' | 'least' | null;
+    controller?: string; // Team that controls the swap
+    poolTeams?: string[]; // Teams in multiway pool
+    allocation?: {
+      topN?: number;
+      topNTo?: string;
+      remainderTo?: string;
+    };
   };
   dependsOn?: string[];
   swapId?: string; // For swap rights: ${baseId}_swap_${counterparty}
@@ -413,10 +420,26 @@ function toCanonicalPick(record: LedgerRecord): CanonicalPick {
 
 /**
  * Checks if a pick should be in a team's inventory.
- * Inventory = picks where owner === TEAM
+ * Inventory = picks where:
+ *   - owner === TEAM
+ *   - AND status !== 'contested' (contested picks go to contested view)
+ *   - AND tradeable !== false (non-tradeable picks shouldn't be in inventory)
+ * 
+ * Rationale: Contested/non-tradeable picks (like multiway pools) don't represent
+ * guaranteed ownership and shouldn't appear as tradeable inventory.
  */
 function isInventory(pick: CanonicalPick, teamCode: string): boolean {
-  return pick.owner === teamCode;
+  // Must be owned by the team
+  if (pick.owner !== teamCode) return false;
+  
+  // Contested picks should not be in inventory (they go to contested view)
+  if (pick.status === 'contested') return false;
+  
+  // Non-tradeable picks should not be in inventory
+  // (e.g., multiway pools where outcome is unknown)
+  if (pick.tradeable === false) return false;
+  
+  return true;
 }
 
 /**
@@ -473,6 +496,59 @@ function isContested(pick: CanonicalPick, teamCode: string): boolean {
   return false;
 }
 
+// ============================================================================
+// DEDUPE BY ID HELPER
+// ============================================================================
+
+/**
+ * Deduplicates picks by id within a bucket.
+ * Preference order:
+ * 1. Has metadata.realgmRawText
+ * 2. Has richer swapDetails (poolTeams/allocation/controller)
+ * 3. First occurrence
+ */
+function dedupeById(picks: CanonicalPick[]): CanonicalPick[] {
+  const byId = new Map<string, CanonicalPick>();
+  for (const pick of picks) {
+    const existing = byId.get(pick.id);
+    if (!existing) {
+      byId.set(pick.id, pick);
+    } else if (shouldReplacePick(existing, pick)) {
+      byId.set(pick.id, pick);
+    }
+  }
+  return Array.from(byId.values());
+}
+
+/**
+ * Determines if candidate pick should replace existing pick.
+ */
+function shouldReplacePick(existing: CanonicalPick, candidate: CanonicalPick): boolean {
+  // Prefer entries with realgmRawText metadata
+  const existingHasRaw = !!(existing as any).metadata?.realgmRawText;
+  const candidateHasRaw = !!(candidate as any).metadata?.realgmRawText;
+  if (candidateHasRaw && !existingHasRaw) return true;
+  if (existingHasRaw && !candidateHasRaw) return false;
+  
+  // Prefer richer swapDetails
+  const existingRichness = getSwapRichness(existing);
+  const candidateRichness = getSwapRichness(candidate);
+  return candidateRichness > existingRichness;
+}
+
+/**
+ * Scores a pick by richness of swapDetails.
+ */
+function getSwapRichness(pick: CanonicalPick): number {
+  let score = 0;
+  if (pick.swapDetails?.poolTeams) score += 2;
+  if (pick.swapDetails?.allocation) score += 2;
+  if (pick.swapDetails?.controller) score += 1;
+  if (pick.swapDetails?.swapWith) score += 1;
+  return score;
+}
+
+
 /**
  * Derives per-team views from the master ledger.
  * Each pick is tagged with its `relation` for that team's view.
@@ -524,11 +600,13 @@ export function deriveTeamPickViews(
       return a.round - b.round;
     });
 
+  // Dedupe by id, then sort
   for (const views of viewsByTeam.values()) {
-    views.inventory = sortPicks(views.inventory);
-    views.obligations = sortPicks(views.obligations);
-    views.contested = sortPicks(views.contested);
+    views.inventory = sortPicks(dedupeById(views.inventory));
+    views.obligations = sortPicks(dedupeById(views.obligations));
+    views.contested = sortPicks(dedupeById(views.contested));
   }
+
 
   return viewsByTeam;
 }
