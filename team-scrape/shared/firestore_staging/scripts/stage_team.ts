@@ -604,7 +604,10 @@ function normalizeDraftPick(
   if (typeof pick.tradeable === 'boolean') {
     normalized.tradeable = pick.tradeable;
   }
-  if (pick.via) normalized.via = pick.via;
+  // Via hygiene: only set via if it's meaningful (not redundant with originalTeam)
+  if (pick.via && pick.via !== normalized.originalTeam && pick.via !== owner) {
+    normalized.via = pick.via;
+  }
   if (pick.recipient) normalized.recipient = pick.recipient;
   if (pick.route?.length) normalized.route = pick.route;
   if (notes) normalized.notes = notes;

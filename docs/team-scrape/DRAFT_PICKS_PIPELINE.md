@@ -36,6 +36,12 @@ Scrape and process NBA draft picks from RealGM into a canonical, UI-ready format
 - `swapDetails.favorable?: 'most' | 'least' | null`
 - `swapId` may exist and can be used as a fallback to infer partner if `swapWith` is missing.
 
+**Metadata (Debugging)**
+
+- `metadata.realgmRawText?: string` - The exact text parsed from RealGM for this pick row
+- `metadata.realgmTeamPage?: string` - Team code whose page was scraped
+- Used for debugging parsing issues and supporting future RealGM format variants
+
 ---
 
 ## Completed Tasks
@@ -61,6 +67,34 @@ Mark `isSwap = true` when any apply:
      - if current team is `{B}`, partner is `{A}`
      - otherwise partner is `{B}` (fallback)
 
+### Swap Partner Extraction Patterns
+
+The scraper extracts swap partners from RealGM text using these patterns (case-insensitive, supports both team codes and full team names):
+
+1. **"Own or {TEAM}"** - e.g., "Own or OKC" or "Own or Oklahoma City"
+2. **"swap with {TEAM}"** - e.g., "swap with HOU" or "swap with Houston Rockets"
+3. **"swap for {TEAM}"** - e.g., "via SAC swap for ATL"
+4. **"via {TEAM} swap"** - e.g., "via OKC swap"
+5. **"swap {TEAM}"** or **"swap rights {TEAM}"** - e.g., "swap OKC" or "swap rights Oklahoma City"
+6. **"{TEAM} has the right to swap"** - e.g., "Oklahoma City has the right to swap"
+
+All patterns use `teamCodeFromName()` to resolve both abbreviations (e.g., "OKC") and full team names (e.g., "Oklahoma City" or "Oklahoma City Thunder") to standard 2-3 letter team codes.
+
+### Swap Controller Extraction
+
+When parsing "X swap for Y" patterns (e.g., "via OKC swap for DAL"):
+
+- `swapDetails.controller` = X (team that controls the swap and gets favorable choice)
+- `swapDetails.swapWith` = [X] (swap partner)
+- `status` stays `"own"` (not `"contested"`) when pattern appears with "Own or X"
+- Do NOT set `via` when the only "via" in the text is part of swap-control wording ("via X swap for Y")
+
+Example: "Own or OKC (via OKC swap for DAL)" on DAL's page:
+
+- `originalTeam: "DAL"`, `owner: "DAL"`, `status: "own"`
+- `swapDetails.controller: "OKC"`, `swapDetails.swapWith: ["OKC"]`
+- `via` is undefined (not "OKC")
+
 ### Via Hygiene
 
 - Do not set `via` if it equals `originalTeam`.
@@ -73,7 +107,9 @@ Mark `isSwap = true` when any apply:
 - Logo: use `originalTeam`
 - Label: `YYYY {round} Round`
 - Via label: show only when `via` exists and `via !== originalTeam`
-- Swap text: show partner using:
-  1) `pick.swapDetails.swapWith[0]` (preferred)
-  2) fallback inference from `swapId` if needed
-- No emojis in swap display.
+- Swap text: show partner using priority order:
+  1) `pick.swapWithTeamId` (UI override field)
+  2) `pick.swapDetails.swapWith[0]` (scraper data)
+  3) Parse from `pick.swapId` pattern `*_swap_TEAM` (fallback)
+- Display format: `Swap (Best of) vs OKC` or `Swap (Worst of) vs HOU`
+- **No emojis** in swap display strings

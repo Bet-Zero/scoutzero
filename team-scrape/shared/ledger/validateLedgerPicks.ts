@@ -49,6 +49,15 @@ type CanonicalPick = {
   isSwap?: boolean;
   protection?: string | null;
   relation?: 'inventory' | 'obligation' | 'contested';
+  swapDetails?: {
+    swapWith?: string[];
+    swapType?: string;
+    favorable?: string;
+  };
+  metadata?: {
+    realgmRawText?: string;
+    realgmTeamPage?: string;
+  };
 };
 
 type TeamViews = {
@@ -66,6 +75,15 @@ type StagedTeamDoc = {
   draftPicksContested?: CanonicalPick[];
 };
 
+const MENTIONS_DIR = path.join(
+  PROJECT_ROOT,
+  'team-scrape',
+  'draft-picks',
+  '_artifacts',
+  'output',
+  'mentions'
+);
+
 async function loadJson<T>(filePath: string): Promise<T | null> {
   try {
     const content = await readFile(filePath, 'utf8');
@@ -73,6 +91,110 @@ async function loadJson<T>(filePath: string): Promise<T | null> {
   } catch {
     return null;
   }
+}
+
+/**
+ * Validates swap partner extraction for swap picks.
+ * Specifically checks DAL mentions file for swap picks with partner info.
+ */
+async function validateSwapPartners(): Promise<{
+  success: boolean;
+  swapPicks: Array<{
+    id: string;
+    year: number;
+    round: number;
+    hasPartner: boolean;
+    partner?: string;
+    rawText?: string;
+  }>;
+  missingPartners: number;
+}> {
+  console.log('\n' + '='.repeat(60));
+  console.log('🔄 Swap Partner Validation\n');
+
+  const dalMentionsPath = path.join(MENTIONS_DIR, 'draft_picks_mentions_DAL.json');
+  const dalPicks = await loadJson<CanonicalPick[]>(dalMentionsPath);
+
+  if (!dalPicks) {
+    console.log('⚠️  DAL mentions file not found. Run scraper first.');
+    console.log(`   Expected: ${dalMentionsPath}`);
+    return { success: false, swapPicks: [], missingPartners: 0 };
+  }
+
+  console.log(`✅ Loaded DAL mentions: ${dalPicks.length} picks`);
+
+  const swapPicks = dalPicks.filter((p) => p.isSwap === true);
+  console.log(`   Found ${swapPicks.length} swap picks`);
+
+  const results: Array<{
+    id: string;
+    year: number;
+    round: number;
+    hasPartner: boolean;
+    partner?: string;
+    rawText?: string;
+  }> = [];
+
+  let missingPartners = 0;
+
+  for (const pick of swapPicks) {
+    const partner =
+      pick.swapDetails?.swapWith?.[0] ||
+      (pick as unknown as { swapWithTeamId?: string }).swapWithTeamId;
+
+    const hasPartner = !!partner;
+    if (!hasPartner) missingPartners++;
+
+    results.push({
+      id: pick.id,
+      year: pick.year,
+      round: pick.round,
+      hasPartner,
+      partner: partner || undefined,
+      rawText: pick.metadata?.realgmRawText,
+    });
+
+    // Specifically check DAL 2028 swap pick
+    if (pick.year === 2028 && pick.round === 1 && pick.originalTeam === 'DAL') {
+      console.log(`\n   🎯 DAL 2028 1st swap pick:`);
+      console.log(`      ID: ${pick.id}`);
+      console.log(`      Has partner: ${hasPartner ? '✅' : '❌'}`);
+      if (hasPartner) {
+        console.log(`      Partner: ${partner}`);
+      }
+      if (pick.metadata?.realgmRawText) {
+        console.log(`      Raw text: "${pick.metadata.realgmRawText}"`);
+        // Check if raw text contains swap indicators
+        const rawText = pick.metadata.realgmRawText.toLowerCase();
+        if (rawText.includes('own or okc') || rawText.includes('own or oklahoma')) {
+          console.log(`      ⚠️  Raw text contains "Own or OKC/Oklahoma" but partner ${hasPartner ? 'was extracted' : 'is missing'}`);
+        }
+      } else {
+        console.log(`      ⚠️  No raw text metadata available`);
+      }
+    }
+  }
+
+  console.log(`\n   Summary:`);
+  console.log(`      Total swap picks: ${swapPicks.length}`);
+  console.log(`      With partner: ${swapPicks.length - missingPartners}`);
+  console.log(`      Missing partner: ${missingPartners}`);
+
+  if (missingPartners > 0) {
+    console.log(`\n   ⚠️  Swap picks missing partner info:`);
+    for (const result of results.filter((r) => !r.hasPartner)) {
+      console.log(`      - ${result.year} R${result.round} (${result.id})`);
+      if (result.rawText) {
+        console.log(`        Raw text: "${result.rawText.substring(0, 80)}..."`);
+      }
+    }
+  }
+
+  return {
+    success: missingPartners === 0,
+    swapPicks: results,
+    missingPartners,
+  };
 }
 
 async function validateLedgerOutput() {
@@ -257,6 +379,10 @@ validateLedgerOutput()
     console.log('\n' + '='.repeat(60));
     if (result.success) {
       console.log('✅ Validation complete.');
+      if (result.swapValidation && !result.swapValidation.success) {
+        console.log('⚠️  Swap partner validation found missing partners.');
+        console.log('   Re-run scraper to capture raw text and improve parsing.');
+      }
     } else {
       console.log('❌ Validation failed. Run the pipeline first.');
       process.exit(1);

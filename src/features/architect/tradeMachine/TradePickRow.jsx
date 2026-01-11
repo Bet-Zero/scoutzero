@@ -190,7 +190,7 @@ function TradePickRow({
         {isOpen && (
           <div
             ref={menuRef}
-            className="absolute right-0 top-7 bg-[#222] border border-white/20 rounded z-20 text-xs min-w-[10rem] shadow-lg"
+            className="absolute right-0 top-7 bg-[#222] border border-white/20 rounded z-20 text-xs min-w-[10rem] shadow-lg max-h-[400px] overflow-y-auto"
             role="menu"
           >
             {/* Undo destination */}
@@ -207,34 +207,149 @@ function TradePickRow({
               </button>
             )}
 
-            {/* Send to team */}
-            {otherTeams.map((t) => (
+            {/* Protection options */}
+            <div className="border-t border-white/10 px-3 py-1">
+              <div className="text-white/50 text-[10px] uppercase mb-1">Protection</div>
+              {getPickOptions().map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => {
+                    onEdit(pick, 'protection', opt.value || null);
+                    setOpen(null);
+                  }}
+                  className={`block w-full text-left px-2 py-1.5 hover:bg-[#333] rounded ${
+                    (pickObj || pick)?.protection === opt.value
+                      ? 'bg-[#444] text-white'
+                      : 'text-white/80'
+                  }`}
+                  role="menuitem"
+                >
+                  {opt.label || 'None'}
+                </button>
+              ))}
+            </div>
+
+            {/* Swap controls */}
+            <div className="border-t border-white/10 px-3 py-1">
+              <div className="text-white/50 text-[10px] uppercase mb-1">Swap Rights</div>
               <button
-                key={t.id}
                 onClick={() => {
-                  onToggle(pick);
-                  onEdit(pick, 'toTeamId', t.id);
+                  const currentSwap = !!(pickObj || pick)?.isSwap;
+                  handleSwapToggle(!currentSwap, pick, pickObj || pick, onEdit);
                   setOpen(null);
                 }}
-                className="block w-full text-left px-3 py-2 hover:bg-[#333]"
+                className={`block w-full text-left px-2 py-1.5 hover:bg-[#333] rounded ${
+                  (pickObj || pick)?.isSwap
+                    ? 'bg-[#444] text-white'
+                    : 'text-white/80'
+                }`}
                 role="menuitem"
               >
-                {`Trade to ${t.teamName}`}
+                {(pickObj || pick)?.isSwap ? '✓ Swap rights enabled' : 'Enable swap rights'}
               </button>
-            ))}
+              {(pickObj || pick)?.isSwap && (
+                <>
+                  <div className="text-white/40 text-[10px] mt-1 mb-0.5 px-2">Swap Type</div>
+                  <button
+                    onClick={() => {
+                      onEdit(pick, 'swapType', 'best_of');
+                      setOpen(null);
+                    }}
+                    className={`block w-full text-left px-2 py-1.5 hover:bg-[#333] rounded ${
+                      (pickObj || pick)?.swapType === 'best_of' || !(pickObj || pick)?.swapType
+                        ? 'bg-[#444] text-white'
+                        : 'text-white/80'
+                    }`}
+                    role="menuitem"
+                  >
+                    {(pickObj || pick)?.swapType === 'best_of' || !(pickObj || pick)?.swapType ? '✓ ' : ''}Best of
+                  </button>
+                  <button
+                    onClick={() => {
+                      onEdit(pick, 'swapType', 'worst_of');
+                      setOpen(null);
+                    }}
+                    className={`block w-full text-left px-2 py-1.5 hover:bg-[#333] rounded ${
+                      (pickObj || pick)?.swapType === 'worst_of'
+                        ? 'bg-[#444] text-white'
+                        : 'text-white/80'
+                    }`}
+                    role="menuitem"
+                  >
+                    {(pickObj || pick)?.swapType === 'worst_of' ? '✓ ' : ''}Worst of
+                  </button>
+                  {otherTeams.length > 0 && (
+                    <>
+                      <div className="text-white/40 text-[10px] mt-1 mb-0.5 px-2">Swap Partner</div>
+                      <button
+                        onClick={() => {
+                          onEdit(pick, 'swapWithTeamId', null);
+                          setOpen(null);
+                        }}
+                        className={`block w-full text-left px-2 py-1.5 hover:bg-[#333] rounded ${
+                          !(pickObj || pick)?.swapWithTeamId
+                            ? 'bg-[#444] text-white'
+                            : 'text-white/80'
+                        }`}
+                        role="menuitem"
+                      >
+                        {!(pickObj || pick)?.swapWithTeamId ? '✓ ' : ''}None
+                      </button>
+                      {otherTeams.map((t) => (
+                        <button
+                          key={t.id}
+                          onClick={() => {
+                            onEdit(pick, 'swapWithTeamId', t.id);
+                            setOpen(null);
+                          }}
+                          className={`block w-full text-left px-2 py-1.5 hover:bg-[#333] rounded ${
+                            (pickObj || pick)?.swapWithTeamId === t.id
+                              ? 'bg-[#444] text-white'
+                              : 'text-white/80'
+                          }`}
+                          role="menuitem"
+                        >
+                          {(pickObj || pick)?.swapWithTeamId === t.id ? '✓ ' : ''}{t.teamName}
+                        </button>
+                      ))}
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Send to team */}
+            <div className="border-t border-white/10">
+              {otherTeams.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => {
+                    onToggle(pick);
+                    onEdit(pick, 'toTeamId', t.id);
+                    setOpen(null);
+                  }}
+                  className="block w-full text-left px-3 py-2 hover:bg-[#333]"
+                  role="menuitem"
+                >
+                  {`Trade to ${t.teamName}`}
+                </button>
+              ))}
+            </div>
 
             {/* Remove */}
             {exists && (
-              <button
-                onClick={() => {
-                  onToggle(pick);
-                  setOpen(null);
-                }}
-                className="block w-full text-left px-3 py-2 hover:bg-[#333]"
-                role="menuitem"
-              >
-                Remove
-              </button>
+              <div className="border-t border-white/10">
+                <button
+                  onClick={() => {
+                    onToggle(pick);
+                    setOpen(null);
+                  }}
+                  className="block w-full text-left px-3 py-2 hover:bg-[#333] text-red-400"
+                  role="menuitem"
+                >
+                  Remove
+                </button>
+              </div>
             )}
           </div>
         )}

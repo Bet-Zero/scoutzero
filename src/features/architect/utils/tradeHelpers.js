@@ -324,8 +324,20 @@ export const formatSwapInfo = (pick) => {
   const type = pick.swapType || (pick.swapDetails?.favorable === 'least' ? 'worst_of' : 'best_of');
   const swapTypeDisplay = getSwapTypeDisplay(type);
   let result = `Swap (${swapTypeDisplay})`;
-  // SCSP™: Look for swap partner in swapWithTeamId (UI) OR swapDetails.swapWith (scraper)
-  const partner = pick.swapWithTeamId || pick.swapDetails?.swapWith?.[0];
+  
+  // Swap partner priority:
+  // 1. swapWithTeamId (UI prop)
+  // 2. swapDetails.swapWith[0] (scraper data)
+  // 3. Extract from swapId if pattern matches *_swap_TEAM
+  let partner = pick.swapWithTeamId || pick.swapDetails?.swapWith?.[0];
+  
+  // Fallback: parse swapId if partner not found
+  if (!partner && pick.swapId) {
+    const swapIdMatch = pick.swapId.match(/_swap_([A-Z]{2,3})$/);
+    if (swapIdMatch) {
+      partner = swapIdMatch[1];
+    }
+  }
 
   if (partner) {
     result += ` vs ${partner}`;
@@ -369,11 +381,15 @@ export const formatPick = (p, options = {}) => {
   // Canonical via display:
   // - Respect explicit p.via if present
   // - Otherwise, if owner differs from originalTeam, show (via originalTeam)
+  // - Hygiene: Never show (via TEAM) when via === originalTeam or via === owner
   const viaTeam =
     p.via ||
     (p.originalTeam && p.owner && p.owner !== p.originalTeam ? p.originalTeam : null);
 
-  if (viaTeam && viaTeam !== p.owner) str += ` (via ${viaTeam})`;
+  // Only show via if it's meaningful (not redundant with originalTeam or owner)
+  if (viaTeam && viaTeam !== p.owner && viaTeam !== p.originalTeam) {
+    str += ` (via ${viaTeam})`;
+  }
   
   // Phase 4: Display protection from protectionMeta or legacy string
   const protectionLabel = getProtectionDisplayLabel(p);

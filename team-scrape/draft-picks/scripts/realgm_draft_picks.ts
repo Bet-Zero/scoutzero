@@ -362,6 +362,7 @@ type StructuredPick = {
     swapType?: 'bilateral' | 'multiway' | 'favorable' | 'unknown';
     swapWith?: string[];
     favorable?: 'most' | 'least' | null;
+    controller?: string; // Team that controls the swap (gets favorable choice)
   };
   conveysIf?: string[];
   otherwise?: string[];
@@ -375,6 +376,12 @@ type StructuredPick = {
   // Derived IDs for specific pick types
   swapId?: string; // For swap rights: ${baseId}_swap_${counterparty}
   obligationId?: string; // For outgoing/conditional: ${baseId}_obligation_${recipient}
+
+  // Metadata for debugging and future format support
+  metadata?: {
+    realgmRawText?: string; // The exact text parsed from RealGM for this pick row
+    realgmTeamPage?: string; // Team code whose page was scraped
+  };
 };
 
 type CanonicalPick = {
@@ -402,6 +409,10 @@ type CanonicalPick = {
   dependsOn?: string[];
   swapId?: string; // For swap rights: ${baseId}_swap_${counterparty}
   obligationId?: string; // For outgoing/conditional: ${baseId}_obligation_${recipient}
+  metadata?: {
+    realgmRawText?: string; // The exact text parsed from RealGM for this pick row
+    realgmTeamPage?: string; // Team code whose page was scraped
+  };
 };
 
 // ---------- Parse helpers (same logic as before) ----------
@@ -501,7 +512,7 @@ export function parseSwap(text: string, MAP: Record<string, string>) {
     /\bswap\b/.test(t) ||
     /swap rights/.test(t) ||
     /right to swap/.test(t) ||
-    /Own\s+or\s+[A-Z]{2,3}/i.test(text) || // NEW: Own or {TEAM} implication
+    /Own\s+or\s+[A-Za-z0-9 .']+/i.test(text) || // Own or {TEAM_CODE} or {FULL_TEAM_NAME}
     /(most|least)\s+favorable/i.test(text) ||
     /more|less favorable/i.test(text);
   if (!isSwap)
@@ -519,25 +530,104 @@ export function parseSwap(text: string, MAP: Record<string, string>) {
     MAP
   );
 
-  // NEW: Detect "Own or {TEAM}" (e.g. "Own or OKC")
-  const ownOrMatch = text.match(/Own\s+or\s+([A-Z]{2,3})/i);
+  // NEW: Detect "Own or {TEAM}" (e.g. "Own or OKC" or "Own or Oklahoma City")
+  // Match team code OR full team name, stopping at punctuation or end of string
+  const ownOrMatch = text.match(
+    /Own\s+or\s+([A-Za-z0-9 .']+?)(?:\s*[,;|()]|$)/i
+  );
   if (ownOrMatch) {
-    const code = teamCodeFromName(ownOrMatch[1], MAP);
+    const code = teamCodeFromName(ownOrMatch[1].trim(), MAP);
     if (code && !counterparts.includes(code)) counterparts.push(code);
   }
 
-  // NEW: Detect "via {TEAM} swap" (e.g. "via OKC swap")
-  const viaSwapMatch = text.match(/via\s+([A-Z]{2,3})\s+swap/i);
+  // NEW: Detect "via {TEAM} swap" (e.g. "via OKC swap" or "via Oklahoma City swap")
+  const viaSwapMatch = text.match(/via\s+([A-Za-z0-9 .']+?)\s+swap/i);
   if (viaSwapMatch) {
-    const code = teamCodeFromName(viaSwapMatch[1], MAP);
+    const code = teamCodeFromName(viaSwapMatch[1].trim(), MAP);
     if (code && !counterparts.includes(code)) counterparts.push(code);
+  }
+
+  // NEW: Detect explicit "swap with {TEAM}" pattern (supports full team names)
+  const swapWithMatch = text.match(
+    /swap\s+with\s+([A-Za-z0-9 .']+?)(?:\s*[,;|()]|$)/i
+  );
+  if (swapWithMatch) {
+    const code = teamCodeFromName(swapWithMatch[1].trim(), MAP);
+    if (code && !counterparts.includes(code)) counterparts.push(code);
+  }
+
+  // NEW: Detect "swap for {TEAM}" pattern (e.g., "via SAC swap for ATL" or "swap for Oklahoma City")
+  const swapForMatch = text.match(
+    /swap\s+for\s+([A-Za-z0-9 .']+?)(?:\s*[,;|()]|$)/i
+  );
+  if (swapForMatch) {
+    const code = teamCodeFromName(swapForMatch[1].trim(), MAP);
+    if (code && !counterparts.includes(code)) counterparts.push(code);
+  }
+
+  // NEW: Detect team codes/names immediately after "swap" (e.g., "swap OKC" or "swap rights Oklahoma City")
+  const swapTeamCodeMatch = text.match(
+    /\bswap\s+(?:rights\s+)?([A-Za-z0-9 .']+?)(?:\s*[,;|()]|$)/i
+  );
+  if (swapTeamCodeMatch) {
+    const code = teamCodeFromName(swapTeamCodeMatch[1].trim(), MAP);
+    if (code && !counterparts.includes(code)) counterparts.push(code);
+  }
+
+  // NEW: Detect "{TEAM} has the right to swap" pattern
+  const hasRightToSwapMatch = text.match(
+    /([A-Za-z0-9 .']+?)\s+has\s+the\s+right\s+to\s+swap/i
+  );
+  if (hasRightToSwapMatch) {
+    const code = teamCodeFromName(hasRightToSwapMatch[1].trim(), MAP);
+    if (code && !counterparts.includes(code)) counterparts.push(code);
+  }
+
+  // NEW: Extract swap controller from "{TEAM} swap for {TEAM}" pattern
+  // Handle both "TEAM swap for TEAM" and "via TEAM swap for TEAM"
+  let controller: string | undefined;
+  const swapForControllerMatch = text.match(
+    /(?:via\s+)?([A-Za-z0-9 .']+?)\s+swap\s+for\s+[A-Za-z0-9 .']+/i
+  );
+  if (swapForControllerMatch) {
+    controller = teamCodeFromName(swapForControllerMatch[1].trim(), MAP);
+  }
+
+  // NEW: Detect multiway pool allocation pattern
+  // "Two most favorable of DAL, HOU and PHX to HOU then other to BRK"
+  const poolAllocationMatch = text.match(
+    /(\w+)\s+most\s+favorable\s+of\s+([A-Za-z0-9, .']+?)\s+to\s+([A-Za-z0-9 .']+?)\s+then\s+(?:other|remaining)\s+to\s+([A-Za-z0-9 .']+)/i
+  );
+
+  let poolTeams: string[] | undefined;
+  let allocation:
+    | { topN?: number; topNTo?: string; remainderTo?: string }
+    | undefined;
+
+  if (poolAllocationMatch) {
+    const [, countWord, teamsStr, topRecipient, remainderRecipient] =
+      poolAllocationMatch;
+    const countMap: Record<string, number> = { one: 1, two: 2, three: 3 };
+    const topN = countMap[countWord.toLowerCase()] || parseInt(countWord, 10);
+
+    poolTeams = teamsStr
+      .split(/,|\band\b/gi)
+      .map((t) => teamCodeFromName(t.trim(), MAP))
+      .filter(Boolean) as string[];
+
+    allocation = {
+      topN,
+      topNTo: teamCodeFromName(topRecipient.trim(), MAP),
+      remainderTo: teamCodeFromName(remainderRecipient.trim(), MAP),
+    };
   }
 
   let swapType: 'bilateral' | 'multiway' | 'favorable' | 'unknown' = 'unknown';
   if (favorableTag) swapType = 'favorable';
-  else if (counterparts.length > 1) swapType = 'multiway';
-  else if (counterparts.length === 1) swapType = 'bilateral'; // If we have a counterpart, it's bilateral
-  else swapType = 'bilateral'; 
+  else if (counterparts.length > 1 || poolTeams) swapType = 'multiway';
+  else if (counterparts.length === 1)
+    swapType = 'bilateral'; // If we have a counterpart, it's bilateral
+  else swapType = 'bilateral';
 
   return {
     isSwap: true as const,
@@ -545,6 +635,9 @@ export function parseSwap(text: string, MAP: Record<string, string>) {
       swapType,
       swapWith: counterparts.length ? counterparts : undefined,
       favorable: favorableTag,
+      controller, // NEW
+      poolTeams, // NEW
+      allocation, // NEW
     },
   };
 }
@@ -755,7 +848,10 @@ function generateDerivedIds(
   }
 
   // Obligation ID: ${baseId}_obligation_${recipient}
-  if ((pick.status === 'outgoing' || pick.status === 'conditional') && pick.recipient) {
+  if (
+    (pick.status === 'outgoing' || pick.status === 'conditional') &&
+    pick.recipient
+  ) {
     result.obligationId = `${baseId}_obligation_${pick.recipient}`;
   }
 
@@ -1076,7 +1172,14 @@ function toStructured(row: RawRow, round: 1 | 2): StructuredPick[] {
       conditionalRecipient: recipientTeam,
       dependsOn: dependencies.length > 0 ? dependencies : undefined,
       detailUrl: row.detailUrl,
-      obligationId: recipientTeam !== 'Unknown' ? `${baseId}_obligation_${recipientTeam}` : undefined,
+      obligationId:
+        recipientTeam !== 'Unknown'
+          ? `${baseId}_obligation_${recipientTeam}`
+          : undefined,
+      metadata: {
+        realgmRawText: cell,
+        realgmTeamPage: row.teamCode,
+      },
     };
 
     return [pick];
@@ -1088,7 +1191,6 @@ function toStructured(row: RawRow, round: 1 | 2): StructuredPick[] {
 
   const out: StructuredPick[] = [];
   for (const part of items) {
-    const status = detectStatus(part);
     const beginsWithTo = /^\s*to\s+/i.test(part);
     const via = beginsWithTo ? undefined : parseVia(part);
     const toTeam = parseTo(part);
@@ -1101,11 +1203,23 @@ function toStructured(row: RawRow, round: 1 | 2): StructuredPick[] {
     const cond = parseConditions(part);
     const route = parseRoute(part);
 
+    // NEW: If text starts with "Own", this is the page team's pick regardless of via
+    const startsWithOwn = /^Own\b/i.test(part);
+
+    // Determine status - if starts with "Own", it's "own" status (even if "via" appears later)
+    let status = detectStatus(part);
+    if (startsWithOwn) {
+      // "Own or TEAM" means the page team owns their pick slot (with swap rights)
+      // Status must be "own" - this is DAL's own pick slot, not contested
+      status = 'own';
+    }
+
     let originalTeam = row.teamCode;
     let owner = row.teamCode;
 
     // Handle different pick types
-    if (via) {
+    if (via && !startsWithOwn) {
+      // Only use via for originalTeam if NOT starting with "Own"
       originalTeam = via;
     } else if (teamCodePrefix && status === 'incoming') {
       // Team code shorthand: "PHL 5-30" means pick originally from PHL
@@ -1127,6 +1241,24 @@ function toStructured(row: RawRow, round: 1 | 2): StructuredPick[] {
     // Generate stable base ID
     const baseId = generateBasePickId(originalTeam, row.seasonYear, round);
 
+    // Determine Stepien eligibility
+    // For "Own or TEAM" swaps, the page team owns their pick (even with swap rights)
+    // so it should count for Stepien rule
+    let stepienEligible = determineStepienEligibility(
+      status,
+      protection,
+      false,
+      round
+    );
+    // Override: if starts with "Own" and is a swap, team owns their pick (Stepien eligible)
+    if (startsWithOwn && swap.isSwap && round === 1 && !protection) {
+      stepienEligible = true;
+    }
+
+    // Detect if "via" is only swap-control wording (e.g., "via OKC swap for DAL")
+    // When startsWithOwn is true, this pattern describes swap control, not trade-chain origin
+    const viaIsSwapControl = /via\s+[A-Za-z0-9 .']+\s+swap\s+for/i.test(part);
+
     const pick: StructuredPick = {
       id: baseId, // Use stable base ID
       year: row.seasonYear,
@@ -1134,28 +1266,48 @@ function toStructured(row: RawRow, round: 1 | 2): StructuredPick[] {
       status,
       originalTeam,
       owner,
-      stepienEligible: determineStepienEligibility(
-        status,
-        protection,
-        false,
-        round
-      ),
+      stepienEligible,
       tradeable: !protection && status !== 'outgoing',
       protection,
       isSwap: swap.isSwap,
       via:
-        (via && via !== originalTeam ? via : undefined) || // Prevent meaningless via
-        (teamCodePrefix && status === 'incoming' ? teamCodePrefix : undefined),
+        // Suppress via if it's only swap-control wording when startsWithOwn is true
+        (startsWithOwn && viaIsSwapControl)
+          ? undefined
+          : via && via !== originalTeam && via !== owner
+            ? via
+            : (teamCodePrefix && status === 'incoming' ? teamCodePrefix : undefined),
       recipient: toTeam,
       pickNumber: null,
       protectionDetails,
-      swapDetails: swap.details,
+      swapDetails: swap.details
+        ? (() => {
+            // Filter out page team from swapWith (page team shouldn't be in swap partners)
+            const filteredSwapWith = swap.details.swapWith?.filter(
+              (t) => t !== row.teamCode
+            );
+            // If "Own or TEAM" pattern detected and only one partner remains, ensure bilateral swap type
+            const finalSwapType =
+              startsWithOwn && filteredSwapWith?.length === 1
+                ? 'bilateral'
+                : swap.details.swapType;
+            return {
+              ...swap.details,
+              swapWith: filteredSwapWith?.length ? filteredSwapWith : undefined,
+              swapType: finalSwapType,
+            };
+          })()
+        : undefined,
       conveysIf: cond.conveysIf,
       otherwise: cond.otherwise,
       route,
       conveyanceObligation, // Simplified obligation for Stepien compliance
       dependsOn: dependencies.length > 0 ? dependencies : undefined,
       detailUrl: row.detailUrl,
+      metadata: {
+        realgmRawText: part, // Capture the specific part text that was parsed
+        realgmTeamPage: row.teamCode,
+      },
     };
 
     // Generate derived IDs for swaps and obligations
@@ -1176,6 +1328,19 @@ function toStructured(row: RawRow, round: 1 | 2): StructuredPick[] {
       /more|less favorable/i.test(part)
     )
       pick.status = 'contested';
+
+    // NEW: Handle multiway pool swaps where outcome is unknown
+    if (
+      swap.details?.allocation &&
+      swap.details.poolTeams?.includes(row.teamCode)
+    ) {
+      // Multiway pool swap - outcome unknown, mark as contested
+      pick.status = 'contested';
+      // Owner is uncertain - could be any recipient
+      // Leave owner as page team but mark stepienEligible false
+      pick.stepienEligible = false;
+      pick.tradeable = false;
+    }
 
     out.push(pick);
   }
@@ -1523,13 +1688,16 @@ async function writePerTeamStructured(code: string, picks: CanonicalPick[]) {
 
 /**
  * Writes ALL picks mentioned on a team's page (including outgoing picks).
- * This is used by the ledger builder to ensure no picks are dropped.
+ * Used as input for the ledger builder and for debugging/validation.
+ * Always pretty-printed for human readability since these files are inspected during development.
  */
 async function writeMentionsFile(code: string, picks: CanonicalPick[]) {
   const dir = path.join(OUT_DIR, 'mentions');
   await ensureDir(dir);
   const p = path.join(dir, `draft_picks_mentions_${code}.json`);
-  await fs.writeFile(p, serialize(picks), 'utf8');
+  // Always pretty-print: these files are used both programmatically (ledger builder)
+  // and for debugging/validation (human inspection). JSON.parse() handles both formats identically.
+  await fs.writeFile(p, JSON.stringify(picks, null, 2), 'utf8');
   return p;
 }
 
@@ -1564,6 +1732,7 @@ function toCanonicalPick(pick: StructuredPick): CanonicalPick {
     dependsOn: pick.dependsOn,
     swapId: pick.swapId,
     obligationId: pick.obligationId,
+    metadata: pick.metadata,
   };
 }
 
@@ -1597,12 +1766,10 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
 
         // Write MENTIONS file FIRST (all picks from this team's page, before filtering)
         // This includes outgoing picks that the ledger needs to see
-        const allMentions = teamStructured
-          .map(toCanonicalPick)
-          .sort((a, b) => {
-            if (a.year !== b.year) return a.year - b.year;
-            return a.round - b.round;
-          });
+        const allMentions = teamStructured.map(toCanonicalPick).sort((a, b) => {
+          if (a.year !== b.year) return a.year - b.year;
+          return a.round - b.round;
+        });
         await writeMentionsFile(entry.code, allMentions);
         console.log(`   • Wrote ${allMentions.length} picks to mentions file`);
 
@@ -1618,8 +1785,12 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
         console.log(`   • Wrote ${canonical.length} picks to inventory file`);
       }
       console.log(`📦 Per-team files saved under:`);
-      console.log(`    ${path.resolve(path.join(OUT_DIR, 'structured'))} (inventory)`);
-      console.log(`    ${path.resolve(path.join(OUT_DIR, 'mentions'))} (all mentions)`);
+      console.log(
+        `    ${path.resolve(path.join(OUT_DIR, 'structured'))} (inventory)`
+      );
+      console.log(
+        `    ${path.resolve(path.join(OUT_DIR, 'mentions'))} (all mentions)`
+      );
       console.log('🎯 Done');
     } catch (err) {
       console.error('🔥 Fatal error:', err);
