@@ -211,3 +211,41 @@ Each by_team list (inventory, obligations, contested) is deduplicated by `id` fi
   3) Parse from `pick.swapId` pattern `*_swap_TEAM` (fallback)
 - Display format: `Swap (Best of) vs OKC` or `Swap (Worst of) vs HOU`
 - **No emojis** in swap display strings
+
+---
+
+## League-wide Correctness Audit
+
+The correctness of the draft picks pipeline is verified by a "Meaning-Aware" audit script that compares live RealGM data against local artifacts.
+
+### Matching Logic (Fuzzy / Token-Based)
+
+Instead of exact string matching, the audit uses a token overlap score to handle:
+
+- Minor formatting differences (punctuation, whitespace).
+- Split rows (one RealGM row becoming multiple pick objects).
+- Team code variations (BKN vs BRK in text).
+
+### Comparison Classifications
+
+When a RealGM row does not find a "Strong Match" (Score >= 0.60), it is classified:
+
+**A) METADATA MISMATCH (Low Risk)**
+
+- **Condition**: Partial match found (Score >= 0.35).
+- **Implication**: The pick exists but text differs slightly (e.g. "To BRK" vs "To Brooklyn").
+
+**B) EXTRACTION GAP (Medium Risk)**
+
+- **Condition**: No text match, BUT mention artifacts exist for that Team/Year/Round bucket.
+- **Implication**: The row was likely split or significantly transformed during parsing.
+
+**C) MISSING (Real Bug - High Risk)**
+
+- **Condition**: No text match AND No mentions in that Team/Year/Round bucket.
+- **Implication**: The scraper failed to extract this pick entirely.
+
+### Hygiene Rules
+
+- **Team Codes**: The audit normalizes `BRK` -> `BKN`, `PHO` -> `PHX`, `UTH` -> `UTA` to prevent false "Ledger Invariant" failures.
+- **Ledger Invariants**: Validates that all inventory/obligation/contested picks use canonical team codes.
