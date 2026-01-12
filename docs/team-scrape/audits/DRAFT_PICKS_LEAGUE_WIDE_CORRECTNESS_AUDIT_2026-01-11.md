@@ -72,11 +72,13 @@ Review `realgm_draft_picks.ts` handling of `metadata.realgmRawText`. Ensure that
 ### 3.2 Ledger Invariants (BRK vs BKN)
 
 The ledger consistently flags `Invalid originalTeam BRK`.
+
 - **Cause:** The repo maps "Brooklyn Nets" to **BRK**. The RealGM URL config uses **BKN**.
 - **Result:** The ledger contains `BRK`, but valid code lists (derived from maps) might expect `BKN` if not synchronized.
 - **Verdict:** This is a configuration consistency issue, not a logic bug in the ledger itself. The data is internally consistent (using BRK).
 
 ### 3.3 Hygiene (PHO/PHU)
+
 - **Status:** ✅ **PASS**.
 - Zero instances of "PHO" or "PHU" were found in any mentions or ledger file.
 - The pipeline properly canonicalizes Phoenix to `PHX`.

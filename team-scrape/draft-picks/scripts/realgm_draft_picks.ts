@@ -44,7 +44,7 @@ const TEAM_FILTER = TEAMS_ARG.split(',')
 export const INTERNAL_TEAM_CODE_MAP: Record<string, string> = {
   'Atlanta Hawks': 'ATL',
   'Boston Celtics': 'BOS',
-  'Brooklyn Nets': 'BRK',
+  'Brooklyn Nets': 'BKN',
   'Charlotte Hornets': 'CHA',
   'Chicago Bulls': 'CHI',
   'Cleveland Cavaliers': 'CLE',
@@ -263,6 +263,7 @@ const CODE_VARIANTS: Record<string, string> = {
   PHO: 'PHX', // Phoenix: RealGM uses PHX, we use PHX (canonical) - normalize old/variant PHO to PHX
   NOR: 'NOP', // New Orleans
   BRO: 'BKN', // Brooklyn
+  BRK: 'BKN', // Brooklyn: legacy variant → canonical BKN
   SAN: 'SAS', // San Antonio
   GS: 'GSW',  // Golden State
   NY: 'NYK',  // New York

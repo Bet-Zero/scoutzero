@@ -136,16 +136,17 @@ The regex captures team lists in these formats:
 
 Team codes are resolved via `teamCodeFromName()` with variant normalization:
 
-| RealGM Code | Canonical Code |
-|-------------|----------------|
-| PHI | PHI |
+| RealGM Code | Canonical Code | Notes |
+|-------------|----------------|-------|
+| PHI | PHI | |
 | PHX | PHX | Phoenix: Canonical code is **PHX**. PHO is deprecated and normalized to PHX on input. |
-| SAN | SAS |
-| NOR, NO | NOP |
-| BRO | BKN |
-| GS | GSW |
-| SA | SAS |
-| NY | NYK |
+| BKN | BKN | Brooklyn: Canonical code is **BKN**. BRK is deprecated and normalized to BKN on input. |
+| SAN | SAS | |
+| NOR, NO | NOP | |
+| BRO, BRK | BKN | Legacy variants normalized to canonical BKN |
+| GS | GSW | |
+| SA | SAS | |
+| NY | NYK | |
 
 ### Via Hygiene
 
