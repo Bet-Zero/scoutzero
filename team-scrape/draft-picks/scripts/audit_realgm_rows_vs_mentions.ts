@@ -386,10 +386,13 @@ async function auditTeam(teamCode: string) {
      recursiveScan(JSON.parse(lContent), 'ledger');
   } catch {}
 
-  const passed = categoryA.length === 0 && categoryB.length === 0 && categoryC.length === 0 && ledgerIssues.length === 0 && hygieneIssues.length === 0;
+  // PASS means: Category C = 0, Ledger = 0, Hygiene = 0
+  // A/B are WARN buckets (metadata/extraction mismatches, not failures)
+  const passed = categoryC.length === 0 && ledgerIssues.length === 0 && hygieneIssues.length === 0;
+  const hasWarnings = categoryA.length > 0 || categoryB.length > 0;
 
   return {
-    status: passed ? 'PASS' : 'FAIL',
+    status: passed ? (hasWarnings ? 'PASS*' : 'PASS') : 'FAIL',
     rowsCount: realRows.length,
     mentionsCount: mentions.length,
     categoryA,

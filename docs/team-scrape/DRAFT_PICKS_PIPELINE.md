@@ -250,3 +250,37 @@ When a RealGM row does not find a "Strong Match" (Score >= 0.60), it is classifi
 
 - **Team Codes**: The audit normalizes `BRK` -> `BKN`, `PHO` -> `PHX`, `UTH` -> `UTA` to prevent false "Ledger Invariant" failures.
 - **Ledger Invariants**: Validates that all inventory/obligation/contested picks use canonical team codes.
+
+---
+
+## Team Code Canonicalization
+
+The pipeline enforces canonical team codes to ensure consistency across all outputs.
+
+### Canonical Codes
+
+| Team | Canonical | Deprecated/Variant | Notes |
+|------|-----------|-------------------|-------|
+| Phoenix Suns | **PHX** | PHO | PHO normalized to PHX on input |
+| Brooklyn Nets | **BKN** | BRK, BRO | BRK/BRO normalized to BKN on input |
+
+### Where Normalization Occurs
+
+1. **`CODE_VARIANTS` map** in `realgm_draft_picks.ts` (line ~262):
+
+   ```typescript
+   const CODE_VARIANTS: Record<string, string> = {
+     PHO: 'PHX',
+     BRK: 'BKN',
+     BRO: 'BKN',
+     // ... other variants
+   };
+   ```
+
+2. **`teamCodeFromName()` function**: All team name/code lookups pass through this normalizer first.
+
+3. **Audit script**: The `normalizeTeamCode()` function ensures comparison logic handles legacy codes gracefully.
+
+### Verification
+
+Run `grep -R '"BRK"' team-scrape/draft-picks/_artifacts/output` and `grep -R '"PHO"' team-scrape/draft-picks/_artifacts/output` after any rebuild. Both must return **0 matches**.
