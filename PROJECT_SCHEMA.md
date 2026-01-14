@@ -345,6 +345,36 @@ npm run inspect
 npm run realgm:drafts
 ```
 
+#### `team-scrape/draft-picks/scripts/audit_recipient_inventory_invariant.ts`
+
+**Purpose:** Verify unconditional "To TEAM" mentions land in TEAM inventory (not only contested).
+
+**Usage:**
+
+```bash
+npx tsx team-scrape/draft-picks/scripts/audit_recipient_inventory_invariant.ts \
+  [--teams=ALL] \
+  [--mentionsDir=team-scrape/draft-picks/_artifacts/output/mentions] \
+  [--ledgerDir=team-scrape/shared/firestore_staging/_artifacts/output/ledger/by_team]
+```
+
+**Output:** `team-scrape/draft-picks/_artifacts/audits/recipient_inventory_invariant_report.json`
+
+**Exit Codes:**
+
+- `0` - Invariant satisfied
+- `1` - Invariant violations or missing inputs
+
+#### `npm run draft-picks:verify`
+
+**Purpose:** One-command draft-picks rebuild and audit verification (scrape → ledger → audits).
+
+**Usage:**
+
+```bash
+npm run draft-picks:verify
+```
+
 - `team-scrape/shared/firestore_staging/stage_team.ts`
   - **Purpose:** Transform SalarySwish + RealGM outputs into staged `/architect/baseTeams/{teamCode}` documents
   - **Usage:** `npx tsx team-scrape/shared/firestore_staging/stage_team.ts --team=LAL [--season=2025-26] [--outDir=custom] [--validate]`

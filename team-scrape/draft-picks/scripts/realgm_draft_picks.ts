@@ -266,10 +266,13 @@ const CODE_VARIANTS: Record<string, string> = {
   BRK: 'BKN', // Brooklyn: legacy variant → canonical BKN
   SAN: 'SAS', // San Antonio
   GS: 'GSW',  // Golden State
+  GOS: 'GSW', // Golden State: RealGM variant
   NY: 'NYK',  // New York
   NO: 'NOP',  // New Orleans
   SA: 'SAS',  // San Antonio
   PHL: 'PHI', // Philadelphia
+  UTH: 'UTA', // Utah: RealGM variant
+  CHO: 'CHA', // Charlotte: legacy variant
 };
 
 export function teamCodeFromName(
@@ -386,6 +389,7 @@ type StructuredPick = {
     swapWith?: string[];
     favorable?: 'most' | 'least' | null;
     controller?: string; // Team that controls the swap (gets favorable choice)
+    controllerCandidates?: string[]; // NEW: All potential controllers found in text
     // Multiway pool fields
     poolTeams?: string[]; // Teams in the pool (e.g., ["DAL", "HOU", "PHX"])
     allocation?: {
@@ -542,6 +546,7 @@ export function parseSwap(text: string, MAP: Record<string, string>) {
     /\bswap\b/.test(t) ||
     /swap rights/.test(t) ||
     /right to swap/.test(t) ||
+    /can swap/.test(t) || // NEW: Detect "can swap"
     /Own\s+or\s+[A-Za-z0-9 .']+/i.test(text) || // Own or {TEAM_CODE} or {FULL_TEAM_NAME}
     /(most|least)\s+favorable/i.test(text) ||
     /more|less favorable/i.test(text);
@@ -613,21 +618,56 @@ export function parseSwap(text: string, MAP: Record<string, string>) {
     if (code && !counterparts.includes(code)) counterparts.push(code);
   }
 
-  // NEW: Extract swap controller from "{TEAM} swap for {TEAM}" pattern
-  // Handle both "TEAM swap for TEAM" and "via TEAM swap for TEAM"
-  // Also try matching inside parentheses: "(via X swap for Y)"
+  // NEW: Detect "{TEAM} can swap" pattern (e.g. "OKC can swap OKC or DEN")
+  const canSwapMatch = text.match(
+    /([A-Za-z0-9 .']+?)\s+can\s+swap/i
+  );
+  if (canSwapMatch) {
+    const code = teamCodeFromName(canSwapMatch[1].trim(), MAP);
+    if (code && !counterparts.includes(code)) counterparts.push(code);
+  }
+
+  // NEW: Extract ALL controller candidates for multi-controller strings
+  // e.g. "via BRK swap for PHX; via WAS swap for PHX"
+  const controllerCandidates: string[] = [];
+  const allControllerMatches = text.matchAll(/via\s+([A-Za-z0-9 .']+?)\s+swap\s+(?:of\s+[^)]+?\s+)?for/gi);
+  for (const match of allControllerMatches) {
+    const code = teamCodeFromName(match[1].trim(), MAP);
+    if (code && !controllerCandidates.includes(code)) {
+      controllerCandidates.push(code);
+    }
+  }
+
+  // Determine primary controller (logic: prioritize explicit match, fallback to inference)
+  // Handle patterns like:
+  // - "via UTH swap for MIN"
+  // - "via UTH swap of UTH or MIN for CLE" 
+  // - "via HOU swap for DAL or PHX"
+  // Controller is the team after "via" and before "swap"
   let controller: string | undefined;
+  
+  // Primary pattern: "via X swap ... for Y" (allows optional content between swap and for)
   const swapForControllerMatch = text.match(
-    /(?:via\s+)?([A-Za-z0-9 .']+?)\s+swap\s+for\s+[A-Za-z0-9 .']+/i
+    /via\s+([A-Za-z0-9 .']+?)\s+swap(?:\s+(?:of|with)\s+[^)]+?)?\s+for\s+[A-Za-z0-9 .']+/i
   );
   if (swapForControllerMatch) {
     controller = teamCodeFromName(swapForControllerMatch[1].trim(), MAP);
   }
   
-  // Fallback: Try matching "(via X swap for Y)" inside parentheses
+  // Fallback 1: Simpler "via X swap for Y" without intermediate content
+  if (!controller) {
+    const simpleSwapMatch = text.match(
+      /via\s+([A-Za-z0-9 .']+?)\s+swap\s+for\s+[A-Za-z0-9 .']+/i
+    );
+    if (simpleSwapMatch) {
+      controller = teamCodeFromName(simpleSwapMatch[1].trim(), MAP);
+    }
+  }
+  
+  // Fallback 2: Try matching inside parentheses "(via X swap for Y)"
   if (!controller) {
     const parenSwapMatch = text.match(
-      /\(via\s+([A-Za-z0-9 .']+?)\s+swap\s+for\s+[A-Za-z0-9 .']+\)/i
+      /\(via\s+([A-Za-z0-9 .']+?)\s+swap(?:\s+(?:of|with)\s+[^)]+?)?\s+for\s+[A-Za-z0-9 .']+/i
     );
     if (parenSwapMatch) {
       controller = teamCodeFromName(parenSwapMatch[1].trim(), MAP);
@@ -640,7 +680,7 @@ export function parseSwap(text: string, MAP: Record<string, string>) {
     const ownOrTeam = teamCodeFromName(ownOrMatch[1].trim(), MAP);
     // Check if "via X swap for" pattern exists where X matches ownOrTeam
     const viaSwapForMatch = text.match(
-      /\(via\s+([A-Za-z0-9 .']+?)\s+swap\s+for/i
+      /\(via\s+([A-Za-z0-9 .']+?)\s+swap(?:\s+(?:of|with)\s+[^)]+?)?\s+for/i
     );
     if (viaSwapForMatch && ownOrTeam) {
       const viaTeam = teamCodeFromName(viaSwapForMatch[1].trim(), MAP);
@@ -648,6 +688,27 @@ export function parseSwap(text: string, MAP: Record<string, string>) {
         controller = viaTeam; // Controller is the team that controls the swap
       }
     }
+  }
+
+  // Check if controller matches explicit "can swap" pattern (strong signal)
+  if (canSwapMatch) {
+    const canSwapTeam = teamCodeFromName(canSwapMatch[1].trim(), MAP);
+    if (canSwapTeam) {
+      // If we already detected multiple candidates, keep them
+      // If no controller found yet or it conflicts, prioritize "can swap" if it makes sense contextually
+      // But usually "via X swap" is safer for simple cases. 
+      // For now, add to candidates if not there.
+      if (!controllerCandidates.includes(canSwapTeam)) {
+        controllerCandidates.push(canSwapTeam);
+      }
+      // If we haven't found a controller yet, use this one
+      if (!controller) controller = canSwapTeam;
+    }
+  }
+
+  // Ensure primary controller is in candidates list
+  if (controller && !controllerCandidates.includes(controller)) {
+    controllerCandidates.push(controller);
   }
 
   // NEW: Detect multiway pool allocation pattern
@@ -700,6 +761,7 @@ export function parseSwap(text: string, MAP: Record<string, string>) {
       swapWith: counterparts.length ? counterparts : undefined,
       favorable: favorableTag,
       controller, // NEW
+      controllerCandidates: controllerCandidates.length ? controllerCandidates : undefined, // NEW
       poolTeams, // NEW
       allocation, // NEW
     },
@@ -746,7 +808,13 @@ export function parseTeamCodePrefix(text: string): string | undefined {
     PHO: 'PHX', // Phoenix (input hygiene)
     SA: 'SAS', // San Antonio
     GS: 'GSW', // Golden State
+    GOS: 'GSW', // Golden State
     NO: 'NOP', // New Orleans
+    UTH: 'UTA', // Utah
+    CHO: 'CHA', // Charlotte
+    BRK: 'BKN', // Brooklyn
+    BRO: 'BKN', // Brooklyn
+    SAN: 'SAS', // San Antonio
   };
 
   const normalizedCode = codeVariations[candidateCode] || candidateCode;
@@ -771,7 +839,13 @@ export function parseTo(text: string): string | undefined {
       PHO: 'PHX',
       SA: 'SAS',
       GS: 'GSW',
+      GOS: 'GSW',
       NO: 'NOP',
+      UTH: 'UTA',
+      CHO: 'CHA',
+      BRK: 'BKN',
+      BRO: 'BKN',
+      SAN: 'SAS',
     };
 
     const normalizedCode = codeVariations[teamCode] || teamCode;
@@ -1180,6 +1254,9 @@ function toStructured(row: RawRow, round: 1 | 2): StructuredPick[] {
       const protection = conditionalPicks.find(
         (c) => c.outcome === 'keep'
       )?.range;
+      
+      // Check for swap semantics
+      const swap = parseSwap(cell, INTERNAL_TEAM_CODE_MAP);
 
       // Generate stable base ID and legacy ID
       const baseId = generateBasePickId(row.teamCode, row.seasonYear, round);
@@ -1196,7 +1273,8 @@ function toStructured(row: RawRow, round: 1 | 2): StructuredPick[] {
         protection: protection
           ? `top-${protection.split('-')[1]} protected`
           : null,
-        isSwap: false,
+        isSwap: swap.isSwap,
+        swapDetails: swap.details,
         conditions: conditionalPicks,
         conditionalRecipient: recipientTeam,
         conveyanceObligation, // Simplified obligation focused on Stepien impact
@@ -1215,6 +1293,9 @@ function toStructured(row: RawRow, round: 1 | 2): StructuredPick[] {
       (c) => c.outcome === 'keep'
     )?.range;
     const dependencies = extractPickDependencies(cell);
+    
+    // NEW: Check for swap semantics in the cell text
+    const swap = parseSwap(cell, INTERNAL_TEAM_CODE_MAP);
 
     // Generate stable base ID
     const baseId = generateBasePickId(row.teamCode, row.seasonYear, round);
@@ -1231,11 +1312,12 @@ function toStructured(row: RawRow, round: 1 | 2): StructuredPick[] {
       protection: protection
         ? `top-${protection.split('-')[1]} protected`
         : null,
-      isSwap: false,
+      isSwap: swap.isSwap, // Use detected swap flag
       conditions: conditionalPicks,
       conditionalRecipient: recipientTeam,
       dependsOn: dependencies.length > 0 ? dependencies : undefined,
       detailUrl: row.detailUrl,
+      swapDetails: swap.details, // Include swap details if present
       obligationId:
         recipientTeam !== 'Unknown'
           ? `${baseId}_obligation_${recipientTeam}`

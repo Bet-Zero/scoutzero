@@ -125,9 +125,36 @@ const DEFAULT_OUTPUT_DIR = path.join(
 
 // All 30 NBA team codes
 const ALL_TEAM_CODES = [
-  'ATL', 'BOS', 'BKN', 'CHA', 'CHI', 'CLE', 'DAL', 'DEN', 'DET', 'GSW',
-  'HOU', 'IND', 'LAC', 'LAL', 'MEM', 'MIA', 'MIL', 'MIN', 'NOP', 'NYK',
-  'OKC', 'ORL', 'PHI', 'PHX', 'POR', 'SAC', 'SAS', 'TOR', 'UTA', 'WAS',
+  'ATL',
+  'BOS',
+  'BKN',
+  'CHA',
+  'CHI',
+  'CLE',
+  'DAL',
+  'DEN',
+  'DET',
+  'GSW',
+  'HOU',
+  'IND',
+  'LAC',
+  'LAL',
+  'MEM',
+  'MIA',
+  'MIL',
+  'MIN',
+  'NOP',
+  'NYK',
+  'OKC',
+  'ORL',
+  'PHI',
+  'PHX',
+  'POR',
+  'SAC',
+  'SAS',
+  'TOR',
+  'UTA',
+  'WAS',
 ];
 
 // ============================================================================
@@ -188,14 +215,16 @@ export function generateLedgerId(pick: CanonicalPick): string {
 
   // Handle swaps
   if (pick.isSwap) {
-    const swapPartner = pick.swapDetails?.swapWith?.[0] || pick.recipient || 'unknown';
+    const swapPartner =
+      pick.swapDetails?.swapWith?.[0] || pick.recipient || 'unknown';
     const swapType = pick.swapDetails?.swapType || 'swap';
     return `${base}_${swapType}_${swapPartner}`;
   }
 
   // Handle contested picks
   if (pick.status === 'contested') {
-    const contestedWith = pick.recipient || pick.contendingTeams?.[0] || 'unknown';
+    const contestedWith =
+      pick.recipient || pick.contendingTeams?.[0] || 'unknown';
     return `${base}_contested_${contestedWith}`;
   }
 
@@ -229,10 +258,10 @@ type RawPick = Omit<CanonicalPick, 'owner'> & {
 function normalizeIncomingPick(raw: RawPick): CanonicalPick {
   // Use owner if present, else fall back to currentOwner
   const owner = raw.owner ?? raw.currentOwner ?? '';
-  
+
   // Destructure to remove currentOwner from output
   const { currentOwner: _drop, ...rest } = raw;
-  
+
   return { ...rest, owner } as CanonicalPick;
 }
 
@@ -263,7 +292,8 @@ export async function loadAllTeamPicks(
   }
 
   // File pattern depends on input type
-  const filePrefix = inputType === 'mentions' ? 'draft_picks_mentions_' : 'draft_picks_';
+  const filePrefix =
+    inputType === 'mentions' ? 'draft_picks_mentions_' : 'draft_picks_';
   const pickFiles = files.filter(
     (f) => f.startsWith(filePrefix) && f.endsWith('.json')
   );
@@ -283,7 +313,9 @@ export async function loadAllTeamPicks(
       // Normalize each pick (currentOwner → owner)
       const normalizedPicks = rawPicks.map(normalizeIncomingPick);
       picksByTeam.set(teamCode, normalizedPicks);
-      console.log(`  ✓ Loaded ${normalizedPicks.length} picks from ${teamCode}`);
+      console.log(
+        `  ✓ Loaded ${normalizedPicks.length} picks from ${teamCode}`
+      );
     }
   }
 
@@ -394,7 +426,9 @@ export function buildPickLedger(
 
   // Log collision summary
   if (collisions.length > 0) {
-    console.log(`\n📊 Deduplicated ${collisions.length} picks across multiple team files:`);
+    console.log(
+      `\n📊 Deduplicated ${collisions.length} picks across multiple team files:`
+    );
     for (const c of collisions.slice(0, 5)) {
       console.log(`   - ${c.ledgerId} (seen in: ${c.teams.join(', ')})`);
     }
@@ -414,7 +448,12 @@ export function buildPickLedger(
  * Converts a LedgerRecord back to a CanonicalPick (removes ledger metadata).
  */
 function toCanonicalPick(record: LedgerRecord): CanonicalPick {
-  const { ledgerId: _ledgerId, sourceTeamFiles: _sourceTeamFiles, confidence: _confidence, ...pick } = record;
+  const {
+    ledgerId: _ledgerId,
+    sourceTeamFiles: _sourceTeamFiles,
+    confidence: _confidence,
+    ...pick
+  } = record;
   return pick;
 }
 
@@ -423,22 +462,20 @@ function toCanonicalPick(record: LedgerRecord): CanonicalPick {
  * Inventory = picks where:
  *   - owner === TEAM
  *   - AND status !== 'contested' (contested picks go to contested view)
- *   - AND tradeable !== false (non-tradeable picks shouldn't be in inventory)
- * 
- * Rationale: Contested/non-tradeable picks (like multiway pools) don't represent
- * guaranteed ownership and shouldn't appear as tradeable inventory.
+ *
+ * Note: We intentionally do NOT gate on `tradeable` here.
+ * The per-team RealGM scrape marks many picks as `tradeable:false` simply because
+ * they were parsed from another team's page as `status:'outgoing'` (e.g. "To DAL").
+ * Inventory represents canonical recipient-owned picks after league merge; `tradeable`
+ * is a separate dimension and must not suppress inventory inclusion.
  */
 function isInventory(pick: CanonicalPick, teamCode: string): boolean {
   // Must be owned by the team
   if (pick.owner !== teamCode) return false;
-  
+
   // Contested picks should not be in inventory (they go to contested view)
   if (pick.status === 'contested') return false;
-  
-  // Non-tradeable picks should not be in inventory
-  // (e.g., multiway pools where outcome is unknown)
-  if (pick.tradeable === false) return false;
-  
+
   return true;
 }
 
@@ -463,9 +500,11 @@ function isObligation(pick: CanonicalPick, teamCode: string): boolean {
  *   - isSwap === true, OR
  *   - status === 'contested', OR
  *   - swapDetails exists, OR
- *   - contendingTeams includes TEAM, OR
- *   - recipient === TEAM, OR
- *   - route contains TEAM
+ *   - contendingTeams includes TEAM
+ *
+ * Important: Do NOT treat `recipient === TEAM` or `route includes TEAM` as contested.
+ * Those are often simple obligation / trade-chain hints and would massively bloat
+ * the contested view (and hide clearly-owned picks like LAL_2029_1st for DAL).
  */
 function isContested(pick: CanonicalPick, teamCode: string): boolean {
   // Direct contested status
@@ -486,12 +525,6 @@ function isContested(pick: CanonicalPick, teamCode: string): boolean {
 
   // Listed in contending teams
   if (pick.contendingTeams?.includes(teamCode)) return true;
-
-  // Is recipient of the pick
-  if (pick.recipient === teamCode) return true;
-
-  // Is in the trade route
-  if (pick.route?.includes(teamCode)) return true;
 
   return false;
 }
@@ -523,13 +556,16 @@ function dedupeById(picks: CanonicalPick[]): CanonicalPick[] {
 /**
  * Determines if candidate pick should replace existing pick.
  */
-function shouldReplacePick(existing: CanonicalPick, candidate: CanonicalPick): boolean {
+function shouldReplacePick(
+  existing: CanonicalPick,
+  candidate: CanonicalPick
+): boolean {
   // Prefer entries with realgmRawText metadata
   const existingHasRaw = !!(existing as any).metadata?.realgmRawText;
   const candidateHasRaw = !!(candidate as any).metadata?.realgmRawText;
   if (candidateHasRaw && !existingHasRaw) return true;
   if (existingHasRaw && !candidateHasRaw) return false;
-  
+
   // Prefer richer swapDetails
   const existingRichness = getSwapRichness(existing);
   const candidateRichness = getSwapRichness(candidate);
@@ -547,7 +583,6 @@ function getSwapRichness(pick: CanonicalPick): number {
   if (pick.swapDetails?.swapWith) score += 1;
   return score;
 }
-
 
 /**
  * Derives per-team views from the master ledger.
@@ -607,7 +642,6 @@ export function deriveTeamPickViews(
     views.contested = sortPicks(dedupeById(views.contested));
   }
 
-
   return viewsByTeam;
 }
 
@@ -646,7 +680,9 @@ export async function writeLedgerOutputs(
     totalContested += views.contested.length;
   }
 
-  console.log(`\n✅ Wrote ${viewsByTeam.size} team view files to ${path.join(outputDir, 'by_team')}`);
+  console.log(
+    `\n✅ Wrote ${viewsByTeam.size} team view files to ${path.join(outputDir, 'by_team')}`
+  );
   console.log(`   Total inventory picks: ${totalInventory}`);
   console.log(`   Total obligations: ${totalObligations}`);
   console.log(`   Total contested: ${totalContested}`);
@@ -703,7 +739,8 @@ export async function runLedgerBuilder(options?: {
 if (import.meta.url === `file://${process.argv[1]}`) {
   // Parse --input=mentions|structured flag (default: mentions)
   const inputArg = parseArg('input', 'mentions');
-  const inputType: InputType = inputArg === 'structured' ? 'structured' : 'mentions';
+  const inputType: InputType =
+    inputArg === 'structured' ? 'structured' : 'mentions';
 
   // Allow inputDir override (optional)
   const inputDirOverride = parseArg('inputDir');
