@@ -155,6 +155,122 @@ const ALL_TEAM_CODES = [
   'OKC', 'ORL', 'PHI', 'PHX', 'POR', 'SAC', 'SAS', 'TOR', 'UTA', 'WAS',
 ];
 
+// Team code normalization map (legacy/alternate -> canonical)
+const TEAM_CODE_NORMALIZATION: Record<string, string> = {
+  'UTH': 'UTA',
+  'PHO': 'PHX',
+  'BRK': 'BKN',
+  'SAN': 'SAS',
+  'GOS': 'GSW',
+};
+
+/**
+ * Normalizes a team code to canonical form
+ */
+function normalizeTeamCode(code: string): string {
+  return TEAM_CODE_NORMALIZATION[code] ?? code;
+}
+
+/**
+ * Extracts the beneficiary team from a conditional/protected pick.
+ * This is the team that will RECEIVE the pick if conditions are met.
+ *
+ * Priority order:
+ * 1. Explicit recipient field (if it's a valid team code)
+ * 2. obligationId suffix (e.g., LAL_2027_1st_obligation_UTA -> UTA)
+ * 3. conveyanceObligation.conditions.ifConveys text (e.g., "picks 5-30 to Utah" -> UTA)
+ *
+ * Returns null if beneficiary cannot be determined.
+ */
+function extractBeneficiaryTeam(pick: LedgerPick): string | null {
+  // 1. Check explicit recipient field
+  if (pick.recipient) {
+    const normalized = normalizeTeamCode(pick.recipient.toUpperCase());
+    if (ALL_TEAM_CODES.includes(normalized)) {
+      return normalized;
+    }
+  }
+
+  // 2. Check obligationId suffix pattern: *_obligation_XXX or *_XXX
+  const obligationId = (pick as any).obligationId as string | undefined;
+  if (obligationId) {
+    // Pattern: PICK_obligation_TEAM (e.g., LAL_2027_1st_obligation_UTA)
+    const obligationMatch = obligationId.match(/_obligation_([A-Z]{3})$/i);
+    if (obligationMatch) {
+      const normalized = normalizeTeamCode(obligationMatch[1].toUpperCase());
+      if (ALL_TEAM_CODES.includes(normalized)) {
+        return normalized;
+      }
+    }
+  }
+
+  // 3. Check conveyanceObligation.conditions.ifConveys text
+  const conveyance = pick.conveyanceObligation as any;
+  if (conveyance?.conditions?.ifConveys) {
+    const ifConveysText = conveyance.conditions.ifConveys as string;
+    // Pattern: "to TEAM" or "picks X-Y to TEAM"
+    const toTeamMatch = ifConveysText.match(/to\s+([A-Z]{3})\b/i);
+    if (toTeamMatch) {
+      const normalized = normalizeTeamCode(toTeamMatch[1].toUpperCase());
+      if (ALL_TEAM_CODES.includes(normalized)) {
+        return normalized;
+      }
+    }
+
+    // Also check for full team names like "Utah" -> UTA
+    const teamNamePatterns: [RegExp, string][] = [
+      [/\bUtah\b/i, 'UTA'],
+      [/\bPhoenix\b/i, 'PHX'],
+      [/\bBrooklyn\b/i, 'BKN'],
+      [/\bDallas\b/i, 'DAL'],
+      [/\bLakers?\b/i, 'LAL'],
+      [/\bClippers?\b/i, 'LAC'],
+    ];
+
+    for (const [pattern, teamCode] of teamNamePatterns) {
+      if (pattern.test(ifConveysText)) {
+        return teamCode;
+      }
+    }
+  }
+
+  // 4. Check conveyanceObligation.description for beneficiary
+  if (conveyance?.description) {
+    const desc = conveyance.description as string;
+    // Pattern: "protected to TEAM" or "to TEAM"
+    const toTeamMatch = desc.match(/(?:protected\s+)?to\s+([A-Za-z]+)/i);
+    if (toTeamMatch) {
+      const teamNamePatterns: [RegExp, string][] = [
+        [/^Utah$/i, 'UTA'],
+        [/^Phoenix$/i, 'PHX'],
+        [/^Brooklyn$/i, 'BKN'],
+        [/^Dallas$/i, 'DAL'],
+        [/^LAL$/i, 'LAL'],
+        [/^UTA$/i, 'UTA'],
+        [/^UTH$/i, 'UTA'],
+        [/^DAL$/i, 'DAL'],
+      ];
+
+      const match = toTeamMatch[1];
+      for (const [pattern, teamCode] of teamNamePatterns) {
+        if (pattern.test(match)) {
+          return teamCode;
+        }
+      }
+
+      // If it's a 3-letter code, try normalizing
+      if (match.length === 3) {
+        const normalized = normalizeTeamCode(match.toUpperCase());
+        if (ALL_TEAM_CODES.includes(normalized)) {
+          return normalized;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
 // ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
@@ -223,10 +339,25 @@ function classifyAssetType(pick: LedgerPick, teamCode: string): AssetType | null
     pick.status === 'conditional' ||
     (pick.protection && pick.protection.trim() !== '')
   ) {
-    // Team must be the owner/recipient
-    if (pick.owner === teamCode || pick.recipient === teamCode) {
+    // For conditional picks, the beneficiary (recipient team) gets the conditional_right
+    // NOT the owner (who retains it if protection triggers)
+    const beneficiary = extractBeneficiaryTeam(pick);
+    
+    if (beneficiary) {
+      // If this team is the beneficiary, they get the conditional_right asset
+      if (beneficiary === teamCode) {
+        return 'conditional_right';
+      }
+      // If this team is the owner but NOT the beneficiary, skip - they retain conditionally
+      // but it's not a tradeable asset for them
+      return null;
+    }
+    
+    // Fallback: if no explicit beneficiary found but team is recipient, assign conditional_right
+    if (pick.recipient === teamCode) {
       return 'conditional_right';
     }
+    
     return null;
   }
 
@@ -311,18 +442,22 @@ function generateAssetId(pick: LedgerPick, assetType: AssetType, teamCode: strin
 }
 
 /**
- * Determines if a pick is tradeable now
- * MVP: true unless explicitly blocked
+ * Determines if a pick is tradeable now (Trade Machine semantics).
+ * 
+ * Trade Machine Definition:
+ * - tradeableNow answers: "Can this asset be selected and included in a trade package UI today?"
+ * - ALL valid asset types (outright_pick, conditional_right, swap_right) are tradeableNow: true
+ * - Stepien rule and other constraints do NOT affect tradeableNow
+ *   (those are tracked via stepienEligible, tradeable, and other fields)
+ * 
+ * The only case where tradeableNow would be false is if the asset is literally
+ * non-transferable by rule (extremely rare, not implemented here).
  */
-function isTradeable(pick: LedgerPick): boolean {
-  // Respect explicit tradeable flag if set to false
-  if (pick.tradeable === false) {
-    return false;
-  }
-  // Contested picks are not tradeable
-  if (pick.status === 'contested') {
-    return false;
-  }
+function isTradeable(_pick: LedgerPick): boolean {
+  // Trade Machine semantics: all valid draft assets are selectable for trade packages
+  // Stepien blocking, contested status, etc. are informational constraints that
+  // do NOT prevent inclusion in the Trade Machine UI.
+  // Those constraints are preserved in separate fields: stepienEligible, tradeable, etc.
   return true;
 }
 
@@ -398,12 +533,15 @@ function deriveTeamDraftAssets(
 
   // Also check obligations for conditional rights the team may receive
   for (const pick of ledgerViews.obligations) {
-    // Only process if team is the recipient of a conditional/protected pick
-    if (pick.recipient === teamCode && (pick.protection || pick.status === 'conditional')) {
-      const asset = pickToDraftAsset(pick, teamCode, 'conditional_right');
-      if (!seenAssetIds.has(asset.assetId)) {
-        seenAssetIds.add(asset.assetId);
-        assets.push(asset);
+    // Check if this team is the beneficiary of a conditional/protected pick
+    if (pick.protection || pick.status === 'conditional') {
+      const beneficiary = extractBeneficiaryTeam(pick);
+      if (beneficiary === teamCode) {
+        const asset = pickToDraftAsset(pick, teamCode, 'conditional_right');
+        if (!seenAssetIds.has(asset.assetId)) {
+          seenAssetIds.add(asset.assetId);
+          assets.push(asset);
+        }
       }
     }
   }
@@ -459,8 +597,45 @@ export async function buildDraftAssets(options?: {
     swap_right: 0,
   };
 
+  // PHASE 1: Load all ledger views into memory for cross-team scanning
+  const allLedgerViews = new Map<string, LedgerTeamViews>();
   for (const teamCode of ALL_TEAM_CODES) {
     const ledgerViews = await loadLedgerViews(teamCode, ledgerDir);
+    if (ledgerViews) {
+      allLedgerViews.set(teamCode, ledgerViews);
+    }
+  }
+
+  // PHASE 2: Build a map of conditional picks where beneficiary differs from owner
+  // Key: beneficiary team, Value: list of picks they should receive as conditional_right
+  const crossTeamConditionalPicks = new Map<string, LedgerPick[]>();
+  
+  for (const [sourceTeam, ledgerViews] of allLedgerViews) {
+    // Check inventory and obligations for conditional picks going to other teams
+    const allPicks = [...ledgerViews.inventory, ...ledgerViews.obligations];
+    
+    for (const pick of allPicks) {
+      if (pick.protection || pick.status === 'conditional') {
+        const beneficiary = extractBeneficiaryTeam(pick);
+        
+        // If beneficiary is different from owner/source and is a valid team
+        if (beneficiary && beneficiary !== sourceTeam && beneficiary !== pick.owner) {
+          if (!crossTeamConditionalPicks.has(beneficiary)) {
+            crossTeamConditionalPicks.set(beneficiary, []);
+          }
+          // Avoid duplicates based on pick ID
+          const existingPicks = crossTeamConditionalPicks.get(beneficiary)!;
+          if (!existingPicks.some(p => p.id === pick.id)) {
+            crossTeamConditionalPicks.get(beneficiary)!.push(pick);
+          }
+        }
+      }
+    }
+  }
+
+  // PHASE 3: Process each team's assets
+  for (const teamCode of ALL_TEAM_CODES) {
+    const ledgerViews = allLedgerViews.get(teamCode);
     
     if (!ledgerViews) {
       console.warn(`  ⚠️  Missing ledger views for ${teamCode}`);
@@ -480,7 +655,26 @@ export async function buildDraftAssets(options?: {
       continue;
     }
 
+    // First pass: derive from team's own ledger
     const teamAssets = deriveTeamDraftAssets(teamCode, ledgerViews);
+    const seenPickIds = new Set(teamAssets.picks.map(a => a.pickId));
+    
+    // Second pass: add cross-team conditional picks (from other teams' ledgers)
+    const xTeamPicks = crossTeamConditionalPicks.get(teamCode) ?? [];
+    for (const pick of xTeamPicks) {
+      if (!seenPickIds.has(pick.id)) {
+        const asset = pickToDraftAsset(pick, teamCode, 'conditional_right');
+        teamAssets.picks.push(asset);
+        seenPickIds.add(pick.id);
+      }
+    }
+    
+    // Re-sort after adding cross-team picks
+    teamAssets.picks.sort((a, b) => {
+      if (a.year !== b.year) return a.year - b.year;
+      return a.round - b.round;
+    });
+    
     results.set(teamCode, teamAssets);
     teamsProcessed++;
     totalAssets += teamAssets.picks.length;

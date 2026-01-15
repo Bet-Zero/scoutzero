@@ -367,12 +367,16 @@ npx tsx team-scrape/draft-picks/scripts/audit_recipient_inventory_invariant.ts \
 
 #### `npm run draft-picks:verify`
 
-**Purpose:** One-command draft-picks rebuild and audit verification (scrape → ledger → audits).
+**Purpose:** Local draft-picks verification (build + reports + audits, no scrape).
 
 **Usage:**
 
 ```bash
+# Fast verify (no scrape, uses existing mentions)
 npm run draft-picks:verify
+
+# Full end-to-end (scrape + verify)
+npm run draft-picks:scrape-verify
 ```
 
 - `team-scrape/shared/firestore_staging/stage_team.ts`

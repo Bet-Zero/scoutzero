@@ -307,44 +307,52 @@ Run `grep -R '"BRK"' team-scrape/draft-picks/_artifacts/output` and `grep -R '"P
 
 ---
 
+## Command Map
+
+| Step           | npm Script               | Description                                    |
+| -------------- | ------------------------ | ---------------------------------------------- |
+| **Scrape**     | `draft-picks:scrape`     | Scrape RealGM draft picks for all 30 teams     |
+| **Build**      | `draft-picks:build`      | Build ledger + draft assets from mentions      |
+| **Reports**    | `draft-picks:reports`    | Generate TSV/MD manual verification outputs    |
+| **Manual Check** | `draft-picks:assets-manual-check` | Generate clean one-line-per-pick output |
+| **Audits**     | `draft-picks:audits`     | Run semantic, inventory, and assets invariants |
+| **Verify**     | `draft-picks:verify`     | Build + Reports + Audits (no scrape)           |
+| **Full E2E**   | `draft-picks:scrape-verify` | Scrape + verify (full end-to-end)           |
+| **Stage**      | `stage:team`             | Stage team data for Firestore                  |
+| **Push**       | `team:push`              | Push staged data to Firestore                  |
+| **Publish**    | `team:publish`           | Stage + Push in one command                    |
+
+> [!IMPORTANT]
+> Verify commands (`draft-picks:verify`, `draft-picks:scrape-verify`) do NOT push to Firestore.
+
+---
+
 ## Push-Ready Verification Checklist
 
-### Rebuild Commands
+### Quick Commands
 
 ```bash
-# 1. Clean output
-rm -rf team-scrape/draft-picks/_artifacts/output/*
+# Fast local verification (no scrape, uses existing mentions)
+npm run draft-picks:verify
 
-# 2. Full scrape (all 30 teams)
-npm run team:draft-picks -- --outDir team-scrape/draft-picks/_artifacts/output
+# Full end-to-end verification (includes scrape)
+npm run draft-picks:scrape-verify
 
-# 3. Build ledger
-npx tsx team-scrape/shared/ledger/buildPickLedger.ts --input=mentions --inputDir team-scrape/draft-picks/_artifacts/output/mentions
-
-# 4. Generate manual verification files
-npx tsx team-scrape/draft-picks/scripts/generate_ledger_tsv.ts
-npx tsx team-scrape/draft-picks/scripts/generate_ledger_md.ts
-npx tsx team-scrape/draft-picks/scripts/generate_pretty_mentions.ts
-```
-
-### Audit Commands
-
-```bash
-# Semantic assertions audit
-npx tsx team-scrape/draft-picks/scripts/audit_semantic_assertions.ts --teams=ALL --mentionsDir team-scrape/draft-picks/_artifacts/output/mentions
-
-# Meaning-aware audit
-npx tsx team-scrape/draft-picks/scripts/audit_realgm_rows_vs_mentions.ts --teams=ALL
+# Individual steps for debugging
+npm run draft-picks:build
+npm run draft-picks:reports
+npm run draft-picks:audits
 ```
 
 ### Definition of Push-Ready
 
-A build is "push-ready" when **both audits pass**:
+A build is "push-ready" when **audits pass**:
 
-| Audit               | Criteria                                                                                           |
-| ------------------- | -------------------------------------------------------------------------------------------------- |
-| Meaning-Aware       | **Category C = 0**, **Ledger = 0**, **Hygiene = 0**                                                |
-| Semantic Assertions | Minimal failures; ideally **PROTECTION = 0**, **SWAP = 0**, **CONTROLLER ≤ 5**, **TO_ANCHOR ≤ 10** |
+| Audit                        | Criteria                                                          |
+| ---------------------------- | ----------------------------------------------------------------- |
+| Semantic Assertions          | All categories = 0                                                |
+| Recipient Inventory Invariant | Failures = 0                                                     |
+| Draft Assets Invariant       | PASS (UTA LAL_2027_1st + DAL LAL_2029_1st sanity checks)          |
 
 ### Manual Verification Outputs
 
@@ -354,7 +362,15 @@ These files support human cross-checking against external sources (e.g., Fanspo)
 | --------------- | ----------------------------------------------------------------------- | ---------------------------------------------- |
 | Pick counts TSV | `team-scrape/draft-picks/_artifacts/audits/ledger_team_pick_counts.tsv` | Per-team inventory/obligation/contested counts |
 | Pick lists MD   | `team-scrape/draft-picks/_artifacts/audits/ledger_team_pick_lists.md`   | Detailed pick breakdown by team                |
+| **Draft Assets MD** | `team-scrape/draft-picks/_artifacts/audits/draft_assets_team_lists.md` | **Clean Trade Machine asset review (recommended)** |
+| **Manual Check MD** | `team-scrape/draft-picks/_artifacts/audits/draft_assets_manual_check.md` | **One-line-per-pick for external site cross-referencing** |
 | Pretty mentions | `team-scrape/draft-picks/_artifacts/audits/pretty_mentions/`            | Human-readable JSON (2-space indent)           |
+
+> [!TIP]
+> For manual Trade Machine asset verification, use `draft_assets_team_lists.md`. It provides a clean, scroll-proof view with one table per team, sorted by year, with clear team separators.
+
+> [!TIP]
+> For fast cross-referencing against external sources (Fanspo, RealGM, etc.), use `draft_assets_manual_check.md`. It provides a compact one-line-per-pick view optimized for visual scanning. Format: `YEAR | ROUND | ORIGIN | CONDITIONS`
 
 ---
 
@@ -411,7 +427,8 @@ interface DraftAsset {
     rawText?: string;
     obligationId?: string;
   };
-  tradeableNow: boolean; // true unless explicitly blocked
+  tradeableNow: boolean; // Trade Machine-ready (see below)
+  // Stepien/other restrictions tracked via: stepienEligible, tradeable fields
 }
 ```
 
@@ -428,10 +445,44 @@ Output: `team-scrape/shared/firestore_staging/_artifacts/output/draft_assets/{TE
 
 The draft assets audit (`audit_draft_assets_invariant.ts`) verifies:
 
-1. **UTA must have LAL_2027_1st** as `conditional_right` with protection/conditionsText
-2. **DAL must have LAL_2029_1st** as `outright_pick`
+1. **UTA must have LAL_2027_1st** as `conditional_right` with protection/conditionsText AND `tradeableNow: true`
+2. **DAL must have LAL_2029_1st** as `outright_pick` AND `tradeableNow: true`
 3. All 30 teams must have a draftAssets file
 4. Conditional/protected ledger picks must have corresponding draftAssets entries
+
+### tradeableNow Semantics (Trade Machine-Ready)
+
+**Definition**: `tradeableNow` answers the question: *"Can this asset be selected and included in a trade package UI today?"*
+
+| Value | Meaning |
+|-------|---------|
+| `true` | Asset can be selected in Trade Machine |
+| `false` | Asset is literally non-transferable (extremely rare) |
+
+**Trade Machine Rule**: ALL valid asset types (`outright_pick`, `conditional_right`, `swap_right`) have `tradeableNow: true` by default.
+
+**What tradeableNow does NOT encode**:
+
+- **Stepien rule blocking** → Use `stepienEligible` field
+- **Contested status** → Asset still tradeable as a conditional right
+- **Trade restrictions** → Use `tradeable` field or `blockedReason` for complex cases
+
+> [!IMPORTANT]
+> The previous incorrect behavior set `tradeableNow: false` for contested picks and Stepien-blocked years. This is WRONG for Trade Machine semantics. Those constraints are informational restrictions that do NOT prevent UI selection.
+
+### Conditional Pick Beneficiary Resolution
+
+For conditional/protected picks, the **beneficiary team** (who receives the conditional_right asset) is determined by `extractBeneficiaryTeam()` in priority order:
+
+1. **Explicit `recipient` field** - If present and is a valid 3-letter team code
+2. **`obligationId` suffix** - Pattern: `*_obligation_XXX` (e.g., `LAL_2027_1st_obligation_UTA` → UTA)
+3. **`conveyanceObligation.conditions.ifConveys`** - Extracts "to TEAM" patterns or team names like "Utah"
+4. **`conveyanceObligation.description`** - Fallback extraction from description text (e.g., "top-4 protected to Utah")
+
+**Team code normalization** is applied: `UTH→UTA`, `PHO→PHX`, `BRK→BKN`, `SAN→SAS`, `GOS→GSW`
+
+> [!IMPORTANT]
+> The conditional_right asset is assigned to the **beneficiary** (recipient), NOT the owner. The owner retains the pick conditionally if protection triggers, but this is not a tradeable asset - only the recipient's conditional_right can be traded.
 
 ### Trade Machine Integration
 

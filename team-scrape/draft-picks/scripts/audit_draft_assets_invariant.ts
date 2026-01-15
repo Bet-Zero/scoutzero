@@ -160,6 +160,7 @@ function readJson<T>(filePath: string): T | null {
 
 /**
  * Check 1: UTA must have LAL_2027_1st as conditional_right with protection/conditionsText
+ *          AND tradeableNow: true (Trade Machine-ready)
  */
 function checkUTA_LAL2027(assets: TeamDraftAssets | null): Failure | null {
   if (!assets) {
@@ -167,7 +168,7 @@ function checkUTA_LAL2027(assets: TeamDraftAssets | null): Failure | null {
       type: 'SANITY_CHECK',
       team: 'UTA',
       pickId: 'LAL_2027_1st',
-      expected: 'conditional_right with protection',
+      expected: 'conditional_right with protection, tradeableNow:true',
       actual: 'missing assets file',
       details: 'UTA assets file not found',
     };
@@ -186,7 +187,7 @@ function checkUTA_LAL2027(assets: TeamDraftAssets | null): Failure | null {
       type: 'SANITY_CHECK',
       team: 'UTA',
       pickId: 'LAL_2027_1st',
-      expected: 'conditional_right with protection',
+      expected: 'conditional_right with protection, tradeableNow:true',
       actual: 'pick not found in UTA draftAssets',
       details: `UTA has ${assets.picks.length} assets but none match LAL_2027_1st`,
     };
@@ -215,11 +216,24 @@ function checkUTA_LAL2027(assets: TeamDraftAssets | null): Failure | null {
     };
   }
 
+  // Must be tradeableNow (Trade Machine-ready)
+  if (lalPick.tradeableNow !== true) {
+    return {
+      type: 'SANITY_CHECK',
+      team: 'UTA',
+      pickId: 'LAL_2027_1st',
+      expected: 'tradeableNow: true',
+      actual: `tradeableNow: ${lalPick.tradeableNow}`,
+      details: 'Asset must be Trade Machine-ready (selectable in trade packages)',
+    };
+  }
+
   return null; // PASS
 }
 
 /**
  * Check 2: DAL must have LAL_2029_1st as outright_pick
+ *          AND tradeableNow: true (Trade Machine-ready)
  */
 function checkDAL_LAL2029(assets: TeamDraftAssets | null): Failure | null {
   if (!assets) {
@@ -227,7 +241,7 @@ function checkDAL_LAL2029(assets: TeamDraftAssets | null): Failure | null {
       type: 'SANITY_CHECK',
       team: 'DAL',
       pickId: 'LAL_2029_1st',
-      expected: 'outright_pick',
+      expected: 'outright_pick, tradeableNow:true',
       actual: 'missing assets file',
       details: 'DAL assets file not found',
     };
@@ -246,7 +260,7 @@ function checkDAL_LAL2029(assets: TeamDraftAssets | null): Failure | null {
       type: 'SANITY_CHECK',
       team: 'DAL',
       pickId: 'LAL_2029_1st',
-      expected: 'outright_pick',
+      expected: 'outright_pick, tradeableNow:true',
       actual: 'pick not found in DAL draftAssets',
       details: `DAL has ${assets.picks.length} assets but none match LAL_2029_1st`,
     };
@@ -260,6 +274,18 @@ function checkDAL_LAL2029(assets: TeamDraftAssets | null): Failure | null {
       expected: 'outright_pick',
       actual: lalPick.assetType,
       details: 'Asset type mismatch - should be unconditional',
+    };
+  }
+
+  // Must be tradeableNow (Trade Machine-ready)
+  if (lalPick.tradeableNow !== true) {
+    return {
+      type: 'SANITY_CHECK',
+      team: 'DAL',
+      pickId: 'LAL_2029_1st',
+      expected: 'tradeableNow: true',
+      actual: `tradeableNow: ${lalPick.tradeableNow}`,
+      details: 'Asset must be Trade Machine-ready (selectable in trade packages)',
     };
   }
 

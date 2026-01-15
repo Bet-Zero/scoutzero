@@ -1,224 +1,62 @@
-# Draft Picks Pipeline — Commands (Saved)
+# Draft Picks Pipeline — Commands
 
 Run everything from **repo root** (the folder that contains `package.json`).
 
 ---
 
-## 0) One-time sanity check (you are in repo root)
+## Quick Reference
+
+**If you want fresh data (full end-to-end scrape + verify):**
 
 ```bash
-pwd
-ls
-ls package.json
+npm run draft-picks:scrape-verify
 ```
 
-If `ls package.json` says "No such file", you are NOT in the repo root.
-
----
-
-## A) Clean + Scrape (ALL teams)
-
-```bash
-rm -rf team-scrape/draft-picks/_artifacts/output/*
-npm run team:draft-picks -- --outDir team-scrape/draft-picks/_artifacts/output
-```
-
----
-
-## B) Build the Pick Ledger (from mentions)
-
-```bash
-npx tsx team-scrape/shared/ledger/buildPickLedger.ts \
-  --input=mentions \
-  --inputDir team-scrape/draft-picks/_artifacts/output/mentions
-```
-
----
-
-## B2) Build Draft Assets (from ledger views)
-
-```bash
-npx tsx team-scrape/shared/ledger/buildDraftAssets.ts
-```
-
-Options:
-
-- `--ledgerDir=<path>` - Override ledger input directory
-- `--outDir=<path>` - Override output directory
-
-Output:
-
-- `team-scrape/shared/firestore_staging/_artifacts/output/draft_assets/{TEAM}.json`
-
----
-
-## C) Generate Manual Verification Outputs (2A + 2B + Pretty Mentions)
-
-```bash
-npx tsx team-scrape/draft-picks/scripts/generate_ledger_tsv.ts
-npx tsx team-scrape/draft-picks/scripts/generate_ledger_md.ts
-npx tsx team-scrape/draft-picks/scripts/generate_pretty_mentions.ts
-```
-
-Outputs:
-
-- `team-scrape/draft-picks/_artifacts/audits/ledger_team_pick_counts.tsv` (2A)
-- `team-scrape/draft-picks/_artifacts/audits/ledger_team_pick_lists.md` (2B)
-- `team-scrape/draft-picks/_artifacts/audits/pretty_mentions/` (pretty JSON, 30 files)
-
----
-
-## D) Audits (Semantic + Meaning-Aware + Invariants)
-
-### D1) Semantic Assertions
-
-```bash
-npx tsx team-scrape/draft-picks/scripts/audit_semantic_assertions.ts \
-  --teams=ALL \
-  --mentionsDir=team-scrape/draft-picks/_artifacts/output/mentions
-```
-
-Report written to:
-
-- `team-scrape/draft-picks/_artifacts/audits/semantic_assertions_report.json`
-
-### D2) Meaning-Aware Audit
-
-```bash
-npx tsx team-scrape/draft-picks/scripts/audit_realgm_rows_vs_mentions.ts --teams=ALL
-```
-
-### D3) Recipient Inventory Invariant
-
-```bash
-npx tsx team-scrape/draft-picks/scripts/audit_recipient_inventory_invariant.ts \
-  --mentionsDir=team-scrape/draft-picks/_artifacts/output/mentions \
-  --ledgerDir=team-scrape/shared/firestore_staging/_artifacts/output/ledger/by_team
-```
-
-Report written to:
-
-- `team-scrape/draft-picks/_artifacts/audits/recipient_inventory_invariant_report.json`
-
-### D4) Draft Assets Invariant
-
-```bash
-npx tsx team-scrape/draft-picks/scripts/audit_draft_assets_invariant.ts
-```
-
-Options:
-
-- `--assetsDir=<path>` - Override draft assets directory
-- `--ledgerDir=<path>` - Override ledger directory
-
-Report written to:
-
-- `team-scrape/draft-picks/_artifacts/audits/draft_assets_invariant_report.json`
-
-**Must-Pass Checks**:
-
-- UTA must have LAL_2027_1st as `conditional_right` with protection
-- DAL must have LAL_2029_1st as `outright_pick`
-- All 30 teams must have draft assets files
-
----
-
-## E) Quick Grep Checks (Canonical Team Codes)
-
-```bash
-grep -R '"BRK"' team-scrape/draft-picks/_artifacts/output 2>/dev/null | wc -l
-grep -R '"BRO"' team-scrape/draft-picks/_artifacts/output 2>/dev/null | wc -l
-grep -R '"PHO"' team-scrape/draft-picks/_artifacts/output 2>/dev/null | wc -l
-```
-
-Targets:
-
-- BRK = 0
-- BRO = 0
-- PHO = 0
-
----
-
-## F) "Do it all" (Full Rebuild + Outputs + Audits)
-
-```bash
-rm -rf team-scrape/draft-picks/_artifacts/output/*
-npm run team:draft-picks -- --outDir team-scrape/draft-picks/_artifacts/output
-
-npx tsx team-scrape/shared/ledger/buildPickLedger.ts \
-  --input=mentions \
-  --inputDir team-scrape/draft-picks/_artifacts/output/mentions
-
-npx tsx team-scrape/shared/ledger/buildDraftAssets.ts
-
-npx tsx team-scrape/draft-picks/scripts/generate_ledger_tsv.ts
-npx tsx team-scrape/draft-picks/scripts/generate_ledger_md.ts
-npx tsx team-scrape/draft-picks/scripts/generate_pretty_mentions.ts
-
-npx tsx team-scrape/draft-picks/scripts/audit_semantic_assertions.ts \
-  --teams=ALL \
-  --mentionsDir=team-scrape/draft-picks/_artifacts/output/mentions
-
-npx tsx team-scrape/draft-picks/scripts/audit_realgm_rows_vs_mentions.ts --teams=ALL
-
-npx tsx team-scrape/draft-picks/scripts/audit_recipient_inventory_invariant.ts \
-  --mentionsDir=team-scrape/draft-picks/_artifacts/output/mentions \
-  --ledgerDir=team-scrape/shared/firestore_staging/_artifacts/output/ledger/by_team
-
-npx tsx team-scrape/draft-picks/scripts/audit_draft_assets_invariant.ts
-```
-
----
-
-## G) One-Command Verify (Scrape + Ledger + Assets + Audits)
+**If you already scraped and just want to re-check (fast, no scrape):**
 
 ```bash
 npm run draft-picks:verify
 ```
 
-This command:
-
-1. Cleans output directories
-2. Runs RealGM scrape for all 30 teams
-3. Builds ledger from mentions
-4. Builds draft assets from ledger
-5. Generates manual verification outputs
-6. Runs all audits (semantic, meaning-aware, recipient inventory, draft assets)
-
----
-
-## H) Local Verify (NO Scrape - Fast Iteration)
+**If you're debugging individual steps:**
 
 ```bash
-npm run draft-picks:verify:local
-```
-
-This command runs everything EXCEPT the scrape step. Use when you already have mentions and want to quickly rebuild/audit:
-
-1. Builds ledger from existing mentions
-2. Builds draft assets from ledger
-3. Generates verification outputs
-4. Runs all audits
-
-**Prerequisite**: Mentions must already exist in `team-scrape/draft-picks/_artifacts/output/mentions/`
-
----
-
-## I) Proof Print (Verify Specific Assets)
-
-Check that specific required assets exist:
-
-```bash
-# UTA must have LAL_2027_1st (conditional)
-grep -A10 "LAL_2027_1st" team-scrape/shared/firestore_staging/_artifacts/output/draft_assets/UTA.json
-
-# DAL must have LAL_2029_1st (outright)
-grep -A10 "LAL_2029_1st" team-scrape/shared/firestore_staging/_artifacts/output/draft_assets/DAL.json
+npm run draft-picks:build    # Build ledger + assets only
+npm run draft-picks:reports  # Generate TSV/MD reports
+npm run draft-picks:audits   # Run all audits
+npm run draft-picks:assets-manual-check  # Generate clean manual check output
 ```
 
 ---
 
-## Output File Locations
+## What Each Command Does
+
+| Command                     | Description                                                      |
+| --------------------------- | ---------------------------------------------------------------- |
+| `draft-picks:scrape`        | Scrape RealGM draft picks for all 30 teams                       |
+| `draft-picks:build`         | Build ledger from mentions + build draft assets (no audits)      |
+| `draft-picks:reports`       | Generate TSV counts and MD pick lists for manual verification    |
+| `draft-picks:audits`        | Run semantic, recipient inventory, and draft assets audits       |
+| `draft-picks:verify`        | Build + Reports + Audits (no scrape, uses existing mentions)     |
+| `draft-picks:scrape-verify` | Scrape + verify (full end-to-end)                                |
+| `draft-picks:assets-manual-check` | Generate clean one-line-per-pick manual check output       |
+| `team:publish`              | Stage and push all teams to Firestore (runs stage:team + push)   |
+
+---
+
+## Audit Outputs
+
+All audits write to: `team-scrape/draft-picks/_artifacts/audits/`
+
+| Audit                        | Report File                                    |
+| ---------------------------- | ---------------------------------------------- |
+| Semantic Assertions          | `semantic_assertions_report.json`              |
+| Recipient Inventory Invariant | `recipient_inventory_invariant_report.json`   |
+| Draft Assets Invariant       | `draft_assets_invariant_report.json`           |
+
+---
+
+## Verification Outputs
 
 | Output Type      | Location                                                                            |
 | ---------------- | ----------------------------------------------------------------------------------- |
@@ -229,3 +67,40 @@ grep -A10 "LAL_2029_1st" team-scrape/shared/firestore_staging/_artifacts/output/
 | Draft assets     | `team-scrape/shared/firestore_staging/_artifacts/output/draft_assets/{TEAM}.json`   |
 | Staged baseTeams | `team-scrape/shared/firestore_staging/_artifacts/output/baseTeams/{TEAM}.json`      |
 | Audit reports    | `team-scrape/draft-picks/_artifacts/audits/`                                        |
+| Draft Asset Review | `team-scrape/draft-picks/_artifacts/audits/draft_assets_team_lists.md`            |
+| **Manual Check** | `team-scrape/draft-picks/_artifacts/audits/draft_assets_manual_check.md`            |
+
+---
+
+## Staging and Push
+
+> [!IMPORTANT]
+> Verify commands do NOT push to Firestore. To push:
+
+```bash
+# Stage first (prepares baseTeams JSONs)
+npm run stage:team
+
+# Push to Firestore
+npm run team:push LAL BOS CHI  # specify teams
+
+# Or do both in one command:
+npm run team:publish
+```
+
+---
+
+## Sanity Checks
+
+**Must-Pass Invariants** (checked by `draft-picks:audits`):
+
+- UTA must have `LAL_2027_1st` as `conditional_right` with `tradeableNow: true`
+- DAL must have `LAL_2029_1st` as `outright_pick` with `tradeableNow: true`
+- All 30 teams must have draft assets files
+
+**Quick grep checks for canonical team codes:**
+
+```bash
+grep -R '"BRK"' team-scrape/draft-picks/_artifacts/output 2>/dev/null | wc -l  # Target: 0
+grep -R '"PHO"' team-scrape/draft-picks/_artifacts/output 2>/dev/null | wc -l  # Target: 0
+```

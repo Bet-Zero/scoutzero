@@ -38,8 +38,11 @@ npx tsx team-scrape/draft-picks/scripts/audit_recipient_inventory_invariant.ts \
   --mentionsDir=team-scrape/draft-picks/_artifacts/output/mentions \
   --ledgerDir=team-scrape/shared/firestore_staging/_artifacts/output/ledger/by_team
 
-# One-command full verify (scrape + ledger + audits)
+# Fast verify (no scrape, uses existing mentions)
 npm run draft-picks:verify
+
+# Full end-to-end verify (scrape + ledger + audits)
+npm run draft-picks:scrape-verify
 ```
 
 ## Output
