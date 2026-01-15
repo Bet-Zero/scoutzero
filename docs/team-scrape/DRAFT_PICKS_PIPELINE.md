@@ -355,3 +355,105 @@ These files support human cross-checking against external sources (e.g., Fanspo)
 | Pick counts TSV | `team-scrape/draft-picks/_artifacts/audits/ledger_team_pick_counts.tsv` | Per-team inventory/obligation/contested counts |
 | Pick lists MD   | `team-scrape/draft-picks/_artifacts/audits/ledger_team_pick_lists.md`   | Detailed pick breakdown by team                |
 | Pretty mentions | `team-scrape/draft-picks/_artifacts/audits/pretty_mentions/`            | Human-readable JSON (2-space indent)           |
+
+---
+
+## Draft Assets (Trade Machine Source)
+
+### Overview
+
+The `draftAssets` view is the **canonical source** for the Trade Machine and team page pick displays. It represents tradeable draft assets that can be included in trade packages.
+
+While the ledger views (inventory/obligations/contested) are debugging-oriented buckets, `draftAssets` is the consumer-facing derived view.
+
+### Data Flow
+
+```text
+RealGM Scrape → Mentions → Ledger Builder → Ledger Views (by_team)
+                                               ↓
+                                      Draft Assets Builder
+                                               ↓
+                                      draft_assets/{TEAM}.json
+                                               ↓
+                                      stage_team.ts (staging)
+                                               ↓
+                                      baseTeams/{TEAM}.json (draftAssets field)
+                                               ↓
+                                      Trade Machine / Team Page
+```
+
+### Asset Types
+
+| Type                | Description                                         | Certainty   |
+| ------------------- | --------------------------------------------------- | ----------- |
+| `outright_pick`     | Team owns the pick unconditionally                  | certain     |
+| `conditional_right` | Team has rights depending on protections/conditions | conditional |
+| `swap_right`        | Team can exercise swap rights with another team     | conditional |
+
+### Draft Asset Schema
+
+```typescript
+interface DraftAsset {
+  assetId: string; // Stable ID: {pickId}_{assetType}_{team}
+  pickId: string; // e.g., LAL_2027_1st
+  year: number;
+  round: number;
+  team: string; // Beneficiary team (who can trade it)
+  originalTeam: string; // Source of the draft slot
+  assetType: 'outright_pick' | 'conditional_right' | 'swap_right';
+  certainty: 'certain' | 'conditional';
+  protection?: string | null;
+  conditionsText?: string; // Human-readable conditions
+  isSwap?: boolean;
+  swapDetails?: object;
+  source: {
+    srcTeamPage?: string;
+    rawText?: string;
+    obligationId?: string;
+  };
+  tradeableNow: boolean; // true unless explicitly blocked
+}
+```
+
+### Building Draft Assets
+
+```bash
+# Build draft assets from ledger views
+npx tsx team-scrape/shared/ledger/buildDraftAssets.ts
+```
+
+Output: `team-scrape/shared/firestore_staging/_artifacts/output/draft_assets/{TEAM}.json`
+
+### Validation Invariants
+
+The draft assets audit (`audit_draft_assets_invariant.ts`) verifies:
+
+1. **UTA must have LAL_2027_1st** as `conditional_right` with protection/conditionsText
+2. **DAL must have LAL_2029_1st** as `outright_pick`
+3. All 30 teams must have a draftAssets file
+4. Conditional/protected ledger picks must have corresponding draftAssets entries
+
+### Trade Machine Integration
+
+The Trade Machine reads picks in this priority order:
+
+1. `team.draftAssets.picks` (canonical source)
+2. `team.draftPicks` (fallback)
+3. `team.picks` (legacy fallback)
+
+The `TradePickRow` component displays:
+
+- Asset type badge (Outright/Conditional/Swap)
+- Conditions text (truncated with tooltip)
+- Protection selector for trade customization
+
+---
+
+## Why Both Ledger Views and Draft Assets Exist
+
+| View         | Purpose                                 | Consumer                 |
+| ------------ | --------------------------------------- | ------------------------ |
+| Ledger Views | Debugging, auditing, Stepien validation | Pipeline scripts, audits |
+| Draft Assets | Trade Machine picks, team page display  | Application UI           |
+
+The ledger views preserve the full complexity of pick ownership (inventory, obligations, contested). Draft Assets simplifies this into a single "what can this team trade" list.

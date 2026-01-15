@@ -109,12 +109,40 @@ function TradePickRow({
           className="w-4 h-4"
         />
         <div className="flex flex-col">
-          <div className="text-white/90">
+          <div className="text-white/90 flex items-center gap-1.5">
             {formatPick(pickObj || pick)}
+            {/* Asset type badge for draftAssets picks */}
+            {(pick?.assetType || pickObj?.assetType) && (
+              <span
+                className={`px-1.5 py-0.5 text-[9px] rounded leading-none ${
+                  (pick?.assetType || pickObj?.assetType) === 'outright_pick'
+                    ? 'bg-green-600/20 text-green-400'
+                    : (pick?.assetType || pickObj?.assetType) === 'conditional_right'
+                    ? 'bg-amber-600/20 text-amber-400'
+                    : 'bg-purple-600/20 text-purple-400'
+                }`}
+                title={(pick?.assetType || pickObj?.assetType)?.replace('_', ' ')}
+              >
+                {(pick?.assetType || pickObj?.assetType) === 'outright_pick'
+                  ? 'Outright'
+                  : (pick?.assetType || pickObj?.assetType) === 'conditional_right'
+                  ? 'Conditional'
+                  : 'Swap'}
+              </span>
+            )}
             {!exists && (
               <span className="ml-2 italic text-white/40">(not selected)</span>
             )}
           </div>
+          {/* Conditions text for conditional/swap picks */}
+          {(pick?.conditionsText || pickObj?.conditionsText) && (
+            <div
+              className="text-[10px] text-white/50 mt-0.5 max-w-[200px] truncate"
+              title={pick?.conditionsText || pickObj?.conditionsText}
+            >
+              {pick?.conditionsText || pickObj?.conditionsText}
+            </div>
+          )}
 
           {exists && (
             <div className="w-[160px] text-white/60 mt-1 space-y-1">

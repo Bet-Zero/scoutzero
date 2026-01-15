@@ -168,6 +168,9 @@ export const hydrateBaseTeam = async (teamCode, baseDoc) => {
     draftPicksObligations: baseDoc.draftPicksObligations || [],
     // draftPicksContested: Swaps and conditional picks involving the team
     draftPicksContested: baseDoc.draftPicksContested || [],
+    // draftAssets: Canonical Trade Machine source (see RETURN_PACKAGE_DRAFT_PICKS_TRADE_ASSETS.md)
+    // Contains tradeable assets with assetType (outright_pick, conditional_right, swap_right)
+    draftAssets: baseDoc.draftAssets || null,
     exceptions: exceptionData,
     mle: toSimpleException(exceptionData.mle),
     tpMle: toSimpleException(exceptionData.taxpayerMle || exceptionData.tpMle),

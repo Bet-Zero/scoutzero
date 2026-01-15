@@ -232,9 +232,10 @@ export const useTradeMachine = (
 
       if (baseTeam && data) {
         // Build team object, augment exceptions/tpes
-        // Map draftPicks to picks for trade machine compatibility
+        // Map draftAssets/draftPicks to picks for trade machine compatibility
+        // Priority: draftAssets.picks (canonical) > draftPicks > picks
         // Ensure all picks have canonical IDs (Phase 1 - SSOT)
-        const rawPicks = data.draftPicks || data.picks || [];
+        const rawPicks = data.draftAssets?.picks || data.draftPicks || data.picks || [];
         const picksWithIds = rawPicks.map(p => ensurePickId(p));
         
         const teamObj = {
@@ -477,9 +478,10 @@ export const useTradeMachine = (
       const data = await loadWorldTeamData(worldId, teamId);
 
       if (baseTeam && data) {
-        // Map draftPicks to picks for trade machine compatibility
+        // Map draftAssets/draftPicks to picks for trade machine compatibility
+        // Priority: draftAssets.picks (canonical) > draftPicks > picks
         // Ensure all picks have canonical IDs (Phase 1 - SSOT)
-        const rawPicks = data.draftPicks || data.picks || [];
+        const rawPicks = data.draftAssets?.picks || data.draftPicks || data.picks || [];
         const picksWithIds = rawPicks.map(p => ensurePickId(p));
         
         const teamObj = {

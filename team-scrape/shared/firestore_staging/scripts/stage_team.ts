@@ -26,6 +26,7 @@ type CliArgs = {
   validate: boolean;
   outDir: string;
   ledgerDir?: string;
+  draftAssetsDir?: string;
 };
 
 type RawTeamRosterEntry = {
@@ -174,6 +175,47 @@ const DEFAULT_LEDGER_DIR = path.join(
   'output',
   'ledger'
 );
+const DEFAULT_DRAFT_ASSETS_DIR = path.join(
+  PROJECT_ROOT,
+  'team-scrape',
+  'shared',
+  'firestore_staging',
+  '_artifacts',
+  'output',
+  'draft_assets'
+);
+
+/**
+ * Draft asset structure from buildDraftAssets.ts
+ */
+type DraftAsset = {
+  assetId: string;
+  pickId: string;
+  year: number;
+  round: number;
+  team: string;
+  originalTeam: string;
+  assetType: 'outright_pick' | 'conditional_right' | 'swap_right';
+  certainty: 'certain' | 'conditional';
+  protection?: string | null;
+  conditionsText?: string;
+  isSwap?: boolean;
+  swapDetails?: unknown;
+  source: {
+    srcTeamPage?: string;
+    rawText?: string;
+    obligationId?: string;
+  };
+  tradeableNow: boolean;
+  via?: string;
+  notes?: string;
+};
+
+type TeamDraftAssets = {
+  teamCode: string;
+  generatedAt: string;
+  picks: DraftAsset[];
+};
 
 function parseArgs(): CliArgs {
   const args = process.argv.slice(2);
@@ -189,6 +231,7 @@ function parseArgs(): CliArgs {
       'output'
     ),
     ledgerDir: DEFAULT_LEDGER_DIR,
+    draftAssetsDir: DEFAULT_DRAFT_ASSETS_DIR,
   };
 
   for (let i = 0; i < args.length; i += 1) {
@@ -215,6 +258,11 @@ function parseArgs(): CliArgs {
       i += 1;
     } else if (arg.startsWith('--ledgerDir=')) {
       cli.ledgerDir = path.resolve(PROJECT_ROOT, arg.split('=')[1] ?? cli.ledgerDir);
+    } else if (arg === '--draftAssetsDir') {
+      cli.draftAssetsDir = path.resolve(PROJECT_ROOT, args[i + 1] || cli.draftAssetsDir);
+      i += 1;
+    } else if (arg.startsWith('--draftAssetsDir=')) {
+      cli.draftAssetsDir = path.resolve(PROJECT_ROOT, arg.split('=')[1] ?? cli.draftAssetsDir);
     }
   }
 
@@ -854,10 +902,37 @@ async function loadLedgerViews(
   }
 }
 
+/**
+ * Loads draft assets from the draft_assets directory.
+ * This is the canonical source for Trade Machine picks.
+ */
+async function loadDraftAssets(
+  teamCode: string,
+  draftAssetsDir: string
+): Promise<TeamDraftAssets | null> {
+  const assetsPath = path.join(draftAssetsDir, `${teamCode}.json`);
+  try {
+    const assets = await readJson<TeamDraftAssets>(assetsPath);
+    if (assets && assets.teamCode === teamCode) {
+      console.log(
+        `  ✓ Loaded draft assets for ${teamCode}: ${assets.picks?.length || 0} tradeable assets`
+      );
+      return assets;
+    }
+    return null;
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+      console.warn(`⚠️  Error reading draft assets for ${teamCode}:`, err);
+    }
+    return null;
+  }
+}
+
 function buildBaseTeamDoc({
   rawTeam,
   draftPicks,
   ledgerViews,
+  draftAssets,
   pickSource,
   resolver,
   seasonOverride,
@@ -865,6 +940,7 @@ function buildBaseTeamDoc({
   rawTeam: RawTeamData;
   draftPicks: NormalizedDraftPick[];
   ledgerViews?: LedgerTeamViews | null;
+  draftAssets?: TeamDraftAssets | null;
   pickSource?: { provider?: string; url?: string; scrapedAt?: string };
   resolver: PlayerIdResolver;
   seasonOverride?: string;
@@ -872,6 +948,7 @@ function buildBaseTeamDoc({
   draftPicksInventory?: NormalizedDraftPick[];
   draftPicksObligations?: NormalizedDraftPick[];
   draftPicksContested?: NormalizedDraftPick[];
+  draftAssets?: { picks: DraftAsset[] };
 } {
   const rosterIds = (rawTeam.roster ?? []).map(
     (entry) => resolver.resolve(entry, `roster`).playerId
@@ -919,6 +996,7 @@ function buildBaseTeamDoc({
     draftPicksInventory?: NormalizedDraftPick[];
     draftPicksObligations?: NormalizedDraftPick[];
     draftPicksContested?: NormalizedDraftPick[];
+    draftAssets?: { picks: DraftAsset[] };
   } = {
     teamCode: rawTeam.teamCode,
     teamName: rawTeam.teamName,
@@ -955,10 +1033,15 @@ function buildBaseTeamDoc({
     baseDoc.draftPicksContested = draftPicksContested;
   }
 
+  // Add draftAssets (canonical source for Trade Machine)
+  if (draftAssets?.picks?.length) {
+    baseDoc.draftAssets = { picks: draftAssets.picks };
+  }
+
   return baseDoc;
 }
 
-async function stageTeam({ team, season, validate, outDir, ledgerDir }: CliArgs) {
+async function stageTeam({ team, season, validate, outDir, ledgerDir, draftAssetsDir }: CliArgs) {
   const teamCode = team.toUpperCase();
 
   console.log(`📦 Staging baseTeam document for ${teamCode}`);
@@ -976,6 +1059,12 @@ async function stageTeam({ team, season, validate, outDir, ledgerDir }: CliArgs)
   let ledgerViews: LedgerTeamViews | null = null;
   if (ledgerDir) {
     ledgerViews = await loadLedgerViews(teamCode, ledgerDir);
+  }
+
+  // Load draft assets (canonical Trade Machine source) if available
+  let draftAssets: TeamDraftAssets | null = null;
+  if (draftAssetsDir) {
+    draftAssets = await loadDraftAssets(teamCode, draftAssetsDir);
   }
 
   const fallbackPicks =
@@ -1010,6 +1099,7 @@ async function stageTeam({ team, season, validate, outDir, ledgerDir }: CliArgs)
     rawTeam,
     draftPicks: normalizedPicks,
     ledgerViews,
+    draftAssets,
     pickSource,
     resolver,
     seasonOverride: season,
@@ -1018,7 +1108,7 @@ async function stageTeam({ team, season, validate, outDir, ledgerDir }: CliArgs)
   if (validate) {
     // Validate the base schema. The BaseTeamDocZ schema does not yet include
     // the new ledger-derived fields (draftPicksInventory, draftPicksObligations,
-    // draftPicksContested). We strip them for validation purposes.
+    // draftPicksContested, draftAssets). We strip them for validation purposes.
     // TODO: Update BaseTeamDocZ in src/schemas/architect.ts to include these
     // new fields once they are stable and the Trade Machine is wired to use them.
     BaseTeamDocZ.parse({
@@ -1026,6 +1116,7 @@ async function stageTeam({ team, season, validate, outDir, ledgerDir }: CliArgs)
       draftPicksInventory: undefined,
       draftPicksObligations: undefined,
       draftPicksContested: undefined,
+      draftAssets: undefined,
     });
   }
 
@@ -1090,6 +1181,18 @@ async function stageTeam({ team, season, validate, outDir, ledgerDir }: CliArgs)
     console.log(`      - draftPicksInventory: ${baseTeamDoc.draftPicksInventory.length} picks`);
     console.log(`      - draftPicksObligations: ${baseTeamDoc.draftPicksObligations?.length ?? 0} picks`);
     console.log(`      - draftPicksContested: ${baseTeamDoc.draftPicksContested?.length ?? 0} picks`);
+  }
+
+  // Log draft assets stats if available
+  if (baseTeamDoc.draftAssets?.picks?.length) {
+    console.log(`   🏀 Draft assets (Trade Machine source):`);
+    console.log(`      - Total tradeable assets: ${baseTeamDoc.draftAssets.picks.length}`);
+    const byType = {
+      outright: baseTeamDoc.draftAssets.picks.filter(p => p.assetType === 'outright_pick').length,
+      conditional: baseTeamDoc.draftAssets.picks.filter(p => p.assetType === 'conditional_right').length,
+      swap: baseTeamDoc.draftAssets.picks.filter(p => p.assetType === 'swap_right').length,
+    };
+    console.log(`      - By type: ${byType.outright} outright, ${byType.conditional} conditional, ${byType.swap} swap`);
   }
 }
 
