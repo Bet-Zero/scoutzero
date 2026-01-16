@@ -9,85 +9,24 @@ import { ensurePickId } from '@/features/architect/utils/tradeMachine/utils/pick
 import { TeamMap } from '@/constants/teamList';
 import { toSeasonKey } from '@/features/architect/utils/seasonFormat';
 import { computeTradeDraftKey, isValidationCurrent } from '@/features/architect/tradeMachine/utils/computeTradeDraftKey';
+import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 
 /* ============================
-   Helpers: numeric + payroll
+   SSOT WIRING
    ============================ */
 
-const num = (v) => {
-  if (v == null) return 0;
-  if (typeof v === 'number') return v;
-  const n = Number(String(v).replace(/[^0-9.-]/g, ''));
-  return Number.isFinite(n) ? n : 0;
-};
-
-// Baseline payroll from your cap sheet: prefer activeContracts, fallback to players.contract
-// Uses Architect contract.salariesByYear schema
-const payrollForYearFromCapSheet = (capSheet, endYear) => {
-  if (!capSheet) return 0;
-
-  // Convert end-year to season start-year format: 2025 -> "2024-25"
-  const season = toSeasonKey(endYear);
-  const y = String(endYear);
-
-  // Preferred source: activeContracts
-  const fromActive = (capSheet.activeContracts || []).reduce((sum, c) => {
-    // Use Architect schema: contract.salariesByYear array
-    if (c?.contract?.salariesByYear) {
-      const yearEntry = c.contract.salariesByYear.find(
-        (entry) => entry.season === season
-      );
-      if (yearEntry) {
-        return sum + num(yearEntry.capHit || yearEntry.salary || 0);
-      }
-    }
-
-    // Fallback to salaryByYear map (temporary format during trade creation)
-    const s = c?.salaryByYear?.[endYear] ?? c?.salaryByYear?.[y] ?? 0;
-    return sum + num(s);
-  }, 0);
-  if (fromActive > 0) return fromActive;
-
-  // Fallback: players array
-  const fromPlayers = (capSheet.players || []).reduce((sum, p) => {
-    // Use Architect schema: contract.salariesByYear array
-    if (p?.contract?.salariesByYear) {
-      const yearEntry = p.contract.salariesByYear.find(
-        (entry) => entry.season === season
-      );
-      if (yearEntry) {
-        return sum + num(yearEntry.capHit || yearEntry.salary || 0);
-      }
-    }
-
-    return sum;
-  }, 0);
-
-  return fromPlayers;
-};
-
-// Optional dead money (best-effort scan of common shapes)
-const deadMoneyForYear = (capSheet, endYear) => {
-  const y = String(endYear);
-
-  const arrs = []
-    .concat(capSheet?.waivedContracts || [])
-    .concat(capSheet?.stretchHistory || []);
-
-  const fromArrays = arrs.reduce((sum, w) => {
-    const amt =
-      w?.deadMoneyByYear?.[endYear] ??
-      w?.deadMoneyByYear?.[y] ??
-      w?.amountByYear?.[endYear] ??
-      w?.amountByYear?.[y] ??
-      0;
-    return sum + num(amt);
-  }, 0);
-
-  const fromFlat =
-    num(capSheet?.deadMoney?.[endYear]) + num(capSheet?.deadMoney?.[y]);
-
-  return fromArrays + fromFlat;
+/**
+ * Convenience wrapper to get baseline payroll + dead money from SSOT.
+ * Returns { playersTotal, deadMoneyTotal, totalWithDead } from computeTeamCapTotals.
+ */
+const getCapTotalsForYear = (teamCapSheet, yearKey) => {
+  if (!teamCapSheet) return { playersTotal: 0, deadMoneyTotal: 0, totalWithDead: 0 };
+  const totals = computeTeamCapTotals(teamCapSheet, yearKey);
+  return {
+    playersTotal: totals.playersTotal,
+    deadMoneyTotal: totals.deadMoneyTotal,
+    totalWithDead: totals.playersTotal + totals.deadMoneyTotal,
+  };
 };
 
 /* ============================
@@ -246,15 +185,14 @@ export const useTradeMachine = (
         };
         augmentTeamWithExceptions(teamObj, yearKey, capProjections);
 
-        // === Baseline payroll wiring ===
-        const baseline = payrollForYearFromCapSheet(teamObj, yearKey);
-        const dead = deadMoneyForYear(teamObj, yearKey);
-        teamObj.teamTotalSalary = baseline + dead;
-        teamObj.projectedSalary = baseline + dead;
+        // === Baseline payroll wiring (SSOT) ===
+        const { playersTotal: baseline, deadMoneyTotal: dead, totalWithDead } = getCapTotalsForYear(teamObj, yearKey);
+        teamObj.teamTotalSalary = totalWithDead;
+        teamObj.projectedSalary = totalWithDead;
 
         // LOG A) After computing teamObj.teamTotalSalary in init()
         console.log(
-          '[init payroll]',
+          '[init payroll SSOT]',
           teamObj.nickname || teamObj.name || teamObj.id,
           {
             year: yearKey,
@@ -492,15 +430,14 @@ export const useTradeMachine = (
         };
         augmentTeamWithExceptions(teamObj, yearKey, capProjections);
 
-        // === Baseline payroll wiring on select ===
-        const baseline = payrollForYearFromCapSheet(teamObj, yearKey);
-        const dead = deadMoneyForYear(teamObj, yearKey);
-        teamObj.teamTotalSalary = baseline + dead;
-        teamObj.projectedSalary = baseline + dead;
+        // === Baseline payroll wiring on select (SSOT) ===
+        const { playersTotal: baseline, deadMoneyTotal: dead, totalWithDead } = getCapTotalsForYear(teamObj, yearKey);
+        teamObj.teamTotalSalary = totalWithDead;
+        teamObj.projectedSalary = totalWithDead;
 
         // LOG B) After computing payroll in selectTeam()
         console.log(
-          '[select payroll]',
+          '[select payroll SSOT]',
           teamObj.nickname || teamObj.name || teamObj.id,
           {
             year: yearKey,
@@ -544,21 +481,20 @@ export const useTradeMachine = (
     // P0-3: Set validating state before validation runs
     setIsValidating(true);
 
-    // (Optional) last-second safety net: if any team is missing payroll, patch it
+    // (Optional) last-second safety net: if any team is missing payroll, patch it (SSOT)
     const patchedTeams = teams.map((t) => {
       if (!t.team) return t;
       if (
         !Number.isFinite(t.team.teamTotalSalary) ||
         t.team.teamTotalSalary === 0
       ) {
-        const baseline = payrollForYearFromCapSheet(t.team, yearKey);
-        const dead = deadMoneyForYear(t.team, yearKey);
+        const { totalWithDead } = getCapTotalsForYear(t.team, yearKey);
         return {
           ...t,
           team: {
             ...t.team,
-            teamTotalSalary: baseline + dead,
-            projectedSalary: baseline + dead,
+            teamTotalSalary: totalWithDead,
+            projectedSalary: totalWithDead,
           },
         };
       }

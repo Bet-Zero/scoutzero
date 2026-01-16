@@ -1,5 +1,4 @@
 /**
- * FILE: src/features/architect/CapSheet.jsx
  * PURPOSE: Current-year cap sheet grid for Architect teams, now annotated with player rules profiles.
  * OWNERSHIP: Feature: architect/cap-sheet
  *
@@ -12,13 +11,13 @@
  *  - Latest Chunk: plans/player-rules-architect/chunks/chunk_01.md
  */
 import React, { useState } from 'react';
+import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import {
   getMinimumCapHit,
   getContractYearSlice,
 } from '@/features/architect/utils/contractUtils';
 import {
   getActiveUnsignedCapHoldsByEndYear,
-  getActiveUnsignedCapHoldsTotalByEndYear,
 } from '@/features/architect/utils/capHolds';
 import CapSummaryTiles from '@/features/architect/CapSummaryTiles';
 import { POSITION_MAP } from '@/shared/utils/roles';
@@ -43,6 +42,12 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer }) => {
     currentYear: selectedYear,
     teamCode: teamCapSheet?.teamCode,
   });
+
+  // SINGLE SOURCE OF TRUTH: Compute totals once for the entire surface
+  const totals = React.useMemo(
+    () => computeTeamCapTotals(teamCapSheet, selectedYear),
+    [teamCapSheet, selectedYear]
+  );
 
   if (!teamCapSheet) {
     return <div className="text-white/60 p-4">Loading cap sheet...</div>;
@@ -79,8 +84,8 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer }) => {
   };
 
   // Helper to aggregate cap hits for a group of players
-  const calculateCapHitTotal = (players, yearKey) =>
-    players.reduce((sum, p) => sum + getCapHit(p, yearKey), 0);
+  // const calculateCapHitTotal = (players, yearKey) =>
+  //   players.reduce((sum, p) => sum + getCapHit(p, yearKey), 0);
 
   const renderNotes = (player, yearKey, rulesProfile) => {
     const slice = getContractYearSlice(player, yearKey);
@@ -167,10 +172,10 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer }) => {
     selectedYear
   ).sort((a, b) => (b.amount || 0) - (a.amount || 0));
 
-  const playersCapTotal = calculateCapHitTotal(filteredPlayers, selectedYear);
-  const capHoldsTotal = getActiveUnsignedCapHoldsTotalByEndYear(teamCapSheet.capHolds, selectedYear);
-  // Cap totals are precomputed to avoid any mutation during render
-  const totalCapHit = playersCapTotal + (showCapHolds ? capHoldsTotal : 0);
+  // REMOVED: Local totals calculation in favor of SSOT `totals` object
+  // const playersCapTotal = calculateCapHitTotal(filteredPlayers, selectedYear);
+  // const capHoldsTotal = getActiveUnsignedCapHoldsTotalByEndYear(teamCapSheet.capHolds, selectedYear);
+  // const totalCapHit = playersCapTotal + (showCapHolds ? capHoldsTotal : 0);
 
   return (
     <div className="text-white font-sans">
@@ -201,6 +206,7 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer }) => {
       <CapSummaryTiles
         teamCapSheet={teamCapSheet}
         selectedYear={selectedYear}
+        totals={totals}
       />
 
       {/* Roster Cap Table (Grid Layout) */}
@@ -336,7 +342,7 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer }) => {
               Total Cap Hit
             </span>
             <span className="text-lg font-bold text-white tabular-nums tracking-tight">
-              ${totalCapHit.toLocaleString()}
+              ${totals.totalCapAllocations.toLocaleString()}
             </span>
           </div>
         </div>

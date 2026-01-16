@@ -320,60 +320,100 @@ function serialize(obj: unknown, pretty = true): string {
  * Determines asset type for a pick based on its properties
  */
 function classifyAssetType(pick: LedgerPick, teamCode: string): AssetType | null {
-  // Swap rights
+  // 1. Swap Rights
+  // Only assign swap_right if the team explicitly CONTROLS the swap.
+  // Merely being involved in a swap (as the pick holder) does not grant a swap_right asset.
   if (pick.isSwap || pick.swapDetails) {
-    // Team must be involved in the swap
-    if (
-      pick.owner === teamCode ||
-      pick.originalTeam === teamCode ||
-      pick.swapDetails?.swapWith?.includes(teamCode) ||
-      pick.swapDetails?.controller === teamCode
-    ) {
+    const controller = pick.swapDetails?.controller;
+    
+    // Strict verification: Controller must match teamCode
+    if (controller && normalizeTeamCode(controller) === teamCode) {
       return 'swap_right';
     }
-    return null;
   }
 
-  // Conditional rights (protected picks, conditional status)
+  // 2. Conditional Rights
+  // If the pick is conditional/protected, determine beneficiary
   if (
     pick.status === 'conditional' ||
     (pick.protection && pick.protection.trim() !== '')
   ) {
-    // For conditional picks, the beneficiary (recipient team) gets the conditional_right
-    // NOT the owner (who retains it if protection triggers)
     const beneficiary = extractBeneficiaryTeam(pick);
     
     if (beneficiary) {
-      // If this team is the beneficiary, they get the conditional_right asset
-      if (beneficiary === teamCode) {
-        return 'conditional_right';
-      }
-      // If this team is the owner but NOT the beneficiary, skip - they retain conditionally
-      // but it's not a tradeable asset for them
-      return null;
+      if (beneficiary === teamCode) return 'conditional_right';
+      return null; // Owned by team but goes to someone else
     }
     
-    // Fallback: if no explicit beneficiary found but team is recipient, assign conditional_right
-    if (pick.recipient === teamCode) {
-      return 'conditional_right';
-    }
-    
+    // Fallback: use recipient
+    if (pick.recipient === teamCode) return 'conditional_right';
     return null;
   }
 
-  // Outright picks (unconditional ownership)
+  // 3. Outright Picks (including Encumbered Picks)
+  // An asset is an outright pick if:
+  // - The team is the explicit recipient (e.g. from a trade/swap result)
+  // - OR The team is the owner AND it's not outgoing/conditional
+  //
+  // NOTE: We now ALLOW isSwap=true here. This covers "Encumbered Picks" 
+  // (picks owned by the team but subject to a swap controlled by another team).
+  
+  const isRecipient = pick.recipient === teamCode;
+  
+  // For contested picks (like swap results), we MUST rely on recipient or resolved ownership
+  if (pick.status === 'contested') {
+     // Scenario A: We are the designated recipient (e.g. PHI_2030_2nd -> DAL)
+     if (isRecipient) {
+        // Enforce route check (Fix for SAS_2027_2nd where recipient=DAL but route=DET)
+        if (pick.route && pick.route.length > 0) {
+            const lastStop = pick.route[pick.route.length - 1];
+            if (normalizeTeamCode(lastStop) !== teamCode) {
+                 return null;
+            }
+        }
+        return 'outright_pick';
+     }
+
+     // Scenario B: We are the original owner AND current owner (Encumbered)
+     if (pick.owner === teamCode && pick.originalTeam === teamCode) {
+        return 'outright_pick';
+     }
+
+     return null;
+  }
+  
+  // For normal inventory
+  // Critical Fix: Explicitly exclude 'outgoing' status UNLESS confirmation via Route
+  if (pick.status === 'outgoing') {
+      if (!isRecipient) return null;
+
+      if (pick.route && pick.route.length > 0) {
+          const lastStop = pick.route[pick.route.length - 1];
+          if (normalizeTeamCode(lastStop) !== teamCode) return null;
+      }
+  }
+
   if (
     (pick.status === 'own' || pick.status === 'incoming') &&
-    pick.owner === teamCode &&
-    !pick.protection &&
-    !pick.isSwap
+    (pick.owner === teamCode || isRecipient) &&
+    !pick.protection
   ) {
     return 'outright_pick';
   }
 
-  // Fallback: if team owns it and it's in inventory, treat as outright
+  // Fallback for inventory items
   if (pick.owner === teamCode && pick.relation === 'inventory') {
-    return 'outright_pick';
+     if (pick.recipient && pick.recipient !== teamCode) return null;
+     
+     if (pick.status === 'outgoing') {
+         if (!isRecipient) return null;
+         if (pick.route && pick.route.length > 0) {
+             const lastStop = pick.route[pick.route.length - 1];
+             if (normalizeTeamCode(lastStop) !== teamCode) return null;
+         }
+     }
+
+     return 'outright_pick';
   }
 
   return null;

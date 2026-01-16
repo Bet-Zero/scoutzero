@@ -1,9 +1,10 @@
 # Trade Machine Draft Picks Master Document
 
-> **Version**: 2.4.1 (January 2026)  
-> **Status**: PHASE 5 COMPLETE + DESYNC PATCH - Season Advance uses worldMeta as single source of truth  
+> **Version**: 2.5.0 (January 2026)  
+> **Status**: PHASE 5 COMPLETE + 2026-01-15 AUDIT REFRESH - Major gaps resolved (G3, G5, G6)  
 > **Purpose**: Comprehensive audit of draft pick implementation in Trade Machine  
 > **Author**: Automated Code Audit  
+> **Last Audit**: 2026-01-15  
 
 ---
 
@@ -46,15 +47,15 @@ This document provides a **brutally honest audit** of draft pick implementation 
 
 | Area | Status | Risk Level |
 |------|--------|------------|
-| Pick Data Model | ⚠️ Partial | **MEDIUM** |
+| Pick Data Model | ✅ Stable IDs Implemented | Low |
 | Basic Trading | ✅ Implemented | Low |
-| Protection Support | ⚠️ Basic/String-only | **HIGH** |
-| Swap Rights | ⚠️ UI-only/Not Validated | **HIGH** |
-| Stepien Validation | ✅ Basic Implementation | Medium |
-| Conveyance/Rollover | ❌ Not Implemented | **HIGH** |
-| Pick Swaps (Best-of) | ❌ Not Implemented | **HIGH** |
-| Pick Chains | ❌ Not Implemented | **HIGH** |
-| Multi-tier Protections | ❌ Not Implemented | **HIGH** |
+| Protection Support | ⚠️ Basic/String-only (UI limitation) | **MEDIUM** |
+| Swap Rights | ✅ Resolution Implemented | Low |
+| Stepien Validation | ✅ Obligations Wiring Complete | Low |
+| Conveyance/Rollover | ✅ **IMPLEMENTED** (2026-01-15) | Low |
+| Pick Swaps (Best-of) | ✅ **IMPLEMENTED** (2026-01-15) | Low |
+| Pick Chains | ⚠️ Schema exists, UI incomplete | **MEDIUM** |
+| Multi-tier Protections | ⚠️ Schema exists, UI incomplete | **MEDIUM** |
 | Receipt/Export Display | ✅ Basic Implementation | Low |
 
 ---
@@ -217,6 +218,50 @@ This document provides a **brutally honest audit** of draft pick implementation 
 | **Input Shape** | `team.postTradeStatus?.isAtOrAboveSecondApron`, `pick.originalTeam`, `pick.year` |
 | **Output Effect** | Adds violation if second apron team tries to trade own pick 7+ years out |
 
+### E15: Swap Resolution Implemented (G6 RESOLVED - 2026-01-15)
+
+| Field | Value |
+|-------|-------|
+| **Claim** | `swapResolution.js` provides swap resolution logic |
+| **Evidence** | `src/features/architect/utils/tradeMachine/utils/swapResolution.js:112-178` |
+| **Snippet** | `export function resolvePickSwap(pick, positionsMap, options = {}) { ... const winner = resolveSwapWinner({ teamA, teamB, swapType }, positionsMap); }` |
+| **Call Chain** | `seasonManager.advanceSeasonYear()` → `resolvePickSwap(pick, positionsMap)` at line 1143 |
+| **Input Shape** | `pick` with `isSwap: true`, `swapWithTeamId`, `swapType`; `positionsMap` with team → position mapping |
+| **Output Effect** | Returns pick with `resolved: true`, `resolvedOwner`, `resolvedPosition` fields |
+
+### E16: Conveyance Resolution Implemented (G3 RESOLVED - 2026-01-15)
+
+| Field | Value |
+|-------|-------|
+| **Claim** | `conveyanceResolution.js` provides protection trigger and rollover logic |
+| **Evidence** | `src/features/architect/utils/tradeMachine/utils/conveyanceResolution.js:105-183` |
+| **Snippet** | `export function resolveConveyanceForPick(pick, positionsMap, opts = {}) { ... if (protectionTriggers(protection, position)) { return resolveProtectionTrigger(pick, position, opts); } }` |
+| **Call Chain** | `seasonManager.advanceSeasonYear()` → `resolveConveyanceForPick(pick, positionsMap)` at line 1222 |
+| **Input Shape** | `pick` with `protection` string and/or `conveyance` object; `positionsMap` with team → position mapping |
+| **Output Effect** | Returns pick with `conveyanceResult: { outcome: 'rolled' | 'conveyed' | 'converted', position, ... }` |
+
+### E17: Pick ID Utilities Implemented (G5 RESOLVED - 2026-01-15)
+
+| Field | Value |
+|-------|-------|
+| **Claim** | `pickIdUtils.js` provides stable pick ID generation and comparison |
+| **Evidence** | `src/features/architect/utils/tradeMachine/utils/pickIdUtils.js:63-75` |
+| **Snippet** | `export function generatePickId(pick) { const team = pick.originalTeam || 'UNK'; const year = pick.year || '????'; const round = normalizeRound(pick.round); return \`${team}_${year}_${round}\`; }` |
+| **Call Chain** | `ensurePickId(pick)` → `generatePickId(pick)` |
+| **Input Shape** | `pick` with `originalTeam`, `year`, `round` (string or number) |
+| **Output Effect** | Returns canonical ID format `{originalTeam}_{year}_{round}` (e.g., `"PHI_2026_1"`) |
+
+### E18: Stepien Obligations Wiring (G1 PARTIALLY FIXED - 2026-01-15)
+
+| Field | Value |
+|-------|-------|
+| **Claim** | `validateStepien.js` now reads existing obligations and considers swap types |
+| **Evidence** | `src/features/architect/utils/tradeMachine/rules/validateStepien.js:14-24, 116` |
+| **Snippet** | `function reservesYearForStepien(pick) { if (!pick.isSwap) return true; const swapType = pick.swapType || 'best_of'; return swapType !== 'worst_of'; }` and `const existingObligations = team.draftPicksObligations || team.team?.draftPicksObligations || [];` |
+| **Call Chain** | `validateStepien(team, tradeCtx)` → `reservesYearForStepien(pick)` → `obligationReservesYear(ob, teamCode)` |
+| **Input Shape** | `team.draftPicksObligations[]` array with pick obligations; `pick.isSwap`, `pick.swapType` |
+| **Output Effect** | `worst_of` swaps do NOT reserve year for Stepien; `best_of` swaps DO reserve year |
+
 ---
 
 ## File Map
@@ -279,6 +324,16 @@ This document provides a **brutally honest audit** of draft pick implementation 
 | `src/features/architect/utils/tradeHelpers.js` | **Trade helpers** | `areSamePick()` - compares by year/round/via; `formatPick()` - display string with protection/swap icons |
 | `src/features/architect/utils/draftPickUtils.js` | **Pick utilities** | Checks if pick is owned by team |
 | `src/features/architect/tradeMachine/utils/computeTradeDraftKey.js` | **Draft key generation** | Creates cache key from picks using `originalTeam` |
+
+### F2) Pick Resolution Utilities (IMPLEMENTED 2026-01-15)
+
+> **Note:** These utilities resolve G3 (Conveyance), G5 (Pick IDs), and G6 (Swap Resolution).
+
+| Path | Responsibility | Key Functions/Types |
+|------|----------------|---------------------|
+| `src/features/architect/utils/tradeMachine/utils/pickIdUtils.js` | **Stable Pick IDs (G5)** | `generatePickId()` - Format: `{originalTeam}_{year}_{round}`; `ensurePickId()` - adapter; `areSamePickById()` - comparison |
+| `src/features/architect/utils/tradeMachine/utils/swapResolution.js` | **Swap Resolution (G6)** | `resolvePickSwap()` - resolves single swap; `resolveSwapWinner()` - best_of/worst_of logic; `resolveTeamSwaps()` - batch resolution |
+| `src/features/architect/utils/tradeMachine/utils/conveyanceResolution.js` | **Conveyance/Rollover (G3)** | `resolveConveyanceForPick()` - protection trigger logic; `protectionTriggers()` - position check; `normalizeProtection()` - format adapter |
 
 ### G) Team Data Scraping (Reference Only)
 
@@ -402,19 +457,19 @@ This document provides a **brutally honest audit** of draft pick implementation 
 
 | # | Gap Title | Severity | Location | User Impact | Done Criteria |
 |---|-----------|----------|----------|-------------|---------------|
-| G1 | **Swap Rights Not Validated** | BLOCKER | `validateStepien.js`, `tradeValidator.js` | Swaps bypass Stepien illegally; swap partner selection is meaningless | Swap rights properly reserve years for Stepien; swap resolution shows which team keeps which pick |
+| G1 | ~~Swap Rights Not Validated~~ | ✅ PARTIALLY FIXED | `validateStepien.js:14-24` | ~~Swaps bypass Stepien~~ → Swap types now considered via `reservesYearForStepien()` | ✅ `worst_of` swaps don't reserve year; `best_of` swaps do reserve year |
 | G2 | **No Multi-Tier Protection Support** | BLOCKER | `DraftPickZ`, `TradePickRow.jsx` | Cannot represent real NBA protections (e.g., "Top 3 → Top 5 → Unprotected") | Protection is tiered array with year/condition/conversion; UI allows tier editing |
-| G3 | **No Conveyance/Rollover Logic** | BLOCKER | N/A - Not implemented | Protected picks that trigger have no forward path; users can't model real pick obligations | Conveyance rules execute at season advance; picks roll to next tier/year automatically |
+| G3 | ~~No Conveyance/Rollover Logic~~ | ✅ **RESOLVED** | `conveyanceResolution.js` | ~~No forward path~~ → `resolveConveyanceForPick()` handles roll/convert/cancel | ✅ Conveyance executes at season advance via `seasonManager.js` |
 | G4 | **`isMeaningfulProtection()` Format Mismatch** | BLOCKER | `basicRules.js:25`, `tradeUtilities.js:74` | Stepien validation may incorrectly pass/fail based on protection format | Single canonical implementation; all callers use same format |
 
 ### MAJOR Level Gaps
 
 | # | Gap Title | Severity | Location | User Impact | Done Criteria |
 |---|-----------|----------|----------|-------------|---------------|
-| G5 | **No Stable Pick ID Strategy** | MAJOR | `areSamePick()`, `computeTradeDraftKey.js` | Picks can be duplicated or lost in complex multi-team trades | Canonical ID format: `{originalTeam}_{year}_{round}` enforced everywhere |
-| G6 | **Pick Swap Best/Worst-Of Logic Missing** | MAJOR | N/A - Not implemented | Cannot model "more favorable of Team A / Team B pick" | Swap resolution function compares projected picks and assigns correctly |
+| G5 | ~~No Stable Pick ID Strategy~~ | ✅ **RESOLVED** | `pickIdUtils.js` | ~~Picks duplicated/lost~~ → `generatePickId()`, `ensurePickId()`, `areSamePickById()` | ✅ Canonical ID format `{originalTeam}_{year}_{round}` implemented |
+| G6 | ~~Pick Swap Best/Worst-Of Logic Missing~~ | ✅ **RESOLVED** | `swapResolution.js` | ~~Cannot model swap~~ → `resolvePickSwap()`, `resolveSwapWinner()` | ✅ Swap resolution compares positions and assigns correctly |
 | G7 | **Stepien Calendar Not Shown in UI** | MAJOR | `stepienUtils.js`, `TradeEditor.jsx` | Users don't know which years are blocked before creating trade | Calendar visualization shows blocked/available years per team |
-| G8 | **Three Duplicate Stepien Implementations** | MAJOR | See File Map section D | Bug fixes may not propagate; maintenance burden | Single `validateStepien.js` is canonical; others removed or delegated |
+| G8 | ~~Three Duplicate Stepien Implementations~~ | ✅ DELEGATED | `stepienUtils.js:101-109` | ~~Bug fixes may not propagate~~ → `hasStepienViolation()` now delegates to canonical | ✅ `stepienUtils.js` calls `validateStepien.js` internally |
 | G9 | **Second Apron Swap Year Blocking Missing** | MAJOR | `validateStepien.js:76-96` | Second apron swap restrictions not enforced | Swaps properly count toward Stepien restrictions for second apron teams |
 | G10 | **Pick Chain / Provenance Tracking** | MAJOR | `DraftPickZ.route` field | Cannot show full pick history "PHI → OKC → HOU" | Route array populated and displayed; validation uses full chain |
 

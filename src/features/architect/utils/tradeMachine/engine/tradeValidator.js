@@ -45,7 +45,7 @@ import {
  * 
  * preTradeTeamSalary (aka teamTotalSalary):
  * - Source: team.team.teamTotalSalary (passed in from useTradeMachine hook)
- * - Computed in: useTradeMachine.js via payrollForYearFromCapSheet() + deadMoneyForYear()
+ * - Computed in: useTradeMachine.js via getCapTotalsForYear() → computeTeamCapTotals (SSOT)
  * - INCLUDES:
  *   ☑ Active player contracts (capHit from contract.salariesByYear)
  *   ☑ Dead money (from waivedContracts, stretchHistory, or flat deadMoney map)

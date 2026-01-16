@@ -1509,6 +1509,30 @@ function toStructured(row: RawRow, round: 1 | 2): StructuredPick[] {
   return out;
 }
 
+// ---------- Year Coverage Constants ----------
+// TODO: Derive NEXT_DRAFT_YEAR from config or current date logic
+const NEXT_DRAFT_YEAR = 2026;
+const REQUIRED_MAX_YEAR = NEXT_DRAFT_YEAR + 6; // 2032
+const REQUIRED_YEARS = Array.from(
+  { length: REQUIRED_MAX_YEAR - NEXT_DRAFT_YEAR + 1 },
+  (_, i) => NEXT_DRAFT_YEAR + i
+); // [2026, 2027, 2028, 2029, 2030, 2031, 2032]
+
+/**
+ * Check if page content contains sufficient year coverage.
+ * Returns true if at least 5 of the required years (2026-2032) are present.
+ */
+function hasRequiredYearCoverage(bodyText: string): boolean {
+  let yearsFound = 0;
+  for (const year of REQUIRED_YEARS) {
+    if (bodyText.includes(String(year))) {
+      yearsFound++;
+    }
+  }
+  // Require at least 5 years to be present (allows for some teams having fewer picks)
+  return yearsFound >= 5;
+}
+
 // ---------- Per-team page scraper (browser-based with Playwright) ----------
 async function fetchTeamHtml(url: string) {
   const browser = await chromium.launch({
@@ -1550,8 +1574,47 @@ async function fetchTeamHtml(url: string) {
       });
     }
 
-    // Wait a bit for any dynamic content to load
-    await page.waitForTimeout(3000);
+    // Wait for proper table content to render
+    // Strategy 1: Wait for "Future 1st Round Picks" header to appear
+    try {
+      await page.waitForFunction(
+        () => document.body.innerText.includes('Future 1st Round Picks'),
+        { timeout: 8000 }
+      );
+      console.log('   ✓ Found "Future 1st Round Picks" header');
+    } catch {
+      console.warn('   ⚠️ Could not find draft picks header, continuing...');
+    }
+
+    // Strategy 2: Wait for year text to appear (specifically check for 2032)
+    // This ensures the full table has rendered, not just the loading placeholder
+    try {
+      // Wait for year 2032 to appear AND "Loading" to disappear
+      await page.waitForFunction(
+        () => {
+          const text = document.body.innerText;
+          return text.includes('2032') && !text.includes('Loading, please wait');
+        },
+        { timeout: 10000 }
+      );
+      console.log(`   ✓ Found year ${REQUIRED_MAX_YEAR} in page content`);
+    } catch {
+      // Extended wait for slow-loading pages (like BKN)
+      console.warn(
+        `   ⚠️ Year ${REQUIRED_MAX_YEAR} not found yet, extending wait...`
+      );
+      await page.waitForTimeout(5000);
+
+      // Final check - if still loading, wait more
+      const bodyText = await page.evaluate(() => document.body.innerText);
+      if (bodyText.includes('Loading, please wait')) {
+        console.warn('   ⚠️ Page still shows "Loading", waiting additional 5s...');
+        await page.waitForTimeout(5000);
+      }
+    }
+
+    // Minimal additional wait for any final rendering
+    await page.waitForTimeout(1000);
 
     const html = await page.content();
     return html;
@@ -1593,10 +1656,30 @@ function parseYearBlocks(lines: string[]) {
   return yearBlocks;
 }
 
-async function scrapeTeamPage(teamCode: string, teamName: string, url: string) {
-  const html = await fetchTeamHtml(url);
-  const $ = cheerio.load(html);
+/**
+ * Compute max year from parsed rows (for both rounds combined)
+ */
+function computeMaxYear(
+  firstRows: Array<{ year: number; text: string }>,
+  secondRows: Array<{ year: number; text: string }>
+): number {
+  const allYears = [
+    ...firstRows.map((r) => r.year),
+    ...secondRows.map((r) => r.year),
+  ];
+  return allYears.length > 0 ? Math.max(...allYears) : 0;
+}
 
+/**
+ * Parse draft picks from HTML content
+ */
+function parsePicksFromHtml(
+  $: cheerio.CheerioAPI,
+  teamCode: string
+): {
+  firstRows: Array<{ year: number; text: string }>;
+  secondRows: Array<{ year: number; text: string }>;
+} {
   // Find the two section headers
   const h2s = $('h2, h3').toArray();
   console.log(`   • Found ${h2s.length} headers for ${teamCode}`);
@@ -1635,21 +1718,46 @@ async function scrapeTeamPage(teamCode: string, teamName: string, url: string) {
         `   • No table found, checking ${$siblings.length} sibling elements for compressed data`
       );
 
+      // Concatenate ALL text from all siblings to handle split data
+      let allSiblingText = '';
       $siblings.each((_, el) => {
         const $el = $(el);
         const text = $el.text().trim();
-
-        // Look for the pattern that contains all the compressed data
-        if (
-          text.includes('YearFirst Round Picks') ||
-          (text.includes('Year') && text.includes('Own'))
-        ) {
-          console.log(
-            `     Found compressed 1st round data: "${text.substring(0, 100)}..."`
-          );
-          firstRows = parseCompressedPickData(text, '1st');
-        }
+        allSiblingText += ' ' + text;
       });
+
+      // Try to parse the combined text
+      if (
+        allSiblingText.includes('YearFirst Round Picks') ||
+        (allSiblingText.includes('Year') && allSiblingText.includes('Own'))
+      ) {
+        console.log(
+          `     Found compressed 1st round data: "${allSiblingText.substring(0, 100)}..."`
+        );
+        firstRows = parseCompressedPickData(allSiblingText, '1st');
+      }
+
+      // Fallback: If still missing years 2031/2032, try getting text from entire section parent
+      if (firstRows.length > 0) {
+        const maxParsedYear = Math.max(...firstRows.map((r) => r.year));
+        if (maxParsedYear < REQUIRED_MAX_YEAR) {
+          console.log(
+            `     ⚠️ First round maxYear=${maxParsedYear}, trying expanded search...`
+          );
+          // Get parent container and extract all text
+          const parentText = $(firstHeader).parent().text();
+          const expandedRows = parseCompressedPickData(parentText, '1st');
+          if (expandedRows.length > 0) {
+            const expandedMaxYear = Math.max(...expandedRows.map((r) => r.year));
+            if (expandedMaxYear > maxParsedYear) {
+              console.log(
+                `     ✓ Expanded search found more years (maxYear=${expandedMaxYear})`
+              );
+              firstRows = expandedRows;
+            }
+          }
+        }
+      }
     }
   }
 
@@ -1668,26 +1776,90 @@ async function scrapeTeamPage(teamCode: string, teamName: string, url: string) {
         `   • No table found, checking ${$siblings.length} sibling elements for compressed data`
       );
 
+      // Concatenate ALL text from all siblings to handle split data
+      let allSiblingText = '';
       $siblings.each((_, el) => {
         const $el = $(el);
         const text = $el.text().trim();
-
-        // Look for the pattern that contains all the compressed data
-        if (
-          text.includes('YearSecond Round Picks') ||
-          (text.includes('Year') && text.includes('To'))
-        ) {
-          console.log(
-            `     Found compressed 2nd round data: "${text.substring(0, 100)}..."`
-          );
-          secondRows = parseCompressedPickData(text, '2nd');
-        }
+        allSiblingText += ' ' + text;
       });
+
+      // Try to parse the combined text
+      if (
+        allSiblingText.includes('YearSecond Round Picks') ||
+        (allSiblingText.includes('Year') && allSiblingText.includes('To'))
+      ) {
+        console.log(
+          `     Found compressed 2nd round data: "${allSiblingText.substring(0, 100)}..."`
+        );
+        secondRows = parseCompressedPickData(allSiblingText, '2nd');
+      }
+
+      // Fallback: If still missing years 2031/2032, try getting text from entire section parent
+      if (secondRows.length > 0) {
+        const maxParsedYear = Math.max(...secondRows.map((r) => r.year));
+        if (maxParsedYear < REQUIRED_MAX_YEAR) {
+          console.log(
+            `     ⚠️ Second round maxYear=${maxParsedYear}, trying expanded search...`
+          );
+          const parentText = $(secondHeader).parent().text();
+          const expandedRows = parseCompressedPickData(parentText, '2nd');
+          if (expandedRows.length > 0) {
+            const expandedMaxYear = Math.max(...expandedRows.map((r) => r.year));
+            if (expandedMaxYear > maxParsedYear) {
+              console.log(
+                `     ✓ Expanded search found more years (maxYear=${expandedMaxYear})`
+              );
+              secondRows = expandedRows;
+            }
+          }
+        }
+      }
     }
   }
 
+  return { firstRows, secondRows };
+}
+
+async function scrapeTeamPage(teamCode: string, teamName: string, url: string) {
+  // First attempt
+  let html = await fetchTeamHtml(url);
+  let $ = cheerio.load(html);
+  let { firstRows, secondRows } = parsePicksFromHtml($, teamCode);
+
   console.log(`   • First round picks: ${firstRows.length}`);
   console.log(`   • Second round picks: ${secondRows.length}`);
+
+  // Check if we have complete year coverage
+  let maxYear = computeMaxYear(firstRows, secondRows);
+  console.log(`   • Max year found: ${maxYear} (required: ${REQUIRED_MAX_YEAR})`);
+
+  // Retry once if year coverage is incomplete
+  if (maxYear < REQUIRED_MAX_YEAR) {
+    console.warn(
+      `   ⚠️ Incomplete year coverage for ${teamCode}: maxYear=${maxYear} < ${REQUIRED_MAX_YEAR}`
+    );
+    console.log(`   ⏳ Retrying with extended wait...`);
+
+    // Re-fetch with fresh browser session (fetchTeamHtml has built-in extended waits)
+    html = await fetchTeamHtml(url);
+    $ = cheerio.load(html);
+    const retryResult = parsePicksFromHtml($, teamCode);
+    firstRows = retryResult.firstRows;
+    secondRows = retryResult.secondRows;
+
+    maxYear = computeMaxYear(firstRows, secondRows);
+    console.log(`   • Retry - Max year found: ${maxYear}`);
+
+    // If still incomplete after retry, throw error
+    if (maxYear < REQUIRED_MAX_YEAR) {
+      throw new Error(
+        `INCOMPLETE_SCRAPE: ${teamCode} maxYear=${maxYear} < ${REQUIRED_MAX_YEAR} after retry. ` +
+          `Page may be slow or RealGM structure changed.`
+      );
+    }
+    console.log(`   ✓ Retry successful - year coverage now complete`);
+  }
 
   // Merge into per-year rows containing both rounds
   const byYear = new Map<number, { fr: string; sr: string }>();
@@ -1724,7 +1896,7 @@ function parseCompressedPickData(
   const rows: Array<{ year: number; text: string }> = [];
 
   try {
-    // Remove header text
+    // Remove header text and loading placeholders
     let text = compressedText.replace(
       /Year(First|Second)\s*Round\s*Picks/gi,
       ''
@@ -1733,64 +1905,85 @@ function parseCompressedPickData(
     text = norm(text);
 
     console.log(
-      `     Parsing compressed ${roundType} round data: "${text.substring(0, 150)}..."`
+      `     Parsing compressed ${roundType} round data (${text.length} chars): "${text.substring(0, 150)}..."`
     );
 
-    // Look for year patterns (4 digits) followed by pick data
-    const yearPattern = /(20\d{2})([^2]*?)(?=20\d{2}|$)/g;
-    let match;
+    // Find all year positions using matchAll
+    const yearMatches = [...text.matchAll(/20(2[4-9]|3[0-5])/g)];
+    console.log(`     Found ${yearMatches.length} year markers in text`);
 
-    while ((match = yearPattern.exec(text)) !== null) {
-      const [, yearStr, pickData] = match;
-      const year = parseInt(yearStr, 10);
+    if (yearMatches.length > 0) {
+      // Extract text between consecutive years
+      for (let i = 0; i < yearMatches.length; i++) {
+        const match = yearMatches[i];
+        const year = parseInt(match[0], 10);
+        const startPos = (match.index ?? 0) + match[0].length;
 
-      if (Number.isFinite(year) && year >= 2024 && year <= 2035) {
+        // End position is either the next year or end of text
+        const endPos =
+          i < yearMatches.length - 1
+            ? yearMatches[i + 1].index ?? text.length
+            : text.length;
+
+        let pickData = text.slice(startPos, endPos);
+
         // Clean up the pick data
-        let cleanPickData = norm(pickData);
+        pickData = norm(pickData);
+        // Remove trailing count numbers (1, 2, 3, etc.) that RealGM adds
+        pickData = pickData.replace(/\s*\d+\s*$/, '');
+        // Remove leading/trailing punctuation
+        pickData = pickData.replace(/^[;,|\s]+|[;,|\s]+$/g, '');
 
-        // Remove any trailing numbers that aren't part of the description
-        cleanPickData = cleanPickData.replace(/\s*1\s*$/, ''); // Remove trailing "1"
-        cleanPickData = cleanPickData.replace(/\s*0\s*$/, ''); // Remove trailing "0"
-
-        if (cleanPickData) {
-          console.log(`       Year ${year}: "${cleanPickData}"`);
-          rows.push({ year, text: cleanPickData });
+        if (pickData && Number.isFinite(year) && year >= 2024 && year <= 2035) {
+          console.log(`       Year ${year}: "${pickData.substring(0, 80)}${pickData.length > 80 ? '...' : ''}"`);
+          rows.push({ year, text: pickData });
         }
+      }
+
+      // Log max year found for debugging
+      if (rows.length > 0) {
+        const maxYear = Math.max(...rows.map((r) => r.year));
+        console.log(`     Max year parsed: ${maxYear}`);
       }
     }
 
-    // If the regex approach didn't work, try a simpler manual approach
-    if (rows.length === 0) {
-      console.log(`     Trying manual parsing approach for: "${text}"`);
+    // If the regex approach didn't find enough, try manual fallback for specific patterns
+    if (rows.length === 0 || Math.max(...rows.map((r) => r.year), 0) < REQUIRED_MAX_YEAR) {
+      console.log(`     Trying manual pattern matching...`);
 
-      // Look for specific Lakers patterns we know exist
-      const lakersPatterns = [
-        { year: 2026, pattern: /2026.*?Own/i },
-        {
-          year: 2027,
-          pattern: /2027.*?(?:1-4\s*Own.*?5-30\s*to\s*UTH|Own.*?to.*?UTH)/i,
-        },
-        { year: 2028, pattern: /2028.*?Own/i },
-        { year: 2029, pattern: /2029.*?(?:To\s*DAL|to\s*DAL)/i },
-        { year: 2030, pattern: /2030.*?Own/i },
-        { year: 2031, pattern: /2031.*?Own/i },
-        { year: 2032, pattern: /2032.*?Own/i },
+      // Generic patterns for any team
+      const genericPatterns = [
+        { year: 2026, pattern: /\b2026\s*([A-Za-z].*?)(?=\b20[23]\d|$)/i },
+        { year: 2027, pattern: /\b2027\s*([A-Za-z].*?)(?=\b20[23]\d|$)/i },
+        { year: 2028, pattern: /\b2028\s*([A-Za-z].*?)(?=\b20[23]\d|$)/i },
+        { year: 2029, pattern: /\b2029\s*([A-Za-z].*?)(?=\b20[23]\d|$)/i },
+        { year: 2030, pattern: /\b2030\s*([A-Za-z].*?)(?=\b20[23]\d|$)/i },
+        { year: 2031, pattern: /\b2031\s*([A-Za-z].*?)(?=\b20[23]\d|$)/i },
+        { year: 2032, pattern: /\b2032\s*([A-Za-z].*?)(?=\b20[23]\d|$)/i },
       ];
 
-      for (const { year, pattern } of lakersPatterns) {
+      for (const { year, pattern } of genericPatterns) {
+        // Skip if we already have this year
+        if (rows.find((r) => r.year === year)) continue;
+
         const match = text.match(pattern);
-        if (match) {
-          let pickText = match[0];
-          // Clean up the extracted text
-          pickText = pickText.replace(/^\d{4}/, '').trim();
-          console.log(`       Manual match - Year ${year}: "${pickText}"`);
-          rows.push({ year, text: pickText });
+        if (match && match[1]) {
+          let pickText = match[1].trim();
+          // Clean up
+          pickText = pickText.replace(/\s*\d+\s*$/, '');
+          if (pickText) {
+            console.log(`       Manual match - Year ${year}: "${pickText.substring(0, 50)}..."`);
+            rows.push({ year, text: pickText });
+          }
         }
       }
     }
   } catch (error) {
     console.error(`     Error parsing compressed data: ${error}`);
   }
+
+  // Sort by year and deduplicate
+  rows.sort((a, b) => a.year - b.year);
 
   return rows;
 }

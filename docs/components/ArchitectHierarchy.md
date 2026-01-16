@@ -270,9 +270,8 @@ utils/
   tradeManager.js
   worldManager.js
   worldTeamData.ts
-  worldlessBaselineSalary.js
 ```
 
 ---
-*Generated on: 2026-01-07T07:39:17.986Z*
+*Generated on: 2026-01-16T11:34:17.119Z*
 *Auto-updated by: npm run docs*

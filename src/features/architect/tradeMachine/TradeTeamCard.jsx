@@ -24,6 +24,7 @@ import { getSalaryMatchingResult } from '@/features/architect/utils/tradeMachine
 import { getCapSettingsForYear } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
 // Phase 1: Accessor function for validator result consumption (TRADE_MACHINE_UI_WIRING_AUDIT v2.1.0)
 import { getTeamSnapshot } from '@/features/architect/hooks/useTradeMachineSnapshot';
+import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 
 /**
  * P3-3: Convert internal skip reason codes to human-readable labels.
@@ -115,38 +116,13 @@ const TradeTeamCard = ({
     [incomingPlayers, team?.players]
   );
 
-  // Use STORED teamTotalSalary from the team object (computed by useTradeMachine via capSheet payroll + dead money)
-  // This ensures TradeTeamCard uses the SAME value as the validator for salary matching calculations
-  // Fallback to getSalaryForYear ONLY if stored value is missing/0 (temporary data issue)
+  // Use SSOT teamTotalSalary from computeTeamCapTotals
+  // This ensures TradeTeamCard uses the SAME value as the Cap Sheet and validator
   const teamTotalSalary = useMemo(() => {
-    const stored = team?.teamTotalSalary ?? team?.totalSalary ?? 0;
-    if (stored > 0) {
-      return stored;
-    }
-    // Fallback: recompute if stored is missing (should not happen in normal flow)
-    return getSalaryForYear(team?.players || [], yearKey);
-  }, [team?.teamTotalSalary, team?.totalSalary, team?.players, yearKey]);
-
-  // DEV-ONLY: Invariant check to detect teamTotalSalary divergence between stored and computed values
-  // This helps catch data issues or regressions without affecting runtime behavior
-  if (import.meta.env.DEV && team) {
-    const computed = getSalaryForYear(team?.players || [], yearKey);
-    const stored = team?.teamTotalSalary ?? team?.totalSalary ?? 0;
-    const diff = Math.abs(computed - stored);
-    if (diff >= 1) {
-      console.warn('[TradeTeamCard] teamTotalSalary DIVERGENCE DETECTED', {
-        teamId: team?.id || team?.teamId,
-        yearKey,
-        stored,
-        computed,
-        diff,
-        source:
-          stored > 0
-            ? 'stored (team.teamTotalSalary)'
-            : 'computed (getSalaryForYear)',
-      });
-    }
-  }
+    if (!team) return 0;
+    const totals = computeTeamCapTotals(team, yearKey);
+    return totals.totalCapAllocations || 0;
+  }, [team, yearKey]);
 
   // Phase 1: Get snapshot from validator result (golden source of truth)
   // RULE: For legality-affecting numbers, use snapshot values; do NOT recompute locally

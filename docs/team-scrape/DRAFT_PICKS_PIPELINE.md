@@ -350,6 +350,7 @@ A build is "push-ready" when **audits pass**:
 
 | Audit                        | Criteria                                                          |
 | ---------------------------- | ----------------------------------------------------------------- |
+| Year Coverage                | All teams have 1st round picks through REQUIRED_MAX_YEAR (2032)   |
 | Semantic Assertions          | All categories = 0                                                |
 | Recipient Inventory Invariant | Failures = 0                                                     |
 | Draft Assets Invariant       | PASS (UTA LAL_2027_1st + DAL LAL_2029_1st sanity checks)          |
@@ -497,6 +498,43 @@ The `TradePickRow` component displays:
 - Asset type badge (Outright/Conditional/Swap)
 - Conditions text (truncated with tooltip)
 - Protection selector for trade customization
+
+---
+
+---
+
+## Year Coverage Configuration
+
+The scraper and audits enforce year coverage through a configurable horizon:
+
+```typescript
+// TODO: Derive NEXT_DRAFT_YEAR from config or current date logic
+const NEXT_DRAFT_YEAR = 2026;
+const REQUIRED_MAX_YEAR = NEXT_DRAFT_YEAR + 6; // 2032
+```
+
+### Scraper Behavior
+
+1. **Smart Wait Logic**: `fetchTeamHtml()` waits for:
+   - "Future 1st Round Picks" header to appear
+   - Year 2032 to be present in page content
+   - "Loading, please wait" text to disappear
+
+2. **Retry on Incomplete**: `scrapeTeamPage()` validates:
+   - Computes `maxYear` from parsed picks
+   - If `maxYear < REQUIRED_MAX_YEAR`, retries once with a fresh browser session
+   - Throws `INCOMPLETE_SCRAPE` error if still incomplete after retry
+
+### Audit Guard
+
+The `audit_mentions_year_coverage.ts` script:
+
+- Loads each team's mentions file
+- Computes `maxYear` for 1st round picks
+- Asserts `maxYear >= REQUIRED_MAX_YEAR`
+- Exits non-zero if any team fails
+
+This audit runs as the **first step** in `draft-picks:audits` to fail fast on incomplete scrapes.
 
 ---
 

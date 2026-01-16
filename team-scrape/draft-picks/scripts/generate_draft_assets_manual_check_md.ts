@@ -14,6 +14,7 @@
  * Usage:
  *   npx tsx team-scrape/draft-picks/scripts/generate_draft_assets_manual_check_md.ts
  *   npx tsx team-scrape/draft-picks/scripts/generate_draft_assets_manual_check_md.ts --teams=DAL,UTA
+ *   npx tsx team-scrape/draft-picks/scripts/generate_draft_assets_manual_check_md.ts --teams=DAL --strictCounts --expect=DAL:9
  */
 
 import fs from "fs";
@@ -66,12 +67,22 @@ const TEAM_NAMES: Record<string, string> = {
   WAS: "WASHINGTON WIZARDS",
 };
 
+interface Args {
+  assetsDir: string;
+  out: string;
+  teams: string[];
+  strictCounts: boolean;
+  expectedCounts: Record<string, number>;
+}
+
 // Parse CLI arguments
-function parseArgs(): { assetsDir: string; out: string; teams: string[] } {
+function parseArgs(): Args {
   const args = process.argv.slice(2);
   let assetsDir = DEFAULT_ASSETS_DIR;
   let out = DEFAULT_OUTPUT_FILE;
   let teams: string[] = [];
+  let strictCounts = false;
+  const expectedCounts: Record<string, number> = {};
 
   for (const arg of args) {
     if (arg.startsWith("--assetsDir=")) {
@@ -85,6 +96,18 @@ function parseArgs(): { assetsDir: string; out: string; teams: string[] } {
       } else {
         teams = teamsArg.split(",").map((t) => t.trim().toUpperCase());
       }
+    } else if (arg === "--strictCounts") {
+      strictCounts = true;
+    } else if (arg.startsWith("--expect=")) {
+      // Format: --expect=DAL:9,BKN:11
+      const expectArg = arg.split("=")[1];
+      const pairs = expectArg.split(",");
+      for (const pair of pairs) {
+        const [team, count] = pair.split(":");
+        if (team && count) {
+          expectedCounts[team.trim().toUpperCase()] = parseInt(count.trim(), 10);
+        }
+      }
     }
   }
 
@@ -93,7 +116,7 @@ function parseArgs(): { assetsDir: string; out: string; teams: string[] } {
     teams = [...ALL_TEAM_CODES];
   }
 
-  return { assetsDir, out, teams };
+  return { assetsDir, out, teams, strictCounts, expectedCounts };
 }
 
 interface SwapDetails {
@@ -186,43 +209,22 @@ function sortAssets(assets: DraftAsset[]): DraftAsset[] {
  * - swap XXX: swap right with single counterparty
  * - swap pool: XXX/YYY/ZZZ: multi-team swap pool
  */
-function getOrigin(asset: DraftAsset, teamCode: string): string {
-  const isOwn = asset.originalTeam === teamCode;
-  const isSwap = asset.assetType === "swap_right" || asset.isSwap;
-
-  if (isSwap && asset.swapDetails) {
-    const sd = asset.swapDetails;
-
-    // Check for pool teams (multi-team swap)
-    if (sd.poolTeams && sd.poolTeams.length > 0) {
-      const poolStr = sd.poolTeams.join("/");
-      return `swap pool: ${poolStr}`;
-    }
-
-    // Check for swapWith
-    if (sd.swapWith && sd.swapWith.length > 0) {
-      if (sd.swapWith.length === 1) {
-        return `swap ${sd.swapWith[0]}`;
-      } else {
-        return `swap pool: ${sd.swapWith.join("/")}`;
-      }
-    }
-
-    // Check controller as fallback
-    if (sd.controller) {
-      return `swap ${sd.controller}`;
-    }
-
-    // Fallback for unresolved swaps
-    return "swap (multi)";
+function getOrigin(asset: DraftAsset): string {
+  // If explicitly a swap right (control)
+  if (asset.assetType === 'swap_right') {
+     if (asset.swapDetails && (asset.swapDetails as any).swapWith) {
+        const others = (asset.swapDetails as any).swapWith.filter((t: string) => t !== asset.team);
+        if (others.length === 1) return `swap ${others[0]}`;
+        if (others.length > 0) return `swap pool: ${others.join('/')}`;
+     }
+     return 'swap right';
   }
 
-  // Non-swap cases
-  if (isOwn) {
-    return "own";
+  // If it's an outright or conditional pick (even if encumbered/swappable)
+  if (asset.originalTeam === asset.team) {
+    return 'own';
   }
-
-  // Via case: received from another team
+  
   return `via ${asset.originalTeam}`;
 }
 
@@ -304,31 +306,38 @@ function getSwapHierarchy(asset: DraftAsset): string {
  * - For conditional: protection text
  * - For via picks: "unprotected" if no protection
  */
-function getConditions(asset: DraftAsset, teamCode: string): string {
-  const isSwap = asset.assetType === "swap_right" || asset.isSwap;
-  const isOwn = asset.originalTeam === teamCode;
-
-  // For swaps, show hierarchy
-  if (isSwap) {
-    const hierarchy = getSwapHierarchy(asset);
-    if (hierarchy) return hierarchy;
-
-    // If swap but no hierarchy detected, return empty
-    return "";
-  }
-
-  // For conditional rights with protection
+function getConditions(asset: DraftAsset): string {
+  const parts: string[] = [];
+  
   if (asset.protection) {
-    return normalizeProtection(asset.protection);
+    parts.push(normalizeProtection(asset.protection));
+  } else if (asset.assetType === 'conditional_right') {
+    parts.push('conditional');
+  } else if (asset.assetType === 'outright_pick' && asset.originalTeam !== asset.team) {
+    // Only show "unprotected" for incoming picks to distinguish from protected ones
+    parts.push('unprotected');
+  } 
+  
+  // Show swap info for encumbered picks
+  if (asset.isSwap && asset.swapDetails) {
+     const controller = (asset.swapDetails as any).controller;
+     if (controller && controller !== asset.team) {
+         // It's encumbered by someone else's swap right
+         parts.push(`swap ${controller}`);
+     } else if (asset.assetType === 'swap_right') {
+         // It IS a swap right (already handled in Origin?)
+         // Maybe add hierarchy here
+         const h = getSwapHierarchy(asset);
+         if (h) parts.push(h);
+     } else {
+         // Encumbered but unknown controller or complex
+         const h = getSwapHierarchy(asset);
+         if (h) parts.push(h);
+         else parts.push('swap attached');
+     }
   }
 
-  // For "via" picks without protection -> unprotected
-  if (!isOwn && asset.assetType !== "swap_right") {
-    return "unprotected";
-  }
-
-  // Own picks with no protection - leave blank
-  return "";
+  return parts.join(', ');
 }
 
 /**
@@ -338,8 +347,8 @@ function getConditions(asset: DraftAsset, teamCode: string): string {
 function formatAssetLine(asset: DraftAsset, teamCode: string): string {
   const year = asset.year;
   const round = roundLabel(asset.round);
-  const origin = getOrigin(asset, teamCode);
-  const conditions = getConditions(asset, teamCode);
+  const origin = getOrigin(asset);
+  const conditions = getConditions(asset);
 
   if (conditions) {
     return `${year} | ${round} | ${origin} | ${conditions}`;
@@ -386,12 +395,18 @@ function generateTeamSection(
 }
 
 function main() {
-  const { assetsDir, out, teams } = parseArgs();
+  const { assetsDir, out, teams, strictCounts, expectedCounts } = parseArgs();
 
   console.log(`Draft Assets Manual Check Generator`);
   console.log(`  Assets Dir: ${assetsDir}`);
   console.log(`  Output: ${out}`);
   console.log(`  Teams: ${teams.length === 30 ? "ALL" : teams.join(", ")}`);
+  if (Object.keys(expectedCounts).length > 0) {
+    console.log(`  Expected Counts: ${JSON.stringify(expectedCounts)}`);
+  }
+  if (strictCounts) {
+    console.log(`  Mode: STRICT (Exit 1 on mismatch)`);
+  }
   console.log("");
 
   const lines: string[] = [];
@@ -419,6 +434,7 @@ function main() {
 
   let totalAssets = 0;
   let teamsProcessed = 0;
+  const actualCounts: Record<string, number> = {};
 
   for (const team of teams) {
     const data = loadDraftAssets(assetsDir, team);
@@ -429,6 +445,7 @@ function main() {
 
     const assets = data.picks || [];
     totalAssets += assets.length;
+    actualCounts[team] = assets.length;
     teamsProcessed++;
 
     lines.push(...generateTeamSection(team, assets));
@@ -453,6 +470,41 @@ function main() {
   console.log(`✔ Wrote: ${out}`);
   console.log(`  Teams: ${teamsProcessed}`);
   console.log(`  Total picks: ${totalAssets}`);
+
+  // Count Verification
+  // We ONLY verify if expectedCounts are provided
+  if (Object.keys(expectedCounts).length > 0) {
+    console.log('\n🔍 Verifying counts against provided expectations...');
+    const failures: Array<{team: string, expected: number, actual: number}> = [];
+
+    for (const [team, expected] of Object.entries(expectedCounts)) {
+      if (teams.includes(team)) {
+        const actual = actualCounts[team] || 0;
+        if (actual !== expected) {
+          failures.push({ team, expected, actual });
+        }
+      }
+    }
+
+    if (failures.length > 0) {
+      console.warn('\n❌ COUNT MISMATCHES DETECTED:');
+      console.warn('Team | Your Count | File Count | Diff');
+      console.warn('---|---|---|---');
+      for (const f of failures) {
+        const diff = f.actual - f.expected;
+        const diffStr = diff > 0 ? `+${diff}` : `${diff}`;
+        console.warn(`${f.team} | ${f.expected} | ${f.actual} | ${diffStr}`);
+      }
+      
+      if (strictCounts) {
+        console.error('\nFAILING due to --strictCounts flag.');
+        process.exit(1);
+      }
+    } else {
+      console.log('✅ All checked teams match expected counts.');
+    }
+  }
 }
 
 main();
+

@@ -1,85 +1,56 @@
-// src/utils/architect/salaryUtils.js
-import { /* getCapHitForSeason, */ yearToSeason } from './tradeMachine/utils/seasonUtils.js';
+// src/features/architect/utils/salaryUtils.js
+//
+// ⚠️  SSOT WRAPPER MODULE  ⚠️
+//
+// These functions are thin wrappers around computeTeamCapTotals, the single
+// source of truth for cap computations. They exist for backward compatibility
+// and convenience but do NOT perform independent calculations.
+//
+// For full cap totals, prefer calling computeTeamCapTotals() directly.
+//
 
-const num = (v) => {
-  if (v == null) return 0;
-  if (typeof v === 'number') return v;
-  const n = Number(String(v).replace(/[^0-9.-]/g, ''));
-  return Number.isFinite(n) ? n : 0;
-};
+import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import { toEndYear } from '@/features/architect/utils/seasonFormat';
 
 /**
- * Calculate total payroll from cap sheet for a specific year/season
- * Works with new architect schema (contract.salariesByYear array)
- * 
- * @param {Object} capSheet - Cap sheet object with activeContracts or players array
+ * Calculate total payroll from cap sheet for a specific year/season.
+ * ⚠️  SSOT WRAPPER: Delegates to computeTeamCapTotals  ⚠️
+ *
+ * Note: This returns playersTotal only (not including dead money or cap holds).
+ * For full cap allocations, use computeTeamCapTotals().totalCapAllocations.
+ *
+ * @param {Object} capSheet - Cap sheet object with players array
  * @param {number|string} year - Season end-year (2025) or season string ("2024-25")
- * @returns {number} Total payroll amount
+ * @returns {number} Total player payroll amount
  */
 export function payrollForYearFromCapSheet(capSheet, year) {
   if (!capSheet) return 0;
-  
-  // Convert year to season string if needed
-  const season = typeof year === 'string' && year.includes('-')
-    ? year
-    : yearToSeason(year);
 
-  // Check activeContracts first
-  const fromActive = (capSheet.activeContracts || []).reduce((sum, c) => {
-    if (c?.contract?.salariesByYear && season) {
-      const yearEntry = c.contract.salariesByYear.find(
-        (entry) => entry.season === season
-      );
-      if (yearEntry) {
-        return sum + num(yearEntry.capHit || yearEntry.salary || 0);
-      }
-    }
-    return sum;
-  }, 0);
+  // Normalize year to end-year number
+  const endYear = typeof year === 'string' && year.includes('-')
+    ? toEndYear(year)
+    : Number(year);
 
-  if (fromActive > 0) return fromActive;
-
-  // Check players array with new schema format
-  const fromPlayers = (capSheet.players || []).reduce((sum, p) => {
-    if (p?.contract?.salariesByYear && season) {
-      const yearEntry = p.contract.salariesByYear.find(
-        (entry) => entry.season === season
-      );
-      if (yearEntry) {
-        return sum + num(yearEntry.capHit || yearEntry.salary || 0);
-      }
-    }
-    return sum;
-  }, 0);
-
-  return fromPlayers;
+  const totals = computeTeamCapTotals(capSheet, endYear);
+  return totals.playersTotal;
 }
 
 /**
- * Calculate dead money obligations for a specific year
- * Checks waivedContracts, stretchHistory, and flat deadMoney fields
- * 
+ * Calculate dead money obligations for a specific year.
+ * ⚠️  SSOT WRAPPER: Delegates to computeTeamCapTotals  ⚠️
+ *
  * @param {Object} capSheet - Cap sheet object
  * @param {number|string} year - Season end-year (2025) or numeric year
  * @returns {number} Total dead money amount
  */
 export function deadMoneyForYear(capSheet, year) {
-  const y = String(year);
-  const arrs = []
-    .concat(capSheet?.waivedContracts || [])
-    .concat(capSheet?.stretchHistory || []);
-  const fromArrays = arrs.reduce((sum, w) => {
-    const amt =
-      w?.deadMoneyByYear?.[year] ??
-      w?.deadMoneyByYear?.[y] ??
-      w?.amountByYear?.[year] ??
-      w?.amountByYear?.[y] ??
-      0;
-    return sum + num(amt);
-  }, 0);
+  if (!capSheet) return 0;
 
-  const fromFlat =
-    num(capSheet?.deadMoney?.[year]) + num(capSheet?.deadMoney?.[y]);
+  // Normalize year to end-year number
+  const endYear = typeof year === 'string' && year.includes('-')
+    ? toEndYear(year)
+    : Number(year);
 
-  return fromArrays + fromFlat;
+  const totals = computeTeamCapTotals(capSheet, endYear);
+  return totals.deadMoneyTotal;
 }

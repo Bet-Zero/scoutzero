@@ -184,7 +184,6 @@ Quick reference for all components in the ScoutZero project.
 - utils/tradeMachine/validators/index.js
 - utils/tradeManager.js
 - utils/worldManager.js
-- utils/worldlessBaselineSalary.js
 
 ## Filters
 

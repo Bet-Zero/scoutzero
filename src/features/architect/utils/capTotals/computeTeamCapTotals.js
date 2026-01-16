@@ -35,7 +35,7 @@
 import { getContractYearSlice } from '@/features/architect/utils/contractUtils';
 import { getActiveUnsignedCapHoldsTotalByEndYear } from '@/features/architect/utils/capHolds';
 import { getCapSettingsForYear } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
-import { toSeasonKey } from '@/features/architect/utils/seasonFormat';
+import { toSeasonKey, toEndYear } from '@/features/architect/utils/seasonFormat';
 
 /**
  * Helper to safely convert values to numbers
@@ -52,6 +52,7 @@ const num = (v) => {
 /**
  * Calculates dead money for a given year from team cap sheet data.
  * Scans waivedContracts, stretchHistory, and deadMoney fields.
+ * Supports both legacy object-based amountByYear and new array-based schema.
  *
  * @param {Object} teamCapSheet - Team cap sheet data
  * @param {number} endYear - Season end year (e.g., 2025 for "2024-25")
@@ -62,23 +63,61 @@ function computeDeadMoneyForYear(teamCapSheet, endYear) {
 
   const y = String(endYear);
 
-  // Scan waivedContracts and stretchHistory arrays
+  // 1. PRECEDENCE CHECK: deadCap (New Schema)
+  // If deadCap exists and has ANY entry for this year (even 0), it is canonical.
+  if (Array.isArray(teamCapSheet.deadCap) && teamCapSheet.deadCap.length > 0) {
+    let hasCoverage = false;
+    let deadCapTotal = 0;
+
+    for (const item of teamCapSheet.deadCap) {
+      if (Array.isArray(item?.amountByYear)) {
+        const match = item.amountByYear.find(
+          (entry) => toEndYear(entry.season) === endYear
+        );
+        if (match) {
+          hasCoverage = true;
+          deadCapTotal += num(match.amount);
+        }
+      }
+    }
+
+    // If we found entries for this year in the authentic source, return that sum.
+    // This prevents double counting with legacy fields.
+    if (hasCoverage) {
+      return deadCapTotal;
+    }
+  }
+
+  // 2. FALLBACK: Legacy Sources (waivedContracts / stretchHistory / deadMoney)
+  // Only reached if deadCap is missing or has no data for this year.
   const arrs = []
     .concat(teamCapSheet?.waivedContracts || [])
     .concat(teamCapSheet?.stretchHistory || []);
 
   const fromArrays = arrs.reduce((sum, w) => {
-    const amt =
-      w?.deadMoneyByYear?.[endYear] ??
-      w?.deadMoneyByYear?.[y] ??
-      w?.amountByYear?.[endYear] ??
-      w?.amountByYear?.[y] ??
-      0;
+    let amt = 0;
+
+    // Check for amountByYear
+    if (w?.amountByYear) {
+      if (Array.isArray(w.amountByYear)) {
+        // New Schema shape inside legacy field (rare, but handled)
+        const match = w.amountByYear.find(
+          (entry) => toEndYear(entry.season) === endYear
+        );
+        amt = match?.amount ?? 0;
+      } else {
+        // Legacy Schema: Object keyed by year
+        amt = w.amountByYear[endYear] ?? w.amountByYear[y] ?? 0;
+      }
+    } else if (w?.deadMoneyByYear) {
+      // Legacy Schema: Object keyed by year
+      amt = w.deadMoneyByYear[endYear] ?? w.deadMoneyByYear[y] ?? 0;
+    }
+
     return sum + num(amt);
   }, 0);
 
   // Also check flat deadMoney object if present
-  // Use coalesce to avoid double-counting numeric vs string keys
   const flatValue =
     teamCapSheet?.deadMoney?.[endYear] ?? teamCapSheet?.deadMoney?.[y] ?? 0;
   const fromFlat = num(flatValue);

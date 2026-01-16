@@ -1,5 +1,5 @@
 import React from 'react';
-import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
+// import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
 import {
   isHardCappedAtFirstApron,
   isHardCappedAtSecondApron,
@@ -7,12 +7,11 @@ import {
 } from '@/features/architect/utils/hardCapUtils';
 import { Lock } from 'lucide-react';
 
-const CapSummaryTiles = ({ teamCapSheet, selectedYear }) => {
+const CapSummaryTiles = ({ teamCapSheet, selectedYear, totals }) => {
   // =========================================================================
-  // SINGLE SOURCE OF TRUTH: Use computeTeamCapTotals for all cap calculations
-  // See docs/ARCHITECT_CAP_TOTAL_SINGLE_SOURCE.md for details
+  // SINGLE SOURCE OF TRUTH: Totals are now passed from parent (CapSheet)
+  // which calls computeTeamCapTotals once.
   // =========================================================================
-  const totals = computeTeamCapTotals(teamCapSheet, selectedYear);
 
   const {
     totalCapAllocations,
