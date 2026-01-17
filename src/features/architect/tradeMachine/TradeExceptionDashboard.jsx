@@ -1,6 +1,7 @@
 // src/features/architect/tradeMachine/TradeExceptionDashboard.jsx
 import React from 'react';
 import { formatCurrency } from '@/features/architect/utils/tradeHelpers';
+import { getTpeExpiryISO } from '@/features/architect/utils/tpeLifecycle';
 
 const TradeExceptionDashboard = ({ result, teams }) => {
   if (!result?.teamResults) return null;
@@ -40,7 +41,7 @@ const TradeExceptionDashboard = ({ result, teams }) => {
               <div className="text-xs text-green-400 font-medium mb-1">🎯 TPE Created</div>
               <div className="text-xs text-white/80">
                 <div>Amount: <span className="text-green-400 font-mono">{formatCurrency(team.createdTPE.amount)}</span></div>
-                <div>Expires: <span className="text-white/60">{formatDate(team.createdTPE.expiryISO)}</span></div>
+                <div>Expires: <span className="text-white/60">{formatDate(getTpeExpiryISO(team.createdTPE))}</span></div>
                 <div className="text-white/50 mt-1">
                   Created from sending {formatCurrency(team.salaryOut)} vs receiving {formatCurrency(team.salaryIn)}
                 </div>
@@ -55,7 +56,7 @@ const TradeExceptionDashboard = ({ result, teams }) => {
               {team.existingTPEs.map((tpe, tpeIndex) => (
                 <div key={tpeIndex} className="text-xs text-white/80 mb-1 pl-2">
                   <span className="font-mono">{formatCurrency(tpe.amount || 0)}</span>
-                  <span className="text-white/50 ml-2">expires {formatDate(tpe.expiryISO || tpe.expiryDate)}</span>
+                  <span className="text-white/50 ml-2">expires {formatDate(getTpeExpiryISO(tpe))}</span>
                 </div>
               ))}
             </div>

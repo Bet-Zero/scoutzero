@@ -79,13 +79,13 @@ function augmentTeamWithExceptions(team, endYear, capProjections) {
         id: `${team.id}-tpe-a`,
         name: 'Test TPE A',
         amount: 6_500_000,
-        expiryDate: null,
+        expiresOn: null,
       },
       {
         id: `${team.id}-tpe-b`,
         name: 'Test TPE B',
         amount: 2_800_000,
-        expiryDate: new Date(
+        expiresOn: new Date(
           Date.now() + 1000 * 60 * 60 * 24 * 30
         ).toISOString(),
       },

@@ -224,8 +224,20 @@ function validateRow(row: PstRawRow): string[] {
     errors.push(`Invalid displayOwner: ${row.displayOwner}`);
   }
 
-  if (!row.rawText || row.rawText.length < 5) {
-    errors.push(`Invalid or empty rawText`);
+  if (row.rowKind === 'transaction' || row.rowKind === 'condition_not_met') {
+    if (!row.rawText || row.rawText.length < 5) {
+      errors.push(`Invalid or empty rawText for ${row.rowKind} row`);
+    }
+  }
+
+  if (row.rowKind === 'own') {
+    if (row.rawText !== '') {
+         errors.push('rawText should be empty for own picks');
+    }
+  }
+
+  if (!['own', 'transaction', 'condition_not_met'].includes(row.rowKind)) {
+      errors.push(`Invalid rowKind: ${row.rowKind}`);
   }
 
   if (row.source !== 'PST') {

@@ -32,6 +32,7 @@ import { getMinimumSalaryScale } from '@/features/architect/utils/salaryEngine';
 import { calculateCapHold } from '@/features/architect/utils/contractUtils';
 import { resolvePickSwap } from '@/features/architect/utils/tradeMachine/utils/swapResolution.js';
 import { resolveConveyanceForPick } from '@/features/architect/utils/tradeMachine/utils/conveyanceResolution.js';
+import { processTradeExceptions } from '@/features/architect/utils/tpeLifecycle';
 
 /**
  * Advance world to next season
@@ -516,6 +517,7 @@ export async function advanceSeasonInWorld(worldId, options = {}) {
       declinedOptions: [],
       expiredContracts: [],
       stepienUpdates: [],
+      expiredTPEs: [],
       // Phase 5: Track draft pick resolutions
       conveyanceResolutions: [],
       swapResolutions: [],
@@ -547,6 +549,12 @@ export async function advanceSeasonInWorld(worldId, options = {}) {
       }
       if (teamSummary.stepienUpdates.length > 0) {
         summary.stepienUpdates.push(...teamSummary.stepienUpdates);
+      }
+      if (teamSummary.expiredTPEs?.length > 0) {
+        // Embellish with team info for global summary
+        summary.expiredTPEs.push(
+          ...teamSummary.expiredTPEs.map((tpe) => ({ ...tpe, teamCode }))
+        );
       }
       // Phase 5: Merge resolution summaries
       if (teamSummary.conveyanceResolutions?.length > 0) {
@@ -620,6 +628,7 @@ async function processTeamSeasonTransitionWithOptions(
     exercisedOptions: [],
     declinedOptions: [],
     expiredContracts: [],
+    expiredTPEs: [],
     stepienUpdates: [],
     // Phase 5: Track draft pick resolutions
     conveyanceResolutions: [],
@@ -755,6 +764,17 @@ async function processTeamSeasonTransitionWithOptions(
         });
       }
     }
+  }
+
+  // Process TPE Expirations (Phase 1)
+  const tpeResult = processTradeExceptions(
+    updatedTeam.tradeExceptions,
+    toSeason
+  );
+  if (tpeResult.hasChanges) {
+    hasChanges = true;
+    updatedTeam.tradeExceptions = tpeResult.activeTPEs;
+    teamSummary.expiredTPEs = tpeResult.expiredTPEs;
   }
 
   // Process empty roster charges

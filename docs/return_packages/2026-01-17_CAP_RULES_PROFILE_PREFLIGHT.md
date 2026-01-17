@@ -34,6 +34,7 @@
 ### A. Cap & Apron Value Mismatch
 
 **Conflict:** `capProjections.js` and `cbaConstants.js` differ by significant amounts for the same 2024-25 season.
+
 * `salaryCap`: $141,000,000 (Projections) vs $140,588,000 (Constants) — **Diff: $412K**
 * `secondApron`: $190,000,000 (Projections) vs $188,938,000 (Constants) — **Diff: $1.06M**
 
@@ -115,12 +116,14 @@ export function getCapRulesForYear(yearKey: number) {
 ## 6. Validation Notes
 
 ### Commands Used
+
 * `grep "roster minimum" / "MIN_ROSTER"`: Found duplicate definitions in 3 files.
 * `grep "salaryCap" / "salary_cap"`: Confirmed `capProjections` is the dominant source (used by `capSettingsProvider`).
 * `grep "fullMLE" / "taxpayerMLE"`: Found mismatch between `CBA_THRESHOLDS` ($12.86M) and `capProjections` ($12.9M).
 * `view_file computeTeamCapTotals.js`: Confirmed hard reliance on `MIN_SALARY_ROOKIE` from `CBA_THRESHOLDS`.
 
 ### Files Created/Updated
+
 * [x] `docs/architect/CAP_RULES_PROFILE_MASTER_DOC.md` (SSOT Definition)
 * [x] `docs/return_packages/2026-01-17_CAP_RULES_PROFILE_PREFLIGHT.md` (This file)
 

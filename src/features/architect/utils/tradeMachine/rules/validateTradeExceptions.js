@@ -77,14 +77,10 @@ export function validateTradeExceptions(team) {
     }
 
     // Check if TPE is expired using multiple possible date properties
+    // Check if TPE is expired using helper (Phase 2: Canonical expiresOn)
     const currentDate = new Date();
-    if (tpe.expiryISO && isExpiredTPE(tpe, currentDate.toISOString())) {
+    if (isExpiredTPE(tpe, currentDate.toISOString())) {
       tpeViolations.push(`Trade exception ${tpe.id} is expired`);
-    } else if (tpe.expiryDate) {
-      const expiryDate = new Date(tpe.expiryDate);
-      if (currentDate > expiryDate) {
-        tpeViolations.push(`Trade exception ${tpe.id} is expired`);
-      }
     }
 
     // Find players using this TPE

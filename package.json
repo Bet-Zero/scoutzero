@@ -78,7 +78,14 @@
     "pst:extract": "npx tsx team-scrape/draft-picks/scripts/pst/pst_extract_raw_rows.ts",
     "pst:validate": "npx tsx team-scrape/draft-picks/scripts/pst/pst_validate_phase_1_2.ts",
     "pst:phase-1-2": "npm run pst:fetch:session && npm run pst:extract && npm run pst:validate",
-    "pst:phase-1-2:cdp": "npm run pst:fetch:cdp && npm run pst:extract && npm run pst:validate"
+    "pst:phase-1-2:cdp": "npm run pst:fetch:cdp && npm run pst:extract && npm run pst:validate",
+    "pst:build:base": "npx tsx team-scrape/draft-picks/scripts/pst/pst_build_base_ledger.ts",
+    "pst:build:overlay": "npx tsx team-scrape/draft-picks/scripts/pst/pst_build_owner_overlay.ts",
+    "pst:apply:overlay": "npx tsx team-scrape/draft-picks/scripts/pst/pst_apply_display_owner_overlay.ts",
+    "pst:build:holdings": "npx tsx team-scrape/draft-picks/scripts/pst/pst_build_holdings_by_team.ts",
+    "pst:phase-2": "npm run pst:build:base && npm run pst:build:overlay && npm run pst:apply:overlay && npm run pst:build:holdings",
+    "pst:phase-2:validate": "npx tsx team-scrape/draft-picks/scripts/pst/pst_validate_phase_2_ledger.ts",
+    "pst:phase-3": "npx tsx team-scrape/draft-picks/scripts/pst/pst_phase_3_normalize_text.ts"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.6",

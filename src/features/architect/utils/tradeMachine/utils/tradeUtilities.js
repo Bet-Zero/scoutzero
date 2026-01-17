@@ -35,12 +35,12 @@ export function createTPE({ teamCtx, outgoing, incoming, tradeDate }) {
   return {
     amount: Math.round(amt),
     createdSeason: baseDate.getUTCFullYear(),
-    expiryISO: expiry.toISOString(),
+    expiresOn: expiry.toISOString(), // Canonical schema field (Phase 1)
   };
 }
 
 export function isExpiredTPE(tpe, onDate) {
-  const expiry = tpe?.expiryISO || tpe?.expiryDate;
+  const expiry = tpe?.expiresOn || tpe?.expiryISO || tpe?.expiryDate;
   if (!expiry) return false;
   return new Date(onDate).getTime() > new Date(expiry).getTime();
 }

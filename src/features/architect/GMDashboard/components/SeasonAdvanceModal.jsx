@@ -14,6 +14,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { toSeasonCode, toEndYear } from '@/features/architect/utils/seasonFormat';
+import { processTradeExceptions, getTpeExpiryISO } from '@/features/architect/utils/tpeLifecycle';
 
 // ==============================================================================
 // CONSTANTS
@@ -143,6 +144,28 @@ function findExpiringCapHolds(teamCapSheet, toYear) {
   return expiringHolds;
 }
 
+/**
+ * Find expiring trade exceptions using shared lifecycle logic
+ * @param {Object} teamCapSheet - Current team cap sheet
+ * @param {number} toYear - Target season end year
+ * @returns {Array} Expiring TPEs
+ */
+function findExpiringTPEs(teamCapSheet, toYear) {
+  if (!teamCapSheet?.tradeExceptions || !Array.isArray(teamCapSheet.tradeExceptions)) {
+    return [];
+  }
+
+  const toSeason = toSeasonCode(toYear);
+  // shared logic returns { hasChanges, activeTPEs, expiredTPEs }
+  const { expiredTPEs } = processTradeExceptions(teamCapSheet.tradeExceptions, toSeason);
+
+  return expiredTPEs.map(tpe => ({
+    amount: tpe.amount || 0,
+    date: getTpeExpiryISO(tpe),
+    source: tpe.source || 'Trade Exception',
+  }));
+}
+
 // ==============================================================================
 // COMPONENT
 // ==============================================================================
@@ -199,6 +222,11 @@ export function SeasonAdvanceModal({
 
   const expiringCapHolds = useMemo(
     () => findExpiringCapHolds(teamCapSheet, toYear),
+    [teamCapSheet, toYear]
+  );
+
+  const expiringTPEs = useMemo(
+    () => findExpiringTPEs(teamCapSheet, toYear),
     [teamCapSheet, toYear]
   );
 
@@ -400,6 +428,20 @@ export function SeasonAdvanceModal({
               {expiringCapHolds.map((h, idx) => (
                 <li key={h.playerId || idx} className="text-white/60">
                   {h.playerName} - ${(h.amount / 1_000_000).toFixed(1)}M ({h.type})
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Expiring TPEs */}
+        {expiringTPEs.length > 0 && (
+          <div className="bg-[#1a1a1a] rounded p-3 border border-white/10">
+            <h4 className="font-medium text-white mb-2">Expiring Trade Exceptions ({expiringTPEs.length})</h4>
+            <ul className="text-xs space-y-1">
+              {expiringTPEs.map((tpe, idx) => (
+                <li key={idx} className="text-white/60">
+                  ${(tpe.amount / 1_000_000).toFixed(1)}M - {tpe.date.split('T')[0]}
                 </li>
               ))}
             </ul>

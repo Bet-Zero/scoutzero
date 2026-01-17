@@ -196,6 +196,7 @@ utils/
   subscribeArchitectPlayerData.ts
   teamLoader.js
   timingUtils.js
+  tpeLifecycle.js
   tradeHelpers.js
   tradeMachine/
     MIGRATION_NOTES.md
@@ -276,5 +277,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-01-17T08:33:48.113Z*
+*Generated on: 2026-01-17T09:50:36.434Z*
 *Auto-updated by: npm run docs*

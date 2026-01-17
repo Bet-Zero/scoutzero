@@ -122,6 +122,7 @@ Quick reference for all components in the ScoutZero project.
 - utils/stepienUtils.js
 - utils/teamLoader.js
 - utils/timingUtils.js
+- utils/tpeLifecycle.js
 - utils/tradeHelpers.js
 - utils/tradeMachine/cache/cacheInvalidationManager.js
 - utils/tradeMachine/cache/index.js
@@ -323,4 +324,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2026-01-10T08:57:34.642Z*
+*Generated on: 2026-01-17T09:50:36.458Z*

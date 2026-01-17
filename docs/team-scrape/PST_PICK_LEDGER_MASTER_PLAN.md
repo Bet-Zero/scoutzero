@@ -14,7 +14,10 @@
 | Phase 1 | Acquisition: Fetch PST Pages | BLOCKED | 2026-01-17 |
 | Phase 1.1 | CDP Fetch Implementation | COMPLETE | 2026-01-17 |
 | Phase 2 | Extraction: Produce Raw Rows | COMPLETE | 2026-01-17 |
-| Phase 3 | Normalization | NOT STARTED | - |
+| Phase 2.1 | Base Ledger + Owner Overlay | COMPLETE | 2026-01-17 |
+| Phase 2.1 | Refine Row Extraction (Own Picks) | COMPLETE | 2026-01-17 |
+| Phase 1.3 | Raw Row Normalization | COMPLETE | 2026-01-17 |
+| Phase 3 | Normalization | COMPLETE | 2026-01-17 |
 | Phase 4 | Deterministic Parser | NOT STARTED | - |
 | Phase 5 | Ledger Builder | NOT STARTED | - |
 | Phase 6 | Hard Guarantees | NOT STARTED | - |
@@ -282,6 +285,40 @@ Claim example:
 **Validation**
 
 - Basic sanity checks: non-zero rows per team, expected year coverage exists.
+
+---
+
+### PHASE 2.1 — Base Ledger + Owner Overlay (Structure)
+
+**Goal**: Establish the canonical 480-pick universe and apply "visual ownership" from Phase 2.
+
+**Key Decisions**:
+
+- **Pick ID**: `${OriginalTeam}_${Year}_${1st|2nd}` (e.g. `LAL_2026_1st`)
+- **Base Ledger**: 30 teams × 8 years × 2 rounds = 480 picks.
+- **Overlay Precedence**:
+  1. `rowKind`: transaction > condition_not_met > own
+  2. `sourceTeamPage` matches `displayOwner` (Claimant priority)
+  3. Stable sort (pickId, rowRef)
+
+**Caveat**:
+
+- This phase reflects **PST Display Ownership** only.
+- It does NOT yet parse protections, swaps, or conditions.
+- Legal certainty comes in Phase 4.
+
+**Outputs**:
+
+- `data/pst/pst_base_ledger_2026_2033.json`
+- `data/pst/pst_owner_overlay.json`
+- `data/pst/pst_ledger_with_display_owner.json`
+- `data/pst/pst_holdings_by_team.json`
+
+**Validation**:
+
+- Count = 480.
+- Uniqueness = 100%.
+- Every pick has exactly one owner (valid TeamCode).
 
 ---
 

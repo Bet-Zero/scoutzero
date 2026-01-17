@@ -56,7 +56,8 @@ export type PstRawRow = {
   round: 1 | 2;
   originalTeam: string; // Canonical team code (e.g., "DAL")
   displayOwner: string; // Canonical team code of current holder
-  rawText: string; // Exact text from description cell
+  rawText: string; // Exact text from description cell, can be empty for own picks
+  rowKind: 'own' | 'transaction' | 'condition_not_met';
   source: 'PST';
   sourceUrl: string;
   sourceTeamPage: string; // PST slug (e.g., "Mavericks")
@@ -218,14 +219,18 @@ function extractRawRowsFromHtml(
         // But the prompt says "Include tr.datatable.center rows"
         if (!isDataRow && !$tr.find('td').length) return; 
 
-        // Content Validation:
+        // Content Classification:
         // Must have at least one p.bodyCopySm OR a .conditionnotmet cell
         const hasTransaction = $tr.find('p.bodyCopySm').length > 0;
         const hasConditionMsg = $tr.find('.conditionnotmet').length > 0;
-
-        if (!hasTransaction && !hasConditionMsg) {
-          // This filters out "Team owns its own pick" rows which are just logos/names
-          return;
+        
+        let rowKind: 'own' | 'transaction' | 'condition_not_met';
+        if (hasConditionMsg) {
+          rowKind = 'condition_not_met';
+        } else if (hasTransaction) {
+          rowKind = 'transaction';
+        } else {
+          rowKind = 'own';
         }
 
         // d. Extract Fields
@@ -239,8 +244,14 @@ function extractRawRowsFromHtml(
         if (!originalTeam) {
             // Fallback: check img alt in first cell
             const imgAlt = firstCell.find('img').attr('alt');
-            if (imgAlt) originalTeam = normalizePstLabel(imgAlt.replace(/\s*logo\s*/i, '').trim());
+            if (imgAlt) {
+              originalTeam = normalizePstLabel(imgAlt.replace(/\s*logo\s*/i, '').trim());
+            }
         }
+        
+        // Task B: Strengthen Pick Row Detection
+        // If first cell doesn't identify a team, skip this row
+        if (!originalTeam) return;
 
         // Display Owner: Scan remaining cells RIGHT-TO-LEFT
         // The last cell with a team label is the current owner
@@ -269,7 +280,7 @@ function extractRawRowsFromHtml(
         }
 
         // Fallbacks
-        if (!originalTeam) originalTeam = teamCode; // Should rarely happen in valid rows
+        if (!originalTeam) originalTeam = teamCode; // Should rarely happen in valid rows due to check above
         if (!displayOwner) displayOwner = originalTeam; // Default if no transfer column found
 
         // Raw Text: Join p.bodyCopySm texts with " | "
@@ -281,10 +292,22 @@ function extractRawRowsFromHtml(
              if (text) rawTextParts.push(text);
         });
         
-        let rawText = rawTextParts.join(' | ');
+        // Task C: Set rawText based on rowKind
+        let rawText = '';
+        if (rowKind === 'own') {
+            rawText = '';
+        } else {
+            rawText = rawTextParts.join(' | ');
+        }
 
         // Exclude specific invalid texts
-        if (!rawText || rawText === 'Transactions') return;
+        if (rawText === 'Transactions') return;
+        
+        // For non-own rows, ensure we have content (unless it's just condition not met with no text?)
+        // Actually condition_not_met usually has text. If transaction row has no text, is it valid?
+        // Prompt says: "rawText may be empty string for rowKind=own"
+        // It implies for others it should be populated.
+        // But let's stick to: only skip if it's "Transactions" or junk.
 
         rowIndex++;
 
@@ -294,6 +317,7 @@ function extractRawRowsFromHtml(
           originalTeam,
           displayOwner,
           rawText,
+          rowKind,
           source: 'PST',
           sourceUrl,
           sourceTeamPage: slug,

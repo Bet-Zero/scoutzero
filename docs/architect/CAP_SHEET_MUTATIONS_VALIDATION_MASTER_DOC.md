@@ -269,7 +269,7 @@ interface CapHold {
 |-----|-------------|--------|--------|
 | G0-1 | ~~No incomplete roster charge validation~~ | Teams at <14 players now have cap charge | ✅ RESOLVED |
 | G0-2 | ~~Exception usage not enforced post-hard-cap~~ | Exceptions now hard-blocked when prohibited | ✅ RESOLVED |
-| G0-3 | TPE expiration not automated | TPEs may appear available past 1-year window | ⏳ PENDING |
+| G0-3 | TPE expiration not automated | TPEs may appear available past 1-year window | ✅ Phase 1 Implemented |
 
 ### 7.1.1 Incomplete Roster Charge (G0-1 Resolution)
 
@@ -286,6 +286,36 @@ interface CapHold {
 - NOT stored in Firestore - computed at runtime
 
 **Tests:** `src/tests/architect/capTotals/incompleteRosterCharge.test.js` (9 tests)
+
+### 7.1.2 TPE Expiration Automation (G0-3 Resolution)
+
+**Strategy:** Option 1 (On-Advance Cleanup)
+
+**Location:** `seasonManager.js` -> `advanceSeasonInWorld()`
+
+**Rule:**
+
+- TPEs have a 1-year lifespan (typically expiring `createdSeason + 1`).
+- Upon season advance, any TPEs expiring *before or on* the new season start date (July 1st) must be removed.
+- **Strictness:** Removed TPEs are physically deleted from `team.tradeExceptions` array in the World overlay.
+- **Lifecycle:** TPEs are cleaned during season advance; no on-read filtering required for correctness.
+
+**Schema:**
+
+- Canonical: `expiresOn` (ISO string)
+- Implementation: `expiryISO` (ISO string)
+- Logic checks both during migration phase.
+
+**Implementation (Phase 2):**
+
+- **Backfill:** `expiresOn` is backfilled from `expiryISO` during season transition if missing.
+- **UI Alignment:** `SeasonAdvanceModal` uses shared `processTradeExceptions` logic for preview.
+- **Canonicalization:** `tpeLifecycle.js` provides `getTpeExpiryISO` helper for consistent reads.
+
+**Tests:**
+
+- Unit: `seasonManager.tpe.test.js` (advance season, check TPE removal, check backfill)
+- Integration: UI Preview matches backend removal logic.
 
 ### 7.2 P1 — Allows Illegal Action but Visible/Warned
 
@@ -329,3 +359,5 @@ interface CapHold {
 |------|--------|
 | 2026-01-16 | Initial creation with mutations inventory and validation map |
 | 2026-01-17 | **Phase A P0:** Implemented G0-1 (incomplete roster charge) and G0-2 (post-apron exception blocking). Added `exception_blocked` to HARD_BLOCK_RULES. Updated validation map. |
+| 2026-01-17 | **Phase 1 P0:** Implemented G0-3 (TPE Expiration) Phase 1 Core Logic. Added `processTradeExceptions` to season transition. |
+| 2026-01-17 | **Phase 2 P0:** Completed TPE Phase 2. Canonicalized `expiresOn`. Backfill in season advance. UI Drift eliminated. |
