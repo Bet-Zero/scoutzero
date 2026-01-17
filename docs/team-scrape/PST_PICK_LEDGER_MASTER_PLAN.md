@@ -20,9 +20,40 @@
 | Phase 3 | Normalization | COMPLETE | 2026-01-17 |
 | Phase 4 | Deterministic Parser | COMPLETE | 2026-01-17 |
 | Phase 5 | Ledger Builder + Finalize | COMPLETE | 2026-01-17 |
-| Phase 6 | Hard Guarantees | NOT STARTED | - |
+| Phase 6 | Manual Check Views | COMPLETE | 2026-01-17 |
+| Phase 6.1 | OutcomeSpec + Manual View Upgrade | COMPLETE | 2026-01-17 |
+| Phase 6.3 | Conditional Tag + Swap Display Rule | COMPLETE | 2026-01-17 |
+| Phase 6.2 | Hard Guarantees | NOT STARTED | - |
 | Phase 7 | Collision Course | NOT STARTED | - |
 | Phase 8 | Zero-Blocker Closure | NOT STARTED | - |
+
+---
+
+## Quick Commands
+
+**Recommended day-to-day command** (runs full final pipeline):
+
+```bash
+npm run pst:build-final
+```
+
+This command runs the complete "final truth" pipeline in order:
+
+1. `pst:phase-4` - Deterministic parser (builds pick rule profiles with selectionSpecs)
+2. `pst:phase-5` - Ledger builder + finalize (generates final artifacts)
+3. `pst:phase-5:validate` - Validation (confirms invariants)
+4. `pst:manual-views` - Generate manual check views with OutcomeSpec format
+
+**When to use individual commands**:
+
+- `pst:extract` / `pst:validate` - Only when HTML pages change or extractor logic is modified
+- `pst:phase-4` - Only when parser rules need adjustment
+- `pst:phase-5` - Only when finalization logic changes
+- `pst:manual-views` - Only regenerate manual views without rebuilding profiles
+
+For normal day-to-day usage after initial setup, use `pst:build-final` to rebuild the complete ledger and manual check views from normalized rows.
+
+---
 
 ### Phase 1.1c — CDP Fetch Required (Cloudflare fingerprints Playwright-launched browsers)
 
@@ -459,7 +490,214 @@ npm run pst:phase-5    # Generate final artifacts
 
 ---
 
-### PHASE 6 — Hard Guarantees: Invariants + Blocking
+### PHASE 6 — Manual Check Views (COMPLETE)
+
+**Goal**: Generate human-readable "manual check" views from final PST artifacts for verification against Fanspo and Spotrac.
+
+**Implementation Completed 2026-01-17**
+
+This phase produces formatted text reports showing picks per team, organized for easy cross-reference with external pick tracking sources.
+
+**Run Command**
+
+```bash
+npm run pst:manual-views
+```
+
+**Outputs**
+
+- `data/pst/manual_check_views.txt` - Combined report (all 30 teams)
+- `data/pst/manual_check_views/*.txt` - Per-team reports (30 files)
+- `data/pst/manual_check_views_summary.json` - Index summary with counts
+
+**Output Format**
+
+Each team block shows holdings (picks the team currently owns):
+
+```
+════════════════════════════════════════════════════════════════════════════════
+# ATL — ATLANTA HAWKS (12 picks)
+
+────────────────────────────────────────────────────────────────────────────────
+2026 | 1 | via CLE | swap ATL
+2026 | 2 | own |
+...
+```
+
+Format: `{YEAR} | {ROUND} | {ORIGIN_TAG} | {TAGS}`
+
+**Tag Generation Rules (Phase 6.3 - Conditional + Swap Display)**
+
+These rules are **presentation-only** and intentionally conservative. They do not execute swap logic or interpret legal obligations.
+
+| Source | Generated Tags |
+|--------|----------------|
+| Protection (start=1) | `Top N` (broadest if multiple) |
+| Protection (range) | `protected #start-end` |
+| Protection (lottery) | `lottery` |
+| Multiple conflicting Top N | `PROT_CONFLICT` marker |
+| Favorable pool (mostLeast set) | `least of (A,B,C)` or `most of (A,B,C)` |
+| Swap (explicit controller) | `swap {TEAM}` (v6.3: now shown alongside pools) |
+| Swap (no valid controller) | `swap attached` |
+| Conditional (non-past-tense evidence) | `conditional` (v6.3: new) |
+| Did not convey (past-tense evidence) | `did not convey` |
+| Fallback indicator | `fallback` |
+
+**Key Refinements (Phase 6.2)**:
+
+- Protections filtered by `appliesToYears` matching the pick year
+- Conflicting Top N protections resolved to broadest, with `PROT_CONFLICT` marker
+- Favorable pools shown as `least of (...)` / `most of (...)` separately from swap controller
+- Tags limited to 4 per line for readability
+
+**v6.3 Changes**:
+
+- **Conditional vs Did-Not-Convey**: Evidence text is checked for explicit past-tense outcome language ("did not convey", "not conveyed", "will not convey", "protection exercised"). If found, emits "did not convey". Otherwise, emits "conditional" for future picks with condition_not_met rows.
+- **Swap Display Rule**: Swap tags (`swap {TEAM}`) are now emitted even when favorable pools exist. This matches Fanspo/Spotrac display style where both swap rights and selection pools are shown together.
+
+**Usage with Fanspo/Spotrac**
+
+1. Run `npm run pst:manual-views`
+2. Open `data/pst/manual_check_views.txt` or individual team files
+3. Compare each team's holdings against:
+   - Fanspo: <https://fanspo.com/nba/teams/{team}/draft-picks>
+   - Spotrac: <https://www.spotrac.com/nba/{team}/draft/>
+4. Flag any discrepancies for investigation
+
+**Stop Conditions**
+
+The generator will BLOCK and exit if:
+
+- Final ledger does not contain exactly 480 picks
+- Any owner field contains an invalid team code
+- Team name cannot be resolved for any team code
+
+**Acceptance Criteria** ✓
+
+- ✓ Combined report generated with all 30 teams
+- ✓ Per-team files generated (one per team with picks)
+- ✓ Summary JSON with pick counts per team
+- ✓ Format matches Fanspo/Spotrac style for easy comparison
+
+---
+
+### PHASE 6.1 — OutcomeSpec + Manual View Upgrade (COMPLETE)
+
+**Goal**: Upgrade the manual check views so that any swap/conditional "ordered pool" situation prints a clear **OutcomeSpec** that expresses possible outcomes, not vague tags.
+
+**Implementation Completed 2026-01-17**
+
+This phase:
+
+1. Extended parser outputs to capture **SelectionSpecs** (ordered selection specifications)
+2. Added deterministic formatting to produce compact OutcomeSpec strings per pick
+3. Regenerated manual check views with the new format
+
+**OutcomeSpec Grammar**
+
+```
+OutcomeSpec = [Protection] ["; " SelectionSpec]*
+
+Protection = "Top N" | "protected #start-end" | "lottery"
+
+SelectionSpec = SwapSpec | ConveysSpec
+SwapSpec = "swap:" Controller " — " RankOrder " of (" Pool ")"
+ConveysSpec = "conveys — " RankOrder " of (" Pool ")"
+
+RankOrder = "most" | "least" | "2nd most" | "2nd least" | "3rd most" | ...
+Pool = TeamCode ["," TeamCode]*  (sorted alphabetically)
+```
+
+**SelectionSpec Schema**
+
+```typescript
+interface SelectionSpec {
+  kind: 'swap' | 'conveys';
+  controller?: TeamCode;     // Required for swap
+  order: 'most' | 'least';
+  rank: number;              // 1 for most/least, 2 for 2nd, etc.
+  pool: TeamCode[];          // Sorted alphabetically
+  year: number;
+  round: 1 | 2;
+  evidenceRowRefs: string[];
+  description: string;
+}
+```
+
+**Output Examples**
+
+| Scenario | OutcomeSpec |
+|----------|-------------|
+| 2-team swap | `swap:ATL — least of (ATL,SAS)` |
+| 3-team swap | `swap:NOP — most of (MIL,NOP)` |
+| 4-team swap | `swap:BKN — least of (BKN,DET,MIL,ORL)` |
+| Ranked swap | `swap:HOU — 2nd most of (DAL,HOU,PHX)` |
+| Ranked conveys | `conveys — 2nd most of (BOS,MIL,POR)` |
+| Protection + swap | `Top 4; swap:ORL — least of (MIL,ORL)` |
+
+**Run Command**
+
+```bash
+npm run pst:build-final
+```
+
+This command runs the complete pipeline including OutcomeSpec generation:
+
+1. `pst:phase-4` - Deterministic parser (builds pick rule profiles with selectionSpecs)
+2. `pst:phase-5` - Ledger builder + finalize (generates final artifacts)
+3. `pst:phase-5:validate` - Validation (confirms invariants)
+4. `pst:manual-views` - Manual check views generator (with OutcomeSpec)
+
+**Files Modified**
+
+| File | Changes |
+|------|---------|
+| `pst_pick_rule_parser.ts` | Added SelectionSpec type, parseRankedFavorablePool(), buildSelectionSpecs() |
+| `pst_phase_5_finalize.ts` | Generate selectionSpecs in final profiles and ledger |
+| `pst_phase_6_manual_check_views.ts` | Replaced generateTags() with composeOutcomeSpec() |
+| `package.json` | Added `pst:phase-6-1` script |
+
+**Acceptance Criteria** ✓
+
+- ✓ SelectionSpecs generated deterministically from existing parsed data
+- ✓ Manual views use OutcomeSpec format with pools, ranks, and controllers
+- ✓ 2-team swap lines display correctly
+- ✓ Ranked pool lines (2nd most, 3rd least) display correctly
+- ✓ Conveys selections display for ranked specs
+
+---
+
+### PHASE 6.3 — Conditional Tag + Swap Display Rule (COMPLETE)
+
+**Goal**: Improve presentation clarity for manual verification against Fanspo/Spotrac.
+
+**Implementation Completed 2026-01-17**
+
+Two presentation-only changes:
+
+1. **Conditional vs Did-Not-Convey**: Previously, "did not convey" was emitted whenever `didNotConvey[]` was non-empty. This was misleading for future picks (2026-2033) where the condition hasn't been evaluated yet. Now:
+   - `did not convey` is emitted only when evidence text contains explicit past-tense language ("did not convey", "not conveyed", "will not convey", "protection exercised")
+   - `conditional` is emitted otherwise (default for condition_not_met rows)
+
+2. **Swap Tag Display**: Previously, swap tags were suppressed when favorable pool tags existed. This didn't match Fanspo/Spotrac which show both. Now:
+   - `swap {TEAM}` is always emitted when controller is explicit
+   - Both pool tags and swap tags can appear on the same line
+
+**Files Modified**
+
+| File | Changes |
+|------|---------|
+| `pst_phase_6_manual_check_views.ts` | Added `isExplicitNonTransfer()`, updated `generateTags()` for v6.3 rules, added profiles loading for evidence lookup |
+
+**Acceptance Criteria** ✓
+
+- ✓ "conditional" emitted instead of "did not convey" for future picks without past-tense evidence
+- ✓ Swap tags displayed alongside favorable pool tags when controller is explicit
+- ✓ Manual check views regenerated with v6.3 format
+
+---
+
+### PHASE 6.2 — Hard Guarantees: Invariants + Blocking
 
 **Goal**: enforce “correct or blocked” behavior.
 

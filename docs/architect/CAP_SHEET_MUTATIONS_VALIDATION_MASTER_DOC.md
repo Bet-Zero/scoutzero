@@ -198,10 +198,18 @@ interface CapHold {
 | Two-Way Limit (>3) | `capLegalityValidation.js:validateSigning` | Pre-persist | Hard Block | `team.players` |
 | Hard Cap Ceiling | `capLegalityValidation.js:validateSigning` | Pre-persist | Hard Block | `team.totals`, `capSettings` |
 | **Exception Blocked** | `capLegalityValidation.js:validateExceptionEligibility` | Pre-persist | **Hard Block** | `team.totals`, `capSettings`, `signedUsing` |
+| **Min Salary Violation** | `capLegalityValidation.js:validateSigning` | Pre-persist | **Hard Block** | `player` (YOS), `contract.salariesByYear[0]`, `capRulesProfile` |
+| **Contract Years Invalid** | `capLegalityValidation.js:validateSigning` | Pre-persist | **Hard Block** | `contract.contractLength` OR `salariesByYear.length`, `signedUsing` |
+| **First Year Max Invalid** | `capLegalityValidation.js:validateSigning` | Pre-persist | **Hard Block** | `contract.salariesByYear[0]`, `signedUsing`, `capRulesProfile.exceptions` |
+| **Second Apron Minimum Only** | `capLegalityValidation.js:validateSigning` | Pre-persist | **Hard Block** | `team.totals`, `contract.salariesByYear[0]`, `player` (YOS), `capRulesProfile` |
 | Roster Minimum (<14) | `capLegalityValidation.js:validateWaive` | Pre-persist | Warning | `team.players` |
 | Dead Cap Creation | `capLegalityValidation.js:validateWaive` | Pre-persist | Info | `player.contract` |
 | Option Timing | `capLegalityValidation.js:validateOptionDecision` | Pre-persist | Hard Block | `targetYear`, `currentYear` |
 | No Contract to Extend | `capLegalityValidation.js:validateExtension` | Pre-persist | Hard Block | `player.contract` |
+| **Extension Ineligible** | `capLegalityValidation.js:validateExtension` | Pre-persist | **Hard Block** | `player.contract.contractType` |
+| **Extension Years Invalid** | `capLegalityValidation.js:validateExtension` | Pre-persist | **Hard Block** | `extension.salariesByYear.length` OR `extension.contractLength` |
+| **Extension First Year Max Invalid** | `capLegalityValidation.js:validateExtension` | Pre-persist | **Hard Block** | `player.contract.salariesByYear[-1].salary`, `extension.salariesByYear[0].salary` |
+| **Extension Raise Invalid** | `capLegalityValidation.js:validateExtension` | Pre-persist | **Hard Block** | `extension.salariesByYear[].salary` (consecutive years) |
 | First Apron Warning | `capLegalityValidation.js:validateSigning` | Pre-persist | Warning | `projectedCapHit`, `capSettings.firstApron` |
 | Second Apron Warning | `capLegalityValidation.js:validateSigning` | Pre-persist | Warning | `projectedCapHit`, `capSettings.secondApron` |
 | Cap Hold Info | `capLegalityValidation.js:validateRenounceRights` | Pre-persist | Info | `team.capHolds` |
@@ -215,8 +223,16 @@ interface CapHold {
 - `two_way_limit` - >3 two-way contracts
 - `option_timing` - Wrong season for option
 - `no_contract` - Extension without contract
-- `exception_blocked` - Exception usage blocked by apron status (NEW)
-- `unverified_cap_inputs` - Cap data is unknown OR projected in STRICT mode (NEW)
+- `exception_blocked` - Exception usage blocked by apron status
+- `unverified_cap_inputs` - Cap data is unknown OR projected in STRICT mode
+- `min_salary_violation` - First-year salary/capHit below CBA minimum for player's YOS
+- `contract_years_invalid` - Contract length outside allowed min/max for signing mechanism
+- `first_year_max_invalid` - First-year salary exceeds mechanism max OR MINIMUM contract above min salary
+- `second_apron_minimum_only` - Teams above second apron can only sign to minimum salary
+- `extension_ineligible` - Two-way contracts cannot be extended (must convert first)
+- `extension_years_invalid` - Extension length outside 1-4 years (baseline; designated vet allows 5)
+- `extension_first_year_max_invalid` - Extension first-year salary exceeds 120% baseline (Salary Engine overrides when available)
+- `extension_raise_invalid` - Extension year-over-year raises exceed 8%
 
 **Soft Warning Rules (Overridable in dev mode via `VITE_ENABLE_CBA_OVERRIDE=true`):**
 
@@ -270,6 +286,10 @@ interface CapHold {
 | G0-1 | ~~No incomplete roster charge validation~~ | Teams at <14 players now have cap charge | ✅ RESOLVED |
 | G0-2 | ~~Exception usage not enforced post-hard-cap~~ | Exceptions now hard-blocked when prohibited | ✅ RESOLVED |
 | G0-3 | TPE expiration not automated | TPEs may appear available past 1-year window | ✅ Phase 1 Implemented |
+| G0-4 | ~~Min salary by YOS not enforced in pipeline~~ | Under-minimum contracts now hard-blocked | ✅ RESOLVED (Phase 1) |
+| G0-5 | ~~First-year max by mechanism not enforced~~ | Over-exception contracts now hard-blocked | ✅ RESOLVED (Phase 2.5) |
+| G0-6 | ~~Second apron minimum-only not enforced~~ | Above-minimum signings at second apron now blocked | ✅ RESOLVED (Phase 2.5) |
+| G0-7 | ~~Extension terms/raises not enforced in pipeline~~ | Illegal extensions now hard-blocked (years, first-year max, raises) | ✅ RESOLVED (Phase 3) |
 
 ### 7.1.1 Incomplete Roster Charge (G0-1 Resolution)
 
@@ -332,7 +352,7 @@ interface CapHold {
 | G2-1 | Manual dead money entry UI missing | Users cannot correct data errors |
 | G2-2 | Exception create/expire UI missing | Must rely on automated tracking |
 | G2-3 | Roster spot charges not displayed | Incomplete roster penalty not shown |
-| G2-4 | Contract min/max rules not enforced | Can create invalid contract lengths |
+| G2-4 | ~~Contract years min/max not enforced in pipeline~~ | Contract years now validated by mechanism | ✅ RESOLVED (Phase 2) |
 
 ---
 
@@ -428,3 +448,9 @@ This section defines the canonical contract schema that all world mutation write
 | 2026-01-17 | **Phase 1 P0:** Implemented G0-3 (TPE Expiration) Phase 1 Core Logic. Added `processTradeExceptions` to season transition. |
 | 2026-01-17 | **Phase 2 P0:** Completed TPE Phase 2. Canonicalized `expiresOn`. Backfill in season advance. UI Drift eliminated. |
 | 2026-01-17 | **Contract Schema Phase 0:** Standardized contract schema for world mutations. Created `contractNormalization.js`. Updated `computeSigningResult`, `computeExtensionResult`, `computeOptionResult` to use canonical field names/types (`signingDate`, `isExtension`, boolean `optionUsed`). Updated consumers (`useCapSheetState`, `useArchitectActions`, `seasonManager`). Added 52 unit tests. |
+| 2026-01-17 | **Contract Rules Phase 1:** Implemented G0-4 (Minimum Salary Enforcement). Added `min_salary_violation` to HARD_BLOCK_RULES. `validateSigning` now rejects contracts where first-year salary/capHit is below CBA minimum for player's YOS. Two-way contracts excluded. 8 new tests added. |
+| 2026-01-17 | **Contract Rules Phase 2:** Implemented G2-4 (Contract Years Enforcement). Added `contract_years_invalid` to HARD_BLOCK_RULES. `validateSigning` now validates contract length against mechanism-specific limits (MINIMUM: 1-2yr, FULL_MLE: 1-4yr, TPMLE/ROOM_MLE/BAE: 1-2yr). Added `resolveSigningMechanism()`, `getSigningYearsLimits()` helpers. Two-way contracts excluded. 9 new tests added. |
+| 2026-01-17 | **Contract Rules Phase 2.5:** Implemented G0-5 (First-Year Max by Mechanism) and G0-6 (Second Apron Minimum-Only). Added `first_year_max_invalid` and `second_apron_minimum_only` to HARD_BLOCK_RULES. `validateSigning` now enforces exception amount caps (FULL_MLE/TPMLE/ROOM_MLE/BAE) and MINIMUM exactness. Teams above second apron blocked from above-minimum signings. Added `getSigningFirstYearMax()` helper. Fixed UI TPMLE maxYears (3→2). Two-way contracts excluded. 14 new tests added. |
+| 2026-01-17 | **Phase 2.5 Patch:** Fixed second apron projected cap hit calculation to use `capHit` (not `salary`) when the two differ. Ensures incentive-laden or deferred contracts are correctly evaluated against second apron threshold. 1 new test added. |
+| 2026-01-17 | **Contract Rules Phase 3:** Implemented G0-7 (Extension Terms/Raises Enforcement). Added `extension_ineligible`, `extension_years_invalid`, `extension_first_year_max_invalid`, `extension_raise_invalid` to HARD_BLOCK_RULES. `validateExtension` now blocks: (1) two-way contract extensions, (2) extensions > 4 years, (3) first-year exceeds baseline max, (4) raises > 8%. Added helper functions: `getContractLastYearSalary()`, `getExtensionFirstYearSalary()`, `getExtensionYears()`, `validateExtensionTermsAndRaises()`. Added `EXTENSION_YEARS_LIMITS`, `EXTENSION_FIRST_YEAR_MAX_PERCENT`, `EXTENSION_MAX_RAISE_PERCENT` constants. 8 new tests added. |
+| 2026-01-17 | **Contract Rules Phase 3.25:** Fixed extension first-year max baseline (140%→120%). Wired Salary Engine `extensionTerms` into `validateExtension`. Engine-computed terms now override baseline for type-specific rules (rookie/designated vet/veteran). Added `getExtensionTermsForPlayer()` helper. Updated tests (constant check, 125% blocking test, engine override test). |

@@ -84,6 +84,33 @@ export interface Evidence {
   rowKind: string;
 }
 
+/**
+ * SelectionSpec: Structured representation of swap/conveyance selection logic.
+ * 
+ * Used for OutcomeSpec generation in manual check views.
+ * Captures "most favorable of X, Y, Z" / "2nd least favorable of A, B, C" patterns.
+ */
+export interface SelectionSpec {
+  /** 'swap' when controller picks from pool; 'conveys' for non-swap selection */
+  kind: 'swap' | 'conveys';
+  /** Controller team (required for swap, optional for conveys) */
+  controller?: TeamCode;
+  /** Selection order: 'most' or 'least' favorable */
+  order: 'most' | 'least';
+  /** Rank: 1 for most/least, 2 for 2nd most/least, etc. */
+  rank: number;
+  /** Pool of teams involved (sorted alphabetically) */
+  pool: TeamCode[];
+  /** Year the selection applies to */
+  year: number;
+  /** Round (1 or 2) */
+  round: 1 | 2;
+  /** Evidence row references */
+  evidenceRowRefs: string[];
+  /** Short description of matched phrase */
+  description: string;
+}
+
 export interface PickRuleProfile {
   pickId: string;
   year: number;
@@ -94,6 +121,7 @@ export interface PickRuleProfile {
   swaps: Swap[];
   conveyance: Conveyance[];
   didNotConvey: DidNotConvey[];
+  selectionSpecs: SelectionSpec[];
   mentions: Mentions;
   needs_review: boolean;
   reviewReasons: string[];
@@ -543,6 +571,275 @@ function extractTeamCodesFromList(text: string): TeamCode[] {
 }
 
 // ============================================================================
+// SELECTION SPEC PARSING (Phase 6.1)
+// ============================================================================
+
+/**
+ * Rank word to number mapping
+ */
+const RANK_WORDS: Record<string, number> = {
+  'first': 1,
+  '1st': 1,
+  'second': 2,
+  '2nd': 2,
+  'third': 3,
+  '3rd': 3,
+  'fourth': 4,
+  '4th': 4,
+  'fifth': 5,
+  '5th': 5,
+};
+
+/**
+ * Parse ranked favorable pool phrases from text.
+ * 
+ * Detects patterns like:
+ * - "(most favorable of Bucks, Pelicans picks)"
+ * - "(second most favorable of Blazers, Bucks, Celtics picks)"
+ * - "(2nd least favorable of Clippers, Jazz, Rockets picks)"
+ * - "(less favorable of Hawks, Spurs picks)"
+ * 
+ * @param text - Normalized text to parse
+ * @returns Array of parsed favorable pool specs
+ */
+export function parseRankedFavorablePool(text: string): Array<{
+  order: 'most' | 'least';
+  rank: number;
+  pool: TeamCode[];
+  description: string;
+}> {
+  const results: Array<{
+    order: 'most' | 'least';
+    rank: number;
+    pool: TeamCode[];
+    description: string;
+  }> = [];
+
+  // Pattern: "(second most favorable of X, Y, Z picks)" or "(most favorable of X, Y picks)"
+  // Captures: optional rank word, most/least/more/less, team list
+  const favorablePattern = /\((?:(first|1st|second|2nd|third|3rd|fourth|4th|fifth|5th)\s+)?(most|least|more|less)\s+favorable\s+of\s+([^)]+?)\s*(?:picks?)?\)/gi;
+  
+  let match;
+  while ((match = favorablePattern.exec(text)) !== null) {
+    const rankWord = match[1]?.toLowerCase();
+    const orderWord = match[2].toLowerCase();
+    const poolText = match[3];
+    
+    // Determine rank (1 if not specified)
+    const rank = rankWord ? (RANK_WORDS[rankWord] || 1) : 1;
+    
+    // Normalize order: "more" -> "most", "less" -> "least"
+    const order: 'most' | 'least' = (orderWord === 'most' || orderWord === 'more') ? 'most' : 'least';
+    
+    // Extract team codes from pool text
+    const pool = extractTeamCodesFromList(poolText);
+    
+    if (pool.length > 0) {
+      results.push({
+        order,
+        rank,
+        pool: pool.sort(), // Sort alphabetically
+        description: match[0].trim(),
+      });
+    }
+  }
+  
+  return results;
+}
+
+/**
+ * Parse "better of" / "worse of" language from text.
+ * 
+ * Detects patterns like:
+ * - "better of DEN and OKC picks"
+ * - "worse of ATL and SAS"
+ * - "more favorable of (a) X and (b) Y"
+ * 
+ * Note: This pattern is less common in PST data but appears in Spotrac/Fanspo.
+ * 
+ * @param text - Normalized text to parse
+ * @returns Array of parsed better-of specs
+ */
+export function parseBetterOf(text: string): Array<{
+  order: 'most' | 'least';
+  rank: number;
+  pool: TeamCode[];
+  description: string;
+}> {
+  const results: Array<{
+    order: 'most' | 'least';
+    rank: number;
+    pool: TeamCode[];
+    description: string;
+  }> = [];
+
+  // Pattern: "better/worse of X and Y" or "better/worse of X, Y"
+  const betterOfPattern = /\b(better|worse)\s+of\s+([A-Za-z]+(?:\s+[A-Za-z]+)?)\s+(?:and|,)\s+([A-Za-z]+(?:\s+[A-Za-z]+)?)/gi;
+  
+  let match;
+  while ((match = betterOfPattern.exec(text)) !== null) {
+    const betterWorse = match[1].toLowerCase();
+    const team1Text = match[2].trim();
+    const team2Text = match[3].trim();
+    
+    const order: 'most' | 'least' = betterWorse === 'better' ? 'most' : 'least';
+    
+    const team1 = normalizeTeamLabel(team1Text);
+    const team2 = normalizeTeamLabel(team2Text);
+    
+    if (team1 && team2) {
+      results.push({
+        order,
+        rank: 1,
+        pool: [team1, team2].sort(),
+        description: match[0].trim(),
+      });
+    }
+  }
+  
+  return results;
+}
+
+/**
+ * Dedupe and sort a pool array.
+ */
+function dedupePool(pool: TeamCode[]): TeamCode[] {
+  return [...new Set(pool)].sort();
+}
+
+/**
+ * Build SelectionSpecs from a profile's existing swaps and parsed favorable pool data.
+ * 
+ * This combines:
+ * 1. Existing swap data (controller, pool, mostLeast)
+ * 2. Newly parsed ranked favorable pool specs (only for rank > 1)
+ * 
+ * Strategy: Prefer existing swap specs (rank 1). Only add parsed specs if they
+ * have rank > 1 (e.g., "2nd most favorable") since those can't be derived from swaps.
+ * 
+ * @param profile - The pick rule profile being built
+ * @param evidenceTexts - Array of {text, rowRef} from evidence
+ * @returns Array of SelectionSpecs
+ */
+export function buildSelectionSpecs(
+  profile: Pick<PickRuleProfile, 'swaps' | 'year' | 'round'>,
+  evidenceTexts: Array<{ text: string; rowRef: string }>
+): SelectionSpec[] {
+  const specs: SelectionSpec[] = [];
+  const seenKeys = new Set<string>();
+  
+  // Helper to dedupe by key (normalized: controller + order + rank + sorted pool)
+  const addSpec = (spec: SelectionSpec) => {
+    // Normalize pool for comparison
+    const normalizedPool = dedupePool(spec.pool).join(',');
+    const key = `${spec.kind}-${spec.controller || ''}-${spec.order}-${spec.rank}-${normalizedPool}`;
+    if (!seenKeys.has(key)) {
+      seenKeys.add(key);
+      specs.push({
+        ...spec,
+        pool: dedupePool(spec.pool), // Ensure deduped pool in output
+      });
+    }
+  };
+  
+  // 1. Convert existing swaps to SelectionSpecs (rank 1 only)
+  for (const swap of profile.swaps) {
+    // Only create spec if we have mostLeast (favorable language)
+    if (swap.mostLeast) {
+      const order: 'most' | 'least' = swap.mostLeast === 'most_favorable' ? 'most' : 'least';
+      
+      // Build pool: include controller + swap.pool, deduped
+      const poolWithController = swap.controller 
+        ? [swap.controller, ...swap.pool]
+        : swap.pool;
+      
+      addSpec({
+        kind: 'swap',
+        controller: swap.controller,
+        order,
+        rank: 1,
+        pool: poolWithController,
+        year: swap.year,
+        round: swap.round,
+        evidenceRowRefs: swap.evidenceRowRefs,
+        description: swap.description.slice(0, 80),
+      });
+    }
+  }
+  
+  // 2. Parse evidence texts ONLY for ranked specs (rank > 1)
+  // These can't be derived from existing swaps
+  for (const { text, rowRef } of evidenceTexts) {
+    const rankedSpecs = parseRankedFavorablePool(text);
+    for (const spec of rankedSpecs) {
+      // Only add if rank > 1 (ranked specs like "2nd most favorable")
+      if (spec.rank > 1) {
+        // Determine if this is a swap (has controller) or conveys
+        const isSwap = text.toLowerCase().includes('swap') || text.toLowerCase().includes('option to swap');
+        
+        // Try to find controller from existing swaps with overlapping pool
+        let controller: TeamCode | undefined;
+        if (isSwap) {
+          for (const swap of profile.swaps) {
+            const poolOverlap = swap.pool.some(t => spec.pool.includes(t));
+            if (poolOverlap) {
+              controller = swap.controller;
+              break;
+            }
+          }
+          // Fallback: first team in pool if swap context detected
+          if (!controller && spec.pool.length > 0) {
+            controller = spec.pool[0];
+          }
+        }
+        
+        addSpec({
+          kind: isSwap ? 'swap' : 'conveys',
+          controller,
+          order: spec.order,
+          rank: spec.rank,
+          pool: spec.pool,
+          year: profile.year,
+          round: profile.round,
+          evidenceRowRefs: [rowRef],
+          description: spec.description,
+        });
+      }
+    }
+    
+    // Parse better-of patterns (these are always rank 1, but only if no swap spec exists)
+    const betterOfSpecs = parseBetterOf(text);
+    for (const spec of betterOfSpecs) {
+      const isSwap = text.toLowerCase().includes('swap');
+      
+      // Only add if we don't already have a swap spec for this pool
+      const existingSwapSpec = specs.find(s => 
+        s.kind === 'swap' && 
+        s.order === spec.order &&
+        s.rank === spec.rank &&
+        dedupePool(s.pool).join(',') === dedupePool(spec.pool).join(',')
+      );
+      
+      if (!existingSwapSpec) {
+        addSpec({
+          kind: isSwap ? 'swap' : 'conveys',
+          controller: isSwap ? spec.pool[0] : undefined,
+          order: spec.order,
+          rank: spec.rank,
+          pool: spec.pool,
+          year: profile.year,
+          round: profile.round,
+          evidenceRowRefs: [rowRef],
+          description: spec.description,
+        });
+      }
+    }
+  }
+  
+  return specs;
+}
+
+// ============================================================================
 // CONVEYANCE PARSING
 // ============================================================================
 
@@ -839,6 +1136,7 @@ export function buildPickRuleProfiles(
       swaps: [],
       conveyance: [],
       didNotConvey: [],
+      selectionSpecs: [],
       mentions: {
         referencedPickIds: [],
         referencedTeams: [],
@@ -972,6 +1270,13 @@ export function buildPickRuleProfiles(
         }
       }
     }
+
+    // Build SelectionSpecs from swaps and evidence texts (Phase 6.1)
+    const evidenceTexts = rows
+      .filter(r => r.normalizedText && r.normalizedText.trim().length > 0)
+      .map(r => ({ text: r.normalizedText, rowRef: r.provenance.rowRef }));
+    
+    profile.selectionSpecs = buildSelectionSpecs(profile, evidenceTexts);
 
     // Validate team codes in extracted data
     for (const swap of profile.swaps) {

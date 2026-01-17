@@ -88,7 +88,7 @@ export const buildSigningGuardrails = (
       source: 'Taxpayer MLE',
       maxFirstYear: capSettings.taxpayerMLE ?? capSettings.fullMLE ?? null,
       raisePct: 0.05,
-      maxYears: 3,
+      maxYears: 2, // Corrected to match CBA rules and pipeline SIGNING_YEARS_LIMITS.TPMLE
     },
     'Room MLE': {
       source: 'Room MLE',

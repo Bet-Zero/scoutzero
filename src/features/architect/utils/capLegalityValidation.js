@@ -24,6 +24,8 @@ import {
   getPlayerName,
 } from '@/features/architect/utils/capHelpers';
 import { getCapRulesForYear } from '@/features/architect/utils/capRulesProfile';
+import { getYearsOfService } from '@/features/architect/utils/playerRulesProfile/minimumSalaryRules.js';
+import { computePlayerRulesProfile } from '@/features/architect/utils/playerRulesProfile/index.js';
 
 // ==============================================================================
 // CONSTANTS
@@ -44,7 +46,76 @@ export const HARD_BLOCK_RULES = [
   'unknown_type',          // Unknown mutation type
   'exception_blocked',     // Exception usage blocked due to apron/hard cap status
   'unverified_cap_inputs', // Hard block in STRICT mode for projected data
+  'min_salary_violation',  // First-year salary below CBA minimum for player's YOS
+  'contract_years_invalid', // Contract length outside allowed min/max for signing mechanism
+  'first_year_max_invalid', // First-year salary exceeds mechanism max OR MINIMUM contract above min salary
+  'second_apron_minimum_only', // Teams above second apron can only sign to minimum salary
+  // Phase 3: Extension validation rules
+  'extension_ineligible',  // Two-way contracts cannot be extended, or other eligibility block
+  'extension_years_invalid', // Extension length outside allowed min/max
+  'extension_raise_invalid', // Year-over-year raises exceed 8%
+  'extension_first_year_max_invalid', // First-year extension salary exceeds 120% baseline (engine terms override)
 ];
+
+/**
+ * Canonical contract year limits by signing mechanism.
+ * 
+ * Based on CBA rules:
+ * - MINIMUM contracts: 1-2 years
+ * - Full MLE (Non-Taxpayer MLE): 1-4 years
+ * - Taxpayer MLE: 1-2 years (not 3 - that was incorrect in UI)
+ * - Room MLE: 1-2 years
+ * - BAE (Bi-Annual Exception): 1-2 years
+ * 
+ * Reference: useCapValidation.js exceptionGuardrails (UI validation)
+ * Note: This is the PIPELINE validation - authoritative for world persistence.
+ */
+export const SIGNING_YEARS_LIMITS = {
+  MINIMUM: { minYears: 1, maxYears: 2 },
+  FULL_MLE: { minYears: 1, maxYears: 4 },
+  TPMLE: { minYears: 1, maxYears: 2 },
+  ROOM_MLE: { minYears: 1, maxYears: 2 },
+  BAE: { minYears: 1, maxYears: 2 },
+};
+
+/**
+ * Extension year limits (baseline, Phase 3).
+ * 
+ * Conservative baseline limits used when Salary Engine cannot determine
+ * specific extension type (rookie/veteran/designated).
+ * 
+ * - Min: 1 year (can't have 0-year extension)
+ * - Max: 4 years (conservative; designated vet allows 5 but is rare)
+ * 
+ * When Salary Engine extensionTerms are available, those take precedence.
+ */
+export const EXTENSION_YEARS_LIMITS = {
+  min: 1,
+  max: 4,
+};
+
+/**
+ * Extension first-year max baseline: 120% of last-year salary (Phase 3.25).
+ * 
+ * Conservative baseline used when Salary Engine terms are not available.
+ * The first-year extension salary cannot exceed 120% of the player's 
+ * last-year salary on current contract when using baseline rules.
+ * 
+ * When Salary Engine extensionTerms.maxFirstYearSalary is available, 
+ * those terms override this baseline (e.g., 140% for veteran extensions,
+ * 25-35% of cap for rookie extensions).
+ */
+export const EXTENSION_FIRST_YEAR_MAX_PERCENT = 1.20;
+
+/**
+ * Extension max raise percentage: 8% year-over-year (Phase 3).
+ * 
+ * Standard Bird rights raise percentage. Extensions cannot have raises
+ * exceeding 8% between consecutive years.
+ * 
+ * When Salary Engine extensionTerms.raisePercentage is available, that takes precedence.
+ */
+export const EXTENSION_MAX_RAISE_PERCENT = 0.08;
 
 /**
  * Soft warning rules - these can be overridden in dev mode.
@@ -255,6 +326,367 @@ function getHardCapStatus(team, capRules) {
 }
 
 /**
+ * Resolve the signing mechanism from contract and signedUsing fields.
+ * 
+ * Priority:
+ * 1. contract.exceptionType if present
+ * 2. signedUsing parameter
+ * 3. UNKNOWN if neither available
+ * 
+ * Normalizes to: FULL_MLE, TPMLE, ROOM_MLE, BAE, MINIMUM, or UNKNOWN
+ * 
+ * @param {Object} contract - Contract object
+ * @param {string|null} signedUsing - Exception used for signing
+ * @returns {string} Normalized mechanism type
+ */
+export function resolveSigningMechanism(contract, signedUsing) {
+  // Priority 1: contract.exceptionType
+  const source = contract?.exceptionType || signedUsing;
+  
+  if (!source) {
+    return 'UNKNOWN';
+  }
+  
+  const normalized = String(source).toLowerCase().replace(/[^a-z]/g, '');
+  
+  // Full MLE / Non-Taxpayer MLE
+  if (normalized === 'fullmle' || normalized === 'ntmle' || normalized === 'mle' || normalized === 'full') {
+    return 'FULL_MLE';
+  }
+  
+  // Taxpayer MLE
+  if (normalized === 'tpmle' || normalized === 'taxpayermle' || normalized.includes('taxpayer')) {
+    return 'TPMLE';
+  }
+  
+  // Room MLE
+  if (normalized === 'roommle' || normalized === 'rmle' || normalized.includes('room')) {
+    return 'ROOM_MLE';
+  }
+  
+  // BAE (Bi-Annual Exception)
+  if (normalized === 'bae' || normalized === 'biannual') {
+    return 'BAE';
+  }
+  
+  // Minimum
+  if (normalized === 'minimum' || normalized === 'min' || normalized === 'vet minimum' || normalized === 'vetmin') {
+    return 'MINIMUM';
+  }
+  
+  // Unknown mechanism
+  return 'UNKNOWN';
+}
+
+/**
+ * Get contract year limits for a signing mechanism.
+ * 
+ * @param {string} mechanism - Normalized mechanism from resolveSigningMechanism()
+ * @returns {{minYears: number, maxYears: number}|null} Limits object or null for UNKNOWN
+ */
+export function getSigningYearsLimits(mechanism) {
+  return SIGNING_YEARS_LIMITS[mechanism] || null;
+}
+
+/**
+ * Get contract length from contract object.
+ * 
+ * Priority:
+ * 1. contract.contractLength if present and valid
+ * 2. contract.salariesByYear.length
+ * 3. 0 if neither available
+ * 
+ * @param {Object} contract - Contract object
+ * @returns {number} Contract length in years
+ */
+function getContractYears(contract) {
+  // Priority 1: explicit contractLength
+  if (typeof contract?.contractLength === 'number' && contract.contractLength > 0) {
+    return contract.contractLength;
+  }
+  
+  // Priority 2: salariesByYear array length
+  if (Array.isArray(contract?.salariesByYear)) {
+    return contract.salariesByYear.length;
+  }
+  
+  return 0;
+}
+
+/**
+ * Extract first-year salary and capHit from contract.
+ * 
+ * @param {Object} contract - Contract object
+ * @returns {{salary: number|null, capHit: number|null}} First year amounts
+ */
+function getFirstYearAmounts(contract) {
+  const firstYear = contract?.salariesByYear?.[0];
+  const salary = firstYear?.salary ?? null;
+  // Fallback capHit to salary if not explicitly set
+  const capHit = firstYear?.capHit ?? salary;
+  return { salary, capHit };
+}
+
+/**
+ * Get max first-year salary for a signing mechanism from cap rules.
+ * 
+ * Returns the exception amount that caps the first-year salary for the mechanism.
+ * Returns null for MINIMUM (handled separately) and UNKNOWN (cannot enforce).
+ * 
+ * @param {string} mechanism - Normalized mechanism from resolveSigningMechanism()
+ * @param {Object} rules - Cap rules profile from getCapRulesForYear()
+ * @returns {number|null} Max first-year salary or null if not applicable
+ */
+export function getSigningFirstYearMax(mechanism, rules) {
+  if (!rules?.exceptions) return null;
+  
+  switch (mechanism) {
+    case 'FULL_MLE':
+      return rules.exceptions.fullMLE;
+    case 'TPMLE':
+      return rules.exceptions.taxpayerMLE;
+    case 'ROOM_MLE':
+      return rules.exceptions.roomMLE;
+    case 'BAE':
+      return rules.exceptions.bae;
+    default:
+      // MINIMUM and UNKNOWN have no max - handled separately
+      return null;
+  }
+}
+
+// ==============================================================================
+// EXTENSION HELPER FUNCTIONS (Phase 3)
+// ==============================================================================
+
+/**
+ * Get the last year's salary from a player's current contract.
+ * 
+ * Method: Returns the last entry in salariesByYear where guaranteed !== false.
+ * This represents the player's final guaranteed salary year which determines
+ * extension first-year max calculations.
+ * 
+ * @param {Object} contract - Player's current contract object
+ * @returns {{salary: number, season: string}|null} Last year salary data or null
+ */
+export function getContractLastYearSalary(contract) {
+  if (!contract?.salariesByYear || !Array.isArray(contract.salariesByYear)) {
+    return null;
+  }
+  
+  // Filter to guaranteed years only, then get the last one
+  const guaranteedYears = contract.salariesByYear.filter(y => y.guaranteed !== false);
+  
+  if (guaranteedYears.length === 0) {
+    // Fallback: use last year regardless of guarantee status
+    const lastYear = contract.salariesByYear[contract.salariesByYear.length - 1];
+    if (!lastYear) return null;
+    return {
+      salary: lastYear.salary ?? lastYear.capHit ?? 0,
+      season: lastYear.season,
+    };
+  }
+  
+  const lastGuaranteed = guaranteedYears[guaranteedYears.length - 1];
+  return {
+    salary: lastGuaranteed.salary ?? lastGuaranteed.capHit ?? 0,
+    season: lastGuaranteed.season,
+  };
+}
+
+/**
+ * Get the first year's salary from an extension.
+ * 
+ * Method: Returns the first entry in extension.salariesByYear.
+ * For extensions already in futureContract, looks for isExtensionSeason flag.
+ * 
+ * @param {Object} extension - Extension object with salariesByYear
+ * @returns {{salary: number, capHit: number, season: string}|null} First year data or null
+ */
+export function getExtensionFirstYearSalary(extension) {
+  if (!extension?.salariesByYear || !Array.isArray(extension.salariesByYear)) {
+    return null;
+  }
+  
+  // Look for first entry with isExtensionSeason flag, or just first entry
+  const extensionYear = extension.salariesByYear.find(y => y.isExtensionSeason) 
+    || extension.salariesByYear[0];
+  
+  if (!extensionYear) return null;
+  
+  const salary = extensionYear.salary ?? extensionYear.capHit ?? 0;
+  return {
+    salary,
+    capHit: extensionYear.capHit ?? salary,
+    season: extensionYear.season,
+  };
+}
+
+/**
+ * Get extension length in years.
+ * 
+ * Method: Uses extension.contractLength if present, otherwise salariesByYear.length.
+ * 
+ * @param {Object} extension - Extension object
+ * @returns {number} Extension length in years (0 if cannot determine)
+ */
+export function getExtensionYears(extension) {
+  // Priority 1: explicit contractLength
+  if (typeof extension?.contractLength === 'number' && extension.contractLength > 0) {
+    return extension.contractLength;
+  }
+  
+  // Priority 2: salariesByYear array length
+  if (Array.isArray(extension?.salariesByYear)) {
+    return extension.salariesByYear.length;
+  }
+  
+  return 0;
+}
+
+/**
+ * Get extension terms from Salary Engine for a player (Phase 3.25).
+ * 
+ * Calls computePlayerRulesProfile to get extension-type-specific terms
+ * (rookie scale, veteran, designated veteran) when player/team/year data
+ * is available.
+ * 
+ * @param {Object} params
+ * @param {Object} params.player - Player object with contract data
+ * @param {Object} params.team - Team object (for teamContext)
+ * @param {number} params.year - Season end year
+ * @returns {{extensionTerms: Object, source: string}|null} Engine terms or null if not available
+ */
+export function getExtensionTermsForPlayer({ player, team, year }) {
+  // Guard: need valid player data
+  if (!player) {
+    return null;
+  }
+  
+  try {
+    // Build leagueContext from year
+    const leagueContext = { currentYear: year };
+    
+    // Build minimal teamContext
+    const teamContext = { teamCode: team?.teamCode };
+    
+    // Compute profile using Salary Engine
+    const profile = computePlayerRulesProfile(player, teamContext, leagueContext);
+    
+    // Return extensionTerms if the player is eligible and terms are available
+    if (profile?.extensionTerms) {
+      return {
+        extensionTerms: profile.extensionTerms,
+        source: 'salary_engine',
+      };
+    }
+    
+    return null;
+  } catch (err) {
+    // Log but don't crash - fallback to baseline rules
+    console.warn('[getExtensionTermsForPlayer] Failed to compute profile:', err?.message);
+    return null;
+  }
+}
+
+/**
+ * Validate extension terms and raises against CBA rules.
+ * 
+ * Uses Salary Engine when available (via extensionTerms parameter), otherwise
+ * falls back to deterministic baseline rules.
+ * 
+ * Checks:
+ * 1. Extension years within limits
+ * 2. First-year salary within max (140% of last year or Salary Engine max)
+ * 3. Year-over-year raises within limits (8% or Salary Engine percentage)
+ * 
+ * @param {Object} params
+ * @param {Object} params.player - Player object with current contract
+ * @param {Object} params.extension - Extension being applied
+ * @param {Object|null} params.extensionTerms - Salary Engine terms (optional)
+ * @returns {{violations: Array, warnings: Array}}
+ */
+export function validateExtensionTermsAndRaises({ player, extension, extensionTerms }) {
+  const violations = [];
+  const warnings = [];
+  
+  // Extract data
+  const lastYearData = getContractLastYearSalary(player.contract);
+  const firstYearData = getExtensionFirstYearSalary(extension);
+  const extensionYears = getExtensionYears(extension);
+  
+  // Determine limits - use Salary Engine if available, otherwise baseline
+  const maxYears = extensionTerms?.maxYears ?? EXTENSION_YEARS_LIMITS.max;
+  const minYears = EXTENSION_YEARS_LIMITS.min;
+  const maxRaisePct = extensionTerms?.raisePercentage ?? EXTENSION_MAX_RAISE_PERCENT;
+  
+  // Determine first-year max
+  let maxFirstYearSalary = null;
+  if (extensionTerms?.maxFirstYearSalary != null) {
+    // Use Salary Engine max
+    maxFirstYearSalary = extensionTerms.maxFirstYearSalary;
+  } else if (lastYearData?.salary) {
+    // Fallback: 140% of last year salary
+    maxFirstYearSalary = Math.round(lastYearData.salary * EXTENSION_FIRST_YEAR_MAX_PERCENT);
+  }
+  
+  // 1. Validate extension years
+  if (extensionYears > 0) {
+    if (extensionYears < minYears) {
+      violations.push({
+        rule: 'extension_years_invalid',
+        message: `Extension length (${extensionYears} year${extensionYears === 1 ? '' : 's'}) is below minimum (${minYears})`,
+        severity: 'error',
+      });
+    } else if (extensionYears > maxYears) {
+      violations.push({
+        rule: 'extension_years_invalid',
+        message: `Extension length (${extensionYears} years) exceeds maximum (${maxYears} years)`,
+        severity: 'error',
+      });
+    }
+  }
+  
+  // 2. Validate first-year max
+  if (firstYearData?.salary != null && maxFirstYearSalary != null) {
+    if (firstYearData.salary > maxFirstYearSalary) {
+      const lastYearStr = lastYearData?.salary 
+        ? `$${(lastYearData.salary / 1_000_000).toFixed(2)}M` 
+        : 'unknown';
+      violations.push({
+        rule: 'extension_first_year_max_invalid',
+        message: `Extension first-year salary ($${(firstYearData.salary / 1_000_000).toFixed(2)}M) exceeds maximum ($${(maxFirstYearSalary / 1_000_000).toFixed(2)}M). Last year salary: ${lastYearStr}`,
+        severity: 'error',
+      });
+    }
+  }
+  
+  // 3. Validate year-over-year raises
+  if (Array.isArray(extension?.salariesByYear) && extension.salariesByYear.length > 1) {
+    for (let i = 1; i < extension.salariesByYear.length; i++) {
+      const prevSalary = extension.salariesByYear[i - 1]?.salary || 0;
+      const currSalary = extension.salariesByYear[i]?.salary || 0;
+      
+      if (prevSalary > 0 && currSalary > 0) {
+        const maxAllowed = Math.round(prevSalary * (1 + maxRaisePct + Number.EPSILON));
+        
+        if (currSalary > maxAllowed) {
+          const actualRaisePct = ((currSalary - prevSalary) / prevSalary * 100).toFixed(1);
+          violations.push({
+            rule: 'extension_raise_invalid',
+            message: `Year ${i + 1} salary ($${(currSalary / 1_000_000).toFixed(2)}M) exceeds allowed ${Math.round(maxRaisePct * 100)}% raise from year ${i} ($${(prevSalary / 1_000_000).toFixed(2)}M). Actual raise: ${actualRaisePct}%`,
+            severity: 'error',
+          });
+          break; // Only report first raise violation
+        }
+      }
+    }
+  }
+  
+  return { violations, warnings };
+}
+
+/**
  * Validate exception eligibility based on apron status.
  * 
  * CBA 2023 Exception Rules:
@@ -435,6 +867,172 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
     }
   }
   
+  // 1.5. Minimum salary check (PHASE 1 - CBA Contract Rules)
+  // Two-way contracts are excluded - they follow separate salary rules not governed by YOS scale
+  if (!isTwoWay && rules) {
+    const firstYearSalary = contract?.salariesByYear?.[0]?.salary;
+    const firstYearCapHit = contract?.salariesByYear?.[0]?.capHit;
+    
+    if (firstYearSalary !== undefined && firstYearSalary !== null) {
+      // Get player's years of service - defaults to 0 (rookie) if not found
+      const yos = getYearsOfService(player);
+      const minSalary = rules.salaries.getMinimumForYOS(yos);
+      
+      // Check if first-year salary is below minimum
+      if (firstYearSalary < minSalary) {
+        violations.push({
+          rule: 'min_salary_violation',
+          message: `First-year salary ($${(firstYearSalary / 1_000_000).toFixed(2)}M) is below CBA minimum ($${(minSalary / 1_000_000).toFixed(2)}M) for ${yos} years of service`,
+          severity: 'error',
+        });
+      }
+      
+      // If capHit exists and differs from salary, validate capHit separately
+      // Cap charge also cannot be below minimum (prevents cap manipulation)
+      if (firstYearCapHit !== undefined && firstYearCapHit !== null && firstYearCapHit !== firstYearSalary) {
+        if (firstYearCapHit < minSalary) {
+          violations.push({
+            rule: 'min_salary_violation',
+            message: `First-year cap hit ($${(firstYearCapHit / 1_000_000).toFixed(2)}M) is below CBA minimum ($${(minSalary / 1_000_000).toFixed(2)}M) for ${yos} years of service`,
+            severity: 'error',
+          });
+        }
+      }
+    }
+  }
+  
+  // 1.6. Contract years validation (PHASE 2 - CBA Contract Rules)
+  // Two-way contracts are excluded - they follow separate term rules
+  if (!isTwoWay) {
+    const contractYears = getContractYears(contract);
+    
+    // Only validate if we can determine contract length
+    if (contractYears > 0) {
+      const mechanism = resolveSigningMechanism(contract, signedUsing);
+      const limits = getSigningYearsLimits(mechanism);
+      
+      // Only enforce limits for known mechanisms
+      // UNKNOWN mechanism means we can't determine how the contract was signed,
+      // so we skip years validation (other rules like min salary still apply)
+      if (limits) {
+        if (contractYears < limits.minYears) {
+          violations.push({
+            rule: 'contract_years_invalid',
+            message: `Contract length (${contractYears} year${contractYears === 1 ? '' : 's'}) is below minimum (${limits.minYears}) for ${mechanism.replace('_', ' ')} signing`,
+            severity: 'error',
+          });
+        } else if (contractYears > limits.maxYears) {
+          violations.push({
+            rule: 'contract_years_invalid',
+            message: `Contract length (${contractYears} years) exceeds maximum (${limits.maxYears}) for ${mechanism.replace('_', ' ')} signing`,
+            severity: 'error',
+          });
+        }
+      }
+    }
+  }
+  
+  // 1.7. First-year max enforcement (PHASE 2.5 - CBA Contract Rules)
+  // Validates first-year salary/capHit against mechanism-specific caps
+  // Two-way contracts are excluded - they follow separate salary rules
+  if (!isTwoWay && rules) {
+    const { salary: firstYearSalary, capHit: firstYearCapHit } = getFirstYearAmounts(contract);
+    
+    if (firstYearSalary !== null) {
+      const mechanism = resolveSigningMechanism(contract, signedUsing);
+      
+      if (mechanism === 'MINIMUM') {
+        // MINIMUM mechanism: salary must be EXACTLY at minimum (not above)
+        // This enforces "minimum exception" means minimum salary, not just "at least minimum"
+        const yos = getYearsOfService(player);
+        const minSalary = rules.salaries.getMinimumForYOS(yos);
+        
+        if (firstYearSalary > minSalary) {
+          violations.push({
+            rule: 'first_year_max_invalid',
+            message: `First-year salary ($${(firstYearSalary / 1_000_000).toFixed(2)}M) exceeds minimum salary ($${(minSalary / 1_000_000).toFixed(2)}M) for MINIMUM signing. Use a different exception.`,
+            severity: 'error',
+          });
+        }
+        
+        // Also check capHit if it differs from salary
+        if (firstYearCapHit !== null && firstYearCapHit !== firstYearSalary && firstYearCapHit > minSalary) {
+          violations.push({
+            rule: 'first_year_max_invalid',
+            message: `First-year cap hit ($${(firstYearCapHit / 1_000_000).toFixed(2)}M) exceeds minimum salary ($${(minSalary / 1_000_000).toFixed(2)}M) for MINIMUM signing.`,
+            severity: 'error',
+          });
+        }
+      } else {
+        // For FULL_MLE, TPMLE, ROOM_MLE, BAE: enforce exception amount cap
+        // UNKNOWN mechanism: do not enforce (cannot determine limits)
+        const maxFirstYear = getSigningFirstYearMax(mechanism, rules);
+        
+        if (maxFirstYear !== null) {
+          if (firstYearSalary > maxFirstYear) {
+            violations.push({
+              rule: 'first_year_max_invalid',
+              message: `First-year salary ($${(firstYearSalary / 1_000_000).toFixed(2)}M) exceeds ${mechanism.replace('_', ' ')} maximum ($${(maxFirstYear / 1_000_000).toFixed(2)}M)`,
+              severity: 'error',
+            });
+          }
+          
+          // Also check capHit if it differs from salary
+          if (firstYearCapHit !== null && firstYearCapHit !== firstYearSalary && firstYearCapHit > maxFirstYear) {
+            violations.push({
+              rule: 'first_year_max_invalid',
+              message: `First-year cap hit ($${(firstYearCapHit / 1_000_000).toFixed(2)}M) exceeds ${mechanism.replace('_', ' ')} maximum ($${(maxFirstYear / 1_000_000).toFixed(2)}M)`,
+              severity: 'error',
+            });
+          }
+        }
+      }
+    }
+  }
+  
+  // 1.8. Second apron minimum-only enforcement (PHASE 2.5 - CBA Contract Rules)
+  // Teams above second apron can ONLY sign players to minimum salary contracts
+  // This applies regardless of mechanism (even UNKNOWN) - it's a hard cap on team spending
+  // Two-way contracts are excluded - they don't count against standard cap
+  // PHASE 2.5 PATCH: Use capHit (not salary) for projected cap calculation
+  if (!isTwoWay && rules) {
+    const totals = team.totals || {};
+    const currentCapHit = totals.capHit || totals.totalSalary || totals.totalCapAllocations || 0;
+    // Use capHit for projection (fallback to salary if capHit not set)
+    const contractCapImpact = contract?.salariesByYear?.[0]?.capHit ?? contract?.salariesByYear?.[0]?.salary ?? 0;
+    const projectedCapHit = currentCapHit + contractCapImpact;
+    
+    // Check if the signing would put/keep team above second apron
+    const isAboveSecondApron = projectedCapHit >= rules.cap.secondApron;
+    
+    if (isAboveSecondApron) {
+      const { salary: firstYearSalary, capHit: firstYearCapHit } = getFirstYearAmounts(contract);
+      
+      if (firstYearSalary !== null) {
+        const yos = getYearsOfService(player);
+        const minSalary = rules.salaries.getMinimumForYOS(yos);
+        
+        // Block if salary is above minimum while team is at/above second apron
+        if (firstYearSalary > minSalary) {
+          violations.push({
+            rule: 'second_apron_minimum_only',
+            message: `Team is at/above second apron ($${(projectedCapHit / 1_000_000).toFixed(1)}M). First-year salary ($${(firstYearSalary / 1_000_000).toFixed(2)}M) must be at minimum ($${(minSalary / 1_000_000).toFixed(2)}M) for ${yos} years of service.`,
+            severity: 'error',
+          });
+        }
+        
+        // Also check capHit if it differs from salary
+        if (firstYearCapHit !== null && firstYearCapHit !== firstYearSalary && firstYearCapHit > minSalary) {
+          violations.push({
+            rule: 'second_apron_minimum_only',
+            message: `Team is at/above second apron. First-year cap hit ($${(firstYearCapHit / 1_000_000).toFixed(2)}M) must be at minimum ($${(minSalary / 1_000_000).toFixed(2)}M).`,
+            severity: 'error',
+          });
+        }
+      }
+    }
+  }
+  
   // 2. Hard cap check
   if (rules) {
     const hardCapStatus = getHardCapStatus(team, rules);
@@ -583,15 +1181,37 @@ export function validateExtension({ team, player, extension, year }) {
   const warnings = [];
   
   const capSettings = getCapSettings(year);
+  const contract = player.contract;
+  
+  // 0. PHASE 3: Check for two-way contracts (cannot be extended)
+  const isTwoWay = contract?.contractType?.toLowerCase() === 'two-way';
+  if (isTwoWay) {
+    violations.push({
+      rule: 'extension_ineligible',
+      message: 'Two-way contracts cannot be extended. Convert to standard contract first.',
+      severity: 'error',
+    });
+    // Return early - no point validating extension terms for ineligible contract
+    return {
+      valid: false,
+      violations,
+      warnings,
+    };
+  }
   
   // 1. Check extension eligibility (basic check - detailed check in rulesProfile)
-  const contract = player.contract;
   if (!contract?.salariesByYear || contract.salariesByYear.length === 0) {
     violations.push({
       rule: 'no_contract',
       message: 'Player has no active contract to extend',
       severity: 'error',
     });
+    // Return early - cannot validate extension without existing contract
+    return {
+      valid: false,
+      violations,
+      warnings,
+    };
   }
   
   // 00. CHECK DATA CONFIDENCE
@@ -608,7 +1228,25 @@ export function validateExtension({ team, player, extension, year }) {
       }
   }
 
-  // 2. Hard cap projection for extension start year
+  // 2. PHASE 3.25: Validate extension terms, first-year max, and raises
+  // Now wires in Salary Engine extensionTerms when available.
+  // Baseline (120% first-year max, 8% raises, 4-year max) used when engine unavailable.
+  if (extension?.salariesByYear?.length > 0) {
+    // Try to get type-specific terms from Salary Engine
+    const engineResult = getExtensionTermsForPlayer({ player, team, year });
+    const extensionTerms = engineResult?.extensionTerms ?? null;
+    
+    const termsValidation = validateExtensionTermsAndRaises({
+      player,
+      extension,
+      extensionTerms, // Uses engine terms when available, baseline when not
+    });
+    
+    violations.push(...termsValidation.violations);
+    warnings.push(...termsValidation.warnings);
+  }
+
+  // 3. Hard cap projection for extension start year
   if (extension?.salariesByYear?.length > 0) {
     const firstExtensionYear = extension.salariesByYear[0];
     const extStartYear = toEndYear(firstExtensionYear.season);
@@ -814,6 +1452,20 @@ export default {
   validateRenounceRights,
   getOverridePolicy,
   isOverrideEnabled,
+  resolveSigningMechanism,
+  getSigningYearsLimits,
+  getSigningFirstYearMax,
+  // Phase 3: Extension validation exports
+  getContractLastYearSalary,
+  getExtensionFirstYearSalary,
+  getExtensionYears,
+  getExtensionTermsForPlayer, // Phase 3.25: Salary Engine wiring
+  validateExtensionTermsAndRaises,
   HARD_BLOCK_RULES,
   SOFT_WARNING_RULES,
+  SIGNING_YEARS_LIMITS,
+  // Phase 3 constants
+  EXTENSION_YEARS_LIMITS,
+  EXTENSION_FIRST_YEAR_MAX_PERCENT,
+  EXTENSION_MAX_RAISE_PERCENT,
 };

@@ -24,6 +24,7 @@ import {
   type PickRuleProfile,
   type PickRuleProfilesOutput,
   type NeedsReviewQueue,
+  type SelectionSpec,
 } from './pst_pick_rule_parser';
 import { ALL_TEAM_CODES } from './pst_team_slugs';
 
@@ -97,6 +98,7 @@ interface FinalLedgerPick {
     swaps: PickRuleProfile['swaps'];
     conveyance: PickRuleProfile['conveyance'];
     didNotConvey: PickRuleProfile['didNotConvey'];
+    selectionSpecs: SelectionSpec[];
   };
   evidenceRowRefs: string[];
 }
@@ -284,6 +286,7 @@ async function main(): Promise<void> {
         swaps: profile?.swaps || [],
         conveyance: profile?.conveyance || [],
         didNotConvey: profile?.didNotConvey || [],
+        selectionSpecs: profile?.selectionSpecs || [],
       },
       evidenceRowRefs,
     };
