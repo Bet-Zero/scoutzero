@@ -56,11 +56,13 @@ The manual check script was significantly enhanced to serve as a strict verifica
 
 **Command:** `npm run draft-picks:verify`
 **Status:** ✅ Passed
+
 * **Build:** Successful
 * **Manual Check:** Passed (DAL = 9 verified)
 * **Audits:** Passed (30/30 teams coverage, 0 failures)
 
 ## 4. Adjusted Files
+
 * `team-scrape/shared/ledger/buildDraftAssets.ts`
 * `team-scrape/draft-picks/scripts/generate_draft_assets_manual_check_md.ts`
 

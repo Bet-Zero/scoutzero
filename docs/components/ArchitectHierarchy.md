@@ -149,6 +149,9 @@ utils/
   capHolds.ts
   capLegalityValidation.js
   capProjections.js
+  capRulesProfile/
+    capRulesProfile.ts
+    index.ts
   capTotals/
     computeTeamCapTotals.js
     index.js
@@ -273,5 +276,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-01-16T11:34:17.119Z*
+*Generated on: 2026-01-17T08:33:48.113Z*
 *Auto-updated by: npm run docs*

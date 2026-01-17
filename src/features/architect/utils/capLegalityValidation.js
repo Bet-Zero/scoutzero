@@ -23,27 +23,27 @@ import {
   getPlayerId,
   getPlayerName,
 } from '@/features/architect/utils/capHelpers';
+import { getCapRulesForYear } from '@/features/architect/utils/capRulesProfile';
 
 // ==============================================================================
 // CONSTANTS
 // ==============================================================================
 
-const MIN_ROSTER = 14;
-const MAX_ROSTER = 15;
-const GRACE_MIN_ROSTER = 13;
-const MAX_TWO_WAY = 3;
+// Roster constants are now sourced from getCapRulesForYear()
 
 /**
  * Hard block rules - these violations can NEVER be overridden, even in dev mode.
  * These represent illegal states that cannot exist in the NBA.
  */
 export const HARD_BLOCK_RULES = [
-  'roster_size',      // >15 players on standard roster
-  'hard_cap',         // Over hard cap ceiling
-  'two_way_limit',    // >3 two-way contracts
-  'option_timing',    // Acting on options outside allowed window
-  'no_contract',      // Extending a player with no contract
-  'unknown_type',     // Unknown mutation type
+  'roster_size',           // >15 players on standard roster
+  'hard_cap',              // Over hard cap ceiling
+  'two_way_limit',         // >3 two-way contracts
+  'option_timing',         // Acting on options outside allowed window
+  'no_contract',           // Extending a player with no contract
+  'unknown_type',          // Unknown mutation type
+  'exception_blocked',     // Exception usage blocked due to apron/hard cap status
+  'unverified_cap_inputs', // Hard block in STRICT mode for projected data
 ];
 
 /**
@@ -128,6 +128,70 @@ export function isOverrideEnabled() {
     return process.env.VITE_ENABLE_CBA_OVERRIDE === 'true';
   }
   return false;
+  return false;
+}
+
+/**
+ * Evaluate data confidence for the requested operation.
+ * 
+ * @param {Object} rules - Cap rules profile
+ * @param {string} operationName - Name of operation for error messages
+ * @returns {{blocked: boolean, violation: Object|null, warning: Object|null}}
+ */
+export function evaluateDataConfidence(rules, operationName = 'Operation') {
+  if (!rules || !rules._meta) return { blocked: false, violation: null, warning: null };
+
+  const summary = rules._meta.sourcesSummary;
+  
+  // If data is real or reported, we are good
+  if (summary === 'real' || summary === 'reported') {
+    return { blocked: false, violation: null, warning: null };
+  }
+
+  // If unknown, that's always bad (should have been caught by facade, but safe to check)
+  if (summary === 'unknown') {
+    return {
+      blocked: true,
+      violation: {
+        rule: 'unverified_cap_inputs',
+        message: `${operationName} blocked: Critical cap data is unknown/missing.`,
+        severity: 'error',
+      },
+      warning: null,
+    };
+  }
+
+  // If projected, check mode
+  // Default to WARN if simple projected data
+  let mode = 'WARN';
+  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_CAP_DATA_CONFIDENCE === 'STRICT') {
+    mode = 'STRICT';
+  } else if (typeof process !== 'undefined' && process.env && process.env.VITE_CAP_DATA_CONFIDENCE === 'STRICT') {
+    mode = 'STRICT';
+  }
+
+  if (mode === 'STRICT') {
+    return {
+      blocked: true,
+      violation: {
+        rule: 'unverified_cap_inputs',
+        message: `${operationName} blocked: Cap rules are PROJECTED (Strict Mode). Cannot validate legality against projected data.`,
+        severity: 'error',
+      },
+      warning: null,
+    };
+  }
+
+  // WARN mode (default)
+  return {
+    blocked: false,
+    violation: null,
+    warning: {
+      rule: 'unverified_cap_inputs',
+      message: `${operationName} using PROJECTED cap data. Validation reliability is lower.`,
+      severity: 'warning',
+    },
+  };
 }
 
 
@@ -164,29 +228,140 @@ function countTwoWayContracts(players) {
  * @param {Object} team - Team data
  * @returns {{isHardCapped: boolean, hardCapLevel: string|null, ceiling: number|null}}
  */
-function getHardCapStatus(team, capSettings) {
+function getHardCapStatus(team, capRules) {
   const totals = team.totals || {};
+  const { firstApron, secondApron } = capRules.cap;
   
   // Check explicit hard cap flags
   if (totals.isHardCapped) {
     const level = totals.hardCapLevel || 'firstApron';
     const ceiling = level === 'secondApron' 
-      ? capSettings.secondApron 
-      : capSettings.firstApron;
+      ? secondApron 
+      : firstApron;
     return { isHardCapped: true, hardCapLevel: level, ceiling };
   }
   
   // Check if team is at/above second apron (auto hard-capped)
   const currentCapHit = totals.capHit || totals.totalSalary || 0;
-  if (currentCapHit >= capSettings.secondApron) {
+  if (currentCapHit >= secondApron) {
     return { 
       isHardCapped: true, 
       hardCapLevel: 'secondApron', 
-      ceiling: capSettings.secondApron 
+      ceiling: secondApron 
     };
   }
   
   return { isHardCapped: false, hardCapLevel: null, ceiling: null };
+}
+
+/**
+ * Validate exception eligibility based on apron status.
+ * 
+ * CBA 2023 Exception Rules:
+ * - Second Apron teams: Cannot use MLE, BAE, or TPE (only minimum contracts)
+ * - First Apron (hard-capped): Cannot use BAE (already triggered if using NTMLE)
+ * - Over First Apron but not hard-capped: Can only use Taxpayer MLE, not NTMLE or BAE
+ * 
+ * @param {Object} params
+ * @param {Object} params.team - Team data
+ * @param {string} params.signedUsing - Exception being used (e.g., 'MLE', 'BAE', 'TPE', 'TPMLE')
+ * @param {number} params.year - Season end year
+ * @returns {{blocked: boolean, reason: string|null, violation: Object|null}}
+ */
+function validateExceptionEligibility({ team, signedUsing, year }) {
+  if (!signedUsing) {
+    // Not using an exception - no block needed
+    return { blocked: false, reason: null, violation: null };
+  }
+
+  const rules = getCapRulesForYear(year);
+  if (!rules || !rules.cap.secondApron) {
+    return { blocked: false, reason: null, violation: null };
+  }
+
+  const totals = team.totals || {};
+  const currentCapHit = totals.capHit || totals.totalSalary || totals.totalCapAllocations || 0;
+  const normalizedException = signedUsing.toLowerCase().replace(/[^a-z]/g, '');
+
+  // Check if team is at or above second apron
+  const isAboveSecondApron = currentCapHit >= rules.cap.secondApron;
+  
+  // Check if team is above first apron (triggers taxpayer MLE only zone if not hard-capped)
+  const isAboveFirstApron = currentCapHit >= rules.cap.firstApron;
+  
+  // Check hard cap status
+  const hardCapStatus = getHardCapStatus(team, rules);
+
+  // RULE 1: Second Apron teams cannot use any exceptions
+  if (isAboveSecondApron) {
+    const blockedExceptions = ['mle', 'ntmle', 'fullmle', 'bae', 'tpe', 'tpmle', 'taxpayermle'];
+    if (blockedExceptions.some(e => normalizedException.includes(e))) {
+      return {
+        blocked: true,
+        reason: 'Second apron teams cannot use exceptions',
+        violation: {
+          rule: 'exception_blocked',
+          message: `Cannot use ${signedUsing} - team is above second apron ($${(currentCapHit / 1_000_000).toFixed(1)}M). Only minimum salary signings allowed.`,
+          severity: 'error',
+        },
+      };
+    }
+  }
+
+  // RULE 2: First Apron hard-capped teams cannot use BAE (they already triggered by using NTMLE/S&T)
+  // Note: This is informational - if already hard-capped, BAE would be unavailable
+  if (hardCapStatus.isHardCapped && hardCapStatus.hardCapLevel === 'firstApron') {
+    if (normalizedException === 'bae') {
+      return {
+        blocked: true,
+        reason: 'BAE unavailable when hard-capped at first apron',
+        violation: {
+          rule: 'exception_blocked',
+          message: `Cannot use BAE - team is hard-capped at first apron. BAE triggers hard cap, but team is already hard-capped.`,
+          severity: 'error',
+        },
+      };
+    }
+  }
+
+  // RULE 3: Teams above first apron but not hard-capped can only use Taxpayer MLE
+  // (If below second apron, we already passed Rule 1)
+  if (isAboveFirstApron && !hardCapStatus.isHardCapped) {
+    // Taxpayer MLE is ALLOWED between first and second apron
+    const isTaxpayerMLE = normalizedException.includes('taxpayer') || 
+                           normalizedException === 'tpmle' ||
+                           normalizedException.includes('tpemle');
+    
+    // Non-taxpayer MLE (full MLE) is NOT allowed
+    const isNonTaxpayerMLE = (normalizedException.includes('mle') || 
+                              normalizedException.includes('full')) &&
+                              !isTaxpayerMLE;
+    
+    if (isNonTaxpayerMLE) {
+      return {
+        blocked: true,
+        reason: 'Non-taxpayer MLE unavailable above first apron',
+        violation: {
+          rule: 'exception_blocked',
+          message: `Cannot use ${signedUsing} - team is above first apron. Use Taxpayer MLE instead or sign to minimum.`,
+          severity: 'error',
+        },
+      };
+    }
+    if (normalizedException === 'bae') {
+      return {
+        blocked: true,
+        reason: 'BAE unavailable above first apron',
+        violation: {
+          rule: 'exception_blocked',
+          message: `Cannot use BAE - team is above first apron.`,
+          severity: 'error',
+        },
+      };
+    }
+  }
+
+  return { blocked: false, reason: null, violation: null };
 }
 
 // ==============================================================================
@@ -208,9 +383,29 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
   const violations = [];
   const warnings = [];
   
-  const capSettings = getCapSettings(year);
-  if (!capSettings) {
+  const rules = getCapRulesForYear(year);
+  if (!rules) {
     warnings.push({ rule: 'cap_data', message: 'Cap data not available for this season', severity: 'warning' });
+  }
+
+  // 00. CHECK DATA CONFIDENCE (New Policy)
+  // Blocks operations in STRICT mode if data is projected
+  const confidenceCheck = evaluateDataConfidence(rules, 'Signing');
+  if (confidenceCheck.blocked && confidenceCheck.violation) {
+    violations.push(confidenceCheck.violation);
+    // In strict mode block, we might typically stop here, but we can let other checks run 
+    // to show all errors. However, if data is unknown, other checks might crash.
+    // For safety, if it's unknown/missing, we should probably stop or rely on safe math defaults.
+  }
+  if (confidenceCheck.warning) {
+    warnings.push(confidenceCheck.warning);
+  }
+  
+  // 0. CHECK EXCEPTION ELIGIBILITY (G0-2: Post-apron exception blocking)
+  // This is a HARD BLOCK - if an exception is blocked by apron status, the signing cannot proceed.
+  const exceptionCheck = validateExceptionEligibility({ team, signedUsing, year });
+  if (exceptionCheck.blocked && exceptionCheck.violation) {
+    violations.push(exceptionCheck.violation);
   }
   
   const players = team.players || [];
@@ -221,28 +416,28 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
   
   if (!isTwoWay) {
     const projectedRoster = currentStandardRoster + 1;
-    if (projectedRoster > MAX_ROSTER) {
+    if (projectedRoster > rules.roster.maxStandard) {
       violations.push({
         rule: 'roster_size',
-        message: `Signing would exceed ${MAX_ROSTER}-player roster limit (currently ${currentStandardRoster})`,
+        message: `Signing would exceed ${rules.roster.maxStandard}-player roster limit (currently ${currentStandardRoster})`,
         severity: 'error',
       });
     }
   } else {
     // Two-way contract check
     const currentTwoWay = countTwoWayContracts(players);
-    if (currentTwoWay >= MAX_TWO_WAY) {
+    if (currentTwoWay >= rules.roster.maxTwoWay) {
       violations.push({
         rule: 'two_way_limit',
-        message: `Team already has ${MAX_TWO_WAY} two-way contracts`,
+        message: `Team already has ${rules.roster.maxTwoWay} two-way contracts`,
         severity: 'error',
       });
     }
   }
   
   // 2. Hard cap check
-  if (capSettings) {
-    const hardCapStatus = getHardCapStatus(team, capSettings);
+  if (rules) {
+    const hardCapStatus = getHardCapStatus(team, rules);
     
     if (hardCapStatus.isHardCapped && hardCapStatus.ceiling) {
       const currentCapHit = team.totals?.capHit || calculateTeamCapHit(players, year);
@@ -261,7 +456,7 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
     // 3. MLE triggers hard cap warning
     if (signedUsing?.toLowerCase() === 'mle' || signedUsing?.toLowerCase() === 'full mle') {
       const currentCapHit = team.totals?.capHit || calculateTeamCapHit(players, year);
-      if (currentCapHit > capSettings.tax) {
+      if (currentCapHit > rules.cap.luxuryTax) {
         warnings.push({
           rule: 'mle_taxpayer',
           message: 'Using MLE while over luxury tax will hard cap team at first apron',
@@ -275,13 +470,13 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
     const contractValue = contract?.salariesByYear?.[0]?.salary || 0;
     const projectedCapHit = currentCapHit + contractValue;
     
-    if (projectedCapHit > capSettings.secondApron) {
+    if (projectedCapHit > rules.cap.secondApron) {
       warnings.push({
         rule: 'second_apron',
         message: 'Signing puts team over second apron - significant restrictions apply',
         severity: 'warning',
       });
-    } else if (projectedCapHit > capSettings.firstApron) {
+    } else if (projectedCapHit > rules.cap.firstApron) {
       warnings.push({
         rule: 'first_apron',
         message: 'Signing puts team over first apron',
@@ -318,10 +513,21 @@ export function validateWaive({ team, player, stretch, year, isGracePeriod = fal
   const currentStandardRoster = countStandardRoster(players);
   const isTwoWay = player.contract?.contractType?.toLowerCase() === 'two-way';
   
+  const rules = getCapRulesForYear(year);
+
   if (!isTwoWay) {
     const projectedRoster = currentStandardRoster - 1;
-    const minRoster = isGracePeriod ? GRACE_MIN_ROSTER : MIN_ROSTER;
+    const minRoster = isGracePeriod ? rules.roster.graceMin : rules.roster.minStandard;
     
+    // 00. CHECK DATA CONFIDENCE
+    const confidenceCheck = evaluateDataConfidence(rules, 'Waive');
+    if (confidenceCheck.blocked && confidenceCheck.violation) {
+      violations.push(confidenceCheck.violation);
+    }
+    if (confidenceCheck.warning) {
+      warnings.push(confidenceCheck.warning);
+    }
+
     if (projectedRoster < minRoster) {
       // Warning, not error - teams can be temporarily below minimum
       warnings.push({
@@ -388,14 +594,33 @@ export function validateExtension({ team, player, extension, year }) {
     });
   }
   
+  // 00. CHECK DATA CONFIDENCE
+  // Note: We use current year rules for immediate checks, but extensions often care more about future years.
+  // We can check confidence of current rules first.
+  const currentRules = getCapRulesForYear(year); 
+  if (currentRules) {
+      const confidenceCheck = evaluateDataConfidence(currentRules, 'Extension');
+      if (confidenceCheck.blocked && confidenceCheck.violation) {
+        violations.push(confidenceCheck.violation);
+      }
+      if (confidenceCheck.warning) {
+        warnings.push(confidenceCheck.warning);
+      }
+  }
+
   // 2. Hard cap projection for extension start year
-  if (capSettings && extension?.salariesByYear?.length > 0) {
+  if (extension?.salariesByYear?.length > 0) {
     const firstExtensionYear = extension.salariesByYear[0];
     const extStartYear = toEndYear(firstExtensionYear.season);
-    const extStartCapSettings = getCapSettings(extStartYear);
     
-    if (extStartCapSettings) {
-      const hardCapStatus = getHardCapStatus(team, extStartCapSettings);
+    // We try to get rules for extension start year. 
+    // If future year missing data, it might throw or return partial.
+    // For now we assume extension year is valid or we catch error?
+    // Facade throws if data missing, so this will surface error which is good.
+    const extStartRules = getCapRulesForYear(extStartYear);
+    
+    if (extStartRules) {
+      const hardCapStatus = getHardCapStatus(team, extStartRules);
       
       if (hardCapStatus.isHardCapped) {
         warnings.push({
@@ -450,12 +675,21 @@ export function validateOptionDecision({ team, player, accepted, targetYear, cur
   
   // 2. If accepting, check hard cap impact
   if (accepted && isActionableOption) {
-    const capSettings = getCapSettings(targetYear);
+    const rules = getCapRulesForYear(targetYear);
     
-    if (capSettings) {
-      const hardCapStatus = getHardCapStatus(team, capSettings);
+    if (rules) {
+      const hardCapStatus = getHardCapStatus(team, rules);
       
       if (hardCapStatus.isHardCapped && hardCapStatus.ceiling) {
+        // 00. CHECK DATA CONFIDENCE for target year
+        const confidenceCheck = evaluateDataConfidence(rules, 'Option Decision');
+        if (confidenceCheck.blocked && confidenceCheck.violation) {
+           violations.push(confidenceCheck.violation);
+        }
+        if (confidenceCheck.warning) {
+           warnings.push(confidenceCheck.warning);
+        }
+
         // Calculate projected cap hit including the option salary
         const optionSalary = player.contract?.salariesByYear?.find((y) => {
           return toEndYear(y.season) === targetYear && y.option;

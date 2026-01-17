@@ -98,6 +98,8 @@ function normalizeCapEntry(rawEntry) {
     fullMLE: rawEntry.fullMLE ?? rawEntry.mle ?? 0,
     taxpayerMLE: rawEntry.taxpayerMLE ?? 0,
     floor: rawEntry.floor ?? 0,
+    rookieMin: rawEntry.rookieMin ?? 0,
+    rookieMinSource: rawEntry.rookieMinSource,
     growthRate: rawEntry.growthRate ?? 0,
     confirmed: rawEntry.confirmed ?? false,
   };

@@ -34,7 +34,7 @@
 
 import { getContractYearSlice } from '@/features/architect/utils/contractUtils';
 import { getActiveUnsignedCapHoldsTotalByEndYear } from '@/features/architect/utils/capHolds';
-import { getCapSettingsForYear } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
+import { getCapRulesForYear } from '@/features/architect/utils/capRulesProfile';
 import { toSeasonKey, toEndYear } from '@/features/architect/utils/seasonFormat';
 
 /**
@@ -48,6 +48,24 @@ const num = (v) => {
   const n = Number(String(v).replace(/[^0-9.-]/g, ''));
   return Number.isFinite(n) ? n : 0;
 };
+
+/**
+ * Counts the number of players on the standard (non-two-way) roster.
+ * Two-way contracts are excluded from the standard roster count.
+ * 
+ * @param {Array} players - Team players array
+ * @returns {number} Standard roster count
+ */
+function countStandardRoster(players) {
+  if (!Array.isArray(players) || players.length === 0) return 0;
+  
+  return players.filter((p) => {
+    const contractType = p?.contract?.contractType?.toLowerCase() || '';
+    return contractType !== 'two-way';
+  }).length;
+}
+
+
 
 /**
  * Calculates dead money for a given year from team cap sheet data.
@@ -163,11 +181,13 @@ function computePlayersTotal(players, endYear) {
 export function computeTeamCapTotals(teamCapSheet, selectedYear, options = {}) {
   const yearKey = selectedYear;
 
-  // Get cap settings from canonical provider
-  const capSettings = getCapSettingsForYear(yearKey, options.capProjections);
-  const salaryCap = capSettings.salaryCap || 0;
-  const firstApron = capSettings.firstApron || 0;
-  const secondApron = capSettings.secondApron || 0;
+  // Get consolidated cap rules from facade (SSOT)
+  // Supports capProjections override via options
+  const rules = getCapRulesForYear(yearKey, options.capProjections);
+  
+  const salaryCap = rules.cap.salaryCap || 0;
+  const firstApron = rules.cap.firstApron || 0;
+  const secondApron = rules.cap.secondApron || 0;
 
   // Calculate players total from contract data
   const playersTotal = computePlayersTotal(
@@ -185,10 +205,15 @@ export function computeTeamCapTotals(teamCapSheet, selectedYear, options = {}) {
   // Calculate dead money total
   const deadMoneyTotal = computeDeadMoneyForYear(teamCapSheet, yearKey);
 
-  // Incomplete roster charges - placeholder for future implementation
-  // CBA requires teams to have at least 14 players on roster;
-  // if under, they're charged the minimum salary for each empty slot
-  const incompleteChargesTotal = 0;
+  // Calculate incomplete roster charges
+  // CBA requires teams to have at least MIN_STANDARD_ROSTER (14) players;
+  // if under, they're charged the minimum salary for each empty slot.
+  // We use the facade's roster rules (minStandard) and rookieMin salary.
+  const standardRosterCount = countStandardRoster(teamCapSheet?.players);
+  const minRoster = rules.roster.minStandard;
+  const missingSlots = Math.max(0, minRoster - standardRosterCount);
+  const chargePerSlot = rules.salaries.rookieMin;
+  const incompleteChargesTotal = missingSlots * chargePerSlot;
 
   // Canonical total cap allocations
   const totalCapAllocations =
@@ -215,8 +240,17 @@ export function computeTeamCapTotals(teamCapSheet, selectedYear, options = {}) {
     // Include metadata for debugging
     _meta: {
       source: 'computeTeamCapTotals',
-      capSettingsSource: capSettings._meta?.source,
+      rulesSource: rules._meta?.source,
+      rulesSourcesSummary: rules._meta?.sourcesSummary,
+      rulesSources: rules._meta?.sources,
+      capSettingsSource: 'via_facade', // legacy compatibility
       seasonKey: toSeasonKey(yearKey),
+      incompleteRosterCharge: incompleteChargesTotal > 0 ? {
+        standardRosterCount,
+        minRoster,
+        missingSlots,
+        chargePerSlot,
+      } : null,
     },
   };
 }

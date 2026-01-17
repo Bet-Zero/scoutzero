@@ -3,6 +3,19 @@ import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/compu
 
 describe('computeTeamCapTotals - Dead Money Schema Compatibility', () => {
   const YEAR = 2025; // 2024-25 season
+  
+  // Helper: Create 14 players to avoid incomplete roster charges
+  // When testing dead money, we don't want roster charge noise in totalCapAllocations
+  function createFullRoster() {
+    return Array.from({ length: 14 }, (_, i) => ({
+      player_id: `roster-player-${i}`,
+      displayName: `Roster Player ${i}`,
+      contract: {
+        contractType: 'Standard',
+        salariesByYear: [], // No salary for this year - cap hit = 0
+      },
+    }));
+  }
 
   it('Case A: Supports NEW schema (deadCap array with amountByYear array)', () => {
     const teamSheet = {
@@ -15,13 +28,15 @@ describe('computeTeamCapTotals - Dead Money Schema Compatibility', () => {
           ],
         },
       ],
-      players: [],
+      players: createFullRoster(), // Use full roster to avoid incomplete roster charge
       capHolds: [],
     };
 
     const totals = computeTeamCapTotals(teamSheet, YEAR);
     expect(totals.deadMoneyTotal).toBe(5000000);
+    // Total = deadMoney (5M) + players (0) + capHolds (0) + incompleteCharge (0)
     expect(totals.totalCapAllocations).toBe(5000000);
+    expect(totals.incompleteChargesTotal).toBe(0);
   });
 
   it('Case B: Supports LEGACY schema (waivedContracts with amountByYear object)', () => {

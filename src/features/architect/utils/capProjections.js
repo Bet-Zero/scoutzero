@@ -1,4 +1,7 @@
 // multiYearCapSettings.js
+// ⚠️ DEPRECATED ⚠️
+// Do not import directly from feature code. Use @/features/architect/utils/capRulesProfile instead.
+
 
 const capProjections = {
   '2024-25': {
@@ -11,6 +14,8 @@ const capProjections = {
     roomMLE: 8000000, // $8 million
     fullMLE: 12900000, // $12.9 million
     taxpayerMLE: 5000000, // $5 million
+    rookieMin: 1119563, // from CBA_THRESHOLDS
+    rookieMinSource: 'real',
     growthRate: 0.1, // 10% increase from 2023-24
     confirmed: true, // These are final numbers
   },
@@ -24,6 +29,8 @@ const capProjections = {
     roomMLE: 8781000,
     fullMLE: 14104000,
     taxpayerMLE: 5685000,
+    rookieMin: 1164345, // ~4% growth
+    rookieMinSource: 'real',
     growthRate: 0.1,
     confirmed: true,
   },
@@ -37,6 +44,7 @@ const capProjections = {
     roomMLE: 9396000,
     fullMLE: 15091000,
     taxpayerMLE: 6083000,
+    // rookieMin removed (will be projected)
     growthRate: 0.07,
     confirmed: false,
   },
@@ -50,6 +58,7 @@ const capProjections = {
     roomMLE: 10336000,
     fullMLE: 16600000,
     taxpayerMLE: 6691000,
+    // rookieMin removed (will be projected)
     growthRate: 0.1,
     confirmed: false,
   },
@@ -63,6 +72,7 @@ const capProjections = {
     roomMLE: 11370000,
     fullMLE: 18260000,
     taxpayerMLE: 7360000,
+    // rookieMin removed (will be projected)
     growthRate: 0.1,
     confirmed: false,
   },
@@ -76,6 +86,7 @@ const capProjections = {
     roomMLE: 12507000,
     fullMLE: 20086000,
     taxpayerMLE: 8096000,
+    // rookieMin removed (will be projected)
     growthRate: 0.1,
     confirmed: false,
   },
@@ -89,6 +100,7 @@ const capProjections = {
     roomMLE: 13758000,
     fullMLE: 22095000,
     taxpayerMLE: 8906000,
+    // rookieMin removed (will be projected)
     growthRate: 0.1,
     confirmed: false,
   },
@@ -102,6 +114,7 @@ const capProjections = {
     roomMLE: 15134000,
     fullMLE: 24305000,
     taxpayerMLE: 9797000,
+    // rookieMin removed (will be projected)
     growthRate: 0.1,
     confirmed: false,
   },

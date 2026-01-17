@@ -13,6 +13,10 @@
  * LINKS:
  *  - Canonical Source: tradeMachine/utils/salaryMatchingRules.js (SINGLE SOURCE OF TRUTH for salary matching)
  *  - Legacy Source: tradeMachine/constants/cbaConstants.js (for other trade-specific constants)
+ *
+ * ⚠️  DEPRECATION NOTICE  ⚠️
+ * Do not import constants directly from this file for feature code.
+ * Use the canonical facade: @/features/architect/utils/capRulesProfile
  */
 
 // ============================================================================

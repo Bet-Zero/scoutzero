@@ -177,12 +177,35 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer }) => {
   // const capHoldsTotal = getActiveUnsignedCapHoldsTotalByEndYear(teamCapSheet.capHolds, selectedYear);
   // const totalCapHit = playersCapTotal + (showCapHolds ? capHoldsTotal : 0);
 
+  const confidenceLabel = React.useMemo(() => {
+    const summary = totals?._meta?.rulesSourcesSummary;
+    if (!summary) return null; // Fallback or loading state
+    
+    // Detailed mapping for display
+    switch (summary) {
+      case 'real':
+        return { text: 'Official', className: 'text-green-400 bg-green-400/10 border-green-400/20' };
+      case 'reported':
+        return { text: 'Reported', className: 'text-amber-400 bg-amber-400/10 border-amber-400/20' };
+      case 'projected':
+        return { text: 'Projected', className: 'text-blue-400 bg-blue-400/10 border-blue-400/20' };
+      case 'unknown':
+        return { text: 'Unknown', className: 'text-red-400 bg-red-400/10 border-red-400/20' };
+      default:
+        return { text: summary, className: 'text-white/40 bg-white/5 border-white/10' };
+    }
+  }, [totals]);
+
   return (
     <div className="text-white font-sans">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold tracking-tight text-white/90">
-          Cap Sheet <span className="text-white/40 font-light">|</span>{' '}
-          {formatYearLabel(selectedYear)}
+        <h3 className="text-lg font-bold tracking-tight text-white/90 flex items-center gap-2">
+          <span>Cap Sheet <span className="text-white/40 font-light">|</span> {formatYearLabel(selectedYear)}</span>
+          {confidenceLabel && (
+            <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${confidenceLabel.className}`}>
+              {confidenceLabel.text}
+            </span>
+          )}
         </h3>
 
         {/* Year Selector */}
