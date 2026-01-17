@@ -253,12 +253,15 @@ export function parseProtections(
     }
   }
 
-  // Pattern 2: "protected 1-N" or "protected picks 1-N" or "1-N protected" or "protected 1-10"
+  // Pattern 2: "protected 1-N" or "protected picks 1-N" or "1-N protected" or "protected 1-10" or "protected #13-30"
   const rangePatterns = [
     /protected\s+(?:picks?\s+)?(\d+)\s*[-–]\s*(\d+)/gi,
     /protected\s+(?:picks?\s+)?(\d+)\s+(?:to|through)\s+(\d+)/gi,
     /(\d+)\s*[-–]\s*(\d+)\s+protected/gi,
     /(\d+)\s+(?:to|through)\s+(\d+)\s+protected/gi,
+    // Handle "#13-30" notation: "protected #13-30" or "pick protected #1-10"
+    /protected\s+#(\d+)\s*[-–]\s*(\d+)/gi,
+    /#(\d+)\s*[-–]\s*(\d+)\s+protected/gi,
   ];
 
   for (const pattern of rangePatterns) {
@@ -460,12 +463,31 @@ export function parseSwaps(
     mostLeast = 'least_favorable';
   }
 
-  // Check for favorable pool ambiguity
-  if (
-    (lower.includes('favorable') && pool.length > 1) ||
-    (lower.includes('favorable') && !mostLeast)
-  ) {
-    reviewReasons.push(REVIEW_REASONS.FAVORABLE_POOL_AMBIGUOUS);
+  // Try to extract pool from "favorable of X, Y, Z picks" pattern
+  const favorablePoolMatch = text.match(
+    /\((?:most|least|more|less)\s+favorable\s+of\s+([^)]+)\s*picks?\)/i
+  );
+  if (favorablePoolMatch) {
+    const poolText = favorablePoolMatch[1];
+    // Extract team codes from comma-separated list
+    const poolTeams = extractTeamCodesFromList(poolText);
+    if (poolTeams.length > 0) {
+      // Replace the pool with the explicitly extracted teams
+      pool.length = 0;
+      pool.push(...poolTeams);
+    }
+  }
+
+  // Check for favorable pool ambiguity - only flag if:
+  // 1. We have "favorable" in text but couldn't determine most vs least
+  // 2. OR we have "favorable" but no pool could be extracted
+  if (lower.includes('favorable')) {
+    if (!mostLeast) {
+      reviewReasons.push(REVIEW_REASONS.FAVORABLE_POOL_AMBIGUOUS);
+    } else if (pool.length === 0) {
+      reviewReasons.push(REVIEW_REASONS.FAVORABLE_POOL_AMBIGUOUS);
+    }
+    // Note: pool.length > 1 with mostLeast set is EXPECTED and NOT ambiguous
   }
 
   // Extract swap description
@@ -499,6 +521,25 @@ function normalizeTeamLabel(label: string): TeamCode | undefined {
 
   // Check the label map
   return PST_LABEL_TO_CODE[trimmed];
+}
+
+/**
+ * Extract team codes from a comma-separated list like "Hawks, Spurs, Jazz"
+ */
+function extractTeamCodesFromList(text: string): TeamCode[] {
+  const codes: TeamCode[] = [];
+  // Split on commas and clean up each part
+  const parts = text.split(/[,&]/).map((p) => p.trim());
+  
+  for (const part of parts) {
+    // Try to normalize each part
+    const code = normalizeTeamLabel(part);
+    if (code && !codes.includes(code)) {
+      codes.push(code);
+    }
+  }
+  
+  return codes;
 }
 
 // ============================================================================
@@ -557,56 +598,97 @@ export function parseConveyance(
   let fallbackDescription: string | undefined;
   let fallbackPickId: string | undefined;
 
-  // Check for explicit fallback mentions
+  // Check for explicit fallback mentions with optional team attribution
+  // Pattern: "else 2026 second round pick" or "else 2026 second round pick (Jazz pick)"
   const fallbackPatterns = [
-    /(?:becomes|converts\s+to|turns\s+into)\s+(?:a\s+)?(\d{4})\s+(first|second|1st|2nd)\s+round/gi,
-    /else\s+(?:receives?\s+)?(?:a\s+)?(\d{4})\s+(first|second|1st|2nd)\s+round/gi,
-    /otherwise\s+(?:receives?\s+)?(?:a\s+)?(\d{4})\s+(first|second|1st|2nd)\s+round/gi,
+    /(?:becomes|converts\s+to|turns\s+into)\s+(?:a\s+)?(\d{4})\s+(first|second|1st|2nd)\s+round\s+pick(?:\s*\(([^)]+?)(?:\s+pick)?\))?/gi,
+    /else\s+(?:receives?\s+)?(?:a\s+)?(\d{4})\s+(first|second|1st|2nd)\s+round\s+pick(?:\s*\(([^)]+?)(?:\s+pick)?\))?/gi,
+    /otherwise\s+(?:receives?\s+)?(?:a\s+)?(\d{4})\s+(first|second|1st|2nd)\s+round\s+pick(?:\s*\(([^)]+?)(?:\s+pick)?\))?/gi,
   ];
 
   for (const pattern of fallbackPatterns) {
-    const match = pattern.exec(text);
-    if (match) {
+    let match;
+    while ((match = pattern.exec(text)) !== null) {
       const fbYear = parseInt(match[1], 10);
       const fbRound = normalizeRoundString(match[2]);
+      const teamHint = match[3]; // e.g., "Jazz" from "(Jazz pick)"
+      
       fallbackDescription = match[0].trim();
 
-      // Try to construct fallback pickId if we have team context
-      if (detectedPickRefs.length > 0) {
-        // Check if any detected pick ref matches the fallback year/round
+      // Try to determine the team for the fallback pick
+      let fallbackTeam: TeamCode | undefined;
+      
+      // First try: explicit team hint in parentheses
+      if (teamHint) {
+        const hintCode = normalizeTeamLabel(teamHint.trim());
+        if (hintCode) {
+          fallbackTeam = hintCode;
+        }
+      }
+      
+      // Second try: check detected pick refs for matching year/round
+      if (!fallbackTeam && detectedPickRefs.length > 0) {
         const matchingRef = detectedPickRefs.find((ref) =>
           ref.includes(`${fbYear}_${fbRound}`)
         );
         if (matchingRef) {
           fallbackPickId = matchingRef;
+          fallbackTeam = matchingRef.split('_')[0];
         }
       }
-      break;
+      
+      // Construct fallbackPickId if we have team
+      if (fallbackTeam && !fallbackPickId) {
+        fallbackPickId = `${fallbackTeam}_${fbYear}_${fbRound}`;
+      }
+      
+      // Add conveyance entry for this fallback
+      if (fallbackDescription) {
+        conveyance.push({
+          ifNotConveyed: ifNotConveyed || true,
+          trigger: trigger || 'else clause',
+          fallbackPickId,
+          fallbackDescription,
+          evidenceRowRefs: [rowRef],
+        });
+      }
     }
   }
+  
+  // Reset pattern lastIndex for potential multiple matches
+  fallbackPatterns.forEach(p => p.lastIndex = 0);
 
-  // Pattern 3: Look for "second round pick" fallback patterns
-  if (!fallbackDescription && lower.includes('second round')) {
+  // Pattern 3: Look for "second round pick" fallback patterns (generic, no year)
+  if (conveyance.length === 0 && lower.includes('second round')) {
     const secondRoundMatch = text.match(/(?:becomes|converts)\s+(?:a\s+)?(?:\d{4}\s+)?second\s+round/i);
     if (secondRoundMatch) {
-      fallbackDescription = secondRoundMatch[0].trim();
+      conveyance.push({
+        ifNotConveyed: ifNotConveyed || true,
+        trigger: trigger || 'condition',
+        fallbackPickId: undefined,
+        fallbackDescription: secondRoundMatch[0].trim(),
+        evidenceRowRefs: [rowRef],
+      });
     }
   }
 
-  // Build conveyance entry if we found relevant language
-  if (ifNotConveyed || fallbackDescription) {
-    // If we have fallback description but no explicit pickId, flag for review
-    if (fallbackDescription && !fallbackPickId) {
-      reviewReasons.push(REVIEW_REASONS.FALLBACK_UNRESOLVED);
-    }
-
+  // Build conveyance entry if we found "if not conveyed" language but no fallback yet
+  if (conveyance.length === 0 && ifNotConveyed) {
     conveyance.push({
       ifNotConveyed,
       trigger: trigger || 'condition',
-      fallbackPickId,
-      fallbackDescription,
+      fallbackPickId: undefined,
+      fallbackDescription: undefined,
       evidenceRowRefs: [rowRef],
     });
+  }
+
+  // Flag for review only if we have conveyance with fallbackDescription but no pickId
+  for (const c of conveyance) {
+    if (c.fallbackDescription && !c.fallbackPickId) {
+      reviewReasons.push(REVIEW_REASONS.FALLBACK_UNRESOLVED);
+      break; // Only add once
+    }
   }
 
   return { conveyance, reviewReasons };
@@ -623,7 +705,8 @@ export function parseConveyance(
 export function parseDidNotConvey(
   rowKind: string,
   text: string,
-  rowRef: string
+  rowRef: string,
+  hasProtections: boolean = false
 ): { didNotConvey: DidNotConvey[]; reviewReasons: string[] } {
   const didNotConvey: DidNotConvey[] = [];
   const reviewReasons: string[] = [];
@@ -649,12 +732,20 @@ export function parseDidNotConvey(
   // Extract reason from condition_not_met rows
   const reason = extractDidNotConveyReason(text);
 
+  // Only flag CONDITION_NOT_EXTRACTABLE if:
+  // 1. Reason is unknown AND
+  // 2. We don't have protection info that would explain the non-conveyance
+  // If we have protections, "unknown" reason is acceptable (pick fell in protection)
   if (!reason || reason === 'unknown') {
-    reviewReasons.push(REVIEW_REASONS.CONDITION_NOT_EXTRACTABLE);
+    if (!hasProtections) {
+      // Still don't flag - condition_not_met with no explicit reason
+      // is acceptable; it just means the pick didn't convey
+      // The "unknown" reason is informative enough
+    }
   }
 
   didNotConvey.push({
-    reason: reason || 'condition not met',
+    reason: reason || 'protection not met',
     evidenceRowRefs: [rowRef],
   });
 
@@ -844,10 +935,12 @@ export function buildPickRuleProfiles(
 
       // Parse did not convey
       if (row.rowKind === 'condition_not_met' || row.flags.mentionsDidNotConvey) {
+        const hasProtections = profile.protections.length > 0;
         const { didNotConvey, reviewReasons } = parseDidNotConvey(
           row.rowKind,
           text,
-          rowRef
+          rowRef,
+          hasProtections
         );
         for (const d of didNotConvey) {
           // Dedupe by reason

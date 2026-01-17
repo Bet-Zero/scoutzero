@@ -11,6 +11,7 @@
 Phase 4 implements the **deterministic pick-level parser** for PST draft pick data. It aggregates Phase 3 normalized rows by `pickId` and extracts structured encumbrances into `PickRuleProfile` objects.
 
 ### What Phase 4 Does
+
 - Parses **protections** (top-N, ranges, lottery) from normalized text
 - Parses **swaps** (controller, pool, most/least favorable)
 - Parses **conveyance/fallback** chains
@@ -19,6 +20,7 @@ Phase 4 implements the **deterministic pick-level parser** for PST draft pick da
 - Produces exactly **480 profiles** (30 teams × 8 years × 2 rounds)
 
 ### What Phase 4 Does NOT Do
+
 - **Does NOT execute swap outcomes** — swaps are recorded as rules only
 - **Does NOT resolve all needs_review items** — Phase 5 will close remaining blockers
 - **Does NOT use LLM or probabilistic inference** — all parsing is regex + grammar
@@ -69,6 +71,7 @@ npm run pst:phase-4:report
 ### Prerequisites
 
 Requires Phase 2 and Phase 3 outputs:
+
 - `data/pst/pst_ledger_with_display_owner.json` (480 base picks)
 - `data/pst/pst_phase_3_normalized_rows.json` (feature-enriched rows)
 
@@ -270,6 +273,7 @@ export function parseDidNotConvey(rowKind: string, text: string, rowRef: string)
 **Phase 4: COMPLETE**
 
 The deterministic parser is implemented and produces:
+
 - ✅ 480 pick rule profiles
 - ✅ needs_review queue with deterministic reason codes
 - ✅ Phase 4 report with stats and samples

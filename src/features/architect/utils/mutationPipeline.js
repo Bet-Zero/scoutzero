@@ -45,8 +45,12 @@ import {
   validateOptionDecision,
   validateRenounceRights,
   isOverrideEnabled,
-
 } from '@/features/architect/utils/capLegalityValidation';
+import {
+  normalizeContractForWorld,
+  normalizeFutureContract,
+  normalizeSalaryRow,
+} from '@/features/architect/utils/contractNormalization';
 
 // ==============================================================================
 // UNDEFINED VALUE SANITIZATION
@@ -694,15 +698,18 @@ function computeSigningResult({ payload, currentState, seasonId, timestamp }) {
     (p) => (p.player_id || p.id) === playerId
   );
 
+  // Normalize contract for world persistence (canonical field names/types)
+  const normalizedContract = normalizeContractForWorld({
+    ...contract,
+    signingTeam: teamCode,
+    signingDate: new Date(timestamp).toISOString(),
+  });
+
   const updatedPlayer = {
     ...player,
     teamCode,
     teamName: team.teamName,
-    contract: {
-      ...contract,
-      signingTeam: teamCode,
-      signedAt: new Date(timestamp).toISOString(),
-    },
+    contract: normalizedContract,
   };
 
   if (existingIndex >= 0) {
@@ -902,20 +909,23 @@ function computeExtensionResult({ payload, currentState, seasonId, timestamp }) 
     return { success: false, error: `Player ${playerId} not found on team ${teamCode}` };
   }
 
+  // Build and normalize futureContract with canonical field names
+  const rawFutureContract = {
+    ...(updatedTeam.players[playerIndex].futureContract || {}),
+    salariesByYear: [
+      ...(updatedTeam.players[playerIndex].futureContract?.salariesByYear || []),
+      ...(extension.salariesByYear || []).map((y) => ({
+        ...normalizeSalaryRow(y),
+        isExtensionSeason: true,
+      })),
+    ],
+    isExtension: true,
+    signingDate: new Date(timestamp).toISOString(),
+  };
+
   const updatedPlayer = {
     ...updatedTeam.players[playerIndex],
-    futureContract: {
-      ...(updatedTeam.players[playerIndex].futureContract || {}),
-      salariesByYear: [
-        ...(updatedTeam.players[playerIndex].futureContract?.salariesByYear || []),
-        ...(extension.salariesByYear || []).map((y) => ({
-          ...y,
-          isExtensionSeason: true,
-        })),
-      ],
-      extension: true,
-      extensionSignedAt: new Date(timestamp).toISOString(),
-    },
+    futureContract: normalizeFutureContract(rawFutureContract),
   };
 
   updatedTeam.players = [...updatedTeam.players];
@@ -979,34 +989,36 @@ function computeOptionResult({ payload, currentState, seasonId, timestamp }) {
   let newCapHold = null;
 
   if (accepted) {
-    // Accepted: mark option as used
+    // Accepted: mark option as used (canonical boolean format)
     const updatedSalaries = [...salaries];
     updatedSalaries[optionIndex] = {
-      ...updatedSalaries[optionIndex],
-      optionUsed: 'accepted',
+      ...normalizeSalaryRow(updatedSalaries[optionIndex]),
+      optionUsed: true, // CANONICAL: boolean, not string
     };
 
     updatedPlayer = {
       ...playerData,
-      contract: {
+      contract: normalizeContractForWorld({
         ...playerData.contract,
         salariesByYear: updatedSalaries,
-      },
+      }),
     };
   } else {
     // Declined: remove this year and all future years
-    const filteredSalaries = salaries.filter((_, idx) => idx < optionIndex);
+    const filteredSalaries = salaries
+      .filter((_, idx) => idx < optionIndex)
+      .map(normalizeSalaryRow);
 
     updatedPlayer = {
       ...playerData,
-      contract: {
+      contract: normalizeContractForWorld({
         ...playerData.contract,
         salariesByYear: filteredSalaries,
         freeAgency: {
           year: targetYear - 1,
           type: 'UFA',
         },
-      },
+      }),
       freeAgentYear: targetYear,
     };
 

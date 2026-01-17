@@ -159,6 +159,7 @@ utils/
   cashUtils.js
   cbaConstants.js
   consentUtils.js
+  contractNormalization.js
   contractSalaryUtils.js
   contractUtils.js
   draftPickUtils.js
@@ -277,5 +278,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-01-17T09:50:36.434Z*
+*Generated on: 2026-01-17T11:00:36.084Z*
 *Auto-updated by: npm run docs*

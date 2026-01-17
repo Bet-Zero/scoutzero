@@ -350,10 +350,76 @@ interface CapHold {
 | `src/shared/components/EditContractModal.jsx` | Contract action modal |
 | `src/features/architect/capSheet/ExceptionTracker/ExceptionTracker.jsx` | Exception display |
 | `src/features/architect/utils/tradeMachine/engine/tradeValidator.js` | Trade validation (reference) |
+| `src/features/architect/utils/contractNormalization.js` | Contract schema normalization helpers |
 
 ---
 
-## 9. Change Log
+## 9. Canonical Contract Schema (World)
+
+**Status:** Phase 0 Complete (2026-01-17)
+
+This section defines the canonical contract schema that all world mutation writers must produce. Phase 0 standardized field names and types to enable Phase 1+ CBA rule enforcement.
+
+### 9.1 salariesByYear[] Entry (Per Year)
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `season` | `string` | Yes | Format: `"YYYY-YY"` (e.g., `"2025-26"`) |
+| `salary` | `number` | Yes | Base salary in dollars |
+| `capHit` | `number` | Yes | Defaults to `salary` if not specified |
+| `guaranteed` | `boolean` | Yes | Whether year is guaranteed |
+| `guaranteedAmount` | `number` | No | Partial guarantee amount |
+| `option` | `string \| null` | No | `"Team Option"`, `"Player Option"`, or `null` |
+| `optionUsed` | `boolean \| null` | No | **CANONICAL: boolean** (`true`=accepted, `false`=declined, `null`=no decision) |
+| `tradeBonus` | `number \| null` | No | Trade bonus amount |
+
+**IMPORTANT:** `optionUsed` must be a boolean, NOT a string. Legacy values (`'accepted'`, `'declined'`, `'exercised'`) are normalized to boolean by `contractNormalization.js`.
+
+### 9.2 Contract Metadata
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `startSeason` | `string` | Yes | Format: `"YYYY-YY"` |
+| `endSeason` | `string` | Yes | Format: `"YYYY-YY"` |
+| `contractLength` | `number` | Yes | Total years |
+| `yearsRemaining` | `number` | Yes | Years left on contract |
+| `signingDate` | `string` | No | **CANONICAL field name** (ISO format). NOT `signedAt` or `extensionSignedAt`. |
+| `isExtension` | `boolean` | No | **CANONICAL field name**. NOT `extension`. |
+| `signingTeam` | `string` | No | Team code that signed the player |
+
+### 9.3 freeAgency Object
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `type` | `string \| null` | No | `"UFA"`, `"RFA"`, `"TO"`, `"PO"`, etc. |
+| `year` | `number` | No | End year (e.g., `2026`) |
+| `capHold` | `number` | No | Cap hold amount |
+| `qualifyingOffer` | `number \| null` | No | QO amount for RFAs |
+
+**IMPORTANT:** `freeAgency` must be an object, NOT a string. Legacy string values (e.g., `"2027 (UFA)"`) are normalized to object format by `contractNormalization.js`.
+
+### 9.4 Normalization Helpers
+
+**File:** `src/features/architect/utils/contractNormalization.js`
+
+| Function | Purpose |
+|----------|---------|
+| `normalizeContractForWorld(contract)` | Normalize full contract object |
+| `normalizeSalaryRow(row)` | Normalize single salariesByYear entry |
+| `normalizeFreeAgency(freeAgency)` | Normalize freeAgency to object |
+| `normalizeOptionUsed(value)` | Convert string optionUsed to boolean |
+| `isOptionAccepted(value)` | Check if option was accepted (handles both formats) |
+| `isOptionDeclined(value)` | Check if option was declined (handles both formats) |
+
+### 9.5 Backward Compatibility
+
+- **Read path:** Normalization helpers accept both legacy and canonical formats
+- **Write path:** Mutation writers always produce canonical format
+- **Existing Worlds:** Continue to work; new mutations produce clean data
+
+---
+
+## 10. Change Log
 
 | Date | Change |
 |------|--------|
@@ -361,3 +427,4 @@ interface CapHold {
 | 2026-01-17 | **Phase A P0:** Implemented G0-1 (incomplete roster charge) and G0-2 (post-apron exception blocking). Added `exception_blocked` to HARD_BLOCK_RULES. Updated validation map. |
 | 2026-01-17 | **Phase 1 P0:** Implemented G0-3 (TPE Expiration) Phase 1 Core Logic. Added `processTradeExceptions` to season transition. |
 | 2026-01-17 | **Phase 2 P0:** Completed TPE Phase 2. Canonicalized `expiresOn`. Backfill in season advance. UI Drift eliminated. |
+| 2026-01-17 | **Contract Schema Phase 0:** Standardized contract schema for world mutations. Created `contractNormalization.js`. Updated `computeSigningResult`, `computeExtensionResult`, `computeOptionResult` to use canonical field names/types (`signingDate`, `isExtension`, boolean `optionUsed`). Updated consumers (`useCapSheetState`, `useArchitectActions`, `seasonManager`). Added 52 unit tests. |

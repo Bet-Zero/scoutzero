@@ -94,6 +94,7 @@ Quick reference for all components in the ScoutZero project.
 - utils/cashUtils.js
 - utils/cbaConstants.js
 - utils/consentUtils.js
+- utils/contractNormalization.js
 - utils/contractSalaryUtils.js
 - utils/contractUtils.js
 - utils/draftPickUtils.js
@@ -324,4 +325,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2026-01-17T09:50:36.458Z*
+*Generated on: 2026-01-17T11:00:36.338Z*

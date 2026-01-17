@@ -9,6 +9,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { calculateCapHold } from '@/features/architect/utils/contractUtils';
 import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
 import capProjections from '@/features/architect/utils/capProjections';
+import { normalizeContractForWorld, normalizeSalaryRow } from '@/features/architect/utils/contractNormalization';
 
 /**
  * Action types for history tracking
@@ -139,10 +140,11 @@ export function useCapSheetState({ initialCapSheet, currentYear }) {
             return p;
           }
 
-          // Mark option as used
-          p.contract.salariesByYear[optionIndex].optionUsed = accept
-            ? 'accepted'
-            : 'declined';
+          // Mark option as used (canonical boolean format)
+          p.contract.salariesByYear[optionIndex] = normalizeSalaryRow({
+            ...p.contract.salariesByYear[optionIndex],
+            optionUsed: accept, // CANONICAL: boolean, not string
+          });
 
           if (!accept) {
             // Declining: remove this year and all future years

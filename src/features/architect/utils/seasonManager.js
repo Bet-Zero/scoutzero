@@ -879,10 +879,10 @@ function processOptionsWithDecisions(teamData, fromSeason, toSeason, optionDecis
     hasChanges = true;
 
     if (decision.decision === 'exercise') {
-      // Exercise option - mark as used
+      // Exercise option - mark as used (canonical boolean format)
       contract.salariesByYear = contract.salariesByYear.map((yearData, idx) => {
         if (idx === optionYearIndex) {
-          return { ...yearData, optionUsed: 'exercised' };
+          return { ...yearData, optionUsed: true }; // CANONICAL: boolean, not string
         }
         return yearData;
       });
@@ -906,11 +906,11 @@ function processOptionsWithDecisions(teamData, fromSeason, toSeason, optionDecis
         type: 'UFA',
       };
 
-      // Mark option as declined
+      // Mark option as declined (canonical boolean format)
       if (filteredSalaries.length > 0) {
         filteredSalaries[filteredSalaries.length - 1] = {
           ...filteredSalaries[filteredSalaries.length - 1],
-          optionUsed: 'declined',
+          optionUsed: false, // CANONICAL: boolean, not string
         };
       }
 

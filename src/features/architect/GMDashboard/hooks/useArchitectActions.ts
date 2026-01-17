@@ -31,7 +31,7 @@ interface SalaryByYear {
   optionType?: string;
   capHit?: number;
   guaranteed?: boolean;
-  optionUsed?: string;
+  optionUsed?: boolean | null; // CANONICAL: boolean, not string
 }
 
 /** Local contract structure for architect actions (avoids schema naming pattern) */
@@ -1105,11 +1105,11 @@ export function useArchitectActions({
               return p;
             }
 
-            // Mark option as used
+            // Mark option as used (canonical boolean format)
             const updatedSalaries = [...salaries];
             updatedSalaries[optionIndex] = {
               ...updatedSalaries[optionIndex],
-              optionUsed: accepted ? 'accepted' : 'declined',
+              optionUsed: accepted, // CANONICAL: boolean, not string
             };
 
             if (!accepted) {
