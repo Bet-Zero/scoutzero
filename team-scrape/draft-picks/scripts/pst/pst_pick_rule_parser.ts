@@ -17,6 +17,20 @@
 import { ALL_TEAM_CODES, PST_LABEL_TO_CODE } from './pst_team_slugs';
 
 // ============================================================================
+// CONSTANTS
+// ============================================================================
+
+/** Maximum length for evidence text snippets */
+const MAX_SNIPPET_LENGTH = 200;
+
+/** Maximum length for reason text truncation */
+const MAX_REASON_LENGTH = 100;
+
+/** Valid year range for NBA draft picks (2020-2039) */
+const MIN_VALID_YEAR = 2020;
+const MAX_VALID_YEAR = 2039;
+
+// ============================================================================
 // TYPES
 // ============================================================================
 
@@ -300,24 +314,35 @@ export function parseProtections(
 
 /**
  * Extract year spans from text like "in 2026-27" or "2026-2027"
+ * Validates years are within reasonable NBA draft range (2020-2039)
  */
 function extractYearSpans(text: string, defaultYear: number): number[] {
   const years: number[] = [];
 
-  // Pattern: "2026-27" or "2026-2027"
-  const spanMatch = text.match(/\b(20[2-3]\d)[-–]((?:20)?[2-3]?\d)\b/);
+  // Pattern: "2026-27" or "2026-2027" - uses strict 2-digit capture for short form
+  const spanMatch = text.match(/\b(20[2-3]\d)[-–]((?:20[2-3]\d)|[2-3]\d)\b/);
   if (spanMatch) {
     const startYear = parseInt(spanMatch[1], 10);
     let endYearStr = spanMatch[2];
 
-    // Handle "2026-27" format
+    // Handle "2026-27" format - derive century from start year
     if (endYearStr.length === 2) {
-      endYearStr = spanMatch[1].slice(0, 2) + endYearStr;
+      const startCentury = Math.floor(startYear / 100) * 100;
+      endYearStr = String(startCentury + parseInt(endYearStr, 10));
     }
     const endYear = parseInt(endYearStr, 10);
 
-    for (let y = startYear; y <= endYear; y++) {
-      years.push(y);
+    // Validate years are in reasonable range and end >= start
+    if (
+      startYear >= MIN_VALID_YEAR &&
+      startYear <= MAX_VALID_YEAR &&
+      endYear >= MIN_VALID_YEAR &&
+      endYear <= MAX_VALID_YEAR &&
+      endYear >= startYear
+    ) {
+      for (let y = startYear; y <= endYear; y++) {
+        years.push(y);
+      }
     }
   }
 
@@ -326,7 +351,7 @@ function extractYearSpans(text: string, defaultYear: number): number[] {
   if (explicitYears) {
     for (const ys of explicitYears) {
       const y = parseInt(ys, 10);
-      if (!years.includes(y)) {
+      if (!years.includes(y) && y >= MIN_VALID_YEAR && y <= MAX_VALID_YEAR) {
         years.push(y);
       }
     }
@@ -341,6 +366,19 @@ function extractYearSpans(text: string, defaultYear: number): number[] {
 function extractProtectionPhrase(text: string): string {
   const match = text.match(/.{0,30}protect\w*.{0,30}/i);
   return match ? match[0].trim() : 'protected';
+}
+
+/**
+ * Normalizes a round string to '1st' or '2nd'
+ * @param roundStr - Round string like 'first', 'second', '1st', '2nd'
+ * @returns Normalized round suffix '1st' or '2nd'
+ */
+function normalizeRoundString(roundStr: string): '1st' | '2nd' {
+  const lower = roundStr.toLowerCase().trim();
+  if (lower === 'first' || lower === '1st' || lower.startsWith('1')) {
+    return '1st';
+  }
+  return '2nd';
 }
 
 // ============================================================================
@@ -530,7 +568,7 @@ export function parseConveyance(
     const match = pattern.exec(text);
     if (match) {
       const fbYear = parseInt(match[1], 10);
-      const fbRound = match[2].toLowerCase().startsWith('1') || match[2].toLowerCase() === 'first' ? '1st' : '2nd';
+      const fbRound = normalizeRoundString(match[2]);
       fallbackDescription = match[0].trim();
 
       // Try to construct fallback pickId if we have team context
@@ -638,12 +676,12 @@ function extractDidNotConveyReason(text: string): string {
   for (const pattern of patterns) {
     const match = text.match(pattern);
     if (match) {
-      return match[0].trim().slice(0, 100);
+      return match[0].trim().slice(0, MAX_REASON_LENGTH);
     }
   }
 
   // Return the whole text snippet if short enough
-  if (text.length < 100) {
+  if (text.length < MAX_REASON_LENGTH) {
     return text.trim();
   }
 
@@ -733,7 +771,7 @@ export function buildPickRuleProfiles(
         rowRef,
         sourceTeamPage: row.provenance.sourceTeamPage,
         sourceUrl: row.provenance.sourceUrl,
-        normalizedTextSnippet: text.slice(0, 200),
+        normalizedTextSnippet: text.slice(0, MAX_SNIPPET_LENGTH),
         rowKind: row.rowKind,
       });
 
