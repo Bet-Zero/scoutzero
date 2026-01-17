@@ -85,7 +85,9 @@
     "pst:build:holdings": "npx tsx team-scrape/draft-picks/scripts/pst/pst_build_holdings_by_team.ts",
     "pst:phase-2": "npm run pst:build:base && npm run pst:build:overlay && npm run pst:apply:overlay && npm run pst:build:holdings",
     "pst:phase-2:validate": "npx tsx team-scrape/draft-picks/scripts/pst/pst_validate_phase_2_ledger.ts",
-    "pst:phase-3": "npx tsx team-scrape/draft-picks/scripts/pst/pst_phase_3_normalize_text.ts"
+    "pst:phase-3": "npx tsx team-scrape/draft-picks/scripts/pst/pst_phase_3_normalize_text.ts",
+    "pst:phase-4": "npx tsx team-scrape/draft-picks/scripts/pst/pst_phase_4_build_profiles.ts",
+    "pst:phase-4:report": "npx tsx team-scrape/draft-picks/scripts/pst/pst_phase_4_build_profiles.ts && cat data/pst/pst_phase_4_report.json"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.6",
