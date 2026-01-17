@@ -18,7 +18,7 @@
 | Phase 2.1 | Refine Row Extraction (Own Picks) | COMPLETE | 2026-01-17 |
 | Phase 1.3 | Raw Row Normalization | COMPLETE | 2026-01-17 |
 | Phase 3 | Normalization | COMPLETE | 2026-01-17 |
-| Phase 4 | Deterministic Parser | NOT STARTED | - |
+| Phase 4 | Deterministic Parser | COMPLETE | 2026-01-17 |
 | Phase 5 | Ledger Builder | NOT STARTED | - |
 | Phase 6 | Hard Guarantees | NOT STARTED | - |
 | Phase 7 | Collision Course | NOT STARTED | - |
@@ -345,36 +345,62 @@ Claim example:
 
 ---
 
-### PHASE 4 — Deterministic Parser: Encumbrances + Owner Claim
+### PHASE 4 — Deterministic Parser: Pick Rule Profiles (COMPLETE)
 
-**Goal**: parse normalizedText into structured encumbrances using rules, not guesses.
+**Goal**: Parse normalizedText into structured PickRuleProfiles using deterministic rules.
 
-**Must Detect**
+**Implemented Features**
 
-1) Protections:
-   - ranges/top-N/lottery, protector party (usually original team)
-2) Conveyance / fallback chains:
-   - “if not conveyed then …” sequences, conversions to seconds
-3) Swaps:
-   - swap rights, pool teams, controller, “most/least favorable”
-4) Forfeited/void (if present)
+1) **Protections**:
+   - `top_n`: "protected top N", "top N protected" → range 1–N
+   - `range`: "protected 1-10", "1-14 protected" → explicit range
+   - `lottery`: "lottery protected" → type lottery
+   - Year span extraction: "in 2026-27" → appliesToYears [2026, 2027]
 
-**Key Rule**
+2) **Swaps**:
+   - Controller detection: "[Team] has option to swap", "[Team] right to swap", "[Team] can swap"
+   - Pool extraction from detected team codes
+   - Most/least favorable detection
 
-- If parser cannot confidently represent the meaning, set:
-  - `needsReview = true`
-  - `reviewReasonCodes[]` populated
-  - DO NOT silently assign fields.
+3) **Conveyance / fallback chains**:
+   - "if not conveyed" detection
+   - Fallback description extraction: "becomes 2028 first round"
+   - Fallback pickId resolution when possible
+
+4) **Did Not Convey**:
+   - Condition not met detection (rowKind == 'condition_not_met')
+   - Reason extraction from text
+
+**needs_review System**
+
+All ambiguity is flagged with deterministic reason codes:
+- `PROTECTION_RANGE_AMBIGUOUS`: Protection language detected but range not parsed
+- `SWAP_CONTROLLER_UNKNOWN`: Cannot determine which team controls swap
+- `FAVORABLE_POOL_AMBIGUOUS`: "most/least favorable" with ambiguous pool
+- `FALLBACK_UNRESOLVED`: Fallback described but pickId not identifiable
+- `CONDITION_NOT_EXTRACTABLE`: Condition not met reason unclear
+
+**NOTE**: This phase does NOT execute swap outcomes. Swaps are recorded as rules only.
 
 **Outputs**
 
-- `data/pst/pst_parsed_claims.json`
-- `data/pst/pst_needs_review.json` (subset)
+- `data/pst/pst_pick_rule_profiles_2026_2033.json` - 480 pick profiles
+- `data/pst/pst_needs_review_queue.json` - Picks requiring review
+- `data/pst/pst_phase_4_report.json` - Stats and sample profiles
+
+**Run Commands**
+
+```bash
+npm run pst:phase-4
+npm run pst:phase-4:report  # Also prints report JSON
+```
 
 **Acceptance Criteria**
 
-- Parser is deterministic and repeatable.
-- Unknowns are explicit and enumerated.
+- ✅ Parser is deterministic and repeatable
+- ✅ Exactly 480 profiles generated (one per base pick)
+- ✅ All unknowns flagged with review reason codes
+- ✅ Evidence preserved with rowRefs for traceability
 
 ---
 
