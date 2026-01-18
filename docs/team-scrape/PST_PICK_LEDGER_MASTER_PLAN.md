@@ -57,6 +57,68 @@
 
 ---
 
+### Phase 5.2 — Ownership Model: Swap Rights ≠ Pick Ownership (COMPLETE)
+
+**Goal**: Fix ownership model bug where swap rights were incorrectly treated as ownership transfers.
+
+**Problem**
+
+Current system treated swap-only clauses as ownership transfers. Example:
+
+- `DAL_2030_1st` showed `owner: SAS` (WRONG)
+- Evidence text: "Spurs option to swap 2030 first round picks with Mavericks"
+- This is a SWAP RIGHT, not an ownership transfer
+
+This caused Dallas to show no 2030 1st in manual views, breaking verification against Fanspo/Spotrac.
+
+**Solution**
+
+Separate ownership from swap rights:
+
+- **owner** = asset holder (who holds the pick today)
+- **encumbrances.swaps[].controller** = who holds swap rights
+- Swap rights do NOT change owner
+
+**Implementation**
+
+1. Created `pst_owner_model_utils.ts` with deterministic swap-only detection:
+   - If evidence contains "option to swap", "right to swap", "can swap"
+   - AND does NOT contain explicit "pick traded" patterns
+   - THEN classify as swap-only (do not change owner)
+
+2. Modified `pst_apply_display_owner_overlay.ts`:
+   - Added swap-only gate before applying owner override
+   - If swap-only: keep base owner (skip override)
+   - If explicit conveyance: apply owner override as before
+
+3. Created regression validator `pst_validate_swap_does_not_change_owner.ts`
+
+**Artifacts updated**
+
+- `team-scrape/draft-picks/scripts/pst/pst_owner_model_utils.ts` (NEW)
+- `team-scrape/draft-picks/scripts/pst/pst_apply_display_owner_overlay.ts` (MODIFIED)
+- `team-scrape/draft-picks/scripts/pst/pst_validate_swap_does_not_change_owner.ts` (NEW)
+- `data/pst/pst_ledger_with_display_owner.json` (regenerated)
+- `data/pst/pst_pick_ledger_final_2026_2033.json` (regenerated)
+- `data/pst/manual_check_views.txt` (regenerated)
+
+**Validation**
+
+- `DAL_2030_1st.owner == DAL` ✓
+- `DAL_2030_1st` still has swap encumbrance with `controller: SAS` ✓
+- Dallas manual view shows 2030 1st line ✓
+- Final ledger count remains 480 ✓
+- needs_review remains 0 ✓
+
+**Ownership Model Rules**
+
+- **owner**: Represents the current asset holder of the pick (who holds the pick right now)
+- **encumbrances.swaps[].controller**: Represents who holds swap rights (rights holder)
+- Swap rights do NOT change owner
+- Ownership changes only when evidence explicitly indicates a pick was traded/owned, not merely a swap option
+
+---
+
 ## Quick Commands
 
 **Recommended day-to-day command** (runs full final pipeline):
@@ -67,14 +129,17 @@ npm run pst:build-final
 
 This command runs the complete "final truth" pipeline in order:
 
-1. `pst:phase-4` - Deterministic parser (builds pick rule profiles with selectionSpecs)
-2. `pst:phase-5` - Ledger builder + finalize (generates final artifacts)
-3. `pst:phase-5:validate` - Validation (confirms invariants)
-4. `pst:manual-views` - Generate manual check views with OutcomeSpec format
+1. `pst:apply:overlay` - Apply owner overlay with swap-only gate (produces display-owner ledger)
+2. `pst:phase-4` - Deterministic parser (builds pick rule profiles with selectionSpecs)
+3. `pst:phase-5` - Ledger builder + finalize (generates final artifacts)
+4. `pst:phase-5:validate` - Validation (confirms invariants)
+5. `pst:manual-views` - Generate manual check views with OutcomeSpec format
+6. `pst:manual-views:v6-5` - Generate v6.5 swap-focused manual views
 
 **When to use individual commands**:
 
 - `pst:extract` / `pst:validate` - Only when HTML pages change or extractor logic is modified
+- `pst:apply:overlay` - Only when overlay or swap-gate logic changes (included in `pst:build-final`)
 - `pst:phase-4` - Only when parser rules need adjustment
 - `pst:phase-5` - Only when finalization logic changes
 - `pst:manual-views` - Only regenerate manual views without rebuilding profiles

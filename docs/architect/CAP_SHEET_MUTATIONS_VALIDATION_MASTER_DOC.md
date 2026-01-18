@@ -510,6 +510,7 @@ type SigningTerms = {
 **Location:** `capLegalityValidation.js:normalizeSigningTerms()`
 
 The `normalizeSigningTerms(rawTerms, options)` adapter:
+
 * Accepts any legacy terms object
 * If `mechanism` contains Bird rights keywords (e.g., "Full Bird"), moves value to `rightsType`
 * Sets `mechanism` to `options.fallbackMechanism` or `'UNKNOWN'` when recovering

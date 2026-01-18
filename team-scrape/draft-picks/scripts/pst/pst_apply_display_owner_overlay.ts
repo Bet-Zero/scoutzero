@@ -4,6 +4,8 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { BasePick } from './pst_build_base_ledger';
 import type { OwnerOverlayItem } from './pst_build_owner_overlay';
+import { isSwapOnlyOverlayItem } from './pst_owner_model_utils';
+import { CODE_TO_PST_SLUG } from './pst_team_slugs';
 
 /**
  * pst_apply_display_owner_overlay.ts
@@ -13,6 +15,7 @@ import type { OwnerOverlayItem } from './pst_build_owner_overlay';
  * RULES:
  * - Start with base ledger.
  * - Apply overlay if exists for pickId.
+ * - SWAP GATE: If overlay item is swap-only (not explicit conveyance), do NOT change owner.
  * - Precedence:
  *   1. rowKind: transaction > condition_not_met > own
  *   2. sourceTeamPage matches displayOwner (preference for "I have it" vs "They have it")
@@ -26,6 +29,10 @@ const BASE_LEDGER_PATH = path.resolve(
 const OVERLAY_PATH = path.resolve(
   process.cwd(),
   'data/pst/pst_owner_overlay.json'
+);
+const NORMALIZED_ROWS_PATH = path.resolve(
+  process.cwd(),
+  'data/pst/pst_phase_3_normalized_rows.json'
 );
 const OUTPUT_PATH = path.resolve(
   process.cwd(),
@@ -60,6 +67,23 @@ async function main() {
     await fs.readFile(OVERLAY_PATH, 'utf-8')
   ) as OwnerOverlayItem[];
 
+  // Load normalized rows for swap-only detection
+  // File is a top-level array; rowRef is at provenance.rowRef (rowRef is per-page, e.g. r16 on Mavericks vs r16 on Spurs)
+  const normalizedRows = JSON.parse(
+    await fs.readFile(NORMALIZED_ROWS_PATH, 'utf-8')
+  ) as Array<{ normalizedText: string; provenance?: { rowRef?: string; sourceTeamPage?: string } }>;
+
+  const normalizedRowsMap = new Map<string, { normalizedText: string }>();
+  for (const row of normalizedRows) {
+    const rowRef = row.provenance?.rowRef;
+    const sourceTeamPage = row.provenance?.sourceTeamPage;
+    if (rowRef != null && sourceTeamPage != null) {
+      normalizedRowsMap.set(`${sourceTeamPage}|${rowRef}`, { normalizedText: row.normalizedText ?? '' });
+    }
+  }
+
+  console.log(`Loaded ${normalizedRowsMap.size} normalized rows for swap detection`);
+
   // Group overlay by pickId
   const overlayMap = new Map<string, OwnerOverlayItem[]>();
   for (const item of overlayItems) {
@@ -70,6 +94,7 @@ async function main() {
   }
 
   const finalLedger: DisplayLedgerItem[] = [];
+  let swapOnlySkipped = 0;
 
   for (const pick of basePicks) {
     const overlays = overlayMap.get(pick.pickId);
@@ -95,21 +120,39 @@ async function main() {
 
       // 2. Source Page Match Preference
       // Prefer if sourceTeamPage == displayOwner (The owner claims it)
-      // Note: sourceTeamPage is usually the slug, displayOwner is code.
-      // We need to match loosely or use helper.
-      // But we can check if the page *contains* the team name or corresponds to it.
-      // Or we can rely on `pst_team_slugs` but I don't want to import it just for this if I can avoid it.
-      // Wait, I SHOULD import it to be correct.
-      // Actually, let's assume `sourceTeamPage` is the slug (e.g. "Mavericks").
-      // We'd need to convert displayOwner (DAL) to slug (Mavericks).
-      // Let's defer that complexity if possible, or do a simple check?
-      // "prefer the row whose sourceTeamPage matches the owner"
-      // I'll grab the helper.
       return compareSourceMatch(a, b);
     });
 
     const winner = overlays[0];
 
+    // SWAP GATE: Check if ANY overlay item is swap-only (should NOT change owner)
+    // We check all overlays because the winner might have empty text, but other overlays might have swap evidence
+    let isSwapOnly = false;
+    for (const overlay of overlays) {
+      if (isSwapOnlyOverlayItem(overlay, normalizedRowsMap)) {
+        isSwapOnly = true;
+        break;
+      }
+    }
+
+    if (isSwapOnly) {
+      // Swap-only: Keep base owner, don't apply override
+      swapOnlySkipped++;
+      finalLedger.push({
+        ...pick,
+        ownershipSource: 'BASE', // Keep base owner
+        rowKind: winner.rowKind, // Still record row kind
+        provenance: {
+          sourceTeamPage: winner.sourceTeamPage,
+          sourceUrl: winner.sourceUrl,
+          snapshotPath: winner.snapshotPath,
+          rowRef: winner.rowRef,
+        },
+      });
+      continue;
+    }
+
+    // Explicit conveyance: Apply owner override
     finalLedger.push({
       ...pick,
       owner: winner.displayOwner,
@@ -124,12 +167,14 @@ async function main() {
     });
   }
 
+  if (swapOnlySkipped > 0) {
+    console.log(`  ⚠️  Skipped ${swapOnlySkipped} swap-only owner overrides (owner unchanged)`);
+  }
+
   await fs.writeFile(OUTPUT_PATH, JSON.stringify(finalLedger, null, 2));
   console.log(`✅ Display Ledger written to ${OUTPUT_PATH}`);
   console.log(`   Count: ${finalLedger.length}`);
 }
-
-import { CODE_TO_PST_SLUG } from './pst_team_slugs';
 
 // Helper for tiebreaker 2
 function compareSourceMatch(a: OwnerOverlayItem, b: OwnerOverlayItem): number {
