@@ -7,9 +7,10 @@
 * HISTORY:
 * * 2026-01-16: Created (initial master doc)
 * * 2026-01-17: Added Phase 4 signing terms/raises wiring details (plan `plans/_archive/cap-sheet-contract-rules-phase-4-signing-terms-2026-01-17/plan.md`, chunk_n/a)
+* * 2026-01-18: Phase 7.3 option invariants + canonical multiplier owner (plan `plans/cap-sheet-contract-rules-phase-7-3/plan.md`, chunk_n/a)
 *
 * LINKS:
-* * Plan: plans/_archive/cap-sheet-contract-rules-phase-4-signing-terms-2026-01-17/plan.md
+* * Plan: plans/cap-sheet-contract-rules-phase-7-3/plan.md
 * * Latest Chunk: n/a (no chunks used)
  */
 
@@ -233,11 +234,36 @@ interface CapHold {
 | **Contract Option Invalid** | `capLegalityValidation.js:validateSigning` | Pre-persist | **Hard Block** | `salariesByYear[].option` (invalid enum value) |
 | **Free Agency State Invalid** | `capLegalityValidation.js:validateSigning` | Pre-persist | **Hard Block** | `contract.freeAgency` (string format or invalid year type) |
 | **Cap Hold Transition Invalid** | `capLegalityValidation.js:validateOptionDecision` | Pre-persist | **Hard Block** | Enforces correct cap hold creation/removal and freeAgency state on option decline |
+| **Option Accept Player Not Rostered** | `capLegalityValidation.js:validateOptionDecision` | Pre-persist | **Hard Block** | `updatedTeam.roster`, `playerId` |
+| **Option Accept Option Row Invalid** | `capLegalityValidation.js:validateOptionDecision` | Pre-persist | **Hard Block** | `updatedPlayer.contract.salariesByYear` (option row + optionUsed) |
+| **Option Decline Player Still Rostered** | `capLegalityValidation.js:validateOptionDecision` | Pre-persist | **Hard Block** | `updatedTeam.roster`, `playerId` |
+| **Option Decline Contract Row Still Present** | `capLegalityValidation.js:validateOptionDecision` | Pre-persist | **Hard Block** | `updatedPlayer.contract.salariesByYear` (declined season row) |
+| **Option Decline Free Agency Year Mismatch** | `capLegalityValidation.js:validateOptionDecision` | Pre-persist | **Hard Block** | `updatedPlayer.contract.freeAgency.year`, derived option year |
 | First Apron Warning | `capLegalityValidation.js:validateSigning` | Pre-persist | Warning | `projectedCapHit`, `capSettings.firstApron` |
 | Second Apron Warning | `capLegalityValidation.js:validateSigning` | Pre-persist | Warning | `projectedCapHit`, `capSettings.secondApron` |
 | Cap Hold Info | `capLegalityValidation.js:validateRenounceRights` | Pre-persist | Info | `team.capHolds` |
 
 **Note:** Signing guardrails (max years, raises, first-year max) now use Salary Engine signing terms when available. Phase 2/2.5 exception tables remain the fallback when engine terms are unavailable.
+
+#### 5.2.1 Canonical Cap Hold Multipliers (Single Source)
+
+* Canonical multiplier table: `src/features/architect/utils/capHolds.ts` (`CAP_HOLD_MULTIPLIERS`)
+* All cap hold computations must import this table (option decline expectations, cap hold creation, Bird rights references)
+* Duplicate multiplier tables are not allowed; references must defer to `capHolds.ts`
+
+#### 5.2.2 Option Transition Invariants (Phase 7.3)
+
+**Option Accept (Pipeline-Authoritative):**
+* No cap hold created for the player
+* `optionUsed === true` on the option year row
+* Player remains on the team roster (no roster removal)
+* `salariesByYear` remains coherent (option row present for target year)
+
+**Option Decline (Pipeline-Authoritative):**
+* Cap hold created when expected and amount matches canonical multipliers (Phase 7.2)
+* Player is not rostered as a signed player for the declined option year
+* `freeAgency` is canonical object and year matches derived option year
+* Option year row removed (no contract entry for declined season)
 
 ### 5.3 Hard Block vs Override Rules
 
@@ -266,6 +292,11 @@ interface CapHold {
 * `contract_option_invalid` - Option field has invalid enum value (must be "Team Option", "Player Option", or null)
 * `free_agency_state_invalid` - freeAgency is legacy string format or has invalid year type
 * `cap_hold_transition_invalid` - Cap hold creation/removal contradicts option decision (reserved)
+* `option_accept_player_not_rostered` - Accepted option but player is missing from roster
+* `option_accept_option_row_invalid` - Accepted option but option row missing or not marked used
+* `option_decline_player_still_rostered` - Declined option but player remains on roster
+* `option_decline_contract_row_still_present_for_declined_season` - Declined option but contract still includes declined season
+* `option_decline_free_agency_year_mismatch` - Declined option freeAgency.year mismatch
 
 **Soft Warning Rules (Overridable in dev mode via `VITE_ENABLE_CBA_OVERRIDE=true`):**
 
@@ -529,6 +560,13 @@ const canonical = normalizeSigningTerms(legacy, { fallbackMechanism: 'FULL_MLE' 
 
 ---
 
+## 9.7 Cap Hold Amount Rules (Phase 7.2)
+
+* **Rights-based multipliers:** FULL_BIRD = 190%, EARLY_BIRD = 130%, NON_BIRD = 120%.
+* **Fallback:** CAP_SPACE/NONE/UNKNOWN uses the legacy 150% multiplier **with explicit warning** (`cap_hold_transition_inputs_missing`).
+* **Rounding:** Expected amount uses `Math.round(lastSalary * multiplier)`; validation enforces ≤ $1 tolerance.
+* **FA year derivation:** From option season string (`"YYYY-YY"` → start year). Example: `"2025-26"` → `2025`.
+
 ## 10. Change Log
 
 | Date | Change |
@@ -549,4 +587,6 @@ const canonical = normalizeSigningTerms(legacy, { fallbackMechanism: 'FULL_MLE' 
 | 2026-01-18 | **Contract Rules Phase 5:** Added contract row schema validation. 3 new HARD_BLOCK rules: `contract_row_schema_invalid` (negative salary/capHit, missing season), `contract_guarantee_invalid` (guaranteedAmount > salary, guaranteed=false + positive amount), `contract_option_invalid` (invalid option enum). Added `validateContractRows()` aggregator wired into `validateSigning`. Policy: normalize `optionUsed` to null when option is null; hard-block other violations. 14 new tests added. |
 | 2026-01-18 | **Contract Rules Phase 6:** Separated `mechanism` (exception bucket) from `rightsType` (Bird rights type). Added canonical `SigningTerms` shape documentation. Created `normalizeSigningTerms()` backward-compat adapter. Updated `buildBaseSigningTerms()` and `buildExceptionSigningTerms()` to use proper field separation. Violation payloads now include both `mechanism` and `rightsType`. Re-signing (Bird rights) is now pipeline-authoritative. 13 new tests added. |
 | 2026-01-18 | **Contract Rules Phase 7:** Added canonical freeAgency state validation. 2 new HARD_BLOCK rules: `free_agency_state_invalid` (blocks legacy string format, invalid year type), `cap_hold_transition_invalid` (reserved for option accept/decline contradictions). Created `validateFreeAgencyState()` in `contractNormalization.js`. Wired into `validateSigning()`. Warns on RFA missing QO and UFA with QO set. 10 new tests added. |
-| 2026-01-18 | **Contract Rules Phase 7.1:** Enforced `cap_hold_transition_invalid`. `validateOptionDecision` now blocks option accept if cap hold created, and decline if missing hold. Created `capHoldTransitionHelpers.js`. Adopted simplified 150% cap hold model for now. Fixed `freeAgentYear` bug in pipeline. 5 new tests added. |
+| 2026-01-18 | **Contract Rules Phase 7.1:** Enforced `cap_hold_transition_invalid`. `validateOptionDecision` now blocks option accept if cap hold created, and decline if missing hold. Created `capHoldTransitionHelpers.js`. Adopted simplified 150% cap hold model (superseded by Phase 7.2). Fixed `freeAgentYear` bug in pipeline. 5 new tests added. |
+| 2026-01-18 | **Contract Rules Phase 7.2:** Added rights-based cap hold amounts (190/130/120), fallback warnings for missing rightsType, and season-derived FA year on option decline. Updated validation + option mutation paths. Added new tests. |
+| 2026-01-18 | **Contract Rules Phase 7.3:** Enforced option accept/decline state invariants (roster presence, option row coherence, declined season removal) and hard-blocked freeAgency year mismatch. Declared `capHolds.ts` as the canonical multiplier source and wired remaining references. Added new tests for invariants + canonical source usage. |

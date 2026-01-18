@@ -14,6 +14,7 @@
  *  - 2026-01-04: Phase 3 - Added resolveDraftPickSwapsForYear for swap resolution
  *  - 2026-01-07: Phase 5 - Added auto-resolution of conveyance + swaps during season advance
  *                         - Reads positionsMap from world.draftPositionsByYear
+ *  - 2026-01-18: Phase 7.2 - Option decline FA-year derivation + cap hold multipliers
  */
 
 import { db } from '@/firebaseConfig';
@@ -29,7 +30,11 @@ import {
   worldMetadataRef,
 } from '@/features/architect/utils/architectFirestorePaths';
 import { getMinimumSalaryScale } from '@/features/architect/utils/salaryEngine';
-import { calculateCapHold } from '@/features/architect/utils/contractUtils';
+import {
+  computeExpectedCapHoldAmount,
+  deriveFreeAgencyYearFromOptionSeason,
+  getRightsTypeFromPlayer,
+} from '@/features/architect/utils/capHoldTransitionHelpers';
 import { resolvePickSwap } from '@/features/architect/utils/tradeMachine/utils/swapResolution.js';
 import { resolveConveyanceForPick } from '@/features/architect/utils/tradeMachine/utils/conveyanceResolution.js';
 import { processTradeExceptions } from '@/features/architect/utils/tpeLifecycle';
@@ -894,6 +899,10 @@ function processOptionsWithDecisions(teamData, fromSeason, toSeason, optionDecis
         salary: optionYear.salary || optionYear.capHit || 0,
       });
     } else if (decision.decision === 'decline') {
+      const faYearInfo = deriveFreeAgencyYearFromOptionSeason(optionYear?.season, toYear);
+      const freeAgencyYear =
+        typeof faYearInfo.year === 'number' ? faYearInfo.year : toYear - 1;
+
       // Decline option - remove this year and all future years
       const filteredSalaries = contract.salariesByYear.filter(
         (_, idx) => idx < optionYearIndex
@@ -902,7 +911,7 @@ function processOptionsWithDecisions(teamData, fromSeason, toSeason, optionDecis
       // Update contract
       contract.salariesByYear = filteredSalaries;
       contract.freeAgency = {
-        year: toYear - 1,
+        year: freeAgencyYear,
         type: 'UFA',
       };
 
@@ -915,15 +924,17 @@ function processOptionsWithDecisions(teamData, fromSeason, toSeason, optionDecis
       }
 
       // Calculate cap hold
-      const capHoldResult = calculateCapHold({
-        ...player,
-        contract: {
-          ...contract,
-          salariesByYear: filteredSalaries,
-        },
+      const priorRow = contract.salariesByYear[optionYearIndex - 1];
+      const lastSalary = priorRow?.salary ?? priorRow?.capHit ?? 0;
+      const rightsType = getRightsTypeFromPlayer(player);
+      const capHoldResult = computeExpectedCapHoldAmount({
+        player,
+        lastSalary,
+        rules: null,
+        rightsType,
       });
 
-      if (capHoldResult && capHoldResult.amount) {
+      if (lastSalary > 0 && capHoldResult.amount) {
         newCapHolds.push({
           playerId,
           playerName: player.displayName || player.name || '',
@@ -931,7 +942,12 @@ function processOptionsWithDecisions(teamData, fromSeason, toSeason, optionDecis
           type: 'FA Cap Hold',
           season: toSeasonCode(toYear),
           isSigned: false,
-          reason: `Declined ${optionYear.option}`,
+          reason: capHoldResult.usedFallback
+            ? `Declined ${optionYear.option} (fallback multiplier)`
+            : `Declined ${optionYear.option}`,
+          notes: capHoldResult.usedFallback
+            ? 'Fallback multiplier used due to missing/unsupported Bird rights type.'
+            : undefined,
           active: true,
         });
       }
@@ -943,7 +959,7 @@ function processOptionsWithDecisions(teamData, fromSeason, toSeason, optionDecis
       }
 
       // Keep player in players array but mark as FA
-      player.freeAgentYear = toYear;
+      player.freeAgentYear = freeAgencyYear;
 
       declinedOptions.push({
         playerId,

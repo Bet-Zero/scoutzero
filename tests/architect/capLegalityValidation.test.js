@@ -5,9 +5,11 @@
  *
  * HISTORY:
  *  - 2026-01-17: Updated signing terms/raises validation tests (plan `plans/_archive/cap-sheet-contract-rules-phase-4-signing-terms-2026-01-17/plan.md`, chunk_n/a)
+ *  - 2026-01-18: Phase 7.2 cap hold amount + FA year tests (plan `plans/cap-sheet-contract-rules-phase-7-2/plan.md`)
+ *  - 2026-01-18: Phase 7.3 option state invariants + multiplier source test (plan `plans/cap-sheet-contract-rules-phase-7-3/plan.md`)
  *
  * LINKS:
- *  - Plan: plans/_archive/cap-sheet-contract-rules-phase-4-signing-terms-2026-01-17/plan.md
+ *  - Plan: plans/cap-sheet-contract-rules-phase-7-3/plan.md
  *  - Latest Chunk: n/a (no chunks used)
  */
 
@@ -54,6 +56,11 @@ import {
   createMockPlayer,
   createMockCapProjections,
 } from '../helpers/architectTestHelpers.js';
+import {
+  computeExpectedCapHoldAmount,
+  deriveFreeAgencyYearFromOptionSeason,
+} from '@/features/architect/utils/capHoldTransitionHelpers';
+import { CAP_HOLD_MULTIPLIERS } from '@/features/architect/utils/capHolds';
 
 describe('Cap Legality Validation', () => {
   const seasonId = '2025-26';
@@ -2951,41 +2958,86 @@ describe('Cap Legality Validation', () => {
     const currentYear = 2025;
     const targetYear = 2026;
     const playerId = 'player_opt';
-    const player = {
+    const basePlayer = {
       player_id: playerId,
       name: 'Option Player',
       contract: {
         salariesByYear: [
           { season: '2024-25', salary: 10_000_000 },
-          { season: '2025-26', salary: 11_000_000, option: 'Player Option' }
-        ]
-      }
+          { season: '2025-26', salary: 11_000_000, option: 'Player Option' },
+        ],
+        birdRights: { status: 'Full Bird' },
+      },
     };
+    const buildPlayerWithRights = (status) => ({
+      ...basePlayer,
+      contract: {
+        ...basePlayer.contract,
+        birdRights: status == null ? null : { status },
+      },
+    });
+    const buildAcceptedPlayer = (playerInput = basePlayer) => ({
+      ...playerInput,
+      contract: {
+        ...playerInput.contract,
+        salariesByYear: (playerInput.contract?.salariesByYear || []).map((row) =>
+          row?.option ? { ...row, optionUsed: true } : row
+        ),
+      },
+    });
     const team = {
       teamCode: 'LAL',
-      players: [player],
-      capHolds: [] // No initial cap holds
+      players: [basePlayer],
+      roster: [playerId],
+      capHolds: [], // No initial cap holds
     };
 
     it('blocks when accepting option BUT a cap hold was created (contradiction)', () => {
       // Simulate accept: player stays, but cap hold mysteriously created
+      const acceptedPlayer = buildAcceptedPlayer(basePlayer);
       const updatedTeam = {
         ...team,
-        capHolds: [{ playerId, amount: 15_000_000 }]
+        players: [acceptedPlayer],
+        roster: [playerId],
+        capHolds: [{ playerId, amount: 15_000_000 }],
       };
 
       const result = validateOptionDecision({
-        team,
-        player,
+        originalTeam: team,
+        originalPlayer: basePlayer,
+        updatedTeam,
+        updatedPlayer: acceptedPlayer,
         accepted: true,
         targetYear: 2026,
         currentYear: 2025,
-        updatedTeam
       });
 
       expect(result.valid).toBe(false);
       expect(result.violations.some(v => v.rule === 'cap_hold_transition_invalid')).toBe(true);
-      expect(result.violations[0].message).toMatch(/accepted option but a cap hold was created/i);
+      expect(result.violations.some(v => /accepted option but a cap hold was created/i.test(v.message))).toBe(true);
+    });
+
+    it('accepts option when optionUsed is true and player remains rostered', () => {
+      const acceptedPlayer = buildAcceptedPlayer(basePlayer);
+      const updatedTeam = {
+        ...team,
+        players: [acceptedPlayer],
+        roster: [playerId],
+        capHolds: [],
+      };
+
+      const result = validateOptionDecision({
+        originalTeam: team,
+        originalPlayer: basePlayer,
+        updatedTeam,
+        updatedPlayer: acceptedPlayer,
+        accepted: true,
+        targetYear: 2026,
+        currentYear: 2025,
+      });
+
+      expect(result.valid).toBe(true);
+      expect(result.violations).toHaveLength(0);
     });
 
     it('blocks when declining option BUT missing expected cap hold', () => {
@@ -2993,16 +3045,17 @@ describe('Cap Legality Validation', () => {
       const updatedTeam = {
         ...team,
         players: [], // Player removed
-        capHolds: [] // No cap hold
+        roster: [],
+        capHolds: [], // No cap hold
       };
 
       const result = validateOptionDecision({
-        team,
-        player,
+        originalTeam: team,
+        originalPlayer: basePlayer,
+        updatedTeam,
         accepted: false,
         targetYear: 2026,
         currentYear: 2025,
-        updatedTeam
       });
 
       expect(result.valid).toBe(false);
@@ -3010,58 +3063,152 @@ describe('Cap Legality Validation', () => {
       expect(result.violations[0].message).toMatch(/none was created/i);
     });
 
-    it('allows valid option decline with correct cap hold and freeAgency', () => {
-      // Simulate valid decline
+    it('creates cap hold amount using FULL_BIRD 190%', () => {
+      const player = buildPlayerWithRights('Full Bird');
       const updatedPlayer = {
         ...player,
         contract: {
           salariesByYear: [{ season: '2024-25', salary: 10_000_000 }],
-          freeAgency: { type: 'UFA', year: 2025 } // Correct FA year (targetYear - 1)
-        }
+          freeAgency: { type: 'UFA', year: 2025 }, // Correct FA year (2025-26 option => 2025)
+        },
       };
       
       const updatedTeam = {
         ...team,
-        players: [updatedPlayer], // Player might stay in array as FA? Pipeline removes from roster but keeps in players array usually? 
-        // Note: computeOptionResult removes from players array entirely if declined. 
-        // But validateOptionDecision checks updatedTeam.players.find(p => id === id).
-        // If player is removed from updatedTeam.players, validateOptionDecision L2260 check for validateDeclineFreeAgency is skipped.
-        // Let's verify what computeOptionResult does: L1042: players.filter(...) removes it!
-        // So validateDeclineFreeAgency might not run if player is removed?
-        // Wait, current pipeline removes player from players array (L1042).
-        // So updatedPlayer is undefined in validateOptionDecision.
-        // So clean valid case just needs cap hold.
-        players: [], 
-        capHolds: [{ playerId, amount: 15_000_000 }] // 150% of 10M
+        players: [updatedPlayer],
+        roster: [],
+        capHolds: [
+          {
+            playerId,
+            amount: Math.round(10_000_000 * CAP_HOLD_MULTIPLIERS.FULL_BIRD),
+          },
+        ],
       };
 
       const result = validateOptionDecision({
-        team,
-        player,
+        originalTeam: team,
+        originalPlayer: player,
+        updatedTeam,
+        updatedPlayer,
         accepted: false,
         targetYear: 2026,
         currentYear: 2025,
-        updatedTeam
       });
 
       expect(result.valid).toBe(true);
       expect(result.violations).toHaveLength(0);
     });
 
+    it('creates cap hold amount using EARLY_BIRD 130%', () => {
+      const player = buildPlayerWithRights('Early Bird');
+      const updatedTeam = {
+        ...team,
+        players: [],
+        roster: [],
+        capHolds: [
+          {
+            playerId,
+            amount: Math.round(10_000_000 * CAP_HOLD_MULTIPLIERS.EARLY_BIRD),
+          },
+        ],
+      };
+
+      const result = validateOptionDecision({
+        originalTeam: team,
+        originalPlayer: player,
+        updatedTeam,
+        accepted: false,
+        targetYear: 2026,
+        currentYear: 2025,
+      });
+
+      expect(result.valid).toBe(true);
+      expect(result.violations).toHaveLength(0);
+    });
+
+    it('creates cap hold amount using NON_BIRD 120%', () => {
+      const player = buildPlayerWithRights('Non-Bird');
+      const updatedTeam = {
+        ...team,
+        players: [],
+        roster: [],
+        capHolds: [
+          {
+            playerId,
+            amount: Math.round(10_000_000 * CAP_HOLD_MULTIPLIERS.NON_BIRD),
+          },
+        ],
+      };
+
+      const result = validateOptionDecision({
+        originalTeam: team,
+        originalPlayer: player,
+        updatedTeam,
+        accepted: false,
+        targetYear: 2026,
+        currentYear: 2025,
+      });
+
+      expect(result.valid).toBe(true);
+      expect(result.violations).toHaveLength(0);
+    });
+
+    it('uses CAP_HOLD_MULTIPLIERS as canonical source for option cap hold math', () => {
+      const player = buildPlayerWithRights('Early Bird');
+      const result = computeExpectedCapHoldAmount({
+        player,
+        lastSalary: 10_000_000,
+        rules: null,
+        rightsType: 'EARLY_BIRD',
+      });
+
+      expect(result.multiplier).toBe(CAP_HOLD_MULTIPLIERS.EARLY_BIRD);
+      expect(result.amount).toBe(Math.round(10_000_000 * CAP_HOLD_MULTIPLIERS.EARLY_BIRD));
+    });
+
+    it('derives freeAgency.year from option season code', () => {
+      const derived = deriveFreeAgencyYearFromOptionSeason('2025-26');
+      expect(derived.year).toBe(2025);
+      expect(derived.source).toBe('option_season');
+    });
+
+    it('uses fallback multiplier when rightsType is missing', () => {
+      const player = buildPlayerWithRights(null);
+      const updatedTeam = {
+        ...team,
+        players: [],
+        roster: [],
+        capHolds: [{ playerId, amount: 15_000_000 }], // 150% fallback of 10M
+      };
+
+      const result = validateOptionDecision({
+        originalTeam: team,
+        originalPlayer: player,
+        updatedTeam,
+        accepted: false,
+        targetYear: 2026,
+        currentYear: 2025,
+      });
+
+      expect(result.valid).toBe(true);
+      expect(result.warnings.some((w) => w.rule === 'cap_hold_transition_inputs_missing')).toBe(true);
+    });
+
     it('blocks created cap hold with invalid amount (negative)', () => {
       const updatedTeam = {
         ...team,
         players: [],
+        roster: [],
         capHolds: [{ playerId, amount: -100 }] // Invalid
       };
 
       const result = validateOptionDecision({
-        team,
-        player,
+        originalTeam: team,
+        originalPlayer: basePlayer,
+        updatedTeam,
         accepted: false,
         targetYear: 2026,
         currentYear: 2025,
-        updatedTeam
       });
 
       expect(result.valid).toBe(false);
@@ -3070,6 +3217,7 @@ describe('Cap Legality Validation', () => {
     });
 
     it('validates freeAgency state if player remains in data (simulated partial update)', () => {
+      const player = buildPlayerWithRights('Full Bird');
       // If we hypothetically keep the player (maybe for UI-only state), check FA logic
       const updatedPlayer = {
         ...player,
@@ -3082,23 +3230,22 @@ describe('Cap Legality Validation', () => {
       const updatedTeam = {
         ...team,
         players: [updatedPlayer],
-        capHolds: [{ playerId, amount: 15_000_000 }]
+        roster: [],
+        capHolds: [{ playerId, amount: 19_000_000 }]
       };
 
       const result = validateOptionDecision({
-        team,
-        player,
+        originalTeam: team,
+        originalPlayer: player,
+        updatedTeam,
+        updatedPlayer,
         accepted: false,
         targetYear: 2026,
         currentYear: 2025,
-        updatedTeam
       });
 
-      // Should interpret year mismatch as warning per helper logic
-      // rule: 'cap_hold_transition_unexpected' -> warning
-      expect(result.valid).toBe(true);
-      expect(result.warnings.some(w => w.rule === 'cap_hold_transition_unexpected')).toBe(true);
+      expect(result.valid).toBe(false);
+      expect(result.violations.some((v) => v.rule === 'option_decline_free_agency_year_mismatch')).toBe(true);
     });
   });
 });
-

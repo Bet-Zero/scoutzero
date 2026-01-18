@@ -6,10 +6,13 @@
  * Changes persist during session but reset on page refresh.
  */
 import { useState, useCallback, useMemo } from 'react';
-import { calculateCapHold } from '@/features/architect/utils/contractUtils';
 import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
-import capProjections from '@/features/architect/utils/capProjections';
 import { normalizeContractForWorld, normalizeSalaryRow } from '@/features/architect/utils/contractNormalization';
+import {
+  computeExpectedCapHoldAmount,
+  deriveFreeAgencyYearFromOptionSeason,
+  getRightsTypeFromPlayer,
+} from '@/features/architect/utils/capHoldTransitionHelpers';
 
 /**
  * Action types for history tracking
@@ -147,27 +150,46 @@ export function useCapSheetState({ initialCapSheet, currentYear }) {
           });
 
           if (!accept) {
+            const optionSeason = p.contract?.salariesByYear?.[optionIndex]?.season || null;
+            const faYearInfo = deriveFreeAgencyYearFromOptionSeason(optionSeason, targetYear);
+            const freeAgencyYear =
+              typeof faYearInfo.year === 'number' ? faYearInfo.year : targetYear - 1;
+
             // Declining: remove this year and all future years
             p.contract.salariesByYear = salaries.filter(
               (y, idx) => idx < optionIndex
             );
 
             // Set player as upcoming free agent
-            p.freeAgentYear = targetYear;
+            p.freeAgentYear = freeAgencyYear;
             if (!p.contract.freeAgency) p.contract.freeAgency = {};
-            p.contract.freeAgency.year = targetYear - 1; // FA year is season start year
+            p.contract.freeAgency.year = freeAgencyYear; // FA year is season start year
             p.contract.freeAgency.type = 'UFA';
 
-            const capHoldAmt = calculateCapHold(p, capProjections, currentYear);
-            if (capHoldAmt) {
+            const priorRow = salaries[optionIndex - 1];
+            const lastSalary = priorRow?.salary ?? priorRow?.capHit ?? 0;
+            const rightsType = getRightsTypeFromPlayer(p);
+            const capHoldExpectation = computeExpectedCapHoldAmount({
+              player: p,
+              lastSalary,
+              rules: null,
+              rightsType,
+            });
+
+            if (lastSalary > 0 && capHoldExpectation.amount) {
               const newHold = {
                 playerId: p.id || p.player_id || p.name,
                 playerName: p.displayName || p.name,
-                amount: capHoldAmt,
+                amount: capHoldExpectation.amount,
                 type: 'FA Cap Hold', // or derive from rights
                 season: toSeasonCode(targetYear),
                 isSigned: false,
-                reason: 'Declined Option',
+                reason: capHoldExpectation.usedFallback
+                  ? 'Declined Option (fallback multiplier)'
+                  : 'Declined Option',
+                notes: capHoldExpectation.usedFallback
+                  ? 'Fallback multiplier used due to missing/unsupported Bird rights type.'
+                  : undefined,
                 active: true,
               };
 

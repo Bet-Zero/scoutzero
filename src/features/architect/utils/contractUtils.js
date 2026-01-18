@@ -235,7 +235,7 @@ export function getMinimumCapHit(yearsOfService) {
  * 
  * Note: The canonical implementation in capHolds.ts uses the correct CBA multipliers:
  * - Full Bird: 1.9× (190%)
- * - Early Bird: 1.75× (175%)
+ * - Early Bird: 1.3× (130%)
  * - Non-Bird: 1.2× (120%)
  */
 export { calculateCapHold } from './capHolds';

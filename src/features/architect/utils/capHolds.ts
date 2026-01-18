@@ -5,6 +5,7 @@
  *
  * HISTORY:
  *  - 2025-12-14: Created - extracted common cap hold logic from CapSheet, CapSummaryTiles, CapImpactTiles
+ *  - 2026-01-18: Updated Early Bird cap hold multiplier to 130% per Phase 7.2
  */
 
 /**
@@ -129,7 +130,7 @@ export function getActiveUnsignedCapHoldsTotalByEndYear(
  */
 export const CAP_HOLD_MULTIPLIERS = {
   FULL_BIRD: 1.9,      // 190% of prior salary for Full Bird rights
-  EARLY_BIRD: 1.75,    // 175% of prior salary for Early Bird rights  
+  EARLY_BIRD: 1.3,     // 130% of prior salary for Early Bird rights  
   NON_BIRD: 1.2,       // 120% of prior salary for Non-Bird rights
   MINIMUM: 1.2,        // 120% of minimum salary for players without Bird rights
   ROOKIE_SCALE: 1.2,   // 120% of rookie scale salary for unsigned first-round picks
@@ -240,7 +241,7 @@ export interface CapHoldResult {
  * 
  * CBA Cap Hold Rules:
  * - Full Bird rights: 190% of prior salary
- * - Early Bird rights: 175% of prior salary
+ * - Early Bird rights: 130% of prior salary
  * - Non-Bird rights: 120% of prior salary
  * - No Bird rights: 120% of minimum salary
  * - Unsigned first-round picks: 120% of rookie scale salary

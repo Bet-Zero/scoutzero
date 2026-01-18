@@ -1,13 +1,68 @@
 /**
  * FILE: src/features/architect/utils/capHoldTransitionHelpers.js
  * PURPOSE: Pure helper functions for cap hold transition reasoning.
- * CREATED: 2026-01-18
- * PHASE: 7.1 - Cap Hold Transition Enforcement
+ * OWNERSHIP: Feature: architect/cap-sheet validation
+ *
+ * HISTORY:
+ *  - 2026-01-18: Created (Phase 7.1 Cap Hold Transition Enforcement)
+ *  - 2026-01-18: Phase 7.2 cap hold amounts + FA year derivation
+ *  - 2026-01-18: Phase 7.3 option decline freeAgency year hard-block (plan `plans/cap-sheet-contract-rules-phase-7-3/plan.md`, chunk_n/a)
+ *
+ * LINKS:
+ *  - Plan: plans/cap-sheet-contract-rules-phase-7-3/plan.md
+ *  - Latest Chunk: n/a (no chunks used)
  *
  * Used by validateOptionDecision() to detect cap hold transition violations.
  */
 
 import { toEndYear } from './seasonUtils';
+import { CAP_HOLD_MULTIPLIERS } from './capHolds';
+
+const DEFAULT_CAP_HOLD_MULTIPLIER = 1.5;
+
+const RIGHTS_TYPE_MULTIPLIERS = {
+  FULL_BIRD: CAP_HOLD_MULTIPLIERS.FULL_BIRD,
+  EARLY_BIRD: CAP_HOLD_MULTIPLIERS.EARLY_BIRD,
+  NON_BIRD: CAP_HOLD_MULTIPLIERS.NON_BIRD,
+};
+
+function normalizeRightsType(rawType) {
+  if (!rawType) return null;
+  const normalized = String(rawType).trim().toLowerCase();
+
+  if (normalized === 'none' || normalized === 'null') return 'NONE';
+  if (normalized.includes('cap space')) return 'CAP_SPACE';
+  if (normalized === 'full' || normalized.includes('full bird')) return 'FULL_BIRD';
+  if (normalized === 'bird') return 'FULL_BIRD';
+  if (normalized === 'early' || normalized.includes('early bird')) return 'EARLY_BIRD';
+  if (normalized.includes('non-bird') || normalized.includes('non bird') || normalized === 'nonbird') {
+    return 'NON_BIRD';
+  }
+
+  return null;
+}
+
+export function getRightsTypeFromPlayer(player) {
+  const rawRights =
+    player?.contract?.birdRights?.status ??
+    player?.contract?.birdRights?.type ??
+    player?.contract?.birdRights ??
+    player?.birdRights ??
+    null;
+
+  return normalizeRightsType(rawRights);
+}
+
+export function deriveFreeAgencyYearFromOptionSeason(optionSeason, fallbackEndYear = null) {
+  const endYear = toEndYear(optionSeason);
+  if (Number.isFinite(endYear)) {
+    return { year: endYear - 1, source: 'option_season' };
+  }
+  if (Number.isFinite(fallbackEndYear)) {
+    return { year: fallbackEndYear - 1, source: 'fallback_end_year' };
+  }
+  return { year: null, source: 'unknown' };
+}
 
 /**
  * Get the cap hold for a specific player from a team.
@@ -90,7 +145,7 @@ export function isCapHoldAmountValid(capHold) {
  *
  * @param {Object} player - Player object
  * @param {number} targetYear - Option year (end year)
- * @returns {{shouldCreate: boolean, priorSalary: number, reason?: string}}
+ * @returns {{shouldCreate: boolean, priorSalary: number, optionSeason: string|null, reason?: string}}
  */
 export function shouldExpectCapHoldOnDecline(player, targetYear) {
   const salaries = player?.contract?.salariesByYear;
@@ -99,30 +154,33 @@ export function shouldExpectCapHoldOnDecline(player, targetYear) {
     return {
       shouldCreate: false,
       priorSalary: 0,
+      optionSeason: null,
       reason: 'No salary history available',
     };
   }
 
-  // Find the prior year salary (year before the option year)
-  const priorYearSalary = salaries.find((y) => {
+  const optionIndex = salaries.findIndex((y) => {
     const yearEnd = toEndYear(y.season);
-    return yearEnd === targetYear - 1;
+    return yearEnd === targetYear && y.option;
   });
 
-  if (!priorYearSalary || typeof priorYearSalary.salary !== 'number') {
+  if (optionIndex <= 0) {
     return {
       shouldCreate: false,
       priorSalary: 0,
-      reason: 'No prior year salary found',
+      optionSeason: salaries[optionIndex]?.season || null,
+      reason: optionIndex === -1 ? 'No option year found' : 'No prior year salary found',
     };
   }
 
-  const priorSalary = priorYearSalary.salary;
+  const priorRow = salaries[optionIndex - 1];
+  const priorSalary = priorRow?.salary ?? priorRow?.capHit ?? 0;
 
-  if (priorSalary <= 0) {
+  if (!Number.isFinite(priorSalary) || priorSalary <= 0) {
     return {
       shouldCreate: false,
       priorSalary: 0,
+      optionSeason: salaries[optionIndex]?.season || null,
       reason: 'Prior year salary is zero or negative',
     };
   }
@@ -130,26 +188,37 @@ export function shouldExpectCapHoldOnDecline(player, targetYear) {
   return {
     shouldCreate: true,
     priorSalary,
+    optionSeason: salaries[optionIndex]?.season || null,
   };
 }
 
 /**
  * Compute the expected cap hold amount for a declined option.
- * Uses 150% of prior year salary as the baseline (simplified model).
  *
- * Note: NBA CBA uses different percentages per Bird rights type:
- * - Full Bird: 190%
- * - Early Bird: 130%
- * - Non-Bird: 120%
- *
- * This implementation uses a simplified 150% model for consistency
- * with existing codebase.
- *
- * @param {number} priorSalary - Prior year salary
- * @returns {number} Expected cap hold amount
+ * @param {Object} params
+ * @param {Object} params.player - Player object (for rights lookup fallback)
+ * @param {number} params.lastSalary - Prior year salary
+ * @param {Object} params.rules - Cap rules profile (reserved for future fallbacks)
+ * @param {string|null} params.rightsType - Bird rights type (FULL_BIRD, EARLY_BIRD, NON_BIRD, etc.)
+ * @returns {{amount: number, multiplier: number, rightsType: string|null, usedFallback: boolean, missingRightsType: boolean}}
  */
-export function computeExpectedCapHoldAmount(priorSalary) {
-  return Math.round(priorSalary * 1.5);
+export function computeExpectedCapHoldAmount({ player, lastSalary, rules, rightsType }) {
+  const resolvedRightsType = normalizeRightsType(rightsType) || getRightsTypeFromPlayer(player);
+  const multiplier = RIGHTS_TYPE_MULTIPLIERS[resolvedRightsType] ?? DEFAULT_CAP_HOLD_MULTIPLIER;
+  const usedFallback = !RIGHTS_TYPE_MULTIPLIERS[resolvedRightsType];
+  const missingRightsType = !resolvedRightsType;
+
+  const baseSalary = Number.isFinite(lastSalary) ? lastSalary : 0;
+  const amount = Math.round(baseSalary * multiplier);
+  const safeAmount = Number.isFinite(amount) && amount >= 0 ? amount : 0;
+
+  return {
+    amount: safeAmount,
+    multiplier,
+    rightsType: resolvedRightsType,
+    usedFallback,
+    missingRightsType,
+  };
 }
 
 /**
@@ -159,7 +228,7 @@ export function computeExpectedCapHoldAmount(priorSalary) {
  * @param {number} targetYear - Expected free agency year
  * @returns {{valid: boolean, violations: Array, warnings: Array}}
  */
-export function validateDeclineFreeAgency(freeAgency, targetYear) {
+export function validateDeclineFreeAgency(freeAgency, expectedYear, meta = {}) {
   const violations = [];
   const warnings = [];
 
@@ -199,12 +268,12 @@ export function validateDeclineFreeAgency(freeAgency, targetYear) {
       message: `freeAgency.year must be a number. Got: ${typeof freeAgency.year}`,
       severity: 'error',
     });
-  } else if (freeAgency.year !== targetYear - 1) {
-    // The freeAgency.year should match the expected target year (prior to option year)
-    warnings.push({
-      rule: 'cap_hold_transition_unexpected',
-      message: `freeAgency.year (${freeAgency.year}) differs from expected (${targetYear - 1})`,
-      severity: 'warning',
+  } else if (typeof expectedYear === 'number' && freeAgency.year !== expectedYear) {
+    const expectedSource = meta?.source || 'expected';
+    violations.push({
+      rule: 'option_decline_free_agency_year_mismatch',
+      message: `freeAgency.year (${freeAgency.year}) differs from ${expectedSource} (${expectedYear})`,
+      severity: 'error',
     });
   }
 

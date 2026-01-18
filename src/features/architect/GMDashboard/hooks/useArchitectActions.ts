@@ -7,18 +7,23 @@
  *  - 2025-12-12: Created - extracted all handlers from GMDashboard.jsx (Phase 3 refactor)
  *  - 2025-12-12: Converted to TypeScript with proper type annotations
  *  - 2025-12-14: Option B refactor - removed capSheetState dependency, all mutations now update teamCapSheet directly
+ *  - 2026-01-18: Phase 7.2 option decline FA-year derivation + cap hold multipliers
  *
  * LINKS:
- *  - Plan: plans/extract_gmdashboard_actions_b9466109.plan.md
+ *  - Plan: plans/cap-sheet-contract-rules-phase-7-2/plan.md
  */
 import { useCallback, useMemo } from 'react';
 import { loadArchitectBasePlayer } from '@/features/architect/utils/loadArchitectBasePlayer';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
-import { calculateCapHold } from '@/features/architect/utils/contractUtils';
 import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
 import capProjections from '@/features/architect/utils/capProjections';
 import { applyWorldMutation } from '@/features/architect/utils/mutationPipeline';
 import { resolveTeamCode } from '@/features/architect/utils/worldTeamData';
+import {
+  computeExpectedCapHoldAmount,
+  deriveFreeAgencyYearFromOptionSeason,
+  getRightsTypeFromPlayer,
+} from '@/features/architect/utils/capHoldTransitionHelpers';
 import toast from 'react-hot-toast';
 
 // ==== Type Definitions ====
@@ -1113,20 +1118,27 @@ export function useArchitectActions({
             };
 
             if (!accepted) {
+              const optionSeason = salaries[optionIndex]?.season || null;
+              const faYearInfo = deriveFreeAgencyYearFromOptionSeason(optionSeason, targetYear);
+              const freeAgencyYear =
+                typeof faYearInfo.year === 'number' ? faYearInfo.year : targetYear - 1;
+
               // Declining: remove this year and all future years
               const filteredSalaries = salaries.filter(
                 (_, idx) => idx < optionIndex
               );
 
-              // Calculate cap hold for declined option using filtered salaries
-              const capHoldResult = calculateCapHold({
-                ...p,
-                contract: {
-                  ...(p.contract || {}),
-                  salariesByYear: filteredSalaries,
-                },
+              // Calculate cap hold for declined option
+              const priorRow = salaries[optionIndex - 1];
+              const lastSalary = priorRow?.salary ?? priorRow?.capHit ?? 0;
+              const rightsType = getRightsTypeFromPlayer(p);
+              const capHoldResult = computeExpectedCapHoldAmount({
+                player: p,
+                lastSalary,
+                rules: null,
+                rightsType,
               });
-              if (capHoldResult && capHoldResult.amount) {
+              if (lastSalary > 0 && capHoldResult.amount) {
                 newCapHold = {
                   playerId: p.id || p.player_id || p.name || '',
                   playerName: p.displayName || p.name || '',
@@ -1134,7 +1146,12 @@ export function useArchitectActions({
                   type: 'FA Cap Hold',
                   season: toSeasonCode(targetYear),
                   isSigned: false,
-                  reason: 'Declined Option',
+                  reason: capHoldResult.usedFallback
+                    ? 'Declined Option (fallback multiplier)'
+                    : 'Declined Option',
+                  notes: capHoldResult.usedFallback
+                    ? 'Fallback multiplier used due to missing/unsupported Bird rights type.'
+                    : undefined,
                   active: true,
                 };
               }
@@ -1145,11 +1162,11 @@ export function useArchitectActions({
                   ...(p.contract || {}),
                   salariesByYear: filteredSalaries,
                   freeAgency: {
-                    year: targetYear - 1,
+                    year: freeAgencyYear,
                     type: 'UFA' as const,
                   },
                 },
-                freeAgentYear: targetYear,
+                freeAgentYear: freeAgencyYear,
               };
             }
 

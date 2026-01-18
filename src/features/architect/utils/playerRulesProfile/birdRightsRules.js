@@ -1,4 +1,17 @@
 /**
+ * FILE: src/features/architect/utils/playerRulesProfile/birdRightsRules.js
+ * PURPOSE: Bird rights classification and signing capability rules for Architect.
+ * OWNERSHIP: Feature: architect/player-rules
+ *
+ * HISTORY:
+ *  - 2026-01-18: Added canonical cap hold multiplier wiring (plan `plans/cap-sheet-contract-rules-phase-7-3/plan.md`, chunk_n/a)
+ *
+ * LINKS:
+ *  - Plan: plans/cap-sheet-contract-rules-phase-7-3/plan.md
+ *  - Latest Chunk: n/a (no chunks used)
+ */
+
+/**
  * Bird Rights Rules
  *
  * Determines Bird rights classification and signing capabilities.
@@ -18,6 +31,7 @@
 
 import { formatSalary } from '@/shared/utils/formatting/basicFormatting.js';
 import { DEFAULT_AVERAGE_SALARY } from '../cbaConstants.js';
+import { CAP_HOLD_MULTIPLIERS } from '../capHolds';
 
 /**
  * Bird rights type constants
@@ -46,7 +60,7 @@ const BIRD_RIGHTS_CONFIG = {
     raisePercentage: 0.08,
     canSignOverCap: true,
     maxSalaryBasis: 'earlyBird', // 175% of prior salary or 105% of avg salary
-    capHoldMultiplier: 1.3,
+    capHoldMultiplier: CAP_HOLD_MULTIPLIERS.EARLY_BIRD,
   },
   [BIRD_RIGHTS_TYPES.NON_BIRD]: {
     minYearsWithTeam: 1,
@@ -54,7 +68,7 @@ const BIRD_RIGHTS_CONFIG = {
     raisePercentage: 0.05,
     canSignOverCap: true,
     maxSalaryBasis: 'nonBird', // 120% of prior salary or minimum
-    capHoldMultiplier: 1.2,
+    capHoldMultiplier: CAP_HOLD_MULTIPLIERS.NON_BIRD,
   },
   [BIRD_RIGHTS_TYPES.NONE]: {
     minYearsWithTeam: 0,

@@ -6,6 +6,12 @@
  * HISTORY:
  *  - 2025-12-17: Created per ARCHITECT_GAP_ANALYSIS.md Phase 1 implementation
  *  - 2025-12-25: Removed legacy teamPlans reference (worlds-only cleanup)
+ *  - 2026-01-18: Phase 7.2 option decline FA-year derivation + cap hold amounts
+ *  - 2026-01-18: Phase 7.3 option state invariant validation wiring
+ *
+ * LINKS:
+ *  - Plan: plans/cap-sheet-contract-rules-phase-7-3/plan.md
+ *  - Latest Chunk: n/a (no chunks used)
  *
  * DESIGN CONSTRAINTS (NON-NEGOTIABLE):
  * 1) All Firestore writes MUST occur in one place (persistWorldMutation)
@@ -30,6 +36,7 @@ import { updateWorldStats } from '@/features/architect/utils/worldManager';
 import { validateTrade } from '@/features/architect/utils/tradeMachine';
 import { buildTradeTeamInput } from '@/features/architect/utils/schemaAdapter';
 import { toEndYear, toSeasonCode } from '@/features/architect/utils/seasonFormat';
+import { getPlayerId } from '@/features/architect/utils/capHelpers';
 import {
   worldTeamRef,
   worldPlayerRef,
@@ -51,6 +58,11 @@ import {
   normalizeFutureContract,
   normalizeSalaryRow,
 } from '@/features/architect/utils/contractNormalization';
+import {
+  computeExpectedCapHoldAmount,
+  deriveFreeAgencyYearFromOptionSeason,
+  getRightsTypeFromPlayer,
+} from '@/features/architect/utils/capHoldTransitionHelpers';
 
 // ==============================================================================
 // UNDEFINED VALUE SANITIZATION
@@ -1004,6 +1016,11 @@ function computeOptionResult({ payload, currentState, seasonId, timestamp }) {
       }),
     };
   } else {
+    const optionSeason = salaries[optionIndex]?.season || null;
+    const faYearInfo = deriveFreeAgencyYearFromOptionSeason(optionSeason, targetYear);
+    const freeAgencyYear =
+      typeof faYearInfo.year === 'number' ? faYearInfo.year : targetYear - 1;
+
     // Declined: remove this year and all future years
     const filteredSalaries = salaries
       .filter((_, idx) => idx < optionIndex)
@@ -1015,24 +1032,38 @@ function computeOptionResult({ payload, currentState, seasonId, timestamp }) {
         ...playerData.contract,
         salariesByYear: filteredSalaries,
         freeAgency: {
-          year: targetYear - 1,
+          year: freeAgencyYear,
           type: 'UFA',
         },
       }),
-      freeAgentYear: targetYear - 1,
+      freeAgentYear: freeAgencyYear,
     };
 
     // Create cap hold for declined option
-    const lastSalary = salaries[optionIndex - 1]?.salary || 0;
-    if (lastSalary > 0) {
+    const priorRow = salaries[optionIndex - 1];
+    const lastSalary = priorRow?.salary ?? priorRow?.capHit ?? 0;
+    const rightsType = getRightsTypeFromPlayer(playerData);
+    const capHoldExpectation = computeExpectedCapHoldAmount({
+      player: playerData,
+      lastSalary,
+      rules: null,
+      rightsType,
+    });
+
+    if (lastSalary > 0 && capHoldExpectation.amount > 0) {
       newCapHold = {
         playerId,
         playerName: playerData.displayName || playerData.name || '',
-        amount: Math.round(lastSalary * 1.5), // 150% cap hold for Bird rights
+        amount: capHoldExpectation.amount,
         type: 'FA Cap Hold',
         season: toSeasonCode(targetYear),
         isSigned: false,
-        reason: 'Declined Option',
+        reason: capHoldExpectation.usedFallback
+          ? 'Declined Option (fallback multiplier)'
+          : 'Declined Option',
+        notes: capHoldExpectation.usedFallback
+          ? 'Fallback multiplier used due to missing/unsupported Bird rights type.'
+          : undefined,
         active: true,
       };
     }
@@ -1238,14 +1269,18 @@ function validateMutation({ mutationType, payload, currentState, computeResult, 
       const updatedTeam = computeResult?.teamUpdates?.find(
         (u) => u.teamCode === currentState.team.teamCode
       )?.team;
+      const updatedPlayer = computeResult?.playerUpdates?.find(
+        (u) => u.playerId === getPlayerId(currentState.player)
+      )?.player;
 
       const result = validateOptionDecision({
-        team: currentState.team,
-        player: currentState.player,
+        originalTeam: currentState.team,
+        originalPlayer: currentState.player,
+        updatedTeam,
+        updatedPlayer,
         accepted: payload.accepted,
         targetYear: payload.targetYear,
         currentYear,
-        updatedTeam,
       });
       return {
         valid: result.valid,

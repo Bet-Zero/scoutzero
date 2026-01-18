@@ -8,9 +8,11 @@
  *  - 2025-12-24: Refactored to use shared capHelpers.js per Step 6 consolidation
  *  - 2026-01-17: Wired signing terms/raises to Salary Engine (Phase 4 plan)
  *  - 2026-01-18: Added Phase 7.1 Cap Hold Transition Enforcement
+ *  - 2026-01-18: Phase 7.2 cap hold amount validation + FA-year derivation
+ *  - 2026-01-18: Phase 7.3 option state invariants + multiplier source audit
  *
  * LINKS:
- *  - Plan: plans/_archive/cap-sheet-contract-rules-phase-4-signing-terms-2026-01-17/plan.md
+ *  - Plan: plans/cap-sheet-contract-rules-phase-7-3/plan.md
  *  - Latest Chunk: n/a (no chunks used)
  *
  * DESIGN CONSTRAINTS:
@@ -40,10 +42,12 @@ import { validateFreeAgencyState } from '@/features/architect/utils/contractNorm
 import {
   getCapHoldForPlayer,
   didCreateCapHold,
-  didRemoveCapHold,
   shouldExpectCapHoldOnDecline,
+  computeExpectedCapHoldAmount,
   validateDeclineFreeAgency,
   isCapHoldAmountValid,
+  getRightsTypeFromPlayer,
+  deriveFreeAgencyYearFromOptionSeason,
 } from './capHoldTransitionHelpers';
 // ==============================================================================
 // CONSTANTS
@@ -83,6 +87,12 @@ export const HARD_BLOCK_RULES = [
   // Phase 7: Free agency and cap hold transition rules
   'free_agency_state_invalid',   // freeAgency missing/invalid shape (string at persist time, bad year, etc.)
   'cap_hold_transition_invalid', // Cap hold creation/removal contradicts the decision (e.g., accept + cap hold)
+  // Phase 7.3: Option state invariants
+  'option_accept_player_not_rostered', // Accepted option but player is missing from roster
+  'option_accept_option_row_invalid', // Accepted option but option row missing or not marked used
+  'option_decline_player_still_rostered', // Declined option but player still on roster
+  'option_decline_contract_row_still_present_for_declined_season', // Declined option but contract row still present
+  'option_decline_free_agency_year_mismatch', // Declined option freeAgency.year mismatch
 ];
 
 /**
@@ -2101,20 +2111,73 @@ export function validateExtension({ team, player, extension, year }) {
   };
 }
 
+function getRosterEntryId(entry) {
+  if (!entry) return null;
+  if (typeof entry === 'string') return entry;
+  return entry.player_id || entry.playerId || entry.id || null;
+}
+
+function isPlayerOnRoster(team, playerId) {
+  if (!Array.isArray(team?.roster)) {
+    return null;
+  }
+
+  return team.roster.some((entry) => getRosterEntryId(entry) === playerId);
+}
+
+function findPlayerById(players, playerId) {
+  if (!Array.isArray(players)) return null;
+  return players.find((p) => getPlayerId(p) === playerId) || null;
+}
+
+function getContractRowForYear(contract, targetYear) {
+  if (!Array.isArray(contract?.salariesByYear)) return null;
+  return (
+    contract.salariesByYear.find((row) => toEndYear(row?.season) === targetYear) || null
+  );
+}
+
+function getOptionRowForYear(contract, targetYear) {
+  if (!Array.isArray(contract?.salariesByYear)) return null;
+  return (
+    contract.salariesByYear.find(
+      (row) => toEndYear(row?.season) === targetYear && row?.option
+    ) || null
+  );
+}
+
 /**
  * Validate an option decision
  * 
  * @param {Object} params
- * @param {Object} params.team - Current team state
- * @param {Object} params.player - Player whose option is being decided
+ * @param {Object} params.originalTeam - Team state before mutation
+ * @param {Object} params.updatedTeam - Team state after mutation (if available)
+ * @param {Object} params.originalPlayer - Player whose option is being decided (pre-mutation)
+ * @param {Object} params.updatedPlayer - Updated player record (if available)
  * @param {boolean} params.accepted - Whether option is accepted
  * @param {number} params.targetYear - The year of the option
  * @param {number} params.currentYear - Current season end year
  * @returns {{valid: boolean, violations: Array, warnings: Array}}
  */
-export function validateOptionDecision({ team, player, accepted, targetYear, currentYear, updatedTeam }) {
+export function validateOptionDecision({
+  originalTeam,
+  updatedTeam,
+  originalPlayer,
+  updatedPlayer,
+  team,
+  player,
+  accepted,
+  targetYear,
+  currentYear,
+}) {
   const violations = [];
   const warnings = [];
+
+  const baselineTeam = originalTeam || team;
+  const baselinePlayer = originalPlayer || player;
+  const playerId = getPlayerId(baselinePlayer);
+  const resolvedUpdatedPlayer =
+    updatedPlayer || findPlayerById(updatedTeam?.players, playerId);
   
   // 1. Timing validation - can only decide options for upcoming season
   const isActionableOption = targetYear === currentYear + 1;
@@ -2140,7 +2203,7 @@ export function validateOptionDecision({ team, player, accepted, targetYear, cur
     const rules = getCapRulesForYear(targetYear);
     
     if (rules) {
-      const hardCapStatus = getHardCapStatus(team, rules);
+      const hardCapStatus = getHardCapStatus(baselineTeam, rules);
       
       if (hardCapStatus.isHardCapped && hardCapStatus.ceiling) {
         // 00. CHECK DATA CONFIDENCE for target year
@@ -2153,11 +2216,11 @@ export function validateOptionDecision({ team, player, accepted, targetYear, cur
         }
 
         // Calculate projected cap hit including the option salary
-        const optionSalary = player.contract?.salariesByYear?.find((y) => {
+        const optionSalary = baselinePlayer.contract?.salariesByYear?.find((y) => {
           return toEndYear(y.season) === targetYear && y.option;
         })?.salary || 0;
         
-        const players = team.players || [];
+        const players = baselineTeam.players || [];
         const currentCapHit = calculateTeamCapHit(players, targetYear);
         const projectedCapHit = currentCapHit + optionSalary;
         
@@ -2174,8 +2237,7 @@ export function validateOptionDecision({ team, player, accepted, targetYear, cur
     // Phase 7.1: Check for contradictory cap hold creation on accept
     // If we accepted, we shouldn't have created a cap hold
     if (updatedTeam) {
-      const playerId = getPlayerId(player);
-      const capHoldCreated = didCreateCapHold(team, updatedTeam, playerId);
+      const capHoldCreated = didCreateCapHold(baselineTeam, updatedTeam, playerId);
       if (capHoldCreated) {
         violations.push({
           rule: 'cap_hold_transition_invalid',
@@ -2183,21 +2245,76 @@ export function validateOptionDecision({ team, player, accepted, targetYear, cur
           severity: 'error',
         });
       }
+
+      // Phase 7.3: Option accept invariants
+      // - No cap hold created
+      // - optionUsed === true on option year row
+      // - Player remains on roster (no removal)
+      // - Contract salariesByYear is coherent (row present for option year)
+      const rosterStatus = isPlayerOnRoster(updatedTeam, playerId);
+      if (rosterStatus === false) {
+        violations.push({
+          rule: 'option_accept_player_not_rostered',
+          message: 'Accepted option but player is no longer on roster.',
+          severity: 'error',
+        });
+      }
+
+      if (!resolvedUpdatedPlayer) {
+        violations.push({
+          rule: 'option_accept_option_row_invalid',
+          message: 'Accepted option but updated player record is missing.',
+          severity: 'error',
+        });
+      } else {
+        const salaries = resolvedUpdatedPlayer.contract?.salariesByYear;
+        if (!Array.isArray(salaries) || salaries.length === 0) {
+          violations.push({
+            rule: 'option_accept_option_row_invalid',
+            message: 'Accepted option but contract salariesByYear is missing or empty.',
+            severity: 'error',
+          });
+        } else {
+          const optionRow = getOptionRowForYear(resolvedUpdatedPlayer.contract, targetYear);
+          if (!optionRow) {
+            violations.push({
+              rule: 'option_accept_option_row_invalid',
+              message: 'Accepted option but option year row is missing from contract.',
+              severity: 'error',
+            });
+          } else if (optionRow.optionUsed !== true) {
+            violations.push({
+              rule: 'option_accept_option_row_invalid',
+              message: 'Accepted option but optionUsed is not true on the option year row.',
+              severity: 'error',
+            });
+          }
+        }
+      }
     }
   }
   
   // 3. If declining, validate cap hold transition and free agency state
   if (!accepted && isActionableOption) {
-    const playerId = getPlayerId(player);
-    const contract = player.contract;
-    
     // Check if cap hold should be expected
-    const expectation = shouldExpectCapHoldOnDecline(player, targetYear);
+    const expectation = shouldExpectCapHoldOnDecline(baselinePlayer, targetYear);
+    const rightsType = getRightsTypeFromPlayer(baselinePlayer);
+    const capHoldExpectation = expectation.shouldCreate
+      ? computeExpectedCapHoldAmount({
+          player: baselinePlayer,
+          lastSalary: expectation.priorSalary,
+          rules: null,
+          rightsType,
+        })
+      : null;
+    const faYearInfo = deriveFreeAgencyYearFromOptionSeason(expectation.optionSeason, targetYear);
+    const faYearSourceLabel =
+      faYearInfo.source === 'option_season' ? 'option season' : 'fallback year';
+    const CAP_HOLD_AMOUNT_TOLERANCE = 1;
     
     if (updatedTeam) {
       // 3.1 Validate cap hold creation
-      const capHoldCreated = didCreateCapHold(team, updatedTeam, playerId);
-      const capHoldRemoved = didRemoveCapHold(team, updatedTeam, playerId); // Should not happen typically
+      const capHoldCreated = didCreateCapHold(baselineTeam, updatedTeam, playerId);
       
       if (expectation.shouldCreate && !capHoldCreated) {
         // If we expected a cap hold but didn't get one
@@ -2219,15 +2336,19 @@ export function validateOptionDecision({ team, player, accepted, targetYear, cur
             message: `Created cap hold is invalid: ${amountCheck.reason}`,
             severity: 'error',
           });
-        } else if (expectation.shouldCreate) {
-          // Check amount against expected logic (150%)?
-          // Since we use a simplified model, we just ensure it's positive.
-          // The strict amount check might be too brittle if rules change, but let's at least check it exists.
-          
+        } else if (expectation.shouldCreate && capHoldExpectation) {
+          const expectedAmount = capHoldExpectation.amount;
+          const amountDelta = Math.abs((newHold?.amount || 0) - expectedAmount);
           if (newHold.amount <= 0) {
             violations.push({
               rule: 'cap_hold_transition_invalid',
               message: 'Created cap hold has zero or negative amount',
+              severity: 'error',
+            });
+          } else if (amountDelta > CAP_HOLD_AMOUNT_TOLERANCE) {
+            violations.push({
+              rule: 'cap_hold_transition_invalid',
+              message: `Created cap hold amount ${newHold.amount} does not match expected ${expectedAmount} (Δ ${amountDelta})`,
               severity: 'error',
             });
           }
@@ -2250,24 +2371,71 @@ export function validateOptionDecision({ team, player, accepted, targetYear, cur
         }
       }
 
+      if (capHoldExpectation?.usedFallback) {
+        const rightsLabel = capHoldExpectation.rightsType || 'missing rightsType';
+        warnings.push({
+          rule: 'cap_hold_transition_inputs_missing',
+          message: `Cap hold amount used fallback multiplier due to ${rightsLabel}. Verify Bird rights availability.`,
+          severity: 'warning',
+        });
+      }
+
+      if (faYearInfo.source !== 'option_season') {
+        warnings.push({
+          rule: 'cap_hold_transition_inputs_missing',
+          message: 'freeAgency.year derived from fallback end year because option season was missing or invalid.',
+          severity: 'warning',
+        });
+      }
+
       // 3.3 Validate freeAgency state of updated player
       // We need to find the player in the updated team to check freeAgency
-      const updatedPlayer = updatedTeam.players.find(p => getPlayerId(p) === playerId);
-      if (updatedPlayer && updatedPlayer.contract) {
-        const faValidation = validateDeclineFreeAgency(updatedPlayer.contract.freeAgency, targetYear);
+      const updatedDeclinedPlayer =
+        resolvedUpdatedPlayer || findPlayerById(updatedTeam.players, playerId);
+      if (updatedDeclinedPlayer && updatedDeclinedPlayer.contract) {
+        const faValidation = validateDeclineFreeAgency(
+          updatedDeclinedPlayer.contract.freeAgency,
+          faYearInfo.year,
+          { source: faYearSourceLabel }
+        );
         if (!faValidation.valid) {
           violations.push(...faValidation.violations);
         }
         warnings.push(...faValidation.warnings);
       }
+
+      // Phase 7.3: Option decline invariants
+      // - Cap hold created when expected (handled above)
+      // - Player not rostered for declined option year
+      // - freeAgency is canonical and matches derived year
+      // - Option year row removed (no contradictory contract season)
+      const rosterStatus = isPlayerOnRoster(updatedTeam, playerId);
+      if (rosterStatus === true) {
+        violations.push({
+          rule: 'option_decline_player_still_rostered',
+          message: 'Declined option but player remains on roster.',
+          severity: 'error',
+        });
+      }
+
+      if (updatedDeclinedPlayer?.contract) {
+        const declinedRow = getContractRowForYear(updatedDeclinedPlayer.contract, targetYear);
+        if (declinedRow) {
+          violations.push({
+            rule: 'option_decline_contract_row_still_present_for_declined_season',
+            message: 'Declined option but contract still includes the declined season.',
+            severity: 'error',
+          });
+        }
+      }
     } else {
       // Fallback if updatedTeam not provided (e.g. UI pre-validation before compute)
       // Just emit the informational warning we had before
-       if (expectation.shouldCreate) {
-        const capHoldAmount = Math.round(expectation.priorSalary * 1.5);
+      if (expectation.shouldCreate && capHoldExpectation) {
+        const capHoldAmount = capHoldExpectation.amount;
         warnings.push({
           rule: 'cap_hold_creation',
-          message: `Declining option creates ~$${(capHoldAmount / 1_000_000).toFixed(1)}M cap hold for Bird rights`,
+          message: `Declining option creates ~$${(capHoldAmount / 1_000_000).toFixed(1)}M cap hold (expected)`,
           severity: 'info',
         });
       }
