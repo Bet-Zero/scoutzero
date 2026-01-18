@@ -1,3 +1,18 @@
+/**
+
+* FILE: docs/architect/CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md
+* PURPOSE: Canonical reference for Cap Sheet mutation and validation architecture.
+* OWNERSHIP: Feature: architect/cap-sheet validation
+*
+* HISTORY:
+* * 2026-01-16: Created (initial master doc)
+* * 2026-01-17: Added Phase 4 signing terms/raises wiring details (plan `plans/_archive/cap-sheet-contract-rules-phase-4-signing-terms-2026-01-17/plan.md`, chunk_n/a)
+*
+* LINKS:
+* * Plan: plans/_archive/cap-sheet-contract-rules-phase-4-signing-terms-2026-01-17/plan.md
+* * Latest Chunk: n/a (no chunks used)
+ */
+
 # Cap Sheet Mutations & Validation Master Doc
 
 **Created:** 2026-01-16  
@@ -20,9 +35,9 @@ This document maps the complete Cap Sheet mutation and validation architecture t
 BASE (Read-Only) → WORLDS (Writable Overlay) → COMPUTED (Ephemeral)
 ```
 
-- **Base:** Firestore `teams/`, `players/` collections (real-world contracts, salaries)
-- **Worlds:** `architect_worlds/{worldId}/teams/` overlay (user modifications)
-- **Computed:** Runtime totals via `computeTeamCapTotals()` and validation results
+* **Base:** Firestore `teams/`, `players/` collections (real-world contracts, salaries)
+* **Worlds:** `architect_worlds/{worldId}/teams/` overlay (user modifications)
+* **Computed:** Runtime totals via `computeTeamCapTotals()` and validation results
 
 > **Critical Violation:** Any direct write to base collections is a doctrine violation.
 
@@ -200,6 +215,8 @@ interface CapHold {
 | **Exception Blocked** | `capLegalityValidation.js:validateExceptionEligibility` | Pre-persist | **Hard Block** | `team.totals`, `capSettings`, `signedUsing` |
 | **Min Salary Violation** | `capLegalityValidation.js:validateSigning` | Pre-persist | **Hard Block** | `player` (YOS), `contract.salariesByYear[0]`, `capRulesProfile` |
 | **Contract Years Invalid** | `capLegalityValidation.js:validateSigning` | Pre-persist | **Hard Block** | `contract.contractLength` OR `salariesByYear.length`, `signedUsing` |
+| **Signing Terms Invalid** | `capLegalityValidation.js:validateSigning` | Pre-persist | **Hard Block** | `contract.contractLength` OR `salariesByYear.length`, Salary Engine signing terms |
+| **Signing Raise Invalid** | `capLegalityValidation.js:validateSigning` | Pre-persist | **Hard Block** | `contract.salariesByYear[].salary`/`capHit`, Salary Engine raise percentage |
 | **First Year Max Invalid** | `capLegalityValidation.js:validateSigning` | Pre-persist | **Hard Block** | `contract.salariesByYear[0]`, `signedUsing`, `capRulesProfile.exceptions` |
 | **Second Apron Minimum Only** | `capLegalityValidation.js:validateSigning` | Pre-persist | **Hard Block** | `team.totals`, `contract.salariesByYear[0]`, `player` (YOS), `capRulesProfile` |
 | Roster Minimum (<14) | `capLegalityValidation.js:validateWaive` | Pre-persist | Warning | `team.players` |
@@ -214,29 +231,33 @@ interface CapHold {
 | Second Apron Warning | `capLegalityValidation.js:validateSigning` | Pre-persist | Warning | `projectedCapHit`, `capSettings.secondApron` |
 | Cap Hold Info | `capLegalityValidation.js:validateRenounceRights` | Pre-persist | Info | `team.capHolds` |
 
+**Note:** Signing guardrails (max years, raises, first-year max) now use Salary Engine signing terms when available. Phase 2/2.5 exception tables remain the fallback when engine terms are unavailable.
+
 ### 5.3 Hard Block vs Override Rules
 
 **Hard Block Rules (NEVER overridable):**
 
-- `roster_size` - >15 players
-- `hard_cap` - Over hard cap ceiling
-- `two_way_limit` - >3 two-way contracts
-- `option_timing` - Wrong season for option
-- `no_contract` - Extension without contract
-- `exception_blocked` - Exception usage blocked by apron status
-- `unverified_cap_inputs` - Cap data is unknown OR projected in STRICT mode
-- `min_salary_violation` - First-year salary/capHit below CBA minimum for player's YOS
-- `contract_years_invalid` - Contract length outside allowed min/max for signing mechanism
-- `first_year_max_invalid` - First-year salary exceeds mechanism max OR MINIMUM contract above min salary
-- `second_apron_minimum_only` - Teams above second apron can only sign to minimum salary
-- `extension_ineligible` - Two-way contracts cannot be extended (must convert first)
-- `extension_years_invalid` - Extension length outside 1-4 years (baseline; designated vet allows 5)
-- `extension_first_year_max_invalid` - Extension first-year salary exceeds 120% baseline (Salary Engine overrides when available)
-- `extension_raise_invalid` - Extension year-over-year raises exceed 8%
+* `roster_size` - >15 players
+* `hard_cap` - Over hard cap ceiling
+* `two_way_limit` - >3 two-way contracts
+* `option_timing` - Wrong season for option
+* `no_contract` - Extension without contract
+* `exception_blocked` - Exception usage blocked by apron status
+* `unverified_cap_inputs` - Cap data is unknown OR projected in STRICT mode
+* `min_salary_violation` - First-year salary/capHit below CBA minimum for player's YOS
+* `contract_years_invalid` - Contract length outside allowed min/max for signing mechanism
+* `signing_terms_invalid` - Salary Engine max years exceeded for signing mechanism
+* `signing_raise_invalid` - Salary Engine raise percentage exceeded for signing
+* `first_year_max_invalid` - First-year salary exceeds mechanism max OR MINIMUM contract above min salary
+* `second_apron_minimum_only` - Teams above second apron can only sign to minimum salary
+* `extension_ineligible` - Two-way contracts cannot be extended (must convert first)
+* `extension_years_invalid` - Extension length outside 1-4 years (baseline; designated vet allows 5)
+* `extension_first_year_max_invalid` - Extension first-year salary exceeds 120% baseline (Salary Engine overrides when available)
+* `extension_raise_invalid` - Extension year-over-year raises exceed 8%
 
 **Soft Warning Rules (Overridable in dev mode via `VITE_ENABLE_CBA_OVERRIDE=true`):**
 
-- `roster_minimum`, `dead_cap`, `first_apron`, `second_apron`
+* `roster_minimum`, `dead_cap`, `first_apron`, `second_apron`
 
 ### 5.4 Exception Blocking Rules (G0-2 Implementation)
 
@@ -299,11 +320,11 @@ interface CapHold {
 
 **Implementation:**
 
-- `countStandardRoster()` - Counts non-two-way players
-- `getMinSalaryForYear()` - Gets minimum salary from `CBA_THRESHOLDS`
-- Charge = `max(0, 14 - standardRosterCount) * MIN_SALARY_ROOKIE`
-- Included in `TeamCapTotals.incompleteChargesTotal` and `totalCapAllocations`
-- NOT stored in Firestore - computed at runtime
+* `countStandardRoster()` - Counts non-two-way players
+* `getMinSalaryForYear()` - Gets minimum salary from `CBA_THRESHOLDS`
+* Charge = `max(0, 14 - standardRosterCount) * MIN_SALARY_ROOKIE`
+* Included in `TeamCapTotals.incompleteChargesTotal` and `totalCapAllocations`
+* NOT stored in Firestore - computed at runtime
 
 **Tests:** `src/tests/architect/capTotals/incompleteRosterCharge.test.js` (9 tests)
 
@@ -315,27 +336,27 @@ interface CapHold {
 
 **Rule:**
 
-- TPEs have a 1-year lifespan (typically expiring `createdSeason + 1`).
-- Upon season advance, any TPEs expiring *before or on* the new season start date (July 1st) must be removed.
-- **Strictness:** Removed TPEs are physically deleted from `team.tradeExceptions` array in the World overlay.
-- **Lifecycle:** TPEs are cleaned during season advance; no on-read filtering required for correctness.
+* TPEs have a 1-year lifespan (typically expiring `createdSeason + 1`).
+* Upon season advance, any TPEs expiring *before or on* the new season start date (July 1st) must be removed.
+* **Strictness:** Removed TPEs are physically deleted from `team.tradeExceptions` array in the World overlay.
+* **Lifecycle:** TPEs are cleaned during season advance; no on-read filtering required for correctness.
 
 **Schema:**
 
-- Canonical: `expiresOn` (ISO string)
-- Implementation: `expiryISO` (ISO string)
-- Logic checks both during migration phase.
+* Canonical: `expiresOn` (ISO string)
+* Implementation: `expiryISO` (ISO string)
+* Logic checks both during migration phase.
 
 **Implementation (Phase 2):**
 
-- **Backfill:** `expiresOn` is backfilled from `expiryISO` during season transition if missing.
-- **UI Alignment:** `SeasonAdvanceModal` uses shared `processTradeExceptions` logic for preview.
-- **Canonicalization:** `tpeLifecycle.js` provides `getTpeExpiryISO` helper for consistent reads.
+* **Backfill:** `expiresOn` is backfilled from `expiryISO` during season transition if missing.
+* **UI Alignment:** `SeasonAdvanceModal` uses shared `processTradeExceptions` logic for preview.
+* **Canonicalization:** `tpeLifecycle.js` provides `getTpeExpiryISO` helper for consistent reads.
 
 **Tests:**
 
-- Unit: `seasonManager.tpe.test.js` (advance season, check TPE removal, check backfill)
-- Integration: UI Preview matches backend removal logic.
+* Unit: `seasonManager.tpe.test.js` (advance season, check TPE removal, check backfill)
+* Integration: UI Preview matches backend removal logic.
 
 ### 7.2 P1 — Allows Illegal Action but Visible/Warned
 
@@ -433,9 +454,9 @@ This section defines the canonical contract schema that all world mutation write
 
 ### 9.5 Backward Compatibility
 
-- **Read path:** Normalization helpers accept both legacy and canonical formats
-- **Write path:** Mutation writers always produce canonical format
-- **Existing Worlds:** Continue to work; new mutations produce clean data
+* **Read path:** Normalization helpers accept both legacy and canonical formats
+* **Write path:** Mutation writers always produce canonical format
+* **Existing Worlds:** Continue to work; new mutations produce clean data
 
 ---
 
@@ -454,3 +475,4 @@ This section defines the canonical contract schema that all world mutation write
 | 2026-01-17 | **Phase 2.5 Patch:** Fixed second apron projected cap hit calculation to use `capHit` (not `salary`) when the two differ. Ensures incentive-laden or deferred contracts are correctly evaluated against second apron threshold. 1 new test added. |
 | 2026-01-17 | **Contract Rules Phase 3:** Implemented G0-7 (Extension Terms/Raises Enforcement). Added `extension_ineligible`, `extension_years_invalid`, `extension_first_year_max_invalid`, `extension_raise_invalid` to HARD_BLOCK_RULES. `validateExtension` now blocks: (1) two-way contract extensions, (2) extensions > 4 years, (3) first-year exceeds baseline max, (4) raises > 8%. Added helper functions: `getContractLastYearSalary()`, `getExtensionFirstYearSalary()`, `getExtensionYears()`, `validateExtensionTermsAndRaises()`. Added `EXTENSION_YEARS_LIMITS`, `EXTENSION_FIRST_YEAR_MAX_PERCENT`, `EXTENSION_MAX_RAISE_PERCENT` constants. 8 new tests added. |
 | 2026-01-17 | **Contract Rules Phase 3.25:** Fixed extension first-year max baseline (140%→120%). Wired Salary Engine `extensionTerms` into `validateExtension`. Engine-computed terms now override baseline for type-specific rules (rookie/designated vet/veteran). Added `getExtensionTermsForPlayer()` helper. Updated tests (constant check, 125% blocking test, engine override test). |
+| 2026-01-17 | **Contract Rules Phase 4:** Wired Salary Engine signing terms into `validateSigning` for max years + raise caps. Added `signing_terms_invalid` and `signing_raise_invalid` to HARD_BLOCK_RULES. Salary Engine max first-year is now enforced as an additional cap when available. Added signing terms helper + raise validation helper, updated tests, and documented pipeline authority for signing guardrails. |

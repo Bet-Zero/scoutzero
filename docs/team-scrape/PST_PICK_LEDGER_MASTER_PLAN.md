@@ -1,7 +1,7 @@
 # PST_PICK_LEDGER_MASTER_PLAN.md
 
 **MODE**: MASTER DOC (Doc-First source of truth)  
-**DATE**: 2026-01-16  
+**DATE**: 2026-01-17  
 **OWNER GOAL**: Build a trade-machine-grade draft-pick ledger using ProSportsTransactions (PST) at full speed until it catches up to or collides with RealGM.
 
 ---
@@ -20,12 +20,39 @@
 | Phase 3 | Normalization | COMPLETE | 2026-01-17 |
 | Phase 4 | Deterministic Parser | COMPLETE | 2026-01-17 |
 | Phase 5 | Ledger Builder + Finalize | COMPLETE | 2026-01-17 |
+| Phase 5.1 | Round/Year Clause Gating Hotfix | COMPLETE | 2026-01-17 |
 | Phase 6 | Manual Check Views | COMPLETE | 2026-01-17 |
 | Phase 6.1 | OutcomeSpec + Manual View Upgrade | COMPLETE | 2026-01-17 |
 | Phase 6.3 | Conditional Tag + Swap Display Rule | COMPLETE | 2026-01-17 |
 | Phase 6.2 | Hard Guarantees | NOT STARTED | - |
 | Phase 7 | Collision Course | NOT STARTED | - |
 | Phase 8 | Zero-Blocker Closure | NOT STARTED | - |
+
+---
+
+### Phase 5.1 — Round/Year Clause Gating Hotfix (COMPLETE)
+
+**Goal**: prevent protections/swaps/conveyance from attaching to a pickId when the clause year/round does not match.
+
+**What changed**
+
+- Clause-level splitting + gating in `pst_pick_rule_parser.ts`
+- SelectionSpec round consistency gate (internal mismatch reason only)
+- Regenerated Phase 4/5 outputs and manual views
+
+**Artifacts updated**
+
+- `team-scrape/draft-picks/scripts/pst/pst_pick_rule_parser.ts`
+- `data/pst/pst_pick_rule_profiles_final_2026_2033.json`
+- `data/pst/pst_pick_ledger_final_2026_2033.json`
+- `data/pst/manual_check_views.txt`
+
+**Validation**
+
+- Profiles: 480
+- Ledger picks: 480
+- needs_review: 0
+- MIL_2026_2nd no longer has Top 4 protection or first-round swap clauses
 
 ---
 

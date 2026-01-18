@@ -1,4 +1,17 @@
 /**
+ * FILE: tests/architect/capLegalityValidation.test.js
+ * PURPOSE: Unit tests for cap legality validation and mutation pipeline behavior.
+ * OWNERSHIP: Feature: architect/cap-sheet validation
+ *
+ * HISTORY:
+ *  - 2026-01-17: Updated signing terms/raises validation tests (plan `plans/_archive/cap-sheet-contract-rules-phase-4-signing-terms-2026-01-17/plan.md`, chunk_n/a)
+ *
+ * LINKS:
+ *  - Plan: plans/_archive/cap-sheet-contract-rules-phase-4-signing-terms-2026-01-17/plan.md
+ *  - Latest Chunk: n/a (no chunks used)
+ */
+
+/**
  * Cap Legality Validation Tests
  *
  * Tests for the preflight validation in the Architect mutation pipeline.
@@ -21,6 +34,8 @@ import {
   validateRenounceRights,
   getOverridePolicy,
   validateExtensionTermsAndRaises,
+  validateSigningRaises,
+  validateSigningTermsAndRaises,
   HARD_BLOCK_RULES,
   EXTENSION_YEARS_LIMITS,
   EXTENSION_FIRST_YEAR_MAX_PERCENT,
@@ -783,8 +798,8 @@ describe('Cap Legality Validation', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some((v) => v.rule === 'contract_years_invalid')).toBe(true);
-      expect(result.violations.find((v) => v.rule === 'contract_years_invalid').message).toMatch(/exceeds maximum.*4.*FULL MLE/);
+      expect(result.violations.some((v) => v.rule === 'signing_terms_invalid')).toBe(true);
+      expect(result.violations.find((v) => v.rule === 'signing_terms_invalid').message).toMatch(/Salary Engine max.*4.*FULL MLE/);
     });
 
     it('blocks MINIMUM signing when contract exceeds max years (3-year minimum)', () => {
@@ -822,8 +837,8 @@ describe('Cap Legality Validation', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some((v) => v.rule === 'contract_years_invalid')).toBe(true);
-      expect(result.violations.find((v) => v.rule === 'contract_years_invalid').message).toMatch(/exceeds maximum.*2.*MINIMUM/);
+      expect(result.violations.some((v) => v.rule === 'signing_terms_invalid')).toBe(true);
+      expect(result.violations.find((v) => v.rule === 'signing_terms_invalid').message).toMatch(/Salary Engine max.*2.*MINIMUM/);
     });
 
     it('blocks BAE signing when contract exceeds max years (3-year BAE)', () => {
@@ -861,7 +876,7 @@ describe('Cap Legality Validation', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some((v) => v.rule === 'contract_years_invalid')).toBe(true);
+      expect(result.violations.some((v) => v.rule === 'signing_terms_invalid')).toBe(true);
     });
 
     it('allows MLE signing at max years (4-year MLE)', () => {
@@ -995,7 +1010,7 @@ describe('Cap Legality Validation', () => {
       expect(yearsViolation).toBeUndefined();
     });
 
-    it('does not enforce years limits for unknown signing mechanism', () => {
+    it('enforces Salary Engine max years for cap-space signings (no exception)', () => {
       const team = {
         teamCode: 'LAL',
         teamName: 'Los Angeles Lakers',
@@ -1011,7 +1026,7 @@ describe('Cap Legality Validation', () => {
         bio: { experience: 5 },
       };
 
-      // 5-year contract with no signedUsing (unknown mechanism)
+      // 5-year contract with no signedUsing (cap-space/Bird rights path)
       const contract = {
         contractType: 'Standard',
         salariesByYear: [
@@ -1031,7 +1046,7 @@ describe('Cap Legality Validation', () => {
         year,
       });
 
-      // Should NOT have contract_years_invalid for unknown mechanism
+      expect(result.violations.some((v) => v.rule === 'signing_terms_invalid')).toBe(true);
       const yearsViolation = result.violations.find((v) => v.rule === 'contract_years_invalid');
       expect(yearsViolation).toBeUndefined();
     });
@@ -1069,11 +1084,110 @@ describe('Cap Legality Validation', () => {
       });
 
       // Should block because contractLength (5) exceeds MLE max (4)
-      expect(result.violations.some((v) => v.rule === 'contract_years_invalid')).toBe(true);
+      expect(result.violations.some((v) => v.rule === 'signing_terms_invalid')).toBe(true);
     });
 
     it('confirms contract_years_invalid is a HARD_BLOCK rule', () => {
       expect(HARD_BLOCK_RULES).toContain('contract_years_invalid');
+    });
+  });
+
+  // ==========================================================================
+  // SIGNING TERMS + RAISES (Phase 4 - Salary Engine)
+  // ==========================================================================
+
+  describe('validateSigning - Signing Terms + Raises (Phase 4)', () => {
+    it('blocks signing_raise_invalid when raise exceeds engine percentage', () => {
+      const contract = {
+        contractType: 'Standard',
+        salariesByYear: [
+          { season: '2025-26', salary: 10_000_000 },
+          { season: '2026-27', salary: 11_000_000 }, // 10% raise
+        ],
+      };
+
+      const violation = validateSigningRaises({
+        contract,
+        raisePercentage: 0.05,
+        mechanism: 'FULL_MLE',
+      });
+
+      expect(violation).toBeDefined();
+      expect(violation.rule).toBe('signing_raise_invalid');
+    });
+
+    it('allows raises at the exact engine boundary', () => {
+      const contract = {
+        contractType: 'Standard',
+        salariesByYear: [
+          { season: '2025-26', salary: 10_000_000 },
+          { season: '2026-27', salary: 10_500_000 }, // 5% raise
+        ],
+      };
+
+      const violation = validateSigningRaises({
+        contract,
+        raisePercentage: 0.05,
+        mechanism: 'FULL_MLE',
+      });
+
+      expect(violation).toBeNull();
+    });
+
+    it('blocks signing_terms_invalid when engine maxYears is lower than fallback', () => {
+      const contract = {
+        contractType: 'Standard',
+        salariesByYear: [
+          { season: '2025-26', salary: 5_000_000 },
+          { season: '2026-27', salary: 5_250_000 },
+          { season: '2027-28', salary: 5_500_000 },
+        ],
+      };
+
+      const signingTerms = {
+        source: 'salary_engine',
+        maxYears: 2,
+        raisePercentage: 0.05,
+        mechanism: 'FULL_MLE',
+      };
+
+      const result = validateSigningTermsAndRaises({
+        contract,
+        signingTerms,
+        mechanism: 'FULL_MLE',
+      });
+
+      expect(result.violations.some((v) => v.rule === 'signing_terms_invalid')).toBe(true);
+    });
+
+    it('does not enforce raise rule when engine terms are unavailable', () => {
+      const contract = {
+        contractType: 'Standard',
+        salariesByYear: [
+          { season: '2025-26', salary: 10_000_000 },
+          { season: '2026-27', salary: 11_000_000 }, // 10% raise
+        ],
+      };
+
+      const signingTerms = {
+        source: 'baseline',
+        raisePercentage: 0.05,
+        maxYears: 2,
+        mechanism: 'FULL_MLE',
+      };
+
+      const result = validateSigningTermsAndRaises({
+        contract,
+        signingTerms,
+        mechanism: 'FULL_MLE',
+      });
+
+      expect(result.violations.some((v) => v.rule === 'signing_raise_invalid')).toBe(false);
+    });
+
+    it('confirms signing term rules are HARD_BLOCK rules', () => {
+      expect(HARD_BLOCK_RULES).toContain('signing_raise_invalid');
+      expect(HARD_BLOCK_RULES).toContain('signing_terms_invalid');
     });
   });
 

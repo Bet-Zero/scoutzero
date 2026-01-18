@@ -1,5 +1,17 @@
 #!/usr/bin/env tsx
 /**
+ * FILE: team-scrape/draft-picks/scripts/pst/pst_pick_rule_parser.ts
+ * PURPOSE: Parse normalized PST rows into pick rule profiles with protections, swaps, conveyance, and gating.
+ * OWNERSHIP: team-scrape/pst
+ *
+ * HISTORY:
+ *  - 2026-01-17: Updated clause year/round gating (plan `plans/_archive/pst-phase-5-1-round-gating-hotfix/plan.md`)
+ *
+ * LINKS:
+ *  - Plan: plans/_archive/pst-phase-5-1-round-gating-hotfix/plan.md
+ *  - Latest Chunk: n/a
+ */
+/**
  * pst_pick_rule_parser.ts
  *
  * Phase 4: Deterministic Pick Rule Parser
@@ -232,6 +244,7 @@ export const REVIEW_REASONS = {
   MULTIPLE_CONFLICTING_CLAIMS: 'MULTIPLE_CONFLICTING_CLAIMS',
   UNKNOWN_TEAM_CODE: 'UNKNOWN_TEAM_CODE',
   COMPLEX_LANGUAGE: 'COMPLEX_LANGUAGE',
+  CLAUSE_ROUND_MISMATCH: 'CLAUSE_ROUND_MISMATCH',
 } as const;
 
 // ============================================================================
@@ -410,6 +423,82 @@ function normalizeRoundString(roundStr: string): '1st' | '2nd' {
     return '1st';
   }
   return '2nd';
+}
+
+/**
+ * Convert round suffix to numeric round.
+ */
+function roundSuffixToNumber(roundSuffix: '1st' | '2nd'): 1 | 2 {
+  return roundSuffix === '1st' ? 1 : 2;
+}
+
+/**
+ * Extract clause-level round mentions and explicit year+round mentions.
+ */
+function extractClauseRoundMentions(text: string): {
+  rounds: Set<1 | 2>;
+  yearRounds: Array<{ year: number; round: 1 | 2 }>;
+} {
+  const rounds = new Set<1 | 2>();
+  const yearRounds: Array<{ year: number; round: 1 | 2 }> = [];
+
+  if (/\b(first|1st)\s*-?\s*round\b/i.test(text)) {
+    rounds.add(1);
+  }
+  if (/\b(second|2nd)\s*-?\s*round\b/i.test(text)) {
+    rounds.add(2);
+  }
+
+  const yearRoundPattern =
+    /\b(20[2-3]\d)\s+(first|second|1st|2nd)\s*-?\s*round\b/gi;
+  let match;
+  while ((match = yearRoundPattern.exec(text)) !== null) {
+    const year = parseInt(match[1], 10);
+    const round = roundSuffixToNumber(normalizeRoundString(match[2]));
+    yearRounds.push({ year, round });
+    rounds.add(round);
+  }
+
+  return { rounds, yearRounds };
+}
+
+/**
+ * Determine if a clause should attach to the pick based on year/round mentions.
+ */
+function evaluateClauseGate(
+  text: string,
+  pickYear: number,
+  pickRound: 1 | 2
+): {
+  allowAttachments: boolean;
+  rounds: Set<1 | 2>;
+  yearRounds: Array<{ year: number; round: 1 | 2 }>;
+  roundMismatch: boolean;
+  yearRoundMismatch: boolean;
+} {
+  const { rounds, yearRounds } = extractClauseRoundMentions(text);
+  const roundMismatch = rounds.size > 0 && !rounds.has(pickRound);
+
+  let yearRoundMismatch = false;
+  if (yearRounds.length > 0) {
+    const matchesYearRound = yearRounds.some(
+      (yr) => yr.year === pickYear && yr.round === pickRound
+    );
+    yearRoundMismatch = !matchesYearRound;
+  }
+
+  const allowAttachments = !roundMismatch && !yearRoundMismatch;
+  return { allowAttachments, rounds, yearRounds, roundMismatch, yearRoundMismatch };
+}
+
+/**
+ * Split normalized row text into clause-sized segments for gating.
+ */
+function splitIntoClauses(text: string): string[] {
+  return text
+    .split(/\s+\|\s+|\u2022/)
+    .map((clause) => clause.trim())
+    .filter((clause) => clause.length > 0);
 }
 
 // ============================================================================
@@ -724,9 +813,10 @@ function dedupePool(pool: TeamCode[]): TeamCode[] {
 export function buildSelectionSpecs(
   profile: Pick<PickRuleProfile, 'swaps' | 'year' | 'round'>,
   evidenceTexts: Array<{ text: string; rowRef: string }>
-): SelectionSpec[] {
+): { specs: SelectionSpec[]; reviewReasons: string[] } {
   const specs: SelectionSpec[] = [];
   const seenKeys = new Set<string>();
+  const reviewReasons: string[] = [];
   
   // Helper to dedupe by key (normalized: controller + order + rank + sorted pool)
   const addSpec = (spec: SelectionSpec) => {
@@ -770,6 +860,14 @@ export function buildSelectionSpecs(
   // 2. Parse evidence texts ONLY for ranked specs (rank > 1)
   // These can't be derived from existing swaps
   for (const { text, rowRef } of evidenceTexts) {
+    const clauseGate = evaluateClauseGate(text, profile.year, profile.round);
+    if (!clauseGate.allowAttachments) {
+      if (clauseGate.roundMismatch) {
+        reviewReasons.push(REVIEW_REASONS.CLAUSE_ROUND_MISMATCH);
+      }
+      continue;
+    }
+
     const rankedSpecs = parseRankedFavorablePool(text);
     for (const spec of rankedSpecs) {
       // Only add if rank > 1 (ranked specs like "2nd most favorable")
@@ -836,7 +934,7 @@ export function buildSelectionSpecs(
     }
   }
   
-  return specs;
+  return { specs, reviewReasons };
 }
 
 // ============================================================================
@@ -1169,88 +1267,140 @@ export function buildPickRuleProfiles(
         continue;
       }
 
-      // Parse protections
-      if (row.flags.mentionsProtection) {
-        const { protections, reviewReasons } = parseProtections(text, rowRef, year);
-        for (const p of protections) {
-          // Dedupe by description + year
-          const key = `${p.description}-${p.appliesToYears.join(',')}`;
-          const exists = profile.protections.some(
-            (existing) => `${existing.description}-${existing.appliesToYears.join(',')}` === key
-          );
-          if (!exists) {
-            profile.protections.push(p);
-            protectionsExtracted++;
+      // Parse clauses
+      const clauseTexts = splitIntoClauses(text);
+      let didNotConveyAdded = false;
+      for (const clauseText of clauseTexts) {
+        const clauseGate = evaluateClauseGate(clauseText, year, round);
+        const clauseHasSwap = clauseText.toLowerCase().includes('swap');
+
+        if (!clauseGate.allowAttachments) {
+          if (clauseGate.roundMismatch && clauseHasSwap) {
+            allReviewReasons.push(REVIEW_REASONS.CLAUSE_ROUND_MISMATCH);
           }
+          for (const mention of clauseGate.yearRounds) {
+            if (!profile.mentions.referencedYears.includes(mention.year)) {
+              profile.mentions.referencedYears.push(mention.year);
+            }
+          }
+          continue;
         }
-        allReviewReasons.push(...reviewReasons);
+
+        if (row.flags.mentionsProtection) {
+          const { protections, reviewReasons } = parseProtections(clauseText, rowRef, year);
+          for (const p of protections) {
+            // Dedupe by description + year
+            const key = `${p.description}-${p.appliesToYears.join(',')}`;
+            const exists = profile.protections.some(
+              (existing) => `${existing.description}-${existing.appliesToYears.join(',')}` === key
+            );
+            if (!exists) {
+              profile.protections.push(p);
+              protectionsExtracted++;
+            }
+          }
+          allReviewReasons.push(...reviewReasons);
+        }
+
+        if (row.flags.mentionsSwap) {
+          const { swaps, reviewReasons } = parseSwaps(
+            clauseText,
+            rowRef,
+            year,
+            round,
+            row.detectedTeamCodes
+          );
+          for (const s of swaps) {
+            // Dedupe by controller + pool + year
+            const key = `${s.controller}-${s.pool.join(',')}-${s.year}`;
+            const exists = profile.swaps.some(
+              (existing) => `${existing.controller}-${existing.pool.join(',')}-${existing.year}` === key
+            );
+            if (!exists) {
+              profile.swaps.push(s);
+              swapsExtracted++;
+            }
+          }
+          allReviewReasons.push(...reviewReasons);
+        }
+
+        if (row.flags.mentionsConveyance) {
+          const { conveyance, reviewReasons } = parseConveyance(
+            clauseText,
+            rowRef,
+            year,
+            row.detectedPickRefs
+          );
+          for (const c of conveyance) {
+            // Dedupe by trigger + fallbackDescription
+            const key = `${c.trigger}-${c.fallbackDescription || ''}`;
+            const exists = profile.conveyance.some(
+              (existing) => `${existing.trigger}-${existing.fallbackDescription || ''}` === key
+            );
+            if (!exists) {
+              profile.conveyance.push(c);
+              conveyanceExtracted++;
+            }
+          }
+          allReviewReasons.push(...reviewReasons);
+        }
+
+        const clauseHasDidNotConveySignal = /did\s+not\s+convey|not\s+conveyed|protection\s+exercised|fell\s+in/i.test(
+          clauseText
+        );
+        if (
+          (row.rowKind === 'condition_not_met' || row.flags.mentionsDidNotConvey) &&
+          clauseHasDidNotConveySignal
+        ) {
+          const hasProtections = profile.protections.length > 0;
+          const { didNotConvey, reviewReasons } = parseDidNotConvey(
+            row.rowKind,
+            clauseText,
+            rowRef,
+            hasProtections
+          );
+          if (didNotConvey.length > 0) {
+            didNotConveyAdded = true;
+          }
+          for (const d of didNotConvey) {
+            // Dedupe by reason
+            const exists = profile.didNotConvey.some(
+              (existing) => existing.reason === d.reason
+            );
+            if (!exists) {
+              profile.didNotConvey.push(d);
+              didNotConveyExtracted++;
+            }
+          }
+          allReviewReasons.push(...reviewReasons);
+        }
       }
 
-      // Parse swaps
-      if (row.flags.mentionsSwap) {
-        const { swaps, reviewReasons } = parseSwaps(
-          text,
-          rowRef,
-          year,
-          round,
-          row.detectedTeamCodes
-        );
-        for (const s of swaps) {
-          // Dedupe by controller + pool + year
-          const key = `${s.controller}-${s.pool.join(',')}-${s.year}`;
-          const exists = profile.swaps.some(
-            (existing) => `${existing.controller}-${existing.pool.join(',')}-${existing.year}` === key
+      if (
+        (row.rowKind === 'condition_not_met' || row.flags.mentionsDidNotConvey) &&
+        !didNotConveyAdded
+      ) {
+        const rowGate = evaluateClauseGate(text, year, round);
+        if (rowGate.allowAttachments) {
+          const hasProtections = profile.protections.length > 0;
+          const { didNotConvey, reviewReasons } = parseDidNotConvey(
+            row.rowKind,
+            text,
+            rowRef,
+            hasProtections
           );
-          if (!exists) {
-            profile.swaps.push(s);
-            swapsExtracted++;
+          for (const d of didNotConvey) {
+            // Dedupe by reason
+            const exists = profile.didNotConvey.some(
+              (existing) => existing.reason === d.reason
+            );
+            if (!exists) {
+              profile.didNotConvey.push(d);
+              didNotConveyExtracted++;
+            }
           }
+          allReviewReasons.push(...reviewReasons);
         }
-        allReviewReasons.push(...reviewReasons);
-      }
-
-      // Parse conveyance
-      if (row.flags.mentionsConveyance) {
-        const { conveyance, reviewReasons } = parseConveyance(
-          text,
-          rowRef,
-          year,
-          row.detectedPickRefs
-        );
-        for (const c of conveyance) {
-          // Dedupe by trigger + fallbackDescription
-          const key = `${c.trigger}-${c.fallbackDescription || ''}`;
-          const exists = profile.conveyance.some(
-            (existing) => `${existing.trigger}-${existing.fallbackDescription || ''}` === key
-          );
-          if (!exists) {
-            profile.conveyance.push(c);
-            conveyanceExtracted++;
-          }
-        }
-        allReviewReasons.push(...reviewReasons);
-      }
-
-      // Parse did not convey
-      if (row.rowKind === 'condition_not_met' || row.flags.mentionsDidNotConvey) {
-        const hasProtections = profile.protections.length > 0;
-        const { didNotConvey, reviewReasons } = parseDidNotConvey(
-          row.rowKind,
-          text,
-          rowRef,
-          hasProtections
-        );
-        for (const d of didNotConvey) {
-          // Dedupe by reason
-          const exists = profile.didNotConvey.some(
-            (existing) => existing.reason === d.reason
-          );
-          if (!exists) {
-            profile.didNotConvey.push(d);
-            didNotConveyExtracted++;
-          }
-        }
-        allReviewReasons.push(...reviewReasons);
       }
 
       // Aggregate mentions
@@ -1272,11 +1422,22 @@ export function buildPickRuleProfiles(
     }
 
     // Build SelectionSpecs from swaps and evidence texts (Phase 6.1)
-    const evidenceTexts = rows
-      .filter(r => r.normalizedText && r.normalizedText.trim().length > 0)
-      .map(r => ({ text: r.normalizedText, rowRef: r.provenance.rowRef }));
+    const evidenceTexts = rows.flatMap((r) => {
+      if (!r.normalizedText || r.normalizedText.trim().length === 0) {
+        return [];
+      }
+      return splitIntoClauses(r.normalizedText).map((clauseText) => ({
+        text: clauseText,
+        rowRef: r.provenance.rowRef,
+      }));
+    });
     
-    profile.selectionSpecs = buildSelectionSpecs(profile, evidenceTexts);
+    const { specs, reviewReasons: selectionReviewReasons } = buildSelectionSpecs(
+      profile,
+      evidenceTexts
+    );
+    profile.selectionSpecs = specs;
+    allReviewReasons.push(...selectionReviewReasons);
 
     // Validate team codes in extracted data
     for (const swap of profile.swaps) {
@@ -1292,11 +1453,14 @@ export function buildPickRuleProfiles(
 
     // Dedupe review reasons
     const uniqueReasons = [...new Set(allReviewReasons)];
+    const reviewableReasons = uniqueReasons.filter(
+      (reason) => reason !== REVIEW_REASONS.CLAUSE_ROUND_MISMATCH
+    );
     profile.reviewReasons = uniqueReasons;
-    profile.needs_review = uniqueReasons.length > 0;
+    profile.needs_review = reviewableReasons.length > 0;
 
     // Count review reasons for report
-    for (const reason of uniqueReasons) {
+    for (const reason of reviewableReasons) {
       reviewReasonCounts.set(reason, (reviewReasonCounts.get(reason) || 0) + 1);
     }
 
@@ -1304,7 +1468,7 @@ export function buildPickRuleProfiles(
     if (profile.needs_review) {
       needsReviewItems.push({
         pickId,
-        reviewReasons: profile.reviewReasons,
+        reviewReasons: reviewableReasons,
         evidenceRowRefs: profile.evidence.map((e) => e.rowRef),
       });
     }

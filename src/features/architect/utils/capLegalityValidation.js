@@ -6,6 +6,11 @@
  * HISTORY:
  *  - 2025-12-24: Created per Phase 5 Production Hardening execution plan
  *  - 2025-12-24: Refactored to use shared capHelpers.js per Step 6 consolidation
+ *  - 2026-01-17: Wired signing terms/raises to Salary Engine (Phase 4 plan)
+ *
+ * LINKS:
+ *  - Plan: plans/_archive/cap-sheet-contract-rules-phase-4-signing-terms-2026-01-17/plan.md
+ *  - Latest Chunk: n/a (no chunks used)
  *
  * DESIGN CONSTRAINTS:
  * 1) All validation logic must be PURE (no Firestore, no React state)
@@ -26,6 +31,10 @@ import {
 import { getCapRulesForYear } from '@/features/architect/utils/capRulesProfile';
 import { getYearsOfService } from '@/features/architect/utils/playerRulesProfile/minimumSalaryRules.js';
 import { computePlayerRulesProfile } from '@/features/architect/utils/playerRulesProfile/index.js';
+import {
+  buildRuleContextForPlayerMove,
+  getSalaryProfile,
+} from '@/features/architect/utils/salaryEngine';
 
 // ==============================================================================
 // CONSTANTS
@@ -48,6 +57,8 @@ export const HARD_BLOCK_RULES = [
   'unverified_cap_inputs', // Hard block in STRICT mode for projected data
   'min_salary_violation',  // First-year salary below CBA minimum for player's YOS
   'contract_years_invalid', // Contract length outside allowed min/max for signing mechanism
+  'signing_terms_invalid', // Salary Engine max years exceeded for signing mechanism
+  'signing_raise_invalid', // Salary Engine raise percentage exceeded for signing
   'first_year_max_invalid', // First-year salary exceeds mechanism max OR MINIMUM contract above min salary
   'second_apron_minimum_only', // Teams above second apron can only sign to minimum salary
   // Phase 3: Extension validation rules
@@ -456,6 +467,289 @@ export function getSigningFirstYearMax(mechanism, rules) {
 }
 
 // ==============================================================================
+// SIGNING TERMS HELPERS (Phase 4)
+// ==============================================================================
+
+const DEFAULT_SIGNING_RAISE_PERCENT = 0.05;
+
+function resolveSigningOperationType(contract, mechanism) {
+  const contractType = contract?.contractType?.toLowerCase() || '';
+  if (contractType === 'two-way' || contractType === 'twoway') {
+    return 'TWO_WAY_SIGNING';
+  }
+  if (mechanism === 'MINIMUM') {
+    return 'MINIMUM_SIGNING';
+  }
+  if (mechanism && mechanism !== 'UNKNOWN') {
+    return 'EXCEPTION_SIGNING';
+  }
+  return 'UFA_SIGNING';
+}
+
+function mapExceptionTypeForMechanism(mechanism) {
+  switch (mechanism) {
+    case 'FULL_MLE':
+      return 'FULL_MLE';
+    case 'TPMLE':
+      return 'TAXPAYER_MLE';
+    case 'ROOM_MLE':
+      return 'ROOM_MLE';
+    case 'BAE':
+      return 'BAE';
+    default:
+      return null;
+  }
+}
+
+function buildBaseSigningTerms(profile) {
+  const birdAbilities = profile?.birdRights?.signingAbilities;
+  const birdRightsType = profile?.birdRights?.type || null;
+  const maxSalaryCap = profile?.maxSalary?.maxSalary ?? null;
+  const maxSalaryBird = profile?.maxSalary?.maxSalaryBird ?? maxSalaryCap;
+
+  const baseMaxFirstYear = (() => {
+    if (birdAbilities?.canSignToMax && maxSalaryBird != null) {
+      return maxSalaryBird;
+    }
+    if (birdAbilities?.maxFirstYearSalary != null) {
+      return birdAbilities.maxFirstYearSalary;
+    }
+    return maxSalaryCap;
+  })();
+
+  return {
+    maxYears: birdAbilities?.maxYears ?? 4,
+    minYears: 1,
+    raisePercentage: birdAbilities?.raisePercentage ?? DEFAULT_SIGNING_RAISE_PERCENT,
+    maxFirstYearSalary: baseMaxFirstYear ?? null,
+    mechanism: birdRightsType || 'Cap Space / Rights',
+    source: 'salary_engine',
+    notes: birdRightsType ? `Bird rights: ${birdRightsType}` : 'No Bird rights data',
+  };
+}
+
+function buildExceptionSigningTerms(mechanism, cap) {
+  const limits = SIGNING_YEARS_LIMITS[mechanism] || null;
+  if (!limits) return null;
+
+  let maxFirstYearSalary = null;
+  switch (mechanism) {
+    case 'FULL_MLE':
+      maxFirstYearSalary = cap?.fullMLE ?? null;
+      break;
+    case 'TPMLE':
+      maxFirstYearSalary = cap?.taxpayerMLE ?? cap?.fullMLE ?? null;
+      break;
+    case 'ROOM_MLE':
+      maxFirstYearSalary = cap?.roomMLE ?? cap?.taxpayerMLE ?? null;
+      break;
+    case 'BAE':
+      maxFirstYearSalary = cap?.bae ?? null;
+      break;
+    case 'MINIMUM':
+      maxFirstYearSalary = null;
+      break;
+    default:
+      break;
+  }
+
+  return {
+    maxYears: limits.maxYears,
+    minYears: limits.minYears,
+    raisePercentage: DEFAULT_SIGNING_RAISE_PERCENT,
+    maxFirstYearSalary,
+    mechanism,
+    notes: `Exception override: ${mechanism}`,
+  };
+}
+
+/**
+ * Get signing terms from Salary Engine for a player (Phase 4).
+ *
+ * Builds a RuleContext and merges Bird rights terms with exception guardrails
+ * (matching UI buildSigningGuardrails behavior) when possible.
+ *
+ * @param {Object} params
+ * @param {Object} params.team - Team object (team state)
+ * @param {Object} params.player - Player object
+ * @param {Object} params.contract - Proposed contract
+ * @param {number} params.year - Season end year
+ * @param {string} params.signedUsing - Signing mechanism/exception
+ * @returns {{maxYears?: number, minYears?: number, raisePercentage?: number, maxFirstYearSalary?: number, mechanism?: string, source: string, notes?: string}|null}
+ */
+export function getSigningTermsForPlayer({
+  team,
+  player,
+  contract,
+  year,
+  signedUsing,
+}) {
+  const mechanism = resolveSigningMechanism(contract, signedUsing);
+
+  if (!player || !year) {
+    return {
+      mechanism,
+      source: 'baseline',
+      notes: 'Missing player or year data',
+    };
+  }
+
+  try {
+    const operationType = resolveSigningOperationType(contract, mechanism);
+    const exceptionUsed = mapExceptionTypeForMechanism(mechanism);
+    const simulationDate = new Date(year - 1, 6, 15, 12, 0, 0);
+
+    const ctx = buildRuleContextForPlayerMove({
+      player,
+      teamState: team,
+      operationType,
+      operationSeasonId: year,
+      exceptionUsed,
+      simulationDate,
+    });
+
+    const profile = getSalaryProfile(ctx);
+    if (!profile) {
+      return {
+        mechanism,
+        source: 'baseline',
+        notes: 'Salary Engine profile unavailable',
+      };
+    }
+
+    const baseTerms = buildBaseSigningTerms(profile);
+    const exceptionTerms = buildExceptionSigningTerms(mechanism, ctx.cap);
+
+    if (exceptionTerms) {
+      const notes = [baseTerms.notes, exceptionTerms.notes]
+        .filter(Boolean)
+        .join(' | ');
+      return {
+        ...baseTerms,
+        ...exceptionTerms,
+        mechanism: exceptionTerms.mechanism,
+        source: 'salary_engine',
+        notes,
+      };
+    }
+
+    return baseTerms;
+  } catch (err) {
+    console.warn('[getSigningTermsForPlayer] Failed to compute signing terms:', err?.message);
+    return {
+      mechanism,
+      source: 'baseline',
+      notes: err?.message || 'Salary Engine unavailable',
+    };
+  }
+}
+
+/**
+ * Validate year-over-year raises for signing contracts.
+ * Returns the first violation found (if any).
+ *
+ * @param {Object} params
+ * @param {Object} params.contract - Proposed contract
+ * @param {number|null} params.raisePercentage - Max raise percentage (0.05/0.08)
+ * @param {string} params.mechanism - Signing mechanism
+ * @returns {Object|null} Violation object or null if valid
+ */
+export function validateSigningRaises({ contract, raisePercentage, mechanism }) {
+  if (!raisePercentage || !Array.isArray(contract?.salariesByYear)) {
+    return null;
+  }
+
+  const contractType = contract?.contractType?.toLowerCase() || '';
+  const isStandardContract =
+    !contractType || contractType === 'standard' || contractType === 'nba';
+
+  if (!isStandardContract || mechanism === 'MINIMUM') {
+    return null;
+  }
+
+  if (contract.salariesByYear.length < 2) {
+    return null;
+  }
+
+  for (let i = 1; i < contract.salariesByYear.length; i++) {
+    const prev = contract.salariesByYear[i - 1];
+    const curr = contract.salariesByYear[i];
+    const prevAmount = prev?.salary ?? prev?.capHit ?? null;
+    const currAmount = curr?.salary ?? curr?.capHit ?? null;
+
+    if (prevAmount == null || currAmount == null) {
+      continue;
+    }
+
+    if (prevAmount > 0 && currAmount > 0) {
+      const maxAllowed = Math.round(
+        prevAmount * (1 + raisePercentage + Number.EPSILON)
+      );
+      if (currAmount > maxAllowed) {
+        const actualRaisePct = (
+          ((currAmount - prevAmount) / prevAmount) *
+          100
+        ).toFixed(1);
+        return {
+          rule: 'signing_raise_invalid',
+          message: `Year ${i + 1} salary ($${(currAmount / 1_000_000).toFixed(2)}M) exceeds allowed ${Math.round(raisePercentage * 100)}% raise from year ${i} ($${(prevAmount / 1_000_000).toFixed(2)}M). Actual raise: ${actualRaisePct}%`,
+          severity: 'error',
+        };
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Validate signing terms (years + raises) using Salary Engine terms.
+ *
+ * @param {Object} params
+ * @param {Object} params.contract - Proposed contract
+ * @param {Object|null} params.signingTerms - Signing terms from engine
+ * @param {string} params.mechanism - Signing mechanism
+ * @returns {{violations: Array, warnings: Array}}
+ */
+export function validateSigningTermsAndRaises({
+  contract,
+  signingTerms,
+  mechanism,
+}) {
+  const violations = [];
+  const warnings = [];
+
+  if (!signingTerms || signingTerms.source !== 'salary_engine') {
+    return { violations, warnings };
+  }
+
+  const contractYears = getContractYears(contract);
+  if (contractYears > 0 && signingTerms.maxYears != null) {
+    if (contractYears > signingTerms.maxYears) {
+      const label = signingTerms.mechanism || mechanism || 'signing terms';
+      violations.push({
+        rule: 'signing_terms_invalid',
+        message: `Contract length (${contractYears} years) exceeds Salary Engine max (${signingTerms.maxYears}) for ${String(label).replace(/_/g, ' ')}`,
+        severity: 'error',
+      });
+    }
+  }
+
+  if (signingTerms.raisePercentage != null) {
+    const raiseViolation = validateSigningRaises({
+      contract,
+      raisePercentage: signingTerms.raisePercentage,
+      mechanism,
+    });
+    if (raiseViolation) {
+      violations.push(raiseViolation);
+    }
+  }
+
+  return { violations, warnings };
+}
+
+// ==============================================================================
 // EXTENSION HELPER FUNCTIONS (Phase 3)
 // ==============================================================================
 
@@ -845,6 +1139,13 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
   // 1. Roster size check
   const currentStandardRoster = countStandardRoster(players);
   const isTwoWay = contract?.contractType?.toLowerCase() === 'two-way';
+  const signingMechanism = resolveSigningMechanism(contract, signedUsing);
+  const signingTerms = !isTwoWay
+    ? getSigningTermsForPlayer({ team, player, contract, year, signedUsing })
+    : null;
+  const engineSigningTerms =
+    signingTerms?.source === 'salary_engine' ? signingTerms : null;
+  const hasEngineMaxYears = engineSigningTerms?.maxYears != null;
   
   if (!isTwoWay) {
     const projectedRoster = currentStandardRoster + 1;
@@ -905,28 +1206,36 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
   // Two-way contracts are excluded - they follow separate term rules
   if (!isTwoWay) {
     const contractYears = getContractYears(contract);
+
+    const termsValidation = validateSigningTermsAndRaises({
+      contract,
+      signingTerms: engineSigningTerms,
+      mechanism: signingMechanism,
+    });
+    violations.push(...termsValidation.violations);
     
     // Only validate if we can determine contract length
     if (contractYears > 0) {
-      const mechanism = resolveSigningMechanism(contract, signedUsing);
-      const limits = getSigningYearsLimits(mechanism);
-      
-      // Only enforce limits for known mechanisms
-      // UNKNOWN mechanism means we can't determine how the contract was signed,
-      // so we skip years validation (other rules like min salary still apply)
-      if (limits) {
-        if (contractYears < limits.minYears) {
-          violations.push({
-            rule: 'contract_years_invalid',
-            message: `Contract length (${contractYears} year${contractYears === 1 ? '' : 's'}) is below minimum (${limits.minYears}) for ${mechanism.replace('_', ' ')} signing`,
-            severity: 'error',
-          });
-        } else if (contractYears > limits.maxYears) {
-          violations.push({
-            rule: 'contract_years_invalid',
-            message: `Contract length (${contractYears} years) exceeds maximum (${limits.maxYears}) for ${mechanism.replace('_', ' ')} signing`,
-            severity: 'error',
-          });
+      if (!hasEngineMaxYears) {
+        const limits = getSigningYearsLimits(signingMechanism);
+        
+        // Only enforce limits for known mechanisms
+        // UNKNOWN mechanism means we can't determine how the contract was signed,
+        // so we skip years validation (other rules like min salary still apply)
+        if (limits) {
+          if (contractYears < limits.minYears) {
+            violations.push({
+              rule: 'contract_years_invalid',
+              message: `Contract length (${contractYears} year${contractYears === 1 ? '' : 's'}) is below minimum (${limits.minYears}) for ${signingMechanism.replace(/_/g, ' ')} signing`,
+              severity: 'error',
+            });
+          } else if (contractYears > limits.maxYears) {
+            violations.push({
+              rule: 'contract_years_invalid',
+              message: `Contract length (${contractYears} years) exceeds maximum (${limits.maxYears}) for ${signingMechanism.replace(/_/g, ' ')} signing`,
+              severity: 'error',
+            });
+          }
         }
       }
     }
@@ -939,9 +1248,7 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
     const { salary: firstYearSalary, capHit: firstYearCapHit } = getFirstYearAmounts(contract);
     
     if (firstYearSalary !== null) {
-      const mechanism = resolveSigningMechanism(contract, signedUsing);
-      
-      if (mechanism === 'MINIMUM') {
+      if (signingMechanism === 'MINIMUM') {
         // MINIMUM mechanism: salary must be EXACTLY at minimum (not above)
         // This enforces "minimum exception" means minimum salary, not just "at least minimum"
         const yos = getYearsOfService(player);
@@ -966,13 +1273,13 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
       } else {
         // For FULL_MLE, TPMLE, ROOM_MLE, BAE: enforce exception amount cap
         // UNKNOWN mechanism: do not enforce (cannot determine limits)
-        const maxFirstYear = getSigningFirstYearMax(mechanism, rules);
+        const maxFirstYear = getSigningFirstYearMax(signingMechanism, rules);
         
         if (maxFirstYear !== null) {
           if (firstYearSalary > maxFirstYear) {
             violations.push({
               rule: 'first_year_max_invalid',
-              message: `First-year salary ($${(firstYearSalary / 1_000_000).toFixed(2)}M) exceeds ${mechanism.replace('_', ' ')} maximum ($${(maxFirstYear / 1_000_000).toFixed(2)}M)`,
+              message: `First-year salary ($${(firstYearSalary / 1_000_000).toFixed(2)}M) exceeds ${signingMechanism.replace(/_/g, ' ')} maximum ($${(maxFirstYear / 1_000_000).toFixed(2)}M)`,
               severity: 'error',
             });
           }
@@ -981,10 +1288,39 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
           if (firstYearCapHit !== null && firstYearCapHit !== firstYearSalary && firstYearCapHit > maxFirstYear) {
             violations.push({
               rule: 'first_year_max_invalid',
-              message: `First-year cap hit ($${(firstYearCapHit / 1_000_000).toFixed(2)}M) exceeds ${mechanism.replace('_', ' ')} maximum ($${(maxFirstYear / 1_000_000).toFixed(2)}M)`,
+              message: `First-year cap hit ($${(firstYearCapHit / 1_000_000).toFixed(2)}M) exceeds ${signingMechanism.replace(/_/g, ' ')} maximum ($${(maxFirstYear / 1_000_000).toFixed(2)}M)`,
               severity: 'error',
             });
           }
+        }
+      }
+
+      if (
+        engineSigningTerms?.maxFirstYearSalary != null &&
+        signingMechanism !== 'MINIMUM'
+      ) {
+        const engineMaxFirstYear = engineSigningTerms.maxFirstYearSalary;
+        const mechanismLabel =
+          engineSigningTerms.mechanism || signingMechanism || 'signing terms';
+
+        if (firstYearSalary > engineMaxFirstYear) {
+          violations.push({
+            rule: 'first_year_max_invalid',
+            message: `First-year salary ($${(firstYearSalary / 1_000_000).toFixed(2)}M) exceeds Salary Engine max ($${(engineMaxFirstYear / 1_000_000).toFixed(2)}M) for ${String(mechanismLabel).replace(/_/g, ' ')}`,
+            severity: 'error',
+          });
+        }
+
+        if (
+          firstYearCapHit !== null &&
+          firstYearCapHit !== firstYearSalary &&
+          firstYearCapHit > engineMaxFirstYear
+        ) {
+          violations.push({
+            rule: 'first_year_max_invalid',
+            message: `First-year cap hit ($${(firstYearCapHit / 1_000_000).toFixed(2)}M) exceeds Salary Engine max ($${(engineMaxFirstYear / 1_000_000).toFixed(2)}M) for ${String(mechanismLabel).replace(/_/g, ' ')}`,
+            severity: 'error',
+          });
         }
       }
     }
@@ -1455,6 +1791,9 @@ export default {
   resolveSigningMechanism,
   getSigningYearsLimits,
   getSigningFirstYearMax,
+  getSigningTermsForPlayer,
+  validateSigningRaises,
+  validateSigningTermsAndRaises,
   // Phase 3: Extension validation exports
   getContractLastYearSalary,
   getExtensionFirstYearSalary,
