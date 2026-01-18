@@ -86,6 +86,7 @@ Quick reference for all components in the ScoutZero project.
 - tradeMachine/utils/getOfficialSalaryMatchingSnapshot.js
 - utils/architectCore.js
 - utils/basicArchitectUtils.js
+- utils/capHoldTransitionHelpers.js
 - utils/capLegalityValidation.js
 - utils/capProjections.js
 - utils/capTotals/computeTeamCapTotals.js
@@ -325,4 +326,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2026-01-17T11:00:36.338Z*
+*Generated on: 2026-01-18T09:30:09.974Z*

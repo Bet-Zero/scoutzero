@@ -131,6 +131,93 @@ export function normalizeFreeAgency(freeAgency) {
 }
 
 /**
+ * Validate freeAgency state for canonical invariants (Phase 7).
+ *
+ * Used by the pipeline to hard-block or warn on invalid free agency state.
+ *
+ * Invariants:
+ * - Must be an object, not a string (legacy format is invalid at persist time)
+ * - If type is "RFA", qualifyingOffer should be computable (warn if missing)
+ * - If type is "UFA", qualifyingOffer should be null/undefined
+ * - year must be a number (if present)
+ *
+ * @param {string|Object|null|undefined} freeAgency - Free agency value to validate
+ * @param {Object} [context] - Optional context for error messages
+ * @returns {{valid: boolean, violations: Array, warnings: Array}}
+ */
+export function validateFreeAgencyState(freeAgency, context = {}) {
+  const violations = [];
+  const warnings = [];
+
+  // Skip validation for null/undefined (no free agency state is valid)
+  if (freeAgency === null || freeAgency === undefined) {
+    return { valid: true, violations, warnings };
+  }
+
+  // 1. HARD BLOCK: Must not be a string (legacy format)
+  if (typeof freeAgency === 'string') {
+    violations.push({
+      rule: 'free_agency_state_invalid',
+      message: `freeAgency is a legacy string format: "${freeAgency}". Must be canonical object shape.`,
+      severity: 'error',
+      legacyValue: freeAgency,
+    });
+    return { valid: false, violations, warnings };
+  }
+
+  // 2. Must be an object at this point
+  if (typeof freeAgency !== 'object') {
+    violations.push({
+      rule: 'free_agency_state_invalid',
+      message: `freeAgency has invalid type: ${typeof freeAgency}. Must be an object.`,
+      severity: 'error',
+    });
+    return { valid: false, violations, warnings };
+  }
+
+  // 3. Year validation (if present, must be a number)
+  if (freeAgency.year !== null && freeAgency.year !== undefined) {
+    if (typeof freeAgency.year !== 'number' || isNaN(freeAgency.year)) {
+      violations.push({
+        rule: 'free_agency_state_invalid',
+        message: `freeAgency.year is invalid: ${freeAgency.year}. Must be a number.`,
+        severity: 'error',
+        field: 'year',
+        value: freeAgency.year,
+      });
+    }
+  }
+
+  // 4. RFA should have qualifyingOffer (warn if missing)
+  if (freeAgency.type === 'RFA') {
+    if (freeAgency.qualifyingOffer === null || freeAgency.qualifyingOffer === undefined) {
+      warnings.push({
+        rule: 'free_agency_incomplete',
+        message: 'RFA free agency missing qualifyingOffer value. QO should be computed.',
+        severity: 'warning',
+        type: freeAgency.type,
+      });
+    }
+  }
+
+  // 5. UFA should NOT have qualifyingOffer (warn if present)
+  if (freeAgency.type === 'UFA') {
+    if (freeAgency.qualifyingOffer !== null && freeAgency.qualifyingOffer !== undefined) {
+      warnings.push({
+        rule: 'free_agency_inconsistent',
+        message: `UFA free agency has qualifyingOffer set ($${(freeAgency.qualifyingOffer / 1_000_000).toFixed(2)}M). UFAs should not have QO.`,
+        severity: 'warning',
+        type: freeAgency.type,
+        qualifyingOffer: freeAgency.qualifyingOffer,
+      });
+    }
+  }
+
+  return { valid: violations.length === 0, violations, warnings };
+}
+
+
+/**
  * Normalize signing date field name to canonical signingDate.
  *
  * Handles legacy field names:

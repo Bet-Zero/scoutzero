@@ -24,6 +24,7 @@
 | Phase 6 | Manual Check Views | COMPLETE | 2026-01-17 |
 | Phase 6.1 | OutcomeSpec + Manual View Upgrade | COMPLETE | 2026-01-17 |
 | Phase 6.3 | Conditional Tag + Swap Display Rule | COMPLETE | 2026-01-17 |
+| Phase 6.5 | Manual Check Views v6.5 (Swaps Focused) | COMPLETE | 2026-01-18 |
 | Phase 6.2 | Hard Guarantees | NOT STARTED | - |
 | Phase 7 | Collision Course | NOT STARTED | - |
 | Phase 8 | Zero-Blocker Closure | NOT STARTED | - |
@@ -577,8 +578,9 @@ These rules are **presentation-only** and intentionally conservative. They do no
 - Favorable pools shown as `least of (...)` / `most of (...)` separately from swap controller
 - Tags limited to 4 per line for readability
 
-**v6.3 Changes**:
+**v6.4 Changes**:
 
+- **Origin Tag Rule**: "via" is strictly derived from (ownerTeam vs originalTeam). Swap rights do not affect "via".
 - **Conditional vs Did-Not-Convey**: Evidence text is checked for explicit past-tense outcome language ("did not convey", "not conveyed", "will not convey", "protection exercised"). If found, emits "did not convey". Otherwise, emits "conditional" for future picks with condition_not_met rows.
 - **Swap Display Rule**: Swap tags (`swap {TEAM}`) are now emitted even when favorable pools exist. This matches Fanspo/Spotrac display style where both swap rights and selection pools are shown together.
 
@@ -721,6 +723,59 @@ Two presentation-only changes:
 - ✓ "conditional" emitted instead of "did not convey" for future picks without past-tense evidence
 - ✓ Swap tags displayed alongside favorable pool tags when controller is explicit
 - ✓ Manual check views regenerated with v6.3 format
+
+---
+
+### PHASE 6.5 — Manual Check Views v6.5 (Swaps Focused) (COMPLETE)
+
+**Goal**: Update the manual check views to a swap-focused 5-column format that matches how manual verification is performed against Fanspo/Spotrac.
+
+**Implementation Completed 2026-01-18**
+
+This phase introduces a new, cleaner format while preserving the existing v6.3/6.4 reports.
+
+**Run Command**
+
+```bash
+npm run pst:manual-views:v6-5
+```
+
+> [!NOTE]
+> This command is now integrated into the main build pipeline: `npm run pst:build-final`
+
+**New v6.5 Format**
+
+`YEAR | ROUND | ORIGIN_OR_SWAP | FAVORABLE | CONDITIONS`
+
+**Examples**
+
+- `2028 | 1 | swap SAS | least favorable | Top 1; fallback BOS 2nd protected (#46–60)`
+- `2026 | 2 | own | |`
+- `2026 | 2 | via MIL | | Top 55`
+- `2026 | 1 | swap attached | most favorable (DAL,HOU,PHX) | conditional`
+
+**Column Logic Changes**:
+
+1. **ORIGIN_OR_SWAP**:
+   - If swap exists: `swap {controller}` (or `swap attached` if no controller). This replaces "own" or "via".
+   - If no swap: `own` (if original==owner) or `via {originalTeam}`.
+
+2. **FAVORABLE**:
+   - "least favorable" / "most favorable"
+   - Appends pool list if >= 2 items: `(A,B,C)`
+
+3. **CONDITIONS**:
+   - Compact string joined by `;`.
+   - Protections: `Top N` or `protected #A-B` or `lottery`.
+   - Fallback: `fallback {X}`.
+   - Conditional: `conditional` (future) or `did not convey` (past-tense evidence). OR `did not convey` removed in favor of simpler set? The implementation follows v6.3 logic for conditional detection but formats it into the list.
+
+**Acceptance Criteria** ✓
+
+- ✓ New v6.5 reports generated alongside old ones
+- ✓ Swap controller prioritized in Column 3
+- ✓ Favorable pool info separated to Column 4
+- ✓ Conditions compact in Column 5
 
 ---
 

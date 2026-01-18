@@ -1019,7 +1019,7 @@ function computeOptionResult({ payload, currentState, seasonId, timestamp }) {
           type: 'UFA',
         },
       }),
-      freeAgentYear: targetYear,
+      freeAgentYear: targetYear - 1,
     };
 
     // Create cap hold for declined option
@@ -1234,12 +1234,18 @@ function validateMutation({ mutationType, payload, currentState, computeResult, 
     }
 
     case 'optionDecision': {
+      // Phase 7.1: Pass updatedTeam to validate cap hold transitions
+      const updatedTeam = computeResult?.teamUpdates?.find(
+        (u) => u.teamCode === currentState.team.teamCode
+      )?.team;
+
       const result = validateOptionDecision({
         team: currentState.team,
         player: currentState.player,
         accepted: payload.accepted,
         targetYear: payload.targetYear,
         currentYear,
+        updatedTeam,
       });
       return {
         valid: result.valid,

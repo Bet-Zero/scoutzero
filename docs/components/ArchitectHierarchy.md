@@ -146,6 +146,7 @@ utils/
   basicArchitectUtils.js
   buildRuleContext.ts
   capHelpers.ts
+  capHoldTransitionHelpers.js
   capHolds.ts
   capLegalityValidation.js
   capProjections.js
@@ -278,5 +279,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-01-17T11:00:36.084Z*
+*Generated on: 2026-01-18T09:30:09.947Z*
 *Auto-updated by: npm run docs*

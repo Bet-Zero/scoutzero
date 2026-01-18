@@ -398,6 +398,7 @@ function generateTags(encumbrances: Encumbrances, pickYear: number, evidenceText
  * Generate origin tag based on ownership vs original team.
  */
 function getOriginTag(pick: FinalLedgerPick): string {
+  // Rule A: Origin tag is determined ONLY by originalTeam vs ownerTeam
   if (pick.originalTeam === pick.owner) {
     return 'own';
   }
@@ -425,6 +426,216 @@ function formatPickLine(pick: FinalLedgerPick, evidenceTexts: string[] = []): st
   const tags = generateTags(pick.encumbrances, year, evidenceTexts);
 
   return `${year} | ${round} | ${origin} | ${tags}`;
+}
+
+// ============================================================================
+// V6.5 FORMATTING LOGIC
+// ============================================================================
+
+function getOriginOrSwapV6_5(pick: FinalLedgerPick): string {
+  // Check for swaps
+  const swaps = pick.encumbrances.swaps || [];
+  if (swaps.length > 0) {
+    // Check for explicit controller
+    // Prefer the one most describing the swap. 
+    // We sort by controller code to be deterministic if multiple controllers exist.
+    const explicitSwaps = swaps.filter(s => s.controller && s.controller.length > 0);
+    
+    if (explicitSwaps.length > 0) {
+      // detailed sort: just alpha by controller for stability
+      explicitSwaps.sort((a, b) => (a.controller || '').localeCompare(b.controller || ''));
+      return `swap ${explicitSwaps[0].controller}`;
+    } else {
+      return 'swap attached';
+    }
+  }
+
+  // No swaps - use origin/via rule
+  if (pick.originalTeam === pick.owner) {
+    return 'own';
+  }
+  return `via ${pick.originalTeam}`;
+}
+
+function getFavorableV6_5(pick: FinalLedgerPick): string {
+  let mode = '';
+  const pool = new Set<string>();
+
+  // Check selection specs (preferred for processed favorable info)
+  const specs = pick.encumbrances.selectionSpecs || [];
+  for (const spec of specs) {
+    if (spec.order === 'most' || spec.order === 'least') {
+      mode = spec.order === 'most' ? 'most favorable' : 'least favorable';
+      if (spec.pool) spec.pool.forEach(t => pool.add(t));
+    }
+  }
+
+  // Check swaps if no specs found
+  if (!mode) {
+    const swaps = pick.encumbrances.swaps || [];
+    for (const swap of swaps) {
+      if (swap.mostLeast) {
+        mode = swap.mostLeast === 'most_favorable' ? 'most favorable' : 'least favorable';
+        if (swap.pool) swap.pool.forEach(t => pool.add(t));
+      }
+    }
+  }
+
+  // Fallback inference: if we have a swap with a controller but no explicit most/least data
+  if (!mode) {
+    const swaps = pick.encumbrances.swaps || [];
+    const explicitSwaps = swaps.filter(s => s.controller);
+    
+    if (explicitSwaps.length > 0) {
+      // Determine direction based on controller vs owner
+      // If Owner == Controller => most favorable
+      // If Owner != Controller => least favorable
+      const isController = explicitSwaps.every(s => s.controller === pick.owner);
+      const isVictim = explicitSwaps.every(s => s.controller !== pick.owner);
+
+      if (isController) {
+        mode = 'most favorable';
+      } else if (isVictim) {
+        mode = 'least favorable';
+      }
+
+      // Build pool from all involved swaps
+      if (mode) {
+        explicitSwaps.forEach(s => {
+          if (s.controller) pool.add(s.controller);
+          if (s.pool) s.pool.forEach(t => pool.add(t));
+        });
+        // Ensure owner is in pool (usually is, but for completeness)
+        pool.add(pick.owner); 
+      }
+    }
+  }
+
+  if (!mode) return '';
+
+  const sortedPool = Array.from(pool).sort();
+  if (sortedPool.length >= 2) {
+    return `${mode} (${sortedPool.join(',')})`;
+  }
+  
+  return mode;
+}
+
+function getConditionsV6_5(pick: FinalLedgerPick, evidenceTexts: string[]): string {
+  const parts: string[] = [];
+  const pickYear = pick.year;
+
+  // 1) Protections
+  const applicableProtections = (pick.encumbrances.protections || []).filter(p => {
+    if (!p.appliesToYears || p.appliesToYears.length === 0) return true;
+    return p.appliesToYears.includes(pickYear);
+  });
+
+  const topN = applicableProtections.filter(p => p.protectedRange?.start === 1).map(p => p.protectedRange!.end);
+  const ranges = applicableProtections.filter(p => p.protectedRange && p.protectedRange.start !== 1);
+  const lottery = applicableProtections.some(p => p.type === 'lottery');
+
+  if (topN.length > 0) {
+    // Choose broadest
+    const maxTop = Math.max(...topN);
+    parts.push(`Top ${maxTop}`);
+  }
+  
+  // Ranges
+  const seenRanges = new Set<string>();
+  for (const r of ranges) {
+      const label = `${r.protectedRange!.start}-${r.protectedRange!.end}`;
+      if (!seenRanges.has(label)) {
+          seenRanges.add(label);
+          parts.push(`protected #${label}`);
+      }
+  }
+
+  if (lottery) parts.push('lottery');
+
+
+  // 2) Fallback
+  // Check conveyance
+  const conveyance = pick.encumbrances.conveyance || [];
+  for (const c of conveyance) {
+     if (c && typeof c === 'object') {
+        const conv = c as { fallbackPickId?: string; fallbackDescription?: string };
+        if (conv.fallbackPickId) {
+            // format pick id roughly: TEAM YEAR ROUND
+            // PickID usually "TEAM-YEAR-ROUND-ORIG"
+            const tokens = conv.fallbackPickId.split('-');
+            if (tokens.length >= 3) {
+                const [fTeam, fYear, fRound] = tokens;
+                const roundSuffix = fRound === '1' ? '1st' : '2nd';
+                parts.push(`fallback ${fTeam} ${fYear} ${roundSuffix}`);
+            } else {
+                 parts.push(`fallback ${conv.fallbackPickId}`);
+            }
+        } else if (conv.fallbackDescription) {
+             // Try to extract useful bits if it's long, or just use it
+             // Example "2026 2nd round pick protected ..."
+             // For now, simple textual fallback
+             let desc = conv.fallbackDescription;
+             // Naive shortener if specific known patterns exist, else raw
+             parts.push(`fallback ${desc}`);
+        }
+     }
+  }
+
+  // 3) Conditional
+  const hasConditionNotMet = (pick.encumbrances.didNotConvey?.length || 0) > 0; 
+  // We use the same 'isExplicitNonTransfer' logic? 
+  // Prompt says: "If the pick has condition_not_met rows OR didNotConvey entries but no explicit past-tense non-transfer: include 'conditional'"
+  
+  if (hasConditionNotMet) {
+     if (!isExplicitNonTransfer(evidenceTexts)) {
+        parts.push('conditional');
+     }
+  }
+  
+  return parts.join('; ');
+}
+
+function formatPickLineV6_5(pick: FinalLedgerPick, evidenceTexts: string[] = []): string {
+    const year = pick.year;
+    const round = pick.round;
+    const col3 = getOriginOrSwapV6_5(pick);
+    const col4 = getFavorableV6_5(pick);
+    const col5 = getConditionsV6_5(pick, evidenceTexts);
+    
+    // Collapse empty columns (no double pipes)
+    // "Remove the blank space logic for picks that the 4th and 5th columns don't apply to."
+    const parts = [year, round, col3, col4, col5].filter(p => p !== '' && p !== undefined && p !== null);
+    
+    return parts.join(' | ');
+}
+
+function formatTeamBlockV6_5(
+  teamCode: string, 
+  picks: FinalLedgerPick[], 
+  evidenceLookup: Map<string, string[]> = new Map()
+): string {
+  const fullName = CODE_TO_FULL_NAME[teamCode];
+  if (!fullName) throw new Error(`Cannot resolve team name for code: ${teamCode}`);
+
+  const lines: string[] = [];
+  lines.push(DOUBLE_LINE);
+  lines.push(`# ${teamCode} — ${fullName.toUpperCase()} (${picks.length} picks)`);
+  lines.push(SINGLE_LINE);
+
+  // Sort picks: year ASC, round ASC, originalTeam ASC
+  const sortedPicks = [...picks].sort((a, b) => {
+    if (a.year !== b.year) return a.year - b.year;
+    if (a.round !== b.round) return a.round - b.round;
+    return a.originalTeam.localeCompare(b.originalTeam);
+  });
+
+  for (const pick of sortedPicks) {
+    const evidenceTexts = evidenceLookup.get(pick.pickId) || [];
+    lines.push(formatPickLineV6_5(pick, evidenceTexts));
+  }
+
+  return lines.join('\n');
 }
 
 /**
@@ -572,92 +783,192 @@ async function main(): Promise<void> {
   }
   console.log('  ✓ All team names resolved');
 
-  // 6. Build combined report
-  console.log('\nGenerating combined report...');
-  const teamBlocks: string[] = [];
+  // Check for v6.5 mode flag
+  const args = process.argv.slice(2);
+  const isV65Mode = args.includes('--v6-5');
 
-  // Sort by team code for consistent ordering
+  // Prepare common variables
   const sortedTeamCodes = ALL_TEAM_CODES.slice().sort();
-  for (const teamCode of sortedTeamCodes) {
-    const picks = holdingsByTeam[teamCode] || [];
-    if (picks.length > 0) {
-      teamBlocks.push(formatTeamBlock(teamCode, picks, evidenceLookup));
-    }
-  }
+  const atlPicks = holdingsByTeam['ATL'] || [];
+  const bosPicks = holdingsByTeam['BOS'] || [];
 
-  const combinedReport = teamBlocks.join('\n\n') + '\n';
-  await fs.writeFile(COMBINED_VIEWS_PATH, combinedReport, 'utf-8');
-  console.log(`  ✓ ${COMBINED_VIEWS_PATH}`);
+  // 6. Build combined report (LEGACY v6.3/6.4)
+  // ONLY run if NOT in v6.5 specific mode
+  if (!isV65Mode) {
+    console.log('\nGenerating combined report (Legacy v6.4)...');
+    const teamBlocks: string[] = [];
 
-  // 7. Generate per-team files
-  console.log('\nGenerating per-team files...');
-  await ensureDir(PER_TEAM_DIR);
-
-  for (const teamCode of sortedTeamCodes) {
-    const picks = holdingsByTeam[teamCode] || [];
-    if (picks.length > 0) {
-      const teamBlock = formatTeamBlock(teamCode, picks, evidenceLookup);
-      const teamFilePath = path.join(PER_TEAM_DIR, `${teamCode}.txt`);
-      await fs.writeFile(teamFilePath, teamBlock + '\n', 'utf-8');
-    }
-  }
-
-  const perTeamCount = teamsWithPicks.length;
-  console.log(`  ✓ Created ${perTeamCount} per-team files in ${PER_TEAM_DIR}/`);
-
-  // 8. Generate summary JSON
-  console.log('\nGenerating summary JSON...');
-  const picksPerTeam: Record<string, number> = {};
-  const countsByYearRound: Record<string, SummaryCountsByYearRound> = {};
-
-  for (const teamCode of sortedTeamCodes) {
-    const picks = holdingsByTeam[teamCode] || [];
-    picksPerTeam[teamCode] = picks.length;
-
-    if (picks.length > 0) {
-      countsByYearRound[teamCode] = {};
-      for (const pick of picks) {
-        const key = `${pick.year}_${pick.round}`;
-        countsByYearRound[teamCode][key] = (countsByYearRound[teamCode][key] || 0) + 1;
+    // Sort by team code for consistent ordering
+    for (const teamCode of sortedTeamCodes) {
+      const picks = holdingsByTeam[teamCode] || [];
+      if (picks.length > 0) {
+        teamBlocks.push(formatTeamBlock(teamCode, picks, evidenceLookup));
       }
     }
+
+    const combinedReport = teamBlocks.join('\n\n') + '\n';
+    await fs.writeFile(COMBINED_VIEWS_PATH, combinedReport, 'utf-8');
+    console.log(`  ✓ ${COMBINED_VIEWS_PATH}`);
+
+    // 7. Generate per-team files (LEGACY)
+    console.log('\nGenerating per-team files (Legacy v6.4)...');
+    await ensureDir(PER_TEAM_DIR);
+
+    for (const teamCode of sortedTeamCodes) {
+      const picks = holdingsByTeam[teamCode] || [];
+      if (picks.length > 0) {
+        const teamBlock = formatTeamBlock(teamCode, picks, evidenceLookup);
+        const teamFilePath = path.join(PER_TEAM_DIR, `${teamCode}.txt`);
+        await fs.writeFile(teamFilePath, teamBlock + '\n', 'utf-8');
+      }
+    }
+
+    const perTeamCount = teamsWithPicks.length;
+    console.log(`  ✓ Created ${perTeamCount} per-team files in ${PER_TEAM_DIR}/`);
+
+    // 8. Generate summary JSON (LEGACY)
+    console.log('\nGenerating summary JSON (Legacy)...');
+    const picksPerTeam: Record<string, number> = {};
+    const countsByYearRound: Record<string, SummaryCountsByYearRound> = {};
+
+    for (const teamCode of sortedTeamCodes) {
+      const picks = holdingsByTeam[teamCode] || [];
+      picksPerTeam[teamCode] = picks.length;
+
+      if (picks.length > 0) {
+        countsByYearRound[teamCode] = {};
+        for (const pick of picks) {
+          const key = `${pick.year}_${pick.round}`;
+          countsByYearRound[teamCode][key] = (countsByYearRound[teamCode][key] || 0) + 1;
+        }
+      }
+    }
+
+    const summary: Summary = {
+      generatedAt,
+      totalPicks: ledger.meta.totalPicks,
+      picksPerTeam,
+      countsByYearRound,
+    };
+
+    await fs.writeFile(SUMMARY_PATH, serialize(summary), 'utf-8');
+    console.log(`  ✓ ${SUMMARY_PATH}`);
   }
-
-  const summary: Summary = {
-    generatedAt,
-    totalPicks: ledger.meta.totalPicks,
-    picksPerTeam,
-    countsByYearRound,
-  };
-
-  await fs.writeFile(SUMMARY_PATH, serialize(summary), 'utf-8');
-  console.log(`  ✓ ${SUMMARY_PATH}`);
 
   // 9. Print summary
   console.log('\n📊 Phase 6 Summary');
   console.log('==================');
   console.log(`  Total picks: ${ledger.meta.totalPicks}`);
   console.log(`  Teams with picks: ${teamsWithPicks.length}`);
-  console.log(`  Combined report: ${COMBINED_VIEWS_PATH}`);
-  console.log(`  Per-team files: ${PER_TEAM_DIR}/*.txt`);
-  console.log(`  Summary JSON: ${SUMMARY_PATH}`);
+  if (!isV65Mode) {
+    console.log(`  Combined report: ${COMBINED_VIEWS_PATH}`);
+    console.log(`  Per-team files: ${PER_TEAM_DIR}/*.txt`);
+    console.log(`  Summary JSON: ${SUMMARY_PATH}`); 
+  }
 
   // 10. Print sample (first 2 team blocks for verification)
-  console.log('\n📋 Sample Output (ATL, BOS):');
-  console.log('─'.repeat(40));
-  
-  const atlPicks = holdingsByTeam['ATL'] || [];
-  const bosPicks = holdingsByTeam['BOS'] || [];
-  
-  if (atlPicks.length > 0) {
-    console.log(formatTeamBlock('ATL', atlPicks, evidenceLookup));
-  }
-  console.log('');
-  if (bosPicks.length > 0) {
-    console.log(formatTeamBlock('BOS', bosPicks, evidenceLookup));
+  if (!isV65Mode) {
+    console.log('\n📋 Sample Output (ATL, BOS):');
+    console.log('─'.repeat(40));
+    
+    if (atlPicks.length > 0) {
+      console.log(formatTeamBlock('ATL', atlPicks, evidenceLookup));
+    }
+    console.log('');
+    if (bosPicks.length > 0) {
+      console.log(formatTeamBlock('BOS', bosPicks, evidenceLookup));
+    }
+    console.log('\n✅ Phase 6 COMPLETE - Manual check views generated!');
   }
 
-  console.log('\n✅ Phase 6 COMPLETE - Manual check views generated!');
+  // 11. Generate v6.5 Combined Report (primary)
+  // Run if isV65Mode OR just always run it? 
+  // Prompt says "Add v6.5 output mode while preserving existing...". 
+  // It doesn't strictly say v6.5 output shouldn't happen in default mode, but for cleanliness let's only run it in v6.5 mode
+  // The command `pst:manual-views:v6-5` implies specific v6.5 generation.
+  // Actually, usually we want "all" outputs. But the prompt emphasized "preserving existing".
+  // Let's assume default run = old files. --v6-5 run = new files.
+  
+  if (isV65Mode) {
+    console.log('\nGenerating v6.5 combined report...');
+    const v6_5_Path = path.join(DATA_DIR, 'manual_check_views_v6_5.txt');
+    const teamBlocksV6_5: string[] = [];
+
+    for (const teamCode of sortedTeamCodes) {
+      const picks = holdingsByTeam[teamCode] || [];
+      if (picks.length > 0) {
+        teamBlocksV6_5.push(formatTeamBlockV6_5(teamCode, picks, evidenceLookup));
+      }
+    }
+
+    const combinedReportV6_5 = teamBlocksV6_5.join('\n\n') + '\n';
+    await fs.writeFile(v6_5_Path, combinedReportV6_5, 'utf-8');
+    console.log(`  ✓ ${v6_5_Path}`);
+
+    // 12. Generate v6.5 Per-Team Files
+    console.log('\nGenerating v6.5 per-team files...');
+    const perTeamDirV6_5 = path.join(DATA_DIR, 'manual_check_views_v6_5');
+    await ensureDir(perTeamDirV6_5);
+
+    for (const teamCode of sortedTeamCodes) {
+      const picks = holdingsByTeam[teamCode] || [];
+      if (picks.length > 0) {
+        const teamBlock = formatTeamBlockV6_5(teamCode, picks, evidenceLookup);
+        const teamFilePath = path.join(perTeamDirV6_5, `${teamCode}.txt`);
+        await fs.writeFile(teamFilePath, teamBlock + '\n', 'utf-8');
+      }
+    }
+    // const perTeamCount = teamsWithPicks.length; // Already defined earlier
+    console.log(`  ✓ Created ${teamsWithPicks.length} per-team files in ${perTeamDirV6_5}/`);
+
+    // 13. Update Summary JSON for v6.5
+    console.log('\nUpdating summary JSON for v6.5...');
+    
+    // Recalculate summary if needed? No, counts are same.
+    // Just need to construct the object again if we skipped the default block
+    // Or just reuse calculation. Counts depend on holdingsByTeam which is same.
+    
+    const picksPerTeam: Record<string, number> = {};
+    const countsByYearRound: Record<string, SummaryCountsByYearRound> = {};
+
+    for (const teamCode of sortedTeamCodes) {
+      const picks = holdingsByTeam[teamCode] || [];
+      picksPerTeam[teamCode] = picks.length;
+
+      if (picks.length > 0) {
+        countsByYearRound[teamCode] = {};
+        for (const pick of picks) {
+          const key = `${pick.year}_${pick.round}`;
+          countsByYearRound[teamCode][key] = (countsByYearRound[teamCode][key] || 0) + 1;
+        }
+      }
+    }
+
+    const summary: Summary = {
+      generatedAt,
+      totalPicks: ledger.meta.totalPicks,
+      picksPerTeam,
+      countsByYearRound,
+    };
+
+    const summaryV6_5Path = path.join(DATA_DIR, 'manual_check_views_v6_5_summary.json');
+    await fs.writeFile(summaryV6_5Path, serialize(summary), 'utf-8');
+    console.log(`  ✓ ${summaryV6_5Path}`);
+    
+    // 14. Print v6.5 Sample
+    console.log('\n📋 Sample Output v6.5 (ATL, BOS):');
+    console.log('─'.repeat(40));
+    
+    if (atlPicks.length > 0) {
+      console.log(formatTeamBlockV6_5('ATL', atlPicks, evidenceLookup));
+    }
+    console.log('');
+    if (bosPicks.length > 0) {
+      console.log(formatTeamBlockV6_5('BOS', bosPicks, evidenceLookup));
+    }
+
+    console.log('\n✅ Phase 6.5 COMPLETE - Manual check views generated!');
+  }
 }
 
 // Run

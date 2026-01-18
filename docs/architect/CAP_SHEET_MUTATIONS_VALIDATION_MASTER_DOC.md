@@ -218,6 +218,7 @@ interface CapHold {
 | **Signing Terms Invalid** | `capLegalityValidation.js:validateSigning` | Pre-persist | **Hard Block** | `contract.contractLength` OR `salariesByYear.length`, Salary Engine signing terms |
 | **Signing Raise Invalid** | `capLegalityValidation.js:validateSigning` | Pre-persist | **Hard Block** | `contract.salariesByYear[].salary`/`capHit`, Salary Engine raise percentage |
 | **First Year Max Invalid** | `capLegalityValidation.js:validateSigning` | Pre-persist | **Hard Block** | `contract.salariesByYear[0]`, `signedUsing`, `capRulesProfile.exceptions` |
+| **Signing First Year Engine Max Invalid** | `capLegalityValidation.js:validateSigning` | Pre-persist | **Hard Block** | `contract.salariesByYear[0]`, Salary Engine `maxFirstYearSalary`, Bird rights type |
 | **Second Apron Minimum Only** | `capLegalityValidation.js:validateSigning` | Pre-persist | **Hard Block** | `team.totals`, `contract.salariesByYear[0]`, `player` (YOS), `capRulesProfile` |
 | Roster Minimum (<14) | `capLegalityValidation.js:validateWaive` | Pre-persist | Warning | `team.players` |
 | Dead Cap Creation | `capLegalityValidation.js:validateWaive` | Pre-persist | Info | `player.contract` |
@@ -227,6 +228,11 @@ interface CapHold {
 | **Extension Years Invalid** | `capLegalityValidation.js:validateExtension` | Pre-persist | **Hard Block** | `extension.salariesByYear.length` OR `extension.contractLength` |
 | **Extension First Year Max Invalid** | `capLegalityValidation.js:validateExtension` | Pre-persist | **Hard Block** | `player.contract.salariesByYear[-1].salary`, `extension.salariesByYear[0].salary` |
 | **Extension Raise Invalid** | `capLegalityValidation.js:validateExtension` | Pre-persist | **Hard Block** | `extension.salariesByYear[].salary` (consecutive years) |
+| **Contract Row Schema Invalid** | `capLegalityValidation.js:validateSigning` | Pre-persist | **Hard Block** | `contract.salariesByYear[]` (negative salary/capHit, missing season) |
+| **Contract Guarantee Invalid** | `capLegalityValidation.js:validateSigning` | Pre-persist | **Hard Block** | `salariesByYear[].guaranteed`, `guaranteedAmount` (contradictory values) |
+| **Contract Option Invalid** | `capLegalityValidation.js:validateSigning` | Pre-persist | **Hard Block** | `salariesByYear[].option` (invalid enum value) |
+| **Free Agency State Invalid** | `capLegalityValidation.js:validateSigning` | Pre-persist | **Hard Block** | `contract.freeAgency` (string format or invalid year type) |
+| **Cap Hold Transition Invalid** | `capLegalityValidation.js:validateOptionDecision` | Pre-persist | **Hard Block** | Enforces correct cap hold creation/removal and freeAgency state on option decline |
 | First Apron Warning | `capLegalityValidation.js:validateSigning` | Pre-persist | Warning | `projectedCapHit`, `capSettings.firstApron` |
 | Second Apron Warning | `capLegalityValidation.js:validateSigning` | Pre-persist | Warning | `projectedCapHit`, `capSettings.secondApron` |
 | Cap Hold Info | `capLegalityValidation.js:validateRenounceRights` | Pre-persist | Info | `team.capHolds` |
@@ -249,11 +255,17 @@ interface CapHold {
 * `signing_terms_invalid` - Salary Engine max years exceeded for signing mechanism
 * `signing_raise_invalid` - Salary Engine raise percentage exceeded for signing
 * `first_year_max_invalid` - First-year salary exceeds mechanism max OR MINIMUM contract above min salary
+* `signing_first_year_engine_max_invalid` - First-year salary/capHit exceeds Salary Engine max (Bird rights/cap space)
 * `second_apron_minimum_only` - Teams above second apron can only sign to minimum salary
 * `extension_ineligible` - Two-way contracts cannot be extended (must convert first)
 * `extension_years_invalid` - Extension length outside 1-4 years (baseline; designated vet allows 5)
 * `extension_first_year_max_invalid` - Extension first-year salary exceeds 120% baseline (Salary Engine overrides when available)
 * `extension_raise_invalid` - Extension year-over-year raises exceed 8%
+* `contract_row_schema_invalid` - Salary row has negative salary/capHit or missing season
+* `contract_guarantee_invalid` - Guarantee fields contradictory (e.g., `guaranteedAmount` > `salary`)
+* `contract_option_invalid` - Option field has invalid enum value (must be "Team Option", "Player Option", or null)
+* `free_agency_state_invalid` - freeAgency is legacy string format or has invalid year type
+* `cap_hold_transition_invalid` - Cap hold creation/removal contradicts option decision (reserved)
 
 **Soft Warning Rules (Overridable in dev mode via `VITE_ENABLE_CBA_OVERRIDE=true`):**
 
@@ -460,6 +472,62 @@ This section defines the canonical contract schema that all world mutation write
 
 ---
 
+## 9.6 Signing Terms Shape (Phase 6)
+
+This section defines the canonical shape for signing terms used in validation.
+
+### Canonical SigningTerms Type
+
+```typescript
+type SigningTerms = {
+  source: 'salary_engine' | 'baseline';
+  mechanism: 'FULL_MLE' | 'TPMLE' | 'ROOM_MLE' | 'BAE' | 'MINIMUM' | 'UNKNOWN' | string;
+  rightsType?: 'FULL_BIRD' | 'EARLY_BIRD' | 'NON_BIRD' | 'CAP_SPACE' | 'NONE' | null;
+  maxYears?: number | null;
+  minYears?: number | null;
+  raisePercentage?: number | null;
+  maxFirstYearSalary?: number | null;
+  minFirstYearSalary?: number | null;
+  notes?: string;
+};
+```
+
+### Field Definitions
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `source` | `'salary_engine'` \| `'baseline'` | Origin of terms data (engine-computed vs fallback) |
+| `mechanism` | `string` | **Exception bucket** (e.g., `FULL_MLE`, `TPMLE`, `ROOM_MLE`, `BAE`, `MINIMUM`, `UNKNOWN`). NOT Bird rights. |
+| `rightsType` | `string` \| `null` | **Bird rights type** (e.g., `FULL_BIRD`, `EARLY_BIRD`, `NON_BIRD`, `CAP_SPACE`, `NONE`). NOT exception. |
+| `maxYears` | `number` \| `null` | Maximum contract length |
+| `minYears` | `number` \| `null` | Minimum contract length |
+| `raisePercentage` | `number` \| `null` | Max year-over-year raise (e.g., `0.05` for 5%, `0.08` for 8%) |
+| `maxFirstYearSalary` | `number` \| `null` | Maximum first-year salary |
+| `notes` | `string` | Additional context |
+
+### Backward Compatibility
+
+**Location:** `capLegalityValidation.js:normalizeSigningTerms()`
+
+The `normalizeSigningTerms(rawTerms, options)` adapter:
+* Accepts any legacy terms object
+* If `mechanism` contains Bird rights keywords (e.g., "Full Bird"), moves value to `rightsType`
+* Sets `mechanism` to `options.fallbackMechanism` or `'UNKNOWN'` when recovering
+* Normalizes raw `rightsType` strings to canonical enum values
+
+**Example:**
+
+```javascript
+// Legacy (pre-Phase 6)
+const legacy = { mechanism: 'Full Bird', maxYears: 4 };
+
+// Canonical (Phase 6)
+const canonical = normalizeSigningTerms(legacy, { fallbackMechanism: 'FULL_MLE' });
+// => { mechanism: 'FULL_MLE', rightsType: 'FULL_BIRD', maxYears: 4, ... }
+```
+
+---
+
 ## 10. Change Log
 
 | Date | Change |
@@ -476,3 +544,8 @@ This section defines the canonical contract schema that all world mutation write
 | 2026-01-17 | **Contract Rules Phase 3:** Implemented G0-7 (Extension Terms/Raises Enforcement). Added `extension_ineligible`, `extension_years_invalid`, `extension_first_year_max_invalid`, `extension_raise_invalid` to HARD_BLOCK_RULES. `validateExtension` now blocks: (1) two-way contract extensions, (2) extensions > 4 years, (3) first-year exceeds baseline max, (4) raises > 8%. Added helper functions: `getContractLastYearSalary()`, `getExtensionFirstYearSalary()`, `getExtensionYears()`, `validateExtensionTermsAndRaises()`. Added `EXTENSION_YEARS_LIMITS`, `EXTENSION_FIRST_YEAR_MAX_PERCENT`, `EXTENSION_MAX_RAISE_PERCENT` constants. 8 new tests added. |
 | 2026-01-17 | **Contract Rules Phase 3.25:** Fixed extension first-year max baseline (140%→120%). Wired Salary Engine `extensionTerms` into `validateExtension`. Engine-computed terms now override baseline for type-specific rules (rookie/designated vet/veteran). Added `getExtensionTermsForPlayer()` helper. Updated tests (constant check, 125% blocking test, engine override test). |
 | 2026-01-17 | **Contract Rules Phase 4:** Wired Salary Engine signing terms into `validateSigning` for max years + raise caps. Added `signing_terms_invalid` and `signing_raise_invalid` to HARD_BLOCK_RULES. Salary Engine max first-year is now enforced as an additional cap when available. Added signing terms helper + raise validation helper, updated tests, and documented pipeline authority for signing guardrails. |
+| 2026-01-18 | **Contract Rules Phase 4.5:** Added distinct `signing_first_year_engine_max_invalid` rule for engine-derived first-year max violations. Separates Bird rights/cap space enforcement from fallback exception cap enforcement (`first_year_max_invalid`). Includes rights info in violation messages. 6 new tests added. |
+| 2026-01-18 | **Contract Rules Phase 5:** Added contract row schema validation. 3 new HARD_BLOCK rules: `contract_row_schema_invalid` (negative salary/capHit, missing season), `contract_guarantee_invalid` (guaranteedAmount > salary, guaranteed=false + positive amount), `contract_option_invalid` (invalid option enum). Added `validateContractRows()` aggregator wired into `validateSigning`. Policy: normalize `optionUsed` to null when option is null; hard-block other violations. 14 new tests added. |
+| 2026-01-18 | **Contract Rules Phase 6:** Separated `mechanism` (exception bucket) from `rightsType` (Bird rights type). Added canonical `SigningTerms` shape documentation. Created `normalizeSigningTerms()` backward-compat adapter. Updated `buildBaseSigningTerms()` and `buildExceptionSigningTerms()` to use proper field separation. Violation payloads now include both `mechanism` and `rightsType`. Re-signing (Bird rights) is now pipeline-authoritative. 13 new tests added. |
+| 2026-01-18 | **Contract Rules Phase 7:** Added canonical freeAgency state validation. 2 new HARD_BLOCK rules: `free_agency_state_invalid` (blocks legacy string format, invalid year type), `cap_hold_transition_invalid` (reserved for option accept/decline contradictions). Created `validateFreeAgencyState()` in `contractNormalization.js`. Wired into `validateSigning()`. Warns on RFA missing QO and UFA with QO set. 10 new tests added. |
+| 2026-01-18 | **Contract Rules Phase 7.1:** Enforced `cap_hold_transition_invalid`. `validateOptionDecision` now blocks option accept if cap hold created, and decline if missing hold. Created `capHoldTransitionHelpers.js`. Adopted simplified 150% cap hold model for now. Fixed `freeAgentYear` bug in pipeline. 5 new tests added. |

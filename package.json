@@ -90,8 +90,9 @@
     "pst:phase-4:report": "npx tsx team-scrape/draft-picks/scripts/pst/pst_phase_4_build_profiles.ts && cat data/pst/pst_phase_4_report.json",
     "pst:phase-5": "npx tsx team-scrape/draft-picks/scripts/pst/pst_phase_5_finalize.ts",
     "pst:phase-5:validate": "npx tsx team-scrape/draft-picks/scripts/pst/pst_phase_5_finalize.ts",
-    "pst:build-final": "npm run pst:phase-4 && npm run pst:phase-5 && npm run pst:phase-5:validate && npm run pst:manual-views",
-    "pst:manual-views": "npx tsx team-scrape/draft-picks/scripts/pst/pst_phase_6_manual_check_views.ts"
+    "pst:build-final": "npm run pst:phase-4 && npm run pst:phase-5 && npm run pst:phase-5:validate && npm run pst:manual-views && npm run pst:manual-views:v6-5",
+    "pst:manual-views": "npx tsx team-scrape/draft-picks/scripts/pst/pst_phase_6_manual_check_views.ts",
+    "pst:manual-views:v6-5": "npx tsx team-scrape/draft-picks/scripts/pst/pst_phase_6_manual_check_views.ts --v6-5"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.6",
