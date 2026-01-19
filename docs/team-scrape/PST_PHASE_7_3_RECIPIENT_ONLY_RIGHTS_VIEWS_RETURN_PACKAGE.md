@@ -7,6 +7,8 @@ Updated Phase 7 rights views to suppress non-recipient "owes" lines for ranked s
 ## Files Changed
 
 - `team-scrape/draft-picks/scripts/pst/pst_phase_7_rights_views.ts`
+- `docs/COMPONENT_INDEX.md`
+- `docs/components/RankerHierarchy.md`
 - `docs/team-scrape/PST_PHASE_7_3_RECIPIENT_ONLY_RIGHTS_VIEWS_RETURN_PACKAGE.md`
 
 ## Commands Run
