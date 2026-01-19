@@ -170,19 +170,8 @@ function main() {
           controllerInfo: `controller ${controller}`,
           debug_sourcePickId: pick.pickId
         });
+        // Ranked distributions: recipient-only lines; owed-side entries not generated since pool order is deterministic.
 
-        // 2. The "Owes" side (The team whose pick it is)
-        if (pick.owner !== controller) {
-          entitlements.push({
-            team: pick.owner,
-            year: pick.year,
-            round: pick.round,
-            description: `owes ${spec.order} favorable to ${controller}`,
-            poolInfo: `pool (${pool.join(',')})`,
-            controllerInfo: `via ${controller} swap rights`,
-            debug_sourcePickId: pick.pickId
-          });
-        }
       } else if (spec.kind === 'conveys') {
         entitlements.push({
           team: pick.owner,
