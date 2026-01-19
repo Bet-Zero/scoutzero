@@ -31,6 +31,7 @@
 ## 2) Audit Findings (Current Logic)
 
 **Cap hold computation locations (pre-Phase 7.2):**
+
 * `src/features/architect/utils/mutationPipeline.js` -> `computeOptionResult` used 150% placeholder.
 * `src/features/architect/utils/seasonManager.js` -> `processOptionsWithDecisions` used `calculateCapHold` from `capHolds.ts`.
 * `src/features/architect/hooks/useCapSheetState.js` -> option decline used `calculateCapHold`.
@@ -38,10 +39,12 @@
 * `src/features/architect/utils/capHoldTransitionHelpers.js` -> `computeExpectedCapHoldAmount` used 150% placeholder.
 
 **RightsType availability:**
+
 * Player objects commonly include `player.contract.birdRights.status` (e.g., "Full", "Early Bird", "Non-Bird", "None").
 * Canonical rightsType strings (FULL_BIRD/EARLY_BIRD/NON_BIRD) are already normalized in `capLegalityValidation` signing terms helpers.
 
 **Existing cap hold tables:**
+
 * `src/features/architect/utils/capHolds.ts` -> `CAP_HOLD_MULTIPLIERS` (was FULL 1.9, EARLY 1.75, NON 1.2).
 * `src/features/architect/utils/playerRulesProfile/birdRightsRules.js` -> `capHoldMultiplier` for Early Bird 1.3, Non-Bird 1.2.
 
@@ -52,31 +55,37 @@
 ## 3) Canonical Computation Rules (Percent Table + Rounding)
 
 **Rights-based multiplier table (Phase 7.2):**
+
 * FULL_BIRD: 1.90
 * EARLY_BIRD: 1.30
 * NON_BIRD: 1.20
 * CAP_SPACE / NONE / UNKNOWN: fallback 1.50 (legacy placeholder)
 
 **Rounding:**
+
 * Expected cap hold amount uses `Math.round(lastSalary * multiplier)`.
 * Validation enforces |actual - expected| <= 1.
 
 ## 4) FA Year Derivation Method
 
 **Method:**
+
 * Derive end year from option season string ("YYYY-YY") using `toEndYear`, then convert to start year (endYear - 1).
 
 **Example:**
+
 * Option season "2025-26" -> endYear 2026 -> FA year 2025.
 
 ## 5) Enforcement Details (Hard Block + Warnings)
 
 **Hard block (`cap_hold_transition_invalid`):**
+
 * Declined option must create cap hold when prior salary exists.
 * Cap hold amount must match computed expected value (within tolerance).
 * Cap hold amount must be a non-negative finite number.
 
 **Warnings:**
+
 * `cap_hold_transition_inputs_missing` when rightsType is missing/unsupported (fallback multiplier used) or option season missing (FA year fallback).
 * `cap_hold_transition_unexpected` when freeAgency.year does not match derived year.
 
@@ -161,4 +170,5 @@ dist/assets/index-9890ad53.js          1,883.45 kB │ gzip: 550.55 kB
 ---
 
 **Phase 7.1 return package:**
+
 * `docs/architect/return-packages/2026-01-18_CAP_SHEET_CONTRACT_RULES_PHASE_7_1_CAP_HOLD_TRANSITIONS.md` already exists (no retro creation needed).

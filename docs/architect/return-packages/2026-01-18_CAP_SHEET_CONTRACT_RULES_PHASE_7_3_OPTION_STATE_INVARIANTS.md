@@ -33,22 +33,26 @@
 **Search targets:** `CAP_HOLD_MULTIPLIERS`, `1.75`, `1.30`, `1.9`, `1.2`, “Early Bird” + “cap hold”, `computeExpectedCapHoldAmount` / `calculateCapHold`.
 
 **Findings:**
+
 * Canonical multiplier table lives in `src/features/architect/utils/capHolds.ts` (`CAP_HOLD_MULTIPLIERS`).
 * `capHoldTransitionHelpers.js` already imports `CAP_HOLD_MULTIPLIERS` for option decline expectations.
 * `birdRightsRules.js` contained hard-coded `capHoldMultiplier` values (Early/Non-Bird). These now import `CAP_HOLD_MULTIPLIERS` to avoid a second table.
 
 **Resolution:**
+
 * `CAP_HOLD_MULTIPLIERS` is now the single authoritative table; all other references import it.
 
 ## 3) Option Transition Invariants
 
 **Option Accept (Pipeline-Authoritative):**
+
 * No cap hold created for the player.
 * `optionUsed === true` on the option year row.
 * Player remains on team roster (no roster removal).
 * `salariesByYear` remains coherent (option row present for target year).
 
 **Option Decline (Pipeline-Authoritative):**
+
 * Cap hold created when expected, and amount matches canonical multipliers (Phase 7.2).
 * Player is not rostered as a signed player for the declined option year.
 * `freeAgency` is canonical object and year matches derived option year.
@@ -57,6 +61,7 @@
 ## 4) Enforcement Details (Rules + Triggers)
 
 **Hard blocks (new in Phase 7.3):**
+
 * `option_accept_player_not_rostered`
 * `option_accept_option_row_invalid`
 * `option_decline_player_still_rostered`
@@ -64,9 +69,11 @@
 * `option_decline_free_agency_year_mismatch`
 
 **Existing hard block (Phase 7.x):**
+
 * `cap_hold_transition_invalid` (accept creates cap hold, decline missing/invalid hold)
 
 **Notes:**
+
 * `validateOptionDecision` now accepts `originalTeam`, `updatedTeam`, `originalPlayer`, `updatedPlayer` for invariant checks.
 * Free agency year mismatches are now hard-blocked (deterministic derivation from option season).
 * If `updatedTeam.roster` is missing or non-array, roster-based invariants are skipped (documented limitation).

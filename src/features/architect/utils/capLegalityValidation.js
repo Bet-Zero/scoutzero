@@ -38,7 +38,11 @@ import {
   buildRuleContextForPlayerMove,
   getSalaryProfile,
 } from '@/features/architect/utils/salaryEngine';
-import { validateFreeAgencyState } from '@/features/architect/utils/contractNormalization';
+import { 
+  validateFreeAgencyState,
+  normalizeTeamRef,
+  normalizePlayerTeamRef,
+} from '@/features/architect/utils/contractNormalization';
 import {
   getCapHoldForPlayer,
   didCreateCapHold,
@@ -49,6 +53,13 @@ import {
   getRightsTypeFromPlayer,
   deriveFreeAgencyYearFromOptionSeason,
 } from './capHoldTransitionHelpers';
+import {
+  getRookieScaleAmount,
+  ROOKIE_SCALE_MIN_PCT,
+  ROOKIE_SCALE_MAX_PCT,
+  ROOKIE_SCALE_TOLERANCE
+} from '@/features/architect/data/rookieScale.ts';
+import { normalizeSeasonKey } from '@/features/architect/data/capYearData.ts';
 // ==============================================================================
 // CONSTANTS
 // ==============================================================================
@@ -93,6 +104,13 @@ export const HARD_BLOCK_RULES = [
   'option_decline_player_still_rostered', // Declined option but player still on roster
   'option_decline_contract_row_still_present_for_declined_season', // Declined option but contract row still present
   'option_decline_free_agency_year_mismatch', // Declined option freeAgency.year mismatch
+  // Phase 8/10: RFA/QO and re-signing rules
+  'rfa_state_invalid',            // RFA freeAgency object has invalid year (not plausible integer)
+  'rfa_missing_qualifying_offer', // RFA type but qualifyingOffer is not a finite number > 0
+  'rfa_offer_sheet_not_supported', // Phase 10: Signing RFA player from non-home team (offer sheet matching not implemented)
+  'rfa_team_identity_unverifiable', // Phase 10: RFA signing where team identity cannot be verified
+  'resigning_ineligible',         // Re-signing player without proper team eligibility (no rights)
+  'rookie_scale_invalid',         // Phase 11: Rookie scale contract outside 80-120% band
 ];
 
 /**
@@ -170,6 +188,8 @@ export const SOFT_WARNING_RULES = [
   'cap_hold_creation', // Cap hold created
   'no_rights',        // No rights to renounce (info)
   'cap_data',         // Cap data not available
+  'resigning_eligibility_unverifiable', // Phase 9: Cannot verify re-signing eligibility (missing fields)
+  'rfa_qualifying_offer_suspicious',    // Phase 10: QO > 3x last salary (may be data issue)
 ];
 
 /**
@@ -1609,6 +1629,115 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
       warnings.push(...faStateResult.warnings);
     }
   }
+  
+  // 0.7. PHASE 10: DIFFERENTIATED RFA GUARDRAILS
+  // Home team RFA actions are allowed. Offer sheet attempts (non-home team) are blocked.
+  // Unverifiable team identity is also blocked to prevent silent incorrect state.
+  const playerFreeAgency = player?.freeAgency || player?.contract?.freeAgency;
+  if (playerFreeAgency?.type === 'RFA') {
+    const normalizedSigningTeam = normalizeTeamRef(team);
+    const normalizedPlayerTeam = normalizePlayerTeamRef(player);
+    
+    // Case 1: Cannot verify team identity - hard block
+    if (normalizedSigningTeam === null || normalizedPlayerTeam === null) {
+      violations.push({
+        rule: 'rfa_team_identity_unverifiable',
+        message: 'Cannot verify RFA home team status. Team/player identity could not be normalized.',
+        severity: 'error',
+        playerName: player?.name || player?.displayName || player?.player_id,
+        rawSigningTeamRef: team?.teamCode || team?.code || 'missing',
+        rawPlayerTeamRef: player?.teamId || player?.team_id || player?.contract?.signingTeam || 'missing',
+        freeAgency: {
+          type: 'RFA',
+          year: playerFreeAgency?.year,
+          qualifyingOffer: playerFreeAgency?.qualifyingOffer,
+        },
+      });
+    }
+    // Case 2: Offer sheet attempt (non-home team) - hard block
+    else if (normalizedPlayerTeam !== normalizedSigningTeam) {
+      violations.push({
+        rule: 'rfa_offer_sheet_not_supported',
+        message: `Signing RFA player from non-home team is not yet supported. Offer sheet matching required for ${normalizedPlayerTeam} player, signed by ${normalizedSigningTeam}.`,
+        severity: 'error',
+        playerName: player?.name || player?.displayName || player?.player_id,
+        normalizedPlayerTeam,
+        normalizedSigningTeam,
+        freeAgency: {
+          type: 'RFA',
+          year: playerFreeAgency?.year,
+          qualifyingOffer: playerFreeAgency?.qualifyingOffer,
+        },
+      });
+    }
+    // Case 3: Home team RFA action - allowed, continue through normal validation
+    // No additional block here - QO and re-signing checks remain enforced.
+  }
+
+  
+  // 0.8. PHASE 8/9: RE-SIGNING ELIGIBILITY CHECK
+  // If this is a re-signing (using Bird rights), verify the player is eligible to be re-signed by this team.
+  // Eligibility requires: (1) player was on this team (normalized team match) AND (2) birdRights not None/renounced
+  // Phase 9: Uses canonical normalizers to avoid false-blocks from format mismatches (e.g., "NBA:LAL" vs "LAL")
+  const signingTermsForEligibility = getSigningTermsForPlayer({ team, player, contract, year, signedUsing });
+  const normalizedTerms = signingTermsForEligibility 
+    ? normalizeSigningTerms(signingTermsForEligibility, { fallbackMechanism: 'UNKNOWN' })
+    : null;
+  const rightsType = normalizedTerms?.rightsType;
+  
+  // Only check eligibility for Bird rights re-signings (FULL_BIRD, EARLY_BIRD, NON_BIRD)
+  if (rightsType && ['FULL_BIRD', 'EARLY_BIRD', 'NON_BIRD'].includes(rightsType)) {
+    // Phase 9: Use canonical normalizers for team identity
+    const normalizedTeamCode = normalizeTeamRef(team);
+    const normalizedPlayerTeam = normalizePlayerTeamRef(player);
+    const birdRightsStatus = player?.contract?.birdRights?.status || player?.birdRights?.status;
+    const rightsRenounced = player?.contract?.birdRights?.renounced === true || player?.birdRights?.renounced === true;
+    
+    // Phase 9: Check if we can verify eligibility (both sides must be normalizable)
+    const canVerifyTeamMatch = normalizedTeamCode !== null && normalizedPlayerTeam !== null;
+    
+    // Check 1: Player must belong to this team (normalized comparison)
+    const hasTeamMatch = canVerifyTeamMatch && normalizedPlayerTeam === normalizedTeamCode;
+    
+    // Check 2: Bird rights must not be None, renounced, or explicitly rightsRenounced
+    const hasValidRights = birdRightsStatus && 
+      birdRightsStatus.toLowerCase() !== 'none' &&
+      birdRightsStatus.toLowerCase() !== 'renounced' &&
+      !rightsRenounced;
+    
+    // Phase 9: If we cannot verify eligibility, add warning instead of hard-blocking
+    if (!canVerifyTeamMatch) {
+      const rawPlayerTeamId = player?.teamId || player?.team_id || player?.contract?.signingTeam;
+      const rawTeamCode = team?.teamCode || team?.code;
+      warnings.push({
+        rule: 'resigning_eligibility_unverifiable',
+        message: `Cannot verify re-signing eligibility: team identity could not be normalized. Team ref: "${rawTeamCode || 'missing'}", Player team ref: "${rawPlayerTeamId || 'missing'}".`,
+        severity: 'warning',
+        playerName: player?.name || player?.displayName || player?.player_id,
+        rightsType,
+        rawTeamCode,
+        rawPlayerTeamId: rawPlayerTeamId || null,
+      });
+    } else if (!hasTeamMatch || !hasValidRights) {
+      // If we CAN verify and it fails, hard-block
+      const reason = !hasTeamMatch 
+        ? `Player's team (${normalizedPlayerTeam}) does not match signing team (${normalizedTeamCode}).`
+        : rightsRenounced
+          ? `Player's Bird rights have been explicitly renounced.`
+          : `Player's Bird rights status is "${birdRightsStatus || 'None'}".`;
+      violations.push({
+        rule: 'resigning_ineligible',
+        message: `Cannot re-sign player using ${rightsType.replace(/_/g, ' ')} rights. ${reason}`,
+        severity: 'error',
+        playerName: player?.name || player?.displayName || player?.player_id,
+        rightsType,
+        normalizedPlayerTeam,
+        normalizedTeamCode,
+        birdRightsStatus,
+        rightsRenounced,
+      });
+    }
+  }
 
   const players = team.players || [];
   
@@ -1678,6 +1807,66 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
     }
   }
   
+  // 1.5.5 PHASE 11: ROOKIE SCALE ENFORCEMENT
+  // Enforces 80%-120% band for first-round picks derived from authoritative 100% scale table.
+  if (!isTwoWay) {
+    // Detect rookie scale signing context
+    // We look for draftPick metadata on contract (preferred) or player
+    const draftPick = contract?.draftPick || player?.draftPick;
+    const pickNumber = draftPick?.pick || draftPick?.number;
+    
+    // Only enforce if we successfully resolved a 1st Round Pick (1-30)
+    // and we have a valid season key to lookup scale data.
+    const seasonKey = normalizeSeasonKey(year);
+    
+    if (pickNumber >= 1 && pickNumber <= 30 && seasonKey) {
+      const scaleAmount = getRookieScaleAmount({ seasonKey, pick: pickNumber });
+      
+      // If we have authoritative scale data for this season/pick
+      if (scaleAmount) {
+        const firstYearSalary = contract?.salariesByYear?.[0]?.salary;
+        const firstYearCapHit = contract?.salariesByYear?.[0]?.capHit; // Optional, defaults to salary if undefined
+        
+        // Calculate bounds (floored/ceiled for safety, plus tolerance check)
+        const minAllowed = Math.floor(scaleAmount * ROOKIE_SCALE_MIN_PCT);
+        const maxAllowed = Math.ceil(scaleAmount * ROOKIE_SCALE_MAX_PCT);
+        
+        // Helper to check value against bounds
+        const checkBounds = (val, label) => {
+          if (val < (minAllowed - ROOKIE_SCALE_TOLERANCE) || val > (maxAllowed + ROOKIE_SCALE_TOLERANCE)) {
+            violations.push({
+              rule: 'rookie_scale_invalid',
+              message: `Rookie scale ${label} ($${(val / 1_000_000).toFixed(3)}M) for pick #${pickNumber} must be between 80% ($${(minAllowed / 1_000_000).toFixed(3)}M) and 120% ($${(maxAllowed / 1_000_000).toFixed(3)}M) of scale amount ($${(scaleAmount / 1_000_000).toFixed(3)}M).`,
+              severity: 'error',
+              details: {
+                pickNumber,
+                scaleAmount,
+                val,
+                minAllowed,
+                maxAllowed,
+                seasonKey
+              }
+            });
+          }
+        };
+
+        if (typeof firstYearSalary === 'number') {
+          checkBounds(firstYearSalary, 'salary');
+        }
+        
+        // ALSO check Cap Hit if explicit
+        // Rookie scale Cap Hit is usually equal to Salary, but if different it must also be legal?
+        // Actually, for Rookie Scale, Cap Hit = Salary typically.
+        // But if they diverge, the CBA rule is on the "Salary".
+        // However, we should ensure consistency or at least warn if capHit is wild?
+        // The Prompt asked: "compare against first-year salary (and capHit if differs) using tolerance"
+        if (typeof firstYearCapHit === 'number' && firstYearCapHit !== firstYearSalary) {
+             checkBounds(firstYearCapHit, 'cap hit');
+        }
+      }
+    }
+  }
+
   // 1.6. Contract years validation (PHASE 2 - CBA Contract Rules)
   // Two-way contracts are excluded - they follow separate term rules
   if (!isTwoWay) {

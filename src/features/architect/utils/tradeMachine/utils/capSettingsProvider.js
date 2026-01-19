@@ -23,6 +23,11 @@
  */
 
 import capProjectionsData from '@/features/architect/utils/capProjections.js';
+import { 
+  getCapYearData, 
+  isRealSeason, 
+  normalizeSeasonKey 
+} from '@/features/architect/data/capYearData.ts';
 
 // ============================================================================
 // Constants
@@ -133,16 +138,31 @@ export function getCapSettings({
   let resolved = false;
 
   // Determine the year/season key
-  let resolvedYear = year;
-  if (typeof year === 'string' && year.includes('-')) {
-    // Convert "2024-25" to 2025
-    const parts = year.split('-');
-    resolvedYear = Number(parts[0]) + 1;
-  } else {
-    resolvedYear = Number(year) || 2025;
+  // Use canonical normalization
+  const seasonKey = normalizeSeasonKey(year);
+  
+  // If year is invalid (e.g. null, undefined, unparseable), fail gracefully or use emergency fallback
+  if (!seasonKey) {
+    if (strict) {
+       throw new Error(`[CapSettingsProvider] FATAL: Invalid year input: ${year}`);
+    }
+    // INVALID INPUT: Return emergency encoded 2024-25
+    return {
+      settings: { ...EMERGENCY_FALLBACK_2024_25 },
+      source: `${CAP_SETTINGS_SOURCE_KEYS.CBA_CONSTANTS}_2024-25_invalid_input`,
+      warnings: ['CRITICAL: Invalid season input. Using 2024-25 emergency fallback.'],
+      resolved: true,
+      year: 2025,
+      seasonKey: '2024-25',
+    };
   }
   
-  const seasonKey = yearToSeasonKey(resolvedYear);
+  // Extract numeric year for adjacent lookup
+  const resolvedYear = Number(seasonKey.split('-')[0]) + 1;
+
+  // Check year authoritative status
+  const yearInfo = getCapYearData(seasonKey);
+  const isProjectedYear = yearInfo.type === 'PROJECTED';
 
   // Priority 1: Use provided cap settings if available and complete
   if (providedCapSettings && typeof providedCapSettings === 'object') {
@@ -156,7 +176,7 @@ export function getCapSettings({
 
   // Priority 2: Look up from provided capProjections parameter
   if (!resolved && capProjections && typeof capProjections === 'object') {
-    const entry = capProjections[seasonKey] || capProjections[resolvedYear];
+    const entry = capProjections[seasonKey];
     if (entry) {
       const normalized = normalizeCapEntry(entry);
       if (normalized && normalized.salaryCap > 0) {
@@ -164,8 +184,8 @@ export function getCapSettings({
         source = `${CAP_SETTINGS_SOURCE_KEYS.PROJECTIONS}[${seasonKey}]`;
         resolved = true;
         
-        if (!normalized.confirmed) {
-          warnings.push(`Cap values for ${seasonKey} are projected (not confirmed)`);
+        if (!normalized.confirmed || isProjectedYear) {
+          warnings.push(`Cap values for ${seasonKey} are projected (${isProjectedYear ? 'Future Year' : 'Unconfirmed'})`);
         }
       }
     }
@@ -173,7 +193,7 @@ export function getCapSettings({
 
   // Priority 3: Look up from default capProjections module
   if (!resolved) {
-    const entry = capProjectionsData[seasonKey] || capProjectionsData[resolvedYear];
+    const entry = capProjectionsData[seasonKey];
     if (entry) {
       const normalized = normalizeCapEntry(entry);
       if (normalized && normalized.salaryCap > 0) {
@@ -181,56 +201,52 @@ export function getCapSettings({
         source = `${CAP_SETTINGS_SOURCE_KEYS.PROJECTIONS}[${seasonKey}]`;
         resolved = true;
         
-        if (!normalized.confirmed) {
-          warnings.push(`Cap values for ${seasonKey} are projected (not confirmed)`);
+        if (!normalized.confirmed || isProjectedYear) {
+           warnings.push(`Cap values for ${seasonKey} are projected (${isProjectedYear ? 'Future Year' : 'Unconfirmed'})`);
         }
       }
     }
   }
 
-  // Priority 4: Try adjacent years as fallback
+  // Priority 4: Try adjacent years as fallback (explicitly marked as fallback/projection)
+  // This is the "Projection Logic" for missing years in valid range
   if (!resolved) {
-    // Try one year earlier
-    const prevSeasonKey = yearToSeasonKey(resolvedYear - 1);
+    // Try one year earlier to project forward
+    const prevSeasonKey = normalizeSeasonKey(resolvedYear - 1);
     const prevEntry = capProjections?.[prevSeasonKey] || 
                       capProjectionsData[prevSeasonKey];
+                      
     if (prevEntry) {
-      const normalized = normalizeCapEntry(prevEntry);
-      if (normalized && normalized.salaryCap > 0) {
-        settings = normalized;
-        source = `${CAP_SETTINGS_SOURCE_KEYS.PROJECTIONS_FALLBACK}[${prevSeasonKey}]`;
+      const normalizedPrev = normalizeCapEntry(prevEntry);
+      if (normalizedPrev && normalizedPrev.salaryCap > 0) {
+        // Project forward (simple inflation if needed, but for now just use prev values with warning)
+        // Ideally we would apply growthRate here, but for safety we just carry forward with explicit source
+        // Todo: Implement actual growth rate application
+        
+        settings = normalizedPrev;
+        source = 'projected_from_previous'; 
         resolved = true;
-        warnings.push(`No cap data for ${seasonKey}; using ${prevSeasonKey} values as fallback`);
+        warnings.push(`No data for ${seasonKey}. Projected using ${prevSeasonKey} values as baseline.`);
       }
     }
   }
 
-  // Priority 5: Use emergency fallback (with strong warning)
+  // Priority 5: Emergency fallback
+  // ONLY for strictly missing data in valid range where no adjacent data exists either.
+  // DO NOT silently return 2024-25.
   if (!resolved) {
     if (strict) {
       throw new Error(
-        `[CapSettingsProvider] FATAL: No cap settings available for year ${resolvedYear} (${seasonKey}). ` +
-        `Ensure capProjections data is available or provide explicit capSettings.`
+        `[CapSettingsProvider] FATAL: No cap settings available for year ${resolvedYear} (${seasonKey}).`
       );
     }
 
     settings = { ...EMERGENCY_FALLBACK_2024_25 };
-    source = `${CAP_SETTINGS_SOURCE_KEYS.CBA_CONSTANTS}_2024-25`;
+    source = `${CAP_SETTINGS_SOURCE_KEYS.CBA_CONSTANTS}_2024-25_emergency`;
     resolved = true;
     warnings.push(
-      `CRITICAL: No cap data for ${seasonKey}. Using 2024-25 emergency fallback values. ` +
-      `Trade validation may be inaccurate!`
+      `CRITICAL: No cap data found for ${seasonKey}. Using 2024-25 emergency fallback values.`
     );
-    
-    // Also log to console in development
-    if (process.env.NODE_ENV === 'development' || import.meta?.env?.DEV) {
-      console.warn(
-        `[CapSettingsProvider] FALLBACK USED for ${seasonKey}:`,
-        settings,
-        '\nStack:',
-        new Error().stack
-      );
-    }
   }
 
   return {

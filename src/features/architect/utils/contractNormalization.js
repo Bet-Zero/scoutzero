@@ -18,6 +18,104 @@
  *  - season: "YYYY-YY" format (e.g., "2025-26")
  */
 
+// ==============================================================================
+// CENTRALIZED POLICIES
+// ==============================================================================
+
+/**
+ * Default context year for plausibility calculations.
+ * This is the fallback when no context year is explicitly provided.
+ */
+const DEFAULT_CONTEXT_YEAR = 2026;
+
+/**
+ * Free Agency year plausibility policy configuration.
+ * These values define the relative offset from context year.
+ */
+const FA_YEAR_PLAUSIBILITY_RANGE = {
+  pastYearsAllowed: 5,   // contextYear - 5 (e.g., 2026 → 2021)
+  futureYearsAllowed: 10, // contextYear + 10 (e.g., 2026 → 2036)
+};
+
+/**
+ * Check if a year is plausible for free agency state.
+ *
+ * Policy: Year must be an integer within [contextYear - 5, contextYear + 10].
+ * This centralizes the previously hard-coded 2020-2040 range.
+ *
+ * @param {number} year - Year to validate
+ * @param {number} [contextYear] - Reference year (defaults to DEFAULT_CONTEXT_YEAR)
+ * @returns {{plausible: boolean, minYear: number, maxYear: number}}
+ */
+export function isPlausibleFreeAgencyYear(year, contextYear = DEFAULT_CONTEXT_YEAR) {
+  const minYear = contextYear - FA_YEAR_PLAUSIBILITY_RANGE.pastYearsAllowed;
+  const maxYear = contextYear + FA_YEAR_PLAUSIBILITY_RANGE.futureYearsAllowed;
+  
+  const plausible = Number.isInteger(year) && year >= minYear && year <= maxYear;
+  
+  return { plausible, minYear, maxYear };
+}
+
+// ==============================================================================
+// TEAM IDENTIFIER NORMALIZATION
+// ==============================================================================
+
+/**
+ * Normalize a team identifier to canonical teamCode format.
+ *
+ * Handles various input formats:
+ * - Already canonical: "LAL" → "LAL"
+ * - Prefixed format: "NBA:LAL" → "LAL"
+ * - Lowercase: "lal" → "LAL"
+ *
+ * @param {Object|string|null} teamOrCode - Team object or raw identifier
+ * @returns {string|null} Normalized team code or null if not extractable
+ */
+export function normalizeTeamRef(teamOrCode) {
+  if (!teamOrCode) return null;
+  
+  // If object, extract teamCode or code field
+  let raw = null;
+  if (typeof teamOrCode === 'object') {
+    raw = teamOrCode.teamCode || teamOrCode.code || teamOrCode.id || null;
+  } else if (typeof teamOrCode === 'string') {
+    raw = teamOrCode;
+  }
+  
+  if (!raw || typeof raw !== 'string') return null;
+  
+  // Handle prefixed formats like "NBA:LAL"
+  if (raw.includes(':')) {
+    const parts = raw.split(':');
+    raw = parts[parts.length - 1]; // Take the last part
+  }
+  
+  // Normalize to uppercase (canonical format)
+  return raw.toUpperCase().trim() || null;
+}
+
+/**
+ * Normalize a player's team reference to canonical teamCode format.
+ *
+ * Extracts team reference from player object, checking multiple possible fields.
+ *
+ * @param {Object} player - Player object
+ * @returns {string|null} Normalized team code or null if not extractable
+ */
+export function normalizePlayerTeamRef(player) {
+  if (!player) return null;
+  
+  // Priority order: teamId → team_id → teamCode → contract.signingTeam
+  const rawRef = 
+    player.teamId ||
+    player.team_id ||
+    player.teamCode ||
+    player.contract?.signingTeam ||
+    null;
+  
+  return normalizeTeamRef(rawRef);
+}
+
 /**
  * Normalize optionUsed from legacy string format to canonical boolean.
  *
@@ -185,30 +283,67 @@ export function validateFreeAgencyState(freeAgency, context = {}) {
         field: 'year',
         value: freeAgency.year,
       });
+    } else if (freeAgency.type === 'RFA' || freeAgency.type === 'UFA') {
+      // Phase 9: Year plausibility check for RFA/UFA using centralized policy
+      const yearVal = freeAgency.year;
+      const contextYear = context.year || context.contextYear || DEFAULT_CONTEXT_YEAR;
+      const plausibility = isPlausibleFreeAgencyYear(yearVal, contextYear);
+      
+      if (!plausibility.plausible) {
+        violations.push({
+          rule: 'rfa_state_invalid',
+          message: `freeAgency.year (${yearVal}) is not a plausible offseason year for ${freeAgency.type}. Must be an integer between ${plausibility.minYear} and ${plausibility.maxYear} (context year: ${contextYear}).`,
+          severity: 'error',
+          field: 'year',
+          type: freeAgency.type,
+          value: yearVal,
+          contextYear,
+          minYear: plausibility.minYear,
+          maxYear: plausibility.maxYear,
+        });
+      }
     }
   }
 
-  // 4. RFA should have qualifyingOffer (warn if missing)
+  // 4. RFA MUST have qualifyingOffer (HARD BLOCK if missing - Phase 8)
   if (freeAgency.type === 'RFA') {
-    if (freeAgency.qualifyingOffer === null || freeAgency.qualifyingOffer === undefined) {
-      warnings.push({
-        rule: 'free_agency_incomplete',
-        message: 'RFA free agency missing qualifyingOffer value. QO should be computed.',
-        severity: 'warning',
+    const qo = freeAgency.qualifyingOffer;
+    if (qo === null || qo === undefined || typeof qo !== 'number' || !Number.isFinite(qo) || qo <= 0) {
+      violations.push({
+        rule: 'rfa_missing_qualifying_offer',
+        message: `RFA free agency requires a valid qualifyingOffer (got: ${qo}). QO must be a finite number > 0.`,
+        severity: 'error',
         type: freeAgency.type,
+        qualifyingOffer: qo,
       });
     }
   }
 
-  // 5. UFA should NOT have qualifyingOffer (warn if present)
+  // 5. UFA should NOT have qualifyingOffer (warn if present - non-RFA with QO)
   if (freeAgency.type === 'UFA') {
     if (freeAgency.qualifyingOffer !== null && freeAgency.qualifyingOffer !== undefined) {
       warnings.push({
-        rule: 'free_agency_inconsistent',
+        rule: 'non_rfa_has_qualifying_offer',
         message: `UFA free agency has qualifyingOffer set ($${(freeAgency.qualifyingOffer / 1_000_000).toFixed(2)}M). UFAs should not have QO.`,
         severity: 'warning',
         type: freeAgency.type,
         qualifyingOffer: freeAgency.qualifyingOffer,
+      });
+    }
+  }
+
+  // 6. PHASE 10: QO Suspicious Warning - sanity check for absurdly large QO
+  // This is a warning only, not a hard block. Helps catch data issues.
+  if (freeAgency.type === 'RFA' && freeAgency.qualifyingOffer > 0) {
+    const lastSalary = context.lastYearSalary;
+    if (lastSalary && lastSalary > 0 && freeAgency.qualifyingOffer > lastSalary * 3) {
+      warnings.push({
+        rule: 'rfa_qualifying_offer_suspicious',
+        message: `RFA qualifying offer ($${(freeAgency.qualifyingOffer / 1_000_000).toFixed(2)}M) is >3x last year salary ($${(lastSalary / 1_000_000).toFixed(2)}M). This may indicate a data issue.`,
+        severity: 'warning',
+        qualifyingOffer: freeAgency.qualifyingOffer,
+        lastYearSalary: lastSalary,
+        ratio: (freeAgency.qualifyingOffer / lastSalary).toFixed(2),
       });
     }
   }

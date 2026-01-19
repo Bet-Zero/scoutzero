@@ -254,12 +254,14 @@ interface CapHold {
 #### 5.2.2 Option Transition Invariants (Phase 7.3)
 
 **Option Accept (Pipeline-Authoritative):**
+
 * No cap hold created for the player
 * `optionUsed === true` on the option year row
 * Player remains on the team roster (no roster removal)
 * `salariesByYear` remains coherent (option row present for target year)
 
 **Option Decline (Pipeline-Authoritative):**
+
 * Cap hold created when expected and amount matches canonical multipliers (Phase 7.2)
 * Player is not rostered as a signed player for the declined option year
 * `freeAgency` is canonical object and year matches derived option year
@@ -297,10 +299,16 @@ interface CapHold {
 * `option_decline_player_still_rostered` - Declined option but player remains on roster
 * `option_decline_contract_row_still_present_for_declined_season` - Declined option but contract still includes declined season
 * `option_decline_free_agency_year_mismatch` - Declined option freeAgency.year mismatch
+* `rfa_state_invalid` - RFA freeAgency.year is not a plausible integer (2020-2040)
+* `rfa_missing_qualifying_offer` - RFA freeAgency.type but qualifyingOffer not finite > 0
+* `rfa_offer_sheet_not_supported` - Phase 10: Signing RFA player from non-home team (offer sheet matching not implemented)
+* `rfa_team_identity_unverifiable` - Phase 10: RFA signing where team identity cannot be verified
+* `resigning_ineligible` - Re-signing player without team eligibility (no Bird rights)
 
 **Soft Warning Rules (Overridable in dev mode via `VITE_ENABLE_CBA_OVERRIDE=true`):**
 
 * `roster_minimum`, `dead_cap`, `first_apron`, `second_apron`
+* `rfa_qualifying_offer_suspicious` - Phase 10: QO > 3x last year salary (may indicate data issue)
 
 ### 5.4 Exception Blocking Rules (G0-2 Implementation)
 
@@ -590,3 +598,110 @@ const canonical = normalizeSigningTerms(legacy, { fallbackMechanism: 'FULL_MLE' 
 | 2026-01-18 | **Contract Rules Phase 7.1:** Enforced `cap_hold_transition_invalid`. `validateOptionDecision` now blocks option accept if cap hold created, and decline if missing hold. Created `capHoldTransitionHelpers.js`. Adopted simplified 150% cap hold model (superseded by Phase 7.2). Fixed `freeAgentYear` bug in pipeline. 5 new tests added. |
 | 2026-01-18 | **Contract Rules Phase 7.2:** Added rights-based cap hold amounts (190/130/120), fallback warnings for missing rightsType, and season-derived FA year on option decline. Updated validation + option mutation paths. Added new tests. |
 | 2026-01-18 | **Contract Rules Phase 7.3:** Enforced option accept/decline state invariants (roster presence, option row coherence, declined season removal) and hard-blocked freeAgency year mismatch. Declared `capHolds.ts` as the canonical multiplier source and wired remaining references. Added new tests for invariants + canonical source usage. |
+| 2026-01-18 | **Contract Rules Phase 8:** RFA/QO Correctness + Re-Signing (Bird Rights) Guardrails. Upgraded RFA missing QO from warning to hard-block (`rfa_missing_qualifying_offer`). Added year plausibility check for RFA/UFA (`rfa_state_invalid`). Blocked signing RFA players (`rfa_signing_not_supported`) until offer sheet matching is implemented. Added re-signing eligibility check (`resigning_ineligible`) that verifies player.teamId matches team and birdRights.status is valid. 13 new tests added. |
+| 2026-01-18 | **Contract Rules Phase 9:** Eligibility ID Correctness + FA Plausibility Centralization. (1) Added `normalizeTeamRef()` and `normalizePlayerTeamRef()` helpers to handle format mismatches (e.g., "NBA:LAL" vs "LAL"). Re-signing eligibility now uses canonical normalization to avoid false-blocks. (2) Added `resigning_eligibility_unverifiable` warning rule for cases where team identity cannot be verified. (3) Centralized FA year plausibility policy via `isPlausibleFreeAgencyYear(year, contextYear)` replacing hardcoded 2020-2040 range. Policy: [contextYear - 5, contextYear + 10]. (4) Added explicit `rightsRenounced === true` check for ineligibility. 9 new tests added. |
+| 2026-01-18 | **Contract Rules Phase 10:** RFA Workflow Guardrails (Home-Team vs Offer Sheet). Replaced blunt `rfa_signing_not_supported` block with differentiated logic: (1) `rfa_offer_sheet_not_supported` hard-blocks non-home team RFA signings (offer sheet matching required). (2) `rfa_team_identity_unverifiable` hard-blocks when team identity cannot be normalized. (3) Home-team RFA signings allowed through normal validation (QO still enforced). Added `rfa_qualifying_offer_suspicious` warning when QO > 3x last salary. Uses Phase 9 team normalizers for identity comparison. 15 new tests added. |
+| 2026-01-18 | **Contract Rules Phase 11:** Year Coverage & Rookie Scale Enforcement. (1) Eliminated silent fallback to 2024-25 cap settings. Defined `REAL` (authoritative) vs `PROJECTED` (explicit warning) year policies. `getCapSettings()` now warns on projected years and hard-blocks invalid inputs (`invalid_year_input_fallback`). (2) Created canonical Rookie Scale table source (`rookieScale.ts`). (3) Added `rookie_scale_invalid` hard-block rule enforcing 80%-120% salary band for first-round picks (1-30). Only processes when pick metadata is present and authoritative scale data exists. 10 new tests added. |
+
+---
+
+## 9.8 Team Identity for Re-Signing Eligibility (Phase 9)
+
+Re-signing eligibility requires verifying that the player "belongs" to the signing team. Due to format inconsistencies across data sources, team identity is normalized before comparison.
+
+### Normalization Helpers
+
+**File:** `src/features/architect/utils/contractNormalization.js`
+
+| Function | Purpose |
+|----------|---------|
+| `normalizeTeamRef(teamOrCode)` | Normalizes team object or string to canonical uppercase code (e.g., "NBA:LAL" → "LAL") |
+| `normalizePlayerTeamRef(player)` | Extracts and normalizes player's team ref from `teamId`, `team_id`, `teamCode`, or `contract.signingTeam` |
+
+### Format Handling
+
+* Prefixed formats: `"NBA:LAL"` → `"LAL"`
+* Case normalization: `"lal"` → `"LAL"`
+* Object extraction: `{ teamCode: "LAL" }` → `"LAL"`
+
+### Verification Policy
+
+* If both sides normalize → compare for exact match
+* If either side cannot normalize → produce `resigning_eligibility_unverifiable` warning (NOT hard-block)
+* Explicit `rightsRenounced === true` → always ineligible (hard-block)
+
+---
+
+## 9.9 Free Agency Year Plausibility Policy (Phase 9)
+
+FA year plausibility is enforced using a centralized policy function instead of hardcoded ranges.
+
+### Policy Function
+
+**File:** `src/features/architect/utils/contractNormalization.js`
+
+```javascript
+isPlausibleFreeAgencyYear(year, contextYear = 2026)
+// Returns: { plausible: boolean, minYear: number, maxYear: number }
+```
+
+### Range Calculation
+
+* **minYear** = contextYear - 5 (e.g., 2026 → 2021)
+* **maxYear** = contextYear + 10 (e.g., 2026 → 2036)
+
+### Context Year Sources (Priority Order)
+
+1. `context.year` passed to validator
+2. `context.contextYear` passed to validator
+3. `DEFAULT_CONTEXT_YEAR` constant (2026)
+
+### Violation Payload
+
+When year is implausible, the violation includes:
+
+* `contextYear` - the reference year used
+* `minYear` - computed minimum
+* `maxYear` - computed maximum
+
+---
+
+## 9.10 Rookie Scale Enforcement (Phase 11)
+
+Rookie Scale contracts are strictly regulated by the CBA (Article VIII).
+
+### Canonical Data Source
+
+**File:** `src/features/architect/data/rookieScale.ts`
+
+* Contains 100% Scale amounts for known seasons (e.g., 2024-25).
+* Amounts derived from authoritative sources (CBA / RealGM).
+* **Policy:** Only enforce for seasons where we have explicit scale data.
+
+### Validation Rule (`rookie_scale_invalid`)
+
+* **Scope:** First Round Picks (1-30).
+* **Band:** Salary must be between **80% and 120%** of the 100% scale amount.
+* **Tolerance:** $1 tolerance for rounding differences.
+* **Cap Usage:** First-year salary is used. If Cap Hit differs significantly (rare), it is also checked.
+* **Trigger:** Contract or Player object contains valid `draftPick` metadata (`{ pick: number, year: number }`).
+
+---
+
+## 9.11 Year Coverage Policy (Phase 11)
+
+To prevent silent errors, year-based cap settings lookups must be explicit about data confidence.
+
+### Classification
+
+1. **REAL:** Authoritative data exists (e.g., 2024-25 confirmed cap). use `isRealSeason(year)`.
+2. **PROJECTED:** Valid future year, but data is estimated. `getCapSettings` returns explicit warning.
+3. **INVALID:** Null, undefined, or malformed year input.
+
+### Behavior Changes
+
+* **Legacy:** Silently fell back to 2024-25 settings for any unknown year.
+* **New (Phase 11):**
+  * **Valid Future Year:** Returns settings with `source: 'projected'` and warning. (Does NOT silently use 2024 constants without flagging).
+  * **Invalid Input:** Returns emergency fallback settings with `source: 'invalid_year_input_fallback'` and CRITICAL warning.
+  * **Strict Mode:** Throws error on invalid/missing input.

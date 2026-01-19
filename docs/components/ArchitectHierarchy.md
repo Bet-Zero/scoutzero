@@ -67,7 +67,9 @@ contract/
     index.ts
   index.ts
 data/
+  capYearData.ts
   minimumSalaryScales.ts
+  rookieScale.ts
 freeAgency/
   FreeAgentPool/
     FreeAgentCard.jsx
@@ -279,5 +281,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-01-18T09:30:09.947Z*
+*Generated on: 2026-01-19T04:59:11.458Z*
 *Auto-updated by: npm run docs*

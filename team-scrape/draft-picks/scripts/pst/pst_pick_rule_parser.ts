@@ -101,16 +101,21 @@ export interface Evidence {
  * 
  * Used for OutcomeSpec generation in manual check views.
  * Captures "most favorable of X, Y, Z" / "2nd least favorable of A, B, C" patterns.
+ * 
+ * Kinds:
+ * - 'swap': Ranked swap with explicit most/least favorable language
+ * - 'swap_right': Simple swap option without ranked semantics (choice, not entitlement)
+ * - 'conveys': Non-swap selection (e.g., "conveys most favorable of...")
  */
 export interface SelectionSpec {
-  /** 'swap' when controller picks from pool; 'conveys' for non-swap selection */
-  kind: 'swap' | 'conveys';
-  /** Controller team (required for swap, optional for conveys) */
+  /** 'swap' for ranked swaps; 'swap_right' for simple swap options; 'conveys' for non-swap selection */
+  kind: 'swap' | 'swap_right' | 'conveys';
+  /** Controller team (required for swap/swap_right, optional for conveys) */
   controller?: TeamCode;
-  /** Selection order: 'most' or 'least' favorable */
-  order: 'most' | 'least';
-  /** Rank: 1 for most/least, 2 for 2nd most/least, etc. */
-  rank: number;
+  /** Selection order: 'most' or 'least' favorable (only for ranked kinds: swap/conveys) */
+  order?: 'most' | 'least';
+  /** Rank: 1 for most/least, 2 for 2nd most/least, etc. (only for ranked kinds) */
+  rank?: number;
   /** Pool of teams involved (sorted alphabetically) */
   pool: TeamCode[];
   /** Year the selection applies to */
@@ -832,16 +837,17 @@ export function buildSelectionSpecs(
     }
   };
   
-  // 1. Convert existing swaps to SelectionSpecs (rank 1 only)
+  // 1. Convert ALL existing swaps to SelectionSpecs
+  // Phase 7 Fix: Distinguish simple swaps (swap_right) from ranked swaps (swap)
   for (const swap of profile.swaps) {
-    // Only create spec if we have mostLeast (favorable language)
+    // Build pool: include controller + swap.pool, deduped
+    const poolWithController = swap.controller 
+      ? [swap.controller, ...swap.pool]
+      : swap.pool;
+    
     if (swap.mostLeast) {
-      const order: 'most' | 'least' = swap.mostLeast === 'most_favorable' ? 'most' : 'least';
-      
-      // Build pool: include controller + swap.pool, deduped
-      const poolWithController = swap.controller 
-        ? [swap.controller, ...swap.pool]
-        : swap.pool;
+      // Ranked swap: explicit most/least favorable language
+      const order: 'most' | 'least' = swap.mostLeast === 'least_favorable' ? 'least' : 'most';
       
       addSpec({
         kind: 'swap',
@@ -854,8 +860,22 @@ export function buildSelectionSpecs(
         evidenceRowRefs: swap.evidenceRowRefs,
         description: swap.description.slice(0, 80),
       });
+    } else {
+      // Simple swap: no ranked semantics, just a swap option/right
+      addSpec({
+        kind: 'swap_right',
+        controller: swap.controller,
+        // No order/rank for swap_right - it's a choice, not an entitlement
+        pool: poolWithController,
+        year: swap.year,
+        round: swap.round,
+        evidenceRowRefs: swap.evidenceRowRefs,
+        description: swap.description.slice(0, 80),
+      });
     }
   }
+
+
   
   // 2. Parse evidence texts ONLY for ranked specs (rank > 1)
   // These can't be derived from existing swaps
@@ -1303,12 +1323,15 @@ export function buildPickRuleProfiles(
         }
 
         if (row.flags.mentionsSwap) {
+          // Phase 7 Fix: Use clause-local team detection to prevent pool bleed
+          const clauseTeamCodes = extractTeamsFromClause(clauseText);
+          
           const { swaps, reviewReasons } = parseSwaps(
             clauseText,
             rowRef,
             year,
             round,
-            row.detectedTeamCodes
+            clauseTeamCodes
           );
           for (const s of swaps) {
             // Dedupe by controller + pool + year
@@ -1552,4 +1575,53 @@ export function buildPickRuleProfiles(
   };
 
   return { profiles: profilesOutput, needsReviewQueue, report };
+}
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+/**
+ * Escape regex special characters
+ */
+function escapeRegExp(string: string): string {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Extract team codes strictly from a specific clause text.
+ * Uses PST_LABEL_TO_CODE to detect exact mentions.
+ * 
+ * @param text - The clause text
+ * @returns Array of unique TeamCodes found in the text
+ */
+function extractTeamsFromClause(text: string): TeamCode[] {
+  // 1. Strip "in a X-team trade with..." context to prevent pool bleed
+  // Example: "swap with Mavericks in a 3-team trade with Celtics" -> "swap with Mavericks"
+  const cleanedText = text.replace(/in\s+a\s+(?:\d+-team\s+|multiteam\s+|multi-team\s+)?trade\s+with\s+.*?(?:for|$)/gi, '');
+
+  const codes = new Set<TeamCode>();
+  const lower = cleanedText.toLowerCase();
+  
+  // 2. Check for explicit 3-letter codes
+  for (const code of ALL_TEAM_CODES) {
+    // Look for code with word boundaries
+    if (new RegExp(`\\b${code}\\b`, 'i').test(cleanedText)) {
+      codes.add(code);
+    }
+  }
+  
+  // 3. Check for PST labels (nicknames, cities, full names)
+  for (const [label, code] of Object.entries(PST_LABEL_TO_CODE)) {
+    // Skip if already found
+    if (codes.has(code)) continue;
+    
+    // Look for label with word boundaries
+    // Escape label characters just in case (though mostly safe)
+    if (new RegExp(`\\b${escapeRegExp(label)}\\b`, 'i').test(cleanedText)) {
+      codes.add(code);
+    }
+  }
+  
+  return Array.from(codes);
 }

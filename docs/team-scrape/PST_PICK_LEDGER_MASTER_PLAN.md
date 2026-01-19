@@ -119,6 +119,90 @@ Separate ownership from swap rights:
 
 ---
 
+### Phase 5.3 — SelectionSpecs for All Swaps (COMPLETE)
+
+**Goal**: Generate selectionSpecs for all swap clauses (not just those with explicit most/least favorable language) to unblock Phase 7 Rights Views.
+
+**Problem**
+
+Phase 7 Rights Views was BLOCKED because complex swap clauses like DAL 2030 did not generate selectionSpecs. The `buildSelectionSpecs()` function only generated specs when `swap.mostLeast` was set.
+
+Example:
+
+- `DAL_2030_1st` had swap with `mostLeast: null`
+- `selectionSpecs[]` was empty
+- Phase 7 could not compute entitlements
+
+**Solution**
+
+Modified `buildSelectionSpecs()` in `pst_pick_rule_parser.ts` to:
+
+- Generate a selectionSpec for EVERY swap, not just those with mostLeast
+- Default to `order: 'most'` when mostLeast is null (controller picks the better option)
+
+**Artifacts updated**
+
+- `team-scrape/draft-picks/scripts/pst/pst_pick_rule_parser.ts` (MODIFIED)
+- `data/pst/pst_pick_rule_profiles_final_2026_2033.json` (regenerated)
+- `data/pst/pst_pick_ledger_final_2026_2033.json` (regenerated)
+- `data/pst/manual_rights_views/*.txt` (regenerated)
+
+**Validation**
+
+- DAL_2030_1st.selectionSpecs now contains: `[{ kind: 'swap', controller: 'SAS', order: 'most', pool: ['BOS','DAL','SAS'] }]` ✓
+- DAL Rights View shows: `2030 | 1 | owes most favorable to SAS | pool (BOS,DAL,SAS)` ✓
+- MIL_2026_2nd still clean (no first-round encumbrances) ✓
+- Final ledger count remains 480 ✓
+- needs_review remains 0 ✓
+
+**Impact**: Unblocks Phase 7 Rights Views for all swap-encumbered picks.
+
+---
+
+### Phase 7.1 — Swap Semantics Fix: Simple Swaps vs Ranked Swaps (COMPLETE)
+
+**Goal**: Restore technical correctness for simple swap clauses by distinguishing them from ranked swaps.
+
+**Problem**
+
+Phase 5.3 introduced a semantic shortcut: when `swap.mostLeast` was null, `selectionSpecs` defaulted to `order='most'`. This created "fictional" rights views that implied "most favorable" entitlements when the text only granted a simple swap option.
+
+Example (before fix):
+
+- `DAL_2030_1st` showed: `owes most favorable to SAS` (WRONG)
+- Text: "Spurs option to swap 2030 first round picks with Mavericks"
+- This is a simple swap RIGHT, not a ranked entitlement
+
+**Solution**
+
+Introduced a new `kind: 'swap_right'` in SelectionSpec for simple swaps:
+
+- **swap_right**: Simple swap option without ranked semantics (choice, not entitlement)
+- **swap**: Ranked swap with explicit most/least favorable language
+
+Rights views now render:
+
+- Controller team: `swap vs {other}` (2-team pool) or `swap pool {n}` (n-team pool)
+- Non-controller teams: `swap owed {controller}`
+
+**Artifacts updated**
+
+- `team-scrape/draft-picks/scripts/pst/pst_pick_rule_parser.ts` (SelectionSpec type + buildSelectionSpecs)
+- `team-scrape/draft-picks/scripts/pst/pst_phase_7_rights_views.ts` (swap_right rendering)
+- `data/pst/pst_pick_rule_profiles_final_2026_2033.json` (regenerated)
+- `data/pst/pst_pick_ledger_final_2026_2033.json` (regenerated)
+- `data/pst/manual_rights_views/*.txt` (regenerated)
+
+**Validation**
+
+- DAL 2030 1st now shows: `swap owed SAS` (not "owes most favorable") ✓
+- SAS 2030 1st shows: `swap pool 3` (controller view) ✓
+- Ranked swaps still work: MEM receives `most/least favorable` lines ✓
+- Final ledger count remains 480 ✓
+- needs_review remains 0 ✓
+
+---
+
 ## Quick Commands
 
 **Recommended day-to-day command** (runs full final pipeline):
@@ -135,6 +219,7 @@ This command runs the complete "final truth" pipeline in order:
 4. `pst:phase-5:validate` - Validation (confirms invariants)
 5. `pst:manual-views` - Generate manual check views with OutcomeSpec format
 6. `pst:manual-views:v6-5` - Generate v6.5 swap-focused manual views
+7. `pst:manual-rights-views` - Generate manual rights views (rights-style)
 
 **When to use individual commands**:
 
@@ -797,7 +882,46 @@ Two presentation-only changes:
 
 **Implementation Completed 2026-01-18**
 
-This phase introduces a new, cleaner format while preserving the existing v6.3/6.4 reports.
+---
+
+### PHASE 7 — Rights / Entitlements Views (BLOCKED)
+
+**Goal**: Generate Fanspo-style “rights/entitlements” team views that correctly reflect most/least/2nd-most favorable distributions.
+
+**Status**: BLOCKED (2026-01-18)
+
+**Implementation**
+
+- Created `pst_phase_7_rights_views.ts` to generate `data/pst/manual_rights_views/*.txt`.
+- Logic correctly resolves:
+  - Controller entitlements ("receives X favorable")
+  - Owed entitlements ("owes X favorable")
+  - Collapses duplicate pool entries.
+
+**Blocking Issue**
+
+- **DAL 2030 1st**: Missing `selectionSpecs` in the ledger.
+- Encumbrance data shows `swaps` with `mostLeast: null`.
+- Cannot determine "2nd most favorable" outcome without valid specs or rank data.
+- Per strictly defined Stop Conditions: "Stop and report BLOCKED if selectionSpecs are absent for swaps that require ranked outcomes".
+
+**Verified Functionality**
+
+- **ATL 2026 1st**: Correctly generates "receives least favorable" line (validated script logic).
+- **DAL 2029 1st**: Correctly generates "owes most favorable" line.
+
+**Next Steps**
+
+- Investigate why Phase 4/5 parser failed to generate `selectionSpecs` for DAL 2030 1st (3-team pool with MIN/SAS).
+- Once ledger data is fixed, re-run `pst:manual-rights-views`.
+
+**Run Command**
+
+```bash
+npm run pst:manual-rights-views
+```
+
+---
 
 **Run Command**
 
@@ -888,6 +1012,39 @@ npm run pst:manual-views:v6-5
 **Acceptance Criteria**
 
 - Dispute list is the only remaining work when sources conflict.
+
+---
+
+### Phase 7.2 — Swap Display Shortening + Pool Accuracy Fix (COMPLETE)
+
+**Goal**: Polish usage of swap rights labels (Task A) and fix pool accuracy for simple swaps to prevent "stray teams" bleeding in from trade context (Task B).
+
+**Task A: Display Shortening**
+
+- Changed swap_right controller view from `swap vs {TEAM}` to `swap {TEAM}`.
+- Kept owned side view as `swap owed {CONTROLLER}`.
+- Matches Fanspo concise style.
+
+**Task B: Pool Accuracy Fix**
+
+- Problem: `DAL_2030_1st` showed `pool (BOS,DAL,SAS)` because "Celtics" appeared in the trade context ("in a 3-team trade with Celtics").
+- Fix: Modified `pst_pick_rule_parser.ts` to implement strict `extractTeamsFromClause` that ignores "in a X-team trade with..." patterns.
+- Result: Pool is now `{DAL,SAS}` as expected.
+
+**Artifacts updated**
+
+- `team-scrape/draft-picks/scripts/pst/pst_pick_rule_parser.ts`: Added `extractTeamsFromClause` helper + regex cleaner.
+- `team-scrape/draft-picks/scripts/pst/pst_phase_7_rights_views.ts`: Updated display strings.
+- `data/pst/pst_pick_rule_profiles_final_2026_2033.json`: Regenerated.
+- `data/pst/manual_rights_views.txt`: Verified correct output (DAL 2030 clean).
+
+**Validation**
+
+- DAL 2030 pool no longer contains BOS.
+- SAS Controller view for 2030 shows "swap DAL".
+- Invariants maintained (480 profiles, 0 needs_review).
+
+---
 
 ---
 
