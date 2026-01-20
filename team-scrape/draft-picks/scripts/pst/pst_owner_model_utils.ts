@@ -72,6 +72,12 @@ export function isSwapOnlyClause(
       `${yearPattern}[^•]*${roundText}[^•]*\\(from\\s+\\w+\\)`,
       'i'
     ),
+    // "most favorable of" or "second most favorable of" or "least favorable of" patterns
+    // These indicate ranked distribution conveyances, NOT swap rights
+    new RegExp(
+      `${yearPattern}\\s+${roundText}\\s+pick[^•]*(?:most\\s+favorable|second\\s+most\\s+favorable|third\\s+most\\s+favorable|least\\s+favorable)\\s+of`,
+      'i'
+    ),
   ];
 
   // Check if any explicit conveyance pattern matches AND there's no swap mention in the same clause

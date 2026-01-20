@@ -32,6 +32,7 @@ import {
   getPlayerName,
 } from '@/features/architect/utils/capHelpers';
 import { getCapRulesForYear } from '@/features/architect/utils/capRulesProfile';
+import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import { getYearsOfService } from '@/features/architect/utils/playerRulesProfile/minimumSalaryRules.js';
 import { computePlayerRulesProfile } from '@/features/architect/utils/playerRulesProfile/index.js';
 import {
@@ -122,6 +123,8 @@ export const HARD_BLOCK_RULES = [
   'rfa_offer_sheet_matched_offering_team_cannot_finalize', // Offering team cannot finalize a MATCHED offer sheet
   // Phase 18.1: DECLINED Rule Scope Fix
   'rfa_offer_sheet_declined_home_team_cannot_finalize', // Home team cannot finalize a DECLINED offer sheet
+  // Phase 19: Cap Hold / Cap Space Enforcement
+  'cap_hold_signing_violation', // Cap-space signing exceeds cap with holds included
 ];
 
 /**
@@ -213,6 +216,7 @@ export const SOFT_WARNING_RULES = [
   'rfa_qualifying_offer_suspicious',    // Phase 10: QO > 3x last salary (may be data issue)
   'rfa_offer_sheet_stub_active',        // Phase 12: Offer sheet processing in stub mode (UI informational)
   'rfa_offer_sheet_store_only_flag_in_use', // Phase 14: Store-only mode is active for offer sheet (info)
+  'world_time_defaulted', // Phase 20: World time was defaulted (not from payload or world metadata)
 ];
 
 /**
@@ -898,6 +902,39 @@ export function normalizeSigningTerms(rawTerms, options = {}) {
     minFirstYearSalary: rawTerms.minFirstYearSalary ?? null,
     notes: rawTerms.notes || null,
   };
+}
+
+/**
+ * Determines if a signing is a "cap space" signing that should be subject to
+ * cap hold validation (Phase 19).
+ * 
+ * A cap-space signing is one that:
+ * - Does NOT use an exception (mechanism is UNKNOWN)
+ * - Does NOT have Bird rights (rightsType is CAP_SPACE, NONE, or null)
+ * 
+ * These signings require the team to have actual cap room, which means
+ * all cap holds must be accounted for.
+ * 
+ * Signings using exceptions (MLE, BAE, etc.) or Bird rights are NOT
+ * subject to this check as they have different cap treatment.
+ * 
+ * @param {string} mechanism - Normalized mechanism from resolveSigningMechanism()
+ * @param {string|null} rightsType - Bird rights type from normalizeSigningTerms()
+ * @returns {boolean} True if this is a cap-space signing subject to cap hold check
+ */
+export function isCapSpaceSigning(mechanism, rightsType) {
+  // Exception signings are NOT cap-space signings
+  if (mechanism && mechanism !== 'UNKNOWN') {
+    return false;
+  }
+  
+  // Bird rights signings are NOT cap-space signings
+  if (rightsType && ['FULL_BIRD', 'EARLY_BIRD', 'NON_BIRD'].includes(rightsType)) {
+    return false;
+  }
+  
+  // This is a cap-space signing (no exception, no Bird rights)
+  return true;
 }
 
 const DEFAULT_SIGNING_RAISE_PERCENT = 0.05;
@@ -2006,6 +2043,110 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
     }
   }
 
+  // 0.9. PHASE 19: CAP HOLD / CAP SPACE ENFORCEMENT
+  // For cap-space signings (no exception, no Bird rights), the signing must fit
+  // under the salary cap INCLUDING all cap holds. Re-signings replace their
+  // player's cap hold with the new contract.
+  // Only apply to standard contracts (not two-way).
+  const isTwoWayContract = contract?.contractType?.toLowerCase() === 'two-way';
+  if (!isTwoWayContract && rules) {
+    // Get signing mechanism and rights type for cap-space detection
+    const capSpaceCheckMechanism = resolveSigningMechanism(contract, signedUsing);
+    const capSpaceCheckTerms = getSigningTermsForPlayer({ team, player, contract, year, signedUsing });
+    const normalizedCapSpaceTerms = capSpaceCheckTerms 
+      ? normalizeSigningTerms(capSpaceCheckTerms, { fallbackMechanism: capSpaceCheckMechanism })
+      : null;
+    const capSpaceCheckRightsType = normalizedCapSpaceTerms?.rightsType;
+    
+    // Only enforce for cap-space signings (no exception, no Bird rights)
+    if (isCapSpaceSigning(capSpaceCheckMechanism, capSpaceCheckRightsType)) {
+      // Get current team cap totals (includes cap holds in totalCapAllocations)
+      const teamTotals = computeTeamCapTotals(team, year);
+      const currentCapAllocations = teamTotals.totalCapAllocations || 0;
+      const salaryCap = teamTotals.salaryCap || rules.cap.salaryCap || 0;
+      
+      // Get the first-year cap hit for the new contract
+      const newContractCapHit = contract?.salariesByYear?.[0]?.capHit 
+        ?? contract?.salariesByYear?.[0]?.salary 
+        ?? 0;
+      
+      // Check if this player has an existing cap hold that will be replaced
+      const playerId = getPlayerId(player);
+      const existingCapHold = Array.isArray(team.capHolds)
+        ? team.capHolds.find(h => 
+            h.playerId === playerId && 
+            h.active !== false && 
+            h.isSigned !== true
+          )
+        : null;
+      const capHoldReplacement = existingCapHold?.amount || 0;
+      
+      // Calculate projected cap allocations:
+      // - Start with current (includes all cap holds)
+      // - Subtract the cap hold being replaced (if any)
+      // - Add the new contract's cap hit
+      const projectedCapAllocations = currentCapAllocations - capHoldReplacement + newContractCapHit;
+      
+      // If projected exceeds salary cap, hard-block the signing
+      if (projectedCapAllocations > salaryCap) {
+        const overCapAmount = projectedCapAllocations - salaryCap;
+        violations.push({
+          rule: 'cap_hold_signing_violation',
+          message: `Cap-space signing would exceed salary cap. Current allocations: $${(currentCapAllocations / 1_000_000).toFixed(2)}M, ` +
+            `New contract: $${(newContractCapHit / 1_000_000).toFixed(2)}M` +
+            (capHoldReplacement > 0 ? `, Cap hold replaced: $${(capHoldReplacement / 1_000_000).toFixed(2)}M` : '') +
+            `. Projected: $${(projectedCapAllocations / 1_000_000).toFixed(2)}M, Cap: $${(salaryCap / 1_000_000).toFixed(2)}M. ` +
+            `Over by: $${(overCapAmount / 1_000_000).toFixed(2)}M.`,
+          severity: 'error',
+          details: {
+            currentCapAllocations,
+            newContractCapHit,
+            capHoldReplacement,
+            projectedCapAllocations,
+            salaryCap,
+            overCapAmount,
+            capHoldsTotal: teamTotals.capHoldsTotal,
+          },
+        });
+      }
+      
+      // Optional: Check if renouncing specific cap holds would make it fit
+      // and emit a warning if so (cap_hold_renounce_required)
+      if (projectedCapAllocations > salaryCap && teamTotals.capHoldsTotal > 0) {
+        const spaceNeeded = projectedCapAllocations - salaryCap;
+        const capHoldsExcludingPlayer = (team.capHolds || [])
+          .filter(h => h.playerId !== playerId && h.active !== false && h.isSigned !== true)
+          .map(h => ({ playerId: h.playerId, playerName: h.playerName, amount: h.amount || 0 }))
+          .sort((a, b) => b.amount - a.amount); // Sort by largest first
+        
+        // Check if renouncing some holds would free enough space
+        let accumulatedSavings = 0;
+        const holdsToRenounce = [];
+        for (const hold of capHoldsExcludingPlayer) {
+          if (accumulatedSavings >= spaceNeeded) break;
+          accumulatedSavings += hold.amount;
+          holdsToRenounce.push(hold);
+        }
+        
+        if (accumulatedSavings >= spaceNeeded && holdsToRenounce.length > 0) {
+          const holdNames = holdsToRenounce.map(h => h.playerName || h.playerId).join(', ');
+          const holdAmount = holdsToRenounce.reduce((sum, h) => sum + h.amount, 0);
+          warnings.push({
+            rule: 'cap_hold_renounce_required',
+            message: `This signing would fit if you renounce cap holds for: ${holdNames} ` +
+              `(freeing $${(holdAmount / 1_000_000).toFixed(2)}M).`,
+            severity: 'warning',
+            details: {
+              spaceNeeded,
+              holdsToRenounce,
+              holdAmount,
+            },
+          });
+        }
+      }
+    }
+  }
+
   const players = team.players || [];
   
   // 1. Roster size check
@@ -3104,4 +3245,6 @@ export default {
   validateStoreOnlyInvariants,
   // Phase 17: Resolution Validation
   validateOfferSheetResolution,
+  // Phase 19: Cap Hold / Cap Space Enforcement
+  isCapSpaceSigning,
 };

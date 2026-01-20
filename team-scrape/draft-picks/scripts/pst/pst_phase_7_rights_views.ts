@@ -171,26 +171,18 @@ function main() {
           debug_sourcePickId: pick.pickId
         });
 
-        // 2. The "Owes" side (The team whose pick it is)
-        if (pick.owner !== controller) {
-          entitlements.push({
-            team: pick.owner,
-            year: pick.year,
-            round: pick.round,
-            description: `owes ${spec.order} favorable to ${controller}`,
-            poolInfo: `pool (${pool.join(',')})`,
-            controllerInfo: `via ${controller} swap rights`,
-            debug_sourcePickId: pick.pickId
-          });
-        }
+        // 2. "Owes" side -> SUPPRESSED (Phase 7.3 Recipient Only)
+        // We only show the team that RECEIVES the pick (the controller).
+        
       } else if (spec.kind === 'conveys') {
+        const recipient = spec.controller || pick.owner;
         entitlements.push({
-          team: pick.owner,
+          team: recipient,
           year: pick.year,
           round: pick.round,
-          description: `conveys ${spec.order} favorable`,
+          description: `receives ${spec.order} favorable`,
           poolInfo: `pool (${spec.pool.join(',')})`,
-          controllerInfo: '',
+          controllerInfo: spec.controller ? `controller ${spec.controller}` : '',
           debug_sourcePickId: pick.pickId
         });
       }

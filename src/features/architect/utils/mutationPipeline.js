@@ -265,6 +265,44 @@ function sanitizePayloadForOverride(payload) {
 }
 
 // ==============================================================================
+// WORLD TIME SSOT (Phase 20)
+// ==============================================================================
+
+/**
+ * Resolve canonical asOfDate for the mutation.
+ * 
+ * This is the SINGLE SOURCE OF TRUTH for "world time" in the mutation pipeline.
+ * Used for timing-based CBA rules (e.g., stretch timing, offer sheet 48-hour window).
+ * 
+ * Priority:
+ * 1. payloadAsOfDate - Explicit date from mutation payload (highest priority)
+ * 2. worldAsOfDate - Date from world metadata (if set)
+ * 3. System fallback - Current date (produces warning)
+ * 
+ * @param {Object} params
+ * @param {string|null} params.payloadAsOfDate - asOfDate from mutation payload
+ * @param {string|null} params.worldAsOfDate - asOfDate from world metadata
+ * @returns {{ asOfDate: string, defaulted: boolean }}
+ */
+export function resolveWorldAsOfDate({ payloadAsOfDate, worldAsOfDate }) {
+  // Priority 1: Payload-supplied date
+  if (payloadAsOfDate && typeof payloadAsOfDate === 'string') {
+    return { asOfDate: payloadAsOfDate, defaulted: false };
+  }
+  
+  // Priority 2: World metadata date
+  if (worldAsOfDate && typeof worldAsOfDate === 'string') {
+    return { asOfDate: worldAsOfDate, defaulted: false };
+  }
+  
+  // Priority 3: System fallback (with warning)
+  return {
+    asOfDate: new Date().toISOString().slice(0, 10),
+    defaulted: true,
+  };
+}
+
+// ==============================================================================
 // MAIN ENTRY POINT
 // ==============================================================================
 
@@ -310,6 +348,26 @@ export async function applyWorldMutation({
     // PHASE 1: READ - Load required current state
     const currentState = await loadStateForMutation(worldId, mutationType, sanitizedPayload);
 
+    // Phase 20: Load world metadata asOfDate for SSOT resolution
+    let worldAsOfDate = null;
+    try {
+      const { getDoc } = await import('firebase/firestore');
+      const worldRef = worldMetadataRef(worldId);
+      const worldSnap = await getDoc(worldRef);
+      if (worldSnap.exists()) {
+        worldAsOfDate = worldSnap.data()?.asOfDate || null;
+      }
+    } catch (e) {
+      // Non-critical: proceed with no world date (will use payload or fallback)
+      console.warn('Could not load world asOfDate:', e.message);
+    }
+
+    // Phase 20: Resolve canonical asOfDate SSOT
+    const { asOfDate, defaulted: dateDefaulted } = resolveWorldAsOfDate({
+      payloadAsOfDate: sanitizedPayload.asOfDate,
+      worldAsOfDate,
+    });
+
     // PHASE 2: COMPUTE (PURE) - Calculate mutation result
     const computeResult = computeWorldMutation({
       mutationType,
@@ -317,6 +375,7 @@ export async function applyWorldMutation({
       currentState,
       seasonId,
       timestamp,
+      asOfDate, // Phase 20: World time SSOT
     });
 
     if (!computeResult.success) {
@@ -330,6 +389,8 @@ export async function applyWorldMutation({
       currentState,
       computeResult,
       seasonId,
+      asOfDate,      // Phase 20: World time SSOT
+      dateDefaulted, // Phase 20: Flag for warning emission
     });
 
     if (!validationResult.valid) {
@@ -369,6 +430,7 @@ export async function applyWorldMutation({
       mutationType,
       computeResult,
       timestamp,
+      payloadAsOfDate: sanitizedPayload.asOfDate, // Phase 20: Only persist if explicitly provided
     });
 
     if (!persistResult.success) {
@@ -1330,12 +1392,31 @@ function computeRenounceResult({ payload, currentState, seasonId, timestamp }) {
  * There is no bypass mechanism - illegal states cannot be persisted.
  *
  * @param {Object} params
+ * @param {string} [params.asOfDate] - Phase 20: World time SSOT
+ * @param {boolean} [params.dateDefaulted] - Phase 20: True if asOfDate was defaulted
  * @returns {{valid: boolean, error?: string, violations?: Array}}
  */
-function validateMutation({ mutationType, payload, currentState, computeResult, seasonId }) {
+function validateMutation({ mutationType, payload, currentState, computeResult, seasonId, asOfDate, dateDefaulted }) {
+  // Phase 20: Collect warnings including world time defaulted warning
+  const pipelineWarnings = [];
+  
+  if (dateDefaulted) {
+    pipelineWarnings.push({
+      rule: 'world_time_defaulted',
+      message: `World time was defaulted to ${asOfDate}. For accurate timing-based validation, provide asOfDate in payload or world metadata.`,
+      severity: 'warning',
+      asOfDateUsed: asOfDate,
+    });
+  }
+
   // Trade validation uses the full Trade Machine
   if (mutationType === 'executeTrade') {
-    return validateTradeForPipeline(payload, currentState, seasonId);
+    const tradeResult = validateTradeForPipeline(payload, currentState, seasonId);
+    // Merge pipeline warnings into trade result
+    return {
+      ...tradeResult,
+      warnings: [...(tradeResult.warnings || []), ...pipelineWarnings],
+    };
   }
 
   const currentYear = toEndYear(seasonId);
@@ -1349,12 +1430,13 @@ function validateMutation({ mutationType, payload, currentState, computeResult, 
         contract: payload.contract,
         signedUsing: payload.signedUsing,
         year: currentYear,
+        asOfDate, // Phase 20: Pass world time to validator (unused now, ready for Phase 21)
       });
       return {
         valid: result.valid,
         error: result.violations[0]?.message || null,
         violations: result.violations,
-        warnings: result.warnings,
+        warnings: [...result.warnings, ...pipelineWarnings],
       };
     }
 
@@ -1539,6 +1621,7 @@ async function persistWorldMutation({
   mutationType,
   computeResult,
   timestamp,
+  payloadAsOfDate, // Phase 20: Only write asOfDate if explicitly provided in payload
 }) {
   const batch = writeBatch(db);
 
@@ -1592,6 +1675,14 @@ async function persistWorldMutation({
       lastModifiedAt: serverTimestamp(),
       lastModifiedTeams: computeResult.teamUpdates.map((u) => u.teamCode),
     };
+    
+    // Phase 20: Only update asOfDate if explicitly provided in payload
+    // This prevents silent overwrites and allows mutations to reference a date
+    // without advancing world time
+    if (payloadAsOfDate && typeof payloadAsOfDate === 'string') {
+      worldPatch.asOfDate = payloadAsOfDate;
+    }
+    
     const metadataRef = worldMetadataRef(worldId);
     batch.update(metadataRef, worldPatch);
 
@@ -1625,10 +1716,19 @@ function computeStoreOfferSheetResult({ payload, currentState, seasonId, timesta
   const playerId = player.player_id || player.id;
   const homeTeamCode = player.teamCode || player.contract?.signingTeam;
 
-  // Phase 18.1: Generate DETERMINISTIC dedupKey for idempotency
+  // Phase 18.2: worldId is REQUIRED for audit-grade dedupKey
+  // Cannot store offer sheet without worldId - fail fast
+  if (!worldId) {
+    return { 
+      success: false, 
+      error: 'worldId is required for offer sheet identity. Cannot store offer sheet without worldId.' 
+    };
+  }
+  
+  // Phase 18.1/18.2: Generate DETERMINISTIC dedupKey for idempotency
   // Format: os:{worldId}:{offeringTeamCode}:{playerId}:{seasonKey}
   // This is stable across retries (no timestamp dependency)
-  const dedupKey = `os:${worldId || 'world'}:${teamCode}:${playerId}:${seasonId}`;
+  const dedupKey = `os:${worldId}:${teamCode}:${playerId}:${seasonId}`;
 
   // Generate unique ID (includes timestamp for uniqueness, but NOT used for dedup)
   const offerSheetId = payload.offerSheetId || `os_${teamCode}_${playerId}_${timestamp}`;
@@ -1957,11 +2057,15 @@ function computeFinalizeMatchedOfferSheetResult({ payload, currentState, seasonI
  */
 function computeFinalizeDeclinedOfferSheetResult({ payload, currentState, seasonId, timestamp }) {
   const { offeringTeam, homeTeam, offerSheetId } = currentState;
-  const { teamCode } = payload; // Should be offeringTeamCode
+  const { teamCode, dedupKey } = payload; // Phase 18.2: Accept dedupKey for dual lookup
 
   // 1. Find the offer sheet (on offering team)
+  // Phase 18.2: Find by id first, then by dedupKey
   const offerSheets = offeringTeam.offerSheets || [];
-  const offerSheet = offerSheets.find(os => os.id === offerSheetId);
+  let offerSheet = offerSheets.find(os => os.id === offerSheetId);
+  if (!offerSheet && dedupKey) {
+    offerSheet = offerSheets.find(os => os.dedupKey === dedupKey);
+  }
 
   if (!offerSheet) {
     return { success: false, error: `Offer sheet ${offerSheetId} not found on offering team.` };
@@ -1974,8 +2078,10 @@ function computeFinalizeDeclinedOfferSheetResult({ payload, currentState, season
   // 2. Prepare Offering Team Update
   const updatedOfferingTeam = { ...offeringTeam };
   
-  // 2a. Remove from offerSheets
-  updatedOfferingTeam.offerSheets = offerSheets.filter(os => os.id !== offerSheetId);
+  // 2a. Remove from offerSheets (by id OR dedupKey for robustness)
+  updatedOfferingTeam.offerSheets = offerSheets.filter(os => 
+    os.id !== offerSheetId && (!dedupKey || os.dedupKey !== dedupKey)
+  );
   
   // 2b. Add player to roster with contract terms
   // Find or create player entry
@@ -2038,8 +2144,10 @@ function computeFinalizeDeclinedOfferSheetResult({ payload, currentState, season
   // 3. Prepare Home Team Update (cleanup only)
   const updatedHomeTeam = { ...homeTeam };
   
-  // 3a. Remove from incomingOfferSheets
-  updatedHomeTeam.incomingOfferSheets = (updatedHomeTeam.incomingOfferSheets || []).filter(os => os.id !== offerSheetId);
+  // 3a. Remove from incomingOfferSheets (by id OR dedupKey for robustness)
+  updatedHomeTeam.incomingOfferSheets = (updatedHomeTeam.incomingOfferSheets || []).filter(os =>
+    os.id !== offerSheetId && (!dedupKey || os.dedupKey !== dedupKey)
+  );
   
   // 3b. Remove player from roster if present (they're leaving)
   if (updatedHomeTeam.roster?.includes(playerId)) {

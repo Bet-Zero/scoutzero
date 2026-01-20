@@ -314,6 +314,9 @@ interface CapHold {
 * `rfa_offer_sheet_invalid_terms` - Phase 12: Offer sheet years/raises outside bounds
 * `rfa_offer_sheet_declined` - Phase 13: Offer sheet in DECLINED state (dead)
 * `rfa_offer_sheet_store_only_invalid` - Phase 14: Store-only flag used with invalid shape (missing rfaOfferSheet or MATCHED status)
+* `rfa_offer_sheet_matched_offering_team_cannot_finalize` - Phase 17: Offering team cannot finalize a MATCHED offer sheet
+* `rfa_offer_sheet_declined_home_team_cannot_finalize` - Phase 18.1: Home team cannot finalize a DECLINED offer sheet
+* `cap_hold_signing_violation` - Phase 19: Cap-space signing exceeds salary cap when cap holds are included
 
 **Soft Warning Rules (Overridable in dev mode via `VITE_ENABLE_CBA_OVERRIDE=true`):**
 
@@ -586,6 +589,51 @@ const canonical = normalizeSigningTerms(legacy, { fallbackMechanism: 'FULL_MLE' 
 * **Rounding:** Expected amount uses `Math.round(lastSalary * multiplier)`; validation enforces ≤ $1 tolerance.
 * **FA year derivation:** From option season string (`"YYYY-YY"` → start year). Example: `"2025-26"` → `2025`.
 
+## 9.8 World Time SSOT (Phase 20)
+
+Phase 20 introduces a canonical "world time" (`asOfDate`) field for timing-based CBA rules.
+
+### Field Location
+
+**World metadata:** `architect_worlds/{worldId}.asOfDate`
+
+### Resolution Precedence
+
+| Priority | Source | Example |
+|----------|--------|---------|
+| 1 | `payload.asOfDate` | Mutation provides explicit date |
+| 2 | World metadata `asOfDate` | Date stored on world document |
+| 3 | System fallback | `new Date().toISOString().slice(0,10)` |
+
+### Helper Function
+
+**File:** `src/features/architect/utils/mutationPipeline.js`
+
+```javascript
+resolveWorldAsOfDate({ payloadAsOfDate, worldAsOfDate })
+// Returns: { asOfDate: string, defaulted: boolean }
+```
+
+### Persistence Policy
+
+* **Only update** world metadata `asOfDate` when payload explicitly includes it
+* **Never overwrite** silently (prevents accidental time advancement)
+* Mutations can reference a date without advancing world time
+
+### Warning Rule
+
+| Rule ID | Type | Trigger |
+|---------|------|---------|
+| `world_time_defaulted` | Warning | Neither payload nor world metadata provided `asOfDate` |
+
+### Phase 21 Enablement
+
+Phase 20 provides the infrastructure for Phase 21 to implement:
+
+* `stretch_timing_invalid` - Stretch provision timing enforcement
+* 48-hour offer sheet window enforcement
+* Other timing-based CBA rules
+
 ## 10. Change Log
 
 | Date | Change |
@@ -619,6 +667,9 @@ const canonical = normalizeSigningTerms(legacy, { fallbackMechanism: 'FULL_MLE' 
 | 2026-01-19 | **Contract Rules Phase 15 (Preflight):** Offer Sheet Persistence + Workflow Design. Designed persistence model for RFA offer sheets. Decision: store as `offerSheets[]` array on team overlay (`architect_worlds/{worldId}/teams/{teamCode}`). Defined canonical `OfferSheet` schema with required fields (`id`, `playerId`, `offeringTeamCode`, `homeTeamCode`, `status`, `salariesByYear`). Mapped workflow actions: Store (new `storeOfferSheet` mutation), Match/Decline (home team actions), Finalize (reuse `signFreeAgent` with MATCHED status). Identified UI surfaces: FreeAgencySection, FreeAgentPool, EditContractModal. Created Phase 16 execution checklist. No code changes (preflight only). |
 | 2026-01-19 | **Contract Rules Phase 18:** Audit-Grade Return Package + End-to-End Invariants. (1) Verified all offer sheet mutations (store/match/decline/finalizeMatched) use atomic Firestore batch writes. (2) Confirmed canonical storage paths: offering team `offerSheets[]`, home team `incomingOfferSheets[]`. (3) Validated mirroring and deduplication logic in compute functions. (4) Confirmed authority rules via `validateOfferSheetResolution()` with HARD_BLOCK rules. (5) All tests pass (6/6 offerSheetResolution, 204/204 capLegalityValidation). Build succeeds. |
 | 2026-01-20 | **Contract Rules Phase 18.1:** Offer Sheet Audit-Grade Patch. (1) Added deterministic `dedupKey` for idempotency (`os:{worldId}:{offeringTeamCode}:{playerId}:{seasonKey}`). Dedup now checks both `id` and `dedupKey`. (2) Fixed DECLINED rule scope: added `rfa_offer_sheet_declined_home_team_cannot_finalize` to block home team. Offering team remains allowed. (3) Added `finalizeDeclinedOfferSheet` mutation with explicit cleanup (removes from both teams' arrays, signs player to offering team). (4) 19 new tests added. Build succeeds. |
+| 2026-01-20 | **Contract Rules Phase 18.2:** Offer Sheet Audit-Grade Lock. (1) Idempotency proof tests now execute `computeStoreOfferSheetResult` twice and verify no duplicate entries (store twice with different ID → 1 entry, store twice with no ID → 1 entry). (2) `worldId` now required for `storeOfferSheet` - missing worldId fails fast with error. (3) `computeFinalizeDeclinedOfferSheetResult` cleanup now removes by `id` OR `dedupKey`, fixing mirrored array divergence. (4) UI wiring: DECLINED finalization now calls `finalizeDeclinedOfferSheet` mutation instead of `signFreeAgent`, with `dedupKey` in payload. 13 new tests added. Build succeeds. |
+| 2026-01-20 | **Contract Rules Phase 19:** Cap Hold / Cap Space Enforcement. (1) Added `cap_hold_signing_violation` HARD_BLOCK rule to prevent cap-space signings that exceed salary cap when cap holds are included. (2) Added `isCapSpaceSigning()` helper to detect signings without exception or Bird rights. (3) Cap hold replacement logic: re-signings replace player's existing cap hold. (4) Added `cap_hold_renounce_required` warning when specific holds block signing. (5) **DEFERRED:** `stretch_timing_invalid` - no canonical world date/season phase exists (stop condition). (6) 22 new tests added. Build succeeds. |
+| 2026-01-20 | **Contract Rules Phase 20:** World Time SSOT. (1) Added `resolveWorldAsOfDate()` helper as single source of truth for world time. Resolution priority: payload `asOfDate` → world metadata `asOfDate` → system fallback. (2) Threaded `asOfDate` through mutation pipeline: `applyWorldMutation` → `computeWorldMutation` → `validateMutation` → `persistWorldMutation`. (3) Added `world_time_defaulted` warning rule (emitted when date is defaulted). (4) Persist policy: only write `asOfDate` to world metadata when payload explicitly includes it (no silent overwrites). (5) 14 new tests added. Build succeeds. |
 
 ---
 

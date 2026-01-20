@@ -1,14 +1,16 @@
 /**
- * Phase 18.1: Offer Sheet Persistence Tests
+ * Phase 18.1/18.2: Offer Sheet Persistence Tests
  * 
  * Tests for:
  * - Idempotency (dedupKey prevents duplicates on retries)
  * - Finalize DECLINED explicit cleanup
  * - Rule scope (DECLINED allowed for offering team, blocked for home team)
+ * - Phase 18.2: True idempotency proof, worldId required, cleanup by dedupKey
  */
 
 import { describe, it, expect } from 'vitest';
 import { validateOfferSheetResolution } from '../../src/features/architect/utils/capLegalityValidation';
+import { computeWorldMutation } from '../../src/features/architect/utils/mutationPipeline';
 
 describe('Phase 18.1: Offer Sheet Persistence & Idempotency', () => {
     // Mock offer sheet with dedupKey
@@ -167,5 +169,425 @@ describe('Phase 18.1: Offer Sheet Persistence & Idempotency', () => {
                 }
             });
         });
+    });
+});
+
+// ==============================================================================
+// Phase 18.2: Idempotency Proof Tests
+// ==============================================================================
+
+describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
+    // Helper to create minimal mock state for storeOfferSheet
+    const createMockState = (overrides = {}) => ({
+        team: {
+            teamCode: 'LAL',
+            teamName: 'Los Angeles Lakers',
+            players: [],
+            roster: [],
+            offerSheets: [],
+            ...overrides.team
+        },
+        player: {
+            player_id: 'player123',
+            id: 'player123',
+            name: 'Test Player',
+            displayName: 'Test Player',
+            teamCode: 'BOS', // Home team
+            contract: { signingTeam: 'BOS' },
+            ...overrides.player
+        },
+        teamCode: 'LAL',
+        homeTeam: {
+            teamCode: 'BOS',
+            teamName: 'Boston Celtics',
+            players: [{
+                player_id: 'player123',
+                id: 'player123',
+                name: 'Test Player',
+                contract: { signingTeam: 'BOS' }
+            }],
+            roster: ['player123'],
+            incomingOfferSheets: [],
+            ...overrides.homeTeam
+        }
+    });
+
+    const createMockPayload = (overrides = {}) => ({
+        teamCode: 'LAL',
+        playerId: 'player123',
+        worldId: 'world_test_123',
+        contract: {
+            rfaOfferSheet: true,
+            rfaOfferSheetOnly: true,
+            rfaOfferSheetStatus: 'PENDING_MATCH',
+            contractYears: 4,
+            totalValue: 100000000,
+            salariesByYear: [
+                { season: '2025-26', salary: 25000000, capHit: 25000000, guaranteed: true },
+            ]
+        },
+        ...overrides
+    });
+
+    describe('A1: Store twice with different offerSheetId → Still 1 entry', () => {
+        it('should produce only 1 offer sheet when stored twice with different IDs but same dedupKey inputs', () => {
+            const currentState = createMockState();
+            
+            // First store
+            const payload1 = createMockPayload({ offerSheetId: 'os_test_1' });
+            const result1 = computeWorldMutation({
+                mutationType: 'storeOfferSheet',
+                payload: payload1,
+                currentState,
+                seasonId: '2025-26',
+                timestamp: Date.now(),
+            });
+            
+            expect(result1.success).toBe(true);
+            const offeringTeamAfter1 = result1.teamUpdates.find(u => u.teamCode === 'LAL').team;
+            expect(offeringTeamAfter1.offerSheets).toHaveLength(1);
+            expect(offeringTeamAfter1.offerSheets[0].id).toBe('os_test_1');
+            
+            // Second store with DIFFERENT offerSheetId but same identity
+            const stateAfterFirst = createMockState({
+                team: offeringTeamAfter1,
+                homeTeam: result1.teamUpdates.find(u => u.teamCode === 'BOS')?.team || currentState.homeTeam
+            });
+            
+            const payload2 = createMockPayload({ offerSheetId: 'os_test_2' });
+            const result2 = computeWorldMutation({
+                mutationType: 'storeOfferSheet',
+                payload: payload2,
+                currentState: stateAfterFirst,
+                seasonId: '2025-26',
+                timestamp: Date.now() + 1000, // Different timestamp
+            });
+            
+            expect(result2.success).toBe(true);
+            const offeringTeamAfter2 = result2.teamUpdates.find(u => u.teamCode === 'LAL').team;
+            
+            // CRITICAL: Should still be only 1 entry (deduped by dedupKey)
+            expect(offeringTeamAfter2.offerSheets).toHaveLength(1);
+            // Original ID should be preserved
+            expect(offeringTeamAfter2.offerSheets[0].id).toBe('os_test_1');
+            // dedupKey should match expected format
+            expect(offeringTeamAfter2.offerSheets[0].dedupKey).toBe('os:world_test_123:LAL:player123:2025-26');
+        });
+
+        it('should update contract terms in place on second store', () => {
+            const currentState = createMockState();
+            
+            // First store with original salary
+            const payload1 = createMockPayload({ 
+                offerSheetId: 'os_test_1',
+                contract: {
+                    rfaOfferSheet: true,
+                    rfaOfferSheetOnly: true,
+                    contractYears: 4,
+                    totalValue: 100000000,
+                    salariesByYear: [
+                        { season: '2025-26', salary: 25000000, capHit: 25000000, guaranteed: true },
+                    ]
+                }
+            });
+            const result1 = computeWorldMutation({
+                mutationType: 'storeOfferSheet',
+                payload: payload1,
+                currentState,
+                seasonId: '2025-26',
+                timestamp: Date.now(),
+            });
+            
+            const offeringTeamAfter1 = result1.teamUpdates.find(u => u.teamCode === 'LAL').team;
+            
+            // Second store with UPDATED salary
+            const stateAfterFirst = createMockState({
+                team: offeringTeamAfter1,
+                homeTeam: result1.teamUpdates.find(u => u.teamCode === 'BOS')?.team || currentState.homeTeam
+            });
+            
+            const payload2 = createMockPayload({ 
+                offerSheetId: 'os_test_2',
+                contract: {
+                    rfaOfferSheet: true,
+                    rfaOfferSheetOnly: true,
+                    contractYears: 4,
+                    totalValue: 120000000, // Changed
+                    salariesByYear: [
+                        { season: '2025-26', salary: 30000000, capHit: 30000000, guaranteed: true }, // Changed
+                    ]
+                }
+            });
+            const result2 = computeWorldMutation({
+                mutationType: 'storeOfferSheet',
+                payload: payload2,
+                currentState: stateAfterFirst,
+                seasonId: '2025-26',
+                timestamp: Date.now() + 1000,
+            });
+            
+            const offeringTeamAfter2 = result2.teamUpdates.find(u => u.teamCode === 'LAL').team;
+            
+            // Should still be 1 entry
+            expect(offeringTeamAfter2.offerSheets).toHaveLength(1);
+            // Should have UPDATED totalValue
+            expect(offeringTeamAfter2.offerSheets[0].totalValue).toBe(120000000);
+            expect(offeringTeamAfter2.offerSheets[0].salariesByYear[0].salary).toBe(30000000);
+        });
+    });
+
+    describe('A2: Store twice with NO offerSheetId → Still 1 entry', () => {
+        it('should produce only 1 offer sheet when stored twice without explicit ID', () => {
+            const currentState = createMockState();
+            const timestamp1 = Date.now();
+            
+            // First store with NO offerSheetId
+            const payload1 = createMockPayload();
+            delete payload1.offerSheetId;
+            
+            const result1 = computeWorldMutation({
+                mutationType: 'storeOfferSheet',
+                payload: payload1,
+                currentState,
+                seasonId: '2025-26',
+                timestamp: timestamp1,
+            });
+            
+            expect(result1.success).toBe(true);
+            const offeringTeamAfter1 = result1.teamUpdates.find(u => u.teamCode === 'LAL').team;
+            expect(offeringTeamAfter1.offerSheets).toHaveLength(1);
+            
+            const firstId = offeringTeamAfter1.offerSheets[0].id;
+            const firstCreatedAt = offeringTeamAfter1.offerSheets[0].createdAt;
+            
+            // Second store with NO offerSheetId (different timestamp generates different ID)
+            const stateAfterFirst = createMockState({
+                team: offeringTeamAfter1,
+                homeTeam: result1.teamUpdates.find(u => u.teamCode === 'BOS')?.team || currentState.homeTeam
+            });
+            
+            const payload2 = createMockPayload();
+            delete payload2.offerSheetId;
+            
+            const result2 = computeWorldMutation({
+                mutationType: 'storeOfferSheet',
+                payload: payload2,
+                currentState: stateAfterFirst,
+                seasonId: '2025-26',
+                timestamp: timestamp1 + 5000, // Different timestamp
+            });
+            
+            expect(result2.success).toBe(true);
+            const offeringTeamAfter2 = result2.teamUpdates.find(u => u.teamCode === 'LAL').team;
+            
+            // CRITICAL: Should still be only 1 entry (deduped by dedupKey)
+            expect(offeringTeamAfter2.offerSheets).toHaveLength(1);
+            // Original ID should be preserved
+            expect(offeringTeamAfter2.offerSheets[0].id).toBe(firstId);
+            // Original createdAt should be preserved
+            expect(offeringTeamAfter2.offerSheets[0].createdAt).toBe(firstCreatedAt);
+        });
+    });
+});
+
+// ==============================================================================
+// Phase 18.2: worldId Required Tests
+// ==============================================================================
+
+describe('Phase 18.2: worldId Required for Offer Sheet Identity', () => {
+    const createMockState = () => ({
+        team: {
+            teamCode: 'LAL',
+            teamName: 'Los Angeles Lakers',
+            players: [],
+            roster: [],
+            offerSheets: [],
+        },
+        player: {
+            player_id: 'player123',
+            id: 'player123',
+            name: 'Test Player',
+            displayName: 'Test Player',
+            teamCode: 'BOS',
+            contract: { signingTeam: 'BOS' },
+        },
+        teamCode: 'LAL',
+        homeTeam: {
+            teamCode: 'BOS',
+            teamName: 'Boston Celtics',
+            players: [{ player_id: 'player123', name: 'Test Player' }],
+            roster: ['player123'],
+            incomingOfferSheets: [],
+        }
+    });
+
+    it('should FAIL FAST when worldId is missing from payload', () => {
+        const currentState = createMockState();
+        
+        const payload = {
+            teamCode: 'LAL',
+            playerId: 'player123',
+            // worldId is MISSING
+            contract: {
+                rfaOfferSheet: true,
+                rfaOfferSheetOnly: true,
+                contractYears: 4,
+                totalValue: 100000000,
+                salariesByYear: [
+                    { season: '2025-26', salary: 25000000, capHit: 25000000, guaranteed: true },
+                ]
+            }
+        };
+        
+        const result = computeWorldMutation({
+            mutationType: 'storeOfferSheet',
+            payload,
+            currentState,
+            seasonId: '2025-26',
+            timestamp: Date.now(),
+        });
+        
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('worldId');
+    });
+
+    it('should FAIL FAST when worldId is undefined', () => {
+        const currentState = createMockState();
+        
+        const payload = {
+            teamCode: 'LAL',
+            playerId: 'player123',
+            worldId: undefined, // Explicitly undefined
+            contract: {
+                rfaOfferSheet: true,
+                rfaOfferSheetOnly: true,
+                contractYears: 4,
+                totalValue: 100000000,
+                salariesByYear: [
+                    { season: '2025-26', salary: 25000000, capHit: 25000000, guaranteed: true },
+                ]
+            }
+        };
+        
+        const result = computeWorldMutation({
+            mutationType: 'storeOfferSheet',
+            payload,
+            currentState,
+            seasonId: '2025-26',
+            timestamp: Date.now(),
+        });
+        
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('worldId');
+    });
+
+    it('should SUCCEED when worldId is provided', () => {
+        const currentState = createMockState();
+        
+        const payload = {
+            teamCode: 'LAL',
+            playerId: 'player123',
+            worldId: 'world_test_123', // Valid worldId
+            contract: {
+                rfaOfferSheet: true,
+                rfaOfferSheetOnly: true,
+                contractYears: 4,
+                totalValue: 100000000,
+                salariesByYear: [
+                    { season: '2025-26', salary: 25000000, capHit: 25000000, guaranteed: true },
+                ]
+            }
+        };
+        
+        const result = computeWorldMutation({
+            mutationType: 'storeOfferSheet',
+            payload,
+            currentState,
+            seasonId: '2025-26',
+            timestamp: Date.now(),
+        });
+        
+        expect(result.success).toBe(true);
+    });
+});
+
+// ==============================================================================
+// Phase 18.2: Cleanup by dedupKey Tests
+// ==============================================================================
+
+describe('Phase 18.2: finalizeDeclinedOfferSheet Cleanup by dedupKey', () => {
+    it('should remove offer sheet from BOTH teams when arrays have different IDs but same dedupKey', () => {
+        const dedupKey = 'os:world1:LAL:player123:2025-26';
+        
+        // Create state where offering team and home team have DIFFERENT IDs for same offer
+        const currentState = {
+            offeringTeam: {
+                teamCode: 'LAL',
+                teamName: 'Los Angeles Lakers',
+                players: [],
+                roster: [],
+                offerSheets: [{
+                    id: 'os_offering_id_1', // Different ID
+                    dedupKey,
+                    playerId: 'player123',
+                    playerName: 'Test Player',
+                    offeringTeamCode: 'LAL',
+                    homeTeamCode: 'BOS',
+                    status: 'DECLINED',
+                    seasonKey: '2025-26',
+                    contractYears: 4,
+                    salariesByYear: [{ season: '2025-26', salary: 25000000, capHit: 25000000, guaranteed: true }],
+                }],
+            },
+            homeTeam: {
+                teamCode: 'BOS',
+                teamName: 'Boston Celtics',
+                players: [{ player_id: 'player123', name: 'Test Player' }],
+                roster: ['player123'],
+                incomingOfferSheets: [{
+                    id: 'os_home_id_2', // Different ID from offering team
+                    dedupKey,
+                    playerId: 'player123',
+                    playerName: 'Test Player',
+                    offeringTeamCode: 'LAL',
+                    homeTeamCode: 'BOS',
+                    status: 'DECLINED',
+                    seasonKey: '2025-26',
+                    contractYears: 4,
+                    salariesByYear: [{ season: '2025-26', salary: 25000000, capHit: 25000000, guaranteed: true }],
+                }],
+            },
+            offerSheetId: 'os_offering_id_1', // Use offering team's ID
+        };
+
+        const payload = {
+            teamCode: 'LAL',
+            offeringTeamCode: 'LAL',
+            homeTeamCode: 'BOS',
+            offerSheetId: 'os_offering_id_1',
+            dedupKey, // Include dedupKey for dual cleanup
+            playerId: 'player123',
+            seasonKey: '2025-26',
+        };
+
+        const result = computeWorldMutation({
+            mutationType: 'finalizeDeclinedOfferSheet',
+            payload,
+            currentState,
+            seasonId: '2025-26',
+            timestamp: Date.now(),
+        });
+
+        expect(result.success).toBe(true);
+        
+        const offeringTeamResult = result.teamUpdates.find(u => u.teamCode === 'LAL').team;
+        const homeTeamResult = result.teamUpdates.find(u => u.teamCode === 'BOS').team;
+        
+        // Both arrays should be empty
+        expect(offeringTeamResult.offerSheets).toHaveLength(0);
+        expect(homeTeamResult.incomingOfferSheets).toHaveLength(0);
+        
+        // Player should be added to offering team roster
+        expect(offeringTeamResult.roster).toContain('player123');
     });
 });

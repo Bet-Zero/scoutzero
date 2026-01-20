@@ -708,6 +708,7 @@ export function useArchitectActions({
       const payload = {
         teamCode,
         playerId: playerObj.id || playerObj.player_id,
+        worldId, // Phase 18.2: Required for audit-grade dedupKey generation
         contract: offerContract,
         signedUsing: contract.signedUsing || null,
       };
@@ -757,31 +758,17 @@ export function useArchitectActions({
             return;
         }
 
-        // Phase 16: Offering Team Finalizing DECLINED Offer (Signing)
+        // Phase 18.2: Offering Team Finalizing DECLINED Offer
+        // Use dedicated mutation for proper cleanup + signing
         if (offerSheet.status === 'DECLINED' && offerSheet.offeringTeamCode === teamCode) {
-            // Convert OfferSheet back to Contract format
-            // Reuse salariesByYear
-            const contractPayload: SigningDetails = {
-                contractType: 'Signed Offer Sheet',
-                contractYears: offerSheet.contractYears,
-                salariesByYear: offerSheet.salariesByYear,
-                totalValue: offerSheet.totalValue,
-                rfaOfferSheet: true,
-                rfaOfferSheetStatus: offerSheet.status, // DECLINED
-                // NO rfaOfferSheetOnly
-            };
-
-            const architectContract = ensureContractStructure(contractPayload as LocalContract, {
-                ...contractPayload,
-                signingTeam: teamCode
-            });
-
-            // Delegate to signFreeAgent mutation
-            persistMutation('signFreeAgent', {
-                teamCode,
-                playerId: playerObj.id || playerObj.player_id,
-                contract: architectContract,
-                signedUsing: null
+            persistMutation('finalizeDeclinedOfferSheet', {
+                teamCode, // Offering team (actor)
+                offeringTeamCode: teamCode,
+                homeTeamCode: offerSheet.homeTeamCode,
+                offerSheetId: offerSheet.id,
+                dedupKey: offerSheet.dedupKey, // Phase 18.2: Include for dual cleanup
+                playerId: offerSheet.playerId,
+                seasonKey: offerSheet.seasonKey,
             });
             return;
         }

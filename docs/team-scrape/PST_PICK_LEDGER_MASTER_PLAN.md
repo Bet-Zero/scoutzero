@@ -203,6 +203,51 @@ Rights views now render:
 
 ---
 
+### Phase 2.1 Hotfix — Owner Overlay Swap Detection Fix (COMPLETE)
+
+**Goal**: Fix false swap-only detection that was preventing owner override for ranked distribution picks like DAL_2029_1st.
+
+**Problem**
+
+The swap-only gate in `pst_apply_display_owner_overlay.ts` was incorrectly blocking owner overrides for picks involved in "most/second most favorable" distributions:
+
+- `DAL_2029_1st` showed `owner: DAL`, `ownershipSource: BASE` (WRONG)
+- The normalized text contained "Rockets option to swap 2025 first round picks" (for a different pick)
+- `isSwapOnlyClause()` detected swap language and blocked owner override
+- Expected: `owner: HOU`, `ownershipSource: PST_DISPLAY` (Kyrie trade + ranked distribution)
+
+**Solution**
+
+Enhanced `isSwapOnlyClause()` in `pst_owner_model_utils.ts` to recognize ranked distribution patterns as explicit conveyances:
+
+```typescript
+// Added pattern for ranked distributions (most/least favorable)
+new RegExp(
+  `${yearPattern}\\s+${roundText}\\s+pick[^•]*(?:most\\s+favorable|second\\s+most\\s+favorable|third\\s+most\\s+favorable|least\\s+favorable)\\s+of`,
+  'i'
+)
+```
+
+**Artifacts updated**
+
+- `team-scrape/draft-picks/scripts/pst/pst_owner_model_utils.ts` (MODIFIED)
+- `team-scrape/draft-picks/scripts/pst/pst_validate_owner_overlay_regressions.ts` (NEW)
+- `package.json` (added `pst:validate:overlay:regressions` script)
+- `data/pst/pst_ledger_with_display_owner.json` (regenerated)
+- `data/pst/pst_pick_ledger_final_2026_2033.json` (regenerated)
+
+**Validation**
+
+- `DAL_2029_1st.owner == HOU` ✓
+- `DAL_2029_1st.ownershipSource == PST_DISPLAY` ✓
+- `PHX_2029_1st.owner == HOU` ✓
+- `PHX_2029_1st.ownershipSource == PST_DISPLAY` ✓
+- Final ledger count remains 480 ✓
+- needs_review remains 0 ✓
+- Regression validator: `npm run pst:validate:overlay:regressions` ✓
+
+---
+
 ## Quick Commands
 
 **Recommended day-to-day command** (runs full final pipeline):
