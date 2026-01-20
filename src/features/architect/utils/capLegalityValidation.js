@@ -107,10 +107,21 @@ export const HARD_BLOCK_RULES = [
   // Phase 8/10: RFA/QO and re-signing rules
   'rfa_state_invalid',            // RFA freeAgency object has invalid year (not plausible integer)
   'rfa_missing_qualifying_offer', // RFA type but qualifyingOffer is not a finite number > 0
-  'rfa_offer_sheet_not_supported', // Phase 10: Signing RFA player from non-home team (offer sheet matching not implemented)
+  'rfa_offer_sheet_not_supported', // Phase 10: Signing RFA player from non-home team without offer sheet flag
   'rfa_team_identity_unverifiable', // Phase 10: RFA signing where team identity cannot be verified
   'resigning_ineligible',         // Re-signing player without proper team eligibility (no rights)
   'rookie_scale_invalid',         // Phase 11: Rookie scale contract outside 80-120% band
+  // Phase 12: RFA Offer Sheet rules
+  'rfa_offer_sheet_resolution_required', // Phase 12: Offer sheet in PENDING_MATCH state when finalizing
+  'rfa_offer_sheet_invalid_terms', // Phase 12: Offer sheet years/raises outside bounds
+  // Phase 13: Offer Sheet Finalization Gate
+  'rfa_offer_sheet_declined', // Phase 13: Offer sheet in DECLINED state (dead offer sheet)
+  // Phase 14: Store-Only Invariants
+  'rfa_offer_sheet_store_only_invalid', // Phase 14: Store-only flag used with invalid shape (missing rfaOfferSheet or MATCHED status)
+  // Phase 17: Offer Sheet Matched Resolution
+  'rfa_offer_sheet_matched_offering_team_cannot_finalize', // Offering team cannot finalize a MATCHED offer sheet
+  // Phase 18.1: DECLINED Rule Scope Fix
+  'rfa_offer_sheet_declined_home_team_cannot_finalize', // Home team cannot finalize a DECLINED offer sheet
 ];
 
 /**
@@ -174,6 +185,16 @@ export const EXTENSION_FIRST_YEAR_MAX_PERCENT = 1.20;
 export const EXTENSION_MAX_RAISE_PERCENT = 0.08;
 
 /**
+ * Phase 12: RFA Offer Sheet term sanity bounds.
+ * 
+ * Per CBA, offer sheets must be 1-4 years with raises not exceeding 8%.
+ * These are baseline checks to ensure offer sheet terms are plausible.
+ */
+export const OFFER_SHEET_YEARS_MIN = 1;
+export const OFFER_SHEET_YEARS_MAX = 4;
+export const OFFER_SHEET_MAX_RAISE_PCT = 0.08; // 8%
+
+/**
  * Soft warning rules - these can be overridden in dev mode.
  */
 export const SOFT_WARNING_RULES = [
@@ -190,6 +211,8 @@ export const SOFT_WARNING_RULES = [
   'cap_data',         // Cap data not available
   'resigning_eligibility_unverifiable', // Phase 9: Cannot verify re-signing eligibility (missing fields)
   'rfa_qualifying_offer_suspicious',    // Phase 10: QO > 3x last salary (may be data issue)
+  'rfa_offer_sheet_stub_active',        // Phase 12: Offer sheet processing in stub mode (UI informational)
+  'rfa_offer_sheet_store_only_flag_in_use', // Phase 14: Store-only mode is active for offer sheet (info)
 ];
 
 /**
@@ -1146,6 +1169,145 @@ export function validateSigningRaises({ contract, raisePercentage, mechanism }) 
   return null;
 }
 
+// ==============================================================================
+// PHASE 13: FINALIZATION GATE HELPERS
+// ==============================================================================
+
+/**
+ * Determine if a signing action is "finalizing" roster membership.
+ * 
+ * Phase 13 introduces the concept of a "finalization gate" for RFA offer sheets.
+ * An offer sheet can exist in PENDING_MATCH state for storage/UI display purposes,
+ * but cannot be finalized (roster the player) until resolution (MATCHED).
+ * 
+ * Finalization is determined by:
+ * 1. Default: signFreeAgent mutation type is a finalizing action
+ * 2. Opt-out: contract.rfaOfferSheetOnly === true signals non-finalizing intent
+ * 
+ * @param {Object} params
+ * @param {Object} params.contract - Proposed contract object
+ * @returns {boolean} True if this action would finalize (roster the player)
+ */
+export function isFinalizingSigning({ contract }) {
+  // If rfaOfferSheetOnly is explicitly true, this is NOT a finalization
+  // The consumer is storing offer sheet data only, pending match resolution.
+  if (contract?.rfaOfferSheetOnly === true) {
+    return false;
+  }
+  // Default: signFreeAgent is a finalizing action (adds player to roster)
+  return true;
+}
+
+/**
+ * Validate store-only mode invariants for RFA offer sheets (Phase 14).
+ * 
+ * When `rfaOfferSheetOnly === true`, the contract must satisfy:
+ * - A) rfaOfferSheet === true (must be an explicit offer sheet)
+ * - B) rfaOfferSheetStatus must be PENDING_MATCH (or missing → treated as pending)
+ * - C) MATCHED status is NOT allowed in store-only mode (MATCHED = finalization path)
+ * 
+ * This prevents misuse where store-only mode could bypass finalization checks.
+ * 
+ * @param {Object} params
+ * @param {Object} params.contract - Contract object with offer sheet flags
+ * @returns {{ valid: boolean, violations: Array }}
+ */
+export function validateStoreOnlyInvariants({ contract }) {
+  const violations = [];
+  
+  // Only check if store-only mode is active
+  if (contract?.rfaOfferSheetOnly !== true) {
+    return { valid: true, violations };
+  }
+  
+  // Invariant A: Must have rfaOfferSheet === true
+  if (contract.rfaOfferSheet !== true) {
+    violations.push({
+      rule: 'rfa_offer_sheet_store_only_invalid',
+      message: `Store-only mode (rfaOfferSheetOnly=true) requires rfaOfferSheet=true. Got rfaOfferSheet=${contract.rfaOfferSheet}.`,
+      severity: 'error',
+      storeOnlyFlag: true,
+      rfaOfferSheet: contract.rfaOfferSheet,
+      invariant: 'A',
+    });
+  }
+  
+  // Invariant B/C: Status must be PENDING_MATCH (or missing)
+  // MATCHED is NOT allowed in store-only mode (that's the finalization path)
+  const status = contract.rfaOfferSheetStatus || 'PENDING_MATCH';
+  
+  if (status === 'MATCHED') {
+    violations.push({
+      rule: 'rfa_offer_sheet_store_only_invalid',
+      message: `Store-only mode (rfaOfferSheetOnly=true) cannot have MATCHED status. MATCHED status indicates finalization. Remove rfaOfferSheetOnly flag to finalize.`,
+      severity: 'error',
+      storeOnlyFlag: true,
+      currentStatus: status,
+      invariant: 'C',
+    });
+  } else if (status !== 'PENDING_MATCH' && status !== 'DECLINED') {
+    // Unknown status - also invalid for store-only
+    violations.push({
+      rule: 'rfa_offer_sheet_store_only_invalid',
+      message: `Store-only mode has unrecognized status "${status}". Expected PENDING_MATCH.`,
+      severity: 'error',
+      storeOnlyFlag: true,
+      currentStatus: status,
+      invariant: 'B',
+    });
+  }
+  // Note: DECLINED status is caught separately by rfa_offer_sheet_declined check
+  
+  return { valid: violations.length === 0, violations };
+}
+
+/**
+ * Validate RFA offer sheet terms (Phase 12 stub).
+ * 
+ * Validates:
+ * - Contract years between 1-4 (CBA offer sheet limit)
+ * - Year-over-year raises ≤ 8%
+ * 
+ * @param {Object} contract - Proposed offer sheet contract
+ * @returns {{ valid: boolean, violations: Array }}
+ */
+export function validateOfferSheetTerms(contract) {
+  const violations = [];
+  const years = getContractYears(contract);
+  
+  // Years check (1-4 per CBA)
+  if (years < OFFER_SHEET_YEARS_MIN || years > OFFER_SHEET_YEARS_MAX) {
+    violations.push({
+      rule: 'rfa_offer_sheet_invalid_terms',
+      message: `Offer sheet must be ${OFFER_SHEET_YEARS_MIN}-${OFFER_SHEET_YEARS_MAX} years. Got ${years} year(s).`,
+      severity: 'error',
+      field: 'years',
+      expected: `${OFFER_SHEET_YEARS_MIN}-${OFFER_SHEET_YEARS_MAX}`,
+      actual: years,
+    });
+  }
+  
+  // Raises check (reuse signing raises validation with 8% cap)
+  const raiseViolation = validateSigningRaises({
+    contract,
+    raisePercentage: OFFER_SHEET_MAX_RAISE_PCT,
+    mechanism: 'OFFER_SHEET', // Non-MINIMUM to enable check
+  });
+  
+  if (raiseViolation) {
+    // Convert to offer sheet rule
+    violations.push({
+      rule: 'rfa_offer_sheet_invalid_terms',
+      message: `Offer sheet raise exceeds ${Math.round(OFFER_SHEET_MAX_RAISE_PCT * 100)}%: ${raiseViolation.message}`,
+      severity: 'error',
+      field: 'raises',
+      originalViolation: raiseViolation,
+    });
+  }
+  
+  return { valid: violations.length === 0, violations };
+}
+
 /**
  * Validate signing terms (years + raises) using Salary Engine terms.
  *
@@ -1630,8 +1792,9 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
     }
   }
   
-  // 0.7. PHASE 10: DIFFERENTIATED RFA GUARDRAILS
-  // Home team RFA actions are allowed. Offer sheet attempts (non-home team) are blocked.
+  // 0.7. PHASE 10/12: DIFFERENTIATED RFA GUARDRAILS + OFFER SHEET STUB
+  // Home team RFA actions are allowed. Offer sheet attempts (non-home team) require
+  // explicit flag and valid resolution state (Phase 12).
   // Unverifiable team identity is also blocked to prevent silent incorrect state.
   const playerFreeAgency = player?.freeAgency || player?.contract?.freeAgency;
   if (playerFreeAgency?.type === 'RFA') {
@@ -1654,21 +1817,125 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
         },
       });
     }
-    // Case 2: Offer sheet attempt (non-home team) - hard block
+    // Case 2: Non-home team - PHASE 12 Offer Sheet Path
     else if (normalizedPlayerTeam !== normalizedSigningTeam) {
-      violations.push({
-        rule: 'rfa_offer_sheet_not_supported',
-        message: `Signing RFA player from non-home team is not yet supported. Offer sheet matching required for ${normalizedPlayerTeam} player, signed by ${normalizedSigningTeam}.`,
-        severity: 'error',
-        playerName: player?.name || player?.displayName || player?.player_id,
-        normalizedPlayerTeam,
-        normalizedSigningTeam,
-        freeAgency: {
-          type: 'RFA',
-          year: playerFreeAgency?.year,
-          qualifyingOffer: playerFreeAgency?.qualifyingOffer,
-        },
-      });
+      // Phase 14: Check store-only invariants FIRST (before isOfferSheetAttempt check)
+      // This catches misuse where rfaOfferSheetOnly=true but rfaOfferSheet is missing
+      const storeOnlyInvariantResult = validateStoreOnlyInvariants({ contract });
+      if (!storeOnlyInvariantResult.valid) {
+        violations.push(...storeOnlyInvariantResult.violations);
+        // Don't proceed with further offer sheet validation - invariants are broken
+      }
+      
+      // Check if this is an explicit offer sheet attempt
+      const isOfferSheetAttempt = contract?.rfaOfferSheet === true;
+      
+      if (!isOfferSheetAttempt) {
+        // Only block with rfa_offer_sheet_not_supported if we didn't already block with store-only invalid
+        if (storeOnlyInvariantResult.valid) {
+          // No offer sheet flag - block with legacy rule
+          violations.push({
+            rule: 'rfa_offer_sheet_not_supported',
+            message: `Signing RFA player from non-home team requires offer sheet flag. Set contract.rfaOfferSheet = true for ${normalizedPlayerTeam} player, signed by ${normalizedSigningTeam}.`,
+            severity: 'error',
+            playerName: player?.name || player?.displayName || player?.player_id,
+            normalizedPlayerTeam,
+            normalizedSigningTeam,
+            freeAgency: {
+              type: 'RFA',
+              year: playerFreeAgency?.year,
+              qualifyingOffer: playerFreeAgency?.qualifyingOffer,
+            },
+          });
+        }
+      } else {
+        // PHASE 12/13: Offer sheet attempt with flag set
+        // Validate offer sheet terms (years/raises)
+        const offerSheetResult = validateOfferSheetTerms(contract);
+        if (!offerSheetResult.valid) {
+          violations.push(...offerSheetResult.violations);
+        }
+        
+        // Phase 13: Finalization gate for PENDING_MATCH offer sheets
+        // Determine status with default to PENDING_MATCH
+        const status = contract?.rfaOfferSheetStatus || 'PENDING_MATCH';
+        
+        // Phase 13: Determine if this is a finalizing action
+        const finalizing = isFinalizingSigning({ contract });
+        
+        // Case A: DECLINED status
+        if (status === 'DECLINED') {
+          // Phase 16: DECLINED status is allowed if finalizing (offering team signing the player)
+          // It is BLOCKED if trying to store/update it again without finalizing
+          if (!finalizing) {
+            violations.push({
+              rule: 'rfa_offer_sheet_declined',
+              message: `Offer sheet has been declined. You must finalize it to sign the player, or leave it as is. Cannot update store-only state.`,
+              severity: 'error',
+              playerName: player?.name || player?.displayName || player?.player_id,
+              normalizedPlayerTeam,
+              normalizedSigningTeam,
+              currentStatus: status,
+              freeAgency: {
+                type: 'RFA',
+                year: playerFreeAgency?.year,
+                qualifyingOffer: playerFreeAgency?.qualifyingOffer,
+              },
+            });
+          }
+           // Else: Finalizing a DECLINED offer sheet is VALID (Proceed to signFreeAgent)
+        }
+        // Case B: PENDING_MATCH status
+        else if (status === 'PENDING_MATCH') {
+          if (finalizing) {
+            // Phase 13: Finalizing a PENDING_MATCH offer sheet is blocked
+            violations.push({
+              rule: 'rfa_offer_sheet_resolution_required',
+              message: `Offer sheet cannot be finalized without resolution. Current status: "${status}". Must be "MATCHED" to complete signing. Set contract.rfaOfferSheetOnly = true to store without finalizing.`,
+              severity: 'error',
+              playerName: player?.name || player?.displayName || player?.player_id,
+              normalizedPlayerTeam,
+              normalizedSigningTeam,
+              currentStatus: status,
+              isFinalizingAttempt: true,
+              freeAgency: {
+                type: 'RFA',
+                year: playerFreeAgency?.year,
+                qualifyingOffer: playerFreeAgency?.qualifyingOffer,
+              },
+            });
+          }
+          // else: PENDING_MATCH + not finalizing = allowed (storing offer sheet)
+          // Phase 14: Add informational warning when store-only mode is active (invariants already checked earlier)
+          if (!finalizing && storeOnlyInvariantResult.valid) {
+            // Valid store-only mode - add informational warning
+            warnings.push({
+              rule: 'rfa_offer_sheet_store_only_flag_in_use',
+              message: `Store-only mode active: Offer sheet is being recorded but NOT finalized. Player will NOT be added to roster. Status: "${status}".`,
+              severity: 'info',
+              playerName: player?.name || player?.displayName || player?.player_id,
+              normalizedPlayerTeam,
+              normalizedSigningTeam,
+              offerSheetStatus: status,
+              storeOnlyFlag: true,
+            });
+          }
+        }
+        // Case C: MATCHED status - allowed for finalization
+        // No block needed, proceed through normal signing validation
+        
+        // Add stub warning for UI awareness
+        warnings.push({
+          rule: 'rfa_offer_sheet_stub_active',
+          message: `RFA offer sheet processing is in stub mode (Phase 13). Status: "${status}", Finalizing: ${finalizing}. Full match/decline workflow not yet implemented.`,
+          severity: 'warning',
+          playerName: player?.name || player?.displayName || player?.player_id,
+          normalizedPlayerTeam,
+          normalizedSigningTeam,
+          offerSheetStatus: status,
+          isFinalizingAttempt: finalizing,
+        });
+      }
     }
     // Case 3: Home team RFA action - allowed, continue through normal validation
     // No additional block here - QO and re-signing checks remain enforced.
@@ -2699,6 +2966,99 @@ export function validateRenounceRights({ team, player, year = null }) {
   };
 }
 
+
+/**
+ * Phase 17: Validate offer sheet resolution (Match/Decline/Finalize).
+ * Enforces who can do what based on status.
+ *
+ * @param {Object} params
+ * @param {Object} params.offerSheet - The offer sheet being acted upon
+ * @param {string} params.actingTeamCode - Team code attempting the action
+ * @param {string} params.action - 'match', 'decline', 'finalize'
+ * @returns {{valid: boolean, violations: Array, warnings: Array}}
+ */
+export function validateOfferSheetResolution({ offerSheet, actingTeamCode, action }) {
+  const violations = [];
+  const warnings = [];
+
+  if (!offerSheet) {
+    violations.push({
+      rule: 'unknown_type', // Reusing generic rule for missing object
+      message: 'Offer sheet is missing or undefined.',
+      severity: 'error',
+    });
+    return { valid: false, violations, warnings };
+  }
+
+  const { status, offeringTeamCode, homeTeamCode } = offerSheet;
+  const isOfferingTeam = actingTeamCode === offeringTeamCode;
+  const isHomeTeam = actingTeamCode === homeTeamCode;
+
+  // 1. Offering Team attempting to Finalize
+  if (action === 'finalize' && isOfferingTeam) {
+    if (status === 'MATCHED') {
+      // NEW RULE: Offering team CANNOT finalize a MATCHED offer sheet.
+      violations.push({
+        rule: 'rfa_offer_sheet_matched_offering_team_cannot_finalize',
+        message: 'Offer sheet has been MATCHED by home team. The player stays with home team. Offering team cannot finalize.',
+        severity: 'error',
+      });
+    } else if (status === 'PENDING_MATCH') {
+      // Existing rule: Cannot finalize while pending match
+      violations.push({
+        rule: 'rfa_offer_sheet_resolution_required',
+        message: 'Offer sheet is pending match decision. Cannot finalize yet.',
+        severity: 'error',
+      });
+    } else if (status === 'DECLINED') {
+      // Allowed: Offering team finalizes a declined offer sheet (signs player)
+    }
+  }
+
+  // 2. Home Team attempting to Finalize Match
+  if (action === 'finalize' && isHomeTeam) {
+    if (status === 'MATCHED') {
+      // Allowed: Home team finalizes the match (applies contract)
+    } else if (status === 'DECLINED') {
+      // Phase 18.1: Home team CANNOT finalize a DECLINED offer sheet
+      // They already declined - the offering team gets to sign the player
+      violations.push({
+        rule: 'rfa_offer_sheet_declined_home_team_cannot_finalize',
+        message: 'Offer sheet has been DECLINED by home team. The player goes to the offering team. Home team cannot finalize.',
+        severity: 'error',
+        actingTeamCode,
+        offeringTeamCode,
+        homeTeamCode,
+        status,
+      });
+    } else {
+      // Cannot finalize if pending (needs match/decline decision first)
+      violations.push({
+        rule: 'rfa_offer_sheet_resolution_required',
+        message: `Home team cannot finalize match when status is ${status}. Must be MATCHED.`,
+        severity: 'error',
+      });
+    }
+  }
+  
+  // 3. Match/Decline Actions (Home Team Only)
+  if (action === 'match' || action === 'decline') {
+      if (!isHomeTeam) {
+           violations.push({
+              rule: 'rfa_team_identity_unverifiable', // Or similar "not authorized" rule
+              message: 'Only the home team can Match or Decline an offer sheet.',
+              severity: 'error'
+           });
+      }
+  }
+
+  return {
+    valid: violations.length === 0,
+    violations,
+    warnings,
+  };
+}
+
 // ==============================================================================
 // EXPORTS
 // ==============================================================================
@@ -2735,4 +3095,13 @@ export default {
   validateGuaranteesPolicy,
   validateOptionsPolicy,
   validateContractRows,
+  // Phase 12: RFA Offer Sheet exports
+  validateOfferSheetTerms,
+  OFFER_SHEET_YEARS_MIN,
+  OFFER_SHEET_YEARS_MAX,
+  OFFER_SHEET_MAX_RAISE_PCT,
+  // Phase 14: Store-Only Invariants exports
+  validateStoreOnlyInvariants,
+  // Phase 17: Resolution Validation
+  validateOfferSheetResolution,
 };

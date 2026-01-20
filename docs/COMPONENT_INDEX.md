@@ -18,6 +18,7 @@ Quick reference for all components in the ScoutZero project.
 - GMDashboard/GMDashboard.jsx
 - GMDashboard/components/DeleteWorldModal.jsx
 - GMDashboard/components/DraftPositionsInput.jsx
+- GMDashboard/components/OfferSheetList.jsx
 - GMDashboard/components/SeasonAdvanceModal.jsx
 - GMDashboard/components/WorldSelector.jsx
 - GMDashboard/components/index.js
@@ -123,6 +124,7 @@ Quick reference for all components in the ScoutZero project.
 - utils/seasonUtils.js
 - utils/stepienUtils.js
 - utils/teamLoader.js
+- utils/temp_mutation_code.js
 - utils/timingUtils.js
 - utils/tpeLifecycle.js
 - utils/tradeHelpers.js
@@ -326,4 +328,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2026-01-18T09:30:09.974Z*
+*Generated on: 2026-01-20T07:38:30.926Z*

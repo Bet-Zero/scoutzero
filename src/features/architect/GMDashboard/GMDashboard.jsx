@@ -308,6 +308,12 @@ const GMDashboard = () => {
             currentYear={currentYear}
             onSign={actions.handleSign}
             playersMap={playersMap}
+            // Phase 16: Offer Sheet Wiring
+            outgoingOfferSheets={teamCapSheet?.offerSheets || []}
+            incomingOfferSheets={teamCapSheet?.incomingOfferSheets || []}
+            onMatch={actions.handleMatchOfferSheet}
+            onDecline={actions.handleDeclineOfferSheet}
+            onFinalize={actions.handleFinalizeOfferSheet}
           />
         )}
 
@@ -406,6 +412,7 @@ const GMDashboard = () => {
           teamCapSheet={teamCapSheet}
           currentYear={currentYear}
           onSign={actions.handleSign}
+          onStoreOfferSheet={actions.handleStoreOfferSheet}
           onSave={actions.handleSaveContract}
           onExtend={actions.handleExtendContract}
           onWaive={actions.handleWaiveContract}

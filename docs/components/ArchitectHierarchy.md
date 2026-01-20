@@ -18,6 +18,7 @@ GMDashboard/
   components/
     DeleteWorldModal.jsx
     DraftPositionsInput.jsx
+    OfferSheetList.jsx
     SeasonAdvanceModal.jsx
     WorldSelector.jsx
     index.js
@@ -199,6 +200,7 @@ utils/
   stepienUtils.js
   subscribeArchitectPlayerData.ts
   teamLoader.js
+  temp_mutation_code.js
   timingUtils.js
   tpeLifecycle.js
   tradeHelpers.js
@@ -281,5 +283,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-01-19T04:59:11.458Z*
+*Generated on: 2026-01-20T07:38:30.895Z*
 *Auto-updated by: npm run docs*

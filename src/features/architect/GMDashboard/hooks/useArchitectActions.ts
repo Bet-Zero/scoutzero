@@ -152,6 +152,7 @@ interface CapHold {
   active: boolean;
   isSigned: boolean;
   reason?: string;
+  notes?: string;
 }
 
 /** Override audit log entry */
@@ -269,6 +270,12 @@ export interface UseArchitectActionsReturn {
   ) => void;
   handleUpdateRoster: (updatedCapSheet: CapSheet) => void;
   handleResetCapSheet: () => void;
+
+  // RFA Offer Sheet Actions (Phase 16)
+  handleStoreOfferSheet: (playerObj: ArchitectPlayer, contract: SigningDetails) => void;
+  handleMatchOfferSheet: (offeringTeamCode: string, offerSheetId: string) => void;
+  handleDeclineOfferSheet: (offeringTeamCode: string, offerSheetId: string) => void;
+  handleFinalizeOfferSheet: (playerObj: ArchitectPlayer, offerSheet: any) => void;
 
   // Trade actions
   applyTradeToCapSheet: (tradeData: TradeDataItem[]) => Promise<void>;
@@ -679,6 +686,111 @@ export function useArchitectActions({
     },
     [teamCode, playersMap, setTeamCapSheet, setFreeAgents, persistMutation]
   );
+
+  // === RFA Offer Sheet Actions ===
+
+  const handleStoreOfferSheet = useCallback(
+    (playerObj: ArchitectPlayer, contract: SigningDetails): void => {
+      // Ensure store-only flags
+      const offerContract = ensureContractStructure(contract as LocalContract, {
+        ...contract,
+        contractType: 'Offer Sheet',
+        signingTeam: teamCode,
+        rfaOfferSheet: true,
+        rfaOfferSheetOnly: true,
+        rfaOfferSheetStatus: 'PENDING_MATCH'
+      });
+
+      // Update local state (optimistic) -> append to team.offerSheets
+      // For MVP, we might skip full optimistic UI update for offer sheets and rely on refresh, 
+      // but let's at least persist it.
+      
+      const payload = {
+        teamCode,
+        playerId: playerObj.id || playerObj.player_id,
+        contract: offerContract,
+        signedUsing: contract.signedUsing || null,
+      };
+
+      persistMutation('storeOfferSheet', payload);
+    },
+    [teamCode, persistMutation]
+  );
+
+  const handleMatchOfferSheet = useCallback(
+    (offeringTeamCode: string, offerSheetId: string): void => {
+      if (!offeringTeamCode || !offerSheetId) return;
+      
+      persistMutation('matchOfferSheet', {
+        teamCode, // Home team (actor)
+        offeringTeamCode,
+        offerSheetId
+      });
+    },
+    [teamCode, persistMutation]
+  );
+
+  const handleDeclineOfferSheet = useCallback(
+    (offeringTeamCode: string, offerSheetId: string): void => {
+        if (!offeringTeamCode || !offerSheetId) return;
+        
+        persistMutation('declineOfferSheet', {
+          teamCode, // Home team (actor)
+          offeringTeamCode,
+          offerSheetId
+        });
+    }, 
+    [teamCode, persistMutation]
+  );
+
+  const handleFinalizeOfferSheet = useCallback(
+    (playerObj: ArchitectPlayer, offerSheet: any): void => {
+        if (!offerSheet || !playerObj) return;
+
+        // Phase 17: Home Team Finalizing MATCHED Offer
+        if (offerSheet.status === 'MATCHED' && offerSheet.homeTeamCode === teamCode) {
+            persistMutation('finalizeMatchedOfferSheet', {
+                teamCode, // Home team (actor)
+                offeringTeamCode: offerSheet.offeringTeamCode,
+                offerSheetId: offerSheet.id
+            });
+            return;
+        }
+
+        // Phase 16: Offering Team Finalizing DECLINED Offer (Signing)
+        if (offerSheet.status === 'DECLINED' && offerSheet.offeringTeamCode === teamCode) {
+            // Convert OfferSheet back to Contract format
+            // Reuse salariesByYear
+            const contractPayload: SigningDetails = {
+                contractType: 'Signed Offer Sheet',
+                contractYears: offerSheet.contractYears,
+                salariesByYear: offerSheet.salariesByYear,
+                totalValue: offerSheet.totalValue,
+                rfaOfferSheet: true,
+                rfaOfferSheetStatus: offerSheet.status, // DECLINED
+                // NO rfaOfferSheetOnly
+            };
+
+            const architectContract = ensureContractStructure(contractPayload as LocalContract, {
+                ...contractPayload,
+                signingTeam: teamCode
+            });
+
+            // Delegate to signFreeAgent mutation
+            persistMutation('signFreeAgent', {
+                teamCode,
+                playerId: playerObj.id || playerObj.player_id,
+                contract: architectContract,
+                signedUsing: null
+            });
+            return;
+        }
+        
+        console.warn('Cannot finalize offer sheet: status/team mismatch', { status: offerSheet.status, teamCode });
+    },
+    [teamCode, persistMutation]
+  );
+
 
   const handleEditContract = useCallback(
     (player: ArchitectPlayer): void => {
@@ -1302,6 +1414,12 @@ export function useArchitectActions({
     handleRenounceRights,
     handleUpdateRoster,
     handleResetCapSheet,
+
+    // Phase 16: Offer Sheet Actions
+    handleStoreOfferSheet,
+    handleMatchOfferSheet,
+    handleDeclineOfferSheet,
+    handleFinalizeOfferSheet,
 
     // Trade actions
     applyTradeToCapSheet,

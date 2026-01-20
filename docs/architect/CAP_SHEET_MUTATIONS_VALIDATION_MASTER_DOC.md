@@ -73,6 +73,9 @@ READ → COMPUTE (PURE) → VALIDATE → PERSIST → POST-UPDATE
 | `extendPlayer` | `computeExtensionResult()` | `validateExtension()` |
 | `optionDecision` | `computeOptionResult()` | `validateOptionDecision()` |
 | `renounceRights` | `computeRenounceResult()` | `validateRenounceRights()` |
+| `storeOfferSheet` | `computeStoreOfferSheetResult()` | `validateStoreOnlyInvariants()` |
+| `matchOfferSheet` | `computeMatchOfferSheetResult()` | `validateMatchOfferSheet()` |
+| `declineOfferSheet` | `computeDeclineOfferSheetResult()` | `validateDeclineOfferSheet()` |
 
 ### 2.3 UI Action Handlers
 
@@ -116,6 +119,9 @@ This hook provides session-only experimentation without Firestore persistence:
 | Extend Contract | EditContractModal → GMDashboard | `handleExtendContract` | `players/{id}.contract.salariesByYear`, `players/{id}.futureContract` | ✅ Yes |
 | Option Decision | EditContractModal → GMDashboard | `handleOptionDecision` | `players/{id}.contract.salariesByYear[n].optionUsed`, `teams/{code}.capHolds` | ✅ Yes |
 | Renounce Rights | EditContractModal → GMDashboard | `handleRenounceRights` | `teams/{code}.capHolds` (removal), `players/{id}.contract.birdRights` | ✅ Yes |
+| Store Offer Sheet | EditContractModal → GMDashboard | `handleStoreOfferSheet` | `teams/{offering}.offerSheets`, `teams/{home}.incomingOfferSheets` | ✅ Yes |
+| Match Offer Sheet | OfferSheetList | `handleMatchOfferSheet` | `offerSheets[].status`, `incomingOfferSheets[].status` | ✅ Yes |
+| Decline Offer Sheet | OfferSheetList | `handleDeclineOfferSheet` | `offerSheets[].status`, `incomingOfferSheets[].status` | ✅ Yes |
 | Execute Trade | TradeMachine → TradeEditor | Via `applyWorldMutation` | Multiple team player arrays, roster, draft picks, exceptions | ✅ Yes |
 
 ### 3.2 Missing / Incomplete Mutations
@@ -304,11 +310,16 @@ interface CapHold {
 * `rfa_offer_sheet_not_supported` - Phase 10: Signing RFA player from non-home team (offer sheet matching not implemented)
 * `rfa_team_identity_unverifiable` - Phase 10: RFA signing where team identity cannot be verified
 * `resigning_ineligible` - Re-signing player without team eligibility (no Bird rights)
+* `rfa_offer_sheet_resolution_required` - Phase 12/13: Offer sheet in PENDING_MATCH when finalizing
+* `rfa_offer_sheet_invalid_terms` - Phase 12: Offer sheet years/raises outside bounds
+* `rfa_offer_sheet_declined` - Phase 13: Offer sheet in DECLINED state (dead)
+* `rfa_offer_sheet_store_only_invalid` - Phase 14: Store-only flag used with invalid shape (missing rfaOfferSheet or MATCHED status)
 
 **Soft Warning Rules (Overridable in dev mode via `VITE_ENABLE_CBA_OVERRIDE=true`):**
 
 * `roster_minimum`, `dead_cap`, `first_apron`, `second_apron`
 * `rfa_qualifying_offer_suspicious` - Phase 10: QO > 3x last year salary (may indicate data issue)
+* `rfa_offer_sheet_store_only_flag_in_use` - Phase 14: Store-only mode is active for offer sheet (info)
 
 ### 5.4 Exception Blocking Rules (G0-2 Implementation)
 
@@ -602,6 +613,12 @@ const canonical = normalizeSigningTerms(legacy, { fallbackMechanism: 'FULL_MLE' 
 | 2026-01-18 | **Contract Rules Phase 9:** Eligibility ID Correctness + FA Plausibility Centralization. (1) Added `normalizeTeamRef()` and `normalizePlayerTeamRef()` helpers to handle format mismatches (e.g., "NBA:LAL" vs "LAL"). Re-signing eligibility now uses canonical normalization to avoid false-blocks. (2) Added `resigning_eligibility_unverifiable` warning rule for cases where team identity cannot be verified. (3) Centralized FA year plausibility policy via `isPlausibleFreeAgencyYear(year, contextYear)` replacing hardcoded 2020-2040 range. Policy: [contextYear - 5, contextYear + 10]. (4) Added explicit `rightsRenounced === true` check for ineligibility. 9 new tests added. |
 | 2026-01-18 | **Contract Rules Phase 10:** RFA Workflow Guardrails (Home-Team vs Offer Sheet). Replaced blunt `rfa_signing_not_supported` block with differentiated logic: (1) `rfa_offer_sheet_not_supported` hard-blocks non-home team RFA signings (offer sheet matching required). (2) `rfa_team_identity_unverifiable` hard-blocks when team identity cannot be normalized. (3) Home-team RFA signings allowed through normal validation (QO still enforced). Added `rfa_qualifying_offer_suspicious` warning when QO > 3x last salary. Uses Phase 9 team normalizers for identity comparison. 15 new tests added. |
 | 2026-01-18 | **Contract Rules Phase 11:** Year Coverage & Rookie Scale Enforcement. (1) Eliminated silent fallback to 2024-25 cap settings. Defined `REAL` (authoritative) vs `PROJECTED` (explicit warning) year policies. `getCapSettings()` now warns on projected years and hard-blocks invalid inputs (`invalid_year_input_fallback`). (2) Created canonical Rookie Scale table source (`rookieScale.ts`). (3) Added `rookie_scale_invalid` hard-block rule enforcing 80%-120% salary band for first-round picks (1-30). Only processes when pick metadata is present and authoritative scale data exists. 10 new tests added. |
+| 2026-01-19 | **Contract Rules Phase 12:** RFA Offer Sheet Matching (Stub). (1) Replaced blanket `rfa_offer_sheet_not_supported` block with differentiated logic: offer sheets allowed if `contract.rfaOfferSheet === true`. (2) Added `rfa_offer_sheet_resolution_required` hard-block for PENDING_MATCH attempts (no resolution). (3) Added `rfa_offer_sheet_invalid_terms` hard-block for years/raises outside bounds (1-4 years, ≤8% raises). (4) Added `rfa_offer_sheet_stub_active` warning for UI awareness. (5) Created `validateOfferSheetTerms()` helper. (6) Phase 11 hygiene fixes applied. 14 new tests added. |
+| 2026-01-19 | **Contract Rules Phase 13:** Offer Sheet Pending State + Finalization Gate. (1) Added `isFinalizingSigning()` helper for finalization detection via `contract.rfaOfferSheetOnly` flag. (2) Modified `rfa_offer_sheet_resolution_required` to only block when finalizing AND status !== MATCHED. (3) PENDING_MATCH now allowed when `rfaOfferSheetOnly === true` (storing only). (4) Added `rfa_offer_sheet_declined` hard-block for DECLINED status. (5) Updated stub warning with status/finalizing info. 13 new tests added. |
+| 2026-01-19 | **Contract Rules Phase 14:** Offer Sheet Store-Only Invariants. (1) Added `rfa_offer_sheet_store_only_invalid` hard-block for invalid store-only configurations (missing `rfaOfferSheet` or MATCHED status). (2) Added `rfa_offer_sheet_store_only_flag_in_use` warning when store-only mode is active. (3) Created `validateStoreOnlyInvariants()` helper. (4) Store-only invariants checked before offer sheet validation to catch misuse. 16 new tests added. |
+| 2026-01-19 | **Contract Rules Phase 15 (Preflight):** Offer Sheet Persistence + Workflow Design. Designed persistence model for RFA offer sheets. Decision: store as `offerSheets[]` array on team overlay (`architect_worlds/{worldId}/teams/{teamCode}`). Defined canonical `OfferSheet` schema with required fields (`id`, `playerId`, `offeringTeamCode`, `homeTeamCode`, `status`, `salariesByYear`). Mapped workflow actions: Store (new `storeOfferSheet` mutation), Match/Decline (home team actions), Finalize (reuse `signFreeAgent` with MATCHED status). Identified UI surfaces: FreeAgencySection, FreeAgentPool, EditContractModal. Created Phase 16 execution checklist. No code changes (preflight only). |
+| 2026-01-19 | **Contract Rules Phase 18:** Audit-Grade Return Package + End-to-End Invariants. (1) Verified all offer sheet mutations (store/match/decline/finalizeMatched) use atomic Firestore batch writes. (2) Confirmed canonical storage paths: offering team `offerSheets[]`, home team `incomingOfferSheets[]`. (3) Validated mirroring and deduplication logic in compute functions. (4) Confirmed authority rules via `validateOfferSheetResolution()` with HARD_BLOCK rules. (5) All tests pass (6/6 offerSheetResolution, 204/204 capLegalityValidation). Build succeeds. |
+| 2026-01-20 | **Contract Rules Phase 18.1:** Offer Sheet Audit-Grade Patch. (1) Added deterministic `dedupKey` for idempotency (`os:{worldId}:{offeringTeamCode}:{playerId}:{seasonKey}`). Dedup now checks both `id` and `dedupKey`. (2) Fixed DECLINED rule scope: added `rfa_offer_sheet_declined_home_team_cannot_finalize` to block home team. Offering team remains allowed. (3) Added `finalizeDeclinedOfferSheet` mutation with explicit cleanup (removes from both teams' arrays, signs player to offering team). (4) 19 new tests added. Build succeeds. |
 
 ---
 
@@ -705,3 +722,130 @@ To prevent silent errors, year-based cap settings lookups must be explicit about
   * **Valid Future Year:** Returns settings with `source: 'projected'` and warning. (Does NOT silently use 2024 constants without flagging).
   * **Invalid Input:** Returns emergency fallback settings with `source: 'invalid_year_input_fallback'` and CRITICAL warning.
   * **Strict Mode:** Throws error on invalid/missing input.
+
+---
+
+## 9.12 RFA Offer Sheet Schema (Phase 12)
+
+Phase 12 introduces a minimally-correct RFA offer sheet matching stub.
+
+### Contract Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `rfaOfferSheet` | `boolean` | Signals this is an offer sheet attempt |
+| `rfaOfferSheetStatus` | `'PENDING_MATCH' \| 'MATCHED' \| 'DECLINED'` | Resolution state |
+
+### Status Values
+
+* **PENDING_MATCH:** Default after offer sheet creation. Hard-blocked from finalization.
+* **MATCHED:** Home team has matched. Signing proceeds normally (future: player stays with home team).
+* **DECLINED:** Home team declined. (Future: player signs with offering team).
+
+### Validation Rules
+
+| Rule ID | Type | Trigger |
+|---------|------|---------|
+| `rfa_offer_sheet_not_supported` | HARD_BLOCK | Non-home team RFA signing without `rfaOfferSheet === true` |
+| `rfa_offer_sheet_resolution_required` | HARD_BLOCK | Offer sheet in PENDING_MATCH state (no resolution) |
+| `rfa_offer_sheet_invalid_terms` | HARD_BLOCK | Years outside 1-4 OR raises exceed 8% |
+| `rfa_offer_sheet_stub_active` | WARNING | Any processed offer sheet (UI informational) |
+
+### Term Bounds
+
+* **Years:** 1-4 (per CBA offer sheet rules)
+* **Raises:** ≤ 8% year-over-year
+
+### Phase 12 Stub Behavior
+
+Only `PENDING_MATCH` is naturally produced. Attempts to finalize without explicit `MATCHED` status trigger `rfa_offer_sheet_resolution_required`. Full match/decline workflow is NOT implemented in Phase 12.
+
+### Phase 13 Finalization Gate (Updated)
+
+Phase 13 introduces the distinction between "storing" an offer sheet and "finalizing" it:
+
+| Action | rfaOfferSheetOnly | Status | Result |
+|--------|-------------------|--------|--------|
+| Store only | `true` | `PENDING_MATCH` | ✅ Allowed |
+| Finalize | `false`/missing | `PENDING_MATCH` | ❌ `rfa_offer_sheet_resolution_required` |
+| Any | any | `DECLINED` | ❌ `rfa_offer_sheet_declined` |
+| Finalize | any | `MATCHED` | ✅ Allowed |
+
+**Finalization Detection:**
+
+* Default: `signFreeAgent` mutation is a finalizing action (adds player to roster)
+* Opt-out: `contract.rfaOfferSheetOnly === true` signals non-finalizing intent
+
+**Helper:** `isFinalizingSigning({ contract })` - Returns `true` if finalizing, `false` if storing only.
+
+### Phase 14 Store-Only Invariants (Updated)
+
+Phase 14 hardens store-only mode to prevent misuse:
+
+**Store-Only Invariants:**
+
+When `rfaOfferSheetOnly === true`, the following must hold:
+
+| Invariant | Requirement | Violation Rule |
+|-----------|-------------|----------------|
+| A | `rfaOfferSheet === true` | `rfa_offer_sheet_store_only_invalid` |
+| B | Status must be `PENDING_MATCH` (or missing) | `rfa_offer_sheet_store_only_invalid` |
+| C | Status cannot be `MATCHED` | `rfa_offer_sheet_store_only_invalid` |
+
+**Rationale:** MATCHED status indicates the finalization path—home team matched the offer. Using store-only mode with MATCHED is contradictory.
+
+**Helper:** `validateStoreOnlyInvariants({ contract })` - Returns `{ valid, violations }`.
+
+## Phase 16: Offer Sheet Persistence & Workflow
+
+Phase 16 implements the MVP workflows for store-only RFA offer sheets.
+
+### Offer Sheet Lifecycle
+
+1. **Creation (Store-Only):**
+   * **Mutation:** `storeOfferSheet`
+   * **Trigger:** Offering team "signs" RFA with "Offer Sheet" intent.
+   * **Effects:**
+     * Creates `OfferSheet` object.
+     * Persisted to Offering Team's `offerSheets` array.
+     * Mirrored to Home Team's `incomingOfferSheets` array (for visibility).
+   * **Validation:** Must pass `validateStoreOnlyInvariants` and `validateOfferSheetTerms`.
+
+2. **Resolution (Home Team):**
+   * **Mutations:** `matchOfferSheet` or `declineOfferSheet`.
+   * **Trigger:** Home team reviews Incoming Offer Sheet.
+   * **Effects:**
+     * Updates status to `MATCHED` or `DECLINED` on both teams (via cleanup/mirroring update).
+
+3. **Finalization (Offering Team):**
+   * **Mutation:** `signFreeAgent` (via `handleFinalizeOfferSheet`).
+   * **Trigger:** Offering team finalizes a `DECLINED` offer sheet.
+   * **Effects:**
+     * Executes signing logic (adds to roster, removes cap hold on home team).
+     * **Constraint:** Can only finalize if `DECLINED` (or if system allows un-matched hostile signing).
+     * **Constraint:** Attempts to finalize `MATCHED` offer sheets will stick with Home Team (logic TBD in future phases, currently blocked or results in home team retention).
+
+### Logic Updates (Phase 16)
+
+* **Mirroring:** Offer sheets are now dual-written (to offering team and home team overlay) to ensure immediate visibility without waiting for parent world propagation.
+* **Declined Offers:** Policy update allows `DECLINED` status to pass `rfa_offer_sheet_declined` rule IF `isFinalizingSigning()` is true (acquisition by offering team).
+
+## Phase 17: Offer Sheet Resolution Logic (Updated)
+
+Phase 17 standardizes the workflow for resolving `MATCHED` and `DECLINED` offer sheets, enforcing strict separation of powers between the Home Team and the Offering Team.
+
+### Resolution Invariants
+
+| Status | Actor | Action | Valid? | Logic |
+|--------|-------|--------|--------|-------|
+| `PENDING_MATCH` | Home | Match/Decline | ✅ | `matchOfferSheet` / `declineOfferSheet` |
+| `PENDING_MATCH` | Any | Finalize | ❌ | Violated `rfa_offer_sheet_resolution_required` |
+| `MATCHED` | Home | Finalize | ✅ | `finalizeMatchedOfferSheet` |
+| `MATCHED` | Offeering | Finalize | ❌ | Violated `rfa_offer_sheet_matched_offering_team_cannot_finalize` |
+| `DECLINED` | Offfering | Finalize | ✅ | `signFreeAgent` (Acquisition) |
+
+### New Rules (Phase 17)
+
+| Rule ID | Type | Trigger | Description |
+|---------|------|---------|-------------|
+| `rfa_offer_sheet_matched_offering_team_cannot_finalize` | HARD_BLOCK | Offering team attempts cleanup/finalize on MATCHED offer | Player stays with home team. |

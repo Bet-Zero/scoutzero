@@ -125,6 +125,7 @@ const EditContractModal = ({
   onExtend,
   onSignAndTrade,
   onRenounce,
+  onStoreOfferSheet = null, // Phase 16
   initialAction = null,
   targetYear = null,
   actionContext = null, // 'option' | 'freeAgent' | null - from clicked cell
@@ -145,6 +146,7 @@ const EditContractModal = ({
   });
   const [salaryInputs, setSalaryInputs] = useState(['']);
   const [selectedException, setSelectedException] = useState('None');
+  const [isOfferSheet, setIsOfferSheet] = useState(false); // Phase 16
 
   // Override state management
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -618,7 +620,6 @@ const EditContractModal = ({
       });
     }
 
-    // Build override metadata to pass to handlers
     const overrideMetadata = overrideUsed
       ? {
           overrideUsed: true,
@@ -626,6 +627,29 @@ const EditContractModal = ({
           overrideTimestamp: timestamp,
         }
       : null;
+    
+    // Phase 16: MVP Offer Sheet toggle Logic
+    if (isOfferSheet && (selectedAction === 'signNew' || selectedAction === 'resign')) {
+        onStoreOfferSheet?.(player, {
+          ...extension,
+          years: extension.years,
+          salaries: (extension.salaries || []).slice(
+            0,
+            extension.years || extension.salaries.length || 0
+          ),
+          base: extension.salaries[0] || 0,
+          exceptionType: selectedException,
+          contractType: 'Offer Sheet', // Force type
+          rfaOfferSheet: true,
+          rfaOfferSheetOnly: true, // Key flag for store-only
+          guardrails: signingGuardrails,
+          raisePct: extension.raisePct ?? signingGuardrails?.raisePct ?? 0.05,
+          ...(overrideMetadata || {}),
+        });
+        onClose();
+        return;
+    }
+
     switch (selectedAction) {
       case 'accept':
         onOptionDecision?.(player, true, overrideMetadata);
@@ -961,6 +985,22 @@ const EditContractModal = ({
                       <option value="Minimum">Minimum</option>
                     </select>
                   )}
+
+                  {/* Phase 16: Offer Sheet Toggle */}
+                  {['signNew'].includes(selectedAction) && onStoreOfferSheet && (
+                     <label className="flex items-center gap-1.5 cursor-pointer ml-2 bg-black px-2 py-1 rounded border border-white/20 select-none">
+                        <input
+                           type="checkbox"
+                           checked={isOfferSheet}
+                           onChange={(e) => setIsOfferSheet(e.target.checked)}
+                           className="accent-cyan-500"
+                        />
+                        <span className={`text-xs font-bold ${isOfferSheet ? 'text-cyan-400' : 'text-white/50'}`}>
+                           Offer Sheet
+                        </span>
+                     </label>
+                  )}
+
                   <select
                     value={extension.years}
                     onChange={(e) => {

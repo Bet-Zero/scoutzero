@@ -44,7 +44,11 @@ import {
   validateOptionsPolicy,
   validateContractRows,
   normalizeSigningTerms,
+  validateOfferSheetTerms,
+  isFinalizingSigning,
+  validateStoreOnlyInvariants,
   HARD_BLOCK_RULES,
+  SOFT_WARNING_RULES,
   EXTENSION_YEARS_LIMITS,
   EXTENSION_FIRST_YEAR_MAX_PERCENT,
   EXTENSION_MAX_RAISE_PERCENT,
@@ -4438,4 +4442,995 @@ describe('Phase 10: RFA Home-Team vs Offer Sheet Guardrails', () => {
     });
   });
 
+});
+
+// ==============================================================================
+// PHASE 12: RFA OFFER SHEET MATCHING (STUB)
+// ==============================================================================
+
+describe('Phase 12: RFA Offer Sheet Matching Stub', () => {
+  const year = 2026;
+
+  beforeEach(() => {
+    seedBaseData(['LAL', 'GSW', 'BOS']);
+  });
+
+  // ==========================================================================
+  // OFFER SHEET DETECTION
+  // ==========================================================================
+
+  describe('Offer Sheet Detection - validateSigning', () => {
+    it('blocks non-home team RFA signing without rfaOfferSheet flag', () => {
+      const lalTeam = {
+        teamCode: 'LAL',
+        teamName: 'Los Angeles Lakers',
+        players: [],
+        roster: [],
+        totals: { capHit: 100_000_000 },
+      };
+
+      const rfaPlayerOnGSW = {
+        player_id: 'rfa_gsw_player',
+        name: 'RFA GSW Player',
+        bio: { experience: 3 },
+        teamId: 'GSW',
+        freeAgency: {
+          type: 'RFA',
+          year: 2026,
+          qualifyingOffer: 5_000_000,
+        },
+      };
+
+      // Contract WITHOUT rfaOfferSheet flag
+      const contract = {
+        contractType: 'Standard',
+        salariesByYear: [
+          { season: '2025-26', salary: 10_000_000 },
+          { season: '2026-27', salary: 10_500_000 },
+        ],
+      };
+
+      const result = validateSigning({
+        team: lalTeam,
+        player: rfaPlayerOnGSW,
+        contract,
+        signedUsing: null,
+        year,
+      });
+
+      expect(result.valid).toBe(false);
+      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_not_supported')).toBe(true);
+    });
+
+    it('allows offer sheet attempt when rfaOfferSheet === true and terms valid (with MATCHED status)', () => {
+      const lalTeam = {
+        teamCode: 'LAL',
+        teamName: 'Los Angeles Lakers',
+        players: [],
+        roster: [],
+        totals: { capHit: 100_000_000 },
+      };
+
+      const rfaPlayerOnGSW = {
+        player_id: 'rfa_gsw_player',
+        name: 'RFA GSW Player',
+        bio: { experience: 3 },
+        teamId: 'GSW',
+        freeAgency: {
+          type: 'RFA',
+          year: 2026,
+          qualifyingOffer: 5_000_000,
+        },
+      };
+
+      // Contract WITH rfaOfferSheet flag and MATCHED status
+      const contract = {
+        contractType: 'Standard',
+        salariesByYear: [
+          { season: '2025-26', salary: 10_000_000 },
+          { season: '2026-27', salary: 10_500_000 },
+          { season: '2027-28', salary: 11_000_000 },
+        ],
+        rfaOfferSheet: true,
+        rfaOfferSheetStatus: 'MATCHED',
+      };
+
+      const result = validateSigning({
+        team: lalTeam,
+        player: rfaPlayerOnGSW,
+        contract,
+        signedUsing: null,
+        year,
+      });
+
+      // Should NOT have offer sheet not supported violation
+      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_not_supported')).toBe(false);
+      // Should NOT have resolution required violation (status is MATCHED)
+      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_resolution_required')).toBe(false);
+      // Should have stub warning
+      expect(result.warnings.some(w => w.rule === 'rfa_offer_sheet_stub_active')).toBe(true);
+    });
+
+    it('hard-blocks offer sheet with invalid years (>4)', () => {
+      const lalTeam = {
+        teamCode: 'LAL',
+        teamName: 'Los Angeles Lakers',
+        players: [],
+        roster: [],
+        totals: { capHit: 100_000_000 },
+      };
+
+      const rfaPlayerOnGSW = {
+        player_id: 'rfa_gsw_player',
+        name: 'RFA GSW Player',
+        bio: { experience: 3 },
+        teamId: 'GSW',
+        freeAgency: {
+          type: 'RFA',
+          year: 2026,
+          qualifyingOffer: 5_000_000,
+        },
+      };
+
+      // 5-year offer sheet (invalid - max is 4)
+      const contract = {
+        contractType: 'Standard',
+        salariesByYear: [
+          { season: '2025-26', salary: 10_000_000 },
+          { season: '2026-27', salary: 10_500_000 },
+          { season: '2027-28', salary: 11_000_000 },
+          { season: '2028-29', salary: 11_500_000 },
+          { season: '2029-30', salary: 12_000_000 },
+        ],
+        rfaOfferSheet: true,
+        rfaOfferSheetStatus: 'MATCHED',
+      };
+
+      const result = validateSigning({
+        team: lalTeam,
+        player: rfaPlayerOnGSW,
+        contract,
+        signedUsing: null,
+        year,
+      });
+
+      expect(result.valid).toBe(false);
+      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_invalid_terms')).toBe(true);
+      const violation = result.violations.find(v => v.rule === 'rfa_offer_sheet_invalid_terms');
+      expect(violation.field).toBe('years');
+    });
+
+    it('hard-blocks offer sheet with raises exceeding 8%', () => {
+      const lalTeam = {
+        teamCode: 'LAL',
+        teamName: 'Los Angeles Lakers',
+        players: [],
+        roster: [],
+        totals: { capHit: 100_000_000 },
+      };
+
+      const rfaPlayerOnGSW = {
+        player_id: 'rfa_gsw_player',
+        name: 'RFA GSW Player',
+        bio: { experience: 3 },
+        teamId: 'GSW',
+        freeAgency: {
+          type: 'RFA',
+          year: 2026,
+          qualifyingOffer: 5_000_000,
+        },
+      };
+
+      // 3-year offer sheet with 15% raise (invalid - max is 8%)
+      const contract = {
+        contractType: 'Standard',
+        salariesByYear: [
+          { season: '2025-26', salary: 10_000_000 },
+          { season: '2026-27', salary: 11_500_000 }, // 15% raise
+          { season: '2027-28', salary: 13_225_000 },
+        ],
+        rfaOfferSheet: true,
+        rfaOfferSheetStatus: 'MATCHED',
+      };
+
+      const result = validateSigning({
+        team: lalTeam,
+        player: rfaPlayerOnGSW,
+        contract,
+        signedUsing: null,
+        year,
+      });
+
+      expect(result.valid).toBe(false);
+      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_invalid_terms')).toBe(true);
+      const violation = result.violations.find(v => v.rule === 'rfa_offer_sheet_invalid_terms');
+      expect(violation.field).toBe('raises');
+    });
+  });
+
+  // ==========================================================================
+  // RESOLUTION STATE
+  // ==========================================================================
+
+  describe('Resolution State - validateSigning', () => {
+    it('hard-blocks offer sheet with PENDING_MATCH status (no resolution)', () => {
+      const lalTeam = {
+        teamCode: 'LAL',
+        teamName: 'Los Angeles Lakers',
+        players: [],
+        roster: [],
+        totals: { capHit: 100_000_000 },
+      };
+
+      const rfaPlayerOnGSW = {
+        player_id: 'rfa_gsw_player',
+        name: 'RFA GSW Player',
+        bio: { experience: 3 },
+        teamId: 'GSW',
+        freeAgency: {
+          type: 'RFA',
+          year: 2026,
+          qualifyingOffer: 5_000_000,
+        },
+      };
+
+      // Valid terms but PENDING_MATCH status
+      const contract = {
+        contractType: 'Standard',
+        salariesByYear: [
+          { season: '2025-26', salary: 10_000_000 },
+          { season: '2026-27', salary: 10_500_000 },
+        ],
+        rfaOfferSheet: true,
+        rfaOfferSheetStatus: 'PENDING_MATCH',
+      };
+
+      const result = validateSigning({
+        team: lalTeam,
+        player: rfaPlayerOnGSW,
+        contract,
+        signedUsing: null,
+        year,
+      });
+
+      expect(result.valid).toBe(false);
+      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_resolution_required')).toBe(true);
+      const violation = result.violations.find(v => v.rule === 'rfa_offer_sheet_resolution_required');
+      expect(violation.currentStatus).toBe('PENDING_MATCH');
+    });
+
+    it('hard-blocks offer sheet with missing status (defaults to PENDING_MATCH)', () => {
+      const lalTeam = {
+        teamCode: 'LAL',
+        teamName: 'Los Angeles Lakers',
+        players: [],
+        roster: [],
+        totals: { capHit: 100_000_000 },
+      };
+
+      const rfaPlayerOnGSW = {
+        player_id: 'rfa_gsw_player',
+        name: 'RFA GSW Player',
+        bio: { experience: 3 },
+        teamId: 'GSW',
+        freeAgency: {
+          type: 'RFA',
+          year: 2026,
+          qualifyingOffer: 5_000_000,
+        },
+      };
+
+      // rfaOfferSheet = true but NO status field
+      const contract = {
+        contractType: 'Standard',
+        salariesByYear: [
+          { season: '2025-26', salary: 10_000_000 },
+          { season: '2026-27', salary: 10_500_000 },
+        ],
+        rfaOfferSheet: true,
+        // rfaOfferSheetStatus is missing
+      };
+
+      const result = validateSigning({
+        team: lalTeam,
+        player: rfaPlayerOnGSW,
+        contract,
+        signedUsing: null,
+        year,
+      });
+
+      expect(result.valid).toBe(false);
+      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_resolution_required')).toBe(true);
+    });
+
+    it('allows offer sheet with MATCHED status', () => {
+      const lalTeam = {
+        teamCode: 'LAL',
+        teamName: 'Los Angeles Lakers',
+        players: [],
+        roster: [],
+        totals: { capHit: 100_000_000 },
+      };
+
+      const rfaPlayerOnGSW = {
+        player_id: 'rfa_gsw_player',
+        name: 'RFA GSW Player',
+        bio: { experience: 3 },
+        teamId: 'GSW',
+        freeAgency: {
+          type: 'RFA',
+          year: 2026,
+          qualifyingOffer: 5_000_000,
+        },
+      };
+
+      // Valid offer sheet with MATCHED status
+      const contract = {
+        contractType: 'Standard',
+        salariesByYear: [
+          { season: '2025-26', salary: 10_000_000 },
+          { season: '2026-27', salary: 10_800_000 }, // 8% raise - exactly at limit
+        ],
+        rfaOfferSheet: true,
+        rfaOfferSheetStatus: 'MATCHED',
+      };
+
+      const result = validateSigning({
+        team: lalTeam,
+        player: rfaPlayerOnGSW,
+        contract,
+        signedUsing: null,
+        year,
+      });
+
+      // Should NOT have resolution required violation
+      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_resolution_required')).toBe(false);
+    });
+
+    it('emits stub_active warning for all processed offer sheets', () => {
+      const lalTeam = {
+        teamCode: 'LAL',
+        teamName: 'Los Angeles Lakers',
+        players: [],
+        roster: [],
+        totals: { capHit: 100_000_000 },
+      };
+
+      const rfaPlayerOnGSW = {
+        player_id: 'rfa_gsw_player',
+        name: 'RFA GSW Player',
+        bio: { experience: 3 },
+        teamId: 'GSW',
+        freeAgency: {
+          type: 'RFA',
+          year: 2026,
+          qualifyingOffer: 5_000_000,
+        },
+      };
+
+      // Any offer sheet attempt should get stub warning
+      const contract = {
+        contractType: 'Standard',
+        salariesByYear: [{ season: '2025-26', salary: 10_000_000 }],
+        rfaOfferSheet: true,
+        rfaOfferSheetStatus: 'MATCHED',
+      };
+
+      const result = validateSigning({
+        team: lalTeam,
+        player: rfaPlayerOnGSW,
+        contract,
+        signedUsing: null,
+        year,
+      });
+
+      expect(result.warnings.some(w => w.rule === 'rfa_offer_sheet_stub_active')).toBe(true);
+      const warning = result.warnings.find(w => w.rule === 'rfa_offer_sheet_stub_active');
+      expect(warning.message).toMatch(/stub mode/i);
+    });
+  });
+
+  // ==========================================================================
+  // RULE ID CONFIRMATION
+  // ==========================================================================
+
+  describe('Phase 12 Rule ID Confirmation', () => {
+    it('confirms rfa_offer_sheet_resolution_required is HARD_BLOCK', () => {
+      expect(HARD_BLOCK_RULES).toContain('rfa_offer_sheet_resolution_required');
+    });
+
+    it('confirms rfa_offer_sheet_invalid_terms is HARD_BLOCK', () => {
+      expect(HARD_BLOCK_RULES).toContain('rfa_offer_sheet_invalid_terms');
+    });
+
+    it('confirms rfa_offer_sheet_stub_active is SOFT_WARNING', () => {
+      expect(SOFT_WARNING_RULES).toContain('rfa_offer_sheet_stub_active');
+    });
+  });
+
+  // ==========================================================================
+  // OFFER SHEET TERMS HELPER
+  // ==========================================================================
+
+  describe('validateOfferSheetTerms helper', () => {
+    it('allows 1-4 year contracts', () => {
+      for (let years = 1; years <= 4; years++) {
+        const salaries = Array.from({ length: years }, (_, i) => ({
+          season: `202${5 + i}-2${6 + i}`,
+          salary: 10_000_000 + (i * 500_000), // Within 8% raise limit
+        }));
+        const contract = { salariesByYear: salaries };
+        const result = validateOfferSheetTerms(contract);
+        expect(result.valid).toBe(true);
+      }
+    });
+
+    it('blocks 0-year contract', () => {
+      const contract = { salariesByYear: [] };
+      const result = validateOfferSheetTerms(contract);
+      expect(result.valid).toBe(false);
+      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_invalid_terms')).toBe(true);
+    });
+
+    it('blocks 5+ year contracts', () => {
+      const salaries = Array.from({ length: 5 }, (_, i) => ({
+        season: `202${5 + i}-2${6 + i}`,
+        salary: 10_000_000 + (i * 500_000),
+      }));
+      const contract = { salariesByYear: salaries };
+      const result = validateOfferSheetTerms(contract);
+      expect(result.valid).toBe(false);
+      const violation = result.violations.find(v => v.field === 'years');
+      expect(violation).toBeDefined();
+      expect(violation.actual).toBe(5);
+    });
+  });
+});
+
+// ==============================================================================
+// PHASE 13: OFFER SHEET PENDING STATE + FINALIZATION GATE
+// ==============================================================================
+
+describe('Phase 13: Offer Sheet Pending State + Finalization Gate', () => {
+  const year = 2026;
+
+  beforeEach(() => {
+    seedBaseData(['LAL', 'GSW', 'BOS']);
+  });
+
+  // ==========================================================================
+  // isFinalizingSigning HELPER
+  // ==========================================================================
+
+  describe('isFinalizingSigning helper', () => {
+    it('returns true by default (no rfaOfferSheetOnly flag)', () => {
+      const contract = { contractType: 'Standard' };
+      expect(isFinalizingSigning({ contract })).toBe(true);
+    });
+
+    it('returns true when rfaOfferSheetOnly is false', () => {
+      const contract = { rfaOfferSheetOnly: false };
+      expect(isFinalizingSigning({ contract })).toBe(true);
+    });
+
+    it('returns false when rfaOfferSheetOnly is true', () => {
+      const contract = { rfaOfferSheetOnly: true };
+      expect(isFinalizingSigning({ contract })).toBe(false);
+    });
+
+    it('returns true when rfaOfferSheetOnly is undefined', () => {
+      const contract = {};
+      expect(isFinalizingSigning({ contract })).toBe(true);
+    });
+  });
+
+  // ==========================================================================
+  // PENDING_MATCH FINALIZATION GATE
+  // ==========================================================================
+
+  describe('PENDING_MATCH Finalization Gate - validateSigning', () => {
+    const makeRfaOffer = (extraContractProps = {}) => ({
+      contractType: 'Standard',
+      salariesByYear: [
+        { season: '2025-26', salary: 10_000_000 },
+        { season: '2026-27', salary: 10_500_000 },
+      ],
+      rfaOfferSheet: true,
+      rfaOfferSheetStatus: 'PENDING_MATCH',
+      ...extraContractProps,
+    });
+
+    it('allows PENDING_MATCH when rfaOfferSheetOnly === true (not finalizing)', () => {
+      const lalTeam = {
+        teamCode: 'LAL',
+        teamName: 'Los Angeles Lakers',
+        players: [],
+        roster: [],
+        totals: { capHit: 100_000_000 },
+      };
+
+      const rfaPlayerOnGSW = {
+        player_id: 'rfa_gsw_player',
+        name: 'RFA GSW Player',
+        bio: { experience: 3 },
+        teamId: 'GSW',
+        freeAgency: {
+          type: 'RFA',
+          year: 2026,
+          qualifyingOffer: 5_000_000,
+        },
+      };
+
+      const contract = makeRfaOffer({ rfaOfferSheetOnly: true });
+
+      const result = validateSigning({
+        team: lalTeam,
+        player: rfaPlayerOnGSW,
+        contract,
+        signedUsing: null,
+        year,
+      });
+
+      // Should NOT have resolution_required violation
+      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_resolution_required')).toBe(false);
+      // Should still have stub warning
+      expect(result.warnings.some(w => w.rule === 'rfa_offer_sheet_stub_active')).toBe(true);
+      const warning = result.warnings.find(w => w.rule === 'rfa_offer_sheet_stub_active');
+      expect(warning.isFinalizingAttempt).toBe(false);
+    });
+
+    it('blocks PENDING_MATCH when finalizing (default behavior)', () => {
+      const lalTeam = {
+        teamCode: 'LAL',
+        teamName: 'Los Angeles Lakers',
+        players: [],
+        roster: [],
+        totals: { capHit: 100_000_000 },
+      };
+
+      const rfaPlayerOnGSW = {
+        player_id: 'rfa_gsw_player',
+        name: 'RFA GSW Player',
+        bio: { experience: 3 },
+        teamId: 'GSW',
+        freeAgency: {
+          type: 'RFA',
+          year: 2026,
+          qualifyingOffer: 5_000_000,
+        },
+      };
+
+      // No rfaOfferSheetOnly flag = finalizing by default
+      const contract = makeRfaOffer();
+
+      const result = validateSigning({
+        team: lalTeam,
+        player: rfaPlayerOnGSW,
+        contract,
+        signedUsing: null,
+        year,
+      });
+
+      expect(result.valid).toBe(false);
+      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_resolution_required')).toBe(true);
+      const violation = result.violations.find(v => v.rule === 'rfa_offer_sheet_resolution_required');
+      expect(violation.isFinalizingAttempt).toBe(true);
+      expect(violation.message).toMatch(/rfaOfferSheetOnly/);
+    });
+
+    it('blocks PENDING_MATCH when rfaOfferSheetOnly is false (explicit finalizing)', () => {
+      const lalTeam = {
+        teamCode: 'LAL',
+        players: [],
+        roster: [],
+        totals: { capHit: 100_000_000 },
+      };
+
+      const rfaPlayerOnGSW = {
+        player_id: 'rfa_gsw_player',
+        teamId: 'GSW',
+        freeAgency: { type: 'RFA', year: 2026, qualifyingOffer: 5_000_000 },
+      };
+
+      const contract = makeRfaOffer({ rfaOfferSheetOnly: false });
+
+      const result = validateSigning({
+        team: lalTeam,
+        player: rfaPlayerOnGSW,
+        contract,
+        signedUsing: null,
+        year,
+      });
+
+      expect(result.valid).toBe(false);
+      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_resolution_required')).toBe(true);
+    });
+  });
+
+  // ==========================================================================
+  // DECLINED STATUS HANDLING
+  // ==========================================================================
+
+  describe('DECLINED Status - validateSigning', () => {
+    it('hard-blocks DECLINED offer sheets regardless of finalization intent', () => {
+      const lalTeam = {
+        teamCode: 'LAL',
+        teamName: 'Los Angeles Lakers',
+        players: [],
+        roster: [],
+        totals: { capHit: 100_000_000 },
+      };
+
+      const rfaPlayerOnGSW = {
+        player_id: 'rfa_gsw_player',
+        name: 'RFA GSW Player',
+        bio: { experience: 3 },
+        teamId: 'GSW',
+        freeAgency: {
+          type: 'RFA',
+          year: 2026,
+          qualifyingOffer: 5_000_000,
+        },
+      };
+
+      // DECLINED status should always block
+      const contract = {
+        contractType: 'Standard',
+        salariesByYear: [
+          { season: '2025-26', salary: 10_000_000 },
+          { season: '2026-27', salary: 10_500_000 },
+        ],
+        rfaOfferSheet: true,
+        rfaOfferSheetStatus: 'DECLINED',
+      };
+
+      const result = validateSigning({
+        team: lalTeam,
+        player: rfaPlayerOnGSW,
+        contract,
+        signedUsing: null,
+        year,
+      });
+
+      expect(result.valid).toBe(true);
+      // Should NOT be blocked by rfa_offer_sheet_declined anymore (Phase 16)
+      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_declined')).toBe(false);
+    });
+
+    it('blocks DECLINED even with rfaOfferSheetOnly === true', () => {
+      const lalTeam = {
+        teamCode: 'LAL',
+        players: [],
+        roster: [],
+        totals: { capHit: 100_000_000 },
+      };
+
+      const rfaPlayerOnGSW = {
+        player_id: 'rfa_gsw_player',
+        teamId: 'GSW',
+        freeAgency: { type: 'RFA', year: 2026, qualifyingOffer: 5_000_000 },
+      };
+
+      // Even if rfaOfferSheetOnly is true, DECLINED should block
+      const contract = {
+        contractType: 'Standard',
+        salariesByYear: [{ season: '2025-26', salary: 10_000_000 }],
+        rfaOfferSheet: true,
+        rfaOfferSheetStatus: 'DECLINED',
+        rfaOfferSheetOnly: true,
+      };
+
+      const result = validateSigning({
+        team: lalTeam,
+        player: rfaPlayerOnGSW,
+        contract,
+        signedUsing: null,
+        year,
+      });
+
+      expect(result.valid).toBe(false);
+      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_declined')).toBe(true);
+    });
+  });
+
+  // ==========================================================================
+  // MATCHED STATUS (UNCHANGED FROM PHASE 12)
+  // ==========================================================================
+
+  describe('MATCHED Status - validateSigning', () => {
+    it('allows MATCHED offer sheets to finalize', () => {
+      const lalTeam = {
+        teamCode: 'LAL',
+        teamName: 'Los Angeles Lakers',
+        players: [],
+        roster: [],
+        totals: { capHit: 100_000_000 },
+      };
+
+      const rfaPlayerOnGSW = {
+        player_id: 'rfa_gsw_player',
+        name: 'RFA GSW Player',
+        bio: { experience: 3 },
+        teamId: 'GSW',
+        freeAgency: {
+          type: 'RFA',
+          year: 2026,
+          qualifyingOffer: 5_000_000,
+        },
+      };
+
+      const contract = {
+        contractType: 'Standard',
+        salariesByYear: [
+          { season: '2025-26', salary: 10_000_000 },
+          { season: '2026-27', salary: 10_500_000 },
+        ],
+        rfaOfferSheet: true,
+        rfaOfferSheetStatus: 'MATCHED',
+      };
+
+      const result = validateSigning({
+        team: lalTeam,
+        player: rfaPlayerOnGSW,
+        contract,
+        signedUsing: null,
+        year,
+      });
+
+      // Should NOT have resolution_required or declined violations
+      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_resolution_required')).toBe(false);
+      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_declined')).toBe(false);
+    });
+  });
+
+  // ==========================================================================
+  // PHASE 13 RULE ID CONFIRMATION
+  // ==========================================================================
+
+  describe('Phase 13 Rule ID Confirmation', () => {
+    it('confirms rfa_offer_sheet_declined is HARD_BLOCK', () => {
+      expect(HARD_BLOCK_RULES).toContain('rfa_offer_sheet_declined');
+    });
+
+    it('confirms rfa_offer_sheet_resolution_required is HARD_BLOCK', () => {
+      expect(HARD_BLOCK_RULES).toContain('rfa_offer_sheet_resolution_required');
+    });
+
+    it('confirms rfa_offer_sheet_stub_active is SOFT_WARNING', () => {
+      expect(SOFT_WARNING_RULES).toContain('rfa_offer_sheet_stub_active');
+    });
+  });
+
+  // ==========================================================================
+  // PHASE 14: STORE-ONLY INVARIANTS
+  // ==========================================================================
+
+  describe('Phase 14: validateStoreOnlyInvariants helper', () => {
+    it('returns valid when rfaOfferSheetOnly is not set', () => {
+      const contract = { rfaOfferSheet: true, rfaOfferSheetStatus: 'PENDING_MATCH' };
+      const result = validateStoreOnlyInvariants({ contract });
+      expect(result.valid).toBe(true);
+      expect(result.violations).toHaveLength(0);
+    });
+
+    it('returns valid when rfaOfferSheetOnly is false', () => {
+      const contract = { rfaOfferSheet: true, rfaOfferSheetOnly: false };
+      const result = validateStoreOnlyInvariants({ contract });
+      expect(result.valid).toBe(true);
+      expect(result.violations).toHaveLength(0);
+    });
+
+    it('blocks store-only when rfaOfferSheet is missing', () => {
+      const contract = { rfaOfferSheetOnly: true, rfaOfferSheetStatus: 'PENDING_MATCH' };
+      const result = validateStoreOnlyInvariants({ contract });
+      expect(result.valid).toBe(false);
+      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_store_only_invalid')).toBe(true);
+      const violation = result.violations.find(v => v.rule === 'rfa_offer_sheet_store_only_invalid');
+      expect(violation.invariant).toBe('A');
+    });
+
+    it('blocks store-only when rfaOfferSheet is false', () => {
+      const contract = { rfaOfferSheetOnly: true, rfaOfferSheet: false, rfaOfferSheetStatus: 'PENDING_MATCH' };
+      const result = validateStoreOnlyInvariants({ contract });
+      expect(result.valid).toBe(false);
+      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_store_only_invalid')).toBe(true);
+    });
+
+    it('blocks store-only when status is MATCHED', () => {
+      const contract = { rfaOfferSheetOnly: true, rfaOfferSheet: true, rfaOfferSheetStatus: 'MATCHED' };
+      const result = validateStoreOnlyInvariants({ contract });
+      expect(result.valid).toBe(false);
+      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_store_only_invalid')).toBe(true);
+      const violation = result.violations.find(v => v.rule === 'rfa_offer_sheet_store_only_invalid');
+      expect(violation.invariant).toBe('C');
+      expect(violation.message).toMatch(/MATCHED/);
+    });
+
+    it('allows store-only when rfaOfferSheet is true and status is PENDING_MATCH', () => {
+      const contract = { rfaOfferSheetOnly: true, rfaOfferSheet: true, rfaOfferSheetStatus: 'PENDING_MATCH' };
+      const result = validateStoreOnlyInvariants({ contract });
+      expect(result.valid).toBe(true);
+      expect(result.violations).toHaveLength(0);
+    });
+
+    it('allows store-only when rfaOfferSheet is true and status is missing (defaults to PENDING_MATCH)', () => {
+      const contract = { rfaOfferSheetOnly: true, rfaOfferSheet: true };
+      const result = validateStoreOnlyInvariants({ contract });
+      expect(result.valid).toBe(true);
+    });
+
+    it('does not block DECLINED status directly (handled by rfa_offer_sheet_declined)', () => {
+      // DECLINED is not a store-only invariant violation - it's caught by a separate rule
+      const contract = { rfaOfferSheetOnly: true, rfaOfferSheet: true, rfaOfferSheetStatus: 'DECLINED' };
+      const result = validateStoreOnlyInvariants({ contract });
+      // Should not have store_only_invalid for DECLINED (that's a different rule)
+      expect(result.violations.filter(v => v.rule === 'rfa_offer_sheet_store_only_invalid')).toHaveLength(0);
+    });
+  });
+
+  describe('Phase 14: Store-Only Integration - validateSigning', () => {
+    const makeRfaOffer = (extraContractProps = {}) => ({
+      contractType: 'Standard',
+      salariesByYear: [
+        { season: '2025-26', salary: 10_000_000 },
+        { season: '2026-27', salary: 10_500_000 },
+      ],
+      ...extraContractProps,
+    });
+
+    const lalTeam = {
+      teamCode: 'LAL',
+      teamName: 'Los Angeles Lakers',
+      players: [],
+      roster: [],
+      totals: { capHit: 100_000_000 },
+    };
+
+    const rfaPlayerOnGSW = {
+      player_id: 'rfa_gsw_player',
+      name: 'RFA GSW Player',
+      bio: { experience: 3 },
+      teamId: 'GSW',
+      freeAgency: {
+        type: 'RFA',
+        year: 2026,
+        qualifyingOffer: 5_000_000,
+      },
+    };
+
+    it('hard-blocks store-only with missing rfaOfferSheet flag', () => {
+      const contract = makeRfaOffer({
+        rfaOfferSheetOnly: true,
+        // rfaOfferSheet is MISSING - invalid store-only
+        rfaOfferSheetStatus: 'PENDING_MATCH',
+      });
+
+      const result = validateSigning({
+        team: lalTeam,
+        player: rfaPlayerOnGSW,
+        contract,
+        signedUsing: null,
+        year: 2026,
+      });
+
+      expect(result.valid).toBe(false);
+      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_store_only_invalid')).toBe(true);
+    });
+
+    it('hard-blocks store-only with MATCHED status', () => {
+      const contract = makeRfaOffer({
+        rfaOfferSheetOnly: true,
+        rfaOfferSheet: true,
+        rfaOfferSheetStatus: 'MATCHED',
+      });
+
+      const result = validateSigning({
+        team: lalTeam,
+        player: rfaPlayerOnGSW,
+        contract,
+        signedUsing: null,
+        year: 2026,
+      });
+
+      expect(result.valid).toBe(false);
+      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_store_only_invalid')).toBe(true);
+      const violation = result.violations.find(v => v.rule === 'rfa_offer_sheet_store_only_invalid');
+      expect(violation.message).toMatch(/MATCHED/);
+    });
+
+    it('allows store-only with PENDING_MATCH and emits store-only warning', () => {
+      const contract = makeRfaOffer({
+        rfaOfferSheetOnly: true,
+        rfaOfferSheet: true,
+        rfaOfferSheetStatus: 'PENDING_MATCH',
+      });
+
+      const result = validateSigning({
+        team: lalTeam,
+        player: rfaPlayerOnGSW,
+        contract,
+        signedUsing: null,
+        year: 2026,
+      });
+
+      // Should NOT have store_only_invalid violation
+      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_store_only_invalid')).toBe(false);
+      // Should have store_only_flag_in_use warning
+      expect(result.warnings.some(w => w.rule === 'rfa_offer_sheet_store_only_flag_in_use')).toBe(true);
+      const warning = result.warnings.find(w => w.rule === 'rfa_offer_sheet_store_only_flag_in_use');
+      expect(warning.storeOnlyFlag).toBe(true);
+    });
+
+    it('hard-blocks store-only + DECLINED with rfa_offer_sheet_declined (not store_only_invalid)', () => {
+      const contract = makeRfaOffer({
+        rfaOfferSheetOnly: true,
+        rfaOfferSheet: true,
+        rfaOfferSheetStatus: 'DECLINED',
+      });
+
+      const result = validateSigning({
+        team: lalTeam,
+        player: rfaPlayerOnGSW,
+        contract,
+        signedUsing: null,
+        year: 2026,
+      });
+
+      expect(result.valid).toBe(false);
+      // Should be blocked by rfa_offer_sheet_declined, not store_only_invalid
+      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_declined')).toBe(true);
+    });
+
+    it('regression: finalizing + PENDING_MATCH still hard-blocks with resolution_required', () => {
+      // No rfaOfferSheetOnly flag = finalizing by default
+      const contract = makeRfaOffer({
+        rfaOfferSheet: true,
+        rfaOfferSheetStatus: 'PENDING_MATCH',
+      });
+
+      const result = validateSigning({
+        team: lalTeam,
+        player: rfaPlayerOnGSW,
+        contract,
+        signedUsing: null,
+        year: 2026,
+      });
+
+      expect(result.valid).toBe(false);
+      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_resolution_required')).toBe(true);
+    });
+
+    it('regression: finalizing + MATCHED is allowed', () => {
+      const contract = makeRfaOffer({
+        rfaOfferSheet: true,
+        rfaOfferSheetStatus: 'MATCHED',
+      });
+
+      const result = validateSigning({
+        team: lalTeam,
+        player: rfaPlayerOnGSW,
+        contract,
+        signedUsing: null,
+        year: 2026,
+      });
+
+      // Should NOT have resolution_required or declined violations
+      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_resolution_required')).toBe(false);
+      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_declined')).toBe(false);
+    });
+  });
+
+  // ==========================================================================
+  // PHASE 14 RULE ID CONFIRMATION
+  // ==========================================================================
+
+  describe('Phase 14 Rule ID Confirmation', () => {
+    it('confirms rfa_offer_sheet_store_only_invalid is HARD_BLOCK', () => {
+      expect(HARD_BLOCK_RULES).toContain('rfa_offer_sheet_store_only_invalid');
+    });
+
+    it('confirms rfa_offer_sheet_store_only_flag_in_use is SOFT_WARNING', () => {
+      expect(SOFT_WARNING_RULES).toContain('rfa_offer_sheet_store_only_flag_in_use');
+    });
+  });
 });

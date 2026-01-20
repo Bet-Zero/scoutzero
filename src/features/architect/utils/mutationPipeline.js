@@ -172,7 +172,7 @@ function guardAgainstUndefined(obj, label) {
 // ==============================================================================
 
 /**
- * @typedef {'executeTrade' | 'signFreeAgent' | 'waivePlayer' | 'extendPlayer' | 'optionDecision' | 'renounceRights'} MutationType
+ * @typedef {'executeTrade' | 'signFreeAgent' | 'waivePlayer' | 'extendPlayer' | 'optionDecision' | 'renounceRights' | 'storeOfferSheet' | 'matchOfferSheet' | 'declineOfferSheet' | 'finalizeMatchedOfferSheet' | 'finalizeDeclinedOfferSheet'} MutationType
  */
 
 /**
@@ -202,6 +202,21 @@ function guardAgainstUndefined(obj, label) {
  * @property {Array<{playerId: string, player: Object}>} playerUpdates
  * @property {Object} metadata - Event metadata
  * @property {string} [error]
+ */
+
+/**
+ * @typedef {Object} OfferSheet
+ * @property {string} id - Unique ID
+ * @property {string} playerId - Target player ID
+ * @property {string} playerName - Player name (snapshot)
+ * @property {string} offeringTeamCode - Team making the offer
+ * @property {string} homeTeamCode - RFA home team
+ * @property {string} seasonKey - Season context (e.g. "2025-26")
+ * @property {number} year - Cap year
+ * @property {number} contractYears - Length
+ * @property {Array<{season: string, salary: number, capHit: number, guaranteed: boolean}>} salariesByYear
+ * @property {'PENDING_MATCH' | 'MATCHED' | 'DECLINED'} status
+ * @property {string} createdAt - ISO timestamp
  */
 
 // ==============================================================================
@@ -420,9 +435,28 @@ async function loadStateForMutation(worldId, mutationType, payload) {
       };
     }
 
-    case 'signFreeAgent':
-    case 'waivePlayer':
-    case 'extendPlayer':
+    case 'signFreeAgent': {
+       const teamCode = payload.teamCode;
+       const playerId = payload.playerId;
+       if (!teamCode || !playerId) throw new Error('Missing teamCode or playerId');
+
+       const [team, player] = await Promise.all([
+          getTeam(worldId, teamCode),
+          getPlayer(worldId, teamCode, playerId)
+       ]);
+
+       // For RFA finalization, we may need to clean up the home team's incomingOfferSheets
+       const homeTeamCode = player.teamCode || player.contract?.signingTeam;
+       let homeTeam = null;
+       if (homeTeamCode && homeTeamCode !== teamCode) {
+         homeTeam = await getTeam(worldId, homeTeamCode);
+       }
+
+       return { team, player, teamCode, homeTeam };
+    }
+
+    case 'waivePlayer': // fallthrough
+    case 'extendPlayer': // fallthrough
     case 'optionDecision': {
       // Load single team and player
       const teamCode = payload.teamCode;
@@ -438,6 +472,54 @@ async function loadStateForMutation(worldId, mutationType, payload) {
       const team = await getTeam(worldId, teamCode);
       const player = await getPlayer(worldId, teamCode, playerId);
       return { team, player, teamCode };
+    }
+
+    case 'storeOfferSheet': {
+       // Load offering team and player first
+       const teamCode = payload.teamCode;
+       const playerId = payload.playerId;
+       if (!teamCode || !playerId) throw new Error('Missing teamCode or playerId');
+
+       const [offeringTeam, player] = await Promise.all([
+          getTeam(worldId, teamCode),
+          getPlayer(worldId, teamCode, playerId)
+       ]);
+
+       // If player belongs to another team, load that home team too
+       // (needed for mirroring incomingOfferSheets)
+       const homeTeamCode = player.teamCode || player.contract?.signingTeam;
+       let homeTeam = null;
+       
+       if (homeTeamCode && homeTeamCode !== teamCode) {
+          homeTeam = await getTeam(worldId, homeTeamCode);
+       }
+
+       // Normalize return structure to include both
+       return { 
+           team: offeringTeam, // Maintain 'team' as the primary actor (offering team)
+           player, 
+           teamCode,
+           homeTeam 
+       };
+    }
+
+    case 'matchOfferSheet':
+    case 'declineOfferSheet':
+    case 'finalizeMatchedOfferSheet':
+    case 'finalizeDeclinedOfferSheet': {
+      // Load home team (actor) and offering team (target)
+      const { teamCode: homeTeamCode, offeringTeamCode, offerSheetId } = payload;
+
+      if (!homeTeamCode) throw new Error(`Missing homeTeamCode`);
+      if (!offeringTeamCode) throw new Error(`Missing offeringTeamCode`);
+      if (!offerSheetId) throw new Error(`Missing offerSheetId`);
+
+      const [homeTeam, offeringTeam] = await Promise.all([
+        getTeam(worldId, homeTeamCode),
+        getTeam(worldId, offeringTeamCode),
+      ]);
+
+      return { homeTeam, offeringTeam, offerSheetId };
     }
 
     case 'renounceRights': {
@@ -541,6 +623,21 @@ export function computeWorldMutation({
 
     case 'extendPlayer':
       return computeExtensionResult({ payload, currentState, seasonId, timestamp });
+
+    case 'storeOfferSheet':
+      return computeStoreOfferSheetResult({ payload, currentState, seasonId, timestamp });
+
+    case 'matchOfferSheet':
+      return computeMatchOfferSheetResult({ payload, currentState, seasonId, timestamp });
+
+    case 'declineOfferSheet':
+      return computeDeclineOfferSheetResult({ payload, currentState, seasonId, timestamp });
+
+    case 'finalizeMatchedOfferSheet':
+      return computeFinalizeMatchedOfferSheetResult({ payload, currentState, seasonId, timestamp });
+
+    case 'finalizeDeclinedOfferSheet':
+      return computeFinalizeDeclinedOfferSheetResult({ payload, currentState, seasonId, timestamp });
 
     case 'optionDecision':
       return computeOptionResult({ payload, currentState, seasonId, timestamp });
@@ -772,6 +869,16 @@ function computeSigningResult({ payload, currentState, seasonId, timestamp }) {
     );
   }
 
+  // Remove pending offer sheet if finalizing an RFA offer
+  // (processed offer sheets are removed to prevent state staleness)
+  // Remove pending offer sheet if finalizing an RFA offer
+  // (processed offer sheets are removed to prevent state staleness)
+  if (normalizedContract.rfaOfferSheet && updatedTeam.offerSheets) {
+    updatedTeam.offerSheets = updatedTeam.offerSheets.filter(
+      (os) => os.playerId !== playerId
+    );
+  }
+
   // Update source metadata
   updatedTeam.source = {
     ...updatedTeam.source,
@@ -782,18 +889,36 @@ function computeSigningResult({ payload, currentState, seasonId, timestamp }) {
   // Recalculate totals
   updatedTeam.totals = calculateTeamTotals(updatedTeam, seasonId);
 
+  const teamUpdates = [{ teamCode, team: updatedTeam }];
+
+  // Cleanup incomingOfferSheets on home team if applicable
+  if (normalizedContract.rfaOfferSheet && currentState.homeTeam && currentState.homeTeam.incomingOfferSheets) {
+     const updatedHomeTeam = { ...currentState.homeTeam };
+     updatedHomeTeam.incomingOfferSheets = updatedHomeTeam.incomingOfferSheets.filter(
+       (os) => os.playerId !== playerId
+     );
+     // Only add update if something changed
+     if (updatedHomeTeam.incomingOfferSheets.length !== currentState.homeTeam.incomingOfferSheets.length) {
+       updatedHomeTeam.source = {
+          ...updatedHomeTeam.source,
+          lastModifiedAt: new Date(timestamp).toISOString()
+       };
+       teamUpdates.push({ teamCode: currentState.homeTeam.teamCode, team: updatedHomeTeam });
+     }
+  }
+
   return {
     success: true,
-    teamUpdates: [{ teamCode, team: updatedTeam }],
+    teamUpdates,
     playerUpdates: [{ playerId, player: updatedPlayer }],
     metadata: {
       type: 'signing',
       teamCode,
       playerId,
       playerName: player.displayName || player.name,
-      contractValue: contract?.totalValue,
-      signedUsing,
+      contract: normalizedContract,
       timestamp,
+      signedUsing,
     },
   };
 }
@@ -1290,6 +1415,52 @@ function validateMutation({ mutationType, payload, currentState, computeResult, 
       };
     }
 
+    case 'storeOfferSheet': {
+      // Reuse validateSigning with store-only context
+      // The payload.contract MUST have rfaOfferSheetOnly=true (validation checked in capLegality)
+      const result = validateSigning({
+        team: currentState.team,
+        player: currentState.player,
+        contract: payload.contract,
+        signedUsing: payload.signedUsing,
+        year: currentYear,
+      });
+      return {
+        valid: result.valid,
+        error: result.violations[0]?.message || null,
+        violations: result.violations,
+        warnings: result.warnings,
+      };
+    }
+
+    case 'matchOfferSheet': // fallthrough
+    case 'declineOfferSheet': {
+       // Structural validation already done in load/compute (existence checks)
+       // Could add specific business logic here if needed (e.g. valid window)
+       return { valid: true };
+    }
+
+    case 'storeOfferSheet': {
+       const result = validateSigning({
+        team: currentState.team,
+        player: currentState.player,
+        contract: payload.contract,
+        signedUsing: payload.signedUsing,
+        year: currentYear,
+      });
+      return {
+        valid: result.valid,
+        error: result.violations[0]?.message || null,
+        violations: result.violations,
+        warnings: result.warnings,
+      };
+    }
+
+    case 'matchOfferSheet':
+    case 'declineOfferSheet': {
+       return { valid: true };
+    }
+
     case 'renounceRights': {
       const result = validateRenounceRights({
         team: currentState.team,
@@ -1441,6 +1612,471 @@ async function persistWorldMutation({
   }
 }
 
+function computeStoreOfferSheetResult({ payload, currentState, seasonId, timestamp }) {
+  const { team: offeringTeam, player, teamCode, homeTeam } = currentState;
+  const { contract, worldId } = payload;
+  const currentYear = toEndYear(seasonId);
+
+  // Validate store-only invariants programmatically just in case
+  if (contract.rfaOfferSheetOnly !== true || contract.rfaOfferSheet !== true) {
+    return { success: false, error: 'storeOfferSheet requires rfaOfferSheet=true and rfaOfferSheetOnly=true' };
+  }
+
+  const playerId = player.player_id || player.id;
+  const homeTeamCode = player.teamCode || player.contract?.signingTeam;
+
+  // Phase 18.1: Generate DETERMINISTIC dedupKey for idempotency
+  // Format: os:{worldId}:{offeringTeamCode}:{playerId}:{seasonKey}
+  // This is stable across retries (no timestamp dependency)
+  const dedupKey = `os:${worldId || 'world'}:${teamCode}:${playerId}:${seasonId}`;
+
+  // Generate unique ID (includes timestamp for uniqueness, but NOT used for dedup)
+  const offerSheetId = payload.offerSheetId || `os_${teamCode}_${playerId}_${timestamp}`;
+
+  // Build canonical OfferSheet object
+  const offerSheet = {
+    id: offerSheetId,
+    dedupKey, // Phase 18.1: Deterministic key for idempotency
+    playerId,
+    playerName: player.displayName || player.name,
+    offeringTeamCode: teamCode,
+    homeTeamCode,
+    seasonKey: seasonId,
+    year: currentYear,
+    contractYears: contract.contractYears || contract.years || 1,
+    salariesByYear: contract.salariesByYear?.map(normalizeSalaryRow) || [],
+    status: 'PENDING_MATCH',
+    createdAt: new Date(timestamp).toISOString(),
+    totalValue: contract.totalValue,
+  };
+
+  const updatedOfferingTeam = { ...offeringTeam };
+  
+  // Phase 18.1: DEDUPLICATION - Check by id first, then by dedupKey
+  // This ensures retries don't create duplicates even with different timestamps
+  let existingIndex = (updatedOfferingTeam.offerSheets || []).findIndex(os => os.id === offerSheetId);
+  if (existingIndex === -1) {
+    // Not found by ID, try dedupKey
+    existingIndex = (updatedOfferingTeam.offerSheets || []).findIndex(os => os.dedupKey === dedupKey);
+  }
+  
+  if (existingIndex !== -1) {
+      // UPDATE IN PLACE - preserve existing ID if found by dedupKey
+      const existingSheet = updatedOfferingTeam.offerSheets[existingIndex];
+      const newSheets = [...updatedOfferingTeam.offerSheets];
+      newSheets[existingIndex] = {
+        ...offerSheet,
+        id: existingSheet.id, // Preserve original ID
+        createdAt: existingSheet.createdAt, // Preserve original creation time
+      };
+      updatedOfferingTeam.offerSheets = newSheets;
+  } else {
+      updatedOfferingTeam.offerSheets = [...(updatedOfferingTeam.offerSheets || []), offerSheet];
+  }
+
+  // Update source metadata
+  updatedOfferingTeam.source = {
+    ...updatedOfferingTeam.source,
+    type: 'world-snapshot',
+    lastModifiedAt: new Date(timestamp).toISOString(),
+  };
+
+  const teamUpdates = [{ teamCode, team: updatedOfferingTeam }];
+
+  // MIRRORING: Add to home team's incomingOfferSheets if home team exists
+  if (homeTeam) {
+      const updatedHomeTeam = { ...homeTeam };
+      
+      // Phase 18.1: Same dedup logic for home team
+      let existingHomeIndex = (updatedHomeTeam.incomingOfferSheets || []).findIndex(os => os.id === offerSheetId);
+      if (existingHomeIndex === -1) {
+        existingHomeIndex = (updatedHomeTeam.incomingOfferSheets || []).findIndex(os => os.dedupKey === dedupKey);
+      }
+      
+      if (existingHomeIndex !== -1) {
+          const existingSheet = updatedHomeTeam.incomingOfferSheets[existingHomeIndex];
+          const newSheets = [...updatedHomeTeam.incomingOfferSheets];
+          newSheets[existingHomeIndex] = {
+            ...offerSheet,
+            id: existingSheet.id,
+            createdAt: existingSheet.createdAt,
+          };
+          updatedHomeTeam.incomingOfferSheets = newSheets;
+      } else {
+          updatedHomeTeam.incomingOfferSheets = [...(updatedHomeTeam.incomingOfferSheets || []), offerSheet];
+      }
+
+      updatedHomeTeam.source = {
+          ...updatedHomeTeam.source,
+          lastModifiedAt: new Date(timestamp).toISOString()
+      };
+      teamUpdates.push({ teamCode: homeTeam.teamCode, team: updatedHomeTeam });
+  }
+
+  return {
+    success: true,
+    teamUpdates,
+    playerUpdates: [],
+    metadata: {
+      type: 'storeOfferSheet',
+      teamCode,
+      playerId: offerSheet.playerId,
+      offerSheetId: offerSheet.id,
+      dedupKey, // Phase 18.1: Include for traceability
+      timestamp,
+    },
+  };
+}
+
+/**
+ * Compute match offer sheet result
+ */
+function computeMatchOfferSheetResult({ payload, currentState, seasonId, timestamp }) {
+  const { offeringTeam, homeTeam, offerSheetId } = currentState;
+
+  // Find offer sheet on offering team
+  const offerSheetIndex = (offeringTeam.offerSheets || []).findIndex(os => os.id === offerSheetId);
+  if (offerSheetIndex === -1) {
+    return { success: false, error: `Offer sheet ${offerSheetId} not found on team ${offeringTeam.teamCode}` };
+  }
+
+  const existingSheet = offeringTeam.offerSheets[offerSheetIndex];
+  
+  if (existingSheet.status !== 'PENDING_MATCH') {
+     return { success: false, error: `Offer sheet status is ${existingSheet.status}, expected PENDING_MATCH` };
+  }
+
+  // Update status
+  const updatedOfferSheet = {
+    ...existingSheet,
+    status: 'MATCHED',
+    matchedAt: new Date(timestamp).toISOString(),
+  };
+
+  const updatedOfferingTeam = { ...offeringTeam };
+  updatedOfferingTeam.offerSheets = [...updatedOfferingTeam.offerSheets];
+  updatedOfferingTeam.offerSheets[offerSheetIndex] = updatedOfferSheet;
+  updatedOfferingTeam.source = {
+     ...updatedOfferingTeam.source,
+     lastModifiedAt: new Date(timestamp).toISOString(),
+  };
+
+  const teamUpdates = [{ teamCode: offeringTeam.teamCode, team: updatedOfferingTeam }];
+
+  // MIRRORING: Update logic on home team
+  if (homeTeam && homeTeam.incomingOfferSheets) {
+      const homeIndex = homeTeam.incomingOfferSheets.findIndex(os => os.id === offerSheetId);
+      if (homeIndex !== -1) {
+          const updatedHomeTeam = { ...homeTeam };
+          updatedHomeTeam.incomingOfferSheets = [...updatedHomeTeam.incomingOfferSheets];
+          updatedHomeTeam.incomingOfferSheets[homeIndex] = updatedOfferSheet;
+          updatedHomeTeam.source = {
+            ...updatedHomeTeam.source,
+             lastModifiedAt: new Date(timestamp).toISOString()
+          };
+          teamUpdates.push({ teamCode: homeTeam.teamCode, team: updatedHomeTeam });
+      }
+  }
+
+  return {
+    success: true,
+    teamUpdates,
+    playerUpdates: [],
+    metadata: {
+      type: 'matchOfferSheet',
+      offeringTeamCode: offeringTeam.teamCode,
+      homeTeamCode: homeTeam.teamCode,
+      offerSheetId,
+      timestamp,
+    },
+  };
+}
+
+/**
+ * Compute decline offer sheet result
+ */
+function computeDeclineOfferSheetResult({ payload, currentState, seasonId, timestamp }) {
+  const { offeringTeam, homeTeam, offerSheetId } = currentState;
+
+  // Find offer sheet
+  const offerSheetIndex = (offeringTeam.offerSheets || []).findIndex(os => os.id === offerSheetId);
+  if (offerSheetIndex === -1) {
+    return { success: false, error: `Offer sheet ${offerSheetId} not found` };
+  }
+
+  const existingSheet = offeringTeam.offerSheets[offerSheetIndex];
+  if (existingSheet.status !== 'PENDING_MATCH') {
+     return { success: false, error: `Offer sheet status is ${existingSheet.status}, expected PENDING_MATCH` };
+  }
+
+  const updatedOfferSheet = {
+    ...existingSheet,
+    status: 'DECLINED',
+    declinedAt: new Date(timestamp).toISOString(),
+  };
+
+  const updatedOfferingTeam = { ...offeringTeam };
+  updatedOfferingTeam.offerSheets = [...updatedOfferingTeam.offerSheets];
+  updatedOfferingTeam.offerSheets[offerSheetIndex] = updatedOfferSheet;
+  updatedOfferingTeam.source = {
+     ...updatedOfferingTeam.source,
+     lastModifiedAt: new Date(timestamp).toISOString(),
+  };
+
+  const teamUpdates = [{ teamCode: offeringTeam.teamCode, team: updatedOfferingTeam }];
+
+  // MIRRORING: Update logic on home team
+  if (homeTeam && homeTeam.incomingOfferSheets) {
+      const homeIndex = homeTeam.incomingOfferSheets.findIndex(os => os.id === offerSheetId);
+      if (homeIndex !== -1) {
+          const updatedHomeTeam = { ...homeTeam };
+          updatedHomeTeam.incomingOfferSheets = [...updatedHomeTeam.incomingOfferSheets];
+          updatedHomeTeam.incomingOfferSheets[homeIndex] = updatedOfferSheet;
+          updatedHomeTeam.source = {
+            ...updatedHomeTeam.source,
+             lastModifiedAt: new Date(timestamp).toISOString()
+          };
+          teamUpdates.push({ teamCode: homeTeam.teamCode, team: updatedHomeTeam });
+      }
+  }
+
+  return {
+    success: true,
+    teamUpdates,
+    playerUpdates: [],
+    metadata: {
+      type: 'declineOfferSheet',
+      offeringTeamCode: offeringTeam.teamCode,
+      homeTeamCode: homeTeam.teamCode,
+      offerSheetId,
+      timestamp,
+    }
+  };
+}
+
+
+/**
+ * Compute MATCHED offer sheet finalization.
+ *
+ * GOAL:
+ * 1. Validate status is MATCHED (and acting team is home team - handled by validator).
+ * 2. Apply the contract terms from offer sheet to the home team's player.
+ * 3. Remove offer sheet from BOTH home and offering teams.
+ */
+function computeFinalizeMatchedOfferSheetResult({ payload, currentState, seasonId, timestamp }) {
+  const { homeTeam, offeringTeam, offerSheetId } = currentState; // Loaded by loadStateForMutation
+  const { teamCode } = payload; // Should be homeTeamCode
+
+  // 1. Find the offer sheet (on home team)
+  const incomingOfferSheets = homeTeam.incomingOfferSheets || [];
+  const offerSheet = incomingOfferSheets.find(os => os.id === offerSheetId);
+
+  // Validation happens in validateMutation via validateOfferSheetResolution,
+  // but we can do a sanity check here or let it fail if missing.
+  if (!offerSheet) {
+    return { success: false, error: `Offer sheet ${offerSheetId} not found on home team.` };
+  }
+  
+  // 2. Prepare Home Team Update
+  const updatedHomeTeam = { ...homeTeam };
+  
+  // 2a. Remove from incomingOfferSheets
+  updatedHomeTeam.incomingOfferSheets = incomingOfferSheets.filter(os => os.id !== offerSheetId);
+  
+  // 2b. Apply contract to player
+  // We need to find the player on the home team roster/players list.
+  // The offer sheet has playerId.
+  const playerId = offerSheet.playerId;
+  const playerIndex = (updatedHomeTeam.players || []).findIndex(p => (p.player_id || p.id) === playerId);
+  
+  if (playerIndex === -1) {
+    return { success: false, error: `Player ${playerId} not found on home team roster for contract application.` };
+  }
+  
+  // Clone the player to update contract
+  const updatedPlayer = { ...updatedHomeTeam.players[playerIndex] };
+  
+  // Construct new contract from offer sheet
+  // Offer sheet structure: salariesByYear: [{ season, salary, capHit, guaranteed }]
+  // We need to convert this to the standard contract format.
+  const newContract = {
+    contractType: 'Standard', // Offer sheets are standard contracts
+    signedUsing: 'Match', // Or "Matched Offer Sheet"
+    signingTeam: teamCode,
+    contractLength: offerSheet.contractYears,
+    salariesByYear: offerSheet.salariesByYear.map(s => ({
+      season: s.season,
+      salary: s.salary,
+      capHit: s.capHit,
+      guaranteed: s.guaranteed,
+    })),
+  };
+  
+  updatedPlayer.contract = newContract;
+  
+  // Update player in team array
+  updatedHomeTeam.players = [
+    ...updatedHomeTeam.players.slice(0, playerIndex),
+    updatedPlayer,
+    ...updatedHomeTeam.players.slice(playerIndex + 1)
+  ];
+  
+  // Recalculate totals
+  updatedHomeTeam.totals = calculateTeamTotals(updatedHomeTeam, seasonId);
+
+  // 3. Prepare Offering Team Update
+  const updatedOfferingTeam = { ...offeringTeam };
+  
+  // 3a. Remove from offerSheets (outgoing)
+  updatedOfferingTeam.offerSheets = (updatedOfferingTeam.offerSheets || []).filter(os => os.id !== offerSheetId);
+
+  return {
+    success: true,
+    teamUpdates: [
+      { teamCode: homeTeam.teamCode, team: updatedHomeTeam },
+      { teamCode: offeringTeam.teamCode, team: updatedOfferingTeam }
+    ],
+    metadata: {
+      type: 'finalizeMatchedOfferSheet',
+      offerSheetId,
+      playerId,
+      homeTeam: homeTeam.teamCode,
+      offeringTeam: offeringTeam.teamCode,
+      timestamp
+    }
+  };
+}
+
+/**
+ * Phase 18.1: Compute DECLINED offer sheet finalization.
+ *
+ * GOAL:
+ * 1. Validate status is DECLINED (and acting team is offering team - handled by validator).
+ * 2. Remove offer sheet from BOTH teams (explicit cleanup).
+ * 3. Apply the contract terms from offer sheet to the offering team's player (signing).
+ */
+function computeFinalizeDeclinedOfferSheetResult({ payload, currentState, seasonId, timestamp }) {
+  const { offeringTeam, homeTeam, offerSheetId } = currentState;
+  const { teamCode } = payload; // Should be offeringTeamCode
+
+  // 1. Find the offer sheet (on offering team)
+  const offerSheets = offeringTeam.offerSheets || [];
+  const offerSheet = offerSheets.find(os => os.id === offerSheetId);
+
+  if (!offerSheet) {
+    return { success: false, error: `Offer sheet ${offerSheetId} not found on offering team.` };
+  }
+
+  if (offerSheet.status !== 'DECLINED') {
+    return { success: false, error: `Offer sheet status is ${offerSheet.status}, expected DECLINED.` };
+  }
+
+  // 2. Prepare Offering Team Update
+  const updatedOfferingTeam = { ...offeringTeam };
+  
+  // 2a. Remove from offerSheets
+  updatedOfferingTeam.offerSheets = offerSheets.filter(os => os.id !== offerSheetId);
+  
+  // 2b. Add player to roster with contract terms
+  // Find or create player entry
+  const playerId = offerSheet.playerId;
+  let playerIndex = (updatedOfferingTeam.players || []).findIndex(p => (p.player_id || p.id) === playerId);
+  
+  // Construct new contract from offer sheet
+  const newContract = {
+    contractType: 'Standard',
+    signedUsing: 'Offer Sheet',
+    signingTeam: teamCode,
+    contractLength: offerSheet.contractYears,
+    salariesByYear: offerSheet.salariesByYear.map(s => ({
+      season: s.season,
+      salary: s.salary,
+      capHit: s.capHit,
+      guaranteed: s.guaranteed,
+    })),
+  };
+  
+  if (playerIndex !== -1) {
+    // Update existing player's contract
+    const updatedPlayer = { 
+      ...updatedOfferingTeam.players[playerIndex],
+      contract: newContract,
+      teamCode,
+    };
+    updatedOfferingTeam.players = [
+      ...updatedOfferingTeam.players.slice(0, playerIndex),
+      updatedPlayer,
+      ...updatedOfferingTeam.players.slice(playerIndex + 1)
+    ];
+  } else {
+    // Create new player entry
+    const newPlayer = {
+      player_id: playerId,
+      id: playerId,
+      name: offerSheet.playerName,
+      displayName: offerSheet.playerName,
+      contract: newContract,
+      teamCode,
+    };
+    updatedOfferingTeam.players = [...(updatedOfferingTeam.players || []), newPlayer];
+  }
+  
+  // Update roster
+  if (!updatedOfferingTeam.roster?.includes(playerId)) {
+    updatedOfferingTeam.roster = [...(updatedOfferingTeam.roster || []), playerId];
+  }
+  
+  // Recalculate totals
+  updatedOfferingTeam.totals = calculateTeamTotals(updatedOfferingTeam, seasonId);
+  
+  updatedOfferingTeam.source = {
+    ...updatedOfferingTeam.source,
+    type: 'world-snapshot',
+    lastModifiedAt: new Date(timestamp).toISOString(),
+  };
+
+  // 3. Prepare Home Team Update (cleanup only)
+  const updatedHomeTeam = { ...homeTeam };
+  
+  // 3a. Remove from incomingOfferSheets
+  updatedHomeTeam.incomingOfferSheets = (updatedHomeTeam.incomingOfferSheets || []).filter(os => os.id !== offerSheetId);
+  
+  // 3b. Remove player from roster if present (they're leaving)
+  if (updatedHomeTeam.roster?.includes(playerId)) {
+    updatedHomeTeam.roster = updatedHomeTeam.roster.filter(id => id !== playerId);
+  }
+  
+  // 3c. Remove player from players array if present
+  if (updatedHomeTeam.players?.some(p => (p.player_id || p.id) === playerId)) {
+    updatedHomeTeam.players = updatedHomeTeam.players.filter(p => (p.player_id || p.id) !== playerId);
+  }
+  
+  // Recalculate home team totals
+  updatedHomeTeam.totals = calculateTeamTotals(updatedHomeTeam, seasonId);
+  
+  updatedHomeTeam.source = {
+    ...updatedHomeTeam.source,
+    type: 'world-snapshot',
+    lastModifiedAt: new Date(timestamp).toISOString(),
+  };
+
+  return {
+    success: true,
+    teamUpdates: [
+      { teamCode: offeringTeam.teamCode, team: updatedOfferingTeam },
+      { teamCode: homeTeam.teamCode, team: updatedHomeTeam }
+    ],
+    metadata: {
+      type: 'finalizeDeclinedOfferSheet',
+      offerSheetId,
+      playerId,
+      offeringTeam: offeringTeam.teamCode,
+      homeTeam: homeTeam.teamCode,
+      timestamp
+    }
+  };
+}
+
 // ==============================================================================
 // HELPER FUNCTIONS
 // ==============================================================================
@@ -1462,6 +2098,12 @@ function getMutationActionType(mutationType) {
       return 'signing';
     case 'renounceRights':
       return 'renounce';
+    case 'storeOfferSheet':
+    case 'matchOfferSheet':
+    case 'declineOfferSheet':
+    case 'finalizeMatchedOfferSheet':
+    case 'finalizeDeclinedOfferSheet':
+      return 'signing';
     default:
       return 'unknown';
   }
