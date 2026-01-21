@@ -365,6 +365,36 @@ npx tsx team-scrape/draft-picks/scripts/audit_recipient_inventory_invariant.ts \
 - `0` - Invariant satisfied
 - `1` - Invariant violations or missing inputs
 
+#### `team-scrape/draft-picks/scripts/pst/pst_phase_10_push_base_entitlements.ts`
+
+**Purpose:** Push base entitlement definitions to `architect_baseEntitlements` from Phase 8.1 outputs.
+
+**Usage:**
+
+```bash
+npm run pst:push:base-entitlements
+```
+
+#### `team-scrape/draft-picks/scripts/pst/pst_phase_10_patch_base_teams_entitlements.ts`
+
+**Purpose:** Patch base teams with `entitlementIds` derived from Phase 8.1 team holdings.
+
+**Usage:**
+
+```bash
+npm run pst:patch:base-teams-entitlements
+```
+
+#### `team-scrape/draft-picks/scripts/pst/pst_phase_10_validate_firestore_entitlements.ts`
+
+**Purpose:** Validate Firestore entitlements counts, team holdings, and resolver merge behavior.
+
+**Usage:**
+
+```bash
+npx tsx team-scrape/draft-picks/scripts/pst/pst_phase_10_validate_firestore_entitlements.ts
+```
+
 #### `npm run draft-picks:verify`
 
 **Purpose:** Local draft-picks verification (build + reports + audits, no scrape).
@@ -586,6 +616,28 @@ const contracts = await getDocs(
   collection(doc(db, 'players_v2', playerId), 'contracts')
 );
 ```
+
+### `/architect_baseTeams/{teamCode}`
+
+**Status:** ✅ Active (architect)
+
+**Structure:** See `docs/schema/architect.md` for complete schema
+
+**Notes:**
+
+- `entitlementIds` stores entitlement ownership for each team (Phase 10).
+
+### `/architect_baseEntitlements/{entitlementId}`
+
+**Status:** ✅ Active (Phase 10)
+
+**Usage:** Base entitlement definitions for draft assets and trade machine reads.
+
+### `/architect_worlds/{worldId}/entitlements/{entitlementId}`
+
+**Status:** ✅ Active (Phase 10)
+
+**Usage:** World entitlement overrides or world-created entitlements.
 
 ### `/teams/{teamId}`
 

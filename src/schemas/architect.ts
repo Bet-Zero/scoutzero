@@ -2,6 +2,46 @@ import { z } from 'zod';
 import { MoneyZ, PlayerIdZ, SeasonCodeZ, TeamCodeZ } from './common';
 
 const HardCapLevelZ = z.enum(['none', 'firstApron', 'secondApron']);
+const EntitlementKindZ = z.enum([
+  'pick_ownership',
+  'conveyance_right',
+  'swap_right',
+]);
+
+const EntitlementUnderlyingStatusZ = z.enum([
+  'pooled',
+  'encumbered',
+  'clean',
+]);
+
+export const EntitlementAssetZ = z
+  .object({
+    id: z.string(),
+    holderTeam: TeamCodeZ,
+    seasonYear: z.number().int(),
+    round: z.number().int(),
+    kind: EntitlementKindZ,
+    description: z.string(),
+    // pick_ownership
+    underlyingPickId: z.string().optional(),
+    // conveyance_right
+    poolUnderlyingPickIds: z.array(z.string()).optional(),
+    receivesRank: z.array(z.number().int()).optional(),
+    receivesComparator: z
+      .enum(['more_favorable', 'less_favorable', 'middle'])
+      .optional(),
+    // swap_right
+    swapControllerPickId: z.string().optional(),
+    swapTargetDefinition: z.string().optional(),
+    // metadata
+    evidenceRowRefs: z.array(z.string()).optional(),
+    sourceUrl: z.string().optional(),
+    underlyingStatus: EntitlementUnderlyingStatusZ.optional(),
+    coveredByEntitlementIds: z.array(z.string()).optional(),
+  })
+  .passthrough();
+
+export const WorldEntitlementOverrideZ = EntitlementAssetZ.partial().passthrough();
 
 // ============================
 // architect canonical schemas
@@ -225,6 +265,7 @@ export const BaseTeamDocZ = z.object({
   draftPicksObligations: z.array(DraftPickZ).optional().default([]),
   // draftPicksContested: Swaps and conditional picks involving the team
   draftPicksContested: z.array(DraftPickZ).optional().default([]),
+  entitlementIds: z.array(z.string()).optional().default([]),
   totals: TeamTotalsZ.optional(),
   source: ArchitectSourceZ.optional(),
   lastUpdated: z.string().optional(),

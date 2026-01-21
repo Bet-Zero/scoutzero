@@ -91,6 +91,7 @@ hooks/
   useCapSheetState.js
   useCapValidation.js
   usePlayerRulesProfiles.js
+  useTeamEntitlements.ts
   useTradeMachine.js
   useTradeMachineSnapshot.js
 offseason/
@@ -170,6 +171,8 @@ utils/
   contractSalaryUtils.js
   contractUtils.js
   draftPickUtils.js
+  entitlements/
+    entitlementResolver.ts
   extensionRules.js
   faExceptionUtils.js
   firebaseTeamPlanHelpers.js
@@ -287,5 +290,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-01-21T08:46:06.538Z*
+*Generated on: 2026-01-21T09:35:25.684Z*
 *Auto-updated by: npm run docs*

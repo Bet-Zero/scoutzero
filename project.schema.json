@@ -186,6 +186,33 @@
         "SKIP_FETCH"
       ]
     },
+    "pstPushBaseEntitlements": {
+      "path": "team-scrape/draft-picks/scripts/pst/pst_phase_10_push_base_entitlements.ts",
+      "command": "npm run pst:push:base-entitlements",
+      "description": "Push base entitlement definitions to architect_baseEntitlements",
+      "inputs": [
+        "data/pst/pst_entitlement_assets_2026_2033.json"
+      ],
+      "outputs": [
+        "Firestore: architect_baseEntitlements/{entitlementId}"
+      ]
+    },
+    "pstPatchBaseTeamsEntitlements": {
+      "path": "team-scrape/draft-picks/scripts/pst/pst_phase_10_patch_base_teams_entitlements.ts",
+      "command": "npm run pst:patch:base-teams-entitlements",
+      "description": "Patch base teams with entitlementIds derived from Phase 8.1 holdings",
+      "inputs": [
+        "data/pst/pst_entitlements_by_team_2026_2033.json"
+      ],
+      "outputs": [
+        "Firestore: architect_baseTeams/{teamCode}.entitlementIds"
+      ]
+    },
+    "pstValidateFirestoreEntitlements": {
+      "path": "team-scrape/draft-picks/scripts/pst/pst_phase_10_validate_firestore_entitlements.ts",
+      "command": "npx tsx team-scrape/draft-picks/scripts/pst/pst_phase_10_validate_firestore_entitlements.ts",
+      "description": "Validate entitlement counts, holdings, and resolver merge behavior"
+    },
     "typecheck": {
       "command": "npm run typecheck",
       "description": "TypeScript type checking without emitting files"

@@ -10,6 +10,7 @@ import { TeamMap } from '@/constants/teamList';
 import { toSeasonKey } from '@/features/architect/utils/seasonFormat';
 import { computeTradeDraftKey, isValidationCurrent } from '@/features/architect/tradeMachine/utils/computeTradeDraftKey';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import { resolveEntitlementsForTeam } from '@/features/architect/utils/entitlements/entitlementResolver';
 
 /* ============================
    SSOT WIRING
@@ -183,6 +184,21 @@ export const useTradeMachine = (
           tradeExceptions: data.tradeExceptions || [],
           picks: picksWithIds,
         };
+
+        if (worldId || (data.entitlementIds && data.entitlementIds.length)) {
+          try {
+            const resolvedTeamCode =
+              data.teamCode || baseTeam?.code || teamObj.abbreviation || teamObj.id;
+            const entitlements = await resolveEntitlementsForTeam(
+              worldId,
+              resolvedTeamCode
+            );
+            teamObj.entitlements = entitlements;
+          } catch (err) {
+            console.warn('Failed to resolve team entitlements:', err);
+            teamObj.entitlements = [];
+          }
+        }
         augmentTeamWithExceptions(teamObj, yearKey, capProjections);
 
         // === Baseline payroll wiring (SSOT) ===

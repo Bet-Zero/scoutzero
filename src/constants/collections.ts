@@ -5,12 +5,17 @@
  * Use these constants instead of hardcoded strings.
  */
 
+const env =
+  typeof import.meta !== 'undefined' && import.meta.env
+    ? import.meta.env
+    : process.env;
+
 /**
  * Main players collection (v2 schema)
  * Can be overridden via environment variable for testing/migration
  */
 export const PLAYERS_COLLECTION =
-  import.meta.env.VITE_PLAYERS_COLLECTION || 'players_v2';
+  env.VITE_PLAYERS_COLLECTION || 'players_v2';
 
 /**
  * Architect base players path (collection or collection group)
@@ -18,7 +23,7 @@ export const PLAYERS_COLLECTION =
  * Note: Using underscore instead of slash because Firestore requires odd number of segments for collections
  */
 export const ARCHITECT_BASE_PLAYERS_PATH =
-  import.meta.env.VITE_ARCHITECT_BASE_PLAYERS_PATH || 'architect_basePlayers';
+  env.VITE_ARCHITECT_BASE_PLAYERS_PATH || 'architect_basePlayers';
 
 /**
  * Architect base teams path (collection or collection group)
@@ -26,7 +31,14 @@ export const ARCHITECT_BASE_PLAYERS_PATH =
  * Note: Using underscore instead of slash because Firestore requires odd number of segments for collections
  */
 export const ARCHITECT_BASE_TEAMS_PATH =
-  import.meta.env.VITE_ARCHITECT_BASE_TEAMS_PATH || 'architect_baseTeams';
+  env.VITE_ARCHITECT_BASE_TEAMS_PATH || 'architect_baseTeams';
+
+/**
+ * Architect base entitlements path
+ * Defaults to the canonical `architect_baseEntitlements` (single collection name)
+ */
+export const ARCHITECT_BASE_ENTITLEMENTS_PATH =
+  env.VITE_ARCHITECT_BASE_ENTITLEMENTS_PATH || 'architect_baseEntitlements';
 
 /**
  * Architect worlds collection (for world metadata and team snapshots)
@@ -36,7 +48,13 @@ export const ARCHITECT_BASE_TEAMS_PATH =
  * - architect_worlds/{worldId}/teams/{teamCode}/players/{playerId} - Player override
  */
 export const ARCHITECT_WORLDS_COLLECTION =
-  import.meta.env.VITE_ARCHITECT_WORLDS_COLLECTION || 'architect_worlds';
+  env.VITE_ARCHITECT_WORLDS_COLLECTION || 'architect_worlds';
+
+/**
+ * Architect world entitlements subcollection name
+ */
+export const ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION =
+  'entitlements';
 
 /**
  * Subcollection names (under players)

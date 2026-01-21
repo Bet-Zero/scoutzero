@@ -4,6 +4,7 @@
  * OWNERSHIP: [Team/Owner TBD]
  * HISTORY:
  *   - Created: [Date] - Initial implementation of Architect Firestore path helpers
+ *   - 2026-01-21: Added base/world entitlement path helpers
  * LINKS:
  *   - Related: src/data/firestorePaths.ts (base collection helpers)
  *
@@ -29,7 +30,10 @@ import {
   CollectionReference,
 } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
-import { ARCHITECT_WORLDS_COLLECTION } from '@/constants/collections';
+import {
+  ARCHITECT_WORLDS_COLLECTION,
+  ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION,
+} from '@/constants/collections';
 
 // Re-export base collection helpers for convenience
 export {
@@ -37,6 +41,8 @@ export {
   baseTeamsCol,
   basePlayerRef,
   basePlayersCol,
+  baseEntitlementRef,
+  baseEntitlementsCol,
 } from '@/data/firestorePaths';
 
 /**
@@ -94,6 +100,39 @@ export const worldPlayersCol = (
     'teams',
     teamCode,
     'players'
+  );
+
+/**
+ * Get reference to a world's entitlements subcollection
+ * Path: architect_worlds/{worldId}/entitlements
+ *
+ * @param worldId - World ID
+ */
+export const worldEntitlementsCol = (worldId: string): CollectionReference =>
+  collection(
+    db,
+    ARCHITECT_WORLDS_COLLECTION,
+    worldId,
+    ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION
+  );
+
+/**
+ * Get reference to a specific world entitlement override
+ * Path: architect_worlds/{worldId}/entitlements/{entitlementId}
+ *
+ * @param worldId - World ID
+ * @param entitlementId - Entitlement ID
+ */
+export const worldEntitlementRef = (
+  worldId: string,
+  entitlementId: string
+): DocumentReference =>
+  doc(
+    db,
+    ARCHITECT_WORLDS_COLLECTION,
+    worldId,
+    ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION,
+    entitlementId
   );
 
 /**

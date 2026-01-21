@@ -5,6 +5,7 @@
 - 🟢 **`players_v2`**: Migration COMPLETE (current = target)
 - 🟢 **`architect_basePlayers`**: Migration COMPLETE (active)
 - 🟢 **`architect_baseTeams`**: Migration COMPLETE (active)
+- 🟢 **`architect_baseEntitlements`**: Migration COMPLETE (active)
 - 🔴 **`teams`**: Migration COMPLETE - Legacy collection deprecated, use `/architect/` collections
 
 ---
@@ -39,6 +40,22 @@
 **Usage**: All architect/GM mode team queries should use this collection
 
 **Structure**: See `docs/schema/architect.md` for complete schema
+
+**Phase 10 Fields:**
+
+- `entitlementIds[]` - Entitlement ownership for the team (resolved via base + world overrides)
+
+### `/architect_baseEntitlements/{entitlementId}` - Entitlement Definitions ✅ FINAL
+
+**Status**: ✅ Active (Phase 10)
+**Usage**: Base entitlement definitions for trade machine asset resolution
+
+**Structure**: See `docs/schema/architect.md` for entitlement schema
+
+### `/architect_worlds/{worldId}/entitlements/{entitlementId}` - World Entitlement Overrides ✅ FINAL
+
+**Status**: ✅ Active (Phase 10)
+**Usage**: World overrides or world-created entitlements
 
 ### `/architect_basePlayers/{playerId}` - Player Contracts ✅ FINAL
 
@@ -76,6 +93,14 @@ const player = await getDoc(doc(db, 'players_v2', playerId));
 import { baseTeamRef } from '@/data/firestorePaths';
 const team = await getDoc(baseTeamRef(teamCode));
 const roster = team.data().roster; // Array of player IDs
+const entitlementIds = team.data().entitlementIds || [];
+```
+
+### For `/architect_baseEntitlements` (Use for Entitlement Definitions)
+
+```javascript
+import { baseEntitlementRef } from '@/data/firestorePaths';
+const entitlement = await getDoc(baseEntitlementRef(entitlementId));
 ```
 
 ### For `/teams` (DEPRECATED - Do Not Use)

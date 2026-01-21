@@ -11,6 +11,7 @@ src/
 │   └── shared/          # Reusable UI widgets
 ├── constants/           # Data lists and enums
 ├── features/            # Domain modules grouped by feature
+│   ├── architect/       # Architect GM + Trade Machine tools
 │   ├── filters/         # Filtering UI and logic
 │   ├── lists/           # Ranked list components
 │   ├── profile/         # Player profile editor
@@ -34,6 +35,7 @@ src/
 >
 > Features encapsulate major areas of the UI. Each contains React components specific to that feature.
 >
+> - **architect/** – internal GM dashboard, trade machine, and world-aware tooling.
 > - **filters/** – filter panel, active filter pills and filter sections.
 > - **lists/** – functionality for creating ranked lists of players.
 > - **profile/** – player profile view with editable traits, roles and blurbs.

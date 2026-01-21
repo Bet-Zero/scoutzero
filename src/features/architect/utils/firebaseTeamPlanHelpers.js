@@ -5,6 +5,7 @@
  *
  * HISTORY:
  *  - 2025-12-25: Removed legacy teamPlans save/load functions (worlds-only cleanup)
+ *  - 2026-01-21: Added entitlementIds pass-through for base team hydration
  *
  * NOTE: All team mutations now go through mutationPipeline.js for world persistence.
  *       This file only handles READ operations for base data and free agents.
@@ -171,6 +172,7 @@ export const hydrateBaseTeam = async (teamCode, baseDoc) => {
     // draftAssets: Canonical Trade Machine source (see RETURN_PACKAGE_DRAFT_PICKS_TRADE_ASSETS.md)
     // Contains tradeable assets with assetType (outright_pick, conditional_right, swap_right)
     draftAssets: baseDoc.draftAssets || null,
+    entitlementIds: baseDoc.entitlementIds || [],
     exceptions: exceptionData,
     mle: toSimpleException(exceptionData.mle),
     tpMle: toSimpleException(exceptionData.taxpayerMle || exceptionData.tpMle),

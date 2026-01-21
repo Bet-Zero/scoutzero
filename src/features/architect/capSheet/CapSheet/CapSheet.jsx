@@ -372,6 +372,42 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer, onSetDeadCap }) =
              </button>
           </div>
 
+          {/* Cap Breakdown */}
+          <div className="border-b border-white/5 bg-white/[0.01] px-4 py-2 space-y-1">
+            <div className="flex items-center justify-between text-[10px] text-white/50">
+              <span>Player Salaries</span>
+              <span className="tabular-nums">${totals.playersTotal.toLocaleString()}</span>
+            </div>
+            {totals.deadMoneyTotal > 0 && (
+              <div className="flex items-center justify-between text-[10px] text-white/50">
+                <span>Dead Money</span>
+                <span className="tabular-nums">${totals.deadMoneyTotal.toLocaleString()}</span>
+              </div>
+            )}
+            {totals.capHoldsTotal > 0 && (
+              <div className="flex items-center justify-between text-[10px] text-white/50">
+                <span>Cap Holds</span>
+                <span className="tabular-nums">${totals.capHoldsTotal.toLocaleString()}</span>
+              </div>
+            )}
+            {totals.incompleteChargesTotal > 0 && (
+              <div 
+                data-testid="incomplete-roster-charge-row"
+                className="flex items-center justify-between text-[10px] text-amber-400/80"
+              >
+                <span>
+                  Incomplete Roster Charge
+                  {totals._meta?.incompleteRosterCharge?.missingSlots && (
+                    <span className="text-white/40 ml-1">
+                      ({totals._meta.incompleteRosterCharge.missingSlots} open {totals._meta.incompleteRosterCharge.missingSlots === 1 ? 'slot' : 'slots'})
+                    </span>
+                  )}
+                </span>
+                <span className="tabular-nums">${totals.incompleteChargesTotal.toLocaleString()}</span>
+              </div>
+            )}
+          </div>
+
           {/* Total Cap Hit */}
           <div className="px-4 py-3 flex items-center justify-between bg-white/[0.02]">
             <span className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">
@@ -397,7 +433,5 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer, onSetDeadCap }) =
     </div>
   );
 };
-
-export default CapSheet;
 
 export default CapSheet;

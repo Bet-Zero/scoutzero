@@ -29,6 +29,7 @@
 | Phase 7 | Collision Course | NOT STARTED | - |
 | Phase 8 | Entitlement Assets (Preflight + Exec) | COMPLETE | 2026-01-21 |
 | Phase 8.1 | Hotfix: Split Separable Rights + Physical Slots | COMPLETE | 2026-01-21 |
+| Phase 10 | Firestore Entitlements Storage + World Holdings | COMPLETE | 2026-01-21 |
 
 ---
 
@@ -256,8 +257,27 @@ new RegExp(
 **What changed**
 
 - **Entitlement Generator**:
-  - Stopped suppressing `pick_ownership` assets when conveyance rights exist.
-  - Added metadata: `underlyingStatus` and `coveredByEntitlementIds`.
+- Stopped suppressing `pick_ownership` assets when conveyance rights exist.
+- Added metadata: `underlyingStatus` and `coveredByEntitlementIds`.
+
+---
+
+### Phase 10 — Firestore Entitlements Storage + World Holdings (COMPLETE)
+
+**Date**: 2026-01-21  
+**Status**: COMPLETE
+
+**New Collections**
+
+- `architect_baseEntitlements/{entitlementId}`
+- `architect_worlds/{worldId}/entitlements/{entitlementId}`
+- `architect_baseTeams/{teamCode}.entitlementIds`
+- `architect_worlds/{worldId}/teams/{teamCode}.entitlementIds`
+
+**Commands to Run**
+
+- `npm run pst:push:base-entitlements`
+- `npm run pst:patch:base-teams-entitlements`
   - Implemented specific splitting logic for "Rank 2 of 3" pools involving the holder (e.g. HOU 2029) to emit distinct Conveyance and Swap rights instead of one merged right.
 
 **Artifacts updated**

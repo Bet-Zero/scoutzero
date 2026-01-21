@@ -4,6 +4,7 @@ import {
   PLAYERS_COLLECTION,
   ARCHITECT_BASE_PLAYERS_PATH,
   ARCHITECT_BASE_TEAMS_PATH,
+  ARCHITECT_BASE_ENTITLEMENTS_PATH,
   CONTRACTS_SUBCOLLECTION,
   SEASONS_SUBCOLLECTION,
   EVALUATIONS_SUBCOLLECTION,
@@ -14,6 +15,7 @@ const splitPath = (path) => path.split('/').filter(Boolean);
 const playerSegments = splitPath(PLAYERS_COLLECTION);
 const basePlayerSegments = splitPath(ARCHITECT_BASE_PLAYERS_PATH);
 const baseTeamSegments = splitPath(ARCHITECT_BASE_TEAMS_PATH);
+const baseEntitlementSegments = splitPath(ARCHITECT_BASE_ENTITLEMENTS_PATH);
 
 /**
  * Centralized Firestore path helpers for V2 schema
@@ -51,3 +53,8 @@ export const basePlayerRef = (playerId) =>
 
 export const baseTeamsCol = () => collection(db, ...baseTeamSegments);
 export const baseTeamRef = (teamCode) => doc(db, ...baseTeamSegments, teamCode);
+
+export const baseEntitlementsCol = () =>
+  collection(db, ...baseEntitlementSegments);
+export const baseEntitlementRef = (entitlementId) =>
+  doc(db, ...baseEntitlementSegments, entitlementId);
