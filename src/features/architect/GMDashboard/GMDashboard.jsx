@@ -284,6 +284,7 @@ const GMDashboard = () => {
             currentYear={currentYear}
             onSelectPlayer={actions.handleEditContract}
             onSetDeadCap={actions.handleSetDeadCap}
+            onSetExceptions={actions.handleSetExceptions}
             playersMap={playersMap}
           />
         )}

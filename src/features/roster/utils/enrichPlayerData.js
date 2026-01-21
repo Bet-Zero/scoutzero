@@ -1,4 +1,18 @@
+/**
+ * FILE: src/features/roster/utils/enrichPlayerData.js
+ * PURPOSE: Normalize players_v2 data into UI-friendly contract, stats, and evaluation fields.
+ * OWNERSHIP: Feature: roster (player data enrichment)
+ *
+ * HISTORY:
+ *  - 2026-01-21: Updated by plan `plans/_archive/scouting-player-profile-phase-1-data-contract/plan.md`, chunk_n/a
+ *
+ * LINKS:
+ *  - Plan: plans/_archive/scouting-player-profile-phase-1-data-contract/plan.md
+ *  - Latest Chunk: n/a (no chunks used)
+ */
+
 import { POSITION_MAP } from '@/shared/utils/roles/roleUtils';
+import { normalizeBlurbs } from '@/shared/utils/blurbs';
 
 /**
  * Normalize playerId for headshot path lookup
@@ -49,6 +63,35 @@ function calculateAgeFromDOB(dob) {
     return null;
   }
 }
+
+const hasOwn = (obj, key) =>
+  obj && Object.prototype.hasOwnProperty.call(obj, key);
+
+const pickEvaluationDoc = (evaluations = {}) => {
+  if (!evaluations || typeof evaluations !== 'object') return null;
+  if (evaluations.current) return evaluations.current;
+  const values = Object.values(evaluations);
+  return values.length > 0 ? values[0] : null;
+};
+
+const normalizeShootingProfile = (value) => {
+  if (typeof value !== 'string') return '';
+  if (value.trim() === '—') return '';
+  return value;
+};
+
+const normalizeSubRoles = (viewSub, subSub) => ({
+  offense: Array.isArray(subSub?.offense)
+    ? subSub.offense
+    : Array.isArray(viewSub?.offense)
+      ? viewSub.offense
+      : [],
+  defense: Array.isArray(subSub?.defense)
+    ? subSub.defense
+    : Array.isArray(viewSub?.defense)
+      ? viewSub.defense
+      : [],
+});
 
 /**
  * Enrich player data with computed/convenience fields
@@ -157,19 +200,62 @@ export function enrichPlayerData(playerData) {
     latestSeasonMeta = seasonData?.meta || {};
   }
 
-  // Evaluation data: use currentEvaluationView if available
-  let evaluationData = {};
-  if (playerData.currentEvaluationView) {
-    // Use denormalized evaluation view from main document
-    evaluationData = playerData.currentEvaluationView;
-  } else if (
-    playerData.evaluations &&
-    Object.keys(playerData.evaluations).length > 0
-  ) {
-    // Fallback to evaluations subcollection
-    const [evaluation] = Object.values(playerData.evaluations);
-    evaluationData = evaluation || {};
-  }
+  // Evaluation data: merge currentEvaluationView with evaluations/current (preferred)
+  const evaluationView = playerData.currentEvaluationView || {};
+  const evaluationDoc = pickEvaluationDoc(playerData.evaluations);
+
+  const roles = {
+    ...(evaluationView.roles || {}),
+    ...(evaluationDoc?.roles || {}),
+  };
+
+  const traits = {
+    ...(evaluationView.traits || {}),
+    ...(evaluationDoc?.traits || {}),
+  };
+
+  const subRoles = normalizeSubRoles(
+    evaluationView.subRoles,
+    evaluationDoc?.subRoles
+  );
+
+  const shootingProfileRaw = hasOwn(evaluationDoc, 'shootingProfile')
+    ? evaluationDoc.shootingProfile
+    : evaluationView.shootingProfile;
+  const shootingProfile = normalizeShootingProfile(shootingProfileRaw);
+
+  const twoWay = hasOwn(evaluationDoc, 'twoWay')
+    ? evaluationDoc.twoWay
+    : evaluationView.twoWay;
+
+  const badges = hasOwn(evaluationDoc, 'badges')
+    ? Array.isArray(evaluationDoc.badges)
+      ? evaluationDoc.badges
+      : []
+    : Array.isArray(evaluationView.badges)
+      ? evaluationView.badges
+      : [];
+
+  const overallGrade = hasOwn(evaluationDoc, 'overallGrade')
+    ? evaluationDoc.overallGrade
+    : evaluationView.overallGrade;
+
+  const blurbs = hasOwn(evaluationDoc, 'blurbs')
+    ? normalizeBlurbs(evaluationDoc.blurbs)
+    : normalizeBlurbs(evaluationView.blurbs);
+
+  const evaluationData = {
+    ...evaluationView,
+    ...(evaluationDoc || {}),
+    roles,
+    traits,
+    subRoles,
+    shootingProfile,
+    twoWay,
+    badges,
+    overallGrade,
+    blurbs,
+  };
 
   // Calculate age from DOB if age is not available
   const age = playerData.bio?.age || calculateAgeFromDOB(playerData.bio?.dob) || 0;
@@ -186,13 +272,14 @@ export function enrichPlayerData(playerData) {
     headshotUrl: getHeadshotPath(playerData.bio?.playerId || playerData.id),
     offenseRole: evaluationData.roles?.offense1 || '—',
     defenseRole: evaluationData.roles?.defense1 || '—',
-    shootingProfile: evaluationData.shootingProfile || '—',
-    subRoles: {
-      offense: evaluationData.subRoles?.offense || [],
-      defense: evaluationData.subRoles?.defense || [],
-    },
+    shootingProfile,
+    twoWay: Number.isFinite(evaluationData.twoWay)
+      ? evaluationData.twoWay
+      : null,
+    blurbs,
+    subRoles,
     traits: evaluationData.traits || {},
-    badges: evaluationData.badges || [],
+    badges,
     overallGrade: evaluationData.overallGrade ?? null,
     salaryByYear: salaryMap,
     latestSeasonId,

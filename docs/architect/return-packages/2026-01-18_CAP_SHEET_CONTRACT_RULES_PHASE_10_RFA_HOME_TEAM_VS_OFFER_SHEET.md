@@ -10,12 +10,12 @@
 
 Replaced the blunt "block all RFA signings" behavior with pipeline-authoritative differentiation:
 
-| Scenario | Behavior |
-|----------|----------|
-| **Offer Sheet Attempt** (non-home team signing RFA) | Hard-blocked with `rfa_offer_sheet_not_supported` |
-| **Home Team RFA Action** (team matches) | Allowed through normal validation (QO still enforced) |
-| **Unverifiable Team Identity** | Hard-blocked with `rfa_team_identity_unverifiable` |
-| **Suspicious QO** (> 3x last salary) | Warning only: `rfa_qualifying_offer_suspicious` |
+| Scenario                                            | Behavior                                              |
+| --------------------------------------------------- | ----------------------------------------------------- |
+| **Offer Sheet Attempt** (non-home team signing RFA) | Hard-blocked with `rfa_offer_sheet_not_supported`     |
+| **Home Team RFA Action** (team matches)             | Allowed through normal validation (QO still enforced) |
+| **Unverifiable Team Identity**                      | Hard-blocked with `rfa_team_identity_unverifiable`    |
+| **Suspicious QO** (> 3x last salary)                | Warning only: `rfa_qualifying_offer_suspicious`       |
 
 ---
 
@@ -57,21 +57,21 @@ if (playerFreeAgency?.type === 'RFA') {
 
 ### Hard Block Rules
 
-| Rule ID | Trigger | Payload |
-|---------|---------|---------|
-| `rfa_offer_sheet_not_supported` | `player.freeAgency.type === 'RFA'` AND normalized player team ≠ signing team | `normalizedPlayerTeam`, `normalizedSigningTeam`, `freeAgency.year`, `qualifyingOffer` |
-| `rfa_team_identity_unverifiable` | RFA signing where player OR team refs cannot be normalized | `rawSigningTeamRef`, `rawPlayerTeamRef`, `freeAgency` |
+| Rule ID                          | Trigger                                                                      | Payload                                                                               |
+| -------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `rfa_offer_sheet_not_supported`  | `player.freeAgency.type === 'RFA'` AND normalized player team ≠ signing team | `normalizedPlayerTeam`, `normalizedSigningTeam`, `freeAgency.year`, `qualifyingOffer` |
+| `rfa_team_identity_unverifiable` | RFA signing where player OR team refs cannot be normalized                   | `rawSigningTeamRef`, `rawPlayerTeamRef`, `freeAgency`                                 |
 
 ### Warning Rules
 
-| Rule ID | Trigger | Payload |
-|---------|---------|---------|
+| Rule ID                           | Trigger                                         | Payload                                      |
+| --------------------------------- | ----------------------------------------------- | -------------------------------------------- |
 | `rfa_qualifying_offer_suspicious` | RFA with `qualifyingOffer > lastYearSalary * 3` | `qualifyingOffer`, `lastYearSalary`, `ratio` |
 
 ### Removed Rules
 
-| Rule ID | Reason |
-|---------|--------|
+| Rule ID                     | Reason                                 |
+| --------------------------- | -------------------------------------- |
 | `rfa_signing_not_supported` | Replaced by differentiated rules above |
 
 ---
@@ -82,13 +82,13 @@ if (playerFreeAgency?.type === 'RFA') {
 IF player.freeAgency.type === 'RFA':
   normalizedSigningTeam = normalizeTeamRef(team)
   normalizedPlayerTeam = normalizePlayerTeamRef(player)
-  
+
   IF normalizedSigningTeam === null OR normalizedPlayerTeam === null:
     → HARD BLOCK: rfa_team_identity_unverifiable
-    
+
   ELSE IF normalizedPlayerTeam !== normalizedSigningTeam:
     → HARD BLOCK: rfa_offer_sheet_not_supported
-    
+
   ELSE:
     → ALLOWED: Continue through normal validation
     → QO checks, re-signing eligibility still enforced
@@ -98,12 +98,12 @@ IF player.freeAgency.type === 'RFA':
 
 ## 5. Files Changed
 
-| File | Change |
-|------|--------|
-| `src/features/architect/utils/capLegalityValidation.js` | Replaced RFA block (lines 1623-1665); updated `HARD_BLOCK_RULES` and `SOFT_WARNING_RULES` |
-| `src/features/architect/utils/contractNormalization.js` | Added QO suspicious warning to `validateFreeAgencyState()` |
-| `tests/architect/capLegalityValidation.test.js` | Updated old Phase 8 tests; added 15 new Phase 10 tests |
-| `docs/architect/CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md` | Updated rule IDs and changelog |
+| File                                                          | Change                                                                                    |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `src/features/architect/utils/capLegalityValidation.js`       | Replaced RFA block (lines 1623-1665); updated `HARD_BLOCK_RULES` and `SOFT_WARNING_RULES` |
+| `src/features/architect/utils/contractNormalization.js`       | Added QO suspicious warning to `validateFreeAgencyState()`                                |
+| `tests/architect/capLegalityValidation.test.js`               | Updated old Phase 8 tests; added 15 new Phase 10 tests                                    |
+| `docs/architect/CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md` | Updated rule IDs and changelog                                                            |
 
 ---
 
@@ -172,6 +172,12 @@ Soft Warning Rules:
 ### Changelog Entry
 
 > **Contract Rules Phase 10:** RFA Workflow Guardrails (Home-Team vs Offer Sheet). Replaced blunt `rfa_signing_not_supported` block with differentiated logic: (1) `rfa_offer_sheet_not_supported` hard-blocks non-home team RFA signings (offer sheet matching required). (2) `rfa_team_identity_unverifiable` hard-blocks when team identity cannot be normalized. (3) Home-team RFA signings allowed through normal validation (QO still enforced). Added `rfa_qualifying_offer_suspicious` warning when QO > 3x last salary. Uses Phase 9 team normalizers for identity comparison. 15 new tests added.
+
+---
+
+### Phase 10.1 — World Validation
+
+- World validation passed under emulators using anonymous auth + world ownership gating.
 
 ---
 

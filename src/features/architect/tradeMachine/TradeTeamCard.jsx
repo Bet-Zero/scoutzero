@@ -10,6 +10,7 @@ import CapImpactTiles from './CapImpactTiles';
 import { SelectTeamCard } from './SelectTeamCard';
 import { OutgoingPlayersList } from './OutgoingPlayersList';
 import { OutgoingPicksList } from './OutgoingPicksList';
+import { EntitlementPicksList } from './EntitlementPicksList';
 import TeamSelectDropdown from '@/shared/components/TeamSelectDropdown';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import TradeExceptionManager from './TradeExceptionManager';
@@ -33,26 +34,26 @@ import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/compu
  */
 function formatSkipReasonLabel(skipReason) {
   if (!skipReason || typeof skipReason !== 'string') return null;
-  
+
   // If already looks human-readable (contains spaces, no underscores), return as-is
   if (skipReason.includes(' ') && !skipReason.includes('_')) {
     return skipReason;
   }
-  
+
   const ACRONYMS = ['TPE', 'BYC', 'MLE', 'BAE'];
   const words = skipReason.split('_');
-  
+
   const processed = words.map((word, index) => {
     const upper = word.toUpperCase();
     if (ACRONYMS.includes(upper)) return upper;
-    
+
     // Title-case first word, lowercase others
     if (index === 0) {
       return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
     }
     return word.toLowerCase();
   });
-  
+
   return processed.join(' ');
 }
 
@@ -571,28 +572,32 @@ const TradeTeamCard = ({
                   <span className="text-blue-400 animate-pulse">
                     {hasValidatorResult ? 'Updating…' : 'Calculating…'}
                   </span>
+                ) : allowableIncomingNoTPE != null ? (
+                  formatSalary(allowableIncomingNoTPE)
                 ) : (
-                  allowableIncomingNoTPE != null
-                    ? formatSalary(allowableIncomingNoTPE)
-                    : (
-                      /* P3-3: Add tooltip explaining why salary matching is not applicable */
-                      <span
-                        title={salaryMatchingSkipReason ? `Not applicable: ${formatSkipReasonLabel(salaryMatchingSkipReason)}` : undefined}
-                      >
-                        —
-                      </span>
-                    )
+                  /* P3-3: Add tooltip explaining why salary matching is not applicable */
+                  <span
+                    title={
+                      salaryMatchingSkipReason
+                        ? `Not applicable: ${formatSkipReasonLabel(salaryMatchingSkipReason)}`
+                        : undefined
+                    }
+                  >
+                    —
+                  </span>
                 )}
               </span>
               {/* P3-3: Show (N/A) tag when salary matching not applicable and skip reason exists */}
-              {!isValidating && allowableIncomingNoTPE == null && salaryMatchingSkipReason && (
-                <span
-                  className="ml-1 text-white/40 text-[10px]"
-                  title={`Not applicable: ${formatSkipReasonLabel(salaryMatchingSkipReason)}`}
-                >
-                  (N/A)
-                </span>
-              )}
+              {!isValidating &&
+                allowableIncomingNoTPE == null &&
+                salaryMatchingSkipReason && (
+                  <span
+                    className="ml-1 text-white/40 text-[10px]"
+                    title={`Not applicable: ${formatSkipReasonLabel(salaryMatchingSkipReason)}`}
+                  >
+                    (N/A)
+                  </span>
+                )}
               {/* Phase 1: Visible indicator when using local estimate (Rule 2) */}
               {/* P0-3: Hide estimate badge during validation - show loading instead */}
               {!isValidating && isEstimate && (
@@ -607,7 +612,8 @@ const TradeTeamCard = ({
                   The formatSkipReasonLabel helper converts internal codes to readable labels. */}
               {/* Show rule label only when applicable (no skipReason) and rule is meaningful */}
               {/* P0-3: Hide rule label during validation */}
-              {!isValidating && !salaryMatchingSkipReason &&
+              {!isValidating &&
+                !salaryMatchingSkipReason &&
                 salaryMatchingRuleLabel &&
                 salaryMatchingRuleLabel !== 'unknown' && (
                   <span
@@ -709,16 +715,24 @@ const TradeTeamCard = ({
         />
       )}
 
-      {activeTab === 'picks' && (
-        <OutgoingPicksList
-          team={team}
-          picks={picks}
-          incomingPicks={incomingPicks}
-          otherTeams={otherTeams}
-          onTogglePick={onTogglePick}
-          onEditPick={onEditPick}
-        />
-      )}
+      {activeTab === 'picks' &&
+        // Phase 11.0: Conditionally render entitlements or legacy picks
+        (team.entitlements?.length > 0 ? (
+          <EntitlementPicksList
+            entitlements={team.entitlements}
+            teamId={team.id}
+            showPooled={false}
+          />
+        ) : (
+          <OutgoingPicksList
+            team={team}
+            picks={picks}
+            incomingPicks={incomingPicks}
+            otherTeams={otherTeams}
+            onTogglePick={onTogglePick}
+            onEditPick={onEditPick}
+          />
+        ))}
 
       {activeTab === 'exceptions' && team.tradeExceptions?.length > 0 && (
         <TradeExceptionManager
@@ -772,17 +786,19 @@ const TradeTeamCard = ({
                       >
                         <option value="">Select TPE...</option>
                         {(teamTradeExceptions || [])
-                          .filter(tpe => 
-                            !tpe.isUsed && 
-                            (!tpe.expirationDate || new Date(tpe.expirationDate) > new Date())
+                          .filter(
+                            (tpe) =>
+                              !tpe.isUsed &&
+                              (!tpe.expirationDate ||
+                                new Date(tpe.expirationDate) > new Date())
                           )
                           .map((tpe) => {
                             const amount = formatMillions(tpe.amount, 1);
                             const playerSalary = getSalaryForYear([p], yearKey);
                             const fits = tpe.amount >= playerSalary;
                             return (
-                              <option 
-                                key={tpe.id} 
+                              <option
+                                key={tpe.id}
                                 value={tpe.id}
                                 disabled={!fits}
                               >

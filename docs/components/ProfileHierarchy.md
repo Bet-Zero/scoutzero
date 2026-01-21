@@ -19,6 +19,7 @@ PlayerDetails/
   index.jsx
 PlayerNavigation.jsx
 PlayerSearchBar.jsx
+SaveStatusIndicator.jsx
 TeamPlayerDropdowns.jsx
 TeamPlayerSelector.jsx
 hooks/
@@ -28,5 +29,5 @@ utils/
 ```
 
 ---
-*Generated on: 2025-12-26T08:03:41.969Z*
+*Generated on: 2026-01-21T12:13:00.786Z*
 *Auto-updated by: npm run docs*

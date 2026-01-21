@@ -1,3 +1,18 @@
+/**
+ * FILE: src/features/profile/utils/profileHelpers.js
+ * PURPOSE: Profile utilities for player lists, modal labels, and blurb access.
+ * OWNERSHIP: Feature: profile/scouting
+ *
+ * HISTORY:
+ *  - 2026-01-21: Updated by plan `plans/_archive/scouting-player-profile-phase-1-data-contract/plan.md`, chunk_n/a
+ *
+ * LINKS:
+ *  - Plan: plans/_archive/scouting-player-profile-phase-1-data-contract/plan.md
+ *  - Latest Chunk: n/a (no chunks used)
+ */
+
+import { normalizeBlurbs } from '@/shared/utils/blurbs';
+
 export function getPlayersForTeam(playersData, team) {
   if (!team) return [];
   return Object.keys(playersData)
@@ -25,13 +40,17 @@ export function getModalTitle(key) {
 }
 
 export function getBlurbValue(blurbs, key) {
+  const normalized = normalizeBlurbs(blurbs);
   if (!key) return '';
-  if (key.startsWith('trait_')) return blurbs.traits?.[key.slice(6)] || '';
-  if (key.startsWith('role_')) return blurbs.roles?.[key.slice(5)] || '';
-  if (key.startsWith('subrole_')) return blurbs.subroles?.[key.slice(8)] || '';
-  if (key === 'shooting_profile') return blurbs.shootingProfile || '';
-  if (key === 'two_way_meter') return blurbs.twoWayMeter || '';
-  if (key === 'overall') return blurbs.overall || '';
+  if (key.startsWith('trait_'))
+    return normalized.traits?.[key.slice(6)] || '';
+  if (key.startsWith('role_'))
+    return normalized.roles?.[key.slice(5)] || '';
+  if (key.startsWith('subrole_'))
+    return normalized.subroles?.[key.slice(8)] || '';
+  if (key === 'shooting_profile') return normalized.shootingProfile || '';
+  if (key === 'two_way_meter') return normalized.twoWayMeter || '';
+  if (key === 'overall') return normalized.overall || '';
   return '';
 }
 

@@ -9,6 +9,8 @@
 - - 2026-01-17: Added Phase 4 signing terms/raises wiring details (plan `plans/_archive/cap-sheet-contract-rules-phase-4-signing-terms-2026-01-17/plan.md`, chunk_n/a)
 - - 2026-01-18: Phase 7.3 option invariants + canonical multiplier owner (plan `plans/cap-sheet-contract-rules-phase-7-3/plan.md`, chunk_n/a)
 - - 2026-01-22: Phase 26 S&T Audit - fixed build errors, audited workflow, extended tests 2→20
+- - 2026-01-21: Phase 27 Manual Exception Management - added setExceptions mutation, validateExceptions, ManageExceptionsModal
+- - 2026-01-21: Phase 29 LeagueView SSOT Fix - replaced inline salary computation with `computeTeamCapTotals()`, added 8 regression tests
 -
 - LINKS:
 - - Plan: plans/cap-sheet-contract-rules-phase-7-3/plan.md
@@ -111,29 +113,30 @@ This hook provides session-only experimentation without Firestore persistence:
 
 ### 3.1 Production Mutations (Pipeline)
 
-| Mutation              | UI Surface                      | Handler                   | Data Written                                                                                      | Uses Pipeline? |
-| --------------------- | ------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------- | -------------- |
-| Sign Free Agent       | EditContractModal → GMDashboard | `handleSignFreeAgent`     | `teams/{code}.players`, `teams/{code}.roster`, `teams/{code}.capHolds`, `teams/{code}.exceptions` | ✅ Yes         |
-| Waive Player          | EditContractModal → GMDashboard | `handleWaiveContract`     | `teams/{code}.players`, `teams/{code}.deadCap`, `teams/{code}.roster`                             | ✅ Yes         |
-| Waive & Stretch       | EditContractModal → GMDashboard | `handleWaiveContract`     | Same as waive + stretched `deadCap.amountByYear`                                                  | ✅ Yes         |
-| Buyout                | EditContractModal → GMDashboard | `handleWaiveContract`     | Same as waive with reduced `deadCap.amount`                                                       | ✅ Yes         |
-| Extend Contract       | EditContractModal → GMDashboard | `handleExtendContract`    | `players/{id}.contract.salariesByYear`, `players/{id}.futureContract`                             | ✅ Yes         |
-| Option Decision       | EditContractModal → GMDashboard | `handleOptionDecision`    | `players/{id}.contract.salariesByYear[n].optionUsed`, `teams/{code}.capHolds`                     | ✅ Yes         |
-| Renounce Rights       | EditContractModal → GMDashboard | `handleRenounceRights`    | `teams/{code}.capHolds` (removal), `players/{id}.contract.birdRights`                             | ✅ Yes         |
-| Store Offer Sheet     | EditContractModal → GMDashboard | `handleStoreOfferSheet`   | `teams/{offering}.offerSheets`, `teams/{home}.incomingOfferSheets`                                | ✅ Yes         |
-| Match Offer Sheet     | OfferSheetList                  | `handleMatchOfferSheet`   | `offerSheets[].status`, `incomingOfferSheets[].status`                                            | ✅ Yes         |
-| Decline Offer Sheet   | OfferSheetList                  | `handleDeclineOfferSheet` | `offerSheets[].status`, `incomingOfferSheets[].status`                                            | ✅ Yes         |
-| Execute Trade         | TradeMachine → TradeEditor      | Via `applyWorldMutation`  | Multiple team player arrays, roster, draft picks, exceptions                                      | ✅ Yes         |
-| Sign-and-Trade        | EditContractModal → GMDashboard | `handleSignAndTrade`      | Source: rights lost; Dest: player gained (signed)                                                 | ✅ Yes         |
-| Set Dead Cap (Manual) | ManageDeadMoneyModal → CapSheet | `handleSetDeadCap`        | `teams/{code}.deadCap` (full replacement)                                                         | ✅ Yes         |
+| Mutation                | UI Surface                       | Handler                   | Data Written                                                                                      | Uses Pipeline? |
+| ----------------------- | -------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------- | -------------- |
+| Sign Free Agent         | EditContractModal → GMDashboard  | `handleSignFreeAgent`     | `teams/{code}.players`, `teams/{code}.roster`, `teams/{code}.capHolds`, `teams/{code}.exceptions` | ✅ Yes         |
+| Waive Player            | EditContractModal → GMDashboard  | `handleWaiveContract`     | `teams/{code}.players`, `teams/{code}.deadCap`, `teams/{code}.roster`                             | ✅ Yes         |
+| Waive & Stretch         | EditContractModal → GMDashboard  | `handleWaiveContract`     | Same as waive + stretched `deadCap.amountByYear`                                                  | ✅ Yes         |
+| Buyout                  | EditContractModal → GMDashboard  | `handleWaiveContract`     | Same as waive with reduced `deadCap.amount`                                                       | ✅ Yes         |
+| Extend Contract         | EditContractModal → GMDashboard  | `handleExtendContract`    | `players/{id}.contract.salariesByYear`, `players/{id}.futureContract`                             | ✅ Yes         |
+| Option Decision         | EditContractModal → GMDashboard  | `handleOptionDecision`    | `players/{id}.contract.salariesByYear[n].optionUsed`, `teams/{code}.capHolds`                     | ✅ Yes         |
+| Renounce Rights         | EditContractModal → GMDashboard  | `handleRenounceRights`    | `teams/{code}.capHolds` (removal), `players/{id}.contract.birdRights`                             | ✅ Yes         |
+| Store Offer Sheet       | EditContractModal → GMDashboard  | `handleStoreOfferSheet`   | `teams/{offering}.offerSheets`, `teams/{home}.incomingOfferSheets`                                | ✅ Yes         |
+| Match Offer Sheet       | OfferSheetList                   | `handleMatchOfferSheet`   | `offerSheets[].status`, `incomingOfferSheets[].status`                                            | ✅ Yes         |
+| Decline Offer Sheet     | OfferSheetList                   | `handleDeclineOfferSheet` | `offerSheets[].status`, `incomingOfferSheets[].status`                                            | ✅ Yes         |
+| Execute Trade           | TradeMachine → TradeEditor       | Via `applyWorldMutation`  | Multiple team player arrays, roster, draft picks, exceptions                                      | ✅ Yes         |
+| Sign-and-Trade          | EditContractModal → GMDashboard  | `handleSignAndTrade`      | Source: rights lost; Dest: player gained (signed)                                                 | ✅ Yes         |
+| Set Dead Cap (Manual)   | ManageDeadMoneyModal → CapSheet  | `handleSetDeadCap`        | `teams/{code}.deadCap` (full replacement)                                                         | ✅ Yes         |
+| Set Exceptions (Manual) | ManageExceptionsModal → CapSheet | `handleSetExceptions`     | `teams/{code}.exceptions` (full replacement)                                                      | ✅ Yes         |
 
 ### 3.2 Missing / Incomplete Mutations
 
-| Mutation                         | Status             | Gap Description                           |
-| -------------------------------- | ------------------ | ----------------------------------------- |
-| Exception Create/Expire (Manual) | Partial            | Exception tracking is display-only        |
-| TPE Usage Tracking               | Partial            | TPEs tracked but no formal usage pipeline |
-| Roster Spot Charges              | ❌ Not Implemented | Incomplete roster charges not computed    |
+| Mutation                         | Status                    | Gap Description                           |
+| -------------------------------- | ------------------------- | ----------------------------------------- |
+| Exception Create/Expire (Manual) | ✅ Implemented (Phase 27) | Manual exception management now available |
+| TPE Usage Tracking               | Partial                   | TPEs tracked but no formal usage pipeline |
+| Roster Spot Charges              | ❌ Not Implemented        | Incomplete roster charges not computed    |
 
 ---
 
@@ -148,11 +151,7 @@ This hook provides session-only experimentation without Firestore persistence:
   players: ArchitectPlayer[],      // Overlay player data
   roster: string[],                // Player IDs on roster
   capHolds: CapHold[],             // Active cap holds
-  exceptions: {                    // Exception usage
-    mle?: { amount, usedAmount, remainingAmount, type },
-    bae?: { amount, usedAmount, remainingAmount },
-    tpmle?: { amount, usedAmount, remainingAmount }
-  },
+  exceptions: TeamExceptions,      // Exception usage (Phase 27 schema)
   deadCap: DeadCapEntry[],         // Dead money (NEW schema)
   waivedContracts: LegacyWaive[],  // Dead money (LEGACY schema)
   stretchHistory: LegacyStretch[], // Dead money (LEGACY schema)
@@ -160,7 +159,39 @@ This hook provides session-only experimentation without Firestore persistence:
 }
 ```
 
-### 4.2 DeadCap Schema (Canonical)
+### 4.2 Exceptions Schema (Phase 27)
+
+**Location:** `teams/{code}.exceptions`
+
+```typescript
+type TeamExceptions = {
+  mle?: ExceptionUsage; // Mid-Level Exception
+  tpmle?: ExceptionUsage; // Taxpayer Mid-Level Exception
+  bae?: ExceptionUsage; // Bi-Annual Exception
+  room?: ExceptionUsage; // Room Exception
+  // Note: TPE is NOT managed in Phase 27; explicit future work
+};
+
+type ExceptionUsage = {
+  enabled: boolean; // if false, treat as "unused/unavailable"
+  totalAmount: number; // total exception size for the season (USD)
+  usedAmount: number; // used so far (USD)
+  seasonKey: string; // e.g. "2025-26"
+  notes?: string; // optional user text
+};
+```
+
+**Schema Rules (P0 Hard Blocks):**
+
+- `team.exceptions` must be an object if present
+- For each supported exception key (mle, tpmle, bae, room):
+  - `enabled` is boolean
+  - `totalAmount` and `usedAmount` are finite numbers ≥ 0
+  - `usedAmount <= totalAmount`
+  - `seasonKey` is non-empty string
+- Unknown keys: hard-block (`exceptions_unknown_key`) to be audit-grade
+
+### 4.3 DeadCap Schema (Canonical)
 
 **Location:** `teams/{code}.deadCap`
 
@@ -254,6 +285,8 @@ interface CapHold {
 | **Stretch Timing Suspicious**                 | `capLegalityValidation.js:validateWaive`                | Pre-persist | Warning        | `asOfDate`, Season Start Date (stretch after start)                                |
 | **Stretch Timing Unknown**                    | `capLegalityValidation.js:validateWaive`                | Pre-persist | Warning        | `asOfDate`, Season Code (missing start date)                                       |
 | **Dead Cap Schema Invalid**                   | `mutationPipeline.js:validateMutation`                  | Pre-persist | **Hard Block** | `deadCap` array structure, amounts, season keys                                    |
+| **Exceptions Schema Invalid**                 | `mutationPipeline.js:validateMutation`                  | Pre-persist | **Hard Block** | `exceptions` object structure, amounts, seasonKey, enabled boolean                 |
+| **Exceptions Unknown Key**                    | `mutationPipeline.js:validateMutation`                  | Pre-persist | **Hard Block** | Unknown exception keys (only mle, tpmle, bae, room allowed)                        |
 
 **Note:** Signing guardrails (max years, raises, first-year max) now use Salary Engine signing terms when available. Phase 2/2.5 exception tables remain the fallback when engine terms are unavailable.
 
@@ -323,6 +356,9 @@ interface CapHold {
 - `rfa_offer_sheet_matched_offering_team_cannot_finalize` - Phase 17: Offering team cannot finalize a MATCHED offer sheet
 - `rfa_offer_sheet_declined_home_team_cannot_finalize` - Phase 18.1: Home team cannot finalize a DECLINED offer sheet
 - `cap_hold_signing_violation` - Phase 19: Cap-space signing exceeds salary cap when cap holds are included
+- `dead_cap_schema_invalid` - Phase 24: Dead cap entry has invalid schema (missing season, invalid amount, etc.)
+- `exceptions_schema_invalid` - Phase 27: Exception entry has invalid schema (non-object, negative amounts, usedAmount > totalAmount, etc.)
+- `exceptions_unknown_key` - Phase 27: Unknown exception key provided (audit-grade: hard-block unknown keys)
 
 **Soft Warning Rules (Overridable in dev mode via `VITE_ENABLE_CBA_OVERRIDE=true`):**
 

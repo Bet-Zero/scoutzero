@@ -35,6 +35,11 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /architect_baseEntitlements/{entitlementId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // Optional: only needed if your app reads free agents from these
     match /architect_baseFreeAgents/{docId} {
       allow read: if true;
@@ -51,8 +56,10 @@ service cloud.firestore {
     // ─────────────────────────────────────────────────────────────────────────
     match /architect_worlds/{worldId} {
 
-      // Read world doc only if you're the owner
-      allow read: if signedIn() && resource.data.createdBy == request.auth.uid;
+      // Read world doc only if it exists and you're the owner
+      allow read: if signedIn() 
+        && resource != null 
+        && resource.data.createdBy == request.auth.uid;
 
       // Create world doc:
       // - must be signed in
@@ -86,6 +93,11 @@ service cloud.firestore {
           allow delete: if false;
         }
       }
+
+      match /entitlements/{entitlementId} {
+        allow read, create, update: if isWorldOwner(worldId);
+        allow delete: if false;
+      }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -106,11 +118,11 @@ service cloud.firestore {
     // ─────────────────────────────────────────────────────────────────────────
     match /players_v2/{playerId} {
       allow read: if true;
-      allow write: if false;
+      allow write: if true;
 
       match /{document=**} {
         allow read: if true;
-        allow write: if false;
+        allow write: if true;
       }
     }
   }

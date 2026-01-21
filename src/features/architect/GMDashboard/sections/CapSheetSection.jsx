@@ -6,6 +6,7 @@ const CapSheetSection = ({
   currentYear,
   onSelectPlayer,
   onSetDeadCap,
+  onSetExceptions,
   playersMap,
 }) => {
   if (!teamCapSheet?.players) {
@@ -19,6 +20,7 @@ const CapSheetSection = ({
         currentYear={currentYear}
         onSelectPlayer={onSelectPlayer}
         onSetDeadCap={onSetDeadCap}
+        onSetExceptions={onSetExceptions}
         playersMap={playersMap}
       />
       <ExceptionTracker teamCapSheet={teamCapSheet} currentYear={currentYear} />

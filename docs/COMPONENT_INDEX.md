@@ -44,6 +44,7 @@ Quick reference for all components in the ScoutZero project.
 - capSheet/ExceptionHistoryTracker/ExceptionHistoryTracker.jsx
 - capSheet/ExceptionTracker/ExceptionTracker.jsx
 - capSheet/modals/ManageDeadMoneyModal.jsx
+- capSheet/modals/ManageExceptionsModal.jsx
 - contract/ContractEditor/ContractEditor.jsx
 - contract/ContractEditorModal/ContractEditorModal.jsx
 - freeAgency/FreeAgentPool/FreeAgentCard.jsx
@@ -64,6 +65,8 @@ Quick reference for all components in the ScoutZero project.
 - shared/RosterVisual/RosterVisual.jsx
 - shared/ValidationWarnings/ValidationWarnings.jsx
 - tradeMachine/CapImpactTiles.jsx
+- tradeMachine/EntitlementPickRow.jsx
+- tradeMachine/EntitlementPicksList.jsx
 - tradeMachine/FaExceptionTracker.jsx
 - tradeMachine/OutgoingPicksList.jsx
 - tradeMachine/OutgoingPlayersList.jsx
@@ -102,6 +105,7 @@ Quick reference for all components in the ScoutZero project.
 - utils/contractSalaryUtils.js
 - utils/contractUtils.js
 - utils/draftPickUtils.js
+- utils/entitlements/formatEntitlement.js
 - utils/extensionRules.js
 - utils/faExceptionUtils.js
 - utils/firebaseTeamPlanHelpers.js
@@ -254,6 +258,7 @@ Quick reference for all components in the ScoutZero project.
 - PlayerDetails/index.jsx
 - PlayerNavigation.jsx
 - PlayerSearchBar.jsx
+- SaveStatusIndicator.jsx
 - TeamPlayerDropdowns.jsx
 - TeamPlayerSelector.jsx
 - hooks/useAutoSavePlayer.js
@@ -331,4 +336,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2026-01-21T08:46:06.719Z*
+*Generated on: 2026-01-21T12:13:00.824Z*

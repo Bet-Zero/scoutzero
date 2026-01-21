@@ -60,6 +60,7 @@ capSheet/
   index.ts
   modals/
     ManageDeadMoneyModal.jsx
+    ManageExceptionsModal.jsx
 constants/
   playerNameCorrections.ts
 contract/
@@ -119,6 +120,8 @@ shared/
   index.ts
 tradeMachine/
   CapImpactTiles.jsx
+  EntitlementPickRow.jsx
+  EntitlementPicksList.jsx
   FaExceptionTracker.jsx
   OutgoingPicksList.jsx
   OutgoingPlayersList.jsx
@@ -173,6 +176,7 @@ utils/
   draftPickUtils.js
   entitlements/
     entitlementResolver.ts
+    formatEntitlement.js
   extensionRules.js
   faExceptionUtils.js
   firebaseTeamPlanHelpers.js
@@ -290,5 +294,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-01-21T09:35:25.684Z*
+*Generated on: 2026-01-21T12:13:00.778Z*
 *Auto-updated by: npm run docs*

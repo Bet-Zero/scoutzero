@@ -1,3 +1,16 @@
+/**
+ * FILE: src/schemas/players_v2.ts
+ * PURPOSE: Zod schemas for the players_v2 Firestore collection and subcollections.
+ * OWNERSHIP: Data: players_v2 schema
+ *
+ * HISTORY:
+ *  - 2026-01-21: Updated by plan `plans/_archive/scouting-player-profile-phase-1-data-contract/plan.md`, chunk_n/a
+ *
+ * LINKS:
+ *  - Plan: plans/_archive/scouting-player-profile-phase-1-data-contract/plan.md
+ *  - Latest Chunk: n/a (no chunks used)
+ */
+
 import { z } from 'zod';
 import {
   FreeAgentTypeZ,
@@ -146,9 +159,27 @@ export const CurrentEvaluationViewZ = z
       })
       .optional(),
     shootingProfile: z.string().optional(),
+    twoWay: z.number().optional(),
     badges: z.array(z.string()).optional(),
     traits: z.record(z.string(), z.number()).optional(),
-    overallGrade: z.number().optional()
+    overallGrade: z.number().optional(),
+    blurbs: z
+      .union([
+        z
+          .object({
+            traits: z.record(z.string(), z.string()).optional(),
+            roles: z.record(z.string(), z.string()).optional(),
+            subroles: z.record(z.string(), z.string()).optional(),
+            subRoles: z.record(z.string(), z.string()).optional(),
+            shootingProfile: z.string().optional(),
+            twoWayMeter: z.string().optional(),
+            overall: z.string().optional()
+          })
+          .partial()
+          .passthrough(),
+        z.record(z.string(), z.any())
+      ])
+      .optional()
   })
   .passthrough()
   .optional();
@@ -227,7 +258,23 @@ export const EvaluationDocZ = z.object({
     .optional(),
   badges: z.array(z.string()).optional(),
   overallGrade: z.number().optional(),
-  blurbs: z.record(z.string(), z.any()).optional(),
+  blurbs: z
+    .union([
+      z
+        .object({
+          traits: z.record(z.string(), z.string()).optional(),
+          roles: z.record(z.string(), z.string()).optional(),
+          subroles: z.record(z.string(), z.string()).optional(),
+          subRoles: z.record(z.string(), z.string()).optional(),
+          shootingProfile: z.string().optional(),
+          twoWayMeter: z.string().optional(),
+          overall: z.string().optional()
+        })
+        .partial()
+        .passthrough(),
+      z.record(z.string(), z.any())
+    ])
+    .optional(),
   meta: z
     .object({
       methodVersion: z.string().optional(),
@@ -266,5 +313,4 @@ export interface PlayerV2 extends PlayerMainDoc {
   seasons?: Record<string, SeasonDoc>;
   evaluations?: Record<string, EvaluationDoc>;
 }
-
 

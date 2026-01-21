@@ -55,6 +55,7 @@ import {
   validateOptionDecision,
   validateRenounceRights,
   validateDeadCap,
+  validateExceptions,
   isOverrideEnabled,
 } from '@/features/architect/utils/capLegalityValidation';
 import {
@@ -176,7 +177,7 @@ function guardAgainstUndefined(obj, label) {
 // ==============================================================================
 
 /**
- * @typedef {'executeTrade' | 'signFreeAgent' | 'waivePlayer' | 'extendPlayer' | 'optionDecision' | 'renounceRights' | 'storeOfferSheet' | 'matchOfferSheet' | 'declineOfferSheet' | 'finalizeMatchedOfferSheet' | 'finalizeDeclinedOfferSheet' | 'signAndTrade' | 'setDeadCap'} MutationType
+ * @typedef {'executeTrade' | 'signFreeAgent' | 'waivePlayer' | 'extendPlayer' | 'optionDecision' | 'renounceRights' | 'storeOfferSheet' | 'matchOfferSheet' | 'declineOfferSheet' | 'finalizeMatchedOfferSheet' | 'finalizeDeclinedOfferSheet' | 'signAndTrade' | 'setDeadCap' | 'setExceptions'} MutationType
  */
 
 /**
@@ -685,6 +686,13 @@ async function loadStateForMutation(worldId, mutationType, payload) {
       return { team, teamCode };
     }
 
+    case 'setExceptions': {
+      const { teamCode } = payload;
+      if (!teamCode) throw new Error('Missing teamCode');
+      const team = await getTeam(worldId, teamCode);
+      return { team, teamCode };
+    }
+
     default:
       throw new Error(`Unknown mutation type: ${mutationType}`);
   }
@@ -802,6 +810,14 @@ export function computeWorldMutation({
 
     case 'setDeadCap':
       return computeSetDeadCapResult({
+        payload,
+        currentState,
+        seasonId,
+        timestamp,
+      });
+
+    case 'setExceptions':
+      return computeSetExceptionsResult({
         payload,
         currentState,
         seasonId,
@@ -1523,6 +1539,59 @@ function computeRenounceResult({ payload, currentState, seasonId, timestamp }) {
   };
 }
 
+/**
+ * Compute set exceptions result (Phase 27)
+ *
+ * Replaces the team.exceptions object with the payload exceptions (full replacement).
+ * This is the simplest and most audit-grade approach.
+ */
+function computeSetExceptionsResult({
+  payload,
+  currentState,
+  seasonId,
+  timestamp,
+}) {
+  const { teamCode } = payload;
+  const { team } = currentState;
+
+  // Validate payload.exceptions is an object or null/undefined (to clear)
+  if (payload.exceptions !== null && payload.exceptions !== undefined) {
+    if (
+      typeof payload.exceptions !== 'object' ||
+      Array.isArray(payload.exceptions)
+    ) {
+      return {
+        success: false,
+        error: 'Invalid exceptions payload: must be an object or null',
+      };
+    }
+  }
+
+  // Full replacement: update exceptions field on team
+  const updatedTeam = {
+    ...team,
+    exceptions: payload.exceptions || {},
+  };
+
+  // Update source metadata
+  updatedTeam.source = {
+    ...updatedTeam.source,
+    type: 'world-snapshot',
+    lastModifiedAt: new Date(timestamp).toISOString(),
+  };
+
+  return {
+    success: true,
+    teamUpdates: [{ teamCode, team: updatedTeam }],
+    playerUpdates: [],
+    metadata: {
+      actionType: 'setExceptions',
+      teamCode,
+      timestamp,
+    },
+  };
+}
+
 // ==============================================================================
 // PHASE 3: VALIDATE - Ensure mutation is legal
 // ==============================================================================
@@ -1587,6 +1656,16 @@ function validateMutation({
         error: result.violations[0]?.message || null,
         violations: result.violations,
         warnings: pipelineWarnings,
+      };
+    }
+
+    case 'setExceptions': {
+      const result = validateExceptions(payload.exceptions);
+      return {
+        valid: result.violations.length === 0,
+        error: result.violations[0]?.message || null,
+        violations: result.violations,
+        warnings: [...(result.warnings || []), ...pipelineWarnings],
       };
     }
 

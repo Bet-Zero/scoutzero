@@ -39,7 +39,7 @@ import {
   buildRuleContextForPlayerMove,
   getSalaryProfile,
 } from '@/features/architect/utils/salaryEngine';
-import { 
+import {
   validateFreeAgencyState,
   normalizeTeamRef,
   normalizePlayerTeamRef,
@@ -58,7 +58,7 @@ import {
   getRookieScaleAmount,
   ROOKIE_SCALE_MIN_PCT,
   ROOKIE_SCALE_MAX_PCT,
-  ROOKIE_SCALE_TOLERANCE
+  ROOKIE_SCALE_TOLERANCE,
 } from '@/features/architect/data/rookieScale.ts';
 import { normalizeSeasonKey } from '@/features/architect/data/capYearData.ts';
 // ==============================================================================
@@ -72,32 +72,32 @@ import { normalizeSeasonKey } from '@/features/architect/data/capYearData.ts';
  * These represent illegal states that cannot exist in the NBA.
  */
 export const HARD_BLOCK_RULES = [
-  'roster_size',           // >15 players on standard roster
-  'hard_cap',              // Over hard cap ceiling
-  'two_way_limit',         // >3 two-way contracts
-  'option_timing',         // Acting on options outside allowed window
-  'no_contract',           // Extending a player with no contract
-  'unknown_type',          // Unknown mutation type
-  'exception_blocked',     // Exception usage blocked due to apron/hard cap status
+  'roster_size', // >15 players on standard roster
+  'hard_cap', // Over hard cap ceiling
+  'two_way_limit', // >3 two-way contracts
+  'option_timing', // Acting on options outside allowed window
+  'no_contract', // Extending a player with no contract
+  'unknown_type', // Unknown mutation type
+  'exception_blocked', // Exception usage blocked due to apron/hard cap status
   'unverified_cap_inputs', // Hard block in STRICT mode for projected data
-  'min_salary_violation',  // First-year salary below CBA minimum for player's YOS
+  'min_salary_violation', // First-year salary below CBA minimum for player's YOS
   'contract_years_invalid', // Contract length outside allowed min/max for signing mechanism
   'signing_terms_invalid', // Salary Engine max years exceeded for signing mechanism
   'signing_raise_invalid', // Salary Engine raise percentage exceeded for signing
   'first_year_max_invalid', // First-year salary exceeds mechanism max OR MINIMUM contract above min salary
   'second_apron_minimum_only', // Teams above second apron can only sign to minimum salary
   // Phase 3: Extension validation rules
-  'extension_ineligible',  // Two-way contracts cannot be extended, or other eligibility block
+  'extension_ineligible', // Two-way contracts cannot be extended, or other eligibility block
   'extension_years_invalid', // Extension length outside allowed min/max
   'extension_raise_invalid', // Year-over-year raises exceed 8%
   'extension_first_year_max_invalid', // First-year extension salary exceeds 120% baseline (engine terms override)
   'signing_first_year_engine_max_invalid', // First-year signing salary exceeds Salary Engine max (Bird rights/cap space)
   // Phase 5: Contract row schema validation rules
   'contract_row_schema_invalid', // Salary row has negative salary/capHit or missing season
-  'contract_guarantee_invalid',  // Guarantee fields are contradictory (e.g., guaranteedAmount > salary)
-  'contract_option_invalid',     // Option fields are invalid (e.g., invalid option enum, optionUsed mismatch)
+  'contract_guarantee_invalid', // Guarantee fields are contradictory (e.g., guaranteedAmount > salary)
+  'contract_option_invalid', // Option fields are invalid (e.g., invalid option enum, optionUsed mismatch)
   // Phase 7: Free agency and cap hold transition rules
-  'free_agency_state_invalid',   // freeAgency missing/invalid shape (string at persist time, bad year, etc.)
+  'free_agency_state_invalid', // freeAgency missing/invalid shape (string at persist time, bad year, etc.)
   'cap_hold_transition_invalid', // Cap hold creation/removal contradicts the decision (e.g., accept + cap hold)
   // Phase 7.3: Option state invariants
   'option_accept_player_not_rostered', // Accepted option but player is missing from roster
@@ -106,12 +106,12 @@ export const HARD_BLOCK_RULES = [
   'option_decline_contract_row_still_present_for_declined_season', // Declined option but contract row still present
   'option_decline_free_agency_year_mismatch', // Declined option freeAgency.year mismatch
   // Phase 8/10: RFA/QO and re-signing rules
-  'rfa_state_invalid',            // RFA freeAgency object has invalid year (not plausible integer)
+  'rfa_state_invalid', // RFA freeAgency object has invalid year (not plausible integer)
   'rfa_missing_qualifying_offer', // RFA type but qualifyingOffer is not a finite number > 0
   'rfa_offer_sheet_not_supported', // Phase 10: Signing RFA player from non-home team without offer sheet flag
   'rfa_team_identity_unverifiable', // Phase 10: RFA signing where team identity cannot be verified
-  'resigning_ineligible',         // Re-signing player without proper team eligibility (no rights)
-  'rookie_scale_invalid',         // Phase 11: Rookie scale contract outside 80-120% band
+  'resigning_ineligible', // Re-signing player without proper team eligibility (no rights)
+  'rookie_scale_invalid', // Phase 11: Rookie scale contract outside 80-120% band
   // Phase 12: RFA Offer Sheet rules
   'rfa_offer_sheet_resolution_required', // Phase 12: Offer sheet in PENDING_MATCH state when finalizing
   'rfa_offer_sheet_invalid_terms', // Phase 12: Offer sheet years/raises outside bounds
@@ -127,18 +127,21 @@ export const HARD_BLOCK_RULES = [
   'cap_hold_signing_violation', // Cap-space signing exceeds cap with holds included
   // Phase 24: Manual Dead Money Management
   'dead_cap_schema_invalid', // Dead cap entry has invalid schema (missing season, invalid amount, etc.)
+  // Phase 27: Manual Exception Management
+  'exceptions_schema_invalid', // Exception entry has invalid schema (non-object, negative amounts, etc.)
+  'exceptions_unknown_key', // Unknown exception key (audit-grade: hard-block unknown keys)
 ];
 
 /**
  * Canonical contract year limits by signing mechanism.
- * 
+ *
  * Based on CBA rules:
  * - MINIMUM contracts: 1-2 years
  * - Full MLE (Non-Taxpayer MLE): 1-4 years
  * - Taxpayer MLE: 1-2 years (not 3 - that was incorrect in UI)
  * - Room MLE: 1-2 years
  * - BAE (Bi-Annual Exception): 1-2 years
- * 
+ *
  * Reference: useCapValidation.js exceptionGuardrails (UI validation)
  * Note: This is the PIPELINE validation - authoritative for world persistence.
  */
@@ -152,13 +155,13 @@ export const SIGNING_YEARS_LIMITS = {
 
 /**
  * Extension year limits (baseline, Phase 3).
- * 
+ *
  * Conservative baseline limits used when Salary Engine cannot determine
  * specific extension type (rookie/veteran/designated).
- * 
+ *
  * - Min: 1 year (can't have 0-year extension)
  * - Max: 4 years (conservative; designated vet allows 5 but is rare)
- * 
+ *
  * When Salary Engine extensionTerms are available, those take precedence.
  */
 export const EXTENSION_YEARS_LIMITS = {
@@ -168,30 +171,30 @@ export const EXTENSION_YEARS_LIMITS = {
 
 /**
  * Extension first-year max baseline: 120% of last-year salary (Phase 3.25).
- * 
+ *
  * Conservative baseline used when Salary Engine terms are not available.
- * The first-year extension salary cannot exceed 120% of the player's 
+ * The first-year extension salary cannot exceed 120% of the player's
  * last-year salary on current contract when using baseline rules.
- * 
- * When Salary Engine extensionTerms.maxFirstYearSalary is available, 
+ *
+ * When Salary Engine extensionTerms.maxFirstYearSalary is available,
  * those terms override this baseline (e.g., 140% for veteran extensions,
  * 25-35% of cap for rookie extensions).
  */
-export const EXTENSION_FIRST_YEAR_MAX_PERCENT = 1.20;
+export const EXTENSION_FIRST_YEAR_MAX_PERCENT = 1.2;
 
 /**
  * Extension max raise percentage: 8% year-over-year (Phase 3).
- * 
+ *
  * Standard Bird rights raise percentage. Extensions cannot have raises
  * exceeding 8% between consecutive years.
- * 
+ *
  * When Salary Engine extensionTerms.raisePercentage is available, that takes precedence.
  */
 export const EXTENSION_MAX_RAISE_PERCENT = 0.08;
 
 /**
  * Phase 12: RFA Offer Sheet term sanity bounds.
- * 
+ *
  * Per CBA, offer sheets must be 1-4 years with raises not exceeding 8%.
  * These are baseline checks to ensure offer sheet terms are plausible.
  */
@@ -203,20 +206,20 @@ export const OFFER_SHEET_MAX_RAISE_PCT = 0.08; // 8%
  * Soft warning rules - these can be overridden in dev mode.
  */
 export const SOFT_WARNING_RULES = [
-  'roster_minimum',   // Below 14 players (temporary state is allowed)
-  'dead_cap',         // Dead cap created (informational)
-  'cap_space_gain',   // Info about cap space freed
-  'mle_taxpayer',     // MLE triggers hard cap warning
-  'first_apron',      // Over first apron warning
-  'second_apron',     // Over second apron warning
+  'roster_minimum', // Below 14 players (temporary state is allowed)
+  'dead_cap', // Dead cap created (informational)
+  'cap_space_gain', // Info about cap space freed
+  'mle_taxpayer', // MLE triggers hard cap warning
+  'first_apron', // Over first apron warning
+  'second_apron', // Over second apron warning
   'extension_hard_cap', // Extension may cause future hard cap
-  'option_hard_cap',  // Option may cause hard cap
+  'option_hard_cap', // Option may cause hard cap
   'cap_hold_creation', // Cap hold created
-  'no_rights',        // No rights to renounce (info)
-  'cap_data',         // Cap data not available
+  'no_rights', // No rights to renounce (info)
+  'cap_data', // Cap data not available
   'resigning_eligibility_unverifiable', // Phase 9: Cannot verify re-signing eligibility (missing fields)
-  'rfa_qualifying_offer_suspicious',    // Phase 10: QO > 3x last salary (may be data issue)
-  'rfa_offer_sheet_stub_active',        // Phase 12: Offer sheet processing in stub mode (UI informational)
+  'rfa_qualifying_offer_suspicious', // Phase 10: QO > 3x last salary (may be data issue)
+  'rfa_offer_sheet_stub_active', // Phase 12: Offer sheet processing in stub mode (UI informational)
   'rfa_offer_sheet_store_only_flag_in_use', // Phase 14: Store-only mode is active for offer sheet (info)
   'world_time_defaulted', // Phase 20: World time was defaulted (not from payload or world metadata)
   'offer_sheet_window_expired', // Phase 21: 48-hour match window expired
@@ -241,7 +244,7 @@ function getSeasonStartDate(seasonCode) {
 
 /**
  * Get override policy for a validation result.
- * 
+ *
  * @param {Array} violations - Array of violation objects
  * @param {Array} warnings - Array of warning objects
  * @returns {{canOverride: boolean, hasHardBlock: boolean, hardBlockReasons: string[], softWarningReasons: string[]}}
@@ -249,12 +252,15 @@ function getSeasonStartDate(seasonCode) {
 export function getOverridePolicy(violations = [], warnings = []) {
   const hardBlockReasons = [];
   const softWarningReasons = [];
-  
+
   for (const v of violations) {
     // Defensive check for malformed objects
     if (!v || typeof v.rule !== 'string' || !v.message) {
       console.warn('Malformed violation object encountered:', v);
-      const fallbackMsg = v && v.message ? `Malformed violation: ${v.message}` : 'Malformed violation detected';
+      const fallbackMsg =
+        v && v.message
+          ? `Malformed violation: ${v.message}`
+          : 'Malformed violation detected';
       softWarningReasons.push(fallbackMsg);
       continue;
     }
@@ -265,17 +271,20 @@ export function getOverridePolicy(violations = [], warnings = []) {
       softWarningReasons.push(v.message);
     }
   }
-  
+
   for (const w of warnings) {
     // Defensive check for malformed objects
     if (!w || typeof w.rule !== 'string' || !w.message) {
       console.warn('Malformed warning object encountered:', w);
-      const fallbackMsg = w && w.message ? `Malformed warning: ${w.message}` : 'Malformed warning detected';
+      const fallbackMsg =
+        w && w.message
+          ? `Malformed warning: ${w.message}`
+          : 'Malformed warning detected';
       softWarningReasons.push(fallbackMsg);
       continue;
     }
 
-    // Feature: If a specialized logic marked something as a warning, 
+    // Feature: If a specialized logic marked something as a warning,
     // but the rule code is actually a HARD_BLOCK_RULE, we treat it as a hard block.
     if (HARD_BLOCK_RULES.includes(w.rule)) {
       hardBlockReasons.push(w.message);
@@ -283,7 +292,7 @@ export function getOverridePolicy(violations = [], warnings = []) {
       softWarningReasons.push(w.message);
     }
   }
-  
+
   return {
     canOverride: hardBlockReasons.length === 0,
     hasHardBlock: hardBlockReasons.length > 0,
@@ -309,16 +318,17 @@ export function isOverrideEnabled() {
 
 /**
  * Evaluate data confidence for the requested operation.
- * 
+ *
  * @param {Object} rules - Cap rules profile
  * @param {string} operationName - Name of operation for error messages
  * @returns {{blocked: boolean, violation: Object|null, warning: Object|null}}
  */
 export function evaluateDataConfidence(rules, operationName = 'Operation') {
-  if (!rules || !rules._meta) return { blocked: false, violation: null, warning: null };
+  if (!rules || !rules._meta)
+    return { blocked: false, violation: null, warning: null };
 
   const summary = rules._meta.sourcesSummary;
-  
+
   // If data is real or reported, we are good
   if (summary === 'real' || summary === 'reported') {
     return { blocked: false, violation: null, warning: null };
@@ -340,9 +350,17 @@ export function evaluateDataConfidence(rules, operationName = 'Operation') {
   // If projected, check mode
   // Default to WARN if simple projected data
   let mode = 'WARN';
-  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_CAP_DATA_CONFIDENCE === 'STRICT') {
+  if (
+    typeof import.meta !== 'undefined' &&
+    import.meta.env &&
+    import.meta.env.VITE_CAP_DATA_CONFIDENCE === 'STRICT'
+  ) {
     mode = 'STRICT';
-  } else if (typeof process !== 'undefined' && process.env && process.env.VITE_CAP_DATA_CONFIDENCE === 'STRICT') {
+  } else if (
+    typeof process !== 'undefined' &&
+    process.env &&
+    process.env.VITE_CAP_DATA_CONFIDENCE === 'STRICT'
+  ) {
     mode = 'STRICT';
   }
 
@@ -370,7 +388,6 @@ export function evaluateDataConfidence(rules, operationName = 'Operation') {
   };
 }
 
-
 /**
  * Count roster size (excluding two-way contracts)
  * @param {Array} players - Team players array
@@ -378,7 +395,7 @@ export function evaluateDataConfidence(rules, operationName = 'Operation') {
  */
 function countStandardRoster(players) {
   if (!players || !Array.isArray(players)) return 0;
-  
+
   return players.filter((p) => {
     const contractType = p.contract?.contractType?.toLowerCase() || '';
     return contractType !== 'two-way';
@@ -392,7 +409,7 @@ function countStandardRoster(players) {
  */
 function countTwoWayContracts(players) {
   if (!players || !Array.isArray(players)) return 0;
-  
+
   return players.filter((p) => {
     const contractType = p.contract?.contractType?.toLowerCase() || '';
     return contractType === 'two-way';
@@ -407,39 +424,37 @@ function countTwoWayContracts(players) {
 function getHardCapStatus(team, capRules) {
   const totals = team.totals || {};
   const { firstApron, secondApron } = capRules.cap;
-  
+
   // Check explicit hard cap flags
   if (totals.isHardCapped) {
     const level = totals.hardCapLevel || 'firstApron';
-    const ceiling = level === 'secondApron' 
-      ? secondApron 
-      : firstApron;
+    const ceiling = level === 'secondApron' ? secondApron : firstApron;
     return { isHardCapped: true, hardCapLevel: level, ceiling };
   }
-  
+
   // Check if team is at/above second apron (auto hard-capped)
   const currentCapHit = totals.capHit || totals.totalSalary || 0;
   if (currentCapHit >= secondApron) {
-    return { 
-      isHardCapped: true, 
-      hardCapLevel: 'secondApron', 
-      ceiling: secondApron 
+    return {
+      isHardCapped: true,
+      hardCapLevel: 'secondApron',
+      ceiling: secondApron,
     };
   }
-  
+
   return { isHardCapped: false, hardCapLevel: null, ceiling: null };
 }
 
 /**
  * Resolve the signing mechanism from contract and signedUsing fields.
- * 
+ *
  * Priority:
  * 1. contract.exceptionType if present
  * 2. signedUsing parameter
  * 3. UNKNOWN if neither available
- * 
+ *
  * Normalizes to: FULL_MLE, TPMLE, ROOM_MLE, BAE, MINIMUM, or UNKNOWN
- * 
+ *
  * @param {Object} contract - Contract object
  * @param {string|null} signedUsing - Exception used for signing
  * @returns {string} Normalized mechanism type
@@ -447,45 +462,65 @@ function getHardCapStatus(team, capRules) {
 export function resolveSigningMechanism(contract, signedUsing) {
   // Priority 1: contract.exceptionType
   const source = contract?.exceptionType || signedUsing;
-  
+
   if (!source) {
     return 'UNKNOWN';
   }
-  
-  const normalized = String(source).toLowerCase().replace(/[^a-z]/g, '');
-  
+
+  const normalized = String(source)
+    .toLowerCase()
+    .replace(/[^a-z]/g, '');
+
   // Full MLE / Non-Taxpayer MLE
-  if (normalized === 'fullmle' || normalized === 'ntmle' || normalized === 'mle' || normalized === 'full') {
+  if (
+    normalized === 'fullmle' ||
+    normalized === 'ntmle' ||
+    normalized === 'mle' ||
+    normalized === 'full'
+  ) {
     return 'FULL_MLE';
   }
-  
+
   // Taxpayer MLE
-  if (normalized === 'tpmle' || normalized === 'taxpayermle' || normalized.includes('taxpayer')) {
+  if (
+    normalized === 'tpmle' ||
+    normalized === 'taxpayermle' ||
+    normalized.includes('taxpayer')
+  ) {
     return 'TPMLE';
   }
-  
+
   // Room MLE
-  if (normalized === 'roommle' || normalized === 'rmle' || normalized.includes('room')) {
+  if (
+    normalized === 'roommle' ||
+    normalized === 'rmle' ||
+    normalized.includes('room')
+  ) {
     return 'ROOM_MLE';
   }
-  
+
   // BAE (Bi-Annual Exception)
   if (normalized === 'bae' || normalized === 'biannual') {
     return 'BAE';
   }
-  
+
   // Minimum
-  if (normalized === 'minimum' || normalized === 'min' || normalized === 'vet minimum' || normalized === 'vetmin') {
+  if (
+    normalized === 'minimum' ||
+    normalized === 'min' ||
+    normalized === 'vet minimum' ||
+    normalized === 'vetmin'
+  ) {
     return 'MINIMUM';
   }
-  
+
   // Unknown mechanism
   return 'UNKNOWN';
 }
 
 /**
  * Get contract year limits for a signing mechanism.
- * 
+ *
  * @param {string} mechanism - Normalized mechanism from resolveSigningMechanism()
  * @returns {{minYears: number, maxYears: number}|null} Limits object or null for UNKNOWN
  */
@@ -495,32 +530,35 @@ export function getSigningYearsLimits(mechanism) {
 
 /**
  * Get contract length from contract object.
- * 
+ *
  * Priority:
  * 1. contract.contractLength if present and valid
  * 2. contract.salariesByYear.length
  * 3. 0 if neither available
- * 
+ *
  * @param {Object} contract - Contract object
  * @returns {number} Contract length in years
  */
 function getContractYears(contract) {
   // Priority 1: explicit contractLength
-  if (typeof contract?.contractLength === 'number' && contract.contractLength > 0) {
+  if (
+    typeof contract?.contractLength === 'number' &&
+    contract.contractLength > 0
+  ) {
     return contract.contractLength;
   }
-  
+
   // Priority 2: salariesByYear array length
   if (Array.isArray(contract?.salariesByYear)) {
     return contract.salariesByYear.length;
   }
-  
+
   return 0;
 }
 
 /**
  * Extract first-year salary and capHit from contract.
- * 
+ *
  * @param {Object} contract - Contract object
  * @returns {{salary: number|null, capHit: number|null}} First year amounts
  */
@@ -534,17 +572,17 @@ function getFirstYearAmounts(contract) {
 
 /**
  * Get max first-year salary for a signing mechanism from cap rules.
- * 
+ *
  * Returns the exception amount that caps the first-year salary for the mechanism.
  * Returns null for MINIMUM (handled separately) and UNKNOWN (cannot enforce).
- * 
+ *
  * @param {string} mechanism - Normalized mechanism from resolveSigningMechanism()
  * @param {Object} rules - Cap rules profile from getCapRulesForYear()
  * @returns {number|null} Max first-year salary or null if not applicable
  */
 export function getSigningFirstYearMax(mechanism, rules) {
   if (!rules?.exceptions) return null;
-  
+
   switch (mechanism) {
     case 'FULL_MLE':
       return rules.exceptions.fullMLE;
@@ -571,12 +609,12 @@ const VALID_OPTION_VALUES = ['Team Option', 'Player Option', null];
 
 /**
  * Validate a single salary row for schema correctness.
- * 
+ *
  * Checks:
  * - salary must be a number >= 0
  * - capHit must be a number >= 0 (if present)
  * - season must exist and be a non-empty string
- * 
+ *
  * @param {Object} row - Salary row entry
  * @param {number} index - Index in salariesByYear array (for error messages)
  * @returns {{valid: boolean, violation: Object|null}}
@@ -644,11 +682,11 @@ export function validateSalaryRowSchema(row, index) {
 
 /**
  * Validate guarantee fields for policy compliance.
- * 
+ *
  * Policy:
  * - If guaranteedAmount is present, it must be <= salary
  * - If guaranteed === false, guaranteedAmount must be 0 or undefined
- * 
+ *
  * @param {Object} row - Salary row entry
  * @param {number} index - Index in salariesByYear array
  * @returns {{valid: boolean, violation: Object|null}}
@@ -695,7 +733,12 @@ export function validateGuaranteesPolicy(row, index) {
   }
 
   // Check guaranteed=false does not have positive guaranteedAmount
-  if (guaranteed === false && guaranteedAmount !== undefined && guaranteedAmount !== null && guaranteedAmount > 0) {
+  if (
+    guaranteed === false &&
+    guaranteedAmount !== undefined &&
+    guaranteedAmount !== null &&
+    guaranteedAmount > 0
+  ) {
     return {
       valid: false,
       violation: {
@@ -714,12 +757,12 @@ export function validateGuaranteesPolicy(row, index) {
 
 /**
  * Validate option fields for policy compliance.
- * 
+ *
  * Policy:
  * - option must be null, "Team Option", or "Player Option"
  * - If option is null, optionUsed must be null (or undefined)
  *   - NOTE: We normalize rather than block for optionUsed mismatch (safe cleanup)
- * 
+ *
  * @param {Object} row - Salary row entry
  * @param {number} index - Index in salariesByYear array
  * @returns {{valid: boolean, violation: Object|null, normalize: boolean}}
@@ -753,7 +796,10 @@ export function validateOptionsPolicy(row, index) {
   // If option is null but optionUsed is a boolean, this is a mismatch
   // Per policy, we NORMALIZE this rather than block (safe cleanup)
   // Return normalize flag so caller can decide
-  if ((option === null || option === undefined) && typeof optionUsed === 'boolean') {
+  if (
+    (option === null || option === undefined) &&
+    typeof optionUsed === 'boolean'
+  ) {
     // This is a normalization case, not a hard block
     // The caller should normalize optionUsed to null
     return { valid: true, violation: null, normalize: true };
@@ -764,10 +810,10 @@ export function validateOptionsPolicy(row, index) {
 
 /**
  * Validate all salary rows in a contract.
- * 
+ *
  * Runs schema, guarantee, and option validation on each row.
  * Collects all violations (does not short-circuit on first error).
- * 
+ *
  * @param {Object} contract - Contract object with salariesByYear
  * @returns {{violations: Array, warnings: Array, hasNormalizableOptions: boolean}}
  */
@@ -812,64 +858,231 @@ export function validateContractRows(contract) {
 
 /**
  * Validate dead cap list for manual management (Phase 24).
- * 
+ *
  * Checks:
  * - deadCap must be an array
  * - Each entry must have seasonKey (string)
  * - Each entry must have amount (number > 0)
  * - Each entry must have label/reason (string)
- * 
+ *
  * @param {Array} deadCap - Array of dead cap entries
  * @returns {{violations: Array}}
  */
 export function validateDeadCap(deadCap) {
   const violations = [];
-  
+
   if (!Array.isArray(deadCap)) {
-     violations.push({
-       rule: 'dead_cap_schema_invalid',
-       message: 'deadCap must be an array',
-       severity: 'error'
-     });
-     return { violations };
+    violations.push({
+      rule: 'dead_cap_schema_invalid',
+      message: 'deadCap must be an array',
+      severity: 'error',
+    });
+    return { violations };
   }
-  
+
   deadCap.forEach((entry, index) => {
     if (!entry.playerName && !entry.label) {
-       // Relaxed check: just ensure we have *some* identifier
+      // Relaxed check: just ensure we have *some* identifier
     }
-    
+
     // Check amountByYear
     if (!entry.amountByYear || typeof entry.amountByYear !== 'object') {
-       violations.push({
+      violations.push({
         rule: 'dead_cap_schema_invalid',
         message: `Dead cap entry #${index + 1}: Missing or invalid amountByYear`,
-        severity: 'error'
+        severity: 'error',
       });
     } else {
-        // Validate amounts inside
-        Object.entries(entry.amountByYear).forEach(([year, val]) => {
-            if (typeof val?.amount !== 'number' || val.amount <= 0) {
-                 violations.push({
-                    rule: 'dead_cap_schema_invalid',
-                    message: `Dead cap entry #${index + 1} (${year}): Amount must be positive`,
-                    severity: 'error'
-                 });
-            }
-        });
+      // Validate amounts inside
+      Object.entries(entry.amountByYear).forEach(([year, val]) => {
+        if (typeof val?.amount !== 'number' || val.amount <= 0) {
+          violations.push({
+            rule: 'dead_cap_schema_invalid',
+            message: `Dead cap entry #${index + 1} (${year}): Amount must be positive`,
+            severity: 'error',
+          });
+        }
+      });
     }
-    
+
     // Check stretched requires boolean
     if (entry.stretched !== undefined && typeof entry.stretched !== 'boolean') {
-        violations.push({
-          rule: 'dead_cap_schema_invalid',
-          message: `Dead cap entry #${index + 1}: stretched must be boolean`,
-          severity: 'error'
-        });
+      violations.push({
+        rule: 'dead_cap_schema_invalid',
+        message: `Dead cap entry #${index + 1}: stretched must be boolean`,
+        severity: 'error',
+      });
     }
   });
 
   return { violations };
+}
+
+// ==============================================================================
+// EXCEPTION MANAGEMENT VALIDATION (Phase 27)
+// ==============================================================================
+
+/**
+ * Valid exception keys for manual management.
+ * TPE is explicitly NOT included in Phase 27 scope.
+ */
+const VALID_EXCEPTION_KEYS = ['mle', 'tpmle', 'bae', 'room'];
+
+/**
+ * Validate exceptions object for manual management (Phase 27).
+ *
+ * Schema Rules (P0):
+ * - team.exceptions must be an object if present
+ * - For each supported exception key (mle, tpmle, bae, room):
+ *   - enabled is boolean
+ *   - totalAmount and usedAmount are finite numbers >= 0
+ *   - usedAmount <= totalAmount
+ *   - seasonKey is non-empty string
+ * - Unknown keys: hard-block (exceptions_unknown_key) to be audit-grade
+ *
+ * @param {Object} exceptions - Exceptions object from payload
+ * @returns {{violations: Array, warnings: Array}}
+ */
+export function validateExceptions(exceptions) {
+  const violations = [];
+  const warnings = [];
+
+  // Must be an object if present
+  if (exceptions === null || exceptions === undefined) {
+    // Empty exceptions is valid - means clearing all exceptions
+    return { violations, warnings };
+  }
+
+  if (typeof exceptions !== 'object' || Array.isArray(exceptions)) {
+    violations.push({
+      rule: 'exceptions_schema_invalid',
+      message: 'exceptions must be an object (not array or primitive)',
+      severity: 'error',
+    });
+    return { violations, warnings };
+  }
+
+  // Check for unknown keys (hard-block policy)
+  const providedKeys = Object.keys(exceptions);
+  const unknownKeys = providedKeys.filter(
+    (key) => !VALID_EXCEPTION_KEYS.includes(key)
+  );
+
+  if (unknownKeys.length > 0) {
+    violations.push({
+      rule: 'exceptions_unknown_key',
+      message: `Unknown exception keys: ${unknownKeys.join(', ')}. Allowed keys: ${VALID_EXCEPTION_KEYS.join(', ')}`,
+      severity: 'error',
+    });
+    return { violations, warnings };
+  }
+
+  // Validate each exception entry
+  for (const key of providedKeys) {
+    const entry = exceptions[key];
+    const prefix = `Exception '${key}'`;
+
+    if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) {
+      violations.push({
+        rule: 'exceptions_schema_invalid',
+        message: `${prefix}: must be an object`,
+        severity: 'error',
+      });
+      continue;
+    }
+
+    // Check enabled is boolean
+    if (entry.enabled !== undefined && typeof entry.enabled !== 'boolean') {
+      violations.push({
+        rule: 'exceptions_schema_invalid',
+        message: `${prefix}: enabled must be boolean, got ${typeof entry.enabled}`,
+        severity: 'error',
+      });
+    }
+
+    // Check totalAmount is finite number >= 0
+    if (entry.totalAmount !== undefined) {
+      if (
+        typeof entry.totalAmount !== 'number' ||
+        !Number.isFinite(entry.totalAmount)
+      ) {
+        violations.push({
+          rule: 'exceptions_schema_invalid',
+          message: `${prefix}: totalAmount must be a finite number`,
+          severity: 'error',
+        });
+      } else if (entry.totalAmount < 0) {
+        violations.push({
+          rule: 'exceptions_schema_invalid',
+          message: `${prefix}: totalAmount cannot be negative (got ${entry.totalAmount})`,
+          severity: 'error',
+        });
+      }
+    }
+
+    // Check usedAmount is finite number >= 0
+    if (entry.usedAmount !== undefined) {
+      if (
+        typeof entry.usedAmount !== 'number' ||
+        !Number.isFinite(entry.usedAmount)
+      ) {
+        violations.push({
+          rule: 'exceptions_schema_invalid',
+          message: `${prefix}: usedAmount must be a finite number`,
+          severity: 'error',
+        });
+      } else if (entry.usedAmount < 0) {
+        violations.push({
+          rule: 'exceptions_schema_invalid',
+          message: `${prefix}: usedAmount cannot be negative (got ${entry.usedAmount})`,
+          severity: 'error',
+        });
+      }
+    }
+
+    // Check usedAmount <= totalAmount
+    if (
+      typeof entry.totalAmount === 'number' &&
+      typeof entry.usedAmount === 'number' &&
+      Number.isFinite(entry.totalAmount) &&
+      Number.isFinite(entry.usedAmount) &&
+      entry.usedAmount > entry.totalAmount
+    ) {
+      violations.push({
+        rule: 'exceptions_schema_invalid',
+        message: `${prefix}: usedAmount (${entry.usedAmount}) cannot exceed totalAmount (${entry.totalAmount})`,
+        severity: 'error',
+      });
+    }
+
+    // Check seasonKey is non-empty string
+    if (entry.seasonKey !== undefined) {
+      if (typeof entry.seasonKey !== 'string') {
+        violations.push({
+          rule: 'exceptions_schema_invalid',
+          message: `${prefix}: seasonKey must be a string, got ${typeof entry.seasonKey}`,
+          severity: 'error',
+        });
+      } else if (entry.seasonKey.trim() === '') {
+        violations.push({
+          rule: 'exceptions_schema_invalid',
+          message: `${prefix}: seasonKey cannot be empty`,
+          severity: 'error',
+        });
+      }
+    }
+
+    // Notes is optional string (warn if not string when present)
+    if (entry.notes !== undefined && typeof entry.notes !== 'string') {
+      warnings.push({
+        rule: 'exceptions_notes_type',
+        message: `${prefix}: notes should be a string, got ${typeof entry.notes}`,
+        severity: 'warning',
+      });
+    }
+  }
+
+  return { violations, warnings };
 }
 
 // ==============================================================================
@@ -916,21 +1129,21 @@ const RIGHTS_TYPE_MAP = {
   'Non-Bird Rights': 'NON_BIRD',
   'Cap Space': 'CAP_SPACE',
   'Cap Space / Rights': 'CAP_SPACE',
-  'None': 'NONE',
-  'none': 'NONE',
+  None: 'NONE',
+  none: 'NONE',
 };
 
 /**
  * Normalize signing terms to canonical shape (Phase 6).
- * 
+ *
  * This adapter accepts ANY existing engine terms object and returns the
  * canonical SigningTerms shape with proper separation of mechanism vs rightsType.
- * 
+ *
  * Rules:
  * - If the old object has `mechanism` containing Bird-rights words, move that to `rightsType`
  * - If `rightsType` is already present, use it directly
  * - The resulting `mechanism` is the exception bucket if determinable; otherwise UNKNOWN
- * 
+ *
  * @param {Object} rawTerms - Raw signing terms from engine or legacy systems
  * @param {Object} [options] - Optional configuration
  * @param {string} [options.fallbackMechanism] - Fallback mechanism from signedUsing or contract.exceptionType
@@ -957,13 +1170,16 @@ export function normalizeSigningTerms(rawTerms, options = {}) {
 
   // Check if mechanism contains Bird rights info (legacy conflation)
   const mechanismStr = String(mechanism);
-  const isBirdRightsInMechanism = BIRD_RIGHTS_KEYWORDS.some(kw => 
+  const isBirdRightsInMechanism = BIRD_RIGHTS_KEYWORDS.some((kw) =>
     mechanismStr.toLowerCase().includes(kw.toLowerCase())
   );
 
   if (isBirdRightsInMechanism && !rightsType) {
     // Move Bird rights from mechanism to rightsType
-    rightsType = RIGHTS_TYPE_MAP[mechanism] || RIGHTS_TYPE_MAP[mechanismStr] || 'CAP_SPACE';
+    rightsType =
+      RIGHTS_TYPE_MAP[mechanism] ||
+      RIGHTS_TYPE_MAP[mechanismStr] ||
+      'CAP_SPACE';
     // Try to recover exception bucket from other fields or use fallback
     mechanism = options.fallbackMechanism || 'UNKNOWN';
   }
@@ -989,17 +1205,17 @@ export function normalizeSigningTerms(rawTerms, options = {}) {
 /**
  * Determines if a signing is a "cap space" signing that should be subject to
  * cap hold validation (Phase 19).
- * 
+ *
  * A cap-space signing is one that:
  * - Does NOT use an exception (mechanism is UNKNOWN)
  * - Does NOT have Bird rights (rightsType is CAP_SPACE, NONE, or null)
- * 
+ *
  * These signings require the team to have actual cap room, which means
  * all cap holds must be accounted for.
- * 
+ *
  * Signings using exceptions (MLE, BAE, etc.) or Bird rights are NOT
  * subject to this check as they have different cap treatment.
- * 
+ *
  * @param {string} mechanism - Normalized mechanism from resolveSigningMechanism()
  * @param {string|null} rightsType - Bird rights type from normalizeSigningTerms()
  * @returns {boolean} True if this is a cap-space signing subject to cap hold check
@@ -1009,12 +1225,15 @@ export function isCapSpaceSigning(mechanism, rightsType) {
   if (mechanism && mechanism !== 'UNKNOWN') {
     return false;
   }
-  
+
   // Bird rights signings are NOT cap-space signings
-  if (rightsType && ['FULL_BIRD', 'EARLY_BIRD', 'NON_BIRD'].includes(rightsType)) {
+  if (
+    rightsType &&
+    ['FULL_BIRD', 'EARLY_BIRD', 'NON_BIRD'].includes(rightsType)
+  ) {
     return false;
   }
-  
+
   // This is a cap-space signing (no exception, no Bird rights)
   return true;
 }
@@ -1052,10 +1271,10 @@ function mapExceptionTypeForMechanism(mechanism) {
 
 /**
  * Build base signing terms from Salary Engine profile.
- * 
+ *
  * Phase 6: Now correctly separates mechanism (exception bucket) from
  * rightsType (Bird rights classification).
- * 
+ *
  * @param {Object} profile - Salary profile from engine
  * @param {string} [exceptionMechanism] - Exception bucket if known
  * @returns {SigningTerms} Signing terms with proper separation
@@ -1077,29 +1296,32 @@ function buildBaseSigningTerms(profile, exceptionMechanism = 'UNKNOWN') {
   })();
 
   // Map raw Bird rights type to canonical rightsType
-  const rightsType = birdRightsType 
-    ? (RIGHTS_TYPE_MAP[birdRightsType] || 'CAP_SPACE')
+  const rightsType = birdRightsType
+    ? RIGHTS_TYPE_MAP[birdRightsType] || 'CAP_SPACE'
     : 'CAP_SPACE';
 
   return {
     maxYears: birdAbilities?.maxYears ?? 4,
     minYears: 1,
-    raisePercentage: birdAbilities?.raisePercentage ?? DEFAULT_SIGNING_RAISE_PERCENT,
+    raisePercentage:
+      birdAbilities?.raisePercentage ?? DEFAULT_SIGNING_RAISE_PERCENT,
     maxFirstYearSalary: baseMaxFirstYear ?? null,
     // Phase 6: mechanism = exception bucket, rightsType = Bird rights
     mechanism: exceptionMechanism,
     rightsType,
     source: 'salary_engine',
-    notes: birdRightsType ? `Bird rights: ${birdRightsType}` : 'No Bird rights data',
+    notes: birdRightsType
+      ? `Bird rights: ${birdRightsType}`
+      : 'No Bird rights data',
   };
 }
 
 /**
  * Build exception-based signing terms.
- * 
+ *
  * Phase 6: Returns terms with mechanism as exception bucket (not Bird rights).
  * The rightsType should be merged from base terms.
- * 
+ *
  * @param {string} mechanism - Exception bucket (FULL_MLE, TPMLE, etc.)
  * @param {Object} cap - Cap settings object
  * @returns {Partial<SigningTerms>|null} Exception terms or null if unknown mechanism
@@ -1221,7 +1443,10 @@ export function getSigningTermsForPlayer({
 
     return baseTerms;
   } catch (err) {
-    console.warn('[getSigningTermsForPlayer] Failed to compute signing terms:', err?.message);
+    console.warn(
+      '[getSigningTermsForPlayer] Failed to compute signing terms:',
+      err?.message
+    );
     return {
       mechanism,
       source: 'baseline',
@@ -1240,7 +1465,11 @@ export function getSigningTermsForPlayer({
  * @param {string} params.mechanism - Signing mechanism
  * @returns {Object|null} Violation object or null if valid
  */
-export function validateSigningRaises({ contract, raisePercentage, mechanism }) {
+export function validateSigningRaises({
+  contract,
+  raisePercentage,
+  mechanism,
+}) {
   if (!raisePercentage || !Array.isArray(contract?.salariesByYear)) {
     return null;
   }
@@ -1294,15 +1523,15 @@ export function validateSigningRaises({ contract, raisePercentage, mechanism }) 
 
 /**
  * Determine if a signing action is "finalizing" roster membership.
- * 
+ *
  * Phase 13 introduces the concept of a "finalization gate" for RFA offer sheets.
  * An offer sheet can exist in PENDING_MATCH state for storage/UI display purposes,
  * but cannot be finalized (roster the player) until resolution (MATCHED).
- * 
+ *
  * Finalization is determined by:
  * 1. Default: signFreeAgent mutation type is a finalizing action
  * 2. Opt-out: contract.rfaOfferSheetOnly === true signals non-finalizing intent
- * 
+ *
  * @param {Object} params
  * @param {Object} params.contract - Proposed contract object
  * @returns {boolean} True if this action would finalize (roster the player)
@@ -1319,26 +1548,26 @@ export function isFinalizingSigning({ contract }) {
 
 /**
  * Validate store-only mode invariants for RFA offer sheets (Phase 14).
- * 
+ *
  * When `rfaOfferSheetOnly === true`, the contract must satisfy:
  * - A) rfaOfferSheet === true (must be an explicit offer sheet)
  * - B) rfaOfferSheetStatus must be PENDING_MATCH (or missing → treated as pending)
  * - C) MATCHED status is NOT allowed in store-only mode (MATCHED = finalization path)
- * 
+ *
  * This prevents misuse where store-only mode could bypass finalization checks.
- * 
+ *
  * @param {Object} params
  * @param {Object} params.contract - Contract object with offer sheet flags
  * @returns {{ valid: boolean, violations: Array }}
  */
 export function validateStoreOnlyInvariants({ contract }) {
   const violations = [];
-  
+
   // Only check if store-only mode is active
   if (contract?.rfaOfferSheetOnly !== true) {
     return { valid: true, violations };
   }
-  
+
   // Invariant A: Must have rfaOfferSheet === true
   if (contract.rfaOfferSheet !== true) {
     violations.push({
@@ -1350,11 +1579,11 @@ export function validateStoreOnlyInvariants({ contract }) {
       invariant: 'A',
     });
   }
-  
+
   // Invariant B/C: Status must be PENDING_MATCH (or missing)
   // MATCHED is NOT allowed in store-only mode (that's the finalization path)
   const status = contract.rfaOfferSheetStatus || 'PENDING_MATCH';
-  
+
   if (status === 'MATCHED') {
     violations.push({
       rule: 'rfa_offer_sheet_store_only_invalid',
@@ -1376,24 +1605,24 @@ export function validateStoreOnlyInvariants({ contract }) {
     });
   }
   // Note: DECLINED status is caught separately by rfa_offer_sheet_declined check
-  
+
   return { valid: violations.length === 0, violations };
 }
 
 /**
  * Validate RFA offer sheet terms (Phase 12 stub).
- * 
+ *
  * Validates:
  * - Contract years between 1-4 (CBA offer sheet limit)
  * - Year-over-year raises ≤ 8%
- * 
+ *
  * @param {Object} contract - Proposed offer sheet contract
  * @returns {{ valid: boolean, violations: Array }}
  */
 export function validateOfferSheetTerms(contract) {
   const violations = [];
   const years = getContractYears(contract);
-  
+
   // Years check (1-4 per CBA)
   if (years < OFFER_SHEET_YEARS_MIN || years > OFFER_SHEET_YEARS_MAX) {
     violations.push({
@@ -1405,14 +1634,14 @@ export function validateOfferSheetTerms(contract) {
       actual: years,
     });
   }
-  
+
   // Raises check (reuse signing raises validation with 8% cap)
   const raiseViolation = validateSigningRaises({
     contract,
     raisePercentage: OFFER_SHEET_MAX_RAISE_PCT,
     mechanism: 'OFFER_SHEET', // Non-MINIMUM to enable check
   });
-  
+
   if (raiseViolation) {
     // Convert to offer sheet rule
     violations.push({
@@ -1423,7 +1652,7 @@ export function validateOfferSheetTerms(contract) {
       originalViolation: raiseViolation,
     });
   }
-  
+
   return { valid: violations.length === 0, violations };
 }
 
@@ -1454,18 +1683,22 @@ export function validateSigningTermsAndRaises({
   }
 
   // Phase 6: Use normalized terms
-  const normalizedTerms = normalizeSigningTerms(signingTerms, { fallbackMechanism: mechanism });
+  const normalizedTerms = normalizeSigningTerms(signingTerms, {
+    fallbackMechanism: mechanism,
+  });
 
   const contractYears = getContractYears(contract);
   if (contractYears > 0 && normalizedTerms.maxYears != null) {
     if (contractYears > normalizedTerms.maxYears) {
       // Phase 6: Build descriptive label using both mechanism and rightsType
-      const mechanismLabel = normalizedTerms.mechanism && normalizedTerms.mechanism !== 'UNKNOWN'
-        ? normalizedTerms.mechanism.replace(/_/g, ' ')
-        : null;
-      const rightsLabel = normalizedTerms.rightsType && normalizedTerms.rightsType !== 'NONE'
-        ? normalizedTerms.rightsType.replace(/_/g, ' ')
-        : null;
+      const mechanismLabel =
+        normalizedTerms.mechanism && normalizedTerms.mechanism !== 'UNKNOWN'
+          ? normalizedTerms.mechanism.replace(/_/g, ' ')
+          : null;
+      const rightsLabel =
+        normalizedTerms.rightsType && normalizedTerms.rightsType !== 'NONE'
+          ? normalizedTerms.rightsType.replace(/_/g, ' ')
+          : null;
       const label = mechanismLabel || rightsLabel || 'signing terms';
 
       violations.push({
@@ -1508,11 +1741,11 @@ export function validateSigningTermsAndRaises({
 
 /**
  * Get the last year's salary from a player's current contract.
- * 
+ *
  * Method: Returns the last entry in salariesByYear where guaranteed !== false.
  * This represents the player's final guaranteed salary year which determines
  * extension first-year max calculations.
- * 
+ *
  * @param {Object} contract - Player's current contract object
  * @returns {{salary: number, season: string}|null} Last year salary data or null
  */
@@ -1520,20 +1753,23 @@ export function getContractLastYearSalary(contract) {
   if (!contract?.salariesByYear || !Array.isArray(contract.salariesByYear)) {
     return null;
   }
-  
+
   // Filter to guaranteed years only, then get the last one
-  const guaranteedYears = contract.salariesByYear.filter(y => y.guaranteed !== false);
-  
+  const guaranteedYears = contract.salariesByYear.filter(
+    (y) => y.guaranteed !== false
+  );
+
   if (guaranteedYears.length === 0) {
     // Fallback: use last year regardless of guarantee status
-    const lastYear = contract.salariesByYear[contract.salariesByYear.length - 1];
+    const lastYear =
+      contract.salariesByYear[contract.salariesByYear.length - 1];
     if (!lastYear) return null;
     return {
       salary: lastYear.salary ?? lastYear.capHit ?? 0,
       season: lastYear.season,
     };
   }
-  
+
   const lastGuaranteed = guaranteedYears[guaranteedYears.length - 1];
   return {
     salary: lastGuaranteed.salary ?? lastGuaranteed.capHit ?? 0,
@@ -1543,10 +1779,10 @@ export function getContractLastYearSalary(contract) {
 
 /**
  * Get the first year's salary from an extension.
- * 
+ *
  * Method: Returns the first entry in extension.salariesByYear.
  * For extensions already in futureContract, looks for isExtensionSeason flag.
- * 
+ *
  * @param {Object} extension - Extension object with salariesByYear
  * @returns {{salary: number, capHit: number, season: string}|null} First year data or null
  */
@@ -1554,13 +1790,14 @@ export function getExtensionFirstYearSalary(extension) {
   if (!extension?.salariesByYear || !Array.isArray(extension.salariesByYear)) {
     return null;
   }
-  
+
   // Look for first entry with isExtensionSeason flag, or just first entry
-  const extensionYear = extension.salariesByYear.find(y => y.isExtensionSeason) 
-    || extension.salariesByYear[0];
-  
+  const extensionYear =
+    extension.salariesByYear.find((y) => y.isExtensionSeason) ||
+    extension.salariesByYear[0];
+
   if (!extensionYear) return null;
-  
+
   const salary = extensionYear.salary ?? extensionYear.capHit ?? 0;
   return {
     salary,
@@ -1571,33 +1808,36 @@ export function getExtensionFirstYearSalary(extension) {
 
 /**
  * Get extension length in years.
- * 
+ *
  * Method: Uses extension.contractLength if present, otherwise salariesByYear.length.
- * 
+ *
  * @param {Object} extension - Extension object
  * @returns {number} Extension length in years (0 if cannot determine)
  */
 export function getExtensionYears(extension) {
   // Priority 1: explicit contractLength
-  if (typeof extension?.contractLength === 'number' && extension.contractLength > 0) {
+  if (
+    typeof extension?.contractLength === 'number' &&
+    extension.contractLength > 0
+  ) {
     return extension.contractLength;
   }
-  
+
   // Priority 2: salariesByYear array length
   if (Array.isArray(extension?.salariesByYear)) {
     return extension.salariesByYear.length;
   }
-  
+
   return 0;
 }
 
 /**
  * Get extension terms from Salary Engine for a player (Phase 3.25).
- * 
+ *
  * Calls computePlayerRulesProfile to get extension-type-specific terms
  * (rookie scale, veteran, designated veteran) when player/team/year data
  * is available.
- * 
+ *
  * @param {Object} params
  * @param {Object} params.player - Player object with contract data
  * @param {Object} params.team - Team object (for teamContext)
@@ -1609,17 +1849,21 @@ export function getExtensionTermsForPlayer({ player, team, year }) {
   if (!player) {
     return null;
   }
-  
+
   try {
     // Build leagueContext from year
     const leagueContext = { currentYear: year };
-    
+
     // Build minimal teamContext
     const teamContext = { teamCode: team?.teamCode };
-    
+
     // Compute profile using Salary Engine
-    const profile = computePlayerRulesProfile(player, teamContext, leagueContext);
-    
+    const profile = computePlayerRulesProfile(
+      player,
+      teamContext,
+      leagueContext
+    );
+
     // Return extensionTerms if the player is eligible and terms are available
     if (profile?.extensionTerms) {
       return {
@@ -1627,46 +1871,54 @@ export function getExtensionTermsForPlayer({ player, team, year }) {
         source: 'salary_engine',
       };
     }
-    
+
     return null;
   } catch (err) {
     // Log but don't crash - fallback to baseline rules
-    console.warn('[getExtensionTermsForPlayer] Failed to compute profile:', err?.message);
+    console.warn(
+      '[getExtensionTermsForPlayer] Failed to compute profile:',
+      err?.message
+    );
     return null;
   }
 }
 
 /**
  * Validate extension terms and raises against CBA rules.
- * 
+ *
  * Uses Salary Engine when available (via extensionTerms parameter), otherwise
  * falls back to deterministic baseline rules.
- * 
+ *
  * Checks:
  * 1. Extension years within limits
  * 2. First-year salary within max (140% of last year or Salary Engine max)
  * 3. Year-over-year raises within limits (8% or Salary Engine percentage)
- * 
+ *
  * @param {Object} params
  * @param {Object} params.player - Player object with current contract
  * @param {Object} params.extension - Extension being applied
  * @param {Object|null} params.extensionTerms - Salary Engine terms (optional)
  * @returns {{violations: Array, warnings: Array}}
  */
-export function validateExtensionTermsAndRaises({ player, extension, extensionTerms }) {
+export function validateExtensionTermsAndRaises({
+  player,
+  extension,
+  extensionTerms,
+}) {
   const violations = [];
   const warnings = [];
-  
+
   // Extract data
   const lastYearData = getContractLastYearSalary(player.contract);
   const firstYearData = getExtensionFirstYearSalary(extension);
   const extensionYears = getExtensionYears(extension);
-  
+
   // Determine limits - use Salary Engine if available, otherwise baseline
   const maxYears = extensionTerms?.maxYears ?? EXTENSION_YEARS_LIMITS.max;
   const minYears = EXTENSION_YEARS_LIMITS.min;
-  const maxRaisePct = extensionTerms?.raisePercentage ?? EXTENSION_MAX_RAISE_PERCENT;
-  
+  const maxRaisePct =
+    extensionTerms?.raisePercentage ?? EXTENSION_MAX_RAISE_PERCENT;
+
   // Determine first-year max
   let maxFirstYearSalary = null;
   if (extensionTerms?.maxFirstYearSalary != null) {
@@ -1674,9 +1926,11 @@ export function validateExtensionTermsAndRaises({ player, extension, extensionTe
     maxFirstYearSalary = extensionTerms.maxFirstYearSalary;
   } else if (lastYearData?.salary) {
     // Fallback: 140% of last year salary
-    maxFirstYearSalary = Math.round(lastYearData.salary * EXTENSION_FIRST_YEAR_MAX_PERCENT);
+    maxFirstYearSalary = Math.round(
+      lastYearData.salary * EXTENSION_FIRST_YEAR_MAX_PERCENT
+    );
   }
-  
+
   // 1. Validate extension years
   if (extensionYears > 0) {
     if (extensionYears < minYears) {
@@ -1693,12 +1947,12 @@ export function validateExtensionTermsAndRaises({ player, extension, extensionTe
       });
     }
   }
-  
+
   // 2. Validate first-year max
   if (firstYearData?.salary != null && maxFirstYearSalary != null) {
     if (firstYearData.salary > maxFirstYearSalary) {
-      const lastYearStr = lastYearData?.salary 
-        ? `$${(lastYearData.salary / 1_000_000).toFixed(2)}M` 
+      const lastYearStr = lastYearData?.salary
+        ? `$${(lastYearData.salary / 1_000_000).toFixed(2)}M`
         : 'unknown';
       violations.push({
         rule: 'extension_first_year_max_invalid',
@@ -1707,18 +1961,26 @@ export function validateExtensionTermsAndRaises({ player, extension, extensionTe
       });
     }
   }
-  
+
   // 3. Validate year-over-year raises
-  if (Array.isArray(extension?.salariesByYear) && extension.salariesByYear.length > 1) {
+  if (
+    Array.isArray(extension?.salariesByYear) &&
+    extension.salariesByYear.length > 1
+  ) {
     for (let i = 1; i < extension.salariesByYear.length; i++) {
       const prevSalary = extension.salariesByYear[i - 1]?.salary || 0;
       const currSalary = extension.salariesByYear[i]?.salary || 0;
-      
+
       if (prevSalary > 0 && currSalary > 0) {
-        const maxAllowed = Math.round(prevSalary * (1 + maxRaisePct + Number.EPSILON));
-        
+        const maxAllowed = Math.round(
+          prevSalary * (1 + maxRaisePct + Number.EPSILON)
+        );
+
         if (currSalary > maxAllowed) {
-          const actualRaisePct = ((currSalary - prevSalary) / prevSalary * 100).toFixed(1);
+          const actualRaisePct = (
+            ((currSalary - prevSalary) / prevSalary) *
+            100
+          ).toFixed(1);
           violations.push({
             rule: 'extension_raise_invalid',
             message: `Year ${i + 1} salary ($${(currSalary / 1_000_000).toFixed(2)}M) exceeds allowed ${Math.round(maxRaisePct * 100)}% raise from year ${i} ($${(prevSalary / 1_000_000).toFixed(2)}M). Actual raise: ${actualRaisePct}%`,
@@ -1729,18 +1991,18 @@ export function validateExtensionTermsAndRaises({ player, extension, extensionTe
       }
     }
   }
-  
+
   return { violations, warnings };
 }
 
 /**
  * Validate exception eligibility based on apron status.
- * 
+ *
  * CBA 2023 Exception Rules:
  * - Second Apron teams: Cannot use MLE, BAE, or TPE (only minimum contracts)
  * - First Apron (hard-capped): Cannot use BAE (already triggered if using NTMLE)
  * - Over First Apron but not hard-capped: Can only use Taxpayer MLE, not NTMLE or BAE
- * 
+ *
  * @param {Object} params
  * @param {Object} params.team - Team data
  * @param {string} params.signedUsing - Exception being used (e.g., 'MLE', 'BAE', 'TPE', 'TPMLE')
@@ -1759,22 +2021,31 @@ function validateExceptionEligibility({ team, signedUsing, year }) {
   }
 
   const totals = team.totals || {};
-  const currentCapHit = totals.capHit || totals.totalSalary || totals.totalCapAllocations || 0;
+  const currentCapHit =
+    totals.capHit || totals.totalSalary || totals.totalCapAllocations || 0;
   const normalizedException = signedUsing.toLowerCase().replace(/[^a-z]/g, '');
 
   // Check if team is at or above second apron
   const isAboveSecondApron = currentCapHit >= rules.cap.secondApron;
-  
+
   // Check if team is above first apron (triggers taxpayer MLE only zone if not hard-capped)
   const isAboveFirstApron = currentCapHit >= rules.cap.firstApron;
-  
+
   // Check hard cap status
   const hardCapStatus = getHardCapStatus(team, rules);
 
   // RULE 1: Second Apron teams cannot use any exceptions
   if (isAboveSecondApron) {
-    const blockedExceptions = ['mle', 'ntmle', 'fullmle', 'bae', 'tpe', 'tpmle', 'taxpayermle'];
-    if (blockedExceptions.some(e => normalizedException.includes(e))) {
+    const blockedExceptions = [
+      'mle',
+      'ntmle',
+      'fullmle',
+      'bae',
+      'tpe',
+      'tpmle',
+      'taxpayermle',
+    ];
+    if (blockedExceptions.some((e) => normalizedException.includes(e))) {
       return {
         blocked: true,
         reason: 'Second apron teams cannot use exceptions',
@@ -1789,7 +2060,10 @@ function validateExceptionEligibility({ team, signedUsing, year }) {
 
   // RULE 2: First Apron hard-capped teams cannot use BAE (they already triggered by using NTMLE/S&T)
   // Note: This is informational - if already hard-capped, BAE would be unavailable
-  if (hardCapStatus.isHardCapped && hardCapStatus.hardCapLevel === 'firstApron') {
+  if (
+    hardCapStatus.isHardCapped &&
+    hardCapStatus.hardCapLevel === 'firstApron'
+  ) {
     if (normalizedException === 'bae') {
       return {
         blocked: true,
@@ -1807,15 +2081,17 @@ function validateExceptionEligibility({ team, signedUsing, year }) {
   // (If below second apron, we already passed Rule 1)
   if (isAboveFirstApron && !hardCapStatus.isHardCapped) {
     // Taxpayer MLE is ALLOWED between first and second apron
-    const isTaxpayerMLE = normalizedException.includes('taxpayer') || 
-                           normalizedException === 'tpmle' ||
-                           normalizedException.includes('tpemle');
-    
+    const isTaxpayerMLE =
+      normalizedException.includes('taxpayer') ||
+      normalizedException === 'tpmle' ||
+      normalizedException.includes('tpemle');
+
     // Non-taxpayer MLE (full MLE) is NOT allowed
-    const isNonTaxpayerMLE = (normalizedException.includes('mle') || 
-                              normalizedException.includes('full')) &&
-                              !isTaxpayerMLE;
-    
+    const isNonTaxpayerMLE =
+      (normalizedException.includes('mle') ||
+        normalizedException.includes('full')) &&
+      !isTaxpayerMLE;
+
     if (isNonTaxpayerMLE) {
       return {
         blocked: true,
@@ -1849,7 +2125,7 @@ function validateExceptionEligibility({ team, signedUsing, year }) {
 
 /**
  * Validate a free agent signing
- * 
+ *
  * @param {Object} params
  * @param {Object} params.team - Current team state
  * @param {Object} params.player - Player being signed
@@ -1861,10 +2137,14 @@ function validateExceptionEligibility({ team, signedUsing, year }) {
 export function validateSigning({ team, player, contract, signedUsing, year }) {
   const violations = [];
   const warnings = [];
-  
+
   const rules = getCapRulesForYear(year);
   if (!rules) {
-    warnings.push({ rule: 'cap_data', message: 'Cap data not available for this season', severity: 'warning' });
+    warnings.push({
+      rule: 'cap_data',
+      message: 'Cap data not available for this season',
+      severity: 'warning',
+    });
   }
 
   // 00. CHECK DATA CONFIDENCE (New Policy)
@@ -1872,21 +2152,25 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
   const confidenceCheck = evaluateDataConfidence(rules, 'Signing');
   if (confidenceCheck.blocked && confidenceCheck.violation) {
     violations.push(confidenceCheck.violation);
-    // In strict mode block, we might typically stop here, but we can let other checks run 
+    // In strict mode block, we might typically stop here, but we can let other checks run
     // to show all errors. However, if data is unknown, other checks might crash.
     // For safety, if it's unknown/missing, we should probably stop or rely on safe math defaults.
   }
   if (confidenceCheck.warning) {
     warnings.push(confidenceCheck.warning);
   }
-  
+
   // 0. CHECK EXCEPTION ELIGIBILITY (G0-2: Post-apron exception blocking)
   // This is a HARD BLOCK - if an exception is blocked by apron status, the signing cannot proceed.
-  const exceptionCheck = validateExceptionEligibility({ team, signedUsing, year });
+  const exceptionCheck = validateExceptionEligibility({
+    team,
+    signedUsing,
+    year,
+  });
   if (exceptionCheck.blocked && exceptionCheck.violation) {
     violations.push(exceptionCheck.violation);
   }
-  
+
   // 0.5. PHASE 5: CONTRACT ROW SCHEMA VALIDATION
   // Validates salary rows for schema correctness, guarantees, and options.
   // Two-way contracts are also validated (schema issues can affect any contract type).
@@ -1897,7 +2181,7 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
   if (contractRowsResult.warnings.length > 0) {
     warnings.push(...contractRowsResult.warnings);
   }
-  
+
   // 0.6. PHASE 7: FREE AGENCY STATE VALIDATION
   // Validates freeAgency object (if present) for canonical invariants.
   // Blocks legacy string format at persist time; warns on RFA/UFA inconsistencies.
@@ -1910,7 +2194,7 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
       warnings.push(...faStateResult.warnings);
     }
   }
-  
+
   // 0.7. PHASE 10/12: DIFFERENTIATED RFA GUARDRAILS + OFFER SHEET STUB
   // Home team RFA actions are allowed. Offer sheet attempts (non-home team) require
   // explicit flag and valid resolution state (Phase 12).
@@ -1919,16 +2203,21 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
   if (playerFreeAgency?.type === 'RFA') {
     const normalizedSigningTeam = normalizeTeamRef(team);
     const normalizedPlayerTeam = normalizePlayerTeamRef(player);
-    
+
     // Case 1: Cannot verify team identity - hard block
     if (normalizedSigningTeam === null || normalizedPlayerTeam === null) {
       violations.push({
         rule: 'rfa_team_identity_unverifiable',
-        message: 'Cannot verify RFA home team status. Team/player identity could not be normalized.',
+        message:
+          'Cannot verify RFA home team status. Team/player identity could not be normalized.',
         severity: 'error',
         playerName: player?.name || player?.displayName || player?.player_id,
         rawSigningTeamRef: team?.teamCode || team?.code || 'missing',
-        rawPlayerTeamRef: player?.teamId || player?.team_id || player?.contract?.signingTeam || 'missing',
+        rawPlayerTeamRef:
+          player?.teamId ||
+          player?.team_id ||
+          player?.contract?.signingTeam ||
+          'missing',
         freeAgency: {
           type: 'RFA',
           year: playerFreeAgency?.year,
@@ -1940,15 +2229,17 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
     else if (normalizedPlayerTeam !== normalizedSigningTeam) {
       // Phase 14: Check store-only invariants FIRST (before isOfferSheetAttempt check)
       // This catches misuse where rfaOfferSheetOnly=true but rfaOfferSheet is missing
-      const storeOnlyInvariantResult = validateStoreOnlyInvariants({ contract });
+      const storeOnlyInvariantResult = validateStoreOnlyInvariants({
+        contract,
+      });
       if (!storeOnlyInvariantResult.valid) {
         violations.push(...storeOnlyInvariantResult.violations);
         // Don't proceed with further offer sheet validation - invariants are broken
       }
-      
+
       // Check if this is an explicit offer sheet attempt
       const isOfferSheetAttempt = contract?.rfaOfferSheet === true;
-      
+
       if (!isOfferSheetAttempt) {
         // Only block with rfa_offer_sheet_not_supported if we didn't already block with store-only invalid
         if (storeOnlyInvariantResult.valid) {
@@ -1957,7 +2248,8 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
             rule: 'rfa_offer_sheet_not_supported',
             message: `Signing RFA player from non-home team requires offer sheet flag. Set contract.rfaOfferSheet = true for ${normalizedPlayerTeam} player, signed by ${normalizedSigningTeam}.`,
             severity: 'error',
-            playerName: player?.name || player?.displayName || player?.player_id,
+            playerName:
+              player?.name || player?.displayName || player?.player_id,
             normalizedPlayerTeam,
             normalizedSigningTeam,
             freeAgency: {
@@ -1974,14 +2266,14 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
         if (!offerSheetResult.valid) {
           violations.push(...offerSheetResult.violations);
         }
-        
+
         // Phase 13: Finalization gate for PENDING_MATCH offer sheets
         // Determine status with default to PENDING_MATCH
         const status = contract?.rfaOfferSheetStatus || 'PENDING_MATCH';
-        
+
         // Phase 13: Determine if this is a finalizing action
         const finalizing = isFinalizingSigning({ contract });
-        
+
         // Case A: DECLINED status
         if (status === 'DECLINED') {
           // Phase 16: DECLINED status is allowed if finalizing (offering team signing the player)
@@ -1991,7 +2283,8 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
               rule: 'rfa_offer_sheet_declined',
               message: `Offer sheet has been declined. You must finalize it to sign the player, or leave it as is. Cannot update store-only state.`,
               severity: 'error',
-              playerName: player?.name || player?.displayName || player?.player_id,
+              playerName:
+                player?.name || player?.displayName || player?.player_id,
               normalizedPlayerTeam,
               normalizedSigningTeam,
               currentStatus: status,
@@ -2002,7 +2295,7 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
               },
             });
           }
-           // Else: Finalizing a DECLINED offer sheet is VALID (Proceed to signFreeAgent)
+          // Else: Finalizing a DECLINED offer sheet is VALID (Proceed to signFreeAgent)
         }
         // Case B: PENDING_MATCH status
         else if (status === 'PENDING_MATCH') {
@@ -2012,7 +2305,8 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
               rule: 'rfa_offer_sheet_resolution_required',
               message: `Offer sheet cannot be finalized without resolution. Current status: "${status}". Must be "MATCHED" to complete signing. Set contract.rfaOfferSheetOnly = true to store without finalizing.`,
               severity: 'error',
-              playerName: player?.name || player?.displayName || player?.player_id,
+              playerName:
+                player?.name || player?.displayName || player?.player_id,
               normalizedPlayerTeam,
               normalizedSigningTeam,
               currentStatus: status,
@@ -2032,7 +2326,8 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
               rule: 'rfa_offer_sheet_store_only_flag_in_use',
               message: `Store-only mode active: Offer sheet is being recorded but NOT finalized. Player will NOT be added to roster. Status: "${status}".`,
               severity: 'info',
-              playerName: player?.name || player?.displayName || player?.player_id,
+              playerName:
+                player?.name || player?.displayName || player?.player_id,
               normalizedPlayerTeam,
               normalizedSigningTeam,
               offerSheetStatus: status,
@@ -2042,7 +2337,7 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
         }
         // Case C: MATCHED status - allowed for finalization
         // No block needed, proceed through normal signing validation
-        
+
         // Add stub warning for UI awareness
         warnings.push({
           rule: 'rfa_offer_sheet_stub_active',
@@ -2060,40 +2355,57 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
     // No additional block here - QO and re-signing checks remain enforced.
   }
 
-  
   // 0.8. PHASE 8/9: RE-SIGNING ELIGIBILITY CHECK
   // If this is a re-signing (using Bird rights), verify the player is eligible to be re-signed by this team.
   // Eligibility requires: (1) player was on this team (normalized team match) AND (2) birdRights not None/renounced
   // Phase 9: Uses canonical normalizers to avoid false-blocks from format mismatches (e.g., "NBA:LAL" vs "LAL")
-  const signingTermsForEligibility = getSigningTermsForPlayer({ team, player, contract, year, signedUsing });
-  const normalizedTerms = signingTermsForEligibility 
-    ? normalizeSigningTerms(signingTermsForEligibility, { fallbackMechanism: 'UNKNOWN' })
+  const signingTermsForEligibility = getSigningTermsForPlayer({
+    team,
+    player,
+    contract,
+    year,
+    signedUsing,
+  });
+  const normalizedTerms = signingTermsForEligibility
+    ? normalizeSigningTerms(signingTermsForEligibility, {
+        fallbackMechanism: 'UNKNOWN',
+      })
     : null;
   const rightsType = normalizedTerms?.rightsType;
-  
+
   // Only check eligibility for Bird rights re-signings (FULL_BIRD, EARLY_BIRD, NON_BIRD)
-  if (rightsType && ['FULL_BIRD', 'EARLY_BIRD', 'NON_BIRD'].includes(rightsType)) {
+  if (
+    rightsType &&
+    ['FULL_BIRD', 'EARLY_BIRD', 'NON_BIRD'].includes(rightsType)
+  ) {
     // Phase 9: Use canonical normalizers for team identity
     const normalizedTeamCode = normalizeTeamRef(team);
     const normalizedPlayerTeam = normalizePlayerTeamRef(player);
-    const birdRightsStatus = player?.contract?.birdRights?.status || player?.birdRights?.status;
-    const rightsRenounced = player?.contract?.birdRights?.renounced === true || player?.birdRights?.renounced === true;
-    
+    const birdRightsStatus =
+      player?.contract?.birdRights?.status || player?.birdRights?.status;
+    const rightsRenounced =
+      player?.contract?.birdRights?.renounced === true ||
+      player?.birdRights?.renounced === true;
+
     // Phase 9: Check if we can verify eligibility (both sides must be normalizable)
-    const canVerifyTeamMatch = normalizedTeamCode !== null && normalizedPlayerTeam !== null;
-    
+    const canVerifyTeamMatch =
+      normalizedTeamCode !== null && normalizedPlayerTeam !== null;
+
     // Check 1: Player must belong to this team (normalized comparison)
-    const hasTeamMatch = canVerifyTeamMatch && normalizedPlayerTeam === normalizedTeamCode;
-    
+    const hasTeamMatch =
+      canVerifyTeamMatch && normalizedPlayerTeam === normalizedTeamCode;
+
     // Check 2: Bird rights must not be None, renounced, or explicitly rightsRenounced
-    const hasValidRights = birdRightsStatus && 
+    const hasValidRights =
+      birdRightsStatus &&
       birdRightsStatus.toLowerCase() !== 'none' &&
       birdRightsStatus.toLowerCase() !== 'renounced' &&
       !rightsRenounced;
-    
+
     // Phase 9: If we cannot verify eligibility, add warning instead of hard-blocking
     if (!canVerifyTeamMatch) {
-      const rawPlayerTeamId = player?.teamId || player?.team_id || player?.contract?.signingTeam;
+      const rawPlayerTeamId =
+        player?.teamId || player?.team_id || player?.contract?.signingTeam;
       const rawTeamCode = team?.teamCode || team?.code;
       warnings.push({
         rule: 'resigning_eligibility_unverifiable',
@@ -2106,7 +2418,7 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
       });
     } else if (!hasTeamMatch || !hasValidRights) {
       // If we CAN verify and it fails, hard-block
-      const reason = !hasTeamMatch 
+      const reason = !hasTeamMatch
         ? `Player's team (${normalizedPlayerTeam}) does not match signing team (${normalizedTeamCode}).`
         : rightsRenounced
           ? `Player's Bird rights have been explicitly renounced.`
@@ -2133,50 +2445,67 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
   const isTwoWayContract = contract?.contractType?.toLowerCase() === 'two-way';
   if (!isTwoWayContract && rules) {
     // Get signing mechanism and rights type for cap-space detection
-    const capSpaceCheckMechanism = resolveSigningMechanism(contract, signedUsing);
-    const capSpaceCheckTerms = getSigningTermsForPlayer({ team, player, contract, year, signedUsing });
-    const normalizedCapSpaceTerms = capSpaceCheckTerms 
-      ? normalizeSigningTerms(capSpaceCheckTerms, { fallbackMechanism: capSpaceCheckMechanism })
+    const capSpaceCheckMechanism = resolveSigningMechanism(
+      contract,
+      signedUsing
+    );
+    const capSpaceCheckTerms = getSigningTermsForPlayer({
+      team,
+      player,
+      contract,
+      year,
+      signedUsing,
+    });
+    const normalizedCapSpaceTerms = capSpaceCheckTerms
+      ? normalizeSigningTerms(capSpaceCheckTerms, {
+          fallbackMechanism: capSpaceCheckMechanism,
+        })
       : null;
     const capSpaceCheckRightsType = normalizedCapSpaceTerms?.rightsType;
-    
+
     // Only enforce for cap-space signings (no exception, no Bird rights)
     if (isCapSpaceSigning(capSpaceCheckMechanism, capSpaceCheckRightsType)) {
       // Get current team cap totals (includes cap holds in totalCapAllocations)
       const teamTotals = computeTeamCapTotals(team, year);
       const currentCapAllocations = teamTotals.totalCapAllocations || 0;
       const salaryCap = teamTotals.salaryCap || rules.cap.salaryCap || 0;
-      
+
       // Get the first-year cap hit for the new contract
-      const newContractCapHit = contract?.salariesByYear?.[0]?.capHit 
-        ?? contract?.salariesByYear?.[0]?.salary 
-        ?? 0;
-      
+      const newContractCapHit =
+        contract?.salariesByYear?.[0]?.capHit ??
+        contract?.salariesByYear?.[0]?.salary ??
+        0;
+
       // Check if this player has an existing cap hold that will be replaced
       const playerId = getPlayerId(player);
       const existingCapHold = Array.isArray(team.capHolds)
-        ? team.capHolds.find(h => 
-            h.playerId === playerId && 
-            h.active !== false && 
-            h.isSigned !== true
+        ? team.capHolds.find(
+            (h) =>
+              h.playerId === playerId &&
+              h.active !== false &&
+              h.isSigned !== true
           )
         : null;
       const capHoldReplacement = existingCapHold?.amount || 0;
-      
+
       // Calculate projected cap allocations:
       // - Start with current (includes all cap holds)
       // - Subtract the cap hold being replaced (if any)
       // - Add the new contract's cap hit
-      const projectedCapAllocations = currentCapAllocations - capHoldReplacement + newContractCapHit;
-      
+      const projectedCapAllocations =
+        currentCapAllocations - capHoldReplacement + newContractCapHit;
+
       // If projected exceeds salary cap, hard-block the signing
       if (projectedCapAllocations > salaryCap) {
         const overCapAmount = projectedCapAllocations - salaryCap;
         violations.push({
           rule: 'cap_hold_signing_violation',
-          message: `Cap-space signing would exceed salary cap. Current allocations: $${(currentCapAllocations / 1_000_000).toFixed(2)}M, ` +
+          message:
+            `Cap-space signing would exceed salary cap. Current allocations: $${(currentCapAllocations / 1_000_000).toFixed(2)}M, ` +
             `New contract: $${(newContractCapHit / 1_000_000).toFixed(2)}M` +
-            (capHoldReplacement > 0 ? `, Cap hold replaced: $${(capHoldReplacement / 1_000_000).toFixed(2)}M` : '') +
+            (capHoldReplacement > 0
+              ? `, Cap hold replaced: $${(capHoldReplacement / 1_000_000).toFixed(2)}M`
+              : '') +
             `. Projected: $${(projectedCapAllocations / 1_000_000).toFixed(2)}M, Cap: $${(salaryCap / 1_000_000).toFixed(2)}M. ` +
             `Over by: $${(overCapAmount / 1_000_000).toFixed(2)}M.`,
           severity: 'error',
@@ -2191,16 +2520,25 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
           },
         });
       }
-      
+
       // Optional: Check if renouncing specific cap holds would make it fit
       // and emit a warning if so (cap_hold_renounce_required)
       if (projectedCapAllocations > salaryCap && teamTotals.capHoldsTotal > 0) {
         const spaceNeeded = projectedCapAllocations - salaryCap;
         const capHoldsExcludingPlayer = (team.capHolds || [])
-          .filter(h => h.playerId !== playerId && h.active !== false && h.isSigned !== true)
-          .map(h => ({ playerId: h.playerId, playerName: h.playerName, amount: h.amount || 0 }))
+          .filter(
+            (h) =>
+              h.playerId !== playerId &&
+              h.active !== false &&
+              h.isSigned !== true
+          )
+          .map((h) => ({
+            playerId: h.playerId,
+            playerName: h.playerName,
+            amount: h.amount || 0,
+          }))
           .sort((a, b) => b.amount - a.amount); // Sort by largest first
-        
+
         // Check if renouncing some holds would free enough space
         let accumulatedSavings = 0;
         const holdsToRenounce = [];
@@ -2209,13 +2547,19 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
           accumulatedSavings += hold.amount;
           holdsToRenounce.push(hold);
         }
-        
+
         if (accumulatedSavings >= spaceNeeded && holdsToRenounce.length > 0) {
-          const holdNames = holdsToRenounce.map(h => h.playerName || h.playerId).join(', ');
-          const holdAmount = holdsToRenounce.reduce((sum, h) => sum + h.amount, 0);
+          const holdNames = holdsToRenounce
+            .map((h) => h.playerName || h.playerId)
+            .join(', ');
+          const holdAmount = holdsToRenounce.reduce(
+            (sum, h) => sum + h.amount,
+            0
+          );
           warnings.push({
             rule: 'cap_hold_renounce_required',
-            message: `This signing would fit if you renounce cap holds for: ${holdNames} ` +
+            message:
+              `This signing would fit if you renounce cap holds for: ${holdNames} ` +
               `(freeing $${(holdAmount / 1_000_000).toFixed(2)}M).`,
             severity: 'warning',
             details: {
@@ -2230,7 +2574,7 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
   }
 
   const players = team.players || [];
-  
+
   // 1. Roster size check
   const currentStandardRoster = countStandardRoster(players);
   const isTwoWay = contract?.contractType?.toLowerCase() === 'two-way';
@@ -2241,7 +2585,7 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
   const engineSigningTerms =
     signingTerms?.source === 'salary_engine' ? signingTerms : null;
   const hasEngineMaxYears = engineSigningTerms?.maxYears != null;
-  
+
   if (!isTwoWay) {
     const projectedRoster = currentStandardRoster + 1;
     if (projectedRoster > rules.roster.maxStandard) {
@@ -2262,18 +2606,18 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
       });
     }
   }
-  
+
   // 1.5. Minimum salary check (PHASE 1 - CBA Contract Rules)
   // Two-way contracts are excluded - they follow separate salary rules not governed by YOS scale
   if (!isTwoWay && rules) {
     const firstYearSalary = contract?.salariesByYear?.[0]?.salary;
     const firstYearCapHit = contract?.salariesByYear?.[0]?.capHit;
-    
+
     if (firstYearSalary !== undefined && firstYearSalary !== null) {
       // Get player's years of service - defaults to 0 (rookie) if not found
       const yos = getYearsOfService(player);
       const minSalary = rules.salaries.getMinimumForYOS(yos);
-      
+
       // Check if first-year salary is below minimum
       if (firstYearSalary < minSalary) {
         violations.push({
@@ -2282,10 +2626,14 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
           severity: 'error',
         });
       }
-      
+
       // If capHit exists and differs from salary, validate capHit separately
       // Cap charge also cannot be below minimum (prevents cap manipulation)
-      if (firstYearCapHit !== undefined && firstYearCapHit !== null && firstYearCapHit !== firstYearSalary) {
+      if (
+        firstYearCapHit !== undefined &&
+        firstYearCapHit !== null &&
+        firstYearCapHit !== firstYearSalary
+      ) {
         if (firstYearCapHit < minSalary) {
           violations.push({
             rule: 'min_salary_violation',
@@ -2296,7 +2644,7 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
       }
     }
   }
-  
+
   // 1.5.5 PHASE 11: ROOKIE SCALE ENFORCEMENT
   // Enforces 80%-120% band for first-round picks derived from authoritative 100% scale table.
   if (!isTwoWay) {
@@ -2304,26 +2652,29 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
     // We look for draftPick metadata on contract (preferred) or player
     const draftPick = contract?.draftPick || player?.draftPick;
     const pickNumber = draftPick?.pick || draftPick?.number;
-    
+
     // Only enforce if we successfully resolved a 1st Round Pick (1-30)
     // and we have a valid season key to lookup scale data.
     const seasonKey = normalizeSeasonKey(year);
-    
+
     if (pickNumber >= 1 && pickNumber <= 30 && seasonKey) {
       const scaleAmount = getRookieScaleAmount({ seasonKey, pick: pickNumber });
-      
+
       // If we have authoritative scale data for this season/pick
       if (scaleAmount) {
         const firstYearSalary = contract?.salariesByYear?.[0]?.salary;
         const firstYearCapHit = contract?.salariesByYear?.[0]?.capHit; // Optional, defaults to salary if undefined
-        
+
         // Calculate bounds (floored/ceiled for safety, plus tolerance check)
         const minAllowed = Math.floor(scaleAmount * ROOKIE_SCALE_MIN_PCT);
         const maxAllowed = Math.ceil(scaleAmount * ROOKIE_SCALE_MAX_PCT);
-        
+
         // Helper to check value against bounds
         const checkBounds = (val, label) => {
-          if (val < (minAllowed - ROOKIE_SCALE_TOLERANCE) || val > (maxAllowed + ROOKIE_SCALE_TOLERANCE)) {
+          if (
+            val < minAllowed - ROOKIE_SCALE_TOLERANCE ||
+            val > maxAllowed + ROOKIE_SCALE_TOLERANCE
+          ) {
             violations.push({
               rule: 'rookie_scale_invalid',
               message: `Rookie scale ${label} ($${(val / 1_000_000).toFixed(3)}M) for pick #${pickNumber} must be between 80% ($${(minAllowed / 1_000_000).toFixed(3)}M) and 120% ($${(maxAllowed / 1_000_000).toFixed(3)}M) of scale amount ($${(scaleAmount / 1_000_000).toFixed(3)}M).`,
@@ -2334,8 +2685,8 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
                 val,
                 minAllowed,
                 maxAllowed,
-                seasonKey
-              }
+                seasonKey,
+              },
             });
           }
         };
@@ -2343,15 +2694,18 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
         if (typeof firstYearSalary === 'number') {
           checkBounds(firstYearSalary, 'salary');
         }
-        
+
         // ALSO check Cap Hit if explicit
         // Rookie scale Cap Hit is usually equal to Salary, but if different it must also be legal?
         // Actually, for Rookie Scale, Cap Hit = Salary typically.
         // But if they diverge, the CBA rule is on the "Salary".
         // However, we should ensure consistency or at least warn if capHit is wild?
         // The Prompt asked: "compare against first-year salary (and capHit if differs) using tolerance"
-        if (typeof firstYearCapHit === 'number' && firstYearCapHit !== firstYearSalary) {
-             checkBounds(firstYearCapHit, 'cap hit');
+        if (
+          typeof firstYearCapHit === 'number' &&
+          firstYearCapHit !== firstYearSalary
+        ) {
+          checkBounds(firstYearCapHit, 'cap hit');
         }
       }
     }
@@ -2368,12 +2722,12 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
       mechanism: signingMechanism,
     });
     violations.push(...termsValidation.violations);
-    
+
     // Only validate if we can determine contract length
     if (contractYears > 0) {
       if (!hasEngineMaxYears) {
         const limits = getSigningYearsLimits(signingMechanism);
-        
+
         // Only enforce limits for known mechanisms
         // UNKNOWN mechanism means we can't determine how the contract was signed,
         // so we skip years validation (other rules like min salary still apply)
@@ -2395,20 +2749,21 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
       }
     }
   }
-  
+
   // 1.7. First-year max enforcement (PHASE 2.5 - CBA Contract Rules)
   // Validates first-year salary/capHit against mechanism-specific caps
   // Two-way contracts are excluded - they follow separate salary rules
   if (!isTwoWay && rules) {
-    const { salary: firstYearSalary, capHit: firstYearCapHit } = getFirstYearAmounts(contract);
-    
+    const { salary: firstYearSalary, capHit: firstYearCapHit } =
+      getFirstYearAmounts(contract);
+
     if (firstYearSalary !== null) {
       if (signingMechanism === 'MINIMUM') {
         // MINIMUM mechanism: salary must be EXACTLY at minimum (not above)
         // This enforces "minimum exception" means minimum salary, not just "at least minimum"
         const yos = getYearsOfService(player);
         const minSalary = rules.salaries.getMinimumForYOS(yos);
-        
+
         if (firstYearSalary > minSalary) {
           violations.push({
             rule: 'first_year_max_invalid',
@@ -2416,9 +2771,13 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
             severity: 'error',
           });
         }
-        
+
         // Also check capHit if it differs from salary
-        if (firstYearCapHit !== null && firstYearCapHit !== firstYearSalary && firstYearCapHit > minSalary) {
+        if (
+          firstYearCapHit !== null &&
+          firstYearCapHit !== firstYearSalary &&
+          firstYearCapHit > minSalary
+        ) {
           violations.push({
             rule: 'first_year_max_invalid',
             message: `First-year cap hit ($${(firstYearCapHit / 1_000_000).toFixed(2)}M) exceeds minimum salary ($${(minSalary / 1_000_000).toFixed(2)}M) for MINIMUM signing.`,
@@ -2429,7 +2788,7 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
         // For FULL_MLE, TPMLE, ROOM_MLE, BAE: enforce exception amount cap
         // UNKNOWN mechanism: do not enforce (cannot determine limits)
         const maxFirstYear = getSigningFirstYearMax(signingMechanism, rules);
-        
+
         if (maxFirstYear !== null) {
           if (firstYearSalary > maxFirstYear) {
             violations.push({
@@ -2438,9 +2797,13 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
               severity: 'error',
             });
           }
-          
+
           // Also check capHit if it differs from salary
-          if (firstYearCapHit !== null && firstYearCapHit !== firstYearSalary && firstYearCapHit > maxFirstYear) {
+          if (
+            firstYearCapHit !== null &&
+            firstYearCapHit !== firstYearSalary &&
+            firstYearCapHit > maxFirstYear
+          ) {
             violations.push({
               rule: 'first_year_max_invalid',
               message: `First-year cap hit ($${(firstYearCapHit / 1_000_000).toFixed(2)}M) exceeds ${signingMechanism.replace(/_/g, ' ')} maximum ($${(maxFirstYear / 1_000_000).toFixed(2)}M)`,
@@ -2456,22 +2819,33 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
         signingMechanism !== 'MINIMUM'
       ) {
         // Normalize terms to get proper mechanism/rightsType separation
-        const normalizedEngineTerms = normalizeSigningTerms(engineSigningTerms, { 
-          fallbackMechanism: signingMechanism 
-        });
+        const normalizedEngineTerms = normalizeSigningTerms(
+          engineSigningTerms,
+          {
+            fallbackMechanism: signingMechanism,
+          }
+        );
         const engineMaxFirstYear = normalizedEngineTerms.maxFirstYearSalary;
 
         // Phase 6: Build descriptive label using both mechanism and rightsType
-        const mechanismLabel = normalizedEngineTerms.mechanism && normalizedEngineTerms.mechanism !== 'UNKNOWN'
-          ? normalizedEngineTerms.mechanism.replace(/_/g, ' ')
-          : null;
-        const rightsLabel = normalizedEngineTerms.rightsType && normalizedEngineTerms.rightsType !== 'NONE'
-          ? normalizedEngineTerms.rightsType.replace(/_/g, ' ')
-          : null;
+        const mechanismLabel =
+          normalizedEngineTerms.mechanism &&
+          normalizedEngineTerms.mechanism !== 'UNKNOWN'
+            ? normalizedEngineTerms.mechanism.replace(/_/g, ' ')
+            : null;
+        const rightsLabel =
+          normalizedEngineTerms.rightsType &&
+          normalizedEngineTerms.rightsType !== 'NONE'
+            ? normalizedEngineTerms.rightsType.replace(/_/g, ' ')
+            : null;
         const primaryLabel = mechanismLabel || rightsLabel || 'signing terms';
-        const secondaryLabel = mechanismLabel && rightsLabel ? ` (${rightsLabel})` : '';
+        const secondaryLabel =
+          mechanismLabel && rightsLabel ? ` (${rightsLabel})` : '';
 
-        if (engineMaxFirstYear != null && firstYearSalary > engineMaxFirstYear) {
+        if (
+          engineMaxFirstYear != null &&
+          firstYearSalary > engineMaxFirstYear
+        ) {
           violations.push({
             rule: 'signing_first_year_engine_max_invalid',
             message: `First-year salary ($${(firstYearSalary / 1_000_000).toFixed(2)}M) exceeds Salary Engine max ($${(engineMaxFirstYear / 1_000_000).toFixed(2)}M) for ${primaryLabel}${secondaryLabel}`,
@@ -2502,7 +2876,7 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
       }
     }
   }
-  
+
   // 1.8. Second apron minimum-only enforcement (PHASE 2.5 - CBA Contract Rules)
   // Teams above second apron can ONLY sign players to minimum salary contracts
   // This applies regardless of mechanism (even UNKNOWN) - it's a hard cap on team spending
@@ -2510,21 +2884,26 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
   // PHASE 2.5 PATCH: Use capHit (not salary) for projected cap calculation
   if (!isTwoWay && rules) {
     const totals = team.totals || {};
-    const currentCapHit = totals.capHit || totals.totalSalary || totals.totalCapAllocations || 0;
+    const currentCapHit =
+      totals.capHit || totals.totalSalary || totals.totalCapAllocations || 0;
     // Use capHit for projection (fallback to salary if capHit not set)
-    const contractCapImpact = contract?.salariesByYear?.[0]?.capHit ?? contract?.salariesByYear?.[0]?.salary ?? 0;
+    const contractCapImpact =
+      contract?.salariesByYear?.[0]?.capHit ??
+      contract?.salariesByYear?.[0]?.salary ??
+      0;
     const projectedCapHit = currentCapHit + contractCapImpact;
-    
+
     // Check if the signing would put/keep team above second apron
     const isAboveSecondApron = projectedCapHit >= rules.cap.secondApron;
-    
+
     if (isAboveSecondApron) {
-      const { salary: firstYearSalary, capHit: firstYearCapHit } = getFirstYearAmounts(contract);
-      
+      const { salary: firstYearSalary, capHit: firstYearCapHit } =
+        getFirstYearAmounts(contract);
+
       if (firstYearSalary !== null) {
         const yos = getYearsOfService(player);
         const minSalary = rules.salaries.getMinimumForYOS(yos);
-        
+
         // Block if salary is above minimum while team is at/above second apron
         if (firstYearSalary > minSalary) {
           violations.push({
@@ -2533,9 +2912,13 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
             severity: 'error',
           });
         }
-        
+
         // Also check capHit if it differs from salary
-        if (firstYearCapHit !== null && firstYearCapHit !== firstYearSalary && firstYearCapHit > minSalary) {
+        if (
+          firstYearCapHit !== null &&
+          firstYearCapHit !== firstYearSalary &&
+          firstYearCapHit > minSalary
+        ) {
           violations.push({
             rule: 'second_apron_minimum_only',
             message: `Team is at/above second apron. First-year cap hit ($${(firstYearCapHit / 1_000_000).toFixed(2)}M) must be at minimum ($${(minSalary / 1_000_000).toFixed(2)}M).`,
@@ -2545,16 +2928,17 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
       }
     }
   }
-  
+
   // 2. Hard cap check
   if (rules) {
     const hardCapStatus = getHardCapStatus(team, rules);
-    
+
     if (hardCapStatus.isHardCapped && hardCapStatus.ceiling) {
-      const currentCapHit = team.totals?.capHit || calculateTeamCapHit(players, year);
+      const currentCapHit =
+        team.totals?.capHit || calculateTeamCapHit(players, year);
       const contractValue = contract?.salariesByYear?.[0]?.salary || 0;
       const projectedCapHit = currentCapHit + contractValue;
-      
+
       if (projectedCapHit > hardCapStatus.ceiling) {
         violations.push({
           rule: 'hard_cap',
@@ -2563,28 +2947,35 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
         });
       }
     }
-    
+
     // 3. MLE triggers hard cap warning
-    if (signedUsing?.toLowerCase() === 'mle' || signedUsing?.toLowerCase() === 'full mle') {
-      const currentCapHit = team.totals?.capHit || calculateTeamCapHit(players, year);
+    if (
+      signedUsing?.toLowerCase() === 'mle' ||
+      signedUsing?.toLowerCase() === 'full mle'
+    ) {
+      const currentCapHit =
+        team.totals?.capHit || calculateTeamCapHit(players, year);
       if (currentCapHit > rules.cap.luxuryTax) {
         warnings.push({
           rule: 'mle_taxpayer',
-          message: 'Using MLE while over luxury tax will hard cap team at first apron',
+          message:
+            'Using MLE while over luxury tax will hard cap team at first apron',
           severity: 'warning',
         });
       }
     }
-    
+
     // 4. Apron proximity warnings
-    const currentCapHit = team.totals?.capHit || calculateTeamCapHit(players, year);
+    const currentCapHit =
+      team.totals?.capHit || calculateTeamCapHit(players, year);
     const contractValue = contract?.salariesByYear?.[0]?.salary || 0;
     const projectedCapHit = currentCapHit + contractValue;
-    
+
     if (projectedCapHit > rules.cap.secondApron) {
       warnings.push({
         rule: 'second_apron',
-        message: 'Signing puts team over second apron - significant restrictions apply',
+        message:
+          'Signing puts team over second apron - significant restrictions apply',
         severity: 'warning',
       });
     } else if (projectedCapHit > rules.cap.firstApron) {
@@ -2595,7 +2986,7 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
       });
     }
   }
-  
+
   return {
     valid: violations.length === 0,
     violations,
@@ -2605,7 +2996,7 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
 
 /**
  * Validate a waive action
- * 
+ *
  * @param {Object} params
  * @param {Object} params.team - Current team state
  * @param {Object} params.player - Player being waived
@@ -2615,22 +3006,31 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
  * @param {string} [params.asOfDate] - Phase 21: World time for stretch validation
  * @returns {{valid: boolean, violations: Array, warnings: Array}}
  */
-export function validateWaive({ team, player, stretch, year, isGracePeriod = false, asOfDate }) {
+export function validateWaive({
+  team,
+  player,
+  stretch,
+  year,
+  isGracePeriod = false,
+  asOfDate,
+}) {
   const violations = [];
   const warnings = [];
-  
+
   const players = team.players || [];
-  
+
   // 1. Roster minimum check
   const currentStandardRoster = countStandardRoster(players);
   const isTwoWay = player.contract?.contractType?.toLowerCase() === 'two-way';
-  
+
   const rules = getCapRulesForYear(year);
 
   if (!isTwoWay) {
     const projectedRoster = currentStandardRoster - 1;
-    const minRoster = isGracePeriod ? rules.roster.graceMin : rules.roster.minStandard;
-    
+    const minRoster = isGracePeriod
+      ? rules.roster.graceMin
+      : rules.roster.minStandard;
+
     // 00. CHECK DATA CONFIDENCE
     const confidenceCheck = evaluateDataConfidence(rules, 'Waive');
     if (confidenceCheck.blocked && confidenceCheck.violation) {
@@ -2649,7 +3049,7 @@ export function validateWaive({ team, player, stretch, year, isGracePeriod = fal
       });
     }
   }
-  
+
   // 2. Dead cap warning
   const contract = player.contract;
   if (contract?.salariesByYear) {
@@ -2662,7 +3062,7 @@ export function validateWaive({ team, player, stretch, year, isGracePeriod = fal
         return yearNum >= year && y.guaranteed === true;
       })
       .reduce((sum, y) => sum + (y.salary || 0), 0);
-    
+
     if (remainingGuaranteed > 0) {
       const stretchInfo = stretch ? ` (stretched over multiple years)` : '';
       warnings.push({
@@ -2694,7 +3094,7 @@ export function validateWaive({ team, player, stretch, year, isGracePeriod = fal
       });
     }
   }
-  
+
   return {
     valid: violations.length === 0,
     violations,
@@ -2704,7 +3104,7 @@ export function validateWaive({ team, player, stretch, year, isGracePeriod = fal
 
 /**
  * Validate an extension
- * 
+ *
  * @param {Object} params
  * @param {Object} params.team - Current team state
  * @param {Object} params.player - Player being extended
@@ -2715,16 +3115,17 @@ export function validateWaive({ team, player, stretch, year, isGracePeriod = fal
 export function validateExtension({ team, player, extension, year }) {
   const violations = [];
   const warnings = [];
-  
+
   const capSettings = getCapSettings(year);
   const contract = player.contract;
-  
+
   // 0. PHASE 3: Check for two-way contracts (cannot be extended)
   const isTwoWay = contract?.contractType?.toLowerCase() === 'two-way';
   if (isTwoWay) {
     violations.push({
       rule: 'extension_ineligible',
-      message: 'Two-way contracts cannot be extended. Convert to standard contract first.',
+      message:
+        'Two-way contracts cannot be extended. Convert to standard contract first.',
       severity: 'error',
     });
     // Return early - no point validating extension terms for ineligible contract
@@ -2734,7 +3135,7 @@ export function validateExtension({ team, player, extension, year }) {
       warnings,
     };
   }
-  
+
   // 1. Check extension eligibility (basic check - detailed check in rulesProfile)
   if (!contract?.salariesByYear || contract.salariesByYear.length === 0) {
     violations.push({
@@ -2749,19 +3150,19 @@ export function validateExtension({ team, player, extension, year }) {
       warnings,
     };
   }
-  
+
   // 00. CHECK DATA CONFIDENCE
   // Note: We use current year rules for immediate checks, but extensions often care more about future years.
   // We can check confidence of current rules first.
-  const currentRules = getCapRulesForYear(year); 
+  const currentRules = getCapRulesForYear(year);
   if (currentRules) {
-      const confidenceCheck = evaluateDataConfidence(currentRules, 'Extension');
-      if (confidenceCheck.blocked && confidenceCheck.violation) {
-        violations.push(confidenceCheck.violation);
-      }
-      if (confidenceCheck.warning) {
-        warnings.push(confidenceCheck.warning);
-      }
+    const confidenceCheck = evaluateDataConfidence(currentRules, 'Extension');
+    if (confidenceCheck.blocked && confidenceCheck.violation) {
+      violations.push(confidenceCheck.violation);
+    }
+    if (confidenceCheck.warning) {
+      warnings.push(confidenceCheck.warning);
+    }
   }
 
   // 2. PHASE 3.25: Validate extension terms, first-year max, and raises
@@ -2771,13 +3172,13 @@ export function validateExtension({ team, player, extension, year }) {
     // Try to get type-specific terms from Salary Engine
     const engineResult = getExtensionTermsForPlayer({ player, team, year });
     const extensionTerms = engineResult?.extensionTerms ?? null;
-    
+
     const termsValidation = validateExtensionTermsAndRaises({
       player,
       extension,
       extensionTerms, // Uses engine terms when available, baseline when not
     });
-    
+
     violations.push(...termsValidation.violations);
     warnings.push(...termsValidation.warnings);
   }
@@ -2786,16 +3187,16 @@ export function validateExtension({ team, player, extension, year }) {
   if (extension?.salariesByYear?.length > 0) {
     const firstExtensionYear = extension.salariesByYear[0];
     const extStartYear = toEndYear(firstExtensionYear.season);
-    
-    // We try to get rules for extension start year. 
+
+    // We try to get rules for extension start year.
     // If future year missing data, it might throw or return partial.
     // For now we assume extension year is valid or we catch error?
     // Facade throws if data missing, so this will surface error which is good.
     const extStartRules = getCapRulesForYear(extStartYear);
-    
+
     if (extStartRules) {
       const hardCapStatus = getHardCapStatus(team, extStartRules);
-      
+
       if (hardCapStatus.isHardCapped) {
         warnings.push({
           rule: 'extension_hard_cap',
@@ -2805,7 +3206,7 @@ export function validateExtension({ team, player, extension, year }) {
       }
     }
   }
-  
+
   return {
     valid: violations.length === 0,
     violations,
@@ -2835,7 +3236,9 @@ function findPlayerById(players, playerId) {
 function getContractRowForYear(contract, targetYear) {
   if (!Array.isArray(contract?.salariesByYear)) return null;
   return (
-    contract.salariesByYear.find((row) => toEndYear(row?.season) === targetYear) || null
+    contract.salariesByYear.find(
+      (row) => toEndYear(row?.season) === targetYear
+    ) || null
   );
 }
 
@@ -2850,7 +3253,7 @@ function getOptionRowForYear(contract, targetYear) {
 
 /**
  * Validate an option decision
- * 
+ *
  * @param {Object} params
  * @param {Object} params.originalTeam - Team state before mutation
  * @param {Object} params.updatedTeam - Team state after mutation (if available)
@@ -2880,10 +3283,10 @@ export function validateOptionDecision({
   const playerId = getPlayerId(baselinePlayer);
   const resolvedUpdatedPlayer =
     updatedPlayer || findPlayerById(updatedTeam?.players, playerId);
-  
+
   // 1. Timing validation - can only decide options for upcoming season
   const isActionableOption = targetYear === currentYear + 1;
-  
+
   if (!isActionableOption) {
     if (targetYear < currentYear + 1) {
       violations.push({
@@ -2899,33 +3302,37 @@ export function validateOptionDecision({
       });
     }
   }
-  
+
   // 2. If accepting, check hard cap impact
   if (accepted && isActionableOption) {
     const rules = getCapRulesForYear(targetYear);
-    
+
     if (rules) {
       const hardCapStatus = getHardCapStatus(baselineTeam, rules);
-      
+
       if (hardCapStatus.isHardCapped && hardCapStatus.ceiling) {
         // 00. CHECK DATA CONFIDENCE for target year
-        const confidenceCheck = evaluateDataConfidence(rules, 'Option Decision');
+        const confidenceCheck = evaluateDataConfidence(
+          rules,
+          'Option Decision'
+        );
         if (confidenceCheck.blocked && confidenceCheck.violation) {
-           violations.push(confidenceCheck.violation);
+          violations.push(confidenceCheck.violation);
         }
         if (confidenceCheck.warning) {
-           warnings.push(confidenceCheck.warning);
+          warnings.push(confidenceCheck.warning);
         }
 
         // Calculate projected cap hit including the option salary
-        const optionSalary = baselinePlayer.contract?.salariesByYear?.find((y) => {
-          return toEndYear(y.season) === targetYear && y.option;
-        })?.salary || 0;
-        
+        const optionSalary =
+          baselinePlayer.contract?.salariesByYear?.find((y) => {
+            return toEndYear(y.season) === targetYear && y.option;
+          })?.salary || 0;
+
         const players = baselineTeam.players || [];
         const currentCapHit = calculateTeamCapHit(players, targetYear);
         const projectedCapHit = currentCapHit + optionSalary;
-        
+
         if (projectedCapHit > hardCapStatus.ceiling) {
           warnings.push({
             rule: 'option_hard_cap',
@@ -2939,11 +3346,16 @@ export function validateOptionDecision({
     // Phase 7.1: Check for contradictory cap hold creation on accept
     // If we accepted, we shouldn't have created a cap hold
     if (updatedTeam) {
-      const capHoldCreated = didCreateCapHold(baselineTeam, updatedTeam, playerId);
+      const capHoldCreated = didCreateCapHold(
+        baselineTeam,
+        updatedTeam,
+        playerId
+      );
       if (capHoldCreated) {
         violations.push({
           rule: 'cap_hold_transition_invalid',
-          message: 'Accepted option but a cap hold was created. Player should remain under contract.',
+          message:
+            'Accepted option but a cap hold was created. Player should remain under contract.',
           severity: 'error',
         });
       }
@@ -2973,21 +3385,27 @@ export function validateOptionDecision({
         if (!Array.isArray(salaries) || salaries.length === 0) {
           violations.push({
             rule: 'option_accept_option_row_invalid',
-            message: 'Accepted option but contract salariesByYear is missing or empty.',
+            message:
+              'Accepted option but contract salariesByYear is missing or empty.',
             severity: 'error',
           });
         } else {
-          const optionRow = getOptionRowForYear(resolvedUpdatedPlayer.contract, targetYear);
+          const optionRow = getOptionRowForYear(
+            resolvedUpdatedPlayer.contract,
+            targetYear
+          );
           if (!optionRow) {
             violations.push({
               rule: 'option_accept_option_row_invalid',
-              message: 'Accepted option but option year row is missing from contract.',
+              message:
+                'Accepted option but option year row is missing from contract.',
               severity: 'error',
             });
           } else if (optionRow.optionUsed !== true) {
             violations.push({
               rule: 'option_accept_option_row_invalid',
-              message: 'Accepted option but optionUsed is not true on the option year row.',
+              message:
+                'Accepted option but optionUsed is not true on the option year row.',
               severity: 'error',
             });
           }
@@ -2995,11 +3413,14 @@ export function validateOptionDecision({
       }
     }
   }
-  
+
   // 3. If declining, validate cap hold transition and free agency state
   if (!accepted && isActionableOption) {
     // Check if cap hold should be expected
-    const expectation = shouldExpectCapHoldOnDecline(baselinePlayer, targetYear);
+    const expectation = shouldExpectCapHoldOnDecline(
+      baselinePlayer,
+      targetYear
+    );
     const rightsType = getRightsTypeFromPlayer(baselinePlayer);
     const capHoldExpectation = expectation.shouldCreate
       ? computeExpectedCapHoldAmount({
@@ -3009,15 +3430,22 @@ export function validateOptionDecision({
           rightsType,
         })
       : null;
-    const faYearInfo = deriveFreeAgencyYearFromOptionSeason(expectation.optionSeason, targetYear);
+    const faYearInfo = deriveFreeAgencyYearFromOptionSeason(
+      expectation.optionSeason,
+      targetYear
+    );
     const faYearSourceLabel =
       faYearInfo.source === 'option_season' ? 'option season' : 'fallback year';
     const CAP_HOLD_AMOUNT_TOLERANCE = 1;
-    
+
     if (updatedTeam) {
       // 3.1 Validate cap hold creation
-      const capHoldCreated = didCreateCapHold(baselineTeam, updatedTeam, playerId);
-      
+      const capHoldCreated = didCreateCapHold(
+        baselineTeam,
+        updatedTeam,
+        playerId
+      );
+
       if (expectation.shouldCreate && !capHoldCreated) {
         // If we expected a cap hold but didn't get one
         violations.push({
@@ -3031,7 +3459,7 @@ export function validateOptionDecision({
       if (capHoldCreated) {
         const newHold = getCapHoldForPlayer(updatedTeam, playerId);
         const amountCheck = isCapHoldAmountValid(newHold);
-        
+
         if (!amountCheck.valid) {
           violations.push({
             rule: 'cap_hold_transition_invalid',
@@ -3055,7 +3483,7 @@ export function validateOptionDecision({
             });
           }
         }
-        
+
         // Info warning for UI
         warnings.push({
           rule: 'cap_hold_creation',
@@ -3074,7 +3502,8 @@ export function validateOptionDecision({
       }
 
       if (capHoldExpectation?.usedFallback) {
-        const rightsLabel = capHoldExpectation.rightsType || 'missing rightsType';
+        const rightsLabel =
+          capHoldExpectation.rightsType || 'missing rightsType';
         warnings.push({
           rule: 'cap_hold_transition_inputs_missing',
           message: `Cap hold amount used fallback multiplier due to ${rightsLabel}. Verify Bird rights availability.`,
@@ -3085,7 +3514,8 @@ export function validateOptionDecision({
       if (faYearInfo.source !== 'option_season') {
         warnings.push({
           rule: 'cap_hold_transition_inputs_missing',
-          message: 'freeAgency.year derived from fallback end year because option season was missing or invalid.',
+          message:
+            'freeAgency.year derived from fallback end year because option season was missing or invalid.',
           severity: 'warning',
         });
       }
@@ -3121,11 +3551,15 @@ export function validateOptionDecision({
       }
 
       if (updatedDeclinedPlayer?.contract) {
-        const declinedRow = getContractRowForYear(updatedDeclinedPlayer.contract, targetYear);
+        const declinedRow = getContractRowForYear(
+          updatedDeclinedPlayer.contract,
+          targetYear
+        );
         if (declinedRow) {
           violations.push({
             rule: 'option_decline_contract_row_still_present_for_declined_season',
-            message: 'Declined option but contract still includes the declined season.',
+            message:
+              'Declined option but contract still includes the declined season.',
             severity: 'error',
           });
         }
@@ -3143,7 +3577,7 @@ export function validateOptionDecision({
       }
     }
   }
-  
+
   return {
     valid: violations.length === 0,
     violations,
@@ -3153,10 +3587,10 @@ export function validateOptionDecision({
 
 /**
  * Validate renouncing rights
- * 
+ *
  * Renouncing is always structurally valid if the player has rights with the team.
  * This is a permissive action that clears cap holds.
- * 
+ *
  * @param {Object} params
  * @param {Object} params.team - Current team state
  * @param {Object} params.player - Player whose rights are being renounced
@@ -3166,22 +3600,23 @@ export function validateOptionDecision({
 export function validateRenounceRights({ team, player, year = null }) {
   const violations = [];
   const warnings = [];
-  
+
   // Use helper functions for consistent player data extraction
   const playerId = getPlayerId(player);
   const playerName = getPlayerName(player);
-  
+
   // Check if player has a cap hold to renounce
   const capHolds = team.capHolds || [];
-  
-  const hasCapHold = capHolds.some((h) => 
-    h.playerId === playerId || h.playerName === playerName
+
+  const hasCapHold = capHolds.some(
+    (h) => h.playerId === playerId || h.playerName === playerName
   );
-  
+
   // Check if player has Bird rights to renounce
-  const hasBirdRights = player.contract?.birdRights?.status && 
+  const hasBirdRights =
+    player.contract?.birdRights?.status &&
     player.contract.birdRights.status !== 'None';
-  
+
   if (!hasCapHold && !hasBirdRights) {
     warnings.push({
       rule: 'no_rights',
@@ -3189,11 +3624,11 @@ export function validateRenounceRights({ team, player, year = null }) {
       severity: 'info',
     });
   }
-  
+
   // Info about cap space gained
   if (hasCapHold) {
-    const capHold = capHolds.find((h) => 
-      h.playerId === playerId || h.playerName === playerName
+    const capHold = capHolds.find(
+      (h) => h.playerId === playerId || h.playerName === playerName
     );
     if (capHold?.amount) {
       warnings.push({
@@ -3203,7 +3638,7 @@ export function validateRenounceRights({ team, player, year = null }) {
       });
     }
   }
-  
+
   // Renouncing is always valid structurally
   return {
     valid: true,
@@ -3211,7 +3646,6 @@ export function validateRenounceRights({ team, player, year = null }) {
     warnings,
   };
 }
-
 
 /**
  * Phase 17: Validate offer sheet resolution (Match/Decline/Finalize).
@@ -3224,7 +3658,12 @@ export function validateRenounceRights({ team, player, year = null }) {
  * @param {string} [params.asOfDate] - Phase 21: World time for 48h window check
  * @returns {{valid: boolean, violations: Array, warnings: Array}}
  */
-export function validateOfferSheetResolution({ offerSheet, actingTeamCode, action, asOfDate }) {
+export function validateOfferSheetResolution({
+  offerSheet,
+  actingTeamCode,
+  action,
+  asOfDate,
+}) {
   const violations = [];
   const warnings = [];
 
@@ -3237,7 +3676,8 @@ export function validateOfferSheetResolution({ offerSheet, actingTeamCode, actio
     if (status === 'MATCHED') {
       violations.push({
         rule: 'rfa_offer_sheet_matched_offering_team_cannot_finalize',
-        message: 'Offer sheet has been MATCHED by home team. The player stays with home team. Offering team cannot finalize.',
+        message:
+          'Offer sheet has been MATCHED by home team. The player stays with home team. Offering team cannot finalize.',
         severity: 'error',
       });
     } else if (status === 'PENDING_MATCH') {
@@ -3254,7 +3694,8 @@ export function validateOfferSheetResolution({ offerSheet, actingTeamCode, actio
     if (status === 'DECLINED') {
       violations.push({
         rule: 'rfa_offer_sheet_declined_home_team_cannot_finalize',
-        message: 'Offer sheet has been DECLINED by home team. The player goes to the offering team. Home team cannot finalize.',
+        message:
+          'Offer sheet has been DECLINED by home team. The player goes to the offering team. Home team cannot finalize.',
         severity: 'error',
         actingTeamCode,
         offeringTeamCode,
@@ -3269,31 +3710,31 @@ export function validateOfferSheetResolution({ offerSheet, actingTeamCode, actio
       });
     }
   }
-  
+
   // 3. Match/Decline Actions (Home Team Only)
   if (action === 'match' || action === 'decline') {
-      if (actingTeamCode !== homeTeamCode) {
-           violations.push({
-              rule: 'rfa_offer_sheet_resolution_required',
-              message: 'Only the home team can Match or Decline an offer sheet.',
-              severity: 'error'
-           });
+    if (actingTeamCode !== homeTeamCode) {
+      violations.push({
+        rule: 'rfa_offer_sheet_resolution_required',
+        message: 'Only the home team can Match or Decline an offer sheet.',
+        severity: 'error',
+      });
+    }
+
+    // Phase 21: Check 48-hour window (Warning only)
+    if (action === 'match' && asOfDate && offerSheet.createdAt) {
+      const created = new Date(offerSheet.createdAt);
+      const deadline = new Date(created.getTime() + 48 * 60 * 60 * 1000);
+      const cutoff = deadline.toISOString().slice(0, 10);
+
+      if (asOfDate > cutoff) {
+        warnings.push({
+          rule: 'offer_sheet_window_expired',
+          message: `48-hour match window expired on ${cutoff} (As of: ${asOfDate}).`,
+          severity: 'warning',
+        });
       }
-      
-      // Phase 21: Check 48-hour window (Warning only)
-      if (action === 'match' && asOfDate && offerSheet.createdAt) {
-          const created = new Date(offerSheet.createdAt);
-          const deadline = new Date(created.getTime() + (48 * 60 * 60 * 1000));
-          const cutoff = deadline.toISOString().slice(0, 10);
-          
-          if (asOfDate > cutoff) {
-             warnings.push({
-                 rule: 'offer_sheet_window_expired',
-                 message: `48-hour match window expired on ${cutoff} (As of: ${asOfDate}).`,
-                 severity: 'warning'
-             });
-          }
-      }
+    }
   }
 
   return {

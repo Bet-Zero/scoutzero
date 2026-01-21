@@ -74,6 +74,7 @@ Top-level directory structure and purposes:
 - `guides/` - User and developer guides
 - `compliance/` - Audit certificates and compliance matrices
 - `components/` - Component hierarchy documentation
+- `scouting/` - Scouting feature audits and master docs
 - `migrations/` - Migration documentation and plans
 - `architect-teams-plan/` - Architect feature planning docs (multi-season roster planning)
 - `runbooks/` - Operational runbooks for scrapes, staging, and deployment workflows

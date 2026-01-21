@@ -272,16 +272,31 @@ export interface UseArchitectActionsReturn {
   handleResetCapSheet: () => void;
 
   // RFA Offer Sheet Actions (Phase 16)
-  handleStoreOfferSheet: (playerObj: ArchitectPlayer, contract: SigningDetails) => void;
-  handleMatchOfferSheet: (offeringTeamCode: string, offerSheetId: string) => void;
-  handleDeclineOfferSheet: (offeringTeamCode: string, offerSheetId: string) => void;
-  handleFinalizeOfferSheet: (playerObj: ArchitectPlayer, offerSheet: any) => void;
+  handleStoreOfferSheet: (
+    playerObj: ArchitectPlayer,
+    contract: SigningDetails
+  ) => void;
+  handleMatchOfferSheet: (
+    offeringTeamCode: string,
+    offerSheetId: string
+  ) => void;
+  handleDeclineOfferSheet: (
+    offeringTeamCode: string,
+    offerSheetId: string
+  ) => void;
+  handleFinalizeOfferSheet: (
+    playerObj: ArchitectPlayer,
+    offerSheet: any
+  ) => void;
 
   // Trade actions
   applyTradeToCapSheet: (tradeData: TradeDataItem[]) => Promise<void>;
 
   // Manual Dead Money (Phase 24)
   handleSetDeadCap: (deadCap: any[]) => void;
+
+  // Manual Exception Management (Phase 27)
+  handleSetExceptions: (exceptions: Record<string, any>) => void;
 }
 
 // ==== Season helpers ====
@@ -731,13 +746,13 @@ export function useArchitectActions({
         signingTeam: teamCode,
         rfaOfferSheet: true,
         rfaOfferSheetOnly: true,
-        rfaOfferSheetStatus: 'PENDING_MATCH'
+        rfaOfferSheetStatus: 'PENDING_MATCH',
       });
 
       // Update local state (optimistic) -> append to team.offerSheets
-      // For MVP, we might skip full optimistic UI update for offer sheets and rely on refresh, 
+      // For MVP, we might skip full optimistic UI update for offer sheets and rely on refresh,
       // but let's at least persist it.
-      
+
       const payload = {
         teamCode,
         playerId: playerObj.id || playerObj.player_id,
@@ -754,11 +769,11 @@ export function useArchitectActions({
   const handleMatchOfferSheet = useCallback(
     (offeringTeamCode: string, offerSheetId: string): void => {
       if (!offeringTeamCode || !offerSheetId) return;
-      
+
       persistMutation('matchOfferSheet', {
         teamCode, // Home team (actor)
         offeringTeamCode,
-        offerSheetId
+        offerSheetId,
       });
     },
     [teamCode, persistMutation]
@@ -766,51 +781,60 @@ export function useArchitectActions({
 
   const handleDeclineOfferSheet = useCallback(
     (offeringTeamCode: string, offerSheetId: string): void => {
-        if (!offeringTeamCode || !offerSheetId) return;
-        
-        persistMutation('declineOfferSheet', {
-          teamCode, // Home team (actor)
-          offeringTeamCode,
-          offerSheetId
-        });
-    }, 
+      if (!offeringTeamCode || !offerSheetId) return;
+
+      persistMutation('declineOfferSheet', {
+        teamCode, // Home team (actor)
+        offeringTeamCode,
+        offerSheetId,
+      });
+    },
     [teamCode, persistMutation]
   );
 
   const handleFinalizeOfferSheet = useCallback(
     (playerObj: ArchitectPlayer, offerSheet: any): void => {
-        if (!offerSheet || !playerObj) return;
+      if (!offerSheet || !playerObj) return;
 
-        // Phase 17: Home Team Finalizing MATCHED Offer
-        if (offerSheet.status === 'MATCHED' && offerSheet.homeTeamCode === teamCode) {
-            persistMutation('finalizeMatchedOfferSheet', {
-                teamCode, // Home team (actor)
-                offeringTeamCode: offerSheet.offeringTeamCode,
-                offerSheetId: offerSheet.id
-            });
-            return;
-        }
+      // Phase 17: Home Team Finalizing MATCHED Offer
+      if (
+        offerSheet.status === 'MATCHED' &&
+        offerSheet.homeTeamCode === teamCode
+      ) {
+        persistMutation('finalizeMatchedOfferSheet', {
+          teamCode, // Home team (actor)
+          offeringTeamCode: offerSheet.offeringTeamCode,
+          offerSheetId: offerSheet.id,
+        });
+        return;
+      }
 
-        // Phase 18.2: Offering Team Finalizing DECLINED Offer
-        // Use dedicated mutation for proper cleanup + signing
-        if (offerSheet.status === 'DECLINED' && offerSheet.offeringTeamCode === teamCode) {
-            persistMutation('finalizeDeclinedOfferSheet', {
-                teamCode, // Offering team (actor)
-                offeringTeamCode: teamCode,
-                homeTeamCode: offerSheet.homeTeamCode,
-                offerSheetId: offerSheet.id,
-                dedupKey: offerSheet.dedupKey, // Phase 18.2: Include for dual cleanup
-                playerId: offerSheet.playerId,
-                seasonKey: offerSheet.seasonKey,
-            });
-            return;
-        }
-        
-        console.warn('Cannot finalize offer sheet: status/team mismatch', { status: offerSheet.status, teamCode });
+      // Phase 18.2: Offering Team Finalizing DECLINED Offer
+      // Use dedicated mutation for proper cleanup + signing
+      if (
+        offerSheet.status === 'DECLINED' &&
+        offerSheet.offeringTeamCode === teamCode
+      ) {
+        persistMutation('finalizeDeclinedOfferSheet', {
+          teamCode, // Offering team (actor)
+          offeringTeamCode: teamCode,
+          homeTeamCode: offerSheet.homeTeamCode,
+          offerSheetId: offerSheet.id,
+          dedupKey: offerSheet.dedupKey, // Phase 18.2: Include for dual cleanup
+          playerId: offerSheet.playerId,
+          seasonKey: offerSheet.seasonKey,
+        });
+        return;
+      }
+
+      console.warn('Cannot finalize offer sheet: status/team mismatch', {
+        status: offerSheet.status,
+        teamCode,
+      });
     },
     [teamCode, persistMutation]
   );
-  
+
   // === Dead Money Actions (Phase 24) ===
   const handleSetDeadCap = useCallback(
     (deadCap: any[]): void => {
@@ -826,6 +850,26 @@ export function useArchitectActions({
       persistMutation('setDeadCap', {
         teamCode,
         deadCap,
+      });
+    },
+    [teamCode, persistMutation, setTeamCapSheet]
+  );
+
+  // === Exception Management Actions (Phase 27) ===
+  const handleSetExceptions = useCallback(
+    (exceptions: Record<string, any>): void => {
+      // Optimistic update
+      setTeamCapSheet((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          exceptions,
+        };
+      });
+
+      persistMutation('setExceptions', {
+        teamCode,
+        exceptions,
       });
     },
     [teamCode, persistMutation, setTeamCapSheet]
@@ -1270,9 +1314,14 @@ export function useArchitectActions({
 
             if (!accepted) {
               const optionSeason = salaries[optionIndex]?.season || null;
-              const faYearInfo = deriveFreeAgencyYearFromOptionSeason(optionSeason, targetYear);
+              const faYearInfo = deriveFreeAgencyYearFromOptionSeason(
+                optionSeason,
+                targetYear
+              );
               const freeAgencyYear =
-                typeof faYearInfo.year === 'number' ? faYearInfo.year : targetYear - 1;
+                typeof faYearInfo.year === 'number'
+                  ? faYearInfo.year
+                  : targetYear - 1;
 
               // Declining: remove this year and all future years
               const filteredSalaries = salaries.filter(
@@ -1465,5 +1514,8 @@ export function useArchitectActions({
 
     // Phase 24: Dead Money
     handleSetDeadCap,
+
+    // Phase 27: Exception Management
+    handleSetExceptions,
   };
 }

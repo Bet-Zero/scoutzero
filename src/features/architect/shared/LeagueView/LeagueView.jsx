@@ -3,11 +3,8 @@ import { loadTeamCapSheet } from '@/features/architect/utils/firebaseTeamPlanHel
 import { useNavigate } from 'react-router-dom';
 import { TeamListFull } from '@/constants/teamList';
 import TeamLogo from '@/shared/components/TeamLogo';
-import {
-  getDefaultSeasonEndYear,
-  toSeasonKey,
-} from '@/features/architect/utils/seasonUtils';
-import { getCapHitForSeason } from '@/features/architect/utils/tradeMachine/utils/seasonUtils.js';
+import { getDefaultSeasonEndYear } from '@/features/architect/utils/seasonUtils';
+import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 
 const teamsList = TeamListFull;
 
@@ -18,17 +15,15 @@ const LeagueView = () => {
   useEffect(() => {
     const loadAllTeams = async () => {
       const currentYear = getDefaultSeasonEndYear();
-      const seasonKey = toSeasonKey(currentYear);
 
       // Load all teams in parallel for better performance
       const teamPromises = teamsList.map(async (t) => {
         try {
           const capSheet = await loadTeamCapSheet(t.code || t.id);
           if (capSheet) {
-            const totalSalary =
-              capSheet.players?.reduce((sum, p) => {
-                return sum + getCapHitForSeason(p, seasonKey);
-              }, 0) || 0;
+            // SSOT: Use computeTeamCapTotals for canonical totals
+            const capTotals = computeTeamCapTotals(capSheet, currentYear);
+            const totalSalary = capTotals.totalCapAllocations;
             return {
               id: t.id,
               code: t.code,

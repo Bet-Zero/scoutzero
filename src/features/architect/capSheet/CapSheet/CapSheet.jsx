@@ -16,9 +16,7 @@ import {
   getMinimumCapHit,
   getContractYearSlice,
 } from '@/features/architect/utils/contractUtils';
-import {
-  getActiveUnsignedCapHoldsByEndYear,
-} from '@/features/architect/utils/capHolds';
+import { getActiveUnsignedCapHoldsByEndYear } from '@/features/architect/utils/capHolds';
 import CapSummaryTiles from '@/features/architect/CapSummaryTiles';
 import { POSITION_MAP } from '@/shared/utils/roles';
 import getCapPercentage from '@/features/architect/utils/basicArchitectUtils';
@@ -33,11 +31,19 @@ const isTwoWayContract = (player) => {
 };
 
 import ManageDeadMoneyModal from '@/features/architect/capSheet/modals/ManageDeadMoneyModal';
+import ManageExceptionsModal from '@/features/architect/capSheet/modals/ManageExceptionsModal';
 
-const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer, onSetDeadCap }) => {
+const CapSheet = ({
+  teamCapSheet,
+  currentYear,
+  onSelectPlayer,
+  onSetDeadCap,
+  onSetExceptions,
+}) => {
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [showCapHolds, setShowCapHolds] = useState(false);
   const [showDeadMoneyModal, setShowDeadMoneyModal] = useState(false);
+  const [showExceptionsModal, setShowExceptionsModal] = useState(false);
 
   const { getProfile } = usePlayerRulesProfiles({
     players: teamCapSheet?.players || [],
@@ -183,19 +189,34 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer, onSetDeadCap }) =
   const confidenceLabel = React.useMemo(() => {
     const summary = totals?._meta?.rulesSourcesSummary;
     if (!summary) return null; // Fallback or loading state
-    
+
     // Detailed mapping for display
     switch (summary) {
       case 'real':
-        return { text: 'Official', className: 'text-green-400 bg-green-400/10 border-green-400/20' };
+        return {
+          text: 'Official',
+          className: 'text-green-400 bg-green-400/10 border-green-400/20',
+        };
       case 'reported':
-        return { text: 'Reported', className: 'text-amber-400 bg-amber-400/10 border-amber-400/20' };
+        return {
+          text: 'Reported',
+          className: 'text-amber-400 bg-amber-400/10 border-amber-400/20',
+        };
       case 'projected':
-        return { text: 'Projected', className: 'text-blue-400 bg-blue-400/10 border-blue-400/20' };
+        return {
+          text: 'Projected',
+          className: 'text-blue-400 bg-blue-400/10 border-blue-400/20',
+        };
       case 'unknown':
-        return { text: 'Unknown', className: 'text-red-400 bg-red-400/10 border-red-400/20' };
+        return {
+          text: 'Unknown',
+          className: 'text-red-400 bg-red-400/10 border-red-400/20',
+        };
       default:
-        return { text: summary, className: 'text-white/40 bg-white/5 border-white/10' };
+        return {
+          text: summary,
+          className: 'text-white/40 bg-white/5 border-white/10',
+        };
     }
   }, [totals]);
 
@@ -203,9 +224,14 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer, onSetDeadCap }) =
     <div className="text-white font-sans">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-bold tracking-tight text-white/90 flex items-center gap-2">
-          <span>Cap Sheet <span className="text-white/40 font-light">|</span> {formatYearLabel(selectedYear)}</span>
+          <span>
+            Cap Sheet <span className="text-white/40 font-light">|</span>{' '}
+            {formatYearLabel(selectedYear)}
+          </span>
           {confidenceLabel && (
-            <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${confidenceLabel.className}`}>
+            <span
+              className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${confidenceLabel.className}`}
+            >
               {confidenceLabel.text}
             </span>
           )}
@@ -363,35 +389,47 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer, onSetDeadCap }) =
           )}
 
           {/* Manage Actions Row */}
-          <div className="border-b border-white/5 bg-white/[0.015] px-4 py-2 flex items-center justify-end gap-2">
-             <button
-               onClick={() => setShowDeadMoneyModal(true)}
-               className="text-[10px] font-medium text-white/40 hover:text-white transition-colors flex items-center gap-1"
-             >
-               <span className="opacity-50">⚙️</span> Manage Dead Money
-             </button>
+          <div className="border-b border-white/5 bg-white/[0.015] px-4 py-2 flex items-center justify-end gap-4">
+            <button
+              onClick={() => setShowExceptionsModal(true)}
+              className="text-[10px] font-medium text-white/40 hover:text-white transition-colors flex items-center gap-1"
+            >
+              <span className="opacity-50">📋</span> Manage Exceptions
+            </button>
+            <button
+              onClick={() => setShowDeadMoneyModal(true)}
+              className="text-[10px] font-medium text-white/40 hover:text-white transition-colors flex items-center gap-1"
+            >
+              <span className="opacity-50">⚙️</span> Manage Dead Money
+            </button>
           </div>
 
           {/* Cap Breakdown */}
           <div className="border-b border-white/5 bg-white/[0.01] px-4 py-2 space-y-1">
             <div className="flex items-center justify-between text-[10px] text-white/50">
               <span>Player Salaries</span>
-              <span className="tabular-nums">${totals.playersTotal.toLocaleString()}</span>
+              <span className="tabular-nums">
+                ${totals.playersTotal.toLocaleString()}
+              </span>
             </div>
             {totals.deadMoneyTotal > 0 && (
               <div className="flex items-center justify-between text-[10px] text-white/50">
                 <span>Dead Money</span>
-                <span className="tabular-nums">${totals.deadMoneyTotal.toLocaleString()}</span>
+                <span className="tabular-nums">
+                  ${totals.deadMoneyTotal.toLocaleString()}
+                </span>
               </div>
             )}
             {totals.capHoldsTotal > 0 && (
               <div className="flex items-center justify-between text-[10px] text-white/50">
                 <span>Cap Holds</span>
-                <span className="tabular-nums">${totals.capHoldsTotal.toLocaleString()}</span>
+                <span className="tabular-nums">
+                  ${totals.capHoldsTotal.toLocaleString()}
+                </span>
               </div>
             )}
             {totals.incompleteChargesTotal > 0 && (
-              <div 
+              <div
                 data-testid="incomplete-roster-charge-row"
                 className="flex items-center justify-between text-[10px] text-amber-400/80"
               >
@@ -399,11 +437,17 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer, onSetDeadCap }) =
                   Incomplete Roster Charge
                   {totals._meta?.incompleteRosterCharge?.missingSlots && (
                     <span className="text-white/40 ml-1">
-                      ({totals._meta.incompleteRosterCharge.missingSlots} open {totals._meta.incompleteRosterCharge.missingSlots === 1 ? 'slot' : 'slots'})
+                      ({totals._meta.incompleteRosterCharge.missingSlots} open{' '}
+                      {totals._meta.incompleteRosterCharge.missingSlots === 1
+                        ? 'slot'
+                        : 'slots'}
+                      )
                     </span>
                   )}
                 </span>
-                <span className="tabular-nums">${totals.incompleteChargesTotal.toLocaleString()}</span>
+                <span className="tabular-nums">
+                  ${totals.incompleteChargesTotal.toLocaleString()}
+                </span>
               </div>
             )}
           </div>
@@ -419,7 +463,7 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer, onSetDeadCap }) =
           </div>
         </div>
       </div>
-      
+
       {/* Modals */}
       {showDeadMoneyModal && (
         <ManageDeadMoneyModal
@@ -428,6 +472,15 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer, onSetDeadCap }) =
           teamCapSheet={teamCapSheet}
           currentYear={selectedYear}
           onSave={onSetDeadCap}
+        />
+      )}
+      {showExceptionsModal && (
+        <ManageExceptionsModal
+          isOpen={showExceptionsModal}
+          onClose={() => setShowExceptionsModal(false)}
+          teamCapSheet={teamCapSheet}
+          currentYear={selectedYear}
+          onSave={onSetExceptions}
         />
       )}
     </div>

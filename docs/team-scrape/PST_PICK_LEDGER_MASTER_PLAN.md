@@ -8,28 +8,29 @@
 
 ## Phase Status
 
-| Phase | Description | Status | Date |
-|-------|-------------|--------|------|
-| Phase 0 | Contracts, Years Window, Team Map | COMPLETE | 2026-01-17 |
-| Phase 1 | Acquisition: Fetch PST Pages | BLOCKED | 2026-01-17 |
-| Phase 1.1 | CDP Fetch Implementation | COMPLETE | 2026-01-17 |
-| Phase 2 | Extraction: Produce Raw Rows | COMPLETE | 2026-01-17 |
-| Phase 2.1 | Base Ledger + Owner Overlay | COMPLETE | 2026-01-17 |
-| Phase 2.1 | Refine Row Extraction (Own Picks) | COMPLETE | 2026-01-17 |
-| Phase 1.3 | Raw Row Normalization | COMPLETE | 2026-01-17 |
-| Phase 3 | Normalization | COMPLETE | 2026-01-17 |
-| Phase 4 | Deterministic Parser | COMPLETE | 2026-01-17 |
-| Phase 5 | Ledger Builder + Finalize | COMPLETE | 2026-01-17 |
-| Phase 5.1 | Round/Year Clause Gating Hotfix | COMPLETE | 2026-01-17 |
-| Phase 6 | Manual Check Views | COMPLETE | 2026-01-17 |
-| Phase 6.1 | OutcomeSpec + Manual View Upgrade | COMPLETE | 2026-01-17 |
-| Phase 6.3 | Conditional Tag + Swap Display Rule | COMPLETE | 2026-01-17 |
-| Phase 6.5 | Manual Check Views v6.5 (Swaps Focused) | COMPLETE | 2026-01-18 |
-| Phase 6.2 | Hard Guarantees | NOT STARTED | - |
-| Phase 7 | Collision Course | NOT STARTED | - |
-| Phase 8 | Entitlement Assets (Preflight + Exec) | COMPLETE | 2026-01-21 |
-| Phase 8.1 | Hotfix: Split Separable Rights + Physical Slots | COMPLETE | 2026-01-21 |
-| Phase 10 | Firestore Entitlements Storage + World Holdings | COMPLETE | 2026-01-21 |
+| Phase      | Description                                     | Status      | Date       |
+| ---------- | ----------------------------------------------- | ----------- | ---------- |
+| Phase 0    | Contracts, Years Window, Team Map               | COMPLETE    | 2026-01-17 |
+| Phase 1    | Acquisition: Fetch PST Pages                    | BLOCKED     | 2026-01-17 |
+| Phase 1.1  | CDP Fetch Implementation                        | COMPLETE    | 2026-01-17 |
+| Phase 2    | Extraction: Produce Raw Rows                    | COMPLETE    | 2026-01-17 |
+| Phase 2.1  | Base Ledger + Owner Overlay                     | COMPLETE    | 2026-01-17 |
+| Phase 2.1  | Refine Row Extraction (Own Picks)               | COMPLETE    | 2026-01-17 |
+| Phase 1.3  | Raw Row Normalization                           | COMPLETE    | 2026-01-17 |
+| Phase 3    | Normalization                                   | COMPLETE    | 2026-01-17 |
+| Phase 4    | Deterministic Parser                            | COMPLETE    | 2026-01-17 |
+| Phase 5    | Ledger Builder + Finalize                       | COMPLETE    | 2026-01-17 |
+| Phase 5.1  | Round/Year Clause Gating Hotfix                 | COMPLETE    | 2026-01-17 |
+| Phase 6    | Manual Check Views                              | COMPLETE    | 2026-01-17 |
+| Phase 6.1  | OutcomeSpec + Manual View Upgrade               | COMPLETE    | 2026-01-17 |
+| Phase 6.3  | Conditional Tag + Swap Display Rule             | COMPLETE    | 2026-01-17 |
+| Phase 6.5  | Manual Check Views v6.5 (Swaps Focused)         | COMPLETE    | 2026-01-18 |
+| Phase 6.2  | Hard Guarantees                                 | NOT STARTED | -          |
+| Phase 7    | Collision Course                                | NOT STARTED | -          |
+| Phase 8    | Entitlement Assets (Preflight + Exec)           | COMPLETE    | 2026-01-21 |
+| Phase 8.1  | Hotfix: Split Separable Rights + Physical Slots | COMPLETE    | 2026-01-21 |
+| Phase 10   | Firestore Entitlements Storage + World Holdings | COMPLETE    | 2026-01-21 |
+| Phase 11.0 | Read-only Entitlements Trade Machine            | COMPLETE    | 2026-01-21 |
 
 ---
 
@@ -227,7 +228,7 @@ Enhanced `isSwapOnlyClause()` in `pst_owner_model_utils.ts` to recognize ranked 
 new RegExp(
   `${yearPattern}\\s+${roundText}\\s+pick[^•]*(?:most\\s+favorable|second\\s+most\\s+favorable|third\\s+most\\s+favorable|least\\s+favorable)\\s+of`,
   'i'
-)
+);
 ```
 
 **Artifacts updated**
@@ -378,7 +379,7 @@ Cloudflare now aggressively fingerprints browsers launched by Playwright, even w
    npm run pst:validate
    ```
 
-   *Or run the full pipeline:*
+   _Or run the full pipeline:_
 
    ```bash
    npm run pst:phase-1-2:cdp
@@ -507,11 +508,11 @@ Claim example:
 
 **Tasks**
 
-1) Define tradable year window:
+1. Define tradable year window:
    - Determine the 7 years included (e.g., 2026–2032) based on project season context.
-2) Finalize team code mapping:
+2. Finalize team code mapping:
    - PST labels (“Trail Blazers”, “76ers”, etc.) → canonical codes.
-3) Freeze canonical schemas:
+3. Freeze canonical schemas:
    - Pick Asset schema
    - Claim schema
    - Encumbrance schemas (protections/swaps/fallback)
@@ -533,11 +534,11 @@ Claim example:
 
 **Tasks**
 
-1) Implement Playwright fetcher that:
+1. Implement Playwright fetcher that:
    - Visits each team page URL
    - Waits for DOM content
    - Saves HTML to disk
-2) Write a manifest:
+2. Write a manifest:
    - URL, status, timestamp, file path, content hash
 
 **Outputs**
@@ -627,9 +628,9 @@ Claim example:
 
 **Tasks**
 
-1) Normalize whitespace/punctuation/unicode variants
-2) Extract `teamsMentioned[]` from text using team map
-3) Standardize obvious synonyms (optional; only if safe)
+1. Normalize whitespace/punctuation/unicode variants
+2. Extract `teamsMentioned[]` from text using team map
+3. Standardize obvious synonyms (optional; only if safe)
 
 **Outputs**
 
@@ -650,23 +651,23 @@ Claim example:
 
 **Implemented Features**
 
-1) **Protections**:
+1. **Protections**:
    - `top_n`: "protected top N", "top N protected" → range 1–N
    - `range`: "protected 1-10", "1-14 protected" → explicit range
    - `lottery`: "lottery protected" → type lottery
    - Year span extraction: "in 2026-27" → appliesToYears [2026, 2027]
 
-2) **Swaps**:
+2. **Swaps**:
    - Controller detection: "[Team] has option to swap", "[Team] right to swap", "[Team] can swap"
    - Pool extraction from detected team codes
    - Most/least favorable detection
 
-3) **Conveyance / fallback chains**:
+3. **Conveyance / fallback chains**:
    - "if not conveyed" detection
    - Fallback description extraction: "becomes 2028 first round"
    - Fallback pickId resolution when possible
 
-4) **Did Not Convey**:
+4. **Did Not Convey**:
    - Condition not met detection (rowKind == 'condition_not_met')
    - Reason extraction from text
 
@@ -710,17 +711,17 @@ npm run pst:phase-4:report  # Also prints report JSON
 
 **Implementation Completed 2026-01-17**
 
-1) **Parser Rule Expansions** (in `pst_pick_rule_parser.ts`):
+1. **Parser Rule Expansions** (in `pst_pick_rule_parser.ts`):
    - Fixed FAVORABLE_POOL_AMBIGUOUS: Improved pool extraction from parentheses patterns like "(most favorable of Hawks, Spurs picks)"
    - Fixed FAVORABLE_POOL_AMBIGUOUS: Corrected ambiguity detection logic - pool.length > 1 with mostLeast set is EXPECTED, not ambiguous
    - Fixed CONDITION_NOT_EXTRACTABLE: Relaxed requirements for condition_not_met rows - "protection not met" is acceptable reason
    - Fixed PROTECTION_RANGE_AMBIGUOUS: Added support for "#13-30" range notation
    - Added `extractTeamCodesFromList()` helper for comma-separated team parsing
 
-2) **Phase 5 Runner** (`pst_phase_5_finalize.ts`):
+2. **Phase 5 Runner** (`pst_phase_5_finalize.ts`):
    - Validates needs_review_count == 0
    - Generates empty overrides file (all resolved by parser)
-   - Creates final profiles with _final suffix
+   - Creates final profiles with \_final suffix
    - Creates final ledger with encumbrances attached
    - Validates hard invariants
    - Generates validation report
@@ -741,12 +742,12 @@ npm run pst:phase-5    # Generate final artifacts
 
 **Results**
 
-| Metric | Before | After |
-|--------|--------|-------|
-| needs_review_count | 103 | 0 |
-| FAVORABLE_POOL_AMBIGUOUS | 75 | 0 |
-| CONDITION_NOT_EXTRACTABLE | 39 | 0 |
-| PROTECTION_RANGE_AMBIGUOUS | 15 | 0 |
+| Metric                     | Before | After |
+| -------------------------- | ------ | ----- |
+| needs_review_count         | 103    | 0     |
+| FAVORABLE_POOL_AMBIGUOUS   | 75     | 0     |
+| CONDITION_NOT_EXTRACTABLE  | 39     | 0     |
+| PROTECTION_RANGE_AMBIGUOUS | 15     | 0     |
 
 **Acceptance Criteria** ✓
 
@@ -798,18 +799,18 @@ Format: `{YEAR} | {ROUND} | {ORIGIN_TAG} | {TAGS}`
 
 These rules are **presentation-only** and intentionally conservative. They do not execute swap logic or interpret legal obligations.
 
-| Source | Generated Tags |
-|--------|----------------|
-| Protection (start=1) | `Top N` (broadest if multiple) |
-| Protection (range) | `protected #start-end` |
-| Protection (lottery) | `lottery` |
-| Multiple conflicting Top N | `PROT_CONFLICT` marker |
-| Favorable pool (mostLeast set) | `least of (A,B,C)` or `most of (A,B,C)` |
-| Swap (explicit controller) | `swap {TEAM}` (v6.3: now shown alongside pools) |
-| Swap (no valid controller) | `swap attached` |
-| Conditional (non-past-tense evidence) | `conditional` (v6.3: new) |
-| Did not convey (past-tense evidence) | `did not convey` |
-| Fallback indicator | `fallback` |
+| Source                                | Generated Tags                                  |
+| ------------------------------------- | ----------------------------------------------- |
+| Protection (start=1)                  | `Top N` (broadest if multiple)                  |
+| Protection (range)                    | `protected #start-end`                          |
+| Protection (lottery)                  | `lottery`                                       |
+| Multiple conflicting Top N            | `PROT_CONFLICT` marker                          |
+| Favorable pool (mostLeast set)        | `least of (A,B,C)` or `most of (A,B,C)`         |
+| Swap (explicit controller)            | `swap {TEAM}` (v6.3: now shown alongside pools) |
+| Swap (no valid controller)            | `swap attached`                                 |
+| Conditional (non-past-tense evidence) | `conditional` (v6.3: new)                       |
+| Did not convey (past-tense evidence)  | `did not convey`                                |
+| Fallback indicator                    | `fallback`                                      |
 
 **Key Refinements (Phase 6.2)**:
 
@@ -882,10 +883,10 @@ Pool = TeamCode ["," TeamCode]*  (sorted alphabetically)
 ```typescript
 interface SelectionSpec {
   kind: 'swap' | 'conveys';
-  controller?: TeamCode;     // Required for swap
+  controller?: TeamCode; // Required for swap
   order: 'most' | 'least';
-  rank: number;              // 1 for most/least, 2 for 2nd, etc.
-  pool: TeamCode[];          // Sorted alphabetically
+  rank: number; // 1 for most/least, 2 for 2nd, etc.
+  pool: TeamCode[]; // Sorted alphabetically
   year: number;
   round: 1 | 2;
   evidenceRowRefs: string[];
@@ -895,14 +896,14 @@ interface SelectionSpec {
 
 **Output Examples**
 
-| Scenario | OutcomeSpec |
-|----------|-------------|
-| 2-team swap | `swap:ATL — least of (ATL,SAS)` |
-| 3-team swap | `swap:NOP — most of (MIL,NOP)` |
-| 4-team swap | `swap:BKN — least of (BKN,DET,MIL,ORL)` |
-| Ranked swap | `swap:HOU — 2nd most of (DAL,HOU,PHX)` |
-| Ranked conveys | `conveys — 2nd most of (BOS,MIL,POR)` |
-| Protection + swap | `Top 4; swap:ORL — least of (MIL,ORL)` |
+| Scenario          | OutcomeSpec                             |
+| ----------------- | --------------------------------------- |
+| 2-team swap       | `swap:ATL — least of (ATL,SAS)`         |
+| 3-team swap       | `swap:NOP — most of (MIL,NOP)`          |
+| 4-team swap       | `swap:BKN — least of (BKN,DET,MIL,ORL)` |
+| Ranked swap       | `swap:HOU — 2nd most of (DAL,HOU,PHX)`  |
+| Ranked conveys    | `conveys — 2nd most of (BOS,MIL,POR)`   |
+| Protection + swap | `Top 4; swap:ORL — least of (MIL,ORL)`  |
 
 **Run Command**
 
@@ -919,12 +920,12 @@ This command runs the complete pipeline including OutcomeSpec generation:
 
 **Files Modified**
 
-| File | Changes |
-|------|---------|
-| `pst_pick_rule_parser.ts` | Added SelectionSpec type, parseRankedFavorablePool(), buildSelectionSpecs() |
-| `pst_phase_5_finalize.ts` | Generate selectionSpecs in final profiles and ledger |
-| `pst_phase_6_manual_check_views.ts` | Replaced generateTags() with composeOutcomeSpec() |
-| `package.json` | Added `pst:phase-6-1` script |
+| File                                | Changes                                                                     |
+| ----------------------------------- | --------------------------------------------------------------------------- |
+| `pst_pick_rule_parser.ts`           | Added SelectionSpec type, parseRankedFavorablePool(), buildSelectionSpecs() |
+| `pst_phase_5_finalize.ts`           | Generate selectionSpecs in final profiles and ledger                        |
+| `pst_phase_6_manual_check_views.ts` | Replaced generateTags() with composeOutcomeSpec()                           |
+| `package.json`                      | Added `pst:phase-6-1` script                                                |
 
 **Acceptance Criteria** ✓
 
@@ -954,8 +955,8 @@ Two presentation-only changes:
 
 **Files Modified**
 
-| File | Changes |
-|------|---------|
+| File                                | Changes                                                                                                              |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
 | `pst_phase_6_manual_check_views.ts` | Added `isExplicitNonTransfer()`, updated `generateTags()` for v6.3 rules, added profiles loading for evidence lookup |
 
 **Acceptance Criteria** ✓
@@ -1087,12 +1088,12 @@ npm run pst:manual-views:v6-5
 
 **Tasks**
 
-1) Produce comparable “RealGM ledger claims” in the same Claim schema
-2) Diff by `assetId`:
+1. Produce comparable “RealGM ledger claims” in the same Claim schema
+2. Diff by `assetId`:
    - owner mismatch
    - missing/extra encumbrances
    - swap/controller disagreement
-3) Output disputes list
+3. Output disputes list
 
 **Outputs**
 
@@ -1144,11 +1145,11 @@ npm run pst:manual-views:v6-5
 
 **Resolution Mechanisms (in order)**
 
-1) Expand deterministic parsing rules
-2) Add explicit overrides for specific assets:
+1. Expand deterministic parsing rules
+2. Add explicit overrides for specific assets:
    - `data/pst/pick_overrides.json`
    - Each override must include provenance and reason
-3) Optional: LLM may propose override drafts, but final truth is the override file.
+3. Optional: LLM may propose override drafts, but final truth is the override file.
 
 **Acceptance Criteria**
 
@@ -1204,18 +1205,19 @@ Use this for each phase run. Always update this Master Doc as phases complete.
 
 Every agent run must return:
 
-1) **Summary** of what was implemented and why  
-2) **Files changed/created** (full paths)  
-3) **How to run** (commands)  
-4) **Validation results**:
+1. **Summary** of what was implemented and why
+2. **Files changed/created** (full paths)
+3. **How to run** (commands)
+4. **Validation results**:
    - row counts
    - missing pages
    - needs_review count
    - invariant pass/fail
-5) **Known issues / next blockers**  
-6) Updated section(s) of this Master Doc reflecting completed work
+5. **Known issues / next blockers**
+6. Updated section(s) of this Master Doc reflecting completed work
 
 ---
+
 ---
 
 ### Phase 8 — Entitlement Assets (COMPLETE)
@@ -1241,3 +1243,66 @@ Every agent run must return:
 - CLE 2026 (swap encumbered) correctly generates `pick_ownership` for CLE + `swap_right` for UTA/ATL.
 
 **Impact**: Provides clean, tradeable assets for the Trade Machine UI, abstracting away complex underlying slots.
+
+---
+
+### Phase 11.0 — Read-only Entitlements Trade Machine (COMPLETE)
+
+**Goal**: Display draft entitlements in the Trade Machine in READ-ONLY mode. When entitlements exist, they replace legacy `team.picks` visually. Legacy picks remain as fallback only.
+
+**What changed**
+
+- Created formatting utilities for entitlement display
+- Created read-only row component for individual entitlements
+- Created list component with filtering, sorting, and year-grouped display
+- Modified TradeTeamCard to conditionally render entitlements or legacy picks
+
+**Files created**
+
+- `src/features/architect/utils/entitlements/formatEntitlement.js`
+  - `formatEntitlementLabel()` — Human-readable label from entitlement properties
+  - `getEntitlementKindTag()` — Kind badge with color (Own/Conditional/Swap Option)
+  - `getKindSortPriority()` — Sort order for entitlement kinds
+
+- `src/features/architect/tradeMachine/EntitlementPickRow.jsx`
+  - Read-only row for single entitlement
+  - Shows description, kind badge, encumbered warning indicator
+
+- `src/features/architect/tradeMachine/EntitlementPicksList.jsx`
+  - Filters out pooled entitlements by default
+  - Sorts by: seasonYear (asc), round (1 then 2), kind priority
+  - Groups visually by year
+  - Header: "Draft Assets (Entitlements)"
+
+**Files modified**
+
+- `src/features/architect/tradeMachine/TradeTeamCard.jsx`
+  - Added import for `EntitlementPicksList`
+  - Picks tab now conditionally renders:
+    - `EntitlementPicksList` when `team.entitlements?.length > 0`
+    - `OutgoingPicksList` (legacy fallback) otherwise
+
+**Display rules**
+
+- Grouped visually by year
+- Round labels: "1st", "2nd"
+- Kind badges always visible:
+  - `pick_ownership` → "Own" (green)
+  - `conveyance_right` → "Conditional" (amber)
+  - `swap_right` → "Swap Option" (purple)
+- Pooled entitlements hidden by default
+- Encumbered entitlements marked with ⚠️ indicator
+
+**Validation**
+
+- Build passes: `npm run build` ✓
+- Entitlements render instead of legacy picks when present
+- Legacy picks still render when entitlements absent
+- Correct badges per entitlement.kind
+- Correct sorting (year → round → kind)
+
+**Non-goals (preserved for Phase 11.1+)**
+
+- No trading or interaction with entitlements
+- No modification of trade logic or picksOut
+- No Firestore writes

@@ -1,10 +1,24 @@
-// PlayerProfileView.jsx
+/**
+ * FILE: src/pages/PlayerProfileView.jsx
+ * PURPOSE: Scouting Player Profile route view with player selection, state, and autosave.
+ * OWNERSHIP: Feature: profile/scouting
+ *
+ * HISTORY:
+ *  - 2026-01-21: Phase 2 - Added markDirty pattern, save status indicator, wrapped all setters
+ *  - 2026-01-21: Updated by plan `plans/_archive/scouting-player-profile-phase-1-data-contract/plan.md`, chunk_n/a
+ *
+ * LINKS:
+ *  - Plan: plans/_archive/scouting-player-profile-phase-1-data-contract/plan.md
+ *  - Latest Chunk: n/a (no chunks used)
+ */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
 import usePlayerDetail from '@/shared/hooks/usePlayerDetail';
 import useAutoSavePlayer from '@/features/profile/hooks/useAutoSavePlayer';
 import { enrichPlayerData } from '@/features/roster/utils/enrichPlayerData';
+import { normalizeBlurbs } from '@/shared/utils/blurbs';
+import SaveStatusIndicator from '@/features/profile/SaveStatusIndicator';
 
 import TeamPlayerDropdowns from '@/features/profile/TeamPlayerDropdowns';
 import PlayerNavigation from '@/features/profile/PlayerNavigation';
@@ -85,21 +99,51 @@ const PlayerProfileView = () => {
     setPlayer(data);
     setTraits(data.traits || { ...defaultTraits });
     setRoles({ ...defaultRoles, ...(data.roles || {}) });
-    setTwoWay(data.twoWay || 50); // Load twoWay separately
+    setTwoWay(Number.isFinite(data.twoWay) ? data.twoWay : 50);
     setSubRoles(data.subRoles || { offense: [], defense: [] });
     setBadges(data.badges || []);
-    setShootingProfile(data.shootingProfile || '');
-    setEditedBlurbs(data.blurbs || { ...defaultBlurbs });
+    setShootingProfile(data.shootingProfile ?? '');
+    setEditedBlurbs(normalizeBlurbs(data.blurbs || defaultBlurbs));
     setOverallGrade(data.overallGrade || null);
     setHasChanges(false);
   }, [selectedPlayer, detailedPlayer]);
 
-  useAutoSavePlayer({
+  // Centralized dirty-state helper - all setters should call this
+  const markDirty = useCallback(() => {
+    setHasChanges(true);
+  }, []);
+
+  // Wrapped setters that mark dirty state
+  const handleSetSubRoles = useCallback(
+    (value) => {
+      setSubRoles(typeof value === 'function' ? value : value);
+      markDirty();
+    },
+    [markDirty]
+  );
+
+  const handleSetBadges = useCallback(
+    (value) => {
+      setBadges(typeof value === 'function' ? value : value);
+      markDirty();
+    },
+    [markDirty]
+  );
+
+  const handleSetShootingProfile = useCallback(
+    (value) => {
+      setShootingProfile(value);
+      markDirty();
+    },
+    [markDirty]
+  );
+
+  const { isSaving, saveError, saveState } = useAutoSavePlayer({
     playerId: selectedPlayer,
     player,
     traits,
     roles,
-    twoWay, // Pass twoWay separately
+    twoWay,
     subRoles,
     badges,
     shootingProfile,
@@ -131,20 +175,20 @@ const PlayerProfileView = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handlePrevPlayer, handleNextPlayer]);
 
-  const handleTraitChange = (e, trait) => {
+  const handleTraitChange = useCallback((e, trait) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
     const percentage = Math.round((clickX / rect.width) * 100);
     setTraits((prev) => ({ ...prev, [trait]: percentage }));
     setHasChanges(true);
-  };
+  }, []);
 
-  const handleRoleChange = (key, value) => {
+  const handleRoleChange = useCallback((key, value) => {
     setRoles((prev) => ({ ...prev, [key]: value }));
     setHasChanges(true);
-  };
+  }, []);
 
-  const handleBlurbChange = (key, value) => {
+  const handleBlurbChange = useCallback((key, value) => {
     setEditedBlurbs((prev) => {
       const updated = { ...prev };
       if (key.startsWith('trait_'))
@@ -159,7 +203,7 @@ const PlayerProfileView = () => {
       return updated;
     });
     setHasChanges(true);
-  };
+  }, []);
 
   const handleSearchSelect = (id, team) => {
     if (!id) return;
@@ -211,33 +255,36 @@ const PlayerProfileView = () => {
         <PlayerNavigation onPrev={handlePrevPlayer} onNext={handleNextPlayer} />
 
         {player && !detailLoading && (
-          <PlayerDetails
-            player={player}
-            selectedPlayer={selectedPlayer}
-            traits={traits}
-            onTraitChange={handleTraitChange}
-            roles={roles}
-            onRoleChange={handleRoleChange}
-            twoWay={twoWay}
-            onTwoWayChange={(value) => {
-              setTwoWay(value);
-              setHasChanges(true);
-            }}
-            subRoles={subRoles}
-            setSubRoles={setSubRoles}
-            shootingProfile={shootingProfile}
-            setShootingProfile={setShootingProfile}
-            badges={badges}
-            setBadges={setBadges}
-            editedBlurbs={editedBlurbs}
-            onBlurbChange={handleBlurbChange}
-            overallGrade={overallGrade}
-            setOverallGrade={(val) => {
-              setOverallGrade(val);
-              setHasChanges(true);
-            }}
-            setOpenModal={setOpenModal}
-          />
+          <>
+            <SaveStatusIndicator saveState={saveState} saveError={saveError} />
+            <PlayerDetails
+              player={player}
+              selectedPlayer={selectedPlayer}
+              traits={traits}
+              onTraitChange={handleTraitChange}
+              roles={roles}
+              onRoleChange={handleRoleChange}
+              twoWay={twoWay}
+              onTwoWayChange={(value) => {
+                setTwoWay(value);
+                markDirty();
+              }}
+              subRoles={subRoles}
+              setSubRoles={handleSetSubRoles}
+              shootingProfile={shootingProfile}
+              setShootingProfile={handleSetShootingProfile}
+              badges={badges}
+              setBadges={handleSetBadges}
+              editedBlurbs={editedBlurbs}
+              onBlurbChange={handleBlurbChange}
+              overallGrade={overallGrade}
+              setOverallGrade={(val) => {
+                setOverallGrade(val);
+                markDirty();
+              }}
+              setOpenModal={setOpenModal}
+            />
+          </>
         )}
 
         {openModal && (
