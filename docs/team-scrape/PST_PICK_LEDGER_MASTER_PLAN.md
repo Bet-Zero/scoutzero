@@ -27,7 +27,8 @@
 | Phase 6.5 | Manual Check Views v6.5 (Swaps Focused) | COMPLETE | 2026-01-18 |
 | Phase 6.2 | Hard Guarantees | NOT STARTED | - |
 | Phase 7 | Collision Course | NOT STARTED | - |
-| Phase 8 | Zero-Blocker Closure | NOT STARTED | - |
+| Phase 8 | Entitlement Assets (Preflight + Exec) | COMPLETE | 2026-01-21 |
+| Phase 8.1 | Hotfix: Split Separable Rights + Physical Slots | COMPLETE | 2026-01-21 |
 
 ---
 
@@ -245,6 +246,30 @@ new RegExp(
 - Final ledger count remains 480 ✓
 - needs_review remains 0 ✓
 - Regression validator: `npm run pst:validate:overlay:regressions` ✓
+
+---
+
+### Phase 8.1 — Hotfix: Split Separable Rights + Physical Slots (COMPLETE)
+
+**Goal**: Fix HOU 2029 mechanism representation and ensure physical slots are never suppressed.
+
+**What changed**
+
+- **Entitlement Generator**:
+  - Stopped suppressing `pick_ownership` assets when conveyance rights exist.
+  - Added metadata: `underlyingStatus` and `coveredByEntitlementIds`.
+  - Implemented specific splitting logic for "Rank 2 of 3" pools involving the holder (e.g. HOU 2029) to emit distinct Conveyance and Swap rights instead of one merged right.
+
+**Artifacts updated**
+
+- `team-scrape/draft-picks/scripts/pst/pst_phase_8_build_entitlement_assets.ts`
+- `docs/team-scrape/PST_PHASE_8_ENTITLEMENT_ASSETS_MASTER_SPEC.md`
+- `data/pst/pst_entitlement_assets_2026_2033.json` (regenerated)
+
+**Validation**
+
+- Physical pick slots: 480/480 preserved.
+- HOU 2029 rights: Split into distinct Conveyance (Best of Others) and Swap (Holder vs Worst).
 
 ---
 
@@ -1171,3 +1196,28 @@ Every agent run must return:
 6) Updated section(s) of this Master Doc reflecting completed work
 
 ---
+---
+
+### Phase 8 — Entitlement Assets (COMPLETE)
+
+**Goal**: Formalize "Entitlement Assets" — tradeable rights (swap options, pooled outcomes) separate from base pick ownership.
+
+**What changed**
+
+- Created `PST_PHASE_8_ENTITLEMENT_ASSETS_MASTER_SPEC.md`
+- Implemented `team-scrape/draft-picks/scripts/pst/pst_phase_8_build_entitlement_assets.ts`
+- Added fallback logic for pooled conveyances where controller is implicit (e.g. `HOU` receiving `Rank 2` of `HOU/DAL/PHX`).
+
+**Artifacts updated**
+
+- `team-scrape/draft-picks/scripts/pst/pst_phase_8_build_entitlement_assets.ts` (NEW)
+- `data/pst/pst_entitlement_assets_2026_2033.json` (NEW)
+- `data/pst/pst_entitlements_by_team_2026_2033.json` (NEW)
+- `package.json` (added `pst:entitlements` script)
+
+**Validation**
+
+- HOU 2029 (pooled) correctly generates single `conveyance_right` entitlement and suppresses separate `pick_ownership` entries.
+- CLE 2026 (swap encumbered) correctly generates `pick_ownership` for CLE + `swap_right` for UTA/ATL.
+
+**Impact**: Provides clean, tradeable assets for the Trade Machine UI, abstracting away complex underlying slots.

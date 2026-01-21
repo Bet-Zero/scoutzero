@@ -21,6 +21,7 @@ Quick reference for all components in the ScoutZero project.
 - GMDashboard/components/OfferSheetList.jsx
 - GMDashboard/components/SeasonAdvanceModal.jsx
 - GMDashboard/components/WorldSelector.jsx
+- GMDashboard/components/WorldTimeControls.jsx
 - GMDashboard/components/index.js
 - GMDashboard/index.jsx
 - GMDashboard/sections/CapSheetSection.jsx
@@ -188,6 +189,7 @@ Quick reference for all components in the ScoutZero project.
 - utils/tradeMachine/utils/validateInput.js
 - utils/tradeMachine/validators/index.js
 - utils/tradeManager.js
+- utils/validatePhase21.test.js
 - utils/worldManager.js
 
 ## Filters
@@ -328,4 +330,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2026-01-20T07:38:30.926Z*
+*Generated on: 2026-01-21T08:22:06.026Z*

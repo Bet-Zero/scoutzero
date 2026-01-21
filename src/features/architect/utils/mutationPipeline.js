@@ -172,7 +172,7 @@ function guardAgainstUndefined(obj, label) {
 // ==============================================================================
 
 /**
- * @typedef {'executeTrade' | 'signFreeAgent' | 'waivePlayer' | 'extendPlayer' | 'optionDecision' | 'renounceRights' | 'storeOfferSheet' | 'matchOfferSheet' | 'declineOfferSheet' | 'finalizeMatchedOfferSheet' | 'finalizeDeclinedOfferSheet'} MutationType
+ * @typedef {'executeTrade' | 'signFreeAgent' | 'waivePlayer' | 'extendPlayer' | 'optionDecision' | 'renounceRights' | 'storeOfferSheet' | 'matchOfferSheet' | 'declineOfferSheet' | 'finalizeMatchedOfferSheet' | 'finalizeDeclinedOfferSheet' | 'signAndTrade'} MutationType
  */
 
 /**
@@ -584,6 +584,21 @@ async function loadStateForMutation(worldId, mutationType, payload) {
       return { homeTeam, offeringTeam, offerSheetId };
     }
 
+    case 'signAndTrade': {
+      const { teamCode, destinationTeamCode, playerId } = payload;
+      if (!teamCode) throw new Error('Missing source teamCode');
+      if (!destinationTeamCode) throw new Error('Missing destinationTeamCode');
+      if (!playerId) throw new Error('Missing playerId');
+
+      const [team, destinationTeam, player] = await Promise.all([
+        getTeam(worldId, teamCode),
+        getTeam(worldId, destinationTeamCode),
+        getPlayer(worldId, teamCode, playerId),
+      ]);
+
+      return { team, destinationTeam, player, teamCode, destinationTeamCode };
+    }
+
     case 'renounceRights': {
       // Renounce rights: player may only exist in team's players array or cap holds
       // (free agents with cap holds might not have a base player record)
@@ -706,6 +721,9 @@ export function computeWorldMutation({
 
     case 'renounceRights':
       return computeRenounceResult({ payload, currentState, seasonId, timestamp });
+
+    case 'signAndTrade':
+      return computeSignAndTradeResult({ payload, currentState, seasonId, timestamp });
 
     default:
       return { success: false, error: `Unknown mutation type: ${mutationType}` };
@@ -1447,6 +1465,7 @@ function validateMutation({ mutationType, payload, currentState, computeResult, 
         stretch: payload.stretch,
         year: currentYear,
         isGracePeriod: payload.isGracePeriod || false,
+        asOfDate, // Phase 21: World time for stretch timing check
       });
       return {
         valid: result.valid,
@@ -1515,11 +1534,42 @@ function validateMutation({ mutationType, payload, currentState, computeResult, 
       };
     }
 
-    case 'matchOfferSheet': // fallthrough
+    case 'matchOfferSheet': {
+      // Validate Match Action (including 48h window check)
+      const offerSheet = currentState.homeTeam?.incomingOfferSheets?.find(
+        (os) => os.id === currentState.offerSheetId
+      );
+      const result = validateOfferSheetResolution({
+        offerSheet,
+        actingTeamCode: payload.teamCode,
+        action: 'match',
+        asOfDate, // Phase 21
+      });
+      return {
+        valid: result.valid,
+        error: result.violations[0]?.message || null,
+        violations: result.violations,
+        warnings: [...result.warnings, ...pipelineWarnings],
+      };
+    }
+
     case 'declineOfferSheet': {
-       // Structural validation already done in load/compute (existence checks)
-       // Could add specific business logic here if needed (e.g. valid window)
-       return { valid: true };
+      // Validate Decline Action
+      const offerSheet = currentState.homeTeam?.incomingOfferSheets?.find(
+        (os) => os.id === currentState.offerSheetId
+      );
+      const result = validateOfferSheetResolution({
+        offerSheet,
+        actingTeamCode: payload.teamCode,
+        action: 'decline',
+        asOfDate, // Phase 21
+      });
+      return {
+        valid: result.valid,
+        error: result.violations[0]?.message || null,
+        violations: result.violations,
+        warnings: [...result.warnings, ...pipelineWarnings],
+      };
     }
 
     case 'storeOfferSheet': {
@@ -1540,6 +1590,7 @@ function validateMutation({ mutationType, payload, currentState, computeResult, 
 
     case 'matchOfferSheet':
     case 'declineOfferSheet': {
+       // Handled above (split cases)
        return { valid: true };
     }
 
@@ -1553,6 +1604,84 @@ function validateMutation({ mutationType, payload, currentState, computeResult, 
         error: result.violations[0]?.message || null,
         violations: result.violations,
         warnings: result.warnings,
+      };
+
+    }
+
+    case 'signAndTrade': {
+      // 1. Validate Signing
+      const signingResult = validateSigning({
+        team: currentState.team,
+        player: currentState.player,
+        contract: payload.contract,
+        signedUsing: payload.signedUsing,
+        year: currentYear,
+      });
+
+      if (!signingResult.valid) {
+        return {
+          valid: false,
+          error: signingResult.violations[0]?.message || 'Signing validation failed',
+          violations: signingResult.violations,
+          warnings: signingResult.warnings,
+        };
+      }
+
+      // 2. Validate Trade (using Post-Signing State)
+      // We must reconstruct the state as if the signing happened, for the trade validator
+      // The computeResult.teamUpdates contains the FINAL state (post-trade), 
+      // but standard validateTrade expects current state.
+      // However, we can construct the "intermediate" state from computeResult logic?
+      // Or just trust computeResult if we assume computeSignAndTradeResult did the trade correctly?
+      // Better: Construct the intermediate state locally for validation.
+      
+      // Actually, we can just look closely at computeSignAndTradeResult. 
+      // It generates an updatedSourceTeam.
+      // But we can't easily extract that here without duplicating logic.
+      // For MVP, since computeSignAndTradeResult calls computeTradeResult which doesn't validate,
+      // we must run the trade validator here.
+      
+      // Let's rely on the fact that existing validateTrade expects the player to be on the roster.
+      // So we fake the source team having the player.
+      
+      const fakeSourceTeam = {
+        ...currentState.team,
+        roster: [...(currentState.team.roster || []), currentState.player.player_id || currentState.player.id],
+        // Minimal player object needed for validator check?
+        players: [...(currentState.team.players || []), { ...currentState.player, teamCode: currentState.teamCode }]
+      };
+      
+      // Construct Trade Payload for validator
+      const tradePayload = {
+        teams: [
+          {
+            teamCode: currentState.teamCode,
+            sends: [{ 
+              player_id: currentState.player.player_id || currentState.player.id, 
+              receivingTeamId: currentState.destinationTeamCode 
+            }]
+          },
+          {
+            teamCode: currentState.destinationTeamCode,
+            sends: []
+          }
+        ]
+      };
+      
+      const fakeCurrentState = {
+        teams: [
+            { teamCode: currentState.teamCode, team: fakeSourceTeam },
+            { teamCode: currentState.destinationTeamCode, team: currentState.destinationTeam }
+        ]
+      };
+
+      const tradeResult = validateTradeForPipeline(tradePayload, fakeCurrentState, seasonId);
+
+      return {
+        valid: tradeResult.valid,
+        error: tradeResult.error,
+        violations: [...signingResult.violations, ...(tradeResult.violations || [])],
+        warnings: [...signingResult.warnings, ...(tradeResult.warnings || [])],
       };
     }
 
@@ -2185,6 +2314,94 @@ function computeFinalizeDeclinedOfferSheetResult({ payload, currentState, season
   };
 }
 
+/**
+ * Compute Sign and Trade result.
+ * 
+ * 1. Signs player to Source Team.
+ * 2. Trades player to Destination Team.
+ */
+function computeSignAndTradeResult({ payload, currentState, seasonId, timestamp }) {
+  const { team, destinationTeam, player } = currentState;
+  const { teamCode, destinationTeamCode } = payload;
+
+  // 1. Compute Signing Result
+  const signingPayload = {
+    teamCode,
+    playerId: payload.playerId,
+    contract: payload.contract,
+    signedUsing: payload.signedUsing
+  };
+  
+  const signingState = { team, player, teamCode };
+  const signingResult = computeSigningResult({ 
+    payload: signingPayload, 
+    currentState: signingState, 
+    seasonId, 
+    timestamp 
+  });
+
+  if (!signingResult.success) {
+    return { success: false, error: signingResult.error || 'Signing step failed' };
+  }
+
+  // Extract updated source team and player (now signed) from signing result
+  const updatedSourceTeam = signingResult.teamUpdates[0].team;
+  const signedPlayer = signingResult.playerUpdates[0].player; 
+
+  // 2. Compute Trade Result
+  // Construct trade payload
+  const tradePayload = {
+    teams: [
+      {
+        teamCode: teamCode,
+        sends: [{ 
+          ...signedPlayer, // Send the fully signed player object with new contract
+          receivingTeamId: destinationTeamCode,
+          receivingTeamIndex: 1
+        }]
+      },
+      {
+        teamCode: destinationTeamCode,
+        sends: []
+      }
+    ]
+  };
+
+  // Construct trade state (Source has signed player, Dest is original)
+  const tradeState = {
+    teams: [
+      { teamCode, team: updatedSourceTeam },
+      { teamCode: destinationTeamCode, team: destinationTeam }
+    ]
+  };
+
+  const tradeResult = computeTradeResult({
+    payload: tradePayload,
+    currentState: tradeState,
+    seasonId,
+    timestamp
+  });
+
+  if (!tradeResult.success) {
+      return { success: false, error: tradeResult.error || 'Trade step failed' };
+  }
+
+  // 3. Return Combined Result
+  return {
+    success: true,
+    teamUpdates: tradeResult.teamUpdates, // Contains both Source (minus player) and Dest (plus player)
+    playerUpdates: tradeResult.playerUpdates, // Player with new teamCode
+    metadata: {
+      type: 'signAndTrade',
+      sourceTeam: teamCode,
+      destinationTeam: destinationTeamCode,
+      playerId: payload.playerId,
+      contract: payload.contract,
+      timestamp
+    }
+  };
+}
+
 // ==============================================================================
 // HELPER FUNCTIONS
 // ==============================================================================
@@ -2211,6 +2428,7 @@ function getMutationActionType(mutationType) {
     case 'declineOfferSheet':
     case 'finalizeMatchedOfferSheet':
     case 'finalizeDeclinedOfferSheet':
+    case 'signAndTrade':
       return 'signing';
     default:
       return 'unknown';

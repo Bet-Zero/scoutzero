@@ -21,6 +21,7 @@ GMDashboard/
     OfferSheetList.jsx
     SeasonAdvanceModal.jsx
     WorldSelector.jsx
+    WorldTimeControls.jsx
     index.js
   hooks/
     useArchitectActions.ts
@@ -278,10 +279,11 @@ utils/
     validators/
       index.js
   tradeManager.js
+  validatePhase21.test.js
   worldManager.js
   worldTeamData.ts
 ```
 
 ---
-*Generated on: 2026-01-20T07:38:30.895Z*
+*Generated on: 2026-01-21T08:22:05.946Z*
 *Auto-updated by: npm run docs*

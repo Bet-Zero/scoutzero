@@ -74,8 +74,8 @@ READ → COMPUTE (PURE) → VALIDATE → PERSIST → POST-UPDATE
 | `optionDecision` | `computeOptionResult()` | `validateOptionDecision()` |
 | `renounceRights` | `computeRenounceResult()` | `validateRenounceRights()` |
 | `storeOfferSheet` | `computeStoreOfferSheetResult()` | `validateStoreOnlyInvariants()` |
-| `matchOfferSheet` | `computeMatchOfferSheetResult()` | `validateMatchOfferSheet()` |
-| `declineOfferSheet` | `computeDeclineOfferSheetResult()` | `validateDeclineOfferSheet()` |
+| `matchOfferSheet` | `computeMatchOfferSheetResult()` | `validateOfferSheetResolution()` |
+| `declineOfferSheet` | `computeDeclineOfferSheetResult()` | `validateOfferSheetResolution()` |
 
 ### 2.3 UI Action Handlers
 
@@ -248,6 +248,10 @@ interface CapHold {
 | First Apron Warning | `capLegalityValidation.js:validateSigning` | Pre-persist | Warning | `projectedCapHit`, `capSettings.firstApron` |
 | Second Apron Warning | `capLegalityValidation.js:validateSigning` | Pre-persist | Warning | `projectedCapHit`, `capSettings.secondApron` |
 | Cap Hold Info | `capLegalityValidation.js:validateRenounceRights` | Pre-persist | Info | `team.capHolds` |
+| **World Time Defaulted** | `mutationPipeline.js:validateMutation` | Pre-persist | Warning | `dateDefaulted` |
+| **Offer Sheet Window Expired** | `capLegalityValidation.js:validateOfferSheetResolution` | Pre-persist | Warning | `asOfDate`, `offerSheet.createdAt` (48h window) |
+| **Stretch Timing Suspicious** | `capLegalityValidation.js:validateWaive` | Pre-persist | Warning | `asOfDate`, Season Start Date (stretch after start) |
+| **Stretch Timing Unknown** | `capLegalityValidation.js:validateWaive` | Pre-persist | Warning | `asOfDate`, Season Code (missing start date) |
 
 **Note:** Signing guardrails (max years, raises, first-year max) now use Salary Engine signing terms when available. Phase 2/2.5 exception tables remain the fallback when engine terms are unavailable.
 
@@ -634,6 +638,41 @@ Phase 20 provides the infrastructure for Phase 21 to implement:
 * 48-hour offer sheet window enforcement
 * Other timing-based CBA rules
 
+---
+
+## 9.92 Phase 21: Timing Warnings
+
+Phase 21 introduces soft warning enforcement for timing-critical CBA rules using the `asOfDate` SSOT.
+
+### Philosophy: Warnings vs Blocks
+
+Given the complexity of retroactive data entry (e.g., entering a July transaction in October), timing rules are enforced as **WARNINGS ONLY**. This preserves user agency while creating awareness of potential CBA violations.
+
+### 48-Hour Offer Sheet Window
+
+* **Rule:** An offer sheet can only be matched within 48 hours of receipt.
+* **Validator:** `rfa_offer_sheet_window_expired`
+* **Logic:** `asOfDate > offerSheet.createdAt + 48 hours`
+* **Trigger:** Attempting `matchOfferSheet` mutation.
+
+### Stretch Provision Timing
+
+* **Rule:** A waive-and-stretch is generally only allowed before the season starts (for full current season relief). Stretches after season start have complex pro-ration rules often distinct from simple cap relief.
+* **Validator:** `stretch_timing_suspicious`
+* **Logic:** `asOfDate > getSeasonStartDate(seasonCode)`
+* **Trigger:** Attempting `waivePlayer` with `stretch: true`.
+
+### Season Boundaries (Phase 21 MVP)
+
+Hardcoded helper `getSeasonStartDate(seasonCode)` provides boundaries for `stretch_timing_suspicious`:
+
+* 2024-25: 2024-10-22
+* 2025-26: 2025-10-21 (Estimated)
+* 2026-27: 2026-10-20 (Estimated)
+* Unknown: 2026-10-?? (Returns null -> `stretch_timing_not_enforced_missing_season_boundary`)
+
+---
+
 ## 10. Change Log
 
 | Date | Change |
@@ -670,6 +709,8 @@ Phase 20 provides the infrastructure for Phase 21 to implement:
 | 2026-01-20 | **Contract Rules Phase 18.2:** Offer Sheet Audit-Grade Lock. (1) Idempotency proof tests now execute `computeStoreOfferSheetResult` twice and verify no duplicate entries (store twice with different ID → 1 entry, store twice with no ID → 1 entry). (2) `worldId` now required for `storeOfferSheet` - missing worldId fails fast with error. (3) `computeFinalizeDeclinedOfferSheetResult` cleanup now removes by `id` OR `dedupKey`, fixing mirrored array divergence. (4) UI wiring: DECLINED finalization now calls `finalizeDeclinedOfferSheet` mutation instead of `signFreeAgent`, with `dedupKey` in payload. 13 new tests added. Build succeeds. |
 | 2026-01-20 | **Contract Rules Phase 19:** Cap Hold / Cap Space Enforcement. (1) Added `cap_hold_signing_violation` HARD_BLOCK rule to prevent cap-space signings that exceed salary cap when cap holds are included. (2) Added `isCapSpaceSigning()` helper to detect signings without exception or Bird rights. (3) Cap hold replacement logic: re-signings replace player's existing cap hold. (4) Added `cap_hold_renounce_required` warning when specific holds block signing. (5) **DEFERRED:** `stretch_timing_invalid` - no canonical world date/season phase exists (stop condition). (6) 22 new tests added. Build succeeds. |
 | 2026-01-20 | **Contract Rules Phase 20:** World Time SSOT. (1) Added `resolveWorldAsOfDate()` helper as single source of truth for world time. Resolution priority: payload `asOfDate` → world metadata `asOfDate` → system fallback. (2) Threaded `asOfDate` through mutation pipeline: `applyWorldMutation` → `computeWorldMutation` → `validateMutation` → `persistWorldMutation`. (3) Added `world_time_defaulted` warning rule (emitted when date is defaulted). (4) Persist policy: only write `asOfDate` to world metadata when payload explicitly includes it (no silent overwrites). (5) 14 new tests added. Build succeeds. |
+| 2026-01-20 | **Contract Rules Phase 21:** Timing Warnings. (1) Added World Time Controls to GMDashboard (`WorldTimeControls.jsx`). (2) Implemented `offer_sheet_window_expired` warning: warns if matching >48 hours after creation relative to `asOfDate`. (3) Implemented `stretch_timing_suspicious` warning: warns if stretching after season start date relative to `asOfDate`. (4) Added `getSeasonStartDate` helper with MVP boundaries. (5) 10 new tests demonstrating warnings (non-blocking). |
+| 2026-01-22 | **Contract Rules Phase 23:** Sign & Trade Execution. (1) Implemented compound mutation `signAndTrade` in `mutationPipeline.js`. (2) Atomic persistence: single validation and write operation ensures both signing and trade succeed or fail together. (3) Validation: orchestrates `validateSigning` (for contract legality) followed by `validateTrade` (for trade rules). (4) Updates `EditContractModal` to support destination team selection. (5) Verified atomic updates: player moves to destination roster with new contract, source team gets no player but loses rights cleanly. |
 
 ---
 

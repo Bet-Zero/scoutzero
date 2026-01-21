@@ -26,6 +26,7 @@ import { FreeAgencySection } from './sections/FreeAgencySection';
 import { OffseasonSection } from './sections/OffseasonSection';
 import { HistorySection } from './sections/HistorySection';
 import { WorldSelector } from '@/features/architect/GMDashboard/components/WorldSelector';
+import { WorldTimeControls } from '@/features/architect/GMDashboard/components/WorldTimeControls';
 import { useArchitectState } from './hooks/useArchitectState';
 import { useArchitectActions } from './hooks/useArchitectActions';
 import { useArchitectModals } from './hooks/useArchitectModals';
@@ -80,6 +81,7 @@ const GMDashboard = () => {
     playersMap,
     capTableYears,
     worldId,
+    worldAsOfDate,
     // Setters still needed by GMDashboard JSX/children
     setTeamCapSheet,
     setCurrentYear,
@@ -88,6 +90,7 @@ const GMDashboard = () => {
     setOffseasonRun,
     setOffseasonSummary,
     setWorldId,
+    setWorldAsOfDate,
   } = state;
 
   // Destructure modals for easier access
@@ -162,8 +165,16 @@ const GMDashboard = () => {
             />
           )}
 
-          {/* Divider between world and other controls */}
           {userId && <div className="h-6 w-px bg-white/10" />}
+
+          {/* Phase 21: World Time Controls */}
+          {userId && worldId && (
+            <WorldTimeControls
+              worldId={worldId}
+              asOfDate={worldAsOfDate}
+              setAsOfDate={setWorldAsOfDate}
+            />
+          )}
 
           {/* Season Selector */}
           <label className="flex items-center gap-2 text-sm font-medium">

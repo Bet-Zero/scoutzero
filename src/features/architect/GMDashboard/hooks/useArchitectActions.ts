@@ -687,6 +687,36 @@ export function useArchitectActions({
     [teamCode, playersMap, setTeamCapSheet, setFreeAgents, persistMutation]
   );
 
+  const handleSignAndTrade = useCallback(
+    (
+      playerObj: ArchitectPlayer,
+      contract: SigningDetails,
+      destinationTeamCode: string
+    ): void => {
+      // 1. Ensure Local Contract Structure (same as handleSign)
+      const architectContract = ensureContractStructure(
+        contract as LocalContract,
+        {
+          contractType: 'Sign & Trade', // distinct type
+          isExtension: false, // S&T is a new contract
+          isRookieScale: !!contract.isRookieScale,
+          signingTeam: teamCode,
+        }
+      );
+
+      // 2. Persist Compound Mutation
+      persistMutation('signAndTrade', {
+        teamCode, // Source Team
+        destinationTeamCode, // Target Team
+        playerId: playerObj.id || playerObj.player_id,
+        contract: architectContract,
+        signedUsing: contract.signedUsing || null,
+        signAndTrade: true,
+      });
+    },
+    [teamCode, persistMutation]
+  );
+
   // === RFA Offer Sheet Actions ===
 
   const handleStoreOfferSheet = useCallback(

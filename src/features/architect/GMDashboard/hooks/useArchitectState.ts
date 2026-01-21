@@ -15,6 +15,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { loadFreeAgents } from '@/features/architect/utils/firebaseTeamPlanHelpers';
 import { loadWorldTeamData } from '@/features/architect/utils/worldTeamData';
+import { getWorldMetadata } from '@/features/architect/utils/worldManager';
 import useArchitectPlayerData from '@/features/architect/hooks/useArchitectPlayerData';
 import capProjections from '@/features/architect/utils/capProjections';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
@@ -170,6 +171,7 @@ interface UseArchitectStateReturn {
   capTableYears: number[];
   players: ArchitectPlayer[];
   worldId: string | null;
+  worldAsOfDate: string | null;
 
   // Setters (all needed by GMDashboard)
   setBaselineCapSheet: React.Dispatch<React.SetStateAction<CapSheet | null>>;
@@ -185,6 +187,7 @@ interface UseArchitectStateReturn {
   setOffseasonRun: React.Dispatch<React.SetStateAction<boolean>>;
   setOffseasonSummary: React.Dispatch<React.SetStateAction<unknown | null>>;
   setWorldId: React.Dispatch<React.SetStateAction<string | null>>;
+  setWorldAsOfDate: React.Dispatch<React.SetStateAction<string | null>>;
 
   // Higher-level state actions (use these instead of raw setters)
   startLoad: () => void;
@@ -276,6 +279,7 @@ export function useArchitectState({
 
   // === World state (for Architect worlds system) ===
   const [worldId, setWorldId] = useState<string | null>(null);
+  const [worldAsOfDate, setWorldAsOfDate] = useState<string | null>(null);
 
   // === Selection state ===
   const [currentYear, setCurrentYear] = useState<number>(() => {
@@ -384,6 +388,18 @@ export function useArchitectState({
           setTeamCapSheet(deepClone(base) as CapSheet);
         } else {
           console.warn('No saved team found, using blank slate.');
+        }
+
+        // Phase 21: Load world metadata for timing context
+        if (worldId) {
+          try {
+            const meta = await getWorldMetadata(worldId);
+            setWorldAsOfDate(meta?.asOfDate || null);
+          } catch (e) {
+            console.warn('Failed to load world metadata:', e);
+          }
+        } else {
+          setWorldAsOfDate(null);
         }
       } catch (err) {
         console.error(err);
@@ -606,6 +622,7 @@ export function useArchitectState({
     setOffseasonRun,
     setOffseasonSummary,
     setWorldId,
+    setWorldAsOfDate,
 
     // Higher-level state actions (use these instead of raw setters)
     startLoad,

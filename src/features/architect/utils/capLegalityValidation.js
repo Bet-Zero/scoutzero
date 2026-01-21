@@ -217,7 +217,25 @@ export const SOFT_WARNING_RULES = [
   'rfa_offer_sheet_stub_active',        // Phase 12: Offer sheet processing in stub mode (UI informational)
   'rfa_offer_sheet_store_only_flag_in_use', // Phase 14: Store-only mode is active for offer sheet (info)
   'world_time_defaulted', // Phase 20: World time was defaulted (not from payload or world metadata)
+  'offer_sheet_window_expired', // Phase 21: 48-hour match window expired
+  'stretch_timing_suspicious', // Phase 21: Stretch used after season start
+  'stretch_timing_not_enforced_missing_season_boundary', // Phase 21: Missing season start date
 ];
+
+/**
+ * Helper: Get canonical season start date (Placeholder for Phase 21).
+ * Returns YYYY-MM-DD string or null if unknown.
+ */
+function getSeasonStartDate(seasonCode) {
+  // MVP Hardcoded boundaries
+  // 2024-25: Oct 22, 2024
+  if (seasonCode === '2024-25') return '2024-10-22';
+  // 2025-26: Oct 21, 2025 (Estimated)
+  if (seasonCode === '2025-26') return '2025-10-21';
+  // 2026-27: Oct 20, 2026 (Estimated)
+  if (seasonCode === '2026-27') return '2026-10-20';
+  return null;
+}
 
 /**
  * Get override policy for a validation result.
@@ -2530,9 +2548,10 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
  * @param {boolean} params.stretch - Whether to stretch the waive
  * @param {number} params.year - Season end year
  * @param {boolean} params.isGracePeriod - Whether in roster grace period
+ * @param {string} [params.asOfDate] - Phase 21: World time for stretch validation
  * @returns {{valid: boolean, violations: Array, warnings: Array}}
  */
-export function validateWaive({ team, player, stretch, year, isGracePeriod = false }) {
+export function validateWaive({ team, player, stretch, year, isGracePeriod = false, asOfDate }) {
   const violations = [];
   const warnings = [];
   
@@ -2586,6 +2605,28 @@ export function validateWaive({ team, player, stretch, year, isGracePeriod = fal
         rule: 'dead_cap',
         message: `Waiving will create $${(remainingGuaranteed / 1_000_000).toFixed(1)}M in dead cap${stretchInfo}`,
         severity: 'info',
+      });
+    }
+  }
+
+  // 3. Phase 21: Stretch Provision Timing Check
+  if (stretch && asOfDate) {
+    const seasonCode = `${year - 1}-${String(year % 100).padStart(2, '0')}`;
+    const seasonStart = getSeasonStartDate(seasonCode);
+
+    if (seasonStart) {
+      if (asOfDate > seasonStart) {
+        warnings.push({
+          rule: 'stretch_timing_suspicious',
+          message: `Stretch provision used after season start (${seasonStart}). Base salary may need to be paid in full for current season.`,
+          severity: 'warning',
+        });
+      }
+    } else {
+      warnings.push({
+        rule: 'stretch_timing_not_enforced_missing_season_boundary',
+        message: `Cannot verify stretch timing: season start date unknown for ${seasonCode}.`,
+        severity: 'warning',
       });
     }
   }
@@ -3116,53 +3157,37 @@ export function validateRenounceRights({ team, player, year = null }) {
  * @param {Object} params.offerSheet - The offer sheet being acted upon
  * @param {string} params.actingTeamCode - Team code attempting the action
  * @param {string} params.action - 'match', 'decline', 'finalize'
+ * @param {string} [params.asOfDate] - Phase 21: World time for 48h window check
  * @returns {{valid: boolean, violations: Array, warnings: Array}}
  */
-export function validateOfferSheetResolution({ offerSheet, actingTeamCode, action }) {
+export function validateOfferSheetResolution({ offerSheet, actingTeamCode, action, asOfDate }) {
   const violations = [];
   const warnings = [];
 
-  if (!offerSheet) {
-    violations.push({
-      rule: 'unknown_type', // Reusing generic rule for missing object
-      message: 'Offer sheet is missing or undefined.',
-      severity: 'error',
-    });
-    return { valid: false, violations, warnings };
-  }
-
-  const { status, offeringTeamCode, homeTeamCode } = offerSheet;
-  const isOfferingTeam = actingTeamCode === offeringTeamCode;
-  const isHomeTeam = actingTeamCode === homeTeamCode;
+  const status = offerSheet?.status;
+  const homeTeamCode = offerSheet?.homeTeamCode;
+  const offeringTeamCode = offerSheet?.offeringTeamCode;
 
   // 1. Offering Team attempting to Finalize
-  if (action === 'finalize' && isOfferingTeam) {
+  if (action === 'finalize' && actingTeamCode === offeringTeamCode) {
     if (status === 'MATCHED') {
-      // NEW RULE: Offering team CANNOT finalize a MATCHED offer sheet.
       violations.push({
         rule: 'rfa_offer_sheet_matched_offering_team_cannot_finalize',
         message: 'Offer sheet has been MATCHED by home team. The player stays with home team. Offering team cannot finalize.',
         severity: 'error',
       });
     } else if (status === 'PENDING_MATCH') {
-      // Existing rule: Cannot finalize while pending match
       violations.push({
         rule: 'rfa_offer_sheet_resolution_required',
         message: 'Offer sheet is pending match decision. Cannot finalize yet.',
         severity: 'error',
       });
-    } else if (status === 'DECLINED') {
-      // Allowed: Offering team finalizes a declined offer sheet (signs player)
     }
   }
 
   // 2. Home Team attempting to Finalize Match
-  if (action === 'finalize' && isHomeTeam) {
-    if (status === 'MATCHED') {
-      // Allowed: Home team finalizes the match (applies contract)
-    } else if (status === 'DECLINED') {
-      // Phase 18.1: Home team CANNOT finalize a DECLINED offer sheet
-      // They already declined - the offering team gets to sign the player
+  if (action === 'finalize' && actingTeamCode === homeTeamCode) {
+    if (status === 'DECLINED') {
       violations.push({
         rule: 'rfa_offer_sheet_declined_home_team_cannot_finalize',
         message: 'Offer sheet has been DECLINED by home team. The player goes to the offering team. Home team cannot finalize.',
@@ -3172,8 +3197,7 @@ export function validateOfferSheetResolution({ offerSheet, actingTeamCode, actio
         homeTeamCode,
         status,
       });
-    } else {
-      // Cannot finalize if pending (needs match/decline decision first)
+    } else if (status !== 'MATCHED') {
       violations.push({
         rule: 'rfa_offer_sheet_resolution_required',
         message: `Home team cannot finalize match when status is ${status}. Must be MATCHED.`,
@@ -3184,12 +3208,27 @@ export function validateOfferSheetResolution({ offerSheet, actingTeamCode, actio
   
   // 3. Match/Decline Actions (Home Team Only)
   if (action === 'match' || action === 'decline') {
-      if (!isHomeTeam) {
+      if (actingTeamCode !== homeTeamCode) {
            violations.push({
-              rule: 'rfa_team_identity_unverifiable', // Or similar "not authorized" rule
+              rule: 'rfa_offer_sheet_resolution_required',
               message: 'Only the home team can Match or Decline an offer sheet.',
               severity: 'error'
            });
+      }
+      
+      // Phase 21: Check 48-hour window (Warning only)
+      if (action === 'match' && asOfDate && offerSheet.createdAt) {
+          const created = new Date(offerSheet.createdAt);
+          const deadline = new Date(created.getTime() + (48 * 60 * 60 * 1000));
+          const cutoff = deadline.toISOString().slice(0, 10);
+          
+          if (asOfDate > cutoff) {
+             warnings.push({
+                 rule: 'offer_sheet_window_expired',
+                 message: `48-hour match window expired on ${cutoff} (As of: ${asOfDate}).`,
+                 severity: 'warning'
+             });
+          }
       }
   }
 

@@ -265,6 +265,7 @@ export async function updateWorldMetadata(worldId, updates) {
     'tags',
     'isFavorite',
     'isArchived',
+    'asOfDate', // Phase 21: World Time SSOT controls
   ];
 
   const filteredUpdates = {};

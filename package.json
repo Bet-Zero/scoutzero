@@ -94,7 +94,8 @@
     "pst:manual-views": "npx tsx team-scrape/draft-picks/scripts/pst/pst_phase_6_manual_check_views.ts --v6-5",
     "pst:manual-views:legacy": "npx tsx team-scrape/draft-picks/scripts/pst/pst_phase_6_manual_check_views.ts",
     "pst:manual-rights-views": "npx tsx team-scrape/draft-picks/scripts/pst/pst_phase_7_rights_views.ts",
-    "pst:validate:overlay:regressions": "npx tsx team-scrape/draft-picks/scripts/pst/pst_validate_owner_overlay_regressions.ts"
+    "pst:validate:overlay:regressions": "npx tsx team-scrape/draft-picks/scripts/pst/pst_validate_owner_overlay_regressions.ts",
+    "pst:entitlements": "npx tsx team-scrape/draft-picks/scripts/pst/pst_phase_8_build_entitlement_assets.ts"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.6",

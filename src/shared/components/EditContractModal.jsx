@@ -30,6 +30,7 @@ import useCapValidation, {
   buildSigningGuardrails,
 } from '@/features/architect/hooks/useCapValidation';
 import ValidationWarnings from '@/features/architect/ValidationWarnings';
+import TeamSelectDropdown from '@/shared/components/TeamSelectDropdown';
 
 /**
  * Build a structured validation result for contract actions.
@@ -147,6 +148,7 @@ const EditContractModal = ({
   const [salaryInputs, setSalaryInputs] = useState(['']);
   const [selectedException, setSelectedException] = useState('None');
   const [isOfferSheet, setIsOfferSheet] = useState(false); // Phase 16
+  const [destinationTeamId, setDestinationTeamId] = useState(null); // Phase 23
 
   // Override state management
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -334,6 +336,7 @@ const EditContractModal = ({
 
   const disableConfirm =
     !selectedAction ||
+    (selectedAction === 'signAndTrade' && !destinationTeamId) ||
     (!validationResult.isLegal && (!canOverride || !isOverrideConfirmed));
 
   // Show override/advanced section when action is illegal AND override is enabled
@@ -353,6 +356,7 @@ const EditContractModal = ({
   useEffect(() => {
     setShowAdvanced(false);
     setOverrideText('');
+    setDestinationTeamId(null);
   }, [selectedAction, isOpen]);
 
   // Contract Summary Calculations
@@ -688,7 +692,24 @@ const EditContractModal = ({
         });
         break;
       case 'signAndTrade':
-        onSignAndTrade?.(player, true, overrideMetadata);
+        onSignAndTrade?.(
+          player,
+          {
+            ...extension,
+            years: extension.years,
+            salaries: (extension.salaries || []).slice(
+              0,
+              extension.years || extension.salaries.length || 0
+            ),
+            base: extension.salaries[0] || 0,
+            exceptionType: selectedException,
+            guardrails: signingGuardrails,
+            raisePct: extension.raisePct ?? signingGuardrails?.raisePct ?? 0.05,
+            signAndTrade: true,
+            ...(overrideMetadata || {}),
+          },
+          destinationTeamId
+        );
         break;
       case 'renounce':
         onRenounce?.(player, overrideMetadata);
@@ -1094,6 +1115,22 @@ const EditContractModal = ({
                       )}
                     </span>
                   ) : null}
+                </div>
+              )}
+
+              {/* Phase 23: Sign & Trade Destination Selector */}
+              {selectedAction === 'signAndTrade' && (
+                <div className="mb-4 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                  <label className="block text-xs font-bold text-blue-200 uppercase tracking-wider mb-2">
+                    Destination Team
+                  </label>
+                  <TeamSelectDropdown
+                    selectedTeamId={destinationTeamId}
+                    onChange={setDestinationTeamId}
+                  />
+                  <p className="mt-2 text-[11px] text-white/60">
+                    The player will be signed to your team, then immediately traded to this destination.
+                  </p>
                 </div>
               )}
 
