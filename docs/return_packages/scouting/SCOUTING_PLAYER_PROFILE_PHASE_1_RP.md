@@ -25,23 +25,28 @@
 ### Data Contract Updates
 
 **Shooting Profile**
+
 * Adapter: `enrichPlayerData` now merges `evaluations/current` over `currentEvaluationView`.
 * Defaults: Missing values normalize to `""` (unselected), not `'—'`.
 
 **Two-Way Meter**
+
 * Source: `evaluations/{doc}.twoWay` and `currentEvaluationView.twoWay`.
 * Adapter: `enrichPlayerData` merges `evaluations/current` over `currentEvaluationView`.
 
 **Blurbs**
+
 * Adapter: `normalizeBlurbs` accepts flat or nested blurbs and outputs canonical nested shape.
 * `profileHelpers.getBlurbValue` reads from normalized blurbs.
 
 ### Findings Status Updates
+
 * **Two-Way meter never loads saved values** → **Resolved** (merge + denormalized `twoWay`).
 * **Blurbs never load when `currentEvaluationView` exists** → **Resolved** (normalize + merge + denormalized `blurbs`).
 * **Shooting profile default value mismatch** → **Resolved** (normalize to empty string).
 
 ### Execution Phase Status
+
 * **Phase 1 — Data Contract Alignment**: ✅ Completed (2026-01-21).
 
 ---
@@ -75,12 +80,14 @@
 ## 4) Validation Results
 
 ### Manual UI Validation
+
 * **Players tested:** none (manual UI checks not run in this environment).
 * **TwoWay load:** not verified in UI.
 * **Blurbs load:** not verified in UI.
 * **ShootingProfile behavior:** not verified in UI.
 
 ### Command Results
+
 * `npm run schema:generate` (required escalated permissions): ✅ success.
 * `npm run schema:check` (escalated): ❌ failed because `docs/schema` outputs changed after generation.
 * `npm run docs`: ✅ success (updated `docs/components/ArchitectHierarchy.md` and `docs/COMPONENT_INDEX.md`).
