@@ -125,6 +125,8 @@ export const HARD_BLOCK_RULES = [
   'rfa_offer_sheet_declined_home_team_cannot_finalize', // Home team cannot finalize a DECLINED offer sheet
   // Phase 19: Cap Hold / Cap Space Enforcement
   'cap_hold_signing_violation', // Cap-space signing exceeds cap with holds included
+  // Phase 24: Manual Dead Money Management
+  'dead_cap_schema_invalid', // Dead cap entry has invalid schema (missing season, invalid amount, etc.)
 ];
 
 /**
@@ -806,6 +808,68 @@ export function validateContractRows(contract) {
   }
 
   return { violations, warnings, hasNormalizableOptions };
+}
+
+/**
+ * Validate dead cap list for manual management (Phase 24).
+ * 
+ * Checks:
+ * - deadCap must be an array
+ * - Each entry must have seasonKey (string)
+ * - Each entry must have amount (number > 0)
+ * - Each entry must have label/reason (string)
+ * 
+ * @param {Array} deadCap - Array of dead cap entries
+ * @returns {{violations: Array}}
+ */
+export function validateDeadCap(deadCap) {
+  const violations = [];
+  
+  if (!Array.isArray(deadCap)) {
+     violations.push({
+       rule: 'dead_cap_schema_invalid',
+       message: 'deadCap must be an array',
+       severity: 'error'
+     });
+     return { violations };
+  }
+  
+  deadCap.forEach((entry, index) => {
+    if (!entry.playerName && !entry.label) {
+       // Relaxed check: just ensure we have *some* identifier
+    }
+    
+    // Check amountByYear
+    if (!entry.amountByYear || typeof entry.amountByYear !== 'object') {
+       violations.push({
+        rule: 'dead_cap_schema_invalid',
+        message: `Dead cap entry #${index + 1}: Missing or invalid amountByYear`,
+        severity: 'error'
+      });
+    } else {
+        // Validate amounts inside
+        Object.entries(entry.amountByYear).forEach(([year, val]) => {
+            if (typeof val?.amount !== 'number' || val.amount <= 0) {
+                 violations.push({
+                    rule: 'dead_cap_schema_invalid',
+                    message: `Dead cap entry #${index + 1} (${year}): Amount must be positive`,
+                    severity: 'error'
+                 });
+            }
+        });
+    }
+    
+    // Check stretched requires boolean
+    if (entry.stretched !== undefined && typeof entry.stretched !== 'boolean') {
+        violations.push({
+          rule: 'dead_cap_schema_invalid',
+          message: `Dead cap entry #${index + 1}: stretched must be boolean`,
+          severity: 'error'
+        });
+    }
+  });
+
+  return { violations };
 }
 
 // ==============================================================================

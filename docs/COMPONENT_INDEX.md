@@ -43,6 +43,7 @@ Quick reference for all components in the ScoutZero project.
 - capSheet/CapSheetFull/CapSheetFull.jsx
 - capSheet/ExceptionHistoryTracker/ExceptionHistoryTracker.jsx
 - capSheet/ExceptionTracker/ExceptionTracker.jsx
+- capSheet/modals/ManageDeadMoneyModal.jsx
 - contract/ContractEditor/ContractEditor.jsx
 - contract/ContractEditorModal/ContractEditorModal.jsx
 - freeAgency/FreeAgentPool/FreeAgentCard.jsx
@@ -330,4 +331,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2026-01-21T08:22:06.026Z*
+*Generated on: 2026-01-21T08:46:06.719Z*

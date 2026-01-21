@@ -283,6 +283,7 @@ const GMDashboard = () => {
             teamCapSheet={teamCapSheet}
             currentYear={currentYear}
             onSelectPlayer={actions.handleEditContract}
+            onSetDeadCap={actions.handleSetDeadCap}
             playersMap={playersMap}
           />
         )}

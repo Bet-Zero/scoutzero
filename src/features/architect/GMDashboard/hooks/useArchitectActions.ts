@@ -279,6 +279,9 @@ export interface UseArchitectActionsReturn {
 
   // Trade actions
   applyTradeToCapSheet: (tradeData: TradeDataItem[]) => Promise<void>;
+
+  // Manual Dead Money (Phase 24)
+  handleSetDeadCap: (deadCap: any[]) => void;
 }
 
 // ==== Season helpers ====
@@ -807,7 +810,26 @@ export function useArchitectActions({
     },
     [teamCode, persistMutation]
   );
+  
+  // === Dead Money Actions (Phase 24) ===
+  const handleSetDeadCap = useCallback(
+    (deadCap: any[]): void => {
+      // Optimistic update
+      setTeamCapSheet((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          deadCap,
+        };
+      });
 
+      persistMutation('setDeadCap', {
+        teamCode,
+        deadCap,
+      });
+    },
+    [teamCode, persistMutation, setTeamCapSheet]
+  );
 
   const handleEditContract = useCallback(
     (player: ArchitectPlayer): void => {
@@ -1440,5 +1462,8 @@ export function useArchitectActions({
 
     // Trade actions
     applyTradeToCapSheet,
+
+    // Phase 24: Dead Money
+    handleSetDeadCap,
   };
 }

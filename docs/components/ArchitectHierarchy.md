@@ -58,6 +58,8 @@ capSheet/
     ExceptionTracker.jsx
     index.ts
   index.ts
+  modals/
+    ManageDeadMoneyModal.jsx
 constants/
   playerNameCorrections.ts
 contract/
@@ -285,5 +287,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-01-21T08:22:05.946Z*
+*Generated on: 2026-01-21T08:46:06.538Z*
 *Auto-updated by: npm run docs*

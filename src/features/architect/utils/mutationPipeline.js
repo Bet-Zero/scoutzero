@@ -51,6 +51,8 @@ import {
   validateExtension,
   validateOptionDecision,
   validateRenounceRights,
+  validateRenounceRights,
+  validateDeadCap,
   isOverrideEnabled,
 } from '@/features/architect/utils/capLegalityValidation';
 import {
@@ -172,7 +174,7 @@ function guardAgainstUndefined(obj, label) {
 // ==============================================================================
 
 /**
- * @typedef {'executeTrade' | 'signFreeAgent' | 'waivePlayer' | 'extendPlayer' | 'optionDecision' | 'renounceRights' | 'storeOfferSheet' | 'matchOfferSheet' | 'declineOfferSheet' | 'finalizeMatchedOfferSheet' | 'finalizeDeclinedOfferSheet' | 'signAndTrade'} MutationType
+ * @typedef {'executeTrade' | 'signFreeAgent' | 'waivePlayer' | 'extendPlayer' | 'optionDecision' | 'renounceRights' | 'storeOfferSheet' | 'matchOfferSheet' | 'declineOfferSheet' | 'finalizeMatchedOfferSheet' | 'finalizeDeclinedOfferSheet' | 'signAndTrade' | 'setDeadCap'} MutationType
  */
 
 /**
@@ -657,7 +659,21 @@ async function loadStateForMutation(worldId, mutationType, payload) {
         throw new Error(
           `Player ${playerId} not found in team roster, cap holds, or base collection`
         );
+      try {
+        const player = await getPlayer(worldId, teamCode, playerId);
+        return { team, player, teamCode };
+      } catch (err) {
+        throw new Error(
+          `Player ${playerId} not found in team roster, cap holds, or base collection`
+        );
       }
+    }
+
+    case 'setDeadCap': {
+      const { teamCode } = payload;
+      if (!teamCode) throw new Error('Missing teamCode');
+      const team = await getTeam(worldId, teamCode);
+      return { team, teamCode };
     }
 
     default:
@@ -724,6 +740,9 @@ export function computeWorldMutation({
 
     case 'signAndTrade':
       return computeSignAndTradeResult({ payload, currentState, seasonId, timestamp });
+
+    case 'setDeadCap':
+      return computeSetDeadCapResult({ payload, currentState, seasonId, timestamp });
 
     default:
       return { success: false, error: `Unknown mutation type: ${mutationType}` };
@@ -1441,6 +1460,16 @@ function validateMutation({ mutationType, payload, currentState, computeResult, 
 
   // Non-trade mutations use capLegalityValidation
   switch (mutationType) {
+    case 'setDeadCap': {
+      const result = validateDeadCap(payload.deadCap);
+      return {
+        valid: result.violations.length === 0,
+        error: result.violations[0]?.message || null,
+        violations: result.violations,
+        warnings: pipelineWarnings,
+      };
+    }
+
     case 'signFreeAgent': {
       const result = validateSigning({
         team: currentState.team,
@@ -2477,7 +2506,35 @@ function calculateTeamTotals(teamData, seasonId) {
       }
     });
   }
+/**
+ * Compute set dead cap result
+ */
+function computeSetDeadCapResult({ payload, currentState, seasonId, timestamp }) {
+  const { teamCode } = payload;
+  const { team } = currentState;
+  
+  if (!payload.deadCap || !Array.isArray(payload.deadCap)) {
+    return { success: false, error: 'Invalid deadCap payload: must be an array' };
+  }
 
+  // Update deadCap
+  const updatedTeam = {
+    ...team,
+    deadCap: payload.deadCap,
+    // Add logic to clean up legacy fields if we want to force migration?
+    // For now, let's keep it simple: new schema takes precedence in computation anyway.
+  };
+
+  return {
+    success: true,
+    teamUpdates: [{ teamCode, team: updatedTeam }],
+    playerUpdates: [],
+    metadata: {
+       actionType: 'setDeadCap',
+       timestamp,
+    },
+  };
+}
   // Add cap holds
   let capHoldsTotal = 0;
   if (teamData.capHolds && Array.isArray(teamData.capHolds)) {

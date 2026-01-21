@@ -32,9 +32,12 @@ const isTwoWayContract = (player) => {
   return contractType.toLowerCase() === 'two-way' || contractType === 'TWO-WAY';
 };
 
-const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer }) => {
+import ManageDeadMoneyModal from '@/features/architect/capSheet/modals/ManageDeadMoneyModal';
+
+const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer, onSetDeadCap }) => {
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [showCapHolds, setShowCapHolds] = useState(false);
+  const [showDeadMoneyModal, setShowDeadMoneyModal] = useState(false);
 
   const { getProfile } = usePlayerRulesProfiles({
     players: teamCapSheet?.players || [],
@@ -309,7 +312,7 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer }) => {
           })}
         </div>
 
-        {/* Footer Section (Cap Holds + Total) */}
+        {/* Footer Section (Cap Holds, Total, Actions) */}
         <div className="bg-white/[0.02] border-t border-white/5">
           {/* Cap Holds Toggle */}
           {displayedCapHolds.length > 0 && (
@@ -359,6 +362,16 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer }) => {
             </div>
           )}
 
+          {/* Manage Actions Row */}
+          <div className="border-b border-white/5 bg-white/[0.015] px-4 py-2 flex items-center justify-end gap-2">
+             <button
+               onClick={() => setShowDeadMoneyModal(true)}
+               className="text-[10px] font-medium text-white/40 hover:text-white transition-colors flex items-center gap-1"
+             >
+               <span className="opacity-50">⚙️</span> Manage Dead Money
+             </button>
+          </div>
+
           {/* Total Cap Hit */}
           <div className="px-4 py-3 flex items-center justify-between bg-white/[0.02]">
             <span className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">
@@ -370,8 +383,21 @@ const CapSheet = ({ teamCapSheet, currentYear, onSelectPlayer }) => {
           </div>
         </div>
       </div>
+      
+      {/* Modals */}
+      {showDeadMoneyModal && (
+        <ManageDeadMoneyModal
+          isOpen={showDeadMoneyModal}
+          onClose={() => setShowDeadMoneyModal(false)}
+          teamCapSheet={teamCapSheet}
+          currentYear={selectedYear}
+          onSave={onSetDeadCap}
+        />
+      )}
     </div>
   );
 };
+
+export default CapSheet;
 
 export default CapSheet;

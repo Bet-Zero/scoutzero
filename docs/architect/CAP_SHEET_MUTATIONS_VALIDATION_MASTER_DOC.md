@@ -123,13 +123,13 @@ This hook provides session-only experimentation without Firestore persistence:
 | Match Offer Sheet | OfferSheetList | `handleMatchOfferSheet` | `offerSheets[].status`, `incomingOfferSheets[].status` | ✅ Yes |
 | Decline Offer Sheet | OfferSheetList | `handleDeclineOfferSheet` | `offerSheets[].status`, `incomingOfferSheets[].status` | ✅ Yes |
 | Execute Trade | TradeMachine → TradeEditor | Via `applyWorldMutation` | Multiple team player arrays, roster, draft picks, exceptions | ✅ Yes |
+| Sign-and-Trade | EditContractModal → GMDashboard | `handleSignAndTrade` | Source: rights lost; Dest: player gained (signed) | ✅ Yes |
+| Set Dead Cap (Manual) | ManageDeadMoneyModal → CapSheet | `handleSetDeadCap` | `teams/{code}.deadCap` (full replacement) | ✅ Yes |
 
 ### 3.2 Missing / Incomplete Mutations
 
 | Mutation | Status | Gap Description |
 |----------|--------|-----------------|
-| Add Dead Money Entry (Manual) | ❌ Not Implemented | No UI to manually add dead money entries |
-| Remove Dead Money Entry | ❌ Not Implemented | No UI to clear erroneous dead money |
 | Exception Create/Expire (Manual) | Partial | Exception tracking is display-only |
 | TPE Usage Tracking | Partial | TPEs tracked but no formal usage pipeline |
 | Roster Spot Charges | ❌ Not Implemented | Incomplete roster charges not computed |
@@ -252,6 +252,7 @@ interface CapHold {
 | **Offer Sheet Window Expired** | `capLegalityValidation.js:validateOfferSheetResolution` | Pre-persist | Warning | `asOfDate`, `offerSheet.createdAt` (48h window) |
 | **Stretch Timing Suspicious** | `capLegalityValidation.js:validateWaive` | Pre-persist | Warning | `asOfDate`, Season Start Date (stretch after start) |
 | **Stretch Timing Unknown** | `capLegalityValidation.js:validateWaive` | Pre-persist | Warning | `asOfDate`, Season Code (missing start date) |
+| **Dead Cap Schema Invalid** | `mutationPipeline.js:validateMutation` | Pre-persist | **Hard Block** | `deadCap` array structure, amounts, season keys |
 
 **Note:** Signing guardrails (max years, raises, first-year max) now use Salary Engine signing terms when available. Phase 2/2.5 exception tables remain the fallback when engine terms are unavailable.
 
@@ -711,6 +712,7 @@ Hardcoded helper `getSeasonStartDate(seasonCode)` provides boundaries for `stret
 | 2026-01-20 | **Contract Rules Phase 20:** World Time SSOT. (1) Added `resolveWorldAsOfDate()` helper as single source of truth for world time. Resolution priority: payload `asOfDate` → world metadata `asOfDate` → system fallback. (2) Threaded `asOfDate` through mutation pipeline: `applyWorldMutation` → `computeWorldMutation` → `validateMutation` → `persistWorldMutation`. (3) Added `world_time_defaulted` warning rule (emitted when date is defaulted). (4) Persist policy: only write `asOfDate` to world metadata when payload explicitly includes it (no silent overwrites). (5) 14 new tests added. Build succeeds. |
 | 2026-01-20 | **Contract Rules Phase 21:** Timing Warnings. (1) Added World Time Controls to GMDashboard (`WorldTimeControls.jsx`). (2) Implemented `offer_sheet_window_expired` warning: warns if matching >48 hours after creation relative to `asOfDate`. (3) Implemented `stretch_timing_suspicious` warning: warns if stretching after season start date relative to `asOfDate`. (4) Added `getSeasonStartDate` helper with MVP boundaries. (5) 10 new tests demonstrating warnings (non-blocking). |
 | 2026-01-22 | **Contract Rules Phase 23:** Sign & Trade Execution. (1) Implemented compound mutation `signAndTrade` in `mutationPipeline.js`. (2) Atomic persistence: single validation and write operation ensures both signing and trade succeed or fail together. (3) Validation: orchestrates `validateSigning` (for contract legality) followed by `validateTrade` (for trade rules). (4) Updates `EditContractModal` to support destination team selection. (5) Verified atomic updates: player moves to destination roster with new contract, source team gets no player but loses rights cleanly. |
+| 2026-01-22 | **Contract Rules Phase 24:** Manual Dead Money Management. (1) Implemented `ManageDeadMoneyModal` for full CRUD on dead cap entries. (2) Created `setDeadCap` mutation for atomic array replacement. (3) Added `dead_cap_schema_invalid` validation rule to enforce canonical schema (seasonKey, positive amount). (4) Wired UI entry point in Cap Sheet footer. (5) Verified persistence and validation via new test suite `deadCapManagement.test.js` (5 tests). |
 
 ---
 
