@@ -187,3 +187,6 @@ docs/*Hierarchy.md
 cursor_work/*
 !cursor_work/_templates/
 !cursor_work/add-player-ids/
+
+# Agent folder
+.agent/

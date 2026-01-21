@@ -117,14 +117,14 @@
 
 ### P1: Important Completeness
 
-3. **Roster Charge Visibility:**
+1. **Roster Charge Visibility:**
     - **Phase:** Phase 25
     - **Criteria:** If `incompleteChargesTotal > 0`, display a "Incomplete Roster Charge (x Slots)" row in the Cap Sheet totals area.
     - **Files:** `CapSummary.jsx`.
 
 ### P2: Polish
 
-4. **TPE Explicit Consumption:**
+1. **TPE Explicit Consumption:**
     - **Phase:** Phase 26
     - **Criteria:** Trade Machine should explicitly ask which TPE to use if multiple exist, rather than auto-selecting.
 
