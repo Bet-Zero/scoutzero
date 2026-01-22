@@ -7,7 +7,8 @@ import { validateTradeExceptions } from './validateTradeExceptions.js';
 import { validateDraftPicks } from './validateDraftPicks.js';
 import { validateCash } from './eligibilityRules.js';
 import { validateSignAndTrade } from './validateSignAndTrade.js';
-import { validateSecondApronRules } from './validateSecondApronRules.js';
+// Phase 35: Import from basicRules.js (canonical) instead of deleted validateSecondApronRules.js
+import { validateSecondApronRules } from './basicRules.js';
 import { BYC_PERCENT } from '@/features/architect/utils/cbaConstants.js';
 import { getCapHitForSeason, yearToSeason, seasonToYear } from '../utils/seasonUtils.js';
 import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers.js';

@@ -36,6 +36,46 @@
 | Phase 11.3   | Entitlements in Trade Receipt + Event Log       | COMPLETE    | 2026-01-22 |
 | Phase 11.3.1 | Entitlements Routing (toTeamId) Observability   | COMPLETE    | 2026-01-22 |
 | Phase 11.3.2 | Entitlements Routing (toTeamId) World Save      | COMPLETE    | 2026-01-22 |
+| Phase 11.4   | Secondary Team Entitlements Load Fix            | COMPLETE    | 2026-01-22 |
+
+---
+
+### Phase 11.4 — Secondary Team Entitlements Load Fix (COMPLETE)
+
+**Goal**: Fix Trade Machine so ALL team slots (primary + secondary) load entitlements correctly.
+
+**Problem**
+
+The primary team (slot 0) displayed "Draft Assets (Entitlements)" mode, but secondary teams (slots 1+) still showed "Outgoing Picks" (legacy mode). This was because `selectTeam()` never called `resolveEntitlementsForTeam()` — it was only implemented in the initial `useEffect` for slot 0.
+
+**Root Cause**
+
+In `useTradeMachine.js`, the `selectTeam()` callback (used when selecting any team from the dropdown for slots 1+) built the team object but **did not call `resolveEntitlementsForTeam()`** to load entitlements. The entitlement resolution logic existed only in the `useEffect` that initializes slot 0.
+
+**Solution**
+
+1. Added `resolveTeamCodeLike()` helper function to reliably extract 3-letter team codes from various object shapes
+2. Added `DEBUG_ENT` flag for optional debug logging (`VITE_DEBUG_ENTITLEMENTS=true`)
+3. Added entitlement resolution to `selectTeam()` using the same pattern as slot 0 initialization
+4. Added debug logging throughout to aid future troubleshooting
+
+**What changed**
+
+- `src/features/architect/hooks/useTradeMachine.js`
+  - Added `resolveTeamCodeLike()` helper (lines 29-71)
+  - Added `DEBUG_ENT` constant for debug logging (line 24)
+  - Updated slot 0 init to use new helper + debug logging (lines 255-286)
+  - Added entitlement resolution to `selectTeam()` for secondary teams (lines 569-621)
+
+**Validation**
+
+- Build passes ✓
+- All team slots (0..N-1) now load entitlements when team selected
+- Secondary teams show "Draft Assets (Entitlements)" header (Entitlements UI mode)
+- Team switching reloads entitlements correctly
+- Legacy picks fallback still works when no entitlements available
+
+**Return Package**: `PST_PHASE_11_4_SECONDARY_TEAM_ENTITLEMENTS_FIX_RETURN_PACKAGE.md`
 
 ---
 

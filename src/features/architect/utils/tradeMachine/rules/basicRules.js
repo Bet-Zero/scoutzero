@@ -12,6 +12,11 @@
  */
 
 import { isPriorYearTPE } from '@/features/architect/utils/tradeMachine/utils/tradeUtilities.js';
+import {
+  SECOND_APRON_PRIOR_YEAR_TPE_BLOCKED,
+  SECOND_APRON_MULTI_PLAYER_AGGREGATION_BLOCKED,
+  SECOND_APRON_CASH_BLOCKED,
+} from '@/features/architect/utils/tradeMachine/constants/secondApronMessages.js';
 
 // =======================
 // PICK UTILITIES (SSOT-2)
@@ -73,29 +78,22 @@ export function validateSecondApronRules(team, context = {}) {
     isPriorYearTPE(tpe, context.year || 2025)
   );
   if (priorYearTPEs.length > 0) {
-    violations.push('Second apron: prior-year TPEs cannot be used.');
+    violations.push(SECOND_APRON_PRIOR_YEAR_TPE_BLOCKED);
   }
 
-  // 2. Cannot receive more salary than sent out (100% matching)
-  const teamSalaryOut = team.salaryOut || salaryOut || 0;
-  const teamSalaryIn = team.salaryIn || salaryIn || 0;
-
-  if (teamSalaryIn > teamSalaryOut) {
-    violations.push('Second apron team cannot receive more salary than sent');
-  }
+  // 2. Salary mismatch check removed - validateSalaryMatching is the SSOT for this
+  // to prevent duplicate violation messages
 
   // 3. Cannot aggregate multiple players into a higher-paid player
   const outgoingPlayers = team.sends || team.outgoingPlayers || [];
   if (outgoingPlayers.length > 1) {
-    violations.push(
-      'Second apron team cannot aggregate salaries from multiple players'
-    );
+    violations.push(SECOND_APRON_MULTI_PLAYER_AGGREGATION_BLOCKED);
   }
 
   // 4. Cannot include cash considerations
   const cashSent = team.cashSent || 0;
   if (cashSent > 0) {
-    violations.push('Second apron team cannot include cash in trades');
+    violations.push(SECOND_APRON_CASH_BLOCKED);
   }
 
   return {

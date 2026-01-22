@@ -4,6 +4,8 @@
  * OWNERSHIP: Feature: profile/scouting
  *
  * HISTORY:
+ *  - 2026-01-22: HOTFIX - Gate Firestore sync on openModal to prevent clearing after save
+ *  - 2026-01-22: HOTFIX - Disable arrow key navigation while modal is open
  *  - 2026-01-22: Phase 4 - Autosave debounce support + cleanup touchpoints
  *  - 2026-01-22: Phase 3 - Added videoExamples state to autosave flow
  *  - 2026-01-21: Phase 2 - Added markDirty pattern, save status indicator, wrapped all setters
@@ -14,7 +16,7 @@
  *  - Latest Chunk: n/a (no chunks used)
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
 import usePlayerDetail from '@/shared/hooks/usePlayerDetail';
 import useAutoSavePlayer from '@/features/profile/hooks/useAutoSavePlayer';
@@ -86,6 +88,9 @@ const PlayerProfileView = () => {
   const [overallGrade, setOverallGrade] = useState(null);
   const [hasChanges, setHasChanges] = useState(false);
 
+  // Track previous player to detect player changes
+  const prevPlayerIdRef = useRef(null);
+
   // Use usePlayerDetail for the selected player to get full data with subcollections
   const { player: detailedPlayer, loading: detailLoading } =
     usePlayerDetail(selectedPlayer);
@@ -104,6 +109,19 @@ const PlayerProfileView = () => {
   useEffect(() => {
     if (!selectedPlayer || !detailedPlayer) {
       setPlayer(null);
+      prevPlayerIdRef.current = null;
+      return;
+    }
+
+    // CRITICAL: Only sync from Firestore when:
+    // 1. Player changes (selectedPlayer !== prevPlayerIdRef.current)
+    // 2. OR we have no pending edits AND modal is closed
+    // This prevents Firestore updates (from our own saves) from overwriting mid-typing edits
+    // HOTFIX 2026-01-22: Also gate on openModal - if modal is open, user is editing, don't overwrite
+    const playerChanged = selectedPlayer !== prevPlayerIdRef.current;
+
+    if (!playerChanged && (hasChanges || openModal)) {
+      // Same player, user is actively editing OR modal is open - don't overwrite their local state
       return;
     }
 
@@ -119,7 +137,10 @@ const PlayerProfileView = () => {
     setVideoExamples(normalizeVideoExamples(data.videoExamples));
     setOverallGrade(data.overallGrade || null);
     setHasChanges(false);
-  }, [selectedPlayer, detailedPlayer]);
+
+    // Update prev player ref
+    prevPlayerIdRef.current = selectedPlayer;
+  }, [selectedPlayer, detailedPlayer, hasChanges, openModal]);
 
   // Centralized dirty-state helper - all setters should call this
   const markDirty = useCallback(() => {
@@ -151,7 +172,7 @@ const PlayerProfileView = () => {
     [markDirty]
   );
 
-  const { isSaving, saveError, saveState } = useAutoSavePlayer({
+  const { isSaving, saveError, saveState, saveNow } = useAutoSavePlayer({
     playerId: selectedPlayer,
     player,
     traits,
@@ -182,12 +203,14 @@ const PlayerProfileView = () => {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
+      // HOTFIX: Disable arrow key navigation while modal is open
+      if (openModal) return;
       if (e.key === 'ArrowLeft') handlePrevPlayer();
       else if (e.key === 'ArrowRight') handleNextPlayer();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handlePrevPlayer, handleNextPlayer]);
+  }, [handlePrevPlayer, handleNextPlayer, openModal]);
 
   const handleTraitChange = useCallback((e, trait) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -317,6 +340,9 @@ const PlayerProfileView = () => {
             videoExamples={videoExamples}
             onVideoExamplesChange={handleVideoExamplesChange}
             onClose={() => setOpenModal(null)}
+            onSaveNow={saveNow}
+            saveState={saveState}
+            saveError={saveError}
           />
         )}
       </div>

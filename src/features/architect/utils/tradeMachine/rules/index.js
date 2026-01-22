@@ -6,7 +6,7 @@
 
 // Salary matching rules
 export * from './validateSalaryMatching.js';
-export * from './salaryMatching.js';
+// NOTE: salaryMatching.js removed in Phase 35 - orphaned duplicate with wrong semantics
 
 // Roster rules - consolidated
 export * from './validateRoster.js';
@@ -19,10 +19,9 @@ export * from './hardCapValidation.js';  // consolidated: hardCap + validateHard
 export * from './draftRules.js';  // includes stepienRule.js and validateDraftPicks.js
 
 // Second apron rules
-export * from './validateSecondApron.js';
-export * from './validateSecondApronRules.js';
+// NOTE: validateSecondApron.js and enforceSecondApronRules.js removed - files never existed
+// NOTE: validateSecondApronRules.js removed in Phase 35 - duplicate of basicRules.js
 export * from './basicRules.js';
-export * from './enforceSecondApronRules.js';
 
 // Cash validation
 export * from './eligibilityRules.js';  // includes validateCash.js and reacquisition.js
@@ -56,7 +55,7 @@ export * from './draftRules.js';  // includes validateDraftPicks.js
 
 // Aggregation rules
 export * from './validateAggregation.js';
-export * from './aggregationValidator.js';
+// NOTE: aggregationValidator.js removed in Phase 35 - orphaned duplicate with wrong semantics
 
 // Trade kicker enforcement - now in miscRules.js
 

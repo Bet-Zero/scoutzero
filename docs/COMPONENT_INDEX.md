@@ -141,6 +141,7 @@ Quick reference for all components in the ScoutZero project.
 - utils/tradeMachine/cache/validationCacheManager.js
 - utils/tradeMachine/cache/validationCacheService.js
 - utils/tradeMachine/constants/cbaConstants.js
+- utils/tradeMachine/constants/secondApronMessages.js
 - utils/tradeMachine/engine/engineUtils.js
 - utils/tradeMachine/engine/index.js
 - utils/tradeMachine/engine/performanceMonitor.js
@@ -152,7 +153,6 @@ Quick reference for all components in the ScoutZero project.
 - utils/tradeMachine/engine/validationUtils.js
 - utils/tradeMachine/engine/validatorFactory.js
 - utils/tradeMachine/index.js
-- utils/tradeMachine/rules/aggregationValidator.js
 - utils/tradeMachine/rules/basicRules.js
 - utils/tradeMachine/rules/draftRules.js
 - utils/tradeMachine/rules/eligibilityRules.js
@@ -164,7 +164,6 @@ Quick reference for all components in the ScoutZero project.
 - utils/tradeMachine/rules/index.js
 - utils/tradeMachine/rules/miscRules.js
 - utils/tradeMachine/rules/rosterValidation.js
-- utils/tradeMachine/rules/salaryMatching.js
 - utils/tradeMachine/rules/timingValidation.js
 - utils/tradeMachine/rules/tradeExceptions.js
 - utils/tradeMachine/rules/validateAggregation.js
@@ -173,7 +172,6 @@ Quick reference for all components in the ScoutZero project.
 - utils/tradeMachine/rules/validateFaExceptionUsage.js
 - utils/tradeMachine/rules/validateRoster.js
 - utils/tradeMachine/rules/validateSalaryMatching.js
-- utils/tradeMachine/rules/validateSecondApronRules.js
 - utils/tradeMachine/rules/validateSignAndTrade.js
 - utils/tradeMachine/rules/validateStepien.js
 - utils/tradeMachine/rules/validateTradeExceptions.js
@@ -337,4 +335,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2026-01-22T09:48:31.377Z*
+*Generated on: 2026-01-22T14:41:13.968Z*

@@ -16,6 +16,65 @@ import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/compu
 import { resolveEntitlementsForTeam } from '@/features/architect/utils/entitlements/entitlementResolver';
 
 /* ============================
+   DEBUG FLAG & TEAM CODE RESOLUTION
+   ============================ */
+
+/**
+ * Enable debug logging for entitlements resolution.
+ * Set VITE_DEBUG_ENTITLEMENTS=true in environment to enable.
+ */
+const DEBUG_ENT = Boolean(import.meta?.env?.VITE_DEBUG_ENTITLEMENTS);
+
+/**
+ * Resolve a valid 3-letter team code from various team object shapes.
+ * Returns the code (e.g., "LAL") or null if unable to resolve.
+ */
+function resolveTeamCodeLike(teamObjOrId, teamDataMaybe = null) {
+  // Prefer teamData.teamCode if present
+  if (teamDataMaybe?.teamCode) {
+    return teamDataMaybe.teamCode;
+  }
+  // Else if teamData.id is exactly length 3, use that
+  if (typeof teamDataMaybe?.id === 'string' && teamDataMaybe.id.length === 3) {
+    return teamDataMaybe.id;
+  }
+  // Else if teamObjOrId is exactly length 3, use that (string id passed directly)
+  if (typeof teamObjOrId === 'string' && teamObjOrId.length === 3) {
+    return teamObjOrId;
+  }
+  // Else attempt teamObjOrId.code if 3 chars (from TeamMap entry)
+  if (typeof teamObjOrId?.code === 'string' && teamObjOrId.code.length === 3) {
+    return teamObjOrId.code;
+  }
+  // Else attempt teamObjOrId.abbreviation if 3 chars
+  if (
+    typeof teamObjOrId?.abbreviation === 'string' &&
+    teamObjOrId.abbreviation.length === 3
+  ) {
+    return teamObjOrId.abbreviation;
+  }
+  // Else attempt teamObjOrId.id if 3 chars
+  if (typeof teamObjOrId?.id === 'string' && teamObjOrId.id.length === 3) {
+    return teamObjOrId.id;
+  }
+  // Else attempt teamData.team?.id if 3 chars
+  if (
+    typeof teamDataMaybe?.team?.id === 'string' &&
+    teamDataMaybe.team.id.length === 3
+  ) {
+    return teamDataMaybe.team.id;
+  }
+  // Could not resolve
+  if (DEBUG_ENT) {
+    console.warn(
+      '[DEBUG_ENT] resolveTeamCodeLike: could not resolve team code',
+      { teamObjOrId, teamDataMaybe }
+    );
+  }
+  return null;
+}
+
+/* ============================
    SSOT WIRING
    ============================ */
 
@@ -192,16 +251,32 @@ export const useTradeMachine = (
 
         if (worldId || (data.entitlementIds && data.entitlementIds.length)) {
           try {
-            const resolvedTeamCode =
-              data.teamCode ||
-              baseTeam?.code ||
-              teamObj.abbreviation ||
-              teamObj.id;
-            const entitlements = await resolveEntitlementsForTeam(
-              worldId,
-              resolvedTeamCode
-            );
-            teamObj.entitlements = entitlements;
+            const resolvedTeamCode = resolveTeamCodeLike(baseTeam, data);
+            if (DEBUG_ENT) {
+              console.log('[DEBUG_ENT] init slot 0:', {
+                slotIndex: 0,
+                teamCode: resolvedTeamCode,
+                worldId,
+                hasEntitlementIds: Boolean(data.entitlementIds?.length),
+              });
+            }
+            if (resolvedTeamCode) {
+              const entitlements = await resolveEntitlementsForTeam(
+                worldId,
+                resolvedTeamCode
+              );
+              teamObj.entitlements = entitlements;
+              if (DEBUG_ENT) {
+                console.log('[DEBUG_ENT] init slot 0 resolved:', {
+                  teamCode: resolvedTeamCode,
+                  entitlementsCount: entitlements?.length ?? 0,
+                  usingLegacyFallback: false,
+                });
+              }
+            } else {
+              console.warn('[init] Could not resolve team code for slot 0');
+              teamObj.entitlements = [];
+            }
           } catch (err) {
             console.warn('Failed to resolve team entitlements:', err);
             teamObj.entitlements = [];
@@ -493,6 +568,61 @@ export const useTradeMachine = (
           tradeExceptions: data.tradeExceptions || [],
           picks: picksWithIds,
         };
+
+        // Phase 11.4: Load entitlements for secondary teams (slots 1+)
+        // Same logic as primary team init, but for any slot
+        if (worldId || (data.entitlementIds && data.entitlementIds.length)) {
+          try {
+            const resolvedTeamCode = resolveTeamCodeLike(baseTeam, data);
+            if (DEBUG_ENT) {
+              console.log('[DEBUG_ENT] selectTeam slot:', {
+                slotIndex: index,
+                teamId,
+                teamCode: resolvedTeamCode,
+                worldId,
+                hasEntitlementIds: Boolean(data.entitlementIds?.length),
+              });
+            }
+            if (resolvedTeamCode) {
+              const entitlements = await resolveEntitlementsForTeam(
+                worldId,
+                resolvedTeamCode
+              );
+              teamObj.entitlements = entitlements;
+              if (DEBUG_ENT) {
+                console.log('[DEBUG_ENT] selectTeam resolved:', {
+                  slotIndex: index,
+                  teamCode: resolvedTeamCode,
+                  entitlementsCount: entitlements?.length ?? 0,
+                  usingLegacyFallback: false,
+                });
+              }
+            } else {
+              console.warn(
+                `[selectTeam] Could not resolve team code for slot ${index}`
+              );
+              teamObj.entitlements = [];
+            }
+          } catch (err) {
+            console.warn(
+              `[selectTeam] Failed to resolve entitlements for slot ${index}:`,
+              err
+            );
+            teamObj.entitlements = [];
+          }
+        } else {
+          // No worldId and no entitlementIds - use legacy picks fallback
+          if (DEBUG_ENT) {
+            console.log('[DEBUG_ENT] selectTeam legacy fallback:', {
+              slotIndex: index,
+              teamId,
+              reason: 'no worldId and no entitlementIds',
+              usingLegacyFallback: true,
+            });
+          }
+          teamObj.entitlements = [];
+        }
+
         augmentTeamWithExceptions(teamObj, yearKey, capProjections);
 
         // === Baseline payroll wiring on select (SSOT) ===

@@ -205,9 +205,10 @@ export function getSalaryMatchingResult({
   const outgoing = typeof outgoingSalary === 'number' ? outgoingSalary : 0;
 
   // Determine team's cap status
+  // Per CBA Art VII Sec 2(f): team is "Second Apron Team" only if salary > secondApron (strict)
   let effectiveApronStatus = apronStatus;
   if (!effectiveApronStatus) {
-    if (secondApron && salary >= secondApron) {
+    if (secondApron && salary > secondApron) {
       effectiveApronStatus = 'SECOND_APRON';
     } else if (firstApron && salary >= firstApron) {
       effectiveApronStatus = 'FIRST_APRON';

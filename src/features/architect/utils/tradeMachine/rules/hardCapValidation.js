@@ -111,11 +111,9 @@ export function validateHardCap(team, context = {}) {
         violations.push(
           `Team would exceed hard-cap after receiving sign-and-trade player`
         );
-      } else {
-        violations.push(
-          `Second apron team cannot receive more salary than sent`
-        );
       }
+      // NOTE: Salary mismatch message removed - validateSalaryMatching is the SSOT for this
+      // Hard cap validation focuses on ceiling violations, not salary matching
     }
   }
   // Check first apron hard cap

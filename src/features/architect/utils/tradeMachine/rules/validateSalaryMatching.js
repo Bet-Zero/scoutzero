@@ -16,6 +16,7 @@ import {
   SALARY_MATCHING_RULE_KEYS,
 } from '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules.js';
 import { getHardCapStatus } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus.js';
+import { SECOND_APRON_SALARY_MISMATCH } from '@/features/architect/utils/tradeMachine/constants/secondApronMessages.js';
 
 // Validator version for trade receipt tracking - bumped for TPE fix
 export const SALARY_MATCHING_VERSION = '2.4.0'; // Fix: TPE per-player matching instead of pool
@@ -72,6 +73,9 @@ export function validateSalaryMatching(team, context = {}) {
   const salaryIn = team.salaryIn ?? context.salaryIn ?? 0;
   const totalSalary =
     team.teamTotalSalary ?? context.totalSalary ?? team.team?.totalSalary ?? 0;
+  
+  // Projected salary for apron-crossing detection (set by tradeValidator.js)
+  const projectedSalary = team.projectedSalary ?? (totalSalary - salaryOut + salaryIn);
 
   // Track the source of totalSalary for debugging
   const totalSalarySource =
@@ -328,7 +332,8 @@ export function validateSalaryMatching(team, context = {}) {
   }
   // Teams above second apron: strict 100% matching (cannot take back more than sent out)
   // Per CBA Art VII Sec 2(f): team is "Second Apron Team" only if salary > secondApron (strict)
-  else if (totalSalary > secondApron) {
+  // Also check apron-CROSSING trades: if projected salary > secondApron, restrictions apply
+  else if (secondApron > 0 && (totalSalary > secondApron || projectedSalary > secondApron)) {
     // Use unified salary matching rules for calculation
     const matchingResult = getSalaryMatchingResult({
       teamTotalSalary: totalSalary,
@@ -342,7 +347,7 @@ export function validateSalaryMatching(team, context = {}) {
     formulaUsed = matchingResult.formulaUsed;
 
     if (effectiveSalaryIn > salaryOut) {
-      violations.push(`Second apron team cannot receive more salary than sent`);
+      violations.push(SECOND_APRON_SALARY_MISMATCH);
     }
   }
   // Teams above first apron: 100% matching (cannot take back more than sent out)

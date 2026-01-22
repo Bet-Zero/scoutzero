@@ -22,7 +22,8 @@ export { validateSalaryMatching } from '../rules/validateSalaryMatching.js';
 export { validateRoster, enforceRosterWindow } from '../rules/validateRoster.js';
 export { validateHardCap } from '../rules/validateHardCap.js';
 export { validateStepien } from '../rules/validateStepien.js';
-export { validateSecondApronRules } from '../rules/validateSecondApronRules.js';
+// Phase 35: Import from basicRules.js (canonical) instead of deleted validateSecondApronRules.js
+export { validateSecondApronRules } from '../rules/basicRules.js';
 export { validateBYC } from '../rules/miscRules.js';
 export { validateConsent } from '../rules/validateConsent.js';
 export { validateEligibility } from '../rules/validateEligibility.js';

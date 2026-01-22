@@ -191,10 +191,11 @@ export function validateStepien(team, tradeCtx = {}) {
 
   // Check second apron frozen pick restriction
   // Use postTradeStatus if available (test format), otherwise fall back to team salary
+  // Per CBA Art VII Sec 2(f): team is "Second Apron Team" only if salary > secondApron (strict)
   const capSettings = tradeCtx.capSettings || { secondApron: 190000000 }; // Use 2025 default
   const isAtOrAboveSecondApron =
     team.postTradeStatus?.isAtOrAboveSecondApron ||
-    (team.team?.totalSalary || 0) >= capSettings.secondApron;
+    (capSettings.secondApron > 0 && (team.team?.totalSalary || 0) > capSettings.secondApron);
 
   if (isAtOrAboveSecondApron) {
     const teamId = team.teamId || team.team?.id;

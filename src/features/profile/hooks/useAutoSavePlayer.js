@@ -4,6 +4,7 @@
  * OWNERSHIP: Feature: profile/scouting
  *
  * HISTORY:
+ *  - 2026-01-22: Added saveNow() for explicit modal Save button
  *  - 2026-01-22: Phase 4 - Debounced autosave and guarded in-flight saves
  *  - 2026-01-22: Phase 3 - Added videoExamples to autosave payloads
  *  - 2026-01-21: Phase 2 - Added isSaving/saveError state, made writes resilient with set+merge
@@ -317,7 +318,32 @@ const useAutoSavePlayer = ({
     scheduleSave,
   ]);
 
-  return { isSaving, saveError, saveState };
+  // saveNow: Immediate save, bypassing debounce. Returns promise that resolves when complete.
+  const saveNow = useCallback(async () => {
+    // Clear any pending debounce
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+      debounceTimeoutRef.current = null;
+    }
+
+    // Wait for in-flight save to complete
+    if (isSavingRef.current) {
+      // Wait for current save to finish, then run again
+      await new Promise((resolve) => {
+        const checkInterval = setInterval(() => {
+          if (!isSavingRef.current) {
+            clearInterval(checkInterval);
+            resolve();
+          }
+        }, 50);
+      });
+    }
+
+    // Run the save immediately
+    await performSave();
+  }, [performSave]);
+
+  return { isSaving, saveError, saveState, saveNow };
 };
 
 export default useAutoSavePlayer;

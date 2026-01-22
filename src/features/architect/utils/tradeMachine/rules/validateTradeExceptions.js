@@ -8,6 +8,10 @@ import {
   createTPE,
 } from '@/features/architect/utils/tradeMachine/utils/tradeUtilities.js';
 import { formatCurrency } from '@/features/architect/utils/tradeHelpers.js';
+import {
+  SECOND_APRON_TPE_BLOCKED,
+  SECOND_APRON_PRIOR_YEAR_TPE_BLOCKED,
+} from '@/features/architect/utils/tradeMachine/constants/secondApronMessages.js';
 
 export function validateTradeExceptions(team) {
   const violations = [];
@@ -39,7 +43,8 @@ export function validateTradeExceptions(team) {
   const tpesToProcess = usingAppliedTPEs ? appliedTPEs : tradeExceptions;
 
   // Check for second apron TPE restrictions (only for trade validator pattern)
-  const isSecondApronTeam = teamTotalSalary >= secondApron;
+  // Per CBA Art VII Sec 2(f): team is "Second Apron Team" only if salary > secondApron (strict)
+  const isSecondApronTeam = secondApron > 0 && teamTotalSalary > secondApron;
 
   if (isSecondApronTeam && tpesToProcess.length > 0 && usingAppliedTPEs) {
     // Check if any TPE is from prior year
@@ -48,10 +53,10 @@ export function validateTradeExceptions(team) {
     );
 
     if (hasPriorYearTPE) {
-      violations.push('Second apron: prior-year TPEs cannot be used.');
+      violations.push(SECOND_APRON_PRIOR_YEAR_TPE_BLOCKED);
     } else {
       // Current year TPEs also blocked for second apron teams
-      violations.push('Second apron team cannot use trade exceptions');
+      violations.push(SECOND_APRON_TPE_BLOCKED);
     }
   }
 

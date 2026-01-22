@@ -12,7 +12,7 @@
 - - 2026-01-22: Phase 4 polish (debounced autosave + modal a11y)
 -
 - LINKS:
-- - Plan: plans/_archive/scouting-player-profile-phase-4/plan.md
+- - Plan: plans/\_archive/scouting-player-profile-phase-4/plan.md
 - - Phase 2 RP: docs/return_packages/scouting/SCOUTING_PLAYER_PROFILE_PHASE_2_RP.md
 - - Phase 3 RP: docs/return_packages/scouting/SCOUTING_PLAYER_PROFILE_PHASE_3_RP.md
 - - Phase 4 RP: docs/return_packages/scouting/SCOUTING_PLAYER_PROFILE_PHASE_4_RP.md
@@ -430,3 +430,24 @@ Source: `player-scrape/firestore_staging/docs/players_v2_structure.md` (Toumani 
 2. Should blurbs and video examples live in `currentEvaluationView` for faster loads, or remain only in evaluations subcollection?
    - Decision: ✅ Denormalized into `currentEvaluationView` with evaluations/current as canonical source.
 3. Is `currentSeasonStats` always decimals for percentages (0–1), or can it be 0–100?
+
+---
+
+## 7) Known Issues - RESOLVED
+
+### Blurb Typing Blocked After Each Keystroke (HOTFIX 2026-01-22)
+
+**Symptom:** Blurb text input only registered 1 character at a time. After typing each letter, the input would reset/block, forcing the user to type the next letter separately.
+
+**Root Cause:** Firestore sync race condition. The `useEffect` in `PlayerProfileView.jsx` (lines 107-126) unconditionally synced local state from `detailedPlayer` whenever it changed. After successful saves, Firestore emitted updates, which triggered the useEffect to overwrite `editedBlurbs` with stale data mid-typing.
+
+**Fix Applied:** Gated Firestore → local state sync with `hasChanges` check and player change detection. Only syncs when:
+
+1. Player changes (`selectedPlayer !== prevPlayerIdRef.current`) OR
+2. No pending edits (`hasChanges === false`)
+
+**Files Changed:** `src/pages/PlayerProfileView.jsx`
+
+**Status:** ✅ RESOLVED (2026-01-22)
+
+**Return Package:** `docs/return_packages/scouting/SCOUTING_PLAYER_PROFILE_HOTFIX_DEBOUNCE_TYPING_RP.md`

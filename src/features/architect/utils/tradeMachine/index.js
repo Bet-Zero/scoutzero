@@ -26,7 +26,8 @@ export { validateHardCap } from './rules/hardCapValidation.js';
 export { validateSalaryMatching } from './rules/validateSalaryMatching.js';
 export { validateTradeExceptions } from './rules/validateTradeExceptions.js';
 export { validateFaExceptionUsage } from './rules/validateFaExceptionUsage.js';
-export { validateSecondApronRules } from './rules/validateSecondApronRules.js';
+// Phase 35: Import from basicRules.js (canonical) instead of deleted validateSecondApronRules.js
+export { validateSecondApronRules } from './rules/basicRules.js';
 export { validateSignAndTrade } from './rules/validateSignAndTrade.js';
 export { validateEligibility } from './rules/validateEligibility.js';
 

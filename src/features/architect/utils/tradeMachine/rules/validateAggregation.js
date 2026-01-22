@@ -1,9 +1,16 @@
 import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers.js';
+import {
+  SECOND_APRON_AGGREGATION_UP_BLOCKED,
+  SECOND_APRON_MULTI_TEAM_AGGREGATION_BLOCKED,
+} from '@/features/architect/utils/tradeMachine/constants/secondApronMessages.js';
 
 /**
  * Validates salary aggregation rules:
  * - Second apron teams cannot aggregate multiple smaller salaries to acquire a larger salary
  * - Each incoming salary must be matched by a single outgoing salary for second apron teams
+ * 
+ * NOTE: Salary mismatch (incoming > outgoing) is NOT checked here - 
+ * that's the responsibility of validateSalaryMatching to avoid duplicate messages.
  */
 export function validateAggregation(team, context = {}) {
   const {
@@ -60,9 +67,7 @@ export function validateAggregation(team, context = {}) {
     const aggregatingUp = incomingSalaries.some((s) => s > maxOutgoing);
 
     if (aggregatingUp) {
-      violations.push(
-        `Second apron team cannot aggregate salaries to acquire higher-paid player`
-      );
+      violations.push(SECOND_APRON_AGGREGATION_UP_BLOCKED);
     }
   }
 
@@ -73,19 +78,11 @@ export function validateAggregation(team, context = {}) {
       incomingPlayers.map((p) => p.fromTeamId).filter((id) => id)
     );
     if (incomingTeams.size > 1) {
-      violations.push(
-        `Second apron team cannot aggregate salaries from multiple clubs`
-      );
+      violations.push(SECOND_APRON_MULTI_TEAM_AGGREGATION_BLOCKED);
     }
   }
 
-  // Check if receiving more salary than sending out
-  const totalIncoming = incomingSalaries.reduce((sum, sal) => sum + sal, 0);
-  const totalOutgoing = outgoingSalaries.reduce((sum, sal) => sum + sal, 0);
-
-  if (totalIncoming > totalOutgoing) {
-    violations.push(`Second apron team cannot receive more salary than sent`);
-  }
+  // NOTE: Salary mismatch check removed - validateSalaryMatching is the SSOT for this
 
   return {
     passed: violations.length === 0,

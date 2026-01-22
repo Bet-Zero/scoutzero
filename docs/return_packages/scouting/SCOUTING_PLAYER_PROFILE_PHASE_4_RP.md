@@ -75,6 +75,7 @@
 | `npm test -- --run src/tests/stripUndefinedDeep.test.js` | PASS (1 file, 8 tests) |
 
 Notes:
+
 * No profile-specific tests found under `/tests`; no files moved.
 
 ---

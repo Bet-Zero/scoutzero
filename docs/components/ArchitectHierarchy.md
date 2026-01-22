@@ -225,6 +225,7 @@ utils/
       validationCacheService.js
     constants/
       cbaConstants.js
+      secondApronMessages.js
       types.ts
     engine/
       engineUtils.js
@@ -240,7 +241,6 @@ utils/
       validatorFactory.js
     index.js
     rules/
-      aggregationValidator.js
       basicRules.js
       draftRules.js
       eligibilityRules.js
@@ -252,7 +252,6 @@ utils/
       index.js
       miscRules.js
       rosterValidation.js
-      salaryMatching.js
       timingValidation.js
       tradeExceptions.js
       validateAggregation.js
@@ -264,7 +263,6 @@ utils/
       validateRoster.ts
       validateSalaryMatching.js
       validateSalaryMatching.ts
-      validateSecondApronRules.js
       validateSignAndTrade.js
       validateStepien.js
       validateStepien.ts
@@ -295,5 +293,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-01-22T09:48:31.284Z*
+*Generated on: 2026-01-22T14:41:13.918Z*
 *Auto-updated by: npm run docs*
