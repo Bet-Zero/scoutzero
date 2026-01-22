@@ -54,6 +54,7 @@ const PlayerDetails = ({
       setOverallBlurb={(val) => onBlurbChange('overall', val)}
       overallGrade={overallGrade}
       setOverallGrade={(val) => setOverallGrade(val)}
+      setOpenModal={setOpenModal}
     />
   </>
 );

@@ -4,11 +4,12 @@
  * OWNERSHIP: Feature: profile/scouting
  *
  * HISTORY:
+ *  - 2026-01-22: Phase 3 - Added videoExamples state to autosave flow
  *  - 2026-01-21: Phase 2 - Added markDirty pattern, save status indicator, wrapped all setters
  *  - 2026-01-21: Updated by plan `plans/_archive/scouting-player-profile-phase-1-data-contract/plan.md`, chunk_n/a
  *
  * LINKS:
- *  - Plan: plans/_archive/scouting-player-profile-phase-1-data-contract/plan.md
+ *  - Plan: plans/_archive/scouting-player-profile-phase-3-videos/plan.md
  *  - Latest Chunk: n/a (no chunks used)
  */
 
@@ -18,13 +19,20 @@ import usePlayerDetail from '@/shared/hooks/usePlayerDetail';
 import useAutoSavePlayer from '@/features/profile/hooks/useAutoSavePlayer';
 import { enrichPlayerData } from '@/features/roster/utils/enrichPlayerData';
 import { normalizeBlurbs } from '@/shared/utils/blurbs';
+import {
+  createEmptyVideoExamples,
+  normalizeVideoExamples,
+} from '@/shared/utils/videoExamples';
 import SaveStatusIndicator from '@/features/profile/SaveStatusIndicator';
 
 import TeamPlayerDropdowns from '@/features/profile/TeamPlayerDropdowns';
 import PlayerNavigation from '@/features/profile/PlayerNavigation';
 import PlayerDetails from '@/features/profile/PlayerDetails';
 import BreakdownModal from '@/features/profile/BreakdownModal';
-import { getPlayersForTeam } from '@/features/profile/utils/profileHelpers';
+import {
+  getPlayersForTeam,
+  setVideoExamplesForKey,
+} from '@/features/profile/utils/profileHelpers';
 import PlayerSearchBar from '@/features/profile/PlayerSearchBar';
 
 const defaultTraits = {
@@ -71,6 +79,9 @@ const PlayerProfileView = () => {
   const [badges, setBadges] = useState([]);
   const [openModal, setOpenModal] = useState(null);
   const [editedBlurbs, setEditedBlurbs] = useState(defaultBlurbs);
+  const [videoExamples, setVideoExamples] = useState(
+    createEmptyVideoExamples()
+  );
   const [overallGrade, setOverallGrade] = useState(null);
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -104,6 +115,7 @@ const PlayerProfileView = () => {
     setBadges(data.badges || []);
     setShootingProfile(data.shootingProfile ?? '');
     setEditedBlurbs(normalizeBlurbs(data.blurbs || defaultBlurbs));
+    setVideoExamples(normalizeVideoExamples(data.videoExamples));
     setOverallGrade(data.overallGrade || null);
     setHasChanges(false);
   }, [selectedPlayer, detailedPlayer]);
@@ -149,6 +161,7 @@ const PlayerProfileView = () => {
     shootingProfile,
     overallGrade,
     blurbs: editedBlurbs,
+    videoExamples,
     hasChanges,
     setHasChanges,
   });
@@ -204,6 +217,14 @@ const PlayerProfileView = () => {
     });
     setHasChanges(true);
   }, []);
+
+  const handleVideoExamplesChange = useCallback(
+    (key, list) => {
+      setVideoExamples((prev) => setVideoExamplesForKey(prev, key, list));
+      markDirty();
+    },
+    [markDirty]
+  );
 
   const handleSearchSelect = (id, team) => {
     if (!id) return;
@@ -292,6 +313,8 @@ const PlayerProfileView = () => {
             modalKey={openModal}
             blurbs={editedBlurbs}
             onChange={handleBlurbChange}
+            videoExamples={videoExamples}
+            onVideoExamplesChange={handleVideoExamplesChange}
             onClose={() => setOpenModal(null)}
           />
         )}

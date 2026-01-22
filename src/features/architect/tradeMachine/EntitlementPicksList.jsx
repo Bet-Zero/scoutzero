@@ -24,11 +24,16 @@ import { getKindSortPriority } from '@/features/architect/utils/entitlements/for
  * @param {Array} props.entitlements - Array of EffectiveEntitlement objects
  * @param {string} props.teamId - The team ID
  * @param {boolean} [props.showPooled=false] - Whether to show pooled entitlements
+ * @param {Function} [props.onToggleEntitlement] - Phase 11.1: Callback when entitlement is toggled
+ * @param {Array} [props.selectedEntitlementIds] - Phase 11.1: Array of selected entitlement IDs
  */
 export const EntitlementPicksList = ({
   entitlements = [],
   teamId,
   showPooled = false,
+  // Phase 11.1: Selection support for entitlement trading
+  onToggleEntitlement,
+  selectedEntitlementIds = [],
 }) => {
   // Filter and sort entitlements
   const sortedEntitlements = useMemo(() => {
@@ -102,16 +107,25 @@ export const EntitlementPicksList = ({
               {year}
             </div>
             {/* Entitlement rows for this year */}
-            {yearEntitlements.map((entitlement) => (
-              <EntitlementPickRow
-                key={
-                  entitlement.id ||
-                  `${entitlement.seasonYear}-${entitlement.round}-${entitlement.kind}`
-                }
-                entitlement={entitlement}
-                teamId={teamId}
-              />
-            ))}
+            {yearEntitlements.map((entitlement) => {
+              // Phase 11.1: Compute isSelected for this entitlement
+              const entitlementId = entitlement.id || entitlement.entitlementId;
+              const isSelected = selectedEntitlementIds.includes(entitlementId);
+
+              return (
+                <EntitlementPickRow
+                  key={
+                    entitlement.id ||
+                    `${entitlement.seasonYear}-${entitlement.round}-${entitlement.kind}`
+                  }
+                  entitlement={entitlement}
+                  teamId={teamId}
+                  // Phase 11.1: Pass selection state and toggle handler
+                  isSelected={isSelected}
+                  onToggle={onToggleEntitlement}
+                />
+              );
+            })}
           </div>
         ))}
       </div>

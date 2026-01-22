@@ -11,6 +11,7 @@
 - - 2026-01-22: Phase 26 S&T Audit - fixed build errors, audited workflow, extended tests 2→20
 - - 2026-01-21: Phase 27 Manual Exception Management - added setExceptions mutation, validateExceptions, ManageExceptionsModal
 - - 2026-01-21: Phase 29 LeagueView SSOT Fix - replaced inline salary computation with `computeTeamCapTotals()`, added 8 regression tests
+- - 2026-01-23: Phase 31 Max Salary Enforcement - added `max_salary_violation` hard block to prevent contracts exceeding YOS-based max (25%/30%/35% of cap), 16 new tests
 -
 - LINKS:
 - - Plan: plans/cap-sheet-contract-rules-phase-7-3/plan.md

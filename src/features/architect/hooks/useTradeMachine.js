@@ -8,7 +8,10 @@ import {
 import { ensurePickId } from '@/features/architect/utils/tradeMachine/utils/pickIdUtils';
 import { TeamMap } from '@/constants/teamList';
 import { toSeasonKey } from '@/features/architect/utils/seasonFormat';
-import { computeTradeDraftKey, isValidationCurrent } from '@/features/architect/tradeMachine/utils/computeTradeDraftKey';
+import {
+  computeTradeDraftKey,
+  isValidationCurrent,
+} from '@/features/architect/tradeMachine/utils/computeTradeDraftKey';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import { resolveEntitlementsForTeam } from '@/features/architect/utils/entitlements/entitlementResolver';
 
@@ -21,7 +24,8 @@ import { resolveEntitlementsForTeam } from '@/features/architect/utils/entitleme
  * Returns { playersTotal, deadMoneyTotal, totalWithDead } from computeTeamCapTotals.
  */
 const getCapTotalsForYear = (teamCapSheet, yearKey) => {
-  if (!teamCapSheet) return { playersTotal: 0, deadMoneyTotal: 0, totalWithDead: 0 };
+  if (!teamCapSheet)
+    return { playersTotal: 0, deadMoneyTotal: 0, totalWithDead: 0 };
   const totals = computeTeamCapTotals(teamCapSheet, yearKey);
   return {
     playersTotal: totals.playersTotal,
@@ -110,7 +114,7 @@ export const useTradeMachine = (
   const [previewOpen, setPreviewOpen] = useState(false);
   // P0-3: Track validation in-flight state for UI loading indicators
   const [isValidating, setIsValidating] = useState(false);
-  
+
   // Stale validation fix: Track which draft configuration was validated
   const lastValidatedDraftKeyRef = useRef(null);
   const validatedAtRef = useRef(null);
@@ -145,12 +149,12 @@ export const useTradeMachine = (
     () => teams.map((t) => getSalaryForYear(t.sends, yearKey)),
     [teams, yearKey]
   );
-  
+
   // Stale validation fix: Compute current draft key whenever trade config changes
   const currentDraftKey = useMemo(() => {
     return computeTradeDraftKey({ yearKey, teams });
   }, [yearKey, teams]);
-  
+
   // Stale validation fix: Check if validation result is current for this draft
   const hasCurrentValidation = useMemo(() => {
     return (
@@ -175,9 +179,10 @@ export const useTradeMachine = (
         // Map draftAssets/draftPicks to picks for trade machine compatibility
         // Priority: draftAssets.picks (canonical) > draftPicks > picks
         // Ensure all picks have canonical IDs (Phase 1 - SSOT)
-        const rawPicks = data.draftAssets?.picks || data.draftPicks || data.picks || [];
-        const picksWithIds = rawPicks.map(p => ensurePickId(p));
-        
+        const rawPicks =
+          data.draftAssets?.picks || data.draftPicks || data.picks || [];
+        const picksWithIds = rawPicks.map((p) => ensurePickId(p));
+
         const teamObj = {
           ...baseTeam,
           ...data,
@@ -188,7 +193,10 @@ export const useTradeMachine = (
         if (worldId || (data.entitlementIds && data.entitlementIds.length)) {
           try {
             const resolvedTeamCode =
-              data.teamCode || baseTeam?.code || teamObj.abbreviation || teamObj.id;
+              data.teamCode ||
+              baseTeam?.code ||
+              teamObj.abbreviation ||
+              teamObj.id;
             const entitlements = await resolveEntitlementsForTeam(
               worldId,
               resolvedTeamCode
@@ -202,7 +210,11 @@ export const useTradeMachine = (
         augmentTeamWithExceptions(teamObj, yearKey, capProjections);
 
         // === Baseline payroll wiring (SSOT) ===
-        const { playersTotal: baseline, deadMoneyTotal: dead, totalWithDead } = getCapTotalsForYear(teamObj, yearKey);
+        const {
+          playersTotal: baseline,
+          deadMoneyTotal: dead,
+          totalWithDead,
+        } = getCapTotalsForYear(teamObj, yearKey);
         teamObj.teamTotalSalary = totalWithDead;
         teamObj.projectedSalary = totalWithDead;
 
@@ -224,8 +236,9 @@ export const useTradeMachine = (
             team: teamObj,
             sends: [],
             picksOut: [],
+            entitlementsOut: [],
           },
-          { team: null, sends: [], picksOut: [] },
+          { team: null, sends: [], picksOut: [], entitlementsOut: [] },
         ]);
       }
     };
@@ -279,7 +292,7 @@ export const useTradeMachine = (
               (p) => (p.id || p.player_id) !== playerId
             );
             break;
-            
+
           case 'setAbsorptionMode':
             // destTeamId is actually the absorptionMode value ('MATCH', 'TPE', 'FA_EXCEPTION')
             // For incoming players, find the sending team and update the player there
@@ -309,7 +322,7 @@ export const useTradeMachine = (
               }
             }
             break;
-            
+
           case 'setFaBucket':
             // Similar to setAbsorptionMode - destTeamId is the bucket type value
             {
@@ -336,7 +349,7 @@ export const useTradeMachine = (
               }
             }
             break;
-            
+
           case 'setTpeId':
             // Set specific TPE ID on player (destTeamId is actually the tpeId)
             {
@@ -400,6 +413,36 @@ export const useTradeMachine = (
     });
   }, []);
 
+  // Phase 11.1: Toggle entitlement selection for trading
+  const toggleEntitlement = useCallback((index, entitlement) => {
+    setTeams((prev) => {
+      const newTeams = [...prev];
+      const entitlementId = entitlement.id || entitlement.entitlementId;
+      const existingIndex = (newTeams[index].entitlementsOut || []).findIndex(
+        (e) => (e.id || e.entitlementId) === entitlementId
+      );
+
+      if (existingIndex >= 0) {
+        // Remove from selection
+        newTeams[index].entitlementsOut = newTeams[
+          index
+        ].entitlementsOut.filter((_, i) => i !== existingIndex);
+      } else {
+        // Add to selection with required metadata
+        newTeams[index].entitlementsOut = [
+          ...(newTeams[index].entitlementsOut || []),
+          {
+            ...entitlement,
+            entitlementId,
+            fromTeamId: newTeams[index].team?.id,
+          },
+        ];
+      }
+
+      return newTeams;
+    });
+  }, []);
+
   const updatePickField = useCallback((index, pick, field, value) => {
     setTeams((prev) => {
       const newTeams = [...prev];
@@ -421,7 +464,12 @@ export const useTradeMachine = (
       if (!teamId) {
         setTeams((prev) => {
           const newTeams = [...prev];
-          newTeams[index] = { team: null, sends: [], picksOut: [] };
+          newTeams[index] = {
+            team: null,
+            sends: [],
+            picksOut: [],
+            entitlementsOut: [],
+          };
           return newTeams;
         });
         return;
@@ -435,9 +483,10 @@ export const useTradeMachine = (
         // Map draftAssets/draftPicks to picks for trade machine compatibility
         // Priority: draftAssets.picks (canonical) > draftPicks > picks
         // Ensure all picks have canonical IDs (Phase 1 - SSOT)
-        const rawPicks = data.draftAssets?.picks || data.draftPicks || data.picks || [];
-        const picksWithIds = rawPicks.map(p => ensurePickId(p));
-        
+        const rawPicks =
+          data.draftAssets?.picks || data.draftPicks || data.picks || [];
+        const picksWithIds = rawPicks.map((p) => ensurePickId(p));
+
         const teamObj = {
           ...baseTeam,
           ...data,
@@ -447,7 +496,11 @@ export const useTradeMachine = (
         augmentTeamWithExceptions(teamObj, yearKey, capProjections);
 
         // === Baseline payroll wiring on select (SSOT) ===
-        const { playersTotal: baseline, deadMoneyTotal: dead, totalWithDead } = getCapTotalsForYear(teamObj, yearKey);
+        const {
+          playersTotal: baseline,
+          deadMoneyTotal: dead,
+          totalWithDead,
+        } = getCapTotalsForYear(teamObj, yearKey);
         teamObj.teamTotalSalary = totalWithDead;
         teamObj.projectedSalary = totalWithDead;
 
@@ -466,7 +519,12 @@ export const useTradeMachine = (
 
         setTeams((prev) => {
           const newTeams = [...prev];
-          newTeams[index] = { team: teamObj, sends: [], picksOut: [] };
+          newTeams[index] = {
+            team: teamObj,
+            sends: [],
+            picksOut: [],
+            entitlementsOut: [],
+          };
           return newTeams;
         });
       }
@@ -476,7 +534,10 @@ export const useTradeMachine = (
 
   const addTeam = useCallback(() => {
     if (teams.length >= 5) return;
-    setTeams((prev) => [...prev, { team: null, sends: [], picksOut: [] }]);
+    setTeams((prev) => [
+      ...prev,
+      { team: null, sends: [], picksOut: [], entitlementsOut: [] },
+    ]);
   }, [teams.length]);
 
   const removeTeam = useCallback((index) => {
@@ -554,11 +615,11 @@ export const useTradeMachine = (
     setResult(result);
     // P0-3: Clear validating state after validation completes
     setIsValidating(false);
-    
+
     // Stale validation fix: Record the draft key that was validated
     // This is only set on explicit validation, not auto-validation
     // (Note: Auto-validation has been removed to fix the stale state bug)
-    
+
     console.log(
       '[after validate]',
       validation.teamResults.map((tr) => ({
@@ -594,6 +655,8 @@ export const useTradeMachine = (
         teamId: t.team.id,
         outgoingPlayers: t.sends,
         outgoingPicks: t.picksOut,
+        // Phase 11.1: Include outgoing entitlements in trade export
+        outgoingEntitlements: t.entitlementsOut || [],
         incomingPlayers:
           incomingAssets.find((a) => a.teamId === t.team.id)?.players || [],
         incomingPicks:
@@ -607,7 +670,9 @@ export const useTradeMachine = (
   }, [teams, incomingAssets]);
 
   const resetTrade = useCallback(() => {
-    setTeams((prev) => prev.map((t) => ({ ...t, sends: [], picksOut: [] })));
+    setTeams((prev) =>
+      prev.map((t) => ({ ...t, sends: [], picksOut: [], entitlementsOut: [] }))
+    );
     setResult(null);
     setForceTrade(false);
   }, []);
@@ -660,6 +725,8 @@ export const useTradeMachine = (
     setForceTrade,
     setPlayerTrade,
     togglePick,
+    // Phase 11.1: Expose entitlement toggle for trading
+    toggleEntitlement,
     updatePickField,
     selectTeam,
     addTeam,

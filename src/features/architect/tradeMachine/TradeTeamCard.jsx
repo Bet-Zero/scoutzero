@@ -79,6 +79,9 @@ const TradeTeamCard = ({
   teamIndex = null,
   // P0-3: Validation in-flight state for loading indicators
   isValidating = false,
+  // Phase 11.1: Entitlement trading props
+  entitlementsOut = [],
+  onToggleEntitlement,
 }) => {
   const [activeTab, setActiveTab] = useState('players');
   const [editingTeam, setEditingTeam] = useState(false);
@@ -722,6 +725,11 @@ const TradeTeamCard = ({
             entitlements={team.entitlements}
             teamId={team.id}
             showPooled={false}
+            // Phase 11.1: Pass toggle handler and selected entitlement IDs
+            onToggleEntitlement={onToggleEntitlement}
+            selectedEntitlementIds={(entitlementsOut || []).map(
+              (e) => e.entitlementId || e.id
+            )}
           />
         ) : (
           <OutgoingPicksList

@@ -4,11 +4,12 @@
  * OWNERSHIP: Feature: profile/scouting
  *
  * HISTORY:
+ *  - 2026-01-22: Phase 3 - Added videoExamples to autosave payloads
  *  - 2026-01-21: Phase 2 - Added isSaving/saveError state, made writes resilient with set+merge
  *  - 2026-01-21: Updated by plan `plans/_archive/scouting-player-profile-phase-1-data-contract/plan.md`, chunk_n/a
  *
  * LINKS:
- *  - Plan: plans/_archive/scouting-player-profile-phase-1-data-contract/plan.md
+ *  - Plan: plans/_archive/scouting-player-profile-phase-3-videos/plan.md
  *  - Latest Chunk: n/a (no chunks used)
  */
 
@@ -17,6 +18,7 @@ import { writeBatch } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
 import { evalRef, seasonRef, playerRef } from '@/data/firestorePaths';
 import { normalizeBlurbs } from '@/shared/utils/blurbs';
+import { normalizeVideoExamples } from '@/shared/utils/videoExamples';
 
 /**
  * @typedef {Object} AutoSaveStatus
@@ -36,6 +38,7 @@ const useAutoSavePlayer = ({
   shootingProfile,
   overallGrade,
   blurbs,
+  videoExamples,
   hasChanges,
   setHasChanges,
 }) => {
@@ -61,6 +64,7 @@ const useAutoSavePlayer = ({
 
       try {
         const normalizedBlurbs = normalizeBlurbs(blurbs);
+        const normalizedVideoExamples = normalizeVideoExamples(videoExamples);
         const evaluationData = {
           traits,
           roles,
@@ -69,6 +73,7 @@ const useAutoSavePlayer = ({
           shootingProfile,
           overallGrade,
           blurbs: normalizedBlurbs,
+          videoExamples: normalizedVideoExamples,
           twoWay,
           meta: {
             lastUpdated: new Date().toISOString(),
@@ -128,6 +133,7 @@ const useAutoSavePlayer = ({
           badges: badges || [],
           traits: traits || {},
           blurbs: normalizedBlurbs,
+          videoExamples: normalizedVideoExamples,
         };
         batch.set(
           playerDocRef,
@@ -170,6 +176,7 @@ const useAutoSavePlayer = ({
     shootingProfile,
     overallGrade,
     blurbs,
+    videoExamples,
     hasChanges,
     setHasChanges,
   ]);

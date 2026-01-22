@@ -166,18 +166,27 @@ function computeYearsOfService(player, operationSeasonId): number {
 
 ### D) Failure Modes
 
-| Failure Mode                     | Impact on Max Salary                                                               | Mitigation                                    |
-| -------------------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------- |
-| YOS=0 when player is 10-year vet | **ALLOWS OVERPAYMENT**: 25% max instead of 35%                                     | Add warning if YOS=0 for player with age > 30 |
-| YOS=0 when player is 7-year vet  | **ALLOWS OVERPAYMENT**: 25% max instead of 30%                                     | Same warning strategy                         |
-| YOS=10 when player is rookie     | **BLOCKS UNDERPAYMENT**: Would allow 35% max (not harmful, just overly permissive) | No action needed                              |
+| Failure Mode                     | Impact on Max Salary                                                              | Mitigation                                             |
+| -------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| YOS=0 when player is 10-year vet | **FALSE BLOCK RISK**: 25% max enforced instead of 35% — rejects legal contracts   | Skip max enforcement if YOS=0 + age>=25 + no draftYear |
+| YOS=0 when player is 7-year vet  | **FALSE BLOCK RISK**: 25% max enforced instead of 30% — rejects legal contracts   | Same mitigation strategy                               |
+| YOS=10 when player is rookie     | **OVER-ALLOW RISK**: 35% max allowed instead of 25% — permits illegal overpayment | Hard block still applies (acceptable risk)             |
 
 ### E) Recommended Safety Net
 
-Add a **warning** (not hard block) when:
+**Phase 31 Design Decision:** Prevent false blocks from missing YOS data.
 
-- `yearsOfService === 0` AND `player.bio?.age >= 25`
-- Message: "YOS data may be missing; max salary check used 0 years. Verify player experience."
+**Strategy:**
+
+- If `yearsOfService === 0` AND `player.bio?.draftYear` is missing AND `player.bio?.age >= 25`:
+  - Emit WARNING: `max_salary_yos_unverified` — "YOS=0 for player age ${age}. Cannot verify max tier. Skipping max salary enforcement."
+  - **SKIP max salary hard block** for this player (warn-only mode)
+- If `yearsOfService === 0` BUT `player.bio?.draftYear` exists:
+  - YOS will be computed via draft-year fallback → proceed with normal enforcement
+- If `yearsOfService > 0`:
+  - Normal enforcement applies
+
+**Rationale:** Better to allow a potentially-illegal contract with a warning than to falsely block a legal veteran contract due to missing data.
 
 ---
 
@@ -207,15 +216,42 @@ if (!isTwoWay && signingMechanism !== 'MINIMUM' && rules) {
   const { salary: firstYearSalary } = getFirstYearAmounts(contract);
 
   if (firstYearSalary !== null) {
-    // Get max salary from signing terms (already computed via Salary Engine)
-    const engineMaxSalary = engineSigningTerms?.maxFirstYearSalary;
+    const yos = getYearsOfService(player);
+
+    // Phase 31 Safety Net: Skip max enforcement if YOS=0 + no draftYear + age>=25
+    // (Prevents false blocks from missing data)
+    const isYOSUnreliable =
+      yos === 0 &&
+      !player.bio?.draftYear &&
+      player.bio?.age >= 25;
+
+    if (isYOSUnreliable) {
+      warnings.push({
+        rule: 'max_salary_yos_unverified',
+        message: `YOS=0 for player age ${player.bio.age}. Cannot verify max tier. Skipping max salary enforcement.`,
+        severity: 'warning',
+      });
+      // SKIP max salary check for this player
+      continue; // or return early from this section
+    }
+
+    // Get max salary from Salary Engine profile (already computed)
+    // For Bird rights re-signings: use maxSalaryBird (105% prior OR tier max)
+    // For cap space/exception signings: use maxSalary (standard tier max)
+    let maxSalaryAmount = null;
+    let maxSalarySource = null;
+
+    if (engineSigningTerms?.source === 'salary_engine') {
+      // Use Bird max if Bird rights apply, otherwise standard max
+      const isBirdSigning = engineSigningTerms.rightsType !== 'CAP_SPACE';
+      maxSalaryAmount = isBirdSigning
+        ? engineSigningTerms.maxFirstYearSalary // Bird max (could be >tier max via 105% prior)
+        : signingTerms?.maxSalary?.maxSalary; // Standard tier max
+      maxSalarySource = isBirdSigning ? 'salary_engine_bird' : 'salary_engine_cap';
+    }
 
     // Fallback: Compute from YOS tier if engine unavailable
-    let maxSalaryAmount = engineMaxSalary;
-    let maxSalarySource = 'salary_engine';
-
     if (maxSalaryAmount == null) {
-      const yos = getYearsOfService(player);
       const capAmount = rules.cap.salaryCap;
 
       // Determine tier percentage
@@ -225,15 +261,6 @@ if (!isTwoWay && signingMechanism !== 'MINIMUM' && rules) {
 
       maxSalaryAmount = Math.round(capAmount * tierPercent);
       maxSalarySource = 'yos_tier_fallback';
-
-      // YOS reliability warning
-      if (yos === 0 && player.bio?.age >= 25) {
-        warnings.push({
-          rule: 'max_salary_yos_unverified',
-          message: `YOS=0 for player age ${player.bio.age}. Max salary check used 0 years of service. Verify player experience data.`,
-          severity: 'warning',
-        });
-      }
     }
 
     // Check: firstYearSalary <= maxSalaryAmount
@@ -246,7 +273,7 @@ if (!isTwoWay && signingMechanism !== 'MINIMUM' && rules) {
           firstYearSalary,
           maxSalaryAmount,
           maxSalarySource,
-          yearsOfService: getYearsOfService(player),
+          yearsOfService: yos,
         },
       });
     }
@@ -344,6 +371,20 @@ if (!isTwoWay && signingMechanism !== 'MINIMUM' && rules) {
 - **Article II, Section 7:** Max salary tiers (25%/30%/35% based on YOS)
 - **Article II, Section 7(a):** "Higher Max" criteria for designated players
 - **Rule Card 6** in `cba/guides/`: Max salary tier definitions
+
+---
+
+## Docs Artifact Confirmation
+
+**Return Package Saved:**
+
+- Path: `docs/architect/return_packages/PHASE_31_MAX_SALARY_READINESS_PREFLIGHT_RETURN_PACKAGE.md`
+- Status: ✅ Complete
+
+**Master Doc Updated:**
+
+- Path: `docs/architect/CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md`
+- Status: ⏳ Pending (add changelog entry from Section 8 during Phase 31 execution)
 
 ---
 

@@ -944,6 +944,43 @@ function computeTradeResult({ payload, currentState, seasonId, timestamp }) {
       ...incomingPicks,
     ];
 
+    // Phase 11.1: Update entitlementIds if any entitlements are traded
+    const outgoingEntitlementIds = (
+      teamTrade.outgoingEntitlements ||
+      teamTrade.entitlementsOut ||
+      []
+    ).map((e) => e.entitlementId || e.id);
+
+    const incomingEntitlementIds = [];
+    payload.teams.forEach((otherTeamTrade, otherIndex) => {
+      if (otherIndex !== i) {
+        // Collect all outgoing entitlements from other teams (no routing - all go to all)
+        (
+          otherTeamTrade.outgoingEntitlements ||
+          otherTeamTrade.entitlementsOut ||
+          []
+        ).forEach((e) => {
+          incomingEntitlementIds.push(e.entitlementId || e.id);
+        });
+      }
+    });
+
+    // Only update entitlementIds if there are any changes
+    if (
+      outgoingEntitlementIds.length > 0 ||
+      incomingEntitlementIds.length > 0
+    ) {
+      const currentEntitlementIds = team.entitlementIds || [];
+      const newEntitlementIds = [
+        ...currentEntitlementIds.filter(
+          (id) => !outgoingEntitlementIds.includes(id)
+        ),
+        ...incomingEntitlementIds,
+      ];
+      // Deduplicate to be safe
+      updatedTeam.entitlementIds = [...new Set(newEntitlementIds)];
+    }
+
     // Update source metadata
     updatedTeam.source = {
       ...updatedTeam.source,

@@ -1,15 +1,40 @@
+/**
+ * FILE: src/features/profile/PlayerDetails/OverallBlurbBox.jsx
+ * PURPOSE: Overall scouting blurb and grade editor with modal access.
+ * OWNERSHIP: Feature: profile/scouting
+ *
+ * HISTORY:
+ *  - 2026-01-22: Added modal entry point for overall breakdown (Phase 3)
+ *
+ * LINKS:
+ *  - Plan: plans/_archive/scouting-player-profile-phase-3-videos/plan.md
+ *  - Latest Chunk: n/a (no chunks used)
+ */
+
 import React from 'react';
 import OverallGradeBlock from '@/shared/components/ui/grades/OverallGradeBlock';
+import { NotebookText } from 'lucide-react';
 
 const OverallBlurbBox = ({
   overallBlurb,
   setOverallBlurb,
   overallGrade,
   setOverallGrade,
+  setOpenModal,
 }) => {
   return (
     <div className="w-full max-w-[750px] bg-neutral-800 rounded-xl p-4 flex flex-col gap-3">
-      <label className="text-white text-sm mb-1">Overall</label>
+      <label className="text-white text-sm mb-1 flex items-center gap-2">
+        Overall
+        <button
+          type="button"
+          onClick={() => setOpenModal?.('overall')}
+          className="text-white/60 hover:text-white"
+          title="Edit overall breakdown"
+        >
+          <NotebookText size={14} strokeWidth={1.25} />
+        </button>
+      </label>
 
       <div className="flex w-full gap-4">
         <textarea

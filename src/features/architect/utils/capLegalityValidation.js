@@ -125,6 +125,8 @@ export const HARD_BLOCK_RULES = [
   'rfa_offer_sheet_declined_home_team_cannot_finalize', // Home team cannot finalize a DECLINED offer sheet
   // Phase 19: Cap Hold / Cap Space Enforcement
   'cap_hold_signing_violation', // Cap-space signing exceeds cap with holds included
+  // Phase 31: Max Contract Salary Enforcement
+  'max_salary_violation', // First-year salary exceeds player's max salary (25%/30%/35% of cap based on YOS)
   // Phase 24: Manual Dead Money Management
   'dead_cap_schema_invalid', // Dead cap entry has invalid schema (missing season, invalid amount, etc.)
   // Phase 27: Manual Exception Management
@@ -2873,6 +2875,102 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
             engineMaxFirstYearSalary: engineMaxFirstYear,
           });
         }
+      }
+    }
+  }
+
+  // 1.7.5 PHASE 31: MAX SALARY ENFORCEMENT
+  // Enforces max contract salary (25%/30%/35% of cap based on YOS)
+  // Two-way and minimum signings are exempt
+  // Uses Salary Engine max when available, fallback to YOS tier calculation
+  if (!isTwoWay && signingMechanism !== 'MINIMUM' && rules) {
+    const { salary: firstYearSalary } = getFirstYearAmounts(contract);
+
+    if (firstYearSalary !== null) {
+      const yos = getYearsOfService(player);
+      const playerAge = player?.bio?.age ?? player?.age ?? null;
+      const hasDraftYear = player?.bio?.draftYear != null;
+
+      // Phase 31 Safety Net: Detect unreliable YOS data
+      // YOS=0 + no draftYear + age>=25 = likely missing data for veteran
+      const isYOSUnreliable = yos === 0 && !hasDraftYear && playerAge >= 25;
+
+      if (isYOSUnreliable) {
+        // Emit warning about unreliable YOS data
+        warnings.push({
+          rule: 'max_salary_yos_unverified',
+          message: `YOS=0 for player age ${playerAge}. Cannot verify max tier. Using conservative 35% max to avoid false blocks.`,
+          severity: 'warning',
+          details: {
+            yearsOfService: yos,
+            age: playerAge,
+            hasDraftYear,
+          },
+        });
+      }
+
+      // Determine max salary amount
+      let maxSalaryAmount = null;
+      let maxSalarySource = null;
+
+      // Priority 1: Use Salary Engine computed max if available
+      if (engineSigningTerms?.source === 'salary_engine') {
+        // Check if this is a Bird rights signing (use Bird max) or cap space (standard max)
+        const isBirdSigning =
+          engineSigningTerms.rightsType &&
+          engineSigningTerms.rightsType !== 'CAP_SPACE' &&
+          engineSigningTerms.rightsType !== 'NONE';
+
+        if (isBirdSigning && engineSigningTerms.maxFirstYearSalary != null) {
+          // Bird rights: use engine's Bird max (includes 105% prior salary consideration)
+          maxSalaryAmount = engineSigningTerms.maxFirstYearSalary;
+          maxSalarySource = 'salary_engine_bird';
+        }
+      }
+
+      // Priority 2: Fallback to YOS tier calculation
+      if (maxSalaryAmount == null) {
+        const capAmount = rules.cap.salaryCap;
+
+        // Determine tier percentage based on YOS
+        // Use conservative 35% if YOS data is unreliable (prevents false blocks)
+        let tierPercent;
+        if (isYOSUnreliable) {
+          tierPercent = 0.35; // Conservative max to avoid false blocks
+        } else if (yos >= 10) {
+          tierPercent = 0.35; // 10+ years
+        } else if (yos >= 7) {
+          tierPercent = 0.3; // 7-9 years
+        } else {
+          tierPercent = 0.25; // 0-6 years
+        }
+
+        maxSalaryAmount = Math.round(capAmount * tierPercent);
+        maxSalarySource = isYOSUnreliable
+          ? 'yos_tier_conservative'
+          : 'yos_tier_fallback';
+      }
+
+      // Enforce max salary check
+      if (maxSalaryAmount != null && firstYearSalary > maxSalaryAmount) {
+        violations.push({
+          rule: 'max_salary_violation',
+          message: `First-year salary ($${(firstYearSalary / 1_000_000).toFixed(2)}M) exceeds player max ($${(maxSalaryAmount / 1_000_000).toFixed(2)}M) based on ${maxSalarySource.replace(/_/g, ' ')}`,
+          severity: 'error',
+          details: {
+            firstYearSalary,
+            maxSalaryAmount,
+            maxSalarySource,
+            yearsOfService: yos,
+            tierPercent: isYOSUnreliable
+              ? 0.35
+              : yos >= 10
+                ? 0.35
+                : yos >= 7
+                  ? 0.3
+                  : 0.25,
+          },
+        });
       }
     }
   }

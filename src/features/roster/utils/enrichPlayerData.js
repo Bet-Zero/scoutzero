@@ -4,15 +4,17 @@
  * OWNERSHIP: Feature: roster (player data enrichment)
  *
  * HISTORY:
+ *  - 2026-01-22: Phase 3 - Added videoExamples merge for evaluations
  *  - 2026-01-21: Updated by plan `plans/_archive/scouting-player-profile-phase-1-data-contract/plan.md`, chunk_n/a
  *
  * LINKS:
- *  - Plan: plans/_archive/scouting-player-profile-phase-1-data-contract/plan.md
+ *  - Plan: plans/_archive/scouting-player-profile-phase-3-videos/plan.md
  *  - Latest Chunk: n/a (no chunks used)
  */
 
 import { POSITION_MAP } from '@/shared/utils/roles/roleUtils';
 import { normalizeBlurbs } from '@/shared/utils/blurbs';
+import { normalizeVideoExamples } from '@/shared/utils/videoExamples';
 
 /**
  * Normalize playerId for headshot path lookup
@@ -244,6 +246,10 @@ export function enrichPlayerData(playerData) {
     ? normalizeBlurbs(evaluationDoc.blurbs)
     : normalizeBlurbs(evaluationView.blurbs);
 
+  const videoExamples = hasOwn(evaluationDoc, 'videoExamples')
+    ? normalizeVideoExamples(evaluationDoc.videoExamples)
+    : normalizeVideoExamples(evaluationView.videoExamples);
+
   const evaluationData = {
     ...evaluationView,
     ...(evaluationDoc || {}),
@@ -255,6 +261,7 @@ export function enrichPlayerData(playerData) {
     badges,
     overallGrade,
     blurbs,
+    videoExamples,
   };
 
   // Calculate age from DOB if age is not available
@@ -277,6 +284,7 @@ export function enrichPlayerData(playerData) {
       ? evaluationData.twoWay
       : null,
     blurbs,
+    videoExamples,
     subRoles,
     traits: evaluationData.traits || {},
     badges,

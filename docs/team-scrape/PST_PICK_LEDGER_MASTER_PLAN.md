@@ -31,6 +31,8 @@
 | Phase 8.1  | Hotfix: Split Separable Rights + Physical Slots | COMPLETE    | 2026-01-21 |
 | Phase 10   | Firestore Entitlements Storage + World Holdings | COMPLETE    | 2026-01-21 |
 | Phase 11.0 | Read-only Entitlements Trade Machine            | COMPLETE    | 2026-01-21 |
+| Phase 11.1 | Entitlement Trading (Selection + World Save)    | COMPLETE    | 2026-01-22 |
+| Phase 11.2 | Entitlement Trade UX + Warnings (Non-Blocking)  | PREFLIGHT   | 2026-01-22 |
 
 ---
 

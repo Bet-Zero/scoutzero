@@ -4,10 +4,11 @@
  * OWNERSHIP: Data: players_v2 schema
  *
  * HISTORY:
+ *  - 2026-01-22: Added videoExamples to evaluation schemas (Phase 3)
  *  - 2026-01-21: Updated by plan `plans/_archive/scouting-player-profile-phase-1-data-contract/plan.md`, chunk_n/a
  *
  * LINKS:
- *  - Plan: plans/_archive/scouting-player-profile-phase-1-data-contract/plan.md
+ *  - Plan: plans/_archive/scouting-player-profile-phase-3-videos/plan.md
  *  - Latest Chunk: n/a (no chunks used)
  */
 
@@ -142,6 +143,28 @@ export const CurrentContractViewZ = z
   .passthrough()
   .optional();
 
+export const VideoExampleZ = z
+  .object({
+    url: z.string(),
+    label: z.string().optional(),
+    createdAt: z.number().optional()
+  })
+  .passthrough();
+
+export const VideoExamplesZ = z
+  .object({
+    traits: z.record(z.string(), z.array(VideoExampleZ)).optional(),
+    roles: z.record(z.string(), z.array(VideoExampleZ)).optional(),
+    subroles: z.record(z.string(), z.array(VideoExampleZ)).optional(),
+    subRoles: z.record(z.string(), z.array(VideoExampleZ)).optional(),
+    shootingProfile: z.array(VideoExampleZ).optional(),
+    twoWayMeter: z.array(VideoExampleZ).optional(),
+    overall: z.array(VideoExampleZ).optional()
+  })
+  .partial()
+  .passthrough()
+  .optional();
+
 export const CurrentEvaluationViewZ = z
   .object({
     roles: z
@@ -179,7 +202,8 @@ export const CurrentEvaluationViewZ = z
           .passthrough(),
         z.record(z.string(), z.any())
       ])
-      .optional()
+      .optional(),
+    videoExamples: VideoExamplesZ
   })
   .passthrough()
   .optional();
@@ -275,6 +299,7 @@ export const EvaluationDocZ = z.object({
       z.record(z.string(), z.any())
     ])
     .optional(),
+  videoExamples: VideoExamplesZ,
   meta: z
     .object({
       methodVersion: z.string().optional(),
@@ -313,4 +338,3 @@ export interface PlayerV2 extends PlayerMainDoc {
   seasons?: Record<string, SeasonDoc>;
   evaluations?: Record<string, EvaluationDoc>;
 }
-

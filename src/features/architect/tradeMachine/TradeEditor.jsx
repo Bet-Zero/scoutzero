@@ -24,6 +24,8 @@ const TradeEditor = ({
     // setForceTrade,
     setPlayerTrade,
     togglePick,
+    // Phase 11.1: Destructure entitlement toggle for trading
+    toggleEntitlement,
     updatePickField,
     selectTeam,
     addTeam,
@@ -53,7 +55,7 @@ const TradeEditor = ({
   const [previewOpen, setPreviewOpen] = useState(false);
   // P2: Track which team's calculator to show (0 = primary team by default)
   const [calculatorTeamIndex, setCalculatorTeamIndex] = useState(0);
-  
+
   // Stale validation fix: hasCurrentValidation now comes from hook
   // It properly checks if validation result matches current draft configuration
 
@@ -149,6 +151,9 @@ const TradeEditor = ({
               team={t.team}
               sends={t.sends}
               picks={t.picksOut}
+              // Phase 11.1: Pass entitlement toggle and selection state
+              entitlementsOut={t.entitlementsOut || []}
+              onToggleEntitlement={(e) => toggleEntitlement(idx, e)}
               incomingPlayers={incomingAssets[idx]?.players || []}
               incomingPicks={incomingAssets[idx]?.picks || []}
               yearKey={yearKey}

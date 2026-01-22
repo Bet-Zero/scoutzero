@@ -295,6 +295,7 @@ Source: `player-scrape/firestore_staging/docs/players_v2_structure.md` (Toumani 
 - Impact: Only a hardcoded sample video exists; no per-player or per-section storage.
 - Where: `src/features/profile/utils/profileHelpers.js:38`.
 - Fix approach: Define video URL storage in evaluations (e.g., `blurbs.videoExamples.{key}`) and wire into modal.
+- Status: ✅ Resolved in Phase 3 (videoExamples stored in evaluations/current + currentEvaluationView).
 
 1. **No visible save state or error feedback**
 
@@ -397,6 +398,8 @@ Source: `player-scrape/firestore_staging/docs/players_v2_structure.md` (Toumani 
   - Blurbless sections can be authored and video examples load per player.
 - **Validation Steps:**
   - Open a blurb modal and confirm video list updates per player.
+- **Status:** ✅ Completed in Phase 3 (2026-01-22).
+- **Return Package:** `docs/return_packages/scouting/SCOUTING_PLAYER_PROFILE_PHASE_3_RP.md`
 
 ### Phase 4 — Cleanup & UX Polish
 
@@ -416,4 +419,5 @@ Source: `player-scrape/firestore_staging/docs/players_v2_structure.md` (Toumani 
 
 1. Should `/profiles` be read-only in the public HoopZero build, or gated to internal users? (Currently writes to Firestore via `useAutoSavePlayer`.)
 2. Should blurbs and video examples live in `currentEvaluationView` for faster loads, or remain only in evaluations subcollection?
+   - Decision: ✅ Denormalized into `currentEvaluationView` with evaluations/current as canonical source.
 3. Is `currentSeasonStats` always decimals for percentages (0–1), or can it be 0–100?
