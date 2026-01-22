@@ -8,10 +8,14 @@
 - - 2026-01-21: Created by plan `plans/_archive/scouting-player-profile-master-audit/plan.md`, chunk_n/a
 - - 2026-01-21: Phase 1 data contract alignment (TwoWay + Blurbs + ShootingProfile)
 - - 2026-01-21: Phase 2 save flow reliability (dirty state, resilient writes, save indicator)
+- - 2026-01-22: Phase 3 feature completeness (video examples + blurbs wiring)
+- - 2026-01-22: Phase 4 polish (debounced autosave + modal a11y)
 -
 - LINKS:
-- - Plan: plans/\_archive/scouting-player-profile-phase-1-data-contract/plan.md
+- - Plan: plans/_archive/scouting-player-profile-phase-4/plan.md
 - - Phase 2 RP: docs/return_packages/scouting/SCOUTING_PLAYER_PROFILE_PHASE_2_RP.md
+- - Phase 3 RP: docs/return_packages/scouting/SCOUTING_PLAYER_PROFILE_PHASE_3_RP.md
+- - Phase 4 RP: docs/return_packages/scouting/SCOUTING_PLAYER_PROFILE_PHASE_4_RP.md
 - - Latest Chunk: n/a (no chunks used)
     \*/
 
@@ -403,15 +407,20 @@ Source: `player-scrape/firestore_staging/docs/players_v2_structure.md` (Toumani 
 
 ### Phase 4 — Cleanup & UX Polish
 
-- **Objective:** Reduce duplication and improve accessibility.
+- **Objective:** Reduce autosave write spam and improve modal accessibility without design changes.
 - **Tasks:**
-  - Centralize trait color scale.
-  - Consolidate modal patterns (shared modal or base component).
-  - Clean up unused legacy profile components.
+  - Debounce autosave writes with an in-flight save guard.
+  - Add modal a11y essentials (ESC close, focus in/out, aria attributes).
+  - Source shooting profile tiers from shared constants and remove unused imports.
+  - Confirm profile-related tests are under `src/tests/`.
 - **Acceptance Criteria:**
-  - No duplicate color maps; modal a11y improvements merged.
+  - Debounce active; rapid edits batch into fewer writes.
+  - Modals close with ESC and restore focus to opener.
 - **Validation Steps:**
-  - Smoke test blurbs and subrole modal flows after refactor.
+  - Rapid edits only trigger a single save after pause.
+  - ESC closes blurbs and subrole modal; focus returns to opener.
+- **Status:** ✅ Completed in Phase 4 (2026-01-22).
+- **Return Package:** `docs/return_packages/scouting/SCOUTING_PLAYER_PROFILE_PHASE_4_RP.md`
 
 ---
 

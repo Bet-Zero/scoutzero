@@ -67,10 +67,13 @@ describe('tradeValidator', () => {
 
     expect(result.legal).toBe(false);
     expect(result.teamResults[0].legal).toBe(false);
-    expect(result.teamResults[0].violations[0]).toContain(
-      '1st Apron hard cap violation'
-    );
+    // Assert against rule-scoped violations (not violations[0]) to avoid order dependency
     expect(result.teamResults[0].rules.hardCap.passed).toBe(false);
+    expect(result.teamResults[0].rules.hardCap.violations).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('1st Apron hard cap violation'),
+      ])
+    );
   });
 
   it('enforces sign-and-trade restrictions', () => {
@@ -92,13 +95,18 @@ describe('tradeValidator', () => {
     });
 
     expect(result.legal).toBe(false);
+    // Team A violates outgoing aggregation (sends S&T + extra)
     expect(result.teamResults[0].legal).toBe(false);
     expect(result.teamResults[0].violations[0]).toContain(
       'Sign-and-trade player must be traded alone.'
     );
     expect(result.teamResults[0].rules.signAndTrade.passed).toBe(false);
-    expect(result.teamResults[1].legal).toBe(true);
-    expect(result.teamResults[1].rules.signAndTrade.passed).toBe(true);
+    // Team B also violates incoming aggregation (receives S&T + extra) - Phase 32
+    expect(result.teamResults[1].legal).toBe(false);
+    expect(result.teamResults[1].violations).toContain(
+      'Cannot aggregate other players with sign-and-trade player.'
+    );
+    expect(result.teamResults[1].rules.signAndTrade.passed).toBe(false);
   });
 
   it('allows valid sign-and-trade deals', () => {

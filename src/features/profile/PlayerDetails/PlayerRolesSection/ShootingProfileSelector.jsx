@@ -1,37 +1,27 @@
-import React, { useState, useEffect } from 'react';
+/**
+ * FILE: src/features/profile/PlayerDetails/PlayerRolesSection/ShootingProfileSelector.jsx
+ * PURPOSE: Shooting profile tier picker used in the player roles section.
+ * OWNERSHIP: Feature: profile/scouting
+ *
+ * HISTORY:
+ *  - 2026-01-22: Phase 4 - Sourced tiers from shared constants to avoid drift
+ *
+ * LINKS:
+ *  - Plan: plans/_archive/scouting-player-profile-phase-4/plan.md
+ *  - Latest Chunk: n/a (no chunks used)
+ */
 
-const SHOOTING_TIERS = [
-  {
-    label: 'Elite',
-    border: 'border-green-500',
-    text: 'text-green-500',
-  },
-  {
-    label: 'Plus',
-    border: 'border-lime-400',
-    text: 'text-lime-400',
-  },
-  {
-    label: 'Capable',
-    border: 'border-yellow-400',
-    text: 'text-yellow-400',
-  },
-  {
-    label: 'Willing',
-    border: 'border-orange-400',
-    text: 'text-orange-400',
-  },
-  {
-    label: 'Hesitant',
-    border: 'border-orange-600',
-    text: 'text-orange-600',
-  },
-  {
-    label: 'Non',
-    border: 'border-red-600',
-    text: 'text-red-600',
-  },
-];
+import React, { useState, useEffect } from 'react';
+import { shootingProfileTiers } from '@/shared/utils/roles';
+
+const SHOOTING_TIER_STYLES = {
+  Elite: { border: 'border-green-500', text: 'text-green-500' },
+  Plus: { border: 'border-lime-400', text: 'text-lime-400' },
+  Capable: { border: 'border-yellow-400', text: 'text-yellow-400' },
+  Willing: { border: 'border-orange-400', text: 'text-orange-400' },
+  Hesitant: { border: 'border-orange-600', text: 'text-orange-600' },
+  Non: { border: 'border-red-600', text: 'text-red-600' },
+};
 
 const ShootingProfileSelector = ({ value, onChange }) => {
   const [selected, setSelected] = useState('');
@@ -48,7 +38,11 @@ const ShootingProfileSelector = ({ value, onChange }) => {
 
   return (
     <div className="flex justify-between gap-1 w-full max-w-[100%] mt-3 px-1">
-      {SHOOTING_TIERS.map(({ label, border, text }) => {
+      {shootingProfileTiers.map((label) => {
+        const { border, text } = SHOOTING_TIER_STYLES[label] || {
+          border: 'border-gray-500',
+          text: 'text-gray-500',
+        };
         const isSelected = selected === label;
         const classes = `
           flex-1 cursor-pointer text-xs font-bold py-2 px-1 rounded-md text-center transition-all border

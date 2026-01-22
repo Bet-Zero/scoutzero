@@ -16,15 +16,16 @@ export function validateAggregation(team, context = {}) {
   } = team;
   const { yearKey, capSettings = {} } = context || team.context || {};
 
-  // Calculate if team is at or above second apron
+  // Calculate if team is ABOVE second apron
+  // Per CBA Art VII Sec 2(f): team is "Second Apron Team" only if salary > secondApron (strict)
   const secondApron = capSettings.secondApron || 190000000; // Use 2024-25 threshold as fallback for test compatibility
-  const isAtOrAboveSecondApron = 
+  const isAboveSecondApron =
     postTradeStatus?.isAtOrAboveSecondApron ||
-    teamTotalSalary >= secondApron ||
-    (team.team?.totalSalary || 0) >= secondApron;
+    teamTotalSalary > secondApron ||
+    (team.team?.totalSalary || 0) > secondApron;
 
   // Only apply to second apron teams
-  if (!isAtOrAboveSecondApron) {
+  if (!isAboveSecondApron) {
     return {
       passed: true,
       violations: [],
@@ -52,11 +53,12 @@ export function validateAggregation(team, context = {}) {
   // Multi-player trades for similar-value returns are allowed
   if (outgoingSalaries.length > 1 && incomingSalaries.length > 0) {
     // Find max outgoing salary (the largest player being traded away)
-    const maxOutgoing = outgoingSalaries.length > 0 ? Math.max(...outgoingSalaries) : 0;
-    
+    const maxOutgoing =
+      outgoingSalaries.length > 0 ? Math.max(...outgoingSalaries) : 0;
+
     // Check if ANY incoming player is higher than the max outgoing
-    const aggregatingUp = incomingSalaries.some(s => s > maxOutgoing);
-    
+    const aggregatingUp = incomingSalaries.some((s) => s > maxOutgoing);
+
     if (aggregatingUp) {
       violations.push(
         `Second apron team cannot aggregate salaries to acquire higher-paid player`

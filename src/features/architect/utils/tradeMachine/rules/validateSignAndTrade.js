@@ -35,9 +35,25 @@ export function validateSignAndTrade(team, tradeCtx = {}) {
     violations.push('Sign-and-trade players can only be traded during the offseason');
   }
 
-  // Rule 1.5: Sign-and-trade players must be traded alone
+  // Rule 1.5: Sign-and-trade players must be traded alone (outgoing)
   if (outgoingSignAndTradePlayers.length > 0 && (team.sends || []).length > 1) {
     violations.push('Sign-and-trade player must be traded alone.');
+  }
+
+  // Rule 1.6: Receiving team cannot aggregate other players with S&T player (incoming)
+  // This applies when a team receives an S&T player - they cannot also receive other players
+  if (incomingSignAndTradePlayers.length > 0) {
+    const otherIncomingPlayers = (team.incomingPlayers || [])
+      .filter(player => player.signAndTrade !== true);
+    
+    if (otherIncomingPlayers.length > 0) {
+      violations.push('Cannot aggregate other players with sign-and-trade player.');
+    }
+    
+    // Also block receiving multiple S&T players in same trade (edge case safety)
+    if (incomingSignAndTradePlayers.length > 1) {
+      violations.push('Cannot aggregate other players with sign-and-trade player.');
+    }
   }
 
   // Rule 2: Teams using taxpayer MLE cannot receive sign-and-trade players

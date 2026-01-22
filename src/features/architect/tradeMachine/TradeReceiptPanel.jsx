@@ -30,7 +30,7 @@ const PlayerListItem = ({ player, direction }) => {
         player.baseSalary !== player.matchingValue;
 
   const kickerPct = ((flags.tradeKickerPct || 0) * 100).toFixed(0);
-  
+
   // P1: Tooltip format "Base $X → Match $Y" for consistency
   const adjTooltipText = `Adjusted: Base ${formatCurrency(player.baseSalary)} → Match ${formatCurrency(player.matchingValue)}`;
 
@@ -379,6 +379,76 @@ const TradeReceiptPanel = ({ receipt }) => {
                         direction="incoming"
                       />
                     ))}
+                  </div>
+                )}
+
+                {/* Phase 11.3: Entitlements */}
+                {(team.outgoingEntitlements?.length > 0 ||
+                  team.incomingEntitlements?.length > 0) && (
+                  <div className="mb-2">
+                    {team.outgoingEntitlements?.length > 0 && (
+                      <div className="mb-2">
+                        <div className="text-white/40 text-xs mb-1">
+                          Entitlements Out:
+                        </div>
+                        {team.outgoingEntitlements.map((ent, eIdx) => (
+                          <div
+                            key={ent.id || eIdx}
+                            className="text-xs pl-2 py-0.5 border-l border-amber-500/30"
+                          >
+                            <span className="text-amber-300">
+                              {ent.seasonYear} R{ent.round}
+                            </span>
+                            <span className="text-white/60 ml-1">
+                              — {ent.kind}
+                            </span>
+                            <span className="text-white/30 ml-1 text-[10px]">
+                              ({ent.id})
+                            </span>
+                            {/* Phase 11.3.1: Show routing target when specified */}
+                            {ent.toTeamId && (
+                              <span className="text-white/30 ml-1 text-[10px]">
+                                → {ent.toTeamId}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {team.incomingEntitlements?.length > 0 && (
+                      <div>
+                        <div className="text-white/40 text-xs mb-1">
+                          Entitlements In:
+                        </div>
+                        {team.incomingEntitlements.map((ent, eIdx) => (
+                          <div
+                            key={ent.id || eIdx}
+                            className="text-xs pl-2 py-0.5 border-l border-green-500/30"
+                          >
+                            <span className="text-green-300">
+                              {ent.seasonYear} R{ent.round}
+                            </span>
+                            <span className="text-white/60 ml-1">
+                              — {ent.kind}
+                            </span>
+                            <span className="text-white/30 ml-1 text-[10px]">
+                              ({ent.id})
+                            </span>
+                            {ent.fromTeam && (
+                              <span className="text-white/30 ml-1">
+                                from {ent.fromTeam}
+                              </span>
+                            )}
+                            {/* Phase 11.3.1: Show routing debug when toTeamId was specified (routed, not broadcast) */}
+                            {ent.toTeamId && (
+                              <span className="text-blue-400/50 ml-1 text-[10px]">
+                                [routed]
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 

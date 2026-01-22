@@ -89,6 +89,7 @@ Quick reference for all components in the ScoutZero project.
 - tradeMachine/ValidationDetailsPanel.jsx
 - tradeMachine/ValidationStateHeader.jsx
 - tradeMachine/utils/computeTradeDraftKey.js
+- tradeMachine/utils/entitlementWarnings.js
 - tradeMachine/utils/getOfficialSalaryMatchingSnapshot.js
 - utils/architectCore.js
 - utils/basicArchitectUtils.js
@@ -336,4 +337,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2026-01-21T12:13:00.824Z*
+*Generated on: 2026-01-22T09:48:31.377Z*

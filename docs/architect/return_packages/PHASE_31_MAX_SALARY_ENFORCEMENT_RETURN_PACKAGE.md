@@ -1,18 +1,14 @@
 /\*\*
-
 FILE: docs/architect/return_packages/PHASE_31_MAX_SALARY_ENFORCEMENT_RETURN_PACKAGE.md
 PURPOSE: Return Package for Phase 31 Max Contract Salary Enforcement
-OWNERSHIP: Feature: architect/cap-sheet validation
+OWNER: architect / cap sheet validation
+HISTORY:
 
-\*TORY:
-
-- 2026-01-23: Created Phase 31 Return Package
-
-  *KS:
-  *reflight: docs/architect/return_packages/PHASE_31_MAX_SALARY_READINESS_PREFLIGHT_RETURN_PACKAGE.md
-
-- - Master Doc: docs/architect/CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md
-    \*/
+- 2026-01-23: Created (Phase 31 Execution Return Package)
+  LINKS:
+- Preflight: docs/architect/return_packages/PHASE_31_MAX_SALARY_READINESS_PREFLIGHT_RETURN_PACKAGE.md
+- Master Doc: docs/architect/CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md
+  \*/
 
 # Phase 31 Return Package: Max Contract Salary Enforcement
 
@@ -62,28 +58,20 @@ export const HARD_BLOCK_RULES = [
 
 Added ~70 lines of enforcement logic in `validateSigning()`:
 
--
-
 1. **Exemption Checks:**
    - Skip for minimum signings (`signedUsing === 'minimum'`)
    - Skip for two-way contracts (`contractType === 'two-way'`)
 
--
-
-1. **Max Salary Determination:**
+2. **Max Salary Determination:**
    - Engine-first approach: Use `engineSigningTerms.maxFirstYearSalary` for Bird rights signings
    - YOS tier fallback: Calculate 25%/30%/35% of cap based on `getYearsOfService(player)`
 
--
-
-1. **YOS Data Quality Safety Net:**
+3. **YOS Data Quality Safety Net:**
    - Detect unreliable YOS: `yos === 0 && !hasDraftYear && playerAge >= 25`
    - Emit warning: `max_salary_yos_unverified`
    - Use conservative 35% max (prevents false blocks for veterans with missing data)
 
--
-
-1. **Violation Output:**
+4. **Violation Output:**
    - Rule: `max_salary_violation`
    - Message: Clear description of first-year salary vs max
    - Details: `{ firstYearSalary, maxSalaryAmount, maxSalarySource, yearsOfService, tierPercent }`
@@ -159,13 +147,18 @@ dist/assets/index-f770426b.js          1,949.96 kB │ gzip: 566.89 kB
 
 ### 5.1 Max Salary Source Priority
 
-1. **Engine First (Bird Rights):** If `engineSigningTerms.rightsType !== 'CAP_SPACE'`, use `engineSigningTerms.maxFirstYearSalary`
-2. **YOS Tier Fallback:** Calculate from `getYearsOfService(player)` × cap percentage
-3. **Conservative Fallback (Safety Net):** When YOS unreliable, use 35% max to prevent false blocks
+1. **Standard max:** Use `rulesProfile.maxSalary.maxSalary` from salary engine
+2. **Bird max:** Use `rulesProfile.maxSalary.maxSalaryBird` if signing path uses Bird-based max
+3. **Fallback (only if rulesProfile missing):** Calculate YOS-tier % of cap (25%/30%/35%)
+4. **Conservative fallback (only when BOTH):**
+   - Engine/rulesProfile max missing, AND
+   - YOS unreliable (0 + no draftYear + age>=25)
+   - Use conservative 35% max to prevent false blocks for veterans with missing data
 
 ### 5.2 YOS Reliability Detection
 
-- \*nreliable YOS is detected when ALL of these are true:
+Unreliable YOS is detected when ALL of these are true:
+
 - `yearsOfService === 0`
 - `player.bio.draftYear` is missing/falsy
 - `player.bio.age >= 25`
@@ -201,9 +194,8 @@ From Phase 30 Preflight audit (P0 gap):
 
 ---
 
-\*# 8. Checklist
+## 8. Checklist
 
--
 - [x] Added `max_salary_violation` to `HARD_BLOCK_RULES`
 - [x] Implemented max salary enforcement in `validateSigning()`
 - [x] Engine-first approach for Bird rights max
@@ -225,3 +217,10 @@ Phase 31 is complete. Potential follow-up items:
 1. **Future Enhancement:** Consider adding `max_salary_violation` check to `validateExtension()` for contract extensions
 2. **Data Quality:** Consider adding YOS data enrichment for players flagged with `max_salary_yos_unverified` warning
 3. **UI Integration:** Consider displaying max salary tier in signing modal for user awareness
+
+---
+
+## 10. Docs Artifact Confirmation
+
+- ✅ Return Package saved at: `docs/architect/return_packages/PHASE_31_MAX_SALARY_ENFORCEMENT_RETURN_PACKAGE.md`
+- ✅ Master Doc updated: `docs/architect/CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md`

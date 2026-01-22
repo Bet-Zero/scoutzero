@@ -4,16 +4,17 @@
  * OWNERSHIP: Feature: profile/scouting
  *
  * HISTORY:
+ *  - 2026-01-22: Phase 4 - Autosave debounce support + cleanup touchpoints
  *  - 2026-01-22: Phase 3 - Added videoExamples state to autosave flow
  *  - 2026-01-21: Phase 2 - Added markDirty pattern, save status indicator, wrapped all setters
  *  - 2026-01-21: Updated by plan `plans/_archive/scouting-player-profile-phase-1-data-contract/plan.md`, chunk_n/a
  *
  * LINKS:
- *  - Plan: plans/_archive/scouting-player-profile-phase-3-videos/plan.md
+ *  - Plan: plans/_archive/scouting-player-profile-phase-4/plan.md
  *  - Latest Chunk: n/a (no chunks used)
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
 import usePlayerDetail from '@/shared/hooks/usePlayerDetail';
 import useAutoSavePlayer from '@/features/profile/hooks/useAutoSavePlayer';

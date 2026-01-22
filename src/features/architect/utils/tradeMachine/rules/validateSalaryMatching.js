@@ -1,17 +1,15 @@
 /**
  * Salary matching validation for trades
  * Enforces CBA rules for salary exchanges between teams
- * 
+ *
  * NOTE: This validator delegates to the unified salary matching rules module
  * (salaryMatchingRules.js) for all allowable incoming calculations to ensure
  * consistency between validation and UI display.
- * 
+ *
  * Phase 4: Cap settings must be explicitly provided - no silent defaults
  */
 
-import {
-  formatCurrency,
-} from '@/features/architect/utils/tradeHelpers.js';
+import { formatCurrency } from '@/features/architect/utils/tradeHelpers.js';
 import { shouldWarnOnly } from '@/config/validationFlags.js';
 import {
   getSalaryMatchingResult,
@@ -67,7 +65,6 @@ export function validateSalaryMatching(team, context = {}) {
   const hardCapStatus = getHardCapStatus(team, { isWorldless });
   // Store for informational purposes - passed through in result
 
-
   // Check cache first
 
   // Extract salary data from both context and team object (team object takes precedence for tests)
@@ -77,11 +74,12 @@ export function validateSalaryMatching(team, context = {}) {
     team.teamTotalSalary ?? context.totalSalary ?? team.team?.totalSalary ?? 0;
 
   // Track the source of totalSalary for debugging
-  const totalSalarySource = team.teamTotalSalary !== undefined 
-    ? 'team.teamTotalSalary'
-    : context.totalSalary !== undefined 
-      ? 'context.totalSalary'
-      : 'team.team.totalSalary';
+  const totalSalarySource =
+    team.teamTotalSalary !== undefined
+      ? 'team.teamTotalSalary'
+      : context.totalSalary !== undefined
+        ? 'context.totalSalary'
+        : 'team.team.totalSalary';
 
   // Extract cap settings from team context or provided context
   const teamCapSettings = team.context?.capSettings || {};
@@ -107,7 +105,7 @@ export function validateSalaryMatching(team, context = {}) {
 
   // Check if cap settings are missing or invalid
   const hasSalaryCap = salaryCap > 0;
-  const hasFirstApron = (firstApron > 0 || apron > 0);
+  const hasFirstApron = firstApron > 0 || apron > 0;
   const hasSecondApron = secondApron > 0;
 
   if (!hasSalaryCap || !hasFirstApron || !hasSecondApron) {
@@ -116,12 +114,13 @@ export function validateSalaryMatching(team, context = {}) {
       console.warn(
         '[validateSalaryMatching] Missing cap settings:',
         { salaryCap, firstApron, apron, secondApron },
-        'source:', capSettingsSource
+        'source:',
+        capSettingsSource
       );
     }
     capSettingsWarnings.push(
       `Cap settings incomplete (salaryCap: ${hasSalaryCap}, firstApron: ${hasFirstApron}, secondApron: ${hasSecondApron}). ` +
-      `Validation may be inaccurate.`
+        `Validation may be inaccurate.`
     );
   }
 
@@ -152,7 +151,9 @@ export function validateSalaryMatching(team, context = {}) {
       salaryIn,
       salaryOut,
       difference: salaryIn - salaryOut,
-      message: violations.length ? violations[0] : 'FA exception absorption validated',
+      message: violations.length
+        ? violations[0]
+        : 'FA exception absorption validated',
       violations,
       details: {
         ruleApplied: 'FA_EXCEPTION',
@@ -170,25 +171,26 @@ export function validateSalaryMatching(team, context = {}) {
   // TPE-absorbed salary is EXCLUDED from salary matching (effectiveSalaryIn).
   // ============================================================================
   const incomingPlayers = team.incomingPlayers || team.receives || [];
-  
+
   // Check if any incoming player has absorptionMode='TPE' - if so, need TPE processing
   const hasTPEPlayers = incomingPlayers.some(
-    p => p.absorptionMode === 'TPE' || p.tpeId
+    (p) => p.absorptionMode === 'TPE' || p.tpeId
   );
-  
+
   // Get available TPEs from appliedTPEs or team's tradeExceptions
   const appliedTPEs = team.appliedTPEs || [];
-  const availableTPEs = appliedTPEs.length > 0 
-    ? appliedTPEs 
-    : (team.team?.tradeExceptions || []).filter(tpe => !tpe.isUsed);
-  
+  const availableTPEs =
+    appliedTPEs.length > 0
+      ? appliedTPEs
+      : (team.team?.tradeExceptions || []).filter((tpe) => !tpe.isUsed);
+
   // Track TPE-absorbed salary at outer scope for use in matching
   let tpeAbsorbedSalary = 0;
-  
+
   if (hasTPEPlayers && availableTPEs.length > 0) {
     // Build TPE usage map: tpeId -> { tpe, assignedPlayers, totalAssigned }
     const tpeUsageMap = new Map();
-    availableTPEs.forEach(tpe => {
+    availableTPEs.forEach((tpe) => {
       tpeUsageMap.set(tpe.id, {
         tpe,
         amount: tpe.amount || 0,
@@ -196,17 +198,17 @@ export function validateSalaryMatching(team, context = {}) {
         totalAssigned: 0,
       });
     });
-    
+
     // Match incoming players to their assigned TPEs
     // Also handle absorptionMode='TPE' when tpeId is not explicitly set
     const tpeViolations = [];
-    
-    incomingPlayers.forEach(player => {
+
+    incomingPlayers.forEach((player) => {
       const playerSalary = player.salary || player.matchIncoming || 0;
       const isTPEAbsorbed = player.absorptionMode === 'TPE' || player.tpeId;
-      
+
       if (!isTPEAbsorbed) return; // Skip players not using TPE
-      
+
       // If player has explicit tpeId, use that
       if (player.tpeId && tpeUsageMap.has(player.tpeId)) {
         const usage = tpeUsageMap.get(player.tpeId);
@@ -215,7 +217,7 @@ export function validateSalaryMatching(team, context = {}) {
         tpeAbsorbedSalary += playerSalary;
         return;
       }
-      
+
       // If player has absorptionMode='TPE' but no tpeId, auto-match to best available TPE
       if (player.absorptionMode === 'TPE') {
         // Find first TPE with enough remaining capacity
@@ -230,7 +232,7 @@ export function validateSalaryMatching(team, context = {}) {
             break;
           }
         }
-        
+
         if (!matched) {
           // No TPE large enough - still count as TPE absorbed but will flag violation
           tpeAbsorbedSalary += playerSalary;
@@ -240,7 +242,7 @@ export function validateSalaryMatching(team, context = {}) {
         }
       }
     });
-    
+
     // Validate each TPE covers 100% of its assigned players
     tpeUsageMap.forEach((usage, tpeId) => {
       if (usage.totalAssigned > usage.amount) {
@@ -249,7 +251,7 @@ export function validateSalaryMatching(team, context = {}) {
         );
       }
     });
-    
+
     // If TPE violations exist, fail immediately
     if (tpeViolations.length > 0) {
       return {
@@ -269,7 +271,7 @@ export function validateSalaryMatching(team, context = {}) {
         },
       };
     }
-    
+
     // If all incoming salary is absorbed by TPEs, skip matching
     if (salaryIn - tpeAbsorbedSalary <= 0) {
       return {
@@ -296,7 +298,7 @@ export function validateSalaryMatching(team, context = {}) {
         },
       };
     }
-    
+
     // Partial TPE coverage: continue to matching with reduced salaryIn
   }
 
@@ -311,11 +313,11 @@ export function validateSalaryMatching(team, context = {}) {
       outgoingSalary: salaryOut,
       capSettings: { salaryCap, firstApron: actualFirstApron, secondApron },
     });
-    
+
     allowableIncoming = matchingResult.allowableIncoming;
     ruleApplied = matchingResult.ruleKey;
     formulaUsed = matchingResult.formulaUsed;
-    
+
     const netAddition = effectiveSalaryIn - salaryOut;
     const remainingSpace = salaryCap - totalSalary;
     if (netAddition > remainingSpace) {
@@ -325,7 +327,8 @@ export function validateSalaryMatching(team, context = {}) {
     }
   }
   // Teams above second apron: strict 100% matching (cannot take back more than sent out)
-  else if (totalSalary >= secondApron) {
+  // Per CBA Art VII Sec 2(f): team is "Second Apron Team" only if salary > secondApron (strict)
+  else if (totalSalary > secondApron) {
     // Use unified salary matching rules for calculation
     const matchingResult = getSalaryMatchingResult({
       teamTotalSalary: totalSalary,
@@ -333,15 +336,13 @@ export function validateSalaryMatching(team, context = {}) {
       capSettings: { salaryCap, firstApron: actualFirstApron, secondApron },
       apronStatus: 'SECOND_APRON',
     });
-    
+
     allowableIncoming = matchingResult.allowableIncoming;
     ruleApplied = matchingResult.ruleKey;
     formulaUsed = matchingResult.formulaUsed;
-    
+
     if (effectiveSalaryIn > salaryOut) {
-      violations.push(
-        `Second apron team cannot receive more salary than sent`
-      );
+      violations.push(`Second apron team cannot receive more salary than sent`);
     }
   }
   // Teams above first apron: 100% matching (cannot take back more than sent out)
@@ -353,11 +354,11 @@ export function validateSalaryMatching(team, context = {}) {
       capSettings: { salaryCap, firstApron: actualFirstApron, secondApron },
       apronStatus: 'FIRST_APRON',
     });
-    
+
     allowableIncoming = matchingResult.allowableIncoming;
     ruleApplied = matchingResult.ruleKey;
     formulaUsed = matchingResult.formulaUsed;
-    
+
     if (effectiveSalaryIn > salaryOut) {
       violations.push(
         `Incoming salary exceeds allowable amount by ${formatCurrency(effectiveSalaryIn - salaryOut)}. ` +
@@ -373,7 +374,7 @@ export function validateSalaryMatching(team, context = {}) {
       outgoingSalary: salaryOut,
       capSettings: { salaryCap, firstApron: actualFirstApron, secondApron },
     });
-    
+
     allowableIncoming = matchingResult.allowableIncoming;
     ruleApplied = matchingResult.ruleKey;
     formulaUsed = matchingResult.formulaUsed;

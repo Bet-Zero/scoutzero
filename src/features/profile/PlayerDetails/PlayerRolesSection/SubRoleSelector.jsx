@@ -1,3 +1,16 @@
+/**
+ * FILE: src/features/profile/PlayerDetails/PlayerRolesSection/SubRoleSelector.jsx
+ * PURPOSE: Sub-role selection UI with modal picker for offense/defense subroles.
+ * OWNERSHIP: Feature: profile/scouting
+ *
+ * HISTORY:
+ *  - 2026-01-22: Phase 4 - Added modal a11y basics and focus management
+ *
+ * LINKS:
+ *  - Plan: plans/_archive/scouting-player-profile-phase-4/plan.md
+ *  - Latest Chunk: n/a (no chunks used)
+ */
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { NotebookText } from 'lucide-react';
 import { SubRoleMasterList } from '@/constants/SubRoleMasterList';
@@ -113,10 +126,16 @@ const SubRoleModal = ({ selection, onToggle, onClose, modalRef }) => (
     <div
       ref={modalRef}
       className="relative bg-[#1f1f1f] p-6 rounded-xl w-[90%] max-w-[1000px] max-h-[80vh] overflow-y-auto text-white"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Sub-Role Selector"
+      tabIndex={-1}
     >
       <button
         className="absolute top-4 right-4 text-white text-xl font-bold"
         onClick={onClose}
+        type="button"
+        aria-label="Close dialog"
       >
         ✖
       </button>
@@ -150,6 +169,7 @@ const SubRoleSelector = ({ subRoles = {}, setSubRoles, setOpenModal }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tempSelection, setTempSelection] = useState({ ...safeSubRoles });
   const modalRef = useRef(null);
+  const lastActiveElementRef = useRef(null);
 
   useEffect(() => {
     const offense = Array.isArray(subRoles.offense) ? subRoles.offense : [];
@@ -160,6 +180,10 @@ const SubRoleSelector = ({ subRoles = {}, setSubRoles, setOpenModal }) => {
   const handleClose = useCallback(() => {
     setSubRoles(tempSelection);
     setIsModalOpen(false);
+    const opener = lastActiveElementRef.current;
+    if (opener && typeof opener.focus === 'function') {
+      setTimeout(() => opener.focus(), 0);
+    }
   }, [setSubRoles, tempSelection]);
 
   useEffect(() => {
@@ -178,6 +202,35 @@ const SubRoleSelector = ({ subRoles = {}, setSubRoles, setOpenModal }) => {
     };
   }, [isModalOpen, handleClose]);
 
+  useEffect(() => {
+    if (!isModalOpen) return;
+
+    const focusTarget =
+      modalRef.current?.querySelector(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      ) || modalRef.current;
+
+    if (focusTarget?.focus) {
+      focusTarget.focus();
+    }
+  }, [isModalOpen]);
+
+  useEffect(() => {
+    if (!isModalOpen) return;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        handleClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isModalOpen, handleClose]);
+
   const handleToggle = (roleName) => {
     const roleData = SubRoleMasterList.find((r) => r.name === roleName);
     if (!roleData) return;
@@ -193,6 +246,7 @@ const SubRoleSelector = ({ subRoles = {}, setSubRoles, setOpenModal }) => {
 
   const handleOpen = (e) => {
     e.stopPropagation();
+    lastActiveElementRef.current = document.activeElement;
     setIsModalOpen(true);
   };
 

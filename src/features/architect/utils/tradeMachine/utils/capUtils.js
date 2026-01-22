@@ -22,7 +22,8 @@ export function isFirstApronTeam(team, capSettings) {
 }
 
 /**
- * Determines if a team is at or above the second apron threshold
+ * Determines if a team is ABOVE the second apron threshold
+ * Per CBA Art VII Sec 2(f): team is "Second Apron Team" only if salary > secondApron (strict)
  * (From capHelpers.js)
  */
 export function isSecondApronTeam(team, capSettings) {
@@ -31,7 +32,7 @@ export function isSecondApronTeam(team, capSettings) {
   const teamSalary = team.totalSalary || team.teamTotalSalary || 0;
   const secondApron = capSettings.secondApron || 0;
 
-  return teamSalary >= secondApron;
+  return teamSalary > secondApron;
 }
 
 /**
@@ -44,7 +45,8 @@ export function getTeamApronStatus(team, capSettings) {
   const teamSalary = team.totalSalary || team.teamTotalSalary || 0;
   const { salaryCap = 0, firstApron = 0, secondApron = 0 } = capSettings;
 
-  if (teamSalary >= secondApron) return 'SECOND_APRON';
+  // Per CBA Art VII Sec 2(f): team is "Second Apron Team" only if salary > secondApron (strict)
+  if (teamSalary > secondApron) return 'SECOND_APRON';
   if (teamSalary >= firstApron) return 'FIRST_APRON';
   if (teamSalary >= salaryCap) return 'OVER_CAP';
   return 'UNDER_CAP';

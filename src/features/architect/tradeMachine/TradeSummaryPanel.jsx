@@ -10,10 +10,16 @@ import {
   // getSalaryForYear,
 } from '@/features/architect/utils/tradeHelpers';
 // import { HelpCircle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { getTeamColors } from '@/shared/utils/formatting';
 import TeamLogo from '@/shared/components/TeamLogo';
 // CANONICAL SELECTOR: Single source of truth for salary matching values
 import { getOfficialSalaryMatchingSnapshot } from '@/features/architect/tradeMachine/utils/getOfficialSalaryMatchingSnapshot';
+// Phase 11.2: Entitlement warnings helper
+import {
+  computeEntitlementWarnings,
+  getEntitlementKindBadge,
+} from '@/features/architect/tradeMachine/utils/entitlementWarnings';
 
 /**
  * Helper used for pick chip text
@@ -85,6 +91,19 @@ function TradeSummaryPanel({
           const incomingPlayers = teamResult?.incomingPlayers || [];
           const incomingPicks = teamResult?.picksIn || t.picksIn || [];
 
+          // Phase 11.2: Find matching team slot to get entitlementsOut
+          const teamSlot = teams.find(
+            (ts) =>
+              ts.team?.id === t.teamId ||
+              ts.team?.id === teamMeta?.id ||
+              ts.team?.teamName === t.teamName
+          );
+          const entitlementsOut = teamSlot?.entitlementsOut || [];
+
+          // Phase 11.2: Compute non-blocking warnings
+          const entitlementWarnings =
+            computeEntitlementWarnings(entitlementsOut);
+
           return (
             <div
               key={t.teamName || teamMeta?.id || i}
@@ -117,8 +136,9 @@ function TradeSummaryPanel({
                   (() => {
                     // CANONICAL SOURCE: Use getOfficialSalaryMatchingSnapshot for all salary matching values
                     // Per MASTER_TRADE_MACHINE_ALIGNMENT.md Invariant 1: Single Source per Concept
-                    const officialSnapshot = getOfficialSalaryMatchingSnapshot(teamResult);
-                    
+                    const officialSnapshot =
+                      getOfficialSalaryMatchingSnapshot(teamResult);
+
                     // Incoming salary from official selector
                     const salaryIn = officialSnapshot.salaryIn ?? 0;
                     // Allowable incoming from official selector (null means N/A)
@@ -142,7 +162,9 @@ function TradeSummaryPanel({
                         {/* P0-3: Show loading state during validation in-flight */}
                         Matching In / Allowed:{' '}
                         {isValidating ? (
-                          <span className="text-blue-400 animate-pulse">Updating…</span>
+                          <span className="text-blue-400 animate-pulse">
+                            Updating…
+                          </span>
                         ) : (
                           <>
                             {formatCurrency(salaryIn)} / {formattedAllowed}
@@ -232,6 +254,61 @@ function TradeSummaryPanel({
                       <div className="text-xs text-white/40 italic">None</div>
                     )}
                   </div>
+                </div>
+
+                {/* Phase 11.2: Entitlements Traded (outgoing) */}
+                <div>
+                  <div className="text-xs text-white/60 mb-1">
+                    Entitlements Traded
+                  </div>
+                  {entitlementsOut.length > 0 ? (
+                    <div className="space-y-1">
+                      {entitlementsOut.map((ent, idx3) => {
+                        const badge = getEntitlementKindBadge(ent.kind);
+                        return (
+                          <div
+                            key={ent.id || ent.entitlementId || idx3}
+                            className="flex items-center justify-between bg-white/5 px-2 py-1 rounded text-xs"
+                          >
+                            <div className="flex items-center gap-2 truncate">
+                              <span className="text-white/90">
+                                {ent.seasonYear} R{ent.round}
+                              </span>
+                              <span
+                                className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${badge.colorClass}`}
+                              >
+                                {badge.label}
+                              </span>
+                            </div>
+                            <div
+                              className="text-white/50 text-[10px] truncate max-w-[120px]"
+                              title={ent.description}
+                            >
+                              {ent.description?.slice(0, 25) || ''}
+                              {ent.description?.length > 25 ? '…' : ''}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-white/40 italic">None</div>
+                  )}
+
+                  {/* Phase 11.2: Non-blocking entitlement warnings */}
+                  {entitlementWarnings.length > 0 && (
+                    <div className="mt-2 p-2 bg-amber-900/20 border border-amber-500/30 rounded text-xs text-amber-300">
+                      <div className="flex items-center gap-1 mb-1 font-medium">
+                        <AlertTriangle size={12} />
+                        <span>Entitlement Warnings</span>
+                      </div>
+                      <ul className="list-disc list-inside space-y-0.5">
+                        {entitlementWarnings.map((w, wIdx) => (
+                          <li key={wIdx}>{w}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

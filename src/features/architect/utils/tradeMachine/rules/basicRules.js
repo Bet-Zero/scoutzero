@@ -1,13 +1,13 @@
 /**
  * Basic Trade Rules - Consolidated from tiny micro-files
- * 
+ *
  * This file consolidates several 2-9 line files that were over-fragmented:
  * - rules/enforceSecondApronHandcuffs.js (2 lines - re-export)
- * - rules/validateSecondApron.js (3 lines - re-export)  
+ * - rules/validateSecondApron.js (3 lines - re-export)
  * - rules/enforceSecondApronRules.js (5 lines - re-export)
  * - utils/pickUtils.js (6 lines - single function)
  * - constants/index.js (9 lines - barrel file)
- * 
+ *
  * All functionality preserved, just better organized.
  */
 
@@ -33,36 +33,33 @@ import { isPriorYearTPE } from '@/features/architect/utils/tradeMachine/utils/tr
  * @returns {Object} Validation result with passed/violations
  */
 export function validateSecondApronRules(team, context = {}) {
-  const {
-    salaryOut = 0,
-    salaryIn = 0,
-    capSettings = {},
-  } = context;
+  const { salaryOut = 0, salaryIn = 0, capSettings = {} } = context;
   const violations = [];
 
   // Check if team is at or above second apron
   const secondApron = capSettings.secondApron || 188931000;
-  
+
   // Get team's pre-trade salary from multiple sources
-  const teamTotalSalary = 
+  const teamTotalSalary =
     team?.teamTotalSalary ||
-    team?.team?.teamTotalSalary || 
-    team?.team?.totalSalary || 
+    team?.team?.teamTotalSalary ||
+    team?.team?.totalSalary ||
     0;
-  
+
   // Get team's projected post-trade salary (catches apron-crossing trades)
   const projectedSalary = team?.projectedSalary || teamTotalSalary;
-  
-  // Check if team is at/above second apron EITHER before OR after trade
-  // This catches both teams already above apron AND teams crossing into apron
-  const isAtOrAboveSecondApron = 
+
+  // Check if team is ABOVE second apron EITHER before OR after trade
+  // Per CBA Art VII Sec 2(f): team is "Second Apron Team" only if salary > secondApron (strict)
+  // Equality does NOT trigger second apron restrictions
+  const isAboveSecondApron =
     team?.postTradeStatus?.isAtOrAboveSecondApron ||
-    teamTotalSalary >= secondApron ||
-    projectedSalary >= secondApron ||
-    (team?.context?.isAtOrAboveSecondApron) ||
+    teamTotalSalary > secondApron ||
+    projectedSalary > secondApron ||
+    team?.context?.isAtOrAboveSecondApron ||
     false;
 
-  if (!isAtOrAboveSecondApron) {
+  if (!isAboveSecondApron) {
     return {
       passed: true,
       violations: [],
@@ -82,7 +79,7 @@ export function validateSecondApronRules(team, context = {}) {
   // 2. Cannot receive more salary than sent out (100% matching)
   const teamSalaryOut = team.salaryOut || salaryOut || 0;
   const teamSalaryIn = team.salaryIn || salaryIn || 0;
-  
+
   if (teamSalaryIn > teamSalaryOut) {
     violations.push('Second apron team cannot receive more salary than sent');
   }

@@ -14,7 +14,7 @@ import { formatCurrency } from '@/features/architect/utils/tradeHelpers.js';
 export function validateHardCap(team, context = {}) {
   const violations = [];
   const warnings = [];
-  
+
   // Handle missing team data
   if (!team) {
     return {
@@ -28,7 +28,7 @@ export function validateHardCap(team, context = {}) {
   // Extract data from multiple possible team formats
   const teamData = team.team || team;
   const teamTotalSalary = teamData?.totalSalary || 0;
-  
+
   // Calculate incoming and outgoing salary
   const incomingSalary = (team.receives || team.incomingPlayers || []).reduce(
     (sum, p) => sum + (p.newSalary || p.salary || 0),
@@ -38,14 +38,14 @@ export function validateHardCap(team, context = {}) {
     (sum, p) => sum + (p.newSalary || p.salary || 0),
     0
   );
-  
+
   // Calculate projected salary
   const salaryIn = team.salaryIn || incomingSalary;
   const salaryOut = team.salaryOut || outgoingSalary;
   const projectedSalary =
-    team.projectedSalary ?? 
-    context.projectedSalary ?? 
-    (teamTotalSalary + salaryIn - salaryOut);
+    team.projectedSalary ??
+    context.projectedSalary ??
+    teamTotalSalary + salaryIn - salaryOut;
 
   // Extract cap settings from team or context
   const teamCapSettings = team.capSettings || {};
@@ -53,14 +53,10 @@ export function validateHardCap(team, context = {}) {
   const capSettings = { ...contextCapSettings, ...teamCapSettings };
 
   // Phase 4: Use explicit cap settings, warn if missing
-  const {
-    firstApron = 0,
-    apron = 0,
-    secondApron = 0,
-  } = capSettings;
+  const { firstApron = 0, apron = 0, secondApron = 0 } = capSettings;
 
   // Check if cap settings are missing
-  const hasFirstApron = (firstApron > 0 || apron > 0);
+  const hasFirstApron = firstApron > 0 || apron > 0;
   const hasSecondApron = secondApron > 0;
 
   if (!hasFirstApron || !hasSecondApron) {
@@ -69,7 +65,8 @@ export function validateHardCap(team, context = {}) {
       console.warn(
         '[validateHardCap] Missing cap settings:',
         { firstApron, apron, secondApron },
-        'source:', context.capSettingsSource || 'unknown'
+        'source:',
+        context.capSettingsSource || 'unknown'
       );
     }
     warnings.push(
@@ -81,9 +78,13 @@ export function validateHardCap(team, context = {}) {
   const actualFirstApron = firstApron || apron;
 
   // Determine hard cap status
-  const isHardCappedFirstApron = team.hardCapped === true || teamData?.hardCapFirstApron?.active;
-  const isHardCappedSecondApron = teamData?.hardCapTriggered === 'SecondApron' || teamData?.hardCapSecondApron?.active;
-  const isAboveSecondApron = secondApron > 0 && teamTotalSalary >= secondApron;
+  const isHardCappedFirstApron =
+    team.hardCapped === true || teamData?.hardCapFirstApron?.active;
+  const isHardCappedSecondApron =
+    teamData?.hardCapTriggered === 'SecondApron' ||
+    teamData?.hardCapSecondApron?.active;
+  // Per CBA Art VII Sec 2(f): team is "Second Apron Team" only if salary > secondApron (strict)
+  const isAboveSecondApron = secondApron > 0 && teamTotalSalary > secondApron;
 
   let hardCapType = null;
 
@@ -101,11 +102,19 @@ export function validateHardCap(team, context = {}) {
     hardCapType = 'SecondApron';
     if (projectedSalary > teamTotalSalary) {
       // Check if this is due to sign-and-trade
-      const hasIncomingSignAndTrade = (team.incomingPlayers || team.receives || []).some(p => p.signAndTrade === true);
+      const hasIncomingSignAndTrade = (
+        team.incomingPlayers ||
+        team.receives ||
+        []
+      ).some((p) => p.signAndTrade === true);
       if (hasIncomingSignAndTrade) {
-        violations.push(`Team would exceed hard-cap after receiving sign-and-trade player`);
+        violations.push(
+          `Team would exceed hard-cap after receiving sign-and-trade player`
+        );
       } else {
-        violations.push(`Second apron team cannot receive more salary than sent`);
+        violations.push(
+          `Second apron team cannot receive more salary than sent`
+        );
       }
     }
   }
@@ -158,8 +167,7 @@ export function validateHardCapLegacy(team, capSettings) {
     0
   );
   const teamTotalSalary = team.team?.totalSalary || 0;
-  const projectedSalary =
-    teamTotalSalary - outgoingSalary + incomingSalary;
+  const projectedSalary = teamTotalSalary - outgoingSalary + incomingSalary;
 
   // Check first apron hard cap
   if (team.team.hardCapFirstApron?.active) {
@@ -192,14 +200,19 @@ export function validateHardCapLegacy(team, capSettings) {
  * Check if a team would exceed hard cap after a trade
  * Utility function for quick hard cap checks
  */
-export function wouldExceedHardCapAfterTrade(team, incomingSalary, outgoingSalary, capSettings) {
+export function wouldExceedHardCapAfterTrade(
+  team,
+  incomingSalary,
+  outgoingSalary,
+  capSettings
+) {
   const result = validateHardCap({
     ...team,
     salaryIn: incomingSalary,
     salaryOut: outgoingSalary,
     capSettings,
   });
-  
+
   return !result.passed;
 }
 
@@ -210,14 +223,14 @@ export function wouldExceedHardCapAfterTrade(team, incomingSalary, outgoingSalar
  */
 export function getActiveHardCapLimit(team, capSettings = {}) {
   const result = validateHardCap(team, { capSettings });
-  
+
   if (result.hardCapType === 'SecondApron') {
     // Phase 4: Use provided cap settings only, no fallback
     return capSettings.secondApron || null;
   } else if (result.hardCapType === 'FirstApron') {
     return capSettings.firstApron || capSettings.apron || null;
   }
-  
+
   return null;
 }
 

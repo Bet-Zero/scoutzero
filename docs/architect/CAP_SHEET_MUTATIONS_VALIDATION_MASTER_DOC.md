@@ -12,6 +12,10 @@
 - - 2026-01-21: Phase 27 Manual Exception Management - added setExceptions mutation, validateExceptions, ManageExceptionsModal
 - - 2026-01-21: Phase 29 LeagueView SSOT Fix - replaced inline salary computation with `computeTeamCapTotals()`, added 8 regression tests
 - - 2026-01-23: Phase 31 Max Salary Enforcement - added `max_salary_violation` hard block to prevent contracts exceeding YOS-based max (25%/30%/35% of cap), 16 new tests
+- - 2026-01-23: Phase 32 S&T Incoming Aggregation - added Rule 1.6 to block receiving team from aggregating other players with S&T player, 9 new tests (P0-2 closure)
+- - 2026-01-23: Phase 33 Hard Cap Test Drift Fix - test assertion moved to `rules.hardCap.violations` to avoid violation order dependency
+- - 2026-01-23: Phase 34 Second Apron Threshold Boundary Bug (PREFLIGHT) - identified `>=` vs `>` comparator bug in 8 files; CBA Art VII Sec 2(f) specifies `>` for second apron team classification; execution pending
+- - 2026-01-23: Phase 34 Second Apron Threshold Boundary Bug (EXECUTION) - fixed `>=` → `>` comparator in 7 files for second apron classification; added 5 boundary tests; teams at threshold no longer incorrectly treated as second apron
 -
 - LINKS:
 - - Plan: plans/cap-sheet-contract-rules-phase-7-3/plan.md

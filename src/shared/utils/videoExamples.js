@@ -23,8 +23,7 @@ const EMPTY_VIDEO_EXAMPLES = {
 const isPlainObject = (value) =>
   value && typeof value === 'object' && !Array.isArray(value);
 
-const trimString = (value) =>
-  typeof value === 'string' ? value.trim() : '';
+const trimString = (value) => (typeof value === 'string' ? value.trim() : '');
 
 export const createEmptyVideoExamples = () => ({
   traits: {},
@@ -71,18 +70,25 @@ export const buildVideoExample = (url, label) => {
   const trimmedUrl = trimString(url);
   if (!trimmedUrl) return null;
   const trimmedLabel = trimString(label);
-  return {
+
+  const videoExample = {
     url: trimmedUrl,
-    label: trimmedLabel || undefined,
     createdAt: Date.now(),
   };
+
+  // Only include label if it has a non-empty value
+  if (trimmedLabel) {
+    videoExample.label = trimmedLabel;
+  }
+
+  return videoExample;
 };
 
 const normalizeVideoExample = (value) => {
   if (typeof value === 'string') {
     const url = trimString(value);
     if (!url) return null;
-    return { url };
+    return { url, createdAt: Date.now() };
   }
 
   if (!isPlainObject(value)) return null;
@@ -92,13 +98,16 @@ const normalizeVideoExample = (value) => {
   const label = trimString(value.label);
   const createdAt = Number.isFinite(value.createdAt)
     ? value.createdAt
-    : undefined;
+    : Date.now();
 
-  return {
-    url,
-    label: label || undefined,
-    createdAt,
-  };
+  const normalized = { url, createdAt };
+
+  // Only include label if it exists and is non-empty
+  if (label) {
+    normalized.label = label;
+  }
+
+  return normalized;
 };
 
 export const normalizeVideoExampleList = (list) => {

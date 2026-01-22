@@ -944,25 +944,67 @@ function computeTradeResult({ payload, currentState, seasonId, timestamp }) {
       ...incomingPicks,
     ];
 
-    // Phase 11.1: Update entitlementIds if any entitlements are traded
+    // Phase 11.1 + 11.3.2: Update entitlementIds if any entitlements are traded
+    // Phase 11.3.2: Respect toTeamId routing for multi-team trades
     const outgoingEntitlementIds = (
       teamTrade.outgoingEntitlements ||
       teamTrade.entitlementsOut ||
       []
-    ).map((e) => e.entitlementId || e.id);
+    )
+      .map((e) => e.entitlementId || e.id)
+      .filter(Boolean);
+
+    // Helper: normalize team code for comparison
+    const normalizeTeamCodeLike = (x) => {
+      if (!x) return null;
+      const s = String(x).trim();
+      return s.length === 3 ? s.toUpperCase() : s;
+    };
+
+    // Get all team codes in this trade payload
+    const payloadTeamCodes = payload.teams
+      .map((t) => normalizeTeamCodeLike(t.team?.id || t.teamCode || t.teamId))
+      .filter(Boolean);
+
+    const thisTeamCode = normalizeTeamCodeLike(teamCode);
 
     const incomingEntitlementIds = [];
     payload.teams.forEach((otherTeamTrade, otherIndex) => {
-      if (otherIndex !== i) {
-        // Collect all outgoing entitlements from other teams (no routing - all go to all)
-        (
-          otherTeamTrade.outgoingEntitlements ||
-          otherTeamTrade.entitlementsOut ||
-          []
-        ).forEach((e) => {
-          incomingEntitlementIds.push(e.entitlementId || e.id);
-        });
-      }
+      if (otherIndex === i) return; // Skip self
+
+      const otherOut =
+        otherTeamTrade.outgoingEntitlements ||
+        otherTeamTrade.entitlementsOut ||
+        [];
+
+      otherOut.forEach((e) => {
+        const entId = e.entitlementId || e.id;
+        if (!entId) return;
+
+        const toTeam = normalizeTeamCodeLike(e.toTeamId);
+
+        // Case 1: Routed (toTeamId is present)
+        if (toTeam) {
+          // Validate toTeamId is in trade payload, else warn
+          if (!payloadTeamCodes.includes(toTeam)) {
+            console.warn(
+              '[EntitlementsRouting] toTeamId not in trade payload',
+              { entitlementId: entId, toTeamId: e.toTeamId }
+            );
+            // Still proceed with trade, but this entitlement won't route to anyone in this trade
+            return;
+          }
+          // Only include if routed to this team
+          if (toTeam === thisTeamCode) {
+            incomingEntitlementIds.push(entId);
+          }
+          return;
+        }
+
+        // Case 2: Unrouted (toTeamId absent) - backward-compatible broadcast
+        // All other teams receive this entitlement
+        incomingEntitlementIds.push(entId);
+      });
     });
 
     // Only update entitlementIds if there are any changes
@@ -994,6 +1036,64 @@ function computeTradeResult({ payload, currentState, seasonId, timestamp }) {
     teamUpdates.push({ teamCode, team: updatedTeam });
   }
 
+  // Phase 11.3: Build entitlementsTraded structure for event log
+  // Format: { [teamCode]: { out: string[], in: string[] } }
+  // Phase 11.3.1: Respect toTeamId routing when present (for multi-team trades)
+  const entitlementsTraded = payload.teams.reduce((acc, teamTrade) => {
+    const teamKey =
+      teamTrade.team?.id || teamTrade.teamCode || teamTrade.teamId;
+    if (!teamKey) return acc;
+
+    // Outgoing entitlement IDs from this team (unchanged)
+    const outIds = (
+      teamTrade.outgoingEntitlements ||
+      teamTrade.entitlementsOut ||
+      []
+    )
+      .map((e) => e.entitlementId || e.id)
+      .filter(Boolean);
+
+    // Incoming entitlement IDs: respect toTeamId routing when present
+    // Phase 11.3.1: Only include entitlement if:
+    //   - toTeamId is NOT set (broadcast mode - all teams receive)
+    //   - OR toTeamId matches this team's key (teamKey or teamCode)
+    const inIds = [];
+    payload.teams.forEach((otherTrade) => {
+      const otherTeamKey =
+        otherTrade.team?.id || otherTrade.teamCode || otherTrade.teamId;
+      if (otherTeamKey !== teamKey) {
+        (
+          otherTrade.outgoingEntitlements ||
+          otherTrade.entitlementsOut ||
+          []
+        ).forEach((e) => {
+          const id = e.entitlementId || e.id;
+          if (!id) return;
+
+          // Phase 11.3.1: Check toTeamId routing
+          const routedTo = e.toTeamId;
+          if (!routedTo) {
+            // No routing specified: broadcast to all other teams (backward compatible)
+            inIds.push(id);
+          } else {
+            // Routing specified: only include if this team matches
+            // Compare against both teamKey and teamCode for defensive matching
+            const teamCode = teamTrade.teamCode || teamTrade.team?.teamCode;
+            if (routedTo === teamKey || routedTo === teamCode) {
+              inIds.push(id);
+            }
+          }
+        });
+      }
+    });
+
+    // Only add entry if there are entitlement transfers
+    if (outIds.length > 0 || inIds.length > 0) {
+      acc[teamKey] = { out: [...new Set(outIds)], in: [...new Set(inIds)] };
+    }
+    return acc;
+  }, {});
+
   return {
     success: true,
     teamUpdates,
@@ -1004,6 +1104,11 @@ function computeTradeResult({ payload, currentState, seasonId, timestamp }) {
       playersTraded: payload.teams.flatMap((t) =>
         (t.sends || []).map((p) => p.player_id || p.id || p.name)
       ),
+      // Phase 11.3: Include entitlement transfers per team (IDs only for lightweight payload)
+      entitlementsTraded:
+        Object.keys(entitlementsTraded).length > 0
+          ? entitlementsTraded
+          : undefined,
       timestamp,
     },
   };

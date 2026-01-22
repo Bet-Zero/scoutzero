@@ -8,31 +8,173 @@
 
 ## Phase Status
 
-| Phase      | Description                                     | Status      | Date       |
-| ---------- | ----------------------------------------------- | ----------- | ---------- |
-| Phase 0    | Contracts, Years Window, Team Map               | COMPLETE    | 2026-01-17 |
-| Phase 1    | Acquisition: Fetch PST Pages                    | BLOCKED     | 2026-01-17 |
-| Phase 1.1  | CDP Fetch Implementation                        | COMPLETE    | 2026-01-17 |
-| Phase 2    | Extraction: Produce Raw Rows                    | COMPLETE    | 2026-01-17 |
-| Phase 2.1  | Base Ledger + Owner Overlay                     | COMPLETE    | 2026-01-17 |
-| Phase 2.1  | Refine Row Extraction (Own Picks)               | COMPLETE    | 2026-01-17 |
-| Phase 1.3  | Raw Row Normalization                           | COMPLETE    | 2026-01-17 |
-| Phase 3    | Normalization                                   | COMPLETE    | 2026-01-17 |
-| Phase 4    | Deterministic Parser                            | COMPLETE    | 2026-01-17 |
-| Phase 5    | Ledger Builder + Finalize                       | COMPLETE    | 2026-01-17 |
-| Phase 5.1  | Round/Year Clause Gating Hotfix                 | COMPLETE    | 2026-01-17 |
-| Phase 6    | Manual Check Views                              | COMPLETE    | 2026-01-17 |
-| Phase 6.1  | OutcomeSpec + Manual View Upgrade               | COMPLETE    | 2026-01-17 |
-| Phase 6.3  | Conditional Tag + Swap Display Rule             | COMPLETE    | 2026-01-17 |
-| Phase 6.5  | Manual Check Views v6.5 (Swaps Focused)         | COMPLETE    | 2026-01-18 |
-| Phase 6.2  | Hard Guarantees                                 | NOT STARTED | -          |
-| Phase 7    | Collision Course                                | NOT STARTED | -          |
-| Phase 8    | Entitlement Assets (Preflight + Exec)           | COMPLETE    | 2026-01-21 |
-| Phase 8.1  | Hotfix: Split Separable Rights + Physical Slots | COMPLETE    | 2026-01-21 |
-| Phase 10   | Firestore Entitlements Storage + World Holdings | COMPLETE    | 2026-01-21 |
-| Phase 11.0 | Read-only Entitlements Trade Machine            | COMPLETE    | 2026-01-21 |
-| Phase 11.1 | Entitlement Trading (Selection + World Save)    | COMPLETE    | 2026-01-22 |
-| Phase 11.2 | Entitlement Trade UX + Warnings (Non-Blocking)  | PREFLIGHT   | 2026-01-22 |
+| Phase        | Description                                     | Status      | Date       |
+| ------------ | ----------------------------------------------- | ----------- | ---------- |
+| Phase 0      | Contracts, Years Window, Team Map               | COMPLETE    | 2026-01-17 |
+| Phase 1      | Acquisition: Fetch PST Pages                    | BLOCKED     | 2026-01-17 |
+| Phase 1.1    | CDP Fetch Implementation                        | COMPLETE    | 2026-01-17 |
+| Phase 2      | Extraction: Produce Raw Rows                    | COMPLETE    | 2026-01-17 |
+| Phase 2.1    | Base Ledger + Owner Overlay                     | COMPLETE    | 2026-01-17 |
+| Phase 2.1    | Refine Row Extraction (Own Picks)               | COMPLETE    | 2026-01-17 |
+| Phase 1.3    | Raw Row Normalization                           | COMPLETE    | 2026-01-17 |
+| Phase 3      | Normalization                                   | COMPLETE    | 2026-01-17 |
+| Phase 4      | Deterministic Parser                            | COMPLETE    | 2026-01-17 |
+| Phase 5      | Ledger Builder + Finalize                       | COMPLETE    | 2026-01-17 |
+| Phase 5.1    | Round/Year Clause Gating Hotfix                 | COMPLETE    | 2026-01-17 |
+| Phase 6      | Manual Check Views                              | COMPLETE    | 2026-01-17 |
+| Phase 6.1    | OutcomeSpec + Manual View Upgrade               | COMPLETE    | 2026-01-17 |
+| Phase 6.3    | Conditional Tag + Swap Display Rule             | COMPLETE    | 2026-01-17 |
+| Phase 6.5    | Manual Check Views v6.5 (Swaps Focused)         | COMPLETE    | 2026-01-18 |
+| Phase 6.2    | Hard Guarantees                                 | NOT STARTED | -          |
+| Phase 7      | Collision Course                                | NOT STARTED | -          |
+| Phase 8      | Entitlement Assets (Preflight + Exec)           | COMPLETE    | 2026-01-21 |
+| Phase 8.1    | Hotfix: Split Separable Rights + Physical Slots | COMPLETE    | 2026-01-21 |
+| Phase 10     | Firestore Entitlements Storage + World Holdings | COMPLETE    | 2026-01-21 |
+| Phase 11.0   | Read-only Entitlements Trade Machine            | COMPLETE    | 2026-01-21 |
+| Phase 11.1   | Entitlement Trading (Selection + World Save)    | COMPLETE    | 2026-01-22 |
+| Phase 11.2   | Entitlement Trade UX + Warnings (Non-Blocking)  | COMPLETE    | 2026-01-22 |
+| Phase 11.3   | Entitlements in Trade Receipt + Event Log       | COMPLETE    | 2026-01-22 |
+| Phase 11.3.1 | Entitlements Routing (toTeamId) Observability   | COMPLETE    | 2026-01-22 |
+| Phase 11.3.2 | Entitlements Routing (toTeamId) World Save      | COMPLETE    | 2026-01-22 |
+
+---
+
+### Phase 11.3.2 — Entitlements Routing (toTeamId) World Save (COMPLETE)
+
+**Goal**: Make the **actual entitlement transfer** in world team snapshots respect `toTeamId` routing for multi-team trades.
+
+**Problem**
+
+Phase 11.3.1 updated observability only (Trade Receipt + Event Log). The actual world save in `computeTradeResult()` still used broadcast mode — all outgoing entitlements went to all other teams in the trade.
+
+**Solution**
+
+Updated `computeTradeResult()` in `mutationPipeline.js` to apply the same routing logic when updating `updatedTeam.entitlementIds`:
+
+1. **Routed (toTeamId present)**: Entitlement only transfers to the target team
+2. **Unrouted (toTeamId absent)**: Backward-compatible broadcast to all other teams
+3. **Sender exclusion**: A team never receives its own outgoing entitlements
+4. **Deduplication**: `entitlementIds` remains unique after merge
+5. **Warning for invalid routing**: Console warning if `toTeamId` isn't in trade payload
+
+**What changed**
+
+- `src/features/architect/utils/mutationPipeline.js` — `computeTradeResult()` entitlement transfer block now respects `toTeamId` routing with `normalizeTeamCodeLike()` helper for defensive comparison
+
+**Validation**
+
+- Build passes ✓
+- Routed entitlements only transfer to specified `toTeamId` team ✓
+- Unrouted entitlements broadcast to all other teams (backward compatible) ✓
+- Receipt/Event log routing is consistent with actual saved team snapshots ✓
+
+**Return Package**: `PST_PHASE_11_3_2_ENTITLEMENTS_ROUTING_WORLD_SAVE_EXECUTION_RETURN_PACKAGE.md`
+
+---
+
+### Phase 11.3.1 — Entitlements Routing (toTeamId) Observability (COMPLETE)
+
+**Goal**: Add OPTIONAL routing support for multi-team trades using `toTeamId` on outgoing entitlements.
+
+**Problem**
+
+For multi-team trades (3+ teams), "incoming entitlements" was computed as "everything every other team sent". This is incorrect when entitlements are routed to a specific recipient.
+
+**Solution**
+
+- If `toTeamId` is present on an outgoing entitlement, ONLY that team should see it as incoming
+- If `toTeamId` is absent, keep current behavior (broadcast/all-to-all) for backward compatibility
+- This is OBSERVABILITY ONLY (Receipt + Event metadata) - does not change trade mechanics
+
+**What changed**
+
+1. **mutationPipeline.js** — `computeTradeResult()` now respects `toTeamId` routing
+   - Incoming entitlement IDs only include entitlements where `toTeamId` is absent OR matches the team
+   - Outgoing IDs unchanged
+
+2. **tradeValidator.js** — `generateTradeReceipt()` now respects `toTeamId` routing
+   - `incomingEntitlements[]` filtered by `toTeamId` matching
+   - Added `toTeamId` field to both outgoing and incoming entitlement objects for debug clarity
+
+3. **TradeReceiptPanel.jsx** — Debug display polish
+   - Outgoing entitlements show `→ {toTeamId}` when routing target specified
+   - Incoming entitlements show `[routed]` badge when `toTeamId` was explicitly set
+
+**Artifacts modified**
+
+- `src/features/architect/utils/mutationPipeline.js`
+- `src/features/architect/utils/tradeMachine/engine/tradeValidator.js`
+- `src/features/architect/tradeMachine/TradeReceiptPanel.jsx`
+
+**Validation**
+
+- Build passes ✓
+- Routing correctly filters incoming entitlements by `toTeamId` ✓
+- Backward compatible: no `toTeamId` = broadcast to all other teams ✓
+
+**Return Package**: `PST_PHASE_11_3_1_ENTITLEMENT_ROUTING_OBSERVABILITY_RETURN_PACKAGE.md`
+
+---
+
+### Phase 11.3 — Entitlements in Trade Receipt + Event Log (COMPLETE)
+
+**Goal**: Make entitlement trades observable in Trade Receipt debug panel and world event log.
+
+**What changed**
+
+1. **mutationPipeline.js** — `computeTradeResult()` metadata now includes `entitlementsTraded`
+   - Per-team structure: `{ [teamCode]: { out: string[], in: string[] } }`
+   - IDs only (lightweight payload)
+   - Persisted to `architect_worlds/{worldId}/events/{eventId}` for audit/history
+
+2. **tradeValidator.js** — `generateTradeReceipt()` now includes entitlements per team
+   - `outgoingEntitlements[]` — entitlements selected by that team
+   - `incomingEntitlements[]` — entitlements from other teams in the trade
+
+3. **TradeReceiptPanel.jsx** — New "Entitlements Out" and "Entitlements In" sections
+   - Displayed in expanded per-team cards
+   - Shows: seasonYear, round, kind, entitlement ID
+   - Amber border for outgoing, green border for incoming
+
+**Artifacts modified**
+
+- `src/features/architect/utils/mutationPipeline.js`
+- `src/features/architect/utils/tradeMachine/engine/tradeValidator.js`
+- `src/features/architect/tradeMachine/TradeReceiptPanel.jsx`
+
+**Validation**
+
+- Build passes ✓
+- Core validation tests pass ✓
+- Trade receipt now includes entitlement data ✓
+- Event log metadata includes entitlementsTraded ✓
+
+---
+
+### Phase 11.2 — Entitlement Trade UX + Warnings (COMPLETE)
+
+**Goal**: Add outgoing entitlements display and non-blocking warnings to TradeSummaryPanel.
+
+**What changed**
+
+- Created `entitlementWarnings.js` helper with `computeEntitlementWarnings(entitlementsOut)`
+- TradeSummaryPanel now shows "Entitlements Traded" section per team
+- Non-blocking amber warnings for:
+  - Encumbered pick_ownership traded without linked swap_right
+  - First-round entitlement traded (Stepien not enforced for entitlements)
+
+**Artifacts created/updated**
+
+- `src/features/architect/tradeMachine/utils/entitlementWarnings.js` (NEW)
+- `src/features/architect/tradeMachine/TradeSummaryPanel.jsx` (MODIFIED)
+
+**Validation**
+
+- Build passes ✓
+- Entitlements Traded section displays for each team ✓
+- Warning A triggers for encumbered pick_ownership ✓
+- Warning B triggers for round=1 entitlements ✓
+- Trades still apply with warnings (non-blocking) ✓
 
 ---
 

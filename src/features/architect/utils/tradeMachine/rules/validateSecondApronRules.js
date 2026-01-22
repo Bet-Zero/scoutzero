@@ -12,17 +12,18 @@ export function validateSecondApronRules(team, context = {}) {
   } = context;
   const violations = [];
 
-  // Check if team is at or above second apron
+  // Check if team is ABOVE second apron
+  // Per CBA Art VII Sec 2(f): team is "Second Apron Team" only if salary > secondApron (strict)
   const secondApron = capSettings.secondApron || 188931000;
-  
+
   // Check multiple ways to determine second apron status
-  const isAtOrAboveSecondApron = 
+  const isAboveSecondApron =
     team?.postTradeStatus?.isAtOrAboveSecondApron ||
-    totalSalary >= secondApron ||
-    (team?.context?.isAtOrAboveSecondApron) ||
+    totalSalary > secondApron ||
+    team?.context?.isAtOrAboveSecondApron ||
     false;
 
-  if (!isAtOrAboveSecondApron) {
+  if (!isAboveSecondApron) {
     return {
       passed: true,
       violations: [],
@@ -42,7 +43,7 @@ export function validateSecondApronRules(team, context = {}) {
   // 2. Cannot receive more salary than sent out (100% matching)
   const teamSalaryOut = team.salaryOut || salaryOut || 0;
   const teamSalaryIn = team.salaryIn || salaryIn || 0;
-  
+
   if (teamSalaryIn > teamSalaryOut) {
     violations.push('Second apron team cannot receive more salary than sent');
   }
@@ -51,19 +52,23 @@ export function validateSecondApronRules(team, context = {}) {
   // CBA FIX: Multi-player trades are allowed if not "aggregating up"
   const outgoingPlayers = team.sends || team.outgoingPlayers || [];
   const incomingPlayers = team.incomingPlayers || team.receives || [];
-  
+
   if (outgoingPlayers.length > 1 && incomingPlayers.length > 0) {
     // Get salaries
-    const outgoingSalaries = outgoingPlayers.map(p => p.salary || p.matchOutgoing || 0);
-    const incomingSalaries = incomingPlayers.map(p => p.salary || p.matchIncoming || 0);
-    
+    const outgoingSalaries = outgoingPlayers.map(
+      (p) => p.salary || p.matchOutgoing || 0
+    );
+    const incomingSalaries = incomingPlayers.map(
+      (p) => p.salary || p.matchIncoming || 0
+    );
+
     // Find max outgoing salary (the largest player being traded away)
     const maxOutgoing = Math.max(...outgoingSalaries, 0);
-    
+
     // Check if ANY incoming player is higher than the max outgoing
     // This is "aggregating up" - combining smaller salaries to get a bigger one
-    const aggregatingUp = incomingSalaries.some(s => s > maxOutgoing);
-    
+    const aggregatingUp = incomingSalaries.some((s) => s > maxOutgoing);
+
     if (aggregatingUp) {
       violations.push(
         'Second apron team cannot aggregate smaller salaries to acquire higher-paid player'
