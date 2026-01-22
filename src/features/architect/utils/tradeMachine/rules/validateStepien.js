@@ -2,12 +2,12 @@ import { isMeaningfulProtection } from '@/features/architect/utils/tradeMachine/
 
 /**
  * Phase 2 Helper: Determines if a pick reserves a year for Stepien purposes.
- * 
+ *
  * Year Reservation Rules (Option B: "Reserve Most"):
  * - Outright picks ALWAYS reserve the year
  * - Swap picks (`isSwap === true`) reserve the year UNLESS `swapType === 'worst_of'`
  * - Missing `swapType` is treated as `'best_of'` (backward compatibility)
- * 
+ *
  * @param {Object} pick - Pick object with isSwap and swapType fields
  * @returns {boolean} - True if this pick reserves the year for Stepien
  */
@@ -16,7 +16,7 @@ function reservesYearForStepien(pick) {
   if (!pick.isSwap) {
     return true;
   }
-  
+
   // Swap pick: reserves year unless swapType is 'worst_of'
   // Treat missing swapType as 'best_of' (backward compatibility)
   const swapType = pick.swapType || 'best_of';
@@ -25,28 +25,31 @@ function reservesYearForStepien(pick) {
 
 /**
  * Phase: Obligations Wiring Helper
- * 
+ *
  * Determines if an existing obligation pick should reserve a year for Stepien purposes.
- * 
+ *
  * An obligation reserves the year if:
  * - round === 1 (first round), AND
  * - status in ['outgoing', 'conditional'] OR owner !== originalTeam OR tradeable === false OR stepienEligible === false
- * 
+ *
  * Also applies existing swap logic:
  * - Swap worst_of does NOT reserve year
  * - Swap best_of reserves year
- * 
+ *
  * @param {Object} obligation - Pick obligation object from draftPicksObligations
  * @param {string} teamCode - The team code to check obligations for
  * @returns {boolean} - True if this obligation reserves the year for Stepien
  */
 function obligationReservesYear(obligation, teamCode) {
   // Only first-round picks matter for Stepien
-  const isFirstRound = obligation.round === 1 || obligation.round === '1st' || obligation.round === 'first';
+  const isFirstRound =
+    obligation.round === 1 ||
+    obligation.round === '1st' ||
+    obligation.round === 'first';
   if (!isFirstRound) {
     return false;
   }
-  
+
   // Check if this is a swap and whether it reserves the year
   if (obligation.isSwap) {
     const swapType = obligation.swapType || 'best_of';
@@ -57,7 +60,7 @@ function obligationReservesYear(obligation, teamCode) {
     // best_of swaps DO reserve the year
     return true;
   }
-  
+
   // For non-swap obligations, check if team doesn't freely control this pick
   // Obligation should reserve year if:
   // - status indicates pick is owed (outgoing, conditional)
@@ -65,16 +68,22 @@ function obligationReservesYear(obligation, teamCode) {
   // - tradeable === false (explicitly marked as not tradeable)
   // - stepienEligible === false (explicitly marked as blocking Stepien)
   const status = obligation.status || '';
-  const isOutgoingStatus = ['outgoing', 'conditional'].includes(status.toLowerCase());
+  const isOutgoingStatus = ['outgoing', 'conditional'].includes(
+    status.toLowerCase()
+  );
   // Only check owner !== originalTeam if BOTH fields are present
   // If either is missing, we can't determine ownership change, so fall back to other signals
-  const notCurrentOwner = obligation.owner && obligation.originalTeam && 
-                          obligation.owner !== obligation.originalTeam;
+  const notCurrentOwner =
+    obligation.owner &&
+    obligation.originalTeam &&
+    obligation.owner !== obligation.originalTeam;
   const notTradeable = obligation.tradeable === false;
   const notStepienEligible = obligation.stepienEligible === false;
-  
+
   // Reserve year if any of these conditions apply
-  return isOutgoingStatus || notCurrentOwner || notTradeable || notStepienEligible;
+  return (
+    isOutgoingStatus || notCurrentOwner || notTradeable || notStepienEligible
+  );
 }
 
 /**
@@ -82,12 +91,12 @@ function obligationReservesYear(obligation, teamCode) {
  * - No consecutive future unprotected first round picks
  * - Cannot trade picks more than 7 years out
  * - Second apron teams cannot trade their own 7-year-out first
- * 
+ *
  * Phase 2 Updates:
  * - Swap picks (isSwap === true) reserve years for Stepien (Option B)
  * - Exception: swapType === 'worst_of' does NOT reserve year
  * - Second apron frozen restriction applies to swap assets too
- * 
+ *
  * Obligations Wiring (Phase: Present-Day Trade Machine):
  * - Now considers existing obligations from team.draftPicksObligations
  * - Obligations that reserve years are merged with current trade picks
@@ -100,9 +109,10 @@ export function validateStepien(team, tradeCtx = {}) {
 
   const violations = [];
   const { picksOut = [], outgoingPicks = [] } = team;
-  
+
   // Get team code for obligation checks
-  const teamCode = team.teamCode || team.teamId || team.team?.teamCode || team.team?.id;
+  const teamCode =
+    team.teamCode || team.teamId || team.team?.teamCode || team.team?.id;
 
   // Extract current year from team context or tradeCtx
   const currentYear =
@@ -113,12 +123,13 @@ export function validateStepien(team, tradeCtx = {}) {
 
   // Get existing obligations from the team
   // Priority: team.draftPicksObligations, fallback to empty array
-  const existingObligations = team.draftPicksObligations || team.team?.draftPicksObligations || [];
+  const existingObligations =
+    team.draftPicksObligations || team.team?.draftPicksObligations || [];
 
   // Filter obligations to first-round picks that reserve years
   const obligationYears = existingObligations
-    .filter(ob => obligationReservesYear(ob, teamCode))
-    .map(ob => ({
+    .filter((ob) => obligationReservesYear(ob, teamCode))
+    .map((ob) => ({
       year: ob.year,
       protection: ob.protection,
       // Mark as obligation for debugging
@@ -146,8 +157,8 @@ export function validateStepien(team, tradeCtx = {}) {
 
   // Build Stepien-relevant calendar from current trade picks that reserve years
   const stepienRelevantPicks = firstRoundPicks
-    .filter(pick => reservesYearForStepien(pick))
-    .map(pick => ({
+    .filter((pick) => reservesYearForStepien(pick))
+    .map((pick) => ({
       year: pick.year,
       protection: pick.protection,
       _source: 'trade',
@@ -195,7 +206,8 @@ export function validateStepien(team, tradeCtx = {}) {
   const capSettings = tradeCtx.capSettings || { secondApron: 190000000 }; // Use 2025 default
   const isAtOrAboveSecondApron =
     team.postTradeStatus?.isAtOrAboveSecondApron ||
-    (capSettings.secondApron > 0 && (team.team?.totalSalary || 0) > capSettings.secondApron);
+    (capSettings.secondApron > 0 &&
+      (team.team?.totalSalary || 0) > capSettings.secondApron);
 
   if (isAtOrAboveSecondApron) {
     const teamId = team.teamId || team.team?.id;
@@ -224,9 +236,10 @@ export function validateStepien(team, tradeCtx = {}) {
   // Calculate farthestYear for result (only from trade picks, not obligations)
   // Note: p.year fallback to currentYear handles edge cases where pick year is undefined
   // (e.g., malformed data). This preserves backward compatibility with existing behavior.
-  const farthestYear = picks.length > 0 
-    ? Math.max(...picks.map((p) => p.year || currentYear))
-    : currentYear;
+  const farthestYear =
+    picks.length > 0
+      ? Math.max(...picks.map((p) => p.year || currentYear))
+      : currentYear;
 
   const result = {
     passed: violations.length === 0,

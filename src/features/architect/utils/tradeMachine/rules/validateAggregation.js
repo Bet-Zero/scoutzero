@@ -8,8 +8,8 @@ import {
  * Validates salary aggregation rules:
  * - Second apron teams cannot aggregate multiple smaller salaries to acquire a larger salary
  * - Each incoming salary must be matched by a single outgoing salary for second apron teams
- * 
- * NOTE: Salary mismatch (incoming > outgoing) is NOT checked here - 
+ *
+ * NOTE: Salary mismatch (incoming > outgoing) is NOT checked here -
  * that's the responsibility of validateSalaryMatching to avoid duplicate messages.
  */
 export function validateAggregation(team, context = {}) {

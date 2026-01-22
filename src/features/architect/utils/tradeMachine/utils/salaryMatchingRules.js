@@ -27,24 +27,24 @@
  */
 export const SALARY_MATCHING_TIERS = {
   // Band thresholds for determining which formula applies
-  TIER_1_THRESHOLD: 6_500_000,   // ≤$6.5M uses Band 1 formula
-  TIER_2_THRESHOLD: 19_600_000,  // ≤$19.6M uses Band 2 formula
+  TIER_1_THRESHOLD: 6_500_000, // ≤$6.5M uses Band 1 formula
+  TIER_2_THRESHOLD: 19_600_000, // ≤$19.6M uses Band 2 formula
 
   // Band 1 formula parameters (for outgoing ≤ $6.5M)
-  BAND_1_MULTIPLIER: 2.0,       // 200%
-  BAND_1_BONUS: 250_000,        // +$250k
+  BAND_1_MULTIPLIER: 2.0, // 200%
+  BAND_1_BONUS: 250_000, // +$250k
 
   // Band 2 formula parameters (for $6.5M < outgoing ≤ $19.6M)
-  BAND_2_MULTIPLIER: 1.0,       // 100% (just outgoing)
-  BAND_2_BONUS: 7_500_000,      // +$7.5M
+  BAND_2_MULTIPLIER: 1.0, // 100% (just outgoing)
+  BAND_2_BONUS: 7_500_000, // +$7.5M
 
   // Band 3 formula parameters (for outgoing > $19.6M)
-  BAND_3_MULTIPLIER: 1.25,      // 125%
-  BAND_3_BONUS: 250_000,        // +$250k
+  BAND_3_MULTIPLIER: 1.25, // 125%
+  BAND_3_BONUS: 250_000, // +$250k
 
   // Apron teams
-  APRON_MULTIPLIER: 1.0,        // 100% matching
-  APRON_BONUS: 0,               // No bonus
+  APRON_MULTIPLIER: 1.0, // 100% matching
+  APRON_BONUS: 0, // No bonus
 };
 
 /**
@@ -69,34 +69,46 @@ export const SALARY_MATCHING_RULE_KEYS = {
  */
 export const SALARY_MATCHING_RULE_LABELS = {
   [SALARY_MATCHING_RULE_KEYS.UNDER_CAP]: 'Under Cap: Use cap space',
-  [SALARY_MATCHING_RULE_KEYS.OVER_CAP_BAND_1]: 'Over Cap (Band 1): 200% + $250k',
-  [SALARY_MATCHING_RULE_KEYS.OVER_CAP_BAND_2]: 'Over Cap (Band 2): 100% + $7.5M',
-  [SALARY_MATCHING_RULE_KEYS.OVER_CAP_BAND_3]: 'Over Cap (Band 3): 125% + $250k',
+  [SALARY_MATCHING_RULE_KEYS.OVER_CAP_BAND_1]:
+    'Over Cap (Band 1): 200% + $250k',
+  [SALARY_MATCHING_RULE_KEYS.OVER_CAP_BAND_2]:
+    'Over Cap (Band 2): 100% + $7.5M',
+  [SALARY_MATCHING_RULE_KEYS.OVER_CAP_BAND_3]:
+    'Over Cap (Band 3): 125% + $250k',
   [SALARY_MATCHING_RULE_KEYS.FIRST_APRON]: 'First Apron: 100% matching',
   [SALARY_MATCHING_RULE_KEYS.SECOND_APRON]: 'Second Apron: 100% matching',
   [SALARY_MATCHING_RULE_KEYS.TPE_ABSORPTION]: 'Trade Exception absorption',
   [SALARY_MATCHING_RULE_KEYS.FA_EXCEPTION]: 'FA Exception bucket',
-  [SALARY_MATCHING_RULE_KEYS.ERROR_MISSING_CAP_SETTINGS]: 'Error: Missing cap settings',
+  [SALARY_MATCHING_RULE_KEYS.ERROR_MISSING_CAP_SETTINGS]:
+    'Error: Missing cap settings',
   [SALARY_MATCHING_RULE_KEYS.INVALID_INPUT]: 'Error: Invalid input',
 };
 
 /**
  * Calculates allowable incoming salary for over-cap teams below first apron
  * using the 2023 CBA tiered matching rules.
- * 
+ *
  * @param {number} outgoingSalary - Total salary being sent out
  * @returns {Object} Result with allowableIncoming, ruleKey, and formula details
  */
 function calculateOverCapBands(outgoingSalary) {
   const { TIER_1_THRESHOLD, TIER_2_THRESHOLD } = SALARY_MATCHING_TIERS;
-  const { BAND_1_MULTIPLIER, BAND_1_BONUS, BAND_2_MULTIPLIER, BAND_2_BONUS, BAND_3_MULTIPLIER, BAND_3_BONUS } = SALARY_MATCHING_TIERS;
+  const {
+    BAND_1_MULTIPLIER,
+    BAND_1_BONUS,
+    BAND_2_MULTIPLIER,
+    BAND_2_BONUS,
+    BAND_3_MULTIPLIER,
+    BAND_3_BONUS,
+  } = SALARY_MATCHING_TIERS;
 
   if (outgoingSalary <= TIER_1_THRESHOLD) {
     // Band 1: 200% + $250k
     const allowableIncoming = outgoingSalary * BAND_1_MULTIPLIER + BAND_1_BONUS;
     return {
       ruleKey: SALARY_MATCHING_RULE_KEYS.OVER_CAP_BAND_1,
-      ruleLabel: SALARY_MATCHING_RULE_LABELS[SALARY_MATCHING_RULE_KEYS.OVER_CAP_BAND_1],
+      ruleLabel:
+        SALARY_MATCHING_RULE_LABELS[SALARY_MATCHING_RULE_KEYS.OVER_CAP_BAND_1],
       allowableIncoming,
       formulaUsed: `(outgoing × ${BAND_1_MULTIPLIER * 100}%) + $${(BAND_1_BONUS / 1000).toFixed(0)}k = (${formatCurrency(outgoingSalary)} × ${BAND_1_MULTIPLIER}) + ${formatCurrency(BAND_1_BONUS)} = ${formatCurrency(allowableIncoming)}`,
       bandMeta: {
@@ -111,7 +123,8 @@ function calculateOverCapBands(outgoingSalary) {
     const allowableIncoming = outgoingSalary * BAND_2_MULTIPLIER + BAND_2_BONUS;
     return {
       ruleKey: SALARY_MATCHING_RULE_KEYS.OVER_CAP_BAND_2,
-      ruleLabel: SALARY_MATCHING_RULE_LABELS[SALARY_MATCHING_RULE_KEYS.OVER_CAP_BAND_2],
+      ruleLabel:
+        SALARY_MATCHING_RULE_LABELS[SALARY_MATCHING_RULE_KEYS.OVER_CAP_BAND_2],
       allowableIncoming,
       formulaUsed: `(outgoing × ${BAND_2_MULTIPLIER * 100}%) + $${(BAND_2_BONUS / 1_000_000).toFixed(1)}M = ${formatCurrency(outgoingSalary)} + ${formatCurrency(BAND_2_BONUS)} = ${formatCurrency(allowableIncoming)}`,
       bandMeta: {
@@ -126,7 +139,8 @@ function calculateOverCapBands(outgoingSalary) {
     const allowableIncoming = outgoingSalary * BAND_3_MULTIPLIER + BAND_3_BONUS;
     return {
       ruleKey: SALARY_MATCHING_RULE_KEYS.OVER_CAP_BAND_3,
-      ruleLabel: SALARY_MATCHING_RULE_LABELS[SALARY_MATCHING_RULE_KEYS.OVER_CAP_BAND_3],
+      ruleLabel:
+        SALARY_MATCHING_RULE_LABELS[SALARY_MATCHING_RULE_KEYS.OVER_CAP_BAND_3],
       allowableIncoming,
       formulaUsed: `(outgoing × ${BAND_3_MULTIPLIER * 100}%) + $${(BAND_3_BONUS / 1000).toFixed(0)}k = (${formatCurrency(outgoingSalary)} × ${BAND_3_MULTIPLIER}) + ${formatCurrency(BAND_3_BONUS)} = ${formatCurrency(allowableIncoming)}`,
       bandMeta: {
@@ -152,7 +166,7 @@ function formatCurrency(val) {
 /**
  * Main unified function to compute salary matching result.
  * This is the SINGLE SOURCE OF TRUTH for salary matching calculations.
- * 
+ *
  * @param {Object} params - Parameters for calculation
  * @param {number} params.teamTotalSalary - Team's total salary before trade
  * @param {number} params.outgoingSalary - Total salary being sent out
@@ -176,24 +190,26 @@ export function getSalaryMatchingResult({
   if (!capSettings || typeof capSettings !== 'object') {
     return {
       ruleKey: SALARY_MATCHING_RULE_KEYS.ERROR_MISSING_CAP_SETTINGS,
-      ruleLabel: SALARY_MATCHING_RULE_LABELS[SALARY_MATCHING_RULE_KEYS.ERROR_MISSING_CAP_SETTINGS],
+      ruleLabel:
+        SALARY_MATCHING_RULE_LABELS[
+          SALARY_MATCHING_RULE_KEYS.ERROR_MISSING_CAP_SETTINGS
+        ],
       allowableIncoming: 0,
       formulaUsed: 'N/A - cap settings required',
       error: 'Cap settings are required for salary matching calculation',
     };
   }
 
-  const {
-    salaryCap = 0,
-    firstApron = 0,
-    secondApron = 0,
-  } = capSettings;
+  const { salaryCap = 0, firstApron = 0, secondApron = 0 } = capSettings;
 
   // Validate cap values
   if (salaryCap === 0 && firstApron === 0 && secondApron === 0) {
     return {
       ruleKey: SALARY_MATCHING_RULE_KEYS.ERROR_MISSING_CAP_SETTINGS,
-      ruleLabel: SALARY_MATCHING_RULE_LABELS[SALARY_MATCHING_RULE_KEYS.ERROR_MISSING_CAP_SETTINGS],
+      ruleLabel:
+        SALARY_MATCHING_RULE_LABELS[
+          SALARY_MATCHING_RULE_KEYS.ERROR_MISSING_CAP_SETTINGS
+        ],
       allowableIncoming: 0,
       formulaUsed: 'N/A - all cap values are zero',
       error: 'Cap settings contain all zero values',
@@ -225,7 +241,8 @@ export function getSalaryMatchingResult({
       // Second apron: 100% matching only
       return {
         ruleKey: SALARY_MATCHING_RULE_KEYS.SECOND_APRON,
-        ruleLabel: SALARY_MATCHING_RULE_LABELS[SALARY_MATCHING_RULE_KEYS.SECOND_APRON],
+        ruleLabel:
+          SALARY_MATCHING_RULE_LABELS[SALARY_MATCHING_RULE_KEYS.SECOND_APRON],
         allowableIncoming: outgoing,
         formulaUsed: `100% matching: allowableIncoming = outgoing = ${formatCurrency(outgoing)}`,
         bandMeta: {
@@ -239,7 +256,8 @@ export function getSalaryMatchingResult({
       // First apron: 100% matching only
       return {
         ruleKey: SALARY_MATCHING_RULE_KEYS.FIRST_APRON,
-        ruleLabel: SALARY_MATCHING_RULE_LABELS[SALARY_MATCHING_RULE_KEYS.FIRST_APRON],
+        ruleLabel:
+          SALARY_MATCHING_RULE_LABELS[SALARY_MATCHING_RULE_KEYS.FIRST_APRON],
         allowableIncoming: outgoing,
         formulaUsed: `100% matching: allowableIncoming = outgoing = ${formatCurrency(outgoing)}`,
         bandMeta: {
@@ -255,7 +273,8 @@ export function getSalaryMatchingResult({
       const allowableIncoming = outgoing + remainingSpace;
       return {
         ruleKey: SALARY_MATCHING_RULE_KEYS.UNDER_CAP,
-        ruleLabel: SALARY_MATCHING_RULE_LABELS[SALARY_MATCHING_RULE_KEYS.UNDER_CAP],
+        ruleLabel:
+          SALARY_MATCHING_RULE_LABELS[SALARY_MATCHING_RULE_KEYS.UNDER_CAP],
         allowableIncoming,
         formulaUsed: `outgoing + capSpace = ${formatCurrency(outgoing)} + ${formatCurrency(remainingSpace)} = ${formatCurrency(allowableIncoming)}`,
         bandMeta: {
@@ -275,7 +294,7 @@ export function getSalaryMatchingResult({
 /**
  * Gets the allowable incoming salary margin (how much MORE can be taken in vs sent out).
  * This is a convenience wrapper that returns just the margin value.
- * 
+ *
  * @param {Object} params - Same parameters as getSalaryMatchingResult
  * @returns {number} The margin (allowableIncoming - outgoingSalary)
  */
@@ -288,7 +307,7 @@ export function getSalaryMatchingMargin(params) {
 /**
  * Gets the ceiling (maximum incoming) for a team in a trade.
  * This is a convenience wrapper for the full result.
- * 
+ *
  * @param {Object} params - Same parameters as getSalaryMatchingResult
  * @returns {number} The allowableIncoming value
  */
@@ -299,7 +318,7 @@ export function getSalaryMatchingCeiling(params) {
 
 /**
  * Checks if an incoming salary amount is valid for the given parameters.
- * 
+ *
  * @param {Object} params - Parameters including incomingSalary
  * @param {number} params.incomingSalary - The incoming salary to validate
  * @returns {Object} Validation result with passed, violation message, and full result
@@ -307,11 +326,11 @@ export function getSalaryMatchingCeiling(params) {
 export function validateIncomingSalary({ incomingSalary, ...params }) {
   const result = getSalaryMatchingResult(params);
   const passed = incomingSalary <= result.allowableIncoming;
-  
+
   return {
     passed,
-    violation: passed 
-      ? null 
+    violation: passed
+      ? null
       : `Incoming salary ${formatCurrency(incomingSalary)} exceeds allowable ${formatCurrency(result.allowableIncoming)} by ${formatCurrency(incomingSalary - result.allowableIncoming)}`,
     result,
   };

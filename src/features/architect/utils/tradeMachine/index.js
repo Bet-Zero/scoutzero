@@ -56,7 +56,10 @@ export { enforceSecondApronHandcuffs } from './rules/basicRules.js';
 export { debug } from './engine/engineUtils.js';
 
 // Constants and matching utilities - from utils
-export { computeMatchingValues, getMatchingValue } from './utils/matchingValues.js';
+export {
+  computeMatchingValues,
+  getMatchingValue,
+} from './utils/matchingValues.js';
 export { isMeaningfulProtection } from './utils/tradeUtilities.js';
 
 // Pick ID utilities (Phase 1 SSOT) - canonical pick identification

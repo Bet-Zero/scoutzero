@@ -4,10 +4,7 @@ const defaultContext = {
   daysInSeason: 177,
 };
 
-export function enforceConsent(
-  team,
-  { reject = () => {} } = {}
-) {
+export function enforceConsent(team, { reject = () => {} } = {}) {
   const violations = [];
   const { incomingPlayers = [] } = team;
 

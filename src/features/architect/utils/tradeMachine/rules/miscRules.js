@@ -10,7 +10,11 @@ import { validateSignAndTrade } from './validateSignAndTrade.js';
 // Phase 35: Import from basicRules.js (canonical) instead of deleted validateSecondApronRules.js
 import { validateSecondApronRules } from './basicRules.js';
 import { BYC_PERCENT } from '@/features/architect/utils/cbaConstants.js';
-import { getCapHitForSeason, yearToSeason, seasonToYear } from '../utils/seasonUtils.js';
+import {
+  getCapHitForSeason,
+  yearToSeason,
+  seasonToYear,
+} from '../utils/seasonUtils.js';
 import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers.js';
 
 /**
@@ -21,23 +25,25 @@ import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers.js';
 export function validateBYC(team, context = {}) {
   const violations = [];
   const { currentYear = 2025, yearKey = currentYear, normalizedYear } = context;
-  
+
   // Use pre-normalized year from context if available, otherwise normalize here
   let currentSeason, currentEndYear, prevEndYear;
-  
+
   if (normalizedYear) {
     currentSeason = normalizedYear.seasonString;
     currentEndYear = normalizedYear.endYear;
     prevEndYear = currentEndYear - 1;
   } else {
     // Fallback: do conversion locally if normalizedYear not provided
-    currentSeason = typeof yearKey === 'string' && yearKey.includes('-')
-      ? yearKey
-      : yearToSeason(yearKey);
-    currentEndYear = typeof yearKey === 'number' ? yearKey : seasonToYear(currentSeason) + 1;
+    currentSeason =
+      typeof yearKey === 'string' && yearKey.includes('-')
+        ? yearKey
+        : yearToSeason(yearKey);
+    currentEndYear =
+      typeof yearKey === 'number' ? yearKey : seasonToYear(currentSeason) + 1;
     prevEndYear = currentEndYear - 1;
   }
-  
+
   // Previous season string
   const previousSeason = yearToSeason(prevEndYear);
 
@@ -50,25 +56,26 @@ export function validateBYC(team, context = {}) {
     if (currentSeason) {
       currentSalary = getCapHitForSeason(player, currentSeason);
     }
-    
+
     // Fallback to old extraction methods
     if (currentSalary === 0) {
       currentSalary = getSalaryForYear(player, yearKey);
     }
-    
+
     // Get previous season salary
     let previousSalary = 0;
     if (previousSeason) {
       previousSalary = getCapHitForSeason(player, previousSeason);
     }
-    
+
     // Fallback to old extraction methods
     // getSalaryForYear expects numeric end-year input (e.g., 2024 for "2023-24")
     // For season strings: seasonToYear("2024-25") returns 2024 (start year of current season)
     //   which equals the end year of previous season "2023-24", so getSalaryForYear(2024) correctly looks up "2023-24"
     // For numeric years: yearKey - 1 is already the end year of the previous season
     if (previousSalary === 0) {
-      const prevYear = typeof yearKey === 'number' ? yearKey - 1 : seasonToYear(yearKey);
+      const prevYear =
+        typeof yearKey === 'number' ? yearKey - 1 : seasonToYear(yearKey);
       previousSalary = getSalaryForYear(player, prevYear);
     }
 
@@ -77,7 +84,10 @@ export function validateBYC(team, context = {}) {
 
     if (isBYC) {
       // For BYC players, outgoing value is max(previous salary, 50% of new salary)
-      const bycValue = Math.max(previousSalary, Math.floor(currentSalary * BYC_PERCENT));
+      const bycValue = Math.max(
+        previousSalary,
+        Math.floor(currentSalary * BYC_PERCENT)
+      );
 
       // Set the BYC matching values
       player.matchOutgoing = bycValue;

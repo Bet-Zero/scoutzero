@@ -1,6 +1,6 @@
 /**
  * COMPATIBILITY LAYER - DEPRECATED
- * 
+ *
  * This file provides backwards compatibility for external imports.
  * Internal tradeMachine code should import from the new structure:
  * - engine/ for orchestration and main validateTrade function
@@ -8,7 +8,7 @@
  * - utils/ for utility functions
  * - constants/ for shared constants
  * - cache/ for caching (engine only)
- * 
+ *
  * TODO: Remove this compatibility layer once all external imports are updated
  */
 
@@ -19,7 +19,10 @@ export { validateTradeExceptions } from '../rules/validateTradeExceptions.js';
 export { validateCash } from '../rules/eligibilityRules.js';
 export { validateFaExceptionUsage } from '../rules/validateFaExceptionUsage.js';
 export { validateSalaryMatching } from '../rules/validateSalaryMatching.js';
-export { validateRoster, enforceRosterWindow } from '../rules/validateRoster.js';
+export {
+  validateRoster,
+  enforceRosterWindow,
+} from '../rules/validateRoster.js';
 export { validateHardCap } from '../rules/validateHardCap.js';
 export { validateStepien } from '../rules/validateStepien.js';
 // Phase 35: Import from basicRules.js (canonical) instead of deleted validateSecondApronRules.js

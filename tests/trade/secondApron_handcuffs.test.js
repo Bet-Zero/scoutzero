@@ -57,8 +57,12 @@ describe('second apron handcuffs', () => {
   it('enforces 100% salary matching', () => {
     // NOTE: Salary matching for second apron is now enforced by validateSalaryMatching (SSOT)
     // The enforceSecondApronHandcuffs function only handles other handcuffs (aggregation, cash, TPE)
-    const capSettings = { salaryCap: 140000000, firstApron: 178000000, secondApron: 190000000 };
-    
+    const capSettings = {
+      salaryCap: 140000000,
+      firstApron: 178000000,
+      secondApron: 190000000,
+    };
+
     const failTeam = {
       ...baseTeam,
       teamTotalSalary: 200000000, // Above second apron
@@ -77,11 +81,11 @@ describe('second apron handcuffs', () => {
       salaryIn: 10_000_000,
       context: { ...baseTeam.context, capSettings },
     };
-    
+
     // Test via validateSalaryMatching which is the SSOT for salary matching rules
     const failResult = validateSalaryMatching(failTeam, { capSettings });
     const okResult = validateSalaryMatching(okTeam, { capSettings });
-    
+
     expect(failResult.violations.length).toBeGreaterThan(0);
     expect(failResult.violations[0]).toMatch(/second apron/i);
     expect(okResult.violations).toEqual([]);

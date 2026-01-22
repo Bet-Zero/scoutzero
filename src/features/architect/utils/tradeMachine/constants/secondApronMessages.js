@@ -1,7 +1,7 @@
 /**
  * Canonical second apron violation messages
  * SSOT for all second-apron restriction messaging
- * 
+ *
  * Phase 35: Consolidated message constants to prevent duplicate emissions
  * Per CBA Art VII Sec 2(f): "Second Apron Team" status requires salary > secondApron (strict)
  */

@@ -73,9 +73,10 @@ export function validateSalaryMatching(team, context = {}) {
   const salaryIn = team.salaryIn ?? context.salaryIn ?? 0;
   const totalSalary =
     team.teamTotalSalary ?? context.totalSalary ?? team.team?.totalSalary ?? 0;
-  
+
   // Projected salary for apron-crossing detection (set by tradeValidator.js)
-  const projectedSalary = team.projectedSalary ?? (totalSalary - salaryOut + salaryIn);
+  const projectedSalary =
+    team.projectedSalary ?? totalSalary - salaryOut + salaryIn;
 
   // Track the source of totalSalary for debugging
   const totalSalarySource =
@@ -333,7 +334,10 @@ export function validateSalaryMatching(team, context = {}) {
   // Teams above second apron: strict 100% matching (cannot take back more than sent out)
   // Per CBA Art VII Sec 2(f): team is "Second Apron Team" only if salary > secondApron (strict)
   // Also check apron-CROSSING trades: if projected salary > secondApron, restrictions apply
-  else if (secondApron > 0 && (totalSalary > secondApron || projectedSalary > secondApron)) {
+  else if (
+    secondApron > 0 &&
+    (totalSalary > secondApron || projectedSalary > secondApron)
+  ) {
     // Use unified salary matching rules for calculation
     const matchingResult = getSalaryMatchingResult({
       teamTotalSalary: totalSalary,
