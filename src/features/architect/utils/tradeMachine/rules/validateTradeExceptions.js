@@ -12,6 +12,7 @@ import {
   SECOND_APRON_TPE_BLOCKED,
   SECOND_APRON_PRIOR_YEAR_TPE_BLOCKED,
 } from '@/features/architect/utils/tradeMachine/constants/secondApronMessages.js';
+import { isSecondApronTeam as checkSecondApron } from '../utils/capUtils.js';
 
 export function validateTradeExceptions(team) {
   const violations = [];
@@ -44,7 +45,10 @@ export function validateTradeExceptions(team) {
 
   // Check for second apron TPE restrictions (only for trade validator pattern)
   // Per CBA Art VII Sec 2(f): team is "Second Apron Team" only if salary > secondApron (strict)
-  const isSecondApronTeam = secondApron > 0 && teamTotalSalary > secondApron;
+  const isSecondApronTeam = checkSecondApron(
+    { totalSalary: teamTotalSalary },
+    capSettings
+  );
 
   if (isSecondApronTeam && tpesToProcess.length > 0 && usingAppliedTPEs) {
     // Check if any TPE is from prior year

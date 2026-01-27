@@ -4,7 +4,12 @@
  */
 
 import { calculateAllowableIncoming } from '@/features/architect/utils/tradeHelpers.js';
-import { getTeamObject, resolvePayroll, toNum } from './capUtils.js';
+import {
+  getTeamObject,
+  resolvePayroll,
+  toNum,
+  isSecondApronTeam,
+} from './capUtils.js';
 
 /**
  * Calculates the allowable incoming salary margin for a team
@@ -24,7 +29,7 @@ export function getAllowableIncomingMargin(teamLike) {
   // Per CBA Art VII Sec 2(f): team is "Second Apron Team" only if salary > secondApron (strict)
   const isAboveSecondApron =
     team?.postTradeStatus?.isAtOrAboveSecondApron ??
-    (secondApron > 0 ? payroll > secondApron : false);
+    isSecondApronTeam({ totalSalary: payroll }, capSettings);
   if (isAboveSecondApron || team?.postTradeStatus?.isAtOrAboveFirstApron) {
     console.log('[getAllowableIncomingMargin]', {
       team: team?.nickname || team?.name || team?.id,
@@ -92,7 +97,7 @@ export function getIncomingCeilingForTeam(team) {
 
   // Teams above second apron can only take back equal salary
   // Per CBA Art VII Sec 2(f): team is "Second Apron Team" only if salary > secondApron (strict)
-  if (teamTotalSalary > secondApron) {
+  if (isSecondApronTeam({ totalSalary: teamTotalSalary }, { secondApron })) {
     return salaryOut;
   }
 

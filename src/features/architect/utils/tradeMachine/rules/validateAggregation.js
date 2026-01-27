@@ -1,4 +1,5 @@
 import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers.js';
+import { isSecondApronTeam } from '../utils/capUtils.js';
 import {
   SECOND_APRON_AGGREGATION_UP_BLOCKED,
   SECOND_APRON_MULTI_TEAM_AGGREGATION_BLOCKED,
@@ -28,8 +29,8 @@ export function validateAggregation(team, context = {}) {
   const secondApron = capSettings.secondApron || 190000000; // Use 2024-25 threshold as fallback for test compatibility
   const isAboveSecondApron =
     postTradeStatus?.isAtOrAboveSecondApron ||
-    teamTotalSalary > secondApron ||
-    (team.team?.totalSalary || 0) > secondApron;
+    isSecondApronTeam({ totalSalary: teamTotalSalary }, capSettings) ||
+    isSecondApronTeam(team.team, capSettings);
 
   // Only apply to second apron teams
   if (!isAboveSecondApron) {

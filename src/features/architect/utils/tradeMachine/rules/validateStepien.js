@@ -1,4 +1,5 @@
 import { isMeaningfulProtection } from '@/features/architect/utils/tradeMachine/utils/tradeUtilities.js';
+import { isSecondApronTeam } from '../utils/capUtils.js';
 
 /**
  * Phase 2 Helper: Determines if a pick reserves a year for Stepien purposes.
@@ -206,8 +207,7 @@ export function validateStepien(team, tradeCtx = {}) {
   const capSettings = tradeCtx.capSettings || { secondApron: 190000000 }; // Use 2025 default
   const isAtOrAboveSecondApron =
     team.postTradeStatus?.isAtOrAboveSecondApron ||
-    (capSettings.secondApron > 0 &&
-      (team.team?.totalSalary || 0) > capSettings.secondApron);
+    isSecondApronTeam(team.team, capSettings);
 
   if (isAtOrAboveSecondApron) {
     const teamId = team.teamId || team.team?.id;

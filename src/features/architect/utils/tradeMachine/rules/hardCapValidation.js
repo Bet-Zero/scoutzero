@@ -5,6 +5,7 @@
  */
 
 import { formatCurrency } from '@/features/architect/utils/tradeHelpers.js';
+import { isSecondApronTeam } from '../utils/capUtils.js';
 
 /**
  * Core hard cap validation logic
@@ -84,7 +85,10 @@ export function validateHardCap(team, context = {}) {
     teamData?.hardCapTriggered === 'SecondApron' ||
     teamData?.hardCapSecondApron?.active;
   // Per CBA Art VII Sec 2(f): team is "Second Apron Team" only if salary > secondApron (strict)
-  const isAboveSecondApron = secondApron > 0 && teamTotalSalary > secondApron;
+  const isAboveSecondApron = isSecondApronTeam(
+    { totalSalary: teamTotalSalary },
+    capSettings
+  );
 
   let hardCapType = null;
 

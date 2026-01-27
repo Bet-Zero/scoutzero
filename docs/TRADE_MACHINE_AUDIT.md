@@ -49,7 +49,7 @@ src/features/architect/utils/tradeMachine/
 │   ├── validateStepien.js               # Stepien rule
 │   ├── validateStepien.ts               # TypeScript version
 │   ├── validateAggregation.js           # Second apron aggregation
-│   ├── aggregationValidator.js          # Alternative aggregation validator
+
 │   ├── validateSignAndTrade.js          # Sign-and-trade rules
 │   ├── validateConsent.js               # Player consent
 │   ├── validateTradeExceptions.js       # TPE validation
@@ -57,12 +57,12 @@ src/features/architect/utils/tradeMachine/
 │   ├── validateRoster.ts                # TypeScript version
 │   ├── validateEligibility.js           # Player eligibility
 │   ├── validateFaExceptionUsage.js      # FA exception usage
-│   ├── validateSecondApronRules.js      # Second apron rules
+
 │   ├── eligibilityRules.js              # Cash/reacquisition
 │   ├── basicRules.js                    # Basic validation rules
 │   ├── draftRules.js                    # Draft pick rules
 │   ├── miscRules.js                     # Miscellaneous rules
-│   ├── salaryMatching.js                # Salary matching helpers
+
 │   ├── tradeExceptions.js               # Trade exception helpers
 │   ├── timingValidation.js              # Timing rules
 │   ├── rosterValidation.js              # Roster validation helpers

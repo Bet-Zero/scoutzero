@@ -26,9 +26,11 @@ export function isFirstApronTeam(team, capSettings) {
  * Per CBA Art VII Sec 2(f): team is "Second Apron Team" only if salary > secondApron (strict)
  * (From capHelpers.js)
  */
-export function isSecondApronTeam(team, capSettings) {
-  if (!team || !capSettings) return false;
+export function isSecondApronTeam(teamLike, capSettings) {
+  if (!teamLike || !capSettings) return false;
 
+  // Utilize robust extraction
+  const team = getTeamObject(teamLike) || teamLike;
   const teamSalary = team.totalSalary || team.teamTotalSalary || 0;
   const secondApron = capSettings.secondApron || 0;
 

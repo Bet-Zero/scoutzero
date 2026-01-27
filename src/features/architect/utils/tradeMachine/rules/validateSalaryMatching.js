@@ -17,6 +17,7 @@ import {
 } from '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules.js';
 import { getHardCapStatus } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus.js';
 import { SECOND_APRON_SALARY_MISMATCH } from '@/features/architect/utils/tradeMachine/constants/secondApronMessages.js';
+import { isSecondApronTeam } from '../utils/capUtils.js';
 
 // Validator version for trade receipt tracking - bumped for TPE fix
 export const SALARY_MATCHING_VERSION = '2.4.0'; // Fix: TPE per-player matching instead of pool
@@ -335,8 +336,8 @@ export function validateSalaryMatching(team, context = {}) {
   // Per CBA Art VII Sec 2(f): team is "Second Apron Team" only if salary > secondApron (strict)
   // Also check apron-CROSSING trades: if projected salary > secondApron, restrictions apply
   else if (
-    secondApron > 0 &&
-    (totalSalary > secondApron || projectedSalary > secondApron)
+    isSecondApronTeam({ totalSalary }, capSettings) ||
+    isSecondApronTeam({ totalSalary: projectedSalary }, capSettings)
   ) {
     // Use unified salary matching rules for calculation
     const matchingResult = getSalaryMatchingResult({

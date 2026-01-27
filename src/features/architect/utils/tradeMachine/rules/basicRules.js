@@ -12,6 +12,7 @@
  */
 
 import { isPriorYearTPE } from '@/features/architect/utils/tradeMachine/utils/tradeUtilities.js';
+import { isSecondApronTeam } from '../utils/capUtils.js';
 import {
   SECOND_APRON_PRIOR_YEAR_TPE_BLOCKED,
   SECOND_APRON_MULTI_PLAYER_AGGREGATION_BLOCKED,
@@ -59,8 +60,8 @@ export function validateSecondApronRules(team, context = {}) {
   // Equality does NOT trigger second apron restrictions
   const isAboveSecondApron =
     team?.postTradeStatus?.isAtOrAboveSecondApron ||
-    teamTotalSalary > secondApron ||
-    projectedSalary > secondApron ||
+    isSecondApronTeam({ totalSalary: teamTotalSalary }, capSettings) ||
+    isSecondApronTeam({ totalSalary: projectedSalary }, capSettings) ||
     team?.context?.isAtOrAboveSecondApron ||
     false;
 
