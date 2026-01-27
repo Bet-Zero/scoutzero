@@ -131,9 +131,10 @@ export const getIncomingCeiling = (
   let ceiling = allowedIncomingBelowFirstApron(salaryOut, yearKey, effectiveCapSettings);
 
   // 3️⃣ Apron limiters – 100 % of outgoing
-  if (teamTotalSalary >= effectiveCapSettings.secondApron) {
+  // Phase 39: Strict > for Apron classification
+  if (teamTotalSalary > effectiveCapSettings.secondApron) {
     ceiling = salaryOut;
-  } else if (teamTotalSalary >= effectiveCapSettings.firstApron) {
+  } else if (teamTotalSalary > effectiveCapSettings.firstApron) {
     ceiling = salaryOut;
   }
 
@@ -144,7 +145,7 @@ export const getIncomingCeiling = (
         !t.expired && // legacy tests
         (!t.expirationDate || Date.parse(t.expirationDate) > Date.now()) &&
         !(
-          teamTotalSalary >= effectiveCapSettings.secondApron &&
+          teamTotalSalary > effectiveCapSettings.secondApron &&
           isPriorYearTPE(t, yearKey)
         )
     )
@@ -253,11 +254,11 @@ export const calculateAllowableIncoming = (...args) => {
 
   const secondApronStatus =
     typeof capSettings.secondApron === 'number'
-      ? currentTeamSalary >= capSettings.secondApron
+      ? currentTeamSalary > capSettings.secondApron
       : false;
   const firstApronStatus =
     typeof capSettings.firstApron === 'number'
-      ? currentTeamSalary >= capSettings.firstApron
+      ? currentTeamSalary > capSettings.firstApron
       : false;
 
   return _calculateAllowableIncomingObj({
@@ -280,7 +281,8 @@ export const getSeasonalCashLimit = (yearKey) => {
 
 /*───────────────────────────  Apron Status  ───────────────────────────*/
 export const getApronStatus = (salary, { firstApron, secondApron } = {}) => {
-  if (secondApron && salary >= secondApron) return '2nd Apron';
+  // Phase 38: Strict > for Second Apron classification per CBA/SSOT
+  if (secondApron && salary > secondApron) return '2nd Apron';
   if (firstApron && salary >= firstApron) return '1st Apron';
   return 'Below Aprons';
 };

@@ -1,19 +1,21 @@
 // Determines a team's apron status based on total salary and cap settings
+// DELEGATES TO TRADEMACHINE SSOT
+import { getTeamApronStatus } from './tradeMachine/utils/capUtils.js';
+
 export function getApronStatus(teamSalary, capSettings) {
-  if (!teamSalary || !capSettings) return null;
-
-  const { salaryCap = 0, firstApron = 0, secondApron = 0 } = capSettings;
-
-  if (teamSalary >= secondApron) {
-    return 'ABOVE_SECOND_APRON';
+  // Map simple salary input to expected team object shape for SSOT
+  const team = typeof teamSalary === 'object' ? teamSalary : { totalSalary: teamSalary };
+  
+  const status = getTeamApronStatus(team, capSettings);
+  
+  // Map SSOT return values to legacy return values if needed
+  // SSOT: SECOND_APRON, FIRST_APRON, OVER_CAP, UNDER_CAP
+  // Legacy: ABOVE_SECOND_APRON, ABOVE_FIRST_APRON, OVER_CAP, UNDER_CAP
+  switch (status) {
+    case 'SECOND_APRON': return 'ABOVE_SECOND_APRON';
+    case 'FIRST_APRON': return 'ABOVE_FIRST_APRON';
+    default: return status;
   }
-  if (teamSalary >= firstApron) {
-    return 'ABOVE_FIRST_APRON';
-  }
-  if (teamSalary >= salaryCap) {
-    return 'OVER_CAP';
-  }
-  return 'UNDER_CAP';
 }
 
 /**
@@ -25,10 +27,11 @@ export function getAllowableIncomingMargin(team, capSettings) {
   const { teamTotalSalary = 0 } = team;
   const { secondApron = 0, salaryCap = 0 } = capSettings;
 
-  const isAtOrAboveSecondApron = teamTotalSalary >= secondApron;
+  // Use strict > for second apron classification per Phase 38 SSOT alignment
+  const isSecondApronTeam = teamTotalSalary > secondApron;
 
   // Second apron teams must match 100%
-  if (isAtOrAboveSecondApron) {
+  if (isSecondApronTeam) {
     return 0;
   }
 

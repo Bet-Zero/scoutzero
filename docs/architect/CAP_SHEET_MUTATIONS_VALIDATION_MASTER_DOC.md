@@ -16,6 +16,10 @@
 - - 2026-01-23: Phase 33 Hard Cap Test Drift Fix - test assertion moved to `rules.hardCap.violations` to avoid violation order dependency
 - - 2026-01-23: Phase 34 Second Apron Threshold Boundary Bug (PREFLIGHT) - identified `>=` vs `>` comparator bug in 8 files; CBA Art VII Sec 2(f) specifies `>` for second apron team classification; execution pending
 - - 2026-01-23: Phase 34 Second Apron Threshold Boundary Bug (EXECUTION) - fixed `>=` → `>` comparator in 7 files for second apron classification; added 5 boundary tests; teams at threshold no longer incorrectly treated as second apron
+- - 2026-01-27: Phase 38 Architect Second Apron Semantics Unification (EXECUTION) - unified legacy `capUtils.js` and `tradeHelpers.js` to strictly use `>` for second apron classification, aligning with Trade Machine SSOT; fixed `capLegalityValidation.js` hard cap check to allow landing exactly on apron; added guardrail tests.
+- - 2026-01-27: Phase 39 Second Apron Drift Scan (PREFLIGHT) - Confirmed partial drift in `capLegalityValidation.js` (uses `>=` for exception blocking) and `tradeHelpers.js`. Strict semantics (`>`) confirmed for hard cap status. Return package at `docs/architect/return_packages/PHASE_39_SECOND_APRON_DRIFT_SCAN_PREFLIGHT_RETURN_PACKAGE.md`.
+- - 2026-01-27: Phase 39 Second Apron Drift Fix (EXECUTION) - Eliminated `>=` drift in `capLegalityValidation.js` (exception blocking) and `tradeHelpers.js`. Added strict boundary guardrail tests (`phase39_drift_guardrails.test.js`).
+- 2026-01-27: Phase 40 Second Apron Drift Scan (Architect-wide) (PREFLIGHT) - Preflight completed. Identified 3 logic drift locations and 1 interface drift. Return package: `docs/architect/return_packages/PHASE_40_SECOND_APRON_DRIFT_SCAN_PREFLIGHT_RETURN_PACKAGE.md`.
 -
 - LINKS:
 - - Plan: plans/cap-sheet-contract-rules-phase-7-3/plan.md

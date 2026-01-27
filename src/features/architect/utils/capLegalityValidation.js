@@ -436,7 +436,8 @@ function getHardCapStatus(team, capRules) {
 
   // Check if team is at/above second apron (auto hard-capped)
   const currentCapHit = totals.capHit || totals.totalSalary || 0;
-  if (currentCapHit >= secondApron) {
+  // Phase 38: Strict > for Second Apron hard-cap status
+  if (currentCapHit > secondApron) {
     return {
       isHardCapped: true,
       hardCapLevel: 'secondApron',
@@ -2011,7 +2012,7 @@ export function validateExtensionTermsAndRaises({
  * @param {number} params.year - Season end year
  * @returns {{blocked: boolean, reason: string|null, violation: Object|null}}
  */
-function validateExceptionEligibility({ team, signedUsing, year }) {
+export function validateExceptionEligibility({ team, signedUsing, year }) {
   if (!signedUsing) {
     // Not using an exception - no block needed
     return { blocked: false, reason: null, violation: null };
@@ -2027,8 +2028,8 @@ function validateExceptionEligibility({ team, signedUsing, year }) {
     totals.capHit || totals.totalSalary || totals.totalCapAllocations || 0;
   const normalizedException = signedUsing.toLowerCase().replace(/[^a-z]/g, '');
 
-  // Check if team is at or above second apron
-  const isAboveSecondApron = currentCapHit >= rules.cap.secondApron;
+  // Check if team is at or above second apron (STRICT > per Phase 39)
+  const isAboveSecondApron = currentCapHit > rules.cap.secondApron;
 
   // Check if team is above first apron (triggers taxpayer MLE only zone if not hard-capped)
   const isAboveFirstApron = currentCapHit >= rules.cap.firstApron;
