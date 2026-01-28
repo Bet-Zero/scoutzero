@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import PlayerNameMini from '@/features/table/PlayerTable/PlayerRow/PlayerNameMini';
 import ShootingProfileMini from '@/features/table/PlayerTable/PlayerRow/ShootingProfileMini';
 import RolePill from '@/features/table/PlayerTable/PlayerRow/RolePill';
@@ -7,13 +8,24 @@ import OverallGradeBlock from '@/shared/components/ui/grades/OverallGradeBlock';
 import TeamLogo from '@/shared/components/TeamLogo';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import AddToListButton from '@/features/lists/AddToListButton';
-import { getCurrentSeasonYear, getYearsRemaining } from '@/shared/utils/contracts';
+import {
+  getCurrentSeasonYear,
+  getYearsRemaining,
+} from '@/shared/utils/contracts';
+import { getPlayerProfileUrl } from '@/shared/utils/routing/playerRouteUtils';
 
 const PlayerRow = ({ player, isExpanded, onToggleExpand }) => {
+  const navigate = useNavigate();
+
+  const handleNameClick = (event) => {
+    // Prevent row expand/collapse toggle
+    event.stopPropagation();
+    const profileUrl = getPlayerProfileUrl(player);
+    navigate(profileUrl);
+  };
+
   return (
-    <div 
-      className="w-full max-w-[1100px] mx-auto"
-    >
+    <div className="w-full max-w-[1100px] mx-auto">
       <div className="relative w-full border border-black h-[90px]">
         {/* Add Button - fixed small circle in top-right corner (overlay) */}
         <div className="absolute top-0.5 right-0 z-10">
@@ -54,7 +66,17 @@ const PlayerRow = ({ player, isExpanded, onToggleExpand }) => {
 
           {/* Name + Team Info */}
           <div className="ml-3 flex flex-col justify-center w-[140px]">
-            <div className="h-[50px] mb-2">
+            <div
+              className="h-[50px] mb-2 cursor-pointer hover:underline"
+              onClick={handleNameClick}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  handleNameClick(e);
+                }
+              }}
+            >
               <PlayerNameMini name={player.bio?.displayName || player.name} />
             </div>
             <div className="flex items-center gap-2">

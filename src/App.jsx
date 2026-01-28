@@ -20,7 +20,11 @@ const App = () => {
       <Route element={<SiteLayout />}>
         <Route path="/" element={<Navigate to="/players" replace />} />
         <Route path="/players" element={<PlayerTableView />} />
+
+        {/* Profiles */}
         <Route path="/profiles" element={<PlayerProfileView />} />
+        <Route path="/profiles/:slug" element={<PlayerProfileView />} />
+
         <Route path="/roster/:rosterId?" element={<TeamRosterView />} />
         <Route path="/rosters" element={<RostersHome />} />
         <Route path="/lists" element={<ListsHome />} />

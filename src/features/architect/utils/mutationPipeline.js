@@ -1026,26 +1026,72 @@ function computeTradeResult({ payload, currentState, seasonId, timestamp }) {
     }
 
     // ============================================================================
-    // Phase 47B: TPE Persistence - SSOT Alignment (replaces Phase 47)
+    // Phase 47C: TPE Persistence Hardening (replaces Phase 47B)
     // ============================================================================
-    // This section now uses validator-produced TPE data instead of recomputing.
-    // - TPE creation: consumed from validation.teamResults[i].createdTPE
-    // - TPE consumption: derived from validation.teamResults[i].rules.tradeExceptions
-    // - Cap settings: no hardcoded constants, uses capSettings from validation context
+    // Non-inferential, idempotent, and SSOT-aligned TPE persistence.
+    // - TPE creation: consumed from validation.teamResults[i].createdTPE (validator SSOT)
+    // - TPE consumption: uses matchIncoming ONLY (no salary fallback)
+    // - Dedupe: normalize and deduplicate across tradeExceptions + exceptions.tpe sources
+    // - Idempotent: signature-based duplicate detection prevents rerun duplicates
 
     // NOTE: We'll run validation below after building all team assets, then apply TPE updates per team
-    // For now, just normalize and prepare the existing TPEs for potential updates
-    const currentTPEs = [
-      ...(team.tradeExceptions || []),
-      ...(team.exceptions?.tpe || []).map((t) => ({
-        ...t,
-        // Normalize schema fields
-        amount: t.remainingAmount ?? t.totalAmount ?? t.amount ?? 0,
-        totalAmount: t.totalAmount ?? t.amount ?? 0,
-        remainingAmount: t.remainingAmount ?? t.totalAmount ?? t.amount ?? 0,
-        usedAmount: t.usedAmount ?? 0,
-      })),
-    ];
+    // For now, normalize and deduplicate the existing TPEs from multiple sources
+
+    /**
+     * Phase 47C Helper: Normalize a TPE object to canonical schema
+     * @param {Object} t - TPE object from any source
+     * @returns {Object} Normalized TPE with canonical fields
+     */
+    const normalizeTPE = (t) => ({
+      ...t,
+      // Ensure id exists
+      id:
+        t.id ||
+        `tpe_legacy_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      // Normalize schema fields
+      amount: t.remainingAmount ?? t.totalAmount ?? t.amount ?? 0,
+      totalAmount: t.totalAmount ?? t.amount ?? 0,
+      remainingAmount: t.remainingAmount ?? t.totalAmount ?? t.amount ?? 0,
+      usedAmount: t.usedAmount ?? 0,
+    });
+
+    // Collect TPEs from both sources
+    const primaryTPEs = (team.tradeExceptions || []).map(normalizeTPE);
+    const legacyTPEs = (team.exceptions?.tpe || []).map(normalizeTPE);
+
+    /**
+     * Phase 47C: Dedupe by id - prefer primaryTPEs (tradeExceptions) over legacyTPEs
+     * Conflict rule: If same id exists in both sources, prefer the one with canonical fields populated
+     * (remainingAmount, usedAmount, expiresOn). Falls back to primaryTPEs entry if equal.
+     */
+    const dedupeById = (tpes) => {
+      const seen = new Map();
+      for (const tpe of tpes) {
+        if (!tpe.id) continue;
+        const existing = seen.get(tpe.id);
+        if (!existing) {
+          seen.set(tpe.id, tpe);
+        } else {
+          // Prefer the one with more canonical fields populated
+          const existingScore =
+            (existing.remainingAmount !== undefined ? 1 : 0) +
+            (existing.usedAmount !== undefined ? 1 : 0) +
+            (existing.expiresOn ? 1 : 0);
+          const newScore =
+            (tpe.remainingAmount !== undefined ? 1 : 0) +
+            (tpe.usedAmount !== undefined ? 1 : 0) +
+            (tpe.expiresOn ? 1 : 0);
+          if (newScore > existingScore) {
+            seen.set(tpe.id, tpe);
+          }
+          // If equal, keep existing (primary source wins)
+        }
+      }
+      return Array.from(seen.values());
+    };
+
+    // Primary sources first, then legacy - dedupe will prefer primary on conflict
+    const currentTPEs = dedupeById([...primaryTPEs, ...legacyTPEs]);
 
     // Store the base TPE array; we'll update it from validation results later
     updatedTeam.tradeExceptions = currentTPEs;
@@ -1114,14 +1160,45 @@ function computeTradeResult({ payload, currentState, seasonId, timestamp }) {
       // We need to extract the consumed amounts from the incoming players that used TPEs
       const incomingPlayers = validationTeams[idx].receives || [];
       const tpeUsageMap = new Map(); // tpeId -> consumed amount
+      const tpeConsumptionWarnings = []; // Phase 47C: Track missing matchIncoming warnings
 
       incomingPlayers.forEach((player) => {
-        if (player.tpeId && (player.matchIncoming || player.salary)) {
-          const consumed = player.matchIncoming || player.salary || 0;
-          const current = tpeUsageMap.get(player.tpeId) || 0;
-          tpeUsageMap.set(player.tpeId, current + consumed);
+        // Phase 47C: Only process TPE consumption if tpeId is set
+        if (!player.tpeId) return;
+
+        // Phase 47C SSOT: Use matchIncoming ONLY - no salary fallback
+        // If matchIncoming is missing for a TPE player, log warning and skip consumption
+        if (
+          player.matchIncoming === undefined ||
+          player.matchIncoming === null
+        ) {
+          tpeConsumptionWarnings.push({
+            playerId: player.player_id || player.name,
+            tpeId: player.tpeId,
+            reason:
+              'matchIncoming missing for TPE consumption - consumption skipped',
+          });
+          return; // Skip this player - no consumption without validator-produced value
         }
+
+        const consumed = player.matchIncoming;
+        const current = tpeUsageMap.get(player.tpeId) || 0;
+        tpeUsageMap.set(player.tpeId, current + consumed);
       });
+
+      // Log warnings in dev mode for debugging
+      if (tpeConsumptionWarnings.length > 0) {
+        const isDev =
+          import.meta.env?.DEV || process.env.NODE_ENV === 'development';
+        if (isDev) {
+          console.warn(
+            '[mutationPipeline] Phase 47C TPE consumption warnings:',
+            tpeConsumptionWarnings
+          );
+        }
+        // Attach warnings to team result for visibility (non-blocking)
+        teamResult._tpeConsumptionWarnings = tpeConsumptionWarnings;
+      }
 
       // Apply consumption to TPEs
       updatedTPEs = currentTPEs.map((tpe) => {
@@ -1143,29 +1220,77 @@ function computeTradeResult({ payload, currentState, seasonId, timestamp }) {
     }
 
     // 2. Apply TPE creation from validator (SSOT)
+    // Phase 47C: Idempotent creation with signature-based duplicate detection
     const createdTPE = teamResult.createdTPE;
     if (createdTPE) {
-      // Generate stable ID for the new TPE
       const teamCode = teamUpdate.teamCode;
-      const newTPEId = `tpe_${teamCode}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+      // Phase 47C: Preserve validator-provided id if present
+      const tpeId =
+        createdTPE.id ||
+        `tpe_${teamCode}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
       const outgoingPlayers = payload.teams[idx]?.sends || [];
-      const createdFrom = outgoingPlayers
-        .map((p) => p.name || p.displayName)
-        .filter(Boolean)
-        .join(', ') || 'Trade';
+      const createdFrom =
+        outgoingPlayers
+          .map((p) => p.name || p.displayName)
+          .filter(Boolean)
+          .join(', ') || 'Trade';
 
-      updatedTPEs.push({
-        id: newTPEId,
-        amount: createdTPE.amount,
-        totalAmount: createdTPE.amount,
-        remainingAmount: createdTPE.amount,
-        usedAmount: 0,
-        createdSeason: createdTPE.createdSeason,
-        expiresOn: createdTPE.expiresOn,
+      /**
+       * Phase 47C: Idempotent creation - signature-based duplicate detection
+       * Signature: (createdSeason, expiresOn, totalAmount, createdFrom)
+       * If an equivalent TPE already exists, do not add again.
+       *
+       * RATIONALE: A TPE is unique per trade. If the same trade is rerun:
+       * - createdSeason + expiresOn + totalAmount + createdFrom will match
+       * - We skip adding to prevent duplicates on retries
+       */
+      const newTPESignature = [
+        createdTPE.createdSeason,
+        createdTPE.expiresOn,
+        createdTPE.amount,
         createdFrom,
-        isUsed: false,
+      ].join('|');
+
+      const hasDuplicateById = updatedTPEs.some((t) => t.id === tpeId);
+      const hasDuplicateBySignature = updatedTPEs.some((t) => {
+        const existingSignature = [
+          t.createdSeason,
+          t.expiresOn,
+          t.totalAmount ?? t.amount,
+          t.createdFrom,
+        ].join('|');
+        return existingSignature === newTPESignature;
       });
+
+      if (!hasDuplicateById && !hasDuplicateBySignature) {
+        updatedTPEs.push({
+          id: tpeId,
+          amount: createdTPE.amount,
+          totalAmount: createdTPE.amount,
+          remainingAmount: createdTPE.amount,
+          usedAmount: 0,
+          createdSeason: createdTPE.createdSeason,
+          expiresOn: createdTPE.expiresOn,
+          createdFrom,
+          isUsed: false,
+        });
+      } else {
+        // Dev logging for duplicate detection
+        const isDev =
+          import.meta.env?.DEV || process.env.NODE_ENV === 'development';
+        if (isDev) {
+          console.info(
+            '[mutationPipeline] Phase 47C: Duplicate TPE detected, skipping creation',
+            {
+              tpeId,
+              byId: hasDuplicateById,
+              bySignature: hasDuplicateBySignature,
+            }
+          );
+        }
+      }
     }
 
     // Persist the updated TPE array
@@ -3001,6 +3126,28 @@ function computeSignAndTradeResult({
     return {
       success: false,
       error: signingResult.error || 'Signing step failed',
+    };
+  }
+
+  // Phase 48: Validate signing BEFORE proceeding to trade computation
+  // This ensures signing validation failure short-circuits before validateTrade is called
+  const currentYear = toEndYear(seasonId);
+  const signingValidation = validateSigning({
+    team,
+    player,
+    contract: payload.contract,
+    signedUsing: payload.signedUsing,
+    year: currentYear,
+  });
+
+  if (!signingValidation.valid) {
+    return {
+      success: false,
+      error:
+        signingValidation.violations?.[0]?.message ||
+        'Signing validation failed',
+      violations: signingValidation.violations,
+      warnings: signingValidation.warnings,
     };
   }
 

@@ -17,6 +17,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
 import usePlayerDetail from '@/shared/hooks/usePlayerDetail';
 import useAutoSavePlayer from '@/features/profile/hooks/useAutoSavePlayer';
@@ -67,6 +68,7 @@ const defaultBlurbs = {
 };
 
 const PlayerProfileView = () => {
+  const [searchParams] = useSearchParams();
   const { players: fetchedPlayers, loading: isLoading } = useSimplePlayerData();
   const [playersData, setPlayersData] = useState({});
   const [teams, setTeams] = useState([]);
@@ -88,6 +90,9 @@ const PlayerProfileView = () => {
   const [overallGrade, setOverallGrade] = useState(null);
   const [hasChanges, setHasChanges] = useState(false);
 
+  // Track whether we've processed the initial pid from URL
+  const initialPidProcessedRef = useRef(false);
+
   // Track previous player to detect player changes
   const prevPlayerIdRef = useRef(null);
 
@@ -105,6 +110,43 @@ const PlayerProfileView = () => {
     setPlayersData(data);
     setTeams(Array.from(teamSet).sort());
   }, [fetchedPlayers]);
+
+  // Handle initial pid query param from URL (e.g., /profiles/lebron-james?pid=lebron_james)
+  useEffect(() => {
+    // Only process once when players are loaded
+    if (
+      initialPidProcessedRef.current ||
+      isLoading ||
+      fetchedPlayers.length === 0
+    ) {
+      return;
+    }
+
+    const pidFromUrl = searchParams.get('pid');
+    if (!pidFromUrl) {
+      initialPidProcessedRef.current = true;
+      return;
+    }
+
+    // Find the player with this id
+    const matchedPlayer = fetchedPlayers.find(
+      (p) => p.id === pidFromUrl || p.bio?.playerId === pidFromUrl
+    );
+
+    if (matchedPlayer) {
+      const team = matchedPlayer.bio?.display?.team || '';
+      setSelectedTeam(team);
+      setSelectedPlayer(matchedPlayer.id);
+
+      // Also set up the filtered keys for the team
+      const filtered = fetchedPlayers
+        .filter((p) => p.bio?.display?.team === team)
+        .map((p) => p.id);
+      setFilteredKeys(filtered);
+    }
+
+    initialPidProcessedRef.current = true;
+  }, [searchParams, fetchedPlayers, isLoading]);
 
   useEffect(() => {
     if (!selectedPlayer || !detailedPlayer) {
