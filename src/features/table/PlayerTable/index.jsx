@@ -104,12 +104,19 @@ const PlayerTable = () => {
   const [expandedPlayerId, setExpandedPlayerId] = useState(null);
   const listContainerRef = useRef(null);
 
-  // Use ResizeObserver-based hook for reliable container dimensions
-  // This replaces AutoSizer which could intermittently return 0 dimensions
-  const { width, height } = useContainerDimensions(listContainerRef, {
-    width: 1100,
-    height: 600,
-  });
+  // Force re-render trigger for AutoSizer 0-dimension recovery
+  // When AutoSizer initially returns 0, we schedule a re-render after layout settles
+  const [autoSizerRetryCount, setAutoSizerRetryCount] = useState(0);
+  const retryScheduledRef = useRef(false);
+  const mountedRef = useRef(true);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // Debounce filters
   const debouncedSetFilters = useMemo(
@@ -229,24 +236,76 @@ const PlayerTable = () => {
           </div>
         ) : (
           <DrawerContext.Provider value={drawerContextValue}>
-            {/* 
-              Using ResizeObserver-based dimensions instead of AutoSizer.
-              This approach never returns 0 dimensions because:
-              1. It uses fallback values until a valid measurement is obtained
-              2. Once a valid measurement is obtained, it never reverts to 0
-              3. The container has min-h-[400px] ensuring a minimum measurable height
-            */}
-            <List
-              height={height}
-              width={width}
-              itemCount={filteredPlayers.length}
-              itemSize={100}
-              itemData={itemData}
-              innerElementType={InnerElement}
-              className="no-scrollbar"
-            >
-              {Row}
-            </List>
+            <AutoSizer>
+              {({ height, width }) => {
+                // Fallback when AutoSizer returns 0 dimensions (can happen during layout settle)
+                const containerRect =
+                  listContainerRef.current?.getBoundingClientRect();
+                const fallbackHeight = containerRect?.height || 600;
+                const fallbackWidth = containerRect?.width || 1100;
+                const resolvedHeight = height > 0 ? height : fallbackHeight;
+                const resolvedWidth = width > 0 ? width : fallbackWidth;
+
+                // If both AutoSizer AND fallback return 0, schedule a re-render after layout settles
+                // This handles the race condition where the component mounts before layout is complete
+                if (resolvedHeight <= 0 || resolvedWidth <= 0) {
+                  // Only schedule one retry at a time, and only if we haven't exceeded retry limit
+                  if (autoSizerRetryCount < 3 && !retryScheduledRef.current) {
+                    retryScheduledRef.current = true;
+                    // Schedule retry after next animation frame (layout should be settled)
+                    requestAnimationFrame(() => {
+                      if (mountedRef.current) {
+                        retryScheduledRef.current = false;
+                        setAutoSizerRetryCount((prev) => prev + 1);
+                      }
+                    });
+                  }
+                  // Return a placeholder while waiting for valid dimensions
+                  return (
+                    <div className="flex items-center justify-center h-full text-white/50">
+                      Loading player table...
+                    </div>
+                  );
+                }
+
+                // Reset retry count on successful dimension retrieval for future recovery
+                if (autoSizerRetryCount > 0) {
+                  // Use setTimeout to avoid state update during render
+                  setTimeout(() => {
+                    if (mountedRef.current) {
+                      setAutoSizerRetryCount(0);
+                    }
+                  }, 0);
+                }
+
+                // Dev-mode debug logging when fallback triggers
+                if (import.meta.env.DEV && (height === 0 || width === 0)) {
+                  console.warn(
+                    '[PlayerTable] AutoSizer returned zero dims, using fallback:',
+                    {
+                      autoSizer: { height, width },
+                      fallback: { fallbackHeight, fallbackWidth },
+                      resolved: { resolvedHeight, resolvedWidth },
+                      retryCount: autoSizerRetryCount,
+                    }
+                  );
+                }
+
+                return (
+                  <List
+                    height={resolvedHeight}
+                    width={resolvedWidth}
+                    itemCount={filteredPlayers.length}
+                    itemSize={100}
+                    itemData={itemData}
+                    innerElementType={InnerElement}
+                    className="no-scrollbar"
+                  >
+                    {Row}
+                  </List>
+                );
+              }}
+            </AutoSizer>
           </DrawerContext.Provider>
         )}
       </div>
