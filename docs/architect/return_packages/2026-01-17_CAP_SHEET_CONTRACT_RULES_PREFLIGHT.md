@@ -1,6 +1,6 @@
 /\*\*
 
-- FILE: docs/architect/return-packages/2026-01-17_CAP_SHEET_CONTRACT_RULES_PREFLIGHT.md
+- FILE: docs/architect/return_packages/2026-01-17_CAP_SHEET_CONTRACT_RULES_PREFLIGHT.md
 - PURPOSE: Return package for cap sheet contract legality rules preflight (sign/extend/option).
 - OWNERSHIP: Feature: architect/cap-sheet
 -

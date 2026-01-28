@@ -1,6 +1,6 @@
 /\*\*
 
-- FILE: docs/architect/return-packages/2026-01-17_CAP_SHEET_CONTRACT_RULES_PHASE_4_SIGNING_TERMS_AND_RAISES.md
+- FILE: docs/architect/return_packages/2026-01-17_CAP_SHEET_CONTRACT_RULES_PHASE_4_SIGNING_TERMS_AND_RAISES.md
 - PURPOSE: Return package for Phase 4 signing terms + raise enforcement in cap sheet pipeline validation.
 - OWNERSHIP: Feature: architect/cap-sheet validation
 -
@@ -79,7 +79,7 @@ const signingTerms = {
 | `tests/architect/capLegalityValidation.test.js` | Added Phase 4 signing terms/raises tests and updated contract-years assertions to expect engine-driven rule IDs. |
 | `docs/architect/CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md` | Added Phase 4 rules to validation map + hard-block list, noted engine authority for signing guardrails, added changelog entry. |
 | `plans/_archive/cap-sheet-contract-rules-phase-4-signing-terms-2026-01-17/plan.md` | Execution plan for Phase 4 signing terms + raises. |
-| `docs/architect/return-packages/2026-01-17_CAP_SHEET_CONTRACT_RULES_PHASE_4_SIGNING_TERMS_AND_RAISES.md` | Return package for Phase 4 (this document). |
+| `docs/architect/return_packages/2026-01-17_CAP_SHEET_CONTRACT_RULES_PHASE_4_SIGNING_TERMS_AND_RAISES.md` | Return package for Phase 4 (this document). |
 
 ## 5) Tests
 

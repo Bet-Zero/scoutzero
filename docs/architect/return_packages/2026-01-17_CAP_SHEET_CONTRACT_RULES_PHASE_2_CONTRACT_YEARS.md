@@ -97,7 +97,7 @@ Implemented pipeline validation for contract length (years) min/max limits based
 | `src/features/architect/utils/capLegalityValidation.js` | Modified | Added `contract_years_invalid` to HARD_BLOCK_RULES, added `SIGNING_YEARS_LIMITS`, `resolveSigningMechanism()`, `getSigningYearsLimits()`, updated `validateSigning` |
 | `tests/architect/capLegalityValidation.test.js` | Modified | Added 9 tests for contract years validation |
 | `docs/architect/CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md` | Modified | Added rule to validation map, updated HARD_BLOCK_RULES list, marked G2-4 as resolved, added changelog entry |
-| `docs/architect/return-packages/2026-01-17_CAP_SHEET_CONTRACT_RULES_PHASE_2_CONTRACT_YEARS.md` | Created | This document |
+| `docs/architect/return_packages/2026-01-17_CAP_SHEET_CONTRACT_RULES_PHASE_2_CONTRACT_YEARS.md` | Created | This document |
 
 ---
 

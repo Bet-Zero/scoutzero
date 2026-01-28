@@ -115,7 +115,7 @@ Where: `projectedCapHit = team.totals.capHit + contract.salariesByYear[0].salary
 | `src/features/architect/hooks/useCapValidation.js` | Modified | Fixed TPMLE maxYears: 3 → 2 |
 | `tests/architect/capLegalityValidation.test.js` | Modified | Added 14 new tests (2 test suites) |
 | `docs/architect/CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md` | Modified | Added rules to validation map, hard block list, gaps G0-5/G0-6, changelog |
-| `docs/architect/return-packages/2026-01-17_CAP_SHEET_CONTRACT_RULES_PHASE_2_5_FIRST_YEAR_MAX.md` | Created | This document |
+| `docs/architect/return_packages/2026-01-17_CAP_SHEET_CONTRACT_RULES_PHASE_2_5_FIRST_YEAR_MAX.md` | Created | This document |
 
 ---
 

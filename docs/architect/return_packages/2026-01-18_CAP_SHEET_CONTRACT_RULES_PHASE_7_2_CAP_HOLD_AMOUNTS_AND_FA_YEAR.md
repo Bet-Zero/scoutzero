@@ -1,6 +1,6 @@
 /**
 
-* FILE: docs/architect/return-packages/2026-01-18_CAP_SHEET_CONTRACT_RULES_PHASE_7_2_CAP_HOLD_AMOUNTS_AND_FA_YEAR.md
+* FILE: docs/architect/return_packages/2026-01-18_CAP_SHEET_CONTRACT_RULES_PHASE_7_2_CAP_HOLD_AMOUNTS_AND_FA_YEAR.md
 * PURPOSE: Phase 7.2 return package for cap hold amounts + FA year derivation.
 * OWNERSHIP: Feature: architect/cap-sheet validation
 *
@@ -101,7 +101,7 @@
 * `src/features/architect/GMDashboard/hooks/useArchitectActions.ts`
 * `tests/architect/capLegalityValidation.test.js`
 * `docs/architect/CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md`
-* `docs/architect/return-packages/2026-01-18_CAP_SHEET_CONTRACT_RULES_PHASE_7_2_CAP_HOLD_AMOUNTS_AND_FA_YEAR.md`
+* `docs/architect/return_packages/2026-01-18_CAP_SHEET_CONTRACT_RULES_PHASE_7_2_CAP_HOLD_AMOUNTS_AND_FA_YEAR.md`
 * `plans/cap-sheet-contract-rules-phase-7-2/plan.md`
 
 ## 7) Tests + Output
@@ -171,4 +171,4 @@ dist/assets/index-9890ad53.js          1,883.45 kB │ gzip: 550.55 kB
 
 **Phase 7.1 return package:**
 
-* `docs/architect/return-packages/2026-01-18_CAP_SHEET_CONTRACT_RULES_PHASE_7_1_CAP_HOLD_TRANSITIONS.md` already exists (no retro creation needed).
+* `docs/architect/return_packages/2026-01-18_CAP_SHEET_CONTRACT_RULES_PHASE_7_1_CAP_HOLD_TRANSITIONS.md` already exists (no retro creation needed).

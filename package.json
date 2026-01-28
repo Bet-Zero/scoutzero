@@ -98,7 +98,8 @@
     "pst:validate:overlay:regressions": "npx tsx team-scrape/draft-picks/scripts/pst/pst_validate_owner_overlay_regressions.ts",
     "pst:entitlements": "npx tsx team-scrape/draft-picks/scripts/pst/pst_phase_8_build_entitlement_assets.ts",
     "pst:push:base-entitlements": "npx tsx team-scrape/draft-picks/scripts/pst/pst_phase_10_push_base_entitlements.ts",
-    "pst:patch:base-teams-entitlements": "npx tsx team-scrape/draft-picks/scripts/pst/pst_phase_10_patch_base_teams_entitlements.ts"
+    "pst:patch:base-teams-entitlements": "npx tsx team-scrape/draft-picks/scripts/pst/pst_phase_10_patch_base_teams_entitlements.ts",
+    "pst:audit:hou:2026:r2": "npx tsx team-scrape/draft-picks/scripts/pst/pst_audit_hou_2026_r2.ts"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.6",

@@ -29,6 +29,7 @@
 | Phase 7      | Collision Course                                | NOT STARTED | -          |
 | Phase 8      | Entitlement Assets (Preflight + Exec)           | COMPLETE    | 2026-01-21 |
 | Phase 8.1    | Hotfix: Split Separable Rights + Physical Slots | COMPLETE    | 2026-01-21 |
+| Phase 8.2    | Encumbered Status Must Be Swap-Backed           | COMPLETE    | 2026-01-28 |
 | Phase 10     | Firestore Entitlements Storage + World Holdings | COMPLETE    | 2026-01-21 |
 | Phase 11.0   | Read-only Entitlements Trade Machine            | COMPLETE    | 2026-01-21 |
 | Phase 11.1   | Entitlement Trading (Selection + World Save)    | COMPLETE    | 2026-01-22 |
@@ -474,6 +475,46 @@ new RegExp(
 - **Entitlement Generator**:
 - Stopped suppressing `pick_ownership` assets when conveyance rights exist.
 - Added metadata: `underlyingStatus` and `coveredByEntitlementIds`.
+
+---
+
+### Phase 8.2 — Encumbered Status Must Be Swap-Backed (COMPLETE)
+
+**Date**: 2026-01-28  
+**Status**: COMPLETE
+
+**Problem**: `pick_ownership` entitlements were incorrectly marked `underlyingStatus: "encumbered"` when the underlying pick had ANY selectionSpecs attached, regardless of whether those specs produced actual swap_right entitlements referencing the pick.
+
+**Evidence (pre-fix)**:
+
+- `ent:HOU:2026:2:own:c00ccb46` (IND_2026_2nd): encumbered, but 0 swap_rights reference it
+- `ent:HOU:2026:2:own:b1228bfb` (LAC_2026_2nd): encumbered, but 0 swap_rights reference it
+- `ent:HOU:2026:2:own:7368affb` (MIA_2026_2nd): encumbered, but 0 swap_rights reference it
+
+**Solution**: Replaced heuristic-based encumbered detection with swap-backed detection:
+
+1. **Build swap_right index**: After generating all swap_right entitlements, index them by `swapControllerPickId` and `poolUnderlyingPickIds`.
+2. **Encumbered rule**: A `pick_ownership` is only marked `encumbered` if at least one swap_right entitlement references its `underlyingPickId`.
+3. **coveredByEntitlementIds**: When encumbered, populate with the sorted list of swap_right entitlement IDs that reference the pick.
+4. **Invariant validator**: Fail the generator if any encumbered pick_ownership lacks swap backing.
+
+**What changed**:
+
+- `team-scrape/draft-picks/scripts/pst/pst_phase_8_build_entitlement_assets.ts`
+  - Added swap_right indexing by underlying pick
+  - Changed encumbered detection from heuristic to swap-backed lookup
+  - Added invariant validator (exits with error if orphaned encumbered found)
+
+**Validation (post-fix)**:
+
+- HOU 2026 R2 IND/LAC/MIA picks: `underlyingStatus: "clean"` ✅
+- Total encumbered count: 21 (all have valid swap backing)
+- Invariant passed: No orphaned encumbered picks
+
+**Outputs regenerated**:
+
+- `data/pst/pst_entitlement_assets_2026_2033.json`
+- `data/pst/pst_entitlements_by_team_2026_2033.json`
 
 ---
 

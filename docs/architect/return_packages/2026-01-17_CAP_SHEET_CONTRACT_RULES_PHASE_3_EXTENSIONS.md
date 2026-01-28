@@ -209,7 +209,7 @@ export function getExtensionYears(extension) {
 | `src/features/architect/hooks/useCapValidation.js` | Unchanged | UI validation already had extension rules |
 | `tests/architect/capLegalityValidation.test.js` | Modified | Added 9 new tests (1 Phase 2.5, 8 Phase 3) |
 | `docs/architect/CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md` | Modified | Added rules to validation map, hard block list, gap G0-7, changelog |
-| `docs/architect/return-packages/2026-01-17_CAP_SHEET_CONTRACT_RULES_PHASE_3_EXTENSIONS.md` | Created | This document |
+| `docs/architect/return_packages/2026-01-17_CAP_SHEET_CONTRACT_RULES_PHASE_3_EXTENSIONS.md` | Created | This document |
 
 ---
 

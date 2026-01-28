@@ -100,7 +100,7 @@ if (!isTwoWay && rules) {
 | `src/features/architect/utils/capLegalityValidation.js` | Modified | Added import for `getYearsOfService`, added `min_salary_violation` to `HARD_BLOCK_RULES`, added minimum salary validation in `validateSigning()` |
 | `tests/architect/capLegalityValidation.test.js` | Modified | Added 8 new tests for minimum salary enforcement; updated 2 existing tests to use CBA-compliant salaries |
 | `docs/architect/CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md` | Modified | Added `min_salary_violation` to Validation Map and Hard Block Rules; added G0-4 gap resolution; updated G2-4; added changelog entry |
-| `docs/architect/return-packages/2026-01-17_CAP_SHEET_MIN_SALARY_ENFORCEMENT_PHASE_1.md` | Created | This return package document |
+| `docs/architect/return_packages/2026-01-17_CAP_SHEET_MIN_SALARY_ENFORCEMENT_PHASE_1.md` | Created | This return package document |
 
 ---
 

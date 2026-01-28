@@ -1,6 +1,6 @@
 // SiteLayout.jsx
 import React from 'react';
-import { Link, Outlet } from 'react-router-dom';
+import { Link, Outlet, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { ChevronDown } from 'lucide-react';
 
@@ -11,7 +11,6 @@ const NavGroup = ({ label, children, align = 'left' }) => {
 
   return (
     <div className="relative group">
-      {/* Trigger */}
       <div className="inline-flex items-center gap-1 cursor-pointer hover:text-white text-white/60">
         <span>{label}</span>
         <ChevronDown
@@ -20,10 +19,8 @@ const NavGroup = ({ label, children, align = 'left' }) => {
         />
       </div>
 
-      {/* Invisible hover bridge to prevent flicker */}
       <div className="absolute top-full h-4 w-full" />
 
-      {/* Dropdown */}
       <div
         className={`absolute hidden group-hover:flex flex-col mt-2 bg-[#1c1c1c] border border-white/10 rounded shadow-lg text-sm text-white/80 min-w-[160px] p-2 z-50 ${alignmentClass}`}
       >
@@ -34,6 +31,11 @@ const NavGroup = ({ label, children, align = 'left' }) => {
 };
 
 const SiteLayout = () => {
+  const location = useLocation();
+
+  // Pages that contain react-window/AutoSizer virtualization MUST NOT live inside overflow-y-auto ancestors.
+  const isVirtualizedRoute = location.pathname.startsWith('/players');
+
   return (
     <div className="h-screen bg-neutral-900 text-white flex flex-col">
       <header className="bg-[#121212] border-b border-white/10 px-6 py-4 flex items-center justify-between shrink-0">
@@ -75,13 +77,23 @@ const SiteLayout = () => {
         </nav>
       </header>
 
-      {/* KEY FIX: main must NOT be overflow-y-auto for virtualized children to measure properly.
-          Instead, child pages with virtualization handle their own scrolling.
-          The flex-1 + min-h-0 ensures height is constrained for AutoSizer to work. */}
-      <main className="flex flex-col flex-1 w-full min-h-0 overflow-hidden">
-        <div className="flex flex-col min-h-0 w-full flex-1 overflow-hidden">
-          <Outlet />
+      {/* IMPORTANT:
+          - This wrapper ALWAYS provides a real flex height chain (flex-1 + min-h-0).
+          - For normal pages, we allow scrolling via overflow-y-auto.
+          - For /players, we block parent scrolling so AutoSizer measures correctly. */}
+      <main className="flex-1 w-full flex flex-col min-h-0 overflow-hidden">
+        <div className="flex-1 min-h-0 flex flex-col">
+          {isVirtualizedRoute ? (
+            <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+              <Outlet />
+            </div>
+          ) : (
+            <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
+              <Outlet />
+            </div>
+          )}
         </div>
+
         <Toaster position="bottom-center" />
       </main>
     </div>

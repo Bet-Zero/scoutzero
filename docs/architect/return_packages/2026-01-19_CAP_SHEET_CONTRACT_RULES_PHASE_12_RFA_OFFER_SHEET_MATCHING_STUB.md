@@ -130,7 +130,7 @@ Uses existing Phase 9 helpers:
 | [capLegalityValidation.js](file:///Users/brenthibbitts/Desktop/ScoutZero/src/features/architect/utils/capLegalityValidation.js) | Added offer sheet logic, new rule IDs, constants, `validateOfferSheetTerms()` |
 | [capLegalityValidation.test.js](file:///Users/brenthibbitts/Desktop/ScoutZero/tests/architect/capLegalityValidation.test.js) | Added 14 Phase 12 tests |
 | [CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md](file:///Users/brenthibbitts/Desktop/ScoutZero/docs/architect/CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md) | Updated changelog, added section 9.12 |
-| [Phase 11 return package](file:///Users/brenthibbitts/Desktop/ScoutZero/docs/architect/return-packages/2026-01-18_CAP_SHEET_CONTRACT_RULES_PHASE_11_EXECUTION_YEAR_COVERAGE_AND_ROOKIE_SCALE.md) | Fixed "doc-only" claim |
+| [Phase 11 return package](file:///Users/brenthibbitts/Desktop/ScoutZero/docs/architect/return_packages/2026-01-18_CAP_SHEET_CONTRACT_RULES_PHASE_11_EXECUTION_YEAR_COVERAGE_AND_ROOKIE_SCALE.md) | Fixed "doc-only" claim |
 
 ---
 
