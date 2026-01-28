@@ -408,7 +408,7 @@ function computeTeamSalary(
  * Derive apron level from team salary and cap thresholds
  */
 function deriveApronLevel(teamSalary: number, cap: CapContext): ApronLevel {
-  if (teamSalary >= cap.secondApron) return 'SECOND_APRON';
+  if (teamSalary > cap.secondApron) return 'SECOND_APRON';
   if (teamSalary >= cap.firstApron) return 'FIRST_APRON';
   if (teamSalary > cap.salaryCap) return 'OVER_CAP';
   return 'UNDER_CAP';

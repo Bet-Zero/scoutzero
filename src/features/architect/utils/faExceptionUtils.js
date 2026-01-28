@@ -23,7 +23,7 @@ export function canUseFaException(teamCtx = {}, bucketType) {
   if (!bucket || bucket.remaining <= 0) return false;
   const now = Date.now();
   if (bucket.expiresAt && Date.parse(bucket.expiresAt) < now) return false;
-  if (capSettings.secondApron && teamTotalSalary >= capSettings.secondApron)
+  if (capSettings.secondApron && teamTotalSalary > capSettings.secondApron)
     return false;
   if (capSettings.firstApron && teamTotalSalary >= capSettings.firstApron)
     return false;

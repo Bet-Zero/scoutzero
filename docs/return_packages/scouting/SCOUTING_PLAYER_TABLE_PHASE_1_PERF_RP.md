@@ -7,6 +7,7 @@
 - [x] Implemented `FixedSizeList` in `PlayerTable` (virtualization)
 - [x] Implemented "Inline Overlay Drawer" pattern using `ItemData` + `InnerElement` + `DrawerContext`
 - [x] Verified build success
+- [x] **HOTFIX**: Fixed empty table issue by correcting flexbox constraints (`flex-1 min-h-0`) and separating row positioning from centering.
 
 ## Key Technical Decisions
 

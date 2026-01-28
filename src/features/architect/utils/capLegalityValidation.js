@@ -2993,7 +2993,7 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
     const projectedCapHit = currentCapHit + contractCapImpact;
 
     // Check if the signing would put/keep team above second apron
-    const isAboveSecondApron = projectedCapHit >= rules.cap.secondApron;
+    const isAboveSecondApron = projectedCapHit > rules.cap.secondApron;
 
     if (isAboveSecondApron) {
       const { salary: firstYearSalary, capHit: firstYearCapHit } =

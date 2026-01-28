@@ -145,6 +145,7 @@ The table relies on a **Flattened & Enriched** version of the `players_v2` docum
 **Goal**: Ensure smooth 60fps scrolling and instant filtering response.
 
 - [ ] Install `react-window` and `react-virtualized-auto-sizer`.
+- [x] **ISSUE RESOLVED**: Fixed container sizing (AutoSizer) by correcting CSS calc syntax. Table now renders rows correctly.
 - [ ] Refactor `PlayerTable` to use `FixedSizeList`.
 - [ ] Handle "Expanded" state in virtualization (dynamic height or external state management). *Note: Variable height rows are tricky with virtualization. Alternatively, use pagination.*
 - [ ] `React.memo(PlayerRow)`.

@@ -86,7 +86,7 @@ export function validateStepien(team: TradeTeam): StepienResult {
     const hasOwnFrozenPick = normalizedOutgoingPicks.some((p) => {
       const result = isFrozenPick(p, {
         teamId: team.teamId || '',
-        teamIsAtOrAboveSecondApron: true,
+        teamIsSecondApron: true,
         currentSeason: yearKey,
       });
       console.log(`Pick ${p.year} frozen check result:`, result);

@@ -9,10 +9,9 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 import AddToListButton from '@/features/lists/AddToListButton';
 import { getCurrentSeasonYear, getYearsRemaining } from '@/shared/utils/contracts';
 
-const PlayerRow = ({ player, style, isExpanded, onToggleExpand }) => {
+const PlayerRow = ({ player, isExpanded, onToggleExpand }) => {
   return (
     <div 
-      style={style}
       className="w-full max-w-[1100px] mx-auto"
     >
       <div className="relative w-full border border-black h-[90px]">
