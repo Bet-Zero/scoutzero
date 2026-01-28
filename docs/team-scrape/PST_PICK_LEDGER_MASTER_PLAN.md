@@ -30,6 +30,7 @@
 | Phase 8      | Entitlement Assets (Preflight + Exec)           | COMPLETE    | 2026-01-21 |
 | Phase 8.1    | Hotfix: Split Separable Rights + Physical Slots | COMPLETE    | 2026-01-21 |
 | Phase 8.2    | Encumbered Status Must Be Swap-Backed           | COMPLETE    | 2026-01-28 |
+| Phase 8.3    | Ranked Conveyance Gate (HOU 2026 R2 Fix)        | COMPLETE    | 2026-01-29 |
 | Phase 10     | Firestore Entitlements Storage + World Holdings | COMPLETE    | 2026-01-21 |
 | Phase 11.0   | Read-only Entitlements Trade Machine            | COMPLETE    | 2026-01-21 |
 | Phase 11.1   | Entitlement Trading (Selection + World Save)    | COMPLETE    | 2026-01-22 |
@@ -515,6 +516,90 @@ new RegExp(
 
 - `data/pst/pst_entitlement_assets_2026_2033.json`
 - `data/pst/pst_entitlements_by_team_2026_2033.json`
+
+---
+
+### Phase 8.3 — Ranked Conveyance Gate (HOU 2026 R2 Fix) (COMPLETE)
+
+**Date**: 2026-01-29  
+**Status**: COMPLETE
+
+**Problem**: HOU appeared to own 7 different 2026 R2 physical pick slots in the ledger. Initial audit confirmed all 7 matched the owner overlay, indicating the upstream overlay was setting incorrect ownership.
+
+**Evidence (pre-fix)**: HOU had `pick_ownership` entitlements for:
+
+- CHI_2026_2nd ✅ (legitimate - explicit trade)
+- DAL_2026_2nd ❌ (should be DAL - ranked conveyance)
+- HOU_2026_2nd ✅ (legitimate - original owner)
+- IND_2026_2nd ❌ (should be IND - ranked conveyance)
+- LAC_2026_2nd ❌ (should be LAC - ranked conveyance)
+- MIA_2026_2nd ❌ (should be MIA - ranked conveyance)
+- PHI_2026_2nd ❌ (should be PHI - ranked conveyance)
+
+**Root Cause**: The owner overlay was incorrectly assigning HOU as owner for picks that are part of "ranked conveyance" mechanisms (e.g., "least favorable of PHI/DAL/OKC picks"). These conditional picks don't have a deterministic owner until standings resolve.
+
+The overlay claims for these picks had `rowKind: "transaction"` (which wins precedence), but the actual PST text described ranked conveyances. The extraction sets `displayOwner=HOU` for all rows on the Rockets page, but the text describes conditional selections.
+
+**Solution**: Added "Ranked Conveyance Gate" to `pst_apply_display_owner_overlay.ts`:
+
+1. **Load normalized rows**: Load `pst_phase_3_normalized_rows.json` which contains `flags.mentionsLeastMostFavorable` for each row.
+2. **Build lookup map**: Index normalized rows by `${sourceTeamPage}|${rowRef}` key.
+3. **isRankedConveyanceClaim()**: Helper function that checks if an overlay claim's source row has the `mentionsLeastMostFavorable` flag set.
+4. **Filter before precedence**: Before sorting overlay claims by precedence, filter out any claims where `isRankedConveyanceClaim()` returns true.
+5. **Counter**: Track how many claims are skipped via `rankedConveyanceSkipped` counter (127 in test run).
+
+**What changed**:
+
+- `team-scrape/draft-picks/scripts/pst/pst_apply_display_owner_overlay.ts`
+  - Added `NormalizedRowWithFlags` interface with `flags.mentionsLeastMostFavorable`
+  - Added `isRankedConveyanceClaim()` helper function
+  - Added RANKED CONVEYANCE GATE filter before precedence sorting
+  - Added `rankedConveyanceSkipped` counter for observability
+
+- `team-scrape/draft-picks/scripts/pst/pst_validate_owner_overlay_regressions.ts`
+  - Added `NegativeAssertion` interface for "must NOT be this owner" checks
+  - Added 5 negative assertions for DAL/IND/LAC/MIA/PHI 2026 2nd round picks
+  - Added positive assertion for CHI_2026_2nd (legitimately HOU)
+  - Removed incorrect Phase 2.1 assertions for DAL/PHX 2029 1st picks (all their overlay claims have ranked conveyance flags, so they correctly remain BASE ownership)
+
+- `team-scrape/draft-picks/scripts/pst/pst_trace_owner_overlay_anomalies.ts` (NEW)
+  - Trace script to diagnose overlay ownership claims
+  - npm script: `pst:trace:hou:2026:r2`
+
+- `team-scrape/draft-picks/scripts/pst/pst_audit_hou_2026_r2.ts` (NEW)
+  - Audit script comparing ledger vs entitlements for HOU 2026 R2
+  - npm script: `pst:audit:hou:2026:r2`
+
+**Validation (post-fix)**:
+
+- HOU 2026 R2 pick_ownership entitlements: 2 (down from 7)
+  - CHI_2026_2nd (legitimate trade)
+  - HOU_2026_2nd (original owner)
+- Regression validator: 6 passed, 0 failed
+- rankedConveyanceSkipped: 127 overlay claims filtered
+
+**Pipeline rebuild commands**:
+
+```bash
+npm run pst:apply:overlay
+npm run pst:phase-4
+npm run pst:phase-5
+npm run pst:entitlements
+npm run pst:validate:overlay:regressions
+```
+
+**Outputs regenerated**:
+
+- `data/pst/pst_owner_overlay_applied.json`
+- `data/pst/pst_phase_4_profile_rows.json`
+- `data/pst/pst_pick_ledger_final_2026_2033.json`
+- `data/pst/pst_entitlement_assets_2026_2033.json`
+- `data/pst/pst_entitlements_by_team_2026_2033.json`
+
+**Audit outputs**:
+
+- `data/pst/audits/hou_2026_r2_owner_overlay_trace.json`
+- `data/pst/audits/hou_2026_r2_owner_overlay_trace.txt`
 
 ---
 

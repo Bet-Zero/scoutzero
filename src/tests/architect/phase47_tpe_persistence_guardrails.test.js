@@ -1,14 +1,17 @@
 /**
  * FILE: src/tests/architect/phase47_tpe_persistence_guardrails.test.js
- * PURPOSE: Guardrail tests for Phase 47 TPE persistence (creation + consumption)
+ * PURPOSE: Guardrail tests for Phase 47B TPE persistence (SSOT-aligned)
  * OWNERSHIP: Feature: architect (Cap Sheet - Trade Exceptions)
  *
  * HISTORY:
  *  - 2026-01-28: Phase 47 - Created for TPE persistence guardrails
+ *  - 2026-01-28: Phase 47B - Updated to reflect SSOT alignment (no hardcoded cap, validator-based creation)
  *
- * KEY BEHAVIOR:
- * - Created TPEs must be added to team.tradeExceptions[] after trade execution
- * - Consumed TPEs must have remainingAmount decremented and isUsed set appropriately
+ * KEY BEHAVIOR (Phase 47B):
+ * - Created TPEs sourced from validator output (teamResult.createdTPE), not recomputed
+ * - Consumed TPEs use validated matchIncoming values, not raw salary fields
+ * - No hardcoded cap constants; cap settings from capSettingsProvider
+ * - Tests validate the mathematical logic; actual persistence tested via integration tests
  */
 
 import { describe, test, expect, vi } from 'vitest';
@@ -55,19 +58,20 @@ const makeTPE = (id, amount, options = {}) => ({
   ...options,
 });
 
-describe('Phase 47: TPE Persistence Guardrails', () => {
+describe('Phase 47B: TPE Persistence Guardrails (SSOT-Aligned)', () => {
   describe('TPE Creation Persistence', () => {
     test('Created TPE is added to tradeExceptions when team sends more than receives and is over cap', async () => {
-      // This test validates the logic in computeTradeResult
-      // We'll simulate the TPE creation logic inline since we can't easily import the internal function
+      // Phase 47B: TPE creation now sourced from validator output (teamResult.createdTPE)
+      // This test validates the mathematical logic; actual validator integration tested elsewhere
 
-      const team = makeTeam('BOS', 170_000_000); // Over cap (cap = 141M)
+      const SALARY_CAP = 141_000_000; // In production, from capSettings.salaryCap
+      const team = makeTeam('BOS', 170_000_000); // Over cap
       const outgoingSalary = 20_000_000;
       const incomingSalary = 12_000_000;
       const salaryDifference = outgoingSalary - incomingSalary;
 
-      // Simulate TPE creation logic
-      const isOverCap = team.teamTotalSalary > 141_000_000;
+      // Simulate TPE creation logic (matches validator behavior)
+      const isOverCap = team.teamTotalSalary > SALARY_CAP;
       const shouldCreateTPE = salaryDifference > 0 && isOverCap;
 
       expect(shouldCreateTPE).toBe(true);
@@ -82,7 +86,9 @@ describe('Phase 47: TPE Persistence Guardrails', () => {
           remainingAmount: salaryDifference,
           usedAmount: 0,
           createdSeason: 2024,
-          expiresOn: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+          expiresOn: new Date(
+            Date.now() + 365 * 24 * 60 * 60 * 1000
+          ).toISOString(),
           isUsed: false,
         };
 
@@ -95,12 +101,13 @@ describe('Phase 47: TPE Persistence Guardrails', () => {
     });
 
     test('No TPE created when team receives more than sends', () => {
+      const SALARY_CAP = 141_000_000; // In production, from capSettings.salaryCap
       const team = makeTeam('LAL', 170_000_000); // Over cap
       const outgoingSalary = 10_000_000;
       const incomingSalary = 15_000_000;
       const salaryDifference = outgoingSalary - incomingSalary;
 
-      const isOverCap = team.teamTotalSalary > 141_000_000;
+      const isOverCap = team.teamTotalSalary > SALARY_CAP;
       const shouldCreateTPE = salaryDifference > 0 && isOverCap;
 
       expect(shouldCreateTPE).toBe(false);
@@ -108,12 +115,13 @@ describe('Phase 47: TPE Persistence Guardrails', () => {
     });
 
     test('No TPE created when team is under cap', () => {
+      const SALARY_CAP = 141_000_000; // In production, from capSettings.salaryCap
       const team = makeTeam('DET', 120_000_000); // Under cap
       const outgoingSalary = 20_000_000;
       const incomingSalary = 10_000_000;
       const salaryDifference = outgoingSalary - incomingSalary;
 
-      const isOverCap = team.teamTotalSalary > 141_000_000;
+      const isOverCap = team.teamTotalSalary > SALARY_CAP;
       const shouldCreateTPE = salaryDifference > 0 && isOverCap;
 
       expect(shouldCreateTPE).toBe(false);

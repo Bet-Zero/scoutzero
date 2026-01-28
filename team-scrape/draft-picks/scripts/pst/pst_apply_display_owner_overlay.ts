@@ -97,7 +97,9 @@ async function main() {
     }
   }
 
-  console.log(`Loaded ${normalizedRowsMap.size} normalized rows for swap/ranked conveyance detection`);
+  console.log(
+    `Loaded ${normalizedRowsMap.size} normalized rows for swap/ranked conveyance detection`
+  );
 
   // Group overlay by pickId
   const overlayMap = new Map<string, OwnerOverlayItem[]>();
@@ -210,10 +212,14 @@ async function main() {
   }
 
   if (rankedConveyanceSkipped > 0) {
-    console.log(`  ⚠️  Skipped ${rankedConveyanceSkipped} picks with ALL ranked conveyance claims (owner unchanged)`);
+    console.log(
+      `  ⚠️  Skipped ${rankedConveyanceSkipped} picks with ALL ranked conveyance claims (owner unchanged)`
+    );
   }
   if (swapOnlySkipped > 0) {
-    console.log(`  ⚠️  Skipped ${swapOnlySkipped} swap-only owner overrides (owner unchanged)`);
+    console.log(
+      `  ⚠️  Skipped ${swapOnlySkipped} swap-only owner overrides (owner unchanged)`
+    );
   }
 
   await fs.writeFile(OUTPUT_PATH, JSON.stringify(finalLedger, null, 2));

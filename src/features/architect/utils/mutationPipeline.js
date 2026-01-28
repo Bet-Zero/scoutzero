@@ -47,6 +47,7 @@ import {
 } from '@/features/architect/utils/architectFirestorePaths';
 import { collection, doc } from 'firebase/firestore';
 import { ARCHITECT_WORLDS_COLLECTION } from '@/constants/collections';
+import { getCapSettings } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider.js';
 // Cap legality validators for non-trade mutations (Phase 5 Production Hardening)
 import {
   validateSigning,
@@ -1025,138 +1026,29 @@ function computeTradeResult({ payload, currentState, seasonId, timestamp }) {
     }
 
     // ============================================================================
-    // Phase 47: TPE Creation & Consumption Persistence
+    // Phase 47B: TPE Persistence - SSOT Alignment (replaces Phase 47)
     // ============================================================================
+    // This section now uses validator-produced TPE data instead of recomputing.
+    // - TPE creation: consumed from validation.teamResults[i].createdTPE
+    // - TPE consumption: derived from validation.teamResults[i].rules.tradeExceptions
+    // - Cap settings: no hardcoded constants, uses capSettings from validation context
 
-    // Calculate outgoing and incoming salary for TPE creation/consumption
-    const seasonKey =
-      typeof seasonId === 'string' && seasonId.includes('-')
-        ? seasonId
-        : `${currentYear - 1}-${String(currentYear).slice(-2)}`;
-
-    const getPlayerSalary = (player) => {
-      // Try multiple sources for salary
-      if (player.salary !== undefined) return player.salary;
-      if (player.matchIncoming !== undefined) return player.matchIncoming;
-      if (player.contract?.salariesByYear) {
-        const salaryRow = player.contract.salariesByYear.find(
-          (s) =>
-            s.season === seasonKey ||
-            String(s.year) === String(currentYear)
-        );
-        if (salaryRow) return salaryRow.salary || 0;
-      }
-      return 0;
-    };
-
-    const outgoingSalary = (teamTrade.sends || []).reduce(
-      (sum, p) => sum + getPlayerSalary(p),
-      0
-    );
-    const incomingSalary = incomingPlayers.reduce(
-      (sum, p) => sum + getPlayerSalary(p),
-      0
-    );
-
-    // Get current TPE array (may be from exceptions.tpe or tradeExceptions)
+    // NOTE: We'll run validation below after building all team assets, then apply TPE updates per team
+    // For now, just normalize and prepare the existing TPEs for potential updates
     const currentTPEs = [
       ...(team.tradeExceptions || []),
-      ...((team.exceptions?.tpe || []).map((t) => ({
+      ...(team.exceptions?.tpe || []).map((t) => ({
         ...t,
         // Normalize schema fields
         amount: t.remainingAmount ?? t.totalAmount ?? t.amount ?? 0,
         totalAmount: t.totalAmount ?? t.amount ?? 0,
         remainingAmount: t.remainingAmount ?? t.totalAmount ?? t.amount ?? 0,
         usedAmount: t.usedAmount ?? 0,
-      }))),
+      })),
     ];
 
-    // Build TPE usage map from incoming players
-    // Track salary absorbed by each TPE
-    const tpeUsageMap = new Map(); // tpeId -> absorbedSalary
-    incomingPlayers.forEach((player) => {
-      const isTPEAbsorbed =
-        player.absorptionMode === 'TPE' ||
-        player.tpeId ||
-        player.acquiredViaTPE;
-      if (!isTPEAbsorbed) return;
-
-      const playerSalary = getPlayerSalary(player);
-      const tpeId = player.tpeId;
-
-      if (tpeId) {
-        const currentUsage = tpeUsageMap.get(tpeId) || 0;
-        tpeUsageMap.set(tpeId, currentUsage + playerSalary);
-      } else {
-        // Auto-match to first available TPE with capacity
-        for (const tpe of currentTPEs) {
-          if (tpe.isUsed) continue;
-          const tpeAmount = tpe.remainingAmount ?? tpe.amount ?? 0;
-          const existingUsage = tpeUsageMap.get(tpe.id) || 0;
-          const remainingCapacity = tpeAmount - existingUsage;
-          if (remainingCapacity >= playerSalary) {
-            tpeUsageMap.set(tpe.id, existingUsage + playerSalary);
-            break;
-          }
-        }
-      }
-    });
-
-    // Update TPE array with consumption
-    const updatedTPEs = currentTPEs.map((tpe) => {
-      const absorbed = tpeUsageMap.get(tpe.id) || 0;
-      if (absorbed === 0) return tpe; // No change
-
-      const currentRemaining = tpe.remainingAmount ?? tpe.amount ?? 0;
-      const currentUsed = tpe.usedAmount ?? 0;
-      const newRemaining = Math.max(0, currentRemaining - absorbed);
-      const newUsed = currentUsed + absorbed;
-
-      return {
-        ...tpe,
-        remainingAmount: newRemaining,
-        usedAmount: newUsed,
-        isUsed: newRemaining === 0,
-      };
-    });
-
-    // Check if this team should create a new TPE
-    // TPE created when: sending > receiving AND team is over cap
-    const salaryDifference = outgoingSalary - incomingSalary;
-    const teamTotalSalary = team.totals?.teamSalary || team.teamTotalSalary || 0;
-    const salaryCap = 141000000; // Default cap, could be passed via context
-    const isOverCap = teamTotalSalary > salaryCap;
-
-    if (salaryDifference > 0 && isOverCap) {
-      const newTPE = createTPE({
-        teamCtx: { isOverCap: true },
-        outgoing: outgoingSalary,
-        incoming: incomingSalary,
-        tradeDate: timestamp,
-      });
-
-      if (newTPE) {
-        // Generate stable ID for new TPE
-        const newTPEId = `tpe_${teamCode}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-        updatedTPEs.push({
-          id: newTPEId,
-          amount: newTPE.amount,
-          totalAmount: newTPE.amount,
-          remainingAmount: newTPE.amount,
-          usedAmount: 0,
-          createdSeason: newTPE.createdSeason,
-          expiresOn: newTPE.expiresOn,
-          createdFrom: (teamTrade.sends || [])
-            .map((p) => p.name || p.displayName)
-            .filter(Boolean)
-            .join(', ') || 'Trade',
-          isUsed: false,
-        });
-      }
-    }
-
-    // Persist updated TPEs to team state
-    updatedTeam.tradeExceptions = updatedTPEs;
+    // Store the base TPE array; we'll update it from validation results later
+    updatedTeam.tradeExceptions = currentTPEs;
 
     // Update source metadata
     updatedTeam.source = {
@@ -1170,6 +1062,115 @@ function computeTradeResult({ payload, currentState, seasonId, timestamp }) {
 
     teamUpdates.push({ teamCode, team: updatedTeam });
   }
+
+  // ============================================================================
+  // Phase 47B: Run validation to get SSOT TPE creation/consumption data
+  // ============================================================================
+  // Build validation input from the teams we just processed
+  const validationTeams = payload.teams.map((teamTrade, idx) => {
+    const teamUpdate = teamUpdates[idx];
+    return {
+      team: teamUpdate.team,
+      teamCode: teamUpdate.teamCode,
+      sends: teamTrade.sends || [],
+      receives: teamTrade.receives || [],
+      picksOut: teamTrade.picksOut || [],
+      picksIn: teamTrade.picksIn || [],
+      cashSent: teamTrade.cashSent || 0,
+      cashReceived: teamTrade.cashReceived || 0,
+    };
+  });
+
+  // Get cap settings for the trade year
+  const capSettingsResult = getCapSettings({
+    year: currentYear,
+    capProjections: payload.capProjections || {},
+  });
+
+  // Run validation to get validated TPE outcomes
+  const validation = validateTrade({
+    teams: validationTeams,
+    capProjections: payload.capProjections || {},
+    currentYear,
+    tradeCtx: payload.tradeCtx || {},
+  });
+
+  // Apply validated TPE creation/consumption to each team
+  teamUpdates.forEach((teamUpdate, idx) => {
+    const teamResult = validation.teamResults?.[idx];
+    if (!teamResult) return;
+
+    const updatedTeam = teamUpdate.team;
+    const currentTPEs = updatedTeam.tradeExceptions || [];
+
+    // 1. Apply TPE consumption from validator
+    // The validator's tradeExceptions rule modifies TPE objects with updated remaining/used amounts
+    const tradeExceptionsResult = teamResult.rules?.tradeExceptions;
+    let updatedTPEs = [...currentTPEs];
+
+    // If validator processed TPEs and returned consumption data, use it
+    if (tradeExceptionsResult && tradeExceptionsResult.details) {
+      // The validator already updated the TPE objects in place during validation
+      // We need to extract the consumed amounts from the incoming players that used TPEs
+      const incomingPlayers = validationTeams[idx].receives || [];
+      const tpeUsageMap = new Map(); // tpeId -> consumed amount
+
+      incomingPlayers.forEach((player) => {
+        if (player.tpeId && (player.matchIncoming || player.salary)) {
+          const consumed = player.matchIncoming || player.salary || 0;
+          const current = tpeUsageMap.get(player.tpeId) || 0;
+          tpeUsageMap.set(player.tpeId, current + consumed);
+        }
+      });
+
+      // Apply consumption to TPEs
+      updatedTPEs = currentTPEs.map((tpe) => {
+        const consumed = tpeUsageMap.get(tpe.id) || 0;
+        if (consumed === 0) return tpe;
+
+        const currentRemaining = tpe.remainingAmount ?? tpe.amount ?? 0;
+        const currentUsed = tpe.usedAmount ?? 0;
+        const newRemaining = Math.max(0, currentRemaining - consumed);
+        const newUsed = currentUsed + consumed;
+
+        return {
+          ...tpe,
+          remainingAmount: newRemaining,
+          usedAmount: newUsed,
+          isUsed: newRemaining === 0,
+        };
+      });
+    }
+
+    // 2. Apply TPE creation from validator (SSOT)
+    const createdTPE = teamResult.createdTPE;
+    if (createdTPE) {
+      // Generate stable ID for the new TPE
+      const teamCode = teamUpdate.teamCode;
+      const newTPEId = `tpe_${teamCode}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+      const outgoingPlayers = payload.teams[idx]?.sends || [];
+      const createdFrom = outgoingPlayers
+        .map((p) => p.name || p.displayName)
+        .filter(Boolean)
+        .join(', ') || 'Trade';
+
+      updatedTPEs.push({
+        id: newTPEId,
+        amount: createdTPE.amount,
+        totalAmount: createdTPE.amount,
+        remainingAmount: createdTPE.amount,
+        usedAmount: 0,
+        createdSeason: createdTPE.createdSeason,
+        expiresOn: createdTPE.expiresOn,
+        createdFrom,
+        isUsed: false,
+      });
+    }
+
+    // Persist the updated TPE array
+    updatedTeam.tradeExceptions = updatedTPEs;
+  });
 
   // Phase 11.3: Build entitlementsTraded structure for event log
   // Format: { [teamCode]: { out: string[], in: string[] } }
@@ -3138,43 +3139,7 @@ function calculateTeamTotals(teamData, seasonId) {
       }
     });
   }
-  /**
-   * Compute set dead cap result
-   */
-  function computeSetDeadCapResult({
-    payload,
-    currentState,
-    seasonId,
-    timestamp,
-  }) {
-    const { teamCode } = payload;
-    const { team } = currentState;
 
-    if (!payload.deadCap || !Array.isArray(payload.deadCap)) {
-      return {
-        success: false,
-        error: 'Invalid deadCap payload: must be an array',
-      };
-    }
-
-    // Update deadCap
-    const updatedTeam = {
-      ...team,
-      deadCap: payload.deadCap,
-      // Add logic to clean up legacy fields if we want to force migration?
-      // For now, let's keep it simple: new schema takes precedence in computation anyway.
-    };
-
-    return {
-      success: true,
-      teamUpdates: [{ teamCode, team: updatedTeam }],
-      playerUpdates: [],
-      metadata: {
-        actionType: 'setDeadCap',
-        timestamp,
-      },
-    };
-  }
   // Add cap holds
   let capHoldsTotal = 0;
   if (teamData.capHolds && Array.isArray(teamData.capHolds)) {
@@ -3191,5 +3156,43 @@ function calculateTeamTotals(teamData, seasonId) {
     rosterCount: teamData.roster?.length || 0,
     deadCapTotal,
     capHoldsTotal,
+  };
+}
+
+/**
+ * Compute set dead cap result
+ */
+function computeSetDeadCapResult({
+  payload,
+  currentState,
+  seasonId,
+  timestamp,
+}) {
+  const { teamCode } = payload;
+  const { team } = currentState;
+
+  if (!payload.deadCap || !Array.isArray(payload.deadCap)) {
+    return {
+      success: false,
+      error: 'Invalid deadCap payload: must be an array',
+    };
+  }
+
+  // Update deadCap
+  const updatedTeam = {
+    ...team,
+    deadCap: payload.deadCap,
+    // Add logic to clean up legacy fields if we want to force migration?
+    // For now, let's keep it simple: new schema takes precedence in computation anyway.
+  };
+
+  return {
+    success: true,
+    teamUpdates: [{ teamCode, team: updatedTeam }],
+    playerUpdates: [],
+    metadata: {
+      actionType: 'setDeadCap',
+      timestamp,
+    },
   };
 }

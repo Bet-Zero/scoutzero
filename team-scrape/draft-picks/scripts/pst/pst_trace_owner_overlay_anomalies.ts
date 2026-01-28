@@ -103,13 +103,26 @@ function main() {
   console.log('=== HOU 2026 R2 Owner Overlay Trace ===\n');
 
   // Load data
-  const ledgerPath = path.resolve(process.cwd(), 'data/pst/pst_pick_ledger_final_2026_2033.json');
-  const overlayPath = path.resolve(process.cwd(), 'data/pst/pst_owner_overlay.json');
-  const normalizedRowsPath = path.resolve(process.cwd(), 'data/pst/pst_phase_3_normalized_rows.json');
+  const ledgerPath = path.resolve(
+    process.cwd(),
+    'data/pst/pst_pick_ledger_final_2026_2033.json'
+  );
+  const overlayPath = path.resolve(
+    process.cwd(),
+    'data/pst/pst_owner_overlay.json'
+  );
+  const normalizedRowsPath = path.resolve(
+    process.cwd(),
+    'data/pst/pst_phase_3_normalized_rows.json'
+  );
 
   const ledgerData = JSON.parse(fs.readFileSync(ledgerPath, 'utf-8'));
-  const overlayItems: OverlayItem[] = JSON.parse(fs.readFileSync(overlayPath, 'utf-8'));
-  const normalizedRows: NormalizedRow[] = JSON.parse(fs.readFileSync(normalizedRowsPath, 'utf-8'));
+  const overlayItems: OverlayItem[] = JSON.parse(
+    fs.readFileSync(overlayPath, 'utf-8')
+  );
+  const normalizedRows: NormalizedRow[] = JSON.parse(
+    fs.readFileSync(normalizedRowsPath, 'utf-8')
+  );
 
   // Build lookup maps
   const ledgerMap = new Map<string, LedgerPick>();
@@ -154,7 +167,9 @@ function main() {
     console.log(`\n[1] FINAL LEDGER STATE:`);
     console.log(`  Owner: ${ledgerPick.owner}`);
     console.log(`  Ownership Source: ${ledgerPick.ownershipSource}`);
-    console.log(`  Evidence Row Refs: ${ledgerPick.evidenceRowRefs?.join(', ') || 'none'}`);
+    console.log(
+      `  Evidence Row Refs: ${ledgerPick.evidenceRowRefs?.join(', ') || 'none'}`
+    );
 
     console.log(`\n[2] COMPETING OVERLAY CLAIMS (${overlays.length} total):`);
 
@@ -164,7 +179,9 @@ function main() {
       // Find corresponding normalized row
       const lookupKey = `${overlay.sourceTeamPage}|${overlay.rowRef}`;
       const pickLookupKey = `${pickId}|${lookupKey}`;
-      const normalizedRow = normalizedRowsMap.get(pickLookupKey) || normalizedRowsMap.get(lookupKey);
+      const normalizedRow =
+        normalizedRowsMap.get(pickLookupKey) ||
+        normalizedRowsMap.get(lookupKey);
 
       const snippet = normalizedRow?.normalizedText
         ? normalizedRow.normalizedText.slice(0, 160) + '...'
@@ -180,7 +197,9 @@ function main() {
         flags: normalizedRow?.flags || null,
       });
 
-      console.log(`\n  Claim: ${overlay.displayOwner} (via ${overlay.sourceTeamPage} ${overlay.rowRef})`);
+      console.log(
+        `\n  Claim: ${overlay.displayOwner} (via ${overlay.sourceTeamPage} ${overlay.rowRef})`
+      );
       console.log(`    rowKind: ${overlay.rowKind}`);
       console.log(`    Text: ${snippet}`);
       if (normalizedRow?.flags) {
@@ -219,7 +238,9 @@ function main() {
       console.log(`\n[3] WINNING CLAIM:`);
       console.log(`  Claimant: ${winningClaim.claimant}`);
       console.log(`  rowKind: ${winningClaim.rowKind}`);
-      console.log(`  Source: ${winningClaim.sourceTeamPage} ${winningClaim.rowRef}`);
+      console.log(
+        `  Source: ${winningClaim.sourceTeamPage} ${winningClaim.rowRef}`
+      );
       console.log(`  Reason: ${winningClaim.reason}`);
     }
 
@@ -238,7 +259,8 @@ function main() {
       for (const houClaim of houClaims) {
         const key = `${houClaim.sourceTeamPage}|${houClaim.rowRef}`;
         const pickKey = `${pickId}|${key}`;
-        const normalizedRow = normalizedRowsMap.get(pickKey) || normalizedRowsMap.get(key);
+        const normalizedRow =
+          normalizedRowsMap.get(pickKey) || normalizedRowsMap.get(key);
 
         if (normalizedRow) {
           const text = normalizedRow.normalizedText.toLowerCase();
@@ -250,12 +272,17 @@ function main() {
             text.includes('second-least favorable') ||
             text.includes('more favorable of');
 
-          const hasFromClause = text.includes(`(from ${pickId.split('_')[0].toLowerCase()})`);
+          const hasFromClause = text.includes(
+            `(from ${pickId.split('_')[0].toLowerCase()})`
+          );
 
           if (hasMostFavorable && !hasFromClause) {
             causeClassification = 'EXTRACTION_BUG';
             causeExplanation = `HOU claim on ${houClaim.sourceTeamPage} ${houClaim.rowRef} describes a RANKED CONVEYANCE ("most/least favorable of X, Y, Z picks"), not explicit ownership. The extraction incorrectly set displayOwner=HOU for a conditional selection right.`;
-          } else if (houClaim.sourceTeamPage === 'Rockets' && houClaim.rowKind === 'transaction') {
+          } else if (
+            houClaim.sourceTeamPage === 'Rockets' &&
+            houClaim.rowKind === 'transaction'
+          ) {
             // Check if text actually conveys this pick TO Rockets or FROM Rockets
             const originalTeam = pickId.split('_')[0];
             const teamNamesInText = normalizedRow.normalizedText.match(
@@ -263,7 +290,10 @@ function main() {
             );
 
             // If text says "to Bulls for ..." then Bulls got something, HOU gave something
-            if (text.includes('to bulls for') || text.includes('to pacers for')) {
+            if (
+              text.includes('to bulls for') ||
+              text.includes('to pacers for')
+            ) {
               causeClassification = 'EXTRACTION_BUG';
               causeExplanation = `HOU claim on ${houClaim.sourceTeamPage} ${houClaim.rowRef}: The text says HOU traded something TO another team. The pick was received BY the other team, not HOU. Extraction set displayOwner wrong.`;
             } else {
@@ -276,12 +306,16 @@ function main() {
     }
 
     if (causeClassification === 'UNKNOWN') {
-      if (nonHouTransactionClaims.length > 0 && winningOverlay?.displayOwner === 'HOU') {
+      if (
+        nonHouTransactionClaims.length > 0 &&
+        winningOverlay?.displayOwner === 'HOU'
+      ) {
         causeClassification = 'OVERLAY_PRECEDENCE_BUG';
         causeExplanation = `Non-HOU teams have transaction claims but HOU won. Possible tiebreaker issue.`;
       } else {
         causeClassification = 'PST_DATA_AMBIGUITY';
-        causeExplanation = 'Multiple conflicting claims; requires manual review.';
+        causeExplanation =
+          'Multiple conflicting claims; requires manual review.';
       }
     }
 
@@ -332,13 +366,19 @@ function main() {
     textLines.push('FINAL LEDGER STATE:');
     textLines.push(`  Owner: ${result.finalOwner}`);
     textLines.push(`  Ownership Source: ${result.finalOwnershipSource}`);
-    textLines.push(`  Evidence Rows: ${result.finalEvidenceRowRefs.join(', ') || 'none'}`);
+    textLines.push(
+      `  Evidence Rows: ${result.finalEvidenceRowRefs.join(', ') || 'none'}`
+    );
     textLines.push('');
     textLines.push(`COMPETING CLAIMS (${result.competingClaims.length}):`);
     for (const claim of result.competingClaims) {
-      textLines.push(`  - ${claim.claimant} via ${claim.sourceTeamPage} ${claim.rowRef}`);
+      textLines.push(
+        `  - ${claim.claimant} via ${claim.sourceTeamPage} ${claim.rowRef}`
+      );
       textLines.push(`    rowKind: ${claim.rowKind}`);
-      textLines.push(`    Text: ${claim.normalizedTextSnippet.slice(0, 100)}...`);
+      textLines.push(
+        `    Text: ${claim.normalizedTextSnippet.slice(0, 100)}...`
+      );
     }
     textLines.push('');
     if (result.winningClaim) {
