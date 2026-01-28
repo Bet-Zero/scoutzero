@@ -16,6 +16,8 @@ import { CODE_TO_PST_SLUG } from './pst_team_slugs';
  * - Start with base ledger.
  * - Apply overlay if exists for pickId.
  * - SWAP GATE: If overlay item is swap-only (not explicit conveyance), do NOT change owner.
+ * - RANKED CONVEYANCE GATE: If overlay item describes a ranked/conditional conveyance
+ *   (mentionsLeastMostFavorable=true), do NOT use it to determine owner.
  * - Precedence:
  *   1. rowKind: transaction > condition_not_met > own
  *   2. sourceTeamPage matches displayOwner (preference for "I have it" vs "They have it")
@@ -38,6 +40,19 @@ const OUTPUT_PATH = path.resolve(
   process.cwd(),
   'data/pst/pst_ledger_with_display_owner.json'
 );
+
+type NormalizedRowWithFlags = {
+  normalizedText: string;
+  flags?: {
+    mentionsSwap?: boolean;
+    mentionsLeastMostFavorable?: boolean;
+    mentionsProtection?: boolean;
+  };
+  provenance?: {
+    rowRef?: string;
+    sourceTeamPage?: string;
+  };
+};
 
 type DisplayLedgerItem = BasePick & {
   ownershipSource: 'BASE' | 'PST_DISPLAY';
@@ -67,22 +82,22 @@ async function main() {
     await fs.readFile(OVERLAY_PATH, 'utf-8')
   ) as OwnerOverlayItem[];
 
-  // Load normalized rows for swap-only detection
+  // Load normalized rows for swap-only and ranked conveyance detection
   // File is a top-level array; rowRef is at provenance.rowRef (rowRef is per-page, e.g. r16 on Mavericks vs r16 on Spurs)
   const normalizedRows = JSON.parse(
     await fs.readFile(NORMALIZED_ROWS_PATH, 'utf-8')
-  ) as Array<{ normalizedText: string; provenance?: { rowRef?: string; sourceTeamPage?: string } }>;
+  ) as NormalizedRowWithFlags[];
 
-  const normalizedRowsMap = new Map<string, { normalizedText: string }>();
+  const normalizedRowsMap = new Map<string, NormalizedRowWithFlags>();
   for (const row of normalizedRows) {
     const rowRef = row.provenance?.rowRef;
     const sourceTeamPage = row.provenance?.sourceTeamPage;
     if (rowRef != null && sourceTeamPage != null) {
-      normalizedRowsMap.set(`${sourceTeamPage}|${rowRef}`, { normalizedText: row.normalizedText ?? '' });
+      normalizedRowsMap.set(`${sourceTeamPage}|${rowRef}`, row);
     }
   }
 
-  console.log(`Loaded ${normalizedRowsMap.size} normalized rows for swap detection`);
+  console.log(`Loaded ${normalizedRowsMap.size} normalized rows for swap/ranked conveyance detection`);
 
   // Group overlay by pickId
   const overlayMap = new Map<string, OwnerOverlayItem[]>();
@@ -95,11 +110,24 @@ async function main() {
 
   const finalLedger: DisplayLedgerItem[] = [];
   let swapOnlySkipped = 0;
+  let rankedConveyanceSkipped = 0;
+
+  /**
+   * Helper: Check if an overlay claim is a ranked conveyance (most/least favorable)
+   * These describe conditional ownership where the recipient depends on standings,
+   * not explicit ownership transfers.
+   */
+  function isRankedConveyanceClaim(overlay: OwnerOverlayItem): boolean {
+    const key = `${overlay.sourceTeamPage}|${overlay.rowRef}`;
+    const normalizedRow = normalizedRowsMap.get(key);
+    if (!normalizedRow?.flags) return false;
+    return normalizedRow.flags.mentionsLeastMostFavorable === true;
+  }
 
   for (const pick of basePicks) {
-    const overlays = overlayMap.get(pick.pickId);
+    const allOverlays = overlayMap.get(pick.pickId);
 
-    if (!overlays || overlays.length === 0) {
+    if (!allOverlays || allOverlays.length === 0) {
       // No overlay -> Stick with Base
       finalLedger.push({
         ...pick,
@@ -108,7 +136,21 @@ async function main() {
       continue;
     }
 
-    // Resolve Precedence
+    // RANKED CONVEYANCE GATE: Filter out claims that are ranked conveyances
+    // Keep only claims where the text does NOT mention "most/least favorable of"
+    const overlays = allOverlays.filter((o) => !isRankedConveyanceClaim(o));
+
+    if (overlays.length === 0) {
+      // ALL claims are ranked conveyances -> Keep base owner
+      rankedConveyanceSkipped++;
+      finalLedger.push({
+        ...pick,
+        ownershipSource: 'BASE', // Keep base owner - ranked conveyance requires runtime resolution
+      });
+      continue;
+    }
+
+    // Resolve Precedence among remaining claims
     // Sort descending by priority, so first element is the winner
     overlays.sort((a, b) => {
       // 1. Row Kind Priority
@@ -167,6 +209,9 @@ async function main() {
     });
   }
 
+  if (rankedConveyanceSkipped > 0) {
+    console.log(`  ⚠️  Skipped ${rankedConveyanceSkipped} picks with ALL ranked conveyance claims (owner unchanged)`);
+  }
   if (swapOnlySkipped > 0) {
     console.log(`  ⚠️  Skipped ${swapOnlySkipped} swap-only owner overrides (owner unchanged)`);
   }
