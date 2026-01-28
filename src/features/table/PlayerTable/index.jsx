@@ -94,6 +94,20 @@ const PlayerTable = () => {
   const [expandedPlayerId, setExpandedPlayerId] = useState(null);
   const listContainerRef = useRef(null);
 
+  // Force re-render trigger for AutoSizer 0-dimension recovery
+  // When AutoSizer initially returns 0, we schedule a re-render after layout settles
+  const [autoSizerRetryCount, setAutoSizerRetryCount] = useState(0);
+  const retryScheduledRef = useRef(false);
+  const mountedRef = useRef(true);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
   // Debounce filters
   const debouncedSetFilters = useMemo(
     () => debounce(setFilters, 300),
@@ -222,6 +236,38 @@ const PlayerTable = () => {
                 const resolvedHeight = height > 0 ? height : fallbackHeight;
                 const resolvedWidth = width > 0 ? width : fallbackWidth;
 
+                // If both AutoSizer AND fallback return 0, schedule a re-render after layout settles
+                // This handles the race condition where the component mounts before layout is complete
+                if (resolvedHeight <= 0 || resolvedWidth <= 0) {
+                  // Only schedule one retry at a time, and only if we haven't exceeded retry limit
+                  if (autoSizerRetryCount < 3 && !retryScheduledRef.current) {
+                    retryScheduledRef.current = true;
+                    // Schedule retry after next animation frame (layout should be settled)
+                    requestAnimationFrame(() => {
+                      if (mountedRef.current) {
+                        retryScheduledRef.current = false;
+                        setAutoSizerRetryCount((prev) => prev + 1);
+                      }
+                    });
+                  }
+                  // Return a placeholder while waiting for valid dimensions
+                  return (
+                    <div className="flex items-center justify-center h-full text-white/50">
+                      Loading player table...
+                    </div>
+                  );
+                }
+
+                // Reset retry count on successful dimension retrieval for future recovery
+                if (autoSizerRetryCount > 0) {
+                  // Use setTimeout to avoid state update during render
+                  setTimeout(() => {
+                    if (mountedRef.current) {
+                      setAutoSizerRetryCount(0);
+                    }
+                  }, 0);
+                }
+
                 // Dev-mode debug logging when fallback triggers
                 if (import.meta.env.DEV && (height === 0 || width === 0)) {
                   console.warn(
@@ -230,6 +276,7 @@ const PlayerTable = () => {
                       autoSizer: { height, width },
                       fallback: { fallbackHeight, fallbackWidth },
                       resolved: { resolvedHeight, resolvedWidth },
+                      retryCount: autoSizerRetryCount,
                     }
                   );
                 }
