@@ -35,8 +35,8 @@ const NavGroup = ({ label, children, align = 'left' }) => {
 
 const SiteLayout = () => {
   return (
-    <div className="min-h-screen bg-neutral-900 text-white flex flex-col">
-      <header className="bg-[#121212] border-b border-white/10 px-6 py-4 flex items-center justify-between">
+    <div className="h-screen bg-neutral-900 text-white flex flex-col">
+      <header className="bg-[#121212] border-b border-white/10 px-6 py-4 flex items-center justify-between shrink-0">
         <div className="text-2xl font-bold tracking-tight text-white">
           🏀 HoopZero
         </div>
@@ -75,8 +75,13 @@ const SiteLayout = () => {
         </nav>
       </header>
 
-      <main className="flex-1 w-full">
-        <Outlet />
+      {/* KEY FIX: main must NOT be overflow-y-auto for virtualized children to measure properly.
+          Instead, child pages with virtualization handle their own scrolling.
+          The flex-1 + min-h-0 ensures height is constrained for AutoSizer to work. */}
+      <main className="flex flex-col flex-1 w-full min-h-0 overflow-hidden">
+        <div className="flex flex-col min-h-0 w-full flex-1 overflow-hidden">
+          <Outlet />
+        </div>
         <Toaster position="bottom-center" />
       </main>
     </div>

@@ -67,6 +67,7 @@ Top-level directory structure and purposes:
 - `firebase-utils/` - Firebase Admin utilities
 - `schema-tools/` - Schema validation and migration tools
 - `firebaseConfig.node.js` - Node.js Firebase configuration
+- `emu/` - Local emulator workflow scripts (port cleanup, seed gate, export fallback)
 
 #### docs/
 
@@ -141,6 +142,40 @@ Top-level directory structure and purposes:
 - **Testing:** Vitest (1.6.1), @testing-library/react (14.2.1)
 
 ## Script Interfaces
+
+### Emulator Workflow
+
+#### `scripts/emu/runEmu.ts`
+
+**Purpose:** Start Firebase emulators with port self-heal, data import/export, and seed-if-missing.
+
+**Usage:**
+
+```bash
+npm run emu
+```
+
+**Behavior:**
+
+- Auto-frees configured emulator ports before startup
+- Starts emulators with `--import=./.emulator-data` and `--export-on-exit=./.emulator-data`
+- Runs `scripts/emu/seedIfMissing.ts` after Firestore is ready
+- Forces a fallback export after emulator shutdown
+
+#### `scripts/emu/seedIfMissing.ts`
+
+**Purpose:** Seed base entitlements into the emulator only when missing.
+
+**Usage:**
+
+```bash
+npx tsx scripts/emu/seedIfMissing.ts
+```
+
+**Environment Variables:**
+
+- `FIRESTORE_EMULATOR_HOST` (required)
+- `FIREBASE_AUTH_EMULATOR_HOST` (required)
 
 ### Player Contract Scraping
 

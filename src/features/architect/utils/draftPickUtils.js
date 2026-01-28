@@ -1,16 +1,15 @@
 export function isFrozenPick(
   pick,
-  { teamId, teamIsSecondApron, teamIsAtOrAboveSecondApron, currentSeason }
+  { teamId, teamIsSecondApron, currentSeason }
 ) {
   console.log('=== isFrozenPick called ===');
   console.log('pick:', pick);
   console.log('teamId:', teamId);
   console.log('teamIsSecondApron:', teamIsSecondApron);
-  console.log('teamIsAtOrAboveSecondApron (legacy):', teamIsAtOrAboveSecondApron);
   console.log('currentSeason:', currentSeason);
 
-  // Support both new and legacy param names
-  const isApron = teamIsSecondApron ?? teamIsAtOrAboveSecondApron;
+  // Strict second apron check only
+  const isApron = teamIsSecondApron;
 
   if (!isApron) {
     console.log('Team not at second apron, returning false');

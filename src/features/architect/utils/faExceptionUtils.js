@@ -4,13 +4,18 @@
  * specific free-agent exceptions (NTMLE, RMLE, BAE).
  */
 import { FA_EXCEPTION_TRADE_USAGE } from '@/features/architect/utils/cbaConstants.js';
+import {
+  isSecondApronTeam,
+  isFirstApronTeam,
+} from '@/features/architect/utils/capUtils.js';
 
 export function getTeamFaExceptionBuckets(teamSeasonState = {}) {
   return teamSeasonState.faExceptionBuckets || [];
 }
 
 export function isFaExceptionEligibleType(type, flags = {}) {
-  const eligible = flags.faExceptionEligible || FA_EXCEPTION_TRADE_USAGE.eligible;
+  const eligible =
+    flags.faExceptionEligible || FA_EXCEPTION_TRADE_USAGE.eligible;
   return eligible?.includes(type);
 }
 
@@ -23,9 +28,13 @@ export function canUseFaException(teamCtx = {}, bucketType) {
   if (!bucket || bucket.remaining <= 0) return false;
   const now = Date.now();
   if (bucket.expiresAt && Date.parse(bucket.expiresAt) < now) return false;
-  if (capSettings.secondApron && teamTotalSalary > capSettings.secondApron)
+
+  // Delegate apron checks to SSOT helpers for consistent boundary semantics
+  // Guard with threshold existence to match original behavior (skip check if threshold undefined)
+  const teamObj = { totalSalary: teamTotalSalary };
+  if (capSettings.secondApron && isSecondApronTeam(teamObj, capSettings))
     return false;
-  if (capSettings.firstApron && teamTotalSalary >= capSettings.firstApron)
+  if (capSettings.firstApron && isFirstApronTeam(teamObj, capSettings))
     return false;
   return true;
 }
@@ -43,7 +52,11 @@ export function allocateFaExceptionToIncoming({
     bucket.remaining = Math.max(0, (bucket.remaining || 0) - amount);
   }
   teamCtx.faExceptionUsage = teamCtx.faExceptionUsage || [];
-  teamCtx.faExceptionUsage.push({ playerId: incomingPlayerId, amount, type: bucketType });
+  teamCtx.faExceptionUsage.push({
+    playerId: incomingPlayerId,
+    amount,
+    type: bucketType,
+  });
   return bucket;
 }
 

@@ -41,6 +41,22 @@ const EntitlementPickRow = ({
   const label = formatEntitlementLabel(entitlement);
   const kindTag = getEntitlementKindTag(entitlement.kind);
   const isEncumbered = entitlement.underlyingStatus === 'encumbered';
+  // DEBUG: entitlement identity + underlying slot (toggle with VITE_DEBUG_ENTITLEMENTS=true)
+  const DEBUG_ENT = import.meta?.env?.VITE_DEBUG_ENTITLEMENTS === 'true';
+  if (DEBUG_ENT) {
+    console.log('[ENT_ROW]', {
+      teamId,
+      id: entitlement.id,
+      kind: entitlement.kind,
+      seasonYear: entitlement.seasonYear,
+      round: entitlement.round,
+      underlyingPickId: entitlement.underlyingPickId,
+      underlyingStatus: entitlement.underlyingStatus,
+      description: entitlement.description,
+      label,
+      coveredByEntitlementIds: entitlement.coveredByEntitlementIds,
+    });
+  }
 
   // Phase 11.1: Handle row click to toggle selection
   const handleClick = () => {

@@ -1,4 +1,10 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, {
+  useState,
+  useMemo,
+  useCallback,
+  useRef,
+  useEffect,
+} from 'react';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
 import useFilteredPlayers from '@/features/table/hooks/useFilteredPlayers';
 import PlayerRow from '@/features/table/PlayerTable/PlayerRow';
@@ -10,6 +16,8 @@ import PlayerDrawer from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer';
 import debounce from 'lodash.debounce';
 import { getDefaultPlayerFilters } from '@/shared/utils/filtering';
 import { FixedSizeList as List } from 'react-window';
+// react-virtualized-auto-sizer@2.x exports AutoSizer as named export
+// See: node_modules/react-virtualized-auto-sizer/dist/react-virtualized-auto-sizer.js
 import { AutoSizer } from 'react-virtualized-auto-sizer';
 
 // Row Component for react-window
@@ -44,25 +52,28 @@ const InnerElement = React.forwardRef(({ children, style, ...rest }, ref) => {
 
 // Separate component to consume context and render drawer
 const DrawerOverlay = () => {
-  const { expandedPlayerId, players, itemSize } = React.useContext(DrawerContext);
-  
+  const { expandedPlayerId, players, itemSize } =
+    React.useContext(DrawerContext);
+
   if (!expandedPlayerId) return null;
 
-  const index = players.findIndex(p => (p.id || p.bio?.playerId) === expandedPlayerId);
+  const index = players.findIndex(
+    (p) => (p.id || p.bio?.playerId) === expandedPlayerId
+  );
   if (index === -1) return null;
 
   const player = players[index];
   const top = (index + 1) * itemSize; // Position right below the row
 
   return (
-    <div 
-      style={{ 
-        position: 'absolute', 
-        top: top, 
-        left: 0, 
+    <div
+      style={{
+        position: 'absolute',
+        top: top,
+        left: 0,
         width: '100%',
         height: 'auto',
-        zIndex: 50 // Above subsequent rows
+        zIndex: 50, // Above subsequent rows
       }}
     >
       <div className="w-full max-w-[1100px] mx-auto bg-[#111] border-x border-b border-black shadow-xl">
@@ -81,13 +92,13 @@ const PlayerTable = () => {
   const [showFullFilters, setShowFullFilters] = useState(false);
   const [showSort, setShowSort] = useState(false);
   const [expandedPlayerId, setExpandedPlayerId] = useState(null);
+  const listContainerRef = useRef(null);
 
   // Debounce filters
   const debouncedSetFilters = useMemo(
     () => debounce(setFilters, 300),
     [setFilters]
   );
-
 
   const debouncedSearchUpdate = useMemo(
     () =>
@@ -112,9 +123,9 @@ const PlayerTable = () => {
     setShowFilters(false);
     setShowFullFilters(false);
   };
-  
+
   const toggleExpand = useCallback((id) => {
-    setExpandedPlayerId(prev => prev === id ? null : id);
+    setExpandedPlayerId((prev) => (prev === id ? null : id));
   }, []);
 
   // Reset expansion when filters change (optional, but good for UX so drawer doesn't stick to wrong index)
@@ -122,17 +133,23 @@ const PlayerTable = () => {
     setExpandedPlayerId(null);
   }, [filters, filteredPlayers.length]);
 
-  const itemData = useMemo(() => ({
-    players: filteredPlayers,
-    expandedPlayerId,
-    toggleExpand
-  }), [filteredPlayers, expandedPlayerId, toggleExpand]);
+  const itemData = useMemo(
+    () => ({
+      players: filteredPlayers,
+      expandedPlayerId,
+      toggleExpand,
+    }),
+    [filteredPlayers, expandedPlayerId, toggleExpand]
+  );
 
-  const drawerContextValue = useMemo(() => ({
-    expandedPlayerId,
-    players: filteredPlayers,
-    itemSize: 100
-  }), [expandedPlayerId, filteredPlayers]);
+  const drawerContextValue = useMemo(
+    () => ({
+      expandedPlayerId,
+      players: filteredPlayers,
+      itemSize: 100,
+    }),
+    [expandedPlayerId, filteredPlayers]
+  );
 
   if (loading) {
     return (
@@ -141,9 +158,9 @@ const PlayerTable = () => {
   }
 
   return (
-    <div className="flex flex-col bg-neutral-900 gap-1 mt-4 h-[calc(100vh_-_100px)] lg:h-[calc(100vh_-_80px)] w-full"> 
-      {/* Header and Filters Container */}
-      <div className="w-full max-w-[1100px] mx-auto px-4 xl:px-0 flex flex-col flex-1 min-h-0">
+    <div className="flex flex-col bg-neutral-900 gap-1 mt-4 flex-1 min-h-0 w-full">
+      {/* Header and Filters Container - shrink-0 so it sizes to content */}
+      <div className="w-full max-w-[1100px] mx-auto px-4 xl:px-0 flex flex-col shrink-0">
         <PlayerTableHeader
           filteredCount={filteredPlayers.length}
           onSearchChange={handleSearchChange}
@@ -182,10 +199,13 @@ const PlayerTable = () => {
             <ViewControls filters={filters} setFilters={debouncedSetFilters} />
           </div>
         )}
+      </div>
 
-
-      {/* Player Rows (Virtualized) */}
-      <div className="w-full flex-1 min-h-0 relative z-10 bg-neutral-900 overflow-hidden">
+      {/* Player Rows (Virtualized) - flex-1 + min-h-[400px] + overflow-hidden ensures height is measurable */}
+      <div
+        ref={listContainerRef}
+        className="w-full flex-1 min-h-[400px] relative z-10 bg-neutral-900 overflow-hidden"
+      >
         {filteredPlayers.length === 0 ? (
           <div className="text-white/50 text-center mt-10">
             No players found matching your filters.
@@ -194,19 +214,35 @@ const PlayerTable = () => {
           <DrawerContext.Provider value={drawerContextValue}>
             <AutoSizer>
               {({ height, width }) => {
-                // Safety fallbacks to prevent invisible list if measurement fails
-                const safeHeight = height || 600;
-                const safeWidth = width || 1100;
+                // Fallback when AutoSizer returns 0 dimensions (can happen during layout settle)
+                const containerRect =
+                  listContainerRef.current?.getBoundingClientRect();
+                const fallbackHeight = containerRect?.height || 600;
+                const fallbackWidth = containerRect?.width || 1100;
+                const resolvedHeight = height > 0 ? height : fallbackHeight;
+                const resolvedWidth = width > 0 ? width : fallbackWidth;
+
+                // Dev-mode debug logging when fallback triggers
+                if (import.meta.env.DEV && (height === 0 || width === 0)) {
+                  console.warn(
+                    '[PlayerTable] AutoSizer returned zero dims, using fallback:',
+                    {
+                      autoSizer: { height, width },
+                      fallback: { fallbackHeight, fallbackWidth },
+                      resolved: { resolvedHeight, resolvedWidth },
+                    }
+                  );
+                }
 
                 return (
                   <List
-                    height={safeHeight}
-                    width={safeWidth}
+                    height={resolvedHeight}
+                    width={resolvedWidth}
                     itemCount={filteredPlayers.length}
                     itemSize={100}
                     itemData={itemData}
                     innerElementType={InnerElement}
-                    className="no-scrollbar" // Optional custom scrollbar hiding if needed
+                    className="no-scrollbar"
                   >
                     {Row}
                   </List>
@@ -215,7 +251,6 @@ const PlayerTable = () => {
             </AutoSizer>
           </DrawerContext.Provider>
         )}
-      </div>
       </div>
     </div>
   );

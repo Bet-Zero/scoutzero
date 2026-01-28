@@ -100,5 +100,38 @@ module.exports = {
         '@typescript-eslint/no-restricted-imports': 'off',
       },
     },
+
+    // ============================================================
+    // Phase 43: Prevent apron logic drift by blocking direct imports
+    // from tradeMachine/utils/capUtils.js outside tradeMachine folder.
+    // Use @/features/architect/utils/capUtils instead.
+    // ============================================================
+    {
+      files: ['src/features/architect/**/*.{js,jsx,ts,tsx}'],
+      excludedFiles: [
+        'src/features/architect/utils/tradeMachine/**',
+        'src/features/architect/utils/capUtils.js', // Canonical facade delegates to SSOT
+      ],
+      rules: {
+        'no-restricted-imports': [
+          'error',
+          {
+            patterns: [
+              {
+                group: [
+                  // Relative imports to tradeMachine capUtils
+                  './tradeMachine/utils/capUtils*',
+                  '../tradeMachine/utils/capUtils*',
+                  '../../tradeMachine/utils/capUtils*',
+                  '**/tradeMachine/utils/capUtils*',
+                ],
+                message:
+                  'Import apron helpers from @/features/architect/utils/capUtils instead of directly from tradeMachine.',
+              },
+            ],
+          },
+        ],
+      },
+    },
   ],
 };

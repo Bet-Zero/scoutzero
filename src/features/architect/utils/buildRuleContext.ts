@@ -39,6 +39,7 @@ import {
   getSupportedSeasonRange,
   hasCapDataForSeason,
 } from './capHelpers';
+import { getTeamApronStatus } from '@/features/architect/utils/capUtils';
 
 // Re-export RuleContextValidationError for backward compatibility
 export { RuleContextValidationError } from '../types/ruleContext';
@@ -405,13 +406,21 @@ function computeTeamSalary(
 }
 
 /**
- * Derive apron level from team salary and cap thresholds
+ * Derive apron level from team salary and cap thresholds.
+ * Delegates to SSOT for correct boundary semantics:
+ * - Second apron: strictly > secondApron
+ * - First apron: >= firstApron
  */
 function deriveApronLevel(teamSalary: number, cap: CapContext): ApronLevel {
-  if (teamSalary > cap.secondApron) return 'SECOND_APRON';
-  if (teamSalary >= cap.firstApron) return 'FIRST_APRON';
-  if (teamSalary > cap.salaryCap) return 'OVER_CAP';
-  return 'UNDER_CAP';
+  // Delegate to SSOT for consistent boundary semantics
+  return getTeamApronStatus(
+    { totalSalary: teamSalary },
+    {
+      salaryCap: cap.salaryCap,
+      firstApron: cap.firstApron,
+      secondApron: cap.secondApron,
+    }
+  ) as ApronLevel;
 }
 
 /**
@@ -520,7 +529,11 @@ function buildTeamContext(
     taxpayerMLE: { available: true, remaining: cap.taxpayerMLE },
     roomMLE: { available: true, remaining: cap.roomMLE },
     bae: { available: true, remaining: cap.bae },
-    tradeExceptions: [] as Array<{ id: string; amount: number; expiresSeasonId?: string }>,
+    tradeExceptions: [] as Array<{
+      id: string;
+      amount: number;
+      expiresSeasonId?: string;
+    }>,
   };
 
   const exceptionsAvailable = {
@@ -551,7 +564,8 @@ function buildTeamContext(
     hardCapStatus,
     exceptionsAvailable: {
       fullMLE: exceptionsAvailable.fullMLE ?? defaultExceptions.fullMLE,
-      taxpayerMLE: exceptionsAvailable.taxpayerMLE ?? defaultExceptions.taxpayerMLE,
+      taxpayerMLE:
+        exceptionsAvailable.taxpayerMLE ?? defaultExceptions.taxpayerMLE,
       roomMLE: exceptionsAvailable.roomMLE ?? defaultExceptions.roomMLE,
       bae: exceptionsAvailable.bae ?? defaultExceptions.bae,
       tradeExceptions,

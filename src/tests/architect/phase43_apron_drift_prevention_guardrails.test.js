@@ -1,0 +1,211 @@
+/**
+ * FILE: src/tests/architect/phase43_apron_drift_prevention_guardrails.test.js
+ * PURPOSE: Guardrail test to prevent apron logic drift by detecting raw apron comparisons
+ *          added outside allowlisted canonical locations.
+ * OWNERSHIP: Architect / CBA compliance
+ *
+ * HISTORY:
+ *  - 2026-01-28: Phase 43 - Initial guardrail implementation
+ *
+ * STRATEGY:
+ *  - Scans Architect source files for patterns that indicate direct apron derivation/gating
+ *  - Maintains an allowlist of files where such patterns are expected (SSOT, UI-only, etc.)
+ *  - Fails if new derivation patterns appear outside the allowlist
+ */
+
+import { describe, test, expect } from 'vitest';
+import * as fs from 'fs';
+import * as path from 'path';
+import { glob } from 'glob';
+
+// ============================================================================
+// ALLOWLIST: Files permitted to contain raw apron comparison patterns
+// ============================================================================
+const ALLOWLIST = [
+  // SSOT - canonical apron derivation logic lives here
+  'src/features/architect/utils/tradeMachine/utils/capUtils.js',
+  'src/features/architect/utils/tradeMachine/utils/salaryMargin.js',
+  'src/features/architect/utils/tradeMachine/utils/salaryMatchingRules.js',
+
+  // TradeMachine rule validators (internal to tradeMachine)
+  'src/features/architect/utils/tradeMachine/rules/validateSignAndTrade.js',
+  'src/features/architect/utils/tradeMachine/rules/hardCapValidation.js',
+  'src/features/architect/utils/tradeMachine/rules/validateSalaryMatching.js',
+  'src/features/architect/utils/tradeMachine/rules/validateTradeExceptions.js',
+  'src/features/architect/utils/tradeMachine/rules/validateStepien.js',
+  'src/features/architect/utils/tradeMachine/rules/validateAggregation.js',
+  'src/features/architect/utils/tradeMachine/rules/basicRules.js',
+
+  // UI-only warning patterns (acceptable inline for display purposes)
+  'src/features/architect/hooks/useCapValidation.js',
+
+  // Hard cap utilities (threshold-based, not apron derivation)
+  'src/features/architect/utils/hardCapUtils.js',
+];
+
+// Patterns that indicate apron derivation/gating logic
+// These detect direct comparisons like `salary > secondApron` or `total >= firstApron`
+const DERIVATION_PATTERNS = [
+  // Direct variable comparisons with apron thresholds
+  /\b(teamSalary|totalSalary|projectedSalary|salary|teamTotalSalary|currentYearCapHit|projectedCap)\s*(>|>=)\s*(secondApron|firstApron)\b/g,
+  /\b(secondApron|firstApron)\s*(<|<=)\s*(teamSalary|totalSalary|projectedSalary|salary|teamTotalSalary|currentYearCapHit|projectedCap)\b/g,
+];
+
+// Patterns in comments or docstrings are OK - we only care about code
+const COMMENT_LINE_REGEX = /^\s*(\/\/|\/\*|\*)/;
+
+/**
+ * Scans a file for derivation patterns and returns matches
+ */
+function scanFileForDerivationPatterns(filePath) {
+  const content = fs.readFileSync(filePath, 'utf-8');
+  const lines = content.split('\n');
+  const matches = [];
+
+  lines.forEach((line, index) => {
+    // Skip comment lines
+    if (COMMENT_LINE_REGEX.test(line)) return;
+
+    for (const pattern of DERIVATION_PATTERNS) {
+      // Reset regex state
+      pattern.lastIndex = 0;
+      const match = pattern.exec(line);
+      if (match) {
+        matches.push({
+          line: index + 1,
+          content: line.trim(),
+          match: match[0],
+        });
+      }
+    }
+  });
+
+  return matches;
+}
+
+/**
+ * Normalizes path for cross-platform comparison
+ */
+function normalizePath(p) {
+  return p.replace(/\\/g, '/');
+}
+
+describe('Phase 43 Apron Drift Prevention Guardrails', () => {
+  test('no raw apron derivation patterns outside allowlist', async () => {
+    const projectRoot = process.cwd();
+    const architectDir = path.join(projectRoot, 'src/features/architect');
+
+    // Find all JS/TS files in architect directory
+    const files = await glob('**/*.{js,jsx,ts,tsx}', {
+      cwd: architectDir,
+      ignore: ['**/node_modules/**', '**/*.test.js', '**/*.test.ts'],
+    });
+
+    const violations = [];
+
+    for (const file of files) {
+      const fullPath = path.join(architectDir, file);
+      const relativePath = normalizePath(path.relative(projectRoot, fullPath));
+
+      // Skip allowlisted files
+      if (ALLOWLIST.some((allowed) => relativePath.includes(allowed))) {
+        continue;
+      }
+
+      const matches = scanFileForDerivationPatterns(fullPath);
+      if (matches.length > 0) {
+        violations.push({
+          file: relativePath,
+          matches,
+        });
+      }
+    }
+
+    // Format violation report
+    if (violations.length > 0) {
+      const report = violations
+        .map(
+          (v) =>
+            `\n  ${v.file}:\n` +
+            v.matches
+              .map((m) => `    L${m.line}: ${m.match} in "${m.content}"`)
+              .join('\n')
+        )
+        .join('');
+
+      expect.fail(
+        `Found apron derivation patterns outside allowlist:${report}\n\n` +
+          'If these are intentional UI-only warnings, add the file to the ALLOWLIST in this test.\n' +
+          'If these are derivation/gating logic, refactor to use canonical helpers from @/features/architect/utils/capUtils.'
+      );
+    }
+  });
+
+  test('allowlist files exist', () => {
+    const projectRoot = process.cwd();
+
+    // Verify that allowlisted files actually exist
+    // This prevents stale allowlist entries
+    const missingFiles = ALLOWLIST.filter((file) => {
+      const fullPath = path.join(projectRoot, file);
+      return !fs.existsSync(fullPath);
+    });
+
+    if (missingFiles.length > 0) {
+      expect.fail(
+        `Allowlist contains non-existent files:\n  ${missingFiles.join('\n  ')}\n\n` +
+          'Remove these entries from the ALLOWLIST or verify the file paths.'
+      );
+    }
+  });
+
+  test('canonical capUtils.js delegates to tradeMachine SSOT', () => {
+    const projectRoot = process.cwd();
+    const capUtilsPath = path.join(
+      projectRoot,
+      'src/features/architect/utils/capUtils.js'
+    );
+
+    const content = fs.readFileSync(capUtilsPath, 'utf-8');
+
+    // Verify it imports from tradeMachine SSOT
+    expect(content).toContain("from './tradeMachine/utils/capUtils.js'");
+
+    // Verify it re-exports canonical helpers
+    expect(content).toContain('export { getTeamApronStatus');
+    expect(content).toContain('isSecondApronTeam');
+    expect(content).toContain('isFirstApronTeam');
+  });
+
+  test('buildRuleContext.ts uses canonical import path', () => {
+    const projectRoot = process.cwd();
+    const buildRuleContextPath = path.join(
+      projectRoot,
+      'src/features/architect/utils/buildRuleContext.ts'
+    );
+
+    const content = fs.readFileSync(buildRuleContextPath, 'utf-8');
+
+    // Should NOT import directly from tradeMachine
+    expect(content).not.toContain("from './tradeMachine/utils/capUtils");
+
+    // Should import from canonical surface
+    expect(content).toContain("from '@/features/architect/utils/capUtils'");
+  });
+
+  test('tradeHelpers.js uses canonical import path', () => {
+    const projectRoot = process.cwd();
+    const tradeHelpersPath = path.join(
+      projectRoot,
+      'src/features/architect/utils/tradeHelpers.js'
+    );
+
+    const content = fs.readFileSync(tradeHelpersPath, 'utf-8');
+
+    // Should NOT import directly from tradeMachine for apron helpers
+    expect(content).not.toContain("from './tradeMachine/utils/capUtils");
+
+    // Should import from canonical surface
+    expect(content).toContain("from '@/features/architect/utils/capUtils'");
+  });
+});

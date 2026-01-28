@@ -34,6 +34,7 @@ players_backup.jsonl
 .env
 .env.*
 serviceAccountKey.json
+.emulator-data/
 
 # Repomix outputs
 repomix-output.*

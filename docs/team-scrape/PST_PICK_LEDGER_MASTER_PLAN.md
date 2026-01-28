@@ -37,8 +37,38 @@
 | Phase 11.3.1 | Entitlements Routing (toTeamId) Observability   | COMPLETE    | 2026-01-22 |
 | Phase 11.3.2 | Entitlements Routing (toTeamId) World Save      | COMPLETE    | 2026-01-22 |
 | Phase 11.4   | Secondary Team Entitlements Load Fix            | COMPLETE    | 2026-01-22 |
+| Phase 12     | Emulator Workflow Hardening                     | COMPLETE    | 2026-01-28 |
 
 ---
+
+## Local Emulator Workflow (Phase 12 — Emulator Workflow Hardening)
+
+### User Experience Contract
+
+After this change, the user should only ever need to:
+
+1. `npm run emu`
+2. wait for emulators to be ready
+3. `npm run dev`
+4. Ctrl+C to stop emulators
+
+And they should **never** have to:
+
+- manually kill ports
+- manually export emulator data
+- re-run seeding / re-push data that already exists
+
+### Workflow Notes
+
+- Ports are auto-freed on startup (firestore/auth/functions/ui).
+- Emulator data persists via import/export to `./.emulator-data`.
+- Seeding runs only when base data is missing.
+- Emulator-only safety checks require `FIRESTORE_EMULATOR_HOST` and `FIREBASE_AUTH_EMULATOR_HOST`.
+
+### Scripts/Commands
+
+- `npm run emu` → runs `scripts/emu/runEmu.ts`
+- `npx tsx scripts/emu/seedIfMissing.ts`
 
 ### Phase 11.4 — Secondary Team Entitlements Load Fix (COMPLETE)
 

@@ -17,6 +17,7 @@ import { computePlayerRulesProfile } from '@/features/architect/utils/salaryEngi
 import capProjections from '@/features/architect/utils/capProjections';
 import { getContractYearSlice } from '@/features/architect/utils/contractUtils';
 import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
+import { getTeamApronStatus } from '@/features/architect/utils/capUtils';
 
 const DEFAULT_SIM_MONTH = 6; // July (0-indexed)
 const DEFAULT_SIM_DAY = 15;
@@ -44,18 +45,27 @@ const buildCapSettingsForYear = (year) => {
   };
 };
 
+/**
+ * Derives apron status by delegating to SSOT.
+ * Maps SSOT return values to legacy format for backward compatibility.
+ */
 const deriveApronStatus = (teamSalary, capSettings = {}) => {
   if (!teamSalary || !capSettings) return null;
-  if (capSettings.secondApron && teamSalary > capSettings.secondApron) {
-    return 'ABOVE_SECOND_APRON';
+
+  // Delegate to SSOT for correct boundary semantics
+  const status = getTeamApronStatus(teamSalary, capSettings);
+
+  // Map SSOT return values to legacy format
+  switch (status) {
+    case 'SECOND_APRON':
+      return 'ABOVE_SECOND_APRON';
+    case 'FIRST_APRON':
+      return 'ABOVE_FIRST_APRON';
+    case 'OVER_CAP':
+      return 'OVER_CAP';
+    default:
+      return 'UNDER_CAP';
   }
-  if (capSettings.firstApron && teamSalary > capSettings.firstApron) {
-    return 'ABOVE_FIRST_APRON';
-  }
-  if (capSettings.salaryCap && teamSalary > capSettings.salaryCap) {
-    return 'OVER_CAP';
-  }
-  return 'UNDER_CAP';
 };
 
 const calculateTeamSalary = (players = [], year) => {

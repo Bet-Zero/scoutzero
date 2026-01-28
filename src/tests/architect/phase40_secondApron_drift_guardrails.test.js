@@ -226,21 +226,15 @@ describe('Phase 40: Second Apron Strict Drift Guardrails', () => {
     const pick = { round: 1, year: 2032, teamId: 't1' }; // 7 years from 2025
     const opts = { teamId: 't1', currentSeason: 2025 };
 
-    it('should support legacy parameter teamIsAtOrAboveSecondApron', () => {
-        expect(isFrozenPick(pick, { ...opts, teamIsAtOrAboveSecondApron: true })).toBe(true);
-        expect(isFrozenPick(pick, { ...opts, teamIsAtOrAboveSecondApron: false })).toBe(false);
+    it('should IGNORE legacy parameter teamIsAtOrAboveSecondApron', () => {
+        // Should behave as false (frozen=false) because teamIsSecondApron is undefined,
+        // even though legacy key is true.
+        expect(isFrozenPick(pick, { ...opts, teamIsAtOrAboveSecondApron: true })).toBe(false);
     });
 
     it('should support new parameter teamIsSecondApron', () => {
         expect(isFrozenPick(pick, { ...opts, teamIsSecondApron: true })).toBe(true);
         expect(isFrozenPick(pick, { ...opts, teamIsSecondApron: false })).toBe(false);
-    });
-
-    it('should prioritize teamIsSecondApron if both present (though they should typically align)', () => {
-         // If new is true, result true (assuming they are OR'd or new overrides? Implementation is nullish coalescing)
-         // implementation: const isApron = teamIsSecondApron ?? teamIsAtOrAboveSecondApron;
-         // So explicit false overrides legacy true
-         expect(isFrozenPick(pick, { ...opts, teamIsSecondApron: false, teamIsAtOrAboveSecondApron: true })).toBe(false);
     });
   });
 });

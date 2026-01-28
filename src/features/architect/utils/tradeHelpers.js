@@ -101,7 +101,11 @@ const DEFAULT_CAP_SETTINGS = {
  * @param {number} yearKey - Season year (unused, kept for backwards compatibility)
  * @param {Object} capSettings - Optional cap settings to use
  */
-const allowedIncomingBelowFirstApron = (out, yearKey, capSettings = DEFAULT_CAP_SETTINGS) => {
+const allowedIncomingBelowFirstApron = (
+  out,
+  yearKey,
+  capSettings = DEFAULT_CAP_SETTINGS
+) => {
   // Use unified salary matching rules directly
   const result = getSalaryMatchingResult({
     // Placeholder salary - actual value irrelevant because apronStatus is forced to OVER_CAP
@@ -121,14 +125,18 @@ export const getIncomingCeiling = (
 ) => {
   // Use provided capSettings or fall back to defaults
   const effectiveCapSettings = capSettings || DEFAULT_CAP_SETTINGS;
-  
+
   // 1️⃣ Cap-space clubs can climb to the cap.
   if (teamTotalSalary < effectiveCapSettings.salaryCap) {
     return effectiveCapSettings.salaryCap;
   }
 
   // 2️⃣ Over-cap matching bands (below first apron) - pass capSettings through
-  let ceiling = allowedIncomingBelowFirstApron(salaryOut, yearKey, effectiveCapSettings);
+  let ceiling = allowedIncomingBelowFirstApron(
+    salaryOut,
+    yearKey,
+    effectiveCapSettings
+  );
 
   // 3️⃣ Apron limiters – 100 % of outgoing
   // Phase 39: Strict > for Apron classification
@@ -228,8 +236,8 @@ export const calculateAllowableIncoming = (...args) => {
   const [
     currentTeamSalary,
     salaryOut,
-    /* _incomingPlayers = [], */,
-    tradeExceptions = [],
+    ,
+    /* _incomingPlayers = [], */ tradeExceptions = [],
     capSettings = {},
     yearKey = 2025,
   ] = args;
@@ -280,11 +288,33 @@ export const getSeasonalCashLimit = (yearKey) => {
 /****************** END SCSP™ BLOCK: Allowable Incoming ******************/
 
 /*───────────────────────────  Apron Status  ───────────────────────────*/
-export const getApronStatus = (salary, { firstApron, secondApron } = {}) => {
-  // Phase 38: Strict > for Second Apron classification per CBA/SSOT
-  if (secondApron && salary > secondApron) return '2nd Apron';
-  if (firstApron && salary >= firstApron) return '1st Apron';
-  return 'Below Aprons';
+import { getTeamApronStatus as getTeamApronStatusSSoT } from '@/features/architect/utils/capUtils';
+
+/**
+ * Returns UI-friendly apron status label.
+ * Delegates to SSOT for correct boundary semantics:
+ * - Second apron: strictly > secondApron
+ * - First apron: >= firstApron
+ */
+export const getApronStatus = (
+  salary,
+  { firstApron, secondApron, salaryCap } = {}
+) => {
+  // Delegate to SSOT for correct boundary semantics
+  const status = getTeamApronStatusSSoT(
+    { totalSalary: salary },
+    { firstApron, secondApron, salaryCap: salaryCap || 0 }
+  );
+
+  // Map SSOT return values to UI labels
+  switch (status) {
+    case 'SECOND_APRON':
+      return '2nd Apron';
+    case 'FIRST_APRON':
+      return '1st Apron';
+    default:
+      return 'Below Aprons';
+  }
 };
 
 /*───────────────────────────  Pick Helpers  ───────────────────────────*/
@@ -292,7 +322,7 @@ export const getApronStatus = (salary, { firstApron, secondApron } = {}) => {
  * Compares two picks by their canonical IDs.
  * Uses ID-based comparison via pickIdUtils to ensure picks with same year/round
  * but different originalTeam are correctly distinguished.
- * 
+ *
  * @param {Object} a - First pick
  * @param {Object} b - Second pick
  * @returns {boolean} - True if picks have the same canonical ID
@@ -301,7 +331,7 @@ export const areSamePick = (a, b) => areSamePickById(a, b);
 
 /**
  * Returns human-readable swap type display text.
- * 
+ *
  * @param {string|undefined} swapType - The swap type ('best_of', 'worst_of', or undefined)
  * @returns {string} - Display text: "Best of" or "Worst of"
  */
@@ -311,28 +341,30 @@ export const getSwapTypeDisplay = (swapType) => {
 
 /**
  * Formats swap information for display.
- * 
+ *
  * Phase 3 Updates:
  * - Shows resolved outcome when `pick.resolved === true`
  * - Example: "Swap (Best of) vs OKC → Won by OKC"
- * 
+ *
  * @param {Object} pick - Pick object with isSwap, swapType, swapWithTeamId
  * @returns {string} - Formatted swap string (e.g., "Swap (Best of) vs OKC → Won by OKC")
  */
 export const formatSwapInfo = (pick) => {
   if (!pick?.isSwap) return '';
-  
+
   // Determine swap type: prefer UI props, fall back to scraper details
-  const type = pick.swapType || (pick.swapDetails?.favorable === 'least' ? 'worst_of' : 'best_of');
+  const type =
+    pick.swapType ||
+    (pick.swapDetails?.favorable === 'least' ? 'worst_of' : 'best_of');
   const swapTypeDisplay = getSwapTypeDisplay(type);
   let result = `Swap (${swapTypeDisplay})`;
-  
+
   // Swap partner priority:
   // 1. swapWithTeamId (UI prop)
   // 2. swapDetails.swapWith[0] (scraper data)
   // 3. Extract from swapId if pattern matches *_swap_TEAM
   let partner = pick.swapWithTeamId || pick.swapDetails?.swapWith?.[0];
-  
+
   // Fallback: parse swapId if partner not found
   if (!partner && pick.swapId) {
     const swapIdMatch = pick.swapId.match(/_swap_([A-Z]{2,3})$/);
@@ -344,31 +376,31 @@ export const formatSwapInfo = (pick) => {
   if (partner) {
     result += ` vs ${partner}`;
   }
-  
+
   // Show resolved outcome if available
   if (pick.resolved === true && pick.resolvedOwner) {
     result += ` → Won by ${pick.resolvedOwner}`;
   }
-  
+
   return result;
 };
 
 /**
  * Formats a pick object for display, including swap type and partner.
- * 
+ *
  * Phase 2 Updates:
  * - Shows swap type: "Swap (Best of)" or "Swap (Worst of)"
  * - Shows swap partner if present: "vs OKC"
  * - Missing swapType defaults to "Best of"
- * 
+ *
  * Phase 3 Updates:
  * - Shows resolved outcome for resolved swaps
  * - Supports `includeNote` option (default: true)
- * 
+ *
  * Phase 4 Updates:
  * - Supports protectionMeta for structured protection display
  * - Falls back to protection string if protectionMeta not present
- * 
+ *
  * @param {Object} p - Pick object
  * @param {Object} [options={}] - Formatting options
  * @param {boolean} [options.includeNote=true] - Whether to include note field
@@ -376,29 +408,31 @@ export const formatSwapInfo = (pick) => {
  */
 export const formatPick = (p, options = {}) => {
   const { includeNote = true } = options;
-  
+
   if (!p) return '';
   let str = `${p.year} ${p.round} Round`;
-  
+
   // Canonical via display:
   // - Respect explicit p.via if present
   // - Otherwise, if owner differs from originalTeam, show (via originalTeam)
   // - Hygiene: Never show (via TEAM) when via === originalTeam or via === owner
   const viaTeam =
     p.via ||
-    (p.originalTeam && p.owner && p.owner !== p.originalTeam ? p.originalTeam : null);
+    (p.originalTeam && p.owner && p.owner !== p.originalTeam
+      ? p.originalTeam
+      : null);
 
   // Only show via if it's meaningful (not redundant with originalTeam or owner)
   if (viaTeam && viaTeam !== p.owner && viaTeam !== p.originalTeam) {
     str += ` (via ${viaTeam})`;
   }
-  
+
   // Phase 4: Display protection from protectionMeta or legacy string
   const protectionLabel = getProtectionDisplayLabel(p);
   if (protectionLabel) {
     str += ` | Protected: ${protectionLabel}`;
   }
-  
+
   if (p.isSwap) {
     str += ` | ${formatSwapInfo(p)}`;
   }
@@ -409,13 +443,13 @@ export const formatPick = (p, options = {}) => {
 /**
  * Phase 4: Gets protection display label from pick object.
  * Prefers protectionMeta if present, falls back to protection string.
- * 
+ *
  * @param {Object} pick - Pick object
  * @returns {string} - Protection label or empty string
  */
 function getProtectionDisplayLabel(pick) {
   if (!pick) return '';
-  
+
   // Prefer protectionMeta if present
   if (pick.protectionMeta) {
     const { type, maxPosition } = pick.protectionMeta;
@@ -434,12 +468,16 @@ function getProtectionDisplayLabel(pick) {
         return '';
     }
   }
-  
+
   // Fall back to protection string (skip "Swap (+/-)" legacy values)
-  if (pick.protection && pick.protection !== 'Swap (+)' && pick.protection !== 'Swap (-)') {
+  if (
+    pick.protection &&
+    pick.protection !== 'Swap (+)' &&
+    pick.protection !== 'Swap (-)'
+  ) {
     return pick.protection;
   }
-  
+
   return '';
 }
 
@@ -480,46 +518,46 @@ export const generateTradeId = (teams) =>
  * Detects specific matching adjustment types for a player.
  * Returns an array of adjustment types (e.g., ['BYC', 'Trade Kicker']).
  * Used for display purposes in trade UI tooltips.
- * 
+ *
  * RULES (P1 cleanup - January 2026):
  * - Only label specific adjustment types when EXPLICITLY flagged in player data
  * - BYC: only if player.isBYC === true OR player.baseYearCompensation === true
  * - Trade Kicker: only if player.tradeKicker exists OR player.tradeKickerPct > 0
  * - Poison Pill: ONLY if player.isPoisonPill === true (explicit flag)
  * - Do NOT infer Poison Pill from isRookieScale (rookie-scale ≠ poison pill)
- * 
+ *
  * @param {Object} player - Player object with contract/adjustment flags
  * @returns {string[]} Array of adjustment type names
  */
 export const getPlayerAdjustmentTypes = (player) => {
   if (!player) return [];
-  
+
   const adjustmentTypes = [];
-  
+
   // BYC detection - explicit flag only
   if (player.isBYC === true || player.baseYearCompensation === true) {
     adjustmentTypes.push('BYC');
   }
-  
+
   // Trade Kicker detection - explicit flag only
   if (player.tradeKicker || player.tradeKickerPct > 0) {
     adjustmentTypes.push('Trade Kicker');
   }
-  
+
   // Poison Pill detection - EXPLICIT FLAG ONLY
   // NOTE: Do NOT infer from isRookieScale. Rookie-scale contracts are not automatically poison pills.
   // A poison pill only exists when a rookie extension's averaged salary differs materially from the current year.
   if (player.isPoisonPill === true) {
     adjustmentTypes.push('Poison Pill');
   }
-  
+
   return adjustmentTypes;
 };
 
 /**
  * Returns a tooltip label for matching adjustments.
  * Returns specific types if detected, otherwise a generic message.
- * 
+ *
  * @param {Object} player - Player object
  * @returns {string} Human-readable adjustment label
  */

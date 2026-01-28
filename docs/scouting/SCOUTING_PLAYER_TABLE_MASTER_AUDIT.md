@@ -10,13 +10,13 @@ The Player Table is currently a **fully client-side** experience powered by a si
 
 ### 🚦 HEALTH CHECK
 
-| CATEGORY | STATUS | SUMMARY |
-| :--- | :--- | :--- |
-| **Data Integrity** | 🟢 STABLE | `enrichPlayerData` effectively normalizes v2 schema drift. |
-| **Logic/Filters** | 🟢 STABLE | `playerFilterUtils` is comprehensive and seemingly bug-free. |
-| **Performance** | 🔴 CRITICAL | **No virtualization**; renders ~500+ complex DOM nodes at once. |
-| **UX/Workflows** | 🟠 WARN | Row click expands "Drawer" (Mini Profile) instead of navigating to Profile. |
-| **Architecture** | 🟡 RISKY | Full collection subscription; not scalable beyond ~1-2k players. |
+| CATEGORY           | STATUS      | SUMMARY                                                                     |
+| :----------------- | :---------- | :-------------------------------------------------------------------------- |
+| **Data Integrity** | 🟢 STABLE   | `enrichPlayerData` effectively normalizes v2 schema drift.                  |
+| **Logic/Filters**  | 🟢 STABLE   | `playerFilterUtils` is comprehensive and seemingly bug-free.                |
+| **Performance**    | 🔴 CRITICAL | **No virtualization**; renders ~500+ complex DOM nodes at once.             |
+| **UX/Workflows**   | 🟠 WARN     | Row click expands "Drawer" (Mini Profile) instead of navigating to Profile. |
+| **Architecture**   | 🟡 RISKY    | Full collection subscription; not scalable beyond ~1-2k players.            |
 
 ---
 
@@ -24,20 +24,20 @@ The Player Table is currently a **fully client-side** experience powered by a si
 
 ### 📁 Components
 
-| COMPONENT | PATH | PURPOSE |
-| :--- | :--- | :--- |
-| **entry** | `features/table/PlayerTable/index.jsx` | Main container, orchestrates data & filters. |
-| **row** | `features/table/PlayerTable/PlayerRow/index.jsx` | Renders individual player strip. **Heavy component.** |
-| **drawer** | `.../PlayerRow/PlayerDrawer/index.jsx` | Expanded view (Mini Profile) inside the row. |
-| **filters** | `features/filters/FiltersPanel/index.jsx` | Main filter interface (Modal/Condensed variants). |
-| **utils** | `features/roster/utils/enrichPlayerData.js` | **CRITICAL**: Maps Firestore docs to UI contract. |
+| COMPONENT   | PATH                                             | PURPOSE                                               |
+| :---------- | :----------------------------------------------- | :---------------------------------------------------- |
+| **entry**   | `features/table/PlayerTable/index.jsx`           | Main container, orchestrates data & filters.          |
+| **row**     | `features/table/PlayerTable/PlayerRow/index.jsx` | Renders individual player strip. **Heavy component.** |
+| **drawer**  | `.../PlayerRow/PlayerDrawer/index.jsx`           | Expanded view (Mini Profile) inside the row.          |
+| **filters** | `features/filters/FiltersPanel/index.jsx`        | Main filter interface (Modal/Condensed variants).     |
+| **utils**   | `features/roster/utils/enrichPlayerData.js`      | **CRITICAL**: Maps Firestore docs to UI contract.     |
 
 ### 🪝 Hooks
 
-| HOOK | PATH | ROLE |
-| :--- | :--- | :--- |
-| `useSimplePlayerData` | `shared/hooks/useSimplePlayerData.ts` | **SSOT**. Subscribes to `players_v2`. Enriches data. |
-| `useFilteredPlayers` | `features/table/hooks/useFilteredPlayers.js` | Memoized filter/sort pipeline. Client-side only. |
+| HOOK                  | PATH                                         | ROLE                                                 |
+| :-------------------- | :------------------------------------------- | :--------------------------------------------------- |
+| `useSimplePlayerData` | `shared/hooks/useSimplePlayerData.ts`        | **SSOT**. Subscribes to `players_v2`. Enriches data. |
+| `useFilteredPlayers`  | `features/table/hooks/useFilteredPlayers.js` | Memoized filter/sort pipeline. Client-side only.     |
 
 ---
 
@@ -128,7 +128,7 @@ The table relies on a **Flattened & Enriched** version of the `players_v2` docum
 2. **[PERF] Memoize PlayerRow**: Wrap `PlayerRow` in `React.memo`.
 3. **[UX] Add Profile Navigation**: Add a "View Profile" button or make the Name clickable to navigate to `/players/[id]`.
 4. **[CODE] Extract Headshot Logic**: Move the inline normalized ID logic from `PlayerRow` to `shared/utils/images.js` or use the existing `enrichPlayerData` result (`headshotUrl` is already computed there!).
-    - *Note*: `enrichPlayerData` calculates `headshotUrl` but `PlayerRow` re-implements logic to guard against 404s/defaults. This should be unified.
+   - _Note_: `enrichPlayerData` calculates `headshotUrl` but `PlayerRow` re-implements logic to guard against 404s/defaults. This should be unified.
 5. **[PERF] Debounce Filter Inputs**: Ensure all text inputs in `FiltersPanel` are debounced (already partially done, verify coverage).
 6. **[UX] Sticky Header**: The table header scrolls away. It should be sticky.
 7. **[FEAT] Server-Side "Active Player" Filter**: If the dataset grows, add a Firestore query constraint to only load `active: true` players initially.
@@ -144,10 +144,12 @@ The table relies on a **Flattened & Enriched** version of the `players_v2` docum
 
 **Goal**: Ensure smooth 60fps scrolling and instant filtering response.
 
-- [ ] Install `react-window` and `react-virtualized-auto-sizer`.
+- [x] Install `react-window` and `react-virtualized-auto-sizer`.
 - [x] **ISSUE RESOLVED**: Fixed container sizing (AutoSizer) by correcting CSS calc syntax. Table now renders rows correctly.
-- [ ] Refactor `PlayerTable` to use `FixedSizeList`.
-- [ ] Handle "Expanded" state in virtualization (dynamic height or external state management). *Note: Variable height rows are tricky with virtualization. Alternatively, use pagination.*
+- [x] **HOTFIX APPLIED**: AutoSizer render-prop/default import + container-based fallback to prevent zero-dimension blank renders (2026-01-28).
+- [x] **HOTFIX APPLIED**: Fixed `overflow-y-auto` on SiteLayout `<main>` causing AutoSizer zero dims. Added `min-h-[400px]` + dev-mode logging. See [SCOUTING_PLAYER_TABLE_HOTFIX_AUTOSIZER_ZERO_DIMS_RP.md](../return_packages/scouting/SCOUTING_PLAYER_TABLE_HOTFIX_AUTOSIZER_ZERO_DIMS_RP.md) (2026-01-28).
+- [x] Refactor `PlayerTable` to use `FixedSizeList`.
+- [x] Handle "Expanded" state in virtualization (overlay drawer approach).
 - [ ] `React.memo(PlayerRow)`.
 
 ### Phase 2: UX & Navigation Enhancement
