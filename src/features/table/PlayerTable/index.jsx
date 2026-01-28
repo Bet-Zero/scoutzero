@@ -1,9 +1,21 @@
+/**
+ * FILE: src/features/table/PlayerTable/index.jsx
+ * PURPOSE: Virtualized player database table using react-window with ResizeObserver-based measurement.
+ *
+ * OWNERSHIP: Feature: table/virtualization
+ *
+ * HISTORY:
+ *  - 2026-01-28: Replaced AutoSizer with useContainerDimensions hook to fix 0-height race condition
+ *  - Previous: Used react-virtualized-auto-sizer which intermittently returned 0 dimensions
+ *
+ * LINKS:
+ *  - Return Package: docs/return_packages/scouting/SCOUTING_PLAYER_TABLE_HOTFIX_AUTOSIZER_MEASUREMENT_RP.md
+ */
 import React, {
   useState,
   useMemo,
   useCallback,
   useRef,
-  useEffect,
 } from 'react';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
 import useFilteredPlayers from '@/features/table/hooks/useFilteredPlayers';
@@ -16,9 +28,7 @@ import PlayerDrawer from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer';
 import debounce from 'lodash.debounce';
 import { getDefaultPlayerFilters } from '@/shared/utils/filtering';
 import { FixedSizeList as List } from 'react-window';
-// react-virtualized-auto-sizer@2.x exports AutoSizer as named export
-// See: node_modules/react-virtualized-auto-sizer/dist/react-virtualized-auto-sizer.js
-import { AutoSizer } from 'react-virtualized-auto-sizer';
+import useContainerDimensions from '@/shared/hooks/useContainerDimensions';
 
 // Row Component for react-window
 const Row = ({ index, style, data }) => {
@@ -93,6 +103,13 @@ const PlayerTable = () => {
   const [showSort, setShowSort] = useState(false);
   const [expandedPlayerId, setExpandedPlayerId] = useState(null);
   const listContainerRef = useRef(null);
+
+  // Use ResizeObserver-based hook for reliable container dimensions
+  // This replaces AutoSizer which could intermittently return 0 dimensions
+  const { width, height } = useContainerDimensions(listContainerRef, {
+    width: 1100,
+    height: 600,
+  });
 
   // Debounce filters
   const debouncedSetFilters = useMemo(
@@ -212,43 +229,24 @@ const PlayerTable = () => {
           </div>
         ) : (
           <DrawerContext.Provider value={drawerContextValue}>
-            <AutoSizer>
-              {({ height, width }) => {
-                // Fallback when AutoSizer returns 0 dimensions (can happen during layout settle)
-                const containerRect =
-                  listContainerRef.current?.getBoundingClientRect();
-                const fallbackHeight = containerRect?.height || 600;
-                const fallbackWidth = containerRect?.width || 1100;
-                const resolvedHeight = height > 0 ? height : fallbackHeight;
-                const resolvedWidth = width > 0 ? width : fallbackWidth;
-
-                // Dev-mode debug logging when fallback triggers
-                if (import.meta.env.DEV && (height === 0 || width === 0)) {
-                  console.warn(
-                    '[PlayerTable] AutoSizer returned zero dims, using fallback:',
-                    {
-                      autoSizer: { height, width },
-                      fallback: { fallbackHeight, fallbackWidth },
-                      resolved: { resolvedHeight, resolvedWidth },
-                    }
-                  );
-                }
-
-                return (
-                  <List
-                    height={resolvedHeight}
-                    width={resolvedWidth}
-                    itemCount={filteredPlayers.length}
-                    itemSize={100}
-                    itemData={itemData}
-                    innerElementType={InnerElement}
-                    className="no-scrollbar"
-                  >
-                    {Row}
-                  </List>
-                );
-              }}
-            </AutoSizer>
+            {/* 
+              Using ResizeObserver-based dimensions instead of AutoSizer.
+              This approach never returns 0 dimensions because:
+              1. It uses fallback values until a valid measurement is obtained
+              2. Once a valid measurement is obtained, it never reverts to 0
+              3. The container has min-h-[400px] ensuring a minimum measurable height
+            */}
+            <List
+              height={height}
+              width={width}
+              itemCount={filteredPlayers.length}
+              itemSize={100}
+              itemData={itemData}
+              innerElementType={InnerElement}
+              className="no-scrollbar"
+            >
+              {Row}
+            </List>
           </DrawerContext.Provider>
         )}
       </div>
