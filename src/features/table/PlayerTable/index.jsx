@@ -1,9 +1,21 @@
+/**
+ * FILE: src/features/table/PlayerTable/index.jsx
+ * PURPOSE: Virtualized player database table using react-window with ResizeObserver-based measurement.
+ *
+ * OWNERSHIP: Feature: table/virtualization
+ *
+ * HISTORY:
+ *  - 2026-01-28: Replaced AutoSizer with useContainerDimensions hook to fix 0-height race condition
+ *  - Previous: Used react-virtualized-auto-sizer which intermittently returned 0 dimensions
+ *
+ * LINKS:
+ *  - Return Package: docs/return_packages/scouting/SCOUTING_PLAYER_TABLE_HOTFIX_AUTOSIZER_MEASUREMENT_RP.md
+ */
 import React, {
   useState,
   useMemo,
   useCallback,
   useRef,
-  useEffect,
 } from 'react';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
 import useFilteredPlayers from '@/features/table/hooks/useFilteredPlayers';
@@ -16,9 +28,7 @@ import PlayerDrawer from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer';
 import debounce from 'lodash.debounce';
 import { getDefaultPlayerFilters } from '@/shared/utils/filtering';
 import { FixedSizeList as List } from 'react-window';
-// react-virtualized-auto-sizer@2.x exports AutoSizer as named export
-// See: node_modules/react-virtualized-auto-sizer/dist/react-virtualized-auto-sizer.js
-import { AutoSizer } from 'react-virtualized-auto-sizer';
+import useContainerDimensions from '@/shared/hooks/useContainerDimensions';
 
 // Row Component for react-window
 const Row = ({ index, style, data }) => {

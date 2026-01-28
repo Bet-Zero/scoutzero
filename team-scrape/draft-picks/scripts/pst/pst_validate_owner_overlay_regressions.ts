@@ -27,6 +27,12 @@ interface AssertionCase {
   description: string;
 }
 
+interface NegativeAssertion {
+  pickId: string;
+  notOwner: string;
+  description: string;
+}
+
 // Core regression assertions
 const REGRESSIONS: AssertionCase[] = [
   {
@@ -40,6 +46,43 @@ const REGRESSIONS: AssertionCase[] = [
     expectedOwner: 'HOU',
     expectedSource: 'PST_DISPLAY',
     description: 'PHX 2029 1st should be owned by HOU (same mechanism)',
+  },
+  // CHI_2026_2nd is legitimately owned by HOU (no ranked conveyance flag)
+  {
+    pickId: 'CHI_2026_2nd',
+    expectedOwner: 'HOU',
+    expectedSource: 'PST_DISPLAY',
+    description: 'CHI 2026 2nd owned by HOU (legitimate - no ranked conveyance)',
+  },
+];
+
+// Negative assertions: ensure these picks are NOT owned by HOU
+// These were incorrectly assigned to HOU before the ranked conveyance gate fix
+const NEGATIVE_ASSERTIONS: NegativeAssertion[] = [
+  {
+    pickId: 'DAL_2026_2nd',
+    notOwner: 'HOU',
+    description: 'DAL 2026 2nd should NOT be owned by HOU (ranked conveyance - second-least favorable of PHI/DAL/OKC)',
+  },
+  {
+    pickId: 'IND_2026_2nd',
+    notOwner: 'HOU',
+    description: 'IND 2026 2nd should NOT be owned by HOU (ranked conveyance - more favorable of MIA/IND)',
+  },
+  {
+    pickId: 'LAC_2026_2nd',
+    notOwner: 'HOU',
+    description: 'LAC 2026 2nd should NOT be owned by HOU (ranked conveyance - most favorable of BOS/MIA/IND)',
+  },
+  {
+    pickId: 'MIA_2026_2nd',
+    notOwner: 'HOU',
+    description: 'MIA 2026 2nd should NOT be owned by HOU (ranked conveyance - most favorable of BOS/MIA/IND)',
+  },
+  {
+    pickId: 'PHI_2026_2nd',
+    notOwner: 'HOU',
+    description: 'PHI 2026 2nd should NOT be owned by HOU (ranked conveyance - second-least favorable of PHI/DAL/OKC)',
   },
 ];
 
@@ -72,6 +115,8 @@ async function main() {
   let passed = 0;
   let failed = 0;
 
+  console.log('Positive Assertions (expected owner):');
+  console.log('--------------------------------------');
   for (const assertion of REGRESSIONS) {
     const pick = pickMap.get(assertion.pickId);
 
@@ -94,6 +139,31 @@ async function main() {
       console.error(`   → ${assertion.description}`);
       console.error(`   Expected: owner=${assertion.expectedOwner}, source=${assertion.expectedSource}`);
       console.error(`   Actual:   owner=${pick.owner}, source=${pick.ownershipSource}`);
+      failed++;
+    }
+  }
+
+  console.log('\nNegative Assertions (must NOT be this owner):');
+  console.log('----------------------------------------------');
+  for (const assertion of NEGATIVE_ASSERTIONS) {
+    const pick = pickMap.get(assertion.pickId);
+
+    if (!pick) {
+      console.error(`❌ FAIL: ${assertion.pickId} not found in ledger!`);
+      console.error(`   → ${assertion.description}`);
+      failed++;
+      continue;
+    }
+
+    if (pick.owner !== assertion.notOwner) {
+      console.log(`✅ PASS: ${assertion.pickId}`);
+      console.log(`   owner=${pick.owner} (correctly NOT ${assertion.notOwner})`);
+      passed++;
+    } else {
+      console.error(`❌ FAIL: ${assertion.pickId}`);
+      console.error(`   → ${assertion.description}`);
+      console.error(`   Expected: owner != ${assertion.notOwner}`);
+      console.error(`   Actual:   owner=${pick.owner} (WRONG!)`);
       failed++;
     }
   }

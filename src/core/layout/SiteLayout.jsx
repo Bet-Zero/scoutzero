@@ -1,4 +1,16 @@
-// SiteLayout.jsx
+/**
+ * FILE: src/core/layout/SiteLayout.jsx
+ * PURPOSE: Site-wide layout with header navigation and conditional scroll handling.
+ *
+ * OWNERSHIP: Core: layout
+ *
+ * HISTORY:
+ *  - 2026-01-28: Fixed scroll handling - main element no longer uses overflow-hidden globally
+ *  - Previous: Had overflow-hidden on main which prevented scrolling on non-virtualized pages
+ *
+ * LINKS:
+ *  - Return Package: docs/return_packages/scouting/SCOUTING_PLAYER_TABLE_HOTFIX_AUTOSIZER_MEASUREMENT_RP.md
+ */
 import React from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
@@ -77,22 +89,27 @@ const SiteLayout = () => {
         </nav>
       </header>
 
-      {/* IMPORTANT:
-          - This wrapper ALWAYS provides a real flex height chain (flex-1 + min-h-0).
-          - For normal pages, we allow scrolling via overflow-y-auto.
-          - For /players, we block parent scrolling so AutoSizer measures correctly. */}
-      <main className="flex-1 w-full flex flex-col min-h-0 overflow-hidden">
-        <div className="flex-1 min-h-0 flex flex-col">
-          {isVirtualizedRoute ? (
-            <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
-              <Outlet />
-            </div>
-          ) : (
-            <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
-              <Outlet />
-            </div>
-          )}
-        </div>
+      {/* 
+        SCROLL HANDLING STRATEGY:
+        - main: Uses flex-1 + min-h-0 to establish height chain, NO overflow property here
+        - For /players (virtualized): wrapper uses overflow-hidden, react-window handles scrolling
+        - For all other pages: wrapper uses overflow-y-auto for normal page scrolling
+        This ensures:
+        1. Virtualized routes get proper height measurement for react-window
+        2. Non-virtualized routes can scroll normally
+      */}
+      <main className="flex-1 w-full flex flex-col min-h-0">
+        {isVirtualizedRoute ? (
+          /* Virtualized route: use overflow-hidden, react-window will handle its own scrolling */
+          <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+            <Outlet />
+          </div>
+        ) : (
+          /* Non-virtualized route: allow normal page scrolling */
+          <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
+            <Outlet />
+          </div>
+        )}
 
         <Toaster position="bottom-center" />
       </main>

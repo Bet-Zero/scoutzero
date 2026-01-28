@@ -68,6 +68,7 @@ import {
   deriveFreeAgencyYearFromOptionSeason,
   getRightsTypeFromPlayer,
 } from '@/features/architect/utils/capHoldTransitionHelpers';
+import { createTPE } from '@/features/architect/utils/tradeMachine/utils/tradeUtilities';
 
 // ==============================================================================
 // UNDEFINED VALUE SANITIZATION
@@ -1022,6 +1023,140 @@ function computeTradeResult({ payload, currentState, seasonId, timestamp }) {
       // Deduplicate to be safe
       updatedTeam.entitlementIds = [...new Set(newEntitlementIds)];
     }
+
+    // ============================================================================
+    // Phase 47: TPE Creation & Consumption Persistence
+    // ============================================================================
+
+    // Calculate outgoing and incoming salary for TPE creation/consumption
+    const seasonKey =
+      typeof seasonId === 'string' && seasonId.includes('-')
+        ? seasonId
+        : `${currentYear - 1}-${String(currentYear).slice(-2)}`;
+
+    const getPlayerSalary = (player) => {
+      // Try multiple sources for salary
+      if (player.salary !== undefined) return player.salary;
+      if (player.matchIncoming !== undefined) return player.matchIncoming;
+      if (player.contract?.salariesByYear) {
+        const salaryRow = player.contract.salariesByYear.find(
+          (s) =>
+            s.season === seasonKey ||
+            String(s.year) === String(currentYear)
+        );
+        if (salaryRow) return salaryRow.salary || 0;
+      }
+      return 0;
+    };
+
+    const outgoingSalary = (teamTrade.sends || []).reduce(
+      (sum, p) => sum + getPlayerSalary(p),
+      0
+    );
+    const incomingSalary = incomingPlayers.reduce(
+      (sum, p) => sum + getPlayerSalary(p),
+      0
+    );
+
+    // Get current TPE array (may be from exceptions.tpe or tradeExceptions)
+    const currentTPEs = [
+      ...(team.tradeExceptions || []),
+      ...((team.exceptions?.tpe || []).map((t) => ({
+        ...t,
+        // Normalize schema fields
+        amount: t.remainingAmount ?? t.totalAmount ?? t.amount ?? 0,
+        totalAmount: t.totalAmount ?? t.amount ?? 0,
+        remainingAmount: t.remainingAmount ?? t.totalAmount ?? t.amount ?? 0,
+        usedAmount: t.usedAmount ?? 0,
+      }))),
+    ];
+
+    // Build TPE usage map from incoming players
+    // Track salary absorbed by each TPE
+    const tpeUsageMap = new Map(); // tpeId -> absorbedSalary
+    incomingPlayers.forEach((player) => {
+      const isTPEAbsorbed =
+        player.absorptionMode === 'TPE' ||
+        player.tpeId ||
+        player.acquiredViaTPE;
+      if (!isTPEAbsorbed) return;
+
+      const playerSalary = getPlayerSalary(player);
+      const tpeId = player.tpeId;
+
+      if (tpeId) {
+        const currentUsage = tpeUsageMap.get(tpeId) || 0;
+        tpeUsageMap.set(tpeId, currentUsage + playerSalary);
+      } else {
+        // Auto-match to first available TPE with capacity
+        for (const tpe of currentTPEs) {
+          if (tpe.isUsed) continue;
+          const tpeAmount = tpe.remainingAmount ?? tpe.amount ?? 0;
+          const existingUsage = tpeUsageMap.get(tpe.id) || 0;
+          const remainingCapacity = tpeAmount - existingUsage;
+          if (remainingCapacity >= playerSalary) {
+            tpeUsageMap.set(tpe.id, existingUsage + playerSalary);
+            break;
+          }
+        }
+      }
+    });
+
+    // Update TPE array with consumption
+    const updatedTPEs = currentTPEs.map((tpe) => {
+      const absorbed = tpeUsageMap.get(tpe.id) || 0;
+      if (absorbed === 0) return tpe; // No change
+
+      const currentRemaining = tpe.remainingAmount ?? tpe.amount ?? 0;
+      const currentUsed = tpe.usedAmount ?? 0;
+      const newRemaining = Math.max(0, currentRemaining - absorbed);
+      const newUsed = currentUsed + absorbed;
+
+      return {
+        ...tpe,
+        remainingAmount: newRemaining,
+        usedAmount: newUsed,
+        isUsed: newRemaining === 0,
+      };
+    });
+
+    // Check if this team should create a new TPE
+    // TPE created when: sending > receiving AND team is over cap
+    const salaryDifference = outgoingSalary - incomingSalary;
+    const teamTotalSalary = team.totals?.teamSalary || team.teamTotalSalary || 0;
+    const salaryCap = 141000000; // Default cap, could be passed via context
+    const isOverCap = teamTotalSalary > salaryCap;
+
+    if (salaryDifference > 0 && isOverCap) {
+      const newTPE = createTPE({
+        teamCtx: { isOverCap: true },
+        outgoing: outgoingSalary,
+        incoming: incomingSalary,
+        tradeDate: timestamp,
+      });
+
+      if (newTPE) {
+        // Generate stable ID for new TPE
+        const newTPEId = `tpe_${teamCode}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        updatedTPEs.push({
+          id: newTPEId,
+          amount: newTPE.amount,
+          totalAmount: newTPE.amount,
+          remainingAmount: newTPE.amount,
+          usedAmount: 0,
+          createdSeason: newTPE.createdSeason,
+          expiresOn: newTPE.expiresOn,
+          createdFrom: (teamTrade.sends || [])
+            .map((p) => p.name || p.displayName)
+            .filter(Boolean)
+            .join(', ') || 'Trade',
+          isUsed: false,
+        });
+      }
+    }
+
+    // Persist updated TPEs to team state
+    updatedTeam.tradeExceptions = updatedTPEs;
 
     // Update source metadata
     updatedTeam.source = {
