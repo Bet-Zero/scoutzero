@@ -20,7 +20,10 @@
 import { db } from '@/firebaseConfig';
 import { writeBatch, serverTimestamp, increment } from 'firebase/firestore';
 import { getLeague } from '@/features/architect/utils/teamLoader';
-import { getWorldMetadata, getDraftPositionsMap } from '@/features/architect/utils/worldManager';
+import {
+  getWorldMetadata,
+  getDraftPositionsMap,
+} from '@/features/architect/utils/worldManager';
 import {
   toEndYear,
   toSeasonCode,
@@ -37,7 +40,14 @@ import {
 } from '@/features/architect/utils/capHoldTransitionHelpers';
 import { resolvePickSwap } from '@/features/architect/utils/tradeMachine/utils/swapResolution.js';
 import { resolveConveyanceForPick } from '@/features/architect/utils/tradeMachine/utils/conveyanceResolution.js';
-import { processTradeExceptions } from '@/features/architect/utils/tpeLifecycle';
+import {
+  processTradeExceptions,
+  getTpeExpiryISO,
+} from '@/features/architect/utils/tpeLifecycle';
+import {
+  appendExceptionHistory,
+  createTpeExpiryHistoryEntry,
+} from '@/features/architect/utils/exceptionHistory/historyHelpers';
 
 /**
  * Advance world to next season
@@ -220,8 +230,13 @@ function processContractExpirations(teamData, fromSeason, toSeason) {
   roster.forEach((playerId, index) => {
     // Support multiple ID formats: player_id, id, playerId
     const player =
-      players[index] || 
-      players.find((p) => p.player_id === playerId || p.id === playerId || p.playerId === playerId);
+      players[index] ||
+      players.find(
+        (p) =>
+          p.player_id === playerId ||
+          p.id === playerId ||
+          p.playerId === playerId
+      );
 
     if (!player || !player.contract) {
       // Keep player if no contract data
@@ -300,7 +315,11 @@ function processOptions(teamData, season) {
     if (contract.salariesByYear && Array.isArray(contract.salariesByYear)) {
       contract.salariesByYear.forEach((yearData) => {
         const year = toEndYear(yearData.season);
-        if (year === seasonYear && yearData.option && yearData.optionUsed == null) {
+        if (
+          year === seasonYear &&
+          yearData.option &&
+          yearData.optionUsed == null
+        ) {
           // Option decision year - default: assume option is exercised if not specified
           // In a full implementation, this would be user input
           hasChanges = true;
@@ -511,7 +530,7 @@ export async function advanceSeasonInWorld(worldId, options = {}) {
     // Load positions for fromYear (the draft that just happened).
     const draftYear = fromYear;
     const positionsMap = await getDraftPositionsMap(worldId, draftYear);
-    
+
     // Load all teams in the world
     const teams = await getLeague(worldId);
 
@@ -534,13 +553,15 @@ export async function advanceSeasonInWorld(worldId, options = {}) {
 
       // Process team for season transition with explicit option decisions
       // Phase 5: Also pass positionsMap + draftYear for auto-resolution
-      const { updatedTeam, teamSummary } = await processTeamSeasonTransitionWithOptions(
-        team,
-        fromSeason,
-        toSeason,
-        optionDecisions,
-        { positionsMap, draftYear }
-      );
+      // Phase 53: Pass worldId for TPE expiry history logging
+      const { updatedTeam, teamSummary } =
+        await processTeamSeasonTransitionWithOptions(
+          team,
+          fromSeason,
+          toSeason,
+          optionDecisions,
+          { positionsMap, draftYear, worldId }
+        );
 
       // Merge summaries
       if (teamSummary.exercisedOptions.length > 0) {
@@ -563,7 +584,9 @@ export async function advanceSeasonInWorld(worldId, options = {}) {
       }
       // Phase 5: Merge resolution summaries
       if (teamSummary.conveyanceResolutions?.length > 0) {
-        summary.conveyanceResolutions.push(...teamSummary.conveyanceResolutions);
+        summary.conveyanceResolutions.push(
+          ...teamSummary.conveyanceResolutions
+        );
       }
       if (teamSummary.swapResolutions?.length > 0) {
         summary.swapResolutions.push(...teamSummary.swapResolutions);
@@ -596,7 +619,12 @@ export async function advanceSeasonInWorld(worldId, options = {}) {
       summary,
       // Phase 5: Include resolution info in result
       draftResolutionInfo: positionsMap
-        ? { draftYear, hadPositions: true, resolvedConveyances: summary.conveyanceResolutions.length, resolvedSwaps: summary.swapResolutions.length }
+        ? {
+            draftYear,
+            hadPositions: true,
+            resolvedConveyances: summary.conveyanceResolutions.length,
+            resolvedSwaps: summary.swapResolutions.length,
+          }
         : { draftYear, hadPositions: false },
     };
   } catch (error) {
@@ -618,6 +646,7 @@ export async function advanceSeasonInWorld(worldId, options = {}) {
  * @param {Object} [resolutionContext={}] - Phase 5: Draft resolution context
  * @param {Object<string, number>} [resolutionContext.positionsMap] - Positions map for resolution
  * @param {number} [resolutionContext.draftYear] - Draft year to resolve
+ * @param {string} [resolutionContext.worldId] - World ID for TPE expiry history logging (Phase 53)
  * @returns {Promise<Object>} Updated team data and summary
  */
 async function processTeamSeasonTransitionWithOptions(
@@ -629,6 +658,8 @@ async function processTeamSeasonTransitionWithOptions(
 ) {
   const updatedTeam = { ...teamData };
   let hasChanges = false;
+  const teamCode = teamData.teamCode;
+  const timestampISO = new Date().toISOString();
   const teamSummary = {
     exercisedOptions: [],
     declinedOptions: [],
@@ -663,7 +694,7 @@ async function processTeamSeasonTransitionWithOptions(
       positionsMap,
       resolutionOpts
     );
-    
+
     // Track conveyance resolutions
     // Build a Set of original pick IDs that already had conveyanceResult for O(1) lookup
     const originalConveyedIds = new Set(
@@ -671,7 +702,7 @@ async function processTeamSeasonTransitionWithOptions(
         .filter((p) => p?.conveyanceResult)
         .map((p) => p.id)
     );
-    
+
     if (afterConveyance.draftPicks) {
       const conveyedPicks = afterConveyance.draftPicks.filter(
         (p) => p?.conveyanceResult && !originalConveyedIds.has(p.id)
@@ -704,7 +735,7 @@ async function processTeamSeasonTransitionWithOptions(
         .filter((p) => p?.resolved === true)
         .map((p) => p.id)
     );
-    
+
     if (afterSwaps.draftPicks) {
       const resolvedSwaps = afterSwaps.draftPicks.filter(
         (p) => p?.resolved === true && !originalResolvedIds.has(p.id)
@@ -754,9 +785,9 @@ async function processTeamSeasonTransitionWithOptions(
     updatedTeam.roster = contractResult.roster;
     updatedTeam.players = contractResult.players;
     // Track expired contracts
-    const expiredPlayerIds = teamData.roster?.filter(
-      (id) => !contractResult.roster.includes(id)
-    ) || [];
+    const expiredPlayerIds =
+      teamData.roster?.filter((id) => !contractResult.roster.includes(id)) ||
+      [];
     for (const playerId of expiredPlayerIds) {
       // Support multiple ID formats: player_id, id, playerId
       const player = teamData.players?.find(
@@ -772,6 +803,8 @@ async function processTeamSeasonTransitionWithOptions(
   }
 
   // Process TPE Expirations (Phase 1)
+  // Phase 53: Log TPE_EXPIRED history entries for each expired TPE
+  const { worldId } = resolutionContext;
   const tpeResult = processTradeExceptions(
     updatedTeam.tradeExceptions,
     toSeason
@@ -780,6 +813,36 @@ async function processTeamSeasonTransitionWithOptions(
     hasChanges = true;
     updatedTeam.tradeExceptions = tpeResult.activeTPEs;
     teamSummary.expiredTPEs = tpeResult.expiredTPEs;
+
+    // Phase 53: Generate TPE_EXPIRED history entries for each expired TPE
+    if (tpeResult.expiredTPEs && tpeResult.expiredTPEs.length > 0) {
+      const expiryHistoryEntries = tpeResult.expiredTPEs
+        .map((expiredTpe) => {
+          const expiresOn = getTpeExpiryISO(expiredTpe);
+          const amountExpired =
+            expiredTpe.remainingAmount ?? expiredTpe.amount ?? 0;
+          const totalAmount =
+            expiredTpe.totalAmount ?? expiredTpe.amount ?? amountExpired;
+
+          return createTpeExpiryHistoryEntry({
+            teamCode,
+            tpeId: expiredTpe.id,
+            amountExpired,
+            totalAmount,
+            expiresOn,
+            toSeason,
+            createdFrom: expiredTpe.createdFrom,
+            timestampISO,
+            worldId,
+          });
+        })
+        .filter(Boolean);
+
+      // Append to exceptionHistory (idempotent: dedupes by historyKey)
+      if (expiryHistoryEntries.length > 0) {
+        appendExceptionHistory(updatedTeam, expiryHistoryEntries);
+      }
+    }
   }
 
   // Process empty roster charges
@@ -837,7 +900,12 @@ async function processTeamSeasonTransitionWithOptions(
  * @param {Object} optionDecisions - Map of playerId to decision
  * @returns {Object} Result with updated roster, players, cap holds, and summaries
  */
-function processOptionsWithDecisions(teamData, fromSeason, toSeason, optionDecisions) {
+function processOptionsWithDecisions(
+  teamData,
+  fromSeason,
+  toSeason,
+  optionDecisions
+) {
   const fromYear = toEndYear(fromSeason);
   const toYear = toEndYear(toSeason);
   const roster = [...(teamData.roster || [])];
@@ -856,7 +924,10 @@ function processOptionsWithDecisions(teamData, fromSeason, toSeason, optionDecis
     // IMPORTANT: We avoid using player.name as ID since names are not unique
     const playerId = player.player_id || player.id || player.playerId;
     if (!playerId) {
-      console.warn('Player missing ID fields, skipping option processing:', player.displayName || player.name);
+      console.warn(
+        'Player missing ID fields, skipping option processing:',
+        player.displayName || player.name
+      );
       continue;
     }
     const contract = player.contract;
@@ -899,7 +970,10 @@ function processOptionsWithDecisions(teamData, fromSeason, toSeason, optionDecis
         salary: optionYear.salary || optionYear.capHit || 0,
       });
     } else if (decision.decision === 'decline') {
-      const faYearInfo = deriveFreeAgencyYearFromOptionSeason(optionYear?.season, toYear);
+      const faYearInfo = deriveFreeAgencyYearFromOptionSeason(
+        optionYear?.season,
+        toYear
+      );
       const freeAgencyYear =
         typeof faYearInfo.year === 'number' ? faYearInfo.year : toYear - 1;
 
@@ -1010,10 +1084,12 @@ function updateDraftPicksWithStepien(teamData, fromSeason, toSeason) {
     // Check if this is an owned pick or owed pick
     // Owned: originalTeam === teamCode AND NOT traded
     // Owed: originalTeam === teamCode AND traded/conveyed to another team
-    const isOwned = pick.currentOwner === teamCode || 
-                   (pick.owner === teamCode && !pick.tradedTo);
-    const isOwed = pick.originalTeam === teamCode && 
-                  (pick.tradedTo || pick.currentOwner !== teamCode);
+    const isOwned =
+      pick.currentOwner === teamCode ||
+      (pick.owner === teamCode && !pick.tradedTo);
+    const isOwed =
+      pick.originalTeam === teamCode &&
+      (pick.tradedTo || pick.currentOwner !== teamCode);
 
     if (isOwned) {
       ownFirsts.push(pick);
@@ -1045,8 +1121,9 @@ function updateDraftPicksWithStepien(teamData, fromSeason, toSeason) {
     // Stepien check only for first-round picks the team owns
     if (isFirstRound && pick.year >= toYear) {
       const pickYear = pick.year;
-      const isOwnedByTeam = pick.currentOwner === teamCode || 
-                           (pick.owner === teamCode && !pick.tradedTo);
+      const isOwnedByTeam =
+        pick.currentOwner === teamCode ||
+        (pick.owner === teamCode && !pick.tradedTo);
 
       if (isOwnedByTeam) {
         // Check if trading this pick would create consecutive years without a first
@@ -1123,9 +1200,18 @@ function updateDraftPicksWithStepien(teamData, fromSeason, toSeason) {
  * @param {string} [opts.method='lottery'] - Resolution method for audit trail
  * @returns {Object} - Team with updated draftPicks array
  */
-export function resolveDraftPickSwapsForYear(team, draftYear, positionsMap, opts = {}) {
+export function resolveDraftPickSwapsForYear(
+  team,
+  draftYear,
+  positionsMap,
+  opts = {}
+) {
   // Return team unchanged if no positions provided (NO-OP)
-  if (!positionsMap || typeof positionsMap !== 'object' || Object.keys(positionsMap).length === 0) {
+  if (
+    !positionsMap ||
+    typeof positionsMap !== 'object' ||
+    Object.keys(positionsMap).length === 0
+  ) {
     return team;
   }
 
@@ -1143,9 +1229,10 @@ export function resolveDraftPickSwapsForYear(team, draftYear, positionsMap, opts
     }
 
     // Skip non-first-round picks (Phase 3 only resolves first round)
-    const round = typeof pick.round === 'string'
-      ? parseInt(pick.round.replace(/\D/g, ''), 10)
-      : pick.round;
+    const round =
+      typeof pick.round === 'string'
+        ? parseInt(pick.round.replace(/\D/g, ''), 10)
+        : pick.round;
     if (round !== 1) {
       return pick;
     }
@@ -1211,9 +1298,18 @@ export function resolveDraftPickSwapsForYear(team, draftYear, positionsMap, opts
  * @param {string} [opts.method='lottery'] - Resolution method for audit trail
  * @returns {Object} - Team with updated draftPicks array
  */
-export function resolveDraftPickConveyanceForYear(team, draftYear, positionsMap, opts = {}) {
+export function resolveDraftPickConveyanceForYear(
+  team,
+  draftYear,
+  positionsMap,
+  opts = {}
+) {
   // Return team unchanged if no positions provided (NO-OP)
-  if (!positionsMap || typeof positionsMap !== 'object' || Object.keys(positionsMap).length === 0) {
+  if (
+    !positionsMap ||
+    typeof positionsMap !== 'object' ||
+    Object.keys(positionsMap).length === 0
+  ) {
     return team;
   }
 
@@ -1231,9 +1327,10 @@ export function resolveDraftPickConveyanceForYear(team, draftYear, positionsMap,
     }
 
     // Skip non-first-round picks (Phase 4 only resolves first round conveyance)
-    const round = typeof pick.round === 'string'
-      ? parseInt(pick.round.replace(/\D/g, ''), 10)
-      : pick.round;
+    const round =
+      typeof pick.round === 'string'
+        ? parseInt(pick.round.replace(/\D/g, ''), 10)
+        : pick.round;
     if (round !== 1) {
       return pick;
     }
@@ -1255,7 +1352,11 @@ export function resolveDraftPickConveyanceForYear(team, draftYear, positionsMap,
 
     // Attempt resolution - catch any errors and leave unresolved
     try {
-      return resolveConveyanceForPick(pick, positionsMap, { draftYear, nowIso, method });
+      return resolveConveyanceForPick(pick, positionsMap, {
+        draftYear,
+        nowIso,
+        method,
+      });
     } catch {
       // Resolution failed - leave pick unchanged
       return pick;

@@ -1,4 +1,5 @@
 import { expandPositionGroup } from '@/shared/utils/roles';
+import { getPlayerId } from '@/shared/utils/getPlayerId';
 
 const shootingProfileRank = {
   Elite: 6,
@@ -291,27 +292,36 @@ export function sortPlayers(
     const getValue = (player, field) => {
       if (traitSort.includes(field)) return player.traits?.[field] ?? -1;
       // Stats are enriched from seasons subcollection and spread to top level
-      if (Object.prototype.hasOwnProperty.call(player, field) && typeof player[field] === 'number')
+      if (
+        Object.prototype.hasOwnProperty.call(player, field) &&
+        typeof player[field] === 'number'
+      )
         return player[field];
       switch (field) {
         case 'name':
           return (player.bio?.displayName || player.name || '').toLowerCase();
         case 'height':
-          return player.heightInInches;
+          // Safe default: treat missing height as -1 (sorts to bottom)
+          return typeof player.heightInInches === 'number'
+            ? player.heightInInches
+            : -1;
         case 'weight':
-          return player.weight;
+          // Safe default: treat missing weight as -1 (sorts to bottom)
+          return typeof player.weight === 'number' ? player.weight : -1;
         case 'age':
-          return player.age;
+          // Safe default: treat missing age as -1 (sorts to bottom)
+          return typeof player.age === 'number' ? player.age : -1;
         case 'salary':
           return player.salaryByYear?.[salaryYear] ?? -1;
         case 'shootingProfile':
           return shootingProfileRank[player.shootingProfile] ?? 0;
-        case 'yearsRemaining':
-          return (
-            parseInt(
-              player.freeAgentYear || player.bio?.display?.freeAgentYear
-            ) - 2024 || -1
-          );
+        case 'yearsRemaining': {
+          const faYear =
+            player.freeAgentYear || player.bio?.display?.freeAgentYear;
+          const parsed = parseInt(faYear, 10);
+          // Safe default: NaN check to prevent NaN arithmetic
+          return !isNaN(parsed) ? parsed - 2024 : -1;
+        }
         case 'totalContract': {
           // Contract data is in contracts subcollection
           const contractData =
@@ -327,8 +337,11 @@ export function sortPlayers(
               }, 0)
             : -1;
         }
-        case 'overall':
-          return parseFloat(player.overallGrade) ?? -1;
+        case 'overall': {
+          // Safe default: parseFloat can return NaN, use -1 as fallback
+          const grade = parseFloat(player.overallGrade);
+          return isNaN(grade) ? -1 : grade;
+        }
         default:
           return -1;
       }
@@ -337,9 +350,24 @@ export function sortPlayers(
     const valA = getValue(a, sortKey);
     const valB = getValue(b, sortKey);
 
+    let result;
     if (typeof valA === 'string' && typeof valB === 'string') {
-      return sortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      result = sortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+    } else {
+      result = sortAsc ? valA - valB : valB - valA;
     }
-    return sortAsc ? valA - valB : valB - valA;
+
+    // Tie-breaker: alphabetic by name (always ascending), then by ID for stability
+    if (result === 0) {
+      const nameA = (a.bio?.displayName || a.name || '').toLowerCase();
+      const nameB = (b.bio?.displayName || b.name || '').toLowerCase();
+      result = nameA.localeCompare(nameB);
+    }
+    if (result === 0) {
+      const idA = getPlayerId(a) || '';
+      const idB = getPlayerId(b) || '';
+      result = idA.localeCompare(idB);
+    }
+    return result;
   });
 }

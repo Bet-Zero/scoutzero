@@ -61,6 +61,7 @@ Top-level directory structure and purposes:
 - `constants/` - Shared constants and enums
 - `firebase/` - Firestore helpers and configuration
 - `data/` - Firestore path utilities
+- `features/architect/utils/exceptionHistory/` - Phase 49 helper module housing `historyHelpers.js` for deterministic TPE exception history entry creation and deduplication
 
 #### scripts/
 

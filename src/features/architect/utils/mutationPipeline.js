@@ -70,6 +70,11 @@ import {
   getRightsTypeFromPlayer,
 } from '@/features/architect/utils/capHoldTransitionHelpers';
 import { createTPE } from '@/features/architect/utils/tradeMachine/utils/tradeUtilities';
+import {
+  appendExceptionHistory,
+  createTpeConsumptionHistoryEntry,
+  createTpeCreationHistoryEntry,
+} from '@/features/architect/utils/exceptionHistory/historyHelpers';
 
 // ==============================================================================
 // UNDEFINED VALUE SANITIZATION
@@ -387,6 +392,7 @@ export async function applyWorldMutation({
       seasonId,
       timestamp,
       asOfDate, // Phase 20: World time SSOT
+      worldId,
     });
 
     if (!computeResult.success) {
@@ -722,10 +728,17 @@ export function computeWorldMutation({
   currentState,
   seasonId,
   timestamp,
+  worldId,
 }) {
   switch (mutationType) {
     case 'executeTrade':
-      return computeTradeResult({ payload, currentState, seasonId, timestamp });
+      return computeTradeResult({
+        payload,
+        currentState,
+        seasonId,
+        timestamp,
+        historyContext: { worldId, mutationType },
+      });
 
     case 'signFreeAgent':
       return computeSigningResult({
@@ -808,6 +821,8 @@ export function computeWorldMutation({
         currentState,
         seasonId,
         timestamp,
+        worldId,
+        historyContext: { worldId, mutationType },
       });
 
     case 'setDeadCap':
@@ -837,11 +852,25 @@ export function computeWorldMutation({
 /**
  * Compute trade result
  */
-function computeTradeResult({ payload, currentState, seasonId, timestamp }) {
+function computeTradeResult({
+  payload,
+  currentState,
+  seasonId,
+  timestamp,
+  historyContext = {},
+}) {
   const teamUpdates = [];
   const playerUpdates = [];
 
   const currentYear = toEndYear(seasonId);
+  const timestampISO = new Date(timestamp).toISOString();
+  const historyContextRef = historyContext || {};
+  const resolvedWorldId =
+    historyContextRef.worldId || payload?.tradeCtx?.worldId || null;
+  const resolvedMutationType = historyContextRef.mutationType || 'executeTrade';
+  const resolvedMutationId = historyContextRef.mutationId;
+  const getTpeRemaining = (tpe) =>
+    Number(tpe?.remainingAmount ?? tpe?.amount ?? 0) || 0;
 
   // Warn if multi-team trade without directed routing
   if (payload.teams.length > 2) {
@@ -1148,14 +1177,18 @@ function computeTradeResult({ payload, currentState, seasonId, timestamp }) {
 
     const updatedTeam = teamUpdate.team;
     const currentTPEs = updatedTeam.tradeExceptions || [];
+    const historyEntries = [];
+    const tpeAbsorptionDetails = new Map();
 
     // 1. Apply TPE consumption from validator
     // The validator's tradeExceptions rule modifies TPE objects with updated remaining/used amounts
     const tradeExceptionsResult = teamResult.rules?.tradeExceptions;
     let updatedTPEs = [...currentTPEs];
 
-    // If validator processed TPEs and returned consumption data, use it
-    if (tradeExceptionsResult && tradeExceptionsResult.details) {
+    // If validator processed TPEs, apply consumption from incoming players with tpeId
+    // Phase 50 fix: Check for existence of tradeExceptionsResult, not details
+    // (details is empty string when no violations, which was incorrectly falsy)
+    if (tradeExceptionsResult) {
       // The validator already updated the TPE objects in place during validation
       // We need to extract the consumed amounts from the incoming players that used TPEs
       const incomingPlayers = validationTeams[idx].receives || [];
@@ -1181,9 +1214,20 @@ function computeTradeResult({ payload, currentState, seasonId, timestamp }) {
           return; // Skip this player - no consumption without validator-produced value
         }
 
-        const consumed = player.matchIncoming;
+        const consumed = Number(player.matchIncoming) || 0;
+        if (consumed <= 0) {
+          return;
+        }
         const current = tpeUsageMap.get(player.tpeId) || 0;
         tpeUsageMap.set(player.tpeId, current + consumed);
+
+        const absorptionList = tpeAbsorptionDetails.get(player.tpeId) || [];
+        absorptionList.push({
+          playerId: player.player_id || player.id || player.playerId || null,
+          name: player.name || player.displayName || player.playerName || null,
+          amountAbsorbed: consumed,
+        });
+        tpeAbsorptionDetails.set(player.tpeId, absorptionList);
       });
 
       // Log warnings in dev mode for debugging
@@ -1205,7 +1249,7 @@ function computeTradeResult({ payload, currentState, seasonId, timestamp }) {
         const consumed = tpeUsageMap.get(tpe.id) || 0;
         if (consumed === 0) return tpe;
 
-        const currentRemaining = tpe.remainingAmount ?? tpe.amount ?? 0;
+        const currentRemaining = getTpeRemaining(tpe);
         const currentUsed = tpe.usedAmount ?? 0;
         const newRemaining = Math.max(0, currentRemaining - consumed);
         const newUsed = currentUsed + consumed;
@@ -1221,6 +1265,38 @@ function computeTradeResult({ payload, currentState, seasonId, timestamp }) {
 
     // 2. Apply TPE creation from validator (SSOT)
     // Phase 47C: Idempotent creation with signature-based duplicate detection
+    // Build consumption history entries before creation adds new TPEs
+    currentTPEs.forEach((previousTpe) => {
+      const nextTpe =
+        updatedTPEs.find((candidate) => candidate.id === previousTpe.id) ||
+        previousTpe;
+      const previousRemaining = getTpeRemaining(previousTpe);
+      const nextRemaining = getTpeRemaining(nextTpe);
+      const consumedAmount = Math.max(0, previousRemaining - nextRemaining);
+      if (consumedAmount <= 0) {
+        return;
+      }
+
+      const consumptionEntry = createTpeConsumptionHistoryEntry({
+        teamCode: teamUpdate.teamCode,
+        tpeId: previousTpe.id,
+        amountConsumed: consumedAmount,
+        remainingAmountAfter: nextRemaining,
+        fullyConsumed: nextRemaining === 0,
+        absorbedPlayers: tpeAbsorptionDetails.get(previousTpe.id) || [],
+        seasonId,
+        seasonYear: currentYear,
+        timestampISO,
+        worldId: resolvedWorldId,
+        mutationType: resolvedMutationType,
+        mutationId: resolvedMutationId,
+      });
+
+      if (consumptionEntry) {
+        historyEntries.push(consumptionEntry);
+      }
+    });
+
     const createdTPE = teamResult.createdTPE;
     if (createdTPE) {
       const teamCode = teamUpdate.teamCode;
@@ -1276,6 +1352,25 @@ function computeTradeResult({ payload, currentState, seasonId, timestamp }) {
           createdFrom,
           isUsed: false,
         });
+
+        const creationEntry = createTpeCreationHistoryEntry({
+          teamCode,
+          tpeId,
+          amountCreated: createdTPE.amount,
+          createdFrom,
+          createdSeason: createdTPE.createdSeason,
+          expiresOn: createdTPE.expiresOn,
+          seasonId,
+          seasonYear: currentYear,
+          timestampISO,
+          worldId: resolvedWorldId,
+          mutationType: resolvedMutationType,
+          mutationId: resolvedMutationId,
+        });
+
+        if (creationEntry) {
+          historyEntries.push(creationEntry);
+        }
       } else {
         // Dev logging for duplicate detection
         const isDev =
@@ -1295,6 +1390,10 @@ function computeTradeResult({ payload, currentState, seasonId, timestamp }) {
 
     // Persist the updated TPE array
     updatedTeam.tradeExceptions = updatedTPEs;
+
+    if (historyEntries.length > 0) {
+      appendExceptionHistory(updatedTeam, historyEntries);
+    }
   });
 
   // Phase 11.3: Build entitlementsTraded structure for event log
@@ -3102,6 +3201,8 @@ function computeSignAndTradeResult({
   currentState,
   seasonId,
   timestamp,
+  worldId,
+  historyContext = {},
 }) {
   const { team, destinationTeam, player } = currentState;
   const { teamCode, destinationTeamCode } = payload;
@@ -3189,6 +3290,11 @@ function computeSignAndTradeResult({
     currentState: tradeState,
     seasonId,
     timestamp,
+    historyContext: {
+      worldId: historyContext.worldId || worldId,
+      mutationType: historyContext.mutationType || 'signAndTrade',
+      mutationId: historyContext.mutationId,
+    },
   });
 
   if (!tradeResult.success) {

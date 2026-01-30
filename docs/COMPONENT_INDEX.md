@@ -107,6 +107,7 @@ Quick reference for all components in the ScoutZero project.
 - utils/contractUtils.js
 - utils/draftPickUtils.js
 - utils/entitlements/formatEntitlement.js
+- utils/exceptionHistory/historyHelpers.js
 - utils/extensionRules.js
 - utils/faExceptionUtils.js
 - utils/firebaseTeamPlanHelpers.js
@@ -335,4 +336,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2026-01-28T10:05:15.482Z*
+*Generated on: 2026-01-30T04:11:05.660Z*

@@ -14,7 +14,7 @@ const PlayerTableHeader = ({
   const currentSeason = toSeasonKey(getDefaultSeasonEndYear());
   
   return (
-    <div className="mb-2 border-b border-neutral-700/50 pb-4">
+    <div className="mb-2 pb-4">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white mb-1">Player Database</h1>

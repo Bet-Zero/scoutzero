@@ -222,6 +222,16 @@ const PlayerRow = ({ player, isExpanded, onToggleExpand }) => {
           <div
             className="absolute bottom-0 right-0 cursor-pointer text-white/20 hover:text-white transition"
             onClick={onToggleExpand}
+            role="button"
+            tabIndex={0}
+            aria-label={isExpanded ? 'Collapse player details' : 'Expand player details'}
+            aria-expanded={isExpanded}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onToggleExpand();
+              }
+            }}
           >
             {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={16} />}
           </div>
@@ -231,4 +241,18 @@ const PlayerRow = ({ player, isExpanded, onToggleExpand }) => {
   );
 };
 
-export default PlayerRow;
+/**
+ * Memoized PlayerRow for react-window.
+ * Uses react-window's areEqual comparison pattern for optimal virtualization perf.
+ * Row only rerenders when player data, isExpanded, or onToggleExpand changes.
+ */
+const MemoizedPlayerRow = React.memo(PlayerRow, (prevProps, nextProps) => {
+  // react-window areEqual pattern: return true if props are equal (skip rerender)
+  return (
+    prevProps.isExpanded === nextProps.isExpanded &&
+    prevProps.player === nextProps.player &&
+    prevProps.onToggleExpand === nextProps.onToggleExpand
+  );
+});
+
+export default MemoizedPlayerRow;

@@ -205,6 +205,36 @@ rankedConveyanceSkipped: 127  # Overlay claims filtered by ranked conveyance gat
 
 ---
 
+## Emulator Push (Manual Step)
+
+To push the corrected entitlements to the Firebase emulator:
+
+```bash
+# 1. Start emulator (wait for it to be ready)
+npm run emu
+
+# 2. Push base entitlements to architect_baseEntitlements collection
+npm run pst:push:base-entitlements
+
+# 3. Patch base teams with entitlementIds
+npm run pst:patch:base-teams-entitlements
+```
+
+**Verification after push**:
+
+In emulator Firestore UI (<http://localhost:4000/firestore>e>):
+
+1. `architect_baseEntitlements`: HOU should NOT have pick_ownership entitlements for:
+   - DAL_2026_2nd
+   - IND_2026_2nd
+   - LAC_2026_2nd
+   - MIA_2026_2nd
+   - PHI_2026_2nd
+
+2. `architect_baseTeams/HOU.entitlementIds`: Should NOT include those `ent:HOU:2026:2:own:*` entries for the problematic picks
+
+---
+
 ## Related Phases
 
 - **Phase 8.2**: Encumbered status swap-backing (fixed IND/LAC/MIA encumbered status)

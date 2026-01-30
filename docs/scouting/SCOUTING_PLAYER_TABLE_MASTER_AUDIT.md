@@ -150,7 +150,38 @@ The table relies on a **Flattened & Enriched** version of the `players_v2` docum
 - [x] **HOTFIX APPLIED**: Fixed `overflow-y-auto` on SiteLayout `<main>` causing AutoSizer zero dims. Added `min-h-[400px]` + dev-mode logging. See [SCOUTING_PLAYER_TABLE_HOTFIX_AUTOSIZER_ZERO_DIMS_RP.md](../return_packages/scouting/SCOUTING_PLAYER_TABLE_HOTFIX_AUTOSIZER_ZERO_DIMS_RP.md) (2026-01-28).
 - [x] Refactor `PlayerTable` to use `FixedSizeList`.
 - [x] Handle "Expanded" state in virtualization (overlay drawer approach).
-- [ ] `React.memo(PlayerRow)`.
+- [x] `React.memo(PlayerRow)`. _(Phase 2C — 2026-01-29)_
+
+### Phase 2C: Row Perf + ID Consistency (2026-01-29)
+
+**Goal**: Optimize row rendering and eliminate ID mismatch bugs.
+
+- [x] **Memoized PlayerRow** with `React.memo` and react-window's `areEqual` pattern. Rows only rerender when `player`, `isExpanded`, or `onToggleExpand` change.
+- [x] **Created `getPlayerId` helper** (`src/shared/utils/getPlayerId.js`) for consistent ID extraction across Row, DrawerOverlay, and toggle handlers.
+- [x] **Fixed sort NaN safety** in `sortPlayers` for `height`, `weight`, `age`, `yearsRemaining`, `overall` fields.
+- **Return Package**: [SCOUTING_PLAYER_TABLE_PHASE_2C_ROW_PERF_ID_CONSISTENCY_RP.md](../return_packages/scouting/SCOUTING_PLAYER_TABLE_PHASE_2C_ROW_PERF_ID_CONSISTENCY_RP.md)
+
+### Phase 2D: Sort Determinism + Debounce Audit + Drawer Polish (2026-01-29)
+
+**Goal**: Ensure stable sorting, verify debounce coverage, and polish drawer UX.
+
+- [x] **Sort Determinism** — Added tie-breakers to `sortPlayers`: alphabetic by name (always ascending), then by ID for stability. Players with same height/weight/age now maintain consistent order.
+- [x] **Debounce Audit** — Verified prop chain is correct. `debouncedSetFilters` is properly threaded from `PlayerTable` through `FiltersPanel` to `StatFilters/TraitFilters`. No changes needed.
+- [x] **Keyboard Accessibility** — Added `role="button"`, `tabIndex={0}`, `aria-label`, `aria-expanded`, and `onKeyDown` handler to expand toggle. Supports Enter/Space activation.
+- [x] **Drawer Clipping Fix** — Modified `InnerElement` to add bottom padding (300px) when last row is expanded, preventing drawer from being clipped.
+- **Return Package**: [SCOUTING_PLAYER_TABLE_PHASE_2D_EXECUTION_SORT_DEBOUNCE_DRAWER_RP.md](../return_packages/scouting/SCOUTING_PLAYER_TABLE_PHASE_2D_EXECUTION_SORT_DEBOUNCE_DRAWER_RP.md)
+
+### Phase 2E: Measured Drawer Height + Scroll Hygiene (2026-01-29)
+
+**Goal**: Replace hardcoded drawer padding with precise measurement-based approach; verify scroll hygiene.
+
+- [x] **Measured Drawer Height** — Replaced the hardcoded `extraPadding = 300` hack with ResizeObserver-based measurement. Now computes exact extra scroll space for ANY expanded row using: `extra = max(0, drawerBottom - baseInnerHeight)` where `drawerBottom = (expandedIndex + 1) * itemSize + drawerHeight`.
+- [x] **ResizeObserver Integration** — `DrawerOverlay` uses ResizeObserver to measure actual drawer height. Updates stored height only when it changes to prevent rerender loops.
+- [x] **Context Propagation** — Added `drawerHeight` and `setDrawerHeight` to `DrawerContext` for clean state flow from measurement to height adjustment.
+- [x] **Scroll Hygiene Verified** — Confirmed only react-window List scrolls; sticky header (z-[60]) stays above drawer (z-50); parent containers use `overflow-hidden`.
+- **Return Package**: [SCOUTING_PLAYER_TABLE_PHASE_2E_DRAWER_MEASURED_HEIGHT_SCROLL_HYGIENE_RP.md](../return_packages/scouting/SCOUTING_PLAYER_TABLE_PHASE_2E_DRAWER_MEASURED_HEIGHT_SCROLL_HYGIENE_RP.md)
+
+**Key Decision**: Using ResizeObserver instead of static estimates ensures the drawer is never clipped regardless of content height or which row is expanded.
 
 ### Phase 2: UX & Navigation Enhancement
 

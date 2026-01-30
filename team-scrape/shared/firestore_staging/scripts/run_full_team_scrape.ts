@@ -52,7 +52,7 @@ const TEAM_SLUGS: Record<string, string> = {
   ORL: 'magic',
   PHI: 'sixers',
   PHX: 'suns',
-  POR: 'blazers',
+  POR: 'trailblazers',
   SAC: 'kings',
   SAS: 'spurs',
   TOR: 'raptors',

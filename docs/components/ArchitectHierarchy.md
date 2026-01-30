@@ -178,6 +178,8 @@ utils/
   entitlements/
     entitlementResolver.ts
     formatEntitlement.js
+  exceptionHistory/
+    historyHelpers.js
   extensionRules.js
   faExceptionUtils.js
   firebaseTeamPlanHelpers.js
@@ -293,5 +295,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-01-22T14:41:13.918Z*
+*Generated on: 2026-01-30T04:11:05.619Z*
 *Auto-updated by: npm run docs*

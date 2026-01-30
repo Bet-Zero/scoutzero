@@ -16,10 +16,12 @@ import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
 
-const FIRESTORE_PORT = 8082;
+const HUB_PORT = 4400;
+const UI_PORT = 4000;
+const UI_WEBSOCKET_PORT = 9150;
 const AUTH_PORT = 9099;
 const FUNCTIONS_PORT = 5001;
-const UI_PORT = 4000;
+const FIRESTORE_PORT = 8082;
 const PROJECT_ID =
   process.env.FIREBASE_PROJECT_ID ??
   process.env.GCLOUD_PROJECT ??
@@ -35,11 +37,14 @@ const EMULATOR_ENV = {
   GCLOUD_PROJECT: PROJECT_ID,
 };
 
+// All ports used by Firebase emulator suite - freed before starting to avoid multi-instance issues
 const PORTS = [
-  { name: 'firestore', port: FIRESTORE_PORT },
+  { name: 'hub', port: HUB_PORT },
+  { name: 'ui', port: UI_PORT },
+  { name: 'ui-websocket', port: UI_WEBSOCKET_PORT },
   { name: 'auth', port: AUTH_PORT },
   { name: 'functions', port: FUNCTIONS_PORT },
-  { name: 'ui', port: UI_PORT },
+  { name: 'firestore', port: FIRESTORE_PORT },
 ];
 
 const log = (message: string) => {
@@ -47,6 +52,11 @@ const log = (message: string) => {
 };
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const FIREBASE_EXPORT_METADATA = path.join(
+  DATA_DIR,
+  'firebase-export-metadata.json'
+);
 
 const ensureDataDir = () => {
   fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -57,6 +67,10 @@ const ensureDataDir = () => {
       'utf8'
     );
   }
+};
+
+const hasPriorExport = (): boolean => {
+  return fs.existsSync(FIREBASE_EXPORT_METADATA);
 };
 
 const getListeningPids = (port: number): number[] => {
@@ -182,8 +196,21 @@ const runExportFallback = async () =>
 const main = async () => {
   ensureDataDir();
 
-  for (const { port } of PORTS) {
+  log('[emu] freeing emulator suite ports...');
+  for (const { name, port } of PORTS) {
+    const pids = getListeningPids(port);
+    if (pids.length > 0) {
+      log(`[emu] port ${port} (${name}) in use, freeing...`);
+    }
     await freePort(port);
+  }
+
+  if (hasPriorExport()) {
+    log(`[emu] prior emulator export found at ${DATA_DIR}, will import`);
+  } else {
+    log(
+      `[emu] no prior emulator export found; starting fresh (will export on exit)`
+    );
   }
 
   log('[emu] starting firebase emulators...');

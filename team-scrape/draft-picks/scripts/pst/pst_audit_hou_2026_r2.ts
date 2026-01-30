@@ -216,15 +216,21 @@ function main() {
   if (mismatchCount === 0) {
     console.log('✅ All entitlements match ledger ownership.');
     console.log(
-      'The issue is upstream: the ledger shows HOU as owner for all 7 picks.'
+      '✅ No entitlement-vs-ledger mismatch detected for HOU 2026 R2.'
     );
-    console.log(
-      'This is a LEDGER DATA PROBLEM (Phase 6/7 overlay or PST scrape issue).'
-    );
+    if (rows.length <= 2) {
+      console.log(`✅ Count looks plausible for HOU 2026 R2: ${rows.length}.`);
+    } else {
+      console.log(
+        `⚠️ Count is high (${rows.length}). This may still be a ledger/overlay ownership issue — investigate overlay sources.`
+      );
+    }
   } else {
-    console.log('❌ Mismatches found between entitlements and ledger.');
     console.log(
-      'This is an ENTITLEMENT ASSIGNMENT PROBLEM (Phase 8 mapping bug).'
+      '❌ Mismatches detected between entitlements and ledger ownership.'
+    );
+    console.log(
+      '➡️ This indicates an entitlement build or ledger inconsistency. Investigate the mismatched pickIds above.'
     );
   }
 }
@@ -275,15 +281,21 @@ function generateTextOutput(result: AuditResult): string {
   if (result.summary.mismatchCount === 0) {
     lines.push('✅ All entitlements match ledger ownership.');
     lines.push(
-      'The issue is upstream: the ledger shows HOU as owner for all 7 picks.'
+      '✅ No entitlement-vs-ledger mismatch detected for HOU 2026 R2.'
     );
-    lines.push(
-      'This is a LEDGER DATA PROBLEM (Phase 6/7 overlay or PST scrape issue).'
-    );
+    if (result.summary.totalEntitlements <= 2) {
+      lines.push(
+        `✅ Count looks plausible for HOU 2026 R2: ${result.summary.totalEntitlements}.`
+      );
+    } else {
+      lines.push(
+        `⚠️ Count is high (${result.summary.totalEntitlements}). This may still be a ledger/overlay ownership issue — investigate overlay sources.`
+      );
+    }
   } else {
     lines.push('❌ Mismatches found between entitlements and ledger.');
     lines.push(
-      'This is an ENTITLEMENT ASSIGNMENT PROBLEM (Phase 8 mapping bug).'
+      '➡️ This indicates an entitlement build or ledger inconsistency. Investigate the mismatched pickIds above.'
     );
     lines.push('');
     lines.push(
