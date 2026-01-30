@@ -10,10 +10,10 @@
  *  - Plan: plans/pst-emulator-seeding/plan.md
  */
 
-import admin from 'firebase-admin';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { initAdminEmu } from './adminEmu.js';
 
 const BATCH_WRITE_LIMIT = 450; // stay under Firestore 500-write batch cap per requirement
 const OUTPUT_ROOT = path.resolve('firestore_staging/_artifacts/output');
@@ -49,31 +49,14 @@ const defaultLog: SeedLogger = (message) => {
   process.stdout.write(`${message}\n`);
 };
 
-const requireEmulatorEnv = () => {
-  const missing: string[] = [];
-  if (!process.env.FIRESTORE_EMULATOR_HOST) {
-    missing.push('FIRESTORE_EMULATOR_HOST');
-  }
-  if (!process.env.FIREBASE_AUTH_EMULATOR_HOST) {
-    missing.push('FIREBASE_AUTH_EMULATOR_HOST');
-  }
-  if (missing.length > 0) {
-    throw new Error(
-      `Refusing to seed without emulator env vars: ${missing.join(', ')}. ` +
-        'Run this script via npm run emu or export emulator vars manually.'
-    );
-  }
-};
+let cachedDb: FirebaseFirestore.Firestore | null = null;
 
-const ensureAdmin = () => {
-  if (admin.apps.length === 0) {
-    const projectId =
-      process.env.FIREBASE_PROJECT_ID ??
-      process.env.GCLOUD_PROJECT ??
-      'demo-scoutzero';
-    admin.initializeApp({ projectId });
+const getDb = () => {
+  if (!cachedDb) {
+    const { db } = initAdminEmu();
+    cachedDb = db;
   }
-  return admin.firestore();
+  return cachedDb;
 };
 
 const assertDirExists = async (dir: string) => {
@@ -166,7 +149,7 @@ export const seedArchitectBasePlayers = async ({
       `[seed] No base player JSON files found in ${BASE_PLAYERS_DIR}`
     );
   }
-  const db = ensureAdmin();
+  const db = getDb();
   if (await shouldSkipSeed(db, 'architect_basePlayers', force, logger)) {
     return {
       collection: 'architect_basePlayers',
@@ -222,7 +205,7 @@ export const seedPlayersV2 = async ({
       `[seed] No players_v2 JSON files found in ${PLAYERS_V2_DIR}`
     );
   }
-  const db = ensureAdmin();
+  const db = getDb();
   if (await shouldSkipSeed(db, 'players_v2', force, logger)) {
     return {
       collection: 'players_v2',
@@ -321,7 +304,10 @@ const parseArgs = (): { target: SeedTarget; force: boolean } => {
 };
 
 const runCli = async () => {
-  requireEmulatorEnv();
+  // Initialize and validate (also logs projectId)
+  const { projectId } = initAdminEmu();
+  defaultLog(`[seed:players] projectId: ${projectId}`);
+
   const { target, force } = parseArgs();
   const summaries: SeedSummary[] = [];
 

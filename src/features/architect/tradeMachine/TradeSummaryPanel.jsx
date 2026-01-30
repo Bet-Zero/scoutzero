@@ -20,6 +20,11 @@ import {
   computeEntitlementWarnings,
   getEntitlementKindBadge,
 } from '@/features/architect/tradeMachine/utils/entitlementWarnings';
+// Phase 12.3C: PickRow projection for protection/condition visibility
+import {
+  projectEntitlementToPickRow,
+  getPickRowSecondaryText,
+} from '@/features/architect/utils/entitlements/entitlementPickRowProjection';
 
 /**
  * Helper used for pick chip text
@@ -265,28 +270,44 @@ function TradeSummaryPanel({
                     <div className="space-y-1">
                       {entitlementsOut.map((ent, idx3) => {
                         const badge = getEntitlementKindBadge(ent.kind);
+                        // Phase 12.3C: Project entitlement for protection/condition visibility
+                        const pickRow = projectEntitlementToPickRow(ent, {
+                          teamCode: teamMeta?.id,
+                        });
+                        const secondaryText = getPickRowSecondaryText(pickRow);
                         return (
                           <div
                             key={ent.id || ent.entitlementId || idx3}
-                            className="flex items-center justify-between bg-white/5 px-2 py-1 rounded text-xs"
+                            className="flex flex-col bg-white/5 px-2 py-1.5 rounded text-xs"
                           >
-                            <div className="flex items-center gap-2 truncate">
-                              <span className="text-white/90">
-                                {ent.seasonYear} R{ent.round}
-                              </span>
-                              <span
-                                className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${badge.colorClass}`}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2 truncate">
+                                <span className="text-white/90">
+                                  {ent.seasonYear} R{ent.round}
+                                </span>
+                                <span
+                                  className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${badge.colorClass}`}
+                                >
+                                  {badge.label}
+                                </span>
+                              </div>
+                              <div
+                                className="text-white/50 text-[10px] truncate max-w-[120px]"
+                                title={ent.description}
                               >
-                                {badge.label}
-                              </span>
+                                {ent.description?.slice(0, 25) || ''}
+                                {ent.description?.length > 25 ? '…' : ''}
+                              </div>
                             </div>
-                            <div
-                              className="text-white/50 text-[10px] truncate max-w-[120px]"
-                              title={ent.description}
-                            >
-                              {ent.description?.slice(0, 25) || ''}
-                              {ent.description?.length > 25 ? '…' : ''}
-                            </div>
+                            {/* Phase 12.3C: Protection/conditions text */}
+                            {secondaryText && (
+                              <div
+                                className="text-white/40 text-[10px] mt-0.5 truncate"
+                                title={secondaryText}
+                              >
+                                {secondaryText}
+                              </div>
+                            )}
                           </div>
                         );
                       })}

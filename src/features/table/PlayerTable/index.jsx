@@ -5,13 +5,14 @@
  * OWNERSHIP: Feature: table/virtualization
  *
  * HISTORY:
+ *  - 2026-01-30: Phase 2K - Layout stabilization: overlay filters/sort + fixed-height controls shell
  *  - 2026-01-29: Phase 2E - Replaced hardcoded drawer padding with measured height via ResizeObserver
  *  - 2026-01-29: Added sticky header with z-[60], shadow, and scroll hygiene fixes (Phase 2B)
  *  - 2026-01-28: Replaced AutoSizer with useContainerDimensions hook to fix 0-height race condition
  *  - Previous: Used react-virtualized-auto-sizer which intermittently returned 0 dimensions
  *
  * LINKS:
- *  - Return Package: docs/return_packages/scouting/SCOUTING_PLAYER_TABLE_PHASE_2E_DRAWER_MEASURED_HEIGHT_SCROLL_HYGIENE_RP.md
+ *  - Return Package: docs/return_packages/scouting/SCOUTING_PLAYER_TABLE_PHASE_2K_EXEC_LAYOUT_STABLE_OVERLAYS.md
  */
 import React, { useState, useMemo, useCallback, useRef, useLayoutEffect } from 'react';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
@@ -22,6 +23,7 @@ import ActiveFiltersDisplay from '@/features/filters/ActiveFiltersDisplay';
 import ViewControls from '@/features/filters/FiltersPanel/FilterPanel/sections/ViewControls';
 import PlayerTableHeader from '@/features/table/PlayerTable/PlayerTableHeader';
 import PlayerDrawer from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer';
+import OverlayPanel from '@/features/table/PlayerTable/components/OverlayPanel';
 import debounce from 'lodash.debounce';
 import { getDefaultPlayerFilters } from '@/shared/utils/filtering';
 import { FixedSizeList as List } from 'react-window';
@@ -234,18 +236,50 @@ const PlayerTable = () => {
 
   return (
     <div className="flex flex-col bg-neutral-900 flex-1 min-h-0 w-full overflow-hidden">
-      {/* Sticky Header Section - stays pinned at top, z-[60] to layer above drawer (z-50) */}
+      {/* Phase 2K: Sticky Header Section with overlay positioning for filters/sort */}
       <div className="sticky top-0 z-[60] bg-neutral-900 shrink-0 border-b border-neutral-700/50 shadow-sm pt-4">
         <div className="w-full max-w-[1100px] mx-auto px-4 xl:px-0 flex flex-col">
-          <PlayerTableHeader
-            filteredCount={filteredPlayers.length}
-            onSearchChange={handleSearchChange}
-            showFilters={showFilters}
-            showSort={showSort}
-            onToggleFilters={() => setShowFilters((prev) => !prev)}
-            onToggleSort={() => setShowSort((prev) => !prev)}
-          />
+          {/* Relative wrapper for overlay positioning */}
+          <div className="relative">
+            <PlayerTableHeader
+              filteredCount={filteredPlayers.length}
+              onSearchChange={handleSearchChange}
+              showFilters={showFilters}
+              showSort={showSort}
+              onToggleFilters={() => setShowFilters((prev) => !prev)}
+              onToggleSort={() => setShowSort((prev) => !prev)}
+            />
 
+            {/* Overlay panels - absolutely positioned below header */}
+            {(showFilters || showSort) && (
+              <div className="absolute left-0 right-0 top-full z-10 pt-2">
+                {showFilters && !showFullFilters && (
+                  <OverlayPanel onClose={() => setShowFilters(false)}>
+                    <FiltersPanel
+                      filters={filters}
+                      setFilters={debouncedSetFilters}
+                      getDefaultFilters={getDefaultPlayerFilters}
+                      isOpen={showFilters}
+                      showFullFilters={showFullFilters}
+                      setShowFullFilters={setShowFullFilters}
+                      onClose={handleCloseFilters}
+                      onClearFilters={handleClearAllFilters}
+                    />
+                  </OverlayPanel>
+                )}
+                {showSort && (
+                  <OverlayPanel onClose={() => setShowSort(false)}>
+                    <ViewControls
+                      filters={filters}
+                      setFilters={debouncedSetFilters}
+                    />
+                  </OverlayPanel>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Fixed-height pills container - always renders */}
           <ActiveFiltersDisplay
             filters={filters}
             setFilters={debouncedSetFilters}
@@ -258,33 +292,22 @@ const PlayerTable = () => {
             ]}
             onClearFilters={handleClearAllFilters}
           />
-
-          {showFilters && (
-            <div className="mb-4">
-              <FiltersPanel
-                filters={filters}
-                setFilters={debouncedSetFilters}
-                getDefaultFilters={getDefaultPlayerFilters}
-                isOpen={showFilters}
-                showFullFilters={showFullFilters}
-                setShowFullFilters={setShowFullFilters}
-                onClose={handleCloseFilters}
-                onClearFilters={handleClearAllFilters}
-              />
-            </div>
-          )}
-
-          {/* View Controls */}
-          {showSort && (
-            <div className="mb-4">
-              <ViewControls
-                filters={filters}
-                setFilters={debouncedSetFilters}
-              />
-            </div>
-          )}
         </div>
       </div>
+
+      {/* Full FilterPanel (fixed overlay) - rendered outside sticky header */}
+      {showFilters && showFullFilters && (
+        <FiltersPanel
+          filters={filters}
+          setFilters={debouncedSetFilters}
+          getDefaultFilters={getDefaultPlayerFilters}
+          isOpen={showFilters}
+          showFullFilters={showFullFilters}
+          setShowFullFilters={setShowFullFilters}
+          onClose={handleCloseFilters}
+          onClearFilters={handleClearAllFilters}
+        />
+      )}
 
       {/* Player Rows (Virtualized) - flex-1 + min-h-0 + overflow-hidden ensures height is measurable */}
       <div

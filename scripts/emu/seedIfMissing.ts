@@ -13,10 +13,10 @@
  *  - Latest Chunk: n/a (single-phase plan)
  */
 
-import admin from 'firebase-admin';
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
+import { initAdminEmu } from './adminEmu.js';
 
 const REQUIRED_TEAMS = 30;
 const ENTITLEMENTS_JSON_PATH = path.resolve(
@@ -46,39 +46,24 @@ const getExpectedEntitlementCount = (): number => {
   );
 };
 
-const requireEmulatorEnv = () => {
-  const missing: string[] = [];
-  if (!process.env.FIRESTORE_EMULATOR_HOST) {
-    missing.push('FIRESTORE_EMULATOR_HOST');
-  }
-  if (!process.env.FIREBASE_AUTH_EMULATOR_HOST) {
-    missing.push('FIREBASE_AUTH_EMULATOR_HOST');
-  }
-  if (missing.length > 0) {
-    throw new Error(
-      `Refusing to seed without emulator env vars: ${missing.join(', ')}. ` +
-        'Ensure emulators are running and env vars are set.'
-    );
-  }
-};
-
 const log = (message: string) => {
   process.stdout.write(`${message}\n`);
 };
 
-const ensureAdmin = () => {
-  if (admin.apps.length === 0) {
-    const projectId =
-      process.env.FIREBASE_PROJECT_ID ??
-      process.env.GCLOUD_PROJECT ??
-      'demo-scoutzero';
-    admin.initializeApp({ projectId });
+let cachedDb: FirebaseFirestore.Firestore | null = null;
+let cachedProjectId: string | null = null;
+
+const getDb = () => {
+  if (!cachedDb) {
+    const { db, projectId } = initAdminEmu();
+    cachedDb = db;
+    cachedProjectId = projectId;
   }
-  return admin.firestore();
+  return cachedDb;
 };
 
 const checkSeedState = async () => {
-  const db = ensureAdmin();
+  const db = getDb();
   const [entitlementsSnap, teamsSnap, basePlayersSnap, playersV2Snap] =
     await Promise.all([
       db.collection('architect_baseEntitlements').get(),
@@ -123,7 +108,9 @@ const runScript = async (script: string) =>
   });
 
 const main = async () => {
-  requireEmulatorEnv();
+  // Initialize admin and log projectId (also validates FIRESTORE_EMULATOR_HOST)
+  const { projectId } = initAdminEmu();
+  log(`[seed] projectId: ${projectId}`);
 
   const expectedEntitlements = getExpectedEntitlementCount();
   log(

@@ -176,6 +176,7 @@ utils/
   contractUtils.js
   draftPickUtils.js
   entitlements/
+    entitlementPickRowProjection.js
     entitlementResolver.ts
     formatEntitlement.js
   exceptionHistory/
@@ -187,6 +188,11 @@ utils/
   hardCapUtils.js
   loadArchitectBasePlayer.ts
   mutationPipeline.js
+  persistenceContracts/
+    contracts.js
+    enforcement.js
+    index.js
+    validatePersistableShape.js
   playerRulesProfile/
     birdRightsRules.js
     computeProfile.js
@@ -216,6 +222,13 @@ utils/
   temp_mutation_code.js
   timingUtils.js
   tpeLifecycle.js
+  tradeContext/
+    assertions.js
+    index.js
+    legacy/
+      index.js
+    tradeContext.js
+    types.js
   tradeHelpers.js
   tradeMachine/
     MIGRATION_NOTES.md
@@ -279,10 +292,12 @@ utils/
       matchingValues.js
       normalizeTradeInput.js
       pickIdUtils.js
+      resolveValidationEntitlements.js
       salaryMargin.js
       salaryMatchingRules.js
       salaryUtils.js
       seasonUtils.js
+      stepienEntitlementUtils.js
       swapResolution.js
       tradeUtilities.js
       validateInput.js
@@ -295,5 +310,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-01-30T04:11:05.619Z*
+*Generated on: 2026-01-30T14:49:43.847Z*
 *Auto-updated by: npm run docs*

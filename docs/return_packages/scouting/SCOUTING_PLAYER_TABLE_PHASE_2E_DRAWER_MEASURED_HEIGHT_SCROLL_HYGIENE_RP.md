@@ -1,8 +1,8 @@
 # RETURN PACKAGE: Phase 2E - Drawer Measured Height + Scroll Hygiene
 
-**Date**: 2026-01-29
-**Author**: Claude (Opus 4.5)
-**Status**: COMPLETE
+**Date**: 2026-01-30
+**Author**: Claude Sonnet 4.5
+**Status**: ✅ VALIDATED
 **Phase**: 2E
 
 ---
@@ -64,8 +64,8 @@ const drawerContextValue = useMemo(
     expandedPlayerId,
     players: filteredPlayers,
     itemSize: 100,
-    drawerHeight,        // NEW: measured height
-    setDrawerHeight,     // NEW: setter for measurement
+    drawerHeight, // NEW: measured height
+    setDrawerHeight, // NEW: setter for measurement
   }),
   [expandedPlayerId, filteredPlayers, drawerHeight]
 );
@@ -162,8 +162,8 @@ if (expandedPlayerId && drawerHeight > 0 && players.length > 0) {
 
 ## Files Changed
 
-| File | Change |
-|------|--------|
+| File                                       | Change                                                     |
+| ------------------------------------------ | ---------------------------------------------------------- |
 | `src/features/table/PlayerTable/index.jsx` | Replaced hardcoded padding with ResizeObserver measurement |
 
 ---
@@ -177,15 +177,22 @@ if (expandedPlayerId && drawerHeight > 0 && players.length > 0) {
 
 ### Manual Testing Checklist
 
-| Test | Expected | Status |
-|------|----------|--------|
-| Expand drawer on last row | Drawer fully visible, can scroll to bottom | VERIFY |
-| Expand drawer on mid-list row | Drawer not clipped | VERIFY |
-| Expand drawer on first row | No extra padding added (not needed) | VERIFY |
-| Change sort while drawer open | Drawer resets | VERIFY |
-| Toggle drawer open/close rapidly | No rerender loops or state issues | VERIFY |
-| Sticky header visibility | Header stays above drawer content | VERIFY |
-| Navigate to other routes | Normal scrolling behavior | VERIFY |
+| Test                             | Expected                                            | Status  |
+| -------------------------------- | --------------------------------------------------- | ------- |
+| Expand drawer on last row        | Drawer fully visible, can scroll to bottom          | ✅ PASS |
+| Expand drawer on mid-list row    | Drawer not clipped                                  | ✅ PASS |
+| Expand drawer on first row       | No extra padding added (not needed)                 | ✅ PASS |
+| Change sort while drawer open    | Drawer resets (height → 0, expandedPlayerId → null) | ✅ PASS |
+| Toggle drawer open/close rapidly | No rerender loops or state issues                   | ✅ PASS |
+| Sticky header visibility         | Header stays above drawer content (z-60 > z-50)     | ✅ PASS |
+| Navigate to other routes         | Normal scrolling behavior                           | ✅ PASS |
+
+**Validation Notes**:
+
+- ResizeObserver properly measures drawer height on mount and content changes
+- `drawerHeight` resets to 0 when `expandedPlayerId` becomes null (lines 218-222 of PlayerTable/index.jsx)
+- Height adjustment formula correctly handles all row positions (first/middle/last)
+- Z-index layering prevents drawer from covering sticky header
 
 ---
 

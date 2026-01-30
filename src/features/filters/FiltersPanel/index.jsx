@@ -16,13 +16,13 @@ const FiltersPanel = ({
 
   return (
     <>
-      {/* Condensed Panel */}
+      {/* Condensed Panel - Phase 2K: Removed mb-4 for overlay use */}
       {!showFullFilters && (
-        <div className="w-full max-w-[1100px] mx-auto mb-4 relative">
-          {/* + More Filters Button (floating, no layout shift) */}
+        <div className="w-full relative">
+          {/* + More Filters Button (floating) */}
           <button
             onClick={() => setShowFullFilters(true)}
-            className="h-[23px] absolute top-[15px] right-[7px] translate-y-[-50%] flex items-center gap-1 px-1 py-1 text-white/60 text-xs border border-white/10 rounded hover:text-white hover:border-white/20 hover:bg-neutral-700 transition-all whitespace-nowrap"
+            className="h-[23px] absolute top-[15px] right-[7px] translate-y-[-50%] flex items-center gap-1 px-1 py-1 text-white/60 text-xs border border-white/10 rounded hover:text-white hover:border-white/20 hover:bg-neutral-700 transition-all whitespace-nowrap z-10"
           >
             <span className="text-base font-semibold leading-none">＋</span>
           </button>

@@ -36,9 +36,18 @@
 - - 2026-01-29: Phase 51 Season Advance TPE Expiry Integration (EXECUTION) - Added integration-level tests for season advance TPE expiry flow verifying: (1) expired TPEs removed when `expiresOn < boundary` (July 1 of toSeason start year), (2) active TPEs kept when `expiresOn >= boundary`, (3) boundary condition: TPE at exact boundary (e.g., 2026-07-01T00:00:00.000Z for 2026-27 season) is ACTIVE (kept), (4) dual-source "no ghost" dedupe merging `tradeExceptions[]` + `exceptions.tpe[]` with id-based preference for canonical fields, (5) idempotency: running twice produces identical results. 18 integration tests, 253 architect tests passing. Return package: `docs/architect/return_packages/PHASE_51_SEASON_ADVANCE_TPE_EXPIRY_INTEGRATION_EXECUTION_RETURN_PACKAGE.md`.
 - - 2026-01-29: Phase 52 Roster Spot Charges UI Wiring (EXECUTION) - Verified G2-3 gap already resolved in Phase 25. (1) `incompleteChargesTotal` computed in SSOT (`computeTeamCapTotals.js` L216). (2) UI display implemented in `CapSheet.jsx` L431-451 with conditional "Incomplete Roster Charge" row, slot count annotation, and proper formatting. (3) 7 UI tests in `rosterChargeDisplay.test.jsx` (RC1-RC6) all passing. (4) Updated Master Doc §3.2 and §7.3 to mark G2-3 as RESOLVED. Return package: `docs/architect/return_packages/PHASE_52_ROSTER_SPOT_CHARGES_UI_WIRING_EXECUTION_RETURN_PACKAGE.md`.
 - - 2026-01-29: Phase 53 TPE Expiry Exception History Logging (EXECUTION) - Closed "TPEs disappear with no audit trail" gap during season advance. (1) Added `TPE_EXPIRED` entry type to `historyHelpers.js` with `createTpeExpiryHistoryEntry()` and `buildExpiryHistoryKey()` helpers. (2) Season advance now emits durable `TPE_EXPIRED` entries to `team.exceptionHistory[]` for each expired TPE via `processTeamSeasonTransitionWithOptions()`. (3) Entries are idempotent and deduped by deterministic `historyKey` (format: `seasonAdvance:{worldId}:{teamCode}:{tpeId}:expired:{signature}`). (4) Boundary semantics unchanged: `expiresOn == boundary` stays ACTIVE (no expiry history). (5) Dual-source merge produces no ghost expiry logs. (6) 17 new guardrail tests in `phase53_seasonAdvance_tpe_expiry_history_integration.test.js`. 270 architect tests passing. Return package: `docs/architect/return_packages/PHASE_53_TPE_EXPIRY_EXCEPTION_HISTORY_LOGGING_EXECUTION_RETURN_PACKAGE.md`.
+- - 2026-01-30: Phase 55 Trade Validation Separation (EXECUTION) - Eliminated duplicate `validateTrade()` calls in trade mutation paths. (1) Added `validateTradeForContext()` export for building validated trade contexts. (2) `computeTradeResult()` now attaches `_validatedTradeContext` to its result with `_isValidatedTradeContext: true` flag. (3) `validateMutation()` for `executeTrade` and `signAndTrade` now checks for pre-validated context and reuses it instead of re-calling `validateTradeForPipeline()`. (4) Trade validation runs exactly once per mutation (inside `computeTradeResult()` after roster updates, required for correct TPE absorption context). (5) Phase 48 invariant preserved: signing validation runs before trade validation in S&T path. (6) 5 new guardrail tests in `phase55_trade_validation_separation_guardrails.test.js`. 275 architect tests passing. Return package: `docs/architect/return_packages/PHASE_55_TRADE_VALIDATION_SEPARATION_EXECUTION_RETURN_PACKAGE.md`.
+- - 2026-01-30: Phase 56 Pure computeTradeResult + Post-Trade Snapshot Validation (EXECUTION) - Made `computeTradeResult()` a **pure function** (no internal `validateTrade()` calls). (1) Added `buildPostTradeTeamsSnapshot()` pure helper that applies roster moves without calling validators. (2) Added `validatePostTradeSnapshotForContext()` that validates the post-trade snapshot exactly once and returns `validatedContext`. (3) Refactored `computeTradeResult()` to require `postTradeSnapshot` and `validatedContext` parameters - throws if missing. (4) Updated `computeWorldMutation` executeTrade case to: build snapshot → validate snapshot → compute with context. (5) Updated `computeSignAndTradeResult()` to: validate signing → build post-trade snapshot → validate trade → compute with context. (6) Trade validation sees POST-TRADE roster state (required for correct TPE absorption). (7) Legacy `validateTradeForContext()` retained as convenience wrapper. (8) 7 new guardrail tests in `phase56_pure_computeTradeResult_guardrails.test.js`. 282 architect tests passing. Return package: `docs/architect/return_packages/PHASE_56_POST_TRADE_SNAPSHOT_VALIDATION_PURE_COMPUTE_EXECUTION_RETURN_PACKAGE.md`.
+- - 2026-01-30: Phase 57 Trade Validation Separation Cleanup + Anti-Regression Guardrails (EXECUTION) - Finalized Phase 56 by: (1) Removing Phase 55-era fallback paths in `validateMutation()` - `executeTrade` and `signAndTrade` now throw hard errors if pre-validated context is missing instead of falling back to `validateTradeForPipeline()`. (2) Marked `validateTradeForContext()` as legacy convenience wrapper with clear docstring warning not to use for mutation gating. (3) Added anti-regression test (`phase57_forbid_validateTrade_in_compute_guardrail.test.js`) that reads source files and enforces `validateTrade(` does not appear in compute/persist regions - 7 guardrail tests. (4) Trade pipeline is now cleanly `snapshot → validate → compute/persist` with no fallback paths. Return package: `docs/architect/return_packages/PHASE_57_TRADE_VALIDATION_CLEANUP_GUARDRAILS_EXECUTION_RETURN_PACKAGE.md`.
+- - 2026-01-30: Phase 58 Trade Context Extraction + Shape Hardening (EXECUTION) - Extracted Phase 56/57 trade snapshot/context helpers to dedicated module for maintainability. (1) Created `src/features/architect/utils/tradeContext/` module with: `tradeContext.js` (snapshot + validation context builders), `assertions.js` (runtime shape assertions), `types.js` (canonical JSDoc typedefs), `index.js` (public API). (2) Defined canonical shapes: `PostTradeSnapshot` (sentinel: `_isPostTradeSnapshot`), `ValidatedTradeContext` (sentinel: `_isValidatedTradeContext`). (3) Added runtime assertions: `assertPostTradeSnapshot()`, `assertValidatedTradeContext()`, `assertTradeComputeInputs()` - used in `computeTradeResult()`. (4) Updated Phase 57 guardrail tests to cover new module paths with allowlist enforcement. (5) Marked `validateTradeForPipeline()` as `@deprecated`. (6) `mutationPipeline.js` re-exports for backward compatibility. Return package: `docs/architect/return_packages/PHASE_58_TRADE_CONTEXT_EXTRACTION_SHAPE_HARDENING_EXECUTION_RETURN_PACKAGE.md`.
+- - 2026-01-30: Phase 59 Legacy Trade Validation Retirement + Anti-Regression Guardrails (EXECUTION) - Removed/quarantined legacy trade validation helpers to prevent regression to pre-Phase 56 architecture. (1) Deleted `validateTradeForPipeline()` function from `mutationPipeline.js` (dead code, no callers). (2) Created `tradeContext/legacy/` namespace with loud naming (`legacy_validateTradeForContext`). (3) Moved `validateTradeForContext` from main exports to legacy namespace (re-exported from `tradeContext/index.js` for backward compat). (4) Removed `validateTradeForContext` re-export from `mutationPipeline.js`. (5) Added 13 guardrail tests in `phase59_legacy_import_guardrail.test.js` enforcing: mutation modules cannot import from legacy namespace, `validateTradeForPipeline` is removed, legacy namespace has loud warnings. (6) Updated Phase 57 guardrail tests to reflect Phase 59 changes. (7) Documented `calculateTeamTotals` duplication as intentional (avoid circular deps). 313 architect tests passing. Return package: `docs/architect/return_packages/PHASE_59_LEGACY_TRADE_VALIDATION_RETIREMENT_GUARDRAILS_EXECUTION_RETURN_PACKAGE.md`.
+- - 2026-01-30: Phase 60 Mutation Persistence Sanitization + No-Leak Guardrails (EXECUTION) - Ensured transient compute/validation artifacts never persist to Firestore. (1) Added `FORBIDDEN_TRANSIENT_KEYS` constant and `sanitizeTransientFieldsForPersistence()` function to `mutationPipeline.js`. (2) Forbidden keys: `_validatedTradeContext`, `_signingValidation`, `_isPostTradeSnapshot`, `_isValidatedTradeContext`, `_rawValidation`. (3) `_meta` explicitly preserved (used by UI for computed totals display). (4) Applied sanitization in `persistWorldMutation()` for team, player, and event writes before `removeUndefinedDeep()`. (5) Added 17 guardrail tests in `phase60_mutation_persist_no_internal_leaks_guardrail.test.js`: unit tests for sanitizer, deep-scan tests for forbidden key detection, source-scan tests verifying sanitizer usage at persistence boundary. 330 architect tests passing. Return package: `docs/architect/return_packages/PHASE_60_MUTATION_PERSIST_SANITIZATION_NO_LEAK_GUARDRAILS_EXECUTION_RETURN_PACKAGE.md`.
+- - 2026-01-30: Phase 61 Persistence Contract Allowlist Guardrails (EXECUTION) - Prevented schema drift at mutation persistence boundary via allowlist-based contracts. (1) Created `src/features/architect/utils/persistenceContracts/` module with: `contracts.js` (frozen allowlists for team/player/event docs + nested arrays), `validatePersistableShape.js` (path-reporting validator), `enforcement.js` (test-on/prod-off gating), `index.js` (public API). (2) Allowlists: `TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST`, `PLAYER_OVERRIDE_TOP_LEVEL_ALLOWLIST`, `EVENT_TOP_LEVEL_ALLOWLIST`, `EVENT_METADATA_TOP_LEVEL_ALLOWLIST`, plus deep rules for `tradeExceptions[]` and `exceptionHistory[]` items. (3) Wired `assertPersistableOrThrow()` in `persistWorldMutation()` for team, player, event, and event.metadata writes. (4) Enforcement order: sanitize → validate contract → removeUndefined. (5) Enforcement enabled by default in test env (`NODE_ENV=test`), disabled in production. (6) 34 guardrail tests in `phase61_persistence_contract_allowlist_guardrails.test.js`. Return package: `docs/architect/return_packages/PHASE_61_PERSISTENCE_CONTRACT_ALLOWLIST_GUARDRAILS_EXECUTION_RETURN_PACKAGE.md`.
+- - 2026-01-30: Phase 62 Persistence Contract Deep-Rules + Fixture-Based Drift Guardrails (EXECUTION) - Hardened Phase 61 contracts with deep rules for drift-prone nested structures. (1) Added `DEAD_CAP_ITEM_ALLOWLIST` for `team.deadCap[]` items. (2) Added `DEAD_CAP_AMOUNT_BY_YEAR_ITEM_ALLOWLIST` for 3-level nested `team.deadCap[].amountByYear[]` items. (3) Added `CAP_HOLD_ITEM_ALLOWLIST` for `team.capHolds[]` items. (4) Extended `validatePersistableShape.js` to support 3-level nesting via propagated deep rules. (5) Updated `TEAM_DEEP_RULES` with 3 new entries: `deadCap`, `deadCap.amountByYear`, `capHolds`. (6) Created fixture-based drift guardrails with keyset snapshot tests that detect new/removed fields. (7) 33 new guardrail tests in `phase62_persistence_contract_fixtures_deep_rules_guardrail.test.js`. Return package: `docs/architect/return_packages/PHASE_62_PERSISTENCE_CONTRACT_DEEP_RULES_FIXTURES_EXECUTION_RETURN_PACKAGE.md`.
 -
 - LINKS:
 - - Plan: plans/cap-sheet-contract-rules-phase-7-3/plan.md
+- - Trade Context Module: src/features/architect/utils/tradeContext/
 - - Latest Chunk: n/a (no chunks used)
     \*/
 
@@ -524,6 +533,170 @@ interface CapHold {
 | `src/features/architect/capSheet/ExceptionTracker/ExceptionTracker.jsx` | Exception display                     |
 | `src/features/architect/utils/tradeMachine/engine/tradeValidator.js`    | Trade validation (reference)          |
 | `src/features/architect/utils/contractNormalization.js`                 | Contract schema normalization helpers |
+
+### 8.1 Anti-Regression Guardrails (Phase 56/57/59)
+
+**Added:** Phase 57 (2026-01-30), Updated Phase 59 (2026-01-30)
+
+The trade mutation pipeline enforces a strict `snapshot → validate → compute/persist` pattern to prevent duplicate validation calls and ensure compute functions remain pure.
+
+#### Trade Validation Pipeline Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         TRADE MUTATION PIPELINE                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  1. BUILD SNAPSHOT                                                          │
+│     └─ buildPostTradeTeamsSnapshot() — PURE, applies roster moves           │
+│                                                                              │
+│  2. VALIDATE                                                                 │
+│     └─ validatePostTradeSnapshotForContext() — calls validateTrade() ONCE   │
+│                                                                              │
+│  3. COMPUTE                                                                  │
+│     └─ computeTradeResult() — PURE, requires validatedContext (throws if    │
+│        missing), uses pre-validated TPE/rule results                        │
+│                                                                              │
+│  4. PERSIST                                                                  │
+│     └─ persistWorldMutation() — writes to Firestore (no validation calls)   │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Guardrail Enforcement
+
+| Rule                                                | Description                                                                                    | Test File                                                   |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| **No validateTrade in computeTradeResult**          | `computeTradeResult()` must not call `validateTrade()` - it receives pre-validated context     | `phase57_forbid_validateTrade_in_compute_guardrail.test.js` |
+| **No validateTrade in persistWorldMutation**        | Persistence layer must not call validators                                                     | `phase57_forbid_validateTrade_in_compute_guardrail.test.js` |
+| **No validateTrade in buildPostTradeTeamsSnapshot** | Snapshot builder is pure, no validation calls                                                  | `phase57_forbid_validateTrade_in_compute_guardrail.test.js` |
+| **No fallback validation in validateMutation**      | `validateMutation()` for trade mutations throws if pre-validated context is missing (Phase 57) | `phase57_forbid_validateTrade_in_compute_guardrail.test.js` |
+
+#### Key Files
+
+| File                                                       | Role                                                    |
+| ---------------------------------------------------------- | ------------------------------------------------------- |
+| `mutationPipeline.js::buildPostTradeTeamsSnapshot`         | Pure snapshot builder (re-export from tradeContext)     |
+| `mutationPipeline.js::validatePostTradeSnapshotForContext` | Single validation point (re-export from tradeContext)   |
+| `mutationPipeline.js::computeTradeResult`                  | Pure compute (requires `validatedContext`)              |
+| `tradeContext/tradeContext.js`                             | Primary snapshot + validation context builders          |
+| `tradeContext/legacy/index.js`                             | ⚠️ Legacy namespace - NOT for mutation modules          |
+| `tradeContext/legacy/legacy_validateTradeForContext`       | ⚠️ Legacy convenience wrapper - NOT for mutation gating |
+
+#### Phase 59 Legacy Import Guardrails
+
+**Added:** Phase 59 (2026-01-30)
+
+| Rule                                            | Description                                                                                 | Test File                                 |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| **Mutation modules cannot import from legacy/** | `mutationPipeline.js` and utils must not import from `tradeContext/legacy/`                 | `phase59_legacy_import_guardrail.test.js` |
+| **validateTradeForPipeline removed**            | Dead function deleted, no references allowed in mutation pipeline                           | `phase59_legacy_import_guardrail.test.js` |
+| **Legacy namespace has loud warnings**          | `tradeContext/legacy/index.js` must contain warning emojis and explicit deprecation notices | `phase59_legacy_import_guardrail.test.js` |
+| **Phase 59 markers in source files**            | Modified files must document Phase 59 changes                                               | `phase59_legacy_import_guardrail.test.js` |
+
+#### Phase 60 Persistence No-Leak Guardrails
+
+**Added:** Phase 60 (2026-01-30)
+
+The mutation pipeline uses internal transient fields during the `snapshot → validate → compute` phase that must NOT be persisted to Firestore. Phase 60 added surgical sanitization at the persistence boundary.
+
+##### Forbidden Transient Keys
+
+| Key                        | Purpose                              | Created By                            |
+| -------------------------- | ------------------------------------ | ------------------------------------- |
+| `_validatedTradeContext`   | Pre-validated trade context (dedup)  | `validatePostTradeSnapshotForContext` |
+| `_signingValidation`       | Pre-validated signing result (S&T)   | `computeSignAndTradeResult`           |
+| `_isPostTradeSnapshot`     | Sentinel flag for snapshot detection | `buildPostTradeTeamsSnapshot`         |
+| `_isValidatedTradeContext` | Sentinel flag for validated context  | `validatePostTradeSnapshotForContext` |
+| `_rawValidation`           | Raw validation result for debugging  | `validatePostTradeSnapshotForContext` |
+
+**Note:** `_meta` is NOT forbidden - it's legitimately used for computed totals display (UI).
+
+##### Sanitization Enforcement
+
+| Location                    | What Gets Sanitized                    | Sanitizer Function                        |
+| --------------------------- | -------------------------------------- | ----------------------------------------- |
+| `persistWorldMutation` (L1) | Team snapshots                         | `sanitizeTransientFieldsForPersistence()` |
+| `persistWorldMutation` (L2) | Player overrides                       | `sanitizeTransientFieldsForPersistence()` |
+| `persistWorldMutation` (L3) | Event metadata                         | `sanitizeTransientFieldsForPersistence()` |
+| `persistWorldMutation` (L4) | Entire event object (defense-in-depth) | `sanitizeTransientFieldsForPersistence()` |
+
+##### Guardrail Tests
+
+| Test       | Description                                                                  |
+| ---------- | ---------------------------------------------------------------------------- |
+| TEST 1-6   | `sanitizeTransientFieldsForPersistence()` unit tests (keys, nesting, \_meta) |
+| TEST 7-9   | `findForbiddenKeyPaths()` deep-scan helper tests                             |
+| TEST 10-11 | executeTrade/signAndTrade compute result sanitization verification           |
+| TEST 12-13 | Source-scan: sanitizer called for team/player writes                         |
+| TEST 14-15 | `FORBIDDEN_TRANSIENT_KEYS` export, immutability, completeness                |
+| TEST 16-17 | Event metadata sanitization verification                                     |
+
+**Test File:** `phase60_mutation_persist_no_internal_leaks_guardrail.test.js`
+
+#### Phase 61 Persistence Contract Boundary Guardrails
+
+**Added:** Phase 61 (2026-01-30)
+
+In addition to stripping known transient keys (Phase 60), Phase 61 added allowlist-based contracts that catch unknown/unexpected fields before they persist to Firestore.
+
+##### Enforcement Order
+
+```
+sanitizeTransientFieldsForPersistence()  ← Phase 60: strip known transient keys
+         ↓
+assertPersistableOrThrow()               ← Phase 61: validate against allowlist
+         ↓
+removeUndefinedDeep()                    ← Strip undefined values
+         ↓
+batch.set()                              ← Write to Firestore
+```
+
+##### Allowlists
+
+| Allowlist                             | Scope                         |
+| ------------------------------------- | ----------------------------- |
+| `TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST`    | Team overlay documents        |
+| `PLAYER_OVERRIDE_TOP_LEVEL_ALLOWLIST` | Player override documents     |
+| `EVENT_TOP_LEVEL_ALLOWLIST`           | Event documents               |
+| `EVENT_METADATA_TOP_LEVEL_ALLOWLIST`  | Event metadata objects        |
+| `TRADE_EXCEPTION_ITEM_ALLOWLIST`      | Items in `exceptions.tpe[]`   |
+| `EXCEPTION_HISTORY_ITEM_ALLOWLIST`    | Items in `exceptionHistory[]` |
+
+**Test File:** `phase61_persistence_contract_allowlist_guardrails.test.js`
+
+#### Phase 62 Fixture-Based Persistence Drift Guardrails
+
+**Added:** Phase 62 (2026-01-30)
+
+Phase 62 extended Phase 61 contracts with deep rules for additional drift-prone nested arrays and introduced fixture-based keyset snapshot tests.
+
+##### Additional Deep Rules (Phase 62)
+
+| Deep Rule Path         | Allowlist                                | Purpose                       |
+| ---------------------- | ---------------------------------------- | ----------------------------- |
+| `deadCap`              | `DEAD_CAP_ITEM_ALLOWLIST`                | Dead cap item validation      |
+| `deadCap.amountByYear` | `DEAD_CAP_AMOUNT_BY_YEAR_ITEM_ALLOWLIST` | 3-level nested year breakdown |
+| `capHolds`             | `CAP_HOLD_ITEM_ALLOWLIST`                | Cap hold item validation      |
+
+##### Fixture-Based Drift Detection
+
+Phase 62 tests create representative fixture objects that mirror real persisted shapes, then:
+
+1. **Contract validation:** Fixtures validate against `PERSISTENCE_CONTRACTS`
+2. **Keyset snapshots:** Sorted key lists compared against explicit expected arrays
+3. **Drift detection:** New fields trigger test failure before reaching production
+
+##### Test Categories
+
+| Test Range | Description                                      |
+| ---------- | ------------------------------------------------ |
+| TEST 1-4   | Deep rules for `deadCap[]` items (incl. 3-level) |
+| TEST 5-7   | Deep rules for `capHolds[]` items                |
+| TEST 8-12  | Fixture-based contract validation                |
+| TEST 13-19 | Keyset snapshot drift guardrails (deterministic) |
+| TEST 20-24 | Actionable error messages for nested violations  |
+| TEST 25-33 | Contract structure validation for new allowlists |
+
+**Test File:** `phase62_persistence_contract_fixtures_deep_rules_guardrail.test.js`
 
 ---
 
@@ -1026,3 +1199,137 @@ Phase 17 standardizes the workflow for resolving `MATCHED` and `DECLINED` offer 
 | Rule ID                                                 | Type       | Trigger                                                  | Description                  |
 | ------------------------------------------------------- | ---------- | -------------------------------------------------------- | ---------------------------- |
 | `rfa_offer_sheet_matched_offering_team_cannot_finalize` | HARD_BLOCK | Offering team attempts cleanup/finalize on MATCHED offer | Player stays with home team. |
+
+---
+
+## Phase 58: Trade Context Module + Canonical Shapes
+
+Phase 58 extracted the Phase 56/57 trade snapshot and validation context helpers into a dedicated module for improved maintainability and shape enforcement.
+
+### Module Location
+
+```
+src/features/architect/utils/tradeContext/
+├── index.js          # Public API re-exports
+├── tradeContext.js   # Snapshot + validation context builders
+├── assertions.js     # Runtime shape assertions
+└── types.js          # Canonical JSDoc typedefs
+```
+
+### Canonical Shapes
+
+#### PostTradeSnapshot
+
+```javascript
+/**
+ * @typedef {Object} PostTradeSnapshot
+ * Result from buildPostTradeTeamsSnapshot(). Contains POST-TRADE team state
+ * AFTER roster moves but BEFORE validation.
+ *
+ * @property {Array<{teamCode, team}>} teamUpdates - Teams with roster changes applied
+ * @property {Array} validationTeams - Teams in format expected by validateTrade
+ * @property {Array} payloadTeams - Original payload.teams for reference
+ * @property {boolean} _isPostTradeSnapshot - Sentinel flag (Phase 58)
+ */
+```
+
+#### ValidatedTradeContext
+
+```javascript
+/**
+ * @typedef {Object} ValidatedTradeContext
+ * Result from validatePostTradeSnapshotForContext(). Contains validation
+ * results after running validateTrade() exactly ONCE on the snapshot.
+ *
+ * @property {boolean} legal - Is the trade legal?
+ * @property {boolean} _isValidatedTradeContext - Sentinel flag (MUST be true)
+ * @property {Array} teamResults - Per-team results (createdTPE, violations)
+ * @property {Array} validationTeams - Validated teams with matchIncoming populated
+ */
+```
+
+### Runtime Assertions
+
+| Function                        | Call Site                           | Purpose                             |
+| ------------------------------- | ----------------------------------- | ----------------------------------- |
+| `assertPostTradeSnapshot()`     | validatePostTradeSnapshotForContext | Validate snapshot before validation |
+| `assertValidatedTradeContext()` | computeTradeResult                  | Validate context before compute     |
+| `assertTradeComputeInputs()`    | computeTradeResult (entry)          | Combined assertion for both shapes  |
+
+### Architecture Diagram (Updated)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           TRADE MUTATION PIPELINE                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌─────────────────────┐    ┌─────────────────────┐    ┌─────────────────┐ │
+│  │ buildPostTrade      │───▶│ validatePostTrade   │───▶│ computeTrade    │ │
+│  │ TeamsSnapshot       │    │ SnapshotForContext  │    │ Result          │ │
+│  │ (PURE)              │    │ (calls validateTrade│    │ (PURE)          │ │
+│  │                     │    │  exactly ONCE)      │    │                 │ │
+│  │ [tradeContext/]     │    │ [tradeContext/]     │    │ [mutationPipe]  │ │
+│  └─────────────────────┘    └─────────────────────┘    └─────────────────┘ │
+│           │                          │                          │          │
+│           ▼                          ▼                          ▼          │
+│   PostTradeSnapshot         ValidatedTradeContext        Compute Result    │
+│   (has roster changes)      (has teamResults,            (team/player      │
+│   (_isPostTradeSnapshot)     matchIncoming, createdTPE)   updates)         │
+│                             (_isValidatedTradeContext)                      │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+GUARDRAILS:
+- validateTrade() calls ONLY in validatePostTradeSnapshotForContext
+- buildPostTradeTeamsSnapshot: NO validation calls (PURE)
+- computeTradeResult: NO validation calls (PURE)
+- Runtime assertions at pipeline boundaries
+```
+
+### Guardrail Test Coverage
+
+| Test       | Coverage                                          |
+| ---------- | ------------------------------------------------- |
+| Test 1-2   | computeTradeResult, persistWorldMutation purity   |
+| Test 3     | buildPostTradeTeamsSnapshot purity (tradeContext) |
+| Test 8     | tradeContext module structure                     |
+| Test 9     | validateTrade allowlist (only in validator)       |
+| Test 10    | assertions.js purity                              |
+| Test 11-12 | mutationPipeline imports/uses shared assertions   |
+
+### Phase 61 Persistence Contract Allowlist Guardrails
+
+**Purpose:** Prevent Firestore schema drift at the mutation persistence boundary by enforcing allowlist-based persistence contracts for all written documents.
+
+**What is enforced:**
+
+| Document Type   | Path Pattern                                                     | Allowlist Constant                              |
+| --------------- | ---------------------------------------------------------------- | ----------------------------------------------- |
+| Team Overlay    | `architect_worlds/{worldId}/teams/{teamCode}`                    | `TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST` + deep rules |
+| Player Override | `architect_worlds/{worldId}/teams/{teamCode}/players/{playerId}` | `PLAYER_OVERRIDE_TOP_LEVEL_ALLOWLIST`           |
+| Event           | `architect_worlds/{worldId}/events/{eventId}`                    | `EVENT_TOP_LEVEL_ALLOWLIST`                     |
+| Event Metadata  | `event.metadata` object                                          | `EVENT_METADATA_TOP_LEVEL_ALLOWLIST`            |
+
+**Nested allowlists (deep rules for TEAM):**
+
+- `exceptions.tpe[]` items → `TRADE_EXCEPTION_ITEM_ALLOWLIST`
+- `exceptionHistory[]` items → `EXCEPTION_HISTORY_ITEM_ALLOWLIST`
+
+**Where enforced:** `persistWorldMutation()` in `mutationPipeline.js`
+
+**Enforcement order:** sanitize → validate contract → removeUndefined
+
+**How enabled:**
+
+- Test environment (`NODE_ENV=test`): **ENABLED by default**
+- Production: **DISABLED by default**
+- Explicit override: `ENFORCE_PERSIST_CONTRACTS=true` env var
+
+**What to do when it fails:**
+
+1. Review the violation paths in the error message
+2. If the field is intentional, add it to the appropriate allowlist in `src/features/architect/utils/persistenceContracts/contracts.js`
+3. Document the addition in the contracts doc (`docs/architect/contracts/PERSISTENCE_CONTRACTS.md`)
+4. If the field should NOT persist, remove it at the source or add to Phase 60 `FORBIDDEN_TRANSIENT_KEYS`
+
+**Reference:** `docs/architect/contracts/PERSISTENCE_CONTRACTS.md`

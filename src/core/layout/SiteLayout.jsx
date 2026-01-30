@@ -34,7 +34,7 @@ const NavGroup = ({ label, children, align = 'left' }) => {
       <div className="absolute top-full h-4 w-full" />
 
       <div
-        className={`absolute hidden group-hover:flex flex-col mt-2 bg-[#1c1c1c] border border-white/10 rounded shadow-lg text-sm text-white/80 min-w-[160px] p-2 z-50 ${alignmentClass}`}
+        className={`absolute hidden group-hover:flex flex-col mt-2 bg-[#1c1c1c] border border-white/10 rounded shadow-lg text-sm text-white/80 min-w-[160px] p-2 z-[10000] ${alignmentClass}`}
       >
         {children}
       </div>
@@ -50,7 +50,7 @@ const SiteLayout = () => {
 
   return (
     <div className="h-screen bg-neutral-900 text-white flex flex-col">
-      <header className="bg-[#121212] border-b border-white/10 px-6 py-4 flex items-center justify-between shrink-0">
+      <header className="bg-[#121212] border-b border-white/10 px-6 py-4 flex items-center justify-between shrink-0 z-[9999] relative">
         <div className="text-2xl font-bold tracking-tight text-white">
           🏀 HoopZero
         </div>

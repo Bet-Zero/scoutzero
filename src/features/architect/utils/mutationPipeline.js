@@ -8,9 +8,12 @@
  *  - 2025-12-25: Removed legacy teamPlans reference (worlds-only cleanup)
  *  - 2026-01-18: Phase 7.2 option decline FA-year derivation + cap hold amounts
  *  - 2026-01-18: Phase 7.3 option state invariant validation wiring
+ *  - 2026-01-30: Phase 58 - Extracted trade context helpers to tradeContext module
+ *  - 2026-01-30: Phase 59 - Removed validateTradeForPipeline, moved validateTradeForContext to legacy namespace
  *
  * LINKS:
  *  - Plan: plans/cap-sheet-contract-rules-phase-7-3/plan.md
+ *  - Trade Context Module: src/features/architect/utils/tradeContext/
  *  - Latest Chunk: n/a (no chunks used)
  *
  * DESIGN CONSTRAINTS (NON-NEGOTIABLE):
@@ -19,6 +22,7 @@
  * 3) UI components and hooks MUST NOT write to Firestore directly
  * 4) World context (worldId) MUST be respected for all reads and writes
  * 5) The pipeline must be movable into Cloud Functions later with minimal rewrite
+ * 6) Trade validation follows: snapshot → validate → compute/persist (Phase 56/58)
  *
  * MUTATION TYPES SUPPORTED:
  * - executeTrade
@@ -75,6 +79,39 @@ import {
   createTpeConsumptionHistoryEntry,
   createTpeCreationHistoryEntry,
 } from '@/features/architect/utils/exceptionHistory/historyHelpers';
+
+// Phase 61: Persistence contract enforcement (allowlist-based)
+import {
+  assertPersistableOrThrow,
+  PERSISTENCE_CONTRACTS,
+} from '@/features/architect/utils/persistenceContracts';
+
+// ==============================================================================
+// PHASE 58: TRADE CONTEXT MODULE RE-EXPORTS
+// ==============================================================================
+// Phase 58 extracted snapshot/validation context helpers to dedicated module.
+// These re-exports maintain backward compatibility for existing imports.
+import {
+  buildPostTradeTeamsSnapshot,
+  validatePostTradeSnapshotForContext,
+  assertPostTradeSnapshot,
+  assertValidatedTradeContext,
+  assertTradeComputeInputs,
+} from '@/features/architect/utils/tradeContext';
+
+// Re-export for backward compatibility
+export { buildPostTradeTeamsSnapshot, validatePostTradeSnapshotForContext };
+
+// Phase 59: Legacy helpers moved to tradeContext/legacy/ namespace
+// Import from '@/features/architect/utils/tradeContext/legacy' for deprecated validateTradeForContext
+
+// ==============================================================================
+// PHASE 58: LEGACY FUNCTION MARKER (kept for reference, replaced by tradeContext module)
+// ==============================================================================
+// The following comment block shows what was removed in Phase 58:
+// - buildPostTradeTeamsSnapshot(): Moved to tradeContext/tradeContext.js
+// - validatePostTradeSnapshotForContext(): Moved to tradeContext/tradeContext.js
+// - validateTradeForContext(): Moved to tradeContext/tradeContext.js (deprecated wrapper)
 
 // ==============================================================================
 // UNDEFINED VALUE SANITIZATION
@@ -143,6 +180,74 @@ function removeUndefinedDeep(obj) {
   // Primitive values pass through unchanged
   return obj;
 }
+
+// ==============================================================================
+// PHASE 60: TRANSIENT FIELD SANITIZATION FOR PERSISTENCE
+// ==============================================================================
+
+/**
+ * FORBIDDEN TRANSIENT KEYS (Phase 60)
+ *
+ * These keys are used internally during the mutation pipeline but MUST NOT be
+ * persisted to Firestore. They are intermediate validation/context artifacts.
+ *
+ * - _validatedTradeContext: Pre-validated trade context for dedup (Phase 55/56)
+ * - _signingValidation: Pre-validated signing result for S&T (Phase 48)
+ * - _isPostTradeSnapshot: Sentinel flag for snapshot shape detection (Phase 58)
+ * - _isValidatedTradeContext: Sentinel flag for validated context detection (Phase 56)
+ * - _rawValidation: Raw validation result for debugging (Phase 56)
+ *
+ * NOTE: _meta is NOT in this list - it's legitimately used for computed totals display (UI).
+ */
+const FORBIDDEN_TRANSIENT_KEYS = Object.freeze([
+  '_validatedTradeContext',
+  '_signingValidation',
+  '_isPostTradeSnapshot',
+  '_isValidatedTradeContext',
+  '_rawValidation',
+]);
+
+/**
+ * Recursively remove forbidden transient keys from an object before Firestore persistence.
+ * This is a surgical sanitizer that targets only known transient keys - it does NOT
+ * strip all underscore-prefixed keys (e.g., _meta is preserved for UI use).
+ *
+ * @param {any} obj - Object to sanitize
+ * @param {string[]} [forbiddenKeys] - Override forbidden key list (for testing)
+ * @returns {any} Sanitized copy with transient keys removed
+ */
+function sanitizeTransientFieldsForPersistence(
+  obj,
+  forbiddenKeys = FORBIDDEN_TRANSIENT_KEYS
+) {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map((item) =>
+      sanitizeTransientFieldsForPersistence(item, forbiddenKeys)
+    );
+  }
+
+  if (typeof obj === 'object') {
+    const result = {};
+    for (const [key, value] of Object.entries(obj)) {
+      // Skip forbidden transient keys
+      if (forbiddenKeys.includes(key)) {
+        continue;
+      }
+      result[key] = sanitizeTransientFieldsForPersistence(value, forbiddenKeys);
+    }
+    return result;
+  }
+
+  // Primitive values pass through unchanged
+  return obj;
+}
+
+// Export for testing
+export { FORBIDDEN_TRANSIENT_KEYS, sanitizeTransientFieldsForPersistence };
 
 /**
  * Dev-only guard that validates an object has no undefined values before Firestore write.
@@ -731,14 +836,36 @@ export function computeWorldMutation({
   worldId,
 }) {
   switch (mutationType) {
-    case 'executeTrade':
-      return computeTradeResult({
+    case 'executeTrade': {
+      // Phase 56: Build snapshot → validate snapshot → compute with context
+      // Step 1: Build post-trade snapshot (pure function, no validation)
+      const postTradeSnapshot = buildPostTradeTeamsSnapshot({
+        payload,
+        currentState,
+        seasonId,
+        timestamp,
+      });
+
+      // Step 2: Validate the post-trade snapshot ONCE
+      const validatedContext = validatePostTradeSnapshotForContext({
+        snapshot: postTradeSnapshot,
+        payload,
+        seasonId,
+      });
+
+      // Step 3: Call pure computeTradeResult with pre-validated context
+      const result = computeTradeResult({
         payload,
         currentState,
         seasonId,
         timestamp,
         historyContext: { worldId, mutationType },
+        postTradeSnapshot,
+        validatedContext,
       });
+
+      return result;
+    }
 
     case 'signFreeAgent':
       return computeSigningResult({
@@ -851,6 +978,24 @@ export function computeWorldMutation({
 
 /**
  * Compute trade result
+ *
+ * Phase 56: PURE FUNCTION - Does NOT call validateTrade internally.
+ * Requires validatedContext (from validatePostTradeSnapshotForContext) and
+ * postTradeSnapshot (from buildPostTradeTeamsSnapshot) to be passed in.
+ *
+ * This function only:
+ * - Applies SSOT outputs for persistence (createdTPE, consumption from matchIncoming)
+ * - Writes tradeExceptions[] and exceptionHistory[]
+ * - Returns compute result with team/player updates
+ *
+ * @param {Object} params
+ * @param {Object} params.payload - Trade payload
+ * @param {Object} params.currentState - Current team states (used for reference only)
+ * @param {string} params.seasonId - Season ID
+ * @param {number} params.timestamp - Mutation timestamp
+ * @param {Object} [params.historyContext] - History context for audit logging
+ * @param {Object} params.postTradeSnapshot - Result from buildPostTradeTeamsSnapshot (REQUIRED for Phase 56)
+ * @param {Object} params.validatedContext - Result from validatePostTradeSnapshotForContext (REQUIRED for Phase 56)
  */
 function computeTradeResult({
   payload,
@@ -858,8 +1003,17 @@ function computeTradeResult({
   seasonId,
   timestamp,
   historyContext = {},
+  postTradeSnapshot,
+  validatedContext,
 }) {
-  const teamUpdates = [];
+  // Phase 58: Use shared assertions from tradeContext module
+  // (replaces Phase 56 inline checks with centralized assertions)
+  assertTradeComputeInputs({
+    postTradeSnapshot,
+    validatedContext,
+    callSite: 'computeTradeResult',
+  });
+
   const playerUpdates = [];
 
   const currentYear = toEndYear(seasonId);
@@ -872,7 +1026,26 @@ function computeTradeResult({
   const getTpeRemaining = (tpe) =>
     Number(tpe?.remainingAmount ?? tpe?.amount ?? 0) || 0;
 
-  // Warn if multi-team trade without directed routing
+  // Phase 56: Use pre-built snapshot teamUpdates (already has roster changes applied)
+  // Deep clone to avoid mutating the snapshot
+  const teamUpdates = postTradeSnapshot.teamUpdates.map(
+    ({ teamCode, team }) => ({
+      teamCode,
+      team: JSON.parse(JSON.stringify(team)),
+    })
+  );
+
+  // Phase 56: Use validation results from validatedContext (already validated once)
+  const validation = validatedContext._rawValidation || {
+    legal: validatedContext.legal,
+    teamResults: validatedContext.teamResults || [],
+  };
+
+  // Phase 56: Use validationTeams from context (has matchIncoming populated by validator)
+  const validationTeams =
+    validatedContext.validationTeams || postTradeSnapshot.validationTeams;
+
+  // Warn if multi-team trade without directed routing (informational only)
   if (payload.teams.length > 2) {
     const hasDirectedRouting = payload.teams.some((t) =>
       (t.sends || []).some(
@@ -888,289 +1061,10 @@ function computeTradeResult({
     }
   }
 
-  for (let i = 0; i < payload.teams.length; i++) {
-    const teamTrade = payload.teams[i];
-    const { teamCode, team } = currentState.teams[i];
-
-    // Build updated team state
-    const updatedTeam = { ...team };
-
-    // Get player IDs to remove and add
-    const outgoingPlayerIds = (teamTrade.sends || []).map(
-      (p) => p.player_id || p.id || p.playerId
-    );
-
-    // Collect incoming players from other teams
-    // For directed routing, only include sends targeted at this team
-    // For undirected (default), include all sends from other teams
-    const incomingPlayers = [];
-    payload.teams.forEach((otherTeamTrade, otherIndex) => {
-      if (otherIndex !== i) {
-        (otherTeamTrade.sends || []).forEach((player) => {
-          // Check if this send is directed to a specific team
-          const targetIndex = player.receivingTeamIndex;
-          const targetId = player.receivingTeamId;
-
-          if (targetIndex !== undefined) {
-            // Directed by index
-            if (targetIndex === i) {
-              incomingPlayers.push(player);
-            }
-          } else if (targetId !== undefined) {
-            // Directed by team ID/code
-            if (targetId === teamCode || targetId === team?.id) {
-              incomingPlayers.push(player);
-            }
-          } else {
-            // Undirected: for 2-team trades, all sends go to the other team
-            // For 3+ team trades without routing, distribute to all (with warning above)
-            incomingPlayers.push(player);
-          }
-        });
-      }
-    });
-
-    const incomingPlayerIds = incomingPlayers.map(
-      (p) => p.player_id || p.id || p.playerId
-    );
-
-    // Update roster array
-    updatedTeam.roster = [
-      ...(team.roster || []).filter((id) => !outgoingPlayerIds.includes(id)),
-      ...incomingPlayerIds,
-    ];
-
-    // Update players array (remove outgoing, add incoming)
-    updatedTeam.players = [
-      ...(team.players || []).filter((p) => {
-        const pid = p.player_id || p.id;
-        return !outgoingPlayerIds.includes(pid);
-      }),
-      ...incomingPlayers.map((p) => ({
-        ...p,
-        teamCode,
-        teamName: team.teamName,
-      })),
-    ];
-
-    // Update draft picks if any
-    const outgoingPicks = teamTrade.picksOut || [];
-    const incomingPicks = [];
-    payload.teams.forEach((otherTeamTrade, otherIndex) => {
-      if (otherIndex !== i) {
-        incomingPicks.push(...(otherTeamTrade.picksOut || []));
-      }
-    });
-
-    updatedTeam.draftPicks = [
-      ...(team.draftPicks || []).filter(
-        (pick) =>
-          !outgoingPicks.some(
-            (outgoing) =>
-              outgoing.year === pick.year &&
-              outgoing.round === pick.round &&
-              outgoing.owner === pick.owner
-          )
-      ),
-      ...incomingPicks,
-    ];
-
-    // Phase 11.1 + 11.3.2: Update entitlementIds if any entitlements are traded
-    // Phase 11.3.2: Respect toTeamId routing for multi-team trades
-    const outgoingEntitlementIds = (
-      teamTrade.outgoingEntitlements ||
-      teamTrade.entitlementsOut ||
-      []
-    )
-      .map((e) => e.entitlementId || e.id)
-      .filter(Boolean);
-
-    // Helper: normalize team code for comparison
-    const normalizeTeamCodeLike = (x) => {
-      if (!x) return null;
-      const s = String(x).trim();
-      return s.length === 3 ? s.toUpperCase() : s;
-    };
-
-    // Get all team codes in this trade payload
-    const payloadTeamCodes = payload.teams
-      .map((t) => normalizeTeamCodeLike(t.team?.id || t.teamCode || t.teamId))
-      .filter(Boolean);
-
-    const thisTeamCode = normalizeTeamCodeLike(teamCode);
-
-    const incomingEntitlementIds = [];
-    payload.teams.forEach((otherTeamTrade, otherIndex) => {
-      if (otherIndex === i) return; // Skip self
-
-      const otherOut =
-        otherTeamTrade.outgoingEntitlements ||
-        otherTeamTrade.entitlementsOut ||
-        [];
-
-      otherOut.forEach((e) => {
-        const entId = e.entitlementId || e.id;
-        if (!entId) return;
-
-        const toTeam = normalizeTeamCodeLike(e.toTeamId);
-
-        // Case 1: Routed (toTeamId is present)
-        if (toTeam) {
-          // Validate toTeamId is in trade payload, else warn
-          if (!payloadTeamCodes.includes(toTeam)) {
-            console.warn(
-              '[EntitlementsRouting] toTeamId not in trade payload',
-              { entitlementId: entId, toTeamId: e.toTeamId }
-            );
-            // Still proceed with trade, but this entitlement won't route to anyone in this trade
-            return;
-          }
-          // Only include if routed to this team
-          if (toTeam === thisTeamCode) {
-            incomingEntitlementIds.push(entId);
-          }
-          return;
-        }
-
-        // Case 2: Unrouted (toTeamId absent) - backward-compatible broadcast
-        // All other teams receive this entitlement
-        incomingEntitlementIds.push(entId);
-      });
-    });
-
-    // Only update entitlementIds if there are any changes
-    if (
-      outgoingEntitlementIds.length > 0 ||
-      incomingEntitlementIds.length > 0
-    ) {
-      const currentEntitlementIds = team.entitlementIds || [];
-      const newEntitlementIds = [
-        ...currentEntitlementIds.filter(
-          (id) => !outgoingEntitlementIds.includes(id)
-        ),
-        ...incomingEntitlementIds,
-      ];
-      // Deduplicate to be safe
-      updatedTeam.entitlementIds = [...new Set(newEntitlementIds)];
-    }
-
-    // ============================================================================
-    // Phase 47C: TPE Persistence Hardening (replaces Phase 47B)
-    // ============================================================================
-    // Non-inferential, idempotent, and SSOT-aligned TPE persistence.
-    // - TPE creation: consumed from validation.teamResults[i].createdTPE (validator SSOT)
-    // - TPE consumption: uses matchIncoming ONLY (no salary fallback)
-    // - Dedupe: normalize and deduplicate across tradeExceptions + exceptions.tpe sources
-    // - Idempotent: signature-based duplicate detection prevents rerun duplicates
-
-    // NOTE: We'll run validation below after building all team assets, then apply TPE updates per team
-    // For now, normalize and deduplicate the existing TPEs from multiple sources
-
-    /**
-     * Phase 47C Helper: Normalize a TPE object to canonical schema
-     * @param {Object} t - TPE object from any source
-     * @returns {Object} Normalized TPE with canonical fields
-     */
-    const normalizeTPE = (t) => ({
-      ...t,
-      // Ensure id exists
-      id:
-        t.id ||
-        `tpe_legacy_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-      // Normalize schema fields
-      amount: t.remainingAmount ?? t.totalAmount ?? t.amount ?? 0,
-      totalAmount: t.totalAmount ?? t.amount ?? 0,
-      remainingAmount: t.remainingAmount ?? t.totalAmount ?? t.amount ?? 0,
-      usedAmount: t.usedAmount ?? 0,
-    });
-
-    // Collect TPEs from both sources
-    const primaryTPEs = (team.tradeExceptions || []).map(normalizeTPE);
-    const legacyTPEs = (team.exceptions?.tpe || []).map(normalizeTPE);
-
-    /**
-     * Phase 47C: Dedupe by id - prefer primaryTPEs (tradeExceptions) over legacyTPEs
-     * Conflict rule: If same id exists in both sources, prefer the one with canonical fields populated
-     * (remainingAmount, usedAmount, expiresOn). Falls back to primaryTPEs entry if equal.
-     */
-    const dedupeById = (tpes) => {
-      const seen = new Map();
-      for (const tpe of tpes) {
-        if (!tpe.id) continue;
-        const existing = seen.get(tpe.id);
-        if (!existing) {
-          seen.set(tpe.id, tpe);
-        } else {
-          // Prefer the one with more canonical fields populated
-          const existingScore =
-            (existing.remainingAmount !== undefined ? 1 : 0) +
-            (existing.usedAmount !== undefined ? 1 : 0) +
-            (existing.expiresOn ? 1 : 0);
-          const newScore =
-            (tpe.remainingAmount !== undefined ? 1 : 0) +
-            (tpe.usedAmount !== undefined ? 1 : 0) +
-            (tpe.expiresOn ? 1 : 0);
-          if (newScore > existingScore) {
-            seen.set(tpe.id, tpe);
-          }
-          // If equal, keep existing (primary source wins)
-        }
-      }
-      return Array.from(seen.values());
-    };
-
-    // Primary sources first, then legacy - dedupe will prefer primary on conflict
-    const currentTPEs = dedupeById([...primaryTPEs, ...legacyTPEs]);
-
-    // Store the base TPE array; we'll update it from validation results later
-    updatedTeam.tradeExceptions = currentTPEs;
-
-    // Update source metadata
-    updatedTeam.source = {
-      ...updatedTeam.source,
-      type: 'world-snapshot',
-      lastModifiedAt: new Date(timestamp).toISOString(),
-    };
-
-    // Recalculate totals
-    updatedTeam.totals = calculateTeamTotals(updatedTeam, seasonId);
-
-    teamUpdates.push({ teamCode, team: updatedTeam });
-  }
-
   // ============================================================================
-  // Phase 47B: Run validation to get SSOT TPE creation/consumption data
+  // Phase 56: Apply validated TPE creation/consumption to each team
+  // (validation already ran externally via validatePostTradeSnapshotForContext)
   // ============================================================================
-  // Build validation input from the teams we just processed
-  const validationTeams = payload.teams.map((teamTrade, idx) => {
-    const teamUpdate = teamUpdates[idx];
-    return {
-      team: teamUpdate.team,
-      teamCode: teamUpdate.teamCode,
-      sends: teamTrade.sends || [],
-      receives: teamTrade.receives || [],
-      picksOut: teamTrade.picksOut || [],
-      picksIn: teamTrade.picksIn || [],
-      cashSent: teamTrade.cashSent || 0,
-      cashReceived: teamTrade.cashReceived || 0,
-    };
-  });
-
-  // Get cap settings for the trade year
-  const capSettingsResult = getCapSettings({
-    year: currentYear,
-    capProjections: payload.capProjections || {},
-  });
-
-  // Run validation to get validated TPE outcomes
-  const validation = validateTrade({
-    teams: validationTeams,
-    capProjections: payload.capProjections || {},
-    currentYear,
-    tradeCtx: payload.tradeCtx || {},
-  });
-
-  // Apply validated TPE creation/consumption to each team
   teamUpdates.forEach((teamUpdate, idx) => {
     const teamResult = validation.teamResults?.[idx];
     if (!teamResult) return;
@@ -1454,6 +1348,7 @@ function computeTradeResult({
     return acc;
   }, {});
 
+  // Phase 56: Return pure compute result - validation context is passed through, not created here
   return {
     success: true,
     teamUpdates,
@@ -1471,6 +1366,8 @@ function computeTradeResult({
           : undefined,
       timestamp,
     },
+    // Phase 56: Pass through the provided validated context (created externally)
+    _validatedTradeContext: validatedContext,
   };
 }
 
@@ -2135,16 +2032,24 @@ function validateMutation({
 
   // Trade validation uses the full Trade Machine
   if (mutationType === 'executeTrade') {
-    const tradeResult = validateTradeForPipeline(
-      payload,
-      currentState,
-      seasonId
+    // Phase 56+: Trade validation MUST have already occurred via validatePostTradeSnapshotForContext
+    // computeWorldMutation guarantees _validatedTradeContext is attached to computeResult
+    if (computeResult?._validatedTradeContext?._isValidatedTradeContext) {
+      const preValidated = computeResult._validatedTradeContext;
+      return {
+        valid: preValidated.legal,
+        error: preValidated.error,
+        violations: preValidated.violations || [],
+        warnings: [...(preValidated.warnings || []), ...pipelineWarnings],
+      };
+    }
+
+    // Phase 57: Hard error if context is missing - no fallback validation
+    // This should never happen if the pipeline is correctly structured
+    throw new Error(
+      '[validateMutation] Phase 57 violation: executeTrade requires pre-validated context. ' +
+        'computeWorldMutation must attach _validatedTradeContext via validatePostTradeSnapshotForContext.'
     );
-    // Merge pipeline warnings into trade result
-    return {
-      ...tradeResult,
-      warnings: [...(tradeResult.warnings || []), ...pipelineWarnings],
-    };
   }
 
   const currentYear = toEndYear(seasonId);
@@ -2338,100 +2243,41 @@ function validateMutation({
     }
 
     case 'signAndTrade': {
-      // 1. Validate Signing
-      const signingResult = validateSigning({
-        team: currentState.team,
-        player: currentState.player,
-        contract: payload.contract,
-        signedUsing: payload.signedUsing,
-        year: currentYear,
-      });
+      // Phase 56+: S&T validation MUST have already occurred via computeSignAndTradeResult
+      // which calls validateSigning + validatePostTradeSnapshotForContext before computeTradeResult
+      const hasPreValidatedSigning =
+        computeResult?._signingValidation?.valid !== undefined;
+      const hasPreValidatedTrade =
+        computeResult?._validatedTradeContext?._isValidatedTradeContext;
 
-      if (!signingResult.valid) {
+      if (hasPreValidatedSigning && hasPreValidatedTrade) {
+        const preSigningResult = computeResult._signingValidation;
+        const preTradeResult = computeResult._validatedTradeContext;
+
         return {
-          valid: false,
-          error:
-            signingResult.violations[0]?.message || 'Signing validation failed',
-          violations: signingResult.violations,
-          warnings: signingResult.warnings,
+          valid: preSigningResult.valid && preTradeResult.legal,
+          error: preSigningResult.valid
+            ? preTradeResult.error
+            : preSigningResult.violations?.[0]?.message ||
+              'Signing validation failed',
+          violations: [
+            ...(preSigningResult.violations || []),
+            ...(preTradeResult.violations || []),
+          ],
+          warnings: [
+            ...(preSigningResult.warnings || []),
+            ...(preTradeResult.warnings || []),
+            ...pipelineWarnings,
+          ],
         };
       }
 
-      // 2. Validate Trade (using Post-Signing State)
-      // We must reconstruct the state as if the signing happened, for the trade validator
-      // The computeResult.teamUpdates contains the FINAL state (post-trade),
-      // but standard validateTrade expects current state.
-      // However, we can construct the "intermediate" state from computeResult logic?
-      // Or just trust computeResult if we assume computeSignAndTradeResult did the trade correctly?
-      // Better: Construct the intermediate state locally for validation.
-
-      // Actually, we can just look closely at computeSignAndTradeResult.
-      // It generates an updatedSourceTeam.
-      // But we can't easily extract that here without duplicating logic.
-      // For MVP, since computeSignAndTradeResult calls computeTradeResult which doesn't validate,
-      // we must run the trade validator here.
-
-      // Let's rely on the fact that existing validateTrade expects the player to be on the roster.
-      // So we fake the source team having the player.
-
-      const fakeSourceTeam = {
-        ...currentState.team,
-        roster: [
-          ...(currentState.team.roster || []),
-          currentState.player.player_id || currentState.player.id,
-        ],
-        // Minimal player object needed for validator check?
-        players: [
-          ...(currentState.team.players || []),
-          { ...currentState.player, teamCode: currentState.teamCode },
-        ],
-      };
-
-      // Construct Trade Payload for validator
-      const tradePayload = {
-        teams: [
-          {
-            teamCode: currentState.teamCode,
-            sends: [
-              {
-                player_id:
-                  currentState.player.player_id || currentState.player.id,
-                receivingTeamId: currentState.destinationTeamCode,
-              },
-            ],
-          },
-          {
-            teamCode: currentState.destinationTeamCode,
-            sends: [],
-          },
-        ],
-      };
-
-      const fakeCurrentState = {
-        teams: [
-          { teamCode: currentState.teamCode, team: fakeSourceTeam },
-          {
-            teamCode: currentState.destinationTeamCode,
-            team: currentState.destinationTeam,
-          },
-        ],
-      };
-
-      const tradeResult = validateTradeForPipeline(
-        tradePayload,
-        fakeCurrentState,
-        seasonId
+      // Phase 57: Hard error if contexts are missing - no fallback validation
+      // computeSignAndTradeResult must attach both _signingValidation and _validatedTradeContext
+      throw new Error(
+        '[validateMutation] Phase 57 violation: signAndTrade requires pre-validated contexts. ' +
+          'computeSignAndTradeResult must attach _signingValidation and _validatedTradeContext.'
       );
-
-      return {
-        valid: tradeResult.valid,
-        error: tradeResult.error,
-        violations: [
-          ...signingResult.violations,
-          ...(tradeResult.violations || []),
-        ],
-        warnings: [...signingResult.warnings, ...(tradeResult.warnings || [])],
-      };
     }
 
     default:
@@ -2455,41 +2301,16 @@ function validateMutation({
   }
 }
 
-/**
- * Validate trade using Trade Machine
- */
-function validateTradeForPipeline(payload, currentState, seasonId) {
-  try {
-    // Build trade input for validator
-    const tradeInput = {
-      teams: payload.teams.map((teamTrade, index) => {
-        const { team } = currentState.teams[index];
-        return buildTradeTeamInput(team, teamTrade);
-      }),
-      capProjections: payload.capProjections || {},
-      currentYear: toEndYear(seasonId),
-      tradeCtx: payload.tradeCtx || {},
-    };
-
-    const validation = validateTrade(tradeInput);
-
-    if (!validation.legal) {
-      return {
-        valid: false,
-        error: validation.reason || 'Trade is not legal',
-        violations:
-          validation.teamResults?.flatMap((r) => r.violations || []) || [],
-      };
-    }
-
-    return { valid: true };
-  } catch (error) {
-    return {
-      valid: false,
-      error: error.message || 'Trade validation failed',
-    };
-  }
-}
+// ==============================================================================
+// PHASE 59: LEGACY VALIDATION HELPERS REMOVED
+// ==============================================================================
+// validateTradeForPipeline was a deprecated function that validated PRE-TRADE state.
+// It has been removed in Phase 59 as no production or test code uses it.
+// The correct approach (Phase 56+) validates POST-TRADE state via:
+//   buildPostTradeTeamsSnapshot → validatePostTradeSnapshotForContext → compute/persist
+//
+// validateTradeForContext has been moved to tradeContext/legacy/ namespace.
+// Import from '@/features/architect/utils/tradeContext/legacy' if needed.
 
 // ==============================================================================
 // PHASE 4: PERSIST - Write to Firestore (ONLY place that writes)
@@ -2520,8 +2341,17 @@ async function persistWorldMutation({
         team,
         `architect_worlds/${worldId}/teams/${teamCode}`
       );
-      // Sanitize: remove undefined values to prevent Firestore errors
-      const sanitizedTeam = removeUndefinedDeep(team);
+      // Phase 60: Sanitize transient fields first
+      const afterSanitize = sanitizeTransientFieldsForPersistence(team);
+      // Phase 61: Validate against persistence contract (test-only enforcement)
+      // Ordering: sanitize → validate contract → removeUndefined
+      assertPersistableOrThrow({
+        obj: afterSanitize,
+        contract: PERSISTENCE_CONTRACTS.TEAM,
+        label: 'TEAM',
+      });
+      // Then remove undefined values
+      const sanitizedTeam = removeUndefinedDeep(afterSanitize);
       const teamRef = worldTeamRef(worldId, teamCode);
       batch.set(teamRef, sanitizedTeam);
     }
@@ -2536,8 +2366,17 @@ async function persistWorldMutation({
           player,
           `architect_worlds/${worldId}/teams/${teamCode}/players/${playerId}`
         );
-        // Sanitize: remove undefined values to prevent Firestore errors
-        const sanitizedPlayer = removeUndefinedDeep(player);
+        // Phase 60: Sanitize transient fields first
+        const afterSanitize = sanitizeTransientFieldsForPersistence(player);
+        // Phase 61: Validate against persistence contract (test-only enforcement)
+        // Ordering: sanitize → validate contract → removeUndefined
+        assertPersistableOrThrow({
+          obj: afterSanitize,
+          contract: PERSISTENCE_CONTRACTS.PLAYER,
+          label: 'PLAYER',
+        });
+        // Then remove undefined values
+        const sanitizedPlayer = removeUndefinedDeep(afterSanitize);
         const playerRef = worldPlayerRef(worldId, teamCode, playerId);
         batch.set(playerRef, sanitizedPlayer);
       }
@@ -2554,16 +2393,38 @@ async function persistWorldMutation({
       'events'
     );
     const eventRef = doc(eventsCol, eventId);
+
+    // Phase 60/61: Sanitize and validate metadata first
+    const sanitizedMetadataRaw = sanitizeTransientFieldsForPersistence(
+      computeResult.metadata
+    );
+    // Phase 61: Validate metadata against persistence contract (test-only enforcement)
+    assertPersistableOrThrow({
+      obj: sanitizedMetadataRaw,
+      contract: PERSISTENCE_CONTRACTS.EVENT_METADATA,
+      label: 'EVENT_METADATA',
+    });
+    const sanitizedMetadata = removeUndefinedDeep(sanitizedMetadataRaw);
+
     const event = {
       eventId,
       type: mutationType,
       timestamp: new Date(timestamp).toISOString(),
       seasonId,
-      metadata: removeUndefinedDeep(computeResult.metadata),
+      metadata: sanitizedMetadata,
       teamsAffected: computeResult.teamUpdates.map((u) => u.teamCode),
     };
-    // Sanitize event to ensure no undefined values
-    const sanitizedEvent = removeUndefinedDeep(event);
+
+    // Phase 60: Sanitize entire event (defense-in-depth)
+    const afterEventSanitize = sanitizeTransientFieldsForPersistence(event);
+    // Phase 61: Validate event against persistence contract (test-only enforcement)
+    // Ordering: sanitize → validate contract → removeUndefined
+    assertPersistableOrThrow({
+      obj: afterEventSanitize,
+      contract: PERSISTENCE_CONTRACTS.EVENT,
+      label: 'EVENT',
+    });
+    const sanitizedEvent = removeUndefinedDeep(afterEventSanitize);
     batch.set(eventRef, sanitizedEvent);
 
     // 4. Update world metadata
@@ -3256,8 +3117,7 @@ function computeSignAndTradeResult({
   const updatedSourceTeam = signingResult.teamUpdates[0].team;
   const signedPlayer = signingResult.playerUpdates[0].player;
 
-  // 2. Compute Trade Result
-  // Construct trade payload
+  // 2. Construct trade payload and state (using post-signing state per Phase 48)
   const tradePayload = {
     teams: [
       {
@@ -3285,6 +3145,23 @@ function computeSignAndTradeResult({
     ],
   };
 
+  // Phase 56: Build snapshot → validate snapshot → compute with context
+  // Step 1: Build post-trade snapshot from post-signing state
+  const postTradeSnapshot = buildPostTradeTeamsSnapshot({
+    payload: tradePayload,
+    currentState: tradeState,
+    seasonId,
+    timestamp,
+  });
+
+  // Step 2: Validate the post-trade snapshot ONCE
+  const tradeValidatedContext = validatePostTradeSnapshotForContext({
+    snapshot: postTradeSnapshot,
+    payload: tradePayload,
+    seasonId,
+  });
+
+  // Step 3: Call pure computeTradeResult with pre-validated context
   const tradeResult = computeTradeResult({
     payload: tradePayload,
     currentState: tradeState,
@@ -3295,6 +3172,8 @@ function computeSignAndTradeResult({
       mutationType: historyContext.mutationType || 'signAndTrade',
       mutationId: historyContext.mutationId,
     },
+    postTradeSnapshot,
+    validatedContext: tradeValidatedContext,
   });
 
   if (!tradeResult.success) {
@@ -3302,6 +3181,7 @@ function computeSignAndTradeResult({
   }
 
   // 3. Return Combined Result
+  // Phase 56: Attach validated contexts for validateMutation de-duplication
   return {
     success: true,
     teamUpdates: tradeResult.teamUpdates, // Contains both Source (minus player) and Dest (plus player)
@@ -3314,6 +3194,9 @@ function computeSignAndTradeResult({
       contract: payload.contract,
       timestamp,
     },
+    // Phase 56: Attach validated contexts for validateMutation de-duplication
+    _signingValidation: signingValidation,
+    _validatedTradeContext: tradeValidatedContext,
   };
 }
 

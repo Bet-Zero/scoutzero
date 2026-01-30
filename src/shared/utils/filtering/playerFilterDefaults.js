@@ -1,3 +1,5 @@
+import { DEFAULT_SALARY_YEAR } from '@/constants/yearDefaults';
+
 export function getDefaultPlayerFilters() {
   return {
     nameSearch: '',
@@ -15,7 +17,8 @@ export function getDefaultPlayerFilters() {
     maxAge: null,
     minSalary: undefined,
     maxSalary: undefined,
-    salaryYear: 2025,
+    salaryYear: DEFAULT_SALARY_YEAR,
+    includeMissingSalary: true,
     freeAgentYear: '',
     freeAgentType: '',
     birdRights: '',

@@ -6,9 +6,10 @@
  * HISTORY:
  *  - 2026-01-21: Created for Phase 11.0 - Read-Only Entitlements View
  *  - 2026-01-22: Phase 11.1 - Added selection toggle for entitlement trading
+ *  - 2026-01-30: Phase 12.3C - Added PickRow projection with protection/condition visibility
  *
  * LINKS:
- *  - Plan: docs/team-scrape/PST_PICK_LEDGER_MASTER_PLAN.md (Phase 11.0, 11.1)
+ *  - Plan: docs/team-scrape/PST_PICK_LEDGER_MASTER_PLAN.md (Phase 11.0, 11.1, 12.3C)
  */
 
 import React from 'react';
@@ -16,7 +17,12 @@ import {
   formatEntitlementLabel,
   getEntitlementKindTag,
 } from '@/features/architect/utils/entitlements/formatEntitlement';
-import { AlertTriangle, Check } from 'lucide-react';
+import {
+  projectEntitlementToPickRow,
+  getPickRowDisplayLabel,
+  getPickRowSecondaryText,
+} from '@/features/architect/utils/entitlements/entitlementPickRowProjection';
+import { AlertTriangle, Check, Info } from 'lucide-react';
 
 /**
  * EntitlementPickRow
@@ -38,11 +44,21 @@ const EntitlementPickRow = ({
 }) => {
   if (!entitlement) return null;
 
+  // Phase 12.3C: Project entitlement to PickRow for richer display
+  const pickRow = projectEntitlementToPickRow(entitlement, {
+    teamCode: teamId,
+  });
+  const pickRowLabel = getPickRowDisplayLabel(pickRow);
+  const secondaryText = getPickRowSecondaryText(pickRow);
+
   const label = formatEntitlementLabel(entitlement);
   const kindTag = getEntitlementKindTag(entitlement.kind);
   const isEncumbered = entitlement.underlyingStatus === 'encumbered';
+
   // DEBUG: entitlement identity + underlying slot (toggle with VITE_DEBUG_ENTITLEMENTS=true)
   const DEBUG_ENT = import.meta?.env?.VITE_DEBUG_ENTITLEMENTS === 'true';
+  const DEBUG_PICKROW =
+    import.meta?.env?.VITE_DEBUG_ENTITLEMENT_PICKROWS === 'true';
   if (DEBUG_ENT) {
     console.log('[ENT_ROW]', {
       teamId,
@@ -55,6 +71,7 @@ const EntitlementPickRow = ({
       description: entitlement.description,
       label,
       coveredByEntitlementIds: entitlement.coveredByEntitlementIds,
+      pickRow,
     });
   }
 
@@ -98,20 +115,45 @@ const EntitlementPickRow = ({
           </div>
         )}
 
-        {/* Main description */}
-        <span className="text-white/90 truncate" title={label}>
-          {label}
-        </span>
+        {/* Phase 12.3C: Two-line layout with year/round and protection details */}
+        <div className="flex flex-col min-w-0 flex-1">
+          {/* Line 1: Year Round — Label */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-white/90 truncate" title={label}>
+              {pickRow.year} R{pickRow.round} — {pickRowLabel}
+            </span>
 
-        {/* Encumbered warning indicator */}
-        {isEncumbered && (
-          <span
-            className="flex items-center gap-0.5 text-amber-400"
-            title="This pick is encumbered"
-          >
-            <AlertTriangle size={12} />
-          </span>
-        )}
+            {/* Encumbered warning indicator */}
+            {isEncumbered && (
+              <span
+                className="flex items-center gap-0.5 text-amber-400 flex-shrink-0"
+                title="This pick is encumbered"
+              >
+                <AlertTriangle size={12} />
+              </span>
+            )}
+
+            {/* Phase 12.3C: Debug tooltip when VITE_DEBUG_ENTITLEMENT_PICKROWS=true */}
+            {DEBUG_PICKROW && pickRow._debug && (
+              <span
+                className="flex items-center text-blue-400/50 flex-shrink-0 cursor-help"
+                title={JSON.stringify(pickRow._debug.sourceHints, null, 2)}
+              >
+                <Info size={10} />
+              </span>
+            )}
+          </div>
+
+          {/* Line 2: Protection/conditions text (muted) */}
+          {secondaryText && (
+            <span
+              className="text-white/50 text-[10px] truncate"
+              title={secondaryText}
+            >
+              {secondaryText}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Right side: Kind badge */}

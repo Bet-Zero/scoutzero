@@ -4,7 +4,17 @@ import { SubRoleMasterList } from '@/constants/SubRoleMasterList';
 import { getFilterStyles } from '@/shared/utils/filtering';
 
 const FilterPill = ({ filter, onRemove }) => {
-  const { key, value, isSubrole } = filter;
+  const { key, value, isSubrole, isNonRemovable, isContext } = filter;
+
+  // Context pills: muted styling, no remove button
+  if (isContext || isNonRemovable) {
+    return (
+      <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#1f1f1f] border border-white/10 rounded-full text-sm min-h-8 text-white/50">
+        <span className="text-white/40 text-xs">{filter.label}:</span>
+        <span className="text-white/60">{value}</span>
+      </div>
+    );
+  }
 
   if (isSubrole) {
     const roleData = SubRoleMasterList.find((r) => r.name === value);

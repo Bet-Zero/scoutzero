@@ -1,4 +1,5 @@
 import React from 'react';
+import { SALARY_YEAR_OPTIONS } from '@/constants/yearDefaults';
 
 const ViewControls = ({ filters, setFilters }) => {
   const update = (key, value) => {
@@ -8,8 +9,9 @@ const ViewControls = ({ filters, setFilters }) => {
   const selectClass =
     'bg-[#2a2a2a] text-white text-sm px-2 py-1 border border-black focus:outline-none focus:ring-1 focus:ring-white/30 hover:bg-[#3a3a3a]';
 
+  // Phase 2K: Removed -mb-[24px] hack - now renders inside overlay
   return (
-    <div className="-mb-[24px] px-4 py-1 rounded-sm flex flex-wrap gap-1 text-sm text-white items-end">
+    <div className="px-4 py-3 rounded-sm flex flex-wrap gap-2 text-sm text-white items-center">
       {/* Salary Year Selector */}
       <div className="flex flex-col">
         <select
@@ -17,7 +19,7 @@ const ViewControls = ({ filters, setFilters }) => {
           onChange={(e) => update('salaryYear', parseInt(e.target.value))}
           className={selectClass}
         >
-          {[2024, 2025, 2026, 2027, 2028, 2029].map((year) => (
+          {SALARY_YEAR_OPTIONS.map((year) => (
             <option key={year} value={year}>
               {year}
             </option>
@@ -39,13 +41,13 @@ const ViewControls = ({ filters, setFilters }) => {
           <option value="age">Age</option>
           <option value="salary">Salary</option>
           <option value="PTS">PTS</option>
-          <option value="TRB">TRB</option>
+          <option value="REB">TRB</option>
           <option value="AST">AST</option>
           <option value="FG%">FG%</option>
-          <option value="3P%">3P%</option>
+          <option value="3PT%">3P%</option>
           <option value="FT%">FT%</option>
           <option value="eFG%">eFG%</option>
-          <option value="MP">Minutes</option>
+          <option value="MIN">Minutes</option>
           <option value="Defense">Defense</option>
           <option value="Energy">Energy</option>
           <option value="Feel">Feel</option>

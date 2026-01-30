@@ -1,5 +1,9 @@
 import { isMeaningfulProtection } from '@/features/architect/utils/tradeMachine/utils/tradeUtilities.js';
 import { isSecondApronTeam } from '../utils/capUtils.js';
+import {
+  buildStepienOutgoingPicksFromEntitlements,
+  buildStepienBaselinePicksFromEntitlements,
+} from '../utils/stepienEntitlementUtils.js';
 
 /**
  * Phase 2 Helper: Determines if a pick reserves a year for Stepien purposes.
@@ -102,6 +106,11 @@ function obligationReservesYear(obligation, teamCode) {
  * - Now considers existing obligations from team.draftPicksObligations
  * - Obligations that reserve years are merged with current trade picks
  * - Meaningful protection on obligations bypasses consecutive-year check (same as picks)
+ *
+ * Phase 12.2 Updates:
+ * - BASELINE now derived from validationEntitlements (when available)
+ * - Legacy draftPicksObligations is fallback only when entitlements unavailable
+ * - Post-trade control = baseline - outgoing (entitlements + picks)
  */
 export function validateStepien(team, tradeCtx = {}) {
   // TEMPORARILY DISABLE INTERNAL CACHING - cache mismatch issue
@@ -122,42 +131,60 @@ export function validateStepien(team, tradeCtx = {}) {
   // Use outgoingPicks primarily (that's what tests use)
   const picks = outgoingPicks.length > 0 ? outgoingPicks : picksOut;
 
-  // Get existing obligations from the team
-  // Priority: team.draftPicksObligations, fallback to empty array
-  const existingObligations =
-    team.draftPicksObligations || team.team?.draftPicksObligations || [];
+  // Phase 12.2: Determine baseline source
+  // Prefer validationEntitlements (entitlement-based baseline) when available
+  // Fallback to legacy draftPicksObligations when entitlements unavailable
+  const validationEntitlements = team.validationEntitlements || [];
+  const useEntitlementBaseline = validationEntitlements.length > 0;
 
-  // Filter obligations to first-round picks that reserve years
-  const obligationYears = existingObligations
-    .filter((ob) => obligationReservesYear(ob, teamCode))
-    .map((ob) => ({
-      year: ob.year,
-      protection: ob.protection,
-      // Mark as obligation for debugging
-      _source: 'obligation',
+  // Phase 12.1: Build Stepien-relevant picks from entitlements being traded
+  // Entitlements take precedence over legacy picksOut for modern trades
+  const entitlementsOut = team.entitlementsOut || [];
+  const entitlementDerivedPicks =
+    buildStepienOutgoingPicksFromEntitlements(entitlementsOut);
+
+  // Build baseline years (what team controls pre-trade)
+  let baselineYears = [];
+
+  if (useEntitlementBaseline) {
+    // Phase 12.2: Build baseline from team's held entitlements
+    const baselinePicks = buildStepienBaselinePicksFromEntitlements(
+      validationEntitlements
+    );
+    baselineYears = baselinePicks.map((p) => ({
+      year: p.year,
+      protection: null, // Entitlements don't carry protection at this level
+      isSwap: p.isSwap,
+      swapType: p.swapType,
+      _source: 'entitlement_baseline',
+      _entitlementId: p._entitlementId,
     }));
+  } else {
+    // Legacy fallback: Use draftPicksObligations to determine existing commitments
+    // Get existing obligations from the team
+    const existingObligations =
+      team.draftPicksObligations || team.team?.draftPicksObligations || [];
 
-  // If no picks in trade AND no obligations, Stepien is trivially compliant
-  if (picks.length === 0 && obligationYears.length === 0) {
-    const result = {
-      passed: true,
-      violations: [],
-      message: 'No picks in trade',
-      details: '',
-    };
-    return result;
+    // Filter obligations to first-round picks that reserve years
+    baselineYears = existingObligations
+      .filter((ob) => obligationReservesYear(ob, teamCode))
+      .map((ob) => ({
+        year: ob.year,
+        protection: ob.protection,
+        isSwap: ob.isSwap,
+        swapType: ob.swapType,
+        _source: 'obligation',
+      }));
   }
 
-  // Check for consecutive unprotected first round picks
-  // Phase 2: Filter to picks that reserve years for Stepien purposes
-  // - Includes outright picks
-  // - Includes swap picks (isSwap === true) unless swapType === 'worst_of'
+  // Build outgoing years (what's leaving in the trade)
+  // Combine: legacy picks being traded + entitlements being traded
   const firstRoundPicks = picks.filter(
     (pick) => pick.round === '1st' || pick.round === 1 || pick.round === 'first'
   );
 
-  // Build Stepien-relevant calendar from current trade picks that reserve years
-  const stepienRelevantPicks = firstRoundPicks
+  // Trade picks that reserve years
+  const tradePickYears = firstRoundPicks
     .filter((pick) => reservesYearForStepien(pick))
     .map((pick) => ({
       year: pick.year,
@@ -165,10 +192,40 @@ export function validateStepien(team, tradeCtx = {}) {
       _source: 'trade',
     }));
 
-  // Merge current trade picks with existing obligations for Stepien evaluation
-  // This is the core fix: we now consider both picksOut AND obligations
-  const allStepienRelevant = [...stepienRelevantPicks, ...obligationYears];
+  // Entitlements that reserve years (already filtered in buildStepienOutgoingPicksFromEntitlements)
+  const entitlementOutYears = entitlementDerivedPicks.map((p) => ({
+    year: p.year,
+    protection: p.protection,
+    _source: 'entitlement_out',
+    _entitlementId: p._entitlementId,
+  }));
 
+  // All outgoing (delta)
+  const outgoingYears = [...tradePickYears, ...entitlementOutYears];
+
+  // Phase 12.2: Compute post-trade years
+  // Post-trade control = baseline - outgoing
+  // For entitlement baseline: remove years that are being traded away
+  // For legacy baseline: obligations already represent "owed" years, add trade picks
+  let allStepienRelevant;
+
+  if (useEntitlementBaseline) {
+    // Entitlement baseline model:
+    // - Baseline = years team controls (from entitlements)
+    // - We check if outgoing creates consecutive gaps
+    // - allStepienRelevant = outgoing years (what's leaving)
+    // The violation occurs when outgoing + any prior obligations create consecutive years owed
+    allStepienRelevant = outgoingYears;
+  } else {
+    // Legacy model: merge trade picks with existing obligations
+    allStepienRelevant = [
+      ...tradePickYears,
+      ...baselineYears,
+      ...entitlementDerivedPicks,
+    ];
+  }
+
+  // Check for consecutive unprotected first round picks (only if enough Stepien-relevant items)
   if (allStepienRelevant.length >= 2) {
     // Sort picks by year
     const sortedPicks = allStepienRelevant.sort((a, b) => a.year - b.year);
@@ -253,8 +310,12 @@ export function validateStepien(team, tradeCtx = {}) {
     farthestYear,
     // Include debug info about what was considered
     _debug: {
-      tradePicksConsidered: stepienRelevantPicks.length,
-      obligationsConsidered: obligationYears.length,
+      // Phase 12.2: Track baseline source
+      useEntitlementBaseline,
+      baselineYearsCount: baselineYears.length,
+      outgoingYearsCount: outgoingYears.length,
+      tradePicksConsidered: tradePickYears.length,
+      entitlementsConsidered: entitlementDerivedPicks.length,
       totalStepienRelevant: allStepienRelevant.length,
     },
   };

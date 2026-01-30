@@ -68,7 +68,7 @@
     "emu:seed:players-v2": "npx tsx scripts/emu/seedPlayersIfMissing.ts --collection=players_v2",
     "emu:reseed:entitlements": "npx tsx scripts/emu/reseedEntitlements.ts",
     "emu:reseed:baseTeams": "npx tsx scripts/emu/reseedBaseTeams.ts",
-    "emu:repair:teams": "npm run emu:reseed:baseTeams && npm run pst:patch:base-teams-entitlements",
+    "emu:repair:teams": "npx tsx scripts/emu/repairTeams.ts",
     "pst:fetch": "npx tsx team-scrape/draft-picks/scripts/pst/pst_fetch_pages.ts",
     "pst:fetch:headed": "npx tsx team-scrape/draft-picks/scripts/pst/pst_fetch_pages.ts --headed",
     "pst:manual:urls": "npx tsx team-scrape/draft-picks/scripts/pst/pst_manual_fetch_helper.ts --urls",

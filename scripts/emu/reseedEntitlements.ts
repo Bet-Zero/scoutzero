@@ -10,10 +10,10 @@
  *  - Related: scripts/emu/seedIfMissing.ts
  */
 
-import admin from 'firebase-admin';
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
+import { initAdminEmu, admin } from './adminEmu.js';
 
 const REQUIRED_TEAMS = 30;
 const BATCH_DELETE_LIMIT = 450;
@@ -43,35 +43,8 @@ const getExpectedEntitlementCount = (): number => {
   );
 };
 
-const requireEmulatorEnv = () => {
-  const missing: string[] = [];
-  if (!process.env.FIRESTORE_EMULATOR_HOST) {
-    missing.push('FIRESTORE_EMULATOR_HOST');
-  }
-  if (!process.env.FIREBASE_AUTH_EMULATOR_HOST) {
-    missing.push('FIREBASE_AUTH_EMULATOR_HOST');
-  }
-  if (missing.length > 0) {
-    throw new Error(
-      `Refusing to reseed without emulator env vars: ${missing.join(', ')}. ` +
-        'Ensure emulators are running and env vars are set.'
-    );
-  }
-};
-
 const log = (message: string) => {
   process.stdout.write(`${message}\n`);
-};
-
-const ensureAdmin = () => {
-  if (admin.apps.length === 0) {
-    const projectId =
-      process.env.FIREBASE_PROJECT_ID ??
-      process.env.GCLOUD_PROJECT ??
-      'demo-scoutzero';
-    admin.initializeApp({ projectId });
-  }
-  return admin.firestore();
 };
 
 const deleteCollection = async (
@@ -167,14 +140,14 @@ const checkFinalState = async (db: FirebaseFirestore.Firestore) => {
 };
 
 const main = async () => {
-  requireEmulatorEnv();
+  // initAdminEmu throws if FIRESTORE_EMULATOR_HOST is not set
+  const { db, projectId } = initAdminEmu();
 
   const expectedEntitlements = getExpectedEntitlementCount();
+  log(`[reseed] projectId: ${projectId}`);
   log(
     `[reseed] expected entitlement count: ${expectedEntitlements} (from ${ENTITLEMENTS_JSON_PATH})`
   );
-
-  const db = ensureAdmin();
 
   // Step 1: Delete all architect_baseEntitlements
   log('[reseed] deleting all architect_baseEntitlements...');

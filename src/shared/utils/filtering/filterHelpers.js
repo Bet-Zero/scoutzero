@@ -6,6 +6,10 @@ export function getFilterDisplayValue(key, value) {
     return value === false ? 'Hide Free Agents' : null;
   }
 
+  if (key === 'includeMissingSalary') {
+    return value === false ? 'Exclude Unknown Salaries' : null;
+  }
+
   const statAbbreviations = {
     PPG: 'ppg',
     RPG: 'rpg',

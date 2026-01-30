@@ -106,6 +106,7 @@ Quick reference for all components in the ScoutZero project.
 - utils/contractSalaryUtils.js
 - utils/contractUtils.js
 - utils/draftPickUtils.js
+- utils/entitlements/entitlementPickRowProjection.js
 - utils/entitlements/formatEntitlement.js
 - utils/exceptionHistory/historyHelpers.js
 - utils/extensionRules.js
@@ -114,6 +115,10 @@ Quick reference for all components in the ScoutZero project.
 - utils/freeAgentLogic.js
 - utils/hardCapUtils.js
 - utils/mutationPipeline.js
+- utils/persistenceContracts/contracts.js
+- utils/persistenceContracts/enforcement.js
+- utils/persistenceContracts/index.js
+- utils/persistenceContracts/validatePersistableShape.js
 - utils/playerRulesProfile/birdRightsRules.js
 - utils/playerRulesProfile/computeProfile.js
 - utils/playerRulesProfile/extensionRules.js
@@ -135,6 +140,11 @@ Quick reference for all components in the ScoutZero project.
 - utils/temp_mutation_code.js
 - utils/timingUtils.js
 - utils/tpeLifecycle.js
+- utils/tradeContext/assertions.js
+- utils/tradeContext/index.js
+- utils/tradeContext/legacy/index.js
+- utils/tradeContext/tradeContext.js
+- utils/tradeContext/types.js
 - utils/tradeHelpers.js
 - utils/tradeMachine/cache/cacheInvalidationManager.js
 - utils/tradeMachine/cache/index.js
@@ -185,10 +195,12 @@ Quick reference for all components in the ScoutZero project.
 - utils/tradeMachine/utils/matchingValues.js
 - utils/tradeMachine/utils/normalizeTradeInput.js
 - utils/tradeMachine/utils/pickIdUtils.js
+- utils/tradeMachine/utils/resolveValidationEntitlements.js
 - utils/tradeMachine/utils/salaryMargin.js
 - utils/tradeMachine/utils/salaryMatchingRules.js
 - utils/tradeMachine/utils/salaryUtils.js
 - utils/tradeMachine/utils/seasonUtils.js
+- utils/tradeMachine/utils/stepienEntitlementUtils.js
 - utils/tradeMachine/utils/swapResolution.js
 - utils/tradeMachine/utils/tradeUtilities.js
 - utils/tradeMachine/utils/validateInput.js
@@ -322,6 +334,7 @@ Quick reference for all components in the ScoutZero project.
 - PlayerTable/PlayerTableHeader/ControlButtons.jsx
 - PlayerTable/PlayerTableHeader/SearchBar.jsx
 - PlayerTable/PlayerTableHeader/index.jsx
+- PlayerTable/components/OverlayPanel.jsx
 - PlayerTable/index.jsx
 - SubRolePill.jsx
 - TwoWayMini.jsx
@@ -336,4 +349,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2026-01-30T04:11:05.660Z*
+*Generated on: 2026-01-30T14:49:43.872Z*

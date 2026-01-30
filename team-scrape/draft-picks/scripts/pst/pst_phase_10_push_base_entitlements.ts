@@ -2,17 +2,27 @@
 /**
  * FILE: team-scrape/draft-picks/scripts/pst/pst_phase_10_push_base_entitlements.ts
  * PURPOSE: Push base entitlement definitions to Firestore from Phase 8.1 assets output.
+ * SUPPORTS: Both emulator mode (via FIRESTORE_EMULATOR_HOST) and production (via serviceAccountKey.json)
  */
 
 import admin from 'firebase-admin';
-import { readFile } from 'node:fs/promises';
+import { readFile, access } from 'node:fs/promises';
 import path from 'node:path';
+import { constants } from 'node:fs';
 
 const SERVICE_ACCOUNT_PATH = path.resolve('serviceAccountKey.json');
-const INPUT_PATH = path.resolve('data/pst/pst_entitlement_assets_2026_2033.json');
+const INPUT_PATH = path.resolve(
+  'data/pst/pst_entitlement_assets_2026_2033.json'
+);
 const BASE_ENTITLEMENTS_COLLECTION = 'architect_baseEntitlements';
 
 const BATCH_SIZE = 450;
+
+/**
+ * Canonical projectId for emulator mode.
+ * MUST match the projectId in scripts/emu/adminEmu.ts
+ */
+const EMULATOR_FALLBACK_PROJECT_ID = 'scoutzero-bf1ae';
 
 type EntitlementAsset = {
   id: string;
@@ -40,20 +50,54 @@ function chunkArray<T>(items: T[], size: number): T[][] {
   return chunks;
 }
 
-async function main() {
-  if (!path.isAbsolute(SERVICE_ACCOUNT_PATH)) {
-    throw new Error('Service account path must resolve to an absolute path.');
+async function fileExists(filepath: string): Promise<boolean> {
+  try {
+    await access(filepath, constants.F_OK);
+    return true;
+  } catch {
+    return false;
   }
+}
 
-  const serviceAccount = await readFile(SERVICE_ACCOUNT_PATH, 'utf8').then(
-    JSON.parse
+function isEmulatorMode(): boolean {
+  return !!process.env.FIRESTORE_EMULATOR_HOST;
+}
+
+function resolveEmulatorProjectId(): string {
+  return (
+    process.env.GCLOUD_PROJECT ??
+    process.env.FIREBASE_PROJECT ??
+    process.env.PROJECT_ID ??
+    EMULATOR_FALLBACK_PROJECT_ID
   );
+}
 
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
+async function initializeAdmin(): Promise<FirebaseFirestore.Firestore> {
+  if (isEmulatorMode()) {
+    const projectId = resolveEmulatorProjectId();
+    console.log(`[push] Emulator mode: projectId=${projectId}`);
+    admin.initializeApp({ projectId });
+  } else {
+    // Production mode: use service account
+    if (!(await fileExists(SERVICE_ACCOUNT_PATH))) {
+      throw new Error(
+        `Service account not found at ${SERVICE_ACCOUNT_PATH} and not in emulator mode. ` +
+          'Either run the emulator or provide a service account.'
+      );
+    }
+    const serviceAccount = JSON.parse(
+      await readFile(SERVICE_ACCOUNT_PATH, 'utf8')
+    );
+    console.log('[push] Production mode: using service account');
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+  }
+  return admin.firestore();
+}
 
-  const db = admin.firestore();
+async function main() {
+  const db = await initializeAdmin();
 
   const payload = await loadJson<EntitlementAssetFile>(INPUT_PATH);
   const assets = payload.assets || [];

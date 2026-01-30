@@ -66,6 +66,18 @@ const ContractFilters = ({ filters, setFilters }) => {
               placeholder="Max"
             />
           </div>
+          {/* Include Missing Salary Toggle */}
+          <label className="flex items-center gap-2 mt-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={filters.includeMissingSalary !== false}
+              onChange={(e) => update('includeMissingSalary', e.target.checked)}
+              className="w-3.5 h-3.5 rounded bg-[#2a2a2a] border-white/30 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+            />
+            <span className="text-white/60 text-xs">
+              Include players without salary data
+            </span>
+          </label>
         </div>
 
         {/* Free Agent Year */}

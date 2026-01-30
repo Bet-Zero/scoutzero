@@ -40,6 +40,73 @@
 | Phase 11.3.2 | Entitlements Routing (toTeamId) World Save      | COMPLETE    | 2026-01-22 |
 | Phase 11.4   | Secondary Team Entitlements Load Fix            | COMPLETE    | 2026-01-22 |
 | Phase 12     | Emulator Workflow Hardening                     | COMPLETE    | 2026-01-28 |
+| Phase 12.1   | Stepien Rule: Entitlements-Aware Validation     | COMPLETE    | 2026-01-30 |
+| Phase 12.2   | Stepien Baseline from Entitlements              | COMPLETE    | 2026-01-30 |
+| Phase 12.3   | Legacy Picks → Entitlements Preflight           | COMPLETE    | 2026-01-30 |
+| Phase 12.3C  | Entitlements → PickRow Projection Layer         | COMPLETE    | 2026-01-30 |
+
+---
+
+## Phase 12.3 — Legacy Picks → Entitlements Preflight (COMPLETE)
+
+**Goal**: Produce a precise inventory of where "legacy draft picks" still exist in the Architect codebase and Firestore model, identifying all read/write/validation/UI touchpoints to create a "delete roadmap" for Phases 13-15.
+
+**Key Findings**:
+
+- The system operates in **DUAL MODE**: UI, validation, and persistence all maintain both legacy pick arrays and entitlement arrays
+- **CRITICAL GAP**: Trade execution builds `entitlementsTraded` metadata but does NOT transfer `entitlementIds` between team snapshots
+- Stepien validation properly uses entitlements when available (Phase 12.1/12.2) but falls back to `draftPicksObligations` for teams without entitlements
+- UI components (`OutgoingPicksList`, `TradePickRow`) are legacy-only and can be removed once entitlements are universal
+
+**Recommended Migration Order**:
+
+1. Phase 13: Wire `entitlementIds` transfer in mutation pipeline
+2. Phase 14: Remove legacy fallbacks in validation and UI
+3. Phase 15: Schema deprecation and data cleanup
+
+**Return Package**: `docs/team-scrape/return_packages/PST_PHASE_12_3_LEGACY_PICKS_TO_ENTITLEMENTS_PREFLIGHT_RETURN_PACKAGE.md`
+
+---
+
+## Phase 12.3C — Entitlements → PickRow Projection Layer (COMPLETE)
+
+**Goal**: Create a projection utility that converts EffectiveEntitlement objects into canonical PickRow structures with protection/conveyance visibility for display in Trade Machine UI.
+
+**Problem**: Entitlements are the tradeable SSOT but don't expose enough structured detail to replace legacy draft pick objects (protections, conveyance chains, dependent pick routing). Users need to see protection details without full lottery resolution.
+
+**Solution**: Created `projectEntitlementToPickRow()` projection utility that derives:
+
+- `assetType`: outright_pick | conditional_right | swap_right
+- `protectionText`: Human-readable protection details (parsed from description or structured)
+- `protectionMeta`: Structured protection data when available (type, protectedRange)
+- `conditionsText`: Conveyance/swap conditions when applicable
+- `originalTeam` / `via`: Best-effort team extraction from entitlement data
+
+**Key Implementation Details**:
+
+- Uses regex patterns to parse protection details from description text (e.g., "top 10 protected" → type: 'top_n', range: 1-10)
+- Falls back to "Protected (details unavailable)" when parsing fails but protection mention exists
+- Returns "Unprotected" for pick_ownership without protection mentions
+- Debug info available via `VITE_DEBUG_ENTITLEMENT_PICKROWS=true` env flag
+
+**Files Changed/Created**:
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/features/architect/utils/entitlements/entitlementPickRowProjection.js` | CREATED | Core projection utility |
+| `src/features/architect/tradeMachine/EntitlementPickRow.jsx` | MODIFIED | 2-line layout with protection text |
+| `src/features/architect/tradeMachine/TradeSummaryPanel.jsx` | MODIFIED | Show protection text in entitlements traded |
+| `src/features/architect/tradeMachine/TradeReceiptPanel.jsx` | MODIFIED | Show protection text in incoming/outgoing |
+| `tests/entitlements/entitlementPickRowProjection.test.js` | CREATED | 28 unit tests (all passing) |
+
+**What's Still Missing for Full Replacement**:
+
+1. **Structured protection data in Firestore**: Currently parsing from description text. Need Phase 13+ to push structured protection rules to Firestore.
+2. **Multi-year conveyance ladders**: Phase 4 proposed `protectionLadder[]` schema but never implemented at runtime.
+3. **Lottery resolution**: This is projection only, not deterministic resolution of which team gets the pick based on lottery results.
+4. **entitlementIds transfer**: Phase 13 must wire entitlement ID transfers in mutation pipeline before legacy picks can be removed.
+
+**Return Package**: `docs/team-scrape/return_packages/PST_PHASE_12_3C_ENTITLEMENT_PICKROW_PROJECTION_RETURN_PACKAGE.md`
 
 ---
 
@@ -108,6 +175,50 @@ In `useTradeMachine.js`, the `selectTeam()` callback (used when selecting any te
 - Legacy picks fallback still works when no entitlements available
 
 **Return Package**: `PST_PHASE_11_4_SECONDARY_TEAM_ENTITLEMENTS_FIX_RETURN_PACKAGE.md`
+
+---
+
+### Phase 12.1 — Stepien Rule: Entitlements-Aware Validation (COMPLETE)
+
+**Goal**: Make Stepien validation use **entitlements** when available, without breaking legacy pick-based validation.
+
+**Problem**
+
+Stepien validation only read from `picksOut` / `outgoingPicks` and `draftPicksObligations`. It had no awareness of the new entitlement assets system. When users traded entitlements, Stepien compliance was not properly checked.
+
+**Solution**
+
+1. **Wire entitlementsOut through validation pipeline**: Added `entitlementsOut: t.entitlementsOut || []` to the team mapping in `useTradeMachine.js` when calling `validateTrade()`.
+
+2. **Create entitlement-to-pick converter**: New `stepienEntitlementUtils.js` with `buildStepienOutgoingPicksFromEntitlements()` that converts entitlements to Stepien-compatible pick-like objects.
+
+3. **Update validateStepien.js**: Import the new util, build entitlement-derived picks, merge into `allStepienRelevant` alongside legacy picks and obligations.
+
+**Conservative Policy Implemented**
+
+| Entitlement Kind                         | Reserves Year? | Notes                        |
+| ---------------------------------------- | -------------- | ---------------------------- |
+| `pick_ownership` (round 1, non-pooled)   | ✅ Yes         | Team controls a 1st          |
+| `swap_right` (round 1, non-pooled)       | ✅ Yes         | Team may receive a 1st       |
+| `conveyance_right` (round 1, non-pooled) | ✅ Yes         | Team may receive a 1st       |
+| Any pooled entitlement                   | ❌ No          | Team doesn't control it      |
+| Any round 2 entitlement                  | ❌ No          | Stepien only applies to 1sts |
+
+**Files Changed**
+
+- `src/features/architect/utils/tradeMachine/utils/stepienEntitlementUtils.js` — CREATED
+- `tests/validators/stepienEntitlements.test.js` — CREATED (28 tests)
+- `src/features/architect/hooks/useTradeMachine.js` — Added `entitlementsOut` to validateTrade call
+- `src/features/architect/utils/tradeMachine/rules/validateStepien.js` — Added entitlement-aware logic
+
+**Validation**
+
+- Build passes ✓
+- All 14 existing stepien.test.js tests pass ✓
+- All 15 existing stepienObligations.test.js tests pass ✓
+- All 28 new stepienEntitlements.test.js tests pass ✓
+
+**Return Package**: `docs/team-scrape/return_packages/PST_PHASE_12_1_STEPIEN_ENTITLEMENTS_EXECUTION_RETURN_PACKAGE.md`
 
 ---
 

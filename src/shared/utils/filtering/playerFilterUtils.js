@@ -1,5 +1,6 @@
 import { expandPositionGroup } from '@/shared/utils/roles';
 import { getPlayerId } from '@/shared/utils/getPlayerId';
+import { getCurrentSeasonYear } from '@/shared/utils/contracts/contractUtils';
 
 const shootingProfileRank = {
   Elite: 6,
@@ -20,6 +21,9 @@ const traitSort = [
   'Rebounding',
   'Shooting',
 ];
+
+// Dynamic current year for yearsRemaining calculation (computed once at module load)
+const CURRENT_YEAR = new Date().getFullYear();
 
 export function filterPlayers(players = [], filters) {
   if (!players) return [];
@@ -79,7 +83,10 @@ export function filterPlayers(players = [], filters) {
 
     if (filters.minSalary !== undefined || filters.maxSalary !== undefined) {
       const salary = p.salaryByYear?.[filters.salaryYear] ?? null;
-      if (typeof salary !== 'number') return false;
+      if (typeof salary !== 'number') {
+        // When salary data is missing: include if toggle is ON, exclude if OFF
+        return filters.includeMissingSalary !== false;
+      }
       if (filters.minSalary !== undefined && salary < filters.minSalary)
         return false;
       if (filters.maxSalary !== undefined && salary > filters.maxSalary)
@@ -187,7 +194,7 @@ export function filterPlayers(players = [], filters) {
 
     if (
       filters.badges?.length &&
-      !filters.badges.every((b) => p.badges.includes(b))
+      !filters.badges.every((b) => (p.badges || []).includes(b))
     ) {
       return false;
     }
@@ -203,7 +210,8 @@ export function filterPlayers(players = [], filters) {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function _checkForZeroContract(player) {
   // Check current year salary from contract subcollection
-  const currentYear = 2025;
+  // Use dynamic year from contractUtils for SSOT compliance
+  const currentYear = getCurrentSeasonYear();
 
   // Prioritize currentContractView (denormalized)
   if (player.currentContractView) {
@@ -320,7 +328,7 @@ export function sortPlayers(
             player.freeAgentYear || player.bio?.display?.freeAgentYear;
           const parsed = parseInt(faYear, 10);
           // Safe default: NaN check to prevent NaN arithmetic
-          return !isNaN(parsed) ? parsed - 2024 : -1;
+          return !isNaN(parsed) ? parsed - CURRENT_YEAR : -1;
         }
         case 'totalContract': {
           // Contract data is in contracts subcollection

@@ -728,9 +728,18 @@ export const useTradeMachine = (
           sends: t.sends,
           picksOut: t.picksOut,
           hardCapped: t.team.hardCapped,
+          // Phase 12.1: Pass entitlements for Stepien validation
+          entitlementsOut: t.entitlementsOut || [],
+          // Phase 12.2: Pass team's loaded entitlements for baseline calculation
+          validationEntitlements: t.entitlements || [],
         })),
       capProjections,
       currentYear: yearKey,
+      // Phase 12.2: Pass worldId and yearKey for validation context
+      tradeCtx: {
+        worldId,
+        yearKey,
+      },
     });
 
     // Environment flag to enable force trade bypass

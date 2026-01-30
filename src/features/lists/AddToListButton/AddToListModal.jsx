@@ -11,6 +11,7 @@ import {
 } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
 import { Toaster } from 'react-hot-toast';
+import { getPlayerId } from '@/shared/utils/getPlayerId';
 
 const AddToListModal = ({ player, onClose }) => {
   const [lists, setLists] = useState([]);
@@ -33,12 +34,13 @@ const AddToListModal = ({ player, onClose }) => {
     try {
       let listId = selectedList;
       const trimmedNewName = newListName.trim();
+      const playerId = getPlayerId(player);
 
       if (!selectedList && trimmedNewName) {
         listId = trimmedNewName.toLowerCase().replace(/\s+/g, '_');
         await setDoc(doc(db, 'lists', listId), {
           name: trimmedNewName,
-          playerIds: [player.id],
+          playerIds: [playerId],
           createdAt: new Date(),
           updatedAt: new Date(),
         });
@@ -52,7 +54,7 @@ const AddToListModal = ({ player, onClose }) => {
       } else if (selectedList) {
         const listRef = doc(db, 'lists', selectedList);
         await updateDoc(listRef, {
-          playerIds: arrayUnion(player.id),
+          playerIds: arrayUnion(playerId),
           updatedAt: new Date(),
         });
         toast.success('Player added to list!', {

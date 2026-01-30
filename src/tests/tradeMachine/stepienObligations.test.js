@@ -1,8 +1,8 @@
 /**
  * Stepien Obligations Tests
- * 
+ *
  * Tests for the obligations-aware Stepien validation.
- * 
+ *
  * See: docs/tradeMachine/TRADE_MACHINE_DRAFT_PICKS_MASTER.md
  * See: docs/return-packages/TRADE_MACHINE_STEPIEN_OBLIGATIONS_WIRING__EXECUTION__2026-01-08.md
  */
@@ -55,9 +55,7 @@ describe('validateStepien - Obligations Wiring', () => {
       // Expected: Stepien violation
       const result = validateStepien(
         makeTeam({
-          outgoingPicks: [
-            { year: 2027, round: '1st' },
-          ],
+          outgoingPicks: [{ year: 2027, round: '1st' }],
           draftPicksObligations: [
             {
               year: 2026,
@@ -78,9 +76,7 @@ describe('validateStepien - Obligations Wiring', () => {
       // Expected: Pass
       const result = validateStepien(
         makeTeam({
-          outgoingPicks: [
-            { year: 2029, round: '1st' },
-          ],
+          outgoingPicks: [{ year: 2029, round: '1st' }],
           draftPicksObligations: [
             {
               year: 2027,
@@ -101,9 +97,7 @@ describe('validateStepien - Obligations Wiring', () => {
       // Expected: violation
       const result = validateStepien(
         makeTeam({
-          outgoingPicks: [
-            { year: 2028, round: '1st' },
-          ],
+          outgoingPicks: [{ year: 2028, round: '1st' }],
           draftPicksObligations: [
             {
               year: 2027,
@@ -121,9 +115,7 @@ describe('validateStepien - Obligations Wiring', () => {
     it('blocks when obligation has stepienEligible: false + adjacent pick', () => {
       const result = validateStepien(
         makeTeam({
-          outgoingPicks: [
-            { year: 2027, round: '1st' },
-          ],
+          outgoingPicks: [{ year: 2027, round: '1st' }],
           draftPicksObligations: [
             {
               year: 2026,
@@ -189,9 +181,7 @@ describe('validateStepien - Obligations Wiring', () => {
       // Ensure it does NOT reserve year; adjacent trade should not auto-fail
       const result = validateStepien(
         makeTeam({
-          outgoingPicks: [
-            { year: 2028, round: '1st' },
-          ],
+          outgoingPicks: [{ year: 2028, round: '1st' }],
           draftPicksObligations: [
             {
               year: 2027,
@@ -210,9 +200,7 @@ describe('validateStepien - Obligations Wiring', () => {
     it('blocks when existing swap obligation is best_of + adjacent pick', () => {
       const result = validateStepien(
         makeTeam({
-          outgoingPicks: [
-            { year: 2028, round: '1st' },
-          ],
+          outgoingPicks: [{ year: 2028, round: '1st' }],
           draftPicksObligations: [
             {
               year: 2027,
@@ -231,9 +219,7 @@ describe('validateStepien - Obligations Wiring', () => {
     it('blocks when existing swap obligation has missing swapType (defaults to best_of)', () => {
       const result = validateStepien(
         makeTeam({
-          outgoingPicks: [
-            { year: 2028, round: '1st' },
-          ],
+          outgoingPicks: [{ year: 2028, round: '1st' }],
           draftPicksObligations: [
             {
               year: 2027,
@@ -254,9 +240,7 @@ describe('validateStepien - Obligations Wiring', () => {
     it('handles empty obligations array gracefully', () => {
       const result = validateStepien(
         makeTeam({
-          outgoingPicks: [
-            { year: 2026, round: '1st' },
-          ],
+          outgoingPicks: [{ year: 2026, round: '1st' }],
           draftPicksObligations: [],
         })
       );
@@ -266,9 +250,7 @@ describe('validateStepien - Obligations Wiring', () => {
     it('handles missing draftPicksObligations field gracefully', () => {
       const result = validateStepien(
         makeTeam({
-          outgoingPicks: [
-            { year: 2026, round: '1st' },
-          ],
+          outgoingPicks: [{ year: 2026, round: '1st' }],
           // No draftPicksObligations field at all
         })
       );
@@ -279,9 +261,7 @@ describe('validateStepien - Obligations Wiring', () => {
       // Second round picks don't count for Stepien rule
       const result = validateStepien(
         makeTeam({
-          outgoingPicks: [
-            { year: 2028, round: '1st' },
-          ],
+          outgoingPicks: [{ year: 2028, round: '1st' }],
           draftPicksObligations: [
             {
               year: 2027,
@@ -311,9 +291,7 @@ describe('validateStepien - Obligations Wiring', () => {
         context: {
           yearKey: 2025,
         },
-        outgoingPicks: [
-          { year: 2028, round: '1st' },
-        ],
+        outgoingPicks: [{ year: 2028, round: '1st' }],
       });
       expect(result.passed).toBe(false);
       expect(result.violations[0]).toContain('consecutive future 1sts');
@@ -322,9 +300,7 @@ describe('validateStepien - Obligations Wiring', () => {
     it('includes debug info about obligations considered', () => {
       const result = validateStepien(
         makeTeam({
-          outgoingPicks: [
-            { year: 2028, round: '1st' },
-          ],
+          outgoingPicks: [{ year: 2028, round: '1st' }],
           draftPicksObligations: [
             {
               year: 2027,
@@ -336,7 +312,8 @@ describe('validateStepien - Obligations Wiring', () => {
       );
       // Verify debug info is present
       expect(result._debug).toBeDefined();
-      expect(result._debug.obligationsConsidered).toBe(1);
+      // Phase 12.2: baselineYearsCount includes obligations in legacy mode (no entitlement baseline)
+      expect(result._debug.baselineYearsCount).toBe(1);
       expect(result._debug.tradePicksConsidered).toBe(1);
     });
   });

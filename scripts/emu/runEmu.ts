@@ -22,19 +22,32 @@ const UI_WEBSOCKET_PORT = 9150;
 const AUTH_PORT = 9099;
 const FUNCTIONS_PORT = 5001;
 const FIRESTORE_PORT = 8082;
+/**
+ * Canonical projectId for emulator.
+ * Priority: GCLOUD_PROJECT > FIREBASE_PROJECT_ID > fallback
+ * IMPORTANT: This MUST match the fallback in adminEmu.ts
+ */
+const FALLBACK_PROJECT_ID = 'scoutzero-bf1ae';
 const PROJECT_ID =
-  process.env.FIREBASE_PROJECT_ID ??
   process.env.GCLOUD_PROJECT ??
-  'scoutzero-bf1ae';
+  process.env.FIREBASE_PROJECT_ID ??
+  FALLBACK_PROJECT_ID;
 const DATA_DIR = path.resolve('.emulator-data');
 const DATA_README = path.join(DATA_DIR, 'README.md');
 
+/**
+ * Environment variables passed to all spawned processes.
+ * Setting both GCLOUD_PROJECT and FIREBASE_PROJECT ensures consistency
+ * regardless of which env var the child script reads first.
+ */
 const EMULATOR_ENV = {
   ...process.env,
   FIRESTORE_EMULATOR_HOST: `127.0.0.1:${FIRESTORE_PORT}`,
   FIREBASE_AUTH_EMULATOR_HOST: `127.0.0.1:${AUTH_PORT}`,
-  FIREBASE_PROJECT_ID: PROJECT_ID,
   GCLOUD_PROJECT: PROJECT_ID,
+  FIREBASE_PROJECT: PROJECT_ID,
+  FIREBASE_PROJECT_ID: PROJECT_ID,
+  PROJECT_ID: PROJECT_ID,
 };
 
 // All ports used by Firebase emulator suite - freed before starting to avoid multi-instance issues

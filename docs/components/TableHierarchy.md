@@ -19,6 +19,8 @@ PlayerTable/
     ControlButtons.jsx
     SearchBar.jsx
     index.jsx
+  components/
+    OverlayPanel.jsx
   index.jsx
 SubRolePill.jsx
 TwoWayMini.jsx
@@ -27,5 +29,5 @@ hooks/
 ```
 
 ---
-*Generated on: 2025-12-26T08:03:41.977Z*
+*Generated on: 2026-01-30T14:49:43.857Z*
 *Auto-updated by: npm run docs*

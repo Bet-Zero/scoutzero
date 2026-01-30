@@ -11,9 +11,9 @@
  *  - Source: team-scrape/shared/firestore_staging/_artifacts/output/baseTeams/{TEAM}.json
  */
 
-import admin from 'firebase-admin';
 import fs from 'node:fs';
 import path from 'node:path';
+import { initAdminEmu, getEmulatorProjectId } from './adminEmu.js';
 
 const REQUIRED_TEAMS = 30;
 const BATCH_SIZE = 450;
@@ -25,28 +25,8 @@ const BASE_TEAMS_COLLECTION = 'architect_baseTeams';
 // Fields that must exist for a baseTeams doc to be considered valid
 const REQUIRED_FIELDS = ['teamCode', 'teamName', 'roster'];
 
-const requireEmulatorEnv = () => {
-  if (!process.env.FIRESTORE_EMULATOR_HOST) {
-    throw new Error(
-      'Refusing to reseed baseTeams without FIRESTORE_EMULATOR_HOST set. ' +
-        'This script is emulator-only. Ensure emulators are running.'
-    );
-  }
-};
-
 const log = (message: string) => {
   process.stdout.write(`${message}\n`);
-};
-
-const ensureAdmin = (): FirebaseFirestore.Firestore => {
-  if (admin.apps.length === 0) {
-    const projectId =
-      process.env.FIREBASE_PROJECT_ID ??
-      process.env.GCLOUD_PROJECT ??
-      'demo-scoutzero';
-    admin.initializeApp({ projectId });
-  }
-  return admin.firestore();
 };
 
 type TeamDoc = {
@@ -164,9 +144,11 @@ const verifyFinalState = async (
 };
 
 const main = async () => {
-  requireEmulatorEnv();
+  // initAdminEmu throws if FIRESTORE_EMULATOR_HOST is not set
+  const { db, projectId } = initAdminEmu();
 
   log('[reseed:baseTeams] === RESEED ARCHITECT_BASETEAMS ===');
+  log(`[reseed:baseTeams] projectId: ${projectId}`);
   log(`[reseed:baseTeams] Source: ${BASE_TEAMS_SOURCE_DIR}`);
 
   // Get available team files
@@ -217,7 +199,6 @@ const main = async () => {
   log(`[reseed:baseTeams] All ${teamDocs.size} source files validated`);
 
   // Write to Firestore
-  const db = ensureAdmin();
   log('[reseed:baseTeams] Writing teams to Firestore emulator...');
   const written = await writeAllTeams(db, teamDocs);
   log(`[reseed:baseTeams] Wrote ${written} team documents`);

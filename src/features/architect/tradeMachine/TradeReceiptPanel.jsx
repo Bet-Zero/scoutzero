@@ -3,10 +3,16 @@
 // OWNERSHIP: Trade Machine Team
 // HISTORY:
 //  - 2025-12-27: Created TradeReceiptPanel for Phase 1 debugging
+//  - 2026-01-30: Phase 12.3C - Added PickRow projection for protection/condition visibility
 // LINKS: TradeEditor.jsx, tradeValidator.js
 
 import React, { useState } from 'react';
 import { formatCurrency } from '@/features/architect/utils/tradeHelpers';
+// Phase 12.3C: PickRow projection for protection/condition visibility
+import {
+  projectEntitlementToPickRow,
+  getPickRowSecondaryText,
+} from '@/features/architect/utils/entitlements/entitlementPickRowProjection';
 
 const ADJUSTMENT_THRESHOLD = 1;
 
@@ -391,28 +397,44 @@ const TradeReceiptPanel = ({ receipt }) => {
                         <div className="text-white/40 text-xs mb-1">
                           Entitlements Out:
                         </div>
-                        {team.outgoingEntitlements.map((ent, eIdx) => (
-                          <div
-                            key={ent.id || eIdx}
-                            className="text-xs pl-2 py-0.5 border-l border-amber-500/30"
-                          >
-                            <span className="text-amber-300">
-                              {ent.seasonYear} R{ent.round}
-                            </span>
-                            <span className="text-white/60 ml-1">
-                              — {ent.kind}
-                            </span>
-                            <span className="text-white/30 ml-1 text-[10px]">
-                              ({ent.id})
-                            </span>
-                            {/* Phase 11.3.1: Show routing target when specified */}
-                            {ent.toTeamId && (
-                              <span className="text-white/30 ml-1 text-[10px]">
-                                → {ent.toTeamId}
-                              </span>
-                            )}
-                          </div>
-                        ))}
+                        {team.outgoingEntitlements.map((ent, eIdx) => {
+                          // Phase 12.3C: Project entitlement for protection/condition visibility
+                          const pickRow = projectEntitlementToPickRow(ent, {
+                            teamCode: team.teamCode,
+                          });
+                          const secondaryText =
+                            getPickRowSecondaryText(pickRow);
+                          return (
+                            <div
+                              key={ent.id || eIdx}
+                              className="text-xs pl-2 py-0.5 border-l border-amber-500/30"
+                            >
+                              <div>
+                                <span className="text-amber-300">
+                                  {ent.seasonYear} R{ent.round}
+                                </span>
+                                <span className="text-white/60 ml-1">
+                                  — {ent.kind}
+                                </span>
+                                <span className="text-white/30 ml-1 text-[10px]">
+                                  ({ent.id})
+                                </span>
+                                {/* Phase 11.3.1: Show routing target when specified */}
+                                {ent.toTeamId && (
+                                  <span className="text-white/30 ml-1 text-[10px]">
+                                    → {ent.toTeamId}
+                                  </span>
+                                )}
+                              </div>
+                              {/* Phase 12.3C: Protection/conditions text */}
+                              {secondaryText && (
+                                <div className="text-white/40 text-[10px] mt-0.5">
+                                  {secondaryText}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                     {team.incomingEntitlements?.length > 0 && (
@@ -420,33 +442,49 @@ const TradeReceiptPanel = ({ receipt }) => {
                         <div className="text-white/40 text-xs mb-1">
                           Entitlements In:
                         </div>
-                        {team.incomingEntitlements.map((ent, eIdx) => (
-                          <div
-                            key={ent.id || eIdx}
-                            className="text-xs pl-2 py-0.5 border-l border-green-500/30"
-                          >
-                            <span className="text-green-300">
-                              {ent.seasonYear} R{ent.round}
-                            </span>
-                            <span className="text-white/60 ml-1">
-                              — {ent.kind}
-                            </span>
-                            <span className="text-white/30 ml-1 text-[10px]">
-                              ({ent.id})
-                            </span>
-                            {ent.fromTeam && (
-                              <span className="text-white/30 ml-1">
-                                from {ent.fromTeam}
-                              </span>
-                            )}
-                            {/* Phase 11.3.1: Show routing debug when toTeamId was specified (routed, not broadcast) */}
-                            {ent.toTeamId && (
-                              <span className="text-blue-400/50 ml-1 text-[10px]">
-                                [routed]
-                              </span>
-                            )}
-                          </div>
-                        ))}
+                        {team.incomingEntitlements.map((ent, eIdx) => {
+                          // Phase 12.3C: Project entitlement for protection/condition visibility
+                          const pickRow = projectEntitlementToPickRow(ent, {
+                            teamCode: team.teamCode,
+                          });
+                          const secondaryText =
+                            getPickRowSecondaryText(pickRow);
+                          return (
+                            <div
+                              key={ent.id || eIdx}
+                              className="text-xs pl-2 py-0.5 border-l border-green-500/30"
+                            >
+                              <div>
+                                <span className="text-green-300">
+                                  {ent.seasonYear} R{ent.round}
+                                </span>
+                                <span className="text-white/60 ml-1">
+                                  — {ent.kind}
+                                </span>
+                                <span className="text-white/30 ml-1 text-[10px]">
+                                  ({ent.id})
+                                </span>
+                                {ent.fromTeam && (
+                                  <span className="text-white/30 ml-1">
+                                    from {ent.fromTeam}
+                                  </span>
+                                )}
+                                {/* Phase 11.3.1: Show routing debug when toTeamId was specified (routed, not broadcast) */}
+                                {ent.toTeamId && (
+                                  <span className="text-blue-400/50 ml-1 text-[10px]">
+                                    [routed]
+                                  </span>
+                                )}
+                              </div>
+                              {/* Phase 12.3C: Protection/conditions text */}
+                              {secondaryText && (
+                                <div className="text-white/40 text-[10px] mt-0.5">
+                                  {secondaryText}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
