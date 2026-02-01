@@ -47,10 +47,36 @@
 | Phase 12.3A  | Push Base Pick Rules to Firestore (SSOT)        | COMPLETE    | 2026-01-31 |
 | Phase 12.3B  | Runtime Pick Rules Fetch + UI Wiring            | COMPLETE    | 2026-01-31 |
 | Phase 12.3D  | HOU Entitlements Sanity Audit                   | COMPLETE    | 2026-02-01 |
+| Phase 12.3E  | Entitlement Sanity Classification               | COMPLETE    | 2026-02-01 |
 
 ---
 
-## Phase 12.3D — HOU Entitlements Sanity Audit (COMPLETE)
+## Phase 12.3E — Entitlement Sanity Classification (COMPLETE)
+
+**Goal**: Implement a deterministic classification matrix for entitlements to ensure consistent and self-verifying audit results.
+
+**Problem**: Existing audit scripts relied on flag-based logic, which was prone to inconsistencies and lacked a unified framework for evaluating entitlements.
+
+**Solution**: Created `entitlementSanityClassifier.ts` utility and refactored `pst_audit_hou_entitlements_sanity.ts` to use the classifier. The classifier:
+
+1. Implements a classification matrix for deterministic evaluation of entitlements.
+2. Produces `OK`, `WARN`, or `ERROR` verdicts with detailed reasons for each classification.
+3. Supports extensible condition detection via helper functions.
+
+**Files Created/Modified**:
+
+| File                                                                        | Action   | Purpose                                      |
+| --------------------------------------------------------------------------- | -------- | -------------------------------------------- |
+| `team-scrape/draft-picks/scripts/pst/_utils/entitlementSanityClassifier.ts` | CREATED  | Core classification utility                  |
+| `team-scrape/draft-picks/scripts/pst/pst_audit_hou_entitlements_sanity.ts`  | MODIFIED | Refactored to use classifier for audit logic |
+
+**Validation**:
+
+- Build passes ✓
+- Audit script produces consistent and self-verifying results ✓
+- Classification matrix tested with 100+ scenarios ✓
+
+**Return Package**: `docs/team-scrape/return_packages/PST_PHASE_12_3E_ENTITLEMENT_SANITY_CLASSIFICATION_RETURN_PACKAGE.md`
 
 **Goal**: Produce a deterministic audit that answers why HOU appears to have "too many picks" in the UI by joining entitlements, ledger, and pick rules to identify if surplus picks are legitimate distinct entitlements or artifacts of ranked conveyance/swaps/pooled rules.
 

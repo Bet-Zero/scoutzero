@@ -36,75 +36,8 @@ import { validateTrade } from '@/features/architect/utils/tradeMachine';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import { assertPostTradeSnapshot } from './assertions';
 
-// ==============================================================================
-// INTERNAL HELPERS (not exported)
-// ==============================================================================
-
-/**
- * Calculate team totals after snapshot build.
- * Simplified version - mirrors mutationPipeline's calculateTeamTotals.
- *
- * @param {Object} teamData - Team data object
- * @param {string} seasonId - Season ID (e.g., "2025-26")
- * @returns {Object} Updated totals
- */
-function calculateTeamTotals(teamData, seasonId) {
-  const totals = teamData.totals || {};
-  const currentYear = toEndYear(seasonId);
-
-  // Calculate total salary from players
-  let totalSalary = 0;
-  let guaranteedSalary = 0;
-
-  if (teamData.players && Array.isArray(teamData.players)) {
-    teamData.players.forEach((player) => {
-      if (player.contract?.salariesByYear) {
-        player.contract.salariesByYear.forEach((yearData) => {
-          const year = toEndYear(yearData.season);
-          if (year === currentYear) {
-            const salary = yearData.salary || 0;
-            totalSalary += salary;
-            if (yearData.guaranteed !== false) {
-              guaranteedSalary += salary;
-            }
-          }
-        });
-      }
-    });
-  }
-
-  // Add dead cap
-  let deadCapTotal = 0;
-  if (teamData.deadCap && Array.isArray(teamData.deadCap)) {
-    teamData.deadCap.forEach((item) => {
-      if (item.amountByYear) {
-        item.amountByYear.forEach((yearData) => {
-          if (yearData.season === seasonId) {
-            deadCapTotal += yearData.amount || 0;
-          }
-        });
-      }
-    });
-  }
-
-  // Add cap holds
-  let capHoldsTotal = 0;
-  if (teamData.capHolds && Array.isArray(teamData.capHolds)) {
-    teamData.capHolds.forEach((hold) => {
-      capHoldsTotal += hold.amount || 0;
-    });
-  }
-
-  return {
-    ...totals,
-    totalSalary,
-    capHit: totalSalary + deadCapTotal + capHoldsTotal,
-    guaranteedSalary,
-    rosterCount: teamData.roster?.length || 0,
-    deadCapTotal,
-    capHoldsTotal,
-  };
-}
+// Phase 72: SSOT for team cap totals computation
+import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
 
 // ==============================================================================
 // PHASE 56/58: POST-TRADE SNAPSHOT BUILDER
@@ -337,8 +270,8 @@ export function buildPostTradeTeamsSnapshot({
       lastModifiedAt: timestampISO,
     };
 
-    // Recalculate totals
-    updatedTeam.totals = calculateTeamTotals(updatedTeam, seasonId);
+    // Recalculate totals (Phase 72: Using SSOT)
+    updatedTeam.totals = computeTeamCapTotals(updatedTeam, toEndYear(seasonId));
 
     teamUpdates.push({ teamCode, team: updatedTeam });
   }

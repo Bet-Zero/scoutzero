@@ -420,6 +420,11 @@ export async function extendPlayer(worldId, teamCode, playerId, extension) {
 /**
  * Update team cap totals after changes
  *
+ * @deprecated Phase 72: Use computeTeamCapTotals() from capTotals instead.
+ * This function is retained for legacy compatibility in tradeManager paths,
+ * but should not be used in new code. The main mutation pipeline now uses
+ * the SSOT computeTeamCapTotals() which includes incompleteChargesTotal.
+ *
  * This is a simplified implementation. A full implementation would:
  * - Sum all player salaries from roster
  * - Add dead cap amounts

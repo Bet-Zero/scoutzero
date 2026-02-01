@@ -46,20 +46,23 @@ function getHeadshotPath(playerId) {
  */
 function calculateAgeFromDOB(dob) {
   if (!dob) return null;
-  
+
   try {
     const birthDate = new Date(dob);
     if (isNaN(birthDate.getTime())) return null;
-    
+
     const today = new Date();
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
-    
+
     // Adjust age if birthday hasn't occurred this year
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birthDate.getDate())
+    ) {
       age--;
     }
-    
+
     return age >= 0 ? age : null;
   } catch {
     return null;
@@ -96,6 +99,37 @@ const normalizeSubRoles = (viewSub, subSub) => ({
 });
 
 /**
+ * Normalize free agent type to canonical format
+ * Data may come as "UFA", "RFA", "TWO_WAY", or legacy "2W"
+ */
+const normalizeFreeAgentType = (faType) => {
+  if (!faType) return null;
+  const normalized = String(faType).toUpperCase().trim();
+  // Handle legacy "2W" format
+  if (normalized === '2W') return 'TWO_WAY';
+  // Valid canonical values
+  if (['UFA', 'RFA', 'TWO_WAY', 'SFA', 'NONE'].includes(normalized)) {
+    return normalized;
+  }
+  return faType; // Return as-is if unknown
+};
+
+/**
+ * Normalize bird rights status from object or string
+ * Data may be object { status: "Bird", eligibleFor: [...] } or string
+ */
+const normalizeBirdRightsStatus = (birdRights) => {
+  if (!birdRights) return null;
+  // If it's already a string, return it
+  if (typeof birdRights === 'string') return birdRights;
+  // If it's an object with status field
+  if (typeof birdRights === 'object' && birdRights.status) {
+    return birdRights.status;
+  }
+  return null;
+};
+
+/**
  * Enrich player data with computed/convenience fields
  * This handles the v2 nested schema structure only
  *
@@ -117,7 +151,7 @@ export function enrichPlayerData(playerData) {
   let salaryMap = {};
   let primaryContractId = null;
   let primaryContract = null;
-  
+
   // Build primaryContract from currentContractView for easier access
   if (playerData.currentContractView?.salaryByYear) {
     // Use denormalized salaryByYear from main document
@@ -126,14 +160,16 @@ export function enrichPlayerData(playerData) {
       const salary = denormalizedSalaries[year];
       salaryMap[year] = typeof salary === 'number' ? salary / 1_000_000 : null;
     });
-    
+
     // Create a primaryContract-like structure from currentContractView
     // Convert salaryByYear object to array format for backward compatibility
-    const salariesArray = Object.entries(denormalizedSalaries).map(([year, salary]) => ({
-      year: parseInt(year, 10),
-      salary: typeof salary === 'number' ? salary : null,
-    })).sort((a, b) => a.year - b.year);
-    
+    const salariesArray = Object.entries(denormalizedSalaries)
+      .map(([year, salary]) => ({
+        year: parseInt(year, 10),
+        salary: typeof salary === 'number' ? salary : null,
+      }))
+      .sort((a, b) => a.year - b.year);
+
     primaryContract = {
       salariesByYear: salariesArray,
       freeAgency: {
@@ -150,9 +186,9 @@ export function enrichPlayerData(playerData) {
   } else {
     // Fallback to contracts subcollection
     if (playerData.contracts && Object.keys(playerData.contracts).length > 0) {
-      const [firstId, firstContract] = Object.entries(playerData.contracts).sort(
-        ([a], [b]) => a.localeCompare(b)
-      )[0];
+      const [firstId, firstContract] = Object.entries(
+        playerData.contracts
+      ).sort(([a], [b]) => a.localeCompare(b))[0];
       primaryContractId = firstId;
       primaryContract = firstContract || null;
     }
@@ -188,7 +224,7 @@ export function enrichPlayerData(playerData) {
   let latestSeasonId = null;
   let latestSeasonStats = {};
   let latestSeasonMeta = {};
-  
+
   if (playerData.currentSeasonStats) {
     // Use denormalized stats from main document
     latestSeasonStats = playerData.currentSeasonStats;
@@ -265,7 +301,37 @@ export function enrichPlayerData(playerData) {
   };
 
   // Calculate age from DOB if age is not available
-  const age = playerData.bio?.age || calculateAgeFromDOB(playerData.bio?.dob) || 0;
+  const age =
+    playerData.bio?.age || calculateAgeFromDOB(playerData.bio?.dob) || 0;
+
+  // Build optionByYear map from primaryContract.salariesByYear
+  const optionByYear = {};
+  const salariesArray = primaryContract?.salariesByYear || [];
+  salariesArray.forEach((s) => {
+    const key = s.year || s.season;
+    if (!key || !s.option) return;
+    // Extract year as number if it's a season code like "2026-27"
+    const yearNum =
+      typeof key === 'string' && key.includes('-')
+        ? parseInt(key.split('-')[0], 10) + 1
+        : parseInt(key, 10);
+    if (yearNum && s.option) {
+      optionByYear[yearNum] = s.option; // "PO", "TO", "ETO"
+    }
+  });
+
+  // Extract free agency fields from nested paths
+  const freeAgentYear =
+    playerData.currentContractView?.freeAgentYear ||
+    playerData.bio?.display?.freeAgentYear ||
+    null;
+  const freeAgentType = normalizeFreeAgentType(
+    playerData.currentContractView?.freeAgentType ||
+      playerData.bio?.display?.freeAgentType
+  );
+  const birdRightsStatus = normalizeBirdRightsStatus(
+    playerData.currentContractView?.birdRights || primaryContract?.birdRights
+  );
 
   return {
     ...playerData,
@@ -289,6 +355,11 @@ export function enrichPlayerData(playerData) {
     traits: evaluationData.traits || {},
     badges,
     overallGrade: evaluationData.overallGrade ?? null,
+    // Free agency convenience fields (exposed at top level for filtering)
+    freeAgentYear,
+    freeAgentType,
+    birdRightsStatus,
+    optionByYear,
     salaryByYear: salaryMap,
     latestSeasonId,
     latestSeasonStats,

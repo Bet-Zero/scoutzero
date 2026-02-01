@@ -112,10 +112,47 @@ const ContractFilters = ({ filters, setFilters }) => {
             <option value="">All</option>
             <option value="UFA">UFA</option>
             <option value="RFA">RFA</option>
-            <option value="TO">Team Option</option>
-            <option value="PO">Player Option</option>
-            <option value="2W">Two-Way</option>
+            <option value="TWO_WAY">Two-Way</option>
           </select>
+        </div>
+
+        {/* Option Type (year-specific, uses Salary Year) */}
+        <div className="flex flex-col">
+          <label className="mb-1 text-white/50 text-[11px] uppercase tracking-wide">
+            Option Type
+            <span className="text-white/30 text-[9px] ml-1">
+              (uses Salary Year)
+            </span>
+          </label>
+          <div className="flex flex-wrap gap-1">
+            {[
+              { value: 'TO', label: 'Team' },
+              { value: 'PO', label: 'Player' },
+              { value: 'ETO', label: 'Early Term.' },
+            ].map(({ value, label }) => {
+              const selected = (filters.optionTypes || []).includes(value);
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => {
+                    const current = filters.optionTypes || [];
+                    const updated = selected
+                      ? current.filter((v) => v !== value)
+                      : [...current, value];
+                    update('optionTypes', updated);
+                  }}
+                  className={`px-2 py-0.5 rounded text-xs transition-colors ${
+                    selected
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-[#2a2a2a] text-white/60 hover:bg-[#3a3a3a]'
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Bird Rights */}

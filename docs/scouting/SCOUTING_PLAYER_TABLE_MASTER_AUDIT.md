@@ -1000,6 +1000,63 @@ The comparison **never matches** because the dropdown emits `"celtics"` but play
 
 ---
 
+### Phase 2Q: Full Filter + Sort Wiring Contract Audit (2026-02-01)
+
+**Status**: ✅ PREFLIGHT COMPLETE
+
+**Date**: 2026-02-01
+
+**Goal**: Identify, in one pass, **every filter/sort that is not truly wired** by building an end-to-end "wiring contract" map from UI control → stored filter value → predicate field(s) → player schema field(s) → sample data reality.
+
+**Documentation**:
+
+- **Return Package**: [PHASE_2Q_FILTER_WIRING_AUDIT_RETURN_PACKAGE.md](../../return_packages/scouting/PHASE_2Q_FILTER_WIRING_AUDIT_RETURN_PACKAGE.md)
+
+**Key Findings**:
+
+| Severity    | Count | Category                                       |
+| ----------- | ----- | ---------------------------------------------- |
+| 🔴 CRITICAL | 3     | Free Agency filters completely broken          |
+| 🔴 HIGH     | 1     | Overall Grade filter has no predicate          |
+| 🟡 MEDIUM   | 1     | MetadataFilters Team dropdown missing valueKey |
+| 🟢 OK       | 35    | All other filters and sorts correctly wired    |
+
+**Broken Filters (Detail)**:
+
+| Filter              | Issue             | Root Cause                                                                                                                                                    |
+| ------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Free Agent Year** | Returns 0 results | Predicate checks `p.freeAgentYear` but field doesn't exist at top level; data is at `p.bio?.display?.freeAgentYear` or `p.currentContractView?.freeAgentYear` |
+| **Free Agent Type** | Returns 0 results | Same issue; also UI values ("TO", "PO", "2W") don't match data values ("UFA", "RFA", "TWO_WAY")                                                               |
+| **Bird Rights**     | Does nothing      | NO PREDICATE EXISTS; also data is object `{ status, eligibleFor }` not string                                                                                 |
+| **Overall Grade**   | Does nothing      | NO PREDICATE EXISTS; UI writes `min_overall_grade`/`max_overall_grade` but nothing checks them                                                                |
+
+**Dominant Failure Pattern**:
+
+**Field Path Mismatch**: The predicates in `playerFilterUtils.js` check for `p.freeAgentYear`, `p.freeAgentType` at top level, but `enrichPlayerData.js` never exposes these fields at top level. The data exists only at nested paths.
+
+**Recommended Fix Strategy**:
+
+**Option A (Preferred)**: Add missing fields to `enrichPlayerData.js` return:
+
+```javascript
+freeAgentYear: playerData.currentContractView?.freeAgentYear || playerData.bio?.display?.freeAgentYear || null,
+freeAgentType: playerData.currentContractView?.freeAgentType || playerData.bio?.display?.freeAgentType || null,
+birdRightsStatus: playerData.currentContractView?.birdRights?.status || null,
+```
+
+Then add predicates for `birdRights` and `overallGrade` to `playerFilterUtils.js`.
+
+**Files Requiring Changes** (for execution phase):
+
+| File                                                                         | Change Required                                                    |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `src/features/roster/utils/enrichPlayerData.js`                              | Add `freeAgentYear`, `freeAgentType`, `birdRightsStatus` to return |
+| `src/shared/utils/filtering/playerFilterUtils.js`                            | Add `birdRights` and `overallGrade` predicates                     |
+| `src/features/filters/FiltersPanel/FilterPanel/sections/ContractFilters.jsx` | Fix FA Type option values ("UFA"/"RFA" not "TO"/"PO")              |
+| `src/features/filters/FiltersPanel/FilterPanel/sections/MetadataFilters.jsx` | Add `valueKey="code"` to Team filter                               |
+
+---
+
 ### Phase 2: UX & Navigation Enhancement
 
 **Goal**: Connect the Table to the wider app.

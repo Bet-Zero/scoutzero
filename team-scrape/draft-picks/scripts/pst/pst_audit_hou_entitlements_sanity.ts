@@ -1,14 +1,26 @@
 /**
  * FILE: team-scrape/draft-picks/scripts/pst/pst_audit_hou_entitlements_sanity.ts
  * PURPOSE: Comprehensive sanity audit for HOU entitlements - joins entitlements, ledger, and pick rules
- *          to explain why HOU may appear to have "too many picks" in the UI
- * OWNERSHIP: PST Audit (Phase 12.3D)
- * HISTORY: Created 2026-02-01
+ *          to explain why HOU may appear to have "too many picks" in the UI.
+ *          Uses deterministic classification with OK/WARN/ERROR verdicts.
+ * OWNERSHIP: PST Audit (Phase 12.3E)
+ * HISTORY:
+ *   - 2026-02-01: Created (Phase 12.3D)
+ *   - 2026-02-01: Added classification matrix + verdicts (Phase 12.3E)
  * LINKS: docs/team-scrape/PST_PICK_LEDGER_MASTER_PLAN.md
  */
 
 import fs from 'fs';
 import path from 'path';
+import {
+  classifyEntitlement,
+  SanityResult,
+  SanityClassification,
+  SanityVerdict,
+  EntitlementInput,
+  LedgerPickInput,
+  PickRuleProfileInput,
+} from './_utils/entitlementSanityClassifier';
 
 // =====================================================
 // INTERFACES
@@ -66,6 +78,7 @@ interface PickRuleProfile {
 
 interface AuditRow {
   entitlementId: string;
+  team: string;
   kind: string;
   seasonYear: number;
   round: number;
@@ -85,16 +98,13 @@ interface AuditRow {
   // PickRules join fields
   protectionsSummary: string | null;
   conditionsSummary: string | null;
+  hasPickRules: boolean;
   hasRankedConveyance: boolean;
   hasSwapCondition: boolean;
   hasDidNotConvey: boolean;
 
-  // Flags
-  flag_missing_underlyingPickId: boolean;
-  flag_owner_mismatch: boolean;
-  flag_ranked_conveyance_present: boolean;
-  flag_pool_or_swap_without_expected_kind: boolean;
-  flag_source_is_PST_DISPLAY: boolean;
+  // NEW: Sanity classification result
+  sanity: SanityResult;
 }
 
 interface YearRoundBucket {
@@ -103,6 +113,17 @@ interface YearRoundBucket {
   count: number;
   entitlementIds: string[];
   underlyingPickIds: string[];
+}
+
+interface AuditSummary {
+  total: number;
+  ok: number;
+  warn: number;
+  error: number;
+  byKind: Record<string, number>;
+  byClassification: Record<string, number>;
+  byYearRound: YearRoundBucket[];
+  busyBuckets: YearRoundBucket[];
 }
 
 interface AuditResult {
@@ -115,14 +136,11 @@ interface AuditResult {
       pickRules: string | null;
     };
   };
-  summary: {
-    totalHOUEntitlements: number;
-    byKind: Record<string, number>;
-    byYearRound: YearRoundBucket[];
-    busyBuckets: YearRoundBucket[];
-  };
+  summary: AuditSummary;
   rows: AuditRow[];
-  suspiciousRows: AuditRow[];
+  errorRows: AuditRow[];
+  warnRows: AuditRow[];
+  okRows: AuditRow[];
   hou2026R2Section: {
     count: number;
     rows: AuditRow[];
@@ -186,7 +204,6 @@ function summarizeConditions(profile: PickRuleProfile): string {
 }
 
 function hasRankedConveyancePattern(profile: PickRuleProfile): boolean {
-  // Check swaps for ranked patterns
   const swapsRanked = profile.swaps?.some(
     (s) =>
       s.mostLeast === 'least_favorable' ||
@@ -195,7 +212,6 @@ function hasRankedConveyancePattern(profile: PickRuleProfile): boolean {
       s.description?.toLowerCase().includes('most favorable')
   );
 
-  // Check selectionSpecs for rank/order patterns
   const specsRanked = profile.selectionSpecs?.some(
     (s) =>
       s.order === 'least' ||
@@ -206,7 +222,6 @@ function hasRankedConveyancePattern(profile: PickRuleProfile): boolean {
       s.description?.toLowerCase().includes('most favorable')
   );
 
-  // Check conveyance for patterns
   const convRanked = profile.conveyance?.some(
     (c) =>
       c.description?.toLowerCase().includes('least favorable') ||
@@ -235,10 +250,20 @@ function hasDidNotConveyPattern(profile: PickRuleProfile): boolean {
 // =====================================================
 
 function main() {
-  console.log('=== HOU Entitlements Sanity Audit ===');
+  // Parse CLI args for optional --team flag
+  const args = process.argv.slice(2);
+  let targetTeam = 'HOU'; // Default
+  for (const arg of args) {
+    if (arg.startsWith('--team=')) {
+      targetTeam = arg.split('=')[1].toUpperCase();
+    }
+  }
+
+  console.log('=== Entitlements Sanity Audit ===');
   console.log(
-    'Phase 12.3D - Comprehensive Entitlements + PickRules + Ledger Join\n'
+    'Phase 12.3E - Deterministic Classification with OK/WARN/ERROR Verdicts\n'
   );
+  console.log(`Target Team: ${targetTeam}\n`);
 
   // -----------------------------------------------
   // STEP A: Load and Index Data
@@ -280,21 +305,23 @@ function main() {
     }
   }
 
-  // Filter to HOU entitlements
-  const houEntitlements = entitlementsData.assets.filter(
-    (e) => e.holderTeam === 'HOU'
+  // Filter to target team entitlements
+  const teamEntitlements = entitlementsData.assets.filter(
+    (e) => e.holderTeam === targetTeam
   );
 
-  console.log(`\nFiltered to ${houEntitlements.length} HOU entitlements.\n`);
+  console.log(
+    `\nFiltered to ${teamEntitlements.length} ${targetTeam} entitlements.\n`
+  );
 
   // -----------------------------------------------
-  // STEP B: Produce One Row Per HOU Entitlement
+  // STEP B: Produce One Row Per Entitlement with Classification
   // -----------------------------------------------
-  console.log('Building audit rows...');
+  console.log('Building audit rows with classifications...');
 
   const rows: AuditRow[] = [];
 
-  for (const ent of houEntitlements) {
+  for (const ent of teamEntitlements) {
     // Determine the primary underlying pickId for ledger/rules lookup
     const primaryPickId =
       ent.underlyingPickId ||
@@ -309,9 +336,52 @@ function main() {
       ? pickRulesByPickId.get(primaryPickId)
       : null;
 
+    // Prepare classifier inputs
+    const entitlementInput: EntitlementInput = {
+      id: ent.id,
+      kind: ent.kind,
+      holderTeam: ent.holderTeam,
+      seasonYear: ent.seasonYear,
+      round: ent.round,
+      description: ent.description,
+      underlyingPickId: ent.underlyingPickId,
+      poolUnderlyingPickIds: ent.poolUnderlyingPickIds,
+      swapControllerPickId: ent.swapControllerPickId,
+      receivesComparator: ent.receivesComparator,
+      receivesRank: ent.receivesRank,
+    };
+
+    const ledgerPickInput: LedgerPickInput | null = ledgerPick
+      ? {
+          pickId: ledgerPick.pickId,
+          owner: ledgerPick.owner,
+          originalTeam: ledgerPick.originalTeam,
+          ownershipSource: ledgerPick.ownershipSource,
+        }
+      : null;
+
+    const pickRuleProfileInput: PickRuleProfileInput | null = pickRuleProfile
+      ? {
+          pickId: pickRuleProfile.pickId,
+          protections: pickRuleProfile.protections,
+          swaps: pickRuleProfile.swaps,
+          conveyance: pickRuleProfile.conveyance,
+          selectionSpecs: pickRuleProfile.selectionSpecs,
+        }
+      : null;
+
+    // Run classifier
+    const sanityResult = classifyEntitlement({
+      entitlement: entitlementInput,
+      ledgerPick: ledgerPickInput,
+      pickRuleProfile: pickRuleProfileInput,
+      targetTeamCode: targetTeam,
+    });
+
     // Build row
     const row: AuditRow = {
       entitlementId: ent.id,
+      team: ent.holderTeam,
       kind: ent.kind,
       seasonYear: ent.seasonYear,
       round: ent.round,
@@ -336,6 +406,7 @@ function main() {
       conditionsSummary: pickRuleProfile
         ? summarizeConditions(pickRuleProfile)
         : null,
+      hasPickRules: !!pickRuleProfile,
       hasRankedConveyance: pickRuleProfile
         ? hasRankedConveyancePattern(pickRuleProfile)
         : false,
@@ -346,46 +417,9 @@ function main() {
         ? hasDidNotConveyPattern(pickRuleProfile)
         : false,
 
-      // Flags (computed below)
-      flag_missing_underlyingPickId: false,
-      flag_owner_mismatch: false,
-      flag_ranked_conveyance_present: false,
-      flag_pool_or_swap_without_expected_kind: false,
-      flag_source_is_PST_DISPLAY: false,
+      // NEW: Sanity classification result
+      sanity: sanityResult,
     };
-
-    // -----------------------------------------------
-    // STEP C: Compute Flags
-    // -----------------------------------------------
-
-    // flag_missing_underlyingPickId: pick_ownership must have underlyingPickId
-    if (ent.kind === 'pick_ownership' && !ent.underlyingPickId) {
-      row.flag_missing_underlyingPickId = true;
-    }
-
-    // flag_owner_mismatch: ledgerOwner exists and != HOU
-    if (ledgerPick && ledgerPick.owner !== 'HOU') {
-      row.flag_owner_mismatch = true;
-    }
-
-    // flag_ranked_conveyance_present
-    if (row.hasRankedConveyance) {
-      row.flag_ranked_conveyance_present = true;
-    }
-
-    // flag_pool_or_swap_without_expected_kind
-    // Example: entitlement.kind === 'pick_ownership' but pickRules shows ranked conveyance or swap conditions
-    if (
-      ent.kind === 'pick_ownership' &&
-      (row.hasRankedConveyance || row.hasSwapCondition)
-    ) {
-      row.flag_pool_or_swap_without_expected_kind = true;
-    }
-
-    // flag_source_is_PST_DISPLAY
-    if (ledgerPick?.ownershipSource === 'PST_DISPLAY') {
-      row.flag_source_is_PST_DISPLAY = true;
-    }
 
     rows.push(row);
   }
@@ -398,6 +432,13 @@ function main() {
   });
 
   // -----------------------------------------------
+  // STEP C: Separate by Verdict
+  // -----------------------------------------------
+  const errorRows = rows.filter((r) => r.sanity.verdict === 'ERROR');
+  const warnRows = rows.filter((r) => r.sanity.verdict === 'WARN');
+  const okRows = rows.filter((r) => r.sanity.verdict === 'OK');
+
+  // -----------------------------------------------
   // STEP D: Aggregate Summary Sections
   // -----------------------------------------------
   console.log('Computing summaries...');
@@ -406,6 +447,13 @@ function main() {
   const byKind: Record<string, number> = {};
   for (const row of rows) {
     byKind[row.kind] = (byKind[row.kind] || 0) + 1;
+  }
+
+  // Counts by classification
+  const byClassification: Record<string, number> = {};
+  for (const row of rows) {
+    const cls = row.sanity.classification;
+    byClassification[cls] = (byClassification[cls] || 0) + 1;
   }
 
   // Counts by (year, round)
@@ -437,46 +485,45 @@ function main() {
   // Busy buckets (count >= 4)
   const busyBuckets = byYearRound.filter((b) => b.count >= 4);
 
-  // Suspicious rows
-  const suspiciousRows = rows.filter(
-    (r) =>
-      r.flag_missing_underlyingPickId ||
-      r.flag_owner_mismatch ||
-      r.flag_ranked_conveyance_present ||
-      r.flag_pool_or_swap_without_expected_kind
-  );
-
   // -----------------------------------------------
-  // STEP E: HOU 2026 R2 Focused Section
+  // STEP E: Team-Specific 2026 R2 Focused Section
   // -----------------------------------------------
-  const hou2026R2Rows = rows.filter(
+  const team2026R2Rows = rows.filter(
     (r) => r.seasonYear === 2026 && r.round === 2
   );
 
   // -----------------------------------------------
   // Build Result Object
   // -----------------------------------------------
+  const summary: AuditSummary = {
+    total: rows.length,
+    ok: okRows.length,
+    warn: warnRows.length,
+    error: errorRows.length,
+    byKind,
+    byClassification,
+    byYearRound,
+    busyBuckets,
+  };
+
   const auditResult: AuditResult = {
     meta: {
       auditDate: new Date().toISOString(),
-      targetTeam: 'HOU',
+      targetTeam,
       inputFiles: {
         ledger: LEDGER_PATH,
         entitlements: ENTITLEMENTS_PATH,
         pickRules: pickRulesData ? PICK_RULES_PATH : null,
       },
     },
-    summary: {
-      totalHOUEntitlements: rows.length,
-      byKind,
-      byYearRound,
-      busyBuckets,
-    },
+    summary,
     rows,
-    suspiciousRows,
+    errorRows,
+    warnRows,
+    okRows,
     hou2026R2Section: {
-      count: hou2026R2Rows.length,
-      rows: hou2026R2Rows,
+      count: team2026R2Rows.length,
+      rows: team2026R2Rows,
     },
   };
 
@@ -484,10 +531,22 @@ function main() {
   // Console Output
   // -----------------------------------------------
   console.log('\n=== AUDIT SUMMARY ===');
-  console.log(`Total HOU Entitlements: ${rows.length}`);
-  console.log('\nBy Kind:');
+  console.log(`Target Team: ${targetTeam}`);
+  console.log(`Total Entitlements: ${rows.length}`);
+  console.log('');
+  console.log('Verdicts:');
+  console.log(`  ✅ OK:    ${okRows.length}`);
+  console.log(`  ⚠️  WARN:  ${warnRows.length}`);
+  console.log(`  ❌ ERROR: ${errorRows.length}`);
+  console.log('');
+  console.log('By Kind:');
   for (const [kind, count] of Object.entries(byKind)) {
     console.log(`  ${kind}: ${count}`);
+  }
+  console.log('');
+  console.log('By Classification:');
+  for (const [cls, count] of Object.entries(byClassification)) {
+    console.log(`  ${cls}: ${count}`);
   }
 
   console.log('\nTop Year/Round Buckets (count >= 4):');
@@ -501,8 +560,9 @@ function main() {
     }
   }
 
-  console.log(`\nSuspicious Rows: ${suspiciousRows.length}`);
-  console.log(`HOU 2026 R2 Section: ${hou2026R2Rows.length} entitlements`);
+  console.log(
+    `\n${targetTeam} 2026 R2 Section: ${team2026R2Rows.length} entitlements`
+  );
 
   // -----------------------------------------------
   // Write JSON Output
@@ -512,9 +572,10 @@ function main() {
     fs.mkdirSync(outputDir, { recursive: true });
   }
 
+  const teamLower = targetTeam.toLowerCase();
   const jsonOutputPath = path.join(
     outputDir,
-    'hou_entitlements_sanity_audit.json'
+    `${teamLower}_entitlements_sanity_audit.json`
   );
   fs.writeFileSync(
     jsonOutputPath,
@@ -528,7 +589,7 @@ function main() {
   // -----------------------------------------------
   const textOutputPath = path.join(
     outputDir,
-    'hou_entitlements_sanity_audit.txt'
+    `${teamLower}_entitlements_sanity_audit.txt`
   );
   const textOutput = generateTextOutput(auditResult);
   fs.writeFileSync(textOutputPath, textOutput, 'utf8');
@@ -538,24 +599,29 @@ function main() {
   // Conclusion
   // -----------------------------------------------
   console.log('\n=== AUDIT CONCLUSION ===');
-  if (suspiciousRows.length === 0) {
-    console.log('✅ No suspicious rows detected.');
+  if (errorRows.length === 0) {
     console.log(
-      '✅ All HOU entitlements appear to have consistent ledger ownership and pick rules.'
+      '✅ No ERROR rows detected - all entitlements pass sanity checks.'
     );
   } else {
     console.log(
-      `⚠️ ${suspiciousRows.length} suspicious row(s) detected. Review the text/JSON output for details.`
+      `❌ ${errorRows.length} ERROR row(s) detected - these require investigation.`
     );
   }
 
-  if (hou2026R2Rows.length <= 2) {
+  if (warnRows.length > 0) {
     console.log(
-      `✅ HOU 2026 R2 count (${hou2026R2Rows.length}) looks plausible.`
+      `⚠️  ${warnRows.length} WARN row(s) detected - expected but complex (no action required).`
+    );
+  }
+
+  if (team2026R2Rows.length <= 2) {
+    console.log(
+      `✅ ${targetTeam} 2026 R2 count (${team2026R2Rows.length}) looks plausible.`
     );
   } else {
     console.log(
-      `⚠️ HOU 2026 R2 count (${hou2026R2Rows.length}) is higher than expected. Check for pooled/conveyance rights.`
+      `⚠️  ${targetTeam} 2026 R2 count (${team2026R2Rows.length}) is higher than typical - check for pooled/conveyance rights.`
     );
   }
 
@@ -570,8 +636,10 @@ function generateTextOutput(result: AuditResult): string {
   const lines: string[] = [];
 
   lines.push('='.repeat(70));
-  lines.push('HOU ENTITLEMENTS SANITY AUDIT');
-  lines.push('Phase 12.3D - Entitlements + PickRules + Ledger Join');
+  lines.push(`${result.meta.targetTeam} ENTITLEMENTS SANITY AUDIT`);
+  lines.push(
+    'Phase 12.3E - Deterministic Classification with OK/WARN/ERROR Verdicts'
+  );
   lines.push('='.repeat(70));
   lines.push('');
   lines.push(`Audit Date: ${result.meta.auditDate}`);
@@ -588,11 +656,21 @@ function generateTextOutput(result: AuditResult): string {
   lines.push('SUMMARY');
   lines.push('='.repeat(70));
   lines.push('');
-  lines.push(`Total HOU Entitlements: ${result.summary.totalHOUEntitlements}`);
+  lines.push(`Total Entitlements: ${result.summary.total}`);
+  lines.push('');
+  lines.push('VERDICTS:');
+  lines.push(`  ✅ OK:    ${result.summary.ok}`);
+  lines.push(`  ⚠️  WARN:  ${result.summary.warn}`);
+  lines.push(`  ❌ ERROR: ${result.summary.error}`);
   lines.push('');
   lines.push('By Kind:');
   for (const [kind, count] of Object.entries(result.summary.byKind)) {
     lines.push(`  ${kind}: ${count}`);
+  }
+  lines.push('');
+  lines.push('By Classification:');
+  for (const [cls, count] of Object.entries(result.summary.byClassification)) {
+    lines.push(`  ${cls}: ${count}`);
   }
   lines.push('');
 
@@ -620,11 +698,10 @@ function generateTextOutput(result: AuditResult): string {
       }
       lines.push('  Underlying Pick IDs:');
       for (const pid of bucket.underlyingPickIds) {
-        // Find the row for this pick
         const row = result.rows.find((r) => r.underlyingPickId === pid);
         if (row) {
           lines.push(
-            `    - ${pid} → ledgerOwner=${row.ledgerOwner}, source=${row.ledgerOwnershipSource}`
+            `    - ${pid} → ledgerOwner=${row.ledgerOwner}, verdict=${row.sanity.verdict}`
           );
         } else {
           lines.push(`    - ${pid}`);
@@ -635,56 +712,51 @@ function generateTextOutput(result: AuditResult): string {
   }
   lines.push('');
 
-  // Suspicious Rows
+  // ERROR Rows
   lines.push('='.repeat(70));
-  lines.push('SUSPICIOUS ROWS (if any)');
+  lines.push('ERROR ROWS (require investigation)');
   lines.push('='.repeat(70));
   lines.push('');
-  if (result.suspiciousRows.length === 0) {
+  if (result.errorRows.length === 0) {
     lines.push('  (none - all rows passed sanity checks)');
   } else {
-    for (const row of result.suspiciousRows) {
-      lines.push(`Entitlement: ${row.entitlementId}`);
-      lines.push(`  Kind: ${row.kind}`);
-      lines.push(`  Year/Round: ${row.seasonYear} R${row.round}`);
-      lines.push(`  UnderlyingPickId: ${row.underlyingPickId || '(none)'}`);
-      lines.push(`  Description: ${row.description}`);
-      lines.push('  FLAGS:');
-      if (row.flag_missing_underlyingPickId) {
-        lines.push('    ❌ flag_missing_underlyingPickId');
-      }
-      if (row.flag_owner_mismatch) {
-        lines.push(
-          `    ❌ flag_owner_mismatch (ledgerOwner=${row.ledgerOwner} != HOU)`
-        );
-      }
-      if (row.flag_ranked_conveyance_present) {
-        lines.push('    ⚠️ flag_ranked_conveyance_present');
-      }
-      if (row.flag_pool_or_swap_without_expected_kind) {
-        lines.push('    ⚠️ flag_pool_or_swap_without_expected_kind');
-      }
-      if (row.flag_source_is_PST_DISPLAY) {
-        lines.push('    ℹ️ flag_source_is_PST_DISPLAY');
-      }
-      lines.push('');
+    for (const row of result.errorRows) {
+      renderRowDetails(lines, row);
     }
   }
   lines.push('');
 
-  // HOU 2026 R2 Section
+  // WARN Rows
   lines.push('='.repeat(70));
-  lines.push('HOU 2026 R2 FOCUSED SECTION');
+  lines.push('WARN ROWS (expected but complex)');
+  lines.push('='.repeat(70));
+  lines.push('');
+  if (result.warnRows.length === 0) {
+    lines.push('  (none)');
+  } else {
+    for (const row of result.warnRows) {
+      renderRowDetails(lines, row);
+    }
+  }
+  lines.push('');
+
+  // 2026 R2 Section
+  lines.push('='.repeat(70));
+  lines.push(`${result.meta.targetTeam} 2026 R2 FOCUSED SECTION`);
   lines.push('='.repeat(70));
   lines.push('');
   lines.push(`Count: ${result.hou2026R2Section.count}`);
   lines.push('');
 
   if (result.hou2026R2Section.count === 0) {
-    lines.push('  (no HOU 2026 R2 entitlements found)');
+    lines.push(`  (no ${result.meta.targetTeam} 2026 R2 entitlements found)`);
   } else {
     for (const row of result.hou2026R2Section.rows) {
       lines.push(`Entitlement: ${row.entitlementId}`);
+      lines.push(
+        `  Verdict: ${verdictIcon(row.sanity.verdict)} ${row.sanity.verdict}`
+      );
+      lines.push(`  Classification: ${row.sanity.classification}`);
       lines.push(`  Kind: ${row.kind}`);
       lines.push(`  UnderlyingPickId: ${row.underlyingPickId || '(none)'}`);
       lines.push(
@@ -692,26 +764,6 @@ function generateTextOutput(result: AuditResult): string {
       );
       lines.push(`  Description: ${row.description}`);
       lines.push(`  LedgerOwner: ${row.ledgerOwner || '(none)'}`);
-      lines.push(
-        `  LedgerOwnershipSource: ${row.ledgerOwnershipSource || '(none)'}`
-      );
-      lines.push(`  ProtectionsSummary: ${row.protectionsSummary || '(none)'}`);
-      lines.push(`  ConditionsSummary: ${row.conditionsSummary || '(none)'}`);
-      lines.push(`  HasRankedConveyance: ${row.hasRankedConveyance}`);
-      lines.push(`  HasSwapCondition: ${row.hasSwapCondition}`);
-      lines.push(`  HasDidNotConvey: ${row.hasDidNotConvey}`);
-      lines.push('  FLAGS:');
-      const flags: string[] = [];
-      if (row.flag_missing_underlyingPickId)
-        flags.push('flag_missing_underlyingPickId');
-      if (row.flag_owner_mismatch) flags.push('flag_owner_mismatch');
-      if (row.flag_ranked_conveyance_present)
-        flags.push('flag_ranked_conveyance_present');
-      if (row.flag_pool_or_swap_without_expected_kind)
-        flags.push('flag_pool_or_swap_without_expected_kind');
-      if (row.flag_source_is_PST_DISPLAY)
-        flags.push('flag_source_is_PST_DISPLAY');
-      lines.push(`    ${flags.length ? flags.join(', ') : '(none)'}`);
       lines.push('');
     }
   }
@@ -722,51 +774,59 @@ function generateTextOutput(result: AuditResult): string {
   lines.push('='.repeat(70));
   lines.push('');
 
-  if (result.suspiciousRows.length === 0) {
-    lines.push('✅ No suspicious rows detected.');
+  if (result.errorRows.length === 0) {
     lines.push(
-      '✅ All HOU entitlements appear consistent with ledger ownership and pick rules.'
+      '✅ No ERROR rows detected - all entitlements pass sanity checks.'
     );
   } else {
     lines.push(
-      `⚠️ ${result.suspiciousRows.length} suspicious row(s) require investigation.`
+      `❌ ${result.errorRows.length} ERROR row(s) require investigation.`
     );
     lines.push('');
-    lines.push('Common causes for suspicious flags:');
+    lines.push('ERROR classifications indicate:');
     lines.push(
-      '  - flag_owner_mismatch: The underlying pick is owned by another team in ledger.'
+      '  - OWNERSHIP_MISSING_UNDERLYING: pick_ownership without underlyingPickId'
     );
     lines.push(
-      '    This may be legitimate if HOU has a conveyance_right or swap_right.'
+      '  - OWNERSHIP_OWNER_MISMATCH: ledger shows different owner than entitlement holder'
     );
     lines.push(
-      '  - flag_ranked_conveyance_present: Pick rules indicate ranked selection (least/most favorable).'
+      '  - CONVEYANCE_MISSING_UNDERLYING: non-ranked conveyance without pick reference'
+    );
+  }
+  lines.push('');
+
+  if (result.warnRows.length > 0) {
+    lines.push(
+      `⚠️  ${result.warnRows.length} WARN row(s) detected - these are expected but complex.`
+    );
+    lines.push('');
+    lines.push('WARN classifications indicate:');
+    lines.push(
+      '  - CONVEYANCE_RANKED_NO_UNDERLYING: ranked conveyance (least/most favorable) intentionally pool-based'
     );
     lines.push(
-      '    This creates multiple entitlements for the same conceptual "slot".'
+      '  - OWNERSHIP_WITH_POOL_RULES: ownership with ranked conveyance/swap rules attached'
     );
     lines.push(
-      '  - flag_pool_or_swap_without_expected_kind: A pick_ownership entitlement points to'
+      '  - SWAP_POOL_METADATA_MISSING: swap right missing pool details'
     );
     lines.push(
-      '    a pick with swap/conveyance conditions. This may indicate incorrect entitlement type.'
+      '  - PROTECTION_RULES_MISSING: protection mentioned but no pick rule seeded'
     );
   }
   lines.push('');
 
   if (result.hou2026R2Section.count <= 2) {
     lines.push(
-      `✅ HOU 2026 R2 count (${result.hou2026R2Section.count}) looks plausible.`
+      `✅ ${result.meta.targetTeam} 2026 R2 count (${result.hou2026R2Section.count}) looks plausible.`
     );
   } else {
     lines.push(
-      `⚠️ HOU 2026 R2 count (${result.hou2026R2Section.count}) is higher than typical.`
+      `⚠️  ${result.meta.targetTeam} 2026 R2 count (${result.hou2026R2Section.count}) is higher than typical.`
     );
     lines.push(
       '   This may be explained by pooled conveyance rights or swap agreements.'
-    );
-    lines.push(
-      '   Review the individual entitlements above for justification.'
     );
   }
 
@@ -776,6 +836,39 @@ function generateTextOutput(result: AuditResult): string {
   lines.push('='.repeat(70));
 
   return lines.join('\n');
+}
+
+function verdictIcon(verdict: SanityVerdict): string {
+  switch (verdict) {
+    case 'OK':
+      return '✅';
+    case 'WARN':
+      return '⚠️';
+    case 'ERROR':
+      return '❌';
+    default:
+      return '?';
+  }
+}
+
+function renderRowDetails(lines: string[], row: AuditRow): void {
+  lines.push(`Entitlement: ${row.entitlementId}`);
+  lines.push(
+    `  Verdict: ${verdictIcon(row.sanity.verdict)} ${row.sanity.verdict}`
+  );
+  lines.push(`  Classification: ${row.sanity.classification}`);
+  lines.push(`  Kind: ${row.kind}`);
+  lines.push(`  Year/Round: ${row.seasonYear} R${row.round}`);
+  lines.push(`  UnderlyingPickId: ${row.underlyingPickId || '(none)'}`);
+  lines.push(`  Description: ${row.description}`);
+  lines.push('  REASONS:');
+  for (const reason of row.sanity.reasons) {
+    lines.push(`    - ${reason}`);
+  }
+  if (row.sanity.suggestedNextAction) {
+    lines.push(`  SUGGESTED ACTION: ${row.sanity.suggestedNextAction}`);
+  }
+  lines.push('');
 }
 
 // Run the audit

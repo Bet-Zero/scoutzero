@@ -101,15 +101,56 @@ export function filterPlayers(players = [], filters) {
         return false;
     }
 
-    if (
-      filters.freeAgentYear &&
-      parseInt(p.freeAgentYear || 0) !== parseInt(filters.freeAgentYear)
-    ) {
+    // Free Agent Year filter - uses top-level convenience field from enrichPlayerData
+    if (filters.freeAgentYear) {
+      const playerFAYear = p.freeAgentYear;
+      if (
+        !playerFAYear ||
+        parseInt(playerFAYear) !== parseInt(filters.freeAgentYear)
+      ) {
+        return false;
+      }
+    }
+
+    // Free Agent Type filter - uses normalized top-level field
+    if (filters.freeAgentType && p.freeAgentType !== filters.freeAgentType) {
       return false;
     }
 
-    if (filters.freeAgentType && p.freeAgentType !== filters.freeAgentType) {
+    // Bird Rights filter - uses normalized top-level field
+    if (filters.birdRights && p.birdRightsStatus !== filters.birdRights) {
       return false;
+    }
+
+    // Overall Grade filter - min/max range
+    if (
+      filters.min_overall_grade !== undefined ||
+      filters.max_overall_grade !== undefined
+    ) {
+      const grade = p.overallGrade;
+      if (typeof grade !== 'number') {
+        return false; // Exclude players without grade when filter is active
+      }
+      if (
+        filters.min_overall_grade !== undefined &&
+        grade < filters.min_overall_grade
+      ) {
+        return false;
+      }
+      if (
+        filters.max_overall_grade !== undefined &&
+        grade > filters.max_overall_grade
+      ) {
+        return false;
+      }
+    }
+
+    // Option Types filter - year-specific, uses salaryYear for context
+    if (filters.optionTypes?.length > 0) {
+      const playerOption = p.optionByYear?.[filters.salaryYear] ?? null;
+      if (!playerOption || !filters.optionTypes.includes(playerOption)) {
+        return false;
+      }
     }
 
     if (

@@ -80,6 +80,9 @@ import {
   createTpeCreationHistoryEntry,
 } from '@/features/architect/utils/exceptionHistory/historyHelpers';
 
+// Phase 72: SSOT for team cap totals computation
+import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
+
 // Phase 61: Persistence contract enforcement (allowlist-based)
 // Phase 64: Added normalizeTeamTpeSchema for TPE canonicalization
 import {
@@ -1477,7 +1480,7 @@ function computeSigningResult({ payload, currentState, seasonId, timestamp }) {
   };
 
   // Recalculate totals
-  updatedTeam.totals = calculateTeamTotals(updatedTeam, seasonId);
+  updatedTeam.totals = computeTeamCapTotals(updatedTeam, toEndYear(seasonId));
 
   const teamUpdates = [{ teamCode, team: updatedTeam }];
 
@@ -1615,7 +1618,7 @@ function computeWaiveResult({ payload, currentState, seasonId, timestamp }) {
   };
 
   // Recalculate totals
-  updatedTeam.totals = calculateTeamTotals(updatedTeam, seasonId);
+  updatedTeam.totals = computeTeamCapTotals(updatedTeam, toEndYear(seasonId));
 
   return {
     success: true,
@@ -1842,7 +1845,7 @@ function computeOptionResult({ payload, currentState, seasonId, timestamp }) {
   };
 
   // Recalculate totals
-  updatedTeam.totals = calculateTeamTotals(updatedTeam, seasonId);
+  updatedTeam.totals = computeTeamCapTotals(updatedTeam, toEndYear(seasonId));
 
   return {
     success: true,
@@ -1924,7 +1927,7 @@ function computeRenounceResult({ payload, currentState, seasonId, timestamp }) {
   };
 
   // Recalculate totals (cap holds affect cap space)
-  updatedTeam.totals = calculateTeamTotals(updatedTeam, seasonId);
+  updatedTeam.totals = computeTeamCapTotals(updatedTeam, toEndYear(seasonId));
 
   return {
     success: true,
@@ -2862,7 +2865,7 @@ function computeFinalizeMatchedOfferSheetResult({
   ];
 
   // Recalculate totals
-  updatedHomeTeam.totals = calculateTeamTotals(updatedHomeTeam, seasonId);
+  updatedHomeTeam.totals = computeTeamCapTotals(updatedHomeTeam, toEndYear(seasonId));
 
   // 3. Prepare Offering Team Update
   const updatedOfferingTeam = { ...offeringTeam };
@@ -2994,9 +2997,9 @@ function computeFinalizeDeclinedOfferSheetResult({
   }
 
   // Recalculate totals
-  updatedOfferingTeam.totals = calculateTeamTotals(
+  updatedOfferingTeam.totals = computeTeamCapTotals(
     updatedOfferingTeam,
-    seasonId
+    toEndYear(seasonId)
   );
 
   updatedOfferingTeam.source = {
@@ -3032,7 +3035,7 @@ function computeFinalizeDeclinedOfferSheetResult({
   }
 
   // Recalculate home team totals
-  updatedHomeTeam.totals = calculateTeamTotals(updatedHomeTeam, seasonId);
+  updatedHomeTeam.totals = computeTeamCapTotals(updatedHomeTeam, toEndYear(seasonId));
 
   updatedHomeTeam.source = {
     ...updatedHomeTeam.source,
@@ -3237,68 +3240,6 @@ function getMutationActionType(mutationType) {
     default:
       return 'unknown';
   }
-}
-
-/**
- * Calculate team totals after mutation
- * Simplified version - can be enhanced later
- */
-function calculateTeamTotals(teamData, seasonId) {
-  const totals = teamData.totals || {};
-  const currentYear = toEndYear(seasonId);
-
-  // Calculate total salary from players
-  let totalSalary = 0;
-  let guaranteedSalary = 0;
-
-  if (teamData.players && Array.isArray(teamData.players)) {
-    teamData.players.forEach((player) => {
-      if (player.contract?.salariesByYear) {
-        player.contract.salariesByYear.forEach((yearData) => {
-          const year = toEndYear(yearData.season);
-          if (year === currentYear) {
-            const salary = yearData.salary || 0;
-            totalSalary += salary;
-            if (yearData.guaranteed !== false) {
-              guaranteedSalary += salary;
-            }
-          }
-        });
-      }
-    });
-  }
-
-  // Add dead cap
-  let deadCapTotal = 0;
-  if (teamData.deadCap && Array.isArray(teamData.deadCap)) {
-    teamData.deadCap.forEach((item) => {
-      if (item.amountByYear) {
-        item.amountByYear.forEach((yearData) => {
-          if (yearData.season === seasonId) {
-            deadCapTotal += yearData.amount || 0;
-          }
-        });
-      }
-    });
-  }
-
-  // Add cap holds
-  let capHoldsTotal = 0;
-  if (teamData.capHolds && Array.isArray(teamData.capHolds)) {
-    teamData.capHolds.forEach((hold) => {
-      capHoldsTotal += hold.amount || 0;
-    });
-  }
-
-  return {
-    ...totals,
-    totalSalary,
-    capHit: totalSalary + deadCapTotal + capHoldsTotal,
-    guaranteedSalary,
-    rosterCount: teamData.roster?.length || 0,
-    deadCapTotal,
-    capHoldsTotal,
-  };
 }
 
 /**

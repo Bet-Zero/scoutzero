@@ -20,6 +20,8 @@ const MetadataFilters = ({ filters, setFilters }) => {
           onChange={(val) => update('team', val)}
           allLabel="All"
           selectClass="w-[125px]"
+          valueKey="code"
+          labelKey="teamName"
         />
 
         {/* Position Dropdown */}
