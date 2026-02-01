@@ -1,6 +1,7 @@
 import { expandPositionGroup } from '@/shared/utils/roles';
 import { getPlayerId } from '@/shared/utils/getPlayerId';
 import { getCurrentSeasonYear } from '@/shared/utils/contracts/contractUtils';
+import { TeamSlugToCode } from '@/constants/teamList';
 
 const shootingProfileRank = {
   Elite: 6,
@@ -49,11 +50,18 @@ export function filterPlayers(players = [], filters) {
       if (!playerName.includes(searchTerm)) return false;
     }
 
-    if (
-      filters.team &&
-      (p.bio?.display?.team || '').toLowerCase() !== filters.team.toLowerCase()
-    ) {
-      return false;
+    // Team filter: compare against bio.display.teamId (3-letter code like "BOS")
+    // Back-compat: if filters.team is a slug (e.g., "celtics"), map it to code first
+    if (filters.team) {
+      let teamCode = filters.team;
+      // If it's not a 3-letter code, try to map from slug
+      if (teamCode.length !== 3) {
+        teamCode = TeamSlugToCode[teamCode.toLowerCase()] || teamCode;
+      }
+      const playerTeamId = (p.bio?.display?.teamId || '').toUpperCase();
+      if (playerTeamId !== teamCode.toUpperCase()) {
+        return false;
+      }
     }
 
     if (filters.position && !selectedPositions.includes(p.formattedPosition)) {

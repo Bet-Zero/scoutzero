@@ -1,4 +1,6 @@
 import { toSeasonCode } from './seasonFormat.js';
+// Phase 65: Canonical TPE read accessor
+import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 
 export function runOffseason(
   teamCapSheet,
@@ -52,7 +54,8 @@ export function runOffseason(
   }
 
   // Handle expired TPEs
-  const activeTPEs = (teamCapSheet.tradeExceptions || []).filter((tpe) => {
+  // Phase 65: Use canonical TPE accessor
+  const activeTPEs = getTeamTpeList(teamCapSheet).filter((tpe) => {
     const expires = new Date(tpe.expires);
     const stillValid = expires > now;
     if (!stillValid) {

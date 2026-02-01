@@ -14,7 +14,9 @@ import path from 'node:path';
 import { constants } from 'node:fs';
 
 const SERVICE_ACCOUNT_PATH = path.resolve('serviceAccountKey.json');
-const INPUT_PATH = path.resolve('data/pst/pst_pick_ledger_final_2026_2033.json');
+const INPUT_PATH = path.resolve(
+  'data/pst/pst_pick_ledger_final_2026_2033.json'
+);
 const BASE_PICK_RULES_COLLECTION = 'architect_basePickRules';
 
 const BATCH_SIZE = 450;
@@ -29,11 +31,31 @@ const EMULATOR_FALLBACK_PROJECT_ID = 'scoutzero-bf1ae';
 
 type LedgerProtection = {
   type: 'top_n' | 'range' | 'lottery';
-  protectedRange: { start: number; end: number };
-  description: string;
-  appliesToYears: number[];
-  evidenceRowRefs: string[];
+  protectedRange?: any; // Allow unknown shapes: object, string, or missing
+  description?: string;
+  appliesToYears?: number[];
+  evidenceRowRefs?: string[];
 };
+
+// --- Diagnostic Counters ---
+let protectionsTotal = 0;
+let protectionsParsed = 0;
+let protectionsSkipped = 0;
+let conditionsTotal = 0;
+let conditionsParsed = 0;
+let conditionsSkipped = 0;
+const skippedProtectionExamples: {
+  pickId: string;
+  protection: string;
+  reason: string;
+}[] = [];
+
+// --- Utility: Strip undefined values from objects ---
+function stripUndefined<T extends object>(obj: T): T {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, v]) => v !== undefined)
+  ) as T;
+}
 
 type LedgerSelectionSpec = {
   kind: 'swap' | 'swap_right' | 'conveys';
@@ -122,14 +144,87 @@ type BasePickRuleDoc = {
 
 // --- Transformation Functions ---
 
-function transformProtection(p: LedgerProtection): BasePickRuleProtection {
-  const rangeStr = `${p.protectedRange.start}-${p.protectedRange.end}`;
-  return {
+/**
+ * Parse protectedRange from various shapes:
+ * 1. Object with numeric start/end → "start-end"
+ * 2. String containing range pattern → normalize
+ * 3. Description contains range pattern → extract
+ * 4. Lottery type → default "1-14"
+ * 5. Top N in description → "1-N"
+ * 6. Otherwise → undefined
+ */
+function parseProtectedRange(p: LedgerProtection): string | undefined {
+  const pr = p.protectedRange;
+
+  // Priority 1: Object with numeric start/end
+  if (
+    pr &&
+    typeof pr === 'object' &&
+    typeof pr.start === 'number' &&
+    typeof pr.end === 'number'
+  ) {
+    return `${pr.start}-${pr.end}`;
+  }
+
+  // Priority 2: String containing range pattern (e.g., "1-4", "9–30")
+  if (pr && typeof pr === 'string') {
+    const rangeMatch = pr.match(/(\d+)\s*[-–]\s*(\d+)/);
+    if (rangeMatch) {
+      return `${rangeMatch[1]}-${rangeMatch[2]}`;
+    }
+  }
+
+  // Priority 3: Description contains range pattern
+  if (p.description) {
+    const descMatch = p.description.match(/(\d+)\s*[-–]\s*(\d+)/);
+    if (descMatch) {
+      return `${descMatch[1]}-${descMatch[2]}`;
+    }
+
+    // Priority 5: "Top N protected" pattern
+    const topNMatch = p.description.match(/top\s*(\d+)/i);
+    if (topNMatch) {
+      return `1-${topNMatch[1]}`;
+    }
+  }
+
+  // Priority 4: Lottery type defaults to 1-14
+  if (p.type === 'lottery') {
+    return '1-14';
+  }
+
+  return undefined;
+}
+
+function transformProtection(
+  p: LedgerProtection,
+  pickId: string
+): BasePickRuleProtection | null {
+  protectionsTotal++;
+
+  const rangeStr = parseProtectedRange(p);
+
+  // If no range and no description, skip this protection
+  if (!rangeStr && !p.description) {
+    protectionsSkipped++;
+    if (skippedProtectionExamples.length < 5) {
+      skippedProtectionExamples.push({
+        pickId,
+        protection: JSON.stringify(p).slice(0, 200),
+        reason: 'No parseable range and no description',
+      });
+    }
+    return null;
+  }
+
+  protectionsParsed++;
+
+  return stripUndefined({
     type: p.type,
     protectedRange: rangeStr,
     appliesToYears: p.appliesToYears?.length ? p.appliesToYears : undefined,
     description: p.description || undefined,
-  };
+  });
 }
 
 function buildRelatedPickIds(
@@ -145,24 +240,24 @@ function transformSelectionSpec(
   spec: LedgerSelectionSpec
 ): BasePickRuleCondition {
   const relatedPickIds = buildRelatedPickIds(spec.pool, spec.year, spec.round);
-  return {
+  return stripUndefined({
     kind: spec.kind,
     description: spec.description,
     relatedPickIds,
     appliesToYears: [spec.year],
     controller: spec.controller,
-  };
+  });
 }
 
 function transformSwap(swap: LedgerSwap): BasePickRuleCondition {
   const relatedPickIds = buildRelatedPickIds(swap.pool, swap.year, swap.round);
-  return {
+  return stripUndefined({
     kind: 'swap_right',
     description: swap.description,
     relatedPickIds,
     appliesToYears: [swap.year],
     controller: swap.controller,
-  };
+  });
 }
 
 function transformDidNotConvey(dnc: LedgerDidNotConvey): BasePickRuleCondition {
@@ -175,8 +270,10 @@ function transformDidNotConvey(dnc: LedgerDidNotConvey): BasePickRuleCondition {
 function transformLedgerPick(pick: LedgerPick): BasePickRuleDoc | null {
   const { encumbrances } = pick;
 
-  // Build protections array
-  const protections = encumbrances.protections.map(transformProtection);
+  // Build protections array, filtering out nulls from unparseable protections
+  const protections = encumbrances.protections
+    .map((p) => transformProtection(p, pick.pickId))
+    .filter((p): p is BasePickRuleProtection => p !== null);
 
   // Build conditions from selectionSpecs (preferred) or fallback to swaps
   const conditions: BasePickRuleCondition[] = [];
@@ -198,7 +295,7 @@ function transformLedgerPick(pick: LedgerPick): BasePickRuleDoc | null {
     return null;
   }
 
-  return {
+  return stripUndefined({
     pickId: pick.pickId,
     seasonYear: pick.year,
     round: pick.round as 1 | 2,
@@ -210,7 +307,7 @@ function transformLedgerPick(pick: LedgerPick): BasePickRuleDoc | null {
       : undefined,
     updatedAtISO: new Date().toISOString(),
     source: 'PST_LEDGER_FINAL',
-  };
+  });
 }
 
 // --- Utility Functions ---
@@ -322,7 +419,26 @@ async function main() {
     );
   }
 
-  console.log(`\n🎉 Base pick rules push complete. ${rules.length} docs written.`);
+  console.log(
+    `\n🎉 Base pick rules push complete. ${rules.length} docs written.`
+  );
+
+  // Print diagnostic summary
+  console.log(`\n=== Protection Parsing Summary ===`);
+  console.log(`Total protections encountered: ${protectionsTotal}`);
+  console.log(`Protections parsed successfully: ${protectionsParsed}`);
+  console.log(`Protections skipped: ${protectionsSkipped}`);
+
+  if (skippedProtectionExamples.length > 0) {
+    console.log(
+      `\n--- Skipped Protection Examples (first ${skippedProtectionExamples.length}) ---`
+    );
+    skippedProtectionExamples.forEach((ex, i) => {
+      console.log(`  ${i + 1}. pickId: ${ex.pickId}`);
+      console.log(`     reason: ${ex.reason}`);
+      console.log(`     data: ${ex.protection}`);
+    });
+  }
 }
 
 main().catch((err) => {

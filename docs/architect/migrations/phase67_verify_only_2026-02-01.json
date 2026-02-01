@@ -1,0 +1,21 @@
+{
+  "timestamp": "2026-02-01T07:08:18.497Z",
+  "mode": "VERIFY_ONLY",
+  "targetWorldId": "ALL",
+  "totalWorldsScanned": 1,
+  "totalTeamsScanned": 3,
+  "totalTeamsWithLegacy": 0,
+  "totalTeamsMigrated": 0,
+  "worlds": [
+    {
+      "worldId": "phase69_seed_world",
+      "teamsScanned": 3,
+      "teamsWithLegacy": 0,
+      "teamsMigrated": 0,
+      "affectedTeamCodes": [],
+      "sampleBefore": null,
+      "sampleAfter": null,
+      "errors": []
+    }
+  ]
+}

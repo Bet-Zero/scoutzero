@@ -202,8 +202,9 @@ const TierMakerBoard = ({ players = [], initialTierListId = '' }) => {
 
   const handleAddTeamRoster = () => {
     if (!selectedTeam) return;
+    const teamCode = (selectedTeam.code || selectedTeam.teamId || '').toUpperCase();
     const teamPlayers = allPlayers.filter(
-      (p) => (p.bio?.display?.team || '').toLowerCase() === selectedTeam.id
+      (p) => (p.bio?.display?.teamId || '').toUpperCase() === teamCode
     );
     addPlayersToPool(teamPlayers);
     setSelectedTeam(null);

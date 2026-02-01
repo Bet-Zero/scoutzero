@@ -16,6 +16,8 @@ const MultiSelectFilter = ({
   allLabel = 'All',
   containerClass = '',
   selectClass = '',
+  valueKey = 'id',
+  labelKey = 'teamName',
 }) => {
   const isPlaceholder = value === '';
 
@@ -36,11 +38,11 @@ const MultiSelectFilter = ({
         <option value="">{allLabel}</option>
         {options.map((opt) => {
           const isObj = typeof opt === 'object';
-          const val = isObj ? opt.id : opt;
-          const label = isObj ? opt.teamName || opt.label : opt;
+          const val = isObj ? (opt[valueKey] ?? opt.id) : opt;
+          const optLabel = isObj ? opt[labelKey] || opt.label : opt;
           return (
             <option key={val} value={val}>
-              {label}
+              {optLabel}
             </option>
           );
         })}

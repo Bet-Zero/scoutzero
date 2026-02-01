@@ -1,0 +1,48 @@
+{
+  "timestamp": "2026-02-01T07:08:17.676Z",
+  "mode": "LIVE",
+  "targetWorldId": "phase69_seed_world",
+  "totalWorldsScanned": 1,
+  "totalTeamsScanned": 3,
+  "totalTeamsWithLegacy": 2,
+  "totalTeamsMigrated": 2,
+  "worlds": [
+    {
+      "worldId": "phase69_seed_world",
+      "teamsScanned": 3,
+      "teamsWithLegacy": 2,
+      "teamsMigrated": 2,
+      "affectedTeamCodes": [
+        "BOS",
+        "MIA"
+      ],
+      "sampleBefore": {
+        "teamCode": "BOS",
+        "keys": [
+          "exceptions",
+          "name",
+          "teamCode",
+          "tradeExceptions",
+          "updatedAt"
+        ],
+        "hasTradeExceptions": true,
+        "hasExceptionsTpe": false,
+        "tradeExceptionsCount": 2,
+        "exceptionsTpeCount": 0
+      },
+      "sampleAfter": {
+        "teamCode": "BOS",
+        "keys": [
+          "exceptions",
+          "name",
+          "teamCode",
+          "updatedAt"
+        ],
+        "hasTradeExceptions": false,
+        "hasExceptionsTpe": true,
+        "exceptionsTpeCount": 2
+      },
+      "errors": []
+    }
+  ]
+}

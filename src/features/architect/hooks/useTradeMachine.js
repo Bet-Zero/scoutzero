@@ -18,6 +18,8 @@ import {
   resolvePickRulesByIds,
   pickRulesMapToObject,
 } from '@/features/architect/utils/entitlements/pickRulesResolver';
+// Phase 65: Canonical TPE read accessor
+import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 
 /* ============================
    DEBUG FLAG & TEAM CODE RESOLUTION
@@ -183,10 +185,10 @@ function augmentTeamWithExceptions(team, endYear, capProjections) {
   }
 
   // Seed a couple of test TPEs for sandboxing if none exist
-  if (
-    !Array.isArray(team.tradeExceptions) ||
-    team.tradeExceptions.length === 0
-  ) {
+  // Phase 65: Use canonical TPE accessor for reading, but write to tradeExceptions
+  // for internal sandbox state (not persisted - this is runtime-only)
+  const existingTpes = getTeamTpeList(team);
+  if (existingTpes.length === 0) {
     team.tradeExceptions = [
       {
         id: `${team.id}-tpe-a`,
@@ -294,7 +296,8 @@ export const useTradeMachine = (
         const teamObj = {
           ...baseTeam,
           ...data,
-          tradeExceptions: data.tradeExceptions || [],
+          // Phase 65: Use canonical accessor but store in tradeExceptions for runtime compatibility
+          tradeExceptions: getTeamTpeList(data),
           picks: picksWithIds,
         };
 
@@ -319,7 +322,8 @@ export const useTradeMachine = (
               // Phase 12.3B: Fetch pick rules for entitlements
               let pickRulesById = {};
               if (ENABLE_PICK_RULES) {
-                pickRulesById = await resolvePickRulesForEntitlements(entitlements);
+                pickRulesById =
+                  await resolvePickRulesForEntitlements(entitlements);
               }
               teamObj.pickRulesById = pickRulesById;
 
@@ -625,7 +629,8 @@ export const useTradeMachine = (
         const teamObj = {
           ...baseTeam,
           ...data,
-          tradeExceptions: data.tradeExceptions || [],
+          // Phase 65: Use canonical accessor but store in tradeExceptions for runtime compatibility
+          tradeExceptions: getTeamTpeList(data),
           picks: picksWithIds,
         };
 
@@ -653,7 +658,8 @@ export const useTradeMachine = (
               // Phase 12.3B: Fetch pick rules for entitlements
               let pickRulesById = {};
               if (ENABLE_PICK_RULES) {
-                pickRulesById = await resolvePickRulesForEntitlements(entitlements);
+                pickRulesById =
+                  await resolvePickRulesForEntitlements(entitlements);
               }
               teamObj.pickRulesById = pickRulesById;
 
@@ -917,10 +923,11 @@ export const useTradeMachine = (
           ],
           team: {
             ...t.team,
-            tradeExceptions:
-              t.team.tradeExceptions?.map((te) =>
-                te.id === tpe.id ? { ...te, isUsed: true } : te
-              ) || [],
+            // Phase 65: Apply TPE usage to runtime tradeExceptions
+            // This is internal state mutation, not persistence
+            tradeExceptions: getTeamTpeList(t.team).map((te) =>
+              te.id === tpe.id ? { ...te, isUsed: true } : te
+            ),
           },
         };
       })

@@ -50,7 +50,7 @@ const SiteLayout = () => {
 
   return (
     <div className="h-screen bg-neutral-900 text-white flex flex-col">
-      <header className="bg-[#121212] border-b border-white/10 px-6 py-4 flex items-center justify-between shrink-0 z-[9999] relative">
+      <header className="bg-[#121212] border-b border-white/10 px-6 py-2 flex items-center justify-between shrink-0 z-[9999] relative">
         <div className="text-2xl font-bold tracking-tight text-white">
           🏀 HoopZero
         </div>

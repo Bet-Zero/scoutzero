@@ -2,6 +2,7 @@ export const TeamListFull = [
   {
     id: 'hawks',
     code: 'ATL',
+    teamId: 'ATL',
     teamName: 'Atlanta Hawks',
     nickname: 'Hawks',
     conference: 'East',
@@ -9,6 +10,7 @@ export const TeamListFull = [
   {
     id: 'celtics',
     code: 'BOS',
+    teamId: 'BOS',
     teamName: 'Boston Celtics',
     nickname: 'Celtics',
     conference: 'East',
@@ -16,6 +18,7 @@ export const TeamListFull = [
   {
     id: 'nets',
     code: 'BKN',
+    teamId: 'BKN',
     teamName: 'Brooklyn Nets',
     nickname: 'Nets',
     conference: 'East',
@@ -23,6 +26,7 @@ export const TeamListFull = [
   {
     id: 'hornets',
     code: 'CHA',
+    teamId: 'CHA',
     teamName: 'Charlotte Hornets',
     nickname: 'Hornets',
     conference: 'East',
@@ -30,6 +34,7 @@ export const TeamListFull = [
   {
     id: 'bulls',
     code: 'CHI',
+    teamId: 'CHI',
     teamName: 'Chicago Bulls',
     nickname: 'Bulls',
     conference: 'East',
@@ -37,6 +42,7 @@ export const TeamListFull = [
   {
     id: 'cavaliers',
     code: 'CLE',
+    teamId: 'CLE',
     teamName: 'Cleveland Cavaliers',
     nickname: 'Cavaliers',
     conference: 'East',
@@ -44,6 +50,7 @@ export const TeamListFull = [
   {
     id: 'mavericks',
     code: 'DAL',
+    teamId: 'DAL',
     teamName: 'Dallas Mavericks',
     nickname: 'Mavericks',
     conference: 'West',
@@ -51,6 +58,7 @@ export const TeamListFull = [
   {
     id: 'nuggets',
     code: 'DEN',
+    teamId: 'DEN',
     teamName: 'Denver Nuggets',
     nickname: 'Nuggets',
     conference: 'West',
@@ -58,6 +66,7 @@ export const TeamListFull = [
   {
     id: 'pistons',
     code: 'DET',
+    teamId: 'DET',
     teamName: 'Detroit Pistons',
     nickname: 'Pistons',
     conference: 'East',
@@ -65,6 +74,7 @@ export const TeamListFull = [
   {
     id: 'warriors',
     code: 'GSW',
+    teamId: 'GSW',
     teamName: 'Golden State Warriors',
     nickname: 'Warriors',
     conference: 'West',
@@ -72,6 +82,7 @@ export const TeamListFull = [
   {
     id: 'rockets',
     code: 'HOU',
+    teamId: 'HOU',
     teamName: 'Houston Rockets',
     nickname: 'Rockets',
     conference: 'West',
@@ -79,6 +90,7 @@ export const TeamListFull = [
   {
     id: 'pacers',
     code: 'IND',
+    teamId: 'IND',
     teamName: 'Indiana Pacers',
     nickname: 'Pacers',
     conference: 'East',
@@ -86,6 +98,7 @@ export const TeamListFull = [
   {
     id: 'clippers',
     code: 'LAC',
+    teamId: 'LAC',
     teamName: 'Los Angeles Clippers',
     nickname: 'Clippers',
     conference: 'West',
@@ -93,6 +106,7 @@ export const TeamListFull = [
   {
     id: 'lakers',
     code: 'LAL',
+    teamId: 'LAL',
     teamName: 'Los Angeles Lakers',
     nickname: 'Lakers',
     conference: 'West',
@@ -100,6 +114,7 @@ export const TeamListFull = [
   {
     id: 'grizzlies',
     code: 'MEM',
+    teamId: 'MEM',
     teamName: 'Memphis Grizzlies',
     nickname: 'Grizzlies',
     conference: 'West',
@@ -107,6 +122,7 @@ export const TeamListFull = [
   {
     id: 'heat',
     code: 'MIA',
+    teamId: 'MIA',
     teamName: 'Miami Heat',
     nickname: 'Heat',
     conference: 'East',
@@ -114,6 +130,7 @@ export const TeamListFull = [
   {
     id: 'bucks',
     code: 'MIL',
+    teamId: 'MIL',
     teamName: 'Milwaukee Bucks',
     nickname: 'Bucks',
     conference: 'East',
@@ -121,6 +138,7 @@ export const TeamListFull = [
   {
     id: 'timberwolves',
     code: 'MIN',
+    teamId: 'MIN',
     teamName: 'Minnesota Timberwolves',
     nickname: 'Timberwolves',
     conference: 'West',
@@ -128,6 +146,7 @@ export const TeamListFull = [
   {
     id: 'pelicans',
     code: 'NOP',
+    teamId: 'NOP',
     teamName: 'New Orleans Pelicans',
     nickname: 'Pelicans',
     conference: 'West',
@@ -135,6 +154,7 @@ export const TeamListFull = [
   {
     id: 'knicks',
     code: 'NYK',
+    teamId: 'NYK',
     teamName: 'New York Knicks',
     nickname: 'Knicks',
     conference: 'East',
@@ -142,6 +162,7 @@ export const TeamListFull = [
   {
     id: 'thunder',
     code: 'OKC',
+    teamId: 'OKC',
     teamName: 'Oklahoma City Thunder',
     nickname: 'Thunder',
     conference: 'West',
@@ -149,6 +170,7 @@ export const TeamListFull = [
   {
     id: 'magic',
     code: 'ORL',
+    teamId: 'ORL',
     teamName: 'Orlando Magic',
     nickname: 'Magic',
     conference: 'East',
@@ -156,6 +178,7 @@ export const TeamListFull = [
   {
     id: 'sixers',
     code: 'PHI',
+    teamId: 'PHI',
     teamName: 'Philadelphia 76ers',
     nickname: 'Sixers',
     conference: 'East',
@@ -163,6 +186,7 @@ export const TeamListFull = [
   {
     id: 'suns',
     code: 'PHX',
+    teamId: 'PHX',
     teamName: 'Phoenix Suns',
     nickname: 'Suns',
     conference: 'West',
@@ -170,6 +194,7 @@ export const TeamListFull = [
   {
     id: 'blazers',
     code: 'POR',
+    teamId: 'POR',
     teamName: 'Portland Trail Blazers',
     nickname: 'Blazers',
     conference: 'West',
@@ -177,6 +202,7 @@ export const TeamListFull = [
   {
     id: 'kings',
     code: 'SAC',
+    teamId: 'SAC',
     teamName: 'Sacramento Kings',
     nickname: 'Kings',
     conference: 'West',
@@ -184,6 +210,7 @@ export const TeamListFull = [
   {
     id: 'spurs',
     code: 'SAS',
+    teamId: 'SAS',
     teamName: 'San Antonio Spurs',
     nickname: 'Spurs',
     conference: 'West',
@@ -191,6 +218,7 @@ export const TeamListFull = [
   {
     id: 'raptors',
     code: 'TOR',
+    teamId: 'TOR',
     teamName: 'Toronto Raptors',
     nickname: 'Raptors',
     conference: 'East',
@@ -198,6 +226,7 @@ export const TeamListFull = [
   {
     id: 'jazz',
     code: 'UTA',
+    teamId: 'UTA',
     teamName: 'Utah Jazz',
     nickname: 'Jazz',
     conference: 'West',
@@ -205,6 +234,7 @@ export const TeamListFull = [
   {
     id: 'wizards',
     code: 'WAS',
+    teamId: 'WAS',
     teamName: 'Washington Wizards',
     nickname: 'Wizards',
     conference: 'East',

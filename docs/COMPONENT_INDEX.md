@@ -215,6 +215,7 @@ Quick reference for all components in the ScoutZero project.
 - ActiveFiltersDisplay/FilterPill/FilterContent.jsx
 - ActiveFiltersDisplay/FilterPill/FilterPill.jsx
 - ActiveFiltersDisplay/index.jsx
+- ActiveFiltersDrawer.jsx
 - FiltersPanel/FilterPanel/index.jsx
 - FiltersPanel/FilterPanel/sections/BadgeFilters.jsx
 - FiltersPanel/FilterPanel/sections/ContractFilters.jsx
@@ -227,6 +228,7 @@ Quick reference for all components in the ScoutZero project.
 - FiltersPanel/FilterPanel/sections/ViewControls.jsx
 - FiltersPanel/FilterPanelCondensed.jsx
 - FiltersPanel/index.jsx
+- hooks/useActiveFilterCount.js
 
 ## Lists
 
@@ -333,9 +335,13 @@ Quick reference for all components in the ScoutZero project.
 - PlayerTable/PlayerRow/ShootingProfileMini.jsx
 - PlayerTable/PlayerRow/index.jsx
 - PlayerTable/PlayerTableHeader/ControlButtons.jsx
+- PlayerTable/PlayerTableHeader/DensityToggle.jsx
 - PlayerTable/PlayerTableHeader/SearchBar.jsx
+- PlayerTable/PlayerTableHeader/TopControlsBar.jsx
 - PlayerTable/PlayerTableHeader/index.jsx
+- PlayerTable/components/HeaderPopover.jsx
 - PlayerTable/components/OverlayPanel.jsx
+- PlayerTable/hooks/usePlayerTableDensity.js
 - PlayerTable/index.jsx
 - SubRolePill.jsx
 - TwoWayMini.jsx
@@ -350,4 +356,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2026-02-01T01:52:30.510Z*
+*Generated on: 2026-02-01T08:08:34.429Z*

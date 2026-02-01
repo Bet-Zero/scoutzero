@@ -498,36 +498,505 @@ The following issues were identified in the preflight audit but remain unresolve
 
 **Before vs After**:
 
-| Behavior | Before | After |
-|----------|--------|-------|
-| Toggle Filters | Pushes list down ~150px | List stays fixed |
-| Toggle Sort | Pushes list down ~50px | List stays fixed |
-| Add pills | Wraps to multiple lines | Single line, horizontal scroll |
-| Remove all pills | Container disappears | Fixed 44px height remains |
+| Behavior         | Before                  | After                          |
+| ---------------- | ----------------------- | ------------------------------ |
+| Toggle Filters   | Pushes list down ~150px | List stays fixed               |
+| Toggle Sort      | Pushes list down ~50px  | List stays fixed               |
+| Add pills        | Wraps to multiple lines | Single line, horizontal scroll |
+| Remove all pills | Container disappears    | Fixed 44px height remains      |
 
 **Files Changed**:
 
-| File | Change |
-|------|--------|
-| `src/features/table/PlayerTable/components/OverlayPanel.jsx` | **NEW** - Reusable overlay component |
-| `src/features/table/PlayerTable/index.jsx` | Restructured header with overlay positioning |
-| `src/features/table/PlayerTable/PlayerTableHeader/index.jsx` | Fixed 72px height |
-| `src/features/filters/ActiveFiltersDisplay/index.jsx` | Fixed 44px height, horizontal scroll |
-| `src/features/filters/FiltersPanel/index.jsx` | Removed mb-4 wrapper |
-| `src/features/filters/FiltersPanel/FilterPanel/sections/ViewControls.jsx` | Removed -mb-[24px] hack |
+| File                                                                      | Change                                       |
+| ------------------------------------------------------------------------- | -------------------------------------------- |
+| `src/features/table/PlayerTable/components/OverlayPanel.jsx`              | **NEW** - Reusable overlay component         |
+| `src/features/table/PlayerTable/index.jsx`                                | Restructured header with overlay positioning |
+| `src/features/table/PlayerTable/PlayerTableHeader/index.jsx`              | Fixed 72px height                            |
+| `src/features/filters/ActiveFiltersDisplay/index.jsx`                     | Fixed 44px height, horizontal scroll         |
+| `src/features/filters/FiltersPanel/index.jsx`                             | Removed mb-4 wrapper                         |
+| `src/features/filters/FiltersPanel/FilterPanel/sections/ViewControls.jsx` | Removed -mb-[24px] hack                      |
 
 **Validation Results**:
 
-| Test | Result |
-|------|--------|
-| Build | ✅ PASS |
-| Toggle Filters - no list shift | ✅ PASS |
-| Toggle Sort - no list shift | ✅ PASS |
-| Pills wrap to multiple lines | ✅ FIXED (now single-line with scroll) |
-| Click outside overlay | ✅ PASS (closes overlay) |
-| Press Escape | ✅ PASS (closes overlay) |
-| Virtualization stable | ✅ PASS |
-| Drawer works | ✅ PASS |
+| Test                           | Result                                 |
+| ------------------------------ | -------------------------------------- |
+| Build                          | ✅ PASS                                |
+| Toggle Filters - no list shift | ✅ PASS                                |
+| Toggle Sort - no list shift    | ✅ PASS                                |
+| Pills wrap to multiple lines   | ✅ FIXED (now single-line with scroll) |
+| Click outside overlay          | ✅ PASS (closes overlay)               |
+| Press Escape                   | ✅ PASS (closes overlay)               |
+| Virtualization stable          | ✅ PASS                                |
+| Drawer works                   | ✅ PASS                                |
+
+---
+
+### Phase 2L: Compact "Spreadsheet Density" + Header Slimming (2026-01-31)
+
+**Status**: 🔵 PREFLIGHT COMPLETE
+
+**Date**: 2026-01-31
+
+**Goal**: Increase visible rows from ~5 to ≥7 at 1366×700 viewport while maintaining zero layout-shift.
+
+**Documentation**:
+
+- **Preflight Report**: [SCOUTING_PLAYER_TABLE_PHASE_2L_PREFLIGHT_COMPACT_DENSITY.md](../../return_packages/SCOUTING_PLAYER_TABLE_PHASE_2L_PREFLIGHT_COMPACT_DENSITY.md)
+
+**Key Findings**:
+
+| Metric                         | Current | Target   |
+| ------------------------------ | ------- | -------- |
+| Chrome budget (header+pills)   | ~196px  | ~140px   |
+| Row height (itemSize)          | 100px   | 76px     |
+| Visible rows at 700px viewport | ~5 rows | ≥7 rows  |
+| Visible rows at 900px viewport | ~7 rows | ≥10 rows |
+
+**Proposed Changes**:
+
+1. **Header Reduction** (saves ~56px):
+   - SiteLayout header: py-4 → py-3 (saves 8px)
+   - Sticky pt-4 → pt-2 (saves 8px)
+   - PlayerTableHeader: h-[72px] → h-[48px] (saves 24px)
+   - ActiveFiltersDisplay: h-[44px] → h-[32px] (saves 12px)
+   - Margins: mt-2 mb-2 → mt-1 mb-1 (saves 4px)
+
+2. **Row Compaction** (100px → 76px):
+   - itemSize: 100 → 76
+   - PlayerRow h-[90px] → h-[68px]
+   - Headshot: w-20 → w-16
+   - Stats box: w-28 h-10 → w-24 h-8
+   - Compact variants for RolePill, ShootingProfileMini, OverallGradeBlock
+
+3. **Virtualization Guardrails**:
+   - DO NOT TOUCH: useContainerDimensions, min-h-0 chain, overflow-hidden hierarchy
+   - Verify: height > 0, drawer positioning, smooth scrolling
+
+**Execution Scope** (8 files):
+
+| File                             | Change                |
+| -------------------------------- | --------------------- |
+| `SiteLayout.jsx`                 | Reduce header padding |
+| `PlayerTable/index.jsx`          | itemSize, pt padding  |
+| `PlayerTableHeader/index.jsx`    | Height + inline title |
+| `ActiveFiltersDisplay/index.jsx` | Height + padding      |
+| `PlayerRow/index.jsx`            | Row height + elements |
+| `RolePill.jsx`                   | Compact variant       |
+| `ShootingProfileMini.jsx`        | Compact variant       |
+| `OverallGradeBlock.jsx`          | Size prop             |
+
+**Acceptance Criteria**:
+
+- [ ] ≥7 visible rows at 1366×700
+- [ ] Zero layout shift on filter/sort toggle
+- [ ] Zero layout shift on pill add/remove
+- [ ] Virtualization stable (no 0-height, smooth scroll)
+- [ ] Drawer works correctly
+- [ ] Build passes
+
+**Next Step**: Execute Phase 2L-EXEC with the changes outlined in preflight.
+
+---
+
+### Phase 2M: Reduce Vertical Chrome Above List (2026-01-31)
+
+**Status**: ✅ COMPLETE
+
+**Date**: 2026-01-31
+
+**Goal**: Reclaim vertical space from header/sticky padding without touching PlayerRow or row height.
+
+**Documentation**:
+
+- **Return Package**: [SCOUTING_PLAYER_TABLE_PHASE_2M_RETURN_PACKAGE.md](../../return_packages/SCOUTING_PLAYER_TABLE_PHASE_2M_RETURN_PACKAGE.md)
+
+**Changes Made**:
+
+| Component                      | Before             | After              | Saved     |
+| ------------------------------ | ------------------ | ------------------ | --------- |
+| SiteLayout header (py)         | py-4               | py-2               | 16px      |
+| PlayerTable sticky (pt)        | pt-4               | pt-2               | 8px       |
+| PlayerTableHeader (h+pb)       | h-[72px] pb-2      | h-[60px] pb-1      | 16px      |
+| ActiveFiltersDisplay (mt+h+mb) | mt-2 h-[44px] mb-2 | mt-1 h-[36px] mb-1 | 16px      |
+| **Total**                      |                    |                    | **~56px** |
+
+**Files Modified**:
+
+- `src/core/layout/SiteLayout.jsx`
+- `src/features/table/PlayerTable/index.jsx`
+- `src/features/table/PlayerTable/PlayerTableHeader/index.jsx`
+- `src/features/filters/ActiveFiltersDisplay/index.jsx`
+
+**Guardrails Respected**:
+
+- ✅ PlayerRow unchanged
+- ✅ itemSize unchanged (100px)
+- ✅ No new overlay/drawer/modal behavior
+- ✅ No new permanent placeholder added
+- ✅ Height chain intact
+
+**Result**: List starts ~56px higher on `/players`. Build passes.
+
+---
+
+### Phase 2N: Fix Sticky Header Stack — No Overlap, Filters+Sort Together (2026-01-31)
+
+**Status**: ✅ COMPLETE
+
+**Date**: 2026-01-31
+
+**Goal**: Fix the sticky header overlay positioning so Filters/Sort panels don't overlap the ActiveFiltersDisplay pills bar, and allow both panels to be open simultaneously.
+
+**Documentation**:
+
+- **Return Package**: [SCOUTING_PLAYER_TABLE_PHASE_2N_HEADER_STACK_FIX_RETURN_PACKAGE.md](../../return_packages/SCOUTING_PLAYER_TABLE_PHASE_2N_HEADER_STACK_FIX_RETURN_PACKAGE.md)
+
+**Root Cause**:
+
+The previous implementation (Phase 2K) had the overlay `top-full` positioned relative to a wrapper containing ONLY `PlayerTableHeader` (~60px). The `ActiveFiltersDisplay` was OUTSIDE that wrapper. This meant overlays appeared at 60px from top — exactly where the pills bar was rendered — causing direct overlap.
+
+**Changes Made**:
+
+| Change                        | Description                                                                                     |
+| ----------------------------- | ----------------------------------------------------------------------------------------------- |
+| Restructured sticky chrome    | Moved `ActiveFiltersDisplay` INSIDE the relative wrapper so `top-full` = header + pills (~96px) |
+| Removed OverlayPanel wrappers | Panels now render directly with inline styling                                                  |
+| Unified click-outside handler | Single `stickyChromeRef` covers entire sticky area (header + pills + overlays)                  |
+| Unified Escape handler        | Escape closes both panels                                                                       |
+| Filters+Sort together         | Both can be open simultaneously, stacked with `space-y-2`                                       |
+
+**Files Modified**:
+
+- `src/features/table/PlayerTable/index.jsx`
+
+**Guardrails Respected**:
+
+- ✅ PlayerRow unchanged
+- ✅ itemSize unchanged (100px)
+- ✅ No side drawer introduced
+- ✅ Height chain intact (no virtualization regression)
+- ✅ Pills bar always renders with fixed height
+- ✅ No layout shift on toggle
+
+**Result**: Overlays now anchor correctly below pills bar. Filters and Sort usable together. Build passes.
+
+---
+
+### Phase 2O: Proportional Scale-Based Density Mode (2026-02-01)
+
+**Status**: ✅ COMPLETE
+
+**Date**: 2026-02-01
+
+**Goal**: Add a 2-mode density toggle (Comfortable/Compact) that achieves "browser zoom-out" density without redesigning PlayerRow.
+
+**Documentation**:
+
+- **Return Package**: [PHASE_2N_DENSITY_MODE_RETURN_PACKAGE.md](../../return_packages/scouting/PHASE_2N_DENSITY_MODE_RETURN_PACKAGE.md)
+
+**Technical Approach**:
+
+The implementation uses CSS `transform: scale()` on the entire list rendering surface. Instead of modifying PlayerRow dimensions:
+
+1. Container dimensions are measured normally via `useContainerDimensions`
+2. In Compact mode, react-window receives **scaled-up** dimensions: `scaledDim = dim / 0.75`
+3. An inner stage wraps the List with `transform: scale(0.75); transform-origin: top left`
+4. Result: react-window renders more rows (thinking it has more space), which are then scaled down proportionally
+
+**Density Modes**:
+
+| Mode        | Scale | Visible Rows (1366×700) |
+| ----------- | ----- | ----------------------- |
+| Comfortable | 1.0   | ~5 rows                 |
+| Compact     | 0.75  | ~7 rows                 |
+
+**Files Created**:
+
+| File                                                                 | Purpose                                       |
+| -------------------------------------------------------------------- | --------------------------------------------- |
+| `src/features/table/PlayerTable/hooks/usePlayerTableDensity.js`      | Hook managing mode + localStorage persistence |
+| `src/features/table/PlayerTable/PlayerTableHeader/DensityToggle.jsx` | Segmented control UI                          |
+
+**Files Modified**:
+
+| File                                                         | Change                                   |
+| ------------------------------------------------------------ | ---------------------------------------- |
+| `src/features/table/PlayerTable/index.jsx`                   | Scaling logic, scroll position stability |
+| `src/features/table/PlayerTable/PlayerTableHeader/index.jsx` | Added DensityToggle to header controls   |
+
+**Scroll Position Stability**:
+
+- `handleScroll` callback tracks first visible row index on every scroll
+- On scale change, `scrollToItem(index, 'start')` restores position
+
+**Persistence**:
+
+- localStorage key: `players_density_mode`
+- Values: `"comfortable"` | `"compact"`
+- Default: `"comfortable"`
+
+**Guardrails Respected**:
+
+- ✅ PlayerRow unchanged (no redesign)
+- ✅ Virtualization stable (useContainerDimensions untouched)
+- ✅ No layout shift on density toggle
+- ✅ No side drawer conversion
+- ✅ Filters/Sort remain usable in both modes
+
+**Known Follow-ups**:
+
+- If 0.75 scale causes usability issues, adjust to 0.80
+- Drawer also scales in Compact mode (intentional but may need UX review)
+- Touch targets at 0.75 scale are smaller
+
+---
+
+### Phase 2P: Upward Floating HeaderPopover for Filters/Sort (2026-02-01)
+
+**Status**: ✅ COMPLETE
+
+**Date**: 2026-02-01
+
+**Goal**: Fix critical UX bug where Filters/Sort panels rendered **below** the sticky header and **overlapped player rows**, making the table unusable.
+
+**Problem Addressed**:
+
+The previous implementation (Phase 2N) used `position: absolute; top: full` to render Filters/Sort panels. This caused them to extend downward into the player list area, covering row #1 and making controls unusable.
+
+**Solution Implemented**:
+
+Created a portal-based `HeaderPopover` component that:
+
+1. **Renders via `createPortal(document.body)`** — fully decoupled from sticky header and density scaling
+2. **Uses `position: fixed`** with upward positioning (bottom anchored to list start line)
+3. **Measures list container top Y** (`listContainerRef.getBoundingClientRect().top`) to ensure popover never crosses below list
+4. **Handles click-outside and Escape** internally, eliminating duplicate event handlers
+
+**Technical Implementation**:
+
+```javascript
+// Position calculation in HeaderPopover:
+// bottom = window.innerHeight - (listTopY - 8)  // 8px gap above list
+// maxHeight = listTopY - 8 - 60  // Leave 60px breathing room at top
+```
+
+**Documentation**:
+
+- **Return Package**: [SCOUTING_PLAYER_TABLE_PHASE_2O_CONTROLS_POPOVER_RETURN_PACKAGE.md](../../return_packages/SCOUTING_PLAYER_TABLE_PHASE_2O_CONTROLS_POPOVER_RETURN_PACKAGE.md)
+
+**Files Created**:
+
+| File                                                          | Purpose                                |
+| ------------------------------------------------------------- | -------------------------------------- |
+| `src/features/table/PlayerTable/components/HeaderPopover.jsx` | Portal popover with upward positioning |
+
+**Files Modified**:
+
+| File                                       | Change                                                   |
+| ------------------------------------------ | -------------------------------------------------------- |
+| `src/features/table/PlayerTable/index.jsx` | Wire HeaderPopover, measure listTopY, remove old overlay |
+
+**Guarantees**:
+
+- ✅ **Zero layout shift** — List top Y never moves when toggling Filters/Sort
+- ✅ **No row overlap** — Popover always stays above list start line
+- ✅ **Both controls usable together** — Stacked sections in single popover
+- ✅ **Density safe** — Portal renders at normal scale regardless of Compact mode
+- ✅ **Click outside closes** — Handled by HeaderPopover component
+- ✅ **Escape closes** — Handled by HeaderPopover component
+
+**Acceptance Criteria Met**:
+
+| Criterion                     | Status |
+| ----------------------------- | ------ |
+| No overlap with Filters open  | ✅     |
+| No overlap with Sort open     | ✅     |
+| Both Filters + Sort together  | ✅     |
+| Zero layout shift             | ✅     |
+| Density mode compatibility    | ✅     |
+| Click outside + Escape closes | ✅     |
+| Build passes                  | ✅     |
+
+---
+
+### Phase 2Q: Always-On TopControlsBar + Right-Side Active Filters Drawer (2026-02-01)
+
+**Status**: ✅ COMPLETE
+
+**Date**: 2026-02-01
+
+**Goal**: Fix the `/players` header-controls UX for always-usable, zero layout-shift, visually clean controls.
+
+**Documentation**:
+
+- **Return Package**: [SCOUTING_PLAYER_TABLE_PHASE_2O_RETURN_PACKAGE.md](../../return_packages/SCOUTING_PLAYER_TABLE_PHASE_2O_RETURN_PACKAGE.md)
+
+**Problem Addressed**:
+
+The previous HeaderPopover approach, while fixing overlap, still had UX friction:
+
+- Basic filters required toggling a popover open
+- Active filters displayed inline, consuming fixed 36px height
+- Sort controls were hidden behind a toggle
+- Multiple clicks required to access common controls
+
+**Solution Implemented**:
+
+1. **TopControlsBar** — Always-visible 48px row with:
+   - Left side: Basic filter dropdowns (Team, Position, Offense Role, Defense Role, Shooting)
+   - Left side: "More" button → opens Advanced Filters modal directly
+   - Right side: Salary Year, Sort By, Sort Order controls
+   - Right side: "Active (N)" button → opens ActiveFiltersDrawer
+
+2. **ActiveFiltersDrawer** — Right-side overlay drawer (`position: fixed`) containing:
+   - Filter pills with remove actions
+   - Clear All button
+   - Close on click-outside or Escape
+
+3. **Removed**:
+   - HeaderPopover (replaced by always-visible controls)
+   - Inline ActiveFiltersDisplay (replaced by drawer)
+   - ControlButtons component (filter/sort toggles now inline)
+
+**Files Created**:
+
+| File                                                                  | Purpose                             |
+| --------------------------------------------------------------------- | ----------------------------------- |
+| `src/features/table/PlayerTable/PlayerTableHeader/TopControlsBar.jsx` | Always-visible controls bar         |
+| `src/features/filters/ActiveFiltersDrawer.jsx`                        | Right-side overlay drawer for pills |
+| `src/features/filters/hooks/useActiveFilterCount.js`                  | Count active filters for badge      |
+
+**Files Modified**:
+
+| File                                                         | Change                                              |
+| ------------------------------------------------------------ | --------------------------------------------------- |
+| `src/features/table/PlayerTable/index.jsx`                   | Replaced HeaderPopover with TopControlsBar + drawer |
+| `src/features/table/PlayerTable/PlayerTableHeader/index.jsx` | Simplified to just title, search, density           |
+
+**Files Now Unused** (candidates for deletion):
+
+| File                                                                  | Reason                              |
+| --------------------------------------------------------------------- | ----------------------------------- |
+| `src/features/table/PlayerTable/PlayerTableHeader/ControlButtons.jsx` | Replaced by TopControlsBar          |
+| `src/features/table/PlayerTable/components/HeaderPopover.jsx`         | Replaced by always-visible controls |
+| `src/features/filters/ActiveFiltersDisplay/`                          | Replaced by ActiveFiltersDrawer     |
+
+**Architecture After Phase 2Q**:
+
+```
+PlayerTable
+├── Sticky Header (z-60)
+│   ├── PlayerTableHeader (60px) — Title, search, density
+│   └── TopControlsBar (48px) — Always visible
+│       ├── Basic filter dropdowns (left)
+│       ├── "More" → FilterPanel modal
+│       ├── Sort controls (right)
+│       └── "Active (N)" → ActiveFiltersDrawer
+│
+├── [Portal] FilterPanel (fixed modal, z-50) — when open
+├── [Portal] ActiveFiltersDrawer (fixed right, z-70) — when open
+│
+└── Virtualized List (flex-1)
+```
+
+**Zero Layout Shift Guarantee**:
+
+- **Fixed heights**: Header (60px) + TopControlsBar (48px) = 108px always
+- **Overlay-only surfaces**: Drawer and modal use `position: fixed`
+- **No inline expansion**: Removed 36px inline pills bar
+
+**Acceptance Criteria Met**:
+
+| Criterion                              | Status |
+| -------------------------------------- | ------ |
+| Basic filters always visible           | ✅     |
+| Sort controls always visible           | ✅     |
+| "More" opens Advanced Filters          | ✅     |
+| Active Filters in overlay drawer       | ✅     |
+| Zero layout shift on drawer open/close | ✅     |
+| Zero layout shift on modal open/close  | ✅     |
+| Density toggle still works             | ✅     |
+| Virtualization stable                  | ✅     |
+| Build passes                           | ✅     |
+
+---
+
+### Phase 2P-PREFLIGHT: Team Filter "Zero Results" Wiring Audit (2026-02-01)
+
+**Status**: ✅ PREFLIGHT COMPLETE
+
+**Date**: 2026-02-01
+
+**Goal**: Identify why selecting any Team filter produces **0 results**.
+
+**Documentation**:
+
+- **Preflight Return Package**: [SCOUTING_PLAYER_TABLE_PHASE_2P_PREFLIGHT_TEAM_FILTER_RETURN_PACKAGE.md](../return_packages/SCOUTING_PLAYER_TABLE_PHASE_2P_PREFLIGHT_TEAM_FILTER_RETURN_PACKAGE.md)
+
+**Root Cause Identified**:
+
+| Component                | Value Format                        | Example                          |
+| ------------------------ | ----------------------------------- | -------------------------------- |
+| **Dropdown stores**      | Team nickname (`TeamListFull[].id`) | `"celtics"`                      |
+| **Player data contains** | Full team name (`bio.display.team`) | `"Boston Celtics"`               |
+| **Filter predicate**     | Lowercased comparison               | `"boston celtics" !== "celtics"` |
+
+The comparison **never matches** because the dropdown emits `"celtics"` but player data contains `"Boston Celtics"`.
+
+**SSOT Decision**: Use `teamId` (3-letter code like `"BOS"`) as canonical team key:
+
+- Already exists in player data: `bio.display.teamId`
+- Already exists in TeamListFull: `code` field
+- Short, stable, no case sensitivity issues
+
+**Recommended Fix** (for Phase 2P-EXEC):
+
+1. Change dropdown to emit `opt.code` (e.g., `"BOS"`) instead of `opt.id` (e.g., `"celtics"`)
+2. Change filter predicate to compare against `bio.display.teamId`
+3. Audit TierMaker and RankingBuilder for same pattern (they have the same bug)
+
+**Affected Files**:
+
+- `TopControlsBar.jsx` — Team dropdown value
+- `MultiSelectFilter.jsx` — Value extraction logic
+- `playerFilterUtils.js` — Filter predicate
+- `TierMakerBoard.jsx` — Team filtering (same bug)
+- `RankingBuilder.jsx` — Team filtering (same bug)
+- `AddPlayerDrawer/BasicFilters.jsx` — Team dropdown
+
+---
+
+### Phase 2P-EXEC: Team Filter SSOT Fix ✅ (2026-02-01)
+
+**Goal**: Fix Team filter returning zero results by aligning to SSOT team key.
+
+**Documentation**:
+
+- **Execution Return Package**: [SCOUTING_PLAYER_TABLE_PHASE_2P_EXEC_TEAM_FILTER_FIX_RETURN_PACKAGE.md](../return_packages/SCOUTING_PLAYER_TABLE_PHASE_2P_EXEC_TEAM_FILTER_FIX_RETURN_PACKAGE.md)
+
+**Root Cause**: MultiSelectFilter used `opt.id` (slug like `"celtics"`) for values, while the filter predicate compared against `p.bio.display.team` (full name like `"Boston Celtics"`). These never matched.
+
+**SSOT Decision**: Use `bio.display.teamId` (3-letter code like `"BOS"`) as canonical team key:
+
+- Already exists in player data: `bio.display.teamId = "BOS"`
+- Already exists in TeamListFull: `code = "BOS"`
+- Short, stable, case-insensitive comparisons
+
+**Changes Made**:
+
+| File                    | Change                                                          |
+| ----------------------- | --------------------------------------------------------------- |
+| `teamList.js`           | Added `teamId` alias (= `code`) to all 30 teams                 |
+| `MultiSelectFilter.jsx` | Added `valueKey`/`labelKey` props (backwards compatible)        |
+| `TopControlsBar.jsx`    | Added `valueKey="code"` to Team filter                          |
+| `playerFilterUtils.js`  | Changed predicate to compare `teamId`, with slug→code migration |
+| `TierMakerBoard.jsx`    | Fixed `handleAddTeamRoster` to use `teamId` vs `code`           |
+| `RankingBuilder.jsx`    | Fixed `handleAddTeam` to use `teamId` vs `code`                 |
+| `BasicFilters.jsx`      | Changed team select to emit `code` values                       |
+
+**Backwards Compatibility**: Old slug values (e.g., `"celtics"`) stored in state are transparently mapped to codes (e.g., `"BOS"`) at runtime via `TeamSlugToCode`.
+
+**Status**: ✅ Build passed. Pending manual verification.
 
 ---
 
@@ -547,6 +1016,7 @@ The following issues were identified in the preflight audit but remain unresolve
 - [ ] Remove inline image logic in `PlayerRow` (trust `player.headshotUrl`).
 - [ ] TypeScript conversion for Table components.
 - [ ] Unit tests for `filterPlayers` edge cases (null safety).
+- [ ] Delete unused files: ControlButtons, HeaderPopover, ActiveFiltersDisplay
 
 ### Phase 4: Data Scalability (Future)
 

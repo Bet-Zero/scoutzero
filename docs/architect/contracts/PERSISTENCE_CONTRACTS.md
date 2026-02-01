@@ -1,7 +1,7 @@
 # Persistence Contracts
 
 **Created:** 2026-01-30  
-**Phase:** 61, 62, 64  
+**Phase:** 61, 62, 64, 65, 66  
 **Purpose:** Define and document allowlist-based persistence contracts for Firestore world documents
 
 ---
@@ -26,6 +26,7 @@ Persistence contracts prevent schema drift in Firestore world data by enforcing 
 | Phase 61 Contracts    | Catch unknown keys         | Allowlist (persistence contracts)      |
 | Phase 62 Deep Rules   | Validate nested arrays     | Deep allowlists + keyset snapshots     |
 | Phase 64 Normalize    | Canonicalize TPE schema    | `normalizeTeamTpeSchema()` transform   |
+| Phase 66 Migration    | Remove legacy from DB      | Migration script + telemetry           |
 
 All are applied in `persistWorldMutation()` in the order: **sanitize → normalize TPE → validate contract → removeUndefined**
 
@@ -39,6 +40,107 @@ All are applied in `persistWorldMutation()` in the order: **sanitize → normali
 - **Legacy persistence is FORBIDDEN:** `tradeExceptions` is NOT in the allowlist and will cause contract violations if present after normalization
 
 Use `getTeamTpeList(team)` for reading TPEs - it handles both canonical and legacy locations transparently.
+
+### Phase 65: TPE Read-Path Canonicalization
+
+**IMPORTANT:** As of Phase 65, production code **MUST NOT** access `.tradeExceptions` directly.
+
+- **Read-path rule:** All TPE reads MUST use `getTeamTpeList(team)` from `persistenceContracts/normalizeTeamTpe.js`
+- **Legacy `.tradeExceptions` is input only:** Used only in normalization/migration code
+- **Guardrails:** Source-scan tests forbid `.tradeExceptions` outside a tight 9-file allowlist
+- **Non-mutation persistence:** `seasonManager.js` (L119, L598) now calls `normalizeTeamTpeSchema()` before `batch.set()`
+
+**Refactored files (Phase 65):**
+
+- `TradeTeamCard.jsx`, `TradeExceptionDashboard.jsx`, `ValidationDetailsPanel.jsx`
+- `useTradeMachine.js`, `tradeExceptions.js`, `basicRules.js`, `validateSalaryMatching.js`
+- `runOffseason.js`, `SeasonAdvanceModal.jsx`, `seasonManager.js`
+
+### Phase 66: Legacy tradeExceptions Migration + Telemetry
+
+**IMPORTANT:** As of Phase 66, legacy `tradeExceptions` is being fully migrated out of persisted Firestore data.
+
+- **Migration script:** `scripts/migrations/phase66_migrate_tradeExceptions.js`
+  - Scans `architect_worlds/{worldId}/teams/{teamCode}` docs
+  - Calls `normalizeTeamTpeSchema()` to merge legacy → canonical
+  - Removes `tradeExceptions` field and writes back
+  - Supports `--dry-run` (default), `--write`, `--verify-only` CLI flags
+  - Supports `--worldId=<WORLD_ID>` for targeted migration
+  - Supports `--output-dir=<DIR>` for custom report location
+  - Produces JSON + markdown reports with deterministic filenames: `phase67_<mode>_<date>.{json,md}`
+
+- **Telemetry:** `getTeamTpeList()` tracks legacy fallback reads
+  - In-memory counter: `getLegacyTpeFallbackCount()`
+  - **Quiet by default (Phase 67):** Only logs when `LOG_LEGACY_TPE_FALLBACK=true`
+  - Reset function: `resetLegacyTpeFallbackTelemetry()` (for testing)
+  - Counter still increments silently for programmatic access
+  - **Status:** Telemetry retained for debugging, quiet-by-default
+
+- **Type updates:**
+  - `NormalizedTeam` interface in `types.ts` marked with `@deprecated` JSDoc comment
+  - Clarified as internal compute type only, not persisted shape
+  - Canonical persisted schema in `src/schemas/architect.ts` remains correct (no `tradeExceptions`)
+
+### Phase 67: Migration Execution + Verify-Only Mode
+
+**STATUS:** Completed 2026-02-01
+
+- **CLI hardening:** Migration script now supports proper CLI flags:
+  - `--dry-run` - Report only, no writes (default)
+  - `--write` - Actually perform writes
+  - `--verify-only` - Scan for legacy occurrences, exit code 1 if any found
+  - `--output-dir=<DIR>` - Custom report directory
+
+- **Verify-only mode:**
+  - Produces `phase67_verify_only_<date>.{json,md}` reports
+  - Exit code 0 = zero legacy occurrences (migration complete)
+  - Exit code 1 = legacy occurrences found (needs migration)
+
+- **Telemetry wind-down:**
+  - Quiet by default: no console.warn unless `LOG_LEGACY_TPE_FALLBACK=true`
+  - Counter still increments for programmatic access
+
+### Phase 68: CI-Safe Verify-Only + Empty-Scan Fail-Safe
+
+**STATUS:** Completed 2026-02-01
+
+Phase 68 makes `--verify-only` mode CI-trustworthy by preventing false greens from empty scans.
+
+- **Empty-scan fail-safe:**
+  - If `worldsScanned === 0` OR `teamDocsScanned === 0`, verify-only FAILS (exit 1)
+  - Prints: `[VERIFY FAILED] Empty scan (0 worlds or 0 team docs). Check credentials / emulator / project / data.`
+  - Prevents CI from reporting success when no data was actually scanned
+
+- **Escape hatch: `--allow-empty`**
+  - Bypasses empty-scan fail with loud warning
+  - NOT recommended for CI pipelines
+  - Warning: `[VERIFY WARNING] ⚠️  Empty scan detected but --allow-empty is set.`
+
+- **Explicit environment targeting:**
+  - Prints at script start: projectId, emulator host status, Firestore instance type
+  - Makes it clear which database the script is connecting to
+
+- **ESM compatibility:**
+  - Fixed `require()` → `JSON.parse(fs.readFileSync())` for service account loading
+
+**Migration commands (updated):**
+
+```bash
+# Dry run on all worlds (default safe mode)
+node scripts/migrations/phase66_migrate_tradeExceptions.js --dry-run
+
+# Verify-only scan (exit 1 if legacy found OR empty scan)
+node scripts/migrations/phase66_migrate_tradeExceptions.js --verify-only
+
+# Verify-only with empty scan allowed (escape hatch, not for CI)
+node scripts/migrations/phase66_migrate_tradeExceptions.js --verify-only --allow-empty
+
+# Live migration on specific world (USE WITH CAUTION)
+node scripts/migrations/phase66_migrate_tradeExceptions.js --write --worldId=abc123
+
+# Custom output directory
+node scripts/migrations/phase66_migrate_tradeExceptions.js --dry-run --output-dir=./reports
+```
 
 ---
 
@@ -497,3 +599,130 @@ This ensures:
 - The allowlist permits the new field
 - The fixture reflects realistic data
 - The snapshot documents the expected shape
+
+---
+
+## 8. How to Prove Verify-Only End-to-End (Phase 69)
+
+Phase 69 introduced a **seeded emulator proof harness** that demonstrates the complete verify-only workflow with non-empty scans. This is the repeatable way to prove that:
+
+1. The migration script correctly detects legacy `tradeExceptions` fields
+2. Write-mode removes legacy fields without data loss
+3. Verify-only correctly reports zero legacy after migration
+
+### Proof Loop Commands
+
+```bash
+# 1. Seed emulator with test data (creates world + teams with legacy tradeExceptions)
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8082 node scripts/seed/phase69_seed_architect_worlds_for_tpe_migration.js
+
+# 2. Verify-only (expected: FAIL with exit 1, legacy detected)
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8082 node scripts/migrations/phase66_migrate_tradeExceptions.js --verify-only
+
+# 3. Write migration (removes legacy tradeExceptions)
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8082 node scripts/migrations/phase66_migrate_tradeExceptions.js --write --worldId=phase69_seed_world
+
+# 4. Verify-only again (expected: PASS with exit 0, zero legacy)
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8082 node scripts/migrations/phase66_migrate_tradeExceptions.js --verify-only
+```
+
+### Automated Proof Runner
+
+For convenience, a single script runs all four steps with exit code validation:
+
+```bash
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8082 node scripts/seed/phase69_run_tpe_migration_proof.js
+```
+
+### Expected Outcomes
+
+| Step               | Expected Exit Code | Scan Counts                                             |
+| ------------------ | ------------------ | ------------------------------------------------------- |
+| Seed               | 0                  | N/A                                                     |
+| First verify-only  | 1 (FAIL)           | worldsScanned > 0, teamDocsScanned > 0, legacyHits > 0  |
+| Write migration    | 0                  | docsMigrated > 0                                        |
+| Second verify-only | 0 (PASS)           | worldsScanned > 0, teamDocsScanned > 0, legacyHits == 0 |
+
+### Seed Script Structure
+
+The seed script (`scripts/seed/phase69_seed_architect_worlds_for_tpe_migration.js`):
+
+- Creates deterministic worldId: `phase69_seed_world`
+- Creates 3 team docs:
+  - **BOS**: Legacy `tradeExceptions` only
+  - **LAL**: Canonical `exceptions.tpe` only
+  - **MIA**: Both legacy and canonical (merge test case)
+- Is idempotent: re-running produces same docs
+- Refuses to run against production (requires `FIRESTORE_EMULATOR_HOST`)
+
+---
+
+## 9. CI Proof Job + Production Write Safety (Phase 70)
+
+Phase 70 adds a CI-safe entrypoint for the Phase 69 proof harness and introduces production write safety rails.
+
+### CI Entrypoint
+
+A single npm script runs the complete Phase 69 proof loop with deterministic pass/fail behavior:
+
+```bash
+# Run CI proof job (requires emulator running)
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8082 npm run ci:phase69-proof
+```
+
+**CI Entrypoint Location:** `scripts/ci/run_phase69_tpe_migration_proof.js`
+
+**Exit Codes:**
+
+- **0:** All proof loop assertions passed
+- **1:** Any validation failure
+
+**Validation Checks:**
+
+1. First verify-only must exit with code 1 (legacy detected)
+2. Second verify-only must exit with code 0 (zero legacy)
+3. Nonzero scan counts must appear in output
+4. Proof loop must complete successfully
+
+### Production Verify-Only (Safe)
+
+Verify-only mode can be run safely against production with no risk of writes:
+
+```bash
+# Production verify-only scan (SAFE - no writes)
+node scripts/migrations/phase66_migrate_tradeExceptions.js --verify-only
+```
+
+This scans production Firestore and reports any legacy `tradeExceptions` fields without making changes.
+
+### Production Write Safety Latch
+
+**CRITICAL:** As of Phase 70, `--write` is REFUSED against production Firestore unless one of these conditions is met:
+
+1. `FIRESTORE_EMULATOR_HOST` is set (running against emulator), OR
+2. `ALLOW_PROD_MIGRATION_WRITE=true` is set in environment
+
+This prevents accidental production writes from CI pipelines or mistaken commands.
+
+**To write to production (when intentional):**
+
+```bash
+# Explicit production write (must set ALLOW_PROD_MIGRATION_WRITE=true)
+ALLOW_PROD_MIGRATION_WRITE=true node scripts/migrations/phase66_migrate_tradeExceptions.js --write --worldId=<WORLD_ID>
+```
+
+**Safety Latch Behavior:**
+
+| Scenario                                     | `--verify-only` | `--write`  |
+| -------------------------------------------- | --------------- | ---------- |
+| Emulator (FIRESTORE_EMULATOR_HOST set)       | ✅ Allowed      | ✅ Allowed |
+| Production (no ALLOW_PROD_MIGRATION_WRITE)   | ✅ Allowed      | ❌ REFUSED |
+| Production (ALLOW_PROD_MIGRATION_WRITE=true) | ✅ Allowed      | ✅ Allowed |
+
+**Environment Variables:**
+
+| Variable                     | Purpose                                      |
+| ---------------------------- | -------------------------------------------- |
+| `FIRESTORE_EMULATOR_HOST`    | Use Firestore emulator                       |
+| `ALLOW_PROD_MIGRATION_WRITE` | Bypass production write safety latch         |
+| `LOG_LEGACY_TPE_FALLBACK`    | Enable legacy TPE fallback telemetry logging |

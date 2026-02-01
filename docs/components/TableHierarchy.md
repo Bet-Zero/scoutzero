@@ -17,10 +17,15 @@ PlayerTable/
     index.jsx
   PlayerTableHeader/
     ControlButtons.jsx
+    DensityToggle.jsx
     SearchBar.jsx
+    TopControlsBar.jsx
     index.jsx
   components/
+    HeaderPopover.jsx
     OverlayPanel.jsx
+  hooks/
+    usePlayerTableDensity.js
   index.jsx
 SubRolePill.jsx
 TwoWayMini.jsx
@@ -29,5 +34,5 @@ hooks/
 ```
 
 ---
-*Generated on: 2026-01-30T14:49:43.857Z*
+*Generated on: 2026-02-01T08:08:34.410Z*
 *Auto-updated by: npm run docs*

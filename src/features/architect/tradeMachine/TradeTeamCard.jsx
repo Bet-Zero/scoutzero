@@ -26,6 +26,8 @@ import { getCapSettingsForYear } from '@/features/architect/utils/tradeMachine/u
 // Phase 1: Accessor function for validator result consumption (TRADE_MACHINE_UI_WIRING_AUDIT v2.1.0)
 import { getTeamSnapshot } from '@/features/architect/hooks/useTradeMachineSnapshot';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+// Phase 65: Canonical TPE read accessor
+import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 
 /**
  * P3-3: Convert internal skip reason codes to human-readable labels.
@@ -89,7 +91,8 @@ const TradeTeamCard = ({
   const [showIncoming, setShowIncoming] = useState(false);
   const selectRef = useRef(null);
   const hasTeam = Boolean(team);
-  const teamTradeExceptions = team?.tradeExceptions;
+  // Phase 65: Use canonical TPE accessor
+  const teamTradeExceptions = getTeamTpeList(team);
 
   useEffect(() => {
     if (editingTeam && selectRef.current) {
@@ -629,10 +632,10 @@ const TradeTeamCard = ({
                   </span>
                 )}
             </div>
-            {team?.tradeExceptions?.length > 0 && (
+            {teamTradeExceptions.length > 0 && (
               <div className="flex gap-2 items-center">
                 <span className="text-white/60">Available TPEs:</span>
-                {team.tradeExceptions
+                {teamTradeExceptions
                   .filter(
                     (tpe) =>
                       !tpe.isUsed &&
@@ -657,7 +660,7 @@ const TradeTeamCard = ({
                       </span>
                     );
                   })}
-                {team.tradeExceptions.filter(
+                {teamTradeExceptions.filter(
                   (tpe) =>
                     !tpe.isUsed &&
                     (!tpe.expirationDate ||
@@ -698,7 +701,7 @@ const TradeTeamCard = ({
           style={activeTab === 'exceptions' ? { borderColor: primary } : {}}
           onClick={() => setActiveTab('exceptions')}
         >
-          Exceptions ({team.tradeExceptions?.length || 0})
+          Exceptions ({teamTradeExceptions.length})
         </button>
       </div>
 
@@ -713,7 +716,7 @@ const TradeTeamCard = ({
           playersMap={playersMap}
           onSetPlayerTrade={handleSetPlayerTrade}
           onUndoPlayerTrade={handleUndoPlayerTrade}
-          tradeExceptions={team.tradeExceptions}
+          tradeExceptions={teamTradeExceptions}
           onEditContract={onEditContract}
         />
       )}
@@ -744,9 +747,9 @@ const TradeTeamCard = ({
           />
         ))}
 
-      {activeTab === 'exceptions' && team.tradeExceptions?.length > 0 && (
+      {activeTab === 'exceptions' && teamTradeExceptions.length > 0 && (
         <TradeExceptionManager
-          exceptions={team.tradeExceptions}
+          exceptions={teamTradeExceptions}
           teamId={team.id}
           eligiblePlayers={tpeEligiblePlayers}
           onApplyException={(tpe) => {

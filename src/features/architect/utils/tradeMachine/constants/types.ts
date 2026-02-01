@@ -1,5 +1,11 @@
 /**
  * Common interfaces for trade validation
+ *
+ * IMPORTANT (Phase 66):
+ * These are INTERNAL COMPUTE types for trade validation, NOT persisted shapes.
+ * For canonical persisted team schema, see src/schemas/architect.ts (ExceptionsZ).
+ * The persisted team doc uses `team.exceptions.tpe[]` as the ONLY canonical TPE location.
+ * `tradeExceptions` in NormalizedTeam is populated via getTeamTpeList() accessor.
  */
 
 // Normalized cap settings
@@ -41,6 +47,9 @@ export interface NormalizedTPE {
 }
 
 // Normalized team data
+// NOTE: This is an INTERNAL COMPUTE type, NOT the persisted shape.
+// The `tradeExceptions` field is populated via getTeamTpeList() accessor
+// which reads from canonical `team.exceptions.tpe[]` (or legacy fallback).
 export interface NormalizedTeam {
   team: {
     id: string;
@@ -49,11 +58,16 @@ export interface NormalizedTeam {
     projectedSalary: number;
     players: NormalizedPlayer[];
     twoWayPlayers: NormalizedPlayer[];
+    /** @deprecated Internal compute only - populated via getTeamTpeList() */
     tradeExceptions: NormalizedTPE[];
     [key: string]: unknown;
   };
   sends: NormalizedPlayer[];
-  picksOut: Array<{ year: number | string; round: number | string; [key: string]: unknown }>;
+  picksOut: Array<{
+    year: number | string;
+    round: number | string;
+    [key: string]: unknown;
+  }>;
   cashSent: number;
   hardCapped: boolean;
   appliedTPEs: NormalizedTPE[];

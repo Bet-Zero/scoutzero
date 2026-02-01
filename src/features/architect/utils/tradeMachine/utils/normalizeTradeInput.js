@@ -1,10 +1,14 @@
 /**
  * Normalizes trade input data before validation
  * Ensures consistent data structures and handles missing/default values
+ *
+ * HISTORY:
+ *  - Phase 66: Updated to use getTeamTpeList canonical accessor for TPE reads
  */
 
 import { toNum, normalizeCaps } from './capUtils.js';
 import { getMatchingValue } from './matchingValues.js';
+import { getTeamTpeList } from '../../persistenceContracts/normalizeTeamTpe.js';
 
 /**
  * Normalizes a player object with consistent properties
@@ -50,7 +54,8 @@ function normalizeTeam(team, { yearKey } = {}) {
       projectedSalary: toNum(raw.projectedSalary ?? base),
       players: (raw.players || []).map((p) => normalizePlayer(p, yearKey)),
       twoWayPlayers: raw.twoWayPlayers || [],
-      tradeExceptions: (raw.tradeExceptions || []).map((tpe) => ({
+      // Phase 66: Use canonical accessor for TPE reads
+      tradeExceptions: getTeamTpeList(raw).map((tpe) => ({
         ...tpe,
         amount: toNum(tpe.amount),
         remaining: toNum(tpe.remaining ?? tpe.amount),

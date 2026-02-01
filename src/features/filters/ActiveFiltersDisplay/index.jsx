@@ -101,10 +101,10 @@ const ActiveFiltersDisplay = ({
   const activeFilters = getActiveFilters();
   const hasFilters = activeFilters.length > 0;
 
-  // Phase 2K: Always render with fixed height to prevent layout shift
+  // Phase 2M: Reduced margins and height for tighter chrome (mt-1 mb-1, h-[36px])
   return (
-    <div className="w-full mt-2 mb-2">
-      <div className="h-[44px] bg-[#1a1a1a] border border-white/10 rounded-md flex items-center px-3">
+    <div className="w-full mt-1 mb-1">
+      <div className="h-[36px] bg-[#1a1a1a] border border-white/10 rounded-md flex items-center px-3">
         {hasFilters ? (
           <>
             {/* Horizontal scroll pills - no wrap */}

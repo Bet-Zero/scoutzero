@@ -6,6 +6,7 @@ ActiveFiltersDisplay/
     FilterContent.jsx
     FilterPill.jsx
   index.jsx
+ActiveFiltersDrawer.jsx
 FiltersPanel/
   FilterPanel/
     index.jsx
@@ -21,8 +22,10 @@ FiltersPanel/
       ViewControls.jsx
   FilterPanelCondensed.jsx
   index.jsx
+hooks/
+  useActiveFilterCount.js
 ```
 
 ---
-*Generated on: 2025-12-26T08:03:41.964Z*
+*Generated on: 2026-02-01T08:08:34.394Z*
 *Auto-updated by: npm run docs*

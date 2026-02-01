@@ -65,12 +65,26 @@ This command:
 1. Verifies emulator env vars are set (safety check)
 2. Checks `architect_baseEntitlements` count (need 525)
 3. Checks `architect_baseTeams` have `entitlementIds` (need 30)
-4. Checks `architect_basePlayers` exists and has docs
-5. Checks `players_v2` exists and has docs
-6. If entitlements/teams missing: runs PST seeding scripts
-7. If base players missing: runs `npm run emu:seed:base-players`
-8. If `players_v2` missing: runs `npm run emu:seed:players-v2`
-9. Verifies all collections after seeding
+4. Checks `architect_basePickRules` count (need ≥100 docs with encumbrances)
+5. Checks `architect_basePlayers` exists and has docs
+6. Checks `players_v2` exists and has docs
+7. If entitlements/teams missing: runs PST seeding scripts
+8. If base pick rules missing: runs `npm run pst:push:base-pick-rules`
+9. If base players missing: runs `npm run emu:seed:base-players`
+10. If `players_v2` missing: runs `npm run emu:seed:players-v2`
+11. Verifies all collections after seeding
+
+### Guaranteed Seeded Base Collections
+
+The following collections are automatically seeded on first run and persist across restarts:
+
+| Collection                   | Source Data                                      | Threshold Check          |
+| ---------------------------- | ------------------------------------------------ | ------------------------ |
+| `architect_baseEntitlements` | `data/pst/pst_entitlement_assets_2026_2033.json` | Exact count match        |
+| `architect_baseTeams`        | Staged JSON + entitlement patching               | 30 teams w/ entitlements |
+| `architect_basePickRules`    | `data/pst/pst_pick_ledger_final_2026_2033.json`  | ≥100 docs                |
+| `architect_basePlayers`      | Staged player JSON                               | >0 docs                  |
+| `players_v2`                 | Staged player JSON + subcollections              | >0 docs                  |
 
 ## Links
 

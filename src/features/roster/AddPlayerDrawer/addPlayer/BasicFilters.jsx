@@ -18,7 +18,7 @@ const BasicFilters = ({ filters, setFilters }) => {
           >
             <option value="">All Teams</option>
             {teamOptions.map((team) => (
-              <option key={team.id} value={team.id}>
+              <option key={team.code} value={team.code}>
                 {team.teamName}
               </option>
             ))}

@@ -13,8 +13,16 @@
  */
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
-import { toSeasonCode, toEndYear } from '@/features/architect/utils/seasonFormat';
-import { processTradeExceptions, getTpeExpiryISO } from '@/features/architect/utils/tpeLifecycle';
+import {
+  toSeasonCode,
+  toEndYear,
+} from '@/features/architect/utils/seasonFormat';
+import {
+  processTradeExceptions,
+  getTpeExpiryISO,
+} from '@/features/architect/utils/tpeLifecycle';
+// Phase 65: Canonical TPE read accessor
+import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 
 // ==============================================================================
 // CONSTANTS
@@ -52,7 +60,10 @@ function findPlayersWithOptions(teamCapSheet, targetYear) {
     // Support multiple ID formats but avoid using name as ID
     const playerId = player.player_id || player.id || player.playerId;
     if (!playerId) {
-      console.warn('Player missing ID fields, skipping option:', player.displayName || player.name);
+      console.warn(
+        'Player missing ID fields, skipping option:',
+        player.displayName || player.name
+      );
       continue;
     }
 
@@ -89,7 +100,10 @@ function findExpiringContracts(teamCapSheet, fromYear) {
   const expiring = [];
 
   for (const player of teamCapSheet.players) {
-    if (!player?.contract?.salariesByYear || player.contract.salariesByYear.length === 0) {
+    if (
+      !player?.contract?.salariesByYear ||
+      player.contract.salariesByYear.length === 0
+    ) {
       continue;
     }
 
@@ -115,7 +129,7 @@ function findExpiringContracts(teamCapSheet, fromYear) {
 
 /**
  * Find expiring cap holds
- * @param {Object} teamCapSheet - Current team cap sheet  
+ * @param {Object} teamCapSheet - Current team cap sheet
  * @param {number} toYear - Target season end year
  * @returns {Array} Expiring cap holds
  */
@@ -146,20 +160,23 @@ function findExpiringCapHolds(teamCapSheet, toYear) {
 
 /**
  * Find expiring trade exceptions using shared lifecycle logic
+ * Phase 65: Use getTeamTpeList() for canonical TPE access
  * @param {Object} teamCapSheet - Current team cap sheet
  * @param {number} toYear - Target season end year
  * @returns {Array} Expiring TPEs
  */
 function findExpiringTPEs(teamCapSheet, toYear) {
-  if (!teamCapSheet?.tradeExceptions || !Array.isArray(teamCapSheet.tradeExceptions)) {
+  // Phase 65: Use canonical TPE accessor
+  const tpes = getTeamTpeList(teamCapSheet);
+  if (tpes.length === 0) {
     return [];
   }
 
   const toSeason = toSeasonCode(toYear);
   // shared logic returns { hasChanges, activeTPEs, expiredTPEs }
-  const { expiredTPEs } = processTradeExceptions(teamCapSheet.tradeExceptions, toSeason);
+  const { expiredTPEs } = processTradeExceptions(tpes, toSeason);
 
-  return expiredTPEs.map(tpe => ({
+  return expiredTPEs.map((tpe) => ({
     amount: tpe.amount || 0,
     date: getTpeExpiryISO(tpe),
     source: tpe.source || 'Trade Exception',
@@ -193,10 +210,10 @@ export function SeasonAdvanceModal({
 }) {
   // Wizard step state
   const [currentStep, setCurrentStep] = useState(WIZARD_STEPS.SUMMARY);
-  
+
   // Option decisions state: { [playerId]: { decision: 'exercise' | 'decline', ... } }
   const [optionDecisions, setOptionDecisions] = useState({});
-  
+
   // Processing state
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState('');
@@ -233,7 +250,9 @@ export function SeasonAdvanceModal({
   const hasOptions = playersWithOptions.length > 0;
   const allOptionsDecided = useMemo(() => {
     if (!hasOptions) return true;
-    return playersWithOptions.every((p) => optionDecisions[p.playerId]?.decision);
+    return playersWithOptions.every(
+      (p) => optionDecisions[p.playerId]?.decision
+    );
   }, [hasOptions, playersWithOptions, optionDecisions]);
 
   // ===========================================================================
@@ -283,7 +302,7 @@ export function SeasonAdvanceModal({
 
   const handleNext = useCallback(() => {
     setError('');
-    
+
     if (currentStep === WIZARD_STEPS.SUMMARY) {
       if (hasOptions) {
         setCurrentStep(WIZARD_STEPS.OPTIONS);
@@ -292,7 +311,9 @@ export function SeasonAdvanceModal({
       }
     } else if (currentStep === WIZARD_STEPS.OPTIONS) {
       if (!allOptionsDecided) {
-        setError('Please make a decision for all player/team options before proceeding.');
+        setError(
+          'Please make a decision for all player/team options before proceeding.'
+        );
         return;
       }
       setCurrentStep(WIZARD_STEPS.CONFIRMATION);
@@ -301,7 +322,7 @@ export function SeasonAdvanceModal({
 
   const handleBack = useCallback(() => {
     setError('');
-    
+
     if (currentStep === WIZARD_STEPS.OPTIONS) {
       setCurrentStep(WIZARD_STEPS.SUMMARY);
     } else if (currentStep === WIZARD_STEPS.CONFIRMATION) {
@@ -315,7 +336,9 @@ export function SeasonAdvanceModal({
 
   const handleAdvanceSeason = useCallback(async () => {
     if (!worldId) {
-      setError('No world selected. Please select a world before advancing seasons.');
+      setError(
+        'No world selected. Please select a world before advancing seasons.'
+      );
       return;
     }
 
@@ -334,7 +357,9 @@ export function SeasonAdvanceModal({
       for (const [playerId, data] of Object.entries(optionDecisions)) {
         if (data.decision) {
           // Normalize option type to lowercase 'player' or 'team'
-          const normalizedType = String(data.optionType || '').toLowerCase().includes('player')
+          const normalizedType = String(data.optionType || '')
+            .toLowerCase()
+            .includes('player')
             ? 'player'
             : 'team';
           decisions[playerId] = {
@@ -381,13 +406,18 @@ export function SeasonAdvanceModal({
       <h3 className="text-lg font-semibold text-white">
         Advance to {toSeason}
       </h3>
-      
+
       <div className="text-sm text-white/70 space-y-3">
-        <p>This will advance the current world from {fromSeason} to {toSeason}. The following changes will occur:</p>
-        
+        <p>
+          This will advance the current world from {fromSeason} to {toSeason}.
+          The following changes will occur:
+        </p>
+
         {/* Expiring Contracts */}
         <div className="bg-[#1a1a1a] rounded p-3 border border-white/10">
-          <h4 className="font-medium text-white mb-2">Expiring Contracts ({expiringContracts.length})</h4>
+          <h4 className="font-medium text-white mb-2">
+            Expiring Contracts ({expiringContracts.length})
+          </h4>
           {expiringContracts.length > 0 ? (
             <ul className="text-xs space-y-1">
               {expiringContracts.map((p) => (
@@ -410,7 +440,8 @@ export function SeasonAdvanceModal({
             <ul className="text-xs space-y-1">
               {playersWithOptions.map((p) => (
                 <li key={p.playerId} className="text-white/60">
-                  {p.playerName} - {p.optionType} - ${(p.salary / 1_000_000).toFixed(1)}M
+                  {p.playerName} - {p.optionType} - $
+                  {(p.salary / 1_000_000).toFixed(1)}M
                 </li>
               ))}
             </ul>
@@ -423,11 +454,14 @@ export function SeasonAdvanceModal({
         {/* Expiring Cap Holds */}
         {expiringCapHolds.length > 0 && (
           <div className="bg-[#1a1a1a] rounded p-3 border border-white/10">
-            <h4 className="font-medium text-white mb-2">Expiring Cap Holds ({expiringCapHolds.length})</h4>
+            <h4 className="font-medium text-white mb-2">
+              Expiring Cap Holds ({expiringCapHolds.length})
+            </h4>
             <ul className="text-xs space-y-1">
               {expiringCapHolds.map((h, idx) => (
                 <li key={h.playerId || idx} className="text-white/60">
-                  {h.playerName} - ${(h.amount / 1_000_000).toFixed(1)}M ({h.type})
+                  {h.playerName} - ${(h.amount / 1_000_000).toFixed(1)}M (
+                  {h.type})
                 </li>
               ))}
             </ul>
@@ -437,11 +471,14 @@ export function SeasonAdvanceModal({
         {/* Expiring TPEs */}
         {expiringTPEs.length > 0 && (
           <div className="bg-[#1a1a1a] rounded p-3 border border-white/10">
-            <h4 className="font-medium text-white mb-2">Expiring Trade Exceptions ({expiringTPEs.length})</h4>
+            <h4 className="font-medium text-white mb-2">
+              Expiring Trade Exceptions ({expiringTPEs.length})
+            </h4>
             <ul className="text-xs space-y-1">
               {expiringTPEs.map((tpe, idx) => (
                 <li key={idx} className="text-white/60">
-                  ${(tpe.amount / 1_000_000).toFixed(1)}M - {tpe.date.split('T')[0]}
+                  ${(tpe.amount / 1_000_000).toFixed(1)}M -{' '}
+                  {tpe.date.split('T')[0]}
                 </li>
               ))}
             </ul>
@@ -463,7 +500,8 @@ export function SeasonAdvanceModal({
       {!worldId && (
         <div className="bg-red-500/20 border border-red-500/50 rounded p-3">
           <p className="text-sm text-red-400">
-            ⚠️ No world selected. You must select a world before advancing seasons.
+            ⚠️ No world selected. You must select a world before advancing
+            seasons.
           </p>
         </div>
       )}
@@ -475,9 +513,10 @@ export function SeasonAdvanceModal({
       <h3 className="text-lg font-semibold text-white">
         Option Decisions for {toSeason}
       </h3>
-      
+
       <p className="text-sm text-white/70">
-        Make a decision for each player/team option. These decisions cannot be undone.
+        Make a decision for each player/team option. These decisions cannot be
+        undone.
       </p>
 
       <div className="space-y-3 max-h-[300px] overflow-y-auto">
@@ -488,21 +527,29 @@ export function SeasonAdvanceModal({
           >
             <div className="flex justify-between items-start mb-2">
               <div>
-                <span className="font-medium text-white">{player.playerName}</span>
-                <span className="text-xs text-white/50 ml-2">{player.optionType}</span>
+                <span className="font-medium text-white">
+                  {player.playerName}
+                </span>
+                <span className="text-xs text-white/50 ml-2">
+                  {player.optionType}
+                </span>
               </div>
               <span className="text-sm text-green-400">
                 ${(player.salary / 1_000_000).toFixed(1)}M
               </span>
             </div>
-            
+
             <div className="flex gap-4">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="radio"
                   name={`option-${player.playerId}`}
-                  checked={optionDecisions[player.playerId]?.decision === 'exercise'}
-                  onChange={() => handleOptionChange(player.playerId, 'exercise')}
+                  checked={
+                    optionDecisions[player.playerId]?.decision === 'exercise'
+                  }
+                  onChange={() =>
+                    handleOptionChange(player.playerId, 'exercise')
+                  }
                   className="text-blue-500"
                 />
                 <span className="text-sm text-white">Exercise</span>
@@ -511,8 +558,12 @@ export function SeasonAdvanceModal({
                 <input
                   type="radio"
                   name={`option-${player.playerId}`}
-                  checked={optionDecisions[player.playerId]?.decision === 'decline'}
-                  onChange={() => handleOptionChange(player.playerId, 'decline')}
+                  checked={
+                    optionDecisions[player.playerId]?.decision === 'decline'
+                  }
+                  onChange={() =>
+                    handleOptionChange(player.playerId, 'decline')
+                  }
                   className="text-red-500"
                 />
                 <span className="text-sm text-white">Decline</span>
@@ -541,7 +592,7 @@ export function SeasonAdvanceModal({
         <h3 className="text-lg font-semibold text-white">
           Confirm Season Advance
         </h3>
-        
+
         <div className="text-sm text-white/70 space-y-3">
           <p>
             You are about to advance from <strong>{fromSeason}</strong> to{' '}
@@ -550,7 +601,9 @@ export function SeasonAdvanceModal({
 
           {exercised.length > 0 && (
             <div className="bg-green-500/10 border border-green-500/30 rounded p-3">
-              <h4 className="font-medium text-green-400 mb-1">Options to Exercise ({exercised.length})</h4>
+              <h4 className="font-medium text-green-400 mb-1">
+                Options to Exercise ({exercised.length})
+              </h4>
               <ul className="text-xs text-white/60">
                 {exercised.map(([, data]) => (
                   <li key={data.playerName}>{data.playerName}</li>
@@ -561,7 +614,9 @@ export function SeasonAdvanceModal({
 
           {declined.length > 0 && (
             <div className="bg-red-500/10 border border-red-500/30 rounded p-3">
-              <h4 className="font-medium text-red-400 mb-1">Options to Decline ({declined.length})</h4>
+              <h4 className="font-medium text-red-400 mb-1">
+                Options to Decline ({declined.length})
+              </h4>
               <ul className="text-xs text-white/60">
                 {declined.map(([, data]) => (
                   <li key={data.playerName}>{data.playerName} → Free Agent</li>
@@ -571,7 +626,8 @@ export function SeasonAdvanceModal({
           )}
 
           <p className="text-yellow-400 text-xs">
-            ⚠️ This action cannot be undone. Make sure all decisions are correct.
+            ⚠️ This action cannot be undone. Make sure all decisions are
+            correct.
           </p>
         </div>
       </div>
@@ -581,9 +637,7 @@ export function SeasonAdvanceModal({
   const renderProcessingStep = () => (
     <div className="space-y-4 text-center py-8">
       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto" />
-      <h3 className="text-lg font-semibold text-white">
-        Advancing Season...
-      </h3>
+      <h3 className="text-lg font-semibold text-white">Advancing Season...</h3>
       <p className="text-sm text-white/70">
         Processing contracts, options, and draft picks...
       </p>
@@ -614,8 +668,12 @@ export function SeasonAdvanceModal({
   if (!isOpen) return null;
 
   const canProceed = currentStep !== WIZARD_STEPS.OPTIONS || allOptionsDecided;
-  const showBackButton = currentStep === WIZARD_STEPS.OPTIONS || currentStep === WIZARD_STEPS.CONFIRMATION;
-  const showNextButton = currentStep === WIZARD_STEPS.SUMMARY || currentStep === WIZARD_STEPS.OPTIONS;
+  const showBackButton =
+    currentStep === WIZARD_STEPS.OPTIONS ||
+    currentStep === WIZARD_STEPS.CONFIRMATION;
+  const showNextButton =
+    currentStep === WIZARD_STEPS.SUMMARY ||
+    currentStep === WIZARD_STEPS.OPTIONS;
   const showAdvanceButton = currentStep === WIZARD_STEPS.CONFIRMATION;
   const showCloseButton = currentStep === WIZARD_STEPS.COMPLETE;
 
@@ -653,7 +711,8 @@ export function SeasonAdvanceModal({
 
           {currentStep === WIZARD_STEPS.SUMMARY && renderSummaryStep()}
           {currentStep === WIZARD_STEPS.OPTIONS && renderOptionsStep()}
-          {currentStep === WIZARD_STEPS.CONFIRMATION && renderConfirmationStep()}
+          {currentStep === WIZARD_STEPS.CONFIRMATION &&
+            renderConfirmationStep()}
           {currentStep === WIZARD_STEPS.PROCESSING && renderProcessingStep()}
           {currentStep === WIZARD_STEPS.COMPLETE && renderCompleteStep()}
         </div>

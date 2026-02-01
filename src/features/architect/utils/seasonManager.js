@@ -48,6 +48,11 @@ import {
   appendExceptionHistory,
   createTpeExpiryHistoryEntry,
 } from '@/features/architect/utils/exceptionHistory/historyHelpers';
+// Phase 65: Canonical TPE normalization for persistence
+import {
+  normalizeTeamTpeSchema,
+  getTeamTpeList,
+} from '@/features/architect/utils/persistenceContracts';
 
 /**
  * Advance world to next season
@@ -114,9 +119,11 @@ export async function processSeasonTransition(worldId, fromSeason, toSeason) {
 
     // Save snapshot if team was modified
     // Path: architect_worlds/{worldId}/teams/{teamCode}
+    // Phase 65: Normalize TPE schema before persistence
     if (updatedTeam) {
       const snapshotRef = worldTeamRef(worldId, teamCode);
-      batch.set(snapshotRef, updatedTeam);
+      const normalizedTeam = normalizeTeamTpeSchema(updatedTeam);
+      batch.set(snapshotRef, normalizedTeam);
       updatedTeams.push(teamCode);
     }
   }
@@ -593,9 +600,11 @@ export async function advanceSeasonInWorld(worldId, options = {}) {
       }
 
       // Save snapshot if team was modified
+      // Phase 65: Normalize TPE schema before persistence
       if (updatedTeam) {
         const snapshotRef = worldTeamRef(worldId, teamCode);
-        batch.set(snapshotRef, updatedTeam);
+        const normalizedTeam = normalizeTeamTpeSchema(updatedTeam);
+        batch.set(snapshotRef, normalizedTeam);
         updatedTeams.push(teamCode);
       }
     }
@@ -804,13 +813,18 @@ async function processTeamSeasonTransitionWithOptions(
 
   // Process TPE Expirations (Phase 1)
   // Phase 53: Log TPE_EXPIRED history entries for each expired TPE
+  // Phase 65: Use canonical TPE accessor
   const { worldId } = resolutionContext;
   const tpeResult = processTradeExceptions(
-    updatedTeam.tradeExceptions,
+    getTeamTpeList(updatedTeam),
     toSeason
   );
   if (tpeResult.hasChanges) {
     hasChanges = true;
+    // Phase 65: Write to canonical location (exceptions.tpe) instead of legacy
+    updatedTeam.exceptions = updatedTeam.exceptions || {};
+    updatedTeam.exceptions.tpe = tpeResult.activeTPEs;
+    // Also update legacy for in-memory consistency during this run
     updatedTeam.tradeExceptions = tpeResult.activeTPEs;
     teamSummary.expiredTPEs = tpeResult.expiredTPEs;
 

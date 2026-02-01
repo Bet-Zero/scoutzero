@@ -1,21 +1,25 @@
 import React from 'react';
 import SearchBar from './SearchBar';
-import ControlButtons from './ControlButtons';
-import { getDefaultSeasonEndYear, toSeasonKey } from '@/features/architect/utils/seasonUtils';
+import DensityToggle from './DensityToggle';
+import {
+  getDefaultSeasonEndYear,
+  toSeasonKey,
+} from '@/features/architect/utils/seasonUtils';
 
+/**
+ * PlayerTableHeader - Title, count, search, and density toggle.
+ * Phase 2O: Simplified - filter/sort controls moved to TopControlsBar.
+ */
 const PlayerTableHeader = ({
   filteredCount,
   onSearchChange,
-  showFilters,
-  showSort,
-  onToggleFilters,
-  onToggleSort,
+  densityMode,
+  onDensityChange,
 }) => {
   const currentSeason = toSeasonKey(getDefaultSeasonEndYear());
-  
-  // Phase 2K: Fixed 72px height to prevent layout shift when overlays toggle
+
   return (
-    <div className="h-[72px] flex items-center justify-between pb-2">
+    <div className="h-[60px] flex items-center justify-between">
       <div>
         <h1 className="text-2xl font-bold text-white mb-1">Player Database</h1>
         <p className="text-gray-400 text-sm">
@@ -24,14 +28,9 @@ const PlayerTableHeader = ({
       </div>
 
       <div className="flex items-center gap-4">
-        <SearchBar onChange={onSearchChange} />
+        <DensityToggle mode={densityMode} setMode={onDensityChange} />
         <div className="h-6 w-px bg-gray-700" />
-        <ControlButtons
-          showFilters={showFilters}
-          showSort={showSort}
-          onToggleFilters={onToggleFilters}
-          onToggleSort={onToggleSort}
-        />
+        <SearchBar onChange={onSearchChange} />
       </div>
     </div>
   );

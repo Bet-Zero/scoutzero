@@ -5,6 +5,8 @@
  * OWNERSHIP: Feature: architect/core
  *
  * HISTORY:
+ *  - 2026-02-01: Phase 67 - Telemetry wind-down: quiet-by-default (LOG_LEGACY_TPE_FALLBACK=true to enable)
+ *  - 2026-01-31: Phase 66 - Added legacy fallback telemetry to getTeamTpeList
  *  - 2026-01-30: Phase 64 - Created for TPE schema canonicalization (tradeExceptions → exceptions.tpe)
  *
  * LINKS:
@@ -20,11 +22,82 @@
  * 1) `normalizeTeamTpeSchema(team)` - Merge legacy → canonical and remove legacy field (for persistence)
  * 2) `getTeamTpeList(team)` - Read helper that falls back to legacy for old worlds
  *
- * Deduplication strategy:
- * - Uses TPE `id` field as primary identity key
- * - Falls back to deterministic JSON signature if no `id` present (edge case)
- * - When duplicates exist, canonical (exceptions.tpe) wins over legacy (tradeExceptions)
+ * TELEMETRY (Phase 66/67):
+ * - getTeamTpeList tracks when falling back to legacy tradeExceptions
+ * - QUIET BY DEFAULT: Set LOG_LEGACY_TPE_FALLBACK=true to enable console warnings
+ * - Counter still increments for programmatic access via getLegacyTpeFallbackCount()
+ * - Telemetry hooks retained for future debugging; can be removed in Phase 68+
  */
+
+// ============================================================================
+// Phase 66 Telemetry - Legacy Fallback Detection
+// ============================================================================
+/**
+ * In-memory counter for legacy TPE fallback reads.
+ * Used for telemetry during migration rollout.
+ * @type {{ count: number, lastWarning: number | null }}
+ */
+const legacyTpeFallbackTelemetry = {
+  count: 0,
+  lastWarning: null,
+};
+
+/**
+ * Check if legacy TPE fallback telemetry should be logged.
+ * QUIET BY DEFAULT (Phase 67): Only logs when LOG_LEGACY_TPE_FALLBACK=true.
+ * Counter still increments silently for programmatic access.
+ */
+function shouldLogLegacyTpeFallback() {
+  // Only log when explicitly enabled via env var
+  if (typeof process !== 'undefined' && process.env) {
+    return process.env.LOG_LEGACY_TPE_FALLBACK === 'true';
+  }
+  // Default: quiet (no logging)
+  return false;
+}
+
+/**
+ * Record a legacy TPE fallback read for telemetry.
+ * @param {Object} team - The team object that triggered fallback
+ */
+function recordLegacyTpeFallback(team) {
+  legacyTpeFallbackTelemetry.count++;
+
+  if (shouldLogLegacyTpeFallback()) {
+    // Rate limit warnings to avoid console spam (max 1 per 5 seconds)
+    const now = Date.now();
+    if (
+      !legacyTpeFallbackTelemetry.lastWarning ||
+      now - legacyTpeFallbackTelemetry.lastWarning > 5000
+    ) {
+      const teamId = team?.teamCode || team?.id || 'unknown';
+      console.warn(
+        `[Phase66 Telemetry] Legacy TPE fallback used for team "${teamId}". ` +
+          `Total fallbacks: ${legacyTpeFallbackTelemetry.count}. ` +
+          `Consider running migration script.`
+      );
+      legacyTpeFallbackTelemetry.lastWarning = now;
+    }
+  }
+}
+
+/**
+ * Get the current legacy TPE fallback count.
+ * Exported for testing telemetry behavior.
+ * @returns {number}
+ */
+export function getLegacyTpeFallbackCount() {
+  return legacyTpeFallbackTelemetry.count;
+}
+
+/**
+ * Reset legacy TPE fallback telemetry.
+ * Exported for testing purposes only.
+ */
+export function resetLegacyTpeFallbackTelemetry() {
+  legacyTpeFallbackTelemetry.count = 0;
+  legacyTpeFallbackTelemetry.lastWarning = null;
+}
 
 /**
  * Generate a deterministic identity key for a TPE item.
@@ -136,6 +209,8 @@ export function normalizeTeamTpeSchema(team) {
  * Use this helper in read-heavy logic that needs to access TPEs
  * from teams that may still have data in the legacy location.
  *
+ * Phase 66: Records telemetry when fallback to legacy location is used.
+ *
  * @param {Object} team - Team object
  * @returns {Array} Array of TPE objects (may be empty)
  */
@@ -151,6 +226,8 @@ export function getTeamTpeList(team) {
 
   // Fallback to legacy location for old worlds
   if (Array.isArray(team.tradeExceptions)) {
+    // Phase 66: Record telemetry for legacy fallback
+    recordLegacyTpeFallback(team);
     return team.tradeExceptions;
   }
 

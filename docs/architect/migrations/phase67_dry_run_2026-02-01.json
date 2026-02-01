@@ -1,0 +1,10 @@
+{
+  "timestamp": "2026-02-01T05:50:48.542Z",
+  "mode": "DRY_RUN",
+  "targetWorldId": "ALL",
+  "totalWorldsScanned": 0,
+  "totalTeamsScanned": 0,
+  "totalTeamsWithLegacy": 0,
+  "totalTeamsMigrated": 0,
+  "worlds": []
+}

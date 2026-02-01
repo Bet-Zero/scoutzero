@@ -22,6 +22,17 @@ const REQUIRED_TEAMS = 30;
 const ENTITLEMENTS_JSON_PATH = path.resolve(
   'data/pst/pst_entitlement_assets_2026_2033.json'
 );
+const PICK_LEDGER_JSON_PATH = path.resolve(
+  'data/pst/pst_pick_ledger_final_2026_2033.json'
+);
+
+/**
+ * Minimum threshold for base pick rules.
+ * If the collection has fewer docs than this, we consider it empty/incomplete.
+ * Derived from the ledger: only picks with encumbrances (protections/swaps/conditions) are pushed.
+ * We use a conservative minimum of 100 to catch missing/incomplete seeding.
+ */
+const MIN_PICK_RULES_THRESHOLD = 100;
 
 const getExpectedEntitlementCount = (): number => {
   if (!fs.existsSync(ENTITLEMENTS_JSON_PATH)) {
@@ -46,6 +57,41 @@ const getExpectedEntitlementCount = (): number => {
   );
 };
 
+/**
+ * Count picks with encumbrances from the ledger file.
+ * Only picks that have protections, swaps, conveyance, didNotConvey, or selectionSpecs are pushed.
+ */
+const getExpectedPickRulesCount = (): number => {
+  if (!fs.existsSync(PICK_LEDGER_JSON_PATH)) {
+    throw new Error(
+      `[seed] pick ledger JSON not found at ${PICK_LEDGER_JSON_PATH}`
+    );
+  }
+  const raw = fs.readFileSync(PICK_LEDGER_JSON_PATH, 'utf8');
+  const data = JSON.parse(raw) as { picks?: unknown[] };
+  const picks = data.picks;
+  if (!Array.isArray(picks)) {
+    throw new Error(
+      `[seed] invalid shape in ${PICK_LEDGER_JSON_PATH}: expected { picks: [...] }`
+    );
+  }
+  // Count picks that have encumbrances (same logic as pst_phase_12_3a_push_base_pick_rules.ts)
+  let count = 0;
+  for (const pick of picks) {
+    const enc = (pick as { encumbrances?: Record<string, unknown[]> })
+      .encumbrances;
+    if (!enc) continue;
+    const hasContent =
+      (Array.isArray(enc.protections) && enc.protections.length > 0) ||
+      (Array.isArray(enc.swaps) && enc.swaps.length > 0) ||
+      (Array.isArray(enc.conveyance) && enc.conveyance.length > 0) ||
+      (Array.isArray(enc.didNotConvey) && enc.didNotConvey.length > 0) ||
+      (Array.isArray(enc.selectionSpecs) && enc.selectionSpecs.length > 0);
+    if (hasContent) count++;
+  }
+  return count;
+};
+
 const log = (message: string) => {
   process.stdout.write(`${message}\n`);
 };
@@ -64,13 +110,19 @@ const getDb = () => {
 
 const checkSeedState = async () => {
   const db = getDb();
-  const [entitlementsSnap, teamsSnap, basePlayersSnap, playersV2Snap] =
-    await Promise.all([
-      db.collection('architect_baseEntitlements').get(),
-      db.collection('architect_baseTeams').get(),
-      db.collection('architect_basePlayers').limit(1).get(),
-      db.collection('players_v2').limit(1).get(),
-    ]);
+  const [
+    entitlementsSnap,
+    teamsSnap,
+    basePlayersSnap,
+    playersV2Snap,
+    basePickRulesSnap,
+  ] = await Promise.all([
+    db.collection('architect_baseEntitlements').get(),
+    db.collection('architect_baseTeams').get(),
+    db.collection('architect_basePlayers').limit(1).get(),
+    db.collection('players_v2').limit(1).get(),
+    db.collection('architect_basePickRules').get(),
+  ]);
 
   const entitlementsCount = entitlementsSnap.size;
 
@@ -88,6 +140,7 @@ const checkSeedState = async () => {
     teamsWithEntitlements,
     basePlayersCount: basePlayersSnap.size,
     playersV2Count: playersV2Snap.size,
+    basePickRulesCount: basePickRulesSnap.size,
   };
 };
 
@@ -117,6 +170,11 @@ const main = async () => {
     `[seed] expected entitlement count: ${expectedEntitlements} (from ${ENTITLEMENTS_JSON_PATH})`
   );
 
+  const expectedPickRules = getExpectedPickRulesCount();
+  log(
+    `[seed] expected base pick rules count: ${expectedPickRules} (from ${PICK_LEDGER_JSON_PATH})`
+  );
+
   const initial = await checkSeedState();
   const entitlementsReady = initial.entitlementsCount === expectedEntitlements;
   const teamsReady =
@@ -124,6 +182,10 @@ const main = async () => {
     initial.teamsWithEntitlements === REQUIRED_TEAMS;
   const basePlayersReady = initial.basePlayersCount > 0;
   const playersV2Ready = initial.playersV2Count > 0;
+  // Use threshold-based check: if we have at least MIN_PICK_RULES_THRESHOLD, consider it ready
+  // This handles edge cases where exact count might vary slightly
+  const basePickRulesReady =
+    initial.basePickRulesCount >= MIN_PICK_RULES_THRESHOLD;
 
   if (entitlementsReady) {
     log(
@@ -153,11 +215,27 @@ const main = async () => {
     log('[seed] players_v2 missing — seeding required');
   }
 
+  if (basePickRulesReady) {
+    log(
+      `[seed] base pick rules present (${initial.basePickRulesCount}) — skipping`
+    );
+  } else {
+    log(
+      `[seed] base pick rules missing or incomplete (${initial.basePickRulesCount}/${expectedPickRules}) — seeding required`
+    );
+  }
+
   const needsEntitlements = !entitlementsReady || !teamsReady;
   const needsBasePlayers = !basePlayersReady;
   const needsPlayersV2 = !playersV2Ready;
+  const needsBasePickRules = !basePickRulesReady;
 
-  if (!needsEntitlements && !needsBasePlayers && !needsPlayersV2) {
+  if (
+    !needsEntitlements &&
+    !needsBasePlayers &&
+    !needsPlayersV2 &&
+    !needsBasePickRules
+  ) {
     return;
   }
 
@@ -167,6 +245,11 @@ const main = async () => {
     );
     await runScript('pst:push:base-entitlements');
     await runScript('pst:patch:base-teams-entitlements');
+  }
+
+  if (needsBasePickRules) {
+    log('[seed] base pick rules missing — running pst:push:base-pick-rules...');
+    await runScript('pst:push:base-pick-rules');
   }
 
   if (needsBasePlayers) {
@@ -212,8 +295,18 @@ const main = async () => {
     );
   }
 
+  if (
+    needsBasePickRules &&
+    finalState.basePickRulesCount < MIN_PICK_RULES_THRESHOLD
+  ) {
+    throw new Error(
+      `[seed] base pick rules still missing/incomplete after seeding: expected >=${MIN_PICK_RULES_THRESHOLD}, got ${finalState.basePickRulesCount}\n` +
+        `  Source: ${PICK_LEDGER_JSON_PATH}`
+    );
+  }
+
   log(
-    '[seed] base data verified after seeding (entitlements, baseTeams, basePlayers, players_v2).'
+    '[seed] base data verified after seeding (entitlements, baseTeams, basePickRules, basePlayers, players_v2).'
   );
 };
 

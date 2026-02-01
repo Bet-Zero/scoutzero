@@ -1,4 +1,5 @@
 import { isSecondApronTeam } from '../utils/capUtils.js';
+import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 
 export function validateTradeExceptions(team, tradeCtx = {}) {
   const violations = [];
@@ -24,10 +25,13 @@ export function validateTradeExceptions(team, tradeCtx = {}) {
     };
   }
 
+  // Phase 65: Use canonical TPE accessor
+  const teamTpes = getTeamTpeList(team.team);
+
   // Check TPE validity and sufficiency
   team.receives.forEach((player) => {
     if (player.absorptionMode === 'TPE') {
-      const tpe = team.team.tradeExceptions?.find((t) => t.id === player.tpeId);
+      const tpe = teamTpes.find((t) => t.id === player.tpeId);
 
       if (!tpe) {
         violations.push('Invalid TPE specified');

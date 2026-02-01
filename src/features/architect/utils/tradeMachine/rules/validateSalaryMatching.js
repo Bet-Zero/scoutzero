@@ -18,6 +18,7 @@ import {
 import { getHardCapStatus } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus.js';
 import { SECOND_APRON_SALARY_MISMATCH } from '@/features/architect/utils/tradeMachine/constants/secondApronMessages.js';
 import { isSecondApronTeam } from '../utils/capUtils.js';
+import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 
 // Validator version for trade receipt tracking - bumped for TPE fix
 export const SALARY_MATCHING_VERSION = '2.4.0'; // Fix: TPE per-player matching instead of pool
@@ -184,11 +185,12 @@ export function validateSalaryMatching(team, context = {}) {
   );
 
   // Get available TPEs from appliedTPEs or team's tradeExceptions
+  // Phase 65: Use canonical TPE accessor
   const appliedTPEs = team.appliedTPEs || [];
   const availableTPEs =
     appliedTPEs.length > 0
       ? appliedTPEs
-      : (team.team?.tradeExceptions || []).filter((tpe) => !tpe.isUsed);
+      : getTeamTpeList(team.team).filter((tpe) => !tpe.isUsed);
 
   // Track TPE-absorbed salary at outer scope for use in matching
   let tpeAbsorbedSalary = 0;

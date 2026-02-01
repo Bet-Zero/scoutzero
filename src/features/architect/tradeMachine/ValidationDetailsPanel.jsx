@@ -3,6 +3,7 @@
 // Ownership: Trade Machine Team
 // History:
 //   - Jan 2026: Created for UX clarity (Tasks B, C, D from UX/Mode Legend requirement)
+//   - Jan 2026: Phase 65 - Use getTeamTpeList() for canonical TPE access
 
 import React, { useState, useMemo } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
@@ -14,6 +15,7 @@ import FaExceptionTracker from './FaExceptionTracker';
 import TradeSalaryCalculator from './TradeSalaryCalculator';
 import { TradeReceiptPanel } from './TradeReceiptPanel';
 import { getOfficialSalaryMatchingSnapshot } from './utils/getOfficialSalaryMatchingSnapshot';
+import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 
 /**
  * SectionHeader renders a labeled header with mode tag for each details section.
@@ -40,14 +42,15 @@ const NotValidatedCallout = () => (
       No Validation Results Available
     </div>
     <div className="text-sm text-amber-200/70">
-      Run <span className="font-semibold">Validate Trade</span> to generate official results.
+      Run <span className="font-semibold">Validate Trade</span> to generate
+      official results.
     </div>
   </div>
 );
 
 /**
  * ValidationDetailsPanel - Hard-gated collapsible panel for all validation details.
- * 
+ *
  * Per Task B: Renamed from "Show Validation Results" to "Show Validation Details"
  * Per Task C: Sections ordered as:
  *   1. Validation Summary (Official)
@@ -80,19 +83,20 @@ const ValidationDetailsPanel = ({
   const [devToolsExpanded, setDevToolsExpanded] = useState(false);
 
   // Memoize team options for calculator selector
-  const teamOptions = useMemo(() => 
-    teams.reduce((acc, t, idx) => {
-      if (t.team) {
-        acc.push({
-          idx,
-          label: t.team.nickname || t.team.teamName || `Team ${idx + 1}`,
-        });
-      }
-      return acc;
-    }, []),
+  const teamOptions = useMemo(
+    () =>
+      teams.reduce((acc, t, idx) => {
+        if (t.team) {
+          acc.push({
+            idx,
+            label: t.team.nickname || t.team.teamName || `Team ${idx + 1}`,
+          });
+        }
+        return acc;
+      }, []),
     [teams]
   );
-  
+
   const hasMultipleTeams = teamOptions.length > 1;
 
   // Get calculator team data
@@ -117,14 +121,23 @@ const ValidationDetailsPanel = ({
             <span>📋</span>
             <span>Validation Results</span>
             {hasValidatorResult && (
-              <span className="text-xs text-green-400">✓ Results available</span>
+              <span className="text-xs text-green-400">
+                ✓ Results available
+              </span>
             )}
           </span>
-          {productionExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          {productionExpanded ? (
+            <ChevronUp size={16} />
+          ) : (
+            <ChevronDown size={16} />
+          )}
         </button>
 
         {productionExpanded && (
-          <div id="validation-results-content" className="p-4 border-t border-white/10">
+          <div
+            id="validation-results-content"
+            className="p-4 border-t border-white/10"
+          >
             {!hasValidatorResult ? (
               <NotValidatedCallout />
             ) : (
@@ -146,7 +159,10 @@ const ValidationDetailsPanel = ({
                 {/* Section 2: Rule Compliance Overview (Official) */}
                 {result?.teamResults && (
                   <section data-testid="section-rule-compliance">
-                    <SectionHeader title="Rule Compliance Overview" mode="OFFICIAL">
+                    <SectionHeader
+                      title="Rule Compliance Overview"
+                      mode="OFFICIAL"
+                    >
                       CBA rule pass/fail status per team
                     </SectionHeader>
                     <TradeLegalChecker
@@ -158,7 +174,10 @@ const ValidationDetailsPanel = ({
 
                 {/* Section 3: Trade Exception Analysis (Official) */}
                 <section data-testid="section-exception-analysis">
-                  <SectionHeader title="Trade Exception Analysis" mode="OFFICIAL">
+                  <SectionHeader
+                    title="Trade Exception Analysis"
+                    mode="OFFICIAL"
+                  >
                     TPE creation, usage, FA exceptions, and existing exceptions
                   </SectionHeader>
                   <div className="space-y-4">
@@ -190,11 +209,18 @@ const ValidationDetailsPanel = ({
               testing & debug
             </span>
           </span>
-          {devToolsExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          {devToolsExpanded ? (
+            <ChevronUp size={16} />
+          ) : (
+            <ChevronDown size={16} />
+          )}
         </button>
 
         {devToolsExpanded && (
-          <div id="dev-tools-content" className="p-4 border-t border-amber-500/20">
+          <div
+            id="dev-tools-content"
+            className="p-4 border-t border-amber-500/20"
+          >
             {!hasValidatorResult ? (
               <NotValidatedCallout />
             ) : (
@@ -203,18 +229,21 @@ const ValidationDetailsPanel = ({
                 {selectedTeam?.team && (
                   <section data-testid="section-salary-calculator">
                     <SectionHeader title="Salary Calculator" mode="EXPLORATORY">
-                      Sandbox for testing salary matching scenarios (validator is authoritative)
+                      Sandbox for testing salary matching scenarios (validator
+                      is authoritative)
                     </SectionHeader>
-                    
+
                     {/* Team selector for calculator - uses memoized teamOptions */}
                     {hasMultipleTeams && (
                       <div className="mb-3">
                         <select
                           value={calculatorTeamIndex}
-                          onChange={(e) => onCalculatorTeamChange?.(Number(e.target.value))}
+                          onChange={(e) =>
+                            onCalculatorTeamChange?.(Number(e.target.value))
+                          }
                           className="bg-[#222] border border-white/20 rounded px-2 py-1 text-xs"
                         >
-                          {teamOptions.map(item => (
+                          {teamOptions.map((item) => (
                             <option key={item.idx} value={item.idx}>
                               {item.label}
                             </option>
@@ -222,15 +251,23 @@ const ValidationDetailsPanel = ({
                         </select>
                       </div>
                     )}
-                    
+
                     <TradeSalaryCalculator
-                      teamSalary={selectedTeam.team?.teamTotalSalary || selectedTeam.team?.totalSalary || 0}
+                      teamSalary={
+                        selectedTeam.team?.teamTotalSalary ||
+                        selectedTeam.team?.totalSalary ||
+                        0
+                      }
                       outgoingSalary={salaryOut[calculatorTeamIndex] || 0}
-                      incomingPlayers={incomingAssets[calculatorTeamIndex]?.players || []}
-                      tpes={selectedTeam.team?.tradeExceptions || []}
+                      incomingPlayers={
+                        incomingAssets[calculatorTeamIndex]?.players || []
+                      }
+                      tpes={getTeamTpeList(selectedTeam.team)}
                       capSettings={result?.capSettings || capProjections}
                       yearKey={yearKey}
-                      validatorAllowableIncoming={officialSnapshot.allowableIncoming}
+                      validatorAllowableIncoming={
+                        officialSnapshot.allowableIncoming
+                      }
                       validatorRule={officialSnapshot.ruleApplied}
                       hasValidatorResult={officialSnapshot.hasValidator}
                       validatorSkipReason={officialSnapshot.skipReason}

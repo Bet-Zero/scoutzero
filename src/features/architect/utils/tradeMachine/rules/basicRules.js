@@ -18,6 +18,7 @@ import {
   SECOND_APRON_MULTI_PLAYER_AGGREGATION_BLOCKED,
   SECOND_APRON_CASH_BLOCKED,
 } from '@/features/architect/utils/tradeMachine/constants/secondApronMessages.js';
+import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 
 // =======================
 // PICK UTILITIES (SSOT-2)
@@ -74,7 +75,8 @@ export function validateSecondApronRules(team, context = {}) {
   }
 
   // 1. Cannot use prior-year TPEs (check this first - highest priority)
-  const tpes = team.tradeExceptions || [];
+  // Phase 65: Use canonical TPE accessor
+  const tpes = getTeamTpeList(team);
   const priorYearTPEs = tpes.filter((tpe) =>
     isPriorYearTPE(tpe, context.year || 2025)
   );

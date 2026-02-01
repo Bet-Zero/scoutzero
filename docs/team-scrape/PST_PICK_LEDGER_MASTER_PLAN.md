@@ -46,6 +46,39 @@
 | Phase 12.3C  | Entitlements → PickRow Projection Layer         | COMPLETE    | 2026-01-30 |
 | Phase 12.3A  | Push Base Pick Rules to Firestore (SSOT)        | COMPLETE    | 2026-01-31 |
 | Phase 12.3B  | Runtime Pick Rules Fetch + UI Wiring            | COMPLETE    | 2026-01-31 |
+| Phase 12.3D  | HOU Entitlements Sanity Audit                   | COMPLETE    | 2026-02-01 |
+
+---
+
+## Phase 12.3D — HOU Entitlements Sanity Audit (COMPLETE)
+
+**Goal**: Produce a deterministic audit that answers why HOU appears to have "too many picks" in the UI by joining entitlements, ledger, and pick rules to identify if surplus picks are legitimate distinct entitlements or artifacts of ranked conveyance/swaps/pooled rules.
+
+**Problem**: HOU entitlement counts appeared suspiciously high. Need a repeatable report that flags suspicious rows and explains why certain picks exist.
+
+**Solution**: Created `pst_audit_hou_entitlements_sanity.ts` which:
+
+1. Loads entitlements, ledger, and pick rule profiles from local JSON artifacts
+2. Filters to HOU entitlements and builds indices for ledger/rules lookup
+3. Produces one row per HOU entitlement with joined fields from ledger and pick rules
+4. Computes flags for suspicious conditions:
+   - `flag_missing_underlyingPickId`: pick_ownership without underlying pick
+   - `flag_owner_mismatch`: ledger owner != HOU
+   - `flag_ranked_conveyance_present`: pick rules indicate least/most favorable selection
+   - `flag_pool_or_swap_without_expected_kind`: ownership entitlement with swap/conveyance rules
+   - `flag_source_is_PST_DISPLAY`: ownership from display overlay
+5. Generates aggregate summaries and a focused "HOU 2026 R2" section
+6. Outputs both JSON and human-readable text reports
+
+**Files Created**:
+
+- `team-scrape/draft-picks/scripts/pst/pst_audit_hou_entitlements_sanity.ts`
+- `data/pst/audits/hou_entitlements_sanity_audit.json`
+- `data/pst/audits/hou_entitlements_sanity_audit.txt`
+
+**npm Script**: `pst:audit:hou:entitlements`
+
+**Return Package**: `docs/team-scrape/return_packages/PST_PHASE_12_3D_HOU_ENTITLEMENTS_SANITY_AUDIT_RETURN_PACKAGE.md`
 
 ---
 
@@ -93,13 +126,13 @@
 
 **Files Changed/Created**:
 
-| File | Action | Purpose |
-|------|--------|---------|
-| `src/features/architect/utils/entitlements/entitlementPickRowProjection.js` | CREATED | Core projection utility |
-| `src/features/architect/tradeMachine/EntitlementPickRow.jsx` | MODIFIED | 2-line layout with protection text |
-| `src/features/architect/tradeMachine/TradeSummaryPanel.jsx` | MODIFIED | Show protection text in entitlements traded |
-| `src/features/architect/tradeMachine/TradeReceiptPanel.jsx` | MODIFIED | Show protection text in incoming/outgoing |
-| `tests/entitlements/entitlementPickRowProjection.test.js` | CREATED | 28 unit tests (all passing) |
+| File                                                                        | Action   | Purpose                                     |
+| --------------------------------------------------------------------------- | -------- | ------------------------------------------- |
+| `src/features/architect/utils/entitlements/entitlementPickRowProjection.js` | CREATED  | Core projection utility                     |
+| `src/features/architect/tradeMachine/EntitlementPickRow.jsx`                | MODIFIED | 2-line layout with protection text          |
+| `src/features/architect/tradeMachine/TradeSummaryPanel.jsx`                 | MODIFIED | Show protection text in entitlements traded |
+| `src/features/architect/tradeMachine/TradeReceiptPanel.jsx`                 | MODIFIED | Show protection text in incoming/outgoing   |
+| `tests/entitlements/entitlementPickRowProjection.test.js`                   | CREATED  | 28 unit tests (all passing)                 |
 
 **What's Still Missing for Full Replacement**:
 
@@ -122,29 +155,29 @@
 
 **Files Created**:
 
-| File | Purpose |
-|------|---------|
+| File                                                                          | Purpose                                                 |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------- |
 | `team-scrape/draft-picks/scripts/pst/pst_phase_12_3a_push_base_pick_rules.ts` | Push script to load ledger and write rules to Firestore |
-| `src/features/architect/utils/entitlements/pickRulesResolver.ts` | Resolver to fetch pick rules from Firestore |
+| `src/features/architect/utils/entitlements/pickRulesResolver.ts`              | Resolver to fetch pick rules from Firestore             |
 
 **Files Modified**:
 
-| File | Changes |
-|------|---------|
-| `src/constants/collections.ts` | Added `ARCHITECT_BASE_PICK_RULES_PATH` constant |
-| `package.json` | Added `pst:push:base-pick-rules` npm script |
+| File                                                                        | Changes                                                                                                |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `src/constants/collections.ts`                                              | Added `ARCHITECT_BASE_PICK_RULES_PATH` constant                                                        |
+| `package.json`                                                              | Added `pst:push:base-pick-rules` npm script                                                            |
 | `src/features/architect/utils/entitlements/entitlementPickRowProjection.js` | Added optional `pickRulesById` parameter to `projectEntitlementToPickRow()` with rule-aware derivation |
 
 **Data Shape (BasePickRuleDoc)**:
 
 ```typescript
 type BasePickRuleDoc = {
-  pickId: string;              // e.g., "LAL_2027_1st"
+  pickId: string; // e.g., "LAL_2027_1st"
   seasonYear: number;
   round: 1 | 2;
   protections?: Array<{
     type?: 'top_n' | 'range' | 'lottery';
-    protectedRange?: string;   // "1-4" format
+    protectedRange?: string; // "1-4" format
     appliesToYears?: number[];
     description?: string;
   }>;
@@ -192,17 +225,17 @@ FIRESTORE_EMULATOR_HOST=127.0.0.1:8082 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:909
 
 **Files Modified**:
 
-| File | Changes |
-|------|---------|
-| `src/features/architect/hooks/useTradeMachine.js` | Added imports, helper functions, pick rules fetching for slot 0 and secondary slots, feature flag |
-| `src/features/architect/tradeMachine/EntitlementPicksList.jsx` | Accept and pass `pickRulesById` prop |
-| `src/features/architect/tradeMachine/EntitlementPickRow.jsx` | Accept `pickRulesById` and pass to projection |
-| `src/features/architect/tradeMachine/TradeSummaryPanel.jsx` | Accept `pickRulesById` and use in projection |
-| `src/features/architect/tradeMachine/TradeReceiptPanel.jsx` | Accept `pickRulesById` and use in both projection calls |
-| `src/features/architect/tradeMachine/ValidationDetailsPanel.jsx` | Accept and pass `pickRulesById` to child panels |
-| `src/features/architect/tradeMachine/TradeEditor.jsx` | Build merged `pickRulesById` from all team slots and pass to ValidationDetailsPanel |
-| `src/features/architect/tradeMachine/TradeTeamCard.jsx` | Pass `pickRulesById` to EntitlementPicksList |
-| `tests/entitlements/entitlementPickRowProjection.test.js` | Added 5 new tests for pickRulesById integration |
+| File                                                             | Changes                                                                                           |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `src/features/architect/hooks/useTradeMachine.js`                | Added imports, helper functions, pick rules fetching for slot 0 and secondary slots, feature flag |
+| `src/features/architect/tradeMachine/EntitlementPicksList.jsx`   | Accept and pass `pickRulesById` prop                                                              |
+| `src/features/architect/tradeMachine/EntitlementPickRow.jsx`     | Accept `pickRulesById` and pass to projection                                                     |
+| `src/features/architect/tradeMachine/TradeSummaryPanel.jsx`      | Accept `pickRulesById` and use in projection                                                      |
+| `src/features/architect/tradeMachine/TradeReceiptPanel.jsx`      | Accept `pickRulesById` and use in both projection calls                                           |
+| `src/features/architect/tradeMachine/ValidationDetailsPanel.jsx` | Accept and pass `pickRulesById` to child panels                                                   |
+| `src/features/architect/tradeMachine/TradeEditor.jsx`            | Build merged `pickRulesById` from all team slots and pass to ValidationDetailsPanel               |
+| `src/features/architect/tradeMachine/TradeTeamCard.jsx`          | Pass `pickRulesById` to EntitlementPicksList                                                      |
+| `tests/entitlements/entitlementPickRowProjection.test.js`        | Added 5 new tests for pickRulesById integration                                                   |
 
 **Key Implementation Details**:
 

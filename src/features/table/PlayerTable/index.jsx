@@ -5,6 +5,9 @@
  * OWNERSHIP: Feature: table/virtualization
  *
  * HISTORY:
+ *  - 2026-02-01: Phase 2O - Always-on TopControlsBar + ActiveFiltersDrawer (zero layout shift)
+ *  - 2026-02-01: Phase 2N-Density - Added proportional scale-based density mode (comfortable/compact)
+ *  - 2026-01-31: Phase 2N - Fixed sticky header stack: overlays anchor BELOW pills bar, Filters+Sort work together
  *  - 2026-01-30: Phase 2K - Layout stabilization: overlay filters/sort + fixed-height controls shell
  *  - 2026-01-29: Phase 2E - Replaced hardcoded drawer padding with measured height via ResizeObserver
  *  - 2026-01-29: Added sticky header with z-[60], shadow, and scroll hygiene fixes (Phase 2B)
@@ -12,23 +15,31 @@
  *  - Previous: Used react-virtualized-auto-sizer which intermittently returned 0 dimensions
  *
  * LINKS:
- *  - Return Package: docs/return_packages/scouting/SCOUTING_PLAYER_TABLE_PHASE_2K_EXEC_LAYOUT_STABLE_OVERLAYS.md
+ *  - Return Package: docs/return_packages/SCOUTING_PLAYER_TABLE_PHASE_2O_RETURN_PACKAGE.md
  */
-import React, { useState, useMemo, useCallback, useRef, useLayoutEffect } from 'react';
+import React, {
+  useState,
+  useMemo,
+  useCallback,
+  useRef,
+  useLayoutEffect,
+  useEffect,
+} from 'react';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
 import useFilteredPlayers from '@/features/table/hooks/useFilteredPlayers';
 import PlayerRow from '@/features/table/PlayerTable/PlayerRow';
 import FiltersPanel from '@/features/filters/FiltersPanel';
-import ActiveFiltersDisplay from '@/features/filters/ActiveFiltersDisplay';
-import ViewControls from '@/features/filters/FiltersPanel/FilterPanel/sections/ViewControls';
+import ActiveFiltersDrawer from '@/features/filters/ActiveFiltersDrawer';
 import PlayerTableHeader from '@/features/table/PlayerTable/PlayerTableHeader';
+import TopControlsBar from '@/features/table/PlayerTable/PlayerTableHeader/TopControlsBar';
 import PlayerDrawer from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer';
-import OverlayPanel from '@/features/table/PlayerTable/components/OverlayPanel';
 import debounce from 'lodash.debounce';
 import { getDefaultPlayerFilters } from '@/shared/utils/filtering';
 import { FixedSizeList as List } from 'react-window';
 import useContainerDimensions from '@/shared/hooks/useContainerDimensions';
 import getPlayerId from '@/shared/utils/getPlayerId';
+import usePlayerTableDensity from './hooks/usePlayerTableDensity';
+import useActiveFilterCount from '@/features/filters/hooks/useActiveFilterCount';
 
 // Row Component for react-window
 const Row = ({ index, style, data }) => {
@@ -159,14 +170,56 @@ const DrawerContext = React.createContext(null);
 const PlayerTable = () => {
   const [filters, setFilters] = useState(getDefaultPlayerFilters());
   const { players, loading } = useSimplePlayerData();
-  const [showFilters, setShowFilters] = useState(false);
-  const [showFullFilters, setShowFullFilters] = useState(false);
-  const [showSort, setShowSort] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false); // Phase 2O: Renamed for clarity
+  const [showActiveFiltersDrawer, setShowActiveFiltersDrawer] = useState(false); // Phase 2O: New drawer state
   const [expandedPlayerId, setExpandedPlayerId] = useState(null);
   const [drawerHeight, setDrawerHeight] = useState(0); // Phase 2E: Measured drawer height
   const listContainerRef = useRef(null);
+  const listRef = useRef(null); // Phase 2N-Density: Ref for react-window List to control scroll
+
+  // Phase 2N-Density: Density mode hook
+  const {
+    mode: densityMode,
+    setMode: setDensityMode,
+    scale,
+  } = usePlayerTableDensity();
 
   const { width, height, ready } = useContainerDimensions(listContainerRef);
+
+  // Phase 2O: Active filter count for badge
+  const activeFilterCount = useActiveFilterCount(
+    filters,
+    getDefaultPlayerFilters,
+    ['nameSearch', 'salaryYear', 'sortBy', 'sortAsc']
+  );
+
+  // Phase 2N-Density: Compute scaled dimensions for react-window
+  // The list renders at "virtual" larger dimensions, then CSS transform scales it down
+  const scaledWidth = useMemo(() => Math.floor(width / scale), [width, scale]);
+  const scaledHeight = useMemo(
+    () => Math.floor(height / scale),
+    [height, scale]
+  );
+
+  // Phase 2N-Density: Scroll position stability when switching density
+  const lastFirstVisibleIndex = useRef(0);
+
+  // Track first visible index on scroll
+  const handleScroll = useCallback(({ scrollOffset }) => {
+    // Calculate first visible index based on current itemSize (100) and scroll
+    const firstVisible = Math.floor(scrollOffset / 100);
+    lastFirstVisibleIndex.current = firstVisible;
+  }, []);
+
+  // When density changes, restore scroll position
+  useEffect(() => {
+    if (listRef.current && lastFirstVisibleIndex.current > 0) {
+      // Small delay to let the scale change apply
+      requestAnimationFrame(() => {
+        listRef.current.scrollToItem(lastFirstVisibleIndex.current, 'start');
+      });
+    }
+  }, [scale]);
 
   // Debounce filters
   const debouncedSetFilters = useMemo(
@@ -194,8 +247,7 @@ const PlayerTable = () => {
   };
 
   const handleCloseFilters = () => {
-    setShowFilters(false);
-    setShowFullFilters(false);
+    setShowAdvancedFilters(false);
   };
 
   const toggleExpand = useCallback((id) => {
@@ -236,78 +288,52 @@ const PlayerTable = () => {
 
   return (
     <div className="flex flex-col bg-neutral-900 flex-1 min-h-0 w-full overflow-hidden">
-      {/* Phase 2K: Sticky Header Section with overlay positioning for filters/sort */}
-      <div className="sticky top-0 z-[60] bg-neutral-900 shrink-0 border-b border-neutral-700/50 shadow-sm pt-4">
-        <div className="w-full max-w-[1100px] mx-auto px-4 xl:px-0 flex flex-col">
-          {/* Relative wrapper for overlay positioning */}
-          <div className="relative">
-            <PlayerTableHeader
-              filteredCount={filteredPlayers.length}
-              onSearchChange={handleSearchChange}
-              showFilters={showFilters}
-              showSort={showSort}
-              onToggleFilters={() => setShowFilters((prev) => !prev)}
-              onToggleSort={() => setShowSort((prev) => !prev)}
-            />
+      {/* Phase 2O: Sticky Header Section - simplified with always-on TopControlsBar */}
+      <div className="sticky top-0 z-[60] bg-neutral-900 shrink-0 border-b border-neutral-700/50 shadow-sm pt-2">
+        <div className="w-full max-w-[1100px] mx-auto px-4 xl:px-0 flex flex-col gap-2 pb-2">
+          {/* Title row with search and density */}
+          <PlayerTableHeader
+            filteredCount={filteredPlayers.length}
+            onSearchChange={handleSearchChange}
+            densityMode={densityMode}
+            onDensityChange={setDensityMode}
+          />
 
-            {/* Overlay panels - absolutely positioned below header */}
-            {(showFilters || showSort) && (
-              <div className="absolute left-0 right-0 top-full z-10 pt-2">
-                {showFilters && !showFullFilters && (
-                  <OverlayPanel onClose={() => setShowFilters(false)}>
-                    <FiltersPanel
-                      filters={filters}
-                      setFilters={debouncedSetFilters}
-                      getDefaultFilters={getDefaultPlayerFilters}
-                      isOpen={showFilters}
-                      showFullFilters={showFullFilters}
-                      setShowFullFilters={setShowFullFilters}
-                      onClose={handleCloseFilters}
-                      onClearFilters={handleClearAllFilters}
-                    />
-                  </OverlayPanel>
-                )}
-                {showSort && (
-                  <OverlayPanel onClose={() => setShowSort(false)}>
-                    <ViewControls
-                      filters={filters}
-                      setFilters={debouncedSetFilters}
-                    />
-                  </OverlayPanel>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Fixed-height pills container - always renders */}
-          <ActiveFiltersDisplay
+          {/* Phase 2O: Always-visible controls bar - filters left, sort right */}
+          <TopControlsBar
             filters={filters}
             setFilters={debouncedSetFilters}
-            getDefaultFilters={getDefaultPlayerFilters}
-            excludeFromDisplay={[
-              'nameSearch',
-              'salaryYear',
-              'sortBy',
-              'sortAsc',
-            ]}
-            onClearFilters={handleClearAllFilters}
+            activeFilterCount={activeFilterCount}
+            onOpenAdvancedFilters={() => setShowAdvancedFilters(true)}
+            onOpenActiveFilters={() => setShowActiveFiltersDrawer(true)}
           />
         </div>
       </div>
 
-      {/* Full FilterPanel (fixed overlay) - rendered outside sticky header */}
-      {showFilters && showFullFilters && (
+      {/* Phase 2O: Advanced FilterPanel (fixed overlay) */}
+      {showAdvancedFilters && (
         <FiltersPanel
           filters={filters}
           setFilters={debouncedSetFilters}
           getDefaultFilters={getDefaultPlayerFilters}
-          isOpen={showFilters}
-          showFullFilters={showFullFilters}
-          setShowFullFilters={setShowFullFilters}
+          isOpen={showAdvancedFilters}
+          showFullFilters={true}
+          setShowFullFilters={() => {}}
           onClose={handleCloseFilters}
           onClearFilters={handleClearAllFilters}
         />
       )}
+
+      {/* Phase 2O: Active Filters Drawer (right-side overlay) */}
+      <ActiveFiltersDrawer
+        open={showActiveFiltersDrawer}
+        onClose={() => setShowActiveFiltersDrawer(false)}
+        filters={filters}
+        setFilters={debouncedSetFilters}
+        getDefaultFilters={getDefaultPlayerFilters}
+        excludeFromDisplay={['nameSearch', 'salaryYear', 'sortBy', 'sortAsc']}
+        onClearFilters={handleClearAllFilters}
+      />
 
       {/* Player Rows (Virtualized) - flex-1 + min-h-0 + overflow-hidden ensures height is measurable */}
       <div
@@ -323,19 +349,38 @@ const PlayerTable = () => {
             No players found matching your filters.
           </div>
         ) : (
-          <DrawerContext.Provider value={drawerContextValue}>
-            <List
-              height={height}
-              width={width}
-              itemCount={filteredPlayers.length}
-              itemSize={100}
-              itemData={itemData}
-              innerElementType={InnerElement}
-              className="no-scrollbar"
-            >
-              {Row}
-            </List>
-          </DrawerContext.Provider>
+          /* Phase 2N-Density: Scaled rendering stage
+           * The outer container is the measured viewport (width × height)
+           * The inner "stage" is scaled up (scaledWidth × scaledHeight) and then CSS-scaled down
+           * Result: react-window renders more rows (like browser zoom-out) without changing PlayerRow
+           */
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: scaledWidth,
+              height: scaledHeight,
+              transform: `scale(${scale})`,
+              transformOrigin: 'top left',
+            }}
+          >
+            <DrawerContext.Provider value={drawerContextValue}>
+              <List
+                ref={listRef}
+                height={scaledHeight}
+                width={scaledWidth}
+                itemCount={filteredPlayers.length}
+                itemSize={100}
+                itemData={itemData}
+                innerElementType={InnerElement}
+                className="no-scrollbar"
+                onScroll={handleScroll}
+              >
+                {Row}
+              </List>
+            </DrawerContext.Provider>
+          </div>
         )}
       </div>
     </div>
