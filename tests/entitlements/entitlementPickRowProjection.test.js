@@ -428,4 +428,155 @@ describe('entitlementPickRowProjection', () => {
       expect(getPickRowSecondaryText(pickRow)).toBeNull();
     });
   });
+
+  // Phase 12.3B: Tests for pickRulesById integration
+  describe('pickRulesById integration', () => {
+    it('uses structured protection from pick rule when available', () => {
+      const entitlement = {
+        id: 'LAL_pick_ownership_2027_R1',
+        kind: 'pick_ownership',
+        seasonYear: 2027,
+        round: 1,
+        underlyingPickId: 'LAL_2027_1st',
+        underlyingStatus: 'encumbered',
+        description: "Lakers' 2027 1st round pick", // No protection in description
+      };
+
+      const pickRulesById = {
+        LAL_2027_1st: {
+          pickId: 'LAL_2027_1st',
+          seasonYear: 2027,
+          round: 1,
+          protections: [{ type: 'top_n', protectedRange: '1-4' }],
+          updatedAtISO: '2026-01-31T00:00:00Z',
+          source: 'PST_LEDGER_FINAL',
+        },
+      };
+
+      const result = projectEntitlementToPickRow(entitlement, {
+        teamCode: 'UTA',
+        pickRulesById,
+      });
+
+      expect(result.protectionText).toBe('Top 4 protected');
+      expect(result.protectionMeta).toEqual({
+        type: 'top_n',
+        protectedRange: { start: 1, end: 4 },
+        appliesToYears: undefined,
+      });
+    });
+
+    it('uses lottery protection from pick rule', () => {
+      const entitlement = {
+        id: 'PHX_pick_ownership_2028_R1',
+        kind: 'pick_ownership',
+        seasonYear: 2028,
+        round: 1,
+        underlyingPickId: 'PHX_2028_1st',
+        underlyingStatus: 'encumbered',
+        description: "Phoenix's 2028 1st round pick",
+      };
+
+      const pickRulesById = {
+        PHX_2028_1st: {
+          pickId: 'PHX_2028_1st',
+          seasonYear: 2028,
+          round: 1,
+          protections: [{ type: 'lottery' }],
+          updatedAtISO: '2026-01-31T00:00:00Z',
+          source: 'PST_LEDGER_FINAL',
+        },
+      };
+
+      const result = projectEntitlementToPickRow(entitlement, {
+        teamCode: 'BKN',
+        pickRulesById,
+      });
+
+      expect(result.protectionText).toBe('Lottery protected');
+      expect(result.protectionMeta).toEqual({
+        type: 'lottery',
+        protectedRange: { start: 1, end: 14 },
+        appliesToYears: undefined,
+      });
+    });
+
+    it('uses structured conditions from pick rule when available', () => {
+      const entitlement = {
+        id: 'BOS_pick_ownership_2028_R1',
+        kind: 'pick_ownership',
+        seasonYear: 2028,
+        round: 1,
+        underlyingPickId: 'BOS_2028_1st',
+        underlyingStatus: 'clean',
+        description: "Boston's 2028 1st round pick",
+      };
+
+      const pickRulesById = {
+        BOS_2028_1st: {
+          pickId: 'BOS_2028_1st',
+          seasonYear: 2028,
+          round: 1,
+          conditions: [
+            {
+              kind: 'swap_right',
+              description: 'PHX has swap right',
+              controller: 'PHX',
+            },
+          ],
+          updatedAtISO: '2026-01-31T00:00:00Z',
+          source: 'PST_LEDGER_FINAL',
+        },
+      };
+
+      const result = projectEntitlementToPickRow(entitlement, {
+        teamCode: 'BOS',
+        pickRulesById,
+      });
+
+      expect(result.conditionsText).toBe('PHX swap option');
+    });
+
+    it('falls back to description parsing when no pick rule exists', () => {
+      const entitlement = {
+        id: 'MIA_pick_ownership_2027_R1',
+        kind: 'pick_ownership',
+        seasonYear: 2027,
+        round: 1,
+        underlyingPickId: 'MIA_2027_1st',
+        underlyingStatus: 'clean',
+        description: "Miami's 2027 1st top 10 protected",
+      };
+
+      const pickRulesById = {}; // No rule for this pick
+
+      const result = projectEntitlementToPickRow(entitlement, {
+        teamCode: 'OKC',
+        pickRulesById,
+      });
+
+      // Should fall back to description parsing
+      expect(result.protectionText).toBe('Top 10 protected');
+    });
+
+    it('falls back to description parsing when pickRulesById is undefined', () => {
+      const entitlement = {
+        id: 'CHI_pick_ownership_2027_R1',
+        kind: 'pick_ownership',
+        seasonYear: 2027,
+        round: 1,
+        underlyingPickId: 'CHI_2027_1st',
+        underlyingStatus: 'clean',
+        description: "Chicago's 2027 1st lottery protected",
+      };
+
+      // No pickRulesById passed
+      const result = projectEntitlementToPickRow(entitlement, {
+        teamCode: 'SAS',
+      });
+
+      // Should fall back to description parsing
+      expect(result.protectionText).toBe('Lottery protected');
+    });
+  });
 });

@@ -72,6 +72,8 @@ const ValidationDetailsPanel = ({
   yearKey = null,
   // Calculator team selector
   onCalculatorTeamChange = null,
+  // Phase 12.3B: Pre-fetched pick rules for structured derivation
+  pickRulesById = {},
 }) => {
   // Separate expand states for each panel
   const [productionExpanded, setProductionExpanded] = useState(false);
@@ -137,6 +139,7 @@ const ValidationDetailsPanel = ({
                     teams={teams}
                     forceTrade={forceTrade}
                     isValidating={isValidating}
+                    pickRulesById={pickRulesById}
                   />
                 </section>
 
@@ -240,7 +243,10 @@ const ValidationDetailsPanel = ({
                   <SectionHeader title="Trade Receipt" mode="DEBUG">
                     Developer diagnostic data — not required reading
                   </SectionHeader>
-                  <TradeReceiptPanel receipt={result?.tradeReceipt} />
+                  <TradeReceiptPanel
+                    receipt={result?.tradeReceipt}
+                    pickRulesById={pickRulesById}
+                  />
                 </section>
               </div>
             )}

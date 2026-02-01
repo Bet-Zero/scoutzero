@@ -730,6 +730,8 @@ const TradeTeamCard = ({
             selectedEntitlementIds={(entitlementsOut || []).map(
               (e) => e.entitlementId || e.id
             )}
+            // Phase 12.3B: Pass pick rules for structured derivation
+            pickRulesById={team.pickRulesById || {}}
           />
         ) : (
           <OutgoingPicksList

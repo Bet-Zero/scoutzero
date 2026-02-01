@@ -41,6 +41,13 @@ export const ARCHITECT_BASE_ENTITLEMENTS_PATH =
   env.VITE_ARCHITECT_BASE_ENTITLEMENTS_PATH || 'architect_baseEntitlements';
 
 /**
+ * Architect base pick rules path
+ * Stores structured protection and condition rules for picks
+ */
+export const ARCHITECT_BASE_PICK_RULES_PATH =
+  env.VITE_ARCHITECT_BASE_PICK_RULES_PATH || 'architect_basePickRules';
+
+/**
  * Architect worlds collection (for world metadata and team snapshots)
  * Path structure:
  * - architect_worlds/{worldId} - World metadata

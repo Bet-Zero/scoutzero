@@ -40,6 +40,8 @@ function TradeSummaryPanel({
   showRuleExplanations = true,
   // P0-3: Validation in-flight state for loading indicators
   isValidating = false,
+  // Phase 12.3B: Pre-fetched pick rules for structured derivation
+  pickRulesById = {},
 }) {
   if (!result) return null;
 
@@ -271,8 +273,10 @@ function TradeSummaryPanel({
                       {entitlementsOut.map((ent, idx3) => {
                         const badge = getEntitlementKindBadge(ent.kind);
                         // Phase 12.3C: Project entitlement for protection/condition visibility
+                        // Phase 12.3B: Pass pickRulesById for structured rule-aware derivation
                         const pickRow = projectEntitlementToPickRow(ent, {
                           teamCode: teamMeta?.id,
+                          pickRulesById,
                         });
                         const secondaryText = getPickRowSecondaryText(pickRow);
                         return (

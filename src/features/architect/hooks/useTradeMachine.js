@@ -14,6 +14,10 @@ import {
 } from '@/features/architect/tradeMachine/utils/computeTradeDraftKey';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import { resolveEntitlementsForTeam } from '@/features/architect/utils/entitlements/entitlementResolver';
+import {
+  resolvePickRulesByIds,
+  pickRulesMapToObject,
+} from '@/features/architect/utils/entitlements/pickRulesResolver';
 
 /* ============================
    DEBUG FLAG & TEAM CODE RESOLUTION
@@ -24,6 +28,12 @@ import { resolveEntitlementsForTeam } from '@/features/architect/utils/entitleme
  * Set VITE_DEBUG_ENTITLEMENTS=true in environment to enable.
  */
 const DEBUG_ENT = Boolean(import.meta?.env?.VITE_DEBUG_ENTITLEMENTS);
+
+/**
+ * Phase 12.3B: Feature flag for pick rules fetching.
+ * Set VITE_ENABLE_PICK_RULES=false to disable. Default: enabled.
+ */
+const ENABLE_PICK_RULES = import.meta?.env?.VITE_ENABLE_PICK_RULES !== 'false';
 
 /**
  * Resolve a valid 3-letter team code from various team object shapes.
@@ -73,6 +83,45 @@ function resolveTeamCodeLike(teamObjOrId, teamDataMaybe = null) {
   }
   return null;
 }
+
+/* ============================
+   PICK RULES RESOLUTION (Phase 12.3B)
+   ============================ */
+
+/**
+ * Extract unique pickIds from entitlements for pick rules lookup.
+ * Collects underlyingPickId, poolUnderlyingPickIds, and swapControllerPickId.
+ */
+const extractPickIdsFromEntitlements = (entitlements) => {
+  if (!Array.isArray(entitlements) || entitlements.length === 0) return [];
+
+  const pickIds = new Set();
+  for (const ent of entitlements) {
+    if (ent.underlyingPickId) pickIds.add(ent.underlyingPickId);
+    if (Array.isArray(ent.poolUnderlyingPickIds)) {
+      ent.poolUnderlyingPickIds.forEach((id) => id && pickIds.add(id));
+    }
+    if (ent.swapControllerPickId) pickIds.add(ent.swapControllerPickId);
+  }
+  return Array.from(pickIds);
+};
+
+/**
+ * Resolve pick rules for a team's entitlements.
+ * Returns plain object keyed by pickId for passing to projection layer.
+ */
+const resolvePickRulesForEntitlements = async (entitlements) => {
+  const pickIds = extractPickIdsFromEntitlements(entitlements);
+  if (pickIds.length === 0) return {};
+
+  try {
+    const rulesMap = await resolvePickRulesByIds(pickIds);
+    return pickRulesMapToObject(rulesMap);
+  } catch (err) {
+    console.warn('[resolvePickRulesForEntitlements] Error:', err);
+    return {};
+  }
+};
 
 /* ============================
    SSOT WIRING
@@ -266,20 +315,31 @@ export const useTradeMachine = (
                 resolvedTeamCode
               );
               teamObj.entitlements = entitlements;
+
+              // Phase 12.3B: Fetch pick rules for entitlements
+              let pickRulesById = {};
+              if (ENABLE_PICK_RULES) {
+                pickRulesById = await resolvePickRulesForEntitlements(entitlements);
+              }
+              teamObj.pickRulesById = pickRulesById;
+
               if (DEBUG_ENT) {
                 console.log('[DEBUG_ENT] init slot 0 resolved:', {
                   teamCode: resolvedTeamCode,
                   entitlementsCount: entitlements?.length ?? 0,
+                  pickRulesCount: Object.keys(pickRulesById).length,
                   usingLegacyFallback: false,
                 });
               }
             } else {
               console.warn('[init] Could not resolve team code for slot 0');
               teamObj.entitlements = [];
+              teamObj.pickRulesById = {};
             }
           } catch (err) {
             console.warn('Failed to resolve team entitlements:', err);
             teamObj.entitlements = [];
+            teamObj.pickRulesById = {};
           }
         }
         augmentTeamWithExceptions(teamObj, yearKey, capProjections);
@@ -589,11 +649,20 @@ export const useTradeMachine = (
                 resolvedTeamCode
               );
               teamObj.entitlements = entitlements;
+
+              // Phase 12.3B: Fetch pick rules for entitlements
+              let pickRulesById = {};
+              if (ENABLE_PICK_RULES) {
+                pickRulesById = await resolvePickRulesForEntitlements(entitlements);
+              }
+              teamObj.pickRulesById = pickRulesById;
+
               if (DEBUG_ENT) {
                 console.log('[DEBUG_ENT] selectTeam resolved:', {
                   slotIndex: index,
                   teamCode: resolvedTeamCode,
                   entitlementsCount: entitlements?.length ?? 0,
+                  pickRulesCount: Object.keys(pickRulesById).length,
                   usingLegacyFallback: false,
                 });
               }
@@ -602,6 +671,7 @@ export const useTradeMachine = (
                 `[selectTeam] Could not resolve team code for slot ${index}`
               );
               teamObj.entitlements = [];
+              teamObj.pickRulesById = {};
             }
           } catch (err) {
             console.warn(
@@ -609,6 +679,7 @@ export const useTradeMachine = (
               err
             );
             teamObj.entitlements = [];
+            teamObj.pickRulesById = {};
           }
         } else {
           // No worldId and no entitlementIds - use legacy picks fallback
@@ -621,6 +692,7 @@ export const useTradeMachine = (
             });
           }
           teamObj.entitlements = [];
+          teamObj.pickRulesById = {};
         }
 
         augmentTeamWithExceptions(teamObj, yearKey, capProjections);

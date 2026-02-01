@@ -20,6 +20,25 @@
  */
 
 /**
+ * @typedef {object} PickRuleDoc
+ * @property {string} pickId - Base pick ID (e.g., "LAL_2027_1st")
+ * @property {number} seasonYear - Draft year
+ * @property {1|2} round - Draft round
+ * @property {Array<{type?: string, protectedRange?: string, appliesToYears?: number[], description?: string}>} [protections]
+ * @property {Array<{kind: string, description: string, relatedPickIds?: string[], appliesToYears?: number[], controller?: string}>} [conditions]
+ * @property {string} [ownershipSource]
+ * @property {string[]} [evidenceRowRefs]
+ * @property {string} updatedAtISO
+ * @property {string} source
+ */
+
+/**
+ * @typedef {object} ProjectionOptions
+ * @property {string} [teamCode] - Team code of the holder
+ * @property {Record<string, PickRuleDoc>} [pickRulesById] - Pre-fetched pick rules keyed by pickId
+ */
+
+/**
  * @typedef {object} PickRow
  * @property {string} id - Entitlement ID
  * @property {number} year - Draft year (seasonYear)
@@ -258,6 +277,105 @@ const deriveConditionsText = (entitlement) => {
 };
 
 /**
+ * Lookup pick rule for an entitlement's underlying pick.
+ * @param {object} entitlement - EffectiveEntitlement object
+ * @param {Record<string, PickRuleDoc>} [pickRulesById] - Pre-fetched rules map
+ * @returns {PickRuleDoc|null}
+ */
+const lookupPickRule = (entitlement, pickRulesById) => {
+  if (!pickRulesById) return null;
+
+  const pickId = entitlement.underlyingPickId;
+  if (!pickId) return null;
+
+  return pickRulesById[pickId] || null;
+};
+
+/**
+ * Derive protection details, preferring structured rules over description parsing.
+ * @param {object} entitlement - EffectiveEntitlement object
+ * @param {PickRuleDoc|null} pickRule - The pick rule document if available
+ * @returns {{ protectionText: string, protectionMeta: PickRowProtectionMeta|null }}
+ */
+const deriveProtectionDetailsWithRules = (entitlement, pickRule) => {
+  // If we have a pick rule with protections, use that
+  if (pickRule?.protections?.length > 0) {
+    const protection = pickRule.protections[0]; // Use first (most relevant) protection
+
+    let protectionText;
+    let protectionMeta = null;
+
+    if (protection.type === 'lottery') {
+      protectionText = 'Lottery protected';
+      protectionMeta = {
+        type: 'lottery',
+        protectedRange: { start: 1, end: 14 },
+        appliesToYears: protection.appliesToYears,
+      };
+    } else if (protection.type === 'top_n' && protection.protectedRange) {
+      const parts = protection.protectedRange.split('-').map(Number);
+      const end = parts[1] ?? parts[0];
+      protectionText = `Top ${end} protected`;
+      protectionMeta = {
+        type: 'top_n',
+        protectedRange: { start: 1, end },
+        appliesToYears: protection.appliesToYears,
+      };
+    } else if (protection.type === 'range' && protection.protectedRange) {
+      const [start, end] = protection.protectedRange.split('-').map(Number);
+      protectionText =
+        start === end ? `Pick ${start} protected` : `Protected ${start}-${end}`;
+      protectionMeta = {
+        type: 'range',
+        protectedRange: { start, end: end ?? start },
+        appliesToYears: protection.appliesToYears,
+      };
+    } else {
+      protectionText = protection.description || 'Protected';
+    }
+
+    return { protectionText, protectionMeta };
+  }
+
+  // Fall back to existing description-based parsing
+  return deriveProtectionDetails(entitlement);
+};
+
+/**
+ * Derive conditions text, preferring structured rules over description parsing.
+ * @param {object} entitlement - EffectiveEntitlement object
+ * @param {PickRuleDoc|null} pickRule - The pick rule document if available
+ * @returns {string|null}
+ */
+const deriveConditionsTextWithRules = (entitlement, pickRule) => {
+  // If we have pick rule conditions, use those
+  if (pickRule?.conditions?.length > 0) {
+    const relevantConditions = pickRule.conditions
+      .filter((c) => c.kind !== 'did_not_convey')
+      .slice(0, 2); // Limit to avoid overly long text
+
+    if (relevantConditions.length > 0) {
+      return relevantConditions
+        .map((c) => {
+          if (c.kind === 'swap_right' || c.kind === 'swap') {
+            return c.controller ? `${c.controller} swap option` : 'Swap option';
+          }
+          if (c.kind === 'conveys') {
+            return 'Conveyance right';
+          }
+          // Truncate long descriptions
+          return c.description?.slice(0, 50);
+        })
+        .filter(Boolean)
+        .join('; ');
+    }
+  }
+
+  // Fall back to existing derivation
+  return deriveConditionsText(entitlement);
+};
+
+/**
  * Determine asset type from entitlement kind and properties.
  * @param {object} entitlement - EffectiveEntitlement object
  * @returns {'outright_pick' | 'conditional_right' | 'swap_right'}
@@ -300,7 +418,7 @@ const formatRound = (round) => {
  * Project an EffectiveEntitlement into a canonical PickRow object.
  *
  * @param {object} entitlement - The EffectiveEntitlement object
- * @param {{ teamCode?: string }} [options={}] - Options
+ * @param {ProjectionOptions} [options={}] - Options including teamCode and pickRulesById
  * @returns {PickRow}
  */
 export const projectEntitlementToPickRow = (entitlement, options = {}) => {
@@ -321,16 +439,26 @@ export const projectEntitlementToPickRow = (entitlement, options = {}) => {
     };
   }
 
-  const { teamCode } = options;
+  const { teamCode, pickRulesById } = options;
+
+  // Lookup pick rule for this entitlement's underlying pick
+  const pickRule = lookupPickRule(entitlement, pickRulesById);
+
   const year = entitlement.seasonYear || 0;
   const round = entitlement.round || 0;
   const kind = entitlement.kind || 'unknown';
   const originalTeam = extractOriginalTeam(entitlement);
   const via = extractViaTeam(entitlement, teamCode);
   const assetType = deriveAssetType(entitlement);
-  const { protectionText, protectionMeta } =
-    deriveProtectionDetails(entitlement);
-  const conditionsText = deriveConditionsText(entitlement);
+
+  // Use rule-aware derivation when pickRulesById is provided
+  const { protectionText, protectionMeta } = pickRulesById
+    ? deriveProtectionDetailsWithRules(entitlement, pickRule)
+    : deriveProtectionDetails(entitlement);
+
+  const conditionsText = pickRulesById
+    ? deriveConditionsTextWithRules(entitlement, pickRule)
+    : deriveConditionsText(entitlement);
 
   // Build debug info if enabled
   const debugEnabled =
@@ -346,6 +474,8 @@ export const projectEntitlementToPickRow = (entitlement, options = {}) => {
           underlyingStatus: entitlement.underlyingStatus,
           evidenceRowRefs: entitlement.evidenceRowRefs,
           derivedFromDescription: !protectionMeta,
+          usedPickRule: !!pickRule,
+          pickRuleId: pickRule?.pickId,
         },
       }
     : null;

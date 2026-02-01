@@ -81,9 +81,11 @@ import {
 } from '@/features/architect/utils/exceptionHistory/historyHelpers';
 
 // Phase 61: Persistence contract enforcement (allowlist-based)
+// Phase 64: Added normalizeTeamTpeSchema for TPE canonicalization
 import {
   assertPersistableOrThrow,
   PERSISTENCE_CONTRACTS,
+  normalizeTeamTpeSchema,
 } from '@/features/architect/utils/persistenceContracts';
 
 // ==============================================================================
@@ -2343,15 +2345,19 @@ async function persistWorldMutation({
       );
       // Phase 60: Sanitize transient fields first
       const afterSanitize = sanitizeTransientFieldsForPersistence(team);
+      // Phase 64: Normalize TPE schema (tradeExceptions → exceptions.tpe)
+      // This ensures legacy tradeExceptions[] is merged into canonical exceptions.tpe[]
+      // and the legacy field is removed BEFORE contract validation
+      const afterTpeNormalize = normalizeTeamTpeSchema(afterSanitize);
       // Phase 61: Validate against persistence contract (test-only enforcement)
-      // Ordering: sanitize → validate contract → removeUndefined
+      // Ordering: sanitize → normalize TPE → validate contract → removeUndefined
       assertPersistableOrThrow({
-        obj: afterSanitize,
+        obj: afterTpeNormalize,
         contract: PERSISTENCE_CONTRACTS.TEAM,
         label: 'TEAM',
       });
       // Then remove undefined values
-      const sanitizedTeam = removeUndefinedDeep(afterSanitize);
+      const sanitizedTeam = removeUndefinedDeep(afterTpeNormalize);
       const teamRef = worldTeamRef(worldId, teamCode);
       batch.set(teamRef, sanitizedTeam);
     }

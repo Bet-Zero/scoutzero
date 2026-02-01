@@ -44,6 +44,8 @@
 | Phase 12.2   | Stepien Baseline from Entitlements              | COMPLETE    | 2026-01-30 |
 | Phase 12.3   | Legacy Picks → Entitlements Preflight           | COMPLETE    | 2026-01-30 |
 | Phase 12.3C  | Entitlements → PickRow Projection Layer         | COMPLETE    | 2026-01-30 |
+| Phase 12.3A  | Push Base Pick Rules to Firestore (SSOT)        | COMPLETE    | 2026-01-31 |
+| Phase 12.3B  | Runtime Pick Rules Fetch + UI Wiring            | COMPLETE    | 2026-01-31 |
 
 ---
 
@@ -107,6 +109,126 @@
 4. **entitlementIds transfer**: Phase 13 must wire entitlement ID transfers in mutation pipeline before legacy picks can be removed.
 
 **Return Package**: `docs/team-scrape/return_packages/PST_PHASE_12_3C_ENTITLEMENT_PICKROW_PROJECTION_RETURN_PACKAGE.md`
+
+---
+
+## Phase 12.3A — Push Base Pick Rules to Firestore (SSOT) (COMPLETE)
+
+**Goal**: Make structured pick rule data (protections/conditions metadata) runtime-accessible so PickRow projection can stop parsing from `entitlement.description`.
+
+**Problem**: Phase 12.3C projection layer parses protection text from `entitlement.description` using regex. This works but is fragile. The PST ledger already has structured protection/condition data that should be the SSOT.
+
+**Solution**: Created a new Firestore collection `architect_basePickRules/{pickId}` storing structured rules from the ledger, with a resolver utility and projection layer updates to prefer structured rules over description parsing.
+
+**Files Created**:
+
+| File | Purpose |
+|------|---------|
+| `team-scrape/draft-picks/scripts/pst/pst_phase_12_3a_push_base_pick_rules.ts` | Push script to load ledger and write rules to Firestore |
+| `src/features/architect/utils/entitlements/pickRulesResolver.ts` | Resolver to fetch pick rules from Firestore |
+
+**Files Modified**:
+
+| File | Changes |
+|------|---------|
+| `src/constants/collections.ts` | Added `ARCHITECT_BASE_PICK_RULES_PATH` constant |
+| `package.json` | Added `pst:push:base-pick-rules` npm script |
+| `src/features/architect/utils/entitlements/entitlementPickRowProjection.js` | Added optional `pickRulesById` parameter to `projectEntitlementToPickRow()` with rule-aware derivation |
+
+**Data Shape (BasePickRuleDoc)**:
+
+```typescript
+type BasePickRuleDoc = {
+  pickId: string;              // e.g., "LAL_2027_1st"
+  seasonYear: number;
+  round: 1 | 2;
+  protections?: Array<{
+    type?: 'top_n' | 'range' | 'lottery';
+    protectedRange?: string;   // "1-4" format
+    appliesToYears?: number[];
+    description?: string;
+  }>;
+  conditions?: Array<{
+    kind: 'swap' | 'swap_right' | 'conveys' | 'did_not_convey';
+    description: string;
+    relatedPickIds?: string[];
+    appliesToYears?: number[];
+    controller?: string;
+  }>;
+  ownershipSource?: string;
+  evidenceRowRefs?: string[];
+  updatedAtISO: string;
+  source: 'PST_LEDGER_FINAL';
+};
+```
+
+**Key Implementation Details**:
+
+- Push script transforms ledger `encumbrances.protections` → `protections[]` and `selectionSpecs`/`swaps`/`didNotConvey` → `conditions[]`
+- Only writes docs for picks with actual protections or conditions (skips clean picks)
+- Resolver uses 30-item chunking for batch queries (Firestore limit)
+- Projection uses rule-aware derivation when `pickRulesById` is provided, falls back to description parsing otherwise
+- Debug output includes `usedPickRule` and `pickRuleId` flags
+
+**Commands**:
+
+```bash
+# Push to emulator
+npm run emu  # Terminal 1
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8082 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 npm run pst:push:base-pick-rules  # Terminal 2
+```
+
+**Return Package**: `docs/team-scrape/return_packages/PST_PHASE_12_3A_PUSH_BASE_PICK_RULES_RETURN_PACKAGE.md`
+
+---
+
+## Phase 12.3B — Runtime Pick Rules Fetch + UI Wiring (COMPLETE)
+
+**Goal**: Wire the app so entitlements display protection/conditions from Firestore `architect_basePickRules` instead of parsing from `entitlement.description` (with description parsing as fallback).
+
+**Problem**: Phase 12.3A created the infrastructure (push script, resolver, projection support), but the app wasn't yet fetching pick rules at runtime or passing them to the projection layer.
+
+**Solution**: Added runtime pick rules fetching in `useTradeMachine.js` when entitlements are loaded, and wired `pickRulesById` through the entire component tree so all entitlement displays use structured rules when available.
+
+**Files Modified**:
+
+| File | Changes |
+|------|---------|
+| `src/features/architect/hooks/useTradeMachine.js` | Added imports, helper functions, pick rules fetching for slot 0 and secondary slots, feature flag |
+| `src/features/architect/tradeMachine/EntitlementPicksList.jsx` | Accept and pass `pickRulesById` prop |
+| `src/features/architect/tradeMachine/EntitlementPickRow.jsx` | Accept `pickRulesById` and pass to projection |
+| `src/features/architect/tradeMachine/TradeSummaryPanel.jsx` | Accept `pickRulesById` and use in projection |
+| `src/features/architect/tradeMachine/TradeReceiptPanel.jsx` | Accept `pickRulesById` and use in both projection calls |
+| `src/features/architect/tradeMachine/ValidationDetailsPanel.jsx` | Accept and pass `pickRulesById` to child panels |
+| `src/features/architect/tradeMachine/TradeEditor.jsx` | Build merged `pickRulesById` from all team slots and pass to ValidationDetailsPanel |
+| `src/features/architect/tradeMachine/TradeTeamCard.jsx` | Pass `pickRulesById` to EntitlementPicksList |
+| `tests/entitlements/entitlementPickRowProjection.test.js` | Added 5 new tests for pickRulesById integration |
+
+**Key Implementation Details**:
+
+- Pick rules are fetched immediately after entitlements are resolved for each team slot
+- `VITE_ENABLE_PICK_RULES` feature flag (default: enabled) controls whether rules are fetched
+- `extractPickIdsFromEntitlements()` collects `underlyingPickId`, `poolUnderlyingPickIds`, and `swapControllerPickId`
+- `resolvePickRulesForEntitlements()` batch fetches rules and converts to plain object
+- `mergedPickRulesById` useMemo in TradeEditor combines rules from all team slots for validation panels
+- Projection prefers structured rules when available, falls back to description parsing otherwise
+
+**Feature Flag**:
+
+```bash
+# Disable pick rules fetching (for testing/rollback)
+VITE_ENABLE_PICK_RULES=false
+```
+
+**Verification**:
+
+1. Start emulator: `npm run emu`
+2. Push rules (if needed): `FIRESTORE_EMULATOR_HOST=127.0.0.1:8082 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 npm run pst:push:base-pick-rules`
+3. Start app: `npm run dev`
+4. Open Trade Machine for a team with known protected picks
+5. Verify entitlement rows show structured protection text from rules
+
+**Return Package**: `docs/team-scrape/return_packages/PST_PHASE_12_3B_PICK_RULES_RUNTIME_WIRING_RETURN_PACKAGE.md`
 
 ---
 

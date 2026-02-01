@@ -6,6 +6,7 @@
  * HISTORY:
  *  - 2026-01-30: Phase 61 - Created for allowlist-based persistence contract enforcement
  *  - 2026-01-30: Phase 62 - Added deep rules for deadCap[], capHolds[], and nested amountByYear[]
+ *  - 2026-01-30: Phase 64 - Removed tradeExceptions from allowlists (TPE schema canonicalization)
  *
  * LINKS:
  *  - Master Doc: docs/architect/CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md
@@ -54,11 +55,14 @@ export const TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST = Object.freeze([
 
   // Core roster data
   'roster', // Array of player IDs
+  'players', // Phase 63: Array of full player objects (used by mutation pipeline)
 
   // Financial structures
   'deadCap', // Array of DeadCapItemZ
   'capHolds', // Array of CapHoldItemZ
   'exceptions', // ExceptionsZ object (contains mle, bae, tpe[], etc.)
+  // Phase 64: 'tradeExceptions' REMOVED from allowlist. Legacy TPE data is now normalized
+  // into exceptions.tpe[] via normalizeTeamTpeSchema() before persistence. See Phase 64 docs.
   'exceptionHistory', // Array of history entries (TPE lifecycle tracking)
 
   // Draft assets
@@ -274,6 +278,11 @@ export const EVENT_METADATA_TOP_LEVEL_ALLOWLIST = Object.freeze([
   'entitlementsTraded', // Object with team-keyed entitlement changes
   'picksTraded', // Array of pick info objects
 
+  // Sign-and-Trade events (Phase 63)
+  'sourceTeam', // Origin team code
+  'destinationTeam', // Receiving team code
+  'contract', // Signed contract details object
+
   // Signing events
   'playerId',
   'playerName',
@@ -334,6 +343,9 @@ export const EVENT_METADATA_TOP_LEVEL_ALLOWLIST = Object.freeze([
  */
 export const TEAM_DEEP_RULES = Object.freeze({
   // Phase 61: Trade exception lifecycle arrays
+  // Phase 64: ONLY exceptions.tpe is canonical. tradeExceptions is legacy read-only.
+  // Legacy tradeExceptions is normalized into exceptions.tpe via normalizeTeamTpeSchema()
+  // before persistence, so no deep rule is needed for tradeExceptions.
   'exceptions.tpe': TRADE_EXCEPTION_ITEM_ALLOWLIST,
   exceptionHistory: EXCEPTION_HISTORY_ITEM_ALLOWLIST,
 

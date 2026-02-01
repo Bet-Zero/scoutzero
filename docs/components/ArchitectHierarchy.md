@@ -179,6 +179,7 @@ utils/
     entitlementPickRowProjection.js
     entitlementResolver.ts
     formatEntitlement.js
+    pickRulesResolver.ts
   exceptionHistory/
     historyHelpers.js
   extensionRules.js
@@ -192,6 +193,7 @@ utils/
     contracts.js
     enforcement.js
     index.js
+    normalizeTeamTpe.js
     validatePersistableShape.js
   playerRulesProfile/
     birdRightsRules.js
@@ -310,5 +312,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-01-30T14:49:43.847Z*
+*Generated on: 2026-02-01T01:52:30.484Z*
 *Auto-updated by: npm run docs*

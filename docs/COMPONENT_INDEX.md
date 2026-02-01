@@ -118,6 +118,7 @@ Quick reference for all components in the ScoutZero project.
 - utils/persistenceContracts/contracts.js
 - utils/persistenceContracts/enforcement.js
 - utils/persistenceContracts/index.js
+- utils/persistenceContracts/normalizeTeamTpe.js
 - utils/persistenceContracts/validatePersistableShape.js
 - utils/playerRulesProfile/birdRightsRules.js
 - utils/playerRulesProfile/computeProfile.js
@@ -349,4 +350,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2026-01-30T14:49:43.872Z*
+*Generated on: 2026-02-01T01:52:30.510Z*

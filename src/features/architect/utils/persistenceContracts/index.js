@@ -6,6 +6,7 @@
  * HISTORY:
  *  - 2026-01-30: Phase 61 - Created for allowlist-based persistence contract enforcement
  *  - 2026-01-30: Phase 62 - Added exports for deadCap, capHolds, and amountByYear allowlists
+ *  - 2026-01-30: Phase 64 - Added normalizeTeamTpeSchema and getTeamTpeList for TPE canonicalization
  *
  * LINKS:
  *  - Master Doc: docs/architect/CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md
@@ -54,3 +55,10 @@ export {
   assertPersistableOrThrow,
   checkPersistableContract,
 } from './enforcement.js';
+
+// Phase 64: TPE schema normalization (canonical persistence helpers)
+export {
+  normalizeTeamTpeSchema,
+  getTeamTpeList,
+  getTpeIdentityKey,
+} from './normalizeTeamTpe.js';

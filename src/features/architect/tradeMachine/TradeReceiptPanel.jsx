@@ -110,7 +110,11 @@ const PlayerListItem = ({ player, direction }) => {
  *
  * To enable: Set VITE_SHOW_TRADE_RECEIPT=true in your .env file
  */
-const TradeReceiptPanel = ({ receipt }) => {
+const TradeReceiptPanel = ({
+  receipt,
+  // Phase 12.3B: Pre-fetched pick rules for structured derivation
+  pickRulesById = {},
+}) => {
   const [expanded, setExpanded] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState('');
 
@@ -399,8 +403,10 @@ const TradeReceiptPanel = ({ receipt }) => {
                         </div>
                         {team.outgoingEntitlements.map((ent, eIdx) => {
                           // Phase 12.3C: Project entitlement for protection/condition visibility
+                          // Phase 12.3B: Pass pickRulesById for structured rule-aware derivation
                           const pickRow = projectEntitlementToPickRow(ent, {
                             teamCode: team.teamCode,
+                            pickRulesById,
                           });
                           const secondaryText =
                             getPickRowSecondaryText(pickRow);
@@ -444,8 +450,10 @@ const TradeReceiptPanel = ({ receipt }) => {
                         </div>
                         {team.incomingEntitlements.map((ent, eIdx) => {
                           // Phase 12.3C: Project entitlement for protection/condition visibility
+                          // Phase 12.3B: Pass pickRulesById for structured rule-aware derivation
                           const pickRow = projectEntitlementToPickRow(ent, {
                             teamCode: team.teamCode,
+                            pickRulesById,
                           });
                           const secondaryText =
                             getPickRowSecondaryText(pickRow);

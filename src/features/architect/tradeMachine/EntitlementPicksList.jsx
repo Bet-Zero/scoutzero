@@ -34,6 +34,8 @@ export const EntitlementPicksList = ({
   // Phase 11.1: Selection support for entitlement trading
   onToggleEntitlement,
   selectedEntitlementIds = [],
+  // Phase 12.3B: Pre-fetched pick rules for structured derivation
+  pickRulesById = {},
 }) => {
   // Filter and sort entitlements
   const sortedEntitlements = useMemo(() => {
@@ -123,6 +125,8 @@ export const EntitlementPicksList = ({
                   // Phase 11.1: Pass selection state and toggle handler
                   isSelected={isSelected}
                   onToggle={onToggleEntitlement}
+                  // Phase 12.3B: Pass pick rules for structured derivation
+                  pickRulesById={pickRulesById}
                 />
               );
             })}

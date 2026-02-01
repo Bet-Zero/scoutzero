@@ -41,12 +41,16 @@ const EntitlementPickRow = ({
   teamId,
   isSelected = false,
   onToggle,
+  // Phase 12.3B: Pre-fetched pick rules for structured derivation
+  pickRulesById = {},
 }) => {
   if (!entitlement) return null;
 
   // Phase 12.3C: Project entitlement to PickRow for richer display
+  // Phase 12.3B: Pass pickRulesById for structured rule-aware derivation
   const pickRow = projectEntitlementToPickRow(entitlement, {
     teamCode: teamId,
+    pickRulesById,
   });
   const pickRowLabel = getPickRowDisplayLabel(pickRow);
   const secondaryText = getPickRowSecondaryText(pickRow);

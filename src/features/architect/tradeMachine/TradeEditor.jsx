@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { RotateCcw } from 'lucide-react';
 import { useTradeMachine } from '@/features/architect/hooks/useTradeMachine';
 import TradeTeamCard from './TradeTeamCard';
@@ -84,6 +84,17 @@ const TradeEditor = ({
     3: 'Add Team',
     4: 'Add Team',
   };
+
+  // Phase 12.3B: Merge pickRulesById from all team slots for projection layer
+  const mergedPickRulesById = useMemo(() => {
+    const merged = {};
+    for (const slot of teams) {
+      if (slot?.team?.pickRulesById) {
+        Object.assign(merged, slot.team.pickRulesById);
+      }
+    }
+    return merged;
+  }, [teams]);
 
   // Handle TPE application
   const handleApplyTradeException = (player, tpe) => {
@@ -227,6 +238,7 @@ const TradeEditor = ({
         capProjections={capProjections}
         yearKey={yearKey}
         onCalculatorTeamChange={setCalculatorTeamIndex}
+        pickRulesById={mergedPickRulesById}
       />
 
       <TradePreviewModal

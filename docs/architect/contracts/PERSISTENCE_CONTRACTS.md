@@ -1,7 +1,7 @@
 # Persistence Contracts
 
 **Created:** 2026-01-30  
-**Phase:** 61, 62  
+**Phase:** 61, 62, 64  
 **Purpose:** Define and document allowlist-based persistence contracts for Firestore world documents
 
 ---
@@ -15,7 +15,7 @@ Persistence contracts prevent schema drift in Firestore world data by enforcing 
 1. **Prevent drift:** Unknown or debug fields can creep into persisted data over time
 2. **Complement sanitization:** Phase 60 strips known transient keys; contracts catch unknown keys
 3. **Actionable failures:** Test failures include exact paths and guidance for fixes
-4. **Defense in depth:** Layered protection: sanitize → validate contract → removeUndefined
+4. **Defense in depth:** Layered protection: sanitize → normalize → validate contract → removeUndefined
 5. **Fixture-based guardrails:** Phase 62 keyset snapshots catch drift before it reaches production
 
 ### Relationship to Phase 60 Sanitization
@@ -25,8 +25,20 @@ Persistence contracts prevent schema drift in Firestore world data by enforcing 
 | Phase 60 Sanitization | Strip known transient keys | Blocklist (`FORBIDDEN_TRANSIENT_KEYS`) |
 | Phase 61 Contracts    | Catch unknown keys         | Allowlist (persistence contracts)      |
 | Phase 62 Deep Rules   | Validate nested arrays     | Deep allowlists + keyset snapshots     |
+| Phase 64 Normalize    | Canonicalize TPE schema    | `normalizeTeamTpeSchema()` transform   |
 
-Both are applied in `persistWorldMutation()` in the order: **sanitize → validate contract → removeUndefined**
+All are applied in `persistWorldMutation()` in the order: **sanitize → normalize TPE → validate contract → removeUndefined**
+
+### Phase 64: TPE Schema Canonicalization
+
+**IMPORTANT:** As of Phase 64, `team.tradeExceptions[]` is a **legacy read-only** field.
+
+- **Canonical persisted path:** `team.exceptions.tpe[]`
+- **Legacy path:** `team.tradeExceptions[]` (read-only for backward compatibility)
+- **Persistence:** Legacy data is automatically normalized into `exceptions.tpe[]` via `normalizeTeamTpeSchema()` before contract validation
+- **Legacy persistence is FORBIDDEN:** `tradeExceptions` is NOT in the allowlist and will cause contract violations if present after normalization
+
+Use `getTeamTpeList(team)` for reading TPEs - it handles both canonical and legacy locations transparently.
 
 ---
 

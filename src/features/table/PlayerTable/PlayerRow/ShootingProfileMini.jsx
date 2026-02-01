@@ -9,7 +9,7 @@ const SHOOTING_TIERS = {
   Non: 'text-red-600 border-red-600',
 };
 
-const ShootingProfileMini = ({ value = '' }) => {
+const ShootingProfileMini = ({ value = '', compact = false }) => {
   const cleaned = value?.replace('Shooter', '').trim();
   const label = cleaned || '—';
   const isEmpty = label === '—';
@@ -18,17 +18,25 @@ const ShootingProfileMini = ({ value = '' }) => {
     ? 'text-white/30 border-white/20'
     : SHOOTING_TIERS[cleaned] || 'text-white border-white';
 
+  // Phase 2L: compact mode for tighter row density
+  const sizeClasses = compact
+    ? 'w-[55px] py-0.5 text-[10px]'
+    : 'w-[70px] py-1 text-xs';
+  const labelClasses = compact
+    ? 'absolute -top-3 text-[8px]'
+    : 'absolute -top-4 text-[9px]';
+
   return (
     <div className="relative flex items-center justify-center">
       {/* Badge */}
       <div
-        className={`w-[70px] py-1 rounded-md border text-xs font-medium text-center tracking-wide ${style}`}
+        className={`${sizeClasses} rounded-md border font-medium text-center tracking-wide ${style}`}
       >
         {label.toUpperCase()}
       </div>
 
       {/* Floating Label */}
-      <span className="absolute -top-4 text-[9px] text-gray-400 uppercase tracking-wide">
+      <span className={`${labelClasses} text-gray-400 uppercase tracking-wide`}>
         Shooting
       </span>
     </div>

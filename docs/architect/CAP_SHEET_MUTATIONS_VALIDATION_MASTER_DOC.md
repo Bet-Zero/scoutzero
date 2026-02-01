@@ -44,6 +44,8 @@
 - - 2026-01-30: Phase 60 Mutation Persistence Sanitization + No-Leak Guardrails (EXECUTION) - Ensured transient compute/validation artifacts never persist to Firestore. (1) Added `FORBIDDEN_TRANSIENT_KEYS` constant and `sanitizeTransientFieldsForPersistence()` function to `mutationPipeline.js`. (2) Forbidden keys: `_validatedTradeContext`, `_signingValidation`, `_isPostTradeSnapshot`, `_isValidatedTradeContext`, `_rawValidation`. (3) `_meta` explicitly preserved (used by UI for computed totals display). (4) Applied sanitization in `persistWorldMutation()` for team, player, and event writes before `removeUndefinedDeep()`. (5) Added 17 guardrail tests in `phase60_mutation_persist_no_internal_leaks_guardrail.test.js`: unit tests for sanitizer, deep-scan tests for forbidden key detection, source-scan tests verifying sanitizer usage at persistence boundary. 330 architect tests passing. Return package: `docs/architect/return_packages/PHASE_60_MUTATION_PERSIST_SANITIZATION_NO_LEAK_GUARDRAILS_EXECUTION_RETURN_PACKAGE.md`.
 - - 2026-01-30: Phase 61 Persistence Contract Allowlist Guardrails (EXECUTION) - Prevented schema drift at mutation persistence boundary via allowlist-based contracts. (1) Created `src/features/architect/utils/persistenceContracts/` module with: `contracts.js` (frozen allowlists for team/player/event docs + nested arrays), `validatePersistableShape.js` (path-reporting validator), `enforcement.js` (test-on/prod-off gating), `index.js` (public API). (2) Allowlists: `TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST`, `PLAYER_OVERRIDE_TOP_LEVEL_ALLOWLIST`, `EVENT_TOP_LEVEL_ALLOWLIST`, `EVENT_METADATA_TOP_LEVEL_ALLOWLIST`, plus deep rules for `tradeExceptions[]` and `exceptionHistory[]` items. (3) Wired `assertPersistableOrThrow()` in `persistWorldMutation()` for team, player, event, and event.metadata writes. (4) Enforcement order: sanitize → validate contract → removeUndefined. (5) Enforcement enabled by default in test env (`NODE_ENV=test`), disabled in production. (6) 34 guardrail tests in `phase61_persistence_contract_allowlist_guardrails.test.js`. Return package: `docs/architect/return_packages/PHASE_61_PERSISTENCE_CONTRACT_ALLOWLIST_GUARDRAILS_EXECUTION_RETURN_PACKAGE.md`.
 - - 2026-01-30: Phase 62 Persistence Contract Deep-Rules + Fixture-Based Drift Guardrails (EXECUTION) - Hardened Phase 61 contracts with deep rules for drift-prone nested structures. (1) Added `DEAD_CAP_ITEM_ALLOWLIST` for `team.deadCap[]` items. (2) Added `DEAD_CAP_AMOUNT_BY_YEAR_ITEM_ALLOWLIST` for 3-level nested `team.deadCap[].amountByYear[]` items. (3) Added `CAP_HOLD_ITEM_ALLOWLIST` for `team.capHolds[]` items. (4) Extended `validatePersistableShape.js` to support 3-level nesting via propagated deep rules. (5) Updated `TEAM_DEEP_RULES` with 3 new entries: `deadCap`, `deadCap.amountByYear`, `capHolds`. (6) Created fixture-based drift guardrails with keyset snapshot tests that detect new/removed fields. (7) 33 new guardrail tests in `phase62_persistence_contract_fixtures_deep_rules_guardrail.test.js`. Return package: `docs/architect/return_packages/PHASE_62_PERSISTENCE_CONTRACT_DEEP_RULES_FIXTURES_EXECUTION_RETURN_PACKAGE.md`.
+- - 2026-01-30: Phase 63 Sign-and-Trade Test Restoration + Anti-Regression Guardrails (EXECUTION) - Fixed 6 failing S&T tests caused by incomplete Phase 61 persistence contract allowlists. Root cause: Category C (state assembly regression) - allowlists missed legitimately persisted fields `players`, `tradeExceptions`, `sourceTeam`, `destinationTeam`, `contract`. (1) Added `players` and `tradeExceptions` to `TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST`. (2) Added `tradeExceptions` deep rule (same allowlist as `exceptions.tpe`). (3) Added `sourceTeam`, `destinationTeam`, `contract` to `EVENT_METADATA_TOP_LEVEL_ALLOWLIST`. (4) 13 new guardrail tests in `phase63_signAndTrade_restoration_guardrails.test.js` covering: allowlist completeness, validation order (Phase 48 invariant), signing failure short-circuit, Phase 56 architecture pattern. (5) All 410 architect tests passing. Return package: `docs/architect/return_packages/PHASE_63_SIGN_AND_TRADE_TEST_RESTORATION_GUARDRAILS_EXECUTION_RETURN_PACKAGE.md`.
+- - 2026-01-30: Phase 64 TPE Schema Canonicalization + No-Legacy-Persist Guardrails (EXECUTION) - Removed dual-schema ambiguity for Trade Player Exceptions by making `team.exceptions.tpe[]` the only canonical persisted location. (1) Created `normalizeTeamTpeSchema()` helper that merges legacy `tradeExceptions[]` into canonical `exceptions.tpe[]` and removes the legacy field. (2) Created `getTeamTpeList()` read helper for backward-compatible reads from old worlds. (3) Added normalization step in `persistWorldMutation()` between sanitization and contract validation: sanitize → normalize TPE → validate contract → removeUndefined → write. (4) Removed `tradeExceptions` from `TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST` and `TEAM_DEEP_RULES`. (5) Updated Phase 63 tests to reflect Phase 64 changes. (6) 26 new guardrail tests in `phase64_tpe_canonicalization_no_legacy_persist_guardrails.test.js` covering: normalization behavior, deduplication, read helper fallback, source-scan enforcement, contract validation. (7) All 436 architect tests passing. Return package: `docs/architect/return_packages/PHASE_64_TPE_CANONICALIZATION_NO_LEGACY_PERSIST_GUARDRAILS_EXECUTION_RETURN_PACKAGE.md`.
 -
 - LINKS:
 - - Plan: plans/cap-sheet-contract-rules-phase-7-3/plan.md
@@ -697,6 +699,37 @@ Phase 62 tests create representative fixture objects that mirror real persisted 
 | TEST 25-33 | Contract structure validation for new allowlists |
 
 **Test File:** `phase62_persistence_contract_fixtures_deep_rules_guardrail.test.js`
+
+---
+
+#### Phase 63 Sign-and-Trade Restoration Guardrails
+
+**Added:** Phase 63 (2026-01-30)
+
+Phase 63 restored 6 failing S&T tests by completing the Phase 61 persistence contract allowlists and added targeted anti-regression guardrails.
+
+##### Root Cause (Category C: State Assembly Regression)
+
+The Phase 61 allowlists were incomplete - they missed legitimately persisted fields:
+
+| Missing Field     | Allowlist                            | Purpose                           |
+| ----------------- | ------------------------------------ | --------------------------------- |
+| `players`         | `TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST`   | Full player objects array         |
+| `tradeExceptions` | `TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST`   | Legacy TPE array (Phase 47)       |
+| `sourceTeam`      | `EVENT_METADATA_TOP_LEVEL_ALLOWLIST` | S&T origin team in event metadata |
+| `destinationTeam` | `EVENT_METADATA_TOP_LEVEL_ALLOWLIST` | S&T receiving team                |
+| `contract`        | `EVENT_METADATA_TOP_LEVEL_ALLOWLIST` | Signed contract details           |
+
+##### Guardrail Categories
+
+| Category               | Tests | Description                                              |
+| ---------------------- | ----- | -------------------------------------------------------- |
+| Allowlist completeness | 9     | Verifies S&T-required fields are on allowlists           |
+| Validation order       | 1     | Phase 48 invariant: signing before trade validation      |
+| Short-circuit          | 1     | Signing failure prevents trade validation                |
+| Architecture pattern   | 2     | Phase 56 pattern (snapshot → validate → compute/persist) |
+
+**Test File:** `phase63_signAndTrade_restoration_guardrails.test.js`
 
 ---
 
