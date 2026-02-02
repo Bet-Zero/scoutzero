@@ -1,11 +1,8 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 import { loadWorldTeamData } from '@/features/architect/utils/worldTeamData';
-import {
-  getSalaryForYear,
-  areSamePick,
-} from '@/features/architect/utils/tradeHelpers';
-import { ensurePickId } from '@/features/architect/utils/tradeMachine/utils/pickIdUtils';
+import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers';
+// Phase 14.2: Removed ensurePickId import (legacy picks state removed)
 import { TeamMap } from '@/constants/teamList';
 import { toSeasonKey } from '@/features/architect/utils/seasonFormat';
 import {
@@ -233,10 +230,12 @@ export const useTradeMachine = (
   const yearKey = currentYear;
 
   // Memoized calculations
+  // Phase 14.2: incomingAssets no longer references picksOut - draft assets are entitlements-only
   const incomingAssets = useMemo(() => {
     return teams.map((tm, idx) => {
       const players = [];
-      const picks = [];
+      // Phase 14.2: Incoming entitlements derived from entitlementsOut
+      const entitlements = [];
       teams.forEach((t, j) => {
         if (j !== idx && t.team) {
           t.sends.forEach((p) => {
@@ -244,14 +243,15 @@ export const useTradeMachine = (
               players.push({ ...p, fromTeamId: t.team.id });
             }
           });
-          t.picksOut.forEach((p) => {
-            if (!p.toTeamId || p.toTeamId === tm.team?.id) {
-              picks.push({ ...p, fromTeamId: t.team.id });
+          // Phase 14.2: Derive incoming entitlements from entitlementsOut
+          (t.entitlementsOut || []).forEach((e) => {
+            if (!e.toTeamId || e.toTeamId === tm.team?.id) {
+              entitlements.push({ ...e, fromTeamId: t.team.id });
             }
           });
         }
       });
-      return { teamId: tm.team?.id, players, picks };
+      return { teamId: tm.team?.id, players, entitlements };
     });
   }, [teams]);
 
@@ -374,10 +374,10 @@ export const useTradeMachine = (
           {
             team: teamObj,
             sends: [],
-            picksOut: [],
+            // Phase 14.2: Removed picksOut - draft assets are entitlements-only
             entitlementsOut: [],
           },
-          { team: null, sends: [], picksOut: [], entitlementsOut: [] },
+          { team: null, sends: [], entitlementsOut: [] },
         ]);
       }
     };
@@ -529,28 +529,8 @@ export const useTradeMachine = (
     []
   );
 
-  const togglePick = useCallback((index, pick) => {
-    setTeams((prev) => {
-      const newTeams = [...prev];
-      // Ensure pick has ID before comparison (Phase 1 - SSOT)
-      const pickWithId = ensurePickId(pick);
-      const existingIndex = newTeams[index].picksOut.findIndex((p) =>
-        areSamePick(p, pickWithId)
-      );
-
-      if (existingIndex >= 0) {
-        newTeams[index].picksOut.splice(existingIndex, 1);
-      } else {
-        // Ensure pick added to picksOut has canonical ID (Phase 1 - SSOT)
-        newTeams[index].picksOut = [
-          ...newTeams[index].picksOut,
-          { ...pickWithId, fromTeamId: newTeams[index].team?.id },
-        ];
-      }
-
-      return newTeams;
-    });
-  }, []);
+  // Phase 14.2: togglePick removed - draft assets are entitlements-only
+  // Use toggleEntitlement instead
 
   // Phase 11.1: Toggle entitlement selection for trading
   const toggleEntitlement = useCallback((index, entitlement) => {
@@ -582,20 +562,8 @@ export const useTradeMachine = (
     });
   }, []);
 
-  const updatePickField = useCallback((index, pick, field, value) => {
-    setTeams((prev) => {
-      const newTeams = [...prev];
-      const pickIndex = newTeams[index].picksOut.findIndex((p) =>
-        areSamePick(p, pick)
-      );
-
-      if (pickIndex >= 0) {
-        newTeams[index].picksOut[pickIndex][field] = value;
-      }
-
-      return newTeams;
-    });
-  }, []);
+  // Phase 14.2: updatePickField removed - draft assets are entitlements-only
+  // Protection edits are no longer supported in Trade Machine
 
   // Team management
   const selectTeam = useCallback(
@@ -606,7 +574,7 @@ export const useTradeMachine = (
           newTeams[index] = {
             team: null,
             sends: [],
-            picksOut: [],
+            // Phase 14.2: Removed picksOut - draft assets are entitlements-only
             entitlementsOut: [],
           };
           return newTeams;
@@ -730,7 +698,7 @@ export const useTradeMachine = (
           newTeams[index] = {
             team: teamObj,
             sends: [],
-            picksOut: [],
+            // Phase 14.2: Removed picksOut - draft assets are entitlements-only
             entitlementsOut: [],
           };
           return newTeams;
@@ -744,7 +712,8 @@ export const useTradeMachine = (
     if (teams.length >= 5) return;
     setTeams((prev) => [
       ...prev,
-      { team: null, sends: [], picksOut: [], entitlementsOut: [] },
+      // Phase 14.2: Removed picksOut - draft assets are entitlements-only
+      { team: null, sends: [], entitlementsOut: [] },
     ]);
   }, [teams.length]);
 
@@ -804,7 +773,7 @@ export const useTradeMachine = (
         .map((t) => ({
           team: t.team,
           sends: t.sends,
-          picksOut: t.picksOut,
+          // Phase 14.2: Removed picksOut - draft assets are entitlements-only
           hardCapped: t.team.hardCapped,
           // Phase 12.1: Pass entitlements for Stepien validation
           entitlementsOut: t.entitlementsOut || [],
@@ -871,13 +840,14 @@ export const useTradeMachine = (
       .map((t) => ({
         teamId: t.team.id,
         outgoingPlayers: t.sends,
-        outgoingPicks: t.picksOut,
-        // Phase 11.1: Include outgoing entitlements in trade export
+        // Phase 14.2: Removed outgoingPicks - draft assets are entitlements-only
         outgoingEntitlements: t.entitlementsOut || [],
         incomingPlayers:
           incomingAssets.find((a) => a.teamId === t.team.id)?.players || [],
-        incomingPicks:
-          incomingAssets.find((a) => a.teamId === t.team.id)?.picks || [],
+        // Phase 14.2: Incoming entitlements derived from entitlementsOut routing
+        incomingEntitlements:
+          incomingAssets.find((a) => a.teamId === t.team.id)?.entitlements ||
+          [],
         usedTradeExceptions: t.sends
           .filter((p) => p.acquiredViaTPE)
           .map((p) => p.tpeId),
@@ -888,7 +858,8 @@ export const useTradeMachine = (
 
   const resetTrade = useCallback(() => {
     setTeams((prev) =>
-      prev.map((t) => ({ ...t, sends: [], picksOut: [], entitlementsOut: [] }))
+      // Phase 14.2: Removed picksOut - draft assets are entitlements-only
+      prev.map((t) => ({ ...t, sends: [], entitlementsOut: [] }))
     );
     setResult(null);
     setForceTrade(false);
@@ -942,10 +913,9 @@ export const useTradeMachine = (
     setPreviewOpen,
     setForceTrade,
     setPlayerTrade,
-    togglePick,
+    // Phase 14.2: Removed togglePick and updatePickField - draft assets are entitlements-only
     // Phase 11.1: Expose entitlement toggle for trading
     toggleEntitlement,
-    updatePickField,
     selectTeam,
     addTeam,
     removeTeam,

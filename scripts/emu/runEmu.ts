@@ -218,12 +218,17 @@ const main = async () => {
     await freePort(port);
   }
 
-  if (hasPriorExport()) {
+  const hasImport = hasPriorExport();
+  if (hasImport) {
     log(`[emu] prior emulator export found at ${DATA_DIR}, will import`);
   } else {
-    log(
-      `[emu] no prior emulator export found; starting fresh (will export on exit)`
-    );
+    // Phase 16.2: Clear banner when starting fresh
+    log('');
+    log('═══════════════════════════════════════════════════════════════════');
+    log('  📦 No import detected — emulator starting fresh');
+    log('  Base data will be seeded now and saved on exit.');
+    log('═══════════════════════════════════════════════════════════════════');
+    log('');
   }
 
   log('[emu] starting firebase emulators...');

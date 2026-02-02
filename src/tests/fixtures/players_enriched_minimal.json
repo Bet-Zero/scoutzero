@@ -1,0 +1,374 @@
+{
+  "description": "Minimal enriched player fixture set for Phase 2S filter wiring contract tests. Structure matches enrichPlayerData output.",
+  "created": "2025-01-31",
+  "players": [
+    {
+      "id": "fixture-ufa-bird-opt",
+      "bio": {
+        "displayName": "Marcus Freeman",
+        "name": "Marcus Freeman",
+        "position": "SG",
+        "display": {
+          "teamId": "BOS",
+          "team": "Boston Celtics"
+        }
+      },
+      "formattedPosition": "SG",
+      "age": 28,
+      "heightInInches": 76,
+      "weight": 210,
+      "overallGrade": 78,
+      "freeAgentYear": 2025,
+      "freeAgentType": "UFA",
+      "birdRightsStatus": "Full Bird",
+      "optionByYear": { "2025": "PO", "2026": null },
+      "salaryByYear": { "2025": 18500000 },
+      "traits": {
+        "shot_creation": 7,
+        "perimeter_defense": 6,
+        "playmaking": 5,
+        "rebounding": 4,
+        "rim_protection": 2,
+        "shooting": 7,
+        "athleticism": 6,
+        "bbiq": 6,
+        "intangibles": 5,
+        "feel": 6
+      },
+      "seasonStats": {
+        "ppg": 18.5,
+        "rpg": 4.2,
+        "apg": 3.8,
+        "spg": 1.2,
+        "bpg": 0.3,
+        "fg_pct": 0.465,
+        "three_pct": 0.382,
+        "ft_pct": 0.845,
+        "mpg": 32.5,
+        "gp": 72
+      }
+    },
+    {
+      "id": "fixture-rfa-early-no-opt",
+      "bio": {
+        "displayName": "Jordan Chen",
+        "name": "Jordan Chen",
+        "position": "PF",
+        "display": {
+          "teamId": "LAL",
+          "team": "Los Angeles Lakers"
+        }
+      },
+      "formattedPosition": "PF",
+      "age": 24,
+      "heightInInches": 81,
+      "weight": 235,
+      "overallGrade": 72,
+      "freeAgentYear": 2026,
+      "freeAgentType": "RFA",
+      "birdRightsStatus": "Early Bird",
+      "optionByYear": {},
+      "salaryByYear": { "2025": 4200000 },
+      "traits": {
+        "shot_creation": 4,
+        "perimeter_defense": 5,
+        "playmaking": 3,
+        "rebounding": 7,
+        "rim_protection": 6,
+        "shooting": 5,
+        "athleticism": 7,
+        "bbiq": 5,
+        "intangibles": 6,
+        "feel": 5
+      },
+      "seasonStats": {
+        "ppg": 12.3,
+        "rpg": 8.1,
+        "apg": 1.5,
+        "spg": 0.8,
+        "bpg": 1.4,
+        "fg_pct": 0.512,
+        "three_pct": 0.328,
+        "ft_pct": 0.725,
+        "mpg": 28.2,
+        "gp": 68
+      }
+    },
+    {
+      "id": "fixture-ufa-non-bird-to",
+      "bio": {
+        "displayName": "DeShawn Williams",
+        "name": "DeShawn Williams",
+        "position": "C",
+        "display": {
+          "teamId": "MIA",
+          "team": "Miami Heat"
+        }
+      },
+      "formattedPosition": "C",
+      "age": 31,
+      "heightInInches": 83,
+      "weight": 255,
+      "overallGrade": 65,
+      "freeAgentYear": 2025,
+      "freeAgentType": "UFA",
+      "birdRightsStatus": "Non-Bird",
+      "optionByYear": { "2025": "TO" },
+      "salaryByYear": { "2025": 8500000 },
+      "traits": {
+        "shot_creation": 2,
+        "perimeter_defense": 3,
+        "playmaking": 2,
+        "rebounding": 8,
+        "rim_protection": 7,
+        "shooting": 2,
+        "athleticism": 5,
+        "bbiq": 6,
+        "intangibles": 7,
+        "feel": 5
+      },
+      "seasonStats": {
+        "ppg": 8.2,
+        "rpg": 9.5,
+        "apg": 1.2,
+        "spg": 0.5,
+        "bpg": 2.1,
+        "fg_pct": 0.585,
+        "three_pct": 0.0,
+        "ft_pct": 0.645,
+        "mpg": 24.8,
+        "gp": 75
+      }
+    },
+    {
+      "id": "fixture-rfa-bird-no-opt",
+      "bio": {
+        "displayName": "Tyler Jackson",
+        "name": "Tyler Jackson",
+        "position": "PG",
+        "display": {
+          "teamId": "GSW",
+          "team": "Golden State Warriors"
+        }
+      },
+      "formattedPosition": "PG",
+      "age": 25,
+      "heightInInches": 74,
+      "weight": 185,
+      "overallGrade": 81,
+      "freeAgentYear": 2027,
+      "freeAgentType": "RFA",
+      "birdRightsStatus": "Full Bird",
+      "optionByYear": {},
+      "salaryByYear": { "2025": 12800000 },
+      "traits": {
+        "shot_creation": 8,
+        "perimeter_defense": 5,
+        "playmaking": 8,
+        "rebounding": 3,
+        "rim_protection": 1,
+        "shooting": 7,
+        "athleticism": 7,
+        "bbiq": 8,
+        "intangibles": 7,
+        "feel": 8
+      },
+      "seasonStats": {
+        "ppg": 21.5,
+        "rpg": 3.8,
+        "apg": 8.2,
+        "spg": 1.5,
+        "bpg": 0.2,
+        "fg_pct": 0.478,
+        "three_pct": 0.395,
+        "ft_pct": 0.882,
+        "mpg": 35.2,
+        "gp": 78
+      }
+    },
+    {
+      "id": "fixture-locked-no-fa",
+      "bio": {
+        "displayName": "Andre Thompson",
+        "name": "Andre Thompson",
+        "position": "SF",
+        "display": {
+          "teamId": "DEN",
+          "team": "Denver Nuggets"
+        }
+      },
+      "formattedPosition": "SF",
+      "age": 22,
+      "heightInInches": 79,
+      "weight": 215,
+      "overallGrade": 74,
+      "freeAgentYear": null,
+      "freeAgentType": null,
+      "birdRightsStatus": null,
+      "optionByYear": {},
+      "salaryByYear": { "2025": 3200000 },
+      "traits": {
+        "shot_creation": 5,
+        "perimeter_defense": 7,
+        "playmaking": 4,
+        "rebounding": 5,
+        "rim_protection": 3,
+        "shooting": 6,
+        "athleticism": 8,
+        "bbiq": 5,
+        "intangibles": 6,
+        "feel": 5
+      },
+      "seasonStats": {
+        "ppg": 10.8,
+        "rpg": 4.5,
+        "apg": 2.1,
+        "spg": 1.3,
+        "bpg": 0.6,
+        "fg_pct": 0.455,
+        "three_pct": 0.358,
+        "ft_pct": 0.795,
+        "mpg": 26.5,
+        "gp": 65
+      }
+    },
+    {
+      "id": "fixture-ufa-early-po",
+      "bio": {
+        "displayName": "Kevin Morrison",
+        "name": "Kevin Morrison",
+        "position": "SG",
+        "display": {
+          "teamId": "PHX",
+          "team": "Phoenix Suns"
+        }
+      },
+      "formattedPosition": "SG",
+      "age": 29,
+      "heightInInches": 77,
+      "weight": 205,
+      "overallGrade": 70,
+      "freeAgentYear": 2025,
+      "freeAgentType": "UFA",
+      "birdRightsStatus": "Early Bird",
+      "optionByYear": { "2025": "PO" },
+      "salaryByYear": { "2025": 14200000 },
+      "traits": {
+        "shot_creation": 6,
+        "perimeter_defense": 6,
+        "playmaking": 4,
+        "rebounding": 4,
+        "rim_protection": 2,
+        "shooting": 8,
+        "athleticism": 5,
+        "bbiq": 6,
+        "intangibles": 5,
+        "feel": 6
+      },
+      "seasonStats": {
+        "ppg": 14.2,
+        "rpg": 3.5,
+        "apg": 2.8,
+        "spg": 0.9,
+        "bpg": 0.2,
+        "fg_pct": 0.448,
+        "three_pct": 0.412,
+        "ft_pct": 0.868,
+        "mpg": 29.8,
+        "gp": 70
+      }
+    },
+    {
+      "id": "fixture-two-way",
+      "bio": {
+        "displayName": "Marcus Bell",
+        "name": "Marcus Bell",
+        "position": "PG",
+        "display": {
+          "teamId": "OKC",
+          "team": "Oklahoma City Thunder"
+        }
+      },
+      "formattedPosition": "PG",
+      "age": 23,
+      "heightInInches": 73,
+      "weight": 175,
+      "overallGrade": 58,
+      "freeAgentYear": 2025,
+      "freeAgentType": "RFA",
+      "birdRightsStatus": "Non-Bird",
+      "optionByYear": {},
+      "salaryByYear": { "2025": 560000 },
+      "traits": {
+        "shot_creation": 4,
+        "perimeter_defense": 5,
+        "playmaking": 5,
+        "rebounding": 2,
+        "rim_protection": 1,
+        "shooting": 4,
+        "athleticism": 6,
+        "bbiq": 5,
+        "intangibles": 6,
+        "feel": 5
+      },
+      "seasonStats": {
+        "ppg": 5.2,
+        "rpg": 1.8,
+        "apg": 3.2,
+        "spg": 0.8,
+        "bpg": 0.1,
+        "fg_pct": 0.425,
+        "three_pct": 0.312,
+        "ft_pct": 0.758,
+        "mpg": 12.5,
+        "gp": 25
+      }
+    },
+    {
+      "id": "fixture-max-player",
+      "bio": {
+        "displayName": "James Carter",
+        "name": "James Carter",
+        "position": "SF",
+        "display": {
+          "teamId": "MIL",
+          "team": "Milwaukee Bucks"
+        }
+      },
+      "formattedPosition": "SF",
+      "age": 27,
+      "heightInInches": 80,
+      "weight": 230,
+      "overallGrade": 92,
+      "freeAgentYear": 2028,
+      "freeAgentType": "UFA",
+      "birdRightsStatus": "Full Bird",
+      "optionByYear": { "2027": "PO" },
+      "salaryByYear": { "2025": 45500000 },
+      "traits": {
+        "shot_creation": 9,
+        "perimeter_defense": 8,
+        "playmaking": 8,
+        "rebounding": 7,
+        "rim_protection": 5,
+        "shooting": 8,
+        "athleticism": 9,
+        "bbiq": 9,
+        "intangibles": 9,
+        "feel": 9
+      },
+      "seasonStats": {
+        "ppg": 28.5,
+        "rpg": 7.8,
+        "apg": 6.2,
+        "spg": 1.8,
+        "bpg": 0.9,
+        "fg_pct": 0.512,
+        "three_pct": 0.385,
+        "ft_pct": 0.875,
+        "mpg": 36.5,
+        "gp": 74
+      }
+    }
+  ]
+}

@@ -1452,6 +1452,26 @@ function computeSigningResult({ payload, currentState, seasonId, timestamp }) {
             (updatedTeam.exceptions.bae.remainingAmount || 0) - contractValue,
         },
       };
+    } else if (
+      // Phase 74: Room Exception usage tracking
+      // Matches 'room', 'room mle', 'roommle', 'rmle' etc.
+      (exceptionType === 'room' ||
+        exceptionType === 'room mle' ||
+        exceptionType === 'roommle' ||
+        exceptionType === 'rmle') &&
+      updatedTeam.exceptions?.room
+    ) {
+      updatedTeam.exceptions = {
+        ...updatedTeam.exceptions,
+        room: {
+          ...updatedTeam.exceptions.room,
+          usedAmount:
+            (updatedTeam.exceptions.room.usedAmount || 0) + contractValue,
+          remainingAmount:
+            (updatedTeam.exceptions.room.remainingAmount || 0) - contractValue,
+        },
+      };
+      // Note: Room Exception does NOT trigger hard cap (unlike Non-Taxpayer MLE)
     }
   }
 
@@ -2865,7 +2885,10 @@ function computeFinalizeMatchedOfferSheetResult({
   ];
 
   // Recalculate totals
-  updatedHomeTeam.totals = computeTeamCapTotals(updatedHomeTeam, toEndYear(seasonId));
+  updatedHomeTeam.totals = computeTeamCapTotals(
+    updatedHomeTeam,
+    toEndYear(seasonId)
+  );
 
   // 3. Prepare Offering Team Update
   const updatedOfferingTeam = { ...offeringTeam };
@@ -3035,7 +3058,10 @@ function computeFinalizeDeclinedOfferSheetResult({
   }
 
   // Recalculate home team totals
-  updatedHomeTeam.totals = computeTeamCapTotals(updatedHomeTeam, toEndYear(seasonId));
+  updatedHomeTeam.totals = computeTeamCapTotals(
+    updatedHomeTeam,
+    toEndYear(seasonId)
+  );
 
   updatedHomeTeam.source = {
     ...updatedHomeTeam.source,

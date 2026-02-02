@@ -23,6 +23,7 @@ export function getDefaultPlayerFilters() {
     freeAgentType: '',
     birdRights: '',
     optionTypes: [],
+    optionYear: null, // Phase 2X: explicit option year filter (defaults to salaryYear if unset)
     min_overall_grade: undefined,
     max_overall_grade: undefined,
     offenseRole: '',

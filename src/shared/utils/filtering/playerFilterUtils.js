@@ -145,9 +145,11 @@ export function filterPlayers(players = [], filters) {
       }
     }
 
-    // Option Types filter - year-specific, uses salaryYear for context
+    // Option Types filter - year-specific
+    // Phase 2X: Use optionYear if set, otherwise fall back to salaryYear
     if (filters.optionTypes?.length > 0) {
-      const playerOption = p.optionByYear?.[filters.salaryYear] ?? null;
+      const optionCheckYear = filters.optionYear ?? filters.salaryYear;
+      const playerOption = p.optionByYear?.[optionCheckYear] ?? null;
       if (!playerOption || !filters.optionTypes.includes(playerOption)) {
         return false;
       }

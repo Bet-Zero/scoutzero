@@ -123,6 +123,95 @@ Phase 68 makes `--verify-only` mode CI-trustworthy by preventing false greens fr
 - **ESM compatibility:**
   - Fixed `require()` → `JSON.parse(fs.readFileSync())` for service account loading
 
+### Phase 76: Non-TPE Exception Season Advance Lifecycle
+
+**STATUS:** Completed 2026-02-01
+
+Phase 76 adds exception lifecycle handling during season advance for non-TPE exceptions (BAE, Mini MLE, NTMLE, Room).
+
+- **Lifecycle behavior:**
+  - Season advance now resets non-TPE exceptions using canonical cap rules
+  - `maxAmount` recomputed from `getCapRulesForYear(toYear)` for each exception type
+  - `usedAmount` reset to 0 (fresh season = fresh allocation)
+  - `remainingAmount` = maxAmount when enabled, 0 when disabled
+  - `enabled` flag preserved (does NOT auto-enable/disable)
+  - `seasonKey` updated to new season
+
+- **TPE lifecycle unchanged:**
+  - TPE expiry logic remains in `processTradeExceptions()` in `tpeLifecycle.js`
+  - Helper explicitly does NOT touch `exceptions.tpe[]`
+
+- **Helper location:**
+  - `src/features/architect/utils/exceptions/exceptionLifecycle.js`
+  - Exported: `resetTeamNonTpeExceptionsForNewSeason()`, `validateNonTpeExceptionsForYear()`, `NON_TPE_EXCEPTION_TYPES`
+
+- **Wiring:**
+  - Called in `processTeamSeasonTransitionWithOptions()` in `seasonManager.js`
+  - Runs AFTER TPE expiry processing, BEFORE cap totals recalculation
+
+### Phase 77: Season Advance Totals SSOT + Persist→Reload Parity
+
+**STATUS:** Completed 2026-02-01
+
+Phase 77 ensures season advance computes and persists team totals using the canonical SSOT function, eliminating legacy totals computation paths.
+
+- **SSOT enforcement:**
+  - Season advance now uses `computeTeamCapTotals(team, toYear)` from `@/features/architect/utils/capTotals`
+  - Removed dynamic imports of `updateTeamCapTotals()` from `tradeManager.js`
+  - Both `processTeamSeasonTransition()` and `processTeamSeasonTransitionWithOptions()` updated
+
+- **Correct yearKey:**
+  - Totals computed for `toYear` (the target season end year)
+  - Ensures cap rules, salary cap, and apron thresholds match the post-transition season
+
+- **Ordering preserved:**
+  1. TPE expiry processing (Phase 53)
+  2. Non-TPE exception lifecycle reset (Phase 76)
+  3. **Totals recompute using SSOT (Phase 77)**
+  4. Persist teams via `normalizeTeamTpeSchema()` (Phase 65)
+
+- **SSOT fields guaranteed:**
+  - `yearKey` - Season end year
+  - `playersTotal` - Sum of player salaries
+  - `deadMoneyTotal` - Dead cap from waivers/stretches
+  - `capHoldsTotal` - Active unsigned cap holds
+  - `incompleteChargesTotal` - Missing roster slot charges
+  - `totalCapAllocations` - Sum of all cap commitments
+  - `salaryCap`, `firstApron`, `secondApron` - Thresholds from cap rules
+  - `deltas` - Position relative to each threshold
+  - `_meta` - Source metadata for debugging
+
+- **Persist→Reload parity:**
+  - JSON serialize → deserialize produces identical `team.totals` object
+  - No normalization step rewrites totals on reload
+  - Exception state unchanged by totals recompute (Phase 76 handles exception reset)
+
+### Phase 78: Remove updateTeamCapTotals Everywhere - SSOT-Only Totals
+
+**STATUS:** Completed 2026-02-01
+
+Phase 78 enforces a single rule: **There is exactly one way to compute team totals: `computeTeamCapTotals(team, yearKey)`**. No legacy totals helpers remain in the codebase.
+
+- **Deleted `updateTeamCapTotals()`:**
+  - Function definition removed from `tradeManager.js`
+  - Export removed from `architectCore.js` barrel
+  - 4 call sites replaced with SSOT `computeTeamCapTotals()`
+
+- **SSOT-only invariant:**
+  - `tradeManager.js` now imports `computeTeamCapTotals` from `@/features/architect/utils/capTotals`
+  - All trade-related functions use SSOT with correct yearKey derivation
+  - yearKey is derived from `team.season` via `toEndYear()` at each call site
+
+- **Functions migrated to SSOT:**
+  - `executeTrade()` - uses `currentYear` (already numeric)
+  - `signFreeAgent()` - derives yearKey from `updatedTeam.season`
+  - `waivePlayer()` - derives yearKey from `updatedTeam.season`
+  - `extendPlayer()` - derives yearKey from `updatedTeam.season`
+
+- **Guardrails added:**
+  - 9 source-scan guardrail tests in `phase78_remove_updateTeamCapTotals_ssot_only_guardrails.test.js`
+  - Tests verify: no function definition, no export, SSOT import present, SSOT used, Phase 77 invariants preserved
+
 **Migration commands (updated):**
 
 ```bash

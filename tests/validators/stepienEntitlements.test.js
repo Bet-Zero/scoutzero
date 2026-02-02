@@ -426,9 +426,21 @@ describe('validateStepien - Entitlements Integration', () => {
       expect(result._debug.entitlementsConsidered).toBe(1);
     });
 
-    it('entitlement + obligation on consecutive years causes violation', () => {
+    /**
+     * Phase 13: This test was updated to reflect entitlements SSOT.
+     *
+     * Previously (Phase 12.2): draftPicksObligations was read as fallback baseline.
+     * Now (Phase 13): draftPicksObligations is IGNORED. Only validationEntitlements
+     * is used for baseline. If validationEntitlements is empty, baseline is empty.
+     *
+     * This means an outgoing entitlement alone (without consecutive outgoing years)
+     * will NOT cause a violation, because there's no baseline to create the
+     * consecutive year gap.
+     */
+    it('entitlement out alone (without baseline) does NOT cause violation - Phase 13 SSOT', () => {
       const result = validateStepien(
         makeTeam({
+          // Phase 13: draftPicksObligations is now IGNORED
           draftPicksObligations: [{ year: 2027, round: 1, status: 'outgoing' }],
           entitlementsOut: [
             {
@@ -441,10 +453,11 @@ describe('validateStepien - Entitlements Integration', () => {
           ],
         })
       );
-      expect(result.passed).toBe(false);
-      expect(result.violations[0]).toContain('consecutive future 1sts');
-      // Phase 12.2: baselineYearsCount includes obligations in legacy mode
-      expect(result._debug.baselineYearsCount).toBe(1);
+      // Phase 13: With only ONE outgoing year (2028) and no baseline,
+      // there are no consecutive years, so no violation
+      expect(result.passed).toBe(true);
+      // Phase 13: baselineYearsCount is 0 because validationEntitlements is empty
+      expect(result._debug.baselineYearsCount).toBe(0);
       expect(result._debug.entitlementsConsidered).toBe(1);
     });
   });

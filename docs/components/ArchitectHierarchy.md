@@ -123,7 +123,6 @@ tradeMachine/
   EntitlementPickRow.jsx
   EntitlementPicksList.jsx
   FaExceptionTracker.jsx
-  OutgoingPicksList.jsx
   OutgoingPlayersList.jsx
   SelectTeamCard.jsx
   TradeDebugPanel.jsx
@@ -133,7 +132,6 @@ tradeMachine/
   TradeExceptionModal.jsx
   TradeExportCapture.jsx
   TradeLegalChecker.jsx
-  TradePickRow.jsx
   TradePlayerRow.jsx
   TradePreviewModal.jsx
   TradeReceiptPanel.jsx
@@ -180,8 +178,12 @@ utils/
     entitlementResolver.ts
     formatEntitlement.js
     pickRulesResolver.ts
+    seasonManagerProjection.js
   exceptionHistory/
     historyHelpers.js
+  exceptions/
+    exceptionLifecycle.js
+    index.js
   extensionRules.js
   faExceptionUtils.js
   firebaseTeamPlanHelpers.js
@@ -312,5 +314,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-02-01T01:52:30.484Z*
+*Generated on: 2026-02-02T14:20:24.273Z*
 *Auto-updated by: npm run docs*

@@ -1,15 +1,25 @@
 /**
  * Stepien Obligations Tests
  *
- * Tests for the obligations-aware Stepien validation.
+ * Phase 13 Update: Legacy draftPicksObligations behavior has been REMOVED.
  *
+ * Previously: This test file validated that draftPicksObligations was read as a
+ * fallback baseline when validationEntitlements was empty.
+ *
+ * Now (Phase 13 SSOT): draftPicksObligations is IGNORED completely.
+ * - If validationEntitlements is empty, baseline is empty
+ * - Only outgoing picks (outgoingPicks + entitlementsOut) are considered
+ * - Stepien violations only occur when outgoing creates consecutive years
+ *
+ * Tests have been updated to reflect this new behavior.
+ *
+ * See: docs/team-scrape/PST_PICK_LEDGER_MASTER_PLAN.md (Phase 13)
  * See: docs/tradeMachine/TRADE_MACHINE_DRAFT_PICKS_MASTER.md
- * See: docs/return-packages/TRADE_MACHINE_STEPIEN_OBLIGATIONS_WIRING__EXECUTION__2026-01-08.md
  */
 import { describe, it, expect } from 'vitest';
 import { validateStepien } from '@/features/architect/utils/tradeMachine/rules/validateStepien.js';
 
-describe('validateStepien - Obligations Wiring', () => {
+describe('validateStepien - Phase 13 SSOT (Legacy Obligations Removed)', () => {
   const makeTeam = (params) => ({
     teamId: 'TEST',
     teamCode: 'TEST',
@@ -21,216 +31,152 @@ describe('validateStepien - Obligations Wiring', () => {
     },
     outgoingPicks: [],
     draftPicksObligations: [],
+    validationEntitlements: [], // Phase 13: baseline comes from here
+    entitlementsOut: [],
     ...params,
   });
 
-  describe('Test 1: Existing obligation causes Stepien failure', () => {
-    it('blocks trade when existing obligation + new pick are consecutive years', () => {
-      // Team has an existing obligation in 2027 (owed/uncontrolled 1st)
-      // User tries to trade 2028 1st in the current trade
-      // Expected: Stepien violation is detected
+  describe('Phase 13: draftPicksObligations is IGNORED', () => {
+    it('does NOT read draftPicksObligations for baseline - single outgoing passes', () => {
+      // Phase 13: draftPicksObligations is ignored
+      // Only 2028 outgoing pick is considered, no consecutive violation
       const result = validateStepien(
         makeTeam({
-          outgoingPicks: [
-            { year: 2028, round: '1st' }, // Current trade
-          ],
+          outgoingPicks: [{ year: 2028, round: '1st' }],
           draftPicksObligations: [
             {
               year: 2027,
               round: 1,
               originalTeam: 'TEST',
-              owner: 'OTHER', // Owed to another team
+              owner: 'OTHER',
               status: 'outgoing',
             },
           ],
         })
       );
+      // Phase 13: Only 2028 outgoing, no consecutive = pass
+      expect(result.passed).toBe(true);
+      expect(result._debug.baselineSource).toBe('entitlements_ssot');
+      expect(result._debug.baselineYearsCount).toBe(0); // No baseline from obligations
+    });
+
+    it('consecutive outgoing picks STILL cause violation (no legacy needed)', () => {
+      const result = validateStepien(
+        makeTeam({
+          outgoingPicks: [
+            { year: 2027, round: '1st' },
+            { year: 2028, round: '1st' },
+          ],
+          draftPicksObligations: [], // Doesn't matter - ignored anyway
+        })
+      );
+      // 2027 + 2028 outgoing = consecutive violation
       expect(result.passed).toBe(false);
       expect(result.violations[0]).toContain('consecutive future 1sts');
     });
 
-    it('blocks trade when existing obligation + new pick create a consecutive chain', () => {
-      // Team has existing obligation in 2026
-      // User tries to trade 2027 1st
-      // Expected: Stepien violation
+    it('non-consecutive outgoing picks pass', () => {
       const result = validateStepien(
         makeTeam({
-          outgoingPicks: [{ year: 2027, round: '1st' }],
+          outgoingPicks: [
+            { year: 2027, round: '1st' },
+            { year: 2029, round: '1st' }, // Gap year
+          ],
+        })
+      );
+      expect(result.passed).toBe(true);
+    });
+  });
+
+  describe('Consecutive violation still works for outgoing picks', () => {
+    it('blocks when tradeable: false obligation ignored but outgoing creates consecutive', () => {
+      // Phase 13: obligation is ignored, but if outgoing picks are consecutive, still fails
+      const result = validateStepien(
+        makeTeam({
+          outgoingPicks: [
+            { year: 2027, round: '1st' },
+            { year: 2028, round: '1st' },
+          ],
           draftPicksObligations: [
             {
               year: 2026,
               round: 1,
-              status: 'outgoing',
+              status: 'conditional',
               tradeable: false,
             },
           ],
         })
       );
+      // 2027 + 2028 outgoing = consecutive violation (2026 obligation ignored)
       expect(result.passed).toBe(false);
       expect(result.violations[0]).toContain('consecutive future 1sts');
     });
 
-    it('passes when obligation and trade pick are NOT consecutive', () => {
-      // Team has existing obligation in 2027
-      // User tries to trade 2029 1st (not consecutive)
-      // Expected: Pass
-      const result = validateStepien(
-        makeTeam({
-          outgoingPicks: [{ year: 2029, round: '1st' }],
-          draftPicksObligations: [
-            {
-              year: 2027,
-              round: 1,
-              status: 'outgoing',
-            },
-          ],
-        })
-      );
-      expect(result.passed).toBe(true);
-    });
-  });
-
-  describe('Test 2: Conditional/protected obligation reserves year', () => {
-    it('blocks when conditional obligation (tradeable: false) + adjacent pick', () => {
-      // Use a conditional pick in obligations with tradeable: false
-      // Attempt to trade adjacent year 1st
-      // Expected: violation
-      const result = validateStepien(
-        makeTeam({
-          outgoingPicks: [{ year: 2028, round: '1st' }],
-          draftPicksObligations: [
-            {
-              year: 2027,
-              round: 1,
-              status: 'conditional',
-              tradeable: false, // Cannot be traded - blocks Stepien
-            },
-          ],
-        })
-      );
-      expect(result.passed).toBe(false);
-      expect(result.violations[0]).toContain('consecutive future 1sts');
-    });
-
-    it('blocks when obligation has stepienEligible: false + adjacent pick', () => {
-      const result = validateStepien(
-        makeTeam({
-          outgoingPicks: [{ year: 2027, round: '1st' }],
-          draftPicksObligations: [
-            {
-              year: 2026,
-              round: 1,
-              stepienEligible: false, // Explicitly marked as blocking Stepien
-            },
-          ],
-        })
-      );
-      expect(result.passed).toBe(false);
-      expect(result.violations[0]).toContain('consecutive future 1sts');
-    });
-
-    it('passes when obligation has meaningful protection', () => {
-      // Protected obligation should NOT cause consecutive year violation
-      // when the protection is meaningful (per isMeaningfulProtection)
+    it('meaningful protection on outgoing picks bypasses violation', () => {
       const result = validateStepien(
         makeTeam({
           outgoingPicks: [
-            { year: 2028, round: '1st', protection: 'Top 5' }, // Protected
-          ],
-          draftPicksObligations: [
-            {
-              year: 2027,
-              round: 1,
-              status: 'outgoing',
-              protection: 'Top 3', // Meaningful protection
-            },
+            { year: 2027, round: '1st', protection: 'Top 5' },
+            { year: 2028, round: '1st', protection: 'Top 3' },
           ],
         })
       );
-      // Both have meaningful protection, so should pass
+      // Both protected = no violation
       expect(result.passed).toBe(true);
     });
 
-    it('passes when trade pick is protected (even if obligation is unprotected)', () => {
-      // When trade pick has meaningful protection, consecutive violation doesn't apply
-      // This is consistent with existing Stepien behavior
+    it('unprotected + protected consecutive = pass', () => {
       const result = validateStepien(
         makeTeam({
           outgoingPicks: [
+            { year: 2027, round: '1st' }, // Unprotected
             { year: 2028, round: '1st', protection: 'Top 3' }, // Protected
           ],
-          draftPicksObligations: [
-            {
-              year: 2027,
-              round: 1,
-              status: 'outgoing',
-              // No protection - unprotected obligation
-            },
-          ],
         })
       );
-      // Trade pick is protected, so consecutive violation doesn't trigger
-      // (Need BOTH to be unprotected for violation)
+      // One protected = bypass consecutive check for that pair
       expect(result.passed).toBe(true);
     });
   });
 
-  describe('Test 3: Swap worst_of does not reserve year', () => {
-    it('passes when existing swap obligation is worst_of + adjacent pick', () => {
-      // Existing swap obligation with isSwap: true and swapType: 'worst_of'
-      // Ensure it does NOT reserve year; adjacent trade should not auto-fail
+  describe('Swap picks in outgoing', () => {
+    it('outgoing swap with worst_of does NOT reserve year', () => {
       const result = validateStepien(
         makeTeam({
-          outgoingPicks: [{ year: 2028, round: '1st' }],
-          draftPicksObligations: [
-            {
-              year: 2027,
-              round: 1,
-              isSwap: true,
-              swapType: 'worst_of', // worst_of does NOT reserve year
-            },
+          outgoingPicks: [
+            { year: 2027, round: '1st', isSwap: true, swapType: 'worst_of' },
+            { year: 2028, round: '1st' },
           ],
         })
       );
-      // worst_of swap doesn't reserve year, so only 2028 is considered
-      // Single pick = no consecutive violation
+      // worst_of swap doesn't reserve 2027, only 2028 counts = no consecutive
       expect(result.passed).toBe(true);
     });
 
-    it('blocks when existing swap obligation is best_of + adjacent pick', () => {
+    it('outgoing swap with best_of DOES reserve year', () => {
       const result = validateStepien(
         makeTeam({
-          outgoingPicks: [{ year: 2028, round: '1st' }],
-          draftPicksObligations: [
-            {
-              year: 2027,
-              round: 1,
-              isSwap: true,
-              swapType: 'best_of', // best_of DOES reserve year
-            },
+          outgoingPicks: [
+            { year: 2027, round: '1st', isSwap: true, swapType: 'best_of' },
+            { year: 2028, round: '1st' },
           ],
         })
       );
-      // best_of swap reserves year, so 2027 + 2028 = consecutive violation
+      // best_of swap reserves 2027, plus 2028 = consecutive violation
       expect(result.passed).toBe(false);
       expect(result.violations[0]).toContain('consecutive future 1sts');
     });
 
-    it('blocks when existing swap obligation has missing swapType (defaults to best_of)', () => {
+    it('outgoing swap with missing swapType defaults to best_of', () => {
       const result = validateStepien(
         makeTeam({
-          outgoingPicks: [{ year: 2028, round: '1st' }],
-          draftPicksObligations: [
-            {
-              year: 2027,
-              round: 1,
-              isSwap: true,
-              // No swapType - defaults to best_of
-            },
+          outgoingPicks: [
+            { year: 2027, round: '1st', isSwap: true }, // No swapType = best_of
+            { year: 2028, round: '1st' },
           ],
         })
       );
-      // Missing swapType defaults to best_of, which reserves year
+      // Defaults to best_of = reserves year = consecutive violation
       expect(result.passed).toBe(false);
       expect(result.violations[0]).toContain('consecutive future 1sts');
     });
@@ -257,26 +203,21 @@ describe('validateStepien - Obligations Wiring', () => {
       expect(result.passed).toBe(true);
     });
 
-    it('ignores second-round obligations for Stepien', () => {
-      // Second round picks don't count for Stepien rule
+    it('ignores second-round picks for Stepien (outgoing)', () => {
       const result = validateStepien(
         makeTeam({
-          outgoingPicks: [{ year: 2028, round: '1st' }],
-          draftPicksObligations: [
-            {
-              year: 2027,
-              round: 2, // Second round - ignored for Stepien
-              status: 'outgoing',
-            },
+          outgoingPicks: [
+            { year: 2027, round: '2nd' },
+            { year: 2028, round: '1st' },
           ],
         })
       );
-      // Second round obligation is ignored, only 2028 1st is considered
+      // Second round ignored, only 2028 1st = no consecutive
       expect(result.passed).toBe(true);
     });
 
-    it('considers obligations from team.team.draftPicksObligations fallback', () => {
-      // Test the fallback path where obligations are on team.team
+    it('Phase 13: team.team.draftPicksObligations fallback is IGNORED', () => {
+      // Phase 13: Even the fallback path is now ignored
       const result = validateStepien({
         teamId: 'TEST',
         team: {
@@ -293,11 +234,11 @@ describe('validateStepien - Obligations Wiring', () => {
         },
         outgoingPicks: [{ year: 2028, round: '1st' }],
       });
-      expect(result.passed).toBe(false);
-      expect(result.violations[0]).toContain('consecutive future 1sts');
+      // Phase 13: Obligation is ignored, only 2028 outgoing = pass
+      expect(result.passed).toBe(true);
     });
 
-    it('includes debug info about obligations considered', () => {
+    it('includes debug info with Phase 13 baseline source', () => {
       const result = validateStepien(
         makeTeam({
           outgoingPicks: [{ year: 2028, round: '1st' }],
@@ -310,11 +251,49 @@ describe('validateStepien - Obligations Wiring', () => {
           ],
         })
       );
-      // Verify debug info is present
+      // Verify debug info reflects Phase 13 SSOT
       expect(result._debug).toBeDefined();
-      // Phase 12.2: baselineYearsCount includes obligations in legacy mode (no entitlement baseline)
-      expect(result._debug.baselineYearsCount).toBe(1);
+      expect(result._debug.baselineSource).toBe('entitlements_ssot');
+      expect(result._debug.baselineYearsCount).toBe(0); // No baseline from obligations
       expect(result._debug.tradePicksConsidered).toBe(1);
+    });
+  });
+
+  describe('Entitlements SSOT baseline works correctly', () => {
+    it('uses validationEntitlements for baseline when provided', () => {
+      const result = validateStepien(
+        makeTeam({
+          validationEntitlements: [
+            { id: 'e1', kind: 'pick_ownership', round: 1, seasonYear: 2026 },
+            { id: 'e2', kind: 'pick_ownership', round: 1, seasonYear: 2027 },
+          ],
+          entitlementsOut: [
+            { id: 'e1', kind: 'pick_ownership', round: 1, seasonYear: 2026 },
+            { id: 'e2', kind: 'pick_ownership', round: 1, seasonYear: 2027 },
+          ],
+        })
+      );
+      // 2026 + 2027 outgoing = consecutive violation
+      expect(result.passed).toBe(false);
+      expect(result.violations[0]).toContain('consecutive future 1sts');
+      expect(result._debug.baselineYearsCount).toBe(2);
+    });
+
+    it('non-consecutive entitlementsOut pass', () => {
+      const result = validateStepien(
+        makeTeam({
+          validationEntitlements: [
+            { id: 'e1', kind: 'pick_ownership', round: 1, seasonYear: 2026 },
+            { id: 'e2', kind: 'pick_ownership', round: 1, seasonYear: 2028 },
+          ],
+          entitlementsOut: [
+            { id: 'e1', kind: 'pick_ownership', round: 1, seasonYear: 2026 },
+            { id: 'e2', kind: 'pick_ownership', round: 1, seasonYear: 2028 },
+          ],
+        })
+      );
+      // 2026 + 2028 = non-consecutive = pass
+      expect(result.passed).toBe(true);
     });
   });
 });

@@ -1,10 +1,10 @@
 /**
  * Architect Core Module Index
- * 
+ *
  * Centralized exports for all Architect core functionality.
  * This provides a single import point for world management, team loading,
  * trade execution, and season advancement.
- * 
+ *
  * @file src/utils/architect/architectCore.js
  * @module architectCore
  */
@@ -29,19 +29,16 @@ export {
 } from './teamLoader';
 
 // Trade Management
+// Note: updateTeamCapTotals was removed in Phase 78; use computeTeamCapTotals from capTotals instead
 export {
   executeTrade,
   signFreeAgent,
   waivePlayer,
   extendPlayer,
-  updateTeamCapTotals,
 } from './tradeManager';
 
 // Season Advancement
-export {
-  advanceSeason,
-  processSeasonTransition,
-} from './seasonManager';
+export { advanceSeason, processSeasonTransition } from './seasonManager';
 
 // Trade Input Builder
 export {
@@ -53,4 +50,3 @@ export {
   adaptContractForValidator,
   adaptTradeInputForValidator,
 } from './schemaAdapter';
-

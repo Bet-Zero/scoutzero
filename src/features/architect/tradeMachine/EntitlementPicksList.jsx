@@ -26,6 +26,7 @@ import { getKindSortPriority } from '@/features/architect/utils/entitlements/for
  * @param {boolean} [props.showPooled=false] - Whether to show pooled entitlements
  * @param {Function} [props.onToggleEntitlement] - Phase 11.1: Callback when entitlement is toggled
  * @param {Array} [props.selectedEntitlementIds] - Phase 11.1: Array of selected entitlement IDs
+ * @param {string} [props.emptyStateHint] - Phase 14: Optional hint to show in empty state
  */
 export const EntitlementPicksList = ({
   entitlements = [],
@@ -36,6 +37,8 @@ export const EntitlementPicksList = ({
   selectedEntitlementIds = [],
   // Phase 12.3B: Pre-fetched pick rules for structured derivation
   pickRulesById = {},
+  // Phase 14: Empty state hint for debugging
+  emptyStateHint,
 }) => {
   // Filter and sort entitlements
   const sortedEntitlements = useMemo(() => {
@@ -90,7 +93,12 @@ export const EntitlementPicksList = ({
           Draft Assets (Entitlements)
         </h4>
         <div className="text-xs text-white/40 px-1">
-          No draft entitlements available
+          No entitlements loaded.
+          {emptyStateHint && (
+            <span className="block mt-1 text-white/30 text-[10px]">
+              {emptyStateHint}
+            </span>
+          )}
         </div>
       </div>
     );

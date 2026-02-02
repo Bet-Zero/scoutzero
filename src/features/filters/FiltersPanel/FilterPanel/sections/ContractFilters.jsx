@@ -80,10 +80,10 @@ const ContractFilters = ({ filters, setFilters }) => {
           </label>
         </div>
 
-        {/* Free Agent Year */}
+        {/* Free Agent Year → renamed to "Free Agency Summer" */}
         <div className="flex flex-col">
           <label className="mb-1 text-white/50 text-[11px] uppercase tracking-wide">
-            Free Agent Year
+            Free Agency Summer
           </label>
           <select
             value={filters.freeAgentYear ?? ''}
@@ -116,13 +116,37 @@ const ContractFilters = ({ filters, setFilters }) => {
           </select>
         </div>
 
-        {/* Option Type (year-specific, uses Salary Year) */}
+        {/* Option Year - Phase 2X: explicit year for option filtering */}
+        <div className="flex flex-col">
+          <label className="mb-1 text-white/50 text-[11px] uppercase tracking-wide">
+            Option Year
+          </label>
+          <select
+            value={filters.optionYear ?? ''}
+            onChange={(e) =>
+              update(
+                'optionYear',
+                e.target.value ? parseInt(e.target.value) : null
+              )
+            }
+            className="bg-[#2a2a2a] p-1 rounded"
+          >
+            <option value="">Use Season</option>
+            {[2025, 2026, 2027, 2028, 2029, 2030, 2031, 2032].map((year) => (
+              <option key={year} value={year}>
+                {year}-{String(year + 1).slice(-2)}
+              </option>
+            ))}
+          </select>
+          <span className="text-white/30 text-[9px] mt-0.5">
+            Defaults to Season if unset
+          </span>
+        </div>
+
+        {/* Option Type (year-specific) */}
         <div className="flex flex-col">
           <label className="mb-1 text-white/50 text-[11px] uppercase tracking-wide">
             Option Type
-            <span className="text-white/30 text-[9px] ml-1">
-              (uses Salary Year)
-            </span>
           </label>
           <div className="flex flex-wrap gap-1">
             {[

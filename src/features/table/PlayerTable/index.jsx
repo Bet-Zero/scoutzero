@@ -40,6 +40,8 @@ import useContainerDimensions from '@/shared/hooks/useContainerDimensions';
 import getPlayerId from '@/shared/utils/getPlayerId';
 import usePlayerTableDensity from './hooks/usePlayerTableDensity';
 import useActiveFilterCount from '@/features/filters/hooks/useActiveFilterCount';
+import { useFilterDiagnostics } from '../hooks/useFilterDiagnostics';
+import FilterDiagnosticsPanel from './FilterDiagnosticsPanel';
 
 // Row Component for react-window
 const Row = ({ index, style, data }) => {
@@ -242,6 +244,9 @@ const PlayerTable = () => {
 
   const filteredPlayers = useFilteredPlayers(players, filters);
 
+  // Phase 2S: Dev diagnostics for filter debugging (only active with ?debugFilters=1)
+  const diagnostics = useFilterDiagnostics(players, filteredPlayers, filters);
+
   const handleSearchChange = (e) => {
     debouncedSearchUpdate(e.target.value);
   };
@@ -383,6 +388,9 @@ const PlayerTable = () => {
           </div>
         )}
       </div>
+
+      {/* Phase 2S: Dev diagnostics panel (only renders with ?debugFilters=1) */}
+      <FilterDiagnosticsPanel diagnostics={diagnostics} />
     </div>
   );
 };

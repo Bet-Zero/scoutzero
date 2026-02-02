@@ -21,7 +21,7 @@ import {
   SeasonCodeZ,
   TeamCodeZ,
   TimestampZ,
-  YearZ
+  YearZ,
 } from './common';
 import { BasePlayerContractZ } from './architect';
 
@@ -30,16 +30,18 @@ import { BasePlayerContractZ } from './architect';
 // ============================
 
 // Bio
-export const PlayerAgentZ = z.object({
-  name: z.string().optional().nullable(),
-  agency: z.string().optional().nullable()
-}).optional();
+export const PlayerAgentZ = z
+  .object({
+    name: z.string().optional().nullable(),
+    agency: z.string().optional().nullable(),
+  })
+  .optional();
 
 export const PlayerDraftZ = z.object({
   year: YearZ.optional().nullable(),
   round: z.number().int().optional().nullable(),
   pick: z.number().int().optional().nullable(),
-  teamId: TeamCodeZ.optional().nullable()
+  teamId: TeamCodeZ.optional().nullable(),
 });
 
 export const PlayerDisplayZ = z.object({
@@ -50,25 +52,27 @@ export const PlayerDisplayZ = z.object({
   freeAgentYear: YearZ.optional().nullable(),
   freeAgentType: FreeAgentTypeZ.optional().nullable(),
   teamId: TeamCodeZ.optional().nullable(),
-  POS: z.string().optional().nullable()
+  POS: z.string().optional().nullable(),
 });
 
-export const PlayerBioZ = z.object({
-  displayName: z.string(),
-  name: z.string().optional(),
-  playerId: PlayerIdZ,
-  position: z.string().nullable().optional(),
-  height: z.number().int().optional(),
-  weight: z.number().int().optional(),
-  dob: z.string().optional(),
-  birthplace: z.string().optional(),
-  nationality: z.string().optional(),
-  shoots: z.string().optional(),
-  agent: PlayerAgentZ.optional(),
-  draft: PlayerDraftZ.optional(),
-  display: PlayerDisplayZ.optional(),
-  nbaId: z.number().int().optional()
-}).optional();
+export const PlayerBioZ = z
+  .object({
+    displayName: z.string(),
+    name: z.string().optional(),
+    playerId: PlayerIdZ,
+    position: z.string().nullable().optional(),
+    height: z.number().int().optional(),
+    weight: z.number().int().optional(),
+    dob: z.string().optional(),
+    birthplace: z.string().optional(),
+    nationality: z.string().optional(),
+    shoots: z.string().optional(),
+    agent: PlayerAgentZ.optional(),
+    draft: PlayerDraftZ.optional(),
+    display: PlayerDisplayZ.optional(),
+    nbaId: z.number().int().optional(),
+  })
+  .optional();
 
 // Contracts subcollection
 export const ContractMetadataZ = z
@@ -82,12 +86,12 @@ export const ContractMetadataZ = z
     yearsRemaining: z.number().int().optional(),
     freeAgentYear: YearZ.optional(),
     freeAgentType: FreeAgentTypeZ.optional(),
-    maxType: z.string().nullable().optional()
+    maxType: z.string().nullable().optional(),
   })
   .passthrough();
 
 export const ContractDocZ = BasePlayerContractZ.extend({
-  metadata: ContractMetadataZ
+  metadata: ContractMetadataZ,
 });
 
 // Views - Contracts
@@ -99,7 +103,7 @@ export const ContractViewSeasonZ = z.object({
   optionType: OptionTypeZ.optional(),
   optionDecisionDate: z.string().optional(),
   voidedByExtension: z.boolean().optional(),
-  sourceContractId: z.string().optional()
+  sourceContractId: z.string().optional(),
 });
 
 export const ContractsViewDocZ = z
@@ -110,14 +114,14 @@ export const ContractsViewDocZ = z
     birdRights: z
       .object({
         status: z.string(),
-        eligibleFor: z.array(z.string()).optional()
+        eligibleFor: z.array(z.string()).optional(),
       })
       .optional(),
     currentSalary: MoneyZ.optional(),
     yearsRemaining: z.number().int().optional(),
     averageAnnualValue: MoneyZ.optional(),
     maxType: z.string().nullable().optional(),
-    contractType: z.string().optional()
+    contractType: z.string().optional(),
   })
   .passthrough();
 
@@ -128,17 +132,21 @@ export const CurrentContractViewZ = z
     freeAgentType: FreeAgentTypeZ.optional(),
     contractType: z.string().optional(),
     options: z.array(z.any()).optional(),
+    // Phase 2X SSOT: Year-specific option type mapping
+    // Keys are seasonStartYear as strings (e.g., "2025" for 2025-26 season)
+    // Values are option types: "PO" | "TO" | "ETO"
+    optionsByYear: z.record(z.string(), OptionTypeZ).optional(),
     birdRights: z
       .object({
         status: z.string(),
-        eligibleFor: z.array(z.string()).optional()
+        eligibleFor: z.array(z.string()).optional(),
       })
       .optional(),
     salaryByYear: z.record(z.string(), MoneyZ).optional(),
     currentSalary: MoneyZ.optional(),
     yearsRemaining: z.number().int().optional(),
     averageAnnualValue: MoneyZ.optional(),
-    maxType: z.string().nullable().optional()
+    maxType: z.string().nullable().optional(),
   })
   .passthrough()
   .optional();
@@ -147,7 +155,7 @@ export const VideoExampleZ = z
   .object({
     url: z.string(),
     label: z.string().optional(),
-    createdAt: z.number().optional()
+    createdAt: z.number().optional(),
   })
   .passthrough();
 
@@ -159,7 +167,7 @@ export const VideoExamplesZ = z
     subRoles: z.record(z.string(), z.array(VideoExampleZ)).optional(),
     shootingProfile: z.array(VideoExampleZ).optional(),
     twoWayMeter: z.array(VideoExampleZ).optional(),
-    overall: z.array(VideoExampleZ).optional()
+    overall: z.array(VideoExampleZ).optional(),
   })
   .partial()
   .passthrough()
@@ -172,13 +180,13 @@ export const CurrentEvaluationViewZ = z
         offense1: z.string().optional(),
         offense2: z.string().optional(),
         defense1: z.string().optional(),
-        defense2: z.string().optional()
+        defense2: z.string().optional(),
       })
       .optional(),
     subRoles: z
       .object({
         offense: z.array(z.string()).optional(),
-        defense: z.array(z.string()).optional()
+        defense: z.array(z.string()).optional(),
       })
       .optional(),
     shootingProfile: z.string().optional(),
@@ -196,14 +204,14 @@ export const CurrentEvaluationViewZ = z
             subRoles: z.record(z.string(), z.string()).optional(),
             shootingProfile: z.string().optional(),
             twoWayMeter: z.string().optional(),
-            overall: z.string().optional()
+            overall: z.string().optional(),
           })
           .partial()
           .passthrough(),
-        z.record(z.string(), z.any())
+        z.record(z.string(), z.any()),
       ])
       .optional(),
-    videoExamples: VideoExamplesZ
+    videoExamples: VideoExamplesZ,
   })
   .passthrough()
   .optional();
@@ -218,13 +226,16 @@ export const CurrentSeasonStatsZ = z
     'FT%': z.number().optional(),
     'eFG%': z.number().optional(),
     MIN: z.number().optional(),
-    GP: z.number().optional()
+    GP: z.number().optional(),
   })
   .passthrough()
   .optional();
 
 // Seasons subcollection
-export const SeasonStatsZ = z.record(z.union([z.string(), z.literal('%')]), z.any());
+export const SeasonStatsZ = z.record(
+  z.union([z.string(), z.literal('%')]),
+  z.any()
+);
 
 export const SeasonDocZ = z.object({
   age: z.number().int().optional(),
@@ -241,7 +252,7 @@ export const SeasonDocZ = z.object({
       freeAgentType: FreeAgentTypeZ.optional(),
       options: z.any().nullable().optional(),
       birdRights: z.string().nullable().optional(),
-      contractId: z.string().optional()
+      contractId: z.string().optional(),
     })
     .optional(),
   evaluationView: z
@@ -252,15 +263,15 @@ export const SeasonDocZ = z.object({
           offense1: z.string().optional(),
           offense2: z.string().optional(),
           defense1: z.string().optional(),
-          defense2: z.string().optional()
+          defense2: z.string().optional(),
         })
         .optional(),
       shootingProfile: z.string().optional(),
       twoWay: z.number().optional(),
-      badges: z.array(z.string()).optional()
+      badges: z.array(z.string()).optional(),
     })
     .optional(),
-  meta: z.record(z.string(), z.any()).optional()
+  meta: z.record(z.string(), z.any()).optional(),
 });
 
 // Evaluations subcollection (simplified aggregate form)
@@ -274,11 +285,14 @@ export const EvaluationDocZ = z.object({
       offense1: z.string().optional(),
       offense2: z.string().optional(),
       defense1: z.string().optional(),
-      defense2: z.string().optional()
+      defense2: z.string().optional(),
     })
     .optional(),
   subRoles: z
-    .object({ offense: z.array(z.string()).optional(), defense: z.array(z.string()).optional() })
+    .object({
+      offense: z.array(z.string()).optional(),
+      defense: z.array(z.string()).optional(),
+    })
     .optional(),
   badges: z.array(z.string()).optional(),
   overallGrade: z.number().optional(),
@@ -292,11 +306,11 @@ export const EvaluationDocZ = z.object({
           subRoles: z.record(z.string(), z.string()).optional(),
           shootingProfile: z.string().optional(),
           twoWayMeter: z.string().optional(),
-          overall: z.string().optional()
+          overall: z.string().optional(),
         })
         .partial()
         .passthrough(),
-      z.record(z.string(), z.any())
+      z.record(z.string(), z.any()),
     ])
     .optional(),
   videoExamples: VideoExamplesZ,
@@ -305,9 +319,9 @@ export const EvaluationDocZ = z.object({
       methodVersion: z.string().optional(),
       updatedAt: z.string().optional(),
       updatedBy: z.string().optional(),
-      seasonContext: SeasonCodeZ.optional()
+      seasonContext: SeasonCodeZ.optional(),
     })
-    .optional()
+    .optional(),
 });
 
 // Root player doc (main document only)
@@ -317,7 +331,7 @@ export const PlayerMainDocZ = z.object({
   updatedAt: TimestampZ.optional(),
   currentContractView: CurrentContractViewZ,
   currentEvaluationView: CurrentEvaluationViewZ,
-  currentSeasonStats: CurrentSeasonStatsZ
+  currentSeasonStats: CurrentSeasonStatsZ,
 });
 
 // Types

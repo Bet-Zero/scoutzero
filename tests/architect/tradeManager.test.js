@@ -2,7 +2,10 @@
  * Trade Manager Tests
  *
  * Comprehensive unit tests for tradeManager.js covering executeTrade,
- * signFreeAgent, waivePlayer, extendPlayer, and updateTeamCapTotals.
+ * signFreeAgent, waivePlayer, and extendPlayer.
+ *
+ * Note: updateTeamCapTotals was removed in Phase 78. All totals now use
+ * SSOT computeTeamCapTotals() from capTotals. See phase78 guardrail tests.
  *
  * @file tests/architect/tradeManager.test.js
  */
@@ -13,7 +16,6 @@ import {
   signFreeAgent,
   waivePlayer,
   extendPlayer,
-  updateTeamCapTotals,
 } from '@/features/architect/utils/tradeManager';
 import {
   seedBaseData,
@@ -493,7 +495,12 @@ describe('Trade Manager', () => {
         ],
       };
 
-      const result = await extendPlayer(worldId, 'LAL', 'lebron_james', extension);
+      const result = await extendPlayer(
+        worldId,
+        'LAL',
+        'lebron_james',
+        extension
+      );
 
       expect(result.success).toBe(true);
       expect(result.player.contract.contractType).toBe('Extension');
@@ -521,7 +528,12 @@ describe('Trade Manager', () => {
         ],
       };
 
-      const result = await extendPlayer(worldId, 'LAL', 'lebron_james', extension);
+      const result = await extendPlayer(
+        worldId,
+        'LAL',
+        'lebron_james',
+        extension
+      );
 
       expect(
         result.player.contract.salariesByYear.length
@@ -540,129 +552,7 @@ describe('Trade Manager', () => {
     });
   });
 
-  describe('updateTeamCapTotals', () => {
-    it('calculates total salary correctly', async () => {
-      const teamData = createMockTeam({
-        teamCode: 'LAL',
-        players: [
-          createMockPlayer({
-            playerId: 'player1',
-            contract: {
-              salariesByYear: [
-                {
-                  season: '2025-26',
-                  salary: 10_000_000,
-                  capHit: 10_000_000,
-                  guaranteed: true,
-                },
-              ],
-            },
-          }),
-          createMockPlayer({
-            playerId: 'player2',
-            contract: {
-              salariesByYear: [
-                {
-                  season: '2025-26',
-                  salary: 15_000_000,
-                  capHit: 15_000_000,
-                  guaranteed: true,
-                },
-              ],
-            },
-          }),
-        ],
-        season: '2025-26',
-      });
-
-      const totals = await updateTeamCapTotals(teamData);
-
-      expect(totals.totalSalary).toBe(25_000_000);
-    });
-
-    it('includes dead cap in totals', async () => {
-      const teamData = createMockTeam({
-        teamCode: 'LAL',
-        season: '2025-26',
-        deadCap: [
-          {
-            playerId: 'waived_player',
-            playerName: 'Waived Player',
-            originalSalary: 10_000_000,
-            amountByYear: [
-              {
-                season: '2025-26',
-                amount: 5_000_000,
-              },
-            ],
-          },
-        ],
-      });
-
-      const totals = await updateTeamCapTotals(teamData);
-
-      expect(totals.deadCapTotal).toBe(5_000_000);
-      expect(totals.capHit).toBeGreaterThanOrEqual(5_000_000);
-    });
-
-    it('includes cap holds in totals', async () => {
-      const teamData = createMockTeam({
-        teamCode: 'BOS',
-        season: '2025-26',
-        capHolds: [
-          {
-            playerId: 'fa_player',
-            playerName: 'FA Player',
-            amount: 12_000_000,
-            type: 'Bird',
-          },
-        ],
-      });
-
-      const totals = await updateTeamCapTotals(teamData);
-
-      expect(totals.capHoldsTotal).toBe(12_000_000);
-      expect(totals.capHit).toBeGreaterThanOrEqual(12_000_000);
-    });
-
-    it('handles guaranteed vs non-guaranteed', async () => {
-      const teamData = createMockTeam({
-        teamCode: 'LAL',
-        season: '2025-26',
-        players: [
-          createMockPlayer({
-            playerId: 'guaranteed_player',
-            contract: {
-              salariesByYear: [
-                {
-                  season: '2025-26',
-                  salary: 10_000_000,
-                  capHit: 10_000_000,
-                  guaranteed: true,
-                },
-              ],
-            },
-          }),
-          createMockPlayer({
-            playerId: 'non_guaranteed_player',
-            contract: {
-              salariesByYear: [
-                {
-                  season: '2025-26',
-                  salary: 5_000_000,
-                  capHit: 5_000_000,
-                  guaranteed: false,
-                },
-              ],
-            },
-          }),
-        ],
-      });
-
-      const totals = await updateTeamCapTotals(teamData);
-
-      expect(totals.guaranteedSalary).toBe(10_000_000);
-      expect(totals.nonGuaranteedSalary).toBe(5_000_000);
-    });
-  });
+  // Note: updateTeamCapTotals was removed in Phase 78
+  // All totals now use SSOT computeTeamCapTotals() from capTotals
+  // See src/tests/architect/phase78_remove_updateTeamCapTotals_ssot_only_guardrails.test.js for guardrails
 });

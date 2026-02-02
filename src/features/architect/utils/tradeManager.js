@@ -6,6 +6,7 @@
  * HISTORY:
  *  - 2025-11-27: Created (Bet_Zero)
  *  - 2025-12-13: Removed client-side Firestore write operations; module is now read-only (Copilot)
+ *  - 2026-02-01: Phase 78 - Removed deprecated updateTeamCapTotals(); all totals now use SSOT computeTeamCapTotals() from capTotals
  *
  * LINKS:
  *  - Plan: N/A (not created via plan)
@@ -17,6 +18,7 @@ import { getTeam, getPlayer } from '@/features/architect/utils/teamLoader';
 import { validateTrade } from '@/features/architect/utils/tradeMachine';
 import { buildTradeTeamInput } from '@/features/architect/utils/schemaAdapter';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
+import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
 
 /**
  * Client-side note:
@@ -96,14 +98,14 @@ export async function executeTrade(worldId, tradeData) {
     // For multi-team trades, respect explicit destination (tradeTo/toTeamId field)
     // For 2-team trades, players go to the other team by default
     const isMultiTeamTrade = tradeData.teams.length > 2;
-    
+
     tradeData.teams.forEach((otherTeamTrade, otherIndex) => {
       if (otherIndex !== i) {
         const incoming = otherTeamTrade.sends || [];
         incoming.forEach((player) => {
           const playerId = player.player_id || player.id || player.playerId;
           const destTeam = player.tradeTo || player.toTeamId;
-          
+
           if (playerId) {
             // If explicit destination is specified, only add if this is the destination team
             // If no destination specified and it's a 2-team trade, add to the other team
@@ -128,9 +130,10 @@ export async function executeTrade(worldId, tradeData) {
     updatedTeam.roster = [
       ...currentTeamState.roster.filter((rosterItem) => {
         // Extract player ID from roster item (may be string or object)
-        const rosterId = typeof rosterItem === 'string' 
-          ? rosterItem 
-          : rosterItem.player_id || rosterItem.playerId || rosterItem.id;
+        const rosterId =
+          typeof rosterItem === 'string'
+            ? rosterItem
+            : rosterItem.player_id || rosterItem.playerId || rosterItem.id;
         return !outgoingPlayerIds.includes(rosterId);
       }),
       ...incomingPlayerIds,
@@ -148,7 +151,7 @@ export async function executeTrade(worldId, tradeData) {
         const incoming = otherTeamTrade.picksOut || [];
         incoming.forEach((pick) => {
           const destTeam = pick.tradeTo || pick.toTeamId;
-          
+
           if (destTeam) {
             // Explicit destination - only add if this team matches
             if (destTeam === teamCode) {
@@ -187,8 +190,8 @@ export async function executeTrade(worldId, tradeData) {
         currentTeamState.source?.scrapedAt || currentTeamState.source?.version,
     };
 
-    // Recalculate cap totals (simplified - full implementation would use cap calculation utils)
-    updatedTeam.totals = await updateTeamCapTotals(updatedTeam);
+    // Recalculate cap totals using SSOT (Phase 78)
+    updatedTeam.totals = computeTeamCapTotals(updatedTeam, currentYear);
 
     updatedTeams.push({ teamCode, team: updatedTeam });
   }
@@ -262,8 +265,11 @@ export async function signFreeAgent(worldId, teamCode, signingData) {
     );
   }
 
-  // Recalculate cap totals
-  updatedTeam.totals = await updateTeamCapTotals(updatedTeam);
+  // Recalculate cap totals using SSOT (Phase 78)
+  const yearKey = toEndYear(
+    updatedTeam.season || teamState.season || '2025-26'
+  );
+  updatedTeam.totals = computeTeamCapTotals(updatedTeam, yearKey);
 
   // Update source metadata
   updatedTeam.source = {
@@ -357,8 +363,11 @@ export async function waivePlayer(worldId, teamCode, playerId, options = {}) {
     });
   }
 
-  // Recalculate cap totals
-  updatedTeam.totals = await updateTeamCapTotals(updatedTeam);
+  // Recalculate cap totals using SSOT (Phase 78)
+  const yearKeyForTotals = toEndYear(
+    updatedTeam.season || teamState.season || '2025-26'
+  );
+  updatedTeam.totals = computeTeamCapTotals(updatedTeam, yearKeyForTotals);
 
   // Update source metadata
   updatedTeam.source = {
@@ -406,105 +415,16 @@ export async function extendPlayer(worldId, teamCode, playerId, extension) {
     },
   };
 
-  // Recalculate team cap totals (player override affects team totals)
+  // Recalculate team cap totals using SSOT (Phase 78)
   const updatedTeam = { ...teamState };
-  updatedTeam.totals = await updateTeamCapTotals(updatedTeam);
+  const yearKeyForExtend = toEndYear(
+    updatedTeam.season || teamState.season || '2025-26'
+  );
+  updatedTeam.totals = computeTeamCapTotals(updatedTeam, yearKeyForExtend);
 
   return {
     success: true,
     player: updatedPlayer,
     team: updatedTeam,
-  };
-}
-
-/**
- * Update team cap totals after changes
- *
- * @deprecated Phase 72: Use computeTeamCapTotals() from capTotals instead.
- * This function is retained for legacy compatibility in tradeManager paths,
- * but should not be used in new code. The main mutation pipeline now uses
- * the SSOT computeTeamCapTotals() which includes incompleteChargesTotal.
- *
- * This is a simplified implementation. A full implementation would:
- * - Sum all player salaries from roster
- * - Add dead cap amounts
- * - Add cap holds
- * - Calculate exceptions usage
- * - Determine hard cap status
- * - Calculate luxury tax, apron status, etc.
- *
- * @param {Object} teamData - Team data
- * @returns {Promise<Object>} Updated totals object
- */
-export async function updateTeamCapTotals(teamData) {
-  // Simplified cap calculation
-  // In production, this would use comprehensive cap calculation utilities
-
-  const totals = teamData.totals || {};
-
-  // Calculate total salary from roster
-  let totalSalary = 0;
-  let guaranteedSalary = 0;
-  let nonGuaranteedSalary = 0;
-
-  if (teamData.players && Array.isArray(teamData.players)) {
-    teamData.players.forEach((player) => {
-      if (player.contract?.salariesByYear) {
-        // Sum current season salary
-        const currentSeason = teamData.season || '2025-26';
-        const currentYear = toEndYear(currentSeason);
-
-        player.contract.salariesByYear.forEach((yearData) => {
-          const year = toEndYear(yearData.season);
-          if (year === currentYear) {
-            const salary = yearData.salary || 0;
-            totalSalary += salary;
-
-            if (yearData.guaranteed) {
-              guaranteedSalary += salary;
-            } else {
-              nonGuaranteedSalary += salary;
-            }
-          }
-        });
-      }
-    });
-  }
-
-  // Add dead cap
-  let deadCapTotal = 0;
-  if (teamData.deadCap && Array.isArray(teamData.deadCap)) {
-    const currentSeason = teamData.season || '2025-26';
-    teamData.deadCap.forEach((deadCapItem) => {
-      if (deadCapItem.amountByYear) {
-        deadCapItem.amountByYear.forEach((yearData) => {
-          if (yearData.season === currentSeason) {
-            deadCapTotal += yearData.amount || 0;
-          }
-        });
-      }
-    });
-  }
-
-  // Add cap holds
-  let capHoldsTotal = 0;
-  if (teamData.capHolds && Array.isArray(teamData.capHolds)) {
-    teamData.capHolds.forEach((hold) => {
-      capHoldsTotal += hold.amount || 0;
-    });
-  }
-
-  const totalCapHit = totalSalary + deadCapTotal + capHoldsTotal;
-
-  // Update totals
-  return {
-    ...totals,
-    totalSalary,
-    capHit: totalCapHit,
-    guaranteedSalary,
-    nonGuaranteedSalary,
-    rosterCount: teamData.roster?.length || 0,
-    deadCapTotal,
-    capHoldsTotal,
   };
 }

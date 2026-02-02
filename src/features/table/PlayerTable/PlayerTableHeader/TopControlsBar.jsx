@@ -115,16 +115,16 @@ const TopControlsBar = ({
 
       {/* Right side: Sort Controls + Active Filters button */}
       <div className="flex items-center gap-2 shrink-0">
-        {/* Salary Year */}
+        {/* Season selector - displays as "2025-26" format for clarity */}
         <select
           value={filters.salaryYear}
           onChange={(e) => update('salaryYear', parseInt(e.target.value))}
           className={sortSelectClass}
-          title="Salary Year"
+          title="Season (for salary/stats context)"
         >
           {SALARY_YEAR_OPTIONS.map((year) => (
             <option key={year} value={year}>
-              {year}
+              {year}-{String(year + 1).slice(-2)}
             </option>
           ))}
         </select>

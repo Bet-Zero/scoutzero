@@ -11,8 +11,9 @@
  *  - Master Doc: docs/architect/CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { getCapSettingsForYear } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
+import { canUseRoomException } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 
 /**
  * Exception types supported for manual management.
@@ -70,6 +71,14 @@ const ManageExceptionsModal = ({
 
   // Get the season key from currentYear
   const seasonKey = `${currentYear - 1}-${String(currentYear % 100).padStart(2, '0')}`;
+
+  // Phase 75: Compute room exception eligibility using SSOT totals
+  const roomExceptionEligibility = useMemo(() => {
+    if (!teamCapSheet || !currentYear) {
+      return { eligible: false, reason: 'Missing team data' };
+    }
+    return canUseRoomException(teamCapSheet, currentYear);
+  }, [teamCapSheet, currentYear]);
 
   // Load cap settings for current year
   useEffect(() => {
@@ -208,17 +217,29 @@ const ManageExceptionsModal = ({
                   (exc.totalAmount || 0) - (exc.usedAmount || 0);
                 const isOverused = remaining < 0;
 
+                // Phase 75: Room Exception is disabled when team is not under cap
+                const isRoomException = type === 'room';
+                const roomDisabledByEligibility =
+                  isRoomException && !roomExceptionEligibility.eligible;
+                const isDisabled = roomDisabledByEligibility;
+
                 return (
                   <tr
                     key={type}
-                    className={`group hover:bg-white/5 ${!exc.enabled ? 'opacity-50' : ''}`}
+                    className={`group hover:bg-white/5 ${!exc.enabled || isDisabled ? 'opacity-50' : ''}`}
                   >
                     <td className="p-2 text-center">
                       <input
                         type="checkbox"
-                        checked={exc.enabled}
-                        onChange={() => handleToggle(type)}
-                        className="accent-blue-500 w-4 h-4"
+                        checked={exc.enabled && !isDisabled}
+                        onChange={() => !isDisabled && handleToggle(type)}
+                        className={`accent-blue-500 w-4 h-4 ${isDisabled ? 'cursor-not-allowed' : ''}`}
+                        disabled={isDisabled}
+                        title={
+                          isDisabled
+                            ? 'Room Exception is only available to teams operating under the salary cap'
+                            : ''
+                        }
                       />
                     </td>
                     <td className="p-2">
@@ -228,6 +249,12 @@ const ManageExceptionsModal = ({
                       <span className="block text-[10px] text-white/40 uppercase">
                         {type.toUpperCase()}
                       </span>
+                      {/* Phase 75: Room Exception eligibility warning */}
+                      {isRoomException && roomDisabledByEligibility && (
+                        <span className="block text-[10px] text-amber-400 mt-0.5">
+                          ⚠ Only available to teams under the salary cap
+                        </span>
+                      )}
                     </td>
                     <td className="p-2">
                       <div className="relative">

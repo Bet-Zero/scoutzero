@@ -2,14 +2,12 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { getTeamColors, formatMillions } from '@/shared/utils/formatting';
 import {
   getSalaryForYear,
-  formatPick,
   getAdjustmentTooltipLabel,
 } from '@/features/architect/utils/tradeHelpers';
 import { formatSalary } from '@/shared/utils/formatting';
 import CapImpactTiles from './CapImpactTiles';
 import { SelectTeamCard } from './SelectTeamCard';
 import { OutgoingPlayersList } from './OutgoingPlayersList';
-import { OutgoingPicksList } from './OutgoingPicksList';
 import { EntitlementPicksList } from './EntitlementPicksList';
 import TeamSelectDropdown from '@/shared/components/TeamSelectDropdown';
 import { ChevronDown, ChevronUp } from 'lucide-react';
@@ -25,7 +23,10 @@ import { getSalaryMatchingResult } from '@/features/architect/utils/tradeMachine
 import { getCapSettingsForYear } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
 // Phase 1: Accessor function for validator result consumption (TRADE_MACHINE_UI_WIRING_AUDIT v2.1.0)
 import { getTeamSnapshot } from '@/features/architect/hooks/useTradeMachineSnapshot';
-import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import {
+  computeTeamCapTotals,
+  warnOnTotalsDivergence,
+} from '@/features/architect/utils/capTotals';
 // Phase 65: Canonical TPE read accessor
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 
@@ -62,16 +63,16 @@ function formatSkipReasonLabel(skipReason) {
 const TradeTeamCard = ({
   team,
   sends,
-  picks,
+  // Phase 14.2: Removed picks prop - draft assets are entitlements-only
   yearKey,
   otherTeams = [],
   playersMap = {},
   incomingPlayers = [],
-  incomingPicks = [],
+  // Phase 14.2: Changed from incomingPicks to incomingEntitlements
+  incomingEntitlements = [],
   onSetPlayerTrade,
   onUndoPlayerTrade,
-  onTogglePick,
-  onEditPick,
+  // Phase 14: Removed onTogglePick and onEditPick (legacy picks UI removed)
   onSelectTeam,
   onRemove,
   onApplyTradeException,
@@ -170,34 +171,23 @@ const TradeTeamCard = ({
   const hasIncomingAdjustment =
     hasValidatorResult && Math.abs(incomingSalary - incomingBaseSalary) > 1;
 
-  // DEV-ONLY: Outgoing salary divergence check (Phase 1.8)
-  if (import.meta.env.DEV && hasValidatorResult) {
-    const diff = Math.abs(
-      localOutgoingSalary - snapshot.outgoingMatchingSalary
+  // DEV-ONLY: Divergence checks using canonical helper (Phase 1.8, Phase 73)
+  // Phase 73: Updated to use warnOnTotalsDivergence for consistent rate-limited warnings
+  if (hasValidatorResult) {
+    warnOnTotalsDivergence(
+      'TradeTeamCard',
+      'outgoingSalary',
+      localOutgoingSalary,
+      snapshot.outgoingMatchingSalary,
+      1
     );
-    if (diff > 1) {
-      console.warn('[TradeTeamCard] outgoingSalary DIVERGENCE', {
-        local: localOutgoingSalary,
-        snapshot: snapshot.outgoingMatchingSalary,
-        diff,
-        teamId: team?.id,
-      });
-    }
-  }
-
-  // DEV-ONLY: Incoming salary divergence check (Phase 1.8)
-  if (import.meta.env.DEV && hasValidatorResult) {
-    const diff = Math.abs(
-      localIncomingSalary - snapshot.incomingMatchingSalary
+    warnOnTotalsDivergence(
+      'TradeTeamCard',
+      'incomingSalary',
+      localIncomingSalary,
+      snapshot.incomingMatchingSalary,
+      1
     );
-    if (diff > 1) {
-      console.warn('[TradeTeamCard] incomingSalary DIVERGENCE', {
-        local: localIncomingSalary,
-        snapshot: snapshot.incomingMatchingSalary,
-        diff,
-        teamId: team?.id,
-      });
-    }
   }
 
   const { primary } = useMemo(() => getTeamColors(team?.id) || {}, [team?.id]);
@@ -207,9 +197,13 @@ const TradeTeamCard = ({
     [team, sends, incomingPlayers]
   );
 
+  // Phase 14.2: Count based on entitlements, not legacy picks
   const picksCount = useMemo(
-    () => (team?.picks?.length || 0) - picks.length + incomingPicks.length,
-    [team, picks, incomingPicks]
+    () =>
+      (team?.entitlements?.length || 0) -
+      entitlementsOut.length +
+      incomingEntitlements.length,
+    [team, entitlementsOut, incomingEntitlements]
   );
 
   // Use centralized cap settings provider for consistent cap/apron values
@@ -451,14 +445,16 @@ const TradeTeamCard = ({
                   </span>
                 );
               })}
-              {picks
-                .filter((p) => p.fromTeamId === team.id)
-                .map((p) => (
+              {/* Phase 14.2: Show outgoing entitlements instead of picks */}
+              {entitlementsOut
+                .filter((e) => e.fromTeamId === team.id || !e.fromTeamId)
+                .map((e) => (
                   <span
-                    key={`${p.year}-${p.round}-${p.via || ''}`}
+                    key={e.id || e.entitlementId}
                     className="bg-[#2a2a2a] text-white/70 text-[11px] px-2 py-0.5 rounded-full border border-white/10"
                   >
-                    {formatPick(p)}
+                    {e.seasonYear} R{e.round}{' '}
+                    {e.kind === 'swap_right' ? 'Swap' : ''}
                   </span>
                 ))}
             </div>
@@ -558,12 +554,14 @@ const TradeTeamCard = ({
                   </span>
                 );
               })}
-              {incomingPicks.map((p) => (
+              {/* Phase 14.2: Show incoming entitlements instead of picks */}
+              {incomingEntitlements.map((e) => (
                 <span
-                  key={`${p.year}-${p.round}-${p.via || ''}`}
+                  key={e.id || e.entitlementId}
                   className="bg-[#2a2a2a] text-white/70 text-[11px] px-2 py-0.5 rounded-full border border-white/10"
                 >
-                  {formatPick(p)}
+                  {e.seasonYear} R{e.round}{' '}
+                  {e.kind === 'swap_right' ? 'Swap' : ''}
                 </span>
               ))}
             </div>
@@ -721,31 +719,23 @@ const TradeTeamCard = ({
         />
       )}
 
-      {activeTab === 'picks' &&
-        // Phase 11.0: Conditionally render entitlements or legacy picks
-        (team.entitlements?.length > 0 ? (
-          <EntitlementPicksList
-            entitlements={team.entitlements}
-            teamId={team.id}
-            showPooled={false}
-            // Phase 11.1: Pass toggle handler and selected entitlement IDs
-            onToggleEntitlement={onToggleEntitlement}
-            selectedEntitlementIds={(entitlementsOut || []).map(
-              (e) => e.entitlementId || e.id
-            )}
-            // Phase 12.3B: Pass pick rules for structured derivation
-            pickRulesById={team.pickRulesById || {}}
-          />
-        ) : (
-          <OutgoingPicksList
-            team={team}
-            picks={picks}
-            incomingPicks={incomingPicks}
-            otherTeams={otherTeams}
-            onTogglePick={onTogglePick}
-            onEditPick={onEditPick}
-          />
-        ))}
+      {activeTab === 'picks' && (
+        // Phase 14: Always render EntitlementPicksList (removed legacy OutgoingPicksList fallback)
+        <EntitlementPicksList
+          entitlements={team.entitlements || []}
+          teamId={team.id}
+          showPooled={false}
+          // Phase 11.1: Pass toggle handler and selected entitlement IDs
+          onToggleEntitlement={onToggleEntitlement}
+          selectedEntitlementIds={(entitlementsOut || []).map(
+            (e) => e.entitlementId || e.id
+          )}
+          // Phase 12.3B: Pass pick rules for structured derivation
+          pickRulesById={team.pickRulesById || {}}
+          // Phase 14: Empty state hint for debugging
+          emptyStateHint="Check emulator seed / baseTeams.entitlementIds"
+        />
+      )}
 
       {activeTab === 'exceptions' && teamTradeExceptions.length > 0 && (
         <TradeExceptionManager
@@ -760,7 +750,8 @@ const TradeTeamCard = ({
         />
       )}
 
-      {(incomingPlayers.length > 0 || incomingPicks.length > 0) && (
+      {/* Phase 14.2: Show if incoming players or entitlements */}
+      {(incomingPlayers.length > 0 || incomingEntitlements.length > 0) && (
         <div
           className="bg-[#222] border rounded p-3 text-sm"
           style={{ borderColor: primary }}
@@ -845,9 +836,11 @@ const TradeTeamCard = ({
                 )}
               </div>
             ))}
-            {incomingPicks.map((p) => (
-              <div key={`${p.year}-${p.round}-${p.via || ''}`}>
-                • {formatPick(p)}
+            {/* Phase 14.2: Show incoming entitlements instead of picks */}
+            {incomingEntitlements.map((e) => (
+              <div key={e.id || e.entitlementId}>
+                • {e.seasonYear} R{e.round}{' '}
+                {e.kind === 'swap_right' ? 'Swap Right' : 'Pick'}
               </div>
             ))}
           </div>

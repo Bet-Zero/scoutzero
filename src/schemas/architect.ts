@@ -8,11 +8,7 @@ const EntitlementKindZ = z.enum([
   'swap_right',
 ]);
 
-const EntitlementUnderlyingStatusZ = z.enum([
-  'pooled',
-  'encumbered',
-  'clean',
-]);
+const EntitlementUnderlyingStatusZ = z.enum(['pooled', 'encumbered', 'clean']);
 
 export const EntitlementAssetZ = z
   .object({
@@ -41,7 +37,8 @@ export const EntitlementAssetZ = z
   })
   .passthrough();
 
-export const WorldEntitlementOverrideZ = EntitlementAssetZ.partial().passthrough();
+export const WorldEntitlementOverrideZ =
+  EntitlementAssetZ.partial().passthrough();
 
 // ============================
 // architect canonical schemas
@@ -164,19 +161,23 @@ const DraftPickConveyanceZ = z
 
 /**
  * Phase 4: Structured protection metadata (Option A - additive, alongside string)
- * 
+ *
  * protectionMeta provides structured logic for protection evaluation while
  * keeping the legacy `protection` string for backward compatibility and display.
  */
-export const ProtectionMetaZ = z.object({
-  type: z.enum(['position', 'lottery', 'playoff', 'always', 'never']),
-  maxPosition: z.number().int().optional(),
-  conversionTarget: z.object({
-    action: z.enum(['roll', 'convert', 'cancel']),
-    toYear: z.number().int().optional(),
-    toRound: z.number().int().optional(),
-  }).optional(),
-}).optional();
+export const ProtectionMetaZ = z
+  .object({
+    type: z.enum(['position', 'lottery', 'playoff', 'always', 'never']),
+    maxPosition: z.number().int().optional(),
+    conversionTarget: z
+      .object({
+        action: z.enum(['roll', 'convert', 'cancel']),
+        toYear: z.number().int().optional(),
+        toRound: z.number().int().optional(),
+      })
+      .optional(),
+  })
+  .optional();
 
 export const DraftPickZ = z.object({
   id: z.string().optional(),
@@ -258,12 +259,25 @@ export const BaseTeamDocZ = z.object({
   capHolds: z.array(CapHoldItemZ).optional().default([]),
   exceptions: ExceptionsZ,
   draftPicks: z.array(DraftPickZ).optional().default([]),
-  // Draft pick ledger views (from pipeline - see PIPELINE_DRAFT_PICKS_LEDGER__EXECUTION__2026-01-08.md)
-  // draftPicksInventory: Picks the team currently owns (same as draftPicks for backward compat)
+  /**
+   * @deprecated Phase 15: Legacy draft-pick storage. NOT updated by mutations.
+   * Trade Machine + validators MUST NOT read this field.
+   * Draft assets SSOT is entitlements (entitlementIds + baseEntitlements).
+   * This field exists only for backward compatibility and rollback safety.
+   */
   draftPicksInventory: z.array(DraftPickZ).optional().default([]),
-  // draftPicksObligations: Picks the team owes / has traded away (used for Stepien validation)
+  /**
+   * @deprecated Phase 15: Legacy Stepien baseline. Replaced by entitlement-based validation.
+   * Trade Machine + validators MUST NOT read this field.
+   * Stepien validation now uses validationEntitlements exclusively.
+   * See validateStepien.js for entitlements-based Stepien validation.
+   */
   draftPicksObligations: z.array(DraftPickZ).optional().default([]),
-  // draftPicksContested: Swaps and conditional picks involving the team
+  /**
+   * @deprecated Phase 15: Legacy contested pick view. Swap/conveyance live in entitlements.
+   * Trade Machine + validators MUST NOT read this field.
+   * Swap rights and conveyance conditions are defined in entitlement objects.
+   */
   draftPicksContested: z.array(DraftPickZ).optional().default([]),
   entitlementIds: z.array(z.string()).optional().default([]),
   totals: TeamTotalsZ.optional(),

@@ -139,7 +139,8 @@ describe('validateStepien with entitlement baseline', () => {
       const result = validateStepien(team, { yearKey: 2025 });
 
       expect(result.passed).toBe(true);
-      expect(result._debug.useEntitlementBaseline).toBe(true);
+      // Phase 13: baselineSource is always 'entitlements_ssot'
+      expect(result._debug.baselineSource).toBe('entitlements_ssot');
       expect(result._debug.baselineYearsCount).toBe(2);
     });
 
@@ -164,7 +165,8 @@ describe('validateStepien with entitlement baseline', () => {
       expect(result.violations).toContain(
         'Violates Stepien Rule (consecutive future 1sts).'
       );
-      expect(result._debug.useEntitlementBaseline).toBe(true);
+      // Phase 13: baselineSource is always 'entitlements_ssot'
+      expect(result._debug.baselineSource).toBe('entitlements_ssot');
     });
 
     it('non-consecutive outgoing entitlements pass', () => {
@@ -185,7 +187,8 @@ describe('validateStepien with entitlement baseline', () => {
       const result = validateStepien(team, { yearKey: 2025 });
 
       expect(result.passed).toBe(true);
-      expect(result._debug.useEntitlementBaseline).toBe(true);
+      // Phase 13: baselineSource is always 'entitlements_ssot'
+      expect(result._debug.baselineSource).toBe('entitlements_ssot');
     });
 
     it('pooled entitlements in validationEntitlements do NOT reserve year', () => {
@@ -222,10 +225,22 @@ describe('validateStepien with entitlement baseline', () => {
     });
   });
 
-  describe('legacy fallback when entitlements unavailable', () => {
-    it('falls back to draftPicksObligations when validationEntitlements is empty', () => {
+  /**
+   * Phase 13: Legacy fallback has been REMOVED.
+   *
+   * Previously: When validationEntitlements was empty, code would fall back to
+   * draftPicksObligations for baseline.
+   *
+   * Now: draftPicksObligations is IGNORED. If validationEntitlements is empty,
+   * baseline is empty (team has full pick inventory). Only outgoing picks/entitlements
+   * are considered for Stepien validation.
+   *
+   * These tests are updated to reflect the new SSOT behavior.
+   */
+  describe('Phase 13 SSOT: no legacy fallback', () => {
+    it('does NOT read draftPicksObligations when validationEntitlements is empty', () => {
       const team = makeTeam({
-        validationEntitlements: [], // Empty - use legacy
+        validationEntitlements: [], // Empty - Phase 13: baseline is empty, not legacy
         draftPicksObligations: [
           { year: 2026, round: 1, status: 'outgoing' },
           { year: 2027, round: 1, status: 'outgoing' },
@@ -235,12 +250,15 @@ describe('validateStepien with entitlement baseline', () => {
 
       const result = validateStepien(team, { yearKey: 2025 });
 
-      expect(result._debug.useEntitlementBaseline).toBe(false);
-      // In legacy mode, obligations + trade picks are all considered
-      expect(result.passed).toBe(false); // 2026, 2027, 2028 consecutive
+      // Phase 13: baselineSource is always 'entitlements_ssot'
+      expect(result._debug.baselineSource).toBe('entitlements_ssot');
+      // Phase 13: With only 1 outgoing year (2028 legacy pick), no consecutive violation
+      // draftPicksObligations is IGNORED
+      expect(result._debug.baselineYearsCount).toBe(0);
+      expect(result.passed).toBe(true); // Only 2028 outgoing, no consecutive
     });
 
-    it('legacy mode still works with only outgoingPicks', () => {
+    it('consecutive outgoingPicks still cause violation (no baseline needed)', () => {
       const team = makeTeam({
         validationEntitlements: [],
         draftPicksObligations: [],
@@ -252,11 +270,12 @@ describe('validateStepien with entitlement baseline', () => {
 
       const result = validateStepien(team, { yearKey: 2025 });
 
-      expect(result._debug.useEntitlementBaseline).toBe(false);
-      expect(result.passed).toBe(false); // Consecutive
+      // Phase 13: baselineSource is always 'entitlements_ssot'
+      expect(result._debug.baselineSource).toBe('entitlements_ssot');
+      expect(result.passed).toBe(false); // 2026, 2027 consecutive outgoing
     });
 
-    it('legacy mode passes with non-consecutive picks', () => {
+    it('non-consecutive outgoingPicks pass (no baseline needed)', () => {
       const team = makeTeam({
         validationEntitlements: [],
         draftPicksObligations: [],
@@ -268,8 +287,9 @@ describe('validateStepien with entitlement baseline', () => {
 
       const result = validateStepien(team, { yearKey: 2025 });
 
-      expect(result._debug.useEntitlementBaseline).toBe(false);
-      expect(result.passed).toBe(true);
+      // Phase 13: baselineSource is always 'entitlements_ssot'
+      expect(result._debug.baselineSource).toBe('entitlements_ssot');
+      expect(result.passed).toBe(true); // Non-consecutive OK
     });
   });
 
@@ -288,7 +308,8 @@ describe('validateStepien with entitlement baseline', () => {
 
       const result = validateStepien(team, { yearKey: 2025 });
 
-      expect(result._debug.useEntitlementBaseline).toBe(true);
+      // Phase 13: baselineSource is always 'entitlements_ssot'
+      expect(result._debug.baselineSource).toBe('entitlements_ssot');
       // 2026 (entitlement) + 2027 (legacy pick) = consecutive violation
       expect(result.passed).toBe(false);
     });

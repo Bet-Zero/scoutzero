@@ -4,11 +4,11 @@ import { getTeamColors } from '@/shared/utils/formatting/teamColors';
 import { getYearsRemaining } from '@/shared/utils/contracts';
 import { formatSalary } from '@/shared/utils/formatting';
 import {
-  formatPick,
   getSalaryForYear,
   formatCurrency,
 } from '@/features/architect/utils/tradeHelpers';
 import { format } from 'date-fns';
+import { getEntitlementKindBadge } from '@/features/architect/tradeMachine/utils/entitlementWarnings';
 
 const TradeExportCapture = React.forwardRef(function TradeExportCapture(
   { teams = [], result, yearKey, label = 'Trade Summary', date = new Date() },
@@ -16,10 +16,10 @@ const TradeExportCapture = React.forwardRef(function TradeExportCapture(
 ) {
   const formattedDate = format(new Date(date), 'MMMM d, yyyy');
 
-  // 🧮 Preprocess incoming assets by team
+  // 🧮 Preprocess incoming assets by team (Phase 15: entitlements-only)
   const incomingAssets = teams.map((tm, idx) => {
     const players = [];
-    const picks = [];
+    const entitlements = [];
     teams.forEach((t, j) => {
       if (j !== idx && t.team) {
         t.sends.forEach((p) => {
@@ -34,21 +34,22 @@ const TradeExportCapture = React.forwardRef(function TradeExportCapture(
             });
           }
         });
-        t.picksOut.forEach((p) => {
+        // Phase 15: Use entitlementsOut instead of picksOut
+        (t.entitlementsOut || []).forEach((e) => {
           if (
-            !p.toTeamId ||
-            p.toTeamId === tm.team?.id ||
-            p.toTeamId === tm.team?.teamId
+            !e.toTeamId ||
+            e.toTeamId === tm.team?.id ||
+            e.toTeamId === tm.team?.teamId
           ) {
-            picks.push({
-              ...p,
-              fromTeamId: p.fromTeamId || t.team.id,
+            entitlements.push({
+              ...e,
+              fromTeamId: e.fromTeamId || t.team.id,
             });
           }
         });
       }
     });
-    return { players, picks };
+    return { players, entitlements };
   });
 
   const playerRefs = useRef([]);
@@ -88,7 +89,7 @@ const TradeExportCapture = React.forwardRef(function TradeExportCapture(
       <div className="flex flex-wrap justify-center gap-6 p-6">
         {teams.map((tm, idx) => {
           if (!tm.team) return null;
-          const { players, picks } = incomingAssets[idx] || {};
+          const { players, entitlements } = incomingAssets[idx] || {};
           const summary = result?.summaryByTeamIndex?.find(
             (s) => s.teamName === tm.team.teamName
           );
@@ -195,35 +196,44 @@ const TradeExportCapture = React.forwardRef(function TradeExportCapture(
                       </div>
                     </div>
 
-                    {/* 🧾 Picks Section */}
+                    {/* 🧾 Entitlements Section (Phase 15) */}
                     <div className="min-h-[150px] mt-6 flex flex-col justify-end">
                       <h4 className="text-neutral-300 font-semibold text-sm uppercase tracking-wide border-l-4 border-neutral-500 pl-3">
-                        Picks Received
+                        Entitlements Received
                       </h4>
                       <div className="space-y-2 min-h-[60px] mt-2">
-                        {picks.length ? (
-                          picks.map((p, i) => (
-                            <div
-                              key={i}
-                              className="flex items-center justify-between bg-neutral-800/50 border border-neutral-600/30 rounded-xl px-4 py-2 text-neutral-200 font-medium text-sm backdrop-blur-sm"
-                            >
-                              <span>{formatPick(p)}</span>
-                              <TeamLogo
-                                teamId={
-                                  p.originalTeam ||
-                                  p.originTeamId ||
-                                  p.fromTeamId ||
-                                  p.teamId ||
-                                  p.teamAbbr ||
-                                  p.team
-                                }
-                                className="w-5 h-5 ml-2 shrink-0"
-                              />
-                            </div>
-                          ))
+                        {entitlements.length ? (
+                          entitlements.map((e, i) => {
+                            const badge = getEntitlementKindBadge(e.kind);
+                            return (
+                              <div
+                                key={e.id || e.entitlementId || i}
+                                className="flex items-center justify-between bg-neutral-800/50 border border-neutral-600/30 rounded-xl px-4 py-2 text-neutral-200 font-medium text-sm backdrop-blur-sm"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span>
+                                    {e.seasonYear} R{e.round}
+                                  </span>
+                                  <span
+                                    className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${badge.colorClass}`}
+                                  >
+                                    {badge.label}
+                                  </span>
+                                </div>
+                                <TeamLogo
+                                  teamId={
+                                    e.originalTeam ||
+                                    e.originTeamId ||
+                                    e.fromTeamId
+                                  }
+                                  className="w-5 h-5 ml-2 shrink-0"
+                                />
+                              </div>
+                            );
+                          })
                         ) : (
                           <div className="text-neutral-500 text-center py-2 italic text-sm">
-                            No picks received
+                            No entitlements received
                           </div>
                         )}
                       </div>
@@ -258,7 +268,8 @@ const TradeExportCapture = React.forwardRef(function TradeExportCapture(
 
       {/* P1: Base vs Matching disclaimer note */}
       <div className="text-center text-xs text-neutral-500 py-2 border-t border-neutral-700/30">
-        Salaries shown are base contract values. Matching values for trade legality may differ (BYC, trade kicker, poison pill adjustments).
+        Salaries shown are base contract values. Matching values for trade
+        legality may differ (BYC, trade kicker, poison pill adjustments).
       </div>
 
       {/* ✅ Trade Result Footer */}

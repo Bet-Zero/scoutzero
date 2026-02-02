@@ -23,10 +23,9 @@ const TradeEditor = ({
     forceTrade,
     // setForceTrade,
     setPlayerTrade,
-    togglePick,
+    // Phase 14.2: Removed togglePick and updatePickField - draft assets are entitlements-only
     // Phase 11.1: Destructure entitlement toggle for trading
     toggleEntitlement,
-    updatePickField,
     selectTeam,
     addTeam,
     removeTeam,
@@ -59,9 +58,10 @@ const TradeEditor = ({
   // Stale validation fix: hasCurrentValidation now comes from hook
   // It properly checks if validation result matches current draft configuration
 
+  // Phase 14.2: incomingAssets now uses entitlementsOut instead of picksOut
   const incomingAssets = teams.map((tm, idx) => {
     const players = [];
-    const picks = [];
+    const entitlements = [];
     teams.forEach((t, j) => {
       if (j !== idx && t.team) {
         t.sends.forEach((p) => {
@@ -69,14 +69,15 @@ const TradeEditor = ({
             players.push(p);
           }
         });
-        t.picksOut.forEach((p) => {
-          if (!p.toTeamId || p.toTeamId === tm.team?.id) {
-            picks.push(p);
+        // Phase 14.2: Derive incoming entitlements from entitlementsOut
+        (t.entitlementsOut || []).forEach((e) => {
+          if (!e.toTeamId || e.toTeamId === tm.team?.id) {
+            entitlements.push(e);
           }
         });
       }
     });
-    return { players, picks };
+    return { players, entitlements };
   });
 
   const addLabels = {
@@ -161,22 +162,20 @@ const TradeEditor = ({
               teamIndex={idx}
               team={t.team}
               sends={t.sends}
-              picks={t.picksOut}
+              // Phase 14.2: Removed picks prop - draft assets are entitlements-only
               // Phase 11.1: Pass entitlement toggle and selection state
               entitlementsOut={t.entitlementsOut || []}
               onToggleEntitlement={(e) => toggleEntitlement(idx, e)}
               incomingPlayers={incomingAssets[idx]?.players || []}
-              incomingPicks={incomingAssets[idx]?.picks || []}
+              // Phase 14.2: Incoming entitlements instead of incoming picks
+              incomingEntitlements={incomingAssets[idx]?.entitlements || []}
               yearKey={yearKey}
               otherTeams={otherTeams}
               playersMap={playersMap}
               onSetPlayerTrade={(p, action, dest) =>
                 setPlayerTrade(idx, p, action, dest)
               }
-              onTogglePick={(p) => togglePick(idx, p)}
-              onEditPick={(p, field, value) =>
-                updatePickField(idx, p, field, value)
-              }
+              // Phase 14: Removed onTogglePick and onEditPick (legacy picks UI removed)
               onUndoPlayerTrade={undoPlayerTrade}
               onSelectTeam={(teamId) => selectTeam(idx, teamId)}
               onRemove={() => removeTeam(idx)}

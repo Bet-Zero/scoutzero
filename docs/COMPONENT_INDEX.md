@@ -68,7 +68,6 @@ Quick reference for all components in the ScoutZero project.
 - tradeMachine/EntitlementPickRow.jsx
 - tradeMachine/EntitlementPicksList.jsx
 - tradeMachine/FaExceptionTracker.jsx
-- tradeMachine/OutgoingPicksList.jsx
 - tradeMachine/OutgoingPlayersList.jsx
 - tradeMachine/SelectTeamCard.jsx
 - tradeMachine/TradeDebugPanel.jsx
@@ -78,7 +77,6 @@ Quick reference for all components in the ScoutZero project.
 - tradeMachine/TradeExceptionModal.jsx
 - tradeMachine/TradeExportCapture.jsx
 - tradeMachine/TradeLegalChecker.jsx
-- tradeMachine/TradePickRow.jsx
 - tradeMachine/TradePlayerRow.jsx
 - tradeMachine/TradePreviewModal.jsx
 - tradeMachine/TradeReceiptPanel.jsx
@@ -108,7 +106,10 @@ Quick reference for all components in the ScoutZero project.
 - utils/draftPickUtils.js
 - utils/entitlements/entitlementPickRowProjection.js
 - utils/entitlements/formatEntitlement.js
+- utils/entitlements/seasonManagerProjection.js
 - utils/exceptionHistory/historyHelpers.js
+- utils/exceptions/exceptionLifecycle.js
+- utils/exceptions/index.js
 - utils/extensionRules.js
 - utils/faExceptionUtils.js
 - utils/firebaseTeamPlanHelpers.js
@@ -323,6 +324,7 @@ Quick reference for all components in the ScoutZero project.
 
 ## Table
 
+- PlayerTable/FilterDiagnosticsPanel.jsx
 - PlayerTable/PlayerRow/PlayerDrawer/BadgeMini.jsx
 - PlayerTable/PlayerRow/PlayerDrawer/OverallBlurbMini.jsx
 - PlayerTable/PlayerRow/PlayerDrawer/PlayerContractMini.jsx
@@ -345,6 +347,7 @@ Quick reference for all components in the ScoutZero project.
 - PlayerTable/index.jsx
 - SubRolePill.jsx
 - TwoWayMini.jsx
+- hooks/useFilterDiagnostics.js
 - hooks/useFilteredPlayers.js
 
 ## TierMaker
@@ -356,4 +359,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2026-02-01T08:08:34.429Z*
+*Generated on: 2026-02-02T14:20:24.296Z*

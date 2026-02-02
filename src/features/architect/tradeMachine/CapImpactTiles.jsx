@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { formatMillions } from '@/shared/utils/formatting';
 import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
@@ -22,8 +22,12 @@ const CapImpactTiles = ({
   // =========================================================================
   // SINGLE SOURCE OF TRUTH: Use computeTeamCapTotals for baseline
   // See docs/ARCHITECT_CAP_TOTAL_SINGLE_SOURCE.md for details
+  // Phase 73: Memoized to prevent recalculation on every render
   // =========================================================================
-  const baselineTotals = computeTeamCapTotals(team, yearKey);
+  const baselineTotals = useMemo(
+    () => computeTeamCapTotals(team, yearKey),
+    [team, yearKey]
+  );
 
   const {
     salaryCap,
@@ -34,10 +38,19 @@ const CapImpactTiles = ({
   } = baselineTotals;
 
   // Determine if hard capped (current status)
-  // Use the team object directly as it should match teamCapSheet shape used by computeTeamCapTotals
-  const isFirstApronHardCapped = isHardCappedAtFirstApron(team, yearKey);
-  const isSecondApronHardCapped = isHardCappedAtSecondApron(team);
-  const firstApronReason = isFirstApronHardCapped ? getFirstApronHardCapReason(team) : '';
+  // Phase 73: Memoized hard cap status checks
+  const hardCapStatus = useMemo(
+    () => ({
+      isFirstApronHardCapped: isHardCappedAtFirstApron(team, yearKey),
+      isSecondApronHardCapped: isHardCappedAtSecondApron(team),
+      firstApronReason: isHardCappedAtFirstApron(team, yearKey)
+        ? getFirstApronHardCapReason(team)
+        : '',
+    }),
+    [team, yearKey]
+  );
+  const { isFirstApronHardCapped, isSecondApronHardCapped, firstApronReason } =
+    hardCapStatus;
 
   // Phase 1.6: Use validator projectedSalary for POST-TRADE totals
   // Definition: players + dead money (NO cap holds, NO likely incentives)
@@ -48,8 +61,14 @@ const CapImpactTiles = ({
   // Otherwise, fall back to baseline totalCapAllocations + trade net impact
   // Note: projectedSalary from validator = players + dead money (NO cap holds)
   //       baselineTotalAllocations = players + dead money + cap holds
-  const salaryOut = getSalaryForYear(sends, yearKey);
-  const salaryIn = getSalaryForYear(incomingPlayers, yearKey);
+  // Phase 73: Memoized salary in/out calculations
+  const { salaryOut, salaryIn } = useMemo(
+    () => ({
+      salaryOut: getSalaryForYear(sends, yearKey),
+      salaryIn: getSalaryForYear(incomingPlayers, yearKey),
+    }),
+    [sends, incomingPlayers, yearKey]
+  );
 
   const projectedSalary = hasValidatorResult
     ? validatorProjectedSalary
@@ -69,10 +88,9 @@ const CapImpactTiles = ({
 
   // DEV-ONLY: Divergence check for validator projectedSalary (Phase 1.8)
   // Note: Validator uses players + dead money (NO cap holds)
+  // Phase 73: Uses memoized salaryIn/Out values
   if (import.meta.env.DEV && snapshot) {
     const teamTotalSalary = team?.teamTotalSalary ?? team?.totalSalary ?? 0;
-    const salaryOut = getSalaryForYear(sends, yearKey);
-    const salaryIn = getSalaryForYear(incomingPlayers, yearKey);
     const localProjected = teamTotalSalary - salaryOut + salaryIn;
     const validatorProjected = snapshot.projectedSalary;
     const diff = Math.abs(localProjected - validatorProjected);

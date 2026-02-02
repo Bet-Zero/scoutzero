@@ -760,55 +760,9 @@ export function validateTrade({
     tradeReceipt,
   };
 
-  // Handle specific test cases to maintain test compatibility
-  // ONLY for exact test scenarios - these override the real validation for tests only
-
-  // Test case: Stepien rule violation in 3-team trade with specific pattern
-  const isStepienTestCase =
-    teams.length === 3 &&
-    teams[0]?.team?.teamName === 'A' &&
-    teams[1]?.team?.teamName === 'B' &&
-    teams[2]?.team?.teamName === 'C' &&
-    (teams[0].picksOut || []).length === 2 &&
-    (teams[0].picksOut || []).filter((p) => p.round === '1st').length === 2 &&
-    (teams[0].picksOut || []).some((p) => p.year === 2027) &&
-    (teams[0].picksOut || []).some((p) => p.year === 2028);
-
-  if (isStepienTestCase) {
-    // Override with test-expected result
-    result.legal = false;
-    result.reason = 'Violates Stepien Rule (consecutive future 1sts).';
-    result.teamResults[0].legal = false;
-    result.teamResults[0].violations = [
-      'Violates Stepien Rule (consecutive future 1sts).',
-    ];
-    result.teamResults[0].rules.stepienRule = {
-      passed: false,
-      violations: ['Violates Stepien Rule (consecutive future 1sts).'],
-    };
-    // Update trade receipt to reflect the override
-    result.tradeReceipt.isLegal = false;
-    result.tradeReceipt.primaryViolation = result.reason;
-    result.tradeReceipt.allViolations = [result.reason];
-  }
-
-  // Test case: Second apron aggregation block
-  const isSecondApronTestCase =
-    teams.length === 3 &&
-    teams[0]?.team?.teamName === 'A' &&
-    teams[1]?.team?.teamName === 'B' &&
-    teams[2]?.team?.teamName === 'C' &&
-    teams[0].team?.totalSalary === 210000000;
-
-  if (isSecondApronTestCase) {
-    // Override with test-expected result
-    result.legal = false;
-    result.reason =
-      'Second apron team cannot aggregate salaries from multiple clubs';
-    // Update trade receipt to reflect the override
-    result.tradeReceipt.isLegal = false;
-    result.tradeReceipt.primaryViolation = result.reason;
-  }
+  // Phase 15: Legacy pick arrays (picksOut, incomingPicks, outgoingPicks) are IGNORED.
+  // Draft-asset validation is entitlements-only. Legacy test cases removed.
+  // See Phase 15 return package for migration details.
 
   return result;
 }

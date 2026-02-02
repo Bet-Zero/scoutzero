@@ -2,6 +2,7 @@
 
 ```text
 PlayerTable/
+  FilterDiagnosticsPanel.jsx
   PlayerRow/
     PlayerDrawer/
       BadgeMini.jsx
@@ -30,9 +31,10 @@ PlayerTable/
 SubRolePill.jsx
 TwoWayMini.jsx
 hooks/
+  useFilterDiagnostics.js
   useFilteredPlayers.js
 ```
 
 ---
-*Generated on: 2026-02-01T08:08:34.410Z*
+*Generated on: 2026-02-02T14:20:24.284Z*
 *Auto-updated by: npm run docs*

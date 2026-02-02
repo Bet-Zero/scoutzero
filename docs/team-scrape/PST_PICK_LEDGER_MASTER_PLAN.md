@@ -48,6 +48,219 @@
 | Phase 12.3B  | Runtime Pick Rules Fetch + UI Wiring            | COMPLETE    | 2026-01-31 |
 | Phase 12.3D  | HOU Entitlements Sanity Audit                   | COMPLETE    | 2026-02-01 |
 | Phase 12.3E  | Entitlement Sanity Classification               | COMPLETE    | 2026-02-01 |
+| Phase 12.3F  | All-Teams Entitlements Sanity Guardrail         | COMPLETE    | 2026-02-01 |
+| Phase 13     | Mutation Pipeline Entitlement SSOT Confirmation | COMPLETE    | 2026-02-01 |
+| Phase 14     | Trade Machine UI: Entitlements-Only Picks       | COMPLETE    | 2026-02-01 |
+| Phase 14.2   | Remove Legacy picksOut — Entitlements Only      | COMPLETE    | 2026-02-01 |
+| Phase 15     | Entitlements-Only Cleanup & Legacy Pick Removal | COMPLETE    | 2026-02-01 |
+| Phase 16     | SeasonManager Entitlement Awareness (Preflight) | COMPLETE    | 2026-02-01 |
+| Phase 16.1   | SeasonManager Entitlement SSOT View (Execution) | COMPLETE    | 2026-02-01 |
+| Phase 16.2   | Emulator BaseTeams Integrity Guardrail          | COMPLETE    | 2026-02-01 |
+
+---
+
+## Phase 15 — Entitlements-Only Cleanup & Legacy Pick Removal (COMPLETE)
+
+**Goal**: Finalize the entitlements-only Trade Machine by removing dead legacy pick UI/code paths, tightening validators to be entitlements-exclusive, and keeping legacy pick schema fields only as explicitly deprecated compatibility fields.
+
+**IMPORTANT**: Trade Machine draft assets are ENTITLEMENTS ONLY. Legacy pick arrays (`picksOut`, `incomingPicks`, `outgoingPicks`) are deprecated compatibility artifacts and are IGNORED by validators.
+
+**Completed**:
+
+1. ✅ **Deleted legacy pick UI files**:
+   - `src/features/architect/tradeMachine/OutgoingPicksList.jsx`
+   - `src/features/architect/tradeMachine/TradePickRow.jsx`
+
+2. ✅ **Removed residual legacy pick imports/props**:
+   - `TradeTeamCard.jsx`: Removed unused `formatPick` import
+   - `TradeSummaryPanel.jsx`: Replaced "Picks Received" with "Entitlements Received", removed `formatPick` import and `getPickLabel` helper
+   - `TradeExportCapture.jsx`: Converted from `picksOut` to `entitlementsOut`, replaced "Picks Received" with "Entitlements Received"
+
+3. ✅ **Validator hard lock: entitlements-only**:
+   - `tradeValidator.js`: Removed legacy test case overrides that used `picksOut`
+   - Added Phase 15 comment: Legacy pick arrays are IGNORED
+
+4. ✅ **Schema deprecation tightening**:
+   - `architect.ts`: Strengthened deprecation comments for `draftPicksInventory`, `draftPicksObligations`, `draftPicksContested`
+   - Added explicit: "Trade Machine + validators MUST NOT read this field"
+
+5. ✅ **Phase 15 guardrail test**:
+   - Created `src/tests/architect/phase15_trade_payload_entitlements_only_guardrail.test.js` (6 tests)
+   - Tests verify: payload uses entitlements fields, legacy fields are ignored
+
+6. ✅ **Test updates**:
+   - `tests/tradeValidatorEdgeCases.test.js`: Updated to use `entitlementsOut` instead of `picksOut`
+
+**Test Results**:
+
+- Phase 15 guardrail: 6 passed
+- Stepien tests: 14 passed
+- Stepien entitlements: 28 passed
+- Stepien entitlement baseline: 19 passed
+- Stepien obligations: 16 passed
+- Phase 13 guardrail: 9 passed
+- Trade validator edge cases: 6 passed
+
+**Return Package**: [PST_PHASE_15_ENTITLEMENTS_ONLY_CLEANUP_RETURN_PACKAGE.md](return_packages/PST_PHASE_15_ENTITLEMENTS_ONLY_CLEANUP_RETURN_PACKAGE.md)
+
+---
+
+## Phase 16.2 — Emulator BaseTeams Integrity Guardrail (COMPLETE)
+
+**Goal**: Make it impossible for the emulator to end up with `architect_baseTeams` documents that contain only `entitlementIds` (or otherwise missing core fields like roster/salary/cap data). The workflow must recover automatically on `npm run emu` with zero manual steps.
+
+**Problem**: User encountered `architect_baseTeams` docs with only `entitlementIds`, breaking GM tools (teams load with no players and identical salary totals). The emulator startup path was allowing a broken state to persist.
+
+**Solution**: Implemented a Phase 16.2 integrity guardrail in `seedIfMissing.ts` that:
+
+1. **Checks integrity first** before any other seed logic
+2. **Samples 3 deterministic teams** (LAL, BOS, HOU) as canaries
+3. **Verifies required keys** exist and are non-empty:
+   - `teamCode` (string, length=3)
+   - `teamName` (string)
+   - `roster` (array, length > 0)
+4. **Detects "entitlementIds-only"** corruption (has entitlementIds but missing core fields)
+5. **Auto-repairs** on failure:
+   - Reseed baseTeams from staged JSON (full replace)
+   - Patch entitlementIds (merge: true)
+   - Re-verify integrity
+
+**Files Modified**:
+
+| File                           | Change                                               |
+| ------------------------------ | ---------------------------------------------------- |
+| `scripts/emu/seedIfMissing.ts` | Added integrity check + auto-repair flow             |
+| `scripts/emu/runEmu.ts`        | Added clear banner when no import detected           |
+| `scripts/emu/doctor.ts`        | NEW: Diagnostic command for debugging emulator state |
+| `package.json`                 | Added `emu:doctor` script                            |
+
+**npm Scripts Added**:
+
+| Script       | Command                         | Purpose                             |
+| ------------ | ------------------------------- | ----------------------------------- |
+| `emu:doctor` | `npx tsx scripts/emu/doctor.ts` | Diagnostic report of emulator state |
+
+**Workflow**:
+
+1. User runs `npm run emu`
+2. Emulator starts, ports freed, Firestore ready
+3. `seedIfMissing.ts` runs:
+   - **Phase 16.2 integrity check** on LAL/BOS/HOU
+   - If healthy: continue with normal seed state checks
+   - If unhealthy: auto-repair (reseed + patch entitlementIds + re-verify)
+4. All subsequent seed logic runs normally
+
+**Validation**:
+
+- ✅ Fresh start: integrity check passes, baseTeams healthy
+- ✅ Corruption simulation: corrupted LAL doc detected and repaired
+- ✅ Doctor command: correctly reports healthy/unhealthy state
+- ✅ Build passes
+- ✅ No manual steps required—just `npm run emu`
+
+**Return Package**: [PST_EMULATOR_BASETEAMS_INTEGRITY_GUARDRAIL_EXECUTION_RETURN_PACKAGE.md](return_packages/PST_EMULATOR_BASETEAMS_INTEGRITY_GUARDRAIL_EXECUTION_RETURN_PACKAGE.md)
+
+---
+
+## Phase 14.2 — Remove Legacy picksOut — Entitlements Only (COMPLETE)
+
+**Goal**: Eliminate `picksOut` state and handlers from Trade Machine. Draft-asset trading is now entitlements-only.
+
+**Completed**:
+
+1. ✅ **useTradeMachine.js**: Removed `picksOut` from team slots, removed `togglePick` and `updatePickField` functions
+2. ✅ **TradeEditor.jsx**: Removed `picksOut` dependencies, updated `incomingAssets` to use entitlements
+3. ✅ **TradeTeamCard.jsx**: Removed `picks`/`incomingPicks` props, updated to entitlements-only display
+4. ✅ **computeTradeDraftKey.js**: Updated to use `entitlementsOut` IDs instead of `picksOut`
+5. ✅ **Export payload**: `outgoingEntitlements` and `incomingEntitlements` only (no `outgoingPicks`)
+6. ✅ **Tests**: 77 Stepien tests + 9 Phase 13 guardrail tests pass (86 total)
+
+**Return Package**: [PST_PHASE_14_2_REMOVE_LEGACY_PICKSOUT_ENTITLEMENTS_ONLY_EXECUTION_RETURN_PACKAGE.md](return_packages/PST_PHASE_14_2_REMOVE_LEGACY_PICKSOUT_ENTITLEMENTS_ONLY_EXECUTION_RETURN_PACKAGE.md)
+
+---
+
+## Phase 14 — Trade Machine UI: Entitlements-Only Picks (COMPLETE)
+
+**Goal**: Remove legacy pick UI fallback from Trade Machine. The Picks tab will always render `EntitlementPicksList`, never the legacy `OutgoingPicksList`.
+
+**Completed**:
+
+1. ✅ **TradeTeamCard.jsx**: Removed conditional, always renders `EntitlementPicksList`
+2. ✅ **Build passes**: All 77 Stepien tests + 9 Phase 13 guardrail tests pass
+
+**Scope**:
+
+- Trade Machine Picks tab always uses entitlements UI
+- Remove "Outgoing Picks" legacy UI surface from Trade Machine
+- Keep legacy data on BaseTeams untouched for compatibility
+- Do NOT remove `picksOut` state yet (done in Phase 14.2)
+
+**Return Package**: [PST_PHASE_14_ENTITLEMENTS_ONLY_UI_EXECUTION_RETURN_PACKAGE.md](return_packages/PST_PHASE_14_ENTITLEMENTS_ONLY_UI_EXECUTION_RETURN_PACKAGE.md)
+
+---
+
+## Phase 13 — Mutation Pipeline Entitlement SSOT Confirmation (COMPLETE)
+
+**Goal**: Make entitlements the authoritative SSOT for draft-asset validation (Stepien baseline), and add guardrails so we can safely delete legacy pick fields later.
+
+**Completed**:
+
+1. ✅ **Removed Stepien Legacy Fallback**: `validateStepien.js` no longer reads `draftPicksObligations`
+2. ✅ **SSOT Baseline**: Stepien baseline ALWAYS derived from `validationEntitlements`
+3. ✅ **Guardrail Tests**: Created `phase13_entitlementIds_transfer_guardrail.test.js` (9 tests)
+4. ✅ **Schema Deprecation**: Added JSDoc `@deprecated` to `draftPicksInventory`, `draftPicksObligations`, `draftPicksContested`
+5. ✅ **All Stepien Tests Pass**: 86 tests across 5 test files
+
+**Critical Change**: Stepien baseline **no longer reads `draftPicksObligations`**. If `validationEntitlements` is empty, baseline is empty.
+
+**Known Limitations**:
+
+- `seasonManager.js` still operates on legacy `draftPicks` (not entitlement-aware)
+- Legacy fields not deleted (deprecated only, for backward compatibility)
+
+**Return Packages**:
+
+- Preflight: [PST_PHASE_13_MUTATION_ENTITLEMENT_SSOT_PREFLIGHT_RETURN_PACKAGE.md](return_packages/PST_PHASE_13_MUTATION_ENTITLEMENT_SSOT_PREFLIGHT_RETURN_PACKAGE.md)
+- Execution: [PST_PHASE_13_ENTITLEMENTS_SSOT_VALIDATION_EXECUTION_RETURN_PACKAGE.md](return_packages/PST_PHASE_13_ENTITLEMENTS_SSOT_VALIDATION_EXECUTION_RETURN_PACKAGE.md)
+
+---
+
+## Phase 12.3F — All-Teams Entitlements Sanity Guardrail (COMPLETE)
+
+**Goal**: Turn the Phase 12.3E entitlement sanity classifier into a whole-dataset guardrail that audits ALL 30 teams and fails (exit 1) if any ERROR rows exist.
+
+**Problem**: Phase 12.3E provided deterministic classification but only ran on a single team at a time. A CI/CD-friendly guardrail needs to audit the entire dataset and fail the build if any errors exist.
+
+**Solution**: Created `pst_audit_all_teams_entitlements_sanity.ts` which:
+
+1. Iterates over all 30 NBA team codes
+2. Reuses the `classifyEntitlement()` function from Phase 12.3E for each team's entitlements
+3. Produces a consolidated JSON + TXT report with per-team and grand totals
+4. Prints a clean console summary table (Team | Total | OK | WARN | ERROR)
+5. Exits with code 1 if any ERROR rows exist, code 0 otherwise
+
+**Files Created**:
+
+| File                                                                             | Purpose                                     |
+| -------------------------------------------------------------------------------- | ------------------------------------------- |
+| `team-scrape/draft-picks/scripts/pst/pst_audit_all_teams_entitlements_sanity.ts` | All-teams audit script with guardrail logic |
+| `data/pst/audits/all_teams_entitlements_sanity_audit.json`                       | JSON output with full audit results         |
+| `data/pst/audits/all_teams_entitlements_sanity_audit.txt`                        | Human-readable text report                  |
+
+**npm Scripts Added**:
+
+| Script                          | Command                                                                                  | Purpose                         |
+| ------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------- |
+| `pst:audit:entitlements:all`    | `npx tsx team-scrape/draft-picks/scripts/pst/pst_audit_all_teams_entitlements_sanity.ts` | Run audit for all 30 teams      |
+| `pst:guard:entitlements:sanity` | `npx tsx team-scrape/draft-picks/scripts/pst/pst_audit_all_teams_entitlements_sanity.ts` | Guardrail alias (same as above) |
+
+**Validation**:
+
+- Build passes ✓
+- Audit script produces consolidated JSON + TXT outputs ✓
+- Exits 0 when no ERROR rows, exits 1 when ERRORs exist ✓
+
+**Return Package**: `docs/team-scrape/return_packages/PST_PHASE_12_3F_ALL_TEAMS_ENTITLEMENTS_SANITY_GUARDRAIL_RETURN_PACKAGE.md`
 
 ---
 

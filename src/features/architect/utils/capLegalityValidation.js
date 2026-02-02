@@ -32,7 +32,10 @@ import {
   getPlayerName,
 } from '@/features/architect/utils/capHelpers';
 import { getCapRulesForYear } from '@/features/architect/utils/capRulesProfile';
-import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import {
+  computeTeamCapTotals,
+  canUseRoomException,
+} from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import { getYearsOfService } from '@/features/architect/utils/playerRulesProfile/minimumSalaryRules.js';
 import { computePlayerRulesProfile } from '@/features/architect/utils/playerRulesProfile/index.js';
 import {
@@ -2037,6 +2040,30 @@ export function validateExceptionEligibility({ team, signedUsing, year }) {
   // Check hard cap status
   const hardCapStatus = getHardCapStatus(team, rules);
 
+  // RULE 0: Phase 75 - Room Exception requires team to be under the salary cap (SSOT gating)
+  const isRoomMLEVariant =
+    normalizedException === 'room' ||
+    normalizedException === 'roommle' ||
+    normalizedException === 'rmle';
+  if (isRoomMLEVariant) {
+    const roomEligibility = canUseRoomException(team, year);
+    if (!roomEligibility.eligible) {
+      return {
+        blocked: true,
+        reason:
+          roomEligibility.reason ||
+          'Room Exception requires team to be under the salary cap',
+        violation: {
+          rule: 'ROOM_REQUIRES_UNDER_CAP',
+          message:
+            roomEligibility.reason ||
+            'Room Exception requires team to be under the salary cap',
+          severity: 'error',
+        },
+      };
+    }
+  }
+
   // RULE 1: Second Apron teams cannot use any exceptions
   if (isAboveSecondApron) {
     const blockedExceptions = [
@@ -2047,6 +2074,9 @@ export function validateExceptionEligibility({ team, signedUsing, year }) {
       'tpe',
       'tpmle',
       'taxpayermle',
+      'room',
+      'roommle',
+      'rmle',
     ];
     if (blockedExceptions.some((e) => normalizedException.includes(e))) {
       return {
@@ -2113,6 +2143,24 @@ export function validateExceptionEligibility({ team, signedUsing, year }) {
         violation: {
           rule: 'exception_blocked',
           message: `Cannot use BAE - team is above first apron.`,
+          severity: 'error',
+        },
+      };
+    }
+
+    // Phase 74: Room Exception is also unavailable above first apron
+    // Room MLE is only available to teams under the salary cap
+    const isRoomMLE =
+      normalizedException === 'room' ||
+      normalizedException === 'roommle' ||
+      normalizedException === 'rmle';
+    if (isRoomMLE) {
+      return {
+        blocked: true,
+        reason: 'Room Exception unavailable above first apron',
+        violation: {
+          rule: 'exception_blocked',
+          message: `Cannot use Room Exception - team is above first apron. Room Exception is only available to under-cap teams.`,
           severity: 'error',
         },
       };

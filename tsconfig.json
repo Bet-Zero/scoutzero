@@ -24,12 +24,8 @@
     "team-scrape/team-data/scripts/**/*",
     "team-scrape/draft-picks/scripts/**/*",
     "team-scrape/shared/firestore_staging/**/*",
-    "team-scrape/shared/review_and_merge/scripts/**/*"
+    "team-scrape/shared/review_and_merge/scripts/**/*",
+    "capTotals"
   ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "archive",
-    "player-scrape/contracts/**/*"
-  ]
+  "exclude": ["node_modules", "dist", "archive", "player-scrape/contracts/**/*"]
 }

@@ -163,12 +163,37 @@ export function enrichPlayerData(playerData) {
 
     // Create a primaryContract-like structure from currentContractView
     // Convert salaryByYear object to array format for backward compatibility
-    const salariesArray = Object.entries(denormalizedSalaries)
+    // CRITICAL: Must include option field from contractsView.seasons for Option filter
+    let salariesArray = Object.entries(denormalizedSalaries)
       .map(([year, salary]) => ({
         year: parseInt(year, 10),
         salary: typeof salary === 'number' ? salary : null,
+        option: null, // Will be populated below from contractsView if available
       }))
       .sort((a, b) => a.year - b.year);
+
+    // Merge option data from contractsView.seasons (has optionType field)
+    if (playerData.contractsView?.seasons) {
+      const optionMap = {};
+      playerData.contractsView.seasons.forEach((season) => {
+        if (season.optionType && season.season) {
+          // Extract start year from season string "2025-26" → 2025
+          const yearNum =
+            typeof season.season === 'string' && season.season.includes('-')
+              ? parseInt(season.season.split('-')[0], 10)
+              : parseInt(season.season, 10);
+          if (yearNum) {
+            optionMap[yearNum] = season.optionType;
+          }
+        }
+      });
+
+      // Merge options into salariesArray
+      salariesArray = salariesArray.map((entry) => ({
+        ...entry,
+        option: optionMap[entry.year] || null,
+      }));
+    }
 
     primaryContract = {
       salariesByYear: salariesArray,
@@ -304,21 +329,40 @@ export function enrichPlayerData(playerData) {
   const age =
     playerData.bio?.age || calculateAgeFromDOB(playerData.bio?.dob) || 0;
 
-  // Build optionByYear map from primaryContract.salariesByYear
-  const optionByYear = {};
-  const salariesArray = primaryContract?.salariesByYear || [];
-  salariesArray.forEach((s) => {
-    const key = s.year || s.season;
-    if (!key || !s.option) return;
-    // Extract year as number if it's a season code like "2026-27"
-    const yearNum =
-      typeof key === 'string' && key.includes('-')
-        ? parseInt(key.split('-')[0], 10) + 1
-        : parseInt(key, 10);
-    if (yearNum && s.option) {
-      optionByYear[yearNum] = s.option; // "PO", "TO", "ETO"
-    }
-  });
+  // Build optionByYear map - Phase 2X SSOT hierarchy:
+  // 1) PRIMARY: currentContractView.optionsByYear (denormalized in main doc)
+  // 2) FALLBACK: Build from primaryContract.salariesByYear (legacy/subcollection)
+  // Keys use seasonStartYear convention (e.g., 2025 = 2025-26 season)
+  let optionByYear = {};
+
+  // PRIMARY: Use denormalized optionsByYear from main document
+  if (playerData.currentContractView?.optionsByYear) {
+    const raw = playerData.currentContractView.optionsByYear;
+    // Convert string keys to numbers for consistent access
+    Object.keys(raw).forEach((key) => {
+      const yearNum = parseInt(key, 10);
+      if (yearNum && raw[key]) {
+        optionByYear[yearNum] = raw[key];
+      }
+    });
+  }
+
+  // FALLBACK: Build from salariesByYear if optionsByYear is empty
+  if (Object.keys(optionByYear).length === 0) {
+    const salariesArray = primaryContract?.salariesByYear || [];
+    salariesArray.forEach((s) => {
+      const key = s.year || s.season;
+      if (!key || !s.option) return;
+      // Extract year as number - use START year for season strings like "2025-26"
+      const yearNum =
+        typeof key === 'string' && key.includes('-')
+          ? parseInt(key.split('-')[0], 10) // "2025-26" → 2025 (start year)
+          : parseInt(key, 10);
+      if (yearNum && s.option) {
+        optionByYear[yearNum] = s.option; // "PO", "TO", "ETO"
+      }
+    });
+  }
 
   // Extract free agency fields from nested paths
   const freeAgentYear =

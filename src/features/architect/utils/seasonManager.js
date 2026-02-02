@@ -15,6 +15,9 @@
  *  - 2026-01-07: Phase 5 - Added auto-resolution of conveyance + swaps during season advance
  *                         - Reads positionsMap from world.draftPositionsByYear
  *  - 2026-01-18: Phase 7.2 - Option decline FA-year derivation + cap hold multipliers
+ *  - 2026-02-01: Phase 77 - Replaced legacy updateTeamCapTotals with SSOT computeTeamCapTotals
+ *                         - Totals recompute uses toYear yearKey for correct season
+ *                         - Removed dynamic imports of tradeManager for totals
  */
 
 import { db } from '@/firebaseConfig';
@@ -53,6 +56,20 @@ import {
   normalizeTeamTpeSchema,
   getTeamTpeList,
 } from '@/features/architect/utils/persistenceContracts';
+// Phase 76: Non-TPE exception lifecycle for season transitions
+import { resetTeamNonTpeExceptionsForNewSeason } from '@/features/architect/utils/exceptions';
+// Phase 77: SSOT cap totals for season advance
+import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
+// Phase 16.1: Entitlement SSOT for season manager
+import { resolveEntitlementsForTeam } from '@/features/architect/utils/entitlements/entitlementResolver';
+import {
+  resolvePickRulesByIds,
+  pickRulesMapToObject,
+} from '@/features/architect/utils/entitlements/pickRulesResolver';
+import {
+  projectEntitlementsToSeasonManagerView,
+  logDerivedPicksCreation,
+} from '@/features/architect/utils/entitlements/seasonManagerProjection';
 
 /**
  * Advance world to next season
@@ -205,11 +222,15 @@ async function processTeamSeasonTransition(teamData, fromSeason, toSeason) {
     updatedTeam.draftPicks = draftPicksResult.draftPicks;
   }
 
-  // Recalculate cap totals
+  // ===========================================================================
+  // PHASE 77: Recalculate cap totals using SSOT
+  // ===========================================================================
+  // Always recompute totals for the new year using SSOT function.
+  // This replaces the legacy updateTeamCapTotals() call.
+  // Runs AFTER all roster/contract/exception changes for correct post-transition state.
   if (hasChanges) {
-    // Import updateTeamCapTotals from tradeManager
-    const { updateTeamCapTotals } = await import('./tradeManager');
-    updatedTeam.totals = await updateTeamCapTotals(updatedTeam);
+    const toYear = toEndYear(toSeason);
+    updatedTeam.totals = computeTeamCapTotals(updatedTeam, toYear);
   }
 
   return hasChanges ? updatedTeam : null;
@@ -434,7 +455,10 @@ function updateCapHolds(teamData, season) {
  */
 function updateDraftPicks(teamData, fromSeason, toSeason) {
   const toYear = toEndYear(toSeason);
-  const draftPicks = [...(teamData.draftPicks || [])];
+  // Phase 16.1: Dual-read pattern - prefer entitlement-derived view
+  const draftPicks = [
+    ...(teamData._derivedDraftPicks || teamData.draftPicks || []),
+  ];
   let hasChanges = false;
 
   const updatedPicks = draftPicks.map((pick) => {
@@ -678,10 +702,73 @@ async function processTeamSeasonTransitionWithOptions(
     // Phase 5: Track draft pick resolutions
     conveyanceResolutions: [],
     swapResolutions: [],
+    // Phase 76: Track non-TPE exception transitions
+    transitionedExceptions: [],
   };
 
   // Update team season
   updatedTeam.season = toSeason;
+
+  // ===========================================================================
+  // PHASE 16.1: Derive draft picks view from entitlements (SSOT)
+  // ===========================================================================
+  // If team has entitlementIds, resolve and project to draftPicks-like view.
+  // This is READ-ONLY - no writes to entitlements. Downstream functions use
+  // dual-read pattern: prefer _derivedDraftPicks, fallback to draftPicks.
+  const { worldId } = resolutionContext;
+  const hasEntitlementIds =
+    Array.isArray(teamData.entitlementIds) &&
+    teamData.entitlementIds.length > 0;
+  const hasInlineEntitlements =
+    Array.isArray(teamData.entitlements) && teamData.entitlements.length > 0;
+
+  if ((hasEntitlementIds || hasInlineEntitlements) && teamCode) {
+    try {
+      // Use inline entitlements if provided, else resolve from Firestore
+      let entitlements = hasInlineEntitlements
+        ? teamData.entitlements
+        : await resolveEntitlementsForTeam(worldId || null, teamCode);
+
+      if (Array.isArray(entitlements) && entitlements.length > 0) {
+        // Extract underlying pick IDs for pick rules lookup (best-effort)
+        const pickIds = entitlements
+          .map((e) => e.underlyingPickId)
+          .filter(Boolean);
+
+        // Resolve pick rules in batch (graceful if fails or returns empty)
+        let pickRulesById = {};
+        if (pickIds.length > 0) {
+          try {
+            const rulesMap = await resolvePickRulesByIds(pickIds);
+            pickRulesById = pickRulesMapToObject(rulesMap);
+          } catch {
+            // Pick rules optional - continue without them
+          }
+        }
+
+        // Project entitlements to draftPicks-like view
+        const derivedDraftPicks = projectEntitlementsToSeasonManagerView({
+          entitlements,
+          pickRulesById,
+          teamCode,
+        });
+
+        // Attach as NON-PERSISTED field for downstream dual-read
+        if (derivedDraftPicks.length > 0) {
+          updatedTeam._derivedDraftPicks = derivedDraftPicks;
+          logDerivedPicksCreation(
+            teamCode,
+            entitlements.length,
+            derivedDraftPicks.length,
+            Object.keys(pickRulesById).length
+          );
+        }
+      }
+    } catch {
+      // Entitlement resolution failed - continue with legacy draftPicks
+      // This ensures graceful degradation
+    }
+  }
 
   // ===========================================================================
   // PHASE 5: Auto-resolve draft picks BEFORE other processing
@@ -814,7 +901,7 @@ async function processTeamSeasonTransitionWithOptions(
   // Process TPE Expirations (Phase 1)
   // Phase 53: Log TPE_EXPIRED history entries for each expired TPE
   // Phase 65: Use canonical TPE accessor
-  const { worldId } = resolutionContext;
+  // Note: worldId already destructured in Phase 16.1 block above
   const tpeResult = processTradeExceptions(
     getTeamTpeList(updatedTeam),
     toSeason
@@ -859,6 +946,27 @@ async function processTeamSeasonTransitionWithOptions(
     }
   }
 
+  // ===========================================================================
+  // PHASE 76: Reset/recompute non-TPE exceptions for the new season
+  // ===========================================================================
+  // This must run AFTER TPE expiry processing (which handles exceptions.tpe[])
+  // and BEFORE cap totals recalculation.
+  // Recomputes maxAmount for BAE, Mini MLE, NTMLE, Room using new year's cap rules.
+  // Resets usedAmount to 0 and remainingAmount to maxAmount (if enabled).
+  const toYear = toEndYear(toSeason);
+  const nonTpeExceptionResult = resetTeamNonTpeExceptionsForNewSeason(
+    updatedTeam,
+    toYear
+  );
+  if (nonTpeExceptionResult.hasChanges) {
+    hasChanges = true;
+    // Non-TPE exception state is mutated directly on updatedTeam.exceptions
+    // by resetTeamNonTpeExceptionsForNewSeason(), no additional assignment needed.
+    // Track transitioned exceptions in summary for debugging
+    teamSummary.transitionedExceptions =
+      nonTpeExceptionResult.transitionedExceptions;
+  }
+
   // Process empty roster charges
   const emptyRosterResult = processEmptyRosterCharges(updatedTeam, toSeason);
   if (emptyRosterResult.hasChanges) {
@@ -888,10 +996,14 @@ async function processTeamSeasonTransitionWithOptions(
     teamSummary.stepienUpdates = draftPicksResult.stepienUpdates || [];
   }
 
-  // Recalculate cap totals
+  // ===========================================================================
+  // PHASE 77: Recalculate cap totals using SSOT
+  // ===========================================================================
+  // Always recompute totals for the new year using SSOT function.
+  // This replaces the legacy updateTeamCapTotals() dynamic import.
+  // Runs AFTER TPE expiry (Phase 53), non-TPE reset (Phase 76), and all roster changes.
   if (hasChanges) {
-    const { updateTeamCapTotals } = await import('./tradeManager');
-    updatedTeam.totals = await updateTeamCapTotals(updatedTeam);
+    updatedTeam.totals = computeTeamCapTotals(updatedTeam, toYear);
   }
 
   return {
@@ -1083,7 +1195,10 @@ function processOptionsWithDecisions(
 function updateDraftPicksWithStepien(teamData, fromSeason, toSeason) {
   const toYear = toEndYear(toSeason);
   const teamCode = teamData.teamCode;
-  const draftPicks = [...(teamData.draftPicks || [])];
+  // Phase 16.1: Dual-read pattern - prefer entitlement-derived view
+  const draftPicks = [
+    ...(teamData._derivedDraftPicks || teamData.draftPicks || []),
+  ];
   let hasChanges = false;
   const stepienUpdates = [];
 
@@ -1229,14 +1344,17 @@ export function resolveDraftPickSwapsForYear(
     return team;
   }
 
+  // Phase 16.1: Dual-read pattern - prefer entitlement-derived view
+  const draftPicksSource = team?._derivedDraftPicks || team?.draftPicks;
+
   // Return team unchanged if no draft picks
-  if (!team?.draftPicks || !Array.isArray(team.draftPicks)) {
+  if (!draftPicksSource || !Array.isArray(draftPicksSource)) {
     return team;
   }
 
   const { nowIso, method = 'lottery' } = opts;
 
-  const updatedPicks = team.draftPicks.map((pick) => {
+  const updatedPicks = draftPicksSource.map((pick) => {
     // Skip non-swap picks
     if (!pick || pick.isSwap !== true) {
       return pick;
@@ -1327,14 +1445,17 @@ export function resolveDraftPickConveyanceForYear(
     return team;
   }
 
+  // Phase 16.1: Dual-read pattern - prefer entitlement-derived view
+  const draftPicksSource = team?._derivedDraftPicks || team?.draftPicks;
+
   // Return team unchanged if no draft picks
-  if (!team?.draftPicks || !Array.isArray(team.draftPicks)) {
+  if (!draftPicksSource || !Array.isArray(draftPicksSource)) {
     return team;
   }
 
   const { nowIso, method = 'lottery' } = opts;
 
-  const updatedPicks = team.draftPicks.map((pick) => {
+  const updatedPicks = draftPicksSource.map((pick) => {
     // Skip invalid picks
     if (!pick || typeof pick !== 'object') {
       return pick;

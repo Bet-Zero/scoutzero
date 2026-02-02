@@ -35,7 +35,10 @@
 import { getContractYearSlice } from '@/features/architect/utils/contractUtils';
 import { getActiveUnsignedCapHoldsTotalByEndYear } from '@/features/architect/utils/capHolds';
 import { getCapRulesForYear } from '@/features/architect/utils/capRulesProfile';
-import { toSeasonKey, toEndYear } from '@/features/architect/utils/seasonFormat';
+import {
+  toSeasonKey,
+  toEndYear,
+} from '@/features/architect/utils/seasonFormat';
 
 /**
  * Helper to safely convert values to numbers
@@ -52,20 +55,18 @@ const num = (v) => {
 /**
  * Counts the number of players on the standard (non-two-way) roster.
  * Two-way contracts are excluded from the standard roster count.
- * 
+ *
  * @param {Array} players - Team players array
  * @returns {number} Standard roster count
  */
 function countStandardRoster(players) {
   if (!Array.isArray(players) || players.length === 0) return 0;
-  
+
   return players.filter((p) => {
     const contractType = p?.contract?.contractType?.toLowerCase() || '';
     return contractType !== 'two-way';
   }).length;
 }
-
-
 
 /**
  * Calculates dead money for a given year from team cap sheet data.
@@ -184,16 +185,13 @@ export function computeTeamCapTotals(teamCapSheet, selectedYear, options = {}) {
   // Get consolidated cap rules from facade (SSOT)
   // Supports capProjections override via options
   const rules = getCapRulesForYear(yearKey, options.capProjections);
-  
+
   const salaryCap = rules.cap.salaryCap || 0;
   const firstApron = rules.cap.firstApron || 0;
   const secondApron = rules.cap.secondApron || 0;
 
   // Calculate players total from contract data
-  const playersTotal = computePlayersTotal(
-    teamCapSheet?.players,
-    yearKey
-  );
+  const playersTotal = computePlayersTotal(teamCapSheet?.players, yearKey);
 
   // Calculate cap holds total using shared utility
   // selectedYear is the END year (e.g., 2025 for "2024-25")
@@ -245,19 +243,76 @@ export function computeTeamCapTotals(teamCapSheet, selectedYear, options = {}) {
       rulesSources: rules._meta?.sources,
       capSettingsSource: 'via_facade', // legacy compatibility
       seasonKey: toSeasonKey(yearKey),
-      incompleteRosterCharge: incompleteChargesTotal > 0 ? {
-        standardRosterCount,
-        minRoster,
-        missingSlots,
-        chargePerSlot,
-      } : null,
+      incompleteRosterCharge:
+        incompleteChargesTotal > 0
+          ? {
+              standardRosterCount,
+              minRoster,
+              missingSlots,
+              chargePerSlot,
+            }
+          : null,
     },
   };
 }
 
 /**
+ * Phase 75: Check if a team is eligible to use the Room Exception.
+ * Room Exception can only be used by teams operating UNDER the salary cap.
+ * This uses SSOT totals from computeTeamCapTotals().
+ *
+ * @param {Object} team - Team object (capSheet or team state)
+ * @param {number} yearKey - Season end year (e.g., 2025 for "2024-25")
+ * @returns {{ eligible: boolean, reason?: string, totals?: { totalCapAllocations: number, salaryCap: number, delta: number } }}
+ */
+export function canUseRoomException(team, yearKey) {
+  if (!team || !yearKey) {
+    return {
+      eligible: false,
+      reason: 'Missing team or yearKey for Room Exception eligibility check',
+    };
+  }
+
+  const totals = computeTeamCapTotals(team, yearKey);
+
+  // Under-cap means totalCapAllocations < salaryCap (delta vsCap is negative)
+  const isUnderCap = totals.deltas.vsCap < 0;
+
+  if (isUnderCap) {
+    return {
+      eligible: true,
+      totals: {
+        totalCapAllocations: totals.totalCapAllocations,
+        salaryCap: totals.salaryCap,
+        delta: totals.deltas.vsCap,
+      },
+    };
+  }
+
+  // Team is at or over cap - not eligible
+  const formatM = (v) => `$${(v / 1_000_000).toFixed(2)}M`;
+  return {
+    eligible: false,
+    reason: `Room Exception requires team to be under the salary cap. Team total: ${formatM(totals.totalCapAllocations)}, Cap: ${formatM(totals.salaryCap)} (${formatM(Math.abs(totals.deltas.vsCap))} over cap)`,
+    totals: {
+      totalCapAllocations: totals.totalCapAllocations,
+      salaryCap: totals.salaryCap,
+      delta: totals.deltas.vsCap,
+    },
+  };
+}
+
+/**
+ * Phase 73: Module-level cache to prevent console spam from repeated warnings.
+ * Each unique component:field combination only warns once per session.
+ */
+const warnedKeys = new Set();
+
+/**
  * DEV-ONLY: Validates that a displayed total matches the canonical total.
  * Use this in components to detect divergence from the single source of truth.
+ *
+ * Phase 73: Added rate-limiting - each unique component:field key only warns once.
  *
  * @param {string} componentName - Name of the calling component
  * @param {string} fieldName - Which field is being displayed
@@ -275,19 +330,32 @@ export function warnOnTotalsDivergence(
   if (import.meta.env.DEV) {
     const diff = Math.abs(displayedValue - canonicalValue);
     if (diff > tolerance) {
-      console.warn(
-        `[${componentName}] TOTALS DIVERGENCE DETECTED for ${fieldName}`,
-        {
-          displayedValue,
-          canonicalValue,
-          diff,
-          message:
-            'This component may be computing totals independently. ' +
-            'All cap totals should come from computeTeamCapTotals().',
-        }
-      );
+      // Rate limit: warn once per unique component:field key
+      const warnKey = `${componentName}:${fieldName}`;
+      if (!warnedKeys.has(warnKey)) {
+        warnedKeys.add(warnKey);
+        console.warn(
+          `[${componentName}] TOTALS DIVERGENCE DETECTED for ${fieldName}`,
+          {
+            displayedValue,
+            canonicalValue,
+            diff,
+            message:
+              'This component may be computing totals independently. ' +
+              'All cap totals should come from computeTeamCapTotals().',
+          }
+        );
+      }
     }
   }
+}
+
+/**
+ * Phase 73: Reset warned keys cache - for testing purposes.
+ * Clears all recorded warning keys so tests can verify warn behavior.
+ */
+export function resetWarnedKeys() {
+  warnedKeys.clear();
 }
 
 export default computeTeamCapTotals;

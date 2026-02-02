@@ -6,8 +6,6 @@ import React from 'react';
 import {
   formatCurrency,
   getAdjustmentTooltipLabel,
-  formatPick,
-  // getSalaryForYear,
 } from '@/features/architect/utils/tradeHelpers';
 // import { HelpCircle } from 'lucide-react';
 import { AlertTriangle } from 'lucide-react';
@@ -25,13 +23,6 @@ import {
   projectEntitlementToPickRow,
   getPickRowSecondaryText,
 } from '@/features/architect/utils/entitlements/entitlementPickRowProjection';
-
-/**
- * Helper used for pick chip text
- * Phase 3: Now uses shared formatPick from tradeHelpers.js for consistency.
- * Uses `includeNote: false` for compact display in summary panel.
- */
-const getPickLabel = (p) => formatPick(p, { includeNote: false });
 
 function TradeSummaryPanel({
   result,
@@ -94,9 +85,8 @@ function TradeSummaryPanel({
           const colors = teamMeta ? getTeamColors(teamMeta.id) : null;
           const primary = colors?.primary;
 
-          // Derive incoming assets (players/picks) if present on result
+          // Derive incoming assets (players) if present on result
           const incomingPlayers = teamResult?.incomingPlayers || [];
-          const incomingPicks = teamResult?.picksIn || t.picksIn || [];
 
           // Phase 11.2: Find matching team slot to get entitlementsOut
           const teamSlot = teams.find(
@@ -106,6 +96,13 @@ function TradeSummaryPanel({
               ts.team?.teamName === t.teamName
           );
           const entitlementsOut = teamSlot?.entitlementsOut || [];
+
+          // Phase 15: Derive incoming entitlements from OTHER teams' outgoing
+          const thisTeamId = t.teamId || teamMeta?.id;
+          const incomingEntitlements = teams
+            .filter((ts) => ts.team?.id !== thisTeamId)
+            .flatMap((ts) => ts.entitlementsOut || [])
+            .filter((e) => !e.toTeamId || e.toTeamId === thisTeamId);
 
           // Phase 11.2: Compute non-blocking warnings
           const entitlementWarnings =
@@ -239,23 +236,33 @@ function TradeSummaryPanel({
                     )}
                   </div>
 
+                  {/* Phase 15: Entitlements Received (from other teams) */}
                   <div>
                     <div className="text-xs text-white/60 mb-1">
-                      Picks Received
+                      Entitlements Received
                     </div>
-                    {incomingPicks.length ? (
+                    {incomingEntitlements.length ? (
                       <div className="space-y-1">
-                        {incomingPicks.map((pk, idx2) => (
-                          <div
-                            key={`${pk?.year || 'y'}-${pk?.round || 'r'}-${idx2}`}
-                            className="flex items-center justify-between bg-white/5 px-2 py-1 rounded"
-                          >
-                            <div className="truncate">{getPickLabel(pk)}</div>
-                            <div className="text-white/50">
-                              {pk?.toTeamId ? 'Incoming' : ''}
+                        {incomingEntitlements.map((ent, idx2) => {
+                          const badge = getEntitlementKindBadge(ent.kind);
+                          return (
+                            <div
+                              key={ent.id || ent.entitlementId || idx2}
+                              className="flex items-center justify-between bg-white/5 px-2 py-1 rounded"
+                            >
+                              <div className="flex items-center gap-2 truncate">
+                                <span className="text-white/90">
+                                  {ent.seasonYear} R{ent.round}
+                                </span>
+                                <span
+                                  className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${badge.colorClass}`}
+                                >
+                                  {badge.label}
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     ) : (
                       <div className="text-xs text-white/40 italic">None</div>
