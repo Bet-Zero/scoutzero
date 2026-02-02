@@ -1,71 +1,76 @@
-/\*\*
 
-- FILE: docs/architect/CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md
-- PURPOSE: Canonical reference for Cap Sheet mutation and validation architecture.
-- OWNERSHIP: Feature: architect/cap-sheet validation
--
-- HISTORY:
-- - 2026-01-16: Created (initial master doc)
-- - 2026-01-17: Added Phase 4 signing terms/raises wiring details (plan `plans/_archive/cap-sheet-contract-rules-phase-4-signing-terms-2026-01-17/plan.md`, chunk_n/a)
-- - 2026-01-18: Phase 7.3 option invariants + canonical multiplier owner (plan `plans/cap-sheet-contract-rules-phase-7-3/plan.md`, chunk_n/a)
-- - 2026-01-22: Phase 26 S&T Audit - fixed build errors, audited workflow, extended tests 2→20
-- - 2026-01-21: Phase 27 Manual Exception Management - added setExceptions mutation, validateExceptions, ManageExceptionsModal
-- - 2026-01-21: Phase 29 LeagueView SSOT Fix - replaced inline salary computation with `computeTeamCapTotals()`, added 8 regression tests
-- - 2026-01-23: Phase 31 Max Salary Enforcement - added `max_salary_violation` hard block to prevent contracts exceeding YOS-based max (25%/30%/35% of cap), 16 new tests
-- - 2026-01-23: Phase 32 S&T Incoming Aggregation - added Rule 1.6 to block receiving team from aggregating other players with S&T player, 9 new tests (P0-2 closure)
-- - 2026-01-23: Phase 33 Hard Cap Test Drift Fix - test assertion moved to `rules.hardCap.violations` to avoid violation order dependency
-- - 2026-01-23: Phase 34 Second Apron Threshold Boundary Bug (PREFLIGHT) - identified `>=` vs `>` comparator bug in 8 files; CBA Art VII Sec 2(f) specifies `>` for second apron team classification; execution pending
-- - 2026-01-23: Phase 34 Second Apron Threshold Boundary Bug (EXECUTION) - fixed `>=` → `>` comparator in 7 files for second apron classification; added 5 boundary tests; teams at threshold no longer incorrectly treated as second apron
-- - 2026-01-27: Phase 38 Architect Second Apron Semantics Unification (EXECUTION) - unified legacy `capUtils.js` and `tradeHelpers.js` to strictly use `>` for second apron classification, aligning with Trade Machine SSOT; fixed `capLegalityValidation.js` hard cap check to allow landing exactly on apron; added guardrail tests.
-- - 2026-01-27: Phase 39 Second Apron Drift Scan (PREFLIGHT) - Confirmed partial drift in `capLegalityValidation.js` (uses `>=` for exception blocking) and `tradeHelpers.js`. Strict semantics (`>`) confirmed for hard cap status. Return package at `docs/architect/return_packages/PHASE_39_SECOND_APRON_DRIFT_SCAN_PREFLIGHT_RETURN_PACKAGE.md`.
-- - 2026-01-27: Phase 39 Second Apron Drift Fix (EXECUTION) - Eliminated `>=` drift in `capLegalityValidation.js` (exception blocking) and `tradeHelpers.js`. Added strict boundary guardrail tests (`phase39_drift_guardrails.test.js`).
-- - 2026-01-27: Phase 40 Second Apron Drift Scan (Architect-wide) (PREFLIGHT) - Preflight completed. Identified 3 logic drift locations and 1 interface drift. Return package: `docs/architect/return_packages/PHASE_40_SECOND_APRON_DRIFT_SCAN_PREFLIGHT_RETURN_PACKAGE.md`.
-- - 2026-01-27: Phase 40 Second Apron Drift Fix (Architect-wide) (EXECUTION) - Eliminated remaining `>=` drift in `buildRuleContext.ts`, `capLegalityValidation.js` (Rule 1.8), and `faExceptionUtils.js`. Renamed `teamIsAtOrAboveSecondApron` to `teamIsSecondApron` in `draftPickUtils.js`. Added 9 strict boundary guardrail tests (`phase40_secondApron_drift_guardrails.test.js`).
-- - 2026-01-28: Phase 41A Draft Pick Utils Back-Compat Removal Readiness (PREFLIGHT) - Confirmed safety of removing `teamIsAtOrAboveSecondApron` fallback in `draftPickUtils.js`. Only 1 production caller (`validateStepien.ts`) exists and uses the new key. Return package: `docs/architect/return_packages/PHASE_41A_DRAFT_PICK_BACKCOMPAT_PREFLIGHT_RETURN_PACKAGE.md`.
-- - 2026-01-28: Phase 41B Draft Pick Utils Back-Compat Removal (EXECUTION) - Removed `teamIsAtOrAboveSecondApron` parameter support from `draftPickUtils.js`. Legacy key is now ignored. Updated `phase40_secondApron_drift_guardrails.test.js` to verify strictness.
-- - 2026-01-28: Phase 42 Apron Derivation Consolidation (EXECUTION) - Consolidated apron derivation in `tradeHelpers.getApronStatus`, `usePlayerRulesProfiles.deriveApronStatus`, `buildRuleContext.deriveApronLevel`, and `faExceptionUtils.canUseFaException` to delegate to tradeMachine SSOT; fixed first apron boundary drift in `usePlayerRulesProfiles` (`>` → `>=`); added 19 guardrail tests; deferred `useCapValidation` (warning-only, low risk). Return package: `docs/architect/return_packages/PHASE_42_APRON_DERIVATION_CONSOLIDATION_EXECUTION_RETURN_PACKAGE.md`.
-- - 2026-01-28: Phase 43 Apron Drift Prevention Guardrails (EXECUTION) - Added ESLint rule blocking direct imports from `tradeMachine/utils/capUtils.js` outside tradeMachine folder; fixed `buildRuleContext.ts` and `tradeHelpers.js` to use canonical import path `@/features/architect/utils/capUtils`; updated deprecated `getAllowableIncomingMargin` to delegate to `isSecondApronTeam`; confirmed S&T eligibility check uses correct `>` semantics; added 5 guardrail tests. Return package: `docs/architect/return_packages/PHASE_43_APRON_DRIFT_PREVENTION_GUARDRAILS_EXECUTION_RETURN_PACKAGE.md`.
-- - 2026-01-28: Phase 44 Architect Status Snapshot (PREFLIGHT) - Produced current state map confirming Phases 35-43 complete; no blocking work remains; identified low-priority polish items (TPE usage pipeline, roster charge UI, doc cleanup). Return package: `docs/architect/return_packages/PHASE_44_ARCHITECT_STATUS_SNAPSHOT_PREFLIGHT_RETURN_PACKAGE.md`.
-- - 2026-01-28: Phase 46 TPE Usage Pipeline Status & Gaps (PREFLIGHT) - Mapped TPE lifecycle (create → store → show → validate → consume → expire); identified critical gaps: no persistence for TPE creation (G-TPE-2) or consumption (G-TPE-1); expiration works via seasonManager; validation works for trades. Return package: `docs/architect/return_packages/PHASE_46_TPE_USAGE_PIPELINE_PREFLIGHT_RETURN_PACKAGE.md`.
-- - 2026-01-28: Phase 47 TPE Persistence (EXECUTION) - Closed G-TPE-1 and G-TPE-2 gaps; added TPE creation and consumption persistence to `computeTradeResult()` in `mutationPipeline.js`; created TPEs now added to `team.tradeExceptions[]`; consumed TPEs have `remainingAmount` decremented and `isUsed` set; 14 guardrail tests added. Return package: `docs/architect/return_packages/PHASE_47_TPE_PERSISTENCE_EXECUTION_RETURN_PACKAGE.md`.
-- - 2026-01-28: Phase 47B TPE Persistence SSOT Alignment (EXECUTION) - Eliminated drift vectors in Phase 47: removed hardcoded `SALARY_CAP = 141_000_000` constant (now uses `capSettings.salaryCap` from provider); TPE creation now persists validator output (`teamResult.createdTPE`) instead of recomputing; TPE consumption uses validated `matchIncoming` values; fixed pre-existing dead cap function scope bug; 207/209 architect tests passing. Return package: `docs/architect/return_packages/PHASE_47B_TPE_PERSISTENCE_SSOT_ALIGNMENT_EXECUTION_RETURN_PACKAGE.md`.
-- - 2026-01-28: Phase 47C TPE Persistence Hardening (EXECUTION) - Hardened Phase 47B: removed salary fallback for TPE consumption (uses `matchIncoming` only with explicit warnings); added dedupe logic merging `tradeExceptions` + `exceptions.tpe` sources; implemented idempotent creation with signature-based duplicate detection; preserved validator-provided TPE ids; 16 new guardrail tests; 223/225 architect tests passing (2 pre-existing failures unchanged). Return package: `docs/architect/return_packages/PHASE_47C_TPE_PERSISTENCE_HARDENING_EXECUTION_RETURN_PACKAGE.md`.
-- - 2026-01-28: Phase 48 Sign-and-Trade Validation Order Fix (EXECUTION) - Fixed S&T validation order: added `validateSigning()` call in `computeSignAndTradeResult()` before `computeTradeResult()` is invoked, ensuring signing validation failure short-circuits before trade validator runs; fixed 2 failing SAT14 tests; 225/225 architect tests now passing. Return package: `docs/architect/return_packages/PHASE_48_SIGN_AND_TRADE_VALIDATION_ORDER_EXECUTION_RETURN_PACKAGE.md`.
-- - 2026-01-29: Phase 49 TPE Exception History Logging (EXECUTION) - Added `exceptionHistory[]` persistence to Architect trade results with deterministic `historyKey` dedupe. `computeTradeResult()` now generates durable `TPE_CREATED` + `TPE_CONSUMED` entries (world-aware, timestamped) via `historyHelpers.js`, and `appendExceptionHistory()` prevents retries from duplicating records. Added Phase 49 guardrail tests covering creation, consumption (partial/full), idempotency, and no-op scenarios. Return package: `docs/architect/return_packages/PHASE_49_TPE_EXCEPTION_HISTORY_LOGGING_EXECUTION_RETURN_PACKAGE.md`.
-- - 2026-01-29: Phase 50 ExecuteTrade Integration Persistence Tests (EXECUTION) - Added integration-level tests for `executeTrade` mutation pipeline verifying TPE creation/consumption persistence and `exceptionHistory[]` durability. Fixed bug in `mutationPipeline.js` line 1189 where TPE consumption was blocked when `tradeExceptionsResult.details` was empty string (falsy). Tests verify: (1) over-cap trades create TPEs with `TPE_CREATED` history entries, (2) TPE consumption updates `remainingAmount`/`usedAmount` with `TPE_CONSUMED` history entries (partial and full), (3) idempotent behavior on retry (no duplicate TPEs or history entries). 5 integration tests, 235 architect tests passing. Return package: `docs/architect/return_packages/PHASE_50_EXECUTETRADE_INTEGRATION_PERSISTENCE_TESTS_EXECUTION_RETURN_PACKAGE.md`.
-- - 2026-01-29: Phase 51 Season Advance TPE Expiry Integration (EXECUTION) - Added integration-level tests for season advance TPE expiry flow verifying: (1) expired TPEs removed when `expiresOn < boundary` (July 1 of toSeason start year), (2) active TPEs kept when `expiresOn >= boundary`, (3) boundary condition: TPE at exact boundary (e.g., 2026-07-01T00:00:00.000Z for 2026-27 season) is ACTIVE (kept), (4) dual-source "no ghost" dedupe merging `tradeExceptions[]` + `exceptions.tpe[]` with id-based preference for canonical fields, (5) idempotency: running twice produces identical results. 18 integration tests, 253 architect tests passing. Return package: `docs/architect/return_packages/PHASE_51_SEASON_ADVANCE_TPE_EXPIRY_INTEGRATION_EXECUTION_RETURN_PACKAGE.md`.
-- - 2026-01-29: Phase 52 Roster Spot Charges UI Wiring (EXECUTION) - Verified G2-3 gap already resolved in Phase 25. (1) `incompleteChargesTotal` computed in SSOT (`computeTeamCapTotals.js` L216). (2) UI display implemented in `CapSheet.jsx` L431-451 with conditional "Incomplete Roster Charge" row, slot count annotation, and proper formatting. (3) 7 UI tests in `rosterChargeDisplay.test.jsx` (RC1-RC6) all passing. (4) Updated Master Doc §3.2 and §7.3 to mark G2-3 as RESOLVED. Return package: `docs/architect/return_packages/PHASE_52_ROSTER_SPOT_CHARGES_UI_WIRING_EXECUTION_RETURN_PACKAGE.md`.
-- - 2026-01-29: Phase 53 TPE Expiry Exception History Logging (EXECUTION) - Closed "TPEs disappear with no audit trail" gap during season advance. (1) Added `TPE_EXPIRED` entry type to `historyHelpers.js` with `createTpeExpiryHistoryEntry()` and `buildExpiryHistoryKey()` helpers. (2) Season advance now emits durable `TPE_EXPIRED` entries to `team.exceptionHistory[]` for each expired TPE via `processTeamSeasonTransitionWithOptions()`. (3) Entries are idempotent and deduped by deterministic `historyKey` (format: `seasonAdvance:{worldId}:{teamCode}:{tpeId}:expired:{signature}`). (4) Boundary semantics unchanged: `expiresOn == boundary` stays ACTIVE (no expiry history). (5) Dual-source merge produces no ghost expiry logs. (6) 17 new guardrail tests in `phase53_seasonAdvance_tpe_expiry_history_integration.test.js`. 270 architect tests passing. Return package: `docs/architect/return_packages/PHASE_53_TPE_EXPIRY_EXCEPTION_HISTORY_LOGGING_EXECUTION_RETURN_PACKAGE.md`.
-- - 2026-01-30: Phase 55 Trade Validation Separation (EXECUTION) - Eliminated duplicate `validateTrade()` calls in trade mutation paths. (1) Added `validateTradeForContext()` export for building validated trade contexts. (2) `computeTradeResult()` now attaches `_validatedTradeContext` to its result with `_isValidatedTradeContext: true` flag. (3) `validateMutation()` for `executeTrade` and `signAndTrade` now checks for pre-validated context and reuses it instead of re-calling `validateTradeForPipeline()`. (4) Trade validation runs exactly once per mutation (inside `computeTradeResult()` after roster updates, required for correct TPE absorption context). (5) Phase 48 invariant preserved: signing validation runs before trade validation in S&T path. (6) 5 new guardrail tests in `phase55_trade_validation_separation_guardrails.test.js`. 275 architect tests passing. Return package: `docs/architect/return_packages/PHASE_55_TRADE_VALIDATION_SEPARATION_EXECUTION_RETURN_PACKAGE.md`.
-- - 2026-01-30: Phase 56 Pure computeTradeResult + Post-Trade Snapshot Validation (EXECUTION) - Made `computeTradeResult()` a **pure function** (no internal `validateTrade()` calls). (1) Added `buildPostTradeTeamsSnapshot()` pure helper that applies roster moves without calling validators. (2) Added `validatePostTradeSnapshotForContext()` that validates the post-trade snapshot exactly once and returns `validatedContext`. (3) Refactored `computeTradeResult()` to require `postTradeSnapshot` and `validatedContext` parameters - throws if missing. (4) Updated `computeWorldMutation` executeTrade case to: build snapshot → validate snapshot → compute with context. (5) Updated `computeSignAndTradeResult()` to: validate signing → build post-trade snapshot → validate trade → compute with context. (6) Trade validation sees POST-TRADE roster state (required for correct TPE absorption). (7) Legacy `validateTradeForContext()` retained as convenience wrapper. (8) 7 new guardrail tests in `phase56_pure_computeTradeResult_guardrails.test.js`. 282 architect tests passing. Return package: `docs/architect/return_packages/PHASE_56_POST_TRADE_SNAPSHOT_VALIDATION_PURE_COMPUTE_EXECUTION_RETURN_PACKAGE.md`.
-- - 2026-01-30: Phase 57 Trade Validation Separation Cleanup + Anti-Regression Guardrails (EXECUTION) - Finalized Phase 56 by: (1) Removing Phase 55-era fallback paths in `validateMutation()` - `executeTrade` and `signAndTrade` now throw hard errors if pre-validated context is missing instead of falling back to `validateTradeForPipeline()`. (2) Marked `validateTradeForContext()` as legacy convenience wrapper with clear docstring warning not to use for mutation gating. (3) Added anti-regression test (`phase57_forbid_validateTrade_in_compute_guardrail.test.js`) that reads source files and enforces `validateTrade(` does not appear in compute/persist regions - 7 guardrail tests. (4) Trade pipeline is now cleanly `snapshot → validate → compute/persist` with no fallback paths. Return package: `docs/architect/return_packages/PHASE_57_TRADE_VALIDATION_CLEANUP_GUARDRAILS_EXECUTION_RETURN_PACKAGE.md`.
-- - 2026-01-30: Phase 58 Trade Context Extraction + Shape Hardening (EXECUTION) - Extracted Phase 56/57 trade snapshot/context helpers to dedicated module for maintainability. (1) Created `src/features/architect/utils/tradeContext/` module with: `tradeContext.js` (snapshot + validation context builders), `assertions.js` (runtime shape assertions), `types.js` (canonical JSDoc typedefs), `index.js` (public API). (2) Defined canonical shapes: `PostTradeSnapshot` (sentinel: `_isPostTradeSnapshot`), `ValidatedTradeContext` (sentinel: `_isValidatedTradeContext`). (3) Added runtime assertions: `assertPostTradeSnapshot()`, `assertValidatedTradeContext()`, `assertTradeComputeInputs()` - used in `computeTradeResult()`. (4) Updated Phase 57 guardrail tests to cover new module paths with allowlist enforcement. (5) Marked `validateTradeForPipeline()` as `@deprecated`. (6) `mutationPipeline.js` re-exports for backward compatibility. Return package: `docs/architect/return_packages/PHASE_58_TRADE_CONTEXT_EXTRACTION_SHAPE_HARDENING_EXECUTION_RETURN_PACKAGE.md`.
-- - 2026-01-30: Phase 59 Legacy Trade Validation Retirement + Anti-Regression Guardrails (EXECUTION) - Removed/quarantined legacy trade validation helpers to prevent regression to pre-Phase 56 architecture. (1) Deleted `validateTradeForPipeline()` function from `mutationPipeline.js` (dead code, no callers). (2) Created `tradeContext/legacy/` namespace with loud naming (`legacy_validateTradeForContext`). (3) Moved `validateTradeForContext` from main exports to legacy namespace (re-exported from `tradeContext/index.js` for backward compat). (4) Removed `validateTradeForContext` re-export from `mutationPipeline.js`. (5) Added 13 guardrail tests in `phase59_legacy_import_guardrail.test.js` enforcing: mutation modules cannot import from legacy namespace, `validateTradeForPipeline` is removed, legacy namespace has loud warnings. (6) Updated Phase 57 guardrail tests to reflect Phase 59 changes. (7) Documented `calculateTeamTotals` duplication as intentional (avoid circular deps). 313 architect tests passing. Return package: `docs/architect/return_packages/PHASE_59_LEGACY_TRADE_VALIDATION_RETIREMENT_GUARDRAILS_EXECUTION_RETURN_PACKAGE.md`.
-- - 2026-01-30: Phase 60 Mutation Persistence Sanitization + No-Leak Guardrails (EXECUTION) - Ensured transient compute/validation artifacts never persist to Firestore. (1) Added `FORBIDDEN_TRANSIENT_KEYS` constant and `sanitizeTransientFieldsForPersistence()` function to `mutationPipeline.js`. (2) Forbidden keys: `_validatedTradeContext`, `_signingValidation`, `_isPostTradeSnapshot`, `_isValidatedTradeContext`, `_rawValidation`. (3) `_meta` explicitly preserved (used by UI for computed totals display). (4) Applied sanitization in `persistWorldMutation()` for team, player, and event writes before `removeUndefinedDeep()`. (5) Added 17 guardrail tests in `phase60_mutation_persist_no_internal_leaks_guardrail.test.js`: unit tests for sanitizer, deep-scan tests for forbidden key detection, source-scan tests verifying sanitizer usage at persistence boundary. 330 architect tests passing. Return package: `docs/architect/return_packages/PHASE_60_MUTATION_PERSIST_SANITIZATION_NO_LEAK_GUARDRAILS_EXECUTION_RETURN_PACKAGE.md`.
-- - 2026-01-30: Phase 61 Persistence Contract Allowlist Guardrails (EXECUTION) - Prevented schema drift at mutation persistence boundary via allowlist-based contracts. (1) Created `src/features/architect/utils/persistenceContracts/` module with: `contracts.js` (frozen allowlists for team/player/event docs + nested arrays), `validatePersistableShape.js` (path-reporting validator), `enforcement.js` (test-on/prod-off gating), `index.js` (public API). (2) Allowlists: `TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST`, `PLAYER_OVERRIDE_TOP_LEVEL_ALLOWLIST`, `EVENT_TOP_LEVEL_ALLOWLIST`, `EVENT_METADATA_TOP_LEVEL_ALLOWLIST`, plus deep rules for `tradeExceptions[]` and `exceptionHistory[]` items. (3) Wired `assertPersistableOrThrow()` in `persistWorldMutation()` for team, player, event, and event.metadata writes. (4) Enforcement order: sanitize → validate contract → removeUndefined. (5) Enforcement enabled by default in test env (`NODE_ENV=test`), disabled in production. (6) 34 guardrail tests in `phase61_persistence_contract_allowlist_guardrails.test.js`. Return package: `docs/architect/return_packages/PHASE_61_PERSISTENCE_CONTRACT_ALLOWLIST_GUARDRAILS_EXECUTION_RETURN_PACKAGE.md`.
-- - 2026-01-30: Phase 62 Persistence Contract Deep-Rules + Fixture-Based Drift Guardrails (EXECUTION) - Hardened Phase 61 contracts with deep rules for drift-prone nested structures. (1) Added `DEAD_CAP_ITEM_ALLOWLIST` for `team.deadCap[]` items. (2) Added `DEAD_CAP_AMOUNT_BY_YEAR_ITEM_ALLOWLIST` for 3-level nested `team.deadCap[].amountByYear[]` items. (3) Added `CAP_HOLD_ITEM_ALLOWLIST` for `team.capHolds[]` items. (4) Extended `validatePersistableShape.js` to support 3-level nesting via propagated deep rules. (5) Updated `TEAM_DEEP_RULES` with 3 new entries: `deadCap`, `deadCap.amountByYear`, `capHolds`. (6) Created fixture-based drift guardrails with keyset snapshot tests that detect new/removed fields. (7) 33 new guardrail tests in `phase62_persistence_contract_fixtures_deep_rules_guardrail.test.js`. Return package: `docs/architect/return_packages/PHASE_62_PERSISTENCE_CONTRACT_DEEP_RULES_FIXTURES_EXECUTION_RETURN_PACKAGE.md`.
-- - 2026-01-30: Phase 63 Sign-and-Trade Test Restoration + Anti-Regression Guardrails (EXECUTION) - Fixed 6 failing S&T tests caused by incomplete Phase 61 persistence contract allowlists. Root cause: Category C (state assembly regression) - allowlists missed legitimately persisted fields `players`, `tradeExceptions`, `sourceTeam`, `destinationTeam`, `contract`. (1) Added `players` and `tradeExceptions` to `TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST`. (2) Added `tradeExceptions` deep rule (same allowlist as `exceptions.tpe`). (3) Added `sourceTeam`, `destinationTeam`, `contract` to `EVENT_METADATA_TOP_LEVEL_ALLOWLIST`. (4) 13 new guardrail tests in `phase63_signAndTrade_restoration_guardrails.test.js` covering: allowlist completeness, validation order (Phase 48 invariant), signing failure short-circuit, Phase 56 architecture pattern. (5) All 410 architect tests passing. Return package: `docs/architect/return_packages/PHASE_63_SIGN_AND_TRADE_TEST_RESTORATION_GUARDRAILS_EXECUTION_RETURN_PACKAGE.md`.
-- - 2026-01-30: Phase 64 TPE Schema Canonicalization + No-Legacy-Persist Guardrails (EXECUTION) - Removed dual-schema ambiguity for Trade Player Exceptions by making `team.exceptions.tpe[]` the only canonical persisted location. (1) Created `normalizeTeamTpeSchema()` helper that merges legacy `tradeExceptions[]` into canonical `exceptions.tpe[]` and removes the legacy field. (2) Created `getTeamTpeList()` read helper for backward-compatible reads from old worlds. (3) Added normalization step in `persistWorldMutation()` between sanitization and contract validation: sanitize → normalize TPE → validate contract → removeUndefined → write. (4) Removed `tradeExceptions` from `TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST` and `TEAM_DEEP_RULES`. (5) Updated Phase 63 tests to reflect Phase 64 changes. (6) 26 new guardrail tests in `phase64_tpe_canonicalization_no_legacy_persist_guardrails.test.js` covering: normalization behavior, deduplication, read helper fallback, source-scan enforcement, contract validation. (7) All 436 architect tests passing. Return package: `docs/architect/return_packages/PHASE_64_TPE_CANONICALIZATION_NO_LEGACY_PERSIST_GUARDRAILS_EXECUTION_RETURN_PACKAGE.md`.
-- - 2026-01-30: Phase 65 TPE Read-Path Canonicalization + No-Direct-tradeExceptions Guardrails (EXECUTION) - Made `team.tradeExceptions` read-only legacy compatibility and eliminated direct reads across production code. (1) Refactored 11 production files to use `getTeamTpeList(team)` instead of direct `.tradeExceptions` access: `TradeTeamCard.jsx`, `TradeExceptionDashboard.jsx`, `ValidationDetailsPanel.jsx`, `useTradeMachine.js`, `tradeExceptions.js`, `basicRules.js`, `validateSalaryMatching.js`, `runOffseason.js`, `SeasonAdvanceModal.jsx`, `seasonManager.js`. (2) Identified and hardened 2 team persistence boundaries outside `mutationPipeline`: `seasonManager.js` L119 and L598 now call `normalizeTeamTpeSchema()` before `batch.set()`. (3) Added 18 guardrail tests in `phase65_forbid_direct_tradeExceptions_reads_guardrail.test.js` with source-scan enforcement and tight 9-file allowlist. (4) All 454 architect tests passing. Return package: `docs/architect/return_packages/PHASE_65_TPE_READ_PATH_CANONICALIZATION_FORBID_DIRECT_TRADEEXCEPTIONS_GUARDRAILS_EXECUTION_RETURN_PACKAGE.md`.
-- - 2026-01-31: Phase 66 Legacy tradeExceptions Migration + Type Removal + Telemetry (EXECUTION) - Completed TPE canonicalization by creating migration tooling and adding telemetry for legacy fallback detection. (1) Created `scripts/migrations/phase66_migrate_tradeExceptions.js` migration script to scan `architect_worlds/{worldId}/teams/{teamCode}` docs, call `normalizeTeamTpeSchema()` to merge legacy → canonical, remove `tradeExceptions`, and write back. Script supports `DRY_RUN=true` mode, single worldId targeting, and produces JSON + markdown reports. (2) Added legacy fallback telemetry to `getTeamTpeList()` in `normalizeTeamTpe.js`: dev-only `console.warn` and in-memory counter when falling back to `team.tradeExceptions`, gated via `LOG_LEGACY_TPE_FALLBACK` env var (defaults true in dev, false in prod). Telemetry intended for removal in Phase 67/68. (3) Updated `normalizeTradeInput.js` to use `getTeamTpeList(raw)` canonical accessor instead of direct `raw.tradeExceptions` read. (4) Updated `NormalizedTeam` interface in `types.ts` with deprecation comment clarifying it's internal compute only, not persisted shape. (5) Verified Zod schema in `architect.ts` already correct (no `tradeExceptions` field). (6) 17 new guardrail tests in `phase66_no_legacy_tradeExceptions_persisted_guardrails.test.js` covering: Zod schema exclusion, normalization behavior, telemetry firing, persistence contract exclusion, migration script existence. (7) All 471 architect tests passing. Return package: `docs/architect/return_packages/PHASE_66_LEGACY_TRADEEXCEPTIONS_MIGRATION_TYPE_REMOVAL_TELEMETRY_EXECUTION_RETURN_PACKAGE.md`.
-- - 2026-02-01: Phase 67 Migration Execution + Telemetry Wind-Down (EXECUTION) - Executed TPE migration and produced zero-legacy proof. (1) Hardened migration script CLI with new flags: `--dry-run`, `--write`, `--verify-only`, `--output-dir`. Script now uses ESM imports instead of CommonJS. (2) Added `--verify-only` mode that scans for legacy occurrences and exits with code 1 if any found, code 0 if clean. (3) Deterministic report filenames: `phase67_<mode>_<date>.{json,md}`. (4) Ran migration against Firebase emulator in dry-run mode - 0 worlds with legacy data found. (5) Telemetry wind-down: `getTeamTpeList()` now quiet-by-default. Only logs when `LOG_LEGACY_TPE_FALLBACK=true` env var is explicitly set. Counter still increments silently for programmatic access via `getLegacyTpeFallbackCount()`. (6) 18 new guardrail tests in `phase67_migration_execution_guardrails.test.js` covering: CLI options, verify-only exit codes, deterministic filenames, telemetry quiet-by-default, documentation headers. (7) All 176 Phase 60-67 tests passing (35 from Phase 66+67). Build passes. Return package: `docs/architect/return_packages/PHASE_67_MIGRATION_EXECUTION_TELEMETRY_WIND_DOWN_RETURN_PACKAGE.md`.
-- - 2026-02-01: Phase 68 Verify-Only Empty-Scan Fail-Safe + CI Hook (EXECUTION) - Made verify-only mode CI-trustworthy by failing on empty scans. (1) Added empty-scan fail logic: if `worldsScanned === 0` OR `teamDocsScanned === 0`, verify-only now exits with code 1 and prints `[VERIFY FAILED] Empty scan (0 worlds or 0 team docs)`. (2) Added `--allow-empty` escape hatch CLI flag that bypasses empty-scan fail with loud warning (not recommended for CI). (3) Added explicit environment targeting output at script start: prints projectId, emulator host status, and Firestore instance type (EMULATOR vs PRODUCTION). (4) Fixed ESM compatibility: replaced `require()` with `JSON.parse(fs.readFileSync())` for service account loading. (5) Verified empty-scan fail-safe works: 0 worlds → exit 1. Verified `--allow-empty` escape hatch: 0 worlds + warning → exit 0. (6) 27 new guardrail tests in `phase68_verify_only_empty_scan_must_fail_guardrails.test.js` covering: empty-scan fail logic, `--allow-empty` flag, scan count output, environment targeting, Phase 67 regression checks. (7) All 516 architect tests passing. Build passes. Return package: `docs/architect/return_packages/PHASE_68_VERIFY_ONLY_REAL_DATASET_PROOF_EMPTY_SCAN_FAILSAFE_EXECUTION_RETURN_PACKAGE.md`.
-- - 2026-02-01: Phase 69 Seeded Emulator Proof: Non-Empty Verify-Only + End-to-End Legacy Removal (EXECUTION) - Completed non-empty scan proof with deterministic seed harness. (1) Created `scripts/seed/phase69_seed_architect_worlds_for_tpe_migration.js` seed script: writes deterministic worldId `phase69_seed_world`, creates 3 team docs (BOS with legacy tradeExceptions, LAL with canonical exceptions.tpe, MIA with both for merge testing), idempotent overwrites, refuses to run against production. (2) Created `scripts/seed/phase69_run_tpe_migration_proof.js` end-to-end proof runner: runs seed → verify-only (expected fail) → write → verify-only (expected pass), validates exit codes and scan counts. (3) Executed proof loop on emulator: first verify-only FAILED with worldsScanned=1, teamDocsScanned=3, docsWithLegacy=2, exit code 1; write migration completed with docsMigrated=2; second verify-only PASSED with worldsScanned=1, teamDocsScanned=3, docsWithLegacy=0, exit code 0. (4) 28 new guardrail tests in `phase69_seeded_verify_only_nonempty_proof_guardrails.test.js` covering: seed script structure, deterministic IDs, legacy field presence, proof runner execution order, Phase 68 regression checks. (5) All 544 architect tests passing. Build passes. Return package: `docs/architect/return_packages/PHASE_69_SEEDED_VERIFY_ONLY_NONEMPTY_PROOF_EXECUTION_RETURN_PACKAGE.md`.
-- - 2026-02-01: Phase 70 CI Proof Job + Production Verify-Only Safety Rails (EXECUTION) - Made Phase 69 proof harness runnable in CI and added production-safe verify-only workflow. (1) Created `scripts/ci/run_phase69_tpe_migration_proof.js` CI entrypoint: wraps Phase 69 proof runner, validates exit codes (first verify-only=1, second verify-only=0), confirms nonzero scan counts in output, refuses to run without `FIRESTORE_EMULATOR_HOST`. (2) Added `ci:phase69-proof` npm script for CI pipelines. (3) Added production write safety latch in `phase66_migrate_tradeExceptions.js`: `--write` is REFUSED against production Firestore unless `FIRESTORE_EMULATOR_HOST` is set OR `ALLOW_PROD_MIGRATION_WRITE=true` is in environment. Does not affect `--verify-only` mode. (4) Updated help text documenting `ALLOW_PROD_MIGRATION_WRITE` environment variable. (5) 27 new guardrail tests in `phase70_ci_proof_and_prod_write_safety_guardrails.test.js` covering: CI entrypoint existence, npm script presence, production write latch, verify-only path unaffected, Phase 68 empty-scan regression, Phase 69 proof runner regression. (6) All architect tests passing. Build passes. Return package: `docs/architect/return_packages/PHASE_70_CI_PROOF_AND_PROD_WRITE_SAFETY_EXECUTION_RETURN_PACKAGE.md`.
-- - 2026-02-01: Phase 71 Cap Sheet MVP Gap Audit (PREFLIGHT) - Comprehensive audit of Cap Sheet MVP readiness. (1) SSOT confirmed: `computeTeamCapTotals()` is canonical totals function at `src/features/architect/utils/capTotals/computeTeamCapTotals.js`. (2) Identified 3 competing legacy functions: `calculateTeamTotals()` in mutationPipeline.js and tradeContext.js (missing incompleteChargesTotal), `updateTeamCapTotals()` in tradeManager.js (simplified). (3) Mapped 6 UI surfaces - all use SSOT except `CapImpactTiles` which lacks memoization. (4) Mapped 13 mutation entrypoints - all trigger refresh and persist. (5) Exceptions MVP requirements MET (tracking, validation, hard cap sources); gaps in Room Exception, BAE cooldown. (6) Top 5 staleness risks identified with evidence. (7) Proposed 4 execution chunks: SSOT Unification, Tile Reactivity Hardening, Exceptions MVP Completion, Persistence/Workflow Polish. (8) No stop conditions triggered. Return package: `docs/architect/return_packages/PHASE_71_CAP_SHEET_MVP_GAP_AUDIT_PREFLIGHT_RETURN_PACKAGE.md`.
-- - 2026-02-01: Phase 72 SSOT Cap Totals Unification (EXECUTION) - Eliminated legacy `calculateTeamTotals()` functions from mutation pipeline and trade context. (1) Replaced 7 call sites in `mutationPipeline.js` with SSOT `computeTeamCapTotals()`. (2) Replaced 1 call site in `tradeContext.js` with SSOT. (3) Deleted both `calculateTeamTotals()` function definitions (legacy code removed). (4) Added deprecation comment to `updateTeamCapTotals()` in `tradeManager.js`. (5) Created 8 guardrail tests in `phase72_ssot_cap_totals_unification_guardrails.test.js` covering: source scan for banned function definitions, SSOT import presence, SSOT usage in call sites, behavioral tests for incompleteChargesTotal. (6) All 587 architect tests passing. Build passes. Return package: `docs/architect/return_packages/PHASE_72_SSOT_CAP_TOTALS_UNIFICATION_EXECUTION_RETURN_PACKAGE.md`.
-- - 2026-02-01: Phase 73 Tile Reactivity Hardening + Totals Drift Guardrails (EXECUTION) - Fixed highest-risk staleness surface and wired drift detection. (1) Added rate-limiting to `warnOnTotalsDivergence()` via module-level `warnedKeys` Set - each unique component:field key only warns once to prevent console spam. (2) Added `resetWarnedKeys()` export for test cleanup. (3) Added `useMemo` to `CapImpactTiles.jsx` for 3 expensive computations: `baselineTotals` (deps: [team, yearKey]), `hardCapStatus` (deps: [team, yearKey]), `salaryIn/salaryOut` (deps: [sends, incomingPlayers, yearKey]). (4) Replaced DIY divergence check in `TradeTeamCard.jsx` with canonical `warnOnTotalsDivergence()` calls for `outgoingSalary` and `incomingSalary` fields. (5) 18 new guardrail tests in `phase73_tile_reactivity_and_totals_drift_guardrails.test.js` covering: source scan for useMemo usage, rate-limiting mechanism, behavioral tests for warn-once-per-key. (6) All 597 architect tests passing. Build passes. Return package: `docs/architect/return_packages/PHASE_73_TILE_REACTIVITY_TOTALS_DRIFT_GUARDRAILS_EXECUTION_RETURN_PACKAGE.md`.
-- - 2026-02-01: Phase 74 Room Exception MVP Completion (EXECUTION) - Wired room exception (Room MLE) into validation and mutation pipelines for end-to-end tracking. (1) Added 'room', 'roommle', 'rmle' to second apron blocked exceptions list in `validateExceptionEligibility()`. (2) Added new Rule for room exception blocking above first apron with `isRoomMLE` detection (matches BAE behavior). (3) Added room exception usage tracking block in `computeSigningResult()` for 'room', 'room mle', 'roommle', 'rmle' variants - updates `usedAmount`/`remainingAmount` on `team.exceptions.room`. (4) Room exception explicitly does NOT trigger hard cap (unlike non-taxpayer MLE). (5) Schema already exists: `ExceptionsZ.room` uses `MleExceptionZ` shape. (6) UI already complete: `ManageExceptionsModal.jsx` includes 'room' in EXCEPTION_TYPES. (7) 17 new guardrail tests in `phase74_room_exception_mvp_guardrails.test.js` covering: source scan, validation behavioral, mutation pipeline, persistence shape, reload proof. (8) All 614 architect tests passing. Build passes. Return package: `docs/architect/return_packages/PHASE_74_ROOM_EXCEPTION_MVP_COMPLETION_EXECUTION_RETURN_PACKAGE.md`.
-- - 2026-02-01: Phase 75 Room Exception Auto-Eligibility (EXECUTION) - Added under-cap gating for Room Exception using SSOT totals. (1) Created `canUseRoomException(team, yearKey)` helper in `computeTeamCapTotals.js` using SSOT totals; returns `{ eligible: boolean, reason?: string, totals: { totalCapAllocations, salaryCap, delta } }`. (2) Wired into `validateExceptionEligibility()` as Rule 0: room exception variants now check under-cap eligibility BEFORE apron checks; returns `ROOM_REQUIRES_UNDER_CAP` rule code with cap proof numbers in reason. (3) Added UI guardrail in `ManageExceptionsModal.jsx`: room toggle disabled when ineligible, inline warning "Only available to teams under the salary cap" shown. (4) 24 new guardrail tests in `phase75_room_exception_auto_eligibility_guardrails.test.js` covering: source scan (7), unit tests (5), validation behavioral (6), regression checks (2), boundary cases (4). (5) All 647 architect tests passing. Build passes. Return package: `docs/architect/return_packages/PHASE_75_ROOM_EXCEPTION_AUTO_ELIGIBILITY_UNDER_CAP_GATING_EXECUTION_RETURN_PACKAGE.md`.
-- - 2026-02-01: Phase 76 Exception Lifecycle Season Advance Reset/Reload Parity (EXECUTION) - Added exception lifecycle handling to season advance for non-TPE exceptions (BAE, Mini MLE, NTMLE, Room). (1) Created `src/features/architect/utils/exceptions/exceptionLifecycle.js` with `resetTeamNonTpeExceptionsForNewSeason()` helper that: recomputes `maxAmount` from new year's cap rules via `getCapRulesForYear()`, resets `usedAmount` to 0, recomputes `remainingAmount` (= maxAmount when enabled, 0 when disabled), preserves `enabled` flag unchanged. (2) Wired helper into `processTeamSeasonTransitionWithOptions()` in `seasonManager.js` after TPE expiry processing and before cap totals recalculation. (3) TPE lifecycle unchanged: helper explicitly does NOT touch `exceptions.tpe[]` (handled separately by `processTradeExceptions()`). (4) Room eligibility gating unchanged: helper does NOT call `canUseRoomException()` (Phase 75's responsibility). (5) 20 new guardrail tests in `phase76_exception_lifecycle_season_advance_reset_reload_parity_guardrails.test.js` covering: source scan (4), reset behavioral (6), reload parity (2), edge cases (4), constants (4). (6) All architect tests passing. Build passes. Return package: `docs/architect/return_packages/PHASE_76_EXCEPTION_LIFECYCLE_SEASON_ADVANCE_RESET_RELOAD_PARITY_EXECUTION_RETURN_PACKAGE.md`.
-- - 2026-02-01: Phase 77 Season Advance Totals SSOT + Persist→Reload Parity (EXECUTION) - Replaced legacy `updateTeamCapTotals()` with SSOT `computeTeamCapTotals()` in season advance paths. (1) Added `computeTeamCapTotals` import from `@/features/architect/utils/capTotals` to `seasonManager.js`. (2) Replaced `updateTeamCapTotals()` dynamic import with direct SSOT call in `processTeamSeasonTransition()` and `processTeamSeasonTransitionWithOptions()`. (3) Totals recompute now uses `toYear` (target year) as yearKey for correct season-based calculations. (4) Ordering preserved: TPE expiry (Phase 53) → non-TPE reset (Phase 76) → totals recompute (Phase 77) → persist. (5) 21 new guardrail tests in `phase77_season_advance_totals_ssot_persist_reload_parity_guardrails.test.js` covering: source scan (4), behavioral (5), persist→reload parity (5), edge cases (4), ordering invariants (3). (6) SSOT fields verified: `yearKey`, `playersTotal`, `deadMoneyTotal`, `capHoldsTotal`, `incompleteChargesTotal`, `totalCapAllocations`, `salaryCap`, `firstApron`, `secondApron`, `deltas`. (7) All 715 architect tests passing. Build passes. Return package: `docs/architect/return_packages/PHASE_77_SEASON_ADVANCE_TOTALS_SSOT_PERSIST_RELOAD_PARITY_EXECUTION_RETURN_PACKAGE.md`.
-- - 2026-02-01: Phase 78 Remove updateTeamCapTotals Everywhere - SSOT-Only Totals (EXECUTION) - Eliminated last legacy totals helper from codebase. (1) Deleted `updateTeamCapTotals()` function definition from `tradeManager.js`. (2) Replaced 4 internal call sites with SSOT `computeTeamCapTotals(team, yearKey)`: `executeTrade()`, `signFreeAgent()`, `waivePlayer()`, `extendPlayer()`. (3) Removed `updateTeamCapTotals` export from `architectCore.js` barrel. (4) Updated `tests/architect/tradeManager.test.js`: removed import and 4 legacy tests for the deleted function. (5) 9 new guardrail tests in `phase78_remove_updateTeamCapTotals_ssot_only_guardrails.test.js` covering: function definition removal (2), SSOT import presence (1), SSOT usage (2), Phase 77 invariant preservation (3), no legacy helpers in core modules (1). (6) **SSOT-only invariant enforced:** There is now exactly one way to compute team totals: `computeTeamCapTotals(team, yearKey)`. (7) All architect tests passing. Build passes. Return package: `docs/architect/return_packages/PHASE_78_REMOVE_UPDATE_TEAM_CAP_TOTALS_SSOT_ONLY_EXECUTION_RETURN_PACKAGE.md`.
--
-- LINKS:
-- - Plan: plans/cap-sheet-contract-rules-phase-7-3/plan.md
-- - Trade Context Module: src/features/architect/utils/tradeContext/
-- - Latest Chunk: n/a (no chunks used)
-    \*/
+/**
+
+* FILE: docs/architect/CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md
+* PURPOSE: Canonical reference for Cap Sheet mutation and validation architecture.
+* OWNERSHIP: Feature: architect/cap-sheet validation
+*
+* HISTORY:
+* * 2026-01-16: Created (initial master doc)
+* * 2026-01-17: Added Phase 4 signing terms/raises wiring details (plan `plans/_archive/cap-sheet-contract-rules-phase-4-signing-terms-2026-01-17/plan.md`, chunk_n/a)
+* * 2026-01-18: Phase 7.3 option invariants + canonical multiplier owner (plan `plans/cap-sheet-contract-rules-phase-7-3/plan.md`, chunk_n/a)
+* * 2026-01-22: Phase 26 S&T Audit - fixed build errors, audited workflow, extended tests 2→20
+* * 2026-01-21: Phase 27 Manual Exception Management - added setExceptions mutation, validateExceptions, ManageExceptionsModal
+* * 2026-01-21: Phase 29 LeagueView SSOT Fix - replaced inline salary computation with `computeTeamCapTotals()`, added 8 regression tests
+* * 2026-01-23: Phase 31 Max Salary Enforcement - added `max_salary_violation` hard block to prevent contracts exceeding YOS-based max (25%/30%/35% of cap), 16 new tests
+* * 2026-01-23: Phase 32 S&T Incoming Aggregation - added Rule 1.6 to block receiving team from aggregating other players with S&T player, 9 new tests (P0-2 closure)
+* * 2026-01-23: Phase 33 Hard Cap Test Drift Fix - test assertion moved to `rules.hardCap.violations` to avoid violation order dependency
+* * 2026-01-23: Phase 34 Second Apron Threshold Boundary Bug (PREFLIGHT) - identified `>=` vs `>` comparator bug in 8 files; CBA Art VII Sec 2(f) specifies `>` for second apron team classification; execution pending
+* * 2026-01-23: Phase 34 Second Apron Threshold Boundary Bug (EXECUTION) - fixed `>=` → `>` comparator in 7 files for second apron classification; added 5 boundary tests; teams at threshold no longer incorrectly treated as second apron
+* * 2026-01-27: Phase 38 Architect Second Apron Semantics Unification (EXECUTION) - unified legacy `capUtils.js` and `tradeHelpers.js` to strictly use `>` for second apron classification, aligning with Trade Machine SSOT; fixed `capLegalityValidation.js` hard cap check to allow landing exactly on apron; added guardrail tests.
+* * 2026-01-27: Phase 39 Second Apron Drift Scan (PREFLIGHT) - Confirmed partial drift in `capLegalityValidation.js` (uses `>=` for exception blocking) and `tradeHelpers.js`. Strict semantics (`>`) confirmed for hard cap status. Return package at `docs/architect/return_packages/PHASE_39_SECOND_APRON_DRIFT_SCAN_PREFLIGHT_RETURN_PACKAGE.md`.
+* * 2026-01-27: Phase 39 Second Apron Drift Fix (EXECUTION) - Eliminated `>=` drift in `capLegalityValidation.js` (exception blocking) and `tradeHelpers.js`. Added strict boundary guardrail tests (`phase39_drift_guardrails.test.js`).
+* * 2026-01-27: Phase 40 Second Apron Drift Scan (Architect-wide) (PREFLIGHT) - Preflight completed. Identified 3 logic drift locations and 1 interface drift. Return package: `docs/architect/return_packages/PHASE_40_SECOND_APRON_DRIFT_SCAN_PREFLIGHT_RETURN_PACKAGE.md`.
+* * 2026-01-27: Phase 40 Second Apron Drift Fix (Architect-wide) (EXECUTION) - Eliminated remaining `>=` drift in `buildRuleContext.ts`, `capLegalityValidation.js` (Rule 1.8), and `faExceptionUtils.js`. Renamed `teamIsAtOrAboveSecondApron` to `teamIsSecondApron` in `draftPickUtils.js`. Added 9 strict boundary guardrail tests (`phase40_secondApron_drift_guardrails.test.js`).
+* * 2026-01-28: Phase 41A Draft Pick Utils Back-Compat Removal Readiness (PREFLIGHT) - Confirmed safety of removing `teamIsAtOrAboveSecondApron` fallback in `draftPickUtils.js`. Only 1 production caller (`validateStepien.ts`) exists and uses the new key. Return package: `docs/architect/return_packages/PHASE_41A_DRAFT_PICK_BACKCOMPAT_PREFLIGHT_RETURN_PACKAGE.md`.
+* * 2026-01-28: Phase 41B Draft Pick Utils Back-Compat Removal (EXECUTION) - Removed `teamIsAtOrAboveSecondApron` parameter support from `draftPickUtils.js`. Legacy key is now ignored. Updated `phase40_secondApron_drift_guardrails.test.js` to verify strictness.
+* * 2026-01-28: Phase 42 Apron Derivation Consolidation (EXECUTION) - Consolidated apron derivation in `tradeHelpers.getApronStatus`, `usePlayerRulesProfiles.deriveApronStatus`, `buildRuleContext.deriveApronLevel`, and `faExceptionUtils.canUseFaException` to delegate to tradeMachine SSOT; fixed first apron boundary drift in `usePlayerRulesProfiles` (`>` → `>=`); added 19 guardrail tests; deferred `useCapValidation` (warning-only, low risk). Return package: `docs/architect/return_packages/PHASE_42_APRON_DERIVATION_CONSOLIDATION_EXECUTION_RETURN_PACKAGE.md`.
+* * 2026-01-28: Phase 43 Apron Drift Prevention Guardrails (EXECUTION) - Added ESLint rule blocking direct imports from `tradeMachine/utils/capUtils.js` outside tradeMachine folder; fixed `buildRuleContext.ts` and `tradeHelpers.js` to use canonical import path `@/features/architect/utils/capUtils`; updated deprecated `getAllowableIncomingMargin` to delegate to `isSecondApronTeam`; confirmed S&T eligibility check uses correct `>` semantics; added 5 guardrail tests. Return package: `docs/architect/return_packages/PHASE_43_APRON_DRIFT_PREVENTION_GUARDRAILS_EXECUTION_RETURN_PACKAGE.md`.
+* * 2026-01-28: Phase 44 Architect Status Snapshot (PREFLIGHT) - Produced current state map confirming Phases 35-43 complete; no blocking work remains; identified low-priority polish items (TPE usage pipeline, roster charge UI, doc cleanup). Return package: `docs/architect/return_packages/PHASE_44_ARCHITECT_STATUS_SNAPSHOT_PREFLIGHT_RETURN_PACKAGE.md`.
+* * 2026-01-28: Phase 46 TPE Usage Pipeline Status & Gaps (PREFLIGHT) - Mapped TPE lifecycle (create → store → show → validate → consume → expire); identified critical gaps: no persistence for TPE creation (G-TPE-2) or consumption (G-TPE-1); expiration works via seasonManager; validation works for trades. Return package: `docs/architect/return_packages/PHASE_46_TPE_USAGE_PIPELINE_PREFLIGHT_RETURN_PACKAGE.md`.
+* * 2026-01-28: Phase 47 TPE Persistence (EXECUTION) - Closed G-TPE-1 and G-TPE-2 gaps; added TPE creation and consumption persistence to `computeTradeResult()` in `mutationPipeline.js`; created TPEs now added to `team.tradeExceptions[]`; consumed TPEs have `remainingAmount` decremented and `isUsed` set; 14 guardrail tests added. Return package: `docs/architect/return_packages/PHASE_47_TPE_PERSISTENCE_EXECUTION_RETURN_PACKAGE.md`.
+* * 2026-01-28: Phase 47B TPE Persistence SSOT Alignment (EXECUTION) - Eliminated drift vectors in Phase 47: removed hardcoded `SALARY_CAP = 141_000_000` constant (now uses `capSettings.salaryCap` from provider); TPE creation now persists validator output (`teamResult.createdTPE`) instead of recomputing; TPE consumption uses validated `matchIncoming` values; fixed pre-existing dead cap function scope bug; 207/209 architect tests passing. Return package: `docs/architect/return_packages/PHASE_47B_TPE_PERSISTENCE_SSOT_ALIGNMENT_EXECUTION_RETURN_PACKAGE.md`.
+* * 2026-01-28: Phase 47C TPE Persistence Hardening (EXECUTION) - Hardened Phase 47B: removed salary fallback for TPE consumption (uses `matchIncoming` only with explicit warnings); added dedupe logic merging `tradeExceptions` + `exceptions.tpe` sources; implemented idempotent creation with signature-based duplicate detection; preserved validator-provided TPE ids; 16 new guardrail tests; 223/225 architect tests passing (2 pre-existing failures unchanged). Return package: `docs/architect/return_packages/PHASE_47C_TPE_PERSISTENCE_HARDENING_EXECUTION_RETURN_PACKAGE.md`.
+* * 2026-01-28: Phase 48 Sign-and-Trade Validation Order Fix (EXECUTION) - Fixed S&T validation order: added `validateSigning()` call in `computeSignAndTradeResult()` before `computeTradeResult()` is invoked, ensuring signing validation failure short-circuits before trade validator runs; fixed 2 failing SAT14 tests; 225/225 architect tests now passing. Return package: `docs/architect/return_packages/PHASE_48_SIGN_AND_TRADE_VALIDATION_ORDER_EXECUTION_RETURN_PACKAGE.md`.
+* * 2026-01-29: Phase 49 TPE Exception History Logging (EXECUTION) - Added `exceptionHistory[]` persistence to Architect trade results with deterministic `historyKey` dedupe. `computeTradeResult()` now generates durable `TPE_CREATED` + `TPE_CONSUMED` entries (world-aware, timestamped) via `historyHelpers.js`, and `appendExceptionHistory()` prevents retries from duplicating records. Added Phase 49 guardrail tests covering creation, consumption (partial/full), idempotency, and no-op scenarios. Return package: `docs/architect/return_packages/PHASE_49_TPE_EXCEPTION_HISTORY_LOGGING_EXECUTION_RETURN_PACKAGE.md`.
+* * 2026-01-29: Phase 50 ExecuteTrade Integration Persistence Tests (EXECUTION) - Added integration-level tests for `executeTrade` mutation pipeline verifying TPE creation/consumption persistence and `exceptionHistory[]` durability. Fixed bug in `mutationPipeline.js` line 1189 where TPE consumption was blocked when `tradeExceptionsResult.details` was empty string (falsy). Tests verify: (1) over-cap trades create TPEs with `TPE_CREATED` history entries, (2) TPE consumption updates `remainingAmount`/`usedAmount` with `TPE_CONSUMED` history entries (partial and full), (3) idempotent behavior on retry (no duplicate TPEs or history entries). 5 integration tests, 235 architect tests passing. Return package: `docs/architect/return_packages/PHASE_50_EXECUTETRADE_INTEGRATION_PERSISTENCE_TESTS_EXECUTION_RETURN_PACKAGE.md`.
+* * 2026-01-29: Phase 51 Season Advance TPE Expiry Integration (EXECUTION) - Added integration-level tests for season advance TPE expiry flow verifying: (1) expired TPEs removed when `expiresOn < boundary` (July 1 of toSeason start year), (2) active TPEs kept when `expiresOn >= boundary`, (3) boundary condition: TPE at exact boundary (e.g., 2026-07-01T00:00:00.000Z for 2026-27 season) is ACTIVE (kept), (4) dual-source "no ghost" dedupe merging `tradeExceptions[]` + `exceptions.tpe[]` with id-based preference for canonical fields, (5) idempotency: running twice produces identical results. 18 integration tests, 253 architect tests passing. Return package: `docs/architect/return_packages/PHASE_51_SEASON_ADVANCE_TPE_EXPIRY_INTEGRATION_EXECUTION_RETURN_PACKAGE.md`.
+* * 2026-01-29: Phase 52 Roster Spot Charges UI Wiring (EXECUTION) - Verified G2-3 gap already resolved in Phase 25. (1) `incompleteChargesTotal` computed in SSOT (`computeTeamCapTotals.js` L216). (2) UI display implemented in `CapSheet.jsx` L431-451 with conditional "Incomplete Roster Charge" row, slot count annotation, and proper formatting. (3) 7 UI tests in `rosterChargeDisplay.test.jsx` (RC1-RC6) all passing. (4) Updated Master Doc §3.2 and §7.3 to mark G2-3 as RESOLVED. Return package: `docs/architect/return_packages/PHASE_52_ROSTER_SPOT_CHARGES_UI_WIRING_EXECUTION_RETURN_PACKAGE.md`.
+* * 2026-01-29: Phase 53 TPE Expiry Exception History Logging (EXECUTION) - Closed "TPEs disappear with no audit trail" gap during season advance. (1) Added `TPE_EXPIRED` entry type to `historyHelpers.js` with `createTpeExpiryHistoryEntry()` and `buildExpiryHistoryKey()` helpers. (2) Season advance now emits durable `TPE_EXPIRED` entries to `team.exceptionHistory[]` for each expired TPE via `processTeamSeasonTransitionWithOptions()`. (3) Entries are idempotent and deduped by deterministic `historyKey` (format: `seasonAdvance:{worldId}:{teamCode}:{tpeId}:expired:{signature}`). (4) Boundary semantics unchanged: `expiresOn == boundary` stays ACTIVE (no expiry history). (5) Dual-source merge produces no ghost expiry logs. (6) 17 new guardrail tests in `phase53_seasonAdvance_tpe_expiry_history_integration.test.js`. 270 architect tests passing. Return package: `docs/architect/return_packages/PHASE_53_TPE_EXPIRY_EXCEPTION_HISTORY_LOGGING_EXECUTION_RETURN_PACKAGE.md`.
+* * 2026-01-30: Phase 55 Trade Validation Separation (EXECUTION) - Eliminated duplicate `validateTrade()` calls in trade mutation paths. (1) Added `validateTradeForContext()` export for building validated trade contexts. (2) `computeTradeResult()` now attaches `_validatedTradeContext` to its result with `_isValidatedTradeContext: true` flag. (3) `validateMutation()` for `executeTrade` and `signAndTrade` now checks for pre-validated context and reuses it instead of re-calling `validateTradeForPipeline()`. (4) Trade validation runs exactly once per mutation (inside `computeTradeResult()` after roster updates, required for correct TPE absorption context). (5) Phase 48 invariant preserved: signing validation runs before trade validation in S&T path. (6) 5 new guardrail tests in `phase55_trade_validation_separation_guardrails.test.js`. 275 architect tests passing. Return package: `docs/architect/return_packages/PHASE_55_TRADE_VALIDATION_SEPARATION_EXECUTION_RETURN_PACKAGE.md`.
+* * 2026-01-30: Phase 56 Pure computeTradeResult + Post-Trade Snapshot Validation (EXECUTION) - Made `computeTradeResult()` a **pure function** (no internal `validateTrade()` calls). (1) Added `buildPostTradeTeamsSnapshot()` pure helper that applies roster moves without calling validators. (2) Added `validatePostTradeSnapshotForContext()` that validates the post-trade snapshot exactly once and returns `validatedContext`. (3) Refactored `computeTradeResult()` to require `postTradeSnapshot` and `validatedContext` parameters - throws if missing. (4) Updated `computeWorldMutation` executeTrade case to: build snapshot → validate snapshot → compute with context. (5) Updated `computeSignAndTradeResult()` to: validate signing → build post-trade snapshot → validate trade → compute with context. (6) Trade validation sees POST-TRADE roster state (required for correct TPE absorption). (7) Legacy `validateTradeForContext()` retained as convenience wrapper. (8) 7 new guardrail tests in `phase56_pure_computeTradeResult_guardrails.test.js`. 282 architect tests passing. Return package: `docs/architect/return_packages/PHASE_56_POST_TRADE_SNAPSHOT_VALIDATION_PURE_COMPUTE_EXECUTION_RETURN_PACKAGE.md`.
+* * 2026-01-30: Phase 57 Trade Validation Separation Cleanup + Anti-Regression Guardrails (EXECUTION) - Finalized Phase 56 by: (1) Removing Phase 55-era fallback paths in `validateMutation()` - `executeTrade` and `signAndTrade` now throw hard errors if pre-validated context is missing instead of falling back to `validateTradeForPipeline()`. (2) Marked `validateTradeForContext()` as legacy convenience wrapper with clear docstring warning not to use for mutation gating. (3) Added anti-regression test (`phase57_forbid_validateTrade_in_compute_guardrail.test.js`) that reads source files and enforces `validateTrade(` does not appear in compute/persist regions - 7 guardrail tests. (4) Trade pipeline is now cleanly `snapshot → validate → compute/persist` with no fallback paths. Return package: `docs/architect/return_packages/PHASE_57_TRADE_VALIDATION_CLEANUP_GUARDRAILS_EXECUTION_RETURN_PACKAGE.md`.
+* * 2026-01-30: Phase 58 Trade Context Extraction + Shape Hardening (EXECUTION) - Extracted Phase 56/57 trade snapshot/context helpers to dedicated module for maintainability. (1) Created `src/features/architect/utils/tradeContext/` module with: `tradeContext.js` (snapshot + validation context builders), `assertions.js` (runtime shape assertions), `types.js` (canonical JSDoc typedefs), `index.js` (public API). (2) Defined canonical shapes: `PostTradeSnapshot` (sentinel: `_isPostTradeSnapshot`), `ValidatedTradeContext` (sentinel: `_isValidatedTradeContext`). (3) Added runtime assertions: `assertPostTradeSnapshot()`, `assertValidatedTradeContext()`, `assertTradeComputeInputs()` - used in `computeTradeResult()`. (4) Updated Phase 57 guardrail tests to cover new module paths with allowlist enforcement. (5) Marked `validateTradeForPipeline()` as `@deprecated`. (6) `mutationPipeline.js` re-exports for backward compatibility. Return package: `docs/architect/return_packages/PHASE_58_TRADE_CONTEXT_EXTRACTION_SHAPE_HARDENING_EXECUTION_RETURN_PACKAGE.md`.
+* * 2026-01-30: Phase 59 Legacy Trade Validation Retirement + Anti-Regression Guardrails (EXECUTION) - Removed/quarantined legacy trade validation helpers to prevent regression to pre-Phase 56 architecture. (1) Deleted `validateTradeForPipeline()` function from `mutationPipeline.js` (dead code, no callers). (2) Created `tradeContext/legacy/` namespace with loud naming (`legacy_validateTradeForContext`). (3) Moved `validateTradeForContext` from main exports to legacy namespace (re-exported from `tradeContext/index.js` for backward compat). (4) Removed `validateTradeForContext` re-export from `mutationPipeline.js`. (5) Added 13 guardrail tests in `phase59_legacy_import_guardrail.test.js` enforcing: mutation modules cannot import from legacy namespace, `validateTradeForPipeline` is removed, legacy namespace has loud warnings. (6) Updated Phase 57 guardrail tests to reflect Phase 59 changes. (7) Documented `calculateTeamTotals` duplication as intentional (avoid circular deps). 313 architect tests passing. Return package: `docs/architect/return_packages/PHASE_59_LEGACY_TRADE_VALIDATION_RETIREMENT_GUARDRAILS_EXECUTION_RETURN_PACKAGE.md`.
+* * 2026-01-30: Phase 60 Mutation Persistence Sanitization + No-Leak Guardrails (EXECUTION) - Ensured transient compute/validation artifacts never persist to Firestore. (1) Added `FORBIDDEN_TRANSIENT_KEYS` constant and `sanitizeTransientFieldsForPersistence()` function to `mutationPipeline.js`. (2) Forbidden keys: `_validatedTradeContext`, `_signingValidation`, `_isPostTradeSnapshot`, `_isValidatedTradeContext`, `_rawValidation`. (3) `_meta` explicitly preserved (used by UI for computed totals display). (4) Applied sanitization in `persistWorldMutation()` for team, player, and event writes before `removeUndefinedDeep()`. (5) Added 17 guardrail tests in `phase60_mutation_persist_no_internal_leaks_guardrail.test.js`: unit tests for sanitizer, deep-scan tests for forbidden key detection, source-scan tests verifying sanitizer usage at persistence boundary. 330 architect tests passing. Return package: `docs/architect/return_packages/PHASE_60_MUTATION_PERSIST_SANITIZATION_NO_LEAK_GUARDRAILS_EXECUTION_RETURN_PACKAGE.md`.
+* * 2026-01-30: Phase 61 Persistence Contract Allowlist Guardrails (EXECUTION) - Prevented schema drift at mutation persistence boundary via allowlist-based contracts. (1) Created `src/features/architect/utils/persistenceContracts/` module with: `contracts.js` (frozen allowlists for team/player/event docs + nested arrays), `validatePersistableShape.js` (path-reporting validator), `enforcement.js` (test-on/prod-off gating), `index.js` (public API). (2) Allowlists: `TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST`, `PLAYER_OVERRIDE_TOP_LEVEL_ALLOWLIST`, `EVENT_TOP_LEVEL_ALLOWLIST`, `EVENT_METADATA_TOP_LEVEL_ALLOWLIST`, plus deep rules for `tradeExceptions[]` and `exceptionHistory[]` items. (3) Wired `assertPersistableOrThrow()` in `persistWorldMutation()` for team, player, event, and event.metadata writes. (4) Enforcement order: sanitize → validate contract → removeUndefined. (5) Enforcement enabled by default in test env (`NODE_ENV=test`), disabled in production. (6) 34 guardrail tests in `phase61_persistence_contract_allowlist_guardrails.test.js`. Return package: `docs/architect/return_packages/PHASE_61_PERSISTENCE_CONTRACT_ALLOWLIST_GUARDRAILS_EXECUTION_RETURN_PACKAGE.md`.
+* * 2026-01-30: Phase 62 Persistence Contract Deep-Rules + Fixture-Based Drift Guardrails (EXECUTION) - Hardened Phase 61 contracts with deep rules for drift-prone nested structures. (1) Added `DEAD_CAP_ITEM_ALLOWLIST` for `team.deadCap[]` items. (2) Added `DEAD_CAP_AMOUNT_BY_YEAR_ITEM_ALLOWLIST` for 3-level nested `team.deadCap[].amountByYear[]` items. (3) Added `CAP_HOLD_ITEM_ALLOWLIST` for `team.capHolds[]` items. (4) Extended `validatePersistableShape.js` to support 3-level nesting via propagated deep rules. (5) Updated `TEAM_DEEP_RULES` with 3 new entries: `deadCap`, `deadCap.amountByYear`, `capHolds`. (6) Created fixture-based drift guardrails with keyset snapshot tests that detect new/removed fields. (7) 33 new guardrail tests in `phase62_persistence_contract_fixtures_deep_rules_guardrail.test.js`. Return package: `docs/architect/return_packages/PHASE_62_PERSISTENCE_CONTRACT_DEEP_RULES_FIXTURES_EXECUTION_RETURN_PACKAGE.md`.
+* * 2026-01-30: Phase 63 Sign-and-Trade Test Restoration + Anti-Regression Guardrails (EXECUTION) - Fixed 6 failing S&T tests caused by incomplete Phase 61 persistence contract allowlists. Root cause: Category C (state assembly regression) - allowlists missed legitimately persisted fields `players`, `tradeExceptions`, `sourceTeam`, `destinationTeam`, `contract`. (1) Added `players` and `tradeExceptions` to `TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST`. (2) Added `tradeExceptions` deep rule (same allowlist as `exceptions.tpe`). (3) Added `sourceTeam`, `destinationTeam`, `contract` to `EVENT_METADATA_TOP_LEVEL_ALLOWLIST`. (4) 13 new guardrail tests in `phase63_signAndTrade_restoration_guardrails.test.js` covering: allowlist completeness, validation order (Phase 48 invariant), signing failure short-circuit, Phase 56 architecture pattern. (5) All 410 architect tests passing. Return package: `docs/architect/return_packages/PHASE_63_SIGN_AND_TRADE_TEST_RESTORATION_GUARDRAILS_EXECUTION_RETURN_PACKAGE.md`.
+* * 2026-01-30: Phase 64 TPE Schema Canonicalization + No-Legacy-Persist Guardrails (EXECUTION) - Removed dual-schema ambiguity for Trade Player Exceptions by making `team.exceptions.tpe[]` the only canonical persisted location. (1) Created `normalizeTeamTpeSchema()` helper that merges legacy `tradeExceptions[]` into canonical `exceptions.tpe[]` and removes the legacy field. (2) Created `getTeamTpeList()` read helper for backward-compatible reads from old worlds. (3) Added normalization step in `persistWorldMutation()` between sanitization and contract validation: sanitize → normalize TPE → validate contract → removeUndefined → write. (4) Removed `tradeExceptions` from `TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST` and `TEAM_DEEP_RULES`. (5) Updated Phase 63 tests to reflect Phase 64 changes. (6) 26 new guardrail tests in `phase64_tpe_canonicalization_no_legacy_persist_guardrails.test.js` covering: normalization behavior, deduplication, read helper fallback, source-scan enforcement, contract validation. (7) All 436 architect tests passing. Return package: `docs/architect/return_packages/PHASE_64_TPE_CANONICALIZATION_NO_LEGACY_PERSIST_GUARDRAILS_EXECUTION_RETURN_PACKAGE.md`.
+* * 2026-01-30: Phase 65 TPE Read-Path Canonicalization + No-Direct-tradeExceptions Guardrails (EXECUTION) - Made `team.tradeExceptions` read-only legacy compatibility and eliminated direct reads across production code. (1) Refactored 11 production files to use `getTeamTpeList(team)` instead of direct `.tradeExceptions` access: `TradeTeamCard.jsx`, `TradeExceptionDashboard.jsx`, `ValidationDetailsPanel.jsx`, `useTradeMachine.js`, `tradeExceptions.js`, `basicRules.js`, `validateSalaryMatching.js`, `runOffseason.js`, `SeasonAdvanceModal.jsx`, `seasonManager.js`. (2) Identified and hardened 2 team persistence boundaries outside `mutationPipeline`: `seasonManager.js` L119 and L598 now call `normalizeTeamTpeSchema()` before `batch.set()`. (3) Added 18 guardrail tests in `phase65_forbid_direct_tradeExceptions_reads_guardrail.test.js` with source-scan enforcement and tight 9-file allowlist. (4) All 454 architect tests passing. Return package: `docs/architect/return_packages/PHASE_65_TPE_READ_PATH_CANONICALIZATION_FORBID_DIRECT_TRADEEXCEPTIONS_GUARDRAILS_EXECUTION_RETURN_PACKAGE.md`.
+* * 2026-01-31: Phase 66 Legacy tradeExceptions Migration + Type Removal + Telemetry (EXECUTION) - Completed TPE canonicalization by creating migration tooling and adding telemetry for legacy fallback detection. (1) Created `scripts/migrations/phase66_migrate_tradeExceptions.js` migration script to scan `architect_worlds/{worldId}/teams/{teamCode}` docs, call `normalizeTeamTpeSchema()` to merge legacy → canonical, remove `tradeExceptions`, and write back. Script supports `DRY_RUN=true` mode, single worldId targeting, and produces JSON + markdown reports. (2) Added legacy fallback telemetry to `getTeamTpeList()` in `normalizeTeamTpe.js`: dev-only `console.warn` and in-memory counter when falling back to `team.tradeExceptions`, gated via `LOG_LEGACY_TPE_FALLBACK` env var (defaults true in dev, false in prod). Telemetry intended for removal in Phase 67/68. (3) Updated `normalizeTradeInput.js` to use `getTeamTpeList(raw)` canonical accessor instead of direct `raw.tradeExceptions` read. (4) Updated `NormalizedTeam` interface in `types.ts` with deprecation comment clarifying it's internal compute only, not persisted shape. (5) Verified Zod schema in `architect.ts` already correct (no `tradeExceptions` field). (6) 17 new guardrail tests in `phase66_no_legacy_tradeExceptions_persisted_guardrails.test.js` covering: Zod schema exclusion, normalization behavior, telemetry firing, persistence contract exclusion, migration script existence. (7) All 471 architect tests passing. Return package: `docs/architect/return_packages/PHASE_66_LEGACY_TRADEEXCEPTIONS_MIGRATION_TYPE_REMOVAL_TELEMETRY_EXECUTION_RETURN_PACKAGE.md`.
+* * 2026-02-01: Phase 67 Migration Execution + Telemetry Wind-Down (EXECUTION) - Executed TPE migration and produced zero-legacy proof. (1) Hardened migration script CLI with new flags: `--dry-run`, `--write`, `--verify-only`, `--output-dir`. Script now uses ESM imports instead of CommonJS. (2) Added `--verify-only` mode that scans for legacy occurrences and exits with code 1 if any found, code 0 if clean. (3) Deterministic report filenames: `phase67_<mode>_<date>.{json,md}`. (4) Ran migration against Firebase emulator in dry-run mode - 0 worlds with legacy data found. (5) Telemetry wind-down: `getTeamTpeList()` now quiet-by-default. Only logs when `LOG_LEGACY_TPE_FALLBACK=true` env var is explicitly set. Counter still increments silently for programmatic access via `getLegacyTpeFallbackCount()`. (6) 18 new guardrail tests in `phase67_migration_execution_guardrails.test.js` covering: CLI options, verify-only exit codes, deterministic filenames, telemetry quiet-by-default, documentation headers. (7) All 176 Phase 60-67 tests passing (35 from Phase 66+67). Build passes. Return package: `docs/architect/return_packages/PHASE_67_MIGRATION_EXECUTION_TELEMETRY_WIND_DOWN_RETURN_PACKAGE.md`.
+* * 2026-02-01: Phase 68 Verify-Only Empty-Scan Fail-Safe + CI Hook (EXECUTION) - Made verify-only mode CI-trustworthy by failing on empty scans. (1) Added empty-scan fail logic: if `worldsScanned === 0` OR `teamDocsScanned === 0`, verify-only now exits with code 1 and prints `[VERIFY FAILED] Empty scan (0 worlds or 0 team docs)`. (2) Added `--allow-empty` escape hatch CLI flag that bypasses empty-scan fail with loud warning (not recommended for CI). (3) Added explicit environment targeting output at script start: prints projectId, emulator host status, and Firestore instance type (EMULATOR vs PRODUCTION). (4) Fixed ESM compatibility: replaced `require()` with `JSON.parse(fs.readFileSync())` for service account loading. (5) Verified empty-scan fail-safe works: 0 worlds → exit 1. Verified `--allow-empty` escape hatch: 0 worlds + warning → exit 0. (6) 27 new guardrail tests in `phase68_verify_only_empty_scan_must_fail_guardrails.test.js` covering: empty-scan fail logic, `--allow-empty` flag, scan count output, environment targeting, Phase 67 regression checks. (7) All 516 architect tests passing. Build passes. Return package: `docs/architect/return_packages/PHASE_68_VERIFY_ONLY_REAL_DATASET_PROOF_EMPTY_SCAN_FAILSAFE_EXECUTION_RETURN_PACKAGE.md`.
+* * 2026-02-01: Phase 69 Seeded Emulator Proof: Non-Empty Verify-Only + End-to-End Legacy Removal (EXECUTION) - Completed non-empty scan proof with deterministic seed harness. (1) Created `scripts/seed/phase69_seed_architect_worlds_for_tpe_migration.js` seed script: writes deterministic worldId `phase69_seed_world`, creates 3 team docs (BOS with legacy tradeExceptions, LAL with canonical exceptions.tpe, MIA with both for merge testing), idempotent overwrites, refuses to run against production. (2) Created `scripts/seed/phase69_run_tpe_migration_proof.js` end-to-end proof runner: runs seed → verify-only (expected fail) → write → verify-only (expected pass), validates exit codes and scan counts. (3) Executed proof loop on emulator: first verify-only FAILED with worldsScanned=1, teamDocsScanned=3, docsWithLegacy=2, exit code 1; write migration completed with docsMigrated=2; second verify-only PASSED with worldsScanned=1, teamDocsScanned=3, docsWithLegacy=0, exit code 0. (4) 28 new guardrail tests in `phase69_seeded_verify_only_nonempty_proof_guardrails.test.js` covering: seed script structure, deterministic IDs, legacy field presence, proof runner execution order, Phase 68 regression checks. (5) All 544 architect tests passing. Build passes. Return package: `docs/architect/return_packages/PHASE_69_SEEDED_VERIFY_ONLY_NONEMPTY_PROOF_EXECUTION_RETURN_PACKAGE.md`.
+* * 2026-02-01: Phase 70 CI Proof Job + Production Verify-Only Safety Rails (EXECUTION) - Made Phase 69 proof harness runnable in CI and added production-safe verify-only workflow. (1) Created `scripts/ci/run_phase69_tpe_migration_proof.js` CI entrypoint: wraps Phase 69 proof runner, validates exit codes (first verify-only=1, second verify-only=0), confirms nonzero scan counts in output, refuses to run without `FIRESTORE_EMULATOR_HOST`. (2) Added `ci:phase69-proof` npm script for CI pipelines. (3) Added production write safety latch in `phase66_migrate_tradeExceptions.js`: `--write` is REFUSED against production Firestore unless `FIRESTORE_EMULATOR_HOST` is set OR `ALLOW_PROD_MIGRATION_WRITE=true` is in environment. Does not affect `--verify-only` mode. (4) Updated help text documenting `ALLOW_PROD_MIGRATION_WRITE` environment variable. (5) 27 new guardrail tests in `phase70_ci_proof_and_prod_write_safety_guardrails.test.js` covering: CI entrypoint existence, npm script presence, production write latch, verify-only path unaffected, Phase 68 empty-scan regression, Phase 69 proof runner regression. (6) All architect tests passing. Build passes. Return package: `docs/architect/return_packages/PHASE_70_CI_PROOF_AND_PROD_WRITE_SAFETY_EXECUTION_RETURN_PACKAGE.md`.
+* * 2026-02-01: Phase 71 Cap Sheet MVP Gap Audit (PREFLIGHT) - Comprehensive audit of Cap Sheet MVP readiness. (1) SSOT confirmed: `computeTeamCapTotals()` is canonical totals function at `src/features/architect/utils/capTotals/computeTeamCapTotals.js`. (2) Identified 3 competing legacy functions: `calculateTeamTotals()` in mutationPipeline.js and tradeContext.js (missing incompleteChargesTotal), `updateTeamCapTotals()` in tradeManager.js (simplified). (3) Mapped 6 UI surfaces - all use SSOT except `CapImpactTiles` which lacks memoization. (4) Mapped 13 mutation entrypoints - all trigger refresh and persist. (5) Exceptions MVP requirements MET (tracking, validation, hard cap sources); gaps in Room Exception, BAE cooldown. (6) Top 5 staleness risks identified with evidence. (7) Proposed 4 execution chunks: SSOT Unification, Tile Reactivity Hardening, Exceptions MVP Completion, Persistence/Workflow Polish. (8) No stop conditions triggered. Return package: `docs/architect/return_packages/PHASE_71_CAP_SHEET_MVP_GAP_AUDIT_PREFLIGHT_RETURN_PACKAGE.md`.
+* * 2026-02-01: Phase 72 SSOT Cap Totals Unification (EXECUTION) - Eliminated legacy `calculateTeamTotals()` functions from mutation pipeline and trade context. (1) Replaced 7 call sites in `mutationPipeline.js` with SSOT `computeTeamCapTotals()`. (2) Replaced 1 call site in `tradeContext.js` with SSOT. (3) Deleted both `calculateTeamTotals()` function definitions (legacy code removed). (4) Added deprecation comment to `updateTeamCapTotals()` in `tradeManager.js`. (5) Created 8 guardrail tests in `phase72_ssot_cap_totals_unification_guardrails.test.js` covering: source scan for banned function definitions, SSOT import presence, SSOT usage in call sites, behavioral tests for incompleteChargesTotal. (6) All 587 architect tests passing. Build passes. Return package: `docs/architect/return_packages/PHASE_72_SSOT_CAP_TOTALS_UNIFICATION_EXECUTION_RETURN_PACKAGE.md`.
+* * 2026-02-01: Phase 73 Tile Reactivity Hardening + Totals Drift Guardrails (EXECUTION) - Fixed highest-risk staleness surface and wired drift detection. (1) Added rate-limiting to `warnOnTotalsDivergence()` via module-level `warnedKeys` Set - each unique component:field key only warns once to prevent console spam. (2) Added `resetWarnedKeys()` export for test cleanup. (3) Added `useMemo` to `CapImpactTiles.jsx` for 3 expensive computations: `baselineTotals` (deps: [team, yearKey]), `hardCapStatus` (deps: [team, yearKey]), `salaryIn/salaryOut` (deps: [sends, incomingPlayers, yearKey]). (4) Replaced DIY divergence check in `TradeTeamCard.jsx` with canonical `warnOnTotalsDivergence()` calls for `outgoingSalary` and `incomingSalary` fields. (5) 18 new guardrail tests in `phase73_tile_reactivity_and_totals_drift_guardrails.test.js` covering: source scan for useMemo usage, rate-limiting mechanism, behavioral tests for warn-once-per-key. (6) All 597 architect tests passing. Build passes. Return package: `docs/architect/return_packages/PHASE_73_TILE_REACTIVITY_TOTALS_DRIFT_GUARDRAILS_EXECUTION_RETURN_PACKAGE.md`.
+* * 2026-02-01: Phase 74 Room Exception MVP Completion (EXECUTION) - Wired room exception (Room MLE) into validation and mutation pipelines for end-to-end tracking. (1) Added 'room', 'roommle', 'rmle' to second apron blocked exceptions list in `validateExceptionEligibility()`. (2) Added new Rule for room exception blocking above first apron with `isRoomMLE` detection (matches BAE behavior). (3) Added room exception usage tracking block in `computeSigningResult()` for 'room', 'room mle', 'roommle', 'rmle' variants - updates `usedAmount`/`remainingAmount` on `team.exceptions.room`. (4) Room exception explicitly does NOT trigger hard cap (unlike non-taxpayer MLE). (5) Schema already exists: `ExceptionsZ.room` uses `MleExceptionZ` shape. (6) UI already complete: `ManageExceptionsModal.jsx` includes 'room' in EXCEPTION_TYPES. (7) 17 new guardrail tests in `phase74_room_exception_mvp_guardrails.test.js` covering: source scan, validation behavioral, mutation pipeline, persistence shape, reload proof. (8) All 614 architect tests passing. Build passes. Return package: `docs/architect/return_packages/PHASE_74_ROOM_EXCEPTION_MVP_COMPLETION_EXECUTION_RETURN_PACKAGE.md`.
+* * 2026-02-01: Phase 75 Room Exception Auto-Eligibility (EXECUTION) - Added under-cap gating for Room Exception using SSOT totals. (1) Created `canUseRoomException(team, yearKey)` helper in `computeTeamCapTotals.js` using SSOT totals; returns `{ eligible: boolean, reason?: string, totals: { totalCapAllocations, salaryCap, delta } }`. (2) Wired into `validateExceptionEligibility()` as Rule 0: room exception variants now check under-cap eligibility BEFORE apron checks; returns `ROOM_REQUIRES_UNDER_CAP` rule code with cap proof numbers in reason. (3) Added UI guardrail in `ManageExceptionsModal.jsx`: room toggle disabled when ineligible, inline warning "Only available to teams under the salary cap" shown. (4) 24 new guardrail tests in `phase75_room_exception_auto_eligibility_guardrails.test.js` covering: source scan (7), unit tests (5), validation behavioral (6), regression checks (2), boundary cases (4). (5) All 647 architect tests passing. Build passes. Return package: `docs/architect/return_packages/PHASE_75_ROOM_EXCEPTION_AUTO_ELIGIBILITY_UNDER_CAP_GATING_EXECUTION_RETURN_PACKAGE.md`.
+* * 2026-02-01: Phase 76 Exception Lifecycle Season Advance Reset/Reload Parity (EXECUTION) - Added exception lifecycle handling to season advance for non-TPE exceptions (BAE, Mini MLE, NTMLE, Room). (1) Created `src/features/architect/utils/exceptions/exceptionLifecycle.js` with `resetTeamNonTpeExceptionsForNewSeason()` helper that: recomputes `maxAmount` from new year's cap rules via `getCapRulesForYear()`, resets `usedAmount` to 0, recomputes `remainingAmount` (= maxAmount when enabled, 0 when disabled), preserves `enabled` flag unchanged. (2) Wired helper into `processTeamSeasonTransitionWithOptions()` in `seasonManager.js` after TPE expiry processing and before cap totals recalculation. (3) TPE lifecycle unchanged: helper explicitly does NOT touch `exceptions.tpe[]` (handled separately by `processTradeExceptions()`). (4) Room eligibility gating unchanged: helper does NOT call `canUseRoomException()` (Phase 75's responsibility). (5) 20 new guardrail tests in `phase76_exception_lifecycle_season_advance_reset_reload_parity_guardrails.test.js` covering: source scan (4), reset behavioral (6), reload parity (2), edge cases (4), constants (4). (6) All architect tests passing. Build passes. Return package: `docs/architect/return_packages/PHASE_76_EXCEPTION_LIFECYCLE_SEASON_ADVANCE_RESET_RELOAD_PARITY_EXECUTION_RETURN_PACKAGE.md`.
+* * 2026-02-01: Phase 77 Season Advance Totals SSOT + Persist→Reload Parity (EXECUTION) - Replaced legacy `updateTeamCapTotals()` with SSOT `computeTeamCapTotals()` in season advance paths. (1) Added `computeTeamCapTotals` import from `@/features/architect/utils/capTotals` to `seasonManager.js`. (2) Replaced `updateTeamCapTotals()` dynamic import with direct SSOT call in `processTeamSeasonTransition()` and `processTeamSeasonTransitionWithOptions()`. (3) Totals recompute now uses `toYear` (target year) as yearKey for correct season-based calculations. (4) Ordering preserved: TPE expiry (Phase 53) → non-TPE reset (Phase 76) → totals recompute (Phase 77) → persist. (5) 21 new guardrail tests in `phase77_season_advance_totals_ssot_persist_reload_parity_guardrails.test.js` covering: source scan (4), behavioral (5), persist→reload parity (5), edge cases (4), ordering invariants (3). (6) SSOT fields verified: `yearKey`, `playersTotal`, `deadMoneyTotal`, `capHoldsTotal`, `incompleteChargesTotal`, `totalCapAllocations`, `salaryCap`, `firstApron`, `secondApron`, `deltas`. (7) All 715 architect tests passing. Build passes. Return package: `docs/architect/return_packages/PHASE_77_SEASON_ADVANCE_TOTALS_SSOT_PERSIST_RELOAD_PARITY_EXECUTION_RETURN_PACKAGE.md`.
+* * 2026-02-01: Phase 78 Remove updateTeamCapTotals Everywhere - SSOT-Only Totals (EXECUTION) - Eliminated last legacy totals helper from codebase. (1) Deleted `updateTeamCapTotals()` function definition from `tradeManager.js`. (2) Replaced 4 internal call sites with SSOT `computeTeamCapTotals(team, yearKey)`: `executeTrade()`, `signFreeAgent()`, `waivePlayer()`, `extendPlayer()`. (3) Removed `updateTeamCapTotals` export from `architectCore.js` barrel. (4) Updated `tests/architect/tradeManager.test.js`: removed import and 4 legacy tests for the deleted function. (5) 9 new guardrail tests in `phase78_remove_updateTeamCapTotals_ssot_only_guardrails.test.js` covering: function definition removal (2), SSOT import presence (1), SSOT usage (2), Phase 77 invariant preservation (3), no legacy helpers in core modules (1). (6) **SSOT-only invariant enforced:** There is now exactly one way to compute team totals: `computeTeamCapTotals(team, yearKey)`. (7) All architect tests passing. Build passes. Return package: `docs/architect/return_packages/PHASE_78_REMOVE_UPDATE_TEAM_CAP_TOTALS_SSOT_ONLY_EXECUTION_RETURN_PACKAGE.md`.
+* * 2026-02-02: Phase 79 Mutation Pipeline Totals SSOT + Persist→Reload Parity Guardrails (EXECUTION) - Added guardrail tests verifying all MVP mutations use SSOT `computeTeamCapTotals` for totals with persist→reload parity. (1) Created `phase79_mutation_pipeline_totals_ssot_persist_reload_parity_guardrails.test.js` with 20 tests. (2) Source-scan tests (10): verify SSOT import in mutationPipeline.js and tradeContext.js; verify SSOT calls in computeSigningResult, computeWaiveResult, computeOptionResult, computeRenounceResult, buildPostTradeTeamsSnapshot; no legacy calculateTeamTotals/updateTeamCapTotals calls. (3) Behavioral tests (5): assertTotalsMatchSSoT helper, incompleteChargesTotal presence, canonical fields, simulated signing/waive produce SSOT-compliant totals. (4) Persist→reload parity tests (4): JSON roundtrip equality, canonical fields survive, _meta preserved. (5) Extension exclusion (1): computeExtensionResult does NOT call SSOT (by design - futureContract only). (6) All architect tests passing. Return package: `docs/architect/return_packages/PHASE_79_MUTATION_PIPELINE_TOTALS_SSOT_PERSIST_RELOAD_PARITY_GUARDRAILS_EXECUTION_RETURN_PACKAGE.md`.
+* * 2026-02-02: Phase 80 Emulator E2E Cap Sheet Proof Harness (EXECUTION) - Created emulator-backed proof harness demonstrating mutation → persist → reload with SSOT totals invariant. (1) Created `scripts/ci/run_phase80_cap_sheet_e2e_proof.js` CI script: emulator-only safety (FIRESTORE_EMULATOR_HOST check), deterministic worldId `phase80_cap_sheet_e2e_proof_world`, 4 mutation simulations (signing, waive, renounce, trade snapshot), SSOT totals assertion after each mutation, persist→reload parity verification. (2) Added `ci:phase80-cap-proof` npm script to package.json. (3) Created `phase80_emulator_e2e_cap_sheet_proof_guardrails.test.js` with 14 source-scan guardrails. (4) CI proof passes 13/13 assertions; guardrails 14/14; architect suite 758/758. (5) Return package: `docs/architect/return_packages/PHASE_80_EMULATOR_E2E_CAP_SHEET_PROOF_HARNESS_EXECUTION_RETURN_PACKAGE.md`.
+* * 2026-02-02: Phase 82 Offseason E2E Playthrough + Blocker List (PREFLIGHT) - Verified end-to-end usability via Phase 80 proof harness (13/13 assertions) and guardrail tests (758/758 pass). Playthrough covered: signing, waive, renounce, trade, season advance. Room Exception under-cap gating verified (Phase 74/75 tests). **Blockers identified:** (1) Phase 80 uses simulated mutations, not actual `mutationPipeline.js`. (2) No browser E2E tests in CI. (3) Season advance lacks live emulator integration test. Recommended next phases: Phase 83 (Vitest mutation pipeline integration), Phase 84 (Playwright UI tests), Phase 85 (Season advance live test). Return package: `docs/architect/return_packages/PHASE_82_OFFSEASON_E2E_PLAYTHROUGH_BLOCKER_LIST_PREFLIGHT_RETURN_PACKAGE.md`.
+* * 2026-02-02: Phase 83 Live Pipeline Mutations and Season Advance E2E Guardrails (EXECUTION) - Created guardrail tests verifying real mutation entrypoints (`applyWorldMutation`, `advanceSeasonInWorld`, `computeTeamCapTotals`) exist and are correctly structured. 14 tests covering: source code guardrails (5), integration pattern documentation (3), entrypoint signature verification (2), mutation type coverage (4). **Key finding:** Full live E2E tests require fixtures matching persistence contract allowlists exactly (player docs: `playerId` not `player_id`; team docs: capHolds limited to allowlisted fields). Phase 80 simulated approach recommended for CI. Return package: `docs/architect/return_packages/PHASE_83_LIVE_PIPELINE_MUTATION_AND_SEASON_ADVANCE_EMULATOR_E2E_EXECUTION_RETURN_PACKAGE.md`.
+*
+* LINKS:
+* * Plan: plans/cap-sheet-contract-rules-phase-7-3/plan.md
+* * Trade Context Module: src/features/architect/utils/tradeContext/
+* * Latest Chunk: n/a (no chunks used)
+    */
 
 # Cap Sheet Mutations & Validation Master Doc
 
@@ -89,9 +94,9 @@ This document maps the complete Cap Sheet mutation and validation architecture t
 BASE (Read-Only) → WORLDS (Writable Overlay) → COMPUTED (Ephemeral)
 ```
 
-- **Base:** Firestore `teams/`, `players/` collections (real-world contracts, salaries)
-- **Worlds:** `architect_worlds/{worldId}/teams/` overlay (user modifications)
-- **Computed:** Runtime totals via `computeTeamCapTotals()` and validation results
+* **Base:** Firestore `teams/`, `players/` collections (real-world contracts, salaries)
+* **Worlds:** `architect_worlds/{worldId}/teams/` overlay (user modifications)
+* **Computed:** Runtime totals via `computeTeamCapTotals()` and validation results
 
 > **Critical Violation:** Any direct write to base collections is a doctrine violation.
 
@@ -233,13 +238,13 @@ type ExceptionUsage = {
 
 **Schema Rules (P0 Hard Blocks):**
 
-- `team.exceptions` must be an object if present
-- For each supported exception key (mle, tpmle, bae, room):
-  - `enabled` is boolean
-  - `totalAmount` and `usedAmount` are finite numbers ≥ 0
-  - `usedAmount <= totalAmount`
-  - `seasonKey` is non-empty string
-- Unknown keys: hard-block (`exceptions_unknown_key`) to be audit-grade
+* `team.exceptions` must be an object if present
+* For each supported exception key (mle, tpmle, bae, room):
+  * `enabled` is boolean
+  * `totalAmount` and `usedAmount` are finite numbers ≥ 0
+  * `usedAmount <= totalAmount`
+  * `seasonKey` is non-empty string
+* Unknown keys: hard-block (`exceptions_unknown_key`) to be audit-grade
 
 ### 4.3 DeadCap Schema (Canonical)
 
@@ -342,79 +347,79 @@ interface CapHold {
 
 #### 5.2.1 Canonical Cap Hold Multipliers (Single Source)
 
-- Canonical multiplier table: `src/features/architect/utils/capHolds.ts` (`CAP_HOLD_MULTIPLIERS`)
-- All cap hold computations must import this table (option decline expectations, cap hold creation, Bird rights references)
-- Duplicate multiplier tables are not allowed; references must defer to `capHolds.ts`
+* Canonical multiplier table: `src/features/architect/utils/capHolds.ts` (`CAP_HOLD_MULTIPLIERS`)
+* All cap hold computations must import this table (option decline expectations, cap hold creation, Bird rights references)
+* Duplicate multiplier tables are not allowed; references must defer to `capHolds.ts`
 
 #### 5.2.2 Option Transition Invariants (Phase 7.3)
 
 **Option Accept (Pipeline-Authoritative):**
 
-- No cap hold created for the player
-- `optionUsed === true` on the option year row
-- Player remains on the team roster (no roster removal)
-- `salariesByYear` remains coherent (option row present for target year)
+* No cap hold created for the player
+* `optionUsed === true` on the option year row
+* Player remains on the team roster (no roster removal)
+* `salariesByYear` remains coherent (option row present for target year)
 
 **Option Decline (Pipeline-Authoritative):**
 
-- Cap hold created when expected and amount matches canonical multipliers (Phase 7.2)
-- Player is not rostered as a signed player for the declined option year
-- `freeAgency` is canonical object and year matches derived option year
-- Option year row removed (no contract entry for declined season)
+* Cap hold created when expected and amount matches canonical multipliers (Phase 7.2)
+* Player is not rostered as a signed player for the declined option year
+* `freeAgency` is canonical object and year matches derived option year
+* Option year row removed (no contract entry for declined season)
 
 ### 5.3 Hard Block vs Override Rules
 
 **Hard Block Rules (NEVER overridable):**
 
-- `roster_size` - >15 players
-- `hard_cap` - Over hard cap ceiling
-- `two_way_limit` - >3 two-way contracts
-- `option_timing` - Wrong season for option
-- `no_contract` - Extension without contract
-- `exception_blocked` - Exception usage blocked by apron status
-- `unverified_cap_inputs` - Cap data is unknown OR projected in STRICT mode
-- `min_salary_violation` - First-year salary/capHit below CBA minimum for player's YOS
-- `contract_years_invalid` - Contract length outside allowed min/max for signing mechanism
-- `signing_terms_invalid` - Salary Engine max years exceeded for signing mechanism
-- `signing_raise_invalid` - Salary Engine raise percentage exceeded for signing
-- `first_year_max_invalid` - First-year salary exceeds mechanism max OR MINIMUM contract above min salary
-- `signing_first_year_engine_max_invalid` - First-year salary/capHit exceeds Salary Engine max (Bird rights/cap space)
-- `second_apron_minimum_only` - Teams above second apron can only sign to minimum salary
-- `extension_ineligible` - Two-way contracts cannot be extended (must convert first)
-- `extension_years_invalid` - Extension length outside 1-4 years (baseline; designated vet allows 5)
-- `extension_first_year_max_invalid` - Extension first-year salary exceeds 120% baseline (Salary Engine overrides when available)
-- `extension_raise_invalid` - Extension year-over-year raises exceed 8%
-- `contract_row_schema_invalid` - Salary row has negative salary/capHit or missing season
-- `contract_guarantee_invalid` - Guarantee fields contradictory (e.g., `guaranteedAmount` > `salary`)
-- `contract_option_invalid` - Option field has invalid enum value (must be "Team Option", "Player Option", or null)
-- `free_agency_state_invalid` - freeAgency is legacy string format or has invalid year type
-- `cap_hold_transition_invalid` - Cap hold creation/removal contradicts option decision (reserved)
-- `option_accept_player_not_rostered` - Accepted option but player is missing from roster
-- `option_accept_option_row_invalid` - Accepted option but option row missing or not marked used
-- `option_decline_player_still_rostered` - Declined option but player remains on roster
-- `option_decline_contract_row_still_present_for_declined_season` - Declined option but contract still includes declined season
-- `option_decline_free_agency_year_mismatch` - Declined option freeAgency.year mismatch
-- `rfa_state_invalid` - RFA freeAgency.year is not a plausible integer (2020-2040)
-- `rfa_missing_qualifying_offer` - RFA freeAgency.type but qualifyingOffer not finite > 0
-- `rfa_offer_sheet_not_supported` - Phase 10: Signing RFA player from non-home team (offer sheet matching not implemented)
-- `rfa_team_identity_unverifiable` - Phase 10: RFA signing where team identity cannot be verified
-- `resigning_ineligible` - Re-signing player without team eligibility (no Bird rights)
-- `rfa_offer_sheet_resolution_required` - Phase 12/13: Offer sheet in PENDING_MATCH when finalizing
-- `rfa_offer_sheet_invalid_terms` - Phase 12: Offer sheet years/raises outside bounds
-- `rfa_offer_sheet_declined` - Phase 13: Offer sheet in DECLINED state (dead)
-- `rfa_offer_sheet_store_only_invalid` - Phase 14: Store-only flag used with invalid shape (missing rfaOfferSheet or MATCHED status)
-- `rfa_offer_sheet_matched_offering_team_cannot_finalize` - Phase 17: Offering team cannot finalize a MATCHED offer sheet
-- `rfa_offer_sheet_declined_home_team_cannot_finalize` - Phase 18.1: Home team cannot finalize a DECLINED offer sheet
-- `cap_hold_signing_violation` - Phase 19: Cap-space signing exceeds salary cap when cap holds are included
-- `dead_cap_schema_invalid` - Phase 24: Dead cap entry has invalid schema (missing season, invalid amount, etc.)
-- `exceptions_schema_invalid` - Phase 27: Exception entry has invalid schema (non-object, negative amounts, usedAmount > totalAmount, etc.)
-- `exceptions_unknown_key` - Phase 27: Unknown exception key provided (audit-grade: hard-block unknown keys)
+* `roster_size` - >15 players
+* `hard_cap` - Over hard cap ceiling
+* `two_way_limit` - >3 two-way contracts
+* `option_timing` - Wrong season for option
+* `no_contract` - Extension without contract
+* `exception_blocked` - Exception usage blocked by apron status
+* `unverified_cap_inputs` - Cap data is unknown OR projected in STRICT mode
+* `min_salary_violation` - First-year salary/capHit below CBA minimum for player's YOS
+* `contract_years_invalid` - Contract length outside allowed min/max for signing mechanism
+* `signing_terms_invalid` - Salary Engine max years exceeded for signing mechanism
+* `signing_raise_invalid` - Salary Engine raise percentage exceeded for signing
+* `first_year_max_invalid` - First-year salary exceeds mechanism max OR MINIMUM contract above min salary
+* `signing_first_year_engine_max_invalid` - First-year salary/capHit exceeds Salary Engine max (Bird rights/cap space)
+* `second_apron_minimum_only` - Teams above second apron can only sign to minimum salary
+* `extension_ineligible` - Two-way contracts cannot be extended (must convert first)
+* `extension_years_invalid` - Extension length outside 1-4 years (baseline; designated vet allows 5)
+* `extension_first_year_max_invalid` - Extension first-year salary exceeds 120% baseline (Salary Engine overrides when available)
+* `extension_raise_invalid` - Extension year-over-year raises exceed 8%
+* `contract_row_schema_invalid` - Salary row has negative salary/capHit or missing season
+* `contract_guarantee_invalid` - Guarantee fields contradictory (e.g., `guaranteedAmount` > `salary`)
+* `contract_option_invalid` - Option field has invalid enum value (must be "Team Option", "Player Option", or null)
+* `free_agency_state_invalid` - freeAgency is legacy string format or has invalid year type
+* `cap_hold_transition_invalid` - Cap hold creation/removal contradicts option decision (reserved)
+* `option_accept_player_not_rostered` - Accepted option but player is missing from roster
+* `option_accept_option_row_invalid` - Accepted option but option row missing or not marked used
+* `option_decline_player_still_rostered` - Declined option but player remains on roster
+* `option_decline_contract_row_still_present_for_declined_season` - Declined option but contract still includes declined season
+* `option_decline_free_agency_year_mismatch` - Declined option freeAgency.year mismatch
+* `rfa_state_invalid` - RFA freeAgency.year is not a plausible integer (2020-2040)
+* `rfa_missing_qualifying_offer` - RFA freeAgency.type but qualifyingOffer not finite > 0
+* `rfa_offer_sheet_not_supported` - Phase 10: Signing RFA player from non-home team (offer sheet matching not implemented)
+* `rfa_team_identity_unverifiable` - Phase 10: RFA signing where team identity cannot be verified
+* `resigning_ineligible` - Re-signing player without team eligibility (no Bird rights)
+* `rfa_offer_sheet_resolution_required` - Phase 12/13: Offer sheet in PENDING_MATCH when finalizing
+* `rfa_offer_sheet_invalid_terms` - Phase 12: Offer sheet years/raises outside bounds
+* `rfa_offer_sheet_declined` - Phase 13: Offer sheet in DECLINED state (dead)
+* `rfa_offer_sheet_store_only_invalid` - Phase 14: Store-only flag used with invalid shape (missing rfaOfferSheet or MATCHED status)
+* `rfa_offer_sheet_matched_offering_team_cannot_finalize` - Phase 17: Offering team cannot finalize a MATCHED offer sheet
+* `rfa_offer_sheet_declined_home_team_cannot_finalize` - Phase 18.1: Home team cannot finalize a DECLINED offer sheet
+* `cap_hold_signing_violation` - Phase 19: Cap-space signing exceeds salary cap when cap holds are included
+* `dead_cap_schema_invalid` - Phase 24: Dead cap entry has invalid schema (missing season, invalid amount, etc.)
+* `exceptions_schema_invalid` - Phase 27: Exception entry has invalid schema (non-object, negative amounts, usedAmount > totalAmount, etc.)
+* `exceptions_unknown_key` - Phase 27: Unknown exception key provided (audit-grade: hard-block unknown keys)
 
 **Soft Warning Rules (Overridable in dev mode via `VITE_ENABLE_CBA_OVERRIDE=true`):**
 
-- `roster_minimum`, `dead_cap`, `first_apron`, `second_apron`
-- `rfa_qualifying_offer_suspicious` - Phase 10: QO > 3x last year salary (may indicate data issue)
-- `rfa_offer_sheet_store_only_flag_in_use` - Phase 14: Store-only mode is active for offer sheet (info)
+* `roster_minimum`, `dead_cap`, `first_apron`, `second_apron`
+* `rfa_qualifying_offer_suspicious` - Phase 10: QO > 3x last year salary (may indicate data issue)
+* `rfa_offer_sheet_store_only_flag_in_use` - Phase 14: Store-only mode is active for offer sheet (info)
 
 ### 5.4 Exception Blocking Rules (G0-2 Implementation)
 
@@ -477,11 +482,11 @@ interface CapHold {
 
 **Implementation:**
 
-- `countStandardRoster()` - Counts non-two-way players
-- `getMinSalaryForYear()` - Gets minimum salary from `CBA_THRESHOLDS`
-- Charge = `max(0, 14 - standardRosterCount) * MIN_SALARY_ROOKIE`
-- Included in `TeamCapTotals.incompleteChargesTotal` and `totalCapAllocations`
-- NOT stored in Firestore - computed at runtime
+* `countStandardRoster()` - Counts non-two-way players
+* `getMinSalaryForYear()` - Gets minimum salary from `CBA_THRESHOLDS`
+* Charge = `max(0, 14 - standardRosterCount) * MIN_SALARY_ROOKIE`
+* Included in `TeamCapTotals.incompleteChargesTotal` and `totalCapAllocations`
+* NOT stored in Firestore - computed at runtime
 
 **Tests:** `src/tests/architect/capTotals/incompleteRosterCharge.test.js` (9 tests)
 
@@ -493,27 +498,27 @@ interface CapHold {
 
 **Rule:**
 
-- TPEs have a 1-year lifespan (typically expiring `createdSeason + 1`).
-- Upon season advance, any TPEs expiring _before or on_ the new season start date (July 1st) must be removed.
-- **Strictness:** Removed TPEs are physically deleted from `team.tradeExceptions` array in the World overlay.
-- **Lifecycle:** TPEs are cleaned during season advance; no on-read filtering required for correctness.
+* TPEs have a 1-year lifespan (typically expiring `createdSeason + 1`).
+* Upon season advance, any TPEs expiring _before or on_ the new season start date (July 1st) must be removed.
+* **Strictness:** Removed TPEs are physically deleted from `team.tradeExceptions` array in the World overlay.
+* **Lifecycle:** TPEs are cleaned during season advance; no on-read filtering required for correctness.
 
 **Schema:**
 
-- Canonical: `expiresOn` (ISO string)
-- Implementation: `expiryISO` (ISO string)
-- Logic checks both during migration phase.
+* Canonical: `expiresOn` (ISO string)
+* Implementation: `expiryISO` (ISO string)
+* Logic checks both during migration phase.
 
 **Implementation (Phase 2):**
 
-- **Backfill:** `expiresOn` is backfilled from `expiryISO` during season transition if missing.
-- **UI Alignment:** `SeasonAdvanceModal` uses shared `processTradeExceptions` logic for preview.
-- **Canonicalization:** `tpeLifecycle.js` provides `getTpeExpiryISO` helper for consistent reads.
+* **Backfill:** `expiresOn` is backfilled from `expiryISO` during season transition if missing.
+* **UI Alignment:** `SeasonAdvanceModal` uses shared `processTradeExceptions` logic for preview.
+* **Canonicalization:** `tpeLifecycle.js` provides `getTpeExpiryISO` helper for consistent reads.
 
 **Tests:**
 
-- Unit: `seasonManager.tpe.test.js` (advance season, check TPE removal, check backfill)
-- Integration: UI Preview matches backend removal logic.
+* Unit: `seasonManager.tpe.test.js` (advance season, check TPE removal, check backfill)
+* Integration: UI Preview matches backend removal logic.
 
 ### 7.2 P1 — Allows Illegal Action but Visible/Warned
 
@@ -831,9 +836,9 @@ This section defines the canonical contract schema that all world mutation write
 
 ### 9.5 Backward Compatibility
 
-- **Read path:** Normalization helpers accept both legacy and canonical formats
-- **Write path:** Mutation writers always produce canonical format
-- **Existing Worlds:** Continue to work; new mutations produce clean data
+* **Read path:** Normalization helpers accept both legacy and canonical formats
+* **Write path:** Mutation writers always produce canonical format
+* **Existing Worlds:** Continue to work; new mutations produce clean data
 
 ---
 
@@ -889,10 +894,10 @@ type SigningTerms = {
 
 The `normalizeSigningTerms(rawTerms, options)` adapter:
 
-- Accepts any legacy terms object
-- If `mechanism` contains Bird rights keywords (e.g., "Full Bird"), moves value to `rightsType`
-- Sets `mechanism` to `options.fallbackMechanism` or `'UNKNOWN'` when recovering
-- Normalizes raw `rightsType` strings to canonical enum values
+* Accepts any legacy terms object
+* If `mechanism` contains Bird rights keywords (e.g., "Full Bird"), moves value to `rightsType`
+* Sets `mechanism` to `options.fallbackMechanism` or `'UNKNOWN'` when recovering
+* Normalizes raw `rightsType` strings to canonical enum values
 
 **Example:**
 
@@ -911,10 +916,10 @@ const canonical = normalizeSigningTerms(legacy, {
 
 ## 9.7 Cap Hold Amount Rules (Phase 7.2)
 
-- **Rights-based multipliers:** FULL_BIRD = 190%, EARLY_BIRD = 130%, NON_BIRD = 120%.
-- **Fallback:** CAP_SPACE/NONE/UNKNOWN uses the legacy 150% multiplier **with explicit warning** (`cap_hold_transition_inputs_missing`).
-- **Rounding:** Expected amount uses `Math.round(lastSalary * multiplier)`; validation enforces ≤ $1 tolerance.
-- **FA year derivation:** From option season string (`"YYYY-YY"` → start year). Example: `"2025-26"` → `2025`.
+* **Rights-based multipliers:** FULL_BIRD = 190%, EARLY_BIRD = 130%, NON_BIRD = 120%.
+* **Fallback:** CAP_SPACE/NONE/UNKNOWN uses the legacy 150% multiplier **with explicit warning** (`cap_hold_transition_inputs_missing`).
+* **Rounding:** Expected amount uses `Math.round(lastSalary * multiplier)`; validation enforces ≤ $1 tolerance.
+* **FA year derivation:** From option season string (`"YYYY-YY"` → start year). Example: `"2025-26"` → `2025`.
 
 ## 9.8 World Time SSOT (Phase 20)
 
@@ -943,9 +948,9 @@ resolveWorldAsOfDate({ payloadAsOfDate, worldAsOfDate });
 
 ### Persistence Policy
 
-- **Only update** world metadata `asOfDate` when payload explicitly includes it
-- **Never overwrite** silently (prevents accidental time advancement)
-- Mutations can reference a date without advancing world time
+* **Only update** world metadata `asOfDate` when payload explicitly includes it
+* **Never overwrite** silently (prevents accidental time advancement)
+* Mutations can reference a date without advancing world time
 
 ### Warning Rule
 
@@ -957,9 +962,9 @@ resolveWorldAsOfDate({ payloadAsOfDate, worldAsOfDate });
 
 Phase 20 provides the infrastructure for Phase 21 to implement:
 
-- `stretch_timing_invalid` - Stretch provision timing enforcement
-- 48-hour offer sheet window enforcement
-- Other timing-based CBA rules
+* `stretch_timing_invalid` - Stretch provision timing enforcement
+* 48-hour offer sheet window enforcement
+* Other timing-based CBA rules
 
 ---
 
@@ -973,26 +978,26 @@ Given the complexity of retroactive data entry (e.g., entering a July transactio
 
 ### 48-Hour Offer Sheet Window
 
-- **Rule:** An offer sheet can only be matched within 48 hours of receipt.
-- **Validator:** `rfa_offer_sheet_window_expired`
-- **Logic:** `asOfDate > offerSheet.createdAt + 48 hours`
-- **Trigger:** Attempting `matchOfferSheet` mutation.
+* **Rule:** An offer sheet can only be matched within 48 hours of receipt.
+* **Validator:** `rfa_offer_sheet_window_expired`
+* **Logic:** `asOfDate > offerSheet.createdAt + 48 hours`
+* **Trigger:** Attempting `matchOfferSheet` mutation.
 
 ### Stretch Provision Timing
 
-- **Rule:** A waive-and-stretch is generally only allowed before the season starts (for full current season relief). Stretches after season start have complex pro-ration rules often distinct from simple cap relief.
-- **Validator:** `stretch_timing_suspicious`
-- **Logic:** `asOfDate > getSeasonStartDate(seasonCode)`
-- **Trigger:** Attempting `waivePlayer` with `stretch: true`.
+* **Rule:** A waive-and-stretch is generally only allowed before the season starts (for full current season relief). Stretches after season start have complex pro-ration rules often distinct from simple cap relief.
+* **Validator:** `stretch_timing_suspicious`
+* **Logic:** `asOfDate > getSeasonStartDate(seasonCode)`
+* **Trigger:** Attempting `waivePlayer` with `stretch: true`.
 
 ### Season Boundaries (Phase 21 MVP)
 
 Hardcoded helper `getSeasonStartDate(seasonCode)` provides boundaries for `stretch_timing_suspicious`:
 
-- 2024-25: 2024-10-22
-- 2025-26: 2025-10-21 (Estimated)
-- 2026-27: 2026-10-20 (Estimated)
-- Unknown: 2026-10-?? (Returns null -> `stretch_timing_not_enforced_missing_season_boundary`)
+* 2024-25: 2024-10-22
+* 2025-26: 2025-10-21 (Estimated)
+* 2026-27: 2026-10-20 (Estimated)
+* Unknown: 2026-10-?? (Returns null -> `stretch_timing_not_enforced_missing_season_boundary`)
 
 ---
 
@@ -1059,15 +1064,15 @@ Re-signing eligibility requires verifying that the player "belongs" to the signi
 
 ### Format Handling
 
-- Prefixed formats: `"NBA:LAL"` → `"LAL"`
-- Case normalization: `"lal"` → `"LAL"`
-- Object extraction: `{ teamCode: "LAL" }` → `"LAL"`
+* Prefixed formats: `"NBA:LAL"` → `"LAL"`
+* Case normalization: `"lal"` → `"LAL"`
+* Object extraction: `{ teamCode: "LAL" }` → `"LAL"`
 
 ### Verification Policy
 
-- If both sides normalize → compare for exact match
-- If either side cannot normalize → produce `resigning_eligibility_unverifiable` warning (NOT hard-block)
-- Explicit `rightsRenounced === true` → always ineligible (hard-block)
+* If both sides normalize → compare for exact match
+* If either side cannot normalize → produce `resigning_eligibility_unverifiable` warning (NOT hard-block)
+* Explicit `rightsRenounced === true` → always ineligible (hard-block)
 
 ---
 
@@ -1086,8 +1091,8 @@ isPlausibleFreeAgencyYear(year, (contextYear = 2026));
 
 ### Range Calculation
 
-- **minYear** = contextYear - 5 (e.g., 2026 → 2021)
-- **maxYear** = contextYear + 10 (e.g., 2026 → 2036)
+* **minYear** = contextYear - 5 (e.g., 2026 → 2021)
+* **maxYear** = contextYear + 10 (e.g., 2026 → 2036)
 
 ### Context Year Sources (Priority Order)
 
@@ -1099,9 +1104,9 @@ isPlausibleFreeAgencyYear(year, (contextYear = 2026));
 
 When year is implausible, the violation includes:
 
-- `contextYear` - the reference year used
-- `minYear` - computed minimum
-- `maxYear` - computed maximum
+* `contextYear` - the reference year used
+* `minYear` - computed minimum
+* `maxYear` - computed maximum
 
 ---
 
@@ -1113,17 +1118,17 @@ Rookie Scale contracts are strictly regulated by the CBA (Article VIII).
 
 **File:** `src/features/architect/data/rookieScale.ts`
 
-- Contains 100% Scale amounts for known seasons (e.g., 2024-25).
-- Amounts derived from authoritative sources (CBA / RealGM).
-- **Policy:** Only enforce for seasons where we have explicit scale data.
+* Contains 100% Scale amounts for known seasons (e.g., 2024-25).
+* Amounts derived from authoritative sources (CBA / RealGM).
+* **Policy:** Only enforce for seasons where we have explicit scale data.
 
 ### Validation Rule (`rookie_scale_invalid`)
 
-- **Scope:** First Round Picks (1-30).
-- **Band:** Salary must be between **80% and 120%** of the 100% scale amount.
-- **Tolerance:** $1 tolerance for rounding differences.
-- **Cap Usage:** First-year salary is used. If Cap Hit differs significantly (rare), it is also checked.
-- **Trigger:** Contract or Player object contains valid `draftPick` metadata (`{ pick: number, year: number }`).
+* **Scope:** First Round Picks (1-30).
+* **Band:** Salary must be between **80% and 120%** of the 100% scale amount.
+* **Tolerance:** $1 tolerance for rounding differences.
+* **Cap Usage:** First-year salary is used. If Cap Hit differs significantly (rare), it is also checked.
+* **Trigger:** Contract or Player object contains valid `draftPick` metadata (`{ pick: number, year: number }`).
 
 ---
 
@@ -1139,11 +1144,11 @@ To prevent silent errors, year-based cap settings lookups must be explicit about
 
 ### Behavior Changes
 
-- **Legacy:** Silently fell back to 2024-25 settings for any unknown year.
-- **New (Phase 11):**
-  - **Valid Future Year:** Returns settings with `source: 'projected'` and warning. (Does NOT silently use 2024 constants without flagging).
-  - **Invalid Input:** Returns emergency fallback settings with `source: 'invalid_year_input_fallback'` and CRITICAL warning.
-  - **Strict Mode:** Throws error on invalid/missing input.
+* **Legacy:** Silently fell back to 2024-25 settings for any unknown year.
+* **New (Phase 11):**
+  * **Valid Future Year:** Returns settings with `source: 'projected'` and warning. (Does NOT silently use 2024 constants without flagging).
+  * **Invalid Input:** Returns emergency fallback settings with `source: 'invalid_year_input_fallback'` and CRITICAL warning.
+  * **Strict Mode:** Throws error on invalid/missing input.
 
 ---
 
@@ -1160,9 +1165,9 @@ Phase 12 introduces a minimally-correct RFA offer sheet matching stub.
 
 ### Status Values
 
-- **PENDING_MATCH:** Default after offer sheet creation. Hard-blocked from finalization.
-- **MATCHED:** Home team has matched. Signing proceeds normally (future: player stays with home team).
-- **DECLINED:** Home team declined. (Future: player signs with offering team).
+* **PENDING_MATCH:** Default after offer sheet creation. Hard-blocked from finalization.
+* **MATCHED:** Home team has matched. Signing proceeds normally (future: player stays with home team).
+* **DECLINED:** Home team declined. (Future: player signs with offering team).
 
 ### Validation Rules
 
@@ -1175,8 +1180,8 @@ Phase 12 introduces a minimally-correct RFA offer sheet matching stub.
 
 ### Term Bounds
 
-- **Years:** 1-4 (per CBA offer sheet rules)
-- **Raises:** ≤ 8% year-over-year
+* **Years:** 1-4 (per CBA offer sheet rules)
+* **Raises:** ≤ 8% year-over-year
 
 ### Phase 12 Stub Behavior
 
@@ -1195,8 +1200,8 @@ Phase 13 introduces the distinction between "storing" an offer sheet and "finali
 
 **Finalization Detection:**
 
-- Default: `signFreeAgent` mutation is a finalizing action (adds player to roster)
-- Opt-out: `contract.rfaOfferSheetOnly === true` signals non-finalizing intent
+* Default: `signFreeAgent` mutation is a finalizing action (adds player to roster)
+* Opt-out: `contract.rfaOfferSheetOnly === true` signals non-finalizing intent
 
 **Helper:** `isFinalizingSigning({ contract })` - Returns `true` if finalizing, `false` if storing only.
 
@@ -1225,32 +1230,32 @@ Phase 16 implements the MVP workflows for store-only RFA offer sheets.
 ### Offer Sheet Lifecycle
 
 1. **Creation (Store-Only):**
-   - **Mutation:** `storeOfferSheet`
-   - **Trigger:** Offering team "signs" RFA with "Offer Sheet" intent.
-   - **Effects:**
-     - Creates `OfferSheet` object.
-     - Persisted to Offering Team's `offerSheets` array.
-     - Mirrored to Home Team's `incomingOfferSheets` array (for visibility).
-   - **Validation:** Must pass `validateStoreOnlyInvariants` and `validateOfferSheetTerms`.
+   * **Mutation:** `storeOfferSheet`
+   * **Trigger:** Offering team "signs" RFA with "Offer Sheet" intent.
+   * **Effects:**
+     * Creates `OfferSheet` object.
+     * Persisted to Offering Team's `offerSheets` array.
+     * Mirrored to Home Team's `incomingOfferSheets` array (for visibility).
+   * **Validation:** Must pass `validateStoreOnlyInvariants` and `validateOfferSheetTerms`.
 
 2. **Resolution (Home Team):**
-   - **Mutations:** `matchOfferSheet` or `declineOfferSheet`.
-   - **Trigger:** Home team reviews Incoming Offer Sheet.
-   - **Effects:**
-     - Updates status to `MATCHED` or `DECLINED` on both teams (via cleanup/mirroring update).
+   * **Mutations:** `matchOfferSheet` or `declineOfferSheet`.
+   * **Trigger:** Home team reviews Incoming Offer Sheet.
+   * **Effects:**
+     * Updates status to `MATCHED` or `DECLINED` on both teams (via cleanup/mirroring update).
 
 3. **Finalization (Offering Team):**
-   - **Mutation:** `signFreeAgent` (via `handleFinalizeOfferSheet`).
-   - **Trigger:** Offering team finalizes a `DECLINED` offer sheet.
-   - **Effects:**
-     - Executes signing logic (adds to roster, removes cap hold on home team).
-     - **Constraint:** Can only finalize if `DECLINED` (or if system allows un-matched hostile signing).
-     - **Constraint:** Attempts to finalize `MATCHED` offer sheets will stick with Home Team (logic TBD in future phases, currently blocked or results in home team retention).
+   * **Mutation:** `signFreeAgent` (via `handleFinalizeOfferSheet`).
+   * **Trigger:** Offering team finalizes a `DECLINED` offer sheet.
+   * **Effects:**
+     * Executes signing logic (adds to roster, removes cap hold on home team).
+     * **Constraint:** Can only finalize if `DECLINED` (or if system allows un-matched hostile signing).
+     * **Constraint:** Attempts to finalize `MATCHED` offer sheets will stick with Home Team (logic TBD in future phases, currently blocked or results in home team retention).
 
 ### Logic Updates (Phase 16)
 
-- **Mirroring:** Offer sheets are now dual-written (to offering team and home team overlay) to ensure immediate visibility without waiting for parent world propagation.
-- **Declined Offers:** Policy update allows `DECLINED` status to pass `rfa_offer_sheet_declined` rule IF `isFinalizingSigning()` is true (acquisition by offering team).
+* **Mirroring:** Offer sheets are now dual-written (to offering team and home team overlay) to ensure immediate visibility without waiting for parent world propagation.
+* **Declined Offers:** Policy update allows `DECLINED` status to pass `rfa_offer_sheet_declined` rule IF `isFinalizingSigning()` is true (acquisition by offering team).
 
 ## Phase 17: Offer Sheet Resolution Logic (Updated)
 
@@ -1384,8 +1389,8 @@ GUARDRAILS:
 
 **Nested allowlists (deep rules for TEAM):**
 
-- `exceptions.tpe[]` items → `TRADE_EXCEPTION_ITEM_ALLOWLIST`
-- `exceptionHistory[]` items → `EXCEPTION_HISTORY_ITEM_ALLOWLIST`
+* `exceptions.tpe[]` items → `TRADE_EXCEPTION_ITEM_ALLOWLIST`
+* `exceptionHistory[]` items → `EXCEPTION_HISTORY_ITEM_ALLOWLIST`
 
 **Where enforced:** `persistWorldMutation()` in `mutationPipeline.js`
 
@@ -1393,9 +1398,9 @@ GUARDRAILS:
 
 **How enabled:**
 
-- Test environment (`NODE_ENV=test`): **ENABLED by default**
-- Production: **DISABLED by default**
-- Explicit override: `ENFORCE_PERSIST_CONTRACTS=true` env var
+* Test environment (`NODE_ENV=test`): **ENABLED by default**
+* Production: **DISABLED by default**
+* Explicit override: `ENFORCE_PERSIST_CONTRACTS=true` env var
 
 **What to do when it fails:**
 

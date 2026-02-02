@@ -111,7 +111,8 @@
     "pst:audit:entitlements:all": "npx tsx team-scrape/draft-picks/scripts/pst/pst_audit_all_teams_entitlements_sanity.ts",
     "pst:guard:entitlements:sanity": "npx tsx team-scrape/draft-picks/scripts/pst/pst_audit_all_teams_entitlements_sanity.ts",
     "pst:trace:hou:2026:r2": "npx tsx team-scrape/draft-picks/scripts/pst/pst_trace_owner_overlay_anomalies.ts",
-    "ci:phase69-proof": "node scripts/ci/run_phase69_tpe_migration_proof.js"
+    "ci:phase69-proof": "node scripts/ci/run_phase69_tpe_migration_proof.js",
+    "ci:phase80-cap-proof": "node scripts/ci/run_phase80_cap_sheet_e2e_proof.js"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.6",

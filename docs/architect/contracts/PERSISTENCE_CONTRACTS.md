@@ -233,6 +233,59 @@ node scripts/migrations/phase66_migrate_tradeExceptions.js --dry-run --output-di
 
 ---
 
+### Phase 79: Mutation Pipeline Totals SSOT Guardrails
+
+**STATUS:** Completed 2026-02-02
+
+Phase 79 adds guardrail tests enforcing that all mutation compute functions use `computeTeamCapTotals()` SSOT for totals, with persist→reload parity verification.
+
+- **Invariant:** After any mutation, `team.totals === computeTeamCapTotals(team, yearKey)`
+- **Persist→Reload:** `JSON.parse(JSON.stringify(team.totals))` produces identical object
+- **Covered mutations:** signing, waive, option, renounce, trade (via tradeContext)
+- **Exception:** `computeExtensionResult` does NOT recalculate totals (futureContract only)
+
+- **Test file:** `phase79_mutation_pipeline_totals_ssot_persist_reload_parity_guardrails.test.js`
+  - 10 source-scan tests
+  - 5 behavioral tests
+  - 4 persist→reload parity tests
+  - 1 extension exclusion test
+
+---
+
+### Phase 80: Emulator E2E Cap Sheet Proof Harness
+
+**STATUS:** Completed 2026-02-02
+
+Phase 80 creates an emulator-backed proof harness demonstrating the complete mutation → persist → reload lifecycle with SSOT totals invariant.
+
+- **CI Script:** `scripts/ci/run_phase80_cap_sheet_e2e_proof.js`
+- **npm Script:** `npm run ci:phase80-cap-proof`
+- **World ID:** `phase80_cap_sheet_e2e_proof_world` (deterministic)
+
+**Safety:**
+
+- Refuses to run without `FIRESTORE_EMULATOR_HOST` set
+- Refuses if `GOOGLE_APPLICATION_CREDENTIALS` detected without emulator
+
+**Mutations verified:**
+
+1. Signing → totals match SSOT
+2. Waive → totals match SSOT, dead money created
+3. Renounce → totals match SSOT, cap holds reduced
+4. Trade snapshot → both teams' totals match SSOT
+
+**Persistence verified:**
+
+- Persist team to emulator via `batch.set()`
+- Reload from emulator via `getDoc()`
+- Assert totals identical after roundtrip
+
+**Test file:** `phase80_emulator_e2e_cap_sheet_proof_guardrails.test.js`
+
+- 14 source-scan guardrails
+
+---
+
 ## 2. Document Types & Contracts
 
 ### 2.1 Team Overlay Documents
