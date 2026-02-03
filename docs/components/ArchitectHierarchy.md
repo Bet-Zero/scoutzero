@@ -43,6 +43,8 @@ RosterVisual.jsx
 TeamHistoryTab.jsx
 ValidationWarnings.jsx
 WaiveStretchTracker.jsx
+admin/
+  EntitlementEditorModal.tsx
 capSheet/
   CapSheet/
     CapSheet.jsx
@@ -174,8 +176,18 @@ utils/
   contractUtils.js
   draftPickUtils.js
   entitlements/
+    dare/
+      conveyanceResolutionAdapter.ts
+      dareResolver.ts
+      entitlementMutator.ts
+      index.ts
+      protectionLadderFactory.ts
+      resolutionReceipt.ts
+      swapResolutionAdapter.ts
+      types.ts
     entitlementPickRowProjection.js
     entitlementResolver.ts
+    entitlementWriter.ts
     formatEntitlement.js
     pickRulesResolver.ts
     seasonManagerProjection.js
@@ -319,5 +331,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-02-03T13:01:23.423Z*
+*Generated on: 2026-02-03T15:19:10.255Z*
 *Auto-updated by: npm run docs*

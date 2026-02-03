@@ -37,6 +37,7 @@ Scope: This audit covers both world season-advance (SeasonAdvanceModal → `adva
 | Partial guarantees (if modeled) | Yes (manual waive/buyout) | None | Yes | No | Manual only |
 
 Notes:
+
 * OSTE normalizes option decisions to playerId where possible and validates each decision via `validateOptionDecision`.
 * OSTE blocks illegal option outcomes at the end of the transition (validation failures abort the transition).
 
@@ -52,6 +53,7 @@ Notes:
 | Interaction with cap space and exceptions | Yes | Unknown | Yes | `computeTeamCapTotals` includes cap holds in `totalCapAllocations`; signing validation uses these totals. |
 
 Answers:
+
 * Are cap holds generated at the correct time? Yes. OSTE creates holds for standard expirations and declined options during offseason transition.
 * Can a user remove holds legally? Yes. Signing and renouncing remove holds via mutation pipeline handlers.
 * Can holds incorrectly persist or disappear? Unknown. Holds are pruned by `expiresOn`/`isSigned` during OSTE; other persistence depends on manual actions.
@@ -67,6 +69,7 @@ Answers:
 | Traded Player Exceptions (TPEs) | Created via trade machine (trade validation/pipeline) | OSTE expires TPEs via `processTradeExceptions` | Expiry enforced against July 1 boundary of new season | Availability enforced in trade validation | Implemented (expiry across both flows) |
 
 Explicit reset status:
+
 * Correctly resets: `mle`, `tpmle`, `bae`, `room` via exception lifecycle, and `dpe` clear on rollover.
 * Correctly expires: `exceptions.tpe` via `processTradeExceptions`.
 * Not modeled: None (within current exception set).
@@ -81,6 +84,7 @@ Explicit reset status:
 | Apron status recalculates correctly in new seasons | Yes | Unknown | Yes | `computeTeamCapTotals` recomputes deltas for `toYear` in OSTE. |
 
 Answers:
+
 * Can a hard cap improperly persist? No. OSTE clears hard-cap state on rollover for both flows.
 * Can a hard cap be bypassed after rollover? Not applicable; hard-cap state is reset intentionally per season.
 
@@ -98,6 +102,7 @@ Answers:
 | Create / expire TPEs | Yes | Partial | Partial | Yes |
 
 Notes:
+
 * OSTE performs a single legality validation pass at the end of the transition; failures block the rollover.
 * Renounce/sign/waive behavior is unchanged (mutation pipeline scope).
 
@@ -112,6 +117,7 @@ Notes:
 | Errors block illegal transitions | Yes | Yes | OSTE validation errors abort world advance and throw in single-team flow. |
 
 Flags:
+
 * OSTE is now the single SSOT for offseason transitions; seasonManager/runOffseason are orchestration wrappers only.
 
 ## 8️⃣ COMPLETION VERDICT (MANDATORY)

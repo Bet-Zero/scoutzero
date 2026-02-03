@@ -1388,6 +1388,35 @@ All year-keyed data uses **seasonStartYear** convention:
 
 ---
 
+### Phase 2Z: Preflight Emu OptionsByYear Wiring (2026-02-03) ✅
+
+**Status**: ✅ PREFLIGHT COMPLETE — READY FOR EXECUTION
+
+**Documentation**:
+
+- **Return Package**: [PHASE_2Z_PREFLIGHT_EMU_OPTIONSBYEAR_WIRING.md](../../return_packages/PHASE_2Z_PREFLIGHT_EMU_OPTIONSBYEAR_WIRING.md)
+
+**Key Findings**:
+
+- `npm run emu` runs `scripts/emu/runEmu.ts` → `firebase emulators:start --import/--export-on-exit` → `scripts/emu/seedIfMissing.ts`.
+- `players_v2` base writer is the staging pipeline (`player-scrape/firestore_staging/scripts/stage_player.ts`), with emulator seeding via `scripts/emu/seedPlayersIfMissing.ts`.
+- Emulator/app Firestore port is consistently **8082**; host is `127.0.0.1` in emu scripts and `localhost` in app (safe).
+- “Demo project” writes trace to hardcoded `projectId: 'demo-scoutzero'` in some scripts; guardrails needed.
+
+**Recommendation**:
+
+- **Option 1 (Best)**: Add `optionsByYear` derivation in `stage_player.ts` so all staged data includes it.
+- **Option 2 (Safety Net)**: Run `phase2y_backfill_optionsByYear.js --write` after emu seed when needed.
+
+**Proposed Phase 2AA (Execution)**:
+
+1. Add `optionsByYear` to `buildPlayersV2Payload` in `stage_player.ts`.
+2. Add post-seed safety run to `seedIfMissing.ts` for emulator.
+3. Add projectId allowlist/confirmation guardrails to migrations.
+4. Update stale help text examples to `127.0.0.1:8082`.
+
+---
+
 ### Phase 2: UX & Navigation Enhancement
 
 **Goal**: Connect the Table to the wider app.

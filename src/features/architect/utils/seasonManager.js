@@ -72,6 +72,12 @@ import {
   projectEntitlementsToSeasonManagerView,
   logDerivedPicksCreation,
 } from '@/features/architect/utils/entitlements/seasonManagerProjection';
+// DARE: Draft Asset Resolution Engine for entitlement lifecycle persistence (B2/B3)
+import {
+  resolveAllDraftAssets,
+  applyDAREResultsToBatch,
+  formatReceiptAsSummary,
+} from '@/features/architect/utils/entitlements/dare';
 
 /**
  * Advance world to next season
@@ -632,6 +638,61 @@ export async function advanceSeasonInWorld(worldId, options = {}) {
         const normalizedTeam = normalizeTeamTpeSchema(updatedTeam);
         batch.set(snapshotRef, normalizedTeam);
         updatedTeams.push(teamCode);
+      }
+    }
+
+    // ==========================================================================
+    // DARE: Draft Asset Resolution Engine - Persist entitlement lifecycle (B2/B3)
+    // ==========================================================================
+    // Runs AFTER all teams processed, BEFORE batch commit.
+    // Resolves swap/conveyance outcomes and persists back to world entitlements.
+    if (positionsMap && draftYear && Object.keys(positionsMap).length > 0) {
+      try {
+        // Build DARE input from processed teams
+        const dareInput = {
+          worldId,
+          draftYear,
+          positionsMap,
+          teams: teams.map((t) => ({
+            teamCode: t.teamCode,
+            entitlementIds: t.entitlementIds || [],
+          })),
+          nowIso: new Date().toISOString(),
+          method: 'season_advance',
+        };
+
+        const dareResult = await resolveAllDraftAssets(db, dareInput);
+
+        if (dareResult.success) {
+          // Apply DARE writes to the batch (entitlement docs + team inventory updates)
+          const dareWriteCount = applyDAREResultsToBatch(
+            db,
+            batch,
+            worldId,
+            dareResult
+          );
+
+          // Merge DARE receipt into summary
+          summary.dareReceipt = dareResult.resolutionReceipt;
+          summary.dareWriteCount = dareWriteCount;
+
+          // Log DARE summary
+          if (dareResult.resolutionReceipt.totalResolutions > 0) {
+            console.log(
+              `[seasonManager] DARE: ${formatReceiptAsSummary(dareResult.resolutionReceipt)}`
+            );
+          }
+        } else {
+          // DARE failed but don't block season advance - log warning
+          console.warn(
+            `[seasonManager] DARE resolution failed: ${dareResult.error}`
+          );
+          summary.dareError = dareResult.error;
+        }
+      } catch (dareErr) {
+        // DARE error - log but don't block season advance
+        console.warn(`[seasonManager] DARE error:`, dareErr.message || dareErr);
+        summary.dareError = dareErr.message || 'Unknown DARE error';
       }
     }
 

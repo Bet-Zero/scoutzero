@@ -92,7 +92,11 @@ import {
 } from '@/features/architect/utils/persistenceContracts';
 
 // Phase 86: League-wide invariant validation (cross-team duplicate player prevention)
-import { validateMutationLeagueInvariants } from '@/features/architect/utils/leagueInvariants';
+// Phase B5: Entitlement invariant validation (cross-team duplicate entitlement prevention)
+import {
+  validateMutationLeagueInvariants,
+  validateMutationEntitlementInvariants,
+} from '@/features/architect/utils/leagueInvariants';
 
 // ==============================================================================
 // PHASE 58: TRADE CONTEXT MODULE RE-EXPORTS
@@ -550,6 +554,30 @@ export async function applyWorldMutation({
               {
                 rule: 'LEAGUE_DUPLICATE_PLAYER',
                 details: leagueInvariantResult.duplicates,
+              },
+            ]
+          : [],
+        warnings: [],
+      };
+    }
+
+    // PHASE 3.6: ENTITLEMENT INVARIANTS - Validate no cross-team duplicate entitlements
+    // Phase B5: Prevents entitlements from appearing on multiple teams after trade
+    const entitlementInvariantResult = await validateMutationEntitlementInvariants(
+      worldId,
+      mutationType,
+      computeResult
+    );
+
+    if (!entitlementInvariantResult.valid) {
+      return {
+        success: false,
+        error: entitlementInvariantResult.error || 'Entitlement invariant violation',
+        violations: entitlementInvariantResult.duplicates
+          ? [
+              {
+                rule: 'LEAGUE_DUPLICATE_ENTITLEMENT',
+                details: entitlementInvariantResult.duplicates,
               },
             ]
           : [],

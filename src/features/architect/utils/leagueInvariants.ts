@@ -394,3 +394,291 @@ export async function validateMutationLeagueInvariants(
 
   return { valid: true };
 }
+
+// =============================================================================
+// ENTITLEMENT INVARIANTS (B5 + B6)
+// =============================================================================
+
+/**
+ * Result of entitlement invariant validation
+ */
+export interface EntitlementInvariantResult {
+  valid: boolean;
+  error?: string;
+  duplicates?: Array<{
+    entitlementId: string;
+    teams: string[];
+    description?: string;
+  }>;
+}
+
+/**
+ * Result of pick-slot accounting validation
+ */
+export interface PickSlotAccountingResult {
+  valid: boolean;
+  error?: string;
+  expected: number;
+  actual: number;
+  missingSlots?: Array<{ year: number; round: number; team: string }>;
+  extraSlots?: Array<{
+    year: number;
+    round: number;
+    team: string;
+    entitlementId: string;
+  }>;
+}
+
+/**
+ * Validate that no entitlement exists on multiple teams in the league.
+ * Parallel to validateNoDuplicatePlayers.
+ *
+ * @param teams - Array of all teams with entitlementIds arrays
+ * @returns Validation result with duplicates if any found
+ */
+export function validateNoDuplicateEntitlements(
+  teams: Array<{ teamCode?: string; entitlementIds?: string[] }>
+): EntitlementInvariantResult {
+  const entitlementMap = new Map<string, string[]>();
+
+  for (const team of teams) {
+    const teamCode = team?.teamCode;
+    if (!teamCode) continue;
+
+    const entitlementIds = team.entitlementIds || [];
+    for (const entId of entitlementIds) {
+      const existing = entitlementMap.get(entId);
+      if (existing) {
+        existing.push(teamCode);
+      } else {
+        entitlementMap.set(entId, [teamCode]);
+      }
+    }
+  }
+
+  // Find duplicates (entitlements on more than one team)
+  const duplicates: Array<{ entitlementId: string; teams: string[] }> = [];
+
+  for (const [entitlementId, teamList] of entitlementMap) {
+    if (teamList.length > 1) {
+      duplicates.push({ entitlementId, teams: teamList });
+    }
+  }
+
+  if (duplicates.length > 0) {
+    const firstDupe = duplicates[0];
+    return {
+      valid: false,
+      error: `Entitlement ${firstDupe.entitlementId} exists on multiple teams: ${firstDupe.teams.join(', ')}. ${duplicates.length} duplicate(s) found.`,
+      duplicates,
+    };
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Validate entitlement integrity for a specific mutation.
+ * Use after trades to ensure no entitlement ended up on multiple teams.
+ *
+ * @param worldId - World ID
+ * @param mutationType - Type of mutation
+ * @param computeResult - Result from compute phase (contains post-trade team states)
+ * @returns Validation result
+ */
+export async function validateMutationEntitlementInvariants(
+  worldId: string,
+  mutationType: string,
+  computeResult?: any
+): Promise<EntitlementInvariantResult> {
+  // Only validate for trades (the primary way entitlements can move)
+  if (mutationType !== 'executeTrade' || !computeResult?.teamUpdates) {
+    return { valid: true };
+  }
+
+  // Load full league and replace with post-trade states
+  const allTeams = await getLeague(worldId);
+  const updatedTeamCodes = new Set(
+    computeResult.teamUpdates.map((u: any) => u.teamCode)
+  );
+
+  // Build combined team list: post-trade for involved teams, current for others
+  const combinedTeams = allTeams.map((team: any) => {
+    if (updatedTeamCodes.has(team.teamCode)) {
+      return (
+        computeResult.teamUpdates.find(
+          (u: any) => u.teamCode === team.teamCode
+        )?.team || team
+      );
+    }
+    return team;
+  });
+
+  return validateNoDuplicateEntitlements(combinedTeams);
+}
+
+/**
+ * Full entitlement integrity validation.
+ * Combines duplicate entitlement check with optional pick-slot accounting.
+ *
+ * @param worldId - World ID to validate
+ * @returns Validation result
+ */
+export async function assertEntitlementIntegrity(
+  worldId: string
+): Promise<EntitlementInvariantResult> {
+  if (!worldId) {
+    return { valid: false, error: 'worldId is required' };
+  }
+
+  const teams = await getLeague(worldId);
+
+  // Check for duplicate entitlements across teams
+  const dupeResult = validateNoDuplicateEntitlements(teams);
+  if (!dupeResult.valid) {
+    return dupeResult;
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Validate pick-slot accounting: verify expected number of pick slots exist.
+ *
+ * NBA has 30 teams × 2 rounds × N tradeable years = expected pick slots.
+ * Every slot should be accounted for by exactly one pick_ownership entitlement.
+ *
+ * @param teams - Array of teams with resolved entitlements
+ * @param yearRange - Array of years to check (e.g., [2026, 2027, 2028, ...])
+ * @param teamCodes - Array of all 30 team codes
+ * @returns Validation result with accounting details
+ */
+export function validatePickSlotAccounting(
+  teams: Array<{
+    teamCode?: string;
+    entitlementIds?: string[];
+    entitlements?: Array<{
+      id?: string;
+      kind?: string;
+      seasonYear?: number;
+      round?: number;
+      underlyingPickId?: string;
+    }>;
+  }>,
+  yearRange: number[],
+  teamCodes: string[]
+): PickSlotAccountingResult {
+  if (!yearRange.length || !teamCodes.length) {
+    return { valid: true, expected: 0, actual: 0 };
+  }
+
+  const expectedSlots = teamCodes.length * 2 * yearRange.length;
+
+  // Build expected slot set
+  const expectedSlotSet = new Set<string>();
+  for (const year of yearRange) {
+    for (const round of [1, 2]) {
+      for (const teamCode of teamCodes) {
+        expectedSlotSet.add(`${teamCode}_${year}_${round}`);
+      }
+    }
+  }
+
+  // Collect all pick_ownership entitlements and map to slots
+  const slotToEntitlement = new Map<
+    string,
+    { entitlementId: string; teamCode: string }
+  >();
+  const missingSlots: Array<{ year: number; round: number; team: string }> = [];
+  const extraSlots: Array<{
+    year: number;
+    round: number;
+    team: string;
+    entitlementId: string;
+  }> = [];
+
+  for (const team of teams) {
+    const teamCode = team?.teamCode;
+    if (!teamCode) continue;
+
+    const entitlements = team.entitlements || [];
+
+    for (const ent of entitlements) {
+      // Only count pick_ownership entitlements
+      if (ent.kind !== 'pick_ownership') continue;
+      if (!yearRange.includes(ent.seasonYear as number)) continue;
+
+      // Parse slot from underlyingPickId (format: "LAL_2027_1st")
+      const slotKey = parseSlotKeyFromEntitlement(ent);
+      if (!slotKey) continue;
+
+      if (slotToEntitlement.has(slotKey)) {
+        // Duplicate slot coverage
+        extraSlots.push({
+          year: ent.seasonYear as number,
+          round: ent.round as number,
+          team: teamCode,
+          entitlementId: ent.id as string,
+        });
+      } else {
+        slotToEntitlement.set(slotKey, {
+          entitlementId: ent.id as string,
+          teamCode,
+        });
+      }
+    }
+  }
+
+  // Check for missing slots
+  for (const slot of expectedSlotSet) {
+    if (!slotToEntitlement.has(slot)) {
+      const [team, yearStr, roundStr] = slot.split('_');
+      missingSlots.push({
+        year: parseInt(yearStr, 10),
+        round: parseInt(roundStr, 10),
+        team,
+      });
+    }
+  }
+
+  const actualCount = slotToEntitlement.size;
+
+  if (missingSlots.length > 0 || extraSlots.length > 0) {
+    return {
+      valid: false,
+      error: `Pick slot accounting mismatch: expected ${expectedSlots}, found ${actualCount}. Missing: ${missingSlots.length}, Extra: ${extraSlots.length}`,
+      expected: expectedSlots,
+      actual: actualCount,
+      missingSlots,
+      extraSlots,
+    };
+  }
+
+  return {
+    valid: true,
+    expected: expectedSlots,
+    actual: actualCount,
+  };
+}
+
+/**
+ * Parse slot key from entitlement for pick-slot accounting.
+ */
+function parseSlotKeyFromEntitlement(entitlement: {
+  underlyingPickId?: string;
+  seasonYear?: number;
+  round?: number;
+}): string | null {
+  if (!entitlement.underlyingPickId) return null;
+
+  // Try to parse team from underlyingPickId (format: "LAL_2027_1st")
+  const match = entitlement.underlyingPickId.match(/^([A-Z]{3})_(\d{4})_/);
+  if (match) {
+    const team = match[1];
+    const year = match[2];
+    const round = entitlement.round || 1;
+    return `${team}_${year}_${round}`;
+  }
+
+  return null;
+}
