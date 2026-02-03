@@ -1,3 +1,16 @@
+/**
+ * FILE: src/features/architect/offseason/OffseasonTab/OffseasonTab.jsx
+ * PURPOSE: Single-team offseason workflow UI wiring for OSTE execution.
+ * OWNERSHIP: Feature: architect/offseason
+ *
+ * HISTORY:
+ *  - 2026-02-03: Updated to surface OSTE validation errors (plan `plans/_archive/offseason-transition-engine-phase1/plan.md`, chunk_n/a)
+ *
+ * LINKS:
+ *  - Plan: plans/_archive/offseason-transition-engine-phase1/plan.md
+ *  - Latest Chunk: N/A
+ */
+
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import OptionManager from './OptionManager';
@@ -35,7 +48,7 @@ const OffseasonTab = ({
         teamCapSheet,
         currentYear,
         capProjections,
-        optionDecisions
+        optionDecisions || {}
       );
       setTeamCapSheet(updatedCapSheet);
       setCurrentYear(currentYear + 1);
@@ -44,7 +57,7 @@ const OffseasonTab = ({
       setOffseasonRun(true);
     } catch (err) {
       console.error('Failed to advance offseason', err);
-      setError('Failed to advance offseason');
+      setError(err?.message || 'Failed to advance offseason');
     } finally {
       setIsLoading(false);
     }

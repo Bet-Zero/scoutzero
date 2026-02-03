@@ -56,6 +56,46 @@
 | Phase 16     | SeasonManager Entitlement Awareness (Preflight) | COMPLETE    | 2026-02-01 |
 | Phase 16.1   | SeasonManager Entitlement SSOT View (Execution) | COMPLETE    | 2026-02-01 |
 | Phase 16.2   | Emulator BaseTeams Integrity Guardrail          | COMPLETE    | 2026-02-01 |
+| Phase 16.3   | Trade Machine Blank Fix (ensurePickId Crash)    | COMPLETE    | 2026-02-03 |
+
+---
+
+## Phase 16.3 — Trade Machine Blank Fix (ensurePickId Crash) (COMPLETE)
+
+**Goal**: Fix Trade Machine rendering blank due to `ensurePickId` ReferenceError in `useTradeMachine.js`, without reintroducing legacy picks. Add minimal error-guard so init failures surface clearly.
+
+**Root Cause**: Phase 14.2 removed the `ensurePickId` import but left function calls in `init()` and `selectTeam()`. This caused an uncaught `ReferenceError` that silently aborted team initialization, leaving `teams=[]` and rendering nothing.
+
+**Completed**:
+
+1. ✅ **Removed legacy picks processing from useTradeMachine.js**:
+   - Deleted `rawPicks` and `picksWithIds` derivation from `init()` and `selectTeam()`
+   - Removed `picks: picksWithIds` from teamObj construction
+   - Trade Machine is now fully entitlements-only, no legacy pick processing
+
+2. ✅ **Added init failure guardrail**:
+   - Added `initError` state to hook
+   - Wrapped `init()` body in try/catch with console.error logging
+   - Fallback: if `primaryTeamData` exists, attempts minimal slot0 initialization
+   - `initError` exposed in hook return for UI error surfacing
+
+3. ✅ **Surface init error in TradeEditor.jsx**:
+   - Destructures `initError` from `useTradeMachine`
+   - Displays compact error box when `initError && teams.length === 0`
+   - Error message: "Trade Machine failed to initialize." with error details
+
+4. ✅ **Guardrail test created**:
+   - `src/tests/architect/phase16_3_trade_machine_init_guardrail.test.js` (7 tests)
+   - Regression guard: ensures `ensurePickId` is never re-introduced
+   - Verifies `initError` exposure and try/catch in init()
+   - Verifies TradeEditor displays error when initError is truthy
+
+**Test Results**:
+
+- Phase 16.3 guardrail: 7 passed
+- Phase 15 guardrail: 6 passed
+- Phase 13 guardrail: 9 passed
+- Stepien: 4 passed
 
 ---
 

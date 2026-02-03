@@ -26,6 +26,8 @@ const TradeEditor = ({
     // Phase 14.2: Removed togglePick and updatePickField - draft assets are entitlements-only
     // Phase 11.1: Destructure entitlement toggle for trading
     toggleEntitlement,
+    // Phase 17: Destructure destination setter for multi-team entitlement routing
+    setEntitlementDestination,
     selectTeam,
     addTeam,
     removeTeam,
@@ -43,6 +45,10 @@ const TradeEditor = ({
     // Stale validation fix: Use hasCurrentValidation instead of result check
     hasCurrentValidation,
     getValidatedAt,
+    // Phase 16.3: Expose init error for UI error surfacing
+    initError,
+    // Phase 17: Active team count for multi-team destination logic
+    activeTeamCount,
   } = useTradeMachine(
     primaryTeam,
     capProjections,
@@ -59,6 +65,7 @@ const TradeEditor = ({
   // It properly checks if validation result matches current draft configuration
 
   // Phase 14.2: incomingAssets now uses entitlementsOut instead of picksOut
+  // Phase 17: Updated to require toTeamId for 3+ team trades (same logic as hook)
   const incomingAssets = teams.map((tm, idx) => {
     const players = [];
     const entitlements = [];
@@ -69,10 +76,20 @@ const TradeEditor = ({
             players.push(p);
           }
         });
-        // Phase 14.2: Derive incoming entitlements from entitlementsOut
+        // Phase 17: For 3+ team trades, require explicit toTeamId
+        // For 2-team trades, allow broadcast fallback (backward compatibility)
         (t.entitlementsOut || []).forEach((e) => {
-          if (!e.toTeamId || e.toTeamId === tm.team?.id) {
-            entitlements.push(e);
+          const isMultiTeamTrade = activeTeamCount > 2;
+          if (isMultiTeamTrade) {
+            // 3+ teams: only include if explicitly routed to this team
+            if (e.toTeamId === tm.team?.id) {
+              entitlements.push(e);
+            }
+          } else {
+            // 2 teams: allow broadcast fallback for backward compatibility
+            if (!e.toTeamId || e.toTeamId === tm.team?.id) {
+              entitlements.push(e);
+            }
           }
         });
       }
@@ -146,6 +163,19 @@ const TradeEditor = ({
         validatedAt={getValidatedAt()}
       />
 
+      {/* Phase 16.3: Init error display */}
+      {initError && teams.length === 0 && (
+        <div className="bg-red-900/50 border border-red-500/50 rounded-lg p-4 text-red-200">
+          <div className="font-semibold text-red-100 mb-1">
+            Trade Machine failed to initialize.
+          </div>
+          <div className="text-sm mb-2">{initError}</div>
+          <div className="text-xs text-red-300/70">
+            Check console for [tradeMachine:init] error.
+          </div>
+        </div>
+      )}
+
       {/* Team Cards */}
       <div
         className="grid gap-6"
@@ -166,6 +196,10 @@ const TradeEditor = ({
               // Phase 11.1: Pass entitlement toggle and selection state
               entitlementsOut={t.entitlementsOut || []}
               onToggleEntitlement={(e) => toggleEntitlement(idx, e)}
+              // Phase 17: Pass destination setter for multi-team entitlement routing
+              onSetEntitlementDestination={(entitlementId, toTeamId) =>
+                setEntitlementDestination(idx, entitlementId, toTeamId)
+              }
               incomingPlayers={incomingAssets[idx]?.players || []}
               // Phase 14.2: Incoming entitlements instead of incoming picks
               incomingEntitlements={incomingAssets[idx]?.entitlements || []}

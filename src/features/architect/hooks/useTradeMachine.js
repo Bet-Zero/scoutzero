@@ -3,6 +3,7 @@ import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tr
 import { loadWorldTeamData } from '@/features/architect/utils/worldTeamData';
 import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers';
 // Phase 14.2: Removed ensurePickId import (legacy picks state removed)
+// Phase 16.3: Removed all rawPicks/picksWithIds processing - draft assets are entitlements-only
 import { TeamMap } from '@/constants/teamList';
 import { toSeasonKey } from '@/features/architect/utils/seasonFormat';
 import {
@@ -221,6 +222,8 @@ export const useTradeMachine = (
   const [previewOpen, setPreviewOpen] = useState(false);
   // P0-3: Track validation in-flight state for UI loading indicators
   const [isValidating, setIsValidating] = useState(false);
+  // Phase 16.3: Track init failure for error surfacing
+  const [initError, setInitError] = useState(null);
 
   // Stale validation fix: Track which draft configuration was validated
   const lastValidatedDraftKeyRef = useRef(null);
@@ -229,8 +232,14 @@ export const useTradeMachine = (
   // Use the selected season end-year everywhere (no hardcoding)
   const yearKey = currentYear;
 
+  // Phase 17: Count active teams for multi-team trade detection
+  const activeTeamCount = useMemo(() => {
+    return teams.filter((t) => t.team).length;
+  }, [teams]);
+
   // Memoized calculations
   // Phase 14.2: incomingAssets no longer references picksOut - draft assets are entitlements-only
+  // Phase 17: Updated to require toTeamId for 3+ team trades (no broadcast fallback)
   const incomingAssets = useMemo(() => {
     return teams.map((tm, idx) => {
       const players = [];
@@ -243,17 +252,27 @@ export const useTradeMachine = (
               players.push({ ...p, fromTeamId: t.team.id });
             }
           });
-          // Phase 14.2: Derive incoming entitlements from entitlementsOut
+          // Phase 17: For 3+ team trades, require explicit toTeamId
+          // For 2-team trades, allow broadcast fallback (backward compatibility)
           (t.entitlementsOut || []).forEach((e) => {
-            if (!e.toTeamId || e.toTeamId === tm.team?.id) {
-              entitlements.push({ ...e, fromTeamId: t.team.id });
+            const isMultiTeamTrade = activeTeamCount > 2;
+            if (isMultiTeamTrade) {
+              // 3+ teams: only include if explicitly routed to this team
+              if (e.toTeamId === tm.team?.id) {
+                entitlements.push({ ...e, fromTeamId: t.team.id });
+              }
+            } else {
+              // 2 teams: allow broadcast fallback for backward compatibility
+              if (!e.toTeamId || e.toTeamId === tm.team?.id) {
+                entitlements.push({ ...e, fromTeamId: t.team.id });
+              }
             }
           });
         }
       });
       return { teamId: tm.team?.id, players, entitlements };
     });
-  }, [teams]);
+  }, [teams, activeTeamCount]);
 
   const salaryOut = useMemo(
     () => teams.map((t) => getSalaryForYear(t.sends, yearKey)),
@@ -278,107 +297,128 @@ export const useTradeMachine = (
     const init = async () => {
       if (!primaryTeam) return;
 
-      const baseTeam = TeamMap[primaryTeam];
-      // Use primaryTeamData if provided (already world-aware from GMDashboard)
-      // Otherwise load with world-awareness via loadWorldTeamData
-      const data =
-        primaryTeamData || (await loadWorldTeamData(worldId, primaryTeam));
+      try {
+        // Phase 16.3: Clear any previous init error on new init attempt
+        setInitError(null);
 
-      if (baseTeam && data) {
-        // Build team object, augment exceptions/tpes
-        // Map draftAssets/draftPicks to picks for trade machine compatibility
-        // Priority: draftAssets.picks (canonical) > draftPicks > picks
-        // Ensure all picks have canonical IDs (Phase 1 - SSOT)
-        const rawPicks =
-          data.draftAssets?.picks || data.draftPicks || data.picks || [];
-        const picksWithIds = rawPicks.map((p) => ensurePickId(p));
+        const baseTeam = TeamMap[primaryTeam];
+        // Use primaryTeamData if provided (already world-aware from GMDashboard)
+        // Otherwise load with world-awareness via loadWorldTeamData
+        const data =
+          primaryTeamData || (await loadWorldTeamData(worldId, primaryTeam));
 
-        const teamObj = {
-          ...baseTeam,
-          ...data,
-          // Phase 65: Use canonical accessor but store in tradeExceptions for runtime compatibility
-          tradeExceptions: getTeamTpeList(data),
-          picks: picksWithIds,
-        };
+        if (baseTeam && data) {
+          // Build team object, augment exceptions/tpes
+          // Phase 16.3: Draft assets are entitlements-only, no legacy picks processing
+          const teamObj = {
+            ...baseTeam,
+            ...data,
+            // Phase 65: Use canonical accessor but store in tradeExceptions for runtime compatibility
+            tradeExceptions: getTeamTpeList(data),
+          };
 
-        if (worldId || (data.entitlementIds && data.entitlementIds.length)) {
-          try {
-            const resolvedTeamCode = resolveTeamCodeLike(baseTeam, data);
-            if (DEBUG_ENT) {
-              console.log('[DEBUG_ENT] init slot 0:', {
-                slotIndex: 0,
-                teamCode: resolvedTeamCode,
-                worldId,
-                hasEntitlementIds: Boolean(data.entitlementIds?.length),
-              });
-            }
-            if (resolvedTeamCode) {
-              const entitlements = await resolveEntitlementsForTeam(
-                worldId,
-                resolvedTeamCode
-              );
-              teamObj.entitlements = entitlements;
-
-              // Phase 12.3B: Fetch pick rules for entitlements
-              let pickRulesById = {};
-              if (ENABLE_PICK_RULES) {
-                pickRulesById =
-                  await resolvePickRulesForEntitlements(entitlements);
-              }
-              teamObj.pickRulesById = pickRulesById;
-
+          if (worldId || (data.entitlementIds && data.entitlementIds.length)) {
+            try {
+              const resolvedTeamCode = resolveTeamCodeLike(baseTeam, data);
               if (DEBUG_ENT) {
-                console.log('[DEBUG_ENT] init slot 0 resolved:', {
+                console.log('[DEBUG_ENT] init slot 0:', {
+                  slotIndex: 0,
                   teamCode: resolvedTeamCode,
-                  entitlementsCount: entitlements?.length ?? 0,
-                  pickRulesCount: Object.keys(pickRulesById).length,
-                  usingLegacyFallback: false,
+                  worldId,
+                  hasEntitlementIds: Boolean(data.entitlementIds?.length),
                 });
               }
-            } else {
-              console.warn('[init] Could not resolve team code for slot 0');
+              if (resolvedTeamCode) {
+                const entitlements = await resolveEntitlementsForTeam(
+                  worldId,
+                  resolvedTeamCode
+                );
+                teamObj.entitlements = entitlements;
+
+                // Phase 12.3B: Fetch pick rules for entitlements
+                let pickRulesById = {};
+                if (ENABLE_PICK_RULES) {
+                  pickRulesById =
+                    await resolvePickRulesForEntitlements(entitlements);
+                }
+                teamObj.pickRulesById = pickRulesById;
+
+                if (DEBUG_ENT) {
+                  console.log('[DEBUG_ENT] init slot 0 resolved:', {
+                    teamCode: resolvedTeamCode,
+                    entitlementsCount: entitlements?.length ?? 0,
+                    pickRulesCount: Object.keys(pickRulesById).length,
+                    usingLegacyFallback: false,
+                  });
+                }
+              } else {
+                console.warn('[init] Could not resolve team code for slot 0');
+                teamObj.entitlements = [];
+                teamObj.pickRulesById = {};
+              }
+            } catch (err) {
+              console.warn('Failed to resolve team entitlements:', err);
               teamObj.entitlements = [];
               teamObj.pickRulesById = {};
             }
-          } catch (err) {
-            console.warn('Failed to resolve team entitlements:', err);
-            teamObj.entitlements = [];
-            teamObj.pickRulesById = {};
+          }
+          augmentTeamWithExceptions(teamObj, yearKey, capProjections);
+
+          // === Baseline payroll wiring (SSOT) ===
+          const {
+            playersTotal: baseline,
+            deadMoneyTotal: dead,
+            totalWithDead,
+          } = getCapTotalsForYear(teamObj, yearKey);
+          teamObj.teamTotalSalary = totalWithDead;
+          teamObj.projectedSalary = totalWithDead;
+
+          // LOG A) After computing teamObj.teamTotalSalary in init()
+          console.log(
+            '[init payroll SSOT]',
+            teamObj.nickname || teamObj.name || teamObj.id,
+            {
+              year: yearKey,
+              baseline,
+              dead,
+              teamTotalSalary: teamObj.teamTotalSalary,
+              projectedSalary: teamObj.projectedSalary,
+            }
+          );
+
+          setTeams([
+            {
+              team: teamObj,
+              sends: [],
+              // Phase 14.2: Removed picksOut - draft assets are entitlements-only
+              entitlementsOut: [],
+            },
+            { team: null, sends: [], entitlementsOut: [] },
+          ]);
+        }
+      } catch (err) {
+        // Phase 16.3: Surface init failures instead of silent blank UI
+        console.error('[tradeMachine:init] failed to init trade teams', err);
+        setInitError(
+          err.message || 'Unknown error during trade machine initialization'
+        );
+        // Attempt safe fallback: if primaryTeamData exists, try to set minimal slot0
+        if (primaryTeamData) {
+          const baseTeam = TeamMap[primaryTeam];
+          if (baseTeam) {
+            const fallbackTeamObj = {
+              ...baseTeam,
+              ...primaryTeamData,
+              tradeExceptions: getTeamTpeList(primaryTeamData),
+              entitlements: [],
+              pickRulesById: {},
+            };
+            setTeams([
+              { team: fallbackTeamObj, sends: [], entitlementsOut: [] },
+              { team: null, sends: [], entitlementsOut: [] },
+            ]);
           }
         }
-        augmentTeamWithExceptions(teamObj, yearKey, capProjections);
-
-        // === Baseline payroll wiring (SSOT) ===
-        const {
-          playersTotal: baseline,
-          deadMoneyTotal: dead,
-          totalWithDead,
-        } = getCapTotalsForYear(teamObj, yearKey);
-        teamObj.teamTotalSalary = totalWithDead;
-        teamObj.projectedSalary = totalWithDead;
-
-        // LOG A) After computing teamObj.teamTotalSalary in init()
-        console.log(
-          '[init payroll SSOT]',
-          teamObj.nickname || teamObj.name || teamObj.id,
-          {
-            year: yearKey,
-            baseline,
-            dead,
-            teamTotalSalary: teamObj.teamTotalSalary,
-            projectedSalary: teamObj.projectedSalary,
-          }
-        );
-
-        setTeams([
-          {
-            team: teamObj,
-            sends: [],
-            // Phase 14.2: Removed picksOut - draft assets are entitlements-only
-            entitlementsOut: [],
-          },
-          { team: null, sends: [], entitlementsOut: [] },
-        ]);
       }
     };
     init();
@@ -533,6 +573,7 @@ export const useTradeMachine = (
   // Use toggleEntitlement instead
 
   // Phase 11.1: Toggle entitlement selection for trading
+  // Phase 17: Updated to auto-set toTeamId for 2-team trades (closure of broadcast bug)
   const toggleEntitlement = useCallback((index, entitlement) => {
     setTeams((prev) => {
       const newTeams = [...prev];
@@ -547,6 +588,21 @@ export const useTradeMachine = (
           index
         ].entitlementsOut.filter((_, i) => i !== existingIndex);
       } else {
+        // Phase 17: Count active teams (teams with a selected team object)
+        const activeTeams = newTeams.filter((t) => t.team);
+        const activeTeamCount = activeTeams.length;
+
+        // Phase 17: For 2-team trades, auto-set toTeamId to the only other team
+        // For 3+ team trades, leave toTeamId null (UI must prompt user to select)
+        let autoToTeamId = null;
+        if (activeTeamCount === 2) {
+          // Find the other team's id
+          const otherTeam = activeTeams.find(
+            (t) => t.team?.id !== newTeams[index].team?.id
+          );
+          autoToTeamId = otherTeam?.team?.id || null;
+        }
+
         // Add to selection with required metadata
         newTeams[index].entitlementsOut = [
           ...(newTeams[index].entitlementsOut || []),
@@ -554,6 +610,7 @@ export const useTradeMachine = (
             ...entitlement,
             entitlementId,
             fromTeamId: newTeams[index].team?.id,
+            toTeamId: autoToTeamId, // Phase 17: Auto-set for 2-team, null for 3+
           },
         ];
       }
@@ -561,6 +618,28 @@ export const useTradeMachine = (
       return newTeams;
     });
   }, []);
+
+  // Phase 17: Set destination team for an entitlement in 3+ team trades
+  const setEntitlementDestination = useCallback(
+    (fromTeamIndex, entitlementId, toTeamId) => {
+      setTeams((prev) => {
+        const newTeams = [...prev];
+        const entitlementsOut = newTeams[fromTeamIndex].entitlementsOut || [];
+        const entIdx = entitlementsOut.findIndex(
+          (e) => (e.id || e.entitlementId) === entitlementId
+        );
+
+        if (entIdx >= 0) {
+          newTeams[fromTeamIndex].entitlementsOut = entitlementsOut.map(
+            (e, i) => (i === entIdx ? { ...e, toTeamId } : e)
+          );
+        }
+
+        return newTeams;
+      });
+    },
+    []
+  );
 
   // Phase 14.2: updatePickField removed - draft assets are entitlements-only
   // Protection edits are no longer supported in Trade Machine
@@ -587,19 +666,12 @@ export const useTradeMachine = (
       const data = await loadWorldTeamData(worldId, teamId);
 
       if (baseTeam && data) {
-        // Map draftAssets/draftPicks to picks for trade machine compatibility
-        // Priority: draftAssets.picks (canonical) > draftPicks > picks
-        // Ensure all picks have canonical IDs (Phase 1 - SSOT)
-        const rawPicks =
-          data.draftAssets?.picks || data.draftPicks || data.picks || [];
-        const picksWithIds = rawPicks.map((p) => ensurePickId(p));
-
+        // Phase 16.3: Draft assets are entitlements-only, no legacy picks processing
         const teamObj = {
           ...baseTeam,
           ...data,
           // Phase 65: Use canonical accessor but store in tradeExceptions for runtime compatibility
           tradeExceptions: getTeamTpeList(data),
-          picks: picksWithIds,
         };
 
         // Phase 11.4: Load entitlements for secondary teams (slots 1+)
@@ -916,6 +988,8 @@ export const useTradeMachine = (
     // Phase 14.2: Removed togglePick and updatePickField - draft assets are entitlements-only
     // Phase 11.1: Expose entitlement toggle for trading
     toggleEntitlement,
+    // Phase 17: Expose destination setter for multi-team entitlement routing
+    setEntitlementDestination,
     selectTeam,
     addTeam,
     removeTeam,
@@ -927,6 +1001,8 @@ export const useTradeMachine = (
     yearKey,
     incomingAssets,
     salaryOut,
+    // Phase 17: Expose active team count for UI destination dropdown logic
+    activeTeamCount,
     // P0-3: Expose validation in-flight state for UI loading indicators
     isValidating,
     // Stale validation fix: Expose current draft key state
@@ -935,5 +1011,7 @@ export const useTradeMachine = (
     validatedAt: validatedAtRef.current,
     // Expose ref getter for validatedAt (needed since ref doesn't trigger re-render)
     getValidatedAt: () => validatedAtRef.current,
+    // Phase 16.3: Expose init error for UI error surfacing
+    initError,
   };
 };

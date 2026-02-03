@@ -7,9 +7,11 @@
  *  - 2026-01-21: Created for Phase 11.0 - Read-Only Entitlements View
  *  - 2026-01-22: Phase 11.1 - Added selection toggle for entitlement trading
  *  - 2026-01-30: Phase 12.3C - Added PickRow projection with protection/condition visibility
+ *  - 2026-02-03: Phase 17 - Added destination dropdown for 3+ team trades
  *
  * LINKS:
  *  - Plan: docs/team-scrape/PST_PICK_LEDGER_MASTER_PLAN.md (Phase 11.0, 11.1, 12.3C)
+ *  - Audit: docs/architect/DRAFT_ASSET_TRADING_CLOSURE_AUDIT.md (Phase 17)
  */
 
 import React from 'react';
@@ -29,12 +31,16 @@ import { AlertTriangle, Check, Info } from 'lucide-react';
  *
  * Renders a single entitlement as a selectable pick row.
  * Shows description, kind badge, encumbered warning, and selection checkbox.
+ * Phase 17: Shows destination dropdown when in multi-team trade and selected.
  *
  * @param {object} props
  * @param {object} props.entitlement - The EffectiveEntitlement object
  * @param {string} props.teamId - The team ID (for potential styling)
  * @param {boolean} [props.isSelected=false] - Phase 11.1: Whether this entitlement is selected for trade
  * @param {Function} [props.onToggle] - Phase 11.1: Callback when entitlement is toggled
+ * @param {Array} [props.otherTeams] - Phase 17: Array of other teams for destination dropdown [{id, name, teamCode}]
+ * @param {string} [props.currentToTeamId] - Phase 17: Currently selected destination team ID
+ * @param {Function} [props.onSetDestination] - Phase 17: Callback when destination is changed (entitlementId, toTeamId)
  */
 const EntitlementPickRow = ({
   entitlement,
@@ -43,6 +49,10 @@ const EntitlementPickRow = ({
   onToggle,
   // Phase 12.3B: Pre-fetched pick rules for structured derivation
   pickRulesById = {},
+  // Phase 17: Multi-team destination selection
+  otherTeams = [],
+  currentToTeamId = null,
+  onSetDestination,
 }) => {
   if (!entitlement) return null;
 
@@ -58,6 +68,12 @@ const EntitlementPickRow = ({
   const label = formatEntitlementLabel(entitlement);
   const kindTag = getEntitlementKindTag(entitlement.kind);
   const isEncumbered = entitlement.underlyingStatus === 'encumbered';
+
+  // Phase 17: Determine if destination dropdown should be shown
+  const isMultiTeamTrade = otherTeams.length > 1;
+  const showDestinationDropdown =
+    isSelected && isMultiTeamTrade && onSetDestination;
+  const needsDestination = isSelected && isMultiTeamTrade && !currentToTeamId;
 
   // DEBUG: entitlement identity + underlying slot (toggle with VITE_DEBUG_ENTITLEMENTS=true)
   const DEBUG_ENT = import.meta?.env?.VITE_DEBUG_ENTITLEMENTS === 'true';
@@ -76,6 +92,8 @@ const EntitlementPickRow = ({
       label,
       coveredByEntitlementIds: entitlement.coveredByEntitlementIds,
       pickRow,
+      currentToTeamId,
+      isMultiTeamTrade,
     });
   }
 
@@ -86,11 +104,22 @@ const EntitlementPickRow = ({
     }
   };
 
+  // Phase 17: Handle destination change
+  const handleDestinationChange = (e) => {
+    e.stopPropagation(); // Prevent row click
+    const entitlementId = entitlement.id || entitlement.entitlementId;
+    if (onSetDestination) {
+      onSetDestination(entitlementId, e.target.value || null);
+    }
+  };
+
   return (
     <div
-      className={`flex items-center justify-between px-3 py-2 rounded-md text-xs border transition-colors ${
+      className={`flex flex-col px-3 py-2 rounded-md text-xs border transition-colors ${
         isSelected
-          ? 'bg-blue-900/40 border-blue-500/50'
+          ? needsDestination
+            ? 'bg-amber-900/30 border-amber-500/50' // Warning state: selected but no destination
+            : 'bg-blue-900/40 border-blue-500/50'
           : 'bg-[#1c1c1c] border-white/10 hover:border-white/20'
       } ${onToggle ? 'cursor-pointer' : ''}`}
       onClick={handleClick}
@@ -104,70 +133,105 @@ const EntitlementPickRow = ({
           : undefined
       }
     >
-      {/* Left side: Checkbox + Label and badges */}
-      <div className="flex items-center gap-2 flex-1 min-w-0">
-        {/* Phase 11.1: Selection checkbox */}
-        {onToggle && (
-          <div
-            className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
-              isSelected
-                ? 'bg-blue-500 border-blue-500'
-                : 'border-white/30 bg-transparent'
-            }`}
-          >
-            {isSelected && <Check size={12} className="text-white" />}
-          </div>
-        )}
-
-        {/* Phase 12.3C: Two-line layout with year/round and protection details */}
-        <div className="flex flex-col min-w-0 flex-1">
-          {/* Line 1: Year Round — Label */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-white/90 truncate" title={label}>
-              {pickRow.year} R{pickRow.round} — {pickRowLabel}
-            </span>
-
-            {/* Encumbered warning indicator */}
-            {isEncumbered && (
-              <span
-                className="flex items-center gap-0.5 text-amber-400 flex-shrink-0"
-                title="This pick is encumbered"
-              >
-                <AlertTriangle size={12} />
-              </span>
-            )}
-
-            {/* Phase 12.3C: Debug tooltip when VITE_DEBUG_ENTITLEMENT_PICKROWS=true */}
-            {DEBUG_PICKROW && pickRow._debug && (
-              <span
-                className="flex items-center text-blue-400/50 flex-shrink-0 cursor-help"
-                title={JSON.stringify(pickRow._debug.sourceHints, null, 2)}
-              >
-                <Info size={10} />
-              </span>
-            )}
-          </div>
-
-          {/* Line 2: Protection/conditions text (muted) */}
-          {secondaryText && (
-            <span
-              className="text-white/50 text-[10px] truncate"
-              title={secondaryText}
+      {/* Main row content */}
+      <div className="flex items-center justify-between">
+        {/* Left side: Checkbox + Label and badges */}
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          {/* Phase 11.1: Selection checkbox */}
+          {onToggle && (
+            <div
+              className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
+                isSelected
+                  ? 'bg-blue-500 border-blue-500'
+                  : 'border-white/30 bg-transparent'
+              }`}
             >
-              {secondaryText}
-            </span>
+              {isSelected && <Check size={12} className="text-white" />}
+            </div>
           )}
+
+          {/* Phase 12.3C: Two-line layout with year/round and protection details */}
+          <div className="flex flex-col min-w-0 flex-1">
+            {/* Line 1: Year Round — Label */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-white/90 truncate" title={label}>
+                {pickRow.year} R{pickRow.round} — {pickRowLabel}
+              </span>
+
+              {/* Encumbered warning indicator */}
+              {isEncumbered && (
+                <span
+                  className="flex items-center gap-0.5 text-amber-400 flex-shrink-0"
+                  title="This pick is encumbered"
+                >
+                  <AlertTriangle size={12} />
+                </span>
+              )}
+
+              {/* Phase 12.3C: Debug tooltip when VITE_DEBUG_ENTITLEMENT_PICKROWS=true */}
+              {DEBUG_PICKROW && pickRow._debug && (
+                <span
+                  className="flex items-center text-blue-400/50 flex-shrink-0 cursor-help"
+                  title={JSON.stringify(pickRow._debug.sourceHints, null, 2)}
+                >
+                  <Info size={10} />
+                </span>
+              )}
+            </div>
+
+            {/* Line 2: Protection/conditions text (muted) */}
+            {secondaryText && (
+              <span
+                className="text-white/50 text-[10px] truncate"
+                title={secondaryText}
+              >
+                {secondaryText}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Right side: Kind badge */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span
+            className={`px-2 py-0.5 rounded text-[10px] font-medium ${kindTag.colorClass}`}
+          >
+            {kindTag.label}
+          </span>
         </div>
       </div>
 
-      {/* Right side: Kind badge */}
-      <div className="flex items-center gap-2 flex-shrink-0">
-        <span
-          className={`px-2 py-0.5 rounded text-[10px] font-medium ${kindTag.colorClass}`}
+      {/* Phase 17: Destination dropdown for multi-team trades */}
+      {showDestinationDropdown && (
+        <div
+          className="mt-2 pt-2 border-t border-white/10"
+          onClick={(e) => e.stopPropagation()}
         >
-          {kindTag.label}
-        </span>
-      </div>
+          <label className="flex items-center gap-2 text-[10px]">
+            <span
+              className={needsDestination ? 'text-amber-400' : 'text-white/60'}
+            >
+              Send to:
+            </span>
+            <select
+              value={currentToTeamId || ''}
+              onChange={handleDestinationChange}
+              className={`flex-1 px-2 py-1 rounded text-xs bg-[#2a2a2a] border ${
+                needsDestination
+                  ? 'border-amber-500/50 text-amber-200'
+                  : 'border-white/20 text-white'
+              } focus:outline-none focus:border-blue-500`}
+            >
+              <option value="">Select destination...</option>
+              {otherTeams.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name || t.teamCode || t.id}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      )}
     </div>
   );
 };

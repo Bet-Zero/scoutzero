@@ -18,6 +18,7 @@
  *  - 2026-02-01: Phase 77 - Replaced legacy updateTeamCapTotals with SSOT computeTeamCapTotals
  *                         - Totals recompute uses toYear yearKey for correct season
  *                         - Removed dynamic imports of tradeManager for totals
+ *  - 2026-02-03: Phase 86 - Route season transitions through OSTE SSOT
  */
 
 import { db } from '@/firebaseConfig';
@@ -51,6 +52,7 @@ import {
   appendExceptionHistory,
   createTpeExpiryHistoryEntry,
 } from '@/features/architect/utils/exceptionHistory/historyHelpers';
+import { resolveOffseasonTransition } from '@/features/architect/utils/offseason';
 // Phase 65: Canonical TPE normalization for persistence
 import {
   normalizeTeamTpeSchema,
@@ -689,10 +691,9 @@ async function processTeamSeasonTransitionWithOptions(
   optionDecisions,
   resolutionContext = {}
 ) {
-  const updatedTeam = { ...teamData };
+  let updatedTeam = { ...teamData };
   let hasChanges = false;
   const teamCode = teamData.teamCode;
-  const timestampISO = new Date().toISOString();
   const teamSummary = {
     exercisedOptions: [],
     declinedOptions: [],
@@ -849,139 +850,42 @@ async function processTeamSeasonTransitionWithOptions(
     }
   }
 
-  // Process options FIRST with explicit decisions
-  const optionsResult = processOptionsWithDecisions(
-    updatedTeam,
-    fromSeason,
-    toSeason,
-    optionDecisions
-  );
-  if (optionsResult.hasChanges) {
-    hasChanges = true;
-    updatedTeam.roster = optionsResult.roster;
-    updatedTeam.players = optionsResult.players;
-    if (optionsResult.capHolds) {
-      updatedTeam.capHolds = [
-        ...(updatedTeam.capHolds || []),
-        ...optionsResult.capHolds,
-      ];
-    }
-    teamSummary.exercisedOptions = optionsResult.exercisedOptions || [];
-    teamSummary.declinedOptions = optionsResult.declinedOptions || [];
-  }
-
-  // Process contract expirations
-  const contractResult = processContractExpirations(
-    updatedTeam,
-    fromSeason,
-    toSeason
-  );
-  if (contractResult.hasChanges) {
-    hasChanges = true;
-    updatedTeam.roster = contractResult.roster;
-    updatedTeam.players = contractResult.players;
-    // Track expired contracts
-    const expiredPlayerIds =
-      teamData.roster?.filter((id) => !contractResult.roster.includes(id)) ||
-      [];
-    for (const playerId of expiredPlayerIds) {
-      // Support multiple ID formats: player_id, id, playerId
-      const player = teamData.players?.find(
-        (p) => (p.player_id || p.id || p.playerId) === playerId
-      );
-      if (player) {
-        teamSummary.expiredContracts.push({
-          playerId,
-          playerName: player.displayName || player.name || playerId,
-        });
-      }
-    }
-  }
-
-  // Process TPE Expirations (Phase 1)
-  // Phase 53: Log TPE_EXPIRED history entries for each expired TPE
-  // Phase 65: Use canonical TPE accessor
-  // Note: worldId already destructured in Phase 16.1 block above
-  const tpeResult = processTradeExceptions(
-    getTeamTpeList(updatedTeam),
-    toSeason
-  );
-  if (tpeResult.hasChanges) {
-    hasChanges = true;
-    // Phase 65: Write to canonical location (exceptions.tpe) instead of legacy
-    updatedTeam.exceptions = updatedTeam.exceptions || {};
-    updatedTeam.exceptions.tpe = tpeResult.activeTPEs;
-    // Also update legacy for in-memory consistency during this run
-    updatedTeam.tradeExceptions = tpeResult.activeTPEs;
-    teamSummary.expiredTPEs = tpeResult.expiredTPEs;
-
-    // Phase 53: Generate TPE_EXPIRED history entries for each expired TPE
-    if (tpeResult.expiredTPEs && tpeResult.expiredTPEs.length > 0) {
-      const expiryHistoryEntries = tpeResult.expiredTPEs
-        .map((expiredTpe) => {
-          const expiresOn = getTpeExpiryISO(expiredTpe);
-          const amountExpired =
-            expiredTpe.remainingAmount ?? expiredTpe.amount ?? 0;
-          const totalAmount =
-            expiredTpe.totalAmount ?? expiredTpe.amount ?? amountExpired;
-
-          return createTpeExpiryHistoryEntry({
-            teamCode,
-            tpeId: expiredTpe.id,
-            amountExpired,
-            totalAmount,
-            expiresOn,
-            toSeason,
-            createdFrom: expiredTpe.createdFrom,
-            timestampISO,
-            worldId,
-          });
-        })
-        .filter(Boolean);
-
-      // Append to exceptionHistory (idempotent: dedupes by historyKey)
-      if (expiryHistoryEntries.length > 0) {
-        appendExceptionHistory(updatedTeam, expiryHistoryEntries);
-      }
-    }
-  }
-
-  // ===========================================================================
-  // PHASE 76: Reset/recompute non-TPE exceptions for the new season
-  // ===========================================================================
-  // This must run AFTER TPE expiry processing (which handles exceptions.tpe[])
-  // and BEFORE cap totals recalculation.
-  // Recomputes maxAmount for BAE, Mini MLE, NTMLE, Room using new year's cap rules.
-  // Resets usedAmount to 0 and remainingAmount to maxAmount (if enabled).
+  // Offseason transition SSOT (OSTE)
   const toYear = toEndYear(toSeason);
-  const nonTpeExceptionResult = resetTeamNonTpeExceptionsForNewSeason(
-    updatedTeam,
-    toYear
-  );
-  if (nonTpeExceptionResult.hasChanges) {
-    hasChanges = true;
-    // Non-TPE exception state is mutated directly on updatedTeam.exceptions
-    // by resetTeamNonTpeExceptionsForNewSeason(), no additional assignment needed.
-    // Track transitioned exceptions in summary for debugging
+  const fromYear = toEndYear(fromSeason);
+  const transitionResult = resolveOffseasonTransition({
+    teamCapSheet: updatedTeam,
+    fromYear,
+    toYear,
+    optionDecisions,
+    context: {
+      worldId,
+      teamCode,
+    },
+  });
+
+  if (!transitionResult.success) {
+    const message =
+      transitionResult.error ||
+      transitionResult.violations?.[0]?.message ||
+      'Offseason transition blocked';
+    throw new Error(`[OSTE] ${teamCode}: ${message}`);
+  }
+
+  updatedTeam = transitionResult.nextTeamCapSheet;
+  hasChanges = true;
+
+  if (transitionResult.appliedChangesSummary) {
+    teamSummary.exercisedOptions =
+      transitionResult.appliedChangesSummary.exercisedOptions || [];
+    teamSummary.declinedOptions =
+      transitionResult.appliedChangesSummary.declinedOptions || [];
+    teamSummary.expiredContracts =
+      transitionResult.appliedChangesSummary.expiredContracts || [];
+    teamSummary.expiredTPEs =
+      transitionResult.appliedChangesSummary.expiredTPEs || [];
     teamSummary.transitionedExceptions =
-      nonTpeExceptionResult.transitionedExceptions;
-  }
-
-  // Process empty roster charges
-  const emptyRosterResult = processEmptyRosterCharges(updatedTeam, toSeason);
-  if (emptyRosterResult.hasChanges) {
-    hasChanges = true;
-    updatedTeam.totals = {
-      ...updatedTeam.totals,
-      ...emptyRosterResult.totals,
-    };
-  }
-
-  // Update cap holds
-  const capHoldsResult = updateCapHolds(updatedTeam, toSeason);
-  if (capHoldsResult.hasChanges) {
-    hasChanges = true;
-    updatedTeam.capHolds = capHoldsResult.capHolds;
+      transitionResult.appliedChangesSummary.transitionedExceptions || [];
   }
 
   // Update draft picks with Stepien recalculation

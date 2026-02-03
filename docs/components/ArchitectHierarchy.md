@@ -189,8 +189,12 @@ utils/
   firebaseTeamPlanHelpers.js
   freeAgentLogic.js
   hardCapUtils.js
+  leagueInvariants.ts
   loadArchitectBasePlayer.ts
   mutationPipeline.js
+  offseason/
+    index.ts
+    resolveOffseasonTransition.ts
   persistenceContracts/
     contracts.js
     enforcement.js
@@ -276,6 +280,7 @@ utils/
       validateAggregation.js
       validateConsent.js
       validateEligibility.js
+      validateEntitlementRouting.js
       validateFaExceptionUsage.js
       validateHardCap.ts
       validateRoster.js
@@ -314,5 +319,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-02-02T14:20:24.273Z*
+*Generated on: 2026-02-03T13:01:23.423Z*
 *Auto-updated by: npm run docs*

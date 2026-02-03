@@ -206,6 +206,7 @@ export function buildPostTradeTeamsSnapshot({
     ];
 
     // Update entitlementIds if any entitlements are traded
+    // Phase 17: Removed broadcast fallback for 3+ team trades
     const outgoingEntitlementIds = (
       teamTrade.outgoingEntitlements ||
       teamTrade.entitlementsOut ||
@@ -213,6 +214,11 @@ export function buildPostTradeTeamsSnapshot({
     )
       .map((e) => e.entitlementId || e.id)
       .filter(Boolean);
+
+    // Phase 17: Count active teams for routing mode
+    const activeTeamCount = payload.teams.filter(
+      (t) => t.team || t.teamCode || t.teamId
+    ).length;
 
     const incomingEntitlementIds = [];
     payload.teams.forEach((otherTeamTrade, otherIndex) => {
@@ -239,6 +245,18 @@ export function buildPostTradeTeamsSnapshot({
           return;
         }
 
+        // Phase 17: For 3+ team trades, require explicit toTeamId (no broadcast)
+        // For 2-team trades, allow broadcast fallback for backward compatibility
+        if (activeTeamCount > 2) {
+          // 3+ teams: entitlement without toTeamId is an error - skip it
+          // (validation should have blocked this, but guard defensively)
+          console.warn(
+            `[tradeContext] Entitlement "${entId}" has no toTeamId in ${activeTeamCount}-team trade - skipping`
+          );
+          return;
+        }
+
+        // 2-team trade: broadcast to the other team (legacy behavior)
         incomingEntitlementIds.push(entId);
       });
     });
@@ -274,6 +292,21 @@ export function buildPostTradeTeamsSnapshot({
     updatedTeam.totals = computeTeamCapTotals(updatedTeam, toEndYear(seasonId));
 
     teamUpdates.push({ teamCode, team: updatedTeam });
+  }
+
+  // Phase 17: Post-apply assertion - verify no entitlement appears on multiple teams
+  const entitlementOwnership = new Map(); // entitlementId → teamCode
+  for (const { teamCode, team } of teamUpdates) {
+    const entitlementIds = team.entitlementIds || [];
+    for (const entId of entitlementIds) {
+      if (entitlementOwnership.has(entId)) {
+        const otherTeam = entitlementOwnership.get(entId);
+        throw new Error(
+          `[tradeContext] INVARIANT VIOLATION: Entitlement "${entId}" would exist on both ${otherTeam} and ${teamCode} after trade. This indicates a routing bug.`
+        );
+      }
+      entitlementOwnership.set(entId, teamCode);
+    }
   }
 
   // Build validation teams from the POST-TRADE state (this is the key Phase 56 requirement)

@@ -14,8 +14,8 @@
  */
 export const validationFlags = {
   // Team roster validation
-  rosterEnforcement: 'warn', // Roster size requirements
-  twoWayRoster: 'warn', // Two-way contract limits
+  rosterEnforcement: 'error', // Roster size requirements
+  twoWayRoster: 'error', // Two-way contract limits
 
   // Timing & date-based validations
   timingEnforcement: 'warn', // Trade timing windows

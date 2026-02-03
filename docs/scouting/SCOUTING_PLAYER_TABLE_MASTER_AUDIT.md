@@ -1307,6 +1307,87 @@ With `?debugFilters=1`, a new "Option Coverage" section displays:
 
 ---
 
+### Phase 2Y: Option Types Backfill Migration (2026-02-02) ✅
+
+**Status**: ✅ COMPLETE — BACKFILL MIGRATION SCRIPT READY
+
+**Goal**: Create production-ready idempotent migration script to backfill `currentContractView.optionsByYear` from contracts subcollection, enabling the Option Type filter to return real players.
+
+**Documentation**:
+
+- **Execution Return Package**: [PHASE_2Y_OPTION_TYPES_BACKFILL_EXECUTION.md](../../return_packages/PHASE_2Y_OPTION_TYPES_BACKFILL_EXECUTION.md)
+- **Postcheck Verification**: [PHASE_2Y_POSTCHECK_VERIFICATION.md](../../return_packages/PHASE_2Y_POSTCHECK_VERIFICATION.md)
+
+**Problem Solved**:
+
+The Option Type filter was returning 0 players because:
+
+1. `currentContractView.optionsByYear` (SSOT) was not populated in Firestore
+2. `useSimplePlayerData` loads main doc only, not contracts subcollection
+3. `enrichPlayerData` correctly reads from SSOT but no data existed
+
+**Solution Implemented**:
+
+| Task        | Implementation                                                                 |
+| :---------- | :----------------------------------------------------------------------------- |
+| Migration   | Created `scripts/migrations/phase2y_backfill_optionsByYear.js`                 |
+| Diagnostics | Updated `FilterDiagnosticsPanel` to show optionsByYear count and backfill hint |
+| Tests       | Added 2 Phase 2Y tests for optionsByYear SSOT behavior                         |
+| Validation  | Build passes, 35/35 filter tests pass                                          |
+
+**Migration Script Features**:
+
+```bash
+# Dry run (default) - scan all players, report what would change
+node scripts/migrations/phase2y_backfill_optionsByYear.js
+
+# Write mode - actually update Firestore
+node scripts/migrations/phase2y_backfill_optionsByYear.js --write
+
+# Single player dry run
+node scripts/migrations/phase2y_backfill_optionsByYear.js --player=aaron_gordon
+
+# Single player write
+node scripts/migrations/phase2y_backfill_optionsByYear.js --player=aaron_gordon --write
+```
+
+**Safety Features**:
+
+- Idempotent: Safe to re-run (only updates if data differs)
+- Dry run default: No writes unless `--write` is specified
+- Production safety: Refuses `--write` to prod unless emulator or `ALLOW_PROD_MIGRATION_WRITE=true`
+- Summary output: Players scanned, updated, option breakdown counts
+
+**Year Semantics (SSOT)**:
+
+All year-keyed data uses **seasonStartYear** convention:
+
+- `"2025-26"` → key is `"2025"` (start year)
+- `2025` (number) → key is `"2025"` (string)
+
+**Files Changed**:
+
+| File                                                        | Change                                              |
+| :---------------------------------------------------------- | :-------------------------------------------------- |
+| `scripts/migrations/phase2y_backfill_optionsByYear.js`      | NEW: Migration script                               |
+| `src/features/table/PlayerTable/FilterDiagnosticsPanel.jsx` | Added optionsByYear count and "Data not backfilled" |
+| `src/tests/scouting/player_filters_wiring_contract.test.js` | 2 new Phase 2Y tests                                |
+
+**Validation**:
+
+- Build: ✅ Passed
+- Tests: ✅ 35/35 passed (including 2 new Phase 2Y tests)
+- Migration dry run: Ready to execute
+
+**Next Steps**:
+
+1. Run migration in dry run to verify data: `node scripts/migrations/phase2y_backfill_optionsByYear.js`
+2. Run migration with write: `node scripts/migrations/phase2y_backfill_optionsByYear.js --write`
+3. Verify via diagnostics at `/players?debugFilters=1`
+4. Test Option Type filter returns real players
+
+---
+
 ### Phase 2: UX & Navigation Enhancement
 
 **Goal**: Connect the Table to the wider app.

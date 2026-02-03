@@ -296,6 +296,87 @@ describe('Phase 2S Filter Wiring Contract Tests', () => {
 
       expect(result.length).toBe(0);
     });
+
+    /**
+     * Phase 2Y: optionsByYear from main doc (SSOT)
+     * When currentContractView.optionsByYear exists in main doc,
+     * enrichPlayerData uses it directly instead of building from salariesByYear.
+     * This is the PRIMARY source for option data.
+     */
+    it('optionTypes: uses optionsByYear from main doc when present (Phase 2Y SSOT)', () => {
+      // Simulate raw Firestore player data with optionsByYear in currentContractView
+      const rawPlayerWithOptionsByYear = {
+        id: 'fixture-options-by-year-ssot',
+        bio: {
+          displayName: 'OptionsByYear SSOT Player',
+          position: 'PF',
+          display: { teamId: 'LAL', team: 'Los Angeles Lakers' },
+        },
+        currentContractView: {
+          // Phase 2Y SSOT: optionsByYear in main doc
+          optionsByYear: {
+            2025: 'TO',
+            2026: 'PO',
+          },
+        },
+        // No contracts subcollection - this player has denormalized data only
+      };
+
+      // Enrich the player data
+      const enrichedPlayer = enrichPlayerData(rawPlayerWithOptionsByYear);
+
+      // Validate optionByYear is correctly populated from main doc
+      expect(enrichedPlayer.optionByYear[2025]).toBe('TO');
+      expect(enrichedPlayer.optionByYear[2026]).toBe('PO');
+
+      // Filter with TO option for 2025
+      const filters = {
+        ...FILTER_DEFAULTS,
+        optionTypes: ['TO'],
+        salaryYear: 2025,
+      };
+      const result = filterPlayers([enrichedPlayer], filters);
+
+      // Should find the player because optionByYear[2025] === "TO"
+      expect(result.length).toBe(1);
+      expect(result[0].bio.displayName).toBe('OptionsByYear SSOT Player');
+    });
+
+    /**
+     * Phase 2Y: Verify SSOT takes priority over fallback
+     * When both optionsByYear and salariesByYear exist, optionsByYear wins.
+     */
+    it('optionTypes: optionsByYear takes priority over salariesByYear fallback (Phase 2Y)', () => {
+      // Simulate player with both SSOT and fallback data (SSOT should win)
+      const rawPlayerWithBoth = {
+        id: 'fixture-options-priority-test',
+        bio: {
+          displayName: 'Priority Test Player',
+          position: 'C',
+          display: { teamId: 'MIA', team: 'Miami Heat' },
+        },
+        currentContractView: {
+          // SSOT: This should be used
+          optionsByYear: {
+            2025: 'ETO',
+          },
+        },
+        contracts: {
+          'contract-1': {
+            // Fallback: This should be IGNORED because optionsByYear exists
+            salariesByYear: [
+              { season: '2025-26', salary: 10000000, option: 'PO' },
+            ],
+          },
+        },
+      };
+
+      // Enrich the player data
+      const enrichedPlayer = enrichPlayerData(rawPlayerWithBoth);
+
+      // Validate SSOT wins (ETO from optionsByYear, not PO from salariesByYear)
+      expect(enrichedPlayer.optionByYear[2025]).toBe('ETO');
+    });
   });
 
   describe('Grade Filters', () => {

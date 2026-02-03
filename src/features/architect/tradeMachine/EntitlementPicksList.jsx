@@ -5,9 +5,11 @@
  *
  * HISTORY:
  *  - 2026-01-21: Created for Phase 11.0 - Read-Only Entitlements View
+ *  - 2026-02-03: Phase 17 - Added multi-team destination routing support
  *
  * LINKS:
  *  - Plan: docs/team-scrape/PST_PICK_LEDGER_MASTER_PLAN.md (Phase 11.0)
+ *  - Audit: docs/architect/DRAFT_ASSET_TRADING_CLOSURE_AUDIT.md (Phase 17)
  */
 
 import React, { useMemo } from 'react';
@@ -27,6 +29,9 @@ import { getKindSortPriority } from '@/features/architect/utils/entitlements/for
  * @param {Function} [props.onToggleEntitlement] - Phase 11.1: Callback when entitlement is toggled
  * @param {Array} [props.selectedEntitlementIds] - Phase 11.1: Array of selected entitlement IDs
  * @param {string} [props.emptyStateHint] - Phase 14: Optional hint to show in empty state
+ * @param {Array} [props.otherTeams] - Phase 17: Array of other teams for destination dropdown
+ * @param {Array} [props.entitlementsOut] - Phase 17: Current outgoing entitlements with toTeamId
+ * @param {Function} [props.onSetDestination] - Phase 17: Callback when destination is changed
  */
 export const EntitlementPicksList = ({
   entitlements = [],
@@ -39,6 +44,10 @@ export const EntitlementPicksList = ({
   pickRulesById = {},
   // Phase 14: Empty state hint for debugging
   emptyStateHint,
+  // Phase 17: Multi-team destination routing
+  otherTeams = [],
+  entitlementsOut = [],
+  onSetDestination,
 }) => {
   // Filter and sort entitlements
   const sortedEntitlements = useMemo(() => {
@@ -85,6 +94,18 @@ export const EntitlementPicksList = ({
     }
     return groups;
   }, [sortedEntitlements]);
+
+  // Phase 17: Build lookup for current toTeamId per entitlement
+  const toTeamIdByEntitlement = useMemo(() => {
+    const map = {};
+    for (const e of entitlementsOut) {
+      const id = e.id || e.entitlementId;
+      if (id) {
+        map[id] = e.toTeamId || null;
+      }
+    }
+    return map;
+  }, [entitlementsOut]);
 
   if (sortedEntitlements.length === 0) {
     return (
@@ -135,6 +156,10 @@ export const EntitlementPicksList = ({
                   onToggle={onToggleEntitlement}
                   // Phase 12.3B: Pass pick rules for structured derivation
                   pickRulesById={pickRulesById}
+                  // Phase 17: Pass multi-team destination props
+                  otherTeams={otherTeams}
+                  currentToTeamId={toTeamIdByEntitlement[entitlementId]}
+                  onSetDestination={onSetDestination}
                 />
               );
             })}

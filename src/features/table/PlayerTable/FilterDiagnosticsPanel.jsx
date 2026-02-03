@@ -106,6 +106,22 @@ function OptionCoverageSection({ optionCoverage }) {
               Raw Option Sources (in main doc)
             </div>
             <div className="space-y-1">
+              {/* Phase 2Y SSOT: optionsByYear */}
+              <div className="flex justify-between">
+                <span>currentContractView.optionsByYear:</span>
+                <span
+                  className={
+                    rawOptionSources.currentContractViewOptionsByYear > 0
+                      ? 'text-green-400'
+                      : 'text-red-400'
+                  }
+                >
+                  {rawOptionSources.currentContractViewOptionsByYear} players
+                  {rawOptionSources.currentContractViewOptionsByYear === 0 && (
+                    <span className="ml-1 text-yellow-500">(SSOT)</span>
+                  )}
+                </span>
+              </div>
               <div className="flex justify-between">
                 <span>currentContractView.options[]:</span>
                 <span
@@ -116,6 +132,7 @@ function OptionCoverageSection({ optionCoverage }) {
                   }
                 >
                   {rawOptionSources.currentContractViewOptions} players
+                  <span className="ml-1 text-gray-500">(legacy)</span>
                 </span>
               </div>
               <div className="flex justify-between">
@@ -197,12 +214,26 @@ function OptionCoverageSection({ optionCoverage }) {
             </div>
           )}
 
-          {/* Schema Note */}
-          <div className="p-2 bg-yellow-900/30 border border-yellow-700 rounded text-yellow-300">
-            <strong>⚠️ Schema Note:</strong> enrichPlayerData expects
-            contractsView.seasons[].optionType but this field does NOT exist.
-            Option year mapping is ONLY in contracts subcollection (not fetched
-            by useSimplePlayerData).
+          {/* Data Status Indicator - Phase 2Y */}
+          {rawOptionSources.currentContractViewOptionsByYear === 0 &&
+            enrichedStats.withAnyOptionByYear === 0 && (
+              <div className="p-2 bg-red-900/30 border border-red-700 rounded text-red-300">
+                <strong>🚨 Data Not Backfilled:</strong> No players have
+                currentContractView.optionsByYear set. Run the migration script:
+                <code className="block mt-1 text-xs bg-gray-800 p-1 rounded">
+                  node scripts/migrations/phase2y_backfill_optionsByYear.js
+                  --write
+                </code>
+              </div>
+            )}
+
+          {/* Schema Note - Updated Phase 2Y */}
+          <div className="p-2 bg-blue-900/30 border border-blue-700 rounded text-blue-300">
+            <strong>ℹ️ Schema Note (Phase 2Y):</strong> Option data flows via
+            currentContractView.optionsByYear (SSOT) → enrichPlayerData →
+            optionByYear. The fallback reads from contracts subcollection
+            salariesByYear[].option but this is NOT loaded by
+            useSimplePlayerData. Backfill to main doc required.
           </div>
         </div>
       )}

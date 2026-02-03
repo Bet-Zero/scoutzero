@@ -85,6 +85,8 @@ const TradeTeamCard = ({
   // Phase 11.1: Entitlement trading props
   entitlementsOut = [],
   onToggleEntitlement,
+  // Phase 17: Multi-team destination routing
+  onSetEntitlementDestination,
 }) => {
   const [activeTab, setActiveTab] = useState('players');
   const [editingTeam, setEditingTeam] = useState(false);
@@ -734,6 +736,10 @@ const TradeTeamCard = ({
           pickRulesById={team.pickRulesById || {}}
           // Phase 14: Empty state hint for debugging
           emptyStateHint="Check emulator seed / baseTeams.entitlementIds"
+          // Phase 17: Pass multi-team destination routing props
+          otherTeams={otherTeams}
+          entitlementsOut={entitlementsOut}
+          onSetDestination={onSetEntitlementDestination}
         />
       )}
 

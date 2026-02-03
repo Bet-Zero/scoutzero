@@ -5,6 +5,7 @@
  *
  * HISTORY:
  *  - 2026-02-01: Phase 76 - Created for Exception Lifecycle MVP
+ *  - 2026-02-03: Phase 86 - Canonical exception lifecycle updates (mle/tpmle/bae/room + dpe)
  *
  * LINKS:
  *  - Master Doc: docs/architect/CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md

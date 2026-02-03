@@ -22,10 +22,12 @@
  *   incompleteChargesTotal, // Incomplete roster charges (future: set to 0 for now)
  *   totalCapAllocations, // players + dead money + cap holds + incomplete charges
  *   salaryCap,
+ *   luxuryTax,
  *   firstApron,
  *   secondApron,
  *   deltas: {
  *     vsCap,            // totalCapAllocations - salaryCap (negative = room)
+ *     vsLuxuryTax,      // totalCapAllocations - luxuryTax (negative = room)
  *     vsFirstApron,     // totalCapAllocations - firstApron (negative = room)
  *     vsSecondApron,    // totalCapAllocations - secondApron (negative = room)
  *   }
@@ -187,6 +189,7 @@ export function computeTeamCapTotals(teamCapSheet, selectedYear, options = {}) {
   const rules = getCapRulesForYear(yearKey, options.capProjections);
 
   const salaryCap = rules.cap.salaryCap || 0;
+  const luxuryTax = rules.cap.luxuryTax || 0;
   const firstApron = rules.cap.firstApron || 0;
   const secondApron = rules.cap.secondApron || 0;
 
@@ -220,6 +223,7 @@ export function computeTeamCapTotals(teamCapSheet, selectedYear, options = {}) {
   // Calculate deltas (positive = over, negative = under/room)
   const deltas = {
     vsCap: totalCapAllocations - salaryCap,
+    vsLuxuryTax: totalCapAllocations - luxuryTax,
     vsFirstApron: totalCapAllocations - firstApron,
     vsSecondApron: totalCapAllocations - secondApron,
   };
@@ -232,6 +236,7 @@ export function computeTeamCapTotals(teamCapSheet, selectedYear, options = {}) {
     incompleteChargesTotal,
     totalCapAllocations,
     salaryCap,
+    luxuryTax,
     firstApron,
     secondApron,
     deltas,

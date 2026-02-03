@@ -1,12 +1,13 @@
 /**
  * FILE: src/features/architect/utils/exceptions/exceptionLifecycle.js
  * PURPOSE: Exception lifecycle management for season transitions.
- *          Handles reset/recompute of non-TPE exceptions (BAE, Mini MLE, NTMLE, Room)
+ *          Handles reset/recompute of non-TPE exceptions (MLE, TPMLE, BAE, Room)
  *          using canonical cap rules from getCapRulesForYear().
  * OWNERSHIP: Feature: architect/cap-sheet
  *
  * HISTORY:
  *  - 2026-02-01: Phase 76 - Created for Exception Lifecycle MVP (season advance reset/recalc)
+ *  - 2026-02-03: Phase 86 - Canonical exception keys (mle/tpmle/bae/room) + DPE clear on rollover
  *
  * LINKS:
  *  - Master Doc: docs/architect/CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md
@@ -27,15 +28,15 @@ import { toEndYear } from '@/features/architect/utils/seasonFormat';
  * These are reset/recomputed during season advance.
  *
  * Mapping:
- * - biAnnual (BAE) -> capRulesProfile.exceptions.bae
- * - miniMle -> capRulesProfile.exceptions.taxpayerMLE (taxpayer MLE)
- * - nonTaxpayerMle -> capRulesProfile.exceptions.fullMLE (full MLE)
+ * - mle -> capRulesProfile.exceptions.fullMLE (non-taxpayer MLE)
+ * - tpmle -> capRulesProfile.exceptions.taxpayerMLE (taxpayer MLE)
+ * - bae -> capRulesProfile.exceptions.bae
  * - room -> capRulesProfile.exceptions.roomMLE
  */
 export const NON_TPE_EXCEPTION_TYPES = Object.freeze([
-  'biAnnual',
-  'miniMle',
-  'nonTaxpayerMle',
+  'mle',
+  'tpmle',
+  'bae',
   'room',
 ]);
 
@@ -44,9 +45,9 @@ export const NON_TPE_EXCEPTION_TYPES = Object.freeze([
  * Used to look up max amounts from canonical cap rules.
  */
 const EXCEPTION_TO_CAP_RULES_MAP = Object.freeze({
-  biAnnual: 'bae',
-  miniMle: 'taxpayerMLE',
-  nonTaxpayerMle: 'fullMLE',
+  mle: 'fullMLE',
+  tpmle: 'taxpayerMLE',
+  bae: 'bae',
   room: 'roomMLE',
 });
 
@@ -111,11 +112,32 @@ export function resetTeamNonTpeExceptionsForNewSeason(
     return { hasChanges: false, transitionedExceptions: [] };
   }
 
+  const transitionedExceptions = [];
+  let hasChanges = false;
+
   // Initialize exceptions object if missing
   team.exceptions = team.exceptions || {};
 
-  const transitionedExceptions = [];
-  let hasChanges = false;
+  // Normalize legacy exception keys into canonical schema
+  const legacyRemap = [
+    { from: 'taxpayerMle', to: 'tpmle' },
+    { from: 'tpMle', to: 'tpmle' },
+    { from: 'miniMle', to: 'tpmle' },
+    { from: 'nonTaxpayerMle', to: 'mle' },
+    { from: 'fullMLE', to: 'mle' },
+    { from: 'biAnnual', to: 'bae' },
+  ];
+
+  for (const { from, to } of legacyRemap) {
+    if (team.exceptions[from] !== undefined && team.exceptions[to] === undefined) {
+      team.exceptions[to] = team.exceptions[from];
+      hasChanges = true;
+    }
+    if (team.exceptions[from] !== undefined) {
+      delete team.exceptions[from];
+      hasChanges = true;
+    }
+  }
 
   for (const exceptionType of NON_TPE_EXCEPTION_TYPES) {
     const capRulesKey = EXCEPTION_TO_CAP_RULES_MAP[exceptionType];
@@ -170,6 +192,31 @@ export function resetTeamNonTpeExceptionsForNewSeason(
     };
   }
 
+  // DPE lifecycle: clear on rollover (enabled=false, amounts=0)
+  const dpeSeasonKey = `${yearKey - 1}-${String(yearKey).slice(-2)}`;
+  const existingDpe = team.exceptions.dpe || {};
+  const dpeWasActive =
+    existingDpe.enabled ||
+    (existingDpe.totalAmount ?? 0) > 0 ||
+    (existingDpe.usedAmount ?? 0) > 0 ||
+    (existingDpe.remainingAmount ?? 0) > 0 ||
+    existingDpe.seasonKey !== dpeSeasonKey;
+
+  team.exceptions.dpe = {
+    enabled: false,
+    maxAmount: 0,
+    totalAmount: 0,
+    usedAmount: 0,
+    remainingAmount: 0,
+    seasonKey: dpeSeasonKey,
+    ...(existingDpe.notes ? { notes: existingDpe.notes } : {}),
+  };
+
+  if (dpeWasActive) {
+    hasChanges = true;
+    transitionedExceptions.push('dpe');
+  }
+
   return {
     hasChanges,
     transitionedExceptions,
@@ -220,6 +267,22 @@ export function validateNonTpeExceptionsForYear(team, yearKey) {
     if (exception.seasonKey && exception.seasonKey !== expectedSeasonKey) {
       issues.push(
         `${exceptionType}.seasonKey: expected ${expectedSeasonKey}, got ${exception.seasonKey}`
+      );
+    }
+  }
+
+  // DPE should be cleared on rollover (if present)
+  const dpe = team.exceptions?.dpe;
+  if (dpe) {
+    if (dpe.enabled) {
+      issues.push('dpe.enabled: expected false on rollover');
+    }
+    if ((dpe.totalAmount ?? 0) !== 0 || (dpe.usedAmount ?? 0) !== 0) {
+      issues.push('dpe amounts: expected totalAmount/usedAmount to be 0 on rollover');
+    }
+    if (dpe.seasonKey && dpe.seasonKey !== expectedSeasonKey) {
+      issues.push(
+        `dpe.seasonKey: expected ${expectedSeasonKey}, got ${dpe.seasonKey}`
       );
     }
   }

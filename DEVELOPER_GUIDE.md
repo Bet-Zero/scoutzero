@@ -43,6 +43,8 @@ src/
 > - **table/** – main player table and mini row components.
 > - **tierMaker/** – drag-and-drop tier board for custom lists.
 >
+> Architect-specific SSOT utilities live under `src/features/architect/utils/`. The offseason transition pipeline is centralized in `src/features/architect/utils/offseason/`.
+>
 > ### src/hooks/
 >
 > Custom React hooks used throughout the app:

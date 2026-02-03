@@ -156,6 +156,7 @@ export const SIGNING_YEARS_LIMITS = {
   TPMLE: { minYears: 1, maxYears: 2 },
   ROOM_MLE: { minYears: 1, maxYears: 2 },
   BAE: { minYears: 1, maxYears: 2 },
+  TEN_DAY: { minYears: 1, maxYears: 1 },
 };
 
 /**
@@ -518,6 +519,16 @@ export function resolveSigningMechanism(contract, signedUsing) {
     normalized === 'vetmin'
   ) {
     return 'MINIMUM';
+  }
+
+  // 10-Day Contract
+  if (
+    normalized === 'tenday' ||
+    normalized === 'day' ||
+    normalized.includes('tenday') ||
+    normalized.includes('10day')
+  ) {
+    return 'TEN_DAY';
   }
 
   // Unknown mechanism

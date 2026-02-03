@@ -24,6 +24,8 @@ import { enforceRosterWindow } from '../rules/rosterValidation.js';
 import { validateFaExceptionUsage } from '../rules/validateFaExceptionUsage.js';
 import { validateAggregation } from '../rules/validateAggregation.js';
 import { normalizeYearInput, yearToSeason } from '../utils/seasonUtils.js';
+// Phase 17: Entitlement routing validation (uniqueness, routing, ownership)
+import { validateEntitlementRouting } from '../rules/validateEntitlementRouting.js';
 // Phase 4: Centralized cap settings provider for explicit sourcing
 import {
   getCapSettings,
@@ -493,6 +495,26 @@ export function validateTrade({
     daysRemainingInSeason: context.daysRemainingInSeason,
     daysInSeason: context.daysInSeason,
   });
+
+  // Phase 17: Validate entitlement routing (uniqueness, destination, ownership)
+  // This is a cross-team validation that must happen before per-team validation
+  const entitlementRoutingResult = validateEntitlementRouting({
+    teams: validTeams,
+  });
+
+  // If entitlement routing validation fails, return early with blocking error
+  if (!entitlementRoutingResult.valid) {
+    return {
+      legal: false,
+      error: 'ENTITLEMENT_ROUTING_ERROR',
+      violations: entitlementRoutingResult.errors,
+      warnings: entitlementRoutingResult.warnings,
+      teamResults: [],
+      summaryByTeamIndex: [],
+      reason: entitlementRoutingResult.errors[0] || 'Entitlement routing error',
+      performance: { validationTime: performance.now() - startTime },
+    };
+  }
 
   // Second pass: calculate salaryOut and salaryIn using the canonical matching values
   teamsWithAssets.forEach((team, index) => {

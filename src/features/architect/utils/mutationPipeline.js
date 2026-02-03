@@ -91,6 +91,9 @@ import {
   normalizeTeamTpeSchema,
 } from '@/features/architect/utils/persistenceContracts';
 
+// Phase 86: League-wide invariant validation (cross-team duplicate player prevention)
+import { validateMutationLeagueInvariants } from '@/features/architect/utils/leagueInvariants';
+
 // ==============================================================================
 // PHASE 58: TRADE CONTEXT MODULE RE-EXPORTS
 // ==============================================================================
@@ -526,6 +529,31 @@ export async function applyWorldMutation({
         error: validationResult.error || 'Validation failed',
         violations: validationResult.violations,
         warnings: validationResult.warnings || [],
+      };
+    }
+
+    // PHASE 3.5: LEAGUE INVARIANTS - Validate no cross-team duplicates
+    // Phase 86: Prevents players from appearing on multiple teams
+    const leagueInvariantResult = await validateMutationLeagueInvariants(
+      worldId,
+      mutationType,
+      sanitizedPayload,
+      computeResult
+    );
+
+    if (!leagueInvariantResult.valid) {
+      return {
+        success: false,
+        error: leagueInvariantResult.error || 'League invariant violation',
+        violations: leagueInvariantResult.duplicates
+          ? [
+              {
+                rule: 'LEAGUE_DUPLICATE_PLAYER',
+                details: leagueInvariantResult.duplicates,
+              },
+            ]
+          : [],
+        warnings: [],
       };
     }
 

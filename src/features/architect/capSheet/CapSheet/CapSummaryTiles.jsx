@@ -19,6 +19,7 @@ const CapSummaryTiles = ({ teamCapSheet, selectedYear, totals }) => {
     capHoldsTotal,
     deadMoneyTotal,
     salaryCap,
+    luxuryTax,
     firstApron,
     secondApron,
     deltas,
@@ -36,6 +37,7 @@ const CapSummaryTiles = ({ teamCapSheet, selectedYear, totals }) => {
   // Calculate space from canonical totals
   // Note: deltas are (total - threshold), so space = -delta
   const capSpace = -deltas.vsCap;
+  const luxuryTaxSpace = -(deltas.vsLuxuryTax || 0);
   const firstApronSpace = -deltas.vsFirstApron;
   const secondApronSpace = -deltas.vsSecondApron;
 
@@ -43,7 +45,7 @@ const CapSummaryTiles = ({ teamCapSheet, selectedYear, totals }) => {
     `${amount < 0 ? '-' : ''}$${Math.abs(amount).toLocaleString()}`;
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 my-4">
+    <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 my-4">
       <div className="bg-[#1c1c1c] rounded p-4 text-center border border-white/10">
         <div className="text-sm text-white/70 mb-1">TOTAL CAP ALLOCATIONS</div>
         <div className="text-lg font-bold text-white">
@@ -59,6 +61,17 @@ const CapSummaryTiles = ({ teamCapSheet, selectedYear, totals }) => {
           }`}
         >
           {formatMoney(capSpace)}
+        </div>
+      </div>
+
+      <div className="bg-[#1c1c1c] rounded p-4 text-center border border-white/10">
+        <div className="text-sm text-white/70 mb-1">LUXURY TAX SPACE</div>
+        <div
+          className={`text-lg font-bold ${
+            luxuryTaxSpace < 0 ? 'text-red-400' : 'text-green-400'
+          }`}
+        >
+          {formatMoney(luxuryTaxSpace)}
         </div>
       </div>
 

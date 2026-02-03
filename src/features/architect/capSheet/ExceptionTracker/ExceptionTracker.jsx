@@ -122,6 +122,7 @@ const ExceptionTracker = ({ teamCapSheet, currentYear }) => {
     mle = {},
     tpMle = {},
     bae = {},
+    dpe = {},
     tradeExceptions = [],
     hardCapped,
   } = teamCapSheet;
@@ -145,10 +146,12 @@ const ExceptionTracker = ({ teamCapSheet, currentYear }) => {
   let mleRemaining = getRemaining(mle, capData.fullMLE);
   let tpRemaining = getRemaining(tpMle, capData.taxpayerMLE);
   let baeRemaining = getRemaining(bae, capData.bae);
+  let dpeRemaining = getRemaining(dpe, 0);
 
   let mleStatus = null;
   let tpStatus = null;
   let baeStatus = null;
+  let dpeStatus = null;
   let hardCapReason = null;
 
   // 1. Check for Hard Cap triggers (NTPMLE or BAE used)
@@ -191,6 +194,15 @@ const ExceptionTracker = ({ teamCapSheet, currentYear }) => {
     baeStatus = 'N/A';
   }
 
+  // DPE follows similar hard cap rules as NT-MLE
+  if (usedTPMLE) {
+    dpeRemaining = 0;
+    dpeStatus = 'N/A';
+  } else if (hardCapped === 2) {
+    dpeRemaining = 0;
+    dpeStatus = 'N/A';
+  }
+
   return (
     <div className="mt-4 grid grid-cols-1 lg:grid-cols-[1.2fr,1fr] gap-4">
       {/* Left Column: Exceptions & Hard Cap Info */}
@@ -203,7 +215,7 @@ const ExceptionTracker = ({ teamCapSheet, currentYear }) => {
         />
 
         {/* Exception Stats Grid */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-4 gap-2">
           <ExceptionCard
             label="NT-MLE"
             amount={mleRemaining}
@@ -224,6 +236,13 @@ const ExceptionTracker = ({ teamCapSheet, currentYear }) => {
             subtext="Bi-Annual"
             color={baeRemaining > 0 ? 'orange' : 'gray'}
             statusLabel={baeStatus}
+          />
+          <ExceptionCard
+            label="DPE"
+            amount={dpeRemaining}
+            subtext="Disabled Player"
+            color={dpeRemaining > 0 ? 'orange' : 'gray'}
+            statusLabel={dpeStatus}
           />
         </div>
       </div>

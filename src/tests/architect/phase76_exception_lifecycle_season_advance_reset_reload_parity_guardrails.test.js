@@ -5,6 +5,7 @@
  *
  * HISTORY:
  *  - 2026-02-01: Phase 76 - Created for Exception Lifecycle Season Advance Reset/Reload Parity
+ *  - 2026-02-03: Phase 86 - Canonical exception keys + DPE lifecycle clear on rollover
  *
  * LINKS:
  *  - Master Doc: docs/architect/CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md
@@ -55,16 +56,18 @@ const TEST_YEAR_2027 = 2027; // 2026-27 season
  */
 function createTeamWithUsedExceptions(options = {}) {
   const {
-    biAnnualUsed = 2_000_000,
-    miniMleUsed = 1_000_000,
-    nonTaxpayerMleUsed = 5_000_000,
+    baeUsed = 2_000_000,
+    tpmleUsed = 1_000_000,
+    mleUsed = 5_000_000,
     roomUsed = 3_000_000,
+    dpeUsed = 500_000,
     seasonKey = '2025-26',
     enabledFlags = {
-      biAnnual: true,
-      miniMle: true,
-      nonTaxpayerMle: true,
+      bae: true,
+      tpmle: true,
+      mle: true,
       room: true,
+      dpe: true,
     },
   } = options;
 
@@ -74,28 +77,28 @@ function createTeamWithUsedExceptions(options = {}) {
     players: [],
     roster: [],
     exceptions: {
-      biAnnual: {
-        enabled: enabledFlags.biAnnual,
+      bae: {
+        enabled: enabledFlags.bae,
         maxAmount: 4_700_000,
         totalAmount: 4_700_000,
-        usedAmount: biAnnualUsed,
-        remainingAmount: 4_700_000 - biAnnualUsed,
+        usedAmount: baeUsed,
+        remainingAmount: 4_700_000 - baeUsed,
         seasonKey,
       },
-      miniMle: {
-        enabled: enabledFlags.miniMle,
+      tpmle: {
+        enabled: enabledFlags.tpmle,
         maxAmount: 5_000_000,
         totalAmount: 5_000_000,
-        usedAmount: miniMleUsed,
-        remainingAmount: 5_000_000 - miniMleUsed,
+        usedAmount: tpmleUsed,
+        remainingAmount: 5_000_000 - tpmleUsed,
         seasonKey,
       },
-      nonTaxpayerMle: {
-        enabled: enabledFlags.nonTaxpayerMle,
+      mle: {
+        enabled: enabledFlags.mle,
         maxAmount: 12_900_000,
         totalAmount: 12_900_000,
-        usedAmount: nonTaxpayerMleUsed,
-        remainingAmount: 12_900_000 - nonTaxpayerMleUsed,
+        usedAmount: mleUsed,
+        remainingAmount: 12_900_000 - mleUsed,
         seasonKey,
       },
       room: {
@@ -104,6 +107,14 @@ function createTeamWithUsedExceptions(options = {}) {
         totalAmount: 8_000_000,
         usedAmount: roomUsed,
         remainingAmount: 8_000_000 - roomUsed,
+        seasonKey,
+      },
+      dpe: {
+        enabled: enabledFlags.dpe,
+        maxAmount: 0,
+        totalAmount: 0,
+        usedAmount: dpeUsed,
+        remainingAmount: 0,
         seasonKey,
       },
       // Include TPE to verify it's NOT touched
@@ -127,17 +138,17 @@ function createTeamWithUsedExceptions(options = {}) {
 // ==============================================================================
 
 describe('Phase 76: Source Scan Guardrails', () => {
-  const seasonManagerPath = path.resolve(
+  const ostePath = path.resolve(
     __dirname,
-    '../../features/architect/utils/seasonManager.js'
+    '../../features/architect/utils/offseason/resolveOffseasonTransition.ts'
   );
   const exceptionLifecyclePath = path.resolve(
     __dirname,
     '../../features/architect/utils/exceptions/exceptionLifecycle.js'
   );
 
-  it('TEST 1: seasonManager.js imports resetTeamNonTpeExceptionsForNewSeason', () => {
-    const content = fs.readFileSync(seasonManagerPath, 'utf8');
+  it('TEST 1: OSTE imports resetTeamNonTpeExceptionsForNewSeason', () => {
+    const content = fs.readFileSync(ostePath, 'utf8');
 
     // Must import from exceptions module
     expect(content).toContain(
@@ -145,16 +156,13 @@ describe('Phase 76: Source Scan Guardrails', () => {
     );
   });
 
-  it('TEST 2: seasonManager.js calls resetTeamNonTpeExceptionsForNewSeason inside season advance flow', () => {
-    const content = fs.readFileSync(seasonManagerPath, 'utf8');
+  it('TEST 2: OSTE calls resetTeamNonTpeExceptionsForNewSeason inside transition flow', () => {
+    const content = fs.readFileSync(ostePath, 'utf8');
 
-    // Must call the helper with updatedTeam and toYear
+    // Must call the helper with nextTeam and toYear
     expect(content).toContain('resetTeamNonTpeExceptionsForNewSeason(');
-    expect(content).toContain('updatedTeam');
+    expect(content).toContain('nextTeam');
     expect(content).toContain('toYear');
-
-    // Must have Phase 76 comment marker
-    expect(content).toMatch(/PHASE 76.*non-TPE exceptions/i);
   });
 
   it('TEST 3: exceptionLifecycle.js does NOT reference exceptions.tpe', () => {
@@ -166,9 +174,9 @@ describe('Phase 76: Source Scan Guardrails', () => {
 
     // Verify it only handles non-TPE types
     expect(content).toContain('NON_TPE_EXCEPTION_TYPES');
-    expect(content).toContain('biAnnual');
-    expect(content).toContain('miniMle');
-    expect(content).toContain('nonTaxpayerMle');
+    expect(content).toContain('mle');
+    expect(content).toContain('tpmle');
+    expect(content).toContain('bae');
     expect(content).toContain('room');
   });
 
@@ -188,32 +196,35 @@ describe('Phase 76: Source Scan Guardrails', () => {
 describe('Phase 76: resetTeamNonTpeExceptionsForNewSeason Behavioral Tests', () => {
   it('TEST 4: Reset behavior - usedAmount resets to 0 after transition', () => {
     const team = createTeamWithUsedExceptions({
-      biAnnualUsed: 2_000_000,
-      miniMleUsed: 3_000_000,
-      nonTaxpayerMleUsed: 5_000_000,
+      baeUsed: 2_000_000,
+      tpmleUsed: 3_000_000,
+      mleUsed: 5_000_000,
       roomUsed: 4_000_000,
     });
 
     // Verify pre-condition: exceptions have non-zero usedAmount
-    expect(team.exceptions.biAnnual.usedAmount).toBe(2_000_000);
-    expect(team.exceptions.miniMle.usedAmount).toBe(3_000_000);
-    expect(team.exceptions.nonTaxpayerMle.usedAmount).toBe(5_000_000);
+    expect(team.exceptions.bae.usedAmount).toBe(2_000_000);
+    expect(team.exceptions.tpmle.usedAmount).toBe(3_000_000);
+    expect(team.exceptions.mle.usedAmount).toBe(5_000_000);
     expect(team.exceptions.room.usedAmount).toBe(4_000_000);
 
     // Transition to new season
     const result = resetTeamNonTpeExceptionsForNewSeason(team, TEST_YEAR_2027);
 
     expect(result.hasChanges).toBe(true);
-    expect(result.transitionedExceptions).toContain('biAnnual');
-    expect(result.transitionedExceptions).toContain('miniMle');
-    expect(result.transitionedExceptions).toContain('nonTaxpayerMle');
+    expect(result.transitionedExceptions).toContain('bae');
+    expect(result.transitionedExceptions).toContain('tpmle');
+    expect(result.transitionedExceptions).toContain('mle');
     expect(result.transitionedExceptions).toContain('room');
+    expect(result.transitionedExceptions).toContain('dpe');
 
     // All usedAmount should be reset to 0
-    expect(team.exceptions.biAnnual.usedAmount).toBe(0);
-    expect(team.exceptions.miniMle.usedAmount).toBe(0);
-    expect(team.exceptions.nonTaxpayerMle.usedAmount).toBe(0);
+    expect(team.exceptions.bae.usedAmount).toBe(0);
+    expect(team.exceptions.tpmle.usedAmount).toBe(0);
+    expect(team.exceptions.mle.usedAmount).toBe(0);
     expect(team.exceptions.room.usedAmount).toBe(0);
+    expect(team.exceptions.dpe.usedAmount).toBe(0);
+    expect(team.exceptions.dpe.enabled).toBe(false);
   });
 
   it('TEST 5: Max recompute - maxAmount matches new year cap rules', () => {
@@ -230,26 +241,26 @@ describe('Phase 76: resetTeamNonTpeExceptionsForNewSeason Behavioral Tests', () 
     resetTeamNonTpeExceptionsForNewSeason(team, TEST_YEAR_2027);
 
     // maxAmount should match cap rules for new year
-    expect(team.exceptions.biAnnual.maxAmount).toBe(expectedBae);
-    expect(team.exceptions.miniMle.maxAmount).toBe(expectedTaxpayerMle);
-    expect(team.exceptions.nonTaxpayerMle.maxAmount).toBe(expectedFullMle);
+    expect(team.exceptions.bae.maxAmount).toBe(expectedBae);
+    expect(team.exceptions.tpmle.maxAmount).toBe(expectedTaxpayerMle);
+    expect(team.exceptions.mle.maxAmount).toBe(expectedFullMle);
     expect(team.exceptions.room.maxAmount).toBe(expectedRoomMle);
 
     // totalAmount should also match (for compatibility)
-    expect(team.exceptions.biAnnual.totalAmount).toBe(expectedBae);
-    expect(team.exceptions.miniMle.totalAmount).toBe(expectedTaxpayerMle);
-    expect(team.exceptions.nonTaxpayerMle.totalAmount).toBe(expectedFullMle);
+    expect(team.exceptions.bae.totalAmount).toBe(expectedBae);
+    expect(team.exceptions.tpmle.totalAmount).toBe(expectedTaxpayerMle);
+    expect(team.exceptions.mle.totalAmount).toBe(expectedFullMle);
     expect(team.exceptions.room.totalAmount).toBe(expectedRoomMle);
   });
 
   it('TEST 6: Remaining recompute - remainingAmount equals maxAmount when enabled', () => {
     const team = createTeamWithUsedExceptions({
-      biAnnualUsed: 2_000_000,
-      miniMleUsed: 3_000_000,
+      baeUsed: 2_000_000,
+      tpmleUsed: 3_000_000,
       enabledFlags: {
-        biAnnual: true,
-        miniMle: true,
-        nonTaxpayerMle: true,
+        bae: true,
+        tpmle: true,
+        mle: true,
         room: true,
       },
     });
@@ -258,14 +269,14 @@ describe('Phase 76: resetTeamNonTpeExceptionsForNewSeason Behavioral Tests', () 
     resetTeamNonTpeExceptionsForNewSeason(team, TEST_YEAR_2027);
 
     // remainingAmount should equal maxAmount (full reset, enabled)
-    expect(team.exceptions.biAnnual.remainingAmount).toBe(
-      team.exceptions.biAnnual.maxAmount
+    expect(team.exceptions.bae.remainingAmount).toBe(
+      team.exceptions.bae.maxAmount
     );
-    expect(team.exceptions.miniMle.remainingAmount).toBe(
-      team.exceptions.miniMle.maxAmount
+    expect(team.exceptions.tpmle.remainingAmount).toBe(
+      team.exceptions.tpmle.maxAmount
     );
-    expect(team.exceptions.nonTaxpayerMle.remainingAmount).toBe(
-      team.exceptions.nonTaxpayerMle.maxAmount
+    expect(team.exceptions.mle.remainingAmount).toBe(
+      team.exceptions.mle.maxAmount
     );
     expect(team.exceptions.room.remainingAmount).toBe(
       team.exceptions.room.maxAmount
@@ -275,9 +286,9 @@ describe('Phase 76: resetTeamNonTpeExceptionsForNewSeason Behavioral Tests', () 
   it('TEST 6b: Remaining recompute - remainingAmount is 0 when disabled', () => {
     const team = createTeamWithUsedExceptions({
       enabledFlags: {
-        biAnnual: false,
-        miniMle: false,
-        nonTaxpayerMle: false,
+        bae: false,
+        tpmle: false,
+        mle: false,
         room: false,
       },
     });
@@ -286,24 +297,24 @@ describe('Phase 76: resetTeamNonTpeExceptionsForNewSeason Behavioral Tests', () 
     resetTeamNonTpeExceptionsForNewSeason(team, TEST_YEAR_2027);
 
     // remainingAmount should be 0 when disabled (can't use unavailable exception)
-    expect(team.exceptions.biAnnual.remainingAmount).toBe(0);
-    expect(team.exceptions.miniMle.remainingAmount).toBe(0);
-    expect(team.exceptions.nonTaxpayerMle.remainingAmount).toBe(0);
+    expect(team.exceptions.bae.remainingAmount).toBe(0);
+    expect(team.exceptions.tpmle.remainingAmount).toBe(0);
+    expect(team.exceptions.mle.remainingAmount).toBe(0);
     expect(team.exceptions.room.remainingAmount).toBe(0);
 
     // But maxAmount should still be set (for reference)
-    expect(team.exceptions.biAnnual.maxAmount).toBeGreaterThan(0);
-    expect(team.exceptions.miniMle.maxAmount).toBeGreaterThan(0);
-    expect(team.exceptions.nonTaxpayerMle.maxAmount).toBeGreaterThan(0);
+    expect(team.exceptions.bae.maxAmount).toBeGreaterThan(0);
+    expect(team.exceptions.tpmle.maxAmount).toBeGreaterThan(0);
+    expect(team.exceptions.mle.maxAmount).toBeGreaterThan(0);
     expect(team.exceptions.room.maxAmount).toBeGreaterThan(0);
   });
 
   it('TEST 7: Enabled preserved - enabled flag unchanged through transition', () => {
     const team = createTeamWithUsedExceptions({
       enabledFlags: {
-        biAnnual: true,
-        miniMle: false,
-        nonTaxpayerMle: true,
+        bae: true,
+        tpmle: false,
+        mle: true,
         room: false,
       },
     });
@@ -312,10 +323,11 @@ describe('Phase 76: resetTeamNonTpeExceptionsForNewSeason Behavioral Tests', () 
     resetTeamNonTpeExceptionsForNewSeason(team, TEST_YEAR_2027);
 
     // enabled flags should be preserved exactly
-    expect(team.exceptions.biAnnual.enabled).toBe(true);
-    expect(team.exceptions.miniMle.enabled).toBe(false);
-    expect(team.exceptions.nonTaxpayerMle.enabled).toBe(true);
+    expect(team.exceptions.bae.enabled).toBe(true);
+    expect(team.exceptions.tpmle.enabled).toBe(false);
+    expect(team.exceptions.mle.enabled).toBe(true);
     expect(team.exceptions.room.enabled).toBe(false);
+    expect(team.exceptions.dpe.enabled).toBe(false);
   });
 
   it('TEST 8: TPE array is NOT modified by the helper', () => {
@@ -339,10 +351,11 @@ describe('Phase 76: resetTeamNonTpeExceptionsForNewSeason Behavioral Tests', () 
     resetTeamNonTpeExceptionsForNewSeason(team, TEST_YEAR_2027);
 
     // Season key should be updated
-    expect(team.exceptions.biAnnual.seasonKey).toBe('2026-27');
-    expect(team.exceptions.miniMle.seasonKey).toBe('2026-27');
-    expect(team.exceptions.nonTaxpayerMle.seasonKey).toBe('2026-27');
+    expect(team.exceptions.bae.seasonKey).toBe('2026-27');
+    expect(team.exceptions.tpmle.seasonKey).toBe('2026-27');
+    expect(team.exceptions.mle.seasonKey).toBe('2026-27');
     expect(team.exceptions.room.seasonKey).toBe('2026-27');
+    expect(team.exceptions.dpe.seasonKey).toBe('2026-27');
   });
 });
 
@@ -373,8 +386,8 @@ describe('Phase 76: validateNonTpeExceptionsForYear Helper Tests', () => {
 describe('Phase 76: Reload Parity Tests', () => {
   it('TEST 12: Exception state survives simulated persist→reload cycle', () => {
     const team = createTeamWithUsedExceptions({
-      biAnnualUsed: 2_000_000,
-      miniMleUsed: 3_000_000,
+      baeUsed: 2_000_000,
+      tpmleUsed: 3_000_000,
     });
 
     // Transition to new season
@@ -391,19 +404,20 @@ describe('Phase 76: Reload Parity Tests', () => {
     const reloaded = JSON.parse(serialized);
 
     // Verify exception state matches exactly
-    expect(reloaded.exceptions.biAnnual).toEqual(team.exceptions.biAnnual);
-    expect(reloaded.exceptions.miniMle).toEqual(team.exceptions.miniMle);
-    expect(reloaded.exceptions.nonTaxpayerMle).toEqual(
-      team.exceptions.nonTaxpayerMle
+    expect(reloaded.exceptions.bae).toEqual(team.exceptions.bae);
+    expect(reloaded.exceptions.tpmle).toEqual(team.exceptions.tpmle);
+    expect(reloaded.exceptions.mle).toEqual(
+      team.exceptions.mle
     );
     expect(reloaded.exceptions.room).toEqual(team.exceptions.room);
+    expect(reloaded.exceptions.dpe).toEqual(team.exceptions.dpe);
 
     // Verify specific values
-    expect(reloaded.exceptions.biAnnual.usedAmount).toBe(0);
-    expect(reloaded.exceptions.biAnnual.remainingAmount).toBe(
-      reloaded.exceptions.biAnnual.maxAmount
+    expect(reloaded.exceptions.bae.usedAmount).toBe(0);
+    expect(reloaded.exceptions.bae.remainingAmount).toBe(
+      reloaded.exceptions.bae.maxAmount
     );
-    expect(reloaded.exceptions.biAnnual.seasonKey).toBe('2026-27');
+    expect(reloaded.exceptions.bae.seasonKey).toBe('2026-27');
   });
 
   it('TEST 13: Running transition twice is idempotent', () => {
@@ -453,6 +467,10 @@ describe('Phase 76: Edge Cases', () => {
       expect(team.exceptions[type].maxAmount).toBeGreaterThan(0);
       expect(team.exceptions[type].remainingAmount).toBe(0); // disabled
     }
+
+    expect(team.exceptions.dpe).toBeDefined();
+    expect(team.exceptions.dpe.enabled).toBe(false);
+    expect(team.exceptions.dpe.totalAmount).toBe(0);
   });
 
   it('TEST 15: Handles null team gracefully', () => {
@@ -475,11 +493,11 @@ describe('Phase 76: Edge Cases', () => {
 
   it('TEST 17: Preserves notes field through transition', () => {
     const team = createTeamWithUsedExceptions();
-    team.exceptions.biAnnual.notes = 'User note: reserved for guard';
+    team.exceptions.bae.notes = 'User note: reserved for guard';
 
     resetTeamNonTpeExceptionsForNewSeason(team, TEST_YEAR_2027);
 
-    expect(team.exceptions.biAnnual.notes).toBe(
+    expect(team.exceptions.bae.notes).toBe(
       'User note: reserved for guard'
     );
   });
@@ -491,9 +509,9 @@ describe('Phase 76: NON_TPE_EXCEPTION_TYPES Constant Tests', () => {
   });
 
   it('TEST 19: NON_TPE_EXCEPTION_TYPES includes all expected types', () => {
-    expect(NON_TPE_EXCEPTION_TYPES).toContain('biAnnual');
-    expect(NON_TPE_EXCEPTION_TYPES).toContain('miniMle');
-    expect(NON_TPE_EXCEPTION_TYPES).toContain('nonTaxpayerMle');
+    expect(NON_TPE_EXCEPTION_TYPES).toContain('bae');
+    expect(NON_TPE_EXCEPTION_TYPES).toContain('tpmle');
+    expect(NON_TPE_EXCEPTION_TYPES).toContain('mle');
     expect(NON_TPE_EXCEPTION_TYPES).toContain('room');
   });
 

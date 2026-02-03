@@ -19,13 +19,14 @@ import { canUseRoomException } from '@/features/architect/utils/capTotals/comput
  * Exception types supported for manual management.
  * TPE is explicitly NOT included in Phase 27 scope.
  */
-const EXCEPTION_TYPES = ['mle', 'tpmle', 'bae', 'room'];
+const EXCEPTION_TYPES = ['mle', 'tpmle', 'bae', 'room', 'dpe'];
 
 const EXCEPTION_LABELS = {
   mle: 'Mid-Level Exception (MLE)',
   tpmle: 'Taxpayer MLE',
   bae: 'Bi-Annual Exception (BAE)',
   room: 'Room Exception',
+  dpe: 'Disabled Player Exception (DPE)',
 };
 
 const DEFAULT_EXCEPTION = {
@@ -50,6 +51,10 @@ const getDefaultTotalAmount = (type, capSettings) => {
       return capSettings.bae || 0;
     case 'room':
       return capSettings.roomMLE || capSettings.room || 0;
+    case 'dpe':
+      // DPE = lesser of 50% of injured player's salary OR full NT-MLE
+      // Default to 0 - team must configure based on injured player
+      return 0;
     default:
       return 0;
   }

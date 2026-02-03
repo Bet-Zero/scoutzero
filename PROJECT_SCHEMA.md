@@ -62,6 +62,7 @@ Top-level directory structure and purposes:
 - `firebase/` - Firestore helpers and configuration
 - `data/` - Firestore path utilities
 - `features/architect/utils/exceptionHistory/` - Phase 49 helper module housing `historyHelpers.js` for deterministic TPE exception history entry creation and deduplication
+- `features/architect/utils/offseason/` - Offseason Transition Engine (OSTE) utilities for year-to-year state transitions
 
 #### scripts/
 
