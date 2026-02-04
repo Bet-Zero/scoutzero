@@ -888,9 +888,55 @@ The Draft Asset Terms and Lifecycle system is now **production-ready** for NBA-l
 | **D**  | E2E Trade → Advance Lifecycle QA        | ✅ VERIFIED |
 | **D2** | TRUE E2E Gate (Simulation)              | ✅ VERIFIED |
 | **D3** | TRUE E2E Gate (Real Entrypoints)        | ✅ VERIFIED |
+| **D4** | TRUE E2E Emulator Persistence Gate      | ✅ VERIFIED |
 
 **Total Tests**: 230+ passing across entitlement, DARE, and invariant test suites.
 
 ---
+
+## ✅ VERIFICATION GATES — SINGLE COMMAND SURFACE
+
+**Effective Date**: 2026-02-04
+
+| Gate     | Command                           | Scope                                           | Requires Emulator? |
+| -------- | --------------------------------- | ----------------------------------------------- | ------------------ |
+| **Fast** | `npm run verify:draft-assets`     | Phase A + B + C (unit, integration, invariants) | ❌ No              |
+| **Full** | `npm run verify:draft-assets:emu` | Phase D4 (true persistence E2E)                 | ✅ Yes             |
+
+### Gate Coverage
+
+| Phase | Description                                                                    | Tests |
+| ----- | ------------------------------------------------------------------------------ | ----- |
+| A     | DARE unit + guardrails (protections, swaps, ladders, pools, ranked conveyance) | ~150  |
+| B     | World persistence integration (season advance → DARE → Firestore hand-off)     | ~20   |
+| C     | Entitlement invariants (B5: no duplicates, B6: pick slot accounting)           | ~30   |
+| D4    | True E2E emulator gate (real Firestore writes/reads)                           | ~10   |
+
+### Deprecated Commands (Use verify:\* Instead)
+
+The following legacy commands still work but are deprecated in favor of the unified `verify:*` surface:
+
+```bash
+# ⚠️ DEPRECATED — use npm run verify:draft-assets instead
+npm run ci:phaseD2-dare-gate
+npm run ci:phaseD3-dare-gate
+npm run ci:phaseD4-dare-emulator-gate
+```
+
+Aliased versions available under `verify:legacy:*` prefix for migration purposes.
+
+### D5+ Optional Enhancements (NOT Required for Shipping)
+
+The following are **optional enhancements** and not required for the Draft Asset Lifecycle to be considered complete:
+
+- D5: Enhanced logging/diagnostics
+- D6: Performance benchmarks
+- D7: Extended edge case coverage
+
+📄 **GPS Reference**: [DRAFT_ASSET_VERIFICATION_GATES.md](./DRAFT_ASSET_VERIFICATION_GATES.md)
+
+---
+
+**DRAFT ASSET LIFECYCLE STATUS: CLOSED ✅**
 
 **END OF AUDIT**
