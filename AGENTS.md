@@ -1,330 +1,156 @@
-# AGENTS.md – HoopZero/ScoutZero AI Instructions
+---
+name: AGENTS.md
+description: >
+  Shared AI-agent instructions for HoopZero/ScoutZero.
+  Read by Claude Code, Cursor, GitHub Copilot, and OpenAI Codex.
+---
 
-## CRITICAL NON-NEGOTIABLE RULES (READ FIRST)
+# AGENTS.md — HoopZero/ScoutZero
 
-For EVERY non-trivial task, you MUST follow these rules:
+## Commands
 
-1. **TEMPORARY WORK ALWAYS GOES IN `plans/<slug>/temp/`**:
-   - All scratch, experiments, drafts, and temporary scripts/files MUST be created under `plans/<slug>/temp/`.
-   - NEVER leave temp files in `src/`, `data/`, `tools/`, or `tests/`.
-   - When plan is completed, delete entire `plans/<slug>/temp/` directory.
-   - **📖 See `docs/workspace-rules/FILE_PLACEMENT_GUIDE.md` for complete decision tree**
+Put these in early — they are the first thing any agent needs.
 
-2. **PLAN RULES (single vs multi-step vs large)**:
-   - Single-step tasks → no plan mode.
-   - Multi-step tasks → use plan mode with `plan.md` (no chunks unless the work is large).
-   - Large/multi-phase work (cross-feature refactors, migrations, multi-day efforts) → plan mode **with** chunks.
-   - Default to plan mode if unsure; add chunks only when scope clearly meets “large.”
-   - **📖 See `docs/workspace-rules/WHEN_TO_USE_PLAN_MODE.md` for thresholds**
-   - **📖 See `docs/workspace-rules/WORKFLOW_CHECKLIST.md` for execution steps**
-
-3. **ASK BEFORE GUESSING STRUCTURE**:
-   - If you are unsure where new files should live, ASK the user.
-   - Do NOT invent new top-level folders without explicit confirmation.
-   - See `docs/workspace-rules/COMMUNICATION_RULES.md` for when to ask vs. decide.
-
-4. **UPDATE STATE AFTER EXECUTION (WHEN USING PLAN MODE)**:
-   - If plan mode is used:
-     - Update chunk `STATE`/`ERROR_LOG` (if chunks exist)
-     - Update plan `CURRENT_STATE` and `CHUNK_INDEX`
-   - Always update documentation for significant changes - see `docs/workspace-rules/DOCUMENTATION_UPDATE_RULES.md`.
-
-5. **ARCHIVE COMPLETED PLANS**:
-   - When a plan is complete and temp/drafts are deleted, move the entire plan folder to `plans/_archive/<slug>/` (keep templates in `_templates/`).
-   - Plans remain tracked in git; only temp/draft folders are removed.
+| Command | What it does | Timing |
+| --- | --- | --- |
+| `npm run dev` | Start dev server (`http://localhost:5173`) | instant |
+| `npm run build` | Production build | ~7s — do not cancel |
+| `npm run test -- --run` | Run all tests (Vitest) | ~14s — do not cancel |
+| `npm run lint` | ESLint | ~8s — ~1888 pre-existing errors, do **not** fix all |
+| `npm run validate:project` | Validate project structure against schema | — |
+| `npm run schema:generate` | Regenerate Zod schema docs from `src/schemas/` | — |
+| `npm run docs` | Generate component hierarchy docs | — |
 
 ---
 
-## WHEN USING CURSOR'S PLAN MODE
+## Project
 
-Use plan mode for any multi-step task; skip it for single-step work. Add chunks only when the plan is large/multi-phase (cross-feature refactors, migrations, multi-day efforts).
-
-When you are operating in **Cursor's Plan Mode**, you MUST:
-
-1. **FIRST, read these workflow documents at the start**:
-   - `docs/workspace-rules/WORKFLOW_CHECKLIST.md` - Complete step-by-step execution process
-   - `docs/workspace-rules/FILE_PLACEMENT_GUIDE.md` - Decision tree for file placement
-   - `docs/workspace-rules/WHEN_TO_USE_PLAN_MODE.md` - When to use plans vs simple edits
-
-2. **Then follow the workflow exactly as specified in `WORKFLOW_CHECKLIST.md`**
-   - The checklist is your single source of truth for execution steps
-   - Update progress in `plan.md` as you complete each step
-   - Follow the file placement rules from `FILE_PLACEMENT_GUIDE.md`
-
-3. **The user expects you to execute the plan, not just discuss it**
-   - Plan Mode means: read the instructions, execute them, track progress
-   - If something is unclear about project direction/requirements, ask
-   - If it's a technical decision, make it independently and document it
+HoopZero is a public-facing NBA scouting platform built with React + Vite + Firebase. Player data is loaded from Firestore. This is a **read-only** application — agents must never write to Firestore or attempt to save data.
 
 ---
 
-## 0.1 PRE-EXECUTION SELF-CHECK
+## Boundaries
 
-Before you start planning or editing for any non-trivial request, you MUST:
+### ✅ Always
 
-1. **Explicitly answer these questions in your own words**:
-   - Is this single-step (no plan) or multi-step (plan mode)? If multi-step, what is the plan slug?
-   - Is it “large” (cross-feature refactor/migration/multi-day)? If yes, chunks are required.
-   - Where should I put temporary/scratch files for this task? → `plans/<slug>/temp/`
-   - Which permanent folders (`src/`, `data/`, `tools/`, `docs/`, `tests/`) will be affected?
+- Use `.ts` / `.tsx` for new files. Existing `.js` / `.jsx` is legacy from an ongoing migration.
+- Use the `@/` import alias (maps to `src/`).
+- Use named exports. Default exports only for top-level page views.
+- Preserve visual layout and logic when refactoring.
+- Keep components under 200 lines; split into subcomponents when larger.
+- Leave the git worktree clean after completing work.
+- Update docs for significant changes — see `docs/workspace-rules/DOCUMENTATION_UPDATE_RULES.md`.
+- Run `npm run validate:project` after any structural changes.
 
-2. **If you cannot answer any of these clearly, you MUST**:
-   - Open `AGENTS.md` and re-read the NON-NEGOTIABLES section
-   - Check `docs/workspace-rules/WHEN_TO_USE_PLAN_MODE.md` to determine if plan mode is needed
-   - Ask the user for clarification if still unclear
+### ⚠️ Ask first
 
-**Rule of thumb**: Large = cross-feature refactors, schema migrations, or multi-day execution. Multi-step but not large = plan without chunks. Single-step = no plan.
+- Where new files should live when unsure — do not invent new top-level folders.
+- Anything ambiguous about what the user wants built.
+- File purpose or ownership when creating a new feature.
 
-**This self-check ensures you follow the workspace, plan, and file placement rules before starting work.**
+### 🚫 Never
 
----
-
-## Project Overview
-
-HoopZero is a public-facing NBA scouting platform. It displays player bios, stats, roles, contracts, and grades using a clean layout. All player data is loaded from Firebase Firestore using a **hierarchical player structure with subcollections** (not flattened documents).
-
-This is the read-only counterpart to **ScoutZero**, an internal grading tool used to assign player attributes and evaluations.  
-Agents should **never write to Firestore** or attempt to save data — only read.
-
----
-
-## Coding Conventions
-
-- Framework: **React + Vite + Firebase**
-- Backend: **Firestore** (hierarchical player documents in `players_v2` collection)
-- Style: **Tailwind CSS** with utility classes
-- Imports: Use alias paths (e.g., `@/components/...`)
-- File Format: **Named exports** preferred; default exports only for top-level views
-- **TypeScript vs JavaScript**:
-  - **New files should use TypeScript** (`.ts` for utilities, `.tsx` for React components)
-  - The project is migrating from JavaScript to TypeScript - existing `.js`/`.jsx` files are legacy
-  - When creating new files, prefer `.ts`/`.tsx` unless there's a specific reason to use JavaScript
-  - When modifying existing `.js`/`.jsx` files, consider migrating to TypeScript if making significant changes
+- Write to or modify Firestore data.
+- Create new git branches.
+- Amend or squash existing commits.
+- Declare duplicate `Player*` or `Contract*` interfaces outside `src/schemas/`.
+- Leave temporary or scratch files in `src/`, `data/`, or `tests/`.
 
 ---
 
-## File Structure
+## Communication
 
-Project follows a **feature-first structure** with scoped utility and component folders:
+The user does not have coding experience. They cannot and should not make technical decisions.
+
+- **Ask about**: project direction, requirements, what the user wants built, anything product-facing.
+- **Decide independently**: code patterns, file structure, naming conventions, architecture, library choices.
+
+Build plans with enough detail that execution matches expectations exactly. If a requirement is unclear, ask — do not guess.
+
+---
+
+## Conventions & Structure
+
+- **Stack**: React 18 + Vite + Tailwind CSS + Firebase / Firestore
+- **Schemas**: Zod (code-first) in `src/schemas/`; generated docs in `docs/schema/`. No duplicate `Player*` or `Contract*` interfaces anywhere else.
 
 ```text
 src/
-components/     Shared UI + wrappers
-features/      Domain features (table, profile, roster, lists, filters, tierMaker)
-hooks/         Custom React hooks for Firebase + filtering
-pages/         Route-level views
-utils/         Helpers for filtering, formatting, roster logic
-constants/     Role lists, badge sets, etc.
-firebase/      Firestore helpers + config
-schemas/       Canonical Zod schemas for Firestore collections
-styles/        Tailwind and additional styles
+├── components/     Shared UI + layout wrappers
+├── features/       Domain modules (architect, filters, lists, profile, roster, table, tierMaker)
+├── pages/          Route-level views
+├── hooks/          Custom React hooks
+├── utils/          Helpers grouped by domain
+├── constants/      Role lists, badge sets
+├── firebase/       Firestore helpers
+├── schemas/        Canonical Zod schemas
+└── styles/         Additional stylesheets
 ```
 
-- New code should be grouped by **feature** where possible
-- Reusable UI or logic goes in `shared/`, `hooks/`, or `utils/`
-
-### Per-Feature Structure and Documentation Requirements
-
-**CRITICAL**: When creating a NEW feature, tool, or data module, you MUST:
-
-1. **CREATE A FOLDER-LEVEL README**:
-   - For features: `src/features/<featureSlug>/README.md` (or `src/architect/<featureSlug>/README.md` for Architect-specific)
-   - For tools: `tools/<toolSlug>/README.md`
-   - For data modules: `data/<area>/README.md`
-   - Each README must document: PURPOSE, ENTRY POINTS, STRUCTURE, and LINKS to relevant plans/docs
-
-2. **USE INDEX-BASED STRUCTURE FOR COMPOSED COMPONENTS**:
-   - Create `index.tsx` (or `index.ts`/`index.jsx`) at feature root that exports main component
-   - Place subcomponents in subfolders with their own `index.tsx`
-   - Keep hierarchy consistent with visual/logic composition (parent components above children in folder depth)
-
-3. **ALWAYS ADD FILE HEADERS FOR NEW OR SIGNIFICANTLY MODIFIED FILES**:
-   - For all new files in `src/`, `data/`, and `tools/`
-   - Use `docs/templates/file_header.template.txt`
-   - Fill in: FILE, PURPOSE, OWNERSHIP, HISTORY, LINKS
-   - **If unsure about PURPOSE or OWNERSHIP, ASK the user** instead of guessing
-
-📄 See `docs/workspace-rules/CREATING_PERMANENT_DOCS.md` for detailed guidance on folder-level READMEs, index-based structure, and file headers.
+New features need folder-level READMEs and index-based exports — see `docs/workspace-rules/CREATING_PERMANENT_DOCS.md`.
 
 ---
 
-## Communication and Decision-Making Rules
+## Firestore
 
-**CRITICAL: Ask Questions, Don't Assume**
+| Collection | Purpose |
+| --- | --- |
+| `/players_v2` | Player bio, contracts, seasons, evaluations — hierarchical subcollections |
+| `/teams` | Team rosters and cap sheets (migrating to `/architect/`) |
 
-- **Project Direction & Requirements**: Ask clarifying questions rather than assume intent
-  - User does not have coding experience - they cannot make technical decisions
-  - User expects many questions to clarify project direction and exact requirements
-  - Build plans with extreme detail before execution - confidence that it will build exactly what's wanted
-  - If something is unclear about what they want, ask rather than guess
-- **Technical Decisions**: Make these independently
-  - Code patterns, types, frameworks, architecture choices
-  - File structure, naming conventions, implementation details
-  - User has no opinion on technical matters - these are agent decisions
-
-**Plan Mode Philosophy**: Build plans with so much detail and clarity that execution is straightforward and results match expectations exactly.
-
-## Task Rules for Agents
-
-- ✅ Refactors should preserve **visual layout and logic**
-- ✅ Break large components (>200 lines) into **clean subcomponents**
-- ✅ Keep **logic and layout separated** where appropriate
-- ✅ Use **smart, readable file naming** (`TraitGradesBlock.jsx`, `AddPlayerDrawer.jsx`, etc.)
-- ✅ Preserve modals, filters, blurbs, and Firestore reads
-- ✅ Leave the worktree **clean** (`git status` should show no changes)
-- ✅ **Update documentation automatically** - See `docs/workspace-rules/DOCUMENTATION_UPDATE_RULES.md` for mandatory documentation updates
-  - **Keep PROJECT_SCHEMA.md in sync** when adding directories, scripts, or changing artifact paths
-  - **Run `npm run schema:generate`** when modifying Zod schemas in `src/schemas/`
-  - **Run `npm run docs`** when adding/modifying React components
-  - **Update DEVELOPER_GUIDE.md** when feature structure changes
-  - Documentation updates are **mandatory** - never leave docs out of date
-- ✅ Run `npm run validate:project` to verify structural changes don't break schema
-- ❌ Never create new branches
-- ❌ Never amend or squash existing commits
-
----
-
-## Firestore Data Source Rules
-
-This project uses **two main Firestore collections** for player/team data:
-
-| Collection    | Used For                                                           | Structure                        |
-| ------------- | ------------------------------------------------------------------ | -------------------------------- |
-| `/players_v2` | Player bio, contracts, seasons, evaluations                        | Hierarchical with subcollections |
-| `/teams`      | Team rosters, cap sheets (currently in migration to `/architect/`) | Flattened structure              |
-
-### Current Data Access Patterns
-
-**For `/players_v2` (hierarchical structure):**
+Access pattern for `/players_v2` is hierarchical — do not flatten:
 
 ```javascript
-// Access player bio data
 const player = await getDoc(doc(db, 'players_v2', playerId));
 const displayName = player.data().bio.displayName;
-const age = player.data().bio.age;
-const position = player.data().bio.position;
 
-// Access contract subcollection
 const contracts = await getDocs(
   collection(doc(db, 'players_v2', playerId), 'contracts')
 );
-
-// Access season stats subcollection
-const seasons = await getDocs(
-  collection(doc(db, 'players_v2', playerId), 'seasons')
-);
 ```
 
-**For `/teams` (current structure during migration):**
+Do not modify Firestore read logic without validating against `useSimplePlayerData.ts` (the primary list hook). `usePlayerData.ts` is a diagnostics wrapper over it — prefer the base hook unless diagnostics are required.
 
-```javascript
-// Access team roster data
-const team = await getDoc(doc(db, 'teams', teamId));
-const players = team.data().capSheet.players; // Array of flattened player objects
-```
-
-### Migration Context
-
-- **`/players_v2`**: Migration complete - use hierarchical access patterns
-- **`/teams`**: Currently migrating to `/architect/` collections - see `docs/schema/architect.md` for target schema
-- **Legacy `/players`**: Preserved for rollback, do not use for new code
-
-📄 Reference `docs/schema/CURRENT_FIRESTORE_SCHEMA.md` for current schema status  
-📄 See `docs/schema/architect.md` for architect collection schema  
-📄 See `docs/ARCHITECT_PLAN_INDEX.md` for complete Architect feature documentation
+Full schema: `docs/schema/CURRENT_FIRESTORE_SCHEMA.md`
 
 ---
 
-## Firebase Rules
+## Slash Commands
 
-- All data is **read-only from Firestore**
-- Main collections:
-  - `players_v2`: hierarchical player docs with bio, contracts, seasons, evaluations subcollections
-  - `teams`: team rosters + `capSheet.players[]` with `contract_clean` (migrating to `/architect/`)
+Agent-universal workflow commands. The prompt files in `docs/cursor-prompts/` contain the full instructions — any agent can follow them regardless of tool.
 
-⚠️ Do not modify Firestore read logic without validating against `src/shared/hooks/useSimplePlayerData.ts` (primary list hook), `src/shared/hooks/usePlayerDetail.js` (full player doc + subcollections), and Firebase helpers (`src/data/firestorePaths.js`). `usePlayerData.ts` is a diagnostics wrapper over `useSimplePlayerData`—prefer the base hook unless diagnostics are required.
+| Command | What it does | Prompt file |
+| --- | --- | --- |
+| `/explain` | Explain selected code without changing anything | `docs/cursor-prompts/ExplainPrompt.md` |
+| `/audit` | Deep technical audit → produces audit report | `docs/cursor-prompts/ApexAuditPrompt.md` |
+| `/audit-review` | Review an audit file → produces a Fix Plan | `docs/cursor-prompts/AuditReviewPrompt.md` |
+| `/apply-critical` | Apply only Critical SAFE\_AUTO fixes from a Fix Plan | `docs/cursor-prompts/ApplyCriticalPrompt.md` |
+| `/fix-all` | Apply all appropriate fixes from a Fix Plan | `docs/cursor-prompts/FixAllPrompt.md` |
+| `/doc-sync` | Update docs and comments to match current code | `docs/cursor-prompts/DocSyncPrompt.md` |
+| `/cleanup` | Safe, behavior-preserving code cleanup | `docs/cursor-prompts/CleanupPrompt.md` |
 
----
+**Typical workflow**: `/explain` → `/audit` → `/audit-review` → `/apply-critical` or `/fix-all` → `/doc-sync` → `/cleanup`
 
-## Schema Rules
-
-- Canonical source: `src/schemas/` (Zod-based code-first schemas)
-- Generated docs: `docs/schema/` (auto-generated from schemas)
-- Do not declare duplicate `Player*` or `Contract*` interfaces outside `src/schemas/`
-
-📄 See `docs/schema/players_v2.md` for players_v2 structure  
-📄 See `docs/schema/architect.md` for architect collections
+**Dependency chain**: `/audit` must run before `/audit-review`. `/audit-review` must produce a Fix Plan before `/apply-critical` or `/fix-all` can run.
 
 ---
 
 ## PR Guidelines
 
-- Start PR titles with a **clear summary** (e.g., `refactor: split PlayerProfileView`)
-- Include a **bullet summary** of changes
-- Cite file paths using `【F:path†L#】` format
-- Skip descriptions for unchanged UI unless relevant
+- Title: clear summary (e.g., `refactor: split PlayerProfileView`).
+- Body: bullet summary of changes with file paths.
+- Skip descriptions for UI that did not change.
 
 ---
 
-## Documentation References
+## Reference Links
 
-This project includes **generated docs** for navigation:
-
-- **Component hierarchies**: `docs/ArchitectHierarchy.md`, `docs/FiltersHierarchy.md`, etc.
-- **Schema documentation**: `docs/schema/` for all Firestore collections
-- **Current schema**: `docs/schema/CURRENT_FIRESTORE_SCHEMA.md` for active collections
-
-### Refresh Documentation
-
-```bash
-npm run docs          # Generate component hierarchies
-npm run schema:generate  # Generate schema docs from Zod sources
-```
-
----
-
-## Custom Cursor Commands
-
-This project includes custom Cursor commands for structured code review, explanation, and cleanup workflows.
-
-### Command Overview
-
-The commands are located in `.cursor/commands/` and reference detailed prompt instructions in `docs/cursor-prompts/`:
-
-| Command           | Purpose                                                          | Prompt File                                  |
-| ----------------- | ---------------------------------------------------------------- | -------------------------------------------- |
-| `/explain`        | Explain selected code in plain English without changing anything | `docs/cursor-prompts/ExplainPrompt.md`       |
-| `/audit`          | Run the Apex Audit on selected files, folders, or full codebase  | `docs/cursor-prompts/ApexAuditPrompt.md`     |
-| `/audit-review`   | Review an existing audit and build a structured Fix Plan         | `docs/cursor-prompts/AuditReviewPrompt.md`   |
-| `/apply-critical` | Apply Critical SAFE_AUTO fixes from a Fix Plan                   | `docs/cursor-prompts/ApplyCriticalPrompt.md` |
-| `/fix-all`        | Apply all appropriate fixes from a Fix Plan                      | `docs/cursor-prompts/FixAllPrompt.md`        |
-| `/doc-sync`       | Update docs and comments to match current code behavior          | `docs/cursor-prompts/DocSyncPrompt.md`       |
-| `/cleanup`        | Safely clean up and refactor code without changing behavior      | `docs/cursor-prompts/CleanupPrompt.md`       |
-
-### Typical Workflow
-
-1. **`/explain`** → Understand code before making changes
-2. **`/audit`** → Identify issues in code
-3. **`/audit-review`** → Review audit findings and create a Fix Plan
-4. **`/apply-critical`** or **`/fix-all`** → Apply fixes from the Fix Plan
-5. **`/doc-sync`** → Keep documentation in sync with code changes
-6. **`/cleanup`** → Safe refactoring and hygiene improvements
-
-### Command Structure
-
-Each command file in `.cursor/commands/` contains:
-
-- Command metadata (name, description)
-- High-level instructions
-- Reference to the detailed prompt in `docs/cursor-prompts/`
-
-The detailed prompt files in `docs/cursor-prompts/` contain the complete instructions that agents should follow when executing the command.
-
----
-
-## Other Notes
-
-- `DEVELOPER_GUIDE.md` → detailed file structure, key files, and component logic
-- `README.md` → setup instructions
-- `docs/schema/architect.md` → architect collection schema
-- Use `/features/profile/` and `/features/lists/` as **structural examples**
+| Doc | What it covers |
+| --- | --- |
+| `DEVELOPER_GUIDE.md` | Detailed file structure, components, hooks, utilities |
+| `copilot-instructions.md` | Environment setup, testing workflows, validation scenarios |
+| `docs/workspace-rules/COMMUNICATION_RULES.md` | Ask-vs-decide examples |
+| `docs/workspace-rules/CREATING_PERMANENT_DOCS.md` | Feature READMEs, index structure, file headers |
+| `docs/workspace-rules/DOCUMENTATION_UPDATE_RULES.md` | When and how to update docs |
+| `docs/schema/CURRENT_FIRESTORE_SCHEMA.md` | Authoritative Firestore schema |
+| `docs/cursor-prompts/cursor-commands-overview.md` | Full slash command reference with workflows |

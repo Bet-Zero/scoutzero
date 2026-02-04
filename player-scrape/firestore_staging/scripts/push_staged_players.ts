@@ -9,6 +9,78 @@ import {
 } from '@/schemas/players_v2';
 import { BasePlayerDocZ } from '@/schemas/architect';
 
+// =============================================================================
+// PRODUCTION GUARDRAILS
+// =============================================================================
+
+const PROD_PROJECT_ID = 'scoutzero-bf1ae';
+
+function isEmulatorMode(): boolean {
+  return !!process.env.FIRESTORE_EMULATOR_HOST;
+}
+
+function parseConfirmProjectArg(): string | undefined {
+  for (const arg of process.argv.slice(2)) {
+    if (arg.startsWith('--confirmProject=')) {
+      return arg.split('=')[1];
+    }
+  }
+  return undefined;
+}
+
+function runGuardrails(): void {
+  // If emulator mode is set, skip guardrails (allow emulator writes)
+  if (isEmulatorMode()) {
+    console.log(
+      `[guard] Emulator mode detected (${process.env.FIRESTORE_EMULATOR_HOST}). Skipping prod guardrails.`
+    );
+    return;
+  }
+
+  // Production mode: require --confirmProject
+  const confirmed = parseConfirmProjectArg();
+  if (!confirmed) {
+    console.error('');
+    console.error(
+      '═══════════════════════════════════════════════════════════════════════════════'
+    );
+    console.error('  🚫 BLOCKED: MISSING --confirmProject FLAG');
+    console.error(
+      '═══════════════════════════════════════════════════════════════════════════════'
+    );
+    console.error('');
+    console.error('  Production push requires explicit project confirmation.');
+    console.error('');
+    console.error('  REQUIRED:');
+    console.error(`    --confirmProject=${PROD_PROJECT_ID}`);
+    console.error('');
+    console.error('  EXAMPLE:');
+    console.error(
+      `    npx tsx push_staged_players.ts --all --confirmProject=${PROD_PROJECT_ID}`
+    );
+    console.error('');
+    process.exit(1);
+  }
+
+  if (confirmed !== PROD_PROJECT_ID) {
+    console.error('');
+    console.error(
+      '═══════════════════════════════════════════════════════════════════════════════'
+    );
+    console.error('  🚫 BLOCKED: PROJECT ID MISMATCH');
+    console.error(
+      '═══════════════════════════════════════════════════════════════════════════════'
+    );
+    console.error('');
+    console.error(`  Expected: ${PROD_PROJECT_ID}`);
+    console.error(`  Provided: ${confirmed}`);
+    console.error('');
+    process.exit(1);
+  }
+
+  console.log(`✅ Production guardrails passed: ${PROD_PROJECT_ID}`);
+}
+
 /**
  * Canonical normalization function to prevent duplicate player IDs
  * Converts all hyphens to underscores for consistent storage
@@ -269,6 +341,9 @@ async function getAllStagedPlayers(): Promise<string[]> {
 }
 
 async function main() {
+  // Run production guardrails
+  runGuardrails();
+
   const args = process.argv.slice(2);
   const players: string[] = [];
   let pushAll = false;

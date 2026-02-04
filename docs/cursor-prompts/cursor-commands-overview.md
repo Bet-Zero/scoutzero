@@ -1,6 +1,6 @@
-# Custom Cursor Commands Overview
+# Slash Commands Overview
 
-This document provides a comprehensive overview of all custom Cursor commands available in this project, including what each does, what problems they address, execution order, when to use them, and important limitations.
+This document provides a comprehensive overview of all slash commands available in this project. The prompt files in this directory are agent-universal — any AI coding tool (Claude Code, Cursor, Copilot, Codex) can follow them.
 
 ---
 
@@ -331,65 +331,6 @@ The commands fall into four main categories:
 
 ## Project Management Commands
 
-### `/plan-mode` - Structured Planning & Execution
-
-**What it does:**
-
-- Creates structured plans for complex, multi-step tasks
-- Breaks work into manageable pieces (chunks for massive plans, PROGRESS for most)
-- Tracks progress in plan files
-- Manages temporary files in workspaces
-- Updates documentation as required
-- Follows workspace rules and templates
-
-**Problem it addresses:**
-
-- Complex tasks requiring planning and tracking
-- Multi-step features or refactors
-- Work that needs organized execution
-- Tasks that span multiple sessions
-
-**When to use:**
-
-- Building large features
-- Significant refactoring affecting multiple files/systems
-- Data migrations or schema changes
-- Complex tasks that need careful planning
-- Work that naturally breaks into multiple phases
-
-**What it doesn't do:**
-
-- ❌ Does NOT skip planning for complex tasks
-- ❌ Does NOT leave temporary files in permanent locations
-- ❌ Does NOT execute without tracking progress
-- ❌ Does NOT skip mandatory documentation updates
-
-**Execution order:**
-
-- Used independently for complex tasks
-- Can be used at the start of major work
-- Integrates with other commands as needed during execution
-
-**Input:**
-
-- User describes what they want to build (e.g., "I want to build a new trade machine feature")
-
-**Important:** This is a comprehensive workflow command that handles planning, execution, tracking, and cleanup. It's not just for creating plans - it executes them too.
-
-**Workflow:**
-
-1. Pre-execution self-check (determine if plan mode needed)
-2. Ask clarifying questions (project direction)
-3. Create plan structure (use templates)
-4. Determine chunk need (chunks only for massive plans)
-5. Set up workspace (if temporary files needed)
-6. Execute work (follow workflow checklist)
-7. Track progress (update plan.md or chunk files)
-8. Complete chunk/plan (verify outputs, clean up)
-9. Update documentation (mandatory for significant changes)
-
----
-
 ### `/group-by-feature` - Feature-Based Refactoring
 
 **What it does:**
@@ -470,7 +411,7 @@ The commands fall into four main categories:
 
 **Ideal order:**
 
-1. `/plan-mode` - Create structured plan
+1. Use your agent's native plan mode for complex tasks
 2. Execute plan (may use other commands as needed)
 3. `/doc-sync` - Update documentation
 4. `/cleanup` - Final polish
@@ -506,7 +447,6 @@ The commands fall into four main categories:
 
 - `/explain` - Standalone understanding
 - `/cleanup` - Standalone cleanup
-- `/plan-mode` - Standalone planning/execution
 - `/group-by-feature` - Standalone refactoring (with chunk specification)
 - `/relevance` - Standalone artifact & output review
 
@@ -538,12 +478,6 @@ The commands fall into four main categories:
 - Won't change logic, APIs, schemas, or public interfaces
 - If there's any doubt about safety, it won't make the change
 
-### `/plan-mode` executes, not just plans
-
-- Creates plans AND executes them
-- Tracks progress, manages files, updates documentation
-- It's a complete workflow, not just planning
-
 ### `/group-by-feature` requires chunk specification
 
 - User must specify which chunk to execute
@@ -563,7 +497,6 @@ The commands fall into four main categories:
 | `/fix-all`          | Quality                  | ✅ Yes             | Fix Plan               | Code changes                      |
 | `/doc-sync`         | Quality                  | ✅ Yes (docs only) | Files/folders/codebase | Doc updates                       |
 | `/cleanup`          | Quality                  | ✅ Yes             | Files/folders/codebase | Code cleanup                      |
-| `/plan-mode`        | Management               | ✅ Yes             | User request           | Plan + execution                  |
 | `/group-by-feature` | Management               | ✅ Yes             | Chunk spec             | Refactored structure              |
 | `/relevance`        | Artifact & Output Review | ❌ No              | Files/folders/codebase | Relevance report + cleanup script |
 
@@ -576,9 +509,6 @@ For detailed instructions on any command, see:
 - Command files: `.cursor/commands/<command>.md`
 - Detailed prompts: `docs/cursor-prompts/<PromptName>.md`
 
-For workspace rules and workflows:
+For project-wide agent instructions:
 
-- `docs/workspace-rules/WORKFLOW_CHECKLIST.md`
-- `docs/workspace-rules/WHEN_TO_USE_PLAN_MODE.md`
-- `docs/workspace-rules/FILE_PLACEMENT_GUIDE.md`
 - `AGENTS.md` (main agent instructions)

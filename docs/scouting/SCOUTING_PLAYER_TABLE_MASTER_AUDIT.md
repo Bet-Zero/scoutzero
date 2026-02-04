@@ -1543,19 +1543,19 @@ node scripts/migrations/phase2y_backfill_optionsByYear.js --write --prod --confi
 
 **New Scripts Added**:
 
-| npm Script | Purpose |
-|------------|---------|
-| `verify:artifacts:players` | Verify players_v2 artifacts have optionsByYear |
-| `verify:artifacts:baseTeams` | Verify baseTeams artifacts have entitlementIds |
-| `stage:patch:baseTeams:entitlementIds` | Patch baseTeams artifacts (dry run) |
-| `stage:patch:baseTeams:entitlementIds:write` | Patch baseTeams artifacts (apply) |
+| npm Script                                   | Purpose                                        |
+| -------------------------------------------- | ---------------------------------------------- |
+| `verify:artifacts:players`                   | Verify players_v2 artifacts have optionsByYear |
+| `verify:artifacts:baseTeams`                 | Verify baseTeams artifacts have entitlementIds |
+| `stage:patch:baseTeams:entitlementIds`       | Patch baseTeams artifacts (dry run)            |
+| `stage:patch:baseTeams:entitlementIds:write` | Patch baseTeams artifacts (apply)              |
 
 **Pipeline-Backed Status**:
 
-| Field | Now Pipeline-Backed | Location |
-|-------|---------------------|----------|
-| `currentContractView.optionsByYear` | ✅ YES | `players_v2/*.json` |
-| `entitlementIds` | ✅ YES | `baseTeams/*.json` |
+| Field                               | Now Pipeline-Backed | Location            |
+| ----------------------------------- | ------------------- | ------------------- |
+| `currentContractView.optionsByYear` | ✅ YES              | `players_v2/*.json` |
+| `entitlementIds`                    | ✅ YES              | `baseTeams/*.json`  |
 
 **Verification on Fresh Reseed**:
 
@@ -1568,6 +1568,78 @@ npm run verify:artifacts:baseTeams # PASS: 30/30
 rm -rf .emulator-data && npm run emu
 # -> Both fields now present without migrations
 ```
+
+---
+
+### Phase 2AF: Scouting Prod Sync Wiring (2026-02-04) ✅
+
+**Status**: ✅ EXECUTED
+
+**Documentation**:
+
+- **Runbook**: [PROD_SYNC_RUNBOOK.md](./PROD_SYNC_RUNBOOK.md)
+- **Return Package**: [PHASE_2AF_SCOUTING_PROD_SYNC_WIRING.md](../../return_packages/PHASE_2AF_SCOUTING_PROD_SYNC_WIRING.md)
+
+**Goal**: Create a documented, repeatable production sync flow that regenerates artifacts and pushes them to prod with guardrails preventing wrong-project writes.
+
+**Changes Made**:
+
+1. **Prod Sync Plan Script**: Created `scripts/release/scouting_prod_sync_plan.ts`
+   - Verifies all artifacts (players, teams, entitlements, pickRules)
+   - Prints staging commands to regenerate if stale
+   - Prints preflight checklist for prod push
+   - Prints exact prod push commands with safety notes
+
+2. **Guardrails Module**: Created `scripts/release/prodGuardrails.ts`
+   - Blocks production writes when emulator env vars are set
+   - Requires explicit `--confirmProject=scoutzero-bf1ae` flag
+   - Validates service account project_id
+
+3. **Push Script Guardrails**: Updated player and team push scripts
+   - `push_staged_players.ts`: Added guardrails (blocks without --confirmProject in prod mode)
+   - `push_staged_teams.ts`: Added guardrails (blocks without --confirmProject in prod mode)
+   - Both scripts skip guardrails in emulator mode for dev convenience
+
+4. **Pipeline npm Scripts**: Added to package.json
+
+| npm Script                   | Purpose                                         |
+| ---------------------------- | ----------------------------------------------- |
+| `pipeline:sync:plan`         | Run prod sync plan (prints commands, no writes) |
+| `pipeline:sync:verify`       | Verify artifacts only                           |
+| `pipeline:stage:players`     | Regenerate all player artifacts                 |
+| `pipeline:stage:teams:patch` | Patch baseTeams with entitlementIds             |
+| `pipeline:verify:artifacts`  | Verify players and teams artifacts              |
+| `pipeline:prod:push:players` | Echo command (reference only)                   |
+| `pipeline:prod:push:teams`   | Echo command (reference only)                   |
+| `pipeline:prod:push:pst`     | Echo command (reference only)                   |
+
+**Guardrail Behaviors**:
+
+| Scenario                                                     | Result                                    |
+| ------------------------------------------------------------ | ----------------------------------------- |
+| Run push script with `FIRESTORE_EMULATOR_HOST` set           | ✅ Allowed (emulator mode, no guardrails) |
+| Run push script without emulator, without `--confirmProject` | 🚫 BLOCKED                                |
+| Run push script with `--confirmProject=wrong-project`        | 🚫 BLOCKED                                |
+| Run push script with `--confirmProject=scoutzero-bf1ae`      | ✅ Allowed                                |
+
+**Workflow Summary**:
+
+```bash
+# 1. Verify artifacts are fresh
+npm run pipeline:sync:verify
+
+# 2. If stale, regenerate
+npm run pipeline:stage:players
+npm run pipeline:stage:teams:patch
+
+# 3. Get full sync plan
+npm run pipeline:sync:plan
+
+# 4. Follow preflight checklist in output
+# 5. Run prod push commands from output (one at a time)
+```
+
+**See**: [PROD_SYNC_RUNBOOK.md](./PROD_SYNC_RUNBOOK.md) for complete documentation.
 
 ---
 

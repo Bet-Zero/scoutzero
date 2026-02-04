@@ -7,13 +7,89 @@
  * collection.
  *
  * Usage:
- *   npx tsx team-scrape/shared/firestore_staging/push_staged_teams.ts LAL
- *   npx tsx team-scrape/shared/firestore_staging/push_staged_teams.ts LAL BOS --stageDir=./tmp/output
+ *   npx tsx team-scrape/shared/firestore_staging/push_staged_teams.ts LAL --confirmProject=scoutzero-bf1ae
+ *   npx tsx team-scrape/shared/firestore_staging/push_staged_teams.ts LAL BOS --confirmProject=scoutzero-bf1ae
  */
 
 import admin from 'firebase-admin';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+
+// =============================================================================
+// PRODUCTION GUARDRAILS
+// =============================================================================
+
+const PROD_PROJECT_ID = 'scoutzero-bf1ae';
+
+function isEmulatorMode(): boolean {
+  return !!process.env.FIRESTORE_EMULATOR_HOST;
+}
+
+function parseConfirmProjectArg(): string | undefined {
+  for (const arg of process.argv.slice(2)) {
+    if (arg.startsWith('--confirmProject=')) {
+      return arg.split('=')[1];
+    }
+  }
+  return undefined;
+}
+
+function runGuardrails(): void {
+  // If emulator mode is set, skip guardrails (allow emulator writes)
+  if (isEmulatorMode()) {
+    console.log(
+      `[guard] Emulator mode detected (${process.env.FIRESTORE_EMULATOR_HOST}). Skipping prod guardrails.`
+    );
+    return;
+  }
+
+  // Production mode: require --confirmProject
+  const confirmed = parseConfirmProjectArg();
+  if (!confirmed) {
+    console.error('');
+    console.error(
+      '═══════════════════════════════════════════════════════════════════════════════'
+    );
+    console.error('  🚫 BLOCKED: MISSING --confirmProject FLAG');
+    console.error(
+      '═══════════════════════════════════════════════════════════════════════════════'
+    );
+    console.error('');
+    console.error('  Production push requires explicit project confirmation.');
+    console.error('');
+    console.error('  REQUIRED:');
+    console.error(`    --confirmProject=${PROD_PROJECT_ID}`);
+    console.error('');
+    console.error('  EXAMPLE:');
+    console.error(
+      `    npx tsx push_staged_teams.ts LAL BOS --confirmProject=${PROD_PROJECT_ID}`
+    );
+    console.error('');
+    process.exit(1);
+  }
+
+  if (confirmed !== PROD_PROJECT_ID) {
+    console.error('');
+    console.error(
+      '═══════════════════════════════════════════════════════════════════════════════'
+    );
+    console.error('  🚫 BLOCKED: PROJECT ID MISMATCH');
+    console.error(
+      '═══════════════════════════════════════════════════════════════════════════════'
+    );
+    console.error('');
+    console.error(`  Expected: ${PROD_PROJECT_ID}`);
+    console.error(`  Provided: ${confirmed}`);
+    console.error('');
+    process.exit(1);
+  }
+
+  console.log(`✅ Production guardrails passed: ${PROD_PROJECT_ID}`);
+}
+
+// =============================================================================
+// MAIN SCRIPT
+// =============================================================================
 
 type CliConfig = {
   stageDir: string;
@@ -25,7 +101,9 @@ type CliConfig = {
 };
 
 const SERVICE_ACCOUNT_PATH = path.resolve('serviceAccountKey.json');
-const STAGE_DIR = path.resolve('team-scrape/shared/firestore_staging/_artifacts/output');
+const STAGE_DIR = path.resolve(
+  'team-scrape/shared/firestore_staging/_artifacts/output'
+);
 
 const BASE_TEAMS_COLLECTION = 'architect_baseTeams';
 
@@ -137,6 +215,9 @@ async function pushTeamWithRetry(teamCode: string, config: CliConfig) {
 }
 
 async function main() {
+  // Run production guardrails
+  runGuardrails();
+
   const config = parseCli();
 
   if (!config.teams.length) {

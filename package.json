@@ -118,7 +118,16 @@
     "ci:phase69-proof": "node scripts/ci/run_phase69_tpe_migration_proof.js",
     "ci:phase80-cap-proof": "node scripts/ci/run_phase80_cap_sheet_e2e_proof.js",
     "ci:phaseD2-dare-gate": "node scripts/ci/run_phaseD2_true_e2e_trade_to_advance_gate.js",
-    "ci:phaseD3-dare-gate": "vitest run --config vitest.config.js src/tests/architect/dare/phaseD3_true_e2e_gate.integration.test.js"
+    "ci:phaseD3-dare-gate": "vitest run --config vitest.config.js src/tests/architect/dare/phaseD3_true_e2e_gate.integration.test.js",
+    "ci:phaseD4-dare-emulator-gate": "vitest run --config vitest.emulator.config.js src/tests/architect/dare/phaseD4_true_e2e_emulator_gate.emulator.test.ts",
+    "pipeline:sync:plan": "npx tsx scripts/release/scouting_prod_sync_plan.ts",
+    "pipeline:sync:verify": "npx tsx scripts/release/scouting_prod_sync_plan.ts --verify-only",
+    "pipeline:stage:players": "npx tsx player-scrape/firestore_staging/scripts/stage_all_players.ts",
+    "pipeline:stage:teams:patch": "npm run stage:patch:baseTeams:entitlementIds:write",
+    "pipeline:verify:artifacts": "npm run verify:artifacts:players && npm run verify:artifacts:baseTeams",
+    "pipeline:prod:push:players": "echo 'Run: npx tsx player-scrape/firestore_staging/scripts/push_staged_players.ts --confirmProject=scoutzero-bf1ae'",
+    "pipeline:prod:push:teams": "echo 'Run: npx tsx team-scrape/shared/firestore_staging/scripts/push_staged_teams.ts --confirmProject=scoutzero-bf1ae'",
+    "pipeline:prod:push:pst": "echo 'Run entitlements, patch, and pick-rules scripts with emulator env UNSET. See: npm run pipeline:sync:plan'"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.6",
