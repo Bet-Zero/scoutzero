@@ -58,6 +58,32 @@ import {
   normalizeTeamTpeSchema,
   getTeamTpeList,
 } from '@/features/architect/utils/persistenceContracts';
+
+/**
+ * Recursively removes undefined values from objects/arrays (Firestore-safe)
+ * @param {any} obj - Object or array to sanitize
+ * @returns {any} Sanitized copy with no undefined values
+ */
+function removeUndefinedDeep(obj) {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    return obj
+      .filter((item) => item !== undefined)
+      .map((item) => removeUndefinedDeep(item));
+  }
+  if (typeof obj === 'object') {
+    const result = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (value !== undefined) {
+        result[key] = removeUndefinedDeep(value);
+      }
+    }
+    return result;
+  }
+  return obj;
+}
 // Phase 76: Non-TPE exception lifecycle for season transitions
 import { resetTeamNonTpeExceptionsForNewSeason } from '@/features/architect/utils/exceptions';
 // Phase 77: SSOT cap totals for season advance
@@ -633,10 +659,12 @@ export async function advanceSeasonInWorld(worldId, options = {}) {
 
       // Save snapshot if team was modified
       // Phase 65: Normalize TPE schema before persistence
+      // Phase D4: Remove undefined values to prevent Firestore errors
       if (updatedTeam) {
         const snapshotRef = worldTeamRef(worldId, teamCode);
         const normalizedTeam = normalizeTeamTpeSchema(updatedTeam);
-        batch.set(snapshotRef, normalizedTeam);
+        const safeTeam = removeUndefinedDeep(normalizedTeam);
+        batch.set(snapshotRef, safeTeam);
         updatedTeams.push(teamCode);
       }
     }

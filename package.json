@@ -119,7 +119,7 @@
     "ci:phase80-cap-proof": "node scripts/ci/run_phase80_cap_sheet_e2e_proof.js",
     "ci:phaseD2-dare-gate": "node scripts/ci/run_phaseD2_true_e2e_trade_to_advance_gate.js",
     "ci:phaseD3-dare-gate": "vitest run --config vitest.config.js src/tests/architect/dare/phaseD3_true_e2e_gate.integration.test.js",
-    "ci:phaseD4-dare-emulator-gate": "vitest run --config vitest.emulator.config.js src/tests/architect/dare/phaseD4_true_e2e_emulator_gate.emulator.test.ts",
+    "ci:phaseD4-dare-emulator-gate": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8082 vitest run --config vitest.emulator.config.js src/tests/architect/dare/phaseD4_true_e2e_emulator_gate.emulator.test.ts",
     "pipeline:sync:plan": "npx tsx scripts/release/scouting_prod_sync_plan.ts",
     "pipeline:sync:verify": "npx tsx scripts/release/scouting_prod_sync_plan.ts --verify-only",
     "pipeline:stage:players": "npx tsx player-scrape/firestore_staging/scripts/stage_all_players.ts",

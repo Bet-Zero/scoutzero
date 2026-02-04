@@ -28,7 +28,10 @@ export default defineConfig({
       // This routes the emulator tests to use the Node-compatible Firebase config
       {
         find: '@/firebaseConfig',
-        replacement: path.resolve(__dirname, './scripts/ci/firebaseEmulatorConfig.ts'),
+        replacement: path.resolve(
+          __dirname,
+          './scripts/ci/firebaseEmulatorConfig.ts'
+        ),
       },
       // General @ alias for all other imports
       {

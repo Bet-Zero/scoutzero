@@ -59,7 +59,9 @@ const vitestEmulatorConfigContent = fs.existsSync(VITEST_EMULATOR_CONFIG_PATH)
   ? fs.readFileSync(VITEST_EMULATOR_CONFIG_PATH, 'utf-8')
   : '';
 
-const firebaseEmulatorConfigContent = fs.existsSync(FIREBASE_EMULATOR_CONFIG_PATH)
+const firebaseEmulatorConfigContent = fs.existsSync(
+  FIREBASE_EMULATOR_CONFIG_PATH
+)
   ? fs.readFileSync(FIREBASE_EMULATOR_CONFIG_PATH, 'utf-8')
   : '';
 
@@ -96,7 +98,9 @@ describe('Phase D4: TRUE E2E Emulator Gate Guardrails', () => {
     });
 
     it('TEST 6: D4 test imports db from @/firebaseConfig', () => {
-      expect(d4TestContent).toMatch(/import.*\{.*db.*\}.*from.*['"]@\/firebaseConfig['"]/);
+      expect(d4TestContent).toMatch(
+        /import.*\{.*db.*\}.*from.*['"]@\/firebaseConfig['"]/
+      );
     });
   });
 
@@ -127,7 +131,7 @@ describe('Phase D4: TRUE E2E Emulator Gate Guardrails', () => {
     });
   });
 
-  describe('E) Persistence Verification (What D4 Proves That D3 Didn\'t)', () => {
+  describe("E) Persistence Verification (What D4 Proves That D3 Didn't)", () => {
     it('TEST 12: D4 test reloads teams after trade (not just writes)', () => {
       expect(d4TestContent).toMatch(/reloadTeam/);
       // Must reload AFTER applyWorldMutation to verify persistence
@@ -140,7 +144,9 @@ describe('Phase D4: TRUE E2E Emulator Gate Guardrails', () => {
       expect(d4TestContent).toMatch(/reloadWorldEntitlement/);
       // Must reload AFTER advanceSeasonInWorld to verify DARE persistence
       const advanceIndex = d4TestContent.indexOf('advanceSeasonInWorld');
-      const reloadEntIndex = d4TestContent.lastIndexOf('reloadWorldEntitlement');
+      const reloadEntIndex = d4TestContent.lastIndexOf(
+        'reloadWorldEntitlement'
+      );
       expect(reloadEntIndex).toBeGreaterThan(advanceIndex);
     });
 
@@ -185,7 +191,9 @@ describe('Phase D4: TRUE E2E Emulator Gate Guardrails', () => {
       // It's okay to mention it in comments, but it must not be in the actual setupFiles array
       expect(vitestEmulatorConfigContent).toMatch(/setupFiles.*setupDebug/);
       // Ensure the actual setupFiles doesn't include firebase mocks (only debug)
-      const setupFilesMatch = vitestEmulatorConfigContent.match(/setupFiles:\s*\[([^\]]+)\]/);
+      const setupFilesMatch = vitestEmulatorConfigContent.match(
+        /setupFiles:\s*\[([^\]]+)\]/
+      );
       if (setupFilesMatch) {
         expect(setupFilesMatch[1]).not.toMatch(/setupFirebaseMocks\.js/);
       }

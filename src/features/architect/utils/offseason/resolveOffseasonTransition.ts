@@ -11,7 +11,10 @@
  *  - Latest Chunk: N/A
  */
 
-import { toEndYear, toSeasonCode } from '@/features/architect/utils/seasonFormat';
+import {
+  toEndYear,
+  toSeasonCode,
+} from '@/features/architect/utils/seasonFormat';
 import { getContractYearSlice } from '@/features/architect/utils/contractUtils';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
 import { getCapRulesForYear } from '@/features/architect/utils/capRulesProfile';
@@ -23,7 +26,10 @@ import {
   isCapHoldAmountValid,
 } from '@/features/architect/utils/capHoldTransitionHelpers';
 import { calculateCapHold } from '@/features/architect/utils/capHolds';
-import { processTradeExceptions, getTpeExpiryISO } from '@/features/architect/utils/tpeLifecycle';
+import {
+  processTradeExceptions,
+  getTpeExpiryISO,
+} from '@/features/architect/utils/tpeLifecycle';
 import {
   appendExceptionHistory,
   createTpeExpiryHistoryEntry,
@@ -101,9 +107,13 @@ function filterRosterByPlayerIds(roster: any[], playerIds: Set<string>): any[] {
   });
 }
 
-function normalizeDecisionValue(rawDecision: any):
-  | { decision: 'exercise' | 'decline'; optionType?: string; season?: string }
-  | null {
+function normalizeDecisionValue(
+  rawDecision: any
+): {
+  decision: 'exercise' | 'decline';
+  optionType?: string;
+  season?: string;
+} | null {
   if (rawDecision === null || rawDecision === undefined) return null;
 
   if (typeof rawDecision === 'boolean') {
@@ -226,7 +236,10 @@ function normalizeOptionDecisions(
   return { decisionsById, violations };
 }
 
-function normalizeExceptionsShape(exceptions: any): { normalized: any; changed: boolean } {
+function normalizeExceptionsShape(exceptions: any): {
+  normalized: any;
+  changed: boolean;
+} {
   const normalized = { ...(exceptions || {}) };
   let changed = false;
 
@@ -269,7 +282,10 @@ function countTwoWayRoster(players: any[]): number {
   }).length;
 }
 
-function pruneExpiredCapHolds(team: any, toSeason: string): { hasChanges: boolean } {
+function pruneExpiredCapHolds(
+  team: any,
+  toSeason: string
+): { hasChanges: boolean } {
   if (!team?.capHolds || !Array.isArray(team.capHolds)) {
     return { hasChanges: false };
   }
@@ -381,7 +397,11 @@ function clearHardCapState(team: any): boolean {
   }
 
   if (team.totals) {
-    if (team.totals.isHardCapped || team.totals.hardCapLevel || team.totals.hardCapDetail) {
+    if (
+      team.totals.isHardCapped ||
+      team.totals.hardCapLevel ||
+      team.totals.hardCapDetail
+    ) {
       hadHardCap = true;
     }
     team.totals.isHardCapped = false;
@@ -619,14 +639,19 @@ export function resolveOffseasonTransition({
         playerId: playerId || decisionKey,
         playerName: getPlayerName(player) || decisionKey,
         optionType: salaries[optionYearIndex]?.option,
-        salary: salaries[optionYearIndex]?.salary || salaries[optionYearIndex]?.capHit || 0,
+        salary:
+          salaries[optionYearIndex]?.salary ||
+          salaries[optionYearIndex]?.capHit ||
+          0,
       });
     } else if (decision.decision === 'decline') {
       const optionRow = salaries[optionYearIndex];
       const priorRow = salaries[optionYearIndex - 1];
       const lastSalary = priorRow?.salary ?? priorRow?.capHit ?? 0;
 
-      const filteredSalaries = salaries.filter((_: any, idx: number) => idx < optionYearIndex);
+      const filteredSalaries = salaries.filter(
+        (_: any, idx: number) => idx < optionYearIndex
+      );
       player.contract.salariesByYear = filteredSalaries;
 
       if (filteredSalaries.length > 0) {
@@ -737,7 +762,10 @@ export function resolveOffseasonTransition({
   const expiredPlayers: any[] = [];
 
   for (const player of nextTeam.players) {
-    if (!player?.contract?.salariesByYear || !Array.isArray(player.contract.salariesByYear)) {
+    if (
+      !player?.contract?.salariesByYear ||
+      !Array.isArray(player.contract.salariesByYear)
+    ) {
       remainingPlayers.push(player);
       continue;
     }
@@ -846,11 +874,16 @@ export function resolveOffseasonTransition({
     nextTeam.exceptions = normalizedExceptions.normalized;
   }
 
-  const exceptionReset = resetTeamNonTpeExceptionsForNewSeason(nextTeam, toYear, {
-    customCapProjections: context?.capProjections,
-  });
+  const exceptionReset = resetTeamNonTpeExceptionsForNewSeason(
+    nextTeam,
+    toYear,
+    {
+      customCapProjections: context?.capProjections,
+    }
+  );
   if (exceptionReset.hasChanges) {
-    appliedChangesSummary.transitionedExceptions = exceptionReset.transitionedExceptions;
+    appliedChangesSummary.transitionedExceptions =
+      exceptionReset.transitionedExceptions;
   }
 
   // DPE lifecycle: clear on rollover
@@ -875,7 +908,10 @@ export function resolveOffseasonTransition({
   };
   if (dpeWasActive) {
     appliedChangesSummary.transitionedExceptions = [
-      ...new Set([...(appliedChangesSummary.transitionedExceptions || []), 'dpe']),
+      ...new Set([
+        ...(appliedChangesSummary.transitionedExceptions || []),
+        'dpe',
+      ]),
     ];
   }
 

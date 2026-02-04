@@ -52,7 +52,7 @@ if (!EMULATOR_HOST) {
 // Parse host and port from FIRESTORE_EMULATOR_HOST (format: "host:port")
 const [emulatorHost, emulatorPortStr] = EMULATOR_HOST.split(':');
 const firestorePort = parseInt(emulatorPortStr, 10) || 8082;
-const authPort = 9099;
+const authPort = 9100; // Matches firebase.json
 const functionsPort = 5001;
 
 // ============================================================================
