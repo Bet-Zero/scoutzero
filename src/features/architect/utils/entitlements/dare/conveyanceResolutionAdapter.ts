@@ -36,6 +36,99 @@ interface ConveyanceResolutionOptions {
   method?: string;
 }
 
+/**
+ * Result from ranked pick selection (Phase 17.5).
+ */
+interface RankedPickResult {
+  selectedPickId: string;
+  winnerTeam: string;
+  positionsCompared: Record<string, number>;
+  poolCandidates: string[];
+}
+
+// =============================================================================
+// RANKED CONVEYANCE SELECTION (Phase 17.5)
+// =============================================================================
+
+/**
+ * Select a pick from a pool based on receivesComparator.
+ *
+ * @param entitlement - Entitlement with poolUnderlyingPickIds and receivesComparator
+ * @param positionsMap - Map of team codes to draft positions (1-60)
+ * @returns Selected pick info, or null if insufficient candidates or not a ranked conveyance
+ */
+function selectRankedPick(
+  entitlement: EffectiveEntitlement,
+  positionsMap: Record<string, number>
+): RankedPickResult | null {
+  const poolPickIds = entitlement.poolUnderlyingPickIds as string[] | undefined;
+  const receivesComparator = entitlement.receivesComparator as string | undefined;
+  const holderTeam = (entitlement.holderTeam as string) ?? '';
+
+  // Guard: Must have pool and comparator
+  if (!Array.isArray(poolPickIds) || poolPickIds.length === 0) {
+    return null;
+  }
+  if (!receivesComparator || receivesComparator === 'middle') {
+    // 'middle' comparator not specified in requirements - skip
+    return null;
+  }
+
+  // Parse team codes from pick IDs and filter to those with valid positions
+  const candidates: Array<{ pickId: string; team: string; position: number }> = [];
+  const positionsCompared: Record<string, number> = {};
+
+  for (const pickId of poolPickIds) {
+    const team = parseTeamFromPickId(pickId);
+    if (!team) continue;
+
+    const position = positionsMap[team];
+    if (typeof position !== 'number' || !Number.isFinite(position)) continue;
+
+    candidates.push({ pickId, team, position });
+    positionsCompared[team] = position;
+  }
+
+  // Guard: Need at least 2 candidates for ranked selection
+  if (candidates.length < 2) {
+    return null;
+  }
+
+  // Sort candidates based on comparator with tie-break logic
+  // Tie-break order: (1) position, (2) holder team wins, (3) alphabetical team code
+  candidates.sort((a, b) => {
+    // Primary: position comparison based on comparator
+    if (receivesComparator === 'more_favorable') {
+      // more_favorable = best_of = lowest position wins
+      if (a.position !== b.position) {
+        return a.position - b.position;
+      }
+    } else if (receivesComparator === 'less_favorable') {
+      // less_favorable = worst_of = highest position wins
+      if (a.position !== b.position) {
+        return b.position - a.position;
+      }
+    }
+
+    // Tie-break 1: Holder team wins ties
+    if (a.team === holderTeam && b.team !== holderTeam) return -1;
+    if (b.team === holderTeam && a.team !== holderTeam) return 1;
+
+    // Tie-break 2: Alphabetical by team code
+    return a.team.localeCompare(b.team);
+  });
+
+  const winner = candidates[0];
+  const poolCandidates = candidates.map((c) => c.team).sort();
+
+  return {
+    selectedPickId: winner.pickId,
+    winnerTeam: winner.team,
+    positionsCompared,
+    poolCandidates,
+  };
+}
+
 // =============================================================================
 // MAIN ADAPTER FUNCTION
 // =============================================================================
@@ -97,22 +190,53 @@ export function resolveConveyanceForEntitlement(
     };
   }
 
-  // Get the original team (whose draft position matters)
-  const originalTeam = parseTeamFromPickId(entitlement.underlyingPickId as string);
-  if (!originalTeam) {
-    return {
-      ...baseResult,
-      reason: `Cannot parse original team from underlyingPickId: ${entitlement.underlyingPickId}`,
-    };
-  }
+  // ===========================================================================
+  // RANKED CONVEYANCE SELECTION (Phase 17.5)
+  // ===========================================================================
+  // Check if this is a ranked conveyance (pool selection based on comparator)
+  const rankedResult = selectRankedPick(entitlement, positionsMap);
+  let originalTeam: string | null;
+  let position: number;
+  let selectedPickId: string | undefined;
+  let positionsCompared: Record<string, number> | undefined;
+  let poolCandidates: string[] | undefined;
 
-  // Guard: Need position for original team
-  const position = positionsMap[originalTeam];
-  if (typeof position !== 'number' || !Number.isFinite(position)) {
+  if (rankedResult) {
+    // Ranked conveyance - use selected pick
+    originalTeam = rankedResult.winnerTeam;
+    position = positionsMap[originalTeam];
+    selectedPickId = rankedResult.selectedPickId;
+    positionsCompared = rankedResult.positionsCompared;
+    poolCandidates = rankedResult.poolCandidates;
+  } else if (
+    Array.isArray(entitlement.poolUnderlyingPickIds) &&
+    (entitlement.poolUnderlyingPickIds as string[]).length > 0 &&
+    entitlement.receivesComparator
+  ) {
+    // Has pool fields but insufficient candidates - return unchanged
     return {
       ...baseResult,
-      reason: `Missing position data for original team ${originalTeam}`,
+      reason: 'Ranked conveyance: insufficient pool candidates (fewer than 2 teams with valid positions)',
+      poolCandidates: [],
     };
+  } else {
+    // Standard single-pick conveyance
+    originalTeam = parseTeamFromPickId(entitlement.underlyingPickId as string);
+    if (!originalTeam) {
+      return {
+        ...baseResult,
+        reason: `Cannot parse original team from underlyingPickId: ${entitlement.underlyingPickId}`,
+      };
+    }
+
+    const positionValue = positionsMap[originalTeam];
+    if (typeof positionValue !== 'number' || !Number.isFinite(positionValue)) {
+      return {
+        ...baseResult,
+        reason: `Missing position data for original team ${originalTeam}`,
+      };
+    }
+    position = positionValue;
   }
 
   // Determine protection for this year
@@ -133,6 +257,10 @@ export function resolveConveyanceForEntitlement(
       reason: `Position ${position} outside protection range "${protection}" - pick conveys`,
       resolvedAt: nowIso,
       method,
+      // Ranked conveyance metadata (Phase 17.5)
+      ...(selectedPickId && { selectedPickId }),
+      ...(positionsCompared && { positionsCompared }),
+      ...(poolCandidates && { poolCandidates }),
     };
   }
 
@@ -158,6 +286,10 @@ export function resolveConveyanceForEntitlement(
       reason: `Protection triggered at position ${position} - converted to round ${convertRound}`,
       resolvedAt: nowIso,
       method,
+      // Ranked conveyance metadata (Phase 17.5)
+      ...(selectedPickId && { selectedPickId }),
+      ...(positionsCompared && { positionsCompared }),
+      ...(poolCandidates && { poolCandidates }),
     };
   }
 
@@ -172,6 +304,10 @@ export function resolveConveyanceForEntitlement(
       reason: `Final protection year ${draftYear} reached - pick must convey despite position ${position}`,
       resolvedAt: nowIso,
       method,
+      // Ranked conveyance metadata (Phase 17.5)
+      ...(selectedPickId && { selectedPickId }),
+      ...(positionsCompared && { positionsCompared }),
+      ...(poolCandidates && { poolCandidates }),
     };
   }
 
@@ -193,6 +329,10 @@ export function resolveConveyanceForEntitlement(
     reason: `Protection triggered at position ${position} - rolled to ${nextYear} with ${nextProtection} protection`,
     resolvedAt: nowIso,
     method,
+    // Ranked conveyance metadata (Phase 17.5)
+    ...(selectedPickId && { selectedPickId }),
+    ...(positionsCompared && { positionsCompared }),
+    ...(poolCandidates && { poolCandidates }),
   };
 }
 
@@ -315,4 +455,5 @@ export const _testExports = {
   parseTeamFromPickId,
   getEntitlementProtection,
   generateRolledEntitlementId,
+  selectRankedPick,
 };

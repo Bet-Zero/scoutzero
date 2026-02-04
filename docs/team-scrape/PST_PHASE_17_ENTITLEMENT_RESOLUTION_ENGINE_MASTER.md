@@ -2,7 +2,7 @@
 
 **MODE**: MASTER DOC (Doc-First source of truth)  
 **DATE**: 2026-02-04  
-**STATUS**: IN_PROGRESS (Phase 17.1 Complete)  
+**STATUS**: IN_PROGRESS (Phase 17.4.1 Complete)  
 **OWNER**: architect/entitlements  
 **PARENT DOC**: [PST_PICK_LEDGER_MASTER_PLAN.md](./PST_PICK_LEDGER_MASTER_PLAN.md)
 
@@ -10,13 +10,36 @@
 
 ## Phase Status
 
-| Phase | Description                      | Status                 | Date       |
-| ----- | -------------------------------- | ---------------------- | ---------- |
-| 17.1  | Protections + Simple Conveyance  | ✅ COMPLETE — VERIFIED | 2026-02-04 |
-| 17.2  | Best-of 2-Team Swap              | ✅ COMPLETE — VERIFIED | 2026-02-04 |
-| 17.3  | Multi-Year Ladders + Conversion  | ⏳ NOT STARTED         | -          |
-| 17.4  | Multi-Team Pools + Chained Swaps | ⏳ NOT STARTED         | -          |
-| 17.5  | Ranked Conveyance + Priority     | ⏳ NOT STARTED         | -          |
+| Phase  | Description                                | Status                 | Date       |
+| ------ | ------------------------------------------ | ---------------------- | ---------- |
+| 17.1   | Protections + Simple Conveyance            | ✅ COMPLETE — VERIFIED | 2026-02-04 |
+| 17.2   | Best-of 2-Team Swap                        | ✅ COMPLETE — VERIFIED | 2026-02-04 |
+| 17.3   | Multi-Year Ladders + Conversion            | ⏳ NOT STARTED         | -          |
+| 17.4   | Multi-Team Pools + Chained Swaps           | ✅ COMPLETE — VERIFIED | 2026-02-04 |
+| 17.4.1 | Resolver-Level Swap Graph + Cycle Handling | ✅ COMPLETE — VERIFIED | 2026-02-04 |
+| 17.5   | Ranked Conveyance + Priority               | ⏳ NOT STARTED         | -          |
+
+---
+
+### Phase 17.4.1 Summary (Resolver-Level Swap Graph + Cycle Handling)
+
+**What Changed**:
+
+- Created `swapGraph.ts` helper module for swap dependency graph construction
+- Implemented DFS-based cycle detection algorithm
+- Added deterministic swap ordering (non-cyclical first, sorted by ID)
+- Updated `dareResolver.ts` to integrate swap graph ordering
+- Cyclical swaps are marked `outcome='unchanged'` with `reason='cycle_detected'`
+- Added `cycleNodes` and `cycleEntitlementIds` metadata to cycle resolutions
+- Swaps are now processed globally (not per-team) for proper dependency handling
+- 14 new guardrail tests verify ordering and cycle detection behavior
+
+**Key Files**:
+
+- `src/features/architect/utils/entitlements/dare/swapGraph.ts` (NEW)
+- `src/features/architect/utils/entitlements/dare/dareResolver.ts` (MODIFIED)
+- `src/features/architect/utils/entitlements/dare/index.ts` (MODIFIED)
+- `src/tests/architect/dare/phase17_4_1_resolver_swap_graph_guardrail.test.ts` (NEW)
 
 ---
 
@@ -348,7 +371,7 @@ type EntitlementResolutionOutcome =
 
 ---
 
-### Phase 17.4: Multi-Team Pools + Chained Swaps (Week 3)
+### Phase 17.4: Multi-Team Pools + Chained Swaps (Week 3) ✅ COMPLETE
 
 **Scope**:
 
@@ -358,16 +381,41 @@ type EntitlementResolutionOutcome =
 
 **Acceptance Criteria**:
 
-- [ ] Pool swap finds best/worst across all pool teams
+- [x] Pool swap finds best/worst across all pool teams
+- [x] Chained swaps resolve in topological order
+- [x] Circular chains handled gracefully (not error - marked unchanged with cycle_detected)
+- [x] 11 tests passing in `phase17_4_pool_and_chained_swaps_guardrail.test.ts`
 
-- [ ] Chained swaps resolve in topological order
-- [ ] Circular chains return error
-- [ ] 3 tests passing: `test_pool_*`, `test_chained_*`
+**Files Modified**:
 
-**Files to Modify**:
+- `swapResolutionAdapter.ts` - pool resolution logic added
+- `dareResolver.ts` - swap graph ordering + cycle handling added (Phase 17.4.1)
+- `swapGraph.ts` - NEW: swap dependency graph and cycle detection
 
-- `swapResolutionAdapter.ts` - add pool resolution logic
-- `dareResolver.ts` - add topological sort for chained swaps
+---
+
+### Phase 17.4.1: Resolver-Level Swap Graph + Cycle Handling ✅ COMPLETE
+
+**Scope**:
+
+- Deterministic swap processing order regardless of input order
+- Swap dependency graph construction
+- DFS-based cycle detection
+- Partial resolution policy (only cyclical swaps marked unchanged)
+
+**Acceptance Criteria**:
+
+- [x] Resolver processes swaps in deterministic order regardless of input array order
+- [x] Cycles do not fail the year (`success=true`)
+- [x] Only cyclical swaps get `unchanged + cycle_detected`
+- [x] Non-cyclical swaps resolve normally
+- [x] 14 tests passing in `phase17_4_1_resolver_swap_graph_guardrail.test.ts`
+
+**Files Created/Modified**:
+
+- `swapGraph.ts` - NEW: buildSwapGraph(), detectSwapCycles(), getDeterministicSwapOrder()
+- `dareResolver.ts` - integrated swap graph ordering before swap resolution
+- `index.ts` - added swapGraph exports
 
 ---
 

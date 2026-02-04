@@ -183,6 +183,7 @@ utils/
       index.ts
       protectionLadderFactory.ts
       resolutionReceipt.ts
+      swapGraph.ts
       swapResolutionAdapter.ts
       types.ts
     entitlementPickRowProjection.js
@@ -331,5 +332,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-02-03T15:19:10.255Z*
+*Generated on: 2026-02-04T09:47:15.040Z*
 *Auto-updated by: npm run docs*

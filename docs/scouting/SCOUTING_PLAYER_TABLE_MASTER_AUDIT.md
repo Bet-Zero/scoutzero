@@ -1521,6 +1521,56 @@ node scripts/migrations/phase2y_backfill_optionsByYear.js --write --prod --confi
 
 ---
 
+### Phase 2AE: Upstream Emulator-Only Data Into Pipeline Artifacts (2026-02-04) ✅
+
+**Status**: ✅ EXECUTED
+
+**Documentation**:
+
+- **Return Package**: [PHASE_2AE_UPSTREAM_EMU_CHANGES_INTO_ARTIFACTS.md](../../return_packages/PHASE_2AE_UPSTREAM_EMU_CHANGES_INTO_ARTIFACTS.md)
+
+**Goal**: Ensure `optionsByYear` (players) and `entitlementIds` (teams) are present in staged JSON artifacts so a clean reseed (`rm -rf .emulator-data && npm run emu`) works without manual migrations.
+
+**Changes Made**:
+
+1. **Players (optionsByYear)**: Re-staged all ~660 players using `stage_all_players.ts`. The optionsByYear derivation logic already existed (added in Phase 2AA); artifacts were simply stale.
+   - Before: 0/267 players with options had optionsByYear
+   - After: 267/267 (100% coverage)
+
+2. **Teams (entitlementIds)**: Created new patch script `patch_baseTeams_entitlementIds.ts` to bake entitlementIds into staged baseTeams JSON.
+   - Before: 0/30 teams had entitlementIds
+   - After: 30/30 (100% coverage)
+
+**New Scripts Added**:
+
+| npm Script | Purpose |
+|------------|---------|
+| `verify:artifacts:players` | Verify players_v2 artifacts have optionsByYear |
+| `verify:artifacts:baseTeams` | Verify baseTeams artifacts have entitlementIds |
+| `stage:patch:baseTeams:entitlementIds` | Patch baseTeams artifacts (dry run) |
+| `stage:patch:baseTeams:entitlementIds:write` | Patch baseTeams artifacts (apply) |
+
+**Pipeline-Backed Status**:
+
+| Field | Now Pipeline-Backed | Location |
+|-------|---------------------|----------|
+| `currentContractView.optionsByYear` | ✅ YES | `players_v2/*.json` |
+| `entitlementIds` | ✅ YES | `baseTeams/*.json` |
+
+**Verification on Fresh Reseed**:
+
+```bash
+# Verify artifacts
+npm run verify:artifacts:players   # PASS: 267/267
+npm run verify:artifacts:baseTeams # PASS: 30/30
+
+# Clean reseed
+rm -rf .emulator-data && npm run emu
+# -> Both fields now present without migrations
+```
+
+---
+
 ### Phase 2: UX & Navigation Enhancement
 
 **Goal**: Connect the Table to the wider app.

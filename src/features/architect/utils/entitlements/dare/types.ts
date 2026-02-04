@@ -148,6 +148,12 @@ export interface EntitlementResolution {
   cycleNodes?: string[];
   cycleEntitlementIds?: string[];
 
+  /** For conflict resolution (Phase 17.5) */
+  conflictWinnerEntitlementId?: string;
+
+  /** For ranked conveyance (Phase 17.5) - which pick was selected from pool */
+  selectedPickId?: string;
+
   /** Audit trail */
   reason: string;
   resolvedAt: string;

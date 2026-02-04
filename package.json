@@ -70,6 +70,10 @@
     "emu:reseed:baseTeams": "npx tsx scripts/emu/reseedBaseTeams.ts",
     "emu:repair:teams": "npx tsx scripts/emu/repairTeams.ts",
     "emu:doctor": "npx tsx scripts/emu/doctor.ts",
+    "verify:artifacts:players": "npx tsx scripts/emu/verifyArtifactsPlayersV2.ts",
+    "verify:artifacts:baseTeams": "npx tsx scripts/emu/verifyArtifactsBaseTeams.ts",
+    "stage:patch:baseTeams:entitlementIds": "npx tsx team-scrape/shared/firestore_staging/scripts/patch_baseTeams_entitlementIds.ts",
+    "stage:patch:baseTeams:entitlementIds:write": "npx tsx team-scrape/shared/firestore_staging/scripts/patch_baseTeams_entitlementIds.ts --write",
     "pst:fetch": "npx tsx team-scrape/draft-picks/scripts/pst/pst_fetch_pages.ts",
     "pst:fetch:headed": "npx tsx team-scrape/draft-picks/scripts/pst/pst_fetch_pages.ts --headed",
     "pst:manual:urls": "npx tsx team-scrape/draft-picks/scripts/pst/pst_manual_fetch_helper.ts --urls",
@@ -112,7 +116,9 @@
     "pst:guard:entitlements:sanity": "npx tsx team-scrape/draft-picks/scripts/pst/pst_audit_all_teams_entitlements_sanity.ts",
     "pst:trace:hou:2026:r2": "npx tsx team-scrape/draft-picks/scripts/pst/pst_trace_owner_overlay_anomalies.ts",
     "ci:phase69-proof": "node scripts/ci/run_phase69_tpe_migration_proof.js",
-    "ci:phase80-cap-proof": "node scripts/ci/run_phase80_cap_sheet_e2e_proof.js"
+    "ci:phase80-cap-proof": "node scripts/ci/run_phase80_cap_sheet_e2e_proof.js",
+    "ci:phaseD2-dare-gate": "node scripts/ci/run_phaseD2_true_e2e_trade_to_advance_gate.js",
+    "ci:phaseD3-dare-gate": "vitest run --config vitest.config.js src/tests/architect/dare/phaseD3_true_e2e_gate.integration.test.js"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.6",

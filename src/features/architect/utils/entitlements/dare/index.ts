@@ -46,6 +46,23 @@ export {
 } from './conveyanceResolutionAdapter';
 
 // =============================================================================
+// SWAP GRAPH (Phase 17.4.1)
+// =============================================================================
+
+export {
+  buildSwapGraph,
+  detectSwapCycles,
+  getDeterministicSwapOrder,
+} from './swapGraph';
+
+export type {
+  SwapGraphNode,
+  SwapGraphEdge,
+  SwapGraph,
+  CycleDetectionResult,
+} from './swapGraph';
+
+// =============================================================================
 // ENTITLEMENT MUTATOR
 // =============================================================================
 

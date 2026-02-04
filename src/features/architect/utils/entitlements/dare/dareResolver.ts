@@ -5,14 +5,18 @@
  *
  * HISTORY:
  *  - 2026-02-03: Created for Draft Asset Terms + Lifecycle Closure (B2/B3)
+ *  - 2026-02-04: Phase 17.4.1 - Added swap graph ordering and cycle detection
  *
  * LINKS:
  *  - Audit: docs/architect/DRAFT_ASSET_TERMS_AND_LIFECYCLE_COMPLETION_AUDIT.md
+ *  - Master: docs/team-scrape/PST_PHASE_17_ENTITLEMENT_RESOLUTION_ENGINE_MASTER.md
  *
  * RESOLUTION ORDER:
  *  1. Resolve conveyance first (protections may roll picks forward)
- *  2. Resolve swaps second (uses position data for best_of/worst_of)
- *  3. Update entitlement ownership based on outcomes
+ *  2. Build swap graph for cycle detection and ordering
+ *  3. Resolve swaps in deterministic order (non-cyclical first)
+ *  4. Mark cyclical swaps as unchanged with cycle_detected reason
+ *  5. Update entitlement ownership based on outcomes
  */
 
 import type { Firestore } from 'firebase/firestore';
@@ -33,6 +37,12 @@ import {
   buildResolutionReceipt,
   resolutionToReceiptEntry,
 } from './resolutionReceipt';
+import {
+  buildSwapGraph,
+  detectSwapCycles,
+  getDeterministicSwapOrder,
+  type CycleDetectionResult,
+} from './swapGraph';
 import type {
   DAREInput,
   DAREOutput,
@@ -41,6 +51,129 @@ import type {
   ProtectionLadder,
 } from './types';
 import type { EffectiveEntitlement } from '../entitlementResolver';
+
+// =============================================================================
+// PRIORITY + CONFLICT RESOLUTION (Phase 17.5)
+// =============================================================================
+
+/**
+ * Get priority for an entitlement kind (lower = higher priority).
+ *
+ * Priority order:
+ * 1. pick_ownership (owns the pick outright)
+ * 2. conveyance_right (conditional right to receive)
+ * 3. swap_right (right to swap, handled separately)
+ * 99. unknown (fallback)
+ */
+function getEntitlementPriority(entitlement: EffectiveEntitlement): number {
+  switch (entitlement.kind) {
+    case 'pick_ownership':
+      return 1;
+    case 'conveyance_right':
+      return 2;
+    case 'swap_right':
+      return 3;
+    default:
+      return 99;
+  }
+}
+
+/**
+ * Extract claim key from a resolution (the pick being claimed).
+ * For ranked conveyances, use selectedPickId. Otherwise, parse from entitlement.
+ */
+function getClaimKey(
+  resolution: EntitlementResolution,
+  entitlement: EffectiveEntitlement | undefined
+): string | null {
+  // Phase 17.5: Use selectedPickId if present (ranked conveyance)
+  if (resolution.selectedPickId) {
+    return resolution.selectedPickId;
+  }
+
+  // Otherwise use underlyingPickId from entitlement
+  if (entitlement?.underlyingPickId) {
+    return entitlement.underlyingPickId as string;
+  }
+
+  return null;
+}
+
+/**
+ * Detect and resolve conflicts where multiple entitlements claim the same pick.
+ *
+ * Only evaluates pick_ownership and conveyance_right (NOT swaps).
+ * Winner: lowest priority number, then alphabetical entitlement ID.
+ * Losers get: outcome='unchanged', reason='conflict_lost', conflictWinnerEntitlementId=winner.id
+ *
+ * @param resolutions - All resolutions produced so far
+ * @param entitlementsById - Map of entitlement ID to entitlement for kind/claim lookup
+ * @returns Modified resolutions array with conflicts resolved
+ */
+function resolveConflicts(
+  resolutions: EntitlementResolution[],
+  entitlementsById: Map<string, EffectiveEntitlement>
+): EntitlementResolution[] {
+  // Build claim map: claimKey -> resolutions claiming that pick
+  const claimMap = new Map<string, EntitlementResolution[]>();
+
+  for (const resolution of resolutions) {
+    // Skip unchanged resolutions - they're not actively claiming
+    if (resolution.outcome === 'unchanged') continue;
+
+    const entitlement = entitlementsById.get(resolution.entitlementId);
+    if (!entitlement) continue;
+
+    // Only evaluate pick_ownership and conveyance_right (NOT swaps)
+    if (
+      entitlement.kind !== 'pick_ownership' &&
+      entitlement.kind !== 'conveyance_right'
+    ) {
+      continue;
+    }
+
+    const claimKey = getClaimKey(resolution, entitlement);
+    if (!claimKey) continue;
+
+    if (!claimMap.has(claimKey)) {
+      claimMap.set(claimKey, []);
+    }
+    claimMap.get(claimKey)!.push(resolution);
+  }
+
+  // Process conflicts (claims with 2+ resolutions)
+  for (const [, claimResolutions] of claimMap) {
+    if (claimResolutions.length < 2) continue;
+
+    // Sort by: (1) priority ascending, (2) alphabetical entitlementId
+    claimResolutions.sort((a, b) => {
+      const entA = entitlementsById.get(a.entitlementId);
+      const entB = entitlementsById.get(b.entitlementId);
+
+      const priorityA = entA ? getEntitlementPriority(entA) : 99;
+      const priorityB = entB ? getEntitlementPriority(entB) : 99;
+
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB;
+      }
+
+      return a.entitlementId.localeCompare(b.entitlementId);
+    });
+
+    // Winner is first after sort
+    const winner = claimResolutions[0];
+
+    // Mark all others as losers
+    for (let i = 1; i < claimResolutions.length; i++) {
+      const loser = claimResolutions[i];
+      loser.outcome = 'unchanged';
+      loser.reason = 'conflict_lost';
+      loser.conflictWinnerEntitlementId = winner.entitlementId;
+    }
+  }
+
+  return resolutions;
+}
 
 // =============================================================================
 // MAIN ENTRY POINT
@@ -157,11 +290,14 @@ export async function resolveAllDraftAssets(
       }
     }
 
-    // 5. Process each team's entitlements (sorted for determinism)
+    // 5. Process CONVEYANCE first (sorted for determinism)
     // Sort teams by teamCode for consistent processing order
     const sortedTeams = [...teams].sort((a, b) =>
       a.teamCode.localeCompare(b.teamCode)
     );
+
+    // Collect all conveyance resolutions first (before conflict resolution)
+    const conveyanceResolutions: EntitlementResolution[] = [];
 
     for (const teamInput of sortedTeams) {
       const { teamCode } = teamInput;
@@ -199,51 +335,100 @@ export async function resolveAllDraftAssets(
           );
 
           if (conveyResult.outcome !== 'unchanged') {
-            allResolutions.push(conveyResult);
-
-            // Build writes for this resolution
-            const writes = buildEntitlementWritesFromResolution(
-              worldId,
-              entitlement,
-              conveyResult,
-              nowIso
-            );
-            allWrites.push(...writes);
-          }
-        }
-
-        // --- SWAP RESOLUTION (swap_right) ---
-        if (entitlement.kind === 'swap_right') {
-          const swapResult = resolveSwapForEntitlement(
-            entitlement,
-            positionsMap,
-            {
-              draftYear,
-              nowIso,
-              method,
-            }
-          );
-
-          if (swapResult.outcome !== 'unchanged') {
-            allResolutions.push(swapResult);
-
-            // Build writes for this resolution
-            const writes = buildEntitlementWritesFromResolution(
-              worldId,
-              entitlement,
-              swapResult,
-              nowIso
-            );
-            allWrites.push(...writes);
+            conveyanceResolutions.push(conveyResult);
           }
         }
       }
     }
 
-    // 6. Build team entitlement ID updates
+    // 5.5 Conflict detection pass (Phase 17.5)
+    // Resolve conflicts where multiple entitlements claim the same pick
+    resolveConflicts(conveyanceResolutions, entitlementsById);
+
+    // 5.6 Build writes for non-conflict resolutions
+    for (const resolution of conveyanceResolutions) {
+      allResolutions.push(resolution);
+
+      // Skip building writes for conflict losers (they're marked unchanged)
+      if (resolution.reason === 'conflict_lost') {
+        continue;
+      }
+
+      const entitlement = entitlementsById.get(resolution.entitlementId);
+      if (!entitlement) continue;
+
+      const writes = buildEntitlementWritesFromResolution(
+        worldId,
+        entitlement,
+        resolution,
+        nowIso
+      );
+      allWrites.push(...writes);
+    }
+
+    // 6. Build swap graph and detect cycles (Phase 17.4.1)
+    const allEntitlements = [...entitlementsById.values()];
+    const swapGraph = buildSwapGraph(allEntitlements, draftYear);
+    const cycleResult = detectSwapCycles(swapGraph);
+    const orderedSwapIds = getDeterministicSwapOrder(swapGraph, cycleResult);
+
+    // Add warnings for detected cycles
+    if (cycleResult.hasCycles) {
+      warnings.push(
+        `Swap cycle detected involving teams: ${cycleResult.cycleNodes.join(', ')}. ` +
+          `Affected entitlements (${cycleResult.cycleEntitlementIds.length}) marked as unchanged.`
+      );
+    }
+
+    // 7. Process SWAPS in deterministic order with cycle handling
+    const cyclicalEntitlementIds = new Set(cycleResult.cycleEntitlementIds);
+
+    for (const swapEntId of orderedSwapIds) {
+      const entitlement = entitlementsById.get(swapEntId);
+      if (!entitlement) continue;
+
+      // Handle cyclical swaps - mark as unchanged with cycle_detected reason
+      if (cyclicalEntitlementIds.has(swapEntId)) {
+        const cycleResolution: EntitlementResolution = {
+          entitlementId: swapEntId,
+          outcome: 'unchanged',
+          year: draftYear,
+          originalOwner: entitlement.holderTeam as string,
+          reason: 'cycle_detected',
+          resolvedAt: nowIso,
+          method,
+          cycleNodes: cycleResult.cycleNodes,
+          cycleEntitlementIds: cycleResult.cycleEntitlementIds,
+        };
+        allResolutions.push(cycleResolution);
+        continue;
+      }
+
+      // Non-cyclical swap - resolve normally
+      const swapResult = resolveSwapForEntitlement(entitlement, positionsMap, {
+        draftYear,
+        nowIso,
+        method,
+      });
+
+      if (swapResult.outcome !== 'unchanged') {
+        allResolutions.push(swapResult);
+
+        // Build writes for this resolution
+        const writes = buildEntitlementWritesFromResolution(
+          worldId,
+          entitlement,
+          swapResult,
+          nowIso
+        );
+        allWrites.push(...writes);
+      }
+    }
+
+    // 8. Build team entitlement ID updates
     const teamUpdates = buildTeamUpdatesFromResolutions(teams, allResolutions);
 
-    // 7. Build receipt
+    // 9. Build receipt
     const receipt = buildResolutionReceipt({
       draftYear,
       resolvedAt: nowIso,
