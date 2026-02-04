@@ -57,6 +57,10 @@ function parseArgs() {
     write: false,
     playerId: null,
     help: false,
+    // Phase 2AA: Project targeting guardrails
+    project: null,
+    prod: false,
+    confirmProject: null,
   };
 
   for (const arg of args) {
@@ -66,6 +70,12 @@ function parseArgs() {
       options.playerId = arg.split('=')[1];
     } else if (arg === '--help' || arg === '-h') {
       options.help = true;
+    } else if (arg.startsWith('--project=')) {
+      options.project = arg.split('=')[1];
+    } else if (arg === '--prod') {
+      options.prod = true;
+    } else if (arg.startsWith('--confirmProject=')) {
+      options.confirmProject = arg.split('=')[1];
     }
   }
 
@@ -80,9 +90,12 @@ USAGE:
   node scripts/migrations/phase2y_backfill_optionsByYear.js [options]
 
 OPTIONS:
-  --write            Actually perform writes (default: dry run)
-  --player=<id>      Target a specific player by ID
-  --help, -h         Show this help message
+  --write                   Actually perform writes (default: dry run)
+  --player=<id>             Target a specific player by ID
+  --project=<id>            Explicit project ID (overrides env vars)
+  --prod                    Confirm targeting production (required for prod writes)
+  --confirmProject=<id>     Confirm project ID for production writes
+  --help, -h                Show this help message
 
 EXAMPLES:
   # Dry run (scan all players, report what would change)
@@ -94,30 +107,64 @@ EXAMPLES:
   # Single player dry run
   node scripts/migrations/phase2y_backfill_optionsByYear.js --player=aaron_gordon
 
-  # Single player write
-  node scripts/migrations/phase2y_backfill_optionsByYear.js --player=aaron_gordon --write
+  # Target emulator explicitly (port 8082)
+  FIRESTORE_EMULATOR_HOST=127.0.0.1:8082 node scripts/migrations/phase2y_backfill_optionsByYear.js
+
+  # Production write with explicit confirmation
+  node scripts/migrations/phase2y_backfill_optionsByYear.js --write --prod --confirmProject=scoutzero-bf1ae
+
+ENVIRONMENT:
+  FIRESTORE_EMULATOR_HOST   If set, targets emulator (e.g., 127.0.0.1:8082)
+  GCLOUD_PROJECT            Project ID fallback
+  FIREBASE_PROJECT_ID       Project ID fallback
 `);
 }
 
 // ============================================================================
 // Firebase Initialization
 // ============================================================================
-function initializeFirebase() {
+// Phase 2AA: Resolved project ID (set after parseArgs)
+let resolvedProjectId = null;
+
+function initializeFirebase(options) {
   if (admin.apps.length) {
     return admin.firestore();
   }
 
   const isEmulator = !!process.env.FIRESTORE_EMULATOR_HOST;
 
-  if (isEmulator) {
-    const projectId =
-      process.env.GCLOUD_PROJECT ||
-      process.env.FIREBASE_PROJECT_ID ||
-      'scoutzero-bf1ae';
-    console.log(
-      `[INFO] Using Firestore emulator at ${process.env.FIRESTORE_EMULATOR_HOST} (project: ${projectId})`
+  // Phase 2AA: Resolve projectId with CLI flag priority
+  resolvedProjectId =
+    options.project ||
+    process.env.GCLOUD_PROJECT ||
+    process.env.GOOGLE_CLOUD_PROJECT ||
+    process.env.FIREBASE_PROJECT_ID ||
+    (isEmulator ? 'scoutzero-bf1ae' : null);
+
+  if (!resolvedProjectId && !isEmulator) {
+    console.error(
+      '[ERROR] No project ID resolved. Provide --project=<id> or set GCLOUD_PROJECT env var.'
     );
-    admin.initializeApp({ projectId });
+    process.exit(1);
+  }
+
+  // Phase 2AA: Print startup target banner
+  console.log('');
+  console.log('┌─────────────────────────────────────────────────────────────┐');
+  console.log(
+    `│ Target:  ${isEmulator ? 'EMULATOR' : 'PRODUCTION'}`.padEnd(62) + '│'
+  );
+  if (isEmulator) {
+    console.log(
+      `│ Host:    ${process.env.FIRESTORE_EMULATOR_HOST}`.padEnd(62) + '│'
+    );
+  }
+  console.log(`│ Project: ${resolvedProjectId}`.padEnd(62) + '│');
+  console.log('└─────────────────────────────────────────────────────────────┘');
+  console.log('');
+
+  if (isEmulator) {
+    admin.initializeApp({ projectId: resolvedProjectId });
   } else {
     // Production mode - use service account
     const serviceAccountPath = path.resolve(
@@ -136,7 +183,6 @@ function initializeFirebase() {
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });
-    console.log('[INFO] Using production Firestore with service account');
   }
 
   return admin.firestore();
@@ -145,18 +191,22 @@ function initializeFirebase() {
 /**
  * Check if production write is allowed
  */
-function checkProductionWriteSafety(writeMode) {
+function checkProductionWriteSafety(writeMode, options) {
   const isEmulator = !!process.env.FIRESTORE_EMULATOR_HOST;
   const allowProdWrite = process.env.ALLOW_PROD_MIGRATION_WRITE === 'true';
+  // Phase 2AA: Allow prod write with --prod --confirmProject=<matching_id>
+  const hasProdConfirmation =
+    options.prod && options.confirmProject === resolvedProjectId;
 
-  if (writeMode && !isEmulator && !allowProdWrite) {
+  if (writeMode && !isEmulator && !allowProdWrite && !hasProdConfirmation) {
     console.error(`
 [ERROR] Production write refused!
 
 You are attempting to write to PRODUCTION Firestore without explicit permission.
 To proceed, either:
-  1. Use the emulator: FIRESTORE_EMULATOR_HOST=localhost:8080
-  2. Set explicit permission: ALLOW_PROD_MIGRATION_WRITE=true
+  1. Use the emulator: FIRESTORE_EMULATOR_HOST=127.0.0.1:8082
+  2. Set env: ALLOW_PROD_MIGRATION_WRITE=true
+  3. Use flags: --prod --confirmProject=${resolvedProjectId}
 
 This safety latch prevents accidental production data modifications.
 `);
@@ -166,6 +216,12 @@ This safety latch prevents accidental production data modifications.
   if (writeMode && !isEmulator && allowProdWrite) {
     console.warn(
       '[WARN] Production write ENABLED via ALLOW_PROD_MIGRATION_WRITE=true'
+    );
+  }
+
+  if (writeMode && !isEmulator && hasProdConfirmation) {
+    console.warn(
+      '[WARN] Production write ENABLED via --prod --confirmProject flag'
     );
   }
 }
@@ -382,7 +438,7 @@ async function processPlayer(db, playerId, writeMode) {
  * Run migration for all players
  */
 async function runMigration(options) {
-  const db = initializeFirebase();
+  const db = initializeFirebase(options);
 
   console.log('');
   console.log('='.repeat(60));
@@ -577,5 +633,5 @@ if (options.help) {
   process.exit(0);
 }
 
-checkProductionWriteSafety(options.write);
+checkProductionWriteSafety(options.write, options);
 runMigration(options);

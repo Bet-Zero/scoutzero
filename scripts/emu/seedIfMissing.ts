@@ -318,6 +318,76 @@ const runScript = async (script: string) =>
     });
   });
 
+/**
+ * Phase 2AA: Run optionsByYear backfill if players need it.
+ * This ensures emulator has optionsByYear even with stale staged data.
+ */
+const runOptionsByYearBackfillIfNeeded = async (): Promise<void> => {
+  log('[seed] Phase 2AA: checking optionsByYear backfill state...');
+
+  const MIGRATION_SCRIPT = 'scripts/migrations/phase2y_backfill_optionsByYear.js';
+  const EMULATOR_ENV = {
+    ...process.env,
+    FIRESTORE_EMULATOR_HOST: '127.0.0.1:8082',
+    GCLOUD_PROJECT: 'scoutzero-bf1ae',
+    FIREBASE_PROJECT_ID: 'scoutzero-bf1ae',
+  };
+
+  // Run dry-run first
+  const dryRunResult = await new Promise<{ wouldUpdate: number; exitCode: number }>(
+    (resolve, reject) => {
+      let stdout = '';
+      const child = spawn('node', [MIGRATION_SCRIPT], {
+        stdio: ['inherit', 'pipe', 'inherit'],
+        env: EMULATOR_ENV,
+      });
+      child.stdout?.on('data', (data: Buffer) => {
+        stdout += data.toString();
+        process.stdout.write(data);
+      });
+      child.on('error', reject);
+      child.on('close', (code) => {
+        // Parse "Would update: N" from output
+        const match = stdout.match(/Would update:\s+(\d+)/);
+        const wouldUpdate = match ? parseInt(match[1], 10) : 0;
+        resolve({ wouldUpdate, exitCode: code ?? 0 });
+      });
+    }
+  );
+
+  if (dryRunResult.exitCode !== 0) {
+    throw new Error(
+      `[seed] optionsByYear dry-run failed with exit code ${dryRunResult.exitCode}`
+    );
+  }
+
+  if (dryRunResult.wouldUpdate > 0) {
+    log(
+      `[seed] optionsByYear: ${dryRunResult.wouldUpdate} players need backfill, running write mode...`
+    );
+
+    const writeResult = await new Promise<number>((resolve, reject) => {
+      const child = spawn('node', [MIGRATION_SCRIPT, '--write'], {
+        stdio: 'inherit',
+        env: EMULATOR_ENV,
+      });
+      child.on('error', reject);
+      child.on('close', (code) => resolve(code ?? 0));
+    });
+
+    if (writeResult !== 0) {
+      throw new Error(
+        `[seed] optionsByYear write failed with exit code ${writeResult}`
+      );
+    }
+
+    log('[seed] optionsByYear: backfill complete');
+  } else {
+    log('[seed] optionsByYear: all players current, skipping backfill');
+  }
+};
+
+
 const main = async () => {
   // Initialize admin and log projectId (also validates FIRESTORE_EMULATOR_HOST)
   const { projectId } = initAdminEmu();
@@ -435,6 +505,10 @@ const main = async () => {
     log('[seed] seeding players_v2 from staged data...');
     await runScript('emu:seed:players-v2');
   }
+
+  // Phase 2AA: Run optionsByYear backfill safety net
+  // This ensures optionsByYear is present even with stale staged data
+  await runOptionsByYearBackfillIfNeeded();
 
   const finalState = await checkSeedState();
   if (

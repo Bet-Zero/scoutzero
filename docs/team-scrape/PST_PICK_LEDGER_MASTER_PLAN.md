@@ -57,6 +57,40 @@
 | Phase 16.1   | SeasonManager Entitlement SSOT View (Execution) | COMPLETE    | 2026-02-01 |
 | Phase 16.2   | Emulator BaseTeams Integrity Guardrail          | COMPLETE    | 2026-02-01 |
 | Phase 16.3   | Trade Machine Blank Fix (ensurePickId Crash)    | COMPLETE    | 2026-02-03 |
+| Phase 17     | Entitlement Resolution Engine (Preflight)       | IN_PROGRESS | 2026-02-03 |
+
+---
+
+## Phase 17 — Entitlement Resolution Engine (IN_PROGRESS)
+
+**Goal**: Implement full entitlement resolution semantics for protections, swaps, conveyance conditions, and multi-year ladders.
+
+**Overview**:
+
+- **Protections**: top-N, lottery, multi-year ladders
+- **Conveyance**: conditional transfer, roll-forward, conversion to 2RP
+- **Swaps**: best-of/worst-of 2-team, pool-based swaps (3+ teams)
+- **Ranked Conveyance**: priority ordering when multiple obligations exist
+
+**Phase Breakdown**:
+
+- **17.1**: Protections + Simple Conveyance
+- **17.2**: Best-of/Worst-of 2-Team Swap
+- **17.3**: Multi-Year Ladders + Conversion
+- **17.4**: Multi-Team Pools + Chained Swaps
+- **17.5**: Ranked Conveyance + Priority
+
+**Master Doc**: [PST_PHASE_17_ENTITLEMENT_RESOLUTION_ENGINE_MASTER.md](./PST_PHASE_17_ENTITLEMENT_RESOLUTION_ENGINE_MASTER.md)
+
+**Return Package**: [PST_PHASE_17_ENTITLEMENT_RESOLUTION_ENGINE_PREFLIGHT_RETURN_PACKAGE.md](../return_packages/PST_PHASE_17_ENTITLEMENT_RESOLUTION_ENGINE_PREFLIGHT_RETURN_PACKAGE.md)
+
+**Key Findings (Preflight)**:
+
+- DARE subsystem already exists with partial implementations
+- Protection ladder factory complete (`buildProtectionLadder`)
+- 2-team swap resolution complete
+- Multi-team pools and ranked conveyance not yet implemented
+- No blocking issues found - all schema fields present
 
 ---
 

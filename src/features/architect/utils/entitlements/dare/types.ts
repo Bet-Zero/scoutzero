@@ -139,6 +139,15 @@ export interface EntitlementResolution {
   swapPosition?: number;
   swapLoser?: string;
 
+  /** For pool swaps (Phase 17.4) */
+  loserTeams?: string[];
+  positionsCompared?: Record<string, number>;
+  poolCandidates?: string[];
+
+  /** For cycle detection (Phase 17.4) */
+  cycleNodes?: string[];
+  cycleEntitlementIds?: string[];
+
   /** Audit trail */
   reason: string;
   resolvedAt: string;

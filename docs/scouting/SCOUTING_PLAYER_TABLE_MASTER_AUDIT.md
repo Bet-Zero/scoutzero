@@ -1417,6 +1417,110 @@ All year-keyed data uses **seasonStartYear** convention:
 
 ---
 
+### Phase 2AA: OptionsByYear Persistence & Data Flow (2026-02-03) ✅
+
+**Status**: ✅ COMPLETE
+
+**Goal**: Make `players_v2.currentContractView.optionsByYear` reliably present for emulator and production.
+
+**Changes Made**:
+
+| Component                           | Implementation                                                          |
+| ----------------------------------- | ----------------------------------------------------------------------- |
+| `stage_player.ts`                   | Added `optionsByYear` derivation from `seasonMap` (SSOT for staging)    |
+| `seedIfMissing.ts`                  | Added post-seed backfill via `runOptionsByYearBackfillIfNeeded()`       |
+| `phase2y_backfill_optionsByYear.js` | Added `--project`, `--prod --confirmProject`, startup banner, port 8082 |
+
+**How to verify**:
+
+```bash
+# Fresh emulator run
+npm run emu  # optionsByYear auto-present
+
+# UI verification
+# Visit /players?debugFilters=1 → optionsByYear count > 0
+
+# Migration script banner
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8082 node scripts/migrations/phase2y_backfill_optionsByYear.js
+# Shows: Target: EMULATOR | Host: 127.0.0.1:8082 | Project: scoutzero-bf1ae
+```
+
+**Production backfill (if needed)**:
+
+```bash
+node scripts/migrations/phase2y_backfill_optionsByYear.js --write --prod --confirmProject=scoutzero-bf1ae
+```
+
+**Return Packages**:
+
+- [PHASE_2AA_EXECUTION.md](../../return_packages/PHASE_2AA_EXECUTION.md)
+- [PHASE_2AA_VALIDATION.md](../../return_packages/PHASE_2AA_VALIDATION.md)
+
+---
+
+### Phase 2AB: Pipeline Catchup Inventory (2026-02-04) ✅
+
+**Status**: ✅ PREFLIGHT COMPLETE — READY FOR EXECUTION
+
+**Documentation**:
+
+- **Return Package**: [PHASE_2AB_PREFLIGHT_PIPELINE_CATCHUP.md](../../return_packages/PHASE_2AB_PREFLIGHT_PIPELINE_CATCHUP.md)
+- **Checklist**: [PIPELINE_CATCHUP_CHECKLIST.md](./PIPELINE_CATCHUP_CHECKLIST.md)
+
+**Key Findings**:
+
+- Mapped the full players_v2 pipeline chain (writer → artifacts → emulator seed → prod push) with file-path evidence.
+- Cataloged data-changing scripts across emulator + prod, and separated pipeline-capable changes from emulator-only edits.
+- Identified wrong-project write risks (`demo-scoutzero`) and recommended minimal guardrails.
+
+---
+
+### Phase 2AC: Emulator Persistence SSOT (2026-02-04) ✅
+
+**Status**: ✅ PREFLIGHT COMPLETE
+
+**Documentation**:
+
+- **Return Package**: [PHASE_2AC_EMU_PERSISTENCE_SSOT.md](../../return_packages/PHASE_2AC_EMU_PERSISTENCE_SSOT.md)
+
+**Key Findings**:
+
+- **DATA_DIR SSOT**: `/Users/brenthibbitts/Desktop/ScoutZero/.emulator-data` (hardcoded in `scripts/emu/runEmu.ts`)
+- The 31 `firebase-export-*` folders at project root are **orphaned/unused** — no script references them.
+- Emulator persistence uses `--import` and `--export-on-exit` flags pointing to `.emulator-data`.
+- **General rule**: If a change is only written to emulator (not upstreamed to staging or prod migration), it won't appear in production Firestore.
+
+**Emulator Data Flow**:
+
+| Change Type                       | Persists in Emulator | Reaches Production    |
+| --------------------------------- | -------------------- | --------------------- |
+| Seeded base data (JSON artifacts) | ✅                   | ✅ (via push scripts) |
+| Manual emulator edits             | ✅                   | ❌                    |
+| Migration script (emu mode)       | ✅                   | ❌ (until `--prod`)   |
+
+**Recommendations**:
+
+1. Delete orphaned folders: `rm -rf firebase-export-*`
+2. Add `firebase-export-*` to `.gitignore` to prevent future orphans
+
+---
+
+### Phase 2AD: Emu vs Pipeline Diff Inventory (2026-02-04) ✅
+
+**Status**: ✅ PREFLIGHT COMPLETE
+
+**Documentation**:
+
+- **Return Package**: [PHASE_2AD_EMU_VS_PIPELINE_DIFF.md](../../return_packages/PHASE_2AD_EMU_VS_PIPELINE_DIFF.md)
+
+**Key Findings**:
+
+- Emulator contains `optionsByYear` and baseTeams `entitlementIds`, but staged artifacts currently do **not**.
+- PST source artifacts for entitlements and pick rules exist under `data/pst/` (pipeline-capable).
+- Items missing from staged artifacts will not survive a clean reseed until re-staged or migrated.
+
+---
+
 ### Phase 2: UX & Navigation Enhancement
 
 **Goal**: Connect the Table to the wider app.

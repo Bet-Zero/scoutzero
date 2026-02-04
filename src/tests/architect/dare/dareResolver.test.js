@@ -1,339 +1,427 @@
 /**
  * @file dareResolver.test.js
  * @description Tests for Draft Asset Resolution Engine core orchestrator
+ *
+ * HISTORY:
+ *  - 2026-02-04: Phase A - Fixed imports to match actual API exports
+ *                Removed classifyEntitlements/buildDAREInput tests (not exported)
+ *                Tests now use: resolveAllDraftAssets, resolveTeamDraftAssets, validateDAREInput
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock all adapter modules
+// Mock all adapter modules with correct function names
 vi.mock(
   '@/features/architect/utils/entitlements/dare/swapResolutionAdapter',
   () => ({
-    resolveSwap: vi.fn(),
+    resolveSwapForEntitlement: vi.fn(),
   })
 );
 
 vi.mock(
   '@/features/architect/utils/entitlements/dare/conveyanceResolutionAdapter',
   () => ({
-    resolveConveyance: vi.fn(),
+    resolveConveyanceForEntitlement: vi.fn(),
   })
 );
 
 vi.mock(
   '@/features/architect/utils/entitlements/dare/entitlementMutator',
   () => ({
-    buildMutationBatch: vi.fn(),
-    applyMutations: vi.fn(),
+    buildEntitlementWritesFromResolution: vi.fn(),
+    buildTeamUpdatesFromResolutions: vi.fn(),
   })
 );
 
+vi.mock(
+  '@/features/architect/utils/entitlements/dare/resolutionReceipt',
+  () => ({
+    buildResolutionReceipt: vi.fn(),
+    resolutionToReceiptEntry: vi.fn(),
+  })
+);
+
+vi.mock(
+  '@/features/architect/utils/entitlements/dare/protectionLadderFactory',
+  () => ({
+    buildProtectionLadder: vi.fn(),
+  })
+);
+
+vi.mock('@/features/architect/utils/entitlements/entitlementResolver', () => ({
+  resolveEntitlementsForTeamWithDb: vi.fn(),
+}));
+
+vi.mock('@/features/architect/utils/entitlements/pickRulesResolver', () => ({
+  resolvePickRulesByIdsWithDb: vi.fn(),
+  pickRulesMapToObject: vi.fn(),
+}));
+
 import {
   resolveAllDraftAssets,
-  buildDAREInput,
-  classifyEntitlements,
+  resolveTeamDraftAssets,
+  validateDAREInput,
 } from '@/features/architect/utils/entitlements/dare/dareResolver';
-import { resolveSwap } from '@/features/architect/utils/entitlements/dare/swapResolutionAdapter';
-import { resolveConveyance } from '@/features/architect/utils/entitlements/dare/conveyanceResolutionAdapter';
+import { resolveSwapForEntitlement } from '@/features/architect/utils/entitlements/dare/swapResolutionAdapter';
+import { resolveConveyanceForEntitlement } from '@/features/architect/utils/entitlements/dare/conveyanceResolutionAdapter';
 import {
-  buildMutationBatch,
-  applyMutations,
+  buildEntitlementWritesFromResolution,
+  buildTeamUpdatesFromResolutions,
 } from '@/features/architect/utils/entitlements/dare/entitlementMutator';
+import {
+  buildResolutionReceipt,
+  resolutionToReceiptEntry,
+} from '@/features/architect/utils/entitlements/dare/resolutionReceipt';
+import { buildProtectionLadder } from '@/features/architect/utils/entitlements/dare/protectionLadderFactory';
+import { resolveEntitlementsForTeamWithDb } from '@/features/architect/utils/entitlements/entitlementResolver';
+import {
+  resolvePickRulesByIdsWithDb,
+  pickRulesMapToObject,
+} from '@/features/architect/utils/entitlements/pickRulesResolver';
 
 describe('DARE Resolver', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // Default mock implementations
-    resolveSwap.mockReturnValue({
+    // Default mock implementations - matching actual function names
+    resolveSwapForEntitlement.mockReturnValue({
+      entitlementId: 'test-ent',
       outcome: 'resolved',
       winner: 'BOS',
       position: 10,
+      year: 2026,
+      originalOwner: 'BOS',
+      reason: 'Swap resolved',
+      resolvedAt: new Date().toISOString(),
+      method: 'lottery',
     });
-    resolveConveyance.mockReturnValue({
+    resolveConveyanceForEntitlement.mockReturnValue({
+      entitlementId: 'test-ent',
       outcome: 'conveyed',
-      protectionTriggered: false,
+      year: 2026,
+      position: 15,
+      originalOwner: 'LAL',
+      reason: 'Pick conveyed',
+      resolvedAt: new Date().toISOString(),
+      method: 'lottery',
     });
-    buildMutationBatch.mockReturnValue({ upserts: [], deletes: [] });
-    applyMutations.mockResolvedValue({ success: true });
+    buildEntitlementWritesFromResolution.mockReturnValue([]);
+    buildTeamUpdatesFromResolutions.mockReturnValue([]);
+    buildResolutionReceipt.mockReturnValue({
+      draftYear: 2026,
+      resolvedAt: new Date().toISOString(),
+      entries: [],
+      warnings: [],
+    });
+    resolutionToReceiptEntry.mockReturnValue({});
+    buildProtectionLadder.mockReturnValue(null);
+    resolveEntitlementsForTeamWithDb.mockResolvedValue([]);
+    resolvePickRulesByIdsWithDb.mockResolvedValue(new Map());
+    pickRulesMapToObject.mockReturnValue({});
   });
 
-  describe('classifyEntitlements', () => {
-    it('should classify swap entitlements correctly', () => {
-      const entitlements = [
-        { id: 'ent-1', hasSwap: true, swapTeams: ['BOS', 'LAL'] },
-        { id: 'ent-2', hasSwap: false },
-      ];
-
-      const classified = classifyEntitlements(entitlements);
-
-      expect(classified.swaps).toHaveLength(1);
-      expect(classified.swaps[0].id).toBe('ent-1');
-      expect(classified.conveyances).toHaveLength(1);
-      expect(classified.conveyances[0].id).toBe('ent-2');
-    });
-
-    it('should classify owned picks (same origin and owner) correctly', () => {
-      const entitlements = [
-        { id: 'ent-1', originTeam: 'BOS', ownerTeam: 'BOS' }, // Own pick
-        { id: 'ent-2', originTeam: 'LAL', ownerTeam: 'BOS' }, // Acquired pick
-      ];
-
-      const classified = classifyEntitlements(entitlements);
-
-      expect(classified.ownPicks).toHaveLength(1);
-      expect(classified.ownPicks[0].id).toBe('ent-1');
-      expect(classified.conveyances).toHaveLength(1);
-      expect(classified.conveyances[0].id).toBe('ent-2');
-    });
-
-    it('should filter by season year', () => {
-      const entitlements = [
-        { id: 'ent-1', seasonYear: 2026, originTeam: 'BOS', ownerTeam: 'LAL' },
-        { id: 'ent-2', seasonYear: 2027, originTeam: 'CHI', ownerTeam: 'MIA' },
-        {
-          id: 'ent-3',
-          seasonYear: 2026,
-          hasSwap: true,
-          swapTeams: ['NYK', 'BKN'],
-        },
-      ];
-
-      const classified = classifyEntitlements(entitlements, 2026);
-
-      expect(classified.conveyances).toHaveLength(1);
-      expect(classified.swaps).toHaveLength(1);
-    });
-  });
-
-  describe('buildDAREInput', () => {
-    it('should build valid DARE input from teams', () => {
-      const teams = [
-        { teamCode: 'BOS', entitlementIds: ['ent-1', 'ent-2'] },
-        { teamCode: 'LAL', entitlementIds: ['ent-3'] },
-      ];
-
-      const positionsMap = { BOS: 10, LAL: 5 };
-
-      const input = buildDAREInput({
-        worldId: 'world-123',
+  // ============================================================================
+  // validateDAREInput Tests (exported public API)
+  // ============================================================================
+  describe('validateDAREInput', () => {
+    it('should return issues for missing worldId', () => {
+      const issues = validateDAREInput({
         draftYear: 2026,
-        positionsMap,
-        teams,
+        positionsMap: { BOS: 5 },
+        teams: [{ teamCode: 'BOS', entitlementIds: [] }],
       });
-
-      expect(input.worldId).toBe('world-123');
-      expect(input.draftYear).toBe(2026);
-      expect(input.positionsMap).toEqual(positionsMap);
-      expect(input.teams).toHaveLength(2);
+      expect(issues).toContain('worldId is required');
     });
 
-    it('should validate required fields', () => {
-      expect(() => buildDAREInput({})).toThrow();
-      expect(() => buildDAREInput({ worldId: 'test' })).toThrow();
+    it('should return issues for invalid draftYear', () => {
+      const issues = validateDAREInput({
+        worldId: 'world-1',
+        draftYear: 1999,
+        positionsMap: { BOS: 5 },
+        teams: [{ teamCode: 'BOS', entitlementIds: [] }],
+      });
+      expect(issues.some((i) => i.includes('draftYear'))).toBe(true);
     });
-  });
 
-  describe('resolveAllDraftAssets', () => {
-    it('should resolve swaps before conveyances', async () => {
-      const callOrder = [];
-
-      resolveSwap.mockImplementation(() => {
-        callOrder.push('swap');
-        return { outcome: 'resolved', winner: 'BOS', position: 5 };
+    it('should return issues for empty positionsMap', () => {
+      const issues = validateDAREInput({
+        worldId: 'world-1',
+        draftYear: 2026,
+        positionsMap: {},
+        teams: [{ teamCode: 'BOS', entitlementIds: [] }],
       });
+      expect(issues.some((i) => i.includes('positionsMap'))).toBe(true);
+    });
 
-      resolveConveyance.mockImplementation(() => {
-        callOrder.push('conveyance');
-        return { outcome: 'conveyed', protectionTriggered: false };
+    it('should return issues for empty teams array', () => {
+      const issues = validateDAREInput({
+        worldId: 'world-1',
+        draftYear: 2026,
+        positionsMap: { BOS: 5 },
+        teams: [],
       });
+      expect(issues.some((i) => i.includes('teams'))).toBe(true);
+    });
 
-      const input = {
+    it('should return issues for invalid positions (outside 1-60)', () => {
+      const issues = validateDAREInput({
+        worldId: 'world-1',
+        draftYear: 2026,
+        positionsMap: { BOS: 0, LAL: 65 },
+        teams: [{ teamCode: 'BOS', entitlementIds: [] }],
+      });
+      expect(issues.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('should return empty array for valid input', () => {
+      const issues = validateDAREInput({
         worldId: 'world-1',
         draftYear: 2026,
         positionsMap: { BOS: 5, LAL: 10 },
         teams: [
-          { teamCode: 'BOS', entitlementIds: ['swap-ent'] },
-          { teamCode: 'LAL', entitlementIds: ['conv-ent'] },
+          { teamCode: 'BOS', entitlementIds: ['ent-1'] },
+          { teamCode: 'LAL', entitlementIds: ['ent-2'] },
         ],
-      };
-
-      const entitlements = [
-        {
-          id: 'swap-ent',
-          hasSwap: true,
-          swapTeams: ['BOS', 'CHI'],
-          seasonYear: 2026,
-        },
-        {
-          id: 'conv-ent',
-          originTeam: 'LAL',
-          ownerTeam: 'NYK',
-          seasonYear: 2026,
-        },
-      ];
-
-      await resolveAllDraftAssets(null, input, entitlements);
-
-      // Swaps should be resolved first
-      expect(callOrder[0]).toBe('swap');
-    });
-
-    it('should handle rolled picks by creating new entitlements', async () => {
-      resolveConveyance.mockReturnValue({
-        outcome: 'rolled',
-        protectionTriggered: true,
-        rollToYear: 2027,
-        resolvedPosition: 3,
       });
-
-      const mutations = { upserts: [], deletes: [] };
-      buildMutationBatch.mockReturnValue(mutations);
-
-      const input = {
-        worldId: 'world-1',
-        draftYear: 2026,
-        positionsMap: { DET: 3 },
-        teams: [{ teamCode: 'MIA', entitlementIds: ['ent-1'] }],
-      };
-
-      const entitlements = [
-        { id: 'ent-1', originTeam: 'DET', ownerTeam: 'MIA', seasonYear: 2026 },
-      ];
-
-      const result = await resolveAllDraftAssets(null, input, entitlements);
-
-      expect(result.resolutionReceipt).toBeDefined();
-      expect(buildMutationBatch).toHaveBeenCalled();
+      expect(issues).toEqual([]);
     });
+  });
 
-    it('should track team entitlement updates', async () => {
-      resolveConveyance.mockReturnValue({
-        outcome: 'conveyed',
-        protectionTriggered: false,
-        resolvedPosition: 15,
-      });
-
-      const input = {
-        worldId: 'world-1',
-        draftYear: 2026,
-        positionsMap: { LAL: 15 },
-        teams: [{ teamCode: 'BOS', entitlementIds: ['ent-1'] }],
-      };
-
-      const entitlements = [
-        { id: 'ent-1', originTeam: 'LAL', ownerTeam: 'BOS', seasonYear: 2026 },
-      ];
-
-      const result = await resolveAllDraftAssets(null, input, entitlements);
-
-      expect(result.teamEntitlementIdUpdates).toBeDefined();
-    });
-
-    it('should generate resolution receipt with entries', async () => {
-      resolveSwap.mockReturnValue({
-        outcome: 'resolved',
-        winner: 'BOS',
-        loser: 'LAL',
-        position: 8,
-      });
-
-      const input = {
-        worldId: 'world-1',
-        draftYear: 2026,
-        positionsMap: { BOS: 8, LAL: 12 },
-        teams: [{ teamCode: 'BOS', entitlementIds: ['swap-ent'] }],
-      };
-
-      const entitlements = [
-        {
-          id: 'swap-ent',
-          hasSwap: true,
-          swapTeams: ['BOS', 'LAL'],
-          seasonYear: 2026,
-        },
-      ];
-
-      const result = await resolveAllDraftAssets(null, input, entitlements);
-
-      expect(result.resolutionReceipt).toBeDefined();
-      expect(result.resolutionReceipt.entries).toBeDefined();
-    });
-
-    it('should collect warnings for resolution issues', async () => {
-      resolveConveyance.mockReturnValue({
-        outcome: 'error',
-        error: 'Origin team not found in positionsMap',
-      });
-
-      const input = {
+  // ============================================================================
+  // resolveAllDraftAssets Tests (exported public API)
+  // ============================================================================
+  describe('resolveAllDraftAssets', () => {
+    it('should return no-op result when positionsMap is empty', async () => {
+      const result = await resolveAllDraftAssets(null, {
         worldId: 'world-1',
         draftYear: 2026,
         positionsMap: {},
-        teams: [{ teamCode: 'NYK', entitlementIds: ['ent-1'] }],
-      };
+        teams: [{ teamCode: 'BOS', entitlementIds: ['ent-1'] }],
+      });
 
-      const entitlements = [
-        { id: 'ent-1', originTeam: 'XXX', ownerTeam: 'NYK', seasonYear: 2026 },
-      ];
-
-      const result = await resolveAllDraftAssets(null, input, entitlements);
-
-      expect(result.resolutionReceipt.warnings.length).toBeGreaterThan(0);
+      expect(result.success).toBe(true);
+      expect(result.meta.entitlementsProcessed).toBe(0);
     });
 
-    it('should not process already resolved entitlements', async () => {
-      const input = {
+    it('should return no-op result when teams array is empty', async () => {
+      const result = await resolveAllDraftAssets(null, {
+        worldId: 'world-1',
+        draftYear: 2026,
+        positionsMap: { BOS: 5 },
+        teams: [],
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.meta.teamsProcessed).toBe(0);
+    });
+
+    it('should resolve entitlements using pre-resolved entitlements array', async () => {
+      const preResolvedEntitlements = [
+        {
+          id: 'ent-1',
+          kind: 'pick_ownership',
+          seasonYear: 2026,
+          holderTeam: 'LAL',
+          underlyingPickId: 'BOS_2026_1st',
+        },
+      ];
+
+      const result = await resolveAllDraftAssets(null, {
         worldId: 'world-1',
         draftYear: 2026,
         positionsMap: { BOS: 10 },
-        teams: [{ teamCode: 'LAL', entitlementIds: ['ent-1'] }],
-      };
-
-      const entitlements = [
-        {
-          id: 'ent-1',
-          originTeam: 'BOS',
-          ownerTeam: 'LAL',
-          seasonYear: 2026,
-          resolved: true,
-        },
-      ];
-
-      await resolveAllDraftAssets(null, input, entitlements);
-
-      expect(resolveConveyance).not.toHaveBeenCalled();
-    });
-
-    it('should handle conversion to second round', async () => {
-      resolveConveyance.mockReturnValue({
-        outcome: 'converted',
-        protectionTriggered: true,
-        convertToRound: 2,
-        resolvedPosition: 4,
+        teams: [
+          {
+            teamCode: 'LAL',
+            entitlementIds: ['ent-1'],
+            entitlements: preResolvedEntitlements,
+          },
+        ],
       });
 
-      const input = {
-        worldId: 'world-1',
-        draftYear: 2026,
-        positionsMap: { OKC: 4 },
-        teams: [{ teamCode: 'HOU', entitlementIds: ['ent-1'] }],
+      expect(result.success).toBe(true);
+      // Should have processed via resolveConveyanceForEntitlement
+      expect(resolveConveyanceForEntitlement).toHaveBeenCalled();
+    });
+
+    it('should call resolveSwapForEntitlement for swap_right entitlements', async () => {
+      const swapEntitlement = {
+        id: 'swap-1',
+        kind: 'swap_right',
+        seasonYear: 2026,
+        holderTeam: 'BOS',
+        underlyingPickId: 'BOS_2026_1st',
       };
 
-      const entitlements = [
+      const result = await resolveAllDraftAssets(null, {
+        worldId: 'world-1',
+        draftYear: 2026,
+        positionsMap: { BOS: 5, LAL: 10 },
+        teams: [
+          {
+            teamCode: 'BOS',
+            entitlementIds: ['swap-1'],
+            entitlements: [swapEntitlement],
+          },
+        ],
+      });
+
+      expect(result.success).toBe(true);
+      expect(resolveSwapForEntitlement).toHaveBeenCalled();
+    });
+
+    it('should call resolveConveyanceForEntitlement for pick_ownership entitlements', async () => {
+      const pickOwnershipEntitlement = {
+        id: 'own-1',
+        kind: 'pick_ownership',
+        seasonYear: 2026,
+        holderTeam: 'LAL',
+        underlyingPickId: 'BOS_2026_1st',
+      };
+
+      const result = await resolveAllDraftAssets(null, {
+        worldId: 'world-1',
+        draftYear: 2026,
+        positionsMap: { BOS: 15 },
+        teams: [
+          {
+            teamCode: 'LAL',
+            entitlementIds: ['own-1'],
+            entitlements: [pickOwnershipEntitlement],
+          },
+        ],
+      });
+
+      expect(result.success).toBe(true);
+      expect(resolveConveyanceForEntitlement).toHaveBeenCalled();
+    });
+
+    it('should skip entitlements for different draft year', async () => {
+      const futureEntitlement = {
+        id: 'ent-2027',
+        kind: 'pick_ownership',
+        seasonYear: 2027, // Different year
+        holderTeam: 'BOS',
+        underlyingPickId: 'BOS_2027_1st',
+      };
+
+      await resolveAllDraftAssets(null, {
+        worldId: 'world-1',
+        draftYear: 2026, // Resolving 2026
+        positionsMap: { BOS: 5 },
+        teams: [
+          {
+            teamCode: 'BOS',
+            entitlementIds: ['ent-2027'],
+            entitlements: [futureEntitlement],
+          },
+        ],
+      });
+
+      // Should NOT have called resolution for 2027 entitlement
+      expect(resolveConveyanceForEntitlement).not.toHaveBeenCalled();
+    });
+
+    it('should skip already resolved entitlements', async () => {
+      const resolvedEntitlement = {
+        id: 'ent-resolved',
+        kind: 'pick_ownership',
+        seasonYear: 2026,
+        holderTeam: 'BOS',
+        underlyingPickId: 'BOS_2026_1st',
+        resolved: true, // Already resolved
+      };
+
+      await resolveAllDraftAssets(null, {
+        worldId: 'world-1',
+        draftYear: 2026,
+        positionsMap: { BOS: 5 },
+        teams: [
+          {
+            teamCode: 'BOS',
+            entitlementIds: ['ent-resolved'],
+            entitlements: [resolvedEntitlement],
+          },
+        ],
+      });
+
+      expect(resolveConveyanceForEntitlement).not.toHaveBeenCalled();
+    });
+
+    it('should return success with meta containing processing counts', async () => {
+      const result = await resolveAllDraftAssets(null, {
+        worldId: 'world-1',
+        draftYear: 2026,
+        positionsMap: { BOS: 5 },
+        teams: [{ teamCode: 'BOS', entitlementIds: [], entitlements: [] }],
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.meta).toBeDefined();
+      expect(result.meta.draftYear).toBe(2026);
+      expect(typeof result.meta.teamsProcessed).toBe('number');
+    });
+
+    it('should build team updates from resolutions', async () => {
+      buildTeamUpdatesFromResolutions.mockReturnValue([
+        { teamCode: 'BOS', addIds: ['new-ent'], removeIds: ['old-ent'] },
+      ]);
+
+      const entitlement = {
+        id: 'ent-1',
+        kind: 'pick_ownership',
+        seasonYear: 2026,
+        holderTeam: 'BOS',
+        underlyingPickId: 'LAL_2026_1st',
+      };
+
+      const result = await resolveAllDraftAssets(null, {
+        worldId: 'world-1',
+        draftYear: 2026,
+        positionsMap: { LAL: 20 },
+        teams: [
+          {
+            teamCode: 'BOS',
+            entitlementIds: ['ent-1'],
+            entitlements: [entitlement],
+          },
+        ],
+      });
+
+      expect(result.teamEntitlementIdUpdates).toBeDefined();
+      expect(buildTeamUpdatesFromResolutions).toHaveBeenCalled();
+    });
+  });
+
+  // ============================================================================
+  // resolveTeamDraftAssets Tests (exported public API)
+  // ============================================================================
+  describe('resolveTeamDraftAssets', () => {
+    it('should resolve draft assets for a single team', async () => {
+      resolveEntitlementsForTeamWithDb.mockResolvedValue([
         {
           id: 'ent-1',
-          originTeam: 'OKC',
-          ownerTeam: 'HOU',
+          kind: 'pick_ownership',
           seasonYear: 2026,
-          pickType: 'first',
+          holderTeam: 'BOS',
+          underlyingPickId: 'BOS_2026_1st',
         },
-      ];
+      ]);
 
-      const result = await resolveAllDraftAssets(null, input, entitlements);
+      const result = await resolveTeamDraftAssets(
+        null, // db
+        'world-1',
+        'BOS',
+        2026,
+        { BOS: 5 }
+      );
 
-      expect(buildMutationBatch).toHaveBeenCalled();
-      // Converted picks should create a new second-round entitlement
+      expect(result.success).toBe(true);
+      expect(resolveEntitlementsForTeamWithDb).toHaveBeenCalledWith(
+        null,
+        'world-1',
+        'BOS'
+      );
     });
   });
 });

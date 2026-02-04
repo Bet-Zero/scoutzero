@@ -699,6 +699,19 @@ function buildPlayersV2Payload(
     }
   }
 
+  // Phase 2AA: Build optionsByYear map from seasonMap (year-keyed SSOT for Option Types filter)
+  // Keys are seasonStartYear as STRING (e.g., "2025"), values are "PO" | "TO" | "ETO"
+  const optionsByYear: Record<string, string> = {};
+  for (const [seasonCode, entry] of seasonMap.entries()) {
+    if (
+      entry.optionType &&
+      ['PO', 'TO', 'ETO'].includes(entry.optionType)
+    ) {
+      const yearKey = String(getSeasonStartYear(seasonCode));
+      optionsByYear[yearKey] = entry.optionType;
+    }
+  }
+
   const currentContractView = {
     freeAgentYear,
     freeAgentType,
@@ -707,6 +720,9 @@ function buildPlayersV2Payload(
       finalContract?.contractType ??
       undefined,
     options: options.length > 0 ? options : undefined,
+    // Phase 2AA: Include optionsByYear for Option Types filter SSOT
+    optionsByYear:
+      Object.keys(optionsByYear).length > 0 ? optionsByYear : undefined,
     birdRights,
     salaryByYear:
       Object.keys(salaryByYear).length > 0 ? salaryByYear : undefined,

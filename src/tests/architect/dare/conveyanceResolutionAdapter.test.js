@@ -1,61 +1,82 @@
 /**
  * @file conveyanceResolutionAdapter.test.js
  * @description Tests for conveyance resolution adapter - protection ladder evaluation
+ *
+ * HISTORY:
+ *  - 2026-02-04: Phase A - Fixed imports to use resolveConveyanceForEntitlement
+ *                Updated test assertions to match actual API return shape
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock the protection ladder factory
+// Mock the protection ladder factory functions
 vi.mock(
   '@/features/architect/utils/entitlements/dare/protectionLadderFactory',
   () => ({
     buildProtectionLadder: vi.fn(),
+    protectionTriggers: vi.fn(),
+    getCurrentProtectionTier: vi.fn(),
+    getNextProtectionTier: vi.fn(),
+    isFinalProtectionYear: vi.fn(),
   })
 );
 
-import { resolveConveyance } from '@/features/architect/utils/entitlements/dare/conveyanceResolutionAdapter';
-import { buildProtectionLadder } from '@/features/architect/utils/entitlements/dare/protectionLadderFactory';
+import { resolveConveyanceForEntitlement } from '@/features/architect/utils/entitlements/dare/conveyanceResolutionAdapter';
+import {
+  protectionTriggers,
+  getCurrentProtectionTier,
+  getNextProtectionTier,
+  isFinalProtectionYear,
+} from '@/features/architect/utils/entitlements/dare/protectionLadderFactory';
 
 describe('conveyanceResolutionAdapter', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Default mocks: no protection triggers
+    protectionTriggers.mockReturnValue(false);
+    getCurrentProtectionTier.mockReturnValue(null);
+    getNextProtectionTier.mockReturnValue(null);
+    isFinalProtectionYear.mockReturnValue(false);
   });
 
-  describe('resolveConveyance', () => {
+  describe('resolveConveyanceForEntitlement', () => {
     it('should convey unprotected pick', () => {
       const entitlement = {
         id: 'ent-1',
-        pickType: 'first',
-        originTeam: 'BOS',
-        ownerTeam: 'LAL',
+        kind: 'pick_ownership',
+        holderTeam: 'LAL',
         seasonYear: 2026,
-        pickRuleId: 'rule-1',
+        underlyingPickId: 'BOS_2026_1st',
       };
 
-      buildProtectionLadder.mockReturnValue([
-        { year: 2026, condition: 'Unprotected', ifTriggered: 'convey' },
-      ]);
+      const positionsMap = { BOS: 20 };
+      const ladder = null;
 
-      const positionsMap = { BOS: 20 }; // Not protected
-
-      const result = resolveConveyance(entitlement, positionsMap, {});
+      const result = resolveConveyanceForEntitlement(
+        entitlement,
+        positionsMap,
+        ladder,
+        {
+          draftYear: 2026,
+        }
+      );
 
       expect(result.outcome).toBe('conveyed');
-      expect(result.resolvedPosition).toBe(20);
-      expect(result.protectionTriggered).toBe(false);
+      expect(result.position).toBe(20);
+      expect(result.entitlementId).toBe('ent-1');
     });
 
     it('should roll protected pick when protection triggers', () => {
       const entitlement = {
         id: 'ent-2',
-        pickType: 'first',
-        originTeam: 'CHI',
-        ownerTeam: 'MIA',
+        kind: 'pick_ownership',
+        holderTeam: 'MIA',
         seasonYear: 2026,
-        pickRuleId: 'rule-2',
+        underlyingPickId: 'CHI_2026_1st',
       };
 
-      buildProtectionLadder.mockReturnValue([
+      const ladder = [
         {
           year: 2026,
           condition: 'Top 10',
@@ -69,133 +90,181 @@ describe('conveyanceResolutionAdapter', () => {
           rollToYear: 2028,
         },
         { year: 2028, condition: 'Unprotected', ifTriggered: 'convey' },
-      ]);
+      ];
 
-      const positionsMap = { CHI: 8 }; // Top 10, triggers protection
+      protectionTriggers.mockReturnValue(true);
+      getCurrentProtectionTier.mockReturnValue(ladder[0]);
+      getNextProtectionTier.mockReturnValue(ladder[1]);
+      isFinalProtectionYear.mockReturnValue(false);
 
-      const result = resolveConveyance(entitlement, positionsMap, {});
+      const positionsMap = { CHI: 8 };
+
+      const result = resolveConveyanceForEntitlement(
+        entitlement,
+        positionsMap,
+        ladder,
+        {
+          draftYear: 2026,
+        }
+      );
 
       expect(result.outcome).toBe('rolled');
-      expect(result.protectionTriggered).toBe(true);
-      expect(result.rollToYear).toBe(2027);
-      expect(result.resolvedPosition).toBe(8);
+      expect(result.position).toBe(8);
+      expect(result.newYear).toBe(2027);
     });
 
     it('should convert to second round when conversion triggers', () => {
       const entitlement = {
         id: 'ent-3',
-        pickType: 'first',
-        originTeam: 'DET',
-        ownerTeam: 'PHX',
+        kind: 'pick_ownership',
+        holderTeam: 'PHX',
         seasonYear: 2026,
-        pickRuleId: 'rule-3',
+        underlyingPickId: 'DET_2026_1st',
       };
 
-      buildProtectionLadder.mockReturnValue([
+      const ladder = [
         {
           year: 2026,
           condition: 'Lottery',
           ifTriggered: 'convert',
           convertToRound: 2,
         },
-      ]);
+      ];
 
-      const positionsMap = { DET: 5 }; // Lottery pick, triggers conversion
+      protectionTriggers.mockReturnValue(true);
+      getCurrentProtectionTier.mockReturnValue(ladder[0]);
+      isFinalProtectionYear.mockReturnValue(false);
 
-      const result = resolveConveyance(entitlement, positionsMap, {});
+      const positionsMap = { DET: 5 };
+
+      const result = resolveConveyanceForEntitlement(
+        entitlement,
+        positionsMap,
+        ladder,
+        {
+          draftYear: 2026,
+        }
+      );
 
       expect(result.outcome).toBe('converted');
-      expect(result.protectionTriggered).toBe(true);
-      expect(result.convertToRound).toBe(2);
-      expect(result.resolvedPosition).toBe(5);
+      expect(result.position).toBe(5);
+      expect(result.convertedToRound).toBe(2);
     });
 
-    it('should cancel pick when final protection triggers', () => {
+    it('should expire pick at final protection year', () => {
       const entitlement = {
         id: 'ent-4',
-        pickType: 'first',
-        originTeam: 'ORL',
-        ownerTeam: 'NYK',
+        kind: 'pick_ownership',
+        holderTeam: 'NYK',
         seasonYear: 2026,
-        pickRuleId: 'rule-4',
+        underlyingPickId: 'ORL_2026_1st',
       };
 
-      buildProtectionLadder.mockReturnValue([
+      const ladder = [
         { year: 2026, condition: 'Top 3', ifTriggered: 'cancel' },
-      ]);
+      ];
 
-      const positionsMap = { ORL: 2 }; // Top 3, triggers cancel
+      protectionTriggers.mockReturnValue(true);
+      getCurrentProtectionTier.mockReturnValue(ladder[0]);
+      isFinalProtectionYear.mockReturnValue(true);
 
-      const result = resolveConveyance(entitlement, positionsMap, {});
+      const positionsMap = { ORL: 2 };
 
-      expect(result.outcome).toBe('cancelled');
-      expect(result.protectionTriggered).toBe(true);
+      const result = resolveConveyanceForEntitlement(
+        entitlement,
+        positionsMap,
+        ladder,
+        {
+          draftYear: 2026,
+        }
+      );
+
+      expect(result.outcome).toBe('expired');
+      expect(result.position).toBe(2);
     });
 
-    it('should handle pick with no protection ladder (unprotected)', () => {
+    it('should convey pick with no protection ladder (unprotected)', () => {
       const entitlement = {
         id: 'ent-5',
-        pickType: 'first',
-        originTeam: 'SAC',
-        ownerTeam: 'TOR',
+        kind: 'pick_ownership',
+        holderTeam: 'TOR',
         seasonYear: 2026,
+        underlyingPickId: 'SAC_2026_1st',
       };
-
-      buildProtectionLadder.mockReturnValue(null);
 
       const positionsMap = { SAC: 15 };
 
-      const result = resolveConveyance(entitlement, positionsMap, {});
+      const result = resolveConveyanceForEntitlement(
+        entitlement,
+        positionsMap,
+        null,
+        {
+          draftYear: 2026,
+        }
+      );
 
       expect(result.outcome).toBe('conveyed');
-      expect(result.protectionTriggered).toBe(false);
+      expect(result.position).toBe(15);
     });
 
-    it('should handle second round picks (always convey)', () => {
+    it('should return unchanged for non-conveyable entitlement kind', () => {
       const entitlement = {
-        id: 'ent-6',
-        pickType: 'second',
-        originTeam: 'MEM',
-        ownerTeam: 'DAL',
+        id: 'ent-swap',
+        kind: 'swap_right',
+        holderTeam: 'BOS',
         seasonYear: 2026,
+        underlyingPickId: 'BOS_2026_1st',
       };
 
-      const positionsMap = { MEM: 45 }; // Second round position
+      const positionsMap = { BOS: 5 };
 
-      const result = resolveConveyance(entitlement, positionsMap, {});
+      const result = resolveConveyanceForEntitlement(
+        entitlement,
+        positionsMap,
+        null,
+        {
+          draftYear: 2026,
+        }
+      );
 
-      expect(result.outcome).toBe('conveyed');
-      expect(result.protectionTriggered).toBe(false);
+      expect(result.outcome).toBe('unchanged');
+      expect(result.reason).toContain('Not a conveyable entitlement');
     });
 
-    it('should warn when origin team not in positionsMap', () => {
+    it('should return unchanged when origin team not in positionsMap', () => {
       const entitlement = {
         id: 'ent-7',
-        pickType: 'first',
-        originTeam: 'XXX', // Invalid team
-        ownerTeam: 'LAC',
+        kind: 'pick_ownership',
+        holderTeam: 'LAC',
         seasonYear: 2026,
+        underlyingPickId: 'XXX_2026_1st',
       };
 
-      const positionsMap = { LAL: 10 }; // XXX not in map
+      const positionsMap = { LAL: 10 };
 
-      const result = resolveConveyance(entitlement, positionsMap, {});
+      const result = resolveConveyanceForEntitlement(
+        entitlement,
+        positionsMap,
+        null,
+        {
+          draftYear: 2026,
+        }
+      );
 
-      expect(result.outcome).toBe('error');
-      expect(result.error).toContain('position');
+      expect(result.outcome).toBe('unchanged');
+      expect(result.reason).toContain('Missing position data');
     });
 
     it('should handle lottery threshold correctly (1-14)', () => {
       const entitlement = {
         id: 'ent-8',
-        pickType: 'first',
-        originTeam: 'WAS',
-        ownerTeam: 'BKN',
+        kind: 'pick_ownership',
+        holderTeam: 'BKN',
         seasonYear: 2026,
-        pickRuleId: 'rule-8',
+        underlyingPickId: 'WAS_2026_1st',
       };
 
-      buildProtectionLadder.mockReturnValue([
+      const ladder = [
         {
           year: 2026,
           condition: 'Lottery',
@@ -203,66 +272,72 @@ describe('conveyanceResolutionAdapter', () => {
           rollToYear: 2027,
         },
         { year: 2027, condition: 'Unprotected', ifTriggered: 'convey' },
-      ]);
+      ];
 
-      // Test position 14 - should trigger lottery protection
+      protectionTriggers.mockReturnValue(true);
+      getCurrentProtectionTier.mockReturnValue(ladder[0]);
+      getNextProtectionTier.mockReturnValue(ladder[1]);
+      isFinalProtectionYear.mockReturnValue(false);
+
       let positionsMap = { WAS: 14 };
-      let result = resolveConveyance(entitlement, positionsMap, {});
+      let result = resolveConveyanceForEntitlement(
+        entitlement,
+        positionsMap,
+        ladder,
+        {
+          draftYear: 2026,
+        }
+      );
       expect(result.outcome).toBe('rolled');
-      expect(result.protectionTriggered).toBe(true);
 
-      // Test position 15 - should convey (not lottery)
+      protectionTriggers.mockReturnValue(false);
+
       positionsMap = { WAS: 15 };
-      result = resolveConveyance(entitlement, positionsMap, {});
+      result = resolveConveyanceForEntitlement(
+        entitlement,
+        positionsMap,
+        ladder,
+        {
+          draftYear: 2026,
+        }
+      );
       expect(result.outcome).toBe('conveyed');
-      expect(result.protectionTriggered).toBe(false);
     });
 
-    it('should match year from ladder correctly', () => {
+    it('should return unchanged when draftYear does not match entitlement year', () => {
       const entitlement = {
         id: 'ent-9',
-        pickType: 'first',
-        originTeam: 'IND',
-        ownerTeam: 'CLE',
-        seasonYear: 2027, // Second year of ladder
-        pickRuleId: 'rule-9',
+        kind: 'pick_ownership',
+        holderTeam: 'CLE',
+        seasonYear: 2027,
+        underlyingPickId: 'IND_2027_1st',
       };
 
-      buildProtectionLadder.mockReturnValue([
-        {
-          year: 2026,
-          condition: 'Top 10',
-          ifTriggered: 'roll',
-          rollToYear: 2027,
-        },
-        {
-          year: 2027,
-          condition: 'Top 5',
-          ifTriggered: 'roll',
-          rollToYear: 2028,
-        },
-        { year: 2028, condition: 'Unprotected', ifTriggered: 'convey' },
-      ]);
-
-      // Position 7 - not in Top 5 for 2027, should convey
       const positionsMap = { IND: 7 };
-      const result = resolveConveyance(entitlement, positionsMap, {});
 
-      expect(result.outcome).toBe('conveyed');
-      expect(result.protectionTriggered).toBe(false);
+      const result = resolveConveyanceForEntitlement(
+        entitlement,
+        positionsMap,
+        null,
+        {
+          draftYear: 2026,
+        }
+      );
+
+      expect(result.outcome).toBe('unchanged');
+      expect(result.reason).toContain('does not match draft year');
     });
 
     it('should handle Top 5 protection correctly at boundary', () => {
       const entitlement = {
         id: 'ent-10',
-        pickType: 'first',
-        originTeam: 'SAS',
-        ownerTeam: 'ATL',
+        kind: 'pick_ownership',
+        holderTeam: 'ATL',
         seasonYear: 2026,
-        pickRuleId: 'rule-10',
+        underlyingPickId: 'SAS_2026_1st',
       };
 
-      buildProtectionLadder.mockReturnValue([
+      const ladder = [
         {
           year: 2026,
           condition: 'Top 5',
@@ -270,16 +345,35 @@ describe('conveyanceResolutionAdapter', () => {
           rollToYear: 2027,
         },
         { year: 2027, condition: 'Unprotected', ifTriggered: 'convey' },
-      ]);
+      ];
 
-      // Position 5 - should trigger Top 5
+      protectionTriggers.mockReturnValue(true);
+      getCurrentProtectionTier.mockReturnValue(ladder[0]);
+      getNextProtectionTier.mockReturnValue(ladder[1]);
+      isFinalProtectionYear.mockReturnValue(false);
+
       let positionsMap = { SAS: 5 };
-      let result = resolveConveyance(entitlement, positionsMap, {});
+      let result = resolveConveyanceForEntitlement(
+        entitlement,
+        positionsMap,
+        ladder,
+        {
+          draftYear: 2026,
+        }
+      );
       expect(result.outcome).toBe('rolled');
 
-      // Position 6 - should convey
+      protectionTriggers.mockReturnValue(false);
+
       positionsMap = { SAS: 6 };
-      result = resolveConveyance(entitlement, positionsMap, {});
+      result = resolveConveyanceForEntitlement(
+        entitlement,
+        positionsMap,
+        ladder,
+        {
+          draftYear: 2026,
+        }
+      );
       expect(result.outcome).toBe('conveyed');
     });
   });

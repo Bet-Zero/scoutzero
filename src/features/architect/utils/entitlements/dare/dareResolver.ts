@@ -157,12 +157,22 @@ export async function resolveAllDraftAssets(
       }
     }
 
-    // 5. Process each team's entitlements
-    for (const teamInput of teams) {
+    // 5. Process each team's entitlements (sorted for determinism)
+    // Sort teams by teamCode for consistent processing order
+    const sortedTeams = [...teams].sort((a, b) =>
+      a.teamCode.localeCompare(b.teamCode)
+    );
+
+    for (const teamInput of sortedTeams) {
       const { teamCode } = teamInput;
       const entitlements = teamEntitlementsMap.get(teamCode) || [];
 
-      for (const entitlement of entitlements) {
+      // Sort entitlements by ID for deterministic resolution order
+      const sortedEntitlements = [...entitlements].sort((a, b) =>
+        (a.id as string).localeCompare(b.id as string)
+      );
+
+      for (const entitlement of sortedEntitlements) {
         // Skip entitlements not for this draft year
         if (entitlement.seasonYear !== draftYear) {
           continue;
@@ -204,11 +214,15 @@ export async function resolveAllDraftAssets(
 
         // --- SWAP RESOLUTION (swap_right) ---
         if (entitlement.kind === 'swap_right') {
-          const swapResult = resolveSwapForEntitlement(entitlement, positionsMap, {
-            draftYear,
-            nowIso,
-            method,
-          });
+          const swapResult = resolveSwapForEntitlement(
+            entitlement,
+            positionsMap,
+            {
+              draftYear,
+              nowIso,
+              method,
+            }
+          );
 
           if (swapResult.outcome !== 'unchanged') {
             allResolutions.push(swapResult);
@@ -252,8 +266,7 @@ export async function resolveAllDraftAssets(
       },
     };
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : String(error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
 
     return {
       success: false,
@@ -325,7 +338,11 @@ export async function resolveTeamDraftAssets(
   opts?: { nowIso?: string; method?: string }
 ): Promise<DAREOutput> {
   // Resolve entitlements for this team
-  const entitlements = await resolveEntitlementsForTeamWithDb(db, worldId, teamCode);
+  const entitlements = await resolveEntitlementsForTeamWithDb(
+    db,
+    worldId,
+    teamCode
+  );
 
   // Get entitlement IDs
   const entitlementIds = entitlements.map((e) => e.id as string);
